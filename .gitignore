@@ -20,3 +20,4 @@ env-secrets
 *.apk
 *.aab
 *.ipa
+.vercel
