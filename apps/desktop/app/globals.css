@@ -1,0 +1,287 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Theme tokens ──────────────────────────────────────────────
+   Dark is the default (:root). Light overrides via [data-theme="light"].
+   Inline styles across the app reference these via var(--token).        */
+:root, [data-theme="dark"] {
+  --bg: #080A0B;
+  --bg-2: #0C0F10;
+  --surface: #121615;
+  --surface-2: #181D1B;
+  --surface-grad-from: rgba(28,34,31,0.68);
+  --surface-grad-to: rgba(11,14,14,0.78);
+
+  --text: #F4F4F7;
+  --text-body: #C9C9DA;
+  --text-muted: #9A9AB0;
+  --text-dim: #6E6E84;
+  --text-faint: #4A4A60;
+
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.14);
+  --overlay: rgba(255,255,255,0.05);
+  --overlay-hover: rgba(255,255,255,0.09);
+  --on-accent: #0B0B0F;
+
+  --violet: #7657FF;
+  --violet-bright: #9278FF;
+  --violet-soft: rgba(118,87,255,0.18);
+  --lime: #B7FF2A;
+  --lime-text: #B7FF2A;
+  --coral: #FF5C5C;
+  --teal: #2FE6C8;
+
+  --elev: 0 1px 0 rgba(255,255,255,0.05) inset, 0 14px 40px -24px rgba(0,0,0,0.7);
+  --hairline: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+
+  /* ── Interaction primitives (shared across components) ──────────
+     Easings + a standard micro-duration for hovers/presses.        */
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  --ease-inout: cubic-bezier(.4,0,.2,1);
+  --dur: .16s;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--violet);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --bg: #F5F7F2;
+  --bg-2: #EBEFE8;
+  --surface: #FFFFFF;
+  --surface-2: #F6F7FC;
+  --surface-grad-from: #FFFFFF;
+  --surface-grad-to: #F6F7FC;
+
+  --text: #15151F;
+  --text-body: #34343F;
+  --text-muted: #5C5C70;
+  --text-dim: #8888A0;
+  --text-faint: #A6A6BC;
+
+  --border: rgba(18,18,30,0.10);
+  --border-strong: rgba(18,18,30,0.18);
+  --overlay: rgba(18,18,30,0.04);
+  --overlay-hover: rgba(18,18,30,0.07);
+  --on-accent: #FFFFFF;
+
+  --violet: #6546DB;
+  --violet-bright: #5536CC;
+  --violet-soft: rgba(101,70,219,0.12);
+  --lime: #9BEA18;
+  --lime-text: #3E7E00;
+  --coral: #E5484D;
+  --teal: #16A394;
+
+  --elev: 0 1px 0 rgba(255,255,255,0.7) inset, 0 12px 32px -22px rgba(20,20,40,0.35);
+  --hairline: linear-gradient(90deg, transparent, rgba(18,18,30,0.10), transparent);
+  color-scheme: light;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Premium interaction primitives ─────────────────────────────
+   Shared easings + reveal/shimmer/toast keyframes used by content
+   routes & cards. Easing: entrances use a soft overshoot, UI
+   feedback uses a crisp standard curve.                          */
+:root {
+  --ease-entrance: cubic-bezier(.22, 1, .36, 1);
+  --ease-ui: cubic-bezier(.4, 0, .2, 1);
+}
+
+@keyframes gg-reveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes gg-toast-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes gg-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes gg-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Subtle section/content mount reveal */
+.gg-reveal { animation: gg-reveal .42s var(--ease-entrance) both; }
+.gg-toast  { animation: gg-toast-in .26s var(--ease-entrance) both; }
+
+/* Branded inline spinner (keeps button size stable while loading) */
+.gg-spinner {
+  display: inline-block;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.9;
+  animation: gg-spin .7s linear infinite;
+  vertical-align: -2px;
+}
+
+/* Skeleton shimmer surface */
+.gg-shimmer {
+  background: linear-gradient(90deg, var(--overlay) 0px, var(--overlay-hover) 200px, var(--overlay) 400px);
+  background-size: 800px 100%;
+  animation: gg-shimmer 1.4s ease-in-out infinite;
+}
+
+/* Accessible focus ring for interactive content elements */
+.gg-focusable:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 55%, transparent);
+}
+
+/* Press feedback — inline styles can't express :active, so these
+   classes carry the press scale. Buttons compress more, cards a hair. */
+.gg-press:not(:disabled):active { transform: scale(0.97); }
+.gg-press-card:active { transform: scale(0.995); }
+.gg-press:disabled { cursor: not-allowed; }
+
+/* CSS-only interactive lift for cards that don't track hover in JS. */
+.gg-venue:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.32);
+  border-color: var(--violet-soft);
+}
+
+/* List-row hover lift (friends rows, search/request rows). */
+.gg-row {
+  transition: transform .18s var(--ease-ui), box-shadow .2s var(--ease-ui), border-color .2s var(--ease-ui);
+}
+.gg-row:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gg-press:not(:disabled):active,
+  .gg-press-card:active { transform: none; }
+}
+
+/* Respect reduced-motion: kill transforms & animations globally so
+   inline hover transforms degrade to instant, no-movement feedback. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .gg-reveal, .gg-toast { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .gg-spinner { animation: gg-spin .7s linear infinite !important; } /* spinner stays — it's a status, not decoration */
+}
+
+/* ── Shared chrome polish ───────────────────────────────────────
+   Conventions other components inherit:
+   easings  → var(--ease-out), var(--ease-inout)
+   duration → var(--dur) (.16s)  |  focus → var(--focus-ring)
+   keyframes (canonical names): shimmer, spin, fadeUp, toastIn
+   (the gg-* keyframes above remain as their existing aliases).    */
+
+/* Canonical keyframe names referenced by the interaction spec. */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* `spin` already defined above; reused as the canonical spin keyframe. */
+
+/* Gentle default transitions on interactive elements. Scoped to the
+   common feedback properties so component inline styles that animate
+   `all`/specific props are not destructively overridden. */
+button, a, [role="button"], input, select, textarea {
+  transition:
+    background-color var(--dur) var(--ease-inout),
+    border-color var(--dur) var(--ease-inout),
+    color var(--dur) var(--ease-inout),
+    box-shadow var(--dur) var(--ease-inout),
+    transform var(--dur) var(--ease-out),
+    opacity var(--dur) var(--ease-inout);
+}
+
+/* Accessible focus ring — only for keyboard focus, never on mouse
+   click (:focus-visible, not :focus). No outline; violet box-shadow. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: inherit;
+}
+
+/* Brand selection colour */
+::selection {
+  background: color-mix(in srgb, var(--violet) 38%, transparent);
+  color: var(--text);
+}
+
+/* TopNav tactile press + icon hover scale (presentational only). */
+.gg-nav-item { will-change: transform; }
+.gg-nav-item:active { transform: scale(0.96); }
+.gg-nav-item > svg { transition: transform var(--dur) var(--ease-out); }
+.gg-nav-item:hover > svg { transform: scale(1.12); }
+
+/* Subtle custom scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-faint);
+  background-clip: padding-box;
+}

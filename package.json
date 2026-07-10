@@ -1,0 +1,25 @@
+{
+  "name": "giggle-app",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.18 <25",
+    "pnpm": ">=10 <11"
+  },
+  "scripts": {
+    "dev:desktop": "pnpm --filter @giggle/desktop dev",
+    "dev:mobile": "pnpm --filter @giggle/mobile start",
+    "build:desktop": "pnpm --filter @giggle/desktop build",
+    "check:mobile": "pnpm --filter @giggle/mobile check",
+    "audit:prod": "pnpm audit --prod --audit-level moderate",
+    "ios": "pnpm --filter @giggle/mobile ios",
+    "web:mobile": "pnpm --filter @giggle/mobile web"
+  },
+  "pnpm": {
+    "overrides": {
+      "uuid": "11.1.1",
+      "postcss": "8.5.16"
+    }
+  }
+}
