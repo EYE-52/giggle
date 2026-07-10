@@ -220,7 +220,13 @@ export default function HomePage() {
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 0, paddingBottom: 40 }}>
 
       {/* ── COMMAND CENTER GREETING ───────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", alignItems: isPhone ? "flex-start" : "flex-end", justifyContent: "space-between", paddingBottom: isPhone ? 14 : 14, gap: isPhone ? 10 : 18 }}>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: isPhone ? "1fr" : "minmax(0, 1fr) minmax(300px, 360px)",
+        alignItems: "end",
+        paddingBottom: isPhone ? 14 : 16,
+        gap: isPhone ? 16 : 28,
+      }}>
         <div style={{ maxWidth: 720 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 10px", borderRadius: 999, background: "color-mix(in srgb, var(--lime) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 28%, transparent)", color: "var(--lime-text)", fontFamily: "var(--font-space-grotesk)", fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
             <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--lime)", boxShadow: "0 0 10px var(--lime)" }} />
@@ -233,16 +239,45 @@ export default function HomePage() {
             Open a room, invite your people, and match with another crew when everyone is ready.
           </p>
         </div>
-        {/* Token wallet chip (real, live balance) */}
-        <button
-          onClick={() => router.push("/premium")}
-          className="gg-press"
-          style={{ display: "inline-flex", alignItems: "center", gap: 8, minHeight: 40, background: "var(--violet-soft)", border: "1px solid rgba(124,92,255,0.3)", borderRadius: 999, padding: "8px 16px", flexShrink: 0, cursor: "pointer", transition: "transform .14s ease, background .2s var(--ease-ui), border-color .2s var(--ease-ui)" }}
-          title="Your tokens — tap to top up"
-        >
-          <Icon.star size={16} color="var(--lime)" />
-          <span style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14, color: "var(--lime-text)" }}>{tokenBal.toLocaleString()} tokens</span>
-        </button>
+        <section style={{
+          border: "1px solid rgba(124,92,255,0.28)",
+          borderRadius: 16,
+          padding: 14,
+          background: "linear-gradient(145deg, rgba(124,92,255,0.16), rgba(255,255,255,0.035) 48%, rgba(194,255,61,0.06))",
+          boxShadow: "0 22px 70px -50px rgba(124,92,255,0.8)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+            <div>
+              <div style={{ color: "var(--text-dim)", fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>Next move</div>
+              <div style={{ marginTop: 2, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 800, letterSpacing: "-0.02em" }}>Open a room</div>
+            </div>
+            <button
+              onClick={() => router.push("/premium")}
+              className="gg-press"
+              style={{ display: "inline-flex", alignItems: "center", gap: 7, minHeight: 36, background: "var(--violet-soft)", border: "1px solid rgba(124,92,255,0.3)", borderRadius: 999, padding: "7px 12px", flexShrink: 0, cursor: "pointer" }}
+              title="Your tokens - tap to top up"
+            >
+              <Icon.star size={14} color="var(--lime)" />
+              <span style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: 13, color: "var(--lime-text)" }}>{tokenBal.toLocaleString()}</span>
+            </button>
+          </div>
+          <button
+            onClick={handleCreate}
+            disabled={creating}
+            onMouseEnter={() => setCreateHovered(true)}
+            onMouseLeave={() => setCreateHovered(false)}
+            className="gg-press"
+            style={{
+              ...primaryBtn,
+              height: 46,
+              background: createHovered ? "var(--violet-bright)" : "var(--violet)",
+              boxShadow: createHovered ? "0 0 32px -6px rgba(124,92,255,0.95)" : "0 0 24px -8px rgba(124,92,255,0.8)",
+              opacity: creating ? 0.85 : 1,
+            }}
+          >
+            {creating ? (<><span className="gg-spinner" /> Creating...</>) : "Create Squad"}
+          </button>
+        </section>
       </div>
 
       <div style={{
@@ -410,43 +445,10 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ── PRIMARY ACTIONS + TRENDING VIBES ─────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: isTablet ? "1fr" : "minmax(360px,.9fr) minmax(0,1.1fr)", gap: 20, alignItems: "stretch" }}>
-        {/* LEFT — Create + Join */}
+      {/* ── PRIMARY ACTIONS + LIVE SIGNALS ─────────────────────── */}
+      <div style={{ display: "grid", gridTemplateColumns: isTablet ? "1fr" : "minmax(300px,.65fr) minmax(0,1.35fr)", gap: 20, alignItems: "stretch" }}>
+        {/* LEFT — Join */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Create a Squad */}
-          <section style={{
-            ...card,
-            background: "linear-gradient(165deg, color-mix(in srgb, var(--violet) 14%, var(--surface)), var(--surface))",
-            boxShadow: "var(--elev), 0 0 40px -20px rgba(124,92,255,0.25)",
-            border: "1px solid var(--violet-soft)",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <div style={iconTile}>
-                <Icon.plus size={20} color="var(--on-accent)" strokeWidth={2.6} />
-              </div>
-              <h2 style={cardTitle}>Create a Squad</h2>
-            </div>
-            <p style={cardBody}>Start a new vibe. Invite your crew or open it up to the city.</p>
-            <button
-              onClick={handleCreate}
-              disabled={creating}
-              onMouseEnter={() => setCreateHovered(true)}
-              onMouseLeave={() => setCreateHovered(false)}
-              className="gg-press"
-              style={{
-                ...primaryBtn,
-                background: createHovered ? "var(--violet-bright)" : "var(--violet)",
-                boxShadow: createHovered ? "0 0 32px -6px rgba(124,92,255,0.95)" : "0 0 24px -8px rgba(124,92,255,0.8)",
-                transform: createHovered && !creating ? "translateY(-1px)" : "translateY(0)",
-                transition: "transform .14s ease, box-shadow .2s var(--ease-ui), background .2s var(--ease-ui)",
-                opacity: creating ? 0.85 : 1,
-              }}
-            >
-              {creating ? (<><span className="gg-spinner" /> Creating…</>) : "Create Squad"}
-            </button>
-          </section>
-
           {/* Join with Code */}
           <section style={card}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>

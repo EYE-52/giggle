@@ -325,59 +325,28 @@ export default function DiscoverPage() {
       {/* Empty state */}
       {!loading && !error && shown.length === 0 && (
         <div style={{
-          borderRadius: 20, border: "1px dashed var(--border-strong)",
-          background: "var(--surface)", padding: "48px 24px",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 16, textAlign: "center",
+          borderRadius: 18, border: "1px dashed var(--border)",
+          background: "rgba(255,255,255,0.026)", padding: "30px 24px",
+          display: "grid",
+          gridTemplateColumns: isPhone ? "1fr" : "56px minmax(0, 1fr)",
+          alignItems: "center",
+          gap: 16,
+          textAlign: isPhone ? "center" : "left",
         }}>
           <div style={{
-            width: 56, height: 56, borderRadius: 16, background: "var(--violet-soft)",
+            width: 52, height: 52, borderRadius: 14, background: "var(--violet-soft)",
             display: "flex", alignItems: "center", justifyContent: "center",
+            margin: isPhone ? "0 auto" : 0,
           }}>
-            <Icon.discover size={26} color={violet} />
+            <Icon.trend size={24} color={violet} />
           </div>
           <div>
             <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: text, marginBottom: 4 }}>
               {vibe ? `No open “${vibe}” squads right now` : "No open squads right now"}
             </div>
             <div style={{ color: muted, fontSize: 14, maxWidth: 380 }}>
-              {vibe ? "Start one with this vibe, or clear the filter to browse other live signals." : "Start the first open room and make your squad discoverable."}
+              {vibe ? "Start one with the banner above, or clear the filter to browse other live signals." : "Use the banner above to start the first signal and make your squad discoverable."}
             </div>
-          </div>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-            <button
-              onClick={handleCreate}
-              disabled={creating}
-              className="gg-press"
-              style={{
-                height: 44, padding: "0 24px", borderRadius: 999, border: "none",
-                cursor: creating ? "wait" : "pointer",
-                background: violet, color: "var(--on-accent)",
-                fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14,
-                boxShadow: "0 0 24px -8px rgba(124,92,255,0.8)",
-                opacity: creating ? 0.85 : 1,
-                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-              }}
-            >
-              {creating ? <span className="gg-spinner" /> : <Icon.plus size={15} color="var(--on-accent)" />}
-              {creating ? "Creating…" : "Create a squad"}
-            </button>
-            {hasOpenSquads && !vibe && (
-              <button
-                onClick={handleRandom}
-                disabled={randomLoading}
-                className="gg-press"
-                style={{
-                  height: 44, padding: "0 24px", borderRadius: 999,
-                  border: "1px solid var(--border-strong)", cursor: randomLoading ? "wait" : "pointer",
-                  background: "transparent", color: text,
-                  fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14,
-                  opacity: randomLoading ? 0.85 : 1,
-                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-                }}
-              >
-                {randomLoading ? (<><span className="gg-spinner" /> Finding...</>) : "Join random"}
-              </button>
-            )}
           </div>
         </div>
       )}

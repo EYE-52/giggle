@@ -707,6 +707,7 @@ function LobbyInner() {
   // Effective layout (phone caps at 2 cols); rows derived so tiles fill the stage.
   const effCols = isPhone ? Math.min(gridCols, 2) : gridCols;
   const effRows = Math.ceil(tileCount / effCols);
+  const soloAssemblyLayout = !isPhone && memberCount === 1 && showInviteTile;
 
   const allReady = memberCount > 0 && readyCount === memberCount;
   const myReady = !!myMember?.ready;
@@ -1376,7 +1377,9 @@ function LobbyInner() {
               position: "relative",
               zIndex: 1,
               display: "grid",
-              gridTemplateColumns: `repeat(${effCols}, minmax(0, 1fr))`,
+              gridTemplateColumns: soloAssemblyLayout
+                ? "minmax(0, 2.15fr) minmax(220px, 0.72fr)"
+                : `repeat(${effCols}, minmax(0, 1fr))`,
               // Phone: auto rows + flexShrink:0 so tiles keep their aspect size and
               //   the stage SCROLLS (no row-collapse → no overlap).
               // Desktop: rows divide the stage HEIGHT (1fr) and the grid fills it
@@ -1386,7 +1389,7 @@ function LobbyInner() {
               ...(isPhone ? { flexShrink: 0 } : { flex: 1 }),
               gap: isPhone ? 10 : 8,
               width: "100%",
-              maxWidth: effCols <= 1 ? 860 : effCols >= 4 ? 1480 : 1320,
+              maxWidth: soloAssemblyLayout ? 1240 : effCols <= 1 ? 860 : effCols >= 4 ? 1480 : 1320,
               margin: "0 auto",
               minHeight: 0,
             }}>

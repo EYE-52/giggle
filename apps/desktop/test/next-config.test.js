@@ -638,7 +638,7 @@ test("desktop discover primary CTA honors the active vibe filter", () => {
   assert.equal(page.includes("const primaryCtaCreates = vibe ? !hasMatchingSquads : !hasOpenSquads;"), true);
   assert.equal(page.includes("if (vibe && shown[0]) { handlePreview(shown[0]); return; }"), true);
   assert.equal(page.includes("onClick={hasOpenSquads ? handleRandom : handleCreate}"), false);
-  assert.equal(page.includes("{hasOpenSquads && !vibe && ("), true);
+  assert.equal(page.includes("Use the banner above to start the first signal"), true);
 });
 
 test("desktop protected discover actions do not create dev sessions", () => {
