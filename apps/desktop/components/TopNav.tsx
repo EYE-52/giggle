@@ -42,17 +42,19 @@ export function TopNav() {
   }, []);
   const isCallingRoute = CALLING_ROUTES.includes(path);
   const { isPhone } = useViewport();
+  const compactChrome = isPhone || isCallingRoute;
+  const navHeight = isCallingRoute ? 48 : 64;
 
   const innerStyle: React.CSSProperties = isCallingRoute
     ? {
         height: "100%",
         maxWidth: "none",
         margin: 0,
-        padding: isPhone ? "0 8px" : "0 24px",
+        padding: isPhone ? "0 8px" : "0 12px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        gap: 16,
+        gap: 8,
       }
     : {
         height: "100%",
@@ -71,11 +73,11 @@ export function TopNav() {
         position: "sticky",
         top: 0,
         zIndex: 50,
-        height: 64,
-        background: "color-mix(in srgb, var(--bg) 82%, transparent)",
-        backdropFilter: "blur(16px)",
-        WebkitBackdropFilter: "blur(16px)",
-        borderBottom: "1px solid var(--border)",
+        height: navHeight,
+        background: isCallingRoute ? "rgba(7,7,11,0.72)" : "color-mix(in srgb, var(--bg) 82%, transparent)",
+        backdropFilter: isCallingRoute ? "blur(10px)" : "blur(16px)",
+        WebkitBackdropFilter: isCallingRoute ? "blur(10px)" : "blur(16px)",
+        borderBottom: isCallingRoute ? "1px solid rgba(255,255,255,0.06)" : "1px solid var(--border)",
       }}
     >
       <div style={innerStyle}>
@@ -94,11 +96,11 @@ export function TopNav() {
             flexShrink: 0,
           }}
         >
-          {isPhone ? <Logomark size={28} /> : <Wordmark size={20} />}
+          {compactChrome ? <Logomark size={isCallingRoute ? 24 : 28} /> : <Wordmark size={20} />}
         </Link>
 
         {/* right: nav + controls + profile */}
-        <nav style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: isPhone ? 2 : 4 }}>
+        <nav style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: compactChrome ? 2 : 4 }}>
           {NAV.filter(({ href }) => !(isPhone && href === "/home")).map(({ href, label, icon: I }) => {
             const active = path === href;
             const isHovered = hovered === href;
@@ -110,15 +112,15 @@ export function TopNav() {
                 onMouseEnter={() => setHovered(href)}
                 onMouseLeave={() => setHovered(null)}
                 aria-label={label}
-                title={isPhone ? label : undefined}
+                title={compactChrome ? label : undefined}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 7,
-                  padding: isPhone ? "0" : "0 13px",
-                  minWidth: 44,
-                  minHeight: 44,
+                  gap: compactChrome ? 0 : 7,
+                  padding: compactChrome ? "0" : "0 13px",
+                  minWidth: compactChrome ? 40 : 44,
+                  minHeight: compactChrome ? 40 : 44,
                   borderRadius: 999,
                   textDecoration: "none",
                   color: active || isHovered ? "var(--text)" : "var(--text-muted)",
@@ -127,7 +129,7 @@ export function TopNav() {
                     : isHovered
                     ? "var(--overlay-hover)"
                     : "transparent",
-                  fontSize: 14,
+                  fontSize: compactChrome ? 13 : 14,
                   fontWeight: 600,
                   cursor: "pointer",
                   transition:
@@ -136,22 +138,22 @@ export function TopNav() {
                 }}
               >
                 <I
-                  size={isPhone ? 20 : 18}
+                  size={compactChrome ? 19 : 18}
                   color={active || isHovered ? "var(--violet)" : "var(--text-muted)"}
                   strokeWidth={2}
                 />
-                {!isPhone && label}
+                {!compactChrome && label}
               </Link>
             );
           })}
 
           {/* Theme toggle */}
-          <div style={{ marginLeft: isPhone ? 2 : 4 }}>
-            <ThemeToggle size={44} />
+          <div style={{ marginLeft: compactChrome ? 2 : 4 }}>
+            <ThemeToggle size={compactChrome ? 40 : 44} />
           </div>
 
           {/* Premium star button with tooltip */}
-          <div style={{ position: "relative", marginLeft: isPhone ? 2 : 4 }}>
+          <div style={{ position: "relative", marginLeft: compactChrome ? 2 : 4 }}>
             <Link
               href="/premium"
               className="gg-nav-item"
@@ -162,9 +164,9 @@ export function TopNav() {
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: 8,
-                minWidth: 44,
-                minHeight: 44,
+                padding: compactChrome ? 6 : 8,
+                minWidth: compactChrome ? 40 : 44,
+                minHeight: compactChrome ? 40 : 44,
                 borderRadius: 999,
                 background:
                   hovered === "premium"
@@ -179,7 +181,7 @@ export function TopNav() {
                   "background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",
               }}
             >
-              <Icon.star size={17} />
+              <Icon.star size={compactChrome ? 16 : 17} />
             </Link>
             {hovered === "premium" && (
               <div
@@ -224,7 +226,7 @@ export function TopNav() {
           <NotificationBell />
 
           {/* Profile chip: avatar + live token balance */}
-          {!isPhone && <Link
+          {!isPhone && !isCallingRoute && <Link
             href="/profile"
             className="gg-nav-item"
             onMouseEnter={() => setHovered("rep")}

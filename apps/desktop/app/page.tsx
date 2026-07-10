@@ -675,6 +675,26 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
   const ready = useRef(false);
   const dur = useRef(0);
   const lastSet = useRef(-1);
+  const latestProgress = useRef(p);
+
+  useEffect(() => {
+    latestProgress.current = p;
+  }, [p]);
+
+  const seekToProgress = useCallback((progress: number) => {
+    const v = videoRef.current;
+    const d = dur.current;
+    if (!v || failed || !Number.isFinite(d) || d <= 0) return;
+    const t = clamp01(progress) * Math.max(d - 0.04, 0);
+    if (!Number.isFinite(t)) return;
+    if (Math.abs(t - lastSet.current) < Math.max(d / 600, 0.025)) return;
+    lastSet.current = t;
+    try {
+      const fastSeek = (v as HTMLVideoElement & { fastSeek?: (time: number) => void }).fastSeek;
+      if (typeof fastSeek === "function") fastSeek.call(v, t);
+      else v.currentTime = t;
+    } catch { /* decoder not ready yet */ }
+  }, [failed]);
 
   const onLoaded = useCallback(() => {
     const v = videoRef.current;
@@ -684,22 +704,28 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
     dur.current = d;
     ready.current = true;
     try { v.pause(); } catch { /* noop */ }
-  }, []);
+    seekToProgress(latestProgress.current);
+  }, [seekToProgress]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || failed) return;
+    try {
+      v.muted = true;
+      v.playsInline = true;
+      v.pause();
+      v.load();
+    } catch { /* noop */ }
+    if (v.readyState >= 1) onLoaded();
+  }, [failed, onLoaded]);
 
   // Drive currentTime from scroll progress `p` (NOT autoplay). useScrubProgress
   // already rAF-throttles p; epsilon guard avoids thrashing the decoder.
   // NOTE: demo.mp4 should be a SHORT, keyframe-dense clip for smooth scrubbing.
   useEffect(() => {
-    const v = videoRef.current;
-    if (!v || !ready.current || failed) return;
-    const d = dur.current;
-    if (!Number.isFinite(d) || d <= 0) return;
-    const t = clamp01(p) * d;
-    if (!Number.isFinite(t)) return;
-    if (Math.abs(t - lastSet.current) < d / 600) return; // ~min step guard
-    lastSet.current = t;
-    try { v.currentTime = t; } catch { /* seeking before ready */ }
-  }, [p, failed]);
+    if (!ready.current) return;
+    seekToProgress(p);
+  }, [p, seekToProgress]);
 
   // 3 cross-fading caption stages tied to scroll.
   const STAGES = [
@@ -722,7 +748,11 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
           ref={videoRef}
           muted playsInline preload="auto"
           onLoadedMetadata={onLoaded}
+          onLoadedData={onLoaded}
           onError={() => setFailed(true)}
+          poster="/landing/group1.jpg"
+          controls={false}
+          disablePictureInPicture
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.82) contrast(1.05) saturate(0.96)", zIndex: 1 }}
         >
           <source src="/landing/demo.mp4" type="video/mp4" />

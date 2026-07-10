@@ -1,20 +1,20 @@
 "use client";
-import { useState, useEffect, useCallback, type ReactElement } from "react";
+import { useState, useEffect, useCallback } from "react";
+import type React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Logomark } from "@/components/Brand";
+import { Logomark, Wordmark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
 import { session, setPendingReferral, BACKEND_URL } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 
 export default function AuthPage() {
   const router = useRouter();
-  const { isPhone } = useViewport();
+  const { isPhone, isNarrow } = useViewport();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [refCode, setRefCode] = useState<string | null>(null);
 
-  // Capture an inbound invite code (?ref=CODE) and remember it through signup.
   useEffect(() => {
     try {
       const code = new URLSearchParams(window.location.search).get("ref");
@@ -26,9 +26,6 @@ export default function AuthPage() {
     } catch {}
   }, []);
 
-  // Dev sign-in mints a UNIQUE per-browser-profile identity (not a shared fixed
-  // email), so two windows are two different users — required for 2-squad testing.
-  // session.devSignIn() still consumes any captured ?ref via the shared sign-in path.
   const devFinish = useCallback(async () => {
     setLoading(true); setErr("");
     try {
@@ -40,188 +37,155 @@ export default function AuthPage() {
     }
   }, [router]);
 
-  // Real OAuth: full-page redirect to the Express backend, which redirects to
-  // Google consent and then back to /auth/callback#token=<jwt>.
   const oauthRedirect = (provider: "google" | "apple") => {
     setErr("");
     const ref = refCode ? `?ref=${encodeURIComponent(refCode)}` : "";
-    // Same-origin so the flow goes through this domain's /api/auth proxy →
-    // Google's consent screen shows gigglemeet.com (not the backend host).
-    // Falls back to BACKEND_URL during SSR where window is unavailable.
     const base = typeof window !== "undefined" ? window.location.origin : BACKEND_URL;
     window.location.href = `${base}/api/auth/${provider}${ref}`;
   };
 
-  const props: { icon: keyof typeof Icon; tint: string; text: string }[] = [
-    { icon: "users", tint: "var(--violet)", text: "Bring your whole squad" },
-    { icon: "star", tint: "var(--lime)", text: "Matched by your vibe" },
-    { icon: "cam", tint: "var(--teal)", text: "Live group video" },
-  ];
+  const compact = isPhone || isNarrow;
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg-2)", display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", padding: isPhone ? "24px 16px" : 24 }}>
-      {/* Ambient drifting aurora + faint grain — cinematic, respects reduced-motion */}
+    <main style={{ minHeight: "100vh", background: "#07080B", color: "#F7F7FA", position: "relative", overflow: "hidden" }}>
       <style>{`
-        @keyframes authAurora {
-          0%,100% { transform: translate(0,0) scale(1); }
-          50%     { transform: translate(26px,-22px) scale(1.1); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .auth-aurora { animation: none !important; }
-        }
+        @keyframes authFloat { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(0,-10px,0); } }
+        @media (prefers-reduced-motion: reduce) { .auth-float { animation: none !important; } }
       `}</style>
-      <div style={{ position: "absolute", inset: 0, overflow: "hidden" }} aria-hidden>
-        <div className="auth-aurora" style={{ position: "absolute", width: 620, height: 620, borderRadius: "50%", top: "-16%", left: "-10%", background: "radial-gradient(circle, rgba(124,92,255,0.42), transparent 64%)", filter: "blur(56px)", animation: "authAurora 17s ease-in-out infinite" }} />
-        <div className="auth-aurora" style={{ position: "absolute", width: 560, height: 560, borderRadius: "50%", bottom: "-18%", right: "-10%", background: "radial-gradient(circle, rgba(61,214,192,0.30), transparent 64%)", filter: "blur(60px)", animation: "authAurora 23s ease-in-out infinite reverse" }} />
-        <div className="auth-aurora" style={{ position: "absolute", width: 460, height: 460, borderRadius: "50%", top: "36%", right: "16%", background: "radial-gradient(circle, rgba(194,255,61,0.20), transparent 64%)", filter: "blur(64px)", animation: "authAurora 19s ease-in-out infinite" }} />
-        {/* faint grain */}
-        <div style={{
-          position: "absolute", inset: 0, opacity: 0.05, mixBlendMode: "overlay",
-          backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
-        }} />
-      </div>
+      <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(900px 520px at 12% 14%, rgba(124,92,255,.34), transparent 62%), radial-gradient(760px 520px at 86% 86%, rgba(194,255,61,.20), transparent 58%), #07080B" }} />
+      <div aria-hidden style={{ position: "absolute", inset: 0, opacity: .09, backgroundImage: "linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px)", backgroundSize: "72px 72px", maskImage: "linear-gradient(to bottom, transparent, #000 12%, #000 82%, transparent)" }} />
 
-      <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 392, display: "flex", flexDirection: "column", alignItems: "center", gap: isPhone ? 16 : 20 }}>
-        {/* Logomark with soft glow halo */}
-        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div aria-hidden style={{ position: "absolute", width: 120, height: 120, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,92,255,0.45), transparent 70%)", filter: "blur(20px)" }} />
-          <div style={{ position: "relative" }}><Logomark size={58} /></div>
-        </div>
+      <div style={{
+        position: "relative", zIndex: 1, minHeight: "100vh",
+        display: "grid",
+        gridTemplateColumns: compact ? "1fr" : "minmax(0, 1.12fr) minmax(420px, .88fr)",
+      }}>
+        {!compact && (
+          <section style={{ position: "relative", minHeight: "100vh", overflow: "hidden" }}>
+            <img src="/landing/group2.jpg" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "saturate(1.05) contrast(1.04) brightness(.82)" }} />
+            <div aria-hidden style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(7,8,11,.18), rgba(7,8,11,.72) 82%, #07080B), linear-gradient(to top, #07080B 0%, transparent 34%)" }} />
+            <div style={{ position: "absolute", left: 40, top: 36 }}><Wordmark size={22} /></div>
+            <div style={{ position: "absolute", left: 44, right: 56, bottom: 48, display: "grid", gap: 18 }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: 8, width: "fit-content", padding: "7px 12px", borderRadius: 999, background: "rgba(7,8,11,.54)", border: "1px solid rgba(255,255,255,.16)", backdropFilter: "blur(10px)", fontSize: 12, fontWeight: 800, letterSpacing: ".12em", color: "#C2FF3D", textTransform: "uppercase" }}>
+                <span style={{ width: 7, height: 7, borderRadius: 999, background: "#C2FF3D", boxShadow: "0 0 14px #C2FF3D" }} />
+                live squad energy
+              </div>
+              <h1 style={{ margin: 0, fontFamily: "var(--font-space-grotesk)", fontSize: "clamp(58px, 7vw, 104px)", lineHeight: .88, letterSpacing: "-.055em", maxWidth: 760 }}>
+                Meet people with your people.
+              </h1>
+              <p style={{ margin: 0, maxWidth: 520, color: "#D7D7E5", fontFamily: "var(--font-inter)", fontSize: 18, lineHeight: 1.45 }}>
+                Giggle turns meeting new people into a shared moment: form a squad, match by vibe, then go live together.
+              </p>
+              <div className="auth-float" style={{ marginTop: 10, width: 360, maxWidth: "100%", borderRadius: 20, padding: 12, background: "rgba(12,13,18,.62)", border: "1px solid rgba(255,255,255,.16)", backdropFilter: "blur(18px)", boxShadow: "0 24px 70px -34px #000", animation: "authFloat 4.5s ease-in-out infinite" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, height: 164 }}>
+                  {["/landing/sq1.jpg", "/landing/call1.jpg", "/landing/sq3.jpg", "/landing/group1.jpg"].map((src, i) => (
+                    <div key={src} style={{ position: "relative", overflow: "hidden", borderRadius: 12, background: "#101116" }}>
+                      <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", filter: "brightness(.9)" }} />
+                      <span style={{ position: "absolute", left: 8, bottom: 8, width: 8, height: 8, borderRadius: 999, background: i === 3 ? "#C2FF3D" : "#7C5CFF", boxShadow: `0 0 14px ${i === 3 ? "#C2FF3D" : "#7C5CFF"}` }} />
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12, color: "#F4F4F7", fontFamily: "var(--font-space-grotesk)", fontWeight: 800 }}>
+                  <span>2 squads matched</span>
+                  <span style={{ color: "#7FF2DE" }}>live in 0:08</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 30 : 36, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.03em", margin: 0, textAlign: "center", lineHeight: 1.05 }}>
-            Meet in squads.
-          </h1>
-          <p style={{ fontSize: 15, color: "var(--text-muted)", margin: 0, textAlign: "center", fontFamily: "var(--font-inter)", lineHeight: 1.4 }}>
-            The social way to meet new people — together, never alone.
-          </p>
-        </div>
+        <section style={{
+          minHeight: compact ? "100vh" : undefined,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: compact ? "28px 18px" : "42px 56px",
+        }}>
+          <div style={{ width: "100%", maxWidth: compact ? 520 : 460 }}>
+            {compact && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+                <Wordmark size={21} />
+                <Link href="/" style={{ color: "#A9A9BA", textDecoration: "none", fontSize: 14, fontWeight: 700 }}>Preview</Link>
+              </div>
+            )}
 
-        {refCode && (
-          <div style={{
-            width: "100%",
-            display: "flex", alignItems: "center", gap: 10,
-            background: "linear-gradient(135deg, var(--violet-soft) 0%, rgba(194,255,61,0.08) 100%)",
-            border: "1px solid rgba(124,92,255,0.3)",
-            borderRadius: 14, padding: "12px 16px",
-          }}>
-            <Icon.gift size={20} color="var(--violet)" />
-            <div style={{ fontSize: 13.5, color: "var(--text)", fontFamily: "var(--font-inter)", lineHeight: 1.4 }}>
-              You were invited! Sign up and <strong>you both get 100 tokens</strong>.
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 22 }}>
+              <div style={{ position: "relative" }}>
+                <div aria-hidden style={{ position: "absolute", inset: -20, borderRadius: 999, background: "radial-gradient(circle, rgba(124,92,255,.45), transparent 68%)", filter: "blur(14px)" }} />
+                <span style={{ position: "relative", display: "inline-flex" }}><Logomark size={44} /></span>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: "#A6FF3F", fontWeight: 900, letterSpacing: ".14em", textTransform: "uppercase" }}>Giggle</div>
+                <div style={{ fontSize: 14, color: "#A9A9BA", fontFamily: "var(--font-inter)" }}>Squad-first social video</div>
+              </div>
+            </div>
+
+            <h2 style={{ margin: 0, fontFamily: "var(--font-space-grotesk)", fontSize: compact ? 42 : 52, lineHeight: .95, letterSpacing: "-.05em" }}>
+              Start with your squad.
+            </h2>
+            <p style={{ margin: "14px 0 28px", color: "#B9B9C8", fontSize: 16, lineHeight: 1.5, fontFamily: "var(--font-inter)" }}>
+              Sign in, bring friends, and match into a live room without doing the awkward solo swipe thing.
+            </p>
+
+            {refCode && (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16, background: "rgba(124,92,255,.14)", border: "1px solid rgba(124,92,255,.36)", borderRadius: 14, padding: "12px 14px" }}>
+                <Icon.gift size={18} color="#9B83FF" />
+                <span style={{ fontSize: 13.5, color: "#ECECF4", lineHeight: 1.35 }}>Invite applied. Sign up and you both get 100 tokens.</span>
+              </div>
+            )}
+
+            <div style={{ display: "grid", gap: 12 }}>
+              <button className="gg-press" onClick={() => oauthRedirect("google")} disabled={loading} style={primaryButton}>
+                <Icon.google size={21} /> Continue with Google
+              </button>
+              <button className="gg-press" onClick={() => oauthRedirect("apple")} disabled={loading} style={secondaryButton}>
+                <Icon.apple size={20} /> Continue with Apple
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: compact ? "1fr" : "1fr 1fr 1fr", gap: 10, marginTop: 18 }}>
+              <Benefit icon={<Icon.users size={17} color="#9B83FF" />} title="Bring friends" />
+              <Benefit icon={<Icon.star size={16} color="#C2FF3D" fill="#C2FF3D" />} title="Match vibes" />
+              <Benefit icon={<Icon.cam size={17} color="#7FF2DE" />} title="Go live" />
+            </div>
+
+            <p role={err ? "alert" : undefined} style={{ minHeight: 22, margin: "16px 0 0", color: "#FF8A8A", fontSize: 13, fontWeight: 700, textAlign: "center" }}>{err}</p>
+
+            <div style={{ marginTop: 18, display: "flex", flexDirection: "column", alignItems: "center", gap: 10, color: "#858598", fontSize: 12.5, lineHeight: 1.45, textAlign: "center" }}>
+              <p style={{ margin: 0 }}>Free to join. We never post anything.</p>
+              <p style={{ margin: 0 }}>
+                By continuing you agree to our <Link href="/terms" style={legalLink}>Terms</Link> and <Link href="/privacy" style={legalLink}>Privacy</Link>.
+              </p>
+              {process.env.NODE_ENV !== "production" && (
+                <button className="gg-press" onClick={devFinish} disabled={loading} style={{ marginTop: 8, minHeight: 40, padding: "0 16px", borderRadius: 999, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.03)", color: "#A9A9BA", cursor: "pointer", fontWeight: 800 }}>
+                  Use dev account
+                </button>
+              )}
             </div>
           </div>
-        )}
-
-        {/* Glass card — hugs its content */}
-        <div style={{
-          width: "100%",
-          background: "color-mix(in srgb, var(--surface) 82%, transparent)",
-          border: "1px solid var(--border-strong)",
-          borderRadius: 22,
-          padding: isPhone ? 18 : 24,
-          display: "flex", flexDirection: "column", gap: 16,
-          backdropFilter: "blur(16px)",
-          boxShadow: "0 24px 60px -24px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)",
-        }}>
-          <button
-            className="gg-press"
-            onClick={() => oauthRedirect("google")}
-            disabled={loading}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 11,
-              width: "100%", height: 52, borderRadius: 999,
-              fontFamily: "var(--font-inter)", fontWeight: 600, fontSize: 15.5,
-              background: "#FFFFFF", color: "#0B0B0F", border: "none",
-              cursor: "pointer", whiteSpace: "nowrap",
-              boxShadow: "0 8px 24px -10px rgba(124,92,255,0.55), 0 2px 8px rgba(0,0,0,0.25)",
-              transition: "transform 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out)",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 14px 34px -10px rgba(124,92,255,0.75), 0 3px 10px rgba(0,0,0,0.3)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 8px 24px -10px rgba(124,92,255,0.55), 0 2px 8px rgba(0,0,0,0.25)"; }}
-          >
-            <Icon.google size={20} /> Continue with Google
-          </button>
-
-          <button
-            className="gg-press"
-            onClick={() => oauthRedirect("apple")}
-            disabled={loading}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 11,
-              width: "100%", height: 52, borderRadius: 999,
-              fontFamily: "var(--font-inter)", fontWeight: 600, fontSize: 15.5,
-              background: "rgba(255,255,255,0.04)", color: "var(--text)", border: "1px solid var(--border-strong)",
-              cursor: "pointer", whiteSpace: "nowrap",
-              boxShadow: "0 8px 24px -16px rgba(0,0,0,0.8)",
-              transition: "transform 0.18s var(--ease-out), background 0.18s var(--ease-out)",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
-          >
-            <Icon.apple size={19} /> Continue with Apple
-          </button>
-
-          {/* Value props */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, paddingTop: 2 }}>
-            {props.map((p) => {
-              const IconCmp = Icon[p.icon] as (props: { size?: number; color?: string }) => ReactElement;
-              return (
-                <div key={p.text} style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                    background: `color-mix(in srgb, ${p.tint} 14%, transparent)`,
-                    border: `1px solid color-mix(in srgb, ${p.tint} 28%, transparent)`,
-                  }}>
-                    <IconCmp size={16} color={p.tint} />
-                  </span>
-                  <span style={{ fontSize: 13.5, color: "var(--text-muted)", fontFamily: "var(--font-inter)" }}>{p.text}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          <p style={{ fontSize: 12.5, color: "var(--coral)", margin: 0, lineHeight: 1.4, fontFamily: "var(--font-inter)", minHeight: "1.4em", visibility: err ? "visible" : "hidden", textAlign: "center" }}>{err || " "}</p>
-        </div>
-
-        {/* Trust + legal microcopy */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, textAlign: "center" }}>
-          <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: 0, fontFamily: "var(--font-inter)" }}>
-            Free to join — we'll never post anything.
-          </p>
-          <p style={{ fontSize: 11.5, color: "var(--text-dim)", margin: 0, fontFamily: "var(--font-inter)", lineHeight: 1.5 }}>
-            By continuing you agree to our{" "}
-            <Link href="/terms" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 36, color: "var(--text-muted)", textDecoration: "underline", textUnderlineOffset: 2 }}>Terms</Link>
-            {" "}&amp;{" "}
-            <Link href="/privacy" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 48, minHeight: 36, color: "var(--text-muted)", textDecoration: "underline", textUnderlineOffset: 2 }}>Privacy</Link>.
-          </p>
-        </div>
-
-        {/* Dev-only escape hatch — compiled OUT of production builds. */}
-        {process.env.NODE_ENV !== "production" && (
-          <button
-            className="gg-press"
-            onClick={devFinish}
-            disabled={loading}
-            style={{
-              background: "transparent",
-              border: "1px solid var(--border)",
-              color: "var(--text-dim)",
-              cursor: "pointer",
-              fontSize: 12.5,
-              fontFamily: "var(--font-inter)",
-              minHeight: 42,
-              padding: "0 16px",
-              borderRadius: 999,
-              transition: "all 0.15s var(--ease-out)",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--overlay-hover)"; e.currentTarget.style.color = "var(--text-muted)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-dim)"; }}
-          >
-            Use dev account
-          </button>
-        )}
+        </section>
       </div>
+    </main>
+  );
+}
+
+function Benefit({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 9, minHeight: 42, padding: "9px 10px", borderRadius: 12, background: "rgba(255,255,255,.045)", border: "1px solid rgba(255,255,255,.09)", color: "#DCDCE8", fontSize: 13, fontWeight: 800 }}>
+      <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: 9, background: "rgba(255,255,255,.06)", flexShrink: 0 }}>{icon}</span>
+      {title}
     </div>
   );
 }
+
+const primaryButton: React.CSSProperties = {
+  height: 56, borderRadius: 999, border: "none", background: "#F7F7FA", color: "#090A0D",
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 12,
+  fontSize: 16, fontWeight: 900, cursor: "pointer", boxShadow: "0 18px 42px -22px rgba(124,92,255,.95)",
+};
+
+const secondaryButton: React.CSSProperties = {
+  height: 56, borderRadius: 999, border: "1px solid rgba(255,255,255,.16)", background: "rgba(255,255,255,.055)", color: "#F4F4F7",
+  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 12,
+  fontSize: 16, fontWeight: 900, cursor: "pointer",
+};
+
+const legalLink: React.CSSProperties = { color: "#C7C7D6", textUnderlineOffset: 3 };

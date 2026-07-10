@@ -1027,8 +1027,8 @@ function EncounterInner() {
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          gap: 8,
-          padding: isPhone ? "8px 8px 0 8px" : "12px 16px 0 16px",
+          gap: 6,
+          padding: isPhone ? "8px 8px 0 8px" : "6px 8px 0 8px",
           animation: "focusPinIn 0.25s ease forwards",
         }}
       >
@@ -1067,7 +1067,7 @@ function EncounterInner() {
               zIndex: 1,
               display: "flex",
               gap: 8,
-              height: isPhone ? 90 : 110,
+              height: isPhone ? 90 : 92,
               flexShrink: 0,
               overflowX: "auto" as const,
               WebkitOverflowScrolling: "touch",
@@ -1134,7 +1134,7 @@ function EncounterInner() {
             position: "relative",
             display: "flex",
             flexDirection: "column",
-            gap: 8,
+            gap: 6,
             alignItems: "stretch",
             flex: isPhone ? undefined : 1,
             width: isPhone ? "100%" : undefined,
@@ -1142,9 +1142,9 @@ function EncounterInner() {
             minHeight: 0,
             height: isPhone ? "auto" : "100%",
             marginBottom: isPhone ? 18 : 0,
-            borderRadius: 16,
+            borderRadius: 10,
             overflow: "hidden",
-            padding: isPhone ? 10 : 12,
+            padding: isPhone ? 10 : 6,
             animation: entranceAnim,
           }}
         >
@@ -1152,7 +1152,7 @@ function EncounterInner() {
               gradient) rendered prominently behind this side's tiles, with a
               smart scrim + accent glow so video + names stay legible and each
               side reads as its own themed room. */}
-          <TeamRoomBackdrop cover={cover} squadKey={squadKey} tone={tone} radius={16} presence={0.55} />
+          <TeamRoomBackdrop cover={cover} squadKey={squadKey} tone={tone} radius={10} presence={0.55} />
 
           <div
             style={{
@@ -1732,8 +1732,8 @@ function EncounterInner() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: isPhone ? 6 : 12,
-            padding: isPhone ? "7px 10px" : "9px 20px",
+            gap: isPhone ? 6 : 8,
+            padding: isPhone ? "7px 10px" : "6px 10px",
             background: "linear-gradient(180deg, rgba(20,20,28,0.98), rgba(14,14,20,0.96))",
             borderBottom: "1px solid rgba(255,255,255,0.07)",
             boxShadow: "0 1px 0 rgba(255,255,255,0.03) inset, 0 4px 20px -12px rgba(0,0,0,0.8)",
@@ -1759,7 +1759,7 @@ function EncounterInner() {
                 textOverflow: "ellipsis",
                 minWidth: 0,
                 flexShrink: 1,
-                maxWidth: isPhone ? 84 : 170,
+                maxWidth: isPhone ? 84 : 140,
               }}
             >
               {mySquad?.name ?? "Your Squad"}
@@ -1777,7 +1777,7 @@ function EncounterInner() {
                 textOverflow: "ellipsis",
                 minWidth: 0,
                 flexShrink: 1,
-                maxWidth: isPhone ? 84 : 170,
+                maxWidth: isPhone ? 84 : 140,
               }}
             >
               {oppSquad?.name ?? "Opponent"}
@@ -1851,7 +1851,7 @@ function EncounterInner() {
                   onMouseEnter={() => setHoveredViewMode(mode)}
                   onMouseLeave={() => setHoveredViewMode(null)}
                   style={{
-                    padding: "5px 13px",
+                    padding: "4px 10px",
                     borderRadius: 999,
                     border: "none",
                     cursor: "pointer",
@@ -2003,7 +2003,7 @@ function EncounterInner() {
                   backdropFilter: "blur(16px)",
                   border: "1px solid rgba(255,255,255,0.12)",
                   borderRadius: 999,
-                  padding: "8px 22px",
+                  padding: "7px 16px",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
@@ -2172,7 +2172,7 @@ function EncounterInner() {
                 minHeight: 0,
                 display: "flex",
                 flexDirection: "column",
-                paddingBottom: isPhone ? 96 : 80,
+                paddingBottom: isPhone ? 92 : 64,
               }}
             >
               {renderStage()}
@@ -2182,7 +2182,7 @@ function EncounterInner() {
             <div
               style={{
                 position: "absolute",
-                bottom: 16,
+                bottom: 8,
                 left: 0,
                 right: 0,
                 display: "flex",
@@ -2194,13 +2194,13 @@ function EncounterInner() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: isPhone ? 6 : 8,
+                  gap: isPhone ? 6 : 7,
                   background: "linear-gradient(180deg, rgba(26,26,36,0.92), rgba(14,14,20,0.94))",
                   backdropFilter: "blur(22px)",
                   WebkitBackdropFilter: "blur(22px)",
                   border: "1px solid rgba(255,255,255,0.12)",
                   borderRadius: isPhone ? 24 : 999,
-                  padding: isPhone ? "9px 10px" : "10px 16px",
+                  padding: isPhone ? "9px 10px" : "7px 10px",
                   animation: "controlIn 0.5s cubic-bezier(.22,1,.36,1) 0.2s forwards",
                   opacity: 0,
                   boxShadow: "0 12px 44px -8px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.08)",

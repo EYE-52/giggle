@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import type React from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icons";
 import { SquadCard } from "@/components/SquadCard";
@@ -219,16 +220,16 @@ export default function HomePage() {
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 0, paddingBottom: 40 }}>
 
       {/* ── COMMAND CENTER GREETING ───────────────────────────────── */}
-      <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", alignItems: isPhone ? "flex-start" : "center", justifyContent: "space-between", paddingBottom: isPhone ? 16 : 18, gap: isPhone ? 10 : 18 }}>
+      <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", alignItems: isPhone ? "flex-start" : "flex-end", justifyContent: "space-between", paddingBottom: isPhone ? 14 : 14, gap: isPhone ? 10 : 18 }}>
         <div style={{ maxWidth: 720 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "5px 10px", borderRadius: 999, background: "color-mix(in srgb, var(--lime) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--lime) 28%, transparent)", color: "var(--lime-text)", fontFamily: "var(--font-space-grotesk)", fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
             <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--lime)", boxShadow: "0 0 10px var(--lime)" }} />
             Squad Control Room
           </div>
-          <h1 style={{ margin: 0, fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: isPhone ? 24 : 28, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.12 }}>
+          <h1 style={{ margin: 0, fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: isPhone ? 26 : 34, color: "var(--text)", letterSpacing: "-0.03em", lineHeight: 1.04 }}>
             Build your squad, set the signal, go live.
           </h1>
-          <p style={{ margin: "6px 0 0", fontSize: isPhone ? 13.5 : 14.5, color: "var(--text-muted)", lineHeight: 1.45, maxWidth: 540 }}>
+          <p style={{ margin: "8px 0 0", fontSize: isPhone ? 14 : 15, color: "var(--text-muted)", lineHeight: 1.45, maxWidth: 560 }}>
             Open a room, invite your people, and match with another crew when everyone is ready.
           </p>
         </div>
@@ -245,20 +246,20 @@ export default function HomePage() {
       </div>
 
       <div style={{
-        display: "grid",
-        gridTemplateColumns: isPhone ? "1fr" : "repeat(3, 1fr)",
-        gap: 10,
-        marginBottom: 24,
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 8,
+        marginBottom: 20,
       }}>
         {[
           { label: "Active squads", value: mySquads.length || "None", hint: mySquads.length ? "Resume a room below" : "Create your first room" },
           { label: "Open signals", value: trending?.length ?? "Syncing", hint: "Public squads looking for members" },
           { label: "Live now", value: stats?.liveEncounters ?? 0, hint: "Encounters currently running" },
+          { label: "SQUADS FORMED", value: statsLoading ? "..." : stats ? fmtNum(stats.squadsTotal) : "-", hint: "All-time rooms created" },
         ].map((item) => (
-          <div key={item.label} style={{ background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border)", borderRadius: 14, padding: "13px 14px", boxShadow: "var(--elev)" }}>
-            <div style={{ color: "var(--text-dim)", fontSize: 10.5, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase" }}>{item.label}</div>
-            <div style={{ marginTop: 5, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 22, fontWeight: 800, letterSpacing: "-0.03em" }}>{item.value}</div>
-            <div style={{ marginTop: 2, color: "var(--text-muted)", fontSize: 12.5 }}>{item.hint}</div>
+          <div key={item.label} style={{ display: "inline-flex", alignItems: "center", gap: 9, minHeight: 36, background: "rgba(255,255,255,0.035)", border: "1px solid var(--border)", borderRadius: 999, padding: "6px 12px" }}>
+            <div style={{ color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 800, letterSpacing: "-0.02em" }}>{item.value}</div>
+            <div style={{ color: "var(--text-muted)", fontSize: 12, fontWeight: 700 }}>{item.label}</div>
           </div>
         ))}
       </div>
@@ -410,7 +411,7 @@ export default function HomePage() {
       )}
 
       {/* ── PRIMARY ACTIONS + TRENDING VIBES ─────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: isTablet ? "1fr" : "minmax(0,1fr) minmax(0,1.15fr)", gap: 24, alignItems: "stretch" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isTablet ? "1fr" : "minmax(360px,.9fr) minmax(0,1.1fr)", gap: 20, alignItems: "stretch" }}>
         {/* LEFT — Create + Join */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Create a Squad */}
@@ -599,42 +600,7 @@ export default function HomePage() {
       </div>
 
       {/* ── SECTION DIVIDER ───────────────────────────────────────── */}
-      <div style={{ ...hairlineDivider, marginTop: isPhone ? 20 : 28 }} />
-
-      {/* ── STATS STRIP ───────────────────────────────────────────── */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0, padding: isPhone ? "20px 0" : "24px 0" }}>
-        {[
-          { value: statsLoading ? "…" : stats ? fmtNum(stats.squadsTotal) : "—", label: "SQUADS FORMED", key: "squadsTotal" },
-          { value: statsLoading ? "…" : stats ? fmtNum(stats.liveEncounters) : "—", label: "LIVE NOW", key: "liveEncounters" },
-          { value: statsLoading ? "…" : stats ? fmtNum(stats.encountersTotal) : "—", label: "ENCOUNTERS TOTAL", key: "encountersTotal" },
-        ].map(({ value, label, key }, i) => (
-          <div key={key} style={{ display: "flex", alignItems: "stretch", gap: 0 }}>
-            {i > 0 && (
-              <div style={{ width: 1, background: "var(--border)", alignSelf: "stretch", margin: isPhone ? "0 16px" : "0 32px" }} />
-            )}
-            <div
-              onMouseEnter={() => setHoveredStat(key)}
-              onMouseLeave={() => setHoveredStat(null)}
-              style={{ textAlign: "center", cursor: "default", transition: "opacity .15s ease", opacity: hoveredStat && hoveredStat !== key ? 0.5 : 1, maxWidth: isPhone ? 92 : undefined }}
-            >
-              <div style={{
-                fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: isPhone ? 26 : 32, lineHeight: 1,
-                color: "var(--text)", letterSpacing: "0",
-                fontVariantNumeric: "tabular-nums", fontFeatureSettings: '"tnum" 1',
-                transition: "color .15s ease",
-              }}>
-                {value}
-              </div>
-              <div style={{ marginTop: 6, fontSize: 10, fontWeight: 600, letterSpacing: "0.14em", color: "var(--text-dim)", textTransform: "uppercase" as const }}>
-                {label}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── SECTION DIVIDER ───────────────────────────────────────── */}
-      <div style={hairlineDivider} />
+      <div style={{ ...hairlineDivider, marginTop: isPhone ? 24 : 32 }} />
 
       {/* ── HOW GIGGLE WORKS — editorial borderless columns ───────── */}
       <section style={{ padding: isPhone ? "32px 0" : "40px 0" }}>
@@ -822,14 +788,14 @@ const hairlineDivider: React.CSSProperties = {
 };
 
 const card: React.CSSProperties = {
-  background: "linear-gradient(180deg, var(--surface-grad-from) 0%, var(--surface-grad-to) 100%)",
+  background: "rgba(255,255,255,0.035)",
   border: "1px solid var(--border)",
-  borderRadius: 18,
-  padding: 20,
-  boxShadow: "var(--elev)",
+  borderRadius: 14,
+  padding: 18,
+  boxShadow: "none",
 };
 const iconTile: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 12,
+  width: 38, height: 38, borderRadius: 10,
   background: "var(--violet)",
   display: "flex", alignItems: "center", justifyContent: "center",
   boxShadow: "0 0 18px -2px rgba(124,92,255,0.7)",
@@ -838,7 +804,7 @@ const iconTile: React.CSSProperties = {
 const cardTitle: React.CSSProperties = {
   margin: 0,
   fontFamily: "var(--font-space-grotesk)",
-  fontWeight: 700, fontSize: 19,
+  fontWeight: 700, fontSize: 18,
   color: "var(--text)", letterSpacing: "-0.01em",
 };
 const cardBody: React.CSSProperties = { margin: "0 0 14px", fontSize: 13, lineHeight: 1.5, color: "var(--text-muted)" };

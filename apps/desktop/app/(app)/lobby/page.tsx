@@ -590,6 +590,9 @@ function LobbyInner() {
   const memberCount = squad?.members.length ?? 0;
   // Capacity comes from the backend: 4 free, up to 8 when the leader is premium.
   const MAX_SLOTS = (squad as { maxSlots?: number } | null)?.maxSlots ?? 4;
+  useEffect(() => {
+    if (!isPhone && memberCount >= 4) setSidebarCollapsed(true);
+  }, [isPhone, memberCount]);
 
   if (loading) {
     return (
@@ -1281,7 +1284,7 @@ function LobbyInner() {
             alignItems: "center", justifyContent: "center",
             background: "#0B0B0F",
             position: "relative",
-            padding: isPhone ? "12px 12px 160px" : "24px 24px 16px",
+            padding: isPhone ? "10px 10px 148px" : "8px 8px 10px",
             minHeight: isPhone ? 320 : 0,
             overflow: isPhone ? "auto" as const : "hidden" as const,
             gap: 0,
@@ -1339,7 +1342,7 @@ function LobbyInner() {
               <div style={{
                 position: "relative", zIndex: 1, flexShrink: 0,
                 display: "flex", alignItems: "center", gap: 8,
-                marginBottom: 16,
+                marginBottom: 8,
                 animation: "controlIn 0.4s ease 0.2s forwards", opacity: 0,
               }}>
                 <span style={{
@@ -1381,9 +1384,9 @@ function LobbyInner() {
               //   control bar below always stays on-screen.
               gridTemplateRows: `repeat(${effRows}, ${isPhone ? "auto" : "minmax(0, 1fr)"})`,
               ...(isPhone ? { flexShrink: 0 } : { flex: 1 }),
-              gap: 12,
+              gap: isPhone ? 10 : 8,
               width: "100%",
-              maxWidth: effCols <= 1 ? 720 : effCols >= 4 ? 1320 : 1180,
+              maxWidth: effCols <= 1 ? 860 : effCols >= 4 ? 1480 : 1320,
               margin: "0 auto",
               minHeight: 0,
             }}>
@@ -1400,14 +1403,14 @@ function LobbyInner() {
                     key={member.memberId}
                     style={{
                       position: "relative",
-                      borderRadius: 16,
+                      borderRadius: 10,
                       overflow: "hidden",
                       // Desktop fills the grid cell; phone uses a fixed aspect ratio.
                       ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
                       background: `linear-gradient(145deg, ${avatarColors[i % 4]}22 0%, #0D0D12 100%)`,
                       border: isReady
-                        ? `2px solid #C2FF3D66`
-                        : "1.5px solid rgba(255,255,255,0.08)",
+                        ? `1.5px solid #C2FF3D66`
+                        : "1px solid rgba(255,255,255,0.08)",
                       // delay baked into the shorthand — never mix `animation` with `animationDelay`
                       animation: isReady
                         ? `tileIn 0.35s ease ${i * 0.06}s forwards, readyGlow 2.5s ease-in-out ${i * 0.06}s infinite`
@@ -1555,8 +1558,8 @@ function LobbyInner() {
                   onMouseEnter={() => setInviteTileHovered(true)}
                   onMouseLeave={() => setInviteTileHovered(false)}
                   style={{
-                    borderRadius: 16,
-                    border: `1.5px dashed ${inviteTileHovered ? "var(--violet)" : "rgba(255,255,255,0.12)"}`,
+                    borderRadius: 10,
+                    border: `1px dashed ${inviteTileHovered ? "var(--violet)" : "rgba(255,255,255,0.12)"}`,
                     background: inviteTileHovered ? "var(--violet-soft)" : "rgba(255,255,255,0.015)",
                     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
                     boxSizing: "border-box",
@@ -1587,8 +1590,8 @@ function LobbyInner() {
                   onMouseEnter={() => setUpgradeTileHovered(true)}
                   onMouseLeave={() => setUpgradeTileHovered(false)}
                   style={{
-                    borderRadius: 16,
-                    border: `1.5px solid ${upgradeTileHovered ? "var(--violet)" : "rgba(124,92,255,0.35)"}`,
+                    borderRadius: 10,
+                    border: `1px solid ${upgradeTileHovered ? "var(--violet)" : "rgba(124,92,255,0.35)"}`,
                     background: upgradeTileHovered
                       ? "linear-gradient(145deg, rgba(124,92,255,0.28) 0%, rgba(124,92,255,0.08) 100%)"
                       : "linear-gradient(145deg, rgba(124,92,255,0.18) 0%, rgba(124,92,255,0.04) 100%)",
@@ -1619,13 +1622,13 @@ function LobbyInner() {
 
             {/* ── CONTROL BAR (centered floating pill) ── */}
             <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: 10,
+              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: 8,
               background: "rgba(22,22,30,0.92)",
               backdropFilter: "blur(16px)",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 999,
-              padding: "10px 16px",
-              marginTop: isPhone ? 0 : 32,
+              padding: isPhone ? "8px 12px" : "7px 10px",
+              marginTop: isPhone ? 0 : 10,
               animation: "controlIn 0.4s ease 0.3s forwards",
               opacity: 0,
               boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
@@ -1645,7 +1648,7 @@ function LobbyInner() {
                 onMouseLeave={() => setMicHovered(false)}
                 title={micOn ? "Mute mic" : "Unmute mic"}
                 style={{
-                  width: isPhone ? 44 : 50, height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
+                  width: isPhone ? 44 : 42, height: isPhone ? 44 : 42, borderRadius: 999, border: "none", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   background: micOn
                     ? (micHovered ? "rgba(124,92,255,0.35)" : "rgba(124,92,255,0.2)")
@@ -1664,7 +1667,7 @@ function LobbyInner() {
                 onMouseLeave={() => setCamHovered(false)}
                 title={camOn ? "Turn off camera" : "Turn on camera"}
                 style={{
-                  width: isPhone ? 44 : 50, height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
+                  width: isPhone ? 44 : 42, height: isPhone ? 44 : 42, borderRadius: 999, border: "none", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   background: camOn
                     ? (camHovered ? "rgba(124,92,255,0.35)" : "rgba(124,92,255,0.2)")
@@ -1687,8 +1690,8 @@ function LobbyInner() {
                 onMouseLeave={() => setReadyHovered(false)}
                 title="Toggle ready"
                 style={{
-                  height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
-                  padding: "0 20px",
+                  height: isPhone ? 44 : 42, borderRadius: 999, border: "none", cursor: "pointer",
+                  padding: "0 16px",
                   display: "flex", alignItems: "center", gap: 7,
                   background: readyHovered ? "rgba(194,255,61,0.17)" : "rgba(194,255,61,0.09)",
                   color: "#C2FF3D",
@@ -1712,8 +1715,8 @@ function LobbyInner() {
                     onMouseEnter={() => setFindMatchHovered(true)}
                     onMouseLeave={() => setFindMatchHovered(false)}
                     style={{
-                      height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: findingMatch ? "not-allowed" : "pointer",
-                      padding: "0 28px",
+                      height: isPhone ? 44 : 42, borderRadius: 999, border: "none", cursor: findingMatch ? "not-allowed" : "pointer",
+                      padding: "0 20px",
                       display: "flex", alignItems: "center", gap: 8,
                       background: "var(--violet)",
                       color: "#fff",
@@ -1795,7 +1798,7 @@ function LobbyInner() {
             /* DESKTOP: collapsible panel. The width transition lets the video stage
                (flex:1) reclaim freed space smoothly. */
             <div style={{
-              width: sidebarCollapsed ? 64 : 304,
+              width: sidebarCollapsed ? 48 : 280,
               flexShrink: 0,
               transition: "width 0.22s ease",
               overflow: "hidden",
@@ -1807,12 +1810,12 @@ function LobbyInner() {
                 /* ── COLLAPSED: slim glassy info RAIL ── */
                 <div style={{
                   width: "100%", boxSizing: "border-box", flex: 1,
-                  margin: "4px 0 12px 0",
+                  margin: "6px 6px 10px 0",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
                   padding: "12px 0",
                   background: "var(--surface)",
                   border: "1px solid var(--border)",
-                  borderRadius: 18,
+                  borderRadius: 14,
                   backdropFilter: "blur(12px)",
                   boxShadow: "0 8px 32px -12px rgba(0,0,0,0.45)",
                 }}>
@@ -1922,7 +1925,7 @@ function LobbyInner() {
                 <div style={{
                   width: "100%",
                   boxSizing: "border-box",
-                  padding: "4px 12px 12px 4px",
+                  padding: "6px 8px 10px 0",
                   display: "flex", flexDirection: "column", minHeight: 0, gap: 10,
                   flex: 1,
                 }}>
