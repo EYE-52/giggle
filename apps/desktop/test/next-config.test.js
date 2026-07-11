@@ -787,6 +787,19 @@ test("desktop home keeps create and join actions compact", () => {
   assert.equal(page.includes('aria-label="Squad invite code"'), true);
 });
 
+test("desktop home replaces the empty dashboard with one adaptive first-run workspace", () => {
+  const page = desktopHomeSource();
+
+  assert.equal(page.includes("const showFirstRun = !mySquadsLoading && mySquads.length === 0;"), true);
+  assert.equal(page.includes("Start with your people."), true);
+  assert.equal(page.includes("openSignals > 0 && ("), true);
+  assert.equal(page.includes("{!showFirstRun && activityStrip}"), true);
+  assert.equal(page.includes("{showFirstRun ? ("), true);
+  assert.equal(page.includes('minHeight: isPhone ? undefined : "calc(100dvh - 220px)"'), true);
+  assert.equal(page.includes('alignContent: "center"'), true);
+  assert.equal(page.includes("No squads yet"), false);
+});
+
 test("desktop home leave squad failures restore the squad and show an error", () => {
   const page = desktopHomeSource();
 

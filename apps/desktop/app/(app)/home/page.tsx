@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import type React from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icons";
-import { EmptyState } from "@/components/EmptyState";
 import type { PublicSquad, MySquadLite } from "@giggle/core";
 import { session, api, randomSquadName, resolveCover, coverName, coverSwatch, getTokenBalance, billing, formatSquadCodeInput, isValidSquadCode } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
@@ -145,6 +144,48 @@ export default function HomePage() {
   const promoted = mySquads.find(s => PROMOTABLE.has(s.status)) ?? null;
   const restSquads = mySquads.filter(s => s !== promoted);
   const openSignals = trending?.length ?? 0;
+  const showFirstRun = !mySquadsLoading && mySquads.length === 0;
+
+  const activityStrip = (
+    <div aria-label="Live activity" style={{ display: "flex", alignItems: "center", gap: isPhone ? 16 : 24 }}>
+      {[
+        { k: "Your squads", v: mySquadsLoading ? "—" : String(mySquads.length), live: false },
+        { k: "Open signals", v: trending === null ? "—" : String(openSignals), live: false },
+        { k: "Live now", v: String(stats?.liveEncounters ?? 0), live: true },
+      ].map((s, i) => (
+        <div key={s.k} style={{ display: "flex", alignItems: "baseline", gap: 7, paddingLeft: i > 0 ? 20 : 0, borderLeft: i > 0 ? "1px solid var(--border)" : "none" }}>
+          <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>{s.k}</span>
+          <span style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: 18, color: s.live ? "var(--lime-text)" : "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+            {s.v}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
+  const squadActions = (
+    <div aria-label="Squad actions" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+      <button onClick={handleCreate} disabled={creating} className="gg-press" style={{ ...primaryBtn, width: isPhone ? "100%" : "auto", height: 46, padding: "0 20px", borderRadius: 11, opacity: creating ? 0.8 : 1 }}>
+        <Icon.plus size={17} color="#fff" />
+        {creating ? "Creating…" : showFirstRun ? "Create your first squad" : "Create squad"}
+      </button>
+      <div style={{ display: "flex", flex: isPhone ? "1 1 100%" : "0 1 310px", minWidth: isPhone ? 0 : 260 }}>
+        <input
+          aria-label="Squad invite code"
+          value={squadCode}
+          onChange={e => { setSquadCode(formatSquadCodeInput(e.target.value)); if (actionError) setActionError(null); }}
+          onKeyDown={e => { if (e.key === "Enter") handleJoin(); }}
+          placeholder="Enter invite code"
+          autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text"
+          onFocus={() => setSquadCodeFocused(true)} onBlur={() => setSquadCodeFocused(false)}
+          style={{ minWidth: 0, flex: 1, height: 46, borderRadius: "11px 0 0 11px", background: "transparent", border: squadCodeFocused ? "1px solid var(--violet)" : "1px solid var(--border-strong)", outline: "none", color: "var(--text)", padding: "0 14px", fontSize: 13.5, fontFamily: "var(--font-inter)" }}
+        />
+        <button aria-label="Join squad" onClick={handleJoin} disabled={joining || !isValidSquadCode(squadCode)} className="gg-press" style={{ width: 48, height: 46, borderRadius: "0 11px 11px 0", border: "1px solid var(--border-strong)", borderLeft: 0, background: "var(--overlay)", cursor: "pointer", opacity: joining || !isValidSquadCode(squadCode) ? 0.45 : 1 }}>
+          {joining ? <span className="gg-spinner" /> : <Icon.enter size={18} color="var(--text)" />}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", paddingBottom: 48 }}>
@@ -159,43 +200,10 @@ export default function HomePage() {
             Pick up where your squad left off.
           </p>
         </div>
-        <div aria-label="Live activity" style={{ display: "flex", alignItems: "center", gap: isPhone ? 16 : 24 }}>
-          {[
-            { k: "Your squads", v: mySquadsLoading ? "—" : String(mySquads.length), live: false },
-            { k: "Open signals", v: trending === null ? "—" : String(openSignals), live: false },
-            { k: "Live now", v: String(stats?.liveEncounters ?? 0), live: true },
-          ].map((s, i) => (
-            <div key={s.k} style={{ display: "flex", alignItems: "baseline", gap: 7, paddingLeft: i > 0 ? 20 : 0, borderLeft: i > 0 ? "1px solid var(--border)" : "none" }}>
-              <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>{s.k}</span>
-              <span style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: 18, color: s.live ? "var(--lime-text)" : "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-                {s.v}
-              </span>
-            </div>
-          ))}
-        </div>
+        {!showFirstRun && activityStrip}
       </div>
 
-      <div aria-label="Squad actions" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 28 }}>
-        <button onClick={handleCreate} disabled={creating} className="gg-press" style={{ ...primaryBtn, width: "auto", height: 46, padding: "0 20px", borderRadius: 11, opacity: creating ? 0.8 : 1 }}>
-          <Icon.plus size={17} color="#fff" />
-          {creating ? "Creating…" : "Create squad"}
-        </button>
-        <div style={{ display: "flex", flex: isPhone ? "1 1 100%" : "0 1 310px", minWidth: isPhone ? 0 : 260 }}>
-          <input
-            aria-label="Squad invite code"
-            value={squadCode}
-            onChange={e => { setSquadCode(formatSquadCodeInput(e.target.value)); if (actionError) setActionError(null); }}
-            onKeyDown={e => { if (e.key === "Enter") handleJoin(); }}
-            placeholder="Join with code"
-            autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text"
-            onFocus={() => setSquadCodeFocused(true)} onBlur={() => setSquadCodeFocused(false)}
-            style={{ minWidth: 0, flex: 1, height: 46, borderRadius: "11px 0 0 11px", background: "transparent", border: squadCodeFocused ? "1px solid var(--violet)" : "1px solid var(--border-strong)", outline: "none", color: "var(--text)", padding: "0 14px", fontSize: 13.5, fontFamily: "var(--font-inter)" }}
-          />
-          <button aria-label="Join squad" onClick={handleJoin} disabled={joining || !isValidSquadCode(squadCode)} className="gg-press" style={{ width: 48, height: 46, borderRadius: "0 11px 11px 0", border: "1px solid var(--border-strong)", borderLeft: 0, background: "var(--overlay)", cursor: "pointer", opacity: joining || !isValidSquadCode(squadCode) ? 0.45 : 1 }}>
-            {joining ? <span className="gg-spinner" /> : <Icon.enter size={18} color="var(--text)" />}
-          </button>
-        </div>
-      </div>
+      {!showFirstRun && <div style={{ marginBottom: 28 }}>{squadActions}</div>}
 
       {/* Inline action error */}
       {actionError && (
@@ -208,6 +216,60 @@ export default function HomePage() {
         </div>
       )}
 
+      {showFirstRun ? (
+        <section
+          aria-labelledby="first-squad-title"
+          style={{
+            display: "grid",
+            gridTemplateColumns: isTablet ? "1fr" : "minmax(0, 1.2fr) minmax(320px, .8fr)",
+            gap: isPhone ? 30 : isTablet ? 38 : 64,
+            alignItems: "center",
+            alignContent: "center",
+            minHeight: isPhone ? undefined : "calc(100dvh - 220px)",
+            boxSizing: "border-box",
+            padding: isPhone ? "30px 0 34px" : "42px 0 46px",
+            borderTop: "1px solid var(--border)",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 14, color: "var(--violet)", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+              <span style={{ width: 7, height: 7, borderRadius: 999, background: "var(--violet)" }} />
+              Your first room
+            </div>
+            <h2 id="first-squad-title" style={{ margin: 0, maxWidth: 560, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 30 : 38, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
+              Start with your people.
+            </h2>
+            <p style={{ margin: "12px 0 24px", maxWidth: 560, color: "var(--text-body)", fontSize: isPhone ? 14 : 15, lineHeight: 1.6 }}>
+              Open a room, share the invite code, and choose your squad&apos;s vibe together.
+            </p>
+            {squadActions}
+            {openSignals > 0 && (
+              <button onClick={() => router.push("/discover")} className="gg-press" style={{ ...linkBtn, marginTop: 18, minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, color: "var(--text-body)" }}>
+                <Icon.discover size={15} color="var(--violet)" />
+                Browse {openSignals} open squad{openSignals === 1 ? "" : "s"}
+              </button>
+            )}
+          </div>
+
+          <ol aria-label="How your first squad works" style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: isPhone ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: isPhone ? 0 : 18 }}>
+            {[
+              ["01", "Create room", "Give your crew a place to meet."],
+              ["02", "Invite people", "Share one code with your friends."],
+              ["03", "Go live", "Match with another squad together."],
+            ].map(([number, title, body], index) => (
+              <li key={number} style={{ position: "relative", padding: isPhone ? "16px 0 16px 46px" : "0", borderTop: isPhone && index > 0 ? "1px solid var(--border)" : "none" }}>
+                <span style={{ position: isPhone ? "absolute" : "static", left: 0, top: 16, display: "grid", placeItems: "center", width: 32, height: 32, marginBottom: isPhone ? 0 : 16, borderRadius: 10, border: "1px solid var(--border-strong)", color: index === 2 ? "var(--lime-text)" : "var(--text-dim)", fontFamily: "var(--font-space-grotesk)", fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
+                  {number}
+                </span>
+                <div style={{ color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 14, fontWeight: 700 }}>{title}</div>
+                <div style={{ marginTop: 5, color: "var(--text-muted)", fontSize: 12.5, lineHeight: 1.45 }}>{body}</div>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : (
+        <>
       {/* ── DASHBOARD: your squads (main) + live signals (rail) ───── */}
       <div style={{ display: "grid", gridTemplateColumns: isTablet ? "1fr" : "1.55fr 1fr", gap: 22, alignItems: "start" }}>
         {/* MAIN — your squads */}
@@ -235,13 +297,6 @@ export default function HomePage() {
                 <span className="gg-shimmer" style={{ width: 76, height: 40, borderRadius: 999 }} />
               </div>
             </div>
-          ) : mySquads.length === 0 ? (
-            <EmptyState
-              icon={<Icon.account size={20} color="var(--text-dim)" />}
-              title="No squads yet"
-              body="Open your first room above, or browse open squads looking for members right now."
-              primary={{ label: "Browse open squads", onClick: () => router.push("/discover") }}
-            />
           ) : (
             <>
               {promoted && (
@@ -327,6 +382,8 @@ export default function HomePage() {
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
