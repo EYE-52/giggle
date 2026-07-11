@@ -18,7 +18,7 @@ const sections = [
   },
   {
     title: "What we do not do",
-    body: "We do not sell personal data. Payment processing should run through a configured payment provider before production launch.",
+    body: "We do not sell personal data. We do not post to your connected accounts without your permission.",
   },
   {
     title: "Your controls",
@@ -28,7 +28,7 @@ const sections = [
 
 export default function PrivacyPage() {
   return (
-    <main style={{ minHeight: "100vh", background: "#07070B", color: "#F4F4F7", padding: "32px 24px 80px" }}>
+    <main data-theme="dark" style={{ minHeight: "100vh", background: "#07070B", color: "#F4F4F7", padding: "32px 24px 80px" }}>
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, marginBottom: 72 }}>
           <Wordmark size={22} />
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
           Clear data rules for squad discovery.
         </h1>
         <p style={{ color: "#C2C2D4", fontSize: 18, lineHeight: 1.7, maxWidth: 680, marginBottom: 56 }}>
-          This preview policy explains the product behavior implemented in this build. Replace it with reviewed legal copy before public launch.
+          Effective July 12, 2026. This notice explains how Giggle handles information used for accounts, squad matching, live video, and safety.
         </p>
 
         <section style={{ display: "grid", gap: 18 }}>

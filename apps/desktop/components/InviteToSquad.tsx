@@ -204,7 +204,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
               aria-label="Close"
               style={{
                 flexShrink: 0,
-                width: 34, height: 34, borderRadius: 999,
+                width: 44, height: 44, borderRadius: 999,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: "var(--overlay)", border: "1px solid var(--border)",
                 color: muted, cursor: "pointer",
@@ -227,7 +227,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
                   onClick={() => setTab(t)}
                   aria-pressed={active}
                   style={{
-                    flex: 1, padding: "8px 0", borderRadius: 999, border: "none", cursor: "pointer",
+                    flex: 1, minHeight: 44, padding: "8px 0", borderRadius: 999, border: "none", cursor: "pointer",
                     background: active ? violet : "transparent",
                     color: active ? "#fff" : muted,
                     fontSize: 13, fontWeight: 700, fontFamily: "var(--font-space-grotesk)",

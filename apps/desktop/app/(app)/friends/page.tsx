@@ -214,12 +214,7 @@ export default function FriendsPage() {
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 40 }}>
       {/* Header */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <Icon.users size={24} color={violet} />
-          <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 26 : 28, fontWeight: 800, color: text, margin: 0, letterSpacing: "-0.02em" }}>
-            Friends
-          </h1>
-        </div>
+        <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 26 : 30, fontWeight: 800, color: text, margin: 0, letterSpacing: "-0.02em" }}>Friends</h1>
         <div style={{ color: muted, fontSize: 14, fontFamily: "var(--font-inter)" }}>
           {onlineCount > 0 ? `${onlineCount} online now` : "Find people and see who's around."}
         </div>
@@ -239,7 +234,6 @@ export default function FriendsPage() {
 
       {/* ── Add friends ──────────────────────────────────────────── */}
       <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <h2 style={sectionTitleStyle}>Add friends</h2>
         <div style={{ position: "relative" }}>
           <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
             <Icon.discover size={18} color={dim} />
@@ -350,7 +344,7 @@ export default function FriendsPage() {
             ))}
           </div>
         ) : friends.length === 0 ? (
-          <FriendsEmptyState isPhone={isPhone} onOpenHome={() => router.push("/home")} />
+          <FriendsEmptyState />
         ) : (
           <div
             style={{
@@ -446,103 +440,15 @@ export default function FriendsPage() {
 
 // ── Small building blocks ─────────────────────────────────────────────────────
 
-function FriendsEmptyState({ isPhone, onOpenHome }: { isPhone: boolean; onOpenHome: () => void }) {
-  const steps = [
-    { label: "Search a name", detail: "Find someone you already know and send the first request.", icon: Icon.discover },
-    { label: "Share a squad code", detail: "Create a room, copy the code, and bring your crew in live.", icon: Icon.link },
-    { label: "See who's online", detail: "Online friends rise to the top when it is time to squad up.", icon: Icon.users },
-  ] as const;
-
+function FriendsEmptyState() {
   return (
-    <div
-      style={{
-        position: "relative",
-        overflow: "hidden",
-        padding: isPhone ? "22px 18px" : "26px",
-        borderRadius: 22,
-        border: "1px solid color-mix(in srgb, var(--violet) 28%, var(--border))",
-        background:
-          "radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--violet) 30%, transparent), transparent 30%), radial-gradient(circle at 92% 22%, color-mix(in srgb, var(--lime) 16%, transparent), transparent 28%), linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, var(--violet) 12%), var(--surface))",
-        boxShadow: "0 24px 70px -48px color-mix(in srgb, var(--violet) 80%, transparent)",
-      }}
-    >
-      <div style={{ position: "relative", zIndex: 1, display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1.05fr 1.4fr", gap: isPhone ? 18 : 24, alignItems: "center" }}>
-        <div>
-          <div
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "7px 10px",
-              borderRadius: 999,
-              background: "color-mix(in srgb, var(--lime) 12%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--lime) 36%, transparent)",
-              color: "var(--lime-text)",
-              fontFamily: "var(--font-space-grotesk)",
-              fontSize: 12,
-              fontWeight: 800,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              marginBottom: 14,
-            }}
-          >
-            <Icon.star size={13} />
-            Social graph
-          </div>
-          <h3 style={{ margin: 0, color: text, fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 22 : 26, lineHeight: 1.05, fontWeight: 850, letterSpacing: "-0.02em" }}>
-            Your first crew starts with one invite
-          </h3>
-          <p style={{ margin: "10px 0 0", color: muted, fontFamily: "var(--font-inter)", fontSize: 14.5, lineHeight: 1.55, maxWidth: 420 }}>
-            Friends make Giggle feel alive: invite people, see presence, and pull them into a squad when everyone is around.
-          </p>
-          <button
-            onClick={onOpenHome}
-            className="gg-press"
-            style={{
-              marginTop: 18,
-              minHeight: 44,
-              padding: "0 18px",
-              borderRadius: 999,
-              border: "none",
-              background: "var(--violet)",
-              color: "#fff",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              fontFamily: "var(--font-inter)",
-              fontWeight: 800,
-              fontSize: 14,
-              cursor: "pointer",
-              boxShadow: "0 14px 32px -18px var(--violet)",
-            }}
-          >
-            <Icon.plus size={16} color="#fff" />
-            Create a squad
-          </button>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: 10 }}>
-          {steps.map(({ label, detail, icon: StepIcon }) => (
-            <div
-              key={label}
-              style={{
-                minHeight: isPhone ? 0 : 154,
-                padding: 14,
-                borderRadius: 18,
-                background: "color-mix(in srgb, var(--bg) 42%, transparent)",
-                border: "1px solid var(--border)",
-                boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset",
-              }}
-            >
-              <div style={{ width: 40, height: 40, borderRadius: 14, display: "grid", placeItems: "center", background: "var(--violet-soft)", border: "1px solid color-mix(in srgb, var(--violet) 35%, transparent)", marginBottom: 12 }}>
-                <StepIcon size={18} color={violet} strokeWidth={2.1} />
-              </div>
-              <div style={{ color: text, fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: 14.5, marginBottom: 5 }}>{label}</div>
-              <div style={{ color: muted, fontFamily: "var(--font-inter)", fontSize: 12.5, lineHeight: 1.45 }}>{detail}</div>
-            </div>
-          ))}
-        </div>
+    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--overlay)", flexShrink: 0 }}>
+        <Icon.users size={18} color={violet} />
+      </div>
+      <div>
+        <h3 style={{ margin: 0, color: text, fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 750 }}>Your crew starts here</h3>
+        <p style={{ margin: "3px 0 0", color: muted, fontSize: 13 }}>Search by name above to send your first request.</p>
       </div>
     </div>
   );

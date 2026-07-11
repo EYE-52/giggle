@@ -616,14 +616,13 @@ export function NotificationBell() {
       {/* panel */}
       {open && (
         <div
-          role="menu"
+          role="dialog"
+          aria-label="Notifications"
           className="gg-reveal"
           style={{
             ...panelStyle,
             zIndex: 70,
-            background: "color-mix(in srgb, var(--surface) 96%, transparent)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
+            background: "var(--surface)",
             border: "1px solid var(--border-strong)",
             boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
             overflow: "hidden",

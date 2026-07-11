@@ -414,7 +414,7 @@ export default function LandingPage() {
   return (
     // overflowX must stay "clip" (NOT "hidden") — hidden creates a scroll
     // container that breaks the scroll-scrubbed `position: sticky` centerpiece.
-    <div style={{ position: "relative", background: C.base, color: C.text, minHeight: "100vh", overflowX: "clip", fontFamily: BODY }}>
+    <div data-theme="dark" style={{ position: "relative", background: C.base, color: C.text, minHeight: "100vh", overflowX: "clip", fontFamily: BODY }}>
       <style>{CSS}</style>
 
       {/* ===================== GLOBAL AMBIENT AURORA ===================== */}
@@ -672,60 +672,40 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [failed, setFailed] = useState(false);
-  const ready = useRef(false);
-  const dur = useRef(0);
+  const [duration, setDuration] = useState(0);
   const lastSet = useRef(-1);
-  const latestProgress = useRef(p);
-
-  useEffect(() => {
-    latestProgress.current = p;
-  }, [p]);
-
-  const seekToProgress = useCallback((progress: number) => {
-    const v = videoRef.current;
-    const d = dur.current;
-    if (!v || failed || !Number.isFinite(d) || d <= 0) return;
-    const t = clamp01(progress) * Math.max(d - 0.04, 0);
-    if (!Number.isFinite(t)) return;
-    if (Math.abs(t - lastSet.current) < Math.max(d / 600, 0.025)) return;
-    lastSet.current = t;
-    try {
-      const fastSeek = (v as HTMLVideoElement & { fastSeek?: (time: number) => void }).fastSeek;
-      if (typeof fastSeek === "function") fastSeek.call(v, t);
-      else v.currentTime = t;
-    } catch { /* decoder not ready yet */ }
-  }, [failed]);
 
   const onLoaded = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
     const d = v.duration;
     if (!Number.isFinite(d) || d <= 0) return; // guard NaN / 0
-    dur.current = d;
-    ready.current = true;
+    setDuration(d);
     try { v.pause(); } catch { /* noop */ }
-    seekToProgress(latestProgress.current);
-  }, [seekToProgress]);
+  }, []);
 
+  // Cached media can finish loading before React hydrates and attaches the
+  // onLoadedMetadata handler. Check readyState once so scrubbing still starts.
   useEffect(() => {
     const v = videoRef.current;
-    if (!v || failed) return;
-    try {
-      v.muted = true;
-      v.playsInline = true;
-      v.pause();
-      v.load();
-    } catch { /* noop */ }
+    if (!v) return;
     if (v.readyState >= 1) onLoaded();
-  }, [failed, onLoaded]);
+    else v.addEventListener("loadedmetadata", onLoaded, { once: true });
+    return () => v.removeEventListener("loadedmetadata", onLoaded);
+  }, [onLoaded]);
 
   // Drive currentTime from scroll progress `p` (NOT autoplay). useScrubProgress
   // already rAF-throttles p; epsilon guard avoids thrashing the decoder.
   // NOTE: demo.mp4 should be a SHORT, keyframe-dense clip for smooth scrubbing.
   useEffect(() => {
-    if (!ready.current) return;
-    seekToProgress(p);
-  }, [p, seekToProgress]);
+    const v = videoRef.current;
+    if (!v || !duration || failed) return;
+    const t = clamp01(p) * duration;
+    if (!Number.isFinite(t)) return;
+    if (Math.abs(t - lastSet.current) < duration / 600) return; // ~min step guard
+    lastSet.current = t;
+    try { v.currentTime = t; } catch { /* seeking before ready */ }
+  }, [p, failed, duration]);
 
   // 3 cross-fading caption stages tied to scroll.
   const STAGES = [
@@ -748,11 +728,7 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
           ref={videoRef}
           muted playsInline preload="auto"
           onLoadedMetadata={onLoaded}
-          onLoadedData={onLoaded}
           onError={() => setFailed(true)}
-          poster="/landing/group1.jpg"
-          controls={false}
-          disablePictureInPicture
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.82) contrast(1.05) saturate(0.96)", zIndex: 1 }}
         >
           <source src="/landing/demo.mp4" type="video/mp4" />

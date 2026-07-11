@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import { PRESET_COVERS, resolveCover, api, billing } from "@giggle/core";
 import type { PresetCover } from "@giggle/core";
@@ -32,6 +32,7 @@ const ALLOWED_UPLOAD_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/we
 
 export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPickerProps) {
   const router = useRouter();
+  const titleId = useId();
   const [selected, setSelected] = useState<string>(currentCover ?? "");
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -43,6 +44,14 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
     setUnlocked(billing.hasPerk("cover_themes"));
     return billing.subscribe(() => setUnlocked(billing.hasPerk("cover_themes")));
   }, []);
+
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -174,6 +183,9 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
       }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         style={{
           background: "var(--surface)",
           border: "1px solid var(--border)",
@@ -191,6 +203,7 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div
+            id={titleId}
             style={{
               fontFamily: "var(--font-space-grotesk)",
               fontSize: 18,
@@ -202,7 +215,8 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
           </div>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
+            aria-label="Close cover picker"
+            style={{ width: 44, height: 44, margin: -13, display: "grid", placeItems: "center", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
           >
             <Icon.close size={18} color="var(--text-muted)" />
           </button>
@@ -222,7 +236,7 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
           >
             <Icon.shield size={16} color={violet} />
             <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", fontWeight: 600 }}>
-              Premium covers locked — unlock with tokens or Giggle+
+              Premium covers locked — unlock with tokens
             </span>
             <span style={{ background: violet, color: "#fff", borderRadius: 999, padding: "3px 12px", fontSize: 11, fontWeight: 700 }}>
               Unlock
@@ -234,6 +248,7 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
         <div
           style={{
             height: 100,
+            flexShrink: 0,
             borderRadius: 14,
             background: resolveCover(uploadPreview ?? selected),
             border: "1px solid var(--border)",

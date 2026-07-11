@@ -4,7 +4,7 @@ import { Wordmark } from "@/components/Brand";
 
 export const metadata: Metadata = {
   title: "Terms · Giggle",
-  description: "Ground rules for using Giggle squad discovery, live video, reporting, and preview payments.",
+  description: "Ground rules for using Giggle squad discovery, live video, reporting, tokens, and subscriptions.",
 };
 
 const sections = [
@@ -17,8 +17,8 @@ const sections = [
     body: "Harassment, impersonation, spam, illegal activity, and abuse of reporting tools are not allowed.",
   },
   {
-    title: "Preview payments",
-    body: "Current checkout flows are product previews unless a real payment processor is configured for the build.",
+    title: "Tokens and Giggle+",
+    body: "Tokens are Giggle's in-app spend currency for eligible cosmetics. Giggle+ provides the benefits shown at purchase; cosmetics still cost tokens unless stated otherwise.",
   },
   {
     title: "Service changes",
@@ -28,7 +28,7 @@ const sections = [
 
 export default function TermsPage() {
   return (
-    <main style={{ minHeight: "100vh", background: "#07070B", color: "#F4F4F7", padding: "32px 24px 80px" }}>
+    <main data-theme="dark" style={{ minHeight: "100vh", background: "#07070B", color: "#F4F4F7", padding: "32px 24px 80px" }}>
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, marginBottom: 72 }}>
           <Wordmark size={22} />
@@ -44,7 +44,7 @@ export default function TermsPage() {
           Ground rules for meeting in squads.
         </h1>
         <p style={{ color: "#C2C2D4", fontSize: 18, lineHeight: 1.7, maxWidth: 680, marginBottom: 56 }}>
-          These preview terms describe expected product rules. Replace them with reviewed legal copy before public launch.
+          Effective July 12, 2026. By using Giggle, you agree to these rules for accounts, squads, live video, safety, and paid features.
         </p>
 
         <section style={{ display: "grid", gap: 18 }}>

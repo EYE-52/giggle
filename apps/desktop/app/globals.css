@@ -25,7 +25,7 @@
   --border-strong: rgba(255,255,255,0.14);
   --overlay: rgba(255,255,255,0.05);
   --overlay-hover: rgba(255,255,255,0.09);
-  --on-accent: #0B0B0F;
+  --on-accent: #FFFFFF;
 
   --violet: #7657FF;
   --violet-bright: #9278FF;
@@ -164,6 +164,28 @@ button {
 .gg-focusable:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 55%, transparent);
+}
+
+.gg-skip-link {
+  position: fixed;
+  top: 10px;
+  left: 12px;
+  z-index: 10000;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--violet);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.gg-skip-link:focus {
+  transform: translateY(0);
 }
 
 /* Press feedback — inline styles can't express :active, so these

@@ -201,10 +201,6 @@ const KEYFRAMES = `
   70%  { opacity: 0;    transform: scale(1.04); }
   100% { opacity: 0;    transform: scale(1.04); }
 }
-@keyframes ambientDrift {
-  0%,100% { transform: translate3d(0,0,0) scale(1); opacity: 0.55; }
-  50%      { transform: translate3d(2%, -1.5%, 0) scale(1.08); opacity: 0.75; }
-}
 @keyframes vsPulse {
   0%,100% { box-shadow: 0 0 22px -6px rgba(124,92,255,0.5), 0 0 0 1px rgba(124,92,255,0.28) inset; }
   50%      { box-shadow: 0 0 34px -4px rgba(124,92,255,0.75), 0 0 0 1px rgba(124,92,255,0.45) inset; }
@@ -701,7 +697,8 @@ function EncounterInner() {
   // Phone-only: reactions collapse into a popover to keep the control bar compact.
   const [reactionsOpen, setReactionsOpen] = useState(false);
 
-  const { isPhone } = useViewport();
+  const { width, isPhone } = useViewport();
+  const isCompactPhone = width <= 360;
 
   const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
   // Serializes join/leave so a StrictMode double-mount never overlaps two joins
@@ -1027,8 +1024,8 @@ function EncounterInner() {
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          gap: 6,
-          padding: isPhone ? "8px 8px 0 8px" : "6px 8px 0 8px",
+          gap: 8,
+          padding: isPhone ? "8px 8px 0 8px" : "12px 16px 0 16px",
           animation: "focusPinIn 0.25s ease forwards",
         }}
       >
@@ -1067,7 +1064,7 @@ function EncounterInner() {
               zIndex: 1,
               display: "flex",
               gap: 8,
-              height: isPhone ? 90 : 92,
+              height: isPhone ? 90 : 110,
               flexShrink: 0,
               overflowX: "auto" as const,
               WebkitOverflowScrolling: "touch",
@@ -1123,7 +1120,7 @@ function EncounterInner() {
     ) => {
       const list = members.length ? members : [];
       // Single member fills the column as one big tile; 2+ go into a 2-up grid.
-      const versusGridCols = list.length > 1 ? 2 : 1;
+      const versusGridCols = list.length > 1 && !(isPhone && list.length === 2) ? 2 : 1;
       // Number of grid rows so we can stretch each row to fill the side height
       // evenly (no big empty top/bottom gaps).
       const versusRows = Math.max(1, Math.ceil(list.length / versusGridCols));
@@ -1134,17 +1131,17 @@ function EncounterInner() {
             position: "relative",
             display: "flex",
             flexDirection: "column",
-            gap: 6,
+            gap: 8,
             alignItems: "stretch",
-            flex: isPhone ? undefined : 1,
+            flex: 1,
             width: isPhone ? "100%" : undefined,
             minWidth: 0,
             minHeight: 0,
-            height: isPhone ? "auto" : "100%",
-            marginBottom: isPhone ? 18 : 0,
-            borderRadius: 10,
+            height: "100%",
+            marginBottom: 0,
+            borderRadius: 16,
             overflow: "hidden",
-            padding: isPhone ? 10 : 6,
+            padding: isPhone ? 10 : 12,
             animation: entranceAnim,
           }}
         >
@@ -1152,7 +1149,7 @@ function EncounterInner() {
               gradient) rendered prominently behind this side's tiles, with a
               smart scrim + accent glow so video + names stay legible and each
               side reads as its own themed room. */}
-          <TeamRoomBackdrop cover={cover} squadKey={squadKey} tone={tone} radius={10} presence={0.55} />
+          <TeamRoomBackdrop cover={cover} squadKey={squadKey} tone={tone} radius={16} presence={0.55} />
 
           <div
             style={{
@@ -1196,12 +1193,10 @@ function EncounterInner() {
               gridTemplateColumns: `repeat(${versusGridCols}, 1fr)`,
               // Desktop: stretch rows to evenly fill the full side height so the
               // tile(s) are generous and there are no empty top/bottom gaps.
-              ...(isPhone
-                ? {}
-                : { gridTemplateRows: `repeat(${versusRows}, 1fr)` }),
+              gridTemplateRows: `repeat(${versusRows}, 1fr)`,
               gap: isPhone ? 10 : 10,
               width: "100%",
-              flex: isPhone ? undefined : 1,
+              flex: 1,
               minHeight: 0,
               alignContent: "stretch",
               justifyContent: "stretch",
@@ -1216,7 +1211,7 @@ function EncounterInner() {
                   // Phone: fixed-height stacked tiles. Desktop: fill the grid
                   // cell (rows are 1fr) so the tile is large and balanced;
                   // object-fit:cover frames the video nicely.
-                  ...(isPhone ? { height: 132 } : { height: "100%" }),
+                  height: "100%",
                 }}
                 onClick={() => {
                   const pkey: ParticipantKey = isMine ? `local-${i}` : `opp-${i}`;
@@ -1250,13 +1245,13 @@ function EncounterInner() {
         style={{
           flex: 1,
           minHeight: 0,
-          display: isPhone ? "block" : "flex",
+          display: "flex",
           alignItems: "stretch",
           justifyContent: "stretch",
           gap: 0,
-          padding: isPhone ? "10px 12px 24px" : "12px 16px",
-          flexDirection: isPhone ? undefined : ("row" as const),
-          overflowY: isPhone ? "auto" as const : "hidden" as const,
+          padding: isPhone ? "10px 12px 12px" : "12px 16px",
+          flexDirection: isPhone ? "column" as const : "row" as const,
+          overflow: "hidden",
           animation: "viewTransition 0.25s ease forwards",
         }}
       >
@@ -1276,7 +1271,7 @@ function EncounterInner() {
           style={{
             width: isPhone ? "100%" : 44,
             alignSelf: isPhone ? "center" : "stretch",
-            margin: isPhone ? "2px 0 18px" : "0 4px",
+            margin: isPhone ? "2px 0" : "0 4px",
             flexShrink: 0,
             position: "relative",
             display: "flex",
@@ -1732,8 +1727,8 @@ function EncounterInner() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: isPhone ? 6 : 8,
-            padding: isPhone ? "7px 10px" : "6px 10px",
+            gap: isPhone ? 6 : 12,
+            padding: isPhone ? "7px 10px" : "9px 20px",
             background: "linear-gradient(180deg, rgba(20,20,28,0.98), rgba(14,14,20,0.96))",
             borderBottom: "1px solid rgba(255,255,255,0.07)",
             boxShadow: "0 1px 0 rgba(255,255,255,0.03) inset, 0 4px 20px -12px rgba(0,0,0,0.8)",
@@ -1746,7 +1741,7 @@ function EncounterInner() {
           }}
         >
           {/* Squad names — single line, truncate instead of wrapping */}
-          <div style={{ display: "flex", alignItems: "center", gap: isPhone ? 5 : 8, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" as const, flexShrink: 1 }}>
+          <div style={{ display: isCompactPhone ? "none" : "flex", alignItems: "center", gap: isPhone ? 5 : 8, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" as const, flexShrink: 1 }}>
             <CoverThumb cover={mySquad?.cover} squadKey={mySquad?.id ?? "mine"} tone="yours" size={isPhone ? 16 : 18} radius={5} />
             <span
               style={{
@@ -1759,7 +1754,7 @@ function EncounterInner() {
                 textOverflow: "ellipsis",
                 minWidth: 0,
                 flexShrink: 1,
-                maxWidth: isPhone ? 84 : 140,
+                maxWidth: isPhone ? 84 : 170,
               }}
             >
               {mySquad?.name ?? "Your Squad"}
@@ -1777,7 +1772,7 @@ function EncounterInner() {
                 textOverflow: "ellipsis",
                 minWidth: 0,
                 flexShrink: 1,
-                maxWidth: isPhone ? 84 : 140,
+                maxWidth: isPhone ? 84 : 170,
               }}
             >
               {oppSquad?.name ?? "Opponent"}
@@ -1825,11 +1820,11 @@ function EncounterInner() {
           )}
 
           {/* Spacer */}
-          <div style={{ flex: 1 }} />
+          <div style={{ display: isCompactPhone ? "none" : "block", flex: 1 }} />
 
           {/* View mode switcher — horizontally scrollable strip; shrinks before
               the squad names do so it never forces overflow on phone. */}
-          <div style={{ overflowX: "auto" as const, flexShrink: 1, minWidth: 0, WebkitOverflowScrolling: "touch" }}>
+          <div style={{ overflowX: "auto" as const, flexShrink: isCompactPhone ? 0 : 1, minWidth: 0, width: isCompactPhone ? "max-content" : undefined, margin: isCompactPhone ? "0 auto" : 0, WebkitOverflowScrolling: "touch" }}>
           <div
             style={{
               display: "inline-flex",
@@ -1851,7 +1846,7 @@ function EncounterInner() {
                   onMouseEnter={() => setHoveredViewMode(mode)}
                   onMouseLeave={() => setHoveredViewMode(null)}
                   style={{
-                    padding: "4px 10px",
+                    padding: "5px 13px",
                     borderRadius: 999,
                     border: "none",
                     cursor: "pointer",
@@ -1888,8 +1883,8 @@ function EncounterInner() {
                 fontSize: 11,
                 fontWeight: 700,
                 color: coral,
-                background: `${coral}18`,
-                border: `1px solid ${coral}33`,
+                background: "color-mix(in srgb, var(--coral, #FF5C5C) 10%, transparent)",
+                border: "1px solid color-mix(in srgb, var(--coral, #FF5C5C) 20%, transparent)",
                 borderRadius: 999,
                 padding: "3px 10px",
                 letterSpacing: "0.08em",
@@ -1937,59 +1932,12 @@ function EncounterInner() {
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              background: "radial-gradient(120% 80% at 50% 0%, #101019 0%, #0A0A0E 60%, #08080B 100%)",
+              background: "#08080B",
               position: "relative",
               minHeight: 0,
               overflow: "hidden",
             }}
           >
-            {/* ── AMBIENT LAYER ─────────────────────────────────────────────
-                Very faint brand glows + a vignette so tiles float and pop.
-                Purely decorative, non-interactive, sits behind everything. */}
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                inset: 0,
-                zIndex: 0,
-                pointerEvents: "none",
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  position: "absolute",
-                  top: "-18%",
-                  left: "-10%",
-                  width: "55%",
-                  height: "70%",
-                  background: "radial-gradient(circle, rgba(124,92,255,0.14), transparent 68%)",
-                  filter: "blur(24px)",
-                  animation: "ambientDrift 14s ease-in-out infinite",
-                }}
-              />
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "-22%",
-                  right: "-12%",
-                  width: "55%",
-                  height: "70%",
-                  background: "radial-gradient(circle, rgba(61,214,192,0.10), transparent 68%)",
-                  filter: "blur(24px)",
-                  animation: "ambientDrift 18s ease-in-out infinite reverse",
-                }}
-              />
-              {/* edge vignette */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  boxShadow: "inset 0 0 220px -40px rgba(0,0,0,0.9)",
-                }}
-              />
-            </div>
-
             {/* "Squads meeting" entrance banner */}
             {showBanner && (
               <div
@@ -2003,7 +1951,7 @@ function EncounterInner() {
                   backdropFilter: "blur(16px)",
                   border: "1px solid rgba(255,255,255,0.12)",
                   borderRadius: 999,
-                  padding: "7px 16px",
+                  padding: "8px 22px",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
@@ -2172,7 +2120,7 @@ function EncounterInner() {
                 minHeight: 0,
                 display: "flex",
                 flexDirection: "column",
-                paddingBottom: isPhone ? 92 : 64,
+                paddingBottom: isPhone ? 96 : 80,
               }}
             >
               {renderStage()}
@@ -2182,7 +2130,7 @@ function EncounterInner() {
             <div
               style={{
                 position: "absolute",
-                bottom: 8,
+                bottom: 16,
                 left: 0,
                 right: 0,
                 display: "flex",
@@ -2194,13 +2142,13 @@ function EncounterInner() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: isPhone ? 6 : 7,
+                  gap: isPhone ? 6 : 8,
                   background: "linear-gradient(180deg, rgba(26,26,36,0.92), rgba(14,14,20,0.94))",
                   backdropFilter: "blur(22px)",
                   WebkitBackdropFilter: "blur(22px)",
                   border: "1px solid rgba(255,255,255,0.12)",
                   borderRadius: isPhone ? 24 : 999,
-                  padding: isPhone ? "9px 10px" : "7px 10px",
+                  padding: isPhone ? "9px 10px" : "10px 16px",
                   animation: "controlIn 0.5s cubic-bezier(.22,1,.36,1) 0.2s forwards",
                   opacity: 0,
                   boxShadow: "0 12px 44px -8px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.08)",
@@ -2273,10 +2221,8 @@ function EncounterInner() {
                   }}
                 />
 
-                {/* Reaction bar — inline on desktop/tablet; on phone it collapses
-                    into a single button that opens a popover above the bar so the
-                    control bar stays compact and reachable. */}
-                {isPhone ? (
+                {/* Reactions stay behind one familiar control so video remains primary. */}
+                {(
                   <div style={{ position: "relative", display: "flex" }}>
                     <button
                       onClick={() => setReactionsOpen((o) => !o)}
@@ -2342,38 +2288,6 @@ function EncounterInner() {
                       </div>
                     )}
                   </div>
-                ) : (
-                  REACTION_EMOJIS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    onClick={() => fireReaction(emoji)}
-                    onMouseEnter={() => setHoveredCtrl(`reaction-${emoji}`)}
-                    onMouseLeave={() => setHoveredCtrl(null)}
-                    title={`React ${emoji}`}
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 999,
-                      border: "none",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 20,
-                      background:
-                        hoveredCtrl === `reaction-${emoji}`
-                          ? "rgba(255,255,255,0.1)"
-                          : "rgba(255,255,255,0.04)",
-                      transform:
-                        hoveredCtrl === `reaction-${emoji}`
-                          ? "scale(1.2)"
-                          : "scale(1)",
-                      transition: "all .12s ease",
-                    }}
-                  >
-                    {emoji}
-                  </button>
-                  ))
                 )}
 
                 {/* Divider */}
@@ -2410,7 +2324,7 @@ function EncounterInner() {
                     fontWeight: 800,
                     boxShadow:
                       hoveredCtrl === "end"
-                        ? `0 0 40px -4px ${coral}, 0 0 0 3px ${coral}44`
+                        ? `0 0 40px -4px ${coral}, 0 0 0 3px color-mix(in srgb, var(--coral, #FF5C5C) 27%, transparent)`
                         : `0 0 20px -6px ${coral}`,
                     transform:
                       hoveredCtrl === "end" && !ending ? "scale(1.04)" : "scale(1)",
@@ -2438,11 +2352,9 @@ function EncounterInner() {
                 display: "flex",
                 flexDirection: "column",
                 background: "var(--surface, rgba(16,16,22,0.98))",
-                // Desktop: float as a rounded card with a gutter from the tiles
-                // and screen edge. Phone: full-screen sheet.
                 border: isPhone ? "none" : "1px solid var(--border, rgba(255,255,255,0.06))",
-                borderRadius: isPhone ? 0 : 18,
-                margin: isPhone ? 0 : "12px 12px 12px 0",
+                borderRadius: 0,
+                margin: 0,
                 overflow: "hidden",
                 animation: "chatSlideIn 0.22s ease forwards",
               }}

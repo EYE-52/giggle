@@ -1,6 +1,7 @@
 "use client";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import { DEFAULT_AVATARS, setMyAvatar, billing } from "@giggle/core";
 import { AvatarArt } from "./AvatarArt";
 import { Icon } from "./Icons";
@@ -17,6 +18,7 @@ const ALLOWED_UPLOAD_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/we
 
 export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
   const router = useRouter();
+  const titleId = useId();
   const [selected, setSelected] = useState(current);
   const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -28,6 +30,13 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
     setVibePackUnlocked(billing.hasPerk("vibe_pack"));
     return billing.subscribe(() => setVibePackUnlocked(billing.hasPerk("vibe_pack")));
   }, []);
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [onClose]);
   const [uploadHover, setUploadHover] = useState(false);
   const [saveHover, setSaveHover] = useState(false);
   const [cancelHover, setCancelHover] = useState(false);
@@ -75,7 +84,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
     }, 120);
   }
 
-  return (
+  return createPortal(
     /* Backdrop */
     <div
       onClick={(e) => e.target === e.currentTarget && onClose()}
@@ -94,21 +103,25 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
     >
       {/* Modal card */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         style={{
           background: "linear-gradient(160deg, var(--surface-grad-from, #1a1a26) 0%, var(--surface-grad-to, #13131c) 100%)",
           border: "1px solid var(--border, rgba(255,255,255,0.1))",
           borderRadius: 24,
           padding: "28px 28px 24px",
           width: "min(520px, calc(100vw - 32px))",
-          maxHeight: "90vh",
+          maxHeight: "calc(100dvh - 32px)",
           overflowY: "auto",
+          boxSizing: "border-box",
           boxShadow: "0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04)",
         }}
       >
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
           <div>
-            <div style={{
+            <div id={titleId} style={{
               fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
               fontSize: 20, fontWeight: 700,
               color: "var(--text, #F4F4F7)",
@@ -122,9 +135,9 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label="Close avatar picker"
             style={{
-              width: 32, height: 32, borderRadius: 999, border: "1px solid var(--border, rgba(255,255,255,0.1))",
+              width: 44, height: 44, borderRadius: 999, border: "1px solid var(--border, rgba(255,255,255,0.1))",
               background: "var(--overlay, rgba(255,255,255,0.06))",
               display: "flex", alignItems: "center", justifyContent: "center",
               cursor: "pointer", color: "var(--text-muted, #9A9AB0)", fontSize: 16,
@@ -334,6 +347,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

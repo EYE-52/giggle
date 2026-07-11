@@ -62,8 +62,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", overflow: "hidden" }}>
-      <TopNav />
+      {!isCalling && <a className="gg-skip-link" href="#main-content">Skip to content</a>}
+      {!isCalling && <TopNav />}
       <main
+        id="main-content"
+        tabIndex={-1}
         style={
           isCalling
             ? {

@@ -9,7 +9,8 @@ import type { SquadState } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 
 function MatchmakingInner() {
-  const { isPhone } = useViewport();
+  const { height, isPhone } = useViewport();
+  const isShortPhone = isPhone && height <= 650;
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
@@ -150,10 +151,6 @@ function MatchmakingInner() {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes rotateSlowR {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(-360deg); }
-        }
         @keyframes breatheGlow {
           0%, 100% { box-shadow: 0 0 32px -4px #7C5CFF, 0 0 0px #7C5CFF; }
           50% { box-shadow: 0 0 52px 2px #7C5CFF, 0 0 80px -10px #7C5CFF55; }
@@ -183,25 +180,6 @@ function MatchmakingInner() {
         @keyframes orbResolve {
           from { transform: rotate(0deg); }
           to { transform: rotate(-360deg); }
-        }
-        @keyframes orbResolveR {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        /* Ambient drifting gradient orbs behind everything */
-        @keyframes mmFloatA {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          33% { transform: translate(6vw, 4vh) scale(1.12); }
-          66% { transform: translate(-4vw, 7vh) scale(0.94); }
-        }
-        @keyframes mmFloatB {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-7vw, -5vh) scale(1.15); }
-        }
-        @keyframes mmFloatC {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          40% { transform: translate(5vw, -6vh) scale(0.9); }
-          75% { transform: translate(-3vw, 3vh) scale(1.1); }
         }
         @keyframes pulseDot {
           0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(194,255,61,0.55); }
@@ -331,40 +309,21 @@ function MatchmakingInner() {
         width: "100%",
         background: "#0B0B0F",
         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-        gap: isPhone ? 18 : 28,
-        padding: isPhone ? "20px 16px" : "24px",
+        gap: isShortPhone ? 10 : isPhone ? 18 : 28,
+        padding: isShortPhone ? "10px 16px" : isPhone ? "20px 16px" : "24px",
         boxSizing: "border-box",
         overflow: "hidden",
         position: "relative",
       }}>
-        {/* ── Ambient drifting gradient orbs (very low opacity, behind all) ── */}
-        <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", pointerEvents: "none" }}>
-          <div style={{
-            position: "absolute", top: "8%", left: "12%", width: 460, height: 460, borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(124,92,255,0.30) 0%, transparent 70%)",
-            filter: "blur(60px)", animation: "mmFloatA 22s ease-in-out infinite",
-          }} />
-          <div style={{
-            position: "absolute", bottom: "6%", right: "10%", width: 420, height: 420, borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(194,255,61,0.16) 0%, transparent 70%)",
-            filter: "blur(64px)", animation: "mmFloatB 26s ease-in-out infinite",
-          }} />
-          <div style={{
-            position: "absolute", top: "40%", right: "26%", width: 380, height: 380, borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(61,214,192,0.16) 0%, transparent 70%)",
-            filter: "blur(58px)", animation: "mmFloatC 30s ease-in-out infinite",
-          }} />
-        </div>
-
         {/* ── RADAR HERO — the centerpiece. A fixed, self-contained square so the
             orbiting avatars stay strictly INSIDE it and never collide with the
             title below. Everything else is arranged around this. ── */}
         {(() => {
-          const dim = isPhone ? 244 : 380;
-          const sweepSize = isPhone ? 168 : 264;     // conic beam disc
-          const tokenSize = isPhone ? 34 : 44;
+          const dim = isShortPhone ? 190 : isPhone ? 244 : 380;
+          const sweepSize = isShortPhone ? 132 : isPhone ? 168 : 264;     // conic beam disc
+          const tokenSize = isShortPhone ? 30 : isPhone ? 34 : 44;
           // Orbit radius kept well inside the square: orbitR + token/2 < dim/2.
-          const orbitR = isPhone ? 92 : 148;
+          const orbitR = isShortPhone ? 70 : isPhone ? 92 : 148;
           const tokens = orbitTokens.length ? orbitTokens : [{ key: "me", name: "You", isMe: true, colorIndex: 0 }];
           const tokenGrads = [
             "linear-gradient(145deg,#7C5CFF,#5B3FD4)",
@@ -375,19 +334,11 @@ function MatchmakingInner() {
           return (
         <div style={{ position: "relative", zIndex: 1, flexShrink: 0, width: dim, height: dim, display: "flex", alignItems: "center", justifyContent: "center" }}>
           {/* Rippling concentric rings — expand + fade outward on a stagger */}
-          {[0, 1, 2, 3].map(i => (
+          {[0, 1].map(i => (
             <div key={`r${i}`} style={{
               position: "absolute", width: dim, height: dim, borderRadius: "50%",
               border: "1.5px solid rgba(124,92,255,0.45)",
-              animation: `ripple 3.6s ease-out ${i * 0.9}s infinite`,
-            }} />
-          ))}
-          {/* Static faint guide rings for depth */}
-          {[0, 1, 2].map(i => (
-            <div key={`g${i}`} style={{
-              position: "absolute",
-              width: dim - i * (isPhone ? 56 : 86), height: dim - i * (isPhone ? 56 : 86), borderRadius: "50%",
-              border: `1px solid ${["rgba(124,92,255,0.10)", "rgba(124,92,255,0.16)", "rgba(124,92,255,0.24)"][i]}`,
+              animation: `ripple 3.6s ease-out ${i * 1.8}s infinite`,
             }} />
           ))}
 
@@ -402,27 +353,20 @@ function MatchmakingInner() {
 
           {/* Rotating dashed ring */}
           <div style={{
-            position: "absolute", width: isPhone ? 156 : 248, height: isPhone ? 156 : 248, borderRadius: "50%",
+            position: "absolute", width: isShortPhone ? 120 : isPhone ? 156 : 248, height: isShortPhone ? 120 : isPhone ? 156 : 248, borderRadius: "50%",
             border: "2px dashed rgba(124,92,255,0.33)",
             animation: "rotateSlow 9s linear infinite",
           }} />
-          {/* Counter-rotating dotted lime ring */}
-          <div style={{
-            position: "absolute", width: isPhone ? 104 : 164, height: isPhone ? 104 : 164, borderRadius: "50%",
-            border: "1.5px dotted rgba(194,255,61,0.28)",
-            animation: "rotateSlowR 13s linear infinite",
-          }} />
-
           {/* Center: Giggle logomark — breathing glow + gentle float */}
           <div style={{ position: "relative", zIndex: 3, animation: "centerFloat 4.5s ease-in-out infinite" }}>
             <div style={{
-              width: isPhone ? 64 : 100, height: isPhone ? 64 : 100, borderRadius: "50%",
+              width: isShortPhone ? 54 : isPhone ? 64 : 100, height: isShortPhone ? 54 : isPhone ? 64 : 100, borderRadius: "50%",
               background: "radial-gradient(circle at 50% 38%, #1a1330 0%, #0e0e18 100%)",
               border: `2px solid ${violet}`,
               animation: "breatheGlow 2.8s ease-in-out infinite",
               display: "flex", alignItems: "center", justifyContent: "center",
             }}>
-              <Logomark size={isPhone ? 36 : 54} />
+              <Logomark size={isShortPhone ? 30 : isPhone ? 36 : 54} />
             </div>
           </div>
 
@@ -469,12 +413,14 @@ function MatchmakingInner() {
 
         {/* Title + subtitle — clearly below the radar with real breathing room */}
         <div style={{ position: "relative", zIndex: 1, textAlign: "center", display: "flex", flexDirection: "column", gap: 8, maxWidth: 460 }}>
-          <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 26 : 34, fontWeight: 800, color: textPrimary, letterSpacing: "-0.02em", margin: 0 }}>Finding your squad…</h1>
-          <div style={{ color: textMuted, fontSize: isPhone ? 14 : 16 }}>Pairing you with a squad that matches your vibe.</div>
+          <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isShortPhone ? 22 : isPhone ? 26 : 34, fontWeight: 800, color: textPrimary, letterSpacing: "-0.02em", margin: 0 }}>Finding your match…</h1>
+          <div style={{ color: textMuted, fontSize: isShortPhone ? 12 : isPhone ? 14 : 16 }}>
+            {isShortPhone && elapsed >= 20 ? "Still searching — few squads are live right now." : "Looking for a squad that matches your crew's vibe."}
+          </div>
           {/* Reassurance for a lone searcher with no match after ~20s — avoids the
               "stuck forever with no feedback" feeling. The Cancel button below is
               always available as the escape hatch. */}
-          {elapsed >= 20 && !matchFound && (
+          {elapsed >= 20 && !matchFound && !isShortPhone && (
             <div style={{
               marginTop: 4,
               maxWidth: 420,
@@ -518,14 +464,16 @@ function MatchmakingInner() {
               style={{
                 position: "relative",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                padding: isPhone ? "10px 16px" : "14px 28px",
-                minWidth: isPhone ? 64 : 92,
+                padding: isShortPhone ? "7px 2px" : isPhone ? "10px 16px" : "14px 28px",
+                minWidth: isShortPhone ? 0 : isPhone ? 64 : 92,
+                width: isShortPhone ? "25%" : undefined,
+                boxSizing: "border-box",
                 background: statHover === label ? "rgba(124,92,255,0.10)" : "transparent",
                 borderLeft: i > 0 ? "1px solid rgba(255,255,255,0.07)" : "none",
                 transition: "background .15s ease",
               }}
             >
-              <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 16 : 21, fontWeight: 700, color: label === "Status" ? limeText : textPrimary, letterSpacing: "-0.02em", display: "inline-flex", alignItems: "center", gap: 7, justifyContent: "center" }}>
+              <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isShortPhone ? 11 : isPhone ? 16 : 21, fontWeight: 700, color: label === "Status" ? limeText : textPrimary, letterSpacing: "-0.02em", display: "inline-flex", alignItems: "center", gap: isShortPhone ? 2 : 7, justifyContent: "center" }}>
                 {label === "Status" && (
                   <span style={{
                     width: 9, height: 9, borderRadius: "50%", background: "var(--lime, #C2FF3D)",
@@ -544,7 +492,7 @@ function MatchmakingInner() {
           <div
             role="status"
             style={{
-              padding: "14px 36px", borderRadius: 999,
+              padding: isShortPhone ? "10px 20px" : "14px 36px", borderRadius: 999,
               background: "linear-gradient(135deg, rgba(194,255,61,0.15), rgba(124,92,255,0.25))",
               color: limeText,
               fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 700,
@@ -554,10 +502,10 @@ function MatchmakingInner() {
             }}
           >
             <Icon.lightning size={18} color="var(--lime-text, #C2FF3D)" />
-            Queue signal live
+            Your signal is live
           </div>
-          <div style={{ color: textMuted, fontSize: 13 }}>
-            We are looking for compatible squads that are online now.
+          <div style={{ color: textMuted, fontSize: isShortPhone ? 12 : 13 }}>
+            We&apos;ll bring you a compatible squad as soon as one is online.
           </div>
         </div>
 

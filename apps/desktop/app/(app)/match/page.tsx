@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Avatar, AvatarStack } from "@/components/Avatar";
+import { AvatarStack } from "@/components/Avatar";
 import { useViewport } from "@/components/useViewport";
-import { api, session } from "@giggle/core";
+import { api, session, resolveCover } from "@giggle/core";
 import type { EncounterDetail, SquadState } from "@giggle/core";
 
 function MatchInner() {
@@ -167,6 +167,12 @@ function MatchInner() {
   const opponentName = encounter
     ? (encounter.squadAId === squadId ? encounter.squadBName : encounter.squadAName)
     : "Finding opponent…";
+  const myCover = encounter
+    ? (encounter.squadAId === squadId ? encounter.squadACover : encounter.squadBCover)
+    : null;
+  const opponentCover = encounter
+    ? (encounter.squadAId === squadId ? encounter.squadBCover : encounter.squadACover)
+    : null;
 
   const myMembers = squad?.members.map(m => m.displayName) ?? [];
   const opponentMembers = (encounter
@@ -265,39 +271,37 @@ function MatchInner() {
           }
           .match-fx button:not(:disabled):active { transform: none !important; }
         }
+        @media (max-width: 640px) and (max-height: 680px) {
+          .match-squad-panel { min-height: 140px !important; }
+          .match-center { gap: 10px !important; padding: 12px 0 !important; }
+          .match-vs { width: 52px !important; height: 52px !important; }
+          .match-card { gap: 10px !important; padding: 14px 16px !important; }
+          .match-countdown { display: none !important; }
+        }
       `}</style>
 
       <div className="match-fx" style={{
         position: "relative",
         display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr",
-        minHeight: isPhone ? "auto" : "calc(100vh - 120px)",
-        borderRadius: 24, overflow: "hidden",
-        border: "1px solid var(--border)",
+        height: "100%", minHeight: 0,
+        borderRadius: 0, overflowX: "hidden", overflowY: isPhone ? "auto" : "hidden",
+        border: "none",
       }}>
         {/* YOUR SQUAD panel */}
-        <div style={{
+        <div className="match-squad-panel" style={{
           position: "relative", minHeight: isPhone ? 200 : 520,
-          background: "linear-gradient(135deg, #1a1035 0%, #0e0b1e 100%)",
+          gridRow: isPhone ? 1 : undefined,
+          background: "#0e0b1e",
           animation: joinPressed ? "squadRushLeft 0.5s ease-in both" : "slideLeft 0.55s ease both",
           display: "flex", flexDirection: "column", justifyContent: "flex-end",
         }}>
+          <div style={{ position: "absolute", inset: 0, background: resolveCover(myCover), filter: "saturate(.85) brightness(.7)" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(9,7,18,.96) 6%, rgba(9,7,18,.55) 48%, rgba(9,7,18,.2) 100%)" }} />
           {/* Subtle glow */}
           <div style={{
             position: "absolute", inset: 0,
             background: "radial-gradient(ellipse 60% 50% at 30% 60%, rgba(124,92,255,0.09) 0%, transparent 70%)",
           }} />
-          {/* Member avatars background display */}
-          <div style={{
-            position: "absolute", top: 32, left: 0, right: 0,
-            display: "flex", justifyContent: "center", gap: -8,
-            opacity: 0.25,
-          }}>
-            {myMembers.slice(0, 4).map((n, i) => (
-              <div key={n} style={{ marginLeft: i > 0 ? -12 : 0 }}>
-                <Avatar name={n} size={64} colorIndex={i} />
-              </div>
-            ))}
-          </div>
           <div style={{ position: "relative", padding: isPhone ? "20px 20px" : "32px 40px" }}>
             <div style={{ color: "#9A9AB0", fontSize: 12, letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 6 }}>
               <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#7C5CFF", marginRight: 6, animation: "pulse 2s ease infinite", verticalAlign: "middle" }} />
@@ -309,27 +313,19 @@ function MatchInner() {
         </div>
 
         {/* OPPONENT panel */}
-        <div style={{
+        <div className="match-squad-panel" style={{
           position: "relative", minHeight: isPhone ? 200 : 520,
-          background: "linear-gradient(135deg, #0e1a10 0%, #0b1510 100%)",
+          gridRow: isPhone ? 3 : undefined,
+          background: "#0b1510",
           animation: joinPressed ? "squadRushRight 0.5s ease-in both" : "slideRight 0.55s 0.12s both",
           display: "flex", flexDirection: "column", justifyContent: "flex-end",
         }}>
+          <div style={{ position: "absolute", inset: 0, background: resolveCover(opponentCover), filter: "saturate(.85) brightness(.7)" }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(6,14,9,.96) 6%, rgba(6,14,9,.55) 48%, rgba(6,14,9,.2) 100%)" }} />
           <div style={{
             position: "absolute", inset: 0,
             background: "radial-gradient(ellipse 60% 50% at 70% 60%, rgba(194,255,61,0.07) 0%, transparent 70%)",
           }} />
-          <div style={{
-            position: "absolute", top: 32, left: 0, right: 0,
-            display: "flex", justifyContent: "center",
-            opacity: 0.25,
-          }}>
-            {opponentMembers.slice(0, 4).map((n, i) => (
-              <div key={n} style={{ marginLeft: i > 0 ? -12 : 0 }}>
-                <Avatar name={n} size={64} colorIndex={i + 4} />
-              </div>
-            ))}
-          </div>
           <div style={{ position: "relative", padding: isPhone ? "20px 20px" : "32px 40px" }}>
             <div style={{ color: "#C2FF3D", fontSize: 12, letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 6 }}>
               <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#C2FF3D", marginRight: 6, animation: "pulse 2s 0.5s ease infinite", verticalAlign: "middle" }} />
@@ -341,57 +337,56 @@ function MatchInner() {
         </div>
 
         {/* Central VS + action card overlay */}
-        <div style={{
+        <div className="match-center" style={{
           position: isPhone ? "relative" : "absolute",
           top: isPhone ? undefined : "50%",
           left: isPhone ? undefined : "50%",
           gridColumn: isPhone ? "1 / -1" : undefined,
+          gridRow: isPhone ? 2 : undefined,
           display: "flex", flexDirection: "column", alignItems: "center", justifyContent: isPhone ? "center" : undefined, gap: 20,
           zIndex: 20,
           padding: isPhone ? "24px 0" : undefined,
-          animation: joinPressed
-            ? "joinFlash 0.5s ease both"
-            : "popIn 0.65s 0.25s both",
+          animation: isPhone
+            ? (joinPressed ? "panelFade 0.5s ease both" : "fadeUp 0.45s 0.15s both")
+            : (joinPressed ? "joinFlash 0.5s ease both" : "popIn 0.65s 0.25s both"),
         }}>
           {/* VS circle */}
-          <div style={{
+          <div className="match-vs" style={{
             width: 72, height: 72, borderRadius: "50%",
             background: "var(--bg)",
-            border: "3px solid var(--violet)",
+            border: "1px solid var(--border-strong)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontFamily: "var(--font-space-grotesk)", fontSize: 20, fontWeight: 800, color: textPrimary,
-            boxShadow: "0 0 40px -4px var(--violet)",
+            boxShadow: "0 8px 28px rgba(0,0,0,.36)",
           }}>VS</div>
 
           {/* Match Found card */}
-          <div style={{
-            background: "var(--surface)", border: "1px solid var(--violet-soft)",
-            backdropFilter: "blur(24px)", borderRadius: 28,
+          <div className="match-card" style={{
+            background: "rgba(18,22,21,.96)", border: "1px solid var(--border-strong)",
+            backdropFilter: "blur(16px)", borderRadius: 16,
             padding: isPhone ? "20px 20px" : "28px 36px", textAlign: "center",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
             minWidth: isPhone ? "calc(100vw - 48px)" : 296,
-            boxShadow: "0 8px 56px -8px rgba(124,92,255,0.45), 0 2px 0 rgba(255,255,255,0.04) inset",
+            boxShadow: "0 18px 50px rgba(0,0,0,.42)",
           }}>
             <div style={{
               fontFamily: "var(--font-space-grotesk)", fontSize: 26, fontWeight: 800,
               color: textPrimary, letterSpacing: "-0.5px",
-            }}>MATCH FOUND!</div>
+            }}>Match found</div>
 
             {/* Vibe chip — only when we have real squad tags */}
             {vibeLabel && (
               <div style={{
-                background: "linear-gradient(135deg, var(--violet-soft), rgba(194,255,61,0.09))",
-                border: "1px solid var(--lime-border, rgba(194,255,61,0.27))",
-                borderRadius: 999, padding: "6px 16px",
-                fontSize: 13, fontWeight: 600, color: limeText,
+                borderRadius: 0, padding: 0,
+                fontSize: 13, fontWeight: 600, color: textMuted,
                 animation: "vibeChipIn 0.4s 0.55s both",
               }}>
-                ✦ Vibe match — {vibeLabel}
+                Vibe match · {vibeLabel}
               </div>
             )}
 
             {/* Countdown ring */}
-            <div style={{ position: "relative", width: 80, height: 80 }}>
+            <div className="match-countdown" style={{ position: "relative", width: 80, height: 80 }}>
               <svg width="80" height="80" viewBox="0 0 80 80">
                 <circle cx="40" cy="40" r={radius} fill="none" stroke="var(--border)" strokeWidth="6" />
                 <circle cx="40" cy="40" r={radius} fill="none" stroke={lime} strokeWidth="6"
@@ -414,19 +409,13 @@ function MatchInner() {
               onMouseEnter={() => setJoinHovered(true)}
               onMouseLeave={() => setJoinHovered(false)}
               style={{
-                width: isPhone ? "100%" : 220, padding: "15px 0", borderRadius: 999, border: "none",
-                background: joining
-                  ? "linear-gradient(135deg, rgba(124,92,255,0.6) 0%, #4a30b0 100%)"
-                  : joinHovered
-                    ? "linear-gradient(135deg, #9270ff 0%, #6244e0 100%)"
-                    : "linear-gradient(135deg, var(--violet) 0%, #5B3FD4 100%)",
+                width: isPhone ? "100%" : 220, padding: "15px 0", borderRadius: 10, border: "none",
+                background: joining ? "rgba(118,87,255,.55)" : joinHovered ? "var(--violet-bright)" : "var(--violet)",
                 color: "#fff",
                 fontFamily: "var(--font-space-grotesk)", fontSize: 16, fontWeight: 700,
                 cursor: joining ? "not-allowed" : "pointer",
                 transition: "background 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease",
-                boxShadow: joinHovered && !joining
-                  ? "0 0 56px -4px var(--violet), 0 4px 24px rgba(124,92,255,0.5)"
-                  : "0 0 32px -6px var(--violet)",
+                boxShadow: "none",
                 transform: joinHovered && !joining ? "scale(1.03)" : "scale(1)",
                 display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               }}

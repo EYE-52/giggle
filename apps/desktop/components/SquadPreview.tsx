@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import { Icon } from "@/components/Icons";
 import { useViewport } from "@/components/useViewport";
 import { api, session, resolveCover, type PublicSquad, type SquadState, type SquadMemberState } from "@giggle/core";
@@ -130,7 +131,7 @@ export function SquadPreview({
   const text = "var(--text)";
   const muted = "var(--text-muted)";
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       role="dialog"
@@ -167,7 +168,7 @@ export function SquadPreview({
           className="gg-press"
           style={{
             position: "absolute", top: 12, right: 12, zIndex: 3,
-            width: 40, height: 40, borderRadius: 999, border: "none", cursor: "pointer",
+            width: 44, height: 44, borderRadius: 999, border: "none", cursor: "pointer",
             background: closeHover ? "rgba(11,11,15,0.85)" : "rgba(11,11,15,0.55)",
             backdropFilter: "blur(6px)",
             transform: closeHover ? "translateY(-1px)" : "translateY(0)",
@@ -393,6 +394,7 @@ export function SquadPreview({
         @keyframes sp-pop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
         @keyframes sp-slide { from { transform: translateY(100%); } to { transform: translateY(0); } }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 }

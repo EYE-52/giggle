@@ -4,12 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Wordmark, Logomark } from "./Brand";
 import { Icon } from "./Icons";
-import { Avatar } from "./Avatar";
-import { AvatarArt } from "./AvatarArt";
 import { ThemeToggle } from "./ThemeToggle";
 import { NotificationBell } from "./NotificationBell";
 import { useViewport } from "./useViewport";
-import { getMyAvatar, subscribeAvatar, getTokenBalance, billing, DEFAULT_AVATAR_ID } from "@giggle/core";
+import { getTokenBalance, billing } from "@giggle/core";
 
 function fmtTokens(n: number): string {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
@@ -28,41 +26,33 @@ const CALLING_ROUTES = ["/lobby", "/encounter", "/matchmaking", "/match"];
 export function TopNav() {
   const path = usePathname();
   const [hovered, setHovered] = useState<string | null>(null);
-  const [myAvatar, setMyAvatarState] = useState<string>(DEFAULT_AVATAR_ID);
   const [tokens, setTokens] = useState(0);
-
-  useEffect(() => {
-    setMyAvatarState(getMyAvatar());
-    return subscribeAvatar((v) => setMyAvatarState(v));
-  }, []);
 
   useEffect(() => {
     setTokens(getTokenBalance());
     return billing.subscribe(() => setTokens(getTokenBalance()));
   }, []);
   const isCallingRoute = CALLING_ROUTES.includes(path);
-  const { isPhone } = useViewport();
-  const compactChrome = isPhone || isCallingRoute;
-  const navHeight = isCallingRoute ? 48 : 64;
+  const { width, isPhone, isTablet } = useViewport();
 
   const innerStyle: React.CSSProperties = isCallingRoute
     ? {
         height: "100%",
         maxWidth: "none",
         margin: 0,
-        padding: isPhone ? "0 8px" : "0 12px",
-        display: "flex",
-        justifyContent: "space-between",
+        padding: isPhone ? "0 8px" : "0 24px",
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
         alignItems: "center",
-        gap: 8,
+        gap: 16,
       }
     : {
         height: "100%",
         maxWidth: 1200,
         margin: "0 auto",
         padding: isPhone ? "0 8px" : "0 40px",
-        display: "flex",
-        justifyContent: "space-between",
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
         alignItems: "center",
         gap: 16,
       };
@@ -73,11 +63,11 @@ export function TopNav() {
         position: "sticky",
         top: 0,
         zIndex: 50,
-        height: navHeight,
-        background: isCallingRoute ? "rgba(7,7,11,0.72)" : "color-mix(in srgb, var(--bg) 82%, transparent)",
-        backdropFilter: isCallingRoute ? "blur(10px)" : "blur(16px)",
-        WebkitBackdropFilter: isCallingRoute ? "blur(10px)" : "blur(16px)",
-        borderBottom: isCallingRoute ? "1px solid rgba(255,255,255,0.06)" : "1px solid var(--border)",
+        height: 68,
+        background: "color-mix(in srgb, var(--bg) 90%, transparent)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: "1px solid var(--border)",
       }}
     >
       <div style={innerStyle}>
@@ -96,12 +86,11 @@ export function TopNav() {
             flexShrink: 0,
           }}
         >
-          {compactChrome ? <Logomark size={isCallingRoute ? 24 : 28} /> : <Wordmark size={20} />}
+          {isPhone ? <Logomark size={28} /> : <Wordmark size={20} />}
         </Link>
 
-        {/* right: nav + controls + profile */}
-        <nav style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: compactChrome ? 2 : 4 }}>
-          {NAV.filter(({ href }) => !(isPhone && href === "/home")).map(({ href, label, icon: I }) => {
+        <nav aria-label="Primary navigation" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isPhone ? 0 : 4 }}>
+          {NAV.map(({ href, label, icon: I }) => {
             const active = path === href;
             const isHovered = hovered === href;
             return (
@@ -112,62 +101,64 @@ export function TopNav() {
                 onMouseEnter={() => setHovered(href)}
                 onMouseLeave={() => setHovered(null)}
                 aria-label={label}
-                title={compactChrome ? label : undefined}
+                title={isTablet ? label : undefined}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: compactChrome ? 0 : 7,
-                  padding: compactChrome ? "0" : "0 13px",
-                  minWidth: compactChrome ? 40 : 44,
-                  minHeight: compactChrome ? 40 : 44,
-                  borderRadius: 999,
+                  gap: 7,
+                  padding: isTablet ? "0" : "0 14px",
+                  minWidth: 44,
+                  minHeight: 44,
+                  borderRadius: 10,
                   textDecoration: "none",
                   color: active || isHovered ? "var(--text)" : "var(--text-muted)",
                   background: active
-                    ? "var(--violet-soft)"
+                    ? "var(--overlay)"
                     : isHovered
                     ? "var(--overlay-hover)"
                     : "transparent",
-                  fontSize: compactChrome ? 13 : 14,
+                  fontSize: 14,
                   fontWeight: 600,
                   cursor: "pointer",
                   transition:
                     "color var(--dur) var(--ease-inout), background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",
-                  borderBottom: active ? "2px solid var(--violet)" : "2px solid transparent",
+                  border: active ? "1px solid var(--border-strong)" : "1px solid transparent",
                 }}
               >
                 <I
-                  size={compactChrome ? 19 : 18}
+                  size={isPhone ? 20 : 18}
                   color={active || isHovered ? "var(--violet)" : "var(--text-muted)"}
                   strokeWidth={2}
                 />
-                {!compactChrome && label}
+                {!isTablet && label}
               </Link>
             );
           })}
 
-          {/* Theme toggle */}
-          <div style={{ marginLeft: compactChrome ? 2 : 4 }}>
-            <ThemeToggle size={compactChrome ? 40 : 44} />
-          </div>
+        </nav>
 
-          {/* Premium star button with tooltip */}
-          <div style={{ position: "relative", marginLeft: compactChrome ? 2 : 4 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: isPhone ? 0 : 4 }}>
+          {width >= 360 && <div>
+            <ThemeToggle size={44} />
+          </div>}
+
+          {!isPhone && <div style={{ position: "relative" }}>
             <Link
               href="/premium"
               className="gg-nav-item"
               onMouseEnter={() => setHovered("premium")}
               onMouseLeave={() => setHovered(null)}
-              aria-label="Premium"
+              aria-label={`${fmtTokens(tokens)} tokens. View Giggle Plus`}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: compactChrome ? 6 : 8,
-                minWidth: compactChrome ? 40 : 44,
-                minHeight: compactChrome ? 40 : 44,
-                borderRadius: 999,
+                gap: 6,
+                padding: "0 12px",
+                minWidth: 58,
+                minHeight: 44,
+                borderRadius: 10,
                 background:
                   hovered === "premium"
                     ? "rgba(255,200,50,0.12)"
@@ -181,7 +172,8 @@ export function TopNav() {
                   "background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",
               }}
             >
-              <Icon.star size={compactChrome ? 16 : 17} />
+              <Icon.star size={14} color="var(--lime)" fill="var(--lime)" />
+              <span style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{fmtTokens(tokens)}</span>
             </Link>
             {hovered === "premium" && (
               <div
@@ -204,7 +196,7 @@ export function TopNav() {
                   zIndex: 60,
                 }}
               >
-                Premium
+                Tokens & Giggle+
                 <div
                   style={{
                     position: "absolute",
@@ -220,46 +212,12 @@ export function TopNav() {
                 />
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Notification bell + live panel */}
           <NotificationBell />
 
-          {/* Profile chip: avatar + live token balance */}
-          {!isPhone && !isCallingRoute && <Link
-            href="/profile"
-            className="gg-nav-item"
-            onMouseEnter={() => setHovered("rep")}
-            onMouseLeave={() => setHovered(null)}
-            aria-label="Profile and token balance"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: isPhone ? 4 : 7,
-              marginLeft: isPhone ? 2 : 6,
-              padding: isPhone ? "4px 6px 4px 4px" : "4px 11px 4px 4px",
-              minHeight: 44,
-              borderRadius: 999,
-              background: hovered === "rep" ? "var(--overlay-hover)" : "var(--overlay)",
-              border: hovered === "rep" ? "1px solid var(--border-strong)" : "1px solid var(--border)",
-              textDecoration: "none",
-              cursor: "pointer",
-              transition:
-                "background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",
-              flexShrink: 0,
-            }}
-          >
-            <AvatarArt value={myAvatar} size={isPhone ? 22 : 26} />
-            {!isPhone && (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                <Icon.star size={13} color="var(--lime)" fill="var(--lime)" />
-                <span style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 600, fontSize: 13, color: "var(--text)" }}>
-                  {fmtTokens(tokens)}
-                </span>
-              </span>
-            )}
-          </Link>}
-        </nav>
+        </div>
       </div>
     </header>
   );

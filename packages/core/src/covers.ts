@@ -127,6 +127,32 @@ export const PRESET_COVERS: PresetCover[] = [
 const DEFAULT_COVER = "linear-gradient(135deg, #7C5CFF 0%, #3DD6C0 100%)";
 
 /**
+ * Human-readable name of a squad's cover theme, for surfacing the theme in the
+ * UI (e.g. a small "Aurora" label on a squad card). Returns the preset name for
+ * a known preset id, "Custom" for an uploaded data/https cover, or null when the
+ * squad has no cover set (caller can then hide the theme label entirely).
+ */
+export function coverName(coverImage?: string | null): string | null {
+  if (!coverImage) return null;
+  const preset = PRESET_COVERS.find((p) => p.id === coverImage);
+  if (preset) return preset.name;
+  if (coverImage.startsWith("data:") || coverImage.startsWith("http")) return "Custom";
+  return null;
+}
+
+/**
+ * A compact swatch value (always a gradient string, never a photo url) for the
+ * little colour chip shown next to a theme label. Photos fall back to the
+ * default gradient so the swatch stays a solid colour block.
+ */
+export function coverSwatch(coverImage?: string | null): string {
+  if (!coverImage) return DEFAULT_COVER;
+  const preset = PRESET_COVERS.find((p) => p.id === coverImage);
+  if (preset && preset.type === "gradient") return preset.value;
+  return DEFAULT_COVER;
+}
+
+/**
  * Resolve a coverImage value (preset id, data URL, or https URL) to a
  * CSS `background` value suitable for inline styles.
  */

@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icons";
 import { SquadCard } from "@/components/SquadCard";
 import { SquadPreview } from "@/components/SquadPreview";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 import { useViewport } from "@/components/useViewport";
 import { api, session, randomSquadName, type PublicSquad } from "@giggle/core";
 
@@ -36,8 +38,6 @@ export default function DiscoverPage() {
     ? squads.filter(s => (s.tags ?? []).some(t => norm(t) === vibe.toLowerCase()))
     : squads;
   const hasOpenSquads = squads.length > 0;
-  const hasMatchingSquads = shown.length > 0;
-  const primaryCtaCreates = vibe ? !hasMatchingSquads : !hasOpenSquads;
 
   const violet = "var(--violet)";
   const text = "var(--text)";
@@ -116,91 +116,34 @@ export default function DiscoverPage() {
     }
   }
 
-  function handlePrimaryCta() {
-    if (primaryCtaCreates) { void handleCreate(); return; }
-    if (vibe && shown[0]) { handlePreview(shown[0]); return; }
-    void handleRandom();
-  }
-
   const gridCols = isPhone ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))";
 
   return (
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 40 }}>
-      {/* Header */}
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <Icon.discover size={24} color={violet} />
-          <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 26 : 28, fontWeight: 800, color: text, margin: 0, letterSpacing: "-0.02em" }}>Discover</h1>
-        </div>
-        <div style={{ color: muted, fontSize: 14, fontFamily: "var(--font-inter)" }}>
-          Browse open squads looking for members right now.
-        </div>
-      </div>
-
-      {/* ── PRIMARY CTA — create or join based on live inventory ───── */}
-      <div style={{
-        position: "relative",
-        overflow: "hidden",
-        borderRadius: 22,
-        padding: isPhone ? "22px 20px" : "28px 32px",
-        background: "linear-gradient(135deg, rgba(124,92,255,0.16) 0%, var(--surface-grad-to) 55%, rgba(194,255,61,0.08) 100%)",
-        border: "1px solid var(--violet-soft)",
-        boxShadow: "0 0 70px -24px rgba(124,92,255,0.4)",
-        display: "flex",
-        flexDirection: isPhone ? "column" : "row",
-        alignItems: isPhone ? "flex-start" : "center",
-        justifyContent: "space-between",
-        gap: isPhone ? 18 : 24,
-      }}>
-        <div style={{ position: "relative" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <Icon.lightning size={15} color={violet} />
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: violet }}>
-              {primaryCtaCreates ? "Start the signal" : "Live inventory"}
-            </span>
-          </div>
-          <h2 style={{ margin: "0 0 6px", fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: isPhone ? 22 : 26, color: text, letterSpacing: "-0.02em" }}>
-            {primaryCtaCreates ? (vibe ? `Create a ${vibe} squad` : "Create the first open squad") : (vibe ? `Join a ${vibe} squad` : "Join a live open squad")}
-          </h2>
-          <p style={{ margin: 0, fontSize: 14, color: muted, lineHeight: 1.5, maxWidth: 440 }}>
-            {primaryCtaCreates
-              ? (vibe ? "No matching open room is available right now. Start one with this vibe and let people join you." : "No open rooms are available right now. Start one, set a vibe, and let people join you.")
-              : (vibe ? "Preview a matching open room, or browse the filtered signals below." : "Drop into an open room instantly, or browse the signals below.")}
-          </p>
-        </div>
-        <button
-          onClick={handlePrimaryCta}
-          disabled={primaryCtaCreates ? creating : randomLoading}
-          onMouseEnter={() => setCtaHover(true)}
-          onMouseLeave={() => setCtaHover(false)}
-          className="gg-press"
-          style={{
-            position: "relative",
-            flexShrink: 0,
-            width: isPhone ? "100%" : undefined,
-            height: 50,
-            padding: "0 32px",
-            borderRadius: 999,
-            border: "none",
-            cursor: (primaryCtaCreates ? creating : randomLoading) ? "wait" : "pointer",
-            background: ctaHover ? "var(--violet-bright)" : violet,
-            color: "var(--on-accent)",
-            fontFamily: "var(--font-space-grotesk)",
-            fontWeight: 700,
-            fontSize: 15,
-            letterSpacing: "-0.01em",
-            boxShadow: ctaHover ? "0 0 40px -6px rgba(124,92,255,0.95)" : "0 0 28px -8px rgba(124,92,255,0.8)",
-            transform: ctaHover && !randomLoading ? "translateY(-1px)" : "translateY(0)",
-            transition: "transform .14s ease, box-shadow .2s var(--ease-ui), background .2s var(--ease-ui)",
-            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-            opacity: (primaryCtaCreates ? creating : randomLoading) ? 0.85 : 1,
-          }}
-        >
-          {primaryCtaCreates
-            ? (creating ? (<><span className="gg-spinner" /> Creating...</>) : (<><Icon.plus size={16} color="var(--on-accent)" /> Create squad</>))
-            : (randomLoading ? (<><span className="gg-spinner" /> Finding a squad...</>) : (<><Icon.lightning size={16} color="var(--on-accent)" /> {vibe ? "Preview match" : "Join random squad"}</>))}
-        </button>
-      </div>
+      {/* Header — cards own the page; the header carries only a light secondary
+          action (join a random open squad) when there's live inventory. */}
+      <PageHeader
+        title="Discover squads"
+        subtitle="Find a crew that matches your mood. Preview before joining."
+        right={hasOpenSquads ? (
+          <button
+            onClick={handleRandom}
+            disabled={randomLoading}
+            onMouseEnter={() => setCtaHover(true)}
+            onMouseLeave={() => setCtaHover(false)}
+            className="gg-press"
+            style={{
+              height: 44, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border-strong)", cursor: randomLoading ? "wait" : "pointer",
+              background: ctaHover ? "var(--overlay-hover)" : "transparent", color: "var(--text)",
+              fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14,
+              opacity: randomLoading ? 0.75 : 1,
+              display: "inline-flex", alignItems: "center", gap: 8,
+            }}
+          >
+            {randomLoading ? (<><span className="gg-spinner" /> Finding…</>) : (<><Icon.lightning size={15} color="var(--violet)" /> Surprise me</>)}
+          </button>
+        ) : undefined}
+      />
 
       {/* Inline join/create error */}
       {joinError && (
@@ -244,20 +187,16 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      {/* ── OPEN SQUADS ───────────────────────────────────────────── */}
+      {/* Active filter + result count */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 8 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const }}>
-          <Icon.trend size={18} color="var(--lime)" />
-          <h2 style={{ margin: 0, fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 18, color: text, letterSpacing: "-0.01em" }}>
-            {vibe ? "Open squads" : "Open squads"}
-          </h2>
           {vibe && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--violet-soft)", border: "1px solid rgba(124,92,255,0.3)", color: "var(--violet)", borderRadius: 999, padding: "4px 8px 4px 12px", fontSize: 13, fontWeight: 700 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--overlay)", border: "1px solid var(--border-strong)", color: "var(--text)", borderRadius: 9, padding: "6px 8px 6px 11px", fontSize: 13, fontWeight: 700 }}>
               {vibe}
               <button
                 onClick={() => { setVibe(null); try { window.history.replaceState(null, "", "/discover"); } catch {} }}
                 aria-label="Clear vibe filter"
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--violet)", padding: 0, display: "flex" }}
+                style={{ width: 28, height: 28, background: "none", border: "none", cursor: "pointer", padding: 0, display: "grid", placeItems: "center" }}
               >
                 <Icon.close size={13} color="var(--violet)" />
               </button>
@@ -322,33 +261,17 @@ export default function DiscoverPage() {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — compact, one primary action, context-sensitive to the
+          vibe filter. No page-dominating dashed box. */}
       {!loading && !error && shown.length === 0 && (
-        <div style={{
-          borderRadius: 18, border: "1px dashed var(--border)",
-          background: "rgba(255,255,255,0.026)", padding: "30px 24px",
-          display: "grid",
-          gridTemplateColumns: isPhone ? "1fr" : "56px minmax(0, 1fr)",
-          alignItems: "center",
-          gap: 16,
-          textAlign: isPhone ? "center" : "left",
-        }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 14, background: "var(--violet-soft)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: isPhone ? "0 auto" : 0,
-          }}>
-            <Icon.trend size={24} color={violet} />
-          </div>
-          <div>
-            <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: text, marginBottom: 4 }}>
-              {vibe ? `No open “${vibe}” squads right now` : "No open squads right now"}
-            </div>
-            <div style={{ color: muted, fontSize: 14, maxWidth: 380 }}>
-              {vibe ? "Start one with the banner above, or clear the filter to browse other live signals." : "Use the banner above to start the first signal and make your squad discoverable."}
-            </div>
-          </div>
-        </div>
+        <EmptyState
+          compact={!isPhone}
+          icon={<Icon.discover size={20} color="var(--text-dim)" />}
+          title={vibe ? `No open “${vibe}” squads right now` : "No open squads right now"}
+          body={vibe ? "Start one with this vibe, or clear the filter to browse other live signals." : "Start the first open room and make your squad discoverable."}
+          primary={{ label: creating ? "Creating…" : (vibe ? `Create a ${vibe} squad` : "Create a squad"), onClick: handleCreate, disabled: creating }}
+          secondary={vibe ? { label: "Clear filter", onClick: () => { setVibe(null); try { window.history.replaceState(null, "", "/discover"); } catch {} } } : undefined}
+        />
       )}
 
       {/* Squad grid */}

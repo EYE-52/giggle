@@ -3,5 +3,8 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @giggle/desktop build",
   "outputDirectory": "apps/desktop/.next",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "env": {
+    "NEXT_PUBLIC_BACKEND_URL": "https://giggle-server-production.up.railway.app"
+  }
 }

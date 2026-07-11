@@ -1,5 +1,5 @@
 "use client";
-import { colors, radii } from "./tokens";
+import { colors, radii } from "@giggle/ui-tokens";
 import { CSSProperties, ReactNode } from "react";
 
 interface AvatarProps {

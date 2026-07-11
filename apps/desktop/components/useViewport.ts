@@ -8,14 +8,19 @@ import { useState, useEffect } from "react";
  */
 export function useViewport() {
   const [width, setWidth] = useState(1280);
+  const [height, setHeight] = useState(900);
   useEffect(() => {
-    const onResize = () => setWidth(window.innerWidth);
+    const onResize = () => {
+      setWidth(window.innerWidth);
+      setHeight(window.innerHeight);
+    };
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
   return {
     width,
+    height,
     isPhone: width <= 640,
     isTablet: width <= 980,
     isNarrow: width <= 980,

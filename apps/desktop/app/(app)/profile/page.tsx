@@ -98,11 +98,10 @@ export default function ProfilePage() {
     padding: isPhone ? "16px 16px" : "20px 24px",
     boxShadow: "var(--elev)",
   };
-  const iconTile = (color: string): React.CSSProperties => ({
-    width: 40, height: 40, borderRadius: 12, background: `${color}22`,
-    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-  });
-
+  const settingsSection: React.CSSProperties = {
+    padding: isPhone ? 16 : "20px 24px",
+    borderBottom: "1px solid var(--border)",
+  };
   // Vibe preferences state (persisted to localStorage)
   const [vibes, setVibes] = useState<string[]>(() => normalizeProfileVibes(DEFAULT_VIBES));
   const [vibePickerOpen, setVibePickerOpen] = useState(false);
@@ -123,15 +122,9 @@ export default function ProfilePage() {
     if (u) setUser({ name: u.name, email: u.email });
   }, []);
   const displayName = user?.name ?? "Your Profile";
-  const handle = user?.email
-    ? "@" + user.email.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "").toLowerCase()
-    : "";
 
   // Account toggles
   const manageAccountRef = useRef<HTMLElement>(null);
-  function openManageAccount() {
-    manageAccountRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
   const [notificationsOn, setNotificationsOn] = useState(true);
   const [openToDiscovery, setOpenToDiscovery] = useState(true);
   const [showOnlineStatus, setShowOnlineStatus] = useState(false);
@@ -301,7 +294,6 @@ export default function ProfilePage() {
   }
 
   // Hover states
-  const [settingsCardHover, setSettingsCardHover] = useState<string | null>(null);
   const [vibeTagHover, setVibeTagHover] = useState<string | null>(null);
   const [addMoreHover, setAddMoreHover] = useState(false);
   const [logOutHover, setLogOutHover] = useState(false);
@@ -346,12 +338,13 @@ export default function ProfilePage() {
     : { display: "grid", gridTemplateColumns: "300px 1fr", gap: 24, alignItems: "start" };
 
   return (
+    <>
     <div className="gg-reveal" style={outerGrid}>
       {/* LEFT COLUMN — Avatar + Score + Stats */}
       <div style={{ display: "flex", flexDirection: "column", gap: isPhone ? 14 : 16 }}>
         {/* Avatar card */}
         <div style={{ ...surface, display: "flex", flexDirection: "column", alignItems: "center", gap: 14, paddingTop: isPhone ? 22 : 26, paddingBottom: isPhone ? 18 : 22 }}>
-          {/* Avatar with conic glow ring — click to edit */}
+          {/* Avatar — click to edit */}
           <button
             onClick={() => setPickerOpen(true)}
             onMouseEnter={() => setAvatarHover(true)}
@@ -363,13 +356,7 @@ export default function ProfilePage() {
               cursor: "pointer",
             }}
           >
-            <div style={{
-              position: "absolute", inset: -5, borderRadius: "50%",
-              background: "conic-gradient(from 0deg, var(--violet) 0%, var(--lime) 50%, var(--violet) 100%)",
-              filter: "blur(8px)", opacity: avatarHover ? 1 : 0.85,
-              transition: "opacity 0.2s",
-            }} />
-            <div style={{ position: "absolute", inset: 0, borderRadius: "50%", overflow: "hidden", border: "3px solid var(--bg)" }}>
+            <div style={{ position: "absolute", inset: 0, borderRadius: "50%", overflow: "hidden", border: avatarHover ? "3px solid var(--violet)" : "3px solid var(--border-strong)", transition: "border-color .16s ease" }}>
               <AvatarArt value={myAvatar} size={114} />
             </div>
             {/* Edit overlay */}
@@ -397,18 +384,10 @@ export default function ProfilePage() {
               </div>
             )}
           </button>
-          {pickerOpen && <AvatarPicker current={myAvatar} onClose={() => setPickerOpen(false)} />}
           <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 4 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
               <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 22, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0 }}>{displayName}</h1>
-              {isPremium && (
-                <span style={{ background: "#2563EB", borderRadius: "50%", width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden><path d="M2 5.5 4 7.5 8 3" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                </span>
-              )}
             </div>
-            {handle && <div style={{ color: textMuted, fontSize: 14 }}>{handle}</div>}
-            {user?.email && <div style={{ color: textTertiary, fontSize: 12 }}>{user.email}</div>}
           </div>
         </div>
 
@@ -442,7 +421,7 @@ export default function ProfilePage() {
           >
             <div>
               <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Giggle+</div>
-              <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Upgrade for premium vibes</div>
+              <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Monthly tokens + 15% pack bonus</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{
@@ -457,8 +436,9 @@ export default function ProfilePage() {
 
       {/* RIGHT COLUMN — Prefs + Settings + Manage Account + Log Out */}
       <div style={{ display: "flex", flexDirection: "column", gap: isPhone ? 16 : 18 }}>
+        <div style={{ ...surface, padding: 0, overflow: "hidden" }}>
         {/* Vibe Preferences */}
-        <section style={surface}>
+        <section style={settingsSection}>
           <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 14, letterSpacing: "-0.02em" }}>Vibe Preferences</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {vibes.map(t => (
@@ -469,10 +449,10 @@ export default function ProfilePage() {
                 onMouseLeave={() => setVibeTagHover(null)}
                 className="gg-press"
                 style={{
-                  background: vibeTagHover === t ? `${violet}33` : `${violet}22`,
+                  background: vibeTagHover === t ? "color-mix(in srgb, var(--violet) 20%, transparent)" : "color-mix(in srgb, var(--violet) 13%, transparent)",
                   color: violet, borderRadius: 20, padding: "0 16px", minHeight: 44,
                   fontSize: 14, fontWeight: 500,
-                  border: `1px solid ${vibeTagHover === t ? violet + "88" : violet + "44"}`,
+                  border: `1px solid ${vibeTagHover === t ? "color-mix(in srgb, var(--violet) 53%, transparent)" : "color-mix(in srgb, var(--violet) 27%, transparent)"}`,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", gap: 6,
                   transition: "all .15s ease",
@@ -525,11 +505,11 @@ export default function ProfilePage() {
                       style={{
                         borderRadius: 999, padding: "0 14px", minHeight: 44, fontSize: 13, fontWeight: 500,
                         border: `1.5px solid ${active || hovered ? violet : "var(--border-strong)"}`,
-                        background: active ? `${violet}33` : hovered ? `${violet}18` : "var(--overlay)",
+                        background: active ? "color-mix(in srgb, var(--violet) 20%, transparent)" : hovered ? "color-mix(in srgb, var(--violet) 10%, transparent)" : "var(--overlay)",
                         color: active || hovered ? violet : textMuted,
                         cursor: "pointer", transition: "all .15s ease",
                         transform: hovered && !active ? "translateY(-1px)" : "translateY(0)",
-                        boxShadow: hovered ? `0 0 12px -4px ${violet}66` : "none",
+                        boxShadow: hovered ? "0 0 12px -4px color-mix(in srgb, var(--violet) 40%, transparent)" : "none",
                       }}
                     >
                       {vibe}
@@ -542,7 +522,7 @@ export default function ProfilePage() {
         </section>
 
         {/* About you — demographics editor */}
-        <section style={surface}>
+        <section style={settingsSection}>
           <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 4, letterSpacing: "-0.02em" }}>About You</div>
           <div style={{ color: textMuted, fontSize: 13, marginBottom: 16 }}>Help us tailor your vibe matches.</div>
 
@@ -560,7 +540,7 @@ export default function ProfilePage() {
                     style={{
                       borderRadius: 999, padding: "0 14px", minHeight: 44, fontSize: 13, fontWeight: 600,
                       border: `1.5px solid ${active ? violet : "var(--border-strong)"}`,
-                      background: active ? `${violet}33` : "var(--overlay)",
+                      background: active ? "color-mix(in srgb, var(--violet) 20%, transparent)" : "var(--overlay)",
                       color: active ? violet : textMuted,
                       cursor: "pointer",
                       transition: "transform .14s ease, background .2s var(--ease-ui), border-color .2s var(--ease-ui), color .2s var(--ease-ui)",
@@ -629,8 +609,8 @@ export default function ProfilePage() {
                 <span
                   key={lang}
                   style={{
-                    background: `${violet}22`, color: violet, borderRadius: 20, padding: "6px 12px",
-                    fontSize: 13, fontWeight: 500, border: `1px solid ${violet}44`,
+                    background: "color-mix(in srgb, var(--violet) 13%, transparent)", color: violet, borderRadius: 20, padding: "6px 12px",
+                    fontSize: 13, fontWeight: 500, border: "1px solid color-mix(in srgb, var(--violet) 27%, transparent)",
                     display: "flex", alignItems: "center", gap: 6,
                   }}
                 >
@@ -699,64 +679,15 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        {/* Giggle+ Premium row */}
-        <section style={surface}>
-          <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 14, letterSpacing: "-0.02em" }}>Giggle+ / Premium</div>
-          <div style={{
-            display: "flex", alignItems: isPhone ? "flex-start" : "center",
-            flexDirection: isPhone ? "column" : "row",
-            justifyContent: "space-between", gap: isPhone ? 12 : 0,
-            padding: isPhone ? "12px 14px" : "14px 18px",
-            background: `linear-gradient(135deg, rgba(124,92,255,0.15), rgba(194,255,61,0.06))`,
-            borderRadius: 14, border: `1px solid var(--violet-soft)`
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: `linear-gradient(135deg, var(--violet), var(--lime))`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Icon.star size={15} color="#0B0B0F" fill="#0B0B0F" />
-              </div>
-              <div>
-                <div style={{ color: textPrimary, fontSize: 15, fontWeight: 700, letterSpacing: "-0.02em" }}>{isPremium ? "Premium Active" : "Unlock Premium"}</div>
-                <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>{isPremium ? "Member badge and cosmetic perks active" : "Member badge, premium cosmetics, token perks"}</div>
-              </div>
+        {/* Account — the real, functional settings (privacy + notifications) */}
+        <section ref={manageAccountRef} style={{ ...settingsSection, borderBottom: "none" }}>
+          <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 4, letterSpacing: "-0.02em" }}>Account</div>
+          {user?.email && (
+            <div style={{ padding: "10px 0 14px", borderBottom: "1px solid var(--overlay)" }}>
+              <div style={{ color: textTertiary, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Signed in as</div>
+              <div style={{ color: textMuted, fontSize: 13, marginTop: 4, overflowWrap: "anywhere" }}>{user.email}</div>
             </div>
-            {!isPremium && (
-              <UpgradeButton onClick={() => router.push("/premium")} violet={violet} fullWidth={isPhone} />
-            )}
-          </div>
-        </section>
-
-        {/* Settings grid — 2-col on desktop/tablet, 1-col on phone */}
-        <section style={surface}>
-          <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 14, letterSpacing: "-0.02em" }}>Settings</div>
-          <div style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: 12 }}>
-            {[
-              { icon: <Icon.account size={20} color={violet} />, title: "Account Details", desc: "Manage your info" },
-              { icon: <Icon.bell size={20} color={violet} />, title: "Notifications", desc: "Alert preferences" },
-              { icon: <Icon.shield size={20} color={violet} />, title: "Privacy & Safety", desc: "Control who sees you" },
-              { icon: <Icon.settings size={20} color={violet} />, title: "Preferences", desc: "App customization" },
-            ].map(({ icon, title, desc }) => (
-              <SettingsCard
-                key={title}
-                icon={icon}
-                title={title}
-                desc={desc}
-                violet={violet}
-                iconTile={iconTile}
-                textPrimary={textPrimary}
-                textMuted={textMuted}
-                textTertiary={textTertiary}
-                isHovered={settingsCardHover === title}
-                onHover={() => setSettingsCardHover(title)}
-                onLeave={() => setSettingsCardHover(null)}
-                onClick={openManageAccount}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* Manage Account */}
-        <section ref={manageAccountRef} style={surface}>
-          <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 4, letterSpacing: "-0.02em" }}>Manage Account</div>
+          )}
           <SwitchRow
             label="Notifications"
             desc="Receive push notifications for matches and messages"
@@ -776,6 +707,7 @@ export default function ProfilePage() {
             onChange={(v) => setProfileSetting("showOnlineStatus", v)}
           />
         </section>
+        </div>
 
         {/* Log Out */}
         <button
@@ -788,7 +720,7 @@ export default function ProfilePage() {
             padding: "13px 32px",
             border: `1.5px solid ${logOutHover ? coral + "99" : coral + "55"}`,
             borderRadius: 999,
-            background: logOutHover ? `${coral}18` : "transparent",
+            background: logOutHover ? "color-mix(in srgb, var(--coral) 10%, transparent)" : "transparent",
             color: coral,
             fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 600, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -801,65 +733,7 @@ export default function ProfilePage() {
         </button>
       </div>
     </div>
-  );
-}
-
-// Sub-components extracted to avoid calling hooks conditionally
-
-function UpgradeButton({ onClick, violet, fullWidth }: { onClick: () => void; violet: string; fullWidth?: boolean }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className="gg-press"
-      style={{
-        padding: "9px 20px", borderRadius: 999, border: "none", cursor: "pointer", minHeight: 40,
-        background: hovered ? "var(--violet-bright)" : violet,
-        color: "var(--on-accent)", fontFamily: "var(--font-space-grotesk)",
-        fontSize: 13, fontWeight: 700,
-        boxShadow: hovered ? `0 0 24px -4px ${violet}` : `0 0 16px -4px ${violet}`,
-        transform: hovered ? "translateY(-1px)" : "translateY(0)",
-        transition: "transform .14s ease, background .2s var(--ease-ui), box-shadow .2s var(--ease-ui)",
-        width: fullWidth ? "100%" : undefined,
-      }}
-    >
-      Upgrade
-    </button>
-  );
-}
-
-function SettingsCard({
-  icon, title, desc, violet, iconTile, textPrimary, textMuted, textTertiary, isHovered, onHover, onLeave, onClick,
-}: {
-  icon: React.ReactNode; title: string; desc: string; violet: string;
-  iconTile: (c: string) => React.CSSProperties;
-  textPrimary: string; textMuted: string; textTertiary: string;
-  isHovered: boolean; onHover: () => void; onLeave: () => void; onClick?: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={onHover}
-      onMouseLeave={onLeave}
-      className="gg-press-card"
-      style={{
-        background: isHovered ? "var(--overlay-hover)" : "var(--overlay)",
-        border: isHovered ? "1px solid var(--border-strong)" : "1px solid var(--hairline)",
-        borderRadius: 16, padding: "16px 18px", display: "flex", alignItems: "center",
-        gap: 14, cursor: "pointer",
-        transition: "transform .18s var(--ease-ui), background .2s var(--ease-ui), border-color .2s var(--ease-ui), box-shadow .2s var(--ease-ui)",
-        transform: isHovered ? "translateY(-2px)" : "translateY(0)",
-        boxShadow: isHovered ? "0 8px 22px rgba(0,0,0,0.2)" : "none",
-      }}
-    >
-      <div style={iconTile(violet)}>{icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: textPrimary, fontSize: 15, fontWeight: 600, fontFamily: "var(--font-space-grotesk)", letterSpacing: "-0.02em" }}>{title}</div>
-        <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>{desc}</div>
-      </div>
-      <Icon.chevron size={16} color={textTertiary} />
-    </div>
+    {pickerOpen && <AvatarPicker current={myAvatar} onClose={() => setPickerOpen(false)} />}
+    </>
   );
 }

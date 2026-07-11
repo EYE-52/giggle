@@ -1,37 +1,27 @@
 // =============================================================================
 // Giggle Billing & Entitlements — Token Economy
 // =============================================================================
-// This module is deliberately processor-agnostic.  The default preview
-// processor simulates a purchase locally only outside production so the UI can
-// be exercised without ever granting paid entitlements in a production build.
+// ONE mental model, deliberately simple:
 //
-// TO USE STRIPE:
-//   1. Implement a processor function that:
-//      a. POSTs to your backend to create a Stripe Checkout Session
-//      b. Redirects (or opens a popup) to session.url
-//      c. Waits for your backend webhook to confirm payment and signal success
-//   2. Call setProcessor(stripeProcessor) before your app renders.
-//   Example:
-//     import { setProcessor } from "@giggle/core";
-//     setProcessor(async (productId) => {
-//       const { sessionUrl } = await fetch("/api/checkout", { method: "POST", body: JSON.stringify({ productId }) }).then(r => r.json());
-//       window.location.href = sessionUrl; // or open stripe.js modal
-//       return { ok: true }; // resolved after redirect-back verification
-//     });
+//   • TOKENS are the only spend currency. You spend tokens on cosmetic perks
+//     (cover themes, vibe packs). Nothing cosmetic is priced in dollars.
+//   • You get tokens two ways: buy a token pack (one-time), or subscribe to
+//     Giggle+ (monthly token stipend + a bonus on every pack you buy).
+//   • Giggle+ does NOT silently unlock cosmetics for free — members simply have
+//     tokens flowing (stipend + pack bonus), and spend them like everyone else.
+//     This keeps a single, honest pricing story instead of "why would a premium
+//     user ever spend tokens?".
 //
-// TO USE REVENUECAT (mobile/hybrid):
-//   setProcessor(async (productId) => {
-//     const result = await Purchases.purchaseProduct(productId);
-//     return result.customerInfo ? { ok: true } : { ok: false, error: "Purchase failed" };
-//   });
+// This module is processor-agnostic. The default preview processor simulates a
+// purchase locally OUTSIDE production only, so the UI can be exercised without
+// ever granting paid entitlements in a production build.
 //
-// TOKEN ECONOMY:
-//   Users buy token packs (one-time). Tokens can be spent on cosmetic perks:
-//   cover themes and vibe packs. Giggle+ subscription gives monthly token
-//   stipend + premium cosmetics once checkout is live.
+// TO USE STRIPE:  implement a Processor that creates a Checkout Session on your
+// backend, redirects to it, and resolves { ok: true } once your webhook has
+// confirmed payment. Then call setProcessor(stripeProcessor) at app startup.
 // =============================================================================
 
-export type ProductType = "subscription" | "token_pack" | "consumable";
+export type ProductType = "subscription" | "token_pack";
 
 export interface Product {
   id: string;
@@ -40,14 +30,17 @@ export interface Product {
   priceUsd: number;
   type: ProductType;
   icon: string;
-  /** For token_pack: how many tokens this pack grants */
+  /** token_pack: base tokens granted. subscription: monthly stipend. */
   tokens?: number;
-  /** For token_pack: bonus tokens above base amount */
+  /** token_pack: bonus tokens above the base amount (promotional). */
   bonusTokens?: number;
 }
 
+/** Giggle+ members get this fraction of extra tokens on every pack purchase. */
+export const PREMIUM_PACK_BONUS_RATE = 0.15;
+
 // ---------------------------------------------------------------------------
-// Product catalog
+// Product catalog — two things to buy: Giggle+, or a token pack.
 // ---------------------------------------------------------------------------
 
 export const PRODUCTS: Record<string, Product> = {
@@ -55,7 +48,7 @@ export const PRODUCTS: Record<string, Product> = {
   premium_monthly: {
     id: "premium_monthly",
     name: "Giggle+ Monthly",
-    description: "200 tokens/month + exclusive cosmetics",
+    description: "200 tokens/month + 15% bonus on every token pack",
     priceUsd: 9.99,
     type: "subscription",
     icon: "✦",
@@ -64,7 +57,7 @@ export const PRODUCTS: Record<string, Product> = {
   premium_yearly: {
     id: "premium_yearly",
     name: "Giggle+ Yearly",
-    description: "200 tokens/month + exclusive cosmetics — save 20%",
+    description: "200 tokens/month + 15% pack bonus — save 20%",
     priceUsd: 95.88,
     type: "subscription",
     icon: "✦",
@@ -112,28 +105,10 @@ export const PRODUCTS: Record<string, Product> = {
     tokens: 3000,
     bonusTokens: 750,
   },
-
-  // ── Cosmetic consumables ──────────────────────────────────────────────────
-  vibe_pack: {
-    id: "vibe_pack",
-    name: "Premium Vibes Pack",
-    description: "Exclusive animated vibe tags for your profile",
-    priceUsd: 3.99,
-    type: "consumable",
-    icon: "✨",
-  },
-  squad_themes: {
-    id: "squad_themes",
-    name: "Squad Themes",
-    description: "Cosmetic encounter backgrounds for your squad",
-    priceUsd: 4.99,
-    type: "consumable",
-    icon: "🎭",
-  },
 };
 
 // ---------------------------------------------------------------------------
-// Token-priced perks
+// Token-priced perks — the ONLY way cosmetics are unlocked.
 // ---------------------------------------------------------------------------
 
 export interface TokenPerk {
@@ -168,8 +143,7 @@ export const TOKEN_PERKS: TokenPerk[] = [
 export interface Entitlements {
   premium: boolean;
   premiumUntil?: number; // unix ms
-  boosts: Record<string, number>; // productId -> quantity (legacy compat)
-  /** Active token-based perks (perkId -> expiry unix ms, or 1 for one-shot) */
+  /** Unlocked token perks (perkId -> 1 for owned; reserved for future expiry). */
   activePerks: Record<string, number>;
 }
 
@@ -181,18 +155,17 @@ const SERVER_SYNC_KEY = "giggle.tokens.serverSynced";
 
 function safeRead(): Entitlements {
   try {
-    if (typeof localStorage === "undefined") return { premium: false, boosts: {}, activePerks: {} };
+    if (typeof localStorage === "undefined") return { premium: false, activePerks: {} };
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { premium: false, boosts: {}, activePerks: {} };
+    if (!raw) return { premium: false, activePerks: {} };
     const parsed = JSON.parse(raw) as Partial<Entitlements>;
     return {
       premium: parsed.premium ?? false,
       premiumUntil: parsed.premiumUntil,
-      boosts: parsed.boosts ?? {},
       activePerks: parsed.activePerks ?? {},
     };
   } catch {
-    return { premium: false, boosts: {}, activePerks: {} };
+    return { premium: false, activePerks: {} };
   }
 }
 
@@ -239,10 +212,7 @@ function isProductionRuntime(): boolean {
 const previewProcessor: Processor = async (_productId) => {
   await new Promise(r => setTimeout(r, 620));
   if (isProductionRuntime()) {
-    return {
-      ok: false,
-      error: "Checkout is not configured for this build.",
-    };
+    return { ok: false, error: "Checkout is not configured for this build." };
   }
   return { ok: true };
 };
@@ -276,32 +246,28 @@ function _grantEntitlement(productId: string): void {
 
   if (product.type === "subscription") {
     e.premium = true;
-    if (productId === "premium_monthly") {
-      e.premiumUntil = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    } else if (productId === "premium_yearly") {
-      e.premiumUntil = Date.now() + 365 * 24 * 60 * 60 * 1000;
-    }
-    // Grant monthly stipend on subscribe
-    if (product.tokens) {
-      addTokens(product.tokens);
-    }
-  } else if (product.type === "token_pack") {
-    const total = (product.tokens ?? 0) + (product.bonusTokens ?? 0);
-    addTokens(total);
-  } else {
-    // Legacy consumable path
-    e.boosts[productId] = (e.boosts[productId] ?? 0) + 1;
+    e.premiumUntil = Date.now() + (productId === "premium_yearly" ? 365 : 30) * 24 * 60 * 60 * 1000;
+    safeWrite(e);
+    // Monthly stipend on subscribe. addTokens() already notifies listeners; if
+    // there's no stipend, notify once for the premium-flag change.
+    if (product.tokens) addTokens(product.tokens);
+    else _notify(e);
+    return;
   }
 
-  safeWrite(e);
-  _notify(e);
+  // token_pack: base + promotional bonus + member bonus (only while Giggle+ is
+  // actually active — expired premium in storage must not still earn the bonus).
+  const premiumActive = e.premium && (!e.premiumUntil || e.premiumUntil > Date.now());
+  const base = (product.tokens ?? 0) + (product.bonusTokens ?? 0);
+  const memberBonus = premiumActive ? Math.floor((product.tokens ?? 0) * PREMIUM_PACK_BONUS_RATE) : 0;
+  addTokens(base + memberBonus);
 }
 
 // ---------------------------------------------------------------------------
 // Token wallet (exported standalone for direct use)
 // ---------------------------------------------------------------------------
 
-/** Get current token balance */
+/** Get current token balance. */
 export function getTokenBalance(): number {
   return readTokens();
 }
@@ -332,31 +298,22 @@ export function syncServerTokens(serverBalance: number): number {
   return 0;
 }
 
-/** Add tokens to the wallet */
+/** Add tokens to the wallet. */
 export function addTokens(n: number): void {
-  const current = readTokens();
-  writeTokens(current + n);
-  const e = safeRead();
-  _notify(e);
+  writeTokens(readTokens() + n);
+  _notify(safeRead());
 }
 
-/**
- * Spend tokens if sufficient balance.
- * Returns true on success, false if insufficient.
- */
-export function spendTokens(n: number, reason: string): boolean {
+/** Spend tokens if sufficient balance. Returns true on success. */
+export function spendTokens(n: number, _reason: string): boolean {
   const current = readTokens();
   if (current < n) return false;
   writeTokens(current - n);
-  const e = safeRead();
-  _notify(e);
+  _notify(safeRead());
   return true;
 }
 
-/**
- * Record a one-shot cosmetic/feature perk as unlocked, persist it and notify.
- * Stored as `activePerks[perkId] = 1` (1 = owned, no expiry).
- */
+/** Record a token perk as unlocked (activePerks[perkId] = 1), persist, notify. */
 export function grantPerk(perkId: string): void {
   const e = safeRead();
   e.activePerks[perkId] = 1;
@@ -365,11 +322,10 @@ export function grantPerk(perkId: string): void {
 }
 
 /**
- * Whether the user has access to the given perk — true if it was explicitly
- * unlocked (present in activePerks) OR the user is premium (all cosmetics).
+ * Whether the user has unlocked the given perk. Unlocks are earned by spending
+ * tokens — premium does NOT auto-grant cosmetics (see the module header).
  */
 export function hasPerk(perkId: string): boolean {
-  if (billing.isPremium()) return true;
   return (safeRead().activePerks[perkId] ?? 0) > 0;
 }
 
@@ -381,6 +337,17 @@ export function canRedeemTokenPerksLocally(): boolean {
   return !isProductionRuntime();
 }
 
+/** Spend tokens to unlock a token perk by id (one-shot cosmetic unlock). */
+function redeemPerk(perkId: string): boolean {
+  if (!canRedeemTokenPerksLocally()) return false;
+  if (hasPerk(perkId)) return true;
+  const perk = TOKEN_PERKS.find(p => p.id === perkId);
+  if (!perk) return false;
+  const ok = spendTokens(perk.tokenCost, perkId);
+  if (ok) grantPerk(perkId);
+  return ok;
+}
+
 // ---------------------------------------------------------------------------
 // The billing object
 // ---------------------------------------------------------------------------
@@ -388,7 +355,7 @@ export function canRedeemTokenPerksLocally(): boolean {
 export const billing = {
   getEntitlements(): Entitlements {
     const e = safeRead();
-    // Expire premium if past due
+    // Expire premium if past due.
     if (e.premium && e.premiumUntil && Date.now() > e.premiumUntil) {
       e.premium = false;
       safeWrite(e);
@@ -408,83 +375,25 @@ export const billing = {
   canRedeemTokenPerksLocally,
 
   // ── Token perk spenders ─────────────────────────────────────────────────
-
-  /** Legacy no-op while queue priority is not sold in current checkout. */
-  spendOnFastPass(): boolean {
-    return false;
-  },
-
-  /** Spend 40 tokens for a Squad Boost 1h. Premium users get it free. */
-  spendOnBoost(): boolean {
-    if (!canRedeemTokenPerksLocally()) return false;
-    if (billing.isPremium()) return true;
-    return spendTokens(40, "squad_boost");
-  },
-
-  /** Spend 120 tokens to unlock Cover Themes (one-shot cosmetic unlock). */
+  /** Spend 120 tokens to unlock Cover Themes. */
   spendOnCoverThemes(): boolean {
-    if (!canRedeemTokenPerksLocally()) return false;
-    if (hasPerk("cover_themes")) return true;
-    const ok = spendTokens(120, "cover_themes");
-    if (ok) grantPerk("cover_themes");
-    return ok;
+    return redeemPerk("cover_themes");
   },
-
-  /** Spend 80 tokens to unlock Vibe Pack (one-shot cosmetic unlock). */
+  /** Spend 80 tokens to unlock Vibe Pack. */
   spendOnVibePack(): boolean {
-    if (!canRedeemTokenPerksLocally()) return false;
-    if (hasPerk("vibe_pack")) return true;
-    const ok = spendTokens(80, "vibe_pack");
-    if (ok) grantPerk("vibe_pack");
-    return ok;
+    return redeemPerk("vibe_pack");
   },
 
   /** Record a perk unlock directly (e.g. granted by server/other flows). */
   grantPerk,
-
-  /** True if the perk is unlocked OR the user is premium. */
+  /** True only if the perk has been explicitly unlocked with tokens. */
   hasPerk,
-
-  // ── Legacy compat ────────────────────────────────────────────────────────
-
-  /**
-   * boostCount — legacy API.
-   * For fast_pass_5: always 0 while queue priority is not sold.
-   * For other consumables: returns stored boost count.
-   */
-  boostCount(productId: string): number {
-    if (productId === "fast_pass_5") {
-      return 0;
-    }
-    return billing.getEntitlements().boosts[productId] ?? 0;
-  },
-
-  /**
-   * consumeBoost — legacy API.
-   * For fast_pass_5: no-op while queue priority is not sold.
-   * For other consumables: decrements stored count.
-   */
-  consumeBoost(productId: string): boolean {
-    if (productId === "fast_pass_5") {
-      return billing.spendOnFastPass();
-    }
-    const e = safeRead();
-    const qty = e.boosts[productId] ?? 0;
-    if (qty <= 0) return false;
-    e.boosts[productId] = qty - 1;
-    safeWrite(e);
-    _notify(e);
-    return true;
-  },
 
   async purchase(productId: string): Promise<{ ok: boolean; error?: string }> {
     const product = PRODUCTS[productId];
     if (!product) return { ok: false, error: "Unknown product" };
-
     const result = await _processor(productId);
-    if (result.ok) {
-      _grantEntitlement(productId);
-    }
+    if (result.ok) _grantEntitlement(productId);
     return result;
   },
 

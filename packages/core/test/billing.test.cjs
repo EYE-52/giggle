@@ -20,35 +20,52 @@ function installLocalStorage() {
   return store;
 }
 
-test("token perk catalog does not sell backend priority features", async () => {
+test("catalog sells only subscriptions and token packs (no backend priority, no $-cosmetics)", async () => {
   installLocalStorage();
   const { PRODUCTS, TOKEN_PERKS } = await import("../src/billing.ts");
 
   const ids = TOKEN_PERKS.map((perk) => perk.id);
-
   assert.equal(ids.includes("fast_pass"), false);
   assert.equal(ids.includes("squad_boost"), false);
 
+  // No backend-priority products, and no dollar-priced cosmetic duplicates.
   assert.equal("fast_pass_5" in PRODUCTS, false);
   assert.equal("squad_boost_1h" in PRODUCTS, false);
+  assert.equal("vibe_pack" in PRODUCTS, false);
+  assert.equal("squad_themes" in PRODUCTS, false);
 
   for (const product of Object.values(PRODUCTS)) {
+    assert.ok(product.type === "subscription" || product.type === "token_pack");
     assert.equal(product.description.includes("unlimited priority"), false);
     assert.equal(product.description.includes("match priority"), false);
   }
 });
 
-test("legacy fast pass APIs are inert while priority matching is not sold", async () => {
-  const store = installLocalStorage();
-  const { billing } = await import("../src/billing.ts");
+test("tokens are the only spend currency; Giggle+ does NOT auto-unlock cosmetics", async () => {
+  installLocalStorage();
+  const { billing } = await import(`../src/billing.ts?no-autounlock=${Date.now()}`);
 
-  billing.addTokens(100);
+  // A premium member with no tokens spent has unlocked nothing.
+  await billing.purchase("premium_monthly"); // grants premium + 200 stipend
+  assert.equal(billing.isPremium(), true);
+  assert.equal(billing.hasPerk("cover_themes"), false);
+  assert.equal(billing.hasPerk("vibe_pack"), false);
 
-  assert.equal(billing.boostCount("fast_pass_5"), 0);
-  assert.equal(billing.spendOnFastPass(), false);
-  assert.equal(billing.consumeBoost("fast_pass_5"), false);
-  assert.equal(billing.hasPerk("fast_pass"), false);
-  assert.equal(store.get("giggle.tokens"), "100");
+  // Spending tokens unlocks the perk.
+  assert.equal(billing.spendOnCoverThemes(), true); // 120 of 200 tokens
+  assert.equal(billing.hasPerk("cover_themes"), true);
+  assert.equal(billing.getTokenBalance(), 80);
+});
+
+test("Giggle+ members get a bonus on token packs", async () => {
+  installLocalStorage();
+  const { billing, PREMIUM_PACK_BONUS_RATE } = await import(`../src/billing.ts?pack-bonus=${Date.now()}`);
+
+  await billing.purchase("premium_monthly"); // premium + 200 stipend
+  const before = billing.getTokenBalance();
+  await billing.purchase("tokens_pro"); // 1200 + 200 bonus + 15% of 1200 member bonus
+  const gained = billing.getTokenBalance() - before;
+  assert.equal(gained, 1200 + 200 + Math.floor(1200 * PREMIUM_PACK_BONUS_RATE));
 });
 
 test("production builds do not redeem token perks from local-only storage", async () => {
@@ -59,10 +76,8 @@ test("production builds do not redeem token perks from local-only storage", asyn
     const { billing } = await import(`../src/billing.ts?prod-redemption=${Date.now()}`);
 
     billing.addTokens(200);
-
     assert.equal(billing.spendOnVibePack(), false);
     assert.equal(billing.spendOnCoverThemes(), false);
-    assert.equal(billing.spendOnBoost(), false);
     assert.equal(billing.hasPerk("vibe_pack"), false);
     assert.equal(billing.hasPerk("cover_themes"), false);
     assert.equal(store.get("giggle.tokens"), "200");

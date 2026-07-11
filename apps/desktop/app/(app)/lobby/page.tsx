@@ -7,7 +7,7 @@ import { Icon } from "@/components/Icons";
 import { ChatPanel } from "@/components/ChatPanel";
 import { CoverPicker } from "@/components/CoverPicker";
 import { InviteToSquad } from "@/components/InviteToSquad";
-import { api, connectSocket, SOCKET_EVENTS, session, resolveCover, getMyAvatar, subscribeAvatar, subscribeChat, joinChat, billing, DEFAULT_AVATAR_ID } from "@giggle/core";
+import { api, connectSocket, SOCKET_EVENTS, session, resolveCover, getMyAvatar, subscribeAvatar, subscribeChat, joinChat, DEFAULT_AVATAR_ID } from "@giggle/core";
 import type { SquadState, JoinRequestUser } from "@giggle/core";
 import { createVideoClient } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
@@ -152,13 +152,6 @@ function LobbyInner() {
   const [renameHovered, setRenameHovered] = useState(false);
 
   // Premium status (drives the "unlock more seats" upgrade tile)
-  const [isPremium, setIsPremium] = useState(false);
-  const [upgradeTileHovered, setUpgradeTileHovered] = useState(false);
-  useEffect(() => {
-    const check = () => setIsPremium(billing.isPremium());
-    check();
-    return billing.subscribe(check);
-  }, []);
 
   // Vibe tag editing
   const [vibeEditorOpen, setVibeEditorOpen] = useState(false);
@@ -219,6 +212,7 @@ function LobbyInner() {
   // Collapsible sidebar (desktop) + integrated chat
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<"info" | "chat">("info");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [unread, setUnread] = useState(0);
   const [railHover, setRailHover] = useState<string | null>(null);
   const chatVisibleRef = useRef(false);
@@ -590,9 +584,6 @@ function LobbyInner() {
   const memberCount = squad?.members.length ?? 0;
   // Capacity comes from the backend: 4 free, up to 8 when the leader is premium.
   const MAX_SLOTS = (squad as { maxSlots?: number } | null)?.maxSlots ?? 4;
-  useEffect(() => {
-    if (!isPhone && memberCount >= 4) setSidebarCollapsed(true);
-  }, [isPhone, memberCount]);
 
   if (loading) {
     return (
@@ -695,10 +686,9 @@ function LobbyInner() {
   // Show real members + a SINGLE "invite a friend" affordance (not a full grid
   // of empty slots — that looks broken when only 1–2 people are present). Once
   // the squad is full, no invite tile. Grid sizes to exactly what we render.
-  const showInviteTile = memberCount < MAX_SLOTS;
-  // Free squad at its 4-seat cap → show a premium upsell tile in the grid instead.
-  const showUpgradeTile = !showInviteTile && MAX_SLOTS === 4 && memberCount >= MAX_SLOTS && !isPremium;
-  const emptySlots = (showInviteTile || showUpgradeTile) ? 1 : 0;
+  const canInvite = memberCount < MAX_SLOTS;
+  const showInviteTile = canInvite && !isNarrow;
+  const emptySlots = showInviteTile ? 1 : 0;
   const tileCount = Math.max(memberCount + emptySlots, 1);
   // Scale columns with the squad size so up to 8 tiles stay elegant:
   // 1→1, 2-4→2, 5-6→3, 7-8→4 columns.
@@ -707,7 +697,6 @@ function LobbyInner() {
   // Effective layout (phone caps at 2 cols); rows derived so tiles fill the stage.
   const effCols = isPhone ? Math.min(gridCols, 2) : gridCols;
   const effRows = Math.ceil(tileCount / effCols);
-  const soloAssemblyLayout = !isPhone && memberCount === 1 && showInviteTile;
 
   const allReady = memberCount > 0 && readyCount === memberCount;
   const myReady = !!myMember?.ready;
@@ -715,11 +704,9 @@ function LobbyInner() {
   // ── Reusable surfaces (shared by phone sheet + expanded desktop panel) ──
   const infoCard = (
     <div style={{
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 16,
-      padding: "16px",
+      padding: 16,
       display: "flex", flexDirection: "column", gap: 12,
+      borderBottom: "1px solid var(--border)",
     }}>
       {/* Squad identity: cover thumbnail + name so the panel is themed too */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -743,6 +730,28 @@ function LobbyInner() {
           </div>
         ))}
 
+        <button
+          onClick={() => setSettingsOpen(open => !open)}
+          aria-expanded={settingsOpen}
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, padding: "0 2px", border: "none", borderTop: "1px solid var(--border)", background: "transparent", color: textPrimary, cursor: "pointer" }}
+        >
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700 }}><Icon.settings size={14} color={textMuted} /> Room settings</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, color: textTertiary, fontSize: 10.5 }}>
+            {visibility === "open" ? "Open" : "Private"} · {joinPolicy === "request" ? "Approval" : joinPolicy === "invite" ? "Invite only" : "Instant join"}
+            <span style={{ transform: settingsOpen ? "rotate(90deg)" : "none", display: "flex" }}><Icon.chevron size={14} color={textMuted} /></span>
+          </span>
+        </button>
+
+        {settingsOpen && <>
+        {isNarrow && isLeader && (
+          <button
+            onClick={() => { setVibeEditorOpen(true); setSelectedVibes(normalizeVibeLabels(currentTags)); }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, padding: "0 2px", border: "none", borderTop: "1px solid var(--border)", background: "transparent", color: textPrimary, cursor: "pointer" }}
+          >
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700 }}><Icon.settings size={14} color={textMuted} /> Edit vibes</span>
+            <span style={{ maxWidth: "55%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: textTertiary, fontSize: 10.5 }}>{currentTags.join(" · ") || "None set"}</span>
+          </button>
+        )}
         {/* Visibility toggle */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 9, borderTop: "1px solid var(--border)" }}>
           <span style={{ color: textTertiary, fontSize: 12 }}>Visibility</span>
@@ -807,6 +816,7 @@ function LobbyInner() {
             Share your invite code below to bring people in — it's the only way to join this squad.
           </div>
         )}
+        </>}
       </div>
 
       {/* Join requests (leader only, only when pending) */}
@@ -940,34 +950,30 @@ function LobbyInner() {
         Invite people
       </button>
 
-      {/* Boost Squad */}
+      {/* Boost — demoted to a subtle upsell. The lobby's job is to gather the
+          squad and start matching; monetization shouldn't compete with that. */}
       <button
         onClick={() => router.push("/premium")}
         onMouseEnter={() => setBoostHovered(true)}
         onMouseLeave={() => setBoostHovered(false)}
         style={{
-          minHeight: 44, padding: "0 14px", borderRadius: 12, border: "none", cursor: "pointer",
-          background: "linear-gradient(135deg, var(--violet), var(--lime))",
-          color: "#0B0B0F",
-          fontFamily: "var(--font-space-grotesk)", fontSize: 12, fontWeight: 800,
+          minHeight: 36, padding: "0 6px", border: "none", cursor: "pointer", background: "none",
+          color: boostHovered ? "var(--text)" : "var(--text-dim)",
+          fontSize: 12, fontWeight: 600,
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          boxShadow: boostHovered ? "0 0 24px -4px var(--violet)" : "0 0 12px -6px var(--violet)",
-          filter: boostHovered ? "brightness(1.12)" : "none",
-          transition: "all .15s ease",
+          transition: "color .15s ease",
         }}
-        title="Get matched 3x faster"
+        title="Giggle+ — monthly tokens and cosmetic perks"
       >
-        ✦ Boost Squad
+        <Icon.star size={12} color={boostHovered ? "var(--lime-text)" : "var(--text-dim)"} />
+        Unlock covers &amp; perks with Giggle+
       </button>
     </div>
   );
 
   const inviteCard = (
     <div style={{
-      background: "var(--surface)",
-      border: "1px solid var(--border)",
-      borderRadius: 16,
-      padding: "16px",
+      padding: 16,
       display: "flex", flexDirection: "column", gap: 10,
     }}>
       <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 13, fontWeight: 700, color: textPrimary, letterSpacing: "0.04em", textTransform: "uppercase" as const }}>Invite Code</div>
@@ -1003,6 +1009,13 @@ function LobbyInner() {
     </div>
   );
 
+  const infoPanel = (
+    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+      {infoCard}
+      {inviteCard}
+    </div>
+  );
+
   const chatSurface = (
     <ChatPanel
       scope={{ kind: "lobby", squadId }}
@@ -1023,13 +1036,13 @@ function LobbyInner() {
         <div style={{
           position: "relative",
           display: "flex", alignItems: "center", gap: 12,
-          padding: isPhone ? "10px 12px" : "12px 20px",
+          padding: isPhone ? "8px 10px" : "12px 20px",
           background: "var(--surface)",
           borderBottom: "1px solid var(--border)",
           backdropFilter: "blur(12px)",
           flexShrink: 0,
           zIndex: 10,
-          flexWrap: "wrap" as const,
+          flexWrap: isPhone ? "nowrap" as const : "wrap" as const,
           overflow: "hidden",
         }}>
           {/* Cover banner backdrop — the squad's cover, tinted + scrimmed so the
@@ -1081,7 +1094,7 @@ function LobbyInner() {
           </button>
 
           {/* Squad name + code */}
-          <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: isPhone ? "1 1 auto" : undefined }}>
+          <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: isPhone ? "column" : "row", alignItems: isPhone ? "flex-start" : "center", gap: isPhone ? 2 : 8, minWidth: 0, flex: isPhone ? "1 1 auto" : undefined }}>
             {editingName ? (
               <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                 <input
@@ -1129,10 +1142,16 @@ function LobbyInner() {
               </div>
             ) : (
               <>
-                <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 17, fontWeight: 800, color: textPrimary, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {squad.squadName}
-                </h1>
-                {isLeader && (
+                {isLeader && isPhone ? (
+                  <button onClick={startRename} aria-label="Rename squad" style={{ maxWidth: "100%", padding: 0, border: 0, background: "transparent", fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 800, color: textPrimary, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}>
+                    {squad.squadName}
+                  </button>
+                ) : (
+                  <h1 style={{ maxWidth: "100%", fontFamily: "var(--font-space-grotesk)", fontSize: 17, fontWeight: 800, color: textPrimary, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {squad.squadName}
+                  </h1>
+                )}
+                {isLeader && !isPhone && (
                   <button
                     onClick={startRename}
                     onMouseEnter={() => setRenameHovered(true)}
@@ -1168,7 +1187,7 @@ function LobbyInner() {
                 padding: "3px 10px", fontSize: 11, fontWeight: 500, whiteSpace: "nowrap",
               }}>{tag}</span>
             ))}
-            {isLeader && (
+            {isLeader && !isNarrow && (
               <button
                 onClick={() => { setVibeEditorOpen(true); setSelectedVibes(normalizeVibeLabels(currentTags)); }}
                 onMouseEnter={() => setEditVibesHovered(true)}
@@ -1191,7 +1210,7 @@ function LobbyInner() {
 
           {/* Right actions */}
           <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-            {isLeader && (
+            {isLeader && !isNarrow && (
               <button
                 onClick={() => setCoverPickerOpen(true)}
                 onMouseEnter={() => setChangeCoverHovered(true)}
@@ -1242,7 +1261,7 @@ function LobbyInner() {
                 }} />
               )}
             </button>
-            <button
+            {!isNarrow && <button
               onClick={handleInvite}
               onMouseEnter={() => setInviteHovered(true)}
               onMouseLeave={() => setInviteHovered(false)}
@@ -1257,7 +1276,7 @@ function LobbyInner() {
             >
               <Icon.plus size={12} color={inviteCopied ? "#0B0B0F" : textMuted} />
               {inviteCopied ? "Copied!" : "Invite"}
-            </button>
+            </button>}
             <button
               onClick={handleLeaveSquad}
               disabled={leavingSquad}
@@ -1277,15 +1296,15 @@ function LobbyInner() {
         </div>
 
         {/* ── MAIN AREA: stage + side panel ── */}
-        <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row" as const, flex: 1, minHeight: 0, overflow: "hidden" }}>
+        <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row" as const, flex: 1, minHeight: 0, overflow: isPhone ? "auto" : "hidden" }}>
 
           {/* ── VIDEO STAGE — stays dark in both themes ── */}
           <div style={{
-            flex: 1, display: "flex", flexDirection: "column",
+            flex: isPhone ? "0 0 auto" : 1, display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
             background: "#0B0B0F",
             position: "relative",
-            padding: isPhone ? "10px 10px 148px" : "8px 8px 10px",
+            padding: isPhone ? "10px 10px 12px" : "24px 24px 16px",
             minHeight: isPhone ? 320 : 0,
             overflow: isPhone ? "auto" as const : "hidden" as const,
             gap: 0,
@@ -1339,11 +1358,11 @@ function LobbyInner() {
             )}
             {/* Slim "ready room" hint — fills the otherwise-dead space above the
                 tiles with intent while the single squad is still assembling. */}
-            {showInviteTile && (
+            {canInvite && (
               <div style={{
                 position: "relative", zIndex: 1, flexShrink: 0,
                 display: "flex", alignItems: "center", gap: 8,
-                marginBottom: 8,
+                marginBottom: 16,
                 animation: "controlIn 0.4s ease 0.2s forwards", opacity: 0,
               }}>
                 <span style={{
@@ -1377,9 +1396,7 @@ function LobbyInner() {
               position: "relative",
               zIndex: 1,
               display: "grid",
-              gridTemplateColumns: soloAssemblyLayout
-                ? "minmax(0, 2.15fr) minmax(220px, 0.72fr)"
-                : `repeat(${effCols}, minmax(0, 1fr))`,
+              gridTemplateColumns: `repeat(${effCols}, minmax(0, 1fr))`,
               // Phone: auto rows + flexShrink:0 so tiles keep their aspect size and
               //   the stage SCROLLS (no row-collapse → no overlap).
               // Desktop: rows divide the stage HEIGHT (1fr) and the grid fills it
@@ -1387,9 +1404,9 @@ function LobbyInner() {
               //   control bar below always stays on-screen.
               gridTemplateRows: `repeat(${effRows}, ${isPhone ? "auto" : "minmax(0, 1fr)"})`,
               ...(isPhone ? { flexShrink: 0 } : { flex: 1 }),
-              gap: isPhone ? 10 : 8,
+              gap: 12,
               width: "100%",
-              maxWidth: soloAssemblyLayout ? 1240 : effCols <= 1 ? 860 : effCols >= 4 ? 1480 : 1320,
+              maxWidth: effCols <= 1 ? 720 : effCols >= 4 ? 1320 : 1180,
               margin: "0 auto",
               minHeight: 0,
             }}>
@@ -1406,14 +1423,14 @@ function LobbyInner() {
                     key={member.memberId}
                     style={{
                       position: "relative",
-                      borderRadius: 10,
+                      borderRadius: 16,
                       overflow: "hidden",
                       // Desktop fills the grid cell; phone uses a fixed aspect ratio.
                       ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
                       background: `linear-gradient(145deg, ${avatarColors[i % 4]}22 0%, #0D0D12 100%)`,
                       border: isReady
-                        ? `1.5px solid #C2FF3D66`
-                        : "1px solid rgba(255,255,255,0.08)",
+                        ? `2px solid #C2FF3D66`
+                        : "1.5px solid rgba(255,255,255,0.08)",
                       // delay baked into the shorthand — never mix `animation` with `animationDelay`
                       animation: isReady
                         ? `tileIn 0.35s ease ${i * 0.06}s forwards, readyGlow 2.5s ease-in-out ${i * 0.06}s infinite`
@@ -1488,7 +1505,7 @@ function LobbyInner() {
                         }}>
                           {member.displayName}{isMe ? " (You)" : ""}
                         </span>
-                        {isOffline && (
+                        {!isNarrow && isOffline && (
                           <span style={{
                             display: "flex", alignItems: "center", gap: 4,
                             background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
@@ -1500,7 +1517,7 @@ function LobbyInner() {
                             OFFLINE
                           </span>
                         )}
-                        {isReady && (
+                        {!isNarrow && isReady && (
                           <span style={{
                             background: "rgba(194,255,61,0.13)", border: "1px solid rgba(194,255,61,0.33)",
                             borderRadius: 999, fontSize: 9, fontWeight: 800,
@@ -1508,7 +1525,7 @@ function LobbyInner() {
                           }}>✓ READY</span>
                         )}
                       </div>
-                      <div style={{ display: "flex", gap: 4 }}>
+                      <div style={{ display: isNarrow ? "none" : "flex", gap: 4 }}>
                         {/* For the local user these are interactive toggles; for
                             others they're read-only status indicators. */}
                         {(() => {
@@ -1561,8 +1578,8 @@ function LobbyInner() {
                   onMouseEnter={() => setInviteTileHovered(true)}
                   onMouseLeave={() => setInviteTileHovered(false)}
                   style={{
-                    borderRadius: 10,
-                    border: `1px dashed ${inviteTileHovered ? "var(--violet)" : "rgba(255,255,255,0.12)"}`,
+                    borderRadius: 16,
+                    border: `1.5px dashed ${inviteTileHovered ? "var(--violet)" : "rgba(255,255,255,0.12)"}`,
                     background: inviteTileHovered ? "var(--violet-soft)" : "rgba(255,255,255,0.015)",
                     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
                     boxSizing: "border-box",
@@ -1581,57 +1598,17 @@ function LobbyInner() {
                 </div>
               )}
 
-              {/* Premium upsell tile — a FREE squad sitting at its 4-seat cap.
-                  Slots into the grid like a tile; nudges the leader to unlock
-                  more seats. Hidden for premium squads (genuinely full at 8). */}
-              {showUpgradeTile && (
-                <div
-                  onClick={() => router.push("/premium")}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push("/premium"); }}
-                  onMouseEnter={() => setUpgradeTileHovered(true)}
-                  onMouseLeave={() => setUpgradeTileHovered(false)}
-                  style={{
-                    borderRadius: 10,
-                    border: `1px solid ${upgradeTileHovered ? "var(--violet)" : "rgba(124,92,255,0.35)"}`,
-                    background: upgradeTileHovered
-                      ? "linear-gradient(145deg, rgba(124,92,255,0.28) 0%, rgba(124,92,255,0.08) 100%)"
-                      : "linear-gradient(145deg, rgba(124,92,255,0.18) 0%, rgba(124,92,255,0.04) 100%)",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                    gap: 8, textAlign: "center" as const, padding: 14,
-                    boxSizing: "border-box",
-                    width: "100%", minWidth: 0, minHeight: 0,
-                    cursor: "pointer",
-                    ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
-                    transition: "all .15s ease",
-                    boxShadow: upgradeTileHovered ? "0 0 28px -6px var(--violet)" : "none",
-                    animation: `tileIn 0.35s ease ${memberCount * 0.06}s forwards`,
-                  }}
-                >
-                  <span style={{
-                    fontSize: 18, fontWeight: 900, color: violet, lineHeight: 1,
-                  }}>✦</span>
-                  <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 14, fontWeight: 800, color: textPrimary }}>Unlock 4 more seats</div>
-                  <div style={{ fontSize: 11.5, color: textMuted, lineHeight: 1.4, maxWidth: 180 }}>Upgrade to Giggle+ for squads up to 8.</div>
-                  <span style={{
-                    marginTop: 4, padding: "6px 16px", borderRadius: 999,
-                    background: "var(--violet)", color: "#fff",
-                    fontSize: 12, fontWeight: 800, fontFamily: "var(--font-space-grotesk)",
-                  }}>Upgrade</span>
-                </div>
-              )}
             </div>
 
             {/* ── CONTROL BAR (centered floating pill) ── */}
             <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: 8,
+              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: 10,
               background: "rgba(22,22,30,0.92)",
               backdropFilter: "blur(16px)",
               border: "1px solid rgba(255,255,255,0.1)",
               borderRadius: 999,
-              padding: isPhone ? "8px 12px" : "7px 10px",
-              marginTop: isPhone ? 0 : 10,
+              padding: isPhone ? "8px 10px" : "10px 16px",
+              marginTop: isPhone ? 0 : 32,
               animation: "controlIn 0.4s ease 0.3s forwards",
               opacity: 0,
               boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
@@ -1651,7 +1628,7 @@ function LobbyInner() {
                 onMouseLeave={() => setMicHovered(false)}
                 title={micOn ? "Mute mic" : "Unmute mic"}
                 style={{
-                  width: isPhone ? 44 : 42, height: isPhone ? 44 : 42, borderRadius: 999, border: "none", cursor: "pointer",
+                  width: isPhone ? 44 : 50, height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   background: micOn
                     ? (micHovered ? "rgba(124,92,255,0.35)" : "rgba(124,92,255,0.2)")
@@ -1670,7 +1647,7 @@ function LobbyInner() {
                 onMouseLeave={() => setCamHovered(false)}
                 title={camOn ? "Turn off camera" : "Turn on camera"}
                 style={{
-                  width: isPhone ? 44 : 42, height: isPhone ? 44 : 42, borderRadius: 999, border: "none", cursor: "pointer",
+                  width: isPhone ? 44 : 50, height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   background: camOn
                     ? (camHovered ? "rgba(124,92,255,0.35)" : "rgba(124,92,255,0.2)")
@@ -1693,8 +1670,8 @@ function LobbyInner() {
                 onMouseLeave={() => setReadyHovered(false)}
                 title="Toggle ready"
                 style={{
-                  height: isPhone ? 44 : 42, borderRadius: 999, border: "none", cursor: "pointer",
-                  padding: "0 16px",
+                  height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
+                  padding: "0 20px",
                   display: "flex", alignItems: "center", gap: 7,
                   background: readyHovered ? "rgba(194,255,61,0.17)" : "rgba(194,255,61,0.09)",
                   color: "#C2FF3D",
@@ -1711,15 +1688,15 @@ function LobbyInner() {
               {/* Find a Match (leader only) */}
               {isLeader && (
                 <>
-                  <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />
+                  {!isPhone && <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />}
                   <button
                     onClick={handleFindMatch}
                     disabled={findingMatch}
                     onMouseEnter={() => setFindMatchHovered(true)}
                     onMouseLeave={() => setFindMatchHovered(false)}
                     style={{
-                      height: isPhone ? 44 : 42, borderRadius: 999, border: "none", cursor: findingMatch ? "not-allowed" : "pointer",
-                      padding: "0 20px",
+                      height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: findingMatch ? "not-allowed" : "pointer",
+                      padding: "0 28px",
                       display: "flex", alignItems: "center", gap: 8,
                       background: "var(--violet)",
                       color: "#fff",
@@ -1729,7 +1706,8 @@ function LobbyInner() {
                         : "0 0 24px -6px var(--violet)",
                       transition: "all .15s ease",
                       transform: findMatchHovered ? "scale(1.04)" : "scale(1)",
-                      minWidth: 162,
+                      minWidth: isPhone ? 0 : 162,
+                      flex: isPhone ? "1 0 100%" : undefined,
                       whiteSpace: "nowrap" as const,
                     }}
                   >
@@ -1778,11 +1756,10 @@ function LobbyInner() {
               borderTop: "1px solid var(--border)",
               margin: 0,
               overflowY: "auto",
-              padding: "16px 14px 28px",
+              padding: "12px 10px 20px",
               gap: 12,
             } as React.CSSProperties}>
-              {infoCard}
-              {inviteCard}
+              {infoPanel}
               {chatOpen && (
                 <div style={{
                   background: "var(--surface)",
@@ -1801,7 +1778,7 @@ function LobbyInner() {
             /* DESKTOP: collapsible panel. The width transition lets the video stage
                (flex:1) reclaim freed space smoothly. */
             <div style={{
-              width: sidebarCollapsed ? 48 : 280,
+              width: sidebarCollapsed ? 64 : 304,
               flexShrink: 0,
               transition: "width 0.22s ease",
               overflow: "hidden",
@@ -1813,12 +1790,12 @@ function LobbyInner() {
                 /* ── COLLAPSED: slim glassy info RAIL ── */
                 <div style={{
                   width: "100%", boxSizing: "border-box", flex: 1,
-                  margin: "6px 6px 10px 0",
+                  margin: "4px 0 12px 0",
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
                   padding: "12px 0",
                   background: "var(--surface)",
                   border: "1px solid var(--border)",
-                  borderRadius: 14,
+                  borderRadius: 18,
                   backdropFilter: "blur(12px)",
                   boxShadow: "0 8px 32px -12px rgba(0,0,0,0.45)",
                 }}>
@@ -1928,7 +1905,7 @@ function LobbyInner() {
                 <div style={{
                   width: "100%",
                   boxSizing: "border-box",
-                  padding: "6px 8px 10px 0",
+                  padding: "4px 12px 12px 4px",
                   display: "flex", flexDirection: "column", minHeight: 0, gap: 10,
                   flex: 1,
                 }}>
@@ -1980,8 +1957,7 @@ function LobbyInner() {
 
                   {sidebarTab === "info" ? (
                     <div style={{ display: "flex", flexDirection: "column", gap: 12, overflowY: "auto", minHeight: 0, flex: 1, paddingRight: 2 }}>
-                      {infoCard}
-                      {inviteCard}
+                      {infoPanel}
                     </div>
                   ) : (
                     <div style={{
