@@ -168,7 +168,7 @@ export const session = {
       try {
         if (typeof localStorage !== "undefined") {
           s = localStorage.getItem("giggle.devseed") || undefined;
-          if (!s) {
+          if (!s || !/^[a-z0-9-]{1,64}$/.test(s)) {
             s = randomDevSeed();
             localStorage.setItem("giggle.devseed", s);
           }

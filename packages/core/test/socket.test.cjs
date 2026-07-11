@@ -70,6 +70,14 @@ test("persisted sessions are validated before auth is restored", () => {
   assert.match(restoreBlock, /localStorage\.removeItem\(STORAGE_KEY\);/);
 });
 
+test("dev sign-in replaces malformed legacy browser seeds", () => {
+  const sessionSource = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
+  const devSignInBlock = sessionSource.slice(sessionSource.indexOf("async devSignIn"));
+
+  assert.equal(devSignInBlock.includes('if (!s || !/^[a-z0-9-]{1,64}$/.test(s)) {'), true);
+  assert.equal(devSignInBlock.includes('localStorage.setItem("giggle.devseed", s);'), true);
+});
+
 test("magic-link sign-in forwards pending referral codes", () => {
   const sessionSource = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
   const magicLinkBlock = sessionSource.slice(
