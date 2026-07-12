@@ -435,7 +435,7 @@ test("desktop lobby dedupes vibe labels before display, edit, and save", () => {
   const page = lobbySource();
 
   assert.equal(page.includes("function normalizeVibeLabels("), true);
-  assert.equal(page.includes("setSelectedVibes(normalizeVibeLabels(s.tags));"), true);
+  assert.equal(page.includes("setSelectedVibes(normalizeVibeLabels(s.tags ?? []));"), true);
   assert.equal(page.includes("const tagsToSave = normalizeVibeLabels(selectedVibes);"), true);
   assert.equal(page.includes("await api.setTags(squadId, tagsToSave);"), true);
   assert.equal(page.includes("const currentTags = normalizeVibeLabels("), true);
@@ -900,6 +900,15 @@ test("desktop home creates a neutral squad without hidden vibe state", () => {
   assert.equal(page.includes("api.createSquad({ squadName: randomSquadName(), tags: [] })"), true);
   assert.equal(page.includes("selectedVibes"), false);
   assert.equal(page.includes("VIBE_OPTIONS"), false);
+});
+
+test("lobby never invents vibes for a neutral squad", () => {
+  const page = lobbySource();
+
+  assert.equal(page.includes('squad.tags?.length ? squad.tags : ["🎮 Gaming", "🌙 Late Night", "🎵 Music"]'), false);
+  assert.equal(page.includes("setSelectedVibes(normalizeVibeLabels(s.tags ?? []))"), true);
+  assert.equal(page.includes("normalizeVibeLabels(squad.tags ?? [])"), true);
+  assert.equal(page.includes('currentTags.length ? "Edit vibes" : "Set vibes"'), true);
 });
 
 test("desktop home keeps one compact live activity strip", () => {

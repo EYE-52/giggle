@@ -261,9 +261,7 @@ function LobbyInner() {
       if (vis === "open" || vis === "private") setVisibility(vis);
       const jp = (s as { joinPolicy?: "open" | "request" | "invite" }).joinPolicy;
       if (jp === "open" || jp === "request" || jp === "invite") setJoinPolicy(jp);
-      if (s.tags?.length) {
-        setSelectedVibes(normalizeVibeLabels(s.tags));
-      }
+      setSelectedVibes(normalizeVibeLabels(s.tags ?? []));
     } catch (e) {
       console.error("getSquad failed:", e);
       if ((e as { status?: number }).status === 404) {
@@ -692,7 +690,7 @@ function LobbyInner() {
     );
   }
 
-  const currentTags = normalizeVibeLabels(squad.tags?.length ? squad.tags : ["🎮 Gaming", "🌙 Late Night", "🎵 Music"]);
+  const currentTags = normalizeVibeLabels(squad.tags ?? []);
 
   // ── Squad cover identity ──────────────────────────────────────────────
   // hasCover: leader has explicitly chosen a cover. When absent we fall back to
@@ -771,7 +769,7 @@ function LobbyInner() {
             onClick={() => { setVibeEditorOpen(true); setSelectedVibes(normalizeVibeLabels(currentTags)); }}
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, padding: "0 2px", border: "none", borderTop: "1px solid var(--border)", background: "transparent", color: textPrimary, cursor: "pointer" }}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700 }}><Icon.settings size={14} color={textMuted} /> Edit vibes</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700 }}><Icon.settings size={14} color={textMuted} /> {currentTags.length ? "Edit vibes" : "Set vibes"}</span>
             <span style={{ maxWidth: "55%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: textTertiary, fontSize: 10.5 }}>{currentTags.join(" · ") || "None set"}</span>
           </button>
         )}
@@ -1215,7 +1213,7 @@ function LobbyInner() {
                 onClick={() => { setVibeEditorOpen(true); setSelectedVibes(normalizeVibeLabels(currentTags)); }}
                 onMouseEnter={() => setEditVibesHovered(true)}
                 onMouseLeave={() => setEditVibesHovered(false)}
-                title="Edit vibes"
+                title={currentTags.length ? "Edit vibes" : "Set vibes"}
                 style={{
                   display: "flex", alignItems: "center", gap: 4,
                   background: editVibesHovered ? "var(--overlay-hover)" : "var(--overlay)",
@@ -1226,7 +1224,7 @@ function LobbyInner() {
                 }}
               >
                 <Icon.settings size={11} color={textMuted} />
-                Edit vibes
+                {currentTags.length ? "Edit vibes" : "Set vibes"}
               </button>
             )}
           </div>
