@@ -1,17 +1,13 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Logomark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
-import { session, setPendingReferral, BACKEND_URL } from "@giggle/core";
+import { setPendingReferral } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 
 export default function AuthPage() {
-  const router = useRouter();
   const { isPhone } = useViewport();
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
   const [refCode, setRefCode] = useState<string | null>(null);
 
   // Capture an inbound invite code (?ref=CODE) and remember it through signup.
@@ -26,31 +22,7 @@ export default function AuthPage() {
     } catch {}
   }, []);
 
-  // Dev sign-in mints a UNIQUE per-browser-profile identity (not a shared fixed
-  // email), so two windows are two different users — required for 2-squad testing.
-  // session.devSignIn() still consumes any captured ?ref via the shared sign-in path.
-  const devFinish = useCallback(async () => {
-    setLoading(true); setErr("");
-    try {
-      await session.devSignIn();
-      router.push("/home");
-    } catch (e: any) {
-      setErr(e?.message || "Sign in failed. Try again.");
-      setLoading(false);
-    }
-  }, [router]);
-
-  // Real OAuth: full-page redirect to the Express backend, which redirects to
-  // Google consent and then back to /auth/callback#token=<jwt>.
-  const oauthRedirect = (provider: "google" | "apple") => {
-    setErr("");
-    const ref = refCode ? `?ref=${encodeURIComponent(refCode)}` : "";
-    // Same-origin so the flow goes through this domain's /api/auth proxy →
-    // Google's consent screen shows gigglemeet.com (not the backend host).
-    // Falls back to BACKEND_URL during SSR where window is unavailable.
-    const base = typeof window !== "undefined" ? window.location.origin : BACKEND_URL;
-    window.location.href = `${base}/api/auth/${provider}${ref}`;
-  };
+  const refQuery = refCode ? `?ref=${encodeURIComponent(refCode)}` : "";
 
   return (
     <main style={{ height: "100dvh", minHeight: 560, position: "relative", overflow: "hidden", display: "grid", placeItems: "center", padding: isPhone ? 16 : 28, fontFamily: "var(--font-inter), Inter, sans-serif", background: "#080a0b", color: "#f4f4f7" }}>
@@ -68,10 +40,9 @@ export default function AuthPage() {
         {refCode && <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16, padding: "10px 12px", borderRadius: 10, background: "rgba(118,87,255,.14)", color: "#d8d1ff", fontSize: 13 }}><Icon.gift size={17} color="#9278ff" /> Invite accepted. You both get 100 tokens.</div>}
 
         <div style={{ display: "grid", gap: 10 }}>
-          <button
+          <a
             className="gg-press"
-            onClick={() => oauthRedirect("google")}
-            disabled={loading}
+            href={`/api/auth/google${refQuery}`}
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 11,
               width: "100%", height: 50, borderRadius: 10,
@@ -81,12 +52,11 @@ export default function AuthPage() {
             }}
           >
             <Icon.google size={20} /> Continue with Google
-          </button>
+          </a>
 
-          <button
+          <a
             className="gg-press"
-            onClick={() => oauthRedirect("apple")}
-            disabled={loading}
+            href={`/api/auth/apple${refQuery}`}
             style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 11,
               width: "100%", height: 50, borderRadius: 10,
@@ -96,17 +66,15 @@ export default function AuthPage() {
             }}
           >
             <Icon.apple size={19} /> Continue with Apple
-          </button>
+          </a>
         </div>
 
-        {err && <p role="alert" style={{ margin: "12px 0 0", color: "#ff7979", fontSize: 13 }}>{err}</p>}
         <p style={{ margin: "18px 0 0", color: "#777789", fontSize: 11.5, lineHeight: 1.5 }}>By continuing, you agree to our <Link href="/terms" style={{ color: "#aaaabc", textDecoration: "underline" }}>Terms</Link> and <Link href="/privacy" style={{ color: "#aaaabc", textDecoration: "underline" }}>Privacy Policy</Link>.</p>
 
         {process.env.NODE_ENV !== "production" && (
-          <button
+          <a
             className="gg-press"
-            onClick={devFinish}
-            disabled={loading}
+            href="/home"
             style={{
               background: "transparent",
               border: "none",
@@ -117,10 +85,12 @@ export default function AuthPage() {
               minHeight: 44,
               padding: 0,
               marginTop: 8,
+              display: "inline-flex",
+              alignItems: "center",
             }}
           >
             Use dev account
-          </button>
+          </a>
         )}
       </section>
     </main>

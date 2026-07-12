@@ -668,12 +668,14 @@ test("desktop auth callback has a trustworthy failure page title and touch targe
   assert.equal(page.includes('minWidth: 44'), true);
 });
 
-test("desktop sign-in exposes every backend OAuth provider", () => {
+test("desktop sign-in uses native links so auth still navigates before hydration", () => {
   const page = signinSource();
 
-  assert.equal(page.includes('provider: "google" | "apple"'), true);
-  assert.equal(page.includes('oauthRedirect("google")'), true);
-  assert.equal(page.includes('oauthRedirect("apple")'), true);
+  assert.equal(page.includes('href={`/api/auth/google${refQuery}`}'), true);
+  assert.equal(page.includes('href={`/api/auth/apple${refQuery}`}'), true);
+  assert.equal(page.includes('href="/home"'), true);
+  assert.equal(page.includes("oauthRedirect"), false);
+  assert.equal(page.includes("session.devSignIn"), false);
   assert.equal(page.includes("Continue with Apple"), true);
   assert.equal(page.includes("<Icon.apple"), true);
 });
