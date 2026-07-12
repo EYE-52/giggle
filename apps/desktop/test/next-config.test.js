@@ -276,15 +276,23 @@ test("lobby missing-squad state is a polished empty state with mobile touch targ
   assert.equal(page.includes('router.push("/discover")'), true);
 });
 
-test("mobile lobby gives video space to people instead of invite placeholders", () => {
+test("lobby stage contains people only and fills compact viewports", () => {
   const page = lobbySource();
 
-  assert.equal(page.includes("const showInviteTile = canInvite && !isNarrow;"), true);
+  assert.equal(page.includes("showInviteTile"), false);
+  assert.equal(page.includes("inviteTileHovered"), false);
+  assert.equal(page.includes("Invite a friend</div>"), false);
+  assert.equal(page.includes("const tileCount = Math.max(memberCount, 1);"), true);
+  assert.equal(page.includes("const effCols = isPhone ? (memberCount <= 2 ? 1 : 2) : gridCols;"), true);
+  assert.equal(page.includes('minHeight: isPhone ? "calc(100dvh - 61px)" : 0'), true);
+  assert.equal(page.includes('gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`'), true);
+  assert.equal(page.includes('aspectRatio: "4 / 3"'), false);
+  assert.equal(page.includes('flexWrap: "nowrap" as const'), true);
+  assert.equal(page.includes('flex: isPhone ? 1 : undefined'), true);
   assert.equal(page.includes("showUpgradeTile"), false);
   assert.equal(page.includes("Unlock 4 more seats"), false);
   assert.equal(page.includes("{isNarrow && isLeader && ("), true);
   assert.equal(page.includes("{!isNarrow && <button\n              onClick={handleInvite}"), true);
-  assert.equal(page.includes('flex: isPhone ? "1 0 100%" : undefined'), true);
   assert.equal(page.includes('display: isNarrow ? "none" : "flex"'), true);
 });
 
@@ -901,14 +909,34 @@ test("invite dialog keeps compact controls touch-friendly", () => {
   assert.equal(invite.includes('flex: 1, minHeight: 44'), true);
 });
 
-test("friends empty state stays compact and points back to search", () => {
+test("friends empty state becomes one adaptive search-first workspace", () => {
   const page = friendsPageSource();
 
-  assert.equal(page.includes("No friends yet — search above to add people."), false);
-  assert.equal(page.includes("Your crew starts here"), true);
-  assert.equal(page.includes("Search by name above to send your first request."), true);
-  assert.equal(page.includes("Social graph"), false);
-  assert.equal(page.includes("Share a squad code"), false);
+  assert.equal(page.includes("const showFirstRun = !loading && !loadError && friends.length === 0 && incoming.length === 0 && outgoing.length === 0;"), true);
+  assert.equal(page.includes("Find your people."), true);
+  assert.equal(page.includes("{showFirstRun ? ("), true);
+  assert.equal(page.includes("FriendsEmptyState"), false);
+  assert.equal(page.includes('minHeight: isPhone ? 430 : "calc(100dvh - 250px)"'), true);
+});
+
+test("friends load and search failures are explicit and retryable", () => {
+  const page = friendsPageSource();
+
+  assert.equal(page.includes("const [loadError, setLoadError]"), true);
+  assert.equal(page.includes("const [searchError, setSearchError]"), true);
+  assert.equal(page.includes("setSearchRetry((value) => value + 1)"), true);
+  assert.equal(page.includes("Couldn't load your friends."), true);
+  assert.equal(page.includes("Couldn't search for people."), true);
+  assert.equal(page.includes('role="alert"'), true);
+});
+
+test("friends actions meet the shared touch-target baseline", () => {
+  const page = friendsPageSource();
+
+  assert.equal(page.includes("width: 40, height: 40"), false);
+  assert.equal(page.includes("minHeight: 40"), false);
+  assert.equal(page.includes("minHeight: 38"), false);
+  assert.equal(page.includes("minHeight: 44"), true);
 });
 
 test("friends search treats incoming request users as actionable requests", () => {

@@ -41,8 +41,8 @@ Viewports: phone `390x844`, tablet `834x1194`, desktop `1440x900`.
 ## Engineering Gates
 
 - [x] Backend health: API, database, and Redis connected.
-- [x] Core tests: 26 passing.
-- [x] Desktop tests: 91 passing.
+- [x] Core tests: 27 passing.
+- [x] Desktop tests: 96 passing.
 - [x] Next production build: 19 routes.
 - [ ] Phone, tablet, and desktop screenshots reviewed after the final changes.
 - [ ] No browser console or page errors across audited journeys.

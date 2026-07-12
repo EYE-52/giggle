@@ -225,7 +225,6 @@ function LobbyInner() {
 
   // Hover states
   const [inviteHovered, setInviteHovered] = useState(false);
-  const [inviteTileHovered, setInviteTileHovered] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [leaveHovered, setLeaveHovered] = useState(false);
   const [micHovered, setMicHovered] = useState(false);
@@ -683,19 +682,13 @@ function LobbyInner() {
     }} />
   );
 
-  // Show real members + a SINGLE "invite a friend" affordance (not a full grid
-  // of empty slots — that looks broken when only 1–2 people are present). Once
-  // the squad is full, no invite tile. Grid sizes to exactly what we render.
   const canInvite = memberCount < MAX_SLOTS;
-  const showInviteTile = canInvite && !isNarrow;
-  const emptySlots = showInviteTile ? 1 : 0;
-  const tileCount = Math.max(memberCount + emptySlots, 1);
+  const tileCount = Math.max(memberCount, 1);
   // Scale columns with the squad size so up to 8 tiles stay elegant:
   // 1→1, 2-4→2, 5-6→3, 7-8→4 columns.
   const gridCols = tileCount <= 1 ? 1 : tileCount <= 4 ? 2 : tileCount <= 6 ? 3 : 4;
-  const gridRows = Math.ceil(tileCount / gridCols);
-  // Effective layout (phone caps at 2 cols); rows derived so tiles fill the stage.
-  const effCols = isPhone ? Math.min(gridCols, 2) : gridCols;
+  // On phones, two people stack so faces stay large; 3–4 use a 2-column grid.
+  const effCols = isPhone ? (memberCount <= 2 ? 1 : 2) : gridCols;
   const effRows = Math.ceil(tileCount / effCols);
 
   const allReady = memberCount > 0 && readyCount === memberCount;
@@ -1305,8 +1298,8 @@ function LobbyInner() {
             background: "#0B0B0F",
             position: "relative",
             padding: isPhone ? "10px 10px 12px" : "24px 24px 16px",
-            minHeight: isPhone ? 320 : 0,
-            overflow: isPhone ? "auto" as const : "hidden" as const,
+            minHeight: isPhone ? "calc(100dvh - 61px)" : 0,
+            overflow: "hidden" as const,
             gap: 0,
           }}>
             {/* STAGE BACKDROP — the squad's own cover, scrimmed hard so it reads
@@ -1386,24 +1379,14 @@ function LobbyInner() {
                 </span>
               </div>
             )}
-            {/* Tile grid — sizes to content (tiles derive height from width via
-                aspect-ratio) and is centered in the stage. We must NOT stretch
-                rows to the full stage height: a tall 1fr row + aspect-ratio tiles
-                forces an enormous min-content width that collapses the columns.
-                Capped tighter than the stage so the cluster reads as a tight
-                group rather than a sprawling, half-empty call. */}
+            {/* Real members own the stage. Invites stay in the header and rail. */}
             <div style={{
               position: "relative",
               zIndex: 1,
               display: "grid",
               gridTemplateColumns: `repeat(${effCols}, minmax(0, 1fr))`,
-              // Phone: auto rows + flexShrink:0 so tiles keep their aspect size and
-              //   the stage SCROLLS (no row-collapse → no overlap).
-              // Desktop: rows divide the stage HEIGHT (1fr) and the grid fills it
-              //   (flex:1); tiles fill their cells so nothing overflows and the
-              //   control bar below always stays on-screen.
-              gridTemplateRows: `repeat(${effRows}, ${isPhone ? "auto" : "minmax(0, 1fr)"})`,
-              ...(isPhone ? { flexShrink: 0 } : { flex: 1 }),
+              gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`,
+              flex: 1,
               gap: 12,
               width: "100%",
               maxWidth: effCols <= 1 ? 720 : effCols >= 4 ? 1320 : 1180,
@@ -1425,8 +1408,7 @@ function LobbyInner() {
                       position: "relative",
                       borderRadius: 16,
                       overflow: "hidden",
-                      // Desktop fills the grid cell; phone uses a fixed aspect ratio.
-                      ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
+                      height: "100%",
                       background: `linear-gradient(145deg, ${avatarColors[i % 4]}22 0%, #0D0D12 100%)`,
                       border: isReady
                         ? `2px solid #C2FF3D66`
@@ -1568,41 +1550,11 @@ function LobbyInner() {
                 );
               })}
 
-              {/* Single "invite a friend" affordance (hidden once squad is full) */}
-              {showInviteTile && (
-                <div
-                  onClick={handleInvite}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleInvite(); }}
-                  onMouseEnter={() => setInviteTileHovered(true)}
-                  onMouseLeave={() => setInviteTileHovered(false)}
-                  style={{
-                    borderRadius: 16,
-                    border: `1.5px dashed ${inviteTileHovered ? "var(--violet)" : "rgba(255,255,255,0.12)"}`,
-                    background: inviteTileHovered ? "var(--violet-soft)" : "rgba(255,255,255,0.015)",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
-                    boxSizing: "border-box",
-                    width: "100%",
-                    minWidth: 0,
-                    minHeight: 0,
-                    cursor: "pointer",
-                    ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
-                    transition: "all .15s ease",
-                    animation: `tileIn 0.35s ease ${memberCount * 0.06}s forwards`,
-                  }}
-                >
-                  <Icon.plus size={22} color={inviteTileHovered ? "var(--violet)" : "#9A9AB0"} />
-                  <div style={{ fontSize: 13, fontWeight: 600, color: inviteTileHovered ? "var(--violet)" : "#9A9AB0" }}>Invite a friend</div>
-                  <div style={{ fontSize: 11, color: "var(--text-dim)" }}>{MAX_SLOTS - memberCount} {MAX_SLOTS - memberCount === 1 ? "spot" : "spots"} open</div>
-                </div>
-              )}
-
             </div>
 
             {/* ── CONTROL BAR (centered floating pill) ── */}
             <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: 10,
+              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: isPhone ? 8 : 10,
               background: "rgba(22,22,30,0.92)",
               backdropFilter: "blur(16px)",
               border: "1px solid rgba(255,255,255,0.1)",
@@ -1613,12 +1565,14 @@ function LobbyInner() {
               opacity: 0,
               boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
               flexShrink: 0,
-              flexWrap: "wrap" as const,
+              flexWrap: "nowrap" as const,
               position: "relative" as const,
               bottom: undefined,
               left: undefined,
               transform: undefined,
+              width: isPhone ? "calc(100vw - 20px)" : undefined,
               maxWidth: isPhone ? "calc(100vw - 20px)" : undefined,
+              boxSizing: "border-box" as const,
               zIndex: 1,
             }}>
               {/* Mic */}
@@ -1660,7 +1614,7 @@ function LobbyInner() {
               </button>
 
               {/* Divider */}
-              <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />
+              {!isPhone && <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />}
 
               {/* Ready toggle */}
               <button
@@ -1671,14 +1625,14 @@ function LobbyInner() {
                 title="Toggle ready"
                 style={{
                   height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
-                  padding: "0 20px",
+                  padding: isPhone ? "0 12px" : "0 20px",
                   display: "flex", alignItems: "center", gap: 7,
                   background: readyHovered ? "rgba(194,255,61,0.17)" : "rgba(194,255,61,0.09)",
                   color: "#C2FF3D",
                   fontWeight: 700, fontSize: 14,
                   transition: "all .15s ease",
                   transform: readyHovered ? "scale(1.04)" : "scale(1)",
-                  minWidth: 110,
+                  minWidth: isPhone ? 90 : 110,
                   whiteSpace: "nowrap" as const,
                 }}
               >
@@ -1696,18 +1650,18 @@ function LobbyInner() {
                     onMouseLeave={() => setFindMatchHovered(false)}
                     style={{
                       height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: findingMatch ? "not-allowed" : "pointer",
-                      padding: "0 28px",
+                      padding: isPhone ? "0 12px" : "0 28px",
                       display: "flex", alignItems: "center", gap: 8,
                       background: "var(--violet)",
                       color: "#fff",
-                      fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 800,
+                      fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 13 : 15, fontWeight: 800,
                       boxShadow: findMatchHovered
                         ? "0 0 40px -4px var(--violet), 0 0 0 3px var(--violet-soft)"
                         : "0 0 24px -6px var(--violet)",
                       transition: "all .15s ease",
                       transform: findMatchHovered ? "scale(1.04)" : "scale(1)",
                       minWidth: isPhone ? 0 : 162,
-                      flex: isPhone ? "1 0 100%" : undefined,
+                      flex: isPhone ? 1 : undefined,
                       whiteSpace: "nowrap" as const,
                     }}
                   >

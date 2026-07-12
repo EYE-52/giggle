@@ -43,12 +43,15 @@ export default function FriendsPage() {
   const [incoming, setIncoming] = useState<FriendRequestUser[]>([]);
   const [outgoing, setOutgoing] = useState<FriendRequestUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Search
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Friend[]>([]);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchRetry, setSearchRetry] = useState(0);
   const [requested, setRequested] = useState<Set<string>>(new Set());
 
   // Inline remove confirmation
@@ -73,8 +76,10 @@ export default function FriendsPage() {
       setFriends(f?.friends ?? []);
       setIncoming(r?.incoming ?? []);
       setOutgoing(r?.outgoing ?? []);
+      setLoadError(null);
     } catch (e) {
       console.error("friends refetch failed:", e);
+      setLoadError("Couldn't load your friends.");
     } finally {
       setLoading(false);
     }
@@ -110,9 +115,11 @@ export default function FriendsPage() {
       setResults([]);
       setSearched(false);
       setSearching(false);
+      setSearchError(null);
       return;
     }
     setSearching(true);
+    setSearchError(null);
     const seq = ++searchSeq.current;
     const t = setTimeout(async () => {
       try {
@@ -123,14 +130,18 @@ export default function FriendsPage() {
           setSearched(true);
         }
       } catch (e) {
-        if (seq === searchSeq.current) setResults([]);
+        if (seq === searchSeq.current) {
+          setResults([]);
+          setSearched(false);
+          setSearchError("Couldn't search for people.");
+        }
         console.error("searchUsers failed:", e);
       } finally {
         if (seq === searchSeq.current) setSearching(false);
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [query]);
+  }, [query, searchRetry]);
 
   // ── Actions (optimistic) ───────────────────────────────────────────────────
   async function handleAdd(u: Friend) {
@@ -210,6 +221,73 @@ export default function FriendsPage() {
     letterSpacing: "-0.01em",
   };
 
+  const showFirstRun = !loading && !loadError && friends.length === 0 && incoming.length === 0 && outgoing.length === 0;
+
+  const searchField = (
+    <div style={{ position: "relative" }}>
+      <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+        <Icon.discover size={18} color={searchFocus ? violet : dim} />
+      </span>
+      <input
+        aria-label="Search people by name"
+        value={query}
+        onChange={(e) => setQuery(e.target.value.slice(0, MAX_SEARCH_QUERY))}
+        onFocus={() => setSearchFocus(true)}
+        onBlur={() => setSearchFocus(false)}
+        placeholder="Search by display name…"
+        maxLength={MAX_SEARCH_QUERY}
+        style={{
+          width: "100%", minHeight: 50, boxSizing: "border-box",
+          padding: "13px 16px 13px 42px", borderRadius: 14,
+          background: "var(--surface)",
+          border: searchFocus ? "1px solid var(--violet)" : "1px solid var(--border)",
+          boxShadow: searchFocus ? "0 0 0 3px color-mix(in srgb, var(--violet) 30%, transparent)" : "none",
+          color: text, fontSize: 15, fontFamily: "var(--font-inter)", outline: "none",
+          transition: "box-shadow .2s var(--ease-ui), border-color .2s var(--ease-ui)",
+        }}
+      />
+    </div>
+  );
+
+  const searchFeedback = query.trim().length >= 2 ? (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
+      {searchError ? (
+        <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 52, padding: "8px 10px 8px 14px", borderTop: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", color: "var(--text-body)", fontSize: 13.5 }}>
+          <span>{searchError}</span>
+          <button onClick={() => setSearchRetry((value) => value + 1)} className="gg-press" style={{ minHeight: 44, padding: "0 14px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "transparent", color: text, cursor: "pointer", fontWeight: 700 }}>Retry search</button>
+        </div>
+      ) : searching && results.length === 0 ? (
+        <EmptyHint><span className="gg-spinner" style={{ marginRight: 8 }} />Searching…</EmptyHint>
+      ) : results.length === 0 && searched ? (
+        <EmptyHint>No people found for “{query.trim()}”. Try their exact display name.</EmptyHint>
+      ) : (
+        results.map((u) => {
+          const isFriend = friendIds.has(u.userId);
+          const incomingRequest = incoming.find((i) => i.userId === u.userId);
+          const isRequested = !incomingIds.has(u.userId) && (requested.has(u.userId) || outgoing.some((o) => o.userId === u.userId));
+          return (
+            <Row key={u.userId} u={u}>
+              {isFriend ? (
+                <Pill tone="muted">Friends</Pill>
+              ) : incomingRequest ? (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <ActionButton onClick={() => handleAccept(incomingRequest)} tone="violet">Accept</ActionButton>
+                  <ActionButton onClick={() => handleDecline(incomingRequest)} tone="ghost">Decline</ActionButton>
+                </div>
+              ) : isRequested ? (
+                <Pill tone="muted">Requested</Pill>
+              ) : (
+                <ActionButton onClick={() => handleAdd(u)} tone="violet">
+                  <Icon.plus size={15} color="#fff" strokeWidth={2.4} /> Add
+                </ActionButton>
+              )}
+            </Row>
+          );
+        })
+      )}
+    </div>
+  ) : null;
+
   return (
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 40 }}>
       {/* Header */}
@@ -232,70 +310,41 @@ export default function FriendsPage() {
         </div>
       )}
 
-      {/* ── Add friends ──────────────────────────────────────────── */}
-      <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ position: "relative" }}>
-          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-            <Icon.discover size={18} color={dim} />
-          </span>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value.slice(0, MAX_SEARCH_QUERY))}
-            onFocus={() => setSearchFocus(true)}
-            onBlur={() => setSearchFocus(false)}
-            placeholder="Search by name…"
-            maxLength={MAX_SEARCH_QUERY}
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "13px 16px 13px 42px",
-              borderRadius: 14,
-              background: "var(--surface)",
-              border: searchFocus ? "1px solid var(--violet)" : "1px solid var(--border)",
-              boxShadow: searchFocus ? "0 0 0 3px color-mix(in srgb, var(--violet) 30%, transparent)" : "none",
-              color: text,
-              fontSize: 15,
-              fontFamily: "var(--font-inter)",
-              outline: "none",
-              transition: "box-shadow .2s var(--ease-ui), border-color .2s var(--ease-ui)",
-            }}
-          />
+      {loadError && (
+        <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 10px 10px 14px", borderTop: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", color: "var(--text-body)", fontSize: 14 }}>
+          <span>{loadError} Check your connection and try again.</span>
+          <button onClick={() => { setLoading(true); void refetch(); }} className="gg-press" style={{ minHeight: 44, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "transparent", color: text, cursor: "pointer", fontWeight: 700 }}>Retry</button>
         </div>
+      )}
 
-        {query.trim() && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {searching && results.length === 0 ? (
-              <EmptyHint><span className="gg-spinner" style={{ marginRight: 8 }} />Searching…</EmptyHint>
-            ) : results.length === 0 && searched ? (
-              <EmptyHint>No people found for “{query.trim()}”.</EmptyHint>
-            ) : (
-              results.map((u) => {
-                const isFriend = friendIds.has(u.userId);
-                const incomingRequest = incoming.find((i) => i.userId === u.userId);
-                const isRequested = !incomingIds.has(u.userId) && (requested.has(u.userId) || outgoing.some((o) => o.userId === u.userId));
-                return (
-                  <Row key={u.userId} u={u}>
-                    {isFriend ? (
-                      <Pill tone="muted">Friends</Pill>
-                    ) : incomingRequest ? (
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <ActionButton onClick={() => handleAccept(incomingRequest)} tone="violet">Accept</ActionButton>
-                        <ActionButton onClick={() => handleDecline(incomingRequest)} tone="ghost">Decline</ActionButton>
-                      </div>
-                    ) : isRequested ? (
-                      <Pill tone="muted">Requested</Pill>
-                    ) : (
-                      <ActionButton onClick={() => handleAdd(u)} tone="violet">
-                        <Icon.plus size={15} color="#fff" strokeWidth={2.4} /> Add
-                      </ActionButton>
-                    )}
-                  </Row>
-                );
-              })
-            )}
+      {showFirstRun ? (
+        <section
+          style={{
+            minHeight: isPhone ? 430 : "calc(100dvh - 250px)",
+            display: "grid",
+            placeItems: "center",
+            borderTop: "1px solid var(--border)",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div style={{ width: "100%", maxWidth: 620, padding: isPhone ? "44px 0" : "64px 0", textAlign: "center" }}>
+            <div style={{ color: "var(--lime-text)", fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase" }}>Your circle</div>
+            <h2 style={{ margin: "10px 0 8px", color: text, fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 28 : 36, lineHeight: 1.1, fontWeight: 800 }}>Find your people.</h2>
+            <p style={{ margin: "0 auto", maxWidth: 470, color: muted, fontSize: 14, lineHeight: 1.6 }}>
+              Search their display name to send a friend request and see when they’re online.
+            </p>
+            <div style={{ marginTop: 26, textAlign: "left" }}>
+              {searchField}
+              {searchFeedback}
+            </div>
           </div>
-        )}
-      </section>
+        </section>
+      ) : (
+        <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {searchField}
+          {searchFeedback}
+        </section>
+      )}
 
       {/* ── Requests ─────────────────────────────────────────────── */}
       {(incoming.length > 0 || outgoing.length > 0) && (
@@ -322,6 +371,7 @@ export default function FriendsPage() {
       )}
 
       {/* ── Your friends ─────────────────────────────────────────── */}
+      {(loading || friends.length > 0) && (
       <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <h2 style={sectionTitleStyle}>Your friends {friends.length > 0 && <span style={{ color: muted }}>· {friends.length}</span>}</h2>
 
@@ -343,8 +393,6 @@ export default function FriendsPage() {
               </div>
             ))}
           </div>
-        ) : friends.length === 0 ? (
-          <FriendsEmptyState />
         ) : (
           <div
             style={{
@@ -393,7 +441,7 @@ export default function FriendsPage() {
                     className="gg-press"
                     style={{
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      width: 40, height: 40,
+                      width: 44, height: 44,
                       borderRadius: 999,
                       background: "var(--violet-soft)",
                       border: "1px solid var(--violet)",
@@ -409,7 +457,7 @@ export default function FriendsPage() {
                     className="gg-press"
                     style={{
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      width: 40, height: 40,
+                      width: 44, height: 44,
                       borderRadius: 999,
                       background: "var(--overlay)",
                       border: "1px solid var(--border)",
@@ -426,6 +474,7 @@ export default function FriendsPage() {
           </div>
         )}
       </section>
+      )}
 
       {inviteFriend && (
         <SquadPickerModal
@@ -439,20 +488,6 @@ export default function FriendsPage() {
 }
 
 // ── Small building blocks ─────────────────────────────────────────────────────
-
-function FriendsEmptyState() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-      <div style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--overlay)", flexShrink: 0 }}>
-        <Icon.users size={18} color={violet} />
-      </div>
-      <div>
-        <h3 style={{ margin: 0, color: text, fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 750 }}>Your crew starts here</h3>
-        <p style={{ margin: "3px 0 0", color: muted, fontSize: 13 }}>Search by name above to send your first request.</p>
-      </div>
-    </div>
-  );
-}
 
 /**
  * Lightweight squad-picker: invite a known friend to one of my squads.
@@ -554,7 +589,7 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
             title="Close"
             aria-label="Close"
             className="gg-press"
-            style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--overlay)", border: "1px solid var(--border)", cursor: "pointer" }}
+            style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--overlay)", border: "1px solid var(--border)", cursor: "pointer" }}
           >
             <Icon.close size={16} color={muted} strokeWidth={2.2} />
           </button>
@@ -587,7 +622,7 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
                       className="gg-press"
                       style={{
                         display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
-                        minHeight: 38, padding: "8px 16px", borderRadius: 999,
+                        minHeight: 44, padding: "8px 16px", borderRadius: 999,
                         fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap",
                         cursor: invited || inviting ? "default" : "pointer",
                         border: invited ? "1px solid var(--lime)" : "none",
@@ -654,7 +689,7 @@ function ActionButton({ children, onClick, tone }: { children: React.ReactNode; 
         alignItems: "center",
         justifyContent: "center",
         gap: 5,
-        minHeight: 40,
+        minHeight: 44,
         padding: "8px 14px",
         borderRadius: 999,
         fontFamily: "var(--font-inter)",
