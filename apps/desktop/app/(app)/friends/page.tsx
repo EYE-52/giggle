@@ -320,23 +320,25 @@ export default function FriendsPage() {
       {showFirstRun ? (
         <section
           style={{
-            minHeight: isPhone ? 430 : "calc(100dvh - 250px)",
-            display: "grid",
-            placeItems: "center",
-            borderTop: "1px solid var(--border)",
-            borderBottom: "1px solid var(--border)",
+            width: "100%",
+            maxWidth: 680,
+            boxSizing: "border-box",
+            padding: isPhone ? 20 : 28,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderTop: "3px solid var(--violet)",
+            borderRadius: 16,
+            boxShadow: "var(--elev)",
           }}
         >
-          <div style={{ width: "100%", maxWidth: 620, padding: isPhone ? "44px 0" : "64px 0", textAlign: "center" }}>
-            <div style={{ color: "var(--lime-text)", fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase" }}>Your circle</div>
-            <h2 style={{ margin: "10px 0 8px", color: text, fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 28 : 36, lineHeight: 1.1, fontWeight: 800 }}>Find your people.</h2>
-            <p style={{ margin: "0 auto", maxWidth: 470, color: muted, fontSize: 14, lineHeight: 1.6 }}>
-              Search their display name to send a friend request and see when they’re online.
-            </p>
-            <div style={{ marginTop: 26, textAlign: "left" }}>
-              {searchField}
-              {searchFeedback}
-            </div>
+          <div style={{ color: violet, fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase" }}>Your circle</div>
+          <h2 style={{ margin: "9px 0 7px", color: text, fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 26 : 30, lineHeight: 1.1, fontWeight: 800 }}>Find your people.</h2>
+          <p style={{ margin: 0, maxWidth: 470, color: muted, fontSize: 14, lineHeight: 1.6 }}>
+            Search their display name to send a friend request and see when they’re online.
+          </p>
+          <div style={{ marginTop: 22 }}>
+            {searchField}
+            {searchFeedback}
           </div>
         </section>
       ) : (

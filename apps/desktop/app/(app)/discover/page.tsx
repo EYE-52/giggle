@@ -178,7 +178,7 @@ export default function DiscoverPage() {
           <button
             onClick={() => setJoinError(null)}
             aria-label="Dismiss"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--coral)", padding: 0, display: "flex" }}
+            style={{ width: 44, height: 44, margin: "-10px -10px -10px 0", background: "none", border: "none", cursor: "pointer", color: "var(--coral)", padding: 0, display: "grid", placeItems: "center" }}
           >
             <Icon.close size={14} color="var(--coral)" />
           </button>
@@ -199,7 +199,7 @@ export default function DiscoverPage() {
           <button
             onClick={() => setRequestNotice(null)}
             aria-label="Dismiss"
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "flex" }}
+            style={{ width: 44, height: 44, margin: "-10px -10px -10px 0", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "grid", placeItems: "center" }}
           >
             <Icon.close size={14} color="var(--text-muted)" />
           </button>
@@ -219,7 +219,7 @@ export default function DiscoverPage() {
                 onClick={() => selectVibe(option === "All" ? null : option)}
                 className="gg-press"
                 style={{
-                  flexShrink: 0, minHeight: 40, padding: "0 14px", borderRadius: 10,
+                  flexShrink: 0, minHeight: 44, padding: "0 14px", borderRadius: 10,
                   border: selected ? "1px solid var(--violet)" : "1px solid var(--border)",
                   background: selected ? "var(--violet-soft)" : "transparent",
                   color: selected ? "var(--text)" : "var(--text-muted)", cursor: "pointer",
@@ -277,7 +277,7 @@ export default function DiscoverPage() {
             onMouseLeave={() => setRetryHover(false)}
             className="gg-press"
             style={{
-              marginTop: 4, height: 42, padding: "0 24px", borderRadius: 999, border: "none", cursor: "pointer",
+              marginTop: 4, minHeight: 44, padding: "0 24px", borderRadius: 999, border: "none", cursor: "pointer",
               background: retryHover ? "var(--violet-bright)" : violet,
               color: "var(--on-accent)", fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14,
               transform: retryHover ? "translateY(-1px)" : "translateY(0)",

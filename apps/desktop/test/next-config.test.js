@@ -850,6 +850,15 @@ test("desktop discover exposes visible URL-synced vibe filters", () => {
   assert.equal(page.includes('aria-label="Filter squads by vibe"'), true);
 });
 
+test("desktop discover controls meet the shared touch-target baseline", () => {
+  const page = desktopDiscoverSource();
+
+  assert.equal(page.includes("minHeight: 40"), false);
+  assert.equal(page.includes("marginTop: 4, height: 42"), false);
+  assert.equal(page.includes('width: 44, height: 44'), true);
+  assert.equal(page.includes("minHeight: 44"), true);
+});
+
 test("desktop discover uses an unframed inventory-aware empty state", () => {
   const page = desktopDiscoverSource();
 
@@ -931,7 +940,9 @@ test("friends empty state becomes one adaptive search-first workspace", () => {
   assert.equal(page.includes("Find your people."), true);
   assert.equal(page.includes("{showFirstRun ? ("), true);
   assert.equal(page.includes("FriendsEmptyState"), false);
-  assert.equal(page.includes('minHeight: isPhone ? 430 : "calc(100dvh - 250px)"'), true);
+  assert.equal(page.includes('minHeight: isPhone ? 430 : "calc(100dvh - 250px)"'), false);
+  assert.equal(page.includes('borderTop: "3px solid var(--violet)"'), true);
+  assert.equal(page.includes('background: "var(--surface)"'), true);
 });
 
 test("friends load and search failures are explicit and retryable", () => {
