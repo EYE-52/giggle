@@ -779,6 +779,16 @@ test("notification row actions only resolve after mark-read succeeds", () => {
   assert.equal(bell.includes("onDismiss(n.id);\n    try {\n      await api.markNotificationRead(n.id);"), false);
 });
 
+test("notification load failures never masquerade as an empty inbox", () => {
+  const bell = notificationBellSource();
+
+  assert.equal(bell.includes("const [notificationsLoaded, setNotificationsLoaded]"), true);
+  assert.equal(bell.includes("const [loadError, setLoadError]"), true);
+  assert.equal(bell.includes("Couldn't load notifications."), true);
+  assert.equal(bell.includes("items.length === 0 && !loadError"), true);
+  assert.equal(bell.includes("onClick={() => void load()}"), true);
+});
+
 test("desktop protected home actions do not create dev sessions", () => {
   const page = desktopHomeSource();
 

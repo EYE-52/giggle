@@ -436,16 +436,20 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState(false);
   const [toast, setToast] = useState<AppNotification | null>(null);
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
 
   const load = useCallback(async () => {
+    setLoadError(null);
     try {
       const res = await api.listNotifications();
       setItems(res.notifications);
       setUnread(res.unread);
+      setNotificationsLoaded(true);
     } catch {
-      /* offline / not signed in — leave state as-is */
+      setLoadError("Couldn't load notifications.");
     }
   }, []);
 
@@ -669,7 +673,15 @@ export function NotificationBell() {
                 {panelError}
               </div>
             )}
-            {items.length === 0 ? (
+            {loadError && (
+              <div role="alert" style={{ margin: "6px 8px 8px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, color: "var(--coral)", fontSize: 12.5, fontWeight: 700 }}>
+                <span>{loadError}</span>
+                <button type="button" onClick={() => void load()} className="gg-press" style={{ minHeight: 44, padding: "0 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 700 }}>Retry</button>
+              </div>
+            )}
+            {!notificationsLoaded && !loadError ? (
+              <div role="status" style={{ padding: "40px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>Loading notifications…</div>
+            ) : items.length === 0 && !loadError ? (
               <div
                 style={{
                   padding: "40px 20px",
