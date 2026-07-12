@@ -724,14 +724,14 @@ test("desktop auth callback has a trustworthy failure page title and touch targe
   assert.equal(page.includes('minWidth: 44'), true);
 });
 
-test("desktop sign-in exposes only configured providers with hydration-independent links", () => {
+test("desktop sign-in exposes only configured providers and performs dev authentication", () => {
   const page = signinSource();
 
   assert.equal(page.includes('href={`/api/auth/google${refQuery}`}'), true);
   assert.equal(page.includes('/api/auth/apple'), false);
-  assert.equal(page.includes('href="/home"'), true);
+  assert.equal(page.includes("await session.devSignIn()"), true);
+  assert.equal(page.includes("onClick={devFinish}"), true);
   assert.equal(page.includes("oauthRedirect"), false);
-  assert.equal(page.includes("session.devSignIn"), false);
   assert.equal(page.includes("Continue with Apple"), false);
   assert.equal(page.includes("<Icon.apple"), false);
 });

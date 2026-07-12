@@ -129,8 +129,8 @@ export const TOKEN_PERKS: TokenPerk[] = [
   },
   {
     id: "vibe_pack",
-    name: "Vibe Pack",
-    description: "Unlock exclusive animated vibe tags for your profile",
+    name: "Avatar Pack",
+    description: "Unlock 8 extra profile avatars",
     tokenCost: 80,
     icon: "star",
   },

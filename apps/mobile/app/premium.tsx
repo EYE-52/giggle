@@ -11,7 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { billing, getTokenBalance, PRODUCTS } from '@giggle/core';
 
 const BOOSTS = [
-  { id: 'vibe_pack', icon: '✦', label: 'Vibe Pack', sub: 'Unlock exclusive vibe tags', cost: 80 },
+  { id: 'vibe_pack', icon: '✦', label: 'Avatar Pack', sub: 'Unlock 8 extra profile avatars', cost: 80 },
   { id: 'cover_themes', icon: '🎭', label: 'Squad Themes', sub: 'Custom squad themes & colors', cost: 120 },
 ];
 

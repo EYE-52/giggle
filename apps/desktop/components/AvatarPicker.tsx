@@ -11,7 +11,7 @@ interface AvatarPickerProps {
   onClose: () => void;
 }
 
-// The first 8 avatars are always free; the rest are a premium "vibe_pack".
+// The first 8 avatars are free; the legacy "vibe_pack" entitlement unlocks 8 more.
 const FREE_AVATAR_COUNT = 8;
 
 export function AvatarPicker({ current, onClose }: AvatarPickerProps) {

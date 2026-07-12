@@ -1,14 +1,18 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Logomark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
-import { setPendingReferral } from "@giggle/core";
+import { session, setPendingReferral } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 
 export default function AuthPage() {
+  const router = useRouter();
   const { isPhone } = useViewport();
   const [refCode, setRefCode] = useState<string | null>(null);
+  const [devLoading, setDevLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // Capture an inbound invite code (?ref=CODE) and remember it through signup.
   useEffect(() => {
@@ -23,6 +27,18 @@ export default function AuthPage() {
   }, []);
 
   const refQuery = refCode ? `?ref=${encodeURIComponent(refCode)}` : "";
+
+  const devFinish = useCallback(async () => {
+    setDevLoading(true);
+    setError("");
+    try {
+      await session.devSignIn();
+      router.push("/home");
+    } catch (cause) {
+      setError((cause as { message?: string })?.message || "Sign in failed. Try again.");
+      setDevLoading(false);
+    }
+  }, [router]);
 
   return (
     <main style={{ height: "100dvh", minHeight: 560, position: "relative", overflow: "hidden", display: "grid", placeItems: "center", padding: isPhone ? 16 : 28, fontFamily: "var(--font-inter), Inter, sans-serif", background: "#080a0b", color: "#f4f4f7" }}>
@@ -56,17 +72,20 @@ export default function AuthPage() {
 
         </div>
 
+        {error && <p role="alert" style={{ margin: "12px 0 0", color: "#ff7979", fontSize: 13 }}>{error}</p>}
         <p style={{ margin: "18px 0 0", color: "#777789", fontSize: 11.5, lineHeight: 1.5 }}>By continuing, you agree to our <Link href="/terms" style={{ color: "#aaaabc", textDecoration: "underline" }}>Terms</Link> and <Link href="/privacy" style={{ color: "#aaaabc", textDecoration: "underline" }}>Privacy Policy</Link>.</p>
 
         {process.env.NODE_ENV !== "production" && (
-          <a
+          <button
+            type="button"
             className="gg-press"
-            href="/home"
+            onClick={devFinish}
+            disabled={devLoading}
             style={{
               background: "transparent",
               border: "none",
               color: "#777789",
-              cursor: "pointer",
+              cursor: devLoading ? "wait" : "pointer",
               fontSize: 12,
               fontFamily: "inherit",
               minHeight: 44,
@@ -76,8 +95,8 @@ export default function AuthPage() {
               alignItems: "center",
             }}
           >
-            Use dev account
-          </a>
+            {devLoading ? "Signing in..." : "Use dev account"}
+          </button>
         )}
       </section>
     </main>
