@@ -346,6 +346,15 @@ test("lobby stage contains people only and fills compact viewports", () => {
   assert.equal(page.includes('display: isNarrow ? "none" : "flex"'), true);
 });
 
+test("phone lobby chat opens over the stage instead of below the viewport", () => {
+  const page = lobbySource();
+
+  assert.equal(page.includes("{isPhone && chatOpen && ("), true);
+  assert.equal(page.includes('role="dialog" aria-modal="true" aria-label="Squad chat"'), true);
+  assert.equal(page.includes('position: "fixed", inset: 0, zIndex: 1000'), true);
+  assert.equal(page.includes('if (e.key === "Escape") setChatOpen(false);'), true);
+});
+
 test("desktop lobby leave button calls backend before leaving the lobby", () => {
   const page = lobbySource();
 

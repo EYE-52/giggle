@@ -333,6 +333,15 @@ function LobbyInner() {
   // chat tab.) Drives unread clearing + the header pressed state. Updated every
   // render via a ref so the unread subscription (a stable closure) can read it.
   const chatVisible = isPhone ? chatOpen : (!sidebarCollapsed && sidebarTab === "chat");
+
+  useEffect(() => {
+    if (!isPhone || !chatOpen) return;
+    const closeOnEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setChatOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isPhone, chatOpen]);
   chatVisibleRef.current = chatVisible;
   // Clear unread the moment chat becomes visible.
   useEffect(() => { if (chatVisible) setUnread(0); }, [chatVisible]);
@@ -1727,7 +1736,7 @@ function LobbyInner() {
 
           {/* ── RIGHT SIDE PANEL ── */}
           {isPhone ? (
-            /* PHONE: docked sheet (unchanged behavior) — info + invite, chat gated by toggle. */
+            /* PHONE: room details stay below the people-first stage. */
             <div style={{
               width: "100%",
               flexShrink: 0,
@@ -1742,19 +1751,6 @@ function LobbyInner() {
               gap: 12,
             } as React.CSSProperties}>
               {infoPanel}
-              {chatOpen && (
-                <div style={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 16,
-                  overflow: "hidden",
-                  display: "flex", flexDirection: "column",
-                  minHeight: 240,
-                  height: 300,
-                }}>
-                  {chatSurface}
-                </div>
-              )}
             </div>
           ) : (
             /* DESKTOP: collapsible panel. The width transition lets the video stage
@@ -1959,6 +1955,27 @@ function LobbyInner() {
           )}
         </div>
       </div>
+
+      {isPhone && chatOpen && (
+        <div
+          role="dialog" aria-modal="true" aria-label="Squad chat"
+          onClick={(e) => { if (e.target === e.currentTarget) setChatOpen(false); }}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            display: "flex", alignItems: "flex-end", justifyContent: "center",
+            padding: 10, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)",
+          }}
+        >
+          <div style={{
+            width: "100%", maxWidth: 520, height: "min(68dvh, 560px)", minHeight: 320,
+            display: "flex", flexDirection: "column", overflow: "hidden",
+            background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 16,
+            boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
+          }}>
+            {chatSurface}
+          </div>
+        </div>
+      )}
 
       {/* ── MODALS ── */}
       {invitePeopleOpen && (
