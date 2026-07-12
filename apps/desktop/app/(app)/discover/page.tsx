@@ -22,6 +22,7 @@ export default function DiscoverPage() {
   const [requestNotice, setRequestNotice] = useState<string | null>(null);
   const [ctaHover, setCtaHover] = useState(false);
   const [retryHover, setRetryHover] = useState(false);
+  const [preferredVibes, setPreferredVibes] = useState<string[]>([]);
 
   // Optional ?vibe=<name> deep-link (from Home's Trending Vibes) → filter to
   // open squads that share that vibe.
@@ -33,9 +34,21 @@ export default function DiscoverPage() {
     } catch {}
   }, []);
   const norm = (t: string) => t.replace(/^[^\w]+/, "").trim().toLowerCase();
-  const shown = vibe
+  useEffect(() => {
+    let alive = true;
+    api.getMyProfile()
+      .then(profile => { if (alive) setPreferredVibes(profile.vibes ?? []); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  const filtered = vibe
     ? squads.filter(s => (s.tags ?? []).some(t => norm(t) === vibe.toLowerCase()))
     : squads;
+  const preferenceSet = new Set(preferredVibes.map(norm));
+  const relevance = (squad: PublicSquad) => (squad.tags ?? []).filter(tag => preferenceSet.has(norm(tag))).length;
+  const shown = vibe || preferenceSet.size === 0
+    ? filtered
+    : [...filtered].sort((a, b) => relevance(b) - relevance(a));
   const hasOpenSquads = squads.length > 0;
   const hasMatchingSquads = shown.length > 0;
 

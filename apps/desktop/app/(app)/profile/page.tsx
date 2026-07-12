@@ -361,7 +361,8 @@ export default function ProfilePage() {
         <div style={{ ...surface, padding: 0, overflow: "hidden" }}>
         {/* Vibe Preferences */}
         <section style={settingsSection}>
-          <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 14, letterSpacing: "-0.02em" }}>Vibe Preferences</div>
+          <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 4, letterSpacing: "-0.02em" }}>Vibe Preferences</div>
+          <div style={{ color: textMuted, fontSize: 13, marginBottom: 14 }}>Used to bring relevant open squads to the top of Discover.</div>
           <fieldset disabled={!loadedProfile || savingVibes} style={{ minWidth: 0, margin: 0, padding: 0, border: 0, opacity: loadedProfile ? 1 : 0.55 }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {vibes.map(t => (

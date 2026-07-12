@@ -680,6 +680,18 @@ test("profile vibe preferences load and save through the server profile", () => 
   assert.equal(api.includes("vibes?: string[]"), true);
 });
 
+test("saved profile vibes rank Discover without hiding inventory", () => {
+  const profile = profileSource();
+  const discover = desktopDiscoverSource();
+
+  assert.equal(profile.includes("Used to bring relevant open squads to the top of Discover."), true);
+  assert.equal(discover.includes("const [preferredVibes, setPreferredVibes]"), true);
+  assert.equal(discover.includes("api.getMyProfile()"), true);
+  assert.equal(discover.includes("const preferenceSet = new Set(preferredVibes.map(norm));"), true);
+  assert.equal(discover.includes("const shown = vibe || preferenceSet.size === 0"), true);
+  assert.equal(discover.includes("[...filtered].sort((a, b) => relevance(b) - relevance(a))"), true);
+});
+
 test("profile explains demographic visibility without claiming it changes matching", () => {
   const page = profileSource();
   const layout = profileLayoutSource();
