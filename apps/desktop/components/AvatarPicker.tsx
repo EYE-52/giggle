@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useCallback, useEffect, useId } from "react";
+import { useState, useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import { DEFAULT_AVATARS, setMyAvatar, billing } from "@giggle/core";
@@ -13,16 +13,11 @@ interface AvatarPickerProps {
 
 // The first 8 avatars are always free; the rest are a premium "vibe_pack".
 const FREE_AVATAR_COUNT = 8;
-const MAX_UPLOAD_IMAGE_BYTES = 2_000_000;
-const ALLOWED_UPLOAD_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
 export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
   const router = useRouter();
   const titleId = useId();
   const [selected, setSelected] = useState(current);
-  const [preview, setPreview] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [saving, setSaving] = useState(false);
   const [vibePackUnlocked, setVibePackUnlocked] = useState(false);
   const [hint, setHint] = useState("");
 
@@ -37,51 +32,12 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
-  const [uploadHover, setUploadHover] = useState(false);
   const [saveHover, setSaveHover] = useState(false);
   const [cancelHover, setCancelHover] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-
-  const effectiveSelected = preview ?? selected;
-
-  const handleFile = useCallback((file: File) => {
-    if (!ALLOWED_UPLOAD_IMAGE_TYPES.has(file.type)) {
-      setHint("Upload a PNG, JPG, WebP, or GIF image.");
-      return;
-    }
-    if (file.size > MAX_UPLOAD_IMAGE_BYTES) {
-      setHint("Keep avatar uploads under 2 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const url = e.target?.result as string;
-      setPreview(url);
-      setSelected(url);
-      setHint("");
-    };
-    reader.readAsDataURL(file);
-  }, []);
-
-  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
-  }
 
   function handleSave() {
-    setSaving(true);
-    setMyAvatar(effectiveSelected);
-    setTimeout(() => {
-      setSaving(false);
-      onClose();
-    }, 120);
+    setMyAvatar(selected);
+    onClose();
   }
 
   return createPortal(
@@ -130,7 +86,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
               Choose your avatar
             </div>
             <div style={{ fontSize: 13, color: "var(--text-muted, #9A9AB0)", marginTop: 3 }}>
-              Pick a vibe or upload your own photo
+              Choose how you appear on this device
             </div>
           </div>
           <button
@@ -151,7 +107,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
         {/* Preview of currently-highlighted avatar */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
           <div style={{ position: "relative" }}>
-            <AvatarArt value={effectiveSelected} size={80} />
+            <AvatarArt value={selected} size={80} />
             <div style={{
               position: "absolute", inset: -4, borderRadius: "50%",
               background: "conic-gradient(from 0deg, var(--violet, #7C5CFF) 0%, var(--lime, #C2FF3D) 50%, var(--violet, #7C5CFF) 100%)",
@@ -170,7 +126,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
           }}
         >
           {DEFAULT_AVATARS.map((av, idx) => {
-            const isActive = effectiveSelected === av.id;
+            const isActive = selected === av.id;
             const locked = idx >= FREE_AVATAR_COUNT && !vibePackUnlocked;
             return (
               <button
@@ -178,7 +134,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
                 title={locked ? `${av.name} — premium` : av.name}
                 onClick={() => {
                   if (locked) { setHint(`“${av.name}” is in the premium Vibe Pack.`); return; }
-                  setSelected(av.id); setPreview(null); setHint("");
+                  setSelected(av.id); setHint("");
                 }}
                 style={{
                   display: "flex",
@@ -224,64 +180,6 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
             );
           })}
 
-          {/* Upload tile */}
-          <button
-            onMouseEnter={() => setUploadHover(true)}
-            onMouseLeave={() => setUploadHover(false)}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => fileRef.current?.click()}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              padding: "10px 6px 8px",
-              borderRadius: 16,
-              border: dragOver
-                ? "2px solid var(--lime, #C2FF3D)"
-                : preview
-                ? "2px solid var(--lime, #C2FF3D)"
-                : "2px dashed rgba(255,255,255,0.18)",
-              background: dragOver
-                ? "rgba(194,255,61,0.08)"
-                : uploadHover
-                ? "rgba(255,255,255,0.07)"
-                : "var(--overlay, rgba(255,255,255,0.04))",
-              cursor: "pointer",
-              transition: "all 0.12s ease",
-              outline: "none",
-            }}
-          >
-            {preview ? (
-              <AvatarArt value={preview} size={44} />
-            ) : (
-              <div style={{
-                width: 44, height: 44, borderRadius: "50%",
-                background: "rgba(255,255,255,0.08)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22,
-              }}>
-                📷
-              </div>
-            )}
-            <span style={{
-              fontSize: 10, fontWeight: 600,
-              color: preview ? "var(--lime, #C2FF3D)" : "var(--text-muted, #9A9AB0)",
-              fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
-            }}>
-              {preview ? "Custom" : "Upload"}
-            </span>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={handleFileInput}
-            />
-          </button>
         </div>
 
         {/* Premium hint */}
@@ -308,7 +206,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
             onMouseLeave={() => setCancelHover(false)}
             onClick={onClose}
             style={{
-              height: 40, padding: "0 20px",
+              height: 44, padding: "0 20px",
               borderRadius: 999,
               border: "1px solid var(--border, rgba(255,255,255,0.1))",
               background: cancelHover ? "var(--overlay-hover, rgba(255,255,255,0.1))" : "transparent",
@@ -325,25 +223,22 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
             onMouseEnter={() => setSaveHover(true)}
             onMouseLeave={() => setSaveHover(false)}
             onClick={handleSave}
-            disabled={saving}
             style={{
-              height: 40, padding: "0 24px",
+              height: 44, padding: "0 24px",
               borderRadius: 999,
               border: "none",
-              background: saving
-                ? "rgba(124,92,255,0.5)"
-                : saveHover
+              background: saveHover
                 ? "#9B7CFF"
                 : "var(--violet, #7C5CFF)",
               color: "#fff",
               fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
               fontWeight: 700, fontSize: 14,
-              cursor: saving ? "not-allowed" : "pointer",
+              cursor: "pointer",
               transition: "all 0.12s ease",
               minWidth: 80,
             }}
           >
-            {saving ? "Saving…" : "Save"}
+            Save
           </button>
         </div>
       </div>

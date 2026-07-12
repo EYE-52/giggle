@@ -712,18 +712,19 @@ test("squad preview is viewport-bound with accessible controls", () => {
   assert.equal(preview.includes('width: 44, height: 44'), true);
 });
 
-test("avatar and cover uploads validate type and size before previewing", () => {
+test("cover uploads stay validated while avatar presets are honestly device-scoped", () => {
   const avatarPicker = avatarPickerSource();
   const coverPicker = coverPickerSource();
 
-  for (const source of [avatarPicker, coverPicker]) {
-    assert.equal(source.includes("MAX_UPLOAD_IMAGE_BYTES"), true);
-    assert.equal(source.includes("image/png"), true);
-    assert.equal(source.includes("image/jpeg"), true);
-    assert.equal(source.includes("image/webp"), true);
-    assert.equal(source.includes("file.size > MAX_UPLOAD_IMAGE_BYTES"), true);
-    assert.equal(source.includes("setHint("), true);
-  }
+  assert.equal(coverPicker.includes("MAX_UPLOAD_IMAGE_BYTES"), true);
+  assert.equal(coverPicker.includes("image/png"), true);
+  assert.equal(coverPicker.includes("image/jpeg"), true);
+  assert.equal(coverPicker.includes("image/webp"), true);
+  assert.equal(coverPicker.includes("file.size > MAX_UPLOAD_IMAGE_BYTES"), true);
+  assert.equal(avatarPicker.includes('type="file"'), false);
+  assert.equal(avatarPicker.includes("MAX_UPLOAD_IMAGE_BYTES"), false);
+  assert.equal(avatarPicker.includes("on this device"), true);
+  assert.equal(avatarPicker.includes("upload your own photo"), false);
 });
 
 test("avatar picker stays viewport-bound and behaves like a modal", () => {

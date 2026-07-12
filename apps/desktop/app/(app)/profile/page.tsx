@@ -274,7 +274,7 @@ export default function ProfilePage() {
             onClick={() => setPickerOpen(true)}
             onMouseEnter={() => setAvatarHover(true)}
             onMouseLeave={() => setAvatarHover(false)}
-            aria-label="Edit avatar"
+            aria-label="Change avatar on this device"
             style={{
               position: "relative", width: avatarSize, height: avatarSize, flexShrink: 0,
               border: "none", background: "none", padding: 0,
