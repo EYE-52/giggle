@@ -302,6 +302,18 @@ test("lobby missing-squad state is a polished empty state with mobile touch targ
   assert.equal(page.includes('router.push("/discover")'), true);
 });
 
+test("lobby load failures never masquerade as expired links", () => {
+  const page = lobbySource();
+
+  assert.equal(page.includes("const [lobbyLoadError, setLobbyLoadError]"), true);
+  assert.equal(page.includes("const [lobbyMissing, setLobbyMissing]"), true);
+  assert.equal(page.includes("(e as { status?: number }).status === 404"), true);
+  assert.equal(page.includes("Couldn't load this lobby."), true);
+  assert.equal(page.includes("if (!squad && lobbyLoadError)"), true);
+  assert.equal(page.includes("if (lobbyMissing || !squad)"), true);
+  assert.equal(page.includes("void fetchSquad();"), true);
+});
+
 test("lobby stage contains people only and fills compact viewports", () => {
   const page = lobbySource();
 

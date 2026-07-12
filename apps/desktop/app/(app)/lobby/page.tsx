@@ -131,6 +131,8 @@ function LobbyInner() {
 
   const [squad, setSquad] = useState<SquadState | null>(null);
   const [loading, setLoading] = useState(true);
+  const [lobbyLoadError, setLobbyLoadError] = useState<string | null>(null);
+  const [lobbyMissing, setLobbyMissing] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [settingReady, setSettingReady] = useState(false);
@@ -250,9 +252,11 @@ function LobbyInner() {
 
   async function fetchSquad() {
     if (!squadId) return;
+    setLobbyLoadError(null);
     try {
       const s = await api.getSquad(squadId);
       setSquad(s);
+      setLobbyMissing(false);
       const vis = (s as { visibility?: "private" | "open" }).visibility;
       if (vis === "open" || vis === "private") setVisibility(vis);
       const jp = (s as { joinPolicy?: "open" | "request" | "invite" }).joinPolicy;
@@ -262,13 +266,18 @@ function LobbyInner() {
       }
     } catch (e) {
       console.error("getSquad failed:", e);
+      if ((e as { status?: number }).status === 404) {
+        setLobbyMissing(true);
+      } else {
+        setLobbyLoadError("Couldn't load this lobby.");
+      }
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (!squadId) { setLoading(false); return; }
+    if (!squadId) { setLobbyMissing(true); setLoading(false); return; }
     fetchSquad();
 
     const socket = connectSocket(squadId);
@@ -592,7 +601,19 @@ function LobbyInner() {
     );
   }
 
-  if (!squad) {
+  if (!squad && lobbyLoadError) {
+    return (
+      <div style={{ minHeight: "calc(100vh - 160px)", display: "grid", placeItems: "center", padding: isPhone ? "32px 16px" : "48px 24px" }}>
+        <div role="alert" style={{ width: "100%", maxWidth: 500, borderRadius: 18, border: "1px solid var(--border)", background: "var(--surface)", boxShadow: "var(--elev)", padding: isPhone ? 22 : 28, textAlign: "center" }}>
+          <h1 style={{ margin: 0, color: textPrimary, fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 24 : 28 }}>Couldn&apos;t open this lobby</h1>
+          <p style={{ margin: "10px auto 20px", color: textMuted, fontSize: 14.5, lineHeight: 1.5 }}>We couldn&apos;t verify this room. Check your connection and try again.</p>
+          <button onClick={() => { setLoading(true); void fetchSquad(); }} className="gg-press" style={{ minHeight: 44, padding: "0 20px", borderRadius: 999, border: "none", background: violet, color: "#fff", cursor: "pointer", fontWeight: 800 }}>Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (lobbyMissing || !squad) {
     return (
       <div style={{ minHeight: "calc(100vh - 160px)", display: "grid", placeItems: "center", padding: isPhone ? "32px 16px" : "48px 24px" }}>
         <div style={{
@@ -1287,6 +1308,13 @@ function LobbyInner() {
             </button>
           </div>
         </div>
+
+        {lobbyLoadError && (
+          <div role="alert" style={{ flexShrink: 0, minHeight: 44, padding: "7px 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, background: "color-mix(in srgb, var(--coral) 12%, var(--surface))", borderBottom: "1px solid color-mix(in srgb, var(--coral) 35%, transparent)", color: "var(--coral)", fontSize: 13, fontWeight: 700 }}>
+            <span>{lobbyLoadError} Showing the last loaded version.</span>
+            <button onClick={() => void fetchSquad()} className="gg-press" style={{ minHeight: 44, padding: "0 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "transparent", color: textPrimary, cursor: "pointer", fontWeight: 700 }}>Retry</button>
+          </div>
+        )}
 
         {/* ── MAIN AREA: stage + side panel ── */}
         <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row" as const, flex: 1, minHeight: 0, overflow: isPhone ? "auto" : "hidden" }}>
