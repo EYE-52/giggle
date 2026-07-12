@@ -1154,6 +1154,15 @@ test("friends add failures roll back pending state and show an error", () => {
   assert.equal(page.includes('role="alert"'), true);
 });
 
+test("friends add handles reciprocal requests immediately", () => {
+  const page = friendsPageSource();
+
+  assert.equal(page.includes("const { status } = await api.sendFriendRequest(u.userId);"), true);
+  assert.equal(page.includes('if (status === "friends")'), true);
+  assert.equal(page.includes("setOutgoing((o) => o.filter((x) => x.userId !== u.userId));"), true);
+  assert.equal(page.includes("setFriends((f) => (f.some((x) => x.userId === u.userId) ? f : [u, ...f]));"), true);
+});
+
 test("friends request action failures roll back optimistic UI", () => {
   const page = friendsPageSource();
 

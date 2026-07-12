@@ -150,7 +150,13 @@ export default function FriendsPage() {
     setRequested((s) => new Set(s).add(u.userId));
     setOutgoing((o) => (o.some((x) => x.userId === u.userId) ? o : [...o, u]));
     try {
-      await api.sendFriendRequest(u.userId);
+      const { status } = await api.sendFriendRequest(u.userId);
+      if (status === "friends") {
+        setRequested((s) => { const next = new Set(s); next.delete(u.userId); return next; });
+        setOutgoing((o) => o.filter((x) => x.userId !== u.userId));
+        setIncoming((i) => i.filter((x) => x.userId !== u.userId));
+        setFriends((f) => (f.some((x) => x.userId === u.userId) ? f : [u, ...f]));
+      }
     } catch (e) {
       setRequested((s) => {
         const n = new Set(s);
