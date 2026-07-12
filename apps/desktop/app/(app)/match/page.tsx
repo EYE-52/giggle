@@ -21,6 +21,7 @@ function MatchInner() {
   const [loadRetry, setLoadRetry] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [joinExpired, setJoinExpired] = useState(false);
   const [joinPressed, setJoinPressed] = useState(false);
   const [skipping, setSkipping] = useState(false);
   // Start at 20s (not 30) — the server handoff TTL is shorter than 30s, so a
@@ -67,6 +68,12 @@ function MatchInner() {
     // showing a broken VS screen and redirecting to an empty ?squad=.
     if (!encId || !squadId) { router.replace(squadId ? `/matchmaking?squad=${squadId}` : "/home"); return; }
     let cancelled = false;
+    navigatedRef.current = false;
+    setActionError(null);
+    setJoining(false);
+    setJoinExpired(false);
+    setJoinPressed(false);
+    setSkipping(false);
     setLoading(true);
     setHandoffError(null);
     setHandoffExpired(false);
@@ -122,8 +129,6 @@ function MatchInner() {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdown, squadId, encId]);
-
-  const [joinExpired, setJoinExpired] = useState(false);
 
   async function handleJoin() {
     if (!encId || !squadId || joining) return;

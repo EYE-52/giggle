@@ -754,6 +754,24 @@ function EncounterInner() {
   useEffect(() => {
     if (!squadId || !encId) return;
 
+    setView("versus");
+    setMicOn(true);
+    setCamOn(true);
+    setChatOpen(false);
+    setEnding(false);
+    setShowBanner(true);
+    setFloatingReactions([]);
+    reactionCountRef.current = 0;
+    setEndedNotice(false);
+    setReported(false);
+    setFocusedKey(null);
+    setReactionsOpen(false);
+    setVideoJoined(false);
+    setVideoError(null);
+    setRemoteUids([]);
+    remoteElsRef.current.clear();
+    oppElsRef.current = [];
+
     let cancelled = false;
     let tick: ReturnType<typeof setInterval> | undefined;
     let bannerTimer: ReturnType<typeof setTimeout> | undefined;

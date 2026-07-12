@@ -60,6 +60,15 @@ function MatchmakingInner() {
   useEffect(() => {
     if (!squadId) return;
 
+    revealedRef.current = false;
+    setElapsed(0);
+    setSquad(null);
+    setStatusError(null);
+    setCancelError(null);
+    setCancelling(false);
+    setMatchFound(null);
+    setMatchVisible(false);
+
     api.getSquad(squadId)
       .then((nextSquad) => {
         setSquad(nextSquad);

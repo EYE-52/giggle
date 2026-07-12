@@ -263,6 +263,17 @@ test("desktop match clears delayed handoff navigations on unmount", () => {
   assert.equal(page.includes("expiredNavTimeoutRef.current = setTimeout(() => {"), true);
 });
 
+test("desktop match resets handoff actions when route params change", () => {
+  const page = matchSource();
+
+  assert.equal(page.includes("navigatedRef.current = false;"), true);
+  assert.equal(page.includes("setActionError(null);"), true);
+  assert.equal(page.includes("setJoining(false);"), true);
+  assert.equal(page.includes("setJoinPressed(false);"), true);
+  assert.equal(page.includes("setSkipping(false);"), true);
+  assert.equal(page.includes("setJoinExpired(false);"), true);
+});
+
 test("desktop match distinguishes expired handoffs from retryable load failures", () => {
   const page = matchSource();
 
@@ -300,7 +311,7 @@ test("desktop match expiry does not navigate away when leader skip fails", () =>
   const page = matchSource();
   const expiryBlock = page.slice(
     page.indexOf("// On countdown expiry"),
-    page.indexOf("const [joinExpired")
+    page.indexOf("async function handleJoin()")
   );
 
   assert.match(expiryBlock, /let cancelled = false;/);
@@ -320,6 +331,16 @@ test("desktop matchmaking clears delayed match reveal navigations on unmount", (
   assert.equal(page.includes("clearRevealTimers();"), true);
   assert.equal(page.includes("revealTimeoutRef.current = setTimeout(() => setMatchVisible(true), 30);"), true);
   assert.equal(page.includes("navigationTimeoutRef.current = setTimeout(() => {"), true);
+});
+
+test("desktop matchmaking resets route-scoped state when the squad changes", () => {
+  const page = matchmakingSource();
+
+  assert.equal(page.includes("revealedRef.current = false;"), true);
+  assert.equal(page.includes("setMatchFound(null);"), true);
+  assert.equal(page.includes("setMatchVisible(false);"), true);
+  assert.equal(page.includes("setElapsed(0);"), true);
+  assert.equal(page.includes("setSquad(null);"), true);
 });
 
 test("lobby missing-squad state is a polished empty state with mobile touch targets", () => {
@@ -535,6 +556,28 @@ test("desktop encounter distinguishes ended rooms from retryable load failures",
   assert.equal(page.includes("setEncounterLoadRetry(value => value + 1)"), true);
   assert.equal(page.includes("Couldn't refresh encounter details."), true);
   assert.equal(page.includes("api.getEncounter(encId).then(setEncounter).catch(() => {})"), false);
+});
+
+test("desktop encounter resets call-scoped state when route params change", () => {
+  const page = encounterSource();
+
+  for (const reset of [
+    'setView("versus");',
+    "setMicOn(true);",
+    "setCamOn(true);",
+    "setChatOpen(false);",
+    "setEnding(false);",
+    "setShowBanner(true);",
+    "setFloatingReactions([]);",
+    "setEndedNotice(false);",
+    "setReported(false);",
+    "setFocusedKey(null);",
+    "setReactionsOpen(false);",
+    "setVideoError(null);",
+    "setRemoteUids([]);",
+  ]) {
+    assert.equal(page.includes(reset), true, `missing ${reset}`);
+  }
 });
 
 test("desktop chat keeps unsent text and shows a delivery error", () => {
