@@ -143,10 +143,15 @@ function MatchInner() {
         navigate(`/encounter?squad=${squadId}&enc=${encId}`);
       }, 520);
     } catch (e) {
-      // Handoff expired / ack rejected — don't dead-end on a failing button.
-      // Show a clear message and auto-redirect to matchmaking for a fresh match.
       console.error("ackEncounter failed:", e);
       setJoinPressed(false);
+      const code = (e as { code?: string }).code;
+      const expired = code === "ENCOUNTER_EXPIRED" || code === "ENCOUNTER_ENDED" || code === "ENCOUNTER_NOT_FOUND";
+      if (!expired) {
+        setJoining(false);
+        setActionError((e as { message?: string })?.message || "Couldn't join this encounter. Try again.");
+        return;
+      }
       setJoinExpired(true);
       clearDeferredNavigation();
       expiredNavTimeoutRef.current = setTimeout(() => {

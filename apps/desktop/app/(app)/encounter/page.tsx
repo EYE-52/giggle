@@ -947,10 +947,10 @@ function EncounterInner() {
     setEnding(true);
     setVideoError(null);
     try {
-      await vcRef.current?.leave();
-    } catch {}
-    try {
       await api.disconnectEncounter(squadId, encId);
+      try {
+        await vcRef.current?.leave();
+      } catch {}
       router.push("/home");
     } catch (e) {
       setEnding(false);

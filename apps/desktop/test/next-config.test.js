@@ -267,6 +267,16 @@ test("desktop match distinguishes expired handoffs from retryable load failures"
   assert.equal(page.includes("setLoadRetry(value => value + 1)"), true);
 });
 
+test("desktop match keeps transient join failures retryable", () => {
+  const page = matchSource();
+  const joinBlock = page.slice(page.indexOf("async function handleJoin()"), page.indexOf("async function handleSkip()"));
+
+  assert.equal(joinBlock.includes('const code = (e as { code?: string }).code;'), true);
+  assert.equal(joinBlock.includes('code === "ENCOUNTER_EXPIRED" || code === "ENCOUNTER_ENDED" || code === "ENCOUNTER_NOT_FOUND"'), true);
+  assert.equal(joinBlock.includes('setActionError((e as { message?: string })?.message || "Couldn\'t join this encounter. Try again.");'), true);
+  assert.equal(joinBlock.includes("setJoining(false);"), true);
+});
+
 test("mobile match keeps the action card in normal flow", () => {
   const page = matchSource();
 
@@ -485,6 +495,7 @@ test("desktop encounter end always attempts backend cleanup before navigating", 
   assert.match(endBlock, /try \{\s*await vcRef\.current\?\.leave\(\);\s*\} catch \{\}/);
   assert.match(endBlock, /await api\.disconnectEncounter\(squadId, encId\);/);
   assert.match(endBlock, /router\.push\("\/home"\);/);
+  assert.equal(endBlock.indexOf("await api.disconnectEncounter(squadId, encId);") < endBlock.indexOf("await vcRef.current?.leave();"), true);
   assert.equal(endBlock.indexOf('router.push("/home");') > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
   assert.match(endBlock, /setEnding\(false\);/);
   assert.match(endBlock, /setVideoError\(\(e as \{ message\?: string \}\)\?\.message \|\| "Couldn't end this encounter yet\."\);/);
