@@ -471,6 +471,7 @@ function LobbyInner() {
       await Promise.all([fetchJoinRequests(), fetchSquad()]);
     } catch (e) {
       console.error("declineJoinRequest failed:", e);
+      setReqError("Couldn't decline — try again.");
     } finally {
       setReqBusy(null);
     }

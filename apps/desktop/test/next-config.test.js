@@ -455,6 +455,13 @@ test("desktop lobby access setting failures are visible and rolled back", () => 
   assert.equal(page.includes('console.error("setJoinPolicy failed:", e);'), false);
 });
 
+test("desktop lobby surfaces join-request decision failures", () => {
+  const page = lobbySource();
+
+  assert.equal(page.includes('setReqError("Couldn\'t approve — try again.")'), true);
+  assert.equal(page.includes('setReqError("Couldn\'t decline — try again.")'), true);
+});
+
 test("desktop lobby rolls back mic and camera controls when video updates fail", () => {
   const page = lobbySource();
 
