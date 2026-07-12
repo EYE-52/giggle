@@ -45,5 +45,5 @@
 
 - [x] Capture empty and populated Discover at `390x844`, `834x1194`, and `1440x900`.
 - [x] Exercise filter selection, URL persistence, open squad creation, preview, and join behavior.
-- [ ] Run core tests, server tests, desktop tests, and the production desktop build.
-- [ ] Mark only proven Discover checklist items complete and push each repository branch.
+- [x] Run core tests, server tests, desktop tests, and the production desktop build.
+- [x] Mark only proven Discover checklist items complete and push each repository branch.
