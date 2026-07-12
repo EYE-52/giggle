@@ -255,6 +255,17 @@ test("desktop match clears delayed handoff navigations on unmount", () => {
   assert.equal(page.includes("expiredNavTimeoutRef.current = setTimeout(() => {"), true);
 });
 
+test("desktop match distinguishes expired handoffs from retryable load failures", () => {
+  const page = matchSource();
+
+  assert.equal(page.includes("const [loadRetry, setLoadRetry]"), true);
+  assert.equal(page.includes("const [handoffExpired, setHandoffExpired]"), true);
+  assert.equal(page.includes("api.getSquad(squadId).catch(() => null)"), false);
+  assert.equal(page.includes("status === 404 || status === 410"), true);
+  assert.equal(page.includes('handoffExpired ? "Match expired" : "Couldn\'t open match"'), true);
+  assert.equal(page.includes("setLoadRetry(value => value + 1)"), true);
+});
+
 test("mobile match keeps the action card in normal flow", () => {
   const page = matchSource();
 

@@ -17,6 +17,8 @@ function MatchInner() {
   const [squad, setSquad] = useState<SquadState | null>(null);
   const [loading, setLoading] = useState(true);
   const [handoffError, setHandoffError] = useState<string | null>(null);
+  const [handoffExpired, setHandoffExpired] = useState(false);
+  const [loadRetry, setLoadRetry] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [joinPressed, setJoinPressed] = useState(false);
@@ -67,22 +69,29 @@ function MatchInner() {
     let cancelled = false;
     setLoading(true);
     setHandoffError(null);
+    setHandoffExpired(false);
+    setEncounter(null);
+    setSquad(null);
+    setCountdown(20);
     Promise.all([
       api.getEncounter(encId),
-      api.getSquad(squadId).catch(() => null),
+      api.getSquad(squadId),
     ]).then(([encounterData, squadData]) => {
       if (cancelled) return;
       setEncounter(encounterData);
-      if (squadData) setSquad(squadData);
+      setSquad(squadData);
       setLoading(false);
       // Keep the updater pure — only decrement. Side-effects (skip/navigate) on
       // expiry are handled in the effect below, never inside a state updater
       // (calling router.push() during a render-phase updater triggers React's
       // "setState while rendering a different component" error).
       tickRef.current = setInterval(() => setCountdown(c => (c <= 0 ? 0 : c - 1)), 1000);
-    }).catch(() => {
+    }).catch((error) => {
       if (cancelled) return;
-      setHandoffError("This match handoff has expired.");
+      const status = (error as { status?: number }).status;
+      const expired = status === 404 || status === 410;
+      setHandoffExpired(expired);
+      setHandoffError(expired ? "This match handoff has expired." : "We couldn't load this match. Check your connection and try again.");
       setLoading(false);
     });
     return () => {
@@ -90,7 +99,7 @@ function MatchInner() {
       if (tickRef.current) clearInterval(tickRef.current);
       clearDeferredNavigation();
     };
-  }, [encId, squadId, router]);
+  }, [encId, squadId, router, loadRetry]);
 
   // On countdown expiry: leader issues the skip, everyone returns to matchmaking.
   useEffect(() => {
@@ -202,11 +211,15 @@ function MatchInner() {
     return (
       <div data-theme="dark" style={{ minHeight: "100%", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
         <div style={{ width: "min(460px, 100%)", textAlign: "center", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, boxShadow: "var(--elev)" }}>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 24, letterSpacing: "-0.03em" }}>Match expired</h1>
+          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 24, letterSpacing: "-0.03em" }}>{handoffExpired ? "Match expired" : "Couldn't open match"}</h1>
           <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14.5 }}>{handoffError ?? "This match is no longer available."}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} className="gg-press" style={{ height: 42, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Find another</button>
-            <button onClick={() => router.push("/home")} className="gg-press" style={{ height: 42, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 800, cursor: "pointer" }}>Home</button>
+            {handoffExpired ? (
+              <button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Find another</button>
+            ) : (
+              <button onClick={() => setLoadRetry(value => value + 1)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Retry</button>
+            )}
+            <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 800, cursor: "pointer" }}>Home</button>
           </div>
         </div>
       </div>
