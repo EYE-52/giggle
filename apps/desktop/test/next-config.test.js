@@ -810,10 +810,13 @@ test("desktop home replaces the empty dashboard with one adaptive first-run work
   assert.equal(page.includes("const showFirstRun = !mySquadsLoading && mySquads.length === 0;"), true);
   assert.equal(page.includes("Start with your people."), true);
   assert.equal(page.includes("openSignals > 0 && ("), true);
-  assert.equal(page.includes("{!showFirstRun && activityStrip}"), true);
+  assert.equal(page.includes("{!showFirstRun && ("), true);
   assert.equal(page.includes("{showFirstRun ? ("), true);
-  assert.equal(page.includes('minHeight: isPhone ? undefined : "calc(100dvh - 220px)"'), true);
-  assert.equal(page.includes('alignContent: "center"'), true);
+  assert.equal(page.includes('maxWidth: 760'), true);
+  assert.equal(page.includes('minHeight: isPhone ? undefined : "calc(100dvh - 220px)"'), false);
+  assert.equal(page.includes('alignContent: "center"'), false);
+  assert.equal(page.includes('aria-label="How your first squad works"'), false);
+  assert.equal(page.includes('["01", "Create room"'), false);
   assert.equal(page.includes("No squads yet"), false);
 });
 

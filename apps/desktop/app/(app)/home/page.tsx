@@ -190,7 +190,8 @@ export default function HomePage() {
   return (
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", paddingBottom: 48 }}>
 
-      {/* ── GREETING + LIVE STRIP ─────────────────────────────────── */}
+      {/* ── RETURNING-USER HEADER ─────────────────────────────────── */}
+      {!showFirstRun && (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap", marginBottom: 26 }}>
         <div style={{ minWidth: 0, maxWidth: 560 }}>
           <h1 style={{ margin: 0, fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: isPhone ? 26 : 30, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.05 }}>
@@ -200,8 +201,9 @@ export default function HomePage() {
             Pick up where your squad left off.
           </p>
         </div>
-        {!showFirstRun && activityStrip}
+        {activityStrip}
       </div>
+      )}
 
       {!showFirstRun && <div style={{ marginBottom: 28 }}>{squadActions}</div>}
 
@@ -220,53 +222,28 @@ export default function HomePage() {
         <section
           aria-labelledby="first-squad-title"
           style={{
-            display: "grid",
-            gridTemplateColumns: isTablet ? "1fr" : "minmax(0, 1.2fr) minmax(320px, .8fr)",
-            gap: isPhone ? 30 : isTablet ? 38 : 64,
-            alignItems: "center",
-            alignContent: "center",
-            minHeight: isPhone ? undefined : "calc(100dvh - 220px)",
+            maxWidth: 760,
             boxSizing: "border-box",
-            padding: isPhone ? "30px 0 34px" : "42px 0 46px",
-            borderTop: "1px solid var(--border)",
-            borderBottom: "1px solid var(--border)",
+            padding: isPhone ? "24px 0 36px" : "40px 0 56px",
           }}
         >
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 14, color: "var(--violet)", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              <span style={{ width: 7, height: 7, borderRadius: 999, background: "var(--violet)" }} />
-              Your first room
-            </div>
-            <h2 id="first-squad-title" style={{ margin: 0, maxWidth: 560, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 30 : 38, fontWeight: 800, lineHeight: 1.05, letterSpacing: "-0.02em" }}>
-              Start with your people.
-            </h2>
-            <p style={{ margin: "12px 0 24px", maxWidth: 560, color: "var(--text-body)", fontSize: isPhone ? 14 : 15, lineHeight: 1.6 }}>
-              Open a room, share the invite code, and choose your squad&apos;s vibe together.
-            </p>
-            {squadActions}
-            {openSignals > 0 && (
-              <button onClick={() => router.push("/discover")} className="gg-press" style={{ ...linkBtn, marginTop: 18, minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, color: "var(--text-body)" }}>
-                <Icon.discover size={15} color="var(--violet)" />
-                Browse {openSignals} open squad{openSignals === 1 ? "" : "s"}
-              </button>
-            )}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 14, color: "var(--violet)", fontSize: 11, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            <span style={{ width: 7, height: 7, borderRadius: 999, background: "var(--violet)" }} />
+            Your first room
           </div>
-
-          <ol aria-label="How your first squad works" style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: isPhone ? "1fr" : "repeat(3, minmax(0, 1fr))", gap: isPhone ? 0 : 18 }}>
-            {[
-              ["01", "Create room", "Give your crew a place to meet."],
-              ["02", "Invite people", "Share one code with your friends."],
-              ["03", "Go live", "Match with another squad together."],
-            ].map(([number, title, body], index) => (
-              <li key={number} style={{ position: "relative", padding: isPhone ? "16px 0 16px 46px" : "0", borderTop: isPhone && index > 0 ? "1px solid var(--border)" : "none" }}>
-                <span style={{ position: isPhone ? "absolute" : "static", left: 0, top: 16, display: "grid", placeItems: "center", width: 32, height: 32, marginBottom: isPhone ? 0 : 16, borderRadius: 10, border: "1px solid var(--border-strong)", color: index === 2 ? "var(--lime-text)" : "var(--text-dim)", fontFamily: "var(--font-space-grotesk)", fontSize: 11, fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>
-                  {number}
-                </span>
-                <div style={{ color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 14, fontWeight: 700 }}>{title}</div>
-                <div style={{ marginTop: 5, color: "var(--text-muted)", fontSize: 12.5, lineHeight: 1.45 }}>{body}</div>
-              </li>
-            ))}
-          </ol>
+          <h1 id="first-squad-title" style={{ margin: 0, maxWidth: 680, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 32 : 42, fontWeight: 800, lineHeight: 1.08, letterSpacing: "-0.02em" }}>
+            {firstName ? <>Hey, {firstName}.<br />Start with your people.</> : "Start with your people."}
+          </h1>
+          <p style={{ margin: "14px 0 26px", maxWidth: 590, color: "var(--text-body)", fontSize: isPhone ? 14 : 15, lineHeight: 1.6 }}>
+            Create a private room for your crew, or enter an invite code to join theirs.
+          </p>
+          {squadActions}
+          {openSignals > 0 && (
+            <button onClick={() => router.push("/discover")} className="gg-press" style={{ ...linkBtn, marginTop: 18, minHeight: 44, display: "inline-flex", alignItems: "center", gap: 8, color: "var(--text-body)" }}>
+              <Icon.discover size={15} color="var(--violet)" />
+              Browse {openSignals} open squad{openSignals === 1 ? "" : "s"}
+            </button>
+          )}
         </section>
       ) : (
         <>

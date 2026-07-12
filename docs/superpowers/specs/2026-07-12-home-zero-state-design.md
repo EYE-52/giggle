@@ -19,7 +19,7 @@ Render one first-run workspace below the greeting:
 5. Conditional discovery link:
    - show `Browse N open squads` only when `openSignals > 0`;
    - omit discovery messaging when no public squads exist.
-6. A restrained three-step progress line: `Create room`, `Invite people`, `Go live`. This explains the immediate outcome without restoring a marketing section.
+6. Combine the greeting and first-room task into one heading so the page has one clear entry point.
 
 The zero-state branch removes:
 
@@ -30,13 +30,12 @@ The zero-state branch removes:
 
 ## Responsive Behavior
 
-- Desktop: greeting and first-run workspace use a balanced two-column composition. The action area receives more width; the three-step progress line occupies the supporting column.
-- Tablet: the workspace is a single horizontal band with actions above the progress line.
-- Phone: all controls stack; the create button and invite-code control are full width; progress steps remain compact and readable without horizontal scrolling.
+- Desktop and tablet: the first-run workspace is a compact, top-aligned column capped at `760px`.
+- Phone: all controls stack; the create button and invite-code control are full width.
 
 ## Visual Direction
 
-The workspace is an unframed full-width band with one restrained border and no decorative glow. Violet marks the primary action. Lime appears only as the final live-state indicator. No gradients, empty cover art, fake avatars, or nested cards are introduced.
+The workspace is unframed, top-aligned, and has no forced viewport height, divider, decorative glow, or explanatory step rail. Violet marks the primary action. No gradients, empty cover art, fake avatars, or nested cards are introduced.
 
 ## Behavior And Accessibility
 

@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${inter.variable}`}>
-      <body style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}>
+      <body suppressHydrationWarning style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}>
         {/* External beforeInteractive script (loaded by src, not inline
             children) applies the saved theme pre-paint without the React 19
             "script tag while rendering" warning. */}
