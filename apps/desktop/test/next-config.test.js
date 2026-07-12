@@ -809,10 +809,13 @@ test("desktop home replaces the empty dashboard with one adaptive first-run work
 
   assert.equal(page.includes("const showFirstRun = !mySquadsLoading && mySquads.length === 0;"), true);
   assert.equal(page.includes("Start with your people."), true);
-  assert.equal(page.includes("openSignals > 0 && ("), true);
+  assert.equal(page.includes("const liveSignalsPanel = ("), true);
+  assert.equal(page.includes("trending === null || trending.length > 0"), true);
   assert.equal(page.includes("{!showFirstRun && ("), true);
   assert.equal(page.includes("{showFirstRun ? ("), true);
-  assert.equal(page.includes('maxWidth: 760'), true);
+  assert.equal(page.includes('background: "var(--surface)"'), true);
+  assert.equal(page.includes('borderTop: "3px solid var(--violet)"'), true);
+  assert.equal(page.includes('{joining ? <span className="gg-spinner" /> : "Join"}'), true);
   assert.equal(page.includes('minHeight: isPhone ? undefined : "calc(100dvh - 220px)"'), false);
   assert.equal(page.includes('alignContent: "center"'), false);
   assert.equal(page.includes('aria-label="How your first squad works"'), false);
