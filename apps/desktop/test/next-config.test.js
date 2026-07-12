@@ -98,6 +98,15 @@ test("calling routes give the full viewport to video", () => {
   assert.equal(layout.includes("<TopNav />\n      <main"), false);
 });
 
+test("signed-in pages keep the browser scrollbar at the viewport edge", () => {
+  const layout = appLayoutSource();
+
+  assert.equal(layout.includes('height: isCalling ? "100dvh" : undefined'), true);
+  assert.equal(layout.includes('minHeight: isCalling ? undefined : "100dvh"'), true);
+  assert.equal(layout.includes('overflow: isCalling ? "hidden" : undefined'), true);
+  assert.equal(layout.includes('overflowY: "auto"'), false);
+});
+
 test("signed-in shell lets keyboard users skip repeated navigation", () => {
   const layout = appLayoutSource();
   assert.equal(layout.includes('href="#main-content"'), true);

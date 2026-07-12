@@ -61,7 +61,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", overflow: "hidden" }}>
+    <div style={{
+      height: isCalling ? "100dvh" : undefined,
+      minHeight: isCalling ? undefined : "100dvh",
+      display: "flex",
+      flexDirection: "column",
+      background: "var(--bg)",
+      overflow: isCalling ? "hidden" : undefined,
+    }}>
       {!isCalling && <a className="gg-skip-link" href="#main-content">Skip to content</a>}
       {!isCalling && <TopNav />}
       <main
@@ -83,7 +90,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 margin: "0 auto",
                 width: "100%",
                 padding: isPhone ? "20px 16px 40px" : "32px 40px 48px",
-                overflowY: "auto",
                 boxSizing: "border-box",
               }
         }
