@@ -1037,7 +1037,14 @@ test("desktop discover keeps creation in the filtered empty state", () => {
   assert.equal(page.includes("handlePrimaryCta"), false);
   assert.equal(page.includes("shown.length === 0"), true);
   assert.equal(page.includes("<button onClick={handleCreate} disabled={creating}"), true);
-  assert.equal(page.includes("right={hasMatchingSquads ? ("), true);
+  assert.equal(page.includes("right={(vibe ? hasMatchingSquads : hasInstantSquads) ? ("), true);
+});
+
+test("desktop discover only offers random join for instant-join inventory", () => {
+  const page = desktopDiscoverSource();
+
+  assert.equal(page.includes('const hasInstantSquads = squads.some(squad => (squad.joinPolicy ?? "open") === "open");'), true);
+  assert.equal(page.includes("right={(vibe ? hasMatchingSquads : hasInstantSquads) ? ("), true);
 });
 
 test("desktop protected discover actions do not create dev sessions", () => {

@@ -51,6 +51,7 @@ export default function DiscoverPage() {
     : [...filtered].sort((a, b) => relevance(b) - relevance(a));
   const hasOpenSquads = squads.length > 0;
   const hasMatchingSquads = shown.length > 0;
+  const hasInstantSquads = squads.some(squad => (squad.joinPolicy ?? "open") === "open");
 
   const violet = "var(--violet)";
   const text = "var(--text)";
@@ -157,7 +158,7 @@ export default function DiscoverPage() {
       <PageHeader
         title="Discover squads"
         subtitle="Find a crew that matches your mood. Preview before joining."
-        right={hasMatchingSquads ? (
+        right={(vibe ? hasMatchingSquads : hasInstantSquads) ? (
           <button
             onClick={handleHeaderAction}
             disabled={randomLoading}
