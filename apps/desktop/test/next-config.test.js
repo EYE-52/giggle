@@ -22,6 +22,7 @@ const friendsPageSource = () => readFileSync(path.join(__dirname, "../app/(app)/
 const inviteToSquadSource = () => readFileSync(path.join(__dirname, "../components/InviteToSquad.tsx"), "utf8");
 const squadPreviewSource = () => readFileSync(path.join(__dirname, "../components/SquadPreview.tsx"), "utf8");
 const profileSource = () => readFileSync(path.join(__dirname, "../app/(app)/profile/page.tsx"), "utf8");
+const profileLayoutSource = () => readFileSync(path.join(__dirname, "../app/(app)/profile/layout.tsx"), "utf8");
 const chatPanelSource = () => readFileSync(path.join(__dirname, "../components/ChatPanel.tsx"), "utf8");
 const referralCardSource = () => readFileSync(path.join(__dirname, "../components/ReferralCard.tsx"), "utf8");
 const appLayoutSource = () => readFileSync(path.join(__dirname, "../app/(app)/layout.tsx"), "utf8");
@@ -650,6 +651,22 @@ test("profile vibe preferences load and save through the server profile", () => 
   assert.equal(page.includes("disabled={!loadedProfile || savingVibes}"), true);
   assert.equal(page.includes("Save vibes"), true);
   assert.equal(api.includes("vibes?: string[]"), true);
+});
+
+test("profile explains demographic visibility without claiming it changes matching", () => {
+  const page = profileSource();
+  const layout = profileLayoutSource();
+
+  assert.equal(page.includes("Optional details may be visible to squad members and leaders reviewing join requests."), true);
+  assert.equal(page.includes("Help us tailor your vibe matches."), false);
+  assert.equal(layout.includes("match preferences"), false);
+});
+
+test("profile only enables demographic saving after a real change", () => {
+  const page = profileSource();
+
+  assert.equal(page.includes("const demographicsDirty = !!loadedProfile"), true);
+  assert.equal(page.includes("disabled={!loadedProfile || savingDemo || !demographicsDirty}"), true);
 });
 
 test("desktop auth callback does not relay magic tokens through query strings", () => {

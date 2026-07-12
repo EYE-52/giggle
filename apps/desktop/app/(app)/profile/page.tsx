@@ -248,6 +248,12 @@ export default function ProfilePage() {
 
   const avatarSize = isPhone ? 88 : 120;
   const vibesDirty = !!loadedProfile && JSON.stringify(vibes) !== JSON.stringify(normalizeProfileVibes(loadedProfile.vibes ?? [], []));
+  const demographicsDirty = !!loadedProfile && (
+    gender !== (loadedProfile.gender ?? "") ||
+    age.trim() !== (loadedProfile.age != null ? String(loadedProfile.age) : "") ||
+    country.trim() !== (loadedProfile.country ?? "") ||
+    JSON.stringify(languages) !== JSON.stringify(loadedProfile.languages ?? [])
+  );
   const outerGrid: React.CSSProperties = isPhone
     ? { display: "flex", flexDirection: "column", gap: 16 }
     : {
@@ -449,7 +455,7 @@ export default function ProfilePage() {
         {/* About you — demographics editor */}
         <section style={settingsSection}>
           <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 4, letterSpacing: "-0.02em" }}>About You</div>
-          <div style={{ color: textMuted, fontSize: 13, marginBottom: 16 }}>Help us tailor your vibe matches.</div>
+          <div style={{ color: textMuted, fontSize: 13, marginBottom: 16 }}>Optional details may be visible to squad members and leaders reviewing join requests.</div>
 
           {profileLoading && (
             <div role="status" style={{ color: textMuted, fontSize: 13, marginBottom: 14 }}>Loading profile…</div>
@@ -590,17 +596,17 @@ export default function ProfilePage() {
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button
               onClick={saveDemographics}
-              disabled={savingDemo}
+              disabled={!loadedProfile || savingDemo || !demographicsDirty}
               onMouseEnter={() => setSaveDemoHover(true)}
               onMouseLeave={() => setSaveDemoHover(false)}
               className="gg-press"
               style={{
                 padding: "10px 24px", borderRadius: 999, border: "none", minHeight: 44,
-                cursor: savingDemo ? "default" : "pointer",
-                background: saveDemoHover && !savingDemo ? "var(--violet-bright)" : violet,
+                cursor: !loadedProfile || savingDemo || !demographicsDirty ? "not-allowed" : "pointer",
+                background: saveDemoHover && !savingDemo && demographicsDirty ? "var(--violet-bright)" : violet,
                 color: "var(--on-accent)", fontFamily: "var(--font-space-grotesk)",
-                fontSize: 14, fontWeight: 700, opacity: savingDemo ? 0.7 : 1,
-                transform: saveDemoHover && !savingDemo ? "translateY(-1px)" : "translateY(0)",
+                fontSize: 14, fontWeight: 700, opacity: !loadedProfile || savingDemo || !demographicsDirty ? 0.5 : 1,
+                transform: saveDemoHover && !savingDemo && demographicsDirty ? "translateY(-1px)" : "translateY(0)",
                 display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
                 transition: "transform .14s ease, background .2s var(--ease-ui), box-shadow .2s var(--ease-ui)",
               }}
