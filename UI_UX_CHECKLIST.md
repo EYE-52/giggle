@@ -33,7 +33,7 @@ Viewports: phone `390x844`, tablet `834x1194`, desktop `1440x900`.
 - [x] Invalid squad codes show actionable inline validation without navigation.
 - [x] Discover creation produces a genuinely open squad visible to another user.
 - [x] Discover preview and join reach the shared Lobby without console errors.
-- [ ] Join with code handles invalid and valid codes clearly.
+- [x] Join with code handles invalid and valid codes clearly.
 - [x] Squad readiness and Find a Match expose backend failures without losing state.
 - [ ] Profile edits persist and survive reload.
 - [ ] Sign-out and protected-route redirects behave correctly.
@@ -42,7 +42,7 @@ Viewports: phone `390x844`, tablet `834x1194`, desktop `1440x900`.
 
 - [x] Backend health: API, database, and Redis connected.
 - [x] Core tests: 27 passing.
-- [x] Desktop tests: 102 passing.
+- [x] Desktop tests: 103 passing.
 - [x] Next production build: 19 routes.
 - [ ] Phone, tablet, and desktop screenshots reviewed after the final changes.
 - [ ] No browser console or page errors across audited journeys.

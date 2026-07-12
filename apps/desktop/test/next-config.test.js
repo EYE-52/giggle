@@ -824,7 +824,7 @@ test("desktop home keeps create and join actions compact", () => {
 test("desktop home replaces the empty dashboard with one adaptive first-run workspace", () => {
   const page = desktopHomeSource();
 
-  assert.equal(page.includes("const showFirstRun = !mySquadsLoading && mySquads.length === 0;"), true);
+  assert.equal(page.includes("const showFirstRun = !mySquadsLoading && !mySquadsError && mySquads.length === 0;"), true);
   assert.equal(page.includes("Start with your people."), true);
   assert.equal(page.includes("const liveSignalsPanel = ("), true);
   assert.equal(page.includes("trending === null || trending.length > 0"), true);
@@ -838,6 +838,16 @@ test("desktop home replaces the empty dashboard with one adaptive first-run work
   assert.equal(page.includes('aria-label="How your first squad works"'), false);
   assert.equal(page.includes('["01", "Create room"'), false);
   assert.equal(page.includes("No squads yet"), false);
+});
+
+test("desktop home does not present API failures as a new-user state", () => {
+  const page = desktopHomeSource();
+
+  assert.equal(page.includes("const [mySquadsError, setMySquadsError]"), true);
+  assert.equal(page.includes("const [mySquadsRetry, setMySquadsRetry]"), true);
+  assert.equal(page.includes("Couldn't load your squads."), true);
+  assert.equal(page.includes("setMySquadsRetry(value => value + 1)"), true);
+  assert.equal(page.includes("catch {/* not signed in / none yet"), false);
 });
 
 test("desktop home leave squad failures restore the squad and show an error", () => {

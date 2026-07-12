@@ -29,6 +29,8 @@ export default function HomePage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [mySquads, setMySquads] = useState<MySquadLite[]>([]);
   const [mySquadsLoading, setMySquadsLoading] = useState(true);
+  const [mySquadsError, setMySquadsError] = useState<string | null>(null);
+  const [mySquadsRetry, setMySquadsRetry] = useState(0);
   const [trending, setTrending] = useState<PublicSquad[] | null>(null);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [tokenBal, setTokenBal] = useState(0);
@@ -55,14 +57,15 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const { squads } = await api.mySquads();
-        setMySquads(squads ?? []);
-      } catch {/* not signed in / none yet — section renders its empty state */}
-      finally { setMySquadsLoading(false); }
-    })();
-  }, []);
+    let alive = true;
+    setMySquadsLoading(true);
+    setMySquadsError(null);
+    api.mySquads()
+      .then(({ squads }) => { if (alive) setMySquads(squads ?? []); })
+      .catch(() => { if (alive) setMySquadsError("Couldn't load your squads."); })
+      .finally(() => { if (alive) setMySquadsLoading(false); });
+    return () => { alive = false; };
+  }, [mySquadsRetry]);
 
   async function handleLeaveSquad(squadId: string) {
     const previousSquads = mySquads;
@@ -144,12 +147,12 @@ export default function HomePage() {
   const promoted = mySquads.find(s => PROMOTABLE.has(s.status)) ?? null;
   const restSquads = mySquads.filter(s => s !== promoted);
   const openSignals = trending?.length ?? 0;
-  const showFirstRun = !mySquadsLoading && mySquads.length === 0;
+  const showFirstRun = !mySquadsLoading && !mySquadsError && mySquads.length === 0;
 
   const activityStrip = (
     <div aria-label="Live activity" style={{ display: "flex", alignItems: "center", gap: isPhone ? 16 : 24 }}>
       {[
-        { k: "Your squads", v: mySquadsLoading ? "—" : String(mySquads.length), live: false },
+        { k: "Your squads", v: mySquadsLoading || mySquadsError ? "—" : String(mySquads.length), live: false },
         { k: "Open signals", v: trending === null ? "—" : String(openSignals), live: false },
         { k: "Live now", v: String(stats?.liveEncounters ?? 0), live: true },
       ].map((s, i) => (
@@ -304,7 +307,12 @@ export default function HomePage() {
             )}
           </div>
 
-          {mySquadsLoading ? (
+          {mySquadsError ? (
+            <div role="alert" style={{ padding: 18, borderRadius: 16, border: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, color: "var(--text-muted)", fontSize: 13.5 }}>
+              <span>{mySquadsError}</span>
+              <button onClick={() => setMySquadsRetry(value => value + 1)} className="gg-press" style={{ minHeight: 44, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 700 }}>Retry</button>
+            </div>
+          ) : mySquadsLoading ? (
             <div aria-label="Loading your squads" style={{ height: 160, boxSizing: "border-box", padding: 16, borderRadius: 18, border: "1px solid var(--border)", background: "var(--surface)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                 <span className="gg-shimmer" style={{ width: 70, height: 22, borderRadius: 7 }} />
