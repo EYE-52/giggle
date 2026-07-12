@@ -2,7 +2,7 @@
 
 Canonical production web app for Giggle.
 
-Deploy from the `giggle-app/` workspace root with Vercel root directory `apps/desktop`. The Vercel project may still be named `giggle-web`, but the deploy source is this app, not the legacy top-level `../../giggle-web` folder.
+Deploy from this repository root. The linked Vercel project uses root directory `.`, runs `pnpm --filter @giggle/desktop build`, and serves `apps/desktop/.next`. The Vercel project may still be named `giggle-web`, but its source is this monorepo, not the legacy `../../giggle-web` repository.
 
 ## Run
 
@@ -28,7 +28,8 @@ pnpm --filter @giggle/desktop build
 ## Deploy
 
 ```bash
-vercel deploy --prod --yes --archive=tgz
+vercel deploy --yes --archive=tgz --build-env NEXT_PUBLIC_BACKEND_URL=https://giggle-server-production.up.railway.app
+vercel deploy --prod --yes --archive=tgz --build-env NEXT_PUBLIC_BACKEND_URL=https://giggle-server-production.up.railway.app
 ```
 
-Confirm the Vercel project root directory is `apps/desktop`.
+Confirm the Vercel project root directory is `.`.
