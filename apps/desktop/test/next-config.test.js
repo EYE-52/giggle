@@ -627,25 +627,15 @@ test("profile premium upsell does not advertise unbuilt priority or HD features"
   assert.equal(page.includes("priority"), false);
 });
 
-test("profile account switches persist locally instead of resetting on remount", () => {
+test("profile does not expose local-only controls as real account settings", () => {
   const page = profileSource();
 
-  assert.equal(page.includes("PROFILE_SETTINGS_STORAGE_KEY"), true);
-  assert.equal(page.includes("localStorage.getItem(PROFILE_SETTINGS_STORAGE_KEY)"), true);
-  assert.equal(page.includes("localStorage.setItem(PROFILE_SETTINGS_STORAGE_KEY"), true);
-  assert.equal(page.includes("setProfileSetting(\"notificationsOn\""), true);
-  assert.equal(page.includes("setProfileSetting(\"openToDiscovery\""), true);
-  assert.equal(page.includes("setProfileSetting(\"showOnlineStatus\""), true);
-});
-
-test("profile account switch persistence ignores malformed stored settings", () => {
-  const page = profileSource();
-
-  assert.equal(page.includes("function normalizeProfileSettings("), true);
-  assert.equal(page.includes("const parsed = normalizeProfileSettings(JSON.parse(raw));"), true);
-  assert.equal(page.includes("const current = raw ? normalizeProfileSettings(JSON.parse(raw)) : DEFAULT_PROFILE_SETTINGS;"), true);
-  assert.equal(page.includes("...current,"), true);
-  assert.equal(page.includes("const current = raw ? JSON.parse(raw) : {};"), false);
+  assert.equal(page.includes("PROFILE_SETTINGS_STORAGE_KEY"), false);
+  assert.equal(page.includes("normalizeProfileSettings"), false);
+  assert.equal(page.includes("Open to Discovery"), false);
+  assert.equal(page.includes("Show Online Status"), false);
+  assert.equal(page.includes("Receive push notifications for matches and messages"), false);
+  assert.equal(page.includes('session.signOut(); router.replace("/");'), true);
 });
 
 test("profile vibe preferences are normalized before render and persistence", () => {

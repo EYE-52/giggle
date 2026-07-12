@@ -1,7 +1,6 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Icon } from "@/components/Icons";
@@ -10,18 +9,9 @@ import { useViewport } from "@/components/useViewport";
 
 const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
 const VIBE_STORAGE_KEY = "giggle.vibes";
-const PROFILE_SETTINGS_STORAGE_KEY = "giggle.profile.settings";
 
 const DEFAULT_VIBES = ["Gaming", "Music", "Chill", "Late Night", "Deep Talks"];
 const MAX_PROFILE_VIBES = 5;
-const DEFAULT_PROFILE_SETTINGS = {
-  notificationsOn: true,
-  openToDiscovery: true,
-  showOnlineStatus: false,
-};
-
-type ProfileSettingKey = keyof typeof DEFAULT_PROFILE_SETTINGS;
-type ProfileSettings = typeof DEFAULT_PROFILE_SETTINGS;
 
 const GENDER_OPTIONS: { value: string; label: string }[] = [
   { value: "male", label: "Male" },
@@ -62,24 +52,6 @@ function normalizeProfileVibes(value: unknown, fallback: string[] = DEFAULT_VIBE
     if (normalized.length >= MAX_PROFILE_VIBES) break;
   }
   return normalized.length ? normalized : fallback;
-}
-
-function normalizeProfileSettings(value: unknown): ProfileSettings {
-  const source = value && typeof value === "object" && !Array.isArray(value)
-    ? value as Partial<ProfileSettings>
-    : {};
-
-  return {
-    notificationsOn: typeof source.notificationsOn === "boolean"
-      ? source.notificationsOn
-      : DEFAULT_PROFILE_SETTINGS.notificationsOn,
-    openToDiscovery: typeof source.openToDiscovery === "boolean"
-      ? source.openToDiscovery
-      : DEFAULT_PROFILE_SETTINGS.openToDiscovery,
-    showOnlineStatus: typeof source.showOnlineStatus === "boolean"
-      ? source.showOnlineStatus
-      : DEFAULT_PROFILE_SETTINGS.showOnlineStatus,
-  };
 }
 
 export default function ProfilePage() {
@@ -123,43 +95,12 @@ export default function ProfilePage() {
   }, []);
   const displayName = user?.name ?? "Your Profile";
 
-  // Account toggles
-  const manageAccountRef = useRef<HTMLElement>(null);
-  const [notificationsOn, setNotificationsOn] = useState(true);
-  const [openToDiscovery, setOpenToDiscovery] = useState(true);
-  const [showOnlineStatus, setShowOnlineStatus] = useState(false);
-
   useEffect(() => {
     try {
       const stored = localStorage.getItem(VIBE_STORAGE_KEY);
       if (stored) setVibes(normalizeProfileVibes(JSON.parse(stored)));
     } catch {}
   }, []);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(PROFILE_SETTINGS_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = normalizeProfileSettings(JSON.parse(raw));
-      setNotificationsOn(parsed.notificationsOn);
-      setOpenToDiscovery(parsed.openToDiscovery);
-      setShowOnlineStatus(parsed.showOnlineStatus);
-    } catch {}
-  }, []);
-
-  function setProfileSetting(key: ProfileSettingKey, value: boolean) {
-    if (key === "notificationsOn") setNotificationsOn(value);
-    if (key === "openToDiscovery") setOpenToDiscovery(value);
-    if (key === "showOnlineStatus") setShowOnlineStatus(value);
-    try {
-      const raw = localStorage.getItem(PROFILE_SETTINGS_STORAGE_KEY);
-      const current = raw ? normalizeProfileSettings(JSON.parse(raw)) : DEFAULT_PROFILE_SETTINGS;
-      localStorage.setItem(PROFILE_SETTINGS_STORAGE_KEY, JSON.stringify({
-        ...current,
-        [key]: value,
-      }));
-    } catch {}
-  }
 
   function toggleVibe(vibe: string) {
     setVibes(prev => {
@@ -311,38 +252,6 @@ export default function ProfilePage() {
   const [addMoreHover, setAddMoreHover] = useState(false);
   const [logOutHover, setLogOutHover] = useState(false);
   const [vibeChipHover, setVibeChipHover] = useState<string | null>(null);
-
-  const SwitchRow = ({ label, desc, value, onChange }: { label: string; desc: string; value: boolean; onChange: (v: boolean) => void }) => (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0", borderBottom: "1px solid var(--overlay)", gap: 12 }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ color: textPrimary, fontSize: 14, fontWeight: 600 }}>{label}</div>
-        <div style={{ color: textTertiary, fontSize: 12, marginTop: 2 }}>{desc}</div>
-      </div>
-      <button
-        onClick={() => onChange(!value)}
-        aria-label={label}
-        aria-pressed={value}
-        style={{
-          width: 44, height: 44, borderRadius: 999, border: "none", cursor: "pointer",
-          background: "transparent",
-          position: "relative", transition: "all .15s ease", flexShrink: 0,
-        }}
-      >
-        <div style={{
-          position: "absolute", top: 10, left: 0,
-          width: 44, height: 24, borderRadius: 12,
-          background: value ? violet : "var(--overlay-hover)",
-          transition: "background .15s ease",
-        }}>
-          <span style={{
-            position: "absolute", top: 3, left: value ? 23 : 3,
-            width: 18, height: 18, borderRadius: "50%", background: "#fff",
-            transition: "left 0.2s", boxShadow: "0 1px 4px rgba(0,0,0,0.4)",
-          }} />
-        </div>
-      </button>
-    </div>
-  );
 
   const avatarSize = isPhone ? 88 : 120;
   const outerGrid: React.CSSProperties = isPhone
@@ -705,58 +614,38 @@ export default function ProfilePage() {
           </fieldset>
         </section>
 
-        {/* Account — the real, functional settings (privacy + notifications) */}
-        <section ref={manageAccountRef} style={{ ...settingsSection, borderBottom: "none" }}>
+        {/* Account — verified identity and session controls only. */}
+        <section style={{ ...settingsSection, borderBottom: "none" }}>
           <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 4, letterSpacing: "-0.02em" }}>Account</div>
           {user?.email && (
-            <div style={{ padding: "10px 0 14px", borderBottom: "1px solid var(--overlay)" }}>
+            <div style={{ padding: "10px 0 14px" }}>
               <div style={{ color: textTertiary, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>Signed in as</div>
               <div style={{ color: textMuted, fontSize: 13, marginTop: 4, overflowWrap: "anywhere" }}>{user.email}</div>
             </div>
           )}
-          <SwitchRow
-            label="Notifications"
-            desc="Receive push notifications for matches and messages"
-            value={notificationsOn}
-            onChange={(v) => setProfileSetting("notificationsOn", v)}
-          />
-          <SwitchRow
-            label="Open to Discovery"
-            desc="Let others find you via vibe matching"
-            value={openToDiscovery}
-            onChange={(v) => setProfileSetting("openToDiscovery", v)}
-          />
-          <SwitchRow
-            label="Show Online Status"
-            desc="Display when you are active on Giggle"
-            value={showOnlineStatus}
-            onChange={(v) => setProfileSetting("showOnlineStatus", v)}
-          />
+          <button
+            onClick={() => { session.signOut(); router.replace("/"); }}
+            onMouseEnter={() => setLogOutHover(true)}
+            onMouseLeave={() => setLogOutHover(false)}
+            className="gg-press"
+            style={{
+              minHeight: 44,
+              padding: "0 18px",
+              border: `1.5px solid ${logOutHover ? coral + "99" : coral + "55"}`,
+              borderRadius: 999,
+              background: logOutHover ? "color-mix(in srgb, var(--coral) 10%, transparent)" : "transparent",
+              color: coral,
+              fontFamily: "var(--font-space-grotesk)", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+              transform: logOutHover ? "translateY(-1px)" : "translateY(0)",
+              transition: "transform .14s ease, background .2s var(--ease-ui), border-color .2s var(--ease-ui)",
+            }}
+          >
+            <Icon.enter size={17} color={coral} />
+            Log Out
+          </button>
         </section>
         </div>
-
-        {/* Log Out */}
-        <button
-          onClick={() => { session.signOut(); router.replace("/"); }}
-          onMouseEnter={() => setLogOutHover(true)}
-          onMouseLeave={() => setLogOutHover(false)}
-          className="gg-press"
-          style={{
-            alignSelf: isPhone ? "stretch" : "flex-start",
-            padding: "13px 32px",
-            border: `1.5px solid ${logOutHover ? coral + "99" : coral + "55"}`,
-            borderRadius: 999,
-            background: logOutHover ? "color-mix(in srgb, var(--coral) 10%, transparent)" : "transparent",
-            color: coral,
-            fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 600, cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            transform: logOutHover ? "translateY(-1px)" : "translateY(0)",
-            transition: "transform .14s ease, background .2s var(--ease-ui), border-color .2s var(--ease-ui)",
-          }}
-        >
-          <Icon.enter size={18} color={coral} />
-          Log Out
-        </button>
       </div>
     </div>
     {pickerOpen && <AvatarPicker current={myAvatar} onClose={() => setPickerOpen(false)} />}
