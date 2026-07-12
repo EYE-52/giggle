@@ -32,6 +32,8 @@ export default function HomePage() {
   const [mySquadsError, setMySquadsError] = useState<string | null>(null);
   const [mySquadsRetry, setMySquadsRetry] = useState(0);
   const [trending, setTrending] = useState<PublicSquad[] | null>(null);
+  const [trendingError, setTrendingError] = useState(false);
+  const [trendingRetry, setTrendingRetry] = useState(0);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [tokenBal, setTokenBal] = useState(0);
   const [openHoveredId, setOpenHoveredId] = useState<string | null>(null);
@@ -39,11 +41,13 @@ export default function HomePage() {
 
   useEffect(() => {
     let alive = true;
+    setTrending(null);
+    setTrendingError(false);
     api.discoverSquads()
       .then((d) => { if (alive) setTrending(d.squads ?? []); })
-      .catch(() => { if (alive) setTrending([]); });
+      .catch(() => { if (alive) setTrendingError(true); });
     return () => { alive = false; };
-  }, []);
+  }, [trendingRetry]);
 
   useEffect(() => {
     setTokenBal(getTokenBalance());
@@ -153,8 +157,8 @@ export default function HomePage() {
     <div aria-label="Live activity" style={{ display: "flex", alignItems: "center", gap: isPhone ? 16 : 24 }}>
       {[
         { k: "Your squads", v: mySquadsLoading || mySquadsError ? "—" : String(mySquads.length), live: false },
-        { k: "Open signals", v: trending === null ? "—" : String(openSignals), live: false },
-        { k: "Live now", v: String(stats?.liveEncounters ?? 0), live: true },
+        { k: "Open signals", v: trending === null || trendingError ? "—" : String(openSignals), live: false },
+        { k: "Live now", v: stats === null ? "—" : String(stats.liveEncounters), live: true },
       ].map((s, i) => (
         <div key={s.k} style={{ display: "flex", alignItems: "baseline", gap: 7, paddingLeft: i > 0 ? 20 : 0, borderLeft: i > 0 ? "1px solid var(--border)" : "none" }}>
           <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--text-dim)" }}>{s.k}</span>
@@ -197,7 +201,12 @@ export default function HomePage() {
         <h2 style={{ ...sectionTitle, fontSize: 16 }}>Live signals</h2>
         <button onClick={() => router.push("/discover")} style={{ ...linkBtn, marginLeft: "auto" }}>View all</button>
       </div>
-      {trending === null ? (
+      {trendingError ? (
+        <div role="alert" style={{ minHeight: 62, padding: "9px 16px", borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, color: "var(--text-muted)", fontSize: 13 }}>
+          <span>Couldn&apos;t load live signals.</span>
+          <button onClick={() => setTrendingRetry(value => value + 1)} className="gg-press" style={{ minHeight: 44, padding: "0 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "transparent", color: "var(--text)", cursor: "pointer", fontWeight: 700 }}>Retry</button>
+        </div>
+      ) : trending === null ? (
         [0, 1, 2].map(i => <div key={i} className="gg-shimmer" style={{ height: 62, borderTop: "1px solid var(--border)" }} />)
       ) : trending.length === 0 ? (
         <div style={{ padding: "16px", borderTop: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 13 }}>
@@ -290,7 +299,7 @@ export default function HomePage() {
             </p>
             {squadActions}
           </section>
-          {(trending === null || trending.length > 0) && liveSignalsPanel}
+          {(trendingError || trending === null || trending.length > 0) && liveSignalsPanel}
         </div>
       ) : (
         <>

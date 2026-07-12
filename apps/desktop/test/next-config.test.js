@@ -904,6 +904,18 @@ test("desktop home does not present API failures as a new-user state", () => {
   assert.equal(page.includes("catch {/* not signed in / none yet"), false);
 });
 
+test("desktop home does not present unavailable live data as zero activity", () => {
+  const page = desktopHomeSource();
+
+  assert.equal(page.includes("const [trendingError, setTrendingError]"), true);
+  assert.equal(page.includes("const [trendingRetry, setTrendingRetry]"), true);
+  assert.equal(page.includes("Couldn&apos;t load live signals."), true);
+  assert.equal(page.includes("setTrendingRetry(value => value + 1)"), true);
+  assert.equal(page.includes('v: trending === null || trendingError ? "—" : String(openSignals)'), true);
+  assert.equal(page.includes('v: stats === null ? "—" : String(stats.liveEncounters)'), true);
+  assert.equal(page.includes(".catch(() => { if (alive) setTrending([]); });"), false);
+});
+
 test("desktop home leave squad failures restore the squad and show an error", () => {
   const page = desktopHomeSource();
 
