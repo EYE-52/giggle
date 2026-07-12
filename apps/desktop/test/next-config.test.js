@@ -973,6 +973,22 @@ test("friends request action failures roll back optimistic UI", () => {
   assert.equal(page.includes('console.error("removeFriend failed:", e);'), false);
 });
 
+test("profile keeps identity compact and settings beside it from tablet upward", () => {
+  const page = profileSource();
+  const identityColumn = page.slice(
+    page.indexOf("{/* LEFT COLUMN"),
+    page.indexOf("{/* RIGHT COLUMN"),
+  );
+
+  assert.equal((identityColumn.match(/\.\.\.surface/g) ?? []).length, 1);
+  assert.equal(page.includes("const avatarSize = isPhone ? 88 : 120;"), true);
+  assert.equal(page.includes('flexDirection: isPhone ? "row" : "column"'), true);
+  assert.equal(page.includes('gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "300px minmax(0, 1fr)"'), true);
+  assert.equal((page.match(/Monthly tokens \+ 15% pack bonus/g) ?? []).length, 1);
+  assert.equal(page.includes("minHeight: 40"), false);
+  assert.equal(page.includes("minHeight: 44"), true);
+});
+
 test("profile can clear a previously saved age", () => {
   const page = profileSource();
   const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");

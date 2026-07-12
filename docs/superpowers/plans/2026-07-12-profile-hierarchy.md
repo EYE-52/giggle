@@ -12,20 +12,20 @@
 
 ### Task 1: Lock The Responsive Contract
 
-- [ ] Add failing source tests for one identity surface, compact phone identity, tablet two-column layout, and a 44px Save action.
-- [ ] Run desktop tests and confirm the new contract fails.
+- [x] Add failing source tests for one identity surface, compact phone identity, tablet two-column layout, and a 44px Save action.
+- [x] Run desktop tests and confirm the new contract fails.
 
 ### Task 2: Recompose Existing UI
 
-- [ ] Move the existing premium status/upsell into the identity surface.
-- [ ] Make avatar sizing and identity direction responsive on phones.
-- [ ] Keep tablet and desktop in two columns with responsive left widths.
-- [ ] Raise Save to 44px without changing its handler.
-- [ ] Run desktop tests.
+- [x] Move the existing premium status/upsell into the identity surface.
+- [x] Make avatar sizing and identity direction responsive on phones.
+- [x] Keep tablet and desktop in two columns with responsive left widths.
+- [x] Raise Save to 44px without changing its handler.
+- [x] Run desktop tests.
 
 ### Task 3: Verify And Record
 
 - [ ] Capture Profile at `390x844`, `834x1194`, and `1440x900`.
 - [ ] Exercise avatar edit, premium navigation, demographics save, switches, and sign-out.
-- [ ] Run core tests, desktop tests, and the production build.
+- [x] Run core tests, desktop tests, and the production build.
 - [ ] Update `UI_UX_CHECKLIST.md`, commit, push, and restore the local dev runtime.

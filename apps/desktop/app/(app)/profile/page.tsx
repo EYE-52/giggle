@@ -297,7 +297,6 @@ export default function ProfilePage() {
   const [vibeTagHover, setVibeTagHover] = useState<string | null>(null);
   const [addMoreHover, setAddMoreHover] = useState(false);
   const [logOutHover, setLogOutHover] = useState(false);
-  const [upgradeCardHover, setUpgradeCardHover] = useState(false);
   const [vibeChipHover, setVibeChipHover] = useState<string | null>(null);
 
   const SwitchRow = ({ label, desc, value, onChange }: { label: string; desc: string; value: boolean; onChange: (v: boolean) => void }) => (
@@ -332,32 +331,36 @@ export default function ProfilePage() {
     </div>
   );
 
-  // Responsive layout: single column on tablet/phone, 2-col on desktop
-  const outerGrid: React.CSSProperties = isTablet
-    ? { display: "flex", flexDirection: "column", gap: isPhone ? 16 : 20 }
-    : { display: "grid", gridTemplateColumns: "300px 1fr", gap: 24, alignItems: "start" };
+  const avatarSize = isPhone ? 88 : 120;
+  const outerGrid: React.CSSProperties = isPhone
+    ? { display: "flex", flexDirection: "column", gap: 16 }
+    : {
+        display: "grid",
+        gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "300px minmax(0, 1fr)",
+        gap: isTablet ? 20 : 24,
+        alignItems: "start",
+      };
 
   return (
     <>
     <div className="gg-reveal" style={outerGrid}>
-      {/* LEFT COLUMN — Avatar + Score + Stats */}
-      <div style={{ display: "flex", flexDirection: "column", gap: isPhone ? 14 : 16 }}>
-        {/* Avatar card */}
-        <div style={{ ...surface, display: "flex", flexDirection: "column", alignItems: "center", gap: 14, paddingTop: isPhone ? 22 : 26, paddingBottom: isPhone ? 18 : 22 }}>
-          {/* Avatar — click to edit */}
+      {/* LEFT COLUMN — identity and membership */}
+      <div>
+        <div style={{ ...surface, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: isPhone ? 16 : 26, paddingBottom: isPhone ? 16 : 22 }}>
+          <div style={{ width: "100%", display: "flex", flexDirection: isPhone ? "row" : "column", alignItems: "center", justifyContent: "center", gap: isPhone ? 16 : 14 }}>
           <button
             onClick={() => setPickerOpen(true)}
             onMouseEnter={() => setAvatarHover(true)}
             onMouseLeave={() => setAvatarHover(false)}
             aria-label="Edit avatar"
             style={{
-              position: "relative", width: 120, height: 120,
+              position: "relative", width: avatarSize, height: avatarSize, flexShrink: 0,
               border: "none", background: "none", padding: 0,
               cursor: "pointer",
             }}
           >
             <div style={{ position: "absolute", inset: 0, borderRadius: "50%", overflow: "hidden", border: avatarHover ? "3px solid var(--violet)" : "3px solid var(--border-strong)", transition: "border-color .16s ease" }}>
-              <AvatarArt value={myAvatar} size={114} />
+              <AvatarArt value={myAvatar} size={avatarSize - 6} />
             </div>
             {/* Edit overlay */}
             <div style={{
@@ -384,17 +387,17 @@ export default function ProfilePage() {
               </div>
             )}
           </button>
-          <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
-              <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 22, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0 }}>{displayName}</h1>
+          <div style={{ minWidth: 0, textAlign: isPhone ? "left" : "center", display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: isPhone ? "flex-start" : "center" }}>
+              <h1 style={{ maxWidth: "100%", fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 20 : 22, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</h1>
             </div>
           </div>
-        </div>
+          </div>
 
-        {/* Giggle+ status */}
+        <div style={{ width: "100%", paddingTop: 16, borderTop: "1px solid var(--border)" }}>
         {isPremium ? (
-          <div style={{ ...surface, background: `linear-gradient(135deg, rgba(124,92,255,0.22) 0%, rgba(194,255,61,0.08) 100%)`, display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, var(--violet), var(--lime))`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--violet-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Icon.star size={18} color="#0B0B0F" fill="#0B0B0F" />
           </div>
             <div>
@@ -403,23 +406,18 @@ export default function ProfilePage() {
             </div>
           </div>
         ) : (
-          <div
+          <button
+            type="button"
             onClick={() => router.push("/premium")}
-            onMouseEnter={() => setUpgradeCardHover(true)}
-            onMouseLeave={() => setUpgradeCardHover(false)}
             className="gg-press-card"
             style={{
-              ...surface, cursor: "pointer",
-              background: upgradeCardHover
-                ? "linear-gradient(135deg, rgba(124,92,255,0.32) 0%, var(--surface-grad-to) 100%)"
-                : "linear-gradient(135deg, rgba(124,92,255,0.22) 0%, var(--surface-grad-to) 100%)",
-              border: upgradeCardHover ? `1px solid rgba(124,92,255,0.4)` : "1px solid var(--border)",
+              width: "100%", minHeight: 44, padding: 0, cursor: "pointer",
+              background: "transparent", border: "none", color: "inherit",
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              transition: "all .15s ease",
-              transform: upgradeCardHover ? "translateY(-1px)" : "translateY(0)",
+              gap: 12, textAlign: "left",
             }}
           >
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Giggle+</div>
               <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Monthly tokens + 15% pack bonus</div>
             </div>
@@ -430,8 +428,10 @@ export default function ProfilePage() {
               }}>Upgrade</span>
               <Icon.chevron size={18} color={violet} />
             </div>
-          </div>
+          </button>
         )}
+        </div>
+        </div>
       </div>
 
       {/* RIGHT COLUMN — Prefs + Settings + Manage Account + Log Out */}
@@ -658,7 +658,7 @@ export default function ProfilePage() {
               onMouseLeave={() => setSaveDemoHover(false)}
               className="gg-press"
               style={{
-                padding: "10px 24px", borderRadius: 999, border: "none", minHeight: 40,
+                padding: "10px 24px", borderRadius: 999, border: "none", minHeight: 44,
                 cursor: savingDemo ? "default" : "pointer",
                 background: saveDemoHover && !savingDemo ? "var(--violet-bright)" : violet,
                 color: "var(--on-accent)", fontFamily: "var(--font-space-grotesk)",
