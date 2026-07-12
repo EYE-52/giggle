@@ -812,9 +812,28 @@ test("desktop home leave squad failures restore the squad and show an error", ()
 test("desktop discover applies the active vibe filter to newly created squads", () => {
   const page = desktopDiscoverSource();
 
-  assert.equal(page.includes("api.createSquad({ squadName: randomSquadName(), tags: vibe ? [vibe] : [] })"), true);
+  assert.equal(page.includes('api.createSquad({ squadName: randomSquadName(), tags: vibe ? [vibe] : [], visibility: "open" })'), true);
   assert.equal(page.includes("await api.setTags(squad.squadId, [vibe]);"), false);
   assert.equal(page.includes("Start one with this vibe"), true);
+});
+
+test("desktop discover exposes visible URL-synced vibe filters", () => {
+  const page = desktopDiscoverSource();
+
+  assert.equal(page.includes("VIBES"), true);
+  assert.equal(page.includes('["All", ...VIBES]'), true);
+  assert.equal(page.includes("function selectVibe(next: string | null)"), true);
+  assert.equal(page.includes('params.set("vibe", next)'), true);
+  assert.equal(page.includes('aria-label="Filter squads by vibe"'), true);
+});
+
+test("desktop discover uses an unframed inventory-aware empty state", () => {
+  const page = desktopDiscoverSource();
+
+  assert.equal(page.includes("Be the first signal."), true);
+  assert.equal(page.includes("Start an open squad"), true);
+  assert.equal(page.includes("<EmptyState"), false);
+  assert.equal(page.includes('minHeight: isPhone ? 420 : "calc(100dvh - 310px)"'), true);
 });
 
 test("desktop discover keeps creation in the filtered empty state", () => {
@@ -823,8 +842,8 @@ test("desktop discover keeps creation in the filtered empty state", () => {
   assert.equal(page.includes("primaryCtaCreates"), false);
   assert.equal(page.includes("handlePrimaryCta"), false);
   assert.equal(page.includes("shown.length === 0"), true);
-  assert.equal(page.includes("primary={{ label: creating ? \"Creating…\" : (vibe ? `Create a ${vibe} squad` : \"Create a squad\"), onClick: handleCreate, disabled: creating }}"), true);
-  assert.equal(page.includes("right={hasOpenSquads ? ("), true);
+  assert.equal(page.includes("<button onClick={handleCreate} disabled={creating}"), true);
+  assert.equal(page.includes("right={hasMatchingSquads ? ("), true);
 });
 
 test("desktop protected discover actions do not create dev sessions", () => {

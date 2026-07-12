@@ -18,7 +18,7 @@ Viewports: phone `390x844`, tablet `834x1194`, desktop `1440x900`.
 - [ ] Landing: hero, navigation, How it works, scroll-scrub video, Features, footer.
 - [ ] Sign-in: one-viewport fit, provider actions, legal links, dev login.
 - [x] Home: adaptive empty state and populated squad dashboard at phone, tablet, and desktop sizes.
-- [ ] Discover: filters, cards, previews, empty/error states, random join.
+- [x] Discover: visible URL-synced filters, cover cards, inventory-aware empty state, atomic open creation, preview, and join across all target sizes.
 - [ ] Friends: search, requests, friend cards, empty state, invite flow.
 - [ ] Profile: identity, vibes, account settings, premium placement.
 - [ ] Lobby: people-first stage, readiness, invite, settings, chat, calling controls.
@@ -31,6 +31,8 @@ Viewports: phone `390x844`, tablet `834x1194`, desktop `1440x900`.
 - [x] Dev login repairs malformed legacy browser state and reaches Home.
 - [x] Create Squad reaches a fully loaded Lobby.
 - [x] Invalid squad codes show actionable inline validation without navigation.
+- [x] Discover creation produces a genuinely open squad visible to another user.
+- [x] Discover preview and join reach the shared Lobby without console errors.
 - [ ] Join with code handles invalid and valid codes clearly.
 - [ ] Squad readiness and Find a Match expose backend failures without losing state.
 - [ ] Profile edits persist and survive reload.

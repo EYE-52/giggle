@@ -22,7 +22,7 @@ export const api = {
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
 
   // --- squads ---
-  createSquad: (body: { squadName?: string; displayName?: string; tags?: string[] }) =>
+  createSquad: (body: { squadName?: string; displayName?: string; tags?: string[]; visibility?: "private" | "open" }) =>
     backendRequest<SquadSummary>("/api/squads/create", { method: "POST", body }),
   joinSquad: (body: { squadCode: string; displayName?: string }) =>
     backendRequest<SquadSummary | { status: "requested" }>("/api/squads/join", { method: "POST", body }),
