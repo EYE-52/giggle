@@ -495,8 +495,7 @@ export default function FriendsPage() {
  * Lightweight squad-picker: invite a known friend to one of my squads.
  * - Loads api.mySquads() on open.
  * - 0 squads → "Create a squad first".
- * - 1 squad → invites directly on open (no picker needed).
- * - 2+ squads → list to pick from; each row invites on click.
+ * - Every squad row requires an explicit invite click.
  */
 function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhone: boolean; onClose: () => void }) {
   const router = useRouter();
@@ -539,8 +538,6 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
         const list = squads ?? [];
         if (!alive) return;
         setSquads(list);
-        // Exactly one squad → invite immediately, no picking required.
-        if (list.length === 1) invite(list[0].squadId);
       } catch (e) {
         console.error("mySquads failed:", e);
         if (alive) setError("Couldn't load your squads.");
@@ -549,7 +546,7 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
       }
     })();
     return () => { alive = false; };
-  }, [invite, router]);
+  }, [router]);
 
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };

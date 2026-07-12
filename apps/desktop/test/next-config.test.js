@@ -1106,6 +1106,13 @@ test("friends request action failures roll back optimistic UI", () => {
   assert.equal(page.includes('console.error("removeFriend failed:", e);'), false);
 });
 
+test("friends squad invites always require explicit confirmation", () => {
+  const page = friendsPageSource();
+
+  assert.equal(page.includes("if (list.length === 1) invite(list[0].squadId);"), false);
+  assert.equal(page.includes("onClick={() => invite(sq.squadId)}"), true);
+});
+
 test("profile keeps identity compact and settings beside it from tablet upward", () => {
   const page = profileSource();
   const identityColumn = page.slice(
