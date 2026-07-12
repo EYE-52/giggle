@@ -673,6 +673,8 @@ function EncounterInner() {
   const [encounter, setEncounter] = useState<EncounterDetail | null>(null);
   const [encounterLoading, setEncounterLoading] = useState(true);
   const [encounterError, setEncounterError] = useState<string | null>(null);
+  const [encounterExpired, setEncounterExpired] = useState(false);
+  const [encounterLoadRetry, setEncounterLoadRetry] = useState(0);
   const [ending, setEnding] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
@@ -764,11 +766,19 @@ function EncounterInner() {
       endedNavigationTimeoutRef.current = setTimeout(() => router.push("/home"), 1600);
     };
     const onActive = () => {
-      api.getEncounter(encId).then(setEncounter).catch(() => {});
+      const refreshError = "Couldn't refresh encounter details.";
+      api.getEncounter(encId).then((detail) => {
+        if (cancelled) return;
+        setEncounter(detail);
+        setVideoError((error) => error === refreshError ? null : error);
+      }).catch(() => {
+        if (!cancelled) setVideoError(refreshError);
+      });
     };
 
     setEncounterLoading(true);
     setEncounterError(null);
+    setEncounterExpired(false);
     setEncounter(null);
     setElapsed(0);
 
@@ -778,9 +788,12 @@ function EncounterInner() {
         if (cancelled) return;
         setEncounter(detail);
         setEncounterLoading(false);
-      } catch {
+      } catch (error) {
         if (!cancelled) {
-          setEncounterError("This encounter is no longer available.");
+          const status = (error as { status?: number }).status;
+          const expired = status === 404 || status === 410;
+          setEncounterExpired(expired);
+          setEncounterError(expired ? "This encounter has ended." : "We couldn't load this encounter. Check your connection and try again.");
           setEncounterLoading(false);
         }
         return;
@@ -842,7 +855,7 @@ function EncounterInner() {
       });
       setVideoJoined(false);
     };
-  }, [squadId, encId, router]);
+  }, [squadId, encId, router, encounterLoadRetry]);
 
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -1702,11 +1715,14 @@ function EncounterInner() {
           <div style={{ width: 54, height: 54, borderRadius: 16, margin: "0 auto 16px", display: "grid", placeItems: "center", background: "var(--overlay)", border: "1px solid var(--border)" }}>
             <Icon.cam size={24} color="var(--lime)" />
           </div>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 24, letterSpacing: "-0.03em" }}>Encounter unavailable</h1>
+          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 24, letterSpacing: "-0.03em" }}>{encounterExpired ? "Encounter ended" : "Couldn't open encounter"}</h1>
           <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14.5 }}>{encounterError ?? "This live room could not be loaded."}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            {!encounterExpired && (
+              <button onClick={() => setEncounterLoadRetry(value => value + 1)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Retry</button>
+            )}
             {squadId && (
-              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Back to lobby</button>
+              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: encounterExpired ? "none" : "1px solid var(--border)", background: encounterExpired ? "var(--violet)" : "var(--overlay)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Back to lobby</button>
             )}
             <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 800, cursor: "pointer" }}>Home</button>
           </div>

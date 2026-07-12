@@ -490,6 +490,18 @@ test("desktop encounter clears delayed ended-room navigation on unmount", () => 
   assert.equal(page.includes('\n      setTimeout(() => router.push("/home"), 1600);'), false);
 });
 
+test("desktop encounter distinguishes ended rooms from retryable load failures", () => {
+  const page = encounterSource();
+
+  assert.equal(page.includes("const [encounterExpired, setEncounterExpired]"), true);
+  assert.equal(page.includes("const [encounterLoadRetry, setEncounterLoadRetry]"), true);
+  assert.equal(page.includes("status === 404 || status === 410"), true);
+  assert.equal(page.includes('encounterExpired ? "Encounter ended" : "Couldn\'t open encounter"'), true);
+  assert.equal(page.includes("setEncounterLoadRetry(value => value + 1)"), true);
+  assert.equal(page.includes("Couldn't refresh encounter details."), true);
+  assert.equal(page.includes("api.getEncounter(encId).then(setEncounter).catch(() => {})"), false);
+});
+
 test("desktop chat keeps unsent text and shows a delivery error", () => {
   const component = chatPanelSource();
 
