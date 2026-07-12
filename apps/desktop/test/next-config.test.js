@@ -417,6 +417,17 @@ test("desktop lobby find match does not hide readiness or video sync failures", 
   assert.equal(page.includes("await api.setReady(squadId, true);\n      await api.setLobbyVideo(squadId, true);\n      await api.startSearch(squadId);"), true);
 });
 
+test("lobby match errors overlay the stage without resizing video", () => {
+  const page = lobbySource();
+  const errorBlock = page.slice(page.indexOf("{matchError && ("), page.indexOf("{/* ── RIGHT SIDE PANEL"));
+
+  assert.equal(errorBlock.includes('position: "absolute"'), true);
+  assert.equal(errorBlock.includes("bottom: isPhone ? 74 : 96"), true);
+  assert.equal(errorBlock.includes('left: "50%"'), true);
+  assert.equal(errorBlock.includes('transform: "translateX(-50%)"'), true);
+  assert.equal(errorBlock.includes("marginTop: 10"), false);
+});
+
 test("desktop lobby copy actions only show success after clipboard writes succeed", () => {
   const page = lobbySource();
 

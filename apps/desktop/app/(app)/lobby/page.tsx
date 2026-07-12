@@ -1708,15 +1708,19 @@ function LobbyInner() {
               )}
             </div>
             {matchError && (
-              <div role="alert" className="gg-toast" style={{
-                alignSelf: "center",
-                marginTop: 10,
+              <div role="alert" style={{
+                position: "absolute",
+                left: "50%",
+                bottom: isPhone ? 74 : 96,
+                transform: "translateX(-50%)",
+                zIndex: 30,
+                width: "max-content",
                 maxWidth: isPhone ? "calc(100vw - 28px)" : 520,
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
                 padding: "9px 12px",
-                borderRadius: 999,
+                borderRadius: 12,
                 background: "color-mix(in srgb, var(--coral) 12%, var(--surface))",
                 border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
                 color: "var(--coral)",
@@ -1725,8 +1729,8 @@ function LobbyInner() {
                 lineHeight: 1.25,
               }}>
                 <Icon.flag size={14} color="var(--coral)" />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{matchError}</span>
-                <button onClick={() => setMatchError(null)} aria-label="Dismiss match error" style={{ border: "none", background: "transparent", color: "var(--coral)", cursor: "pointer", display: "flex", padding: 0 }}>
+                <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{matchError}</span>
+                <button onClick={() => setMatchError(null)} aria-label="Dismiss match error" style={{ width: 44, height: 44, flexShrink: 0, border: "none", background: "transparent", color: "var(--coral)", cursor: "pointer", display: "grid", placeItems: "center", padding: 0, margin: "-8px -8px -8px 0" }}>
                   <Icon.close size={14} color="var(--coral)" />
                 </button>
               </div>
