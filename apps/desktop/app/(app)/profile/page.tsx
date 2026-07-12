@@ -214,6 +214,9 @@ export default function ProfilePage() {
   const [country, setCountry] = useState("");
   const [langDraft, setLangDraft] = useState("");
   const [loadedProfile, setLoadedProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  const [profileLoadRetry, setProfileLoadRetry] = useState(0);
   const [savingDemo, setSavingDemo] = useState(false);
   const [savedDemo, setSavedDemo] = useState(false);
   const [demoError, setDemoError] = useState<string | null>(null);
@@ -224,6 +227,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let active = true;
+    setProfileLoading(true);
+    setProfileLoadError(null);
     api.getMyProfile().then((p) => {
       if (!active) return;
       setLoadedProfile(p);
@@ -231,9 +236,13 @@ export default function ProfilePage() {
       setAge(p.age != null ? String(p.age) : "");
       setLanguages(p.languages ?? []);
       setCountry(p.country ?? "");
-    }).catch(() => {});
+    }).catch(() => {
+      if (active) setProfileLoadError("Couldn't load your profile.");
+    }).finally(() => {
+      if (active) setProfileLoading(false);
+    });
     return () => { active = false; };
-  }, []);
+  }, [profileLoadRetry]);
 
   function addLanguage(raw: string) {
     const lang = raw.trim();
@@ -251,6 +260,10 @@ export default function ProfilePage() {
 
   async function saveDemographics() {
     setDemoError(null);
+    if (!loadedProfile) {
+      setDemoError("Couldn't load your profile. Retry before saving.");
+      return;
+    }
     const body: { gender?: string; age?: number | null; languages?: string[]; country?: string } = {};
     const trimmedCountry = country.trim();
     if (gender !== (loadedProfile?.gender ?? "")) body.gender = gender;
@@ -526,6 +539,18 @@ export default function ProfilePage() {
           <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 4, letterSpacing: "-0.02em" }}>About You</div>
           <div style={{ color: textMuted, fontSize: 13, marginBottom: 16 }}>Help us tailor your vibe matches.</div>
 
+          {profileLoading && (
+            <div role="status" style={{ color: textMuted, fontSize: 13, marginBottom: 14 }}>Loading profile…</div>
+          )}
+          {profileLoadError && (
+            <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 16, padding: "10px 10px 10px 14px", border: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", borderRadius: 12, color: coral, fontSize: 13 }}>
+              <span>{profileLoadError} Your saved details have not been changed.</span>
+              <button onClick={() => setProfileLoadRetry(value => value + 1)} className="gg-press" style={{ minHeight: 44, padding: "0 14px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "transparent", color: textPrimary, cursor: "pointer", fontWeight: 700 }}>Retry</button>
+            </div>
+          )}
+
+          <fieldset disabled={!loadedProfile || savingDemo} style={{ minWidth: 0, margin: 0, padding: 0, border: 0, opacity: loadedProfile ? 1 : 0.55 }}>
+
           {/* Gender — segmented control */}
           <div style={{ marginBottom: 18 }}>
             <div style={{ color: textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Gender</div>
@@ -677,6 +702,7 @@ export default function ProfilePage() {
               </span>
             )}
           </div>
+          </fieldset>
         </section>
 
         {/* Account — the real, functional settings (privacy + notifications) */}

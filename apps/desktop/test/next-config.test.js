@@ -1021,6 +1021,17 @@ test("profile keeps identity compact and settings beside it from tablet upward",
   assert.equal(page.includes("minHeight: 44"), true);
 });
 
+test("profile load failures cannot overwrite saved demographics", () => {
+  const page = profileSource();
+
+  assert.equal(page.includes("const [profileLoadError, setProfileLoadError]"), true);
+  assert.equal(page.includes("if (!loadedProfile) {"), true);
+  assert.equal(page.includes("Couldn't load your profile."), true);
+  assert.equal(page.includes("disabled={!loadedProfile || savingDemo}"), true);
+  assert.equal(page.includes("Retry"), true);
+  assert.equal(page.includes(".catch(() => {});"), false);
+});
+
 test("profile can clear a previously saved age", () => {
   const page = profileSource();
   const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");
