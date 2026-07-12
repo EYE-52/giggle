@@ -299,7 +299,7 @@ export default function HomePage() {
             </p>
             {squadActions}
           </section>
-          {(trendingError || trending === null || trending.length > 0) && liveSignalsPanel}
+          {liveSignalsPanel}
         </div>
       ) : (
         <>

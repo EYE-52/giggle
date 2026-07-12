@@ -877,7 +877,8 @@ test("desktop home replaces the empty dashboard with one adaptive first-run work
   assert.equal(page.includes("const showFirstRun = !mySquadsLoading && !mySquadsError && mySquads.length === 0;"), true);
   assert.equal(page.includes("Start with your people."), true);
   assert.equal(page.includes("const liveSignalsPanel = ("), true);
-  assert.equal(page.includes("trending === null || trending.length > 0"), true);
+  assert.equal(page.includes("{liveSignalsPanel}"), true);
+  assert.equal(page.includes("&& liveSignalsPanel"), false);
   assert.equal(page.includes("{!showFirstRun && ("), true);
   assert.equal(page.includes("{showFirstRun ? ("), true);
   assert.equal(page.includes('background: "var(--surface)"'), true);
