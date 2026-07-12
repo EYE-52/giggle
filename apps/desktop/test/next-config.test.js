@@ -458,6 +458,15 @@ test("desktop encounter end always attempts backend cleanup before navigating", 
   assert.equal(endBlock.includes('console.error("End encounter failed (non-fatal):", e);'), false);
 });
 
+test("desktop encounter clears delayed ended-room navigation on unmount", () => {
+  const page = encounterSource();
+
+  assert.equal(page.includes("const endedNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);"), true);
+  assert.equal(page.includes("endedNavigationTimeoutRef.current = setTimeout(() => router.push(\"/home\"), 1600);"), true);
+  assert.equal(page.includes("clearTimeout(endedNavigationTimeoutRef.current);"), true);
+  assert.equal(page.includes('\n      setTimeout(() => router.push("/home"), 1600);'), false);
+});
+
 test("desktop chat keeps unsent text and shows a delivery error", () => {
   const component = chatPanelSource();
 

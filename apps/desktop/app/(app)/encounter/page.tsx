@@ -677,6 +677,7 @@ function EncounterInner() {
   const [showBanner, setShowBanner] = useState(true);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const reactionCountRef = useRef(0);
+  const endedNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [endedNotice, setEndedNotice] = useState(false);
   const [reported, setReported] = useState(false);
 
@@ -759,7 +760,8 @@ function EncounterInner() {
     let activeEvent = "ENCOUNTER_ACTIVE";
     const onEnded = () => {
       setEndedNotice(true);
-      setTimeout(() => router.push("/home"), 1600);
+      if (endedNavigationTimeoutRef.current) clearTimeout(endedNavigationTimeoutRef.current);
+      endedNavigationTimeoutRef.current = setTimeout(() => router.push("/home"), 1600);
     };
     const onActive = () => {
       api.getEncounter(encId).then(setEncounter).catch(() => {});
@@ -824,6 +826,10 @@ function EncounterInner() {
     return () => {
       if (tick) clearInterval(tick);
       if (bannerTimer) clearTimeout(bannerTimer);
+      if (endedNavigationTimeoutRef.current) {
+        clearTimeout(endedNavigationTimeoutRef.current);
+        endedNavigationTimeoutRef.current = null;
+      }
       socket?.off(endedEvent, onEnded);
       socket?.off(activeEvent, onActive);
       // Mark this mount cancelled and queue the leave AFTER the in-flight join
