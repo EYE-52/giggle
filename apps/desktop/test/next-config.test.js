@@ -225,6 +225,17 @@ test("desktop matchmaking cancel stays put when backend cancel fails", () => {
   assert.equal(page.includes('router.push(`/lobby?squad=${squadId}`);'), true);
 });
 
+test("desktop matchmaking surfaces squad and status connection failures", () => {
+  const page = matchmakingSource();
+
+  assert.equal(page.includes("const [statusError, setStatusError]"), true);
+  assert.equal(page.includes("Couldn't load this squad."), true);
+  assert.equal(page.includes("Connection to matchmaking was interrupted."), true);
+  assert.equal(page.includes("Cancel search to return to the lobby."), true);
+  assert.equal(page.includes("api.getSquad(squadId).then(setSquad).catch(() => {})"), false);
+  assert.equal(page.includes("} catch {}"), false);
+});
+
 test("desktop match does not return to matchmaking when leader skip fails", () => {
   const page = matchSource();
 

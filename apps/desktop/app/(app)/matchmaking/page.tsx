@@ -17,6 +17,7 @@ function MatchmakingInner() {
 
   const [elapsed, setElapsed] = useState(0);
   const [squad, setSquad] = useState<SquadState | null>(null);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [matchFound, setMatchFound] = useState<{ encounterId: string; opponentName?: string } | null>(null);
@@ -59,18 +60,26 @@ function MatchmakingInner() {
   useEffect(() => {
     if (!squadId) return;
 
-    api.getSquad(squadId).then(setSquad).catch(() => {});
+    api.getSquad(squadId)
+      .then((nextSquad) => {
+        setSquad(nextSquad);
+        setStatusError(null);
+      })
+      .catch(() => setStatusError("Couldn't load this squad."));
 
     const tick = setInterval(() => setElapsed(e => e + 1), 1000);
 
     const pollInterval = setInterval(async () => {
       try {
         const status = await api.matchStatus(squadId);
+        setStatusError((error) => error === "Connection to matchmaking was interrupted." ? null : error);
         if (status.state === "matched" && status.match) {
           clearInterval(pollInterval);
           triggerMatchReveal(status.match.encounterId);
         }
-      } catch {}
+      } catch {
+        setStatusError("Connection to matchmaking was interrupted.");
+      }
     }, 2000);
 
     const socket = connectSocket(squadId);
@@ -532,6 +541,22 @@ function MatchmakingInner() {
         >
           {cancelling ? "Cancelling…" : "Cancel search"}
         </button>
+        {statusError && (
+          <div role="alert" style={{
+            position: "relative",
+            zIndex: 1,
+            color: "var(--coral)",
+            fontFamily: "var(--font-space-grotesk)",
+            fontSize: 13,
+            fontWeight: 700,
+            textAlign: "center",
+            maxWidth: 360,
+          }}>
+            {statusError} {statusError === "Connection to matchmaking was interrupted."
+              ? "We'll keep trying."
+              : "Cancel search to return to the lobby."}
+          </div>
+        )}
         {cancelError && (
           <div role="alert" style={{
             position: "relative",
