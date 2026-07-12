@@ -45,6 +45,12 @@ test("auth proxy local fallback is development-only", () => {
   assert.equal(config.includes("NEXT_PUBLIC_BACKEND_URL is required in production"), true);
 });
 
+test("local development accepts both loopback browser origins", () => {
+  const config = source();
+
+  assert.equal(config.includes('allowedDevOrigins: ["127.0.0.1"]'), true);
+});
+
 test("Vercel explicitly configures the public backend without an app fallback", () => {
   assert.equal(
     vercelConfig().env.NEXT_PUBLIC_BACKEND_URL,
