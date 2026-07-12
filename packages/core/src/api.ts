@@ -18,7 +18,7 @@ export const api = {
     backendRequest<ReferralInfo>("/api/auth/me/referral"),
   getMyProfile: () =>
     backendRequest<UserProfile>("/api/me/profile"),
-  updateMyProfile: (body: { gender?: string; age?: number | null; languages?: string[]; country?: string }) =>
+  updateMyProfile: (body: { gender?: string; age?: number | null; languages?: string[]; country?: string; vibes?: string[] }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
 
   // --- squads ---
@@ -171,6 +171,7 @@ export interface UserProfile {
   age?: number;
   languages?: string[];
   country?: string;
+  vibes?: string[];
   name: string;
   email: string;
 }

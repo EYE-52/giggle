@@ -35,7 +35,7 @@ Viewports: phone `390x844`, tablet `834x1194`, desktop `1440x900`.
 - [x] Discover preview and join reach the shared Lobby without console errors.
 - [x] Join with code handles invalid and valid codes clearly.
 - [x] Squad readiness and Find a Match expose backend failures without losing state.
-- [ ] Profile edits persist and survive reload.
+- [x] Profile edits persist and survive reload.
 - [ ] Sign-out and protected-route redirects behave correctly.
 
 ## Engineering Gates

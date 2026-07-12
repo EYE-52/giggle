@@ -8,9 +8,7 @@ import { billing, getMyAvatar, subscribeAvatar, session, DEFAULT_AVATAR_ID, api,
 import { useViewport } from "@/components/useViewport";
 
 const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
-const VIBE_STORAGE_KEY = "giggle.vibes";
 
-const DEFAULT_VIBES = ["Gaming", "Music", "Chill", "Late Night", "Deep Talks"];
 const MAX_PROFILE_VIBES = 5;
 
 const GENDER_OPTIONS: { value: string; label: string }[] = [
@@ -37,7 +35,7 @@ const COMMON_COUNTRIES: { code: string; label: string; flag: string }[] = [
 ];
 const MAX_LANGUAGES = 6;
 
-function normalizeProfileVibes(value: unknown, fallback: string[] = DEFAULT_VIBES): string[] {
+function normalizeProfileVibes(value: unknown, fallback: string[] = []): string[] {
   if (!Array.isArray(value)) return fallback;
   const normalized: string[] = [];
   const seen = new Set<string>();
@@ -74,9 +72,12 @@ export default function ProfilePage() {
     padding: isPhone ? 16 : "20px 24px",
     borderBottom: "1px solid var(--border)",
   };
-  // Vibe preferences state (persisted to localStorage)
-  const [vibes, setVibes] = useState<string[]>(() => normalizeProfileVibes(DEFAULT_VIBES));
+  // Vibe preferences are part of the server profile, shared across devices.
+  const [vibes, setVibes] = useState<string[]>([]);
   const [vibePickerOpen, setVibePickerOpen] = useState(false);
+  const [savingVibes, setSavingVibes] = useState(false);
+  const [savedVibes, setSavedVibes] = useState(false);
+  const [vibeError, setVibeError] = useState<string | null>(null);
 
   // Premium state from billing module
   const [isPremium, setIsPremium] = useState(false);
@@ -95,35 +96,10 @@ export default function ProfilePage() {
   }, []);
   const displayName = user?.name ?? "Your Profile";
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(VIBE_STORAGE_KEY);
-      if (stored) setVibes(normalizeProfileVibes(JSON.parse(stored)));
-    } catch {}
-  }, []);
-
-  function toggleVibe(vibe: string) {
-    setVibes(prev => {
-      const label = normalizeProfileVibes([vibe])[0];
-      if (!label) return prev;
-      const exists = prev.some(v => v.replace(/^[^\w]+/, "").trim() === label || v === label);
-      let nextRaw: string[];
-      if (exists) {
-        nextRaw = prev.filter(v => !(v.replace(/^[^\w]+/, "").trim().toLowerCase() === label.toLowerCase() || v.toLowerCase() === label.toLowerCase()));
-      } else {
-        nextRaw = [...prev, label];
-      }
-      const next = normalizeProfileVibes(nextRaw, []);
-      try { localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
-  }
-
   function removeVibe(vibe: string) {
     setVibes(prev => {
       const key = vibe.replace(/^[^\w]+/, "").trim().toLowerCase();
       const next = normalizeProfileVibes(prev.filter(v => v.replace(/^[^\w]+/, "").trim().toLowerCase() !== key), []);
-      try { localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
   }
@@ -132,7 +108,6 @@ export default function ProfilePage() {
     setVibes(prev => {
       if (prev.some(v => v.replace(/^[^\w]+/, "").trim() === vibe || v === vibe)) return prev;
       const next = normalizeProfileVibes([...prev, vibe], []);
-      try { localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
   }
@@ -177,6 +152,7 @@ export default function ProfilePage() {
       setAge(p.age != null ? String(p.age) : "");
       setLanguages(p.languages ?? []);
       setCountry(p.country ?? "");
+      setVibes(normalizeProfileVibes(p.vibes ?? [], []));
     }).catch(() => {
       if (active) setProfileLoadError("Couldn't load your profile.");
     }).finally(() => {
@@ -184,6 +160,23 @@ export default function ProfilePage() {
     });
     return () => { active = false; };
   }, [profileLoadRetry]);
+
+  async function saveVibePreferences() {
+    if (!loadedProfile || savingVibes) return;
+    setSavingVibes(true);
+    setVibeError(null);
+    try {
+      const updated = await api.updateMyProfile({ vibes });
+      setLoadedProfile(updated);
+      setVibes(normalizeProfileVibes(updated.vibes ?? [], []));
+      setSavedVibes(true);
+      setTimeout(() => setSavedVibes(false), 1800);
+    } catch (error) {
+      setVibeError(error instanceof Error ? error.message : "Couldn't save vibes.");
+    } finally {
+      setSavingVibes(false);
+    }
+  }
 
   function addLanguage(raw: string) {
     const lang = raw.trim();
@@ -254,6 +247,7 @@ export default function ProfilePage() {
   const [vibeChipHover, setVibeChipHover] = useState<string | null>(null);
 
   const avatarSize = isPhone ? 88 : 120;
+  const vibesDirty = !!loadedProfile && JSON.stringify(vibes) !== JSON.stringify(normalizeProfileVibes(loadedProfile.vibes ?? [], []));
   const outerGrid: React.CSSProperties = isPhone
     ? { display: "flex", flexDirection: "column", gap: 16 }
     : {
@@ -362,6 +356,7 @@ export default function ProfilePage() {
         {/* Vibe Preferences */}
         <section style={settingsSection}>
           <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary, marginBottom: 14, letterSpacing: "-0.02em" }}>Vibe Preferences</div>
+          <fieldset disabled={!loadedProfile || savingVibes} style={{ minWidth: 0, margin: 0, padding: 0, border: 0, opacity: loadedProfile ? 1 : 0.55 }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {vibes.map(t => (
               <button
@@ -441,6 +436,14 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14 }}>
+            <button onClick={saveVibePreferences} disabled={!loadedProfile || savingVibes || !vibesDirty} className="gg-press" style={{ minHeight: 44, padding: "0 16px", borderRadius: 10, border: "none", background: violet, color: "#fff", cursor: !loadedProfile || savingVibes || !vibesDirty ? "not-allowed" : "pointer", fontWeight: 700, opacity: !loadedProfile || savingVibes || !vibesDirty ? 0.5 : 1 }}>
+              {savingVibes ? "Saving…" : "Save vibes"}
+            </button>
+            {savedVibes && <span role="status" style={{ color: "var(--lime)", fontSize: 13, fontWeight: 700 }}>Saved</span>}
+            {vibeError && <span role="alert" style={{ color: coral, fontSize: 13, fontWeight: 700 }}>{vibeError}</span>}
+          </div>
+          </fieldset>
         </section>
 
         {/* About you — demographics editor */}

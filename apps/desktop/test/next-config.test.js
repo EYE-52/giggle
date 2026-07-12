@@ -638,15 +638,18 @@ test("profile does not expose local-only controls as real account settings", () 
   assert.equal(page.includes('session.signOut(); router.replace("/");'), true);
 });
 
-test("profile vibe preferences are normalized before render and persistence", () => {
+test("profile vibe preferences load and save through the server profile", () => {
   const page = profileSource();
+  const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");
 
   assert.equal(page.includes("function normalizeProfileVibes("), true);
-  assert.equal(page.includes("const [vibes, setVibes] = useState<string[]>(() => normalizeProfileVibes(DEFAULT_VIBES));"), true);
-  assert.equal(page.includes("setVibes(normalizeProfileVibes(JSON.parse(stored)));"), true);
+  assert.equal(page.includes("VIBE_STORAGE_KEY"), false);
+  assert.equal(page.includes("setVibes(normalizeProfileVibes(p.vibes ?? [], []));"), true);
   assert.equal(page.includes("const next = normalizeProfileVibes("), true);
-  assert.equal(page.includes("localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(next));"), true);
-  assert.equal(page.includes("setVibes(JSON.parse(stored));"), false);
+  assert.equal(page.includes("await api.updateMyProfile({ vibes });"), true);
+  assert.equal(page.includes("disabled={!loadedProfile || savingVibes}"), true);
+  assert.equal(page.includes("Save vibes"), true);
+  assert.equal(api.includes("vibes?: string[]"), true);
 });
 
 test("desktop auth callback does not relay magic tokens through query strings", () => {
