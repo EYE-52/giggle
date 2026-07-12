@@ -254,6 +254,7 @@ export default function ProfilePage() {
     country.trim() !== (loadedProfile.country ?? "") ||
     JSON.stringify(languages) !== JSON.stringify(loadedProfile.languages ?? [])
   );
+  const countryIsListed = COMMON_COUNTRIES.some((item) => item.code === country);
   const outerGrid: React.CSSProperties = isPhone
     ? { display: "flex", flexDirection: "column", gap: 16 }
     : {
@@ -297,15 +298,15 @@ export default function ProfilePage() {
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            {/* Verified badge — premium members only */}
+            {/* Membership badge — Giggle+ is not identity verification. */}
             {isPremium && (
               <div style={{
                 position: "absolute", bottom: 4, right: 4, width: 24, height: 24,
-                borderRadius: "50%", background: "#2563EB",
+                borderRadius: "50%", background: "var(--lime)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 border: "2.5px solid var(--bg)",
               }}>
-                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden><path d="M2 5.5 4.5 8 9 3" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <Icon.star size={12} color="#0B0B0F" fill="#0B0B0F" />
               </div>
             )}
           </button>
@@ -522,7 +523,7 @@ export default function ProfilePage() {
             <div>
               <div style={{ color: textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Country</div>
               <select
-                value={COMMON_COUNTRIES.some((c) => c.code === country) ? country : ""}
+                value={country}
                 onChange={(e) => setCountry(e.target.value)}
                 onFocus={() => setCountryFocus(true)}
                 onBlur={() => setCountryFocus(false)}
@@ -536,6 +537,7 @@ export default function ProfilePage() {
                 }}
               >
                 <option value="">Select a country…</option>
+                {country && !countryIsListed && <option value={country}>{country}</option>}
                 {COMMON_COUNTRIES.map((c) => (
                   <option key={c.code} value={c.code}>{c.flag} {c.label}</option>
                 ))}

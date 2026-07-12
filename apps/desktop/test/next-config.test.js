@@ -662,6 +662,18 @@ test("profile premium upsell does not advertise unbuilt priority or HD features"
   assert.equal(page.includes("priority"), false);
 });
 
+test("profile keeps membership and avatar-pack semantics truthful", () => {
+  const profile = profileSource();
+  const picker = avatarPickerSource();
+
+  assert.equal(profile.includes("Verified badge"), false);
+  assert.equal(profile.includes('<Icon.star size={12} color="#0B0B0F"'), true);
+  assert.equal(picker.includes("premium Vibe Pack"), false);
+  assert.equal(picker.includes("— premium"), false);
+  assert.equal(picker.includes('locked ? "Avatar Pack"'), true);
+  assert.equal(picker.includes('View pack'), true);
+});
+
 test("profile does not expose local-only controls as real account settings", () => {
   const page = profileSource();
 
@@ -1218,6 +1230,15 @@ test("profile can clear a previously saved age", () => {
   assert.equal(page.includes("const body: { gender?: string; age?: number | null; languages?: string[]; country?: string } = {};"), true);
   assert.equal(page.includes("body.age = null;"), true);
   assert.equal(api.includes("age?: number | null"), true);
+});
+
+test("profile keeps saved countries outside the common shortcut list visible", () => {
+  const page = profileSource();
+
+  assert.equal(page.includes("const countryIsListed = COMMON_COUNTRIES.some((item) => item.code === country);"), true);
+  assert.equal(page.includes("value={country}"), true);
+  assert.equal(page.includes("{country && !countryIsListed && <option value={country}>{country}</option>}"), true);
+  assert.equal(page.includes('value={COMMON_COUNTRIES.some((c) => c.code === country) ? country : ""}'), false);
 });
 
 test("profile keeps account identifiers out of the identity hero", () => {

@@ -131,9 +131,9 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
             return (
               <button
                 key={av.id}
-                title={locked ? `${av.name} — premium` : av.name}
+                title={locked ? `${av.name} — Avatar Pack` : av.name}
                 onClick={() => {
-                  if (locked) { setHint(`“${av.name}” is in the premium Vibe Pack.`); return; }
+                  if (locked) { setHint(`“${av.name}” is in the Avatar Pack.`); return; }
                   setSelected(av.id); setHint("");
                 }}
                 style={{
@@ -174,7 +174,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                   maxWidth: 60,
                 }}>
-                  {locked ? "Premium" : (av.name.split(" ")[1] ?? av.name)}
+                  {locked ? "Avatar Pack" : (av.name.split(" ")[1] ?? av.name)}
                 </span>
               </button>
             );
@@ -194,7 +194,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
                 whiteSpace: "nowrap",
               }}
             >
-              Unlock
+              View pack
             </button>
           </div>
         )}
