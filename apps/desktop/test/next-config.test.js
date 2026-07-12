@@ -184,6 +184,13 @@ test("landing video scrub survives cached media loading before hydration", () =>
   assert.equal(page.includes("[p, failed, duration]"), true);
 });
 
+test("landing does not preload the below-fold scroll video", () => {
+  const page = landingSource();
+
+  assert.equal(page.includes('muted playsInline preload="metadata"'), true);
+  assert.equal(page.includes('muted playsInline preload="auto"'), false);
+});
+
 test("landing page keeps its dark brand theme after app theme changes", () => {
   const page = landingSource();
 
@@ -705,16 +712,16 @@ test("desktop auth callback has a trustworthy failure page title and touch targe
   assert.equal(page.includes('minWidth: 44'), true);
 });
 
-test("desktop sign-in uses native links so auth still navigates before hydration", () => {
+test("desktop sign-in exposes only configured providers with hydration-independent links", () => {
   const page = signinSource();
 
   assert.equal(page.includes('href={`/api/auth/google${refQuery}`}'), true);
-  assert.equal(page.includes('href={`/api/auth/apple${refQuery}`}'), true);
+  assert.equal(page.includes('/api/auth/apple'), false);
   assert.equal(page.includes('href="/home"'), true);
   assert.equal(page.includes("oauthRedirect"), false);
   assert.equal(page.includes("session.devSignIn"), false);
-  assert.equal(page.includes("Continue with Apple"), true);
-  assert.equal(page.includes("<Icon.apple"), true);
+  assert.equal(page.includes("Continue with Apple"), false);
+  assert.equal(page.includes("<Icon.apple"), false);
 });
 
 test("desktop sign-in stays focused and fits one viewport", () => {

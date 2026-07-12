@@ -726,7 +726,7 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
       {!failed && (
         <video
           ref={videoRef}
-          muted playsInline preload="auto"
+          muted playsInline preload="metadata"
           onLoadedMetadata={onLoaded}
           onError={() => setFailed(true)}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.82) contrast(1.05) saturate(0.96)", zIndex: 1 }}

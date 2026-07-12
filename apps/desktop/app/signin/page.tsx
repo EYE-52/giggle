@@ -54,19 +54,6 @@ export default function AuthPage() {
             <Icon.google size={20} /> Continue with Google
           </a>
 
-          <a
-            className="gg-press"
-            href={`/api/auth/apple${refQuery}`}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 11,
-              width: "100%", height: 50, borderRadius: 10,
-              fontFamily: "inherit", fontWeight: 700, fontSize: 15,
-              background: "rgba(255,255,255,.06)", color: "#f4f4f7", border: "1px solid rgba(255,255,255,.14)",
-              cursor: "pointer", whiteSpace: "nowrap",
-            }}
-          >
-            <Icon.apple size={19} /> Continue with Apple
-          </a>
         </div>
 
         <p style={{ margin: "18px 0 0", color: "#777789", fontSize: 11.5, lineHeight: 1.5 }}>By continuing, you agree to our <Link href="/terms" style={{ color: "#aaaabc", textDecoration: "underline" }}>Terms</Link> and <Link href="/privacy" style={{ color: "#aaaabc", textDecoration: "underline" }}>Privacy Policy</Link>.</p>
