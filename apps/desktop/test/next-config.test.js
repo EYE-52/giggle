@@ -1070,3 +1070,10 @@ test("profile keeps account identifiers out of the identity hero", () => {
   assert.equal(hero.includes("handle"), false);
   assert.equal(account.includes("Signed in as"), true);
 });
+
+test("profile sign-out removes the protected page from browser history", () => {
+  const page = profileSource();
+
+  assert.equal(page.includes('session.signOut(); router.replace("/");'), true);
+  assert.equal(page.includes('session.signOut(); router.push("/");'), false);
+});

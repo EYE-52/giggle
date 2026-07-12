@@ -737,7 +737,7 @@ export default function ProfilePage() {
 
         {/* Log Out */}
         <button
-          onClick={() => { session.signOut(); router.push("/"); }}
+          onClick={() => { session.signOut(); router.replace("/"); }}
           onMouseEnter={() => setLogOutHover(true)}
           onMouseLeave={() => setLogOutHover(false)}
           className="gg-press"
