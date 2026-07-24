@@ -14,6 +14,7 @@ export function EmptyState({
   primary,
   secondary,
   compact = false,
+  accentColor = "var(--accent)",
 }: {
   icon?: React.ReactNode;
   title: string;
@@ -22,6 +23,8 @@ export function EmptyState({
   secondary?: { label: string; onClick: () => void; disabled?: boolean };
   /** When true, renders as a single tight row (for rails/panels). */
   compact?: boolean;
+  /** Icon color inside the accent-soft tile. Default `var(--accent)`. */
+  accentColor?: string;
 }) {
   return (
     <div
@@ -33,8 +36,8 @@ export function EmptyState({
         textAlign: compact ? "left" : "center",
         gap: compact ? 12 : 10,
         padding: compact ? "14px 16px" : "30px 24px",
-        borderRadius: 16,
-        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-tile)",
+        border: "var(--border-w) solid var(--border)",
         background: "var(--surface)",
       }}
     >
@@ -46,9 +49,9 @@ export function EmptyState({
             borderRadius: 12,
             display: "grid",
             placeItems: "center",
-            background: "var(--overlay)",
-            boxShadow: "inset 0 0 0 1px var(--border)",
-            color: "var(--text-dim)",
+            /* v3: tinted icon tile — accent-soft fill, accent glyph. */
+            background: "var(--accent-soft)",
+            color: accentColor,
             flexShrink: 0,
           }}
         >
@@ -56,7 +59,7 @@ export function EmptyState({
         </div>
       )}
       <div style={{ flex: compact ? 1 : undefined, minWidth: 0 }}>
-        <div style={{ color: "var(--text)", fontSize: compact ? 13.5 : 15, fontWeight: 700 }}>
+        <div style={{ color: "var(--text)", fontSize: compact ? 13 : 14, fontWeight: 700 }}>
           {title}
         </div>
         {body && (
@@ -73,7 +76,7 @@ export function EmptyState({
         )}
       </div>
       {(primary || secondary) && (
-        <div style={{ display: "flex", gap: 8, marginTop: compact ? 0 : 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 8, marginTop: compact ? 0 : 6, flexShrink: 0, flexWrap: compact ? "wrap" : undefined, justifyContent: "flex-end" }}>
           {secondary && (
             <button
               onClick={secondary.onClick}
@@ -82,8 +85,8 @@ export function EmptyState({
               style={{
                 height: 40,
                 padding: "0 16px",
-                borderRadius: 999,
-                border: "1px solid var(--border-strong)",
+                borderRadius: "var(--radius-btn)",
+                border: "var(--border-w) solid var(--border-strong)",
                 background: "transparent",
                 color: "var(--text)",
                 fontSize: 13,
@@ -103,15 +106,15 @@ export function EmptyState({
               style={{
                 height: 40,
                 padding: "0 18px",
-                borderRadius: 999,
-                border: "none",
-                background: "var(--violet)",
-                color: "#fff",
+                borderRadius: "var(--radius-btn)",
+                border: "var(--btn-primary-border)",
+                background: "var(--accent)",
+                color: "var(--accent-contrast)",
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: primary.disabled ? "default" : "pointer",
                 opacity: primary.disabled ? 0.7 : 1,
-                boxShadow: "0 0 20px -8px rgba(118,87,255,0.8)",
+                boxShadow: "var(--btn-primary-shadow)",
               }}
             >
               {primary.label}

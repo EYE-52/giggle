@@ -129,7 +129,7 @@ export function ChatPanel({
             display: "flex",
             alignItems: "center",
             gap: 8,
-            fontFamily: "var(--font-space-grotesk)",
+            fontFamily: "var(--font-display, var(--font-space-grotesk))",
             fontSize: 14,
             fontWeight: 700,
             color: "var(--text)",
@@ -150,7 +150,7 @@ export function ChatPanel({
               border: "none",
               cursor: "pointer",
               color: closeHovered ? "var(--text)" : "var(--text-muted)",
-              borderRadius: 8,
+              borderRadius: "var(--radius-control, 14px)",
               width: 44,
               height: 44,
               display: "flex",
@@ -166,6 +166,9 @@ export function ChatPanel({
 
       {/* Messages */}
       <div
+        role="log"
+        aria-live="polite"
+        aria-label="Chat messages"
         style={{
           flex: 1,
           minHeight: 0,
@@ -192,7 +195,7 @@ export function ChatPanel({
             }}
           >
             <span style={{ fontSize: 26 }}>💬</span>
-            <span>No messages yet — say hi 👋</span>
+            <span>No messages yet — say hi <span aria-hidden="true">👋</span></span>
           </div>
         ) : (
           messages.map((msg) => {
@@ -208,13 +211,24 @@ export function ChatPanel({
                   maxWidth: "100%",
                 }}
               >
-                {!own && (
+                {own ? (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: "var(--text-dim)",
+                      padding: "0 2px",
+                    }}
+                  >
+                    {relTime(msg.ts)}
+                  </span>
+                ) : (
                   <span
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: 6,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: 600,
                       color: "var(--text-muted)",
                       padding: "0 2px",
@@ -235,9 +249,9 @@ export function ChatPanel({
                 )}
                 <div
                   style={{
-                    background: own ? "var(--violet)" : "var(--surface)",
+                    background: own ? "var(--accent, var(--violet))" : "var(--surface)",
                     color: own ? "var(--on-accent)" : "var(--text)",
-                    border: own ? "1px solid transparent" : "1px solid var(--border)",
+                    border: own ? "1px solid transparent" : "var(--control-border, 1px solid var(--border))",
                     borderRadius: own ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
                     padding: "8px 12px",
                     fontSize: 13,
@@ -301,12 +315,12 @@ export function ChatPanel({
             style={{
               flex: 1,
               minWidth: 0,
-              height: 38,
-              borderRadius: 12,
+              height: 44,
+              borderRadius: "var(--radius-control, 14px)",
               background: "var(--overlay, rgba(255,255,255,0.05))",
               border: inputFocused
-                ? "1px solid var(--violet)"
-                : "1px solid var(--border)",
+                ? "1px solid var(--accent, var(--violet))"
+                : "var(--control-border, 1px solid var(--border))",
               color: "var(--text)",
               padding: "0 12px",
               fontSize: 13,
@@ -322,11 +336,12 @@ export function ChatPanel({
             onMouseLeave={() => setSendHovered(false)}
             title="Send"
             aria-label="Send message"
+            className="gg-press"
             style={{
               width: 44,
               height: 44,
               flexShrink: 0,
-              borderRadius: 12,
+              borderRadius: "var(--radius-control, 14px)",
               border: "none",
               cursor: input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH ? "pointer" : "not-allowed",
               display: "flex",
@@ -334,10 +349,10 @@ export function ChatPanel({
               justifyContent: "center",
               background: input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH
                 ? sendHovered
-                  ? "var(--violet)"
+                  ? "var(--accent, var(--violet))"
                   : "var(--violet-soft, rgba(124,92,255,0.2))"
                 : "var(--overlay, rgba(255,255,255,0.05))",
-              color: input.trim() && sendHovered ? "var(--on-accent)" : "var(--violet)",
+              color: input.trim() && sendHovered ? "var(--on-accent)" : "var(--accent, var(--violet))",
               opacity: input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH ? 1 : 0.5,
               transition: "all .15s ease",
               transform: sendHovered && input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH ? "scale(1.05)" : "scale(1)",

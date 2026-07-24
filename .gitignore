@@ -21,3 +21,4 @@ env-secrets
 *.aab
 *.ipa
 .vercel
+.superpowers/

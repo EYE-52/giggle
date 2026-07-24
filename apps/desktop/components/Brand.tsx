@@ -10,9 +10,9 @@ export function Logomark({ size = 32, glow = true }: { size?: number; glow?: boo
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none" aria-hidden>
       <defs>
         <linearGradient id={`${id}-g`} x1="10" y1="10" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#9B7CFF" />
+          <stop stopColor="#9278FF" />
           <stop offset="0.55" stopColor="#6C8BFF" />
-          <stop offset="1" stopColor="#C2FF3D" />
+          <stop offset="1" stopColor="#B7FF2A" />
         </linearGradient>
         {glow && (
           <filter id={`${id}-f`} x="-40%" y="-40%" width="180%" height="180%">

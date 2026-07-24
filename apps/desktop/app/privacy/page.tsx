@@ -1,6 +1,5 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { Wordmark } from "@/components/Brand";
+import { LegalPage } from "@/components/LegalPage";
 
 export const metadata: Metadata = {
   title: "Privacy · Giggle",
@@ -22,40 +21,30 @@ const sections = [
   },
   {
     title: "Your controls",
-    body: "You can sign out, leave squads, and contact the team to request account or data deletion.",
+    body: (
+      <>
+        You can sign out, leave squads, and contact the team at{" "}
+        <a href="mailto:support@gigglemeet.com" style={{ color: "var(--text-body)" }}>support@gigglemeet.com</a>{" "}
+        to request account or data deletion.
+      </>
+    ),
   },
 ];
 
 export default function PrivacyPage() {
   return (
-    <main data-theme="dark" style={{ minHeight: "100vh", background: "#07070B", color: "#F4F4F7", padding: "32px 24px 80px" }}>
-      <div style={{ maxWidth: 920, margin: "0 auto" }}>
-        <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, marginBottom: 72 }}>
-          <Wordmark size={22} />
-          <Link href="/" style={{ color: "#C2C2D4", textDecoration: "none", fontSize: 14, fontWeight: 700 }}>
-            Back home
-          </Link>
-        </header>
-
-        <p style={{ color: "#3DD6C0", textTransform: "uppercase", letterSpacing: ".16em", fontSize: 12, fontWeight: 800 }}>
-          Privacy
-        </p>
-        <h1 style={{ fontSize: "clamp(44px, 8vw, 88px)", lineHeight: .95, letterSpacing: "-.05em", margin: "12px 0 24px", maxWidth: 760 }}>
-          Clear data rules for squad discovery.
-        </h1>
-        <p style={{ color: "#C2C2D4", fontSize: 18, lineHeight: 1.7, maxWidth: 680, marginBottom: 56 }}>
-          Effective July 12, 2026. This notice explains how Giggle handles information used for accounts, squad matching, live video, and safety.
-        </p>
-
-        <section style={{ display: "grid", gap: 18 }}>
-          {sections.map((section) => (
-            <article key={section.title} style={{ borderTop: "1px solid rgba(255,255,255,.14)", paddingTop: 22 }}>
-              <h2 style={{ fontSize: 22, margin: "0 0 8px" }}>{section.title}</h2>
-              <p style={{ color: "#A8A8BA", fontSize: 16, lineHeight: 1.7, margin: 0 }}>{section.body}</p>
-            </article>
-          ))}
-        </section>
-      </div>
-    </main>
+    <LegalPage
+      eyebrow="Privacy"
+      accent="var(--teal)"
+      title="Clear data rules for squad discovery."
+      intro={
+        <>
+          Effective <time dateTime="2026-07-12">July 12, 2026</time>. This notice explains how Giggle handles
+          information used for accounts, squad matching, live video, and safety.
+        </>
+      }
+      sections={sections}
+      otherLink={{ href: "/terms", label: "Read our Terms →" }}
+    />
   );
 }

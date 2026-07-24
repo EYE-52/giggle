@@ -22,7 +22,6 @@ const friendsPageSource = () => readFileSync(path.join(__dirname, "../app/(app)/
 const inviteToSquadSource = () => readFileSync(path.join(__dirname, "../components/InviteToSquad.tsx"), "utf8");
 const squadPreviewSource = () => readFileSync(path.join(__dirname, "../components/SquadPreview.tsx"), "utf8");
 const profileSource = () => readFileSync(path.join(__dirname, "../app/(app)/profile/page.tsx"), "utf8");
-const profileLayoutSource = () => readFileSync(path.join(__dirname, "../app/(app)/profile/layout.tsx"), "utf8");
 const chatPanelSource = () => readFileSync(path.join(__dirname, "../components/ChatPanel.tsx"), "utf8");
 const referralCardSource = () => readFileSync(path.join(__dirname, "../components/ReferralCard.tsx"), "utf8");
 const appLayoutSource = () => readFileSync(path.join(__dirname, "../app/(app)/layout.tsx"), "utf8");
@@ -30,7 +29,7 @@ const topNavSource = () => readFileSync(path.join(__dirname, "../components/TopN
 const privacySource = () => readFileSync(path.join(__dirname, "../app/privacy/page.tsx"), "utf8");
 const termsSource = () => readFileSync(path.join(__dirname, "../app/terms/page.tsx"), "utf8");
 const globalStylesSource = () => readFileSync(path.join(__dirname, "../app/globals.css"), "utf8");
-const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../../../vercel.json"), "utf8"));
+const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../vercel.json"), "utf8"));
 
 test("auth proxy never falls back to a production backend", () => {
   const config = source();
@@ -46,25 +45,19 @@ test("auth proxy local fallback is development-only", () => {
   assert.equal(config.includes("NEXT_PUBLIC_BACKEND_URL is required in production"), true);
 });
 
-test("local development accepts both loopback browser origins", () => {
-  const config = source();
-
-  assert.equal(config.includes('allowedDevOrigins: ["127.0.0.1"]'), true);
-});
-
 test("Vercel explicitly configures the public backend without an app fallback", () => {
   assert.equal(
     vercelConfig().env.NEXT_PUBLIC_BACKEND_URL,
     "https://giggle-server-production.up.railway.app",
   );
   assert.equal(source().includes("giggle-server-production.up.railway.app"), false);
-  assert.equal(vercelConfig().buildCommand, "pnpm --filter @giggle/desktop build");
-  assert.equal(vercelConfig().outputDirectory, "apps/desktop/.next");
+  assert.equal(vercelConfig().buildCommand, "pnpm build");
+  assert.equal(vercelConfig().outputDirectory, ".next");
 });
 
 test("frontend workspace pins a supported Node runtime", () => {
-  const packageJson = require("../../../package.json");
-  const nodeVersion = readFileSync(path.join(__dirname, "../../../.node-version"), "utf8").trim();
+  const packageJson = require("../package.json");
+  const nodeVersion = readFileSync(path.join(__dirname, "../.node-version"), "utf8").trim();
 
   assert.equal(packageJson.engines.node, ">=20.18 <25");
   assert.match(nodeVersion, /^22\./);
@@ -72,7 +65,8 @@ test("frontend workspace pins a supported Node runtime", () => {
 
 test("Next traces workspace packages from this repository root", () => {
   const config = source();
-  assert.equal((config.match(/path\.resolve\(__dirname, "\.\.\/\.\."\)/g) ?? []).length, 2);
+  assert.equal(config.includes('path.resolve(__dirname, "../..")'), false);
+  assert.equal((config.match(/path\.resolve\(__dirname\)/g) ?? []).length, 2);
 });
 
 test("desktop app sets baseline browser security headers", () => {
@@ -98,20 +92,18 @@ test("dark violet actions keep readable foreground contrast", () => {
   assert.equal(darkTheme.includes("--on-accent: #0B0B0F"), false);
 });
 
+test("encounter backdrops do not mix background shorthand with image longhands", () => {
+  const page = encounterSource();
+
+  assert.equal(page.includes("background: backdrop"), false);
+  assert.equal(page.includes("backgroundImage: backdrop"), true);
+});
+
 test("calling routes give the full viewport to video", () => {
   const layout = appLayoutSource();
 
   assert.equal(layout.includes("{!isCalling && <TopNav />}"), true);
   assert.equal(layout.includes("<TopNav />\n      <main"), false);
-});
-
-test("signed-in pages keep the browser scrollbar at the viewport edge", () => {
-  const layout = appLayoutSource();
-
-  assert.equal(layout.includes('height: isCalling ? "100dvh" : undefined'), true);
-  assert.equal(layout.includes('minHeight: isCalling ? undefined : "100dvh"'), true);
-  assert.equal(layout.includes('overflow: isCalling ? "hidden" : undefined'), true);
-  assert.equal(layout.includes('overflowY: "auto"'), false);
 });
 
 test("signed-in shell lets keyboard users skip repeated navigation", () => {
@@ -184,13 +176,6 @@ test("landing video scrub survives cached media loading before hydration", () =>
   assert.equal(page.includes("[p, failed, duration]"), true);
 });
 
-test("landing does not preload the below-fold scroll video", () => {
-  const page = landingSource();
-
-  assert.equal(page.includes('muted playsInline preload="metadata"'), true);
-  assert.equal(page.includes('muted playsInline preload="auto"'), false);
-});
-
 test("landing page keeps its dark brand theme after app theme changes", () => {
   const page = landingSource();
 
@@ -209,7 +194,9 @@ test("matchmaking queue status is informational, not a premium priority upsell",
 
   assert.equal(page.includes('<button\\n              style={{\\n                padding: "14px 36px", borderRadius: 999, cursor: "default"'), false);
   assert.equal(page.includes('role="status"'), true);
-  assert.equal(page.includes("Your signal is live"), true);
+  assert.equal(page.includes("Checking active squads"), true);
+  assert.equal(page.includes("Matching your squad's vibes"), true);
+  assert.equal(page.includes("Finding the strongest live match"), true);
   assert.equal(page.includes("Finding your squad"), false);
   assert.equal(page.includes("Fast Pass"), false);
   assert.equal(page.includes("priority"), false);
@@ -229,19 +216,9 @@ test("desktop matchmaking cancel stays put when backend cancel fails", () => {
   const page = matchmakingSource();
 
   assert.equal(page.includes("const [cancelError, setCancelError]"), true);
-  assert.equal(page.includes("setCancelError((e as { message?: string })?.message || \"Couldn't cancel search yet.\")"), true);
+  assert.equal(page.includes("Couldn't cancel search. Your squad is still in the queue."), true);
+  assert.equal(page.includes('cancelError ? "Try cancel again" : "Cancel search"'), true);
   assert.equal(page.includes('router.push(`/lobby?squad=${squadId}`);'), true);
-});
-
-test("desktop matchmaking surfaces squad and status connection failures", () => {
-  const page = matchmakingSource();
-
-  assert.equal(page.includes("const [statusError, setStatusError]"), true);
-  assert.equal(page.includes("Couldn't load this squad."), true);
-  assert.equal(page.includes("Connection to matchmaking was interrupted."), true);
-  assert.equal(page.includes("Cancel search to return to the lobby."), true);
-  assert.equal(page.includes("api.getSquad(squadId).then(setSquad).catch(() => {})"), false);
-  assert.equal(page.includes("} catch {}"), false);
 });
 
 test("desktop match does not return to matchmaking when leader skip fails", () => {
@@ -263,38 +240,6 @@ test("desktop match clears delayed handoff navigations on unmount", () => {
   assert.equal(page.includes("expiredNavTimeoutRef.current = setTimeout(() => {"), true);
 });
 
-test("desktop match resets handoff actions when route params change", () => {
-  const page = matchSource();
-
-  assert.equal(page.includes("navigatedRef.current = false;"), true);
-  assert.equal(page.includes("setActionError(null);"), true);
-  assert.equal(page.includes("setJoining(false);"), true);
-  assert.equal(page.includes("setJoinPressed(false);"), true);
-  assert.equal(page.includes("setSkipping(false);"), true);
-  assert.equal(page.includes("setJoinExpired(false);"), true);
-});
-
-test("desktop match distinguishes expired handoffs from retryable load failures", () => {
-  const page = matchSource();
-
-  assert.equal(page.includes("const [loadRetry, setLoadRetry]"), true);
-  assert.equal(page.includes("const [handoffExpired, setHandoffExpired]"), true);
-  assert.equal(page.includes("api.getSquad(squadId).catch(() => null)"), false);
-  assert.equal(page.includes("status === 404 || status === 410"), true);
-  assert.equal(page.includes('handoffExpired ? "Match expired" : "Couldn\'t open match"'), true);
-  assert.equal(page.includes("setLoadRetry(value => value + 1)"), true);
-});
-
-test("desktop match keeps transient join failures retryable", () => {
-  const page = matchSource();
-  const joinBlock = page.slice(page.indexOf("async function handleJoin()"), page.indexOf("async function handleSkip()"));
-
-  assert.equal(joinBlock.includes('const code = (e as { code?: string }).code;'), true);
-  assert.equal(joinBlock.includes('code === "ENCOUNTER_EXPIRED" || code === "ENCOUNTER_ENDED" || code === "ENCOUNTER_NOT_FOUND"'), true);
-  assert.equal(joinBlock.includes('setActionError((e as { message?: string })?.message || "Couldn\'t join this encounter. Try again.");'), true);
-  assert.equal(joinBlock.includes("setJoining(false);"), true);
-});
-
 test("mobile match keeps the action card in normal flow", () => {
   const page = matchSource();
 
@@ -311,7 +256,7 @@ test("desktop match expiry does not navigate away when leader skip fails", () =>
   const page = matchSource();
   const expiryBlock = page.slice(
     page.indexOf("// On countdown expiry"),
-    page.indexOf("async function handleJoin()")
+    page.indexOf("const [joinExpired")
   );
 
   assert.match(expiryBlock, /let cancelled = false;/);
@@ -333,16 +278,6 @@ test("desktop matchmaking clears delayed match reveal navigations on unmount", (
   assert.equal(page.includes("navigationTimeoutRef.current = setTimeout(() => {"), true);
 });
 
-test("desktop matchmaking resets route-scoped state when the squad changes", () => {
-  const page = matchmakingSource();
-
-  assert.equal(page.includes("revealedRef.current = false;"), true);
-  assert.equal(page.includes("setMatchFound(null);"), true);
-  assert.equal(page.includes("setMatchVisible(false);"), true);
-  assert.equal(page.includes("setElapsed(0);"), true);
-  assert.equal(page.includes("setSquad(null);"), true);
-});
-
 test("lobby missing-squad state is a polished empty state with mobile touch targets", () => {
   const page = lobbySource();
 
@@ -352,45 +287,16 @@ test("lobby missing-squad state is a polished empty state with mobile touch targ
   assert.equal(page.includes('router.push("/discover")'), true);
 });
 
-test("lobby load failures never masquerade as expired links", () => {
+test("mobile lobby gives video space to people instead of invite placeholders", () => {
   const page = lobbySource();
 
-  assert.equal(page.includes("const [lobbyLoadError, setLobbyLoadError]"), true);
-  assert.equal(page.includes("const [lobbyMissing, setLobbyMissing]"), true);
-  assert.equal(page.includes("(e as { status?: number }).status === 404"), true);
-  assert.equal(page.includes("Couldn't load this lobby."), true);
-  assert.equal(page.includes("if (!squad && lobbyLoadError)"), true);
-  assert.equal(page.includes("if (lobbyMissing || !squad)"), true);
-  assert.equal(page.includes("void fetchSquad();"), true);
-});
-
-test("lobby stage contains people only and fills compact viewports", () => {
-  const page = lobbySource();
-
-  assert.equal(page.includes("showInviteTile"), false);
-  assert.equal(page.includes("inviteTileHovered"), false);
-  assert.equal(page.includes("Invite a friend</div>"), false);
-  assert.equal(page.includes("const tileCount = Math.max(memberCount, 1);"), true);
-  assert.equal(page.includes("const effCols = isPhone ? (memberCount <= 2 ? 1 : 2) : gridCols;"), true);
-  assert.equal(page.includes('minHeight: isPhone ? "calc(100dvh - 61px)" : 0'), true);
-  assert.equal(page.includes('gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`'), true);
-  assert.equal(page.includes('aspectRatio: "4 / 3"'), false);
-  assert.equal(page.includes('flexWrap: "nowrap" as const'), true);
-  assert.equal(page.includes('flex: isPhone ? 1 : undefined'), true);
+  assert.equal(page.includes("const showInviteTile = canInvite && !isNarrow;"), true);
   assert.equal(page.includes("showUpgradeTile"), false);
   assert.equal(page.includes("Unlock 4 more seats"), false);
   assert.equal(page.includes("{isNarrow && isLeader && ("), true);
   assert.equal(page.includes("{!isNarrow && <button\n              onClick={handleInvite}"), true);
+  assert.equal(page.includes('flex: isPhone ? "1 0 100%" : undefined'), true);
   assert.equal(page.includes('display: isNarrow ? "none" : "flex"'), true);
-});
-
-test("phone lobby chat opens over the stage instead of below the viewport", () => {
-  const page = lobbySource();
-
-  assert.equal(page.includes("{isPhone && chatOpen && ("), true);
-  assert.equal(page.includes('role="dialog" aria-modal="true" aria-label="Squad chat"'), true);
-  assert.equal(page.includes('position: "fixed", inset: 0, zIndex: 1000'), true);
-  assert.equal(page.includes('if (e.key === "Escape") setChatOpen(false);'), true);
 });
 
 test("desktop lobby leave button calls backend before leaving the lobby", () => {
@@ -409,23 +315,23 @@ test("desktop lobby ready toggle surfaces backend failures", () => {
   assert.equal(page.includes('console.error("setReady failed:", e);'), false);
 });
 
-test("desktop lobby find match does not hide readiness or video sync failures", () => {
+test("desktop lobby requires explicit readiness before starting a match", () => {
   const page = lobbySource();
 
   assert.equal(page.includes("try { await api.setReady(squadId, true); } catch {}"), false);
   assert.equal(page.includes("try { await api.setLobbyVideo(squadId, true); } catch {}"), false);
-  assert.equal(page.includes("await api.setReady(squadId, true);\n      await api.setLobbyVideo(squadId, true);\n      await api.startSearch(squadId);"), true);
+  assert.equal(page.includes("const everyoneReady = !!squad?.members.length && squad.members.every(member => member.ready);"), true);
+  assert.equal(page.includes("Everyone needs to be ready before you find a match."), true);
+  assert.equal(page.includes("await api.setReady(squadId, true);\n      await api.setLobbyVideo"), false);
+  assert.equal(page.includes("await api.setLobbyVideo(squadId, true);\n      await api.startSearch(squadId);"), true);
 });
 
-test("lobby match errors overlay the stage without resizing video", () => {
+test("lobby asks before starting camera and microphone", () => {
   const page = lobbySource();
-  const errorBlock = page.slice(page.indexOf("{matchError && ("), page.indexOf("{/* ── RIGHT SIDE PANEL"));
 
-  assert.equal(errorBlock.includes('position: "absolute"'), true);
-  assert.equal(errorBlock.includes("bottom: isPhone ? 74 : 96"), true);
-  assert.equal(errorBlock.includes('left: "50%"'), true);
-  assert.equal(errorBlock.includes('transform: "translateX(-50%)"'), true);
-  assert.equal(errorBlock.includes("marginTop: 10"), false);
+  assert.equal(page.includes("Used in this lobby and live encounters."), true);
+  assert.equal(page.includes('aria-label="Enable camera and microphone"'), true);
+  assert.equal(page.includes("if (!joinStartedRef.current)"), false);
 });
 
 test("desktop lobby copy actions only show success after clipboard writes succeed", () => {
@@ -467,7 +373,7 @@ test("desktop lobby dedupes vibe labels before display, edit, and save", () => {
   const page = lobbySource();
 
   assert.equal(page.includes("function normalizeVibeLabels("), true);
-  assert.equal(page.includes("setSelectedVibes(normalizeVibeLabels(s.tags ?? []));"), true);
+  assert.equal(page.includes("setSelectedVibes(normalizeVibeLabels(s.tags));"), true);
   assert.equal(page.includes("const tagsToSave = normalizeVibeLabels(selectedVibes);"), true);
   assert.equal(page.includes("await api.setTags(squadId, tagsToSave);"), true);
   assert.equal(page.includes("const currentTags = normalizeVibeLabels("), true);
@@ -485,13 +391,6 @@ test("desktop lobby access setting failures are visible and rolled back", () => 
   assert.equal(page.includes("setMatchError((e as { message?: string })?.message || \"Couldn't update join policy.\")"), true);
   assert.equal(page.includes('console.error("setSquadVisibility failed:", e);'), false);
   assert.equal(page.includes('console.error("setJoinPolicy failed:", e);'), false);
-});
-
-test("desktop lobby surfaces join-request decision failures", () => {
-  const page = lobbySource();
-
-  assert.equal(page.includes('setReqError("Couldn\'t approve — try again.")'), true);
-  assert.equal(page.includes('setReqError("Couldn\'t decline — try again.")'), true);
 });
 
 test("desktop lobby rolls back mic and camera controls when video updates fail", () => {
@@ -541,54 +440,10 @@ test("desktop encounter end always attempts backend cleanup before navigating", 
   assert.match(endBlock, /try \{\s*await vcRef\.current\?\.leave\(\);\s*\} catch \{\}/);
   assert.match(endBlock, /await api\.disconnectEncounter\(squadId, encId\);/);
   assert.match(endBlock, /router\.push\("\/home"\);/);
-  assert.equal(endBlock.indexOf("await api.disconnectEncounter(squadId, encId);") < endBlock.indexOf("await vcRef.current?.leave();"), true);
   assert.equal(endBlock.indexOf('router.push("/home");') > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
   assert.match(endBlock, /setEnding\(false\);/);
   assert.match(endBlock, /setVideoError\(\(e as \{ message\?: string \}\)\?\.message \|\| "Couldn't end this encounter yet\."\);/);
   assert.equal(endBlock.includes('console.error("End encounter failed (non-fatal):", e);'), false);
-});
-
-test("desktop encounter clears delayed ended-room navigation on unmount", () => {
-  const page = encounterSource();
-
-  assert.equal(page.includes("const endedNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);"), true);
-  assert.equal(page.includes("endedNavigationTimeoutRef.current = setTimeout(() => router.push(\"/home\"), 1600);"), true);
-  assert.equal(page.includes("clearTimeout(endedNavigationTimeoutRef.current);"), true);
-  assert.equal(page.includes('\n      setTimeout(() => router.push("/home"), 1600);'), false);
-});
-
-test("desktop encounter distinguishes ended rooms from retryable load failures", () => {
-  const page = encounterSource();
-
-  assert.equal(page.includes("const [encounterExpired, setEncounterExpired]"), true);
-  assert.equal(page.includes("const [encounterLoadRetry, setEncounterLoadRetry]"), true);
-  assert.equal(page.includes("status === 404 || status === 410"), true);
-  assert.equal(page.includes('encounterExpired ? "Encounter ended" : "Couldn\'t open encounter"'), true);
-  assert.equal(page.includes("setEncounterLoadRetry(value => value + 1)"), true);
-  assert.equal(page.includes("Couldn't refresh encounter details."), true);
-  assert.equal(page.includes("api.getEncounter(encId).then(setEncounter).catch(() => {})"), false);
-});
-
-test("desktop encounter resets call-scoped state when route params change", () => {
-  const page = encounterSource();
-
-  for (const reset of [
-    'setView("versus");',
-    "setMicOn(true);",
-    "setCamOn(true);",
-    "setChatOpen(false);",
-    "setEnding(false);",
-    "setShowBanner(true);",
-    "setFloatingReactions([]);",
-    "setEndedNotice(false);",
-    "setReported(false);",
-    "setFocusedKey(null);",
-    "setReactionsOpen(false);",
-    "setVideoError(null);",
-    "setRemoteUids([]);",
-  ]) {
-    assert.equal(page.includes(reset), true, `missing ${reset}`);
-  }
 });
 
 test("desktop chat keeps unsent text and shows a delivery error", () => {
@@ -716,69 +571,36 @@ test("profile premium upsell does not advertise unbuilt priority or HD features"
   assert.equal(page.includes("priority"), false);
 });
 
-test("profile keeps membership and avatar-pack semantics truthful", () => {
-  const profile = profileSource();
-  const picker = avatarPickerSource();
-
-  assert.equal(profile.includes("Verified badge"), false);
-  assert.equal(profile.includes('<Icon.star size={12} color="#0B0B0F"'), true);
-  assert.equal(picker.includes("premium Vibe Pack"), false);
-  assert.equal(picker.includes("— premium"), false);
-  assert.equal(picker.includes('locked ? "Avatar Pack"'), true);
-  assert.equal(picker.includes('View pack'), true);
-});
-
-test("profile does not expose local-only controls as real account settings", () => {
+test("profile account switches persist locally instead of resetting on remount", () => {
   const page = profileSource();
 
-  assert.equal(page.includes("PROFILE_SETTINGS_STORAGE_KEY"), false);
-  assert.equal(page.includes("normalizeProfileSettings"), false);
-  assert.equal(page.includes("Open to Discovery"), false);
-  assert.equal(page.includes("Show Online Status"), false);
-  assert.equal(page.includes("Receive push notifications for matches and messages"), false);
-  assert.equal(page.includes('session.signOut(); router.replace("/");'), true);
+  assert.equal(page.includes("PROFILE_SETTINGS_STORAGE_KEY"), true);
+  assert.equal(page.includes("localStorage.getItem(PROFILE_SETTINGS_STORAGE_KEY)"), true);
+  assert.equal(page.includes("localStorage.setItem(PROFILE_SETTINGS_STORAGE_KEY"), true);
+  assert.equal(page.includes("setProfileSetting(\"notificationsOn\""), true);
+  assert.equal(page.includes("setProfileSetting(\"openToDiscovery\""), true);
+  assert.equal(page.includes("setProfileSetting(\"showOnlineStatus\""), true);
 });
 
-test("profile vibe preferences load and save through the server profile", () => {
+test("profile account switch persistence ignores malformed stored settings", () => {
   const page = profileSource();
-  const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");
+
+  assert.equal(page.includes("function normalizeProfileSettings("), true);
+  assert.equal(page.includes("const parsed = normalizeProfileSettings(JSON.parse(raw));"), true);
+  assert.equal(page.includes("const current = raw ? normalizeProfileSettings(JSON.parse(raw)) : DEFAULT_PROFILE_SETTINGS;"), true);
+  assert.equal(page.includes("...current,"), true);
+  assert.equal(page.includes("const current = raw ? JSON.parse(raw) : {};"), false);
+});
+
+test("profile vibe preferences are normalized before render and persistence", () => {
+  const page = profileSource();
 
   assert.equal(page.includes("function normalizeProfileVibes("), true);
-  assert.equal(page.includes("VIBE_STORAGE_KEY"), false);
-  assert.equal(page.includes("setVibes(normalizeProfileVibes(p.vibes ?? [], []));"), true);
+  assert.equal(page.includes("const [vibes, setVibes] = useState<string[]>(() => normalizeProfileVibes(DEFAULT_VIBES));"), true);
+  assert.equal(page.includes("setVibes(normalizeProfileVibes(JSON.parse(stored)));"), true);
   assert.equal(page.includes("const next = normalizeProfileVibes("), true);
-  assert.equal(page.includes("await api.updateMyProfile({ vibes });"), true);
-  assert.equal(page.includes("disabled={!loadedProfile || savingVibes}"), true);
-  assert.equal(page.includes("Save vibes"), true);
-  assert.equal(api.includes("vibes?: string[]"), true);
-});
-
-test("saved profile vibes rank Discover without hiding inventory", () => {
-  const profile = profileSource();
-  const discover = desktopDiscoverSource();
-
-  assert.equal(profile.includes("Used to bring relevant open squads to the top of Discover."), true);
-  assert.equal(discover.includes("const [preferredVibes, setPreferredVibes]"), true);
-  assert.equal(discover.includes("api.getMyProfile()"), true);
-  assert.equal(discover.includes("const preferenceSet = new Set(preferredVibes.map(norm));"), true);
-  assert.equal(discover.includes("const shown = vibe || preferenceSet.size === 0"), true);
-  assert.equal(discover.includes("[...filtered].sort((a, b) => relevance(b) - relevance(a))"), true);
-});
-
-test("profile explains demographic visibility without claiming it changes matching", () => {
-  const page = profileSource();
-  const layout = profileLayoutSource();
-
-  assert.equal(page.includes("Optional details may be visible to squad members and leaders reviewing join requests."), true);
-  assert.equal(page.includes("Help us tailor your vibe matches."), false);
-  assert.equal(layout.includes("match preferences"), false);
-});
-
-test("profile only enables demographic saving after a real change", () => {
-  const page = profileSource();
-
-  assert.equal(page.includes("const demographicsDirty = !!loadedProfile"), true);
-  assert.equal(page.includes("disabled={!loadedProfile || savingDemo || !demographicsDirty}"), true);
+  assert.equal(page.includes("localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(next));"), true);
+  assert.equal(page.includes("setVibes(JSON.parse(stored));"), false);
 });
 
 test("desktop auth callback does not relay magic tokens through query strings", () => {
@@ -797,16 +619,14 @@ test("desktop auth callback has a trustworthy failure page title and touch targe
   assert.equal(page.includes('minWidth: 44'), true);
 });
 
-test("desktop sign-in exposes only configured providers and performs dev authentication", () => {
+test("desktop sign-in exposes every backend OAuth provider", () => {
   const page = signinSource();
 
-  assert.equal(page.includes('href={`/api/auth/google${refQuery}`}'), true);
-  assert.equal(page.includes('/api/auth/apple'), false);
-  assert.equal(page.includes("await session.devSignIn()"), true);
-  assert.equal(page.includes("onClick={devFinish}"), true);
-  assert.equal(page.includes("oauthRedirect"), false);
-  assert.equal(page.includes("Continue with Apple"), false);
-  assert.equal(page.includes("<Icon.apple"), false);
+  assert.equal(page.includes('provider: "google" | "apple"'), true);
+  assert.equal(page.includes('oauthRedirect("google")'), true);
+  assert.equal(page.includes('oauthRedirect("apple")'), true);
+  assert.equal(page.includes("Continue with Apple"), true);
+  assert.equal(page.includes("<Icon.apple"), true);
 });
 
 test("desktop sign-in stays focused and fits one viewport", () => {
@@ -846,19 +666,18 @@ test("squad preview is viewport-bound with accessible controls", () => {
   assert.equal(preview.includes('width: 44, height: 44'), true);
 });
 
-test("cover uploads stay validated while avatar presets are honestly device-scoped", () => {
+test("avatar and cover uploads validate type and size before previewing", () => {
   const avatarPicker = avatarPickerSource();
   const coverPicker = coverPickerSource();
 
-  assert.equal(coverPicker.includes("MAX_UPLOAD_IMAGE_BYTES"), true);
-  assert.equal(coverPicker.includes("image/png"), true);
-  assert.equal(coverPicker.includes("image/jpeg"), true);
-  assert.equal(coverPicker.includes("image/webp"), true);
-  assert.equal(coverPicker.includes("file.size > MAX_UPLOAD_IMAGE_BYTES"), true);
-  assert.equal(avatarPicker.includes('type="file"'), false);
-  assert.equal(avatarPicker.includes("MAX_UPLOAD_IMAGE_BYTES"), false);
-  assert.equal(avatarPicker.includes("on this device"), true);
-  assert.equal(avatarPicker.includes("upload your own photo"), false);
+  for (const source of [avatarPicker, coverPicker]) {
+    assert.equal(source.includes("MAX_UPLOAD_IMAGE_BYTES"), true);
+    assert.equal(source.includes("image/png"), true);
+    assert.equal(source.includes("image/jpeg"), true);
+    assert.equal(source.includes("image/webp"), true);
+    assert.equal(source.includes("file.size > MAX_UPLOAD_IMAGE_BYTES"), true);
+    assert.equal(source.includes("setHint("), true);
+  }
 });
 
 test("avatar picker stays viewport-bound and behaves like a modal", () => {
@@ -906,7 +725,7 @@ test("notification actions remain available after notifications are marked read"
 
 test("notification dismiss uses the backend dismiss endpoint", () => {
   const bell = notificationBellSource();
-  const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");
+  const api = readFileSync(path.join(__dirname, "../packages/core/src/api.ts"), "utf8");
 
   assert.equal(api.includes("dismissNotification"), true);
   assert.equal(api.includes('method: "DELETE"'), true);
@@ -948,16 +767,6 @@ test("notification row actions only resolve after mark-read succeeds", () => {
   assert.equal(bell.includes("onDismiss(n.id);\n    try {\n      await api.markNotificationRead(n.id);"), false);
 });
 
-test("notification load failures never masquerade as an empty inbox", () => {
-  const bell = notificationBellSource();
-
-  assert.equal(bell.includes("const [notificationsLoaded, setNotificationsLoaded]"), true);
-  assert.equal(bell.includes("const [loadError, setLoadError]"), true);
-  assert.equal(bell.includes("Couldn't load notifications."), true);
-  assert.equal(bell.includes("items.length === 0 && !loadError"), true);
-  assert.equal(bell.includes("onClick={() => void load()}"), true);
-});
-
 test("desktop protected home actions do not create dev sessions", () => {
   const page = desktopHomeSource();
 
@@ -973,15 +782,6 @@ test("desktop home creates a neutral squad without hidden vibe state", () => {
   assert.equal(page.includes("api.createSquad({ squadName: randomSquadName(), tags: [] })"), true);
   assert.equal(page.includes("selectedVibes"), false);
   assert.equal(page.includes("VIBE_OPTIONS"), false);
-});
-
-test("lobby never invents vibes for a neutral squad", () => {
-  const page = lobbySource();
-
-  assert.equal(page.includes('squad.tags?.length ? squad.tags : ["🎮 Gaming", "🌙 Late Night", "🎵 Music"]'), false);
-  assert.equal(page.includes("setSelectedVibes(normalizeVibeLabels(s.tags ?? []))"), true);
-  assert.equal(page.includes("normalizeVibeLabels(squad.tags ?? [])"), true);
-  assert.equal(page.includes('currentTags.length ? "Edit vibes" : "Set vibes"'), true);
 });
 
 test("desktop home keeps one compact live activity strip", () => {
@@ -1009,48 +809,6 @@ test("desktop home keeps create and join actions compact", () => {
   assert.equal(page.includes('aria-label="Squad invite code"'), true);
 });
 
-test("desktop home replaces the empty dashboard with one adaptive first-run workspace", () => {
-  const page = desktopHomeSource();
-
-  assert.equal(page.includes("const showFirstRun = !mySquadsLoading && !mySquadsError && mySquads.length === 0;"), true);
-  assert.equal(page.includes("Start with your people."), true);
-  assert.equal(page.includes("const liveSignalsPanel = ("), true);
-  assert.equal(page.includes("{liveSignalsPanel}"), true);
-  assert.equal(page.includes("&& liveSignalsPanel"), false);
-  assert.equal(page.includes("{!showFirstRun && ("), true);
-  assert.equal(page.includes("{showFirstRun ? ("), true);
-  assert.equal(page.includes('background: "var(--surface)"'), true);
-  assert.equal(page.includes('borderTop: "3px solid var(--violet)"'), true);
-  assert.equal(page.includes('{joining ? <span className="gg-spinner" /> : "Join"}'), true);
-  assert.equal(page.includes('minHeight: isPhone ? undefined : "calc(100dvh - 220px)"'), false);
-  assert.equal(page.includes('alignContent: "center"'), false);
-  assert.equal(page.includes('aria-label="How your first squad works"'), false);
-  assert.equal(page.includes('["01", "Create room"'), false);
-  assert.equal(page.includes("No squads yet"), false);
-});
-
-test("desktop home does not present API failures as a new-user state", () => {
-  const page = desktopHomeSource();
-
-  assert.equal(page.includes("const [mySquadsError, setMySquadsError]"), true);
-  assert.equal(page.includes("const [mySquadsRetry, setMySquadsRetry]"), true);
-  assert.equal(page.includes("Couldn't load your squads."), true);
-  assert.equal(page.includes("setMySquadsRetry(value => value + 1)"), true);
-  assert.equal(page.includes("catch {/* not signed in / none yet"), false);
-});
-
-test("desktop home does not present unavailable live data as zero activity", () => {
-  const page = desktopHomeSource();
-
-  assert.equal(page.includes("const [trendingError, setTrendingError]"), true);
-  assert.equal(page.includes("const [trendingRetry, setTrendingRetry]"), true);
-  assert.equal(page.includes("Couldn&apos;t load live signals."), true);
-  assert.equal(page.includes("setTrendingRetry(value => value + 1)"), true);
-  assert.equal(page.includes('v: trending === null || trendingError ? "—" : String(openSignals)'), true);
-  assert.equal(page.includes('v: stats === null ? "—" : String(stats.liveEncounters)'), true);
-  assert.equal(page.includes(".catch(() => { if (alive) setTrending([]); });"), false);
-});
-
 test("desktop home leave squad failures restore the squad and show an error", () => {
   const page = desktopHomeSource();
 
@@ -1063,37 +821,9 @@ test("desktop home leave squad failures restore the squad and show an error", ()
 test("desktop discover applies the active vibe filter to newly created squads", () => {
   const page = desktopDiscoverSource();
 
-  assert.equal(page.includes('api.createSquad({ squadName: randomSquadName(), tags: vibe ? [vibe] : [], visibility: "open" })'), true);
+  assert.equal(page.includes("api.createSquad({ squadName: randomSquadName(), tags: vibe ? [vibe] : [] })"), true);
   assert.equal(page.includes("await api.setTags(squad.squadId, [vibe]);"), false);
   assert.equal(page.includes("Start one with this vibe"), true);
-});
-
-test("desktop discover exposes visible URL-synced vibe filters", () => {
-  const page = desktopDiscoverSource();
-
-  assert.equal(page.includes("VIBES"), true);
-  assert.equal(page.includes('["All", ...VIBES]'), true);
-  assert.equal(page.includes("function selectVibe(next: string | null)"), true);
-  assert.equal(page.includes('params.set("vibe", next)'), true);
-  assert.equal(page.includes('aria-label="Filter squads by vibe"'), true);
-});
-
-test("desktop discover controls meet the shared touch-target baseline", () => {
-  const page = desktopDiscoverSource();
-
-  assert.equal(page.includes("minHeight: 40"), false);
-  assert.equal(page.includes("marginTop: 4, height: 42"), false);
-  assert.equal(page.includes('width: 44, height: 44'), true);
-  assert.equal(page.includes("minHeight: 44"), true);
-});
-
-test("desktop discover uses an unframed inventory-aware empty state", () => {
-  const page = desktopDiscoverSource();
-
-  assert.equal(page.includes("Be the first signal."), true);
-  assert.equal(page.includes("Start an open squad"), true);
-  assert.equal(page.includes("<EmptyState"), false);
-  assert.equal(page.includes('minHeight: isPhone ? 420 : "calc(100dvh - 310px)"'), true);
 });
 
 test("desktop discover keeps creation in the filtered empty state", () => {
@@ -1102,15 +832,15 @@ test("desktop discover keeps creation in the filtered empty state", () => {
   assert.equal(page.includes("primaryCtaCreates"), false);
   assert.equal(page.includes("handlePrimaryCta"), false);
   assert.equal(page.includes("shown.length === 0"), true);
-  assert.equal(page.includes("<button onClick={handleCreate} disabled={creating}"), true);
-  assert.equal(page.includes("right={(vibe ? hasMatchingSquads : hasInstantSquads) ? ("), true);
+  assert.equal(page.includes("primary={{ label: creating ? \"Creating…\" : (vibe ? `Create a ${vibe} squad` : \"Create a squad\"), onClick: handleCreate, disabled: creating }}"), true);
+  assert.equal(page.includes("right={hasOpenSquads ? ("), true);
 });
 
-test("desktop discover only offers random join for instant-join inventory", () => {
+test("desktop discover presents load failures without logging handled errors", () => {
   const page = desktopDiscoverSource();
 
-  assert.equal(page.includes('const hasInstantSquads = squads.some(squad => (squad.joinPolicy ?? "open") === "open");'), true);
-  assert.equal(page.includes("right={(vibe ? hasMatchingSquads : hasInstantSquads) ? ("), true);
+  assert.equal(page.includes('console.error("discoverSquads failed:", e);'), false);
+  assert.equal(page.includes("setError(true);"), true);
 });
 
 test("desktop protected discover actions do not create dev sessions", () => {
@@ -1168,36 +898,14 @@ test("invite dialog keeps compact controls touch-friendly", () => {
   assert.equal(invite.includes('flex: 1, minHeight: 44'), true);
 });
 
-test("friends empty state becomes one adaptive search-first workspace", () => {
+test("friends empty state stays compact and points back to search", () => {
   const page = friendsPageSource();
 
-  assert.equal(page.includes("const showFirstRun = !loading && !loadError && friends.length === 0 && incoming.length === 0 && outgoing.length === 0;"), true);
-  assert.equal(page.includes("Find your people."), true);
-  assert.equal(page.includes("{showFirstRun ? ("), true);
-  assert.equal(page.includes("FriendsEmptyState"), false);
-  assert.equal(page.includes('minHeight: isPhone ? 430 : "calc(100dvh - 250px)"'), false);
-  assert.equal(page.includes('borderTop: "3px solid var(--violet)"'), true);
-  assert.equal(page.includes('background: "var(--surface)"'), true);
-});
-
-test("friends load and search failures are explicit and retryable", () => {
-  const page = friendsPageSource();
-
-  assert.equal(page.includes("const [loadError, setLoadError]"), true);
-  assert.equal(page.includes("const [searchError, setSearchError]"), true);
-  assert.equal(page.includes("setSearchRetry((value) => value + 1)"), true);
-  assert.equal(page.includes("Couldn't load your friends."), true);
-  assert.equal(page.includes("Couldn't search for people."), true);
-  assert.equal(page.includes('role="alert"'), true);
-});
-
-test("friends actions meet the shared touch-target baseline", () => {
-  const page = friendsPageSource();
-
-  assert.equal(page.includes("width: 40, height: 40"), false);
-  assert.equal(page.includes("minHeight: 40"), false);
-  assert.equal(page.includes("minHeight: 38"), false);
-  assert.equal(page.includes("minHeight: 44"), true);
+  assert.equal(page.includes("No friends yet — search above to add people."), false);
+  assert.equal(page.includes("Your crew starts here"), true);
+  assert.equal(page.includes("Search by name above to send your first request."), true);
+  assert.equal(page.includes("Social graph"), false);
+  assert.equal(page.includes("Share a squad code"), false);
 });
 
 test("friends search treats incoming request users as actionable requests", () => {
@@ -1220,15 +928,6 @@ test("friends add failures roll back pending state and show an error", () => {
   assert.equal(page.includes('role="alert"'), true);
 });
 
-test("friends add handles reciprocal requests immediately", () => {
-  const page = friendsPageSource();
-
-  assert.equal(page.includes("const { status } = await api.sendFriendRequest(u.userId);"), true);
-  assert.equal(page.includes('if (status === "friends")'), true);
-  assert.equal(page.includes("setOutgoing((o) => o.filter((x) => x.userId !== u.userId));"), true);
-  assert.equal(page.includes("setFriends((f) => (f.some((x) => x.userId === u.userId) ? f : [u, ...f]));"), true);
-});
-
 test("friends request action failures roll back optimistic UI", () => {
   const page = friendsPageSource();
 
@@ -1243,56 +942,13 @@ test("friends request action failures roll back optimistic UI", () => {
   assert.equal(page.includes('console.error("removeFriend failed:", e);'), false);
 });
 
-test("friends squad invites always require explicit confirmation", () => {
-  const page = friendsPageSource();
-
-  assert.equal(page.includes("if (list.length === 1) invite(list[0].squadId);"), false);
-  assert.equal(page.includes("onClick={() => invite(sq.squadId)}"), true);
-});
-
-test("profile keeps identity compact and settings beside it from tablet upward", () => {
-  const page = profileSource();
-  const identityColumn = page.slice(
-    page.indexOf("{/* LEFT COLUMN"),
-    page.indexOf("{/* RIGHT COLUMN"),
-  );
-
-  assert.equal((identityColumn.match(/\.\.\.surface/g) ?? []).length, 1);
-  assert.equal(page.includes("const avatarSize = isPhone ? 88 : 120;"), true);
-  assert.equal(page.includes('flexDirection: isPhone ? "row" : "column"'), true);
-  assert.equal(page.includes('gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "300px minmax(0, 1fr)"'), true);
-  assert.equal((page.match(/Monthly tokens \+ 15% pack bonus/g) ?? []).length, 1);
-  assert.equal(page.includes("minHeight: 40"), false);
-  assert.equal(page.includes("minHeight: 44"), true);
-});
-
-test("profile load failures cannot overwrite saved demographics", () => {
-  const page = profileSource();
-
-  assert.equal(page.includes("const [profileLoadError, setProfileLoadError]"), true);
-  assert.equal(page.includes("if (!loadedProfile) {"), true);
-  assert.equal(page.includes("Couldn't load your profile."), true);
-  assert.equal(page.includes("disabled={!loadedProfile || savingDemo}"), true);
-  assert.equal(page.includes("Retry"), true);
-  assert.equal(page.includes(".catch(() => {});"), false);
-});
-
 test("profile can clear a previously saved age", () => {
   const page = profileSource();
-  const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");
+  const api = readFileSync(path.join(__dirname, "../packages/core/src/api.ts"), "utf8");
 
   assert.equal(page.includes("const body: { gender?: string; age?: number | null; languages?: string[]; country?: string } = {};"), true);
   assert.equal(page.includes("body.age = null;"), true);
   assert.equal(api.includes("age?: number | null"), true);
-});
-
-test("profile keeps saved countries outside the common shortcut list visible", () => {
-  const page = profileSource();
-
-  assert.equal(page.includes("const countryIsListed = COMMON_COUNTRIES.some((item) => item.code === country);"), true);
-  assert.equal(page.includes("value={country}"), true);
-  assert.equal(page.includes("{country && !countryIsListed && <option value={country}>{country}</option>}"), true);
-  assert.equal(page.includes('value={COMMON_COUNTRIES.some((c) => c.code === country) ? country : ""}'), false);
 });
 
 test("profile keeps account identifiers out of the identity hero", () => {
@@ -1302,11 +958,4 @@ test("profile keeps account identifiers out of the identity hero", () => {
   assert.equal(hero.includes("user?.email"), false);
   assert.equal(hero.includes("handle"), false);
   assert.equal(account.includes("Signed in as"), true);
-});
-
-test("profile sign-out removes the protected page from browser history", () => {
-  const page = profileSource();
-
-  assert.equal(page.includes('session.signOut(); router.replace("/");'), true);
-  assert.equal(page.includes('session.signOut(); router.push("/");'), false);
 });

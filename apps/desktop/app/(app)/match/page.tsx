@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AvatarStack } from "@/components/Avatar";
 import { useViewport } from "@/components/useViewport";
+import { Button } from "@/components/Button";
 import { api, session, resolveCover } from "@giggle/core";
 import type { EncounterDetail, SquadState } from "@giggle/core";
 
@@ -17,18 +18,13 @@ function MatchInner() {
   const [squad, setSquad] = useState<SquadState | null>(null);
   const [loading, setLoading] = useState(true);
   const [handoffError, setHandoffError] = useState<string | null>(null);
-  const [handoffExpired, setHandoffExpired] = useState(false);
-  const [loadRetry, setLoadRetry] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
-  const [joinExpired, setJoinExpired] = useState(false);
   const [joinPressed, setJoinPressed] = useState(false);
   const [skipping, setSkipping] = useState(false);
   // Start at 20s (not 30) — the server handoff TTL is shorter than 30s, so a
   // 30s client countdown lets users click after the ack already expired.
   const [countdown, setCountdown] = useState(20);
-  const [joinHovered, setJoinHovered] = useState(false);
-  const [skipHovered, setSkipHovered] = useState(false);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const joinNavTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const expiredNavTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,7 +53,7 @@ function MatchInner() {
   const isLeaderRef = useRef(false);
   useEffect(() => { isLeaderRef.current = isLeader; }, [isLeader]);
 
-  const violet = "var(--violet)";
+  const violet = "var(--accent, var(--violet))";
   const lime = "var(--lime)";
   const limeText = "var(--lime-text)";
   const textPrimary = "var(--text)";
@@ -68,37 +64,24 @@ function MatchInner() {
     // showing a broken VS screen and redirecting to an empty ?squad=.
     if (!encId || !squadId) { router.replace(squadId ? `/matchmaking?squad=${squadId}` : "/home"); return; }
     let cancelled = false;
-    navigatedRef.current = false;
-    setActionError(null);
-    setJoining(false);
-    setJoinExpired(false);
-    setJoinPressed(false);
-    setSkipping(false);
     setLoading(true);
     setHandoffError(null);
-    setHandoffExpired(false);
-    setEncounter(null);
-    setSquad(null);
-    setCountdown(20);
     Promise.all([
       api.getEncounter(encId),
-      api.getSquad(squadId),
+      api.getSquad(squadId).catch(() => null),
     ]).then(([encounterData, squadData]) => {
       if (cancelled) return;
       setEncounter(encounterData);
-      setSquad(squadData);
+      if (squadData) setSquad(squadData);
       setLoading(false);
       // Keep the updater pure — only decrement. Side-effects (skip/navigate) on
       // expiry are handled in the effect below, never inside a state updater
       // (calling router.push() during a render-phase updater triggers React's
       // "setState while rendering a different component" error).
       tickRef.current = setInterval(() => setCountdown(c => (c <= 0 ? 0 : c - 1)), 1000);
-    }).catch((error) => {
+    }).catch(() => {
       if (cancelled) return;
-      const status = (error as { status?: number }).status;
-      const expired = status === 404 || status === 410;
-      setHandoffExpired(expired);
-      setHandoffError(expired ? "This match handoff has expired." : "We couldn't load this match. Check your connection and try again.");
+      setHandoffError("This match handoff has expired.");
       setLoading(false);
     });
     return () => {
@@ -106,7 +89,7 @@ function MatchInner() {
       if (tickRef.current) clearInterval(tickRef.current);
       clearDeferredNavigation();
     };
-  }, [encId, squadId, router, loadRetry]);
+  }, [encId, squadId, router]);
 
   // On countdown expiry: leader issues the skip, everyone returns to matchmaking.
   useEffect(() => {
@@ -130,6 +113,17 @@ function MatchInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countdown, squadId, encId]);
 
+  const [joinExpired, setJoinExpired] = useState(false);
+
+  // SR countdown announcements — throttled to 10s / 5s / expiry only, so the
+  // live region doesn't chatter every second.
+  const [srAnnounce, setSrAnnounce] = useState("");
+  useEffect(() => {
+    if (countdown === 10) setSrAnnounce("10 seconds remaining");
+    else if (countdown === 5) setSrAnnounce("5 seconds remaining");
+    else if (countdown === 0) setSrAnnounce("Time expired — returning to search");
+  }, [countdown]);
+
   async function handleJoin() {
     if (!encId || !squadId || joining) return;
     setActionError(null);
@@ -148,15 +142,10 @@ function MatchInner() {
         navigate(`/encounter?squad=${squadId}&enc=${encId}`);
       }, 520);
     } catch (e) {
+      // Handoff expired / ack rejected — don't dead-end on a failing button.
+      // Show a clear message and auto-redirect to matchmaking for a fresh match.
       console.error("ackEncounter failed:", e);
       setJoinPressed(false);
-      const code = (e as { code?: string }).code;
-      const expired = code === "ENCOUNTER_EXPIRED" || code === "ENCOUNTER_ENDED" || code === "ENCOUNTER_NOT_FOUND";
-      if (!expired) {
-        setJoining(false);
-        setActionError((e as { message?: string })?.message || "Couldn't join this encounter. Try again.");
-        return;
-      }
       setJoinExpired(true);
       clearDeferredNavigation();
       expiredNavTimeoutRef.current = setTimeout(() => {
@@ -210,9 +199,20 @@ function MatchInner() {
   const progress = countdown / 20;
 
   if (loading) {
+    // Low-fi VS skeleton — two shimmering squad panels with a center VS mark,
+    // so the handoff screen's shape is visible while the encounter resolves.
     return (
-      <div data-theme="dark" style={{ minHeight: "100%", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--text-muted)", fontFamily: "var(--font-space-grotesk)", fontWeight: 800 }}>
-        Opening match...
+      <div data-theme="dark" aria-busy="true" aria-label="Opening match" style={{ position: "relative", minHeight: "100%", background: "var(--bg)", display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: isPhone ? 12 : 16, padding: isPhone ? 16 : 24, boxSizing: "border-box" }}>
+        <div className="gg-shimmer" style={{ borderRadius: "var(--radius-card, 20px)", minHeight: isPhone ? 200 : 420 }} />
+        <div className="gg-shimmer" style={{ borderRadius: "var(--radius-card, 20px)", minHeight: isPhone ? 200 : 420 }} />
+        <div style={{
+          position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+          width: 64, height: 64, borderRadius: "50%",
+          background: "var(--bg)", border: "1px solid var(--border-strong)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 17, fontWeight: 700, color: "var(--text-muted)",
+          boxShadow: "0 8px 28px rgba(0,0,0,.36)",
+        }}>VS</div>
       </div>
     );
   }
@@ -220,16 +220,12 @@ function MatchInner() {
   if (handoffError || !encounter) {
     return (
       <div data-theme="dark" style={{ minHeight: "100%", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
-        <div style={{ width: "min(460px, 100%)", textAlign: "center", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, boxShadow: "var(--elev)" }}>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 24, letterSpacing: "-0.03em" }}>{handoffExpired ? "Match expired" : "Couldn't open match"}</h1>
-          <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14.5 }}>{handoffError ?? "This match is no longer available."}</p>
+        <div style={{ width: "min(460px, 100%)", textAlign: "center", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-card, 20px)", padding: 24, boxShadow: "var(--shadow-card, var(--elev))" }}>
+          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>Match expired</h1>
+          <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14 }}>{handoffError ?? "This match is no longer available."}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            {handoffExpired ? (
-              <button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Find another</button>
-            ) : (
-              <button onClick={() => setLoadRetry(value => value + 1)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Retry</button>
-            )}
-            <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 800, cursor: "pointer" }}>Home</button>
+            <Button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} variant="primary">Find another</Button>
+            <Button onClick={() => router.push("/home")} variant="secondary">Home</Button>
           </div>
         </div>
       </div>
@@ -300,7 +296,10 @@ function MatchInner() {
           .match-vs { width: 52px !important; height: 52px !important; }
           .match-card { gap: 10px !important; padding: 14px 16px !important; }
           .match-countdown { display: none !important; }
+          /* Compact numeric countdown chip stands in when the ring is hidden */
+          .match-countdown-chip { display: inline-flex !important; }
         }
+        .match-countdown-chip { display: none; }
       `}</style>
 
       <div className="match-fx" style={{
@@ -330,7 +329,7 @@ function MatchInner() {
               <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#7C5CFF", marginRight: 6, animation: "pulse 2s ease infinite", verticalAlign: "middle" }} />
               Your Squad
             </div>
-            <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 22 : 34, fontWeight: 800, color: "#F4F4F7", marginBottom: 10 }}>{mySquadName}</div>
+            <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 22 : 30, fontWeight: 700, color: "#F4F4F7", marginBottom: 10 }}>{mySquadName}</div>
             <AvatarStack names={myMembers} size={32} extra={0} />
           </div>
         </div>
@@ -354,8 +353,21 @@ function MatchInner() {
               <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#C2FF3D", marginRight: 6, animation: "pulse 2s 0.5s ease infinite", verticalAlign: "middle" }} />
               Opponent
             </div>
-            <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 22 : 34, fontWeight: 800, color: "#F4F4F7", marginBottom: 10 }}>{opponentName}</div>
-            <AvatarStack names={opponentMembers} size={32} extra={0} />
+            <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 22 : 30, fontWeight: 700, color: "#F4F4F7", marginBottom: 10 }}>{opponentName}</div>
+            {opponentMembers.length > 0 ? (
+              <AvatarStack names={opponentMembers} size={32} extra={0} />
+            ) : (
+              // Roster still resolving — shimmer avatar placeholders instead of a gap.
+              <div aria-hidden style={{ display: "flex" }}>
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="gg-shimmer" style={{
+                    width: 32, height: 32, borderRadius: "50%",
+                    border: "2px solid rgba(9,7,18,0.8)",
+                    marginLeft: i > 0 ? -10 : 0,
+                  }} />
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -379,23 +391,40 @@ function MatchInner() {
             background: "var(--bg)",
             border: "1px solid var(--border-strong)",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "var(--font-space-grotesk)", fontSize: 20, fontWeight: 800, color: textPrimary,
+            fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary,
             boxShadow: "0 8px 28px rgba(0,0,0,.36)",
           }}>VS</div>
 
           {/* Match Found card */}
           <div className="match-card" style={{
             background: "rgba(18,22,21,.96)", border: "1px solid var(--border-strong)",
-            backdropFilter: "blur(16px)", borderRadius: 16,
+            backdropFilter: "blur(16px)", borderRadius: "var(--radius-card, 20px)",
             padding: isPhone ? "20px 20px" : "28px 36px", textAlign: "center",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
             minWidth: isPhone ? "calc(100vw - 48px)" : 296,
             boxShadow: "0 18px 50px rgba(0,0,0,.42)",
           }}>
             <div style={{
-              fontFamily: "var(--font-space-grotesk)", fontSize: 26, fontWeight: 800,
+              fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700,
               color: textPrimary, letterSpacing: "-0.5px",
             }}>Match found</div>
+
+            {/* Compact countdown chip — visible only when the ring is hidden
+                (short phones, via .match-countdown media rules above). */}
+            <div className="match-countdown-chip" style={{
+              alignItems: "center", gap: 6,
+              padding: "4px 14px", borderRadius: 999,
+              border: "1px solid var(--lime-border, rgba(194,255,61,0.35))",
+              background: "rgba(194,255,61,0.10)",
+              color: limeText, fontFamily: "var(--font-display, var(--font-space-grotesk))",
+              fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums" as const,
+            }}>{countdown}s</div>
+
+            {/* Throttled SR countdown announcements (10s / 5s / expiry) */}
+            <div aria-live="polite" style={{
+              position: "absolute", width: 1, height: 1, padding: 0, margin: -1,
+              overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" as const, border: 0,
+            }}>{srAnnounce}</div>
 
             {/* Vibe chip — only when we have real squad tags */}
             {vibeLabel && (
@@ -409,7 +438,7 @@ function MatchInner() {
             )}
 
             {/* Countdown ring */}
-            <div className="match-countdown" style={{ position: "relative", width: 80, height: 80 }}>
+            <div className="match-countdown" role="timer" aria-label={`${countdown} seconds remaining`} style={{ position: "relative", width: 80, height: 80 }}>
               <svg width="80" height="80" viewBox="0 0 80 80">
                 <circle cx="40" cy="40" r={radius} fill="none" stroke="var(--border)" strokeWidth="6" />
                 <circle cx="40" cy="40" r={radius} fill="none" stroke={lime} strokeWidth="6"
@@ -421,43 +450,23 @@ function MatchInner() {
               <div style={{
                 position: "absolute", inset: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "var(--font-space-grotesk)", fontSize: 22, fontWeight: 700, color: textPrimary,
+                fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary,
               }}>{countdown}</div>
             </div>
 
             {/* Join button — fixed width, no reflow */}
-            <button
+            <Button
               onClick={handleJoin}
-              disabled={joining}
-              onMouseEnter={() => setJoinHovered(true)}
-              onMouseLeave={() => setJoinHovered(false)}
-              style={{
-                width: isPhone ? "100%" : 220, padding: "15px 0", borderRadius: 10, border: "none",
-                background: joining ? "rgba(118,87,255,.55)" : joinHovered ? "var(--violet-bright)" : "var(--violet)",
-                color: "#fff",
-                fontFamily: "var(--font-space-grotesk)", fontSize: 16, fontWeight: 700,
-                cursor: joining ? "not-allowed" : "pointer",
-                transition: "background 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease",
-                boxShadow: "none",
-                transform: joinHovered && !joining ? "scale(1.03)" : "scale(1)",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              }}
+              loading={joining}
+              variant="primary"
+              style={{ width: isPhone ? "100%" : 220 }}
             >
-              {joinExpired ? "Match expired" : joining ? (
-                <>
-                  <span style={{
-                    display: "inline-block", width: 14, height: 14, borderRadius: "50%",
-                    border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff",
-                    animation: "rotateSlow 0.7s linear infinite",
-                  }} />
-                  Joining…
-                </>
-              ) : "Join Encounter"}
-            </button>
+              {joinExpired ? "Match expired" : joining ? "Joining…" : "Join Encounter"}
+            </Button>
 
             {joinExpired && (
               <div style={{
-                color: limeText, fontFamily: "var(--font-space-grotesk)", fontSize: 13,
+                color: limeText, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13,
                 width: isPhone ? "100%" : 220, textAlign: "center",
                 animation: "pulse 1.2s ease infinite",
               }}>
@@ -468,7 +477,7 @@ function MatchInner() {
             {actionError && (
               <div role="alert" style={{
                 color: "var(--coral)",
-                fontFamily: "var(--font-space-grotesk)",
+                fontFamily: "var(--font-display, var(--font-space-grotesk))",
                 fontSize: 13,
                 fontWeight: 700,
                 width: isPhone ? "100%" : 220,
@@ -480,31 +489,18 @@ function MatchInner() {
             )}
 
             {isLeader ? (
-              <button
+              <Button
                 onClick={handleSkip}
-                disabled={skipping}
-                onMouseEnter={() => setSkipHovered(true)}
-                onMouseLeave={() => setSkipHovered(false)}
-                style={{
-                  background: "transparent", border: "none",
-                  color: skipHovered ? textPrimary : textMuted,
-                  cursor: skipping ? "not-allowed" : "pointer",
-                  fontFamily: "var(--font-space-grotesk)", fontSize: 14,
-                  transition: "color .15s ease",
-                  width: isPhone ? "100%" : 220,
-                  whiteSpace: "nowrap" as const,
-                  display: "inline-flex" as const,
-                  alignItems: "center" as const,
-                  justifyContent: "center" as const,
-                  padding: "8px 0",
-                }}
-              >{skipping ? "Skipping…" : `Skip (${countdown}s)`}</button>
+                loading={skipping}
+                variant="ghost"
+                style={{ width: isPhone ? "100%" : 220 }}
+              >{skipping ? "Skipping…" : `Skip (${countdown}s)`}</Button>
             ) : (
               <div style={{
-                color: textMuted, fontFamily: "var(--font-space-grotesk)", fontSize: 13,
+                color: textMuted, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13,
                 width: isPhone ? "100%" : 220, textAlign: "center", padding: "8px 0",
               }}>
-                Auto-continues in {countdown}s
+                Waiting for your leader to start — or join now ({countdown}s)
               </div>
             )}
           </div>

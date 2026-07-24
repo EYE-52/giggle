@@ -4,35 +4,138 @@
   padding: 0;
 }
 
-/* ── Theme tokens ──────────────────────────────────────────────
-   Dark is the default (:root). Light overrides via [data-theme="light"].
-   Inline styles across the app reference these via var(--token).        */
-:root, [data-theme="dark"] {
-  --bg: #080A0B;
-  --bg-2: #0C0F10;
-  --surface: #121615;
-  --surface-2: #181D1B;
-  --surface-grad-from: rgba(28,34,31,0.68);
-  --surface-grad-to: rgba(11,14,14,0.78);
+/* ── Theme fonts (self-hosted, used by the "tangerine" theme) ── */
+@font-face {
+  font-family: "Clash Display";
+  src: url("/fonts/ClashDisplay-Semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Clash Display";
+  src: url("/fonts/ClashDisplay-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/fonts/CabinetGrotesk-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/fonts/CabinetGrotesk-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/fonts/CabinetGrotesk-Extrabold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
 
-  --text: #F4F4F7;
-  --text-body: #C9C9DA;
-  --text-muted: #9A9AB0;
-  --text-dim: #6E6E84;
+/* ── Theme tokens ──────────────────────────────────────────────
+   Dark is the default (:root). Other themes override via
+   [data-theme="light"] / [data-theme="tangerine"] / …
+   Inline styles across the app reference these via var(--token).
+
+   ══ SEMANTIC TOKEN CONTRACT ═══════════════════════════════════
+   Themes may differ in COLOR, SHAPE, TYPE and MOTION. A new theme
+   is: (1) one [data-theme="name"] block overriding any subset of
+   these vars, (2) one entry in the THEMES registry in
+   components/ThemeToggle.tsx (+ the list in public/theme-init.js).
+
+   Type
+     --font-display      display/headline face (titles, card names)
+     --font-body         body/UI face (buttons, labels, copy)
+   Shape
+     --border-w          hairline width for borders (1px | 3px …)
+     --control-border    full border shorthand for controls
+     --radius-card       large surfaces (modals, big cards)
+     --radius-tile       medium tiles (squad cards, empty states)
+     --radius-control    controls (nav buttons, inputs, toasts)
+     --radius-btn        Button/pill radius (pill in dark/light,
+                         rounded-square in chunky themes)
+     --radius-pill       fully-round pills/badges
+   Elevation
+     --shadow-card       resting card shadow (soft blur OR hard offset)
+     --shadow-pop        popover/modal shadow (stronger)
+     --btn-offset-shadow hard offset shadow for buttons ("none" in
+                         soft themes; "6px 6px 0 ink" in tangerine)
+     --btn-primary-border / --btn-primary-shadow
+                         primary Button chrome (glow in dark/light,
+                         ink border + offset shadow in tangerine)
+   Accent roles
+     --accent            primary action color (violet → tangerine)
+     --accent-hover      hover shade of --accent (darker in light themes,
+                         brighter in dark)
+     --accent-contrast   text/icon color on --accent
+     --accent-soft       tonal fill (soft accent tint) for tonal buttons,
+                         active nav tabs, token pill, tinted icon tiles
+     --accent-line       tinted accent border (token pill, tonal hover)
+     --live              "live / online / speaking" color (lime → acid)
+     --live-contrast     text/icon color on --live
+     --live-soft         tinted background for live stat tiles / badges
+   Status tints (tone-on-tint pairs used by Badge / StatTile / toasts)
+     --coral-soft        error tint bg   (pairs with --coral text)
+     --sky-soft          info tint bg    (pairs with --sky text)
+     --amber-soft        warning tint bg (pairs with --amber text)
+   Elevation extras
+     --shadow-sm         resting hairline shadow (e1) for small tiles/chips;
+                         --shadow-card is the card level (e2),
+                         --shadow-pop the modal/popover level (e3)
+   Motion
+     --ease-spring       bouncy curve for hover/press (equals
+                         --ease-out in calm themes)
+   Video stage (kept dark in EVERY theme)
+     --stage / --stage-2 stage base + tile surfaces
+
+   Legacy color vars (--bg, --surface*, --text*, --border*,
+   --overlay*, --violet*, --lime*, --coral, --teal, --elev,
+   --hairline, easings, --dur, --focus-ring) remain the low-level
+   palette; every theme MUST define all of them so existing pages
+   render without per-page changes.
+   ══════════════════════════════════════════════════════════════ */
+:root, [data-theme="dark"] {
+  /* ── "Midnight" — warm ink-plum neutrals (not green-black). ── */
+  --bg: #0E0D12;
+  --bg-2: #131218;
+  --surface: #17161D;
+  --surface-2: #1C1B24;
+  --surface-grad-from: rgba(34,32,42,0.68);
+  --surface-grad-to: rgba(14,13,18,0.78);
+
+  --text: #F4F3F7;
+  --text-body: #C6C4D2;
+  --text-muted: #A5A3B2;
+  --text-dim: #807E8E;
   --text-faint: #4A4A60;
 
-  --border: rgba(255,255,255,0.08);
-  --border-strong: rgba(255,255,255,0.14);
+  --border: rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.12);
   --overlay: rgba(255,255,255,0.05);
   --overlay-hover: rgba(255,255,255,0.09);
+  --overlay-strong: rgba(0,0,0,0.72);
   --on-accent: #FFFFFF;
 
-  --violet: #7657FF;
-  --violet-bright: #9278FF;
-  --violet-soft: rgba(118,87,255,0.18);
-  --lime: #B7FF2A;
-  --lime-text: #B7FF2A;
+  --violet: #6D52FF;
+  --violet-bright: #8A73FF;
+  --violet-soft: rgba(109,82,255,0.16);
+  --lime: #A3E635;
+  --lime-text: #D9FF6B;
   --coral: #FF5C5C;
+  --coral-soft: rgba(255,92,92,0.14);
+  --sky: #38BDF8;
+  --sky-soft: rgba(56,189,248,0.14);
+  --amber: #F59E0B;
+  --amber-soft: rgba(245,158,11,0.14);
   --teal: #2FE6C8;
 
   --elev: 0 1px 0 rgba(255,255,255,0.05) inset, 0 14px 40px -24px rgba(0,0,0,0.7);
@@ -42,42 +145,212 @@
      Easings + a standard micro-duration for hovers/presses.        */
   --ease-out: cubic-bezier(.22,1,.36,1);
   --ease-inout: cubic-bezier(.4,0,.2,1);
+  /* Aliases kept for existing usages — same curves, one source of truth. */
+  --ease-entrance: var(--ease-out);
+  --ease-ui: var(--ease-inout);
   --dur: .16s;
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--violet);
+
+  /* ── Semantic contract (dark defaults) ── */
+  --font-display: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-body: var(--font-inter), Inter, sans-serif;
+  --border-w: 1px;
+  --control-border: 1px solid var(--border);
+  --radius-card: 20px;
+  --radius-tile: 16px;
+  --radius-control: 14px;
+  --radius-btn: 999px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-card: var(--elev);
+  --shadow-pop: var(--elev), 0 32px 80px rgba(0,0,0,0.5);
+  --btn-offset-shadow: none;
+  --btn-primary-border: var(--border-w) solid transparent;
+  --btn-primary-shadow: 0 0 24px -6px color-mix(in srgb, var(--accent) 60%, transparent);
+  --accent: var(--violet);
+  --accent-hover: var(--violet-bright);
+  --accent-contrast: var(--on-accent);
+  --accent-soft: var(--violet-soft);
+  --accent-line: rgba(138,115,255,0.35);
+  --live: var(--lime);
+  --live-contrast: #0B0B12;
+  --live-soft: rgba(163,230,53,0.13);
+  --ease-spring: var(--ease-out);
+  /* Video stage stays dark in every theme (not overridden below).
+     Neutral near-black "screen" tone — not plum — so tiles read as real
+     video placeholders on light themes too. */
+  --stage: #101013;
+  --stage-2: #1B1B20;
   color-scheme: dark;
 }
 
 [data-theme="light"] {
-  --bg: #F5F7F2;
-  --bg-2: #EBEFE8;
+  /* ── "Cloud" — Design System v3 light. Quiet neutrals, white surfaces,
+     iris violet accent. Every text tier ≥5.4:1 (dim is NOT decorative;
+     --text-faint is the only decorative tier). ── */
+  --bg: #F7F7F9;
+  --bg-2: #F2F1F6;
   --surface: #FFFFFF;
-  --surface-2: #F6F7FC;
+  --surface-2: #F2F1F6;
   --surface-grad-from: #FFFFFF;
-  --surface-grad-to: #F6F7FC;
+  --surface-grad-to: #F7F7F9;
 
-  --text: #15151F;
-  --text-body: #34343F;
-  --text-muted: #5C5C70;
-  --text-dim: #8888A0;
-  --text-faint: #A6A6BC;
+  --text: #1A1823;         /* ink — 16.4:1 */
+  --text-body: #4A4754;    /* body — 8.6:1 */
+  --text-muted: #6B6875;   /* labels — 5.4:1 */
+  --text-dim: #6B6875;     /* smallest legible tier — stays ≥5.4:1 */
+  --text-faint: #8E8B99;   /* decorative only */
 
-  --border: rgba(18,18,30,0.10);
-  --border-strong: rgba(18,18,30,0.18);
-  --overlay: rgba(18,18,30,0.04);
-  --overlay-hover: rgba(18,18,30,0.07);
+  --border: #E8E7EE;
+  --border-strong: #D9D8E2;
+  --overlay: rgba(26,24,35,0.04);
+  --overlay-hover: rgba(26,24,35,0.07);
+  --overlay-strong: rgba(26,24,35,0.5);
   --on-accent: #FFFFFF;
 
-  --violet: #6546DB;
-  --violet-bright: #5536CC;
-  --violet-soft: rgba(101,70,219,0.12);
-  --lime: #9BEA18;
-  --lime-text: #3E7E00;
+  /* One accent family: iris violet (5.6:1 on white). */
+  --violet: #5B3DF5;
+  --violet-bright: #4B2EE0;   /* hover shade (darker in light) */
+  --violet-soft: #EFECFE;
+  /* Live/positive: dot fill vs text tiers. */
+  --lime: #84CC16;            /* live dot */
+  --lime-text: #65A30D;       /* live text — 4.6:1 */
   --coral: #E5484D;
-  --teal: #16A394;
+  --coral-soft: #FDEBEC;
+  --teal: #0D9488;
+  --sky: #0B96E6;
+  --sky-soft: #E6F4FD;
+  --amber: #F59E0B;
+  --amber-soft: #FEF3E2;
 
-  --elev: 0 1px 0 rgba(255,255,255,0.7) inset, 0 12px 32px -22px rgba(20,20,40,0.35);
-  --hairline: linear-gradient(90deg, transparent, rgba(18,18,30,0.10), transparent);
+  /* Soft layered elevation (e2) — no hard offsets in light. */
+  --elev: 0 1px 2px rgba(26,24,35,0.05), 0 8px 24px -8px rgba(26,24,35,0.12);
+  --hairline: linear-gradient(90deg, transparent, rgba(26,24,35,0.08), transparent);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px rgba(91,61,245,0.35);
+
+  /* Semantic contract — same shape/type/motion as dark; accents map to
+     the light violet/lime above via the var() aliases in :root. Restated
+     here explicitly so the theme block is self-describing. */
+  --font-display: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-body: var(--font-inter), Inter, sans-serif;
+  --border-w: 1px;
+  --control-border: 1px solid var(--border);
+  --radius-card: 20px;
+  --radius-tile: 16px;
+  --radius-control: 14px;
+  --radius-btn: 999px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(26,24,35,0.05);                                      /* e1 */
+  --shadow-card: var(--elev);                                                      /* e2 */
+  --shadow-pop: 0 2px 4px rgba(26,24,35,0.06), 0 24px 48px -12px rgba(26,24,35,0.18); /* e3 */
+  --btn-offset-shadow: none;
+  --btn-primary-border: var(--border-w) solid transparent;
+  --btn-primary-shadow: 0 1px 2px rgba(26,24,35,0.08), 0 6px 16px -6px rgba(91,61,245,0.45);
+  --accent: var(--violet);
+  --accent-hover: #4B2EE0;
+  --accent-contrast: var(--on-accent);
+  --accent-soft: #EFECFE;
+  --accent-line: #D9D2FC;
+  --live: var(--lime);
+  --live-contrast: #3F6212;
+  --live-soft: #F0F8E2;
   color-scheme: light;
+}
+
+/* ── "Tangerine Pop" — white paper, ink outlines, hard offset shadows,
+   sticker energy. Chunky display type, springy motion. The video stage
+   keeps the dark --stage vars from :root. ─────────────────────────── */
+[data-theme="tangerine"] {
+  /* pop-art paper: barely-pink base; the halftone-dot backdrop lives on body below */
+  --bg: #FFF6F9;
+  --bg-2: #FFECF2;
+  --surface: #FFFFFF;
+  --surface-2: #FFF3F7;
+  --surface-grad-from: #FFFFFF;
+  --surface-grad-to: #FFF3F7;
+  --app-bg: transparent; /* let the halftone body backdrop show through the app shell */
+
+  --text: #1B1420;
+  --text-body: #4A4152;
+  --text-muted: #5E5468;
+  --text-dim: #8A8092;
+  --text-faint: #B0A8B8;
+
+  --border: #1B1420;
+  --border-strong: #1B1420;
+  --overlay: rgba(27,20,32,0.05);
+  --overlay-hover: rgba(27,20,32,0.10);
+  --overlay-strong: rgba(27,20,32,0.55);
+  --on-accent: #FFFFFF;
+
+  /* Legacy accent names remapped: violet → tangerine, lime → acid. */
+  --violet: #FF521F;
+  --violet-bright: #E4430F;
+  --violet-soft: rgba(255,82,31,0.14);
+  --lime: #E8F94B;
+  --lime-text: #6B7500;
+  --coral: #E4430F;
+  --coral-soft: rgba(228,67,15,0.12);
+  --teal: #4DA6FF;
+  /* Theme-specific extras */
+  --bubblegum: #FF7AB2;
+  --sky: #4DA6FF;
+  --sky-soft: rgba(77,166,255,0.14);
+  --amber: #F59E0B;
+  --amber-soft: rgba(245,158,11,0.16);
+
+  --elev: 6px 6px 0 #1B1420;
+  --hairline: linear-gradient(90deg, transparent, rgba(27,20,32,0.35), transparent);
+
+  /* Semantic contract — the chunky bits. */
+  --font-display: "Clash Display", Futura, "Avenir Next", "Arial Black", system-ui, sans-serif;
+  --font-body: "Cabinet Grotesk", "Avenir Next", Futura, "Trebuchet MS", system-ui, sans-serif;
+  --border-w: 3px;
+  --control-border: 3px solid #1B1420;
+  --radius-card: 24px;
+  --radius-tile: 18px;
+  --radius-control: 16px;
+  --radius-btn: 16px;
+  --radius-pill: 999px;
+  --shadow-sm: 3px 3px 0 #1B1420;
+  --shadow-card: 6px 6px 0 #1B1420;
+  --shadow-pop: 10px 10px 0 #1B1420;
+  --btn-offset-shadow: 6px 6px 0 #1B1420;
+  --btn-primary-border: 3px solid #1B1420;
+  --btn-primary-shadow: var(--btn-offset-shadow);
+  --accent: #FF521F;
+  --accent-hover: #E4430F;
+  --accent-contrast: #FFFFFF;
+  --accent-soft: rgba(255,82,31,0.14);
+  --accent-line: rgba(255,82,31,0.45);
+  --live: #E8F94B;
+  --live-contrast: #1B1420;
+  --live-soft: rgba(232,249,75,0.30);
+
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --ease-out: cubic-bezier(.34,1.56,.64,1);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 5px var(--sky);
+  color-scheme: light;
+}
+
+/* Tangerine's springy button physics: hover lifts, press squashes.
+   Transforms only (inline styles never set transform), so this layers
+   cleanly on top of component inline styles. */
+[data-theme="tangerine"] button.gg-press:not(:disabled):hover,
+[data-theme="tangerine"] [role="button"].gg-press:not(:disabled):hover {
+  transform: translate(-2px, -2px);
+}
+[data-theme="tangerine"] button.gg-press:not(:disabled):active,
+[data-theme="tangerine"] [role="button"].gg-press:not(:disabled):active {
+  transform: translate(4px, 4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="tangerine"] button.gg-press:not(:disabled):hover,
+  [data-theme="tangerine"] [role="button"].gg-press:not(:disabled):hover,
+  [data-theme="tangerine"] button.gg-press:not(:disabled):active,
+  [data-theme="tangerine"] [role="button"].gg-press:not(:disabled):active {
+    transform: none;
+  }
 }
 
 html, body {
@@ -86,6 +359,27 @@ html, body {
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   transition: background 0.2s ease, color 0.2s ease;
+}
+
+/* Light theme: premium "blueprint" backdrop — a soft violet/sky wash with a
+   faint drafting grid. Fixed so it doesn't scroll-shear; sits behind all UI. */
+[data-theme="light"] { --app-bg: transparent; } /* let the body backdrop show through the app shell */
+[data-theme="light"] body {
+  /* One quiet violet bloom at the top — depth without decoration. */
+  background:
+    radial-gradient(90% 48% at 50% -12%, rgba(91,61,245,0.07), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* Tangerine Pop: WhatsApp-style doodle paper — Giggle-relevant line icons
+   (video camera, chat bubble, mic, smiley, heart, play, squad, lightning,
+   sparkles) tiled at low opacity. No dot grid; the doodles carry the texture. */
+[data-theme="tangerine"] body {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='440' height='440' viewBox='0 0 440 440'%3E%3Cg fill='none' stroke='%231B1420' stroke-opacity='0.05' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cg transform='translate(60 70) rotate(-8)'%3E%3Crect x='-14' y='-9' width='22' height='18' rx='4'/%3E%3Cpath d='M8 -4 L16 -8 L16 8 L8 4 Z'/%3E%3C/g%3E%3Cg transform='translate(210 52) rotate(6)'%3E%3Cpath d='M-15 -9 h28 v14 h-20 l-6 6 v-6 h-2 Z'/%3E%3C/g%3E%3Cg transform='translate(345 84) rotate(-5)'%3E%3Crect x='-4' y='-15' width='8' height='19' rx='4'/%3E%3Cpath d='M-9 0 a9 9 0 0 0 18 0 M0 13 v5 M-6 18 h12'/%3E%3C/g%3E%3Cg transform='translate(112 186) rotate(4)'%3E%3Ccircle r='12'/%3E%3Cpath d='M-5 -3 v3 M5 -3 v3'/%3E%3Cpath d='M-6 4 q6 6 12 0'/%3E%3C/g%3E%3Cg transform='translate(285 172) rotate(-10)'%3E%3Cpath d='M0 9 c-9 -6 -13 -13 -6 -17 c4 -2 6 1 6 4 c0 -3 2 -6 6 -4 c7 4 3 11 -6 17 Z'/%3E%3C/g%3E%3Cg transform='translate(392 214) rotate(8)'%3E%3Cpath d='M0 -14 L4 -4 15 -4 6 3 9 14 0 7 -9 14 -6 3 -15 -4 -4 -4 Z'/%3E%3C/g%3E%3Cg transform='translate(64 306) rotate(-6)'%3E%3Ccircle r='12'/%3E%3Cpath d='M-4 -6 L7 0 L-4 6 Z'/%3E%3C/g%3E%3Cg transform='translate(206 300) rotate(5)'%3E%3Ccircle cx='-6' cy='-6' r='4'/%3E%3Cpath d='M-13 8 a7 7 0 0 1 13 -1'/%3E%3Ccircle cx='7' cy='-6' r='4'/%3E%3Cpath d='M1 7 a7 7 0 0 1 13 1'/%3E%3C/g%3E%3Cg transform='translate(352 322) rotate(-8)'%3E%3Cpath d='M2 -14 L-6 2 H1 L-2 14 L9 -2 H2 Z'/%3E%3C/g%3E%3Cg transform='translate(150 392)'%3E%3Cpath d='M0 -9 Q1 -1 9 0 Q1 1 0 9 Q-1 1 -9 0 Q-1 -1 0 -9 Z'/%3E%3C/g%3E%3Cg transform='translate(320 404)'%3E%3Cpath d='M0 -7 Q1 -1 7 0 Q1 1 0 7 Q-1 1 -7 0 Q-1 -1 0 -7 Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 0 0 / 440px 440px,
+    var(--bg);
+  background-attachment: fixed;
 }
 
 a {
@@ -107,20 +401,9 @@ button {
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 /* ── Premium interaction primitives ─────────────────────────────
    Shared easings + reveal/shimmer/toast keyframes used by content
-   routes & cards. Easing: entrances use a soft overshoot, UI
-   feedback uses a crisp standard curve.                          */
-:root {
-  --ease-entrance: cubic-bezier(.22, 1, .36, 1);
-  --ease-ui: cubic-bezier(.4, 0, .2, 1);
-}
-
+   routes & cards. Canonical keyframes are the gg-* names below.  */
 @keyframes gg-reveal {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -188,6 +471,59 @@ button {
   transform: translateY(0);
 }
 
+/* ── Button intents (Design System v3, spec 03) ─────────────────
+   Five intents, one shape. Backgrounds live here (not inline) so
+   :hover can restyle them. Primary = solid accent + colored glow,
+   hover darkens (lightens in dark themes) and lifts 1px. Tonal =
+   accent-soft fill + accent text. Danger = tonal coral, never solid. */
+.gg-btn--primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border: var(--btn-primary-border);
+  box-shadow: var(--btn-primary-shadow);
+}
+.gg-btn--primary:not(:disabled):hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+.gg-btn--tonal {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: var(--border-w) solid transparent;
+}
+.gg-btn--tonal:not(:disabled):hover { background: var(--accent-line); }
+.gg-btn--secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: var(--border-w) solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+.gg-btn--secondary:not(:disabled):hover { background: var(--surface-2); }
+.gg-btn--ghost {
+  background: transparent;
+  color: var(--text-body);
+  border: var(--border-w) solid transparent;
+}
+.gg-btn--ghost:not(:disabled):hover { background: var(--surface-2); }
+.gg-btn--danger {
+  background: var(--coral-soft);
+  color: var(--coral);
+  border: var(--border-w) solid transparent;
+}
+.gg-btn--danger:not(:disabled):hover {
+  background: color-mix(in srgb, var(--coral) 22%, var(--coral-soft));
+}
+@media (prefers-reduced-motion: reduce) {
+  .gg-btn--primary:not(:disabled):hover { transform: none; }
+}
+
+/* Pulsing live dot (StatTile / badges). Globally killed under
+   prefers-reduced-motion by the rule below — reduced-motion safe. */
+@keyframes gg-pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--lime) 20%, transparent); }
+  50%      { box-shadow: 0 0 0 5px color-mix(in srgb, var(--lime) 12%, transparent); }
+}
+
 /* Press feedback — inline styles can't express :active, so these
    classes carry the press scale. Buttons compress more, cards a hair. */
 .gg-press:not(:disabled):active { transform: scale(0.97); }
@@ -211,14 +547,11 @@ button {
   box-shadow: 0 8px 22px rgba(0,0,0,0.18);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .gg-press:not(:disabled):active,
-  .gg-press-card:active { transform: none; }
-}
-
 /* Respect reduced-motion: kill transforms & animations globally so
    inline hover transforms degrade to instant, no-movement feedback. */
 @media (prefers-reduced-motion: reduce) {
+  .gg-press:not(:disabled):active,
+  .gg-press-card:active { transform: none; }
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
@@ -233,23 +566,12 @@ button {
    Conventions other components inherit:
    easings  → var(--ease-out), var(--ease-inout)
    duration → var(--dur) (.16s)  |  focus → var(--focus-ring)
-   keyframes (canonical names): shimmer, spin, fadeUp, toastIn
-   (the gg-* keyframes above remain as their existing aliases).    */
+   keyframes (canonical names): gg-shimmer, gg-spin, gg-reveal, gg-toast-in */
 
-/* Canonical keyframe names referenced by the interaction spec. */
-@keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes toastIn {
-  from { opacity: 0; transform: translateY(8px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-/* `spin` already defined above; reused as the canonical spin keyframe. */
+/* Switch primitive: keyboard focus ring sits on the track, not the
+   (larger) 44px hit area. */
+.gg-switch:focus-visible { box-shadow: none; outline: none; }
+.gg-switch:focus-visible .gg-switch-track { box-shadow: var(--focus-ring); }
 
 /* Gentle default transitions on interactive elements. Scoped to the
    common feedback properties so component inline styles that animate
@@ -289,6 +611,63 @@ textarea:focus-visible,
 .gg-nav-item:active { transform: scale(0.96); }
 .gg-nav-item > svg { transition: transform var(--dur) var(--ease-out); }
 .gg-nav-item:hover > svg { transform: scale(1.12); }
+
+/* Phone navigation is a dedicated app-like surface; the top bar remains for
+   brand, theme, and notifications instead of carrying every destination. */
+.gg-mobile-nav { display: none; }
+
+@media (max-width: 640px) {
+  .gg-mobile-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    height: calc(68px + env(safe-area-inset-bottom));
+    padding: 6px 8px env(safe-area-inset-bottom);
+    box-sizing: border-box;
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .gg-mobile-nav__item {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 56px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-family: var(--font-inter), Inter, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .gg-mobile-nav__item[aria-current="page"] {
+    color: var(--text);
+  }
+
+  .gg-mobile-nav__item[aria-current="page"]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 24px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--violet-bright);
+  }
+
+  .gg-app-main {
+    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  }
+}
 
 /* Subtle custom scrollbar */
 * {

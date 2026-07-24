@@ -2,7 +2,7 @@
 import { AvatarStack } from "./Avatar";
 
 const WASHES: Record<string, string> = {
-  neon: "radial-gradient(120% 90% at 20% 10%, rgba(255,92,138,0.55), transparent 55%), radial-gradient(120% 90% at 90% 80%, rgba(124,92,255,0.6), transparent 55%), linear-gradient(160deg, #2a1140, #0b0b0f)",
+  neon: "radial-gradient(120% 90% at 20% 10%, rgba(255,92,138,0.55), transparent 55%), radial-gradient(120% 90% at 90% 80%, rgba(118,87,255,0.6), transparent 55%), linear-gradient(160deg, #2a1140, #0b0b0f)",
   arcade: "radial-gradient(120% 90% at 80% 10%, rgba(92,140,255,0.5), transparent 55%), radial-gradient(120% 90% at 10% 90%, rgba(61,214,192,0.45), transparent 55%), linear-gradient(160deg, #10243a, #0b0b0f)",
 };
 
@@ -82,12 +82,12 @@ export function VenueCard({
             padding: "4px 9px",
             borderRadius: 999,
             background: "rgba(11,11,15,0.6)",
-            border: "1px solid rgba(194,255,61,0.5)",
+            border: "1px solid rgba(183,255,42,0.5)",
             backdropFilter: "blur(6px)",
           }}
         >
-          <span style={{ width: 6, height: 6, borderRadius: 999, background: "#C2FF3D", boxShadow: "0 0 8px #C2FF3D" }} />
-          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: "#C2FF3D" }}>LIVE</span>
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: "#B7FF2A", boxShadow: "0 0 8px #B7FF2A" }} />
+          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: "#B7FF2A" }}>LIVE</span>
         </div>
       )}
 

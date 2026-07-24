@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { api, billing, type ReferralInfo } from "@giggle/core";
 import { Icon } from "./Icons";
+import { Button } from "./Button";
 import { useViewport } from "./useViewport";
 
 /**
@@ -13,9 +14,15 @@ import { useViewport } from "./useViewport";
 export function ReferralCard({ compact = false }: { compact?: boolean }) {
   const { isPhone } = useViewport();
   const [info, setInfo] = useState<ReferralInfo | null>(null);
+  const [failed, setFailed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+  }, []);
 
   const load = useCallback(async () => {
     try {
@@ -25,6 +32,7 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
       if (typeof data.tokens === "number") billing.syncServerTokens(data.tokens);
     } catch {
       // not authed / offline — card stays hidden
+      setFailed(true);
     }
   }, []);
 
@@ -33,7 +41,22 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
     load();
   }, [load]);
 
-  if (!info) return null;
+  if (!info) {
+    if (failed) return null;
+    // Loading — reserve the card's space with a shimmer placeholder so the
+    // page doesn't jump when the referral data arrives.
+    return (
+      <div
+        className="gg-shimmer"
+        aria-hidden
+        style={{
+          borderRadius: "var(--radius-card, 20px)",
+          border: "var(--control-border, 1px solid var(--border))",
+          minHeight: isPhone ? 220 : compact ? 180 : 200,
+        }}
+      />
+    );
+  }
 
   const reward = info.rewardPerInvite;
   const link = `${origin}/?ref=${info.code}`;
@@ -68,7 +91,8 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
       return;
     }
     setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), 1800);
   }
 
   async function share() {
@@ -81,8 +105,10 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
       try {
         await navigator.share(shareData);
         return;
-      } catch {
-        // user cancelled or share sheet failed; fall through to copy
+      } catch (e) {
+        // User cancelled the share sheet — do nothing. Only fall through to
+        // copy when the share sheet itself failed.
+        if (e instanceof DOMException && e.name === "AbortError") return;
       }
     }
     copy();
@@ -97,9 +123,9 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
     <div style={{
       position: "relative",
       overflow: "hidden",
-      background: "linear-gradient(135deg, var(--violet-soft) 0%, rgba(194,255,61,0.07) 100%)",
+      background: "linear-gradient(135deg, var(--violet-soft) 0%, color-mix(in srgb, var(--live, var(--lime, #B7FF2A)) 7%, transparent) 100%)",
       border: `1px solid ${border}`,
-      borderRadius: 24,
+      borderRadius: "var(--radius-card, 20px)",
       padding: isPhone ? "20px 18px" : compact ? "22px 24px" : "28px 32px",
       display: "flex",
       flexDirection: "column",
@@ -108,7 +134,7 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
       {/* accent bar */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, height: 3,
-        background: "linear-gradient(90deg, var(--violet), var(--lime))",
+        background: "linear-gradient(90deg, var(--accent, var(--violet)), var(--live, var(--lime)))",
       }} />
 
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" as const }}>
@@ -117,25 +143,25 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
             <span style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center",
               width: 30, height: 30, borderRadius: 10,
-              background: "var(--violet-soft)", border: "1px solid rgba(124,92,255,0.3)",
+              background: "var(--violet-soft)", border: "1px solid color-mix(in srgb, var(--accent, var(--violet, #7657FF)) 30%, transparent)",
             }}>
-              <Icon.gift size={17} color="var(--violet)" />
+              <Icon.gift size={17} color="var(--accent, var(--violet))" />
             </span>
-            <span style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 18 : 20, fontWeight: 800, color: text, letterSpacing: "-0.02em" }}>
+            <span style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 17, fontWeight: 700, color: text, letterSpacing: "-0.02em" }}>
               Invite friends, earn tokens
             </span>
           </div>
-          <div style={{ fontSize: 13.5, color: muted, lineHeight: 1.5, maxWidth: 460 }}>
+          <div style={{ fontSize: 13, color: muted, lineHeight: 1.5, maxWidth: 460 }}>
             Share your link. When a friend joins, <strong style={{ color: text }}>you both get {reward} tokens</strong> — instantly.
           </div>
         </div>
 
         {/* invited counter */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2, flexShrink: 0 }}>
-          <span style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 28 : 34, fontWeight: 800, color: text, letterSpacing: "-0.02em", lineHeight: 1 }}>
+          <span style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 24 : 30, fontWeight: 700, color: text, letterSpacing: "-0.02em", lineHeight: 1.15 }}>
             {info.referralCount}
           </span>
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", color: dim, textTransform: "uppercase" }}>
+          <span style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.1em", color: dim, textTransform: "uppercase" }}>
             Invited
           </span>
         </div>
@@ -147,8 +173,8 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
           flex: 1, minWidth: isPhone ? "100%" : 200,
           display: "flex", alignItems: "center", gap: 10,
           background: "var(--bg)", border: `1px solid ${border}`,
-          borderRadius: 12, padding: "11px 14px",
-          fontFamily: "var(--font-space-grotesk)", fontSize: 14, color: text,
+          borderRadius: "var(--radius-control, 14px)", padding: "11px 14px",
+          fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 14, color: text,
           overflow: "hidden",
         }}>
           <Icon.link size={15} color={dim} />
@@ -156,41 +182,29 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
             {origin.replace(/^https?:\/\//, "")}/?ref={info.code}
           </span>
         </div>
-        <button
+        <Button
           onClick={copy}
+          variant="secondary"
           style={{
             flexShrink: 0,
-            background: copied ? "var(--lime)" : "var(--overlay)",
-            border: copied ? "1px solid var(--lime)" : `1px solid ${border}`,
-            color: copied ? "#0B0B0F" : text,
-            borderRadius: 12, padding: "0 16px", height: 44,
-            fontWeight: 700, fontSize: 14, cursor: "pointer",
-            display: "inline-flex", alignItems: "center", gap: 7,
+            ...(copied ? {
+              background: "var(--live, var(--lime))",
+              border: "1px solid var(--live, var(--lime))",
+              color: "var(--live-contrast)",
+            } : {}),
             transition: "all .15s ease",
           }}
         >
-          <Icon.copy size={15} color={copied ? "#0B0B0F" : text} />
+          <Icon.copy size={15} color={copied ? "var(--live-contrast)" : "currentColor"} />
           {copied ? "Copied!" : "Copy"}
-        </button>
-        <button
-          onClick={share}
-          style={{
-            flexShrink: 0,
-            background: "var(--violet)",
-            border: "1px solid var(--violet)",
-            color: "#fff",
-            borderRadius: 12, padding: "0 18px", height: 44,
-            fontWeight: 700, fontSize: 14, cursor: "pointer",
-            display: "inline-flex", alignItems: "center", gap: 7,
-            boxShadow: "0 0 22px -8px rgba(124,92,255,0.8)",
-          }}
-        >
-          <Icon.share size={15} color="#fff" />
+        </Button>
+        <Button onClick={share} variant="tonal" style={{ flexShrink: 0 }}>
+          <Icon.share size={15} color="currentColor" />
           Share
-        </button>
+        </Button>
       </div>
       {copyError && (
-        <div role="alert" style={{ fontSize: 12.5, color: "var(--coral)", fontWeight: 700, lineHeight: 1.35 }}>
+        <div role="alert" style={{ fontSize: 12, color: "var(--coral)", fontWeight: 700, lineHeight: 1.35 }}>
           {copyError}
         </div>
       )}

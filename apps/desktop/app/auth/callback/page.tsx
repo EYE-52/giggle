@@ -1,8 +1,17 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Logomark } from "@/components/Brand";
 import { session } from "@giggle/core";
+
+const AUTH_NEXT_KEY = "giggle.auth.next";
+
+function safeStoredNext() {
+  const value = sessionStorage.getItem(AUTH_NEXT_KEY);
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/home";
+  return value;
+}
 
 // Landing page for OAuth / magic-link redirects. The backend sends the user
 // here with the JWT in the URL hash (#token=…) or #error=CODE on failure.
@@ -18,7 +27,9 @@ export default function AuthCallbackPage() {
         session.setTokenFromOAuth(token);
         // Clean the token out of the URL before navigating away.
         window.history.replaceState(null, "", window.location.pathname);
-        router.replace("/home");
+        const nextPath = safeStoredNext();
+        sessionStorage.removeItem(AUTH_NEXT_KEY);
+        router.replace(nextPath);
       } catch {
         if (!cancelled) setError("We couldn't complete sign-in. Please try again.");
       }
@@ -52,12 +63,14 @@ export default function AuthCallbackPage() {
         <Logomark size={48} />
         {error ? (
           <>
-            <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Sign-in failed</h1>
-            <p style={{ fontSize: 14.5, color: "var(--text-muted)", margin: 0, lineHeight: 1.5, fontFamily: "var(--font-inter)" }}>{error}</p>
-            <a href="/signin" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--violet)", fontWeight: 600, fontSize: 14.5, textDecoration: "none", fontFamily: "var(--font-inter)" }}>← Back to sign in</a>
+            <h1 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Sign-in failed</h1>
+            <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0, lineHeight: 1.5, fontFamily: "var(--font-inter)" }}>{error}</p>
+            <Link href="/signin" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--accent, var(--violet))", fontWeight: 600, fontSize: 14, textDecoration: "none", fontFamily: "var(--font-inter)" }}>← Back to sign in</Link>
           </>
         ) : (
-          <p style={{ fontSize: 15, color: "var(--text-muted)", margin: 0, fontFamily: "var(--font-inter)" }}>Signing you in…</p>
+          <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0, fontFamily: "var(--font-inter)", display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <span className="gg-spinner" aria-hidden /> Signing you in…
+          </p>
         )}
       </div>
     </div>
@@ -65,7 +78,7 @@ export default function AuthCallbackPage() {
 }
 
 function friendly(code: string): string {
-  if (code.startsWith("MAGIC")) return "This magic link is invalid or has expired. Request a new one.";
+  if (code.startsWith("MAGIC")) return "That link expired. Head back and sign in again.";
   if (code.startsWith("GOOGLE")) return "Google sign-in didn't complete. Please try again.";
   if (code.startsWith("APPLE")) return "Apple sign-in didn't complete. Please try again.";
   return "We couldn't complete sign-in. Please try again.";

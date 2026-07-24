@@ -1,9 +1,13 @@
 "use client";
-import { useRef, useState, useEffect, useId } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PRESET_COVERS, resolveCover, api, billing } from "@giggle/core";
+import { PRESET_COVERS, api, billing } from "@giggle/core";
 import type { PresetCover } from "@giggle/core";
+import { useTheme } from "@/components/useTheme";
+import { coverKind, coverBackground, themeCoverStyle } from "@/components/covers";
 import { Icon } from "@/components/Icons";
+import { Modal } from "@/components/Modal";
+import { Button } from "@/components/Button";
 
 interface CoverPickerProps {
   squadId: string;
@@ -26,32 +30,26 @@ function isPremiumPreset(p: PresetCover): boolean {
   return p.type === "photo" || PREMIUM_COVER_IDS.has(p.id);
 }
 
-const violet = "var(--violet)";
+const violet = "var(--accent, var(--violet))";
 const MAX_UPLOAD_IMAGE_BYTES = 2_000_000;
 const ALLOWED_UPLOAD_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
 export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPickerProps) {
   const router = useRouter();
-  const titleId = useId();
   const [selected, setSelected] = useState<string>(currentCover ?? "");
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [hint, setHint] = useState<string>("");
   const [unlocked, setUnlocked] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const themeId = useTheme();
+  // Which gradient family this theme previews (photos always stay dark-scrimmed).
+  const themeKind = themeCoverStyle(themeId);
 
   useEffect(() => {
     setUnlocked(billing.hasPerk("cover_themes"));
     return billing.subscribe(() => setUnlocked(billing.hasPerk("cover_themes")));
   }, []);
-
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -102,20 +100,25 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
     const active = selected === p.id;
     const locked = isPremiumPreset(p) && !unlocked;
     const isPhoto = p.type === "photo";
+    // Gradient tiles preview the variant the current theme will actually render;
+    // photo tiles keep the dark label scrim in every theme.
+    const tileKind = isPhoto ? "dark" : themeKind;
     return (
       <button
         key={p.id}
         onClick={() => selectPreset(p)}
         title={locked ? `${p.name} — premium` : p.name}
+        className="gg-press gg-focusable"
         style={{
           height,
-          borderRadius: 12,
-          background: isPhoto ? `url(${p.value}) center/cover no-repeat` : p.value,
+          borderRadius: "var(--radius-control, 14px)",
+          background: isPhoto ? `url(${p.value}) center/cover no-repeat` : coverBackground(p.id, tileKind),
           border: `2px solid ${active ? violet : "transparent"}`,
           cursor: "pointer",
           position: "relative",
           overflow: "hidden",
-          boxShadow: active ? `0 0 0 3px color-mix(in srgb, var(--violet) 27%, transparent)` : "none",
+          transition: "box-shadow .15s ease, border-color .15s ease, opacity .15s ease",
+          boxShadow: active ? `0 0 0 3px color-mix(in srgb, var(--accent, var(--violet)) 27%, transparent)` : "none",
           opacity: locked ? 0.85 : 1,
         }}
       >
@@ -130,7 +133,13 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
               background: "var(--overlay-strong, rgba(0,0,0,0.3))",
             }}
           >
-            <span style={{ color: "#fff", fontSize: 16, fontWeight: 900 }}>✓</span>
+            <span aria-hidden="true" style={{
+              width: 22, height: 22, borderRadius: "50%",
+              background: "var(--accent, var(--violet, #7657FF))",
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden><path d="M2 5.5 4.5 8 9 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </span>
           </div>
         )}
         {locked && !active && (
@@ -154,10 +163,10 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
             left: 0,
             right: 0,
             textAlign: "center",
-            fontSize: 10,
-            color: "rgba(255,255,255,0.85)",
+            fontSize: 12,
+            color: tileKind === "light" ? "#1B1420" : "rgba(255,255,255,0.85)",
             fontWeight: 600,
-            textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+            textShadow: tileKind === "light" ? "0 1px 4px rgba(255,255,255,0.8)" : "0 1px 4px rgba(0,0,0,0.8)",
           }}
         >
           {p.name}
@@ -167,78 +176,26 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 1100,
-        background: "var(--overlay-strong, rgba(0,0,0,0.65))",
-        backdropFilter: "blur(8px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 20,
-          padding: "28px 24px",
-          width: 520,
-          maxHeight: "80vh",
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 20,
-          boxShadow: "var(--elev)",
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div
-            id={titleId}
-            style={{
-              fontFamily: "var(--font-space-grotesk)",
-              fontSize: 18,
-              fontWeight: 700,
-              color: "var(--text)",
-            }}
-          >
-            Change Cover
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close cover picker"
-            style={{ width: 44, height: 44, margin: -13, display: "grid", placeItems: "center", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
-          >
-            <Icon.close size={18} color="var(--text-muted)" />
-          </button>
-        </div>
-
+    <Modal onClose={onClose} title="Change Cover" closeLabel="Close cover picker">
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {/* Premium banner — only when locked content exists */}
         {!unlocked && (
           <button
             onClick={() => router.push("/premium")}
+            className="gg-press gg-focusable"
             style={{
               display: "flex", alignItems: "center", gap: 10,
               textAlign: "left", width: "100%",
-              background: "linear-gradient(135deg, var(--violet-soft), rgba(194,255,61,0.08))",
+              background: "linear-gradient(135deg, var(--violet-soft), color-mix(in srgb, var(--live, var(--lime, #B7FF2A)) 8%, transparent))",
               border: "1px solid var(--violet-soft)",
-              borderRadius: 12, padding: "10px 14px", cursor: "pointer",
+              borderRadius: "var(--radius-control, 14px)", padding: "10px 14px", cursor: "pointer",
             }}
           >
             <Icon.shield size={16} color={violet} />
-            <span style={{ flex: 1, fontSize: 12.5, color: "var(--text)", fontWeight: 600 }}>
+            <span style={{ flex: 1, fontSize: 12, color: "var(--text)", fontWeight: 600 }}>
               Premium covers locked — unlock with tokens
             </span>
-            <span style={{ background: violet, color: "#fff", borderRadius: 999, padding: "3px 12px", fontSize: 11, fontWeight: 700 }}>
+            <span style={{ background: violet, color: "#fff", borderRadius: 999, padding: "3px 12px", fontSize: 12, fontWeight: 700 }}>
               Unlock
             </span>
           </button>
@@ -249,8 +206,8 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
           style={{
             height: 100,
             flexShrink: 0,
-            borderRadius: 14,
-            background: resolveCover(uploadPreview ?? selected),
+            borderRadius: "var(--radius-control, 14px)",
+            background: coverBackground(uploadPreview ?? selected, coverKind(uploadPreview ?? selected, themeId)),
             border: "1px solid var(--border)",
             position: "relative",
             overflow: "hidden",
@@ -260,7 +217,9 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
             style={{
               position: "absolute",
               inset: 0,
-              background: "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55))",
+              background: coverKind(uploadPreview ?? selected, themeId) === "light"
+                ? "linear-gradient(to bottom, transparent 40%, rgba(255,255,255,0.7))"
+                : "linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.55))",
             }}
           />
           <span
@@ -269,7 +228,7 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
               bottom: 10,
               left: 14,
               fontSize: 12,
-              color: "rgba(255,255,255,0.6)",
+              color: coverKind(uploadPreview ?? selected, themeId) === "light" ? "rgba(27,20,32,0.75)" : "rgba(255,255,255,0.6)",
               fontWeight: 500,
             }}
           >
@@ -281,8 +240,8 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
         <div>
           <div
             style={{
-              fontSize: 11,
-              fontWeight: 700,
+              fontSize: 12,
+              fontWeight: 600,
               letterSpacing: "0.08em",
               color: "var(--text-dim)",
               textTransform: "uppercase",
@@ -291,7 +250,7 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
           >
             Gradients
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
             {PRESET_COVERS.filter((p) => p.type === "gradient").map((p) => renderPreset(p, 60))}
           </div>
         </div>
@@ -300,8 +259,8 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
         <div>
           <div
             style={{
-              fontSize: 11,
-              fontWeight: 700,
+              fontSize: 12,
+              fontWeight: 600,
               letterSpacing: "0.08em",
               color: "var(--text-dim)",
               textTransform: "uppercase",
@@ -310,7 +269,7 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
           >
             Photos
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
             {PRESET_COVERS.filter((p) => p.type === "photo").map((p) => renderPreset(p, 70))}
           </div>
         </div>
@@ -319,8 +278,8 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
         <div>
           <div
             style={{
-              fontSize: 11,
-              fontWeight: 700,
+              fontSize: 12,
+              fontWeight: 600,
               letterSpacing: "0.08em",
               color: "var(--text-dim)",
               textTransform: "uppercase",
@@ -338,10 +297,12 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
           />
           <button
             onClick={() => fileRef.current?.click()}
+            className="gg-press gg-focusable"
             style={{
               width: "100%",
               height: 64,
-              borderRadius: 12,
+              borderRadius: "var(--radius-control, 14px)",
+              transition: "border-color .15s ease, background .15s ease",
               border: `2px dashed ${uploadPreview ? violet : "var(--border-strong)"}`,
               background: uploadPreview
                 ? `url(${uploadPreview}) center/cover no-repeat`
@@ -385,7 +346,7 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
 
         {/* Hint / error line */}
         {hint && (
-          <div style={{ fontSize: 12.5, color: "var(--coral)", fontWeight: 600 }}>{hint}</div>
+          <div style={{ fontSize: 12, color: "var(--coral)", fontWeight: 600 }}>{hint}</div>
         )}
 
         {/* Footer actions */}
@@ -398,40 +359,12 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
             paddingTop: 4,
           }}
         >
-          <button
-            onClick={onClose}
-            style={{
-              padding: "10px 20px",
-              borderRadius: 999,
-              background: "transparent",
-              border: "1px solid var(--border)",
-              color: "var(--text-muted)",
-              fontSize: 14,
-              cursor: "pointer",
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving || !selected}
-            style={{
-              padding: "10px 24px",
-              borderRadius: 999,
-              background: selected ? violet : "var(--violet-soft)",
-              border: "none",
-              color: "#fff",
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: selected ? "pointer" : "not-allowed",
-              boxShadow: selected ? `0 0 20px -6px var(--violet)` : "none",
-              opacity: saving ? 0.7 : 1,
-            }}
-          >
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave} loading={saving} disabled={!selected}>
             {saving ? "Saving…" : "Apply Cover"}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -23,6 +23,8 @@ export function useViewport() {
     height,
     isPhone: width <= 640,
     isTablet: width <= 980,
+    isDesktop: width > 980,
+    isWide: width >= 1440,
     isNarrow: width <= 980,
   };
 }

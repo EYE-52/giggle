@@ -2,13 +2,15 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { EncounterView } from "@giggle/core";
-import { api, connectSocket, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, resolveCover, session, sendReaction, subscribeReaction, reportOpponentSquad } from "@giggle/core";
+import { api, connectSocket, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, resolveCover, session, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
 import type { EncounterDetail } from "@giggle/core";
 import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { Icon } from "@/components/Icons";
 import { ChatPanel } from "@/components/ChatPanel";
+import { Button } from "@/components/Button";
 import { createVideoClient } from "@giggle/agora";
+import type { ConnectionState, RemoteParticipant } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 
 const VIEW_MODES: { mode: EncounterView; label: string }[] = [
@@ -77,7 +79,7 @@ function TeamRoomBackdrop({
   return (
     <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none", borderRadius: radius, overflow: "hidden" }}>
       {/* cover / gradient — richer presence so the side feels themed */}
-      <div style={{ position: "absolute", inset: 0, background: backdrop, backgroundSize: "cover", backgroundPosition: "center", opacity: presence }} />
+      <div style={{ position: "absolute", inset: 0, backgroundImage: backdrop, backgroundSize: "cover", backgroundPosition: "center", opacity: presence }} />
       {/* smart scrim: keeps center brightest for the theme, darkens top/bottom
           so name chips + tile edges stay readable in any cover */}
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(7,7,11,0.7) 0%, rgba(7,7,11,0.42) 42%, rgba(7,7,11,0.72) 100%)" }} />
@@ -143,7 +145,7 @@ function CoverThumb({
         borderRadius: radius,
         flexShrink: 0,
         display: "inline-block",
-        background: backdrop,
+        backgroundImage: backdrop,
         backgroundSize: "cover",
         backgroundPosition: "center",
         border: `1px solid rgba(${accent.rgb},0.55)`,
@@ -223,11 +225,11 @@ const KEYFRAMES = `
   100% { opacity: 0; transform: translateY(-120px) scale(0.9); }
 }
 @keyframes viewTransition {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: scale(0.985); }
+  to   { opacity: 1; transform: scale(1); }
 }
 @keyframes focusPinIn {
-  from { opacity: 0; transform: scale(0.9); }
+  from { opacity: 0; transform: scale(0.94); }
   to   { opacity: 1; transform: scale(1); }
 }
 
@@ -290,9 +292,11 @@ function VideoTile({
   showFocusHint,
   compact,
   localAvatarValue,
+  statusText = "Camera off",
 }: {
   name: string;
   colorIndex: number;
+  /** Mic state when KNOWN — pill renders only on explicit `false` (never on unknown). */
   micOn?: boolean;
   videoRef?: (el: HTMLDivElement | null) => void;
   style?: React.CSSProperties;
@@ -305,6 +309,8 @@ function VideoTile({
   compact?: boolean;
   /** Only passed for the local participant — renders their chosen AvatarArt instead of initials. */
   localAvatarValue?: string;
+  /** Fallback status under the avatar: "Camera off" (default) or "Connecting…". */
+  statusText?: string;
 }) {
   const bg = avatarColors[colorIndex % avatarColors.length];
   const { isPhone } = useViewport();
@@ -316,7 +322,22 @@ function VideoTile({
 
   return (
     <div
+      data-media-frame
       onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      aria-label={onClick ? (focused ? `Unpin ${name}'s video` : `Pin ${name}'s video`) : undefined}
+      aria-pressed={onClick ? !!focused : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
@@ -326,7 +347,7 @@ function VideoTile({
           : isSpeaking
           ? `1.5px solid ${bg}88`
           : "1px solid rgba(255,255,255,0.08)",
-        borderRadius: small ? 14 : 18,
+        borderRadius: "var(--radius-tile, 16px)",
         overflow: "hidden",
         position: "relative",
         width: "100%",
@@ -442,8 +463,8 @@ function VideoTile({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontFamily: "var(--font-space-grotesk)",
-              fontWeight: 800,
+              fontFamily: "var(--font-display, var(--font-space-grotesk))",
+              fontWeight: 700,
               fontSize: small ? 18 : 30,
               color: "#0B0B0F",
               boxShadow: `0 0 28px -6px ${bg}, 0 0 0 1px rgba(255,255,255,0.14), inset 0 -6px 14px -6px rgba(0,0,0,0.4)`,
@@ -456,7 +477,7 @@ function VideoTile({
           style={{
             position: "relative",
             display: small ? "none" : "block",
-            fontFamily: "var(--font-space-grotesk)",
+            fontFamily: "var(--font-display, var(--font-space-grotesk))",
             fontWeight: 600,
             fontSize: 13,
             color: "#F4F4F7",
@@ -470,7 +491,7 @@ function VideoTile({
             display: small ? "none" : "flex",
             alignItems: "center",
             gap: 5,
-            fontSize: 11,
+            fontSize: 12,
             color: "#9A9AB0",
           }}
         >
@@ -483,7 +504,7 @@ function VideoTile({
               flexShrink: 0,
             }}
           />
-          Camera off
+          {statusText}
         </div>
       </div>
 
@@ -528,23 +549,11 @@ function VideoTile({
           maxWidth: "calc(100% - 20px)",
         }}
       >
-        {/* Connection quality dot */}
-        <span
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 999,
-            background: "#3DD6C0",
-            boxShadow: "0 0 6px 0 rgba(61,214,192,0.8)",
-            display: "inline-block",
-            flexShrink: 0,
-          }}
-        />
         <span
           style={{
             fontSize: 12,
             color: "#F4F4F7",
-            fontFamily: "var(--font-space-grotesk)",
+            fontFamily: "var(--font-display, var(--font-space-grotesk))",
             fontWeight: 600,
             letterSpacing: "0.01em",
             maxWidth: 160,
@@ -582,13 +591,14 @@ function VideoTile({
             transition: "opacity 0.15s",
           }}
           title={focused ? "Unpin" : "Pin / focus"}
+          aria-hidden
         >
-          {focused ? "⊠" : "⛶"}
+          {focused ? <Icon.close size={13} color="#F4F4F7" /> : <Icon.pin size={13} color="#F4F4F7" />}
         </div>
       )}
 
-      {/* Mic indicator */}
-      {!micOn && (
+      {/* Mic indicator — only when the mic state is KNOWN to be off */}
+      {micOn === false && (
         <div
           style={{
             position: "absolute",
@@ -600,7 +610,7 @@ function VideoTile({
             border: "1px solid rgba(255,92,92,0.4)",
             borderRadius: 999,
             padding: "3px 9px 3px 7px",
-            fontSize: 10,
+            fontSize: 12,
             color: "#FF8A8A",
             fontWeight: 700,
             letterSpacing: "0.02em",
@@ -648,13 +658,12 @@ function WaitingForSquad({ label = "Waiting for the other squad…" }: { label?:
           border: "2px solid rgba(124,92,255,0.22)",
           borderTopColor: "rgba(124,92,255,0.85)",
           boxShadow: "0 0 20px -6px rgba(124,92,255,0.6)",
-          animation: "spin 0.9s linear infinite",
+          animation: "gg-spin 0.9s linear infinite",
         }}
       />
-      <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-space-grotesk)" }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-display, var(--font-space-grotesk))" }}>
         {label}
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }
@@ -673,15 +682,37 @@ function EncounterInner() {
   const [encounter, setEncounter] = useState<EncounterDetail | null>(null);
   const [encounterLoading, setEncounterLoading] = useState(true);
   const [encounterError, setEncounterError] = useState<string | null>(null);
-  const [encounterExpired, setEncounterExpired] = useState(false);
-  const [encounterLoadRetry, setEncounterLoadRetry] = useState(0);
   const [ending, setEnding] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const reactionCountRef = useRef(0);
-  const endedNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Short-lived UI timers (reaction despawn, "Reported" toast) — cleared on
+  // unmount so they never setState on an unmounted page.
+  const uiTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  useEffect(() => {
+    const timers = uiTimersRef.current;
+    return () => { timers.forEach(clearTimeout); timers.clear(); };
+  }, []);
+  function setUiTimeout(fn: () => void, ms: number) {
+    const t = setTimeout(() => { uiTimersRef.current.delete(t); fn(); }, ms);
+    uiTimersRef.current.add(t);
+  }
   const [endedNotice, setEndedNotice] = useState(false);
+  // Why the encounter ended — lets the overlay distinguish "the other squad
+  // left" from a generic server end.
+  const [endedReason, setEndedReason] = useState<"opponent-left" | "ended">("ended");
+  const endedNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [findingNextMatch, setFindingNextMatch] = useState(false);
   const [reported, setReported] = useState(false);
+  // Unread chat badge while the chat panel is closed (mirrors the lobby pattern).
+  const [unread, setUnread] = useState(0);
+  const chatVisibleRef = useRef(false);
+  // Reconnect UX: Agora connection lifecycle + user dismissal of the banner.
+  const [connState, setConnState] = useState<ConnectionState | null>(null);
+  const [reconnectDismissed, setReconnectDismissed] = useState(false);
+  // Speaking uids (from the SDK's volume indicator) keyed by String(uid).
+  const [speakingUids, setSpeakingUids] = useState<Set<string>>(new Set());
+  const myUidRef = useRef<string | number | null>(null);
 
   // Local user's chosen avatar (SSR-safe: read after mount)
   const [myAvatar, setMyAvatarState] = useState<string>(DEFAULT_AVATAR_ID);
@@ -715,7 +746,10 @@ function EncounterInner() {
   const remoteElsRef = useRef<Map<string | number, HTMLDivElement | null>>(new Map());
   const [videoJoined, setVideoJoined] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const [remoteUids, setRemoteUids] = useState<(string | number)[]>([]);
+  // Full remote participant state (uid + hasVideo/hasAudio) — drives truthful
+  // per-tile "Muted" / "Camera off" / "Connecting…" signals.
+  const [remotes, setRemotes] = useState<RemoteParticipant[]>([]);
+  const remoteUids = remotes.map((r) => r.uid);
 
   const setLocalEl = (el: HTMLDivElement | null) => {
     localElRef.current = el;
@@ -754,49 +788,27 @@ function EncounterInner() {
   useEffect(() => {
     if (!squadId || !encId) return;
 
-    setView("versus");
-    setMicOn(true);
-    setCamOn(true);
-    setChatOpen(false);
-    setEnding(false);
-    setShowBanner(true);
-    setFloatingReactions([]);
-    reactionCountRef.current = 0;
-    setEndedNotice(false);
-    setReported(false);
-    setFocusedKey(null);
-    setReactionsOpen(false);
-    setVideoJoined(false);
-    setVideoError(null);
-    setRemoteUids([]);
-    remoteElsRef.current.clear();
-    oppElsRef.current = [];
-
     let cancelled = false;
     let tick: ReturnType<typeof setInterval> | undefined;
     let bannerTimer: ReturnType<typeof setTimeout> | undefined;
     let socket: ReturnType<typeof connectSocket> | undefined;
     let endedEvent = "ENCOUNTER_ENDED";
     let activeEvent = "ENCOUNTER_ACTIVE";
-    const onEnded = () => {
+    const onEnded = (payload?: unknown) => {
+      const blob = JSON.stringify(payload ?? "");
+      setEndedReason(/left|leave|disconnect|abandon/i.test(blob) ? "opponent-left" : "ended");
       setEndedNotice(true);
-      if (endedNavigationTimeoutRef.current) clearTimeout(endedNavigationTimeoutRef.current);
-      endedNavigationTimeoutRef.current = setTimeout(() => router.push("/home"), 1600);
+      // Give people time to read the overlay + choose an action before we
+      // auto-return home.
+      if (endedNavTimerRef.current) clearTimeout(endedNavTimerRef.current);
+      endedNavTimerRef.current = setTimeout(() => router.push("/home"), 6500);
     };
     const onActive = () => {
-      const refreshError = "Couldn't refresh encounter details.";
-      api.getEncounter(encId).then((detail) => {
-        if (cancelled) return;
-        setEncounter(detail);
-        setVideoError((error) => error === refreshError ? null : error);
-      }).catch(() => {
-        if (!cancelled) setVideoError(refreshError);
-      });
+      api.getEncounter(encId).then(setEncounter).catch(() => {});
     };
 
     setEncounterLoading(true);
     setEncounterError(null);
-    setEncounterExpired(false);
     setEncounter(null);
     setElapsed(0);
 
@@ -806,12 +818,9 @@ function EncounterInner() {
         if (cancelled) return;
         setEncounter(detail);
         setEncounterLoading(false);
-      } catch (error) {
+      } catch {
         if (!cancelled) {
-          const status = (error as { status?: number }).status;
-          const expired = status === 404 || status === 410;
-          setEncounterExpired(expired);
-          setEncounterError(expired ? "This encounter has ended." : "We couldn't load this encounter. Check your connection and try again.");
+          setEncounterError("This encounter is no longer available.");
           setEncounterLoading(false);
         }
         return;
@@ -827,7 +836,28 @@ function EncounterInner() {
         if (cancelled) return;
         const vc = createVideoClient();
         vcRef.current = vc;
-        vc.onRemoteChange((rs) => setRemoteUids(rs.map((r) => r.uid)));
+        myUidRef.current = tokenData.uid;
+        vc.onRemoteChange((rs) => setRemotes(rs));
+        // Real speaking detection — only mark tiles as speaking from actual
+        // audio levels (never faked). Defensive: optional on the interface.
+        try {
+          vc.onVolumes?.((levels) => {
+            const next = new Set<string>();
+            for (const v of levels) if (v.level > 5) next.add(String(v.uid));
+            setSpeakingUids((prev) => {
+              if (prev.size === next.size && [...next].every((u) => prev.has(u))) return prev;
+              return next;
+            });
+          });
+        } catch {}
+        // Connection lifecycle → reconnect banner / disconnected error.
+        try {
+          vc.onConnectionState?.((state) => {
+            setConnState(state);
+            if (state === "CONNECTED") setReconnectDismissed(false);
+            if (state === "DISCONNECTED") setVideoError("Couldn't connect video — you can still use chat.");
+          });
+        } catch {}
         await vc.join(tokenData, { audio: true, video: true });
         // If we were torn down mid-join, leave immediately so the next mount's
         // join (queued after this on the same chain) won't hit a uid conflict.
@@ -857,10 +887,7 @@ function EncounterInner() {
     return () => {
       if (tick) clearInterval(tick);
       if (bannerTimer) clearTimeout(bannerTimer);
-      if (endedNavigationTimeoutRef.current) {
-        clearTimeout(endedNavigationTimeoutRef.current);
-        endedNavigationTimeoutRef.current = null;
-      }
+      if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
       socket?.off(endedEvent, onEnded);
       socket?.off(activeEvent, onActive);
       // Mark this mount cancelled and queue the leave AFTER the in-flight join
@@ -873,7 +900,7 @@ function EncounterInner() {
       });
       setVideoJoined(false);
     };
-  }, [squadId, encId, router, encounterLoadRetry]);
+  }, [squadId, encId, router]);
 
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -910,6 +937,27 @@ function EncounterInner() {
     })),
   ];
 
+  // ── Truthful per-participant signals ─────────────────────────────────────
+  // Look up a remote participant's live track state by uid. Returns undefined
+  // when the uid is unknown or not (yet) connected.
+  const remoteFor = (uid: number | undefined): RemoteParticipant | undefined =>
+    uid == null ? undefined : remotes.find((r) => String(r.uid) === String(uid));
+  // Mic pill: local uses our own toggle; remotes use real hasAudio (undefined
+  // while connecting so no pill is faked).
+  const micOnFor = (isLocal: boolean, uid: number | undefined): boolean | undefined =>
+    isLocal ? micOn : remoteFor(uid)?.hasAudio;
+  // Fallback status: a remote we know about but with no tracks yet is
+  // "Connecting…"; a connected remote without video is "Camera off".
+  const statusTextFor = (isLocal: boolean, uid: number | undefined): string => {
+    if (isLocal) return "Camera off";
+    return remoteFor(uid) ? "Camera off" : "Connecting…";
+  };
+  // Real speaking state from audio levels (never faked).
+  const isSpeakingFor = (isLocal: boolean, uid: number | undefined): boolean => {
+    const key = isLocal ? myUidRef.current : uid;
+    return key != null && speakingUids.has(String(key));
+  };
+
   useEffect(() => {
     if (videoJoined && camOn && localElRef.current) {
       try {
@@ -930,7 +978,8 @@ function EncounterInner() {
         } catch {}
       }
     });
-  }, [remoteUids, videoJoined, view, encounter, focusedKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remotes, videoJoined, view, encounter, focusedKey]);
 
   async function toggleMic() {
     const previous = micOn;
@@ -965,10 +1014,10 @@ function EncounterInner() {
     setEnding(true);
     setVideoError(null);
     try {
+      await vcRef.current?.leave();
+    } catch {}
+    try {
       await api.disconnectEncounter(squadId, encId);
-      try {
-        await vcRef.current?.leave();
-      } catch {}
       router.push("/home");
     } catch (e) {
       setEnding(false);
@@ -989,16 +1038,17 @@ function EncounterInner() {
       return;
     }
     setReported(true);
-    setTimeout(() => setReported(false), 2500);
+    setUiTimeout(() => setReported(false), 2500);
   }
 
   // Spawn a floating emoji locally (used for both our own taps and ones we
   // receive from other participants over the socket).
   function spawnReaction(emoji: string) {
     const id = ++reactionCountRef.current;
-    const x = 30 + ((id * 17) % 40);
+    // Slightly randomized spawn position per tap so bursts don't stack in a line.
+    const x = 24 + Math.random() * 52;
     setFloatingReactions((prev) => [...prev, { id, emoji, x }]);
-    setTimeout(() => {
+    setUiTimeout(() => {
       setFloatingReactions((prev) => prev.filter((r) => r.id !== id));
     }, 1400);
   }
@@ -1028,6 +1078,23 @@ function EncounterInner() {
     });
     return unsub;
   }, [encId]);
+
+  // Unread chat tracking — mirrors the lobby: count messages from others while
+  // the chat panel is closed, and clear as soon as it opens.
+  const myUserId = session.user?.id;
+  useEffect(() => {
+    if (!encId || !squadId) return;
+    try { joinChat({ kind: "encounter", encounterId: encId, squadId }); } catch {}
+    const unsub = subscribeChat((m) => {
+      if (m.encounterId !== encId) return;
+      if (myUserId && m.userId === myUserId) return;
+      if (chatVisibleRef.current) return;
+      setUnread((u) => Math.min(u + 1, 99));
+    });
+    return unsub;
+  }, [encId, squadId, myUserId]);
+  chatVisibleRef.current = chatOpen;
+  useEffect(() => { if (chatOpen) setUnread(0); }, [chatOpen]);
 
   // Toggle focus on a participant key; clicking focused tile clears focus
   function handleTileClick(pkey: ParticipantKey) {
@@ -1063,7 +1130,7 @@ function EncounterInner() {
           flexDirection: "column",
           gap: 8,
           padding: isPhone ? "8px 8px 0 8px" : "12px 16px 0 16px",
-          animation: "focusPinIn 0.25s ease forwards",
+          animation: "focusPinIn 0.15s ease forwards",
         }}
       >
         {/* Themed room of the focused person's squad behind the whole stage */}
@@ -1077,15 +1144,12 @@ function EncounterInner() {
           <VideoTile
             name={focusedMember.name}
             colorIndex={focusedMember.ci}
-            micOn={focusedMember.squad === "yours" ? micOn : true}
+            micOn={micOnFor(focusedMember.squad === "yours" && focusedMember.ci === 0, focusedMember.uid)}
             videoRef={focusedRef}
             isLocal={focusedMember.squad === "yours" && focusedMember.ci === 0}
             localAvatarValue={myAvatar}
-            isSpeaking={
-              focusedMember.squad === "yours" &&
-              focusedMember.ci === 0 &&
-              micOn
-            }
+            isSpeaking={isSpeakingFor(focusedMember.squad === "yours" && focusedMember.ci === 0, focusedMember.uid)}
+            statusText={statusTextFor(focusedMember.squad === "yours" && focusedMember.ci === 0, focusedMember.uid)}
             onClick={() => handleTileClick(focusedMember.pkey)}
             focused
             showFocusHint
@@ -1126,10 +1190,12 @@ function EncounterInner() {
                   <VideoTile
                     name={m.name}
                     colorIndex={m.ci}
-                    micOn={m.squad === "yours" ? micOn : true}
+                    micOn={micOnFor(m.squad === "yours" && m.ci === 0, m.uid)}
                     videoRef={ref}
                     isLocal={m.squad === "yours" && m.ci === 0}
                     localAvatarValue={myAvatar}
+                    isSpeaking={isSpeakingFor(m.squad === "yours" && m.ci === 0, m.uid)}
+                    statusText={statusTextFor(m.squad === "yours" && m.ci === 0, m.uid)}
                     onClick={() => handleTileClick(m.pkey)}
                     showFocusHint
                     compact
@@ -1202,12 +1268,12 @@ function EncounterInner() {
             <CoverThumb cover={cover} squadKey={squadKey} tone={tone} size={20} radius={6} />
             <div
               style={{
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 color: accentColor,
                 letterSpacing: "0.12em",
                 textTransform: "uppercase" as const,
-                fontFamily: "var(--font-space-grotesk)",
+                fontFamily: "var(--font-display, var(--font-space-grotesk))",
                 opacity: 0.95,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -1231,7 +1297,7 @@ function EncounterInner() {
               // Desktop: stretch rows to evenly fill the full side height so the
               // tile(s) are generous and there are no empty top/bottom gaps.
               gridTemplateRows: `repeat(${versusRows}, 1fr)`,
-              gap: isPhone ? 10 : 10,
+              gap: 16,
               width: "100%",
               flex: 1,
               minHeight: 0,
@@ -1250,10 +1316,6 @@ function EncounterInner() {
                   // object-fit:cover frames the video nicely.
                   height: "100%",
                 }}
-                onClick={() => {
-                  const pkey: ParticipantKey = isMine ? `local-${i}` : `opp-${i}`;
-                  handleTileClick(pkey);
-                }}
               >
                 <VideoTile
                   name={m?.displayName ?? (isMine ? "You" : "Waiting…")}
@@ -1263,10 +1325,12 @@ function EncounterInner() {
                     (m as { uid?: number } | undefined)?.uid,
                     isMine ? undefined : i,
                   )}
-                  micOn={isMine ? micOn : true}
+                  micOn={micOnFor(isMine && i === 0, (m as { uid?: number } | undefined)?.uid)}
                   isLocal={isMine && i === 0}
                   localAvatarValue={myAvatar}
-                  isSpeaking={isMine && micOn && i === 0}
+                  isSpeaking={isSpeakingFor(isMine && i === 0, (m as { uid?: number } | undefined)?.uid)}
+                  statusText={statusTextFor(isMine && i === 0, (m as { uid?: number } | undefined)?.uid)}
+                  onClick={() => handleTileClick(isMine ? `local-${i}` : `opp-${i}`)}
                   showFocusHint
                 />
               </div>
@@ -1289,7 +1353,7 @@ function EncounterInner() {
           padding: isPhone ? "10px 12px 12px" : "12px 16px",
           flexDirection: isPhone ? "column" as const : "row" as const,
           overflow: "hidden",
-          animation: "viewTransition 0.25s ease forwards",
+          animation: "viewTransition 0.15s ease forwards",
         }}
       >
         {side(
@@ -1360,9 +1424,9 @@ function EncounterInner() {
           >
             <span
               style={{
-                fontFamily: "var(--font-space-grotesk)",
+                fontFamily: "var(--font-display, var(--font-space-grotesk))",
                 fontSize: 12,
-                fontWeight: 900,
+                fontWeight: 700,
                 letterSpacing: "0.08em",
                 background: "linear-gradient(135deg, #9B7CFF, #FF8A5C)",
                 WebkitBackgroundClip: "text",
@@ -1406,11 +1470,11 @@ function EncounterInner() {
           overflowY: isPhone ? "auto" as const : "hidden" as const,
           display: "grid",
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gap: 8,
+          gap: 16,
           padding: isPhone ? "10px" : "12px 16px",
           alignContent: "center",
           justifyContent: "center",
-          animation: "viewTransition 0.25s ease forwards",
+          animation: "viewTransition 0.15s ease forwards",
         }}
       >
         <SplitRoomBackdrop
@@ -1426,7 +1490,6 @@ function EncounterInner() {
               minHeight: 0,
               ...(isPhone ? { aspectRatio: "4/3" } : { aspectRatio: "16 / 9" }),
             }}
-            onClick={() => handleTileClick(m.pkey)}
           >
             <VideoTile
               name={m.name}
@@ -1436,10 +1499,12 @@ function EncounterInner() {
                 m.uid,
                 m.squad === "opp" ? m.ci - 4 : undefined,
               )}
-              micOn={m.squad === "yours" ? micOn : true}
+              micOn={micOnFor(m.squad === "yours" && m.ci === 0, m.uid)}
               isLocal={m.squad === "yours" && m.ci === 0}
               localAvatarValue={myAvatar}
-              isSpeaking={m.squad === "yours" && m.ci === 0 && micOn}
+              isSpeaking={isSpeakingFor(m.squad === "yours" && m.ci === 0, m.uid)}
+              statusText={statusTextFor(m.squad === "yours" && m.ci === 0, m.uid)}
+              onClick={() => handleTileClick(m.pkey)}
               showFocusHint
             />
           </div>
@@ -1463,7 +1528,7 @@ function EncounterInner() {
           flexDirection: "column",
           gap: 8,
           padding: isPhone ? "8px 8px 0 8px" : "12px 16px 0 16px",
-          animation: "viewTransition 0.25s ease forwards",
+          animation: "viewTransition 0.15s ease forwards",
         }}
       >
         <SplitRoomBackdrop
@@ -1473,13 +1538,12 @@ function EncounterInner() {
         {/* Main spotlight — large 16:9, centered (not stretched ultra-wide) */}
         <div
           style={{ position: "relative", zIndex: 1, flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-          onClick={() => handleTileClick(spotlight.pkey)}
         >
           <div style={{ height: "100%", maxWidth: "100%", aspectRatio: "16 / 9", maxHeight: "100%" }}>
           <VideoTile
             name={spotlight.name}
             colorIndex={spotlight.ci}
-            micOn={spotlight.squad === "yours" ? micOn : true}
+            micOn={micOnFor(spotlight.squad === "yours" && spotlight.ci === 0, spotlight.uid)}
             videoRef={participantRef(
               spotlight.squad === "yours" && spotlight.ci === 0,
               spotlight.uid,
@@ -1487,7 +1551,9 @@ function EncounterInner() {
             )}
             isLocal={spotlight.squad === "yours" && spotlight.ci === 0}
             localAvatarValue={myAvatar}
-            isSpeaking={spotlight.squad === "yours" && spotlight.ci === 0 && micOn}
+            isSpeaking={isSpeakingFor(spotlight.squad === "yours" && spotlight.ci === 0, spotlight.uid)}
+            statusText={statusTextFor(spotlight.squad === "yours" && spotlight.ci === 0, spotlight.uid)}
+            onClick={() => handleTileClick(spotlight.pkey)}
             style={{ height: "100%" }}
             showFocusHint
           />
@@ -1514,17 +1580,21 @@ function EncounterInner() {
                   aspectRatio: isPhone ? "4/3" : "16/9",
                   flexShrink: 0,
                 }}
-                onClick={() => handleTileClick(m.pkey)}
               >
                 <VideoTile
                   name={m.name}
                   colorIndex={m.ci}
-                  micOn={m.squad === "yours" ? micOn : true}
+                  micOn={micOnFor(m.squad === "yours" && m.ci === 0, m.uid)}
                   videoRef={participantRef(
                     m.squad === "yours" && m.ci === 0,
                     m.uid,
                     m.squad === "opp" ? m.ci - 4 : undefined,
                   )}
+                  isLocal={m.squad === "yours" && m.ci === 0}
+                  localAvatarValue={myAvatar}
+                  isSpeaking={isSpeakingFor(m.squad === "yours" && m.ci === 0, m.uid)}
+                  statusText={statusTextFor(m.squad === "yours" && m.ci === 0, m.uid)}
+                  onClick={() => handleTileClick(m.pkey)}
                   showFocusHint
                   compact
                 />
@@ -1551,7 +1621,7 @@ function EncounterInner() {
           flexDirection: "column",
           gap: 8,
           padding: isPhone ? "8px 8px 0 8px" : "12px 16px 0 16px",
-          animation: "viewTransition 0.25s ease forwards",
+          animation: "viewTransition 0.15s ease forwards",
         }}
       >
         {/* Opponent tiles — fill the bulk of the stage, over the opponent's
@@ -1571,7 +1641,7 @@ function EncounterInner() {
             minHeight: 0,
             display: "grid",
             gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            gap: 8,
+            gap: 16,
             alignContent: "center",
             justifyContent: "center",
             borderRadius: 16,
@@ -1583,13 +1653,15 @@ function EncounterInner() {
             <div
               key={m.memberId}
               style={{ position: "relative", zIndex: 1, minHeight: 0, ...(isPhone ? { aspectRatio: "4/3" } : { aspectRatio: "16 / 9" }) }}
-              onClick={() => handleTileClick(`opp-${i}` as ParticipantKey)}
             >
               <VideoTile
                 name={m.displayName}
                 colorIndex={i + 4}
                 videoRef={participantRef(false, (m as { uid?: number }).uid, i)}
-                micOn
+                micOn={micOnFor(false, (m as { uid?: number }).uid)}
+                isSpeaking={isSpeakingFor(false, (m as { uid?: number }).uid)}
+                statusText={statusTextFor(false, (m as { uid?: number }).uid)}
+                onClick={() => handleTileClick(`opp-${i}` as ParticipantKey)}
                 showFocusHint
               />
             </div>
@@ -1623,16 +1695,17 @@ function EncounterInner() {
                 aspectRatio: isPhone ? "4/3" : "16/9",
                 flexShrink: 0,
               }}
-              onClick={() => handleTileClick(`local-${i}` as ParticipantKey)}
             >
               <VideoTile
                 name={m.displayName}
                 colorIndex={i}
                 videoRef={participantRef(i === 0, (m as { uid?: number }).uid, undefined)}
-                micOn={micOn}
+                micOn={micOnFor(i === 0, (m as { uid?: number }).uid)}
                 isLocal={i === 0}
                 localAvatarValue={myAvatar}
-                isSpeaking={i === 0 && micOn}
+                isSpeaking={isSpeakingFor(i === 0, (m as { uid?: number }).uid)}
+                statusText={statusTextFor(i === 0, (m as { uid?: number }).uid)}
+                onClick={() => handleTileClick(`local-${i}` as ParticipantKey)}
                 showFocusHint
                 compact
               />
@@ -1665,7 +1738,8 @@ function EncounterInner() {
       active: micOn,
       danger: true,
       onClick: toggleMic,
-      title: micOn ? "Mute mic" : "Unmute mic",
+      title: micOn ? "Mute microphone" : "Unmute microphone",
+      badge: 0,
     },
     {
       id: "cam",
@@ -1674,6 +1748,7 @@ function EncounterInner() {
       danger: true,
       onClick: toggleCam,
       title: camOn ? "Turn camera off" : "Turn camera on",
+      badge: 0,
     },
     {
       id: "chat",
@@ -1682,14 +1757,16 @@ function EncounterInner() {
       danger: false,
       onClick: () => setChatOpen(!chatOpen),
       title: "Chat",
+      badge: !chatOpen && unread > 0 ? unread : 0,
     },
     {
       id: "report",
       icon: <Icon.flag size={20} color={reported ? "#C2FF3D" : "#C7C7D6"} />,
-      active: undefined as boolean | undefined,
+      active: reported as boolean | undefined,
       danger: false,
       onClick: handleReport,
-      title: reported ? "Reported ✓" : "Report opponent squad",
+      title: reported ? "Reported" : "Report opponent squad",
+      badge: 0,
     },
   ];
 
@@ -1700,18 +1777,18 @@ function EncounterInner() {
 
   if (!squadId || !encId) {
     return (
-      <div data-theme="dark" style={{ height: "100%", display: "grid", placeItems: "center", background: "#080A0B", padding: 24 }}>
-        <div style={{ width: "min(460px, 100%)", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, textAlign: "center", boxShadow: "var(--elev)" }}>
+      <div data-theme="dark" style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--stage, #1B1420)", padding: 24 }}>
+        <div style={{ width: "min(460px, 100%)", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, textAlign: "center", boxShadow: "var(--shadow-card, var(--elev))" }}>
           <div style={{ width: 54, height: 54, borderRadius: 16, margin: "0 auto 16px", display: "grid", placeItems: "center", background: "var(--overlay)", border: "1px solid var(--border)" }}>
             <Icon.cam size={24} color="var(--lime)" />
           </div>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 24, letterSpacing: "-0.03em" }}>Encounter unavailable</h1>
-          <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14.5 }}>This live room link is missing required details.</p>
+          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>Encounter unavailable</h1>
+          <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14 }}>This live room link is missing required details.</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             {squadId && (
-              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Back to lobby</button>
+              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Back to lobby</button>
             )}
-            <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 800, cursor: "pointer" }}>Home</button>
+            <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: "pointer" }}>Home</button>
           </div>
         </div>
       </div>
@@ -1720,7 +1797,7 @@ function EncounterInner() {
 
   if (encounterLoading) {
     return (
-      <div data-theme="dark" style={{ height: "100%", display: "grid", placeItems: "center", background: "#080A0B", padding: 24 }}>
+      <div data-theme="dark" style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--stage, #1B1420)", padding: 24 }}>
         <WaitingForSquad label="Opening encounter..." />
       </div>
     );
@@ -1728,21 +1805,18 @@ function EncounterInner() {
 
   if (encounterError || !encounter) {
     return (
-      <div data-theme="dark" style={{ height: "100%", display: "grid", placeItems: "center", background: "#080A0B", padding: 24 }}>
-        <div style={{ width: "min(460px, 100%)", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, textAlign: "center", boxShadow: "var(--elev)" }}>
+      <div data-theme="dark" style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--stage, #1B1420)", padding: 24 }}>
+        <div style={{ width: "min(460px, 100%)", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, textAlign: "center", boxShadow: "var(--shadow-card, var(--elev))" }}>
           <div style={{ width: 54, height: 54, borderRadius: 16, margin: "0 auto 16px", display: "grid", placeItems: "center", background: "var(--overlay)", border: "1px solid var(--border)" }}>
             <Icon.cam size={24} color="var(--lime)" />
           </div>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-space-grotesk)", fontSize: 24, letterSpacing: "-0.03em" }}>{encounterExpired ? "Encounter ended" : "Couldn't open encounter"}</h1>
-          <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14.5 }}>{encounterError ?? "This live room could not be loaded."}</p>
+          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>Encounter unavailable</h1>
+          <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14 }}>{encounterError ?? "This live room could not be loaded."}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            {!encounterExpired && (
-              <button onClick={() => setEncounterLoadRetry(value => value + 1)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Retry</button>
-            )}
             {squadId && (
-              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: encounterExpired ? "none" : "1px solid var(--border)", background: encounterExpired ? "var(--violet)" : "var(--overlay)", color: "#fff", fontWeight: 800, cursor: "pointer" }}>Back to lobby</button>
+              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Back to lobby</button>
             )}
-            <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 800, cursor: "pointer" }}>Home</button>
+            <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: "pointer" }}>Home</button>
           </div>
         </div>
       </div>
@@ -1758,7 +1832,8 @@ function EncounterInner() {
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          background: "#0B0B0F",
+          // Video stage stays dark in ALL themes — never --bg/--surface here.
+          background: "var(--stage, #1B1420)",
           overflow: "hidden",
         }}
       >
@@ -1785,9 +1860,9 @@ function EncounterInner() {
             <CoverThumb cover={mySquad?.cover} squadKey={mySquad?.id ?? "mine"} tone="yours" size={isPhone ? 16 : 18} radius={5} />
             <span
               style={{
-                fontFamily: "var(--font-space-grotesk)",
+                fontFamily: "var(--font-display, var(--font-space-grotesk))",
                 fontWeight: 700,
-                fontSize: isPhone ? 13 : 15,
+                fontSize: isPhone ? 13 : 14,
                 color: lime,
                 whiteSpace: "nowrap" as const,
                 overflow: "hidden",
@@ -1803,9 +1878,9 @@ function EncounterInner() {
             <CoverThumb cover={oppSquad?.cover} squadKey={oppSquad?.id ?? "opp"} tone="theirs" size={isPhone ? 16 : 18} radius={5} />
             <span
               style={{
-                fontFamily: "var(--font-space-grotesk)",
+                fontFamily: "var(--font-display, var(--font-space-grotesk))",
                 fontWeight: 700,
-                fontSize: isPhone ? 13 : 15,
+                fontSize: isPhone ? 13 : 14,
                 color: coral,
                 whiteSpace: "nowrap" as const,
                 overflow: "hidden",
@@ -1834,10 +1909,10 @@ function EncounterInner() {
                 fontWeight: 600,
                 color: "#C4B5FF",
                 flexShrink: 0,
-                fontFamily: "var(--font-space-grotesk)",
+                fontFamily: "var(--font-display, var(--font-space-grotesk))",
               }}
             >
-              <span>📌</span>
+              <Icon.pin size={12} color="#C4B5FF" />
               <span style={{ maxWidth: isPhone ? 70 : 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{focusedMemberName}</span>
               <button
                 onClick={() => setFocusedKey(null)}
@@ -1853,8 +1928,9 @@ function EncounterInner() {
                   alignItems: "center",
                 }}
                 title="Exit focus"
+                aria-label="Exit focus"
               >
-                ✕
+                <Icon.close size={12} color="#9A9AB0" />
               </button>
             </div>
           )}
@@ -1864,8 +1940,11 @@ function EncounterInner() {
 
           {/* View mode switcher — horizontally scrollable strip; shrinks before
               the squad names do so it never forces overflow on phone. */}
-          <div style={{ overflowX: "auto" as const, flexShrink: isCompactPhone ? 0 : 1, minWidth: 0, width: isCompactPhone ? "max-content" : undefined, margin: isCompactPhone ? "0 auto" : 0, WebkitOverflowScrolling: "touch" }}>
+          <div style={{ position: "relative", flexShrink: isCompactPhone ? 0 : 1, minWidth: 0, width: isCompactPhone ? "max-content" : undefined, margin: isCompactPhone ? "0 auto" : 0 }}>
+          <div style={{ overflowX: "auto" as const, minWidth: 0, WebkitOverflowScrolling: "touch" }}>
           <div
+            role="tablist"
+            aria-label="View mode"
             style={{
               display: "inline-flex",
               gap: 4,
@@ -1882,6 +1961,8 @@ function EncounterInner() {
               return (
                 <button
                   key={mode}
+                  role="tab"
+                  aria-selected={isActive}
                   onClick={() => { setView(mode); setFocusedKey(null); }}
                   onMouseEnter={() => setHoveredViewMode(mode)}
                   onMouseLeave={() => setHoveredViewMode(null)}
@@ -1912,21 +1993,39 @@ function EncounterInner() {
             })}
           </div>
           </div>
+          {/* Phone scroll hint — a subtle right-edge fade signalling more modes */}
+          {isPhone && (
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: 0,
+                bottom: 0,
+                right: 0,
+                width: 22,
+                pointerEvents: "none",
+                background: "linear-gradient(to right, transparent, rgba(14,14,20,0.92))",
+                borderRadius: "0 999px 999px 0",
+              }}
+            />
+          )}
+          </div>
 
           {/* LIVE pill + timer */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+          {/* Always visible — squad names truncate/hide first on tight phones. */}
+          <div style={{ display: "flex", alignItems: "center", gap: isPhone ? 6 : 10, flexShrink: 0 }}>
             <span
               style={{
-                display: isPhone ? "none" : "flex",
+                display: "flex",
                 alignItems: "center",
-                gap: 5,
-                fontSize: 11,
+                gap: isPhone ? 4 : 5,
+                fontSize: 12,
                 fontWeight: 700,
                 color: coral,
                 background: "color-mix(in srgb, var(--coral, #FF5C5C) 10%, transparent)",
                 border: "1px solid color-mix(in srgb, var(--coral, #FF5C5C) 20%, transparent)",
                 borderRadius: 999,
-                padding: "3px 10px",
+                padding: isPhone ? "2px 7px" : "3px 10px",
                 letterSpacing: "0.08em",
               }}
             >
@@ -1944,12 +2043,11 @@ function EncounterInner() {
             </span>
             <span
               style={{
-                fontFamily: "var(--font-space-grotesk)",
-                fontSize: 15,
+                fontFamily: "var(--font-display, var(--font-space-grotesk))",
+                fontSize: isPhone ? 13 : 14,
                 fontWeight: 700,
                 color: textPrimary,
-                minWidth: 48,
-                display: isPhone ? "none" : undefined,
+                minWidth: isPhone ? 38 : 48,
               }}
             >
               {fmt(elapsed)}
@@ -1972,21 +2070,33 @@ function EncounterInner() {
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              background: "#08080B",
+              background: "var(--stage-2, #2A2135)",
               position: "relative",
               minHeight: 0,
               overflow: "hidden",
             }}
           >
+            {/* Top toast stack — banners stack vertically instead of overlapping */}
+            <div
+              style={{
+                position: "absolute",
+                top: 18,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 32,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 8,
+                maxWidth: "calc(100% - 24px)",
+                pointerEvents: "none",
+              }}
+            >
             {/* "Squads meeting" entrance banner */}
             {showBanner && (
               <div
                 style={{
-                  position: "absolute",
-                  top: 18,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 30,
+                  pointerEvents: "auto",
                   background: "rgba(18,18,26,0.92)",
                   backdropFilter: "blur(16px)",
                   border: "1px solid rgba(255,255,255,0.12)",
@@ -2003,14 +2113,14 @@ function EncounterInner() {
                 <span style={{ fontSize: 14 }}>🤝</span>
                 <span
                   style={{
-                    fontFamily: "var(--font-space-grotesk)",
+                    fontFamily: "var(--font-display, var(--font-space-grotesk))",
                     fontSize: 13,
                     fontWeight: 600,
                     color: textPrimary,
                   }}
                 >
                   You&apos;re now meeting{" "}
-                  <span style={{ color: coral, fontWeight: 800 }}>
+                  <span style={{ color: coral, fontWeight: 700 }}>
                     {oppSquad?.name ?? "the opponent squad"}
                   </span>
                 </span>
@@ -2022,24 +2132,21 @@ function EncounterInner() {
             {videoError && (
               <div
                 style={{
-                  position: "absolute",
-                  top: 18,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 32,
-                  maxWidth: "calc(100% - 24px)",
+                  pointerEvents: "auto",
+                  maxWidth: "100%",
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
                   background: "var(--surface, rgba(22,22,30,0.97))",
-                  border: `1px solid ${coral}`,
+                  backgroundImage: "linear-gradient(var(--coral-soft), var(--coral-soft))",
+                  border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
                   borderRadius: 12,
                   padding: "9px 12px 9px 14px",
                   boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
                 }}
               >
                 <span style={{ width: 7, height: 7, borderRadius: 999, background: coral, flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 500, color: textPrimary, lineHeight: 1.4 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--coral)", lineHeight: 1.4 }}>
                   {videoError}
                 </span>
                 <button
@@ -2066,12 +2173,9 @@ function EncounterInner() {
             {/* "Reported" confirmation toast */}
             {reported && (
               <div
+                role="status"
                 style={{
-                  position: "absolute",
-                  top: 18,
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  zIndex: 31,
+                  pointerEvents: "auto",
                   background: "rgba(18,18,26,0.94)",
                   backdropFilter: "blur(16px)",
                   border: "1px solid rgba(194,255,61,0.4)",
@@ -2082,7 +2186,7 @@ function EncounterInner() {
                   gap: 8,
                   whiteSpace: "nowrap" as const,
                   boxShadow: "0 4px 30px rgba(0,0,0,0.5)",
-                  fontFamily: "var(--font-space-grotesk)",
+                  fontFamily: "var(--font-display, var(--font-space-grotesk))",
                   fontSize: 13,
                   fontWeight: 700,
                   color: lime,
@@ -2092,6 +2196,59 @@ function EncounterInner() {
                 Reported — thanks for keeping Giggle safe
               </div>
             )}
+
+            {/* Reconnecting banner — real Agora connection state, dismissible */}
+            {connState === "RECONNECTING" && !reconnectDismissed && (
+              <div
+                role="status"
+                style={{
+                  pointerEvents: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  background: "rgba(18,18,26,0.94)",
+                  backdropFilter: "blur(16px)",
+                  border: "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
+                  borderRadius: 12,
+                  padding: "9px 12px 9px 14px",
+                  boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+                }}
+              >
+                <span
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: 999,
+                    border: "2px solid color-mix(in srgb, var(--amber) 25%, transparent)",
+                    borderTopColor: "var(--amber)",
+                    animation: "gg-spin 0.9s linear infinite",
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}>
+                  Reconnecting…
+                </span>
+                <button
+                  onClick={() => setReconnectDismissed(true)}
+                  title="Dismiss"
+                  aria-label="Dismiss reconnecting notice"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: textMuted,
+                    fontSize: 16,
+                    lineHeight: 1,
+                    padding: "0 2px",
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            </div>
 
             {/* Encounter-ended overlay (opponent left / server ended) */}
             {endedNotice && (
@@ -2112,15 +2269,44 @@ function EncounterInner() {
                 <div style={{ fontSize: 30 }}>👋</div>
                 <div
                   style={{
-                    fontFamily: "var(--font-space-grotesk)",
-                    fontSize: 18,
-                    fontWeight: 800,
+                    fontFamily: "var(--font-display, var(--font-space-grotesk))",
+                    fontSize: 22,
+                    fontWeight: 700,
                     color: textPrimary,
                   }}
                 >
-                  Encounter ended
+                  {endedReason === "opponent-left" ? "The other squad left" : "Encounter ended"}
                 </div>
-                <div style={{ fontSize: 13, color: textMuted }}>Taking you back home…</div>
+                <div style={{ fontSize: 13, color: textMuted }}>
+                  {endedReason === "opponent-left"
+                    ? "You can jump straight into another match."
+                    : "Thanks for hanging out."}
+                </div>
+                <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  <Button
+                    onClick={async () => {
+                      if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
+                      setFindingNextMatch(true);
+                      // Mirror how the lobby enters matchmaking: start the
+                      // search server-side, then open the matchmaking screen.
+                      try { await api.startSearch(squadId); } catch {}
+                      router.push(`/matchmaking?squad=${squadId}`);
+                    }}
+                    loading={findingNextMatch}
+                    variant="primary"
+                  >
+                    Find another match
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
+                      router.push("/home");
+                    }}
+                    variant="secondary"
+                  >
+                    Back home
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -2153,6 +2339,7 @@ function EncounterInner() {
 
             {/* Tile area — paddingBottom leaves space for the floating control bar */}
             <div
+              data-testid="encounter-stage"
               style={{
                 position: "relative",
                 zIndex: 1,
@@ -2179,6 +2366,9 @@ function EncounterInner() {
               }}
             >
               <div
+                data-testid="call-controls"
+                role="toolbar"
+                aria-label="Encounter controls"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -2187,7 +2377,7 @@ function EncounterInner() {
                   backdropFilter: "blur(22px)",
                   WebkitBackdropFilter: "blur(22px)",
                   border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: isPhone ? 24 : 999,
+                  borderRadius: "var(--radius-card, 20px)",
                   padding: isPhone ? "9px 10px" : "10px 16px",
                   animation: "controlIn 0.5s cubic-bezier(.22,1,.36,1) 0.2s forwards",
                   opacity: 0,
@@ -2198,23 +2388,23 @@ function EncounterInner() {
                   maxWidth: "calc(100vw - 16px)",
                 }}
               >
-                {ctrlBtns.map(({ id, icon, active, danger, onClick, title }) => {
+                {ctrlBtns.map(({ id, icon, active, danger, onClick, title, badge }) => {
                   const hov = hoveredCtrl === id;
                   let bg: string;
                   let ring = "inset 0 1px 0 rgba(255,255,255,0.06)";
                   let brdr = "1px solid rgba(255,255,255,0.10)";
                   if (danger && active === false) {
-                    // mic/cam OFF — confident coral state
-                    bg = hov ? "#FF6B6B" : "#FF5C5C";
-                    ring = "0 0 20px -3px rgba(255,92,92,0.85), inset 0 1px 0 rgba(255,255,255,0.2)";
-                    brdr = "1px solid #FF5C5C";
+                    // mic/cam OFF — confident coral state (v3: danger = --coral)
+                    bg = hov ? "color-mix(in srgb, var(--coral) 85%, #fff)" : "var(--coral)";
+                    ring = "0 0 20px -3px color-mix(in srgb, var(--coral) 85%, transparent), inset 0 1px 0 rgba(255,255,255,0.2)";
+                    brdr = "1px solid var(--coral)";
                   } else if (danger && active === true) {
-                    // mic/cam ON — subtle teal-lit "live" glass
-                    bg = hov ? "rgba(61,214,192,0.22)" : "rgba(255,255,255,0.08)";
+                    // mic/cam ON — subtle live-tinted glass (v3: active = --live)
+                    bg = hov ? "color-mix(in srgb, var(--live) 22%, transparent)" : "rgba(255,255,255,0.08)";
                     ring = hov
-                      ? "0 0 16px -4px rgba(61,214,192,0.6), inset 0 1px 0 rgba(255,255,255,0.08)"
+                      ? "0 0 16px -4px color-mix(in srgb, var(--live) 60%, transparent), inset 0 1px 0 rgba(255,255,255,0.08)"
                       : "inset 0 1px 0 rgba(255,255,255,0.08)";
-                    brdr = hov ? "1px solid rgba(61,214,192,0.5)" : "1px solid rgba(255,255,255,0.12)";
+                    brdr = hov ? "1px solid color-mix(in srgb, var(--live) 50%, transparent)" : "1px solid rgba(255,255,255,0.12)";
                   } else if (!danger && active === true) {
                     bg = hov ? "rgba(124,92,255,0.42)" : "rgba(124,92,255,0.28)";
                     ring = "0 0 16px -4px rgba(124,92,255,0.6), inset 0 1px 0 rgba(255,255,255,0.08)";
@@ -2229,11 +2419,14 @@ function EncounterInner() {
                       onMouseEnter={() => setHoveredCtrl(id)}
                       onMouseLeave={() => setHoveredCtrl(null)}
                       title={title}
+                      aria-label={title}
                       aria-pressed={typeof active === "boolean" ? active : undefined}
+                      className="gg-press"
                       style={{
-                        width: isPhone ? 40 : 48,
-                        height: isPhone ? 40 : 48,
-                        borderRadius: 999,
+                        position: "relative",
+                        width: isPhone ? 44 : 48,
+                        height: isPhone ? 44 : 48,
+                        borderRadius: "var(--radius-control, 14px)",
                         border: brdr,
                         cursor: "pointer",
                         display: "flex",
@@ -2246,6 +2439,30 @@ function EncounterInner() {
                       }}
                     >
                       {icon}
+                      {badge > 0 && (
+                        <span
+                          aria-label={`${badge} unread message${badge === 1 ? "" : "s"}`}
+                          style={{
+                            position: "absolute",
+                            top: -3,
+                            right: -3,
+                            minWidth: 18,
+                            height: 18,
+                            padding: "0 4px",
+                            borderRadius: 999,
+                            background: coral,
+                            color: "#fff",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            lineHeight: "18px",
+                            textAlign: "center" as const,
+                            border: "1.5px solid rgba(14,14,20,0.94)",
+                            boxSizing: "border-box",
+                          }}
+                        >
+                          {badge > 9 ? "9+" : badge}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -2267,11 +2484,13 @@ function EncounterInner() {
                     <button
                       onClick={() => setReactionsOpen((o) => !o)}
                       title="Reactions"
+                      aria-label="Reactions"
                       aria-expanded={reactionsOpen}
+                      className="gg-press"
                       style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 999,
+                        width: 44,
+                        height: 44,
+                        borderRadius: "var(--radius-control, 14px)",
                         border: "1px solid rgba(255,255,255,0.10)",
                         cursor: "pointer",
                         display: "flex",
@@ -2309,10 +2528,12 @@ function EncounterInner() {
                             key={emoji}
                             onClick={() => { fireReaction(emoji); setReactionsOpen(false); }}
                             title={`React ${emoji}`}
+                            aria-label={`React ${emoji}`}
+                            className="gg-press"
                             style={{
-                              width: 40,
-                              height: 40,
-                              borderRadius: 999,
+                              width: 44,
+                              height: 44,
+                              borderRadius: "var(--radius-control, 14px)",
                               border: "none",
                               cursor: "pointer",
                               display: "flex",
@@ -2345,11 +2566,13 @@ function EncounterInner() {
                 <button
                   onClick={handleEnd}
                   disabled={ending}
+                  aria-label="End encounter"
                   onMouseEnter={() => setHoveredCtrl("end")}
                   onMouseLeave={() => setHoveredCtrl(null)}
+                  className="gg-press"
                   style={{
                     height: isPhone ? 40 : 48,
-                    borderRadius: 999,
+                    borderRadius: "var(--radius-control, 14px)",
                     border: "none",
                     cursor: ending ? "default" : "pointer",
                     padding: isPhone ? "0 14px" : "0 22px",
@@ -2357,11 +2580,11 @@ function EncounterInner() {
                     alignItems: "center",
                     gap: 7,
                     background:
-                      hoveredCtrl === "end" && !ending ? "#d94444" : coral,
+                      hoveredCtrl === "end" && !ending ? "color-mix(in srgb, var(--coral) 82%, black)" : coral,
                     color: "#fff",
-                    fontFamily: "var(--font-space-grotesk)",
+                    fontFamily: "var(--font-display, var(--font-space-grotesk))",
                     fontSize: 14,
-                    fontWeight: 800,
+                    fontWeight: 700,
                     boxShadow:
                       hoveredCtrl === "end"
                         ? `0 0 40px -4px ${coral}, 0 0 0 3px color-mix(in srgb, var(--coral, #FF5C5C) 27%, transparent)`

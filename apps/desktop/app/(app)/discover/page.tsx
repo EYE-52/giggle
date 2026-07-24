@@ -5,12 +5,15 @@ import { Icon } from "@/components/Icons";
 import { SquadCard } from "@/components/SquadCard";
 import { SquadPreview } from "@/components/SquadPreview";
 import { PageHeader } from "@/components/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
+import { Chip } from "@/components/Chip";
+import { Button } from "@/components/Button";
 import { useViewport } from "@/components/useViewport";
-import { api, session, randomSquadName, VIBES, type PublicSquad } from "@giggle/core";
+import { api, session, randomSquadName, type PublicSquad } from "@giggle/core";
 
 export default function DiscoverPage() {
   const router = useRouter();
-  const { isPhone, isTablet } = useViewport();
+  const { isPhone } = useViewport();
 
   const [squads, setSquads] = useState<PublicSquad[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,9 +23,6 @@ export default function DiscoverPage() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [previewSquad, setPreviewSquad] = useState<PublicSquad | null>(null);
   const [requestNotice, setRequestNotice] = useState<string | null>(null);
-  const [ctaHover, setCtaHover] = useState(false);
-  const [retryHover, setRetryHover] = useState(false);
-  const [preferredVibes, setPreferredVibes] = useState<string[]>([]);
 
   // Optional ?vibe=<name> deep-link (from Home's Trending Vibes) → filter to
   // open squads that share that vibe.
@@ -34,28 +34,41 @@ export default function DiscoverPage() {
     } catch {}
   }, []);
   const norm = (t: string) => t.replace(/^[^\w]+/, "").trim().toLowerCase();
-  useEffect(() => {
-    let alive = true;
-    api.getMyProfile()
-      .then(profile => { if (alive) setPreferredVibes(profile.vibes ?? []); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
-  const filtered = vibe
+  const shown = vibe
     ? squads.filter(s => (s.tags ?? []).some(t => norm(t) === vibe.toLowerCase()))
     : squads;
-  const preferenceSet = new Set(preferredVibes.map(norm));
-  const relevance = (squad: PublicSquad) => (squad.tags ?? []).filter(tag => preferenceSet.has(norm(tag))).length;
-  const shown = vibe || preferenceSet.size === 0
-    ? filtered
-    : [...filtered].sort((a, b) => relevance(b) - relevance(a));
   const hasOpenSquads = squads.length > 0;
-  const hasMatchingSquads = shown.length > 0;
-  const hasInstantSquads = squads.some(squad => (squad.joinPolicy ?? "open") === "open");
 
-  const violet = "var(--violet)";
+  // In-page vibe filter chips, derived from the loaded squads' vibes (top 8 by
+  // count). Clicking one applies the same filter as the ?vibe= deep link.
+  const vibeChips = (() => {
+    const counts = new Map<string, { label: string; n: number }>();
+    for (const s of squads) {
+      for (const t of s.tags ?? []) {
+        const key = norm(t);
+        if (!key) continue;
+        const cur = counts.get(key);
+        if (cur) cur.n += 1;
+        else counts.set(key, { label: t, n: 1 });
+      }
+    }
+    return [...counts.entries()]
+      .sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]))
+      .slice(0, 8)
+      .map(([key, v]) => ({ key, label: v.label }));
+  })();
+
+  function applyVibe(next: string | null) {
+    setVibe(next);
+    router.replace(next ? `/discover?vibe=${encodeURIComponent(next)}` : "/discover");
+  }
+
+  const violet = "var(--accent, var(--violet))";
   const text = "var(--text)";
   const muted = "var(--text-muted)";
+  const radiusCard = "var(--radius-card, 20px)";
+  const radiusControl = "var(--radius-control, 14px)";
+  const fontDisplay = "var(--font-display, var(--font-space-grotesk))";
 
   function ensureAuthed() {
     if (session.isAuthed()) return true;
@@ -70,8 +83,7 @@ export default function DiscoverPage() {
     try {
       const { squads } = await api.discoverSquads();
       setSquads(squads ?? []);
-    } catch (e) {
-      console.error("discoverSquads failed:", e);
+    } catch {
       setError(true);
     } finally {
       setLoading(false);
@@ -116,31 +128,12 @@ export default function DiscoverPage() {
     goToLobby(squadId);
   }
 
-  function selectVibe(next: string | null) {
-    setVibe(next);
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (next) params.set("vibe", next);
-      else params.delete("vibe");
-      const query = params.toString();
-      window.history.replaceState(null, "", query ? `/discover?${query}` : "/discover");
-    } catch {}
-  }
-
-  function handleHeaderAction() {
-    if (vibe && shown.length) {
-      handlePreview(shown[Math.floor(Math.random() * shown.length)]);
-      return;
-    }
-    void handleRandom();
-  }
-
   async function handleCreate() {
     setJoinError(null);
     if (!ensureAuthed()) return;
     setCreating(true);
     try {
-      const squad = await api.createSquad({ squadName: randomSquadName(), tags: vibe ? [vibe] : [], visibility: "open" });
+      const squad = await api.createSquad({ squadName: randomSquadName(), tags: vibe ? [vibe] : [] });
       goToLobby(squad.squadId);
     } catch (e: any) {
       console.error("createSquad failed:", e);
@@ -158,23 +151,10 @@ export default function DiscoverPage() {
       <PageHeader
         title="Discover squads"
         subtitle="Find a crew that matches your mood. Preview before joining."
-        right={(vibe ? hasMatchingSquads : hasInstantSquads) ? (
-          <button
-            onClick={handleHeaderAction}
-            disabled={randomLoading}
-            onMouseEnter={() => setCtaHover(true)}
-            onMouseLeave={() => setCtaHover(false)}
-            className="gg-press"
-            style={{
-              height: 44, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border-strong)", cursor: randomLoading ? "wait" : "pointer",
-              background: ctaHover ? "var(--overlay-hover)" : "transparent", color: "var(--text)",
-              fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14,
-              opacity: randomLoading ? 0.75 : 1,
-              display: "inline-flex", alignItems: "center", gap: 8,
-            }}
-          >
-            {randomLoading ? (<><span className="gg-spinner" /> Finding…</>) : (<><Icon.lightning size={15} color="var(--violet)" /> {vibe ? "Preview match" : "Join random"}</>)}
-          </button>
+        right={loading || hasOpenSquads ? (
+          <Button variant="tonal" onClick={handleRandom} disabled={loading} loading={randomLoading}>
+            {randomLoading ? "Finding…" : (<><Icon.lightning size={15} color={violet} /> Surprise me</>)}
+          </Button>
         ) : undefined}
       />
 
@@ -182,9 +162,9 @@ export default function DiscoverPage() {
       {joinError && (
         <div role="alert" className="gg-toast" style={{
           display: "flex", alignItems: "center", gap: 8,
-          background: "color-mix(in srgb, var(--coral) 12%, var(--surface))",
+          background: "var(--coral-soft)",
           border: "1px solid color-mix(in srgb, var(--coral) 45%, transparent)",
-          borderRadius: 12, padding: "10px 14px",
+          borderRadius: radiusControl, padding: "10px 14px",
           fontSize: 13, fontWeight: 600, color: "var(--coral)",
         }}>
           <Icon.flag size={14} color="var(--coral)" />
@@ -192,7 +172,7 @@ export default function DiscoverPage() {
           <button
             onClick={() => setJoinError(null)}
             aria-label="Dismiss"
-            style={{ width: 44, height: 44, margin: "-10px -10px -10px 0", background: "none", border: "none", cursor: "pointer", color: "var(--coral)", padding: 0, display: "grid", placeItems: "center" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--coral)", padding: 0, display: "flex" }}
           >
             <Icon.close size={14} color="var(--coral)" />
           </button>
@@ -203,51 +183,59 @@ export default function DiscoverPage() {
       {requestNotice && (
         <div role="status" className="gg-toast" style={{
           display: "flex", alignItems: "center", gap: 8,
-          background: "color-mix(in srgb, var(--lime) 12%, var(--surface))",
-          border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)",
-          borderRadius: 12, padding: "10px 14px",
+          background: "var(--live-soft)",
+          border: "1px solid color-mix(in srgb, var(--live, var(--lime)) 45%, transparent)",
+          borderRadius: radiusControl, padding: "10px 14px",
           fontSize: 13, fontWeight: 600, color: "var(--text)",
         }}>
-          <Icon.send size={14} color="var(--lime)" />
+          <Icon.send size={14} color="var(--live, var(--lime))" />
           <span style={{ flex: 1 }}>{requestNotice}</span>
           <button
             onClick={() => setRequestNotice(null)}
             aria-label="Dismiss"
-            style={{ width: 44, height: 44, margin: "-10px -10px -10px 0", background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "grid", placeItems: "center" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 0, display: "flex" }}
           >
             <Icon.close size={14} color="var(--text-muted)" />
           </button>
         </div>
       )}
 
-      {/* Visible filters keep the discovery model understandable without a deep link. */}
-      <div style={{ display: "flex", alignItems: isPhone ? "stretch" : "center", justifyContent: "space-between", flexDirection: isPhone ? "column" : "row", gap: 12 }}>
-        <div aria-label="Filter squads by vibe" style={{ display: "flex", gap: 8, overflowX: isPhone ? "auto" : "visible", flexWrap: isPhone ? "nowrap" : "wrap", paddingBottom: isPhone ? 4 : 0, scrollbarWidth: "none" }}>
-          {["All", ...VIBES].map(option => {
-            const selected = option === "All" ? !vibe : vibe?.toLowerCase() === option.toLowerCase();
-            return (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => selectVibe(option === "All" ? null : option)}
-                className="gg-press"
-                style={{
-                  flexShrink: 0, minHeight: 44, padding: "0 14px", borderRadius: 10,
-                  border: selected ? "1px solid var(--violet)" : "1px solid var(--border)",
-                  background: selected ? "var(--violet-soft)" : "transparent",
-                  color: selected ? "var(--text)" : "var(--text-muted)", cursor: "pointer",
-                  fontFamily: "var(--font-inter)", fontSize: 13, fontWeight: selected ? 700 : 600,
-                }}
-              >
-                {option}
-              </button>
-            );
-          })}
+      {/* Vibe filter chips + result count */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 8 }}>
+        <div role="group" aria-label="Filter by vibe" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const, minWidth: 0 }}>
+          {vibeChips.length > 0 && (
+            <>
+              <Chip onClick={() => applyVibe(null)} selected={!vibe}>All</Chip>
+              {vibeChips.map(({ key, label }) => (
+                <Chip key={key} onClick={() => applyVibe(vibe === key ? null : key)} selected={vibe === key}>
+                  {label}
+                </Chip>
+              ))}
+              {/* Deep-linked vibe with no matching chip still shows as selected */}
+              {vibe && !vibeChips.some(c => c.key === vibe.toLowerCase()) && (
+                <Chip onClick={() => applyVibe(null)} selected>
+                  {vibe}
+                </Chip>
+              )}
+            </>
+          )}
         </div>
-        {!loading && !error && (
-          <span style={{ color: "var(--text-dim)", fontSize: 13, fontWeight: 600 }}>
-            {shown.length} {shown.length === 1 ? "squad" : "squads"}
+        {/* Kept mounted during load (shimmer) to avoid layout shift. */}
+        {loading ? (
+          <span className="gg-shimmer" aria-hidden="true" style={{ width: 76, height: 16, borderRadius: 6 }} />
+        ) : !error && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--text-dim)", fontSize: 13, fontWeight: 600 }}>
+            {vibe
+              ? `Showing ${shown.length} of ${squads.length} ${squads.length === 1 ? "squad" : "squads"}`
+              : `${shown.length} ${shown.length === 1 ? "squad" : "squads"}`}
+            {vibe && shown.length === 0 && (
+              <button
+                onClick={() => applyVibe(null)}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: "var(--accent)", fontSize: 13, fontWeight: 700 }}
+              >
+                — clear filter
+              </button>
+            )}
           </span>
         )}
       </div>
@@ -257,15 +245,15 @@ export default function DiscoverPage() {
         <div style={{ display: "grid", gridTemplateColumns: gridCols, gap: 16 }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} style={{
-              borderRadius: 20, overflow: "hidden",
-              border: "1px solid var(--border)",
+              borderRadius: radiusCard, overflow: "hidden",
+              border: "var(--control-border, 1px solid var(--border))",
               background: "linear-gradient(180deg, var(--surface-grad-from) 0%, var(--surface-grad-to) 100%)",
             }}>
-              <Shimmer style={{ height: 132 }} />
+              <div className="gg-shimmer" style={{ height: 132 }} />
               <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                <Shimmer style={{ height: 18, width: "60%", borderRadius: 6 }} />
-                <Shimmer style={{ height: 12, width: "40%", borderRadius: 6 }} />
-                <Shimmer style={{ height: 40, borderRadius: 999, marginTop: 4 }} />
+                <div className="gg-shimmer" style={{ height: 18, width: "60%", borderRadius: 6 }} />
+                <div className="gg-shimmer" style={{ height: 12, width: "40%", borderRadius: 6 }} />
+                <div className="gg-shimmer" style={{ height: 40, borderRadius: 999, marginTop: 4 }} />
               </div>
             </div>
           ))}
@@ -275,61 +263,33 @@ export default function DiscoverPage() {
       {/* Error fallback */}
       {!loading && error && (
         <div style={{
-          borderRadius: 20, border: "1px solid var(--border)",
+          borderRadius: radiusCard, border: "var(--control-border, 1px solid var(--border))",
           background: "var(--surface)", padding: "40px 24px",
           display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center",
         }}>
-          <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 17, fontWeight: 700, color: text }}>
+          <div style={{ fontFamily: fontDisplay, fontSize: 17, fontWeight: 700, color: text }}>
             Couldn&apos;t load squads
           </div>
           <div style={{ color: muted, fontSize: 14, maxWidth: 360 }}>
             Something went wrong reaching the squad list. Give it another try.
           </div>
-          <button
-            onClick={load}
-            onMouseEnter={() => setRetryHover(true)}
-            onMouseLeave={() => setRetryHover(false)}
-            className="gg-press"
-            style={{
-              marginTop: 4, minHeight: 44, padding: "0 24px", borderRadius: 999, border: "none", cursor: "pointer",
-              background: retryHover ? "var(--violet-bright)" : violet,
-              color: "var(--on-accent)", fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14,
-              transform: retryHover ? "translateY(-1px)" : "translateY(0)",
-              transition: "transform .14s ease, box-shadow .2s var(--ease-ui), background .2s var(--ease-ui)",
-            }}
-          >
+          <Button variant="secondary" onClick={load} style={{ marginTop: 4 }}>
             Retry
-          </button>
+          </Button>
         </div>
       )}
 
-      {/* Empty inventory is the page state, not a small card floating in it. */}
+      {/* Empty state — compact, one primary action, context-sensitive to the
+          vibe filter. No page-dominating dashed box. */}
       {!loading && !error && shown.length === 0 && (
-        <section style={{ minHeight: isPhone ? 420 : "calc(100dvh - 310px)", display: "grid", placeItems: "center", textAlign: "center", padding: isPhone ? "34px 8px 54px" : "52px 24px", boxSizing: "border-box", borderTop: "1px solid var(--border)" }}>
-          <div style={{ width: "100%", maxWidth: isTablet ? 560 : 620 }}>
-            <span style={{ display: "grid", placeItems: "center", width: 42, height: 42, margin: "0 auto 18px", borderRadius: 12, border: "1px solid var(--border-strong)", color: "var(--violet)" }}>
-              <Icon.discover size={19} color="var(--violet)" />
-            </span>
-            <h2 style={{ margin: 0, color: text, fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 28 : 36, lineHeight: 1.08, fontWeight: 800 }}>
-              {vibe ? `No ${vibe} squads live.` : "Be the first signal."}
-            </h2>
-            <p style={{ margin: "12px auto 24px", maxWidth: 480, color: muted, fontSize: isPhone ? 14 : 15, lineHeight: 1.6 }}>
-              {vibe
-                ? (hasOpenSquads ? "Start one with this vibe, or explore every squad currently open." : "Start one with this vibe and invite people who match your energy.")
-                : "Open a room people can discover, invite your crew, and set the vibe for whoever joins next."}
-            </p>
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-              <button onClick={handleCreate} disabled={creating} className="gg-press" style={{ minHeight: 46, padding: "0 20px", border: "none", borderRadius: 11, background: violet, color: "var(--on-accent)", cursor: creating ? "wait" : "pointer", fontFamily: "var(--font-inter)", fontSize: 14, fontWeight: 750, boxShadow: "0 10px 28px -16px var(--violet)", opacity: creating ? 0.78 : 1 }}>
-                {creating ? "Opening squad…" : (vibe ? `Start an open ${vibe} squad` : "Start an open squad")}
-              </button>
-              {vibe && hasOpenSquads && (
-                <button onClick={() => selectVibe(null)} className="gg-press" style={{ minHeight: 44, padding: "0 12px", border: "none", background: "transparent", color: "var(--text-body)", cursor: "pointer", fontSize: 13.5, fontWeight: 650 }}>
-                  Explore all squads
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
+        <EmptyState
+          compact={!isPhone}
+          icon={<Icon.discover size={20} color="var(--text-dim)" />}
+          title={vibe ? `No open “${vibe}” squads right now` : "No open squads right now"}
+          body={vibe ? "Start one with this vibe, or clear the filter to browse other live signals." : "Start the first open room and make your squad discoverable."}
+          primary={{ label: creating ? "Creating…" : (vibe ? `Create a ${vibe} squad` : "Create a squad"), onClick: handleCreate, disabled: creating }}
+          secondary={vibe ? { label: "Clear filter", onClick: () => applyVibe(null) } : undefined}
+        />
       )}
 
       {/* Squad grid */}
@@ -353,19 +313,6 @@ export default function DiscoverPage() {
           onJoined={handleJoined}
         />
       )}
-
-      <style>{`@keyframes squad-shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }`}</style>
     </div>
-  );
-}
-
-function Shimmer({ style }: { style?: React.CSSProperties }) {
-  return (
-    <div style={{
-      background: "linear-gradient(90deg, var(--overlay) 0px, var(--overlay-hover) 200px, var(--overlay) 400px)",
-      backgroundSize: "800px 100%",
-      animation: "squad-shimmer 1.4s ease-in-out infinite",
-      ...style,
-    }} />
   );
 }

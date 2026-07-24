@@ -86,6 +86,12 @@ function normalizeSessionUser(storedUser: Partial<BackendUser> | null | undefine
     image: payload.image || storedUser?.image,
     isPremium: !!(payload.isPremium ?? storedUser?.isPremium),
     isApproved: !!(payload.isApproved ?? storedUser?.isApproved),
+    // Age gates — carry through from the JWT payload or the persisted user.
+    // Left as undefined when the backend hasn't set them (treated as "not
+    // confirmed" by the gate, never crashes).
+    isAdult: payload.isAdult ?? storedUser?.isAdult,
+    ageConfirmed: payload.ageConfirmed ?? storedUser?.ageConfirmed,
+    ageVerified: payload.ageVerified ?? storedUser?.ageVerified,
   } as BackendUser;
 }
 
@@ -168,7 +174,7 @@ export const session = {
       try {
         if (typeof localStorage !== "undefined") {
           s = localStorage.getItem("giggle.devseed") || undefined;
-          if (!s || !/^[a-z0-9-]{1,64}$/.test(s)) {
+          if (!s) {
             s = randomDevSeed();
             localStorage.setItem("giggle.devseed", s);
           }
@@ -209,6 +215,28 @@ export const session = {
     // A referral conversion already happened server-side during the redirect.
     clearPendingReferral();
     return user;
+  },
+  /** True once the user has attested a date of birth (age gate satisfied). */
+  get ageConfirmed() {
+    return user?.ageConfirmed === true;
+  },
+  /** True when the attested DOB is 18+. Undefined-safe (false when unknown). */
+  get isAdult() {
+    return user?.isAdult === true;
+  },
+  /**
+   * Submit the self-attested date of birth ("YYYY-MM-DD"). Set-once on the
+   * backend. On success, syncs the returned gates into the in-memory + persisted
+   * session user (mirrors how tokens are synced) so the app updates without a
+   * reload. Throws (ApiError) on failure — callers surface the message.
+   */
+  async setAge(birthDate: string) {
+    const res = await api.setAge(birthDate);
+    if (user) {
+      user = { ...user, isAdult: res.isAdult, ageConfirmed: res.ageConfirmed };
+      persist();
+    }
+    return res;
   },
   signOut() {
     token = null;

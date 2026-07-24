@@ -6,13 +6,17 @@ import { AvatarArt } from "@/components/AvatarArt";
 import { Icon } from "@/components/Icons";
 import { ChatPanel } from "@/components/ChatPanel";
 import { CoverPicker } from "@/components/CoverPicker";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { InviteToSquad } from "@/components/InviteToSquad";
-import { api, connectSocket, SOCKET_EVENTS, session, resolveCover, getMyAvatar, subscribeAvatar, subscribeChat, joinChat, DEFAULT_AVATAR_ID } from "@giggle/core";
+import { Modal } from "@/components/Modal";
+import { Button } from "@/components/Button";
+import { Badge } from "@/components/Badge";
+import { api, connectSocket, SOCKET_EVENTS, session, getMyAvatar, subscribeAvatar, subscribeChat, joinChat, DEFAULT_AVATAR_ID, classifyVibe, tagsAreMature } from "@giggle/core";
+import { coverKind, coverBackground, fallbackGradient } from "@/components/covers";
 import type { SquadState, JoinRequestUser } from "@giggle/core";
 import { createVideoClient } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
-
-const avatarColors = ["#7C5CFF", "#3DD6C0", "#FF8A5C", "#C2FF3D"];
+import { useTheme } from "@/components/useTheme";
 
 const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
 
@@ -30,21 +34,6 @@ function normalizeVibeLabels(vibes: string[] = []) {
     if (normalized.length >= 5) break;
   }
   return normalized;
-}
-
-// Deterministic tasteful gradient fallback for squads with no cover set — gives
-// each one a distinct identity even before a cover is chosen. Same palette family
-// as SquadPreview so the two surfaces read as one visual system.
-const FALLBACK_GRADIENTS = [
-  "radial-gradient(120% 90% at 20% 10%, rgba(255,92,138,0.55), transparent 55%), radial-gradient(120% 90% at 90% 80%, rgba(124,92,255,0.6), transparent 55%), linear-gradient(160deg, #2a1140, #0b0b0f)",
-  "radial-gradient(120% 90% at 80% 10%, rgba(92,140,255,0.5), transparent 55%), radial-gradient(120% 90% at 10% 90%, rgba(61,214,192,0.45), transparent 55%), linear-gradient(160deg, #10243a, #0b0b0f)",
-  "radial-gradient(120% 90% at 30% 20%, rgba(194,255,61,0.4), transparent 55%), radial-gradient(120% 90% at 80% 90%, rgba(124,92,255,0.55), transparent 55%), linear-gradient(160deg, #1a2a12, #0b0b0f)",
-  "radial-gradient(120% 90% at 70% 15%, rgba(255,176,32,0.45), transparent 55%), radial-gradient(120% 90% at 15% 85%, rgba(255,92,138,0.5), transparent 55%), linear-gradient(160deg, #2e1a10, #0b0b0f)",
-];
-function fallbackGradient(key: string): string {
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  return FALLBACK_GRADIENTS[h % FALLBACK_GRADIENTS.length];
 }
 
 // Translate a thrown ApiError / Agora error into a friendly, non-technical
@@ -81,64 +70,74 @@ const KEYFRAMES = `
 }
 
 /* ── PREMIUM MICRO-INTERACTION SPEC (shared) ─────────────────────────────
-   Tactile press feedback for every control. Scoped to the dark calling root
-   so we never leak into other surfaces. Press uses !important to beat inline
-   hover transforms; cubic-bezier easing for a satisfying spring-out. */
-[data-theme="dark"] button:not(:disabled) {
+   Tactile press feedback for every control. Scoped to the lobby root class
+   (NOT a theme) so it applies in every theme and never leaks elsewhere.
+   Press uses !important to beat inline hover transforms; cubic-bezier easing
+   for a satisfying spring-out. */
+.gg-lobby-root button:not(:disabled) {
   -webkit-tap-highlight-color: transparent;
   transition: transform .14s cubic-bezier(.22,1,.36,1), box-shadow .2s cubic-bezier(.4,0,.2,1), background .2s cubic-bezier(.4,0,.2,1), color .2s cubic-bezier(.4,0,.2,1), border-color .2s cubic-bezier(.4,0,.2,1), filter .2s cubic-bezier(.4,0,.2,1);
 }
-[data-theme="dark"] button:not(:disabled):active {
+.gg-lobby-root button:not(:disabled):active {
   transform: scale(.94) !important;
   transition-duration: .06s;
 }
-[data-theme="dark"] button:disabled {
+.gg-lobby-root button:disabled {
   cursor: not-allowed;
 }
-[data-theme="dark"] button:focus-visible,
-[data-theme="dark"] [role="button"]:focus-visible,
-[data-theme="dark"] input:focus-visible {
+.gg-lobby-root button:focus-visible,
+.gg-lobby-root [role="button"]:focus-visible,
+.gg-lobby-root input:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #0B0B0F, 0 0 0 4px var(--violet, #7C5CFF);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent, var(--violet, #7C5CFF));
 }
-[data-theme="dark"] [role="button"] { -webkit-tap-highlight-color: transparent; }
-[data-theme="dark"] [role="button"]:active { transform: scale(.97); }
-[data-theme="dark"] input {
+.gg-lobby-root [role="button"] { -webkit-tap-highlight-color: transparent; }
+.gg-lobby-root [role="button"]:active { transform: scale(.97); }
+.gg-lobby-root input {
   transition: border-color .18s cubic-bezier(.4,0,.2,1), box-shadow .18s cubic-bezier(.4,0,.2,1), background .18s cubic-bezier(.4,0,.2,1);
 }
-[data-theme="dark"] input:focus {
-  border-color: var(--violet, #7C5CFF) !important;
+.gg-lobby-root input:focus {
+  border-color: var(--accent, var(--violet, #7C5CFF)) !important;
   box-shadow: 0 0 0 3px rgba(124,92,255,0.22);
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-theme="dark"] *,
-  [data-theme="dark"] *::before,
-  [data-theme="dark"] *::after {
+  .gg-lobby-root *,
+  .gg-lobby-root *::before,
+  .gg-lobby-root *::after {
     animation-duration: .001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .001ms !important;
   }
-  [data-theme="dark"] button:not(:disabled):active,
-  [data-theme="dark"] [role="button"]:active { transform: none !important; }
+  .gg-lobby-root button:not(:disabled):active,
+  .gg-lobby-root [role="button"]:active { transform: none !important; }
 }
 `;
 
 function LobbyInner() {
   const { isPhone, isNarrow } = useViewport();
+  const themeId = useTheme();
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
 
   const [squad, setSquad] = useState<SquadState | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lobbyLoadError, setLobbyLoadError] = useState<string | null>(null);
-  const [lobbyMissing, setLobbyMissing] = useState(false);
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [settingReady, setSettingReady] = useState(false);
   const [findingMatch, setFindingMatch] = useState(false);
   const [matchError, setMatchError] = useState<string | null>(null);
+  // Camera priming: confirm layer shown when finding a match with lobby media
+  // never enabled (we never auto-request permissions on mount).
+  const [noCamConfirmOpen, setNoCamConfirmOpen] = useState(false);
+  const [noCamEnabling, setNoCamEnabling] = useState(false);
+  // Poll-failure visibility: consecutive fetch failures (≥2) surface a small
+  // dismissible "connection trouble" banner; any success clears it.
+  const pollFailsRef = useRef(0);
+  const [connTrouble, setConnTrouble] = useState(false);
+  const [connTroubleDismissed, setConnTroubleDismissed] = useState(false);
   const [leavingSquad, setLeavingSquad] = useState(false);
+  const [leaveMenuOpen, setLeaveMenuOpen] = useState(false);
 
   // Cover picker
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
@@ -170,11 +169,15 @@ function LobbyInner() {
     } catch {}
   }, []);
   const MAX_VIBES = 5;
-  function addCustomVibe(raw: string) {
-    const v = raw.trim().replace(/\s+/g, " ");
-    if (!v || v.length > 24) return;
+  // Moderation UX for user-created vibes: block disallowed terms, and require an
+  // 18+ confirmation for adult vibes (which turns the squad into an adult room).
+  const [vibeWarning, setVibeWarning] = useState<string | null>(null);
+  const [pendingMatureVibe, setPendingMatureVibe] = useState<string | null>(null);
+  // Non-adults can't create adult rooms: they confirmed a DOB at signup, so we
+  // trust session.isAdult and hard-block instead of offering an 18+ opt-in.
+  const [matureBlocked, setMatureBlocked] = useState<string | null>(null);
+  function commitVibe(v: string) {
     const lower = v.toLowerCase();
-    // Already selected? no-op. Otherwise add (respecting the per-squad cap).
     if (selectedVibes.some(x => x.toLowerCase() === lower)) { setVibeSearch(""); return; }
     if (selectedVibes.length >= MAX_VIBES) return;
     setSelectedVibes(prev => [...prev, v]);
@@ -185,6 +188,28 @@ function LobbyInner() {
       return next;
     });
     setVibeSearch("");
+  }
+  function addCustomVibe(raw: string) {
+    const v = raw.trim().replace(/\s+/g, " ");
+    if (!v || v.length > 24) return;
+    setVibeWarning(null);
+    setMatureBlocked(null);
+    const verdict = classifyVibe(v);
+    if (verdict === "blocked") {
+      setVibeWarning("That vibe isn't allowed. Try something that keeps Giggle welcoming for everyone.");
+      return;
+    }
+    if (verdict === "mature") {
+      // Adult vibe → turns the squad into an adult room. Minors (per their
+      // signup DOB) are hard-blocked; adults get the confirm-first flow.
+      if (!session.isAdult) {
+        setMatureBlocked(v);
+        return;
+      }
+      setPendingMatureVibe(v);
+      return;
+    }
+    commitVibe(v);
   }
 
   // Visibility toggle
@@ -221,82 +246,114 @@ function LobbyInner() {
 
   const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
   const localVideoRef = useRef<HTMLDivElement>(null);
-  const joinStartedRef = useRef(false);
   const [videoJoined, setVideoJoined] = useState(false);
+  const [videoJoining, setVideoJoining] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
 
   // Hover states
   const [inviteHovered, setInviteHovered] = useState(false);
+  const [inviteTileHovered, setInviteTileHovered] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [copyLinkHovered, setCopyLinkHovered] = useState(false);
   const [leaveHovered, setLeaveHovered] = useState(false);
   const [micHovered, setMicHovered] = useState(false);
   const [camHovered, setCamHovered] = useState(false);
   const [readyHovered, setReadyHovered] = useState(false);
-  const [findMatchHovered, setFindMatchHovered] = useState(false);
   const [editVibesHovered, setEditVibesHovered] = useState(false);
   const [changeCoverHovered, setChangeCoverHovered] = useState(false);
   const [boostHovered, setBoostHovered] = useState(false);
   const [copyCodeHovered, setCopyCodeHovered] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
-  const [vibeSaveHovered, setVibeSaveHovered] = useState(false);
-  const [vibeCancelHovered, setVibeCancelHovered] = useState(false);
   const [vibeChipHovered, setVibeChipHovered] = useState<string | null>(null);
 
-  const violet = "var(--violet)";
+  const violet = "var(--accent, var(--violet))";
   const lime = "var(--lime)";
   const limeText = "var(--lime-text)";
   const coral = "var(--coral)";
+  // ── CHROME text tiers ───────────────────────────────────────────────────
+  // The lobby now RESPECTS THE ACTIVE THEME (Meet/Zoom light-mode model): the
+  // room chrome + canvas adopt theme tokens; only the video TILES stay dark.
+  // These drive header / sidebar / control-bar / modal text, so they are theme
+  // tokens (light in Cloud, plum in Midnight, ink in Tangerine). Tile-internal
+  // text keeps its own light-on-dark literals inline (do NOT theme those).
   const textPrimary = "var(--text)";
-  const textMuted = "var(--text-muted)";
-  const textTertiary = "var(--text-dim)";
+  const textMuted = "var(--text-body)";
+  const textTertiary = "var(--text-muted)";
+  // Chrome hairline (header / sidebar / panels) — themed, not a stage literal.
+  const ON_STAGE_HAIRLINE = "var(--border)";
 
   async function fetchSquad() {
     if (!squadId) return;
-    setLobbyLoadError(null);
     try {
       const s = await api.getSquad(squadId);
       setSquad(s);
-      setLobbyMissing(false);
       const vis = (s as { visibility?: "private" | "open" }).visibility;
       if (vis === "open" || vis === "private") setVisibility(vis);
       const jp = (s as { joinPolicy?: "open" | "request" | "invite" }).joinPolicy;
       if (jp === "open" || jp === "request" || jp === "invite") setJoinPolicy(jp);
-      setSelectedVibes(normalizeVibeLabels(s.tags ?? []));
-    } catch (e) {
-      console.error("getSquad failed:", e);
-      if ((e as { status?: number }).status === 404) {
-        setLobbyMissing(true);
-      } else {
-        setLobbyLoadError("Couldn't load this lobby.");
+      if (s.tags?.length) {
+        setSelectedVibes(normalizeVibeLabels(s.tags));
       }
+      pollSucceeded();
+    } catch (e) {
+      // Squad is gone (disbanded by the leader, or we were removed) → don't
+      // trap the user in a dead lobby; send them home with a note.
+      const status = (e as { status?: number })?.status;
+      const code = (e as { code?: string })?.code;
+      if (status === 404 || status === 403 || code === "SQUAD_NOT_FOUND" || code === "NOT_A_MEMBER") {
+        router.replace("/home");
+        return;
+      }
+      console.error("getSquad failed:", e);
+      pollFailed();
     } finally {
       setLoading(false);
     }
   }
 
+  function pollSucceeded() {
+    pollFailsRef.current = 0;
+    setConnTrouble(false);
+    setConnTroubleDismissed(false);
+  }
+  function pollFailed() {
+    pollFailsRef.current += 1;
+    if (pollFailsRef.current >= 2) setConnTrouble(true);
+  }
+
+  // Returns true only if the camera/mic actually joined — callers that gate a
+  // follow-up action (e.g. the "Enable camera" match flow) must not proceed on
+  // a swallowed failure.
+  async function enableLobbyMedia(): Promise<boolean> {
+    if (!squadId || videoJoining) return videoJoined;
+    if (videoJoined) return true;
+    setVideoJoining(true);
+    setVideoError(null);
+    try {
+      const tokenData = await api.lobbyToken(squadId);
+      const vc = createVideoClient();
+      vcRef.current = vc;
+      await vc.join(tokenData, { audio: true, video: true });
+      await api.setLobbyVideo(squadId, true);
+      setVideoJoined(true);
+      return true;
+    } catch (e) {
+      await vcRef.current?.leave().catch(() => {});
+      vcRef.current = null;
+      setVideoError(describeVideoError(e));
+      return false;
+    } finally {
+      setVideoJoining(false);
+    }
+  }
+
   useEffect(() => {
-    if (!squadId) { setLobbyMissing(true); setLoading(false); return; }
+    if (!squadId) { setLoading(false); return; }
     fetchSquad();
 
     const socket = connectSocket(squadId);
     socket.on(SOCKET_EVENTS.SQUAD_UPDATED, fetchSquad);
-
-    if (!joinStartedRef.current) {
-      joinStartedRef.current = true;
-      (async () => {
-        try {
-          await api.setLobbyVideo(squadId, true);
-          const tokenData = await api.lobbyToken(squadId);
-          const vc = createVideoClient();
-          vcRef.current = vc;
-          await vc.join(tokenData, { audio: true, video: true });
-          setVideoJoined(true);
-        } catch (e) {
-          console.error("Lobby video join failed (non-fatal):", e);
-          setVideoError(describeVideoError(e));
-        }
-      })();
-    }
 
     return () => {
       socket.off(SOCKET_EVENTS.SQUAD_UPDATED, fetchSquad);
@@ -331,15 +388,6 @@ function LobbyInner() {
   // chat tab.) Drives unread clearing + the header pressed state. Updated every
   // render via a ref so the unread subscription (a stable closure) can read it.
   const chatVisible = isPhone ? chatOpen : (!sidebarCollapsed && sidebarTab === "chat");
-
-  useEffect(() => {
-    if (!isPhone || !chatOpen) return;
-    const closeOnEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setChatOpen(false);
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [isPhone, chatOpen]);
   chatVisibleRef.current = chatVisible;
   // Clear unread the moment chat becomes visible.
   useEffect(() => { if (chatVisible) setUnread(0); }, [chatVisible]);
@@ -437,8 +485,10 @@ function LobbyInner() {
     try {
       const { requests } = await api.joinRequests(squadId);
       setJoinReqs(requests ?? []);
+      pollSucceeded();
     } catch (e) {
       console.error("joinRequests failed:", e);
+      pollFailed();
     }
   }
 
@@ -471,7 +521,6 @@ function LobbyInner() {
       await Promise.all([fetchJoinRequests(), fetchSquad()]);
     } catch (e) {
       console.error("declineJoinRequest failed:", e);
-      setReqError("Couldn't decline — try again.");
     } finally {
       setReqBusy(null);
     }
@@ -488,16 +537,28 @@ function LobbyInner() {
     }
   }
 
+  // Shareable invite link: opening it joins the squad and drops the person
+  // straight into this lobby (signing them in first if needed).
+  const inviteUrl = squad && typeof window !== "undefined"
+    ? `${window.location.origin}/join/${squad.squadCode}`
+    : "";
+
   async function handleInvite() {
-    if (!squad) return;
-    const text = `Join my Giggle squad — enter code ${squad.squadCode} at ${typeof window !== "undefined" ? window.location.origin : "giggle"}`;
+    if (!squad || !inviteUrl) return;
+    // Prefer the native share sheet on phones; fall back to copying the link.
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function" && isPhone) {
+      try {
+        await navigator.share({ title: "Join my Giggle squad", text: `Join my squad "${squad.squadName}" on Giggle`, url: inviteUrl });
+        return;
+      } catch { /* user dismissed or unsupported — fall through to copy */ }
+    }
     await copyToClipboard(
-      text,
+      inviteUrl,
       () => {
         setInviteCopied(true);
         setTimeout(() => setInviteCopied(false), 1800);
       },
-      "Couldn't copy invite link. Select and copy the squad code instead.",
+      "Couldn't copy the invite link. Copy the squad code instead.",
     );
   }
 
@@ -521,10 +582,30 @@ function LobbyInner() {
 
   async function handleFindMatch() {
     if (!squadId) return;
+    // Only members who are actually connected gate the match. An offline member
+    // who never marked ready must not permanently trap the leader (mirrors the
+    // server's online-only ready-check). online === false means offline;
+    // true/undefined counts as online.
+    const activeMembers = (squad?.members ?? []).filter(m => m.online !== false);
+    const everyoneReady = activeMembers.length > 0 && activeMembers.every(member => member.ready);
+    if (!everyoneReady) {
+      setMatchError("Everyone online needs to be ready before you find a match.");
+      return;
+    }
+    // Camera priming: if lobby media was never enabled, confirm before entering
+    // the encounter camera-less (never auto-request on mount).
+    if (!videoJoined) {
+      setNoCamConfirmOpen(true);
+      return;
+    }
+    await proceedFindMatch();
+  }
+
+  async function proceedFindMatch() {
+    if (!squadId) return;
     setFindingMatch(true);
     setMatchError(null);
     try {
-      await api.setReady(squadId, true);
       await api.setLobbyVideo(squadId, true);
       await api.startSearch(squadId);
       router.push(`/matchmaking?squad=${squadId}`);
@@ -596,6 +677,21 @@ function LobbyInner() {
     }
   }
 
+  async function handleDisbandSquad() {
+    if (!squadId || leavingSquad) return;
+    setLeavingSquad(true);
+    setMatchError(null);
+    try {
+      await api.disbandSquad(squadId);
+      router.push("/home");
+    } catch (e) {
+      console.error("disbandSquad failed:", e);
+      setMatchError((e as { message?: string })?.message || "Couldn't delete squad.");
+      setLeavingSquad(false);
+      setLeaveMenuOpen(false);
+    }
+  }
+
   const readyCount = squad?.members.filter(m => m.ready).length ?? 0;
   const memberCount = squad?.members.length ?? 0;
   // Capacity comes from the backend: 4 free, up to 8 when the leader is premium.
@@ -603,25 +699,13 @@ function LobbyInner() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 400, color: textMuted, fontSize: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 400, color: "var(--text-muted)", fontSize: 14 }}>
         Loading lobby…
       </div>
     );
   }
 
-  if (!squad && lobbyLoadError) {
-    return (
-      <div style={{ minHeight: "calc(100vh - 160px)", display: "grid", placeItems: "center", padding: isPhone ? "32px 16px" : "48px 24px" }}>
-        <div role="alert" style={{ width: "100%", maxWidth: 500, borderRadius: 18, border: "1px solid var(--border)", background: "var(--surface)", boxShadow: "var(--elev)", padding: isPhone ? 22 : 28, textAlign: "center" }}>
-          <h1 style={{ margin: 0, color: textPrimary, fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 24 : 28 }}>Couldn&apos;t open this lobby</h1>
-          <p style={{ margin: "10px auto 20px", color: textMuted, fontSize: 14.5, lineHeight: 1.5 }}>We couldn&apos;t verify this room. Check your connection and try again.</p>
-          <button onClick={() => { setLoading(true); void fetchSquad(); }} className="gg-press" style={{ minHeight: 44, padding: "0 20px", borderRadius: 999, border: "none", background: violet, color: "#fff", cursor: "pointer", fontWeight: 800 }}>Retry</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (lobbyMissing || !squad) {
+  if (!squad) {
     return (
       <div style={{ minHeight: "calc(100vh - 160px)", display: "grid", placeItems: "center", padding: isPhone ? "32px 16px" : "48px 24px" }}>
         <div style={{
@@ -630,7 +714,7 @@ function LobbyInner() {
           borderRadius: 24,
           border: "1px solid var(--border)",
           background: "linear-gradient(135deg, color-mix(in srgb, var(--violet) 12%, var(--surface)) 0%, var(--surface) 58%, color-mix(in srgb, var(--lime) 8%, var(--surface)) 100%)",
-          boxShadow: "var(--elev)",
+          boxShadow: "var(--shadow-card, var(--elev))",
           padding: isPhone ? 22 : 28,
           textAlign: "center",
         }}>
@@ -646,61 +730,52 @@ function LobbyInner() {
           }}>
             <Icon.users size={25} color={violet} />
           </div>
-          <h1 style={{ margin: 0, color: textPrimary, fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 26 : 30, lineHeight: 1.08, letterSpacing: "-0.02em" }}>
+          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 26 : 30, lineHeight: 1.08, letterSpacing: "-0.02em" }}>
             This lobby link is no longer active
           </h1>
-          <p style={{ margin: "10px auto 0", maxWidth: 410, color: textMuted, fontSize: 14.5, lineHeight: 1.5 }}>
+          <p style={{ margin: "10px auto 0", maxWidth: 410, color: "var(--text-muted)", fontSize: 14, lineHeight: 1.5 }}>
             The squad may have ended, changed, or been opened from an old invite. Start fresh or browse live squads.
           </p>
           <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", justifyContent: "center", gap: 10, marginTop: 22 }}>
-            <button
-              onClick={() => router.push("/home")}
-              className="gg-press"
-              style={{
-                minHeight: 44,
-                borderRadius: 999,
-                border: "none",
-                background: violet,
-                color: "#fff",
-                fontWeight: 800,
-                padding: "0 20px",
-                cursor: "pointer",
-              }}
-            >
-              Go home
-            </button>
-            <button
-              onClick={() => router.push("/discover")}
-              className="gg-press"
-              style={{
-                minHeight: 44,
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                background: "var(--overlay)",
-                color: textPrimary,
-                fontWeight: 800,
-                padding: "0 20px",
-                cursor: "pointer",
-              }}
-            >
-              Browse squads
-            </button>
+            <Button onClick={() => router.push("/home")} variant="primary">Go home</Button>
+            <Button onClick={() => router.push("/discover")} variant="secondary">Browse squads</Button>
           </div>
         </div>
       </div>
     );
   }
 
-  const currentTags = normalizeVibeLabels(squad.tags ?? []);
+  const currentTags = normalizeVibeLabels(squad.tags?.length ? squad.tags : ["🎮 Gaming", "🌙 Late Night", "🎵 Music"]);
+  // Adult room? Any of the squad's real tags is a mature vibe. Drives the 18+ badge.
+  const squadIsAdult = tagsAreMature(squad.tags ?? []);
+  const adultBadge = (
+    <span
+      title="Adult squad — 18+ vibes"
+      aria-label="18 plus, adult squad"
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 4, flexShrink: 0,
+        background: "var(--coral-soft, rgba(255,92,92,0.14))",
+        color: "var(--coral-text, var(--coral, #FF5C5C))",
+        border: "1px solid color-mix(in srgb, var(--coral, #FF5C5C) 40%, transparent)",
+        borderRadius: 999, padding: "2px 9px", fontSize: 12, fontWeight: 700, letterSpacing: "0.02em",
+      }}
+    >
+      <span aria-hidden>🔞</span> 18+
+    </span>
+  );
 
   // ── Squad cover identity ──────────────────────────────────────────────
   // hasCover: leader has explicitly chosen a cover. When absent we fall back to
   // a deterministic per-squad gradient so the squad still feels themed. Both
   // resolve to a CSS `background` value ready for inline styles.
   const hasCover = !!squad.coverImage;
+  // The header is now themed, so covers follow the ACTIVE theme again (bright
+  // pastel twins in light themes, moody variants in Midnight) — same
+  // theme-aware resolution the dashboard uses. Photos keep their dark scrim.
+  const coverStyleKind = coverKind(squad.coverImage, themeId);
   const coverBg = hasCover
-    ? resolveCover(squad.coverImage)
-    : fallbackGradient(squad.squadId || squad.squadName);
+    ? coverBackground(squad.coverImage, coverStyleKind)
+    : fallbackGradient(squad.squadId || squad.squadName, coverStyleKind);
   // Small reusable cover thumbnail (used by the header + Squad Info panel).
   const coverThumb = (size: number) => (
     <div style={{
@@ -711,17 +786,33 @@ function LobbyInner() {
     }} />
   );
 
+  // Show real members + a SINGLE "invite a friend" affordance (not a full grid
+  // of empty slots — that looks broken when only 1–2 people are present). Once
+  // the squad is full, no invite tile. Grid sizes to exactly what we render.
   const canInvite = memberCount < MAX_SLOTS;
-  const tileCount = Math.max(memberCount, 1);
+  const showInviteTile = canInvite && !isNarrow;
+  const emptySlots = showInviteTile ? 1 : 0;
+  const tileCount = Math.max(memberCount + emptySlots, 1);
   // Scale columns with the squad size so up to 8 tiles stay elegant:
   // 1→1, 2-4→2, 5-6→3, 7-8→4 columns.
   const gridCols = tileCount <= 1 ? 1 : tileCount <= 4 ? 2 : tileCount <= 6 ? 3 : 4;
-  // On phones, two people stack so faces stay large; 3–4 use a 2-column grid.
-  const effCols = isPhone ? (memberCount <= 2 ? 1 : 2) : gridCols;
+  const gridRows = Math.ceil(tileCount / gridCols);
+  // Effective layout (phone caps at 2 cols); rows derived so tiles fill the stage.
+  const effCols = isPhone ? Math.min(gridCols, 2) : gridCols;
   const effRows = Math.ceil(tileCount / effCols);
 
-  const allReady = memberCount > 0 && readyCount === memberCount;
+  // Match readiness is gated on ONLINE members only — an offline member who
+  // never marked ready must not block the leader (mirrors the server check).
+  const onlineMembers = (squad?.members ?? []).filter(m => m.online !== false);
+  const onlineReadyCount = onlineMembers.filter(m => m.ready).length;
+  const allReady = onlineMembers.length > 0 && onlineReadyCount === onlineMembers.length;
   const myReady = !!myMember?.ready;
+  // Who's holding up the match — only online members can act, so offline ones
+  // (who can't respond) never appear in the "waiting on…" helper.
+  const notReadyNames = onlineMembers.filter(m => !m.ready).map(m => m.displayName);
+  const notReadyLabel = notReadyNames.length <= 2
+    ? notReadyNames.join(", ")
+    : `${notReadyNames.slice(0, 2).join(", ")} +${notReadyNames.length - 2}`;
 
   // ── Reusable surfaces (shared by phone sheet + expanded desktop panel) ──
   const infoCard = (
@@ -734,10 +825,13 @@ function LobbyInner() {
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {coverThumb(38)}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 14, fontWeight: 800, color: textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {squad.squadName}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+            <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 14, fontWeight: 700, color: textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {squad.squadName}
+            </div>
+            {squadIsAdult && adultBadge}
           </div>
-          <div style={{ fontSize: 10.5, fontWeight: 700, color: textTertiary, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Squad Info</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: textTertiary, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Squad Info</div>
         </div>
       </div>
 
@@ -748,7 +842,13 @@ function LobbyInner() {
         ].map(row => (
           <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ color: textTertiary, fontSize: 12 }}>{row.label}</span>
-            <span style={{ color: row.color, fontSize: 12, fontWeight: 600 }}>{row.value}</span>
+            <span
+              role={row.label === "Ready" ? "status" : undefined}
+              aria-live={row.label === "Ready" ? "polite" : undefined}
+              style={{ color: row.color, fontSize: 12, fontWeight: 600 }}
+            >
+              {row.value}
+            </span>
           </div>
         ))}
 
@@ -757,8 +857,8 @@ function LobbyInner() {
           aria-expanded={settingsOpen}
           style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, padding: "0 2px", border: "none", borderTop: "1px solid var(--border)", background: "transparent", color: textPrimary, cursor: "pointer" }}
         >
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700 }}><Icon.settings size={14} color={textMuted} /> Room settings</span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, color: textTertiary, fontSize: 10.5 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 700 }}><Icon.settings size={14} color={textMuted} /> Room settings</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, color: textTertiary, fontSize: 12 }}>
             {visibility === "open" ? "Open" : "Private"} · {joinPolicy === "request" ? "Approval" : joinPolicy === "invite" ? "Invite only" : "Instant join"}
             <span style={{ transform: settingsOpen ? "rotate(90deg)" : "none", display: "flex" }}><Icon.chevron size={14} color={textMuted} /></span>
           </span>
@@ -770,8 +870,8 @@ function LobbyInner() {
             onClick={() => { setVibeEditorOpen(true); setSelectedVibes(normalizeVibeLabels(currentTags)); }}
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", minHeight: 44, padding: "0 2px", border: "none", borderTop: "1px solid var(--border)", background: "transparent", color: textPrimary, cursor: "pointer" }}
           >
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5, fontWeight: 700 }}><Icon.settings size={14} color={textMuted} /> {currentTags.length ? "Edit vibes" : "Set vibes"}</span>
-            <span style={{ maxWidth: "55%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: textTertiary, fontSize: 10.5 }}>{currentTags.join(" · ") || "None set"}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 700 }}><Icon.settings size={14} color={textMuted} /> Edit vibes</span>
+            <span style={{ maxWidth: "55%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: textTertiary, fontSize: 12 }}>{currentTags.join(" · ") || "None set"}</span>
           </button>
         )}
         {/* Visibility toggle */}
@@ -783,8 +883,8 @@ function LobbyInner() {
               <button key={v} onClick={() => handleVisibility(v)} disabled={!isLeader || savingVisibility} style={{
                 minHeight: 44, padding: "0 12px", borderRadius: 999, border: "none",
                 cursor: isLeader && !savingVisibility ? "pointer" : "not-allowed",
-                fontSize: 10, fontWeight: 700, letterSpacing: "0.04em",
-                background: visibility === v ? (v === "open" ? "var(--lime)" : "var(--violet)") : "transparent",
+                fontSize: 12, fontWeight: 700, letterSpacing: "0.04em",
+                background: visibility === v ? (v === "open" ? "var(--lime)" : "var(--accent, var(--violet))") : "transparent",
                 color: visibility === v ? (v === "open" ? "#0B0B0F" : "#fff") : textTertiary,
                 transition: "all 0.15s",
               }}>
@@ -794,12 +894,12 @@ function LobbyInner() {
           </div>
         </div>
         {!isLeader && (
-          <div style={{ fontSize: 11, color: textTertiary, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, color: textTertiary, lineHeight: 1.5 }}>
             Only the squad leader can change visibility.
           </div>
         )}
         {visibility === "open" && (
-          <div style={{ fontSize: 11, color: textTertiary, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, color: textTertiary, lineHeight: 1.5 }}>
             Open lets strangers fill empty slots — find more matches.
           </div>
         )}
@@ -813,8 +913,8 @@ function LobbyInner() {
                 <button key={v} onClick={() => handleJoinPolicy(v)} disabled={savingJoinPolicy} style={{
                   minHeight: 44, padding: "0 12px", borderRadius: 999, border: "none",
                   cursor: savingJoinPolicy ? "not-allowed" : "pointer",
-                  fontSize: 10, fontWeight: 700, letterSpacing: "0.04em",
-                  background: joinPolicy === v ? (v === "open" ? "var(--lime)" : "var(--violet)") : "transparent",
+                  fontSize: 12, fontWeight: 700, letterSpacing: "0.04em",
+                  background: joinPolicy === v ? (v === "open" ? "var(--lime)" : "var(--accent, var(--violet))") : "transparent",
                   color: joinPolicy === v ? (v === "open" ? "#0B0B0F" : "#fff") : textTertiary,
                   transition: "all 0.15s",
                 }}>
@@ -823,18 +923,18 @@ function LobbyInner() {
               ))}
             </div>
           ) : (
-            <span style={{ fontSize: 11, fontWeight: 700, color: joinPolicy === "open" ? limeText : violet }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: joinPolicy === "open" ? limeText : violet }}>
               {joinPolicy === "open" ? "Open" : joinPolicy === "request" ? "Request" : "Invite-only"}
             </span>
           )}
         </div>
         {isLeader && (
-          <div style={{ fontSize: 11, color: textTertiary, lineHeight: 1.5 }}>
+          <div style={{ fontSize: 12, color: textTertiary, lineHeight: 1.5 }}>
             Open: anyone can join instantly. Request: you approve who joins. Invite-only: only people you invite can join.
           </div>
         )}
         {isLeader && joinPolicy === "invite" && (
-          <div style={{ fontSize: 11, color: violet, lineHeight: 1.5, fontWeight: 600 }}>
+          <div style={{ fontSize: 12, color: violet, lineHeight: 1.5, fontWeight: 600 }}>
             Share your invite code below to bring people in — it's the only way to join this squad.
           </div>
         )}
@@ -848,16 +948,13 @@ function LobbyInner() {
           paddingTop: 12, borderTop: "1px solid var(--border)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 11, fontWeight: 700, color: textPrimary, letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
+            <span style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 12, fontWeight: 700, color: textPrimary, letterSpacing: "0.04em", textTransform: "uppercase" as const }}>
               Join Requests
             </span>
-            <span style={{
-              fontSize: 9, fontWeight: 800, borderRadius: 999, padding: "1px 7px",
-              background: "var(--violet-soft)", color: violet, border: "1px solid var(--violet)",
-            }}>{joinReqs.length}</span>
+            <Badge tone="info" style={{ borderRadius: 999 }}>{joinReqs.length}</Badge>
           </div>
           {reqError && (
-            <div style={{ fontSize: 11, color: coral, lineHeight: 1.4 }}>{reqError}</div>
+            <div style={{ fontSize: 12, color: coral, lineHeight: 1.4 }}>{reqError}</div>
           )}
           {joinReqs.map((r, i) => {
             const dem = [
@@ -876,7 +973,7 @@ function LobbyInner() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
                   {dem && (
-                    <div style={{ fontSize: 10, color: textTertiary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dem}</div>
+                    <div style={{ fontSize: 12, color: textTertiary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dem}</div>
                   )}
                 </div>
                 <button
@@ -886,7 +983,7 @@ function LobbyInner() {
                   style={{
                     padding: "5px 10px", borderRadius: 8, border: "none",
                     cursor: busy ? "not-allowed" : "pointer",
-                    background: "var(--lime)", color: "#0B0B0F", fontSize: 11, fontWeight: 800,
+                    background: "var(--lime)", color: "#0B0B0F", fontSize: 12, fontWeight: 700,
                     opacity: busy ? 0.6 : 1, transition: "all .15s ease",
                   }}
                 >✓</button>
@@ -898,7 +995,7 @@ function LobbyInner() {
                     padding: "5px 10px", borderRadius: 8,
                     cursor: busy ? "not-allowed" : "pointer",
                     background: "transparent", border: "1px solid var(--coral-border, rgba(255,92,92,0.27))",
-                    color: coral, fontSize: 11, fontWeight: 800,
+                    color: coral, fontSize: 12, fontWeight: 700,
                     opacity: busy ? 0.6 : 1, transition: "all .15s ease",
                   }}
                 >×</button>
@@ -927,26 +1024,21 @@ function LobbyInner() {
               {/* Presence dot: teal when online, muted grey when offline */}
               <span title={isOffline ? "Offline" : "Online"} style={{
                 width: 8, height: 8, borderRadius: 999, flexShrink: 0,
-                background: isOffline ? "var(--text-dim)" : "var(--lime)",
+                background: isOffline ? "var(--text-dim)" : "var(--live, var(--lime))",
                 boxShadow: isOffline ? "none" : "0 0 6px var(--lime)",
               }} />
               <Avatar name={member.displayName} size={28} colorIndex={i} />
               <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {member.displayName}
-                {isThisLeader && <span style={{ color: limeText, fontSize: 10, fontWeight: 700, marginLeft: 4 }}>★</span>}
+                {isThisLeader && <span style={{ color: violet, fontSize: 12, fontWeight: 700, marginLeft: 4 }}>★</span>}
                 {isOffline && (
-                  <span style={{ color: textTertiary, fontSize: 10, fontWeight: 600, marginLeft: 6 }}>Offline</span>
+                  <span style={{ color: textTertiary, fontSize: 12, fontWeight: 600, marginLeft: 6 }}>Offline</span>
                 )}
                 {dem && (
-                  <span style={{ color: textTertiary, fontSize: 10, fontWeight: 500, marginLeft: 6 }}>{dem}</span>
+                  <span style={{ color: textTertiary, fontSize: 12, fontWeight: 500, marginLeft: 6 }}>{dem}</span>
                 )}
               </span>
-              <span style={{
-                fontSize: 9, fontWeight: 700, borderRadius: 4, padding: "2px 6px",
-                background: member.ready ? "var(--lime-soft, rgba(194,255,61,0.09))" : "var(--overlay)",
-                color: member.ready ? limeText : textTertiary,
-                border: `1px solid ${member.ready ? "var(--lime-border, rgba(194,255,61,0.2))" : "var(--border)"}`,
-              }}>{member.ready ? "READY" : "WAIT"}</span>
+              <Badge tone={member.ready ? "live" : "full"}>{member.ready ? "READY" : "WAIT"}</Badge>
             </div>
           );
         })}
@@ -959,10 +1051,10 @@ function LobbyInner() {
         onMouseLeave={() => setInvitePeopleHovered(false)}
         style={{
           minHeight: 44, padding: "0 14px", borderRadius: 12, cursor: "pointer",
-          background: invitePeopleHovered ? "var(--violet)" : "var(--violet-soft)",
+          background: invitePeopleHovered ? "var(--accent, var(--violet))" : "var(--violet-soft)",
           border: "1px solid var(--violet)",
           color: invitePeopleHovered ? "#fff" : violet,
-          fontFamily: "var(--font-space-grotesk)", fontSize: 12, fontWeight: 800,
+          fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 12, fontWeight: 700,
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
           transition: "all .15s ease",
         }}
@@ -980,7 +1072,7 @@ function LobbyInner() {
         onMouseLeave={() => setBoostHovered(false)}
         style={{
           minHeight: 36, padding: "0 6px", border: "none", cursor: "pointer", background: "none",
-          color: boostHovered ? "var(--text)" : "var(--text-dim)",
+          color: boostHovered ? textPrimary : textTertiary,
           fontSize: 12, fontWeight: 600,
           display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
           transition: "color .15s ease",
@@ -998,15 +1090,37 @@ function LobbyInner() {
       padding: 16,
       display: "flex", flexDirection: "column", gap: 10,
     }}>
-      <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 13, fontWeight: 700, color: textPrimary, letterSpacing: "0.04em", textTransform: "uppercase" as const }}>Invite Code</div>
+      <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13, fontWeight: 700, color: textPrimary, letterSpacing: "0.04em", textTransform: "uppercase" as const }}>Invite people</div>
       <div style={{
-        background: "var(--lime-soft, rgba(194,255,61,0.04))", border: "1px solid var(--lime-border, rgba(194,255,61,0.13))",
+        background: "var(--surface-2)", border: "1px solid var(--border)",
         borderRadius: 10, padding: "10px 12px",
-        fontFamily: "monospace", fontSize: 22, fontWeight: 800, color: limeText,
+        fontFamily: "monospace", fontSize: 22, fontWeight: 700, color: "var(--text)",
         letterSpacing: "0.14em", textAlign: "center" as const,
       }}>
         {squad.squadCode}
       </div>
+      {/* Primary: share a link that joins + opens the lobby in one tap. */}
+      <button
+        onClick={() => void copyToClipboard(
+          inviteUrl,
+          () => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1800); },
+          "Couldn't copy the invite link. Copy the code instead.",
+        )}
+        onMouseEnter={() => setCopyLinkHovered(true)}
+        onMouseLeave={() => setCopyLinkHovered(false)}
+        style={{
+          width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 9,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+          background: linkCopied ? "var(--live)" : "var(--accent, var(--violet))",
+          border: "1px solid transparent",
+          color: linkCopied ? "#0B0B0F" : "var(--on-accent, #fff)", fontSize: 13, fontWeight: 700, cursor: "pointer",
+          opacity: copyLinkHovered && !linkCopied ? 0.92 : 1,
+          transition: "all .15s ease",
+        }}
+      >
+        <Icon.enter size={15} color={linkCopied ? "#0B0B0F" : "var(--on-accent, #fff)"} />
+        {linkCopied ? "Invite link copied!" : "Copy invite link"}
+      </button>
       <button
         onClick={() => void copyToClipboard(
           squad.squadCode,
@@ -1026,13 +1140,13 @@ function LobbyInner() {
           transition: "all .15s ease",
         }}
       >
-        {codeCopied ? "Copied!" : "Copy Code"}
+        {codeCopied ? "Copied!" : "Copy code instead"}
       </button>
     </div>
   );
 
   const infoPanel = (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+    <div style={{ background: "var(--surface)", border: `1px solid ${ON_STAGE_HAIRLINE}`, borderRadius: 14, overflow: "hidden" }}>
       {infoCard}
       {inviteCard}
     </div>
@@ -1049,10 +1163,11 @@ function LobbyInner() {
   return (
     <>
       <style>{KEYFRAMES}</style>
-      {/* Full calling layout: flex column filling viewport. The calling experience
-          stays DARK in both themes (like every video app) so the stage and the
-          floating side panel share one uniform background — no light/dark seam. */}
-      <div data-theme="dark" style={{ display: "flex", flexDirection: "column", height: "100%", background: "#0B0B0F", overflow: "hidden" }}>
+      {/* Full calling layout: flex column filling viewport. The room chrome +
+          canvas RESPECT the active theme (Meet/Zoom light-mode model); only the
+          video tiles stay dark. `.gg-lobby-root` scopes the press micro-
+          interactions to this subtree in every theme. */}
+      <div className="gg-lobby-root" style={{ display: "flex", flexDirection: "column", height: "100%", background: "var(--bg)", overflow: "hidden" }}>
 
         {/* ── COMPACT HEADER — themed with the squad's own cover ── */}
         <div style={{
@@ -1060,7 +1175,7 @@ function LobbyInner() {
           display: "flex", alignItems: "center", gap: 12,
           padding: isPhone ? "8px 10px" : "12px 20px",
           background: "var(--surface)",
-          borderBottom: "1px solid var(--border)",
+          borderBottom: `1px solid ${ON_STAGE_HAIRLINE}`,
           backdropFilter: "blur(12px)",
           flexShrink: 0,
           zIndex: 10,
@@ -1076,15 +1191,16 @@ function LobbyInner() {
               background: coverBg, backgroundSize: "cover", backgroundPosition: "center",
               opacity: 0.42,
             }} />
-            {/* Legibility scrim: darker toward the left where name/code sit, and a
-                bottom-up wash so text never fights the cover. */}
+            {/* Legibility scrim: themed wash (var(--surface)) toward the left where
+                name/code sit, so the header reads as this squad's cover tint while
+                staying legible in EVERY theme (light in Cloud, plum in Midnight). */}
             <div style={{
               position: "absolute", inset: 0,
-              background: "linear-gradient(90deg, rgba(11,11,15,0.92) 0%, rgba(11,11,15,0.72) 45%, rgba(11,11,15,0.5) 100%)",
+              background: "linear-gradient(90deg, var(--surface) 0%, color-mix(in srgb, var(--surface) 74%, transparent) 45%, color-mix(in srgb, var(--surface) 52%, transparent) 100%)",
             }} />
             <div style={{
               position: "absolute", inset: 0,
-              background: "linear-gradient(180deg, rgba(11,11,15,0.35) 0%, rgba(11,11,15,0.55) 100%)",
+              background: "linear-gradient(180deg, color-mix(in srgb, var(--surface) 32%, transparent) 0%, color-mix(in srgb, var(--surface) 54%, transparent) 100%)",
             }} />
           </div>
 
@@ -1133,8 +1249,8 @@ function LobbyInner() {
                     height: 32, width: isPhone ? 140 : 200, boxSizing: "border-box",
                     padding: "0 12px", borderRadius: 9,
                     background: "var(--overlay)", border: "1px solid var(--violet)",
-                    color: textPrimary, fontFamily: "var(--font-space-grotesk)",
-                    fontSize: 15, fontWeight: 800, outline: "none",
+                    color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))",
+                    fontSize: 14, fontWeight: 700, outline: "none",
                   }}
                 />
                 <button
@@ -1146,7 +1262,7 @@ function LobbyInner() {
                     width: 30, height: 30, borderRadius: 8, border: "none", flexShrink: 0,
                     cursor: savingName ? "not-allowed" : "pointer",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    background: "var(--violet)", color: "#fff", fontSize: 14, fontWeight: 900, lineHeight: 1,
+                    background: "var(--accent, var(--violet))", color: "#fff", fontSize: 14, fontWeight: 700, lineHeight: 1,
                   }}
                 >✓</button>
                 <button
@@ -1165,11 +1281,11 @@ function LobbyInner() {
             ) : (
               <>
                 {isLeader && isPhone ? (
-                  <button onClick={startRename} aria-label="Rename squad" style={{ maxWidth: "100%", padding: 0, border: 0, background: "transparent", fontFamily: "var(--font-space-grotesk)", fontSize: 15, fontWeight: 800, color: textPrimary, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}>
+                  <button onClick={startRename} aria-label="Rename squad" style={{ maxWidth: "100%", padding: 0, border: 0, background: "transparent", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 14, fontWeight: 700, color: textPrimary, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}>
                     {squad.squadName}
                   </button>
                 ) : (
-                  <h1 style={{ maxWidth: "100%", fontFamily: "var(--font-space-grotesk)", fontSize: 17, fontWeight: 800, color: textPrimary, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <h1 style={{ maxWidth: "100%", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 17, fontWeight: 700, color: textPrimary, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {squad.squadName}
                   </h1>
                 )}
@@ -1181,24 +1297,24 @@ function LobbyInner() {
                     title="Rename squad"
                     aria-label="Rename squad"
                     style={{
-                      width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                      width: 32, height: 32, flexShrink: 0, padding: 0,
                       cursor: "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      background: renameHovered ? "var(--overlay-hover)" : "var(--overlay)",
-                      border: "1px solid var(--border)",
+                      background: "transparent", border: "none",
                       transition: "all .15s ease",
                     }}
                   >
-                    <Icon.settings size={12} color={renameHovered ? violet : textMuted} />
+                    <Icon.edit size={16} color={renameHovered ? violet : textMuted} />
                   </button>
                 )}
               </>
             )}
             <span style={{
-              background: "var(--lime-soft, rgba(194,255,61,0.09))", color: limeText, border: "1px solid var(--lime-border, rgba(194,255,61,0.27))",
+              background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)",
               borderRadius: 999, padding: "2px 10px", fontFamily: "monospace",
-              fontSize: 11, fontWeight: 700, letterSpacing: "0.1em", flexShrink: 0,
+              fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", flexShrink: 0,
             }}>{squad.squadCode}</span>
+            {squadIsAdult && adultBadge}
           </div>
 
           {/* Vibe tags */}
@@ -1206,7 +1322,7 @@ function LobbyInner() {
             {currentTags.slice(0, 3).map(tag => (
               <span key={tag} style={{
                 background: "var(--violet-soft)", color: violet, borderRadius: 999,
-                padding: "3px 10px", fontSize: 11, fontWeight: 500, whiteSpace: "nowrap",
+                padding: "3px 10px", fontSize: 12, fontWeight: 500, whiteSpace: "nowrap",
               }}>{tag}</span>
             ))}
             {isLeader && !isNarrow && (
@@ -1214,24 +1330,27 @@ function LobbyInner() {
                 onClick={() => { setVibeEditorOpen(true); setSelectedVibes(normalizeVibeLabels(currentTags)); }}
                 onMouseEnter={() => setEditVibesHovered(true)}
                 onMouseLeave={() => setEditVibesHovered(false)}
-                title={currentTags.length ? "Edit vibes" : "Set vibes"}
+                title="Edit vibes"
                 style={{
                   display: "flex", alignItems: "center", gap: 4,
                   background: editVibesHovered ? "var(--overlay-hover)" : "var(--overlay)",
                   border: "1.5px dashed var(--border-strong)",
-                  borderRadius: 999, padding: "3px 10px", fontSize: 11, color: textMuted,
+                  borderRadius: 999, padding: "3px 10px", fontSize: 12, color: textMuted,
                   cursor: "pointer", fontWeight: 500, whiteSpace: "nowrap",
                   transition: "all .15s ease",
                 }}
               >
                 <Icon.settings size={11} color={textMuted} />
-                {currentTags.length ? "Edit vibes" : "Set vibes"}
+                Edit vibes
               </button>
             )}
           </div>
 
           {/* Right actions */}
           <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            {/* Theme switcher — the shared TopNav is hidden on lobby/encounter, so
+                surface the theme menu here too (keeps all themes reachable in-squad). */}
+            <ThemeToggle size={isPhone ? 44 : 34} />
             {isLeader && !isNarrow && (
               <button
                 onClick={() => setCoverPickerOpen(true)}
@@ -1268,7 +1387,7 @@ function LobbyInner() {
                 background: chatVisible
                   ? "var(--violet-soft)"
                   : (chatHovered ? "var(--overlay-hover)" : "var(--overlay)"),
-                border: `1px solid ${chatVisible ? "var(--violet)" : "var(--border)"}`,
+                border: `1px solid ${chatVisible ? "var(--accent, var(--violet))" : "var(--border)"}`,
                 color: chatVisible ? violet : textMuted, fontSize: 12, fontWeight: 600,
                 cursor: "pointer", transition: "all .15s ease",
               }}
@@ -1300,7 +1419,7 @@ function LobbyInner() {
               {inviteCopied ? "Copied!" : "Invite"}
             </button>}
             <button
-              onClick={handleLeaveSquad}
+              onClick={() => { if (isLeader) setLeaveMenuOpen(true); else handleLeaveSquad(); }}
               disabled={leavingSquad}
               onMouseEnter={() => setLeaveHovered(true)}
               onMouseLeave={() => setLeaveHovered(false)}
@@ -1317,25 +1436,18 @@ function LobbyInner() {
           </div>
         </div>
 
-        {lobbyLoadError && (
-          <div role="alert" style={{ flexShrink: 0, minHeight: 44, padding: "7px 14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, background: "color-mix(in srgb, var(--coral) 12%, var(--surface))", borderBottom: "1px solid color-mix(in srgb, var(--coral) 35%, transparent)", color: "var(--coral)", fontSize: 13, fontWeight: 700 }}>
-            <span>{lobbyLoadError} Showing the last loaded version.</span>
-            <button onClick={() => void fetchSquad()} className="gg-press" style={{ minHeight: 44, padding: "0 12px", borderRadius: 9, border: "1px solid var(--border-strong)", background: "transparent", color: textPrimary, cursor: "pointer", fontWeight: 700 }}>Retry</button>
-          </div>
-        )}
-
         {/* ── MAIN AREA: stage + side panel ── */}
         <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row" as const, flex: 1, minHeight: 0, overflow: isPhone ? "auto" : "hidden" }}>
 
-          {/* ── VIDEO STAGE — stays dark in both themes ── */}
+          {/* ── VIDEO STAGE — themed canvas; only the tiles on it stay dark ── */}
           <div style={{
             flex: isPhone ? "0 0 auto" : 1, display: "flex", flexDirection: "column",
             alignItems: "center", justifyContent: "center",
-            background: "#0B0B0F",
+            background: "var(--bg)",
             position: "relative",
             padding: isPhone ? "10px 10px 12px" : "24px 24px 16px",
-            minHeight: isPhone ? "calc(100dvh - 61px)" : 0,
-            overflow: "hidden" as const,
+            minHeight: isPhone ? 320 : 0,
+            overflow: isPhone ? "auto" as const : "hidden" as const,
             gap: 0,
           }}>
             {/* STAGE BACKDROP — the squad's own cover, scrimmed hard so it reads
@@ -1346,11 +1458,13 @@ function LobbyInner() {
                 position: "absolute", inset: 0,
                 background: coverBg,
                 backgroundSize: "cover", backgroundPosition: "center",
-                opacity: 0.2,
+                opacity: 0.14,
               }} />
+              {/* Vignette that fades the cover into the THEMED canvas (var(--bg))
+                  so the ambient identity works in light + dark themes alike. */}
               <div style={{
                 position: "absolute", inset: 0,
-                background: "radial-gradient(ellipse at 50% 40%, rgba(11,11,15,0.55) 0%, rgba(11,11,15,0.88) 70%, #0B0B0F 100%)",
+                background: "radial-gradient(ellipse at 50% 40%, transparent 0%, color-mix(in srgb, var(--bg) 62%, transparent) 55%, var(--bg) 100%)",
               }} />
             </div>
             {/* Video failure banner — non-blocking, dismissible. Chat/controls
@@ -1361,20 +1475,52 @@ function LobbyInner() {
                 zIndex: 30, maxWidth: "calc(100% - 24px)",
                 display: "flex", alignItems: "center", gap: 10,
                 background: "var(--surface)",
-                border: "1px solid var(--coral)",
+                backgroundImage: "linear-gradient(var(--coral-soft), var(--coral-soft))",
+                border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
                 borderRadius: 12, padding: "9px 12px 9px 14px",
                 boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
               }}>
                 <span style={{
                   width: 7, height: 7, borderRadius: 999, background: coral, flexShrink: 0,
                 }} />
-                <span style={{ fontSize: 13, fontWeight: 500, color: textPrimary, lineHeight: 1.4 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--coral)", lineHeight: 1.4 }}>
                   {videoError}
                 </span>
                 <button
                   onClick={() => setVideoError(null)}
                   title="Dismiss"
                   aria-label="Dismiss"
+                  style={{
+                    background: "none", border: "none", cursor: "pointer",
+                    color: textMuted, fontSize: 16, lineHeight: 1, padding: "0 2px",
+                    display: "flex", alignItems: "center",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            {/* Poll-failure banner — shown after ≥2 consecutive fetch failures */}
+            {connTrouble && !connTroubleDismissed && (
+              <div role="status" style={{
+                position: "absolute", top: videoError ? 64 : 12, left: "50%", transform: "translateX(-50%)",
+                zIndex: 30, maxWidth: "calc(100% - 24px)",
+                display: "flex", alignItems: "center", gap: 10,
+                background: "var(--surface)",
+                border: "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
+                borderRadius: 12, padding: "9px 12px 9px 14px",
+                boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
+              }}>
+                <span style={{
+                  width: 7, height: 7, borderRadius: 999, background: "var(--amber)", flexShrink: 0,
+                }} />
+                <span style={{ fontSize: 13, fontWeight: 500, color: textPrimary, lineHeight: 1.4 }}>
+                  Connection trouble — retrying…
+                </span>
+                <button
+                  onClick={() => setConnTroubleDismissed(true)}
+                  title="Dismiss"
+                  aria-label="Dismiss connection notice"
                   style={{
                     background: "none", border: "none", cursor: "pointer",
                     color: textMuted, fontSize: 16, lineHeight: 1, padding: "0 2px",
@@ -1400,12 +1546,13 @@ function LobbyInner() {
                   animation: "readyGlow 2.5s ease-in-out infinite",
                 }} />
                 <span style={{
-                  fontFamily: "var(--font-space-grotesk)", fontSize: 12.5, fontWeight: 600,
+                  fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13, fontWeight: 600,
                   letterSpacing: "0.04em",
-                  background: "linear-gradient(90deg, #C9C9DA 0%, #C9C9DA 38%, #F4F4F7 50%, #C9C9DA 62%, #C9C9DA 100%)",
+                  // Themed shimmer so it reads on the themed canvas in every theme.
+                  background: "linear-gradient(90deg, var(--text-muted) 0%, var(--text-muted) 38%, var(--text) 50%, var(--text-muted) 62%, var(--text-muted) 100%)",
                   backgroundSize: "220% auto",
                   WebkitBackgroundClip: "text", backgroundClip: "text",
-                  WebkitTextFillColor: "transparent", color: "#C9C9DA",
+                  WebkitTextFillColor: "transparent", color: "var(--text-muted)",
                   animation: "lobbyShimmer 2.8s linear infinite",
                 }}>
                   Waiting for your squad…
@@ -1415,15 +1562,25 @@ function LobbyInner() {
                 </span>
               </div>
             )}
-            {/* Real members own the stage. Invites stay in the header and rail. */}
+            {/* Tile grid — sizes to content (tiles derive height from width via
+                aspect-ratio) and is centered in the stage. We must NOT stretch
+                rows to the full stage height: a tall 1fr row + aspect-ratio tiles
+                forces an enormous min-content width that collapses the columns.
+                Capped tighter than the stage so the cluster reads as a tight
+                group rather than a sprawling, half-empty call. */}
             <div style={{
               position: "relative",
               zIndex: 1,
               display: "grid",
               gridTemplateColumns: `repeat(${effCols}, minmax(0, 1fr))`,
-              gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`,
-              flex: 1,
-              gap: 12,
+              // Phone: auto rows + flexShrink:0 so tiles keep their aspect size and
+              //   the stage SCROLLS (no row-collapse → no overlap).
+              // Desktop: rows divide the stage HEIGHT (1fr) and the grid fills it
+              //   (flex:1); tiles fill their cells so nothing overflows and the
+              //   control bar below always stays on-screen.
+              gridTemplateRows: `repeat(${effRows}, ${isPhone ? "auto" : "minmax(0, 1fr)"})`,
+              ...(isPhone ? { flexShrink: 0 } : { flex: 1 }),
+              gap: 16,
               width: "100%",
               maxWidth: effCols <= 1 ? 720 : effCols >= 4 ? 1320 : 1180,
               margin: "0 auto",
@@ -1442,13 +1599,14 @@ function LobbyInner() {
                     key={member.memberId}
                     style={{
                       position: "relative",
-                      borderRadius: 16,
+                      borderRadius: "var(--radius-tile, 16px)",
                       overflow: "hidden",
-                      height: "100%",
-                      background: `linear-gradient(145deg, ${avatarColors[i % 4]}22 0%, #0D0D12 100%)`,
+                      // Desktop fills the grid cell; phone uses a fixed aspect ratio.
+                      ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
+                      background: "var(--stage-2, #2A2135)",
                       border: isReady
-                        ? `2px solid #C2FF3D66`
-                        : "1.5px solid rgba(255,255,255,0.08)",
+                        ? "2px solid color-mix(in srgb, var(--live, #A3E635) 40%, transparent)"
+                        : "1px solid rgba(255,255,255,0.10)",
                       // delay baked into the shorthand — never mix `animation` with `animationDelay`
                       animation: isReady
                         ? `tileIn 0.35s ease ${i * 0.06}s forwards, readyGlow 2.5s ease-in-out ${i * 0.06}s infinite`
@@ -1472,7 +1630,8 @@ function LobbyInner() {
                       position: "absolute", inset: 0,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       zIndex: 1,
-                      background: `radial-gradient(ellipse at center, ${avatarColors[i % 4]}18 0%, transparent 70%)`,
+                      // Flat --stage-2 tile (from the parent) — no cover/color
+                      // gradients behind the avatar; clean and even in all themes.
                       // Desaturate the avatar/backdrop for offline members.
                       ...(isOffline ? { filter: "grayscale(0.85)" } : null),
                     }}>
@@ -1500,8 +1659,10 @@ function LobbyInner() {
                     {isThisLeader && (
                       <span style={{
                         position: "absolute", top: 10, left: 10, zIndex: 4,
-                        background: "#C2FF3D", color: "#0B0B0F",
-                        fontSize: 9, fontWeight: 800, borderRadius: 6,
+                        background: "rgba(11,11,15,0.6)", backdropFilter: "blur(4px)",
+                        border: "1px solid rgba(255,255,255,0.18)",
+                        color: "#F4F3F7",
+                        fontSize: 12, fontWeight: 700, borderRadius: 6,
                         padding: "2px 7px", letterSpacing: "0.08em",
                       }}>LEAD</span>
                     )}
@@ -1517,140 +1678,206 @@ function LobbyInner() {
                         <span style={{
                           background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
                           borderRadius: 6, padding: "3px 8px",
-                          fontFamily: "var(--font-space-grotesk)", fontSize: 12, fontWeight: 600,
+                          fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 12, fontWeight: 600,
                           color: "#F4F4F7",
                           maxWidth: 140, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>
                           {member.displayName}{isMe ? " (You)" : ""}
                         </span>
                         {!isNarrow && isOffline && (
-                          <span style={{
-                            display: "flex", alignItems: "center", gap: 4,
-                            background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)",
-                            border: "1px solid rgba(255,255,255,0.14)",
-                            borderRadius: 999, fontSize: 9, fontWeight: 800,
-                            color: "#C9C9DA", padding: "2px 7px", letterSpacing: "0.06em",
-                          }}>
-                            <span style={{ width: 6, height: 6, borderRadius: 999, background: "#9A9AB0" }} />
-                            OFFLINE
-                          </span>
+                          <Badge tone="full" style={{ borderRadius: 999 }}>OFFLINE</Badge>
                         )}
                         {!isNarrow && isReady && (
-                          <span style={{
-                            background: "rgba(194,255,61,0.13)", border: "1px solid rgba(194,255,61,0.33)",
-                            borderRadius: 999, fontSize: 9, fontWeight: 800,
-                            color: "#C2FF3D", padding: "2px 6px", letterSpacing: "0.06em",
-                          }}>✓ READY</span>
+                          <Badge tone="live" style={{ borderRadius: 999 }}>READY</Badge>
+                        )}
+                        {!isNarrow && !isReady && !isOffline && (
+                          <Badge tone="full" style={{ borderRadius: 999 }}>NOT READY</Badge>
                         )}
                       </div>
                       <div style={{ display: isNarrow ? "none" : "flex", gap: 4 }}>
-                        {/* For the local user these are interactive toggles; for
-                            others they're read-only status indicators. */}
-                        {(() => {
-                          const on = isMe ? micOn : member.inLobbyVideo;
-                          const common: React.CSSProperties = {
-                            width: 44, height: 44, borderRadius: 999, border: "none", padding: 0,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            background: on ? "rgba(124,92,255,0.6)" : "rgba(255,92,92,0.55)",
-                          };
-                          const icon = <Icon.mic size={16} color={on ? "#fff" : "#FFD7D7"} />;
-                          return isMe ? (
-                            <button onClick={toggleMic} title={micOn ? "Mute mic" : "Unmute mic"}
-                              style={{ ...common, cursor: "pointer", transition: "transform .12s ease" }}
-                              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.9)")}
-                              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                            >{icon}</button>
-                          ) : <span style={common}>{icon}</span>;
-                        })()}
-                        {(() => {
-                          const on = isMe ? camOn : member.inLobbyVideo;
-                          const common: React.CSSProperties = {
-                            width: 44, height: 44, borderRadius: 999, border: "none", padding: 0,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            background: on ? "rgba(124,92,255,0.6)" : "rgba(255,92,92,0.55)",
-                          };
-                          const icon = <Icon.cam size={16} color={on ? "#fff" : "#FFD7D7"} />;
-                          return isMe ? (
-                            <button onClick={toggleCam} title={camOn ? "Turn off camera" : "Turn on camera"}
-                              style={{ ...common, cursor: "pointer", transition: "transform .12s ease" }}
-                              onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.9)")}
-                              onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                              onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-                            >{icon}</button>
-                          ) : <span style={common}>{icon}</span>;
-                        })()}
+                        {isMe ? (
+                          /* Local user — real interactive mic/cam toggles, but
+                             only once lobby media is actually connected. Before
+                             that they'd show a fake "on" state and error on tap;
+                             the control bar's "Enable camera & mic" is the path. */
+                          !videoJoined ? null :
+                          <>
+                            {(() => {
+                              const common: React.CSSProperties = {
+                                width: 44, height: 44, borderRadius: "var(--radius-control, 14px)", border: "none", padding: 0,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                /* Neutral glass when on, coral when off — green is reserved for READY. */
+                                background: micOn ? "rgba(255,255,255,0.14)" : "color-mix(in srgb, var(--coral) 70%, transparent)",
+                                boxShadow: micOn ? "inset 0 0 0 1px rgba(255,255,255,0.18)" : "none",
+                              };
+                              return (
+                                <button onClick={toggleMic} title={micOn ? "Mute mic" : "Unmute mic"}
+                                  aria-label={micOn ? "Mute mic" : "Unmute mic"} aria-pressed={micOn}
+                                  style={{ ...common, cursor: "pointer", transition: "transform .12s ease" }}
+                                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.9)")}
+                                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                                  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                                ><Icon.mic size={16} color="#fff" /></button>
+                              );
+                            })()}
+                            {(() => {
+                              const common: React.CSSProperties = {
+                                width: 44, height: 44, borderRadius: "var(--radius-control, 14px)", border: "none", padding: 0,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                background: camOn ? "rgba(255,255,255,0.14)" : "color-mix(in srgb, var(--coral) 70%, transparent)",
+                                boxShadow: camOn ? "inset 0 0 0 1px rgba(255,255,255,0.18)" : "none",
+                              };
+                              return (
+                                <button onClick={toggleCam} title={camOn ? "Turn off camera" : "Turn on camera"}
+                                  aria-label={camOn ? "Turn off camera" : "Turn on camera"} aria-pressed={camOn}
+                                  style={{ ...common, cursor: "pointer", transition: "transform .12s ease" }}
+                                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.9)")}
+                                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                                  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                                ><Icon.cam size={16} color="#fff" /></button>
+                              );
+                            })()}
+                          </>
+                        ) : (
+                          /* Remote members: the backend only tells us whether
+                             they're in lobby video — show ONE honest "in call"
+                             indicator instead of two fake mic+cam icons. */
+                          <span
+                            title={member.inLobbyVideo ? "In lobby video" : "Not in lobby video"}
+                            aria-label={member.inLobbyVideo ? "In lobby video" : "Not in lobby video"}
+                            style={{
+                              width: 44, height: 44, borderRadius: "var(--radius-control, 14px)", border: "none", padding: 0,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              background: member.inLobbyVideo ? "rgba(124,92,255,0.6)" : "rgba(255,255,255,0.10)",
+                            }}
+                          >
+                            <Icon.cam size={16} color={member.inLobbyVideo ? "#fff" : "#9A9AB0"} />
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
                 );
               })}
 
+              {/* Single "invite a friend" affordance (hidden once squad is full) */}
+              {showInviteTile && (
+                <div
+                  onClick={handleInvite}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleInvite(); }}
+                  onMouseEnter={() => setInviteTileHovered(true)}
+                  onMouseLeave={() => setInviteTileHovered(false)}
+                  style={{
+                    borderRadius: "var(--radius-tile, 16px)",
+                    // Placeholder is a dark "screen" like the video tiles in every theme.
+                    border: `1.5px dashed ${inviteTileHovered ? "var(--accent, var(--violet))" : "rgba(255,255,255,0.12)"}`,
+                    background: inviteTileHovered ? "color-mix(in srgb, var(--accent, var(--violet)) 24%, var(--stage-2, #2A2135))" : "var(--stage-2, #2A2135)",
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+                    boxSizing: "border-box",
+                    width: "100%",
+                    minWidth: 0,
+                    minHeight: 0,
+                    cursor: "pointer",
+                    ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
+                    transition: "all .15s ease",
+                    animation: `tileIn 0.35s ease ${memberCount * 0.06}s forwards`,
+                  }}
+                >
+                  <Icon.plus size={22} color={inviteTileHovered ? "var(--accent, var(--violet))" : "#9A9AB0"} />
+                  <div style={{ fontSize: 13, fontWeight: 600, color: inviteTileHovered ? "var(--accent, var(--violet))" : "#9A9AB0" }}>Invite a friend</div>
+                  <div style={{ fontSize: 12, color: "#7B7B90" }}>{MAX_SLOTS - memberCount} {MAX_SLOTS - memberCount === 1 ? "spot" : "spots"} open</div>
+                </div>
+              )}
+
             </div>
 
             {/* ── CONTROL BAR (centered floating pill) ── */}
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: isPhone ? 8 : 10,
-              background: "rgba(22,22,30,0.92)",
+            <div data-testid="lobby-readiness" style={{
+              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: 10,
+              background: "var(--surface)",
               backdropFilter: "blur(16px)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 999,
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-card, 20px)",
               padding: isPhone ? "8px 10px" : "10px 16px",
               marginTop: isPhone ? 0 : 32,
               animation: "controlIn 0.4s ease 0.3s forwards",
               opacity: 0,
               boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
               flexShrink: 0,
-              flexWrap: "nowrap" as const,
+              flexWrap: "wrap" as const,
               position: "relative" as const,
               bottom: undefined,
               left: undefined,
               transform: undefined,
-              width: isPhone ? "calc(100vw - 20px)" : undefined,
               maxWidth: isPhone ? "calc(100vw - 20px)" : undefined,
-              boxSizing: "border-box" as const,
               zIndex: 1,
             }}>
-              {/* Mic */}
-              <button
-                onClick={toggleMic}
-                onMouseEnter={() => setMicHovered(true)}
-                onMouseLeave={() => setMicHovered(false)}
-                title={micOn ? "Mute mic" : "Unmute mic"}
-                style={{
-                  width: isPhone ? 44 : 50, height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  background: micOn
-                    ? (micHovered ? "rgba(124,92,255,0.35)" : "rgba(124,92,255,0.2)")
-                    : (micHovered ? "rgba(255,92,92,0.35)" : "rgba(255,92,92,0.25)"),
-                  transition: "all .15s ease",
-                  transform: micHovered ? "scale(1.08)" : "scale(1)",
-                }}
-              >
-                <Icon.mic size={20} color={micOn ? "#7C5CFF" : "#FF5C5C"} />
-              </button>
-
-              {/* Cam */}
-              <button
-                onClick={toggleCam}
-                onMouseEnter={() => setCamHovered(true)}
-                onMouseLeave={() => setCamHovered(false)}
-                title={camOn ? "Turn off camera" : "Turn on camera"}
-                style={{
-                  width: isPhone ? 44 : 50, height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  background: camOn
-                    ? (camHovered ? "rgba(124,92,255,0.35)" : "rgba(124,92,255,0.2)")
-                    : (camHovered ? "rgba(255,92,92,0.35)" : "rgba(255,92,92,0.25)"),
-                  transition: "all .15s ease",
-                  transform: camHovered ? "scale(1.08)" : "scale(1)",
-                }}
-              >
-                <Icon.cam size={20} color={camOn ? "#7C5CFF" : "#FF5C5C"} />
-              </button>
-
-              {/* Divider */}
-              {!isPhone && <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />}
+              {videoJoined ? (
+                <>
+                  <button
+                    onClick={toggleMic}
+                    onMouseEnter={() => setMicHovered(true)}
+                    onMouseLeave={() => setMicHovered(false)}
+                    title={micOn ? "Mute microphone" : "Unmute microphone"}
+                    aria-label={micOn ? "Mute microphone" : "Unmute microphone"}
+                    aria-pressed={micOn}
+                    className="gg-press"
+                    style={{
+                      width: isPhone ? 44 : 50, height: isPhone ? 44 : 50, borderRadius: "var(--radius-control, 14px)", border: "none", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      /* On = themed neutral, off = coral. Green stays reserved for READY. */
+                      background: micOn
+                        ? (micHovered ? "var(--overlay-hover)" : "var(--surface-2)")
+                        : (micHovered ? "color-mix(in srgb, var(--coral) 90%, transparent)" : "var(--coral)"),
+                      boxShadow: micOn ? "inset 0 0 0 1px var(--border-strong)" : "none",
+                      transition: "all .15s ease",
+                      transform: micHovered ? "scale(1.08)" : "scale(1)",
+                    }}
+                  >
+                    <Icon.mic size={20} color={micOn ? "var(--text)" : "#fff"} />
+                  </button>
+                  <button
+                    onClick={toggleCam}
+                    onMouseEnter={() => setCamHovered(true)}
+                    onMouseLeave={() => setCamHovered(false)}
+                    title={camOn ? "Turn off camera" : "Turn on camera"}
+                    aria-label={camOn ? "Turn off camera" : "Turn on camera"}
+                    aria-pressed={camOn}
+                    className="gg-press"
+                    style={{
+                      width: isPhone ? 44 : 50, height: isPhone ? 44 : 50, borderRadius: "var(--radius-control, 14px)", border: "none", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: camOn
+                        ? (camHovered ? "var(--overlay-hover)" : "var(--surface-2)")
+                        : (camHovered ? "color-mix(in srgb, var(--coral) 90%, transparent)" : "var(--coral)"),
+                      boxShadow: camOn ? "inset 0 0 0 1px var(--border-strong)" : "none",
+                      transition: "all .15s ease",
+                      transform: camHovered ? "scale(1.08)" : "scale(1)",
+                    }}
+                  >
+                    <Icon.cam size={20} color={camOn ? "var(--text)" : "#fff"} />
+                  </button>
+                  <div style={{ width: 1, height: 28, background: "var(--border)", margin: "0 2px" }} />
+                </>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flex: isPhone ? "1 0 100%" : undefined }}>
+                  <span style={{ maxWidth: 150, color: textMuted, fontSize: 12, lineHeight: 1.25 }}>
+                    Used in this lobby and live encounters.
+                  </span>
+                  <Button
+                    onClick={enableLobbyMedia}
+                    loading={videoJoining}
+                    variant="secondary"
+                    aria-label="Enable camera and microphone"
+                    style={{ whiteSpace: "nowrap" }}
+                  >
+                    {!videoJoining && <Icon.cam size={17} color="var(--accent, var(--violet))" />}
+                    {videoJoining ? "Enabling…" : "Enable camera & mic"}
+                  </Button>
+                </div>
+              )}
 
               {/* Ready toggle */}
               <button
@@ -1659,78 +1886,86 @@ function LobbyInner() {
                 onMouseEnter={() => setReadyHovered(true)}
                 onMouseLeave={() => setReadyHovered(false)}
                 title="Toggle ready"
+                aria-pressed={myReady}
+                className="gg-press"
                 style={{
-                  height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: "pointer",
-                  padding: isPhone ? "0 12px" : "0 20px",
+                  height: isPhone ? 44 : 50, borderRadius: "var(--radius-btn, 999px)", border: "none", cursor: "pointer",
+                  padding: "0 20px",
                   display: "flex", alignItems: "center", gap: 7,
-                  background: readyHovered ? "rgba(194,255,61,0.17)" : "rgba(194,255,61,0.09)",
-                  color: "#C2FF3D",
-                  fontWeight: 700, fontSize: 14,
+                  // v3 tonal button; filled --live when ready — an unambiguous "on" state.
+                  background: myReady
+                    ? "var(--live, var(--lime))"
+                    : readyHovered ? "var(--accent-line)" : "var(--accent-soft)",
+                  color: myReady ? "var(--live-contrast, #0B0B12)" : "var(--accent, var(--violet))",
+                  fontWeight: 600, fontSize: 14,
                   transition: "all .15s ease",
                   transform: readyHovered ? "scale(1.04)" : "scale(1)",
-                  minWidth: isPhone ? 90 : 110,
+                  minWidth: 110,
                   whiteSpace: "nowrap" as const,
+                  boxShadow: myReady ? "0 0 20px -6px var(--live, var(--lime))" : "none",
                 }}
               >
-                {settingReady ? "…" : myReady ? "Ready" : "Mark ready"}
+                {settingReady ? "…" : myReady ? "✓ Ready" : "Mark ready"}
               </button>
 
               {/* Find a Match (leader only) */}
               {isLeader && (
                 <>
-                  {!isPhone && <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)", margin: "0 2px" }} />}
-                  <button
+                  {!isPhone && <div style={{ width: 1, height: 28, background: "var(--border)", margin: "0 2px" }} />}
+                  <Button
                     onClick={handleFindMatch}
-                    disabled={findingMatch}
-                    onMouseEnter={() => setFindMatchHovered(true)}
-                    onMouseLeave={() => setFindMatchHovered(false)}
+                    disabled={!allReady}
+                    loading={findingMatch}
+                    variant="primary"
+                    aria-label="Find a Match"
                     style={{
-                      height: isPhone ? 44 : 50, borderRadius: 999, border: "none", cursor: findingMatch ? "not-allowed" : "pointer",
-                      padding: isPhone ? "0 12px" : "0 28px",
-                      display: "flex", alignItems: "center", gap: 8,
-                      background: "var(--violet)",
-                      color: "#fff",
-                      fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 13 : 15, fontWeight: 800,
-                      boxShadow: findMatchHovered
-                        ? "0 0 40px -4px var(--violet), 0 0 0 3px var(--violet-soft)"
-                        : "0 0 24px -6px var(--violet)",
-                      transition: "all .15s ease",
-                      transform: findMatchHovered ? "scale(1.04)" : "scale(1)",
+                      height: isPhone ? 44 : 50,
                       minWidth: isPhone ? 0 : 162,
-                      flex: isPhone ? 1 : undefined,
-                      whiteSpace: "nowrap" as const,
+                      flex: isPhone ? "1 0 100%" : undefined,
                     }}
                   >
-                    <Icon.discover size={18} color="#fff" />
-                    {findingMatch ? "Starting…" : "Find a Match"}
-                  </button>
+                    {!findingMatch && <Icon.discover size={18} color="var(--on-accent, #fff)" />}
+                    {findingMatch ? "Starting…" : allReady ? "Find a Match" : "Waiting for everyone"}
+                  </Button>
                 </>
               )}
             </div>
+            {/* Why Find-a-Match is disabled — names of who we're waiting on */}
+            {isLeader && !allReady && onlineMembers.length > 0 && (
+              <div role="status" aria-live="polite" style={{
+                alignSelf: "center",
+                marginTop: 8,
+                maxWidth: isPhone ? "calc(100vw - 28px)" : 520,
+                fontSize: 12,
+                color: textMuted,
+                textAlign: "center" as const,
+                lineHeight: 1.4,
+                position: "relative" as const,
+                zIndex: 1,
+              }}>
+                {onlineReadyCount} of {onlineMembers.length} ready{notReadyNames.length > 0 ? ` — waiting on ${notReadyLabel}` : ""}
+              </div>
+            )}
             {matchError && (
-              <div role="alert" style={{
-                position: "absolute",
-                left: "50%",
-                bottom: isPhone ? 74 : 96,
-                transform: "translateX(-50%)",
-                zIndex: 30,
-                width: "max-content",
+              <div role="alert" className="gg-toast" style={{
+                alignSelf: "center",
+                marginTop: 10,
                 maxWidth: isPhone ? "calc(100vw - 28px)" : 520,
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
                 padding: "9px 12px",
-                borderRadius: 12,
-                background: "color-mix(in srgb, var(--coral) 12%, var(--surface))",
+                borderRadius: 999,
+                background: "var(--coral-soft)",
                 border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
                 color: "var(--coral)",
-                fontSize: 12.5,
-                fontWeight: 700,
+                fontSize: 13,
+                fontWeight: 600,
                 lineHeight: 1.25,
               }}>
                 <Icon.flag size={14} color="var(--coral)" />
-                <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{matchError}</span>
-                <button onClick={() => setMatchError(null)} aria-label="Dismiss match error" style={{ width: 44, height: 44, flexShrink: 0, border: "none", background: "transparent", color: "var(--coral)", cursor: "pointer", display: "grid", placeItems: "center", padding: 0, margin: "-8px -8px -8px 0" }}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{matchError}</span>
+                <button onClick={() => setMatchError(null)} aria-label="Dismiss match error" style={{ border: "none", background: "transparent", color: "var(--coral)", cursor: "pointer", display: "flex", padding: 0 }}>
                   <Icon.close size={14} color="var(--coral)" />
                 </button>
               </div>
@@ -1739,7 +1974,7 @@ function LobbyInner() {
 
           {/* ── RIGHT SIDE PANEL ── */}
           {isPhone ? (
-            /* PHONE: room details stay below the people-first stage. */
+            /* PHONE: docked sheet (unchanged behavior) — info + invite, chat gated by toggle. */
             <div style={{
               width: "100%",
               flexShrink: 0,
@@ -1747,13 +1982,26 @@ function LobbyInner() {
               display: "flex",
               flexDirection: "column",
               background: "var(--surface)",
-              borderTop: "1px solid var(--border)",
+              borderTop: `1px solid ${ON_STAGE_HAIRLINE}`,
               margin: 0,
               overflowY: "auto",
               padding: "12px 10px 20px",
               gap: 12,
             } as React.CSSProperties}>
               {infoPanel}
+              {chatOpen && (
+                <div style={{
+                  background: "var(--surface)",
+                  border: `1px solid ${ON_STAGE_HAIRLINE}`,
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  display: "flex", flexDirection: "column",
+                  minHeight: 240,
+                  height: 300,
+                }}>
+                  {chatSurface}
+                </div>
+              )}
             </div>
           ) : (
             /* DESKTOP: collapsible panel. The width transition lets the video stage
@@ -1775,7 +2023,7 @@ function LobbyInner() {
                   display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
                   padding: "12px 0",
                   background: "var(--surface)",
-                  border: "1px solid var(--border)",
+                  border: `1px solid ${ON_STAGE_HAIRLINE}`,
                   borderRadius: 18,
                   backdropFilter: "blur(12px)",
                   boxShadow: "0 8px 32px -12px rgba(0,0,0,0.45)",
@@ -1787,7 +2035,7 @@ function LobbyInner() {
                     <div style={{
                       minWidth: 38, padding: "5px 0", borderRadius: 999, textAlign: "center" as const,
                       background: "var(--violet-soft)", border: "1px solid var(--violet)",
-                      color: violet, fontSize: 12, fontWeight: 800, fontFamily: "var(--font-space-grotesk)",
+                      color: violet, fontSize: 12, fontWeight: 700, fontFamily: "var(--font-display, var(--font-space-grotesk))",
                     }}>{memberCount}/{MAX_SLOTS}</div>
                   </div>
 
@@ -1801,7 +2049,7 @@ function LobbyInner() {
                       border: `1.5px solid ${allReady ? "var(--lime)" : "var(--border-strong)"}`,
                       boxShadow: allReady ? "0 0 10px var(--lime)" : "none",
                     }} />
-                    <span style={{ fontSize: 10, fontWeight: 700, color: allReady ? limeText : textTertiary }}>{readyCount}/{memberCount}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: allReady ? limeText : textTertiary }}>{readyCount}/{memberCount}</span>
                   </div>
 
                   <div style={{ width: 28, height: 1, background: "var(--border)" }} />
@@ -1828,7 +2076,7 @@ function LobbyInner() {
                     }}
                   >
                     {codeCopied
-                      ? <span style={{ color: "#0B0B0F", fontSize: 16, fontWeight: 900, lineHeight: 1 }}>✓</span>
+                      ? <span style={{ color: "#0B0B0F", fontSize: 16, fontWeight: 700, lineHeight: 1 }}>✓</span>
                       : <Icon.copy size={16} color={textMuted} />}
                   </button>
 
@@ -1851,9 +2099,9 @@ function LobbyInner() {
                     {unread > 0 && (
                       <span style={{
                         position: "absolute", top: -3, right: -3,
-                        minWidth: 15, height: 15, padding: "0 3px", borderRadius: 999,
+                        minWidth: 18, height: 18, padding: "0 4px", borderRadius: 999,
                         background: "var(--coral)", color: "#fff",
-                        fontSize: 9, fontWeight: 800, lineHeight: "15px", textAlign: "center" as const,
+                        fontSize: 12, fontWeight: 700, lineHeight: "18px", textAlign: "center" as const,
                         border: "1.5px solid var(--surface)",
                       }}>{unread > 9 ? "9+" : unread}</span>
                     )}
@@ -1902,9 +2150,9 @@ function LobbyInner() {
                           <button key={tab} onClick={() => setSidebarTab(tab)} style={{
                             position: "relative",
                             flex: 1, padding: "6px 0", borderRadius: 999, border: "none", cursor: "pointer",
-                            background: active ? "var(--violet)" : "transparent",
+                            background: active ? "var(--accent, var(--violet))" : "transparent",
                             color: active ? "#fff" : textMuted,
-                            fontSize: 12, fontWeight: 700, fontFamily: "var(--font-space-grotesk)",
+                            fontSize: 12, fontWeight: 700, fontFamily: "var(--font-display, var(--font-space-grotesk))",
                             transition: "all .15s ease",
                           }}>
                             {tab === "info" ? "Info" : "Chat"}
@@ -1944,7 +2192,7 @@ function LobbyInner() {
                     <div style={{
                       flex: 1, minHeight: 0,
                       background: "var(--surface)",
-                      border: "1px solid var(--border)",
+                      border: `1px solid ${ON_STAGE_HAIRLINE}`,
                       borderRadius: 16,
                       overflow: "hidden",
                       display: "flex", flexDirection: "column",
@@ -1959,28 +2207,87 @@ function LobbyInner() {
         </div>
       </div>
 
-      {isPhone && chatOpen && (
-        <div
-          role="dialog" aria-modal="true" aria-label="Squad chat"
-          onClick={(e) => { if (e.target === e.currentTarget) setChatOpen(false); }}
-          style={{
-            position: "fixed", inset: 0, zIndex: 1000,
-            display: "flex", alignItems: "flex-end", justifyContent: "center",
-            padding: 10, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)",
-          }}
+      {/* ── MODALS ── */}
+      {leaveMenuOpen && (
+        <Modal
+          onClose={() => { if (!leavingSquad) setLeaveMenuOpen(false); }}
+          title="Leave this squad?"
+          ariaLabel="Leave or delete squad"
+          width={400}
         >
-          <div style={{
-            width: "100%", maxWidth: 520, height: "min(68dvh, 560px)", minHeight: 320,
-            display: "flex", flexDirection: "column", overflow: "hidden",
-            background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 16,
-            boxShadow: "0 24px 80px rgba(0,0,0,0.55)",
-          }}>
-            {chatSurface}
+          <p style={{ margin: "0 0 16px", fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5 }}>
+            You lead this squad. You can hand it off and leave, or delete it entirely.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <Button variant="secondary" fullWidth disabled={leavingSquad} onClick={handleLeaveSquad}>
+              Leave &amp; hand off to another member
+            </Button>
+            <Button variant="danger" fullWidth loading={leavingSquad} onClick={handleDisbandSquad}>
+              Delete squad for everyone
+            </Button>
+            <Button variant="ghost" fullWidth disabled={leavingSquad} onClick={() => setLeaveMenuOpen(false)}>
+              Cancel
+            </Button>
           </div>
-        </div>
+        </Modal>
+      )}
+      {noCamConfirmOpen && (
+        <Modal
+          onClose={() => { if (!noCamEnabling) setNoCamConfirmOpen(false); }}
+          title="Your camera is off"
+          subtitle="Others won't see you in the encounter."
+          ariaLabel="Camera is off confirmation"
+          width={400}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {videoError && (
+              <div role="alert" style={{
+                fontSize: 13,
+                lineHeight: 1.4,
+                color: "var(--danger)",
+                background: "var(--danger-soft, rgba(255,90,90,0.12))",
+                border: "1px solid var(--danger)",
+                borderRadius: 10,
+                padding: "8px 10px",
+              }}>
+                {videoError}
+              </div>
+            )}
+            <Button
+              fullWidth
+              loading={noCamEnabling || findingMatch}
+              onClick={async () => {
+                setNoCamEnabling(true);
+                let ok = false;
+                try {
+                  ok = await enableLobbyMedia();
+                } finally {
+                  setNoCamEnabling(false);
+                }
+                // Camera failed to enable — keep the modal open so the user
+                // sees the error and can retry or explicitly continue without.
+                if (!ok) return;
+                setNoCamConfirmOpen(false);
+                await proceedFindMatch();
+              }}
+            >
+              Enable camera
+            </Button>
+            <Button
+              fullWidth
+              variant="ghost"
+              disabled={noCamEnabling}
+              onClick={async () => {
+                setNoCamConfirmOpen(false);
+                await proceedFindMatch();
+              }}
+            >
+              Continue without camera
+            </Button>
+          </div>
+        </Modal>
       )}
 
-      {/* ── MODALS ── */}
       {invitePeopleOpen && (
         <InviteToSquad
           squadId={squad.squadId}
@@ -2006,7 +2313,7 @@ function LobbyInner() {
         }} onClick={e => { if (e.target === e.currentTarget) setVibeEditorOpen(false); }}>
           <div style={{ background: "var(--surface)", border: "1px solid var(--border-strong)", borderRadius: 24, padding: "32px 28px", width: isPhone ? "calc(100vw - 32px)" : 440, display: "flex", flexDirection: "column", gap: 20 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 700, color: textPrimary }}>Edit Squad Vibes</div>
+              <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 18, fontWeight: 700, color: textPrimary }}>Edit Squad Vibes</div>
               <button onClick={() => setVibeEditorOpen(false)} style={{ background: "none", border: "none", color: textMuted, cursor: "pointer", fontSize: 20, lineHeight: 1 }}>
                 <Icon.close size={18} color={textMuted} />
               </button>
@@ -2033,12 +2340,74 @@ function LobbyInner() {
               />
             </div>
 
+            {/* Moderation: blocked-vibe warning */}
+            {vibeWarning && (
+              <div role="alert" style={{
+                display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", borderRadius: 10,
+                background: "var(--coral-soft, rgba(229,72,77,0.12))", border: "1px solid color-mix(in srgb, var(--coral) 40%, transparent)",
+                color: "var(--coral)", fontSize: 13, lineHeight: 1.4,
+              }}>
+                {vibeWarning}
+              </div>
+            )}
+
+            {/* Moderation: minors can't create adult rooms (trusts signup DOB). */}
+            {matureBlocked && (
+              <div role="alert" aria-label="Adults only" style={{
+                display: "flex", flexDirection: "column", gap: 8, padding: "14px 14px", borderRadius: 12,
+                background: "var(--coral-soft, rgba(255,92,92,0.12))", border: "1px solid color-mix(in srgb, var(--coral, #FF5C5C) 45%, transparent)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 14, color: textPrimary }}>
+                  <span aria-hidden style={{ fontSize: 16 }}>🔞</span> Adults only — you must be 18+ to add this vibe
+                </div>
+                <div style={{ fontSize: 13, lineHeight: 1.5, color: textMuted }}>
+                  <b style={{ color: textPrimary }}>“{matureBlocked}”</b> would make this an adult squad. Your account isn&apos;t marked 18+, so you can&apos;t add it.
+                </div>
+                <button
+                  onClick={() => setMatureBlocked(null)}
+                  style={{ alignSelf: "flex-start", minHeight: 36, padding: "0 14px", borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: textMuted, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                >
+                  Got it
+                </button>
+              </div>
+            )}
+
+            {/* Moderation: 18+ age gate for adult vibes */}
+            {pendingMatureVibe && (
+              <div role="alertdialog" aria-label="Adult vibe confirmation" style={{
+                display: "flex", flexDirection: "column", gap: 10, padding: "14px 14px", borderRadius: 12,
+                background: "var(--amber-soft, rgba(245,158,11,0.12))", border: "1px solid color-mix(in srgb, var(--amber, #F59E0B) 45%, transparent)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 700, fontSize: 14, color: textPrimary }}>
+                  <span aria-hidden style={{ fontSize: 16 }}>🔞</span> Adults only (18+)
+                </div>
+                <div style={{ fontSize: 13, lineHeight: 1.5, color: textMuted }}>
+                  Adding <b style={{ color: textPrimary }}>“{pendingMatureVibe}”</b> makes this an adult squad — it’ll only be matched with other squads whose members have confirmed they’re 18+. Keep it consensual and follow the community rules.
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => { const v = pendingMatureVibe; setPendingMatureVibe(null); if (v) commitVibe(v); }}
+                    className="gg-press"
+                    style={{ flex: 1, minHeight: 40, borderRadius: 10, border: "none", background: "var(--accent, var(--violet))", color: "var(--on-accent, #fff)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                  >
+                    Add it
+                  </button>
+                  <button
+                    onClick={() => setPendingMatureVibe(null)}
+                    style={{ flex: 1, minHeight: 40, borderRadius: 10, border: "1px solid var(--border)", background: "transparent", color: textMuted, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             {(() => {
               const q = vibeSearch.trim().toLowerCase();
               const all = Array.from(new Set([...selectedVibes, ...customVibes, ...CURATED_VIBES]));
               const filtered = q ? all.filter(v => v.toLowerCase().includes(q)) : all;
               const exact = all.some(v => v.toLowerCase() === q);
-              const canCreate = q.length > 0 && !exact && selectedVibes.length < MAX_VIBES;
+              const canCreate = q.length > 0 && !exact && selectedVibes.length < MAX_VIBES && !pendingMatureVibe && !matureBlocked && !vibeWarning;
               return (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, maxHeight: 200, overflowY: "auto" }}>
                   {canCreate && (
@@ -2067,7 +2436,7 @@ function LobbyInner() {
                         style={{
                           borderRadius: 999, padding: "7px 16px", fontSize: 14, fontWeight: 500,
                           cursor: active || selectedVibes.length < MAX_VIBES ? "pointer" : "not-allowed",
-                          border: `1.5px solid ${active ? "var(--violet)" : "var(--border-strong)"}`,
+                          border: `1.5px solid ${active ? "var(--accent, var(--violet))" : "var(--border-strong)"}`,
                           background: active ? "var(--violet-soft)" : "var(--overlay)",
                           color: active ? violet : textMuted,
                           transition: "all 0.15s",
@@ -2087,35 +2456,10 @@ function LobbyInner() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
               <span style={{ color: textTertiary, fontSize: 12 }}>{selectedVibes.length}/{MAX_VIBES} selected</span>
               <div style={{ display: "flex", gap: 10 }}>
-                <button
-                  onClick={() => setVibeEditorOpen(false)}
-                  onMouseEnter={() => setVibeCancelHovered(true)}
-                  onMouseLeave={() => setVibeCancelHovered(false)}
-                  style={{
-                    padding: "10px 20px", borderRadius: 999,
-                    background: vibeCancelHovered ? "var(--overlay-hover)" : "transparent",
-                    border: "1px solid var(--border)", color: textMuted, fontSize: 14,
-                    cursor: "pointer", transition: "all .15s ease",
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveVibes}
-                  disabled={savingVibes}
-                  onMouseEnter={() => setVibeSaveHovered(true)}
-                  onMouseLeave={() => setVibeSaveHovered(false)}
-                  style={{
-                    padding: "10px 20px", borderRadius: 999, background: "var(--violet)", border: "none",
-                    color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
-                    boxShadow: vibeSaveHovered ? "0 0 32px -4px var(--violet)" : "0 0 20px -6px var(--violet)",
-                    transition: "all .15s ease",
-                    minWidth: 120,
-                    whiteSpace: "nowrap" as const,
-                  }}
-                >
+                <Button onClick={() => setVibeEditorOpen(false)} variant="ghost">Cancel</Button>
+                <Button onClick={saveVibes} loading={savingVibes} variant="primary" style={{ minWidth: 120 }}>
                   {savingVibes ? "Saving…" : "Save Vibes"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

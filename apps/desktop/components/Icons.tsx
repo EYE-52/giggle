@@ -30,16 +30,19 @@ export const Icon = {
   settings: ({ size, color = "#9A9AB0", strokeWidth }: P) => (
     <Svg size={size}><circle cx="12" cy="12" r="3.2" {...base(color, strokeWidth ?? 1.9)} /><path d="M12 2.2 13.4 5a7.8 7.8 0 0 1 2.1.9l2.9-1 1.7 3-2.2 2.1a7.8 7.8 0 0 1 0 2l2.2 2.1-1.7 3-2.9-1a7.8 7.8 0 0 1-2.1.9L12 21.8l-1.4-2.8a7.8 7.8 0 0 1-2.1-.9l-2.9 1-1.7-3 2.2-2.1a7.8 7.8 0 0 1 0-2L3.9 9.9l1.7-3 2.9 1A7.8 7.8 0 0 1 10.6 7L12 2.2Z" {...base(color, strokeWidth ?? 1.7)} /></Svg>
   ),
+  edit: ({ size, color = "#9A9AB0", strokeWidth }: P) => (
+    <Svg size={size}><path d="M4 20h4l10.5-10.5a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z" {...base(color, strokeWidth ?? 1.9)} /><path d="m13.5 6.5 4 4" {...base(color, strokeWidth ?? 1.9)} /></Svg>
+  ),
   google: ({ size = 18 }: P) => (
     <Svg size={size} viewBox="0 0 18 18"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.5h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.6Z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 6-2.2l-2.9-2.2c-.8.5-1.8.9-3.1.9-2.4 0-4.4-1.6-5.1-3.8H.9v2.3A9 9 0 0 0 9 18Z"/><path fill="#FBBC05" d="M3.9 10.7a5.4 5.4 0 0 1 0-3.4V5H.9a9 9 0 0 0 0 8l3-2.3Z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 .9 5l3 2.3C4.6 5.2 6.6 3.6 9 3.6Z"/></Svg>
   ),
   apple: ({ size = 18, color = "#F4F4F7" }: P) => (
     <Svg size={size} viewBox="0 0 17 20"><path fill={color} d="M14.1 15.3c-.3.7-.6 1.3-1 1.9-.6.8-1 1.4-1.4 1.7-.5.5-1.1.7-1.7.8-.4 0-1-.1-1.6-.4-.6-.2-1.2-.4-1.7-.4-.5 0-1.1.1-1.8.4-.6.3-1.1.4-1.5.4-.6 0-1.2-.3-1.8-.8-.4-.3-.9-.9-1.5-1.8C.5 16 0 14.4 0 12.8c0-1.4.3-2.7 1-3.7.5-.8 1.1-1.4 2-1.9.8-.4 1.6-.6 2.5-.7.4 0 1 .2 1.8.5.7.3 1.2.4 1.4.4.1 0 .7-.2 1.6-.5.8-.3 1.5-.4 2-.4 1.5.1 2.6.7 3.4 1.7-1.3.8-2 1.9-2 3.4 0 1.1.4 2.1 1.2 2.8.4.3.8.6 1.2.7-.1.3-.2.5-.3.8ZM10.6.4c0 1-.4 2-1.1 2.8-.9 1-2 1.6-3.2 1.5 0-.1 0-.2 0-.4 0-1 .4-2 1.2-2.8.4-.4.9-.8 1.5-1C9.5.4 10 .3 10.6.3v.1Z"/></Svg>
   ),
-  star: ({ size, color = "#C2FF3D", fill = "#C2FF3D" }: P) => (
+  star: ({ size, color = "#B7FF2A", fill = "#B7FF2A" }: P) => (
     <Svg size={size}><path d="m12 2.5 2.9 5.9 6.5.95-4.7 4.58 1.1 6.47L12 17.9l-5.8 3.06 1.1-6.47-4.7-4.58 6.5-.95L12 2.5Z" fill={fill} stroke={color} strokeWidth={1.2} strokeLinejoin="round" /></Svg>
   ),
-  lightning: ({ size, color, fill = "#7C5CFF" }: P) => (
+  lightning: ({ size, color, fill = "#7657FF" }: P) => (
     <Svg size={size}><path d="M13 2 4 13.5h6L9.5 22 20 10h-6.5L13 2Z" fill={fill} stroke={color ?? fill} strokeWidth={1.4} strokeLinejoin="round" /></Svg>
   ),
   hd: ({ size, color = "#F4F4F7" }: P) => (
@@ -81,10 +84,10 @@ export const Icon = {
   chevron: ({ size, color = "#9A9AB0", strokeWidth }: P) => (
     <Svg size={size}><path d="m9 6 6 6-6 6" {...base(color, strokeWidth ?? 2)} /></Svg>
   ),
-  pin: ({ size, color = "#C2FF3D" }: P) => (
+  pin: ({ size, color = "#B7FF2A" }: P) => (
     <Svg size={size}><path d="M12 21s-6.5-5.3-6.5-10.2A6.5 6.5 0 0 1 18.5 10.8C18.5 15.7 12 21 12 21Z" {...base(color, 1.9)} /><circle cx="12" cy="10.5" r="2.3" {...base(color, 1.9)} /></Svg>
   ),
-  trend: ({ size, color = "#C2FF3D" }: P) => (
+  trend: ({ size, color = "#B7FF2A" }: P) => (
     <Svg size={size}><path d="M3 17l6-6 4 4 7-8M16 7h5v5" {...base(color, 2)} /></Svg>
   ),
   gift: ({ size, color, strokeWidth }: P) => (

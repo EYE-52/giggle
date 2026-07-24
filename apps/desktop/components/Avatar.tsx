@@ -47,6 +47,10 @@ export function OnlineWrap({ children, size, online }: { children: ReactNode; si
 
 // Paired gradient stops per avatar accent for a premium, dimensional look.
 const GRADIENTS: Record<string, [string, string, string]> = {
+  "#7657FF": ["#9278FF", "#5536CC", "#fff"],
+  "#2FE6C8": ["#5BE8D4", "#1F9A8A", "#06241f"],
+  "#B7FF2A": ["#D4FF6E", "#8FCF12", "#162400"],
+  "#9278FF": ["#B49BFF", "#6344C2", "#fff"],
   "#7C5CFF": ["#9B7CFF", "#5436C9", "#fff"],
   "#3DD6C0": ["#5BE8D4", "#1F9A8A", "#06241f"],
   "#FF8A5C": ["#FFA877", "#D85E34", "#fff"],

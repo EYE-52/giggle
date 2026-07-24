@@ -1,4 +1,4 @@
-import type { AgoraToken, RemoteParticipant, VideoClient } from "./types";
+import type { AgoraToken, ConnectionState, RemoteParticipant, VideoClient, VolumeLevel } from "./types";
 
 // Web implementation backed by agora-rtc-sdk-ng. The SDK is imported
 // dynamically so it never runs during Next.js SSR.
@@ -10,7 +10,20 @@ export function createVideoClient(): VideoClient {
   let localAudioTrack: any = null;
   let remotes: RemoteParticipant[] = [];
   const listeners = new Set<(r: RemoteParticipant[]) => void>();
+  const volumeListeners = new Set<(levels: VolumeLevel[]) => void>();
+  const connListeners = new Set<(state: ConnectionState) => void>();
   const remoteUsers = new Map<string | number, any>();
+
+  // Map Agora's connection states onto our simplified lifecycle. Unknown /
+  // transient states are ignored (returning null) so consumers only see
+  // meaningful transitions.
+  function mapConnState(s: string): ConnectionState | null {
+    if (s === "CONNECTED") return "CONNECTED";
+    if (s === "RECONNECTING") return "RECONNECTING";
+    if (s === "CONNECTING") return "CONNECTING";
+    if (s === "DISCONNECTED") return "DISCONNECTED";
+    return null;
+  }
 
   function emit() {
     remotes = Array.from(remoteUsers.values()).map((u) => ({
@@ -28,6 +41,14 @@ export function createVideoClient(): VideoClient {
     onRemoteChange(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
+    },
+    onVolumes(cb) {
+      volumeListeners.add(cb);
+      return () => volumeListeners.delete(cb);
+    },
+    onConnectionState(cb) {
+      connListeners.add(cb);
+      return () => connListeners.delete(cb);
     },
     async join(token: AgoraToken, opts = { audio: true, video: true }) {
       const mod = await import("agora-rtc-sdk-ng");
@@ -52,6 +73,18 @@ export function createVideoClient(): VideoClient {
         remoteUsers.delete(user.uid);
         emit();
       });
+      client.on("connection-state-change", (cur: string) => {
+        const mapped = mapConnState(String(cur));
+        if (mapped) connListeners.forEach((cb) => { try { cb(mapped); } catch {} });
+      });
+      // Speaking volumes (defensive: not all SDK builds expose the API).
+      try {
+        client.enableAudioVolumeIndicator?.();
+        client.on("volume-indicator", (volumes: { uid: string | number; level: number }[]) => {
+          const levels: VolumeLevel[] = (volumes ?? []).map((v) => ({ uid: v.uid, level: v.level }));
+          volumeListeners.forEach((cb) => { try { cb(levels); } catch {} });
+        });
+      } catch {}
 
       await client.join(token.appId, token.channelName, token.rtcToken, token.uid);
 

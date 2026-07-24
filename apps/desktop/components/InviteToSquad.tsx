@@ -188,7 +188,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Icon.users size={18} color={violet} />
-                <h2 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 19, fontWeight: 800, color: text, margin: 0, letterSpacing: "-0.01em" }}>
+                <h2 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 17, fontWeight: 700, color: text, margin: 0, letterSpacing: "-0.01em" }}>
                   Invite to squad
                 </h2>
               </div>
@@ -260,7 +260,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
                   background: "var(--overlay)",
                   border: searchFocus ? "1px solid var(--violet)" : "1px solid var(--border)",
                   boxShadow: searchFocus ? "0 0 0 3px color-mix(in srgb, var(--violet) 28%, transparent)" : "none",
-                  color: text, fontSize: 15, fontFamily: "var(--font-inter)", outline: "none",
+                  color: text, fontSize: 14, fontFamily: "var(--font-inter)", outline: "none",
                   transition: "box-shadow .18s ease, border-color .18s ease",
                 }}
               />
@@ -324,7 +324,7 @@ function PersonRow({ person, state, error, onInvite }: { person: Friend; state: 
       >
         <UserAvatar name={person.name} image={person.image} size={40} online={person.online} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14.5, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {person.name}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
@@ -341,7 +341,7 @@ function PersonRow({ person, state, error, onInvite }: { person: Friend; state: 
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
             minHeight: 38, padding: "8px 16px", borderRadius: 999,
-            fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 13.5,
+            fontFamily: "var(--font-inter)", fontWeight: 600, fontSize: 13,
             whiteSpace: "nowrap",
             cursor: invited || inviting ? "default" : "pointer",
             border: invited ? "1px solid var(--lime)" : "none",
@@ -350,7 +350,7 @@ function PersonRow({ person, state, error, onInvite }: { person: Friend; state: 
             transition: "background .18s ease, color .18s ease, border-color .18s ease",
           }}
         >
-          {invited ? "Invited ✓" : inviting ? "Inviting…" : (<><Icon.plus size={14} color="#fff" strokeWidth={2.4} /> Invite</>)}
+          {invited ? (<>Invited <span aria-hidden="true">✓</span></>) : inviting ? "Inviting…" : (<><Icon.plus size={14} color="#fff" strokeWidth={2.4} /> Invite</>)}
         </button>
       </div>
       {error && (

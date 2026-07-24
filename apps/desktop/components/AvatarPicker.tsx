@@ -1,23 +1,28 @@
 "use client";
-import { useState, useEffect, useId } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { createPortal } from "react-dom";
 import { DEFAULT_AVATARS, setMyAvatar, billing } from "@giggle/core";
 import { AvatarArt } from "./AvatarArt";
 import { Icon } from "./Icons";
+import { Modal } from "./Modal";
+import { Button } from "./Button";
 
 interface AvatarPickerProps {
   current: string;
   onClose: () => void;
 }
 
-// The first 8 avatars are free; the legacy "vibe_pack" entitlement unlocks 8 more.
+// The first 8 avatars are always free; the rest are a premium "vibe_pack".
 const FREE_AVATAR_COUNT = 8;
+const MAX_UPLOAD_IMAGE_BYTES = 2_000_000;
+const ALLOWED_UPLOAD_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
 export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
   const router = useRouter();
-  const titleId = useId();
   const [selected, setSelected] = useState(current);
+  const [preview, setPreview] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [saving, setSaving] = useState(false);
   const [vibePackUnlocked, setVibePackUnlocked] = useState(false);
   const [hint, setHint] = useState("");
 
@@ -25,92 +30,69 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
     setVibePackUnlocked(billing.hasPerk("vibe_pack"));
     return billing.subscribe(() => setVibePackUnlocked(billing.hasPerk("vibe_pack")));
   }, []);
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
-  const [saveHover, setSaveHover] = useState(false);
-  const [cancelHover, setCancelHover] = useState(false);
+  const [uploadHover, setUploadHover] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
-  function handleSave() {
-    setMyAvatar(selected);
-    onClose();
+  const effectiveSelected = preview ?? selected;
+
+  const handleFile = useCallback((file: File) => {
+    if (!ALLOWED_UPLOAD_IMAGE_TYPES.has(file.type)) {
+      setHint("Upload a PNG, JPG, WebP, or GIF image.");
+      return;
+    }
+    if (file.size > MAX_UPLOAD_IMAGE_BYTES) {
+      setHint("Keep avatar uploads under 2 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const url = e.target?.result as string;
+      setPreview(url);
+      setSelected(url);
+      setHint("");
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) handleFile(file);
   }
 
-  return createPortal(
-    /* Backdrop */
-    <div
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleFile(file);
+  }
+
+  function handleSave() {
+    setSaving(true);
+    setMyAvatar(effectiveSelected);
+    setTimeout(() => {
+      setSaving(false);
+      onClose();
+    }, 120);
+  }
+
+  return (
+    <Modal
+      onClose={onClose}
+      title="Choose your avatar"
+      subtitle="Pick a vibe or upload your own photo"
+      closeLabel="Close avatar picker"
       style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 200,
-        background: "rgba(11,11,15,0.72)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
+        background: "linear-gradient(160deg, var(--surface-grad-from) 0%, var(--surface-grad-to) 100%)",
       }}
     >
-      {/* Modal card */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        style={{
-          background: "linear-gradient(160deg, var(--surface-grad-from, #1a1a26) 0%, var(--surface-grad-to, #13131c) 100%)",
-          border: "1px solid var(--border, rgba(255,255,255,0.1))",
-          borderRadius: 24,
-          padding: "28px 28px 24px",
-          width: "min(520px, calc(100vw - 32px))",
-          maxHeight: "calc(100dvh - 32px)",
-          overflowY: "auto",
-          boxSizing: "border-box",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04)",
-        }}
-      >
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
-          <div>
-            <div id={titleId} style={{
-              fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
-              fontSize: 20, fontWeight: 700,
-              color: "var(--text, #F4F4F7)",
-              letterSpacing: "-0.02em",
-            }}>
-              Choose your avatar
-            </div>
-            <div style={{ fontSize: 13, color: "var(--text-muted, #9A9AB0)", marginTop: 3 }}>
-              Choose how you appear on this device
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close avatar picker"
-            style={{
-              width: 44, height: 44, borderRadius: 999, border: "1px solid var(--border, rgba(255,255,255,0.1))",
-              background: "var(--overlay, rgba(255,255,255,0.06))",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: "var(--text-muted, #9A9AB0)", fontSize: 16,
-              flexShrink: 0,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
+      <div>
         {/* Preview of currently-highlighted avatar */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
           <div style={{ position: "relative" }}>
-            <AvatarArt value={selected} size={80} />
+            <AvatarArt value={effectiveSelected} size={80} />
             <div style={{
               position: "absolute", inset: -4, borderRadius: "50%",
-              background: "conic-gradient(from 0deg, var(--violet, #7C5CFF) 0%, var(--lime, #C2FF3D) 50%, var(--violet, #7C5CFF) 100%)",
+              background: "conic-gradient(from 0deg, var(--accent, var(--violet, #7657FF)) 0%, var(--live, var(--lime, #B7FF2A)) 50%, var(--accent, var(--violet, #7657FF)) 100%)",
               filter: "blur(6px)", opacity: 0.6, zIndex: -1,
             }} />
           </div>
@@ -126,37 +108,48 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
           }}
         >
           {DEFAULT_AVATARS.map((av, idx) => {
-            const isActive = selected === av.id;
+            const isActive = effectiveSelected === av.id;
             const locked = idx >= FREE_AVATAR_COUNT && !vibePackUnlocked;
             return (
               <button
                 key={av.id}
-                title={locked ? `${av.name} — Avatar Pack` : av.name}
+                title={locked ? `${av.name} — premium` : av.name}
                 onClick={() => {
-                  if (locked) { setHint(`“${av.name}” is in the Avatar Pack.`); return; }
-                  setSelected(av.id); setHint("");
+                  if (locked) { setHint(`“${av.name}” is in the premium Vibe Pack.`); return; }
+                  setSelected(av.id); setPreview(null); setHint("");
                 }}
+                className="gg-press gg-focusable"
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 6,
                   padding: "10px 6px 8px",
-                  borderRadius: 16,
+                  borderRadius: "var(--radius-tile, 16px)",
                   border: isActive
-                    ? "2px solid var(--violet, #7C5CFF)"
+                    ? "2px solid var(--accent, var(--violet, #7657FF))"
                     : "2px solid transparent",
                   background: isActive
-                    ? "rgba(124,92,255,0.12)"
+                    ? "color-mix(in srgb, var(--accent, var(--violet, #7657FF)) 12%, transparent)"
                     : "var(--overlay, rgba(255,255,255,0.04))",
                   cursor: "pointer",
                   transition: "all 0.12s ease",
                   outline: "none",
-                  boxShadow: isActive ? "0 0 16px -4px var(--violet, #7C5CFF)" : undefined,
+                  boxShadow: isActive ? "0 0 16px -4px var(--accent, var(--violet, #7657FF))" : undefined,
                 }}
               >
                 <div style={{ position: "relative" }}>
                   <AvatarArt value={av.id} size={44} />
+                  {isActive && !locked && (
+                    <div aria-hidden style={{
+                      position: "absolute", bottom: -2, right: -2, width: 16, height: 16,
+                      borderRadius: "50%", background: "var(--accent, var(--violet, #7657FF))",
+                      border: "2px solid var(--surface, #16161f)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <svg width="8" height="8" viewBox="0 0 11 11" fill="none" aria-hidden><path d="M2 5.5 4.5 8 9 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    </div>
+                  )}
                   {locked && (
                     <div style={{
                       position: "absolute", inset: 0, borderRadius: "50%",
@@ -168,81 +161,97 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
                   )}
                 </div>
                 <span style={{
-                  fontSize: 10, fontWeight: 600,
-                  color: isActive ? "var(--violet, #7C5CFF)" : "var(--text-muted, #9A9AB0)",
-                  fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
+                  fontSize: 12, fontWeight: 600,
+                  color: isActive ? "var(--accent, var(--violet))" : "var(--text-muted)",
+                  fontFamily: "var(--font-display, var(--font-space-grotesk)), 'Space Grotesk', sans-serif",
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                   maxWidth: 60,
                 }}>
-                  {locked ? "Avatar Pack" : (av.name.split(" ")[1] ?? av.name)}
+                  {locked ? "Premium" : (av.name.split(" ")[1] ?? av.name)}
                 </span>
               </button>
             );
           })}
 
+          {/* Upload tile */}
+          <button
+            onMouseEnter={() => setUploadHover(true)}
+            onMouseLeave={() => setUploadHover(false)}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => fileRef.current?.click()}
+            className="gg-press gg-focusable"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+              padding: "10px 6px 8px",
+              borderRadius: "var(--radius-tile, 16px)",
+              border: dragOver
+                ? "2px solid var(--live, var(--lime))"
+                : preview
+                ? "2px solid var(--live, var(--lime))"
+                : "2px dashed var(--border-strong)",
+              background: dragOver
+                ? "var(--live-soft)"
+                : uploadHover
+                ? "var(--overlay-hover, var(--surface-2))"
+                : "var(--overlay)",
+              cursor: "pointer",
+              transition: "all 0.12s ease",
+              outline: "none",
+            }}
+          >
+            {preview ? (
+              <AvatarArt value={preview} size={44} />
+            ) : (
+              <div style={{
+                width: 44, height: 44, borderRadius: "50%",
+                background: "var(--overlay-hover, var(--surface-2))",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 22,
+              }}>
+                <span aria-hidden="true">📷</span>
+              </div>
+            )}
+            <span style={{
+              fontSize: 12, fontWeight: 600,
+              color: preview ? "var(--lime-text)" : "var(--text-muted)",
+              fontFamily: "var(--font-display, var(--font-space-grotesk)), 'Space Grotesk', sans-serif",
+            }}>
+              {preview ? "Custom" : "Upload"}
+            </span>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleFileInput}
+            />
+          </button>
         </div>
 
         {/* Premium hint */}
         {hint && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
-            <span style={{ fontSize: 12.5, color: "var(--coral, #FF5C8A)", fontWeight: 600 }}>{hint}</span>
-            <button
-              onClick={() => router.push("/premium")}
-              style={{
-                background: "var(--violet, #7C5CFF)", color: "#fff", border: "none",
-                borderRadius: 999, padding: "5px 14px", fontSize: 12, fontWeight: 700, cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
-            >
-              View pack
-            </button>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14, padding: "8px 12px", borderRadius: "var(--radius-control, 14px)", background: "var(--coral-soft)" }}>
+            <span style={{ fontSize: 12, color: "var(--coral)", fontWeight: 600 }}>{hint}</span>
+            <Button size="sm" onClick={() => router.push("/premium")} style={{ whiteSpace: "nowrap" }}>
+              Unlock
+            </Button>
           </div>
         )}
 
         {/* Footer buttons */}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-          <button
-            onMouseEnter={() => setCancelHover(true)}
-            onMouseLeave={() => setCancelHover(false)}
-            onClick={onClose}
-            style={{
-              height: 44, padding: "0 20px",
-              borderRadius: 999,
-              border: "1px solid var(--border, rgba(255,255,255,0.1))",
-              background: cancelHover ? "var(--overlay-hover, rgba(255,255,255,0.1))" : "transparent",
-              color: "var(--text-muted, #9A9AB0)",
-              fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
-              fontWeight: 600, fontSize: 14,
-              cursor: "pointer",
-              transition: "all 0.12s ease",
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onMouseEnter={() => setSaveHover(true)}
-            onMouseLeave={() => setSaveHover(false)}
-            onClick={handleSave}
-            style={{
-              height: 44, padding: "0 24px",
-              borderRadius: 999,
-              border: "none",
-              background: saveHover
-                ? "#9B7CFF"
-                : "var(--violet, #7C5CFF)",
-              color: "#fff",
-              fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
-              fontWeight: 700, fontSize: 14,
-              cursor: "pointer",
-              transition: "all 0.12s ease",
-              minWidth: 80,
-            }}
-          >
-            Save
-          </button>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleSave} loading={saving} style={{ minWidth: 80 }}>
+            {saving ? "Saving…" : "Save"}
+          </Button>
         </div>
       </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }

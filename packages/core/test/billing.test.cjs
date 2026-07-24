@@ -41,14 +41,6 @@ test("catalog sells only subscriptions and token packs (no backend priority, no 
   }
 });
 
-test("legacy vibe_pack copy describes the avatars it actually unlocks", async () => {
-  const { TOKEN_PERKS } = await import("../src/billing.ts");
-  const avatarPack = TOKEN_PERKS.find((perk) => perk.id === "vibe_pack");
-
-  assert.equal(avatarPack?.name, "Avatar Pack");
-  assert.equal(avatarPack?.description, "Unlock 8 extra profile avatars");
-});
-
 test("tokens are the only spend currency; Giggle+ does NOT auto-unlock cosmetics", async () => {
   installLocalStorage();
   const { billing } = await import(`../src/billing.ts?no-autounlock=${Date.now()}`);

@@ -18,11 +18,15 @@ export const api = {
     backendRequest<ReferralInfo>("/api/auth/me/referral"),
   getMyProfile: () =>
     backendRequest<UserProfile>("/api/me/profile"),
-  updateMyProfile: (body: { gender?: string; age?: number | null; languages?: string[]; country?: string; vibes?: string[] }) =>
+  updateMyProfile: (body: { gender?: string; age?: number | null; languages?: string[]; country?: string }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
+  // Self-attested date of birth (set-once). Raw birthDate never comes back — the
+  // backend derives and returns only the boolean gates. 409 if already set.
+  setAge: (birthDate: string) =>
+    backendRequest<{ isAdult: boolean; ageConfirmed: boolean }>("/api/me/age", { method: "POST", body: { birthDate } }),
 
   // --- squads ---
-  createSquad: (body: { squadName?: string; displayName?: string; tags?: string[]; visibility?: "private" | "open" }) =>
+  createSquad: (body: { squadName?: string; displayName?: string; tags?: string[] }) =>
     backendRequest<SquadSummary>("/api/squads/create", { method: "POST", body }),
   joinSquad: (body: { squadCode: string; displayName?: string }) =>
     backendRequest<SquadSummary | { status: "requested" }>("/api/squads/join", { method: "POST", body }),
@@ -68,6 +72,8 @@ export const api = {
     backendRequest<{ squadId: string; status: string }>(`/api/squads/${squadId}/search/cancel`, { method: "POST" }),
   leaveSquad: (squadId: string) =>
     backendRequest<{ squadId: string; squadDeleted: boolean }>(`/api/squads/${squadId}/leave`, { method: "POST" }),
+  disbandSquad: (squadId: string) =>
+    backendRequest<{ squadId: string; disbanded: boolean }>(`/api/squads/${squadId}/disband`, { method: "POST" }),
   setLobbyVideo: (squadId: string, inLobbyVideo: boolean) =>
     backendRequest<{ memberId: string; inLobbyVideo: boolean }>(`/api/squads/${squadId}/lobby-video`, { method: "POST", body: { inLobbyVideo } }),
   setEncounterVideo: (squadId: string, inEncounterVideo: boolean) =>
@@ -171,7 +177,6 @@ export interface UserProfile {
   age?: number;
   languages?: string[];
   country?: string;
-  vibes?: string[];
   name: string;
   email: string;
 }
@@ -184,6 +189,12 @@ export interface BackendUser {
   image?: string;
   isPremium: boolean;
   isApproved: boolean;
+  /** Age gating (self-attested DOB at signup). Raw birthDate is NOT sent to the
+   *  client — only these derived booleans. `ageConfirmed` = the user has set a
+   *  DOB; `isAdult` = that DOB is 18+; `ageVerified` = hard-verified (future). */
+  isAdult?: boolean;
+  ageConfirmed?: boolean;
+  ageVerified?: boolean;
   /** Referral & wallet (present from /api/auth/exchange) */
   referralCode?: string;
   referralCount?: number;

@@ -1,5 +1,6 @@
 "use client";
 import type React from "react";
+import { useViewport } from "./useViewport";
 
 /**
  * Standard page header used across the signed-in app (Home, Discover, Profile).
@@ -18,6 +19,7 @@ export function PageHeader({
   subtitle?: React.ReactNode;
   right?: React.ReactNode;
 }) {
+  const { isPhone } = useViewport();
   return (
     <div
       style={{
@@ -36,7 +38,7 @@ export function PageHeader({
               display: "inline-flex",
               alignItems: "center",
               gap: 7,
-              fontSize: 11,
+              fontSize: 12, /* v3 micro tier (min 12px) */
               fontWeight: 800,
               letterSpacing: "0.14em",
               textTransform: "uppercase",
@@ -50,9 +52,9 @@ export function PageHeader({
         <h1
           style={{
             margin: 0,
-            fontFamily: "var(--font-space-grotesk)",
+            fontFamily: "var(--font-display)",
             fontWeight: 800,
-            fontSize: 30,
+            fontSize: isPhone ? 26 : 30,
             letterSpacing: "-0.02em",
             lineHeight: 1.05,
             color: "var(--text)",
@@ -65,7 +67,7 @@ export function PageHeader({
           <p
             style={{
               margin: "7px 0 0",
-              fontSize: 14.5,
+              fontSize: 14,
               color: "var(--text-muted)",
               lineHeight: 1.5,
             }}
@@ -74,7 +76,7 @@ export function PageHeader({
           </p>
         )}
       </div>
-      {right && <div style={{ flexShrink: 0 }}>{right}</div>}
+      {right && <div style={{ minWidth: 0, maxWidth: "100%" }}>{right}</div>}
     </div>
   );
 }

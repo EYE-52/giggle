@@ -1,0 +1,566 @@
+const assert = require("node:assert/strict");
+const test = require("node:test");
+const mongoose = require("mongoose");
+
+const { dismissNotification, markOneRead } = require("../src/controllers/notificationController");
+const { Notification } = require("../src/models/Notification");
+const { Squad } = require("../src/models/Squad");
+const User = require("../src/models/User");
+const { hasIdentityId } = require("../src/app/squadAccess");
+const { normalizeEmail, normalizeProfileImage, normalizeProfilePatch } = require("../src/controllers/authController");
+const { acceptRequest, declineRequest, removeFriend, searchUsers } = require("../src/controllers/friendsController");
+const { normalizeSquadCoverImage } = require("../src/utils/squadCoverValidation");
+const { normalizeSquadTags } = require("../src/utils/squadValidation");
+const { normalizeDisplayName } = require("../src/utils/identityValidation");
+const {
+  MAX_CHAT_TEXT_LENGTH,
+  createSocketRateLimiter,
+  normalizeChatText,
+  normalizeReactionEmoji,
+  resolveSocketSenderName,
+} = require("../src/services/socketService");
+
+function createResponse() {
+  return {
+    statusCode: 200,
+    body: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+      return this;
+    },
+  };
+}
+
+test("stats route names all-time squad count as squadsTotal", () => {
+  const source = require("node:fs").readFileSync(require("node:path").join(__dirname, "../src/routes/statsRoutes.js"), "utf8");
+
+  assert.equal(source.includes("squadsTotal"), true);
+  assert.equal(source.includes("const [squadsOnline"), false);
+});
+
+test("markOneRead rejects invalid notification ids without cast errors", async () => {
+  const req = {
+    user: { userId: "507f1f77bcf86cd799439011" },
+    params: { id: "not-an-object-id" },
+  };
+  const res = createResponse();
+
+  await markOneRead(req, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.error.code, "INVALID_REQUEST");
+});
+
+test("markOneRead reports not found when no owned notification is updated", async () => {
+  const notificationId = "507f1f77bcf86cd799439012";
+  const originalUpdateOne = Notification.updateOne;
+  const originalCountDocuments = Notification.countDocuments;
+
+  Notification.updateOne = async () => ({ matchedCount: 0, modifiedCount: 0 });
+  Notification.countDocuments = async () => {
+    throw new Error("unread count should not be queried after a miss");
+  };
+
+  try {
+    const req = { user: { userId: "507f1f77bcf86cd799439011" }, params: { id: notificationId } };
+    const res = createResponse();
+
+    await markOneRead(req, res);
+
+    assert.equal(res.statusCode, 404);
+    assert.equal(res.body.error.code, "NOT_FOUND");
+  } finally {
+    Notification.updateOne = originalUpdateOne;
+    Notification.countDocuments = originalCountDocuments;
+  }
+});
+
+test("dismissNotification deletes only the authed user's notification", async () => {
+  const myId = "507f1f77bcf86cd799439011";
+  const notificationId = "507f1f77bcf86cd799439012";
+  const originalDeleteOne = Notification.deleteOne;
+  const originalCountDocuments = Notification.countDocuments;
+  let deleteQuery = null;
+
+  Notification.deleteOne = async (query) => {
+    deleteQuery = query;
+    return { deletedCount: 1 };
+  };
+  Notification.countDocuments = async () => 0;
+
+  try {
+    const req = { user: { userId: myId }, params: { id: notificationId } };
+    const res = createResponse();
+
+    await dismissNotification(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(deleteQuery, { _id: notificationId, userId: myId });
+    assert.equal(res.body.data.dismissed, true);
+  } finally {
+    Notification.deleteOne = originalDeleteOne;
+    Notification.countDocuments = originalCountDocuments;
+  }
+});
+
+test("dismissNotification reports not found when no owned notification is deleted", async () => {
+  const notificationId = "507f1f77bcf86cd799439012";
+  const originalDeleteOne = Notification.deleteOne;
+  const originalCountDocuments = Notification.countDocuments;
+
+  Notification.deleteOne = async () => ({ deletedCount: 0 });
+  Notification.countDocuments = async () => {
+    throw new Error("unread count should not be queried after a miss");
+  };
+
+  try {
+    const req = { user: { userId: "507f1f77bcf86cd799439011" }, params: { id: notificationId } };
+    const res = createResponse();
+
+    await dismissNotification(req, res);
+
+    assert.equal(res.statusCode, 404);
+    assert.equal(res.body.error.code, "NOT_FOUND");
+  } finally {
+    Notification.deleteOne = originalDeleteOne;
+    Notification.countDocuments = originalCountDocuments;
+  }
+});
+
+test("normalizeProfilePatch validates lengths after trimming", () => {
+  const valid = normalizeProfilePatch({
+    country: `${" ".repeat(100)}US${" ".repeat(100)}`,
+    languages: [" English ", " Hindi "],
+  });
+
+  assert.deepEqual(valid.patch.country, "US");
+  assert.deepEqual(valid.patch.languages, ["English", "Hindi"]);
+
+  const invalid = normalizeProfilePatch({ country: "x".repeat(65) });
+  assert.equal(invalid.error, "country must be a short string");
+});
+
+test("normalizeProfilePatch dedupes languages after trimming case-insensitively", () => {
+  const valid = normalizeProfilePatch({
+    languages: [" English ", "english", "", "Hindi", " hindi "],
+  });
+
+  assert.deepEqual(valid.patch.languages, ["English", "Hindi"]);
+});
+
+test("normalizeProfilePatch validates and normalizes vibe preferences", () => {
+  const valid = normalizeProfilePatch({
+    vibes: [" Gaming ", "gaming", "Deep Talks", "", "Music", "Chill", "Comedy", "Art"],
+  });
+
+  assert.deepEqual(valid.patch.vibes, ["Gaming", "Deep Talks", "Music", "Chill", "Comedy"]);
+  assert.equal(normalizeProfilePatch({ vibes: "Gaming" }).error, "vibes must be an array of short strings");
+  assert.equal(normalizeProfilePatch({ vibes: ["x".repeat(16)] }).error, "vibes must be an array of short strings");
+});
+
+test("normalizeProfilePatch can clear optional age", () => {
+  const normalized = normalizeProfilePatch({ age: null });
+
+  assert.deepEqual(normalized.patch, {});
+  assert.deepEqual(normalized.unset, ["age"]);
+});
+
+test("normalizeEmail canonicalizes account identity", () => {
+  assert.equal(normalizeEmail("  Person@Example.COM  "), "person@example.com");
+  assert.equal(normalizeEmail("   "), "");
+  assert.equal(normalizeEmail(null), "");
+});
+
+test("normalizeDisplayName keeps public names short and readable", () => {
+  assert.equal(normalizeDisplayName("  Ana\n  Rivera  "), "Ana Rivera");
+  assert.equal(normalizeDisplayName("x".repeat(80)), "x".repeat(48));
+  assert.equal(normalizeDisplayName("   "), "");
+  assert.equal(normalizeDisplayName({ name: "Ana" }), "");
+});
+
+test("normalizeProfileImage accepts only safe profile image values", () => {
+  assert.equal(
+    normalizeProfileImage(" https://lh3.googleusercontent.com/a/photo.jpg "),
+    "https://lh3.googleusercontent.com/a/photo.jpg"
+  );
+  assert.equal(normalizeProfileImage(""), undefined);
+  assert.equal(normalizeProfileImage(undefined), undefined);
+
+  assert.equal(normalizeProfileImage("http://cdn.example.com/photo.jpg"), undefined);
+  assert.equal(normalizeProfileImage("javascript:alert(1)"), undefined);
+  assert.equal(normalizeProfileImage("linear-gradient(red, blue)"), undefined);
+  assert.equal(normalizeProfileImage("data:text/html;base64,PHNjcmlwdA=="), undefined);
+  assert.equal(normalizeProfileImage("x".repeat(2049)), undefined);
+});
+
+test("user email schema trims and lowercases as a persistence backstop", () => {
+  const emailPath = User.schema.path("email");
+
+  assert.equal(emailPath.options.trim, true);
+  assert.equal(emailPath.options.lowercase, true);
+  assert.equal(emailPath.options.unique, true);
+});
+
+test("public text schemas enforce persistence length backstops", () => {
+  assert.equal(User.schema.path("name").options.trim, true);
+  assert.equal(User.schema.path("name").options.maxlength, 48);
+  assert.equal(User.schema.path("vibes.$").options.maxlength, 15);
+  assert.equal(Squad.schema.path("members.displayName").options.trim, true);
+  assert.equal(Squad.schema.path("members.displayName").options.maxlength, 48);
+  assert.equal(Squad.schema.path("joinRequests.name").options.trim, true);
+  assert.equal(Squad.schema.path("joinRequests.name").options.maxlength, 48);
+  assert.equal(Notification.schema.path("title").options.maxlength, 80);
+  assert.equal(Notification.schema.path("body").options.maxlength, 180);
+  assert.equal(Notification.schema.path("fromName").options.maxlength, 48);
+  assert.equal(Notification.schema.path("squadName").options.maxlength, 32);
+});
+
+test("hasIdentityId matches ObjectId-backed relationship arrays", () => {
+  const id = "507f1f77bcf86cd799439012";
+
+  assert.equal(hasIdentityId([new mongoose.Types.ObjectId(id)], id), true);
+  assert.equal(hasIdentityId([{ userId: new mongoose.Types.ObjectId(id) }], id, "userId"), true);
+  assert.equal(hasIdentityId([new mongoose.Types.ObjectId("507f1f77bcf86cd799439013")], id), false);
+});
+
+test("squad invite and request checks use normalized identity ids", () => {
+  const source = require("node:fs").readFileSync(require("node:path").join(__dirname, "../src/controllers/squadController.js"), "utf8");
+
+  assert.equal(source.includes("hasIdentityId(squad.invitedUserIds"), true);
+  assert.equal(source.includes("hasIdentityId(squad.joinRequests"), true);
+  assert.equal(source.includes("(squad.invitedUserIds || []).includes(userId)"), false);
+  assert.equal(source.includes("(squad.joinRequests || []).some((r) => r.userId === userId)"), false);
+});
+
+test("searchUsers rejects oversized queries before database lookup", async () => {
+  const req = {
+    user: { userId: "507f1f77bcf86cd799439011" },
+    query: { q: "a".repeat(100) },
+  };
+  const res = createResponse();
+
+  await searchUsers(req, res);
+
+  assert.equal(res.statusCode, 400);
+  assert.equal(res.body.error.code, "INVALID_REQUEST");
+});
+
+test("searchUsers excludes existing friends stored as ObjectIds", async () => {
+  const myId = "507f1f77bcf86cd799439011";
+  const friendId = "507f1f77bcf86cd799439012";
+  const originalFindById = User.findById;
+  const originalFind = User.find;
+  const socketPath = require.resolve("../src/services/socketService");
+  const friendsPath = require.resolve("../src/controllers/friendsController");
+  const originalGetOnlineUserIds = require(socketPath).getOnlineUserIds;
+  let searchQuery = null;
+
+  User.findById = () => ({
+    lean: async () => ({ _id: myId, friends: [new mongoose.Types.ObjectId(friendId)] }),
+  });
+  User.find = (query) => {
+    searchQuery = query;
+    return {
+      limit: () => ({
+        lean: async () => [],
+      }),
+    };
+  };
+  require(socketPath).getOnlineUserIds = async () => new Set();
+  delete require.cache[friendsPath];
+  const { searchUsers: isolatedSearchUsers } = require("../src/controllers/friendsController");
+
+  try {
+    const req = { user: { userId: myId }, query: { q: "ma" } };
+    const res = createResponse();
+
+    await isolatedSearchUsers(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(searchQuery._id.$nin, [myId, friendId]);
+  } finally {
+    User.findById = originalFindById;
+    User.find = originalFind;
+    require(socketPath).getOnlineUserIds = originalGetOnlineUserIds;
+    delete require.cache[friendsPath];
+  }
+});
+
+test("acceptRequest rejects stale incoming friend requests when target user is gone", async () => {
+  const myId = "507f1f77bcf86cd799439011";
+  const missingTargetId = "507f1f77bcf86cd799439012";
+  const originalFindById = User.findById;
+  const originalUpdateOne = User.updateOne;
+  let updateCount = 0;
+
+  User.findById = (id) => ({
+    lean: async () => {
+      if (String(id) === myId) {
+        return { _id: myId, friendRequestsIncoming: [missingTargetId] };
+      }
+      return null;
+    },
+  });
+  User.updateOne = async () => {
+    updateCount += 1;
+  };
+
+  try {
+    const req = {
+      user: { userId: myId },
+      body: { userId: missingTargetId },
+    };
+    const res = createResponse();
+
+    await acceptRequest(req, res);
+
+    assert.equal(res.statusCode, 404);
+    assert.equal(res.body.error.code, "NOT_FOUND");
+    assert.equal(updateCount, 0);
+  } finally {
+    User.findById = originalFindById;
+    User.updateOne = originalUpdateOne;
+  }
+});
+
+test("sendRequest is idempotent for already-pending outgoing requests", async () => {
+  const myId = "507f1f77bcf86cd799439011";
+  const targetId = "507f1f77bcf86cd799439012";
+  const originalFindById = User.findById;
+  const originalUpdateOne = User.updateOne;
+  const notificationPath = require.resolve("../src/models/Notification");
+  const friendsPath = require.resolve("../src/controllers/friendsController");
+  const originalNotification = require(notificationPath).createNotification;
+  let updateCount = 0;
+  let notificationCount = 0;
+
+  User.findById = (id, projection) => ({
+    lean: async () => {
+      if (String(id) === targetId) return { _id: targetId, friends: [], friendRequestsOutgoing: [] };
+      if (String(id) === myId) return { _id: myId, friends: [], friendRequestsOutgoing: [targetId] };
+      return null;
+    },
+  });
+  User.updateOne = async () => {
+    updateCount += 1;
+  };
+  require(notificationPath).createNotification = async () => {
+    notificationCount += 1;
+  };
+  delete require.cache[friendsPath];
+  const { sendRequest: isolatedSendRequest } = require("../src/controllers/friendsController");
+
+  try {
+    const req = { user: { userId: myId, name: "Ana" }, body: { userId: targetId } };
+    const res = createResponse();
+
+    await isolatedSendRequest(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.status, "requested");
+    assert.equal(updateCount, 0);
+    assert.equal(notificationCount, 0);
+  } finally {
+    User.findById = originalFindById;
+    User.updateOne = originalUpdateOne;
+    require(notificationPath).createNotification = originalNotification;
+    delete require.cache[friendsPath];
+  }
+});
+
+test("sendRequest is idempotent when target already has the incoming request", async () => {
+  const myId = "507f1f77bcf86cd799439011";
+  const targetId = "507f1f77bcf86cd799439012";
+  const originalFindById = User.findById;
+  const originalUpdateOne = User.updateOne;
+  const notificationPath = require.resolve("../src/models/Notification");
+  const friendsPath = require.resolve("../src/controllers/friendsController");
+  const originalNotification = require(notificationPath).createNotification;
+  let updateCount = 0;
+  let notificationCount = 0;
+
+  User.findById = (id) => ({
+    lean: async () => {
+      if (String(id) === targetId) {
+        return { _id: targetId, friends: [], friendRequestsIncoming: [myId], friendRequestsOutgoing: [] };
+      }
+      if (String(id) === myId) return { _id: myId, friends: [], friendRequestsOutgoing: [] };
+      return null;
+    },
+  });
+  User.updateOne = async () => {
+    updateCount += 1;
+  };
+  require(notificationPath).createNotification = async () => {
+    notificationCount += 1;
+  };
+  delete require.cache[friendsPath];
+  const { sendRequest: isolatedSendRequest } = require("../src/controllers/friendsController");
+
+  try {
+    const req = { user: { userId: myId, name: "Ana" }, body: { userId: targetId } };
+    const res = createResponse();
+
+    await isolatedSendRequest(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.status, "requested");
+    assert.equal(updateCount, 0);
+    assert.equal(notificationCount, 0);
+  } finally {
+    User.findById = originalFindById;
+    User.updateOne = originalUpdateOne;
+    require(notificationPath).createNotification = originalNotification;
+    delete require.cache[friendsPath];
+  }
+});
+
+test("declineRequest rejects when there is no incoming friend request", async () => {
+  const myId = "507f1f77bcf86cd799439011";
+  const targetId = "507f1f77bcf86cd799439012";
+  const originalFindById = User.findById;
+  const originalUpdateOne = User.updateOne;
+  let updateCount = 0;
+
+  User.findById = (id) => ({
+    lean: async () => {
+      if (String(id) === myId) return { _id: myId, friendRequestsIncoming: [] };
+      return { _id: targetId };
+    },
+  });
+  User.updateOne = async () => {
+    updateCount += 1;
+  };
+
+  try {
+    const req = { user: { userId: myId }, body: { userId: targetId } };
+    const res = createResponse();
+
+    await declineRequest(req, res);
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.error.code, "NO_REQUEST");
+    assert.equal(updateCount, 0);
+  } finally {
+    User.findById = originalFindById;
+    User.updateOne = originalUpdateOne;
+  }
+});
+
+test("removeFriend rejects when users are not friends", async () => {
+  const myId = "507f1f77bcf86cd799439011";
+  const targetId = "507f1f77bcf86cd799439012";
+  const originalFindById = User.findById;
+  const originalUpdateOne = User.updateOne;
+  let updateCount = 0;
+
+  User.findById = (id) => ({
+    lean: async () => {
+      if (String(id) === myId) return { _id: myId, friends: [] };
+      return { _id: targetId };
+    },
+  });
+  User.updateOne = async () => {
+    updateCount += 1;
+  };
+
+  try {
+    const req = { user: { userId: myId }, body: { userId: targetId } };
+    const res = createResponse();
+
+    await removeFriend(req, res);
+
+    assert.equal(res.statusCode, 400);
+    assert.equal(res.body.error.code, "NOT_FRIENDS");
+    assert.equal(updateCount, 0);
+  } finally {
+    User.findById = originalFindById;
+    User.updateOne = originalUpdateOne;
+  }
+});
+
+test("normalizeSquadTags rejects non-string tags", () => {
+  const invalid = normalizeSquadTags(["Gaming", { label: "Hype" }]);
+
+  assert.equal(invalid.error, "tags must be an array of strings");
+});
+
+test("normalizeSquadTags trims, caps, and filters public tags", () => {
+  const valid = normalizeSquadTags([
+    "  Gaming  ",
+    "",
+    "Deep conversations",
+    "Music",
+    "Late Night",
+    "Foodies",
+    "Ignored",
+  ]);
+
+  assert.deepEqual(valid.tags, ["Gaming", "Deep conversati", "Music", "Late Night", "Foodies"]);
+});
+
+test("normalizeSquadTags dedupes tags case-insensitively after trimming", () => {
+  const valid = normalizeSquadTags([
+    " Music ",
+    "music",
+    "MUSIC",
+    "Deep Talks",
+    " deep   talks ",
+    "Gaming",
+  ]);
+
+  assert.deepEqual(valid.tags, ["Music", "Deep Talks", "Gaming"]);
+});
+
+test("normalizeSquadCoverImage accepts only safe cover values", () => {
+  assert.deepEqual(normalizeSquadCoverImage("grad-aurora"), { coverImage: "grad-aurora" });
+  assert.deepEqual(normalizeSquadCoverImage("https://cdn.example.com/cover.jpg"), {
+    coverImage: "https://cdn.example.com/cover.jpg",
+  });
+  assert.deepEqual(normalizeSquadCoverImage("data:image/png;base64,aaaa"), {
+    coverImage: "data:image/png;base64,aaaa",
+  });
+
+  assert.equal(normalizeSquadCoverImage("linear-gradient(red, blue)").error, "coverImage must be a known preset, https image URL, or image data URL");
+  assert.equal(normalizeSquadCoverImage("javascript:alert(1)").error, "coverImage must be a known preset, https image URL, or image data URL");
+  assert.equal(normalizeSquadCoverImage("data:text/html;base64,PHNjcmlwdA==").error, "coverImage must be a known preset, https image URL, or image data URL");
+  assert.equal(normalizeSquadCoverImage("x".repeat(2_000_001)).error, "coverImage exceeds maximum allowed size");
+});
+
+test("normalizeChatText collapses whitespace and rejects non-strings", () => {
+  assert.equal(normalizeChatText("  hey\n\nthere  "), "hey there");
+  assert.equal(normalizeChatText({ text: "nope" }), "");
+});
+
+test("socket sender names are bounded and readable", () => {
+  assert.equal(resolveSocketSenderName("  Maya\n  K  ", "ignored"), "Maya K");
+  assert.equal(resolveSocketSenderName("", "x".repeat(80)), "x".repeat(48));
+  assert.equal(resolveSocketSenderName("", ""), "Someone");
+});
+
+test("reaction emoji accepts only compact emoji-like values", () => {
+  assert.equal(normalizeReactionEmoji("🔥"), "🔥");
+  assert.equal(normalizeReactionEmoji("  😂  "), "😂");
+  assert.equal(normalizeReactionEmoji("ok"), "");
+  assert.equal(normalizeReactionEmoji("<script>"), "");
+  assert.equal(normalizeReactionEmoji("🔥".repeat(9)), "");
+});
+
+test("chat text length limit is bounded for socket payloads", () => {
+  assert.equal(MAX_CHAT_TEXT_LENGTH, 500);
+  assert.equal("x".repeat(MAX_CHAT_TEXT_LENGTH + 1).length > MAX_CHAT_TEXT_LENGTH, true);
+});
+
+test("socket rate limiter allows bursts then resets by window", () => {
+  const limiter = createSocketRateLimiter({ limit: 2, windowMs: 1000 });
+
+  assert.equal(limiter.allow("socket-a", 1000), true);
+  assert.equal(limiter.allow("socket-a", 1100), true);
+  assert.equal(limiter.allow("socket-a", 1200), false);
+  assert.equal(limiter.allow("socket-b", 1200), true);
+  assert.equal(limiter.allow("socket-a", 2101), true);
+});

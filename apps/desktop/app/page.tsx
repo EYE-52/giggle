@@ -14,15 +14,15 @@ import { api } from "@giggle/core";
  * real video tiles carry the visual.
  * ======================================================================== */
 const C = {
-  base: "#07070B",
-  base2: "#0B0B0F",
+  base: "#0E0D12",
+  base2: "#13121A",
   text: "#F4F4F7",
-  body: "#C2C2D4",
-  muted: "#8A8AA0",
-  dim: "#5C5C72",
-  violet: "#7C5CFF",
-  teal: "#3DD6C0",
-  lime: "#C2FF3D",
+  body: "#C9C9DA",
+  muted: "#9A9AB0",
+  dim: "#6E6E84",
+  violet: "#6D52FF",
+  teal: "#2FE6C8",
+  lime: "#B7FF2A",
   pink: "#FF5C8A",
   hair: "rgba(255,255,255,0.10)",
   hairStrong: "rgba(255,255,255,0.18)",
@@ -33,10 +33,10 @@ const BODY = "var(--font-inter), 'Inter', sans-serif";
 /* On-brand gradient fills used as the *fallback* behind every <video>. Varied
  * per tile so before the .mp4 files exist the page still looks intentional. */
 const FALLBACK_GRADS = [
-  "radial-gradient(120% 120% at 25% 20%, rgba(124,92,255,.55), transparent 60%), linear-gradient(150deg,#221a44,#0b0b14)",
+  "radial-gradient(120% 120% at 25% 20%, rgba(109,82,255,.55), transparent 60%), linear-gradient(150deg,#221a44,#0b0b14)",
   "radial-gradient(120% 120% at 75% 25%, rgba(255,92,138,.5), transparent 60%), linear-gradient(150deg,#3a1430,#0b0b14)",
   "radial-gradient(120% 120% at 30% 75%, rgba(61,214,192,.5), transparent 60%), linear-gradient(150deg,#0f2e2b,#0b0b14)",
-  "radial-gradient(120% 120% at 70% 70%, rgba(194,255,61,.45), transparent 60%), linear-gradient(150deg,#26301a,#0b0b14)",
+  "radial-gradient(120% 120% at 70% 70%, rgba(183,255,42,.45), transparent 60%), linear-gradient(150deg,#26301a,#0b0b14)",
 ];
 
 /* On-brand tile background tinted to roughly match each avatar so the person
@@ -124,6 +124,16 @@ function useScrubProgress(enabled: boolean) {
   }, [enabled]);
   return { ref, p };
 }
+
+// Social-proof counts read better rounded down to a clean figure with a "+"
+// (e.g. 469 → "400+") than as an exact, seed-looking number.
+function socialFloor(n: number): number {
+  if (n >= 1000) return Math.floor(n / 500) * 500;
+  if (n >= 100) return Math.floor(n / 100) * 100;
+  if (n >= 20) return Math.floor(n / 10) * 10;
+  return Math.max(0, n);
+}
+const socialPlus = (n: number): string => (n >= 20 ? "+" : "");
 
 function CountUp({ value, duration = 1600 }: { value: number; duration?: number }) {
   const { ref, shown } = useReveal<HTMLSpanElement>();
@@ -277,12 +287,12 @@ function VSMedallion({ reduce, stack, size = 64 }: { reduce: boolean; stack: boo
     <div style={{ position: "relative", display: "grid", placeItems: "center", flexShrink: 0, alignSelf: "center", zIndex: 4, ...(stack ? {} : { transform: "translateZ(60px)" }) }}>
       {/* connecting beam through the medallion */}
       <div aria-hidden style={stack
-        ? { position: "absolute", top: "-40px", bottom: "-40px", left: "50%", width: 2, transform: "translateX(-50%)", background: "linear-gradient(180deg, transparent, rgba(61,214,192,.85), rgba(124,92,255,.95), rgba(255,92,138,.85), transparent)", boxShadow: "0 0 16px rgba(124,92,255,.8)", animation: reduce ? undefined : "beam 2.8s ease-in-out infinite" }
-        : { position: "absolute", left: "-52px", right: "-52px", top: "50%", height: 2, transform: "translateY(-50%)", background: "linear-gradient(90deg, transparent, rgba(61,214,192,.85), rgba(124,92,255,.95), rgba(255,92,138,.85), transparent)", boxShadow: "0 0 16px rgba(124,92,255,.8)", animation: reduce ? undefined : "beam 2.8s ease-in-out infinite" }} />
+        ? { position: "absolute", top: "-40px", bottom: "-40px", left: "50%", width: 2, transform: "translateX(-50%)", background: "linear-gradient(180deg, transparent, rgba(61,214,192,.85), rgba(109,82,255,.95), rgba(255,92,138,.85), transparent)", boxShadow: "0 0 16px rgba(109,82,255,.8)", animation: reduce ? undefined : "beam 2.8s ease-in-out infinite" }
+        : { position: "absolute", left: "-52px", right: "-52px", top: "50%", height: 2, transform: "translateY(-50%)", background: "linear-gradient(90deg, transparent, rgba(61,214,192,.85), rgba(109,82,255,.95), rgba(255,92,138,.85), transparent)", boxShadow: "0 0 16px rgba(109,82,255,.8)", animation: reduce ? undefined : "beam 2.8s ease-in-out infinite" }} />
       {/* halo */}
-      <div aria-hidden style={{ position: "absolute", width: size * 1.9, height: size * 1.9, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,92,255,.5), transparent 65%)", filter: "blur(10px)" }} />
+      <div aria-hidden style={{ position: "absolute", width: size * 1.9, height: size * 1.9, borderRadius: "50%", background: "radial-gradient(circle, rgba(109,82,255,.5), transparent 65%)", filter: "blur(10px)" }} />
       {/* glowing gradient ring */}
-      <div style={{ position: "relative", width: size, height: size, borderRadius: "50%", padding: 2.5, background: "conic-gradient(from 220deg, #7C5CFF, #3DD6C0, #C2FF3D, #FF5C8A, #7C5CFF)", boxShadow: "0 0 30px -2px rgba(124,92,255,.9), 0 16px 36px -14px rgba(0,0,0,.9)", animation: reduce ? undefined : "vspulse 2.6s ease-in-out infinite" }}>
+      <div style={{ position: "relative", width: size, height: size, borderRadius: "50%", padding: 2.5, background: "conic-gradient(from 220deg, #6D52FF, #2FE6C8, #B7FF2A, #FF5C8A, #6D52FF)", boxShadow: "0 0 30px -2px rgba(109,82,255,.9), 0 16px 36px -14px rgba(0,0,0,.9)", animation: reduce ? undefined : "vspulse 2.6s ease-in-out infinite" }}>
         <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "radial-gradient(circle at 38% 30%, #1a1a2a, #0B0B12)", display: "grid", placeItems: "center", boxShadow: "inset 0 1px 2px rgba(255,255,255,.12)" }}>
           <span style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: size * 0.34, letterSpacing: "-.02em", ...shimmerText }}>VS</span>
         </div>
@@ -300,10 +310,10 @@ function HeroVS({ reduce, isPhone, isTablet, parallax }: { reduce: boolean; isPh
       position: "relative",
       borderRadius: 22,
       padding: 1,
-      background: "linear-gradient(155deg, rgba(255,255,255,.22), rgba(255,255,255,.04) 38%, rgba(124,92,255,.18))",
+      background: "linear-gradient(155deg, rgba(255,255,255,.22), rgba(255,255,255,.04) 38%, rgba(109,82,255,.18))",
       boxShadow: tilt
-        ? "0 2px 0 rgba(255,255,255,.05) inset, 0 30px 60px -30px rgba(0,0,0,.9), 0 80px 120px -60px rgba(124,92,255,.45), 0 50px 100px -40px rgba(0,0,0,.8)"
-        : "0 30px 70px -36px rgba(0,0,0,.9), 0 40px 90px -50px rgba(124,92,255,.4)",
+        ? "0 2px 0 rgba(255,255,255,.05) inset, 0 30px 60px -30px rgba(0,0,0,.9), 0 80px 120px -60px rgba(109,82,255,.45), 0 50px 100px -40px rgba(0,0,0,.8)"
+        : "0 30px 70px -36px rgba(0,0,0,.9), 0 40px 90px -50px rgba(109,82,255,.4)",
       transformStyle: "preserve-3d",
     }}>
       <div style={{
@@ -312,7 +322,7 @@ function HeroVS({ reduce, isPhone, isTablet, parallax }: { reduce: boolean; isPh
         backdropFilter: "blur(18px)",
       }}>
         {/* top scrim glow inside the window */}
-        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(110% 70% at 50% -8%, rgba(124,92,255,.18), transparent 60%)", pointerEvents: "none" }} />
+        <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(110% 70% at 50% -8%, rgba(109,82,255,.18), transparent 60%)", pointerEvents: "none" }} />
 
         {/* ---- app chrome bar ---- */}
         <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 16px", borderBottom: `1px solid ${C.hair}`, background: "linear-gradient(to bottom, rgba(255,255,255,.05), transparent)" }}>
@@ -345,7 +355,7 @@ function HeroVS({ reduce, isPhone, isTablet, parallax }: { reduce: boolean; isPh
   return (
     <div style={{ position: "relative", perspective: tilt ? 1400 : undefined }}>
       {/* ambient color bloom behind the whole panel */}
-      <div aria-hidden style={{ position: "absolute", inset: "-12% -8%", background: "radial-gradient(60% 60% at 35% 25%, rgba(124,92,255,.4), transparent 60%), radial-gradient(55% 55% at 75% 70%, rgba(61,214,192,.28), transparent 62%)", filter: "blur(36px)", pointerEvents: "none", animation: reduce ? undefined : "drift2 26s ease-in-out infinite" }} />
+      <div aria-hidden style={{ position: "absolute", inset: "-12% -8%", background: "radial-gradient(60% 60% at 35% 25%, rgba(109,82,255,.4), transparent 60%), radial-gradient(55% 55% at 75% 70%, rgba(61,214,192,.28), transparent 62%)", filter: "blur(36px)", pointerEvents: "none", animation: reduce ? undefined : "drift2 26s ease-in-out infinite" }} />
 
       <div style={{
         position: "relative",
@@ -392,9 +402,12 @@ export default function LandingPage() {
   const { ref: scrubRef, p } = useScrubProgress(!reduce);
 
   const [stats, setStats] = useState<{ squadsTotal: number; squadsOnline?: number; playersOnline: number; encountersTotal: number } | null>(null);
+  const [statsFailed, setStatsFailed] = useState(false);
   useEffect(() => {
     let alive = true;
-    const pull = () => api.getStats().then((s) => alive && setStats(s)).catch(() => {});
+    const pull = () => api.getStats()
+      .then((s) => { if (alive) { setStats(s); setStatsFailed(false); } })
+      .catch(() => { if (alive) setStatsFailed(true); });
     pull();
     // Poll so the "Live pulse" actually stays live (re-animates when counts move).
     const id = setInterval(pull, 12000);
@@ -419,10 +432,10 @@ export default function LandingPage() {
 
       {/* ===================== GLOBAL AMBIENT AURORA ===================== */}
       <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-        <div style={{ position: "absolute", width: 760, height: 760, borderRadius: "50%", top: "-22%", left: "-12%", background: "radial-gradient(circle, rgba(124,92,255,.40), transparent 62%)", filter: "blur(70px)", transform: `translateY(${orbA}px)`, animation: reduce ? undefined : "drift1 22s ease-in-out infinite" }} />
+        <div style={{ position: "absolute", width: 760, height: 760, borderRadius: "50%", top: "-22%", left: "-12%", background: "radial-gradient(circle, rgba(109,82,255,.40), transparent 62%)", filter: "blur(70px)", transform: `translateY(${orbA}px)`, animation: reduce ? undefined : "drift1 22s ease-in-out infinite" }} />
         <div style={{ position: "absolute", width: 680, height: 680, borderRadius: "50%", top: "18%", right: "-14%", background: "radial-gradient(circle, rgba(61,214,192,.30), transparent 62%)", filter: "blur(76px)", transform: `translateY(${orbB}px)`, animation: reduce ? undefined : "drift2 27s ease-in-out infinite" }} />
         <div style={{ position: "absolute", width: 620, height: 620, borderRadius: "50%", bottom: "-18%", left: "20%", background: "radial-gradient(circle, rgba(255,92,138,.24), transparent 62%)", filter: "blur(80px)", animation: reduce ? undefined : "drift3 31s ease-in-out infinite" }} />
-        <div style={{ position: "absolute", width: 520, height: 520, borderRadius: "50%", top: "55%", left: "55%", background: "radial-gradient(circle, rgba(194,255,61,.16), transparent 62%)", filter: "blur(80px)", animation: reduce ? undefined : "drift1 35s ease-in-out infinite reverse" }} />
+        <div style={{ position: "absolute", width: 520, height: 520, borderRadius: "50%", top: "55%", left: "55%", background: "radial-gradient(circle, rgba(183,255,42,.16), transparent 62%)", filter: "blur(80px)", animation: reduce ? undefined : "drift1 35s ease-in-out infinite reverse" }} />
         <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 90% at 50% 0%, transparent 40%, rgba(7,7,11,.55) 100%), linear-gradient(to bottom, transparent 60%, rgba(7,7,11,.6))" }} />
         {/* static grain — the animated steps() jitter read as edge "flicker" */}
         <div style={{ position: "absolute", inset: 0, opacity: 0.045, mixBlendMode: "overlay", backgroundImage: GRAIN, backgroundSize: "180px 180px" }} />
@@ -432,20 +445,24 @@ export default function LandingPage() {
         {/* ===================== NAV ===================== */}
         <header style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: `16px ${pad}px`, background: "linear-gradient(to bottom, rgba(7,7,11,.72), rgba(7,7,11,0))", backdropFilter: "blur(12px)" }}>
           <Wordmark size={isPhone ? 19 : 21} />
-          <nav style={{ display: "flex", alignItems: "center", gap: isPhone ? 12 : 24 }}>
-            {!isPhone && <button onClick={() => scrollTo("how")} style={navLink}>How it works</button>}
-            {!isPhone && <button onClick={() => scrollTo("features")} style={navLink}>Features</button>}
-            <Link href="/signin" style={{ ...navLink, color: C.text }}>Sign in</Link>
-            <CtaLink href="/signin" small>Get started</CtaLink>
+          <nav style={{ display: "flex", alignItems: "center", gap: isPhone ? 10 : 24, overflowX: isPhone ? "auto" : undefined, maxWidth: isPhone ? "72vw" : undefined }}>
+            <button onClick={() => scrollTo("how")} style={{ ...navLink, fontSize: isPhone ? 13 : 14.5, flexShrink: 0 }}>How it works</button>
+            <button onClick={() => scrollTo("features")} style={{ ...navLink, fontSize: isPhone ? 13 : 14.5, flexShrink: 0 }}>Features</button>
+            <Link href="/signin" style={{ ...navLink, color: C.text, minHeight: 44, padding: "0 12px", flexShrink: 0, fontSize: isPhone ? 13 : 14.5 }}>Sign in</Link>
+            {/* phone: the hero's Get started CTA is immediately below — keep the nav to links that fit */}
+            {!isPhone && <CtaLink href="/signin" small>Get started</CtaLink>}
           </nav>
         </header>
 
         {/* ===================== HERO — cinematic encounter ===================== */}
-        <section style={{ position: "relative", padding: `${isPhone ? 44 : 72}px ${pad}px ${isPhone ? 56 : 100}px` }}>
+        <section
+          data-testid="giggle-hero"
+          style={{ position: "relative", padding: `${isPhone ? 44 : 72}px ${pad}px ${isPhone ? 56 : 100}px` }}
+        >
           <div style={{ width: "100%", maxWidth: maxW, margin: "0 auto", display: "grid", gridTemplateColumns: isTablet ? "1fr" : "1.02fr 1.05fr", gap: isTablet ? 56 : 72, alignItems: "center" }}>
             <div style={{ position: "relative" }}>
               {/* soft spotlight behind the headline for drama */}
-              <div aria-hidden style={{ position: "absolute", left: -80, top: -40, width: 560, height: 560, background: "radial-gradient(circle, rgba(124,92,255,.22), transparent 60%)", filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
+              <div aria-hidden style={{ position: "absolute", left: -80, top: -40, width: 560, height: 560, background: "radial-gradient(circle, rgba(109,82,255,.22), transparent 60%)", filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
               <div style={{ position: "relative", zIndex: 1 }}>
                 <Reveal y={16}>
                   <span style={eyebrow}>
@@ -463,13 +480,13 @@ export default function LandingPage() {
                 </Reveal>
                 <Reveal delay={160}>
                   <p style={{ fontSize: isPhone ? 17 : 20, lineHeight: 1.55, color: C.body, margin: "26px 0 0", maxWidth: 470 }}>
-                    Giggle Meet pairs your crew with another crew over live group video — matched by your vibe. No awkward 1-on-1s. Just your people, meeting new people.
+                    Giggle Meet pairs your crew with another crew over live group video — matched by your vibe. No awkward solo chats. Just your people, meeting new people.
                   </p>
                 </Reveal>
                 <Reveal delay={240}>
                   <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 22, marginTop: 38 }}>
                     <CtaLink href="/signin">Get started <Icon.enter size={17} color="#fff" /></CtaLink>
-                    <button onClick={() => scrollTo("how")} style={arrowLink} onMouseEnter={(e) => { (e.currentTarget.querySelector("[data-arr]") as HTMLElement).style.transform = "translateX(4px)"; }} onMouseLeave={(e) => { (e.currentTarget.querySelector("[data-arr]") as HTMLElement).style.transform = "none"; }}>
+                    <button onClick={() => scrollTo("how")} className="lp-arrow" style={arrowLink}>
                       See how it works <span data-arr style={{ display: "inline-block", transition: "transform .2s ease" }}>→</span>
                     </button>
                   </div>
@@ -484,7 +501,7 @@ export default function LandingPage() {
                         Squads forming now
                       </span>
                       <span style={{ fontSize: 13, color: C.muted, fontFamily: BODY }}>
-                        {stats ? <><CountUp value={stats.playersOnline} /> people on Giggle</> : "Join people meeting their next crew"}
+                        {stats ? <><CountUp value={socialFloor(stats.playersOnline)} />{socialPlus(stats.playersOnline)} people on Giggle</> : "Join people meeting their next crew"}
                       </span>
                     </div>
                   </div>
@@ -512,18 +529,18 @@ export default function LandingPage() {
 
         {/* ===================== FULL-BLEED HOOK BAND (no card) ===================== */}
         <section style={{ position: "relative", padding: `${isPhone ? 96 : 168}px ${pad}px`, overflow: "hidden" }}>
-          <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(80% 120% at 50% 50%, rgba(124,92,255,.18), transparent 62%)" }} />
+          <div aria-hidden style={{ position: "absolute", inset: 0, background: "radial-gradient(80% 120% at 50% 50%, rgba(109,82,255,.18), transparent 62%)" }} />
           <div style={{ position: "relative", maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
             <Reveal>
               <h2
-                aria-label="Meeting people online 1-on-1 is awkward. Bring your friends."
+                aria-label="Meeting strangers online is awkward. Better with your squad."
                 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: isPhone ? "clamp(34px,9vw,44px)" : 68, lineHeight: 1.04, letterSpacing: "-.035em", margin: 0 }}
               >
                 <span aria-hidden="true">
-                  Meeting people online 1-on-1 is{" "}
+                  Meeting strangers online is{" "}
                   <span style={{ color: C.dim, textDecoration: "line-through", textDecorationColor: C.pink, textDecorationThickness: 3 }}>awkward</span>.
                   <br />
-                  <span style={shimmerText}>Bring your friends.</span>
+                  <span style={shimmerText}>Better with your squad.</span>
                 </span>
               </h2>
             </Reveal>
@@ -569,7 +586,7 @@ export default function LandingPage() {
         {/* ===================== FULL-BLEED CINEMATIC SCRUB TAKEOVER (demo.mp4) ===================== */}
         {/* Tall pinned section: while in view, demo.mp4 fills the whole viewport and
             scrubs with scroll. Edge fades melt it into #07070B above/below. */}
-        <section ref={scrubRef} style={{ position: "relative", height: reduce ? "auto" : isPhone ? "170vh" : "210vh" }}>
+        <section data-testid="use-case-story" ref={scrubRef} style={{ position: "relative", height: reduce ? "auto" : isPhone ? "170vh" : "210vh" }}>
           <div style={{ position: reduce ? "relative" : "sticky", top: 0, height: reduce ? "auto" : "100svh", minHeight: reduce ? "70vh" : undefined, overflow: "hidden" }}>
             <DemoStage p={p} reduce={reduce} isPhone={isPhone} pad={pad} maxW={maxW} scrollTo={scrollTo} />
           </div>
@@ -600,28 +617,28 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ===================== LIVE STATS — clean strip, hairline dividers ===================== */}
-        {stats && (
-          <section style={{ padding: `${isPhone ? 40 : 70}px ${pad}px` }}>
-            <div style={{ maxWidth: maxW, margin: "0 auto", borderTop: `1px solid ${C.hair}`, borderBottom: `1px solid ${C.hair}`, padding: `${isPhone ? 44 : 64}px 0` }}>
-              <Reveal>
-                <div style={{ textAlign: "center", marginBottom: isPhone ? 36 : 52 }}>
-                  <SectionLabel>By the numbers</SectionLabel>
-                  <h2 style={{ ...h2(isPhone), textAlign: "center" }}>Giggle so far</h2>
-                </div>
-                <div style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "repeat(3,1fr)", gap: 0 }}>
-                  <Stat value={stats.squadsTotal} label="squads formed" color={C.violet} divider={!isPhone} isPhone={isPhone} />
-                  <Stat value={stats.playersOnline} label="people on Giggle" color={C.teal} divider={!isPhone} isPhone={isPhone} />
-                  <Stat value={stats.encountersTotal} label="encounters and counting" color={C.lime} isPhone={isPhone} />
-                </div>
-              </Reveal>
-            </div>
-          </section>
-        )}
+        {/* ===================== LIVE STATS — clean strip, hairline dividers =====================
+            Stays mounted while loading (shimmer tiles) and on fetch failure
+            (fallback dashes) so the page never reflows under the reader. */}
+        <section style={{ padding: `${isPhone ? 40 : 70}px ${pad}px` }}>
+          <div style={{ maxWidth: maxW, margin: "0 auto", borderTop: `1px solid ${C.hair}`, borderBottom: `1px solid ${C.hair}`, padding: `${isPhone ? 44 : 64}px 0` }}>
+            <Reveal>
+              <div style={{ textAlign: "center", marginBottom: isPhone ? 36 : 52 }}>
+                <SectionLabel>By the numbers</SectionLabel>
+                <h2 style={{ ...h2(isPhone), textAlign: "center" }}>Giggle so far</h2>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "repeat(3,1fr)", gap: 0 }}>
+                <Stat value={stats?.squadsTotal} failed={statsFailed} label="squads formed" color={C.violet} divider={!isPhone} isPhone={isPhone} />
+                <Stat value={stats != null ? socialFloor(stats.playersOnline) : undefined} suffix={stats != null ? socialPlus(stats.playersOnline) : ""} failed={statsFailed} label="people on Giggle" color={C.teal} divider={!isPhone} isPhone={isPhone} />
+                <Stat value={stats?.encountersTotal} failed={statsFailed} label="encounters and counting" color={C.lime} isPhone={isPhone} />
+              </div>
+            </Reveal>
+          </div>
+        </section>
 
         {/* ===================== FINAL CTA — full-bleed closing statement ===================== */}
         <section style={{ padding: `${isPhone ? 100 : 180}px ${pad}px`, textAlign: "center", position: "relative", overflow: "hidden" }}>
-          <div aria-hidden style={{ position: "absolute", left: "50%", top: "44%", transform: "translate(-50%,-50%)", width: 820, height: 820, borderRadius: "50%", background: "radial-gradient(circle, rgba(124,92,255,.30), transparent 60%)", filter: "blur(50px)", animation: reduce ? undefined : "breathe 6s ease-in-out infinite" }} />
+          <div aria-hidden style={{ position: "absolute", left: "50%", top: "44%", transform: "translate(-50%,-50%)", width: 820, height: 820, borderRadius: "50%", background: "radial-gradient(circle, rgba(109,82,255,.30), transparent 60%)", filter: "blur(50px)", animation: reduce ? undefined : "breathe 6s ease-in-out infinite" }} />
           <Reveal>
             <div style={{ position: "relative" }}>
               <Logomark size={56} />
@@ -663,17 +680,34 @@ export default function LandingPage() {
  * DemoStage — FULL-BLEED cinematic takeover. While the tall pinned section is
  * in view, /landing/demo.mp4 fills the entire sticky viewport and SCRUBS with
  * scroll (currentTime = p * duration, Apple-style — not autoplay). Edge fades +
- * vignette + a light brand tint melt it into #07070B. Overlaid copy cross-fades
- * through stages tied to `p`. The animated mock only shows if the video is
+ * vignette + a light brand tint melt it into #07070B. Overlaid copy switches
+ * cleanly through stages tied to `p`. The animated mock only shows if the video is
  * missing/errors. Reduced-motion: static frame + readable copy, no pin.
  * ======================================================================== */
 function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
   p: number; reduce: boolean; isPhone: boolean; pad: number; maxW: number; scrollTo: (id: string) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
   const [duration, setDuration] = useState(0);
   const lastSet = useRef(-1);
+
+  // demo.mp4 is ~9.5MB — don't fetch it on page load. Only attach the real src
+  // once the scrub section nears the viewport (~200px margin), same IO pattern
+  // as useReveal. The poster keeps the stage looking intentional until then.
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || near) return;
+    if (typeof IntersectionObserver === "undefined") { setNear(true); return; }
+    const io = new IntersectionObserver(
+      (es) => es.forEach((e) => { if (e.isIntersecting) { setNear(true); io.disconnect(); } }),
+      { rootMargin: "200px 0px 200px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near]);
 
   const onLoaded = useCallback(() => {
     const v = videoRef.current;
@@ -707,32 +741,37 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
     try { v.currentTime = t; } catch { /* seeking before ready */ }
   }, [p, failed, duration]);
 
-  // 3 cross-fading caption stages tied to scroll.
+  // Three discrete caption stages tied to scroll. Only one caption is mounted at
+  // a time so large display text can never collide while the video keeps scrubbing.
   const STAGES = [
     { t: "Your squad forms", sub: "Pull your crew in — solo or up to eight.", c: C.violet },
     { t: "Matched by vibe", sub: "We pair you with a squad on your wavelength.", c: C.teal },
     { t: "You're live. 2v2.", sub: "Drop into a live group video room together.", c: C.lime },
   ];
   const active = p < 0.33 ? 0 : p < 0.66 ? 1 : 2;
-  // smooth per-stage opacity (cross-fade)
-  const stageOp = (i: number) => {
-    const center = [0.16, 0.5, 0.84][i];
-    return clamp01(1 - Math.abs(p - center) / 0.26);
-  };
+  const activeStage = STAGES[active];
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%", minHeight: reduce ? "70vh" : "100svh", overflow: "hidden", background: "linear-gradient(160deg,#120c28,#0b0b14 55%,#07070b)" }}>
+    <div ref={rootRef} style={{ position: "relative", width: "100%", height: "100%", minHeight: reduce ? "70vh" : "100svh", overflow: "hidden", background: "linear-gradient(160deg,#120c28,#0b0b14 55%,#07070b)" }}>
       {/* ---- Full-viewport scrubbed video ---- */}
-      {!failed && (
+      {reduce ? (
+        <img
+          data-testid="demo-poster"
+          src="/landing/demo-poster.jpg"
+          alt=""
+          aria-hidden
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.82) contrast(1.05) saturate(0.96)", zIndex: 1 }}
+        />
+      ) : !failed && (
         <video
           ref={videoRef}
           muted playsInline preload="metadata"
+          poster="/landing/demo-poster.jpg"
+          src={near ? "/landing/demo.mp4" : undefined}
           onLoadedMetadata={onLoaded}
           onError={() => setFailed(true)}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.82) contrast(1.05) saturate(0.96)", zIndex: 1 }}
-        >
-          <source src="/landing/demo.mp4" type="video/mp4" />
-        </video>
+        />
       )}
 
       {/* Animated fallback mock — only when the video is missing/errors */}
@@ -752,19 +791,20 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
       <div style={{ position: "absolute", zIndex: 4, left: 0, right: 0, bottom: isPhone ? "8%" : "12%", padding: `0 ${pad}px`, pointerEvents: "none" }}>
         <div style={{ width: "100%", maxWidth: maxW, margin: "0 auto" }}>
           <SectionLabel>The encounter</SectionLabel>
-          {/* cross-fading captions stacked in place */}
+          {/* One mounted caption prevents headline collisions during scrubbing. */}
           <div style={{ position: "relative", marginTop: 14, height: isPhone ? 132 : 168 }}>
-            {STAGES.map((s, i) => {
-              const op = reduce ? (i === active ? 1 : 0) : stageOp(i);
-              return (
-                <div key={s.t} style={{ position: "absolute", inset: 0, opacity: op, transform: reduce ? "none" : `translateY(${(1 - op) * 14}px)`, transition: "opacity .5s ease, transform .5s ease", pointerEvents: "none" }}>
-                  <h2 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: isPhone ? "clamp(40px,12vw,56px)" : 86, letterSpacing: "-.045em", lineHeight: 0.96, margin: 0, textShadow: "0 8px 40px rgba(0,0,0,.6)", maxWidth: 820 }}>
-                    {s.t}
-                  </h2>
-                  <p style={{ fontSize: isPhone ? 16 : 20, lineHeight: 1.5, color: C.body, margin: "16px 0 0", maxWidth: 440, textShadow: "0 2px 18px rgba(0,0,0,.7)" }}>{s.sub}</p>
-                </div>
-              );
-            })}
+            <div
+              key={activeStage.t}
+              data-testid="demo-caption"
+              aria-hidden="false"
+              className={reduce ? undefined : "gg-reveal"}
+              style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+            >
+              <h2 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: isPhone ? "clamp(40px,12vw,56px)" : 86, letterSpacing: "-.045em", lineHeight: 0.96, margin: 0, textShadow: "0 8px 40px rgba(0,0,0,.6)", maxWidth: 820 }}>
+                {activeStage.t}
+              </h2>
+              <p style={{ fontSize: isPhone ? 16 : 20, lineHeight: 1.5, color: C.body, margin: "16px 0 0", maxWidth: 440, textShadow: "0 2px 18px rgba(0,0,0,.7)" }}>{activeStage.sub}</p>
+            </div>
           </div>
 
           {/* progress pills reflecting the active stage */}
@@ -803,14 +843,14 @@ function DemoMock({ p, reduce }: { p: number; reduce: boolean }) {
   return (
     <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 1, overflow: "hidden" }}>
       {/* drifting aurora base so it's never flat */}
-      <div style={{ position: "absolute", width: "70%", aspectRatio: "1", borderRadius: "50%", left: `${lerp(8, 38, p)}%`, top: "6%", background: "radial-gradient(circle, rgba(124,92,255,.45), transparent 60%)", filter: "blur(55px)", animation: reduce ? undefined : "drift1 18s ease-in-out infinite" }} />
-      <div style={{ position: "absolute", width: "58%", aspectRatio: "1", borderRadius: "50%", right: `${lerp(2, 24, p)}%`, bottom: "6%", background: `radial-gradient(circle, ${p < 0.66 ? "rgba(61,214,192,.4)" : "rgba(194,255,61,.42)"}, transparent 60%)`, filter: "blur(55px)", animation: reduce ? undefined : "drift2 22s ease-in-out infinite" }} />
+      <div style={{ position: "absolute", width: "70%", aspectRatio: "1", borderRadius: "50%", left: `${lerp(8, 38, p)}%`, top: "6%", background: "radial-gradient(circle, rgba(109,82,255,.45), transparent 60%)", filter: "blur(55px)", animation: reduce ? undefined : "drift1 18s ease-in-out infinite" }} />
+      <div style={{ position: "absolute", width: "58%", aspectRatio: "1", borderRadius: "50%", right: `${lerp(2, 24, p)}%`, bottom: "6%", background: `radial-gradient(circle, ${p < 0.66 ? "rgba(61,214,192,.4)" : "rgba(183,255,42,.42)"}, transparent 60%)`, filter: "blur(55px)", animation: reduce ? undefined : "drift2 22s ease-in-out infinite" }} />
 
       {/* STAGE 1 — radar searching + your squad gathering */}
       <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", opacity: search, transition: "opacity .4s ease" }}>
         <div style={{ position: "relative", width: "62%", aspectRatio: "1" }}>
           {[0.4, 0.68, 1].map((r, i) => (
-            <div key={i} style={{ position: "absolute", left: "50%", top: "50%", width: `${r * 100}%`, aspectRatio: "1", transform: "translate(-50%,-50%)", borderRadius: "50%", border: `1px solid rgba(124,92,255,${0.34 - i * 0.08})` }} />
+            <div key={i} style={{ position: "absolute", left: "50%", top: "50%", width: `${r * 100}%`, aspectRatio: "1", transform: "translate(-50%,-50%)", borderRadius: "50%", border: `1px solid rgba(109,82,255,${0.34 - i * 0.08})` }} />
           ))}
           {/* rotating sweep — driven by p so it scrubs */}
           <div style={{ position: "absolute", left: "50%", top: "50%", width: "100%", aspectRatio: "1", transform: `translate(-50%,-50%) rotate(${p * 900}deg)`, borderRadius: "50%", background: "conic-gradient(from 0deg, rgba(61,214,192,.55), transparent 26%)", mixBlendMode: "screen" }} />
@@ -832,7 +872,7 @@ function DemoMock({ p, reduce }: { p: number; reduce: boolean }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 12, transform: `translateX(${lerp(-50, 0, clamp01(seg(p, 0.34, 0.5)))}px)` }}>
           {["/landing/sq1.jpg", "/landing/sq2.jpg"].map((src) => <PhotoCircle key={src} src={src} size={52} />)}
         </div>
-        <div style={{ width: 50, height: 50, borderRadius: "50%", padding: 2, background: "conic-gradient(from 220deg, #7C5CFF, #3DD6C0, #C2FF3D, #FF5C8A, #7C5CFF)", boxShadow: "0 0 26px -4px rgba(124,92,255,.85)", animation: reduce ? undefined : "vspulse 2.4s ease-in-out infinite", flexShrink: 0 }}>
+        <div style={{ width: 50, height: 50, borderRadius: "50%", padding: 2, background: "conic-gradient(from 220deg, #6D52FF, #2FE6C8, #B7FF2A, #FF5C8A, #6D52FF)", boxShadow: "0 0 26px -4px rgba(109,82,255,.85)", animation: reduce ? undefined : "vspulse 2.4s ease-in-out infinite", flexShrink: 0 }}>
           <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: "#0B0B12", display: "grid", placeItems: "center" }}>
             <span style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 17, ...shimmerText }}>VS</span>
           </div>
@@ -847,7 +887,7 @@ function DemoMock({ p, reduce }: { p: number; reduce: boolean }) {
         {liveTiles.map((t, i) => {
           const lit = clamp01(seg(p, 0.7 + i * 0.045, 0.78 + i * 0.045));
           return (
-            <div key={t.label} style={{ position: "relative", aspectRatio: "4/3", borderRadius: 14, overflow: "hidden", background: pickGrad(), opacity: lerp(0.25, 1, lit), transform: `scale(${lerp(0.92, 1, lit)})`, boxShadow: lit > 0.6 ? `0 0 0 1px ${C.violet}55, 0 16px 40px -16px rgba(124,92,255,.6)` : "0 12px 30px -18px rgba(0,0,0,.8)", transition: "box-shadow .3s ease" }}>
+            <div key={t.label} style={{ position: "relative", aspectRatio: "4/3", borderRadius: 14, overflow: "hidden", background: pickGrad(), opacity: lerp(0.25, 1, lit), transform: `scale(${lerp(0.92, 1, lit)})`, boxShadow: lit > 0.6 ? `0 0 0 1px ${C.violet}55, 0 16px 40px -16px rgba(109,82,255,.6)` : "0 12px 30px -18px rgba(0,0,0,.8)", transition: "box-shadow .3s ease" }}>
               <img src={t.img} alt="" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", filter: PHOTO_FILTER }} />
               <PhotoGrade accent={t.dot} radial={false} />
               <div style={{ position: "absolute", left: 7, bottom: 6, display: "inline-flex", alignItems: "center", gap: 5, background: "rgba(7,7,11,.5)", backdropFilter: "blur(6px)", padding: "3px 7px", borderRadius: 999, fontSize: 10, fontWeight: 600, color: "#fff", fontFamily: BODY }}>
@@ -869,7 +909,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return <span style={{ display: "inline-block", fontSize: 12.5, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: C.violet, fontFamily: DISPLAY }}>{children}</span>;
 }
 
-function Stat({ value, label, color, divider, isPhone }: { value: number; label: string; color: string; divider?: boolean; isPhone?: boolean }) {
+function Stat({ value, failed, label, color, divider, isPhone, suffix }: { value?: number; failed?: boolean; label: string; color: string; divider?: boolean; isPhone?: boolean; suffix?: string }) {
   return (
     <div style={{
       textAlign: "center",
@@ -877,25 +917,31 @@ function Stat({ value, label, color, divider, isPhone }: { value: number; label:
       borderRight: divider ? `1px solid ${C.hair}` : "none",
       borderBottom: isPhone ? `1px solid ${C.hair}` : "none",
     }}>
-      <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: isPhone ? 56 : 72, lineHeight: 1, color, letterSpacing: "-.04em", textShadow: `0 0 44px ${color}55` }}><CountUp value={value} /></div>
+      <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: isPhone ? 56 : 72, lineHeight: 1, color, letterSpacing: "-.04em", textShadow: `0 0 44px ${color}55`, display: "flex", justifyContent: "center" }}>
+        {value != null
+          ? <><CountUp value={value} />{suffix}</>
+          : failed
+            ? <span aria-label="unavailable">—</span>
+            : <span className="gg-shimmer" aria-hidden style={{ display: "inline-block", width: isPhone ? 120 : 160, height: isPhone ? 56 : 72, borderRadius: 14 }} />}
+      </div>
       <div style={{ fontSize: 14.5, color: C.muted, marginTop: 12 }}>{label}</div>
     </div>
   );
 }
 
 function CtaLink({ href, children, small, ghost }: { href: string; children: React.ReactNode; small?: boolean; ghost?: boolean }) {
-  const [h, setH] = useState(false);
+  // Hover/focus lift lives in the page-scoped CSS (.lp-cta / .lp-cta-ghost /
+  // .lp-cta-primary) so it works for keyboard focus-visible too, not just mouse.
   const base: React.CSSProperties = {
     display: "inline-flex", alignItems: "center", gap: 8, textDecoration: "none",
     height: small ? 42 : 54, padding: small ? "0 18px" : "0 28px", borderRadius: 999,
     fontFamily: BODY, fontWeight: 700, fontSize: small ? 14.5 : 16, whiteSpace: "nowrap",
-    transform: h ? "translateY(-2px)" : "none",
     transition: "transform .2s ease, box-shadow .2s ease, background .2s ease",
   };
   const style: React.CSSProperties = ghost
-    ? { ...base, color: C.text, background: h ? "rgba(255,255,255,.10)" : "rgba(255,255,255,.05)", border: `1px solid ${C.hairStrong}` }
-    : { ...base, color: "#fff", border: "none", background: "linear-gradient(100deg, #7C5CFF, #6C8BFF)", boxShadow: h ? "0 12px 40px -8px rgba(124,92,255,.95)" : "0 8px 28px -10px rgba(124,92,255,.75)" };
-  return <Link href={href} style={style} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}>{children}</Link>;
+    ? { ...base, color: C.text, background: "rgba(255,255,255,.05)", border: `1px solid ${C.hairStrong}` }
+    : { ...base, color: "#fff", border: "none", background: "linear-gradient(100deg, #6D52FF, #6C8BFF)", boxShadow: "0 8px 28px -10px rgba(109,82,255,.75)" };
+  return <Link href={href} className={`lp-cta ${ghost ? "lp-cta-ghost" : "lp-cta-primary"}`} style={style}>{children}</Link>;
 }
 
 /* ===========================================================================
@@ -991,10 +1037,10 @@ function vDiscovery(reduce: boolean) {
     { t: "night owls", c: C.pink }, { t: "hype", c: C.violet }, { t: "deep talks", c: C.teal },
   ];
   return (
-    <FeatureFrame tint="rgba(124,92,255,.20)" reduce={reduce}>
+    <FeatureFrame tint="rgba(109,82,255,.20)" reduce={reduce}>
       <div style={{ position: "relative", width: "100%", maxWidth: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: 26 }}>
         {/* energy rings behind */}
-        <div aria-hidden style={{ position: "absolute", top: -6, left: "50%", transform: "translateX(-50%)", width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(194,255,61,.22), transparent 65%)", filter: "blur(14px)" }} />
+        <div aria-hidden style={{ position: "absolute", top: -6, left: "50%", transform: "translateX(-50%)", width: 180, height: 180, borderRadius: "50%", background: "radial-gradient(circle, rgba(183,255,42,.22), transparent 65%)", filter: "blur(14px)" }} />
         {/* pill cloud */}
         <div style={{ position: "relative", display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 9, maxWidth: 360 }}>
           {pills.map((p, i) => (
@@ -1075,7 +1121,7 @@ function vControls(reduce: boolean) {
     { img: "/landing/sq3.jpg", n: "Dani", meta: "25 · 🇪🇸 Spain" },
   ];
   return (
-    <FeatureFrame tint="rgba(194,255,61,.16)" reduce={reduce}>
+    <FeatureFrame tint="rgba(183,255,42,.16)" reduce={reduce}>
       <div style={{ width: "100%", maxWidth: 360, borderRadius: 18, padding: 16, background: "linear-gradient(165deg, rgba(22,22,32,.78), rgba(11,11,18,.9))", border: `1px solid ${C.hairStrong}`, backdropFilter: "blur(16px)", boxShadow: "0 30px 70px -36px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.06)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontFamily: DISPLAY, fontWeight: 700, fontSize: 14, color: C.text }}>
@@ -1114,7 +1160,7 @@ function vTokens(reduce: boolean) {
     { x: "70%", y: "70%", d: 1.2 }, { x: "48%", y: "4%", d: 0.6 },
   ];
   return (
-    <FeatureFrame tint="rgba(124,92,255,.18)" reduce={reduce}>
+    <FeatureFrame tint="rgba(109,82,255,.18)" reduce={reduce}>
       <div style={{ position: "relative", width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
         {/* floating coins */}
         {coins.map((c, i) => (
@@ -1139,7 +1185,7 @@ function vTokens(reduce: boolean) {
         {/* +100 + both earn */}
         <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
           <span style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: "clamp(56px,12vw,92px)", lineHeight: 0.85, letterSpacing: "-.04em", ...shimmerText }}>+100</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 999, background: "rgba(124,92,255,.16)", border: `1px solid ${C.violet}55` }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: 999, background: "rgba(109,82,255,.16)", border: `1px solid ${C.violet}55` }}>
             <Icon.gift size={16} color={C.violet} />
             <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: BODY }}>you both earn</span>
           </div>
@@ -1162,7 +1208,7 @@ function vChat(reduce: boolean) {
         {msgs.map((m, i) => (
           <div key={i} style={{ display: "flex", alignItems: "flex-end", gap: 8, alignSelf: m.me ? "flex-end" : "flex-start", maxWidth: "88%", flexDirection: m.me ? "row-reverse" : "row" }}>
             {!m.me && <PhotoCircle src={m.img!} size={28} />}
-            <div style={{ position: "relative", background: m.me ? "linear-gradient(100deg,#7C5CFF,#6C8BFF)" : "rgba(255,255,255,.07)", color: m.me ? "#fff" : C.text, padding: "10px 14px", borderRadius: 16, borderBottomRightRadius: m.me ? 4 : 16, borderBottomLeftRadius: m.me ? 16 : 4, fontSize: 14, lineHeight: 1.35, boxShadow: "0 8px 22px -14px rgba(0,0,0,.8)" }}>
+            <div style={{ position: "relative", background: m.me ? "linear-gradient(100deg,#6D52FF,#6C8BFF)" : "rgba(255,255,255,.07)", color: m.me ? "#fff" : C.text, padding: "10px 14px", borderRadius: 16, borderBottomRightRadius: m.me ? 4 : 16, borderBottomLeftRadius: m.me ? 16 : 4, fontSize: 14, lineHeight: 1.35, boxShadow: "0 8px 22px -14px rgba(0,0,0,.8)" }}>
               {!m.me && <span style={{ display: "block", fontSize: 10.5, color: C.teal, fontWeight: 700, marginBottom: 2, fontFamily: BODY }}>{m.who}</span>}
               {m.t}
               {m.react && (
@@ -1231,10 +1277,10 @@ const navLink: React.CSSProperties = {
   fontFamily: BODY,
   padding: "0 2px",
 };
-const eyebrow: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 9, padding: "8px 15px", borderRadius: 999, background: "linear-gradient(100deg, rgba(124,92,255,.14), rgba(61,214,192,.08))", border: `1px solid ${C.hairStrong}`, fontSize: 13, fontWeight: 600, letterSpacing: ".01em", color: C.text, fontFamily: BODY, boxShadow: "0 6px 20px -12px rgba(124,92,255,.6), inset 0 1px 0 rgba(255,255,255,.06)", backdropFilter: "blur(8px)" };
+const eyebrow: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 9, padding: "8px 15px", borderRadius: 999, background: "linear-gradient(100deg, rgba(109,82,255,.14), rgba(61,214,192,.08))", border: `1px solid ${C.hairStrong}`, fontSize: 13, fontWeight: 600, letterSpacing: ".01em", color: C.text, fontFamily: BODY, boxShadow: "0 6px 20px -12px rgba(109,82,255,.6), inset 0 1px 0 rgba(255,255,255,.06)", backdropFilter: "blur(8px)" };
 const textLink: React.CSSProperties = { background: "none", border: "none", cursor: "pointer", fontFamily: BODY, fontWeight: 600, fontSize: 16, color: C.text, padding: 0, textDecoration: "none" };
 const arrowLink: React.CSSProperties = { display: "inline-flex", alignItems: "center", minHeight: 44, gap: 8, background: "none", border: "none", cursor: "pointer", fontFamily: BODY, fontWeight: 600, fontSize: 16, color: C.text, padding: "0 2px", textDecoration: "none" };
-const shimmerText: React.CSSProperties = { background: "linear-gradient(100deg, #7C5CFF, #3DD6C0 40%, #C2FF3D 70%, #FF5C8A)", backgroundSize: "200% auto", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", animation: "shimmer 6s linear infinite" };
+const shimmerText: React.CSSProperties = { background: "linear-gradient(100deg, #6D52FF, #2FE6C8 40%, #B7FF2A 70%, #FF5C8A)", backgroundSize: "200% auto", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent", animation: "shimmer 6s linear infinite" };
 function h2(isPhone: boolean): React.CSSProperties {
   return { fontFamily: DISPLAY, fontWeight: 700, fontSize: isPhone ? 32 : 50, letterSpacing: "-.035em", lineHeight: 1.06, margin: "16px 0 0" };
 }
@@ -1250,7 +1296,7 @@ const CSS = `
   @keyframes sheen { 0%,100% { transform: translateX(-30%); } 50% { transform: translateX(30%); } }
   @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
   @keyframes beam { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
-  @keyframes vspulse { 0%,100% { transform: scale(1); box-shadow: 0 0 24px -6px rgba(124,92,255,.7); } 50% { transform: scale(1.07); box-shadow: 0 0 36px -2px rgba(124,92,255,.95); } }
+  @keyframes vspulse { 0%,100% { transform: scale(1); box-shadow: 0 0 24px -6px rgba(109,82,255,.7); } 50% { transform: scale(1.07); box-shadow: 0 0 36px -2px rgba(109,82,255,.95); } }
   @keyframes glowpulse { 0%,100% { opacity: .75; } 50% { opacity: 1; } }
   @keyframes seatpop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   @keyframes coinfloat { 0%,100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-10px) rotate(6deg); } }
@@ -1259,5 +1305,14 @@ const CSS = `
   @keyframes breathe { 0%,100% { transform: translate(-50%,-50%) scale(1); opacity: .8; } 50% { transform: translate(-50%,-50%) scale(1.12); opacity: 1; } }
   @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
   @keyframes grain { 0%{transform:translate(0,0)}10%{transform:translate(-5%,-5%)}30%{transform:translate(3%,-8%)}50%{transform:translate(-4%,6%)}70%{transform:translate(6%,3%)}90%{transform:translate(-2%,4%)}100%{transform:translate(0,0)} }
-  @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  .lp-cta:hover, .lp-cta:focus-visible { transform: translateY(-2px); }
+  .lp-cta-primary:hover, .lp-cta-primary:focus-visible { box-shadow: 0 12px 40px -8px rgba(109,82,255,.95); }
+  .lp-cta-ghost:hover, .lp-cta-ghost:focus-visible { background: rgba(255,255,255,.10) !important; }
+  .lp-arrow [data-arr] { transition: transform .2s ease; }
+  .lp-arrow:hover [data-arr], .lp-arrow:focus-visible [data-arr] { transform: translateX(4px); }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; }
+    .lp-cta:hover, .lp-cta:focus-visible { transform: none; }
+    .lp-arrow:hover [data-arr], .lp-arrow:focus-visible [data-arr] { transform: none; }
+  }
 `;

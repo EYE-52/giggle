@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Space_Grotesk, Inter } from "next/font/google";
 import "./globals.css";
@@ -15,6 +15,13 @@ const inter = Inter({
   display: "swap",
 });
 
+// Explicit viewport export (Next 16 Metadata API: `viewport` object, not a
+// <meta> tag or metadata.viewport) — Safari must render 1:1 with Chrome.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+};
+
 export const metadata: Metadata = {
   title: "Giggle — Meet in squads",
   description: "Squad-based video encounter app",
@@ -27,7 +34,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${inter.variable}`}>
-      <body suppressHydrationWarning style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}>
+      <body style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}>
         {/* External beforeInteractive script (loaded by src, not inline
             children) applies the saved theme pre-paint without the React 19
             "script tag while rendering" warning. */}

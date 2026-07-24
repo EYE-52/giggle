@@ -26,6 +26,7 @@ const CALLING_ROUTES = ["/lobby", "/encounter", "/matchmaking", "/match"];
 export function TopNav() {
   const path = usePathname();
   const [hovered, setHovered] = useState<string | null>(null);
+  const [premiumFocused, setPremiumFocused] = useState(false);
   const [tokens, setTokens] = useState(0);
 
   useEffect(() => {
@@ -34,6 +35,8 @@ export function TopNav() {
   }, []);
   const isCallingRoute = CALLING_ROUTES.includes(path);
   const { width, isPhone, isTablet } = useViewport();
+  // Tooltip shows on hover AND keyboard focus (not on touch — no hover there).
+  const premiumTipVisible = !isPhone && (hovered === "premium" || premiumFocused);
 
   const innerStyle: React.CSSProperties = isCallingRoute
     ? {
@@ -58,13 +61,14 @@ export function TopNav() {
       };
 
   return (
+    <>
     <header
       style={{
         position: "sticky",
         top: 0,
         zIndex: 50,
         height: 68,
-        background: "color-mix(in srgb, var(--bg) 90%, transparent)",
+        background: "color-mix(in srgb, var(--surface) 85%, transparent)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
         borderBottom: "1px solid var(--border)",
@@ -89,7 +93,7 @@ export function TopNav() {
           {isPhone ? <Logomark size={28} /> : <Wordmark size={20} />}
         </Link>
 
-        <nav aria-label="Primary navigation" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: isPhone ? 0 : 4 }}>
+        <nav data-testid="desktop-navigation" aria-label="Primary navigation" style={{ display: isPhone ? "none" : "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
           {NAV.map(({ href, label, icon: I }) => {
             const active = path === href;
             const isHovered = hovered === href;
@@ -101,6 +105,7 @@ export function TopNav() {
                 onMouseEnter={() => setHovered(href)}
                 onMouseLeave={() => setHovered(null)}
                 aria-label={label}
+                aria-current={active ? "page" : undefined}
                 title={isTablet ? label : undefined}
                 style={{
                   display: "inline-flex",
@@ -112,23 +117,24 @@ export function TopNav() {
                   minHeight: 44,
                   borderRadius: 10,
                   textDecoration: "none",
-                  color: active || isHovered ? "var(--text)" : "var(--text-muted)",
+                  // Active tab = tonal fill: accent-soft bg + accent text (spec 05).
+                  color: active ? "var(--accent)" : isHovered ? "var(--text)" : "var(--text-muted)",
                   background: active
-                    ? "var(--overlay)"
+                    ? "var(--accent-soft)"
                     : isHovered
                     ? "var(--overlay-hover)"
                     : "transparent",
-                  fontSize: 14,
+                  fontSize: 13.5,
                   fontWeight: 600,
                   cursor: "pointer",
                   transition:
                     "color var(--dur) var(--ease-inout), background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",
-                  border: active ? "1px solid var(--border-strong)" : "1px solid transparent",
+                  border: "1px solid transparent",
                 }}
               >
                 <I
                   size={isPhone ? 20 : 18}
-                  color={active || isHovered ? "var(--violet)" : "var(--text-muted)"}
+                  color={active ? "var(--accent)" : isHovered ? "var(--violet)" : "var(--text-muted)"}
                   strokeWidth={2}
                 />
                 {!isTablet && label}
@@ -139,44 +145,50 @@ export function TopNav() {
         </nav>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: isPhone ? 0 : 4 }}>
+          {/* Right controls: 38px rounded squares on one baseline (44px
+              touch target kept on phone via the larger size). */}
           {width >= 360 && <div>
-            <ThemeToggle size={44} />
+            <ThemeToggle size={isPhone ? 44 : 38} />
           </div>}
 
-          {!isPhone && <div style={{ position: "relative" }}>
+          <div style={{ position: "relative" }}>
             <Link
               href="/premium"
               className="gg-nav-item"
               onMouseEnter={() => setHovered("premium")}
               onMouseLeave={() => setHovered(null)}
+              onFocus={() => setPremiumFocused(true)}
+              onBlur={() => setPremiumFocused(false)}
               aria-label={`${fmtTokens(tokens)} tokens. View Giggle Plus`}
+              aria-describedby={premiumTipVisible ? "premium-tooltip" : undefined}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 6,
-                padding: "0 12px",
-                minWidth: 58,
-                minHeight: 44,
+                padding: isPhone ? "0 10px" : "0 12px",
+                minWidth: isPhone ? 50 : 58,
+                minHeight: isPhone ? 44 : 38,
+                height: isPhone ? 44 : 38,
                 borderRadius: 10,
+                // Token pill: accent-soft fill + accent text + accent-line border.
                 background:
                   hovered === "premium"
-                    ? "rgba(255,200,50,0.12)"
-                    : "var(--overlay)",
-                border:
-                  hovered === "premium"
-                    ? "1px solid rgba(255,200,50,0.3)"
-                    : "1px solid var(--border)",
+                    ? "var(--accent-line)"
+                    : "var(--accent-soft)",
+                border: "var(--border-w) solid var(--accent-line)",
                 cursor: "pointer",
                 transition:
                   "background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",
               }}
             >
-              <Icon.star size={14} color="var(--lime)" fill="var(--lime)" />
-              <span style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 13, color: "var(--text)" }}>{fmtTokens(tokens)}</span>
+              <Icon.star size={14} color="var(--accent)" fill="var(--accent)" />
+              <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--accent)" }}>{fmtTokens(tokens)}</span>
             </Link>
-            {hovered === "premium" && (
+            {premiumTipVisible && (
               <div
+                id="premium-tooltip"
+                role="tooltip"
                 style={{
                   position: "absolute",
                   top: "calc(100% + 8px)",
@@ -212,7 +224,7 @@ export function TopNav() {
                 />
               </div>
             )}
-          </div>}
+          </div>
 
           {/* Notification bell + live panel */}
           <NotificationBell />
@@ -220,5 +232,22 @@ export function TopNav() {
         </div>
       </div>
     </header>
+    <nav data-testid="mobile-navigation" className="gg-mobile-nav" aria-label="Primary navigation">
+      {NAV.map(({ href, label, icon: ItemIcon }) => {
+        const active = path === href;
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className="gg-mobile-nav__item"
+          >
+            <ItemIcon size={21} color={active ? "var(--violet-bright)" : "var(--text-muted)"} strokeWidth={2} />
+            <span>{label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+    </>
   );
 }

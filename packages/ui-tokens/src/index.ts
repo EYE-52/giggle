@@ -1,24 +1,26 @@
 // Giggle "Vibrant Dark" design tokens — single source of truth for both apps.
 
+// Values mirror app/globals.css :root (dark) — that file is the single
+// source of truth; keep these hexes in sync with the CSS custom properties.
 export const colors = {
-  bg: "#0B0B0F",
-  bgDeep: "#060609",
-  surface: "#16161E",
-  surfaceGlass: "rgba(22,22,30,0.7)",
-  border: "rgba(255,255,255,0.09)",
-  borderStrong: "rgba(255,255,255,0.16)",
-  violet: "#7C5CFF",
-  violetDeep: "#5436c9",
-  violetSoft: "rgba(124,92,255,0.14)",
-  lime: "#C2FF3D",
-  limeSoft: "rgba(194,255,61,0.14)",
+  bg: "#080A0B",
+  bgDeep: "#0C0F10",
+  surface: "#121615",
+  surfaceGlass: "rgba(18,22,21,0.7)",
+  border: "rgba(255,255,255,0.08)",
+  borderStrong: "rgba(255,255,255,0.14)",
+  violet: "#7657FF",
+  violetDeep: "#5536CC",
+  violetSoft: "rgba(118,87,255,0.18)",
+  lime: "#B7FF2A",
+  limeSoft: "rgba(183,255,42,0.14)",
   coral: "#FF5C5C",
   coralSoft: "rgba(255,92,92,0.14)",
   textPrimary: "#F4F4F7",
   textSecondary: "#9A9AB0",
   textTertiary: "#6E6E84",
   // accent palette used for avatars / squads
-  avatar: ["#7C5CFF", "#3DD6C0", "#FF8A5C", "#C2FF3D", "#FF5C8A", "#5C8CFF", "#FFC65C", "#9B7CFF"],
+  avatar: ["#7657FF", "#2FE6C8", "#FF8A5C", "#B7FF2A", "#FF5C8A", "#5C8CFF", "#FFC65C", "#9278FF"],
 } as const;
 
 export const radii = {
@@ -53,8 +55,8 @@ export const type = {
 } as const;
 
 export const glow = {
-  violet: "0 0 34px -6px rgba(124,92,255,0.6)",
-  lime: "0 0 30px -4px rgba(194,255,61,0.5)",
+  violet: "0 0 34px -6px rgba(118,87,255,0.6)",
+  lime: "0 0 30px -4px rgba(183,255,42,0.5)",
 } as const;
 
 export const tokens = { colors, radii, space, font, type, glow };

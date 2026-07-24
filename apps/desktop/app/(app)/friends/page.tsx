@@ -1,11 +1,14 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icons";
 import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { useViewport } from "@/components/useViewport";
-import { api, session } from "@giggle/core";
+import { Modal } from "@/components/Modal";
+import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/Button";
+import { useToast } from "@/components/Toast";
+import { api } from "@giggle/core";
 import type { MySquadLite } from "@giggle/core";
 
 // ── Contract types (mirror the backend/core agent's interfaces) ───────────────
@@ -22,11 +25,17 @@ interface FriendRequestUser {
   online?: boolean;
 }
 
-const violet = "var(--violet)";
-const lime = "var(--lime)";
+const violet = "var(--accent, var(--violet))";
+const lime = "var(--live, var(--lime))";
 const text = "var(--text)";
 const muted = "var(--text-muted)";
 const dim = "var(--text-dim)";
+const radiusTile = "var(--radius-tile, 16px)";
+const radiusControl = "var(--radius-control, 14px)";
+const radiusPill = "var(--radius-pill, 999px)";
+const controlBorder = "var(--control-border, 1px solid var(--border))";
+const fontDisplay = "var(--font-display, var(--font-space-grotesk))";
+const onAccent = "var(--on-accent, #fff)";
 const MAX_SEARCH_QUERY = 64;
 
 /** Avatar that prefers the user's avatar art when present, else initials. */
@@ -36,22 +45,19 @@ function UserAvatar({ name, image, size = 44, online }: { name: string; image?: 
 }
 
 export default function FriendsPage() {
-  const router = useRouter();
   const { isPhone } = useViewport();
+  const { toast } = useToast();
 
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incoming, setIncoming] = useState<FriendRequestUser[]>([]);
   const [outgoing, setOutgoing] = useState<FriendRequestUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Search
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Friend[]>([]);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchRetry, setSearchRetry] = useState(0);
   const [requested, setRequested] = useState<Set<string>>(new Set());
 
   // Inline remove confirmation
@@ -60,41 +66,40 @@ export default function FriendsPage() {
 
   // Invite-to-squad flow: pick a squad for a chosen friend.
   const [inviteFriend, setInviteFriend] = useState<Friend | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
-  function ensureAuthed() {
-    if (session.isAuthed()) return true;
-    setAuthError("Sign in to continue.");
-    router.push("/signin");
-    return false;
-  }
+  // ≥2 consecutive refetch failures → surface a small "connection trouble"
+  // banner (dismissible; auto-clears on the next successful poll).
+  const failCount = useRef(0);
+  const [connTrouble, setConnTrouble] = useState(false);
+
+  // Guards in-flight refetches from setting state after unmount (the interval
+  // is cleared on unmount, but a pending request can still resolve later).
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
 
   const refetch = useCallback(async () => {
     try {
       const [f, r] = await Promise.all([api.listFriends(), api.friendRequests()]);
+      if (!mounted.current) return;
       setFriends(f?.friends ?? []);
       setIncoming(r?.incoming ?? []);
       setOutgoing(r?.outgoing ?? []);
-      setLoadError(null);
+      failCount.current = 0;
+      setConnTrouble(false);
     } catch (e) {
       console.error("friends refetch failed:", e);
-      setLoadError("Couldn't load your friends.");
+      failCount.current += 1;
+      if (mounted.current && failCount.current >= 2) setConnTrouble(true);
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
     }
   }, []);
 
-  // Initial load
-  useEffect(() => {
-    (async () => {
-      if (!ensureAuthed()) {
-        setLoading(false);
-        return;
-      }
-      refetch();
-    })();
-  }, [refetch]);
+  // Initial load — auth is gated by the (app) layout.
+  useEffect(() => { refetch(); }, [refetch]);
 
   // Live presence: poll every 20s + on window focus.
   useEffect(() => {
@@ -115,48 +120,35 @@ export default function FriendsPage() {
       setResults([]);
       setSearched(false);
       setSearching(false);
-      setSearchError(null);
       return;
     }
     setSearching(true);
-    setSearchError(null);
     const seq = ++searchSeq.current;
     const t = setTimeout(async () => {
       try {
-        if (!ensureAuthed()) return;
         const { users } = await api.searchUsers(q);
         if (seq === searchSeq.current) {
           setResults(users ?? []);
           setSearched(true);
         }
       } catch (e) {
-        if (seq === searchSeq.current) {
-          setResults([]);
-          setSearched(false);
-          setSearchError("Couldn't search for people.");
-        }
+        // Mark as searched so the UI shows "no people found" instead of a
+        // permanently blank block after a failed search.
+        if (seq === searchSeq.current) { setResults([]); setSearched(true); }
         console.error("searchUsers failed:", e);
       } finally {
         if (seq === searchSeq.current) setSearching(false);
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [query, searchRetry]);
+  }, [query]);
 
   // ── Actions (optimistic) ───────────────────────────────────────────────────
   async function handleAdd(u: Friend) {
-    if (!ensureAuthed()) return;
-    setActionError(null);
     setRequested((s) => new Set(s).add(u.userId));
     setOutgoing((o) => (o.some((x) => x.userId === u.userId) ? o : [...o, u]));
     try {
-      const { status } = await api.sendFriendRequest(u.userId);
-      if (status === "friends") {
-        setRequested((s) => { const next = new Set(s); next.delete(u.userId); return next; });
-        setOutgoing((o) => o.filter((x) => x.userId !== u.userId));
-        setIncoming((i) => i.filter((x) => x.userId !== u.userId));
-        setFriends((f) => (f.some((x) => x.userId === u.userId) ? f : [u, ...f]));
-      }
+      await api.sendFriendRequest(u.userId);
     } catch (e) {
       setRequested((s) => {
         const n = new Set(s);
@@ -164,13 +156,11 @@ export default function FriendsPage() {
         return n;
       });
       setOutgoing((o) => o.filter((x) => x.userId !== u.userId));
-      setActionError((e as { message?: string })?.message || "Couldn't send friend request.");
+      toast((e as { message?: string })?.message || "Couldn't send friend request.", "error");
     }
   }
 
   async function handleAccept(u: FriendRequestUser) {
-    if (!ensureAuthed()) return;
-    setActionError(null);
     setIncoming((i) => i.filter((x) => x.userId !== u.userId));
     setFriends((f) => [{ userId: u.userId, name: u.name, image: u.image, online: !!u.online }, ...f]);
     try {
@@ -179,39 +169,36 @@ export default function FriendsPage() {
     } catch (e) {
       setIncoming((i) => (i.some((x) => x.userId === u.userId) ? i : [u, ...i]));
       setFriends((f) => f.filter((x) => x.userId !== u.userId));
-      setActionError((e as { message?: string })?.message || "Couldn't accept friend request.");
+      toast((e as { message?: string })?.message || "Couldn't accept friend request.", "error");
     }
   }
 
   async function handleDecline(u: FriendRequestUser) {
-    if (!ensureAuthed()) return;
-    setActionError(null);
     setIncoming((i) => i.filter((x) => x.userId !== u.userId));
     try {
       await api.declineFriend(u.userId);
     } catch (e) {
       setIncoming((i) => (i.some((x) => x.userId === u.userId) ? i : [u, ...i]));
-      setActionError((e as { message?: string })?.message || "Couldn't decline friend request.");
+      toast((e as { message?: string })?.message || "Couldn't decline friend request.", "error");
     }
   }
 
   async function handleRemove(u: Friend) {
-    if (!ensureAuthed()) return;
-    setActionError(null);
     setConfirmRemove(null);
     setFriends((f) => f.filter((x) => x.userId !== u.userId));
     try {
       await api.removeFriend(u.userId);
     } catch (e) {
       setFriends((f) => (f.some((x) => x.userId === u.userId) ? f : [u, ...f]));
-      setActionError((e as { message?: string })?.message || "Couldn't remove friend.");
+      toast((e as { message?: string })?.message || "Couldn't remove friend.", "error");
     }
   }
 
-  // Online friends first, then alphabetical.
+  // Online friends first, then a stable name (then id) tiebreak so 20s polls
+  // don't shuffle equal-status friends.
   const sortedFriends = [...friends].sort((a, b) => {
     if (a.online !== b.online) return a.online ? -1 : 1;
-    return a.name.localeCompare(b.name);
+    return a.name.localeCompare(b.name) || a.userId.localeCompare(b.userId);
   });
 
   const onlineCount = friends.filter((f) => f.online).length;
@@ -219,140 +206,108 @@ export default function FriendsPage() {
   const incomingIds = new Set(incoming.map((u) => u.userId));
 
   const sectionTitleStyle: React.CSSProperties = {
-    fontFamily: "var(--font-space-grotesk)",
-    fontSize: 18,
+    fontFamily: fontDisplay,
+    fontSize: 17,
     fontWeight: 700,
     color: text,
     margin: 0,
     letterSpacing: "-0.01em",
   };
 
-  const showFirstRun = !loading && !loadError && friends.length === 0 && incoming.length === 0 && outgoing.length === 0;
-
-  const searchField = (
-    <div style={{ position: "relative" }}>
-      <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-        <Icon.discover size={18} color={searchFocus ? violet : dim} />
-      </span>
-      <input
-        aria-label="Search people by name"
-        value={query}
-        onChange={(e) => setQuery(e.target.value.slice(0, MAX_SEARCH_QUERY))}
-        onFocus={() => setSearchFocus(true)}
-        onBlur={() => setSearchFocus(false)}
-        placeholder="Search by display name…"
-        maxLength={MAX_SEARCH_QUERY}
-        style={{
-          width: "100%", minHeight: 50, boxSizing: "border-box",
-          padding: "13px 16px 13px 42px", borderRadius: 14,
-          background: "var(--surface)",
-          border: searchFocus ? "1px solid var(--violet)" : "1px solid var(--border)",
-          boxShadow: searchFocus ? "0 0 0 3px color-mix(in srgb, var(--violet) 30%, transparent)" : "none",
-          color: text, fontSize: 15, fontFamily: "var(--font-inter)", outline: "none",
-          transition: "box-shadow .2s var(--ease-ui), border-color .2s var(--ease-ui)",
-        }}
-      />
-    </div>
-  );
-
-  const searchFeedback = query.trim().length >= 2 ? (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
-      {searchError ? (
-        <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 52, padding: "8px 10px 8px 14px", borderTop: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", color: "var(--text-body)", fontSize: 13.5 }}>
-          <span>{searchError}</span>
-          <button onClick={() => setSearchRetry((value) => value + 1)} className="gg-press" style={{ minHeight: 44, padding: "0 14px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "transparent", color: text, cursor: "pointer", fontWeight: 700 }}>Retry search</button>
-        </div>
-      ) : searching && results.length === 0 ? (
-        <EmptyHint><span className="gg-spinner" style={{ marginRight: 8 }} />Searching…</EmptyHint>
-      ) : results.length === 0 && searched ? (
-        <EmptyHint>No people found for “{query.trim()}”. Try their exact display name.</EmptyHint>
-      ) : (
-        results.map((u) => {
-          const isFriend = friendIds.has(u.userId);
-          const incomingRequest = incoming.find((i) => i.userId === u.userId);
-          const isRequested = !incomingIds.has(u.userId) && (requested.has(u.userId) || outgoing.some((o) => o.userId === u.userId));
-          return (
-            <Row key={u.userId} u={u}>
-              {isFriend ? (
-                <Pill tone="muted">Friends</Pill>
-              ) : incomingRequest ? (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <ActionButton onClick={() => handleAccept(incomingRequest)} tone="violet">Accept</ActionButton>
-                  <ActionButton onClick={() => handleDecline(incomingRequest)} tone="ghost">Decline</ActionButton>
-                </div>
-              ) : isRequested ? (
-                <Pill tone="muted">Requested</Pill>
-              ) : (
-                <ActionButton onClick={() => handleAdd(u)} tone="violet">
-                  <Icon.plus size={15} color="#fff" strokeWidth={2.4} /> Add
-                </ActionButton>
-              )}
-            </Row>
-          );
-        })
-      )}
-    </div>
-  ) : null;
-
   return (
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 40 }}>
       {/* Header */}
-      <div>
-        <h1 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 26 : 30, fontWeight: 800, color: text, margin: 0, letterSpacing: "-0.02em" }}>Friends</h1>
-        <div style={{ color: muted, fontSize: 14, fontFamily: "var(--font-inter)" }}>
-          {onlineCount > 0 ? `${onlineCount} online now` : "Find people and see who's around."}
-        </div>
-      </div>
+      <PageHeader
+        title="Friends"
+        subtitle={onlineCount > 0 ? `${onlineCount} online now` : "Find people and see who's around."}
+      />
 
-      {authError && (
-        <div role="status" style={{ padding: "12px 14px", borderRadius: 14, border: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", background: "color-mix(in srgb, var(--coral) 11%, transparent)", color: "var(--text)", fontSize: 14 }}>
-          {authError}
-        </div>
-      )}
-
-      {actionError && (
-        <div role="alert" style={{ padding: "12px 14px", borderRadius: 14, border: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", background: "color-mix(in srgb, var(--coral) 11%, transparent)", color: "var(--text)", fontSize: 14 }}>
-          {actionError}
-        </div>
-      )}
-
-      {loadError && (
-        <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 10px 10px 14px", borderTop: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", borderBottom: "1px solid color-mix(in srgb, var(--coral) 42%, transparent)", color: "var(--text-body)", fontSize: 14 }}>
-          <span>{loadError} Check your connection and try again.</span>
-          <button onClick={() => { setLoading(true); void refetch(); }} className="gg-press" style={{ minHeight: 44, padding: "0 16px", borderRadius: 10, border: "1px solid var(--border-strong)", background: "transparent", color: text, cursor: "pointer", fontWeight: 700 }}>Retry</button>
+      {connTrouble && (
+        <div role="status" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: radiusControl, border: "1px solid color-mix(in srgb, var(--coral) 45%, transparent)", background: "var(--coral-soft)", color: "var(--coral)", fontSize: 14, fontWeight: 600 }}>
+          <span className="gg-spinner" aria-hidden="true" />
+          <span style={{ flex: 1 }}>Connection trouble — retrying…</span>
+          <button
+            onClick={() => setConnTrouble(false)}
+            aria-label="Dismiss"
+            className="gg-press"
+            style={{ width: 32, height: 32, background: "none", border: "none", cursor: "pointer", padding: 0, display: "grid", placeItems: "center" }}
+          >
+            <Icon.close size={13} color="var(--coral)" />
+          </button>
         </div>
       )}
 
-      {showFirstRun ? (
-        <section
-          style={{
-            width: "100%",
-            maxWidth: 680,
-            boxSizing: "border-box",
-            padding: isPhone ? 20 : 28,
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderTop: "3px solid var(--violet)",
-            borderRadius: 16,
-            boxShadow: "var(--elev)",
-          }}
-        >
-          <div style={{ color: violet, fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase" }}>Your circle</div>
-          <h2 style={{ margin: "9px 0 7px", color: text, fontFamily: "var(--font-space-grotesk)", fontSize: isPhone ? 26 : 30, lineHeight: 1.1, fontWeight: 800 }}>Find your people.</h2>
-          <p style={{ margin: 0, maxWidth: 470, color: muted, fontSize: 14, lineHeight: 1.6 }}>
-            Search their display name to send a friend request and see when they’re online.
-          </p>
-          <div style={{ marginTop: 22 }}>
-            {searchField}
-            {searchFeedback}
+      {/* ── Add friends ──────────────────────────────────────────── */}
+      <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ position: "relative" }}>
+          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+            <Icon.discover size={18} color={dim} />
+          </span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value.slice(0, MAX_SEARCH_QUERY))}
+            onFocus={() => setSearchFocus(true)}
+            onBlur={() => setSearchFocus(false)}
+            placeholder="Search by name…"
+            maxLength={MAX_SEARCH_QUERY}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              padding: "13px 16px 13px 42px",
+              borderRadius: radiusControl,
+              background: "var(--surface)",
+              border: searchFocus ? `1px solid ${violet}` : controlBorder,
+              boxShadow: searchFocus ? `0 0 0 3px color-mix(in srgb, ${violet} 30%, transparent)` : "none",
+              color: text,
+              fontSize: 14,
+              fontFamily: "var(--font-inter)",
+              outline: "none",
+              transition: "box-shadow .2s var(--ease-ui), border-color .2s var(--ease-ui)",
+            }}
+          />
+        </div>
+
+        {query.trim() && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {query.trim().length < 2 ? (
+              <EmptyHint>Type at least 2 characters to search.</EmptyHint>
+            ) : searching && results.length === 0 ? (
+              // Skeleton rows matching the result-row height — no spinner jump.
+              <div aria-label="Searching" role="status" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="gg-shimmer" style={{ height: 62, borderRadius: radiusControl }} />
+                ))}
+              </div>
+            ) : results.length === 0 && searched ? (
+              <EmptyHint>No people found for “{query.trim()}”.</EmptyHint>
+            ) : (
+              results.map((u) => {
+                const isFriend = friendIds.has(u.userId);
+                const incomingRequest = incoming.find((i) => i.userId === u.userId);
+                const isRequested = !incomingIds.has(u.userId) && (requested.has(u.userId) || outgoing.some((o) => o.userId === u.userId));
+                return (
+                  <Row key={u.userId} u={u}>
+                    {isFriend ? (
+                      <Pill tone="muted">Friends</Pill>
+                    ) : incomingRequest ? (
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <ActionButton onClick={() => handleAccept(incomingRequest)} tone="violet">Accept</ActionButton>
+                        <ActionButton onClick={() => handleDecline(incomingRequest)} tone="ghost">Decline</ActionButton>
+                      </div>
+                    ) : isRequested ? (
+                      <Pill tone="muted">Requested</Pill>
+                    ) : (
+                      <ActionButton onClick={() => handleAdd(u)} tone="violet">
+                        <Icon.plus size={15} color={onAccent} strokeWidth={2.4} /> Add
+                      </ActionButton>
+                    )}
+                  </Row>
+                );
+              })
+            )}
           </div>
-        </section>
-      ) : (
-        <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {searchField}
-          {searchFeedback}
-        </section>
-      )}
+        )}
+      </section>
 
       {/* ── Requests ─────────────────────────────────────────────── */}
       {(incoming.length > 0 || outgoing.length > 0) && (
@@ -379,7 +334,6 @@ export default function FriendsPage() {
       )}
 
       {/* ── Your friends ─────────────────────────────────────────── */}
-      {(loading || friends.length > 0) && (
       <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <h2 style={sectionTitleStyle}>Your friends {friends.length > 0 && <span style={{ color: muted }}>· {friends.length}</span>}</h2>
 
@@ -392,8 +346,8 @@ export default function FriendsPage() {
             }}
           >
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)" }}>
-                <div className="gg-shimmer" style={{ width: 46, height: 46, borderRadius: 999 }} />
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: radiusTile, background: "var(--surface)", border: controlBorder }}>
+                <div className="gg-shimmer" style={{ width: 46, height: 46, borderRadius: radiusPill }} />
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div className="gg-shimmer" style={{ height: 14, width: "55%", borderRadius: 6 }} />
                   <div className="gg-shimmer" style={{ height: 11, width: "32%", borderRadius: 6 }} />
@@ -401,6 +355,8 @@ export default function FriendsPage() {
               </div>
             ))}
           </div>
+        ) : friends.length === 0 ? (
+          <FriendsEmptyState />
         ) : (
           <div
             style={{
@@ -418,19 +374,19 @@ export default function FriendsPage() {
                   alignItems: "center",
                   gap: 12,
                   padding: 14,
-                  borderRadius: 16,
+                  borderRadius: radiusTile,
                   background: "var(--surface)",
-                  border: "1px solid var(--border)",
+                  border: controlBorder,
                 }}
               >
                 <UserAvatar name={f.name} image={f.image} size={46} online={f.online} />
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 15, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {f.name}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: 999, background: f.online ? lime : "var(--border-strong)", boxShadow: f.online ? `0 0 8px ${lime}` : undefined }} />
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: f.online ? "var(--lime-text)" : dim, fontFamily: "var(--font-inter)" }}>
+                    <span style={{ width: 7, height: 7, borderRadius: radiusPill, background: f.online ? lime : "var(--border-strong)", boxShadow: f.online ? `0 0 8px ${lime}` : undefined }} />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: f.online ? "var(--lime-text)" : dim, fontFamily: "var(--font-inter)" }}>
                       {f.online ? "Online" : "Offline"}
                     </span>
                   </div>
@@ -449,15 +405,21 @@ export default function FriendsPage() {
                     className="gg-press"
                     style={{
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      width: 44, height: 44,
-                      borderRadius: 999,
-                      background: "var(--violet-soft)",
-                      border: "1px solid var(--violet)",
+                      width: 40, height: 40,
+                      borderRadius: radiusPill,
+                      background: "var(--accent-soft)",
+                      border: "1px solid var(--accent-line)",
                       cursor: "pointer",
                       transition: "transform .14s ease, background .2s var(--ease-ui), border-color .2s var(--ease-ui)",
                     }}
                   >
-                    <Icon.users size={15} color={violet} strokeWidth={2.2} />
+                    {/* users + plus badge — distinct from the nav's plain users icon */}
+                    <span aria-hidden="true" style={{ position: "relative", display: "inline-flex" }}>
+                      <Icon.users size={15} color={violet} strokeWidth={2.2} />
+                      <span style={{ position: "absolute", top: -5, right: -6, width: 12, height: 12, borderRadius: radiusPill, background: "var(--surface)", boxShadow: `0 0 0 1px ${violet}`, display: "grid", placeItems: "center" }}>
+                        <Icon.plus size={8} color={violet} strokeWidth={3} />
+                      </span>
+                    </span>
                   </button>
                   <button
                     onClick={() => setConfirmRemove(f.userId)}
@@ -465,10 +427,10 @@ export default function FriendsPage() {
                     className="gg-press"
                     style={{
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      width: 44, height: 44,
-                      borderRadius: 999,
+                      width: 40, height: 40,
+                      borderRadius: radiusPill,
                       background: "var(--overlay)",
-                      border: "1px solid var(--border)",
+                      border: controlBorder,
                       cursor: "pointer",
                       transition: "transform .14s ease, background .2s var(--ease-ui), border-color .2s var(--ease-ui)",
                     }}
@@ -482,7 +444,6 @@ export default function FriendsPage() {
           </div>
         )}
       </section>
-      )}
 
       {inviteFriend && (
         <SquadPickerModal
@@ -497,14 +458,28 @@ export default function FriendsPage() {
 
 // ── Small building blocks ─────────────────────────────────────────────────────
 
+function FriendsEmptyState() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--overlay)", flexShrink: 0 }}>
+        <Icon.users size={18} color={violet} />
+      </div>
+      <div>
+        <h3 style={{ margin: 0, color: text, fontFamily: fontDisplay, fontSize: 14, fontWeight: 700 }}>Your crew starts here</h3>
+        <p style={{ margin: "3px 0 0", color: muted, fontSize: 13 }}>Search by name above to send your first request.</p>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Lightweight squad-picker: invite a known friend to one of my squads.
  * - Loads api.mySquads() on open.
  * - 0 squads → "Create a squad first".
- * - Every squad row requires an explicit invite click.
+ * - 1+ squads → list to pick from; every invite is an explicit click (no
+ *   auto-fire even for a single squad — sending on open surprised people).
  */
 function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhone: boolean; onClose: () => void }) {
-  const router = useRouter();
   const [squads, setSquads] = useState<MySquadLite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -513,11 +488,6 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
   const [rowErr, setRowErr] = useState<Record<string, string>>({});
 
   const invite = useCallback(async (squadId: string) => {
-    if (!session.isAuthed()) {
-      setError("Sign in to continue.");
-      router.push("/signin");
-      return;
-    }
     setStatus((s) => ({ ...s, [squadId]: "inviting" }));
     setRowErr((s) => { const n = { ...s }; delete n[squadId]; return n; });
     try {
@@ -529,21 +499,15 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
       setStatus((s) => ({ ...s, [squadId]: "error" }));
       setRowErr((s) => ({ ...s, [squadId]: "Couldn't invite — try again." }));
     }
-  }, [friend.userId, router]);
+  }, [friend.userId]);
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        if (!session.isAuthed()) {
-          setError("Sign in to continue.");
-          router.push("/signin");
-          return;
-        }
         const { squads } = await api.mySquads();
-        const list = squads ?? [];
         if (!alive) return;
-        setSquads(list);
+        setSquads(squads ?? []);
       } catch (e) {
         console.error("mySquads failed:", e);
         if (alive) setError("Couldn't load your squads.");
@@ -552,55 +516,17 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
       }
     })();
     return () => { alive = false; };
-  }, [router]);
-
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
+  }, []);
 
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 10000,
-        background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
-        display: "flex", alignItems: isPhone ? "flex-end" : "center", justifyContent: "center",
-        padding: isPhone ? 0 : 20,
-      }}
+    <Modal
+      onClose={onClose}
+      title="Invite to squad"
+      subtitle={<>Pick a squad for <span style={{ color: text, fontWeight: 600 }}>{friend.name}</span></>}
+      sheet={isPhone}
+      width={420}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Invite ${friend.name} to a squad`}
-        style={{
-          background: "var(--surface)", border: "1px solid var(--border-strong)",
-          borderRadius: isPhone ? "24px 24px 0 0" : 22,
-          width: isPhone ? "100%" : 420, maxWidth: "100%", maxHeight: isPhone ? "82vh" : "76vh",
-          display: "flex", flexDirection: "column", overflow: "hidden",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
-        }}
-      >
-        <div style={{ padding: "20px 22px 12px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 18, fontWeight: 800, color: text, letterSpacing: "-0.01em" }}>Invite to squad</div>
-            <div style={{ color: muted, fontSize: 13, fontFamily: "var(--font-inter)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              Pick a squad for <span style={{ color: text, fontWeight: 600 }}>{friend.name}</span>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            title="Close"
-            aria-label="Close"
-            className="gg-press"
-            style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--overlay)", border: "1px solid var(--border)", cursor: "pointer" }}
-          >
-            <Icon.close size={16} color={muted} strokeWidth={2.2} />
-          </button>
-        </div>
-
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "0 16px 20px", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           {loading ? (
             <EmptyHint><span className="gg-spinner" style={{ marginRight: 8 }} />Loading your squads…</EmptyHint>
           ) : error ? (
@@ -616,9 +542,9 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
               const inviting = st === "inviting";
               return (
                 <div key={sq.squadId}>
-                  <div className="gg-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                  <div className="gg-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: radiusControl, background: "var(--surface)", border: controlBorder }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14.5, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sq.squadName}</div>
+                      <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sq.squadName}</div>
                       <div style={{ fontSize: 12, color: dim, fontFamily: "var(--font-inter)", marginTop: 1 }}>{sq.memberCount}/{sq.maxSlots} members</div>
                     </div>
                     <button
@@ -627,15 +553,16 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
                       className="gg-press"
                       style={{
                         display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
-                        minHeight: 44, padding: "8px 16px", borderRadius: 999,
-                        fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap",
+                        minHeight: 38, padding: "8px 16px", borderRadius: radiusPill,
+                        fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 14, whiteSpace: "nowrap",
                         cursor: invited || inviting ? "default" : "pointer",
-                        border: invited ? "1px solid var(--lime)" : "none",
-                        background: invited ? "color-mix(in srgb, var(--lime) 14%, transparent)" : violet,
-                        color: invited ? "var(--lime-text)" : "#fff",
+                        border: invited ? `1px solid ${lime}` : "none",
+                        background: invited ? `color-mix(in srgb, ${lime} 14%, transparent)` : violet,
+                        color: invited ? "var(--lime-text)" : onAccent,
+                        transition: "background .2s var(--ease-ui), color .2s var(--ease-ui)",
                       }}
                     >
-                      {invited ? "Invited ✓" : inviting ? "Inviting…" : "Invite"}
+                      {invited ? (<>Invited <span aria-hidden="true">✓</span></>) : inviting ? "Inviting…" : "Invite"}
                     </button>
                   </div>
                   {rowErr[sq.squadId] && (
@@ -645,9 +572,8 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
               );
             })
           )}
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -660,14 +586,14 @@ function Row({ u, children }: { u: Friend | FriendRequestUser; children: React.R
         alignItems: "center",
         gap: 12,
         padding: "10px 14px",
-        borderRadius: 14,
+        borderRadius: radiusControl,
         background: "var(--surface)",
-        border: "1px solid var(--border)",
+        border: controlBorder,
       }}
     >
       <UserAvatar name={u.name} image={u.image} size={40} online={!!u.online} />
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14.5, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+        <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {u.name}
         </div>
         {u.online && (
@@ -679,35 +605,13 @@ function Row({ u, children }: { u: Friend | FriendRequestUser; children: React.R
   );
 }
 
+/* v3 mapping: violet→primary, ghost→ghost, danger→tonal-coral danger (spec 03). */
 function ActionButton({ children, onClick, tone }: { children: React.ReactNode; onClick: () => void; tone: "violet" | "ghost" | "danger" }) {
-  const styles: Record<string, React.CSSProperties> = {
-    violet: { background: violet, color: "#fff", border: "none" },
-    ghost: { background: "transparent", color: muted, border: "1px solid var(--border)" },
-    danger: { background: "var(--coral)", color: "#fff", border: "none" },
-  };
+  const variant = tone === "violet" ? "primary" : tone;
   return (
-    <button
-      onClick={onClick}
-      className="gg-press"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 5,
-        minHeight: 44,
-        padding: "8px 14px",
-        borderRadius: 999,
-        fontFamily: "var(--font-inter)",
-        fontWeight: 600,
-        fontSize: 13.5,
-        cursor: "pointer",
-        whiteSpace: "nowrap",
-        transition: "transform .14s ease, background .2s var(--ease-ui), border-color .2s var(--ease-ui), color .2s var(--ease-ui)",
-        ...styles[tone],
-      }}
-    >
+    <Button variant={variant} size="sm" onClick={onClick}>
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -718,13 +622,13 @@ function Pill({ children, tone }: { children: React.ReactNode; tone: "muted" }) 
         display: "inline-flex",
         alignItems: "center",
         padding: "7px 14px",
-        borderRadius: 999,
+        borderRadius: radiusPill,
         fontFamily: "var(--font-inter)",
         fontWeight: 600,
         fontSize: 13,
         color: dim,
         background: "var(--overlay)",
-        border: "1px solid var(--border)",
+        border: controlBorder,
         whiteSpace: "nowrap",
       }}
     >

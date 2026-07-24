@@ -9,7 +9,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "test": "node --test test/*.test.cjs"
+    "test": "node --experimental-strip-types --test test/*.test.cjs"
   },
   "dependencies": {
     "socket.io-client": "^4.8.1"
