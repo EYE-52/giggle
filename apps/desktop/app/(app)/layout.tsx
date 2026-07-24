@@ -34,6 +34,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           setAgeConfirmed(session.ageConfirmed);
           setAuthReady(true);
         }
+        // Self-heal a stale token: if the token predates embedded age flags,
+        // confirm against the server before showing the gate to an already-
+        // attested user. Only bother when the local view says "not confirmed".
+        if (!session.ageConfirmed) {
+          const confirmed = await session.syncAgeFromServer();
+          if (!cancelled && confirmed) setAgeConfirmed(true);
+        }
         return;
       }
       if (process.env.NODE_ENV !== "production") {

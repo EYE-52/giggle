@@ -238,6 +238,30 @@ export const session = {
     }
     return res;
   },
+  /**
+   * Reconcile the age gates against the server (source of truth in Mongo).
+   * Older JWTs minted before the age flags were embedded don't carry
+   * ageConfirmed, so a user who already attested their DOB would otherwise see
+   * the gate again after login. This pulls the profile and syncs the flags into
+   * the in-memory + persisted user. Returns the confirmed state, or the current
+   * value if the request fails (never throws — callers gate on the result).
+   */
+  async syncAgeFromServer(): Promise<boolean> {
+    if (!token || !user) return user?.ageConfirmed === true;
+    try {
+      const p = await api.getMyProfile();
+      user = {
+        ...user,
+        isAdult: (p as { isAdult?: boolean }).isAdult ?? user.isAdult,
+        ageConfirmed: (p as { ageConfirmed?: boolean }).ageConfirmed ?? user.ageConfirmed,
+        ageVerified: (p as { ageVerified?: boolean }).ageVerified ?? user.ageVerified,
+      };
+      persist();
+      return user.ageConfirmed === true;
+    } catch {
+      return user?.ageConfirmed === true;
+    }
+  },
   signOut() {
     token = null;
     user = null;

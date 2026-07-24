@@ -125,6 +125,12 @@ async function issueSessionForEmail({ email, name, image, ref } = {}) {
       image: user.image,
       isPremium: user.isPremium || false,
       isApproved: user.isApproved || false,
+      // Age-gating flags must ride in the JWT: the OAuth flow only receives the
+      // token (via URL hash) and decodes it client-side, so without these the
+      // gate re-appears on every login even after the user confirmed their age.
+      isAdult: user.isAdult || false,
+      ageConfirmed: user.ageConfirmed || false,
+      ageVerified: user.ageVerified || false,
     },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }

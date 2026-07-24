@@ -371,8 +371,8 @@ test("deployment docs list backend OAuth provider environment variables", () => 
 
 test("deployment docs keep Vercel env vars aligned with the desktop app", () => {
   const deploymentDoc = readFileSync(path.join(__dirname, "../../DEPLOYMENT.md"), "utf8");
-  const desktopConfig = readFileSync(path.join(__dirname, "../../giggle-app/apps/desktop/next.config.ts"), "utf8");
-  const desktopSignin = readFileSync(path.join(__dirname, "../../giggle-app/apps/desktop/app/signin/page.tsx"), "utf8");
+  const desktopConfig = readFileSync(path.join(__dirname, "../../apps/desktop/next.config.ts"), "utf8");
+  const desktopSignin = readFileSync(path.join(__dirname, "../../apps/desktop/app/signin/page.tsx"), "utf8");
   const vercelLine = deploymentDoc
     .split("\n")
     .find((line) => line.startsWith("- **Vercel project `giggle-web`")) || "";
