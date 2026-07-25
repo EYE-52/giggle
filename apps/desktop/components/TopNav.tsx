@@ -67,7 +67,13 @@ export function TopNav() {
         position: "sticky",
         top: 0,
         zIndex: 50,
-        height: isPhone ? 58 : 68,
+        // Extend the bar up into the top safe area (notch / status bar) and pad
+        // its content down below it, so nothing — buttons, the notification
+        // badge — hides under the status bar when running edge-to-edge / as an
+        // installed PWA (viewport-fit: cover).
+        height: `calc(${isPhone ? 58 : 68}px + env(safe-area-inset-top))`,
+        paddingTop: "env(safe-area-inset-top)",
+        boxSizing: "border-box",
         background: "color-mix(in srgb, var(--surface) 85%, transparent)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
