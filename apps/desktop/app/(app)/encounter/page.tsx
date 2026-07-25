@@ -80,13 +80,12 @@ function TeamRoomBackdrop({
     <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none", borderRadius: radius, overflow: "hidden" }}>
       {/* cover / gradient — richer presence so the side feels themed */}
       <div style={{ position: "absolute", inset: 0, backgroundImage: backdrop, backgroundSize: "cover", backgroundPosition: "center", opacity: presence }} />
-      {/* smart scrim: keeps center brightest for the theme, darkens top/bottom
-          so name chips + tile edges stay readable in any cover */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(7,7,11,0.7) 0%, rgba(7,7,11,0.42) 42%, rgba(7,7,11,0.72) 100%)" }} />
-      {/* accent-tinted glow from the side's corner — intentional theme signal */}
-      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(120% 90% at ${tone === "yours" ? "8% 10%" : "92% 10%"}, ${accent.soft}, transparent 60%)` }} />
-      {/* accent edge on the whole room */}
-      <div style={{ position: "absolute", inset: 0, borderRadius: radius, boxShadow: `inset 0 0 0 1px ${accent.edge}, inset 0 0 60px -22px rgba(${accent.rgb},0.35)` }} />
+      {/* scrim: darken the cover so it reads as a quiet backdrop, not a
+          competing surface. No neon edge / glow — the video tile is the only
+          frame, so the two squads don't look like nested glowing boxes. */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(7,7,11,0.82) 0%, rgba(7,7,11,0.62) 45%, rgba(7,7,11,0.84) 100%)" }} />
+      {/* faint accent wash from the side's corner — a whisper of team colour */}
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(140% 100% at ${tone === "yours" ? "6% 6%" : "94% 6%"}, ${accent.soft}, transparent 55%)`, opacity: 0.6 }} />
     </div>
   );
 }
@@ -341,12 +340,14 @@ function VideoTile({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: `linear-gradient(155deg, ${bg}22, #0A0A0E 60%)`,
+        background: `linear-gradient(155deg, ${bg}14, #0A0A0E 62%)`,
+        // One calm neutral frame. Focused = pinned (brighter neutral edge);
+        // speaking = a restrained team-colour edge. No loud colored glow rings.
         border: focused
-          ? `1.5px solid ${bg}cc`
+          ? "1.5px solid rgba(255,255,255,0.32)"
           : isSpeaking
           ? `1.5px solid ${bg}88`
-          : "1px solid rgba(255,255,255,0.08)",
+          : "1px solid rgba(255,255,255,0.09)",
         borderRadius: "var(--radius-tile, 16px)",
         overflow: "hidden",
         position: "relative",
@@ -357,12 +358,12 @@ function VideoTile({
           ? undefined
           : "tileIn 0.4s cubic-bezier(.22,1,.36,1) forwards",
         boxShadow: focused
-          ? `0 0 0 1px ${bg}66, 0 0 44px -6px ${bg}66, 0 18px 40px -12px rgba(0,0,0,0.7)`
+          ? "0 12px 34px -14px rgba(0,0,0,0.75)"
           : isSpeaking
-          ? `0 0 0 1px ${bg}55, 0 0 30px -6px ${bg}66, 0 12px 30px -12px rgba(0,0,0,0.65)`
+          ? `0 0 14px -8px ${bg}77, 0 12px 30px -16px rgba(0,0,0,0.7)`
           : hovered
-          ? `0 0 0 1px ${bg}44, 0 14px 34px -14px rgba(0,0,0,0.7)`
-          : "0 8px 24px -14px rgba(0,0,0,0.6)",
+          ? "0 14px 34px -14px rgba(0,0,0,0.7)"
+          : "0 8px 24px -16px rgba(0,0,0,0.6)",
         transform: hovered && onClick ? "translateY(-2px)" : "translateY(0)",
         transition: "border-color .3s cubic-bezier(.4,0,.2,1), box-shadow .3s cubic-bezier(.4,0,.2,1), transform .25s cubic-bezier(.22,1,.36,1)",
         cursor: onClick ? "pointer" : undefined,
@@ -395,22 +396,8 @@ function VideoTile({
           boxShadow: "inset 0 0 60px -18px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(255,255,255,0.04)",
         }}
       />
-      {/* Speaking ring — a soft animated halo, tasteful not garish */}
-      {isSpeaking && (
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            inset: -1,
-            borderRadius: "inherit",
-            pointerEvents: "none",
-            zIndex: 5,
-            border: `2px solid ${bg}`,
-            boxShadow: `0 0 22px -2px ${bg}`,
-            animation: "speakingRing 1.8s ease-in-out infinite",
-          }}
-        />
-      )}
+      {/* Speaking cue is the frame border alone (see above) — no extra halo
+          ring, which stacked into a garish triple-glow. */}
       {/* Camera-off fallback */}
       <div
         style={{
