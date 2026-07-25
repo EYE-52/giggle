@@ -211,10 +211,12 @@ export default function HomePage() {
         title={firstName ? <>Hey, {firstName}.</> : "Welcome back."}
         subtitle="Pick up where your squad left off."
         right={
-          <div aria-label="Live activity" style={{ display: "flex", alignItems: "stretch", gap: isPhone ? 8 : 12, flexWrap: "wrap" }}>
-            <StatTile label="Your squads" value={mySquadsLoading ? "—" : String(mySquads.length)} />
-            <StatTile label="Open signals" value={trending === null ? "—" : String(openSignals)} />
-            <StatTile label="Live now" value={stats === null ? "—" : String(stats.liveEncounters)} live />
+          <div aria-label="Live activity" style={isPhone
+            ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, width: "100%" }
+            : { display: "flex", alignItems: "stretch", gap: 12, flexWrap: "wrap" }}>
+            <StatTile label="Your squads" value={mySquadsLoading ? "—" : String(mySquads.length)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
+            <StatTile label="Open signals" value={trending === null ? "—" : String(openSignals)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
+            <StatTile label="Live now" value={stats === null ? "—" : String(stats.liveEncounters)} live style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
           </div>
         }
       />

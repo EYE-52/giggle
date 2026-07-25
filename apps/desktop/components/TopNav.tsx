@@ -67,7 +67,7 @@ export function TopNav() {
         position: "sticky",
         top: 0,
         zIndex: 50,
-        height: 68,
+        height: isPhone ? 58 : 68,
         background: "color-mix(in srgb, var(--surface) 85%, transparent)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",

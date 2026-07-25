@@ -20,11 +20,29 @@ const inter = Inter({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Draw under the notch / home indicator so env(safe-area-inset-*) engages and
+  // the app renders edge-to-edge like a native shell.
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0E0D12" },
+    { media: "(prefers-color-scheme: light)", color: "#F7F7F9" },
+  ],
 };
 
 export const metadata: Metadata = {
   title: "Giggle — Meet in squads",
   description: "Squad-based video encounter app",
+  manifest: "/manifest.webmanifest",
+  applicationName: "Giggle",
+  // Installable, fullscreen "Add to Home Screen" behaviour on iOS — makes the
+  // web app launch chrome-less like a native app, with a translucent status bar
+  // over the app's own header.
+  appleWebApp: {
+    capable: true,
+    title: "Giggle",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
 };
 
 export default function RootLayout({

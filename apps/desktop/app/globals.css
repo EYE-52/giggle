@@ -625,8 +625,8 @@ textarea:focus-visible,
     z-index: 60;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    height: calc(68px + env(safe-area-inset-bottom));
-    padding: 6px 8px env(safe-area-inset-bottom);
+    height: calc(60px + env(safe-area-inset-bottom));
+    padding: 4px 8px env(safe-area-inset-bottom);
     box-sizing: border-box;
     background: color-mix(in srgb, var(--bg) 94%, transparent);
     border-top: 1px solid var(--border);
@@ -638,7 +638,7 @@ textarea:focus-visible,
     position: relative;
     display: flex;
     min-width: 0;
-    min-height: 56px;
+    min-height: 52px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
@@ -665,7 +665,7 @@ textarea:focus-visible,
   }
 
   .gg-app-main {
-    padding-bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(82px + env(safe-area-inset-bottom)) !important;
   }
 }
 
