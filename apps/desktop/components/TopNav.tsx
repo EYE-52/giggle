@@ -176,13 +176,14 @@ export function TopNav() {
                 minWidth: isPhone ? 50 : 58,
                 minHeight: isPhone ? 44 : 38,
                 height: isPhone ? 44 : 38,
-                borderRadius: 10,
-                // Token pill: accent-soft fill + accent text + accent-line border.
+                borderRadius: 999,
+                // Token chip: a soft accent fill only (no hard border) so it
+                // reads as a light pill next to the borderless header icons.
                 background:
                   hovered === "premium"
                     ? "var(--accent-line)"
                     : "var(--accent-soft)",
-                border: "var(--border-w) solid var(--accent-line)",
+                border: "1px solid transparent",
                 cursor: "pointer",
                 transition:
                   "background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",

@@ -564,10 +564,8 @@ export function NotificationBell() {
           width: isPhone ? 44 : 38,
           height: isPhone ? 44 : 38,
           borderRadius: 10,
-          background: open || hover ? "var(--overlay-hover)" : "var(--overlay)",
-          border: open || hover
-            ? "var(--border-w) solid var(--border-strong)"
-            : "var(--control-border)",
+          background: open || hover ? "var(--overlay-hover)" : "transparent",
+          border: "1px solid transparent",
           cursor: "pointer",
           transition:
             "background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",

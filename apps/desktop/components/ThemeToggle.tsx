@@ -169,8 +169,8 @@ export function ThemeToggle({ size = 44 }: { size?: number }) {
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          background: open || hovered ? "var(--overlay-hover)" : "var(--overlay)",
-          border: "var(--control-border)",
+          background: open || hovered ? "var(--overlay-hover)" : "transparent",
+          border: "1px solid transparent",
           cursor: "pointer",
           transition:
             "background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",
