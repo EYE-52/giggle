@@ -171,18 +171,16 @@ export function TopNav() {
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 6,
-                padding: isPhone ? "0 10px" : "0 12px",
-                minWidth: isPhone ? 50 : 58,
+                gap: 5,
+                padding: isPhone ? "0 8px" : "0 10px",
+                minWidth: isPhone ? 44 : 38,
                 minHeight: isPhone ? 44 : 38,
                 height: isPhone ? 44 : 38,
-                borderRadius: 999,
-                // Token chip: a soft accent fill only (no hard border) so it
-                // reads as a light pill next to the borderless header icons.
-                background:
-                  hovered === "premium"
-                    ? "var(--accent-line)"
-                    : "var(--accent-soft)",
+                borderRadius: 10,
+                // Matches the theme/bell icons exactly: transparent, borderless,
+                // subtle hover fill. Its violet star + count give it identity —
+                // no filled blob needed.
+                background: hovered === "premium" ? "var(--overlay-hover)" : "transparent",
                 border: "1px solid transparent",
                 cursor: "pointer",
                 transition:
