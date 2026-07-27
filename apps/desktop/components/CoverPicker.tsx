@@ -16,8 +16,15 @@ interface CoverPickerProps {
   onSaved: () => void | Promise<void>;
 }
 
-// Premium cover presets — gated behind the "cover_themes" perk. Free users keep
-// a generous set of gradients; the fancier gradients + all photos require unlock.
+// Cover paywall is NOT live yet — there is no real payment (Stripe) and token
+// perk redemption is disabled in production, so gating these would show a lock
+// users literally cannot get past (a dead paywall). Keep every cover free until
+// Giggle+ / token purchase can actually unlock them, then flip this to true.
+const PREMIUM_COVERS_ENABLED = false;
+
+// Premium cover presets — gated behind the "cover_themes" perk when the paywall
+// is live. Free users keep a generous set of gradients; the fancier gradients +
+// all photos require unlock.
 const PREMIUM_COVER_IDS = new Set<string>([
   "grad-cyber",
   "grad-velvet",
@@ -27,6 +34,7 @@ const PREMIUM_COVER_IDS = new Set<string>([
 ]);
 
 function isPremiumPreset(p: PresetCover): boolean {
+  if (!PREMIUM_COVERS_ENABLED) return false;
   return p.type === "photo" || PREMIUM_COVER_IDS.has(p.id);
 }
 
@@ -178,8 +186,8 @@ export function CoverPicker({ squadId, currentCover, onClose, onSaved }: CoverPi
   return (
     <Modal onClose={onClose} title="Change Cover" closeLabel="Close cover picker">
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-        {/* Premium banner — only when locked content exists */}
-        {!unlocked && (
+        {/* Premium banner — only when the paywall is live AND still locked */}
+        {PREMIUM_COVERS_ENABLED && !unlocked && (
           <button
             onClick={() => router.push("/premium")}
             className="gg-press gg-focusable"
