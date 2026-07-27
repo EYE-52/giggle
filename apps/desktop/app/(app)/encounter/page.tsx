@@ -78,12 +78,13 @@ function TeamRoomBackdrop({
   const accent = SIDE_ACCENT[tone];
   return (
     <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none", borderRadius: radius, overflow: "hidden" }}>
-      {/* cover / gradient — richer presence so the side feels themed */}
+      {/* cover / gradient — the squad's theme, rendered with real presence so
+          it fills the space around the (opaque) video tiles and the opponent
+          actually SEES which theme you're repping. */}
       <div style={{ position: "absolute", inset: 0, backgroundImage: backdrop, backgroundSize: "cover", backgroundPosition: "center", opacity: presence }} />
-      {/* scrim: darken the cover so it reads as a quiet backdrop, not a
-          competing surface. No neon edge / glow — the video tile is the only
-          frame, so the two squads don't look like nested glowing boxes. */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(7,7,11,0.82) 0%, rgba(7,7,11,0.62) 45%, rgba(7,7,11,0.84) 100%)" }} />
+      {/* light legibility scrim only — enough to keep the name label + tile
+          edges readable, without blacking the theme out. No neon frame. */}
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(7,7,11,0.55) 0%, rgba(7,7,11,0.28) 45%, rgba(7,7,11,0.6) 100%)" }} />
       {/* faint accent wash from the side's corner — a whisper of team colour */}
       <div style={{ position: "absolute", inset: 0, background: `radial-gradient(140% 100% at ${tone === "yours" ? "6% 6%" : "94% 6%"}, ${accent.soft}, transparent 55%)`, opacity: 0.6 }} />
     </div>
@@ -106,11 +107,11 @@ function SplitRoomBackdrop({
     <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
       {/* left half — your themed room */}
       <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "50%", overflow: "hidden" }}>
-        <TeamRoomBackdrop cover={mine.cover} squadKey={mine.key} tone="yours" radius={0} presence={0.5} />
+        <TeamRoomBackdrop cover={mine.cover} squadKey={mine.key} tone="yours" radius={0} presence={0.85} />
       </div>
       {/* right half — opponent's themed room */}
       <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: "50%", overflow: "hidden" }}>
-        <TeamRoomBackdrop cover={opp.cover} squadKey={opp.key} tone="theirs" radius={0} presence={0.5} />
+        <TeamRoomBackdrop cover={opp.cover} squadKey={opp.key} tone="theirs" radius={0} presence={0.85} />
       </div>
       {/* center seam — a clean faded divider between the two themed sides */}
       <div style={{ position: "absolute", top: "8%", bottom: "8%", left: "50%", width: 1, transform: "translateX(-50%)", background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.12) 70%, transparent)" }} />
@@ -1239,7 +1240,7 @@ function EncounterInner() {
               gradient) rendered prominently behind this side's tiles, with a
               smart scrim + accent glow so video + names stay legible and each
               side reads as its own themed room. */}
-          <TeamRoomBackdrop cover={cover} squadKey={squadKey} tone={tone} radius={16} presence={0.55} />
+          <TeamRoomBackdrop cover={cover} squadKey={squadKey} tone={tone} radius={16} presence={0.9} />
 
           <div
             style={{
@@ -1615,7 +1616,7 @@ function EncounterInner() {
             themed room backdrop */}
         {oppList.length === 0 ? (
           <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 16, overflow: "hidden" }}>
-            <TeamRoomBackdrop cover={oppSquad?.cover} squadKey={oppSquad?.id ?? "opp"} tone="theirs" radius={16} presence={0.5} />
+            <TeamRoomBackdrop cover={oppSquad?.cover} squadKey={oppSquad?.id ?? "opp"} tone="theirs" radius={16} presence={0.85} />
             <div style={{ position: "relative", zIndex: 1 }}>
               <WaitingForSquad />
             </div>
@@ -1635,7 +1636,7 @@ function EncounterInner() {
             padding: 8,
           }}
         >
-          <TeamRoomBackdrop cover={oppSquad?.cover} squadKey={oppSquad?.id ?? "opp"} tone="theirs" radius={16} presence={0.5} />
+          <TeamRoomBackdrop cover={oppSquad?.cover} squadKey={oppSquad?.id ?? "opp"} tone="theirs" radius={16} presence={0.85} />
           {oppList.map((m, i) => (
             <div
               key={m.memberId}
@@ -1670,7 +1671,7 @@ function EncounterInner() {
           }}
         >
           {myList.length > 0 && (
-            <TeamRoomBackdrop cover={mySquad?.cover} squadKey={mySquad?.id ?? "mine"} tone="yours" radius={14} presence={0.5} />
+            <TeamRoomBackdrop cover={mySquad?.cover} squadKey={mySquad?.id ?? "mine"} tone="yours" radius={14} presence={0.85} />
           )}
           {myList.map((m, i) => (
             <div

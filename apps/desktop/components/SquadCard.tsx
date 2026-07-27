@@ -69,7 +69,7 @@ export function SquadCard({
           background: coverBackground(squad.coverImage, kind),
           // Photos (always dark-scrimmed) + dark-theme gradients get toned down;
           // bright gradients stay clean so the light card doesn't look dirty.
-          filter: kind === "dark" ? "saturate(0.88) brightness(0.82)" : undefined,
+          filter: kind === "dark" ? "saturate(1.02) brightness(0.92)" : undefined,
         }} />
       )}
       {/* bottom scrim for legibility — dark scrim + light text over dark/photo

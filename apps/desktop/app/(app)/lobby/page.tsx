@@ -1189,18 +1189,19 @@ function LobbyInner() {
             <div style={{
               position: "absolute", inset: 0,
               background: coverBg, backgroundSize: "cover", backgroundPosition: "center",
-              opacity: 0.42,
+              opacity: 0.78,
             }} />
             {/* Legibility scrim: themed wash (var(--surface)) toward the left where
                 name/code sit, so the header reads as this squad's cover tint while
-                staying legible in EVERY theme (light in Cloud, plum in Midnight). */}
+                staying legible in EVERY theme. Lighter than before so the cover
+                actually shows through instead of being a faint tint. */}
             <div style={{
               position: "absolute", inset: 0,
-              background: "linear-gradient(90deg, var(--surface) 0%, color-mix(in srgb, var(--surface) 74%, transparent) 45%, color-mix(in srgb, var(--surface) 52%, transparent) 100%)",
+              background: "linear-gradient(90deg, color-mix(in srgb, var(--surface) 88%, transparent) 0%, color-mix(in srgb, var(--surface) 45%, transparent) 48%, transparent 100%)",
             }} />
             <div style={{
               position: "absolute", inset: 0,
-              background: "linear-gradient(180deg, color-mix(in srgb, var(--surface) 32%, transparent) 0%, color-mix(in srgb, var(--surface) 54%, transparent) 100%)",
+              background: "linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--surface) 30%, transparent) 100%)",
             }} />
           </div>
 
