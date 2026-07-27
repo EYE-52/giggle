@@ -211,11 +211,12 @@ export function SquadPreview({
             background: coverBg,
             backgroundSize: "cover", backgroundPosition: "center",
           }} />
-          {/* Richer scrim: melts into the surface at the bottom for the name, with
-              a gentle top darkening so the status pill + close button stay legible. */}
+          {/* Scrim melts into the surface only at the very bottom (for the name),
+              leaving the upper ~60% of the cover clearly visible so the squad's
+              theme actually reads as the banner. */}
           <div style={{ position: "absolute", inset: 0, background: kind === "light"
-            ? "linear-gradient(to top, var(--surface) 1%, rgba(255,255,255,0.78) 34%, rgba(255,255,255,0.24) 66%, rgba(255,255,255,0.38) 100%)"
-            : "linear-gradient(to top, var(--surface) 1%, rgba(7,7,11,0.78) 34%, rgba(7,7,11,0.28) 66%, rgba(7,7,11,0.42) 100%)" }} />
+            ? "linear-gradient(to top, var(--surface) 2%, rgba(255,255,255,0.72) 20%, rgba(255,255,255,0.12) 52%, rgba(255,255,255,0.2) 100%)"
+            : "linear-gradient(to top, var(--surface) 2%, rgba(7,7,11,0.72) 20%, rgba(7,7,11,0.12) 52%, rgba(7,7,11,0.22) 100%)" }} />
 
           {/* Status pill */}
           <div style={{
