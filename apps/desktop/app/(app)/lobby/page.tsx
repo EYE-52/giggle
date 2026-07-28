@@ -1605,13 +1605,13 @@ function LobbyInner() {
                       // Desktop fills the grid cell; phone uses a fixed aspect ratio.
                       ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
                       background: "var(--stage-2, #2A2135)",
+                      // Ready = a clean static lime edge, NOT a pulsing glow
+                      // frame (the READY badge + Ready button already say it).
                       border: isReady
-                        ? "2px solid color-mix(in srgb, var(--live, #A3E635) 40%, transparent)"
+                        ? "1.5px solid color-mix(in srgb, var(--live, #A3E635) 55%, transparent)"
                         : "1px solid rgba(255,255,255,0.10)",
                       // delay baked into the shorthand — never mix `animation` with `animationDelay`
-                      animation: isReady
-                        ? `tileIn 0.35s ease ${i * 0.06}s forwards, readyGlow 2.5s ease-in-out ${i * 0.06}s infinite`
-                        : `tileIn 0.35s ease ${i * 0.06}s forwards`,
+                      animation: `tileIn 0.35s ease ${i * 0.06}s forwards`,
                       opacity: 0,
                       boxSizing: "border-box",
                       width: "100%",
@@ -1903,7 +1903,6 @@ function LobbyInner() {
                   transform: readyHovered ? "scale(1.04)" : "scale(1)",
                   minWidth: 110,
                   whiteSpace: "nowrap" as const,
-                  boxShadow: myReady ? "0 0 20px -6px var(--live, var(--lime))" : "none",
                 }}
               >
                 {settingReady ? "…" : myReady ? "✓ Ready" : "Mark ready"}
