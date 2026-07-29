@@ -1222,7 +1222,7 @@ function EncounterInner() {
             position: "relative",
             display: "flex",
             flexDirection: "column",
-            gap: 8,
+            gap: 6,
             alignItems: "stretch",
             flex: 1,
             width: isPhone ? "100%" : undefined,
@@ -1232,7 +1232,7 @@ function EncounterInner() {
             marginBottom: 0,
             borderRadius: 16,
             overflow: "hidden",
-            padding: isPhone ? 10 : 12,
+            padding: isPhone ? 3 : 6,
             animation: entranceAnim,
           }}
         >
@@ -1242,34 +1242,41 @@ function EncounterInner() {
               side reads as its own themed room. */}
           <TeamRoomBackdrop cover={cover} squadKey={squadKey} tone={tone} radius={16} presence={0.9} />
 
+          {/* Floating squad label — a subtle broadcast-style pill over the video
+              (top-left) instead of a shouty header row, so the video fills the
+              panel and the theme reads underneath. */}
           <div
             style={{
-              position: "relative",
-              zIndex: 1,
-              display: "flex",
+              position: "absolute",
+              top: isPhone ? 8 : 10,
+              left: isPhone ? 8 : 10,
+              zIndex: 3,
+              display: "inline-flex",
               alignItems: "center",
-              gap: 8,
-              flexShrink: 0,
+              gap: 6,
+              maxWidth: "calc(100% - 20px)",
+              padding: "4px 9px 4px 4px",
+              borderRadius: 999,
+              background: "rgba(10,10,14,0.55)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              border: `1px solid color-mix(in srgb, ${accentColor} 30%, transparent)`,
             }}
           >
-            {/* squad cover thumbnail next to the name */}
-            <CoverThumb cover={cover} squadKey={squadKey} tone={tone} size={20} radius={6} />
-            <div
+            <CoverThumb cover={cover} squadKey={squadKey} tone={tone} size={18} radius={999} />
+            <span
               style={{
-                fontSize: 12,
+                fontSize: 12.5,
                 fontWeight: 700,
                 color: accentColor,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase" as const,
                 fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                opacity: 0.95,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
               }}
             >
               {squadName}
-            </div>
+            </span>
           </div>
           {list.length === 0 ? (
             <div style={{ position: "relative", zIndex: 1, flex: isPhone ? undefined : 1, minHeight: isPhone ? 160 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1338,7 +1345,7 @@ function EncounterInner() {
           alignItems: "stretch",
           justifyContent: "stretch",
           gap: 0,
-          padding: isPhone ? "10px 12px 12px" : "12px 16px",
+          padding: isPhone ? "6px 8px 10px" : "12px 16px",
           flexDirection: isPhone ? "column" as const : "row" as const,
           overflow: "hidden",
           animation: "viewTransition 0.15s ease forwards",
@@ -1843,8 +1850,10 @@ function EncounterInner() {
             maxWidth: "100vw",
           }}
         >
-          {/* Squad names — single line, truncate instead of wrapping */}
-          <div style={{ display: isCompactPhone ? "none" : "flex", alignItems: "center", gap: isPhone ? 5 : 8, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" as const, flexShrink: 1 }}>
+          {/* Squad names — desktop only. On phone they truncate to ugly "C… vs
+              B…" and each video panel already carries its squad label, so we
+              hide them here for a clean, uncluttered top bar. */}
+          <div style={{ display: isPhone ? "none" : "flex", alignItems: "center", gap: isPhone ? 5 : 8, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" as const, flexShrink: 1 }}>
             <CoverThumb cover={mySquad?.cover} squadKey={mySquad?.id ?? "mine"} tone="yours" size={isPhone ? 16 : 18} radius={5} />
             <span
               style={{
@@ -1943,7 +1952,7 @@ function EncounterInner() {
               width: "max-content",
             }}
           >
-            {VIEW_MODES.map(({ mode, label }) => {
+            {VIEW_MODES.filter(({ mode }) => !isPhone || mode === "versus" || mode === "grid").map(({ mode, label }) => {
               const isActive = view === mode;
               const isHovered = hoveredViewMode === mode;
               return (
