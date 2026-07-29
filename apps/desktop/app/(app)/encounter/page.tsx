@@ -171,6 +171,15 @@ function describeVideoError(e: unknown): string {
 }
 
 const KEYFRAMES = `
+/* Live feeds always COVER their tile — a portrait phone feed and a landscape
+   laptop feed both fill their cell cleanly (cropped to fit), never letterboxed
+   with black bars. Works for whatever element the video SDK injects. */
+[data-media-frame] video,
+[data-media-frame] > div > video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
 @keyframes tileIn {
   from { opacity: 0; transform: scale(0.93); }
   to   { opacity: 1; transform: scale(1); }
@@ -1462,13 +1471,17 @@ function EncounterInner() {
           position: "relative",
           flex: 1,
           minHeight: 0,
-          overflowY: isPhone ? "auto" as const : "hidden" as const,
+          overflow: "hidden" as const,
           display: "grid",
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gap: 16,
-          padding: isPhone ? "10px" : "12px 16px",
-          alignContent: "center",
-          justifyContent: "center",
+          // Rows stretch to fill the whole stage — no more tiny tiles floating
+          // in dead space. Each cell is filled by a cover-cropped feed, so a
+          // portrait phone feed and a landscape laptop feed both fill cleanly.
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+          gap: isPhone ? 5 : 8,
+          padding: isPhone ? 5 : 8,
+          alignContent: "stretch",
+          justifyContent: "stretch",
           animation: "viewTransition 0.15s ease forwards",
         }}
       >
@@ -1483,7 +1496,12 @@ function EncounterInner() {
               position: "relative",
               zIndex: 1,
               minHeight: 0,
-              ...(isPhone ? { aspectRatio: "4/3" } : { aspectRatio: "16 / 9" }),
+              minWidth: 0,
+              height: "100%",
+              borderRadius: "var(--radius-tile, 16px)",
+              // Team-color ring — the primary "which squad" cue in the grid
+              // (yours = lime, opponent = coral), per the versus-layout research.
+              boxShadow: `0 0 0 2px color-mix(in srgb, ${m.squad === "yours" ? "var(--live, #C2FF3D)" : "var(--coral, #FF5C7A)"} 55%, transparent)`,
             }}
           >
             <VideoTile
@@ -1976,7 +1994,9 @@ function EncounterInner() {
                       : isHovered
                       ? "var(--overlay-hover, rgba(255,255,255,0.08))"
                       : "transparent",
-                    color: isActive ? "#fff" : textMuted,
+                    // Inactive stays clearly legible (not a faded grey that
+                    // reads as half-disabled) — both views are always tappable.
+                    color: isActive ? "#fff" : "rgba(255,255,255,0.82)",
                     boxShadow: isActive
                       ? "0 2px 12px -2px rgba(124,92,255,0.6), inset 0 1px 0 rgba(255,255,255,0.25)"
                       : "none",
@@ -2423,7 +2443,7 @@ function EncounterInner() {
                         position: "relative",
                         width: isPhone ? 44 : 48,
                         height: isPhone ? 44 : 48,
-                        borderRadius: "var(--radius-control, 14px)",
+                        borderRadius: "50%",
                         border: brdr,
                         cursor: "pointer",
                         display: "flex",
@@ -2568,11 +2588,11 @@ function EncounterInner() {
                   onMouseLeave={() => setHoveredCtrl(null)}
                   className="gg-press"
                   style={{
-                    height: isPhone ? 40 : 48,
-                    borderRadius: "var(--radius-control, 14px)",
+                    height: isPhone ? 44 : 48,
+                    borderRadius: 999,
                     border: "none",
                     cursor: ending ? "default" : "pointer",
-                    padding: isPhone ? "0 14px" : "0 22px",
+                    padding: isPhone ? "0 16px" : "0 22px",
                     display: "flex",
                     alignItems: "center",
                     gap: 7,
