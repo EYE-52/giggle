@@ -1387,8 +1387,8 @@ function LobbyInner() {
                 padding: isPhone ? "0 14px" : "5px 12px", borderRadius: 999,
                 background: chatVisible
                   ? "var(--violet-soft)"
-                  : (chatHovered ? "var(--overlay-hover)" : "var(--overlay)"),
-                border: `1px solid ${chatVisible ? "var(--accent, var(--violet))" : "var(--border)"}`,
+                  : (chatHovered ? "var(--overlay-hover)" : "transparent"),
+                border: `1px solid ${chatVisible ? "var(--accent, var(--violet))" : "transparent"}`,
                 color: chatVisible ? violet : textMuted, fontSize: 12, fontWeight: 600,
                 cursor: "pointer", transition: "all .15s ease",
               }}
@@ -1863,20 +1863,21 @@ function LobbyInner() {
                   <div style={{ width: 1, height: 28, background: "var(--border)", margin: "0 2px" }} />
                 </>
               ) : (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flex: isPhone ? "1 0 100%" : undefined }}>
-                  <span style={{ maxWidth: 150, color: textMuted, fontSize: 12, lineHeight: 1.25 }}>
-                    Used in this lobby and live encounters.
-                  </span>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flex: isPhone ? "1 0 100%" : undefined }}>
                   <Button
                     onClick={enableLobbyMedia}
                     loading={videoJoining}
                     variant="secondary"
                     aria-label="Enable camera and microphone"
+                    fullWidth={isPhone}
                     style={{ whiteSpace: "nowrap" }}
                   >
                     {!videoJoining && <Icon.cam size={17} color="var(--accent, var(--violet))" />}
                     {videoJoining ? "Enabling…" : "Enable camera & mic"}
                   </Button>
+                  <span style={{ color: textMuted, fontSize: 12, lineHeight: 1.25, textAlign: "center" }}>
+                    Used in this lobby and live encounters.
+                  </span>
                 </div>
               )}
 
