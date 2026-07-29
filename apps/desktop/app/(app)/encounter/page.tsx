@@ -719,6 +719,24 @@ function EncounterInner() {
     return subscribeAvatar((v) => setMyAvatarState(v));
   }, []);
 
+  // The encounter's video stage is forced dark (video pops on dark, like every
+  // call app) — but we still want the CHROME (view toggle, VS, active controls)
+  // to reflect the app theme. So we read the real accent from the document root
+  // and inject it back into the dark stage, re-reading when the theme changes.
+  const [appAccent, setAppAccent] = useState<{ a: string; b: string }>({ a: "", b: "" });
+  useEffect(() => {
+    const read = () => {
+      const cs = getComputedStyle(document.documentElement);
+      const a = (cs.getPropertyValue("--accent") || cs.getPropertyValue("--violet")).trim();
+      const b = (cs.getPropertyValue("--accent-hover") || cs.getPropertyValue("--violet-bright") || a).trim();
+      if (a) setAppAccent({ a, b: b || a });
+    };
+    read();
+    const obs = new MutationObserver(read);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => obs.disconnect();
+  }, []);
+
   // Click-to-focus state: null = no focus, else a participant key
   const [focusedKey, setFocusedKey] = useState<ParticipantKey | null>(null);
 
@@ -1418,7 +1436,7 @@ function EncounterInner() {
               height: 44,
               borderRadius: "50%",
               background: "radial-gradient(circle at 38% 32%, #221a38, #0C0C12 70%)",
-              border: "1px solid rgba(124,92,255,0.32)",
+              border: "1px solid color-mix(in srgb, var(--violet, #7C5CFF) 32%, transparent)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1432,7 +1450,7 @@ function EncounterInner() {
                 fontSize: 12,
                 fontWeight: 700,
                 letterSpacing: "0.08em",
-                background: "linear-gradient(135deg, #9B7CFF, #FF8A5C)",
+                background: "linear-gradient(135deg, var(--live, #C2FF3D), var(--coral, #FF5C7A))",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
@@ -1848,6 +1866,11 @@ function EncounterInner() {
           // Video stage stays dark in ALL themes — never --bg/--surface here.
           background: "var(--stage, #1B1420)",
           overflow: "hidden",
+          // …but re-inject the app theme's accent so the chrome themes (violet
+          // in Midnight → iris in Cloud → tangerine) on top of the dark stage.
+          ...(appAccent.a
+            ? ({ "--violet": appAccent.a, "--violet-bright": appAccent.b, "--accent": appAccent.a } as React.CSSProperties)
+            : {}),
         }}
       >
         {/* ── SLIM HEADER ─────────────────────────────────────────────────── */}
@@ -1989,16 +2012,17 @@ function EncounterInner() {
                     fontFamily: "var(--font-inter)",
                     fontWeight: 600,
                     fontSize: 12,
+                    // Accent follows the active theme (violet → iris → tangerine).
                     background: isActive
-                      ? "linear-gradient(180deg, #8A6BFF, #7C5CFF)"
+                      ? "linear-gradient(180deg, var(--violet-bright, #8A6BFF), var(--violet, #7C5CFF))"
                       : isHovered
                       ? "var(--overlay-hover, rgba(255,255,255,0.08))"
                       : "transparent",
                     // Inactive stays clearly legible (not a faded grey that
                     // reads as half-disabled) — both views are always tappable.
-                    color: isActive ? "#fff" : "rgba(255,255,255,0.82)",
+                    color: isActive ? "var(--on-accent, #fff)" : "rgba(255,255,255,0.82)",
                     boxShadow: isActive
-                      ? "0 2px 12px -2px rgba(124,92,255,0.6), inset 0 1px 0 rgba(255,255,255,0.25)"
+                      ? "0 2px 12px -2px color-mix(in srgb, var(--violet, #7C5CFF) 60%, transparent), inset 0 1px 0 rgba(255,255,255,0.25)"
                       : "none",
                     transition: "background .2s cubic-bezier(.4,0,.2,1), color .2s, box-shadow .2s",
                     whiteSpace: "nowrap" as const,
@@ -2423,9 +2447,10 @@ function EncounterInner() {
                       : "inset 0 1px 0 rgba(255,255,255,0.08)";
                     brdr = hov ? "1px solid color-mix(in srgb, var(--live) 50%, transparent)" : "1px solid rgba(255,255,255,0.12)";
                   } else if (!danger && active === true) {
-                    bg = hov ? "rgba(124,92,255,0.42)" : "rgba(124,92,255,0.28)";
-                    ring = "0 0 16px -4px rgba(124,92,255,0.6), inset 0 1px 0 rgba(255,255,255,0.08)";
-                    brdr = "1px solid rgba(124,92,255,0.5)";
+                    // Active accent follows the theme.
+                    bg = hov ? "color-mix(in srgb, var(--violet, #7C5CFF) 42%, transparent)" : "color-mix(in srgb, var(--violet, #7C5CFF) 28%, transparent)";
+                    ring = "0 0 16px -4px color-mix(in srgb, var(--violet, #7C5CFF) 60%, transparent), inset 0 1px 0 rgba(255,255,255,0.08)";
+                    brdr = "1px solid color-mix(in srgb, var(--violet, #7C5CFF) 50%, transparent)";
                   } else {
                     bg = hov ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.08)";
                   }
