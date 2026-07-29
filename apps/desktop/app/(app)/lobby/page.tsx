@@ -1794,25 +1794,29 @@ function LobbyInner() {
 
             </div>
 
-            {/* ── CONTROL BAR (centered floating pill) ── */}
+            {/* ── READINESS CONTROLS ──
+                On phone: a plain container (no card) so the bold ink buttons
+                aren't a box-inside-a-box and their offset shadows have room —
+                fixes the cramped/clipped look, esp. in the light theme.
+                On desktop: keep the subtle grouping card. */}
             <div data-testid="lobby-readiness" style={{
-              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: 10,
-              background: "var(--surface)",
-              backdropFilter: "blur(16px)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius-card, 20px)",
-              padding: isPhone ? "8px 10px" : "10px 16px",
+              display: "flex", alignItems: "center", justifyContent: "center" as const, gap: isPhone ? 12 : 10,
+              background: isPhone ? "transparent" : "var(--surface)",
+              backdropFilter: isPhone ? undefined : "blur(16px)",
+              border: isPhone ? "none" : "1px solid var(--border)",
+              borderRadius: isPhone ? 0 : "var(--radius-card, 20px)",
+              padding: isPhone ? "6px 12px 14px" : "10px 16px",
               marginTop: isPhone ? 0 : 32,
               animation: "controlIn 0.4s ease 0.3s forwards",
               opacity: 0,
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+              boxShadow: isPhone ? "none" : "0 8px 32px rgba(0,0,0,0.4)",
               flexShrink: 0,
               flexWrap: "wrap" as const,
               position: "relative" as const,
               bottom: undefined,
               left: undefined,
               transform: undefined,
-              maxWidth: isPhone ? "calc(100vw - 20px)" : undefined,
+              maxWidth: isPhone ? "calc(100vw - 24px)" : undefined,
               zIndex: 1,
             }}>
               {videoJoined ? (
@@ -1925,7 +1929,7 @@ function LobbyInner() {
                       flex: isPhone ? "1 0 100%" : undefined,
                     }}
                   >
-                    {!findingMatch && <Icon.discover size={18} color="var(--on-accent, #fff)" />}
+                    {allReady && !findingMatch && <Icon.discover size={18} color="var(--on-accent, #fff)" />}
                     {findingMatch ? "Starting…" : allReady ? "Find a Match" : "Waiting for everyone"}
                   </Button>
                 </>
