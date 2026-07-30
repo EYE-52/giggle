@@ -595,7 +595,7 @@ git commit -m "fix(encounter): make web call controls truthful"
 - Modify: `apps/mobile/app/encounter.tsx`
 - Modify: `apps/mobile/test/encounter.test.cjs`
 
-- [ ] **Step 1: Write failing native layout contracts**
+- [x] **Step 1: Write failing native layout contracts**
 
 Assert that the screen imports the shared policy, contains no `MODES` or `ViewMode`, orients `mine`/`theirs` from `squadId`, keys participants by `userId`, maps media by member UID, subscribes to volume/connection/capture state, and uses Fit for the primary native surface and Crop for compact surfaces.
 
@@ -603,11 +603,11 @@ Run: `pnpm --filter @giggle/mobile test`
 
 Expected: the new adaptive and truthful-media assertions FAIL.
 
-- [ ] **Step 2: Reuse the shared identity and policy**
+- [x] **Step 2: Reuse the shared identity and policy**
 
 Derive mine/theirs exactly as web does instead of treating server squad A as local. Build stable participants from `member.userId`, map Agora UID to the matching participant, and classify native width as phone below 600dp, narrow from 600–899dp, and wide at 900dp or above. Feed the shared speaker focus and layout policy with the same 200ms active interval only for rooms of five or more.
 
-- [ ] **Step 3: Delete mode tabs and render the five native policy kinds**
+- [x] **Step 3: Delete mode tabs and render the five native policy kinds**
 
 Delete `ViewMode`, `MODES`, `mode`, the tabs ScrollView, positional `displayTiles`, and the fixed two-column grid branch. Keep the screen controller, actual Agora surface, avatar, colors, and tokens.
 
@@ -623,11 +623,11 @@ Only filmstrips scroll horizontally. Tapping any real tile pins by `userId`; tap
 
 Use the hardware Back action to clear a manual pin before closing the route. Keep one compact header with connection state, LIVE, and elapsed time; hide duplicate squad names on phones and include real squad counts on wide tablets.
 
-- [ ] **Step 4: Render real local and remote truth**
+- [x] **Step 4: Render real local and remote truth**
 
 For each participant, render local UID 0 only when it is the session user and camera capture is active. Render a remote UID only when the adapter reports `hasVideo`. Show `Camera off`, `Connecting`, or the applicable device error from actual adapter state. Show a muted indicator only when audio state is explicitly false. Apply Fit to primary surfaces and Crop to compact surfaces; render a dimmed Crop duplicate with React Native's native `filter: [{ blur: 22 }, { brightness: 0.46 }]` behind a Fit primary.
 
-- [ ] **Step 5: Verify native layout and compile gates**
+- [x] **Step 5: Verify native layout and compile gates**
 
 Run:
 
@@ -639,7 +639,7 @@ pnpm --filter @giggle/mobile typecheck
 
 Expected: all commands PASS.
 
-- [ ] **Step 6: Commit the native stage**
+- [x] **Step 6: Commit the native stage**
 
 ```bash
 git add apps/mobile/app/encounter.tsx apps/mobile/test/encounter.test.cjs

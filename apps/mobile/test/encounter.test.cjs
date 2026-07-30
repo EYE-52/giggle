@@ -11,6 +11,30 @@ const lobbySource = () => readFileSync(path.join(__dirname, "../app/lobby.tsx"),
 const matchSource = () => readFileSync(path.join(__dirname, "../app/match.tsx"), "utf8");
 const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/matchmaking.tsx"), "utf8");
 
+test("mobile encounter derives one adaptive layout from stable identities and real media", () => {
+  const page = source();
+
+  assert.equal(page.includes("deriveEncounterLayout"), true);
+  assert.equal(page.includes("advanceSpeakerFocus"), true);
+  assert.equal(page.includes("type ViewMode"), false);
+  assert.equal(page.includes("const MODES"), false);
+  assert.equal(page.includes("displayTiles"), false);
+  assert.equal(page.includes("enc.squadAId === squadId"), true);
+  assert.equal(page.includes("id: m.userId"), true);
+  assert.equal(page.includes("uid: m.uid"), true);
+  assert.equal(page.includes("String(remote.uid) === String(person.uid)"), true);
+  assert.equal(page.includes("width < 600 ? 'phone' : width < 900 ? 'narrow' : 'wide'"), true);
+  assert.equal(page.includes("onVolumes"), true);
+  assert.equal(page.includes("onConnectionState"), true);
+  assert.equal(page.includes("onCaptureState"), true);
+  assert.equal(page.includes('fit="fit"'), true);
+  assert.equal(page.includes('fit="crop"'), true);
+  for (const kind of ['remote-main', 'squad-split', 'featured-split', 'single-focus', 'dual-focus']) {
+    assert.equal(page.includes(`layout.kind === '${kind}'`), true);
+  }
+  assert.equal(page.includes("BackHandler.addEventListener"), true);
+});
+
 test("encounter report control is disabled unless a valid report payload exists", () => {
   const page = source();
 
