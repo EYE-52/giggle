@@ -35,7 +35,7 @@
 - Create: `packages/core/test/encounterLayout.test.cjs`
 - Modify: `packages/core/src/index.ts`
 
-- [ ] **Step 1: Write the failing policy tests**
+- [x] **Step 1: Write the failing policy tests**
 
 Create `packages/core/test/encounterLayout.test.cjs` with real imports and table-driven assertions:
 
@@ -80,14 +80,12 @@ test("manual pins win and disappear safely when their participant leaves", async
   const { deriveEncounterLayout } = await import("../src/encounterLayout.ts");
   const mine = people("mine", 4);
   const theirs = people("theirs", 4);
-  assert.equal(
-    deriveEncounterLayout({ viewport: "wide", mine, theirs, pinnedId: "theirs-3" }).theirsPrimaryId,
-    "theirs-3"
-  );
-  assert.notEqual(
-    deriveEncounterLayout({ viewport: "wide", mine, theirs: theirs.slice(0, 3), pinnedId: "theirs-3" }).theirsPrimaryId,
-    "theirs-3"
-  );
+  const pinned = deriveEncounterLayout({ viewport: "wide", mine, theirs, pinnedId: "theirs-3" });
+  const afterLeave = deriveEncounterLayout({ viewport: "wide", mine, theirs: theirs.slice(0, 3), pinnedId: "theirs-3" });
+  assert.equal(pinned.kind, "single-focus");
+  assert.equal(pinned.focusId, "theirs-3");
+  assert.equal(afterLeave.kind, "featured-split");
+  assert.notEqual(afterLeave.focusId, "theirs-3");
 });
 
 test("1v1 defaults to the remote person and tapping self swaps the main stage", async () => {
@@ -130,13 +128,13 @@ test("mute, camera, and reconnect state never reorder participants", async () =>
 });
 ```
 
-- [ ] **Step 2: Run the tests and verify the missing module failure**
+- [x] **Step 2: Run the tests and verify the missing module failure**
 
 Run: `pnpm --filter @giggle/core test`
 
 Expected: FAIL because `src/encounterLayout.ts` does not exist.
 
-- [ ] **Step 3: Add the complete pure policy**
+- [x] **Step 3: Add the complete pure policy**
 
 Create `packages/core/src/encounterLayout.ts`:
 
@@ -222,15 +220,14 @@ export function deriveEncounterLayout(input: {
   const theirsIds = input.theirs.map((person) => person.id);
   const allIds = [...mineIds, ...theirsIds];
   const valid = new Set(allIds);
-  const selected = input.pinnedId && valid.has(input.pinnedId)
-    ? input.pinnedId
-    : input.automaticFocusId && valid.has(input.automaticFocusId)
-      ? input.automaticFocusId
-      : null;
+  const pinnedId = input.pinnedId && valid.has(input.pinnedId) ? input.pinnedId : null;
+  const automaticFocusId = input.automaticFocusId && valid.has(input.automaticFocusId)
+    ? input.automaticFocusId
+    : null;
   const total = allIds.length;
 
   if (total === 2 && mineIds.length === 1 && theirsIds.length === 1) {
-    const focusId = selected ?? theirsIds[0];
+    const focusId = pinnedId ?? theirsIds[0];
     return {
       kind: "remote-main",
       focusId,
@@ -240,10 +237,20 @@ export function deriveEncounterLayout(input: {
       theirsStripIds: theirsIds.filter((id) => id !== focusId),
     };
   }
+  if (pinnedId) {
+    return {
+      kind: "single-focus",
+      focusId: pinnedId,
+      minePrimaryId: mineIds.includes(pinnedId) ? pinnedId : null,
+      theirsPrimaryId: theirsIds.includes(pinnedId) ? pinnedId : null,
+      mineStripIds: mineIds.filter((id) => id !== pinnedId),
+      theirsStripIds: theirsIds.filter((id) => id !== pinnedId),
+    };
+  }
   if (total <= 4) {
     return {
       kind: "squad-split",
-      focusId: selected,
+      focusId: null,
       minePrimaryId: null,
       theirsPrimaryId: null,
       mineStripIds: mineIds,
@@ -251,12 +258,12 @@ export function deriveEncounterLayout(input: {
     };
   }
 
-  const minePrimaryId = selected && mineIds.includes(selected) ? selected : mineIds[0] ?? null;
-  const theirsPrimaryId = selected && theirsIds.includes(selected) ? selected : theirsIds[0] ?? null;
+  const minePrimaryId = automaticFocusId && mineIds.includes(automaticFocusId) ? automaticFocusId : mineIds[0] ?? null;
+  const theirsPrimaryId = automaticFocusId && theirsIds.includes(automaticFocusId) ? automaticFocusId : theirsIds[0] ?? null;
   if (total <= 8) {
     return {
       kind: "featured-split",
-      focusId: selected,
+      focusId: automaticFocusId,
       minePrimaryId,
       theirsPrimaryId,
       mineStripIds: mineIds.filter((id) => id !== minePrimaryId),
@@ -266,7 +273,7 @@ export function deriveEncounterLayout(input: {
   if (input.viewport === "wide") {
     return {
       kind: "dual-focus",
-      focusId: selected,
+      focusId: automaticFocusId,
       minePrimaryId,
       theirsPrimaryId,
       mineStripIds: mineIds.filter((id) => id !== minePrimaryId),
@@ -274,7 +281,7 @@ export function deriveEncounterLayout(input: {
     };
   }
 
-  const focusId = selected ?? theirsIds[0] ?? mineIds[0] ?? null;
+  const focusId = automaticFocusId ?? theirsIds[0] ?? mineIds[0] ?? null;
   return {
     kind: "single-focus",
     focusId,
@@ -292,13 +299,13 @@ Export it from `packages/core/src/index.ts`:
 export * from "./encounterLayout";
 ```
 
-- [ ] **Step 4: Run the core suite**
+- [x] **Step 4: Run the core suite**
 
 Run: `pnpm --filter @giggle/core test`
 
 Expected: all core tests PASS.
 
-- [ ] **Step 5: Commit the policy**
+- [x] **Step 5: Commit the policy**
 
 ```bash
 git add packages/core/src/encounterLayout.ts packages/core/src/index.ts packages/core/test/encounterLayout.test.cjs
