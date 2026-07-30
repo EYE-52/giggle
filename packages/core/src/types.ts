@@ -50,9 +50,6 @@ export interface AgoraToken {
   expiresAt: number;
 }
 
-// Local-only encounter view modes (never synced to other users).
-export type EncounterView = "versus" | "grid" | "spotlight" | "focus-opponent";
-
 export interface ApiEnvelope<T> {
   ok: boolean;
   data?: T;

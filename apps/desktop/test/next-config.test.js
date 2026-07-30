@@ -419,15 +419,19 @@ test("desktop encounter rolls back mic and camera controls when video updates fa
   assert.equal(page.includes("await vcRef.current?.setCamEnabled(next);"), false);
 });
 
-test("mobile encounter gives the available stage height to people", () => {
+test("desktop encounter derives one adaptive stage from stable participant identities", () => {
   const page = encounterSource();
-  const versus = page.slice(page.indexOf("const renderVersus"), page.indexOf("const renderGrid"));
-  assert.equal(versus.includes('display: isPhone ? "block" : "flex"'), false);
-  assert.equal(versus.includes('height: isPhone ? 132'), false);
-  assert.equal(versus.includes('flexDirection: isPhone ? "column"'), true);
-  assert.equal(versus.includes('gridTemplateRows: `repeat(${versusRows}, 1fr)`'), true);
-  assert.equal(page.includes('const isCompactPhone = width <= 360'), true);
-  assert.equal(page.includes('display: isCompactPhone ? "none" : "flex"'), true);
+
+  assert.equal(page.includes("advanceSpeakerFocus"), true);
+  assert.equal(page.includes("deriveEncounterLayout"), true);
+  assert.equal(page.includes("id: m.userId"), true);
+  assert.equal(page.includes("VIEW_MODES"), false);
+  assert.equal(page.includes('mode: "grid"'), false);
+  assert.equal(page.includes('mode: "spotlight"'), false);
+  assert.equal(page.includes('mode: "focus-opponent"'), false);
+  assert.equal(page.includes("data-layout-kind={layout.kind}"), true);
+  assert.equal(page.includes("data-media-fit={fit}"), true);
+  assert.equal(page.includes('role={onClick ? "button" : undefined}'), true);
 });
 
 test("desktop encounter end always attempts backend cleanup before navigating", () => {

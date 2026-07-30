@@ -447,7 +447,7 @@ git commit -m "fix(encounter): expose truthful media state"
 - Modify: `packages/core/src/types.ts`
 - Modify: `apps/desktop/test/next-config.test.js`
 
-- [ ] **Step 1: Replace obsolete tests before deleting the modes**
+- [x] **Step 1: Replace obsolete tests before deleting the modes**
 
 Add behavior-level assertions that the Encounter page imports `deriveEncounterLayout` and `advanceSpeakerFocus`, keys people by `userId`, renders no `VIEW_MODES`, and contains no `grid`, `spotlight`, or `focus-opponent` state values. Assert that the stage exposes `data-layout-kind`, a focused media frame exposes `data-media-fit`, and tiles retain button semantics for pinning.
 
@@ -455,13 +455,13 @@ Run: `pnpm --filter @giggle/desktop test`
 
 Expected: the new adaptive-layout assertions FAIL.
 
-- [ ] **Step 2: Replace unstable positional participant keys**
+- [x] **Step 2: Replace unstable positional participant keys**
 
 Build the existing `myMembers` and `oppMembers` into one local participant array using `member.userId` as `id`, preserving backend order and carrying `uid`, `memberId`, name, side, and local truth. Map volume UIDs back to `userId`; select only the loudest level above the existing threshold.
 
 Keep manual `pinnedId` separate from automatic focus. Clear it only when tapped again, Escape/Back is used, or the participant no longer exists. Advance automatic focus every 200ms only while the room has at least five people; clear the interval otherwise.
 
-- [ ] **Step 3: Delete the four render branches and render the five policy kinds**
+- [x] **Step 3: Delete the four render branches and render the five policy kinds**
 
 Delete `VIEW_MODES`, `view`, `hoveredViewMode`, `renderGrid`, `renderSpotlight`, `renderFocusOpponent`, `renderStageByView`, and the mode-tab row. Keep `VideoTile`, room backdrops, real media refs, member truth helpers, and the existing controller.
 
@@ -477,7 +477,7 @@ The only horizontal scroll containers are filmstrips. Put `data-layout-kind={lay
 
 Keep one compact header row: squad names and participant counts on desktop, and only connection state, LIVE, and elapsed time on phones where the stage already labels squads. Do not show LIVE until the media connection is actually connected.
 
-- [ ] **Step 4: Make focused media uncropped by default**
+- [x] **Step 4: Make focused media uncropped by default**
 
 Replace the global forced `object-fit: cover` rule with per-frame `data-media-fit="fit" | "crop"`. `VideoTile` receives the presentation and applies Crop only to small tiles.
 
@@ -485,13 +485,13 @@ For a Fit frame, keep one foreground SDK host at `object-fit: contain` and a mut
 
 Store one call-local `focusedFit` state defaulting to `"fit"`; do not persist it after navigation.
 
-- [ ] **Step 5: Preserve media attachment across adaptive changes**
+- [x] **Step 5: Preserve media attachment across adaptive changes**
 
 Replace the effects that depend on `view` and positional opponent refs with identity-based refs only. Re-run local and remote `play` attachment when the derived layout, roster, camera state, or focused Fit/Crop state changes. Never attach a remote stream by array index when a member UID exists.
 
 Keep the existing quiet loading and invalid-link states, but give an expired/unavailable link explicit Home and Find a match actions. Do not start elapsed time or show live state before encounter data is valid. Late joins and leaves update the policy from the real roster without fabricating a replacement tile.
 
-- [ ] **Step 6: Remove the obsolete public type**
+- [x] **Step 6: Remove the obsolete public type**
 
 Delete this line from `packages/core/src/types.ts` after its last caller is gone:
 
@@ -499,7 +499,7 @@ Delete this line from `packages/core/src/types.ts` after its last caller is gone
 export type EncounterView = "versus" | "grid" | "spotlight" | "focus-opponent";
 ```
 
-- [ ] **Step 7: Verify the web unit/build gate**
+- [x] **Step 7: Verify the web unit/build gate**
 
 Run:
 
@@ -511,10 +511,10 @@ pnpm --filter @giggle/desktop build
 
 Expected: core tests and the production build PASS; Encounter-specific desktop tests PASS. Unrelated pre-existing desktop failures must remain listed rather than hidden by assertion changes.
 
-- [ ] **Step 8: Commit the web stage**
+- [x] **Step 8: Commit the web stage**
 
 ```bash
-git add packages/core/src/types.ts apps/desktop/app/'(app)'/encounter/page.tsx apps/desktop/test/next-config.test.js
+git add packages/core/src/types.ts apps/desktop/app/'(app)'/encounter/page.tsx apps/desktop/test/next-config.test.js docs/superpowers/plans/2026-07-30-responsive-encounter.md
 git commit -m "feat(encounter): adapt the web stage to room size"
 ```
 

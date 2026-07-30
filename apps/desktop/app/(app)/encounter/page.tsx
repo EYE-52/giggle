@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { EncounterView } from "@giggle/core";
-import { api, connectSocket, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, resolveCover, session, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
+import { advanceSpeakerFocus, api, connectSocket, deriveEncounterLayout, EMPTY_SPEAKER_FOCUS, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, resolveCover, session, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
 import type { EncounterDetail } from "@giggle/core";
 import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
@@ -12,13 +11,6 @@ import { Button } from "@/components/Button";
 import { createVideoClient } from "@giggle/agora";
 import type { ConnectionState, RemoteParticipant } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
-
-const VIEW_MODES: { mode: EncounterView; label: string }[] = [
-  { mode: "versus", label: "Versus" },
-  { mode: "grid", label: "Grid" },
-  { mode: "spotlight", label: "Spotlight" },
-  { mode: "focus-opponent", label: "Focus Opp." },
-];
 
 const avatarColors = ["#7C5CFF", "#3DD6C0", "#FF8A5C", "#C2FF3D", "#FF5C8A", "#5C8CFF", "#FFC65C", "#9B7CFF"];
 
@@ -171,13 +163,21 @@ function describeVideoError(e: unknown): string {
 }
 
 const KEYFRAMES = `
-/* Live feeds always COVER their tile — a portrait phone feed and a landscape
-   laptop feed both fill their cell cleanly (cropped to fit), never letterboxed
-   with black bars. Works for whatever element the video SDK injects. */
-[data-media-frame] video,
-[data-media-frame] > div > video {
+/* Thumbnails crop for density. Focused media stays fully visible and uses a
+   restrained blurred copy as fill, so ultrawide and portrait cameras remain
+   recognizable without leaving a hard black frame. */
+[data-media-host] video,
+[data-media-host] > div > video {
   width: 100% !important;
   height: 100% !important;
+}
+[data-media-fit="crop"] [data-media-host] video {
+  object-fit: cover !important;
+}
+[data-media-fit="fit"] [data-media-host] video {
+  object-fit: contain !important;
+}
+[data-media-backdrop] {
   object-fit: cover !important;
 }
 @keyframes tileIn {
@@ -284,8 +284,17 @@ interface FloatingReaction {
   x: number;
 }
 
-// A unique key for each participant to use as focusedKey
-type ParticipantKey = string; // e.g. "local-0", "opp-0", "opp-1"
+type MediaFit = "fit" | "crop";
+
+interface EncounterParticipant {
+  id: string;
+  memberId: string;
+  name: string;
+  side: "mine" | "theirs";
+  colorIndex: number;
+  uid?: number;
+  isLocal: boolean;
+}
 
 function VideoTile({
   name,
@@ -300,6 +309,7 @@ function VideoTile({
   focused,
   showFocusHint,
   compact,
+  fit = "crop",
   localAvatarValue,
   statusText = "Camera off",
 }: {
@@ -316,6 +326,7 @@ function VideoTile({
   focused?: boolean;
   showFocusHint?: boolean;
   compact?: boolean;
+  fit?: MediaFit;
   /** Only passed for the local participant — renders their chosen AvatarArt instead of initials. */
   localAvatarValue?: string;
   /** Fallback status under the avatar: "Camera off" (default) or "Connecting…". */
@@ -328,10 +339,40 @@ function VideoTile({
   const avSize = small ? 44 : 72;
   const glowSize = small ? 54 : 160;
   const [hovered, setHovered] = useState(false);
+  const mediaHostRef = useRef<HTMLDivElement | null>(null);
+  const backdropVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const host = mediaHostRef.current;
+    const backdrop = backdropVideoRef.current;
+    if (fit !== "fit" || !host || !backdrop) return;
+
+    let frame = 0;
+    const sync = () => {
+      const foreground = host.querySelector("video");
+      if (!foreground?.srcObject || backdrop.srcObject === foreground.srcObject) return;
+      backdrop.srcObject = foreground.srcObject;
+      backdrop.play().catch(() => {});
+    };
+    const observer = new MutationObserver(() => {
+      sync();
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(sync);
+    });
+    observer.observe(host, { childList: true, subtree: true });
+    frame = requestAnimationFrame(sync);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      backdrop.pause();
+      backdrop.srcObject = null;
+    };
+  }, [fit]);
 
   return (
     <div
       data-media-frame
+      data-media-fit={fit}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -505,11 +546,36 @@ function VideoTile({
         </div>
       </div>
 
+      {/* Soft fill behind focused Fit media. */}
+      {videoRef && fit === "fit" && (
+        <video
+          ref={backdropVideoRef}
+          data-media-backdrop
+          aria-hidden
+          muted
+          playsInline
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            zIndex: 1,
+            filter: "blur(22px) brightness(.46) saturate(.8)",
+            transform: "scale(1.12)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
       {/* Live video layer */}
       {videoRef && (
         <div
-          ref={videoRef}
-          style={{ position: "absolute", inset: 0, zIndex: 1 }}
+          ref={(el) => {
+            mediaHostRef.current = el;
+            videoRef(el);
+          }}
+          data-media-host
+          style={{ position: "absolute", inset: 0, zIndex: 2 }}
         />
       )}
 
@@ -671,7 +737,6 @@ function EncounterInner() {
   const squadId = params.get("squad") ?? "";
   const encId = params.get("enc") ?? "";
 
-  const [view, setView] = useState<EncounterView>("versus");
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
@@ -707,8 +772,7 @@ function EncounterInner() {
   // Reconnect UX: Agora connection lifecycle + user dismissal of the banner.
   const [connState, setConnState] = useState<ConnectionState | null>(null);
   const [reconnectDismissed, setReconnectDismissed] = useState(false);
-  // Speaking uids (from the SDK's volume indicator) keyed by String(uid).
-  const [speakingUids, setSpeakingUids] = useState<Set<string>>(new Set());
+  const [loudestUid, setLoudestUid] = useState<string | null>(null);
   const myUidRef = useRef<string | number | null>(null);
 
   // Local user's chosen avatar (SSR-safe: read after mount)
@@ -720,7 +784,7 @@ function EncounterInner() {
   }, []);
 
   // The encounter's video stage is forced dark (video pops on dark, like every
-  // call app) — but we still want the CHROME (view toggle, VS, active controls)
+  // call app) — but we still want the call chrome and active controls
   // to reflect the app theme. So we read the real accent from the document root
   // and inject it back into the dark stage, re-reading when the theme changes.
   const [appAccent, setAppAccent] = useState<{ a: string; b: string }>({ a: "", b: "" });
@@ -737,24 +801,22 @@ function EncounterInner() {
     return () => obs.disconnect();
   }, []);
 
-  // Click-to-focus state: null = no focus, else a participant key
-  const [focusedKey, setFocusedKey] = useState<ParticipantKey | null>(null);
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const [focusedFit, setFocusedFit] = useState<MediaFit>("fit");
+  const [speakerFocus, setSpeakerFocus] = useState(EMPTY_SPEAKER_FOCUS);
 
   // Hover states
-  const [hoveredViewMode, setHoveredViewMode] = useState<string | null>(null);
   const [hoveredCtrl, setHoveredCtrl] = useState<string | null>(null);
   // Phone-only: reactions collapse into a popover to keep the control bar compact.
   const [reactionsOpen, setReactionsOpen] = useState(false);
 
-  const { width, isPhone } = useViewport();
-  const isCompactPhone = width <= 360;
-
+  const { width, height, isPhone } = useViewport();
+  const isPhoneChrome = isPhone || height <= 500;
   const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
   // Serializes join/leave so a StrictMode double-mount never overlaps two joins
   // on the same uid (which triggers Agora UID_CONFLICT and blanks the video).
   const joinChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const localElRef = useRef<HTMLDivElement | null>(null);
-  const oppElsRef = useRef<(HTMLDivElement | null)[]>([]);
   // Identity-based map: Agora uid -> tile element. Lets us route each remote
   // track to the exact member that owns that uid (opponent OR our own non-local
   // squadmate), instead of leaking streams by array position.
@@ -769,25 +831,18 @@ function EncounterInner() {
   const setLocalEl = (el: HTMLDivElement | null) => {
     localElRef.current = el;
   };
-  const setOppEl =
-    (idx: number) => (el: HTMLDivElement | null) => {
-      oppElsRef.current[idx] = el;
-    };
   const setRemoteElByUid =
     (uid: string | number) => (el: HTMLDivElement | null) => {
       remoteElsRef.current.set(uid, el);
     };
-  // Resolve the videoRef for a participant. Local -> local track. Remote with a
-  // known uid -> identity map. Remote without uid (older data) -> positional
-  // opponent slot fallback so nothing breaks.
+  // Resolve media only by identity. Unknown remote UIDs keep their honest
+  // connecting fallback instead of borrowing another person's stream.
   const participantRef = (
     isLocal: boolean,
     uid: number | undefined,
-    oppIndex: number | undefined,
   ): ((el: HTMLDivElement | null) => void) | undefined => {
     if (isLocal) return setLocalEl;
     if (uid != null) return setRemoteElByUid(uid);
-    if (oppIndex != null) return setOppEl(oppIndex);
     return undefined;
   };
 
@@ -804,7 +859,6 @@ function EncounterInner() {
     if (!squadId || !encId) return;
 
     let cancelled = false;
-    let tick: ReturnType<typeof setInterval> | undefined;
     let bannerTimer: ReturnType<typeof setTimeout> | undefined;
     let socket: ReturnType<typeof connectSocket> | undefined;
     let endedEvent = "ENCOUNTER_ENDED";
@@ -826,6 +880,7 @@ function EncounterInner() {
     setEncounterError(null);
     setEncounter(null);
     setElapsed(0);
+    setConnState(null);
 
     const boot = async () => {
       try {
@@ -841,8 +896,6 @@ function EncounterInner() {
         return;
       }
 
-      tick = setInterval(() => setElapsed((e) => e + 1), 1000);
-
       joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
       if (cancelled) return;
       try {
@@ -853,16 +906,12 @@ function EncounterInner() {
         vcRef.current = vc;
         myUidRef.current = tokenData.uid;
         vc.onRemoteChange((rs) => setRemotes(rs));
-        // Real speaking detection — only mark tiles as speaking from actual
-        // audio levels (never faked). Defensive: optional on the interface.
+        // Keep only the real loudest speaker. The stable participant id is
+        // resolved from this SDK uid after the roster is available.
         try {
           vc.onVolumes?.((levels) => {
-            const next = new Set<string>();
-            for (const v of levels) if (v.level > 5) next.add(String(v.uid));
-            setSpeakingUids((prev) => {
-              if (prev.size === next.size && [...next].every((u) => prev.has(u))) return prev;
-              return next;
-            });
+            const loudest = levels.reduce((best, level) => level.level > best.level ? level : best, { uid: 0, level: 5 });
+            setLoudestUid(loudest.level > 5 ? String(loudest.uid) : null);
           });
         } catch {}
         // Connection lifecycle → reconnect banner / disconnected error.
@@ -878,6 +927,7 @@ function EncounterInner() {
         // join (queued after this on the same chain) won't hit a uid conflict.
         if (cancelled) { await vc.leave().catch(() => {}); vcRef.current = null; return; }
         setVideoJoined(true);
+        setConnState("CONNECTED");
       } catch (e) {
         console.error("Encounter video join failed (non-fatal):", e);
         if (!cancelled) setVideoError(describeVideoError(e));
@@ -900,7 +950,6 @@ function EncounterInner() {
     boot();
 
     return () => {
-      if (tick) clearInterval(tick);
       if (bannerTimer) clearTimeout(bannerTimer);
       if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
       socket?.off(endedEvent, onEnded);
@@ -916,6 +965,12 @@ function EncounterInner() {
       setVideoJoined(false);
     };
   }, [squadId, encId, router]);
+
+  useEffect(() => {
+    if (connState !== "CONNECTED") return;
+    const tick = setInterval(() => setElapsed((value) => value + 1), 1000);
+    return () => clearInterval(tick);
+  }, [connState]);
 
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -933,24 +988,68 @@ function EncounterInner() {
 
   const myMembers = mySquad?.members ?? [];
   const oppMembers = oppSquad?.members ?? [];
-  const allMembers = [
-    ...myMembers.map((m, i) => ({
-      id: m.memberId,
-      name: m.displayName,
-      squad: "yours" as const,
-      ci: i,
-      uid: (m as { uid?: number }).uid,
-      pkey: `local-${i}` as ParticipantKey,
-    })),
-    ...oppMembers.map((m, i) => ({
-      id: m.memberId,
-      name: m.displayName,
-      squad: "opp" as const,
-      ci: i + 4,
-      uid: (m as { uid?: number }).uid,
-      pkey: `opp-${i}` as ParticipantKey,
-    })),
-  ];
+  const myUserId = session.user?.id ?? "";
+  const mineParticipants: EncounterParticipant[] = myMembers.map((m, i) => ({
+    id: m.userId,
+    memberId: m.memberId,
+    name: m.displayName,
+    side: "mine",
+    colorIndex: i,
+    uid: m.uid,
+    isLocal: m.userId === myUserId || (myUidRef.current != null && String(m.uid) === String(myUidRef.current)),
+  }));
+  const theirParticipants: EncounterParticipant[] = oppMembers.map((m, i) => ({
+    id: m.userId,
+    memberId: m.memberId,
+    name: m.displayName,
+    side: "theirs",
+    colorIndex: i + 4,
+    uid: m.uid,
+    isLocal: false,
+  }));
+  const participants = [...mineParticipants, ...theirParticipants];
+  const participantIdsKey = JSON.stringify(participants.map((person) => person.id));
+  const activeSpeakerId = loudestUid
+    ? participants.find((person) => String(person.isLocal ? myUidRef.current : person.uid) === loudestUid)?.id ?? null
+    : null;
+  const viewportClass = width >= 1180 ? "wide" : isPhone ? "phone" : "narrow";
+  const layout = deriveEncounterLayout({
+    viewport: viewportClass,
+    mine: mineParticipants,
+    theirs: theirParticipants,
+    pinnedId,
+    automaticFocusId: speakerFocus.focusedId,
+  });
+
+  useEffect(() => {
+    if (participants.length < 5) {
+      setSpeakerFocus(EMPTY_SPEAKER_FOCUS);
+      return;
+    }
+    const ids = participants.map((person) => person.id);
+    const advance = () => setSpeakerFocus((previous) =>
+      advanceSpeakerFocus(ids, previous, activeSpeakerId, Date.now())
+    );
+    advance();
+    const tick = setInterval(advance, 200);
+    return () => clearInterval(tick);
+    // participantIdsKey intentionally represents the stable roster identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [participantIdsKey, participants.length, activeSpeakerId]);
+
+  useEffect(() => {
+    if (pinnedId && !participants.some((person) => person.id === pinnedId)) setPinnedId(null);
+    // participantIdsKey intentionally represents the stable roster identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pinnedId, participantIdsKey]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPinnedId(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   // ── Truthful per-participant signals ─────────────────────────────────────
   // Look up a remote participant's live track state by uid. Returns undefined
@@ -970,7 +1069,7 @@ function EncounterInner() {
   // Real speaking state from audio levels (never faked).
   const isSpeakingFor = (isLocal: boolean, uid: number | undefined): boolean => {
     const key = isLocal ? myUidRef.current : uid;
-    return key != null && speakingUids.has(String(key));
+    return key != null && String(key) === loudestUid;
   };
 
   useEffect(() => {
@@ -979,14 +1078,12 @@ function EncounterInner() {
         vcRef.current?.playLocal(localElRef.current);
       } catch {}
     }
-  }, [videoJoined, camOn, view, encounter, focusedKey]);
+  }, [videoJoined, camOn, participantIdsKey, layout.kind, focusedFit]);
 
   useEffect(() => {
     if (!videoJoined) return;
-    remoteUids.forEach((uid, i) => {
-      // Identity mapping first; positional opponent slot as fallback (older data
-      // without per-member uid).
-      const el = remoteElsRef.current.get(uid) ?? oppElsRef.current[i];
+    remoteUids.forEach((uid) => {
+      const el = remoteElsRef.current.get(uid);
       if (el) {
         try {
           vcRef.current?.playRemote(uid, el);
@@ -994,7 +1091,7 @@ function EncounterInner() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remotes, videoJoined, view, encounter, focusedKey]);
+  }, [remotes, videoJoined, participantIdsKey, layout.kind, focusedFit]);
 
   async function toggleMic() {
     const previous = micOn;
@@ -1096,7 +1193,6 @@ function EncounterInner() {
 
   // Unread chat tracking — mirrors the lobby: count messages from others while
   // the chat panel is closed, and clear as soon as it opens.
-  const myUserId = session.user?.id;
   useEffect(() => {
     if (!encId || !squadId) return;
     try { joinChat({ kind: "encounter", encounterId: encId, squadId }); } catch {}
@@ -1111,654 +1207,332 @@ function EncounterInner() {
   chatVisibleRef.current = chatOpen;
   useEffect(() => { if (chatOpen) setUnread(0); }, [chatOpen]);
 
-  // Toggle focus on a participant key; clicking focused tile clears focus
-  function handleTileClick(pkey: ParticipantKey) {
-    setFocusedKey((prev) => (prev === pkey ? null : pkey));
+  function handleTileClick(id: string) {
+    setPinnedId((previous) => previous === id ? null : id);
   }
 
-  // ── FOCUSED VIEW ────────────────────────────────────────────────────────────
-  // When focusedKey is set, render the focused person large + everyone else in a strip.
-  // The ref wiring is identical to what the current view would give them — we just
-  // change layout, not which element receives the ref.
+  const participantById = new Map(participants.map((person) => [person.id, person]));
 
-  const renderFocused = () => {
-    // Find the focused participant
-    const focusedMember = allMembers.find((m) => m.pkey === focusedKey);
-    const restMembers = allMembers.filter((m) => m.pkey !== focusedKey);
-
-    if (!focusedMember) return renderStageByView();
-
-    // Ref for focused tile: identity-mapped (same wiring approach as grid)
-    const focusedRef = participantRef(
-      focusedMember.squad === "yours" && focusedMember.ci === 0,
-      focusedMember.uid,
-      focusedMember.squad === "opp" ? focusedMember.ci - 4 : undefined,
+  function renderParticipant(id: string, fit: MediaFit, compact = false) {
+    const person = participantById.get(id);
+    if (!person) return null;
+    return (
+      <VideoTile
+        key={person.id}
+        name={person.name}
+        colorIndex={person.colorIndex}
+        micOn={micOnFor(person.isLocal, person.uid)}
+        videoRef={participantRef(person.isLocal, person.uid)}
+        isLocal={person.isLocal}
+        localAvatarValue={person.isLocal ? myAvatar : undefined}
+        isSpeaking={isSpeakingFor(person.isLocal, person.uid)}
+        statusText={statusTextFor(person.isLocal, person.uid)}
+        onClick={() => handleTileClick(person.id)}
+        focused={pinnedId === person.id}
+        showFocusHint
+        compact={compact}
+        fit={fit}
+      />
     );
+  }
 
+  function squadLabel(
+    name: string,
+    count: number,
+    tone: SideTone,
+    cover: string | null | undefined,
+    key: string
+  ) {
+    const color = tone === "yours" ? lime : coral;
     return (
       <div
         style={{
-          position: "relative",
-          flex: 1,
-          minHeight: 0,
+          position: "absolute",
+          top: 10,
+          left: 10,
+          zIndex: 5,
           display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          padding: isPhone ? "8px 8px 0 8px" : "12px 16px 0 16px",
-          animation: "focusPinIn 0.15s ease forwards",
+          alignItems: "center",
+          gap: 7,
+          maxWidth: "calc(100% - 20px)",
+          padding: "4px 10px 4px 4px",
+          borderRadius: 999,
+          background: "rgba(10,10,14,.62)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,.11)",
         }}
       >
-        {/* Themed room of the focused person's squad behind the whole stage */}
-        <SplitRoomBackdrop
-          mine={{ cover: mySquad?.cover, key: mySquad?.id ?? "mine" }}
-          opp={{ cover: oppSquad?.cover, key: oppSquad?.id ?? "opp" }}
-        />
-        {/* Main focused tile — large 16:9, centered (not stretched ultra-wide) */}
-        <div style={{ position: "relative", zIndex: 1, flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <div style={{ height: "100%", maxWidth: "100%", aspectRatio: "16 / 9", maxHeight: "100%" }}>
-          <VideoTile
-            name={focusedMember.name}
-            colorIndex={focusedMember.ci}
-            micOn={micOnFor(focusedMember.squad === "yours" && focusedMember.ci === 0, focusedMember.uid)}
-            videoRef={focusedRef}
-            isLocal={focusedMember.squad === "yours" && focusedMember.ci === 0}
-            localAvatarValue={myAvatar}
-            isSpeaking={isSpeakingFor(focusedMember.squad === "yours" && focusedMember.ci === 0, focusedMember.uid)}
-            statusText={statusTextFor(focusedMember.squad === "yours" && focusedMember.ci === 0, focusedMember.uid)}
-            onClick={() => handleTileClick(focusedMember.pkey)}
-            focused
-            showFocusHint
-          />
-          </div>
-        </div>
-
-        {/* Strip of everyone else */}
-        {restMembers.length > 0 && (
-          <div
-            style={{
-              position: "relative",
-              zIndex: 1,
-              display: "flex",
-              gap: 8,
-              height: isPhone ? 90 : 110,
-              flexShrink: 0,
-              overflowX: "auto" as const,
-              WebkitOverflowScrolling: "touch",
-              paddingBottom: 0,
-            }}
-          >
-            {restMembers.map((m) => {
-              const ref = participantRef(
-                m.squad === "yours" && m.ci === 0,
-                m.uid,
-                m.squad === "opp" ? m.ci - 4 : undefined,
-              );
-              return (
-                <div
-                  key={m.pkey}
-                  style={{
-                    height: "100%",
-                    aspectRatio: isPhone ? "4/3" : "16/9",
-                    flexShrink: 0,
-                  }}
-                >
-                  <VideoTile
-                    name={m.name}
-                    colorIndex={m.ci}
-                    micOn={micOnFor(m.squad === "yours" && m.ci === 0, m.uid)}
-                    videoRef={ref}
-                    isLocal={m.squad === "yours" && m.ci === 0}
-                    localAvatarValue={myAvatar}
-                    isSpeaking={isSpeakingFor(m.squad === "yours" && m.ci === 0, m.uid)}
-                    statusText={statusTextFor(m.squad === "yours" && m.ci === 0, m.uid)}
-                    onClick={() => handleTileClick(m.pkey)}
-                    showFocusHint
-                    compact
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <CoverThumb cover={cover} squadKey={key} tone={tone} size={20} radius={999} />
+        <span style={{ color, fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {name}
+        </span>
+        <span style={{ color: textMuted, fontSize: 11, fontWeight: 700 }}>{count}</span>
       </div>
     );
-  };
+  }
 
-  // ── STAGE RENDERERS ────────────────────────────────────────────────────────
-
-  const renderVersus = () => {
-    const side = (
-      squadName: string,
-      accentColor: string,
-      members: typeof myMembers,
-      isMine: boolean,
-      entranceAnim: string,
-      cover: string | null | undefined,
-      squadKey: string
-    ) => {
-      const list = members.length ? members : [];
-      // Single member fills the column as one big tile; 2+ go into a 2-up grid.
-      const versusGridCols = list.length > 1 && !(isPhone && list.length === 2) ? 2 : 1;
-      // Number of grid rows so we can stretch each row to fill the side height
-      // evenly (no big empty top/bottom gaps).
-      const versusRows = Math.max(1, Math.ceil(list.length / versusGridCols));
-      const tone: SideTone = isMine ? "yours" : "theirs";
-      return (
-        <div
-          style={{
-            position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            alignItems: "stretch",
-            flex: 1,
-            width: isPhone ? "100%" : undefined,
-            minWidth: 0,
-            minHeight: 0,
-            height: "100%",
-            marginBottom: 0,
-            borderRadius: 16,
-            overflow: "hidden",
-            padding: isPhone ? 3 : 6,
-            animation: entranceAnim,
-          }}
-        >
-          {/* TEAM ROOM BACKDROP — the squad's identity (cover or deterministic
-              gradient) rendered prominently behind this side's tiles, with a
-              smart scrim + accent glow so video + names stay legible and each
-              side reads as its own themed room. */}
-          <TeamRoomBackdrop cover={cover} squadKey={squadKey} tone={tone} radius={16} presence={0.9} />
-
-          {/* Floating squad label — a subtle broadcast-style pill over the video
-              (top-left) instead of a shouty header row, so the video fills the
-              panel and the theme reads underneath. */}
-          <div
-            style={{
-              position: "absolute",
-              top: isPhone ? 8 : 10,
-              left: isPhone ? 8 : 10,
-              zIndex: 3,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              maxWidth: "calc(100% - 20px)",
-              padding: "4px 9px 4px 4px",
-              borderRadius: 999,
-              background: "rgba(10,10,14,0.55)",
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              border: `1px solid color-mix(in srgb, ${accentColor} 30%, transparent)`,
-            }}
-          >
-            <CoverThumb cover={cover} squadKey={squadKey} tone={tone} size={18} radius={999} />
-            <span
-              style={{
-                fontSize: 12.5,
-                fontWeight: 700,
-                color: accentColor,
-                fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {squadName}
-            </span>
-          </div>
-          {list.length === 0 ? (
-            <div style={{ position: "relative", zIndex: 1, flex: isPhone ? undefined : 1, minHeight: isPhone ? 160 : 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <WaitingForSquad label={isMine ? "Waiting for your squad…" : "Waiting for the other squad…"} />
-            </div>
-          ) : (
-          <div
-            style={{
-              position: "relative",
-              zIndex: 1,
-              display: "grid",
-              gridTemplateColumns: `repeat(${versusGridCols}, 1fr)`,
-              // Desktop: stretch rows to evenly fill the full side height so the
-              // tile(s) are generous and there are no empty top/bottom gaps.
-              gridTemplateRows: `repeat(${versusRows}, 1fr)`,
-              gap: 16,
-              width: "100%",
-              flex: 1,
-              minHeight: 0,
-              alignContent: "stretch",
-              justifyContent: "stretch",
-            }}
-          >
-            {list.map((m, i) => (
-              <div
-                key={m?.memberId ?? i}
-                style={{
-                  minHeight: 0,
-                  minWidth: 0,
-                  // Phone: fixed-height stacked tiles. Desktop: fill the grid
-                  // cell (rows are 1fr) so the tile is large and balanced;
-                  // object-fit:cover frames the video nicely.
-                  height: "100%",
-                }}
-              >
-                <VideoTile
-                  name={m?.displayName ?? (isMine ? "You" : "Waiting…")}
-                  colorIndex={isMine ? i : i + 4}
-                  videoRef={participantRef(
-                    isMine && i === 0,
-                    (m as { uid?: number } | undefined)?.uid,
-                    isMine ? undefined : i,
-                  )}
-                  micOn={micOnFor(isMine && i === 0, (m as { uid?: number } | undefined)?.uid)}
-                  isLocal={isMine && i === 0}
-                  localAvatarValue={myAvatar}
-                  isSpeaking={isSpeakingFor(isMine && i === 0, (m as { uid?: number } | undefined)?.uid)}
-                  statusText={statusTextFor(isMine && i === 0, (m as { uid?: number } | undefined)?.uid)}
-                  onClick={() => handleTileClick(isMine ? `local-${i}` : `opp-${i}`)}
-                  showFocusHint
-                />
-              </div>
-            ))}
-          </div>
-          )}
-        </div>
-      );
-    };
-
+  function renderFilmstrip(ids: string[], label: string, tone: SideTone) {
+    if (!ids.length) return null;
+    const color = tone === "yours" ? lime : coral;
     return (
       <div
         style={{
-          flex: 1,
-          minHeight: 0,
           display: "flex",
           alignItems: "stretch",
-          justifyContent: "stretch",
-          gap: 0,
-          padding: isPhone ? "6px 8px 10px" : "12px 16px",
-          flexDirection: isPhone ? "column" as const : "row" as const,
-          overflow: "hidden",
-          animation: "viewTransition 0.15s ease forwards",
+          gap: 8,
+          height: isPhone ? 82 : 104,
+          minHeight: 0,
+          flexShrink: 0,
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
         }}
       >
-        {side(
-          mySquad?.name ?? "Your Squad",
-          lime,
-          myMembers,
-          true,
-          "slideFromLeft 0.5s ease 0.05s both",
-          mySquad?.cover,
-          mySquad?.id ?? "mine"
-        )}
-        {/* center seam — one tasteful VS badge over a single subtle divider.
-            Desktop: vertical 44px column between the two sides. Phone: a short
-            horizontal strip between the stacked squads (your squad / VS / theirs). */}
         <div
           style={{
-            width: isPhone ? "100%" : 44,
-            alignSelf: isPhone ? "center" : "stretch",
-            margin: isPhone ? "2px 0" : "0 4px",
-            flexShrink: 0,
-            position: "relative",
+            position: "sticky",
+            left: 0,
+            zIndex: 3,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
+            padding: "0 8px",
+            color,
+            background: "rgba(12,12,18,.86)",
+            borderRadius: 10,
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: ".08em",
+            textTransform: "uppercase",
           }}
         >
-          {/* Divider line — vertical on desktop, horizontal on phone, faded ends */}
-          <div
-            style={{
-              position: "absolute",
-              ...(isPhone
-                ? {
-                    left: "12%",
-                    right: "12%",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    height: 1,
-                    background:
-                      "linear-gradient(to right, transparent, rgba(255,255,255,0.10) 30%, rgba(255,255,255,0.10) 70%, transparent)",
-                  }
-                : {
-                    top: "12%",
-                    bottom: "12%",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    width: 1,
-                    background:
-                      "linear-gradient(to bottom, transparent, rgba(255,255,255,0.10) 30%, rgba(255,255,255,0.10) 70%, transparent)",
-                  }),
-            }}
-          />
-          {/* VS badge */}
-          <div
-            style={{
-              position: "relative",
-              zIndex: 1,
-              width: 44,
-              height: 44,
-              borderRadius: "50%",
-              background: "radial-gradient(circle at 38% 32%, #221a38, #0C0C12 70%)",
-              border: "1px solid color-mix(in srgb, var(--violet, #7C5CFF) 32%, transparent)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              animation: "vsFlourish 0.6s ease 0.35s both, vsPulse 3.2s ease-in-out 1s infinite",
-              flexShrink: 0,
-            }}
-          >
-            <span
-              style={{
-                fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                fontSize: 12,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                background: "linear-gradient(135deg, var(--live, #C2FF3D), var(--coral, #FF5C7A))",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-                lineHeight: 1,
-              }}
-            >
-              VS
-            </span>
-          </div>
+          {label}
         </div>
-        {side(
-          oppSquad?.name ?? "Opponent",
-          coral,
-          oppMembers,
-          false,
-          "slideFromRight 0.5s ease 0.05s both",
-          oppSquad?.cover,
-          oppSquad?.id ?? "opp"
-        )}
-      </div>
-    );
-  };
-
-  const renderGrid = () => {
-    const members = allMembers.length
-      ? allMembers
-      : [{ id: "p", name: "You", squad: "yours" as const, ci: 0, uid: undefined, pkey: "local-0" as ParticipantKey }];
-    const count = members.length;
-    const cols = isPhone
-      ? count <= 1 ? 1 : 2
-      : count <= 2 ? count : count <= 4 ? 2 : count <= 6 ? 3 : 4;
-    const rows = Math.ceil(count / cols);
-    return (
-      <div
-        style={{
-          position: "relative",
-          flex: 1,
-          minHeight: 0,
-          overflow: "hidden" as const,
-          display: "grid",
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          // Rows stretch to fill the whole stage — no more tiny tiles floating
-          // in dead space. Each cell is filled by a cover-cropped feed, so a
-          // portrait phone feed and a landscape laptop feed both fill cleanly.
-          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-          gap: isPhone ? 5 : 8,
-          padding: isPhone ? 5 : 8,
-          alignContent: "stretch",
-          justifyContent: "stretch",
-          animation: "viewTransition 0.15s ease forwards",
-        }}
-      >
-        <SplitRoomBackdrop
-          mine={{ cover: mySquad?.cover, key: mySquad?.id ?? "mine" }}
-          opp={{ cover: oppSquad?.cover, key: oppSquad?.id ?? "opp" }}
-        />
-        {members.map((m) => (
-          <div
-            key={m.id}
-            style={{
-              position: "relative",
-              zIndex: 1,
-              minHeight: 0,
-              minWidth: 0,
-              height: "100%",
-              borderRadius: "var(--radius-tile, 16px)",
-              // Team-color ring — the primary "which squad" cue in the grid
-              // (yours = lime, opponent = coral), per the versus-layout research.
-              boxShadow: `0 0 0 2px color-mix(in srgb, ${m.squad === "yours" ? "var(--live, #C2FF3D)" : "var(--coral, #FF5C7A)"} 55%, transparent)`,
-            }}
-          >
-            <VideoTile
-              name={m.name}
-              colorIndex={m.ci}
-              videoRef={participantRef(
-                m.squad === "yours" && m.ci === 0,
-                m.uid,
-                m.squad === "opp" ? m.ci - 4 : undefined,
-              )}
-              micOn={micOnFor(m.squad === "yours" && m.ci === 0, m.uid)}
-              isLocal={m.squad === "yours" && m.ci === 0}
-              localAvatarValue={myAvatar}
-              isSpeaking={isSpeakingFor(m.squad === "yours" && m.ci === 0, m.uid)}
-              statusText={statusTextFor(m.squad === "yours" && m.ci === 0, m.uid)}
-              onClick={() => handleTileClick(m.pkey)}
-              showFocusHint
-            />
+        {ids.map((id) => (
+          <div key={id} style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}>
+            {renderParticipant(id, "crop", true)}
           </div>
         ))}
       </div>
     );
-  };
+  }
 
-  const renderSpotlight = () => {
-    const members = allMembers.length
-      ? allMembers
-      : [{ id: "p", name: "You", squad: "yours" as const, ci: 0, uid: undefined, pkey: "local-0" as ParticipantKey }];
-    const [spotlight, ...rest] = members;
+  function renderCombinedFilmstrip(mineIds: string[], theirIds: string[]) {
+    if (!mineIds.length && !theirIds.length) return null;
     return (
       <div
         style={{
-          position: "relative",
-          flex: 1,
-          minHeight: 0,
           display: "flex",
-          flexDirection: "column",
+          alignItems: "stretch",
           gap: 8,
-          padding: isPhone ? "8px 8px 0 8px" : "12px 16px 0 16px",
-          animation: "viewTransition 0.15s ease forwards",
+          height: isPhone ? 82 : 104,
+          flexShrink: 0,
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
         }}
       >
-        <SplitRoomBackdrop
-          mine={{ cover: mySquad?.cover, key: mySquad?.id ?? "mine" }}
-          opp={{ cover: oppSquad?.cover, key: oppSquad?.id ?? "opp" }}
-        />
-        {/* Main spotlight — large 16:9, centered (not stretched ultra-wide) */}
-        <div
-          style={{ position: "relative", zIndex: 1, flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-        >
-          <div style={{ height: "100%", maxWidth: "100%", aspectRatio: "16 / 9", maxHeight: "100%" }}>
-          <VideoTile
-            name={spotlight.name}
-            colorIndex={spotlight.ci}
-            micOn={micOnFor(spotlight.squad === "yours" && spotlight.ci === 0, spotlight.uid)}
-            videoRef={participantRef(
-              spotlight.squad === "yours" && spotlight.ci === 0,
-              spotlight.uid,
-              spotlight.squad === "opp" ? spotlight.ci - 4 : undefined,
-            )}
-            isLocal={spotlight.squad === "yours" && spotlight.ci === 0}
-            localAvatarValue={myAvatar}
-            isSpeaking={isSpeakingFor(spotlight.squad === "yours" && spotlight.ci === 0, spotlight.uid)}
-            statusText={statusTextFor(spotlight.squad === "yours" && spotlight.ci === 0, spotlight.uid)}
-            onClick={() => handleTileClick(spotlight.pkey)}
-            style={{ height: "100%" }}
-            showFocusHint
-          />
+        {[
+          { label: "Yours", tone: "yours" as SideTone, ids: mineIds },
+          { label: "Theirs", tone: "theirs" as SideTone, ids: theirIds },
+        ].map((group) => group.ids.length > 0 && (
+          <div key={group.label} style={{ display: "contents" }}>
+            <div
+              style={{
+                position: "sticky",
+                left: 0,
+                zIndex: 3,
+                display: "flex",
+                alignItems: "center",
+                padding: "0 8px",
+                color: group.tone === "yours" ? lime : coral,
+                background: "rgba(12,12,18,.86)",
+                borderRadius: 10,
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: ".08em",
+                textTransform: "uppercase",
+              }}
+            >
+              {group.label}
+            </div>
+            {group.ids.map((id) => (
+              <div key={id} style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}>
+                {renderParticipant(id, "crop", true)}
+              </div>
+            ))}
           </div>
-        </div>
-        {rest.length > 0 && (
+        ))}
+      </div>
+    );
+  }
+
+  function renderSquadSplitSide(side: "mine" | "theirs") {
+    const people = side === "mine" ? mineParticipants : theirParticipants;
+    const squad = side === "mine" ? mySquad : oppSquad;
+    const tone: SideTone = side === "mine" ? "yours" : "theirs";
+    return (
+      <section
+        aria-label={side === "mine" ? "Your squad" : "Other squad"}
+        style={{
+          position: "relative",
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          overflow: "hidden",
+          borderRadius: 18,
+          padding: "42px 8px 8px",
+        }}
+      >
+        <TeamRoomBackdrop cover={squad?.cover} squadKey={squad?.id ?? side} tone={tone} radius={18} presence={0.82} />
+        {squadLabel(squad?.name ?? (side === "mine" ? "Your Squad" : "Opponent"), people.length, tone, squad?.cover, squad?.id ?? side)}
+        {people.length ? (
+          <div style={{ position: "relative", zIndex: 1, display: "flex", flexWrap: people.length > 2 ? "wrap" : "nowrap", gap: 8, height: "100%", minHeight: 0 }}>
+            {people.map((person) => (
+              <div key={person.id} style={{ flex: people.length > 2 ? "1 1 calc(50% - 4px)" : 1, minWidth: 0, minHeight: 0 }}>
+                {renderParticipant(person.id, "crop")}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ position: "relative", zIndex: 1, height: "100%", display: "grid", placeItems: "center" }}>
+            <WaitingForSquad label={side === "mine" ? "Waiting for your squad…" : "Waiting for the other squad…"} />
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  function renderFeaturedSide(side: "mine" | "theirs", filmstrip: boolean) {
+    const primaryId = side === "mine" ? layout.minePrimaryId : layout.theirsPrimaryId;
+    const stripIds = side === "mine" ? layout.mineStripIds : layout.theirsStripIds;
+    const squad = side === "mine" ? mySquad : oppSquad;
+    const tone: SideTone = side === "mine" ? "yours" : "theirs";
+    const count = side === "mine" ? mineParticipants.length : theirParticipants.length;
+    const useFilmstrip = filmstrip || isPhone;
+    return (
+      <section
+        aria-label={side === "mine" ? "Your squad" : "Other squad"}
+        style={{
+          position: "relative",
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          overflow: "hidden",
+          borderRadius: 18,
+          padding: "42px 8px 8px",
+        }}
+      >
+        <TeamRoomBackdrop cover={squad?.cover} squadKey={squad?.id ?? side} tone={tone} radius={18} presence={0.82} />
+        {squadLabel(squad?.name ?? (side === "mine" ? "Your Squad" : "Opponent"), count, tone, squad?.cover, squad?.id ?? side)}
+        {primaryId ? (
           <div
             style={{
               position: "relative",
               zIndex: 1,
               display: "flex",
+              flexDirection: useFilmstrip ? "column" : "row",
               gap: 8,
-              height: isPhone ? 90 : 110,
-              flexShrink: 0,
-              overflowX: "auto" as const,
-              WebkitOverflowScrolling: "touch",
+              height: "100%",
+              minHeight: 0,
             }}
           >
-            {rest.map((m) => (
-              <div
-                key={m.id}
-                style={{
-                  height: "100%",
-                  aspectRatio: isPhone ? "4/3" : "16/9",
-                  flexShrink: 0,
-                }}
-              >
-                <VideoTile
-                  name={m.name}
-                  colorIndex={m.ci}
-                  micOn={micOnFor(m.squad === "yours" && m.ci === 0, m.uid)}
-                  videoRef={participantRef(
-                    m.squad === "yours" && m.ci === 0,
-                    m.uid,
-                    m.squad === "opp" ? m.ci - 4 : undefined,
-                  )}
-                  isLocal={m.squad === "yours" && m.ci === 0}
-                  localAvatarValue={myAvatar}
-                  isSpeaking={isSpeakingFor(m.squad === "yours" && m.ci === 0, m.uid)}
-                  statusText={statusTextFor(m.squad === "yours" && m.ci === 0, m.uid)}
-                  onClick={() => handleTileClick(m.pkey)}
-                  showFocusHint
-                  compact
-                />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderFocusOpponent = () => {
-    // Only ever render REAL participants — never fabricate empty/placeholder users.
-    const oppList = oppMembers;
-    const myList = myMembers.length ? myMembers : [];
-    const cols = oppList.length <= 2 ? Math.max(oppList.length, 1) : oppList.length <= 4 ? 2 : 3;
-    const rows = Math.ceil(oppList.length / cols);
-    return (
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          padding: isPhone ? "8px 8px 0 8px" : "12px 16px 0 16px",
-          animation: "viewTransition 0.15s ease forwards",
-        }}
-      >
-        {/* Opponent tiles — fill the bulk of the stage, over the opponent's
-            themed room backdrop */}
-        {oppList.length === 0 ? (
-          <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 16, overflow: "hidden" }}>
-            <TeamRoomBackdrop cover={oppSquad?.cover} squadKey={oppSquad?.id ?? "opp"} tone="theirs" radius={16} presence={0.85} />
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <WaitingForSquad />
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+              {renderParticipant(primaryId, focusedFit)}
             </div>
+            {useFilmstrip ? renderFilmstrip(stripIds, side === "mine" ? "Yours" : "Theirs", tone) : stripIds.length > 0 && (
+              <div style={{ width: "29%", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
+                {stripIds.map((id) => (
+                  <div key={id} style={{ flex: 1, minHeight: 0 }}>
+                    {renderParticipant(id, "crop", true)}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
-        <div
-          style={{
-            position: "relative",
-            flex: 1,
-            minHeight: 0,
-            display: "grid",
-            gridTemplateColumns: `repeat(${cols}, 1fr)`,
-            gap: 16,
-            alignContent: "center",
-            justifyContent: "center",
-            borderRadius: 16,
-            padding: 8,
-          }}
-        >
-          <TeamRoomBackdrop cover={oppSquad?.cover} squadKey={oppSquad?.id ?? "opp"} tone="theirs" radius={16} presence={0.85} />
-          {oppList.map((m, i) => (
-            <div
-              key={m.memberId}
-              style={{ position: "relative", zIndex: 1, minHeight: 0, ...(isPhone ? { aspectRatio: "4/3" } : { aspectRatio: "16 / 9" }) }}
-            >
-              <VideoTile
-                name={m.displayName}
-                colorIndex={i + 4}
-                videoRef={participantRef(false, (m as { uid?: number }).uid, i)}
-                micOn={micOnFor(false, (m as { uid?: number }).uid)}
-                isSpeaking={isSpeakingFor(false, (m as { uid?: number }).uid)}
-                statusText={statusTextFor(false, (m as { uid?: number }).uid)}
-                onClick={() => handleTileClick(`opp-${i}` as ParticipantKey)}
-                showFocusHint
-              />
-            </div>
-          ))}
-        </div>
+          <div style={{ position: "relative", zIndex: 1, height: "100%", display: "grid", placeItems: "center" }}>
+            <WaitingForSquad label={side === "mine" ? "Waiting for your squad…" : "Waiting for the other squad…"} />
+          </div>
         )}
-        {/* My squad strip — fixed height, over my themed room backdrop */}
-        <div
-          style={{
-            position: "relative",
-            display: "flex",
-            gap: 8,
-            height: isPhone ? 90 : 110,
-            flexShrink: 0,
-            overflowX: "auto" as const,
-            WebkitOverflowScrolling: "touch",
-            borderRadius: 14,
-            padding: myList.length ? 6 : 0,
-          }}
-        >
-          {myList.length > 0 && (
-            <TeamRoomBackdrop cover={mySquad?.cover} squadKey={mySquad?.id ?? "mine"} tone="yours" radius={14} presence={0.85} />
-          )}
-          {myList.map((m, i) => (
-            <div
-              key={m.memberId}
-              style={{
-                position: "relative",
-                zIndex: 1,
-                height: "100%",
-                aspectRatio: isPhone ? "4/3" : "16/9",
-                flexShrink: 0,
-              }}
-            >
-              <VideoTile
-                name={m.displayName}
-                colorIndex={i}
-                videoRef={participantRef(i === 0, (m as { uid?: number }).uid, undefined)}
-                micOn={micOnFor(i === 0, (m as { uid?: number }).uid)}
-                isLocal={i === 0}
-                localAvatarValue={myAvatar}
-                isSpeaking={isSpeakingFor(i === 0, (m as { uid?: number }).uid)}
-                statusText={statusTextFor(i === 0, (m as { uid?: number }).uid)}
-                onClick={() => handleTileClick(`local-${i}` as ParticipantKey)}
-                showFocusHint
-                compact
-              />
-            </div>
-          ))}
+      </section>
+    );
+  }
+
+  function renderFocusedStage(withFilmstrip: boolean) {
+    const focusId = layout.focusId ?? layout.theirsPrimaryId ?? layout.minePrimaryId;
+    if (!focusId) return <WaitingForSquad />;
+    const local = participants.find((person) => person.isLocal);
+    const showSelfView = local && local.id !== focusId;
+    const mineIds = layout.mineStripIds.filter((id) => id !== local?.id);
+    const theirIds = layout.theirsStripIds;
+    const companionIds = participants.filter((person) => person.id !== focusId && person.id !== local?.id).map((person) => person.id);
+    return (
+      <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+        <SplitRoomBackdrop
+          mine={{ cover: mySquad?.cover, key: mySquad?.id ?? "mine" }}
+          opp={{ cover: oppSquad?.cover, key: oppSquad?.id ?? "theirs" }}
+        />
+        <div style={{ position: "relative", zIndex: 1, flex: 1, minHeight: 0 }}>
+          {renderParticipant(focusId, focusedFit)}
         </div>
+        {withFilmstrip
+          ? renderCombinedFilmstrip(mineIds, theirIds)
+          : companionIds.length > 0 && (
+            <div style={{ position: "absolute", right: 12, bottom: 12, zIndex: 5, width: isPhone ? 112 : 168, aspectRatio: "16 / 10" }}>
+              {renderParticipant(companionIds[0], "crop", true)}
+            </div>
+          )}
+        {showSelfView && (
+          <div style={{ position: "absolute", top: 12, right: 12, zIndex: 6, width: isPhone ? 96 : 148, aspectRatio: "16 / 10" }}>
+            {renderParticipant(local.id, "crop", true)}
+          </div>
+        )}
       </div>
     );
-  };
+  }
 
-  // The base view renderer (no focus override)
-  const renderStageByView = () => {
-    if (view === "versus") return renderVersus();
-    if (view === "grid") return renderGrid();
-    if (view === "spotlight") return renderSpotlight();
-    return renderFocusOpponent();
-  };
+  function renderAdaptiveStage() {
+    if (layout.kind === "remote-main") return renderFocusedStage(false);
+    if (layout.kind === "squad-split") {
+      return (
+        <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", gap: 8, flex: 1, minHeight: 0 }}>
+          {renderSquadSplitSide("mine")}
+          {renderSquadSplitSide("theirs")}
+        </div>
+      );
+    }
+    if (layout.kind === "featured-split") {
+      return (
+        <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", gap: 8, flex: 1, minHeight: 0 }}>
+          {renderFeaturedSide("mine", false)}
+          {renderFeaturedSide("theirs", false)}
+        </div>
+      );
+    }
+    if (layout.kind === "dual-focus") {
+      return (
+        <div style={{ display: "flex", flexDirection: "row", gap: 8, flex: 1, minHeight: 0 }}>
+          {renderFeaturedSide("mine", true)}
+          {renderFeaturedSide("theirs", true)}
+        </div>
+      );
+    }
+    return renderFocusedStage(true);
+  }
 
-  const renderStage = () => {
-    if (focusedKey) return renderFocused();
-    return renderStageByView();
-  };
+  const renderStage = () => (
+    <div
+      data-layout-kind={layout.kind}
+      style={{
+        position: "relative",
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        padding: isPhone ? 6 : 10,
+        overflow: "hidden",
+      }}
+    >
+      {renderAdaptiveStage()}
+    </div>
+  );
 
   // ── CONTROL BUTTONS CONFIG ────────────────────────────────────────────────
 
@@ -1801,9 +1575,8 @@ function EncounterInner() {
     },
   ];
 
-  // Derive focusedKey's display name for the chip
-  const focusedMemberName = focusedKey
-    ? allMembers.find((m) => m.pkey === focusedKey)?.name ?? null
+  const pinnedMemberName = pinnedId
+    ? participantById.get(pinnedId)?.name ?? null
     : null;
 
   if (!squadId || !encId) {
@@ -1817,7 +1590,7 @@ function EncounterInner() {
           <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14 }}>This live room link is missing required details.</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             {squadId && (
-              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Back to lobby</button>
+              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Find a match</button>
             )}
             <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: "pointer" }}>Home</button>
           </div>
@@ -1845,7 +1618,7 @@ function EncounterInner() {
           <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14 }}>{encounterError ?? "This live room could not be loaded."}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             {squadId && (
-              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Back to lobby</button>
+              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Find a match</button>
             )}
             <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: "pointer" }}>Home</button>
           </div>
@@ -1878,8 +1651,8 @@ function EncounterInner() {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: isPhone ? 6 : 12,
-            padding: isPhone ? "7px 10px" : "9px 20px",
+            gap: isPhoneChrome ? 6 : 12,
+            padding: isPhoneChrome ? "7px 10px" : "9px 20px",
             background: "linear-gradient(180deg, rgba(20,20,28,0.98), rgba(14,14,20,0.96))",
             borderBottom: "1px solid rgba(255,255,255,0.07)",
             boxShadow: "0 1px 0 rgba(255,255,255,0.03) inset, 0 4px 20px -12px rgba(0,0,0,0.8)",
@@ -1894,7 +1667,7 @@ function EncounterInner() {
           {/* Squad names — desktop only. On phone they truncate to ugly "C… vs
               B…" and each video panel already carries its squad label, so we
               hide them here for a clean, uncluttered top bar. */}
-          <div style={{ display: isPhone ? "none" : "flex", alignItems: "center", gap: isPhone ? 5 : 8, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" as const, flexShrink: 1 }}>
+          <div style={{ display: isPhoneChrome ? "none" : "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" as const, flexShrink: 1 }}>
             <CoverThumb cover={mySquad?.cover} squadKey={mySquad?.id ?? "mine"} tone="yours" size={isPhone ? 16 : 18} radius={5} />
             <span
               style={{
@@ -1912,6 +1685,7 @@ function EncounterInner() {
             >
               {mySquad?.name ?? "Your Squad"}
             </span>
+            <span style={{ color: textMuted, fontSize: 11, fontWeight: 700 }}>{mineParticipants.length}</span>
             <span style={{ color: textMuted, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>vs</span>
             <CoverThumb cover={oppSquad?.cover} squadKey={oppSquad?.id ?? "opp"} tone="theirs" size={isPhone ? 16 : 18} radius={5} />
             <span
@@ -1930,13 +1704,14 @@ function EncounterInner() {
             >
               {oppSquad?.name ?? "Opponent"}
             </span>
+            <span style={{ color: textMuted, fontSize: 11, fontWeight: 700 }}>{theirParticipants.length}</span>
           </div>
 
           {/* Focused chip — only shown when a person is pinned */}
-          {focusedMemberName && (
+          {pinnedMemberName && (
             <div
               style={{
-                display: isPhone ? "none" : "flex",
+                display: isPhoneChrome ? "none" : "flex",
                 alignItems: "center",
                 gap: 6,
                 background: "rgba(124,92,255,0.18)",
@@ -1951,9 +1726,9 @@ function EncounterInner() {
               }}
             >
               <Icon.pin size={12} color="#C4B5FF" />
-              <span style={{ maxWidth: isPhone ? 70 : 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{focusedMemberName}</span>
+              <span style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{pinnedMemberName}</span>
               <button
-                onClick={() => setFocusedKey(null)}
+                onClick={() => setPinnedId(null)}
                 style={{
                   background: "none",
                   border: "none",
@@ -1973,126 +1748,49 @@ function EncounterInner() {
             </div>
           )}
 
-          {/* Spacer */}
-          <div style={{ display: isCompactPhone ? "none" : "block", flex: 1 }} />
+          <div style={{ flex: 1 }} />
 
-          {/* View mode switcher — horizontally scrollable strip; shrinks before
-              the squad names do so it never forces overflow on phone. */}
-          <div style={{ position: "relative", flexShrink: isCompactPhone ? 0 : 1, minWidth: 0, width: isCompactPhone ? "max-content" : undefined, margin: isCompactPhone ? "0 auto" : 0 }}>
-          <div style={{ overflowX: "auto" as const, minWidth: 0, WebkitOverflowScrolling: "touch" }}>
-          <div
-            role="tablist"
-            aria-label="View mode"
-            style={{
-              display: "inline-flex",
-              gap: 4,
-              background: "var(--overlay, rgba(255,255,255,0.04))",
-              borderRadius: 999,
-              padding: "3px 5px",
-              border: "1px solid var(--border, rgba(255,255,255,0.07))",
-              width: "max-content",
-            }}
-          >
-            {VIEW_MODES.filter(({ mode }) => !isPhone || mode === "versus" || mode === "grid").map(({ mode, label }) => {
-              const isActive = view === mode;
-              const isHovered = hoveredViewMode === mode;
-              return (
-                <button
-                  key={mode}
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => { setView(mode); setFocusedKey(null); }}
-                  onMouseEnter={() => setHoveredViewMode(mode)}
-                  onMouseLeave={() => setHoveredViewMode(null)}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {connState === "CONNECTED" ? (
+              <>
+                <span
                   style={{
-                    padding: "5px 13px",
-                    borderRadius: 999,
-                    border: "none",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-inter)",
-                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
                     fontSize: 12,
-                    // Accent follows the active theme (violet → iris → tangerine).
-                    background: isActive
-                      ? "linear-gradient(180deg, var(--violet-bright, #8A6BFF), var(--violet, #7C5CFF))"
-                      : isHovered
-                      ? "var(--overlay-hover, rgba(255,255,255,0.08))"
-                      : "transparent",
-                    // Inactive stays clearly legible (not a faded grey that
-                    // reads as half-disabled) — both views are always tappable.
-                    color: isActive ? "var(--on-accent, #fff)" : "rgba(255,255,255,0.82)",
-                    boxShadow: isActive
-                      ? "0 2px 12px -2px color-mix(in srgb, var(--violet, #7C5CFF) 60%, transparent), inset 0 1px 0 rgba(255,255,255,0.25)"
-                      : "none",
-                    transition: "background .2s cubic-bezier(.4,0,.2,1), color .2s, box-shadow .2s",
-                    whiteSpace: "nowrap" as const,
+                    fontWeight: 800,
+                    color: coral,
+                    background: "color-mix(in srgb, var(--coral, #FF5C5C) 10%, transparent)",
+                    border: "1px solid color-mix(in srgb, var(--coral, #FF5C5C) 20%, transparent)",
+                    borderRadius: 999,
+                    padding: isPhoneChrome ? "2px 7px" : "3px 10px",
+                    letterSpacing: ".08em",
                   }}
                 >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-          </div>
-          {/* Phone scroll hint — a subtle right-edge fade signalling more modes */}
-          {isPhone && (
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                top: 0,
-                bottom: 0,
-                right: 0,
-                width: 22,
-                pointerEvents: "none",
-                background: "linear-gradient(to right, transparent, rgba(14,14,20,0.92))",
-                borderRadius: "0 999px 999px 0",
-              }}
-            />
-          )}
-          </div>
-
-          {/* LIVE pill + timer */}
-          {/* Always visible — squad names truncate/hide first on tight phones. */}
-          <div style={{ display: "flex", alignItems: "center", gap: isPhone ? 6 : 10, flexShrink: 0 }}>
-            <span
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: isPhone ? 4 : 5,
-                fontSize: 12,
-                fontWeight: 700,
-                color: coral,
-                background: "color-mix(in srgb, var(--coral, #FF5C5C) 10%, transparent)",
-                border: "1px solid color-mix(in srgb, var(--coral, #FF5C5C) 20%, transparent)",
-                borderRadius: 999,
-                padding: isPhone ? "2px 7px" : "3px 10px",
-                letterSpacing: "0.08em",
-              }}
-            >
+                  <span style={{ width: 6, height: 6, borderRadius: 999, background: coral, animation: "livePulse 1.6s ease-in-out infinite" }} />
+                  LIVE
+                </span>
+                <span style={{ color: textPrimary, fontSize: isPhoneChrome ? 13 : 14, fontWeight: 700, minWidth: isPhoneChrome ? 38 : 48 }}>
+                  {fmt(elapsed)}
+                </span>
+              </>
+            ) : (
               <span
+                role="status"
                 style={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: 999,
-                  background: coral,
-                  display: "inline-block",
-                  animation: "livePulse 1.6s ease-in-out infinite",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  color: connState === "DISCONNECTED" ? coral : textMuted,
+                  fontSize: 12,
+                  fontWeight: 700,
                 }}
-              />
-              LIVE
-            </span>
-            <span
-              style={{
-                fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                fontSize: isPhone ? 13 : 14,
-                fontWeight: 700,
-                color: textPrimary,
-                minWidth: isPhone ? 38 : 48,
-              }}
-            >
-              {fmt(elapsed)}
-            </span>
+              >
+                <span style={{ width: 7, height: 7, borderRadius: 999, background: connState === "DISCONNECTED" ? coral : "var(--amber, #FFB020)" }} />
+                {connState === "RECONNECTING" ? "Reconnecting" : connState === "DISCONNECTED" ? "Offline" : "Connecting"}
+              </span>
+            )}
           </div>
         </div>
 
