@@ -24,9 +24,12 @@ test("mobile encounter derives one adaptive layout from stable identities and re
   assert.equal(page.includes("uid: m.uid"), true);
   assert.equal(page.includes("String(remote.uid) === String(person.uid)"), true);
   assert.equal(page.includes("width < 600 ? 'phone' : width < 900 ? 'narrow' : 'wide'"), true);
+  assert.equal(page.includes("height >= Math.max(width, 640)"), true);
   assert.equal(page.includes("onVolumes"), true);
   assert.equal(page.includes("onConnectionState"), true);
   assert.equal(page.includes("onCaptureState"), true);
+  assert.equal(page.includes("state.audio === 'denied' || state.audio === 'unavailable'"), true);
+  assert.equal(page.includes("state.video === 'denied' || state.video === 'unavailable'"), true);
   assert.equal(page.includes('fit="fit"'), true);
   assert.equal(page.includes('fit="crop"'), true);
   for (const kind of ['remote-main', 'squad-split', 'featured-split', 'single-focus', 'dual-focus']) {
@@ -69,6 +72,18 @@ test("mobile encounter keeps five controls while chat, More, reactions, and endi
   assert.equal(endBlock.indexOf("await api.disconnectEncounter(squadId, encId);") >= 0, true);
   assert.equal(endBlock.indexOf("await vcRef.current?.leave();") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
   assert.equal(page.includes("Couldn't end this encounter yet."), true);
+});
+
+test("mobile encounter exits cleanly when the other squad ends the call", () => {
+  const page = source();
+
+  assert.equal(page.includes("connectSocket(squadId)"), true);
+  assert.equal(page.includes("SOCKET_EVENTS.ENCOUNTER_ENDED"), true);
+  assert.equal(page.includes("payload?.endedBySquadId === squadId"), true);
+  assert.equal(page.includes("payload?.reason === 'squad_disconnected'"), true);
+  assert.equal(page.includes("The other squad left"), true);
+  assert.equal(page.includes("Your squad is already back in matchmaking."), true);
+  assert.equal(page.includes("Continue matching"), true);
 });
 
 test("encounter report control is disabled unless a valid report payload exists", () => {

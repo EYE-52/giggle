@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   advanceSpeakerFocus,
   api,
+  connectSocket,
   createReportOpponentPayload,
   deriveEncounterLayout,
   EMPTY_SPEAKER_FOCUS,
@@ -22,6 +23,8 @@ import {
   sendChatMessage,
   sendReaction,
   session,
+  SOCKET_EMIT,
+  SOCKET_EVENTS,
   subscribeChat,
   subscribeReaction,
 } from '@giggle/core';
@@ -119,6 +122,8 @@ export default function EncounterScreen() {
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [ending, setEnding] = useState(false);
   const [endError, setEndError] = useState('');
+  const [remoteEnded, setRemoteEnded] = useState<'opponent-left' | 'ended' | null>(null);
+  const [remoteEndError, setRemoteEndError] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const chatVisibleRef = useRef(false);
@@ -175,7 +180,12 @@ export default function EncounterScreen() {
       if (state === 'DISCONNECTED') setVideoError('Video disconnected. Chat is still available.');
     });
     const captureUnsub = vc.onCaptureState?.((state) => {
-      if (vcRef.current === vc) setCaptureState(state);
+      if (vcRef.current !== vc) return;
+      setCaptureState(state);
+      if (state.audio === 'active') setMic(true);
+      else if (state.audio === 'denied' || state.audio === 'unavailable') setMic(false);
+      if (state.video === 'active') setCam(true);
+      else if (state.video === 'denied' || state.video === 'unavailable') setCam(false);
     });
     if (volumeUnsub) videoUnsubsRef.current.push(volumeUnsub);
     if (connectionUnsub) videoUnsubsRef.current.push(connectionUnsub);
@@ -258,6 +268,30 @@ export default function EncounterScreen() {
       unsubscribeChat();
       unsubscribeReaction();
     };
+  }, [encId, squadId]);
+
+  useEffect(() => {
+    if (!encId || !squadId) return;
+    const socket = connectSocket(squadId);
+    socket.emit(SOCKET_EMIT.JOIN_ENCOUNTER, encId);
+    const onEnded = (payload?: { encounterId?: string; reason?: string; endedBySquadId?: string }) => {
+      if (payload?.encounterId && payload.encounterId !== encId) return;
+      if (payload?.endedBySquadId === squadId) return;
+      setShowChat(false);
+      setMoreOpen(false);
+      setEndConfirmOpen(false);
+      setRemoteEndError('');
+      setRemoteEnded(payload?.reason === 'squad_disconnected' ? 'opponent-left' : 'ended');
+      setVideoReady(false);
+      joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
+        const staleClient = vcRef.current;
+        vcRef.current = null;
+        clearVideoListeners();
+        try { await staleClient?.leave(); } catch {}
+      });
+    };
+    socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED, onEnded);
+    return () => { socket.off(SOCKET_EVENTS.ENCOUNTER_ENDED, onEnded); };
   }, [encId, squadId]);
 
   chatVisibleRef.current = showChat;
@@ -540,7 +574,7 @@ export default function EncounterScreen() {
   }
 
   const compactHeader = viewportClass === 'phone' || height < 500;
-  const stackSides = viewportClass === 'phone' && height >= width;
+  const stackSides = viewportClass === 'phone' && height >= Math.max(width, 640);
   const captureIssues = [
     captureState.audio === 'denied' ? 'Microphone permission is blocked.'
       : captureState.audio === 'unavailable' ? 'No usable microphone was found.' : null,
@@ -1122,6 +1156,56 @@ export default function EncounterScreen() {
           </View>
         </View>
       </Modal>
+
+      <Modal
+        visible={remoteEnded !== null}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => router.replace('/home')}
+      >
+        <View style={styles.confirmOverlay}>
+          <View accessibilityViewIsModal style={styles.confirmCard}>
+            <Text style={styles.remoteEndedIcon}>👋</Text>
+            <Text style={styles.confirmTitle}>
+              {remoteEnded === 'opponent-left' ? 'The other squad left' : 'Encounter ended'}
+            </Text>
+            <Text style={styles.confirmCopy}>
+              {remoteEnded === 'opponent-left' ? 'Your squad is already back in matchmaking.' : 'Thanks for hanging out.'}
+            </Text>
+            {remoteEndError ? <Text style={styles.endError} accessibilityRole="alert">{remoteEndError}</Text> : null}
+            <View style={styles.confirmActions}>
+              <TouchableOpacity
+                onPress={() => router.replace('/home')}
+                accessibilityRole="button"
+                accessibilityLabel="Back home"
+                style={styles.confirmSecondary}
+              >
+                <Text style={styles.confirmSecondaryText}>Back home</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!squadId) return router.replace('/home');
+                  setRemoteEndError('');
+                  try {
+                    if (remoteEnded !== 'opponent-left') await api.startSearch(squadId);
+                    router.replace(`/matchmaking?squad=${squadId}`);
+                  } catch (error: any) {
+                    setRemoteEndError(error?.message || "Couldn't start matchmaking.");
+                  }
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
+                style={styles.confirmDanger}
+              >
+                <Text style={styles.confirmDangerText}>
+                  {remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -1331,6 +1415,7 @@ const styles = StyleSheet.create({
   actionText: { flex: 1, color: COLORS.text, fontSize: 14, fontWeight: '700' },
   confirmOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.lg, backgroundColor: 'rgba(0,0,0,0.68)' },
   confirmCard: { width: '100%', maxWidth: 420, padding: SPACE.lg, borderRadius: RADII.card, backgroundColor: COLORS.bg, borderWidth: 1, borderColor: COLORS.border },
+  remoteEndedIcon: { fontSize: 32, marginBottom: SPACE.sm },
   confirmTitle: { color: COLORS.text, fontSize: 20, fontWeight: '900' },
   confirmCopy: { color: COLORS.textMuted, fontSize: 13, lineHeight: 20, marginTop: SPACE.sm },
   endError: { color: COLORS.coral, fontSize: 12, lineHeight: 18, marginTop: SPACE.md },

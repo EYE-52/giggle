@@ -12,12 +12,12 @@ Make every Giggle route clean, useful, truthful, accessible, and deliberately re
 
 | Surface | Result | What it proves |
 | --- | --- | --- |
-| Core | 25/25 tests pass | Shared API, session, billing, reporting, chat, and reaction contracts covered by the suite are green. |
+| Core | 31/31 tests pass | Shared layout, API, session, reporting, chat, reaction, and encounter socket contracts covered by the suite are green. |
 | Server | 111/111 tests pass | Current backend validation, auth, matching, privacy, realtime, and profile contracts covered by the suite are green. |
-| Mobile | 54/54 tests pass; TypeScript passes | Existing source contracts compile and pass, but the tests do not prove visual quality or full web/native parity. |
-| Desktop | 73/94 tests pass | Twenty-one checks fail. The failures mix real regressions, stale source-string assertions, and incorrect post-monorepo paths. |
+| Mobile | 57/57 tests pass; TypeScript and web export pass | Encounter source contracts compile and export, but native device rendering remains unverified. |
+| Desktop | 78/98 tests pass; 11/11 Encounter checks pass | Twenty unrelated checks fail. The failures mix real regressions, stale source-string assertions, and incorrect post-monorepo paths. |
 | Desktop build | Passes; 19 routes generated | Production compilation succeeds. Current Node `25.6.1` is outside the declared `>=20.18 <25` engine. |
-| Visual browser audit | Not run | The in-app browser had no runtime and Computer Use could not start its native pipe. No route is pixel-approved from source inspection alone. |
+| Encounter browser audit | 5/5 Playwright checks pass | Real phone/desktop calls, opponent exit, 45 roster/viewport compositions, dialogs, themes, reduced motion, and effective 200% zoom pass. Other routes remain unverified. |
 
 ## Journey 1: Lobby to Encounter
 
@@ -45,7 +45,11 @@ Make every Giggle route clean, useful, truthful, accessible, and deliberately re
 - Approved direction: Squad Split by default, tap-to-focus filmstrip for dense calls, and focused media shown with Fit plus blurred fill so ultrawide feeds do not crop to teeth.
 - Capacity is up to 8 people per squad, 16 total.
 - Reactions appear near the sender, float, and fade after about 1.8 seconds.
-- Implementation planning remains gated on review of `docs/superpowers/specs/2026-07-30-responsive-encounter-design.md` and the live-journey direction.
+- Web and native now share the adaptive layout policy and stable participant identity mapping. Compact 3v3 uses side-by-side squad regions; dense phone calls use a focused stage plus a segmented, horizontally scrollable `Yours`/`Theirs` filmstrip.
+- The live two-browser phone and desktop checks prove real media frames, pin/unpin, Fit/Crop, chat focus recovery, report placement, end confirmation, and sender-anchored reaction removal between 1700–2100ms.
+- The web matrix covers 1v1, 2v2, 3v3, 4v4, and 8v8 at all nine required viewport sizes. Screenshots are under `apps/desktop/artifacts/visual-audit/2026-07-30/encounter/`.
+- Asymmetric call ending now identifies the squad that left. The remaining web and native clients show `The other squad left` with `Continue matching`; the web two-browser recovery check passes.
+- Browser permission denial could not be made deterministic because headless Agora disconnects before calling the injected `getUserMedia`. Independent capture state is covered by adapter/source checks; real iOS and Android permission, rotation, safe-area, and keyboard checks remain open.
 
 ## Journey 2: Signed-In Product
 
@@ -87,9 +91,20 @@ Make every Giggle route clean, useful, truthful, accessible, and deliberately re
 - Privacy and Terms use the shared dark `LegalPage`; the current failure checks theme markup in the route files instead of the shared component.
 - Native onboarding tests pass, but its real phone/tablet composition still needs screenshots and keyboard/rotation checks.
 
+## Encounter Verification Evidence
+
+- `pnpm --filter @giggle/core test` — 31/31 pass.
+- `pnpm --filter @giggle/mobile test` — 57/57 pass.
+- `pnpm --filter @giggle/mobile typecheck` — pass.
+- `EXPO_PUBLIC_BACKEND_URL=http://127.0.0.1:3001 pnpm --filter @giggle/mobile export:web` — pass; 12 static routes exported.
+- `pnpm --filter @giggle/desktop exec tsc --noEmit --pretty false` — pass.
+- `pnpm --filter @giggle/desktop build` — pass; 19 routes generated.
+- `cd server && npm test` — 111/111 pass.
+- `pnpm --filter @giggle/desktop exec playwright test e2e/encounter.spec.ts` — 5 pass, 15 intentionally skipped project duplicates; live phone/desktop and the 45-case matrix pass.
+
 ## Desktop Failure Triage
 
-The 21 failures are not one category:
+The 20 failures are not one category and none is an Encounter check:
 
 - **Likely real UI/behavior regressions:** compact matchmaking, Lobby readiness contract, phone Encounter height, Home first-run composition, Friends failure states, and Profile hierarchy.
 - **Stale implementation-string assertions:** Home/Friends toast handling, Discover header condition, Premium disabled-button structure, legal theme placement, and picker/modal composition.
@@ -108,9 +123,9 @@ For every route and meaningful state, record overflow, clipping, target sizes, k
 
 ## Next Gates
 
-1. Approve one live-journey direction in the visual companion.
+1. Run the open Encounter checks on real iOS and Android phone/tablet runtimes; do not call native Encounter pixel-approved before that evidence exists.
 2. Write and review the Lobby/Matchmaking/Match design spec and implementation plan.
-3. Implement the live journey by restoring existing good code before adding new code.
+3. Implement the remaining live journey by restoring existing good code before adding new code.
 4. Restore the already-approved Home, Friends, Profile, and Lobby responsive contracts selectively from history.
 5. Design the missing native parity work for Home, Discover, Friends, Profile, and Wallet.
-6. Run visual verification when a controllable browser/runtime is available; keep every unobserved pixel claim open until then.
+6. Continue the same browser matrix route by route; keep every unobserved pixel claim open.

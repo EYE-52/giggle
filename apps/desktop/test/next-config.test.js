@@ -479,6 +479,8 @@ test("desktop encounter reports media failures and retries the existing call", (
   assert.equal(page.includes("onCaptureState"), true);
   assert.equal(page.includes("Microphone permission is blocked."), true);
   assert.equal(page.includes("Camera permission is blocked."), true);
+  assert.equal(page.includes('next.audio === "denied" || next.audio === "unavailable"'), true);
+  assert.equal(page.includes('next.video === "denied" || next.video === "unavailable"'), true);
   assert.equal(page.includes("function retryVideo()"), true);
   assert.equal(page.includes("await joinVideo();"), true);
   assert.equal(page.includes("Video disconnected — chat is still available."), true);
@@ -502,6 +504,10 @@ test("desktop encounter confirms and ends on the backend before leaving media", 
   assert.equal(page.includes('title="End encounter?"'), true);
   assert.equal(page.includes("This ends the current encounter for both squads."), true);
   assert.equal(page.includes("setEndConfirmOpen(true)"), true);
+  assert.equal(page.includes("SOCKET_EVENTS.ENCOUNTER_ENDED"), true);
+  assert.equal(page.includes('payload?.reason === "squad_disconnected"'), true);
+  assert.equal(page.includes('payload?.endedBySquadId === squadId'), true);
+  assert.equal(page.includes("Continue matching"), true);
   assert.equal(endBlock.includes('console.error("End encounter failed (non-fatal):", e);'), false);
 });
 

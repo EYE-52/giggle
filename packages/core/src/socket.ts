@@ -59,6 +59,8 @@ export function disconnectSocket() {
 export const SOCKET_EVENTS = {
   SQUAD_UPDATED: "SQUAD_UPDATED",
   MATCH_FOUND: "MATCH_FOUND",
+  ENCOUNTER_ACTIVE: "ENCOUNTER_ACTIVE",
+  ENCOUNTER_ENDED: "ENCOUNTER_ENDED",
   NEW_MESSAGE: "new_message",
   NEW_REACTION: "new_reaction",
   NOTIFICATION: "notification",

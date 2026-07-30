@@ -838,6 +838,7 @@ function EncounterInner() {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [focusedFit, setFocusedFit] = useState<MediaFit>("fit");
   const [selfViewMinimized, setSelfViewMinimized] = useState(false);
+  const [stripSide, setStripSide] = useState<"mine" | "theirs">("mine");
   const [speakerFocus, setSpeakerFocus] = useState(EMPTY_SPEAKER_FOCUS);
 
   // Hover states
@@ -975,7 +976,12 @@ function EncounterInner() {
       if (vcRef.current === vc) setRemotes(next);
     });
     vc.onCaptureState?.((next) => {
-      if (vcRef.current === vc) setCaptureState(next);
+      if (vcRef.current !== vc) return;
+      setCaptureState(next);
+      if (next.audio === "active") setMicOn(true);
+      else if (next.audio === "denied" || next.audio === "unavailable") setMicOn(false);
+      if (next.video === "active") setCamOn(true);
+      else if (next.video === "denied" || next.video === "unavailable") setCamOn(false);
     });
     vc.onVolumes?.((levels) => {
       if (vcRef.current !== vc) return;
@@ -1010,11 +1016,12 @@ function EncounterInner() {
     let cancelled = false;
     let bannerTimer: ReturnType<typeof setTimeout> | undefined;
     let socket: ReturnType<typeof connectSocket> | undefined;
-    let endedEvent = "ENCOUNTER_ENDED";
-    let activeEvent = "ENCOUNTER_ACTIVE";
-    const onEnded = (payload?: unknown) => {
-      const blob = JSON.stringify(payload ?? "");
-      setEndedReason(/left|leave|disconnect|abandon/i.test(blob) ? "opponent-left" : "ended");
+    const endedEvent = SOCKET_EVENTS.ENCOUNTER_ENDED;
+    const activeEvent = SOCKET_EVENTS.ENCOUNTER_ACTIVE;
+    const onEnded = (payload?: { encounterId?: string; reason?: string; endedBySquadId?: string }) => {
+      if (payload?.encounterId && payload.encounterId !== encId) return;
+      if (payload?.endedBySquadId === squadId) return;
+      setEndedReason(payload?.reason === "squad_disconnected" ? "opponent-left" : "ended");
       setEndedNotice(true);
       // Give people time to read the overlay + choose an action before we
       // auto-return home.
@@ -1062,8 +1069,6 @@ function EncounterInner() {
 
     // Lifecycle: opponent (or server) ended the encounter -> show a brief notice
     // then return home so the user isn't stuck on a dead call.
-      endedEvent = (SOCKET_EVENTS as Record<string, string>).ENCOUNTER_ENDED ?? "ENCOUNTER_ENDED";
-      activeEvent = (SOCKET_EVENTS as Record<string, string>).ENCOUNTER_ACTIVE ?? "ENCOUNTER_ACTIVE";
     socket.on(endedEvent, onEnded);
     socket.on(activeEvent, onActive);
 
@@ -1423,6 +1428,8 @@ function EncounterInner() {
           display: "flex",
           alignItems: "stretch",
           gap: 8,
+          width: "100%",
+          minWidth: 0,
           height: isPhone ? 82 : 104,
           minHeight: 0,
           flexShrink: 0,
@@ -1458,51 +1465,85 @@ function EncounterInner() {
     );
   }
 
-  function renderCombinedFilmstrip(mineIds: string[], theirIds: string[]) {
+  function renderSegmentedFilmstrip(mineIds: string[], theirIds: string[]) {
     if (!mineIds.length && !theirIds.length) return null;
+    const selectedIds = stripSide === "mine" ? mineIds : theirIds;
     return (
       <div
         style={{
+          position: "relative",
+          zIndex: 1,
           display: "flex",
-          alignItems: "stretch",
-          gap: 8,
-          height: isPhone ? 82 : 104,
+          flexDirection: "column",
+          gap: 6,
+          width: "100%",
+          minWidth: 0,
+          height: isPhone ? 138 : 160,
           flexShrink: 0,
-          overflowX: "auto",
-          WebkitOverflowScrolling: "touch",
         }}
       >
-        {[
-          { label: "Yours", tone: "yours" as SideTone, ids: mineIds },
-          { label: "Theirs", tone: "theirs" as SideTone, ids: theirIds },
-        ].map((group) => group.ids.length > 0 && (
-          <div key={group.label} style={{ display: "contents" }}>
+        <div role="group" aria-label="Filmstrip squad" style={{ display: "flex", gap: 4, height: 50, padding: 3, borderRadius: 999, background: "rgba(12,12,18,.86)", alignSelf: "center" }}>
+          {(["mine", "theirs"] as const).map((side) => {
+            const selected = stripSide === side;
+            return (
+              <button
+                key={side}
+                type="button"
+                onClick={() => setStripSide(side)}
+                aria-pressed={selected}
+                aria-label={side === "mine" ? "Show your squad" : "Show opponent squad"}
+                style={{
+                  minWidth: 92,
+                  height: 44,
+                  padding: "0 14px",
+                  border: selected ? "1px solid rgba(255,255,255,.16)" : "1px solid transparent",
+                  borderRadius: 999,
+                  background: selected ? "rgba(255,255,255,.1)" : "transparent",
+                  color: side === "mine" ? lime : coral,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  letterSpacing: ".08em",
+                  textTransform: "uppercase",
+                  cursor: "pointer",
+                }}
+              >
+                {side === "mine" ? "Yours" : "Theirs"}
+              </button>
+            );
+          })}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "stretch",
+            gap: 8,
+            width: "100%",
+            minWidth: 0,
+            height: isPhone ? 82 : 104,
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          {selectedIds.map((id) => (
+            <div key={id} style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}>
+              {renderParticipant(id, "crop", true)}
+            </div>
+          ))}
+          {!selectedIds.length && (
             <div
               style={{
-                position: "sticky",
-                left: 0,
-                zIndex: 3,
-                display: "flex",
+                width: "100%",
+                display: "grid",
                 alignItems: "center",
-                padding: "0 8px",
-                color: group.tone === "yours" ? lime : coral,
-                background: "rgba(12,12,18,.86)",
-                borderRadius: 10,
-                fontSize: 11,
-                fontWeight: 800,
-                letterSpacing: ".08em",
-                textTransform: "uppercase",
+                justifyContent: "center",
+                color: textMuted,
+                fontSize: 12,
               }}
             >
-              {group.label}
+              No other participants
             </div>
-            {group.ids.map((id) => (
-              <div key={id} style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}>
-                {renderParticipant(id, "crop", true)}
-              </div>
-            ))}
-          </div>
-        ))}
+          )}
+        </div>
       </div>
     );
   }
@@ -1608,7 +1649,7 @@ function EncounterInner() {
     const theirIds = layout.theirsStripIds;
     const companionIds = participants.filter((person) => person.id !== focusId && person.id !== local?.id).map((person) => person.id);
     return (
-      <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
         <SplitRoomBackdrop
           mine={{ cover: mySquad?.cover, key: mySquad?.id ?? "mine" }}
           opp={{ cover: oppSquad?.cover, key: oppSquad?.id ?? "theirs" }}
@@ -1617,7 +1658,7 @@ function EncounterInner() {
           {renderParticipant(focusId, focusedFit)}
         </div>
         {withFilmstrip
-          ? renderCombinedFilmstrip(mineIds, theirIds)
+          ? renderSegmentedFilmstrip(mineIds, theirIds)
           : companionIds.length > 0 && (
             <div style={{ position: "absolute", right: 12, bottom: 12, zIndex: 5, width: isPhone ? 112 : 168, aspectRatio: "16 / 10" }}>
               {renderParticipant(companionIds[0], "crop", true)}
@@ -1636,7 +1677,7 @@ function EncounterInner() {
     if (layout.kind === "remote-main") return renderFocusedStage(false);
     if (layout.kind === "squad-split") {
       return (
-        <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", gap: 8, flex: 1, minHeight: 0 }}>
+        <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", gap: 8, flex: 1, minWidth: 0, minHeight: 0 }}>
           {renderSquadSplitSide("mine")}
           {renderSquadSplitSide("theirs")}
         </div>
@@ -1644,7 +1685,7 @@ function EncounterInner() {
     }
     if (layout.kind === "featured-split") {
       return (
-        <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", gap: 8, flex: 1, minHeight: 0 }}>
+        <div style={{ display: "flex", flexDirection: isPhone && height >= Math.max(width, 640) ? "column" : "row", gap: 8, flex: 1, minWidth: 0, minHeight: 0 }}>
           {renderFeaturedSide("mine", false)}
           {renderFeaturedSide("theirs", false)}
         </div>
@@ -1652,7 +1693,7 @@ function EncounterInner() {
     }
     if (layout.kind === "dual-focus") {
       return (
-        <div style={{ display: "flex", flexDirection: "row", gap: 8, flex: 1, minHeight: 0 }}>
+        <div style={{ display: "flex", flexDirection: "row", gap: 8, flex: 1, minWidth: 0, minHeight: 0 }}>
           {renderFeaturedSide("mine", true)}
           {renderFeaturedSide("theirs", true)}
         </div>
@@ -2287,15 +2328,15 @@ function EncounterInner() {
                     onClick={async () => {
                       if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
                       setFindingNextMatch(true);
-                      // Mirror how the lobby enters matchmaking: start the
-                      // search server-side, then open the matchmaking screen.
-                      try { await api.startSearch(squadId); } catch {}
+                      if (endedReason !== "opponent-left") {
+                        try { await api.startSearch(squadId); } catch {}
+                      }
                       router.push(`/matchmaking?squad=${squadId}`);
                     }}
                     loading={findingNextMatch}
                     variant="primary"
                   >
-                    Find another match
+                    {endedReason === "opponent-left" ? "Continue matching" : "Find another match"}
                   </Button>
                   <Button
                     onClick={() => {

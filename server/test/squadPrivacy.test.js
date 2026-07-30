@@ -86,6 +86,8 @@ test("asymmetric encounter end rolls opponent back to idle when requeue fails", 
   const asymmetricHandler = section(service, "const endEncounterAsymmetric", "// ── Stuck-encounter sweeper");
 
   assert.equal(asymmetricHandler.includes("let otherQueued = false;"), true);
+  assert.equal(asymmetricHandler.includes('reason: "squad_disconnected"'), true);
+  assert.equal(asymmetricHandler.includes("endedBySquadId: disconnectingSquadId"), true);
   assert.equal(asymmetricHandler.includes("otherQueued = true;"), true);
   assert.match(asymmetricHandler, /catch \(error\) \{[\s\S]*if \(!otherQueued\) \{[\s\S]*await rollbackSquadsToIdle\(\[otherSquadId\]\);[\s\S]*\}[\s\S]*throw error;[\s\S]*\}/);
 });

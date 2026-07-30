@@ -758,7 +758,7 @@ For each size assert no horizontal document overflow, no clipped control dock, n
 
 Repeat the core visual states under dark, light, and Tangerine themes. Verify that theme changes affect chrome accents without making the media stage light or lowering text/control contrast.
 
-- [ ] **Step 3: Run automated gates**
+- [x] **Step 3: Run automated gates**
 
 Run:
 
@@ -774,7 +774,7 @@ cd server && npm test
 
 Expected: core, mobile, server, and build gates PASS. Desktop failures unrelated to Encounter remain explicitly triaged; no Encounter regression may remain.
 
-- [ ] **Step 4: Run web E2E when the project browser runtime is available**
+- [x] **Step 4: Run web E2E when the project browser runtime is available**
 
 Run: `pnpm --filter @giggle/desktop test:e2e -- encounter.spec.ts`
 

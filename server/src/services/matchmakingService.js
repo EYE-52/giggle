@@ -459,9 +459,14 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   encounter.endedAt = new Date();
   await encounter.save();
 
-  // Notify squads
-  socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-  socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+  // Tell both clients who ended the call; the remaining squad is requeued below.
+  const endedPayload = {
+    encounterId: encounter.encounterId,
+    reason: "squad_disconnected",
+    endedBySquadId: disconnectingSquadId,
+  };
+  socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", endedPayload);
+  socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", endedPayload);
 
   // 1. Set disconnecting squad to IDLE
   await Squad.updateOne(

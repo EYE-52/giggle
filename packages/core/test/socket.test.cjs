@@ -149,3 +149,10 @@ test("report opponent only reports success when realtime emit can be sent", () =
   assert.match(reportBlock, /if \(!s\.connected\) return false;/);
   assert.match(reportBlock, /s\.emit\(SOCKET_EMIT\.REPORT_SQUAD, payload\);/);
 });
+
+test("encounter lifecycle events use the server contract names", () => {
+  const socketSource = readFileSync(path.join(__dirname, "../src/socket.ts"), "utf8");
+
+  assert.match(socketSource, /ENCOUNTER_ACTIVE: "ENCOUNTER_ACTIVE"/);
+  assert.match(socketSource, /ENCOUNTER_ENDED: "ENCOUNTER_ENDED"/);
+});
