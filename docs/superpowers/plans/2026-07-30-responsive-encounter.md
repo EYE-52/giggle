@@ -526,7 +526,7 @@ git commit -m "feat(encounter): adapt the web stage to room size"
 - Modify: `apps/desktop/e2e/encounter.spec.ts`
 - Modify: `apps/desktop/test/next-config.test.js`
 
-- [ ] **Step 1: Write failing interaction contracts**
+- [x] **Step 1: Write failing interaction contracts**
 
 Update source and E2E assertions for exactly five persistent controls: Mic, Camera, Chat, More, and End encounter. Assert 44px minimums, an explicit confirmation before the end API call, API-before-media-leave ordering, More ownership of report/Fit-Crop/self-view actions, reaction lifetime `1800`, sender identity in floating reactions, chat side panel threshold `1180`, and a phone sheet capped at 55% of the usable viewport.
 
@@ -534,7 +534,7 @@ Run: `pnpm --filter @giggle/desktop test`
 
 Expected: the new control and reaction assertions FAIL.
 
-- [ ] **Step 2: Reduce the persistent chrome**
+- [x] **Step 2: Reduce the persistent chrome**
 
 Remove Report from `ctrlBtns`. Render Mic, Camera, Chat, More, and End in one non-wrapping dock. Use 44px targets on phone and 48px on larger screens; keep End spatially separated with the danger token. At width `>= 1024`, add the reaction shortcut beside More; below that width reactions live only inside More.
 
@@ -548,29 +548,29 @@ More contains only:
 
 Opening Chat closes More and reactions; opening More closes Chat overlays. Outside click and Escape close the active popover and restore focus to its trigger.
 
-- [ ] **Step 3: Anchor reactions to the real sender and use the agreed timing**
+- [x] **Step 3: Anchor reactions to the real sender and use the agreed timing**
 
 Change `FloatingReaction` to carry `senderId`. Call `spawnReaction(emoji, session.user?.id)` only after `sendReaction()` succeeds and call it with `r.senderId` for incoming events. Render a participant's reactions inside that participant's current tile, away from the name pill and control dock. Use `1800` for state removal and the CSS animation. Under `prefers-reduced-motion: reduce`, keep a short opacity-only fade with no translation or scale.
 
-- [ ] **Step 4: Reuse the existing modal and chat primitives**
+- [x] **Step 4: Reuse the existing modal and chat primitives**
 
 At widths `>= 1180`, render the existing `ChatPanel` in a 340px side panel. Below 1180, render it through the existing `Modal`; use a bottom sheet on phones with `height: min(55dvh, calc(100dvh - 96px))` and a constrained overlay on larger narrow screens. Let `Modal` provide focus trapping, Escape, backdrop dismissal, scroll lock, and trigger focus restoration.
 
 Keep the stage visible behind the phone sheet. Listen to `window.visualViewport` while chat is open; when the keyboard reduces the usable height by more than 120px, set the sheet height to `calc(100dvh - 96px)` so the compact live header remains visible and the close action stays on-screen.
 
-- [ ] **Step 5: Add truthful device and connection recovery**
+- [x] **Step 5: Add truthful device and connection recovery**
 
 Subscribe to `onCaptureState` and show separate camera/microphone messages only when their state is `denied` or `unavailable`. Keep chat and any successful track usable. Extract the current video join body into one `joinVideo()` function so Retry can leave the stale client and rejoin without refetching the encounter, dropping the pin, or navigating away. Connection labels are only Connecting, Reconnecting, Live, and Disconnected.
 
-- [ ] **Step 6: Confirm before ending and keep the call alive on failure**
+- [x] **Step 6: Confirm before ending and keep the call alive on failure**
 
 Use the existing `Modal` with title `End encounter?` and copy `This ends the current encounter for both squads.` The destructive button calls `api.disconnectEncounter` first. Only after API success should it leave Agora and navigate Home. On API failure, keep media joined, keep the modal open, display `Couldn't end this encounter yet.`, and re-enable the button.
 
-- [ ] **Step 7: Complete keyboard and screen-reader behavior**
+- [x] **Step 7: Complete keyboard and screen-reader behavior**
 
 Use native buttons with `aria-pressed` for mic, camera, and pin state. Back/Escape clears a manual pin before leaving any screen; long visible names truncate while `aria-label` keeps the full name. Connection and device recovery use `role="status"`; terminal disconnect/end failures use `role="alert"`; chat remains the existing polite live region. Verify that popovers, modal actions, and filmstrip participants remain reachable at 200% zoom.
 
-- [ ] **Step 8: Run web verification**
+- [x] **Step 8: Run web verification**
 
 Run:
 
@@ -581,7 +581,7 @@ pnpm --filter @giggle/desktop build
 
 Expected: Encounter-specific assertions and build PASS.
 
-- [ ] **Step 9: Commit the web interactions**
+- [x] **Step 9: Commit the web interactions**
 
 ```bash
 git add apps/desktop/app/'(app)'/encounter/page.tsx apps/desktop/test/next-config.test.js apps/desktop/e2e/encounter.spec.ts

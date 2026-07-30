@@ -8,8 +8,9 @@ import { AvatarArt } from "@/components/AvatarArt";
 import { Icon } from "@/components/Icons";
 import { ChatPanel } from "@/components/ChatPanel";
 import { Button } from "@/components/Button";
+import { Modal } from "@/components/Modal";
 import { createVideoClient } from "@giggle/agora";
-import type { ConnectionState, RemoteParticipant } from "@giggle/agora";
+import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 
 const avatarColors = ["#7C5CFF", "#3DD6C0", "#FF8A5C", "#C2FF3D", "#FF5C8A", "#5C8CFF", "#FFC65C", "#9B7CFF"];
@@ -233,6 +234,10 @@ const KEYFRAMES = `
   80%  { opacity: 0.9; transform: translateY(-80px) scale(1.3); }
   100% { opacity: 0; transform: translateY(-120px) scale(0.9); }
 }
+@keyframes reactionFade {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
 @keyframes viewTransition {
   from { opacity: 0; transform: scale(0.985); }
   to   { opacity: 1; transform: scale(1); }
@@ -275,13 +280,17 @@ const KEYFRAMES = `
     transition-duration: .001ms !important;
   }
   [data-theme="dark"] button:not(:disabled):active { transform: none !important; }
+  [data-theme="dark"] [data-reaction] {
+    animation: reactionFade 1.8s linear forwards !important;
+    transform: none !important;
+  }
 }
 `;
 
 interface FloatingReaction {
   id: number;
   emoji: string;
-  x: number;
+  senderId: string;
 }
 
 type MediaFit = "fit" | "crop";
@@ -310,6 +319,7 @@ function VideoTile({
   showFocusHint,
   compact,
   fit = "crop",
+  reactions = [],
   localAvatarValue,
   statusText = "Camera off",
 }: {
@@ -327,6 +337,7 @@ function VideoTile({
   showFocusHint?: boolean;
   compact?: boolean;
   fit?: MediaFit;
+  reactions?: FloatingReaction[];
   /** Only passed for the local participant — renders their chosen AvatarArt instead of initials. */
   localAvatarValue?: string;
   /** Fallback status under the avatar: "Camera off" (default) or "Connecting…". */
@@ -688,6 +699,27 @@ function VideoTile({
           Muted
         </div>
       )}
+
+      {reactions.map((reaction, index) => (
+        <div
+          key={reaction.id}
+          data-reaction
+          aria-hidden
+          style={{
+            position: "absolute",
+            right: 12 + index * 6,
+            bottom: 16 + index * 10,
+            zIndex: 8,
+            fontSize: compact ? 24 : 32,
+            lineHeight: 1,
+            pointerEvents: "none",
+            animation: "reactionFloat 1.8s ease forwards",
+            filter: "drop-shadow(0 4px 8px rgba(0,0,0,.55))",
+          }}
+        >
+          {reaction.emoji}
+        </div>
+      ))}
     </div>
   );
 }
@@ -745,6 +777,8 @@ function EncounterInner() {
   const [encounterLoading, setEncounterLoading] = useState(true);
   const [encounterError, setEncounterError] = useState<string | null>(null);
   const [ending, setEnding] = useState(false);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [endError, setEndError] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(true);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const reactionCountRef = useRef(0);
@@ -803,15 +837,74 @@ function EncounterInner() {
 
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [focusedFit, setFocusedFit] = useState<MediaFit>("fit");
+  const [selfViewMinimized, setSelfViewMinimized] = useState(false);
   const [speakerFocus, setSpeakerFocus] = useState(EMPTY_SPEAKER_FOCUS);
 
   // Hover states
   const [hoveredCtrl, setHoveredCtrl] = useState<string | null>(null);
-  // Phone-only: reactions collapse into a popover to keep the control bar compact.
+  const [moreOpen, setMoreOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [keyboardRaised, setKeyboardRaised] = useState(false);
+  const chatButtonRef = useRef<HTMLButtonElement | null>(null);
+  const moreButtonRef = useRef<HTMLButtonElement | null>(null);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
+  const reactionButtonRef = useRef<HTMLButtonElement | null>(null);
+  const reactionMenuRef = useRef<HTMLDivElement | null>(null);
 
   const { width, height, isPhone } = useViewport();
   const isPhoneChrome = isPhone || height <= 500;
+
+  function closeMore(restoreFocus = false) {
+    setMoreOpen(false);
+    if (restoreFocus) requestAnimationFrame(() => moreButtonRef.current?.focus());
+  }
+
+  function closeReactions(restoreFocus = false) {
+    setReactionsOpen(false);
+    if (restoreFocus) requestAnimationFrame(() => reactionButtonRef.current?.focus());
+  }
+
+  useEffect(() => {
+    if (!moreOpen && !reactionsOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        moreOpen &&
+        !moreMenuRef.current?.contains(target) &&
+        !moreButtonRef.current?.contains(target)
+      ) closeMore(true);
+      if (
+        reactionsOpen &&
+        !reactionMenuRef.current?.contains(target) &&
+        !reactionButtonRef.current?.contains(target)
+      ) closeReactions(true);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (reactionsOpen) closeReactions(true);
+      else if (moreOpen) closeMore(true);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [moreOpen, reactionsOpen]);
+
+  useEffect(() => {
+    if (!chatOpen || width >= 1180) {
+      setKeyboardRaised(false);
+      return;
+    }
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const sync = () => setKeyboardRaised(window.innerHeight - viewport.height > 120);
+    sync();
+    viewport.addEventListener("resize", sync);
+    return () => viewport.removeEventListener("resize", sync);
+  }, [chatOpen, width]);
+
   const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
   // Serializes join/leave so a StrictMode double-mount never overlaps two joins
   // on the same uid (which triggers Agora UID_CONFLICT and blanks the video).
@@ -823,6 +916,8 @@ function EncounterInner() {
   const remoteElsRef = useRef<Map<string | number, HTMLDivElement | null>>(new Map());
   const [videoJoined, setVideoJoined] = useState(false);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [videoRetrying, setVideoRetrying] = useState(false);
+  const [captureState, setCaptureState] = useState<CaptureState>({ audio: "off", video: "off" });
   // Full remote participant state (uid + hasVideo/hasAudio) — drives truthful
   // per-tile "Muted" / "Camera off" / "Connecting…" signals.
   const [remotes, setRemotes] = useState<RemoteParticipant[]>([]);
@@ -854,6 +949,60 @@ function EncounterInner() {
   const textMuted = "var(--text-muted, #9A9AB0)";
   const _violet = "#7C5CFF";
   const _coral = "#FF5C5C";
+
+  async function joinVideo(isCancelled: () => boolean = () => false) {
+    if (!squadId || !encId) throw new Error("This encounter is unavailable.");
+    setVideoError(null);
+    setVideoJoined(false);
+    setConnState("CONNECTING");
+    setCaptureState({ audio: "off", video: "off" });
+    setRemotes([]);
+    setLoudestUid(null);
+
+    const staleClient = vcRef.current;
+    vcRef.current = null;
+    try { await staleClient?.leave(); } catch {}
+    if (isCancelled()) return;
+
+    await api.setEncounterVideo(squadId, true);
+    const tokenData = await api.encounterToken(squadId, encId);
+    if (isCancelled()) return;
+
+    const vc = createVideoClient();
+    vcRef.current = vc;
+    myUidRef.current = tokenData.uid;
+    vc.onRemoteChange((next) => {
+      if (vcRef.current === vc) setRemotes(next);
+    });
+    vc.onCaptureState?.((next) => {
+      if (vcRef.current === vc) setCaptureState(next);
+    });
+    vc.onVolumes?.((levels) => {
+      if (vcRef.current !== vc) return;
+      const loudest = levels.reduce(
+        (best, level) => level.level > best.level ? level : best,
+        { uid: 0, level: 5 }
+      );
+      setLoudestUid(loudest.level > 5 ? String(loudest.uid) : null);
+    });
+    vc.onConnectionState?.((state) => {
+      if (vcRef.current !== vc) return;
+      setConnState(state);
+      if (state === "CONNECTED") setReconnectDismissed(false);
+      if (state === "DISCONNECTED" && vcRef.current === vc) {
+        setVideoError("Video disconnected — chat is still available.");
+      }
+    });
+
+    await vc.join(tokenData, { audio: true, video: true });
+    if (isCancelled()) {
+      vcRef.current = null;
+      await vc.leave().catch(() => {});
+      return;
+    }
+    setVideoJoined(true);
+    setConnState("CONNECTED");
+  }
 
   useEffect(() => {
     if (!squadId || !encId) return;
@@ -897,42 +1046,16 @@ function EncounterInner() {
       }
 
       joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
-      if (cancelled) return;
-      try {
-        await api.setEncounterVideo(squadId, true);
-        const tokenData = await api.encounterToken(squadId, encId);
         if (cancelled) return;
-        const vc = createVideoClient();
-        vcRef.current = vc;
-        myUidRef.current = tokenData.uid;
-        vc.onRemoteChange((rs) => setRemotes(rs));
-        // Keep only the real loudest speaker. The stable participant id is
-        // resolved from this SDK uid after the roster is available.
         try {
-          vc.onVolumes?.((levels) => {
-            const loudest = levels.reduce((best, level) => level.level > best.level ? level : best, { uid: 0, level: 5 });
-            setLoudestUid(loudest.level > 5 ? String(loudest.uid) : null);
-          });
-        } catch {}
-        // Connection lifecycle → reconnect banner / disconnected error.
-        try {
-          vc.onConnectionState?.((state) => {
-            setConnState(state);
-            if (state === "CONNECTED") setReconnectDismissed(false);
-            if (state === "DISCONNECTED") setVideoError("Couldn't connect video — you can still use chat.");
-          });
-        } catch {}
-        await vc.join(tokenData, { audio: true, video: true });
-        // If we were torn down mid-join, leave immediately so the next mount's
-        // join (queued after this on the same chain) won't hit a uid conflict.
-        if (cancelled) { await vc.leave().catch(() => {}); vcRef.current = null; return; }
-        setVideoJoined(true);
-        setConnState("CONNECTED");
-      } catch (e) {
-        console.error("Encounter video join failed (non-fatal):", e);
-        if (!cancelled) setVideoError(describeVideoError(e));
-      }
-    });
+          await joinVideo(() => cancelled);
+        } catch (error) {
+          if (!cancelled) {
+            setConnState("DISCONNECTED");
+            setVideoError(describeVideoError(error));
+          }
+        }
+      });
 
       socket = connectSocket(squadId);
     socket.emit(SOCKET_EMIT.JOIN_ENCOUNTER, encId);
@@ -959,12 +1082,28 @@ function EncounterInner() {
       // to finish (no overlapping joins on the same uid → no UID_CONFLICT).
       cancelled = true;
       joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
-        try { await vcRef.current?.leave(); } catch {}
+        const staleClient = vcRef.current;
         vcRef.current = null;
+        try { await staleClient?.leave(); } catch {}
       });
       setVideoJoined(false);
     };
   }, [squadId, encId, router]);
+
+  function retryVideo() {
+    if (videoRetrying) return;
+    setVideoRetrying(true);
+    joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
+      try {
+        await joinVideo();
+      } catch (error) {
+        setConnState("DISCONNECTED");
+        setVideoError(describeVideoError(error));
+      } finally {
+        setVideoRetrying(false);
+      }
+    });
+  }
 
   useEffect(() => {
     if (connState !== "CONNECTED") return;
@@ -1045,11 +1184,17 @@ function EncounterInner() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPinnedId(null);
+      if (
+        event.key === "Escape" &&
+        !moreOpen &&
+        !reactionsOpen &&
+        !chatOpen &&
+        !endConfirmOpen
+      ) setPinnedId(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [moreOpen, reactionsOpen, chatOpen, endConfirmOpen]);
 
   // ── Truthful per-participant signals ─────────────────────────────────────
   // Look up a remote participant's live track state by uid. Returns undefined
@@ -1124,16 +1269,15 @@ function EncounterInner() {
 
   async function handleEnd() {
     setEnding(true);
-    setVideoError(null);
-    try {
-      await vcRef.current?.leave();
-    } catch {}
+    setEndError(null);
     try {
       await api.disconnectEncounter(squadId, encId);
+      try { await vcRef.current?.leave(); } catch {}
+      setEndConfirmOpen(false);
       router.push("/home");
-    } catch (e) {
+    } catch {
       setEnding(false);
-      setVideoError((e as { message?: string })?.message || "Couldn't end this encounter yet.");
+      setEndError("Couldn't end this encounter yet.");
     }
   }
 
@@ -1155,14 +1299,12 @@ function EncounterInner() {
 
   // Spawn a floating emoji locally (used for both our own taps and ones we
   // receive from other participants over the socket).
-  function spawnReaction(emoji: string) {
+  function spawnReaction(emoji: string, senderId: string) {
     const id = ++reactionCountRef.current;
-    // Slightly randomized spawn position per tap so bursts don't stack in a line.
-    const x = 24 + Math.random() * 52;
-    setFloatingReactions((prev) => [...prev, { id, emoji, x }]);
+    setFloatingReactions((prev) => [...prev, { id, emoji, senderId }]);
     setUiTimeout(() => {
       setFloatingReactions((prev) => prev.filter((r) => r.id !== id));
-    }, 1400);
+    }, 1800);
   }
 
   function fireReaction(emoji: string) {
@@ -1177,7 +1319,7 @@ function EncounterInner() {
       setVideoError("Reaction was not sent. Check your connection and try again.");
       return;
     }
-    spawnReaction(emoji);
+    spawnReaction(emoji, session.user?.id ?? "");
   }
 
   // Receive reactions from other participants (skip our own echo).
@@ -1186,7 +1328,7 @@ function EncounterInner() {
     const unsub = subscribeReaction((r) => {
       if (r.encounterId !== encId) return;
       if (r.senderId && r.senderId === myId) return; // already shown optimistically
-      if (r.emoji) spawnReaction(r.emoji);
+      if (r.emoji) spawnReaction(r.emoji, r.senderId);
     });
     return unsub;
   }, [encId]);
@@ -1232,6 +1374,7 @@ function EncounterInner() {
         showFocusHint
         compact={compact}
         fit={fit}
+        reactions={floatingReactions.filter((reaction) => reaction.senderId === person.id)}
       />
     );
   }
@@ -1480,7 +1623,7 @@ function EncounterInner() {
               {renderParticipant(companionIds[0], "crop", true)}
             </div>
           )}
-        {showSelfView && (
+        {showSelfView && !selfViewMinimized && (
           <div style={{ position: "absolute", top: 12, right: 12, zIndex: 6, width: isPhone ? 96 : 148, aspectRatio: "16 / 10" }}>
             {renderParticipant(local.id, "crop", true)}
           </div>
@@ -1534,7 +1677,68 @@ function EncounterInner() {
     </div>
   );
 
+  function reactionChoices(onDone: () => void) {
+    return REACTION_EMOJIS.map((emoji) => (
+      <button
+        key={emoji}
+        onClick={() => {
+          fireReaction(emoji);
+          onDone();
+        }}
+        title={`React ${emoji}`}
+        aria-label={`React ${emoji}`}
+        className="gg-press"
+        style={{
+          width: 44,
+          height: 44,
+          flexShrink: 0,
+          borderRadius: "var(--radius-control, 14px)",
+          border: "1px solid rgba(255,255,255,.08)",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 22,
+          background: "rgba(255,255,255,.06)",
+        }}
+      >
+        {emoji}
+      </button>
+    ));
+  }
+
   // ── CONTROL BUTTONS CONFIG ────────────────────────────────────────────────
+
+  function toggleChat() {
+    setMoreOpen(false);
+    setReactionsOpen(false);
+    setChatOpen((open) => !open);
+  }
+
+  function closeChat() {
+    setChatOpen(false);
+    requestAnimationFrame(() => chatButtonRef.current?.focus());
+  }
+
+  function toggleMore() {
+    const next = !moreOpen;
+    setChatOpen(false);
+    setReactionsOpen(false);
+    setMoreOpen(next);
+  }
+
+  function toggleReactions() {
+    const next = !reactionsOpen;
+    setChatOpen(false);
+    setMoreOpen(false);
+    setReactionsOpen(next);
+  }
+
+  const hasFocusedFrame = layout.kind !== "squad-split";
+  const localParticipant = participants.find((person) => person.isLocal);
+  const hasCompactSelfView = !!localParticipant &&
+    localParticipant.id !== layout.focusId &&
+    (layout.kind === "remote-main" || layout.kind === "single-focus");
 
   const ctrlBtns = [
     {
@@ -1560,17 +1764,17 @@ function EncounterInner() {
       icon: <Icon.chat size={20} color={chatOpen ? "#fff" : "#C7C7D6"} />,
       active: chatOpen,
       danger: false,
-      onClick: () => setChatOpen(!chatOpen),
+      onClick: toggleChat,
       title: "Chat",
       badge: !chatOpen && unread > 0 ? unread : 0,
     },
     {
-      id: "report",
-      icon: <Icon.flag size={20} color={reported ? "#C2FF3D" : "#C7C7D6"} />,
-      active: reported as boolean | undefined,
+      id: "more",
+      icon: <span aria-hidden style={{ color: "#C7C7D6", fontSize: 18, fontWeight: 800, letterSpacing: 1 }}>•••</span>,
+      active: moreOpen,
       danger: false,
-      onClick: handleReport,
-      title: reported ? "Reported" : "Report opponent squad",
+      onClick: toggleMore,
+      title: "More",
       badge: 0,
     },
   ];
@@ -1578,6 +1782,18 @@ function EncounterInner() {
   const pinnedMemberName = pinnedId
     ? participantById.get(pinnedId)?.name ?? null
     : null;
+  const captureIssues = [
+    captureState.audio === "denied"
+      ? "Microphone permission is blocked."
+      : captureState.audio === "unavailable"
+      ? "No usable microphone was found."
+      : null,
+    captureState.video === "denied"
+      ? "Camera permission is blocked."
+      : captureState.video === "unavailable"
+      ? "No usable camera was found."
+      : null,
+  ].filter((message): message is string => !!message);
 
   if (!squadId || !encId) {
     return (
@@ -1788,7 +2004,7 @@ function EncounterInner() {
                 }}
               >
                 <span style={{ width: 7, height: 7, borderRadius: 999, background: connState === "DISCONNECTED" ? coral : "var(--amber, #FFB020)" }} />
-                {connState === "RECONNECTING" ? "Reconnecting" : connState === "DISCONNECTED" ? "Offline" : "Connecting"}
+                {connState === "RECONNECTING" ? "Reconnecting" : connState === "DISCONNECTED" ? "Disconnected" : "Connecting"}
               </span>
             )}
           </div>
@@ -1870,11 +2086,13 @@ function EncounterInner() {
                 reactions all stay usable; avatar fallbacks already cover tiles. */}
             {videoError && (
               <div
+                role="alert"
                 style={{
                   pointerEvents: "auto",
                   maxWidth: "100%",
                   display: "flex",
                   alignItems: "center",
+                  flexWrap: "wrap",
                   gap: 10,
                   background: "var(--surface, rgba(22,22,30,0.97))",
                   backgroundImage: "linear-gradient(var(--coral-soft), var(--coral-soft))",
@@ -1888,6 +2106,15 @@ function EncounterInner() {
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--coral)", lineHeight: 1.4 }}>
                   {videoError}
                 </span>
+                {(!videoJoined || connState === "DISCONNECTED") && (
+                  <button
+                    onClick={retryVideo}
+                    disabled={videoRetrying}
+                    style={{ minHeight: 44, padding: "0 13px", borderRadius: 999, border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.08)", color: textPrimary, fontWeight: 700, cursor: videoRetrying ? "default" : "pointer" }}
+                  >
+                    {videoRetrying ? "Retrying…" : "Retry video"}
+                  </button>
+                )}
                 <button
                   onClick={() => setVideoError(null)}
                   title="Dismiss"
@@ -1899,12 +2126,46 @@ function EncounterInner() {
                     color: textMuted,
                     fontSize: 16,
                     lineHeight: 1,
-                    padding: "0 2px",
+                    width: 44,
+                    height: 44,
+                    padding: 0,
                     display: "flex",
                     alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   ×
+                </button>
+              </div>
+            )}
+
+            {captureIssues.length > 0 && (
+              <div
+                style={{
+                  pointerEvents: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 8,
+                  maxWidth: "100%",
+                  padding: "8px 10px 8px 14px",
+                  borderRadius: 12,
+                  background: "rgba(18,18,26,.96)",
+                  border: "1px solid rgba(255,176,32,.34)",
+                  boxShadow: "0 8px 30px rgba(0,0,0,.45)",
+                }}
+              >
+                {captureIssues.map((message) => (
+                  <span key={message} role="status" style={{ color: textPrimary, fontSize: 13, fontWeight: 600 }}>
+                    {message}
+                  </span>
+                ))}
+                <button
+                  onClick={retryVideo}
+                  disabled={videoRetrying}
+                  style={{ minHeight: 44, padding: "0 13px", borderRadius: 999, border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.08)", color: textPrimary, fontWeight: 700, cursor: videoRetrying ? "default" : "pointer" }}
+                >
+                  {videoRetrying ? "Retrying…" : "Retry devices"}
                 </button>
               </div>
             )}
@@ -2049,33 +2310,6 @@ function EncounterInner() {
               </div>
             )}
 
-            {/* Floating reactions layer */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                zIndex: 25,
-                pointerEvents: "none",
-                overflow: "hidden",
-              }}
-            >
-              {floatingReactions.map((r) => (
-                <div
-                  key={r.id}
-                  style={{
-                    position: "absolute",
-                    bottom: 100,
-                    left: `${r.x}%`,
-                    fontSize: 32,
-                    animation: "reactionFloat 1.3s ease forwards",
-                    lineHeight: 1,
-                  }}
-                >
-                  {r.emoji}
-                </div>
-              ))}
-            </div>
-
             {/* Tile area — paddingBottom leaves space for the floating control bar */}
             <div
               data-testid="encounter-stage"
@@ -2102,6 +2336,7 @@ function EncounterInner() {
                 display: "flex",
                 justifyContent: "center",
                 zIndex: 20,
+                pointerEvents: "none",
               }}
             >
               <div
@@ -2109,120 +2344,164 @@ function EncounterInner() {
                 role="toolbar"
                 aria-label="Encounter controls"
                 style={{
+                  pointerEvents: "auto",
                   display: "flex",
                   alignItems: "center",
-                  gap: isPhone ? 6 : 8,
-                  background: "linear-gradient(180deg, rgba(26,26,36,0.92), rgba(14,14,20,0.94))",
+                  gap: isPhone ? 4 : 8,
+                  flexWrap: "nowrap",
+                  maxWidth: "calc(100vw - 16px)",
+                  padding: isPhone ? 8 : "9px 12px",
+                  borderRadius: "var(--radius-card, 20px)",
+                  border: "1px solid rgba(255,255,255,.12)",
+                  background: "linear-gradient(180deg, rgba(26,26,36,.92), rgba(14,14,20,.94))",
                   backdropFilter: "blur(22px)",
                   WebkitBackdropFilter: "blur(22px)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: "var(--radius-card, 20px)",
-                  padding: isPhone ? "9px 10px" : "10px 16px",
-                  animation: "controlIn 0.5s cubic-bezier(.22,1,.36,1) 0.2s forwards",
+                  boxShadow: "0 12px 44px -8px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.08)",
+                  animation: "controlIn .5s cubic-bezier(.22,1,.36,1) .2s forwards",
                   opacity: 0,
-                  boxShadow: "0 12px 44px -8px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.08)",
-                  flexWrap: isPhone ? ("wrap" as const) : ("nowrap" as const),
-                  justifyContent: "center",
-                  rowGap: isPhone ? 8 : undefined,
-                  maxWidth: "calc(100vw - 16px)",
                 }}
               >
                 {ctrlBtns.map(({ id, icon, active, danger, onClick, title, badge }) => {
-                  const hov = hoveredCtrl === id;
-                  let bg: string;
-                  let ring = "inset 0 1px 0 rgba(255,255,255,0.06)";
-                  let brdr = "1px solid rgba(255,255,255,0.10)";
-                  if (danger && active === false) {
-                    // mic/cam OFF — confident coral state (v3: danger = --coral)
-                    bg = hov ? "color-mix(in srgb, var(--coral) 85%, #fff)" : "var(--coral)";
-                    ring = "0 0 20px -3px color-mix(in srgb, var(--coral) 85%, transparent), inset 0 1px 0 rgba(255,255,255,0.2)";
-                    brdr = "1px solid var(--coral)";
-                  } else if (danger && active === true) {
-                    // mic/cam ON — subtle live-tinted glass (v3: active = --live)
-                    bg = hov ? "color-mix(in srgb, var(--live) 22%, transparent)" : "rgba(255,255,255,0.08)";
-                    ring = hov
-                      ? "0 0 16px -4px color-mix(in srgb, var(--live) 60%, transparent), inset 0 1px 0 rgba(255,255,255,0.08)"
-                      : "inset 0 1px 0 rgba(255,255,255,0.08)";
-                    brdr = hov ? "1px solid color-mix(in srgb, var(--live) 50%, transparent)" : "1px solid rgba(255,255,255,0.12)";
-                  } else if (!danger && active === true) {
-                    // Active accent follows the theme.
-                    bg = hov ? "color-mix(in srgb, var(--violet, #7C5CFF) 42%, transparent)" : "color-mix(in srgb, var(--violet, #7C5CFF) 28%, transparent)";
-                    ring = "0 0 16px -4px color-mix(in srgb, var(--violet, #7C5CFF) 60%, transparent), inset 0 1px 0 rgba(255,255,255,0.08)";
-                    brdr = "1px solid color-mix(in srgb, var(--violet, #7C5CFF) 50%, transparent)";
-                  } else {
-                    bg = hov ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.08)";
-                  }
+                  const hovered = hoveredCtrl === id;
+                  const off = danger && active === false;
+                  const selected = !danger && active === true;
+                  const background = off
+                    ? "var(--coral)"
+                    : selected
+                    ? "color-mix(in srgb, var(--violet, #7C5CFF) 28%, transparent)"
+                    : hovered
+                    ? "rgba(255,255,255,.16)"
+                    : "rgba(255,255,255,.08)";
                   return (
-                    <button
-                      key={id}
-                      onClick={onClick}
-                      onMouseEnter={() => setHoveredCtrl(id)}
-                      onMouseLeave={() => setHoveredCtrl(null)}
-                      title={title}
-                      aria-label={title}
-                      aria-pressed={typeof active === "boolean" ? active : undefined}
-                      className="gg-press"
-                      style={{
-                        position: "relative",
-                        width: isPhone ? 44 : 48,
-                        height: isPhone ? 44 : 48,
-                        borderRadius: "50%",
-                        border: brdr,
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: bg,
-                        boxShadow: ring,
-                        transform: hov ? "scale(1.08)" : "scale(1)",
-                        transition: "all .15s ease",
-                      }}
-                    >
-                      {icon}
-                      {badge > 0 && (
-                        <span
-                          aria-label={`${badge} unread message${badge === 1 ? "" : "s"}`}
+                    <div key={id} style={{ position: "relative", display: "flex", flexShrink: 0 }}>
+                      <button
+                        ref={id === "chat" ? chatButtonRef : id === "more" ? moreButtonRef : undefined}
+                        onClick={onClick}
+                        onMouseEnter={() => setHoveredCtrl(id)}
+                        onMouseLeave={() => setHoveredCtrl(null)}
+                        title={title}
+                        aria-label={title}
+                        aria-pressed={id === "more" ? undefined : typeof active === "boolean" ? active : undefined}
+                        aria-expanded={id === "more" ? moreOpen : undefined}
+                        className="gg-press"
+                        style={{
+                          position: "relative",
+                          width: isPhone ? 44 : 48,
+                          height: isPhone ? 44 : 48,
+                          flexShrink: 0,
+                          borderRadius: "50%",
+                          border: off ? "1px solid var(--coral)" : "1px solid rgba(255,255,255,.11)",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background,
+                          boxShadow: off
+                            ? "0 0 20px -3px color-mix(in srgb, var(--coral) 85%, transparent)"
+                            : selected
+                            ? "0 0 16px -4px color-mix(in srgb, var(--violet) 60%, transparent)"
+                            : "inset 0 1px 0 rgba(255,255,255,.07)",
+                        }}
+                      >
+                        {icon}
+                        {badge > 0 && (
+                          <span
+                            aria-label={String(badge) + " unread message" + (badge === 1 ? "" : "s")}
+                            style={{
+                              position: "absolute",
+                              top: -3,
+                              right: -3,
+                              minWidth: 18,
+                              height: 18,
+                              padding: "0 4px",
+                              borderRadius: 999,
+                              background: coral,
+                              color: "#fff",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              lineHeight: "18px",
+                              textAlign: "center",
+                              border: "1.5px solid rgba(14,14,20,.94)",
+                            }}
+                          >
+                            {badge > 9 ? "9+" : badge}
+                          </span>
+                        )}
+                      </button>
+
+                      {id === "more" && moreOpen && (
+                        <div
+                          ref={moreMenuRef}
+                          role="group"
+                          aria-label="More call actions"
                           style={{
                             position: "absolute",
-                            top: -3,
-                            right: -3,
-                            minWidth: 18,
-                            height: 18,
-                            padding: "0 4px",
-                            borderRadius: 999,
-                            background: coral,
-                            color: "#fff",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            lineHeight: "18px",
-                            textAlign: "center" as const,
-                            border: "1.5px solid rgba(14,14,20,0.94)",
-                            boxSizing: "border-box",
+                            right: isPhone ? "auto" : 0,
+                            left: isPhone ? "50%" : "auto",
+                            transform: isPhone ? "translateX(-50%)" : undefined,
+                            bottom: "calc(100% + 10px)",
+                            width: "min(280px, calc(100vw - 24px))",
+                            padding: 10,
+                            borderRadius: 16,
+                            border: "1px solid rgba(255,255,255,.12)",
+                            background: "rgba(18,18,26,.98)",
+                            backdropFilter: "blur(18px)",
+                            boxShadow: "0 14px 44px rgba(0,0,0,.58)",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 7,
                           }}
                         >
-                          {badge > 9 ? "9+" : badge}
-                        </span>
+                          <div style={{ color: textMuted, fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", padding: "2px 4px 0" }}>
+                            Reactions
+                          </div>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            {reactionChoices(() => closeMore(true))}
+                          </div>
+                          <button
+                            onClick={() => {
+                              handleReport();
+                              closeMore(true);
+                            }}
+                            disabled={reported}
+                            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,.09)", background: "rgba(255,255,255,.05)", color: reported ? lime : textPrimary, display: "flex", alignItems: "center", gap: 9, cursor: reported ? "default" : "pointer", fontWeight: 700 }}
+                          >
+                            <Icon.flag size={17} color={reported ? "#C2FF3D" : "#C7C7D6"} />
+                            {reported ? "Reported" : "Report opponent squad"}
+                          </button>
+                          {hasFocusedFrame && (
+                            <button
+                              onClick={() => {
+                                setFocusedFit((fit) => fit === "fit" ? "crop" : "fit");
+                                closeMore(true);
+                              }}
+                              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,.09)", background: "rgba(255,255,255,.05)", color: textPrimary, textAlign: "left", cursor: "pointer", fontWeight: 700 }}
+                            >
+                              {focusedFit === "fit" ? "Crop focused video" : "Fit focused video"}
+                            </button>
+                          )}
+                          {hasCompactSelfView && (
+                            <button
+                              onClick={() => {
+                                setSelfViewMinimized((minimized) => !minimized);
+                                closeMore(true);
+                              }}
+                              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,.09)", background: "rgba(255,255,255,.05)", color: textPrimary, textAlign: "left", cursor: "pointer", fontWeight: 700 }}
+                            >
+                              {selfViewMinimized ? "Restore self-view" : "Minimize self-view"}
+                            </button>
+                          )}
+                        </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
 
-                {/* Divider */}
-                <div
-                  style={{
-                    width: 1,
-                    height: 28,
-                    background: "rgba(255,255,255,0.1)",
-                    margin: "0 2px",
-                    display: isPhone ? "none" : "block",
-                  }}
-                />
-
-                {/* Reactions stay behind one familiar control so video remains primary. */}
-                {(
-                  <div style={{ position: "relative", display: "flex" }}>
+                {width >= 1024 && (
+                  <div style={{ position: "relative", display: "flex", flexShrink: 0 }}>
                     <button
-                      onClick={() => setReactionsOpen((o) => !o)}
+                      ref={reactionButtonRef}
+                      onClick={toggleReactions}
                       title="Reactions"
                       aria-label="Reactions"
                       aria-expanded={reactionsOpen}
@@ -2231,80 +2510,47 @@ function EncounterInner() {
                         width: 44,
                         height: 44,
                         borderRadius: "var(--radius-control, 14px)",
-                        border: "1px solid rgba(255,255,255,0.10)",
+                        border: "1px solid rgba(255,255,255,.1)",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         fontSize: 20,
-                        background: reactionsOpen
-                          ? "rgba(124,92,255,0.26)"
-                          : "rgba(255,255,255,0.09)",
-                        transition: "all .12s ease",
+                        background: reactionsOpen ? "rgba(124,92,255,.26)" : "rgba(255,255,255,.08)",
                       }}
                     >
                       😀
                     </button>
                     {reactionsOpen && (
                       <div
+                        ref={reactionMenuRef}
                         style={{
                           position: "absolute",
+                          right: 0,
                           bottom: "calc(100% + 10px)",
-                          left: "50%",
-                          transform: "translateX(-50%)",
                           display: "flex",
                           gap: 6,
-                          background: "rgba(18,18,26,0.98)",
-                          backdropFilter: "blur(18px)",
-                          border: "1px solid rgba(255,255,255,0.1)",
-                          borderRadius: 999,
                           padding: "8px 10px",
-                          boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
-                          zIndex: 5,
+                          borderRadius: 999,
+                          border: "1px solid rgba(255,255,255,.1)",
+                          background: "rgba(18,18,26,.98)",
+                          backdropFilter: "blur(18px)",
+                          boxShadow: "0 8px 40px rgba(0,0,0,.5)",
                         }}
                       >
-                        {REACTION_EMOJIS.map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => { fireReaction(emoji); setReactionsOpen(false); }}
-                            title={`React ${emoji}`}
-                            aria-label={`React ${emoji}`}
-                            className="gg-press"
-                            style={{
-                              width: 44,
-                              height: 44,
-                              borderRadius: "var(--radius-control, 14px)",
-                              border: "none",
-                              cursor: "pointer",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 22,
-                              background: "rgba(255,255,255,0.06)",
-                            }}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
+                        {reactionChoices(() => closeReactions(true))}
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Divider */}
-                <div
-                  style={{
-                    width: 1,
-                    height: 28,
-                    background: "rgba(255,255,255,0.1)",
-                    margin: "0 2px",
-                    display: isPhone ? "none" : "block",
-                  }}
-                />
+                <div aria-hidden style={{ width: 1, height: 28, flexShrink: 0, background: "rgba(255,255,255,.1)", margin: "0 2px", display: isPhone ? "none" : "block" }} />
 
-                {/* End button */}
                 <button
-                  onClick={handleEnd}
+                  onClick={() => {
+                    setEndError(null);
+                    setEndConfirmOpen(true);
+                  }}
                   disabled={ending}
                   aria-label="End encounter"
                   onMouseEnter={() => setHoveredCtrl("end")}
@@ -2312,50 +2558,40 @@ function EncounterInner() {
                   className="gg-press"
                   style={{
                     height: isPhone ? 44 : 48,
+                    minWidth: isPhone ? 64 : 110,
+                    flexShrink: 0,
+                    padding: isPhone ? "0 14px" : "0 20px",
                     borderRadius: 999,
                     border: "none",
                     cursor: ending ? "default" : "pointer",
-                    padding: isPhone ? "0 16px" : "0 22px",
                     display: "flex",
                     alignItems: "center",
-                    gap: 7,
-                    background:
-                      hoveredCtrl === "end" && !ending ? "color-mix(in srgb, var(--coral) 82%, black)" : coral,
-                    color: "#fff",
-                    fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    boxShadow:
-                      hoveredCtrl === "end"
-                        ? `0 0 40px -4px ${coral}, 0 0 0 3px color-mix(in srgb, var(--coral, #FF5C5C) 27%, transparent)`
-                        : `0 0 20px -6px ${coral}`,
-                    transform:
-                      hoveredCtrl === "end" && !ending ? "scale(1.04)" : "scale(1)",
-                    transition: "all .15s ease",
-                    minWidth: isPhone ? 64 : 110,
-                    whiteSpace: "nowrap" as const,
                     justifyContent: "center",
+                    background: coral,
+                    color: "#fff",
+                    fontSize: 14,
+                    fontWeight: 800,
+                    boxShadow: "0 0 20px -6px var(--coral)",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {ending ? "Ending…" : isPhone ? "End" : "End Encounter"}
+                  {isPhone ? "End" : "End encounter"}
                 </button>
               </div>
             </div>
           </div>
 
           {/* ── CHAT PANEL ──────────────────────────────────────────────── */}
-          {chatOpen && (
+          {chatOpen && width >= 1180 && (
             <div
               style={{
-                position: isPhone ? "fixed" : "relative",
-                inset: isPhone ? "0" : undefined,
-                width: isPhone ? "100%" : 300,
-                zIndex: isPhone ? 50 : undefined,
+                position: "relative",
+                width: 340,
                 flexShrink: 0,
                 display: "flex",
                 flexDirection: "column",
                 background: "var(--surface, rgba(16,16,22,0.98))",
-                border: isPhone ? "none" : "1px solid var(--border, rgba(255,255,255,0.06))",
+                border: "1px solid var(--border, rgba(255,255,255,0.06))",
                 borderRadius: 0,
                 margin: 0,
                 overflow: "hidden",
@@ -2364,12 +2600,80 @@ function EncounterInner() {
             >
               <ChatPanel
                 scope={{ kind: "encounter", encounterId: encId, squadId }}
-                onClose={() => setChatOpen(false)}
+                onClose={closeChat}
               />
             </div>
           )}
         </div>
       </div>
+
+      {chatOpen && width < 1180 && (
+        <Modal
+          onClose={closeChat}
+          ariaLabel="Encounter chat"
+          showClose={false}
+          padding={0}
+          sheet={isPhoneChrome}
+          width="min(440px, calc(100vw - 24px))"
+          style={isPhoneChrome
+            ? {
+                height: keyboardRaised ? "calc(100dvh - 96px)" : "min(55dvh, calc(100dvh - 96px))",
+                maxHeight: "calc(100dvh - 96px)",
+                overflow: "hidden",
+              }
+            : { height: "min(70dvh, 620px)", overflow: "hidden" }}
+        >
+          <ChatPanel
+            scope={{ kind: "encounter", encounterId: encId, squadId }}
+            onClose={closeChat}
+          />
+        </Modal>
+      )}
+
+      {endConfirmOpen && (
+        <Modal
+          onClose={() => {
+            if (ending) return;
+            setEndConfirmOpen(false);
+            setEndError(null);
+          }}
+          title="End encounter?"
+          subtitle="This ends the current encounter for both squads."
+          showClose={false}
+          closeOnBackdrop={!ending}
+          width={420}
+        >
+          {endError && (
+            <div role="alert" style={{ color: "var(--coral)", fontSize: 13, marginBottom: 16 }}>
+              {endError}
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setEndConfirmOpen(false);
+                setEndError(null);
+              }}
+              disabled={ending}
+              className="gg-press"
+              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: ending ? "default" : "pointer" }}
+            >
+              Keep talking
+            </button>
+            <button
+              type="button"
+              onClick={handleEnd}
+              disabled={ending}
+              aria-label="End encounter"
+              className="gg-press"
+              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--coral)", color: "#fff", fontWeight: 800, cursor: ending ? "wait" : "pointer" }}
+            >
+              {ending ? "Ending…" : "End encounter"}
+            </button>
+          </div>
+        </Modal>
+      )}
     </>
   );
 }

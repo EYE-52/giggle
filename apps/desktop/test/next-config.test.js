@@ -434,19 +434,74 @@ test("desktop encounter derives one adaptive stage from stable participant ident
   assert.equal(page.includes('role={onClick ? "button" : undefined}'), true);
 });
 
-test("desktop encounter end always attempts backend cleanup before navigating", () => {
+test("desktop encounter keeps essential controls compact and moves secondary actions into More", () => {
+  const page = encounterSource();
+  const controls = page.slice(page.indexOf("const ctrlBtns"), page.indexOf("const pinnedMemberName"));
+
+  for (const id of ["mic", "cam", "chat", "more"]) assert.equal(controls.includes(`id: "${id}"`), true);
+  assert.equal(controls.includes('id: "report"'), false);
+  assert.equal(page.includes('flexWrap: "nowrap"'), true);
+  assert.equal(page.includes('width: isPhone ? 44 : 48'), true);
+  assert.equal(page.includes("width >= 1024"), true);
+  assert.equal(page.includes("moreOpen"), true);
+  assert.equal(page.includes("setFocusedFit"), true);
+  assert.equal(page.includes("setSelfViewMinimized"), true);
+  assert.equal(page.includes('aria-label="End encounter"'), true);
+});
+
+test("desktop encounter reactions stay briefly on the real sender tile", () => {
+  const page = encounterSource();
+
+  assert.equal(page.includes("senderId: string"), true);
+  assert.equal(page.includes("spawnReaction(emoji, session.user?.id ?? \"\")"), true);
+  assert.equal(page.includes("spawnReaction(r.emoji, r.senderId)"), true);
+  assert.equal(page.includes("}, 1800);"), true);
+  assert.equal(page.includes('animation: "reactionFloat 1.8s ease forwards"'), true);
+  assert.equal(page.includes("reaction.senderId === person.id"), true);
+  assert.equal(page.includes("data-reaction"), true);
+});
+
+test("desktop encounter chat adapts from a side panel to a bounded phone sheet", () => {
+  const page = encounterSource();
+
+  assert.equal(page.includes("width >= 1180"), true);
+  assert.equal(page.includes("width: 340"), true);
+  assert.equal(page.includes('"min(55dvh, calc(100dvh - 96px))"'), true);
+  assert.equal(page.includes("window.visualViewport"), true);
+  assert.equal(page.includes("window.innerHeight - viewport.height > 120"), true);
+  assert.equal(page.includes("chatButtonRef"), true);
+  assert.equal(page.includes("onClose={closeChat}"), true);
+});
+
+test("desktop encounter reports media failures and retries the existing call", () => {
+  const page = encounterSource();
+
+  assert.equal(page.includes("onCaptureState"), true);
+  assert.equal(page.includes("Microphone permission is blocked."), true);
+  assert.equal(page.includes("Camera permission is blocked."), true);
+  assert.equal(page.includes("function retryVideo()"), true);
+  assert.equal(page.includes("await joinVideo();"), true);
+  assert.equal(page.includes("Video disconnected — chat is still available."), true);
+  assert.equal(page.includes('"Disconnected"'), true);
+  assert.equal(page.includes("if (vcRef.current === vc) setRemotes(next);"), true);
+});
+
+test("desktop encounter confirms and ends on the backend before leaving media", () => {
   const page = encounterSource();
   const endBlock = page.slice(
     page.indexOf("async function handleEnd()"),
     page.indexOf("  function handleReport()")
   );
 
-  assert.match(endBlock, /try \{\s*await vcRef\.current\?\.leave\(\);\s*\} catch \{\}/);
   assert.match(endBlock, /await api\.disconnectEncounter\(squadId, encId\);/);
+  assert.match(endBlock, /await vcRef\.current\?\.leave\(\);/);
   assert.match(endBlock, /router\.push\("\/home"\);/);
-  assert.equal(endBlock.indexOf('router.push("/home");') > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.equal(endBlock.indexOf("await vcRef.current?.leave();") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
   assert.match(endBlock, /setEnding\(false\);/);
-  assert.match(endBlock, /setVideoError\(\(e as \{ message\?: string \}\)\?\.message \|\| "Couldn't end this encounter yet\."\);/);
+  assert.match(endBlock, /setEndError\("Couldn't end this encounter yet\."\);/);
+  assert.equal(page.includes('title="End encounter?"'), true);
+  assert.equal(page.includes("This ends the current encounter for both squads."), true);
+  assert.equal(page.includes("setEndConfirmOpen(true)"), true);
   assert.equal(endBlock.includes('console.error("End encounter failed (non-fatal):", e);'), false);
 });
 
@@ -493,7 +548,7 @@ test("desktop encounter reactions only animate after realtime send succeeds", ()
   assert.match(fireBlock, /const sent = sendReaction\(/);
   assert.match(fireBlock, /if \(!sent\) \{/);
   assert.match(fireBlock, /setVideoError\("Reaction was not sent\. Check your connection and try again\."\);/);
-  assert.equal(fireBlock.indexOf("spawnReaction(emoji);") > fireBlock.indexOf("if (!sent) {"), true);
+  assert.equal(fireBlock.indexOf('spawnReaction(emoji, session.user?.id ?? "")') > fireBlock.indexOf("if (!sent) {"), true);
   assert.equal(fireBlock.includes("spawnReaction(emoji); // optimistic local"), false);
 });
 

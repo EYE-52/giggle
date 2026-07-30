@@ -41,6 +41,8 @@ test("real encounter keeps media and controls usable across resize", async ({ pa
     await expect(controls).toBeVisible();
     await expect(controls.getByRole("button", { name: "Mute microphone" })).toHaveAttribute("aria-pressed", "true");
     await expect(controls.getByRole("button", { name: "Turn camera off" })).toHaveAttribute("aria-pressed", "true");
+    await expect(controls.getByRole("button", { name: "Chat" })).toBeVisible();
+    await expect(controls.getByRole("button", { name: "More" })).toBeVisible();
     await expect(controls.getByRole("button", { name: "End encounter" })).toBeVisible();
     await expect.poll(() => controls.evaluate(node => getComputedStyle(node).opacity)).toBe("1");
 
@@ -79,21 +81,25 @@ test("real encounter keeps media and controls usable across resize", async ({ pa
       expect(signal.litRatio).toBeGreaterThan(0.04);
     }
 
-    for (const mode of ["Grid", "Spotlight", "Focus Opp.", "Versus"]) {
-      await page.getByRole("button", { name: mode, exact: true }).click();
-      await expect(stage.locator("[data-media-frame]").first()).toBeVisible();
-    }
+    await expect(stage.locator("[data-layout-kind]")).toBeVisible();
+    await frames.first().click();
+    await expect(stage.locator('[data-layout-kind="single-focus"]')).toBeVisible();
+    await expect(stage.locator('[data-media-fit="fit"]').first()).toBeVisible();
 
     if (testInfo.project.name === "phone") {
       await controls.getByRole("button", { name: "Chat" }).click();
       await expect(page.getByRole("textbox", { name: "Chat message" })).toBeVisible();
       await page.getByRole("button", { name: "Close chat" }).click();
-      await controls.getByRole("button", { name: "Reactions" }).click();
+      await controls.getByRole("button", { name: "More" }).click();
       await expect(page.getByRole("button", { name: "React 👋" })).toBeVisible();
       await page.getByRole("button", { name: "React 👋" }).click();
-      await controls.getByRole("button", { name: "Report opponent squad" }).click();
-      await expect(controls.getByRole("button", { name: /reported/i })).toBeVisible();
+    } else {
+      await controls.getByRole("button", { name: "Reactions" }).click();
+      await page.getByRole("button", { name: "React 👋" }).click();
     }
+    await controls.getByRole("button", { name: "More" }).click();
+    await page.getByRole("button", { name: "Report opponent squad" }).click();
+    await expect(page.getByText(/reported — thanks/i)).toBeVisible();
 
     await page.screenshot({
       path: `artifacts/visual-audit/2026-07-12/encounter/${testInfo.project.name}.jpg`,
@@ -125,6 +131,9 @@ test("real encounter keeps media and controls usable across resize", async ({ pa
     }
 
     await controls.getByRole("button", { name: "End encounter" }).click();
+    const endDialog = page.getByRole("dialog", { name: "End encounter?" });
+    await expect(endDialog).toBeVisible();
+    await endDialog.getByRole("button", { name: "End encounter" }).click();
     await expect(page).toHaveURL(/\/home$/);
   } finally {
     await opponentContext.close();
