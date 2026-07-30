@@ -653,7 +653,7 @@ git commit -m "feat(encounter): adapt the native stage to room size"
 - Modify: `apps/mobile/app/encounter.tsx`
 - Modify: `apps/mobile/test/encounter.test.cjs`
 
-- [ ] **Step 1: Write failing native interaction contracts**
+- [x] **Step 1: Write failing native interaction contracts**
 
 Assert five persistent controls with accessible labels and 48dp targets; one More sheet; `sendReaction`/`subscribeReaction`; reaction lifetime 1800; `sendChatMessage`/`subscribeChat`; a `KeyboardAvoidingView` chat sheet; Android `onRequestClose`; `switchCamera`; an end confirmation; and API-before-Agora-leave ordering.
 
@@ -661,27 +661,27 @@ Run: `pnpm --filter @giggle/mobile test`
 
 Expected: the new contracts FAIL.
 
-- [ ] **Step 2: Replace Report with More and add accessible control state**
+- [x] **Step 2: Replace Report with More and add accessible control state**
 
 Keep Mic, Camera, Chat, More, and End on one safe-area-aware row with a minimum 48×48 target. Supply `accessibilityRole="button"`, truthful labels, and selected/disabled state. Put reactions, report, focused Fit/Crop, self-view minimize/restore, and Switch camera in one React Native `Modal` bottom sheet. Opening one sheet closes the others; `onRequestClose` handles Android Back.
 
-- [ ] **Step 3: Use the shared realtime helpers for chat and reactions**
+- [x] **Step 3: Use the shared realtime helpers for chat and reactions**
 
 Replace raw chat socket parsing with `joinChat`, `sendChatMessage`, and `subscribeChat`; filter by encounter ID and de-duplicate server IDs. Keep failed text in the input with a retryable inline message.
 
 Use `sendReaction` and `subscribeReaction`, filtering by encounter ID and skipping the local echo. Store `{ id, emoji, senderId }`, remove it after 1800ms, and render it inside the sender's current participant tile. A small local `ReactionBubble` uses React Native `Animated` for opacity/translation and switches to opacity-only when `AccessibilityInfo.isReduceMotionEnabled()` is true.
 
-- [ ] **Step 4: Keep video visible while chatting**
+- [x] **Step 4: Keep video visible while chatting**
 
 Render chat in a bottom `Modal` capped at 55% of the usable height. Wrap its content in `KeyboardAvoidingView`; when the keyboard is visible, occupy the area below a 96dp compact live-video header. Preserve a visible close control, draft, unread count, safe-area bottom padding, and the stage above the sheet.
 
-- [ ] **Step 5: Add Retry and safe destructive ending**
+- [x] **Step 5: Add Retry and safe destructive ending**
 
 Extract native video joining into `joinVideo()` and expose Retry without leaving the route. End opens a confirmation that says both squads leave the encounter. Call the backend first; only after success leave Agora and navigate Home. On failure, keep the call active and show the error in the confirmation. Do not swallow the endpoint failure.
 
 Invalid or expired parameters render Home and Find a match recovery actions rather than a fake room. Announce connection/device recovery as status and terminal errors as alerts. Preserve full accessible names for truncated participants and selected state for pins, mic, and camera.
 
-- [ ] **Step 6: Run native verification**
+- [x] **Step 6: Run native verification**
 
 Run:
 
@@ -693,7 +693,7 @@ pnpm --filter @giggle/mobile export:web
 
 Expected: all commands PASS.
 
-- [ ] **Step 7: Commit native interactions**
+- [x] **Step 7: Commit native interactions**
 
 ```bash
 git add apps/mobile/app/encounter.tsx apps/mobile/test/encounter.test.cjs

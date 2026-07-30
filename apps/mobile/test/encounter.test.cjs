@@ -35,6 +35,42 @@ test("mobile encounter derives one adaptive layout from stable identities and re
   assert.equal(page.includes("BackHandler.addEventListener"), true);
 });
 
+test("mobile encounter keeps five controls while chat, More, reactions, and ending use sheets", () => {
+  const page = source();
+  const endBlock = page.slice(page.indexOf("async function endEncounter()"), page.indexOf("const compactHeader"));
+  const reactionBlock = page.slice(page.indexOf("function fireReaction"), page.indexOf("function retryVideo"));
+
+  assert.equal(page.includes("accessibilityLabel={mic ? 'Mute microphone' : 'Unmute microphone'}"), true);
+  assert.equal(page.includes("accessibilityLabel={cam ? 'Turn camera off' : 'Turn camera on'}"), true);
+  for (const label of ['Chat', 'More', 'End encounter']) assert.equal(page.includes(`accessibilityLabel="${label}"`), true);
+  assert.equal(page.includes("width: 52, height: 52"), true);
+  assert.equal(page.includes("<Modal"), true);
+  assert.equal(page.includes("onRequestClose"), true);
+  assert.equal(page.includes("KeyboardAvoidingView"), true);
+  assert.equal(page.includes("joinChat"), true);
+  assert.equal(page.includes("sendChatMessage"), true);
+  assert.equal(page.includes("subscribeChat"), true);
+  assert.equal(page.includes("sendReaction"), true);
+  assert.equal(page.includes("subscribeReaction"), true);
+  assert.equal(page.includes("senderId: string"), true);
+  assert.equal(page.includes("}, 1800);"), true);
+  assert.equal(page.includes("reaction.senderId === person.id"), true);
+  assert.equal(reactionBlock.indexOf("spawnReaction(emoji, session.user?.id ?? '')") > reactionBlock.indexOf("if (!sent)"), true);
+  assert.equal(page.includes("Animated.timing"), true);
+  assert.equal(page.includes("AccessibilityInfo.isReduceMotionEnabled"), true);
+  assert.equal(page.includes("messageIdsRef.current.has(message.id)"), true);
+  assert.equal(page.includes("message.encounterId !== encId"), true);
+  assert.equal(page.includes("visible={showChat}"), true);
+  assert.equal(page.includes("height * 0.55"), true);
+  assert.equal(page.includes("height - keyboardHeight - 96"), true);
+  assert.equal(page.includes("switchCamera"), true);
+  assert.equal(page.includes("End encounter?"), true);
+  assert.equal(page.includes("This ends the current encounter for both squads."), true);
+  assert.equal(endBlock.indexOf("await api.disconnectEncounter(squadId, encId);") >= 0, true);
+  assert.equal(endBlock.indexOf("await vcRef.current?.leave();") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.equal(page.includes("Couldn't end this encounter yet."), true);
+});
+
 test("encounter report control is disabled unless a valid report payload exists", () => {
   const page = source();
 
@@ -71,13 +107,15 @@ test("mobile encounter surfaces video presence update failures", () => {
 
 test("mobile encounter does not present unsent chat as sent", () => {
   const page = source();
+  const sendBlock = page.slice(page.indexOf("function sendMessage()"), page.indexOf("async function handleMicToggle()"));
 
   assert.equal(page.includes("const [chatError, setChatError]"), true);
-  assert.equal(page.includes("if (!sockRef.current?.connected) throw new Error(\"Chat isn't connected yet.\");"), true);
-  assert.equal(page.includes("setChatError(e?.message || \"Couldn't send message.\")"), true);
+  assert.equal(sendBlock.includes("const sent = sendChatMessage("), true);
+  assert.equal(sendBlock.includes("if (!sent)"), true);
+  assert.equal(sendBlock.includes("setChatError(\"Couldn't send message.\")"), true);
   assert.equal(page.includes("Message not sent"), true);
-  assert.equal(page.includes("} catch {}\n    setMessages((prev) => [...prev, { id: String(Date.now()), from: 'You', text: draft.trim() }]);"), false);
-  assert.equal(page.includes("if (!sockRef.current) throw new Error(\"Chat isn't connected yet.\");"), false);
+  assert.equal(sendBlock.includes("setMessages("), false);
+  assert.equal(sendBlock.indexOf("setDraft('');") > sendBlock.indexOf("if (!sent)"), true);
 });
 
 test("mobile encounter rolls back mic and camera controls when video updates fail", () => {
