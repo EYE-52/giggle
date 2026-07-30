@@ -2,6 +2,7 @@
   "name": "@giggle/agora",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "exports": {
@@ -9,6 +10,9 @@
       "react-native": "./src/index.native.ts",
       "default": "./src/index.ts"
     }
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --test test/*.test.cjs"
   },
   "dependencies": {
     "@giggle/core": "workspace:*"

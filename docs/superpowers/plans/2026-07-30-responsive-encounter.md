@@ -19,8 +19,11 @@
 - Modify `packages/agora/src/types.ts`: expose capture, connection, volume, remote-track, and native camera-switch truth.
 - Modify `packages/agora/src/web.ts`: report local device outcomes and stop swallowing media-toggle failures.
 - Modify `packages/agora/src/native.ts`: report real remote audio/video, connection, volume, capture, join, and camera-switch state.
+- Modify `packages/agora/package.json`: run dependency-free adapter state tests with Node.
+- Create `packages/agora/test/videoState.test.cjs`: exercise adapter state logic rather than source strings.
 - Modify `apps/mobile/components/RtcSurface.native.tsx`: map focused Fit and thumbnail Crop to Agora render modes.
 - Modify `apps/mobile/components/RtcSurface.web.tsx`: accept the same local prop without pretending to render native media.
+- Modify `apps/desktop/tsconfig.json`: accept explicit TypeScript runtime imports in the no-emit app build.
 - Modify `apps/desktop/app/(app)/encounter/page.tsx`: adaptive stage, stable pinning, focused Fit/Crop, uncluttered controls, anchored reactions, responsive chat, retry, and safe ending.
 - Modify `apps/mobile/app/encounter.tsx`: native parity for the same behaviors and states.
 - Modify `apps/desktop/test/next-config.test.js`: replace obsolete manual-layout source checks with behavior contracts.
@@ -319,23 +322,21 @@ git commit -m "feat(encounter): add adaptive layout policy"
 - Modify: `packages/agora/src/types.ts`
 - Modify: `packages/agora/src/web.ts`
 - Modify: `packages/agora/src/native.ts`
+- Modify: `packages/agora/package.json`
+- Create: `packages/agora/test/videoState.test.cjs`
 - Modify: `apps/mobile/components/RtcSurface.native.tsx`
 - Modify: `apps/mobile/components/RtcSurface.web.tsx`
+- Modify: `apps/desktop/tsconfig.json`
 
-- [ ] **Step 1: Add failing source contracts to the existing platform tests**
+- [x] **Step 1: Add failing runnable adapter contracts**
 
-In `apps/desktop/test/next-config.test.js`, read the Agora web and type sources and assert that `onCaptureState`, `captureErrorKind`, and non-swallowed toggle failures exist. In `apps/mobile/test/encounter.test.cjs`, read the native adapter and assert that it uses `onRemoteVideoStateChanged`, `onRemoteAudioStateChanged`, `onConnectionStateChanged`, `onAudioVolumeIndication`, `onPermissionError`, and `switchCamera`.
+Create `packages/agora/test/videoState.test.cjs` to import and execute `captureErrorKind`, `setTrackEnabled`, `mapNativeConnectionState`, `mergeRemoteParticipant`, and `normalizeNativeVolume`. Also instantiate the web client without joining and assert that capture subscribers receive `{ audio: "off", video: "off" }` and missing mic/camera tracks reject. Add the package test command `node --experimental-strip-types --test test/*.test.cjs`.
 
-Run:
+Run: `pnpm --filter @giggle/agora test`
 
-```bash
-pnpm --filter @giggle/desktop test
-pnpm --filter @giggle/mobile test
-```
+Expected: the new tests FAIL because the named state functions and capture subscription do not exist.
 
-Expected: the new adapter contracts FAIL.
-
-- [ ] **Step 2: Extend the existing interface without adding an adapter layer**
+- [x] **Step 2: Extend the existing interface without adding an adapter layer**
 
 Add these exact public types and methods to `packages/agora/src/types.ts`:
 
@@ -363,7 +364,7 @@ export interface VideoClient {
 }
 ```
 
-- [ ] **Step 3: Make the web adapter report actual capture outcomes**
+- [x] **Step 3: Make the web adapter report actual capture outcomes**
 
 In `packages/agora/src/web.ts`:
 
@@ -391,7 +392,7 @@ async function setTrackEnabled(track: any, on: boolean, label: string) {
 }
 ```
 
-- [ ] **Step 4: Make the native adapter emit real SDK state**
+- [x] **Step 4: Make the native adapter emit real SDK state**
 
 Replace the fixed `hasVideo: true, hasAudio: true` mapping in `packages/agora/src/native.ts` with a `Map<number, RemoteParticipant>`. Register the existing SDK callbacks before joining:
 
@@ -415,11 +416,11 @@ onLocalVideoStateChanged: (_source, state) =>
 
 Call `engine.enableAudioVolumeIndication(200, 3, true)`. Reject `join()` when `joinChannel` returns a negative code, reject negative mute/camera/switch return codes, and implement `switchCamera()` with the installed SDK's `engine.switchCamera()`.
 
-- [ ] **Step 5: Map focused Fit and thumbnail Crop in the existing native surface**
+- [x] **Step 5: Map focused Fit and thumbnail Crop in the existing native surface**
 
 Change both `RtcSurface` files to accept `fit?: "fit" | "crop"`. In the native file, merge `canvas.renderMode` with `RenderModeType.RenderModeFit` for Fit and `RenderModeType.RenderModeHidden` for Crop. The web stub accepts and ignores `fit` because the Next screen owns its DOM video.
 
-- [ ] **Step 6: Verify adapters compile through their consumers**
+- [x] **Step 6: Verify adapters compile through their consumers**
 
 Run:
 
@@ -431,10 +432,10 @@ pnpm --filter @giggle/desktop build
 
 Expected: all three commands PASS. The existing Node 25 engine warning may remain; no compile error may remain.
 
-- [ ] **Step 7: Commit the media truth contract**
+- [x] **Step 7: Commit the media truth contract**
 
 ```bash
-git add packages/agora/src/types.ts packages/agora/src/web.ts packages/agora/src/native.ts apps/mobile/components/RtcSurface.native.tsx apps/mobile/components/RtcSurface.web.tsx apps/desktop/test/next-config.test.js apps/mobile/test/encounter.test.cjs
+git add packages/agora/package.json packages/agora/src/types.ts packages/agora/src/web.ts packages/agora/src/native.ts packages/agora/test/videoState.test.cjs apps/mobile/components/RtcSurface.native.tsx apps/mobile/components/RtcSurface.web.tsx apps/desktop/tsconfig.json docs/superpowers/plans/2026-07-30-responsive-encounter.md
 git commit -m "fix(encounter): expose truthful media state"
 ```
 

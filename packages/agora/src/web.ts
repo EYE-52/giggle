@@ -1,37 +1,80 @@
-import type { AgoraToken, ConnectionState, RemoteParticipant, VideoClient, VolumeLevel } from "./types";
+import { mergeRemoteParticipant } from "./types.ts";
+import type {
+  AgoraToken,
+  CaptureDeviceState,
+  CaptureState,
+  ConnectionState,
+  RemoteParticipant,
+  VideoClient,
+  VolumeLevel,
+} from "./types";
+
+export function captureErrorKind(error: unknown): CaptureDeviceState {
+  const name = error instanceof DOMException
+    ? error.name
+    : (error as { name?: string } | null)?.name;
+  return name === "NotAllowedError" || name === "SecurityError"
+    ? "denied"
+    : "unavailable";
+}
+
+export async function setTrackEnabled(
+  track: { setMuted?: (muted: boolean) => Promise<void>; setEnabled?: (on: boolean) => Promise<void> } | null,
+  on: boolean,
+  label: string
+): Promise<void> {
+  if (!track) throw new Error(`${label} is unavailable.`);
+  try {
+    if (!track.setMuted) throw new Error(`${label} cannot be muted.`);
+    await track.setMuted(!on);
+  } catch (firstError) {
+    try {
+      if (!track.setEnabled) throw firstError;
+      await track.setEnabled(on);
+    } catch {
+      throw firstError;
+    }
+  }
+}
 
 // Web implementation backed by agora-rtc-sdk-ng. The SDK is imported
 // dynamically so it never runs during Next.js SSR.
-
 export function createVideoClient(): VideoClient {
   let client: any = null;
   let AgoraRTC: any = null;
   let localVideoTrack: any = null;
   let localAudioTrack: any = null;
+  let localUid: string | number = 0;
   let remotes: RemoteParticipant[] = [];
+  let capture: CaptureState = { audio: "off", video: "off" };
   const listeners = new Set<(r: RemoteParticipant[]) => void>();
   const volumeListeners = new Set<(levels: VolumeLevel[]) => void>();
   const connListeners = new Set<(state: ConnectionState) => void>();
+  const captureListeners = new Set<(state: CaptureState) => void>();
   const remoteUsers = new Map<string | number, any>();
+  const remoteState = new Map<string | number, RemoteParticipant>();
 
-  // Map Agora's connection states onto our simplified lifecycle. Unknown /
-  // transient states are ignored (returning null) so consumers only see
-  // meaningful transitions.
-  function mapConnState(s: string): ConnectionState | null {
-    if (s === "CONNECTED") return "CONNECTED";
-    if (s === "RECONNECTING") return "RECONNECTING";
-    if (s === "CONNECTING") return "CONNECTING";
-    if (s === "DISCONNECTED") return "DISCONNECTED";
+  function mapConnState(state: string): ConnectionState | null {
+    if (state === "CONNECTED") return "CONNECTED";
+    if (state === "RECONNECTING") return "RECONNECTING";
+    if (state === "CONNECTING") return "CONNECTING";
+    if (state === "DISCONNECTED") return "DISCONNECTED";
     return null;
   }
 
   function emit() {
-    remotes = Array.from(remoteUsers.values()).map((u) => ({
-      uid: u.uid,
-      hasVideo: !!u.videoTrack,
-      hasAudio: !!u.audioTrack,
-    }));
-    listeners.forEach((cb) => cb(remotes));
+    remotes = Array.from(remoteState.values());
+    listeners.forEach((cb) => {
+      try { cb(remotes); } catch {}
+    });
+  }
+
+  function setCapture(patch: Partial<CaptureState>) {
+    capture = { ...capture, ...patch };
+    const snapshot = { ...capture };
+    captureListeners.forEach((cb) => {
+      try { cb(snapshot); } catch {}
+    });
   }
 
   return {
@@ -40,6 +83,7 @@ export function createVideoClient(): VideoClient {
     },
     onRemoteChange(cb) {
       listeners.add(cb);
+      cb(remotes);
       return () => listeners.delete(cb);
     },
     onVolumes(cb) {
@@ -50,59 +94,90 @@ export function createVideoClient(): VideoClient {
       connListeners.add(cb);
       return () => connListeners.delete(cb);
     },
+    onCaptureState(cb) {
+      captureListeners.add(cb);
+      cb({ ...capture });
+      return () => captureListeners.delete(cb);
+    },
     async join(token: AgoraToken, opts = { audio: true, video: true }) {
+      localUid = token.uid;
+      setCapture({
+        audio: opts.audio ? "pending" : "off",
+        video: opts.video ? "pending" : "off",
+      });
+
       const mod = await import("agora-rtc-sdk-ng");
       AgoraRTC = mod.default ?? mod;
-      // Silence the SDK's own console noise (e.g. benign "WS_ABORT: ping" on
-      // leave/reconnect) — we surface meaningful video errors via our own UI.
-      try { AgoraRTC.setLogLevel?.(4 /* NONE */); } catch {}
+      try { AgoraRTC.setLogLevel?.(4); } catch {}
       try { AgoraRTC.disableLogUpload?.(); } catch {}
       client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
       client.on("user-published", async (user: any, mediaType: "video" | "audio") => {
         await client.subscribe(user, mediaType);
         remoteUsers.set(user.uid, user);
+        const previous = remoteState.get(user.uid);
+        remoteState.set(user.uid, mergeRemoteParticipant(previous, user.uid, {
+          [mediaType === "video" ? "hasVideo" : "hasAudio"]: true,
+        }));
         if (mediaType === "audio") user.audioTrack?.play();
         emit();
       });
-      client.on("user-unpublished", (user: any) => {
+      client.on("user-unpublished", (user: any, mediaType: "video" | "audio") => {
         remoteUsers.set(user.uid, user);
+        const previous = remoteState.get(user.uid);
+        remoteState.set(user.uid, mergeRemoteParticipant(previous, user.uid, {
+          [mediaType === "video" ? "hasVideo" : "hasAudio"]: false,
+        }));
         emit();
       });
       client.on("user-left", (user: any) => {
         remoteUsers.delete(user.uid);
+        remoteState.delete(user.uid);
         emit();
       });
-      client.on("connection-state-change", (cur: string) => {
-        const mapped = mapConnState(String(cur));
-        if (mapped) connListeners.forEach((cb) => { try { cb(mapped); } catch {} });
+      client.on("connection-state-change", (current: string) => {
+        const mapped = mapConnState(String(current));
+        if (mapped) connListeners.forEach((cb) => {
+          try { cb(mapped); } catch {}
+        });
       });
-      // Speaking volumes (defensive: not all SDK builds expose the API).
       try {
         client.enableAudioVolumeIndicator?.();
         client.on("volume-indicator", (volumes: { uid: string | number; level: number }[]) => {
-          const levels: VolumeLevel[] = (volumes ?? []).map((v) => ({ uid: v.uid, level: v.level }));
-          volumeListeners.forEach((cb) => { try { cb(levels); } catch {} });
+          const levels: VolumeLevel[] = (volumes ?? []).map((volume) => ({
+            uid: String(volume.uid) === "0" ? localUid : volume.uid,
+            level: volume.level,
+          }));
+          volumeListeners.forEach((cb) => {
+            try { cb(levels); } catch {}
+          });
         });
       } catch {}
 
       await client.join(token.appId, token.channelName, token.rtcToken, token.uid);
 
-      // Create local tracks best-effort (a missing camera/mic must not break join).
-      const toPublish: any[] = [];
       if (opts.audio) {
         try {
           localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-          toPublish.push(localAudioTrack);
-        } catch {}
+          await client.publish([localAudioTrack]);
+          setCapture({ audio: "active" });
+        } catch (error) {
+          try { localAudioTrack?.close?.(); } catch {}
+          localAudioTrack = null;
+          setCapture({ audio: captureErrorKind(error) });
+        }
       }
       if (opts.video) {
         try {
           localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-          toPublish.push(localVideoTrack);
-        } catch {}
+          await client.publish([localVideoTrack]);
+          setCapture({ video: "active" });
+        } catch (error) {
+          try { localVideoTrack?.close?.(); } catch {}
+          localVideoTrack = null;
+          setCapture({ video: captureErrorKind(error) });
+        }
       }
-      if (toPublish.length) await client.publish(toPublish);
     },
     async leave() {
       try {
@@ -112,25 +187,27 @@ export function createVideoClient(): VideoClient {
         localAudioTrack?.close();
         await client?.leave();
       } catch {}
+      localVideoTrack = null;
+      localAudioTrack = null;
       remoteUsers.clear();
+      remoteState.clear();
       emit();
+      setCapture({ audio: "off", video: "off" });
     },
     async setMicEnabled(on: boolean) {
-      // setMuted is the reliable, instant mute (keeps the track published) —
-      // unlike setEnabled which unpublishes/stops capture and can race.
-      try { await localAudioTrack?.setMuted(!on); }
-      catch { try { await localAudioTrack?.setEnabled(on); } catch {} }
+      await setTrackEnabled(localAudioTrack, on, "Microphone");
+      setCapture({ audio: on ? "active" : "off" });
     },
     async setCamEnabled(on: boolean) {
-      try { await localVideoTrack?.setMuted(!on); }
-      catch { try { await localVideoTrack?.setEnabled(on); } catch {} }
+      await setTrackEnabled(localVideoTrack, on, "Camera");
+      setCapture({ video: on ? "active" : "off" });
     },
     playLocal(el?: unknown) {
       if (localVideoTrack && el) localVideoTrack.play(el as HTMLElement);
     },
     playRemote(uid, el?: unknown) {
-      const u = remoteUsers.get(uid);
-      if (u?.videoTrack && el) u.videoTrack.play(el as HTMLElement);
+      const user = remoteUsers.get(uid);
+      if (user?.videoTrack && el) user.videoTrack.play(el as HTMLElement);
     },
   };
 }

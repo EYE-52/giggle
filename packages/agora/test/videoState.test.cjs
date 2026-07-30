@@ -1,0 +1,63 @@
+const assert = require("node:assert/strict");
+const test = require("node:test");
+
+test("web capture errors distinguish denial from unavailable devices", async () => {
+  const { captureErrorKind } = await import("../src/web.ts");
+  assert.equal(captureErrorKind(new DOMException("Denied", "NotAllowedError")), "denied");
+  assert.equal(captureErrorKind(new DOMException("Missing", "NotFoundError")), "unavailable");
+  assert.equal(captureErrorKind(new Error("Unknown")), "unavailable");
+});
+
+test("web track toggles fall back once and still reject real failures", async () => {
+  const { setTrackEnabled } = await import("../src/web.ts");
+  const calls = [];
+  await setTrackEnabled({
+    setMuted: async () => { throw new Error("mute unsupported"); },
+    setEnabled: async (on) => { calls.push(on); },
+  }, true, "Microphone");
+  assert.deepEqual(calls, [true]);
+
+  await assert.rejects(
+    setTrackEnabled({
+      setMuted: async () => { throw new Error("mute failed"); },
+      setEnabled: async () => { throw new Error("enable failed"); },
+    }, false, "Camera"),
+    /mute failed/
+  );
+});
+
+test("web clients expose initial capture truth and reject missing tracks", async () => {
+  const { createVideoClient } = await import("../src/web.ts");
+  const client = createVideoClient();
+  const states = [];
+  client.onCaptureState((state) => states.push(state));
+  assert.deepEqual(states, [{ audio: "off", video: "off" }]);
+  await assert.rejects(client.setMicEnabled(true), /Microphone is unavailable/);
+  await assert.rejects(client.setCamEnabled(true), /Camera is unavailable/);
+});
+
+test("native connection states map onto the shared lifecycle", async () => {
+  const { mapNativeConnectionState } = await import("../src/native.ts");
+  assert.equal(mapNativeConnectionState(1), "DISCONNECTED");
+  assert.equal(mapNativeConnectionState(2), "CONNECTING");
+  assert.equal(mapNativeConnectionState(3), "CONNECTED");
+  assert.equal(mapNativeConnectionState(4), "RECONNECTING");
+  assert.equal(mapNativeConnectionState(5), "DISCONNECTED");
+  assert.equal(mapNativeConnectionState(99), null);
+});
+
+test("native remote updates preserve independent audio and video truth", async () => {
+  const { mergeRemoteParticipant } = await import("../src/native.ts");
+  const joined = mergeRemoteParticipant(undefined, 42, {});
+  const video = mergeRemoteParticipant(joined, 42, { hasVideo: true });
+  const muted = mergeRemoteParticipant(video, 42, { hasAudio: false });
+  assert.deepEqual(joined, { uid: 42, hasVideo: false, hasAudio: false });
+  assert.deepEqual(video, { uid: 42, hasVideo: true, hasAudio: false });
+  assert.deepEqual(muted, { uid: 42, hasVideo: true, hasAudio: false });
+});
+
+test("native local volume zero maps back to the token uid", async () => {
+  const { normalizeNativeVolume } = await import("../src/native.ts");
+  assert.deepEqual(normalizeNativeVolume(77, { uid: 0, volume: 128 }), { uid: 77, level: 50 });
+  assert.deepEqual(normalizeNativeVolume(77, { uid: 81, volume: 255 }), { uid: 81, level: 100 });
+});
