@@ -36,9 +36,8 @@ const squadSchema = new mongoose.Schema({
   ],
   searchRegion: { type: String, default: "global" },
   tags: [{ type: String }],
-  // True when any of the squad's tags is a "mature" (18+) vibe. Gates the squad
-  // as an adult room: only 18+ users may create/join, and it matches only with
-  // other adult squads. Server-computed from tags — never trusted from client.
+  // Legacy compatibility only. Mature tags are rejected and this flag never
+  // grants access; safe tag updates clear it.
   adult: { type: Boolean, default: false },
   reputationScore: { type: Number, default: 100 },
   isPremiumSquad: { type: Boolean, default: false },

@@ -17,6 +17,7 @@ const {
 } = require("../app/squadAccess");
 const { generateId, generateSquadCode } = require("../utils/idGenerator");
 const { tryMatchmakeForSquad } = require("../services/matchmakingService");
+const { allUsersHaveAdultAccess, hasAdultAccess } = require("../services/ageAccessService");
 const queueService = require("../services/queueService");
 const socketService = require("../services/socketService");
 const sessionService = require("../services/sessionService");
@@ -24,7 +25,7 @@ const { redlock } = require("../config/redisConfig");
 const { createNotification, deleteNotifications } = require("../models/Notification");
 const { shuffle } = require("../utils/random");
 const { normalizeSquadTags } = require("../utils/squadValidation");
-const { classifyVibe, tagsAreMature, firstBlockedTag } = require("../utils/moderation");
+const { classifyVibe } = require("../utils/moderation");
 const { normalizeSquadCoverImage } = require("../utils/squadCoverValidation");
 const { firstDisplayName } = require("../utils/identityValidation");
 
@@ -54,13 +55,6 @@ const getUserPremiumStatus = async (userId) => {
   if (!userId) return false;
   const user = await User.findById(userId).select("isPremium");
   return Boolean(user && user.isPremium);
-};
-
-// Defensive: legacy/missing users are treated as NOT adult (must set DOB first).
-const getUserIsAdult = async (userId) => {
-  if (!userId) return false;
-  const user = await User.findById(userId).select("isAdult");
-  return Boolean(user && user.isAdult);
 };
 
 const getSquadPremiumStatus = async (squad) => {
@@ -226,20 +220,10 @@ const createSquadHandler = async (req, res) => {
       });
     }
 
-    // Server-side content moderation on tags: reject blocked outright, and mark
-    // the squad adult when any tag is a "mature" vibe. Never trust the client.
-    const blocked = firstBlockedTag(normalizedTags.tags);
-    if (blocked) {
+    if (normalizedTags.tags.some((tag) => classifyVibe(tag) !== "ok")) {
       return res.status(400).json({
         ok: false,
         error: { code: "TAG_BLOCKED", message: "One or more tags are not allowed." },
-      });
-    }
-    const isAdultSquad = tagsAreMature(normalizedTags.tags);
-    if (isAdultSquad && !(await getUserIsAdult(userId))) {
-      return res.status(403).json({
-        ok: false,
-        error: { code: "AGE_RESTRICTED", message: "You must be 18+ to create an adult squad" },
       });
     }
 
@@ -268,7 +252,6 @@ const createSquadHandler = async (req, res) => {
       status: "idle",
       isPremiumSquad: await getUserPremiumStatus(userId),
       tags: normalizedTags.tags,
-      adult: isAdultSquad,
       visibility: normalizedVisibility,
       members: [newMember],
       createdAt: new Date().toISOString(),
@@ -357,15 +340,6 @@ const joinSquadHandler = async (req, res) => {
           members: squad.members,
           status: squad.status,
         },
-      });
-    }
-
-    // Adult-content gate: an adult squad may only be joined by 18+ users.
-    // Applies to both join-by-code and join-by-id (this handler serves both).
-    if (squad.adult && !existingUser.isAdult) {
-      return res.status(403).json({
-        ok: false,
-        error: { code: "AGE_RESTRICTED", message: "You must be 18+ to join an adult squad" },
       });
     }
 
@@ -815,6 +789,20 @@ const approveJoinRequestHandler = async (req, res) => {
 
     const request = squad.joinRequests[reqIndex];
 
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        ok: false,
+        error: { code: "REQUEST_USER_NOT_FOUND", message: "Join request user no longer exists" },
+      });
+    }
+    if (!hasAdultAccess(targetUser)) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
+      });
+    }
+
     // If already a member, just clear the stale request.
     const alreadyMember = hasIdentityId(squad.members, targetUserId, "userId");
     if (alreadyMember) {
@@ -833,30 +821,6 @@ const approveJoinRequestHandler = async (req, res) => {
       return res.status(409).json({
         ok: false,
         error: { code: "SQUAD_FULL", message: `Squad is full (max ${capacity} members)` },
-      });
-    }
-
-    const targetUser = await User.findById(targetUserId);
-    if (!targetUser) {
-      squad.joinRequests.splice(reqIndex, 1);
-      await squad.save();
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-      await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
-      return res.status(404).json({
-        ok: false,
-        error: { code: "REQUEST_USER_NOT_FOUND", message: "Join request user no longer exists" },
-      });
-    }
-
-    // Adult-content gate: never approve a non-adult user into an adult squad.
-    if (squad.adult && !targetUser.isAdult) {
-      squad.joinRequests.splice(reqIndex, 1);
-      await squad.save();
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-      await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
-      return res.status(403).json({
-        ok: false,
-        error: { code: "AGE_RESTRICTED", message: "This user must be 18+ to join an adult squad" },
       });
     }
 
@@ -960,11 +924,17 @@ const inviteToSquadHandler = async (req, res) => {
       });
     }
 
-    const targetUser = await User.findById(targetUserId).select("_id");
+    const targetUser = await User.findById(targetUserId).select("_id ageConfirmed isAdult ageVerified");
     if (!targetUser) {
       return res.status(404).json({
         ok: false,
         error: { code: "INVITE_USER_NOT_FOUND", message: "Invite target user no longer exists" },
+      });
+    }
+    if (!hasAdultAccess(targetUser)) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
       });
     }
 
@@ -1046,11 +1016,17 @@ const inviteUserToSquadHandler = async (req, res) => {
   try {
     const { squad } = req.squadAccess;
     const inviterName = req.giggleIdentity?.name || getRequesterIdentity(req).name;
-    const targetUser = await User.findById(targetUserId).select("_id");
+    const targetUser = await User.findById(targetUserId).select("_id ageConfirmed isAdult ageVerified");
     if (!targetUser) {
       return res.status(404).json({
         ok: false,
         error: { code: "INVITE_USER_NOT_FOUND", message: "Invite target user no longer exists" },
+      });
+    }
+    if (!hasAdultAccess(targetUser)) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
       });
     }
 
@@ -1121,6 +1097,23 @@ const startSearchHandler = async (req, res) => {
       });
     }
 
+    if ((squad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
+      return res.status(400).json({
+        ok: false,
+        error: { code: "TAG_BLOCKED", message: "One or more tags are not allowed." },
+      });
+    }
+
+    if (!(await allUsersHaveAdultAccess(squad.members.map((member) => member.userId), { User }))) {
+      return res.status(403).json({
+        ok: false,
+        error: {
+          code: "AGE_RESTRICTED",
+          message: "Every squad member must complete adult age verification",
+        },
+      });
+    }
+
     // Fetch live session data from Redis to check ready/video states
     const sessionData = await sessionService.getSquadSession(squad.squadId);
 
@@ -1162,24 +1155,6 @@ const startSearchHandler = async (req, res) => {
           message: "All online squad members must be ready and in the video lobby",
         },
       });
-    }
-
-    // Adult-content enqueue gate: an adult squad may only enter matchmaking when
-    // EVERY member is 18+. (A non-adult squad has no such restriction.)
-    if (squad.adult) {
-      const memberUserIds = squad.members.map((m) => m.userId).filter(Boolean);
-      const adultUsers = memberUserIds.length
-        ? await User.find({ _id: { $in: memberUserIds }, isAdult: true }).select("_id")
-        : [];
-      if (adultUsers.length !== memberUserIds.length) {
-        return res.status(403).json({
-          ok: false,
-          error: {
-            code: "AGE_RESTRICTED",
-            message: "All squad members must be 18+ before an adult squad can start matchmaking",
-          },
-        });
-      }
     }
 
     const now = new Date();
@@ -1569,9 +1544,7 @@ const updateSquadTagsHandler = async (req, res) => {
     });
   }
 
-  // Server-side moderation: reject blocked tags outright.
-  const blocked = firstBlockedTag(normalized.tags);
-  if (blocked) {
+  if (normalized.tags.some((tag) => classifyVibe(tag) !== "ok")) {
     return res.status(400).json({
       ok: false,
       error: { code: "TAG_BLOCKED", message: "One or more tags are not allowed." },
@@ -1580,21 +1553,9 @@ const updateSquadTagsHandler = async (req, res) => {
 
   try {
     const { squad } = req.squadAccess;
-    const willBeAdult = tagsAreMature(normalized.tags);
-
-    // If this update turns the squad into an adult room, the acting user must be 18+.
-    if (willBeAdult && !squad.adult) {
-      const actorId = getRequesterIdentity(req).userId;
-      if (!(await getUserIsAdult(actorId))) {
-        return res.status(403).json({
-          ok: false,
-          error: { code: "AGE_RESTRICTED", message: "You must be 18+ to make a squad adult" },
-        });
-      }
-    }
 
     squad.tags = normalized.tags;
-    squad.adult = willBeAdult;
+    squad.adult = false;
     await squad.save();
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
 
@@ -1718,9 +1679,6 @@ const tryJoinSquadOnce = async (squadId, identity, displayName) => {
     const capacity = await getSquadCapacity(squad);
     if (squad.members.length >= capacity) return null;
     if (squad.members.some((m) => isSameMember(m, identity))) return null;
-    // Never drop a non-adult user into an adult squad via random matching.
-    if (squad.adult && !(await getUserIsAdult(identity.userId))) return null;
-
     const newMember = {
       memberId: generateId("mem"),
       userId: identity.userId,

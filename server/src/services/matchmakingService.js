@@ -1,11 +1,14 @@
 const { Squad } = require("../models/Squad");
 const { Encounter } = require("../models/Encounter");
+const User = require("../models/User");
 const { generateId } = require("../utils/idGenerator");
 const { redlock } = require("../config/redisConfig");
 const queueService = require("./queueService");
 const socketService = require("./socketService");
 const sessionService = require("./sessionService");
+const { allUsersHaveAdultAccess } = require("./ageAccessService");
 const { MIN_MEMBERS_TO_SEARCH } = require("../config/appConfig");
+const { classifyVibe } = require("../utils/moderation");
 
 // 60s handoff window: matchmaking polling, the match-reveal animation, and
 // navigation all eat into this, so 30s was too tight for the 2nd squad to ack
@@ -242,10 +245,18 @@ const tryMatchmakeForSquad = async (squad) => {
         continue;
       }
 
-      // Adult-content partition: adult squads match ONLY with other adult squads,
-      // and non-adult squads ONLY with non-adult squads. Never cross the boundary.
-      if (Boolean(freshSquad.adult) !== Boolean(freshCandidate.adult)) {
-        logMatchmakingDebug(`[Matchmaking] Candidate ${freshCandidate.squadId} adult=${Boolean(freshCandidate.adult)} mismatches seeker adult=${Boolean(freshSquad.adult)}. Skipping.`);
+      const [seekerHasAccess, candidateHasAccess] = await Promise.all([
+        allUsersHaveAdultAccess(freshSquad.members.map((member) => member.userId), { User }),
+        allUsersHaveAdultAccess(freshCandidate.members.map((member) => member.userId), { User }),
+      ]);
+      if (!seekerHasAccess || (freshSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
+        console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} is no longer eligible. Purging from queue.`);
+        await resetInactiveSearchingSquad(freshSquad);
+        return null;
+      }
+      if (!candidateHasAccess || (freshCandidate.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
+        console.warn(`[Matchmaking] Candidate ${freshCandidate.squadId} is no longer eligible. Purging from queue.`);
+        await resetInactiveSearchingSquad(freshCandidate);
         continue;
       }
 
@@ -418,6 +429,13 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
   const requeuedSquadIds = [];
   try {
     for (const s of squads) {
+      const canRequeue =
+        !(s.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&
+        await allUsersHaveAdultAccess(s.members.map((member) => member.userId), { User });
+      if (!canRequeue) {
+        await rollbackSquadsToIdle([s.squadId]);
+        continue;
+      }
       await queueService.addToQueue(s.squadId, getSquadSize(s), s.searchRegion, s.tags, s.reputationScore);
       requeuedSquadIds.push(s.squadId);
       // Reset encounter video state in Redis
@@ -430,7 +448,9 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
     throw error;
   }
 
-  const triggeringSquad = squads.find(s => s.squadId === triggeringSquadId);
+  const triggeringSquad = squads.find(
+    (s) => s.squadId === triggeringSquadId && requeuedSquadIds.includes(s.squadId)
+  ) || squads.find((s) => requeuedSquadIds.includes(s.squadId));
   if (!triggeringSquad) {
     return null;
   }
@@ -530,20 +550,27 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   let otherQueued = false;
   if (otherSquad) {
     try {
-      await queueService.addToQueue(
-        otherSquad.squadId, 
-        getSquadSize(otherSquad), 
-        otherSquad.searchRegion, 
-        otherSquad.tags, 
-        otherSquad.reputationScore
-      );
-      otherQueued = true;
-      // Sync Redis for other squad
-      for (const m of otherSquad.members) {
-        await sessionService.setSessionField(otherSquadId, m.memberId, 'inEncounterVideo', false);
+      const canRequeue =
+        !(otherSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&
+        await allUsersHaveAdultAccess(otherSquad.members.map((member) => member.userId), { User });
+      if (!canRequeue) {
+        await rollbackSquadsToIdle([otherSquadId]);
+      } else {
+        await queueService.addToQueue(
+          otherSquad.squadId,
+          getSquadSize(otherSquad),
+          otherSquad.searchRegion,
+          otherSquad.tags,
+          otherSquad.reputationScore
+        );
+        otherQueued = true;
+        // Sync Redis for other squad
+        for (const m of otherSquad.members) {
+          await sessionService.setSessionField(otherSquadId, m.memberId, 'inEncounterVideo', false);
+        }
+        // Start matching for them immediately
+        await tryMatchmakeForSquad(otherSquad);
       }
-      // Start matching for them immediately
-      await tryMatchmakeForSquad(otherSquad);
     } catch (error) {
       if (!otherQueued) {
         await rollbackSquadsToIdle([otherSquadId]);
