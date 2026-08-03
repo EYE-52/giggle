@@ -12,6 +12,7 @@ const {
   authorizeSquadReport,
   authorizeSquadRoomJoin,
   normalizeRealtimeId,
+  resolveReportTargetSquadId,
 } = require('../utils/socketAccess');
 const { firstDisplayName } = require('../utils/identityValidation');
 const { isMongoObjectIdString } = require('../middlewares/authMiddleware');
@@ -149,6 +150,19 @@ const persistSquadReport = async ({
   const details = normalizeReportDetails(payload.details);
   if (!REPORT_CATEGORIES.has(category) || details === null) return REPORT_UNAVAILABLE;
 
+  const filter = {
+    reporterUserId: String(userId || ''),
+    encounterId: normalizeRealtimeId(payload.encounterId),
+    targetSquadId: resolveReportTargetSquadId(payload),
+  };
+  if (!filter.reporterUserId || !filter.encounterId || !filter.targetSquadId) return REPORT_UNAVAILABLE;
+
+  if (typeof ReportModel.findOne === 'function') {
+    const existing = await ReportModel.findOne(filter);
+    const existingId = String(existing?._id ?? existing?.id ?? '');
+    if (existingId) return { ok: true, reportId: existingId, status: 'open' };
+  }
+
   const scope = await authorizeSquadReport({
     payload,
     userId,
@@ -165,11 +179,6 @@ const persistSquadReport = async ({
   )];
   if (targetUserIds.length === 0) return REPORT_UNAVAILABLE;
 
-  const filter = {
-    reporterUserId: String(userId),
-    encounterId: normalizeRealtimeId(payload.encounterId),
-    targetSquadId: scope.targetSquadId,
-  };
   const update = {
     $setOnInsert: {
       ...filter,
@@ -194,7 +203,7 @@ const persistSquadReport = async ({
   }
   const reportId = String(report?._id ?? report?.id ?? '');
   if (!reportId) throw new Error('Safety report persistence returned no record');
-  return { ok: true, reportId, status: report.status || 'open' };
+  return { ok: true, reportId, status: 'open' };
 };
 
 // ── Online presence (Redis-backed) ──────────────────────────────────────────

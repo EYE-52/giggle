@@ -110,6 +110,37 @@ test("persistSquadReport derives targets from the live opponent roster and is id
   assert.equal(squads[1].reputationScore, 100);
 });
 
+test("persistSquadReport acknowledges saved retries after encounter end without leaking review state", async () => {
+  let scopeReads = 0;
+  const result = await socketService.persistSquadReport({
+    payload: {
+      encounterId: "enc_1",
+      squadId: "sq_a",
+      reportedSquadId: "sq_b",
+      category: "other",
+    },
+    userId: "user_a",
+    Squad: { async findOne() { scopeReads += 1; return null; } },
+    Encounter: { async findOne() { scopeReads += 1; return { status: "ended" }; } },
+    ReportModel: {
+      async findOne(filter) {
+        assert.deepEqual(filter, {
+          reporterUserId: "user_a",
+          encounterId: "enc_1",
+          targetSquadId: "sq_b",
+        });
+        return { _id: "report_1", status: "actioned" };
+      },
+      async findOneAndUpdate() {
+        assert.fail("saved retry attempted another write");
+      },
+    },
+  });
+
+  assert.deepEqual(result, { ok: true, reportId: "report_1", status: "open" });
+  assert.equal(scopeReads, 0);
+});
+
 test("persistSquadReport rejects invalid scope and unbounded report input before writing", async () => {
   assert.equal(typeof socketService.persistSquadReport, "function");
   if (typeof socketService.persistSquadReport !== "function") return;
