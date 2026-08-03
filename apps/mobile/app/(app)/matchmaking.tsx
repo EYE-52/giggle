@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Animated, StyleSheet, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
-import { Avatar } from '../components/Avatar';
-import { COLORS, SPACE } from '../constants/theme';
+import { Screen } from '../../components/Screen';
+import { Button } from '../../components/Button';
+import { Avatar } from '../../components/Avatar';
+import { COLORS, SPACE } from '../../constants/theme';
 import { api, connectSocket, session, SOCKET_EVENTS } from '@giggle/core';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';

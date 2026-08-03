@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Screen } from '../components/Screen';
-import { Card } from '../components/Card';
-import { Avatar } from '../components/Avatar';
-import { Button } from '../components/Button';
-import { Icon } from '../components/Icon';
-import { COLORS, SPACE } from '../constants/theme';
+import { Screen } from '../../components/Screen';
+import { Card } from '../../components/Card';
+import { Avatar } from '../../components/Avatar';
+import { Button } from '../../components/Button';
+import { Icon } from '../../components/Icon';
+import { COLORS, SPACE } from '../../constants/theme';
 import { api, session } from '@giggle/core';
 import Svg, { Circle } from 'react-native-svg';
 

@@ -89,26 +89,27 @@ test("onboarding avoids the old oversized blocky auth layout", () => {
 });
 
 test("mobile layout redirects unauthenticated production users away from app routes", () => {
-  const layout = read("app/_layout.tsx");
+  const root = read("app/_layout.tsx");
+  const layout = read("app/(app)/_layout.tsx");
 
-  assert.equal(layout.includes("PUBLIC_ROUTES"), true);
   assert.equal(layout.includes("session.isAuthed()"), true);
   assert.equal(layout.includes("process.env.NODE_ENV !== 'production'"), true);
   assert.equal(layout.includes("router.replace('/')"), true);
-  assert.equal(layout.includes("<Stack.Screen name=\"auth/callback\""), true);
+  assert.equal(root.includes("<Stack.Screen name=\"auth/callback\""), true);
+  assert.equal(root.includes("<Stack.Screen name=\"(app)\""), true);
 });
 
 test("mobile protected routes wait for shared verified-adult access", () => {
   const gatePath = path.join(__dirname, "../components/AgeGate.tsx");
   assert.equal(existsSync(gatePath), true);
 
-  const layout = read("app/_layout.tsx");
+  const layout = read("app/(app)/_layout.tsx");
   const gate = read("components/AgeGate.tsx");
 
-  assert.equal(layout.includes("import { AgeGate } from '../components/AgeGate';"), true);
+  assert.equal(layout.includes("import { AgeGate } from '../../components/AgeGate';"), true);
   assert.equal(layout.includes("await session.syncAgeFromServer()"), true);
-  assert.equal(layout.includes("if (!isPublicRoute && !authReady)"), true);
-  assert.equal(layout.includes("if (!isPublicRoute && !hasAdultAccess)"), true);
+  assert.equal(layout.includes("if (!authReady)"), true);
+  assert.equal(layout.includes("if (!hasAdultAccess)"), true);
   assert.equal(layout.includes("<AgeGate onDone={() => setHasAdultAccess(true)} />"), true);
   assert.equal(gate.includes("await session.setAge(birthDate);"), true);
   assert.equal(gate.includes('keyboardType="number-pad"'), true);
@@ -116,7 +117,7 @@ test("mobile protected routes wait for shared verified-adult access", () => {
 });
 
 test("mobile home actions do not create dev sessions from protected routes", () => {
-  const page = read("app/home.tsx");
+  const page = read("app/(app)/home.tsx");
 
   assert.equal(page.includes("await session.devSignIn();"), false);
   assert.equal(page.includes("router.replace('/')"), true);
@@ -124,7 +125,7 @@ test("mobile home actions do not create dev sessions from protected routes", () 
 });
 
 test("mobile discover uses live squad discovery instead of static venue fixtures", () => {
-  const page = read("app/discover.tsx");
+  const page = read("app/(app)/discover.tsx");
 
   assert.equal(page.includes("api.discoverSquads()"), true);
   assert.equal(page.includes("api.joinSquadById("), true);
@@ -133,7 +134,7 @@ test("mobile discover uses live squad discovery instead of static venue fixtures
 });
 
 test("mobile discover actions fail closed when the user is unauthenticated", () => {
-  const page = read("app/discover.tsx");
+  const page = read("app/(app)/discover.tsx");
 
   assert.equal(page.includes("function ensureAuthed()"), true);
   assert.equal(page.includes("if (session.isAuthed()) return true;"), true);

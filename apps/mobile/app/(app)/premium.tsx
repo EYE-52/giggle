@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Screen } from '../components/Screen';
-import { Card } from '../components/Card';
-import { Button } from '../components/Button';
-import { Icon } from '../components/Icon';
-import { COLORS, SPACE } from '../constants/theme';
+import { Screen } from '../../components/Screen';
+import { Card } from '../../components/Card';
+import { Button } from '../../components/Button';
+import { Icon } from '../../components/Icon';
+import { COLORS, SPACE } from '../../constants/theme';
 import { api, session, TOKEN_PERKS, type ReferralInfo } from '@giggle/core';
 
 export default function PremiumScreen() {

@@ -23,7 +23,7 @@ test("mobile vibe chip exposes selectable button semantics", () => {
 });
 
 test("native back controls keep accessible 44 point touch targets", () => {
-  for (const route of ["app/discover.tsx", "app/premium.tsx", "app/profile.tsx"]) {
+  for (const route of ["app/(app)/discover.tsx", "app/(app)/premium.tsx", "app/(app)/profile.tsx"]) {
     const page = read(route);
 
     assert.equal(page.includes('accessibilityRole="button"'), true, route);
@@ -35,14 +35,14 @@ test("native back controls keep accessible 44 point touch targets", () => {
 });
 
 test("native discover filters keep accessible 44 point touch targets", () => {
-  const page = read("app/discover.tsx");
+  const page = read("app/(app)/discover.tsx");
 
   assert.equal(page.includes('accessibilityLabel={`Filter ${f}`}'), true);
   assert.match(page, /filterChip: \{[^}]*minHeight: 44/);
 });
 
 test("native profile vibe picker exposes its close action as a button", () => {
-  const page = read("app/profile.tsx");
+  const page = read("app/(app)/profile.tsx");
   const start = page.indexOf("onPress={() => setVibeModalVisible(false)}");
   const closeAction = page.slice(page.lastIndexOf("<TouchableOpacity", start), page.indexOf("</TouchableOpacity>", start));
 

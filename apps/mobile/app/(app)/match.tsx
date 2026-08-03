@@ -2,11 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, ScrollView, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
-import { AvatarStack } from '../components/Avatar';
-import { squadCoverSource } from '../components/squadCover';
-import { COLORS, SPACE } from '../constants/theme';
+import { Screen } from '../../components/Screen';
+import { Button } from '../../components/Button';
+import { AvatarStack } from '../../components/Avatar';
+import { squadCoverSource } from '../../components/squadCover';
+import { COLORS, SPACE } from '../../constants/theme';
 import { api, ApiError, session } from '@giggle/core';
 import type { EncounterDetail, SquadState } from '@giggle/core';
 

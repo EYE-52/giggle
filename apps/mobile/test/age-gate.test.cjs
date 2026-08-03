@@ -68,15 +68,17 @@ test('native blocked states retain retry, support, and sign-out exits', () => {
 });
 
 test('native protected screens do not mount before live adult access succeeds', () => {
-  const layout = read('app/_layout.tsx');
-  const protectedBoundary = layout.indexOf("if (!isPublicRoute && !authReady)");
-  const ageBoundary = layout.indexOf("if (!isPublicRoute && !hasAdultAccess)");
+  const root = read('app/_layout.tsx');
+  const layout = read('app/(app)/_layout.tsx');
+  const protectedBoundary = layout.indexOf('if (!authReady)');
+  const ageBoundary = layout.indexOf('if (!hasAdultAccess)');
   const stack = layout.indexOf('<Stack');
 
   assert.match(layout, /await session\.syncAgeFromServer\(\)/);
   assert.match(layout, /setHasAdultAccess\(session\.hasAdultAccess\)/);
   assert.ok(protectedBoundary >= 0 && protectedBoundary < stack);
   assert.ok(ageBoundary >= 0 && ageBoundary < stack);
-  assert.match(layout, /if \(!isPublicRoute && !hasAdultAccess\) \{\s*return <AgeGate onDone=\{\(\) => setHasAdultAccess\(true\)\} \/>;\s*\}/);
-  assert.doesNotMatch(layout, /<Stack[\s\S]*<AgeGate/);
+  assert.match(layout, /if \(!hasAdultAccess\) \{\s*return <AgeGate onDone=\{\(\) => setHasAdultAccess\(true\)\} \/>;\s*\}/);
+  assert.match(root, /<Stack\.Screen name="\(app\)"/);
+  assert.doesNotMatch(root, /AgeGate|router\.replace|useRouter/);
 });

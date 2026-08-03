@@ -5,11 +5,11 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Screen } from '../components/Screen';
-import { Icon } from '../components/Icon';
-import { Avatar } from '../components/Avatar';
-import { RtcSurface } from '../components/RtcSurface';
-import { COLORS, SPACE, RADII } from '../constants/theme';
+import { Screen } from '../../components/Screen';
+import { Icon } from '../../components/Icon';
+import { Avatar } from '../../components/Avatar';
+import { RtcSurface } from '../../components/RtcSurface';
+import { COLORS, SPACE, RADII } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   advanceSpeakerFocus,

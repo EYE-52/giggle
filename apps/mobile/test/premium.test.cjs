@@ -3,7 +3,7 @@ const { readFileSync } = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
-const source = () => readFileSync(path.join(__dirname, "../app/premium.tsx"), "utf8");
+const source = () => readFileSync(path.join(__dirname, "../app/(app)/premium.tsx"), "utf8");
 
 test("mobile wallet omits fake purchase and preview inventory", () => {
   const page = source();

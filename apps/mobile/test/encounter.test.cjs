@@ -3,13 +3,13 @@ const { readFileSync } = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
-const source = () => readFileSync(path.join(__dirname, "../app/encounter.tsx"), "utf8");
-const discoverSource = () => readFileSync(path.join(__dirname, "../app/discover.tsx"), "utf8");
-const homeSource = () => readFileSync(path.join(__dirname, "../app/home.tsx"), "utf8");
-const profileSource = () => readFileSync(path.join(__dirname, "../app/profile.tsx"), "utf8");
-const lobbySource = () => readFileSync(path.join(__dirname, "../app/lobby.tsx"), "utf8");
-const matchSource = () => readFileSync(path.join(__dirname, "../app/match.tsx"), "utf8");
-const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/matchmaking.tsx"), "utf8");
+const source = () => readFileSync(path.join(__dirname, "../app/(app)/encounter.tsx"), "utf8");
+const discoverSource = () => readFileSync(path.join(__dirname, "../app/(app)/discover.tsx"), "utf8");
+const homeSource = () => readFileSync(path.join(__dirname, "../app/(app)/home.tsx"), "utf8");
+const profileSource = () => readFileSync(path.join(__dirname, "../app/(app)/profile.tsx"), "utf8");
+const lobbySource = () => readFileSync(path.join(__dirname, "../app/(app)/lobby.tsx"), "utf8");
+const matchSource = () => readFileSync(path.join(__dirname, "../app/(app)/match.tsx"), "utf8");
+const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/(app)/matchmaking.tsx"), "utf8");
 const venueCardSource = () => readFileSync(path.join(__dirname, "../components/VenueCard.tsx"), "utf8");
 const squadCoverSource = () => readFileSync(path.join(__dirname, "../components/squadCover.ts"), "utf8");
 
