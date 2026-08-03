@@ -257,7 +257,7 @@ export default function ProfileScreen() {
         <Card style={styles.blockedList}>
           {blocksLoading ? (
             <Text style={styles.blockedHelp}>Loading…</Text>
-          ) : blockedAccounts.length === 0 ? (
+          ) : blocksError ? null : blockedAccounts.length === 0 ? (
             <Text style={styles.blockedHelp}>No blocked accounts.</Text>
           ) : (
             blockedAccounts.map((account, index) => {

@@ -16,6 +16,10 @@ const squadCoverSource = () => readFileSync(path.join(__dirname, "../components/
 test("mobile profile lists blocked accounts and keeps failed unblocks retryable", () => {
   const page = profileSource();
   const handler = page.slice(page.indexOf("async function unblockAccount"), page.indexOf("async function openResource"));
+  const blockedSection = page.slice(
+    page.indexOf('<Text style={styles.sectionLabel}>Blocked accounts'),
+    page.indexOf('<Text style={styles.sectionLabel}>Help & policies')
+  );
 
   assert.match(page, /Blocked accounts/);
   assert.match(page, /api\.listBlockedUsers\(\)/);
@@ -24,6 +28,8 @@ test("mobile profile lists blocked accounts and keeps failed unblocks retryable"
   assert.equal(handler.indexOf("setBlockedAccounts") > handler.indexOf("await api.unblockUser"), true);
   assert.match(page, /Couldn't load blocked accounts\./);
   assert.match(page, /Couldn't unblock that account\./);
+  assert.match(blockedSection, /blocksError \? null/);
+  assert.equal(blockedSection.indexOf("blocksError ?") < blockedSection.indexOf("blockedAccounts.length === 0"), true);
 });
 
 test("mobile encounter derives one adaptive layout from stable identities and real media", () => {

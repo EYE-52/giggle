@@ -621,6 +621,7 @@ test("acceptRequest rejects stale incoming friend requests when target user is g
   const missingTargetId = "507f1f77bcf86cd799439012";
   const originalFindById = User.findById;
   const originalUpdateOne = User.updateOne;
+  const originalTransaction = mongoose.connection.transaction;
   let updateCount = 0;
 
   User.findById = (id) => ({
@@ -634,6 +635,7 @@ test("acceptRequest rejects stale incoming friend requests when target user is g
   User.updateOne = async () => {
     updateCount += 1;
   };
+  mongoose.connection.transaction = async (work) => work({ testSession: true });
 
   try {
     const req = {
@@ -650,6 +652,7 @@ test("acceptRequest rejects stale incoming friend requests when target user is g
   } finally {
     User.findById = originalFindById;
     User.updateOne = originalUpdateOne;
+    mongoose.connection.transaction = originalTransaction;
   }
 });
 
@@ -659,7 +662,10 @@ test("acceptRequest deletes the resolved friend notification", async () => {
   const originalFindById = User.findById;
   const originalUpdateOne = User.updateOne;
   const originalDeleteMany = Notification.deleteMany;
+  const originalTransaction = mongoose.connection.transaction;
+  const session = { testSession: true };
   let notificationQuery = null;
+  let notificationOptions = null;
 
   User.findById = (id) => ({
     lean: async () => String(id) === myId
@@ -667,10 +673,12 @@ test("acceptRequest deletes the resolved friend notification", async () => {
       : { _id: targetId },
   });
   User.updateOne = async () => ({ modifiedCount: 1 });
-  Notification.deleteMany = async (query) => {
+  Notification.deleteMany = async (query, options) => {
     notificationQuery = query;
+    notificationOptions = options;
     return { deletedCount: 1 };
   };
+  mongoose.connection.transaction = async (work) => work(session);
 
   try {
     const req = { user: { userId: myId }, body: { userId: targetId } };
@@ -679,11 +687,15 @@ test("acceptRequest deletes the resolved friend notification", async () => {
     await acceptRequest(req, res);
 
     assert.equal(res.statusCode, 200);
-    assert.deepEqual(notificationQuery, { userId: myId, type: "friend_request", fromUserId: targetId });
+    assert.equal(notificationQuery.userId.test(myId.toUpperCase()), true);
+    assert.equal(notificationQuery.fromUserId.test(targetId.toUpperCase()), true);
+    assert.equal(notificationQuery.type, "friend_request");
+    assert.deepEqual(notificationOptions, { session });
   } finally {
     User.findById = originalFindById;
     User.updateOne = originalUpdateOne;
     Notification.deleteMany = originalDeleteMany;
+    mongoose.connection.transaction = originalTransaction;
   }
 });
 
@@ -693,7 +705,10 @@ test("declineRequest deletes the resolved friend notification", async () => {
   const originalFindById = User.findById;
   const originalUpdateOne = User.updateOne;
   const originalDeleteMany = Notification.deleteMany;
+  const socketService = require("../src/services/socketService");
+  const originalEmitToUser = socketService.emitToUser;
   let notificationQuery = null;
+  const emitted = [];
 
   User.findById = (id) => ({
     lean: async () => String(id) === myId
@@ -705,6 +720,7 @@ test("declineRequest deletes the resolved friend notification", async () => {
     notificationQuery = query;
     return { deletedCount: 1 };
   };
+  socketService.emitToUser = (userId, event) => emitted.push([userId, event]);
 
   try {
     const req = { user: { userId: myId }, body: { userId: targetId } };
@@ -713,11 +729,15 @@ test("declineRequest deletes the resolved friend notification", async () => {
     await declineRequest(req, res);
 
     assert.equal(res.statusCode, 200);
-    assert.deepEqual(notificationQuery, { userId: myId, type: "friend_request", fromUserId: targetId });
+    assert.equal(notificationQuery.userId.test(myId.toUpperCase()), true);
+    assert.equal(notificationQuery.fromUserId.test(targetId.toUpperCase()), true);
+    assert.equal(notificationQuery.type, "friend_request");
+    assert.deepEqual(emitted, [[myId, "notifications_changed"]]);
   } finally {
     User.findById = originalFindById;
     User.updateOne = originalUpdateOne;
     Notification.deleteMany = originalDeleteMany;
+    socketService.emitToUser = originalEmitToUser;
   }
 });
 
@@ -729,6 +749,7 @@ test("sendRequest is idempotent for already-pending outgoing requests", async ()
   const notificationPath = require.resolve("../src/models/Notification");
   const friendsPath = require.resolve("../src/controllers/friendsController");
   const originalNotification = require(notificationPath).createNotification;
+  const originalTransaction = mongoose.connection.transaction;
   let updateCount = 0;
   let notificationCount = 0;
 
@@ -745,6 +766,7 @@ test("sendRequest is idempotent for already-pending outgoing requests", async ()
   require(notificationPath).createNotification = async () => {
     notificationCount += 1;
   };
+  mongoose.connection.transaction = async (work) => work({ testSession: true });
   delete require.cache[friendsPath];
   const { sendRequest: isolatedSendRequest } = require("../src/controllers/friendsController");
 
@@ -762,6 +784,7 @@ test("sendRequest is idempotent for already-pending outgoing requests", async ()
     User.findById = originalFindById;
     User.updateOne = originalUpdateOne;
     require(notificationPath).createNotification = originalNotification;
+    mongoose.connection.transaction = originalTransaction;
     delete require.cache[friendsPath];
   }
 });
@@ -774,6 +797,7 @@ test("sendRequest is idempotent when target already has the incoming request", a
   const notificationPath = require.resolve("../src/models/Notification");
   const friendsPath = require.resolve("../src/controllers/friendsController");
   const originalNotification = require(notificationPath).createNotification;
+  const originalTransaction = mongoose.connection.transaction;
   let updateCount = 0;
   let notificationCount = 0;
 
@@ -792,6 +816,7 @@ test("sendRequest is idempotent when target already has the incoming request", a
   require(notificationPath).createNotification = async () => {
     notificationCount += 1;
   };
+  mongoose.connection.transaction = async (work) => work({ testSession: true });
   delete require.cache[friendsPath];
   const { sendRequest: isolatedSendRequest } = require("../src/controllers/friendsController");
 
@@ -809,6 +834,7 @@ test("sendRequest is idempotent when target already has the incoming request", a
     User.findById = originalFindById;
     User.updateOne = originalUpdateOne;
     require(notificationPath).createNotification = originalNotification;
+    mongoose.connection.transaction = originalTransaction;
     delete require.cache[friendsPath];
   }
 });

@@ -1,28 +1,37 @@
-const toIdString = (value) => {
+const canonicalUserId = (value) => {
   if (!value) return "";
-  if (typeof value === "string") return value;
-  return typeof value.toString === "function" ? value.toString() : "";
+  const raw = typeof value === "string"
+    ? value
+    : typeof value.toString === "function"
+      ? value.toString()
+      : "";
+  return /^[a-f\d]{24}$/i.test(raw) ? raw.toLowerCase() : "";
+};
+
+const relationalIdMatcher = (value) => {
+  const canonical = canonicalUserId(value);
+  return canonical ? new RegExp(`^${canonical}$`, "i") : null;
 };
 
 const includesId = (values, id) =>
-  Array.isArray(values) && values.some((value) => toIdString(value) === id);
+  Array.isArray(values) && values.some((value) => canonicalUserId(value) === id);
 
 const hasBlockedPair = (userA, userB) => {
-  const userAId = toIdString(userA?._id);
-  const userBId = toIdString(userB?._id);
+  const userAId = canonicalUserId(userA?._id);
+  const userBId = canonicalUserId(userB?._id);
   if (!userAId || !userBId) return true;
   return includesId(userA.blockedUserIds, userBId) || includesId(userB.blockedUserIds, userAId);
 };
 
 const loadBlockState = async (userIds, { User }) => {
-  const ids = [...new Set((userIds || []).map(toIdString).filter(Boolean))];
+  const ids = [...new Set((userIds || []).map(canonicalUserId).filter(Boolean))];
   if (!ids.length) return new Map();
   const users = await User.find({ _id: { $in: ids } }, "_id blockedUserIds").lean();
-  return new Map(users.map((user) => [toIdString(user._id), user]));
+  return new Map(users.map((user) => [canonicalUserId(user._id), user]));
 };
 
 const anyBlockedPair = async (userIds, dependencies) => {
-  const ids = [...new Set((userIds || []).map(toIdString).filter(Boolean))];
+  const ids = [...new Set((userIds || []).map(canonicalUserId).filter(Boolean))];
   try {
     const state = await loadBlockState(ids, dependencies);
     if (state.size !== ids.length) return true;
@@ -38,8 +47,8 @@ const anyBlockedPair = async (userIds, dependencies) => {
 };
 
 const filterBlockedCandidates = async (viewerId, candidateIds, dependencies) => {
-  const viewer = toIdString(viewerId);
-  const candidates = [...new Set((candidateIds || []).map(toIdString).filter(Boolean))];
+  const viewer = canonicalUserId(viewerId);
+  const candidates = [...new Set((candidateIds || []).map(canonicalUserId).filter(Boolean))];
   if (!viewer || !candidates.length) return [];
   try {
     const state = await loadBlockState([viewer, ...candidates], dependencies);
@@ -55,6 +64,8 @@ const filterBlockedCandidates = async (viewerId, candidateIds, dependencies) => 
 };
 
 module.exports = {
+  canonicalUserId,
+  relationalIdMatcher,
   hasBlockedPair,
   loadBlockState,
   anyBlockedPair,
