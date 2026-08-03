@@ -29,6 +29,8 @@ export default defineConfig({
       env: {
         ...process.env,
         PORT: "3001",
+        NODE_ENV: "development",
+        AGE_VERIFICATION_BYPASS: "true",
         MONGODB_DB_NAME: "giggle-e2e",
         REDIS_URL: "redis://127.0.0.1:6379/15",
       },

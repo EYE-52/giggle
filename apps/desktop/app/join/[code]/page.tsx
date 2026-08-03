@@ -44,11 +44,11 @@ export default function JoinByLinkPage() {
         }
       }
 
-      // Age gate BEFORE the join — this route lives outside the (app) layout, so
-      // its AgeGate never runs here. Without this a not-yet-confirmed (possibly
-      // under-13) user would be added to the squad server-side before ever being
-      // asked their age.
-      if (!session.ageConfirmed) {
+      // This route sits outside the protected app layout, so make the same live
+      // server decision here before adding anyone to a squad.
+      await session.syncAgeFromServer();
+      if (cancelled) return;
+      if (!session.hasAdultAccess) {
         if (!cancelled) setPhase("age");
         return;
       }
@@ -79,7 +79,7 @@ export default function JoinByLinkPage() {
     return (
       <AgeGate
         onDone={() => {
-          // Age confirmed → re-run the effect, which now passes the gate and joins.
+          // Verified live state → re-run the effect and recheck before joining.
           setPhase("working");
           setProceed((n) => n + 1);
         }}

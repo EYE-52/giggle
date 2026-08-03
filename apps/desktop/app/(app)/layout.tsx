@@ -16,11 +16,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isCalling = CALLING_ROUTES.some((r) => pathname === r);
   const { isPhone } = useViewport();
   const [authReady, setAuthReady] = useState(false);
-  // Age gate: once auth is ready, block the app until the user has attested a
-  // date of birth. `ageConfirmed` is undefined until the backend ships /api/me/age
-  // (or for fresh devSignIn users) — treat anything other than an explicit true
-  // as "not confirmed" so the gate shows. Cleared once AgeGate reports success.
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [hasAdultAccess, setHasAdultAccess] = useState(false);
 
   // Auth gate: the whole (app) area requires a session. In production the only
   // way in is real OAuth — unauthenticated users are sent to /signin. In local
@@ -30,12 +26,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     async function ensureSession() {
       if (session.isAuthed()) {
-        let confirmed = session.ageConfirmed;
-        // Resolve legacy/stale tokens while the opening state is still visible;
-        // otherwise a confirmed user briefly sees a false age gate.
-        if (!confirmed) confirmed = await session.syncAgeFromServer();
+        await session.syncAgeFromServer();
         if (!cancelled) {
-          setAgeConfirmed(confirmed);
+          setHasAdultAccess(session.hasAdultAccess);
           setAuthReady(true);
         }
         return;
@@ -43,8 +36,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (process.env.NODE_ENV !== "production") {
         try {
           await session.devSignIn();
+          await session.syncAgeFromServer();
           if (!cancelled) {
-            setAgeConfirmed(session.ageConfirmed);
+            setHasAdultAccess(session.hasAdultAccess);
             setAuthReady(true);
           }
         } catch {
@@ -66,7 +60,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // resumes instead of latching offline for the rest of the session.
   const reconnectTimer = useRef<number | null>(null);
   useEffect(() => {
-    if (!authReady || !session.isAuthed()) return;
+    if (!authReady || !hasAdultAccess || !session.isAuthed()) return;
     const s = connectSocket();
     const onDisconnect = (reason: string) => {
       // socket.io retries every other reason on its own.
@@ -74,7 +68,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (reconnectTimer.current != null) window.clearTimeout(reconnectTimer.current);
       reconnectTimer.current = window.setTimeout(() => {
         reconnectTimer.current = null;
-        if (session.isAuthed()) connectSocket();
+        if (session.isAuthed() && session.hasAdultAccess) connectSocket();
       }, 400);
     };
     s.on("disconnect", onDisconnect);
@@ -82,7 +76,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       s.off("disconnect", onDisconnect);
       if (reconnectTimer.current != null) window.clearTimeout(reconnectTimer.current);
     };
-  }, [authReady]);
+  }, [authReady, hasAdultAccess]);
 
   if (!authReady) {
     return (
@@ -98,11 +92,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Blocking age gate — stands in front of the whole app until a DOB is set.
-  if (!ageConfirmed) {
+  if (!hasAdultAccess) {
     return (
       <ToastProvider>
-        <AgeGate onDone={() => setAgeConfirmed(true)} />
+        <AgeGate onDone={() => setHasAdultAccess(true)} />
       </ToastProvider>
     );
   }

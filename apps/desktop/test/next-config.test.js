@@ -30,6 +30,7 @@ const profileSource = () => readFileSync(path.join(__dirname, "../app/(app)/prof
 const chatPanelSource = () => readFileSync(path.join(__dirname, "../components/ChatPanel.tsx"), "utf8");
 const referralCardSource = () => readFileSync(path.join(__dirname, "../components/ReferralCard.tsx"), "utf8");
 const appLayoutSource = () => readFileSync(path.join(__dirname, "../app/(app)/layout.tsx"), "utf8");
+const joinByCodeSource = () => readFileSync(path.join(__dirname, "../app/join/[code]/page.tsx"), "utf8");
 const topNavSource = () => readFileSync(path.join(__dirname, "../components/TopNav.tsx"), "utf8");
 const privacySource = () => readFileSync(path.join(__dirname, "../app/privacy/page.tsx"), "utf8");
 const termsSource = () => readFileSync(path.join(__dirname, "../app/terms/page.tsx"), "utf8");
@@ -1076,11 +1077,26 @@ test("stale squad invites expire without navigating to a dead lobby", () => {
   assert.equal(joinAction.includes("return;"), true);
 });
 
-test("age gate completes only after the shared session state is synchronized", () => {
+test("age gate completes only after provider verification and a live session sync", () => {
   const gate = ageGateSource();
 
-  assert.equal(gate.includes("await session.setAge(iso);\n      onDone();"), true);
-  assert.equal(gate.includes("if (status === 409)"), false);
+  assert.match(gate, /api\.startAgeVerification\(\)/);
+  assert.match(gate, /api\.getAgeVerificationStatus\(\)/);
+  assert.match(gate, /window\.location\.assign\(result\.url\)/);
+  assert.match(gate, /async function startVerification\(\) \{\s*pollVersion\.current \+= 1;/);
+  assert.match(gate, /document\.addEventListener\("visibilitychange"/);
+  assert.match(gate, /window\.addEventListener\("focus"/);
+  assert.match(gate, /MAX_STATUS_POLLS/);
+  assert.match(gate, /await session\.syncAgeFromServer\(\)[\s\S]*session\.hasAdultAccess[\s\S]*onDone\(\)/);
+  assert.equal((gate.match(/onDone\(\)/g) || []).length, 1);
+  assert.match(gate, /Giggle is for verified adults 18\+/);
+  assert.match(gate, /mailto:support@gigglemeet\.com\?subject=Age%20verification%20help/);
+  assert.match(gate, /session\.signOut\(\)/);
+  assert.match(gate, />Continue with Yoti<\/Button>/);
+  assert.doesNotMatch(gate, /adult content/i);
+  for (const state of ["pending", "rejected", "unavailable"]) {
+    assert.match(gate, new RegExp(`\\"${state}\\"`));
+  }
 });
 
 test("returning users resolve stale age state before the app leaves its opening screen", () => {
@@ -1092,6 +1108,25 @@ test("returning users resolve stale age state before the app leaves its opening 
 
   assert.ok(existingSession.indexOf("await session.syncAgeFromServer();") < existingSession.indexOf("setAuthReady(true);"));
   assert.equal((existingSession.match(/setAuthReady\(true\)/g) || []).length, 1);
+  assert.match(layout, /if \(!authReady \|\| !hasAdultAccess \|\| !session\.isAuthed\(\)\) return;/);
+  assert.match(layout, /if \(session\.isAuthed\(\) && session\.hasAdultAccess\) connectSocket\(\);/);
+});
+
+test("join links make the same live adult-access decision before joining", () => {
+  const join = joinByCodeSource();
+  const guard = join.slice(join.indexOf("await session.syncAgeFromServer()"), join.indexOf("api.joinSquad"));
+
+  assert.match(guard, /await session\.syncAgeFromServer\(\)/);
+  assert.match(guard, /!session\.hasAdultAccess/);
+  assert.ok(join.indexOf("await session.syncAgeFromServer()") < join.indexOf("api.joinSquad"));
+});
+
+test("browser fixtures use an explicit development-only age bypass", () => {
+  const config = playwrightConfigSource();
+
+  assert.match(config, /NODE_ENV: "development"/);
+  assert.match(config, /AGE_VERIFICATION_BYPASS: "true"/);
+  assert.doesNotMatch(config, /NODE_ENV: "production"[\s\S]{0,100}AGE_VERIFICATION_BYPASS: "true"/);
 });
 
 test("failed notification mark-all never restores a stale item snapshot", () => {
