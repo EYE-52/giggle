@@ -49,3 +49,29 @@ test("native profile vibe picker exposes its close action as a button", () => {
   assert.equal(closeAction.includes('accessibilityRole="button"'), true);
   assert.equal(closeAction.includes('accessibilityLabel="Close vibe picker"'), true);
 });
+
+test("native policy, safety, support, and age-help links have 44 point targets", () => {
+  const onboarding = read("app/index.tsx");
+  const profile = read("app/(app)/profile.tsx");
+  const gate = read("components/AgeGate.tsx");
+
+  for (const [source, label] of [
+    [onboarding, "Open Terms"],
+    [onboarding, "Open Privacy Policy"],
+    [profile, "Open Safety Center"],
+    [profile, "Open Support"],
+    [gate, "Get age verification help"],
+  ]) {
+    const labelAt = source.indexOf(`accessibilityLabel="${label}"`);
+    const control = source.slice(source.lastIndexOf("<TouchableOpacity", labelAt), source.indexOf("</TouchableOpacity>", labelAt));
+    assert.notEqual(labelAt, -1, label);
+    assert.match(control, /accessibilityRole="link"/, label);
+  }
+
+  assert.match(onboarding, /legalLink: \{[^}]*minHeight: 44/);
+  assert.match(profile, /resourceLink: \{[^}]*minHeight: 44/);
+  assert.match(gate, /helpLink: \{[^}]*minHeight: 44/);
+  assert.match(profile, /https:\/\/gigglemeet\.com\/safety/);
+  assert.match(profile, /https:\/\/gigglemeet\.com\/support/);
+  assert.match(gate, /mailto:support@gigglemeet\.com\?subject=Age%20verification%20help/);
+});

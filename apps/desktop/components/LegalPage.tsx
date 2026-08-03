@@ -9,8 +9,8 @@ export interface LegalSection {
 
 /**
  * Shared layout for the legal pages (/privacy, /terms). Server-safe — no
- * client hooks. `accent` colors the eyebrow; `otherLink` renders the bottom
- * cross-link to the sibling document.
+ * client hooks. `accent` colors the eyebrow; `links` renders the public
+ * policy and help navigation.
  */
 export function LegalPage({
   eyebrow,
@@ -18,14 +18,14 @@ export function LegalPage({
   title,
   intro,
   sections,
-  otherLink,
+  links,
 }: {
   eyebrow: string;
   accent: string;
   title: string;
   intro: ReactNode;
   sections: LegalSection[];
-  otherLink: { href: string; label: string };
+  links: Array<{ href: string; label: string }>;
 }) {
   return (
     <main data-theme="dark" style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", padding: "32px 24px 80px" }}>
@@ -56,10 +56,12 @@ export function LegalPage({
           ))}
         </section>
 
-        <footer style={{ borderTop: "1px solid var(--border-strong)", marginTop: 56, paddingTop: 24 }}>
-          <Link href={otherLink.href} style={{ color: "var(--text-body)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
-            {otherLink.label}
-          </Link>
+        <footer style={{ borderTop: "1px solid var(--border-strong)", marginTop: 56, paddingTop: 24, display: "flex", flexWrap: "wrap", gap: 20 }}>
+          {links.map((link) => (
+            <Link key={link.href} href={link.href} style={{ minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
+              {link.label}
+            </Link>
+          ))}
         </footer>
       </div>
     </main>

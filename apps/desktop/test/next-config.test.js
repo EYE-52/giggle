@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict");
-const { readFileSync } = require("node:fs");
+const { existsSync, readFileSync } = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
@@ -34,6 +34,10 @@ const joinByCodeSource = () => readFileSync(path.join(__dirname, "../app/join/[c
 const topNavSource = () => readFileSync(path.join(__dirname, "../components/TopNav.tsx"), "utf8");
 const privacySource = () => readFileSync(path.join(__dirname, "../app/privacy/page.tsx"), "utf8");
 const termsSource = () => readFileSync(path.join(__dirname, "../app/terms/page.tsx"), "utf8");
+const safetyPath = path.join(__dirname, "../app/safety/page.tsx");
+const supportPath = path.join(__dirname, "../app/support/page.tsx");
+const safetySource = () => readFileSync(safetyPath, "utf8");
+const supportSource = () => readFileSync(supportPath, "utf8");
 const globalStylesSource = () => readFileSync(path.join(__dirname, "../app/globals.css"), "utf8");
 const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../../../vercel.json"), "utf8"));
 
@@ -41,6 +45,40 @@ test("auth proxy never falls back to a production backend", () => {
   const config = source();
 
   assert.equal(config.includes("giggle-server-production.up.railway.app"), false);
+});
+
+test("public legal, safety, and support pages state the adult policy without false claims", () => {
+  assert.equal(existsSync(safetyPath), true);
+  assert.equal(existsSync(supportPath), true);
+
+  const pages = [privacySource(), termsSource(), safetySource(), supportSource()];
+  for (const page of pages) {
+    assert.match(page, /verified (?:users |adults )?18\+/i);
+    assert.match(page, /2026-08-04/);
+  }
+
+  const allCopy = pages.join("\n");
+  assert.doesNotMatch(allCopy, /Giggle records calls/i);
+  assert.doesNotMatch(allCopy, /stores raw Yoti (?:selfies|documents)/i);
+  assert.doesNotMatch(allCopy, /accepts sexual content/i);
+  assert.doesNotMatch(allCopy, /globally certified/i);
+
+  const support = supportSource();
+  for (const subject of ["Account%20help", "Age%20verification%20appeal", "Safety%20report", "Data%20export", "Account%20deletion"]) {
+    assert.match(support, new RegExp(`mailto:support@gigglemeet\\.com\\?subject=${subject}`));
+  }
+  assert.doesNotMatch(support, /<form/i);
+});
+
+test("landing and legal layout link every public policy and help route", () => {
+  const landing = landingSource();
+  for (const route of ["privacy", "terms", "safety", "support"]) {
+    assert.match(landing, new RegExp(`href=\"/${route}\"`));
+  }
+
+  const legal = legalPageSource();
+  assert.match(legal, /links: Array<\{ href: string; label: string \}>/);
+  assert.match(legal, /links\.map\(\(link\) =>/);
 });
 
 test("auth proxy local fallback is development-only", () => {

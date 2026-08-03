@@ -76,6 +76,21 @@ test("onboarding custom touch targets expose button semantics", () => {
   assert.equal(page.includes('accessibilityLabel="Skip with a dev account"'), true);
 });
 
+test("native onboarding opens separate Terms and Privacy pages", () => {
+  const page = read("app/index.tsx");
+
+  assert.match(page, /Linking/);
+  assert.match(page, /https:\/\/gigglemeet\.com\/terms/);
+  assert.match(page, /https:\/\/gigglemeet\.com\/privacy/);
+  for (const label of ["Open Terms", "Open Privacy Policy"]) {
+    const labelAt = page.indexOf(`accessibilityLabel="${label}"`);
+    const control = page.slice(page.lastIndexOf("<TouchableOpacity", labelAt), page.indexOf("</TouchableOpacity>", labelAt));
+    assert.notEqual(labelAt, -1, label);
+    assert.match(control, /accessibilityRole="link"/, label);
+  }
+  assert.match(page, /await Linking\.openURL\(url\)/);
+});
+
 test("onboarding avoids the old oversized blocky auth layout", () => {
   const page = read("app/index.tsx");
 

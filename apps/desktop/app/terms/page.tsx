@@ -8,20 +8,32 @@ export const metadata: Metadata = {
 
 const sections = [
   {
-    title: "Use Giggle with respect",
-    body: "You are responsible for your behavior in squads, chats, video rooms, and safety reports.",
+    title: "Eligibility and account accuracy",
+    body: "You must be 18 or older, complete required age verification, and provide accurate account information. Do not share access, impersonate someone, or evade an account restriction.",
   },
   {
-    title: "Keep people safe",
-    body: "Harassment, impersonation, spam, illegal activity, and abuse of reporting tools are not allowed.",
+    title: "Treat people with respect",
+    body: "Harassment, threats, hate, stalking, bullying, spam, scams, non-consensual conduct, sexual content, and illegal activity are prohibited. Child sexual abuse material and any sexual exploitation of a minor are strictly prohibited.",
   },
   {
-    title: "Tokens and Giggle+",
-    body: "Tokens are Giggle's in-app spend currency for eligible cosmetics. Giggle+ provides the benefits shown at purchase; cosmetics still cost tokens unless stated otherwise.",
+    title: "Squads, video, and safety controls",
+    body: "Only join or invite people with permission. Everyone controls their own camera and microphone. Use report and block honestly; false or abusive reports are prohibited.",
   },
   {
-    title: "Service changes",
-    body: "Giggle may change matching, squad, moderation, and premium features as the product evolves.",
+    title: "Paid products and stores",
+    body: "Tokens and Giggle+ provide only the benefits shown at purchase. Prices, billing, cancellation, and refunds also follow the terms of the app store or payment provider used for the purchase and applicable law.",
+  },
+  {
+    title: "Availability and enforcement",
+    body: "Giggle may change, pause, or discontinue features and cannot guarantee uninterrupted matching or live service. Accounts may be restricted or suspended to enforce these terms, protect people, or meet legal duties.",
+  },
+  {
+    title: "Questions and appeals",
+    body: (
+      <>
+        Contact <a href="mailto:support@gigglemeet.com?subject=Account%20help" style={{ color: "var(--text-body)" }}>support@gigglemeet.com</a> for support or to appeal an account decision.
+      </>
+    ),
   },
 ];
 
@@ -30,15 +42,19 @@ export default function TermsPage() {
     <LegalPage
       eyebrow="Terms"
       accent="var(--lime)"
-      title="Ground rules for meeting in squads."
+      title="Ground rules for meeting safely."
       intro={
         <>
-          Effective <time dateTime="2026-07-12">July 12, 2026</time>. By using Giggle, you agree to these rules
-          for accounts, squads, live video, safety, and paid features.
+          Effective <time dateTime="2026-08-04">August 4, 2026</time>. Giggle is for verified adults 18+. By using
+          Giggle, you agree to these rules for accounts, squads, live video, safety, and paid features.
         </>
       }
       sections={sections}
-      otherLink={{ href: "/privacy", label: "Read our Privacy Policy →" }}
+      links={[
+        { href: "/privacy", label: "Privacy" },
+        { href: "/safety", label: "Safety" },
+        { href: "/support", label: "Support" },
+      ]}
     />
   );
 }

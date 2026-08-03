@@ -11,6 +11,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -88,6 +89,15 @@ export default function OnboardingScreen() {
       router.replace('/home');
     } catch (e: any) {
       setError(e?.message ?? "Couldn't start the dev session.");
+    }
+  }
+
+  async function openPublicLink(url: string) {
+    setError('');
+    try {
+      await Linking.openURL(url);
+    } catch {
+      setError("Couldn't open that page. Visit gigglemeet.com in your browser.");
     }
   }
 
@@ -260,7 +270,25 @@ export default function OnboardingScreen() {
                 </Text>
               </TouchableOpacity>
 
-              <Text style={styles.legal}>By continuing you agree to our Terms & Privacy Policy.</Text>
+              <Text style={styles.legal}>By continuing you agree to our</Text>
+              <View style={styles.legalRow}>
+                <TouchableOpacity
+                  accessibilityRole="link"
+                  accessibilityLabel="Open Terms"
+                  onPress={() => void openPublicLink('https://gigglemeet.com/terms')}
+                  style={styles.legalLink}
+                >
+                  <Text style={styles.legalLinkText}>Terms</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  accessibilityRole="link"
+                  accessibilityLabel="Open Privacy Policy"
+                  onPress={() => void openPublicLink('https://gigglemeet.com/privacy')}
+                  style={styles.legalLink}
+                >
+                  <Text style={styles.legalLinkText}>Privacy Policy</Text>
+                </TouchableOpacity>
+              </View>
 
               {showDevSkip && (
                 <TouchableOpacity
@@ -546,8 +574,11 @@ const styles = StyleSheet.create({
     color: COLORS.textDim,
     textAlign: 'center',
     marginTop: 8,
-    marginBottom: 6,
+    marginBottom: 0,
   },
+  legalRow: { flexDirection: 'row', justifyContent: 'center', gap: SPACE.sm, marginBottom: 6 },
+  legalLink: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 },
+  legalLinkText: { fontSize: 12, color: COLORS.textMuted, textDecorationLine: 'underline' },
 
   devSkip: { alignItems: 'center', minHeight: 44, justifyContent: 'center' },
   devSkipText: { fontSize: 12, color: COLORS.textDim, opacity: 0.6, textDecorationLine: 'underline' },

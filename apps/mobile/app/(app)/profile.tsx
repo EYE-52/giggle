@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen } from '../../components/Screen';
 import { Card } from '../../components/Card';
@@ -44,6 +44,7 @@ export default function ProfileScreen() {
   const [vibeError, setVibeError] = useState('');
   const [vibeLoadAttempt, setVibeLoadAttempt] = useState(0);
   const [vibeModalVisible, setVibeModalVisible] = useState(false);
+  const [resourceError, setResourceError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -81,6 +82,15 @@ export default function ProfileScreen() {
     if (vibeSaving || vibePrefs.includes(v)) return;
     setVibeModalVisible(false);
     void saveVibes([...vibePrefs, v]);
+  }
+
+  async function openResource(url: string) {
+    setResourceError('');
+    try {
+      await Linking.openURL(url);
+    } catch {
+      setResourceError("Couldn't open that page. Visit gigglemeet.com in your browser.");
+    }
   }
 
   return (
@@ -213,6 +223,29 @@ export default function ProfileScreen() {
           </View>
         </Modal>
 
+        <Text style={styles.sectionLabel}>Help & policies</Text>
+        <Card style={styles.resourceList}>
+          <TouchableOpacity
+            onPress={() => void openResource('https://gigglemeet.com/safety')}
+            style={styles.resourceLink}
+            accessibilityRole="link"
+            accessibilityLabel="Open Safety Center"
+          >
+            <Text style={styles.resourceText}>Safety</Text>
+            <Icon.chevron size={18} color={COLORS.textDim} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => void openResource('https://gigglemeet.com/support')}
+            style={[styles.resourceLink, styles.resourceDivider]}
+            accessibilityRole="link"
+            accessibilityLabel="Open Support"
+          >
+            <Text style={styles.resourceText}>Support</Text>
+            <Icon.chevron size={18} color={COLORS.textDim} />
+          </TouchableOpacity>
+        </Card>
+        {!!resourceError && <Text style={styles.resourceError} accessibilityRole="alert">{resourceError}</Text>}
+
         <Button
           label="Log Out"
           onPress={() => {
@@ -281,6 +314,11 @@ const styles = StyleSheet.create({
   vibeErrorText: { flex: 1, color: COLORS.coral, fontSize: 13 },
   retryButton: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' },
   retryText: { color: COLORS.violet, fontSize: 13, fontWeight: '700' },
+  resourceList: { paddingVertical: 0 },
+  resourceLink: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  resourceDivider: { borderTopWidth: 1, borderTopColor: COLORS.border },
+  resourceText: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+  resourceError: { color: COLORS.coral, fontSize: 13, marginTop: SPACE.sm },
   logout: { marginTop: SPACE.xl },
   // modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
