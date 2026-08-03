@@ -31,7 +31,11 @@ const loadBlockState = async (userIds, { User }) => {
 };
 
 const anyBlockedPair = async (userIds, dependencies) => {
-  const ids = [...new Set((userIds || []).map(canonicalUserId).filter(Boolean))];
+  if (!Array.isArray(userIds)) return true;
+  if (!userIds.length) return false;
+  const normalizedIds = userIds.map(canonicalUserId);
+  if (normalizedIds.some((id) => !id)) return true;
+  const ids = [...new Set(normalizedIds)];
   try {
     const state = await loadBlockState(ids, dependencies);
     if (state.size !== ids.length) return true;

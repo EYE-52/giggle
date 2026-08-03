@@ -190,6 +190,22 @@ test("interaction boundaries fail closed for missing users and database errors",
   assert.deepEqual(await filterBlockedCandidates(a, [b], { User: BrokenUser }), []);
 });
 
+test("anyBlockedPair fails closed when a roster contains an invalid user id", async () => {
+  const { anyBlockedPair } = service();
+  const [valid] = IDS;
+  let reads = 0;
+  const FakeUser = {
+    find: () => {
+      reads += 1;
+      return { lean: async () => [{ _id: valid, blockedUserIds: [] }] };
+    },
+  };
+
+  assert.equal(await anyBlockedPair([valid, "legacy-bad-id"], { User: FakeUser }), true);
+  assert.equal(await anyBlockedPair([], { User: FakeUser }), false);
+  assert.equal(reads, 0);
+});
+
 test("filterBlockedCandidates removes blocks in either direction", async () => {
   const { filterBlockedCandidates } = service();
   const [viewer, blockedByViewer, blocksViewer, allowed] = IDS;
