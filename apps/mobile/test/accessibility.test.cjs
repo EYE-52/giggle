@@ -69,6 +69,9 @@ test("native policy, safety, support, and age-help links have 44 point targets",
   }
 
   assert.match(onboarding, /legalLink: \{[^}]*minHeight: 44/);
+  assert.match(onboarding, /legalLink: \{[^}]*minWidth: 44/);
+  assert.match(onboarding, /feedbackArea: \{[^}]*minHeight: 20/);
+  assert.match(onboarding, /style=\{styles\.errorText\} accessibilityRole="alert" accessibilityLiveRegion="polite"/);
   assert.match(profile, /resourceLink: \{[^}]*minHeight: 44/);
   assert.match(gate, /helpLink: \{[^}]*minHeight: 44/);
   assert.match(profile, /https:\/\/gigglemeet\.com\/safety/);

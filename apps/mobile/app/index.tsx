@@ -233,7 +233,7 @@ export default function OnboardingScreen() {
 
               <View style={styles.feedbackArea}>
                 {error ? (
-                  <Text style={styles.errorText}>{error}</Text>
+                  <Text style={styles.errorText} accessibilityRole="alert" accessibilityLiveRegion="polite">{error}</Text>
                 ) : oauthNote ? (
                   <Text style={styles.noteText}>{oauthNote}</Text>
                 ) : null}
@@ -528,7 +528,7 @@ const styles = StyleSheet.create({
   },
 
   feedbackArea: {
-    height: 20,
+    minHeight: 20,
     justifyContent: 'center',
     marginBottom: SPACE.sm,
   },
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   legalRow: { flexDirection: 'row', justifyContent: 'center', gap: SPACE.sm, marginBottom: 6 },
-  legalLink: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 6 },
+  legalLink: { minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   legalLinkText: { fontSize: 12, color: COLORS.textMuted, textDecorationLine: 'underline' },
 
   devSkip: { alignItems: 'center', minHeight: 44, justifyContent: 'center' },
