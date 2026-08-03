@@ -1,4 +1,4 @@
-const { Notification, toPublic } = require("../models/Notification");
+const { Notification, emitNotificationsChanged, toPublic } = require("../models/Notification");
 const mongoose = require("mongoose");
 
 const authedUserId = (req) => req.user?.userId || req.user?.sub;
@@ -29,7 +29,8 @@ const listNotifications = async (req, res) => {
 const markAllRead = async (req, res) => {
   try {
     const myId = authedUserId(req);
-    await Notification.updateMany({ userId: myId, read: false }, { $set: { read: true } });
+    const result = await Notification.updateMany({ userId: myId, read: false }, { $set: { read: true } });
+    if (result.modifiedCount) emitNotificationsChanged(myId);
     return res.json({ ok: true, data: { unread: 0 } });
   } catch (e) {
     console.error("[notifications] read-all error:", e);
@@ -50,6 +51,7 @@ const markOneRead = async (req, res) => {
     if (!result.matchedCount) {
       return err(res, 404, "NOT_FOUND", "Notification not found");
     }
+    if (result.modifiedCount) emitNotificationsChanged(myId);
     const unread = await Notification.countDocuments({ userId: myId, read: false });
     return res.json({ ok: true, data: { unread } });
   } catch (e) {
@@ -67,10 +69,8 @@ const dismissNotification = async (req, res) => {
       return err(res, 400, "INVALID_REQUEST", "Valid notification id is required");
     }
 
-    const result = await Notification.deleteOne({ _id: id, userId: myId });
-    if (!result.deletedCount) {
-      return err(res, 404, "NOT_FOUND", "Notification not found");
-    }
+    await Notification.deleteOne({ _id: id, userId: myId });
+    emitNotificationsChanged(myId);
     const unread = await Notification.countDocuments({ userId: myId, read: false });
     return res.json({ ok: true, data: { dismissed: true, unread } });
   } catch (e) {

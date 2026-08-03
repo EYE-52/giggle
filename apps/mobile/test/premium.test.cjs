@@ -5,13 +5,16 @@ const test = require("node:test");
 
 const source = () => readFileSync(path.join(__dirname, "../app/premium.tsx"), "utf8");
 
-test("mobile premium does not simulate paid checkout for plans or token packs", () => {
+test("mobile wallet omits fake purchase and preview inventory", () => {
   const page = source();
 
   assert.equal(page.includes("billing.purchase"), false);
-  assert.equal(page.includes("Plan preview"), true);
-  assert.equal(page.includes("Token packs are in launch prep"), true);
-  assert.equal(page.includes("Add tokens"), false);
+  assert.equal(page.includes("Plan preview"), false);
+  assert.equal(page.includes("const TOKEN_PACKS"), false);
+  assert.equal(page.includes("const BOOSTS"), false);
+  assert.equal(page.includes("boostGrid"), false);
+  assert.equal(page.includes("yearly"), false);
+  assert.equal(page.includes(">Wallet</Text>"), true);
 });
 
 test("mobile token boosts do not sell backend priority features", () => {
@@ -27,18 +30,25 @@ test("mobile token boosts do not sell backend priority features", () => {
   assert.equal(page.includes("AI-powered safety moderation"), false);
 });
 
-test("mobile premium boost actions expose named button semantics", () => {
+test("mobile wallet uses the real referral balance and native sharing", () => {
   const page = source();
 
-  assert.equal(page.includes("accessibilityRole=\"button\""), true);
-  assert.equal(page.includes("accessibilityLabel={`${b.label}: ${billing.isPremium() ? 'Use' : 'Unlock'}`"), true);
-  assert.equal(page.includes("accessibilityState={{ disabled: !canRedeemPerks }}"), true);
+  assert.equal(page.includes("api.getReferral()"), true);
+  assert.equal(page.includes("setReferral(info)"), true);
+  assert.equal(page.includes("referral?.tokens ?? session.user?.tokens ?? 0"), true);
+  assert.equal(page.includes("Share.share"), true);
+  assert.equal(page.includes("setLoadAttempt((attempt) => attempt + 1)"), true);
 });
 
-test("mobile premium disables local-only token redemption in production builds", () => {
+test("mobile wallet presents unavailable perks as a compact truthful list", () => {
   const page = source();
 
-  assert.equal(page.includes("canRedeemTokenPerksLocally"), true);
-  assert.equal(page.includes("Perk redemption is in launch prep"), true);
-  assert.equal(page.includes("accessibilityState={{ disabled: !canRedeemPerks }}"), true);
+  assert.equal(page.includes("TOKEN_PERKS.map"), true);
+  assert.equal(page.includes("Coming soon"), true);
+  assert.equal(page.includes("Earn and track tokens for your squad identity."), true);
+  assert.equal(page.includes("Earn tokens, then spend them on your squad identity."), false);
+  assert.equal(page.includes("canRedeemTokenPerksLocally"), false);
+  assert.equal(page.includes("spendOnVibePack"), false);
+  assert.equal(page.includes("spendOnCoverThemes"), false);
+  assert.equal(page.includes("Icon.palette"), false);
 });

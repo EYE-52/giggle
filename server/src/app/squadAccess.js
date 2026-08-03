@@ -1,4 +1,5 @@
 const { Squad } = require("../models/Squad");
+const { deleteNotifications } = require("../models/Notification");
 
 const getRequesterIdentity = (req) => {
   const identity = req.user || req.giggleIdentity || {};
@@ -123,12 +124,17 @@ const getSquadAccessContext = async ({ squadId, identity }) => {
   };
 };
 
+const deleteSquadAndNotifications = async (squad) => {
+  await deleteNotifications({ squadId: squad.squadId });
+  await squad.deleteOne();
+};
+
 const persistSquadAfterMemberRemoval = async (squad, { removedMemberRole }) => {
   let squadDeleted = false;
   let newLeaderMemberId = null;
 
   if (squad.members.length === 0) {
-    await squad.deleteOne();
+    await deleteSquadAndNotifications(squad);
     squadDeleted = true;
   } else {
     if (removedMemberRole === "leader") {
@@ -152,5 +158,6 @@ module.exports = {
   findSquadForIdentity,
   findSquadsForIdentity,
   getSquadAccessContext,
+  deleteSquadAndNotifications,
   persistSquadAfterMemberRemoval,
 };

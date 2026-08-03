@@ -1,150 +1,59 @@
 "use client";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { advanceSpeakerFocus, api, connectSocket, deriveEncounterLayout, EMPTY_SPEAKER_FOCUS, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, resolveCover, session, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
+import { advanceSpeakerFocus, api, connectSocket, deriveEncounterLayout, EMPTY_SPEAKER_FOCUS, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, session, sendChatMessage, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
 import type { EncounterDetail } from "@giggle/core";
 import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { Icon } from "@/components/Icons";
-import { ChatPanel } from "@/components/ChatPanel";
+import { ChatPanel, type ChatPanelMessage } from "@/components/ChatPanel";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { createVideoClient } from "@giggle/agora";
 import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
+import { coverBackground, coverKind, fallbackGradient } from "@/components/covers";
+import { useTheme } from "@/components/useTheme";
 
 const avatarColors = ["#7C5CFF", "#3DD6C0", "#FF8A5C", "#C2FF3D", "#FF5C8A", "#5C8CFF", "#FFC65C", "#9B7CFF"];
 
 const REACTION_EMOJIS = ["👋", "🔥", "😂", "❤️", "👏"];
 
-// Deterministic tasteful gradient fallback keyed off the squad id/name — same
-// visual language as SquadCard so squad identity reads consistently when a
-// squad has no cover image set.
-const TEAM_GRADIENTS = [
-  "radial-gradient(120% 90% at 20% 10%, rgba(255,92,138,0.55), transparent 55%), radial-gradient(120% 90% at 90% 80%, rgba(124,92,255,0.6), transparent 55%), linear-gradient(160deg, #2a1140, #0b0b0f)",
-  "radial-gradient(120% 90% at 80% 10%, rgba(92,140,255,0.5), transparent 55%), radial-gradient(120% 90% at 10% 90%, rgba(61,214,192,0.45), transparent 55%), linear-gradient(160deg, #10243a, #0b0b0f)",
-  "radial-gradient(120% 90% at 30% 20%, rgba(194,255,61,0.4), transparent 55%), radial-gradient(120% 90% at 80% 90%, rgba(124,92,255,0.55), transparent 55%), linear-gradient(160deg, #1a2a12, #0b0b0f)",
-  "radial-gradient(120% 90% at 70% 15%, rgba(255,176,32,0.45), transparent 55%), radial-gradient(120% 90% at 15% 85%, rgba(255,92,138,0.5), transparent 55%), linear-gradient(160deg, #2e1a10, #0b0b0f)",
-];
-
-function teamGradientFor(key: string): string {
-  let h = 0;
-  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-  return TEAM_GRADIENTS[h % TEAM_GRADIENTS.length];
-}
-
-// A squad's backdrop CSS background: its cover image when set, else a
-// deterministic gradient keyed off the squad id (mirrors SquadCard).
-function teamBackdrop(cover: string | null | undefined, key: string): string {
-  return cover ? resolveCover(cover) : teamGradientFor(key);
-}
-
-// Per-side accent palette. "yours" = lime, "theirs" = coral. Used to tint the
-// team backdrop's edge glow so each themed room reads as its own side while the
-// cover carries the personality.
-type SideTone = "yours" | "theirs";
-const SIDE_ACCENT: Record<SideTone, { rgb: string; soft: string; edge: string }> = {
-  yours: { rgb: "194,255,61", soft: "rgba(194,255,61,0.14)", edge: "rgba(194,255,61,0.22)" },
-  theirs: { rgb: "255,92,92", soft: "rgba(255,92,92,0.14)", edge: "rgba(255,92,92,0.22)" },
-};
-
-// A themed "room" backdrop for one squad: its cover (or deterministic gradient)
-// rendered prominently, then a smart gradient scrim + accent glow/edge so video
-// tiles and name chips stay perfectly legible. Shared across ALL views so both
-// squads' themes are simultaneously visible during the meet.
-//   scrim  — direction of the darkening gradient ("down" for headers-on-top
-//            sides, "radial" for full stages).
-function TeamRoomBackdrop({
-  cover,
-  squadKey,
-  tone,
-  radius = 16,
-  presence = 0.55,
-}: {
-  cover: string | null | undefined;
-  squadKey: string;
-  tone: SideTone;
-  radius?: number;
-  presence?: number;
-}) {
-  const backdrop = teamBackdrop(cover, squadKey);
-  const accent = SIDE_ACCENT[tone];
-  return (
-    <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none", borderRadius: radius, overflow: "hidden" }}>
-      {/* cover / gradient — the squad's theme, rendered with real presence so
-          it fills the space around the (opaque) video tiles and the opponent
-          actually SEES which theme you're repping. */}
-      <div style={{ position: "absolute", inset: 0, backgroundImage: backdrop, backgroundSize: "cover", backgroundPosition: "center", opacity: presence }} />
-      {/* light legibility scrim only — enough to keep the name label + tile
-          edges readable, without blacking the theme out. No neon frame. */}
-      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(7,7,11,0.55) 0%, rgba(7,7,11,0.28) 45%, rgba(7,7,11,0.6) 100%)" }} />
-      {/* faint accent wash from the side's corner — a whisper of team colour */}
-      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(140% 100% at ${tone === "yours" ? "6% 6%" : "94% 6%"}, ${accent.soft}, transparent 55%)`, opacity: 0.6 }} />
-    </div>
-  );
-}
-
-// A split themed backdrop for stages that mix both squads (grid, spotlight,
-// focus, focus-opponent): your squad's theme fills the left half, the
-// opponent's fills the right half, so both themed rooms are simultaneously
-// visible with a clean seam down the middle. Sits behind the tiles (zIndex 0);
-// tiles/content must be relatively positioned above it.
-function SplitRoomBackdrop({
+function EncounterAtmosphere({
   mine,
-  opp,
+  theirs,
 }: {
-  mine: { cover: string | null | undefined; key: string };
-  opp: { cover: string | null | undefined; key: string };
+  mine: { cover?: string | null; key: string };
+  theirs: { cover?: string | null; key: string };
 }) {
-  return (
-    <div aria-hidden style={{ position: "absolute", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
-      {/* left half — your themed room */}
-      <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "50%", overflow: "hidden" }}>
-        <TeamRoomBackdrop cover={mine.cover} squadKey={mine.key} tone="yours" radius={0} presence={0.85} />
-      </div>
-      {/* right half — opponent's themed room */}
-      <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: "50%", overflow: "hidden" }}>
-        <TeamRoomBackdrop cover={opp.cover} squadKey={opp.key} tone="theirs" radius={0} presence={0.85} />
-      </div>
-      {/* center seam — a clean faded divider between the two themed sides */}
-      <div style={{ position: "absolute", top: "8%", bottom: "8%", left: "50%", width: 1, transform: "translateX(-50%)", background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.12) 70%, transparent)" }} />
-    </div>
-  );
-}
+  const themeId = useTheme();
+  const backgroundFor = ({ cover, key }: { cover?: string | null; key: string }) =>
+    cover
+      ? coverBackground(cover, coverKind(cover, themeId))
+      : fallbackGradient(key, coverKind(null, themeId));
 
-// Small rounded cover thumbnail that reinforces squad identity wherever the
-// squad name appears (versus headers, top bar). Accent-ringed per side.
-function CoverThumb({
-  cover,
-  squadKey,
-  tone,
-  size = 20,
-  radius = 6,
-}: {
-  cover: string | null | undefined;
-  squadKey: string;
-  tone: SideTone;
-  size?: number;
-  radius?: number;
-}) {
-  const backdrop = teamBackdrop(cover, squadKey);
-  const accent = SIDE_ACCENT[tone];
   return (
-    <span
-      aria-hidden
-      style={{
-        width: size,
-        height: size,
-        borderRadius: radius,
-        flexShrink: 0,
-        display: "inline-block",
-        backgroundImage: backdrop,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        border: `1px solid rgba(${accent.rgb},0.55)`,
-        boxShadow: `0 0 10px -3px rgba(${accent.rgb},0.6), inset 0 0 0 1px rgba(255,255,255,0.06)`,
-      }}
-    />
+    <div aria-hidden data-encounter-atmosphere style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
+      {[
+        { squad: mine, left: "-18%", right: "auto", top: "-24%" },
+        { squad: theirs, left: "auto", right: "-18%", top: "18%" },
+      ].map(({ squad, ...position }) => (
+        <div
+          key={squad.key}
+          style={{
+            position: "absolute",
+            ...position,
+            width: "70%",
+            height: "86%",
+            background: backgroundFor(squad),
+            filter: "blur(64px) saturate(.82)",
+            opacity: .2,
+            transform: "scale(1.12)",
+          }}
+        />
+      ))}
+      <div style={{ position: "absolute", inset: 0, background: "rgba(10,10,13,.62)" }} />
+    </div>
   );
 }
 
@@ -167,10 +76,16 @@ const KEYFRAMES = `
 /* Thumbnails crop for density. Focused media stays fully visible and uses a
    restrained blurred copy as fill, so ultrawide and portrait cameras remain
    recognizable without leaving a hard black frame. */
+[data-media-host],
+[data-media-host] > div,
 [data-media-host] video,
-[data-media-host] > div > video {
+[data-media-host] canvas {
+  position: absolute !important;
+  inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  border-radius: inherit !important;
+  overflow: clip !important;
 }
 [data-media-fit="crop"] [data-media-host] video {
   object-fit: cover !important;
@@ -184,38 +99,6 @@ const KEYFRAMES = `
 @keyframes tileIn {
   from { opacity: 0; transform: scale(0.93); }
   to   { opacity: 1; transform: scale(1); }
-}
-@keyframes slideFromLeft {
-  from { opacity: 0; transform: translateX(-48px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes slideFromRight {
-  from { opacity: 0; transform: translateX(48px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes vsFlourish {
-  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-  60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.18); }
-  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-}
-@keyframes bannerFade {
-  0%   { opacity: 0; transform: translateY(-8px); }
-  15%  { opacity: 1; transform: translateY(0); }
-  70%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-8px); }
-}
-@keyframes activeSpeakerGlow {
-  0%,100% { box-shadow: 0 0 0 2px #7C5CFF44; }
-  50%      { box-shadow: 0 0 0 3px #7C5CFF88, 0 0 28px -4px #7C5CFF66; }
-}
-@keyframes speakingRing {
-  0%   { opacity: 0.85; transform: scale(1); }
-  70%  { opacity: 0;    transform: scale(1.04); }
-  100% { opacity: 0;    transform: scale(1.04); }
-}
-@keyframes vsPulse {
-  0%,100% { box-shadow: 0 0 22px -6px rgba(124,92,255,0.5), 0 0 0 1px rgba(124,92,255,0.28) inset; }
-  50%      { box-shadow: 0 0 34px -4px rgba(124,92,255,0.75), 0 0 0 1px rgba(124,92,255,0.45) inset; }
 }
 @keyframes controlIn {
   from { opacity: 0; transform: translateY(14px); }
@@ -247,40 +130,40 @@ const KEYFRAMES = `
   to   { opacity: 1; transform: scale(1); }
 }
 
-/* ── PREMIUM MICRO-INTERACTION SPEC (shared) ─────────────────────────────
-   Tactile press feedback for every control. Scoped to the dark calling root.
+/* ── CALL MICRO-INTERACTIONS ─────────────────────────────────────────────
+   Tactile press feedback for every control. Scoped to the encounter shell.
    Press uses !important to beat inline hover transforms. */
-[data-theme="dark"] button:not(:disabled) {
+[data-testid="encounter-shell"] button:not(:disabled) {
   -webkit-tap-highlight-color: transparent;
   transition: transform .14s cubic-bezier(.22,1,.36,1), box-shadow .2s cubic-bezier(.4,0,.2,1), background .2s cubic-bezier(.4,0,.2,1), color .2s cubic-bezier(.4,0,.2,1), border-color .2s cubic-bezier(.4,0,.2,1), filter .2s cubic-bezier(.4,0,.2,1);
 }
-[data-theme="dark"] button:not(:disabled):active {
+[data-testid="encounter-shell"] button:not(:disabled):active {
   transform: scale(.94) !important;
   transition-duration: .06s;
 }
-[data-theme="dark"] button:disabled { cursor: not-allowed; }
-[data-theme="dark"] button:focus-visible,
-[data-theme="dark"] input:focus-visible {
+[data-testid="encounter-shell"] button:disabled { cursor: not-allowed; }
+[data-testid="encounter-shell"] button:focus-visible,
+[data-testid="encounter-shell"] input:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px #0B0B0F, 0 0 0 4px var(--violet, #7C5CFF);
 }
-[data-theme="dark"] input {
+[data-testid="encounter-shell"] input {
   transition: border-color .18s cubic-bezier(.4,0,.2,1), box-shadow .18s cubic-bezier(.4,0,.2,1), background .18s cubic-bezier(.4,0,.2,1);
 }
-[data-theme="dark"] input:focus {
+[data-testid="encounter-shell"] input:focus {
   border-color: var(--violet, #7C5CFF) !important;
   box-shadow: 0 0 0 3px rgba(124,92,255,0.22);
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-theme="dark"] *,
-  [data-theme="dark"] *::before,
-  [data-theme="dark"] *::after {
+  [data-testid="encounter-shell"] *,
+  [data-testid="encounter-shell"] *::before,
+  [data-testid="encounter-shell"] *::after {
     animation-duration: .001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: .001ms !important;
   }
-  [data-theme="dark"] button:not(:disabled):active { transform: none !important; }
-  [data-theme="dark"] [data-reaction] {
+  [data-testid="encounter-shell"] button:not(:disabled):active { transform: none !important; }
+  [data-testid="encounter-shell"] [data-reaction] {
     animation: reactionFade 1.8s linear forwards !important;
     transform: none !important;
   }
@@ -310,7 +193,6 @@ function VideoTile({
   colorIndex,
   micOn,
   videoRef,
-  style,
   isLocal,
   isSpeaking,
   animClass,
@@ -328,7 +210,6 @@ function VideoTile({
   /** Mic state when KNOWN — pill renders only on explicit `false` (never on unknown). */
   micOn?: boolean;
   videoRef?: (el: HTMLDivElement | null) => void;
-  style?: React.CSSProperties;
   isLocal?: boolean;
   isSpeaking?: boolean;
   animClass?: string;
@@ -358,23 +239,30 @@ function VideoTile({
     const backdrop = backdropVideoRef.current;
     if (fit !== "fit" || !host || !backdrop) return;
 
-    let frame = 0;
+    let foreground: HTMLVideoElement | null = null;
     const sync = () => {
-      const foreground = host.querySelector("video");
       if (!foreground?.srcObject || backdrop.srcObject === foreground.srcObject) return;
       backdrop.srcObject = foreground.srcObject;
       backdrop.play().catch(() => {});
     };
-    const observer = new MutationObserver(() => {
+
+    const bind = () => {
+      const next = host.querySelector("video");
+      if (next === foreground) return sync();
+      foreground?.removeEventListener("loadedmetadata", sync);
+      foreground?.removeEventListener("playing", sync);
+      foreground = next;
+      foreground?.addEventListener("loadedmetadata", sync);
+      foreground?.addEventListener("playing", sync);
       sync();
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(sync);
-    });
+    };
+    const observer = new MutationObserver(bind);
     observer.observe(host, { childList: true, subtree: true });
-    frame = requestAnimationFrame(sync);
+    bind();
     return () => {
       observer.disconnect();
-      cancelAnimationFrame(frame);
+      foreground?.removeEventListener("loadedmetadata", sync);
+      foreground?.removeEventListener("playing", sync);
       backdrop.pause();
       backdrop.srcObject = null;
     };
@@ -403,15 +291,14 @@ function VideoTile({
       onMouseLeave={() => setHovered(false)}
       style={{
         background: `linear-gradient(155deg, ${bg}14, #0A0A0E 62%)`,
-        // One calm neutral frame. Focused = pinned (brighter neutral edge);
-        // speaking = a restrained team-colour edge. No loud colored glow rings.
+        // One calm neutral frame. Speaking is drawn inside this boundary below.
         border: focused
           ? "1.5px solid rgba(255,255,255,0.32)"
-          : isSpeaking
-          ? `1.5px solid ${bg}88`
           : "1px solid rgba(255,255,255,0.09)",
         borderRadius: "var(--radius-tile, 16px)",
         overflow: "hidden",
+        contain: "paint",
+        isolation: "isolate",
         position: "relative",
         width: "100%",
         height: "100%",
@@ -421,45 +308,14 @@ function VideoTile({
           : "tileIn 0.4s cubic-bezier(.22,1,.36,1) forwards",
         boxShadow: focused
           ? "0 12px 34px -14px rgba(0,0,0,0.75)"
-          : isSpeaking
-          ? `0 0 14px -8px ${bg}77, 0 12px 30px -16px rgba(0,0,0,0.7)`
           : hovered
           ? "0 14px 34px -14px rgba(0,0,0,0.7)"
           : "0 8px 24px -16px rgba(0,0,0,0.6)",
         transform: hovered && onClick ? "translateY(-2px)" : "translateY(0)",
         transition: "border-color .3s cubic-bezier(.4,0,.2,1), box-shadow .3s cubic-bezier(.4,0,.2,1), transform .25s cubic-bezier(.22,1,.36,1)",
         cursor: onClick ? "pointer" : undefined,
-        ...style,
       }}
     >
-      {/* Glass top-edge highlight — a thin bright rim that catches light */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "inherit",
-          pointerEvents: "none",
-          zIndex: 4,
-          background:
-            "linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0) 22%)",
-          mixBlendMode: "screen" as const,
-        }}
-      />
-      {/* Inner vignette — darkens edges so faces/video pop toward the center */}
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          borderRadius: "inherit",
-          pointerEvents: "none",
-          zIndex: 4,
-          boxShadow: "inset 0 0 60px -18px rgba(0,0,0,0.85), inset 0 0 0 1px rgba(255,255,255,0.04)",
-        }}
-      />
-      {/* Speaking cue is the frame border alone (see above) — no extra halo
-          ring, which stacked into a garish triple-glow. */}
       {/* Camera-off fallback */}
       <div
         style={{
@@ -578,6 +434,21 @@ function VideoTile({
         />
       )}
 
+      {isSpeaking && (
+        <div
+          aria-hidden
+          data-speaking-cue
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 7,
+            border: "2px solid var(--live, #A3E635)",
+            borderRadius: "inherit",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
       {/* Live video layer */}
       {videoRef && (
         <div
@@ -586,7 +457,7 @@ function VideoTile({
             videoRef(el);
           }}
           data-media-host
-          style={{ position: "absolute", inset: 0, zIndex: 2 }}
+          style={{ position: "absolute", inset: 0, zIndex: 2, borderRadius: "inherit", overflow: "clip" }}
         />
       )}
 
@@ -613,11 +484,11 @@ function VideoTile({
           display: "flex",
           alignItems: "center",
           gap: 6,
-          background: "rgba(10,10,14,0.5)",
+          background: "color-mix(in srgb, var(--surface) 88%, transparent)",
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
-          border: "1px solid rgba(255,255,255,0.10)",
-          borderRadius: 999,
+          border: "var(--control-border, 1px solid rgba(255,255,255,0.10))",
+          borderRadius: "var(--radius-pill, 999px)",
           padding: "3px 10px 3px 8px",
           boxShadow: "0 2px 10px -2px rgba(0,0,0,0.5)",
           maxWidth: "calc(100% - 20px)",
@@ -626,7 +497,7 @@ function VideoTile({
         <span
           style={{
             fontSize: 12,
-            color: "#F4F4F7",
+            color: "var(--text, #F4F4F7)",
             fontFamily: "var(--font-display, var(--font-space-grotesk))",
             fontWeight: 600,
             letterSpacing: "0.01em",
@@ -779,7 +650,6 @@ function EncounterInner() {
   const [ending, setEnding] = useState(false);
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [endError, setEndError] = useState<string | null>(null);
-  const [showBanner, setShowBanner] = useState(true);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const reactionCountRef = useRef(0);
   // Short-lived UI timers (reaction despawn, "Reported" toast) — cleared on
@@ -802,6 +672,7 @@ function EncounterInner() {
   const [reported, setReported] = useState(false);
   // Unread chat badge while the chat panel is closed (mirrors the lobby pattern).
   const [unread, setUnread] = useState(0);
+  const [chatMessages, setChatMessages] = useState<ChatPanelMessage[]>([]);
   const chatVisibleRef = useRef(false);
   // Reconnect UX: Agora connection lifecycle + user dismissal of the banner.
   const [connState, setConnState] = useState<ConnectionState | null>(null);
@@ -815,24 +686,6 @@ function EncounterInner() {
   useEffect(() => {
     setMyAvatarState(getMyAvatar());
     return subscribeAvatar((v) => setMyAvatarState(v));
-  }, []);
-
-  // The encounter's video stage is forced dark (video pops on dark, like every
-  // call app) — but we still want the call chrome and active controls
-  // to reflect the app theme. So we read the real accent from the document root
-  // and inject it back into the dark stage, re-reading when the theme changes.
-  const [appAccent, setAppAccent] = useState<{ a: string; b: string }>({ a: "", b: "" });
-  useEffect(() => {
-    const read = () => {
-      const cs = getComputedStyle(document.documentElement);
-      const a = (cs.getPropertyValue("--accent") || cs.getPropertyValue("--violet")).trim();
-      const b = (cs.getPropertyValue("--accent-hover") || cs.getPropertyValue("--violet-bright") || a).trim();
-      if (a) setAppAccent({ a, b: b || a });
-    };
-    read();
-    const obs = new MutationObserver(read);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => obs.disconnect();
   }, []);
 
   const [pinnedId, setPinnedId] = useState<string | null>(null);
@@ -1014,7 +867,6 @@ function EncounterInner() {
     if (!squadId || !encId) return;
 
     let cancelled = false;
-    let bannerTimer: ReturnType<typeof setTimeout> | undefined;
     let socket: ReturnType<typeof connectSocket> | undefined;
     const endedEvent = SOCKET_EVENTS.ENCOUNTER_ENDED;
     const activeEvent = SOCKET_EVENTS.ENCOUNTER_ACTIVE;
@@ -1023,6 +875,8 @@ function EncounterInner() {
       if (payload?.endedBySquadId === squadId) return;
       setEndedReason(payload?.reason === "squad_disconnected" ? "opponent-left" : "ended");
       setEndedNotice(true);
+      setEndError(null);
+      setFindingNextMatch(false);
       // Give people time to read the overlay + choose an action before we
       // auto-return home.
       if (endedNavTimerRef.current) clearTimeout(endedNavTimerRef.current);
@@ -1072,13 +926,11 @@ function EncounterInner() {
     socket.on(endedEvent, onEnded);
     socket.on(activeEvent, onActive);
 
-      bannerTimer = setTimeout(() => setShowBanner(false), 2500);
     };
 
     boot();
 
     return () => {
-      if (bannerTimer) clearTimeout(bannerTimer);
       if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
       socket?.off(endedEvent, onEnded);
       socket?.off(activeEvent, onActive);
@@ -1338,19 +1190,74 @@ function EncounterInner() {
     return unsub;
   }, [encId]);
 
-  // Unread chat tracking — mirrors the lobby: count messages from others while
-  // the chat panel is closed, and clear as soon as it opens.
+  const upsertChatMessage = useCallback((message: ChatPanelMessage) => {
+    setChatMessages((previous) => {
+      const index = previous.findIndex((item) =>
+        item.id === message.id || (
+          !!message.clientMessageId && item.clientMessageId === message.clientMessageId
+        )
+      );
+      if (index < 0) return [...previous, message];
+      return previous.map((item, itemIndex) => itemIndex === index ? { ...item, ...message } : item);
+    });
+  }, []);
+
+  const markChatFailed = useCallback((clientMessageId: string) => {
+    setChatMessages((previous) => previous.map((message) =>
+      message.clientMessageId === clientMessageId && message.delivery !== "delivered"
+        ? { ...message, delivery: "failed" }
+        : message
+    ));
+  }, []);
+
+  function sendEncounterMessage(text: string, retryClientMessageId?: string): boolean {
+    if (!encId || !squadId) return false;
+    const clientMessageId = retryClientMessageId ?? crypto.randomUUID();
+    upsertChatMessage({
+      id: clientMessageId,
+      clientMessageId,
+      userId: session.user?.id ?? "",
+      name: session.user?.name ?? "You",
+      text,
+      ts: Date.now(),
+      encounterId: encId,
+      squadId,
+      delivery: "sending",
+    });
+    const sent = sendChatMessage(
+      { kind: "encounter", encounterId: encId, squadId },
+      text,
+      { id: session.user?.id ?? "", name: session.user?.name ?? "You" },
+      {
+        clientMessageId,
+        ack: (result) => {
+          if (result.ok) upsertChatMessage({ ...result.message, delivery: "delivered" });
+          else markChatFailed(clientMessageId);
+        },
+      },
+    );
+    if (!sent) markChatFailed(clientMessageId);
+    return true;
+  }
+
+  function retryEncounterMessage(message: ChatPanelMessage) {
+    sendEncounterMessage(message.text, message.clientMessageId ?? message.id);
+  }
+
+  // Keep encounter messages for the route lifetime. Count messages from others
+  // while the panel is closed and clear the badge as soon as it opens.
   useEffect(() => {
     if (!encId || !squadId) return;
     try { joinChat({ kind: "encounter", encounterId: encId, squadId }); } catch {}
     const unsub = subscribeChat((m) => {
       if (m.encounterId !== encId) return;
+      upsertChatMessage({ ...m, delivery: "delivered" });
       if (myUserId && m.userId === myUserId) return;
       if (chatVisibleRef.current) return;
       setUnread((u) => Math.min(u + 1, 99));
     });
     return unsub;
-  }, [encId, squadId, myUserId]);
+  }, [encId, squadId, myUserId, upsertChatMessage]);
   chatVisibleRef.current = chatOpen;
   useEffect(() => { if (chatOpen) setUnread(0); }, [chatOpen]);
 
@@ -1387,11 +1294,7 @@ function EncounterInner() {
   function squadLabel(
     name: string,
     count: number,
-    tone: SideTone,
-    cover: string | null | undefined,
-    key: string
   ) {
-    const color = tone === "yours" ? lime : coral;
     return (
       <div
         style={{
@@ -1403,25 +1306,23 @@ function EncounterInner() {
           alignItems: "center",
           gap: 7,
           maxWidth: "calc(100% - 20px)",
-          padding: "4px 10px 4px 4px",
-          borderRadius: 999,
-          background: "rgba(10,10,14,.62)",
+          padding: "5px 10px",
+          borderRadius: "var(--radius-pill, 999px)",
+          background: "color-mix(in srgb, var(--surface) 88%, transparent)",
           backdropFilter: "blur(12px)",
-          border: "1px solid rgba(255,255,255,.11)",
+          border: "var(--control-border, 1px solid rgba(255,255,255,.11))",
         }}
       >
-        <CoverThumb cover={cover} squadKey={key} tone={tone} size={20} radius={999} />
-        <span style={{ color, fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span style={{ color: "var(--text)", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {name}
         </span>
-        <span style={{ color: textMuted, fontSize: 11, fontWeight: 700 }}>{count}</span>
+        <span style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700 }}>{count}</span>
       </div>
     );
   }
 
-  function renderFilmstrip(ids: string[], label: string, tone: SideTone) {
+  function renderFilmstrip(ids: string[], label: string) {
     if (!ids.length) return null;
-    const color = tone === "yours" ? lime : coral;
     return (
       <div
         style={{
@@ -1445,9 +1346,10 @@ function EncounterInner() {
             display: "flex",
             alignItems: "center",
             padding: "0 8px",
-            color,
-            background: "rgba(12,12,18,.86)",
-            borderRadius: 10,
+            color: "var(--text)",
+            background: "color-mix(in srgb, var(--surface) 90%, transparent)",
+            border: "var(--control-border)",
+            borderRadius: "var(--radius-control, 10px)",
             fontSize: 11,
             fontWeight: 800,
             letterSpacing: ".08em",
@@ -1482,7 +1384,7 @@ function EncounterInner() {
           flexShrink: 0,
         }}
       >
-        <div role="group" aria-label="Filmstrip squad" style={{ display: "flex", gap: 4, height: 50, padding: 3, borderRadius: 999, background: "rgba(12,12,18,.86)", alignSelf: "center" }}>
+        <div role="group" aria-label="Filmstrip squad" style={{ display: "flex", gap: 4, height: 50, padding: 3, borderRadius: "var(--radius-pill, 999px)", background: "color-mix(in srgb, var(--surface) 90%, transparent)", border: "var(--control-border)", alignSelf: "center" }}>
           {(["mine", "theirs"] as const).map((side) => {
             const selected = stripSide === side;
             return (
@@ -1497,9 +1399,9 @@ function EncounterInner() {
                   height: 44,
                   padding: "0 14px",
                   border: selected ? "1px solid rgba(255,255,255,.16)" : "1px solid transparent",
-                  borderRadius: 999,
-                  background: selected ? "rgba(255,255,255,.1)" : "transparent",
-                  color: side === "mine" ? lime : coral,
+                  borderRadius: "var(--radius-pill, 999px)",
+                  background: selected ? "var(--accent-soft)" : "transparent",
+                  color: selected ? "var(--accent)" : "var(--text-muted)",
                   fontSize: 11,
                   fontWeight: 800,
                   letterSpacing: ".08em",
@@ -1551,7 +1453,6 @@ function EncounterInner() {
   function renderSquadSplitSide(side: "mine" | "theirs") {
     const people = side === "mine" ? mineParticipants : theirParticipants;
     const squad = side === "mine" ? mySquad : oppSquad;
-    const tone: SideTone = side === "mine" ? "yours" : "theirs";
     return (
       <section
         aria-label={side === "mine" ? "Your squad" : "Other squad"}
@@ -1561,17 +1462,16 @@ function EncounterInner() {
           minWidth: 0,
           minHeight: 0,
           overflow: "hidden",
-          borderRadius: 18,
-          padding: "42px 8px 8px",
+          borderRadius: "var(--radius-card, 18px)",
+          padding: "38px 4px 4px",
         }}
       >
-        <TeamRoomBackdrop cover={squad?.cover} squadKey={squad?.id ?? side} tone={tone} radius={18} presence={0.82} />
-        {squadLabel(squad?.name ?? (side === "mine" ? "Your Squad" : "Opponent"), people.length, tone, squad?.cover, squad?.id ?? side)}
+        {squadLabel(squad?.name ?? (side === "mine" ? "Your squad" : "Their squad"), people.length)}
         {people.length ? (
           <div style={{ position: "relative", zIndex: 1, display: "flex", flexWrap: people.length > 2 ? "wrap" : "nowrap", gap: 8, height: "100%", minHeight: 0 }}>
             {people.map((person) => (
               <div key={person.id} style={{ flex: people.length > 2 ? "1 1 calc(50% - 4px)" : 1, minWidth: 0, minHeight: 0 }}>
-                {renderParticipant(person.id, "crop")}
+                {renderParticipant(person.id, "fit")}
               </div>
             ))}
           </div>
@@ -1588,7 +1488,6 @@ function EncounterInner() {
     const primaryId = side === "mine" ? layout.minePrimaryId : layout.theirsPrimaryId;
     const stripIds = side === "mine" ? layout.mineStripIds : layout.theirsStripIds;
     const squad = side === "mine" ? mySquad : oppSquad;
-    const tone: SideTone = side === "mine" ? "yours" : "theirs";
     const count = side === "mine" ? mineParticipants.length : theirParticipants.length;
     const useFilmstrip = filmstrip || isPhone;
     return (
@@ -1600,12 +1499,11 @@ function EncounterInner() {
           minWidth: 0,
           minHeight: 0,
           overflow: "hidden",
-          borderRadius: 18,
-          padding: "42px 8px 8px",
+          borderRadius: "var(--radius-card, 18px)",
+          padding: "38px 4px 4px",
         }}
       >
-        <TeamRoomBackdrop cover={squad?.cover} squadKey={squad?.id ?? side} tone={tone} radius={18} presence={0.82} />
-        {squadLabel(squad?.name ?? (side === "mine" ? "Your Squad" : "Opponent"), count, tone, squad?.cover, squad?.id ?? side)}
+        {squadLabel(squad?.name ?? (side === "mine" ? "Your squad" : "Their squad"), count)}
         {primaryId ? (
           <div
             style={{
@@ -1621,7 +1519,7 @@ function EncounterInner() {
             <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
               {renderParticipant(primaryId, focusedFit)}
             </div>
-            {useFilmstrip ? renderFilmstrip(stripIds, side === "mine" ? "Yours" : "Theirs", tone) : stripIds.length > 0 && (
+            {useFilmstrip ? renderFilmstrip(stripIds, side === "mine" ? "Yours" : "Theirs") : stripIds.length > 0 && (
               <div style={{ width: "29%", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
                 {stripIds.map((id) => (
                   <div key={id} style={{ flex: 1, minHeight: 0 }}>
@@ -1650,10 +1548,6 @@ function EncounterInner() {
     const companionIds = participants.filter((person) => person.id !== focusId && person.id !== local?.id).map((person) => person.id);
     return (
       <div style={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
-        <SplitRoomBackdrop
-          mine={{ cover: mySquad?.cover, key: mySquad?.id ?? "mine" }}
-          opp={{ cover: oppSquad?.cover, key: oppSquad?.id ?? "theirs" }}
-        />
         <div style={{ position: "relative", zIndex: 1, flex: 1, minHeight: 0 }}>
           {renderParticipant(focusId, focusedFit)}
         </div>
@@ -1734,13 +1628,13 @@ function EncounterInner() {
           height: 44,
           flexShrink: 0,
           borderRadius: "var(--radius-control, 14px)",
-          border: "1px solid rgba(255,255,255,.08)",
+          border: "var(--control-border)",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontSize: 22,
-          background: "rgba(255,255,255,.06)",
+          background: "var(--overlay)",
         }}
       >
         {emoji}
@@ -1784,7 +1678,7 @@ function EncounterInner() {
   const ctrlBtns = [
     {
       id: "mic",
-      icon: <Icon.mic size={20} color="#fff" />,
+      icon: <Icon.mic size={20} color={micOn ? "var(--text)" : "#fff"} />,
       active: micOn,
       danger: true,
       onClick: toggleMic,
@@ -1793,7 +1687,7 @@ function EncounterInner() {
     },
     {
       id: "cam",
-      icon: <Icon.cam size={20} color="#fff" />,
+      icon: <Icon.cam size={20} color={camOn ? "var(--text)" : "#fff"} />,
       active: camOn,
       danger: true,
       onClick: toggleCam,
@@ -1802,7 +1696,7 @@ function EncounterInner() {
     },
     {
       id: "chat",
-      icon: <Icon.chat size={20} color={chatOpen ? "#fff" : "#C7C7D6"} />,
+      icon: <Icon.chat size={20} color={chatOpen ? "var(--accent)" : "var(--text)"} />,
       active: chatOpen,
       danger: false,
       onClick: toggleChat,
@@ -1811,7 +1705,7 @@ function EncounterInner() {
     },
     {
       id: "more",
-      icon: <span aria-hidden style={{ color: "#C7C7D6", fontSize: 18, fontWeight: 800, letterSpacing: 1 }}>•••</span>,
+      icon: <span aria-hidden style={{ color: moreOpen ? "var(--accent)" : "var(--text)", fontSize: 18, fontWeight: 800, letterSpacing: 1 }}>•••</span>,
       active: moreOpen,
       danger: false,
       onClick: toggleMore,
@@ -1838,7 +1732,7 @@ function EncounterInner() {
 
   if (!squadId || !encId) {
     return (
-      <div data-theme="dark" style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--stage, #1B1420)", padding: 24 }}>
+      <div style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--text)", padding: 24 }}>
         <div style={{ width: "min(460px, 100%)", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, textAlign: "center", boxShadow: "var(--shadow-card, var(--elev))" }}>
           <div style={{ width: 54, height: 54, borderRadius: 16, margin: "0 auto 16px", display: "grid", placeItems: "center", background: "var(--overlay)", border: "1px solid var(--border)" }}>
             <Icon.cam size={24} color="var(--lime)" />
@@ -1858,7 +1752,7 @@ function EncounterInner() {
 
   if (encounterLoading) {
     return (
-      <div data-theme="dark" style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--stage, #1B1420)", padding: 24 }}>
+      <div style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--text)", padding: 24 }}>
         <WaitingForSquad label="Opening encounter..." />
       </div>
     );
@@ -1866,7 +1760,7 @@ function EncounterInner() {
 
   if (encounterError || !encounter) {
     return (
-      <div data-theme="dark" style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--stage, #1B1420)", padding: 24 }}>
+      <div style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--text)", padding: 24 }}>
         <div style={{ width: "min(460px, 100%)", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, textAlign: "center", boxShadow: "var(--shadow-card, var(--elev))" }}>
           <div style={{ width: 54, height: 54, borderRadius: 16, margin: "0 auto 16px", display: "grid", placeItems: "center", background: "var(--overlay)", border: "1px solid var(--border)" }}>
             <Icon.cam size={24} color="var(--lime)" />
@@ -1888,80 +1782,63 @@ function EncounterInner() {
     <>
       <style>{KEYFRAMES}</style>
       <div
-        data-theme="dark"
+        data-testid="encounter-shell"
         style={{
           display: "flex",
           flexDirection: "column",
           height: "100%",
-          // Video stage stays dark in ALL themes — never --bg/--surface here.
-          background: "var(--stage, #1B1420)",
+          background: "var(--bg)",
+          color: "var(--text)",
+          fontFamily: "var(--font-body, var(--font-inter))",
           overflow: "hidden",
-          // …but re-inject the app theme's accent so the chrome themes (violet
-          // in Midnight → iris in Cloud → tangerine) on top of the dark stage.
-          ...(appAccent.a
-            ? ({ "--violet": appAccent.a, "--violet-bright": appAccent.b, "--accent": appAccent.a } as React.CSSProperties)
-            : {}),
         }}
       >
         {/* ── SLIM HEADER ─────────────────────────────────────────────────── */}
         <div
+          data-testid="encounter-header"
           style={{
             display: "flex",
             alignItems: "center",
             gap: isPhoneChrome ? 6 : 12,
             padding: isPhoneChrome ? "7px 10px" : "9px 20px",
-            background: "linear-gradient(180deg, rgba(20,20,28,0.98), rgba(14,14,20,0.96))",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
-            boxShadow: "0 1px 0 rgba(255,255,255,0.03) inset, 0 4px 20px -12px rgba(0,0,0,0.8)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
+            background: "var(--surface)",
+            borderBottom: "var(--control-border)",
+            boxShadow: "var(--shadow-sm)",
             flexShrink: 0,
             zIndex: 10,
             overflow: "hidden",
             maxWidth: "100vw",
           }}
         >
-          {/* Squad names — desktop only. On phone they truncate to ugly "C… vs
-              B…" and each video panel already carries its squad label, so we
-              hide them here for a clean, uncluttered top bar. */}
-          <div style={{ display: isPhoneChrome ? "none" : "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" as const, flexShrink: 1 }}>
-            <CoverThumb cover={mySquad?.cover} squadKey={mySquad?.id ?? "mine"} tone="yours" size={isPhone ? 16 : 18} radius={5} />
-            <span
-              style={{
-                fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                fontWeight: 700,
-                fontSize: isPhone ? 13 : 14,
-                color: lime,
-                whiteSpace: "nowrap" as const,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                minWidth: 0,
-                flexShrink: 1,
-                maxWidth: isPhone ? 84 : 170,
-              }}
-            >
-              {mySquad?.name ?? "Your Squad"}
-            </span>
-            <span style={{ color: textMuted, fontSize: 11, fontWeight: 700 }}>{mineParticipants.length}</span>
-            <span style={{ color: textMuted, fontSize: 12, fontWeight: 600, flexShrink: 0 }}>vs</span>
-            <CoverThumb cover={oppSquad?.cover} squadKey={oppSquad?.id ?? "opp"} tone="theirs" size={isPhone ? 16 : 18} radius={5} />
-            <span
-              style={{
-                fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                fontWeight: 700,
-                fontSize: isPhone ? 13 : 14,
-                color: coral,
-                whiteSpace: "nowrap" as const,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                minWidth: 0,
-                flexShrink: 1,
-                maxWidth: isPhone ? 84 : 170,
-              }}
-            >
-              {oppSquad?.name ?? "Opponent"}
-            </span>
-            <span style={{ color: textMuted, fontSize: 11, fontWeight: 700 }}>{theirParticipants.length}</span>
+          {/* Friendly room context, not a competitive matchup. Phone labels live
+              directly over the corresponding video groups. */}
+          <div style={{ display: isPhoneChrome ? "none" : "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" as const, flexShrink: 1 }}>
+            {[
+              [mySquad?.name ?? "Your squad", mineParticipants.length],
+              [oppSquad?.name ?? "Their squad", theirParticipants.length],
+            ].map(([name, count]) => (
+              <span
+                key={String(name)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  minWidth: 0,
+                  maxWidth: 190,
+                  padding: "4px 9px",
+                  border: "var(--control-border)",
+                  borderRadius: "var(--radius-pill)",
+                  background: "var(--overlay)",
+                  color: "var(--text)",
+                  fontFamily: "var(--font-display)",
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{name}</span>
+                <span style={{ color: "var(--text-muted)", fontSize: 11 }}>{count}</span>
+              </span>
+            ))}
           </div>
 
           {/* Focused chip — only shown when a person is pinned */}
@@ -1971,18 +1848,18 @@ function EncounterInner() {
                 display: isPhoneChrome ? "none" : "flex",
                 alignItems: "center",
                 gap: 6,
-                background: "rgba(124,92,255,0.18)",
-                border: "1px solid rgba(124,92,255,0.35)",
-                borderRadius: 999,
+                background: "var(--accent-soft)",
+                border: "1px solid var(--accent-line)",
+                borderRadius: "var(--radius-pill)",
                 padding: "3px 10px",
                 fontSize: 12,
                 fontWeight: 600,
-                color: "#C4B5FF",
+                color: "var(--accent)",
                 flexShrink: 0,
                 fontFamily: "var(--font-display, var(--font-space-grotesk))",
               }}
             >
-              <Icon.pin size={12} color="#C4B5FF" />
+              <Icon.pin size={12} color="var(--accent)" />
               <span style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{pinnedMemberName}</span>
               <button
                 onClick={() => setPinnedId(null)}
@@ -1990,7 +1867,7 @@ function EncounterInner() {
                   background: "none",
                   border: "none",
                   cursor: "pointer",
-                  color: "#9A9AB0",
+                  color: "var(--text-muted)",
                   fontSize: 13,
                   lineHeight: 1,
                   padding: "0 2px",
@@ -2000,7 +1877,7 @@ function EncounterInner() {
                 title="Exit focus"
                 aria-label="Exit focus"
               >
-                <Icon.close size={12} color="#9A9AB0" />
+                <Icon.close size={12} color="var(--text-muted)" />
               </button>
             </div>
           )}
@@ -2017,15 +1894,15 @@ function EncounterInner() {
                     gap: 5,
                     fontSize: 12,
                     fontWeight: 800,
-                    color: coral,
-                    background: "color-mix(in srgb, var(--coral, #FF5C5C) 10%, transparent)",
-                    border: "1px solid color-mix(in srgb, var(--coral, #FF5C5C) 20%, transparent)",
-                    borderRadius: 999,
+                    color: "var(--live)",
+                    background: "var(--live-soft)",
+                    border: "1px solid color-mix(in srgb, var(--live) 30%, transparent)",
+                    borderRadius: "var(--radius-pill)",
                     padding: isPhoneChrome ? "2px 7px" : "3px 10px",
                     letterSpacing: ".08em",
                   }}
                 >
-                  <span style={{ width: 6, height: 6, borderRadius: 999, background: coral, animation: "livePulse 1.6s ease-in-out infinite" }} />
+                  <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--live)", animation: "livePulse 1.6s ease-in-out infinite" }} />
                   LIVE
                 </span>
                 <span style={{ color: textPrimary, fontSize: isPhoneChrome ? 13 : 14, fontWeight: 700, minWidth: isPhoneChrome ? 38 : 48 }}>
@@ -2062,16 +1939,21 @@ function EncounterInner() {
         >
           {/* ── VIDEO STAGE ─────────────────────────────────────────────── */}
           <div
+            data-testid="video-stage"
             style={{
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              background: "var(--stage-2, #2A2135)",
+              background: "var(--stage, #101013)",
               position: "relative",
               minHeight: 0,
               overflow: "hidden",
             }}
           >
+            <EncounterAtmosphere
+              mine={{ cover: mySquad?.cover, key: mySquad?.id ?? "mine" }}
+              theirs={{ cover: oppSquad?.cover, key: oppSquad?.id ?? "theirs" }}
+            />
             {/* Top toast stack — banners stack vertically instead of overlapping */}
             <div
               style={{
@@ -2088,41 +1970,6 @@ function EncounterInner() {
                 pointerEvents: "none",
               }}
             >
-            {/* "Squads meeting" entrance banner */}
-            {showBanner && (
-              <div
-                style={{
-                  pointerEvents: "auto",
-                  background: "rgba(18,18,26,0.92)",
-                  backdropFilter: "blur(16px)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  borderRadius: 999,
-                  padding: "8px 22px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  whiteSpace: "nowrap" as const,
-                  animation: "bannerFade 2.5s ease forwards",
-                  boxShadow: `0 4px 30px rgba(0,0,0,0.5)`,
-                }}
-              >
-                <span style={{ fontSize: 14 }}>🤝</span>
-                <span
-                  style={{
-                    fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: textPrimary,
-                  }}
-                >
-                  You&apos;re now meeting{" "}
-                  <span style={{ color: coral, fontWeight: 700 }}>
-                    {oppSquad?.name ?? "the opponent squad"}
-                  </span>
-                </span>
-              </div>
-            )}
-
             {/* Video failure banner — non-blocking, dismissible. Chat, controls,
                 reactions all stay usable; avatar fallbacks already cover tiles. */}
             {videoError && (
@@ -2323,15 +2170,24 @@ function EncounterInner() {
                     ? "You can jump straight into another match."
                     : "Thanks for hanging out."}
                 </div>
+                {endError && (
+                  <div role="alert" style={{ color: coral, fontSize: 13, textAlign: "center" }}>
+                    {endError}
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }}>
                   <Button
                     onClick={async () => {
                       if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
+                      setEndError(null);
                       setFindingNextMatch(true);
-                      if (endedReason !== "opponent-left") {
-                        try { await api.startSearch(squadId); } catch {}
+                      try {
+                        if (endedReason !== "opponent-left") await api.startSearch(squadId);
+                        router.push(`/matchmaking?squad=${squadId}`);
+                      } catch (error) {
+                        setEndError((error as { message?: string })?.message || "Couldn't start matchmaking.");
+                        setFindingNextMatch(false);
                       }
-                      router.push(`/matchmaking?squad=${squadId}`);
                     }}
                     loading={findingNextMatch}
                     variant="primary"
@@ -2393,11 +2249,11 @@ function EncounterInner() {
                   maxWidth: "calc(100vw - 16px)",
                   padding: isPhone ? 8 : "9px 12px",
                   borderRadius: "var(--radius-card, 20px)",
-                  border: "1px solid rgba(255,255,255,.12)",
-                  background: "linear-gradient(180deg, rgba(26,26,36,.92), rgba(14,14,20,.94))",
+                  border: "var(--control-border)",
+                  background: "color-mix(in srgb, var(--surface) 92%, transparent)",
                   backdropFilter: "blur(22px)",
                   WebkitBackdropFilter: "blur(22px)",
-                  boxShadow: "0 12px 44px -8px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.08)",
+                  boxShadow: "var(--shadow-pop)",
                   animation: "controlIn .5s cubic-bezier(.22,1,.36,1) .2s forwards",
                   opacity: 0,
                 }}
@@ -2409,10 +2265,10 @@ function EncounterInner() {
                   const background = off
                     ? "var(--coral)"
                     : selected
-                    ? "color-mix(in srgb, var(--violet, #7C5CFF) 28%, transparent)"
+                    ? "var(--accent-soft)"
                     : hovered
-                    ? "rgba(255,255,255,.16)"
-                    : "rgba(255,255,255,.08)";
+                    ? "var(--overlay-hover)"
+                    : "var(--overlay)";
                   return (
                     <div key={id} style={{ position: "relative", display: "flex", flexShrink: 0 }}>
                       <button
@@ -2430,18 +2286,15 @@ function EncounterInner() {
                           width: isPhone ? 44 : 48,
                           height: isPhone ? 44 : 48,
                           flexShrink: 0,
-                          borderRadius: "50%",
-                          border: off ? "1px solid var(--coral)" : "1px solid rgba(255,255,255,.11)",
+                          borderRadius: "var(--radius-control, 14px)",
+                          border: off ? "1px solid var(--coral)" : "var(--control-border)",
                           cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           background,
-                          boxShadow: off
-                            ? "0 0 20px -3px color-mix(in srgb, var(--coral) 85%, transparent)"
-                            : selected
-                            ? "0 0 16px -4px color-mix(in srgb, var(--violet) 60%, transparent)"
-                            : "inset 0 1px 0 rgba(255,255,255,.07)",
+                          color: off ? "#fff" : selected ? "var(--accent)" : "var(--text)",
+                          boxShadow: "none",
                         }}
                       >
                         {icon}
@@ -2483,11 +2336,11 @@ function EncounterInner() {
                             bottom: "calc(100% + 10px)",
                             width: "min(280px, calc(100vw - 24px))",
                             padding: 10,
-                            borderRadius: 16,
-                            border: "1px solid rgba(255,255,255,.12)",
-                            background: "rgba(18,18,26,.98)",
+                            borderRadius: "var(--radius-card)",
+                            border: "var(--control-border)",
+                            background: "var(--surface)",
                             backdropFilter: "blur(18px)",
-                            boxShadow: "0 14px 44px rgba(0,0,0,.58)",
+                            boxShadow: "var(--shadow-pop)",
                             display: "flex",
                             flexDirection: "column",
                             gap: 7,
@@ -2505,9 +2358,9 @@ function EncounterInner() {
                               closeMore(true);
                             }}
                             disabled={reported}
-                            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,.09)", background: "rgba(255,255,255,.05)", color: reported ? lime : textPrimary, display: "flex", alignItems: "center", gap: 9, cursor: reported ? "default" : "pointer", fontWeight: 700 }}
+                            style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: reported ? "var(--live)" : "var(--text)", display: "flex", alignItems: "center", gap: 9, cursor: reported ? "default" : "pointer", fontWeight: 700 }}
                           >
-                            <Icon.flag size={17} color={reported ? "#C2FF3D" : "#C7C7D6"} />
+                            <Icon.flag size={17} color={reported ? "var(--live)" : "var(--text-muted)"} />
                             {reported ? "Reported" : "Report opponent squad"}
                           </button>
                           {hasFocusedFrame && (
@@ -2516,7 +2369,7 @@ function EncounterInner() {
                                 setFocusedFit((fit) => fit === "fit" ? "crop" : "fit");
                                 closeMore(true);
                               }}
-                              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,.09)", background: "rgba(255,255,255,.05)", color: textPrimary, textAlign: "left", cursor: "pointer", fontWeight: 700 }}
+                              style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: "var(--text)", textAlign: "left", cursor: "pointer", fontWeight: 700 }}
                             >
                               {focusedFit === "fit" ? "Crop focused video" : "Fit focused video"}
                             </button>
@@ -2527,7 +2380,7 @@ function EncounterInner() {
                                 setSelfViewMinimized((minimized) => !minimized);
                                 closeMore(true);
                               }}
-                              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,.09)", background: "rgba(255,255,255,.05)", color: textPrimary, textAlign: "left", cursor: "pointer", fontWeight: 700 }}
+                              style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: "var(--text)", textAlign: "left", cursor: "pointer", fontWeight: 700 }}
                             >
                               {selfViewMinimized ? "Restore self-view" : "Minimize self-view"}
                             </button>
@@ -2551,13 +2404,13 @@ function EncounterInner() {
                         width: 44,
                         height: 44,
                         borderRadius: "var(--radius-control, 14px)",
-                        border: "1px solid rgba(255,255,255,.1)",
+                        border: "var(--control-border)",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         fontSize: 20,
-                        background: reactionsOpen ? "rgba(124,92,255,.26)" : "rgba(255,255,255,.08)",
+                        background: reactionsOpen ? "var(--accent-soft)" : "var(--overlay)",
                       }}
                     >
                       😀
@@ -2572,11 +2425,11 @@ function EncounterInner() {
                           display: "flex",
                           gap: 6,
                           padding: "8px 10px",
-                          borderRadius: 999,
-                          border: "1px solid rgba(255,255,255,.1)",
-                          background: "rgba(18,18,26,.98)",
+                          borderRadius: "var(--radius-pill)",
+                          border: "var(--control-border)",
+                          background: "var(--surface)",
                           backdropFilter: "blur(18px)",
-                          boxShadow: "0 8px 40px rgba(0,0,0,.5)",
+                          boxShadow: "var(--shadow-pop)",
                         }}
                       >
                         {reactionChoices(() => closeReactions(true))}
@@ -2602,7 +2455,7 @@ function EncounterInner() {
                     minWidth: isPhone ? 64 : 110,
                     flexShrink: 0,
                     padding: isPhone ? "0 14px" : "0 20px",
-                    borderRadius: 999,
+                    borderRadius: "var(--radius-btn, 999px)",
                     border: "none",
                     cursor: ending ? "default" : "pointer",
                     display: "flex",
@@ -2612,7 +2465,7 @@ function EncounterInner() {
                     color: "#fff",
                     fontSize: 14,
                     fontWeight: 800,
-                    boxShadow: "0 0 20px -6px var(--coral)",
+                    boxShadow: "none",
                     whiteSpace: "nowrap",
                   }}
                 >
@@ -2642,6 +2495,9 @@ function EncounterInner() {
               <ChatPanel
                 scope={{ kind: "encounter", encounterId: encId, squadId }}
                 onClose={closeChat}
+                messages={chatMessages}
+                onSend={sendEncounterMessage}
+                onRetry={retryEncounterMessage}
               />
             </div>
           )}
@@ -2667,6 +2523,9 @@ function EncounterInner() {
           <ChatPanel
             scope={{ kind: "encounter", encounterId: encId, squadId }}
             onClose={closeChat}
+            messages={chatMessages}
+            onSend={sendEncounterMessage}
+            onRetry={retryEncounterMessage}
           />
         </Modal>
       )}

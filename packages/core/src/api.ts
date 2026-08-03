@@ -18,7 +18,7 @@ export const api = {
     backendRequest<ReferralInfo>("/api/auth/me/referral"),
   getMyProfile: () =>
     backendRequest<UserProfile>("/api/me/profile"),
-  updateMyProfile: (body: { gender?: string; age?: number | null; languages?: string[]; country?: string }) =>
+  updateMyProfile: (body: { gender?: string; age?: number | null; languages?: string[]; country?: string; vibes?: string[] }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
   // Self-attested date of birth (set-once). Raw birthDate never comes back — the
   // backend derives and returns only the boolean gates. 409 if already set.
@@ -70,6 +70,8 @@ export const api = {
     backendRequest<{ squadId: string; status: string; encounterId?: string }>(`/api/squads/${squadId}/search`, { method: "POST" }),
   cancelSearch: (squadId: string) =>
     backendRequest<{ squadId: string; status: string }>(`/api/squads/${squadId}/search/cancel`, { method: "POST" }),
+  kickMember: (squadId: string, memberId: string) =>
+    backendRequest<{ squadId: string; kickedMemberId: string; remainingCount: number; status: string }>(`/api/squads/${squadId}/members/${memberId}/kick`, { method: "POST" }),
   leaveSquad: (squadId: string) =>
     backendRequest<{ squadId: string; squadDeleted: boolean }>(`/api/squads/${squadId}/leave`, { method: "POST" }),
   disbandSquad: (squadId: string) =>
@@ -177,6 +179,7 @@ export interface UserProfile {
   age?: number;
   languages?: string[];
   country?: string;
+  vibes?: string[];
   name: string;
   email: string;
 }

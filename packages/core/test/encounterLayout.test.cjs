@@ -75,6 +75,20 @@ test("speaker focus waits 600ms and holds an automatic focus for 1500ms", async 
   assert.equal(advanceSpeakerFocus(ids, held, "mine-0", 3100).focusedId, "mine-0");
 });
 
+test("unchanged speaker focus preserves state identity", async () => {
+  const { advanceSpeakerFocus } = await import("../src/encounterLayout.ts");
+  const ids = ["mine-0", "theirs-0"];
+  const previous = {
+    focusedId: "theirs-0",
+    focusedSince: 1000,
+    candidateId: null,
+    candidateSince: 0,
+  };
+
+  assert.equal(advanceSpeakerFocus(ids, previous, null, 2000), previous);
+  assert.equal(advanceSpeakerFocus(ids, previous, "theirs-0", 2000), previous);
+});
+
 test("mute, camera, and reconnect state never reorder participants", async () => {
   const { deriveEncounterLayout } = await import("../src/encounterLayout.ts");
   const mine = people("mine", 4);

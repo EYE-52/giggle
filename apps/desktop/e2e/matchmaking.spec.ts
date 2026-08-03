@@ -1,13 +1,17 @@
 import { expect, test } from "@playwright/test";
+import { openProtectedRoute } from './helpers';
 
 async function enterMatchmaking(page: import("@playwright/test").Page) {
-  await page.goto("/home");
-  await page.getByRole("button", { name: /create squad/i }).click();
+  await openProtectedRoute(page, '/home');
+  await page.getByRole("button", { name: /create(?: your first)? squad/i }).click();
   await page.waitForURL(/\/lobby\?squad=/);
   const readiness = page.getByTestId("lobby-readiness");
   await readiness.getByRole("button", { name: /mark ready/i }).click();
   await expect(readiness.getByRole("button", { name: /find a match/i })).toBeEnabled();
   await readiness.getByRole("button", { name: /find a match/i }).click();
+  const cameraPrompt = page.getByRole("dialog", { name: "Your camera is off" });
+  await expect(cameraPrompt).toBeVisible();
+  await cameraPrompt.getByRole("button", { name: /continue without camera/i }).click();
   await page.waitForURL(/\/matchmaking\?squad=/);
 }
 
@@ -16,7 +20,9 @@ test("matchmaking explains progress and keeps cancellation available", async ({ 
 
   await expect(page.getByRole("status")).toContainText(/checking active squads/i);
   await expect(page.getByRole("button", { name: /cancel search/i })).toBeVisible();
-  await expect(page.getByText("1 / 4", { exact: true })).toBeVisible();
+  const squad = page.getByRole("region", { name: "Your squad" });
+  await expect(squad).toBeVisible();
+  await expect(squad).toContainText(/\d+ together/i);
 
   await page.screenshot({
     path: `artifacts/visual-audit/2026-07-12/matchmaking/${testInfo.project.name}.jpg`,

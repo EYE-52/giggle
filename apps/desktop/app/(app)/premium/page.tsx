@@ -95,7 +95,7 @@ export default function PremiumPage() {
       <header style={{ display: "flex", alignItems: isPhone ? "flex-start" : "flex-end", justifyContent: "space-between", flexDirection: isPhone ? "column" : "row", gap: 18, paddingBottom: 22, borderBottom: "1px solid var(--border)" }}>
         <div>
           <h1 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 30, fontWeight: 700, lineHeight: 1, color: "var(--text)" }}>Wallet</h1>
-          <p style={{ margin: "8px 0 0", color: "var(--text-muted)", fontSize: 14 }}>Earn tokens, then spend them on your squad identity.</p>
+          <p style={{ margin: "8px 0 0", color: "var(--text-muted)", fontSize: 14 }}>Earn and track tokens for your squad identity.</p>
         </div>
         {/* Balance — StatTile-style presentation (v3 spec 04) */}
         <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-control, 14px)", padding: "12px 16px", minWidth: 118, boxShadow: "var(--shadow-sm)", boxSizing: "border-box" }}>

@@ -99,10 +99,10 @@ function useScrollY(enabled: boolean) {
   return y;
 }
 
-/* Scroll-scrub progress (0..1) for a tall pinned section. rAF-throttled. */
+/* Scroll progress (0..1) for a tall pinned story. rAF-throttled. */
 function useScrubProgress(enabled: boolean) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const [p, setP] = useState(0);
+  const [p, setP] = useState(-1);
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -113,6 +113,7 @@ function useScrubProgress(enabled: boolean) {
       const rect = el.getBoundingClientRect();
       const total = rect.height - window.innerHeight;
       if (total <= 0) { setP(0); return; }
+      if (rect.top > 0) { setP(-1); return; }
       const scrolled = Math.min(Math.max(-rect.top, 0), total);
       setP(scrolled / total);
     };
@@ -134,32 +135,6 @@ function socialFloor(n: number): number {
   return Math.max(0, n);
 }
 const socialPlus = (n: number): string => (n >= 20 ? "+" : "");
-
-function CountUp({ value, duration = 1600 }: { value: number; duration?: number }) {
-  const { ref, shown } = useReveal<HTMLSpanElement>();
-  const [n, setN] = useState(0);
-  const fromRef = useRef(0);
-  const reduce = useReducedMotion();
-  useEffect(() => {
-    if (!shown) return;
-    if (reduce) { setN(value); fromRef.current = value; return; }
-    // Animate from the currently-displayed value to the new target so live
-    // poll updates tick smoothly (not a jarring reset to 0 each refresh).
-    const from = fromRef.current;
-    let raf = 0; const start = performance.now();
-    const tick = (t: number) => {
-      const k = Math.min(1, (t - start) / duration);
-      const eased = 1 - Math.pow(1 - k, 3);
-      const cur = Math.round(from + (value - from) * eased);
-      setN(cur);
-      if (k < 1) raf = requestAnimationFrame(tick);
-      else fromRef.current = value;
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [shown, value, duration, reduce]);
-  return <span ref={ref}>{n.toLocaleString()}</span>;
-}
 
 function Reveal({ children, delay = 0, y = 30, style }: { children: React.ReactNode; delay?: number; y?: number; style?: React.CSSProperties }) {
   const { ref, shown } = useReveal();
@@ -259,14 +234,15 @@ function VideoFrame({
  * color bloom behind the panel, a floor reflection, and slight scroll parallax.
  * Mobile/tablet (stack=true): drop the tilt, simplify, stay gorgeous.
  * ======================================================================== */
-function SquadTiles({ side, tiles, reduce }: {
+function SquadTiles({ side, tiles, reduce, isPhone }: {
   side: "your" | "their";
   tiles: { label: string; src?: string; img?: string; dot: string; avatar: string }[];
   reduce: boolean;
+  isPhone: boolean;
 }) {
   const accent = side === "your" ? C.teal : C.pink;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 9, minWidth: 0, width: "100%" }}>
       <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10.5, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: accent, fontFamily: DISPLAY }}>
         <span style={{ width: 5, height: 5, borderRadius: "50%", background: accent, boxShadow: `0 0 8px ${accent}` }} />
         {side === "your" ? "Your squad" : "Their squad"}
@@ -274,7 +250,7 @@ function SquadTiles({ side, tiles, reduce }: {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
         {tiles.map((t) => (
           <div key={t.label} style={{ position: "relative", borderRadius: 14, padding: 1, background: `linear-gradient(150deg, ${accent}55, rgba(255,255,255,.08) 45%, rgba(255,255,255,.02))`, boxShadow: "0 18px 40px -22px rgba(0,0,0,.9)" }}>
-            <VideoFrame src={t.src} img={t.img} grad={pickGrad(t.avatar)} label={t.label} dot={t.dot} avatar={t.avatar} avatarSize={64} reduce={reduce} aspect="3/4" radius={13} />
+            <VideoFrame src={t.src} img={t.img} grad={pickGrad(t.avatar)} label={t.label} dot={t.dot} avatar={t.avatar} avatarSize={64} reduce={reduce} aspect={isPhone ? "1/1" : "3/4"} radius={13} />
           </div>
         ))}
       </div>
@@ -307,7 +283,7 @@ function HeroVS({ reduce, isPhone, isTablet, parallax }: { reduce: boolean; isPh
 
   const panel = (
     <div style={{
-      position: "relative",
+      position: "relative", width: "100%", minWidth: 0,
       borderRadius: 22,
       padding: 1,
       background: "linear-gradient(155deg, rgba(255,255,255,.22), rgba(255,255,255,.04) 38%, rgba(109,82,255,.18))",
@@ -330,9 +306,11 @@ function HeroVS({ reduce, isPhone, isTablet, parallax }: { reduce: boolean; isPh
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: C.lime, boxShadow: `0 0 9px ${C.lime}`, animation: reduce ? undefined : "blink 1.4s ease-in-out infinite" }} />
             LIVE <span style={{ color: C.muted, fontWeight: 600 }}>· 4 connected</span>
           </span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, color: C.muted, fontFamily: BODY }}>
-            <Icon.discover size={13} color={C.teal} /> matched by vibe
-          </span>
+          {!isPhone && (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 11.5, color: C.muted, fontFamily: BODY }}>
+              <Icon.discover size={13} color={C.teal} /> matched by vibe
+            </span>
+          )}
         </div>
 
         {/* ---- matchup ---- */}
@@ -344,16 +322,16 @@ function HeroVS({ reduce, isPhone, isTablet, parallax }: { reduce: boolean; isPh
           alignItems: "center",
           gap: stack ? 18 : 22,
         }}>
-          <SquadTiles side="your" tiles={YOUR_SQUAD} reduce={reduce} />
+          <SquadTiles side="your" tiles={YOUR_SQUAD} reduce={reduce} isPhone={isPhone} />
           <VSMedallion reduce={reduce} stack={stack} size={isPhone ? 56 : 64} />
-          <SquadTiles side="their" tiles={THEIR_SQUAD} reduce={reduce} />
+          <SquadTiles side="their" tiles={THEIR_SQUAD} reduce={reduce} isPhone={isPhone} />
         </div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ position: "relative", perspective: tilt ? 1400 : undefined }}>
+    <div style={{ position: "relative", width: "100%", minWidth: 0, perspective: tilt ? 1400 : undefined }}>
       {/* ambient color bloom behind the whole panel */}
       <div aria-hidden style={{ position: "absolute", inset: "-12% -8%", background: "radial-gradient(60% 60% at 35% 25%, rgba(109,82,255,.4), transparent 60%), radial-gradient(55% 55% at 75% 70%, rgba(61,214,192,.28), transparent 62%)", filter: "blur(36px)", pointerEvents: "none", animation: reduce ? undefined : "drift2 26s ease-in-out infinite" }} />
 
@@ -398,8 +376,9 @@ const GRADS_FALLBACK = ["#2a2150", "#1f3a36", "#3a1f30", "#2e3a1a"];
 export default function LandingPage() {
   const { isPhone, isTablet } = useViewport();
   const reduce = useReducedMotion();
+  const staticStory = reduce || isPhone;
   const scrollY = useScrollY(!reduce);
-  const { ref: scrubRef, p } = useScrubProgress(!reduce);
+  const { ref: scrubRef, p } = useScrubProgress(!staticStory);
 
   const [stats, setStats] = useState<{ squadsTotal: number; squadsOnline?: number; playersOnline: number; encountersTotal: number } | null>(null);
   const [statsFailed, setStatsFailed] = useState(false);
@@ -445,9 +424,11 @@ export default function LandingPage() {
         {/* ===================== NAV ===================== */}
         <header style={{ position: "sticky", top: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: `16px ${pad}px`, background: "linear-gradient(to bottom, rgba(7,7,11,.72), rgba(7,7,11,0))", backdropFilter: "blur(12px)" }}>
           <Wordmark size={isPhone ? 19 : 21} />
-          <nav style={{ display: "flex", alignItems: "center", gap: isPhone ? 10 : 24, overflowX: isPhone ? "auto" : undefined, maxWidth: isPhone ? "72vw" : undefined }}>
-            <button onClick={() => scrollTo("how")} style={{ ...navLink, fontSize: isPhone ? 13 : 14.5, flexShrink: 0 }}>How it works</button>
-            <button onClick={() => scrollTo("features")} style={{ ...navLink, fontSize: isPhone ? 13 : 14.5, flexShrink: 0 }}>Features</button>
+          <nav style={{ display: "flex", alignItems: "center", gap: 24 }}>
+            {!isPhone && (<>
+              <button onClick={() => scrollTo("how")} style={{ ...navLink, fontSize: 14.5, flexShrink: 0 }}>How it works</button>
+              <button onClick={() => scrollTo("features")} style={{ ...navLink, fontSize: 14.5, flexShrink: 0 }}>Features</button>
+            </>)}
             <Link href="/signin" style={{ ...navLink, color: C.text, minHeight: 44, padding: "0 12px", flexShrink: 0, fontSize: isPhone ? 13 : 14.5 }}>Sign in</Link>
             {/* phone: the hero's Get started CTA is immediately below — keep the nav to links that fit */}
             {!isPhone && <CtaLink href="/signin" small>Get started</CtaLink>}
@@ -459,8 +440,8 @@ export default function LandingPage() {
           data-testid="giggle-hero"
           style={{ position: "relative", padding: `${isPhone ? 44 : 72}px ${pad}px ${isPhone ? 56 : 100}px` }}
         >
-          <div style={{ width: "100%", maxWidth: maxW, margin: "0 auto", display: "grid", gridTemplateColumns: isTablet ? "1fr" : "1.02fr 1.05fr", gap: isTablet ? 56 : 72, alignItems: "center" }}>
-            <div style={{ position: "relative" }}>
+          <div style={{ width: "100%", maxWidth: maxW, minWidth: 0, margin: "0 auto", display: "grid", gridTemplateColumns: isTablet ? "minmax(0, 1fr)" : "minmax(0, 1.02fr) minmax(0, 1.05fr)", gap: isTablet ? 56 : 72, alignItems: "center" }}>
+            <div style={{ position: "relative", minWidth: 0 }}>
               {/* soft spotlight behind the headline for drama */}
               <div aria-hidden style={{ position: "absolute", left: -80, top: -40, width: 560, height: 560, background: "radial-gradient(circle, rgba(109,82,255,.22), transparent 60%)", filter: "blur(40px)", pointerEvents: "none", zIndex: 0 }} />
               <div style={{ position: "relative", zIndex: 1 }}>
@@ -501,7 +482,7 @@ export default function LandingPage() {
                         Squads forming now
                       </span>
                       <span style={{ fontSize: 13, color: C.muted, fontFamily: BODY }}>
-                        {stats ? <><CountUp value={socialFloor(stats.playersOnline)} />{socialPlus(stats.playersOnline)} people on Giggle</> : "Join people meeting their next crew"}
+                        {stats ? <>{socialFloor(stats.playersOnline).toLocaleString()}{socialPlus(stats.playersOnline)} people on Giggle</> : "Join people meeting their next crew"}
                       </span>
                     </div>
                   </div>
@@ -510,7 +491,7 @@ export default function LandingPage() {
             </div>
 
             {/* The cinematic "live encounter" call window with depth. */}
-            <Reveal delay={200} y={40}>
+            <Reveal delay={200} y={40} style={{ minWidth: 0 }}>
               <HeroVS reduce={reduce} isPhone={isPhone} isTablet={isTablet} parallax={heroParallax} />
             </Reveal>
           </div>
@@ -583,11 +564,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ===================== FULL-BLEED CINEMATIC SCRUB TAKEOVER (demo.mp4) ===================== */}
-        {/* Tall pinned section: while in view, demo.mp4 fills the whole viewport and
-            scrubs with scroll. Edge fades melt it into #07070B above/below. */}
-        <section data-testid="use-case-story" ref={scrubRef} style={{ position: "relative", height: reduce ? "auto" : isPhone ? "170vh" : "210vh" }}>
-          <div style={{ position: reduce ? "relative" : "sticky", top: 0, height: reduce ? "auto" : "100svh", minHeight: reduce ? "70vh" : undefined, overflow: "hidden" }}>
+        {/* Desktop gets the chaptered takeover; phone keeps the scene compact and stable. */}
+        <section data-testid="use-case-story" ref={scrubRef} style={{ position: "relative", height: staticStory ? "auto" : "210vh" }}>
+          <div style={{ position: staticStory ? "relative" : "sticky", top: 0, height: staticStory ? "auto" : "100svh", overflow: "hidden" }}>
             <DemoStage p={p} reduce={reduce} isPhone={isPhone} pad={pad} maxW={maxW} scrollTo={scrollTo} />
           </div>
         </section>
@@ -617,11 +596,11 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ===================== LIVE STATS — clean strip, hairline dividers =====================
+        {/* ===================== LIVE STATS — clean strip, desktop hairline dividers =====================
             Stays mounted while loading (shimmer tiles) and on fetch failure
             (fallback dashes) so the page never reflows under the reader. */}
         <section style={{ padding: `${isPhone ? 40 : 70}px ${pad}px` }}>
-          <div style={{ maxWidth: maxW, margin: "0 auto", borderTop: `1px solid ${C.hair}`, borderBottom: `1px solid ${C.hair}`, padding: `${isPhone ? 44 : 64}px 0` }}>
+          <div style={{ maxWidth: maxW, margin: "0 auto", borderTop: isPhone ? "none" : `1px solid ${C.hair}`, borderBottom: isPhone ? "none" : `1px solid ${C.hair}`, padding: `${isPhone ? 44 : 64}px 0` }}>
             <Reveal>
               <div style={{ textAlign: "center", marginBottom: isPhone ? 36 : 52 }}>
                 <SectionLabel>By the numbers</SectionLabel>
@@ -678,8 +657,8 @@ export default function LandingPage() {
 
 /* ===========================================================================
  * DemoStage — FULL-BLEED cinematic takeover. While the tall pinned section is
- * in view, /landing/demo.mp4 fills the entire sticky viewport and SCRUBS with
- * scroll (currentTime = p * duration, Apple-style — not autoplay). Edge fades +
+ * in view, /landing/demo.mp4 fills the sticky viewport. Scroll selects one of
+ * three chapters; each chapter plays at normal speed and pauses at its end. Edge fades +
  * vignette + a light brand tint melt it into #07070B. Overlaid copy switches
  * cleanly through stages tied to `p`. The animated mock only shows if the video is
  * missing/errors. Reduced-motion: static frame + readable copy, no pin.
@@ -691,7 +670,9 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [failed, setFailed] = useState(false);
   const [duration, setDuration] = useState(0);
-  const lastSet = useRef(-1);
+  const segmentEnd = useRef(0);
+  const active = p < 0.33 ? 0 : p < 0.66 ? 1 : 2;
+  const hasEntered = p >= 0;
 
   // demo.mp4 is ~9.5MB — don't fetch it on page load. Only attach the real src
   // once the scrub section nears the viewport (~200px margin), same IO pattern
@@ -699,7 +680,7 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
   const [near, setNear] = useState(false);
   useEffect(() => {
     const el = rootRef.current;
-    if (!el || near) return;
+    if (reduce || !el || near) return;
     if (typeof IntersectionObserver === "undefined") { setNear(true); return; }
     const io = new IntersectionObserver(
       (es) => es.forEach((e) => { if (e.isIntersecting) { setNear(true); io.disconnect(); } }),
@@ -707,7 +688,7 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [near]);
+  }, [isPhone, near, reduce]);
 
   const onLoaded = useCallback(() => {
     const v = videoRef.current;
@@ -719,7 +700,7 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
   }, []);
 
   // Cached media can finish loading before React hydrates and attaches the
-  // onLoadedMetadata handler. Check readyState once so scrubbing still starts.
+  // onLoadedMetadata handler. Check readyState once so chapter playback starts.
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
@@ -728,32 +709,76 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
     return () => v.removeEventListener("loadedmetadata", onLoaded);
   }, [onLoaded]);
 
-  // Drive currentTime from scroll progress `p` (NOT autoplay). useScrubProgress
-  // already rAF-throttles p; epsilon guard avoids thrashing the decoder.
-  // NOTE: demo.mp4 should be a SHORT, keyframe-dense clip for smooth scrubbing.
+  const stopAtSegmentEnd = useCallback(() => {
+    const v = videoRef.current;
+    const end = segmentEnd.current;
+    if (!v || !end || v.currentTime < end - 0.04) return;
+    v.pause();
+    v.currentTime = end;
+  }, []);
+
+  // Scroll chooses the chapter; native playback carries it at normal speed.
   useEffect(() => {
     const v = videoRef.current;
-    if (!v || !duration || failed) return;
-    const t = clamp01(p) * duration;
-    if (!Number.isFinite(t)) return;
-    if (Math.abs(t - lastSet.current) < duration / 600) return; // ~min step guard
-    lastSet.current = t;
-    try { v.currentTime = t; } catch { /* seeking before ready */ }
-  }, [p, failed, duration]);
+    if (!v || !duration || failed || isPhone) return;
+    if (reduce || !hasEntered) { v.pause(); return; }
+    const segmentDuration = duration / 3;
+    const start = active * segmentDuration;
+    segmentEnd.current = Math.min(duration, start + segmentDuration);
+    try {
+      if (v.currentTime < start || v.currentTime >= segmentEnd.current) v.currentTime = start;
+      void v.play().catch(() => {});
+    } catch { /* media can still be settling after metadata */ }
+  }, [active, duration, failed, hasEntered, isPhone, reduce]);
 
   // Three discrete caption stages tied to scroll. Only one caption is mounted at
-  // a time so large display text can never collide while the video keeps scrubbing.
+  // a time so large display text can never collide.
   const STAGES = [
     { t: "Your squad forms", sub: "Pull your crew in — solo or up to eight.", c: C.violet },
     { t: "Matched by vibe", sub: "We pair you with a squad on your wavelength.", c: C.teal },
     { t: "You're live. 2v2.", sub: "Drop into a live group video room together.", c: C.lime },
   ];
-  const active = p < 0.33 ? 0 : p < 0.66 ? 1 : 2;
   const activeStage = STAGES[active];
+
+  if (isPhone) {
+    const mobileStage = STAGES[1];
+    return (
+      <div ref={rootRef} data-testid="mobile-demo-stage" style={{ padding: `56px ${pad}px 64px`, background: "linear-gradient(180deg,#07070B,#120c28 45%,#07070B)" }}>
+        <div style={{ position: "relative", aspectRatio: "4/3", overflow: "hidden", borderRadius: 20, border: `1px solid ${C.hairStrong}`, boxShadow: "0 28px 70px -36px rgba(109,82,255,.65)" }}>
+          {reduce || failed ? (
+            <img
+              src="/landing/demo-poster.jpg"
+              alt="Two friends meeting through Giggle"
+              loading="lazy"
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block", filter: "brightness(0.82) contrast(1.04)" }}
+            />
+          ) : (
+            <video
+              data-testid="mobile-demo-video"
+              autoPlay muted loop playsInline preload="metadata"
+              poster="/landing/demo-poster.jpg"
+              src={near ? "/landing/demo.mp4" : undefined}
+              onError={() => setFailed(true)}
+              aria-hidden
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center", display: "block", filter: "brightness(0.82) contrast(1.04)" }}
+            />
+          )}
+          <div aria-hidden style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(7,7,11,.55), transparent 55%)" }} />
+        </div>
+        <div style={{ marginTop: 28 }}>
+          <SectionLabel>The encounter</SectionLabel>
+          <h2 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(36px,10vw,44px)", letterSpacing: "-.04em", lineHeight: 1, margin: "14px 0 0" }}>
+            {mobileStage.t}
+          </h2>
+          <p style={{ fontSize: 17, lineHeight: 1.55, color: C.body, margin: "16px 0 0", maxWidth: 440 }}>{mobileStage.sub}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={rootRef} style={{ position: "relative", width: "100%", height: "100%", minHeight: reduce ? "70vh" : "100svh", overflow: "hidden", background: "linear-gradient(160deg,#120c28,#0b0b14 55%,#07070b)" }}>
-      {/* ---- Full-viewport scrubbed video ---- */}
+      {/* ---- Full-viewport chaptered video ---- */}
       {reduce ? (
         <img
           data-testid="demo-poster"
@@ -769,6 +794,7 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
           poster="/landing/demo-poster.jpg"
           src={near ? "/landing/demo.mp4" : undefined}
           onLoadedMetadata={onLoaded}
+          onTimeUpdate={stopAtSegmentEnd}
           onError={() => setFailed(true)}
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", display: "block", filter: "brightness(0.82) contrast(1.05) saturate(0.96)", zIndex: 1 }}
         />
@@ -791,7 +817,7 @@ function DemoStage({ p, reduce, isPhone, pad, maxW, scrollTo }: {
       <div style={{ position: "absolute", zIndex: 4, left: 0, right: 0, bottom: isPhone ? "8%" : "12%", padding: `0 ${pad}px`, pointerEvents: "none" }}>
         <div style={{ width: "100%", maxWidth: maxW, margin: "0 auto" }}>
           <SectionLabel>The encounter</SectionLabel>
-          {/* One mounted caption prevents headline collisions during scrubbing. */}
+          {/* One mounted caption prevents headline collisions between chapters. */}
           <div style={{ position: "relative", marginTop: 14, height: isPhone ? 132 : 168 }}>
             <div
               key={activeStage.t}
@@ -915,13 +941,12 @@ function Stat({ value, failed, label, color, divider, isPhone, suffix }: { value
       textAlign: "center",
       padding: isPhone ? "22px 0" : "0 20px",
       borderRight: divider ? `1px solid ${C.hair}` : "none",
-      borderBottom: isPhone ? `1px solid ${C.hair}` : "none",
     }}>
       <div style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: isPhone ? 56 : 72, lineHeight: 1, color, letterSpacing: "-.04em", textShadow: `0 0 44px ${color}55`, display: "flex", justifyContent: "center" }}>
         {value != null
-          ? <><CountUp value={value} />{suffix}</>
+          ? <>{value.toLocaleString()}{suffix}</>
           : failed
-            ? <span aria-label="unavailable">—</span>
+            ? <span style={{ fontFamily: BODY, fontSize: 14, fontWeight: 600, letterSpacing: 0, color: C.muted, textShadow: "none" }}>Unavailable</span>
             : <span className="gg-shimmer" aria-hidden style={{ display: "inline-block", width: isPhone ? 120 : 160, height: isPhone ? 56 : 72, borderRadius: 14 }} />}
       </div>
       <div style={{ fontSize: 14.5, color: C.muted, marginTop: 12 }}>{label}</div>
@@ -1256,7 +1281,7 @@ const FEATURES: { accent: string; title: string; body: string; visual: (r: boole
   { accent: C.violet, title: "Vibe-based discovery", body: "No endless swiping. Choose how you're feeling and get matched with squads who match the energy — chill, chaotic, or anything between.", visual: (r) => vDiscovery(r) },
   { accent: C.teal, title: "Squads up to 8", body: "Bring the whole group chat. Premium squads scale up to eight so nobody gets left out of the fun.", visual: (r) => vSquads(r) },
   { accent: C.lime, title: "Invite-only controls", body: "Request-to-join and invite-only modes mean teammates are never surprised by who drops in. You stay in control of the room.", visual: (r) => vControls(r) },
-  { accent: C.violet, title: "Earn tokens by inviting friends", body: "Pull friends in and you both get rewarded. Spend tokens on bigger squads, premium vibes, and more.", visual: (r) => vTokens(r) },
+  { accent: C.violet, title: "Earn tokens by inviting friends", body: "Pull friends in and you both get rewarded. Your wallet tracks every reward in one place.", visual: (r) => vTokens(r) },
   { accent: C.teal, title: "Real-time chat", body: "Group chat runs alongside every encounter — react, drop links, and keep the conversation alive after the video ends.", visual: (r) => vChat(r) },
 ];
 

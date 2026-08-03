@@ -60,6 +60,29 @@ test("cinematic story exposes one readable scene at every scroll checkpoint", as
   const video = story.locator("video");
   await expect(video).toHaveAttribute("poster", "/landing/demo-poster.jpg");
 
+  if (testInfo.project.name === "phone") {
+    const mobileStory = story.getByTestId("mobile-demo-stage");
+    await mobileStory.scrollIntoViewIfNeeded();
+    await expect(mobileStory.getByRole("heading", { name: "Matched by vibe" })).toBeVisible();
+    await expect(video).toHaveAttribute("autoplay", "");
+    await expect(video).toHaveAttribute("loop", "");
+    await expect.poll(() => video.evaluate(node => {
+      const media = node as HTMLVideoElement;
+      return media.readyState >= 2 && media.duration > 0 && !media.paused;
+    })).toBe(true);
+    const startTime = await video.evaluate(node => (node as HTMLVideoElement).currentTime);
+    await expect.poll(() => video.evaluate((node, start) => {
+      const current = (node as HTMLVideoElement).currentTime;
+      return Math.abs(current - Number(start)) > 0.05;
+    }, startTime)).toBe(true);
+    await page.screenshot({
+      path: "artifacts/visual-audit/2026-07-12/landing-story/phone-autoplay.jpg",
+      type: "jpeg",
+      quality: 82,
+    });
+    return;
+  }
+
   for (const [name, progress, title] of [
     ["start", 0.16, "Your squad forms"],
     ["middle", 0.5, "Matched by vibe"],

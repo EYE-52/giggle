@@ -52,12 +52,15 @@ export default function FriendsPage() {
   const [incoming, setIncoming] = useState<FriendRequestUser[]>([]);
   const [outgoing, setOutgoing] = useState<FriendRequestUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Search
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Friend[]>([]);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchRetry, setSearchRetry] = useState(0);
   const [requested, setRequested] = useState<Set<string>>(new Set());
 
   // Inline remove confirmation
@@ -66,11 +69,6 @@ export default function FriendsPage() {
 
   // Invite-to-squad flow: pick a squad for a chosen friend.
   const [inviteFriend, setInviteFriend] = useState<Friend | null>(null);
-
-  // ≥2 consecutive refetch failures → surface a small "connection trouble"
-  // banner (dismissible; auto-clears on the next successful poll).
-  const failCount = useRef(0);
-  const [connTrouble, setConnTrouble] = useState(false);
 
   // Guards in-flight refetches from setting state after unmount (the interval
   // is cleared on unmount, but a pending request can still resolve later).
@@ -87,12 +85,9 @@ export default function FriendsPage() {
       setFriends(f?.friends ?? []);
       setIncoming(r?.incoming ?? []);
       setOutgoing(r?.outgoing ?? []);
-      failCount.current = 0;
-      setConnTrouble(false);
-    } catch (e) {
-      console.error("friends refetch failed:", e);
-      failCount.current += 1;
-      if (mounted.current && failCount.current >= 2) setConnTrouble(true);
+      setLoadError(null);
+    } catch {
+      if (mounted.current) setLoadError("Couldn't load your friends.");
     } finally {
       if (mounted.current) setLoading(false);
     }
@@ -120,9 +115,11 @@ export default function FriendsPage() {
       setResults([]);
       setSearched(false);
       setSearching(false);
+      setSearchError(null);
       return;
     }
     setSearching(true);
+    setSearchError(null);
     const seq = ++searchSeq.current;
     const t = setTimeout(async () => {
       try {
@@ -130,18 +127,20 @@ export default function FriendsPage() {
         if (seq === searchSeq.current) {
           setResults(users ?? []);
           setSearched(true);
+          setSearchError(null);
         }
-      } catch (e) {
-        // Mark as searched so the UI shows "no people found" instead of a
-        // permanently blank block after a failed search.
-        if (seq === searchSeq.current) { setResults([]); setSearched(true); }
-        console.error("searchUsers failed:", e);
+      } catch {
+        if (seq === searchSeq.current) {
+          setResults([]);
+          setSearched(false);
+          setSearchError("Couldn't search for people.");
+        }
       } finally {
         if (seq === searchSeq.current) setSearching(false);
       }
     }, 300);
     return () => clearTimeout(t);
-  }, [query]);
+  }, [query, searchRetry]);
 
   // ── Actions (optimistic) ───────────────────────────────────────────────────
   async function handleAdd(u: Friend) {
@@ -204,6 +203,7 @@ export default function FriendsPage() {
   const onlineCount = friends.filter((f) => f.online).length;
   const friendIds = new Set(friends.map((f) => f.userId));
   const incomingIds = new Set(incoming.map((u) => u.userId));
+  const showFirstRun = !loading && !loadError && friends.length === 0 && incoming.length === 0 && outgoing.length === 0;
 
   const sectionTitleStyle: React.CSSProperties = {
     fontFamily: fontDisplay,
@@ -219,31 +219,31 @@ export default function FriendsPage() {
       {/* Header */}
       <PageHeader
         title="Friends"
-        subtitle={onlineCount > 0 ? `${onlineCount} online now` : "Find people and see who's around."}
+        subtitle={showFirstRun ? "Search by display name and start your circle." : onlineCount > 0 ? `${onlineCount} online now` : "Find people and see who's around."}
       />
 
-      {connTrouble && (
-        <div role="status" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: radiusControl, border: "1px solid color-mix(in srgb, var(--coral) 45%, transparent)", background: "var(--coral-soft)", color: "var(--coral)", fontSize: 14, fontWeight: 600 }}>
-          <span className="gg-spinner" aria-hidden="true" />
-          <span style={{ flex: 1 }}>Connection trouble — retrying…</span>
-          <button
-            onClick={() => setConnTrouble(false)}
-            aria-label="Dismiss"
-            className="gg-press"
-            style={{ width: 32, height: 32, background: "none", border: "none", cursor: "pointer", padding: 0, display: "grid", placeItems: "center" }}
-          >
-            <Icon.close size={13} color="var(--coral)" />
-          </button>
+      {loadError && (
+        <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 10px 10px 14px", borderRadius: radiusControl, border: "1px solid color-mix(in srgb, var(--coral) 45%, transparent)", background: "var(--coral-soft)", color: "var(--text-body)", fontSize: 14 }}>
+          <span>{loadError} Check your connection and try again.</span>
+          <Button variant="ghost" size="sm" onClick={() => { setLoadError(null); setLoading(true); void refetch(); }}>Retry</Button>
         </div>
       )}
 
       {/* ── Add friends ──────────────────────────────────────────── */}
       <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {showFirstRun && (
+          <div style={{ paddingTop: isPhone ? 8 : 16 }}>
+            <div style={{ color: violet, fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Your circle</div>
+            <h2 style={{ margin: "8px 0 6px", color: text, fontFamily: fontDisplay, fontSize: isPhone ? 28 : 34, lineHeight: 1.1, fontWeight: 800 }}>Find your people.</h2>
+            <p style={{ margin: 0, maxWidth: 520, color: muted, fontSize: 14, lineHeight: 1.55 }}>Search their display name to send a friend request and see when they’re online.</p>
+          </div>
+        )}
         <div style={{ position: "relative" }}>
           <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
             <Icon.discover size={18} color={dim} />
           </span>
           <input
+            aria-label="Search people by name"
             value={query}
             onChange={(e) => setQuery(e.target.value.slice(0, MAX_SEARCH_QUERY))}
             onFocus={() => setSearchFocus(true)}
@@ -269,7 +269,12 @@ export default function FriendsPage() {
 
         {query.trim() && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {query.trim().length < 2 ? (
+            {searchError ? (
+              <div role="alert" style={{ minHeight: 52, padding: "8px 10px 8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: radiusControl, border: "1px solid color-mix(in srgb, var(--coral) 45%, transparent)", color: "var(--text-body)", fontSize: 13 }}>
+                <span>{searchError}</span>
+                <Button variant="ghost" size="sm" onClick={() => setSearchRetry((value) => value + 1)}>Retry search</Button>
+              </div>
+            ) : query.trim().length < 2 ? (
               <EmptyHint>Type at least 2 characters to search.</EmptyHint>
             ) : searching && results.length === 0 ? (
               // Skeleton rows matching the result-row height — no spinner jump.
@@ -334,6 +339,7 @@ export default function FriendsPage() {
       )}
 
       {/* ── Your friends ─────────────────────────────────────────── */}
+      {!showFirstRun && (!loadError || friends.length > 0) && (!query.trim() || friends.length > 0) && (
       <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <h2 style={sectionTitleStyle}>Your friends {friends.length > 0 && <span style={{ color: muted }}>· {friends.length}</span>}</h2>
 
@@ -405,7 +411,7 @@ export default function FriendsPage() {
                     className="gg-press"
                     style={{
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      width: 40, height: 40,
+                      width: 44, height: 44,
                       borderRadius: radiusPill,
                       background: "var(--accent-soft)",
                       border: "1px solid var(--accent-line)",
@@ -427,7 +433,7 @@ export default function FriendsPage() {
                     className="gg-press"
                     style={{
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      width: 40, height: 40,
+                      width: 44, height: 44,
                       borderRadius: radiusPill,
                       background: "var(--overlay)",
                       border: controlBorder,
@@ -444,6 +450,7 @@ export default function FriendsPage() {
           </div>
         )}
       </section>
+      )}
 
       {inviteFriend && (
         <SquadPickerModal
@@ -465,8 +472,8 @@ function FriendsEmptyState() {
         <Icon.users size={18} color={violet} />
       </div>
       <div>
-        <h3 style={{ margin: 0, color: text, fontFamily: fontDisplay, fontSize: 14, fontWeight: 700 }}>Your crew starts here</h3>
-        <p style={{ margin: "3px 0 0", color: muted, fontSize: 13 }}>Search by name above to send your first request.</p>
+        <h3 style={{ margin: 0, color: text, fontFamily: fontDisplay, fontSize: 14, fontWeight: 700 }}>No friends yet</h3>
+        <p style={{ margin: "3px 0 0", color: muted, fontSize: 13 }}>Search above to send a request.</p>
       </div>
     </div>
   );

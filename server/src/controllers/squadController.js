@@ -12,6 +12,7 @@ const {
   isSameMember,
   findSquadForIdentity,
   findSquadsForIdentity,
+  deleteSquadAndNotifications,
   persistSquadAfterMemberRemoval,
 } = require("../app/squadAccess");
 const { generateId, generateSquadCode } = require("../utils/idGenerator");
@@ -19,7 +20,7 @@ const { tryMatchmakeForSquad } = require("../services/matchmakingService");
 const queueService = require("../services/queueService");
 const socketService = require("../services/socketService");
 const sessionService = require("../services/sessionService");
-const { createNotification } = require("../models/Notification");
+const { createNotification, deleteNotifications } = require("../models/Notification");
 const { shuffle } = require("../utils/random");
 const { normalizeSquadTags } = require("../utils/squadValidation");
 const { classifyVibe, tagsAreMature, firstBlockedTag } = require("../utils/moderation");
@@ -91,6 +92,17 @@ const publicSquadTags = (squad) => {
 
 const isValidUserObjectId = (value) =>
   typeof value === "string" && /^[a-f\d]{24}$/i.test(value);
+
+const resolveSquadInviteNotification = async (userId, squadId) =>
+  deleteNotifications({ userId, type: "squad_invite", squadId });
+
+const resolveJoinRequestNotification = async (leaderUserId, requesterUserId, squadId) =>
+  deleteNotifications({
+    userId: leaderUserId,
+    type: "join_request",
+    fromUserId: requesterUserId,
+    squadId,
+  });
 
 const getMySquadHandler = async (req, res) => {
   const identity = getRequesterIdentity(req);
@@ -333,6 +345,7 @@ const joinSquadHandler = async (req, res) => {
 
     const existingMember = squad.members.find((candidate) => isSameMember(candidate, { userId, providerAccountId }));
     if (existingMember) {
+      await resolveSquadInviteNotification(userId, squad.squadId);
       return res.status(200).json({
         ok: true,
         data: {
@@ -401,6 +414,7 @@ const joinSquadHandler = async (req, res) => {
           });
         }
       }
+      await resolveSquadInviteNotification(userId, squad.squadId);
       return res.status(200).json({ ok: true, data: { status: "requested" } });
     }
 
@@ -448,6 +462,7 @@ const joinSquadHandler = async (req, res) => {
     squad.members.push(newMember);
     await squad.save();
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+    await resolveSquadInviteNotification(userId, squad.squadId);
 
     return res.status(200).json({
       ok: true,
@@ -770,6 +785,7 @@ const getJoinRequestsHandler = async (req, res) => {
 
 const approveJoinRequestHandler = async (req, res) => {
   const { userId: targetUserId } = req.params;
+  const { userId: leaderUserId } = getRequesterIdentity(req);
 
   try {
     const { squad } = req.squadAccess;
@@ -792,6 +808,7 @@ const approveJoinRequestHandler = async (req, res) => {
       squad.joinRequests.splice(reqIndex, 1);
       await squad.save();
       socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+      await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
       return res.status(200).json({
         ok: true,
         data: { squadId: squad.squadId, userId: targetUserId, status: "member" },
@@ -811,6 +828,7 @@ const approveJoinRequestHandler = async (req, res) => {
       squad.joinRequests.splice(reqIndex, 1);
       await squad.save();
       socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+      await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
       return res.status(404).json({
         ok: false,
         error: { code: "REQUEST_USER_NOT_FOUND", message: "Join request user no longer exists" },
@@ -822,6 +840,7 @@ const approveJoinRequestHandler = async (req, res) => {
       squad.joinRequests.splice(reqIndex, 1);
       await squad.save();
       socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+      await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
       return res.status(403).json({
         ok: false,
         error: { code: "AGE_RESTRICTED", message: "This user must be 18+ to join an adult squad" },
@@ -842,6 +861,7 @@ const approveJoinRequestHandler = async (req, res) => {
     squad.joinRequests.splice(reqIndex, 1);
     await squad.save();
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+    await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
 
     return res.status(200).json({
       ok: true,
@@ -863,6 +883,7 @@ const approveJoinRequestHandler = async (req, res) => {
 
 const declineJoinRequestHandler = async (req, res) => {
   const { userId: targetUserId } = req.params;
+  const { userId: leaderUserId } = getRequesterIdentity(req);
 
   try {
     const { squad } = req.squadAccess;
@@ -880,6 +901,7 @@ const declineJoinRequestHandler = async (req, res) => {
     squad.joinRequests.splice(reqIndex, 1);
     await squad.save();
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+    await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
 
     return res.status(200).json({
       ok: true,
@@ -969,6 +991,7 @@ const revokeInviteHandler = async (req, res) => {
       await squad.save();
       socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
     }
+    await resolveSquadInviteNotification(targetUserId, squad.squadId);
 
     return res.status(200).json({
       ok: true,
@@ -1397,10 +1420,10 @@ const disbandSquadHandler = async (req, res) => {
       try { await queueService.removeFromQueue(squad.squadId); } catch (e) { console.error("Error dequeuing squad on disband:", e); }
     }
 
-    // Tell everyone still in the room the squad is gone, THEN delete — clients
-    // re-fetch on SQUAD_UPDATED, hit 404, and get redirected home.
+    await deleteSquadAndNotifications(squad);
+    // Tell everyone still in the room the squad is gone. Clients re-fetch on
+    // SQUAD_UPDATED, hit 404, and get redirected home.
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", { disbanded: true });
-    await squad.deleteOne();
 
     return res.status(200).json({ ok: true, data: { squadId: squad.squadId, disbanded: true } });
   } catch (error) {

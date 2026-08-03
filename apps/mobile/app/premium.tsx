@@ -1,262 +1,206 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen } from '../components/Screen';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Icon } from '../components/Icon';
-import { SwitchControl } from '../components/SwitchControl';
-import { COLORS, SPACE, RADII } from '../constants/theme';
-import { LinearGradient } from 'expo-linear-gradient';
-import { billing, getTokenBalance, PRODUCTS } from '@giggle/core';
-
-const BOOSTS = [
-  { id: 'vibe_pack', icon: '✦', label: 'Avatar Pack', sub: 'Unlock 8 extra profile avatars', cost: 80 },
-  { id: 'cover_themes', icon: '🎭', label: 'Squad Themes', sub: 'Custom squad themes & colors', cost: 120 },
-];
-
-const TOKEN_PACKS = [
-  PRODUCTS.tokens_starter,
-  PRODUCTS.tokens_plus,
-  PRODUCTS.tokens_pro,
-  PRODUCTS.tokens_mega,
-];
-
-const FEATURES = [
-  { iconName: 'palette' as const, label: 'Premium Themes', sub: 'Unlock expressive squad covers' },
-  { iconName: 'hd' as const, label: 'Video polish', sub: 'Launch-ready video upgrades preview' },
-  { iconName: 'history' as const, label: 'Encounter History', sub: 'Replay your best moments' },
-  { iconName: 'star' as const, label: 'Member Badge', sub: 'Stand out across squads' },
-];
+import { COLORS, SPACE } from '../constants/theme';
+import { api, session, TOKEN_PERKS, type ReferralInfo } from '@giggle/core';
 
 export default function PremiumScreen() {
   const router = useRouter();
-  const [yearly, setYearly] = useState(true);
-  const [tokenBalance, setTokenBalance] = useState(0);
-  const [status, setStatus] = useState('');
-
-  const price = 'Planned';
-  const period = yearly ? 'annual benefits preview' : 'launch pricing under review';
-  const canRedeemPerks = billing.canRedeemTokenPerksLocally();
+  const [referral, setReferral] = useState<ReferralInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [shareError, setShareError] = useState('');
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
-    setTokenBalance(getTokenBalance());
-    return billing.subscribe(() => setTokenBalance(getTokenBalance()));
-  }, []);
+    let active = true;
+    setLoading(true);
+    setLoadError('');
+    api.getReferral()
+      .then((info) => {
+        if (!active) return;
+        setReferral(info);
+      })
+      .catch(() => {
+        if (active) setLoadError("Couldn't load your wallet.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [loadAttempt]);
 
-  const isPremium = billing.isPremium();
-  const ctaLabel = useMemo(() => {
-    if (isPremium) return 'Giggle+ Active';
-    return 'Plan preview';
-  }, [isPremium, yearly]);
+  const balance = referral?.tokens ?? session.user?.tokens ?? 0;
 
-  function spendBoost(boostId: string) {
-    if (!canRedeemPerks) {
-      setStatus('Perk redemption is in launch prep. Tokens are tracked now; server-backed unlocks are coming with checkout.');
-      return;
+  async function shareInvite() {
+    if (!referral) return;
+    setShareError('');
+    try {
+      await Share.share({
+        message: `Join me on Giggle. Use referral code ${referral.code} when you sign up.`,
+      });
+    } catch {
+      setShareError("Couldn't open sharing. Please try again.");
     }
-    let ok = false;
-    if (boostId === 'vibe_pack') ok = billing.spendOnVibePack();
-    if (boostId === 'cover_themes') ok = billing.spendOnCoverThemes();
-    setTokenBalance(getTokenBalance());
-    setStatus(ok ? 'Perk unlocked.' : 'Not enough tokens.');
   }
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.back}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
-        <View style={styles.badge}>
-          <Icon.star size={28} color="#C2FF3D" fill="#C2FF3D" />
-        </View>
-
-        <Text style={styles.heading}>Giggle Premium</Text>
-        <Text style={styles.sub}>Unlock the full Giggle experience — squad up in style.</Text>
-        <Text style={styles.wallet}>{tokenBalance} tokens available</Text>
-
-        <View style={styles.toggleRow}>
-          <Text style={[styles.toggleLabel, !yearly && styles.toggleActive]}>Monthly</Text>
-          <SwitchControl
-            label="Use yearly billing"
-            value={yearly}
-            onValueChange={setYearly}
-          />
-          <Text style={[styles.toggleLabel, yearly && styles.toggleActive]}>Yearly</Text>
-          {yearly && (
-            <View style={styles.saveBadge}><Text style={styles.saveText}>-20%</Text></View>
-          )}
-        </View>
-
-        <LinearGradient colors={['rgba(124,92,255,0.18)', 'rgba(124,92,255,0.06)']} style={styles.priceCard}>
-          <Text style={styles.price}>{price}</Text>
-          <Text style={styles.pricePeriod}>{period}</Text>
-        </LinearGradient>
-
-        <View style={styles.features}>
-          {FEATURES.map((f) => {
-            const IconComp = Icon[f.iconName];
-            return (
-              <View key={f.label} style={styles.featureRow}>
-                <View style={styles.featureIcon}>
-                  <IconComp size={18} color={COLORS.lime} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.featureLabel}>{f.label}</Text>
-                  <Text style={styles.featureSub}>{f.sub}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-
-        <Button
-          label={ctaLabel}
-          onPress={() => {
-            if (!isPremium) setStatus('Giggle+ subscriptions are in launch prep. Earn tokens by inviting friends today.');
-          }}
-          variant="lime"
-          style={styles.cta}
-          disabled={!isPremium}
-        />
-        <Button label="Maybe Later" onPress={() => router.back()} variant="outline" />
-        {!!status && <Text style={styles.status}>{status}</Text>}
-
-        <Text style={styles.boostSectionLabel}>Token Packs</Text>
-        <Text style={styles.storeNote}>Token packs are in launch prep. Your current balance comes from referrals and earned rewards.</Text>
-        <View style={styles.boostGrid}>
-          {TOKEN_PACKS.map((pack) => {
-            const total = (pack.tokens ?? 0) + (pack.bonusTokens ?? 0);
-            return (
-              <View key={pack.id} style={styles.boostCard}>
-                <Text style={styles.boostIcon}>{pack.icon}</Text>
-                <Text style={styles.boostLabel}>{pack.name}</Text>
-                <Text style={styles.boostSub}>{total} tokens</Text>
-                <Text style={styles.boostPrice}>${pack.priceUsd.toFixed(2)}</Text>
-                <TouchableOpacity
-                  disabled
-                  accessibilityRole="button"
-                  accessibilityLabel={`${pack.name} token pack preview`}
-                  accessibilityState={{ disabled: true }}
-                  style={[styles.buyBtn, styles.buyBtnDisabled]}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.buyBtnText, styles.buyBtnTextDisabled]}>Preview</Text>
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </View>
-
-        <Text style={styles.boostSectionLabel}>One-time Boosts</Text>
-        <Text style={styles.storeNote}>
-          {canRedeemPerks
-            ? 'Redeem earned tokens for cosmetic perks.'
-            : 'Perk redemption is in launch prep. Tokens are tracked now; server-backed cosmetic unlocks will arrive with checkout.'}
-        </Text>
-        <View style={styles.boostGrid}>
-          {BOOSTS.map((b) => (
-            <View key={b.label} style={styles.boostCard}>
-              <Text style={styles.boostIcon}>{b.icon}</Text>
-              <Text style={styles.boostLabel}>{b.label}</Text>
-              <Text style={styles.boostSub}>{b.sub}</Text>
-              <Text style={styles.boostPrice}>{b.cost} tokens</Text>
-              <TouchableOpacity
-                onPress={() => spendBoost(b.id)}
-                disabled={!canRedeemPerks}
-                accessibilityRole="button"
-                accessibilityLabel={`${b.label}: ${billing.isPremium() ? 'Use' : 'Unlock'}`}
-                accessibilityState={{ disabled: !canRedeemPerks }}
-                style={[styles.buyBtn, !canRedeemPerks && styles.buyBtnDisabled]}
-                activeOpacity={0.8}
-              >
-                <Text style={[styles.buyBtnText, !canRedeemPerks && styles.buyBtnTextDisabled]}>
-                  {!canRedeemPerks ? 'Launch prep' : billing.isPremium() ? 'Use' : 'Unlock'}
-                </Text>
-              </TouchableOpacity>
+        <View style={styles.header}>
+          <View style={styles.headerCopy}>
+            <Text style={styles.heading}>Wallet</Text>
+            <Text style={styles.sub}>Earn and track tokens for your squad identity.</Text>
+          </View>
+          <Card style={styles.balanceCard}>
+            <Text style={styles.balanceLabel}>Balance</Text>
+            <View style={styles.balanceRow}>
+              <Text style={styles.balanceValue}>{balance}</Text>
+              <Text style={styles.balanceUnit}>tokens</Text>
             </View>
+          </Card>
+        </View>
+
+        <Text style={styles.sectionLabel}>Earn tokens</Text>
+        <Card style={styles.referralCard}>
+          <View style={styles.referralTop}>
+            <View style={styles.iconBox}>
+              <Icon.account size={20} color={COLORS.lime} />
+            </View>
+            <View style={styles.referralCopy}>
+              <Text style={styles.cardTitle}>Invite friends</Text>
+              <Text style={styles.cardBody}>
+                {referral
+                  ? `${referral.referralCount} joined · ${referral.rewardPerInvite} tokens each`
+                  : loading ? 'Loading your referral code…' : 'Referral details unavailable'}
+              </Text>
+            </View>
+          </View>
+          {!!referral && (
+            <View style={styles.codeRow}>
+              <Text style={styles.codeLabel}>Your code</Text>
+              <Text style={styles.code} selectable>{referral.code}</Text>
+            </View>
+          )}
+          <Button
+            label="Share invite"
+            onPress={() => void shareInvite()}
+            variant="lime"
+            disabled={!referral || loading}
+          />
+        </Card>
+
+        {!!loadError && (
+          <View style={styles.errorRow} accessibilityLiveRegion="polite">
+            <Text style={styles.errorText}>{loadError}</Text>
+            <TouchableOpacity
+              onPress={() => setLoadAttempt((attempt) => attempt + 1)}
+              style={styles.retryButton}
+              accessibilityRole="button"
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+        {!!shareError && <Text style={styles.shareError} accessibilityLiveRegion="polite">{shareError}</Text>}
+
+        <Text style={styles.sectionLabel}>Token perks</Text>
+        <Text style={styles.sectionNote}>Your balance is tracked now. Server-backed perk redemption is launching soon.</Text>
+        <View style={styles.perkList}>
+          {TOKEN_PERKS.map((perk, index) => (
+              <View key={perk.id} style={[styles.perkRow, index > 0 && styles.perkDivider]}>
+                <View style={styles.iconBox}>
+                  <Icon.star size={19} color={COLORS.violet} fill="transparent" />
+                </View>
+                <View style={styles.perkCopy}>
+                  <Text style={styles.perkName}>{perk.name}</Text>
+                  <Text style={styles.perkDescription}>{perk.description}</Text>
+                </View>
+                <View style={styles.perkMeta}>
+                  <Text style={styles.perkCost}>{perk.tokenCost} tokens</Text>
+                  <Text style={styles.comingSoon} numberOfLines={1}>Coming soon</Text>
+                </View>
+              </View>
           ))}
         </View>
+
+        <Card style={styles.membershipCard}>
+          <View style={styles.iconBox}>
+            <Icon.star size={20} color={COLORS.lime} fill={COLORS.lime} />
+          </View>
+          <View style={styles.membershipCopy}>
+            <Text style={styles.cardTitle}>Giggle+</Text>
+            <Text style={styles.cardBody}>Monthly token stipend and bonus tokens on packs.</Text>
+          </View>
+          <Text style={styles.launchStatus}>Launching soon</Text>
+        </Card>
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: SPACE.lg, paddingTop: SPACE.xl },
-  back: { marginBottom: SPACE.lg },
-  backText: { color: COLORS.violet, fontSize: 16, fontWeight: '600' },
-  badge: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: 'rgba(194,255,61,0.12)',
-    borderWidth: 1, borderColor: 'rgba(194,255,61,0.3)',
-    alignItems: 'center', justifyContent: 'center',
-    alignSelf: 'center', marginBottom: SPACE.lg,
+  scroll: { padding: SPACE.lg, paddingTop: SPACE.xl, paddingBottom: SPACE.xxl },
+  back: { minHeight: 44, minWidth: 44, alignSelf: 'flex-start', justifyContent: 'center', marginBottom: SPACE.md },
+  backText: { color: COLORS.violet, fontSize: 16, fontWeight: '700' },
+  header: { gap: SPACE.lg, marginBottom: SPACE.xl },
+  headerCopy: { gap: SPACE.sm },
+  heading: { fontSize: 32, fontWeight: '900', color: COLORS.text },
+  sub: { maxWidth: 460, fontSize: 15, lineHeight: 22, color: COLORS.textMuted },
+  balanceCard: { paddingVertical: SPACE.md },
+  balanceLabel: { fontSize: 12, color: COLORS.textMuted, fontWeight: '700' },
+  balanceRow: { flexDirection: 'row', alignItems: 'baseline', gap: SPACE.sm, marginTop: 2 },
+  balanceValue: { fontSize: 40, lineHeight: 46, color: COLORS.text, fontWeight: '900' },
+  balanceUnit: { fontSize: 13, color: COLORS.textMuted, fontWeight: '700' },
+  sectionLabel: {
+    marginTop: SPACE.lg, marginBottom: SPACE.sm,
+    color: COLORS.text, fontSize: 18, fontWeight: '800',
   },
-  heading: { fontSize: 32, fontWeight: '900', color: COLORS.text, textAlign: 'center', marginBottom: 8 },
-  sub: { fontSize: 15, color: COLORS.textMuted, textAlign: 'center', marginBottom: SPACE.xl },
-  wallet: { fontSize: 14, color: COLORS.lime, textAlign: 'center', fontWeight: '800', marginBottom: SPACE.lg },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.md, marginBottom: SPACE.xl },
-  toggleLabel: { fontSize: 15, color: COLORS.textMuted, fontWeight: '600' },
-  toggleActive: { color: COLORS.text },
-  saveBadge: {
-    backgroundColor: 'rgba(194,255,61,0.15)', borderRadius: 999,
-    paddingVertical: 3, paddingHorizontal: 10,
-    borderWidth: 1, borderColor: 'rgba(194,255,61,0.35)',
+  sectionNote: { marginBottom: SPACE.md, color: COLORS.textMuted, fontSize: 13, lineHeight: 19 },
+  referralCard: { gap: SPACE.md },
+  referralTop: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  referralCopy: { flex: 1 },
+  iconBox: {
+    width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center',
+    borderRadius: 14, backgroundColor: 'rgba(124,92,255,0.12)', borderWidth: 1, borderColor: COLORS.border,
   },
-  saveText: { fontSize: 12, color: COLORS.lime, fontWeight: '700' },
-  priceCard: {
-    borderRadius: RADII.card, padding: SPACE.xl,
-    alignItems: 'center', marginBottom: SPACE.xl,
-    borderWidth: 1, borderColor: 'rgba(124,92,255,0.25)',
+  cardTitle: { color: COLORS.text, fontSize: 16, fontWeight: '800' },
+  cardBody: { marginTop: 3, color: COLORS.textMuted, fontSize: 13, lineHeight: 19 },
+  codeRow: {
+    minHeight: 48, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: SPACE.md, paddingHorizontal: SPACE.md, borderRadius: 12,
+    backgroundColor: COLORS.bgDeep, borderWidth: 1, borderColor: COLORS.border,
   },
-  price: { fontSize: 48, fontWeight: '900', color: COLORS.text },
-  pricePeriod: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
-  features: { marginBottom: SPACE.xl },
-  featureRow: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.md,
-    paddingVertical: SPACE.md, borderBottomWidth: 1, borderBottomColor: COLORS.border,
-  },
-  featureIcon: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: 'rgba(194,255,61,0.1)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  featureLabel: { fontSize: 15, fontWeight: '700', color: COLORS.text },
-  featureSub: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
-  cta: { marginBottom: SPACE.md },
-  status: { color: COLORS.textMuted, textAlign: 'center', fontSize: 13, marginTop: SPACE.sm },
-  storeNote: { color: COLORS.textMuted, fontSize: 13, lineHeight: 19, marginTop: -SPACE.md, marginBottom: SPACE.lg },
-  boostSectionLabel: {
-    fontSize: 18, fontWeight: '800', color: COLORS.text,
-    marginTop: SPACE.xxl, marginBottom: SPACE.lg,
-  },
-  boostGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, paddingBottom: SPACE.xxl },
-  boostCard: {
-    width: '47%',
-    backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: SPACE.lg,
-    alignItems: 'center',
-  },
-  boostIcon: { fontSize: 28, marginBottom: 8 },
-  boostLabel: { fontSize: 14, fontWeight: '700', color: COLORS.text, textAlign: 'center', marginBottom: 4 },
-  boostSub: { fontSize: 12, color: COLORS.textMuted, textAlign: 'center', marginBottom: SPACE.sm },
-  boostPrice: { fontSize: 18, fontWeight: '900', color: COLORS.violet, marginBottom: SPACE.md },
-  buyBtn: {
-    width: '100%', paddingVertical: 10, borderRadius: 999,
-    backgroundColor: COLORS.violet, alignItems: 'center',
-  },
-  buyBtnDisabled: {
-    backgroundColor: COLORS.surfaceElevated,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  buyBtnAdded: { backgroundColor: 'rgba(194,255,61,0.15)', borderWidth: 1, borderColor: COLORS.lime },
-  buyBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  buyBtnTextDisabled: { color: COLORS.textDim },
+  codeLabel: { color: COLORS.textMuted, fontSize: 13, fontWeight: '600' },
+  code: { flexShrink: 1, color: COLORS.lime, fontSize: 16, fontWeight: '900', letterSpacing: 1.5 },
+  errorRow: { minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  errorText: { flex: 1, color: COLORS.coral, fontSize: 13 },
+  retryButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  retryText: { color: COLORS.violet, fontSize: 13, fontWeight: '800' },
+  shareError: { minHeight: 44, textAlignVertical: 'center', color: COLORS.coral, fontSize: 13 },
+  perkList: { borderTopWidth: 1, borderTopColor: COLORS.border, marginBottom: SPACE.xl },
+  perkRow: { minHeight: 88, flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.md },
+  perkDivider: { borderTopWidth: 1, borderTopColor: COLORS.border },
+  perkCopy: { flex: 1, minWidth: 0 },
+  perkName: { color: COLORS.text, fontSize: 14, fontWeight: '800' },
+  perkDescription: { marginTop: 2, color: COLORS.textMuted, fontSize: 12, lineHeight: 17 },
+  perkMeta: { flexShrink: 0, alignItems: 'flex-end', gap: 5 },
+  perkCost: { color: COLORS.text, fontSize: 12, fontWeight: '800' },
+  comingSoon: { color: COLORS.textDim, fontSize: 11, fontWeight: '700' },
+  membershipCard: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  membershipCopy: { flex: 1, minWidth: 0 },
+  launchStatus: { flexShrink: 0, maxWidth: 72, color: COLORS.textDim, fontSize: 11, fontWeight: '800', textAlign: 'right' },
 });

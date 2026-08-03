@@ -52,7 +52,12 @@ export default function AuthCallbackScreen() {
           <>
             <Text style={styles.title}>Sign-in failed</Text>
             <Text style={styles.copy}>{error}</Text>
-            <TouchableOpacity onPress={() => router.replace('/')} style={styles.button}>
+            <TouchableOpacity
+              onPress={() => router.replace('/')}
+              style={styles.button}
+              accessibilityRole="button"
+              accessibilityLabel="Back to sign in"
+            >
               <Text style={styles.buttonText}>Back to sign in</Text>
             </TouchableOpacity>
           </>

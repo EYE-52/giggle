@@ -3,6 +3,7 @@ node_modules
 .expo
 dist
 build
+**/artifacts
 *.log
 .DS_Store
 .env

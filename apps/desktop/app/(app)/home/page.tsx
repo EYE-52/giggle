@@ -34,6 +34,12 @@ const STATUS_RANK: Record<string, number> = { in_encounter: 0, searching: 1, mat
 // Mirror the friends page's live-presence poll cadence.
 const POLL_MS = 20_000;
 
+function squadDestination(squad: MySquadLite | PublicSquad) {
+  return ["searching", "matched", "in_encounter"].includes(squad.status)
+    ? `/matchmaking?squad=${squad.squadId}`
+    : `/lobby?squad=${squad.squadId}`;
+}
+
 // Semantic theme tokens (with fallbacks so this page works before/after the
 // multi-theme token system lands in globals.css).
 const RADIUS_CARD = "var(--radius-card, 20px)";
@@ -63,7 +69,10 @@ export default function HomePage() {
   const [stats, setStats] = useState<{ liveEncounters: number } | null>(null);
   const [mySquads, setMySquads] = useState<MySquadLite[]>([]);
   const [mySquadsLoading, setMySquadsLoading] = useState(true);
+  const [mySquadsError, setMySquadsError] = useState(false);
   const [trending, setTrending] = useState<PublicSquad[] | null>(null);
+  const [trendingError, setTrendingError] = useState(false);
+  const [homeReload, setHomeReload] = useState(0);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [tokenBal, setTokenBal] = useState(0);
   const [openHoveredId, setOpenHoveredId] = useState<string | null>(null);
@@ -74,13 +83,13 @@ export default function HomePage() {
     let alive = true;
     const fetchTrending = () => {
       api.discoverSquads()
-        .then((d) => { if (alive) setTrending(d.squads ?? []); })
-        .catch(() => { if (alive) setTrending((prev) => prev ?? []); });
+        .then((d) => { if (alive) { setTrending(d.squads ?? []); setTrendingError(false); } })
+        .catch(() => { if (alive) setTrendingError(true); });
     };
     fetchTrending();
     const id = setInterval(fetchTrending, POLL_MS);
     return () => { alive = false; clearInterval(id); };
-  }, []);
+  }, [homeReload]);
 
   useEffect(() => {
     setTokenBal(getTokenBalance());
@@ -106,12 +115,19 @@ export default function HomePage() {
     (async () => {
       try {
         const { squads } = await api.mySquads();
-        if (alive) setMySquads(squads ?? []);
-      } catch {/* not signed in / none yet — section renders its empty state */}
+        if (alive) { setMySquads(squads ?? []); setMySquadsError(false); }
+      } catch { if (alive) setMySquadsError(true); }
       finally { if (alive) setMySquadsLoading(false); }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [homeReload]);
+
+  function retryHomeLoads() {
+    setTrendingError(false);
+    setMySquadsError(false);
+    setMySquadsLoading(true);
+    setHomeReload((value) => value + 1);
+  }
 
   async function handleLeaveSquad(squadId: string, asLeader: boolean) {
     const previousSquads = mySquads;
@@ -198,60 +214,77 @@ export default function HomePage() {
       (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9) ||
       a.squadName.localeCompare(b.squadName));
   const openSignals = trending?.length ?? 0;
+  const showFirstRun = !mySquadsLoading && !mySquadsError && mySquads.length === 0;
+  const showLiveSignals = !showFirstRun || trendingError || trending === null || trending.length > 0;
   const leavingSquad = removeConfirmId ? mySquads.find(s => s.squadId === removeConfirmId) ?? null : null;
   // Squads you already belong to must never offer "Join" in the live rail —
   // they open the lobby instead (mirrors the squad-preview membership fix).
   const mySquadIdSet = new Set(mySquads.map(s => s.squadId));
+
+  const squadActions = (
+    <div aria-label="Squad actions" style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
+      <Button variant="tonal" onClick={handleCreate} loading={creating} style={{ height: 46 }}>
+        {!creating && <Icon.plus size={17} color="var(--accent)" />}
+        {creating ? "Creating…" : showFirstRun ? "Create your first squad" : "Create squad"}
+      </Button>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: isPhone ? "1 1 100%" : "0 1 310px", minWidth: isPhone ? 0 : 260 }}>
+        <div style={{ display: "flex", alignItems: "stretch", height: 46, borderRadius: "var(--radius-control, 14px)", border: squadCodeFocused ? `1px solid ${ACCENT}` : "var(--control-border, 1px solid var(--border-strong))", boxShadow: squadCodeFocused ? `0 0 0 3px color-mix(in srgb, ${ACCENT} 14%, transparent)` : "none", background: "var(--surface)", overflow: "hidden", transition: "border-color .2s var(--ease-ui), box-shadow .2s var(--ease-ui)" }}>
+          <input
+            aria-label="Squad invite code"
+            aria-describedby="squad-code-hint"
+            value={squadCode}
+            onChange={e => setSquadCode(formatSquadCodeInput(e.target.value))}
+            onKeyDown={e => { if (e.key === "Enter") handleJoin(); }}
+            placeholder="Join with code"
+            autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text"
+            onFocus={() => setSquadCodeFocused(true)} onBlur={() => setSquadCodeFocused(false)}
+            style={{ minWidth: 0, flex: 1, height: "100%", background: "transparent", border: "none", outline: "none", boxShadow: "none", color: "var(--text)", padding: "0 14px", fontSize: 14, fontFamily: "var(--font-inter)" }}
+          />
+          <button aria-label="Join squad" onClick={handleJoin} disabled={joining || !isValidSquadCode(squadCode)} className="gg-press" style={{ flexShrink: 0, width: 48, height: "100%", display: "flex", alignItems: "center", justifyContent: "center", border: "none", borderLeft: "1px solid var(--border-strong)", background: "var(--overlay)", cursor: joining || !isValidSquadCode(squadCode) ? "not-allowed" : "pointer", opacity: joining || !isValidSquadCode(squadCode) ? 0.45 : 1, transition: "opacity .2s var(--ease-ui)" }}>
+            {joining ? <span className="gg-spinner" /> : <Icon.enter size={18} color="var(--text)" />}
+          </button>
+        </div>
+        <span id="squad-code-hint" style={{ fontSize: 12, fontWeight: 500, color: "var(--text-dim)", paddingLeft: 2 }}>
+          Code looks like ABC-123
+        </span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", paddingBottom: 48, maxWidth: 1120, width: "100%", margin: "0 auto" }}>
 
       {/* ── GREETING + LIVE STRIP ─────────────────────────────────── */}
       <PageHeader
-        title={firstName ? <>Hey, {firstName}.</> : "Welcome back."}
-        subtitle="Pick up where your squad left off."
-        right={
+        title={showFirstRun
+          ? (firstName ? <>Hey, {firstName}.<br />Start with your people.</> : "Start with your people.")
+          : (firstName ? <>Hey, {firstName}.</> : "Welcome back.")}
+        subtitle={showFirstRun ? "Create a room for your crew, or join theirs with an invite code." : "Pick up where your squad left off."}
+        right={showFirstRun ? undefined : (
           <div aria-label="Live activity" style={isPhone
             ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, width: "100%" }
             : { display: "flex", alignItems: "stretch", gap: 12, flexWrap: "wrap" }}>
-            <StatTile label="Your squads" value={mySquadsLoading ? "—" : String(mySquads.length)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
+            <StatTile label="Your squads" value={mySquadsLoading || mySquadsError ? "—" : String(mySquads.length)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
             <StatTile label="Open signals" value={trending === null ? "—" : String(openSignals)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
             <StatTile label="Live now" value={stats === null ? "—" : String(stats.liveEncounters)} live style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
           </div>
-        }
+        )}
       />
 
-      <div aria-label="Squad actions" style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap", marginBottom: 24 }}>
-        <Button variant="tonal" onClick={handleCreate} loading={creating} style={{ height: 46 }}>
-          {!creating && <Icon.plus size={17} color="var(--accent)" />}
-          {creating ? "Creating…" : "Create squad"}
-        </Button>
-        <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: isPhone ? "1 1 100%" : "0 1 310px", minWidth: isPhone ? 0 : 260 }}>
-          <div style={{ display: "flex", alignItems: "stretch", height: 46, borderRadius: "var(--radius-control, 14px)", border: squadCodeFocused ? `1px solid ${ACCENT}` : "var(--control-border, 1px solid var(--border-strong))", boxShadow: squadCodeFocused ? `0 0 0 3px color-mix(in srgb, ${ACCENT} 14%, transparent)` : "none", background: "var(--surface)", overflow: "hidden", transition: "border-color .2s var(--ease-ui), box-shadow .2s var(--ease-ui)" }}>
-            <input
-              aria-label="Squad invite code"
-              aria-describedby="squad-code-hint"
-              value={squadCode}
-              onChange={e => setSquadCode(formatSquadCodeInput(e.target.value))}
-              onKeyDown={e => { if (e.key === "Enter") handleJoin(); }}
-              placeholder="Join with code"
-              autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text"
-              onFocus={() => setSquadCodeFocused(true)} onBlur={() => setSquadCodeFocused(false)}
-              style={{ minWidth: 0, flex: 1, height: "100%", background: "transparent", border: "none", outline: "none", color: "var(--text)", padding: "0 14px", fontSize: 14, fontFamily: "var(--font-inter)" }}
-            />
-            <button aria-label="Join squad" onClick={handleJoin} disabled={joining || !isValidSquadCode(squadCode)} className="gg-press" style={{ flexShrink: 0, width: 48, height: "100%", display: "flex", alignItems: "center", justifyContent: "center", border: "none", borderLeft: "1px solid var(--border-strong)", background: "var(--overlay)", cursor: joining || !isValidSquadCode(squadCode) ? "not-allowed" : "pointer", opacity: joining || !isValidSquadCode(squadCode) ? 0.45 : 1, transition: "opacity .2s var(--ease-ui)" }}>
-              {joining ? <span className="gg-spinner" /> : <Icon.enter size={18} color="var(--text)" />}
-            </button>
-          </div>
-          <span id="squad-code-hint" style={{ fontSize: 12, fontWeight: 500, color: "var(--text-dim)", paddingLeft: 2 }}>
-            Code looks like ABC-123
-          </span>
-        </div>
-      </div>
+      {!showFirstRun && <div style={{ marginBottom: 24 }}>{squadActions}</div>}
 
       {/* ── DASHBOARD: your squads (main) + live signals (rail) ───── */}
-      <div style={{ display: "grid", gridTemplateColumns: isTablet ? "1fr" : "1.55fr 1fr", gap: 24, alignItems: isTablet ? "start" : "stretch" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isTablet || !showLiveSignals ? "1fr" : showFirstRun ? "minmax(0, 1.35fr) minmax(320px, .65fr)" : "1.55fr 1fr", gap: 24, alignItems: isTablet ? "start" : "stretch" }}>
         {/* MAIN — your squads */}
+        {showFirstRun ? (
+          <section aria-label="Your first room" style={{ boxSizing: "border-box", padding: isPhone ? 20 : 28, background: "var(--surface)", border: CONTROL_BORDER, borderTop: `3px solid ${ACCENT}`, borderRadius: RADIUS_CARD, boxShadow: SHADOW_CARD }}>
+            <div style={{ marginBottom: 12, color: ACCENT, fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase" }}>Your first room</div>
+            <p style={{ margin: "0 0 22px", maxWidth: 560, color: "var(--text-body)", fontSize: 14, lineHeight: 1.55 }}>
+              Invite friends after creating the room, then choose your squad vibe together.
+            </p>
+            {squadActions}
+          </section>
+        ) : (
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
             <Icon.account size={18} color={ACCENT} />
@@ -276,13 +309,15 @@ export default function HomePage() {
                 <span className="gg-shimmer" style={{ width: 76, height: 40, borderRadius: 999 }} />
               </div>
             </div>
-          ) : mySquads.length === 0 ? (
-            <EmptyState
-              icon={<Icon.account size={20} color="var(--text-dim)" />}
-              title="No squads yet"
-              body="Open your first room above, or browse open squads looking for members right now."
-              primary={{ label: "Browse open squads", onClick: () => router.push("/discover") }}
-            />
+          ) : mySquadsError ? (
+            <div role="alert">
+              <EmptyState
+                icon={<Icon.account size={20} color="var(--text-dim)" />}
+                title="Couldn't load your squads"
+                body="Check your connection and try again."
+                primary={{ label: "Retry", onClick: retryHomeLoads }}
+              />
+            </div>
           ) : (
             <>
               {promoted && (
@@ -291,7 +326,7 @@ export default function HomePage() {
                   promoted
                   hovered={openHoveredId === promoted.squadId}
                   onHover={setOpenHoveredId}
-                  onOpen={() => router.push(`/lobby?squad=${promoted.squadId}`)}
+                  onOpen={() => router.push(squadDestination(promoted))}
                   onAskLeave={() => setRemoveConfirmId(promoted.squadId)}
                 />
               )}
@@ -303,7 +338,7 @@ export default function HomePage() {
                       squad={s}
                       hovered={openHoveredId === s.squadId}
                       onHover={setOpenHoveredId}
-                      onOpen={() => router.push(`/lobby?squad=${s.squadId}`)}
+                      onOpen={() => router.push(squadDestination(s))}
                       onAskLeave={() => setRemoveConfirmId(s.squadId)}
                     />
                   ))}
@@ -327,11 +362,14 @@ export default function HomePage() {
             </>
           )}
         </div>
+        )}
 
         {/* RAIL — live signals + find a match. Flexes to match the squads
             column height so a short squad list doesn't leave a dead viewport. */}
+        {showLiveSignals && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Find-a-Match CTA — the page's single primary action (spec 07). */}
+          {!showFirstRun && (
           <div style={{ background: "linear-gradient(135deg, var(--accent) 0%, #7C5CFF 55%, #9F7BFF 100%)", borderRadius: RADIUS_CARD, color: "#fff", padding: 20, boxShadow: "0 10px 28px -10px color-mix(in srgb, var(--accent) 55%, transparent)" }}>
             <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", color: "#fff" }}>Ready to giggle?</h2>
             <p style={{ margin: "5px 0 14px", fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>Match your squad with another crew on live video.</p>
@@ -340,13 +378,15 @@ export default function HomePage() {
               size="sm"
               onClick={() => {
                 const led = mySquads.find(s => s.myRole === "leader") ?? promoted ?? mySquads[0];
-                router.push(led ? `/lobby?squad=${led.squadId}` : "/discover");
+                if (led) router.push(squadDestination(led));
+                else router.push("/discover");
               }}
               style={{ background: "#fff", color: "var(--accent)", border: "none", boxShadow: "none" }}
             >
               Find a Match
             </Button>
           </div>
+          )}
 
           <div style={{ flex: isTablet ? undefined : 1, background: "var(--surface)", border: CONTROL_BORDER, borderRadius: RADIUS_CARD, boxShadow: SHADOW_CARD, overflow: "hidden" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "15px 16px 12px" }}>
@@ -355,7 +395,12 @@ export default function HomePage() {
               <button onClick={() => router.push("/discover")} style={{ ...linkBtn, marginLeft: "auto" }}>View all</button>
             </div>
             {trending === null ? (
-              [0, 1, 2].map(i => <div key={i} className="gg-shimmer" style={{ height: 62, borderTop: "1px solid var(--border)" }} />)
+              trendingError ? (
+                <div role="alert" style={{ padding: 16, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, color: "var(--text-muted)", fontSize: 13 }}>
+                  <span>Couldn't load open squads.</span>
+                  <Button variant="ghost" size="sm" onClick={retryHomeLoads}>Retry</Button>
+                </div>
+              ) : [0, 1, 2].map(i => <div key={i} className="gg-shimmer" style={{ height: 62, borderTop: "1px solid var(--border)" }} />)
             ) : trending.length === 0 ? (
               <div style={{ padding: "16px", borderTop: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 13 }}>
                 No open squads right now.
@@ -369,7 +414,7 @@ export default function HomePage() {
                 // (single-flight), so non-member rows must not look clickable.
                 // Member rows just navigate, so they stay active.
                 const blocked = !isMember && !!joiningId;
-                const activateRow = () => { if (blocked) return; isMember ? router.push(`/lobby?squad=${sq.squadId}`) : handleJoinTrending(sq); };
+                const activateRow = () => { if (blocked) return; isMember ? router.push(squadDestination(sq)) : handleJoinTrending(sq); };
                 return (
                   <div key={sq.squadId} onClick={activateRow} role="button" tabIndex={blocked ? -1 : 0}
                     aria-disabled={blocked || undefined}
@@ -400,6 +445,7 @@ export default function HomePage() {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Leave / delete-squad confirmation dialog (leaders delete, members leave) */}

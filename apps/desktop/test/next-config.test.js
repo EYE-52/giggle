@@ -4,7 +4,9 @@ const path = require("node:path");
 const test = require("node:test");
 
 const source = () => readFileSync(path.join(__dirname, "../next.config.ts"), "utf8");
+const playwrightConfigSource = () => readFileSync(path.join(__dirname, "../playwright.config.ts"), "utf8");
 const landingSource = () => readFileSync(path.join(__dirname, "../app/page.tsx"), "utf8");
+const rootLayoutSource = () => readFileSync(path.join(__dirname, "../app/layout.tsx"), "utf8");
 const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/(app)/matchmaking/page.tsx"), "utf8");
 const matchSource = () => readFileSync(path.join(__dirname, "../app/(app)/match/page.tsx"), "utf8");
 const lobbySource = () => readFileSync(path.join(__dirname, "../app/(app)/lobby/page.tsx"), "utf8");
@@ -15,7 +17,10 @@ const authCallbackLayoutSource = () => readFileSync(path.join(__dirname, "../app
 const signinSource = () => readFileSync(path.join(__dirname, "../app/signin/page.tsx"), "utf8");
 const avatarPickerSource = () => readFileSync(path.join(__dirname, "../components/AvatarPicker.tsx"), "utf8");
 const coverPickerSource = () => readFileSync(path.join(__dirname, "../components/CoverPicker.tsx"), "utf8");
+const modalSource = () => readFileSync(path.join(__dirname, "../components/Modal.tsx"), "utf8");
+const legalPageSource = () => readFileSync(path.join(__dirname, "../components/LegalPage.tsx"), "utf8");
 const notificationBellSource = () => readFileSync(path.join(__dirname, "../components/NotificationBell.tsx"), "utf8");
+const ageGateSource = () => readFileSync(path.join(__dirname, "../components/AgeGate.tsx"), "utf8");
 const desktopHomeSource = () => readFileSync(path.join(__dirname, "../app/(app)/home/page.tsx"), "utf8");
 const desktopDiscoverSource = () => readFileSync(path.join(__dirname, "../app/(app)/discover/page.tsx"), "utf8");
 const friendsPageSource = () => readFileSync(path.join(__dirname, "../app/(app)/friends/page.tsx"), "utf8");
@@ -29,7 +34,7 @@ const topNavSource = () => readFileSync(path.join(__dirname, "../components/TopN
 const privacySource = () => readFileSync(path.join(__dirname, "../app/privacy/page.tsx"), "utf8");
 const termsSource = () => readFileSync(path.join(__dirname, "../app/terms/page.tsx"), "utf8");
 const globalStylesSource = () => readFileSync(path.join(__dirname, "../app/globals.css"), "utf8");
-const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../vercel.json"), "utf8"));
+const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../../../vercel.json"), "utf8"));
 
 test("auth proxy never falls back to a production backend", () => {
   const config = source();
@@ -51,8 +56,8 @@ test("Vercel explicitly configures the public backend without an app fallback", 
     "https://giggle-server-production.up.railway.app",
   );
   assert.equal(source().includes("giggle-server-production.up.railway.app"), false);
-  assert.equal(vercelConfig().buildCommand, "pnpm build");
-  assert.equal(vercelConfig().outputDirectory, ".next");
+  assert.equal(vercelConfig().buildCommand, "pnpm --filter @giggle/desktop build");
+  assert.equal(vercelConfig().outputDirectory, "apps/desktop/.next");
 });
 
 test("frontend workspace pins a supported Node runtime", () => {
@@ -63,10 +68,17 @@ test("frontend workspace pins a supported Node runtime", () => {
   assert.match(nodeVersion, /^22\./);
 });
 
+test("Playwright owns a dedicated development server instead of reusing the production preview", () => {
+  const config = playwrightConfigSource();
+
+  assert.equal((config.match(/http:\/\/localhost:4011/g) ?? []).length, 2);
+  assert.equal(config.includes('command: "pnpm exec next dev -p 4011"'), true);
+  assert.equal(config.includes("reuseExistingServer: false"), true);
+});
+
 test("Next traces workspace packages from this repository root", () => {
   const config = source();
-  assert.equal(config.includes('path.resolve(__dirname, "../..")'), false);
-  assert.equal((config.match(/path\.resolve\(__dirname\)/g) ?? []).length, 2);
+  assert.equal((config.match(/path\.resolve\(__dirname, "\.\.\/\.\."\)/g) ?? []).length, 2);
 });
 
 test("desktop app sets baseline browser security headers", () => {
@@ -92,18 +104,51 @@ test("dark violet actions keep readable foreground contrast", () => {
   assert.equal(darkTheme.includes("--on-accent: #0B0B0F"), false);
 });
 
-test("encounter backdrops do not mix background shorthand with image longhands", () => {
+test("root body tolerates browser extension attributes injected before hydration", () => {
+  assert.match(rootLayoutSource(), /<body suppressHydrationWarning style=/);
+});
+
+test("encounter atmosphere reuses theme-aware cover backgrounds", () => {
   const page = encounterSource();
 
-  assert.equal(page.includes("background: backdrop"), false);
-  assert.equal(page.includes("backgroundImage: backdrop"), true);
+  assert.match(page, /coverBackground, coverKind, fallbackGradient/);
+  assert.match(page, /function EncounterAtmosphere/);
+  assert.match(page, /background: backgroundFor\(squad\)/);
+  assert.equal(page.includes("backgroundImage: backdrop"), false);
+});
+
+test("encounter uses Social Cinema chrome and one clipped media frame", () => {
+  const page = encounterSource();
+
+  assert.equal(page.includes('data-testid="encounter-shell"'), true);
+  assert.equal(page.includes('data-theme="dark"'), false);
+  assert.doesNotMatch(page, />vs<\/span>/i);
+  assert.equal(page.includes("function SplitRoomBackdrop"), false);
+  assert.equal(page.includes("function CoverThumb"), false);
+  assert.match(page, /renderParticipant\(person\.id, "fit"\)/);
+  assert.match(page, /\[data-media-host\][\s\S]*overflow: clip !important/);
+  assert.match(page, /contain: "paint"/);
+});
+
+test("encounter owns controlled chat state across panel remounts", () => {
+  const page = encounterSource();
+  const chat = chatPanelSource();
+
+  assert.match(page, /const \[chatMessages, setChatMessages\]/);
+  assert.match(page, /messages=\{chatMessages\}/);
+  assert.match(page, /onSend=\{sendEncounterMessage\}/);
+  assert.match(chat, /delivery\?: "sending" \| "delivered" \| "failed"/);
+  assert.match(chat, />\s*Retry\s*<\/button>/);
 });
 
 test("calling routes give the full viewport to video", () => {
   const layout = appLayoutSource();
+  const styles = globalStylesSource();
 
   assert.equal(layout.includes("{!isCalling && <TopNav />}"), true);
   assert.equal(layout.includes("<TopNav />\n      <main"), false);
+  assert.equal(layout.includes('isCalling ? " gg-app-main--calling" : ""'), true);
+  assert.equal(styles.includes(".gg-app-main:not(.gg-app-main--calling)"), true);
 });
 
 test("signed-in shell lets keyboard users skip repeated navigation", () => {
@@ -151,6 +196,60 @@ test("landing page footer links keep a minimum touch target", () => {
   assert.equal(page.includes('minWidth: 44'), true);
 });
 
+test("coarse pointers enforce app-wide minimum touch targets", () => {
+  const styles = globalStylesSource();
+  const coarsePointer = styles.slice(styles.indexOf("@media (pointer: coarse)"));
+
+  assert.match(coarsePointer, /button,[\s\S]*a\[href\],[\s\S]*\[role="button"\][\s\S]*min-width: 44px;[\s\S]*min-height: 44px;/);
+});
+
+test("landing matchup fills the phone panel instead of shrinking its portraits", () => {
+  const page = landingSource();
+  const squadTiles = page.slice(page.indexOf("function SquadTiles"), page.indexOf("function VSMedallion"));
+
+  assert.equal(squadTiles.includes('width: "100%"'), true);
+  assert.equal(squadTiles.includes('aspect={isPhone ? "1/1" : "3/4"}'), true);
+});
+
+test("landing phone hero cannot widen the viewport and its header keeps only essential navigation", () => {
+  const page = landingSource();
+  const header = page.slice(page.indexOf("{/* ===================== NAV"), page.indexOf("{/* ===================== HERO"));
+  const hero = page.slice(page.indexOf('data-testid="giggle-hero"'), page.indexOf("{/* ===================== MARQUEE"));
+  const heroVs = page.slice(page.indexOf("function HeroVS"), page.indexOf("function AvatarStack"));
+
+  assert.equal(header.includes("{!isPhone && (<>"), true);
+  assert.equal(header.includes('overflowX: isPhone ? "auto"'), false);
+  assert.equal(hero.includes('gridTemplateColumns: isTablet ? "minmax(0, 1fr)"'), true);
+  assert.equal(hero.includes('<Reveal delay={200} y={40} style={{ minWidth: 0 }}>'), true);
+  assert.equal(heroVs.includes('width: "100%", minWidth: 0'), true);
+});
+
+test("landing phone stats use spacing instead of stacked divider lines", () => {
+  const page = landingSource();
+  const statsSection = page.slice(page.indexOf("LIVE STATS"), page.indexOf("FINAL CTA"));
+  const stat = page.slice(page.indexOf("function Stat"), page.indexOf("function CtaLink"));
+
+  assert.equal(statsSection.includes('borderTop: isPhone ? "none"'), true);
+  assert.equal(statsSection.includes('borderBottom: isPhone ? "none"'), true);
+  assert.equal(stat.includes("borderBottom"), false);
+});
+
+test("landing live counts do not flash a misleading zero-plus value", () => {
+  const page = landingSource();
+
+  assert.equal(page.includes("function CountUp"), false);
+  assert.equal(page.includes("<CountUp"), false);
+  assert.equal(page.includes("value.toLocaleString()"), true);
+});
+
+test("landing stats failures use words instead of adding more line-like dashes", () => {
+  const page = landingSource();
+  const stat = page.slice(page.indexOf("function Stat"), page.indexOf("function CtaLink"));
+
+  assert.equal(stat.includes('aria-label="unavailable">—'), false);
+  assert.equal(stat.includes(">Unavailable</span>"), true);
+});
+
 test("public legal pages do not expose internal launch placeholders", () => {
   const copy = `${privacySource()}\n${termsSource()}`;
   assert.equal(copy.includes("preview policy"), false);
@@ -158,22 +257,38 @@ test("public legal pages do not expose internal launch placeholders", () => {
   assert.equal(copy.includes("Replace it with reviewed legal copy"), false);
   assert.equal(copy.includes("before production launch"), false);
   assert.equal(termsSource().includes("Tokens and Giggle+"), true);
-  assert.equal((copy.match(/data-theme="dark"/g) ?? []).length, 2);
+  assert.equal(legalPageSource().includes('data-theme="dark"'), true);
 });
 
-test("landing page avoids excessive pinned-scroll dead space", () => {
+test("landing page uses a normal-height autoplay story instead of a pinned scrub on phones", () => {
   const page = landingSource();
+  const demoStage = page.indexOf("function DemoStage");
+  const mobileStart = page.indexOf("if (isPhone) {", demoStage);
+  const mobileStory = page.slice(mobileStart, page.indexOf("\n  return (", mobileStart));
 
-  assert.equal(page.includes('isPhone ? "170vh" : "210vh"'), true);
-  assert.equal(page.includes('isPhone ? "320vh" : "380vh"'), false);
+  assert.equal(page.includes("const staticStory = reduce || isPhone;"), true);
+  assert.equal(page.includes('height: staticStory ? "auto" : "210vh"'), true);
+  assert.equal(page.includes('position: staticStory ? "relative" : "sticky"'), true);
+  assert.equal(mobileStory.includes('data-testid="mobile-demo-stage"'), true);
+  assert.equal(mobileStory.includes('data-testid="mobile-demo-video"'), true);
+  assert.equal(mobileStory.includes("autoPlay muted loop playsInline"), true);
+  assert.equal(mobileStory.includes('src={near ? "/landing/demo.mp4" : undefined}'), true);
+  assert.equal(page.includes("}, [isPhone, near, reduce]);"), true);
+  assert.equal(page.includes('isPhone ? "170vh"'), false);
 });
 
-test("landing video scrub survives cached media loading before hydration", () => {
+test("landing desktop film plays three chapters instead of seeking on every scroll frame", () => {
   const page = landingSource();
 
+  assert.equal(page.includes("const [p, setP] = useState(-1);"), true);
   assert.equal(page.includes("if (v.readyState >= 1) onLoaded();"), true);
   assert.equal(page.includes("const [duration, setDuration] = useState(0);"), true);
-  assert.equal(page.includes("[p, failed, duration]"), true);
+  assert.equal(page.includes("const hasEntered = p >= 0;"), true);
+  assert.equal(page.includes("const segmentEnd = useRef(0);"), true);
+  assert.equal(page.includes("const segmentDuration = duration / 3;"), true);
+  assert.equal(page.includes("void v.play().catch(() => {});"), true);
+  assert.equal(page.includes("onTimeUpdate={stopAtSegmentEnd}"), true);
+  assert.equal(page.includes("const t = clamp01(p) * duration;"), false);
 });
 
 test("landing page keeps its dark brand theme after app theme changes", () => {
@@ -217,8 +332,17 @@ test("desktop matchmaking cancel stays put when backend cancel fails", () => {
 
   assert.equal(page.includes("const [cancelError, setCancelError]"), true);
   assert.equal(page.includes("Couldn't cancel search. Your squad is still in the queue."), true);
+  assert.equal(page.includes("setCancelError((e as"), false);
   assert.equal(page.includes('cancelError ? "Try cancel again" : "Cancel search"'), true);
   assert.equal(page.includes('router.push(`/lobby?squad=${squadId}`);'), true);
+});
+
+test("desktop matchmaking resumes an existing encounter regardless of handoff state", () => {
+  const page = matchmakingSource();
+
+  assert.equal(page.includes("if (status.match?.encounterId)"), true);
+  assert.equal(page.includes('if (status.state === "matched" && status.match)'), false);
+  assert.equal(page.includes("triggerMatchReveal(status.match.encounterId);"), true);
 });
 
 test("desktop match does not return to matchmaking when leader skip fails", () => {
@@ -238,6 +362,39 @@ test("desktop match clears delayed handoff navigations on unmount", () => {
   assert.equal(page.includes("clearDeferredNavigation();"), true);
   assert.equal(page.includes("joinNavTimeoutRef.current = setTimeout(() => {"), true);
   assert.equal(page.includes("expiredNavTimeoutRef.current = setTimeout(() => {"), true);
+});
+
+test("desktop match countdown follows the server handoff deadline", () => {
+  const page = matchSource();
+
+  assert.equal(page.includes("const deadline = Date.parse(encounterData.expiresAt);"), true);
+  assert.equal(page.includes("const secondsLeft = Math.ceil((deadline - Date.now()) / 1000);"), true);
+  assert.equal(page.includes("setCountdownTotal(secondsLeft);"), true);
+  assert.equal(page.includes("Math.max(0, Math.ceil((deadline - Date.now()) / 1000))"), true);
+  assert.equal(page.includes("const progress = countdown / countdownTotal;"), true);
+  assert.equal(page.includes("useState(20)"), false);
+  assert.equal(page.includes("countdown / 20"), false);
+});
+
+test("desktop match keeps recoverable load and join failures on the handoff", () => {
+  const page = matchSource();
+  const join = page.slice(page.indexOf("async function handleJoin"), page.indexOf("async function handleSkip"));
+
+  assert.equal(page.includes("function isExpiredEncounterError"), true);
+  assert.equal(page.includes('setHandoffError(expired ? "This match handoff has expired." : error instanceof Error ? error.message : "Couldn\'t load this match.")'), true);
+  assert.equal(page.includes('{handoffExpired ? "Match expired" : "Couldn\'t open match"}'), true);
+  assert.equal(page.includes("window.location.reload()"), true);
+  assert.equal(join.includes("if (isExpiredEncounterError(error))"), true);
+  assert.equal(join.includes("setJoining(false);"), true);
+  assert.equal(join.includes("setActionError(error instanceof Error ? error.message : \"Couldn't join this encounter yet.\")"), true);
+});
+
+test("desktop match preserves leader and roster data when squad detail is unavailable", () => {
+  const page = matchSource();
+
+  assert.equal(page.includes("const encounterMembers = encounter"), true);
+  assert.equal(page.includes("?? encounterMembers.find(m => m.userId === session.user?.id)"), true);
+  assert.equal(page.includes("const myMembers = (squad?.members ?? encounterMembers).map(m => m.displayName);"), true);
 });
 
 test("mobile match keeps the action card in normal flow", () => {
@@ -287,10 +444,21 @@ test("lobby missing-squad state is a polished empty state with mobile touch targ
   assert.equal(page.includes('router.push("/discover")'), true);
 });
 
-test("mobile lobby gives video space to people instead of invite placeholders", () => {
+test("lobby stage contains people only and fills compact viewports", () => {
   const page = lobbySource();
 
-  assert.equal(page.includes("const showInviteTile = canInvite && !isNarrow;"), true);
+  assert.equal(page.includes("showInviteTile"), false);
+  assert.equal(page.includes("inviteTileHovered"), false);
+  assert.equal(page.includes("const tileCount = Math.max(memberCount, 1);"), true);
+  assert.equal(page.includes(">Invite a friend</div>"), false);
+  assert.equal(page.includes("const effCols = isPhone ? (memberCount <= 2 ? 1 : 2) : gridCols;"), true);
+  assert.equal(page.includes('minHeight: isPhone ? "calc(100dvh - 61px)" : 0'), true);
+  assert.equal(page.includes('gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`'), true);
+  assert.equal(page.includes('aspectRatio: "4 / 3"'), false);
+  assert.equal(page.includes('flexWrap: isPhone && !videoJoined ? "wrap" as const : "nowrap" as const'), true);
+  assert.equal(page.includes('width: isPhone ? "100%" : undefined'), true);
+  assert.equal(page.includes('boxSizing: "border-box" as const'), true);
+  assert.equal(page.includes('flex: isPhone ? 1 : undefined'), true);
   assert.equal(page.includes("showUpgradeTile"), false);
   assert.equal(page.includes("Unlock 4 more seats"), false);
   assert.equal(page.includes("{isNarrow && isLeader && ("), true);
@@ -310,18 +478,22 @@ test("desktop lobby leave button calls backend before leaving the lobby", () => 
 
 test("desktop lobby ready toggle surfaces backend failures", () => {
   const page = lobbySource();
+  const handler = page.match(/async function handleReady\(\) \{([\s\S]*?)\n  \}\n\n  async function handleFindMatch/)?.[1] ?? "";
 
   assert.equal(page.includes("setMatchError((e as { message?: string })?.message || \"Couldn't update ready status.\")"), true);
   assert.equal(page.includes('console.error("setReady failed:", e);'), false);
+  assert.match(handler, /setSquad\(current =>/);
+  assert.doesNotMatch(handler, /await fetchSquad\(\)/);
 });
 
-test("desktop lobby requires explicit readiness before starting a match", () => {
+test("desktop lobby requires every online member to be ready before starting a match", () => {
   const page = lobbySource();
 
   assert.equal(page.includes("try { await api.setReady(squadId, true); } catch {}"), false);
   assert.equal(page.includes("try { await api.setLobbyVideo(squadId, true); } catch {}"), false);
-  assert.equal(page.includes("const everyoneReady = !!squad?.members.length && squad.members.every(member => member.ready);"), true);
-  assert.equal(page.includes("Everyone needs to be ready before you find a match."), true);
+  assert.equal(page.includes("const activeMembers = (squad?.members ?? []).filter(m => m.online !== false);"), true);
+  assert.equal(page.includes("const everyoneReady = activeMembers.length > 0 && activeMembers.every(member => member.ready);"), true);
+  assert.equal(page.includes("Everyone online needs to be ready before you find a match."), true);
   assert.equal(page.includes("await api.setReady(squadId, true);\n      await api.setLobbyVideo"), false);
   assert.equal(page.includes("await api.setLobbyVideo(squadId, true);\n      await api.startSearch(squadId);"), true);
 });
@@ -391,6 +563,13 @@ test("desktop lobby access setting failures are visible and rolled back", () => 
   assert.equal(page.includes("setMatchError((e as { message?: string })?.message || \"Couldn't update join policy.\")"), true);
   assert.equal(page.includes('console.error("setSquadVisibility failed:", e);'), false);
   assert.equal(page.includes('console.error("setJoinPolicy failed:", e);'), false);
+});
+
+test("desktop lobby surfaces join-request decline failures", () => {
+  const lobby = lobbySource();
+  const decline = lobby.slice(lobby.indexOf("async function handleDecline"), lobby.indexOf("async function copyToClipboard"));
+
+  assert.equal(decline.includes('setReqError("Couldn\'t decline — try again.");'), true);
 });
 
 test("desktop lobby rolls back mic and camera controls when video updates fail", () => {
@@ -511,13 +690,29 @@ test("desktop encounter confirms and ends on the backend before leaving media", 
   assert.equal(endBlock.includes('console.error("End encounter failed (non-fatal):", e);'), false);
 });
 
-test("desktop chat keeps unsent text and shows a delivery error", () => {
+test("desktop encounter does not enter matchmaking when restart search fails", () => {
+  const page = encounterSource();
+  const endedOverlay = page.slice(
+    page.indexOf("{/* Encounter-ended overlay"),
+    page.indexOf("{/* Tile area", page.indexOf("{/* Encounter-ended overlay"))
+  );
+
+  assert.equal(endedOverlay.includes("try { await api.startSearch(squadId); } catch {}"), false);
+  assert.match(endedOverlay, /await api\.startSearch\(squadId\);[\s\S]*router\.push\(`\/matchmaking\?squad=\$\{squadId\}`\);/);
+  assert.match(endedOverlay, /catch \(error\) \{[\s\S]*setEndError\([\s\S]*setFindingNextMatch\(false\);/);
+  assert.match(endedOverlay, /role="alert"/);
+});
+
+test("desktop chat supports controlled pending, failure, and retry states", () => {
   const component = chatPanelSource();
 
   assert.equal(component.includes("const [sendError, setSendError]"), true);
-  assert.equal(component.includes("const sent = sendChatMessage(scope, text"), true);
+  assert.match(component, /const sent = onSend[\s\S]*sendChatMessage\(scope, text/);
   assert.equal(component.includes("if (!sent) {"), true);
   assert.equal(component.includes("setSendError(\"Message not sent. Check your connection and try again.\")"), true);
+  assert.match(component, /msg\.delivery === "sending"/);
+  assert.match(component, /msg\.delivery === "failed"/);
+  assert.match(component, /onRetry\?\.\(msg\)/);
   assert.equal(component.includes("setInput(\"\");"), true);
   assert.equal(component.indexOf("setInput(\"\");") > component.indexOf("if (!sent) {"), true);
   assert.equal(component.includes("role=\"alert\""), true);
@@ -586,10 +781,10 @@ test("squad cover backgrounds do not double-wrap resolved cover URLs", () => {
   const card = readFileSync(path.join(__dirname, "../components/SquadCard.tsx"), "utf8");
   const homePage = readFileSync(path.join(__dirname, "../app/(app)/home/page.tsx"), "utf8");
 
-  assert.equal(card.includes("backgroundImage: `url(${resolveCover(squad.coverImage)})`"), false);
-  assert.equal(card.includes("background: resolveCover(squad.coverImage)"), true);
-  assert.equal(homePage.includes("url(${resolveCover(s.coverImage)})"), false);
-  assert.equal(homePage.includes("background: resolveCover(squad.coverImage)"), true);
+  assert.equal(card.includes("url(${resolveCover(squad.coverImage)})"), false);
+  assert.equal(card.includes("background: coverBackground(squad.coverImage, kind)"), true);
+  assert.equal(homePage.includes("url(${coverBackground("), false);
+  assert.equal(homePage.includes("background: coverBackground(squad.coverImage, kind)"), true);
 });
 
 test("premium page does not keep unreachable preview checkout modal state", () => {
@@ -623,9 +818,9 @@ test("premium token perks do not sell backend priority features", () => {
 test("premium token perks do not present local-only redemption as production checkout", () => {
   const page = readFileSync(path.join(__dirname, "../app/(app)/premium/page.tsx"), "utf8");
 
-  assert.equal(page.includes("canRedeemTokenPerksLocally"), true);
+  assert.equal(page.includes("const canRedeemPerks = billing.canRedeemTokenPerksLocally();"), true);
   assert.equal(page.includes("Perk redemption is in launch prep"), true);
-  assert.equal(page.includes("disabled={!canAfford || !canRedeemPerks || loading}"), true);
+  assert.equal(page.includes('<Button size="sm" variant="secondary" disabled aria-describedby={comingSoonDescId}>'), true);
 });
 
 test("profile premium upsell does not advertise unbuilt priority or HD features", () => {
@@ -634,6 +829,33 @@ test("profile premium upsell does not advertise unbuilt priority or HD features"
   assert.equal(page.includes("Fast Pass"), false);
   assert.equal(page.includes("HD video"), false);
   assert.equal(page.includes("priority"), false);
+  assert.equal(page.includes('aria-label="View Wallet and Giggle Plus details"'), true);
+  assert.equal(page.includes(">Wallet &amp; Giggle+</div>"), true);
+  assert.equal(page.includes(">View</span>"), true);
+  assert.equal(page.includes('aria-label="Upgrade to Giggle+"'), false);
+  assert.equal(page.includes(">Upgrade</span>"), false);
+});
+
+test("desktop lobby keeps monetization out of the squad-ready flow", () => {
+  const page = lobbySource();
+
+  assert.equal(page.includes("boostHovered"), false);
+  assert.equal(page.includes("Unlock covers &amp; perks with Giggle+"), false);
+  assert.equal(page.includes("monthly tokens and cosmetic perks"), false);
+});
+
+test("landing referral feature describes the implemented wallet reward", () => {
+  const page = landingSource();
+
+  assert.equal(page.includes("Spend tokens on bigger squads, premium vibes, and more."), false);
+  assert.equal(page.includes("Your wallet tracks every reward in one place."), true);
+});
+
+test("desktop wallet does not promise production redemption before it launches", () => {
+  const page = readFileSync(path.join(__dirname, "../app/(app)/premium/page.tsx"), "utf8");
+
+  assert.equal(page.includes("Earn and track tokens for your squad identity."), true);
+  assert.equal(page.includes("Earn tokens, then spend them on your squad identity."), false);
 });
 
 test("profile account switches persist locally instead of resetting on remount", () => {
@@ -645,6 +867,18 @@ test("profile account switches persist locally instead of resetting on remount",
   assert.equal(page.includes("setProfileSetting(\"notificationsOn\""), true);
   assert.equal(page.includes("setProfileSetting(\"openToDiscovery\""), true);
   assert.equal(page.includes("setProfileSetting(\"showOnlineStatus\""), true);
+});
+
+test("desktop notification preference controls truthful in-app pop-ups", () => {
+  const page = profileSource();
+  const bell = notificationBellSource();
+
+  assert.equal(page.includes('label="Notification pop-ups"'), true);
+  assert.equal(page.includes('desc="Show an alert when a new request or invite arrives"'), true);
+  assert.equal(page.includes("Receive push notifications"), false);
+  assert.equal(bell.includes('const PROFILE_SETTINGS_STORAGE_KEY = "giggle.profile.settings";'), true);
+  assert.equal(bell.includes("function notificationPopupsEnabled()"), true);
+  assert.equal(bell.includes("if (notificationPopupsEnabled()) setToast(n);"), true);
 });
 
 test("profile account switch persistence ignores malformed stored settings", () => {
@@ -684,14 +918,14 @@ test("desktop auth callback has a trustworthy failure page title and touch targe
   assert.equal(page.includes('minWidth: 44'), true);
 });
 
-test("desktop sign-in exposes every backend OAuth provider", () => {
+test("desktop sign-in hides Apple until that provider is configured", () => {
   const page = signinSource();
 
   assert.equal(page.includes('provider: "google" | "apple"'), true);
   assert.equal(page.includes('oauthRedirect("google")'), true);
-  assert.equal(page.includes('oauthRedirect("apple")'), true);
-  assert.equal(page.includes("Continue with Apple"), true);
-  assert.equal(page.includes("<Icon.apple"), true);
+  assert.equal(page.includes('oauthRedirect("apple")'), false);
+  assert.equal(page.includes("Continue with Apple"), false);
+  assert.equal(page.includes("Apple Sign-In is not configured yet"), true);
 });
 
 test("desktop sign-in stays focused and fits one viewport", () => {
@@ -748,15 +982,18 @@ test("avatar and cover uploads validate type and size before previewing", () => 
 test("avatar picker stays viewport-bound and behaves like a modal", () => {
   const profile = profileSource();
   const picker = avatarPickerSource();
+  const modal = modalSource();
   const profileGridEnd = profile.lastIndexOf("</div>");
   assert.equal(profile.indexOf("{pickerOpen && <AvatarPicker") > profileGridEnd, true);
-  assert.equal(picker.includes('role="dialog"'), true);
-  assert.equal(picker.includes('aria-modal="true"'), true);
-  assert.equal(picker.includes('aria-label="Close avatar picker"'), true);
-  assert.equal(picker.includes('width: 44, height: 44'), true);
-  assert.equal(picker.includes('if (event.key === "Escape") onClose()'), true);
-  assert.equal(picker.includes("createPortal("), true);
-  assert.equal(picker.includes("document.body"), true);
+  assert.equal(picker.includes("<Modal"), true);
+  assert.equal(picker.includes('closeLabel="Close avatar picker"'), true);
+  assert.equal(modal.includes('role="dialog"'), true);
+  assert.equal(modal.includes('aria-modal="true"'), true);
+  assert.equal(modal.includes('width: 44'), true);
+  assert.equal(modal.includes('height: 44'), true);
+  assert.equal(modal.includes('if (e.key === "Escape") onClose()'), true);
+  assert.equal(modal.includes("createPortal("), true);
+  assert.equal(modal.includes("document.body"), true);
 });
 
 test("cover save waits for lobby refresh before closing", () => {
@@ -771,11 +1008,11 @@ test("cover save waits for lobby refresh before closing", () => {
 
 test("cover picker preserves its preview and behaves like a modal", () => {
   const picker = coverPickerSource();
-  assert.equal(picker.includes('role="dialog"'), true);
-  assert.equal(picker.includes('aria-modal="true"'), true);
-  assert.equal(picker.includes('aria-label="Close cover picker"'), true);
-  assert.equal(picker.includes('width: 44, height: 44'), true);
-  assert.equal(picker.includes('if (event.key === "Escape") onClose()'), true);
+  const modal = modalSource();
+  assert.equal(picker.includes("<Modal"), true);
+  assert.equal(picker.includes('closeLabel="Close cover picker"'), true);
+  assert.equal(modal.includes('role="dialog"'), true);
+  assert.equal(modal.includes('aria-modal="true"'), true);
   assert.match(picker, /height: 100,\s*flexShrink: 0/);
 });
 
@@ -790,12 +1027,14 @@ test("notification actions remain available after notifications are marked read"
 
 test("notification dismiss uses the backend dismiss endpoint", () => {
   const bell = notificationBellSource();
-  const api = readFileSync(path.join(__dirname, "../packages/core/src/api.ts"), "utf8");
+  const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");
+  const dismissAction = bell.slice(bell.indexOf("const dismiss = async"), bell.indexOf("const openLobby = async"));
 
   assert.equal(api.includes("dismissNotification"), true);
   assert.equal(api.includes('method: "DELETE"'), true);
-  assert.equal(bell.includes("api.dismissNotification(n.id)"), true);
-  assert.equal(bell.includes("onDismiss(n.id);"), true);
+  assert.equal(dismissAction.includes("await api.dismissNotification(n.id);"), true);
+  assert.equal(dismissAction.includes("markNotificationRead"), false);
+  assert.equal(dismissAction.includes("onDismiss(n.id, !n.read);"), true);
 });
 
 test("notification action failures show inline errors", () => {
@@ -808,28 +1047,120 @@ test("notification action failures show inline errors", () => {
   assert.equal(bell.includes("{actionError &&"), true);
 });
 
-test("notification mark-read UI waits for backend success", () => {
+test("notification rows disable conflicting actions while a request is in flight", () => {
+  const bell = notificationBellSource();
+  const pill = bell.slice(bell.indexOf("function Pill"), bell.indexOf("// ── one notification row"));
+  const row = bell.slice(bell.indexOf("function Row"), bell.indexOf("// ── live toast"));
+
+  assert.equal(pill.includes("disabled?: boolean;"), true);
+  assert.equal(pill.includes("disabled={busy || disabled}"), true);
+  assert.equal((row.match(/disabled=\{busy !== null\}/g) ?? []).length, 4);
+  assert.equal((row.match(/if \(busy \|\| !n\./g) ?? []).length, 3);
+  assert.match(row, /const dismiss = async \(\) => \{\s*if \(busy\) return;/);
+});
+
+test("stale squad invites expire without navigating to a dead lobby", () => {
+  const bell = notificationBellSource();
+  const joinAction = bell.slice(bell.indexOf("const join = async"), bell.indexOf("const dismiss = async"));
+
+  assert.equal(bell.includes('const expiredInviteCodes = new Set(["SQUAD_NOT_FOUND", "INVITE_ONLY"]);'), true);
+  assert.equal(joinAction.includes("if (expiredInviteCodes.has(code))"), true);
+  assert.equal(joinAction.includes('setResolved("Invite expired");'), true);
+  assert.equal(joinAction.includes("await api.dismissNotification(n.id);"), true);
+  assert.equal(joinAction.includes("try { await api.dismissNotification(n.id); } catch {}"), false);
+  assert.equal(joinAction.includes('setActionError("Invite expired, but couldn\'t dismiss it.");'), true);
+  assert.equal(joinAction.includes("return;"), true);
+});
+
+test("age gate completes only after the shared session state is synchronized", () => {
+  const gate = ageGateSource();
+
+  assert.equal(gate.includes("await session.setAge(iso);\n      onDone();"), true);
+  assert.equal(gate.includes("if (status === 409)"), false);
+});
+
+test("returning users resolve stale age state before the app leaves its opening screen", () => {
+  const layout = appLayoutSource();
+  const existingSession = layout.slice(
+    layout.indexOf("if (session.isAuthed())"),
+    layout.indexOf('if (process.env.NODE_ENV !== "production")'),
+  );
+
+  assert.ok(existingSession.indexOf("await session.syncAgeFromServer();") < existingSession.indexOf("setAuthReady(true);"));
+  assert.equal((existingSession.match(/setAuthReady\(true\)/g) || []).length, 1);
+});
+
+test("failed notification mark-all never restores a stale item snapshot", () => {
   const bell = notificationBellSource();
 
-  assert.equal(bell.includes("const previousUnread = unread;"), true);
-  assert.equal(bell.includes("const previousItems = items;"), true);
-  assert.equal(bell.includes("setUnread(previousUnread);"), true);
-  assert.equal(bell.includes("setItems(previousItems);"), true);
+  assert.equal(bell.includes("const previousUnread = unread;"), false);
+  assert.equal(bell.includes("const previousItems = items;"), false);
+  assert.equal(bell.includes("setUnread(previousUnread);"), false);
+  assert.equal(bell.includes("setItems(previousItems);"), false);
   assert.equal(bell.includes("await api.markNotificationsRead();"), true);
+  assert.equal(bell.includes("if (version !== notificationVersion.current)"), true);
   assert.equal(bell.includes("setItems((prev) => prev.map((p) => ({ ...p, read: true })));"), true);
   assert.equal(bell.indexOf("await api.markNotificationsRead();") < bell.indexOf("setItems((prev) => prev.map((p) => ({ ...p, read: true })));"), true);
 });
 
-test("notification row actions only resolve after mark-read succeeds", () => {
+test("notification loads cannot overwrite newer socket activity", () => {
+  const bell = notificationBellSource();
+  const load = bell.slice(bell.indexOf("const load = useCallback"), bell.indexOf("// initial load"));
+  const polling = bell.slice(bell.indexOf("// initial load"), bell.indexOf("// live socket push"));
+  const subscription = bell.slice(bell.indexOf("// live socket push"), bell.indexOf("// close on outside click"));
+
+  assert.equal(bell.includes("const notificationVersion = useRef(0);"), true);
+  assert.equal(bell.includes("const loadSequence = useRef(0);"), true);
+  assert.equal(bell.includes("const knownNotificationIds = useRef(new Set<string>());"), true);
+  assert.equal(load.includes("const request = ++loadSequence.current;"), true);
+  assert.equal(load.includes("const version = notificationVersion.current;"), true);
+  assert.equal(load.includes("if (request !== loadSequence.current) return;"), true);
+  assert.match(load, /if \(version !== notificationVersion\.current\) \{\s*void load\(\);\s*return;\s*\}/);
+  assert.equal(polling.includes('window.addEventListener("focus", load);'), true);
+  assert.equal(polling.includes('window.removeEventListener("focus", load);'), true);
+  assert.equal(subscription.includes("if (knownNotificationIds.current.has(n.id)) return;"), true);
+  assert.ok(subscription.indexOf("if (knownNotificationIds.current.has(n.id)) return;") < subscription.indexOf("setUnread((u) => u + 1);"));
+  assert.equal(subscription.includes("() => void load()"), true);
+});
+
+test("notifications distinguish load failure from an empty inbox", () => {
   const bell = notificationBellSource();
 
-  assert.equal(bell.includes("const markRead = useCallback(async () => {"), true);
-  assert.equal(bell.includes("return true;"), true);
-  assert.equal(bell.includes("return false;"), true);
-  assert.equal(bell.includes("if (!(await markRead())) throw new Error(\"MARK_READ_FAILED\");"), true);
-  assert.equal(bell.includes("onResolve(n.id);"), true);
-  assert.equal(bell.indexOf("await api.markNotificationRead(n.id);") < bell.indexOf("onResolve(n.id);"), true);
-  assert.equal(bell.includes("onDismiss(n.id);\n    try {\n      await api.markNotificationRead(n.id);"), false);
+  assert.equal(bell.includes("const [loadError, setLoadError]"), true);
+  assert.equal(bell.includes('setLoadError("Couldn\'t load notifications. Check your connection.")'), true);
+  assert.equal(bell.includes("items.length === 0 && !loadError"), true);
+  assert.equal(bell.includes("onClick={() => void load()}"), true);
+});
+
+test("opening a join request keeps client state consistent with the read-only server update", () => {
+  const bell = notificationBellSource();
+  const openLobby = bell.slice(bell.indexOf("const openLobby = async"), bell.indexOf("// Rows that navigate"));
+
+  assert.equal(openLobby.includes("await api.markNotificationRead(n.id);"), true);
+  assert.equal(openLobby.includes("onResolve(n.id, !n.read);"), true);
+  assert.equal(openLobby.includes("onDismiss(n.id, !n.read);"), false);
+});
+
+test("dismissing an unread notification updates the badge", () => {
+  const bell = notificationBellSource();
+
+  assert.equal(bell.includes("onDismiss: (id: string, wasUnread?: boolean) => void;"), true);
+  assert.equal(bell.includes("onDismiss(n.id, !n.read);"), true);
+  assert.equal(bell.includes("if (wasUnread) setUnread((u) => Math.max(0, u - 1));"), true);
+  assert.equal(bell.includes("onResolve: (id: string, wasUnread?: boolean) => void;"), true);
+  assert.equal(bell.includes("onResolve(n.id, !n.read);"), true);
+});
+
+test("completed notification actions disappear instead of returning after reload", () => {
+  const bell = notificationBellSource();
+  const acceptAction = bell.slice(bell.indexOf("const accept = async"), bell.indexOf("const decline = async"));
+  const declineAction = bell.slice(bell.indexOf("const decline = async"), bell.indexOf("const join = async"));
+  const joinAction = bell.slice(bell.indexOf("const join = async"), bell.indexOf("const dismiss = async"));
+
+  assert.equal(acceptAction.indexOf("await api.acceptFriend(n.fromUserId);") < acceptAction.indexOf("onDismiss(n.id, !n.read);"), true);
+  assert.equal(declineAction.indexOf("await api.declineFriend(n.fromUserId);") < declineAction.indexOf("onDismiss(n.id, !n.read);"), true);
+  assert.equal(joinAction.includes("onDismiss(n.id, !n.read);"), true);
+  assert.equal(bell.includes("MARK_READ_FAILED"), false);
 });
 
 test("desktop protected home actions do not create dev sessions", () => {
@@ -853,16 +1184,48 @@ test("desktop home keeps one compact live activity strip", () => {
   const page = desktopHomeSource();
 
   assert.equal(page.includes('aria-label="Live activity"'), true);
-  assert.equal(page.includes('{ k: "Your squads"'), true);
-  assert.equal(page.includes('{ k: "Open signals"'), true);
-  assert.equal(page.includes('{ k: "Live now"'), true);
+  assert.equal(page.includes('label="Your squads"'), true);
+  assert.equal(page.includes('label="Open signals"'), true);
+  assert.equal(page.includes('label="Live now"'), true);
   assert.equal(page.includes('label: "SQUADS FORMED"'), false);
+});
+
+test("desktop home gives new users one first-room task instead of an empty dashboard", () => {
+  const page = desktopHomeSource();
+
+  assert.equal(page.includes("const showFirstRun = !mySquadsLoading && !mySquadsError && mySquads.length === 0;"), true);
+  assert.equal(page.includes("Start with your people."), true);
+  assert.equal(page.includes("Create your first squad"), true);
+  assert.equal(page.includes("right={showFirstRun ? undefined : ("), true);
+  assert.equal(page.includes("{showFirstRun ? ("), true);
+  assert.equal(page.includes('title="No squads yet"'), false);
+});
+
+test("desktop home resumes active squad journeys instead of reopening their lobby", () => {
+  const page = desktopHomeSource();
+
+  assert.equal(page.includes("function squadDestination"), true);
+  assert.equal(page.includes('["searching", "matched", "in_encounter"].includes(squad.status)'), true);
+  assert.equal(page.includes("router.push(squadDestination(s))"), true);
+  assert.equal(page.includes("router.push(squadDestination(led))"), true);
 });
 
 test("desktop home loading state mirrors squad-card content", () => {
   const page = desktopHomeSource();
   assert.equal(page.includes('aria-label="Loading your squads"'), true);
   assert.equal(page.includes('className="gg-shimmer" style={{ height: 160'), false);
+});
+
+test("desktop home distinguishes failed loads from genuinely empty squads", () => {
+  const page = desktopHomeSource();
+
+  assert.equal(page.includes("const [mySquadsError, setMySquadsError] = useState(false);"), true);
+  assert.equal(page.includes("const [trendingError, setTrendingError] = useState(false);"), true);
+  assert.equal(page.includes("setTrending((prev) => prev ?? [])"), false);
+  assert.equal(page.includes("Couldn't load your squads"), true);
+  assert.equal(page.includes("Couldn't load open squads"), true);
+  assert.equal(page.includes('role="alert"'), true);
+  assert.equal(page.includes("setHomeReload((value) => value + 1)"), true);
 });
 
 test("desktop home keeps create and join actions compact", () => {
@@ -874,12 +1237,12 @@ test("desktop home keeps create and join actions compact", () => {
   assert.equal(page.includes('aria-label="Squad invite code"'), true);
 });
 
-test("desktop home leave squad failures restore the squad and show an error", () => {
+test("desktop home leave squad failures restore the squad and show an error toast", () => {
   const page = desktopHomeSource();
 
   assert.equal(page.includes("const previousSquads = mySquads;"), true);
   assert.equal(page.includes("setMySquads(previousSquads);"), true);
-  assert.equal(page.includes("setActionError((e as { message?: string })?.message || \"Couldn't leave that squad.\")"), true);
+  assert.equal(page.includes("toast((e as { message?: string })?.message || (asLeader ? \"Couldn't delete that squad.\" : \"Couldn't leave that squad.\"), \"error\")"), true);
   assert.equal(page.includes("catch { /* refetch will resync if it failed */ }"), false);
 });
 
@@ -898,7 +1261,7 @@ test("desktop discover keeps creation in the filtered empty state", () => {
   assert.equal(page.includes("handlePrimaryCta"), false);
   assert.equal(page.includes("shown.length === 0"), true);
   assert.equal(page.includes("primary={{ label: creating ? \"Creating…\" : (vibe ? `Create a ${vibe} squad` : \"Create a squad\"), onClick: handleCreate, disabled: creating }}"), true);
-  assert.equal(page.includes("right={hasOpenSquads ? ("), true);
+  assert.equal(page.includes("right={loading || hasOpenSquads ? ("), true);
 });
 
 test("desktop discover presents load failures without logging handled errors", () => {
@@ -950,7 +1313,9 @@ test("squad preview auth gate runs before join loading state", () => {
 });
 
 test("desktop social and invite surfaces do not create dev sessions", () => {
-  for (const page of [friendsPageSource(), inviteToSquadSource(), squadPreviewSource()]) {
+  assert.equal(friendsPageSource().includes("await session.devSignIn();"), false);
+  assert.equal(appLayoutSource().includes('router.replace("/signin")'), true);
+  for (const page of [inviteToSquadSource(), squadPreviewSource()]) {
     assert.equal(page.includes("await session.devSignIn();"), false);
     assert.equal(page.includes('router.push("/signin")'), true);
     assert.equal(page.includes("Sign in to continue."), true);
@@ -963,14 +1328,27 @@ test("invite dialog keeps compact controls touch-friendly", () => {
   assert.equal(invite.includes('flex: 1, minHeight: 44'), true);
 });
 
-test("friends empty state stays compact and points back to search", () => {
+test("friends first run stays search-first and distinguishes request failures", () => {
   const page = friendsPageSource();
 
   assert.equal(page.includes("No friends yet — search above to add people."), false);
-  assert.equal(page.includes("Your crew starts here"), true);
-  assert.equal(page.includes("Search by name above to send your first request."), true);
+  assert.equal(page.includes("Your crew starts here"), false);
+  assert.equal(page.includes("Find your people."), true);
+  assert.equal(page.includes("const [loadError, setLoadError] = useState<string | null>(null);"), true);
+  assert.equal(page.includes("const [searchError, setSearchError] = useState<string | null>(null);"), true);
+  assert.equal(page.includes("Couldn't search for people."), true);
+  assert.equal(page.includes("Retry search"), true);
+  assert.equal(page.includes("const showFirstRun = !loading && !loadError"), true);
   assert.equal(page.includes("Social graph"), false);
   assert.equal(page.includes("Share a squad code"), false);
+});
+
+test("friend card icon actions meet the 44px touch target", () => {
+  const page = friendsPageSource();
+  const actions = page.slice(page.indexOf('aria-label={`Invite ${f.name} to a squad`}'), page.indexOf("{inviteFriend && ("));
+
+  assert.equal(actions.includes("width: 44, height: 44"), true);
+  assert.equal(actions.includes("width: 40, height: 40"), false);
 });
 
 test("friends search treats incoming request users as actionable requests", () => {
@@ -983,33 +1361,51 @@ test("friends search treats incoming request users as actionable requests", () =
   assert.equal(page.includes("handleDecline(incomingRequest)"), true);
 });
 
-test("friends add failures roll back pending state and show an error", () => {
+test("friends add failures roll back pending state and show an error toast", () => {
   const page = friendsPageSource();
 
-  assert.equal(page.includes("const [actionError, setActionError]"), true);
-  assert.equal(page.includes("setActionError(null);"), true);
   assert.equal(page.includes("setOutgoing((o) => o.filter((x) => x.userId !== u.userId));"), true);
-  assert.equal(page.includes("setActionError((e as { message?: string })?.message || \"Couldn't send friend request.\")"), true);
-  assert.equal(page.includes('role="alert"'), true);
+  assert.equal(page.includes("toast((e as { message?: string })?.message || \"Couldn't send friend request.\", \"error\")"), true);
 });
 
-test("friends request action failures roll back optimistic UI", () => {
+test("friends request action failures roll back optimistic UI and show error toasts", () => {
   const page = friendsPageSource();
 
-  assert.equal(page.includes("setActionError((e as { message?: string })?.message || \"Couldn't accept friend request.\")"), true);
   assert.equal(page.includes("setIncoming((i) => (i.some((x) => x.userId === u.userId) ? i : [u, ...i]));"), true);
   assert.equal(page.includes("setFriends((f) => f.filter((x) => x.userId !== u.userId));"), true);
-  assert.equal(page.includes("setActionError((e as { message?: string })?.message || \"Couldn't decline friend request.\")"), true);
-  assert.equal(page.includes("setActionError((e as { message?: string })?.message || \"Couldn't remove friend.\")"), true);
   assert.equal(page.includes("setFriends((f) => (f.some((x) => x.userId === u.userId) ? f : [u, ...f]));"), true);
+  assert.equal(page.includes("toast((e as { message?: string })?.message || \"Couldn't accept friend request.\", \"error\")"), true);
+  assert.equal(page.includes("toast((e as { message?: string })?.message || \"Couldn't decline friend request.\", \"error\")"), true);
+  assert.equal(page.includes("toast((e as { message?: string })?.message || \"Couldn't remove friend.\", \"error\")"), true);
   assert.equal(page.includes('console.error("acceptFriend failed:", e);'), false);
   assert.equal(page.includes('console.error("declineFriend failed:", e);'), false);
   assert.equal(page.includes('console.error("removeFriend failed:", e);'), false);
 });
 
+test("profile keeps one compact identity surface beside settings from tablet upward", () => {
+  const page = profileSource();
+  const identityColumn = page.slice(page.indexOf("{/* LEFT COLUMN"), page.indexOf("{/* RIGHT COLUMN"));
+
+  assert.equal((identityColumn.match(/\.\.\.surface/g) ?? []).length, 1);
+  assert.equal(page.includes("const avatarSize = isPhone ? 88 : 120;"), true);
+  assert.equal(page.includes('flexDirection: isPhone ? "row" : "column"'), true);
+  assert.equal(page.includes('gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "300px minmax(0, 1fr)"'), true);
+  assert.equal((identityColumn.match(/Monthly token stipend \+ 15% bonus tokens on packs/g) ?? []).length, 1);
+});
+
+test("profile load failures stay visible and retryable before saving demographics", () => {
+  const page = profileSource();
+
+  assert.equal(page.includes("const [profileLoading, setProfileLoading]"), true);
+  assert.equal(page.includes("const [profileLoadError, setProfileLoadError]"), true);
+  assert.equal(page.includes("setProfileLoadAttempt((attempt) => attempt + 1)"), true);
+  assert.equal(page.includes("profileLoading || !!profileLoadError || !demoDirty"), true);
+  assert.equal(page.includes("Couldn't load your profile."), true);
+});
+
 test("profile can clear a previously saved age", () => {
   const page = profileSource();
-  const api = readFileSync(path.join(__dirname, "../packages/core/src/api.ts"), "utf8");
+  const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");
 
   assert.equal(page.includes("const body: { gender?: string; age?: number | null; languages?: string[]; country?: string } = {};"), true);
   assert.equal(page.includes("body.age = null;"), true);
@@ -1018,8 +1414,8 @@ test("profile can clear a previously saved age", () => {
 
 test("profile keeps account identifiers out of the identity hero", () => {
   const page = profileSource();
-  const hero = page.slice(page.indexOf("{/* Avatar card */}"), page.indexOf("{/* Giggle+ status */}"));
-  const account = page.slice(page.indexOf(">Account</div>"));
+  const hero = page.slice(page.indexOf("{/* LEFT COLUMN"), page.indexOf("{/* RIGHT COLUMN"));
+  const account = page.slice(page.indexOf(">Account</h2>"));
   assert.equal(hero.includes("user?.email"), false);
   assert.equal(hero.includes("handle"), false);
   assert.equal(account.includes("Signed in as"), true);

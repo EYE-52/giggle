@@ -25,6 +25,8 @@ export function VibeChip({ label, active = false, onPress }: VibeChipProps) {
 
 const styles = StyleSheet.create({
   chip: {
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: RADII.pill,
     paddingVertical: SPACE.xs,
     paddingHorizontal: SPACE.md,

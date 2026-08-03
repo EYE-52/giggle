@@ -70,6 +70,18 @@ test("persisted sessions are validated before auth is restored", () => {
   assert.match(restoreBlock, /localStorage\.removeItem\(STORAGE_KEY\);/);
 });
 
+test("age submission reconciles an already-confirmed server session", () => {
+  const sessionSource = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
+  const setAgeBlock = sessionSource.slice(
+    sessionSource.indexOf("async setAge(birthDate: string)"),
+    sessionSource.indexOf("  /**\n   * Reconcile the age gates")
+  );
+
+  assert.match(setAgeBlock, /AGE_ALREADY_CONFIRMED/);
+  assert.match(setAgeBlock, /await session\.syncAgeFromServer\(\)/);
+  assert.match(setAgeBlock, /if \(!confirmed\) throw error;/);
+});
+
 test("magic-link sign-in forwards pending referral codes", () => {
   const sessionSource = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
   const magicLinkBlock = sessionSource.slice(
@@ -94,6 +106,22 @@ test("chat send reports disconnected socket failures to callers", () => {
   assert.match(sendBlock, /catch \{\s*return false;\s*\}/);
 });
 
+test("chat sends carry a client id and report server acknowledgement", () => {
+  const socketSource = readFileSync(path.join(__dirname, "../src/socket.ts"), "utf8");
+  const sendBlock = socketSource.slice(
+    socketSource.indexOf("export function sendChatMessage"),
+    socketSource.indexOf("/** Subscribe to incoming chat messages.")
+  );
+
+  assert.match(socketSource, /export type ChatSendResult/);
+  assert.match(socketSource, /clientMessageId\?: string;/);
+  assert.match(sendBlock, /ack\?: \(result: ChatSendResult\) => void/);
+  assert.match(sendBlock, /clientMessageId: options\?\.clientMessageId/);
+  assert.match(sendBlock, /s\.timeout\(5000\)\.emit/);
+  assert.match(sendBlock, /options\.ack!\(error \|\| !result/);
+  assert.match(sendBlock, /normalizeChatMessage\(result\.message\)/);
+});
+
 test("chat subscriptions preserve encounter ids for scoped filtering", () => {
   const socketSource = readFileSync(path.join(__dirname, "../src/socket.ts"), "utf8");
   const messageTypeBlock = socketSource.slice(
@@ -104,10 +132,19 @@ test("chat subscriptions preserve encounter ids for scoped filtering", () => {
     socketSource.indexOf("export function subscribeChat"),
     socketSource.indexOf("// --- Reactions")
   );
+  const rawTypeBlock = socketSource.slice(
+    socketSource.indexOf("interface RawChatMessage"),
+    socketSource.indexOf("function normalizeChatMessage")
+  );
+  const normalizeBlock = socketSource.slice(
+    socketSource.indexOf("function normalizeChatMessage"),
+    socketSource.indexOf("export type ChatScope")
+  );
 
   assert.match(messageTypeBlock, /encounterId\?: string;/);
-  assert.match(subscribeBlock, /encounterId\?: string;/);
-  assert.match(subscribeBlock, /encounterId: raw\.encounterId,/);
+  assert.match(rawTypeBlock, /encounterId\?: string;/);
+  assert.match(normalizeBlock, /encounterId: raw\.encounterId,/);
+  assert.match(subscribeBlock, /normalizeChatMessage\(raw\)/);
 });
 
 test("reaction subscriptions preserve encounter ids for scoped filtering", () => {
@@ -155,4 +192,16 @@ test("encounter lifecycle events use the server contract names", () => {
 
   assert.match(socketSource, /ENCOUNTER_ACTIVE: "ENCOUNTER_ACTIVE"/);
   assert.match(socketSource, /ENCOUNTER_ENDED: "ENCOUNTER_ENDED"/);
+});
+
+test("notification subscriptions refresh after server-side resolutions", () => {
+  const socketSource = readFileSync(path.join(__dirname, "../src/socket.ts"), "utf8");
+  const notifications = socketSource.slice(socketSource.indexOf("// --- Notifications"));
+
+  assert.match(socketSource, /NOTIFICATIONS_CHANGED: "notifications_changed"/);
+  assert.match(notifications, /onChanged\?: \(\) => void/);
+  assert.match(notifications, /s\.on\(SOCKET_EVENTS\.NOTIFICATIONS_CHANGED, onChanged\)/);
+  assert.match(notifications, /s\.on\("connect", onChanged\)/);
+  assert.match(notifications, /s\.off\(SOCKET_EVENTS\.NOTIFICATIONS_CHANGED, onChanged\)/);
+  assert.match(notifications, /s\.off\("connect", onChanged\)/);
 });

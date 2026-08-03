@@ -8,6 +8,7 @@ import type { SquadState } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 import { Button } from "@/components/Button";
 import { StatTile } from "@/components/StatTile";
+import { AvatarStack } from "@/components/Avatar";
 
 function MatchmakingInner() {
   const { height, isPhone } = useViewport();
@@ -64,6 +65,10 @@ function MatchmakingInner() {
     : elapsed < 10
       ? "Matching your squad's vibes"
       : "Finding the strongest live match";
+  const squadMemberNames = squad?.members.map(member => member.displayName) ?? [];
+  const squadMemberSummary = squadMemberNames.length <= 3
+    ? squadMemberNames.join(" · ")
+    : `${squadMemberNames.slice(0, 2).join(" · ")} +${squadMemberNames.length - 2}`;
 
   useEffect(() => {
     if (!squadId) return;
@@ -77,7 +82,6 @@ function MatchmakingInner() {
       // Once the user has cancelled, stop polling entirely — a late "matched"
       // response must not resurrect the search or trigger a reveal.
       if (cancelledRef.current) {
-        clearInterval(pollInterval);
         return;
       }
       try {
@@ -88,7 +92,7 @@ function MatchmakingInner() {
           pollFailuresRef.current = 0;
           setPollFailures(0);
         }
-        if (status.state === "matched" && status.match) {
+        if (status.match?.encounterId) {
           clearInterval(pollInterval);
           triggerMatchReveal(status.match.encounterId);
         }
@@ -154,21 +158,14 @@ function MatchmakingInner() {
     cancelledRef.current = true;
     setCancelling(true);
     setCancelError(null);
-    // Stop the local timers right away — don't wait for unmount cleanup.
-    clearRevealTimers();
-    if (squadRetryTimeoutRef.current) {
-      clearTimeout(squadRetryTimeoutRef.current);
-      squadRetryTimeoutRef.current = null;
-    }
-    // Best-effort: ask the backend to leave the queue, but ALWAYS return to the
-    // lobby afterwards — a failed/slow dequeue call must never trap the user on
-    // this screen. (The lobby re-syncs queue state, so a stale entry self-heals.)
     try {
       await api.cancelSearch(squadId);
+      router.push(`/lobby?squad=${squadId}`);
     } catch {
-      // swallow — we navigate regardless
+      cancelledRef.current = false;
+      setCancelling(false);
+      setCancelError("Couldn't cancel search. Your squad is still in the queue.");
     }
-    router.push(`/lobby?squad=${squadId}`);
   }
 
   if (!squadId) {
@@ -473,6 +470,37 @@ function MatchmakingInner() {
           )}
         </div>
 
+        <section aria-label="Your squad" style={{
+          position: "relative", zIndex: 1,
+          width: "min(520px, calc(100vw - 32px))",
+          minHeight: isShortPhone ? 52 : 60,
+          padding: isShortPhone ? "8px 10px" : "10px 12px",
+          borderRadius: "var(--radius-control, 14px)",
+          border: "1px solid var(--border)",
+          background: "var(--surface)",
+          display: "flex", alignItems: "center", gap: 12,
+          boxSizing: "border-box",
+        }}>
+          {squad ? (
+            <>
+              <AvatarStack names={squadMemberNames} size={isShortPhone ? 26 : 30} total={squadMemberNames.length} max={isPhone ? 3 : 4} />
+              <div style={{ minWidth: 0, flex: 1, textAlign: "left" }}>
+                <div style={{ color: textPrimary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {squad.squadName}
+                </div>
+                <div style={{ marginTop: 2, color: textMuted, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {squadMemberSummary}
+                </div>
+              </div>
+              <span style={{ flexShrink: 0, color: "var(--live, #A3E635)", fontSize: 12, fontWeight: 700 }}>
+                {squadMemberNames.length} together
+              </span>
+            </>
+          ) : (
+            <span style={{ color: textMuted, fontSize: 13 }}>Keeping your squad together…</span>
+          )}
+        </section>
+
         {/* ── Long-search branch card — after 75s with no match, offer clear paths
             forward. Search keeps running unless the user bails. ── */}
         {showLongSearch && (
@@ -504,32 +532,20 @@ function MatchmakingInner() {
           maxWidth: "min(720px, calc(100vw - 32px))",
           flexWrap: "wrap" as const,
         }}>
-          <StatTile label="Elapsed" value={fmt(elapsed)} />
-          <StatTile
-            label="Squad size"
-            value={
-              <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-                {`${squad?.members.length ?? "?"} / ${squad?.maxSlots ?? 4}`}
-                {squadError && !squad && (
-                  <button
-                    onClick={() => fetchSquad(false)}
-                    style={{
-                      padding: 0, border: "none", background: "transparent",
-                      color: "var(--accent, var(--violet-bright))", fontSize: 12, fontWeight: 700,
-                      fontFamily: "var(--font-body)",
-                      textDecoration: "underline", cursor: "pointer",
-                    }}
-                  >Retry</button>
-                )}
-              </span>
-            }
-          />
+          <StatTile label="Elapsed" value={fmt(elapsed)} style={{ width: isShortPhone ? "25%" : undefined, minWidth: isShortPhone ? 0 : undefined }} />
           <StatTile
             label="Status"
             live={!!matchFound}
+            style={{ width: isShortPhone ? "25%" : undefined, minWidth: isShortPhone ? 0 : undefined }}
             value={matchFound ? "Found!" : pollFailures >= 3 ? "Reconnecting…" : "Searching"}
           />
         </div>
+
+        {squadError && !squad && (
+          <button onClick={() => fetchSquad(false)} style={{ padding: 0, border: "none", background: "transparent", color: "var(--accent, var(--violet-bright))", fontSize: 12, fontWeight: 700, textDecoration: "underline", cursor: "pointer" }}>
+            Retry squad details
+          </button>
+        )}
 
         {/* Reconnect note — after ≥3 consecutive poll failures; clears itself on success. */}
         {pollFailures >= 3 && !matchFound && (

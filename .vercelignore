@@ -4,6 +4,7 @@ node_modules
 **/.next
 .expo
 **/.expo
+**/artifacts
 .git
 **/*.log
 .vercel

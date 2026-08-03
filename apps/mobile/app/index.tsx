@@ -82,8 +82,13 @@ export default function OnboardingScreen() {
 
   async function handleDevSkip() {
     if (!showDevSkip) return;
-    try { await session.devSignIn(); } catch {}
-    router.replace('/home');
+    setError('');
+    try {
+      await session.devSignIn();
+      router.replace('/home');
+    } catch (e: any) {
+      setError(e?.message ?? "Couldn't start the dev session.");
+    }
   }
 
   return (

@@ -1,7 +1,7 @@
 const assert = require("node:assert/strict");
 const { after, test } = require("node:test");
 
-const { scoreCandidate } = require("../src/services/matchmakingService");
+const { ackEncounterForSquad, scoreCandidate } = require("../src/services/matchmakingService");
 const { redis, subClient } = require("../src/config/redisConfig");
 
 after(async () => {
@@ -38,4 +38,25 @@ test("candidate scoring does not give premium squads queue priority", () => {
   });
 
   assert.equal(premiumScore, freeScore);
+});
+
+test("late acknowledgements cannot expire an already-active encounter", async () => {
+  let saves = 0;
+  const encounter = {
+    encounterId: "enc_active",
+    status: "active",
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    expiresAt: new Date(Date.now() - 60_000),
+    ackBySquad: new Map([["sq_a", true], ["sq_b", true]]),
+    async save() { saves += 1; },
+  };
+
+  const result = await ackEncounterForSquad({ encounter, squadId: "sq_a" });
+
+  assert.equal(result.error, undefined);
+  assert.equal(result.acknowledged, true);
+  assert.equal(result.allAcked, true);
+  assert.equal(encounter.status, "active");
+  assert.equal(saves, 0);
 });

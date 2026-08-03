@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { openProtectedRoute } from './helpers';
 
 test("app shell preserves theme and exposes keyboard navigation", async ({ page }, testInfo) => {
   test.skip(!["phone", "desktop"].includes(testInfo.project.name), "One compact and one full shell cover this contract");
 
-  await page.goto("/home");
+  await openProtectedRoute(page, '/home');
   await expect(page.getByRole("heading", { name: /hey,/i })).toBeVisible();
 
   await page.keyboard.press("Tab");
@@ -15,14 +16,15 @@ test("app shell preserves theme and exposes keyboard navigation", async ({ page 
   await page.keyboard.press("Enter");
   await expect(page.getByRole("main")).toBeFocused();
 
-  const themeToggle = page.getByRole("button", { name: "Switch to light mode" });
+  const themeToggle = page.getByRole("button", { name: /Theme: .*\. Choose theme/i });
   await themeToggle.click();
+  await page.getByRole("menuitemradio", { name: "Cloud" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.getByRole("button", { name: "Switch to dark mode" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Theme: Cloud. Choose theme" })).toBeVisible();
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.getByRole("button", { name: "Switch to dark mode" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Theme: Cloud. Choose theme" })).toBeVisible();
 
   const contrastRatios = await page.evaluate(() => {
     const parse = (value: string) => {
@@ -54,7 +56,7 @@ test("app shell preserves theme and exposes keyboard navigation", async ({ page 
 test("phone shell keeps primary touch targets at least 44 CSS pixels", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "phone", "Phone-only touch contract");
 
-  await page.goto("/home");
+  await openProtectedRoute(page, '/home');
   const targets = page.getByTestId("mobile-navigation").getByRole("link");
   await expect(targets).toHaveCount(4);
 
@@ -64,8 +66,12 @@ test("phone shell keeps primary touch targets at least 44 CSS pixels", async ({ 
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }
 
-  for (const name of ["Giggle home", "Switch to light mode", "Notifications"]) {
-    const box = await page.getByRole(name === "Notifications" ? "button" : name === "Giggle home" ? "link" : "button", { name }).boundingBox();
+  for (const target of [
+    page.getByRole("link", { name: "Giggle home" }),
+    page.getByRole("button", { name: /Theme: .*\. Choose theme/i }),
+    page.getByRole("button", { name: "Notifications" }),
+  ]) {
+    const box = await target.boundingBox();
     expect(box?.width).toBeGreaterThanOrEqual(44);
     expect(box?.height).toBeGreaterThanOrEqual(44);
   }

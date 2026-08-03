@@ -25,6 +25,18 @@ notificationSchema.index({ userId: 1, createdAt: -1 });
 
 const Notification = mongoose.model("Notification", notificationSchema);
 
+const emitNotificationsChanged = (userIds) => {
+  const ids = Array.isArray(userIds) ? userIds : [userIds];
+  try {
+    const { emitToUser } = require("../services/socketService");
+    for (const userId of new Set(ids.filter(Boolean).map(String))) {
+      emitToUser(userId, "notifications_changed");
+    }
+  } catch (err) {
+    console.warn("[notification] change emit failed:", err.message);
+  }
+};
+
 /**
  * Persist a notification and push it in real-time to the recipient's
  * per-user socket room. Returns the saved doc. Never throws — a failed
@@ -59,6 +71,26 @@ const createNotification = async (fields) => {
   }
 };
 
+/** Delete notifications resolved by their source action. Never breaks that action. */
+const deleteNotifications = async (filter, affectedUserIds) => {
+  let userIds = affectedUserIds ?? (filter.userId ? [filter.userId] : []);
+  if (!affectedUserIds && !filter.userId) {
+    try {
+      userIds = await Notification.distinct("userId", filter);
+    } catch (err) {
+      console.warn("[notification] recipient lookup failed:", err.message);
+    }
+  }
+  try {
+    const result = await Notification.deleteMany(filter);
+    if (result.deletedCount) emitNotificationsChanged(userIds);
+    return result;
+  } catch (err) {
+    console.error("[notification] deleteNotifications error:", err);
+    return null;
+  }
+};
+
 /** Shape a Notification doc into the client contract (id + fields). */
 const toPublic = (n) => ({
   id: n._id.toString(),
@@ -74,4 +106,4 @@ const toPublic = (n) => ({
   createdAt: n.createdAt,
 });
 
-module.exports = { Notification, createNotification, toPublic };
+module.exports = { Notification, createNotification, deleteNotifications, emitNotificationsChanged, toPublic };

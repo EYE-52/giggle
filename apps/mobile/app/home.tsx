@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen } from '../components/Screen';
@@ -7,11 +7,19 @@ import { Card } from '../components/Card';
 import { VibeChip } from '../components/VibeChip';
 import { Wordmark } from '../components/Wordmark';
 import { Icon } from '../components/Icon';
+import { NotificationBell } from '../components/NotificationBell';
 import { COLORS, SPACE, RADII } from '../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { session, api, randomSquadName, formatSquadCodeInput, isValidSquadCode } from '@giggle/core';
+import type { MySquadLite } from '@giggle/core';
 
 const VIBES = ['Competitive', 'Casual', 'Chill', 'Comedy', 'Gaming', 'Late Night'];
+
+function squadDestination(squad: MySquadLite) {
+  return ['searching', 'matched', 'in_encounter'].includes(squad.status)
+    ? `/matchmaking?squad=${squad.squadId}`
+    : `/lobby?squad=${squad.squadId}`;
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -20,6 +28,22 @@ export default function HomeScreen() {
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [actionError, setActionError] = useState('');
+  const [mySquads, setMySquads] = useState<MySquadLite[] | null>(null);
+  const [squadsError, setSquadsError] = useState('');
+  const [squadsReload, setSquadsReload] = useState(0);
+
+  useEffect(() => {
+    if (!session.isAuthed()) {
+      setMySquads([]);
+      return;
+    }
+    let alive = true;
+    setSquadsError('');
+    api.mySquads()
+      .then(({ squads }) => { if (alive) setMySquads(squads ?? []); })
+      .catch((e: any) => { if (alive) setSquadsError(e?.message || "Couldn't load your squads."); });
+    return () => { alive = false; };
+  }, [squadsReload]);
 
   async function ensureAuthed() {
     if (session.isAuthed()) return true;
@@ -82,9 +106,17 @@ export default function HomeScreen() {
         {/* Top Nav */}
         <View style={styles.topNav}>
           <Wordmark size={20} />
-          <TouchableOpacity onPress={() => router.push('/profile')}>
-            <Icon.profile size={24} color={COLORS.textMuted} />
-          </TouchableOpacity>
+          <View style={styles.topActions}>
+            <NotificationBell />
+            <TouchableOpacity
+              onPress={() => router.push('/profile')}
+              style={styles.profileBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Open profile"
+            >
+              <Icon.profile size={24} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Compact value prop header */}
@@ -95,6 +127,50 @@ export default function HomeScreen() {
             {', live on video.'}
           </Text>
         </View>
+
+        {mySquads === null ? (
+          <Card style={styles.squadsState}>
+            <Text style={styles.squadsStateText}>Loading your squads…</Text>
+          </Card>
+        ) : squadsError ? (
+          <Card style={styles.squadsState}>
+            <Text style={styles.errorText}>{squadsError}</Text>
+            <TouchableOpacity
+              onPress={() => { setMySquads(null); setSquadsReload((value) => value + 1); }}
+              style={styles.retryBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading squads"
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </Card>
+        ) : mySquads.length > 0 ? (
+          <View style={styles.squadsSection}>
+            <Text style={styles.sectionLabel}>Your squads</Text>
+            <Card style={styles.squadsCard}>
+              {mySquads.map((squad, index) => (
+                <TouchableOpacity
+                  key={squad.squadId}
+                  onPress={() => router.push(squadDestination(squad))}
+                  style={[styles.squadRow, index < mySquads.length - 1 && styles.squadRowBorder]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open ${squad.squadName}`}
+                >
+                  <View style={styles.squadMark}>
+                    <Text style={styles.squadMarkText}>{squad.squadName.slice(0, 1).toUpperCase()}</Text>
+                  </View>
+                  <View style={styles.squadCopy}>
+                    <Text style={styles.squadName} numberOfLines={1}>{squad.squadName}</Text>
+                    <Text style={styles.squadMeta} numberOfLines={1}>
+                      {squad.memberCount}/{squad.maxSlots} members · {squad.status.replace(/_/g, ' ')}
+                    </Text>
+                  </View>
+                  <Icon.chevron size={18} color={COLORS.textDim} />
+                </TouchableOpacity>
+              ))}
+            </Card>
+          </View>
+        ) : null}
 
         {/* Create a Squad — primary action */}
         <LinearGradient
@@ -197,11 +273,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginBottom: SPACE.xl,
   },
+  topActions: { flexDirection: 'row', alignItems: 'center' },
+  profileBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
 
   // Compact value prop — small headline, no eyebrow/subtext competing
   heroCopy: { marginBottom: SPACE.lg },
   headline: { fontSize: 22, fontWeight: '800', color: COLORS.text, letterSpacing: -0.4, lineHeight: 30 },
   headlineAccent: { color: COLORS.violet },
+
+  squadsSection: { marginBottom: SPACE.lg },
+  squadsCard: { padding: 0, overflow: 'hidden' },
+  squadsState: {
+    minHeight: 64, marginBottom: SPACE.lg, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', gap: SPACE.md,
+  },
+  squadsStateText: { color: COLORS.textMuted, fontSize: 13 },
+  squadRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: SPACE.md },
+  squadRowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  squadMark: {
+    width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(124,92,255,0.16)', borderWidth: 1, borderColor: 'rgba(124,92,255,0.28)',
+  },
+  squadMarkText: { color: COLORS.violet, fontSize: 17, fontWeight: '800' },
+  squadCopy: { flex: 1, minWidth: 0 },
+  squadName: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
+  squadMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 3, textTransform: 'capitalize' },
+  retryBtn: { minWidth: 56, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
+  retryText: { color: COLORS.violet, fontSize: 13, fontWeight: '700' },
 
   heroCard: {
     borderRadius: RADII.card, padding: SPACE.lg,

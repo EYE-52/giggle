@@ -1,7 +1,8 @@
 import { expect, test } from "@playwright/test";
+import { openProtectedRoute } from './helpers';
 
 test("navigation is curated for each device class", async ({ page }, testInfo) => {
-  await page.goto("/home");
+  await openProtectedRoute(page, '/home');
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.getByRole("heading", { name: /hey,/i })).toBeVisible();
   await expect.poll(() => page.locator("#main-content > div").evaluate(node => getComputedStyle(node).opacity)).toBe("1");
@@ -17,7 +18,8 @@ test("navigation is curated for each device class", async ({ page }, testInfo) =
 
     const navBox = await mobile.boundingBox();
     expect(navBox?.y).toBeGreaterThanOrEqual(760);
-    expect(await page.getByRole("main").evaluate(node => parseFloat(getComputedStyle(node).paddingBottom))).toBeGreaterThanOrEqual(88);
+    const mainPadding = await page.getByRole("main").evaluate(node => parseFloat(getComputedStyle(node).paddingBottom));
+    expect(mainPadding).toBeGreaterThanOrEqual(navBox!.height);
   } else {
     await expect(top).toBeVisible();
     await expect(mobile).toBeHidden();

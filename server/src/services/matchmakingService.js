@@ -321,15 +321,22 @@ const ackEncounterForSquad = async ({ encounter, squadId }) => {
     return { error: { status: 409, code: "ENCOUNTER_ENDED", message: "Encounter is no longer active" } };
   }
 
+  if (![encounter.squadAId, encounter.squadBId].includes(squadId)) {
+    return { error: { status: 403, code: "FORBIDDEN", message: "Squad is not part of this encounter" } };
+  }
+
+  // The deadline gates the handoff only. Once both squads acknowledged, a
+  // later member opening the same active encounter must be idempotent rather
+  // than ending the live call because the old handoff timestamp has passed.
+  if (encounter.status === "active") {
+    return { acknowledged: true, allAcked: true, encounter };
+  }
+
   if (new Date(encounter.expiresAt).getTime() < Date.now()) {
     encounter.status = "ended";
     encounter.endedAt = new Date();
     await encounter.save();
     return { error: { status: 409, code: "ENCOUNTER_EXPIRED", message: "Encounter handoff expired" } };
-  }
-
-  if (![encounter.squadAId, encounter.squadBId].includes(squadId)) {
-    return { error: { status: 403, code: "FORBIDDEN", message: "Squad is not part of this encounter" } };
   }
 
   encounter.ackBySquad.set(squadId, true);

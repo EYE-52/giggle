@@ -53,6 +53,7 @@ export function advanceSpeakerFocus(
     : { ...previous, focusedId, focusedSince: focusedId ? previous.focusedSince : 0 };
 
   if (!activeSpeakerId || !valid.has(activeSpeakerId) || activeSpeakerId === focusedId) {
+    if (base.candidateId === null && base.candidateSince === 0) return base;
     return { ...base, candidateId: null, candidateSince: 0 };
   }
   if (base.candidateId !== activeSpeakerId) {

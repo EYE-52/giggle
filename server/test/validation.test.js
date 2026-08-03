@@ -1,12 +1,13 @@
 const assert = require("node:assert/strict");
-const test = require("node:test");
+const { after, test } = require("node:test");
 const mongoose = require("mongoose");
 
 const { dismissNotification, markOneRead } = require("../src/controllers/notificationController");
-const { Notification } = require("../src/models/Notification");
+const { Notification, deleteNotifications } = require("../src/models/Notification");
 const { Squad } = require("../src/models/Squad");
 const User = require("../src/models/User");
-const { hasIdentityId } = require("../src/app/squadAccess");
+const { hasIdentityId, persistSquadAfterMemberRemoval } = require("../src/app/squadAccess");
+const { declineJoinRequestHandler, disbandSquadHandler } = require("../src/controllers/squadController");
 const { normalizeEmail, normalizeProfileImage, normalizeProfilePatch } = require("../src/controllers/authController");
 const { acceptRequest, declineRequest, removeFriend, searchUsers } = require("../src/controllers/friendsController");
 const { normalizeSquadCoverImage } = require("../src/utils/squadCoverValidation");
@@ -19,6 +20,13 @@ const {
   normalizeReactionEmoji,
   resolveSocketSenderName,
 } = require("../src/services/socketService");
+
+after(async () => {
+  const redisPath = require.resolve("../src/config/redisConfig");
+  if (!require.cache[redisPath]) return;
+  const { redis, subClient } = require("../src/config/redisConfig");
+  await Promise.allSettled([redis.quit(), subClient.quit()]);
+});
 
 function createResponse() {
   return {
@@ -107,15 +115,13 @@ test("dismissNotification deletes only the authed user's notification", async ()
   }
 });
 
-test("dismissNotification reports not found when no owned notification is deleted", async () => {
+test("dismissNotification is idempotent when the notification is already gone", async () => {
   const notificationId = "507f1f77bcf86cd799439012";
   const originalDeleteOne = Notification.deleteOne;
   const originalCountDocuments = Notification.countDocuments;
 
   Notification.deleteOne = async () => ({ deletedCount: 0 });
-  Notification.countDocuments = async () => {
-    throw new Error("unread count should not be queried after a miss");
-  };
+  Notification.countDocuments = async () => 3;
 
   try {
     const req = { user: { userId: "507f1f77bcf86cd799439011" }, params: { id: notificationId } };
@@ -123,11 +129,156 @@ test("dismissNotification reports not found when no owned notification is delete
 
     await dismissNotification(req, res);
 
-    assert.equal(res.statusCode, 404);
-    assert.equal(res.body.error.code, "NOT_FOUND");
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.data, { dismissed: true, unread: 3 });
   } finally {
     Notification.deleteOne = originalDeleteOne;
     Notification.countDocuments = originalCountDocuments;
+  }
+});
+
+test("resolved notifications invalidate every affected user session", async () => {
+  const socketService = require("../src/services/socketService");
+  const originalDeleteMany = Notification.deleteMany;
+  const originalEmitToUser = socketService.emitToUser;
+  const emitted = [];
+
+  Notification.deleteMany = async () => ({ deletedCount: 2 });
+  socketService.emitToUser = (userId, event) => emitted.push([userId, event]);
+
+  try {
+    await deleteNotifications(
+      { squadId: "squad_done" },
+      ["507f1f77bcf86cd799439011", null, "507f1f77bcf86cd799439012", undefined, "507f1f77bcf86cd799439011"]
+    );
+
+    assert.deepEqual(emitted, [
+      ["507f1f77bcf86cd799439011", "notifications_changed"],
+      ["507f1f77bcf86cd799439012", "notifications_changed"],
+    ]);
+  } finally {
+    Notification.deleteMany = originalDeleteMany;
+    socketService.emitToUser = originalEmitToUser;
+  }
+});
+
+test("notification invalidation lookup failure never skips cleanup", async () => {
+  const originalDistinct = Notification.distinct;
+  const originalDeleteMany = Notification.deleteMany;
+  let deleted = false;
+
+  Notification.distinct = async () => { throw new Error("lookup unavailable"); };
+  Notification.deleteMany = async () => {
+    deleted = true;
+    return { deletedCount: 1 };
+  };
+
+  try {
+    const result = await deleteNotifications({ squadId: "squad_done" });
+    assert.equal(deleted, true);
+    assert.equal(result.deletedCount, 1);
+  } finally {
+    Notification.distinct = originalDistinct;
+    Notification.deleteMany = originalDeleteMany;
+  }
+});
+
+test("deleting an empty squad also deletes its notifications", async () => {
+  const originalDistinct = Notification.distinct;
+  const originalDeleteMany = Notification.deleteMany;
+  let notificationQuery = null;
+  let squadDeleted = false;
+  Notification.distinct = async () => [];
+  Notification.deleteMany = async (query) => {
+    notificationQuery = query;
+    return { deletedCount: 2 };
+  };
+
+  try {
+    const result = await persistSquadAfterMemberRemoval({
+      squadId: "squad_empty",
+      members: [],
+      deleteOne: async () => { squadDeleted = true; },
+    }, { removedMemberRole: "leader" });
+
+    assert.deepEqual(notificationQuery, { squadId: "squad_empty" });
+    assert.equal(squadDeleted, true);
+    assert.equal(result.squadDeleted, true);
+  } finally {
+    Notification.distinct = originalDistinct;
+    Notification.deleteMany = originalDeleteMany;
+  }
+});
+
+test("disbanding a squad also deletes its notifications", async () => {
+  const originalDistinct = Notification.distinct;
+  const originalDeleteMany = Notification.deleteMany;
+  let notificationQuery = null;
+  Notification.distinct = async () => [];
+  Notification.deleteMany = async (query) => {
+    notificationQuery = query;
+    return { deletedCount: 3 };
+  };
+
+  try {
+    const req = {
+      squadAccess: {
+        isLeader: true,
+        squad: {
+          squadId: "squad_disbanded",
+          status: "idle",
+          deleteOne: async () => {},
+        },
+      },
+    };
+    const res = createResponse();
+
+    await disbandSquadHandler(req, res);
+
+    assert.deepEqual(notificationQuery, { squadId: "squad_disbanded" });
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.disbanded, true);
+  } finally {
+    Notification.distinct = originalDistinct;
+    Notification.deleteMany = originalDeleteMany;
+  }
+});
+
+test("declining a join request deletes the leader notification", async () => {
+  const leaderId = "507f1f77bcf86cd799439011";
+  const requesterId = "507f1f77bcf86cd799439012";
+  const originalDeleteMany = Notification.deleteMany;
+  let notificationQuery = null;
+  Notification.deleteMany = async (query) => {
+    notificationQuery = query;
+    return { deletedCount: 1 };
+  };
+
+  try {
+    const req = {
+      user: { userId: leaderId },
+      params: { userId: requesterId },
+      squadAccess: {
+        squad: {
+          squadId: "squad_request",
+          joinRequests: [{ userId: requesterId }],
+          save: async () => {},
+        },
+      },
+    };
+    const res = createResponse();
+
+    await declineJoinRequestHandler(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(notificationQuery, {
+      userId: leaderId,
+      type: "join_request",
+      fromUserId: requesterId,
+      squadId: "squad_request",
+    });
+  } finally {
+    Notification.deleteMany = originalDeleteMany;
   }
 });
 
@@ -324,6 +475,74 @@ test("acceptRequest rejects stale incoming friend requests when target user is g
   } finally {
     User.findById = originalFindById;
     User.updateOne = originalUpdateOne;
+  }
+});
+
+test("acceptRequest deletes the resolved friend notification", async () => {
+  const myId = "507f1f77bcf86cd799439011";
+  const targetId = "507f1f77bcf86cd799439012";
+  const originalFindById = User.findById;
+  const originalUpdateOne = User.updateOne;
+  const originalDeleteMany = Notification.deleteMany;
+  let notificationQuery = null;
+
+  User.findById = (id) => ({
+    lean: async () => String(id) === myId
+      ? { _id: myId, friendRequestsIncoming: [targetId] }
+      : { _id: targetId },
+  });
+  User.updateOne = async () => ({ modifiedCount: 1 });
+  Notification.deleteMany = async (query) => {
+    notificationQuery = query;
+    return { deletedCount: 1 };
+  };
+
+  try {
+    const req = { user: { userId: myId }, body: { userId: targetId } };
+    const res = createResponse();
+
+    await acceptRequest(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(notificationQuery, { userId: myId, type: "friend_request", fromUserId: targetId });
+  } finally {
+    User.findById = originalFindById;
+    User.updateOne = originalUpdateOne;
+    Notification.deleteMany = originalDeleteMany;
+  }
+});
+
+test("declineRequest deletes the resolved friend notification", async () => {
+  const myId = "507f1f77bcf86cd799439011";
+  const targetId = "507f1f77bcf86cd799439012";
+  const originalFindById = User.findById;
+  const originalUpdateOne = User.updateOne;
+  const originalDeleteMany = Notification.deleteMany;
+  let notificationQuery = null;
+
+  User.findById = (id) => ({
+    lean: async () => String(id) === myId
+      ? { _id: myId, friendRequestsIncoming: [targetId] }
+      : { _id: targetId },
+  });
+  User.updateOne = async () => ({ modifiedCount: 1 });
+  Notification.deleteMany = async (query) => {
+    notificationQuery = query;
+    return { deletedCount: 1 };
+  };
+
+  try {
+    const req = { user: { userId: myId }, body: { userId: targetId } };
+    const res = createResponse();
+
+    await declineRequest(req, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(notificationQuery, { userId: myId, type: "friend_request", fromUserId: targetId });
+  } finally {
+    User.findById = originalFindById;
+    User.updateOne = originalUpdateOne;
+    Notification.deleteMany = originalDeleteMany;
   }
 });
 

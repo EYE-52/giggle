@@ -231,6 +231,9 @@ export default function ProfilePage() {
   const [country, setCountry] = useState("");
   const [langDraft, setLangDraft] = useState("");
   const [loadedProfile, setLoadedProfile] = useState<UserProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
+  const [profileLoadAttempt, setProfileLoadAttempt] = useState(0);
   const [savingDemo, setSavingDemo] = useState(false);
   const [savedDemo, setSavedDemo] = useState(false);
   const [demoError, setDemoError] = useState<string | null>(null);
@@ -243,6 +246,8 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let active = true;
+    setProfileLoading(true);
+    setProfileLoadError(null);
     api.getMyProfile().then((p) => {
       if (!active) return;
       setLoadedProfile(p);
@@ -251,9 +256,13 @@ export default function ProfilePage() {
       setAge(p.age != null ? String(p.age) : "");
       setLanguages(p.languages ?? []);
       setCountry(p.country ?? "");
-    }).catch(() => {});
+    }).catch((error: unknown) => {
+      if (active) setProfileLoadError(error instanceof Error ? error.message : "Couldn't load your profile.");
+    }).finally(() => {
+      if (active) setProfileLoading(false);
+    });
     return () => { active = false; };
-  }, []);
+  }, [profileLoadAttempt]);
 
   function addLanguage(raw: string) {
     const lang = raw.trim();
@@ -322,23 +331,27 @@ export default function ProfilePage() {
 
   // Hover states
   const [vibeTagHover, setVibeTagHover] = useState<string | null>(null);
-  const [upgradeCardHover, setUpgradeCardHover] = useState(false);
   const [vibeChipHover, setVibeChipHover] = useState<string | null>(null);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
 
-  // Responsive layout: single column on tablet/phone, 2-col on desktop
-  const outerGrid: React.CSSProperties = isTablet
-    ? { display: "flex", flexDirection: "column", gap: isPhone ? 16 : 20 }
-    : { display: "grid", gridTemplateColumns: "300px 1fr", gap: 24, alignItems: "start" };
+  const avatarSize = isPhone ? 88 : 120;
+  const outerGrid: React.CSSProperties = isPhone
+    ? { display: "flex", flexDirection: "column", gap: 16 }
+    : {
+        display: "grid",
+        gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "300px minmax(0, 1fr)",
+        gap: isTablet ? 20 : 24,
+        alignItems: "start",
+      };
 
   return (
     <>
     <div className="gg-reveal" style={outerGrid}>
-      {/* LEFT COLUMN — Avatar + Score + Stats. Sticky on desktop so the short
-          column tracks the (much taller) right column instead of leaving a void. */}
+      {/* LEFT COLUMN — identity and membership. */}
       <div style={{ display: "flex", flexDirection: "column", gap: isPhone ? 14 : 16, ...(isTablet ? {} : { position: "sticky", top: 24 }) }}>
         {/* Avatar card */}
-        <div style={{ ...surface, display: "flex", flexDirection: "column", alignItems: "center", gap: 14, paddingTop: isPhone ? 22 : 26, paddingBottom: isPhone ? 18 : 22 }}>
+        <div style={{ ...surface, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: isPhone ? 16 : 26, paddingBottom: isPhone ? 16 : 22 }}>
+          <div style={{ width: "100%", display: "flex", flexDirection: isPhone ? "row" : "column", alignItems: "center", justifyContent: "center", gap: isPhone ? 16 : 14 }}>
           {/* Avatar — click to edit */}
           <button
             onClick={() => setPickerOpen(true)}
@@ -348,13 +361,13 @@ export default function ProfilePage() {
             onBlur={() => setAvatarHover(false)}
             aria-label="Edit avatar"
             style={{
-              position: "relative", width: 120, height: 120,
+              position: "relative", width: avatarSize, height: avatarSize, flexShrink: 0,
               border: "none", background: "none", padding: 0,
               cursor: "pointer",
             }}
           >
             <div style={{ position: "absolute", inset: 0, borderRadius: "50%", overflow: "hidden", border: avatarHover ? "3px solid var(--accent, var(--violet))" : "3px solid var(--border-strong)", transition: "border-color .16s ease" }}>
-              <AvatarArt value={myAvatar} size={114} />
+              <AvatarArt value={myAvatar} size={avatarSize - 6} />
             </div>
             {/* Persistent edit affordance — visible without hover (touch/keyboard) */}
             <div aria-hidden style={{
@@ -393,60 +406,45 @@ export default function ProfilePage() {
               </div>
             )}
           </button>
-          <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
-              <h1 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0 }}>{displayName}</h1>
+          <div style={{ minWidth: 0, textAlign: isPhone ? "left" : "center", display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: isPhone ? "flex-start" : "center" }}>
+              <h1 style={{ maxWidth: "100%", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 20 : 22, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0, overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</h1>
             </div>
+          </div>
+          </div>
+
+          {/* Giggle+ status stays inside the identity surface. */}
+          <div style={{ width: "100%", paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+            {isPremium ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "var(--radius-control, 14px)", background: "var(--accent-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <Icon.star size={18} color={violet} fill={violet} />
+                </div>
+                <div>
+                  <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 14, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Giggle+ Active</div>
+                  <div style={{ color: textMuted, fontSize: 12 }}>Premium member</div>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                aria-label="View Wallet and Giggle Plus details"
+                onClick={() => router.push("/premium")}
+                className="gg-press-card"
+                style={{ width: "100%", minHeight: 44, padding: 0, cursor: "pointer", background: "transparent", border: "none", color: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, textAlign: "left" }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 15, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Wallet &amp; Giggle+</div>
+                  <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Monthly token stipend + 15% bonus tokens on packs</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                  <span style={{ background: violet, color: "#fff", borderRadius: 999, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>View</span>
+                  <Icon.chevron size={18} color={violet} />
+                </div>
+              </button>
+            )}
           </div>
         </div>
-
-        {/* Giggle+ status */}
-        {isPremium ? (
-          <div style={{ ...surface, background: `linear-gradient(135deg, color-mix(in srgb, var(--accent, var(--violet)) 22%, transparent) 0%, color-mix(in srgb, var(--live, var(--lime)) 8%, transparent) 100%)`, display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: "var(--radius-control, 14px)", background: `linear-gradient(135deg, var(--accent, var(--violet)), var(--live, var(--lime)))`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Icon.star size={18} color="var(--live-contrast)" fill="var(--live-contrast)" />
-          </div>
-            <div>
-              <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 17, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Giggle+ Active</div>
-              <div style={{ color: textMuted, fontSize: 12 }}>Premium member</div>
-            </div>
-          </div>
-        ) : (
-          <div
-            role="button"
-            tabIndex={0}
-            aria-label="Upgrade to Giggle+"
-            onClick={() => router.push("/premium")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/premium"); }
-            }}
-            onMouseEnter={() => setUpgradeCardHover(true)}
-            onMouseLeave={() => setUpgradeCardHover(false)}
-            className="gg-press-card gg-focusable"
-            style={{
-              ...surface, cursor: "pointer",
-              background: upgradeCardHover
-                ? "linear-gradient(135deg, color-mix(in srgb, var(--accent, var(--violet)) 32%, transparent) 0%, var(--surface-grad-to) 100%)"
-                : "linear-gradient(135deg, color-mix(in srgb, var(--accent, var(--violet)) 22%, transparent) 0%, var(--surface-grad-to) 100%)",
-              border: upgradeCardHover ? "1px solid color-mix(in srgb, var(--accent, var(--violet)) 40%, transparent)" : "var(--control-border, 1px solid var(--border))",
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              transition: "all .15s ease",
-              transform: upgradeCardHover ? "translateY(-1px)" : "translateY(0)",
-            }}
-          >
-            <div>
-              <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 17, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Giggle+</div>
-              <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Monthly token stipend + 15% bonus tokens on packs</div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{
-                background: violet, color: "#fff", borderRadius: 999, padding: "4px 12px",
-                fontSize: 12, fontWeight: 700, transition: "all .15s ease",
-              }}>Upgrade</span>
-              <Icon.chevron size={18} color={violet} />
-            </div>
-          </div>
-        )}
       </div>
 
       {/* RIGHT COLUMN — Prefs + Settings + Manage Account + Log Out */}
@@ -538,6 +536,16 @@ export default function ProfilePage() {
         <section style={settingsSection}>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary, margin: "0 0 4px", letterSpacing: "-0.02em" }}>About You</h2>
           <div style={{ color: textMuted, fontSize: 13, marginBottom: 16 }}>Help us tailor your vibe matches.</div>
+
+          {profileLoading && (
+            <div role="status" style={{ color: textMuted, fontSize: 13, marginBottom: 16 }}>Loading your profile…</div>
+          )}
+          {profileLoadError && (
+            <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", marginBottom: 16, borderRadius: "var(--radius-control, 14px)", background: "var(--coral-soft)", color: coral, fontSize: 13, fontWeight: 600 }}>
+              <span>{profileLoadError}</span>
+              <Button variant="secondary" onClick={() => setProfileLoadAttempt((attempt) => attempt + 1)}>Retry</Button>
+            </div>
+          )}
 
           {/* Gender — segmented control */}
           <div style={{ marginBottom: 18 }}>
@@ -681,7 +689,7 @@ export default function ProfilePage() {
             <Button
               onClick={saveDemographics}
               loading={savingDemo}
-              disabled={!demoDirty}
+              disabled={profileLoading || !!profileLoadError || !demoDirty}
               style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 14 }}
             >
               {savingDemo ? "Saving…" : "Save"}
@@ -705,8 +713,8 @@ export default function ProfilePage() {
             </div>
           )}
           <SwitchRow
-            label="Notifications"
-            desc="Receive push notifications for matches and messages"
+            label="Notification pop-ups"
+            desc="Show an alert when a new request or invite arrives"
             value={notificationsOn}
             onChange={(v) => setProfileSetting("notificationsOn", v)}
           />

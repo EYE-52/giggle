@@ -1,39 +1,29 @@
 import React from 'react';
-import { View, Text, StyleSheet, ImageBackground, ImageSourcePropType } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AvatarStack } from './Avatar';
-
-const VENUE_IMAGES = {
-  neon: require('../assets/img/venue-neon-nights.jpg') as ImageSourcePropType,
-  arcade: require('../assets/img/venue-midnight-gamers.jpg') as ImageSourcePropType,
-};
-
-const WASH_COLORS: Record<string, [string, string, string]> = {
-  neon: ['rgba(255,92,138,0.25)', 'rgba(124,92,255,0.35)', 'rgba(10,5,15,0.85)'],
-  arcade: ['rgba(92,140,255,0.25)', 'rgba(61,214,192,0.25)', 'rgba(8,15,25,0.85)'],
-};
+import { squadCoverSource } from './squadCover';
 
 export function VenueCard({
   title,
   subtitle,
-  wash = 'neon',
+  coverImage,
   live,
   members,
   extra,
 }: {
   title: string;
   subtitle: string;
-  wash?: 'neon' | 'arcade';
+  coverImage?: string | null;
   live?: boolean;
   members: string[];
   extra?: number;
 }) {
-  const colors = WASH_COLORS[wash] ?? WASH_COLORS.neon;
-  const image = VENUE_IMAGES[wash] ?? VENUE_IMAGES.neon;
+  const image = squadCoverSource(coverImage);
   return (
-    <ImageBackground source={image} style={styles.card} imageStyle={styles.cardImage} resizeMode="cover">
+    <ImageBackground source={image} style={[styles.card, !image && styles.cardFallback]} imageStyle={styles.cardImage} resizeMode="cover">
       <LinearGradient
-        colors={colors}
+        colors={['rgba(124,92,255,0.22)', 'rgba(61,214,192,0.16)', 'rgba(8,8,14,0.90)']}
         start={{ x: 0.2, y: 0 }}
         end={{ x: 0.8, y: 1 }}
         style={StyleSheet.absoluteFill}
@@ -68,6 +58,7 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 20,
   },
+  cardFallback: { backgroundColor: '#171329' },
   liveBadge: {
     position: 'absolute',
     top: 12,

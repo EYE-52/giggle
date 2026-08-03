@@ -1,9 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { openProtectedRoute } from './helpers';
 
 const routes = [
-  { path: "/home", slug: "home", heading: /hey,|welcome back/i, action: /create squad/i },
+  { path: "/home", slug: "home", heading: /hey,|welcome back/i, action: /create(?: your first)? squad/i },
   { path: "/discover", slug: "discover", heading: /discover squads/i, action: /surprise me|create a squad|preview/i },
-  { path: "/friends", slug: "friends", heading: /^friends$/i, action: /search by name/i },
+  { path: "/friends", slug: "friends", heading: /^friends$/i, action: /search (?:people )?by name/i },
   { path: "/profile", slug: "profile", heading: /.+/, action: /edit avatar/i },
   { path: "/premium", slug: "premium", heading: /^wallet$/i, action: /^back$/i },
 ] as const;
@@ -19,7 +20,7 @@ for (const route of routes) {
       failedRequests.push(`${request.method()} ${request.url()} ${request.failure()?.errorText ?? "failed"}`);
     });
 
-    await page.goto(route.path);
+    await openProtectedRoute(page, route.path);
     const main = page.getByRole("main");
     await expect(main.getByRole("heading", { level: 1, name: route.heading }).first()).toBeVisible();
 
@@ -46,3 +47,49 @@ for (const route of routes) {
     });
   });
 }
+
+test("compact phone routes keep their primary action usable without clipping", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "One isolated project covers the extra compact viewports");
+
+  for (const [viewport, width, height] of [
+    ["compact-phone", 320, 568],
+    ["phone-landscape", 844, 390],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+
+    for (const route of routes) {
+      await openProtectedRoute(page, route.path);
+      const main = page.getByRole("main");
+      await expect(main.getByRole("heading", { level: 1, name: route.heading }).first()).toBeVisible();
+
+      const command = main.getByRole("button", { name: route.action })
+        .or(main.getByRole("link", { name: route.action }))
+        .or(main.getByRole("textbox", { name: route.action }))
+        .first();
+      await expect(command).toBeInViewport({ ratio: 0.6 });
+      await expect.poll(() => page.locator("#main-content > div").evaluate(node => getComputedStyle(node).opacity)).toBe("1");
+
+      const box = await command.boundingBox();
+      expect(box?.x).toBeGreaterThanOrEqual(0);
+      expect(box && box.x + box.width).toBeLessThanOrEqual(width);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+
+      await page.screenshot({
+        path: `artifacts/visual-audit/2026-08-02/product-routes/${viewport}-${route.slug}.jpg`,
+        type: "jpeg",
+        quality: 82,
+      });
+    }
+  }
+});
+
+test("join code field uses one shared focus ring", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "phone", "Phone covers the reported compact field state");
+
+  await openProtectedRoute(page, "/home");
+  const input = page.getByRole("textbox", { name: "Squad invite code" });
+  await input.focus();
+
+  expect(await input.evaluate(node => getComputedStyle(node).boxShadow)).toBe("none");
+  await expect.poll(() => input.locator("..").evaluate(node => getComputedStyle(node).boxShadow)).not.toBe("none");
+});

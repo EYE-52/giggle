@@ -159,14 +159,6 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
       await session.setAge(iso);
       onDone();
     } catch (err) {
-      // Backend may not ship /api/me/age yet (404) — don't trap the user in dev.
-      // Surface a friendly message and let them retry.
-      const status = (err as { status?: number })?.status;
-      if (status === 409) {
-        // Already set server-side — treat as done.
-        onDone();
-        return;
-      }
       setError(
         (err as { message?: string })?.message ||
           "Couldn't save that right now. Please try again.",

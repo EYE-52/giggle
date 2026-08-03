@@ -421,7 +421,7 @@ const computeAge = (birthDate, now = new Date()) => {
 /**
  * POST /api/me/age — self-attested date of birth.
  * Body: { birthDate: "YYYY-MM-DD" }. SET-ONCE: once ageConfirmed is true it
- * cannot be changed (returns 409). Sets birthDate, ageConfirmed=true, and
+ * cannot be changed; retries return the persisted flags. Sets birthDate, ageConfirmed=true, and
  * isAdult=(age>=18). Returns { isAdult, ageConfirmed }. ageVerified is NOT
  * touched here (reserved for a future real-ID vendor).
  */
@@ -451,9 +451,9 @@ const setMyAge = async (req, res) => {
 
     // SET-ONCE: prevent re-attesting a different DOB to bypass age gating.
     if (user.ageConfirmed) {
-      return res.status(409).json({
-        ok: false,
-        error: { code: "AGE_ALREADY_CONFIRMED", message: "Date of birth has already been set and cannot be changed." },
+      return res.status(200).json({
+        ok: true,
+        data: { isAdult: user.isAdult, ageConfirmed: true },
       });
     }
 

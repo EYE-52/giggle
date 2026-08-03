@@ -27,6 +27,9 @@ test("catalog sells only subscriptions and token packs (no backend priority, no 
   const ids = TOKEN_PERKS.map((perk) => perk.id);
   assert.equal(ids.includes("fast_pass"), false);
   assert.equal(ids.includes("squad_boost"), false);
+  assert.equal(TOKEN_PERKS.find((perk) => perk.id === "cover_themes")?.description, "Unlock extra squad cover themes");
+  assert.equal(TOKEN_PERKS.find((perk) => perk.id === "vibe_pack")?.description, "Unlock extra profile avatars");
+  assert.equal(TOKEN_PERKS.some((perk) => perk.description.includes("animated")), false);
 
   // No backend-priority products, and no dollar-priced cosmetic duplicates.
   assert.equal("fast_pass_5" in PRODUCTS, false);

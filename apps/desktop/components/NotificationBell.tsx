@@ -10,6 +10,18 @@ import {
   type NotificationType,
 } from "@giggle/core";
 
+const expiredInviteCodes = new Set(["SQUAD_NOT_FOUND", "INVITE_ONLY"]);
+const PROFILE_SETTINGS_STORAGE_KEY = "giggle.profile.settings";
+
+function notificationPopupsEnabled(): boolean {
+  try {
+    const raw = localStorage.getItem(PROFILE_SETTINGS_STORAGE_KEY);
+    return !raw || JSON.parse(raw)?.notificationsOn !== false;
+  } catch {
+    return true;
+  }
+}
+
 // ── helpers ──────────────────────────────────────────────────────────────
 
 function relTime(iso: string): string {
@@ -51,11 +63,13 @@ function Pill({
   onClick,
   variant = "neutral",
   busy = false,
+  disabled = false,
 }: {
   label: string;
   onClick: () => void;
   variant?: "primary" | "danger" | "neutral";
   busy?: boolean;
+  disabled?: boolean;
 }) {
   const [hover, setHover] = useState(false);
   const bg =
@@ -81,7 +95,7 @@ function Pill({
     <button
       type="button"
       className="gg-press gg-focusable"
-      disabled={busy}
+      disabled={busy || disabled}
       onClick={onClick}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -97,8 +111,8 @@ function Pill({
         color,
         fontSize: 12,
         fontWeight: 700,
-        cursor: busy ? "default" : "pointer",
-        opacity: busy ? 0.7 : 1,
+        cursor: busy || disabled ? "default" : "pointer",
+        opacity: busy || disabled ? 0.7 : 1,
         transition:
           "background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",
       }}
@@ -116,8 +130,8 @@ function Row({
   onDismiss,
 }: {
   n: AppNotification;
-  onResolve: (id: string) => void; // called after markRead; keeps item visible
-  onDismiss: (id: string) => void;
+  onResolve: (id: string, wasUnread?: boolean) => void;
+  onDismiss: (id: string, wasUnread?: boolean) => void;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -126,75 +140,73 @@ function Row({
   const ts = typeStyle(n.type);
   const dim = n.read;
 
-  const markRead = useCallback(async () => {
-    try {
-      await api.markNotificationRead(n.id);
-      onResolve(n.id);
-      return true;
-    } catch {
-      return false;
-    }
-  }, [n.id, onResolve]);
-
   const accept = async () => {
-    if (!n.fromUserId) return;
+    if (busy || !n.fromUserId) return;
     setBusy("accept");
     setActionError(null);
     try {
       await api.acceptFriend(n.fromUserId);
-      if (!(await markRead())) throw new Error("MARK_READ_FAILED");
-      setResolved("Accepted");
+      onDismiss(n.id, !n.read);
     } catch {
       setActionError("Couldn't accept this friend request.");
       setBusy(null);
     }
   };
   const decline = async () => {
-    if (!n.fromUserId) return;
+    if (busy || !n.fromUserId) return;
     setBusy("decline");
     setActionError(null);
     try {
       await api.declineFriend(n.fromUserId);
-      if (!(await markRead())) throw new Error("MARK_READ_FAILED");
-      setResolved("Declined");
+      onDismiss(n.id, !n.read);
     } catch {
       setActionError("Couldn't decline this friend request.");
       setBusy(null);
     }
   };
   const join = async () => {
-    if (!n.squadCode) return;
+    if (busy || !n.squadCode) return;
     setBusy("join");
     setActionError(null);
     try {
       const res = await api.joinSquad({ squadCode: n.squadCode });
-      if (!(await markRead())) throw new Error("MARK_READ_FAILED");
       if ("status" in res && res.status === "requested") {
-        setResolved("Requested");
+        onDismiss(n.id, !n.read);
       } else {
-        onDismiss(n.id);
+        onDismiss(n.id, !n.read);
         router.push(`/lobby?squad=${res.squadId}`);
       }
-    } catch {
+    } catch (e: unknown) {
+      const code = (e as { code?: string })?.code ?? "";
+      if (expiredInviteCodes.has(code)) {
+        try {
+          await api.dismissNotification(n.id);
+        } catch {
+          setActionError("Invite expired, but couldn't dismiss it.");
+          setBusy(null);
+          return;
+        }
+        onResolve(n.id, !n.read);
+        setResolved("Invite expired");
+        setBusy(null);
+        return;
+      }
       setActionError("Couldn't join this squad invite.");
       setBusy(null);
     }
   };
   const dismiss = async () => {
+    if (busy) return;
     setBusy("dismiss");
     setActionError(null);
     try {
       await api.dismissNotification(n.id);
     } catch {
-      try {
-        await api.markNotificationRead(n.id);
-      } catch {
-        setActionError("Couldn't dismiss this notification.");
-        setBusy(null);
-        return;
-      }
+      setActionError("Couldn't dismiss this notification.");
+      setBusy(null);
+      return;
     }
-    onDismiss(n.id);
+    onDismiss(n.id, !n.read);
   };
   const openLobby = async () => {
     if (!n.squadId) return;
@@ -204,7 +216,7 @@ function Row({
       setActionError("Couldn't open this notification.");
       return;
     }
-    onDismiss(n.id);
+    onResolve(n.id, !n.read);
     router.push(`/lobby?squad=${n.squadId}`);
   };
 
@@ -309,14 +321,14 @@ function Row({
         {/* actions */}
         {!resolved && n.type === "friend_request" && (
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <Pill label="Accept" variant="primary" busy={busy === "accept"} onClick={accept} />
-            <Pill label="Decline" variant="danger" busy={busy === "decline"} onClick={decline} />
+            <Pill label="Accept" variant="primary" busy={busy === "accept"} disabled={busy !== null} onClick={accept} />
+            <Pill label="Decline" variant="danger" busy={busy === "decline"} disabled={busy !== null} onClick={decline} />
           </div>
         )}
         {!resolved && n.type === "squad_invite" && (
           <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-            <Pill label="Join" variant="primary" busy={busy === "join"} onClick={join} />
-            <Pill label="Dismiss" variant="neutral" busy={busy === "dismiss"} onClick={dismiss} />
+            <Pill label="Join" variant="primary" busy={busy === "join"} disabled={busy !== null} onClick={join} />
+            <Pill label="Dismiss" variant="neutral" busy={busy === "dismiss"} disabled={busy !== null} onClick={dismiss} />
           </div>
         )}
         {resolved && (
@@ -427,16 +439,29 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState(false);
   const [toast, setToast] = useState<AppNotification | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const notificationVersion = useRef(0);
+  const loadSequence = useRef(0);
+  const knownNotificationIds = useRef(new Set<string>());
 
   const load = useCallback(async () => {
+    const request = ++loadSequence.current;
+    const version = notificationVersion.current;
     try {
       const res = await api.listNotifications();
+      if (request !== loadSequence.current) return;
+      if (version !== notificationVersion.current) {
+        void load();
+        return;
+      }
+      knownNotificationIds.current = new Set(res.notifications.map((n) => n.id));
+      setLoadError(null);
       setItems(res.notifications);
       setUnread(res.unread);
     } catch {
-      /* offline / not signed in — leave state as-is */
+      setLoadError("Couldn't load notifications. Check your connection.");
     }
   }, []);
 
@@ -446,17 +471,27 @@ export function NotificationBell() {
     const t = setInterval(() => {
       if (!document.hidden) void load();
     }, 45000);
-    return () => clearInterval(t);
+    window.addEventListener("focus", load);
+    return () => {
+      clearInterval(t);
+      window.removeEventListener("focus", load);
+    };
   }, [load]);
 
   // live socket push
   useEffect(() => {
-    return subscribeNotifications((n) => {
-      setItems((prev) => (prev.some((p) => p.id === n.id) ? prev : [n, ...prev]));
-      if (!n.read) setUnread((u) => u + 1);
-      setToast(n);
-    });
-  }, []);
+    return subscribeNotifications(
+      (n) => {
+        if (knownNotificationIds.current.has(n.id)) return;
+        knownNotificationIds.current.add(n.id);
+        notificationVersion.current += 1;
+        setItems((prev) => [n, ...prev]);
+        if (!n.read) setUnread((u) => u + 1);
+        if (notificationPopupsEnabled()) setToast(n);
+      },
+      () => void load(),
+    );
+  }, [load]);
 
   // close on outside click / escape
   useEffect(() => {
@@ -475,48 +510,41 @@ export function NotificationBell() {
     };
   }, [open]);
 
-  const openPanel = useCallback(() => {
-    setOpen(true);
-    setToast(null);
-    setPanelError(null);
-    void (async () => {
-      const previousUnread = unread;
-      const previousItems = items;
-      try {
-        await api.markNotificationsRead();
-        setUnread(0);
-        setItems((prev) => prev.map((p) => ({ ...p, read: true })));
-      } catch {
-        setUnread(previousUnread);
-        setItems(previousItems);
-        setPanelError("Couldn't mark notifications read. Check your connection.");
-      }
-    })();
-  }, [items, unread]);
-
-  const toggle = () => (open ? setOpen(false) : openPanel());
-
-  const markAllRead = async () => {
-    const previousUnread = unread;
-    const previousItems = items;
+  const markAllRead = useCallback(async () => {
+    const version = notificationVersion.current;
     setPanelError(null);
     try {
       await api.markNotificationsRead();
+      if (version !== notificationVersion.current) {
+        void load();
+        return;
+      }
+      notificationVersion.current += 1;
       setUnread(0);
       setItems((prev) => prev.map((p) => ({ ...p, read: true })));
     } catch {
-      setUnread(previousUnread);
-      setItems(previousItems);
       setPanelError("Couldn't mark notifications read. Check your connection.");
     }
-  };
+  }, [load]);
 
-  const onResolveRow = useCallback((id: string) => {
+  const openPanel = useCallback(() => {
+    setOpen(true);
+    setToast(null);
+    void markAllRead();
+  }, [markAllRead]);
+
+  const toggle = () => (open ? setOpen(false) : openPanel());
+
+  const onResolveRow = useCallback((id: string, wasUnread = false) => {
+    notificationVersion.current += 1;
     setItems((prev) => prev.map((p) => (p.id === id ? { ...p, read: true } : p)));
-    setUnread((u) => Math.max(0, u - 1));
+    if (wasUnread) setUnread((u) => Math.max(0, u - 1));
   }, []);
-  const onDismissRow = useCallback((id: string) => {
+  const onDismissRow = useCallback((id: string, wasUnread = false) => {
+    knownNotificationIds.current.delete(id);
+    notificationVersion.current += 1;
     setItems((prev) => prev.filter((p) => p.id !== id));
+    if (wasUnread) setUnread((u) => Math.max(0, u - 1));
   }, []);
 
   const badge = unread > 0 ? (unread > 9 ? "9+" : String(unread)) : null;
@@ -664,7 +692,15 @@ export function NotificationBell() {
                 {panelError}
               </div>
             )}
-            {items.length === 0 ? (
+            {loadError && (
+              <div role="alert" style={{ margin: "6px 8px 8px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, color: "var(--coral)", fontSize: 12, fontWeight: 700 }}>
+                <span>{loadError}</span>
+                <button type="button" onClick={() => void load()} className="gg-focusable" style={{ minHeight: 44, padding: "0 12px", borderRadius: 999, border: "1px solid var(--coral)", background: "transparent", color: "var(--coral)", fontWeight: 700, cursor: "pointer" }}>
+                  Retry
+                </button>
+              </div>
+            )}
+            {items.length === 0 && !loadError ? (
               <div
                 style={{
                   padding: "40px 20px",

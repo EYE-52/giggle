@@ -12,6 +12,10 @@ import { Icon } from "@/components/Icons";
 
 const MAX_CHAT_TEXT_LENGTH = 500;
 
+export type ChatPanelMessage = ChatMessage & {
+  delivery?: "sending" | "delivered" | "failed";
+};
+
 function relTime(ts: number): string {
   const diff = Date.now() - ts;
   if (diff < 0 || diff < 45_000) return "now";
@@ -27,12 +31,18 @@ export function ChatPanel({
   scope,
   onClose,
   title = "Chat",
+  messages: controlledMessages,
+  onSend,
+  onRetry,
 }: {
   scope: ChatScope;
   onClose?: () => void;
   title?: string;
+  messages?: ChatPanelMessage[];
+  onSend?: (text: string) => boolean;
+  onRetry?: (message: ChatPanelMessage) => void;
 }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [localMessages, setLocalMessages] = useState<ChatPanelMessage[]>([]);
   const [input, setInput] = useState("");
   const [sendError, setSendError] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
@@ -41,6 +51,8 @@ export function ChatPanel({
 
   const endRef = useRef<HTMLDivElement | null>(null);
   const myId = session.user?.id;
+  const messages = controlledMessages ?? localMessages;
+  const controlled = controlledMessages !== undefined;
 
   // Only the scope fields we care about for filtering — keeps the effect from
   // re-subscribing on every render when a fresh scope object is passed inline.
@@ -62,9 +74,10 @@ export function ChatPanel({
 
   useEffect(() => {
     joinChat(scope);
+    if (controlled) return;
     const unsub = subscribeChat((msg) => {
       if (!accepts(msg)) return;
-      setMessages((prev) => {
+      setLocalMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev; // de-dupe by id
         return [...prev, msg];
       });
@@ -76,7 +89,7 @@ export function ChatPanel({
     };
     // Re-join / re-subscribe only when the meaningful scope identity changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scopeKind, scopeSquadId, scopeEncounterId, accepts]);
+  }, [scopeKind, scopeSquadId, scopeEncounterId, accepts, controlled]);
 
   // Auto-scroll to bottom whenever messages change.
   useEffect(() => {
@@ -87,10 +100,12 @@ export function ChatPanel({
     const text = input.trim();
     if (!text) return;
     setSendError("");
-    const sent = sendChatMessage(scope, text, {
-      id: session.user?.id ?? "",
-      name: session.user?.name ?? "You",
-    });
+    const sent = onSend
+      ? onSend(text)
+      : sendChatMessage(scope, text, {
+          id: session.user?.id ?? "",
+          name: session.user?.name ?? "You",
+        });
     if (!sent) {
       setSendError("Message not sent. Check your connection and try again.");
       return;
@@ -263,6 +278,29 @@ export function ChatPanel({
                 >
                   {msg.text}
                 </div>
+                {msg.delivery === "sending" && (
+                  <span style={{ color: "var(--text-dim)", fontSize: 11, padding: "0 2px" }}>
+                    Sending…
+                  </span>
+                )}
+                {msg.delivery === "failed" && (
+                  <button
+                    type="button"
+                    onClick={() => onRetry?.(msg)}
+                    style={{
+                      minHeight: 28,
+                      padding: "0 8px",
+                      border: "none",
+                      background: "transparent",
+                      color: "var(--coral)",
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: onRetry ? "pointer" : "default",
+                    }}
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
             );
           })

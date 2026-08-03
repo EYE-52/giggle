@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { completeAgeGate } from './helpers';
 
 test("sign-in explains the handoff and keeps Google primary", async ({ page }, testInfo) => {
   await page.goto("/signin?next=%2Fdiscover&ref=CREW42");
@@ -28,6 +29,7 @@ test("dev sign-in preserves a safe continuation", async ({ page }) => {
   await page.goto("/signin?next=%2Fdiscover");
   await page.getByRole("button", { name: /use dev account/i }).click();
   await expect(page).toHaveURL(/\/discover$/);
+  await completeAgeGate(page);
   await expect(page.getByRole("main")).toBeVisible();
 });
 

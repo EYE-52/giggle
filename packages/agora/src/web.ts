@@ -113,7 +113,7 @@ export function createVideoClient(): VideoClient {
       client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
       client.on("user-published", async (user: any, mediaType: "video" | "audio") => {
-        await client.subscribe(user, mediaType);
+        try { await client.subscribe(user, mediaType); } catch { return; }
         remoteUsers.set(user.uid, user);
         const previous = remoteState.get(user.uid);
         remoteState.set(user.uid, mergeRemoteParticipant(previous, user.uid, {

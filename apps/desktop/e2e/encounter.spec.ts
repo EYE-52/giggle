@@ -1,4 +1,5 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
+import { openProtectedRoute } from './helpers';
 
 test.setTimeout(240_000);
 
@@ -122,18 +123,61 @@ async function openFixture(page: Page, count: number) {
   return { stage, controls };
 }
 
-async function enterQueue(page: Page) {
-  await page.goto("/home", { waitUntil: "domcontentloaded", timeout: 15_000 });
-  const ageGate = page.getByRole("heading", { name: "Confirm your age" });
-  const createSquad = page.getByRole("button", { name: /create squad/i });
-  await expect(ageGate.or(createSquad)).toBeVisible({ timeout: 10_000 });
-  if (await ageGate.isVisible()) {
-    await page.getByRole("combobox", { name: "Birth month" }).selectOption("0");
-    await page.getByRole("combobox", { name: "Birth day" }).selectOption("1");
-    await page.getByRole("combobox", { name: "Birth year" }).selectOption("2000");
-    await page.getByRole("button", { name: "Continue" }).click();
-    await expect(ageGate).toBeHidden({ timeout: 10_000 });
+async function injectSyntheticVideo(frame: Locator, width: number, height: number) {
+  await frame.locator("[data-media-host]").evaluate((host, dimensions) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
+    const context = canvas.getContext("2d");
+    if (context) {
+      context.fillStyle = "#17171d";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = "#6d52ff";
+      context.fillRect(0, 0, canvas.width / 3, canvas.height);
+      context.fillStyle = "#2fe6c8";
+      context.fillRect(canvas.width * 2 / 3, 0, canvas.width / 3, canvas.height);
+    }
+    const video = document.createElement("video");
+    video.poster = canvas.toDataURL("image/png");
+    Object.defineProperty(video, "videoWidth", { configurable: true, value: dimensions.width });
+    Object.defineProperty(video, "videoHeight", { configurable: true, value: dimensions.height });
+    host.replaceChildren(video);
+    video.dispatchEvent(new Event("loadedmetadata"));
+  }, { width, height });
+}
+
+async function expectMediaInsideFrame(frame: Locator) {
+  const geometry = await frame.evaluate(node => {
+    const frameRect = node.getBoundingClientRect();
+    const host = node.querySelector("[data-media-host]");
+    const media = host?.querySelector("video");
+    const hostRect = host?.getBoundingClientRect();
+    const mediaRect = media?.getBoundingClientRect();
+    return {
+      frame: { left: frameRect.left, top: frameRect.top, right: frameRect.right, bottom: frameRect.bottom },
+      host: hostRect && { left: hostRect.left, top: hostRect.top, right: hostRect.right, bottom: hostRect.bottom },
+      media: mediaRect && { left: mediaRect.left, top: mediaRect.top, right: mediaRect.right, bottom: mediaRect.bottom },
+      frameOverflow: getComputedStyle(node).overflow,
+      hostOverflow: host ? getComputedStyle(host).overflow : "missing",
+      objectFit: media ? getComputedStyle(media).objectFit : "missing",
+    };
+  });
+  expect(geometry.frameOverflow).toMatch(/hidden|clip/);
+  expect(geometry.hostOverflow).toMatch(/hidden|clip/);
+  expect(geometry.host).not.toBeNull();
+  expect(geometry.media).not.toBeNull();
+  for (const box of [geometry.host!, geometry.media!]) {
+    expect(box.left).toBeGreaterThanOrEqual(geometry.frame.left - 0.5);
+    expect(box.top).toBeGreaterThanOrEqual(geometry.frame.top - 0.5);
+    expect(box.right).toBeLessThanOrEqual(geometry.frame.right + 0.5);
+    expect(box.bottom).toBeLessThanOrEqual(geometry.frame.bottom + 0.5);
   }
+  return geometry.objectFit;
+}
+
+async function enterQueue(page: Page) {
+  await openProtectedRoute(page, '/home');
+  const createSquad = page.getByRole("button", { name: /create(?: your first)? squad/i });
   await expect(createSquad).toBeVisible({ timeout: 10_000 });
   await createSquad.click();
   await page.waitForURL(/\/lobby\?squad=/, { timeout: 15_000 });
@@ -166,9 +210,9 @@ async function createEncounter(page: Page, browser: Browser) {
   return { opponentContext, opponent };
 }
 
-test("real encounter keeps media and controls usable across resize", async ({ page, browser }, testInfo) => {
+test("real encounter keeps media, chat, and controls usable across resize", async ({ page, browser }, testInfo) => {
   test.skip(!["phone", "desktop"].includes(testInfo.project.name), "One compact and one full call cover the live-media contract");
-  const { opponentContext } = await createEncounter(page, browser);
+  const { opponentContext, opponent } = await createEncounter(page, browser);
   try {
     const stage = page.getByTestId("encounter-stage");
     const controls = page.getByTestId("call-controls");
@@ -189,31 +233,32 @@ test("real encounter keeps media and controls usable across resize", async ({ pa
       expect(box?.width).toBeGreaterThanOrEqual(44);
       expect(box?.height).toBeGreaterThanOrEqual(44);
 
-      const screenshot = await frame.screenshot({ type: "jpeg", quality: 70 });
-      const signal = await page.evaluate(async source => {
-        const image = new Image();
-        image.src = `data:image/jpeg;base64,${source}`;
-        await image.decode();
-        const canvas = document.createElement("canvas");
-        canvas.width = 32;
-        canvas.height = 18;
-        const context = canvas.getContext("2d");
-        if (!context) return { range: 0, litRatio: 0 };
-        context.drawImage(image, 0, 0, canvas.width, canvas.height);
-        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-        let min = 255;
-        let max = 0;
-        let lit = 0;
-        for (let index = 0; index < pixels.length; index += 4) {
-          const luminance = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
-          min = Math.min(min, luminance);
-          max = Math.max(max, luminance);
-          if (luminance > 12) lit += 1;
-        }
-        return { range: max - min, litRatio: lit / (pixels.length / 4) };
-      }, screenshot.toString("base64"));
-      expect(signal.range).toBeGreaterThan(20);
-      expect(signal.litRatio).toBeGreaterThan(0.04);
+      await expect.poll(async () => {
+        const screenshot = await frame.screenshot({ type: "jpeg", quality: 70 });
+        const signal = await page.evaluate(async source => {
+          const image = new Image();
+          image.src = `data:image/jpeg;base64,${source}`;
+          await image.decode();
+          const canvas = document.createElement("canvas");
+          canvas.width = 32;
+          canvas.height = 18;
+          const context = canvas.getContext("2d");
+          if (!context) return { range: 0, litRatio: 0 };
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+          let min = 255;
+          let max = 0;
+          let lit = 0;
+          for (let index = 0; index < pixels.length; index += 4) {
+            const luminance = (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
+            min = Math.min(min, luminance);
+            max = Math.max(max, luminance);
+            if (luminance > 12) lit += 1;
+          }
+          return { range: max - min, litRatio: lit / (pixels.length / 4) };
+        }, screenshot.toString("base64"));
+        return signal.range > 20 && signal.litRatio > 0.04;
+      }, { timeout: 10_000 }).toBe(true);
     }
 
     await expect(stage.locator("[data-layout-kind]")).toBeVisible();
@@ -238,14 +283,27 @@ test("real encounter keeps media and controls usable across resize", async ({ pa
 
     const chat = controls.getByRole("button", { name: "Chat" });
     await chat.click();
-    await expect(page.getByRole("textbox", { name: "Chat message" })).toBeVisible();
+    const chatInput = page.getByRole("textbox", { name: "Chat message" });
+    await expect(chatInput).toBeVisible();
     if (testInfo.project.name === "phone") {
       const chatDialog = page.getByRole("dialog", { name: "Encounter chat" });
       const box = await chatDialog.boundingBox();
       expect(box?.height).toBeLessThanOrEqual((page.viewportSize()?.height ?? 844) * 0.56);
     }
+    const chatText = `hello-${testInfo.project.name}-${Date.now()}`;
+    await chatInput.fill(chatText);
+    await page.getByRole("button", { name: "Send message" }).click();
+    await expect(page.getByText(chatText, { exact: true })).toHaveCount(1);
+
+    await opponent.getByTestId("call-controls").getByRole("button", { name: "Chat" }).click();
+    await expect(opponent.getByText(chatText, { exact: true })).toHaveCount(1);
+    await opponent.getByRole("button", { name: "Close chat" }).click();
+
     await page.getByRole("button", { name: "Close chat" }).click();
     await expect(chat).toBeFocused();
+    await chat.click();
+    await expect(page.getByText(chatText, { exact: true })).toHaveCount(1);
+    await page.getByRole("button", { name: "Close chat" }).click();
 
     const localFrame = frames.filter({ hasText: "(You)" }).first();
     const reactionDuration = page.evaluate(() => new Promise<number>(resolve => {
@@ -321,6 +379,40 @@ test("real encounter keeps media and controls usable across resize", async ({ pa
     await expect(endDialog).toBeVisible();
     await endDialog.getByRole("button", { name: "End encounter" }).click();
     await expect(page).toHaveURL(/\/home$/);
+  } finally {
+    await opponentContext.close();
+  }
+});
+
+test("encounter chat retries a disconnected send without duplication", async ({ page, browser }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "One live desktop call covers transport retry");
+  const { opponentContext, opponent } = await createEncounter(page, browser);
+  try {
+    const chat = page.getByTestId("call-controls").getByRole("button", { name: "Chat" });
+    await chat.click();
+    await opponent.getByTestId("call-controls").getByRole("button", { name: "Chat" }).click();
+    await expect(opponent.getByRole("textbox", { name: "Chat message" })).toBeVisible();
+    const warmupText = `warmup-${Date.now()}`;
+    await page.getByRole("textbox", { name: "Chat message" }).fill(warmupText);
+    await page.getByRole("button", { name: "Send message" }).click();
+    await expect(opponent.getByText(warmupText, { exact: true })).toHaveCount(1);
+    const retryText = `retry-${Date.now()}`;
+    await page.context().setOffline(true);
+    try {
+      await page.getByRole("textbox", { name: "Chat message" }).fill(retryText);
+      await page.getByRole("button", { name: "Send message" }).click();
+      const retry = page.getByRole("button", { name: "Retry", exact: true });
+      await expect(retry).toBeVisible({ timeout: 7_000 });
+
+      await page.context().setOffline(false);
+      await expect.poll(async () => {
+        if (await retry.isVisible()) await retry.click();
+        return opponent.getByText(retryText, { exact: true }).count();
+      }, { timeout: 15_000 }).toBe(1);
+      await expect(page.getByText(retryText, { exact: true })).toHaveCount(1);
+    } finally {
+      await page.context().setOffline(false);
+    }
   } finally {
     await opponentContext.close();
   }
@@ -429,6 +521,41 @@ test("mocked rosters stay usable across the viewport matrix", async ({ page }, t
   }
 });
 
+test("mixed portrait, square, landscape, and ultrawide feeds stay inside their frames", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "One project supplies the complete synthetic media matrix");
+  await installEncounterFixture(page);
+
+  for (const [viewportName, width, height] of [
+    ["phone", 390, 844],
+    ["phone-landscape", 844, 390],
+    ["desktop", 1440, 900],
+  ] as const) {
+    await page.setViewportSize({ width, height });
+    const { stage } = await openFixture(page, 2);
+    const frames = stage.locator("[data-media-frame]");
+    const dimensions = [[1080, 1920], [1080, 1080], [1920, 1080], [2560, 1080]] as const;
+    await expect(frames).toHaveCount(4);
+    for (let index = 0; index < dimensions.length; index += 1) {
+      const [mediaWidth, mediaHeight] = dimensions[index];
+      await injectSyntheticVideo(frames.nth(index), mediaWidth, mediaHeight);
+      await expect(frames.nth(index)).toHaveAttribute("data-media-fit", "fit");
+      expect(await expectMediaInsideFrame(frames.nth(index))).toBe("contain");
+    }
+    await page.screenshot({
+      path: `artifacts/visual-audit/2026-08-02/encounter/mixed-${viewportName}.jpg`,
+      type: "jpeg",
+      quality: 82,
+    });
+  }
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const { stage } = await openFixture(page, 3);
+  const compactFrames = stage.locator('[data-media-frame][data-media-fit="crop"]');
+  expect(await compactFrames.count()).toBeGreaterThan(0);
+  await injectSyntheticVideo(compactFrames.first(), 1080, 1920);
+  expect(await expectMediaInsideFrame(compactFrames.first())).toBe("cover");
+});
+
 test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "One project supplies its own focused visual states");
   await installEncounterFixture(page);
@@ -477,18 +604,36 @@ test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page 
   await endDialog.getByRole("button", { name: "Keep talking" }).click();
   await expect(stage).toBeVisible();
 
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const stageRoot = stage.locator("xpath=ancestor::*[@data-theme='dark'][1]");
-  const stageBackground = await stageRoot.evaluate(node => getComputedStyle(node).backgroundColor);
-  const accents = new Set<string>();
+  const shell = page.getByTestId("encounter-shell");
+  const videoStage = page.getByTestId("video-stage");
+  const header = page.getByTestId("encounter-header");
   for (const theme of ["dark", "light", "tangerine"] as const) {
     await page.evaluate(value => {
       localStorage.setItem("giggle.theme", value);
       document.documentElement.setAttribute("data-theme", value);
     }, theme);
-    await expect.poll(() => stageRoot.evaluate(node => getComputedStyle(node).getPropertyValue("--accent").trim())).not.toBe("");
-    accents.add(await stageRoot.evaluate(node => getComputedStyle(node).getPropertyValue("--accent").trim()));
-    expect(await stageRoot.evaluate(node => getComputedStyle(node).backgroundColor)).toBe(stageBackground);
+    await page.screenshot({
+      path: `artifacts/visual-audit/2026-08-02/encounter/themes/phone-${theme}.jpg`,
+      type: "jpeg",
+      quality: 82,
+    });
+  }
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const stageBackground = await videoStage.evaluate(node => getComputedStyle(node).backgroundColor);
+  const accents = new Set<string>();
+  const shellBackgrounds = new Set<string>();
+  const headerBackgrounds = new Set<string>();
+  for (const theme of ["dark", "light", "tangerine"] as const) {
+    await page.evaluate(value => {
+      localStorage.setItem("giggle.theme", value);
+      document.documentElement.setAttribute("data-theme", value);
+    }, theme);
+    await expect.poll(() => shell.evaluate(node => getComputedStyle(node).getPropertyValue("--accent").trim())).not.toBe("");
+    accents.add(await shell.evaluate(node => getComputedStyle(node).getPropertyValue("--accent").trim()));
+    shellBackgrounds.add(await shell.evaluate(node => getComputedStyle(node).backgroundColor));
+    headerBackgrounds.add(await header.evaluate(node => getComputedStyle(node).backgroundColor));
+    expect(await videoStage.evaluate(node => getComputedStyle(node).backgroundColor)).toBe(stageBackground);
     await page.screenshot({
       path: `artifacts/visual-audit/2026-07-30/encounter/themes/${theme}.jpg`,
       type: "jpeg",
@@ -496,6 +641,9 @@ test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page 
     });
   }
   expect(accents.size).toBe(3);
+  expect(shellBackgrounds.size).toBe(3);
+  expect(headerBackgrounds.size).toBeGreaterThanOrEqual(2);
+  await expect(page.getByText("vs", { exact: true })).toHaveCount(0);
 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.screenshot({

@@ -4,8 +4,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AvatarStack } from "@/components/Avatar";
 import { useViewport } from "@/components/useViewport";
 import { Button } from "@/components/Button";
-import { api, session, resolveCover } from "@giggle/core";
+import { api, ApiError, session, resolveCover } from "@giggle/core";
 import type { EncounterDetail, SquadState } from "@giggle/core";
+
+function isExpiredEncounterError(error: unknown) {
+  return error instanceof ApiError && ["ENCOUNTER_EXPIRED", "ENCOUNTER_ENDED", "ENCOUNTER_NOT_FOUND"].includes(error.code);
+}
 
 function MatchInner() {
   const { isPhone } = useViewport();
@@ -18,13 +22,13 @@ function MatchInner() {
   const [squad, setSquad] = useState<SquadState | null>(null);
   const [loading, setLoading] = useState(true);
   const [handoffError, setHandoffError] = useState<string | null>(null);
+  const [handoffExpired, setHandoffExpired] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
   const [joinPressed, setJoinPressed] = useState(false);
   const [skipping, setSkipping] = useState(false);
-  // Start at 20s (not 30) — the server handoff TTL is shorter than 30s, so a
-  // 30s client countdown lets users click after the ack already expired.
-  const [countdown, setCountdown] = useState(20);
+  const [countdown, setCountdown] = useState(1);
+  const [countdownTotal, setCountdownTotal] = useState(1);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const joinNavTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const expiredNavTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,8 +51,13 @@ function MatchInner() {
     router.push(path);
   };
 
-  // Leader detection — only the squad leader may call the leader-only skip.
-  const myMember = squad?.members.find(m => m.userId === session.user?.id);
+  const encounterMembers = encounter
+    ? (encounter.squadAId === squadId ? encounter.squadAMembers : encounter.squadBMembers)
+    : [];
+  // The encounter roster preserves leader authority if the secondary squad
+  // detail request fails while the handoff itself is still available.
+  const myMember = squad?.members.find(m => m.userId === session.user?.id)
+    ?? encounterMembers.find(m => m.userId === session.user?.id);
   const isLeader = !!myMember && myMember.role === "leader";
   const isLeaderRef = useRef(false);
   useEffect(() => { isLeaderRef.current = isLeader; }, [isLeader]);
@@ -66,22 +75,40 @@ function MatchInner() {
     let cancelled = false;
     setLoading(true);
     setHandoffError(null);
+    setHandoffExpired(false);
     Promise.all([
       api.getEncounter(encId),
       api.getSquad(squadId).catch(() => null),
     ]).then(([encounterData, squadData]) => {
       if (cancelled) return;
+      if (encounterData.status === "active") {
+        navigate(`/encounter?squad=${squadId}&enc=${encId}`);
+        return;
+      }
+      const deadline = Date.parse(encounterData.expiresAt);
+      if (!Number.isFinite(deadline)) throw new Error("Match timing is unavailable. Try again.");
+      const secondsLeft = Math.ceil((deadline - Date.now()) / 1000);
+      if (encounterData.status === "ended" || secondsLeft <= 0) {
+        setHandoffExpired(true);
+        setHandoffError("This match handoff has expired.");
+        setLoading(false);
+        return;
+      }
       setEncounter(encounterData);
       if (squadData) setSquad(squadData);
+      setCountdown(secondsLeft);
+      setCountdownTotal(secondsLeft);
       setLoading(false);
-      // Keep the updater pure — only decrement. Side-effects (skip/navigate) on
-      // expiry are handled in the effect below, never inside a state updater
-      // (calling router.push() during a render-phase updater triggers React's
-      // "setState while rendering a different component" error).
-      tickRef.current = setInterval(() => setCountdown(c => (c <= 0 ? 0 : c - 1)), 1000);
-    }).catch(() => {
+      // Recalculate from the server deadline so background-tab throttling cannot
+      // make the UI claim more handoff time than actually remains.
+      tickRef.current = setInterval(() => {
+        setCountdown(Math.max(0, Math.ceil((deadline - Date.now()) / 1000)));
+      }, 1000);
+    }).catch((error: unknown) => {
       if (cancelled) return;
-      setHandoffError("This match handoff has expired.");
+      const expired = isExpiredEncounterError(error);
+      setHandoffExpired(expired);
+      setHandoffError(expired ? "This match handoff has expired." : error instanceof Error ? error.message : "Couldn't load this match.");
       setLoading(false);
     });
     return () => {
@@ -127,6 +154,7 @@ function MatchInner() {
   async function handleJoin() {
     if (!encId || !squadId || joining) return;
     setActionError(null);
+    setJoinExpired(false);
     // Don't clear the countdown timer yet — only stop it once the ack SUCCEEDS.
     // If the ack fails (e.g. server handoff TTL expired), the countdown's
     // expiry effect still runs as a fallback so the user is never stranded.
@@ -141,16 +169,18 @@ function MatchInner() {
       joinNavTimeoutRef.current = setTimeout(() => {
         navigate(`/encounter?squad=${squadId}&enc=${encId}`);
       }, 520);
-    } catch (e) {
-      // Handoff expired / ack rejected — don't dead-end on a failing button.
-      // Show a clear message and auto-redirect to matchmaking for a fresh match.
-      console.error("ackEncounter failed:", e);
+    } catch (error: unknown) {
       setJoinPressed(false);
-      setJoinExpired(true);
-      clearDeferredNavigation();
-      expiredNavTimeoutRef.current = setTimeout(() => {
-        navigate(`/matchmaking?squad=${squadId}`);
-      }, 1500);
+      setJoining(false);
+      if (isExpiredEncounterError(error)) {
+        setJoinExpired(true);
+        clearDeferredNavigation();
+        expiredNavTimeoutRef.current = setTimeout(() => {
+          navigate(`/matchmaking?squad=${squadId}`);
+        }, 1500);
+        return;
+      }
+      setActionError(error instanceof Error ? error.message : "Couldn't join this encounter yet.");
     }
   }
 
@@ -171,7 +201,9 @@ function MatchInner() {
     navigate(`/matchmaking?squad=${squadId}`);
   }
 
-  const mySquadName = squad?.squadName ?? encounter?.squadAName ?? "Your Squad";
+  const mySquadName = squad?.squadName ?? (encounter
+    ? (encounter.squadAId === squadId ? encounter.squadAName : encounter.squadBName)
+    : "Your Squad");
   const opponentName = encounter
     ? (encounter.squadAId === squadId ? encounter.squadBName : encounter.squadAName)
     : "Finding opponent…";
@@ -182,7 +214,7 @@ function MatchInner() {
     ? (encounter.squadAId === squadId ? encounter.squadBCover : encounter.squadACover)
     : null;
 
-  const myMembers = squad?.members.map(m => m.displayName) ?? [];
+  const myMembers = (squad?.members ?? encounterMembers).map(m => m.displayName);
   const opponentMembers = (encounter
     ? (encounter.squadAId === squadId ? encounter.squadBMembers : encounter.squadAMembers)
     : null
@@ -196,7 +228,7 @@ function MatchInner() {
   // Countdown ring
   const radius = 34;
   const circumference = 2 * Math.PI * radius;
-  const progress = countdown / 20;
+  const progress = countdown / countdownTotal;
 
   if (loading) {
     // Low-fi VS skeleton — two shimmering squad panels with a center VS mark,
@@ -221,10 +253,14 @@ function MatchInner() {
     return (
       <div data-theme="dark" style={{ minHeight: "100%", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
         <div style={{ width: "min(460px, 100%)", textAlign: "center", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-card, 20px)", padding: 24, boxShadow: "var(--shadow-card, var(--elev))" }}>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>Match expired</h1>
+          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>{handoffExpired ? "Match expired" : "Couldn't open match"}</h1>
           <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14 }}>{handoffError ?? "This match is no longer available."}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            <Button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} variant="primary">Find another</Button>
+            {handoffExpired ? (
+              <Button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} variant="primary">Find another</Button>
+            ) : (
+              <Button onClick={() => window.location.reload()} variant="primary">Retry</Button>
+            )}
             <Button onClick={() => router.push("/home")} variant="secondary">Home</Button>
           </div>
         </div>
@@ -458,6 +494,7 @@ function MatchInner() {
             <Button
               onClick={handleJoin}
               loading={joining}
+              disabled={joinExpired}
               variant="primary"
               style={{ width: isPhone ? "100%" : 220 }}
             >

@@ -1,5 +1,13 @@
 const assert = require("node:assert/strict");
+const { readFileSync } = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
+
+test("late web subscriptions cannot become unhandled disconnect errors", () => {
+  const source = readFileSync(path.join(__dirname, "../src/web.ts"), "utf8");
+  const published = source.slice(source.indexOf('client.on("user-published"'), source.indexOf('client.on("user-unpublished"'));
+  assert.match(published, /try\s*{\s*await client\.subscribe\(user, mediaType\);\s*}\s*catch\s*{\s*return;\s*}/);
+});
 
 test("web capture errors distinguish denial from unavailable devices", async () => {
   const { captureErrorKind } = await import("../src/web.ts");

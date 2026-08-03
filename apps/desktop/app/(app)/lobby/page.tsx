@@ -13,7 +13,7 @@ import { Button } from "@/components/Button";
 import { Badge } from "@/components/Badge";
 import { api, connectSocket, SOCKET_EVENTS, session, getMyAvatar, subscribeAvatar, subscribeChat, joinChat, DEFAULT_AVATAR_ID, classifyVibe, tagsAreMature } from "@giggle/core";
 import { coverKind, coverBackground, fallbackGradient } from "@/components/covers";
-import type { SquadState, JoinRequestUser } from "@giggle/core";
+import type { SquadState, SquadMemberState, JoinRequestUser } from "@giggle/core";
 import { createVideoClient } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
@@ -138,6 +138,8 @@ function LobbyInner() {
   const [connTroubleDismissed, setConnTroubleDismissed] = useState(false);
   const [leavingSquad, setLeavingSquad] = useState(false);
   const [leaveMenuOpen, setLeaveMenuOpen] = useState(false);
+  const [memberToRemove, setMemberToRemove] = useState<SquadMemberState | null>(null);
+  const [removingMember, setRemovingMember] = useState(false);
 
   // Cover picker
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
@@ -252,7 +254,6 @@ function LobbyInner() {
 
   // Hover states
   const [inviteHovered, setInviteHovered] = useState(false);
-  const [inviteTileHovered, setInviteTileHovered] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [copyLinkHovered, setCopyLinkHovered] = useState(false);
@@ -262,7 +263,6 @@ function LobbyInner() {
   const [readyHovered, setReadyHovered] = useState(false);
   const [editVibesHovered, setEditVibesHovered] = useState(false);
   const [changeCoverHovered, setChangeCoverHovered] = useState(false);
-  const [boostHovered, setBoostHovered] = useState(false);
   const [copyCodeHovered, setCopyCodeHovered] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [vibeChipHovered, setVibeChipHovered] = useState<string | null>(null);
@@ -520,6 +520,7 @@ function LobbyInner() {
       await api.declineJoinRequest(squadId, userId);
       await Promise.all([fetchJoinRequests(), fetchSquad()]);
     } catch (e) {
+      setReqError("Couldn't decline — try again.");
       console.error("declineJoinRequest failed:", e);
     } finally {
       setReqBusy(null);
@@ -564,16 +565,22 @@ function LobbyInner() {
 
   async function handleReady() {
     if (!squadId) return;
+    const myM = (session.user?.id
+      ? squad?.members.find(m => m.userId === session.user!.id)
+      : undefined) ?? squad?.members[0];
+    const previousReady = myM?.ready ?? false;
+    const nextReady = !previousReady;
+    const setLocalReady = (ready: boolean) => setSquad(current => current ? {
+      ...current,
+      members: current.members.map(member => member.memberId === myM?.memberId ? { ...member, ready } : member),
+    } : current);
     setSettingReady(true);
     setMatchError(null);
+    setLocalReady(nextReady);
     try {
-      const myM = (session.user?.id
-        ? squad?.members.find(m => m.userId === session.user!.id)
-        : undefined) ?? squad?.members[0];
-      const currentReady = myM?.ready ?? false;
-      await api.setReady(squadId, !currentReady);
-      await fetchSquad();
+      await api.setReady(squadId, nextReady);
     } catch (e) {
+      setLocalReady(previousReady);
       setMatchError((e as { message?: string })?.message || "Couldn't update ready status.");
     } finally {
       setSettingReady(false);
@@ -692,6 +699,22 @@ function LobbyInner() {
     }
   }
 
+  async function handleRemoveMember() {
+    if (!squadId || !memberToRemove || removingMember) return;
+    setRemovingMember(true);
+    setMatchError(null);
+    try {
+      await api.kickMember(squadId, memberToRemove.memberId);
+      setMemberToRemove(null);
+      await fetchSquad();
+    } catch (e) {
+      setMatchError((e as { message?: string })?.message || "Couldn't remove that member.");
+      setMemberToRemove(null);
+    } finally {
+      setRemovingMember(false);
+    }
+  }
+
   const readyCount = squad?.members.filter(m => m.ready).length ?? 0;
   const memberCount = squad?.members.length ?? 0;
   // Capacity comes from the backend: 4 free, up to 8 when the leader is premium.
@@ -786,19 +809,15 @@ function LobbyInner() {
     }} />
   );
 
-  // Show real members + a SINGLE "invite a friend" affordance (not a full grid
-  // of empty slots — that looks broken when only 1–2 people are present). Once
-  // the squad is full, no invite tile. Grid sizes to exactly what we render.
+  // Only real members belong in the video grid; Invite stays in the header and
+  // phone info rail so an action never masquerades as a participant.
   const canInvite = memberCount < MAX_SLOTS;
-  const showInviteTile = canInvite && !isNarrow;
-  const emptySlots = showInviteTile ? 1 : 0;
-  const tileCount = Math.max(memberCount + emptySlots, 1);
+  const tileCount = Math.max(memberCount, 1);
   // Scale columns with the squad size so up to 8 tiles stay elegant:
   // 1→1, 2-4→2, 5-6→3, 7-8→4 columns.
   const gridCols = tileCount <= 1 ? 1 : tileCount <= 4 ? 2 : tileCount <= 6 ? 3 : 4;
-  const gridRows = Math.ceil(tileCount / gridCols);
-  // Effective layout (phone caps at 2 cols); rows derived so tiles fill the stage.
-  const effCols = isPhone ? Math.min(gridCols, 2) : gridCols;
+  // On phones, two people stack so faces stay large; 3–4 use a 2-column grid.
+  const effCols = isPhone ? (memberCount <= 2 ? 1 : 2) : gridCols;
   const effRows = Math.ceil(tileCount / effCols);
 
   // Match readiness is gated on ONLINE members only — an offline member who
@@ -1039,6 +1058,20 @@ function LobbyInner() {
                 )}
               </span>
               <Badge tone={member.ready ? "live" : "full"}>{member.ready ? "READY" : "WAIT"}</Badge>
+              {isLeader && !isThisMe && (
+                <button
+                  type="button"
+                  onClick={() => setMemberToRemove(member)}
+                  aria-label={`Remove ${member.displayName} from squad`}
+                  style={{
+                    minHeight: 36, padding: "0 8px", border: "none", borderRadius: 8,
+                    background: "transparent", color: coral, cursor: "pointer",
+                    fontSize: 12, fontWeight: 700, flexShrink: 0,
+                  }}
+                >
+                  Remove
+                </button>
+              )}
             </div>
           );
         })}
@@ -1064,24 +1097,6 @@ function LobbyInner() {
         Invite people
       </button>
 
-      {/* Boost — demoted to a subtle upsell. The lobby's job is to gather the
-          squad and start matching; monetization shouldn't compete with that. */}
-      <button
-        onClick={() => router.push("/premium")}
-        onMouseEnter={() => setBoostHovered(true)}
-        onMouseLeave={() => setBoostHovered(false)}
-        style={{
-          minHeight: 36, padding: "0 6px", border: "none", cursor: "pointer", background: "none",
-          color: boostHovered ? textPrimary : textTertiary,
-          fontSize: 12, fontWeight: 600,
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-          transition: "color .15s ease",
-        }}
-        title="Giggle+ — monthly tokens and cosmetic perks"
-      >
-        <Icon.star size={12} color={boostHovered ? "var(--lime-text)" : "var(--text-dim)"} />
-        Unlock covers &amp; perks with Giggle+
-      </button>
     </div>
   );
 
@@ -1447,8 +1462,8 @@ function LobbyInner() {
             background: "var(--bg)",
             position: "relative",
             padding: isPhone ? "10px 10px 12px" : "24px 24px 16px",
-            minHeight: isPhone ? 320 : 0,
-            overflow: isPhone ? "auto" as const : "hidden" as const,
+            minHeight: isPhone ? "calc(100dvh - 61px)" : 0,
+            overflow: "hidden" as const,
             gap: 0,
           }}>
             {/* STAGE BACKDROP — the squad's own cover, scrimmed hard so it reads
@@ -1563,25 +1578,15 @@ function LobbyInner() {
                 </span>
               </div>
             )}
-            {/* Tile grid — sizes to content (tiles derive height from width via
-                aspect-ratio) and is centered in the stage. We must NOT stretch
-                rows to the full stage height: a tall 1fr row + aspect-ratio tiles
-                forces an enormous min-content width that collapses the columns.
-                Capped tighter than the stage so the cluster reads as a tight
-                group rather than a sprawling, half-empty call. */}
+            {/* Real members own the stage. Invites stay in the header and rail. */}
             <div style={{
               position: "relative",
               zIndex: 1,
               display: "grid",
               gridTemplateColumns: `repeat(${effCols}, minmax(0, 1fr))`,
-              // Phone: auto rows + flexShrink:0 so tiles keep their aspect size and
-              //   the stage SCROLLS (no row-collapse → no overlap).
-              // Desktop: rows divide the stage HEIGHT (1fr) and the grid fills it
-              //   (flex:1); tiles fill their cells so nothing overflows and the
-              //   control bar below always stays on-screen.
-              gridTemplateRows: `repeat(${effRows}, ${isPhone ? "auto" : "minmax(0, 1fr)"})`,
-              ...(isPhone ? { flexShrink: 0 } : { flex: 1 }),
-              gap: 16,
+              gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`,
+              flex: 1,
+              gap: 12,
               width: "100%",
               maxWidth: effCols <= 1 ? 720 : effCols >= 4 ? 1320 : 1180,
               margin: "0 auto",
@@ -1602,8 +1607,7 @@ function LobbyInner() {
                       position: "relative",
                       borderRadius: "var(--radius-tile, 16px)",
                       overflow: "hidden",
-                      // Desktop fills the grid cell; phone uses a fixed aspect ratio.
-                      ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
+                      height: "100%",
                       background: "var(--stage-2, #2A2135)",
                       // Ready = a clean static lime edge, NOT a pulsing glow
                       // frame (the READY badge + Ready button already say it).
@@ -1761,37 +1765,6 @@ function LobbyInner() {
                 );
               })}
 
-              {/* Single "invite a friend" affordance (hidden once squad is full) */}
-              {showInviteTile && (
-                <div
-                  onClick={handleInvite}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleInvite(); }}
-                  onMouseEnter={() => setInviteTileHovered(true)}
-                  onMouseLeave={() => setInviteTileHovered(false)}
-                  style={{
-                    borderRadius: "var(--radius-tile, 16px)",
-                    // Placeholder is a dark "screen" like the video tiles in every theme.
-                    border: `1.5px dashed ${inviteTileHovered ? "var(--accent, var(--violet))" : "rgba(255,255,255,0.12)"}`,
-                    background: inviteTileHovered ? "color-mix(in srgb, var(--accent, var(--violet)) 24%, var(--stage-2, #2A2135))" : "var(--stage-2, #2A2135)",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
-                    boxSizing: "border-box",
-                    width: "100%",
-                    minWidth: 0,
-                    minHeight: 0,
-                    cursor: "pointer",
-                    ...(isPhone ? { aspectRatio: "4 / 3" } : { height: "100%" }),
-                    transition: "all .15s ease",
-                    animation: `tileIn 0.35s ease ${memberCount * 0.06}s forwards`,
-                  }}
-                >
-                  <Icon.plus size={22} color={inviteTileHovered ? "var(--accent, var(--violet))" : "#9A9AB0"} />
-                  <div style={{ fontSize: 13, fontWeight: 600, color: inviteTileHovered ? "var(--accent, var(--violet))" : "#9A9AB0" }}>Invite a friend</div>
-                  <div style={{ fontSize: 12, color: "#7B7B90" }}>{MAX_SLOTS - memberCount} {MAX_SLOTS - memberCount === 1 ? "spot" : "spots"} open</div>
-                </div>
-              )}
-
             </div>
 
             {/* ── READINESS CONTROLS ──
@@ -1811,12 +1784,14 @@ function LobbyInner() {
               opacity: 0,
               boxShadow: isPhone ? "none" : "0 8px 32px rgba(0,0,0,0.4)",
               flexShrink: 0,
-              flexWrap: "wrap" as const,
+              flexWrap: isPhone && !videoJoined ? "wrap" as const : "nowrap" as const,
               position: "relative" as const,
               bottom: undefined,
               left: undefined,
               transform: undefined,
+              width: isPhone ? "100%" : undefined,
               maxWidth: isPhone ? "calc(100vw - 24px)" : undefined,
+              boxSizing: "border-box" as const,
               zIndex: 1,
             }}>
               {videoJoined ? (
@@ -1893,6 +1868,7 @@ function LobbyInner() {
                 onMouseLeave={() => setReadyHovered(false)}
                 title="Toggle ready"
                 aria-pressed={myReady}
+                aria-busy={settingReady}
                 className="gg-press"
                 style={{
                   height: isPhone ? 44 : 50, borderRadius: "var(--radius-btn, 999px)", border: "none", cursor: "pointer",
@@ -1910,7 +1886,7 @@ function LobbyInner() {
                   whiteSpace: "nowrap" as const,
                 }}
               >
-                {settingReady ? "…" : myReady ? "✓ Ready" : "Mark ready"}
+                {myReady ? "✓ Ready" : "Mark ready"}
               </button>
 
               {/* Find a Match (leader only) */}
@@ -1926,7 +1902,7 @@ function LobbyInner() {
                     style={{
                       height: isPhone ? 44 : 50,
                       minWidth: isPhone ? 0 : 162,
-                      flex: isPhone ? "1 0 100%" : undefined,
+                      flex: isPhone ? 1 : undefined,
                     }}
                   >
                     {allReady && !findingMatch && <Icon.discover size={18} color="var(--on-accent, #fff)" />}
@@ -2213,6 +2189,22 @@ function LobbyInner() {
       </div>
 
       {/* ── MODALS ── */}
+      {memberToRemove && (
+        <Modal
+          onClose={() => { if (!removingMember) setMemberToRemove(null); }}
+          title={`Remove ${memberToRemove.displayName}?`}
+          ariaLabel={`Remove ${memberToRemove.displayName} from squad`}
+          width={400}
+        >
+          <p style={{ margin: "0 0 16px", fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5 }}>
+            They will leave this squad. You can invite them again later.
+          </p>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <Button variant="ghost" disabled={removingMember} onClick={() => setMemberToRemove(null)}>Cancel</Button>
+            <Button variant="danger" loading={removingMember} onClick={handleRemoveMember}>Remove member</Button>
+          </div>
+        </Modal>
+      )}
       {leaveMenuOpen && (
         <Modal
           onClose={() => { if (!leavingSquad) setLeaveMenuOpen(false); }}

@@ -196,6 +196,9 @@ const init = (server) => {
 
   io.on('connection', (socket) => {
     logRealtimeDebug('New client connected:', socket.id);
+    // ponytail: per-socket retry cache; use a shared TTL store only if retries
+    // must remain idempotent after reconnecting to another server instance.
+    const sentChatMessages = new Map();
 
     // Track online presence for authenticated sockets.
     let presenceHeartbeat = null;
@@ -246,18 +249,29 @@ const init = (server) => {
       }
     });
 
-    socket.on('send_message', ({ encounterId, text, senderName, senderId, squadId } = {}) => {
-      if (!chatLimiter.allow(socket.id)) return;
-      if (IS_PROD && !socket.userId) return;
+    socket.on('send_message', ({ encounterId, text, senderName, senderId, squadId, clientMessageId } = {}, ack) => {
+      const reply = typeof ack === 'function' ? ack : () => {};
+      if (!chatLimiter.allow(socket.id)) return reply({ ok: false, error: 'Too many messages. Try again in a moment.' });
+      if (IS_PROD && !socket.userId) return reply({ ok: false, error: 'Sign in again to send.' });
       const normalizedText = normalizeChatText(text);
-      if (!normalizedText || normalizedText.length > MAX_CHAT_TEXT_LENGTH) return;
+      if (!normalizedText || normalizedText.length > MAX_CHAT_TEXT_LENGTH) {
+        return reply({ ok: false, error: 'Write a message up to 500 characters.' });
+      }
 
       const normalizedEncounterId = normalizeRealtimeId(encounterId);
       const normalizedSquadId = normalizeRealtimeId(squadId);
+      const normalizedClientMessageId = normalizeRealtimeId(clientMessageId);
       const room = normalizedEncounterId
         ? `encounter_${normalizedEncounterId}`
         : (normalizedSquadId ? `squad_${normalizedSquadId}` : null);
-      if (!room || !socket.rooms.has(room)) return;
+      if (!room || !socket.rooms.has(room)) {
+        return reply({ ok: false, error: 'You are no longer in this chat.' });
+      }
+
+      const previousMessage = normalizedClientMessageId
+        ? sentChatMessages.get(normalizedClientMessageId)
+        : null;
+      if (previousMessage) return reply({ ok: true, message: previousMessage });
 
       const ts = Date.now();
       // Derive the sender from the authenticated socket when available; fall
@@ -269,12 +283,19 @@ const init = (server) => {
         text: normalizedText,
         senderName: resolvedSenderName,
         senderId: resolvedSenderId,
+        clientMessageId: normalizedClientMessageId || undefined,
+        encounterId: normalizedEncounterId || undefined,
         squadId: normalizedSquadId || undefined,
         ts,
         timestamp: new Date(ts).toISOString(),
       };
 
+      if (normalizedClientMessageId) {
+        if (sentChatMessages.size >= 200) sentChatMessages.delete(sentChatMessages.keys().next().value);
+        sentChatMessages.set(normalizedClientMessageId, message);
+      }
       io.to(room).emit('new_message', message);
+      reply({ ok: true, message });
     });
 
     socket.on('send_reaction', ({ encounterId, squadId, emoji }) => {

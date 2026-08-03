@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const { getOnlineUserIds } = require("../services/socketService");
-const { createNotification } = require("../models/Notification");
+const { createNotification, deleteNotifications } = require("../models/Notification");
 const { firstDisplayName } = require("../utils/identityValidation");
 
 // ── helpers ──────────────────────────────────────────────────────────────
@@ -131,6 +131,7 @@ const sendRequest = async (req, res) => {
           }
         ),
       ]);
+      await deleteNotifications({ userId: myId, type: "friend_request", fromUserId: targetId });
       return res.json({ ok: true, data: { status: "friends" } });
     }
 
@@ -190,6 +191,7 @@ const acceptRequest = async (req, res) => {
         }
       ),
     ]);
+    await deleteNotifications({ userId: myId, type: "friend_request", fromUserId: targetId });
     return res.json({ ok: true, data: { status: "friends" } });
   } catch (e) {
     console.error("[friends] acceptRequest error:", e);
@@ -217,6 +219,7 @@ const declineRequest = async (req, res) => {
       User.updateOne({ _id: myId }, { $pull: { friendRequestsIncoming: targetId } }),
       User.updateOne({ _id: targetId }, { $pull: { friendRequestsOutgoing: myId } }),
     ]);
+    await deleteNotifications({ userId: myId, type: "friend_request", fromUserId: targetId });
     return res.json({ ok: true, data: { status: "declined" } });
   } catch (e) {
     console.error("[friends] declineRequest error:", e);

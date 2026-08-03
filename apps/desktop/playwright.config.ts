@@ -14,15 +14,18 @@ export default defineConfig({
   outputDir: "artifacts/playwright-results",
   snapshotPathTemplate: "artifacts/playwright-snapshots/{testFilePath}/{arg}-{projectName}{ext}",
   use: {
-    baseURL: "http://localhost:4000",
+    baseURL: "http://localhost:4011",
+    launchOptions: {
+      args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
+    },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
     video: "retain-on-failure",
   },
   webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:4000",
-    reuseExistingServer: true,
+    command: "pnpm exec next dev -p 4011",
+    url: "http://localhost:4011",
+    reuseExistingServer: false,
     timeout: 120_000,
   },
   projects: Object.entries(viewports).map(([name, viewport]) => ({

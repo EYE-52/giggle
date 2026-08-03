@@ -231,12 +231,19 @@ export const session = {
    * reload. Throws (ApiError) on failure — callers surface the message.
    */
   async setAge(birthDate: string) {
-    const res = await api.setAge(birthDate);
-    if (user) {
-      user = { ...user, isAdult: res.isAdult, ageConfirmed: res.ageConfirmed };
-      persist();
+    try {
+      const res = await api.setAge(birthDate);
+      if (user) {
+        user = { ...user, isAdult: res.isAdult, ageConfirmed: res.ageConfirmed };
+        persist();
+      }
+      return res;
+    } catch (error) {
+      if ((error as { code?: string })?.code !== "AGE_ALREADY_CONFIRMED") throw error;
+      const confirmed = await session.syncAgeFromServer();
+      if (!confirmed) throw error;
+      return { isAdult: session.isAdult, ageConfirmed: true };
     }
-    return res;
   },
   /**
    * Reconcile the age gates against the server (source of truth in Mongo).

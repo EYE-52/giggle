@@ -30,16 +30,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     async function ensureSession() {
       if (session.isAuthed()) {
+        let confirmed = session.ageConfirmed;
+        // Resolve legacy/stale tokens while the opening state is still visible;
+        // otherwise a confirmed user briefly sees a false age gate.
+        if (!confirmed) confirmed = await session.syncAgeFromServer();
         if (!cancelled) {
-          setAgeConfirmed(session.ageConfirmed);
+          setAgeConfirmed(confirmed);
           setAuthReady(true);
-        }
-        // Self-heal a stale token: if the token predates embedded age flags,
-        // confirm against the server before showing the gate to an already-
-        // attested user. Only bother when the local view says "not confirmed".
-        if (!session.ageConfirmed) {
-          const confirmed = await session.syncAgeFromServer();
-          if (!cancelled && confirmed) setAgeConfirmed(true);
         }
         return;
       }
@@ -118,7 +115,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main
         id="main-content"
         tabIndex={-1}
-        className="gg-app-main"
+        className={`gg-app-main${isCalling ? " gg-app-main--calling" : ""}`}
         style={
           isCalling
             ? {

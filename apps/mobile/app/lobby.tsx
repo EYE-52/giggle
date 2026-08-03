@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, useWindowDimensions,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Share, useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,7 +19,6 @@ import type { VideoClient } from '@giggle/agora';
 const CURATED_VIBES = ['Gaming', 'Music', 'Chill', 'Comedy', 'Deep Talks', 'Late Night', 'Sports', 'Art', 'Study', 'Hype', 'Fitness', 'Foodies'];
 
 const TILE_GAP = 10;
-const TILE_COLS = 2;
 
 export default function LobbyScreen() {
   const router = useRouter();
@@ -28,18 +27,22 @@ export default function LobbyScreen() {
   const squadId = typeof params.squad === 'string' ? params.squad : undefined;
 
   const [squad, setSquad] = useState<SquadState | null>(null);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
+  const [micOn, setMicOn] = useState(false);
+  const [camOn, setCamOn] = useState(false);
   const [vibeModalVisible, setVibeModalVisible] = useState(false);
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
   const [isPrivate, setIsPrivate] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [videoJoining, setVideoJoining] = useState(false);
+  const [stageHeight, setStageHeight] = useState(0);
   const [videoError, setVideoError] = useState('');
   const [squadError, setSquadError] = useState('');
   const [readying, setReadying] = useState(false);
   const [finding, setFinding] = useState(false);
   const [matchError, setMatchError] = useState('');
   const vcRef = useRef<VideoClient | null>(null);
+  const videoAttemptRef = useRef(0);
+  const videoPresenceRef = useRef(false);
 
   const myUserId = session.user?.id;
 
@@ -61,21 +64,6 @@ export default function LobbyScreen() {
 
     let cleanupSocket: (() => void) | undefined;
 
-    (async () => {
-      try {
-        setVideoError('');
-        await api.setLobbyVideo(squadId, true);
-        const token = await api.lobbyToken(squadId);
-        const vc = createVideoClient();
-        vcRef.current = vc;
-        await vc.join(token, { audio: true, video: true });
-        setVideoReady(true);
-      } catch (e: any) {
-        setVideoReady(false);
-        setVideoError(e?.message || "Couldn't join lobby video.");
-      }
-    })();
-
     try {
       const sock = connectSocket(squadId);
       const onUpdate = () => refetch();
@@ -85,8 +73,13 @@ export default function LobbyScreen() {
 
     return () => {
       cleanupSocket?.();
-      try { vcRef.current?.leave(); } catch {}
+      videoAttemptRef.current += 1;
+      try { void vcRef.current?.leave(); } catch {}
       vcRef.current = null;
+      if (videoPresenceRef.current) {
+        videoPresenceRef.current = false;
+        void api.setLobbyVideo(squadId, false).catch(() => {});
+      }
     };
   }, [squadId, refetch]);
 
@@ -95,6 +88,48 @@ export default function LobbyScreen() {
   const isLeader = squad ? squad.leaderMemberId === myMember?.memberId : false;
 
   const displayMembers = members;
+  const activeMembers = displayMembers.filter((member) => member.online !== false);
+  const everyoneReady = activeMembers.length > 0 && activeMembers.every((member) => member.ready);
+  const everyoneInVideo = activeMembers.length > 0 && activeMembers.every((member) =>
+    member.userId === myUserId ? videoReady || member.inLobbyVideo : member.inLobbyVideo
+  );
+
+  async function startVideo() {
+    if (!squadId || videoJoining || videoReady) return;
+    const attempt = ++videoAttemptRef.current;
+    let vc: VideoClient | null = null;
+    setVideoJoining(true);
+    setVideoError('');
+    try {
+      const token = await api.lobbyToken(squadId);
+      if (attempt !== videoAttemptRef.current) return;
+      vc = createVideoClient();
+      vcRef.current = vc;
+      await vc.join(token, { audio: true, video: true });
+      if (attempt !== videoAttemptRef.current) {
+        await vc.leave();
+        return;
+      }
+      await api.setLobbyVideo(squadId, true);
+      if (attempt !== videoAttemptRef.current) {
+        await api.setLobbyVideo(squadId, false).catch(() => {});
+        await vc.leave();
+        return;
+      }
+      videoPresenceRef.current = true;
+      setMicOn(true);
+      setCamOn(true);
+      setVideoReady(true);
+    } catch (e: any) {
+      if (attempt !== videoAttemptRef.current) return;
+      try { await vc?.leave(); } catch {}
+      vcRef.current = null;
+      setVideoReady(false);
+      setVideoError(e?.message || "Couldn't join lobby video.");
+    } finally {
+      if (attempt === videoAttemptRef.current) setVideoJoining(false);
+    }
+  }
 
   async function handleMicToggle() {
     const previous = micOn;
@@ -140,12 +175,19 @@ export default function LobbyScreen() {
 
   async function toggleReady() {
     if (!squadId || !myMember || readying) return;
+    const previousReady = myMember.ready;
+    const nextReady = !previousReady;
+    const setLocalReady = (ready: boolean) => setSquad((current) => current ? {
+      ...current,
+      members: current.members.map((member) => member.memberId === myMember.memberId ? { ...member, ready } : member),
+    } : current);
     setReadying(true);
     setMatchError('');
+    setLocalReady(nextReady);
     try {
-      await api.setReady(squadId, !myMember.ready);
-      await refetch();
+      await api.setReady(squadId, nextReady);
     } catch (e: any) {
+      setLocalReady(previousReady);
       setMatchError(e?.message || "Couldn't update ready status.");
     } finally {
       setReadying(false);
@@ -154,6 +196,14 @@ export default function LobbyScreen() {
 
   async function findMatch() {
     if (!squadId || finding) return;
+    if (!everyoneReady) {
+      setMatchError('Everyone online needs to be ready before you find a match.');
+      return;
+    }
+    if (!everyoneInVideo) {
+      setMatchError('Everyone online needs to join lobby video before you find a match.');
+      return;
+    }
     setFinding(true);
     setMatchError('');
     try {
@@ -199,12 +249,61 @@ export default function LobbyScreen() {
     router.push('/home');
   }
 
+  async function shareInvite() {
+    if (!squad?.squadCode) return;
+    setMatchError('');
+    try {
+      await Share.share({ message: `Join my Giggle squad with code ${squad.squadCode}.` });
+    } catch {
+      setMatchError("Couldn't open sharing. Please try again.");
+    }
+  }
+
+  if (!squadId) {
+    return (
+      <Screen>
+        <View style={styles.missingState}>
+          <Text style={styles.squadStateTitle}>No squad selected</Text>
+          <Text style={styles.squadStateText}>Open a squad from Home before entering its lobby.</Text>
+          <View style={styles.missingActions}>
+            <Button label="Back to home" onPress={() => router.replace('/home')} style={styles.missingButton} />
+          </View>
+        </View>
+      </Screen>
+    );
+  }
+
+  if (!squad) {
+    return (
+      <Screen>
+        <View style={styles.missingState}>
+          <Text style={styles.squadStateTitle}>{squadError ? 'Squad unavailable' : 'Loading squad'}</Text>
+          <Text style={styles.squadStateText}>
+            {squadError || 'Pulling in the real squad roster before opening the lobby.'}
+          </Text>
+          {squadError ? (
+            <View style={styles.missingActions}>
+              <Button label="Try again" onPress={() => void refetch()} style={styles.missingButton} />
+              <Button label="Back to home" onPress={() => router.replace('/home')} variant="outline" style={styles.missingButton} />
+            </View>
+          ) : null}
+        </View>
+      </Screen>
+    );
+  }
+
   const currentVibes = squad?.tags ?? selectedVibes;
   const allReadyCount = displayMembers.filter((m) => m.ready).length;
   const visibilityValue = isPrivate ? 'Private' : 'Open';
   const gridWidth = Math.min(width, 760);
-  const tileW = (gridWidth - SPACE.lg * 2 - TILE_GAP * (TILE_COLS - 1)) / TILE_COLS;
-  const tileH = tileW * (9 / 16);
+  const tileCount = Math.max(displayMembers.length, 1);
+  const tileCols = width < 600
+    ? (tileCount <= 2 ? 1 : 2)
+    : (tileCount <= 2 ? tileCount : tileCount <= 4 ? 2 : 3);
+  const tileRows = Math.ceil(tileCount / tileCols);
+  const tileW = (gridWidth - SPACE.lg * 2 - TILE_GAP * (tileCols - 1)) / tileCols;
+  const usableStageHeight = Math.max(140, stageHeight - SPACE.lg * 2);
+  const tileH = Math.max(140, (usableStageHeight - TILE_GAP * (tileRows - 1)) / tileRows);
 
   return (
     <Screen style={styles.screen}>
@@ -216,25 +315,34 @@ export default function LobbyScreen() {
             <View style={styles.codeChip}>
               <Text style={styles.codeText}>{squad?.squadCode ?? '—'}</Text>
             </View>
-            {currentVibes.length > 0 && (
-              <View style={styles.vibePreview}>
+            {isLeader ? (
+              <TouchableOpacity
+                onPress={() => { setSelectedVibes(squad?.tags ?? []); setVibeModalVisible(true); }}
+                style={styles.vibePreview}
+                accessibilityRole="button"
+                accessibilityLabel="Edit vibes"
+              >
                 <Text style={styles.vibePreviewText} numberOfLines={1}>
-                  {currentVibes.slice(0, 2).join(' · ')}
+                  {currentVibes.length ? currentVibes.slice(0, 2).join(' · ') : '+ Vibes'}
                 </Text>
+              </TouchableOpacity>
+            ) : currentVibes.length > 0 ? (
+              <View style={styles.vibePreview}>
+                <Text style={styles.vibePreviewText} numberOfLines={1}>{currentVibes.slice(0, 2).join(' · ')}</Text>
               </View>
-            )}
+            ) : null}
           </View>
         </View>
         <View style={styles.headerActions}>
-          {isLeader && (
-            <TouchableOpacity
-              onPress={() => { setSelectedVibes(squad?.tags ?? []); setVibeModalVisible(true); }}
-              style={styles.headerBtn}
-            >
-              <Text style={styles.headerBtnText}>Edit vibes</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={leave} style={[styles.headerBtn, styles.headerBtnRed]}>
+          <TouchableOpacity
+            onPress={() => void shareInvite()}
+            style={styles.headerBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Invite friends"
+          >
+            <Text style={styles.headerBtnText}>Invite</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={leave} style={[styles.headerBtn, styles.headerBtnRed]} accessibilityRole="button" accessibilityLabel="Leave squad">
             <Text style={styles.headerBtnTextRed}>Leave</Text>
           </TouchableOpacity>
         </View>
@@ -272,14 +380,17 @@ export default function LobbyScreen() {
         </View>
       ) : null}
 
-      {/* ── 16:9 Video stage ── */}
-      <ScrollView style={styles.gridScroll} contentContainerStyle={styles.gridContent} showsVerticalScrollIndicator={false}>
-        {!squad ? (
+      {/* ── People-only video stage ── */}
+      <ScrollView
+        style={styles.gridScroll}
+        contentContainerStyle={styles.gridContent}
+        showsVerticalScrollIndicator={false}
+        onLayout={({ nativeEvent }) => setStageHeight(nativeEvent.layout.height)}
+      >
+        {displayMembers.length === 0 ? (
           <View style={styles.squadState}>
-            <Text style={styles.squadStateTitle}>{squadError ? 'Squad unavailable' : 'Loading squad'}</Text>
-            <Text style={styles.squadStateText}>
-              {squadError || 'Pulling in the real squad roster before opening the lobby.'}
-            </Text>
+            <Text style={styles.squadStateTitle}>Lobby empty</Text>
+            <Text style={styles.squadStateText}>Invite someone to start this lobby.</Text>
           </View>
         ) : (
         <View style={styles.grid}>
@@ -296,7 +407,7 @@ export default function LobbyScreen() {
                   {isMe && camOn && videoReady ? (
                     <RtcSurface style={styles.tileVideo} canvas={{ uid: 0 }} />
                   ) : (
-                    <Avatar name={m.displayName} size={44} colorIndex={i} />
+                    <Avatar name={m.displayName} size={tileCount === 1 ? 72 : 44} colorIndex={i} />
                   )}
                 </LinearGradient>
 
@@ -322,14 +433,6 @@ export default function LobbyScreen() {
               </View>
             );
           })}
-
-          {/* Empty "Invite" 16:9 slots */}
-          {Array.from({ length: Math.max(0, 4 - displayMembers.length) }).map((_, idx) => (
-            <View key={`empty-${idx}`} style={[styles.tile, { width: tileW, height: tileH }, styles.emptyTile]}>
-              <Text style={styles.emptyPlus}>+</Text>
-              <Text style={styles.emptyLabel}>Invite</Text>
-            </View>
-          ))}
         </View>
         )}
       </ScrollView>
@@ -349,6 +452,8 @@ export default function LobbyScreen() {
                     onPress={() => toggleVibeSelection(v)}
                     style={[styles.modalChip, active && styles.modalChipActive]}
                     activeOpacity={0.75}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
                   >
                     <Text style={[styles.modalChipText, active && styles.modalChipTextActive]}>{v}</Text>
                   </TouchableOpacity>
@@ -365,36 +470,64 @@ export default function LobbyScreen() {
       {/* ── Bottom control row (round buttons) ── */}
       <View style={styles.dock}>
         <View style={styles.controlRow}>
-          {/* Mic */}
-          <View style={styles.ctrlWrap}>
-            <TouchableOpacity
-              onPress={handleMicToggle}
-              style={[styles.ctrlBtn, !micOn && styles.ctrlBtnOff]}
-              activeOpacity={0.75}
-            >
-              <Icon.mic size={20} color={micOn ? COLORS.text : COLORS.coral} />
-            </TouchableOpacity>
-            <Text style={styles.ctrlLabel}>{micOn ? 'Mic' : 'Muted'}</Text>
-          </View>
+          {videoReady ? (
+            <>
+              {/* Mic */}
+              <View style={styles.ctrlWrap}>
+                <TouchableOpacity
+                  onPress={handleMicToggle}
+                  style={[styles.ctrlBtn, !micOn && styles.ctrlBtnOff]}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={micOn ? 'Mute microphone' : 'Unmute microphone'}
+                >
+                  <Icon.mic size={20} color={micOn ? COLORS.text : COLORS.coral} />
+                </TouchableOpacity>
+                <Text style={styles.ctrlLabel}>{micOn ? 'Mic' : 'Muted'}</Text>
+              </View>
 
-          {/* Cam */}
-          <View style={styles.ctrlWrap}>
-            <TouchableOpacity
-              onPress={handleCamToggle}
-              style={[styles.ctrlBtn, !camOn && styles.ctrlBtnOff]}
-              activeOpacity={0.75}
-            >
-              <Icon.cam size={20} color={camOn ? COLORS.text : COLORS.coral} />
-            </TouchableOpacity>
-            <Text style={styles.ctrlLabel}>{camOn ? 'Cam' : 'Off'}</Text>
-          </View>
+              {/* Cam */}
+              <View style={styles.ctrlWrap}>
+                <TouchableOpacity
+                  onPress={handleCamToggle}
+                  style={[styles.ctrlBtn, !camOn && styles.ctrlBtnOff]}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={camOn ? 'Turn camera off' : 'Turn camera on'}
+                >
+                  <Icon.cam size={20} color={camOn ? COLORS.text : COLORS.coral} />
+                </TouchableOpacity>
+                <Text style={styles.ctrlLabel}>{camOn ? 'Cam' : 'Off'}</Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.ctrlWrap}>
+              <TouchableOpacity
+                onPress={() => void startVideo()}
+                style={[styles.ctrlBtn, styles.ctrlBtnFind, videoJoining && styles.ctrlBtnDisabled]}
+                activeOpacity={0.75}
+                disabled={videoJoining}
+                accessibilityRole="button"
+                accessibilityLabel="Enable camera and microphone"
+              >
+                {videoJoining
+                  ? <Text style={styles.ctrlBtnInnerText}>…</Text>
+                  : <Icon.cam size={20} color="#fff" />
+                }
+              </TouchableOpacity>
+              <Text style={styles.ctrlLabel}>{videoJoining ? 'Enabling…' : 'Enable video'}</Text>
+            </View>
+          )}
 
           {/* Ready — everyone, including leader */}
           <View style={styles.ctrlWrap}>
             <TouchableOpacity
               onPress={toggleReady}
-              style={[styles.ctrlBtn, myMember?.ready && styles.ctrlBtnReady]}
+              style={[styles.ctrlBtn, myMember?.ready && styles.ctrlBtnReady, (!myMember || readying) && styles.ctrlBtnDisabled]}
               activeOpacity={0.75}
+              disabled={!myMember || readying}
+              accessibilityRole="button"
+              accessibilityLabel={myMember?.ready ? 'Mark not ready' : 'Mark ready'}
             >
               {readying
                 ? <Text style={styles.ctrlBtnInnerText}>…</Text>
@@ -409,8 +542,11 @@ export default function LobbyScreen() {
             <View style={styles.ctrlWrap}>
               <TouchableOpacity
                 onPress={findMatch}
-                style={[styles.ctrlBtn, styles.ctrlBtnFind]}
+                style={[styles.ctrlBtn, styles.ctrlBtnFind, (!everyoneReady || !everyoneInVideo || finding) && styles.ctrlBtnDisabled]}
                 activeOpacity={0.75}
+                disabled={!everyoneReady || !everyoneInVideo || finding}
+                accessibilityRole="button"
+                accessibilityLabel="Find a match"
               >
                 {finding
                   ? <Text style={styles.ctrlBtnInnerText}>…</Text>
@@ -421,31 +557,6 @@ export default function LobbyScreen() {
             </View>
           )}
 
-          {/* Boost (leader only) */}
-          {isLeader && (
-            <View style={styles.ctrlWrap}>
-              <TouchableOpacity
-                onPress={() => router.push('/premium')}
-                style={[styles.ctrlBtn, styles.ctrlBtnBoost]}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.boostIcon}>✦</Text>
-              </TouchableOpacity>
-              <Text style={styles.ctrlLabel}>Boost</Text>
-            </View>
-          )}
-
-          {/* Leave */}
-          <View style={styles.ctrlWrap}>
-            <TouchableOpacity
-              onPress={leave}
-              style={[styles.ctrlBtn, styles.ctrlBtnEnd]}
-              activeOpacity={0.75}
-            >
-              <Icon.close size={18} color="#fff" />
-            </TouchableOpacity>
-            <Text style={styles.ctrlLabel}>Leave</Text>
-          </View>
         </View>
       </View>
     </Screen>
@@ -481,6 +592,8 @@ const styles = StyleSheet.create({
   vibePreview: {
     backgroundColor: 'rgba(124,92,255,0.1)',
     borderRadius: 999,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: 2,
     paddingHorizontal: 10,
     borderWidth: 1,
@@ -490,6 +603,8 @@ const styles = StyleSheet.create({
   vibePreviewText: { fontSize: 11, color: COLORS.violet, fontWeight: '600' },
   headerActions: { flexDirection: 'row', gap: 8 },
   headerBtn: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 999,
@@ -544,7 +659,7 @@ const styles = StyleSheet.create({
   videoErrorTitle: { color: COLORS.coral, fontSize: 12, fontWeight: '900' },
   videoErrorText: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17, marginTop: 2 },
 
-  // ── 16:9 tile grid ──
+  // ── People-only adaptive tile grid ──
   gridScroll: { flex: 1 },
   gridContent: { padding: SPACE.lg, flexGrow: 1, width: '100%', maxWidth: 760, alignSelf: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: TILE_GAP },
@@ -558,6 +673,15 @@ const styles = StyleSheet.create({
   },
   squadStateTitle: { color: COLORS.text, fontSize: 18, fontWeight: '900', textAlign: 'center' },
   squadStateText: { color: COLORS.textMuted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
+  missingState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    padding: SPACE.xl,
+  },
+  missingActions: { width: '100%', gap: SPACE.sm, marginTop: SPACE.sm },
+  missingButton: { width: '100%' },
 
   tile: {
     borderRadius: 14,
@@ -619,18 +743,6 @@ const styles = StyleSheet.create({
   },
   readyBadgeText: { fontSize: 10, fontWeight: '800', color: '#0B0B0F' },
 
-  // Empty invite slot
-  emptyTile: {
-    borderStyle: 'dashed',
-    borderColor: 'rgba(124,92,255,0.3)',
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  emptyPlus: { fontSize: 24, fontWeight: '300', color: 'rgba(124,92,255,0.5)' },
-  emptyLabel: { fontSize: 12, fontWeight: '600', color: COLORS.textDim },
-
   // ── Modal ──
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
   modalSheet: {
@@ -643,7 +755,7 @@ const styles = StyleSheet.create({
   modalSub: { fontSize: 14, color: COLORS.textMuted, marginBottom: SPACE.lg },
   modalChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: SPACE.md },
   modalChip: {
-    paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999,
+    minHeight: 44, justifyContent: 'center', paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999,
     backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
   },
   modalChipActive: { backgroundColor: 'rgba(124,92,255,0.18)', borderColor: COLORS.violet },
@@ -679,9 +791,7 @@ const styles = StyleSheet.create({
   ctrlBtnOff: { backgroundColor: 'rgba(255,92,92,0.12)', borderColor: COLORS.coral },
   ctrlBtnReady: { backgroundColor: 'rgba(194,255,61,0.12)', borderColor: COLORS.lime },
   ctrlBtnFind: { backgroundColor: COLORS.violet, borderColor: COLORS.violet },
-  ctrlBtnBoost: { backgroundColor: 'transparent', borderColor: 'rgba(194,255,61,0.4)' },
-  ctrlBtnEnd: { backgroundColor: COLORS.coral, borderColor: COLORS.coral },
+  ctrlBtnDisabled: { opacity: 0.45 },
   ctrlBtnInnerText: { fontSize: 18, color: COLORS.text, fontWeight: '700' },
   ctrlLabel: { fontSize: 10, color: COLORS.textDim, fontWeight: '600', textAlign: 'center' },
-  boostIcon: { fontSize: 16, color: COLORS.lime },
 });

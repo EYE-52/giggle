@@ -616,6 +616,15 @@ textarea:focus-visible,
 .gg-nav-item > svg { transition: transform var(--dur) var(--ease-out); }
 .gg-nav-item:hover > svg { transform: scale(1.12); }
 
+@media (pointer: coarse) {
+  button,
+  a[href],
+  [role="button"] {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
 /* Phone navigation is a dedicated app-like surface; the top bar remains for
    brand, theme, and notifications instead of carrying every destination. */
 .gg-mobile-nav { display: none; }
@@ -668,7 +677,7 @@ textarea:focus-visible,
     background: var(--violet-bright);
   }
 
-  .gg-app-main {
+  .gg-app-main:not(.gg-app-main--calling) {
     padding-bottom: calc(82px + env(safe-area-inset-bottom)) !important;
   }
 }

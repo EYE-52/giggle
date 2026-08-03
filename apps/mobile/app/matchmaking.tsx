@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Animated, StyleSheet, Image, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, Animated, StyleSheet, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../components/Screen';
 import { Button } from '../components/Button';
+import { Avatar } from '../components/Avatar';
 import { COLORS, SPACE } from '../constants/theme';
-import { api, connectSocket, SOCKET_EVENTS } from '@giggle/core';
+import { api, connectSocket, session, SOCKET_EVENTS } from '@giggle/core';
 
 const USE_NATIVE_DRIVER = Platform.OS !== 'web';
 
@@ -38,22 +38,34 @@ export default function MatchmakingScreen() {
   }
 
   useEffect(() => {
-    createRingAnim(ring1, 0).start();
-    createRingAnim(ring2, 600).start();
-    createRingAnim(ring3, 1200).start();
-    Animated.loop(Animated.timing(rotation, { toValue: 1, duration: 6000, useNativeDriver: USE_NATIVE_DRIVER })).start();
-
     if (!squadId) return;
 
-    const poll = setInterval(async () => {
+    navigated.current = false;
+    const ringAnimations = [createRingAnim(ring1, 0), createRingAnim(ring2, 600), createRingAnim(ring3, 1200)];
+    const rotationAnimation = Animated.loop(
+      Animated.timing(rotation, { toValue: 1, duration: 6000, useNativeDriver: USE_NATIVE_DRIVER })
+    );
+    ringAnimations.forEach((animation) => animation.start());
+    rotationAnimation.start();
+
+    let inactive = false;
+    const checkStatus = async () => {
       try {
         const status = await api.matchStatus(squadId);
+        if (inactive) return;
         setStatusError('');
         if (status.match?.encounterId) goToMatch(status.match.encounterId);
+        else if (status.state !== 'searching') {
+          navigated.current = true;
+          router.replace(`/lobby?squad=${squadId}`);
+        }
       } catch (e: any) {
+        if (inactive) return;
         setStatusError(e?.message || "Couldn't refresh matchmaking status.");
       }
-    }, 2000);
+    };
+    void checkStatus();
+    const poll = setInterval(checkStatus, 2000);
 
     let cleanup: (() => void) | undefined;
     try {
@@ -68,8 +80,26 @@ export default function MatchmakingScreen() {
       setStatusError(e?.message || "Couldn't refresh matchmaking status.");
     }
 
-    return () => { clearInterval(poll); cleanup?.(); };
+    return () => {
+      inactive = true;
+      clearInterval(poll);
+      cleanup?.();
+      ringAnimations.forEach((animation) => animation.stop());
+      rotationAnimation.stop();
+    };
   }, [squadId]);
+
+  if (!squadId) {
+    return (
+      <Screen>
+        <View style={styles.container}>
+          <Text style={styles.heading}>No squad selected</Text>
+          <Text style={styles.sub}>Start matchmaking from a squad lobby so we know who to pair you with.</Text>
+          <Button label="Back to home" onPress={() => router.replace('/home')} style={styles.fullWidth} />
+        </View>
+      </Screen>
+    );
+  }
 
   const ringStyle = (val: Animated.Value) => ({
     transform: [{ scale: val.interpolate({ inputRange: [0, 1], outputRange: [1, 2.4] }) }],
@@ -100,34 +130,14 @@ export default function MatchmakingScreen() {
             transform: [{ rotate: rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }],
           }]} />
           <View style={styles.core}>
-            <Image source={require('../assets/img/avatar-alex.jpg')} style={styles.coreImage} />
+            <Avatar name={session.user?.displayName || 'You'} size={84} />
           </View>
         </View>
 
         <Text style={styles.heading}>Scanning for squads…</Text>
-        <Text style={styles.sub}>Matching your vibe across the city</Text>
+        <Text style={styles.sub}>Matching your squad's vibes</Text>
 
-        <View style={styles.pills}>
-          {['Queue open', 'Live signal', 'Squad synced'].map((p) => (
-            <View key={p} style={styles.pill}>
-              {p === 'Queue open' && <View style={styles.violetDot} />}
-              <Text style={styles.pillText}>{p}</Text>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.fastPassWrap}>
-          <LinearGradient
-            colors={['#7C5CFF', '#5C3FFF']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.fastPassBtn}
-          >
-            <Text style={styles.fastPassText}>Queue signal live</Text>
-          </LinearGradient>
-        </View>
-
-        <Button label="Cancel" onPress={cancel} variant="outline" style={styles.cancel} />
+        <Button label="Cancel search" onPress={cancel} variant="outline" style={styles.cancel} />
         {statusError ? (
           <View style={styles.statusError}>
             <Text style={styles.statusErrorTitle}>Queue status unavailable</Text>
@@ -159,23 +169,9 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: 'rgba(124,92,255,0.6)',
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
   },
-  coreImage: { width: 88, height: 88, borderRadius: 44 },
   heading: { fontSize: 28, fontWeight: '900', color: COLORS.text, marginBottom: SPACE.sm, textAlign: 'center' },
   sub: { fontSize: 15, color: COLORS.textMuted, marginBottom: SPACE.xl, textAlign: 'center' },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: SPACE.xxl },
-  pill: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999,
-    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
-  },
-  violetDot: {
-    width: 6, height: 6, borderRadius: 3,
-    backgroundColor: COLORS.violet, marginRight: 6,
-  },
-  pillText: { fontSize: 13, color: COLORS.textMuted, fontWeight: '600' },
-  fastPassWrap: { width: '100%', borderRadius: 14, overflow: 'hidden', marginBottom: SPACE.md },
-  fastPassBtn: { paddingVertical: 14, alignItems: 'center', borderRadius: 14 },
-  fastPassText: { color: '#fff', fontWeight: '800', fontSize: 15, letterSpacing: 0.3 },
+  fullWidth: { width: '100%' },
   cancel: { width: '100%', marginTop: SPACE.sm },
   statusError: {
     width: '100%',

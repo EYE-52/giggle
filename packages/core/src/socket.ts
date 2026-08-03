@@ -64,6 +64,7 @@ export const SOCKET_EVENTS = {
   NEW_MESSAGE: "new_message",
   NEW_REACTION: "new_reaction",
   NOTIFICATION: "notification",
+  NOTIFICATIONS_CHANGED: "notifications_changed",
 } as const;
 
 // Client→server emits.
@@ -82,8 +83,38 @@ export interface ChatMessage {
   name: string;
   text: string;
   ts: number;
+  clientMessageId?: string;
   encounterId?: string;
   squadId?: string;
+}
+
+export type ChatSendResult =
+  | { ok: true; message: ChatMessage }
+  | { ok: false; error: string };
+
+interface RawChatMessage {
+  id: string;
+  text: string;
+  senderId?: string;
+  senderName?: string;
+  encounterId?: string;
+  squadId?: string;
+  clientMessageId?: string;
+  ts?: number;
+  timestamp?: string;
+}
+
+function normalizeChatMessage(raw: RawChatMessage): ChatMessage {
+  return {
+    id: raw.id,
+    userId: raw.senderId ?? "",
+    name: raw.senderName ?? "",
+    text: raw.text,
+    ts: raw.ts ?? (raw.timestamp ? Date.parse(raw.timestamp) : Date.now()),
+    clientMessageId: raw.clientMessageId,
+    encounterId: raw.encounterId,
+    squadId: raw.squadId,
+  };
 }
 
 export type ChatScope =
@@ -108,17 +139,37 @@ export function sendChatMessage(
   scope: ChatScope,
   text: string,
   sender: { id: string; name: string },
+  options?: {
+    clientMessageId?: string;
+    ack?: (result: ChatSendResult) => void;
+  },
 ): boolean {
   try {
     const s = connectSocket();
     if (!s.connected) return false;
-    s.emit(SOCKET_EMIT.SEND_MESSAGE, {
+    const payload = {
       encounterId: scope.kind === "encounter" ? scope.encounterId : undefined,
       squadId: scope.squadId,
       text,
       senderId: sender.id,
       senderName: sender.name,
-    });
+      clientMessageId: options?.clientMessageId,
+    };
+    if (options?.ack) {
+      s.timeout(5000).emit(
+        SOCKET_EMIT.SEND_MESSAGE,
+        payload,
+        (error: Error | null, result?: { ok: boolean; message?: RawChatMessage; error?: string }) => {
+          options.ack!(error || !result
+            ? { ok: false, error: "Message not delivered. Try again." }
+            : result.ok && result.message
+            ? { ok: true, message: normalizeChatMessage(result.message) }
+            : { ok: false, error: result.error || "Message not delivered. Try again." });
+        },
+      );
+    } else {
+      s.emit(SOCKET_EMIT.SEND_MESSAGE, payload);
+    }
     return true;
   } catch {
     return false;
@@ -128,26 +179,7 @@ export function sendChatMessage(
 /** Subscribe to incoming chat messages. Returns an unsubscribe function. */
 export function subscribeChat(cb: (m: ChatMessage) => void): () => void {
   const s = connectSocket();
-  const handler = (raw: {
-    id: string;
-    text: string;
-    senderId?: string;
-    senderName?: string;
-    encounterId?: string;
-    squadId?: string;
-    ts?: number;
-    timestamp?: string;
-  }) => {
-    cb({
-      id: raw.id,
-      userId: raw.senderId ?? "",
-      name: raw.senderName ?? "",
-      text: raw.text,
-      ts: raw.ts ?? (raw.timestamp ? Date.parse(raw.timestamp) : Date.now()),
-      encounterId: raw.encounterId,
-      squadId: raw.squadId,
-    });
-  };
+  const handler = (raw: RawChatMessage) => cb(normalizeChatMessage(raw));
   s.on(SOCKET_EVENTS.NEW_MESSAGE, handler);
   return () => {
     s.off(SOCKET_EVENTS.NEW_MESSAGE, handler);
@@ -218,9 +250,22 @@ export function reportOpponentSquad(input: ReportOpponentInput): boolean {
 // The server joins the authenticated socket to its `user_<id>` room on connect,
 // so simply connecting is enough to start receiving `notification` events.
 /** Subscribe to live notifications for the current user. Returns an unsubscribe. */
-export function subscribeNotifications(cb: (n: AppNotification) => void): () => void {
+export function subscribeNotifications(
+  cb: (n: AppNotification) => void,
+  onChanged?: () => void,
+): () => void {
   const s = connectSocket();
   const handler = (raw: AppNotification) => cb(raw);
   s.on(SOCKET_EVENTS.NOTIFICATION, handler);
-  return () => { s.off(SOCKET_EVENTS.NOTIFICATION, handler); };
+  if (onChanged) {
+    s.on(SOCKET_EVENTS.NOTIFICATIONS_CHANGED, onChanged);
+    s.on("connect", onChanged);
+  }
+  return () => {
+    s.off(SOCKET_EVENTS.NOTIFICATION, handler);
+    if (onChanged) {
+      s.off(SOCKET_EVENTS.NOTIFICATIONS_CHANGED, onChanged);
+      s.off("connect", onChanged);
+    }
+  };
 }

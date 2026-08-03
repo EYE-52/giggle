@@ -137,6 +137,7 @@ test("approving a join request rejects stale deleted users", () => {
   assert.equal(approveHandler.includes("const targetUser = await User.findById(targetUserId);"), true);
   assert.equal(approveHandler.includes('code: "REQUEST_USER_NOT_FOUND"'), true);
   assert.equal(approveHandler.indexOf("REQUEST_USER_NOT_FOUND") < approveHandler.indexOf("const newMember = {"), true);
+  assert.equal((approveHandler.match(/await resolveJoinRequestNotification\(leaderUserId, targetUserId, squad\.squadId\);/g) ?? []).length, 4);
 });
 
 test("squad invite endpoints reject nonexistent user ids", () => {
@@ -153,4 +154,13 @@ test("squad invite endpoints reject nonexistent user ids", () => {
   assert.equal(leaderInviteHandler.indexOf("INVITE_USER_NOT_FOUND") < leaderInviteHandler.indexOf("squad.invitedUserIds.push(targetUserId)"), true);
   assert.equal(memberInviteHandler.includes('code: "INVITE_USER_NOT_FOUND"'), true);
   assert.equal(memberInviteHandler.indexOf("INVITE_USER_NOT_FOUND") < memberInviteHandler.indexOf("squad.invitedUserIds.push(targetUserId)"), true);
+});
+
+test("joining a squad resolves any matching invite notification", () => {
+  const controller = read("src/controllers/squadController.js");
+  const joinHandler = section(controller, "const joinSquadHandler", "const getSquadHandler");
+
+  assert.equal(controller.includes("const resolveSquadInviteNotification = async"), true);
+  assert.equal(joinHandler.includes("await resolveSquadInviteNotification(userId, squad.squadId);"), true);
+  assert.equal((joinHandler.match(/resolveSquadInviteNotification\(userId, squad\.squadId\)/g) ?? []).length, 3);
 });

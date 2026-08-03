@@ -33,6 +33,13 @@ test("mobile web has an auth callback route that stores backend JWTs", () => {
   assert.equal(page.includes("router.replace('/home')"), true);
 });
 
+test("mobile auth callback recovery is an accessible button", () => {
+  const page = read("app/auth/callback.tsx");
+
+  assert.equal(page.includes('accessibilityRole="button"'), true);
+  assert.equal(page.includes('accessibilityLabel="Back to sign in"'), true);
+});
+
 test("mobile auth callback uses a trustworthy page title", () => {
   const layout = read("app/_layout.tsx");
 
@@ -40,12 +47,23 @@ test("mobile auth callback uses a trustworthy page title", () => {
   assert.equal(layout.includes("'/auth/callback': 'Giggle'"), false);
 });
 
+test("mobile layout only mounts document metadata on web", () => {
+  const layout = read("app/_layout.tsx");
+
+  assert.equal(layout.includes("import { Platform } from 'react-native';"), true);
+  assert.match(layout, /\{Platform\.OS === 'web' && \(\s*<Head>/);
+});
+
 test("dev account skip is hidden and inert in production", () => {
   const page = read("app/index.tsx");
+  const skipBlock = page.slice(page.indexOf("async function handleDevSkip()"), page.indexOf("return ("));
 
   assert.match(page, /const showDevSkip = process\.env\.NODE_ENV !== 'production';/);
   assert.match(page, /if \(!showDevSkip\) return;/);
   assert.match(page, /\{showDevSkip && \(\s*<TouchableOpacity[\s\S]*onPress=\{handleDevSkip\}/);
+  assert.equal(skipBlock.includes("await session.devSignIn();\n      router.replace('/home');"), true);
+  assert.equal(skipBlock.includes("catch (e: any)"), true);
+  assert.equal(skipBlock.includes("catch {}"), false);
 });
 
 test("onboarding custom touch targets expose button semantics", () => {
@@ -78,6 +96,23 @@ test("mobile layout redirects unauthenticated production users away from app rou
   assert.equal(layout.includes("process.env.NODE_ENV !== 'production'"), true);
   assert.equal(layout.includes("router.replace('/')"), true);
   assert.equal(layout.includes("<Stack.Screen name=\"auth/callback\""), true);
+});
+
+test("mobile protected routes wait for the shared age gate", () => {
+  const gatePath = path.join(__dirname, "../components/AgeGate.tsx");
+  assert.equal(existsSync(gatePath), true);
+
+  const layout = read("app/_layout.tsx");
+  const gate = read("components/AgeGate.tsx");
+
+  assert.equal(layout.includes("import { AgeGate } from '../components/AgeGate';"), true);
+  assert.equal(layout.includes("await session.syncAgeFromServer()"), true);
+  assert.equal(layout.includes("if (!isPublicRoute && !authReady)"), true);
+  assert.equal(layout.includes("if (!isPublicRoute && !ageConfirmed)"), true);
+  assert.equal(layout.includes("<AgeGate onDone={() => setAgeConfirmed(true)} />"), true);
+  assert.equal(gate.includes("await session.setAge(birthDate);"), true);
+  assert.equal(gate.includes('keyboardType="number-pad"'), true);
+  assert.equal(gate.includes("You must be at least 13 to use Giggle."), true);
 });
 
 test("mobile home actions do not create dev sessions from protected routes", () => {

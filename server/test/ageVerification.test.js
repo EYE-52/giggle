@@ -118,14 +118,16 @@ test("POST /api/me/age: invalid date string rejected with 400", async () => {
   });
 });
 
-test("POST /api/me/age: set-once returns 409 when already confirmed", async () => {
-  const user = fakeUser({ ageConfirmed: true, isAdult: true });
+test("POST /api/me/age: repeated submissions return the persisted age gates", async () => {
+  const originalBirthDate = new Date(Date.UTC(1996, 4, 10));
+  const user = fakeUser({ birthDate: originalBirthDate, ageConfirmed: true, isAdult: true });
   await withMockedFindById(user, async () => {
     const req = { user: { userId: "u1" }, body: { birthDate: isoYearsAgo(40) } };
     const res = createMockResponse();
     await setMyAge(req, res);
-    assert.equal(res.statusCode, 409);
-    assert.equal(res.body.error.code, "AGE_ALREADY_CONFIRMED");
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.data, { isAdult: true, ageConfirmed: true });
+    assert.equal(user.birthDate, originalBirthDate);
     assert.equal(user.saved, false);
   });
 });

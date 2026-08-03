@@ -123,14 +123,14 @@ export const TOKEN_PERKS: TokenPerk[] = [
   {
     id: "cover_themes",
     name: "Cover Themes",
-    description: "Unlock exclusive animated backgrounds for your squad lobby",
+    description: "Unlock extra squad cover themes",
     tokenCost: 120,
     icon: "palette",
   },
   {
     id: "vibe_pack",
     name: "Vibe Pack",
-    description: "Unlock exclusive animated vibe tags for your profile",
+    description: "Unlock extra profile avatars",
     tokenCost: 80,
     icon: "star",
   },

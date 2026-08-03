@@ -195,3 +195,21 @@ test("reaction broadcasts include encounter ids for client-side scoped filtering
   assert.match(reactionBlock, /encounterId: normalizedEncounterId \|\| undefined,/);
   assert.match(reactionBlock, /squadId: normalizedSquadId \|\| undefined,/);
 });
+
+test("chat broadcasts include scope, client ids, and explicit acknowledgements", () => {
+  const source = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "../src/services/socketService.js"),
+    "utf8"
+  );
+  const messageBlock = source.slice(
+    source.indexOf("socket.on('send_message'"),
+    source.indexOf("socket.on('send_reaction'")
+  );
+
+  assert.match(messageBlock, /encounterId: normalizedEncounterId \|\| undefined,/);
+  assert.match(messageBlock, /squadId: normalizedSquadId \|\| undefined,/);
+  assert.match(messageBlock, /clientMessageId: normalizedClientMessageId \|\| undefined,/);
+  assert.match(messageBlock, /reply\(\{ ok: false, error:/);
+  assert.match(messageBlock, /reply\(\{ ok: true, message \}\);/);
+  assert.match(messageBlock, /sentChatMessages\.get\(normalizedClientMessageId\)/);
+});

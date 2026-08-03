@@ -8,7 +8,9 @@ test("local development origins include desktop and Expo web ports", () => {
 
   assert.ok(origins.includes("http://localhost:4000"));
   assert.ok(origins.includes("http://localhost:4011"));
+  assert.ok(origins.includes("http://localhost:8081"));
   assert.ok(origins.includes("http://127.0.0.1:4011"));
+  assert.ok(origins.includes("http://127.0.0.1:8081"));
 });
 
 test("configured frontend origins are trimmed, deduped, and slash-normalized", () => {

@@ -645,8 +645,12 @@ export default function EncounterScreen() {
           </View>
         )}
         <View style={styles.tileNamePill}>
-          <Text style={styles.tileNameText} numberOfLines={1} accessibilityLabel={person.name}>
-            {person.name}{person.isLocal ? ' (You)' : ''}
+          <Text
+            style={styles.tileNameText}
+            numberOfLines={1}
+            accessibilityLabel={person.isLocal ? `${person.name}, you` : person.name}
+          >
+            {person.isLocal ? 'You' : person.name}
           </Text>
           {muted && (
             <View style={styles.mutedBadge} accessibilityLabel={`${person.name} is muted`}>
@@ -819,7 +823,7 @@ export default function EncounterScreen() {
           </View>
         ) : (
           <>
-            {videoError ? (
+            {videoError && captureIssues.length === 0 ? (
               <View style={styles.videoErrorBanner} accessibilityRole="alert">
                 <View style={styles.issueCopy}>
                   <Text style={styles.videoErrorTitle}>{videoReady ? 'Call issue' : 'Video unavailable'}</Text>

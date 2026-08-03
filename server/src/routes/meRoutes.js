@@ -38,8 +38,6 @@ router.patch("/me/profile", requireApiAuth, updateMyProfile);
  *     responses:
  *       200:
  *         description: "{ isAdult, ageConfirmed }"
- *       409:
- *         description: Date of birth already confirmed
  */
 router.post("/me/age", requireApiAuth, setMyAge);
 
