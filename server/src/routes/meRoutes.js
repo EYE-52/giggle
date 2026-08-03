@@ -1,6 +1,6 @@
 const express = require("express");
 const { getMyProfile, updateMyProfile, setMyAge } = require("../controllers/authController");
-const { requireApiAuth } = require("../middlewares/authMiddleware");
+const { requireApiAuth, requireIdentityAuth } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
 
@@ -24,7 +24,7 @@ const router = express.Router();
  *       200:
  *         description: Updated profile fields
  */
-router.get("/me/profile", requireApiAuth, getMyProfile);
+router.get("/me/profile", requireIdentityAuth, getMyProfile);
 router.patch("/me/profile", requireApiAuth, updateMyProfile);
 
 /**
@@ -39,6 +39,6 @@ router.patch("/me/profile", requireApiAuth, updateMyProfile);
  *       200:
  *         description: "{ isAdult, ageConfirmed }"
  */
-router.post("/me/age", requireApiAuth, setMyAge);
+router.post("/me/age", requireIdentityAuth, setMyAge);
 
 module.exports = router;
