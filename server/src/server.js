@@ -17,6 +17,7 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME;
 
 app.disable("x-powered-by");
 
@@ -125,7 +126,7 @@ function connectDatabase() {
     return Promise.reject(new Error('MONGODB_URI is not set.'));
   }
   if (!mongoConnectPromise) {
-    mongoConnectPromise = mongoose.connect(MONGODB_URI)
+    mongoConnectPromise = mongoose.connect(MONGODB_URI, MONGODB_DB_NAME ? { dbName: MONGODB_DB_NAME } : undefined)
       .then(() => console.log('MongoDB connected'))
       .catch(err => {
         mongoConnectPromise = null;

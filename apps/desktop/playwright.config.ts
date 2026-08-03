@@ -22,12 +22,26 @@ export default defineConfig({
     trace: "retain-on-failure",
     video: "retain-on-failure",
   },
-  webServer: {
-    command: "pnpm exec next dev -p 4011",
-    url: "http://localhost:4011",
-    reuseExistingServer: false,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: "pnpm --dir ../../server start",
+      url: "http://localhost:3001/health",
+      env: {
+        ...process.env,
+        PORT: "3001",
+        MONGODB_DB_NAME: "giggle-e2e",
+        REDIS_URL: "redis://127.0.0.1:6379/15",
+      },
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+    {
+      command: "pnpm exec next dev -p 4011",
+      url: "http://localhost:4011",
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+  ],
   projects: Object.entries(viewports).map(([name, viewport]) => ({
     name,
     use: { browserName: "chromium", viewport },

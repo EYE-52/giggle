@@ -10,8 +10,10 @@ const {
   resolveReportTargetSquadId,
 } = require("../src/utils/socketAccess");
 const {
+  closeEncounterRoom,
   isRealtimeDebugEnabled,
   normalizeSocketIdentity,
+  revokeUserRealtimeAccess,
   resolveSocketAuthToken,
 } = require("../src/services/socketService");
 const { isMatchmakingDebugEnabled } = require("../src/services/matchmakingService");
@@ -89,6 +91,44 @@ test("production sockets do not accept JWTs from query strings", () => {
     resolveSocketAuthToken({ auth: {}, query: { token: "query-token" } }, false),
     "query-token"
   );
+});
+
+test("revoking squad access removes every user socket from squad and encounter rooms", () => {
+  const calls = [];
+  const server = {
+    in(room) {
+      calls.push(["in", room]);
+      return { socketsLeave: (rooms) => calls.push(["leave", rooms]) };
+    },
+  };
+
+  revokeUserRealtimeAccess({
+    userId: "user_a",
+    squadId: "sq_a",
+    encounterId: "enc_1",
+  }, server);
+
+  assert.deepEqual(calls, [
+    ["in", "user_user_a"],
+    ["leave", ["squad_sq_a", "encounter_enc_1"]],
+  ]);
+});
+
+test("closing an encounter removes every socket from its stale room", () => {
+  const calls = [];
+  const server = {
+    in(room) {
+      calls.push(["in", room]);
+      return { socketsLeave: (leftRoom) => calls.push(["leave", leftRoom]) };
+    },
+  };
+
+  closeEncounterRoom("enc_1", server);
+
+  assert.deepEqual(calls, [
+    ["in", "encounter_enc_1"],
+    ["leave", "encounter_enc_1"],
+  ]);
 });
 
 test("matchmaking debug logging is opt-in for production", () => {

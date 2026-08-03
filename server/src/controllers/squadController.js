@@ -20,6 +20,7 @@ const { tryMatchmakeForSquad } = require("../services/matchmakingService");
 const queueService = require("../services/queueService");
 const socketService = require("../services/socketService");
 const sessionService = require("../services/sessionService");
+const { redlock } = require("../config/redisConfig");
 const { createNotification, deleteNotifications } = require("../models/Notification");
 const { shuffle } = require("../utils/random");
 const { normalizeSquadTags } = require("../utils/squadValidation");
@@ -600,6 +601,7 @@ const getSquadPreviewHandler = async (req, res) => {
 
 const updateReadyStateHandler = async (req, res) => {
   const { ready } = req.body;
+  let lock;
 
   if (typeof ready !== "boolean") {
     return res.status(400).json({
@@ -609,10 +611,19 @@ const updateReadyStateHandler = async (req, res) => {
   }
 
   try {
-    const { squad, memberIndex } = req.squadAccess;
-    const member = squad.members[memberIndex];
+    const { squad: accessedSquad, member: accessedMember } = req.squadAccess;
+    lock = await redlock.acquire([`lock:squad:${accessedSquad.squadId}:admission`], 10_000);
+    const squad = await Squad.findOne({ squadId: accessedSquad.squadId });
+    const member = squad?.members.find((candidate) => candidate.memberId === accessedMember.memberId);
 
-    if (squad.status !== "idle" && ready === true) {
+    if (!squad || !member) {
+      return res.status(404).json({
+        ok: false,
+        error: { code: "SQUAD_NOT_FOUND", message: "Squad membership not found" },
+      });
+    }
+
+    if (squad.status !== "idle") {
       return res.status(409).json({
         ok: false,
         error: {
@@ -642,6 +653,8 @@ const updateReadyStateHandler = async (req, res) => {
       ok: false,
       error: { code: "INTERNAL_ERROR", message: "Failed to update ready state" },
     });
+  } finally {
+    if (lock) await lock.release();
   }
 };
 
@@ -1077,10 +1090,19 @@ const inviteUserToSquadHandler = async (req, res) => {
 const startSearchHandler = async (req, res) => {
   let searchStateSaved = false;
   let squad = null;
+  let admissionLock;
 
   try {
-    const { member } = req.squadAccess;
-    squad = req.squadAccess.squad;
+    const { member, squad: accessedSquad } = req.squadAccess;
+    admissionLock = await redlock.acquire([`lock:squad:${accessedSquad.squadId}:admission`], 10_000);
+    squad = await Squad.findOne({ squadId: accessedSquad.squadId });
+
+    if (!squad || !squad.members.some((candidate) => candidate.memberId === member.memberId && candidate.role === "leader")) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "FORBIDDEN", message: "Squad leader access required" },
+      });
+    }
 
     if (squad.status !== "idle") {
       return res.status(409).json({
@@ -1214,12 +1236,24 @@ const startSearchHandler = async (req, res) => {
       ok: false,
       error: { code: "INTERNAL_ERROR", message: "Failed to start search" },
     });
+  } finally {
+    if (admissionLock) await admissionLock.release();
   }
 };
 
 const cancelSearchHandler = async (req, res) => {
+  let lock;
   try {
-    const { squad, member } = req.squadAccess;
+    const { squad: accessedSquad, member } = req.squadAccess;
+    lock = await redlock.acquire(["lock:matchmaking"], 5000);
+    const squad = await Squad.findOne({ squadId: accessedSquad.squadId });
+
+    if (!squad) {
+      return res.status(404).json({
+        ok: false,
+        error: { code: "SQUAD_NOT_FOUND", message: "Squad not found" },
+      });
+    }
 
     if (squad.status !== "searching") {
       return res.status(409).json({
@@ -1250,6 +1284,8 @@ const cancelSearchHandler = async (req, res) => {
       ok: false,
       error: { code: "INTERNAL_ERROR", message: "Failed to cancel search" },
     });
+  } finally {
+    if (lock) await lock.release();
   }
 };
 
@@ -1277,6 +1313,12 @@ const kickMemberHandler = async (req, res) => {
 
     squad.members.splice(targetIndex, 1);
     await squad.save();
+    socketService.revokeUserRealtimeAccess({
+      userId: targetMember.userId,
+      squadId: squad.squadId,
+      encounterId: squad.currentEncounterId,
+    });
+    socketService.emitToUser(targetMember.userId, "SQUAD_UPDATED", { squadId: squad.squadId, removed: true });
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
 
     return res.status(200).json({
@@ -1369,6 +1411,13 @@ const leaveSquadHandler = async (req, res) => {
       removedMemberRole: leavingMember.role,
     });
 
+    socketService.revokeUserRealtimeAccess({
+      userId: leavingMember.userId,
+      squadId: squad.squadId,
+      encounterId: squad.currentEncounterId,
+    });
+    socketService.emitToUser(leavingMember.userId, "SQUAD_UPDATED", { squadId: squad.squadId, removed: true });
+
     if (wasSearching) {
       // Always dequeue: covers both the surviving-but-depleted squad and the
       // now-deleted (empty) squad — a deleted squad must not linger in Redis.
@@ -1420,10 +1469,16 @@ const disbandSquadHandler = async (req, res) => {
       try { await queueService.removeFromQueue(squad.squadId); } catch (e) { console.error("Error dequeuing squad on disband:", e); }
     }
 
+    const removedMembers = [...squad.members];
     await deleteSquadAndNotifications(squad);
-    // Tell everyone still in the room the squad is gone. Clients re-fetch on
-    // SQUAD_UPDATED, hit 404, and get redirected home.
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", { disbanded: true });
+    for (const member of removedMembers) {
+      socketService.revokeUserRealtimeAccess({
+        userId: member.userId,
+        squadId: squad.squadId,
+        encounterId: squad.currentEncounterId,
+      });
+      socketService.emitToUser(member.userId, "SQUAD_UPDATED", { squadId: squad.squadId, disbanded: true });
+    }
 
     return res.status(200).json({ ok: true, data: { squadId: squad.squadId, disbanded: true } });
   } catch (error) {

@@ -12,6 +12,13 @@ function reloadServerModule() {
   return require("../src/server");
 }
 
+test("database startup honors the isolated database name override", () => {
+  const source = readFileSync(path.join(__dirname, "../src/server.js"), "utf8");
+
+  assert.equal(source.includes("const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME;"), true);
+  assert.equal(source.includes("mongoose.connect(MONGODB_URI, MONGODB_DB_NAME ? { dbName: MONGODB_DB_NAME } : undefined)"), true);
+});
+
 async function closeRedisClientsIfLoaded() {
   const redisPath = require.resolve("../src/config/redisConfig");
   if (!require.cache[redisPath]) return;

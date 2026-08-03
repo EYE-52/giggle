@@ -68,10 +68,14 @@ test("frontend workspace pins a supported Node runtime", () => {
   assert.match(nodeVersion, /^22\./);
 });
 
-test("Playwright owns a dedicated development server instead of reusing the production preview", () => {
+test("Playwright owns isolated backend and frontend development servers", () => {
   const config = playwrightConfigSource();
 
   assert.equal((config.match(/http:\/\/localhost:4011/g) ?? []).length, 2);
+  assert.equal(config.includes("webServer: ["), true);
+  assert.equal(config.includes('command: "pnpm --dir ../../server start"'), true);
+  assert.equal(config.includes('MONGODB_DB_NAME: "giggle-e2e"'), true);
+  assert.equal(config.includes('REDIS_URL: "redis://127.0.0.1:6379/15"'), true);
   assert.equal(config.includes('command: "pnpm exec next dev -p 4011"'), true);
   assert.equal(config.includes("reuseExistingServer: false"), true);
 });

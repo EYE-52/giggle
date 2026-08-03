@@ -28,7 +28,9 @@ test("presence call sites await distributed online checks", () => {
   assert.equal(friends.includes("const onlineSet = await getOnlineUserIds"), true);
   assert.equal(squad.includes("const onlineMemberIds = await socketService.getOnlineUserIds(memberUserIds);"), true);
   assert.equal(squad.includes("online: onlineMemberIds.has(member.userId),"), true);
-  assert.equal(matchmaking.includes("await socketService.getOnlineUserIds(freshCandidate.members.map((m) => m.userId))"), true);
+  assert.equal(matchmaking.includes("socketService.getOnlineUserIds(freshSquad.members.map((m) => m.userId))"), true);
+  assert.equal(matchmaking.includes("socketService.getOnlineUserIds(freshCandidate.members.map((m) => m.userId))"), true);
+  assert.equal(matchmaking.includes("if (!hasMinimumOnlineMembers(freshSquad, seekerOnlineMembers))"), true);
   assert.equal(socketService.includes("if (await isUserOnline(userId)) return;"), true);
   assert.equal(socketService.includes("const onlineMemberIds = await getOnlineUserIds"), true);
 });

@@ -5,6 +5,7 @@ const { redlock } = require("../config/redisConfig");
 const queueService = require("./queueService");
 const socketService = require("./socketService");
 const sessionService = require("./sessionService");
+const { MIN_MEMBERS_TO_SEARCH } = require("../config/appConfig");
 
 // 60s handoff window: matchmaking polling, the match-reveal animation, and
 // navigation all eat into this, so 30s was too tight for the 2nd squad to ack
@@ -20,6 +21,18 @@ const logMatchmakingDebug = (...args) => {
 };
 
 const getSquadSize = (squad) => (Array.isArray(squad.members) ? squad.members.length : 0);
+
+const hasMinimumOnlineMembers = (squad, onlineMemberIds, minimum = MIN_MEMBERS_TO_SEARCH) =>
+  Array.isArray(squad?.members) && onlineMemberIds.size >= minimum;
+
+const resetInactiveSearchingSquad = async (squad) => {
+  squad.status = "idle";
+  squad.currentEncounterId = null;
+  squad.searchQueuedAt = null;
+  await squad.save();
+  await queueService.removeFromQueue(squad.squadId);
+  socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+};
 
 const rollbackSquadsToIdle = async (squadIds) => {
   await Squad.updateMany(
@@ -236,18 +249,21 @@ const tryMatchmakeForSquad = async (squad) => {
         continue;
       }
 
-      // Liveness guard: a candidate is only valid if at least one of its members
-      // is actually ONLINE (has an active socket). Abandoned squads (browser
-      // closed) linger in 'searching' and would otherwise be matched to a real
-      // squad, leaving that real squad's partner unmatched. Purge such ghosts.
-      const candidateOnlineMembers = Array.isArray(freshCandidate.members)
-        ? await socketService.getOnlineUserIds(freshCandidate.members.map((m) => m.userId))
-        : new Set();
-      const candidateLive = candidateOnlineMembers.size > 0;
-      if (!candidateLive) {
-        console.warn(`[Matchmaking] Candidate ${freshCandidate.squadId} has no online members (stale). Purging from queue.`);
-        await queueService.removeFromQueue(freshCandidate.squadId);
-        try { freshCandidate.status = "idle"; freshCandidate.currentEncounterId = null; await freshCandidate.save(); } catch {}
+      // Recheck both sides under the matchmaking lock. Ready/video are admission
+      // checks; searching is continuing consent, and live membership prevents a
+      // disconnected or depleted squad from being matched.
+      const [seekerOnlineMembers, candidateOnlineMembers] = await Promise.all([
+        socketService.getOnlineUserIds(freshSquad.members.map((m) => m.userId)),
+        socketService.getOnlineUserIds(freshCandidate.members.map((m) => m.userId)),
+      ]);
+      if (!hasMinimumOnlineMembers(freshSquad, seekerOnlineMembers)) {
+        console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} is no longer live. Purging from queue.`);
+        await resetInactiveSearchingSquad(freshSquad);
+        return null;
+      }
+      if (!hasMinimumOnlineMembers(freshCandidate, candidateOnlineMembers)) {
+        console.warn(`[Matchmaking] Candidate ${freshCandidate.squadId} is no longer live. Purging from queue.`);
+        await resetInactiveSearchingSquad(freshCandidate);
         continue;
       }
 
@@ -336,6 +352,7 @@ const ackEncounterForSquad = async ({ encounter, squadId }) => {
     encounter.status = "ended";
     encounter.endedAt = new Date();
     await encounter.save();
+    socketService.closeEncounterRoom(encounter.encounterId);
     return { error: { status: 409, code: "ENCOUNTER_EXPIRED", message: "Encounter handoff expired" } };
   }
 
@@ -378,6 +395,7 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
   // Notify squads that encounter ended
   socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
   socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+  socketService.closeEncounterRoom(encounter.encounterId);
 
   // Clear encounter state and set both squads to searching with no encounter
   const now = new Date();
@@ -432,6 +450,7 @@ const endEncounterToIdle = async ({ encounter }) => {
   // Notify squads
   socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
   socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+  socketService.closeEncounterRoom(encounter.encounterId);
 
   // Clear encounter state and inEncounterVideo flags for all members
   await Squad.updateMany(
@@ -474,6 +493,7 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   };
   socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", endedPayload);
   socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", endedPayload);
+  socketService.closeEncounterRoom(encounter.encounterId);
 
   // 1. Set disconnecting squad to IDLE
   await Squad.updateOne(
@@ -561,6 +581,7 @@ const sweepStuckEncounters = async () => {
       // Notify any connected clients so they bounce out of the handoff UI.
       socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
       socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+      socketService.closeEncounterRoom(encounter.encounterId);
 
       for (const squadId of [encounter.squadAId, encounter.squadBId]) {
         const squad = await Squad.findOne({ squadId });
@@ -600,6 +621,7 @@ const startEncounterSweeper = () => {
 };
 
 module.exports = {
+  hasMinimumOnlineMembers,
   scoreCandidate,
   tryMatchmakeForSquad,
   sweepStuckEncounters,

@@ -1,8 +1,18 @@
 const assert = require("node:assert/strict");
 const { after, test } = require("node:test");
 
-const { ackEncounterForSquad, scoreCandidate } = require("../src/services/matchmakingService");
+const {
+  ackEncounterForSquad,
+  hasMinimumOnlineMembers,
+  scoreCandidate,
+  tryMatchmakeForSquad,
+} = require("../src/services/matchmakingService");
+const { Squad } = require("../src/models/Squad");
+const { Encounter } = require("../src/models/Encounter");
 const { redis, subClient } = require("../src/config/redisConfig");
+const { redlock } = require("../src/config/redisConfig");
+const queueService = require("../src/services/queueService");
+const socketService = require("../src/services/socketService");
 
 after(async () => {
   await Promise.allSettled([redis.quit(), subClient.quit()]);
@@ -38,6 +48,70 @@ test("candidate scoring does not give premium squads queue priority", () => {
   });
 
   assert.equal(premiumScore, freeScore);
+});
+
+test("minimum online membership uses the configured threshold", () => {
+  const squad = { members: [{ userId: "user_a" }, { userId: "user_b" }] };
+
+  assert.equal(hasMinimumOnlineMembers(squad, new Set(["user_a"]), 2), false);
+  assert.equal(hasMinimumOnlineMembers(squad, new Set(["user_a", "user_b"]), 2), true);
+});
+
+test("matcher purges an offline seeker before creating an encounter", async () => {
+  const originals = {
+    acquire: redlock.acquire,
+    queued: queueService.getQueuedSquadsByRegion,
+    remove: queueService.removeFromQueue,
+    findOne: Squad.findOne,
+    create: Encounter.create,
+    online: socketService.getOnlineUserIds,
+  };
+  const seeker = {
+    squadId: "sq_seeker",
+    status: "searching",
+    searchRegion: "global",
+    searchQueuedAt: new Date(),
+    members: [{ userId: "user_a" }],
+    tags: [],
+    reputationScore: 100,
+    async save() {},
+  };
+  const candidate = {
+    squadId: "sq_candidate",
+    status: "searching",
+    members: [{ userId: "user_b" }],
+    async save() {},
+  };
+  const removed = [];
+  let encounters = 0;
+
+  redlock.acquire = async () => ({ release: async () => {} });
+  queueService.getQueuedSquadsByRegion = async () => [
+    { squadId: "sq_seeker", size: "1", queuedAt: String(Date.now()) },
+    { squadId: "sq_candidate", size: "1", queuedAt: String(Date.now()) },
+  ];
+  queueService.removeFromQueue = async (squadId) => { removed.push(squadId); };
+  Squad.findOne = async ({ squadId }) => squadId === seeker.squadId ? seeker : candidate;
+  Encounter.create = async () => { encounters += 1; return {}; };
+  socketService.getOnlineUserIds = async (userIds) => userIds.includes("user_a")
+    ? new Set()
+    : new Set(["user_b"]);
+
+  try {
+    const result = await tryMatchmakeForSquad(seeker);
+
+    assert.equal(result, null);
+    assert.equal(encounters, 0);
+    assert.equal(seeker.status, "idle");
+    assert.deepEqual(removed, ["sq_seeker"]);
+  } finally {
+    redlock.acquire = originals.acquire;
+    queueService.getQueuedSquadsByRegion = originals.queued;
+    queueService.removeFromQueue = originals.remove;
+    Squad.findOne = originals.findOne;
+    Encounter.create = originals.create;
+    socketService.getOnlineUserIds = originals.online;
+  }
 });
 
 test("late acknowledgements cannot expire an already-active encounter", async () => {

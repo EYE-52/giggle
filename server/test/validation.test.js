@@ -7,7 +7,14 @@ const { Notification, deleteNotifications } = require("../src/models/Notificatio
 const { Squad } = require("../src/models/Squad");
 const User = require("../src/models/User");
 const { hasIdentityId, persistSquadAfterMemberRemoval } = require("../src/app/squadAccess");
-const { declineJoinRequestHandler, disbandSquadHandler } = require("../src/controllers/squadController");
+const {
+  cancelSearchHandler,
+  declineJoinRequestHandler,
+  disbandSquadHandler,
+  kickMemberHandler,
+  leaveSquadHandler,
+  updateReadyStateHandler,
+} = require("../src/controllers/squadController");
 const { normalizeEmail, normalizeProfileImage, normalizeProfilePatch } = require("../src/controllers/authController");
 const { acceptRequest, declineRequest, removeFriend, searchUsers } = require("../src/controllers/friendsController");
 const { normalizeSquadCoverImage } = require("../src/utils/squadCoverValidation");
@@ -211,14 +218,18 @@ test("deleting an empty squad also deletes its notifications", async () => {
 });
 
 test("disbanding a squad also deletes its notifications", async () => {
+  const socketService = require("../src/services/socketService");
   const originalDistinct = Notification.distinct;
   const originalDeleteMany = Notification.deleteMany;
+  const originalRevoke = socketService.revokeUserRealtimeAccess;
   let notificationQuery = null;
+  const revoked = [];
   Notification.distinct = async () => [];
   Notification.deleteMany = async (query) => {
     notificationQuery = query;
     return { deletedCount: 3 };
   };
+  socketService.revokeUserRealtimeAccess = (payload) => revoked.push(payload);
 
   try {
     const req = {
@@ -227,6 +238,11 @@ test("disbanding a squad also deletes its notifications", async () => {
         squad: {
           squadId: "squad_disbanded",
           status: "idle",
+          currentEncounterId: "enc_active",
+          members: [
+            { memberId: "member_a", userId: "user_a", role: "leader" },
+            { memberId: "member_b", userId: "user_b", role: "member" },
+          ],
           deleteOne: async () => {},
         },
       },
@@ -238,9 +254,168 @@ test("disbanding a squad also deletes its notifications", async () => {
     assert.deepEqual(notificationQuery, { squadId: "squad_disbanded" });
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.data.disbanded, true);
+    assert.deepEqual(revoked, [
+      { userId: "user_a", squadId: "squad_disbanded", encounterId: "enc_active" },
+      { userId: "user_b", squadId: "squad_disbanded", encounterId: "enc_active" },
+    ]);
   } finally {
     Notification.distinct = originalDistinct;
     Notification.deleteMany = originalDeleteMany;
+    socketService.revokeUserRealtimeAccess = originalRevoke;
+  }
+});
+
+test("kicking a member revokes their live squad and encounter rooms", async () => {
+  const socketService = require("../src/services/socketService");
+  const originalRevoke = socketService.revokeUserRealtimeAccess;
+  const revoked = [];
+  socketService.revokeUserRealtimeAccess = (payload) => revoked.push(payload);
+
+  try {
+    const squad = {
+      squadId: "squad_a",
+      status: "in_encounter",
+      currentEncounterId: "enc_1",
+      members: [
+        { memberId: "leader", userId: "user_a", role: "leader" },
+        { memberId: "member_b", userId: "user_b", role: "member" },
+      ],
+      save: async () => {},
+    };
+    const res = createResponse();
+
+    await kickMemberHandler({ params: { memberId: "member_b" }, squadAccess: { squad } }, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(revoked, [
+      { userId: "user_b", squadId: "squad_a", encounterId: "enc_1" },
+    ]);
+  } finally {
+    socketService.revokeUserRealtimeAccess = originalRevoke;
+  }
+});
+
+test("leaving a squad revokes every socket owned by the leaving user", async () => {
+  const socketService = require("../src/services/socketService");
+  const originalRevoke = socketService.revokeUserRealtimeAccess;
+  const revoked = [];
+  socketService.revokeUserRealtimeAccess = (payload) => revoked.push(payload);
+
+  try {
+    const squad = {
+      squadId: "squad_a",
+      status: "in_encounter",
+      currentEncounterId: "enc_1",
+      members: [
+        { memberId: "leader", userId: "user_a", role: "leader" },
+        { memberId: "member_b", userId: "user_b", role: "member" },
+      ],
+      save: async () => {},
+    };
+    const res = createResponse();
+
+    await leaveSquadHandler({ squadAccess: { squad, memberIndex: 1 } }, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(revoked, [
+      { userId: "user_b", squadId: "squad_a", encounterId: "enc_1" },
+    ]);
+  } finally {
+    socketService.revokeUserRealtimeAccess = originalRevoke;
+  }
+});
+
+test("ready state rechecks squad status under the search admission lock", async () => {
+  const { redlock } = require("../src/config/redisConfig");
+  const sessionService = require("../src/services/sessionService");
+  const originalAcquire = redlock.acquire;
+  const originalFindOne = Squad.findOne;
+  const originalSetSessionField = sessionService.setSessionField;
+  const calls = [];
+  let writes = 0;
+  redlock.acquire = async () => {
+    calls.push("lock");
+    return { release: async () => { calls.push("release"); } };
+  };
+  Squad.findOne = async () => ({
+    squadId: "squad_a",
+    status: "searching",
+    members: [{ memberId: "member_a" }],
+  });
+  sessionService.setSessionField = async () => { writes += 1; };
+
+  try {
+    const res = createResponse();
+    await updateReadyStateHandler({
+      body: { ready: false },
+      squadAccess: {
+        squad: {
+          squadId: "squad_a",
+          status: "idle",
+          members: [{ memberId: "member_a" }],
+        },
+        member: { memberId: "member_a" },
+        memberIndex: 0,
+      },
+    }, res);
+
+    assert.equal(res.statusCode, 409);
+    assert.equal(res.body.error.code, "INVALID_SQUAD_STATE");
+    assert.equal(writes, 0);
+    assert.deepEqual(calls, ["lock", "release"]);
+  } finally {
+    redlock.acquire = originalAcquire;
+    Squad.findOne = originalFindOne;
+    sessionService.setSessionField = originalSetSessionField;
+  }
+});
+
+test("cancelling search serializes with matchmaking and refetches queue state", async () => {
+  const { redlock } = require("../src/config/redisConfig");
+  const queueService = require("../src/services/queueService");
+  const socketService = require("../src/services/socketService");
+  const originals = {
+    acquire: redlock.acquire,
+    findOne: Squad.findOne,
+    remove: queueService.removeFromQueue,
+    emit: socketService.emitToSquad,
+  };
+  const calls = [];
+  const freshSquad = {
+    squadId: "squad_a",
+    status: "searching",
+    searchQueuedAt: new Date(),
+    async save() { calls.push("save"); },
+  };
+
+  redlock.acquire = async () => {
+    calls.push("lock");
+    return { release: async () => { calls.push("release"); } };
+  };
+  Squad.findOne = async () => {
+    calls.push("find");
+    return freshSquad;
+  };
+  queueService.removeFromQueue = async () => { calls.push("dequeue"); };
+  socketService.emitToSquad = () => { calls.push("emit"); };
+
+  try {
+    const res = createResponse();
+    await cancelSearchHandler({
+      squadAccess: {
+        squad: { squadId: "squad_a", status: "searching" },
+        member: { memberId: "leader" },
+      },
+    }, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(freshSquad.status, "idle");
+    assert.deepEqual(calls, ["lock", "find", "save", "emit", "dequeue", "release"]);
+  } finally {
+    redlock.acquire = originals.acquire;
+    Squad.findOne = originals.findOne;
+    queueService.removeFromQueue = originals.remove;
+    socketService.emitToSquad = originals.emit;
   }
 });
 

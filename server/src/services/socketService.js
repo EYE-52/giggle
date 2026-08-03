@@ -421,11 +421,31 @@ const emitToUser = (userId, event, payload) => {
   }
 };
 
+const revokeUserRealtimeAccess = ({ userId, squadId, encounterId } = {}, server = io) => {
+  const normalizedSquadId = normalizeRealtimeId(squadId);
+  const normalizedEncounterId = normalizeRealtimeId(encounterId);
+  const normalizedUserId = String(userId || '');
+  if (!server || !normalizedUserId || !normalizedSquadId) return;
+
+  const rooms = [`squad_${normalizedSquadId}`];
+  if (normalizedEncounterId) rooms.push(`encounter_${normalizedEncounterId}`);
+  server.in(`user_${normalizedUserId}`).socketsLeave(rooms);
+};
+
+const closeEncounterRoom = (encounterId, server = io) => {
+  const normalizedEncounterId = normalizeRealtimeId(encounterId);
+  if (!server || !normalizedEncounterId) return;
+  const room = `encounter_${normalizedEncounterId}`;
+  server.in(room).socketsLeave(room);
+};
+
 module.exports = {
+  closeEncounterRoom,
   init,
   getIO,
   emitToSquad,
   emitToUser,
+  revokeUserRealtimeAccess,
   isUserOnline,
   getOnlineUserIds,
   isRealtimeDebugEnabled,
