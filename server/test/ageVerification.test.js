@@ -81,13 +81,34 @@ async function withFetch(fetchImpl, fn) {
 }
 
 function withMockedFindById(user, fn) {
-  const original = User.findById;
+  const originalFindById = User.findById;
+  const originalFindOneAndUpdate = User.findOneAndUpdate;
   User.findById = async () => user;
+  User.findOneAndUpdate = async (_filter, update) => {
+    for (const [pathName, value] of Object.entries(update.$set || {})) {
+      const parts = pathName.split(".");
+      let target = user;
+      for (const part of parts.slice(0, -1)) target = target[part] ||= {};
+      target[parts.at(-1)] = value;
+    }
+    return user;
+  };
   return Promise.resolve()
     .then(fn)
     .finally(() => {
-      User.findById = original;
+      User.findById = originalFindById;
+      User.findOneAndUpdate = originalFindOneAndUpdate;
     });
+}
+
+function withMockedUserMethods(methods, fn) {
+  const originals = Object.fromEntries(
+    Object.keys(methods).map((method) => [method, User[method]])
+  );
+  Object.assign(User, methods);
+  return Promise.resolve()
+    .then(fn)
+    .finally(() => Object.assign(User, originals));
 }
 
 const isoYearsAgo = (years) => {
@@ -241,7 +262,7 @@ test("verification session stores only an opaque pending binding", async () => {
           assert.ok(user.ageVerification.requestedAt instanceof Date);
           assert.equal(JSON.stringify(user.ageVerification).includes("must-not-be-stored"), false);
           assert.equal(user.ageVerified, false);
-          assert.equal(user.saved, true);
+          assert.equal(user.saved, false);
         }
       )
     )
@@ -270,6 +291,81 @@ test("verification session safely reuses a recent pending provider session", asy
         assert.equal(res.body.data.url.includes(`sessionId=${SESSION_ID}`), true);
         assert.equal(user.saved, false);
       })
+    )
+  );
+});
+
+test("concurrent session starts return only the atomically stored provider binding", async () => {
+  const sessionIds = [
+    "14010f56-3f04-4f1f-84e7-a43ff723ef86",
+    "24010f56-3f04-4f1f-84e7-a43ff723ef87",
+  ];
+  const persisted = fakeUser({ ageConfirmed: true, isAdult: true });
+  let initialReads = 0;
+  let providerCalls = 0;
+  const bindFilters = [];
+  let releaseProviderCalls;
+  const bothProviderCallsStarted = new Promise((resolve) => {
+    releaseProviderCalls = resolve;
+  });
+
+  await withEnvironment(YOTI_ENV, () =>
+    withMockedUserMethods(
+      {
+        findById: async () => {
+          if (initialReads++ < 2) {
+            return fakeUser({ ageConfirmed: true, isAdult: true });
+          }
+          return fakeUser({
+            ageConfirmed: true,
+            isAdult: true,
+            ageVerified: persisted.ageVerified,
+            ageVerification: persisted.ageVerification && { ...persisted.ageVerification },
+          });
+        },
+        findOneAndUpdate: async (filter, update) => {
+          bindFilters.push(filter);
+          if (persisted.ageVerification) return null;
+          persisted.ageVerified = update.$set.ageVerified;
+          persisted.ageVerification = { ...update.$set.ageVerification };
+          return persisted;
+        },
+      },
+      () =>
+        withFetch(
+          async () => {
+            const index = providerCalls++;
+            if (providerCalls === 2) releaseProviderCalls();
+            await bothProviderCallsStarted;
+            return {
+              ok: true,
+              status: 200,
+              json: async () => ({ id: sessionIds[index], status: "PENDING" }),
+            };
+          },
+          async () => {
+            const responses = [createMockResponse(), createMockResponse()];
+            await Promise.all(
+              responses.map((res) =>
+                startAgeVerification({ user: { userId: "u1" } }, res)
+              )
+            );
+
+            const urls = responses.map((res) => res.body.data.url).filter(Boolean);
+            assert.equal(urls.length, 1);
+            assert.equal(urls[0].includes(persisted.ageVerification.sessionId), true);
+            assert.equal(persisted.ageVerification.status, "pending");
+            assert.equal(responses.every((res) => res.body.data.status === "pending"), true);
+            assert.equal(bindFilters.length, 2);
+            for (const filter of bindFilters) {
+              assert.equal(filter._id, "u1");
+              assert.deepEqual(filter.ageVerified, { $ne: true });
+              assert.deepEqual(filter["ageVerification.status"], { $exists: false });
+              assert.deepEqual(filter["ageVerification.sessionId"], { $exists: false });
+              assert.deepEqual(filter["ageVerification.referenceId"], { $exists: false });
+            }
+          }
+        )
     )
   );
 });
@@ -420,6 +516,53 @@ test("provider pending and rejected results remain blocked and expose only norma
             assert.equal(JSON.stringify(res.body).includes("raw-selfie"), false);
           }
         )
+      )
+    );
+  }
+});
+
+test("stale COMPLETE and FAIL results cannot update a replaced pending binding", async () => {
+  for (const providerStatus of ["COMPLETE", "FAIL"]) {
+    const checked = pendingUser();
+    const current = pendingUser();
+    current.ageVerification.sessionId = "24010f56-3f04-4f1f-84e7-a43ff723ef87";
+    current.ageVerification.referenceId = "8f9779fd-75e3-47c4-8bd4-c3185b59d42d";
+    let reads = 0;
+    let updateFilter;
+
+    await withEnvironment(YOTI_ENV, () =>
+      withMockedUserMethods(
+        {
+          findById: async () => (reads++ === 0 ? checked : current),
+          findOneAndUpdate: async (filter) => {
+            updateFilter = filter;
+            return null;
+          },
+        },
+        () =>
+          withFetch(
+            async () => ({
+              ok: true,
+              status: 200,
+              json: async () => providerResult({ status: providerStatus }),
+            }),
+            async () => {
+              const res = createMockResponse();
+              await getAgeVerificationStatus({ user: { userId: "u1" } }, res);
+
+              assert.equal(updateFilter._id, "u1");
+              assert.deepEqual(updateFilter.ageVerified, { $ne: true });
+              assert.equal(updateFilter["ageVerification.status"], "pending");
+              assert.equal(updateFilter["ageVerification.sessionId"], SESSION_ID);
+              assert.equal(updateFilter["ageVerification.referenceId"], REFERENCE_ID);
+              assert.deepEqual(res.body.data, { status: "pending", ageVerified: false });
+              assert.equal(current.ageVerified, false);
+              assert.equal(
+                current.ageVerification.sessionId,
+                "24010f56-3f04-4f1f-84e7-a43ff723ef87"
+              );
+            }
+          )
       )
     );
   }

@@ -39,6 +39,43 @@ function checkDeclaration(user, res) {
   return true;
 }
 
+function normalizedState(user) {
+  if (user?.ageConfirmed === true && user?.isAdult === true && user?.ageVerified === true) {
+    return { status: "verified", ageVerified: true };
+  }
+  if (user?.ageConfirmed === true && user?.isAdult === false) {
+    return { status: "restricted", ageVerified: false };
+  }
+  const status = ["pending", "rejected"].includes(user?.ageVerification?.status)
+    ? user.ageVerification.status
+    : "not_started";
+  return { status, ageVerified: false };
+}
+
+async function sendCurrentState(userId, res) {
+  const currentUser = await User.findById(userId);
+  if (!currentUser) {
+    return res.status(404).json({
+      ok: false,
+      error: { code: "NOT_FOUND", message: "User not found" },
+    });
+  }
+  return res.json({ ok: true, data: normalizedState(currentUser) });
+}
+
+function bindingFilter(userId, verification) {
+  const expected = (value) => value ?? { $exists: false };
+  return {
+    _id: userId,
+    ageConfirmed: true,
+    isAdult: true,
+    ageVerified: { $ne: true },
+    "ageVerification.status": expected(verification?.status),
+    "ageVerification.sessionId": expected(verification?.sessionId),
+    "ageVerification.referenceId": expected(verification?.referenceId),
+  };
+}
+
 async function startAgeVerification(req, res) {
   try {
     const userId = req.user?.userId || req.user?.sub;
@@ -79,15 +116,21 @@ async function startAgeVerification(req, res) {
 
     const referenceId = crypto.randomUUID();
     const session = await createAgeVerificationSession({ referenceId });
-    user.ageVerified = false;
-    user.ageVerification = {
+    const nextVerification = {
       provider: session.provider,
       status: "pending",
       sessionId: session.sessionId,
       referenceId,
       requestedAt: new Date(),
     };
-    await user.save();
+    // ponytail: simultaneous starts can orphan one short-lived Yoti session;
+    // this compare-and-set keeps only the stored binding authoritative.
+    const boundUser = await User.findOneAndUpdate(
+      bindingFilter(userId, verification),
+      { $set: { ageVerified: false, ageVerification: nextVerification } },
+      { new: true, runValidators: true }
+    );
+    if (!boundUser) return sendCurrentState(userId, res);
 
     return res.json({
       ok: true,
@@ -136,27 +179,39 @@ async function getAgeVerificationStatus(req, res) {
       referenceId: verification.referenceId,
     });
     if (result.status === "pending") {
-      return res.json({ ok: true, data: { status: "pending", ageVerified: false } });
+      return sendCurrentState(userId, res);
     }
+    const filter = bindingFilter(userId, verification);
     if (result.status === "rejected") {
-      user.ageVerified = false;
-      user.ageVerification.status = "rejected";
-      await user.save();
+      const rejectedUser = await User.findOneAndUpdate(
+        filter,
+        { $set: { ageVerified: false, "ageVerification.status": "rejected" } },
+        { new: true, runValidators: true }
+      );
+      if (!rejectedUser) return sendCurrentState(userId, res);
       return res.json({
         ok: true,
         data: { status: "rejected", ageVerified: false, reason: result.reason },
       });
     }
 
-    const storedVerification = verification.toObject?.() || verification;
-    user.ageVerified = true;
-    user.ageVerification = {
-      ...storedVerification,
-      ...result.receipt,
-      status: "verified",
-      verifiedAt: new Date(),
-    };
-    await user.save();
+    const verifiedUser = await User.findOneAndUpdate(
+      filter,
+      {
+        $set: {
+          ageVerified: true,
+          "ageVerification.provider": result.receipt.provider,
+          "ageVerification.status": "verified",
+          "ageVerification.evidenceId": result.receipt.evidenceId,
+          "ageVerification.method": result.receipt.method,
+          "ageVerification.threshold": result.receipt.threshold,
+          "ageVerification.policyVersion": result.receipt.policyVersion,
+          "ageVerification.verifiedAt": new Date(),
+        },
+      },
+      { new: true, runValidators: true }
+    );
+    if (!verifiedUser) return sendCurrentState(userId, res);
     return res.json({ ok: true, data: { status: "verified", ageVerified: true } });
   } catch (error) {
     if (error?.code === "AGE_VERIFICATION_UNAVAILABLE") {
