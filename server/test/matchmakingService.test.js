@@ -128,10 +128,14 @@ test("matcher purges an offline seeker before creating an encounter", async () =
   }
 });
 
-async function runFreshRosterMatch(users, { seekerTags = [], candidateTags = [] } = {}) {
+async function runFreshRosterMatch(
+  users,
+  { seekerTags = [], candidateTags = [], queuedSquads, refreshedSeekerMembers } = {}
+) {
   const originals = {
     acquire: redlock.acquire,
     queued: queueService.getQueuedSquadsByRegion,
+    allQueued: queueService.getAllQueuedSquads,
     remove: queueService.removeFromQueue,
     findOne: Squad.findOne,
     create: Encounter.create,
@@ -164,14 +168,22 @@ async function runFreshRosterMatch(users, { seekerTags = [], candidateTags = [] 
   };
   const removed = [];
   let encounters = 0;
+  let seekerReads = 0;
 
   redlock.acquire = async () => ({ release: async () => {} });
-  queueService.getQueuedSquadsByRegion = async () => [
+  const defaultQueue = [
     { squadId: seeker.squadId, size: "1", queuedAt: String(Date.now()) },
     { squadId: candidate.squadId, size: "1", queuedAt: String(Date.now()) },
   ];
+  queueService.getQueuedSquadsByRegion = async () => queuedSquads ?? defaultQueue;
+  queueService.getAllQueuedSquads = async () => queuedSquads ?? defaultQueue;
   queueService.removeFromQueue = async (squadId) => { removed.push(squadId); };
-  Squad.findOne = async ({ squadId }) => squadId === seeker.squadId ? seeker : candidate;
+  Squad.findOne = async ({ squadId }) => {
+    if (squadId !== seeker.squadId) return candidate;
+    seekerReads += 1;
+    if (seekerReads > 1 && refreshedSeekerMembers) seeker.members = refreshedSeekerMembers;
+    return seeker;
+  };
   Encounter.create = async (data) => { encounters += 1; return data; };
   socketService.getOnlineUserIds = async (ids) => new Set(ids);
   sessionService.setSessionField = async () => {};
@@ -186,6 +198,7 @@ async function runFreshRosterMatch(users, { seekerTags = [], candidateTags = [] 
   } finally {
     redlock.acquire = originals.acquire;
     queueService.getQueuedSquadsByRegion = originals.queued;
+    queueService.getAllQueuedSquads = originals.allQueued;
     queueService.removeFromQueue = originals.remove;
     Squad.findOne = originals.findOne;
     Encounter.create = originals.create;
@@ -256,15 +269,51 @@ test("matcher purges a legacy queued candidate with mature tags", async () => {
   assert.deepEqual(removed, ["sq_candidate"]);
 });
 
-test("ending an encounter does not requeue ineligible rosters", async () => {
+test("matcher purges an ineligible seeker even when no candidate is queued", async () => {
+  const { encounters, removed, result, seeker } = await runFreshRosterMatch([
+    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: false },
+  ], { queuedSquads: [] });
+
+  assert.equal(result, null);
+  assert.equal(encounters, 0);
+  assert.equal(seeker.status, "idle");
+  assert.deepEqual(removed, ["sq_seeker"]);
+});
+
+test("matcher purges a mature-tag seeker even when no candidate is queued", async () => {
+  const { encounters, removed, result, seeker } = await runFreshRosterMatch([
+    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: true },
+  ], { seekerTags: ["nsfw"], queuedSquads: [] });
+
+  assert.equal(result, null);
+  assert.equal(encounters, 0);
+  assert.equal(seeker.status, "idle");
+  assert.deepEqual(removed, ["sq_seeker"]);
+});
+
+test("matcher rechecks a seeker roster before creating an encounter", async () => {
+  const { encounters, removed, result, seeker } = await runFreshRosterMatch([
+    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: "user_b", ageConfirmed: true, isAdult: true, ageVerified: true },
+  ], { refreshedSeekerMembers: [{ memberId: "member_stale", userId: "missing_user" }] });
+
+  assert.equal(result, null);
+  assert.equal(encounters, 0);
+  assert.equal(seeker.status, "idle");
+  assert.deepEqual(removed, ["sq_seeker"]);
+});
+
+async function runEncounterRequeue(users) {
   const originals = {
     acquire: redlock.acquire,
     updateMany: Squad.updateMany,
     find: Squad.find,
+    findOne: Squad.findOne,
     users: User.find,
     add: queueService.addToQueue,
     remove: queueService.removeFromQueue,
     queued: queueService.getQueuedSquadsByRegion,
+    allQueued: queueService.getAllQueuedSquads,
     session: sessionService.setSessionField,
     emit: socketService.emitToSquad,
     close: socketService.closeEncounterRoom,
@@ -281,10 +330,14 @@ test("ending an encounter does not requeue ineligible rosters", async () => {
   redlock.acquire = async () => ({ release: async () => {} });
   Squad.updateMany = async (filter, update) => { updates.push([filter, update]); };
   Squad.find = async () => squads;
-  User.find = () => ({ select: async () => [] });
+  Squad.findOne = async ({ squadId }) => squads.find((squad) => squad.squadId === squadId) || null;
+  User.find = ({ _id: { $in: ids } }) => ({
+    select: async () => users.filter((user) => ids.map(String).includes(String(user._id))),
+  });
   queueService.addToQueue = async (squadId) => { queued.push(squadId); };
   queueService.removeFromQueue = async () => {};
   queueService.getQueuedSquadsByRegion = async () => [];
+  queueService.getAllQueuedSquads = async () => [];
   sessionService.setSessionField = async () => {};
   socketService.emitToSquad = () => {};
   socketService.closeEncounterRoom = () => {};
@@ -297,21 +350,39 @@ test("ending an encounter does not requeue ineligible rosters", async () => {
 
   try {
     const result = await endEncounterAndRequeue({ encounter, triggeringSquadId: "sq_a" });
-    assert.equal(result, null);
-    assert.deepEqual(queued, []);
-    assert.equal(updates.some(([, update]) => update.$set?.status === "idle"), true);
+    return { queued, result, updates };
   } finally {
     redlock.acquire = originals.acquire;
     Squad.updateMany = originals.updateMany;
     Squad.find = originals.find;
+    Squad.findOne = originals.findOne;
     User.find = originals.users;
     queueService.addToQueue = originals.add;
     queueService.removeFromQueue = originals.remove;
     queueService.getQueuedSquadsByRegion = originals.queued;
+    queueService.getAllQueuedSquads = originals.allQueued;
     sessionService.setSessionField = originals.session;
     socketService.emitToSquad = originals.emit;
     socketService.closeEncounterRoom = originals.close;
   }
+}
+
+test("ending an encounter does not requeue ineligible rosters", async () => {
+  const { queued, result, updates } = await runEncounterRequeue([]);
+
+  assert.equal(result, null);
+  assert.deepEqual(queued, []);
+  assert.equal(updates.some(([, update]) => update.$set?.status === "idle"), true);
+});
+
+test("ending an encounter requeues verified-adult rosters", async () => {
+  const { queued, result } = await runEncounterRequeue([
+    { _id: "user_0", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: "user_1", ageConfirmed: true, isAdult: true, ageVerified: true },
+  ]);
+
+  assert.equal(result.squadId, "sq_a");
+  assert.deepEqual(queued, ["sq_a", "sq_b"]);
 });
 
 test("asymmetric encounter end leaves an ineligible remaining roster idle", async () => {

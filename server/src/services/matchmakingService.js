@@ -184,12 +184,33 @@ const tryMatchmakeForSquad = async (squad) => {
   try {
     lock = await redlock.acquire([`lock:matchmaking`], 5000);
 
-    const region = squad.searchRegion || "global";
+    let freshSquad = await Squad.findOne({ squadId: squad.squadId });
+    if (!freshSquad) {
+      console.warn(`[Matchmaking] Seeker squad ${squad.squadId} no longer exists. Purging.`);
+      await queueService.removeFromQueue(squad.squadId);
+      return null;
+    }
+    if (freshSquad.status !== "searching") {
+      await queueService.removeFromQueue(freshSquad.squadId);
+      return null;
+    }
+
+    const seekerHasAccess = await allUsersHaveAdultAccess(
+      freshSquad.members.map((member) => member.userId),
+      { User }
+    );
+    if (!seekerHasAccess || (freshSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
+      console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} is no longer eligible. Purging from queue.`);
+      await resetInactiveSearchingSquad(freshSquad);
+      return null;
+    }
+
+    const region = freshSquad.searchRegion || "global";
     let candidates = await queueService.getQueuedSquadsByRegion(region);
 
     // Expansion Logic: If no local candidates, try all regions
-    const waitSeconds = squad.searchQueuedAt
-      ? Math.floor((Date.now() - new Date(squad.searchQueuedAt).getTime()) / 1000)
+    const waitSeconds = freshSquad.searchQueuedAt
+      ? Math.floor((Date.now() - new Date(freshSquad.searchQueuedAt).getTime()) / 1000)
       : 0;
 
     if (!candidates.length || candidates.length <= 1) {
@@ -206,11 +227,11 @@ const tryMatchmakeForSquad = async (squad) => {
     // Sort candidates by score (best first)
     const now = new Date();
     const seeker = {
-      squadId: squad.squadId,
-      size: getSquadSize(squad),
-      queuedAt: squad.searchQueuedAt,
-      tags: squad.tags,
-      reputationScore: squad.reputationScore,
+      squadId: freshSquad.squadId,
+      size: getSquadSize(freshSquad),
+      queuedAt: freshSquad.searchQueuedAt,
+      tags: freshSquad.tags,
+      reputationScore: freshSquad.reputationScore,
     };
 
     const scoredCandidates = candidates
@@ -224,15 +245,17 @@ const tryMatchmakeForSquad = async (squad) => {
     // Iterate through candidates until a valid non-ghost match is found
     for (const item of scoredCandidates) {
       const bestCandidate = item.candidate;
-      
-      const freshSquad = await Squad.findOne({ squadId: squad.squadId });
-      const freshCandidate = await Squad.findOne({ squadId: bestCandidate.squadId });
 
-      if (!freshSquad) {
-        console.warn(`[Matchmaking] Seeker squad ${squad.squadId} no longer exists. Purging.`);
-        await queueService.removeFromQueue(squad.squadId);
+      const [refreshedSquad, freshCandidate] = await Promise.all([
+        Squad.findOne({ squadId: freshSquad.squadId }),
+        Squad.findOne({ squadId: bestCandidate.squadId }),
+      ]);
+
+      if (!refreshedSquad) {
+        await queueService.removeFromQueue(freshSquad.squadId);
         return null;
       }
+      freshSquad = refreshedSquad;
 
       if (!freshCandidate) {
         console.warn(`[Matchmaking] Purging ghost candidate from Redis: ${bestCandidate.squadId}`);
@@ -240,16 +263,20 @@ const tryMatchmakeForSquad = async (squad) => {
         continue; // Try next candidate
       }
 
-      if (freshSquad.status !== "searching" || freshCandidate.status !== "searching") {
+      if (freshSquad.status !== "searching") {
+        await queueService.removeFromQueue(freshSquad.squadId);
+        return null;
+      }
+      if (freshCandidate.status !== "searching") {
         logMatchmakingDebug(`[Matchmaking] Candidate ${freshCandidate.squadId} is already in state: ${freshCandidate.status}. Skipping.`);
         continue;
       }
 
-      const [seekerHasAccess, candidateHasAccess] = await Promise.all([
+      const [seekerStillHasAccess, candidateHasAccess] = await Promise.all([
         allUsersHaveAdultAccess(freshSquad.members.map((member) => member.userId), { User }),
         allUsersHaveAdultAccess(freshCandidate.members.map((member) => member.userId), { User }),
       ]);
-      if (!seekerHasAccess || (freshSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
+      if (!seekerStillHasAccess || (freshSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
         console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} is no longer eligible. Purging from queue.`);
         await resetInactiveSearchingSquad(freshSquad);
         return null;

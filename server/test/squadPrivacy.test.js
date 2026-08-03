@@ -283,6 +283,41 @@ test("join approval rejects a self-attested-only target before roster mutation",
   }
 });
 
+test("join approval admits a verified-adult target", async () => {
+  const originalFindById = User.findById;
+  const originalDeleteMany = Notification.deleteMany;
+  const leaderUserId = "507f1f77bcf86cd799439011";
+  const targetUserId = "507f1f77bcf86cd799439012";
+  let saves = 0;
+  const squad = {
+    squadId: "sq_verified",
+    members: [{ memberId: "leader", userId: leaderUserId, role: "leader" }],
+    joinRequests: [{ userId: targetUserId, name: "Verified" }],
+    async save() { saves += 1; },
+  };
+  User.findById = async (userId) => userId === targetUserId
+    ? { _id: targetUserId, name: "Verified", ageConfirmed: true, isAdult: true, ageVerified: true }
+    : { isPremium: false };
+  Notification.deleteMany = async () => ({ deletedCount: 0 });
+
+  try {
+    const res = createResponse();
+    await approveJoinRequestHandler({
+      params: { userId: targetUserId },
+      user: { userId: leaderUserId },
+      squadAccess: { squad },
+    }, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(saves, 1);
+    assert.equal(squad.members.length, 2);
+    assert.equal(squad.joinRequests.length, 0);
+  } finally {
+    User.findById = originalFindById;
+    Notification.deleteMany = originalDeleteMany;
+  }
+});
+
 for (const [name, handler, req] of [
   ["leader invite", inviteToSquadHandler, { body: { userId: "507f1f77bcf86cd799439012" } }],
   ["member invite", inviteUserToSquadHandler, { body: { userId: "507f1f77bcf86cd799439012" }, user: { userId: "507f1f77bcf86cd799439011", name: "Leader" } }],
@@ -321,6 +356,41 @@ for (const [name, handler, req] of [
       assert.equal(res.body.error.code, "AGE_RESTRICTED");
       assert.equal(saves, 0);
       assert.deepEqual(squad.invitedUserIds, []);
+    } finally {
+      User.findById = originalFindById;
+      Notification.create = originalCreate;
+    }
+  });
+
+  test(`${name} admits a verified-adult target`, async () => {
+    const originalFindById = User.findById;
+    const originalCreate = Notification.create;
+    let saves = 0;
+    const squad = {
+      squadId: "sq_invite",
+      squadName: "Invite squad",
+      squadCode: "ABC-123",
+      invitedUserIds: [],
+      members: [],
+      async save() { saves += 1; },
+    };
+    User.findById = () => ({
+      select: async () => ({
+        _id: req.body.userId,
+        ageConfirmed: true,
+        isAdult: true,
+        ageVerified: true,
+      }),
+    });
+    Notification.create = async () => ({ _id: "507f1f77bcf86cd799439099" });
+
+    try {
+      const res = createResponse();
+      await handler({ ...req, squadAccess: { squad } }, res);
+
+      assert.equal(res.statusCode, 200);
+      assert.equal(saves, 1);
+      assert.deepEqual(squad.invitedUserIds, [req.body.userId]);
     } finally {
       User.findById = originalFindById;
       Notification.create = originalCreate;
