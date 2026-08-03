@@ -422,8 +422,7 @@ const computeAge = (birthDate, now = new Date()) => {
  * POST /api/me/age — self-attested date of birth.
  * Body: { birthDate: "YYYY-MM-DD" }. SET-ONCE: once ageConfirmed is true it
  * cannot be changed; retries return the persisted flags. Sets birthDate, ageConfirmed=true, and
- * isAdult=(age>=18). Returns { isAdult, ageConfirmed }. ageVerified is NOT
- * touched here (reserved for a future real-ID vendor).
+ * isAdult=(age>=18). Self-attestation never sets ageVerified.
  */
 const setMyAge = async (req, res) => {
   try {
@@ -451,20 +450,38 @@ const setMyAge = async (req, res) => {
 
     // SET-ONCE: prevent re-attesting a different DOB to bypass age gating.
     if (user.ageConfirmed) {
+      if (user.isAdult !== true) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "AGE_RESTRICTED", message: "Giggle is available only to adults 18+" },
+        });
+      }
       return res.status(200).json({
         ok: true,
-        data: { isAdult: user.isAdult, ageConfirmed: true },
+        data: {
+          isAdult: true,
+          ageConfirmed: true,
+          ageVerified: user.ageVerified === true,
+        },
       });
     }
 
     user.birthDate = date;
     user.ageConfirmed = true;
     user.isAdult = age >= 18;
+    user.ageVerified = false;
     await user.save();
+
+    if (!user.isAdult) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "AGE_RESTRICTED", message: "Giggle is available only to adults 18+" },
+      });
+    }
 
     return res.status(200).json({
       ok: true,
-      data: { isAdult: user.isAdult, ageConfirmed: user.ageConfirmed },
+      data: { isAdult: true, ageConfirmed: true, ageVerified: false },
     });
   } catch (error) {
     console.error("setMyAge Error:", error);

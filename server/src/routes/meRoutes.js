@@ -1,5 +1,9 @@
 const express = require("express");
 const { getMyProfile, updateMyProfile, setMyAge } = require("../controllers/authController");
+const {
+  getAgeVerificationStatus,
+  startAgeVerification,
+} = require("../controllers/ageVerificationController");
 const { requireApiAuth, requireIdentityAuth } = require("../middlewares/authMiddleware");
 
 const router = express.Router();
@@ -40,5 +44,7 @@ router.patch("/me/profile", requireApiAuth, updateMyProfile);
  *         description: "{ isAdult, ageConfirmed }"
  */
 router.post("/me/age", requireIdentityAuth, setMyAge);
+router.post("/me/age/verification-session", requireIdentityAuth, startAgeVerification);
+router.get("/me/age/verification-status", requireIdentityAuth, getAgeVerificationStatus);
 
 module.exports = router;

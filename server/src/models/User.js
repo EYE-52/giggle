@@ -2,6 +2,22 @@
 
 const mongoose = require("mongoose");
 
+const ageVerificationSchema = new mongoose.Schema(
+  {
+    provider: { type: String, enum: ["yoti"] },
+    status: { type: String, enum: ["pending", "rejected", "verified"] },
+    sessionId: { type: String, maxlength: 128 },
+    referenceId: { type: String, maxlength: 100 },
+    evidenceId: { type: String, maxlength: 128 },
+    method: { type: String, enum: ["AGE_ESTIMATION", "DIGITAL_ID", "DOC_SCAN"] },
+    threshold: { type: Number },
+    policyVersion: { type: String, maxlength: 48 },
+    requestedAt: { type: Date },
+    verifiedAt: { type: Date },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -49,14 +65,14 @@ const userSchema = new mongoose.Schema(
     gender: { type: String }, // "male"|"female"|"nonbinary"|"other"|"prefer_not"
     age: { type: Number },
 
-    // ── Age verification / adult-content gating ───────────────────────────
+    // ── Age verification / adult access ───────────────────────────────────
     // Self-attested date of birth (PII — NEVER serialized back to the client).
-    // `isAdult`/`ageConfirmed` are the client-facing flags. `ageVerified` is
-    // RESERVED for a future real-ID vendor and must stay false until then.
+    // Provider payloads, documents, biometrics, selfies and actual age are never stored.
     birthDate: { type: Date, default: null },
     isAdult: { type: Boolean, default: false },
     ageConfirmed: { type: Boolean, default: false },
     ageVerified: { type: Boolean, default: false },
+    ageVerification: { type: ageVerificationSchema, default: undefined },
     languages: [{ type: String }],
     country: { type: String }, // ISO-ish or free text, e.g. "IN", "US"
     vibes: [{ type: String, trim: true, maxlength: 15 }],
