@@ -6,6 +6,7 @@ const test = require("node:test");
 const ts = require("typescript");
 
 const source = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
+const indexSource = readFileSync(path.join(__dirname, "../src/index.ts"), "utf8");
 
 function block(start, end) {
   return source.slice(source.indexOf(start), source.indexOf(end, source.indexOf(start)));
@@ -32,6 +33,11 @@ function backendUser(id, ageVerified = false) {
     isAdult: ageVerified,
     ageVerified,
   };
+}
+
+function oauthToken(id) {
+  const encode = (value) => Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${encode({ alg: "none" })}.${encode({ userId: id, email: `${id}@example.com` })}.test`;
 }
 
 function loadSession(api) {
@@ -67,6 +73,13 @@ test("session exposes read-only verified adult access", () => {
   assert.match(source, /get hasAdultAccess\(\)\s*{/);
   assert.equal(source.includes("set ageVerified("), false);
   assert.equal(source.includes("setAgeVerified"), false);
+});
+
+test("the public barrel hides the internal socket access registrar", () => {
+  assert.equal(indexSource.includes('export * from "./socket";'), false);
+  assert.equal(indexSource.includes("setAdultAccessGetter"), false);
+  assert.match(indexSource, /connectSocket/);
+  assert.match(indexSource, /export type \{[^}]*ChatMessage/);
 });
 
 test("only a successful live sync grants adult access", () => {
@@ -131,6 +144,59 @@ test("a sign-in commit invalidates an old-identity sync started during exchange"
   }
 });
 
+test("concurrent sign-ins are latest-invocation-wins", async () => {
+  const first = deferred();
+  const second = deferred();
+  const api = { exchange: ({ email }) => email === "first@example.com" ? first.promise : second.promise };
+  const runtime = loadSession(api);
+
+  try {
+    const firstSignIn = runtime.session.signIn({ email: "first@example.com" });
+    const secondSignIn = runtime.session.signIn({ email: "second@example.com" });
+    first.resolve({ token: "first-token", user: backendUser("first") });
+    await assert.rejects(firstSignIn, { code: "SESSION_CHANGED" });
+    second.resolve({ token: "second-token", user: backendUser("second") });
+    await secondSignIn;
+
+    assert.equal(runtime.session.user.id, "second");
+  } finally {
+    runtime.cleanup();
+  }
+});
+
+test("sign-out cancels a pending sign-in", async () => {
+  const exchange = deferred();
+  const runtime = loadSession({ exchange: () => exchange.promise });
+
+  try {
+    const signingIn = runtime.session.signIn({ email: "old@example.com" });
+    runtime.session.signOut();
+    exchange.resolve({ token: "old-token", user: backendUser("old") });
+
+    await assert.rejects(signingIn, { code: "SESSION_CHANGED" });
+    assert.equal(runtime.session.isAuthed(), false);
+    assert.equal(runtime.session.user, null);
+  } finally {
+    runtime.cleanup();
+  }
+});
+
+test("OAuth identity cancels a pending exchange sign-in", async () => {
+  const exchange = deferred();
+  const runtime = loadSession({ exchange: () => exchange.promise });
+
+  try {
+    const signingIn = runtime.session.signIn({ email: "old@example.com" });
+    runtime.session.setTokenFromOAuth(oauthToken("oauth"));
+    exchange.resolve({ token: "old-token", user: backendUser("old") });
+
+    await assert.rejects(signingIn, { code: "SESSION_CHANGED" });
+    assert.equal(runtime.session.user.id, "oauth");
+  } finally {
+    runtime.cleanup();
+  }
+});
+
 test("a DOB response cannot mutate a different signed-in session", async () => {
   const age = deferred();
   const api = {
@@ -145,7 +211,7 @@ test("a DOB response cannot mutate a different signed-in session", async () => {
     api.exchange = async () => ({ token: "new-token", user: backendUser("new") });
     await runtime.session.signIn({ email: "new@example.com" });
     age.resolve({ ageConfirmed: true, isAdult: true, ageVerified: false });
-    await settingAge;
+    await assert.rejects(settingAge, { code: "SESSION_CHANGED" });
 
     assert.equal(runtime.session.user.id, "new");
     assert.equal(runtime.session.user.ageConfirmed, false);
@@ -175,9 +241,46 @@ test("stale AGE_ALREADY_CONFIRMED does not reconcile the replacement session", a
     await runtime.session.signIn({ email: "new@example.com" });
     age.reject(Object.assign(new Error("Already confirmed"), { code: "AGE_ALREADY_CONFIRMED" }));
 
-    await assert.rejects(settingAge, { code: "AGE_ALREADY_CONFIRMED" });
+    await assert.rejects(settingAge, { code: "SESSION_CHANGED" });
     assert.equal(profileReads, 0);
     assert.equal(runtime.session.user.id, "new");
+  } finally {
+    runtime.cleanup();
+  }
+});
+
+test("mutating session.user cannot forge verified adult access", async () => {
+  const api = {
+    exchange: async () => ({ token: "token", user: backendUser("user") }),
+    getMyProfile: async () => ({ ageConfirmed: true, isAdult: true, ageVerified: false }),
+  };
+  const runtime = loadSession(api);
+
+  try {
+    await runtime.session.signIn({ email: "user@example.com" });
+    await runtime.session.syncAgeFromServer();
+    const exposedUser = runtime.session.user;
+    exposedUser.ageVerified = true;
+
+    assert.equal(runtime.session.user.ageVerified, false);
+    assert.equal(runtime.session.hasAdultAccess, false);
+  } finally {
+    runtime.cleanup();
+  }
+});
+
+test("mutating sign-in results cannot change the internal session user", async () => {
+  const api = { exchange: async () => ({ token: "token", user: backendUser("user") }) };
+  const runtime = loadSession(api);
+
+  try {
+    const signedIn = await runtime.session.signIn({ email: "user@example.com" });
+    signedIn.user.ageVerified = true;
+    assert.equal(runtime.session.user.ageVerified, false);
+
+    const oauthUser = runtime.session.setTokenFromOAuth(oauthToken("oauth"));
+    oauthUser.ageVerified = true;
+    assert.equal(runtime.session.user.ageVerified, undefined);
   } finally {
     runtime.cleanup();
   }

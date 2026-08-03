@@ -38,6 +38,11 @@ let token: string | null = null;
 let user: BackendUser | null = null;
 let ageAccessSynced = false;
 let ageAccessVersion = 0;
+let identityOperationVersion = 0;
+
+function sessionChangedError() {
+  return Object.assign(new Error("Session changed while the request was pending"), { code: "SESSION_CHANGED" });
+}
 
 function invalidateAdultAccess() {
   ageAccessSynced = false;
@@ -141,7 +146,7 @@ export const session = {
     return token;
   },
   get user() {
-    return user;
+    return user ? { ...user } : null;
   },
   isAuthed() {
     return !!token;
@@ -152,12 +157,14 @@ export const session = {
   },
   /** Exchange identity for a backend JWT. Pass real OAuth identity, or a dev one. */
   async signIn(identity: { email: string; name?: string; image?: string }) {
+    const identityVersion = ++identityOperationVersion;
     invalidateAdultAccess();
     const ref = getPendingReferral();
     const res = await api.exchange({ ...identity, ref });
+    if (identityVersion !== identityOperationVersion) throw sessionChangedError();
     invalidateAdultAccess();
     token = res.token;
-    user = res.user;
+    user = { ...res.user };
     persist();
     // Mirror any server-side token balance (incl. referral rewards) into wallet.
     if (typeof res.user?.tokens === "number") {
@@ -216,6 +223,7 @@ export const session = {
    * token wallet from the server, and clears any pending referral.
    */
   setTokenFromOAuth(jwtToken: string) {
+    identityOperationVersion += 1;
     invalidateAdultAccess();
     const payload = decodeJwtPayload(jwtToken);
     const nextUser = normalizeSessionUser(null, payload);
@@ -225,7 +233,7 @@ export const session = {
     persist();
     // A referral conversion already happened server-side during the redirect.
     clearPendingReferral();
-    return user;
+    return { ...user };
   },
   /** True once the user has attested a date of birth (age gate satisfied). */
   get ageConfirmed() {
@@ -258,17 +266,17 @@ export const session = {
       ageAccessVersion === version && token === requestToken && user?.id === requestUserId;
     try {
       const res = await api.setAge(birthDate);
-      if (user && isCurrentSession()) {
-        user = { ...user, isAdult: res.isAdult, ageConfirmed: res.ageConfirmed, ageVerified: res.ageVerified };
-        persist();
-      }
+      if (!user || !isCurrentSession()) throw sessionChangedError();
+      user = { ...user, isAdult: res.isAdult, ageConfirmed: res.ageConfirmed, ageVerified: res.ageVerified };
+      persist();
       return res;
     } catch (error) {
       if ((error as { code?: string })?.code !== "AGE_ALREADY_CONFIRMED") throw error;
-      if (!isCurrentSession()) throw error;
+      if (!isCurrentSession()) throw sessionChangedError();
       const reconciliationVersion = ageAccessVersion + 1;
       await session.syncAgeFromServer();
-      if (!isCurrentSession(reconciliationVersion) || !ageAccessSynced || !session.ageConfirmed) throw error;
+      if (!isCurrentSession(reconciliationVersion)) throw sessionChangedError();
+      if (!ageAccessSynced || !session.ageConfirmed) throw error;
       return { isAdult: session.isAdult, ageConfirmed: true, ageVerified: session.ageVerified };
     }
   },
@@ -301,6 +309,7 @@ export const session = {
     }
   },
   signOut() {
+    identityOperationVersion += 1;
     invalidateAdultAccess();
     token = null;
     user = null;

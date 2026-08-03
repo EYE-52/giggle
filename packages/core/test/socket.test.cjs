@@ -41,7 +41,7 @@ test("signOut disconnects the authenticated realtime socket", () => {
 
   assert.match(sessionSource, /import \{[^}]*disconnectSocket[^}]*\} from "\.\/socket";/);
   assert.match(sessionSource, /function invalidateAdultAccess\(\)[\s\S]*disconnectSocket\(\);/);
-  assert.match(sessionSource, /signOut\(\)\s*{\s*invalidateAdultAccess\(\);/);
+  assert.match(sessionSource, /signOut\(\)\s*{[\s\S]*identityOperationVersion \+= 1;[\s\S]*invalidateAdultAccess\(\);/);
 });
 
 test("socket connection is refused until the registered live access check passes", () => {
