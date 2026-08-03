@@ -200,14 +200,14 @@ const skipEncounterHandler = async (req, res) => {
       });
     }
 
-    await endEncounterAndRequeue({ encounter, triggeringSquadId: squadId });
+    const requeuedSquad = await endEncounterAndRequeue({ encounter, triggeringSquadId: squadId });
 
     return res.status(200).json({
       ok: true,
       data: {
         squadId,
         previousEncounterId: encounterId,
-        queueStatus: "searching",
+        queueStatus: requeuedSquad?.squadId === squadId ? "searching" : "idle",
       },
     });
   } catch (error) {
