@@ -5,7 +5,7 @@ import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Icon } from "@/components/Icons";
-import { billing, getMyAvatar, subscribeAvatar, session, DEFAULT_AVATAR_ID, api, type UserProfile } from "@giggle/core";
+import { billing, getMyAvatar, subscribeAvatar, session, DEFAULT_AVATAR_ID, api, type BlockedAccount, type UserProfile } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
@@ -134,6 +134,11 @@ export default function ProfilePage() {
   // Account toggles
   const manageAccountRef = useRef<HTMLElement>(null);
   const [notificationsOn, setNotificationsOn] = useState(true);
+  const [blockedAccounts, setBlockedAccounts] = useState<BlockedAccount[]>([]);
+  const [blocksLoading, setBlocksLoading] = useState(true);
+  const [blocksError, setBlocksError] = useState("");
+  const [blocksLoadAttempt, setBlocksLoadAttempt] = useState(0);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -141,6 +146,31 @@ export default function ProfilePage() {
       if (stored) setVibes(normalizeProfileVibes(JSON.parse(stored)));
     } catch {}
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setBlocksLoading(true);
+    setBlocksError("");
+    api.listBlockedUsers()
+      .then(({ accounts }) => { if (active) setBlockedAccounts(accounts ?? []); })
+      .catch(() => { if (active) setBlocksError("Couldn't load blocked accounts."); })
+      .finally(() => { if (active) setBlocksLoading(false); });
+    return () => { active = false; };
+  }, [blocksLoadAttempt]);
+
+  async function unblockAccount(account: BlockedAccount) {
+    if (unblockingId) return;
+    setUnblockingId(account.userId);
+    setBlocksError("");
+    try {
+      await api.unblockUser(account.userId);
+      setBlockedAccounts((current) => current.filter((item) => item.userId !== account.userId));
+    } catch {
+      setBlocksError("Couldn't unblock that account.");
+    } finally {
+      setUnblockingId(null);
+    }
+  }
 
   useEffect(() => {
     try {
@@ -659,6 +689,36 @@ export default function ProfilePage() {
             value={notificationsOn}
             onChange={setNotificationPopups}
           />
+          <div style={{ paddingTop: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div style={{ color: textPrimary, fontSize: 14, fontWeight: 700 }}>Blocked accounts</div>
+                <div style={{ color: textTertiary, fontSize: 12, marginTop: 2 }}>Unblocking does not restore a friendship.</div>
+              </div>
+              {blocksError && (
+                <Button variant="ghost" size="sm" onClick={() => setBlocksLoadAttempt((attempt) => attempt + 1)}>Retry</Button>
+              )}
+            </div>
+            {blocksError && <div role="alert" style={{ color: coral, fontSize: 12, marginTop: 10 }}>{blocksError}</div>}
+            {blocksLoading ? (
+              <div style={{ color: textMuted, fontSize: 13, paddingTop: 12 }}>Loading…</div>
+            ) : blockedAccounts.length === 0 ? (
+              !blocksError && <div style={{ color: textMuted, fontSize: 13, paddingTop: 12 }}>No blocked accounts.</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 12 }}>
+                {blockedAccounts.map((account) => {
+                  const name = account.name || "Blocked account";
+                  return (
+                    <div key={account.userId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: "1px solid var(--border)" }}>
+                      {account.image ? <AvatarArt value={account.image} size={36} /> : <Avatar name={name} size={36} />}
+                      <span style={{ color: textPrimary, fontSize: 14, fontWeight: 600, minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                      <Button variant="ghost" size="sm" loading={unblockingId === account.userId} disabled={!!unblockingId} onClick={() => unblockAccount(account)}>Unblock</Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </section>
         </div>
 

@@ -40,6 +40,7 @@ const userSchema = new mongoose.Schema(
     friends: [{ type: String }], // accepted, mutual friends
     friendRequestsIncoming: [{ type: String }], // userIds who requested me
     friendRequestsOutgoing: [{ type: String }], // userIds I requested
+    blockedUserIds: [{ type: String }],
     image: {
       type: String,
     },

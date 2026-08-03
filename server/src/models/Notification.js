@@ -91,6 +91,19 @@ const deleteNotifications = async (filter, affectedUserIds) => {
   }
 };
 
+const deleteNotificationsBetweenUsers = (userId, otherUserIds, { session } = {}) => {
+  const ids = [...new Set((otherUserIds || []).filter(Boolean).map(String))];
+  return Notification.deleteMany(
+    {
+      $or: [
+        { userId: String(userId), fromUserId: { $in: ids } },
+        { userId: { $in: ids }, fromUserId: String(userId) },
+      ],
+    },
+    { session }
+  );
+};
+
 /** Shape a Notification doc into the client contract (id + fields). */
 const toPublic = (n) => ({
   id: n._id.toString(),
@@ -106,4 +119,11 @@ const toPublic = (n) => ({
   createdAt: n.createdAt,
 });
 
-module.exports = { Notification, createNotification, deleteNotifications, emitNotificationsChanged, toPublic };
+module.exports = {
+  Notification,
+  createNotification,
+  deleteNotifications,
+  deleteNotificationsBetweenUsers,
+  emitNotificationsChanged,
+  toPublic,
+};

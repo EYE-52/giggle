@@ -8,6 +8,9 @@ const {
   declineRequest,
   removeFriend,
   searchUsers,
+  blockUsers,
+  unblockUser,
+  listBlockedUsers,
 } = require("../controllers/friendsController");
 
 const router = express.Router();
@@ -26,6 +29,9 @@ router.post("/friends/request", requireApiAuth, sendRequest);
 router.post("/friends/accept", requireApiAuth, acceptRequest);
 router.post("/friends/decline", requireApiAuth, declineRequest);
 router.post("/friends/remove", requireApiAuth, removeFriend);
+router.post("/users/block", requireApiAuth, blockUsers);
+router.delete("/users/:userId/block", requireApiAuth, unblockUser);
+router.get("/me/blocks", requireApiAuth, listBlockedUsers);
 
 // User search (excludes self + existing friends).
 router.get("/users/search", requireApiAuth, searchUsers);

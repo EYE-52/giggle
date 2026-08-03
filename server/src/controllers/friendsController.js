@@ -1,8 +1,14 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const { getOnlineUserIds } = require("../services/socketService");
-const { createNotification, deleteNotifications } = require("../models/Notification");
+const {
+  createNotification,
+  deleteNotifications,
+  deleteNotificationsBetweenUsers,
+  emitNotificationsChanged,
+} = require("../models/Notification");
 const { firstDisplayName } = require("../utils/identityValidation");
+const { hasBlockedPair, filterBlockedCandidates } = require("../services/interactionSafetyService");
 
 // ── helpers ──────────────────────────────────────────────────────────────
 const authedUserId = (req) => req.user?.userId || req.user?.sub;
@@ -34,7 +40,7 @@ const listFriends = async (req, res) => {
     const me = await User.findById(authedUserId(req)).lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
 
-    const ids = me.friends || [];
+    const ids = await filterBlockedCandidates(authedUserId(req), me.friends || [], { User });
     const docs = ids.length
       ? await User.find({ _id: { $in: ids } }, "name image").lean()
       : [];
@@ -56,9 +62,14 @@ const listRequests = async (req, res) => {
     const me = await User.findById(authedUserId(req)).lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
 
-    const incomingIds = me.friendRequestsIncoming || [];
-    const outgoingIds = me.friendRequestsOutgoing || [];
-    const allIds = [...new Set([...incomingIds, ...outgoingIds])];
+    const allIds = await filterBlockedCandidates(
+      authedUserId(req),
+      [...(me.friendRequestsIncoming || []), ...(me.friendRequestsOutgoing || [])],
+      { User }
+    );
+    const allowed = new Set(allIds.map(toIdString));
+    const incomingIds = (me.friendRequestsIncoming || []).map(toIdString).filter((id) => allowed.has(id));
+    const outgoingIds = (me.friendRequestsOutgoing || []).map(toIdString).filter((id) => allowed.has(id));
 
     const docs = allIds.length
       ? await User.find({ _id: { $in: allIds } }, "name image").lean()
@@ -96,11 +107,14 @@ const sendRequest = async (req, res) => {
     if (!isValidId(targetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
     if (targetId === myId) return err(res, 400, "INVALID_REQUEST", "Cannot friend yourself");
 
-    const target = await User.findById(targetId, "friends friendRequestsIncoming friendRequestsOutgoing").lean();
+    const target = await User.findById(targetId, "friends friendRequestsIncoming friendRequestsOutgoing blockedUserIds").lean();
     if (!target) return err(res, 404, "NOT_FOUND", "Target user not found");
 
-    const me = await User.findById(myId, "friends friendRequestsOutgoing").lean();
+    const me = await User.findById(myId, "friends friendRequestsOutgoing blockedUserIds").lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
+    if (hasBlockedPair(me, target)) {
+      return err(res, 403, "INTERACTION_BLOCKED", "Friend requests are unavailable for this account");
+    }
 
     if (hasId(me.friends, targetId)) {
       return res.json({ ok: true, data: { status: "friends" } });
@@ -165,15 +179,18 @@ const acceptRequest = async (req, res) => {
     const targetId = req.body?.userId;
     if (!isValidId(targetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
 
-    const me = await User.findById(myId, "friendRequestsIncoming").lean();
+    const me = await User.findById(myId, "friendRequestsIncoming blockedUserIds").lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
 
     if (!hasId(me.friendRequestsIncoming, targetId)) {
       return err(res, 400, "NO_REQUEST", "No incoming friend request from this user");
     }
 
-    const target = await User.findById(targetId, "_id").lean();
+    const target = await User.findById(targetId, "_id blockedUserIds").lean();
     if (!target) return err(res, 404, "NOT_FOUND", "Target user not found");
+    if (hasBlockedPair(me, target)) {
+      return err(res, 403, "INTERACTION_BLOCKED", "Friend requests are unavailable for this account");
+    }
 
     await Promise.all([
       User.updateOne(
@@ -282,14 +299,118 @@ const searchUsers = async (req, res) => {
       .limit(20)
       .lean();
 
-    const onlineSet = await getOnlineUserIds(docs.map((d) => d._id.toString()));
+    const allowedIds = new Set(await filterBlockedCandidates(myId, docs.map((d) => d._id), { User }));
+    const visibleDocs = docs.filter((doc) => allowedIds.has(doc._id.toString()));
+    const onlineSet = await getOnlineUserIds(visibleDocs.map((d) => d._id.toString()));
     return res.json({
       ok: true,
-      data: { users: docs.map((d) => toPublic(d, onlineSet)) },
+      data: { users: visibleDocs.map((d) => toPublic(d, onlineSet)) },
     });
   } catch (e) {
     console.error("[friends] searchUsers error:", e);
     return err(res, 500, "SERVER_ERROR", "Failed to search users");
+  }
+};
+
+const normalizeBlockTargets = (value, myId) => {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 8) return null;
+  if (!value.every(isValidId)) return null;
+  const ids = value.map((id) => new mongoose.Types.ObjectId(id).toString());
+  if (new Set(ids).size !== ids.length || ids.includes(new mongoose.Types.ObjectId(myId).toString())) return null;
+  return ids;
+};
+
+// ── POST /api/users/block { userIds } ───────────────────────────────────────
+const blockUsers = async (req, res) => {
+  const myId = authedUserId(req);
+  const userIds = normalizeBlockTargets(req.body?.userIds, myId);
+  if (!userIds) return err(res, 400, "INVALID_REQUEST", "Provide 1 to 8 unique valid account ids");
+
+  try {
+    const targets = await User.find({ _id: { $in: userIds } }, "_id").lean();
+    if (targets.length !== userIds.length) {
+      return err(res, 404, "NOT_FOUND", "One or more accounts were not found");
+    }
+
+    await mongoose.connection.transaction(async (session) => {
+      await User.updateOne(
+        { _id: myId },
+        {
+          $addToSet: { blockedUserIds: { $each: userIds } },
+          $pull: {
+            friends: { $in: userIds },
+            friendRequestsIncoming: { $in: userIds },
+            friendRequestsOutgoing: { $in: userIds },
+          },
+        },
+        { session }
+      );
+      await User.updateMany(
+        { _id: { $in: userIds } },
+        {
+          $pull: {
+            friends: myId,
+            friendRequestsIncoming: myId,
+            friendRequestsOutgoing: myId,
+          },
+        },
+        { session }
+      );
+      await deleteNotificationsBetweenUsers(myId, userIds, { session });
+    });
+    emitNotificationsChanged([myId, ...userIds]);
+    return res.json({ ok: true, data: { status: "blocked", userIds } });
+  } catch (e) {
+    console.error("[friends] blockUsers error:", e);
+    return err(res, 500, "SERVER_ERROR", "Failed to block accounts");
+  }
+};
+
+// ── DELETE /api/users/:userId/block ─────────────────────────────────────────
+const unblockUser = async (req, res) => {
+  const myId = authedUserId(req);
+  const rawUserId = req.params?.userId;
+  if (!isValidId(rawUserId)) {
+    return err(res, 400, "INVALID_REQUEST", "A valid account id is required");
+  }
+  const userId = new mongoose.Types.ObjectId(rawUserId).toString();
+  if (userId === new mongoose.Types.ObjectId(myId).toString()) {
+    return err(res, 400, "INVALID_REQUEST", "A valid account id is required");
+  }
+
+  try {
+    const target = await User.findById(userId, "_id").lean();
+    if (!target) return err(res, 404, "NOT_FOUND", "Account not found");
+    await User.updateOne({ _id: myId }, { $pull: { blockedUserIds: userId } });
+    return res.json({ ok: true, data: { status: "unblocked", userId } });
+  } catch (e) {
+    console.error("[friends] unblockUser error:", e);
+    return err(res, 500, "SERVER_ERROR", "Failed to unblock account");
+  }
+};
+
+// ── GET /api/me/blocks ──────────────────────────────────────────────────────
+const listBlockedUsers = async (req, res) => {
+  try {
+    const me = await User.findById(authedUserId(req), "blockedUserIds").lean();
+    if (!me) return err(res, 404, "NOT_FOUND", "User not found");
+    const ids = (me.blockedUserIds || []).map(toIdString).filter(isValidId);
+    const docs = ids.length
+      ? await User.find({ _id: { $in: ids } }, "name image").lean()
+      : [];
+    return res.json({
+      ok: true,
+      data: {
+        accounts: docs.map((user) => ({
+          userId: user._id.toString(),
+          name: user.name || null,
+          image: user.image || null,
+        })),
+      },
+    });
+  } catch (e) {
+    console.error("[friends] listBlockedUsers error:", e);
+    return err(res, 500, "SERVER_ERROR", "Failed to list blocked accounts");
   }
 };
 
@@ -301,5 +422,8 @@ module.exports = {
   declineRequest,
   removeFriend,
   searchUsers,
+  blockUsers,
+  unblockUser,
+  listBlockedUsers,
   isValidId,
 };

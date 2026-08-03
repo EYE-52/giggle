@@ -13,6 +13,19 @@ const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/(app)/
 const venueCardSource = () => readFileSync(path.join(__dirname, "../components/VenueCard.tsx"), "utf8");
 const squadCoverSource = () => readFileSync(path.join(__dirname, "../components/squadCover.ts"), "utf8");
 
+test("mobile profile lists blocked accounts and keeps failed unblocks retryable", () => {
+  const page = profileSource();
+  const handler = page.slice(page.indexOf("async function unblockAccount"), page.indexOf("async function openResource"));
+
+  assert.match(page, /Blocked accounts/);
+  assert.match(page, /api\.listBlockedUsers\(\)/);
+  assert.match(handler, /await api\.unblockUser\(account\.userId\)/);
+  assert.match(handler, /setBlockedAccounts\(\(current\) => current\.filter/);
+  assert.equal(handler.indexOf("setBlockedAccounts") > handler.indexOf("await api.unblockUser"), true);
+  assert.match(page, /Couldn't load blocked accounts\./);
+  assert.match(page, /Couldn't unblock that account\./);
+});
+
 test("mobile encounter derives one adaptive layout from stable identities and real media", () => {
   const page = source();
 

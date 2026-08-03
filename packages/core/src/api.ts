@@ -131,6 +131,12 @@ export const api = {
     backendRequest<{ status: "declined" }>("/api/friends/decline", { method: "POST", body: { userId } }),
   removeFriend: (userId: string) =>
     backendRequest<{ status: "removed" }>("/api/friends/remove", { method: "POST", body: { userId } }),
+  blockUsers: (userIds: string[]) =>
+    backendRequest<{ status: "blocked"; userIds: string[] }>("/api/users/block", { method: "POST", body: { userIds } }),
+  unblockUser: (userId: string) =>
+    backendRequest<{ status: "unblocked"; userId: string }>(`/api/users/${userId}/block`, { method: "DELETE" }),
+  listBlockedUsers: () =>
+    backendRequest<{ accounts: BlockedAccount[] }>("/api/me/blocks"),
 
   // --- notifications ---
   listNotifications: () =>
@@ -177,6 +183,11 @@ export interface FriendRequestUser {
   name: string;
   image?: string;
   online?: boolean;
+}
+export interface BlockedAccount {
+  userId: string;
+  name: string | null;
+  image: string | null;
 }
 export interface JoinRequestUser {
   userId: string;

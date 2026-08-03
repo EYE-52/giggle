@@ -41,6 +41,19 @@ const supportSource = () => readFileSync(supportPath, "utf8");
 const globalStylesSource = () => readFileSync(path.join(__dirname, "../app/globals.css"), "utf8");
 const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../../../vercel.json"), "utf8"));
 
+test("desktop confirms blocks separately from removing friends and lets users unblock accounts", () => {
+  const friends = friendsPageSource();
+  const profile = profileSource();
+
+  assert.match(friends, /setConfirmBlock/);
+  assert.match(friends, /Block \{confirmBlock\.name\}\?/);
+  assert.match(friends, /api\.blockUsers\(\[confirmBlock\.userId\]\)/);
+  assert.match(friends, /Remove friend/);
+  assert.match(profile, /Blocked accounts/);
+  assert.match(profile, /api\.listBlockedUsers\(\)/);
+  assert.match(profile, /api\.unblockUser\(account\.userId\)/);
+});
+
 test("auth proxy never falls back to a production backend", () => {
   const config = source();
 

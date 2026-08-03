@@ -7,7 +7,7 @@ import { Avatar } from '../../components/Avatar';
 import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
 import { COLORS, SPACE } from '../../constants/theme';
-import { api, session } from '@giggle/core';
+import { api, session, type BlockedAccount } from '@giggle/core';
 import Svg, { Circle } from 'react-native-svg';
 
 const CURATED_VIBES = ['Gaming', 'Music', 'Chill', 'Comedy', 'Deep Talks', 'Late Night', 'Sports', 'Art', 'Study', 'Hype', 'Fitness', 'Foodies'];
@@ -45,6 +45,11 @@ export default function ProfileScreen() {
   const [vibeLoadAttempt, setVibeLoadAttempt] = useState(0);
   const [vibeModalVisible, setVibeModalVisible] = useState(false);
   const [resourceError, setResourceError] = useState('');
+  const [blockedAccounts, setBlockedAccounts] = useState<BlockedAccount[]>([]);
+  const [blocksLoading, setBlocksLoading] = useState(true);
+  const [blocksError, setBlocksError] = useState('');
+  const [blocksLoadAttempt, setBlocksLoadAttempt] = useState(0);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -56,6 +61,17 @@ export default function ProfileScreen() {
       .finally(() => { if (active) setVibeLoading(false); });
     return () => { active = false; };
   }, [vibeLoadAttempt]);
+
+  useEffect(() => {
+    let active = true;
+    setBlocksLoading(true);
+    setBlocksError('');
+    api.listBlockedUsers()
+      .then(({ accounts }) => { if (active) setBlockedAccounts(accounts ?? []); })
+      .catch(() => { if (active) setBlocksError("Couldn't load blocked accounts."); })
+      .finally(() => { if (active) setBlocksLoading(false); });
+    return () => { active = false; };
+  }, [blocksLoadAttempt]);
 
   async function saveVibes(next: string[]) {
     const previous = vibePrefs;
@@ -82,6 +98,20 @@ export default function ProfileScreen() {
     if (vibeSaving || vibePrefs.includes(v)) return;
     setVibeModalVisible(false);
     void saveVibes([...vibePrefs, v]);
+  }
+
+  async function unblockAccount(account: BlockedAccount) {
+    if (unblockingId) return;
+    setUnblockingId(account.userId);
+    setBlocksError('');
+    try {
+      await api.unblockUser(account.userId);
+      setBlockedAccounts((current) => current.filter((item) => item.userId !== account.userId));
+    } catch {
+      setBlocksError("Couldn't unblock that account.");
+    } finally {
+      setUnblockingId(null);
+    }
   }
 
   async function openResource(url: string) {
@@ -223,6 +253,47 @@ export default function ProfileScreen() {
           </View>
         </Modal>
 
+        <Text style={styles.sectionLabel}>Blocked accounts</Text>
+        <Card style={styles.blockedList}>
+          {blocksLoading ? (
+            <Text style={styles.blockedHelp}>Loading…</Text>
+          ) : blockedAccounts.length === 0 ? (
+            <Text style={styles.blockedHelp}>No blocked accounts.</Text>
+          ) : (
+            blockedAccounts.map((account, index) => {
+              const name = account.name || 'Blocked account';
+              return (
+                <View key={account.userId} style={[styles.blockedRow, index > 0 && styles.resourceDivider]}>
+                  <Avatar name={name} size={36} colorIndex={index} />
+                  <Text style={styles.blockedName} numberOfLines={1}>{name}</Text>
+                  <TouchableOpacity
+                    onPress={() => void unblockAccount(account)}
+                    disabled={!!unblockingId}
+                    style={[styles.unblockButton, !!unblockingId && styles.disabled]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Unblock ${name}`}
+                  >
+                    <Text style={styles.unblockText}>{unblockingId === account.userId ? 'Unblocking…' : 'Unblock'}</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          )}
+        </Card>
+        {!!blocksError && (
+          <View style={styles.vibeErrorRow} accessibilityLiveRegion="polite">
+            <Text style={styles.vibeErrorText}>{blocksError}</Text>
+            <TouchableOpacity
+              onPress={() => setBlocksLoadAttempt((attempt) => attempt + 1)}
+              style={styles.retryButton}
+              accessibilityRole="button"
+              accessibilityLabel="Retry blocked accounts"
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <Text style={styles.sectionLabel}>Help & policies</Text>
         <Card style={styles.resourceList}>
           <TouchableOpacity
@@ -319,6 +390,12 @@ const styles = StyleSheet.create({
   resourceDivider: { borderTopWidth: 1, borderTopColor: COLORS.border },
   resourceText: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
   resourceError: { color: COLORS.coral, fontSize: 13, marginTop: SPACE.sm },
+  blockedList: { paddingVertical: 0 },
+  blockedRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  blockedName: { flex: 1, color: COLORS.text, fontSize: 14, fontWeight: '700' },
+  blockedHelp: { minHeight: 56, color: COLORS.textMuted, fontSize: 14, textAlignVertical: 'center' },
+  unblockButton: { minHeight: 44, minWidth: 72, alignItems: 'center', justifyContent: 'center' },
+  unblockText: { color: COLORS.violet, fontSize: 13, fontWeight: '700' },
   logout: { marginTop: SPACE.xl },
   // modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
