@@ -488,11 +488,11 @@ test("normalizeProfilePatch validates and normalizes vibe preferences", () => {
   assert.equal(normalizeProfilePatch({ vibes: ["x".repeat(16)] }).error, "vibes must be an array of short strings");
 });
 
-test("normalizeProfilePatch can clear optional age", () => {
-  const normalized = normalizeProfilePatch({ age: null });
+test("normalizeProfilePatch ignores public age edits", () => {
+  const normalized = normalizeProfilePatch({ age: 22 });
 
   assert.deepEqual(normalized.patch, {});
-  assert.deepEqual(normalized.unset, ["age"]);
+  assert.deepEqual(normalized.unset, []);
 });
 
 test("normalizeEmail canonicalizes account identity", () => {

@@ -63,7 +63,6 @@ const userSchema = new mongoose.Schema(
 
     // ── Member demographics ───────────────────────────────────────────────
     gender: { type: String }, // "male"|"female"|"nonbinary"|"other"|"prefer_not"
-    age: { type: Number },
 
     // ── Age verification / adult access ───────────────────────────────────
     // Self-attested date of birth (PII — NEVER serialized back to the client).

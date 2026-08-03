@@ -977,7 +977,6 @@ function LobbyInner() {
           )}
           {joinReqs.map((r, i) => {
             const dem = [
-              r.age != null ? String(r.age) : null,
               r.country || null,
               ...(r.languages?.slice(0, 2) ?? []),
             ].filter(Boolean).join(" · ");
@@ -1034,7 +1033,6 @@ function LobbyInner() {
           const isThisMe = session.user?.id ? member.userId === session.user.id : i === 0;
           const isOffline = !isThisMe && member.online === false;
           const dem = [
-            member.age != null ? String(member.age) : null,
             member.country || null,
             ...(member.languages?.slice(0, 2) ?? []),
           ].filter(Boolean).join(" · ");

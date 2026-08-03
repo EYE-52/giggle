@@ -1,7 +1,11 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { approveUserHandler, requireAdmin } = require("../src/controllers/adminController");
+const {
+  approveUserHandler,
+  getPendingUsersHandler,
+  requireAdmin,
+} = require("../src/controllers/adminController");
 const User = require("../src/models/User");
 
 function createMockResponse() {
@@ -31,6 +35,96 @@ function withAdminEmail(value, fn) {
     else process.env.ADMIN_EMAIL = original;
   }
 }
+
+const pendingUser = () => ({
+  _id: "507f1f77bcf86cd799439011",
+  email: "member@example.com",
+  name: "Member",
+  image: null,
+  isApproved: false,
+  ageConfirmed: true,
+  isAdult: true,
+  ageVerified: false,
+  ageVerification: {
+    status: "pending",
+    sessionId: "private-session",
+    referenceId: "private-reference",
+    evidenceId: "private-evidence",
+  },
+  birthDate: new Date("2000-01-01T00:00:00.000Z"),
+  friends: ["friend-id"],
+  blockedUserIds: ["blocked-id"],
+  referralCode: "PRIVATE",
+  tokens: 99,
+  __v: 7,
+  createdAt: new Date("2026-08-04T00:00:00.000Z"),
+});
+
+const expectedAdminUser = {
+  id: "507f1f77bcf86cd799439011",
+  email: "member@example.com",
+  name: "Member",
+  image: null,
+  isApproved: false,
+  ageConfirmed: true,
+  isAdult: true,
+  ageVerified: false,
+  verificationStatus: "pending",
+  createdAt: "2026-08-04T00:00:00.000Z",
+};
+
+test("getPendingUsersHandler returns only the explicit admin user projection", async () => {
+  const originalFind = User.find;
+  let projection;
+  User.find = (_filter, selected) => {
+    projection = selected;
+    return { sort: async () => [pendingUser()] };
+  };
+
+  try {
+    const res = createMockResponse();
+    await getPendingUsersHandler({}, res);
+
+    assert.deepEqual(res.body, { ok: true, data: [expectedAdminUser] });
+    for (const field of [
+      "birthDate",
+      "ageVerification.sessionId",
+      "ageVerification.referenceId",
+      "ageVerification.evidenceId",
+      "friends",
+      "blockedUserIds",
+      "referralCode",
+      "tokens",
+      "__v",
+    ]) {
+      assert.equal(String(projection).split(/\s+/).includes(field), false);
+    }
+  } finally {
+    User.find = originalFind;
+  }
+});
+
+test("approveUserHandler returns only the explicit admin user projection", async () => {
+  const originalFindByIdAndUpdate = User.findByIdAndUpdate;
+  let options;
+  User.findByIdAndUpdate = async (_id, _update, selectedOptions) => {
+    options = selectedOptions;
+    return pendingUser();
+  };
+
+  try {
+    const res = createMockResponse();
+    await approveUserHandler(
+      { params: { userId: "507f1f77bcf86cd799439011" } },
+      res
+    );
+
+    assert.deepEqual(res.body, { ok: true, data: expectedAdminUser });
+    assert.equal(String(options?.select).includes("birthDate"), false);
+  } finally {
+    User.findByIdAndUpdate = originalFindByIdAndUpdate;
+  }
+});
 
 test("requireAdmin fails closed when ADMIN_EMAIL is not configured", () => {
   withAdminEmail(undefined, () => {

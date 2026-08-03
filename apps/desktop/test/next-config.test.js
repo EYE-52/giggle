@@ -863,15 +863,13 @@ test("desktop wallet does not promise production redemption before it launches",
   assert.equal(page.includes("Earn tokens, then spend them on your squad identity."), false);
 });
 
-test("profile account switches persist locally instead of resetting on remount", () => {
+test("profile shows only account controls backed by real behavior", () => {
   const page = profileSource();
 
-  assert.equal(page.includes("PROFILE_SETTINGS_STORAGE_KEY"), true);
-  assert.equal(page.includes("localStorage.getItem(PROFILE_SETTINGS_STORAGE_KEY)"), true);
-  assert.equal(page.includes("localStorage.setItem(PROFILE_SETTINGS_STORAGE_KEY"), true);
-  assert.equal(page.includes("setProfileSetting(\"notificationsOn\""), true);
-  assert.equal(page.includes("setProfileSetting(\"openToDiscovery\""), true);
-  assert.equal(page.includes("setProfileSetting(\"showOnlineStatus\""), true);
+  assert.equal(page.includes('label="Open to Discovery"'), false);
+  assert.equal(page.includes('label="Show Online Status"'), false);
+  assert.equal(page.includes("const [age, setAge]"), false);
+  assert.equal(page.includes('label="Notification pop-ups"'), true);
 });
 
 test("desktop notification preference controls truthful in-app pop-ups", () => {
@@ -886,14 +884,14 @@ test("desktop notification preference controls truthful in-app pop-ups", () => {
   assert.equal(bell.includes("if (notificationPopupsEnabled()) setToast(n);"), true);
 });
 
-test("profile account switch persistence ignores malformed stored settings", () => {
+test("profile notification persistence ignores malformed stored settings", () => {
   const page = profileSource();
 
   assert.equal(page.includes("function normalizeProfileSettings("), true);
   assert.equal(page.includes("const parsed = normalizeProfileSettings(JSON.parse(raw));"), true);
-  assert.equal(page.includes("const current = raw ? normalizeProfileSettings(JSON.parse(raw)) : DEFAULT_PROFILE_SETTINGS;"), true);
-  assert.equal(page.includes("...current,"), true);
-  assert.equal(page.includes("const current = raw ? JSON.parse(raw) : {};"), false);
+  assert.equal(page.includes("JSON.stringify({ notificationsOn: value })"), true);
+  assert.equal(page.includes("openToDiscovery"), false);
+  assert.equal(page.includes("showOnlineStatus"), false);
 });
 
 test("profile vibe preferences are normalized before render and persistence", () => {
@@ -1458,13 +1456,12 @@ test("profile load failures stay visible and retryable before saving demographic
   assert.equal(page.includes("Couldn't load your profile."), true);
 });
 
-test("profile can clear a previously saved age", () => {
+test("profile does not expose a second editable age field", () => {
   const page = profileSource();
   const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");
 
-  assert.equal(page.includes("const body: { gender?: string; age?: number | null; languages?: string[]; country?: string } = {};"), true);
-  assert.equal(page.includes("body.age = null;"), true);
-  assert.equal(api.includes("age?: number | null"), true);
+  assert.equal(page.includes("body.age"), false);
+  assert.equal(api.includes("age?: number | null"), false);
 });
 
 test("profile keeps account identifiers out of the identity hero", () => {

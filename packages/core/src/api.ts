@@ -27,7 +27,7 @@ export const api = {
     backendRequest<ReferralInfo>("/api/auth/me/referral"),
   getMyProfile: () =>
     backendRequest<UserProfile>("/api/me/profile"),
-  updateMyProfile: (body: { gender?: string; age?: number | null; languages?: string[]; country?: string; vibes?: string[] }) =>
+  updateMyProfile: (body: { gender?: string; languages?: string[]; country?: string; vibes?: string[] }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
   // Self-attested date of birth (set-once). Raw birthDate never comes back — the
   // backend derives and returns only the boolean gates.
@@ -183,13 +183,11 @@ export interface JoinRequestUser {
   name: string;
   requestedAt: string;
   gender?: string;
-  age?: number;
   languages?: string[];
   country?: string;
 }
 export interface UserProfile {
   gender?: string;
-  age?: number;
   languages?: string[];
   country?: string;
   vibes?: string[];
@@ -239,7 +237,6 @@ export interface SquadMemberState {
   online?: boolean;
   joinedAt?: string;
   gender?: string;
-  age?: number;
   languages?: string[];
   country?: string;
 }

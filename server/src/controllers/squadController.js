@@ -485,7 +485,6 @@ const getSquadHandler = async (req, res) => {
         // Live presence — is this member actually connected right now?
         online: onlineMemberIds.has(member.userId),
         gender: u ? u.gender : undefined,
-        age: u ? u.age : undefined,
         languages: u ? u.languages || [] : undefined,
         country: u ? u.country : undefined,
       };
@@ -754,7 +753,6 @@ const getJoinRequestsHandler = async (req, res) => {
         name: r.name,
         requestedAt: r.requestedAt,
         gender: u ? u.gender : undefined,
-        age: u ? u.age : undefined,
         languages: u ? u.languages || [] : undefined,
         country: u ? u.country : undefined,
       };

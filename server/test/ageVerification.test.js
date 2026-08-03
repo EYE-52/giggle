@@ -3,7 +3,12 @@ const { readFileSync } = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
-const { setMyAge, computeAge, parseBirthDate } = require("../src/controllers/authController");
+const {
+  setMyAge,
+  computeAge,
+  parseBirthDate,
+  normalizeProfilePatch,
+} = require("../src/controllers/authController");
 const {
   startAgeVerification,
   getAgeVerificationStatus,
@@ -592,6 +597,11 @@ test("age verification schema contains only normalized provider receipt fields",
   for (const forbidden of ["age", "birthDate", "selfie", "biometric", "document", "payload"]) {
     assert.equal(Object.hasOwn(paths, forbidden), false);
   }
+});
+
+test("profile age comes only from the private verified birth-date flow", () => {
+  assert.equal(User.schema.path("age"), undefined);
+  assert.deepEqual(normalizeProfilePatch({ age: 22 }), { patch: {}, unset: [] });
 });
 
 test("age verification endpoints use identity-only authentication", () => {

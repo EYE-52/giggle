@@ -247,7 +247,6 @@ const getMyProfile = async (req, res) => {
       ok: true,
       data: {
         gender: user.gender,
-        age: user.age,
         languages: user.languages || [],
         country: user.country,
         vibes: user.vibes || [],
@@ -268,7 +267,7 @@ const getMyProfile = async (req, res) => {
 const normalizeProfilePatch = (body = {}) => {
   const patch = {};
   const unset = [];
-  const { gender, age, languages, country, vibes } = body;
+  const { gender, languages, country, vibes } = body;
 
   if (gender !== undefined) {
     const value = String(gender).trim();
@@ -276,18 +275,6 @@ const normalizeProfilePatch = (body = {}) => {
       return { error: "gender must be a short string" };
     }
     patch.gender = value;
-  }
-
-  if (age !== undefined) {
-    if (age === null) {
-      unset.push("age");
-    } else {
-    const n = Number(age);
-    if (!Number.isFinite(n) || n < 13 || n > 120) {
-      return { error: "age must be a number between 13 and 120" };
-    }
-    patch.age = n;
-    }
   }
 
   if (languages !== undefined) {
@@ -368,7 +355,6 @@ const updateMyProfile = async (req, res) => {
       ok: true,
       data: {
         gender: user.gender,
-        age: user.age,
         languages: user.languages || [],
         country: user.country,
         vibes: user.vibes || [],

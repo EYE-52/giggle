@@ -18,7 +18,7 @@ const router = express.Router();
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: gender, age, languages, country, name, email
+ *         description: gender, languages, country, name, email
  *   patch:
  *     summary: Update the authed user's profile demographics
  *     tags: [Auth]
