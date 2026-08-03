@@ -17,6 +17,9 @@ test("an under-18 declaration stays blocked with help and sign-out", async ({ pa
     if (request.url().includes("/socket.io/")) realtimeRequests.push(request.url());
   });
   await page.goto("/home");
+  const initialGate = page.getByRole("dialog", { name: "Confirm your age" });
+  await expect(initialGate.getByRole("link", { name: /age verification help/i })).toBeVisible();
+  await expect(initialGate.getByRole("button", { name: /sign out/i })).toBeVisible();
   const gate = await submitDob(page, 16);
 
   await expect(gate.getByRole("heading", { name: /verified adults 18\+/i })).toBeVisible();

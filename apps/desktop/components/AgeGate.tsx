@@ -336,6 +336,8 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
         {error && <div role="alert" style={{ fontSize: 13, color: "var(--coral, #FF5C5C)", lineHeight: 1.4 }}>{error}</div>}
         <Button type="submit" fullWidth loading={busy}>Continue</Button>
       </form>
+      <AgeHelp />
+      <Button variant="ghost" fullWidth onClick={signOut}>Sign out</Button>
     </Shell>
   );
 }
