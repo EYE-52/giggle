@@ -1,6 +1,9 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { after } = require("node:test");
+const jwt = require("jsonwebtoken");
+
+const User = require("../src/models/User");
 
 const {
   authorizeEncounterRoomJoin,
@@ -10,6 +13,7 @@ const {
   resolveReportTargetSquadId,
 } = require("../src/utils/socketAccess");
 const {
+  authenticateSocket,
   closeEncounterRoom,
   isRealtimeDebugEnabled,
   normalizeSocketIdentity,
@@ -17,6 +21,65 @@ const {
   resolveSocketAuthToken,
 } = require("../src/services/socketService");
 const { isMatchmakingDebugEnabled } = require("../src/services/matchmakingService");
+
+const USER_ID = "64b7f3c9a1b2c3d4e5f67890";
+
+async function withSocketAuthEnvironment(run) {
+  const originals = {
+    JWT_SECRET: process.env.JWT_SECRET,
+    NODE_ENV: process.env.NODE_ENV,
+    AGE_VERIFICATION_BYPASS: process.env.AGE_VERIFICATION_BYPASS,
+  };
+  process.env.JWT_SECRET = "test-secret";
+  process.env.NODE_ENV = "production";
+  process.env.AGE_VERIFICATION_BYPASS = "true";
+
+  try {
+    return await run();
+  } finally {
+    for (const [key, value] of Object.entries(originals)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+async function withSocketUser(user, run) {
+  const originalFindById = User.findById;
+  let selectedFields;
+  User.findById = () => ({
+    select: async (fields) => {
+      selectedFields = fields;
+      if (user instanceof Error) throw user;
+      return user;
+    },
+  });
+
+  try {
+    return await run(() => selectedFields);
+  } finally {
+    User.findById = originalFindById;
+  }
+}
+
+function socketWithToken(token) {
+  return {
+    id: "socket_1",
+    handshake: { auth: token === undefined ? {} : { token }, query: {} },
+  };
+}
+
+function signSocketToken(claims = {}) {
+  return jwt.sign({ userId: USER_ID, name: "Ana", ...claims }, process.env.JWT_SECRET);
+}
+
+async function runSocketAuth(socket) {
+  let error;
+  await authenticateSocket(socket, (nextError) => {
+    error = nextError || null;
+  });
+  return error;
+}
 
 after(async () => {
   const redisPath = require.resolve("../src/config/redisConfig");
@@ -91,6 +154,110 @@ test("production sockets do not accept JWTs from query strings", () => {
     resolveSocketAuthToken({ auth: {}, query: { token: "query-token" } }, false),
     "query-token"
   );
+});
+
+test("socket auth loads only live age-access fields and allows a verified adult", async () => {
+  await withSocketAuthEnvironment(() =>
+    withSocketUser(
+      { ageConfirmed: true, isAdult: true, ageVerified: true },
+      async (getSelectedFields) => {
+        const socket = socketWithToken(signSocketToken());
+
+        assert.equal(await runSocketAuth(socket), null);
+        assert.equal(getSelectedFields(), "ageConfirmed isAdult ageVerified");
+        assert.equal(socket.userId, USER_ID);
+        assert.equal(socket.userName, "Ana");
+      }
+    )
+  );
+});
+
+test("production socket auth rejects missing, minor, self-attested, and rejected users", async () => {
+  const deniedUsers = [
+    null,
+    { ageConfirmed: true, isAdult: false, ageVerified: false },
+    { ageConfirmed: true, isAdult: true, ageVerified: false },
+    { ageConfirmed: true, isAdult: true, ageVerified: false, ageVerificationStatus: "rejected" },
+  ];
+
+  await withSocketAuthEnvironment(async () => {
+    for (const user of deniedUsers) {
+      await withSocketUser(user, async () => {
+        const socket = socketWithToken(signSocketToken());
+        const error = await runSocketAuth(socket);
+
+        assert.equal(error?.message, "UNAUTHORIZED");
+        assert.equal(socket.userId, undefined);
+      });
+    }
+  });
+});
+
+test("production socket auth ignores the development age bypass", async () => {
+  await withSocketAuthEnvironment(() =>
+    withSocketUser(
+      { ageConfirmed: true, isAdult: true, ageVerified: false },
+      async () => {
+        const error = await runSocketAuth(socketWithToken(signSocketToken()));
+        assert.equal(error?.message, "UNAUTHORIZED");
+      }
+    )
+  );
+});
+
+test("socket auth fails closed when the live user lookup fails", async () => {
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
+  try {
+    await withSocketAuthEnvironment(() =>
+      withSocketUser(new Error("database unavailable"), async () => {
+        const error = await runSocketAuth(socketWithToken(signSocketToken()));
+        assert.equal(error?.message, "UNAUTHORIZED");
+      })
+    );
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+
+test("malformed presented socket tokens reject even in development", async () => {
+  await withSocketAuthEnvironment(async () => {
+    process.env.NODE_ENV = "development";
+    const originalConsoleWarn = console.warn;
+    console.warn = () => {};
+    try {
+      for (const token of ["not-a-jwt", "", null]) {
+        const error = await runSocketAuth(socketWithToken(token));
+        assert.equal(error?.message, "UNAUTHORIZED");
+      }
+    } finally {
+      console.warn = originalConsoleWarn;
+    }
+  });
+});
+
+test("only exact development mode permits a tokenless anonymous socket", async () => {
+  await withSocketAuthEnvironment(async () => {
+    const productionError = await runSocketAuth(socketWithToken());
+    assert.equal(productionError?.message, "UNAUTHORIZED");
+
+    process.env.NODE_ENV = "test";
+    const testError = await runSocketAuth(socketWithToken());
+    assert.equal(testError?.message, "UNAUTHORIZED");
+
+    process.env.NODE_ENV = "development";
+    const originalConsoleWarn = console.warn;
+    console.warn = () => {};
+    try {
+      const socket = socketWithToken();
+      assert.equal(await runSocketAuth(socket), null);
+      assert.equal(socket.userId, null);
+      assert.equal(socket.userName, null);
+    } finally {
+      console.warn = originalConsoleWarn;
+    }
+  });
 });
 
 test("revoking squad access removes every user socket from squad and encounter rooms", () => {

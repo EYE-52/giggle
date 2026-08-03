@@ -14,6 +14,7 @@ const {
 } = require('../utils/socketAccess');
 const { firstDisplayName } = require('../utils/identityValidation');
 const { isMongoObjectIdString } = require('../middlewares/authMiddleware');
+const { hasAdultAccess } = require('./ageAccessService');
 
 let io;
 const MAX_CHAT_TEXT_LENGTH = 500;
@@ -45,9 +46,44 @@ const normalizeSocketIdentity = (decoded = {}) => {
   };
 };
 
-const resolveSocketAuthToken = ({ auth = {}, query = {} } = {}, isProduction = process.env.NODE_ENV === "production") => {
-  if (auth.token) return auth.token;
-  return isProduction ? undefined : query.token;
+const resolveSocketAuthToken = ({ auth, query } = {}, isProduction = process.env.NODE_ENV === "production") => {
+  if (auth && Object.prototype.hasOwnProperty.call(auth, 'token')) return auth.token;
+  return isProduction ? undefined : query?.token;
+};
+
+const authenticateSocket = async (socket, next) => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const token = resolveSocketAuthToken(socket.handshake, process.env.NODE_ENV === 'production');
+
+  if (token === undefined) {
+    if (!isDevelopment) return next(new Error('UNAUTHORIZED'));
+    socket.userId = null;
+    socket.userName = null;
+    console.warn(`[socket] connection ${socket.id} without auth token (dev mode)`);
+    return next();
+  }
+
+  let identity;
+  try {
+    identity = normalizeSocketIdentity(jwt.verify(token, process.env.JWT_SECRET));
+  } catch (error) {
+    console.warn(`[socket] connection ${socket.id} with invalid token: ${error.message}`);
+    return next(new Error('UNAUTHORIZED'));
+  }
+  if (!identity) return next(new Error('UNAUTHORIZED'));
+
+  let user;
+  try {
+    user = await User.findById(identity.userId).select('ageConfirmed isAdult ageVerified');
+  } catch (error) {
+    console.error('[socket] adult authorization lookup failed:', error);
+    return next(new Error('UNAUTHORIZED'));
+  }
+  if (!user || !hasAdultAccess(user)) return next(new Error('UNAUTHORIZED'));
+
+  socket.userId = identity.userId;
+  socket.userName = identity.userName;
+  return next();
 };
 
 const normalizeReactionEmoji = (value) => {
@@ -162,37 +198,9 @@ const init = (server) => {
   const { pubClient, subClient } = require('../config/redisConfig');
   io.adapter(createAdapter(pubClient, subClient));
 
-  // Authentication handshake. Reads a JWT from handshake.auth.token (or
-  // handshake.query.token) and attaches identity to the socket. To avoid
-  // breaking existing dev clients that don't send a token, connections are
-  // still allowed when the token is missing/invalid — just with a null identity.
+  // Authentication and live age access complete before any room or presence work.
   const IS_PROD = process.env.NODE_ENV === "production";
-  io.use((socket, next) => {
-    const token = resolveSocketAuthToken(socket.handshake, IS_PROD);
-    if (!token) {
-      // In production every socket MUST be authenticated (prevents identity
-      // spoofing in chat/reports). In dev we allow token-less connections so the
-      // placeholder/passwordless flow keeps working.
-      if (IS_PROD) return next(new Error("UNAUTHORIZED"));
-      socket.userId = null;
-      socket.userName = null;
-      console.warn(`[socket] connection ${socket.id} without auth token (dev mode)`);
-      return next();
-    }
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const identity = normalizeSocketIdentity(decoded);
-      socket.userId = identity?.userId || null;
-      socket.userName = identity?.userName || null;
-      if (IS_PROD && !socket.userId) return next(new Error("UNAUTHORIZED"));
-    } catch (err) {
-      console.warn(`[socket] connection ${socket.id} with invalid token: ${err.message}`);
-      if (IS_PROD) return next(new Error("UNAUTHORIZED")); // reject invalid tokens in prod
-      socket.userId = null;
-      socket.userName = null;
-    }
-    return next();
-  });
+  io.use(authenticateSocket);
 
   io.on('connection', (socket) => {
     logRealtimeDebug('New client connected:', socket.id);
@@ -440,6 +448,7 @@ const closeEncounterRoom = (encounterId, server = io) => {
 };
 
 module.exports = {
+  authenticateSocket,
   closeEncounterRoom,
   init,
   getIO,

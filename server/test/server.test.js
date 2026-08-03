@@ -335,7 +335,7 @@ test("unknown API routes return the app JSON error shape", async () => {
   }
 });
 
-test("only profile read, age setup, and admin review use identity-only auth", () => {
+test("only profile read, age setup and verification, and admin review use identity-only auth", () => {
   const meRoutes = readFileSync(path.join(__dirname, "../src/routes/meRoutes.js"), "utf8");
   const adminRoutes = readFileSync(path.join(__dirname, "../src/routes/adminRoutes.js"), "utf8");
 
@@ -345,6 +345,18 @@ test("only profile read, age setup, and admin review use identity-only auth", ()
   );
   assert.equal(
     meRoutes.includes('router.post("/me/age", requireIdentityAuth, setMyAge);'),
+    true
+  );
+  assert.equal(
+    meRoutes.includes(
+      'router.post("/me/age/verification-session", requireIdentityAuth, startAgeVerification);'
+    ),
+    true
+  );
+  assert.equal(
+    meRoutes.includes(
+      'router.get("/me/age/verification-status", requireIdentityAuth, getAgeVerificationStatus);'
+    ),
     true
   );
   assert.equal(
