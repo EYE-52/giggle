@@ -5,6 +5,12 @@ import type { AppNotification } from "./api";
 import { createReportOpponentPayload, type ReportOpponentInput } from "./report";
 
 let socket: Socket | null = null;
+let adultAccessGetter: () => boolean = () => false;
+
+/** Register the live session decision used before opening realtime transport. */
+export function setAdultAccessGetter(fn: () => boolean) {
+  adultAccessGetter = fn;
+}
 
 // Rooms the client has joined, tracked so we can re-join after a reconnect.
 const joinedSquads = new Set<string>();
@@ -41,6 +47,7 @@ export function getSocket(): Socket {
 
 export function connectSocket(squadId?: string): Socket {
   const s = getSocket();
+  if (!adultAccessGetter()) return s;
   if (squadId) joinedSquads.add(squadId);
   if (!s.connected) s.connect();
   if (squadId && s.connected) s.emit(SOCKET_EMIT.JOIN_SQUAD, squadId);
@@ -52,7 +59,7 @@ export function disconnectSocket() {
   // silently re-join stale rooms.
   joinedSquads.clear();
   joinedEncounters.clear();
-  if (socket?.connected) socket.disconnect();
+  socket?.disconnect();
 }
 
 // Server-emitted events (exact strings from giggle-server socketService).

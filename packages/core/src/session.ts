@@ -2,7 +2,7 @@ import { api } from "./api";
 import { setTokenGetter } from "./client";
 import { randomPlayerName } from "./names";
 import { syncServerTokens } from "./billing";
-import { disconnectSocket } from "./socket";
+import { disconnectSocket, setAdultAccessGetter } from "./socket";
 import type { BackendUser } from "./api";
 
 const PENDING_REF_KEY = "giggle.pendingRef";
@@ -36,6 +36,14 @@ function clearPendingReferral() {
 
 let token: string | null = null;
 let user: BackendUser | null = null;
+let ageAccessSynced = false;
+let ageAccessVersion = 0;
+
+function invalidateAdultAccess() {
+  ageAccessSynced = false;
+  ageAccessVersion += 1;
+  disconnectSocket();
+}
 
 const STORAGE_KEY = "giggle.session";
 
@@ -144,6 +152,7 @@ export const session = {
   },
   /** Exchange identity for a backend JWT. Pass real OAuth identity, or a dev one. */
   async signIn(identity: { email: string; name?: string; image?: string }) {
+    invalidateAdultAccess();
     const ref = getPendingReferral();
     const res = await api.exchange({ ...identity, ref });
     token = res.token;
@@ -206,6 +215,7 @@ export const session = {
    * token wallet from the server, and clears any pending referral.
    */
   setTokenFromOAuth(jwtToken: string) {
+    invalidateAdultAccess();
     const payload = decodeJwtPayload(jwtToken);
     const nextUser = normalizeSessionUser(null, payload);
     if (!nextUser) throw new Error("INVALID_AUTH_TOKEN");
@@ -224,6 +234,14 @@ export const session = {
   get isAdult() {
     return user?.isAdult === true;
   },
+  /** True only after the server has confirmed the provider-owned verification flag. */
+  get ageVerified() {
+    return ageAccessSynced && user?.ageVerified === true;
+  },
+  /** The single client-side mirror of the server's verified-adult rule. */
+  get hasAdultAccess() {
+    return !!token && ageAccessSynced && user?.ageConfirmed === true && user?.isAdult === true && user?.ageVerified === true;
+  },
   /**
    * Submit the self-attested date of birth ("YYYY-MM-DD"). Set-once on the
    * backend. On success, syncs the returned gates into the in-memory + persisted
@@ -231,18 +249,19 @@ export const session = {
    * reload. Throws (ApiError) on failure — callers surface the message.
    */
   async setAge(birthDate: string) {
+    invalidateAdultAccess();
     try {
       const res = await api.setAge(birthDate);
       if (user) {
-        user = { ...user, isAdult: res.isAdult, ageConfirmed: res.ageConfirmed };
+        user = { ...user, isAdult: res.isAdult, ageConfirmed: res.ageConfirmed, ageVerified: res.ageVerified };
         persist();
       }
       return res;
     } catch (error) {
       if ((error as { code?: string })?.code !== "AGE_ALREADY_CONFIRMED") throw error;
-      const confirmed = await session.syncAgeFromServer();
-      if (!confirmed) throw error;
-      return { isAdult: session.isAdult, ageConfirmed: true };
+      await session.syncAgeFromServer();
+      if (!session.ageConfirmed) throw error;
+      return { isAdult: session.isAdult, ageConfirmed: true, ageVerified: session.ageVerified };
     }
   },
   /**
@@ -250,29 +269,35 @@ export const session = {
    * Older JWTs minted before the age flags were embedded don't carry
    * ageConfirmed, so a user who already attested their DOB would otherwise see
    * the gate again after login. This pulls the profile and syncs the flags into
-   * the in-memory + persisted user. Returns the confirmed state, or the current
-   * value if the request fails (never throws — callers gate on the result).
+   * the in-memory + persisted user. Returns verified adult access and fails
+   * closed on missing fields or request errors.
    */
   async syncAgeFromServer(): Promise<boolean> {
-    if (!token || !user) return user?.ageConfirmed === true;
+    invalidateAdultAccess();
+    const syncVersion = ageAccessVersion;
+    if (!token || !user) return false;
     try {
       const p = await api.getMyProfile();
+      if (syncVersion !== ageAccessVersion || !token || !user) return false;
       user = {
         ...user,
-        isAdult: (p as { isAdult?: boolean }).isAdult ?? user.isAdult,
-        ageConfirmed: (p as { ageConfirmed?: boolean }).ageConfirmed ?? user.ageConfirmed,
-        ageVerified: (p as { ageVerified?: boolean }).ageVerified ?? user.ageVerified,
+        isAdult: p.isAdult === true,
+        ageConfirmed: p.ageConfirmed === true,
+        ageVerified: p.ageVerified === true,
       };
+      ageAccessSynced = true;
       persist();
-      return user.ageConfirmed === true;
+      return session.hasAdultAccess;
     } catch {
-      return user?.ageConfirmed === true;
+      return false;
     }
   },
   signOut() {
+    invalidateAdultAccess();
     token = null;
     user = null;
     persist();
-    disconnectSocket();
   },
 };
+
+setAdultAccessGetter(() => session.hasAdultAccess);

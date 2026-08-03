@@ -1,6 +1,15 @@
 import { backendRequest } from "./client";
 import type { AgoraToken } from "./types";
 
+export type AgeVerificationStatus = "not_started" | "pending" | "verified" | "rejected" | "restricted";
+
+export interface AgeVerificationResult {
+  status: AgeVerificationStatus;
+  ageVerified: boolean;
+  url?: string;
+  reason?: string;
+}
+
 /**
  * Typed wrappers over the giggle-server REST API.
  * Field names match the real backend contract (squadId/squadCode/memberId, {ok,data,error}).
@@ -21,9 +30,13 @@ export const api = {
   updateMyProfile: (body: { gender?: string; age?: number | null; languages?: string[]; country?: string; vibes?: string[] }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
   // Self-attested date of birth (set-once). Raw birthDate never comes back — the
-  // backend derives and returns only the boolean gates. 409 if already set.
+  // backend derives and returns only the boolean gates.
   setAge: (birthDate: string) =>
-    backendRequest<{ isAdult: boolean; ageConfirmed: boolean }>("/api/me/age", { method: "POST", body: { birthDate } }),
+    backendRequest<{ isAdult: boolean; ageConfirmed: boolean; ageVerified: boolean }>("/api/me/age", { method: "POST", body: { birthDate } }),
+  startAgeVerification: () =>
+    backendRequest<AgeVerificationResult>("/api/me/age/verification-session", { method: "POST" }),
+  getAgeVerificationStatus: () =>
+    backendRequest<AgeVerificationResult>("/api/me/age/verification-status"),
 
   // --- squads ---
   createSquad: (body: { squadName?: string; displayName?: string; tags?: string[] }) =>
@@ -182,6 +195,9 @@ export interface UserProfile {
   vibes?: string[];
   name: string;
   email: string;
+  isAdult?: boolean;
+  ageConfirmed?: boolean;
+  ageVerified?: boolean;
 }
 
 // --- response shapes (match backend) ---
@@ -194,7 +210,7 @@ export interface BackendUser {
   isApproved: boolean;
   /** Age gating (self-attested DOB at signup). Raw birthDate is NOT sent to the
    *  client — only these derived booleans. `ageConfirmed` = the user has set a
-   *  DOB; `isAdult` = that DOB is 18+; `ageVerified` = hard-verified (future). */
+   *  DOB; `isAdult` = that DOB is 18+; `ageVerified` = provider-verified. */
   isAdult?: boolean;
   ageConfirmed?: boolean;
   ageVerified?: boolean;

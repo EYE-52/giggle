@@ -39,8 +39,23 @@ test("createReportOpponentPayload returns null for missing or unrelated squads",
 test("signOut disconnects the authenticated realtime socket", () => {
   const sessionSource = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
 
-  assert.equal(sessionSource.includes('import { disconnectSocket } from "./socket";'), true);
-  assert.match(sessionSource, /signOut\(\)\s*{[\s\S]*disconnectSocket\(\);/);
+  assert.match(sessionSource, /import \{[^}]*disconnectSocket[^}]*\} from "\.\/socket";/);
+  assert.match(sessionSource, /function invalidateAdultAccess\(\)[\s\S]*disconnectSocket\(\);/);
+  assert.match(sessionSource, /signOut\(\)\s*{\s*invalidateAdultAccess\(\);/);
+});
+
+test("socket connection is refused until the registered live access check passes", () => {
+  const socketSource = readFileSync(path.join(__dirname, "../src/socket.ts"), "utf8");
+  const sessionSource = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
+  const connectBlock = socketSource.slice(
+    socketSource.indexOf("export function connectSocket"),
+    socketSource.indexOf("export function disconnectSocket")
+  );
+
+  assert.match(socketSource, /export function setAdultAccessGetter/);
+  assert.match(connectBlock, /if \(!adultAccessGetter\(\)\) return s;/);
+  assert.ok(connectBlock.indexOf("adultAccessGetter()") < connectBlock.indexOf("s.connect()"));
+  assert.match(sessionSource, /setAdultAccessGetter\(\(\) => session\.hasAdultAccess\);/);
 });
 
 test("OAuth callback tokens must be decoded and validated before persistence", () => {
@@ -79,7 +94,7 @@ test("age submission reconciles an already-confirmed server session", () => {
 
   assert.match(setAgeBlock, /AGE_ALREADY_CONFIRMED/);
   assert.match(setAgeBlock, /await session\.syncAgeFromServer\(\)/);
-  assert.match(setAgeBlock, /if \(!confirmed\) throw error;/);
+  assert.match(setAgeBlock, /if \(!session\.ageConfirmed\) throw error;/);
 });
 
 test("magic-link sign-in forwards pending referral codes", () => {
