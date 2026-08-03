@@ -362,6 +362,52 @@ for (const [name, handler, req] of [
     }
   });
 
+  test(`${name} rejects moderated and pending-deletion targets`, async () => {
+    const originalFindById = User.findById;
+    const originalCreate = Notification.create;
+    let selectedFields = "";
+    let saves = 0;
+    let unavailableUser;
+    const squad = {
+      squadId: "sq_invite",
+      squadName: "Invite squad",
+      squadCode: "ABC-123",
+      invitedUserIds: [],
+      members: [],
+      async save() { saves += 1; },
+    };
+    User.findById = () => ({
+      select: async (fields) => {
+        selectedFields = fields;
+        return unavailableUser;
+      },
+    });
+    Notification.create = async () => assert.fail("unavailable target was notified");
+
+    try {
+      const adult = { _id: req.body.userId, ageConfirmed: true, isAdult: true, ageVerified: true };
+      for (unavailableUser of [
+        { ...adult, isSuspended: true },
+        { ...adult, isShadowBanned: true },
+        { ...adult, deletionStatus: "pending" },
+      ]) {
+        const res = createResponse();
+        await handler({ ...req, squadAccess: { squad } }, res);
+        assert.equal(res.statusCode, 403);
+      }
+
+      assert.equal(
+        selectedFields,
+        "_id ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+      );
+      assert.equal(saves, 0);
+      assert.deepEqual(squad.invitedUserIds, []);
+    } finally {
+      User.findById = originalFindById;
+      Notification.create = originalCreate;
+    }
+  });
+
   test(`${name} admits a verified-adult target`, async () => {
     const originalFindById = User.findById;
     const originalCreate = Notification.create;

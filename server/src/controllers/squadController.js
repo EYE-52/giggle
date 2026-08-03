@@ -922,7 +922,9 @@ const inviteToSquadHandler = async (req, res) => {
       });
     }
 
-    const targetUser = await User.findById(targetUserId).select("_id ageConfirmed isAdult ageVerified");
+    const targetUser = await User.findById(targetUserId).select(
+      "_id ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+    );
     if (!targetUser) {
       return res.status(404).json({
         ok: false,
@@ -1014,7 +1016,9 @@ const inviteUserToSquadHandler = async (req, res) => {
   try {
     const { squad } = req.squadAccess;
     const inviterName = req.giggleIdentity?.name || getRequesterIdentity(req).name;
-    const targetUser = await User.findById(targetUserId).select("_id ageConfirmed isAdult ageVerified");
+    const targetUser = await User.findById(targetUserId).select(
+      "_id ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+    );
     if (!targetUser) {
       return res.status(404).json({
         ok: false,
