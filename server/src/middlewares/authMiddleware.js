@@ -47,7 +47,9 @@ const requireApiAuth = (req, res, next) =>
     let user;
 
     try {
-      user = await User.findById(userId).select("ageConfirmed isAdult ageVerified");
+      user = await User.findById(userId).select(
+        "ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+      );
     } catch (error) {
       console.error("Adult authorization lookup failed:", error);
       return res.status(503).json({
@@ -68,10 +70,16 @@ const requireApiAuth = (req, res, next) =>
 
     req.userRecord = user;
     if (!hasAdultAccess(user)) {
+      const unavailable =
+        user.isSuspended === true ||
+        user.isShadowBanned === true ||
+        user.deletionStatus === "pending";
       const restricted = user.ageConfirmed === true && user.isAdult === false;
       return res.status(403).json({
         ok: false,
-        error: restricted
+        error: unavailable
+          ? { code: "ACCOUNT_UNAVAILABLE", message: "This account is unavailable" }
+          : restricted
           ? { code: "AGE_RESTRICTED", message: "Giggle is available only to adults 18+" }
           : {
               code: "AGE_VERIFICATION_REQUIRED",

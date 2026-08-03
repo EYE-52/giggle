@@ -158,6 +158,31 @@ test("requireApiAuth returns AGE_RESTRICTED for a declared minor", async () => {
   );
 });
 
+test("requireApiAuth hides moderation details behind ACCOUNT_UNAVAILABLE", async () => {
+  const adult = { ageConfirmed: true, isAdult: true, ageVerified: true };
+
+  await withAuthEnvironment(async () => {
+    for (const unavailable of [
+      { ...adult, isSuspended: true },
+      { ...adult, isShadowBanned: true },
+      { ...adult, deletionStatus: "pending" },
+    ]) {
+      await withLiveUser(unavailable, async () => {
+        const req = signedRequest();
+        const res = createResponse();
+
+        await requireApiAuth(req, res, () => assert.fail("unavailable account was authorized"));
+
+        assert.equal(res.statusCode, 403);
+        assert.deepEqual(res.body.error, {
+          code: "ACCOUNT_UNAVAILABLE",
+          message: "This account is unavailable",
+        });
+      });
+    }
+  });
+});
+
 test("requireApiAuth rejects tokens for missing users", async () => {
   await withAuthEnvironment(() =>
     withLiveUser(null, async () => {

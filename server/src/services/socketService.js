@@ -74,7 +74,9 @@ const authenticateSocket = async (socket, next) => {
 
   let user;
   try {
-    user = await User.findById(identity.userId).select('ageConfirmed isAdult ageVerified');
+    user = await User.findById(identity.userId).select(
+      'ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus'
+    );
   } catch (error) {
     console.error('[socket] adult authorization lookup failed:', error);
     return next(new Error('UNAUTHORIZED'));
@@ -429,6 +431,12 @@ const emitToUser = (userId, event, payload) => {
   }
 };
 
+const disconnectUserSockets = (userId, server = io) => {
+  const normalizedUserId = String(userId || '');
+  if (!server || !normalizedUserId) return;
+  server.in(`user_${normalizedUserId}`).disconnectSockets(true);
+};
+
 const revokeUserRealtimeAccess = ({ userId, squadId, encounterId } = {}, server = io) => {
   const normalizedSquadId = normalizeRealtimeId(squadId);
   const normalizedEncounterId = normalizeRealtimeId(encounterId);
@@ -450,6 +458,7 @@ const closeEncounterRoom = (encounterId, server = io) => {
 module.exports = {
   authenticateSocket,
   closeEncounterRoom,
+  disconnectUserSockets,
   init,
   getIO,
   emitToSquad,

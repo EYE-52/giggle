@@ -15,6 +15,7 @@ const {
 const {
   authenticateSocket,
   closeEncounterRoom,
+  disconnectUserSockets,
   isRealtimeDebugEnabled,
   normalizeSocketIdentity,
   revokeUserRealtimeAccess,
@@ -164,12 +165,32 @@ test("socket auth loads only live age-access fields and allows a verified adult"
         const socket = socketWithToken(signSocketToken());
 
         assert.equal(await runSocketAuth(socket), null);
-        assert.equal(getSelectedFields(), "ageConfirmed isAdult ageVerified");
+        assert.equal(
+          getSelectedFields(),
+          "ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+        );
         assert.equal(socket.userId, USER_ID);
         assert.equal(socket.userName, "Ana");
       }
     )
   );
+});
+
+test("production socket auth rejects moderated or pending-deletion accounts", async () => {
+  const adult = { ageConfirmed: true, isAdult: true, ageVerified: true };
+
+  await withSocketAuthEnvironment(async () => {
+    for (const unavailable of [
+      { ...adult, isSuspended: true },
+      { ...adult, isShadowBanned: true },
+      { ...adult, deletionStatus: "pending" },
+    ]) {
+      await withSocketUser(unavailable, async () => {
+        const error = await runSocketAuth(socketWithToken(signSocketToken()));
+        assert.equal(error?.message, "UNAUTHORIZED");
+      });
+    }
+  });
 });
 
 test("production socket auth rejects missing, minor, self-attested, and rejected users", async () => {
@@ -296,6 +317,20 @@ test("closing an encounter removes every socket from its stale room", () => {
     ["in", "encounter_enc_1"],
     ["leave", "encounter_enc_1"],
   ]);
+});
+
+test("disconnectUserSockets disconnects every device for the user", () => {
+  const calls = [];
+  const server = {
+    in(room) {
+      calls.push(["in", room]);
+      return { disconnectSockets: (close) => calls.push(["disconnect", close]) };
+    },
+  };
+
+  disconnectUserSockets("user_a", server);
+
+  assert.deepEqual(calls, [["in", "user_user_a"], ["disconnect", true]]);
 });
 
 test("matchmaking debug logging is opt-in for production", () => {

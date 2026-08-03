@@ -5,7 +5,10 @@ function hasAdultAccess(user, env = process.env) {
   return Boolean(
     user?.ageConfirmed === true &&
       user?.isAdult === true &&
-      (user?.ageVerified === true || developmentBypass)
+      (user?.ageVerified === true || developmentBypass) &&
+      user?.isSuspended !== true &&
+      user?.isShadowBanned !== true &&
+      user?.deletionStatus !== "pending"
   );
 }
 
@@ -18,7 +21,7 @@ async function allUsersHaveAdultAccess(userIds, { User, env = process.env }) {
   const ids = [...new Set(userIds.map(String))];
 
   const users = await User.find({ _id: { $in: ids } }).select(
-    "ageConfirmed isAdult ageVerified"
+    "ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
   );
   const eligibleIds = new Set(
     users.filter((user) => hasAdultAccess(user, env)).map((user) => String(user._id))

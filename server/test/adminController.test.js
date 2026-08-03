@@ -5,8 +5,10 @@ const {
   approveUserHandler,
   getPendingUsersHandler,
   requireAdmin,
+  updateUserAccessHandler,
 } = require("../src/controllers/adminController");
 const User = require("../src/models/User");
+const socketService = require("../src/services/socketService");
 
 function createMockResponse() {
   return {
@@ -45,6 +47,9 @@ const pendingUser = () => ({
   ageConfirmed: true,
   isAdult: true,
   ageVerified: false,
+  isSuspended: false,
+  isShadowBanned: false,
+  deletionStatus: "active",
   ageVerification: {
     status: "pending",
     sessionId: "private-session",
@@ -70,6 +75,9 @@ const expectedAdminUser = {
   isAdult: true,
   ageVerified: false,
   verificationStatus: "pending",
+  isSuspended: false,
+  isShadowBanned: false,
+  deletionStatus: "active",
   createdAt: "2026-08-04T00:00:00.000Z",
 };
 
@@ -213,5 +221,60 @@ test("approveUserHandler rejects malformed user ids before database update", asy
     assert.equal(res.body.error.code, "INVALID_REQUEST");
   } finally {
     User.findByIdAndUpdate = originalFindByIdAndUpdate;
+  }
+});
+
+test("updateUserAccessHandler validates ids and an exact boolean patch", async () => {
+  const original = User.findByIdAndUpdate;
+  let touched = false;
+  User.findByIdAndUpdate = async () => {
+    touched = true;
+    return pendingUser();
+  };
+
+  try {
+    for (const [userId, body] of [
+      ["bad-id", { suspended: true }],
+      ["507f1f77bcf86cd799439011", {}],
+      ["507f1f77bcf86cd799439011", { suspended: "yes" }],
+      ["507f1f77bcf86cd799439011", { shadowBanned: false, extra: true }],
+    ]) {
+      const res = createMockResponse();
+      await updateUserAccessHandler({ params: { userId }, body }, res);
+      assert.equal(res.statusCode, 400);
+      assert.equal(res.body.error.code, "INVALID_REQUEST");
+    }
+    assert.equal(touched, false);
+  } finally {
+    User.findByIdAndUpdate = original;
+  }
+});
+
+test("updateUserAccessHandler updates moderation state without changing age verification", async () => {
+  const originalUpdate = User.findByIdAndUpdate;
+  const originalDisconnect = socketService.disconnectUserSockets;
+  let observedUpdate;
+  let disconnected;
+  User.findByIdAndUpdate = async (_id, update) => {
+    observedUpdate = update;
+    return { ...pendingUser(), isSuspended: true, suspendedAt: new Date(), isShadowBanned: false };
+  };
+  socketService.disconnectUserSockets = (userId) => { disconnected = userId; };
+
+  try {
+    const res = createMockResponse();
+    await updateUserAccessHandler(
+      { params: { userId: "507f1f77bcf86cd799439011" }, body: { suspended: true } },
+      res
+    );
+
+    assert.equal(observedUpdate.$set.isSuspended, true);
+    assert.ok(observedUpdate.$set.suspendedAt instanceof Date);
+    assert.equal("ageVerified" in observedUpdate.$set, false);
+    assert.equal(disconnected, "507f1f77bcf86cd799439011");
+    assert.equal(res.body.data.isSuspended, true);
+  } finally {
+    User.findByIdAndUpdate = originalUpdate;
+    socketService.disconnectUserSockets = originalDisconnect;
   }
 });

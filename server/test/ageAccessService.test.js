@@ -61,6 +61,15 @@ test("hasAdultAccess allows the bypass only in development", () => {
   assert.equal(hasAdultAccess(selfAttestedAdult, production), false);
 });
 
+test("hasAdultAccess rejects moderated or pending-deletion accounts", () => {
+  const adult = { ageConfirmed: true, isAdult: true, ageVerified: true };
+
+  assert.equal(hasAdultAccess({ ...adult, isSuspended: true }, production), false);
+  assert.equal(hasAdultAccess({ ...adult, isShadowBanned: true }, production), false);
+  assert.equal(hasAdultAccess({ ...adult, deletionStatus: "pending" }, production), false);
+  assert.equal(hasAdultAccess({ ...adult, deletionStatus: "active" }, production), true);
+});
+
 function fakeUserModel(users, observed = {}) {
   return {
     find(filter) {
@@ -90,7 +99,10 @@ test("allUsersHaveAdultAccess deduplicates ids and selects only age fields", asy
     true
   );
   assert.deepEqual(observed.filter, { _id: { $in: ["u1", "u2"] } });
-  assert.equal(observed.fields, "ageConfirmed isAdult ageVerified");
+  assert.equal(
+    observed.fields,
+    "ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+  );
 });
 
 test("allUsersHaveAdultAccess fails when a roster user is missing or ineligible", async () => {
