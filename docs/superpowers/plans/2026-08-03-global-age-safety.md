@@ -22,7 +22,7 @@
 - Modify `server/src/controllers/squadController.js`: target/roster checks and rejection of sexual/mature room tags.
 - Modify `server/src/services/matchmakingService.js`: final locked roster recheck.
 - Modify `server/src/services/socketService.js`: live adult check during handshake.
-- Modify `packages/core/src/api.ts`, `packages/core/src/session.ts`: verification API/state shared by web and native.
+- Modify `packages/core/src/api.ts`, `packages/core/src/session.ts`, `packages/core/src/socket.ts`: verification API/state shared by web and native, plus one root socket-access guard.
 - Modify `apps/desktop/components/AgeGate.tsx`, `apps/desktop/app/(app)/layout.tsx`: two-step verification and delayed socket connection.
 - Modify `apps/mobile/components/AgeGate.tsx`, `apps/mobile/app/_layout.tsx`: equivalent native flow using `Linking`.
 - Modify focused server/core/desktop/mobile tests; no new test framework.
@@ -242,7 +242,9 @@ git commit -m "fix: enforce adult access for realtime media"
 **Files:**
 - Modify: `packages/core/src/api.ts`
 - Modify: `packages/core/src/session.ts`
+- Modify: `packages/core/src/socket.ts`
 - Test: `packages/core/test/session.test.cjs`
+- Test: existing core API/socket contract tests
 
 - [ ] **Step 1: Write failing shared-client tests**
 
@@ -256,13 +258,13 @@ pnpm --filter @giggle/core test
 
 - [ ] **Step 3: Add minimal API and session methods**
 
-Add `startAgeVerification()`, `getAgeVerificationStatus()`, `session.hasAdultAccess`, and `session.syncAgeFromServer()` returning the verified state. Keep DOB submission as stage one.
+Add `startAgeVerification()`, `getAgeVerificationStatus()`, `session.hasAdultAccess`, and `session.syncAgeFromServer()` returning the verified state. Keep DOB submission as stage one. Register the session access getter with the shared socket client and refuse connection until a live sync grants adult access, so individual screens cannot bypass the gate.
 
 - [ ] **Step 4: Run core tests green and commit**
 
 ```bash
 pnpm --filter @giggle/core test
-git add packages/core/src/api.ts packages/core/src/session.ts packages/core/test/session.test.cjs
+git add packages/core/src/api.ts packages/core/src/session.ts packages/core/src/socket.ts packages/core/test
 git commit -m "feat: share age assurance state"
 ```
 
@@ -271,6 +273,8 @@ git commit -m "feat: share age assurance state"
 **Files:**
 - Modify: `apps/desktop/components/AgeGate.tsx`
 - Modify: `apps/desktop/app/(app)/layout.tsx`
+- Modify: `apps/desktop/app/join/[code]/page.tsx`
+- Modify: desktop E2E helpers/config/verified-user fixtures as required
 - Test: `apps/desktop/test/next-config.test.js`
 - Test: `apps/desktop/e2e/signin.spec.ts`
 
@@ -295,14 +299,14 @@ After an adult DOB, start the hosted session on explicit user action, navigate t
 
 - [ ] **Step 5: Delay realtime presence**
 
-Only call `connectSocket()` after authentication and verified adult access are both true.
+Only call `connectSocket()` after authentication and verified adult access are both true. Apply the same live access decision to the join-code route, which sits outside the protected app layout.
 
 - [ ] **Step 6: Run checks green and commit**
 
 ```bash
 pnpm --filter @giggle/desktop test
 pnpm --filter @giggle/desktop test:e2e -- e2e/signin.spec.ts --project=desktop
-git add apps/desktop/components/AgeGate.tsx 'apps/desktop/app/(app)/layout.tsx' apps/desktop/test/next-config.test.js apps/desktop/e2e/signin.spec.ts
+git add apps/desktop/components/AgeGate.tsx 'apps/desktop/app/(app)/layout.tsx' 'apps/desktop/app/join/[code]/page.tsx' apps/desktop/test apps/desktop/e2e apps/desktop/playwright.config.ts
 git commit -m "feat: require adult verification on web"
 ```
 
@@ -330,7 +334,7 @@ pnpm --filter @giggle/mobile check
 
 - [ ] **Step 4: Extend the existing native gate**
 
-Open the provider URL externally, reconcile on `AppState` active, show pending/retry/unavailable/under-18 states, and call `onDone` only after the server returns verified.
+Open the provider URL externally, reconcile on `AppState` active, show pending/retry/unavailable/under-18 states, and call `onDone` only after the server returns verified. Do not mount protected navigation behind an overlay before live access succeeds; remount it when access changes so screen effects cannot start REST, Agora, or realtime work early.
 
 - [ ] **Step 5: Run mobile checks green and commit**
 

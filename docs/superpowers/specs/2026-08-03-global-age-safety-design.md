@@ -73,7 +73,7 @@ Yoti is the initial provider because its Age Verification Service supports hoste
 6. Giggle fetches the result server-to-server, verifies the stored session and opaque user reference match, and accepts only a completed passing 18+ method.
 7. On success, Giggle stores the minimized receipt and grants access. Failed or inconclusive results remain blocked and retryable; support provides the appeal path.
 
-Required production configuration is `YOTI_AGE_API_KEY`, `YOTI_AGE_SDK_ID`, and an HTTPS callback URL. Production must fail startup if they are absent; an unavailable verifier must not silently fall back to self-attestation.
+Required production configuration is `YOTI_AGE_API_KEY`, `YOTI_AGE_SDK_ID`, and an HTTPS callback URL. If they are absent, verification returns `AGE_VERIFICATION_UNAVAILABLE` and all social access remains blocked; the identity-only server stays available for support, appeal, export, deletion, and recovery. An unavailable verifier must never fall back to self-attestation.
 
 ## Enforcement points
 
