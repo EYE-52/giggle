@@ -796,19 +796,23 @@ test("desktop encounter reactions only animate after realtime send succeeds", ()
   assert.equal(fireBlock.includes("spawnReaction(emoji); // optimistic local"), false);
 });
 
-test("desktop encounter report button only shows success after realtime send succeeds", () => {
+test("desktop encounter report button only shows success after persistence acknowledgement", () => {
   const page = encounterSource();
   const reportBlock = page.slice(
-    page.indexOf("function handleReport()"),
+    page.indexOf("async function handleReport()"),
     page.indexOf("  // Spawn a floating emoji")
   );
 
   assert.equal(page.includes("reportOpponentSquad"), true);
-  assert.match(reportBlock, /const sent = reportOpponentSquad\(\{/);
-  assert.match(reportBlock, /if \(!sent\) \{/);
+  assert.match(reportBlock, /async function handleReport\(\)/);
+  assert.match(reportBlock, /setReporting\(true\);/);
+  assert.match(reportBlock, /const result = await reportOpponentSquad\(\{/);
+  assert.match(reportBlock, /setReporting\(false\);/);
+  assert.match(reportBlock, /if \(!result\.ok\) \{/);
   assert.match(reportBlock, /setVideoError\("Report was not sent\. Check your connection and try again\."\);/);
   assert.equal(reportBlock.includes("console.error(\"report_squad emit failed"), false);
-  assert.equal(reportBlock.indexOf("setReported(true);") > reportBlock.indexOf("if (!sent) {"), true);
+  assert.equal(reportBlock.indexOf("setReported(true);") > reportBlock.indexOf("if (!result.ok) {"), true);
+  assert.equal(page.includes("disabled={reported || reporting}"), true);
 });
 
 test("venue cards use real photo defaults instead of synthetic photo placeholders", () => {

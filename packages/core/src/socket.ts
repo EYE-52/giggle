@@ -2,7 +2,12 @@ import { io, type Socket } from "socket.io-client";
 import { BACKEND_URL } from "./config";
 import { getAuthToken } from "./client";
 import type { AppNotification } from "./api";
-import { createReportOpponentPayload, type ReportOpponentInput } from "./report";
+import {
+  createReportOpponentPayload,
+  type ReportOpponentInput,
+  type ReportSendResult,
+  type SafetyReportStatus,
+} from "./report";
 
 let socket: Socket | null = null;
 let adultAccessGetter: () => boolean = () => false;
@@ -244,13 +249,34 @@ export function subscribeReaction(cb: (r: ReactionEvent) => void): () => void {
   return () => { s.off(SOCKET_EVENTS.NEW_REACTION, handler); };
 }
 
-export function reportOpponentSquad(input: ReportOpponentInput): boolean {
-  const payload = createReportOpponentPayload(input);
-  if (!payload) return false;
-  const s = connectSocket(payload.squadId);
-  if (!s.connected) return false;
-  s.emit(SOCKET_EMIT.REPORT_SQUAD, payload);
-  return true;
+export async function reportOpponentSquad(input: ReportOpponentInput): Promise<ReportSendResult> {
+  try {
+    const payload = createReportOpponentPayload(input);
+    if (!payload) return { ok: false, error: "Report unavailable." };
+    const s = connectSocket(payload.squadId);
+    if (!s.connected) return { ok: false, error: "Report was not sent. Try again." };
+
+    return await new Promise<ReportSendResult>((resolve) => {
+      s.timeout(5000).emit(
+        SOCKET_EMIT.REPORT_SQUAD,
+        payload,
+        (
+          error: Error | null,
+          result?: { ok: boolean; reportId?: string; status?: SafetyReportStatus; error?: string },
+        ) => {
+          if (error || !result) {
+            return resolve({ ok: false, error: "Report was not saved. Try again." });
+          }
+          if (result.ok && result.reportId && result.status) {
+            return resolve({ ok: true, reportId: result.reportId, status: result.status });
+          }
+          return resolve({ ok: false, error: result.error || "Report was not saved. Try again." });
+        },
+      );
+    });
+  } catch {
+    return { ok: false, error: "Report was not sent. Try again." };
+  }
 }
 
 // --- Notifications (per-user push) ---

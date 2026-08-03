@@ -670,6 +670,7 @@ function EncounterInner() {
   const endedNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [findingNextMatch, setFindingNextMatch] = useState(false);
   const [reported, setReported] = useState(false);
+  const [reporting, setReporting] = useState(false);
   // Unread chat badge while the chat panel is closed (mirrors the lobby pattern).
   const [unread, setUnread] = useState(0);
   const [chatMessages, setChatMessages] = useState<ChatPanelMessage[]>([]);
@@ -1138,15 +1139,17 @@ function EncounterInner() {
     }
   }
 
-  function handleReport() {
-    if (reported || !encounter) return;
+  async function handleReport() {
+    if (reported || reporting || !encounter) return;
     setVideoError(null);
-    const sent = reportOpponentSquad({
+    setReporting(true);
+    const result = await reportOpponentSquad({
       encounterId: encId,
       squadId,
       encounter,
     });
-    if (!sent) {
+    setReporting(false);
+    if (!result.ok) {
       setVideoError("Report was not sent. Check your connection and try again.");
       return;
     }
@@ -2357,11 +2360,11 @@ function EncounterInner() {
                               handleReport();
                               closeMore(true);
                             }}
-                            disabled={reported}
-                            style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: reported ? "var(--live)" : "var(--text)", display: "flex", alignItems: "center", gap: 9, cursor: reported ? "default" : "pointer", fontWeight: 700 }}
+                            disabled={reported || reporting}
+                            style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: reported ? "var(--live)" : "var(--text)", display: "flex", alignItems: "center", gap: 9, cursor: reported || reporting ? "default" : "pointer", fontWeight: 700 }}
                           >
                             <Icon.flag size={17} color={reported ? "var(--live)" : "var(--text-muted)"} />
-                            {reported ? "Reported" : "Report opponent squad"}
+                            {reported ? "Reported" : reporting ? "Sending report…" : "Report opponent squad"}
                           </button>
                           {hasFocusedFrame && (
                             <button

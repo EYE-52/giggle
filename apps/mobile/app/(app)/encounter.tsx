@@ -106,6 +106,7 @@ export default function EncounterScreen() {
   const [encounterError, setEncounterError] = useState('');
   const [chatError, setChatError] = useState('');
   const [reported, setReported] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [connState, setConnState] = useState<ConnectionState | null>(null);
   const [captureState, setCaptureState] = useState<CaptureState>({ audio: 'off', video: 'off' });
   const [loudestUid, setLoudestUid] = useState<string | null>(null);
@@ -459,11 +460,13 @@ export default function EncounterScreen() {
   const reportPayload = createReportOpponentPayload({ encounterId: encId, squadId, encounter: enc });
   const canReport = Boolean(reportPayload);
 
-  function handleReport() {
-    if (reported || !canReport) return;
+  async function handleReport() {
+    if (reported || reporting || !canReport) return;
     setMoreError('');
-    const sent = reportOpponentSquad({ encounterId: encId, squadId, encounter: enc });
-    if (!sent) {
+    setReporting(true);
+    const result = await reportOpponentSquad({ encounterId: encId, squadId, encounter: enc });
+    setReporting(false);
+    if (!result.ok) {
       setMoreError("Couldn't send this report. Try again.");
       return;
     }
@@ -1069,14 +1072,14 @@ export default function EncounterScreen() {
               {moreError ? <Text style={styles.moreError} accessibilityRole="alert">{moreError}</Text> : null}
               <TouchableOpacity
               onPress={handleReport}
-              disabled={!canReport || reported}
+              disabled={!canReport || reported || reporting}
               accessibilityRole="button"
-              accessibilityLabel={!canReport ? 'Report unavailable' : reported ? 'Report sent' : 'Report opponent squad'}
-              accessibilityState={{ disabled: !canReport || reported }}
-              style={[styles.actionRow, (!canReport || reported) && styles.actionRowDisabled]}
+              accessibilityLabel={!canReport ? 'Report unavailable' : reported ? 'Report sent' : reporting ? 'Sending report' : 'Report opponent squad'}
+              accessibilityState={{ disabled: !canReport || reported || reporting }}
+              style={[styles.actionRow, (!canReport || reported || reporting) && styles.actionRowDisabled]}
             >
               <Icon.flag size={20} color={reported ? COLORS.lime : COLORS.textMuted} />
-              <Text style={styles.actionText}>{reported ? 'Reported' : 'Report opponent squad'}</Text>
+              <Text style={styles.actionText}>{reported ? 'Reported' : reporting ? 'Sending report…' : 'Report opponent squad'}</Text>
               </TouchableOpacity>
               {hasFocusedFrame && (
                 <TouchableOpacity

@@ -95,8 +95,19 @@ test("encounter report control is disabled unless a valid report payload exists"
 
   assert.equal(page.includes("createReportOpponentPayload"), true);
   assert.equal(page.includes("const canReport = Boolean(reportPayload);"), true);
-  assert.equal(page.includes("disabled={!canReport || reported}"), true);
+  assert.equal(page.includes("disabled={!canReport || reported || reporting}"), true);
   assert.equal(page.includes("Report unavailable"), true);
+});
+
+test("mobile reports stay retryable until the server confirms persistence", () => {
+  const page = source();
+  const reportBlock = page.slice(page.indexOf("async function handleReport()"), page.indexOf("function spawnReaction"));
+
+  assert.match(reportBlock, /setReporting\(true\);/);
+  assert.match(reportBlock, /const result = await reportOpponentSquad\(/);
+  assert.match(reportBlock, /setReporting\(false\);/);
+  assert.match(reportBlock, /if \(!result\.ok\) \{/);
+  assert.equal(reportBlock.indexOf("setReported(true);") > reportBlock.indexOf("if (!result.ok) {"), true);
 });
 
 test("mobile encounter does not fabricate participants when encounter data is unavailable", () => {

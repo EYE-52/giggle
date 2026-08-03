@@ -455,3 +455,23 @@ test("chat broadcasts include scope, client ids, and explicit acknowledgements",
   assert.match(messageBlock, /reply\(\{ ok: true, message \}\);/);
   assert.match(messageBlock, /sentChatMessages\.get\(normalizedClientMessageId\)/);
 });
+
+test("report_squad acknowledges only persisted reports and never applies automatic punishment", () => {
+  const source = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "../src/services/socketService.js"),
+    "utf8"
+  );
+  const reportBlock = source.slice(
+    source.indexOf("socket.on('report_squad'"),
+    source.indexOf("socket.on('disconnect'")
+  );
+
+  assert.match(reportBlock, /async \(payload = \{}, ack\) =>/);
+  assert.match(reportBlock, /const reply = typeof ack === 'function' \? ack : \(\) => \{};/);
+  assert.match(reportBlock, /await persistSquadReport/);
+  assert.match(reportBlock, /reply\(result\);/);
+  assert.match(reportBlock, /reply\(\{ ok: false, error: 'Report could not be saved\. Try again\.' \}\);/);
+  for (const forbidden of ["reputationScore", "reportCount", "lastReportedAt", "isShadowBanned", ".save()"] ) {
+    assert.equal(reportBlock.includes(forbidden), false);
+  }
+});

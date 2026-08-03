@@ -1,5 +1,6 @@
 const { Squad } = require('../models/Squad');
 const { Encounter } = require('../models/Encounter');
+const SafetyReport = require('../models/SafetyReport');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
@@ -21,6 +22,8 @@ const MAX_CHAT_TEXT_LENGTH = 500;
 const CHAT_RATE_LIMIT = { limit: 20, windowMs: 10_000 };
 const REACTION_RATE_LIMIT = { limit: 30, windowMs: 10_000 };
 const REPORT_RATE_LIMIT = { limit: 3, windowMs: 60_000 };
+const REPORT_CATEGORIES = new Set(['harassment', 'hate', 'sexual', 'minor_safety', 'spam', 'other']);
+const REPORT_UNAVAILABLE = { ok: false, error: 'Report unavailable.' };
 
 const isRealtimeDebugEnabled = (env = process.env) => {
   return env.REALTIME_DEBUG === 'true' || env.NODE_ENV !== 'production';
@@ -124,6 +127,75 @@ const createSocketRateLimiter = ({ limit, windowMs }) => {
 const chatLimiter = createSocketRateLimiter(CHAT_RATE_LIMIT);
 const reactionLimiter = createSocketRateLimiter(REACTION_RATE_LIMIT);
 const reportLimiter = createSocketRateLimiter(REPORT_RATE_LIMIT);
+
+const normalizeReportDetails = (value) => {
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value !== 'string') return null;
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  return normalized.length <= 500 ? normalized : null;
+};
+
+const persistSquadReport = async ({
+  payload: rawPayload = {},
+  userId,
+  Squad: SquadModel = Squad,
+  Encounter: EncounterModel = Encounter,
+  ReportModel = SafetyReport,
+}) => {
+  const payload = rawPayload && !Array.isArray(rawPayload) && typeof rawPayload === 'object'
+    ? rawPayload
+    : {};
+  const category = payload.category ?? 'other';
+  const details = normalizeReportDetails(payload.details);
+  if (!REPORT_CATEGORIES.has(category) || details === null) return REPORT_UNAVAILABLE;
+
+  const scope = await authorizeSquadReport({
+    payload,
+    userId,
+    Squad: SquadModel,
+    Encounter: EncounterModel,
+  });
+  if (!scope.allowed) return REPORT_UNAVAILABLE;
+
+  const targetSquad = await SquadModel.findOne({ squadId: scope.targetSquadId });
+  const targetUserIds = [...new Set(
+    (targetSquad?.members || [])
+      .map((member) => String(member?.userId || '').trim())
+      .filter(Boolean)
+  )];
+  if (targetUserIds.length === 0) return REPORT_UNAVAILABLE;
+
+  const filter = {
+    reporterUserId: String(userId),
+    encounterId: normalizeRealtimeId(payload.encounterId),
+    targetSquadId: scope.targetSquadId,
+  };
+  const update = {
+    $setOnInsert: {
+      ...filter,
+      reporterSquadId: normalizeRealtimeId(payload.squadId),
+      targetUserIds,
+      category,
+      details,
+      status: 'open',
+    },
+  };
+
+  let report;
+  try {
+    report = await ReportModel.findOneAndUpdate(
+      filter,
+      update,
+      { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+  } catch (error) {
+    if (error?.code !== 11000 || typeof ReportModel.findOne !== 'function') throw error;
+    report = await ReportModel.findOne(filter);
+  }
+  const reportId = String(report?._id ?? report?.id ?? '');
+  if (!reportId) throw new Error('Safety report persistence returned no record');
+  return { ok: true, reportId, status: report.status || 'open' };
+};
 
 // ── Online presence (Redis-backed) ──────────────────────────────────────────
 // A user is online while at least one active socket key exists in Redis. This
@@ -332,36 +404,24 @@ const init = (server) => {
       });
     });
 
-    socket.on('report_squad', async (payload = {}) => {
+    socket.on('report_squad', async (payload = {}, ack) => {
+      const reply = typeof ack === 'function' ? ack : () => {};
       try {
-        if (!reportLimiter.allow(socket.id)) return;
-        const result = await authorizeSquadReport({
+        if (!reportLimiter.allow(socket.id)) {
+          return reply({ ok: false, error: 'Too many reports. Try again in a moment.' });
+        }
+        const result = await persistSquadReport({
           payload,
           userId: socket.userId,
           Squad,
           Encounter,
+          ReportModel: SafetyReport,
         });
-        if (!result.allowed) return;
-
-        logRealtimeDebug(`Squad ${result.targetSquadId} reported`);
-        const targetSquad = await Squad.findOne({ squadId: result.targetSquadId });
-        if (!targetSquad) return;
-
-        targetSquad.reputationScore = Math.max(0, (targetSquad.reputationScore || 100) - 10);
-        await targetSquad.save();
-
-        const userIds = targetSquad.members.map(m => m.userId);
-        for (const userId of userIds) {
-          const user = await User.findById(userId);
-          if (user) {
-            user.reputationScore = Math.max(0, (user.reputationScore || 100) - 15);
-            user.reportCount = (user.reportCount || 0) + 1;
-            user.lastReportedAt = new Date();
-            if (user.reportCount >= 5) user.isShadowBanned = true;
-            await user.save();
-          }
-        }
-      } catch (err) { console.error('Report error:', err); }
+        reply(result);
+      } catch (err) {
+        console.error('Report error:', err);
+        reply({ ok: false, error: 'Report could not be saved. Try again.' });
+      }
     });
 
     socket.on('disconnect', async () => {
@@ -472,6 +532,7 @@ module.exports = {
   createSocketRateLimiter,
   resolveSocketAuthToken,
   normalizeReactionEmoji,
+  persistSquadReport,
   resolveSocketSenderName,
   MAX_CHAT_TEXT_LENGTH,
 };

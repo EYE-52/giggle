@@ -12,7 +12,7 @@ test("createReportOpponentPayload reports squad B when requester is squad A", as
       squadId: "sq_a",
       encounter: { squadAId: "sq_a", squadBId: "sq_b" },
     }),
-    { encounterId: "enc_1", squadId: "sq_a", reportedSquadId: "sq_b" }
+    { encounterId: "enc_1", squadId: "sq_a", reportedSquadId: "sq_b", category: "other" }
   );
 });
 
@@ -25,7 +25,7 @@ test("createReportOpponentPayload reports squad A when requester is squad B", as
       squadId: "sq_b",
       encounter: { squadAId: "sq_a", squadBId: "sq_b" },
     }),
-    { encounterId: "enc_1", squadId: "sq_b", reportedSquadId: "sq_a" }
+    { encounterId: "enc_1", squadId: "sq_b", reportedSquadId: "sq_a", category: "other" }
   );
 });
 
@@ -34,6 +34,14 @@ test("createReportOpponentPayload returns null for missing or unrelated squads",
 
   assert.equal(createReportOpponentPayload({ encounterId: "enc_1", squadId: "sq_x", encounter: { squadAId: "sq_a", squadBId: "sq_b" } }), null);
   assert.equal(createReportOpponentPayload({ encounterId: "", squadId: "sq_a", encounter: { squadAId: "sq_a", squadBId: "sq_b" } }), null);
+});
+
+test("createReportOpponentPayload rejects unbounded or malformed report details", async () => {
+  const { createReportOpponentPayload } = await import("../src/report.ts");
+  const scope = { encounterId: "enc_1", squadId: "sq_a", encounter: { squadAId: "sq_a", squadBId: "sq_b" } };
+
+  assert.equal(createReportOpponentPayload({ ...scope, details: "x".repeat(501) }), null);
+  assert.equal(createReportOpponentPayload({ ...scope, details: { raw: true } }), null);
 });
 
 test("signOut disconnects the authenticated realtime socket", () => {
@@ -190,16 +198,20 @@ test("reaction send reports disconnected socket failures to callers", () => {
   assert.match(sendBlock, /catch \{\s*return false;\s*\}/);
 });
 
-test("report opponent only reports success when realtime emit can be sent", () => {
+test("report opponent resolves success only after the server persists and acknowledges it", () => {
   const socketSource = readFileSync(path.join(__dirname, "../src/socket.ts"), "utf8");
   const reportBlock = socketSource.slice(
-    socketSource.indexOf("export function reportOpponentSquad"),
+    socketSource.indexOf("export async function reportOpponentSquad"),
     socketSource.indexOf("// --- Notifications")
   );
 
+  assert.match(reportBlock, /Promise<ReportSendResult>/);
   assert.match(reportBlock, /const s = connectSocket\(payload\.squadId\);/);
-  assert.match(reportBlock, /if \(!s\.connected\) return false;/);
-  assert.match(reportBlock, /s\.emit\(SOCKET_EMIT\.REPORT_SQUAD, payload\);/);
+  assert.match(reportBlock, /if \(!s\.connected\) return \{ ok: false, error:/);
+  assert.match(reportBlock, /s\.timeout\(5000\)\.emit/);
+  assert.match(reportBlock, /error \|\| !result/);
+  assert.match(reportBlock, /result\.ok && result\.reportId/);
+  assert.match(reportBlock, /resolve\(\{ ok: true, reportId: result\.reportId, status: result\.status \}\)/);
 });
 
 test("encounter lifecycle events use the server contract names", () => {
