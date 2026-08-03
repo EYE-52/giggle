@@ -1082,8 +1082,8 @@ test("age gate completes only after provider verification and a live session syn
 
   assert.match(gate, /api\.startAgeVerification\(\)/);
   assert.match(gate, /api\.getAgeVerificationStatus\(\)/);
-  assert.match(gate, /window\.location\.assign\(result\.url\)/);
-  assert.match(gate, /async function startVerification\(\) \{\s*pollVersion\.current \+= 1;/);
+  assert.match(gate, /window\.location\.assign\(providerUrl\.toString\(\)\)/);
+  assert.match(gate, /async function startVerification\(\) \{\s*const operation = \+\+operationGeneration\.current;/);
   assert.match(gate, /document\.addEventListener\("visibilitychange"/);
   assert.match(gate, /window\.addEventListener\("focus"/);
   assert.match(gate, /MAX_STATUS_POLLS/);
@@ -1097,6 +1097,22 @@ test("age gate completes only after provider verification and a live session syn
   for (const state of ["pending", "rejected", "unavailable"]) {
     assert.match(gate, new RegExp(`\\"${state}\\"`));
   }
+});
+
+test("age verification ignores stale operations and only opens the exact Yoti host", () => {
+  const gate = ageGateSource();
+  const start = gate.slice(gate.indexOf("async function startVerification"), gate.indexOf("function signOut"));
+
+  assert.match(gate, /const mounted = useRef\(true\)/);
+  assert.match(gate, /const reconcileInFlight = useRef<Promise<void> \| null>\(null\)/);
+  assert.match(gate, /if \(reconcileInFlight\.current\) return reconcileInFlight\.current/);
+  assert.match(start, /const operation = \+\+operationGeneration\.current/);
+  assert.match(start, /await api\.startAgeVerification\(\)[\s\S]*!mounted\.current[\s\S]*operation !== operationGeneration\.current/);
+  assert.match(start, /new URL\(result\.url\)/);
+  assert.match(start, /providerUrl\.protocol !== "https:"/);
+  assert.match(start, /providerUrl\.hostname !== "age\.yoti\.com"/);
+  assert.doesNotMatch(start, /window\.location\.assign\(result\.url\)/);
+  assert.match(gate, /function signOut\(\) \{\s*mounted\.current = false;\s*operationGeneration\.current \+= 1;/);
 });
 
 test("returning users resolve stale age state before the app leaves its opening screen", () => {

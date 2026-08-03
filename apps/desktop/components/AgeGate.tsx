@@ -104,7 +104,9 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const pollVersion = useRef(0);
+  const mounted = useRef(true);
+  const operationGeneration = useRef(0);
+  const reconcileInFlight = useRef<Promise<void> | null>(null);
   const completed = useRef(false);
 
   const daysInMonth = useMemo(() => {
@@ -116,8 +118,9 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
     if (day !== "" && Number(day) > daysInMonth) setDay("");
   }, [day, daysInMonth]);
 
-  const finishVerified = useCallback(async () => {
+  const finishVerified = useCallback(async (operation: number) => {
     const synced = await session.syncAgeFromServer();
+    if (!mounted.current || operation !== operationGeneration.current) return false;
     if (synced && session.hasAdultAccess && !completed.current) {
       completed.current = true;
       onDone();
@@ -129,55 +132,68 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
     return false;
   }, [onDone]);
 
-  const reconcile = useCallback(async () => {
-    if (!session.ageConfirmed || !session.isAdult || completed.current) return;
-    const version = ++pollVersion.current;
-    setBusy(true);
-    setError(null);
-
-    for (let attempt = 0; attempt < MAX_STATUS_POLLS; attempt += 1) {
-      try {
-        const result = await api.getAgeVerificationStatus();
-        if (version !== pollVersion.current) return;
-        if (result.status === "verified") {
-          await finishVerified();
-          return;
-        }
-        if (result.status === "restricted") {
-          setState("restricted");
-          setBusy(false);
-          return;
-        }
-        if (result.status === "rejected") {
-          setState("rejected");
-          setBusy(false);
-          return;
-        }
-        if (result.status === "not_started") {
-          setState("ready");
-          setBusy(false);
-          return;
-        }
-
-        setState("pending");
-        setBusy(false);
-        if (attempt + 1 < MAX_STATUS_POLLS) {
-          await new Promise((resolve) => window.setTimeout(resolve, STATUS_POLL_MS));
-          if (version !== pollVersion.current) return;
-        }
-      } catch (cause) {
-        if (version !== pollVersion.current) return;
-        setState("unavailable");
-        setError((cause as { message?: string })?.message || "Age verification is temporarily unavailable.");
-        setBusy(false);
-        return;
-      }
+  const reconcile = useCallback(() => {
+    if (!mounted.current || !session.ageConfirmed || !session.isAdult || completed.current) {
+      return Promise.resolve();
     }
+    if (reconcileInFlight.current) return reconcileInFlight.current;
 
-    if (version === pollVersion.current) setBusy(false);
+    const operation = ++operationGeneration.current;
+    const request = (async () => {
+      setBusy(true);
+      setError(null);
+
+      for (let attempt = 0; attempt < MAX_STATUS_POLLS; attempt += 1) {
+        try {
+          const result = await api.getAgeVerificationStatus();
+          if (!mounted.current || operation !== operationGeneration.current) return;
+          if (result.status === "verified") {
+            await finishVerified(operation);
+            return;
+          }
+          if (result.status === "restricted") {
+            setState("restricted");
+            setBusy(false);
+            return;
+          }
+          if (result.status === "rejected") {
+            setState("rejected");
+            setBusy(false);
+            return;
+          }
+          if (result.status === "not_started") {
+            setState("ready");
+            setBusy(false);
+            return;
+          }
+
+          setState("pending");
+          setBusy(false);
+          if (attempt + 1 < MAX_STATUS_POLLS) {
+            await new Promise((resolve) => window.setTimeout(resolve, STATUS_POLL_MS));
+            if (!mounted.current || operation !== operationGeneration.current) return;
+          }
+        } catch (cause) {
+          if (!mounted.current || operation !== operationGeneration.current) return;
+          setState("unavailable");
+          setError((cause as { message?: string })?.message || "Age verification is temporarily unavailable.");
+          setBusy(false);
+          return;
+        }
+      }
+
+      if (mounted.current && operation === operationGeneration.current) setBusy(false);
+    })();
+
+    reconcileInFlight.current = request;
+    void request.finally(() => {
+      if (reconcileInFlight.current === request) reconcileInFlight.current = null;
+    });
+    return request;
   }, [finishVerified]);
 
   useEffect(() => {
+    mounted.current = true;
     if (session.ageConfirmed && session.isAdult) void reconcile();
     const onReturn = () => {
       if (document.visibilityState === "visible") void reconcile();
@@ -185,7 +201,9 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
     document.addEventListener("visibilitychange", onReturn);
     window.addEventListener("focus", onReturn);
     return () => {
-      pollVersion.current += 1;
+      mounted.current = false;
+      operationGeneration.current += 1;
+      reconcileInFlight.current = null;
       document.removeEventListener("visibilitychange", onReturn);
       window.removeEventListener("focus", onReturn);
     };
@@ -215,14 +233,19 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
     }
 
     const iso = `${birth.getFullYear()}-${String(birth.getMonth() + 1).padStart(2, "0")}-${String(birth.getDate()).padStart(2, "0")}`;
+    const operation = ++operationGeneration.current;
+    reconcileInFlight.current = null;
     setBusy(true);
     try {
       await session.setAge(iso);
+      if (!mounted.current || operation !== operationGeneration.current) return;
       setState("checking");
       await reconcile();
     } catch (cause) {
+      if (!mounted.current || operation !== operationGeneration.current) return;
       if ((cause as { code?: string })?.code === "AGE_RESTRICTED") {
         await session.syncAgeFromServer();
+        if (!mounted.current || operation !== operationGeneration.current) return;
         setState("restricted");
         setBusy(false);
         return;
@@ -233,13 +256,15 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
   }
 
   async function startVerification() {
-    pollVersion.current += 1;
+    const operation = ++operationGeneration.current;
+    reconcileInFlight.current = null;
     setBusy(true);
     setError(null);
     try {
       const result = await api.startAgeVerification();
+      if (!mounted.current || operation !== operationGeneration.current || !session.isAuthed()) return;
       if (result.status === "verified") {
-        await finishVerified();
+        await finishVerified(operation);
         return;
       }
       if (result.status === "restricted") {
@@ -247,13 +272,38 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
       } else if (result.status === "rejected") {
         setState("rejected");
       } else if (result.url) {
+        let providerUrl: URL;
+        try {
+          providerUrl = new URL(result.url);
+        } catch {
+          setState("unavailable");
+          setError("Age verification returned an invalid provider link.");
+          setBusy(false);
+          return;
+        }
+        if (
+          providerUrl.protocol !== "https:" ||
+          providerUrl.hostname !== "age.yoti.com" ||
+          providerUrl.port !== "" ||
+          providerUrl.username !== "" ||
+          providerUrl.password !== ""
+        ) {
+          setState("unavailable");
+          setError("Age verification returned an invalid provider link.");
+          setBusy(false);
+          return;
+        }
         setState("pending");
-        window.location.assign(result.url);
+        window.location.assign(providerUrl.toString());
         return;
+      } else if (result.status === "pending") {
+        setState("unavailable");
+        setError("Age verification returned an invalid provider link.");
       } else {
-        setState(result.status === "pending" ? "pending" : "ready");
+        setState("ready");
       }
     } catch (cause) {
+      if (!mounted.current || operation !== operationGeneration.current) return;
       setState("unavailable");
       setError((cause as { message?: string })?.message || "Age verification is temporarily unavailable.");
     }
@@ -261,6 +311,9 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
   }
 
   function signOut() {
+    mounted.current = false;
+    operationGeneration.current += 1;
+    reconcileInFlight.current = null;
     session.signOut();
     window.location.assign("/signin");
   }

@@ -50,6 +50,98 @@ test("an adult explicitly launches the hosted verification provider", async ({ p
   await expect(page).toHaveURL(/age\.yoti\.com\/\?sessionId=e2e/);
 });
 
+test("untrusted and malformed provider links fail closed", async ({ page }) => {
+  let providerUrl = "https://age.yoti.com.evil.example/?sessionId=e2e";
+  await page.route("**/api/me/age/verification-status", route => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ ok: true, data: { status: "not_started", ageVerified: false } }),
+  }));
+  await page.route("**/api/me/age/verification-session", route => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ ok: true, data: { status: "pending", ageVerified: false, url: providerUrl } }),
+  }));
+  await page.route("https://age.yoti.com.evil.example/**", route => route.fulfill({ status: 200, body: "unexpected navigation" }));
+
+  await page.goto("/home");
+  const gate = await submitDob(page, 25);
+  await gate.getByRole("button", { name: /verify with yoti/i }).click();
+  await expect(gate.getByRole("heading", { name: /verification unavailable/i })).toBeVisible();
+  await expect(gate.getByRole("alert")).toContainText(/invalid provider link/i);
+  await expect(page).toHaveURL(/\/home$/);
+
+  await gate.getByRole("button", { name: /try again/i }).click();
+  await expect(gate.getByRole("button", { name: /verify with yoti/i })).toBeVisible();
+  providerUrl = "not a URL";
+  await gate.getByRole("button", { name: /verify with yoti/i }).click();
+  await expect(gate.getByRole("heading", { name: /verification unavailable/i })).toBeVisible();
+  await expect(page).toHaveURL(/\/home$/);
+});
+
+test("a newer operation prevents a stale provider response from navigating", async ({ page }) => {
+  let releaseProvider!: () => void;
+  let providerRequested!: () => void;
+  const providerRelease = new Promise<void>(resolve => { releaseProvider = resolve; });
+  const providerStarted = new Promise<void>(resolve => { providerRequested = resolve; });
+  await page.route("**/api/me/age/verification-status", route => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ ok: true, data: { status: "not_started", ageVerified: false } }),
+  }));
+  await page.route("**/api/me/age/verification-session", async route => {
+    providerRequested();
+    await providerRelease;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, data: { status: "pending", ageVerified: false, url: "https://age.yoti.com/?sessionId=stale" } }),
+    });
+  });
+  await page.route("https://age.yoti.com/**", route => route.fulfill({ status: 200, body: "unexpected navigation" }));
+
+  await page.goto("/home");
+  const gate = await submitDob(page, 25);
+  await gate.getByRole("button", { name: /verify with yoti/i }).click();
+  await providerStarted;
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(gate.getByRole("button", { name: /verify with yoti/i })).toBeVisible();
+  releaseProvider();
+  await page.waitForTimeout(150);
+  await expect(page).toHaveURL(/\/home$/);
+});
+
+test("focus and visibility events share one status reconciliation", async ({ page }) => {
+  let statusCalls = 0;
+  let holdStatus = false;
+  let releaseStatus!: () => void;
+  const heldStatus = new Promise<void>(resolve => { releaseStatus = resolve; });
+  await page.route("**/api/me/age/verification-status", async route => {
+    statusCalls += 1;
+    if (holdStatus) await heldStatus;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, data: { status: "not_started", ageVerified: false } }),
+    });
+  });
+
+  await page.goto("/home");
+  const gate = await submitDob(page, 25);
+  await expect(gate.getByRole("button", { name: /verify with yoti/i })).toBeVisible();
+  holdStatus = true;
+  const beforeReturn = statusCalls;
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("focus"));
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect.poll(() => statusCalls).toBe(beforeReturn + 1);
+  await page.waitForTimeout(100);
+  expect(statusCalls).toBe(beforeReturn + 1);
+  releaseStatus();
+  await expect(gate.getByRole("button", { name: /verify with yoti/i })).toBeVisible();
+});
+
 test("pending verification can be rechecked and rejected without opening the app", async ({ page }) => {
   let status: "pending" | "rejected" = "pending";
   await page.route("**/api/me/age/verification-status", route => route.fulfill({
