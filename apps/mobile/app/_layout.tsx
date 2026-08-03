@@ -29,13 +29,13 @@ export default function RootLayout() {
   const title = ROUTE_TITLES[pathname] || 'Giggle';
   const isPublicRoute = PUBLIC_ROUTES.has(pathname);
   const [authReady, setAuthReady] = useState(false);
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [hasAdultAccess, setHasAdultAccess] = useState(false);
 
   useEffect(() => {
     let active = true;
     if (isPublicRoute) {
       setAuthReady(false);
-      setAgeConfirmed(false);
+      setHasAdultAccess(false);
       return;
     }
 
@@ -54,10 +54,9 @@ export default function RootLayout() {
         }
       }
 
-      let confirmed = session.ageConfirmed;
-      if (!confirmed) confirmed = await session.syncAgeFromServer();
+      await session.syncAgeFromServer();
       if (!active) return;
-      setAgeConfirmed(confirmed);
+      setHasAdultAccess(session.hasAdultAccess);
       setAuthReady(true);
     }
 
@@ -65,16 +64,15 @@ export default function RootLayout() {
     return () => { active = false; };
   }, [isPublicRoute, router]);
 
-  let routeGate: React.ReactNode = null;
-  if (!isPublicRoute && !ageConfirmed) {
-    routeGate = <AgeGate onDone={() => setAgeConfirmed(true)} />;
-  }
   if (!isPublicRoute && !authReady) {
-    routeGate = (
+    return (
       <View style={styles.loading} accessibilityRole="progressbar" accessibilityLabel="Opening Giggle">
         <ActivityIndicator color={COLORS.violet} size="large" />
       </View>
     );
+  }
+  if (!isPublicRoute && !hasAdultAccess) {
+    return <AgeGate onDone={() => setHasAdultAccess(true)} />;
   }
 
   return (
@@ -102,19 +100,13 @@ export default function RootLayout() {
         <Stack.Screen name="lobby" options={{ title: ROUTE_TITLES['/lobby'] }} />
         <Stack.Screen name="encounter" options={{ title: ROUTE_TITLES['/encounter'] }} />
       </Stack>
-      {routeGate}
     </>
   );
 }
 
 const styles = StyleSheet.create({
   loading: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    zIndex: 20,
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.bg,

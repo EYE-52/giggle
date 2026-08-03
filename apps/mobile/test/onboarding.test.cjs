@@ -98,7 +98,7 @@ test("mobile layout redirects unauthenticated production users away from app rou
   assert.equal(layout.includes("<Stack.Screen name=\"auth/callback\""), true);
 });
 
-test("mobile protected routes wait for the shared age gate", () => {
+test("mobile protected routes wait for shared verified-adult access", () => {
   const gatePath = path.join(__dirname, "../components/AgeGate.tsx");
   assert.equal(existsSync(gatePath), true);
 
@@ -108,11 +108,11 @@ test("mobile protected routes wait for the shared age gate", () => {
   assert.equal(layout.includes("import { AgeGate } from '../components/AgeGate';"), true);
   assert.equal(layout.includes("await session.syncAgeFromServer()"), true);
   assert.equal(layout.includes("if (!isPublicRoute && !authReady)"), true);
-  assert.equal(layout.includes("if (!isPublicRoute && !ageConfirmed)"), true);
-  assert.equal(layout.includes("<AgeGate onDone={() => setAgeConfirmed(true)} />"), true);
+  assert.equal(layout.includes("if (!isPublicRoute && !hasAdultAccess)"), true);
+  assert.equal(layout.includes("<AgeGate onDone={() => setHasAdultAccess(true)} />"), true);
   assert.equal(gate.includes("await session.setAge(birthDate);"), true);
   assert.equal(gate.includes('keyboardType="number-pad"'), true);
-  assert.equal(gate.includes("You must be at least 13 to use Giggle."), true);
+  assert.equal(gate.includes("Giggle is for verified adults 18+"), true);
 });
 
 test("mobile home actions do not create dev sessions from protected routes", () => {
