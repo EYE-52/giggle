@@ -52,7 +52,7 @@ function normalizedState(user) {
   return { status, ageVerified: false };
 }
 
-async function sendCurrentState(userId, res) {
+async function sendCurrentState(userId, res, includePendingUrl = false) {
   const currentUser = await User.findById(userId);
   if (!currentUser) {
     return res.status(404).json({
@@ -60,7 +60,17 @@ async function sendCurrentState(userId, res) {
       error: { code: "NOT_FOUND", message: "User not found" },
     });
   }
-  return res.json({ ok: true, data: normalizedState(currentUser) });
+  const data = normalizedState(currentUser);
+  if (
+    includePendingUrl &&
+    data.status === "pending" &&
+    currentUser.ageVerification?.provider === "yoti" &&
+    currentUser.ageVerification?.sessionId &&
+    currentUser.ageVerification?.referenceId
+  ) {
+    data.url = buildAgeVerificationUrl(currentUser.ageVerification.sessionId);
+  }
+  return res.json({ ok: true, data });
 }
 
 function bindingFilter(userId, verification) {
@@ -130,7 +140,7 @@ async function startAgeVerification(req, res) {
       { $set: { ageVerified: false, ageVerification: nextVerification } },
       { new: true, runValidators: true }
     );
-    if (!boundUser) return sendCurrentState(userId, res);
+    if (!boundUser) return sendCurrentState(userId, res, true);
 
     return res.json({
       ok: true,

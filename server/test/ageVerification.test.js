@@ -351,9 +351,14 @@ test("concurrent session starts return only the atomically stored provider bindi
               )
             );
 
-            const urls = responses.map((res) => res.body.data.url).filter(Boolean);
-            assert.equal(urls.length, 1);
+            const urls = responses.map((res) => res.body.data.url);
+            assert.equal(urls.length, 2);
+            assert.equal(urls[0], urls[1]);
             assert.equal(urls[0].includes(persisted.ageVerification.sessionId), true);
+            const orphanedSessionId = sessionIds.find(
+              (sessionId) => sessionId !== persisted.ageVerification.sessionId
+            );
+            assert.equal(urls.some((url) => url.includes(orphanedSessionId)), false);
             assert.equal(persisted.ageVerification.status, "pending");
             assert.equal(responses.every((res) => res.body.data.status === "pending"), true);
             assert.equal(bindFilters.length, 2);
@@ -511,6 +516,7 @@ test("provider pending and rejected results remain blocked and expose only norma
             assert.equal(res.statusCode, 200);
             assert.equal(res.body.data.status, expectedStatus);
             assert.equal(res.body.data.ageVerified, false);
+            assert.equal(Object.hasOwn(res.body.data, "url"), false);
             assert.equal(user.ageVerified, false);
             assert.equal(user.ageVerification.status, expectedStatus);
             assert.equal(JSON.stringify(res.body).includes("raw-selfie"), false);
