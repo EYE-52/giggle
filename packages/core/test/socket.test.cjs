@@ -94,7 +94,7 @@ test("age submission reconciles an already-confirmed server session", () => {
 
   assert.match(setAgeBlock, /AGE_ALREADY_CONFIRMED/);
   assert.match(setAgeBlock, /await session\.syncAgeFromServer\(\)/);
-  assert.match(setAgeBlock, /if \(!session\.ageConfirmed\) throw error;/);
+  assert.match(setAgeBlock, /!session\.ageConfirmed/);
 });
 
 test("magic-link sign-in forwards pending referral codes", () => {

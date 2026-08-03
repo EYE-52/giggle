@@ -155,6 +155,7 @@ export const session = {
     invalidateAdultAccess();
     const ref = getPendingReferral();
     const res = await api.exchange({ ...identity, ref });
+    invalidateAdultAccess();
     token = res.token;
     user = res.user;
     persist();
@@ -250,17 +251,24 @@ export const session = {
    */
   async setAge(birthDate: string) {
     invalidateAdultAccess();
+    const requestVersion = ageAccessVersion;
+    const requestToken = token;
+    const requestUserId = user?.id;
+    const isCurrentSession = (version = requestVersion) =>
+      ageAccessVersion === version && token === requestToken && user?.id === requestUserId;
     try {
       const res = await api.setAge(birthDate);
-      if (user) {
+      if (user && isCurrentSession()) {
         user = { ...user, isAdult: res.isAdult, ageConfirmed: res.ageConfirmed, ageVerified: res.ageVerified };
         persist();
       }
       return res;
     } catch (error) {
       if ((error as { code?: string })?.code !== "AGE_ALREADY_CONFIRMED") throw error;
+      if (!isCurrentSession()) throw error;
+      const reconciliationVersion = ageAccessVersion + 1;
       await session.syncAgeFromServer();
-      if (!session.ageConfirmed) throw error;
+      if (!isCurrentSession(reconciliationVersion) || !ageAccessSynced || !session.ageConfirmed) throw error;
       return { isAdult: session.isAdult, ageConfirmed: true, ageVerified: session.ageVerified };
     }
   },
