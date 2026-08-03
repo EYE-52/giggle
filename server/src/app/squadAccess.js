@@ -1,5 +1,9 @@
 const { Squad } = require("../models/Squad");
 const { deleteNotifications } = require("../models/Notification");
+const {
+  canonicalUserId,
+  relationalIdMatcher,
+} = require("../services/interactionSafetyService");
 
 const getRequesterIdentity = (req) => {
   const identity = req.user || req.giggleIdentity || {};
@@ -151,6 +155,99 @@ const persistSquadAfterMemberRemoval = async (squad, { removedMemberRole }) => {
   return { squadDeleted, newLeaderMemberId };
 };
 
+const removeSquadMember = async (squad, memberIndex) => {
+  const removedMember = squad?.members?.[memberIndex];
+  if (!removedMember) return null;
+  const { Encounter } = require("../models/Encounter");
+  const queueService = require("../services/queueService");
+  const sessionService = require("../services/sessionService");
+  const socketService = require("../services/socketService");
+
+  const wasSearching = squad.status === "searching";
+  const encounterId = squad.currentEncounterId;
+  squad.members.splice(memberIndex, 1);
+  if (wasSearching && squad.members.length > 0) {
+    squad.status = "idle";
+    squad.searchQueuedAt = null;
+  }
+
+  const persisted = await persistSquadAfterMemberRemoval(squad, {
+    removedMemberRole: removedMember.role,
+  });
+  await sessionService.clearMemberSession(squad.squadId, removedMember.memberId);
+  socketService.revokeUserRealtimeAccess({
+    userId: removedMember.userId,
+    squadId: squad.squadId,
+    encounterId,
+  });
+  socketService.emitToUser(removedMember.userId, "SQUAD_UPDATED", {
+    squadId: squad.squadId,
+    removed: true,
+  });
+
+  if (wasSearching) await queueService.removeFromQueue(squad.squadId);
+
+  if (persisted.squadDeleted && encounterId) {
+    const encounter = await Encounter.findOne({ encounterId, status: { $ne: "ended" } });
+    if (encounter) {
+      const { endEncounterAsymmetric } = require("../services/matchmakingService");
+      await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });
+    }
+  } else if (!persisted.squadDeleted) {
+    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+  }
+
+  return { ...persisted, removedMember };
+};
+
+const removeBlockedIdentityFromSharedSquads = async ({ blockerId, blockedUserIds }) => {
+  const socketService = require("../services/socketService");
+  const blocker = canonicalUserId(blockerId);
+  const targets = new Set((blockedUserIds || []).map(canonicalUserId).filter(Boolean));
+  if (!blocker || targets.size !== (blockedUserIds || []).length) {
+    throw new Error("Invalid blocked squad cleanup ids");
+  }
+
+  const participantMatchers = [blocker, ...targets].map(relationalIdMatcher);
+  const squads = await Squad.find({ "members.userId": { $in: participantMatchers } });
+  let removedMemberships = 0;
+
+  for (const squad of squads) {
+    const memberIds = new Set((squad.members || []).map((member) => canonicalUserId(member.userId)));
+    const blockerIsMember = memberIds.has(blocker);
+    const targetIsMember = [...targets].some((targetId) => memberIds.has(targetId));
+    const pendingIds = new Set();
+    if (blockerIsMember) for (const targetId of targets) pendingIds.add(targetId);
+    if (targetIsMember) pendingIds.add(blocker);
+
+    const beforeInvites = (squad.invitedUserIds || []).length;
+    const beforeRequests = (squad.joinRequests || []).length;
+    squad.invitedUserIds = (squad.invitedUserIds || []).filter(
+      (userId) => !pendingIds.has(canonicalUserId(userId))
+    );
+    squad.joinRequests = (squad.joinRequests || []).filter(
+      (request) => !pendingIds.has(canonicalUserId(request?.userId))
+    );
+    const pendingChanged =
+      squad.invitedUserIds.length !== beforeInvites || squad.joinRequests.length !== beforeRequests;
+
+    if (blockerIsMember && targetIsMember) {
+      const blockerIndex = squad.members.findIndex(
+        (member) => canonicalUserId(member.userId) === blocker
+      );
+      if (blockerIndex >= 0) {
+        await removeSquadMember(squad, blockerIndex);
+        removedMemberships += 1;
+      }
+    } else if (pendingChanged) {
+      await squad.save();
+      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+    }
+  }
+
+  return { removedMemberships };
+};
+
 module.exports = {
   getRequesterIdentity,
   hasIdentityId,
@@ -160,4 +257,6 @@ module.exports = {
   getSquadAccessContext,
   deleteSquadAndNotifications,
   persistSquadAfterMemberRemoval,
+  removeSquadMember,
+  removeBlockedIdentityFromSharedSquads,
 };

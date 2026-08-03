@@ -9,6 +9,7 @@ const sessionService = require("./sessionService");
 const { allUsersHaveAdultAccess } = require("./ageAccessService");
 const { MIN_MEMBERS_TO_SEARCH } = require("../config/appConfig");
 const { classifyVibe } = require("../utils/moderation");
+const { anyBlockedPair } = require("./interactionSafetyService");
 
 // 60s handoff window: matchmaking polling, the match-reveal animation, and
 // navigation all eat into this, so 30s was too tight for the 2nd squad to ack
@@ -108,6 +109,21 @@ const pickBestCandidate = (seeker, candidates) => {
   return best ? best.candidate : null;
 };
 
+const getEncounterRosterContext = async ({ encounter, squadA, squadB } = {}) => {
+  if (!encounter) return { allowed: false, squadA: null, squadB: null };
+  const [loadedA, loadedB] = await Promise.all([
+    squadA || Squad.findOne({ squadId: encounter.squadAId }),
+    squadB || Squad.findOne({ squadId: encounter.squadBId }),
+  ]);
+  if (!loadedA || !loadedB) return { allowed: false, squadA: loadedA, squadB: loadedB };
+  const userIds = [...loadedA.members, ...loadedB.members].map((member) => member.userId);
+  return {
+    allowed: !(await anyBlockedPair(userIds, { User })),
+    squadA: loadedA,
+    squadB: loadedB,
+  };
+};
+
 const createEncounterForSquads = async (squadA, squadB) => {
   const encounterId = generateId("enc");
   const now = new Date();
@@ -195,11 +211,12 @@ const tryMatchmakeForSquad = async (squad) => {
       return null;
     }
 
-    const seekerHasAccess = await allUsersHaveAdultAccess(
-      freshSquad.members.map((member) => member.userId),
-      { User }
-    );
-    if (!seekerHasAccess || (freshSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
+    const seekerUserIds = freshSquad.members.map((member) => member.userId);
+    const [seekerHasAccess, seekerHasBlockedPair] = await Promise.all([
+      allUsersHaveAdultAccess(seekerUserIds, { User }),
+      anyBlockedPair(seekerUserIds, { User }),
+    ]);
+    if (seekerHasBlockedPair || !seekerHasAccess || (freshSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
       console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} is no longer eligible. Purging from queue.`);
       await resetInactiveSearchingSquad(freshSquad);
       return null;
@@ -287,6 +304,23 @@ const tryMatchmakeForSquad = async (squad) => {
         continue;
       }
 
+      const combinedUserIds = [
+        ...freshSquad.members.map((member) => member.userId),
+        ...freshCandidate.members.map((member) => member.userId),
+      ];
+      if (await anyBlockedPair(combinedUserIds, { User })) {
+        if (await anyBlockedPair(freshSquad.members.map((member) => member.userId), { User })) {
+          console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} contains a blocked pair. Purging from queue.`);
+          await resetInactiveSearchingSquad(freshSquad);
+          return null;
+        }
+        if (await anyBlockedPair(freshCandidate.members.map((member) => member.userId), { User })) {
+          console.warn(`[Matchmaking] Candidate ${freshCandidate.squadId} contains a blocked pair. Purging from queue.`);
+          await resetInactiveSearchingSquad(freshCandidate);
+        }
+        continue;
+      }
+
       // Recheck both sides under the matchmaking lock. Ready/video are admission
       // checks; searching is continuing consent, and live membership prevents a
       // disconnected or depleted squad from being matched.
@@ -329,19 +363,28 @@ const getMatchmakingStatus = async (squadId) => {
   }
 
   let match = null;
+  let interactionBlocked = false;
   if (squad.currentEncounterId) {
     const encounter = await Encounter.findOne({ encounterId: squad.currentEncounterId });
     if (encounter) {
       const opponentSquadId = encounter.squadAId === squadId ? encounter.squadBId : encounter.squadAId;
       const opponentSquad = await Squad.findOne({ squadId: opponentSquadId });
-      match = {
-        encounterId: encounter.encounterId,
-        opponentSquadId,
-        ownSquadName: squad.squadName,
-        opponentSquadName: opponentSquad?.squadName || "Unknown squad",
-        matchedAt: encounter.matchedAt,
-        status: encounter.status,
-      };
+      const context = await getEncounterRosterContext({
+        encounter,
+        squadA: encounter.squadAId === squadId ? squad : opponentSquad,
+        squadB: encounter.squadBId === squadId ? squad : opponentSquad,
+      });
+      interactionBlocked = !context.allowed;
+      if (context.allowed) {
+        match = {
+          encounterId: encounter.encounterId,
+          opponentSquadId,
+          ownSquadName: squad.squadName,
+          opponentSquadName: opponentSquad?.squadName || "Unknown squad",
+          matchedAt: encounter.matchedAt,
+          status: encounter.status,
+        };
+      }
     }
   }
 
@@ -359,6 +402,7 @@ const getMatchmakingStatus = async (squadId) => {
           }
         : null,
     match,
+    interactionBlocked,
   };
 };
 
@@ -458,7 +502,8 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
     for (const s of squads) {
       const canRequeue =
         !(s.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&
-        await allUsersHaveAdultAccess(s.members.map((member) => member.userId), { User });
+        await allUsersHaveAdultAccess(s.members.map((member) => member.userId), { User }) &&
+        !(await anyBlockedPair(s.members.map((member) => member.userId), { User }));
       if (!canRequeue) {
         await rollbackSquadsToIdle([s.squadId]);
         continue;
@@ -579,7 +624,8 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
     try {
       const canRequeue =
         !(otherSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&
-        await allUsersHaveAdultAccess(otherSquad.members.map((member) => member.userId), { User });
+        await allUsersHaveAdultAccess(otherSquad.members.map((member) => member.userId), { User }) &&
+        !(await anyBlockedPair(otherSquad.members.map((member) => member.userId), { User }));
       if (!canRequeue) {
         await rollbackSquadsToIdle([otherSquadId]);
       } else {
@@ -682,6 +728,7 @@ module.exports = {
   startEncounterSweeper,
   getMatchmakingStatus,
   getEncounterById,
+  getEncounterRosterContext,
   ackEncounterForSquad,
   endEncounterAndRequeue,
   endEncounterToIdle,

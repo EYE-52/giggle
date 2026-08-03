@@ -3,6 +3,7 @@ const { Squad } = require("../models/Squad");
 const {
   getMatchmakingStatus,
   getEncounterById,
+  getEncounterRosterContext,
   ackEncounterForSquad,
   endEncounterAndRequeue,
 } = require("../services/matchmakingService");
@@ -21,6 +22,12 @@ const getMatchmakingStatusHandler = async (req, res) => {
     }
 
     const { squad, queue, match } = status;
+    if (status.interactionBlocked) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "INTERACTION_BLOCKED", message: "This encounter is unavailable" },
+      });
+    }
 
     return res.status(200).json({
       ok: true,
@@ -55,10 +62,14 @@ const getEncounterHandoffHandler = async (req, res) => {
 
     // Multi-squad membership: authorize against THIS encounter's two squads
     // specifically (the user's most-recent squad may be unrelated to it).
-    const [squadA, squadB] = await Promise.all([
-      Squad.findOne({ squadId: encounter.squadAId }),
-      Squad.findOne({ squadId: encounter.squadBId }),
-    ]);
+    const { allowed, squadA, squadB } = await getEncounterRosterContext({ encounter });
+
+    if (!allowed) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "INTERACTION_BLOCKED", message: "This encounter is unavailable" },
+      });
+    }
 
     const isInEncounter =
       (squadA && squadA.members.some((m) => isSameMember(m, identity))) ||
@@ -131,6 +142,19 @@ const ackEncounterJoinHandler = async (req, res) => {
     }
 
     const encounter = await getEncounterById(encounterId);
+    if (!encounter) {
+      return res.status(404).json({
+        ok: false,
+        error: { code: "ENCOUNTER_NOT_FOUND", message: "Encounter not found" },
+      });
+    }
+    const context = await getEncounterRosterContext({ encounter });
+    if (!context.allowed) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "INTERACTION_BLOCKED", message: "This encounter is unavailable" },
+      });
+    }
     const result = await ackEncounterForSquad({ encounter, squadId });
 
     if (result.error) {

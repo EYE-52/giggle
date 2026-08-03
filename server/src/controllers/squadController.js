@@ -13,7 +13,7 @@ const {
   findSquadForIdentity,
   findSquadsForIdentity,
   deleteSquadAndNotifications,
-  persistSquadAfterMemberRemoval,
+  removeSquadMember,
 } = require("../app/squadAccess");
 const { generateId, generateSquadCode } = require("../utils/idGenerator");
 const { tryMatchmakeForSquad } = require("../services/matchmakingService");
@@ -28,6 +28,12 @@ const { normalizeSquadTags } = require("../utils/squadValidation");
 const { classifyVibe } = require("../utils/moderation");
 const { normalizeSquadCoverImage } = require("../utils/squadCoverValidation");
 const { firstDisplayName } = require("../utils/identityValidation");
+const {
+  anyBlockedPair,
+  canonicalUserId,
+  filterBlockedCandidates,
+  hasBlockedPair,
+} = require("../services/interactionSafetyService");
 
 // Effective member capacity for a squad: 8 when the leader has Giggle+, else 4.
 // Always clamped to the global hard cap (MAX_SQUAD_MEMBERS). Looks up the
@@ -87,6 +93,17 @@ const publicSquadTags = (squad) => {
 
 const isValidUserObjectId = (value) =>
   typeof value === "string" && /^[a-f\d]{24}$/i.test(value);
+
+const anyBlockedPairInSquad = (squad, additionalUserIds = []) =>
+  anyBlockedPair([
+    ...(squad?.members || []).map((member) => member.userId),
+    ...additionalUserIds,
+  ], { User });
+
+const interactionBlocked = (res) => res.status(403).json({
+  ok: false,
+  error: { code: "INTERACTION_BLOCKED", message: "This interaction is unavailable" },
+});
 
 const resolveSquadInviteNotification = async (userId, squadId) =>
   deleteNotifications({ userId, type: "squad_invite", squadId });
@@ -327,6 +344,8 @@ const joinSquadHandler = async (req, res) => {
       });
     }
 
+    if (await anyBlockedPairInSquad(squad, [userId])) return interactionBlocked(res);
+
     const existingMember = squad.members.find((candidate) => isSameMember(candidate, { userId, providerAccountId }));
     if (existingMember) {
       await resolveSquadInviteNotification(userId, squad.squadId);
@@ -371,6 +390,13 @@ const joinSquadHandler = async (req, res) => {
           requestedAt: new Date(),
         });
         await squad.save();
+        if (await anyBlockedPairInSquad(squad, [userId])) {
+          squad.joinRequests = (squad.joinRequests || []).filter(
+            (request) => !hasIdentityId([request], userId, "userId")
+          );
+          await squad.save();
+          return interactionBlocked(res);
+        }
         socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
 
         // Notify the squad leader that someone wants to join.
@@ -436,6 +462,12 @@ const joinSquadHandler = async (req, res) => {
 
     squad.members.push(newMember);
     await squad.save();
+    if (await anyBlockedPairInSquad(squad)) {
+      const addedIndex = squad.members.findIndex((member) => member.memberId === memberId);
+      if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+      await squad.save();
+      return interactionBlocked(res);
+    }
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
     await resolveSquadInviteNotification(userId, squad.squadId);
 
@@ -530,6 +562,9 @@ const getSquadPreviewHandler = async (req, res) => {
         error: { code: "NOT_FOUND", message: "Squad not found" },
       });
     }
+
+    const viewerId = getRequesterIdentity(req).userId;
+    if (await anyBlockedPairInSquad(squad, [viewerId])) return interactionBlocked(res);
 
     const leader =
       squad.members.find((m) => m.role === "leader") ||
@@ -739,15 +774,23 @@ const getJoinRequestsHandler = async (req, res) => {
     const { squad } = req.squadAccess;
     const requests = squad.joinRequests || [];
 
-    // Enrich each request with the requester's demographics in one batch query.
-    const userIds = requests.map((r) => r.userId);
+    // Load the live roster and pending users together so stale/missing/blocked
+    // requests fail closed before any profile fields are returned.
+    const memberUserIds = squad.members.map((member) => member.userId);
+    const userIds = [...new Set([...memberUserIds, ...requests.map((request) => request.userId)])];
     const users = userIds.length
       ? await User.find({ _id: { $in: userIds } })
       : [];
-    const byId = new Map(users.map((u) => [u._id.toString(), u]));
+    const byId = new Map(users.map((user) => [canonicalUserId(user._id), user]));
 
-    const enriched = requests.map((r) => {
-      const u = byId.get(r.userId);
+    const enriched = requests.filter((request) => {
+      const requester = byId.get(canonicalUserId(request.userId));
+      return requester && memberUserIds.every((memberUserId) => {
+        const member = byId.get(canonicalUserId(memberUserId));
+        return member && !hasBlockedPair(member, requester);
+      });
+    }).map((r) => {
+      const u = byId.get(canonicalUserId(r.userId));
       return {
         userId: r.userId,
         name: r.name,
@@ -800,6 +843,7 @@ const approveJoinRequestHandler = async (req, res) => {
         error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
       });
     }
+    if (await anyBlockedPairInSquad(squad, [targetUserId])) return interactionBlocked(res);
 
     // If already a member, just clear the stale request.
     const alreadyMember = hasIdentityId(squad.members, targetUserId, "userId");
@@ -835,6 +879,12 @@ const approveJoinRequestHandler = async (req, res) => {
     squad.members.push(newMember);
     squad.joinRequests.splice(reqIndex, 1);
     await squad.save();
+    if (await anyBlockedPairInSquad(squad)) {
+      const addedIndex = squad.members.findIndex((member) => member.memberId === newMember.memberId);
+      if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+      await squad.save();
+      return interactionBlocked(res);
+    }
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
     await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
 
@@ -937,11 +987,19 @@ const inviteToSquadHandler = async (req, res) => {
         error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
       });
     }
+    if (await anyBlockedPairInSquad(squad, [targetUserId])) return interactionBlocked(res);
 
     if (!Array.isArray(squad.invitedUserIds)) squad.invitedUserIds = [];
     if (!hasIdentityId(squad.invitedUserIds, targetUserId)) {
       squad.invitedUserIds.push(targetUserId);
       await squad.save();
+      if (await anyBlockedPairInSquad(squad, [targetUserId])) {
+        squad.invitedUserIds = squad.invitedUserIds.filter(
+          (userId) => !hasIdentityId([userId], targetUserId)
+        );
+        await squad.save();
+        return interactionBlocked(res);
+      }
       socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
     }
 
@@ -1031,6 +1089,7 @@ const inviteUserToSquadHandler = async (req, res) => {
         error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
       });
     }
+    if (await anyBlockedPairInSquad(squad, [targetUserId])) return interactionBlocked(res);
 
     if (!Array.isArray(squad.invitedUserIds)) squad.invitedUserIds = [];
 
@@ -1040,6 +1099,13 @@ const inviteUserToSquadHandler = async (req, res) => {
     if (!alreadyInvited && !alreadyMember) {
       squad.invitedUserIds.push(targetUserId);
       await squad.save();
+      if (await anyBlockedPairInSquad(squad, [targetUserId])) {
+        squad.invitedUserIds = squad.invitedUserIds.filter(
+          (userId) => !hasIdentityId([userId], targetUserId)
+        );
+        await squad.save();
+        return interactionBlocked(res);
+      }
       socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
 
       await createNotification({
@@ -1115,6 +1181,7 @@ const startSearchHandler = async (req, res) => {
         },
       });
     }
+    if (await anyBlockedPairInSquad(squad)) return interactionBlocked(res);
 
     // Fetch live session data from Redis to check ready/video states
     const sessionData = await sessionService.getSquadSession(squad.squadId);
@@ -1371,43 +1438,9 @@ const promoteMemberHandler = async (req, res) => {
 const leaveSquadHandler = async (req, res) => {
   try {
     const { squad, memberIndex } = req.squadAccess;
-    const leavingMember = squad.members[memberIndex];
-    const wasSearching = squad.status === "searching";
-
-    squad.members.splice(memberIndex, 1);
-
-    // A squad that loses a member mid-search shouldn't keep searching: pull it
-    // out of the matchmaking queue and (if it survives) reset it to idle so a
-    // depleted squad never gets matched.
-    if (wasSearching && squad.members.length > 0) {
-      squad.status = "idle";
-      squad.searchQueuedAt = null;
-    }
-
-    const { squadDeleted, newLeaderMemberId } = await persistSquadAfterMemberRemoval(squad, {
-      removedMemberRole: leavingMember.role,
-    });
-
-    socketService.revokeUserRealtimeAccess({
-      userId: leavingMember.userId,
-      squadId: squad.squadId,
-      encounterId: squad.currentEncounterId,
-    });
-    socketService.emitToUser(leavingMember.userId, "SQUAD_UPDATED", { squadId: squad.squadId, removed: true });
-
-    if (wasSearching) {
-      // Always dequeue: covers both the surviving-but-depleted squad and the
-      // now-deleted (empty) squad — a deleted squad must not linger in Redis.
-      try {
-        await queueService.removeFromQueue(squad.squadId);
-      } catch (dequeueErr) {
-        console.error("Error dequeuing squad on leave:", dequeueErr);
-      }
-    }
-
-    if (!squadDeleted) {
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-    }
+    const result = await removeSquadMember(squad, memberIndex);
+    if (!result) throw new Error("Squad member no longer exists");
+    const { removedMember: leavingMember, squadDeleted, newLeaderMemberId } = result;
 
     return res.status(200).json({
       ok: true,
@@ -1642,7 +1675,16 @@ const findJoinableSquads = async (identity) => {
     query["members.providerAccountId"] = { $nin: exclude };
   }
 
-  return Squad.find(query).sort({ createdAt: -1 }).limit(30);
+  const squads = await Squad.find(query).sort({ createdAt: -1 }).limit(30);
+  const memberUserIds = squads.flatMap((squad) =>
+    (squad.members || []).map((member) => member.userId)
+  );
+  const allowedIds = new Set(
+    await filterBlockedCandidates(identity.userId, memberUserIds, { User })
+  );
+  return squads.filter((squad) =>
+    (squad.members || []).every((member) => allowedIds.has(canonicalUserId(member.userId)))
+  );
 };
 
 const discoverSquadsHandler = async (req, res) => {
@@ -1681,6 +1723,7 @@ const tryJoinSquadOnce = async (squadId, identity, displayName) => {
     const capacity = await getSquadCapacity(squad);
     if (squad.members.length >= capacity) return null;
     if (squad.members.some((m) => isSameMember(m, identity))) return null;
+    if (await anyBlockedPairInSquad(squad, [identity.userId])) return null;
     const newMember = {
       memberId: generateId("mem"),
       userId: identity.userId,
@@ -1693,6 +1736,12 @@ const tryJoinSquadOnce = async (squadId, identity, displayName) => {
 
     squad.members.push(newMember);
     await squad.save();
+    if (await anyBlockedPairInSquad(squad)) {
+      const addedIndex = squad.members.findIndex((member) => member.memberId === newMember.memberId);
+      if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+      await squad.save();
+      return null;
+    }
     return newMember;
   } catch (error) {
     // VersionError or other concurrent-write conflict — treat as a failed

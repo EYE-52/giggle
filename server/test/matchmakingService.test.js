@@ -18,6 +18,10 @@ const queueService = require("../src/services/queueService");
 const sessionService = require("../src/services/sessionService");
 const socketService = require("../src/services/socketService");
 
+const MATCH_USER_A = "507f1f77bcf86cd799439011";
+const MATCH_USER_B = "507f1f77bcf86cd799439012";
+const MATCH_USER_C = "507f1f77bcf86cd799439013";
+
 after(async () => {
   await Promise.allSettled([redis.quit(), subClient.quit()]);
 });
@@ -130,7 +134,14 @@ test("matcher purges an offline seeker before creating an encounter", async () =
 
 async function runFreshRosterMatch(
   users,
-  { seekerTags = [], candidateTags = [], queuedSquads, refreshedSeekerMembers } = {}
+  {
+    seekerTags = [],
+    candidateTags = [],
+    queuedSquads,
+    refreshedSeekerMembers,
+    seekerMembers = [{ memberId: "member_a", userId: MATCH_USER_A }],
+    candidateMembers = [{ memberId: "member_b", userId: MATCH_USER_B }],
+  } = {}
 ) {
   const originals = {
     acquire: redlock.acquire,
@@ -150,7 +161,7 @@ async function runFreshRosterMatch(
     status: "searching",
     searchRegion: "global",
     searchQueuedAt: new Date(),
-    members: [{ memberId: "member_a", userId: "user_a" }],
+    members: seekerMembers,
     tags: seekerTags,
     reputationScore: 100,
     async save() {},
@@ -161,7 +172,7 @@ async function runFreshRosterMatch(
     status: "searching",
     searchRegion: "global",
     searchQueuedAt: new Date(),
-    members: [{ memberId: "member_b", userId: "user_b" }],
+    members: candidateMembers,
     tags: candidateTags,
     reputationScore: 100,
     async save() {},
@@ -188,9 +199,13 @@ async function runFreshRosterMatch(
   socketService.getOnlineUserIds = async (ids) => new Set(ids);
   sessionService.setSessionField = async () => {};
   socketService.emitToSquad = () => {};
-  User.find = ({ _id: { $in: ids } }) => ({
-    select: async () => users.filter((user) => ids.map(String).includes(String(user._id))),
-  });
+  User.find = ({ _id: { $in: ids } }) => {
+    const matching = users.filter((user) => ids.map(String).includes(String(user._id)));
+    return {
+      select: async () => matching,
+      lean: async () => matching,
+    };
+  };
 
   try {
     const result = await tryMatchmakeForSquad(seeker);
@@ -211,8 +226,8 @@ async function runFreshRosterMatch(
 
 test("matcher purges a stale self-attested seeker before creating an encounter", async () => {
   const { encounters, removed, result, seeker } = await runFreshRosterMatch([
-    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: false },
-    { _id: "user_b", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: false },
+    { _id: MATCH_USER_B, ageConfirmed: true, isAdult: true, ageVerified: true },
   ]);
 
   assert.equal(result, null);
@@ -223,7 +238,7 @@ test("matcher purges a stale self-attested seeker before creating an encounter",
 
 test("matcher purges a stale candidate with a missing roster user", async () => {
   const { candidate, encounters, removed, result, seeker } = await runFreshRosterMatch([
-    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true },
   ]);
 
   assert.equal(result, null);
@@ -235,8 +250,8 @@ test("matcher purges a stale candidate with a missing roster user", async () => 
 
 test("matcher creates an encounter for two fresh verified-adult rosters", async () => {
   const { encounters, result, seeker, candidate } = await runFreshRosterMatch([
-    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: true },
-    { _id: "user_b", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_B, ageConfirmed: true, isAdult: true, ageVerified: true },
   ]);
 
   assert.equal(encounters, 1);
@@ -247,8 +262,8 @@ test("matcher creates an encounter for two fresh verified-adult rosters", async 
 
 test("matcher purges a legacy queued seeker with blocked tags", async () => {
   const { encounters, removed, result, seeker } = await runFreshRosterMatch([
-    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: true },
-    { _id: "user_b", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_B, ageConfirmed: true, isAdult: true, ageVerified: true },
   ], { seekerTags: ["pedo"] });
 
   assert.equal(result, null);
@@ -259,8 +274,8 @@ test("matcher purges a legacy queued seeker with blocked tags", async () => {
 
 test("matcher purges a legacy queued candidate with mature tags", async () => {
   const { candidate, encounters, removed, result } = await runFreshRosterMatch([
-    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: true },
-    { _id: "user_b", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_B, ageConfirmed: true, isAdult: true, ageVerified: true },
   ], { candidateTags: ["nsfw"] });
 
   assert.equal(result, null);
@@ -271,7 +286,7 @@ test("matcher purges a legacy queued candidate with mature tags", async () => {
 
 test("matcher purges an ineligible seeker even when no candidate is queued", async () => {
   const { encounters, removed, result, seeker } = await runFreshRosterMatch([
-    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: false },
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: false },
   ], { queuedSquads: [] });
 
   assert.equal(result, null);
@@ -282,7 +297,7 @@ test("matcher purges an ineligible seeker even when no candidate is queued", asy
 
 test("matcher purges a mature-tag seeker even when no candidate is queued", async () => {
   const { encounters, removed, result, seeker } = await runFreshRosterMatch([
-    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true },
   ], { seekerTags: ["nsfw"], queuedSquads: [] });
 
   assert.equal(result, null);
@@ -293,14 +308,45 @@ test("matcher purges a mature-tag seeker even when no candidate is queued", asyn
 
 test("matcher rechecks a seeker roster before creating an encounter", async () => {
   const { encounters, removed, result, seeker } = await runFreshRosterMatch([
-    { _id: "user_a", ageConfirmed: true, isAdult: true, ageVerified: true },
-    { _id: "user_b", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_B, ageConfirmed: true, isAdult: true, ageVerified: true },
   ], { refreshedSeekerMembers: [{ memberId: "member_stale", userId: "missing_user" }] });
 
   assert.equal(result, null);
   assert.equal(encounters, 0);
   assert.equal(seeker.status, "idle");
   assert.deepEqual(removed, ["sq_seeker"]);
+});
+
+test("matcher skips a freshly blocked cross-squad pair before encounter creation", async () => {
+  const { candidate, encounters, removed, result, seeker } = await runFreshRosterMatch([
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [MATCH_USER_B] },
+    { _id: MATCH_USER_B, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [] },
+  ]);
+
+  assert.equal(result, null);
+  assert.equal(encounters, 0);
+  assert.equal(seeker.status, "searching");
+  assert.equal(candidate.status, "searching");
+  assert.deepEqual(removed, []);
+});
+
+test("matcher purges a candidate whose fresh roster contains a blocked pair", async () => {
+  const { candidate, encounters, removed, result } = await runFreshRosterMatch([
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [] },
+    { _id: MATCH_USER_B, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [MATCH_USER_C] },
+    { _id: MATCH_USER_C, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [] },
+  ], {
+    candidateMembers: [
+      { memberId: "member_b", userId: MATCH_USER_B },
+      { memberId: "member_c", userId: MATCH_USER_C },
+    ],
+  });
+
+  assert.equal(result, null);
+  assert.equal(encounters, 0);
+  assert.equal(candidate.status, "idle");
+  assert.deepEqual(removed, ["sq_candidate"]);
 });
 
 async function runEncounterRequeue(users) {
@@ -323,7 +369,7 @@ async function runEncounterRequeue(users) {
     searchRegion: "global",
     tags: [],
     reputationScore: 100,
-    members: [{ memberId: `member_${index}`, userId: `user_${index}` }],
+    members: [{ memberId: `member_${index}`, userId: index === 0 ? MATCH_USER_A : MATCH_USER_B }],
   }));
   const queued = [];
   const updates = [];
@@ -331,9 +377,10 @@ async function runEncounterRequeue(users) {
   Squad.updateMany = async (filter, update) => { updates.push([filter, update]); };
   Squad.find = async () => squads;
   Squad.findOne = async ({ squadId }) => squads.find((squad) => squad.squadId === squadId) || null;
-  User.find = ({ _id: { $in: ids } }) => ({
-    select: async () => users.filter((user) => ids.map(String).includes(String(user._id))),
-  });
+  User.find = ({ _id: { $in: ids } }) => {
+    const matching = users.filter((user) => ids.map(String).includes(String(user._id)));
+    return { select: async () => matching, lean: async () => matching };
+  };
   queueService.addToQueue = async (squadId) => { queued.push(squadId); };
   queueService.removeFromQueue = async () => {};
   queueService.getQueuedSquadsByRegion = async () => [];
@@ -377,8 +424,8 @@ test("ending an encounter does not requeue ineligible rosters", async () => {
 
 test("ending an encounter requeues verified-adult rosters", async () => {
   const { queued, result } = await runEncounterRequeue([
-    { _id: "user_0", ageConfirmed: true, isAdult: true, ageVerified: true },
-    { _id: "user_1", ageConfirmed: true, isAdult: true, ageVerified: true },
+    { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [] },
+    { _id: MATCH_USER_B, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [] },
   ]);
 
   assert.equal(result.squadId, "sq_a");

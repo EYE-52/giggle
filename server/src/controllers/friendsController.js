@@ -9,6 +9,7 @@ const {
   emitNotificationsChanged,
 } = require("../models/Notification");
 const { firstDisplayName } = require("../utils/identityValidation");
+const { removeBlockedIdentityFromSharedSquads } = require("../app/squadAccess");
 const {
   canonicalUserId,
   relationalIdMatcher,
@@ -416,6 +417,7 @@ const blockUsers = async (req, res) => {
       );
       await deleteNotificationsBetweenUsers(myId, userIds, { session });
     });
+    await removeBlockedIdentityFromSharedSquads({ blockerId: myId, blockedUserIds: userIds });
     emitNotificationsChanged([myId, ...userIds]);
     return res.json({ ok: true, data: { status: "blocked", userIds } });
   } catch (e) {

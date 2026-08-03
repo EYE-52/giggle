@@ -1,10 +1,20 @@
 const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
-const test = require("node:test");
+const { after, test } = require("node:test");
 const mongoose = require("mongoose");
 const User = require("../src/models/User");
+const { Squad } = require("../src/models/Squad");
 const notificationModule = require("../src/models/Notification");
+const queueService = require("../src/services/queueService");
+const sessionService = require("../src/services/sessionService");
+const socketService = require("../src/services/socketService");
+const squadAccess = require("../src/app/squadAccess");
+const { redis, subClient } = require("../src/config/redisConfig");
+
+after(async () => {
+  await Promise.allSettled([redis.quit(), subClient.quit()]);
+});
 
 const IDS = [
   "507f1f77bcf86cd799439011",
@@ -278,6 +288,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
   const originalFind = User.find;
   const originalUpdateOne = User.updateOne;
   const originalUpdateMany = User.updateMany;
+  const originalSquadFind = Squad.find;
   const originalTransaction = mongoose.connection.transaction;
   const originalDeleteBetween = notificationModule.deleteNotificationsBetweenUsers;
   const originalEmit = notificationModule.emitNotificationsChanged;
@@ -289,6 +300,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
   User.find = () => ({ lean: async () => [{ _id: targetA }, { _id: targetB }] });
   User.updateOne = async (...args) => { writes.push(["one", ...args]); return { modifiedCount: 1 }; };
   User.updateMany = async (...args) => { writes.push(["many", ...args]); return { modifiedCount: 2 }; };
+  Squad.find = async () => [];
   mongoose.connection.transaction = async (work) => { transactionCount += 1; return work(session); };
   notificationModule.deleteNotificationsBetweenUsers = async (...args) => { deletion = args; return { deletedCount: 2 }; };
   notificationModule.emitNotificationsChanged = () => {};
@@ -334,6 +346,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
     User.find = originalFind;
     User.updateOne = originalUpdateOne;
     User.updateMany = originalUpdateMany;
+    Squad.find = originalSquadFind;
     mongoose.connection.transaction = originalTransaction;
     notificationModule.deleteNotificationsBetweenUsers = originalDeleteBetween;
     notificationModule.emitNotificationsChanged = originalEmit;
@@ -506,4 +519,77 @@ test("block routes are adult gated", () => {
   assert.match(routes, /router\.post\("\/users\/block", requireApiAuth, blockUsers\)/);
   assert.match(routes, /router\.delete\("\/users\/:userId\/block", requireApiAuth, unblockUser\)/);
   assert.match(routes, /router\.get\("\/me\/blocks", requireApiAuth, listBlockedUsers\)/);
+});
+
+test("blocking removes the blocker from every shared squad and clears stale squad requests", async () => {
+  const [blockerId, targetId] = IDS;
+  const originals = {
+    find: Squad.find,
+    remove: queueService.removeFromQueue,
+    clear: sessionService.clearMemberSession,
+    revoke: socketService.revokeUserRealtimeAccess,
+    emitUser: socketService.emitToUser,
+    emitSquad: socketService.emitToSquad,
+  };
+  const calls = [];
+  const shared = {
+    squadId: "shared",
+    status: "searching",
+    searchQueuedAt: new Date(),
+    currentEncounterId: null,
+    members: [
+      { memberId: "blocker_member", userId: blockerId, role: "leader" },
+      { memberId: "target_member", userId: targetId, role: "member" },
+    ],
+    invitedUserIds: [targetId],
+    joinRequests: [{ userId: targetId }],
+    async save() { calls.push("save:shared"); },
+  };
+  const targetSquad = {
+    squadId: "target",
+    status: "idle",
+    members: [{ memberId: "target_leader", userId: targetId, role: "leader" }],
+    invitedUserIds: [blockerId],
+    joinRequests: [{ userId: blockerId }],
+    async save() { calls.push("save:target"); },
+  };
+  Squad.find = async () => [shared, targetSquad];
+  queueService.removeFromQueue = async (squadId) => { calls.push(`dequeue:${squadId}`); };
+  sessionService.clearMemberSession = async (squadId, memberId) => { calls.push(`clear:${squadId}:${memberId}`); };
+  socketService.revokeUserRealtimeAccess = (payload) => { calls.push(["revoke", payload]); };
+  socketService.emitToUser = () => {};
+  socketService.emitToSquad = () => {};
+
+  try {
+    const result = await squadAccess.removeBlockedIdentityFromSharedSquads({ blockerId, blockedUserIds: [targetId] });
+
+    assert.equal(result.removedMemberships, 1);
+    assert.deepEqual(shared.members.map((member) => [member.userId, member.role]), [[targetId, "leader"]]);
+    assert.equal(shared.status, "idle");
+    assert.equal(shared.searchQueuedAt, null);
+    assert.deepEqual(shared.invitedUserIds, []);
+    assert.deepEqual(shared.joinRequests, []);
+    assert.deepEqual(targetSquad.invitedUserIds, []);
+    assert.deepEqual(targetSquad.joinRequests, []);
+    assert.equal(calls.includes("dequeue:shared"), true);
+    assert.equal(calls.includes("clear:shared:blocker_member"), true);
+    assert.equal(calls.some((call) => Array.isArray(call) && call[0] === "revoke" && call[1].userId === blockerId), true);
+  } finally {
+    Squad.find = originals.find;
+    queueService.removeFromQueue = originals.remove;
+    sessionService.clearMemberSession = originals.clear;
+    socketService.revokeUserRealtimeAccess = originals.revoke;
+    socketService.emitToUser = originals.emitUser;
+    socketService.emitToSquad = originals.emitSquad;
+  }
+});
+
+test("the block endpoint runs shared-squad cleanup only after the relationship transaction", () => {
+  const source = readFileSync(path.join(__dirname, "../src/controllers/friendsController.js"), "utf8");
+  const block = source.slice(source.indexOf("const blockUsers"), source.indexOf("const unblockUser"));
+  assert.match(block, /removeBlockedIdentityFromSharedSquads/);
+  assert.equal(
+    block.indexOf("removeBlockedIdentityFromSharedSquads") > block.indexOf("mongoose.connection.transaction"),
+    true
+  );
 });

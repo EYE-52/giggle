@@ -43,8 +43,20 @@ const clearSquadSession = async (squadId) => {
   await redis.del(`${SESSION_PREFIX}${squadId}`);
 };
 
+/** Clears every Redis field owned by one member, including the legacy entry. */
+const clearMemberSession = async (squadId, memberId) => {
+  const key = `${SESSION_PREFIX}${squadId}`;
+  const memberKey = String(memberId || '');
+  if (!memberKey) return;
+  const fields = (await redis.hkeys(key)).filter(
+    (field) => field === memberKey || field.startsWith(`${memberKey}${FIELD_SEPARATOR}`)
+  );
+  if (fields.length) await redis.hdel(key, ...fields);
+};
+
 module.exports = {
   setSessionField,
   getSquadSession,
   clearSquadSession,
+  clearMemberSession,
 };

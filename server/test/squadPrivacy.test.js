@@ -13,8 +13,12 @@ const socketService = require("../src/services/socketService");
 const {
   approveJoinRequestHandler,
   createSquadHandler,
+  discoverSquadsHandler,
+  getJoinRequestsHandler,
+  getSquadPreviewHandler,
   inviteToSquadHandler,
   inviteUserToSquadHandler,
+  joinSquadHandler,
   startSearchHandler,
   updateSquadTagsHandler,
 } = require("../src/controllers/squadController");
@@ -62,6 +66,326 @@ test("public squad discovery and preview do not expose join codes or member demo
   }
   assert.equal(routes.includes('router.post("/squads/:squadId/join", requireApiAuth, joinSquadHandler);'), true);
   assert.equal(discoverQuery.includes('joinPolicy: { $in: ["open", "request"] }'), true);
+});
+
+test("blocked accounts are checked at every squad discovery and admission boundary", () => {
+  const controller = read("src/controllers/squadController.js");
+  const join = section(controller, "const joinSquadHandler", "const getSquadHandler");
+  const approve = section(controller, "const approveJoinRequestHandler", "const declineJoinRequestHandler");
+  const leaderInvite = section(controller, "const inviteToSquadHandler", "const revokeInviteHandler");
+  const memberInvite = section(controller, "const inviteUserToSquadHandler", "const startSearchHandler");
+  const startSearch = section(controller, "const startSearchHandler", "const cancelSearchHandler");
+  const discovery = section(controller, "const findJoinableSquads", "const tryJoinSquadOnce");
+  const randomJoin = section(controller, "const tryJoinSquadOnce", "const joinRandomSquadHandler");
+
+  for (const boundary of [join, approve, leaderInvite, memberInvite, startSearch]) {
+    assert.match(boundary, /anyBlockedPair/);
+    assert.match(boundary, /interactionBlocked\(res\)/);
+  }
+  assert.match(randomJoin, /anyBlockedPair/);
+  assert.match(discovery, /filterBlockedCandidates/);
+  assert.match(controller, /code: "INTERACTION_BLOCKED"/);
+});
+
+test("member session cleanup removes legacy and field-per-member Redis entries", async () => {
+  const originalHkeys = redis.hkeys;
+  const originalHdel = redis.hdel;
+  const deleted = [];
+  redis.hkeys = async () => [
+    "member_a",
+    "member_a:ready",
+    "member_a:inLobbyVideo",
+    "member_b:ready",
+  ];
+  redis.hdel = async (key, ...fields) => { deleted.push([key, ...fields]); };
+
+  try {
+    await sessionService.clearMemberSession("squad_a", "member_a");
+    assert.deepEqual(deleted, [[
+      "squad_session:squad_a",
+      "member_a",
+      "member_a:ready",
+      "member_a:inLobbyVideo",
+    ]]);
+  } finally {
+    redis.hkeys = originalHkeys;
+    redis.hdel = originalHdel;
+  }
+});
+
+test("blocked pairs cannot join by code or id, including request-gated squads", async () => {
+  const requesterId = "507f1f77bcf86cd799439011";
+  const leaderId = "507f1f77bcf86cd799439012";
+  const originals = { findOne: Squad.findOne, findById: User.findById, find: User.find };
+  User.findById = async () => ({ _id: requesterId });
+  User.find = () => ({
+    lean: async () => [
+      { _id: requesterId, blockedUserIds: [leaderId] },
+      { _id: leaderId, blockedUserIds: [] },
+    ],
+  });
+
+  try {
+    for (const request of [
+      { body: { squadCode: "ABC-123" }, params: {}, joinPolicy: "open" },
+      { body: {}, params: { squadId: "squad_a" }, joinPolicy: "request" },
+    ]) {
+      let saves = 0;
+      const squad = {
+        squadId: "squad_a",
+        squadCode: "ABC-123",
+        status: "idle",
+        joinPolicy: request.joinPolicy,
+        members: [{ memberId: "leader", userId: leaderId, role: "leader" }],
+        invitedUserIds: [],
+        joinRequests: [],
+        async save() { saves += 1; },
+      };
+      Squad.findOne = async () => squad;
+      const res = createResponse();
+      await joinSquadHandler({
+        body: request.body,
+        params: request.params,
+        user: { userId: requesterId, name: "Requester" },
+      }, res);
+      assert.equal(res.statusCode, 403);
+      assert.equal(res.body.error.code, "INTERACTION_BLOCKED");
+      assert.equal(saves, 0);
+      assert.equal(squad.members.length, 1);
+      assert.deepEqual(squad.joinRequests, []);
+    }
+  } finally {
+    Squad.findOne = originals.findOne;
+    User.findById = originals.findById;
+    User.find = originals.find;
+  }
+});
+
+test("public discovery excludes squads blocked in either direction", async () => {
+  const viewerId = "507f1f77bcf86cd799439011";
+  const memberId = "507f1f77bcf86cd799439012";
+  const originals = { find: Squad.find, userFind: User.find };
+  const hiddenSquad = {
+    squadId: "hidden",
+    status: "idle",
+    visibility: "open",
+    joinPolicy: "open",
+    members: [{ userId: memberId, role: "leader" }],
+  };
+  Squad.find = () => ({
+    sort() { return this; },
+    limit: async () => [hiddenSquad],
+  });
+  User.find = () => ({
+    lean: async () => [
+      { _id: viewerId, blockedUserIds: [] },
+      { _id: memberId, blockedUserIds: [viewerId] },
+    ],
+  });
+
+  try {
+    const res = createResponse();
+    await discoverSquadsHandler({ user: { userId: viewerId } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.data.squads, []);
+  } finally {
+    Squad.find = originals.find;
+    User.find = originals.userFind;
+  }
+});
+
+test("public preview does not expose a squad across a blocked relationship", async () => {
+  const viewerId = "507f1f77bcf86cd799439011";
+  const memberId = "507f1f77bcf86cd799439012";
+  const originals = { findOne: Squad.findOne, find: User.find };
+  Squad.findOne = async () => ({
+    squadId: "hidden",
+    members: [{ memberId: "leader", userId: memberId, role: "leader" }],
+  });
+  User.find = () => ({
+    lean: async () => [
+      { _id: viewerId, blockedUserIds: [memberId] },
+      { _id: memberId, blockedUserIds: [] },
+    ],
+  });
+
+  try {
+    const res = createResponse();
+    await getSquadPreviewHandler({ params: { squadId: "hidden" }, user: { userId: viewerId } }, res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.error.code, "INTERACTION_BLOCKED");
+    assert.equal(JSON.stringify(res.body).includes("leader"), false);
+  } finally {
+    Squad.findOne = originals.findOne;
+    User.find = originals.find;
+  }
+});
+
+test("join-request reads omit missing and blocked requesters", async () => {
+  const leaderId = "507f1f77bcf86cd799439011";
+  const blockedId = "507f1f77bcf86cd799439012";
+  const allowedId = "507f1f77bcf86cd799439013";
+  const originalFind = User.find;
+  User.find = async () => [
+    { _id: leaderId, blockedUserIds: [] },
+    { _id: blockedId, blockedUserIds: [leaderId], name: "Hidden" },
+    { _id: allowedId, blockedUserIds: [], name: "Visible" },
+  ];
+
+  try {
+    const res = createResponse();
+    await getJoinRequestsHandler({
+      squadAccess: {
+        squad: {
+          members: [{ userId: leaderId }],
+          joinRequests: [
+            { userId: blockedId, name: "Hidden" },
+            { userId: allowedId, name: "Visible" },
+            { userId: "507f1f77bcf86cd799439014", name: "Missing" },
+          ],
+        },
+      },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.data.requests.map((request) => request.userId), [allowedId]);
+  } finally {
+    User.find = originalFind;
+  }
+});
+
+test("a block racing a request or invite removes the just-written artifact", async () => {
+  const requesterId = "507f1f77bcf86cd799439011";
+  const leaderId = "507f1f77bcf86cd799439012";
+  const originals = {
+    findOne: Squad.findOne,
+    findById: User.findById,
+    find: User.find,
+    create: Notification.create,
+  };
+  let blockReads = 0;
+  User.find = () => ({
+    lean: async () => {
+      blockReads += 1;
+      return [
+        { _id: requesterId, blockedUserIds: blockReads > 1 ? [leaderId] : [] },
+        { _id: leaderId, blockedUserIds: [] },
+      ];
+    },
+  });
+  User.findById = () => ({
+    select: async () => ({
+      _id: requesterId,
+      ageConfirmed: true,
+      isAdult: true,
+      ageVerified: true,
+    }),
+  });
+  Notification.create = async () => assert.fail("a raced request or invite must not notify");
+
+  try {
+    const requestSquad = {
+      squadId: "request_squad",
+      squadCode: "ABC-123",
+      squadName: "Requests",
+      status: "idle",
+      joinPolicy: "request",
+      members: [{ memberId: "leader", userId: leaderId, role: "leader" }],
+      invitedUserIds: [],
+      joinRequests: [],
+      async save() {},
+    };
+    Squad.findOne = async () => requestSquad;
+    let res = createResponse();
+    await joinSquadHandler({
+      body: { squadCode: "ABC-123" },
+      params: {},
+      user: { userId: requesterId, name: "Requester" },
+    }, res);
+    assert.equal(res.statusCode, 403);
+    assert.deepEqual(requestSquad.joinRequests, []);
+
+    blockReads = 0;
+    const inviteSquad = {
+      squadId: "invite_squad",
+      squadName: "Invites",
+      squadCode: "DEF-456",
+      members: [{ memberId: "leader", userId: leaderId, role: "leader" }],
+      invitedUserIds: [],
+      joinRequests: [],
+      async save() {},
+    };
+    res = createResponse();
+    await inviteUserToSquadHandler({
+      body: { userId: requesterId },
+      user: { userId: leaderId, name: "Leader" },
+      squadAccess: { squad: inviteSquad },
+    }, res);
+    assert.equal(res.statusCode, 403);
+    assert.deepEqual(inviteSquad.invitedUserIds, []);
+  } finally {
+    Squad.findOne = originals.findOne;
+    User.findById = originals.findById;
+    User.find = originals.find;
+    Notification.create = originals.create;
+  }
+});
+
+test("blocked targets cannot be approved or invited into a squad", async () => {
+  const leaderId = "507f1f77bcf86cd799439011";
+  const targetId = "507f1f77bcf86cd799439012";
+  const originals = { findById: User.findById, find: User.find };
+  User.findById = () => ({
+    select: async () => ({
+      _id: targetId,
+      ageConfirmed: true,
+      isAdult: true,
+      ageVerified: true,
+    }),
+    then(resolve) {
+      return Promise.resolve({
+        _id: targetId,
+        ageConfirmed: true,
+        isAdult: true,
+        ageVerified: true,
+      }).then(resolve);
+    },
+  });
+  User.find = () => ({
+    lean: async () => [
+      { _id: leaderId, blockedUserIds: [] },
+      { _id: targetId, blockedUserIds: [leaderId] },
+    ],
+  });
+
+  try {
+    for (const [handler, request] of [
+      [approveJoinRequestHandler, { params: { userId: targetId }, user: { userId: leaderId } }],
+      [inviteToSquadHandler, { body: { userId: targetId }, user: { userId: leaderId } }],
+      [inviteUserToSquadHandler, { body: { userId: targetId }, user: { userId: leaderId, name: "Leader" } }],
+    ]) {
+      let saves = 0;
+      const squad = {
+        squadId: "squad_a",
+        squadName: "A",
+        squadCode: "ABC-123",
+        status: "idle",
+        members: [{ memberId: "leader", userId: leaderId, role: "leader" }],
+        invitedUserIds: [],
+        joinRequests: [{ userId: targetId, name: "Target" }],
+        async save() { saves += 1; },
+      };
+      const res = createResponse();
+      await handler({ ...request, squadAccess: { squad } }, res);
+      assert.equal(res.statusCode, 403);
+      assert.equal(res.body.error.code, "INTERACTION_BLOCKED");
+      assert.equal(saves, 0);
+      assert.equal(squad.members.length, 1);
+      assert.deepEqual(squad.invitedUserIds, []);
+    }
+  } finally {
+    User.findById = originals.findById;
+    User.find = originals.find;
+  }
 });
 
 test("public squad discovery and preview normalize stale display fields", () => {
@@ -285,6 +609,7 @@ test("join approval rejects a self-attested-only target before roster mutation",
 
 test("join approval admits a verified-adult target", async () => {
   const originalFindById = User.findById;
+  const originalFind = User.find;
   const originalDeleteMany = Notification.deleteMany;
   const leaderUserId = "507f1f77bcf86cd799439011";
   const targetUserId = "507f1f77bcf86cd799439012";
@@ -298,6 +623,12 @@ test("join approval admits a verified-adult target", async () => {
   User.findById = async (userId) => userId === targetUserId
     ? { _id: targetUserId, name: "Verified", ageConfirmed: true, isAdult: true, ageVerified: true }
     : { isPremium: false };
+  User.find = () => ({
+    lean: async () => [
+      { _id: leaderUserId, blockedUserIds: [] },
+      { _id: targetUserId, blockedUserIds: [] },
+    ],
+  });
   Notification.deleteMany = async () => ({ deletedCount: 0 });
 
   try {
@@ -314,6 +645,7 @@ test("join approval admits a verified-adult target", async () => {
     assert.equal(squad.joinRequests.length, 0);
   } finally {
     User.findById = originalFindById;
+    User.find = originalFind;
     Notification.deleteMany = originalDeleteMany;
   }
 });
@@ -410,6 +742,7 @@ for (const [name, handler, req] of [
 
   test(`${name} admits a verified-adult target`, async () => {
     const originalFindById = User.findById;
+    const originalFind = User.find;
     const originalCreate = Notification.create;
     let saves = 0;
     const squad = {
@@ -428,6 +761,9 @@ for (const [name, handler, req] of [
         ageVerified: true,
       }),
     });
+    User.find = () => ({
+      lean: async () => [{ _id: req.body.userId, blockedUserIds: [] }],
+    });
     Notification.create = async () => ({ _id: "507f1f77bcf86cd799439099" });
 
     try {
@@ -439,6 +775,7 @@ for (const [name, handler, req] of [
       assert.deepEqual(squad.invitedUserIds, [req.body.userId]);
     } finally {
       User.findById = originalFindById;
+      User.find = originalFind;
       Notification.create = originalCreate;
     }
   });
@@ -468,7 +805,10 @@ async function runSearchWithUsers(users, tags = ["gaming"]) {
   let queued = 0;
   redlock.acquire = async () => ({ release: async () => {} });
   Squad.findOne = async () => squad;
-  User.find = () => ({ select: async () => users });
+  User.find = () => ({
+    select: async () => users,
+    lean: async () => users.map((user) => ({ ...user, blockedUserIds: user.blockedUserIds || [] })),
+  });
   User.findById = () => ({ select: async () => ({ isPremium: false }) });
   sessionService.getSquadSession = async () => ({ leader: { ready: true, inLobbyVideo: true } });
   socketService.getOnlineUserIds = async () => new Set([memberUserId]);
