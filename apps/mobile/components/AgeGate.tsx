@@ -401,6 +401,7 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
         />
       </View>
       <Text style={styles.privacy}>Your date of birth is private and is never shown on your profile.</Text>
+      <AgeHelp onPress={() => void openSupport()} />
       <Button label="Sign out" variant="outline" onPress={signOut} style={styles.fullButton} />
     </Shell>
   );

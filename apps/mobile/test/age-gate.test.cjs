@@ -50,6 +50,8 @@ test('native verification return is bounded, coalesced, and ignores stale work',
 
 test('native blocked states retain retry, support, and sign-out exits', () => {
   const gate = read('components/AgeGate.tsx');
+  const shellFunction = gate.indexOf('\nfunction Shell');
+  const dob = gate.slice(gate.lastIndexOf('\n  return (', shellFunction), shellFunction);
 
   for (const state of ['pending', 'rejected', 'unavailable', 'restricted']) {
     assert.match(gate, new RegExp(`'${state}'`));
@@ -61,6 +63,8 @@ test('native blocked states retain retry, support, and sign-out exits', () => {
   assert.match(gate, /label="Continue with Yoti"/);
   assert.match(gate, /label="Check again"/);
   assert.match(gate, /label="Try verification again"/);
+  assert.match(dob, /<AgeHelp onPress=\{\(\) => void openSupport\(\)\} \/>/);
+  assert.match(dob, /label="Sign out"/);
 });
 
 test('native protected screens do not mount before live adult access succeeds', () => {
