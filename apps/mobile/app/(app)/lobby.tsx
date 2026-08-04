@@ -67,7 +67,19 @@ export default function LobbyScreen() {
 
     try {
       const sock = connectSocket(squadId);
-      const onUpdate = () => refetch();
+      const onUpdate = (update: { memberId?: string; ready?: boolean } = {}) => {
+        const { memberId, ready } = update;
+        if (memberId && typeof ready === 'boolean') {
+          setSquad((current) => current ? {
+            ...current,
+            members: current.members.map((member) =>
+              member.memberId === memberId ? { ...member, ready } : member
+            ),
+          } : current);
+          return;
+        }
+        void refetch();
+      };
       sock.on(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate);
       cleanupSocket = () => { sock.off(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate); };
     } catch {}

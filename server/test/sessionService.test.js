@@ -3,19 +3,32 @@ const test = require("node:test");
 
 test("concurrent member session updates preserve sibling fields", async (t) => {
   const state = {};
-  let reads = 0;
-  let releaseReads;
-  const bothReadsStarted = new Promise((resolve) => { releaseReads = resolve; });
+  const pipelines = [];
+  let pipelineError = null;
   const redis = {
-    hget: async (_key, field) => {
-      reads += 1;
-      if (reads === 2) releaseReads();
-      await bothReadsStarted;
-      return state[field];
+    pipeline: () => {
+      const commands = [];
+      const pipeline = {
+        hset: (key, field, value) => {
+          commands.push(["hset", key, field, value]);
+          return pipeline;
+        },
+        expire: (key, seconds) => {
+          commands.push(["expire", key, seconds]);
+          return pipeline;
+        },
+        exec: async () => {
+          if (pipelineError) return [[pipelineError, null], [null, 1]];
+          for (const [command, , field, value] of commands) {
+            if (command === "hset") state[field] = value;
+          }
+          return commands.map(() => [null, 1]);
+        },
+      };
+      pipelines.push(commands);
+      return pipeline;
     },
-    hset: async (_key, field, value) => { state[field] = value; },
     hgetall: async () => state,
-    expire: async () => {},
   };
 
   const redisPath = require.resolve("../src/config/redisConfig");
@@ -40,4 +53,14 @@ test("concurrent member session updates preserve sibling fields", async (t) => {
   assert.deepEqual(await sessionService.getSquadSession("squad-a"), {
     "member-a": { ready: true, inLobbyVideo: true },
   });
+  assert.deepEqual(pipelines.map((commands) => commands.map(([command]) => command)), [
+    ["hset", "expire"],
+    ["hset", "expire"],
+  ]);
+
+  pipelineError = new Error("Redis write failed");
+  await assert.rejects(
+    sessionService.setSessionField("squad-a", "member-a", "ready", false),
+    /Redis write failed/
+  );
 });

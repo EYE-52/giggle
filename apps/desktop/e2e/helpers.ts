@@ -29,10 +29,16 @@ export async function completeAgeGate(page: Page) {
   const main = page.getByRole('main');
   await expect(gate.or(main)).toBeVisible({ timeout: 15_000 });
   if (!(await gate.isVisible())) {
-    if (new URL(page.url()).pathname === '/signin') {
-      throw new Error('Protected-route test reached /signin; Playwright must run against the development server.');
+    const returnToVerification = page.getByRole('button', { name: 'Return to age verification' });
+    if (await returnToVerification.isVisible()) {
+      await returnToVerification.click();
+      await expect(gate).toBeVisible({ timeout: 15_000 });
+    } else {
+      if (new URL(page.url()).pathname === '/signin') {
+        throw new Error('Protected-route test reached /signin; Playwright must run against the development server.');
+      }
+      return;
     }
-    return;
   }
 
   await installVerifiedAdultFixture(page);
@@ -52,4 +58,9 @@ export async function completeAgeGate(page: Page) {
 export async function openProtectedRoute(page: Page, path: string) {
   await page.goto(path);
   await completeAgeGate(page);
+  if (new URL(page.url()).pathname !== new URL(path, 'http://localhost').pathname) {
+    await page.waitForLoadState('networkidle');
+    await page.goto(path);
+    await expect(page.getByRole('main')).toBeVisible({ timeout: 15_000 });
+  }
 }

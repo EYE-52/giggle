@@ -26,7 +26,7 @@ async function closeRedisClientsIfLoaded() {
   await Promise.allSettled([redis.quit(), subClient.quit()]);
 }
 
-async function fetchFromApp(app, requestPath) {
+async function fetchFromApp(app, requestPath, init) {
   const testServer = http.createServer(app);
   await new Promise((resolve, reject) => {
     testServer.once("error", reject);
@@ -35,7 +35,7 @@ async function fetchFromApp(app, requestPath) {
 
   const { port } = testServer.address();
   try {
-    return await fetch(`http://127.0.0.1:${port}${requestPath}`);
+    return await fetch(`http://127.0.0.1:${port}${requestPath}`, init);
   } finally {
     await new Promise((resolve, reject) => {
       testServer.close((err) => (err ? reject(err) : resolve()));
@@ -273,6 +273,38 @@ test("server responses do not expose Express fingerprint headers", async () => {
     const response = await fetchFromApp(app, "/api/unknown-route");
 
     assert.equal(response.headers.has("x-powered-by"), false);
+  } finally {
+    await closeRedisClientsIfLoaded();
+    for (const [key, value] of Object.entries(originals)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    delete require.cache[require.resolve("../src/server")];
+  }
+});
+
+test("browser preflight responses cache the stable CORS policy", async () => {
+  const originals = {
+    JWT_SECRET: process.env.JWT_SECRET,
+    MONGODB_URI: process.env.MONGODB_URI,
+  };
+
+  process.env.JWT_SECRET = "test-secret";
+  process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/giggle-test";
+
+  try {
+    const { app } = reloadServerModule();
+    const response = await fetchFromApp(app, "/api/squads/squad-a/ready", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "http://localhost:4000",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "authorization,content-type",
+      },
+    });
+
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("access-control-max-age"), "86400");
   } finally {
     await closeRedisClientsIfLoaded();
     for (const [key, value] of Object.entries(originals)) {

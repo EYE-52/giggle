@@ -9,9 +9,13 @@ const FIELD_SEPARATOR = ':';
 const setSessionField = async (squadId, memberId, field, value) => {
   const key = `${SESSION_PREFIX}${squadId}`;
   // One Redis hash entry per field makes concurrent ready/video updates atomic.
-  await redis.hset(key, `${memberId}${FIELD_SEPARATOR}${field}`, JSON.stringify(value));
-  // Expire session after 2 hours of inactivity
-  await redis.expire(key, 7200);
+  const results = await redis.pipeline()
+    .hset(key, `${memberId}${FIELD_SEPARATOR}${field}`, JSON.stringify(value))
+    // Expire session after 2 hours of inactivity.
+    .expire(key, 7200)
+    .exec();
+  const commandError = results?.find(([error]) => error)?.[0];
+  if (commandError) throw commandError;
 };
 
 /**

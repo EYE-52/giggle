@@ -26,7 +26,8 @@ test("presence call sites await distributed online checks", () => {
   const socketService = read("src/services/socketService.js");
 
   assert.equal(friends.includes("const onlineSet = await getOnlineUserIds"), true);
-  assert.equal(squad.includes("const onlineMemberIds = await socketService.getOnlineUserIds(memberUserIds);"), true);
+  assert.equal(squad.includes("const [sessionData, demoUsers, onlineMemberIds] = await Promise.all(["), true);
+  assert.equal(squad.includes("socketService.getOnlineUserIds(memberUserIds),"), true);
   assert.equal(squad.includes("online: onlineMemberIds.has(member.userId),"), true);
   assert.equal(matchmaking.includes("socketService.getOnlineUserIds(freshSquad.members.map((m) => m.userId))"), true);
   assert.equal(matchmaking.includes("socketService.getOnlineUserIds(freshCandidate.members.map((m) => m.userId))"), true);

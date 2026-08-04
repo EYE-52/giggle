@@ -326,7 +326,7 @@ function LobbyInner() {
   // Returns true only if the camera/mic actually joined — callers that gate a
   // follow-up action (e.g. the "Enable camera" match flow) must not proceed on
   // a swallowed failure.
-  async function enableLobbyMedia(): Promise<boolean> {
+  async function enableLobbyMedia(withCamera = true): Promise<boolean> {
     if (!squadId || videoJoining) return videoJoined;
     if (videoJoined) return true;
     setVideoJoining(true);
@@ -335,8 +335,9 @@ function LobbyInner() {
       const tokenData = await api.lobbyToken(squadId);
       const vc = createVideoClient();
       vcRef.current = vc;
-      await vc.join(tokenData, { audio: true, video: true });
+      await vc.join(tokenData, { audio: true, video: withCamera });
       await api.setLobbyVideo(squadId, true);
+      setCamOn(withCamera);
       setVideoJoined(true);
       return true;
     } catch (e) {
@@ -354,10 +355,23 @@ function LobbyInner() {
     fetchSquad();
 
     const socket = connectSocket(squadId);
-    socket.on(SOCKET_EVENTS.SQUAD_UPDATED, fetchSquad);
+    const onSquadUpdate = (update: { memberId?: string; ready?: boolean } = {}) => {
+      const { memberId, ready } = update;
+      if (memberId && typeof ready === "boolean") {
+        setSquad(current => current ? {
+          ...current,
+          members: current.members.map(member =>
+            member.memberId === memberId ? { ...member, ready } : member
+          ),
+        } : current);
+        return;
+      }
+      void fetchSquad();
+    };
+    socket.on(SOCKET_EVENTS.SQUAD_UPDATED, onSquadUpdate);
 
     return () => {
-      socket.off(SOCKET_EVENTS.SQUAD_UPDATED, fetchSquad);
+      socket.off(SOCKET_EVENTS.SQUAD_UPDATED, onSquadUpdate);
       vcRef.current?.leave().catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -618,7 +632,6 @@ function LobbyInner() {
     setFindingMatch(true);
     setMatchError(null);
     try {
-      await api.setLobbyVideo(squadId, true);
       await api.startSearch(squadId);
       router.push(`/matchmaking?squad=${squadId}`);
     } catch (e) {
@@ -1847,7 +1860,7 @@ function LobbyInner() {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flex: isPhone ? "1 0 100%" : undefined }}>
                   <Button
-                    onClick={enableLobbyMedia}
+                    onClick={() => void enableLobbyMedia()}
                     loading={videoJoining}
                     variant="secondary"
                     aria-label="Enable camera and microphone"
@@ -2278,6 +2291,14 @@ function LobbyInner() {
               variant="ghost"
               disabled={noCamEnabling}
               onClick={async () => {
+                setNoCamEnabling(true);
+                let ok = false;
+                try {
+                  ok = await enableLobbyMedia(false);
+                } finally {
+                  setNoCamEnabling(false);
+                }
+                if (!ok) return;
                 setNoCamConfirmOpen(false);
                 await proceedFindMatch();
               }}

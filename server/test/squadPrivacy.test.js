@@ -709,6 +709,99 @@ test("member squad reads fail closed while a blocked shared roster still exists"
   }
 });
 
+test("member squad reads parallelize live state and reuse the member query for capacity", async () => {
+  const leaderId = "507f1f77bcf86cd799439011";
+  const originals = {
+    userFind: User.find,
+    userFindById: User.findById,
+    session: sessionService.getSquadSession,
+    online: socketService.getOnlineUserIds,
+  };
+  const starts = [];
+  let capacityReads = 0;
+  const deferred = () => {
+    let resolve;
+    const promise = new Promise((done) => { resolve = done; });
+    return { promise, resolve };
+  };
+  const sessionResult = deferred();
+  const demographicsResult = deferred();
+  const onlineResult = deferred();
+  const member = {
+    memberId: "leader",
+    userId: leaderId,
+    role: "leader",
+    displayName: "Leader",
+    ready: false,
+    inLobbyVideo: false,
+    inEncounterVideo: false,
+    toObject() { return { ...this, toObject: undefined }; },
+  };
+  const squad = {
+    squadId: "squad_fast_read",
+    squadCode: "FAST-01",
+    squadName: "Fast",
+    status: "idle",
+    members: [member],
+    tags: [],
+    invitedUserIds: [],
+  };
+  const demoUser = {
+    _id: leaderId,
+    blockedUserIds: [],
+    isPremium: true,
+    gender: "private",
+    languages: ["English"],
+    country: "IN",
+  };
+  User.find = (_query, projection) => {
+    if (projection === "_id blockedUserIds") {
+      return { lean: async () => [demoUser] };
+    }
+    starts.push("demographics");
+    const query = {
+      select: () => ({ lean: () => demographicsResult.promise }),
+      then: (resolve, reject) => demographicsResult.promise.then(resolve, reject),
+    };
+    return query;
+  };
+  User.findById = async () => { capacityReads += 1; return demoUser; };
+  sessionService.getSquadSession = async () => {
+    starts.push("session");
+    return sessionResult.promise;
+  };
+  socketService.getOnlineUserIds = async () => {
+    starts.push("presence");
+    return onlineResult.promise;
+  };
+
+  try {
+    const res = createResponse();
+    const responseTask = getSquadHandler({ squadAccess: { squad, leader: member } }, res);
+    await new Promise((resolve) => setImmediate(resolve));
+    const startedTogether = ["demographics", "presence", "session"].every((name) => starts.includes(name));
+
+    sessionResult.resolve({ leader: { ready: true } });
+    demographicsResult.resolve([demoUser]);
+    onlineResult.resolve(new Set([leaderId]));
+    await responseTask;
+
+    assert.equal(startedTogether, true);
+    assert.equal(capacityReads, 0);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.maxSlots, 8);
+    assert.equal(res.body.data.members[0].ready, true);
+  } finally {
+    sessionResult.resolve({});
+    demographicsResult.resolve([]);
+    onlineResult.resolve(new Set());
+    User.find = originals.userFind;
+    User.findById = originals.userFindById;
+    sessionService.getSquadSession = originals.session;
+    socketService.getOnlineUserIds = originals.online;
+  }
+});
+
 test("blocked targets cannot be approved or invited into a squad", async () => {
   const leaderId = "507f1f77bcf86cd799439011";
   const targetId = "507f1f77bcf86cd799439012";
@@ -821,6 +914,18 @@ test("start search rolls back squad state when queue insertion fails", () => {
   assert.equal(searchHandler.includes('squad.status = "idle";'), true);
   assert.equal(searchHandler.includes("squad.searchQueuedAt = null;"), true);
   assert.equal(searchHandler.indexOf("searchStateSaved = true;") < searchHandler.indexOf("await queueService.addToQueue"), true);
+});
+
+test("start search responds after durable queue insertion before scanning candidates", () => {
+  const controller = read("src/controllers/squadController.js");
+  const searchHandler = section(controller, "const startSearchHandler", "const cancelSearchHandler");
+  const queuedAt = searchHandler.indexOf("await queueService.addToQueue");
+  const respondedAt = searchHandler.indexOf("const response = res.status(200).json");
+  const matchedAt = searchHandler.indexOf("await tryMatchmakeForSquad(squad)");
+
+  assert.equal(queuedAt >= 0, true);
+  assert.equal(queuedAt < respondedAt, true);
+  assert.equal(respondedAt < matchedAt, true);
 });
 
 test("encounter requeue rolls squads back to idle when Redis queue insertion fails", () => {

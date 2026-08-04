@@ -77,42 +77,65 @@ function MatchmakingInner() {
     fetchSquad(true);
 
     const tick = setInterval(() => setElapsed(e => e + 1), 1000);
-
-    const pollInterval = setInterval(async () => {
-      // Once the user has cancelled, stop polling entirely — a late "matched"
-      // response must not resurrect the search or trigger a reveal.
+    let active = true;
+    let pollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const stopPolling = () => {
+      if (pollTimeout) clearTimeout(pollTimeout);
+      pollTimeout = null;
+    };
+    function schedulePoll() {
+      if (active && !revealedRef.current) {
+        pollTimeout = setTimeout(pollStatus, 2000);
+      }
+    }
+    async function pollStatus() {
+      if (!active || revealedRef.current) return;
+      // Keep the timer alive while cancellation is pending so a failed cancel
+      // can resume polling, but never accept a late match during that window.
       if (cancelledRef.current) {
+        schedulePoll();
         return;
       }
       try {
         const status = await api.matchStatus(squadId);
-        if (cancelledRef.current) return;
+        if (!active || revealedRef.current) return;
+        if (cancelledRef.current) {
+          schedulePoll();
+          return;
+        }
         // Poll succeeded — recover silently from any reconnect state.
         if (pollFailuresRef.current > 0) {
           pollFailuresRef.current = 0;
           setPollFailures(0);
         }
         if (status.match?.encounterId) {
-          clearInterval(pollInterval);
+          stopPolling();
           triggerMatchReveal(status.match.encounterId);
+          return;
         }
       } catch {
-        pollFailuresRef.current += 1;
-        setPollFailures(pollFailuresRef.current);
+        if (!active) return;
+        if (!cancelledRef.current) {
+          pollFailuresRef.current += 1;
+          setPollFailures(pollFailuresRef.current);
+        }
       }
-    }, 2000);
+      schedulePoll();
+    }
+    schedulePoll();
 
     const socket = connectSocket(squadId);
     const onMatchFound = ({ encounterId, opponentSquadName }: { encounterId: string; opponentSquadName?: string }) => {
       if (cancelledRef.current) return;
-      clearInterval(pollInterval);
+      stopPolling();
       triggerMatchReveal(encounterId, opponentSquadName);
     };
     socket.on(SOCKET_EVENTS.MATCH_FOUND, onMatchFound);
 
     return () => {
+      active = false;
       clearInterval(tick);
-      clearInterval(pollInterval);
+      stopPolling();
       clearRevealTimers();
       if (squadRetryTimeoutRef.current) {
         clearTimeout(squadRetryTimeoutRef.current);

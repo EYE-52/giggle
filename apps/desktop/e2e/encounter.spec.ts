@@ -20,7 +20,7 @@ const fixtureUserId = "507f1f77bcf86cd799439011";
 
 function fixtureRosterUserId(side: "mine" | "theirs", index: number) {
   if (side === "mine" && index === 0) return fixtureUserId;
-  return `507f1f77bcf86cd7994390${((side === "mine" ? 12 : 32) + index).toString(16).padStart(2, "0")}`;
+  return `507f1f77bcf86cd7994390${((side === "mine" ? 0x40 : 0x60) + index).toString(16).padStart(2, "0")}`;
 }
 
 function fixtureMember(side: "mine" | "theirs", index: number) {
@@ -446,8 +446,23 @@ test("real encounter keeps media, chat, and controls usable across resize", asyn
   }
 });
 
-test("encounter chat retries a disconnected send without duplication", async ({ page, browser }, testInfo) => {
+test("encounter chat retry is acknowledged without duplicating the sender", async ({ page, browser }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "One live desktop call covers transport retry");
+  const retryText = `retry-${Date.now()}`;
+  let failedFirstAttempt = false;
+  await page.routeWebSocket(/socket\.io/, (socket) => {
+    const server = socket.connectToServer();
+    socket.onMessage((message) => {
+      const text = typeof message === "string" ? message : message.toString();
+      const ackId = text.match(/^42(\d+)\["send_message"/)?.[1];
+      if (!failedFirstAttempt && ackId && text.includes(retryText)) {
+        failedFirstAttempt = true;
+        socket.send(`43${ackId}[{"ok":false,"error":"Message not delivered. Try again."}]`);
+        return;
+      }
+      server.send(message);
+    });
+  });
   const { opponentContext, opponent } = await createEncounter(page, browser);
   try {
     const chat = page.getByTestId("call-controls").getByRole("button", { name: "Chat" });
@@ -458,23 +473,24 @@ test("encounter chat retries a disconnected send without duplication", async ({ 
     await page.getByRole("textbox", { name: "Chat message" }).fill(warmupText);
     await page.getByRole("button", { name: "Send message" }).click();
     await expect(opponent.getByText(warmupText, { exact: true })).toHaveCount(1);
-    const retryText = `retry-${Date.now()}`;
-    await page.context().setOffline(true);
-    try {
-      await page.getByRole("textbox", { name: "Chat message" }).fill(retryText);
-      await page.getByRole("button", { name: "Send message" }).click();
-      const retry = page.getByRole("button", { name: "Retry", exact: true });
-      await expect(retry).toBeVisible({ timeout: 7_000 });
+    await page.getByRole("textbox", { name: "Chat message" }).fill(retryText);
+    await page.getByRole("button", { name: "Send message" }).click();
+    const retry = page.getByRole("button", { name: "Retry", exact: true });
+    await expect(retry).toBeVisible();
+    expect(failedFirstAttempt).toBe(true);
 
-      await page.context().setOffline(false);
-      await expect.poll(async () => {
-        if (await retry.isVisible()) await retry.click();
-        return opponent.getByText(retryText, { exact: true }).count();
-      }, { timeout: 15_000 }).toBe(1);
-      await expect(page.getByText(retryText, { exact: true })).toHaveCount(1);
-    } finally {
-      await page.context().setOffline(false);
-    }
+    const message = page.getByText(retryText, { exact: true });
+    const messageRow = message.locator("..");
+    let retryClicks = 0;
+    await expect.poll(async () => {
+      if (await retry.isVisible()) {
+        retryClicks += 1;
+        await retry.dispatchEvent("click", undefined, { timeout: 250 }).catch(() => {});
+      }
+      return (await retry.count()) + (await messageRow.getByText("Sending…", { exact: true }).count());
+    }, { timeout: 15_000, intervals: [250, 500, 1000] }).toBe(0);
+    expect(retryClicks).toBeGreaterThan(0);
+    await expect(message).toHaveCount(1);
   } finally {
     await opponentContext.close();
   }

@@ -534,20 +534,33 @@ const getSquadHandler = async (req, res) => {
     const { squad, leader } = req.squadAccess;
     if (await anyBlockedPairInSquad(squad)) return interactionBlocked(res);
 
-    // Merge high-speed session data from Redis
-    const sessionData = await sessionService.getSquadSession(squad.squadId);
-
-    // Batch-load member demographics from User to avoid N queries.
+    // Load independent lobby state together; this endpoint runs after every
+    // generic squad update, so serial remote reads make every member wait.
     const memberUserIds = squad.members.map((m) => m.userId).filter(Boolean);
-    const demoUsers = memberUserIds.length
-      ? await User.find({ _id: { $in: memberUserIds } })
-      : [];
+    const [sessionData, demoUsers, onlineMemberIds] = await Promise.all([
+      sessionService.getSquadSession(squad.squadId),
+      memberUserIds.length
+        ? User.find({ _id: { $in: memberUserIds } })
+            .select("_id gender languages country isPremium")
+            .lean()
+        : Promise.resolve([]),
+      socketService.getOnlineUserIds(memberUserIds),
+    ]);
     const demoById = new Map(demoUsers.map((u) => [u._id.toString(), u]));
-    const onlineMemberIds = await socketService.getOnlineUserIds(memberUserIds);
+    const capacityLeader = leader ||
+      squad.members.find((member) => member.role === "leader") ||
+      squad.members.find((member) => member.memberId === squad.leaderMemberId);
+    const leaderUser = capacityLeader?.userId
+      ? demoById.get(String(capacityLeader.userId))
+      : undefined;
+    const maxSlots = Math.min(
+      leaderUser?.isPremium ? PREMIUM_MAX_MEMBERS : FREE_MAX_MEMBERS,
+      MAX_SQUAD_MEMBERS
+    );
 
     const mergedMembers = squad.members.map(member => {
       const live = sessionData[member.memberId] || {};
-      const u = demoById.get(member.userId);
+      const u = demoById.get(String(member.userId));
       return {
         ...member.toObject(),
         ready: live.ready !== undefined ? live.ready : member.ready,
@@ -569,7 +582,7 @@ const getSquadHandler = async (req, res) => {
         squadName: squad.squadName,
         status: squad.status,
         members: mergedMembers,
-        maxSlots: await getSquadCapacity(squad),
+        maxSlots,
         leaderMemberId: leader ? leader.memberId : undefined,
         tags: squad.tags,
         coverImage: squad.coverImage ?? null,
@@ -683,7 +696,10 @@ const updateReadyStateHandler = async (req, res) => {
     // High-speed update in Redis
     await sessionService.setSessionField(squad.squadId, member.memberId, 'ready', ready);
 
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {
+      memberId: member.memberId,
+      ready,
+    });
 
     return res.status(200).json({
       ok: true,
@@ -1341,29 +1357,21 @@ const startSearchHandler = async (req, res) => {
     // Add to Redis Queue
     await queueService.addToQueue(squad.squadId, squad.members.length, squad.searchRegion, squad.tags, squad.reputationScore);
 
-    const encounter = await tryMatchmakeForSquad(squad);
-    if (encounter) {
-      return res.status(200).json({
-        ok: true,
-        data: {
-          squadId: squad.squadId,
-          status: "matched",
-          startedByMemberId: member.memberId,
-          encounterId: encounter.encounterId,
-        },
-      });
-    }
-
-    return res.status(200).json({
+    // The queue write is the durable boundary the caller needs. Flush the
+    // response before the candidate scan so navigation does not wait on it.
+    const response = res.status(200).json({
       ok: true,
       data: {
         squadId: squad.squadId,
-        status: squad.status,
+        status: "searching",
         startedByMemberId: member.memberId,
       },
     });
+    await tryMatchmakeForSquad(squad);
+    return response;
   } catch (error) {
     console.error("Error starting search:", error);
+    if (res.headersSent) return;
     if (searchStateSaved) {
       try {
         if (squad) {

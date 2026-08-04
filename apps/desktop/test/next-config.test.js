@@ -453,6 +453,21 @@ test("desktop matchmaking resumes an existing encounter regardless of handoff st
   assert.equal(page.includes("triggerMatchReveal(status.match.encounterId);"), true);
 });
 
+test("desktop matchmaking never overlaps status polls", () => {
+  const page = matchmakingSource();
+
+  assert.equal(page.includes("const pollInterval = setInterval"), false);
+  assert.match(page, /await api\.matchStatus\(squadId\)/);
+  assert.match(page, /pollTimeout = setTimeout\(pollStatus, 2000\)/);
+});
+
+test("desktop matchmaking resumes polling when cancel fails", () => {
+  const page = matchmakingSource();
+
+  assert.match(page, /if \(cancelledRef\.current\) \{\s*schedulePoll\(\);\s*return;\s*\}/);
+  assert.match(page, /cancelledRef\.current = false;\s*setCancelling\(false\)/);
+});
+
 test("desktop match does not return to matchmaking when leader skip fails", () => {
   const page = matchSource();
 
@@ -592,10 +607,13 @@ test("desktop lobby ready toggle surfaces backend failures", () => {
   assert.equal(page.includes('console.error("setReady failed:", e);'), false);
   assert.match(handler, /setSquad\(current =>/);
   assert.doesNotMatch(handler, /await fetchSquad\(\)/);
+  assert.match(page, /typeof ready === "boolean"/);
+  assert.match(page, /member\.memberId === memberId \? \{ \.\.\.member, ready \} : member/);
 });
 
 test("desktop lobby requires every online member to be ready before starting a match", () => {
   const page = lobbySource();
+  const proceedFindMatch = page.match(/async function proceedFindMatch\(\) \{([\s\S]*?)\n  \}\n\n  function toggleVibeChip/)?.[1] ?? "";
 
   assert.equal(page.includes("try { await api.setReady(squadId, true); } catch {}"), false);
   assert.equal(page.includes("try { await api.setLobbyVideo(squadId, true); } catch {}"), false);
@@ -603,7 +621,8 @@ test("desktop lobby requires every online member to be ready before starting a m
   assert.equal(page.includes("const everyoneReady = activeMembers.length > 0 && activeMembers.every(member => member.ready);"), true);
   assert.equal(page.includes("Everyone online needs to be ready before you find a match."), true);
   assert.equal(page.includes("await api.setReady(squadId, true);\n      await api.setLobbyVideo"), false);
-  assert.equal(page.includes("await api.setLobbyVideo(squadId, true);\n      await api.startSearch(squadId);"), true);
+  assert.match(proceedFindMatch, /await api\.startSearch\(squadId\)/);
+  assert.doesNotMatch(proceedFindMatch, /setLobbyVideo/);
 });
 
 test("lobby asks before starting camera and microphone", () => {
@@ -612,6 +631,16 @@ test("lobby asks before starting camera and microphone", () => {
   assert.equal(page.includes("Used in this lobby and live encounters."), true);
   assert.equal(page.includes('aria-label="Enable camera and microphone"'), true);
   assert.equal(page.includes("if (!joinStartedRef.current)"), false);
+});
+
+test("desktop lobby joins audio before continuing without camera", () => {
+  const page = lobbySource();
+
+  assert.match(page, /async function enableLobbyMedia\(withCamera = true\)/);
+  assert.match(page, /await vc\.join\(tokenData, \{ audio: true, video: withCamera \}\)/);
+  assert.equal(page.includes("onClick={enableLobbyMedia}"), false);
+  assert.match(page, /ok = await enableLobbyMedia\(false\)/);
+  assert.match(page, /if \(!ok\) return;[\s\S]*?await proceedFindMatch\(\)/);
 });
 
 test("desktop lobby copy actions only show success after clipboard writes succeed", () => {

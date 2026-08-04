@@ -515,6 +515,15 @@ test("mobile matchmaking cancel stays put when backend cancel fails", () => {
   assert.equal(page.includes("if (squadId) { try { await api.cancelSearch(squadId); } catch {} }"), false);
 });
 
+test("mobile matchmaking ignores matches while cancellation is pending", () => {
+  const page = matchmakingSource();
+
+  assert.match(page, /const cancelling = useRef\(false\)/);
+  assert.match(page, /if \(navigated\.current \|\| cancelling\.current \|\| !squadId\) return/);
+  assert.match(page, /cancelling\.current = true;[\s\S]*await api\.cancelSearch\(squadId\)/);
+  assert.match(page, /catch \(e: any\) \{\s*cancelling\.current = false;/);
+});
+
 test("mobile matchmaking surfaces status polling failures", () => {
   const page = matchmakingSource();
 
@@ -522,6 +531,14 @@ test("mobile matchmaking surfaces status polling failures", () => {
   assert.equal(page.includes("setStatusError(e?.message || \"Couldn't refresh matchmaking status.\")"), true);
   assert.equal(page.includes("Queue status unavailable"), true);
   assert.equal(page.includes("} catch {}"), false);
+});
+
+test("mobile matchmaking never overlaps status polls", () => {
+  const page = matchmakingSource();
+
+  assert.equal(page.includes("const poll = setInterval"), false);
+  assert.match(page, /await checkStatus\(\);[\s\S]*schedulePoll\(\);/);
+  assert.match(page, /pollTimeout = setTimeout/);
 });
 
 test("mobile lobby privacy switch syncs with backend visibility", () => {
@@ -692,6 +709,8 @@ test("mobile lobby ready toggle surfaces backend failures", () => {
   assert.equal(page.includes("try { await api.setReady(squadId, !myMember.ready); await refetch(); } catch {}"), false);
   assert.match(handler, /setSquad\(\(current\) =>/);
   assert.doesNotMatch(handler, /await refetch\(\)/);
+  assert.match(page, /typeof ready === 'boolean'/);
+  assert.match(page, /member\.memberId === memberId \? \{ \.\.\.member, ready \} : member/);
 });
 
 test("mobile lobby vibe save keeps the editor open when backend update fails", () => {

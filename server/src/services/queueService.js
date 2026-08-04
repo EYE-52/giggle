@@ -12,19 +12,31 @@ const METADATA_PREFIX = 'squad_meta:';
 const addToQueue = async (squadId, size, region = 'global', tags = [], reputationScore = 100) => {
   const now = Date.now();
   const queueKey = `${QUEUE_PREFIX}${region}`;
-  
-  // Store metadata for quick access during scoring
-  await redis.hset(`${METADATA_PREFIX}${squadId}`, {
-    squadId,
-    size,
-    region,
-    tags: tags.join(','),
-    reputationScore,
-    queuedAt: now,
-  });
+  const metadataKey = `${METADATA_PREFIX}${squadId}`;
 
-  // Add to sorted set with current timestamp as score
-  await redis.zadd(queueKey, now, squadId);
+  try {
+    // Store metadata and queue membership in one Redis round trip.
+    const results = await redis.pipeline()
+      .hset(metadataKey, {
+        squadId,
+        size,
+        region,
+        tags: tags.join(','),
+        reputationScore,
+        queuedAt: now,
+      })
+      .zadd(queueKey, now, squadId)
+      .exec();
+    const commandError = results?.find(([error]) => error)?.[0];
+    if (commandError) throw commandError;
+  } catch (error) {
+    // Redis pipelines are not atomic: remove either half of a partial admission.
+    await Promise.allSettled([
+      redis.zrem(queueKey, squadId),
+      redis.del(metadataKey),
+    ]);
+    throw error;
+  }
 };
 
 /**

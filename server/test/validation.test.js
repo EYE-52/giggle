@@ -370,6 +370,49 @@ test("ready state rechecks squad status under the search admission lock", async 
   }
 });
 
+test("ready state broadcasts a member delta after the Redis write", async () => {
+  const { redlock } = require("../src/config/redisConfig");
+  const sessionService = require("../src/services/sessionService");
+  const socketService = require("../src/services/socketService");
+  const originals = {
+    acquire: redlock.acquire,
+    findOne: Squad.findOne,
+    setSessionField: sessionService.setSessionField,
+    emitToSquad: socketService.emitToSquad,
+  };
+  const calls = [];
+  redlock.acquire = async () => ({ release: async () => {} });
+  Squad.findOne = async () => ({
+    squadId: "squad_a",
+    status: "idle",
+    members: [{ memberId: "member_a" }],
+  });
+  sessionService.setSessionField = async (...args) => { calls.push(["write", ...args]); };
+  socketService.emitToSquad = (...args) => { calls.push(["emit", ...args]); };
+
+  try {
+    const res = createResponse();
+    await updateReadyStateHandler({
+      body: { ready: true },
+      squadAccess: {
+        squad: { squadId: "squad_a" },
+        member: { memberId: "member_a" },
+      },
+    }, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(calls, [
+      ["write", "squad_a", "member_a", "ready", true],
+      ["emit", "squad_a", "SQUAD_UPDATED", { memberId: "member_a", ready: true }],
+    ]);
+  } finally {
+    redlock.acquire = originals.acquire;
+    Squad.findOne = originals.findOne;
+    sessionService.setSessionField = originals.setSessionField;
+    socketService.emitToSquad = originals.emitToSquad;
+  }
+});
+
 test("cancelling search serializes with matchmaking and refetches queue state", async () => {
   const { redlock } = require("../src/config/redisConfig");
   const queueService = require("../src/services/queueService");

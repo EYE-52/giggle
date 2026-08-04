@@ -85,6 +85,7 @@ app.use(cors({
     }
   },
   credentials: true,
+  maxAge: 86400,
 }));
 // Cover images are sent as base64 — allow a generous body limit.
 app.use(express.json({ limit: "3mb" }));

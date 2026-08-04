@@ -19,6 +19,7 @@ export default function MatchmakingScreen() {
   const ring3 = useRef(new Animated.Value(0)).current;
   const rotation = useRef(new Animated.Value(0)).current;
   const navigated = useRef(false);
+  const cancelling = useRef(false);
   const [cancelError, setCancelError] = useState('');
   const [statusError, setStatusError] = useState('');
 
@@ -32,7 +33,7 @@ export default function MatchmakingScreen() {
     );
 
   function goToMatch(encounterId: string) {
-    if (navigated.current || !squadId) return;
+    if (navigated.current || cancelling.current || !squadId) return;
     navigated.current = true;
     router.push(`/match?squad=${squadId}&enc=${encounterId}`);
   }
@@ -41,6 +42,7 @@ export default function MatchmakingScreen() {
     if (!squadId) return;
 
     navigated.current = false;
+    cancelling.current = false;
     const ringAnimations = [createRingAnim(ring1, 0), createRingAnim(ring2, 600), createRingAnim(ring3, 1200)];
     const rotationAnimation = Animated.loop(
       Animated.timing(rotation, { toValue: 1, duration: 6000, useNativeDriver: USE_NATIVE_DRIVER })
@@ -52,7 +54,7 @@ export default function MatchmakingScreen() {
     const checkStatus = async () => {
       try {
         const status = await api.matchStatus(squadId);
-        if (inactive) return;
+        if (inactive || cancelling.current) return;
         setStatusError('');
         if (status.match?.encounterId) goToMatch(status.match.encounterId);
         else if (status.state !== 'searching') {
@@ -60,12 +62,24 @@ export default function MatchmakingScreen() {
           router.replace(`/lobby?squad=${squadId}`);
         }
       } catch (e: any) {
-        if (inactive) return;
+        if (inactive || cancelling.current) return;
         setStatusError(e?.message || "Couldn't refresh matchmaking status.");
       }
     };
-    void checkStatus();
-    const poll = setInterval(checkStatus, 2000);
+    let pollTimeout: ReturnType<typeof setTimeout> | undefined;
+    const schedulePoll = () => {
+      if (inactive || navigated.current) return;
+      pollTimeout = setTimeout(async () => {
+        if (inactive || navigated.current) return;
+        if (cancelling.current) {
+          schedulePoll();
+          return;
+        }
+        await checkStatus();
+        schedulePoll();
+      }, 2000);
+    };
+    void checkStatus().then(schedulePoll);
 
     let cleanup: (() => void) | undefined;
     try {
@@ -82,7 +96,7 @@ export default function MatchmakingScreen() {
 
     return () => {
       inactive = true;
-      clearInterval(poll);
+      if (pollTimeout) clearTimeout(pollTimeout);
       cleanup?.();
       ringAnimations.forEach((animation) => animation.stop());
       rotationAnimation.stop();
@@ -107,15 +121,19 @@ export default function MatchmakingScreen() {
   });
 
   async function cancel() {
+    if (cancelling.current) return;
     setCancelError('');
     if (squadId) {
+      cancelling.current = true;
       try {
         await api.cancelSearch(squadId);
       } catch (e: any) {
+        cancelling.current = false;
         setCancelError(e?.message || "Couldn't cancel search yet.");
         return;
       }
     }
+    navigated.current = true;
     router.push(squadId ? `/lobby?squad=${squadId}` : '/lobby');
   }
 
