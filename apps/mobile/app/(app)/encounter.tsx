@@ -32,6 +32,7 @@ import {
 import type { ChatMessage, EncounterDetail, EncounterSide } from '@giggle/core';
 import { createVideoClient } from '@giggle/agora';
 import type { CaptureState, ConnectionState, VideoClient, RemoteParticipant } from '@giggle/agora';
+import { NATIVE_DISCOVERY_ENABLED } from '../../constants/discovery';
 
 const TILE_COLORS = ['#7C5CFF', '#3DD6C0', '#FF8A5C', '#C2FF3D', '#FF5C8A', '#5C8CFF'];
 
@@ -1260,7 +1261,9 @@ export default function EncounterScreen() {
               {remoteEnded === 'opponent-left' ? 'The other squad left' : 'Encounter ended'}
             </Text>
             <Text style={styles.confirmCopy}>
-              {remoteEnded === 'opponent-left' ? 'Your squad is already back in matchmaking.' : 'Thanks for hanging out.'}
+              {NATIVE_DISCOVERY_ENABLED && remoteEnded === 'opponent-left'
+                ? 'Your squad is already back in matchmaking.'
+                : 'Thanks for hanging out.'}
             </Text>
             {remoteEndError ? <Text style={styles.endError} accessibilityRole="alert">{remoteEndError}</Text> : null}
             <View style={styles.confirmActions}>
@@ -1272,25 +1275,27 @@ export default function EncounterScreen() {
               >
                 <Text style={styles.confirmSecondaryText}>Back home</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={async () => {
-                  if (!squadId) return router.replace('/home');
-                  setRemoteEndError('');
-                  try {
-                    if (remoteEnded !== 'opponent-left') await api.startSearch(squadId);
-                    router.replace(`/matchmaking?squad=${squadId}`);
-                  } catch (error: any) {
-                    setRemoteEndError(error?.message || "Couldn't start matchmaking.");
-                  }
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
-                style={styles.confirmDanger}
-              >
-                <Text style={styles.confirmDangerText}>
-                  {remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
-                </Text>
-              </TouchableOpacity>
+              {NATIVE_DISCOVERY_ENABLED && (
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!squadId) return router.replace('/home');
+                    setRemoteEndError('');
+                    try {
+                      if (remoteEnded !== 'opponent-left') await api.startSearch(squadId);
+                      router.replace(`/matchmaking?squad=${squadId}`);
+                    } catch (error: any) {
+                      setRemoteEndError(error?.message || "Couldn't start matchmaking.");
+                    }
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
+                  style={styles.confirmDanger}
+                >
+                  <Text style={styles.confirmDangerText}>
+                    {remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>

@@ -7,13 +7,16 @@ import { Logomark } from "@/components/Brand";
 import { useViewport } from "@/components/useViewport";
 import { session, connectSocket } from "@giggle/core";
 import { AgeGate } from "@/components/AgeGate";
+import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 
 const CALLING_ROUTES = ["/lobby", "/encounter", "/matchmaking", "/match"];
+const DISCOVERY_ROUTES = ["/discover", "/matchmaking", "/match"];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isCalling = CALLING_ROUTES.some((r) => pathname === r);
+  const discoveryRouteDisabled = !WEB_DISCOVERY_ENABLED && DISCOVERY_ROUTES.includes(pathname);
   const { isPhone } = useViewport();
   const [authReady, setAuthReady] = useState(false);
   const [hasAdultAccess, setHasAdultAccess] = useState(false);
@@ -51,6 +54,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     ensureSession();
     return () => { cancelled = true; };
   }, [router]);
+
+  useEffect(() => {
+    if (discoveryRouteDisabled) router.replace("/home");
+  }, [discoveryRouteDisabled, router]);
 
   // Open the authenticated presence socket for the app session so the user
   // counts as "online" app-wide (the backend marks online via the handshake).
@@ -97,6 +104,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <ToastProvider>
         <AgeGate onDone={() => setHasAdultAccess(true)} />
       </ToastProvider>
+    );
+  }
+
+  if (discoveryRouteDisabled) {
+    return (
+      <div role="status" aria-live="polite" style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--text-muted)" }}>
+        Stranger discovery is unavailable.
+      </div>
     );
   }
 

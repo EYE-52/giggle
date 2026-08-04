@@ -8,6 +8,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { NotificationBell } from "./NotificationBell";
 import { useViewport } from "./useViewport";
 import { getTokenBalance, billing } from "@giggle/core";
+import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 
 function fmtTokens(n: number): string {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/friends", label: "Friends", icon: Icon.users },
   { href: "/profile", label: "Profile", icon: Icon.profile },
 ] as const;
+const VISIBLE_NAV = WEB_DISCOVERY_ENABLED ? NAV : NAV.filter(({ href }) => href !== "/discover");
 
 const CALLING_ROUTES = ["/lobby", "/encounter", "/matchmaking", "/match"];
 
@@ -100,7 +102,7 @@ export function TopNav() {
         </Link>
 
         <nav data-testid="desktop-navigation" aria-label="Primary navigation" style={{ display: isPhone ? "none" : "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-          {NAV.map(({ href, label, icon: I }) => {
+          {VISIBLE_NAV.map(({ href, label, icon: I }) => {
             const active = path === href;
             const isHovered = hovered === href;
             return (
@@ -238,7 +240,7 @@ export function TopNav() {
       </div>
     </header>
     <nav data-testid="mobile-navigation" className="gg-mobile-nav" aria-label="Primary navigation">
-      {NAV.map(({ href, label, icon: ItemIcon }) => {
+      {VISIBLE_NAV.map(({ href, label, icon: ItemIcon }) => {
         const active = path === href;
         return (
           <Link

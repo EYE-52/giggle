@@ -6,6 +6,7 @@ const {
   MIN_MEMBERS_TO_SEARCH,
   FREE_MAX_MEMBERS,
   PREMIUM_MAX_MEMBERS,
+  isStrangerDiscoveryEnabled,
 } = require("../config/appConfig");
 const {
   getRequesterIdentity,
@@ -39,6 +40,11 @@ const {
   filterBlockedCandidates,
   hasBlockedPair,
 } = require("../services/interactionSafetyService");
+
+const discoveryDisabled = (res) => res.status(503).json({
+  ok: false,
+  error: { code: "DISCOVERY_DISABLED", message: "Stranger discovery is temporarily unavailable" },
+});
 
 // Effective member capacity for a squad: 8 when the leader has Giggle+, else 4.
 // Always clamped to the global hard cap (MAX_SQUAD_MEMBERS). Looks up the
@@ -1224,6 +1230,8 @@ const inviteUserToSquadHandler = async (req, res) => {
 };
 
 const startSearchHandler = async (req, res) => {
+  if (!isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
+
   let searchStateSaved = false;
   let squad = null;
   let admissionLock;
@@ -1785,6 +1793,7 @@ const discoverSquadsHandler = async (req, res) => {
       error: { code: "UNAUTHORIZED", message: "Authentication required" },
     });
   }
+  if (!isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
 
   try {
     const joinable = await findJoinableSquads(identity);
@@ -1849,6 +1858,7 @@ const joinRandomSquadHandler = async (req, res) => {
       error: { code: "UNAUTHORIZED", message: "Authentication required" },
     });
   }
+  if (!isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
 
   const displayName = typeof req.body?.displayName === "string" ? req.body.displayName : undefined;
 

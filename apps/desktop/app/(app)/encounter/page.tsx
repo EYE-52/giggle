@@ -14,6 +14,7 @@ import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/a
 import { useViewport } from "@/components/useViewport";
 import { coverBackground, coverKind, fallbackGradient } from "@/components/covers";
 import { useTheme } from "@/components/useTheme";
+import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 
 const avatarColors = ["#7C5CFF", "#3DD6C0", "#FF8A5C", "#C2FF3D", "#FF5C8A", "#5C8CFF", "#FFC65C", "#9B7CFF"];
 
@@ -2194,7 +2195,7 @@ function EncounterInner() {
                   {endedReason === "opponent-left" ? "The other squad left" : "Encounter ended"}
                 </div>
                 <div style={{ fontSize: 13, color: textMuted }}>
-                  {endedReason === "opponent-left"
+                  {WEB_DISCOVERY_ENABLED && endedReason === "opponent-left"
                     ? "You can jump straight into another match."
                     : "Thanks for hanging out."}
                 </div>
@@ -2204,24 +2205,26 @@ function EncounterInner() {
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                  <Button
-                    onClick={async () => {
-                      if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
-                      setEndError(null);
-                      setFindingNextMatch(true);
-                      try {
-                        if (endedReason !== "opponent-left") await api.startSearch(squadId);
-                        router.push(`/matchmaking?squad=${squadId}`);
-                      } catch (error) {
-                        setEndError((error as { message?: string })?.message || "Couldn't start matchmaking.");
-                        setFindingNextMatch(false);
-                      }
-                    }}
-                    loading={findingNextMatch}
-                    variant="primary"
-                  >
-                    {endedReason === "opponent-left" ? "Continue matching" : "Find another match"}
-                  </Button>
+                  {WEB_DISCOVERY_ENABLED && (
+                    <Button
+                      onClick={async () => {
+                        if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
+                        setEndError(null);
+                        setFindingNextMatch(true);
+                        try {
+                          if (endedReason !== "opponent-left") await api.startSearch(squadId);
+                          router.push(`/matchmaking?squad=${squadId}`);
+                        } catch (error) {
+                          setEndError((error as { message?: string })?.message || "Couldn't start matchmaking.");
+                          setFindingNextMatch(false);
+                        }
+                      }}
+                      loading={findingNextMatch}
+                      variant="primary"
+                    >
+                      {endedReason === "opponent-left" ? "Continue matching" : "Find another match"}
+                    </Button>
+                  )}
                   <Button
                     onClick={() => {
                       if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }

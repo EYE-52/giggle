@@ -12,10 +12,12 @@ import { COLORS, SPACE, RADII } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { session, api, randomSquadName, formatSquadCodeInput, isValidSquadCode } from '@giggle/core';
 import type { MySquadLite } from '@giggle/core';
+import { NATIVE_DISCOVERY_ENABLED } from '../../constants/discovery';
 
 const VIBES = ['Competitive', 'Casual', 'Chill', 'Comedy', 'Gaming', 'Late Night'];
 
 function squadDestination(squad: MySquadLite) {
+  if (!NATIVE_DISCOVERY_ENABLED) return `/lobby?squad=${squad.squadId}`;
   return ['searching', 'matched', 'in_encounter'].includes(squad.status)
     ? `/matchmaking?squad=${squad.squadId}`
     : `/lobby?squad=${squad.squadId}`;
@@ -183,7 +185,11 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.heroTitle}>Create a Squad</Text>
           </View>
-          <Text style={styles.heroBody}>Invite your crew and match with another squad.</Text>
+          <Text style={styles.heroBody}>
+            {NATIVE_DISCOVERY_ENABLED
+              ? 'Invite your crew and match with another squad.'
+              : 'Invite your crew to a private room.'}
+          </Text>
           {/* Fixed-width button to prevent layout shift on label change */}
           <Button
             label={creating ? 'Creating…' : 'Create Squad'}
@@ -235,32 +241,34 @@ export default function HomeScreen() {
         {/* Flexible spacer */}
         <View style={{ flex: 1, minHeight: SPACE.xxl }} />
 
-        {/* Vibe + Find — lower, lighter */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>Pick your vibe</Text>
-          <View style={styles.chips}>
-            {VIBES.map((v) => (
-              <VibeChip key={v} label={v} active={activeVibe === v} onPress={() => setActiveVibe(v)} />
-            ))}
-          </View>
-          {/* Fixed-width button to prevent reflow */}
-          <Button
-            label="Find a Squad →"
-            onPress={() => router.push(`/discover?vibe=${encodeURIComponent(activeVibe)}`)}
-            variant="lime"
-            style={styles.findBtn}
-          />
-        </View>
+        {NATIVE_DISCOVERY_ENABLED && (
+          <>
+            {/* Vibe + Find — lower, lighter */}
+            <View style={styles.section}>
+              <Text style={styles.sectionLabel}>Pick your vibe</Text>
+              <View style={styles.chips}>
+                {VIBES.map((v) => (
+                  <VibeChip key={v} label={v} active={activeVibe === v} onPress={() => setActiveVibe(v)} />
+                ))}
+              </View>
+              <Button
+                label="Find a Squad →"
+                onPress={() => router.push(`/discover?vibe=${encodeURIComponent(activeVibe)}`)}
+                variant="lime"
+                style={styles.findBtn}
+              />
+            </View>
 
-        {/* Secondary discovery path */}
-        <TouchableOpacity
-          onPress={() => router.push('/discover')}
-          style={styles.sceneRow}
-          accessibilityRole="button"
-          accessibilityLabel="Browse live scenes"
-        >
-          <Text style={styles.sceneText}>Or browse live scenes →</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push('/discover')}
+              style={styles.sceneRow}
+              accessibilityRole="button"
+              accessibilityLabel="Browse live scenes"
+            >
+              <Text style={styles.sceneText}>Or browse live scenes →</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     </Screen>
   );

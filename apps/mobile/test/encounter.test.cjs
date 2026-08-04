@@ -12,6 +12,34 @@ const matchSource = () => readFileSync(path.join(__dirname, "../app/(app)/match.
 const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/(app)/matchmaking.tsx"), "utf8");
 const venueCardSource = () => readFileSync(path.join(__dirname, "../components/VenueCard.tsx"), "utf8");
 const squadCoverSource = () => readFileSync(path.join(__dirname, "../components/squadCover.ts"), "utf8");
+const protectedLayoutSource = () => readFileSync(path.join(__dirname, "../app/(app)/_layout.tsx"), "utf8");
+const discoveryConfigSource = () => readFileSync(path.join(__dirname, "../constants/discovery.ts"), "utf8");
+
+test("native discovery build flags hide stranger matching without hiding private squads", () => {
+  const config = discoveryConfigSource();
+  const layout = protectedLayoutSource();
+  const home = homeSource();
+  const lobby = lobbySource();
+  const encounter = source();
+
+  assert.match(config, /process\.env\.EXPO_PUBLIC_STRANGER_DISCOVERY_ENABLED/);
+  assert.match(config, /process\.env\.EXPO_PUBLIC_IOS_DISCOVERY_ENABLED/);
+  assert.match(config, /sharedFlag !== 'false'/);
+  assert.match(config, /platform !== 'ios' \|\| iosFlag !== 'false'/);
+  assert.match(layout, /NATIVE_DISCOVERY_ENABLED/);
+  for (const route of ["discover", "matchmaking", "match"]) {
+    assert.match(layout, new RegExp(`'/${route}'`));
+  }
+  assert.doesNotMatch(layout, /DISCOVERY_ROUTES = \[[^\]]*'\/encounter'/);
+  assert.match(layout, /<Redirect href="\/home"/);
+  assert.match(home, /NATIVE_DISCOVERY_ENABLED/);
+  assert.match(home, /if \(!NATIVE_DISCOVERY_ENABLED\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
+  assert.match(home, /Invite your crew to a private room\./);
+  assert.match(home, /Join with Code/);
+  assert.match(lobby, /NATIVE_DISCOVERY_ENABLED && isLeader/);
+  assert.match(encounter, /NATIVE_DISCOVERY_ENABLED && \(/);
+  assert.doesNotMatch(config, /AGE|country|Country/);
+});
 
 test("mobile profile lists blocked accounts and keeps failed unblocks retryable", () => {
   const page = profileSource();
@@ -596,7 +624,7 @@ test("mobile lobby leaders can mark themselves ready before finding a match", ()
 
   assert.equal(page.includes("/* Ready — everyone, including leader */"), true);
   assert.equal(page.includes("/* Find a Match — leader only */"), true);
-  assert.equal(page.includes("{isLeader && ("), true);
+  assert.equal(page.includes("{NATIVE_DISCOVERY_ENABLED && isLeader && ("), true);
   assert.equal(page.includes("{!isLeader ? ("), false);
 });
 

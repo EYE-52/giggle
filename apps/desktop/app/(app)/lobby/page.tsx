@@ -17,6 +17,7 @@ import type { SquadState, SquadMemberState, JoinRequestUser } from "@giggle/core
 import { createVideoClient } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
+import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 
 const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
 
@@ -589,6 +590,10 @@ function LobbyInner() {
 
   async function handleFindMatch() {
     if (!squadId) return;
+    if (!WEB_DISCOVERY_ENABLED) {
+      setMatchError("Stranger discovery is unavailable.");
+      return;
+    }
     // Only members who are actually connected gate the match. An offline member
     // who never marked ready must not permanently trap the leader (mirrors the
     // server's online-only ready-check). online === false means offline;
@@ -1888,7 +1893,7 @@ function LobbyInner() {
               </button>
 
               {/* Find a Match (leader only) */}
-              {isLeader && (
+              {WEB_DISCOVERY_ENABLED && isLeader && (
                 <>
                   {!isPhone && <div style={{ width: 1, height: 28, background: "var(--border)", margin: "0 2px" }} />}
                   <Button

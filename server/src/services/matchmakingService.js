@@ -7,7 +7,7 @@ const queueService = require("./queueService");
 const socketService = require("./socketService");
 const sessionService = require("./sessionService");
 const { allUsersHaveAdultAccess } = require("./ageAccessService");
-const { MIN_MEMBERS_TO_SEARCH } = require("../config/appConfig");
+const { MIN_MEMBERS_TO_SEARCH, isStrangerDiscoveryEnabled } = require("../config/appConfig");
 const { classifyVibe } = require("../utils/moderation");
 const {
   anyBlockedPair,
@@ -196,7 +196,6 @@ const tryMatchmakeForSquad = async (squad) => {
   if (!squad || squad.status !== "searching") {
     return null;
   }
-
   logMatchmakingDebug(`[Matchmaking] Starting search for squad: ${squad.squadId} (Region: ${squad.searchRegion})`);
 
   try {
@@ -209,6 +208,10 @@ const tryMatchmakeForSquad = async (squad) => {
     }
     if (freshSquad.status !== "searching") {
       await queueService.removeFromQueue(freshSquad.squadId);
+      return null;
+    }
+    if (!isStrangerDiscoveryEnabled()) {
+      await resetInactiveSearchingSquad(freshSquad);
       return null;
     }
 
@@ -437,6 +440,14 @@ const ackEncounterForSquad = async ({ encounter, squadId, emitRealtime = true })
     return { acknowledged: true, allAcked: true, encounter };
   }
 
+  if (!isStrangerDiscoveryEnabled()) {
+    await endEncounterToIdle({ encounter, emitRealtime });
+    return {
+      error: { status: 503, code: "DISCOVERY_DISABLED", message: "Stranger discovery is temporarily unavailable" },
+      realtime: { close: true },
+    };
+  }
+
   if (new Date(encounter.expiresAt).getTime() < Date.now()) {
     encounter.status = "ended";
     encounter.endedAt = new Date();
@@ -481,6 +492,11 @@ const ackEncounterForSquad = async ({ encounter, squadId, emitRealtime = true })
 };
 
 const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
+  if (!isStrangerDiscoveryEnabled()) {
+    await endEncounterToIdle({ encounter });
+    return null;
+  }
+
   const squadIds = [encounter.squadAId, encounter.squadBId];
   encounter.status = "ended";
   encounter.endedAt = new Date();
@@ -544,17 +560,18 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
   return triggeringSquad;
 };
 
-const endEncounterToIdle = async ({ encounter }) => {
+const endEncounterToIdle = async ({ encounter, emitRealtime = true }) => {
   const squadIds = [encounter.squadAId, encounter.squadBId];
 
   encounter.status = "ended";
   encounter.endedAt = new Date();
   await encounter.save();
 
-  // Notify squads
-  socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-  socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-  socketService.closeEncounterRoom(encounter.encounterId);
+  if (emitRealtime) {
+    socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+    socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+    socketService.closeEncounterRoom(encounter.encounterId);
+  }
 
   // Clear encounter state and inEncounterVideo flags for all members
   await Squad.updateMany(
@@ -625,7 +642,9 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
 
   const otherSquad = await Squad.findOne({ squadId: otherSquadId });
   const otherWasResetNow = (otherReset?.matchedCount ?? otherReset?.n ?? 0) > 0;
-  if (otherWasResetNow && otherSquad?.status === "idle" && !otherSquad.currentEncounterId) {
+  if (!isStrangerDiscoveryEnabled()) {
+    await queueService.removeFromQueue(otherSquadId);
+  } else if (otherWasResetNow && otherSquad?.status === "idle" && !otherSquad.currentEncounterId) {
     try {
       const canRequeue =
         !(otherSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&

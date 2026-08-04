@@ -15,6 +15,7 @@ import { api, session, connectSocket, SOCKET_EVENTS } from '@giggle/core';
 import type { SquadState } from '@giggle/core';
 import { createVideoClient } from '@giggle/agora';
 import type { VideoClient } from '@giggle/agora';
+import { NATIVE_DISCOVERY_ENABLED } from '../../constants/discovery';
 
 const CURATED_VIBES = ['Gaming', 'Music', 'Chill', 'Comedy', 'Deep Talks', 'Late Night', 'Sports', 'Art', 'Study', 'Hype', 'Fitness', 'Foodies'];
 
@@ -196,6 +197,10 @@ export default function LobbyScreen() {
 
   async function findMatch() {
     if (!squadId || finding) return;
+    if (!NATIVE_DISCOVERY_ENABLED) {
+      setMatchError('Stranger discovery is unavailable.');
+      return;
+    }
     if (!everyoneReady) {
       setMatchError('Everyone online needs to be ready before you find a match.');
       return;
@@ -538,7 +543,7 @@ export default function LobbyScreen() {
           </View>
 
           {/* Find a Match — leader only */}
-          {isLeader && (
+          {NATIVE_DISCOVERY_ENABLED && isLeader && (
             <View style={styles.ctrlWrap}>
               <TouchableOpacity
                 onPress={findMatch}

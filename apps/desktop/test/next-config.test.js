@@ -40,6 +40,32 @@ const safetySource = () => readFileSync(safetyPath, "utf8");
 const supportSource = () => readFileSync(supportPath, "utf8");
 const globalStylesSource = () => readFileSync(path.join(__dirname, "../app/globals.css"), "utf8");
 const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../../../vercel.json"), "utf8"));
+const discoveryConfigSource = () => readFileSync(path.join(__dirname, "../lib/discovery.ts"), "utf8");
+
+test("web discovery build flag hides stranger matching without hiding private squads", () => {
+  const config = discoveryConfigSource();
+  const layout = appLayoutSource();
+  const nav = topNavSource();
+  const home = desktopHomeSource();
+  const lobby = lobbySource();
+  const encounter = encounterSource();
+
+  assert.match(config, /process\.env\.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED/);
+  assert.match(config, /flag !== "false"/);
+  assert.match(layout, /WEB_DISCOVERY_ENABLED/);
+  for (const route of ["discover", "matchmaking", "match"]) {
+    assert.match(layout, new RegExp(`"/${route}"`));
+  }
+  assert.doesNotMatch(layout, /DISCOVERY_ROUTES = \[[^\]]*"\/encounter"/);
+  assert.match(nav, /WEB_DISCOVERY_ENABLED/);
+  assert.match(home, /WEB_DISCOVERY_ENABLED/);
+  assert.match(home, /if \(!WEB_DISCOVERY_ENABLED\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
+  assert.match(home, /Join with code/i);
+  assert.match(lobby, /WEB_DISCOVERY_ENABLED && isLeader/);
+  assert.match(encounter, /WEB_DISCOVERY_ENABLED && \(/);
+  assert.equal(vercelConfig().env.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED, "false");
+  assert.doesNotMatch(config, /AGE|country|Country/);
+});
 
 test("desktop confirms blocks separately from removing friends and lets users unblock accounts", () => {
   const friends = friendsPageSource();
