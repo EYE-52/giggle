@@ -1,6 +1,12 @@
 const { getRequesterIdentity, getSquadAccessContext } = require("../app/squadAccess");
 const { createEncounterRtcToken } = require("../services/agoraTokenService");
-const { getEncounterById, endEncounterToIdle, endEncounterAndRequeue, endEncounterAsymmetric } = require("../services/matchmakingService");
+const {
+  getEncounterById,
+  getEncounterRosterContext,
+  endEncounterToIdle,
+  endEncounterAndRequeue,
+  endEncounterAsymmetric,
+} = require("../services/matchmakingService");
 
 const normalizeEncounterId = (payload = {}) => {
   return payload.encounterId || payload.meetingId || null;
@@ -47,6 +53,12 @@ const issueEncounterTokenHandler = async (req, res) => {
       return res.status(403).json({
         ok: false,
         error: { code: "MEMBER_NOT_IN_ENCOUNTER", message: "Member is not part of this encounter" },
+      });
+    }
+    if (!(await getEncounterRosterContext({ encounter })).allowed) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "INTERACTION_BLOCKED", message: "This encounter is unavailable" },
       });
     }
 

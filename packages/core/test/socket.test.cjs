@@ -44,6 +44,53 @@ test("createReportOpponentPayload rejects unbounded or malformed report details"
   assert.equal(createReportOpponentPayload({ ...scope, details: { raw: true } }), null);
 });
 
+test("createOpponentUserIds returns only the validated opposite roster", async () => {
+  const { createOpponentUserIds } = await import("../src/report.ts");
+  const me = "507f1f77bcf86cd799439011";
+  const teammate = "507f1f77bcf86cd799439012";
+  const opponent = "507F1F77BCF86CD799439013";
+  const encounter = {
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    squadAMembers: [{ userId: me }, { userId: teammate }],
+    squadBMembers: [{ userId: opponent }, { userId: opponent.toLowerCase() }, { userId: me }],
+  };
+
+  assert.deepEqual(
+    createOpponentUserIds({ squadId: "sq_a", ownUserId: me, encounter }),
+    [opponent.toLowerCase()]
+  );
+});
+
+test("createOpponentUserIds fails closed for unrelated or incomplete rosters", async () => {
+  const { createOpponentUserIds } = await import("../src/report.ts");
+  const me = "507f1f77bcf86cd799439011";
+  const opponent = "507f1f77bcf86cd799439013";
+  const valid = {
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    squadAMembers: [{ userId: me }],
+    squadBMembers: [{ userId: opponent }],
+  };
+
+  assert.equal(createOpponentUserIds({ squadId: "sq_x", ownUserId: me, encounter: valid }), null);
+  assert.equal(createOpponentUserIds({ squadId: " sq_a ", ownUserId: me, encounter: valid }), null);
+  assert.equal(createOpponentUserIds({ squadId: "sq_a", ownUserId: me, encounter: { ...valid, squadAId: " sq_a " } }), null);
+  assert.equal(createOpponentUserIds({ squadId: "sq_a", ownUserId: opponent, encounter: valid }), null);
+  assert.equal(createOpponentUserIds({ squadId: "sq_a", ownUserId: me, encounter: { ...valid, squadBMembers: [] } }), null);
+  assert.equal(createOpponentUserIds({ squadId: "sq_a", ownUserId: me, encounter: { ...valid, squadBMembers: [{ userId: "bad" }] } }), null);
+  assert.equal(createOpponentUserIds({
+    squadId: "sq_a",
+    ownUserId: me,
+    encounter: {
+      ...valid,
+      squadBMembers: Array.from({ length: 9 }, (_, index) => ({
+        userId: `507f1f77bcf86cd7994390${20 + index}`,
+      })),
+    },
+  }), null);
+});
+
 test("signOut disconnects the authenticated realtime socket", () => {
   const sessionSource = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
 

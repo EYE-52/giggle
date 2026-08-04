@@ -1,8 +1,16 @@
 const { createLobbyRtcToken } = require("../services/agoraTokenService");
+const User = require("../models/User");
+const { anyBlockedPair } = require("../services/interactionSafetyService");
 
 const getLobbyTokenHandler = async (req, res) => {
   try {
     const { squad, member } = req.squadAccess;
+    if (await anyBlockedPair(squad.members.map((candidate) => candidate.userId), { User })) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "INTERACTION_BLOCKED", message: "This lobby is unavailable" },
+      });
+    }
 
     const tokenPayload = createLobbyRtcToken({
       squadId: squad.squadId,

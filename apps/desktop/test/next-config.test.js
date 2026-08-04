@@ -727,13 +727,18 @@ test("desktop encounter confirms and ends on the backend before leaving media", 
   const page = encounterSource();
   const endBlock = page.slice(
     page.indexOf("async function handleEnd()"),
-    page.indexOf("  function handleReport()")
+    page.indexOf("async function handleBlockOpponent()")
+  );
+  const leaveBlock = page.slice(
+    page.indexOf("async function leaveVideoAndGoHome()"),
+    page.indexOf("async function handleEnd()")
   );
 
   assert.match(endBlock, /await api\.disconnectEncounter\(squadId, encId\);/);
-  assert.match(endBlock, /await vcRef\.current\?\.leave\(\);/);
-  assert.match(endBlock, /router\.push\("\/home"\);/);
-  assert.equal(endBlock.indexOf("await vcRef.current?.leave();") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.match(endBlock, /await leaveVideoAndGoHome\(\);/);
+  assert.equal(endBlock.indexOf("await leaveVideoAndGoHome();") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.match(leaveBlock, /await client\?\.leave\(\);/);
+  assert.match(leaveBlock, /router\.replace\("\/home"\);/);
   assert.match(endBlock, /setEnding\(false\);/);
   assert.match(endBlock, /setEndError\("Couldn't end this encounter yet\."\);/);
   assert.equal(page.includes('title="End encounter?"'), true);
@@ -826,6 +831,25 @@ test("desktop encounter report button only shows success after persistence ackno
   assert.equal(reportBlock.includes("console.error(\"report_squad emit failed"), false);
   assert.equal(reportBlock.indexOf("setReported(true);") > reportBlock.indexOf("if (!result.ok) {"), true);
   assert.equal(page.includes("disabled={reported || reporting}"), true);
+});
+
+test("desktop encounter blocks the validated opponent roster before leaving", () => {
+  const page = encounterSource();
+  const blockHandler = page.slice(
+    page.indexOf("async function handleBlockOpponent()"),
+    page.indexOf("async function handleReport()")
+  );
+
+  assert.match(page, /createOpponentUserIds\(\{ squadId, ownUserId: session\.user\?\.id, encounter \}\)/);
+  assert.equal(page.includes('title="Block opponent squad?"'), true);
+  assert.equal(page.includes("setBlockConfirmOpen(true)"), true);
+  assert.ok(blockHandler.indexOf("await api.blockUsers(opponentUserIds);") >= 0);
+  assert.ok(blockHandler.indexOf("await api.disconnectEncounter(squadId, encId);") > blockHandler.indexOf("await api.blockUsers(opponentUserIds);"));
+  assert.ok(blockHandler.indexOf("await leaveVideoAndGoHome();") > blockHandler.indexOf("await api.disconnectEncounter(squadId, encId);"));
+  assert.equal(blockHandler.includes("reportOpponentSquad"), false);
+  assert.match(blockHandler, /setBlockError\("Couldn't block this squad yet\. Try again\."\)/);
+  assert.equal(page.includes("disabled={!canBlockOpponent || blocking}"), true);
+  assert.equal(page.includes('aria-label="Block opponent squad"'), true);
 });
 
 test("venue cards use real photo defaults instead of synthetic photo placeholders", () => {
@@ -1526,4 +1550,17 @@ test("profile keeps account identifiers out of the identity hero", () => {
   assert.equal(hero.includes("user?.email"), false);
   assert.equal(hero.includes("handle"), false);
   assert.equal(account.includes("Signed in as"), true);
+});
+
+test("desktop profile exports JSON and requires two confirmations before deletion", () => {
+  const page = profileSource();
+
+  assert.match(page, /await api\.exportAccount\(\)/);
+  assert.match(page, /new Blob\(\[JSON\.stringify\(data, null, 2\)\]/);
+  assert.match(page, /giggle-data-\$\{new Date\(\)\.toISOString\(\)\.slice\(0, 10\)\}\.json/);
+  assert.match(page, /Delete account\?/);
+  assert.match(page, /Delete permanently\?/);
+  assert.match(page, /await api\.deleteAccount\(\)[\s\S]*session\.signOut\(\)[\s\S]*router\.replace\("\/signin"\)/);
+  assert.match(page, /may finish in the background/i);
+  assert.match(page, /Couldn't start account deletion\. Please try again\./);
 });

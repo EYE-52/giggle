@@ -9,12 +9,14 @@ const { randomBase36 } = require('../utils/random');
 const { buildAllowedOrigins } = require('../config/corsOrigins');
 const {
   authorizeEncounterRoomJoin,
+  authorizeRealtimeSend,
   authorizeSquadReport,
   authorizeSquadRoomJoin,
   normalizeRealtimeId,
   resolveReportTargetSquadId,
 } = require('../utils/socketAccess');
 const { firstDisplayName } = require('../utils/identityValidation');
+const { classifyVibe } = require('../utils/moderation');
 const { isMongoObjectIdString } = require('../middlewares/authMiddleware');
 const { hasAdultAccess } = require('./ageAccessService');
 
@@ -314,6 +316,7 @@ const init = (server) => {
           userId: socket.userId,
           isProduction: IS_PROD,
           Squad,
+          User,
         });
         if (!result.allowed) return;
         logRealtimeDebug(`Socket ${socket.id} joining squad room: ${result.room}`);
@@ -331,6 +334,7 @@ const init = (server) => {
           isProduction: IS_PROD,
           Squad,
           Encounter,
+          User,
         });
         if (!result.allowed) return;
         logRealtimeDebug(`Socket ${socket.id} joining encounter room: ${result.room}`);
@@ -340,56 +344,70 @@ const init = (server) => {
       }
     });
 
-    socket.on('send_message', ({ encounterId, text, senderName, senderId, squadId, clientMessageId } = {}, ack) => {
+    socket.on('send_message', async ({ encounterId, text, senderName, senderId, squadId, clientMessageId } = {}, ack) => {
       const reply = typeof ack === 'function' ? ack : () => {};
-      if (!chatLimiter.allow(socket.id)) return reply({ ok: false, error: 'Too many messages. Try again in a moment.' });
-      if (IS_PROD && !socket.userId) return reply({ ok: false, error: 'Sign in again to send.' });
-      const normalizedText = normalizeChatText(text);
-      if (!normalizedText || normalizedText.length > MAX_CHAT_TEXT_LENGTH) {
-        return reply({ ok: false, error: 'Write a message up to 500 characters.' });
+      try {
+        if (!chatLimiter.allow(socket.id)) return reply({ ok: false, error: 'Too many messages. Try again in a moment.' });
+        if (IS_PROD && !socket.userId) return reply({ ok: false, error: 'Sign in again to send.' });
+        const normalizedText = normalizeChatText(text);
+        if (!normalizedText || normalizedText.length > MAX_CHAT_TEXT_LENGTH) {
+          return reply({ ok: false, error: 'Write a message up to 500 characters.' });
+        }
+        if (classifyVibe(normalizedText) !== 'ok') {
+          return reply({ ok: false, error: 'That message is not allowed.' });
+        }
+
+        const normalizedEncounterId = normalizeRealtimeId(encounterId);
+        const normalizedSquadId = normalizeRealtimeId(squadId);
+        const normalizedClientMessageId = normalizeRealtimeId(clientMessageId);
+        const authorization = await authorizeRealtimeSend({
+          encounterId: normalizedEncounterId,
+          squadId: normalizedSquadId,
+          userId: socket.userId,
+          isProduction: IS_PROD,
+          Squad,
+          Encounter,
+          User,
+        });
+        if (!authorization.allowed || !socket.rooms.has(authorization.room)) {
+          return reply({ ok: false, error: 'That message is not allowed.' });
+        }
+
+        const previousMessage = normalizedClientMessageId
+          ? sentChatMessages.get(normalizedClientMessageId)
+          : null;
+        if (previousMessage) return reply({ ok: true, message: previousMessage });
+
+        const ts = Date.now();
+        // Derive the sender from the authenticated socket when available; fall
+        // back to client-supplied values only for dev clients with no identity.
+        const resolvedSenderId = socket.userId || senderId;
+        const resolvedSenderName = resolveSocketSenderName(socket.userName, senderName);
+        const message = {
+          id: `${ts}-${randomBase36(9)}`,
+          text: normalizedText,
+          senderName: resolvedSenderName,
+          senderId: resolvedSenderId,
+          clientMessageId: normalizedClientMessageId || undefined,
+          encounterId: normalizedEncounterId || undefined,
+          squadId: normalizedSquadId || undefined,
+          ts,
+          timestamp: new Date(ts).toISOString(),
+        };
+
+        if (normalizedClientMessageId) {
+          if (sentChatMessages.size >= 200) sentChatMessages.delete(sentChatMessages.keys().next().value);
+          sentChatMessages.set(normalizedClientMessageId, message);
+        }
+        io.to(authorization.room).emit('new_message', message);
+        reply({ ok: true, message });
+      } catch (err) {
+        console.error('send_message error:', err);
+        reply({ ok: false, error: 'That message is not allowed.' });
       }
-
-      const normalizedEncounterId = normalizeRealtimeId(encounterId);
-      const normalizedSquadId = normalizeRealtimeId(squadId);
-      const normalizedClientMessageId = normalizeRealtimeId(clientMessageId);
-      const room = normalizedEncounterId
-        ? `encounter_${normalizedEncounterId}`
-        : (normalizedSquadId ? `squad_${normalizedSquadId}` : null);
-      if (!room || !socket.rooms.has(room)) {
-        return reply({ ok: false, error: 'You are no longer in this chat.' });
-      }
-
-      const previousMessage = normalizedClientMessageId
-        ? sentChatMessages.get(normalizedClientMessageId)
-        : null;
-      if (previousMessage) return reply({ ok: true, message: previousMessage });
-
-      const ts = Date.now();
-      // Derive the sender from the authenticated socket when available; fall
-      // back to client-supplied values only for dev clients with no identity.
-      const resolvedSenderId = socket.userId || senderId;
-      const resolvedSenderName = resolveSocketSenderName(socket.userName, senderName);
-      const message = {
-        id: `${ts}-${randomBase36(9)}`,
-        text: normalizedText,
-        senderName: resolvedSenderName,
-        senderId: resolvedSenderId,
-        clientMessageId: normalizedClientMessageId || undefined,
-        encounterId: normalizedEncounterId || undefined,
-        squadId: normalizedSquadId || undefined,
-        ts,
-        timestamp: new Date(ts).toISOString(),
-      };
-
-      if (normalizedClientMessageId) {
-        if (sentChatMessages.size >= 200) sentChatMessages.delete(sentChatMessages.keys().next().value);
-        sentChatMessages.set(normalizedClientMessageId, message);
-      }
-      io.to(room).emit('new_message', message);
-      reply({ ok: true, message });
     });
 
-    socket.on('send_reaction', ({ encounterId, squadId, emoji }) => {
+    socket.on('send_reaction', async ({ encounterId, squadId, emoji }) => {
       // Must be authenticated, send a sane emoji, and actually belong to the
       // target room. Never trust client-supplied sender identity.
       if (!reactionLimiter.allow(socket.id)) return;
@@ -398,19 +416,29 @@ const init = (server) => {
       if (!normalizedEmoji) return;
       const normalizedEncounterId = normalizeRealtimeId(encounterId);
       const normalizedSquadId = normalizeRealtimeId(squadId);
-      const room = normalizedEncounterId
-        ? `encounter_${normalizedEncounterId}`
-        : (normalizedSquadId ? `squad_${normalizedSquadId}` : null);
-      if (!room || !socket.rooms.has(room)) return;
-      io.to(room).emit('new_reaction', {
-        id: `${Date.now()}-${randomBase36(9)}`,
-        emoji: normalizedEmoji,
-        senderId: socket.userId,
-        senderName: resolveSocketSenderName(socket.userName),
-        encounterId: normalizedEncounterId || undefined,
-        squadId: normalizedSquadId || undefined,
-        ts: Date.now(),
-      });
+      try {
+        const authorization = await authorizeRealtimeSend({
+          encounterId: normalizedEncounterId,
+          squadId: normalizedSquadId,
+          userId: socket.userId,
+          isProduction: IS_PROD,
+          Squad,
+          Encounter,
+          User,
+        });
+        if (!authorization.allowed || !socket.rooms.has(authorization.room)) return;
+        io.to(authorization.room).emit('new_reaction', {
+          id: `${Date.now()}-${randomBase36(9)}`,
+          emoji: normalizedEmoji,
+          senderId: socket.userId,
+          senderName: resolveSocketSenderName(socket.userName),
+          encounterId: normalizedEncounterId || undefined,
+          squadId: normalizedSquadId || undefined,
+          ts: Date.now(),
+        });
+      } catch (err) {
+        console.error('send_reaction error:', err);
+      }
     });
 
     socket.on('report_squad', async (payload = {}, ack) => {

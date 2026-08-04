@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { advanceSpeakerFocus, api, connectSocket, deriveEncounterLayout, EMPTY_SPEAKER_FOCUS, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, session, sendChatMessage, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
+import { advanceSpeakerFocus, api, connectSocket, createOpponentUserIds, deriveEncounterLayout, EMPTY_SPEAKER_FOCUS, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, session, sendChatMessage, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
 import type { EncounterDetail } from "@giggle/core";
 import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
@@ -671,6 +671,9 @@ function EncounterInner() {
   const [findingNextMatch, setFindingNextMatch] = useState(false);
   const [reported, setReported] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
   // Unread chat badge while the chat panel is closed (mirrors the lobby pattern).
   const [unread, setUnread] = useState(0);
   const [chatMessages, setChatMessages] = useState<ChatPanelMessage[]>([]);
@@ -982,6 +985,8 @@ function EncounterInner() {
       ? { name: encounter.squadBName, members: encounter.squadBMembers, cover: encounter.squadBCover, id: encounter.squadBId }
       : { name: encounter.squadAName, members: encounter.squadAMembers, cover: encounter.squadACover, id: encounter.squadAId }
     : null;
+  const opponentUserIds = createOpponentUserIds({ squadId, ownUserId: session.user?.id, encounter }) ?? [];
+  const canBlockOpponent = opponentUserIds.length > 0;
 
   const myMembers = mySquad?.members ?? [];
   const oppMembers = oppSquad?.members ?? [];
@@ -1125,17 +1130,37 @@ function EncounterInner() {
     }
   }
 
+  async function leaveVideoAndGoHome() {
+    const client = vcRef.current;
+    vcRef.current = null;
+    try { await client?.leave(); } catch {}
+    setVideoJoined(false);
+    router.replace("/home");
+  }
+
   async function handleEnd() {
     setEnding(true);
     setEndError(null);
     try {
       await api.disconnectEncounter(squadId, encId);
-      try { await vcRef.current?.leave(); } catch {}
-      setEndConfirmOpen(false);
-      router.push("/home");
+      await leaveVideoAndGoHome();
     } catch {
       setEnding(false);
       setEndError("Couldn't end this encounter yet.");
+    }
+  }
+
+  async function handleBlockOpponent() {
+    if (!canBlockOpponent || blocking) return;
+    setBlocking(true);
+    setBlockError(null);
+    try {
+      await api.blockUsers(opponentUserIds);
+      await api.disconnectEncounter(squadId, encId);
+      await leaveVideoAndGoHome();
+    } catch {
+      setBlocking(false);
+      setBlockError("Couldn't block this squad yet. Try again.");
     }
   }
 
@@ -2366,6 +2391,20 @@ function EncounterInner() {
                             <Icon.flag size={17} color={reported ? "var(--live)" : "var(--text-muted)"} />
                             {reported ? "Reported" : reporting ? "Sending report…" : "Report opponent squad"}
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBlockError(null);
+                              setBlockConfirmOpen(true);
+                              closeMore(true);
+                            }}
+                            disabled={!canBlockOpponent || blocking}
+                            aria-label="Block opponent squad"
+                            style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: "var(--coral)", display: "flex", alignItems: "center", gap: 9, cursor: !canBlockOpponent || blocking ? "default" : "pointer", fontWeight: 700 }}
+                          >
+                            <Icon.shield size={17} color="var(--coral)" />
+                            Block opponent squad
+                          </button>
                           {hasFocusedFrame && (
                             <button
                               onClick={() => {
@@ -2530,6 +2569,52 @@ function EncounterInner() {
             onSend={sendEncounterMessage}
             onRetry={retryEncounterMessage}
           />
+        </Modal>
+      )}
+
+      {blockConfirmOpen && (
+        <Modal
+          onClose={() => {
+            if (blocking) return;
+            setBlockConfirmOpen(false);
+            setBlockError(null);
+          }}
+          title="Block opponent squad?"
+          subtitle="Every visible member of the opponent squad will be blocked. This does not send a report."
+          showClose={false}
+          closeOnBackdrop={!blocking}
+          width={420}
+        >
+          {blockError && (
+            <div role="alert" style={{ color: "var(--coral)", fontSize: 13, marginBottom: 16 }}>
+              {blockError}
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setBlockConfirmOpen(false);
+                setBlockError(null);
+              }}
+              disabled={blocking}
+              className="gg-press"
+              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: blocking ? "default" : "pointer" }}
+            >
+              Keep talking
+            </button>
+            <button
+              type="button"
+              onClick={handleBlockOpponent}
+              disabled={!canBlockOpponent || blocking}
+              aria-label="Block opponent squad"
+              aria-busy={blocking}
+              className="gg-press"
+              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--coral)", color: "#fff", fontWeight: 800, cursor: !canBlockOpponent || blocking ? "default" : "pointer" }}
+            >
+              {blocking ? "Blocking…" : "Block everyone and leave"}
+            </button>
+          </div>
         </Modal>
       )}
 

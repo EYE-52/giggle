@@ -1,5 +1,6 @@
 const MAX_REALTIME_ID_LENGTH = 96;
 const REALTIME_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
+const { anyBlockedPair } = require("../services/interactionSafetyService");
 
 function normalizeRealtimeId(value) {
   if (typeof value !== "string") return "";
@@ -9,7 +10,7 @@ function normalizeRealtimeId(value) {
   return normalized;
 }
 
-async function authorizeSquadRoomJoin({ squadId, userId, isProduction, Squad }) {
+async function authorizeSquadRoomJoin({ squadId, userId, isProduction, Squad, User }) {
   const normalizedSquadId = normalizeRealtimeId(squadId);
   if (!normalizedSquadId) return { allowed: false };
 
@@ -21,10 +22,12 @@ async function authorizeSquadRoomJoin({ squadId, userId, isProduction, Squad }) 
     "members.userId": String(userId),
   });
 
-  return squad ? { allowed: true, room } : { allowed: false };
+  if (!squad) return { allowed: false };
+  const blocked = await anyBlockedPair(squad.members.map((member) => member.userId), { User });
+  return blocked ? { allowed: false } : { allowed: true, room };
 }
 
-async function authorizeEncounterRoomJoin({ encounterId, userId, isProduction, Squad, Encounter }) {
+async function authorizeEncounterRoomJoin({ encounterId, userId, isProduction, Squad, Encounter, User }) {
   const normalizedEncounterId = normalizeRealtimeId(encounterId);
   if (!normalizedEncounterId) return { allowed: false };
 
@@ -34,13 +37,28 @@ async function authorizeEncounterRoomJoin({ encounterId, userId, isProduction, S
   const encounter = await Encounter.findOne({ encounterId: normalizedEncounterId });
   if (!encounter || encounter.status === "ended") return { allowed: false };
 
-  const squad = await Squad.findOne({
-    squadId: { $in: [encounter.squadAId, encounter.squadBId] },
-    "members.userId": String(userId),
-  });
+  const [squadA, squadB] = await Promise.all([
+    Squad.findOne({ squadId: encounter.squadAId }),
+    Squad.findOne({ squadId: encounter.squadBId }),
+  ]);
+  if (!squadA || !squadB) return { allowed: false };
 
-  return squad ? { allowed: true, room } : { allowed: false };
+  const squads = [squadA, squadB];
+  const isMember = squads.some((squad) =>
+    squad.members.some((member) => String(member.userId) === String(userId))
+  );
+  if (!isMember) return { allowed: false };
+  const blocked = await anyBlockedPair(
+    squads.flatMap((squad) => squad.members.map((member) => member.userId)),
+    { User }
+  );
+  return blocked ? { allowed: false } : { allowed: true, room };
 }
+
+const authorizeRealtimeSend = ({ encounterId, squadId, ...dependencies }) =>
+  encounterId
+    ? authorizeEncounterRoomJoin({ encounterId, ...dependencies })
+    : authorizeSquadRoomJoin({ squadId, ...dependencies });
 
 function resolveReportTargetSquadId(payload = {}) {
   return normalizeRealtimeId(payload.reportedSquadId || payload.targetSquadId || payload.squadId);
@@ -73,6 +91,7 @@ async function authorizeSquadReport({ payload = {}, userId, Squad, Encounter }) 
 
 module.exports = {
   authorizeEncounterRoomJoin,
+  authorizeRealtimeSend,
   authorizeSquadReport,
   authorizeSquadRoomJoin,
   normalizeRealtimeId,

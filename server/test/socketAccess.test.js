@@ -7,6 +7,7 @@ const User = require("../src/models/User");
 
 const {
   authorizeEncounterRoomJoin,
+  authorizeRealtimeSend,
   authorizeSquadReport,
   authorizeSquadRoomJoin,
   normalizeRealtimeId,
@@ -24,6 +25,9 @@ const {
 const { isMatchmakingDebugEnabled } = require("../src/services/matchmakingService");
 
 const USER_ID = "64b7f3c9a1b2c3d4e5f67890";
+const ROOM_USER_A = "507f1f77bcf86cd799439011";
+const ROOM_USER_B = "507f1f77bcf86cd799439012";
+const ROOM_USER_C = "507f1f77bcf86cd799439013";
 
 async function withSocketAuthEnvironment(run) {
   const originals = {
@@ -114,6 +118,14 @@ const squadModel = (squads) => ({
 const encounterModel = (encounters) => ({
   async findOne(query) {
     return encounters.find((encounter) => encounter.encounterId === query.encounterId) || null;
+  },
+});
+
+const blockUserModel = (users) => ({
+  find({ _id: { $in: ids } }) {
+    return {
+      lean: async () => users.filter((user) => ids.includes(user._id)),
+    };
   },
 });
 
@@ -341,21 +353,27 @@ test("matchmaking debug logging is opt-in for production", () => {
 
 test("authorizeSquadRoomJoin requires membership for authenticated sockets", async () => {
   const Squad = squadModel([
-    { squadId: "sq_a", members: [{ userId: "user_a" }] },
-    { squadId: "sq_b", members: [{ userId: "user_b" }] },
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }] },
+    { squadId: "sq_b", members: [{ userId: ROOM_USER_B }] },
+  ]);
+  const User = blockUserModel([
+    { _id: ROOM_USER_A, blockedUserIds: [] },
+    { _id: ROOM_USER_B, blockedUserIds: [] },
   ]);
 
   const allowed = await authorizeSquadRoomJoin({
     squadId: "sq_a",
-    userId: "user_a",
+    userId: ROOM_USER_A,
     isProduction: true,
     Squad,
+    User,
   });
   const denied = await authorizeSquadRoomJoin({
     squadId: "sq_b",
-    userId: "user_a",
+    userId: ROOM_USER_A,
     isProduction: true,
     Squad,
+    User,
   });
 
   assert.deepEqual(allowed, { allowed: true, room: "squad_sq_a" });
@@ -364,8 +382,12 @@ test("authorizeSquadRoomJoin requires membership for authenticated sockets", asy
 
 test("authorizeEncounterRoomJoin requires membership in either encounter squad", async () => {
   const Squad = squadModel([
-    { squadId: "sq_a", members: [{ userId: "user_a" }] },
-    { squadId: "sq_b", members: [{ userId: "user_b" }] },
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }] },
+    { squadId: "sq_b", members: [{ userId: ROOM_USER_B }] },
+  ]);
+  const User = blockUserModel([
+    { _id: ROOM_USER_A, blockedUserIds: [] },
+    { _id: ROOM_USER_B, blockedUserIds: [] },
   ]);
   const Encounter = encounterModel([
     { encounterId: "enc_1", squadAId: "sq_a", squadBId: "sq_b", status: "active" },
@@ -373,21 +395,100 @@ test("authorizeEncounterRoomJoin requires membership in either encounter squad",
 
   const allowed = await authorizeEncounterRoomJoin({
     encounterId: "enc_1",
-    userId: "user_a",
+    userId: ROOM_USER_A,
     isProduction: true,
     Squad,
     Encounter,
+    User,
   });
   const denied = await authorizeEncounterRoomJoin({
     encounterId: "enc_1",
-    userId: "user_c",
+    userId: ROOM_USER_C,
     isProduction: true,
     Squad,
     Encounter,
+    User,
   });
 
   assert.deepEqual(allowed, { allowed: true, room: "encounter_enc_1" });
   assert.equal(denied.allowed, false);
+});
+
+test("realtime room and send authorization fail closed for blocked live rosters", async () => {
+  const Squad = squadModel([
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }] },
+    { squadId: "sq_b", members: [{ userId: ROOM_USER_B }] },
+  ]);
+  const Encounter = encounterModel([
+    { encounterId: "enc_1", squadAId: "sq_a", squadBId: "sq_b", status: "active" },
+  ]);
+  const User = blockUserModel([
+    { _id: ROOM_USER_A, blockedUserIds: [ROOM_USER_B] },
+    { _id: ROOM_USER_B, blockedUserIds: [] },
+  ]);
+
+  assert.equal((await authorizeSquadRoomJoin({
+    squadId: "sq_a",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    User,
+  })).allowed, true);
+  assert.equal((await authorizeEncounterRoomJoin({
+    encounterId: "enc_1",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    Encounter,
+    User,
+  })).allowed, false);
+  assert.equal((await authorizeRealtimeSend({
+    encounterId: "enc_1",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    Encounter,
+    User,
+  })).allowed, false);
+});
+
+test("squad room authorization rejects a blocked teammate pair", async () => {
+  const Squad = squadModel([
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }, { userId: ROOM_USER_B }] },
+  ]);
+  const User = blockUserModel([
+    { _id: ROOM_USER_A, blockedUserIds: [] },
+    { _id: ROOM_USER_B, blockedUserIds: [ROOM_USER_A] },
+  ]);
+
+  const result = await authorizeSquadRoomJoin({
+    squadId: "sq_a",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    User,
+  });
+  assert.equal(result.allowed, false);
+});
+
+test("encounter room authorization requires both complete live rosters", async () => {
+  const Squad = squadModel([
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }] },
+  ]);
+  const Encounter = encounterModel([
+    { encounterId: "enc_1", squadAId: "sq_a", squadBId: "sq_missing", status: "active" },
+  ]);
+  const User = blockUserModel([{ _id: ROOM_USER_A, blockedUserIds: [] }]);
+
+  const result = await authorizeEncounterRoomJoin({
+    encounterId: "enc_1",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    Encounter,
+    User,
+  });
+  assert.equal(result.allowed, false);
 });
 
 test("resolveReportTargetSquadId prefers the reported squad over reporter squad", () => {
@@ -454,6 +555,13 @@ test("chat broadcasts include scope, client ids, and explicit acknowledgements",
   assert.match(messageBlock, /reply\(\{ ok: false, error:/);
   assert.match(messageBlock, /reply\(\{ ok: true, message \}\);/);
   assert.match(messageBlock, /sentChatMessages\.get\(normalizedClientMessageId\)/);
+  assert.match(messageBlock, /classifyVibe\(normalizedText\) !== 'ok'/);
+  assert.equal(
+    messageBlock.indexOf("await authorizeRealtimeSend") <
+      messageBlock.indexOf("sentChatMessages.get(normalizedClientMessageId)"),
+    true
+  );
+  assert.match(messageBlock, /error: 'That message is not allowed\.'/);
 });
 
 test("report_squad acknowledges only persisted reports and never applies automatic punishment", () => {

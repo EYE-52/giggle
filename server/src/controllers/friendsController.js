@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const { withMatchmakingLock } = require("../config/redisConfig");
-const { getOnlineUserIds } = require("../services/socketService");
+const { disconnectUserSockets, getOnlineUserIds } = require("../services/socketService");
 const {
   createNotification,
   deleteNotifications,
@@ -432,8 +432,12 @@ const blockUsers = async (req, res) => {
     // Cleanup can requeue an opponent and therefore stays outside the global
     // matchmaking lock. A release failure must not skip cleanup after commit.
     if (blockCommitted) {
-      await removeBlockedIdentityFromSharedSquads({ blockerId: myId, blockedUserIds: userIds });
-      emitNotificationsChanged([myId, ...userIds]);
+      try {
+        await removeBlockedIdentityFromSharedSquads({ blockerId: myId, blockedUserIds: userIds });
+        emitNotificationsChanged([myId, ...userIds]);
+      } finally {
+        disconnectUserSockets(myId);
+      }
     }
     if (lockError) throw lockError;
     return res.json({ ok: true, data: { status: "blocked", userIds } });

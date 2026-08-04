@@ -3,6 +3,17 @@ export interface ReportableEncounter {
   squadBId?: string;
 }
 
+export interface BlockableEncounter extends ReportableEncounter {
+  squadAMembers?: Array<{ userId?: unknown }>;
+  squadBMembers?: Array<{ userId?: unknown }>;
+}
+
+export interface OpponentUsersInput {
+  squadId?: string;
+  ownUserId?: string;
+  encounter?: BlockableEncounter | null;
+}
+
 export interface ReportOpponentInput {
   encounterId?: string;
   squadId?: string;
@@ -29,6 +40,38 @@ export type ReportSendResult =
 const REPORT_CATEGORIES = new Set<SafetyReportCategory>([
   "harassment", "hate", "sexual", "minor_safety", "spam", "other",
 ]);
+const USER_ID_PATTERN = /^[a-f0-9]{24}$/;
+
+function canonicalUserId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase();
+  return USER_ID_PATTERN.test(normalized) ? normalized : null;
+}
+
+export function createOpponentUserIds(input: OpponentUsersInput): string[] | null {
+  const squadId = input.squadId;
+  const squadAId = input.encounter?.squadAId;
+  const squadBId = input.encounter?.squadBId;
+  const ownUserId = canonicalUserId(input.ownUserId);
+  if (!squadId || !squadAId || !squadBId || squadAId === squadBId || !ownUserId) return null;
+
+  const rosters = squadId === squadAId
+    ? [input.encounter?.squadAMembers, input.encounter?.squadBMembers]
+    : squadId === squadBId
+      ? [input.encounter?.squadBMembers, input.encounter?.squadAMembers]
+      : null;
+  if (!rosters) return null;
+
+  const [ownMembers, opponentMembers] = rosters;
+  if (!ownMembers?.length || ownMembers.length > 8 || !opponentMembers?.length || opponentMembers.length > 8) return null;
+  const ownIds = ownMembers.map((member) => canonicalUserId(member.userId));
+  const opponentIds = opponentMembers.map((member) => canonicalUserId(member.userId));
+  if (ownIds.includes(null) || opponentIds.includes(null) || !ownIds.includes(ownUserId)) return null;
+
+  const ownUserIds = new Set(ownIds as string[]);
+  const result = [...new Set((opponentIds as string[]).filter((userId) => !ownUserIds.has(userId)))];
+  return result.length > 0 && result.length <= 8 ? result : null;
+}
 
 export function createReportOpponentPayload(input: ReportOpponentInput): ReportOpponentPayload | null {
   const encounterId = input.encounterId?.trim();

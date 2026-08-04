@@ -296,6 +296,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
   const originalAcquire = redlock.acquire;
   const originalUsing = redlock.using;
   const originalCleanup = squadAccess.removeBlockedIdentityFromSharedSquads;
+  const originalDisconnect = socketService.disconnectUserSockets;
   const writes = [];
   const events = [];
   let transactionCount = 0;
@@ -321,6 +322,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
   notificationModule.deleteNotificationsBetweenUsers = async (...args) => { deletion = args; return { deletedCount: 2 }; };
   notificationModule.emitNotificationsChanged = () => {};
   squadAccess.removeBlockedIdentityFromSharedSquads = async () => { events.push(["cleanup"]); };
+  socketService.disconnectUserSockets = (userId) => { events.push(["disconnect", userId]); };
 
   try {
     const { blockUsers } = controller();
@@ -338,6 +340,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
       ["transaction"],
       ["release"],
       ["cleanup"],
+      ["disconnect", myId],
     ]);
     assert.deepEqual(writes[0], [
       "one",
@@ -376,6 +379,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
     redlock.acquire = originalAcquire;
     redlock.using = originalUsing;
     squadAccess.removeBlockedIdentityFromSharedSquads = originalCleanup;
+    socketService.disconnectUserSockets = originalDisconnect;
     delete require.cache[require.resolve("../src/controllers/friendsController")];
   }
 });
