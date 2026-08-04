@@ -27,6 +27,10 @@ export const api = {
     backendRequest<ReferralInfo>("/api/auth/me/referral"),
   getMyProfile: () =>
     backendRequest<UserProfile>("/api/me/profile"),
+  exportAccount: () =>
+    backendRequest<AccountExport>("/api/me/export"),
+  deleteAccount: () =>
+    backendRequest<{ status: "deleted" | "pending" }>("/api/me/account", { method: "DELETE" }),
   updateMyProfile: (body: { gender?: string; languages?: string[]; country?: string; vibes?: string[] }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
   // Self-attested date of birth (set-once). Raw birthDate never comes back — the
@@ -207,6 +211,86 @@ export interface UserProfile {
   isAdult?: boolean;
   ageConfirmed?: boolean;
   ageVerified?: boolean;
+}
+
+export interface AccountExport {
+  generatedAt: string;
+  account: {
+    id: string;
+    email: string | null;
+    status: "active" | "unavailable" | "pending_deletion";
+    isApproved: boolean;
+    isPremium: boolean;
+    premiumExpiresAt: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+  };
+  ageAssurance: {
+    birthDate: string | null;
+    ageConfirmed: boolean;
+    isAdult: boolean;
+    ageVerified: boolean;
+    provider: string | null;
+    status: string;
+    method: string | null;
+    threshold: number | null;
+    policyVersion: string | null;
+    requestedAt: string | null;
+    verifiedAt: string | null;
+  };
+  profile: {
+    name: string | null;
+    image: string | null;
+    gender: string | null;
+    languages: string[];
+    country: string | null;
+    vibes: string[];
+  };
+  friends: Array<{ userId: string; name: string | null; image: string | null }>;
+  blocks: Array<{ userId: string; name: string | null; image: string | null }>;
+  squads: Array<{
+    squadId: string;
+    squadCode: string;
+    squadName: string;
+    status: string;
+    visibility: string;
+    joinPolicy: string;
+    tags: string[];
+    coverImage: string | null;
+    members: Array<{ userId: string; displayName: string | null; role: string; joinedAt: string | null }>;
+    createdAt: string | null;
+  }>;
+  notifications: Array<{
+    id: string;
+    type: string;
+    title: string | null;
+    body: string | null;
+    fromUserId: string | null;
+    fromName: string | null;
+    squadId: string | null;
+    squadCode: string | null;
+    squadName: string | null;
+    read: boolean;
+    createdAt: string | null;
+  }>;
+  safetyReports: Array<{
+    id: string;
+    reporterSquadId: string;
+    targetSquadId: string;
+    targetUserIds: string[];
+    encounterId: string;
+    category: string;
+    details: string;
+    status: string;
+    createdAt: string | null;
+    updatedAt: string | null;
+  }>;
+  walletAndReferral: {
+    referralCode: string | null;
+    referredBy: string | null;
+    referralCount: number;
+    tokens: number;
+  };
 }
 
 // --- response shapes (match backend) ---

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Linking } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Linking, Share, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen } from '../../components/Screen';
 import { Card } from '../../components/Card';
@@ -50,6 +50,10 @@ export default function ProfileScreen() {
   const [blocksError, setBlocksError] = useState('');
   const [blocksLoadAttempt, setBlocksLoadAttempt] = useState(0);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [accountActionMessage, setAccountActionMessage] = useState('');
+  const [accountActionError, setAccountActionError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -121,6 +125,54 @@ export default function ProfileScreen() {
     } catch {
       setResourceError("Couldn't open that page. Visit gigglemeet.com in your browser.");
     }
+  }
+
+  async function exportAccountData() {
+    if (exporting) return;
+    setExporting(true);
+    setAccountActionError('');
+    setAccountActionMessage('');
+    try {
+      const data = await api.exportAccount();
+      const result = await Share.share({
+        title: 'Giggle account data',
+        message: JSON.stringify(data, null, 2),
+      });
+      setAccountActionMessage(result.action === Share.dismissedAction ? 'Sharing cancelled.' : 'Account data shared.');
+    } catch {
+      setAccountActionError("Couldn't export your data. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function deleteAccount() {
+    if (deleting) return;
+    setDeleting(true);
+    setAccountActionError('');
+    try {
+      await api.deleteAccount();
+      session.signOut();
+      router.replace('/');
+    } catch {
+      setAccountActionError("Couldn't start account deletion. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function confirmAccountDeletion() {
+    Alert.alert('Delete account?', 'Deletion revokes access immediately and may finish in the background.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Continue',
+        style: 'destructive',
+        onPress: () => Alert.alert('Delete permanently?', 'Your account cannot be restored after cleanup completes.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete account', style: 'destructive', onPress: () => void deleteAccount() },
+        ]),
+      },
+    ]);
   }
 
   return (
@@ -317,6 +369,26 @@ export default function ProfileScreen() {
         </Card>
         {!!resourceError && <Text style={styles.resourceError} accessibilityRole="alert">{resourceError}</Text>}
 
+        <Text style={styles.sectionLabel}>Your data</Text>
+        <Card style={styles.dataCard}>
+          <Text style={styles.dataHelp}>Download a copy of your account data or permanently delete your account.</Text>
+          <Button
+            label={exporting ? 'Preparing export…' : 'Share my data'}
+            onPress={() => void exportAccountData()}
+            variant="outline"
+            disabled={exporting || deleting}
+          />
+          <Button
+            label={deleting ? 'Deleting…' : 'Delete account'}
+            onPress={confirmAccountDeletion}
+            variant="coral"
+            disabled={exporting || deleting}
+            style={styles.dataButton}
+          />
+        </Card>
+        {!!accountActionMessage && <Text style={styles.accountActionMessage} accessibilityLiveRegion="polite">{accountActionMessage}</Text>}
+        {!!accountActionError && <Text style={styles.resourceError} accessibilityRole="alert">{accountActionError}</Text>}
+
         <Button
           label="Log Out"
           onPress={() => {
@@ -390,6 +462,10 @@ const styles = StyleSheet.create({
   resourceDivider: { borderTopWidth: 1, borderTopColor: COLORS.border },
   resourceText: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
   resourceError: { color: COLORS.coral, fontSize: 13, marginTop: SPACE.sm },
+  dataCard: { gap: SPACE.md },
+  dataHelp: { color: COLORS.textMuted, fontSize: 13, lineHeight: 19 },
+  dataButton: { marginTop: 0 },
+  accountActionMessage: { color: COLORS.lime, fontSize: 13, marginTop: SPACE.sm },
   blockedList: { paddingVertical: 0 },
   blockedRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   blockedName: { flex: 1, color: COLORS.text, fontSize: 14, fontWeight: '700' },

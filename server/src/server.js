@@ -249,6 +249,9 @@ app.use((err, req, res, next) => {
 async function startServer(port = PORT) {
   await connectDatabase();
 
+  const { startAccountDeletionSweeper } = require('./services/accountDeletionService');
+  startAccountDeletionSweeper();
+
   if (!socketInitialized) {
     socketService.init(server);
     socketInitialized = true;

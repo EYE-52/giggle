@@ -26,3 +26,11 @@ test("api exposes typed block, unblock, and blocked-account wrappers", () => {
   assert.match(api, /unblockUser:\s*\(userId: string\).*`\/api\/users\/\$\{userId\}\/block`/s);
   assert.match(api, /listBlockedUsers:\s*\(\).*"\/api\/me\/blocks"/s);
 });
+
+test("api exposes typed account export and deletion wrappers", () => {
+  const api = readFileSync(path.join(__dirname, "../src/api.ts"), "utf8");
+
+  assert.match(api, /export interface AccountExport/);
+  assert.match(api, /exportAccount:\s*\(\).*backendRequest<AccountExport>\("\/api\/me\/export"\)/s);
+  assert.match(api, /deleteAccount:\s*\(\).*backendRequest<\{ status: "deleted" \| "pending" \}>\("\/api\/me\/account", \{ method: "DELETE" \}\)/s);
+});

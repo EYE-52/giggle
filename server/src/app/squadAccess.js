@@ -129,7 +129,9 @@ const getSquadAccessContext = async ({ squadId, identity }) => {
 };
 
 const deleteSquadAndNotifications = async (squad) => {
+  const sessionService = require("../services/sessionService");
   await deleteNotifications({ squadId: squad.squadId });
+  await sessionService.clearSquadSession(squad.squadId);
   await squad.deleteOne();
 };
 
@@ -177,7 +179,7 @@ const removeSquadMember = async (squad, memberIndex) => {
   });
   await sessionService.clearMemberSession(squad.squadId, removedMember.memberId);
 
-  if (wasSearching) await queueService.removeFromQueue(squad.squadId);
+  if (wasSearching || willDeleteSquad) await queueService.removeFromQueue(squad.squadId);
 
   if (willDeleteSquad && encounterId) {
     const encounter = await Encounter.findOne({ encounterId });

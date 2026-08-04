@@ -70,7 +70,7 @@ const userSchema = new mongoose.Schema(
     gender: { type: String }, // "male"|"female"|"nonbinary"|"other"|"prefer_not"
 
     // ── Age verification / adult access ───────────────────────────────────
-    // Self-attested date of birth (PII — NEVER serialized back to the client).
+    // Self-attested date of birth (PII — returned only in the user's explicit data export).
     // Provider payloads, documents, biometrics, selfies and actual age are never stored.
     birthDate: { type: Date, default: null },
     isAdult: { type: Boolean, default: false },

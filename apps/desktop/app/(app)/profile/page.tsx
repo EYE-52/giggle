@@ -324,6 +324,47 @@ export default function ProfilePage() {
   const [vibeTagHover, setVibeTagHover] = useState<string | null>(null);
   const [vibeChipHover, setVibeChipHover] = useState<string | null>(null);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  async function downloadAccountData() {
+    if (exporting) return;
+    setExporting(true);
+    setExportError("");
+    let url = "";
+    try {
+      const data = await api.exportAccount();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `giggle-data-${new Date().toISOString().slice(0, 10)}.json`;
+      anchor.click();
+    } catch {
+      setExportError("Couldn't export your data. Please try again.");
+    } finally {
+      if (url) URL.revokeObjectURL(url);
+      setExporting(false);
+    }
+  }
+
+  async function deleteAccount() {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await api.deleteAccount();
+      session.signOut();
+      router.replace("/signin");
+    } catch {
+      setDeleteError("Couldn't start account deletion. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const avatarSize = isPhone ? 88 : 120;
   const outerGrid: React.CSSProperties = isPhone
@@ -719,6 +760,15 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingTop: 18, marginTop: 18, borderTop: "1px solid var(--border)" }}>
+            <Button variant="secondary" loading={exporting} disabled={deleting} onClick={downloadAccountData}>
+              Download my data
+            </Button>
+            <Button variant="danger" disabled={exporting || deleting} onClick={() => { setDeleteError(""); setDeleteStep(1); }}>
+              Delete account
+            </Button>
+          </div>
+          {exportError && <div role="alert" style={{ color: coral, fontSize: 12, marginTop: 10 }}>{exportError}</div>}
         </section>
         </div>
 
@@ -743,6 +793,31 @@ export default function ProfilePage() {
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
           <Button variant="ghost" onClick={() => setLogoutConfirm(false)}>Cancel</Button>
           <Button variant="danger" onClick={() => { session.signOut(); router.push("/"); }}>Log out</Button>
+        </div>
+      </Modal>
+    )}
+    {deleteStep === 1 && (
+      <Modal
+        onClose={() => setDeleteStep(0)}
+        title="Delete account?"
+        subtitle="Deletion revokes access immediately and may finish in the background."
+      >
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
+          <Button variant="ghost" onClick={() => setDeleteStep(0)}>Cancel</Button>
+          <Button variant="danger" onClick={() => setDeleteStep(2)}>Continue</Button>
+        </div>
+      </Modal>
+    )}
+    {deleteStep === 2 && (
+      <Modal
+        onClose={() => { if (!deleting) setDeleteStep(0); }}
+        title="Delete permanently?"
+        subtitle="Your account and social access cannot be restored after cleanup completes."
+      >
+        {deleteError && <div role="alert" style={{ color: coral, fontSize: 13, marginBottom: 12 }}>{deleteError}</div>}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
+          <Button variant="ghost" disabled={deleting} onClick={() => setDeleteStep(0)}>Cancel</Button>
+          <Button variant="danger" loading={deleting} onClick={deleteAccount}>Delete account</Button>
         </div>
       </Modal>
     )}

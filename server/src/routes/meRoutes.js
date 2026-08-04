@@ -5,6 +5,7 @@ const {
   startAgeVerification,
 } = require("../controllers/ageVerificationController");
 const { requireApiAuth, requireIdentityAuth } = require("../middlewares/authMiddleware");
+const { exportAccountHandler, deleteAccountHandler } = require("../controllers/accountController");
 
 const router = express.Router();
 
@@ -46,5 +47,7 @@ router.patch("/me/profile", requireApiAuth, updateMyProfile);
 router.post("/me/age", requireIdentityAuth, setMyAge);
 router.post("/me/age/verification-session", requireIdentityAuth, startAgeVerification);
 router.get("/me/age/verification-status", requireIdentityAuth, getAgeVerificationStatus);
+router.get("/me/export", requireIdentityAuth, exportAccountHandler);
+router.delete("/me/account", requireIdentityAuth, deleteAccountHandler);
 
 module.exports = router;

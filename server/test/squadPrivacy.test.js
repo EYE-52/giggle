@@ -11,6 +11,7 @@ const { redlock, redis, subClient } = require("../src/config/redisConfig");
 const queueService = require("../src/services/queueService");
 const sessionService = require("../src/services/sessionService");
 const socketService = require("../src/services/socketService");
+const squadAccess = require("../src/app/squadAccess");
 const {
   approveJoinRequestHandler,
   createSquadHandler,
@@ -115,6 +116,58 @@ test("member session cleanup removes legacy and field-per-member Redis entries",
   } finally {
     redis.hkeys = originalHkeys;
     redis.hdel = originalHdel;
+  }
+});
+
+test("last-member removal clears stale queue and squad session state", async () => {
+  const originals = {
+    removeFromQueue: queueService.removeFromQueue,
+    clearMemberSession: sessionService.clearMemberSession,
+    clearSquadSession: sessionService.clearSquadSession,
+    revoke: socketService.revokeUserRealtimeAccess,
+    emitUser: socketService.emitToUser,
+    deleteNotifications: Notification.deleteMany,
+    distinctNotifications: Notification.distinct,
+  };
+  const events = [];
+  const squad = {
+    squadId: "stale_last_member_squad",
+    status: "idle",
+    currentEncounterId: null,
+    members: [{
+      memberId: "last_member",
+      userId: "507f1f77bcf86cd799439011",
+      role: "leader",
+    }],
+    async deleteOne() { events.push("delete-squad"); },
+  };
+  queueService.removeFromQueue = async () => { events.push("dequeue"); };
+  sessionService.clearMemberSession = async () => { events.push("clear-member-session"); };
+  sessionService.clearSquadSession = async () => { events.push("clear-squad-session"); };
+  socketService.revokeUserRealtimeAccess = () => { events.push("revoke"); };
+  socketService.emitToUser = () => { events.push("emit-removed"); };
+  Notification.deleteMany = async () => ({ deletedCount: 0 });
+  Notification.distinct = async () => [];
+
+  try {
+    const result = await squadAccess.removeSquadMember(squad, 0);
+    assert.equal(result.squadDeleted, true);
+    assert.deepEqual(events, [
+      "revoke",
+      "clear-member-session",
+      "dequeue",
+      "clear-squad-session",
+      "delete-squad",
+      "emit-removed",
+    ]);
+  } finally {
+    queueService.removeFromQueue = originals.removeFromQueue;
+    sessionService.clearMemberSession = originals.clearMemberSession;
+    sessionService.clearSquadSession = originals.clearSquadSession;
+    socketService.revokeUserRealtimeAccess = originals.revoke;
+    socketService.emitToUser = originals.emitUser;
+    Notification.deleteMany = originals.deleteNotifications;
+    Notification.distinct = originals.distinctNotifications;
   }
 });
 
