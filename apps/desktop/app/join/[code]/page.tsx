@@ -48,6 +48,10 @@ export default function JoinByLinkPage() {
       // server decision here before adding anyone to a squad.
       await session.syncAgeFromServer();
       if (cancelled) return;
+      if (session.hasIdentityOnlyAccess && session.accountStatus !== "active") {
+        router.replace("/profile");
+        return;
+      }
       if (!session.hasAdultAccess) {
         if (!cancelled) setPhase("age");
         return;
@@ -83,6 +87,7 @@ export default function JoinByLinkPage() {
           setPhase("working");
           setProceed((n) => n + 1);
         }}
+        onManageAccount={() => router.push("/profile")}
       />
     );
   }

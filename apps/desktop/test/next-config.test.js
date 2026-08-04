@@ -1262,7 +1262,10 @@ test("join links make the same live adult-access decision before joining", () =>
   const guard = join.slice(join.indexOf("await session.syncAgeFromServer()"), join.indexOf("api.joinSquad"));
 
   assert.match(guard, /await session\.syncAgeFromServer\(\)/);
+  assert.match(guard, /session\.hasIdentityOnlyAccess && session\.accountStatus !== "active"/);
+  assert.match(guard, /router\.replace\("\/profile"\)/);
   assert.match(guard, /!session\.hasAdultAccess/);
+  assert.match(join, /onManageAccount=\{\(\) => router\.push\("\/profile"\)\}/);
   assert.ok(join.indexOf("await session.syncAgeFromServer()") < join.indexOf("api.joinSquad"));
 });
 

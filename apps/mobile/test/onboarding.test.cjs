@@ -125,7 +125,7 @@ test("mobile protected routes wait for shared verified-adult access", () => {
   assert.equal(layout.includes("await session.syncAgeFromServer()"), true);
   assert.equal(layout.includes("if (!authReady)"), true);
   assert.equal(layout.includes("if (!hasAdultAccess)"), true);
-  assert.equal(layout.includes("<AgeGate onDone={() => setHasAdultAccess(true)} />"), true);
+  assert.match(layout, /<AgeGate[\s\S]*onDone=\{\(\) => setHasAdultAccess\(true\)\}[\s\S]*onManageAccount=\{\(\) => router\.push\('\/profile'\)\}/);
   assert.equal(gate.includes("await session.setAge(birthDate);"), true);
   assert.equal(gate.includes('keyboardType="number-pad"'), true);
   assert.equal(gate.includes("Giggle is for verified adults 18+"), true);
