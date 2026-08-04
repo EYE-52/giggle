@@ -62,6 +62,8 @@ EXPO_PUBLIC_IOS_DISCOVERY_ENABLED=false
 
 Missing Yoti configuration leaves identity, support, data export, and account deletion available, but age verification and all social access fail closed.
 
+Redis TLS certificate verification stays enabled by default. Use `REDIS_TLS_REJECT_UNAUTHORIZED=false` only as a temporary escape hatch for a controlled deployment with a self-signed Redis TLS certificate.
+
 ## Release gates
 
 Do not enable stranger discovery, submit store builds, or describe the product as globally compliant until there is evidence for:
