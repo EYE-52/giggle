@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const { Squad } = require("../models/Squad");
 const User = require("../models/User");
 const {
@@ -21,8 +22,12 @@ const { allUsersHaveAdultAccess, hasAdultAccess } = require("../services/ageAcce
 const queueService = require("../services/queueService");
 const socketService = require("../services/socketService");
 const sessionService = require("../services/sessionService");
-const { redlock } = require("../config/redisConfig");
-const { createNotification, deleteNotifications } = require("../models/Notification");
+const { redlock, withMatchmakingLock } = require("../config/redisConfig");
+const {
+  createNotification,
+  deleteNotifications,
+  emitNotification,
+} = require("../models/Notification");
 const { shuffle } = require("../utils/random");
 const { normalizeSquadTags } = require("../utils/squadValidation");
 const { classifyVibe } = require("../utils/moderation");
@@ -94,11 +99,11 @@ const publicSquadTags = (squad) => {
 const isValidUserObjectId = (value) =>
   typeof value === "string" && /^[a-f\d]{24}$/i.test(value);
 
-const anyBlockedPairInSquad = (squad, additionalUserIds = []) =>
+const anyBlockedPairInSquad = (squad, additionalUserIds = [], options = {}) =>
   anyBlockedPair([
     ...(squad?.members || []).map((member) => member.userId),
     ...additionalUserIds,
-  ], { User });
+  ], { User, ...options });
 
 const interactionBlocked = (res) => res.status(403).json({
   ok: false,
@@ -175,7 +180,9 @@ const getMySquadsHandler = async (req, res) => {
       providerAccountId: identity.providerAccountId,
     });
 
-    const data = await Promise.all(squads.map(async (squad) => {
+    const blocked = await Promise.all(squads.map((squad) => anyBlockedPairInSquad(squad)));
+    const visibleSquads = squads.filter((_squad, index) => !blocked[index]);
+    const data = await Promise.all(visibleSquads.map(async (squad) => {
       const leader = squad.members.find((m) => m.role === "leader");
       const myMember = squad.members.find((m) => isSameMember(m, identity));
       return {
@@ -383,44 +390,63 @@ const joinSquadHandler = async (req, res) => {
     // requester (not already a member, not the leader) is added to the pending
     // joinRequests list (deduped by userId) instead of becoming a member.
     if (squad.joinPolicy === "request") {
-      const alreadyRequested = hasIdentityId(squad.joinRequests, userId, "userId");
-      if (!alreadyRequested) {
-        squad.joinRequests.push({
-          userId,
-          name: firstDisplayName(displayName, name, email),
-          requestedAt: new Date(),
-        });
-        await squad.save();
-        // Notify the squad leader that someone wants to join.
-        const leader = squad.members.find((m) => m.role === "leader");
-        if (leader && leader.userId) {
-          await createNotification({
-            userId: leader.userId,
-            type: "join_request",
-            title: "New join request",
-            body: `${firstDisplayName(displayName, name, email)} wants to join ${squad.squadName}`,
-            fromUserId: userId,
-            fromName: firstDisplayName(displayName, name, email),
-            squadId: squad.squadId,
-            squadCode: squad.squadCode,
-            squadName: squad.squadName,
-          });
-        }
-        // Persist the notification before the final check so a block cleanup
-        // cannot finish and then be followed by a stale notification insert.
-        if (await anyBlockedPairInSquad(squad, [userId])) {
-          squad.joinRequests = (squad.joinRequests || []).filter(
-            (request) => !hasIdentityId([request], userId, "userId")
+      const outcome = await withMatchmakingLock(async (signal) => {
+        return mongoose.connection.transaction(async (session) => {
+          const currentSquad = await Squad.findOne(
+            { squadId: squad.squadId },
+            null,
+            { session }
           );
-          await squad.save();
-          if (leader?.userId) {
-            await resolveJoinRequestNotification(leader.userId, userId, squad.squadId);
+          if (!currentSquad) {
+            return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
           }
-          return interactionBlocked(res);
-        }
-        socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+          if (currentSquad.joinPolicy !== "request") {
+            return { error: { status: 409, code: "SQUAD_CHANGED", message: "Squad join settings changed" } };
+          }
+          if (await anyBlockedPairInSquad(currentSquad, [userId], { session })) {
+            return { blocked: true };
+          }
+          if (hasIdentityId(currentSquad.joinRequests, userId, "userId")) {
+            return { added: false, squadId: currentSquad.squadId };
+          }
+          if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+
+          currentSquad.joinRequests.push({
+            userId,
+            name: firstDisplayName(displayName, name, email),
+            requestedAt: new Date(),
+          });
+          await currentSquad.save({ session });
+
+          const leader = currentSquad.members.find((member) => member.role === "leader");
+          const notification = leader?.userId
+            ? await createNotification({
+                userId: leader.userId,
+                type: "join_request",
+                title: "New join request",
+                body: `${firstDisplayName(displayName, name, email)} wants to join ${currentSquad.squadName}`,
+                fromUserId: userId,
+                fromName: firstDisplayName(displayName, name, email),
+                squadId: currentSquad.squadId,
+                squadCode: currentSquad.squadCode,
+                squadName: currentSquad.squadName,
+              }, { session, required: true, emit: false })
+            : null;
+          return { added: true, notification, squadId: currentSquad.squadId };
+        });
+      });
+      if (outcome.blocked) return interactionBlocked(res);
+      if (outcome.error) {
+        return res.status(outcome.error.status).json({
+          ok: false,
+          error: { code: outcome.error.code, message: outcome.error.message },
+        });
       }
-      await resolveSquadInviteNotification(userId, squad.squadId);
+      if (outcome.added) {
+        if (outcome.notification) emitNotification(outcome.notification);
+        socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
+      }
+      await resolveSquadInviteNotification(userId, outcome.squadId || squad.squadId);
       return res.status(200).json({ ok: true, data: { status: "requested" } });
     }
 
@@ -1082,7 +1108,8 @@ const inviteUserToSquadHandler = async (req, res) => {
 
   try {
     const { squad } = req.squadAccess;
-    const inviterName = req.giggleIdentity?.name || getRequesterIdentity(req).name;
+    const inviterIdentity = getRequesterIdentity(req);
+    const inviterName = req.giggleIdentity?.name || inviterIdentity.name;
     const targetUser = await User.findById(targetUserId).select(
       "_id ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
     );
@@ -1098,39 +1125,56 @@ const inviteUserToSquadHandler = async (req, res) => {
         error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
       });
     }
-    if (await anyBlockedPairInSquad(squad, [targetUserId])) return interactionBlocked(res);
-
-    if (!Array.isArray(squad.invitedUserIds)) squad.invitedUserIds = [];
-
-    const alreadyInvited = hasIdentityId(squad.invitedUserIds, targetUserId);
-    const alreadyMember = hasIdentityId(squad.members, targetUserId, "userId");
-
-    if (!alreadyInvited && !alreadyMember) {
-      squad.invitedUserIds.push(targetUserId);
-      await squad.save();
-
-      await createNotification({
-        userId: targetUserId,
-        type: "squad_invite",
-        title: "Squad invite",
-        body: `${inviterName || "Someone"} invited you to ${squad.squadName}`,
-        fromUserId: getRequesterIdentity(req).userId,
-        fromName: inviterName,
-        squadId: squad.squadId,
-        squadCode: squad.squadCode,
-        squadName: squad.squadName,
-      });
-      // Insert first, then recheck: if block cleanup ran before this insert,
-      // remove both just-written artifacts here.
-      if (await anyBlockedPairInSquad(squad, [targetUserId])) {
-        squad.invitedUserIds = squad.invitedUserIds.filter(
-          (userId) => !hasIdentityId([userId], targetUserId)
+    const outcome = await withMatchmakingLock(async (signal) => {
+      return mongoose.connection.transaction(async (session) => {
+        const currentSquad = await Squad.findOne(
+          { squadId: squad.squadId },
+          null,
+          { session }
         );
-        await squad.save();
-        await resolveSquadInviteNotification(targetUserId, squad.squadId);
-        return interactionBlocked(res);
-      }
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+        if (!currentSquad) {
+          return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
+        }
+        if (!currentSquad.members.some((candidate) => isSameMember(candidate, inviterIdentity))) {
+          return { error: { status: 403, code: "FORBIDDEN", message: "Squad member access required" } };
+        }
+        if (await anyBlockedPairInSquad(currentSquad, [targetUserId], { session })) {
+          return { blocked: true };
+        }
+        if (!Array.isArray(currentSquad.invitedUserIds)) currentSquad.invitedUserIds = [];
+        const alreadyInvited = hasIdentityId(currentSquad.invitedUserIds, targetUserId);
+        const alreadyMember = hasIdentityId(currentSquad.members, targetUserId, "userId");
+        if (alreadyInvited || alreadyMember) {
+          return { added: false, squadId: currentSquad.squadId };
+        }
+        if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+
+        currentSquad.invitedUserIds.push(targetUserId);
+        await currentSquad.save({ session });
+        const notification = await createNotification({
+          userId: targetUserId,
+          type: "squad_invite",
+          title: "Squad invite",
+          body: `${inviterName || "Someone"} invited you to ${currentSquad.squadName}`,
+          fromUserId: inviterIdentity.userId,
+          fromName: inviterName,
+          squadId: currentSquad.squadId,
+          squadCode: currentSquad.squadCode,
+          squadName: currentSquad.squadName,
+        }, { session, required: true, emit: false });
+        return { added: true, notification, squadId: currentSquad.squadId };
+      });
+    });
+    if (outcome.blocked) return interactionBlocked(res);
+    if (outcome.error) {
+      return res.status(outcome.error.status).json({
+        ok: false,
+        error: { code: outcome.error.code, message: outcome.error.message },
+      });
+    }
+    if (outcome.added) {
+      emitNotification(outcome.notification);
+      socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
     }
 
     return res.status(200).json({ ok: true, data: { invited: true } });
@@ -1298,39 +1342,38 @@ const startSearchHandler = async (req, res) => {
 };
 
 const cancelSearchHandler = async (req, res) => {
-  let lock;
   try {
     const { squad: accessedSquad, member } = req.squadAccess;
-    lock = await redlock.acquire(["lock:matchmaking"], 5000);
-    const squad = await Squad.findOne({ squadId: accessedSquad.squadId });
+    const outcome = await withMatchmakingLock(async (signal) => {
+      const squad = await Squad.findOne({ squadId: accessedSquad.squadId });
+      if (!squad) {
+        return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
+      }
+      if (squad.status !== "searching") {
+        return { error: { status: 409, code: "NOT_IN_SEARCH", message: "Squad is not in searching state" } };
+      }
 
-    if (!squad) {
-      return res.status(404).json({
+      squad.status = "idle";
+      squad.searchQueuedAt = null;
+      if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+      await squad.save();
+      await queueService.removeFromQueue(squad.squadId);
+      return { squadId: squad.squadId, status: squad.status };
+    });
+
+    if (outcome.error) {
+      return res.status(outcome.error.status).json({
         ok: false,
-        error: { code: "SQUAD_NOT_FOUND", message: "Squad not found" },
+        error: { code: outcome.error.code, message: outcome.error.message },
       });
     }
-
-    if (squad.status !== "searching") {
-      return res.status(409).json({
-        ok: false,
-        error: { code: "NOT_IN_SEARCH", message: "Squad is not in searching state" },
-      });
-    }
-
-    squad.status = "idle";
-    squad.searchQueuedAt = null;
-    await squad.save();
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-
-    // Remove from Redis Queue
-    await queueService.removeFromQueue(squad.squadId);
+    socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
 
     return res.status(200).json({
       ok: true,
       data: {
-        squadId: squad.squadId,
-        status: squad.status,
+        squadId: outcome.squadId,
+        status: outcome.status,
         cancelledByMemberId: member.memberId,
       },
     });
@@ -1340,8 +1383,6 @@ const cancelSearchHandler = async (req, res) => {
       ok: false,
       error: { code: "INTERNAL_ERROR", message: "Failed to cancel search" },
     });
-  } finally {
-    if (lock) await lock.release();
   }
 };
 

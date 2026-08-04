@@ -98,6 +98,7 @@ async function loadSafetyController({ interactionBlocked = false, membershipRemo
   const originalServiceModule = require.cache[servicePath];
   const originalFindOne = Squad.findOne;
   const originalAcquire = redlock.acquire;
+  const originalUsing = redlock.using;
   let acknowledgements = 0;
   let rosterChecks = 0;
   const events = [];
@@ -122,9 +123,11 @@ async function loadSafetyController({ interactionBlocked = false, membershipRemo
     }
     return squad;
   };
-  redlock.acquire = async (resources) => {
+  redlock.using = async (resources, _duration, routine) => {
     events.push(["lock", resources]);
-    return { release: async () => { events.push(["release"]); } };
+    const result = await routine({ aborted: false });
+    events.push(["release"]);
+    return result;
   };
   require.cache[servicePath] = {
     id: servicePath,
@@ -161,6 +164,7 @@ async function loadSafetyController({ interactionBlocked = false, membershipRemo
     restore() {
       Squad.findOne = originalFindOne;
       redlock.acquire = originalAcquire;
+      redlock.using = originalUsing;
       if (originalServiceModule) require.cache[servicePath] = originalServiceModule;
       else delete require.cache[servicePath];
       delete require.cache[controllerPath];

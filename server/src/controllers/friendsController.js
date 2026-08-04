@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
-const { redlock } = require("../config/redisConfig");
+const { withMatchmakingLock } = require("../config/redisConfig");
 const { getOnlineUserIds } = require("../services/socketService");
 const {
   createNotification,
@@ -390,42 +390,52 @@ const blockUsers = async (req, res) => {
       return err(res, 404, "NOT_FOUND", "One or more accounts were not found");
     }
 
-    const matchmakingLock = await redlock.acquire(["lock:matchmaking"], 5000);
+    let blockCommitted = false;
+    let lockError = null;
     try {
-      await mongoose.connection.transaction(async (session) => {
-        const targetIdMatchers = { $in: pullMatchers(userIds) };
-        const myIdMatcher = relationalIdMatcher(myId);
-        await User.updateOne(
-          { _id: myId },
-          {
-            $addToSet: { blockedUserIds: { $each: userIds } },
-            $pull: {
-              friends: targetIdMatchers,
-              friendRequestsIncoming: targetIdMatchers,
-              friendRequestsOutgoing: targetIdMatchers,
+      await withMatchmakingLock(async (signal) => {
+        await mongoose.connection.transaction(async (session) => {
+          const targetIdMatchers = { $in: pullMatchers(userIds) };
+          const myIdMatcher = relationalIdMatcher(myId);
+          await User.updateOne(
+            { _id: myId },
+            {
+              $addToSet: { blockedUserIds: { $each: userIds } },
+              $pull: {
+                friends: targetIdMatchers,
+                friendRequestsIncoming: targetIdMatchers,
+                friendRequestsOutgoing: targetIdMatchers,
+              },
             },
-          },
-          { session }
-        );
-        await User.updateMany(
-          { _id: { $in: userIds } },
-          {
-            $pull: {
-              friends: myIdMatcher,
-              friendRequestsIncoming: myIdMatcher,
-              friendRequestsOutgoing: myIdMatcher,
+            { session }
+          );
+          await User.updateMany(
+            { _id: { $in: userIds } },
+            {
+              $pull: {
+                friends: myIdMatcher,
+                friendRequestsIncoming: myIdMatcher,
+                friendRequestsOutgoing: myIdMatcher,
+              },
             },
-          },
-          { session }
-        );
-        await deleteNotificationsBetweenUsers(myId, userIds, { session });
+            { session }
+          );
+          await deleteNotificationsBetweenUsers(myId, userIds, { session });
+          if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+        });
+        blockCommitted = true;
       });
-    } finally {
-      // Squad cleanup can requeue an opponent and must not nest this global lock.
-      await matchmakingLock.release();
+    } catch (error) {
+      lockError = error;
     }
-    await removeBlockedIdentityFromSharedSquads({ blockerId: myId, blockedUserIds: userIds });
-    emitNotificationsChanged([myId, ...userIds]);
+
+    // Cleanup can requeue an opponent and therefore stays outside the global
+    // matchmaking lock. A release failure must not skip cleanup after commit.
+    if (blockCommitted) {
+      await removeBlockedIdentityFromSharedSquads({ blockerId: myId, blockedUserIds: userIds });
+      emitNotificationsChanged([myId, ...userIds]);
+    }
+    if (lockError) throw lockError;
     return res.json({ ok: true, data: { status: "blocked", userIds } });
   } catch (e) {
     console.error("[friends] blockUsers error:", e);

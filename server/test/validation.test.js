@@ -376,6 +376,7 @@ test("cancelling search serializes with matchmaking and refetches queue state", 
   const socketService = require("../src/services/socketService");
   const originals = {
     acquire: redlock.acquire,
+    using: redlock.using,
     findOne: Squad.findOne,
     remove: queueService.removeFromQueue,
     emit: socketService.emitToSquad,
@@ -388,9 +389,11 @@ test("cancelling search serializes with matchmaking and refetches queue state", 
     async save() { calls.push("save"); },
   };
 
-  redlock.acquire = async () => {
+  redlock.using = async (_resources, _duration, routine) => {
     calls.push("lock");
-    return { release: async () => { calls.push("release"); } };
+    const result = await routine({ aborted: false });
+    calls.push("release");
+    return result;
   };
   Squad.findOne = async () => {
     calls.push("find");
@@ -410,9 +413,10 @@ test("cancelling search serializes with matchmaking and refetches queue state", 
 
     assert.equal(res.statusCode, 200);
     assert.equal(freshSquad.status, "idle");
-    assert.deepEqual(calls, ["lock", "find", "save", "emit", "dequeue", "release"]);
+    assert.deepEqual(calls, ["lock", "find", "save", "dequeue", "release", "emit"]);
   } finally {
     redlock.acquire = originals.acquire;
+    redlock.using = originals.using;
     Squad.findOne = originals.findOne;
     queueService.removeFromQueue = originals.remove;
     socketService.emitToSquad = originals.emit;
@@ -556,8 +560,8 @@ test("hasIdentityId matches ObjectId-backed relationship arrays", () => {
 test("squad invite and request checks use normalized identity ids", () => {
   const source = require("node:fs").readFileSync(require("node:path").join(__dirname, "../src/controllers/squadController.js"), "utf8");
 
-  assert.equal(source.includes("hasIdentityId(squad.invitedUserIds"), true);
-  assert.equal(source.includes("hasIdentityId(squad.joinRequests"), true);
+  assert.equal(/hasIdentityId\((?:currentS|s)quad\.invitedUserIds/.test(source), true);
+  assert.equal(/hasIdentityId\((?:currentS|s)quad\.joinRequests/.test(source), true);
   assert.equal(source.includes("(squad.invitedUserIds || []).includes(userId)"), false);
   assert.equal(source.includes("(squad.joinRequests || []).some((r) => r.userId === userId)"), false);
 });

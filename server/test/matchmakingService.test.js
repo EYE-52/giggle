@@ -68,6 +68,7 @@ test("minimum online membership uses the configured threshold", () => {
 test("matcher purges an offline seeker before creating an encounter", async () => {
   const originals = {
     acquire: redlock.acquire,
+    using: redlock.using,
     queued: queueService.getQueuedSquadsByRegion,
     remove: queueService.removeFromQueue,
     findOne: Squad.findOne,
@@ -503,6 +504,7 @@ test("asymmetric encounter end leaves an ineligible remaining roster idle", asyn
 test("asymmetric encounter end immediately rematches with the opponent's searching state", async () => {
   const originals = {
     acquire: redlock.acquire,
+    using: redlock.using,
     updateOne: Squad.updateOne,
     updateMany: Squad.updateMany,
     findOne: Squad.findOne,
@@ -518,6 +520,7 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
   const other = {
     squadId: "sq_b",
     status: "in_encounter",
+    currentEncounterId: "enc_rematch",
     searchRegion: "global",
     tags: [],
     reputationScore: 100,
@@ -526,6 +529,7 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
   const disconnecting = {
     squadId: "sq_a",
     status: "in_encounter",
+    currentEncounterId: "enc_rematch",
     members: [{ memberId: "member_a", userId: MATCH_USER_A }],
   };
   const safeUsers = [MATCH_USER_A, MATCH_USER_B].map((_id) => ({
@@ -536,12 +540,21 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
     blockedUserIds: [],
   }));
   const queued = [];
-  let lockAcquires = 0;
-  redlock.acquire = async () => {
-    lockAcquires += 1;
-    return { release: async () => {} };
+  const sessionWrites = [];
+  let lockUses = 0;
+  redlock.acquire = async () => ({ release: async () => {} });
+  redlock.using = async (_resources, _duration, routine) => {
+    lockUses += 1;
+    return routine({ aborted: false });
   };
-  Squad.updateOne = async () => {};
+  Squad.updateOne = async (filter, update) => {
+    const target = filter.squadId === other.squadId ? other : disconnecting;
+    if (filter.currentEncounterId && target.currentEncounterId !== filter.currentEncounterId) {
+      return { matchedCount: 0 };
+    }
+    Object.assign(target, update.$set);
+    return { matchedCount: 1 };
+  };
   Squad.updateMany = async () => {};
   Squad.findOne = async ({ squadId }) => squadId === other.squadId ? other : disconnecting;
   User.find = ({ _id: { $in: ids } }) => {
@@ -552,7 +565,9 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
   queueService.removeFromQueue = async () => {};
   queueService.getQueuedSquadsByRegion = async () => [];
   queueService.getAllQueuedSquads = async () => [];
-  sessionService.setSessionField = async () => {};
+  sessionService.setSessionField = async (squadId, memberId, field, value) => {
+    sessionWrites.push([squadId, memberId, field, value]);
+  };
   socketService.emitToSquad = () => {};
   socketService.closeEncounterRoom = () => {};
   const encounter = {
@@ -566,9 +581,11 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
     await endEncounterAsymmetric({ encounter, disconnectingSquadId: "sq_a" });
     assert.deepEqual(queued, ["sq_b"]);
     assert.equal(other.status, "searching");
-    assert.equal(lockAcquires, 1);
+    assert.equal(lockUses, 1);
+    assert.deepEqual(new Set(sessionWrites.map(([squadId]) => squadId)), new Set(["sq_a", "sq_b"]));
   } finally {
     redlock.acquire = originals.acquire;
+    redlock.using = originals.using;
     Squad.updateOne = originals.updateOne;
     Squad.updateMany = originals.updateMany;
     Squad.findOne = originals.findOne;
@@ -583,38 +600,89 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
   }
 });
 
-test("asymmetric encounter end idles the opponent before a disconnecting-squad write can fail", async () => {
+test("asymmetric encounter teardown stays retryable after its first guarded squad write fails", async () => {
   const originals = {
     updateOne: Squad.updateOne,
+    findOne: Squad.findOne,
+    users: User.find,
+    remove: queueService.removeFromQueue,
+    session: sessionService.setSessionField,
     emit: socketService.emitToSquad,
     close: socketService.closeEncounterRoom,
     add: queueService.addToQueue,
   };
   const writes = [];
   let queued = false;
-  Squad.updateOne = async (filter, update) => {
-    writes.push([filter.squadId, update.$set?.status]);
-    if (filter.squadId === "sq_a") throw new Error("disconnecting write failed");
+  let failFirstWrite = true;
+  let saves = 0;
+  let closes = 0;
+  const other = {
+    squadId: "sq_b",
+    status: "in_encounter",
+    currentEncounterId: "enc_partial",
+    tags: [],
+    members: [{ memberId: "member_b", userId: "missing_user" }],
   };
+  const disconnecting = {
+    squadId: "sq_a",
+    status: "in_encounter",
+    currentEncounterId: "enc_partial",
+    members: [{ memberId: "member_a", userId: MATCH_USER_A }],
+  };
+  Squad.updateOne = async (filter, update) => {
+    writes.push([filter, update]);
+    if (failFirstWrite) {
+      failFirstWrite = false;
+      throw new Error("first guarded write failed");
+    }
+    const squad = filter.squadId === other.squadId ? other : disconnecting;
+    if (!filter.currentEncounterId || squad.currentEncounterId === filter.currentEncounterId) {
+      Object.assign(squad, update.$set);
+      return { matchedCount: 1 };
+    }
+    return { matchedCount: 0 };
+  };
+  Squad.findOne = async ({ squadId }) => squadId === other.squadId ? other : disconnecting;
+  User.find = () => ({ select: async () => [] });
+  queueService.removeFromQueue = async () => {};
+  sessionService.setSessionField = async () => {};
   socketService.emitToSquad = () => {};
-  socketService.closeEncounterRoom = () => {};
+  socketService.closeEncounterRoom = () => { closes += 1; };
   queueService.addToQueue = async () => { queued = true; };
   const encounter = {
     encounterId: "enc_partial",
+    status: "active",
     squadAId: "sq_a",
     squadBId: "sq_b",
-    async save() {},
+    async save() { saves += 1; },
   };
 
   try {
     await assert.rejects(
       () => endEncounterAsymmetric({ encounter, disconnectingSquadId: "sq_a" }),
-      /disconnecting write failed/
+      /first guarded write failed/
     );
-    assert.deepEqual(writes, [["sq_b", "idle"], ["sq_a", "idle"]]);
+    assert.equal(encounter.status, "active");
+    assert.equal(saves, 0);
+    assert.equal(closes, 0);
+
+    await endEncounterAsymmetric({ encounter, disconnectingSquadId: "sq_a" });
+    assert.equal(encounter.status, "ended");
+    assert.equal(saves, 1);
+    assert.equal(closes, 1);
+    assert.equal(other.status, "idle");
+    assert.equal(disconnecting.status, "idle");
+    assert.equal(
+      writes.slice(1, 3).every(([filter]) => filter.currentEncounterId === encounter.encounterId),
+      true
+    );
     assert.equal(queued, false);
   } finally {
     Squad.updateOne = originals.updateOne;
+    Squad.findOne = originals.findOne;
+    User.find = originals.users;
+    queueService.removeFromQueue = originals.remove;
+    sessionService.setSessionField = originals.session;
     socketService.emitToSquad = originals.emit;
     socketService.closeEncounterRoom = originals.close;
     queueService.addToQueue = originals.add;

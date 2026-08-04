@@ -23,10 +23,14 @@ const hasBlockedPair = (userA, userB) => {
   return includesId(userA.blockedUserIds, userBId) || includesId(userB.blockedUserIds, userAId);
 };
 
-const loadBlockState = async (userIds, { User }) => {
+const loadBlockState = async (userIds, { User, session } = {}) => {
   const ids = [...new Set((userIds || []).map(canonicalUserId).filter(Boolean))];
   if (!ids.length) return new Map();
-  const users = await User.find({ _id: { $in: ids } }, "_id blockedUserIds").lean();
+  const users = await User.find(
+    { _id: { $in: ids } },
+    "_id blockedUserIds",
+    session ? { session } : undefined
+  ).lean();
   return new Map(users.map((user) => [canonicalUserId(user._id), user]));
 };
 

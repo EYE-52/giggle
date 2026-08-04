@@ -294,6 +294,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
   const originalDeleteBetween = notificationModule.deleteNotificationsBetweenUsers;
   const originalEmit = notificationModule.emitNotificationsChanged;
   const originalAcquire = redlock.acquire;
+  const originalUsing = redlock.using;
   const originalCleanup = squadAccess.removeBlockedIdentityFromSharedSquads;
   const writes = [];
   const events = [];
@@ -305,9 +306,12 @@ test("block atomically records canonical blocks and cleans legacy relationship i
   User.updateOne = async (...args) => { writes.push(["one", ...args]); return { modifiedCount: 1 }; };
   User.updateMany = async (...args) => { writes.push(["many", ...args]); return { modifiedCount: 2 }; };
   Squad.find = async () => [];
-  redlock.acquire = async (resources) => {
-    events.push(["lock", resources]);
-    return { release: async () => { events.push(["release"]); } };
+  redlock.acquire = async () => ({ release: async () => {} });
+  redlock.using = async (resources, duration, routine) => {
+    events.push(["using", resources, duration]);
+    const result = await routine({ aborted: false });
+    events.push(["release"]);
+    return result;
   };
   mongoose.connection.transaction = async (work) => {
     transactionCount += 1;
@@ -330,7 +334,7 @@ test("block atomically records canonical blocks and cleans legacy relationship i
     assert.deepEqual(res.body.data, { status: "blocked", userIds: [targetA, targetB] });
     assert.equal(transactionCount, 1);
     assert.deepEqual(events, [
-      ["lock", ["lock:matchmaking"]],
+      ["using", ["lock:matchmaking"], 5000],
       ["transaction"],
       ["release"],
       ["cleanup"],
@@ -370,7 +374,60 @@ test("block atomically records canonical blocks and cleans legacy relationship i
     notificationModule.deleteNotificationsBetweenUsers = originalDeleteBetween;
     notificationModule.emitNotificationsChanged = originalEmit;
     redlock.acquire = originalAcquire;
+    redlock.using = originalUsing;
     squadAccess.removeBlockedIdentityFromSharedSquads = originalCleanup;
+    delete require.cache[require.resolve("../src/controllers/friendsController")];
+  }
+});
+
+test("a committed block still cleans shared squads before a lock-release failure response", async () => {
+  const [myId, targetId] = IDS;
+  const originals = {
+    find: User.find,
+    updateOne: User.updateOne,
+    updateMany: User.updateMany,
+    transaction: mongoose.connection.transaction,
+    deleteBetween: notificationModule.deleteNotificationsBetweenUsers,
+    emit: notificationModule.emitNotificationsChanged,
+    acquire: redlock.acquire,
+    using: redlock.using,
+    cleanup: squadAccess.removeBlockedIdentityFromSharedSquads,
+  };
+  const events = [];
+  User.find = () => ({ lean: async () => [{ _id: targetId }] });
+  User.updateOne = async () => { events.push("write:blocker"); };
+  User.updateMany = async () => { events.push("write:targets"); };
+  mongoose.connection.transaction = async (routine) => {
+    const result = await routine({ transaction: true });
+    events.push("commit");
+    return result;
+  };
+  notificationModule.deleteNotificationsBetweenUsers = async () => {};
+  notificationModule.emitNotificationsChanged = () => {};
+  redlock.acquire = async () => ({ release: async () => { throw new Error("release failed"); } });
+  redlock.using = async (_resources, _duration, routine) => {
+    await routine({ aborted: false });
+    throw new Error("release failed");
+  };
+  squadAccess.removeBlockedIdentityFromSharedSquads = async () => { events.push("cleanup"); };
+
+  try {
+    const { blockUsers } = controller();
+    const res = response();
+    await blockUsers({ user: { userId: myId }, body: { userIds: [targetId] } }, res);
+
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(events, ["write:blocker", "write:targets", "commit", "cleanup"]);
+  } finally {
+    User.find = originals.find;
+    User.updateOne = originals.updateOne;
+    User.updateMany = originals.updateMany;
+    mongoose.connection.transaction = originals.transaction;
+    notificationModule.deleteNotificationsBetweenUsers = originals.deleteBetween;
+    notificationModule.emitNotificationsChanged = originals.emit;
+    redlock.acquire = originals.acquire;
+    redlock.using = originals.using;
+    squadAccess.removeBlockedIdentityFromSharedSquads = originals.cleanup;
     delete require.cache[require.resolve("../src/controllers/friendsController")];
   }
 });
@@ -605,25 +662,64 @@ test("blocking removes the blocker from every shared squad and clears stale squa
   }
 });
 
-test("shared-squad cleanup uses the member index before its rare legacy scan fallback", async () => {
+test("shared-squad cleanup unions indexed and mixed-case legacy matches", async () => {
   const [blockerId, targetId] = IDS;
-  const originalFind = Squad.find;
+  const mixedCase = (id) => [...id].map((char, index) => index % 2 ? char.toUpperCase() : char).join("");
+  const originals = {
+    find: Squad.find,
+    clear: sessionService.clearMemberSession,
+    revoke: socketService.revokeUserRealtimeAccess,
+    emitUser: socketService.emitToUser,
+    emitSquad: socketService.emitToSquad,
+  };
   const queries = [];
+  const canonical = {
+    squadId: "canonical_only",
+    status: "idle",
+    members: [{ memberId: "canonical_blocker", userId: blockerId, role: "leader" }],
+    invitedUserIds: [],
+    joinRequests: [],
+    async save() {},
+  };
+  const legacyShared = {
+    squadId: "legacy_shared",
+    status: "idle",
+    members: [
+      { memberId: "legacy_blocker", userId: mixedCase(blockerId), role: "leader" },
+      { memberId: "legacy_target", userId: mixedCase(targetId), role: "member" },
+    ],
+    invitedUserIds: [],
+    joinRequests: [],
+    async save() {},
+  };
   Squad.find = async (query) => {
     queries.push(query);
-    return [];
+    return queries.length === 1 ? [canonical] : [canonical, legacyShared];
   };
+  sessionService.clearMemberSession = async () => {};
+  socketService.revokeUserRealtimeAccess = () => {};
+  socketService.emitToUser = () => {};
+  socketService.emitToSquad = () => {};
 
   try {
-    await squadAccess.removeBlockedIdentityFromSharedSquads({ blockerId, blockedUserIds: [targetId] });
+    const result = await squadAccess.removeBlockedIdentityFromSharedSquads({ blockerId, blockedUserIds: [targetId] });
 
     assert.deepEqual(queries[0], {
       "members.userId": { $in: [blockerId, targetId] },
     });
     assert.equal(queries.length, 2);
     assert.equal(queries[1]["members.userId"].$in.every((value) => value instanceof RegExp), true);
+    assert.equal(result.removedMemberships, 1);
+    assert.deepEqual(
+      legacyShared.members.map((member) => service().canonicalUserId(member.userId)),
+      [targetId]
+    );
   } finally {
-    Squad.find = originalFind;
+    Squad.find = originals.find;
+    sessionService.clearMemberSession = originals.clear;
+    socketService.revokeUserRealtimeAccess = originals.revoke;
+    socketService.emitToUser = originals.emitUser;
+    socketService.emitToSquad = originals.emitSquad;
   }
 });
 

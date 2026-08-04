@@ -180,7 +180,7 @@ const removeSquadMember = async (squad, memberIndex) => {
   if (wasSearching) await queueService.removeFromQueue(squad.squadId);
 
   if (willDeleteSquad && encounterId) {
-    const encounter = await Encounter.findOne({ encounterId, status: { $ne: "ended" } });
+    const encounter = await Encounter.findOne({ encounterId });
     if (encounter) {
       const { endEncounterAsymmetric } = require("../services/matchmakingService");
       await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });
@@ -216,13 +216,17 @@ const removeBlockedIdentityFromSharedSquads = async ({ blockerId, blockedUserIds
   }
 
   const participantIds = [blocker, ...targets];
-  let squads = await Squad.find({ "members.userId": { $in: participantIds } });
-  if (squads.length === 0) {
-    // ponytail: this regex scan exists only for pre-canonical mixed-case IDs;
-    // remove it after those legacy squad rows are migrated.
-    const participantMatchers = participantIds.map(relationalIdMatcher);
-    squads = await Squad.find({ "members.userId": { $in: participantMatchers } });
+  const exactSquads = await Squad.find({ "members.userId": { $in: participantIds } });
+  // ponytail: union this scan with the indexed results until all pre-canonical
+  // mixed-case member IDs are migrated, then delete the regex query.
+  const participantMatchers = participantIds.map(relationalIdMatcher);
+  const legacySquads = await Squad.find({ "members.userId": { $in: participantMatchers } });
+  const squadsById = new Map();
+  for (const squad of [...exactSquads, ...legacySquads]) {
+    const key = squad?._id?.toString?.() || squad?.squadId;
+    if (key) squadsById.set(key, squad);
   }
+  const squads = [...squadsById.values()];
   let removedMemberships = 0;
 
   for (const squad of squads) {

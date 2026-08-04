@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
 const { after, test } = require("node:test");
+const mongoose = require("mongoose");
 
 const User = require("../src/models/User");
 const { Squad } = require("../src/models/Squad");
@@ -15,6 +16,7 @@ const {
   createSquadHandler,
   discoverSquadsHandler,
   getMySquadHandler,
+  getMySquadsHandler,
   getJoinRequestsHandler,
   getSquadHandler,
   getSquadPreviewHandler,
@@ -314,7 +316,7 @@ test("random join skips a blocked squad and admits the user only to a safe candi
   }
 });
 
-test("a block racing a request or invite removes the just-written artifact", async () => {
+test("request and invite final block decisions run under the auto-extending lock before writes", async () => {
   const requesterId = "507f1f77bcf86cd799439011";
   const leaderId = "507f1f77bcf86cd799439012";
   const originals = {
@@ -323,15 +325,19 @@ test("a block racing a request or invite removes the just-written artifact", asy
     find: User.find,
     create: Notification.create,
     deleteMany: Notification.deleteMany,
+    transaction: mongoose.connection.transaction,
+    using: redlock.using,
+    emitSquad: socketService.emitToSquad,
   };
   let blockReads = 0;
+  let blockOnRead = 2;
   let events = [];
   User.find = () => ({
     lean: async () => {
       blockReads += 1;
       events.push(`block-read:${blockReads}`);
       return [
-        { _id: requesterId, blockedUserIds: blockReads > 1 ? [leaderId] : [] },
+        { _id: requesterId, blockedUserIds: blockReads >= blockOnRead ? [leaderId] : [] },
         { _id: leaderId, blockedUserIds: [] },
       ];
     },
@@ -344,14 +350,19 @@ test("a block racing a request or invite removes the just-written artifact", asy
       ageVerified: true,
     }),
   });
-  Notification.create = async () => {
-    events.push("notification:create");
-    return { _id: "507f1f77bcf86cd799439099" };
+  Notification.create = async () => assert.fail("blocked artifact must not be persisted");
+  Notification.deleteMany = async () => assert.fail("blocked artifact must not need compensation");
+  mongoose.connection.transaction = async (routine) => {
+    events.push("transaction");
+    return routine({ transaction: true });
   };
-  Notification.deleteMany = async () => {
-    events.push("notification:delete");
-    return { deletedCount: 1 };
+  redlock.using = async (resources, duration, routine) => {
+    events.push(["using:start", resources, duration]);
+    const result = await routine({ aborted: false });
+    events.push("using:end");
+    return result;
   };
+  socketService.emitToSquad = () => { events.push("squad:emit"); };
 
   try {
     const requestSquad = {
@@ -374,10 +385,16 @@ test("a block racing a request or invite removes the just-written artifact", asy
     }, res);
     assert.equal(res.statusCode, 403);
     assert.deepEqual(requestSquad.joinRequests, []);
-    assert.ok(events.indexOf("notification:create") < events.indexOf("block-read:2"));
-    assert.ok(events.indexOf("block-read:2") < events.indexOf("notification:delete"));
+    assert.deepEqual(events, [
+      "block-read:1",
+      ["using:start", ["lock:matchmaking"], 5000],
+      "transaction",
+      "block-read:2",
+      "using:end",
+    ]);
 
     blockReads = 0;
+    blockOnRead = 1;
     events = [];
     const inviteSquad = {
       squadId: "invite_squad",
@@ -396,14 +413,90 @@ test("a block racing a request or invite removes the just-written artifact", asy
     }, res);
     assert.equal(res.statusCode, 403);
     assert.deepEqual(inviteSquad.invitedUserIds, []);
-    assert.ok(events.indexOf("notification:create") < events.indexOf("block-read:2"));
-    assert.ok(events.indexOf("block-read:2") < events.indexOf("notification:delete"));
+    assert.deepEqual(events, [
+      ["using:start", ["lock:matchmaking"], 5000],
+      "transaction",
+      "block-read:1",
+      "using:end",
+    ]);
   } finally {
     Squad.findOne = originals.findOne;
     User.findById = originals.findById;
     User.find = originals.find;
     Notification.create = originals.create;
     Notification.deleteMany = originals.deleteMany;
+    mongoose.connection.transaction = originals.transaction;
+    redlock.using = originals.using;
+    socketService.emitToSquad = originals.emitSquad;
+  }
+});
+
+test("notification persistence failure rolls back a join request without realtime emits", async () => {
+  const requesterId = "507f1f77bcf86cd799439011";
+  const leaderId = "507f1f77bcf86cd799439012";
+  const originals = {
+    findOne: Squad.findOne,
+    findById: User.findById,
+    find: User.find,
+    create: Notification.create,
+    transaction: mongoose.connection.transaction,
+    using: redlock.using,
+    emitSquad: socketService.emitToSquad,
+    emitUser: socketService.emitToUser,
+  };
+  const squad = {
+    squadId: "request_atomic",
+    squadCode: "ABC-123",
+    squadName: "Atomic request",
+    status: "idle",
+    joinPolicy: "request",
+    members: [{ memberId: "leader", userId: leaderId, role: "leader" }],
+    invitedUserIds: [],
+    joinRequests: [],
+    async save() {},
+  };
+  const before = [...squad.joinRequests];
+  let emits = 0;
+  Squad.findOne = async () => squad;
+  User.findById = async () => ({ _id: requesterId });
+  User.find = () => ({
+    lean: async () => [
+      { _id: requesterId, blockedUserIds: [] },
+      { _id: leaderId, blockedUserIds: [] },
+    ],
+  });
+  Notification.create = async () => { throw new Error("notification write failed"); };
+  mongoose.connection.transaction = async (routine) => {
+    try {
+      return await routine({ transaction: true });
+    } catch (error) {
+      squad.joinRequests = [...before];
+      throw error;
+    }
+  };
+  redlock.using = async (_resources, _duration, routine) => routine({ aborted: false });
+  socketService.emitToSquad = () => { emits += 1; };
+  socketService.emitToUser = () => { emits += 1; };
+
+  try {
+    const res = createResponse();
+    await joinSquadHandler({
+      body: { squadCode: "ABC-123" },
+      params: {},
+      user: { userId: requesterId, name: "Requester" },
+    }, res);
+    assert.equal(res.statusCode, 500);
+    assert.deepEqual(squad.joinRequests, []);
+    assert.equal(emits, 0);
+  } finally {
+    Squad.findOne = originals.findOne;
+    User.findById = originals.findById;
+    User.find = originals.find;
+    Notification.create = originals.create;
+    mongoose.connection.transaction = originals.transaction;
+    redlock.using = originals.using;
+    socketService.emitToSquad = originals.emitSquad;
+    socketService.emitToUser = originals.emitUser;
   }
 });
 
@@ -413,6 +506,7 @@ test("member squad reads fail closed while a blocked shared roster still exists"
   const originals = {
     squadFind: Squad.find,
     userFind: User.find,
+    userFindById: User.findById,
     session: sessionService.getSquadSession,
   };
   const squad = {
@@ -433,6 +527,7 @@ test("member squad reads fail closed while a blocked shared roster still exists"
       { _id: blockedId, blockedUserIds: [] },
     ],
   });
+  User.findById = async () => ({ isPremium: false });
   let sessionReads = 0;
   sessionService.getSquadSession = async () => { sessionReads += 1; return {}; };
 
@@ -447,9 +542,15 @@ test("member squad reads fail closed while a blocked shared roster still exists"
     assert.equal(res.statusCode, 403);
     assert.equal(res.body.error.code, "INTERACTION_BLOCKED");
     assert.equal(sessionReads, 0);
+
+    res = createResponse();
+    await getMySquadsHandler({ user: { userId: viewerId } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.data.squads, []);
   } finally {
     Squad.find = originals.squadFind;
     User.find = originals.userFind;
+    User.findById = originals.userFindById;
     sessionService.getSquadSession = originals.session;
   }
 });
@@ -457,7 +558,14 @@ test("member squad reads fail closed while a blocked shared roster still exists"
 test("blocked targets cannot be approved or invited into a squad", async () => {
   const leaderId = "507f1f77bcf86cd799439011";
   const targetId = "507f1f77bcf86cd799439012";
-  const originals = { findById: User.findById, find: User.find };
+  const originals = {
+    findById: User.findById,
+    find: User.find,
+    squadFindOne: Squad.findOne,
+    transaction: mongoose.connection.transaction,
+    using: redlock.using,
+  };
+  let currentSquad;
   User.findById = () => ({
     select: async () => ({
       _id: targetId,
@@ -480,6 +588,9 @@ test("blocked targets cannot be approved or invited into a squad", async () => {
       { _id: targetId, blockedUserIds: [leaderId] },
     ],
   });
+  Squad.findOne = async () => currentSquad;
+  mongoose.connection.transaction = (routine) => routine({ transaction: true });
+  redlock.using = (_resources, _duration, routine) => routine({ aborted: false });
 
   try {
     for (const [handler, request] of [
@@ -498,6 +609,7 @@ test("blocked targets cannot be approved or invited into a squad", async () => {
         joinRequests: [{ userId: targetId, name: "Target" }],
         async save() { saves += 1; },
       };
+      currentSquad = squad;
       const res = createResponse();
       await handler({ ...request, squadAccess: { squad } }, res);
       assert.equal(res.statusCode, 403);
@@ -509,6 +621,9 @@ test("blocked targets cannot be approved or invited into a squad", async () => {
   } finally {
     User.findById = originals.findById;
     User.find = originals.find;
+    Squad.findOne = originals.squadFindOne;
+    mongoose.connection.transaction = originals.transaction;
+    redlock.using = originals.using;
   }
 });
 
@@ -654,7 +769,7 @@ test("squad invite endpoints reject nonexistent user ids", () => {
   assert.equal(leaderInviteHandler.includes('code: "INVITE_USER_NOT_FOUND"'), true);
   assert.equal(leaderInviteHandler.indexOf("INVITE_USER_NOT_FOUND") < leaderInviteHandler.indexOf("squad.invitedUserIds.push(targetUserId)"), true);
   assert.equal(memberInviteHandler.includes('code: "INVITE_USER_NOT_FOUND"'), true);
-  assert.equal(memberInviteHandler.indexOf("INVITE_USER_NOT_FOUND") < memberInviteHandler.indexOf("squad.invitedUserIds.push(targetUserId)"), true);
+  assert.equal(memberInviteHandler.indexOf("INVITE_USER_NOT_FOUND") < memberInviteHandler.indexOf("currentSquad.invitedUserIds.push(targetUserId)"), true);
 });
 
 test("joining a squad resolves any matching invite notification", () => {
@@ -663,7 +778,7 @@ test("joining a squad resolves any matching invite notification", () => {
 
   assert.equal(controller.includes("const resolveSquadInviteNotification = async"), true);
   assert.equal(joinHandler.includes("await resolveSquadInviteNotification(userId, squad.squadId);"), true);
-  assert.equal((joinHandler.match(/resolveSquadInviteNotification\(userId, squad\.squadId\)/g) ?? []).length, 3);
+  assert.equal((joinHandler.match(/resolveSquadInviteNotification\(userId,/g) ?? []).length, 3);
 });
 
 test("join approval rejects a missing target without mutating the request or roster", async () => {
@@ -871,13 +986,16 @@ for (const [name, handler, req] of [
     const originalFindById = User.findById;
     const originalFind = User.find;
     const originalCreate = Notification.create;
+    const originalSquadFindOne = Squad.findOne;
+    const originalTransaction = mongoose.connection.transaction;
+    const originalUsing = redlock.using;
     let saves = 0;
     const squad = {
       squadId: "sq_invite",
       squadName: "Invite squad",
       squadCode: "ABC-123",
       invitedUserIds: [],
-      members: [],
+      members: [{ memberId: "leader", userId: "507f1f77bcf86cd799439011", role: "leader" }],
       async save() { saves += 1; },
     };
     User.findById = () => ({
@@ -889,9 +1007,22 @@ for (const [name, handler, req] of [
       }),
     });
     User.find = () => ({
-      lean: async () => [{ _id: req.body.userId, blockedUserIds: [] }],
+      lean: async () => [
+        { _id: "507f1f77bcf86cd799439011", blockedUserIds: [] },
+        { _id: req.body.userId, blockedUserIds: [] },
+      ],
     });
-    Notification.create = async () => ({ _id: "507f1f77bcf86cd799439099" });
+    Notification.create = async (payload) => {
+      const doc = {
+        _id: "507f1f77bcf86cd799439099",
+        userId: req.body.userId,
+        type: "squad_invite",
+      };
+      return Array.isArray(payload) ? [doc] : doc;
+    };
+    Squad.findOne = async () => squad;
+    mongoose.connection.transaction = (routine) => routine({ transaction: true });
+    redlock.using = (_resources, _duration, routine) => routine({ aborted: false });
 
     try {
       const res = createResponse();
@@ -904,6 +1035,9 @@ for (const [name, handler, req] of [
       User.findById = originalFindById;
       User.find = originalFind;
       Notification.create = originalCreate;
+      Squad.findOne = originalSquadFindOne;
+      mongoose.connection.transaction = originalTransaction;
+      redlock.using = originalUsing;
     }
   });
 }
@@ -911,6 +1045,7 @@ for (const [name, handler, req] of [
 async function runSearchWithUsers(users, tags = ["gaming"], members) {
   const originals = {
     acquire: redlock.acquire,
+    using: redlock.using,
     findOne: Squad.findOne,
     find: User.find,
     findById: User.findById,
@@ -934,6 +1069,7 @@ async function runSearchWithUsers(users, tags = ["gaming"], members) {
   };
   let queued = 0;
   redlock.acquire = async () => ({ release: async () => {} });
+  redlock.using = (_resources, _duration, routine) => routine({ aborted: false });
   Squad.findOne = async () => squad;
   User.find = () => ({
     select: async () => users,
@@ -955,6 +1091,7 @@ async function runSearchWithUsers(users, tags = ["gaming"], members) {
     return { res, queued };
   } finally {
     redlock.acquire = originals.acquire;
+    redlock.using = originals.using;
     Squad.findOne = originals.findOne;
     User.find = originals.find;
     User.findById = originals.findById;

@@ -2,7 +2,7 @@ const { Squad } = require("../models/Squad");
 const { Encounter } = require("../models/Encounter");
 const User = require("../models/User");
 const { generateId } = require("../utils/idGenerator");
-const { redlock } = require("../config/redisConfig");
+const { withMatchmakingLock } = require("../config/redisConfig");
 const queueService = require("./queueService");
 const socketService = require("./socketService");
 const sessionService = require("./sessionService");
@@ -199,12 +199,9 @@ const tryMatchmakeForSquad = async (squad) => {
 
   logMatchmakingDebug(`[Matchmaking] Starting search for squad: ${squad.squadId} (Region: ${squad.searchRegion})`);
 
-  // Use Redlock to prevent double-matching
-  let lock;
   try {
-    lock = await redlock.acquire([`lock:matchmaking`], 5000);
-
-    let freshSquad = await Squad.findOne({ squadId: squad.squadId });
+    return await withMatchmakingLock(async (signal) => {
+      let freshSquad = await Squad.findOne({ squadId: squad.squadId });
     if (!freshSquad) {
       console.warn(`[Matchmaking] Seeker squad ${squad.squadId} no longer exists. Purging.`);
       await queueService.removeFromQueue(squad.squadId);
@@ -351,20 +348,18 @@ const tryMatchmakeForSquad = async (squad) => {
         continue;
       }
 
+      if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
       logMatchmakingDebug(`[Matchmaking] Success! Creating encounter for ${freshSquad.squadId} and ${freshCandidate.squadId}`);
       return await createEncounterForSquads(freshSquad, freshCandidate);
     }
 
     return null; // No valid candidates found in this cycle
+    });
   } catch (err) {
     if (err.name !== 'ExecutionError') {
       console.error("[Matchmaking] Error:", err);
     }
     return null;
-  } finally {
-    if (lock) {
-      await lock.release();
-    }
   }
 };
 
@@ -422,7 +417,7 @@ const getEncounterById = async (encounterId) => {
   return Encounter.findOne({ encounterId });
 };
 
-const ackEncounterForSquad = async ({ encounter, squadId }) => {
+const ackEncounterForSquad = async ({ encounter, squadId, emitRealtime = true }) => {
   if (!encounter) {
     return { error: { status: 404, code: "ENCOUNTER_NOT_FOUND", message: "Encounter not found" } };
   }
@@ -446,8 +441,11 @@ const ackEncounterForSquad = async ({ encounter, squadId }) => {
     encounter.status = "ended";
     encounter.endedAt = new Date();
     await encounter.save();
-    socketService.closeEncounterRoom(encounter.encounterId);
-    return { error: { status: 409, code: "ENCOUNTER_EXPIRED", message: "Encounter handoff expired" } };
+    if (emitRealtime) socketService.closeEncounterRoom(encounter.encounterId);
+    return {
+      error: { status: 409, code: "ENCOUNTER_EXPIRED", message: "Encounter handoff expired" },
+      realtime: { close: true },
+    };
   }
 
   encounter.ackBySquad.set(squadId, true);
@@ -466,9 +464,10 @@ const ackEncounterForSquad = async ({ encounter, squadId }) => {
       }
     );
 
-    // Notify squads that encounter is active
-    socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ACTIVE", { encounterId: encounter.encounterId });
-    socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ACTIVE", { encounterId: encounter.encounterId });
+    if (emitRealtime) {
+      socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ACTIVE", { encounterId: encounter.encounterId });
+      socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ACTIVE", { encounterId: encounter.encounterId });
+    }
   }
 
   await encounter.save();
@@ -477,6 +476,7 @@ const ackEncounterForSquad = async ({ encounter, squadId }) => {
     acknowledged: true,
     allAcked,
     encounter,
+    realtime: allAcked ? { activate: true } : null,
   };
 };
 
@@ -584,20 +584,7 @@ const endEncounterToIdle = async ({ encounter }) => {
 
 const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   const otherSquadId = encounter.squadAId === disconnectingSquadId ? encounter.squadBId : encounter.squadAId;
-  
-  encounter.status = "ended";
-  encounter.endedAt = new Date();
-  await encounter.save();
-
-  // Tell both clients who ended the call; the remaining squad is requeued below.
-  const endedPayload = {
-    encounterId: encounter.encounterId,
-    reason: "squad_disconnected",
-    endedBySquadId: disconnectingSquadId,
-  };
-  socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", endedPayload);
-  socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", endedPayload);
-  socketService.closeEncounterRoom(encounter.encounterId);
+  const encounterWasEnded = encounter.status === "ended";
 
   const idleState = {
     status: "idle",
@@ -608,21 +595,38 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
     "members.$[].inEncounterVideo": false,
   };
 
-  // Put the remaining squad in the safe state first. If a later Mongo write
-  // fails, it stays idle rather than pointing at an ended encounter. The only
-  // recovery boundary left is failure of this first Mongo write itself; the
-  // room is already closed and callers fail closed, without a background job.
-  await Squad.updateOne(
-    { squadId: otherSquadId },
+  // Both resets are guarded by the old encounter id. A failed write leaves the
+  // encounter retryable; a later retry cannot clobber a squad that has already
+  // joined a newer encounter.
+  const otherReset = await Squad.updateOne(
+    { squadId: otherSquadId, currentEncounterId: encounter.encounterId },
     { $set: idleState }
   );
   await Squad.updateOne(
-    { squadId: disconnectingSquadId },
+    { squadId: disconnectingSquadId, currentEncounterId: encounter.encounterId },
     { $set: idleState }
   );
 
+  if (!encounterWasEnded) {
+    encounter.status = "ended";
+    encounter.endedAt = new Date();
+    await encounter.save();
+  }
+
+  // Notify only after both durable squad transitions and the encounter write.
+  const endedPayload = {
+    encounterId: encounter.encounterId,
+    reason: "squad_disconnected",
+    endedBySquadId: disconnectingSquadId,
+  };
+  socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", endedPayload);
+  socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", endedPayload);
+  socketService.closeEncounterRoom(encounter.encounterId);
+
   const otherSquad = await Squad.findOne({ squadId: otherSquadId });
-  if (otherSquad) {
+  const otherWasResetNow = (otherReset?.matchedCount ?? otherReset?.n ?? 0) > 0;
+  const retryingPartialReset = !encounterWasEnded && otherSquad?.status === "idle" && !otherSquad.currentEncounterId;
+  if ((otherWasResetNow || retryingPartialReset) && otherSquad?.status === "idle" && !otherSquad.currentEncounterId) {
     try {
       const canRequeue =
         !(otherSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&
@@ -632,28 +636,30 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
         await queueService.removeFromQueue(otherSquadId);
       } else {
         const now = new Date();
-        await Squad.updateOne(
-          { squadId: otherSquadId },
+        const promoted = await Squad.updateOne(
+          { squadId: otherSquadId, status: "idle", currentEncounterId: null },
           { $set: { ...idleState, status: "searching", searchQueuedAt: now } }
         );
-        otherSquad.status = "searching";
-        otherSquad.searchQueuedAt = now;
-        otherSquad.currentEncounterId = null;
-        otherSquad.opponentSquadId = null;
-        otherSquad.matchedAt = null;
-        await queueService.addToQueue(
-          otherSquad.squadId,
-          getSquadSize(otherSquad),
-          otherSquad.searchRegion,
-          otherSquad.tags,
-          otherSquad.reputationScore
-        );
-        // Sync Redis for other squad
-        for (const m of otherSquad.members) {
-          await sessionService.setSessionField(otherSquadId, m.memberId, 'inEncounterVideo', false);
+        if ((promoted?.matchedCount ?? promoted?.n ?? 1) > 0) {
+          otherSquad.status = "searching";
+          otherSquad.searchQueuedAt = now;
+          otherSquad.currentEncounterId = null;
+          otherSquad.opponentSquadId = null;
+          otherSquad.matchedAt = null;
+          await queueService.addToQueue(
+            otherSquad.squadId,
+            getSquadSize(otherSquad),
+            otherSquad.searchRegion,
+            otherSquad.tags,
+            otherSquad.reputationScore
+          );
+          // Sync Redis for other squad
+          for (const m of otherSquad.members) {
+            await sessionService.setSessionField(otherSquadId, m.memberId, 'inEncounterVideo', false);
+          }
+          // Start matching for them immediately
+          await tryMatchmakeForSquad(otherSquad);
         }
-        // Start matching for them immediately
-        await tryMatchmakeForSquad(otherSquad);
       }
     } catch (error) {
       await rollbackSquadsToIdle([otherSquadId]);
@@ -661,11 +667,15 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
     }
   }
 
-  // Sync Redis for disconnecting squad
   const disconnectingSquad = await Squad.findOne({ squadId: disconnectingSquadId });
   if (disconnectingSquad) {
-    for (const m of disconnectingSquad.members) {
-      await sessionService.setSessionField(disconnectingSquadId, m.memberId, 'inEncounterVideo', false);
+    for (const member of disconnectingSquad.members) {
+      await sessionService.setSessionField(
+        disconnectingSquadId,
+        member.memberId,
+        "inEncounterVideo",
+        false
+      );
     }
   }
 };

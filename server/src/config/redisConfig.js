@@ -52,9 +52,26 @@ const redlock = new Redlock(
   }
 );
 
+const MATCHMAKING_LOCK_RESOURCE = "lock:matchmaking";
+const MATCHMAKING_LOCK_DURATION_MS = 5000;
+
+const withMatchmakingLock = (routine) =>
+  redlock.using(
+    [MATCHMAKING_LOCK_RESOURCE],
+    MATCHMAKING_LOCK_DURATION_MS,
+    async (signal) => {
+      const result = await routine(signal);
+      if (signal.aborted) {
+        throw signal.error || new Error("Matchmaking lock was lost");
+      }
+      return result;
+    }
+  );
+
 module.exports = {
   redis,
   pubClient,
   subClient,
   redlock,
+  withMatchmakingLock,
 };
