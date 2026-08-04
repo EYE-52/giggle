@@ -179,14 +179,41 @@ test("account export maps identity data explicitly without internal or third-par
   }
 });
 
-function createDeletionDependencies(failStage = "") {
+test("account export responses are private and never stored by caches", async () => {
+  const { exportAccountHandler } = require(ACCOUNT_CONTROLLER_PATH);
+  const User = require("../src/models/User");
+  const originalFindById = User.findById;
+  const headers = {};
+  const res = {
+    statusCode: 200,
+    set(name, value) { headers[name.toLowerCase()] = value; return this; },
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; },
+  };
+  User.findById = async () => null;
+
+  try {
+    await exportAccountHandler({ user: { userId: USER_ID } }, res);
+    assert.equal(headers["cache-control"], "private, no-store");
+    assert.equal(res.statusCode, 404);
+  } finally {
+    User.findById = originalFindById;
+  }
+});
+
+function createDeletionDependencies(failStage = "", abortStage = "") {
   const events = [];
   let deleted = false;
   let activeFailure = failStage;
+  let lockSignal = null;
   let userUpdateCalls = 0;
   let reportUpdateCalls = 0;
   const fail = (stage) => {
     events.push(stage);
+    if (lockSignal && abortStage === stage) {
+      lockSignal.aborted = true;
+      lockSignal.error = new Error(`${stage} lost the account lock`);
+    }
     if (activeFailure === stage) throw new Error(`${stage} failed`);
   };
   const pendingUser = { _id: USER_ID, deletionStatus: "pending", referredBy: REFERRER_ID };
@@ -226,7 +253,10 @@ function createDeletionDependencies(failStage = "") {
         return [{ squadId: "sq_1", members: [{ userId: USER_ID, memberId: "member-1" }] }];
       },
     },
-    removeSquadMember: async () => fail("member-removal"),
+    removeSquadMember: async (squad, index) => {
+      fail("member-removal");
+      squad.members.splice(index, 1);
+    },
     Notification: { deleteMany: async () => fail("notifications") },
     SafetyReport: {
       updateMany: async () => {
@@ -238,8 +268,15 @@ function createDeletionDependencies(failStage = "") {
       using: async (resources, _duration, routine) => {
         events.push("lock");
         assert.deepEqual(resources, [`lock:account-delete:${USER_ID}`]);
-        return routine({ aborted: false });
+        lockSignal = { aborted: false };
+        return routine(lockSignal);
       },
+    },
+    withMatchmakingLock: async (routine) => {
+      events.push("matchmaking-lock:start");
+      const result = await routine({ aborted: false });
+      events.push("matchmaking-lock:end");
+      return result;
     },
     disconnectUserSockets: () => fail("disconnect"),
     logger: { error() {} },
@@ -259,10 +296,28 @@ test("account deletion stages access revocation before cleanup and is safe to re
   const state = createDeletionDependencies();
 
   assert.deepEqual(await requestAccountDeletion(USER_ID, state.deps), { status: "deleted" });
-  assert.equal(state.events[0], "stage");
-  assert.equal(state.events[1], "disconnect");
+  assert.deepEqual(state.events.slice(0, 4), [
+    "matchmaking-lock:start",
+    "stage",
+    "matchmaking-lock:end",
+    "disconnect",
+  ]);
   assert.equal(state.wasDeleted(), true);
   assert.deepEqual(await requestAccountDeletion(USER_ID, state.deps), { status: "deleted" });
+});
+
+test("account deletion serializes access revocation with matchmaking and cleans up after releasing it", async () => {
+  const { requestAccountDeletion } = require(ACCOUNT_DELETION_PATH);
+  const state = createDeletionDependencies();
+
+  assert.deepEqual(await requestAccountDeletion(USER_ID, state.deps), { status: "deleted" });
+  assert.deepEqual(state.events.slice(0, 5), [
+    "matchmaking-lock:start",
+    "stage",
+    "matchmaking-lock:end",
+    "disconnect",
+    "lock",
+  ]);
 });
 
 test("account deletion canonicalizes identity and lock keys", async () => {
@@ -301,6 +356,52 @@ test("pending cleanup resumes after every stage failure and deletes the User las
     assert.equal(state.wasDeleted(), true, `${stage} retry did not delete the User`);
     assert.equal(state.events.at(-1), "user-delete", `${stage} did work after deleting the User`);
   }
+});
+
+test("account deletion stops between destructive stages when its account lock is lost", async () => {
+  const { resumeAccountDeletion } = require(ACCOUNT_DELETION_PATH);
+  const stages = [
+    "user-graph",
+    "referral-links",
+    "referral-count",
+    "referrer-update",
+    "squad-pending",
+    "squad-memberships",
+    "member-removal",
+    "notifications",
+    "reporter-pseudonym",
+    "report-target-removal",
+  ];
+
+  for (const stage of stages) {
+    const state = createDeletionDependencies("", stage);
+    assert.deepEqual(await resumeAccountDeletion(USER_ID, state.deps), { status: "pending" }, stage);
+    assert.equal(state.wasDeleted(), false, `${stage} deleted the User after lock loss`);
+    assert.equal(state.events.at(-1), stage, `${stage} allowed another cleanup mutation`);
+  }
+});
+
+test("account deletion removes every legacy duplicate membership before deleting the User", async () => {
+  const { resumeAccountDeletion } = require(ACCOUNT_DELETION_PATH);
+  const state = createDeletionDependencies();
+  const squad = {
+    squadId: "sq_duplicates",
+    members: [
+      { memberId: "member-1", userId: USER_ID },
+      { memberId: "member-2", userId: USER_ID.toUpperCase() },
+      { memberId: "member-3", userId: FRIEND_ID },
+    ],
+  };
+  let removals = 0;
+  state.deps.Squad.find = async () => [squad];
+  state.deps.removeSquadMember = async (candidate, index) => {
+    removals += 1;
+    candidate.members.splice(index, 1);
+  };
+
+  assert.deepEqual(await resumeAccountDeletion(USER_ID, state.deps), { status: "deleted" });
+  assert.equal(removals, 2);
+  assert.deepEqual(squad.members.map((member) => member.userId), [FRIEND_ID]);
 });
 
 test("pending-deletion sweep continues after one account fails and starts one unrefed timer", async () => {

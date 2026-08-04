@@ -3,7 +3,7 @@ const User = require("../models/User");
 const { Squad } = require("../models/Squad");
 const { Notification } = require("../models/Notification");
 const SafetyReport = require("../models/SafetyReport");
-const { redlock } = require("../config/redisConfig");
+const { redlock, withMatchmakingLock } = require("../config/redisConfig");
 const { removeSquadMember } = require("../app/squadAccess");
 const { disconnectUserSockets } = require("./socketService");
 const { canonicalUserId, relationalIdMatcher } = require("./interactionSafetyService");
@@ -12,12 +12,17 @@ const LOCK_DURATION_MS = 30_000;
 const SWEEP_INTERVAL_MS = 60_000;
 let sweepTimer = null;
 
+const assertAccountLock = (signal) => {
+  if (signal.aborted) throw signal.error || new Error("Account deletion lock was lost");
+};
+
 const dependencies = (overrides = {}) => ({
   User,
   Squad,
   Notification,
   SafetyReport,
   redlock,
+  withMatchmakingLock,
   removeSquadMember,
   disconnectUserSockets,
   now: () => new Date(),
@@ -27,6 +32,7 @@ const dependencies = (overrides = {}) => ({
 
 const cleanupAccount = async (userId, deps, signal) => {
   const user = await deps.User.findById(userId, "_id referredBy deletionStatus");
+  assertAccountLock(signal);
   if (!user) return { status: "deleted" };
   if (user.deletionStatus !== "pending") throw new Error("Account deletion was not staged");
 
@@ -39,15 +45,19 @@ const cleanupAccount = async (userId, deps, signal) => {
       blockedUserIds: matcher,
     },
   });
+  assertAccountLock(signal);
 
   await deps.User.updateMany({ referredBy: matcher }, { $set: { referredBy: null } });
+  assertAccountLock(signal);
   const referrerId = canonicalUserId(user.referredBy);
   if (referrerId) {
     const referralCount = await deps.User.countDocuments({
       _id: { $ne: userId },
       referredBy: relationalIdMatcher(referrerId),
     });
+    assertAccountLock(signal);
     await deps.User.updateOne({ _id: referrerId }, { $set: { referralCount } });
+    assertAccountLock(signal);
   }
 
   await deps.Squad.updateMany({}, {
@@ -56,29 +66,37 @@ const cleanupAccount = async (userId, deps, signal) => {
       joinRequests: { userId: matcher },
     },
   });
+  assertAccountLock(signal);
   const squads = await deps.Squad.find({ "members.userId": matcher });
+  assertAccountLock(signal);
   for (const squad of squads) {
-    const memberIndex = (squad.members || []).findIndex(
+    let memberIndex;
+    while ((memberIndex = (squad.members || []).findIndex(
       (member) => canonicalUserId(member.userId) === canonicalUserId(userId)
-    );
-    if (memberIndex >= 0) await deps.removeSquadMember(squad, memberIndex);
+    )) >= 0) {
+      assertAccountLock(signal);
+      await deps.removeSquadMember(squad, memberIndex);
+      assertAccountLock(signal);
+    }
   }
 
   await deps.Notification.deleteMany({
     $or: [{ userId: matcher }, { fromUserId: matcher }],
   });
+  assertAccountLock(signal);
 
   const pseudonym = `deleted:${createHash("sha256").update(userId).digest("hex").slice(0, 24)}`;
   await deps.SafetyReport.updateMany(
     { reporterUserId: matcher },
     { $set: { reporterUserId: pseudonym } }
   );
+  assertAccountLock(signal);
   await deps.SafetyReport.updateMany(
     { targetUserIds: matcher },
     { $pull: { targetUserIds: matcher } }
   );
+  assertAccountLock(signal);
 
-  if (signal.aborted) throw signal.error || new Error("Account deletion lock was lost");
   await deps.User.deleteOne({ _id: userId, deletionStatus: "pending" });
   return { status: "deleted" };
 };
@@ -106,19 +124,21 @@ const requestAccountDeletion = async (userId, overrides = {}) => {
   const deps = dependencies(overrides);
   const accountId = canonicalUserId(userId);
   if (!accountId) throw new Error("Invalid account id");
-  const staged = await deps.User.findOneAndUpdate(
-    { _id: accountId, deletionStatus: { $ne: "pending" } },
-    { $set: {
-      deletionStatus: "pending",
-      deletionRequestedAt: deps.now(),
-      ageVerified: false,
-    } },
-    { new: true, select: "_id deletionStatus referredBy" }
-  );
-  if (!staged) {
-    const existing = await deps.User.findById(accountId, "_id deletionStatus");
-    if (!existing) return { status: "deleted" };
-  }
+  const exists = await deps.withMatchmakingLock(async (signal) => {
+    const staged = await deps.User.findOneAndUpdate(
+      { _id: accountId, deletionStatus: { $ne: "pending" } },
+      { $set: {
+        deletionStatus: "pending",
+        deletionRequestedAt: deps.now(),
+        ageVerified: false,
+      } },
+      { new: true, select: "_id deletionStatus referredBy" }
+    );
+    const accountExists = Boolean(staged || await deps.User.findById(accountId, "_id deletionStatus"));
+    if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+    return accountExists;
+  });
+  if (!exists) return { status: "deleted" };
   return resumeAccountDeletion(accountId, deps);
 };
 

@@ -153,6 +153,7 @@ const buildAccountExport = async (userId, dependencies = {}) => {
 };
 
 const exportAccountHandler = async (req, res) => {
+  res.set("Cache-Control", "private, no-store");
   try {
     const data = await buildAccountExport(getRequesterIdentity(req).userId);
     if (!data) {
