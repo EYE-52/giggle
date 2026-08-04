@@ -15,6 +15,7 @@ import {
   advanceSpeakerFocus,
   api,
   connectSocket,
+  createOpponentUserIds,
   createReportOpponentPayload,
   deriveEncounterLayout,
   EMPTY_SPEAKER_FOCUS,
@@ -123,6 +124,9 @@ export default function EncounterScreen() {
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [ending, setEnding] = useState(false);
   const [endError, setEndError] = useState('');
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const [blockError, setBlockError] = useState('');
   const [remoteEnded, setRemoteEnded] = useState<'opponent-left' | 'ended' | null>(null);
   const [remoteEndError, setRemoteEndError] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -281,6 +285,7 @@ export default function EncounterScreen() {
       setShowChat(false);
       setMoreOpen(false);
       setEndConfirmOpen(false);
+      setBlockConfirmOpen(false);
       setRemoteEndError('');
       setRemoteEnded(payload?.reason === 'squad_disconnected' ? 'opponent-left' : 'ended');
       setVideoReady(false);
@@ -459,6 +464,8 @@ export default function EncounterScreen() {
 
   const reportPayload = createReportOpponentPayload({ encounterId: encId, squadId, encounter: enc });
   const canReport = Boolean(reportPayload);
+  const opponentUserIds = createOpponentUserIds({ squadId, ownUserId: myUserId, encounter: enc });
+  const canBlockOpponent = Boolean(opponentUserIds?.length);
 
   async function handleReport() {
     if (reported || reporting || !canReport) return;
@@ -526,17 +533,35 @@ export default function EncounterScreen() {
     }
   }
 
+  async function leaveVideoAndGoHome() {
+    try { await vcRef.current?.leave(); } catch {}
+    vcRef.current = null;
+    clearVideoListeners();
+    router.replace('/home');
+  }
+
+  async function blockOpponentSquad() {
+    if (!squadId || !encId || !opponentUserIds || blocking) return;
+    setBlocking(true);
+    setBlockError('');
+    try {
+      await api.blockUsers(opponentUserIds);
+      await api.disconnectEncounter(squadId, encId);
+      await leaveVideoAndGoHome();
+    } catch {
+      setBlocking(false);
+      setBlockError("Couldn't block this squad yet. Try again.");
+    }
+  }
+
   async function endEncounter() {
     if (!squadId || !encId || ending) return;
     setEnding(true);
     setEndError('');
     try {
       await api.disconnectEncounter(squadId, encId);
-      try { await vcRef.current?.leave(); } catch {}
-      vcRef.current = null;
-      clearVideoListeners();
       setEndConfirmOpen(false);
-      router.replace('/home');
+      await leaveVideoAndGoHome();
     } catch {
       setEnding(false);
       setEndError("Couldn't end this encounter yet.");
@@ -1081,6 +1106,21 @@ export default function EncounterScreen() {
               <Icon.flag size={20} color={reported ? COLORS.lime : COLORS.textMuted} />
               <Text style={styles.actionText}>{reported ? 'Reported' : reporting ? 'Sending report…' : 'Report opponent squad'}</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setMoreOpen(false);
+                  setBlockError('');
+                  setBlockConfirmOpen(true);
+                }}
+                disabled={!canBlockOpponent || blocking}
+                accessibilityRole="button"
+                accessibilityLabel={!canBlockOpponent ? 'Block unavailable' : blocking ? 'Blocking opponent squad' : 'Block opponent squad'}
+                accessibilityState={{ disabled: !canBlockOpponent || blocking, busy: blocking }}
+                style={[styles.actionRow, (!canBlockOpponent || blocking) && styles.actionRowDisabled]}
+              >
+                <Icon.shield size={20} color={COLORS.coral} />
+                <Text style={styles.actionText}>{blocking ? 'Blocking opponent squad…' : 'Block opponent squad'}</Text>
+              </TouchableOpacity>
               {hasFocusedFrame && (
                 <TouchableOpacity
                 onPress={() => {
@@ -1121,6 +1161,48 @@ export default function EncounterScreen() {
                 </TouchableOpacity>
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={blockConfirmOpen}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => {
+          if (!blocking) setBlockConfirmOpen(false);
+        }}
+      >
+        <View style={styles.confirmOverlay}>
+          <View accessibilityViewIsModal style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Block opponent squad?</Text>
+            <Text style={styles.confirmCopy}>
+              Everyone in the other squad will be blocked, and your squad will leave this encounter. This does not send a report.
+            </Text>
+            {blockError ? <Text style={styles.endError} accessibilityRole="alert">{blockError}</Text> : null}
+            <View style={styles.confirmActions}>
+              <TouchableOpacity
+                onPress={() => setBlockConfirmOpen(false)}
+                disabled={blocking}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel blocking"
+                accessibilityState={{ disabled: blocking }}
+                style={[styles.confirmSecondary, blocking && styles.actionRowDisabled]}
+              >
+                <Text style={styles.confirmSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={blockOpponentSquad}
+                disabled={blocking}
+                accessibilityRole="button"
+                accessibilityLabel={blocking ? 'Blocking opponent squad' : 'Confirm block opponent squad'}
+                accessibilityState={{ disabled: blocking, busy: blocking }}
+                style={[styles.confirmDanger, blocking && styles.actionRowDisabled]}
+              >
+                <Text style={styles.confirmDangerText}>{blocking ? 'Blocking…' : 'Block squad'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>

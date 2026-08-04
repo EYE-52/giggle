@@ -64,6 +64,7 @@ test("mobile encounter derives one adaptive layout from stable identities and re
 test("mobile encounter keeps five controls while chat, More, reactions, and ending use sheets", () => {
   const page = source();
   const endBlock = page.slice(page.indexOf("async function endEncounter()"), page.indexOf("const compactHeader"));
+  const cleanupBlock = page.slice(page.indexOf("async function leaveVideoAndGoHome()"), page.indexOf("async function blockOpponentSquad()"));
   const reactionBlock = page.slice(page.indexOf("function fireReaction"), page.indexOf("function retryVideo"));
 
   assert.equal(page.includes("accessibilityLabel={mic ? 'Mute microphone' : 'Unmute microphone'}"), true);
@@ -93,7 +94,8 @@ test("mobile encounter keeps five controls while chat, More, reactions, and endi
   assert.equal(page.includes("End encounter?"), true);
   assert.equal(page.includes("This ends the current encounter for both squads."), true);
   assert.equal(endBlock.indexOf("await api.disconnectEncounter(squadId, encId);") >= 0, true);
-  assert.equal(endBlock.indexOf("await vcRef.current?.leave();") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.equal(endBlock.indexOf("await leaveVideoAndGoHome();") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.equal(cleanupBlock.includes("await vcRef.current?.leave();"), true);
   assert.equal(page.includes("Couldn't end this encounter yet."), true);
 });
 
@@ -127,6 +129,56 @@ test("mobile reports stay retryable until the server confirms persistence", () =
   assert.match(reportBlock, /setReporting\(false\);/);
   assert.match(reportBlock, /if \(!result\.ok\) \{/);
   assert.equal(reportBlock.indexOf("setReported(true);") > reportBlock.indexOf("if (!result.ok) {"), true);
+});
+
+test("mobile encounter uses the shared validated opponent roster for blocking", () => {
+  const page = source();
+
+  assert.equal(page.includes("createOpponentUserIds,"), true);
+  assert.equal(
+    page.includes("const opponentUserIds = createOpponentUserIds({ squadId, ownUserId: myUserId, encounter: enc });"),
+    true
+  );
+  assert.equal(page.includes("const canBlockOpponent = Boolean(opponentUserIds?.length);"), true);
+});
+
+test("mobile opponent blocking confirms, blocks, disconnects, then leaves without reporting", () => {
+  const page = source();
+  const handler = page.slice(
+    page.indexOf("async function blockOpponentSquad()"),
+    page.indexOf("async function endEncounter()")
+  );
+  const cleanup = page.slice(
+    page.indexOf("async function leaveVideoAndGoHome()"),
+    page.indexOf("async function blockOpponentSquad()")
+  );
+
+  assert.equal(page.includes("Block opponent squad?"), true);
+  assert.equal(page.includes("visible={blockConfirmOpen}"), true);
+  assert.equal(page.includes("setBlockConfirmOpen(true)"), true);
+  assert.equal(handler.indexOf("await api.blockUsers(opponentUserIds);") >= 0, true);
+  assert.equal(handler.indexOf("await api.disconnectEncounter(squadId, encId);") > handler.indexOf("await api.blockUsers(opponentUserIds);"), true);
+  assert.equal(handler.indexOf("await leaveVideoAndGoHome();") > handler.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.equal(cleanup.indexOf("await vcRef.current?.leave();") >= 0, true);
+  assert.equal(cleanup.indexOf("clearVideoListeners();") > cleanup.indexOf("await vcRef.current?.leave();"), true);
+  assert.equal(cleanup.indexOf("router.replace('/home');") > cleanup.indexOf("clearVideoListeners();"), true);
+  assert.doesNotMatch(handler, /reportOpponentSquad|handleReport/);
+});
+
+test("mobile opponent blocking stays retryable and accessible when a server step fails", () => {
+  const page = source();
+  const handler = page.slice(
+    page.indexOf("async function blockOpponentSquad()"),
+    page.indexOf("async function endEncounter()")
+  );
+
+  assert.match(handler, /setBlocking\(true\)/);
+  assert.match(handler, /setBlockError\("Couldn't block this squad yet\. Try again\."\)/);
+  assert.match(handler, /setBlocking\(false\)/);
+  assert.doesNotMatch(handler, /setBlockConfirmOpen\(false\)/);
+  assert.equal(page.includes("accessibilityState={{ disabled: !canBlockOpponent || blocking, busy: blocking }}"), true);
+  assert.equal(page.includes("accessibilityState={{ disabled: blocking, busy: blocking }}"), true);
+  assert.equal(page.includes("{blockError ? <Text style={styles.endError} accessibilityRole=\"alert\">{blockError}</Text> : null}"), true);
 });
 
 test("mobile encounter does not fabricate participants when encounter data is unavailable", () => {
