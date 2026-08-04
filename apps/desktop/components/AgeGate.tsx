@@ -89,7 +89,7 @@ function AgeHelp() {
   );
 }
 
-export function AgeGate({ onDone }: { onDone: () => void }) {
+export function AgeGate({ onDone, onManageAccount }: { onDone: () => void; onManageAccount?: () => void }) {
   const now = useMemo(() => new Date(), []);
   const years = useMemo(
     () => Array.from({ length: 108 }, (_, index) => now.getFullYear() - 13 - index),
@@ -325,6 +325,7 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
         <h1 style={headingStyle}>Giggle is for verified adults 18+</h1>
         <p style={bodyStyle}>This account can&apos;t access squads, matching, chat, or video calls.</p>
         <AgeHelp />
+        {onManageAccount && <Button variant="secondary" fullWidth onClick={onManageAccount}>Account &amp; data</Button>}
         <Button variant="secondary" fullWidth onClick={signOut}>Sign out</Button>
       </Shell>
     );
@@ -361,6 +362,7 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
         )}
         {state === "checking" && <span className="gg-spinner" role="status" aria-label="Checking verification" />}
         <AgeHelp />
+        {onManageAccount && <Button variant="secondary" fullWidth onClick={onManageAccount}>Account &amp; data</Button>}
         <Button variant="ghost" fullWidth onClick={signOut}>Sign out</Button>
       </Shell>
     );
@@ -390,6 +392,7 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
         <Button type="submit" fullWidth loading={busy}>Continue</Button>
       </form>
       <AgeHelp />
+      {onManageAccount && <Button variant="secondary" fullWidth onClick={onManageAccount}>Account &amp; data</Button>}
       <Button variant="ghost" fullWidth onClick={signOut}>Sign out</Button>
     </Shell>
   );

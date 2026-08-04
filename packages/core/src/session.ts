@@ -105,6 +105,7 @@ function normalizeSessionUser(storedUser: Partial<BackendUser> | null | undefine
     isAdult: payload.isAdult ?? storedUser?.isAdult,
     ageConfirmed: payload.ageConfirmed ?? storedUser?.ageConfirmed,
     ageVerified: payload.ageVerified ?? storedUser?.ageVerified,
+    accountStatus: payload.accountStatus ?? storedUser?.accountStatus,
   } as BackendUser;
 }
 
@@ -247,9 +248,16 @@ export const session = {
   get ageVerified() {
     return ageAccessSynced && user?.ageVerified === true;
   },
+  get accountStatus() {
+    return user?.accountStatus ?? null;
+  },
+  get hasIdentityOnlyAccess() {
+    return !!token && ageAccessSynced && !session.hasAdultAccess;
+  },
   /** The single client-side mirror of the server's verified-adult rule. */
   get hasAdultAccess() {
-    return !!token && ageAccessSynced && user?.ageConfirmed === true && user?.isAdult === true && user?.ageVerified === true;
+    return !!token && ageAccessSynced && (user?.accountStatus ?? "active") === "active" &&
+      user?.ageConfirmed === true && user?.isAdult === true && user?.ageVerified === true;
   },
   /**
    * Submit the self-attested date of birth ("YYYY-MM-DD"). Set-once on the
@@ -300,6 +308,7 @@ export const session = {
         isAdult: p.isAdult === true,
         ageConfirmed: p.ageConfirmed === true,
         ageVerified: p.ageVerified === true,
+        accountStatus: p.accountStatus ?? "active",
       };
       ageAccessSynced = true;
       persist();

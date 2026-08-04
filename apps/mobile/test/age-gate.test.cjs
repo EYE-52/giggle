@@ -78,7 +78,21 @@ test('native protected screens do not mount before live adult access succeeds', 
   assert.match(layout, /setHasAdultAccess\(session\.hasAdultAccess\)/);
   assert.ok(protectedBoundary >= 0 && protectedBoundary < stack);
   assert.ok(ageBoundary >= 0 && ageBoundary < stack);
-  assert.match(layout, /if \(!hasAdultAccess\) \{\s*return <AgeGate onDone=\{\(\) => setHasAdultAccess\(true\)\} \/>;\s*\}/);
+  assert.match(layout, /if \(!hasAdultAccess\)[\s\S]*<AgeGate[\s\S]*onManageAccount=\{\(\) => router\.push\('\/profile'\)\}/);
   assert.match(root, /<Stack\.Screen name="\(app\)"/);
   assert.doesNotMatch(root, /AgeGate|router\.replace|useRouter/);
+});
+
+test('native keeps unavailable accounts on an identity-only profile surface', () => {
+  const layout = read('app/(app)/_layout.tsx');
+  const gate = read('components/AgeGate.tsx');
+
+  assert.match(layout, /const identityOnlyAccess = authReady && session\.hasIdentityOnlyAccess/);
+  assert.match(layout, /identityOnlyAccess && session\.accountStatus !== 'active' && pathname !== '\/profile'/);
+  assert.match(layout, /<Redirect href="\/profile" \/>/);
+  assert.match(layout, /identityOnlyAccess && pathname === '\/profile'/);
+  assert.match(layout, /<IdentityOnlyAccount[\s\S]*onReturnToVerification/);
+  assert.match(gate, /onManageAccount\?: \(\) => void/);
+  assert.match(gate, /label="Account & data"/);
+  assert.ok(layout.indexOf("if (identityRouteBlocked)") < layout.indexOf('if (!hasAdultAccess)'));
 });

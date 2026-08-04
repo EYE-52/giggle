@@ -41,6 +41,12 @@ function normalizeProfileImage(value) {
   }
 }
 
+function clientAccountStatus(user) {
+  if (user?.deletionStatus === "pending") return "pending_deletion";
+  if (user?.isSuspended === true || user?.isShadowBanned === true) return "unavailable";
+  return "active";
+}
+
 // CSPRNG-backed code: referral codes are shareable credentials, so use
 // crypto.randomBytes (not Math.random) to make enumeration infeasible.
 function randomCode(len = 8) {
@@ -116,6 +122,7 @@ async function issueSessionForEmail({ email, name, image, ref } = {}) {
   }
 
   const userId = user._id.toString();
+  const accountStatus = clientAccountStatus(user);
   const token = jwt.sign(
     {
       sub: userId,
@@ -131,6 +138,7 @@ async function issueSessionForEmail({ email, name, image, ref } = {}) {
       isAdult: user.isAdult || false,
       ageConfirmed: user.ageConfirmed || false,
       ageVerified: user.ageVerified || false,
+      accountStatus,
     },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
@@ -152,6 +160,7 @@ async function issueSessionForEmail({ email, name, image, ref } = {}) {
       isAdult: user.isAdult || false,
       ageConfirmed: user.ageConfirmed || false,
       ageVerified: user.ageVerified || false,
+      accountStatus,
       referralApplied,
       referralReward: referralApplied ? REFERRAL_REWARD : 0,
     },
@@ -256,6 +265,7 @@ const getMyProfile = async (req, res) => {
         isAdult: user.isAdult || false,
         ageConfirmed: user.ageConfirmed || false,
         ageVerified: user.ageVerified || false,
+        accountStatus: clientAccountStatus(user),
       },
     });
   } catch (error) {

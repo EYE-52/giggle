@@ -211,6 +211,7 @@ export interface UserProfile {
   isAdult?: boolean;
   ageConfirmed?: boolean;
   ageVerified?: boolean;
+  accountStatus?: "active" | "unavailable" | "pending_deletion";
 }
 
 export interface AccountExport {
@@ -307,6 +308,7 @@ export interface BackendUser {
   isAdult?: boolean;
   ageConfirmed?: boolean;
   ageVerified?: boolean;
+  accountStatus?: "active" | "unavailable" | "pending_deletion";
   /** Referral & wallet (present from /api/auth/exchange) */
   referralCode?: string;
   referralCount?: number;

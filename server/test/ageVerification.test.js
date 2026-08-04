@@ -2,8 +2,11 @@ const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const jwt = require("jsonwebtoken");
 
 const {
+  getMyProfile,
+  issueSessionForEmail,
   setMyAge,
   computeAge,
   parseBirthDate,
@@ -121,6 +124,93 @@ const isoYearsAgo = (years) => {
   d.setUTCFullYear(d.getUTCFullYear() - years);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 };
+
+test("identity profile labels a suspended adult account unavailable", async () => {
+  await withMockedFindById(fakeUser({
+    ageConfirmed: true,
+    isAdult: true,
+    ageVerified: true,
+    isSuspended: true,
+    deletionStatus: "active",
+  }), async () => {
+    const res = createMockResponse();
+    await getMyProfile({ user: { userId: "u1" } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.accountStatus, "unavailable");
+  });
+});
+
+test("identity profile labels an account with pending deletion", async () => {
+  await withMockedFindById(fakeUser({
+    ageConfirmed: true,
+    isAdult: true,
+    ageVerified: true,
+    deletionStatus: "pending",
+  }), async () => {
+    const res = createMockResponse();
+    await getMyProfile({ user: { userId: "u1" } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.accountStatus, "pending_deletion");
+  });
+});
+
+test("identity profile keeps an unverified adult account active", async () => {
+  await withMockedFindById(fakeUser({
+    ageConfirmed: true,
+    isAdult: true,
+    ageVerified: false,
+    deletionStatus: "active",
+  }), async () => {
+    const res = createMockResponse();
+    await getMyProfile({ user: { userId: "u1" } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.accountStatus, "active");
+  });
+});
+
+test("identity profile keeps an underage account active", async () => {
+  await withMockedFindById(fakeUser({
+    ageConfirmed: true,
+    isAdult: false,
+    ageVerified: false,
+    deletionStatus: "active",
+  }), async () => {
+    const res = createMockResponse();
+    await getMyProfile({ user: { userId: "u1" } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.accountStatus, "active");
+  });
+});
+
+test("issued sessions carry the live account status and profile resync remains authoritative", async () => {
+  const originalFindOne = User.findOne;
+  const originalSecret = process.env.JWT_SECRET;
+  const user = fakeUser({
+    _id: "507f1f77bcf86cd799439011",
+    email: "suspended@example.com",
+    name: "Suspended",
+    referralCode: "ABC123",
+    isSuspended: true,
+    deletionStatus: "active",
+  });
+  User.findOne = async () => user;
+  process.env.JWT_SECRET = "test-secret-with-at-least-32-characters";
+
+  try {
+    const issued = await issueSessionForEmail({ email: user.email, name: user.name });
+    assert.equal(issued.user.accountStatus, "unavailable");
+    assert.equal(jwt.decode(issued.token).accountStatus, "unavailable");
+
+    user.isSuspended = false;
+    const res = createMockResponse();
+    await getMyProfile({ user: { userId: String(user._id) } }, res);
+    assert.equal(res.body.data.accountStatus, "active");
+  } finally {
+    User.findOne = originalFindOne;
+    if (originalSecret === undefined) delete process.env.JWT_SECRET;
+    else process.env.JWT_SECRET = originalSecret;
+  }
+});
 
 test("parseBirthDate rejects malformed and impossible dates", () => {
   assert.equal(parseBirthDate("2001-02-30"), null);

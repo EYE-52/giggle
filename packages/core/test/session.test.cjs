@@ -91,6 +91,115 @@ test("only a successful live sync grants adult access", () => {
   assert.match(sync, /catch \{\s*return false;\s*\}/);
 });
 
+test("a suspended verified adult retains identity-only access", async () => {
+  const runtime = loadSession({
+    exchange: async () => ({ token: "token", user: backendUser("suspended", true) }),
+    getMyProfile: async () => ({
+      ageConfirmed: true,
+      isAdult: true,
+      ageVerified: true,
+      accountStatus: "unavailable",
+    }),
+  });
+
+  try {
+    await runtime.session.signIn({ email: "suspended@example.com" });
+    await runtime.session.syncAgeFromServer();
+    assert.equal(runtime.session.accountStatus, "unavailable");
+    assert.equal(runtime.session.hasIdentityOnlyAccess, true);
+    assert.equal(runtime.session.hasAdultAccess, false);
+  } finally {
+    runtime.cleanup();
+  }
+});
+
+test("an account pending deletion retains identity-only access", async () => {
+  const runtime = loadSession({
+    exchange: async () => ({ token: "token", user: backendUser("deleting", true) }),
+    getMyProfile: async () => ({
+      ageConfirmed: true,
+      isAdult: true,
+      ageVerified: true,
+      accountStatus: "pending_deletion",
+    }),
+  });
+
+  try {
+    await runtime.session.signIn({ email: "deleting@example.com" });
+    await runtime.session.syncAgeFromServer();
+    assert.equal(runtime.session.accountStatus, "pending_deletion");
+    assert.equal(runtime.session.hasIdentityOnlyAccess, true);
+    assert.equal(runtime.session.hasAdultAccess, false);
+  } finally {
+    runtime.cleanup();
+  }
+});
+
+test("an active unverified adult retains identity-only rights without social access", async () => {
+  const runtime = loadSession({
+    exchange: async () => ({ token: "token", user: backendUser("unverified") }),
+    getMyProfile: async () => ({
+      ageConfirmed: true,
+      isAdult: true,
+      ageVerified: false,
+      accountStatus: "active",
+    }),
+  });
+
+  try {
+    await runtime.session.signIn({ email: "unverified@example.com" });
+    await runtime.session.syncAgeFromServer();
+    assert.equal(runtime.session.accountStatus, "active");
+    assert.equal(runtime.session.hasIdentityOnlyAccess, true);
+    assert.equal(runtime.session.hasAdultAccess, false);
+  } finally {
+    runtime.cleanup();
+  }
+});
+
+test("an active underage account retains identity-only rights without social access", async () => {
+  const runtime = loadSession({
+    exchange: async () => ({ token: "token", user: backendUser("underage") }),
+    getMyProfile: async () => ({
+      ageConfirmed: true,
+      isAdult: false,
+      ageVerified: false,
+      accountStatus: "active",
+    }),
+  });
+
+  try {
+    await runtime.session.signIn({ email: "underage@example.com" });
+    await runtime.session.syncAgeFromServer();
+    assert.equal(runtime.session.accountStatus, "active");
+    assert.equal(runtime.session.hasIdentityOnlyAccess, true);
+    assert.equal(runtime.session.hasAdultAccess, false);
+  } finally {
+    runtime.cleanup();
+  }
+});
+
+test("an active verified adult receives social access instead of identity-only access", async () => {
+  const runtime = loadSession({
+    exchange: async () => ({ token: "token", user: backendUser("verified", true) }),
+    getMyProfile: async () => ({
+      ageConfirmed: true,
+      isAdult: true,
+      ageVerified: true,
+      accountStatus: "active",
+    }),
+  });
+
+  try {
+    await runtime.session.signIn({ email: "verified@example.com" });
+    await runtime.session.syncAgeFromServer();
+    assert.equal(runtime.session.hasIdentityOnlyAccess, false);
+    assert.equal(runtime.session.hasAdultAccess, true);
+  } finally {
+    runtime.cleanup();
+  }
+});
+
 test("a stale sync cannot restore access after session state changes", () => {
   const sync = block("async syncAgeFromServer()", "  signOut()");
 

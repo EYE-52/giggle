@@ -1,9 +1,23 @@
 const assert = require("node:assert/strict");
-const { readFileSync } = require("node:fs");
+const { existsSync, readFileSync } = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
 const source = () => readFileSync(path.join(__dirname, "../app/(app)/profile.tsx"), "utf8");
+const identityAccountPath = path.join(__dirname, "../components/IdentityOnlyAccount.tsx");
+
+test("mobile identity-only account surface keeps support, export, delete, and sign out", () => {
+  assert.equal(existsSync(identityAccountPath), true);
+  const account = readFileSync(identityAccountPath, "utf8");
+
+  assert.match(account, /api\.exportAccount\(\)/);
+  assert.match(account, /api\.deleteAccount\(\)/);
+  assert.match(account, /gigglemeet\.com\/support/);
+  assert.match(account, /session\.signOut\(\)/);
+  assert.match(account, /onReturnToVerification/);
+  assert.match(account, /Return to age verification/);
+  assert.doesNotMatch(account, /updateMyProfile|listBlockedUsers|connectSocket|billing/);
+});
 
 test("mobile profile shares explicit JSON export and handles cancellation and errors visibly", () => {
   const page = source();

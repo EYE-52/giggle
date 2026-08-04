@@ -41,6 +41,7 @@ const supportSource = () => readFileSync(supportPath, "utf8");
 const globalStylesSource = () => readFileSync(path.join(__dirname, "../app/globals.css"), "utf8");
 const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../../../vercel.json"), "utf8"));
 const discoveryConfigSource = () => readFileSync(path.join(__dirname, "../lib/discovery.ts"), "utf8");
+const identityAccountPath = path.join(__dirname, "../components/IdentityOnlyAccount.tsx");
 
 test("web discovery build flag hides stranger matching without hiding private squads", () => {
   const config = discoveryConfigSource();
@@ -65,6 +66,31 @@ test("web discovery build flag hides stranger matching without hiding private sq
   assert.match(encounter, /WEB_DISCOVERY_ENABLED && \(/);
   assert.equal(vercelConfig().env.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED, "false");
   assert.doesNotMatch(config, /AGE|country|Country/);
+});
+
+test("desktop keeps unavailable accounts on an identity-only profile surface", () => {
+  const layout = appLayoutSource();
+  const gate = ageGateSource();
+
+  assert.match(layout, /const identityOnlyAccess = authReady && session\.hasIdentityOnlyAccess/);
+  assert.match(layout, /identityOnlyAccess && session\.accountStatus !== "active" && pathname !== "\/profile"/);
+  assert.match(layout, /router\.replace\("\/profile"\)/);
+  assert.match(layout, /identityOnlyAccess && pathname === "\/profile"/);
+  assert.match(layout, /<AgeGate[\s\S]*onManageAccount=\{\(\) => router\.push\("\/profile"\)\}/);
+  assert.match(layout, /<IdentityOnlyAccount[\s\S]*onReturnToVerification/);
+  assert.match(gate, /onManageAccount\?: \(\) => void/);
+  assert.match(gate, /Account &amp; data/);
+  assert.ok(layout.indexOf("if (identityRouteBlocked)") < layout.indexOf("if (!hasAdultAccess)"));
+  assert.equal(existsSync(identityAccountPath), true);
+
+  const account = readFileSync(identityAccountPath, "utf8");
+  assert.match(account, /api\.exportAccount\(\)/);
+  assert.match(account, /api\.deleteAccount\(\)/);
+  assert.match(account, /href="\/support"/);
+  assert.match(account, /session\.signOut\(\)/);
+  assert.match(account, /onReturnToVerification/);
+  assert.match(account, /Return to age verification/);
+  assert.doesNotMatch(account, /updateMyProfile|listBlockedUsers|connectSocket|billing/);
 });
 
 test("desktop confirms blocks separately from removing friends and lets users unblock accounts", () => {

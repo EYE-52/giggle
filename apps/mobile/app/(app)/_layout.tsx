@@ -5,6 +5,7 @@ import { session } from '@giggle/core';
 import { AgeGate } from '../../components/AgeGate';
 import { COLORS } from '../../constants/theme';
 import { NATIVE_DISCOVERY_ENABLED } from '../../constants/discovery';
+import { IdentityOnlyAccount } from '../../components/IdentityOnlyAccount';
 
 const DISCOVERY_ROUTES = ['/discover', '/matchmaking', '/match'];
 
@@ -13,6 +14,9 @@ export default function ProtectedLayout() {
   const pathname = usePathname();
   const [authReady, setAuthReady] = useState(false);
   const [hasAdultAccess, setHasAdultAccess] = useState(false);
+  const identityOnlyAccess = authReady && session.hasIdentityOnlyAccess;
+  const identityRouteBlocked = identityOnlyAccess && session.accountStatus !== 'active' && pathname !== '/profile';
+  const identityProfile = identityOnlyAccess && pathname === '/profile';
 
   useEffect(() => {
     let active = true;
@@ -49,8 +53,23 @@ export default function ProtectedLayout() {
       </View>
     );
   }
+  if (identityRouteBlocked) {
+    return <Redirect href="/profile" />;
+  }
+  if (identityProfile) {
+    return (
+      <IdentityOnlyAccount
+        onReturnToVerification={session.accountStatus === 'active' ? () => router.replace('/home') : undefined}
+      />
+    );
+  }
   if (!hasAdultAccess) {
-    return <AgeGate onDone={() => setHasAdultAccess(true)} />;
+    return (
+      <AgeGate
+        onDone={() => setHasAdultAccess(true)}
+        onManageAccount={() => router.push('/profile')}
+      />
+    );
   }
   if (!NATIVE_DISCOVERY_ENABLED && DISCOVERY_ROUTES.includes(pathname)) {
     return <Redirect href="/home" />;

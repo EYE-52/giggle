@@ -8,6 +8,7 @@ import { useViewport } from "@/components/useViewport";
 import { session, connectSocket } from "@giggle/core";
 import { AgeGate } from "@/components/AgeGate";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
+import { IdentityOnlyAccount } from "@/components/IdentityOnlyAccount";
 
 const CALLING_ROUTES = ["/lobby", "/encounter", "/matchmaking", "/match"];
 const DISCOVERY_ROUTES = ["/discover", "/matchmaking", "/match"];
@@ -20,6 +21,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isPhone } = useViewport();
   const [authReady, setAuthReady] = useState(false);
   const [hasAdultAccess, setHasAdultAccess] = useState(false);
+  const identityOnlyAccess = authReady && session.hasIdentityOnlyAccess;
+  const identityRouteBlocked = identityOnlyAccess && session.accountStatus !== "active" && pathname !== "/profile";
+  const identityProfile = identityOnlyAccess && pathname === "/profile";
 
   // Auth gate: the whole (app) area requires a session. In production the only
   // way in is real OAuth — unauthenticated users are sent to /signin. In local
@@ -56,8 +60,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   useEffect(() => {
-    if (discoveryRouteDisabled) router.replace("/home");
-  }, [discoveryRouteDisabled, router]);
+    if (identityRouteBlocked) router.replace("/profile");
+    else if (discoveryRouteDisabled) router.replace("/home");
+  }, [discoveryRouteDisabled, identityRouteBlocked, router]);
 
   // Open the authenticated presence socket for the app session so the user
   // counts as "online" app-wide (the backend marks online via the handshake).
@@ -99,10 +104,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  if (identityRouteBlocked) {
+    return <div role="status" aria-live="polite">Opening account controls…</div>;
+  }
+
+  if (identityProfile) {
+    return (
+      <ToastProvider>
+        <IdentityOnlyAccount
+          onReturnToVerification={session.accountStatus === "active" ? () => router.replace("/home") : undefined}
+        />
+      </ToastProvider>
+    );
+  }
+
   if (!hasAdultAccess) {
     return (
       <ToastProvider>
-        <AgeGate onDone={() => setHasAdultAccess(true)} />
+        <AgeGate
+          onDone={() => setHasAdultAccess(true)}
+          onManageAccount={() => router.push("/profile")}
+        />
       </ToastProvider>
     );
   }

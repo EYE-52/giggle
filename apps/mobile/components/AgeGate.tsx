@@ -93,7 +93,7 @@ function AgeHelp({ onPress }: { onPress: () => void }) {
   );
 }
 
-export function AgeGate({ onDone }: { onDone: () => void }) {
+export function AgeGate({ onDone, onManageAccount }: { onDone: () => void; onManageAccount?: () => void }) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const now = useMemo(() => new Date(), []);
@@ -328,6 +328,7 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
         <Text style={styles.body}>This account can't access squads, matching, chat, or video calls.</Text>
         {!!error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
         <AgeHelp onPress={() => void openSupport()} />
+        {onManageAccount && <Button label="Account & data" variant="outline" onPress={onManageAccount} style={styles.fullButton} />}
         <Button label="Sign out" variant="outline" onPress={signOut} style={styles.fullButton} />
       </Shell>
     );
@@ -372,6 +373,7 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
           <ActivityIndicator color={COLORS.violet} size="large" accessibilityRole="progressbar" accessibilityLabel="Checking verification" />
         )}
         <AgeHelp onPress={() => void openSupport()} />
+        {onManageAccount && <Button label="Account & data" variant="outline" onPress={onManageAccount} style={styles.fullButton} />}
         <Button label="Sign out" variant="outline" onPress={signOut} style={styles.fullButton} />
       </Shell>
     );
@@ -402,6 +404,7 @@ export function AgeGate({ onDone }: { onDone: () => void }) {
       </View>
       <Text style={styles.privacy}>Your date of birth is private and is never shown on your profile.</Text>
       <AgeHelp onPress={() => void openSupport()} />
+      {onManageAccount && <Button label="Account & data" variant="outline" onPress={onManageAccount} style={styles.fullButton} />}
       <Button label="Sign out" variant="outline" onPress={signOut} style={styles.fullButton} />
     </Shell>
   );
