@@ -16,12 +16,18 @@ const viewportMatrix = [
 ] as const;
 
 const fixtureCounts = [1, 2, 3, 4, 8] as const;
+const fixtureUserId = "507f1f77bcf86cd799439011";
+
+function fixtureRosterUserId(side: "mine" | "theirs", index: number) {
+  if (side === "mine" && index === 0) return fixtureUserId;
+  return `507f1f77bcf86cd7994390${((side === "mine" ? 12 : 32) + index).toString(16).padStart(2, "0")}`;
+}
 
 function fixtureMember(side: "mine" | "theirs", index: number) {
   const local = side === "mine" && index === 0;
   return {
     memberId: `${side}-member-${index + 1}`,
-    userId: local ? "fixture-user" : `${side}-user-${index + 1}`,
+    userId: fixtureRosterUserId(side, index),
     uid: (side === "mine" ? 100 : 200) + index,
     displayName: local ? "Maya" : `${side === "mine" ? "Squadmate" : "Opponent"} ${index + 1}`,
     role: index === 0 ? "leader" : "member",
@@ -50,13 +56,15 @@ function fixtureEncounter(encounterId: string, count: number) {
 
 async function installEncounterFixture(page: Page) {
   const user = {
-    id: "fixture-user",
+    id: fixtureUserId,
     email: "fixture@giggle.local",
     name: "Maya",
     isPremium: false,
     isApproved: true,
     ageConfirmed: true,
     isAdult: true,
+    ageVerified: true,
+    accountStatus: "active" as const,
   };
   const payload = Buffer.from(JSON.stringify({
     userId: user.id,
@@ -64,6 +72,8 @@ async function installEncounterFixture(page: Page) {
     name: user.name,
     ageConfirmed: true,
     isAdult: true,
+    ageVerified: true,
+    accountStatus: "active",
   })).toString("base64url");
   await page.addInitScript(({ sessionValue }) => {
     localStorage.setItem("giggle.session", sessionValue);
@@ -72,6 +82,20 @@ async function installEncounterFixture(page: Page) {
 
   await page.route("**/api/**", async route => {
     const path = new URL(route.request().url()).pathname;
+    if (path === "/api/me/profile") {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, data: user }),
+      });
+      return;
+    }
+    if (path === "/api/me/age/verification-status") {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, data: { status: "verified", ageVerified: true } }),
+      });
+      return;
+    }
     const encounterMatch = path.match(/^\/api\/matchmaking\/encounters\/(fixture-(\d+)v\2)$/);
     if (encounterMatch) {
       const count = Number(encounterMatch[2]);
@@ -103,6 +127,14 @@ async function installEncounterFixture(page: Page) {
       });
       return;
     }
+    if (path === "/api/users/block") {
+      const userIds = route.request().postDataJSON()?.userIds ?? [];
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, data: { status: "blocked", userIds } }),
+      });
+      return;
+    }
     await route.fulfill({
       status: 404,
       contentType: "application/json",
@@ -110,6 +142,36 @@ async function installEncounterFixture(page: Page) {
     });
   });
 }
+
+test("opponent blocking is confirmed and leaves only after both server steps", async ({ page }, testInfo) => {
+  test.skip(!["phone", "desktop"].includes(testInfo.project.name), "One compact and one full call cover the block flow");
+  const calls: Array<{ path: string; body?: unknown }> = [];
+  page.on("request", request => {
+    const path = new URL(request.url()).pathname;
+    if (path === "/api/users/block" || path === "/api/encounters/disconnect") {
+      calls.push({ path, body: request.postDataJSON() });
+    }
+  });
+  await installEncounterFixture(page);
+  const { controls } = await openFixture(page, 2);
+
+  await controls.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "Block opponent squad" }).click();
+  const dialog = page.getByRole("dialog", { name: "Block opponent squad?" });
+  await expect(dialog).toContainText("Every visible member of the opponent squad will be blocked");
+  await dialog.getByRole("button", { name: "Keep talking" }).click();
+  await expect(dialog).toBeHidden();
+
+  await controls.getByRole("button", { name: "More" }).click();
+  await page.getByRole("button", { name: "Block opponent squad" }).click();
+  await dialog.getByRole("button", { name: "Block opponent squad" }).click();
+  await expect(page).toHaveURL(/\/home$/);
+
+  expect(calls.map(call => call.path)).toEqual(["/api/users/block", "/api/encounters/disconnect"]);
+  expect(calls[0].body).toEqual({
+    userIds: [fixtureRosterUserId("theirs", 0), fixtureRosterUserId("theirs", 1)],
+  });
+});
 
 async function openFixture(page: Page, count: number) {
   await page.goto(`/encounter?squad=fixture-squad&enc=fixture-${count}v${count}`);
