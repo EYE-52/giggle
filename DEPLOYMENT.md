@@ -1,42 +1,77 @@
-# Giggle — Deployment (live)
+# Giggle release runbook
 
-## Live URLs
-- **Frontend (web app):** https://giggle-web-seven.vercel.app  (Vercel project `giggle-web`; canonical source: `giggle-app/apps/desktop`)
-- **Backend (API + sockets):** https://giggle-server-production.up.railway.app  (Railway project `giggle`)
-- **DB:** MongoDB Atlas (existing cluster)  ·  **Redis:** `giggle-redis` (redis:7-alpine on Railway, private net)
+This runbook deploys the unified repository. It does not certify worldwide compliance. Keep production stranger discovery off until the external release gates below are complete.
 
-Verified end-to-end on production: auth (email exchange) → home with live stats → squad/lobby/encounter all hit the live backend. CORS + Socket.io allow the Vercel origin.
+## Runtime
 
-## Adding your domain: gigglemeet.com
-CORS already pre-allows `https://gigglemeet.com` and `https://www.gigglemeet.com` (set in the backend `FRONTEND_URL` list), so once DNS points at Vercel it works immediately.
+- **Frontend runtime:** Node 22.13.0 and pnpm 10.x.
+- **Backend runtime:** Node >=20.18 <25 and npm >=10.
 
-**Steps (you do these):**
-1. **Vercel → Project `giggle-web` → Settings → Domains → Add** `gigglemeet.com` (and `www.gigglemeet.com`).
-2. Vercel shows DNS records. At your domain registrar (where you bought gigglemeet.com), add them:
-   - Apex `gigglemeet.com` → **A record** `76.76.21.21` (or the ALIAS/ANAME Vercel shows).
-   - `www` → **CNAME** `cname.vercel-dns.com`.
-3. Wait for DNS to verify (minutes–an hour). Vercel auto-issues HTTPS.
-4. (Optional) Set `gigglemeet.com` as the **Production domain** in Vercel so it's the primary.
-5. Nothing to change on the backend — CORS already allows it. If you later use a *different* domain, add it to the Railway `giggle-server` env var `FRONTEND_URL` (comma-separated list).
+## Required order
 
-## Redeploying
-- **Frontend:** from `giggle-app/` run `vercel deploy --prod --yes --archive=tgz` (builds remotely from repo root; root dir = `apps/desktop`).
-- **Backend:** from `giggle-server/` run `railway up --service giggle-server --detach`.
-- **Frontend runtime:** use `Node 22.13.0` and `pnpm 10.x`, matching `giggle-app/package.json` and `giggle-app/.node-version`.
-- **Backend runtime:** use `Node >=20.18 <25` and `npm >=10`, matching `giggle-server/package.json`.
+1. **Provision Mongo, Redis, Agora, Yoti, auth providers, monitored support/safety mailboxes, and high-entropy secrets.** Configure Railway from `server/.env.example`; use reviewed production URLs and credentials.
+2. **Deploy `server/` to Railway from this repository.** Verify `/health`, Yoti verification session/status, report persistence, block enforcement, identity-only export, and staged account deletion before building clients.
+3. **Deploy the repository root to Vercel.** Use checked-in `vercel.json`, which builds `apps/desktop` and outputs `apps/desktop/.next`. Set `NEXT_PUBLIC_BACKEND_URL` and keep `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false`.
+4. **Build `apps/mobile` with Expo/EAS after server verification.** Set `EXPO_PUBLIC_BACKEND_URL`, `EXPO_PUBLIC_STRANGER_DISCOVERY_ENABLED=false`, and `EXPO_PUBLIC_IOS_DISCOVERY_ENABLED=false` in the selected EAS environment. Rebuild after changing these public build-time values.
+5. **Smoke-test with two verified accounts.** Confirm report acknowledgement, blocking/no rematch, chat rejection, export, deletion staging, and the disabled-discovery state. Enable `STRANGER_DISCOVERY_ENABLED=true` only after every release gate passes.
 
-Do not deploy the top-level `giggle-web/` folder for the main product. It is a legacy Phase 1 web app kept for reference; current product work and production deploys live in `giggle-app/apps/desktop`.
+## Environment contract
 
-## Env (set on the hosts, not in git)
-- **Railway `giggle-server`:** `MONGODB_URI`, `JWT_SECRET`, `AUTH_EXCHANGE_SECRET`, `BACKEND_PUBLIC_URL=https://giggle-server-production.up.railway.app`, `FRONTEND_URL=<vercel + gigglemeet origins, comma-separated>`, `REDIS_URL=redis://giggle-redis.railway.internal:6379`, `AGORA_APP_ID`, `AGORA_APP_CERTIFICATE`, `AGORA_TOKEN_EXPIRY_SECONDS`, `MAX_SQUAD_MEMBERS=4`, `MIN_MEMBERS_TO_SEARCH=1`, `NODE_ENV=production`. `JWT_SECRET` and `AUTH_EXCHANGE_SECRET` must each be high-entropy values with at least 32 characters or production startup fails. For provider buttons, set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `APPLE_SERVICE_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, and `APPLE_PRIVATE_KEY`. Add `RESEND_API_KEY` + `RESEND_FROM` before enabling email magic-link auth. (`PORT` injected by Railway.)
-- **Vercel project `giggle-web` running `giggle-app/apps/desktop`:** `NEXT_PUBLIC_BACKEND_URL=https://giggle-server-production.up.railway.app`. OAuth provider secrets belong on Railway; the desktop app proxies auth through the backend.
+Railway server-only values include:
 
-## Notes / gotchas handled
-- Redis on Railway is IPv6-only on the private net → `ioredis` configured with `family: 0` (`src/config/redisConfig.js`).
-- `rediss://` Redis URLs verify TLS certificates by default. Only set `REDIS_TLS_REJECT_UNAUTHORIZED=false` for a self-signed Redis TLS certificate you explicitly trust; do not add it for managed Redis with a public CA certificate.
-- Railway terminates HTTPS before Node, so the backend trusts exactly one proxy hop for client IP/rate-limit handling.
-- Vercel deployment protection (auth wall) is **disabled** so the site is public.
-- Monorepo type resolution: `@giggle/agora` declares `@giggle/core` as a workspace dependency.
-- Google OAuth: to enable real Google sign-in, add the live origin(s) to the OAuth client's **Authorized JavaScript origins** and `https://giggle-server-production.up.railway.app/api/auth/google/callback` to **Authorized redirect URIs** in Google Cloud Console.
-- Apple OAuth: configure the Services ID return URL as `https://giggle-server-production.up.railway.app/api/auth/apple/callback`; Apple posts this callback as form data.
-- Email magic-link auth requires Resend in production; without `RESEND_API_KEY`, the backend returns `EMAIL_NOT_CONFIGURED` and never logs live sign-in links.
+```text
+MONGODB_URI
+REDIS_URL
+JWT_SECRET
+AUTH_EXCHANGE_SECRET
+BACKEND_PUBLIC_URL
+FRONTEND_URL
+AGORA_APP_ID
+AGORA_APP_CERTIFICATE
+YOTI_AGE_API_KEY
+YOTI_AGE_SDK_ID
+AGE_VERIFICATION_CALLBACK_URL
+ADMIN_EMAIL
+STRANGER_DISCOVERY_ENABLED=false
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+APPLE_SERVICE_ID
+APPLE_TEAM_ID
+APPLE_KEY_ID
+APPLE_PRIVATE_KEY
+```
+
+Vercel build values:
+
+```text
+NEXT_PUBLIC_BACKEND_URL
+NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false
+```
+
+- **Vercel project `giggle-web`:** configure `NEXT_PUBLIC_BACKEND_URL` and `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false`; keep server and OAuth secrets out.
+
+Expo/EAS build values:
+
+```text
+EXPO_PUBLIC_BACKEND_URL
+EXPO_PUBLIC_STRANGER_DISCOVERY_ENABLED=false
+EXPO_PUBLIC_IOS_DISCOVERY_ENABLED=false
+```
+
+`JWT_SECRET` and `AUTH_EXCHANGE_SECRET` must each be at least 32 characters. `NEXT_PUBLIC_*` and `EXPO_PUBLIC_*` values are visible in client bundles and are surface controls, not authorization. Never put Yoti, Agora certificate, JWT, OAuth, email, database, or Redis secrets in public variables, `vercel.json`, or `app.json`. The server flag is the enforcement boundary and takes effect after an API restart.
+
+Missing Yoti configuration leaves identity, support, data export, and account deletion available, but age verification and all social access fail closed.
+
+## Release gates
+
+Do not enable stranger discovery, submit store builds, or describe the product as globally compliant until there is evidence for:
+
+- production Yoti tenant, callback, consent/retention terms, appeal path, and live verification tests;
+- trusted geolocation and counsel-reviewed jurisdiction policy;
+- staffed moderation/support, report response, emergency, CSAM, and law-enforcement processes;
+- reviewed legal entity identity, addresses, Terms, Privacy, Safety, and store declarations;
+- vendor deletion/retention/backups and production data-processing agreements;
+- Apple/Google age-rating, child-safety, random-chat, privacy, and account-deletion declarations;
+- production credentials, monitoring, rollback ownership, and two-account web/iOS/Android smoke evidence.
+
+Until these gates clear, keep `STRANGER_DISCOVERY_ENABLED=false` and describe the repository as code-ready, not globally compliant.

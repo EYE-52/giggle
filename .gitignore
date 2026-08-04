@@ -8,6 +8,7 @@ build
 .DS_Store
 .env
 .env.*
+!server/.env.example
 .env*.local
 .firefly.env
 env-secrets
