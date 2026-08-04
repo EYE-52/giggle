@@ -405,6 +405,24 @@ test("request and invite final block decisions run under the auto-extending lock
       joinRequests: [],
       async save() { events.push("invite:save"); },
     };
+    Squad.findOne = async () => inviteSquad;
+    res = createResponse();
+    await inviteToSquadHandler({
+      body: { userId: requesterId },
+      user: { userId: leaderId },
+      squadAccess: { squad: inviteSquad },
+    }, res);
+    assert.equal(res.statusCode, 403);
+    assert.deepEqual(inviteSquad.invitedUserIds, []);
+    assert.deepEqual(events, [
+      ["using:start", ["lock:matchmaking"], 5000],
+      "transaction",
+      "block-read:1",
+      "using:end",
+    ]);
+
+    blockReads = 0;
+    events = [];
     res = createResponse();
     await inviteUserToSquadHandler({
       body: { userId: requesterId },
@@ -486,6 +504,89 @@ test("notification persistence failure rolls back a join request without realtim
       user: { userId: requesterId, name: "Requester" },
     }, res);
     assert.equal(res.statusCode, 500);
+    assert.deepEqual(squad.joinRequests, []);
+    assert.equal(emits, 0);
+  } finally {
+    Squad.findOne = originals.findOne;
+    User.findById = originals.findById;
+    User.find = originals.find;
+    Notification.create = originals.create;
+    mongoose.connection.transaction = originals.transaction;
+    redlock.using = originals.using;
+    socketService.emitToSquad = originals.emitSquad;
+    socketService.emitToUser = originals.emitUser;
+  }
+});
+
+test("a lock lost after notification persistence aborts before the join-request transaction commits", async () => {
+  const requesterId = "507f1f77bcf86cd799439011";
+  const leaderId = "507f1f77bcf86cd799439012";
+  const originals = {
+    findOne: Squad.findOne,
+    findById: User.findById,
+    find: User.find,
+    create: Notification.create,
+    transaction: mongoose.connection.transaction,
+    using: redlock.using,
+    emitSquad: socketService.emitToSquad,
+    emitUser: socketService.emitToUser,
+  };
+  const squad = {
+    squadId: "request_lock_loss",
+    squadCode: "ABC-123",
+    squadName: "Lock loss",
+    status: "idle",
+    joinPolicy: "request",
+    members: [{ memberId: "leader", userId: leaderId, role: "leader" }],
+    invitedUserIds: [],
+    joinRequests: [],
+    async save() {},
+  };
+  let signal;
+  let committed = false;
+  let rolledBack = false;
+  let emits = 0;
+  Squad.findOne = async () => squad;
+  User.findById = async () => ({ _id: requesterId });
+  User.find = () => ({
+    lean: async () => [
+      { _id: requesterId, blockedUserIds: [] },
+      { _id: leaderId, blockedUserIds: [] },
+    ],
+  });
+  Notification.create = async () => {
+    signal.aborted = true;
+    signal.error = new Error("lock extension failed");
+    return [{ _id: "507f1f77bcf86cd799439099", userId: leaderId }];
+  };
+  mongoose.connection.transaction = async (routine) => {
+    try {
+      const result = await routine({ transaction: true });
+      committed = true;
+      return result;
+    } catch (error) {
+      squad.joinRequests = [];
+      rolledBack = true;
+      throw error;
+    }
+  };
+  redlock.using = async (_resources, _duration, routine) => {
+    signal = { aborted: false, error: null };
+    return routine(signal);
+  };
+  socketService.emitToSquad = () => { emits += 1; };
+  socketService.emitToUser = () => { emits += 1; };
+
+  try {
+    const res = createResponse();
+    await joinSquadHandler({
+      body: { squadCode: "ABC-123" },
+      params: {},
+      user: { userId: requesterId, name: "Requester" },
+    }, res);
+    assert.equal(res.statusCode, 500);
+    assert.equal(committed, false);
+    assert.equal(rolledBack, true);
     assert.deepEqual(squad.joinRequests, []);
     assert.equal(emits, 0);
   } finally {
@@ -767,7 +868,7 @@ test("squad invite endpoints reject nonexistent user ids", () => {
   assert.equal(leaderInviteHandler.indexOf("!isValidUserObjectId(targetUserId)") < leaderInviteHandler.indexOf("User.findById(targetUserId)"), true);
   assert.equal(memberInviteHandler.indexOf("!isValidUserObjectId(targetUserId)") < memberInviteHandler.indexOf("User.findById(targetUserId)"), true);
   assert.equal(leaderInviteHandler.includes('code: "INVITE_USER_NOT_FOUND"'), true);
-  assert.equal(leaderInviteHandler.indexOf("INVITE_USER_NOT_FOUND") < leaderInviteHandler.indexOf("squad.invitedUserIds.push(targetUserId)"), true);
+  assert.equal(leaderInviteHandler.indexOf("INVITE_USER_NOT_FOUND") < leaderInviteHandler.indexOf("currentSquad.invitedUserIds.push(targetUserId)"), true);
   assert.equal(memberInviteHandler.includes('code: "INVITE_USER_NOT_FOUND"'), true);
   assert.equal(memberInviteHandler.indexOf("INVITE_USER_NOT_FOUND") < memberInviteHandler.indexOf("currentSquad.invitedUserIds.push(targetUserId)"), true);
 });
@@ -893,7 +994,7 @@ test("join approval admits a verified-adult target", async () => {
 });
 
 for (const [name, handler, req] of [
-  ["leader invite", inviteToSquadHandler, { body: { userId: "507f1f77bcf86cd799439012" } }],
+  ["leader invite", inviteToSquadHandler, { body: { userId: "507f1f77bcf86cd799439012" }, user: { userId: "507f1f77bcf86cd799439011" } }],
   ["member invite", inviteUserToSquadHandler, { body: { userId: "507f1f77bcf86cd799439012" }, user: { userId: "507f1f77bcf86cd799439011", name: "Leader" } }],
 ]) {
   test(`${name} rejects an unverified adult before invite mutation`, async () => {

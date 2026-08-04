@@ -598,12 +598,12 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   // Both resets are guarded by the old encounter id. A failed write leaves the
   // encounter retryable; a later retry cannot clobber a squad that has already
   // joined a newer encounter.
-  const otherReset = await Squad.updateOne(
-    { squadId: otherSquadId, currentEncounterId: encounter.encounterId },
-    { $set: idleState }
-  );
   await Squad.updateOne(
     { squadId: disconnectingSquadId, currentEncounterId: encounter.encounterId },
+    { $set: idleState }
+  );
+  const otherReset = await Squad.updateOne(
+    { squadId: otherSquadId, currentEncounterId: encounter.encounterId },
     { $set: idleState }
   );
 
@@ -625,8 +625,7 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
 
   const otherSquad = await Squad.findOne({ squadId: otherSquadId });
   const otherWasResetNow = (otherReset?.matchedCount ?? otherReset?.n ?? 0) > 0;
-  const retryingPartialReset = !encounterWasEnded && otherSquad?.status === "idle" && !otherSquad.currentEncounterId;
-  if ((otherWasResetNow || retryingPartialReset) && otherSquad?.status === "idle" && !otherSquad.currentEncounterId) {
+  if (otherWasResetNow && otherSquad?.status === "idle" && !otherSquad.currentEncounterId) {
     try {
       const canRequeue =
         !(otherSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&
@@ -670,12 +669,7 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   const disconnectingSquad = await Squad.findOne({ squadId: disconnectingSquadId });
   if (disconnectingSquad) {
     for (const member of disconnectingSquad.members) {
-      await sessionService.setSessionField(
-        disconnectingSquadId,
-        member.memberId,
-        "inEncounterVideo",
-        false
-      );
+      await sessionService.clearMemberSession(disconnectingSquadId, member.memberId);
     }
   }
 };

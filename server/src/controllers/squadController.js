@@ -432,6 +432,7 @@ const joinSquadHandler = async (req, res) => {
                 squadName: currentSquad.squadName,
               }, { session, required: true, emit: false })
             : null;
+          if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
           return { added: true, notification, squadId: currentSquad.squadId };
         });
       });
@@ -985,6 +986,7 @@ const inviteToSquadHandler = async (req, res) => {
 
   try {
     const { squad } = req.squadAccess;
+    const inviterIdentity = getRequesterIdentity(req);
 
     let targetUserId = typeof bodyUserId === "string" && bodyUserId.trim() ? bodyUserId.trim() : null;
 
@@ -1022,28 +1024,61 @@ const inviteToSquadHandler = async (req, res) => {
         error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
       });
     }
-    if (await anyBlockedPairInSquad(squad, [targetUserId])) return interactionBlocked(res);
-
-    if (!Array.isArray(squad.invitedUserIds)) squad.invitedUserIds = [];
-    if (!hasIdentityId(squad.invitedUserIds, targetUserId)) {
-      squad.invitedUserIds.push(targetUserId);
-      await squad.save();
-      if (await anyBlockedPairInSquad(squad, [targetUserId])) {
-        squad.invitedUserIds = squad.invitedUserIds.filter(
-          (userId) => !hasIdentityId([userId], targetUserId)
+    const outcome = await withMatchmakingLock(async (signal) => {
+      return mongoose.connection.transaction(async (session) => {
+        const currentSquad = await Squad.findOne(
+          { squadId: squad.squadId },
+          null,
+          { session }
         );
-        await squad.save();
-        return interactionBlocked(res);
-      }
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+        if (!currentSquad) {
+          return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
+        }
+        const currentLeader = currentSquad.members.find(
+          (candidate) => candidate.role === "leader" && isSameMember(candidate, inviterIdentity)
+        );
+        if (!currentLeader) {
+          return { error: { status: 403, code: "LEADER_ONLY", message: "Only the squad leader can invite" } };
+        }
+        if (await anyBlockedPairInSquad(currentSquad, [targetUserId], { session })) {
+          return { blocked: true };
+        }
+        if (!Array.isArray(currentSquad.invitedUserIds)) currentSquad.invitedUserIds = [];
+        if (hasIdentityId(currentSquad.invitedUserIds, targetUserId)) {
+          return {
+            added: false,
+            squadId: currentSquad.squadId,
+            invitedCount: currentSquad.invitedUserIds.length,
+          };
+        }
+
+        currentSquad.invitedUserIds.push(targetUserId);
+        await currentSquad.save({ session });
+        if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+        return {
+          added: true,
+          squadId: currentSquad.squadId,
+          invitedCount: currentSquad.invitedUserIds.length,
+        };
+      });
+    });
+    if (outcome.blocked) return interactionBlocked(res);
+    if (outcome.error) {
+      return res.status(outcome.error.status).json({
+        ok: false,
+        error: { code: outcome.error.code, message: outcome.error.message },
+      });
+    }
+    if (outcome.added) {
+      socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
     }
 
     return res.status(200).json({
       ok: true,
       data: {
-        squadId: squad.squadId,
+        squadId: outcome.squadId,
         invitedUserId: targetUserId,
-        invitedCount: squad.invitedUserIds.length,
+        invitedCount: outcome.invitedCount,
       },
     });
   } catch (error) {
@@ -1162,6 +1197,7 @@ const inviteUserToSquadHandler = async (req, res) => {
           squadCode: currentSquad.squadCode,
           squadName: currentSquad.squadName,
         }, { session, required: true, emit: false });
+        if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
         return { added: true, notification, squadId: currentSquad.squadId };
       });
     });
