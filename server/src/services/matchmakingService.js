@@ -9,7 +9,11 @@ const sessionService = require("./sessionService");
 const { allUsersHaveAdultAccess } = require("./ageAccessService");
 const { MIN_MEMBERS_TO_SEARCH } = require("../config/appConfig");
 const { classifyVibe } = require("../utils/moderation");
-const { anyBlockedPair } = require("./interactionSafetyService");
+const {
+  anyBlockedPair,
+  anyBlockedPairInState,
+  loadBlockState,
+} = require("./interactionSafetyService");
 
 // 60s handoff window: matchmaking polling, the match-reveal animation, and
 // navigation all eat into this, so 30s was too tight for the 2nd squad to ack
@@ -304,22 +308,30 @@ const tryMatchmakeForSquad = async (squad) => {
         continue;
       }
 
-      const combinedUserIds = [
-        ...freshSquad.members.map((member) => member.userId),
-        ...freshCandidate.members.map((member) => member.userId),
-      ];
-      if (await anyBlockedPair(combinedUserIds, { User })) {
-        if (await anyBlockedPair(freshSquad.members.map((member) => member.userId), { User })) {
-          console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} contains a blocked pair. Purging from queue.`);
-          await resetInactiveSearchingSquad(freshSquad);
-          return null;
-        }
-        if (await anyBlockedPair(freshCandidate.members.map((member) => member.userId), { User })) {
-          console.warn(`[Matchmaking] Candidate ${freshCandidate.squadId} contains a blocked pair. Purging from queue.`);
-          await resetInactiveSearchingSquad(freshCandidate);
-        }
+      const seekerUserIds = freshSquad.members.map((member) => member.userId);
+      const candidateUserIds = freshCandidate.members.map((member) => member.userId);
+      const combinedUserIds = [...seekerUserIds, ...candidateUserIds];
+      let blockState;
+      try {
+        blockState = await loadBlockState(combinedUserIds, { User });
+      } catch {
+        await resetInactiveSearchingSquad(freshSquad);
+        return null;
+      }
+      const seekerHasBlockedPair = anyBlockedPairInState(seekerUserIds, blockState);
+      const candidateHasBlockedPair = anyBlockedPairInState(candidateUserIds, blockState);
+      const combinedHasBlockedPair = anyBlockedPairInState(combinedUserIds, blockState);
+      if (seekerHasBlockedPair) {
+        console.warn(`[Matchmaking] Seeker ${freshSquad.squadId} contains a blocked pair. Purging from queue.`);
+        await resetInactiveSearchingSquad(freshSquad);
+        return null;
+      }
+      if (candidateHasBlockedPair) {
+        console.warn(`[Matchmaking] Candidate ${freshCandidate.squadId} contains a blocked pair. Purging from queue.`);
+        await resetInactiveSearchingSquad(freshCandidate);
         continue;
       }
+      if (combinedHasBlockedPair) continue;
 
       // Recheck both sides under the matchmaking lock. Ready/video are admission
       // checks; searching is continuing consent, and live membership prevents a
@@ -587,39 +599,29 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", endedPayload);
   socketService.closeEncounterRoom(encounter.encounterId);
 
-  // 1. Set disconnecting squad to IDLE
-  await Squad.updateOne(
-    { squadId: disconnectingSquadId },
-    {
-      $set: {
-        status: "idle",
-        currentEncounterId: null,
-        opponentSquadId: null,
-        matchedAt: null,
-        searchQueuedAt: null,
-        "members.$[].inEncounterVideo": false,
-      },
-    }
-  );
+  const idleState = {
+    status: "idle",
+    currentEncounterId: null,
+    opponentSquadId: null,
+    matchedAt: null,
+    searchQueuedAt: null,
+    "members.$[].inEncounterVideo": false,
+  };
 
-  // 2. Set other squad to SEARCHING and add to Redis queue
-  const now = new Date();
+  // Put the remaining squad in the safe state first. If a later Mongo write
+  // fails, it stays idle rather than pointing at an ended encounter. The only
+  // recovery boundary left is failure of this first Mongo write itself; the
+  // room is already closed and callers fail closed, without a background job.
   await Squad.updateOne(
     { squadId: otherSquadId },
-    {
-      $set: {
-        status: "searching",
-        currentEncounterId: null,
-        opponentSquadId: null,
-        matchedAt: null,
-        searchQueuedAt: now,
-        "members.$[].inEncounterVideo": false,
-      },
-    }
+    { $set: idleState }
+  );
+  await Squad.updateOne(
+    { squadId: disconnectingSquadId },
+    { $set: idleState }
   );
 
   const otherSquad = await Squad.findOne({ squadId: otherSquadId });
-  let otherQueued = false;
   if (otherSquad) {
     try {
       const canRequeue =
@@ -627,8 +629,18 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
         await allUsersHaveAdultAccess(otherSquad.members.map((member) => member.userId), { User }) &&
         !(await anyBlockedPair(otherSquad.members.map((member) => member.userId), { User }));
       if (!canRequeue) {
-        await rollbackSquadsToIdle([otherSquadId]);
+        await queueService.removeFromQueue(otherSquadId);
       } else {
+        const now = new Date();
+        await Squad.updateOne(
+          { squadId: otherSquadId },
+          { $set: { ...idleState, status: "searching", searchQueuedAt: now } }
+        );
+        otherSquad.status = "searching";
+        otherSquad.searchQueuedAt = now;
+        otherSquad.currentEncounterId = null;
+        otherSquad.opponentSquadId = null;
+        otherSquad.matchedAt = null;
         await queueService.addToQueue(
           otherSquad.squadId,
           getSquadSize(otherSquad),
@@ -636,7 +648,6 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
           otherSquad.tags,
           otherSquad.reputationScore
         );
-        otherQueued = true;
         // Sync Redis for other squad
         for (const m of otherSquad.members) {
           await sessionService.setSessionField(otherSquadId, m.memberId, 'inEncounterVideo', false);
@@ -645,9 +656,7 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
         await tryMatchmakeForSquad(otherSquad);
       }
     } catch (error) {
-      if (!otherQueued) {
-        await rollbackSquadsToIdle([otherSquadId]);
-      }
+      await rollbackSquadsToIdle([otherSquadId]);
       throw error;
     }
   }

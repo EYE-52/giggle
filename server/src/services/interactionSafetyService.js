@@ -30,6 +30,21 @@ const loadBlockState = async (userIds, { User }) => {
   return new Map(users.map((user) => [canonicalUserId(user._id), user]));
 };
 
+const anyBlockedPairInState = (userIds, state) => {
+  if (!Array.isArray(userIds) || !(state instanceof Map)) return true;
+  if (!userIds.length) return false;
+  const normalizedIds = userIds.map(canonicalUserId);
+  if (normalizedIds.some((id) => !id)) return true;
+  const ids = [...new Set(normalizedIds)];
+  if (ids.some((id) => !state.has(id))) return true;
+  for (let left = 0; left < ids.length; left += 1) {
+    for (let right = left + 1; right < ids.length; right += 1) {
+      if (hasBlockedPair(state.get(ids[left]), state.get(ids[right]))) return true;
+    }
+  }
+  return false;
+};
+
 const anyBlockedPair = async (userIds, dependencies) => {
   if (!Array.isArray(userIds)) return true;
   if (!userIds.length) return false;
@@ -38,13 +53,7 @@ const anyBlockedPair = async (userIds, dependencies) => {
   const ids = [...new Set(normalizedIds)];
   try {
     const state = await loadBlockState(ids, dependencies);
-    if (state.size !== ids.length) return true;
-    for (let left = 0; left < ids.length; left += 1) {
-      for (let right = left + 1; right < ids.length; right += 1) {
-        if (hasBlockedPair(state.get(ids[left]), state.get(ids[right]))) return true;
-      }
-    }
-    return false;
+    return anyBlockedPairInState(ids, state);
   } catch {
     return true;
   }
@@ -72,6 +81,7 @@ module.exports = {
   relationalIdMatcher,
   hasBlockedPair,
   loadBlockState,
+  anyBlockedPairInState,
   anyBlockedPair,
   filterBlockedCandidates,
 };

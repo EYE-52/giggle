@@ -165,6 +165,28 @@ const removeSquadMember = async (squad, memberIndex) => {
 
   const wasSearching = squad.status === "searching";
   const encounterId = squad.currentEncounterId;
+  const willDeleteSquad = squad.members.length === 1;
+
+  // Keep the persisted membership in place until every fallible cleanup step
+  // succeeds. A failed block/leave can then retry and find the same member,
+  // while access is revoked as the first security boundary.
+  socketService.revokeUserRealtimeAccess({
+    userId: removedMember.userId,
+    squadId: squad.squadId,
+    encounterId,
+  });
+  await sessionService.clearMemberSession(squad.squadId, removedMember.memberId);
+
+  if (wasSearching) await queueService.removeFromQueue(squad.squadId);
+
+  if (willDeleteSquad && encounterId) {
+    const encounter = await Encounter.findOne({ encounterId, status: { $ne: "ended" } });
+    if (encounter) {
+      const { endEncounterAsymmetric } = require("../services/matchmakingService");
+      await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });
+    }
+  }
+
   squad.members.splice(memberIndex, 1);
   if (wasSearching && squad.members.length > 0) {
     squad.status = "idle";
@@ -174,26 +196,11 @@ const removeSquadMember = async (squad, memberIndex) => {
   const persisted = await persistSquadAfterMemberRemoval(squad, {
     removedMemberRole: removedMember.role,
   });
-  await sessionService.clearMemberSession(squad.squadId, removedMember.memberId);
-  socketService.revokeUserRealtimeAccess({
-    userId: removedMember.userId,
-    squadId: squad.squadId,
-    encounterId,
-  });
   socketService.emitToUser(removedMember.userId, "SQUAD_UPDATED", {
     squadId: squad.squadId,
     removed: true,
   });
-
-  if (wasSearching) await queueService.removeFromQueue(squad.squadId);
-
-  if (persisted.squadDeleted && encounterId) {
-    const encounter = await Encounter.findOne({ encounterId, status: { $ne: "ended" } });
-    if (encounter) {
-      const { endEncounterAsymmetric } = require("../services/matchmakingService");
-      await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });
-    }
-  } else if (!persisted.squadDeleted) {
+  if (!persisted.squadDeleted) {
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
   }
 
@@ -208,8 +215,14 @@ const removeBlockedIdentityFromSharedSquads = async ({ blockerId, blockedUserIds
     throw new Error("Invalid blocked squad cleanup ids");
   }
 
-  const participantMatchers = [blocker, ...targets].map(relationalIdMatcher);
-  const squads = await Squad.find({ "members.userId": { $in: participantMatchers } });
+  const participantIds = [blocker, ...targets];
+  let squads = await Squad.find({ "members.userId": { $in: participantIds } });
+  if (squads.length === 0) {
+    // ponytail: this regex scan exists only for pre-canonical mixed-case IDs;
+    // remove it after those legacy squad rows are migrated.
+    const participantMatchers = participantIds.map(relationalIdMatcher);
+    squads = await Squad.find({ "members.userId": { $in: participantMatchers } });
+  }
   let removedMemberships = 0;
 
   for (const squad of squads) {

@@ -180,6 +180,7 @@ async function runFreshRosterMatch(
   const removed = [];
   let encounters = 0;
   let seekerReads = 0;
+  let blockReads = 0;
 
   redlock.acquire = async () => ({ release: async () => {} });
   const defaultQueue = [
@@ -203,13 +204,13 @@ async function runFreshRosterMatch(
     const matching = users.filter((user) => ids.map(String).includes(String(user._id)));
     return {
       select: async () => matching,
-      lean: async () => matching,
+      lean: async () => { blockReads += 1; return matching; },
     };
   };
 
   try {
     const result = await tryMatchmakeForSquad(seeker);
-    return { candidate, encounters, removed, result, seeker };
+    return { blockReads, candidate, encounters, removed, result, seeker };
   } finally {
     redlock.acquire = originals.acquire;
     queueService.getQueuedSquadsByRegion = originals.queued;
@@ -318,17 +319,20 @@ test("matcher rechecks a seeker roster before creating an encounter", async () =
   assert.deepEqual(removed, ["sq_seeker"]);
 });
 
-test("matcher skips a freshly blocked cross-squad pair before encounter creation", async () => {
-  const { candidate, encounters, removed, result, seeker } = await runFreshRosterMatch([
+test("matcher skips only the blocked cross-squad pairing and keeps both healthy squads searchable", async () => {
+  const { blockReads, candidate, encounters, removed, result, seeker } = await runFreshRosterMatch([
     { _id: MATCH_USER_A, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [MATCH_USER_B] },
     { _id: MATCH_USER_B, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [] },
   ]);
 
   assert.equal(result, null);
   assert.equal(encounters, 0);
+  // The block applies to this pairing, not either internally valid squad. Both
+  // remain queued so they can still match compatible candidates.
   assert.equal(seeker.status, "searching");
   assert.equal(candidate.status, "searching");
   assert.deepEqual(removed, []);
+  assert.equal(blockReads, 2, "one seeker snapshot and one combined candidate snapshot");
 });
 
 test("matcher purges a candidate whose fresh roster contains a blocked pair", async () => {
@@ -493,6 +497,127 @@ test("asymmetric encounter end leaves an ineligible remaining roster idle", asyn
     sessionService.setSessionField = originals.session;
     socketService.emitToSquad = originals.emit;
     socketService.closeEncounterRoom = originals.close;
+  }
+});
+
+test("asymmetric encounter end immediately rematches with the opponent's searching state", async () => {
+  const originals = {
+    acquire: redlock.acquire,
+    updateOne: Squad.updateOne,
+    updateMany: Squad.updateMany,
+    findOne: Squad.findOne,
+    users: User.find,
+    add: queueService.addToQueue,
+    remove: queueService.removeFromQueue,
+    queued: queueService.getQueuedSquadsByRegion,
+    allQueued: queueService.getAllQueuedSquads,
+    session: sessionService.setSessionField,
+    emit: socketService.emitToSquad,
+    close: socketService.closeEncounterRoom,
+  };
+  const other = {
+    squadId: "sq_b",
+    status: "in_encounter",
+    searchRegion: "global",
+    tags: [],
+    reputationScore: 100,
+    members: [{ memberId: "member_b", userId: MATCH_USER_B }],
+  };
+  const disconnecting = {
+    squadId: "sq_a",
+    status: "in_encounter",
+    members: [{ memberId: "member_a", userId: MATCH_USER_A }],
+  };
+  const safeUsers = [MATCH_USER_A, MATCH_USER_B].map((_id) => ({
+    _id,
+    ageConfirmed: true,
+    isAdult: true,
+    ageVerified: true,
+    blockedUserIds: [],
+  }));
+  const queued = [];
+  let lockAcquires = 0;
+  redlock.acquire = async () => {
+    lockAcquires += 1;
+    return { release: async () => {} };
+  };
+  Squad.updateOne = async () => {};
+  Squad.updateMany = async () => {};
+  Squad.findOne = async ({ squadId }) => squadId === other.squadId ? other : disconnecting;
+  User.find = ({ _id: { $in: ids } }) => {
+    const users = safeUsers.filter((user) => ids.map(String).includes(String(user._id)));
+    return { select: async () => users, lean: async () => users };
+  };
+  queueService.addToQueue = async (squadId) => { queued.push(squadId); };
+  queueService.removeFromQueue = async () => {};
+  queueService.getQueuedSquadsByRegion = async () => [];
+  queueService.getAllQueuedSquads = async () => [];
+  sessionService.setSessionField = async () => {};
+  socketService.emitToSquad = () => {};
+  socketService.closeEncounterRoom = () => {};
+  const encounter = {
+    encounterId: "enc_rematch",
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    async save() {},
+  };
+
+  try {
+    await endEncounterAsymmetric({ encounter, disconnectingSquadId: "sq_a" });
+    assert.deepEqual(queued, ["sq_b"]);
+    assert.equal(other.status, "searching");
+    assert.equal(lockAcquires, 1);
+  } finally {
+    redlock.acquire = originals.acquire;
+    Squad.updateOne = originals.updateOne;
+    Squad.updateMany = originals.updateMany;
+    Squad.findOne = originals.findOne;
+    User.find = originals.users;
+    queueService.addToQueue = originals.add;
+    queueService.removeFromQueue = originals.remove;
+    queueService.getQueuedSquadsByRegion = originals.queued;
+    queueService.getAllQueuedSquads = originals.allQueued;
+    sessionService.setSessionField = originals.session;
+    socketService.emitToSquad = originals.emit;
+    socketService.closeEncounterRoom = originals.close;
+  }
+});
+
+test("asymmetric encounter end idles the opponent before a disconnecting-squad write can fail", async () => {
+  const originals = {
+    updateOne: Squad.updateOne,
+    emit: socketService.emitToSquad,
+    close: socketService.closeEncounterRoom,
+    add: queueService.addToQueue,
+  };
+  const writes = [];
+  let queued = false;
+  Squad.updateOne = async (filter, update) => {
+    writes.push([filter.squadId, update.$set?.status]);
+    if (filter.squadId === "sq_a") throw new Error("disconnecting write failed");
+  };
+  socketService.emitToSquad = () => {};
+  socketService.closeEncounterRoom = () => {};
+  queueService.addToQueue = async () => { queued = true; };
+  const encounter = {
+    encounterId: "enc_partial",
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    async save() {},
+  };
+
+  try {
+    await assert.rejects(
+      () => endEncounterAsymmetric({ encounter, disconnectingSquadId: "sq_a" }),
+      /disconnecting write failed/
+    );
+    assert.deepEqual(writes, [["sq_b", "idle"], ["sq_a", "idle"]]);
+    assert.equal(queued, false);
+  } finally {
+    Squad.updateOne = originals.updateOne;
+    socketService.emitToSquad = originals.emit;
+    socketService.closeEncounterRoom = originals.close;
+    queueService.addToQueue = originals.add;
   }
 });
 

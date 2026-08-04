@@ -1,8 +1,13 @@
 const assert = require("node:assert/strict");
-const test = require("node:test");
+const { after, test } = require("node:test");
 
 const squadAccess = require("../src/app/squadAccess");
 const { Squad } = require("../src/models/Squad");
+const { redlock, redis, subClient } = require("../src/config/redisConfig");
+
+after(async () => {
+  await Promise.allSettled([redis.quit(), subClient.quit()]);
+});
 
 function createResponse() {
   return {
@@ -87,12 +92,15 @@ test("skip reports searching when the triggering squad is requeued", async () =>
   assert.equal(res.body.data.queueStatus, "searching");
 });
 
-async function loadSafetyController({ interactionBlocked = false } = {}) {
+async function loadSafetyController({ interactionBlocked = false, membershipRemovedAfterLock = false } = {}) {
   const controllerPath = require.resolve("../src/controllers/matchmakingController");
   const servicePath = require.resolve("../src/services/matchmakingService");
   const originalServiceModule = require.cache[servicePath];
   const originalFindOne = Squad.findOne;
+  const originalAcquire = redlock.acquire;
   let acknowledgements = 0;
+  let rosterChecks = 0;
+  const events = [];
   const encounter = {
     encounterId: "encounter_1",
     squadAId: "squad_a",
@@ -103,7 +111,21 @@ async function loadSafetyController({ interactionBlocked = false } = {}) {
   const squadA = { squadId: "squad_a", squadName: "A", members: [{ memberId: "member_a", userId: "user_a" }] };
   const squadB = { squadId: "squad_b", squadName: "B", members: [{ memberId: "member_b", userId: "user_b" }] };
 
-  Squad.findOne = async ({ squadId }) => squadId === "squad_a" ? squadA : squadB;
+  Squad.findOne = async ({ squadId }) => {
+    const squad = squadId === "squad_a" ? squadA : squadB;
+    if (
+      membershipRemovedAfterLock &&
+      squadId === "squad_a" &&
+      events.some(([type]) => type === "lock")
+    ) {
+      return { ...squad, members: [] };
+    }
+    return squad;
+  };
+  redlock.acquire = async (resources) => {
+    events.push(["lock", resources]);
+    return { release: async () => { events.push(["release"]); } };
+  };
   require.cache[servicePath] = {
     id: servicePath,
     filename: servicePath,
@@ -116,13 +138,14 @@ async function loadSafetyController({ interactionBlocked = false } = {}) {
         interactionBlocked,
       }),
       getEncounterById: async () => encounter,
-      getEncounterRosterContext: async () => ({
-        allowed: !interactionBlocked,
-        squadA,
-        squadB,
-      }),
+      getEncounterRosterContext: async () => {
+        rosterChecks += 1;
+        events.push(["block-check"]);
+        return { allowed: !interactionBlocked, squadA, squadB };
+      },
       ackEncounterForSquad: async () => {
         acknowledgements += 1;
+        events.push(["ack"]);
         return { acknowledged: true, allAcked: false };
       },
       endEncounterAndRequeue: async () => null,
@@ -133,8 +156,11 @@ async function loadSafetyController({ interactionBlocked = false } = {}) {
   return {
     controller: require(controllerPath),
     acknowledgements: () => acknowledgements,
+    events,
+    rosterChecks: () => rosterChecks,
     restore() {
       Squad.findOne = originalFindOne;
+      redlock.acquire = originalAcquire;
       if (originalServiceModule) require.cache[servicePath] = originalServiceModule;
       else delete require.cache[servicePath];
       delete require.cache[controllerPath];
@@ -170,6 +196,22 @@ test("encounter handoff does not expose opponent identities for a blocked pair",
   }
 });
 
+test("encounter handoff authorizes membership before revealing block-specific state", async () => {
+  const fixture = await loadSafetyController({ interactionBlocked: true });
+  try {
+    const res = createResponse();
+    await fixture.controller.getEncounterHandoffHandler({
+      params: { encounterId: "encounter_1" },
+      user: { userId: "outsider" },
+    }, res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.error.code, "FORBIDDEN");
+    assert.equal(fixture.rosterChecks(), 0);
+  } finally {
+    fixture.restore();
+  }
+});
+
 test("encounter acknowledgement revalidates blocks before activation", async () => {
   const fixture = await loadSafetyController({ interactionBlocked: true });
   try {
@@ -182,6 +224,67 @@ test("encounter acknowledgement revalidates blocks before activation", async () 
     assert.equal(res.statusCode, 403);
     assert.equal(res.body.error.code, "INTERACTION_BLOCKED");
     assert.equal(fixture.acknowledgements(), 0);
+  } finally {
+    fixture.restore();
+  }
+});
+
+test("encounter acknowledgement rejects an unrelated submitted squad before block checks", async () => {
+  const fixture = await loadSafetyController({ interactionBlocked: true });
+  try {
+    const res = createResponse();
+    await fixture.controller.ackEncounterJoinHandler({
+      params: { encounterId: "encounter_1" },
+      body: { squadId: "squad_outside" },
+      user: { userId: "user_b" },
+    }, res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.error.code, "FORBIDDEN");
+    assert.equal(fixture.rosterChecks(), 0);
+    assert.deepEqual(fixture.events, []);
+  } finally {
+    fixture.restore();
+  }
+});
+
+test("encounter acknowledgement holds the matchmaking lock across block check and activation", async () => {
+  const fixture = await loadSafetyController();
+  try {
+    const res = createResponse();
+    await fixture.controller.ackEncounterJoinHandler({
+      params: { encounterId: "encounter_1" },
+      body: { squadId: "squad_a" },
+      user: { userId: "user_a" },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(fixture.events, [
+      ["lock", ["lock:matchmaking"]],
+      ["block-check"],
+      ["ack"],
+      ["release"],
+    ]);
+  } finally {
+    fixture.restore();
+  }
+});
+
+test("encounter acknowledgement rechecks membership inside the matchmaking lock", async () => {
+  const fixture = await loadSafetyController({ membershipRemovedAfterLock: true });
+  try {
+    const res = createResponse();
+    await fixture.controller.ackEncounterJoinHandler({
+      params: { encounterId: "encounter_1" },
+      body: { squadId: "squad_a" },
+      user: { userId: "user_a" },
+    }, res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.error.code, "FORBIDDEN");
+    assert.equal(fixture.rosterChecks(), 0);
+    assert.equal(fixture.acknowledgements(), 0);
+    assert.deepEqual(fixture.events, [
+      ["lock", ["lock:matchmaking"]],
+      ["release"],
+    ]);
   } finally {
     fixture.restore();
   }

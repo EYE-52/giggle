@@ -14,10 +14,13 @@ const {
   approveJoinRequestHandler,
   createSquadHandler,
   discoverSquadsHandler,
+  getMySquadHandler,
   getJoinRequestsHandler,
+  getSquadHandler,
   getSquadPreviewHandler,
   inviteToSquadHandler,
   inviteUserToSquadHandler,
+  joinRandomSquadHandler,
   joinSquadHandler,
   startSearchHandler,
   updateSquadTagsHandler,
@@ -226,11 +229,15 @@ test("join-request reads omit missing and blocked requesters", async () => {
   const blockedId = "507f1f77bcf86cd799439012";
   const allowedId = "507f1f77bcf86cd799439013";
   const originalFind = User.find;
-  User.find = async () => [
-    { _id: leaderId, blockedUserIds: [] },
-    { _id: blockedId, blockedUserIds: [leaderId], name: "Hidden" },
-    { _id: allowedId, blockedUserIds: [], name: "Visible" },
-  ];
+  let projection;
+  User.find = async (_query, fields) => {
+    projection = fields;
+    return [
+      { _id: leaderId, blockedUserIds: [] },
+      { _id: blockedId, blockedUserIds: [leaderId], name: "Hidden" },
+      { _id: allowedId, blockedUserIds: [], name: "Visible" },
+    ];
+  };
 
   try {
     const res = createResponse();
@@ -248,8 +255,62 @@ test("join-request reads omit missing and blocked requesters", async () => {
     }, res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.data.requests.map((request) => request.userId), [allowedId]);
+    assert.equal(projection, "_id blockedUserIds gender languages country");
   } finally {
     User.find = originalFind;
+  }
+});
+
+test("random join skips a blocked squad and admits the user only to a safe candidate", async () => {
+  const viewerId = "507f1f77bcf86cd799439011";
+  const blockedLeaderId = "507f1f77bcf86cd799439012";
+  const safeLeaderId = "507f1f77bcf86cd799439013";
+  const originals = { find: Squad.find, findOne: Squad.findOne, userFind: User.find, findById: User.findById };
+  const blocked = {
+    squadId: "blocked_squad",
+    status: "idle",
+    visibility: "open",
+    joinPolicy: "open",
+    members: [{ memberId: "blocked_leader", userId: blockedLeaderId, role: "leader" }],
+  };
+  const safe = {
+    squadId: "safe_squad",
+    squadCode: "SAFE-01",
+    squadName: "Safe squad",
+    status: "idle",
+    visibility: "open",
+    joinPolicy: "open",
+    members: [{ memberId: "safe_leader", userId: safeLeaderId, role: "leader" }],
+    async save() {},
+  };
+  const users = [
+    { _id: viewerId, blockedUserIds: [blockedLeaderId] },
+    { _id: blockedLeaderId, blockedUserIds: [] },
+    { _id: safeLeaderId, blockedUserIds: [] },
+  ];
+  Squad.find = () => ({ sort() { return this; }, limit: async () => [blocked, safe] });
+  Squad.findOne = async ({ squadId }) => squadId === safe.squadId ? safe : blocked;
+  User.find = ({ _id }) => ({
+    lean: async () => users.filter((user) => _id.$in.includes(user._id)),
+  });
+  User.findById = () => ({ select: async () => ({ isPremium: false }) });
+
+  try {
+    const res = createResponse();
+    await joinRandomSquadHandler({
+      body: { displayName: "Viewer" },
+      user: { userId: viewerId, name: "Viewer" },
+    }, res);
+
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.squadId, safe.squadId);
+    assert.deepEqual(blocked.members.map((member) => member.userId), [blockedLeaderId]);
+    assert.deepEqual(safe.members.map((member) => member.userId), [safeLeaderId, viewerId]);
+  } finally {
+    Squad.find = originals.find;
+    Squad.findOne = originals.findOne;
+    User.find = originals.userFind;
+    User.findById = originals.findById;
   }
 });
 
@@ -261,11 +322,14 @@ test("a block racing a request or invite removes the just-written artifact", asy
     findById: User.findById,
     find: User.find,
     create: Notification.create,
+    deleteMany: Notification.deleteMany,
   };
   let blockReads = 0;
+  let events = [];
   User.find = () => ({
     lean: async () => {
       blockReads += 1;
+      events.push(`block-read:${blockReads}`);
       return [
         { _id: requesterId, blockedUserIds: blockReads > 1 ? [leaderId] : [] },
         { _id: leaderId, blockedUserIds: [] },
@@ -280,7 +344,14 @@ test("a block racing a request or invite removes the just-written artifact", asy
       ageVerified: true,
     }),
   });
-  Notification.create = async () => assert.fail("a raced request or invite must not notify");
+  Notification.create = async () => {
+    events.push("notification:create");
+    return { _id: "507f1f77bcf86cd799439099" };
+  };
+  Notification.deleteMany = async () => {
+    events.push("notification:delete");
+    return { deletedCount: 1 };
+  };
 
   try {
     const requestSquad = {
@@ -292,7 +363,7 @@ test("a block racing a request or invite removes the just-written artifact", asy
       members: [{ memberId: "leader", userId: leaderId, role: "leader" }],
       invitedUserIds: [],
       joinRequests: [],
-      async save() {},
+      async save() { events.push("request:save"); },
     };
     Squad.findOne = async () => requestSquad;
     let res = createResponse();
@@ -303,8 +374,11 @@ test("a block racing a request or invite removes the just-written artifact", asy
     }, res);
     assert.equal(res.statusCode, 403);
     assert.deepEqual(requestSquad.joinRequests, []);
+    assert.ok(events.indexOf("notification:create") < events.indexOf("block-read:2"));
+    assert.ok(events.indexOf("block-read:2") < events.indexOf("notification:delete"));
 
     blockReads = 0;
+    events = [];
     const inviteSquad = {
       squadId: "invite_squad",
       squadName: "Invites",
@@ -312,7 +386,7 @@ test("a block racing a request or invite removes the just-written artifact", asy
       members: [{ memberId: "leader", userId: leaderId, role: "leader" }],
       invitedUserIds: [],
       joinRequests: [],
-      async save() {},
+      async save() { events.push("invite:save"); },
     };
     res = createResponse();
     await inviteUserToSquadHandler({
@@ -322,11 +396,61 @@ test("a block racing a request or invite removes the just-written artifact", asy
     }, res);
     assert.equal(res.statusCode, 403);
     assert.deepEqual(inviteSquad.invitedUserIds, []);
+    assert.ok(events.indexOf("notification:create") < events.indexOf("block-read:2"));
+    assert.ok(events.indexOf("block-read:2") < events.indexOf("notification:delete"));
   } finally {
     Squad.findOne = originals.findOne;
     User.findById = originals.findById;
     User.find = originals.find;
     Notification.create = originals.create;
+    Notification.deleteMany = originals.deleteMany;
+  }
+});
+
+test("member squad reads fail closed while a blocked shared roster still exists", async () => {
+  const viewerId = "507f1f77bcf86cd799439011";
+  const blockedId = "507f1f77bcf86cd799439012";
+  const originals = {
+    squadFind: Squad.find,
+    userFind: User.find,
+    session: sessionService.getSquadSession,
+  };
+  const squad = {
+    squadId: "blocked_shared_squad",
+    squadCode: "ABC-123",
+    squadName: "Hidden",
+    status: "idle",
+    createdAt: new Date(),
+    members: [
+      { memberId: "viewer", userId: viewerId, role: "leader", displayName: "Viewer" },
+      { memberId: "blocked", userId: blockedId, role: "member", displayName: "Hidden user" },
+    ],
+  };
+  Squad.find = async () => [squad];
+  User.find = () => ({
+    lean: async () => [
+      { _id: viewerId, blockedUserIds: [blockedId] },
+      { _id: blockedId, blockedUserIds: [] },
+    ],
+  });
+  let sessionReads = 0;
+  sessionService.getSquadSession = async () => { sessionReads += 1; return {}; };
+
+  try {
+    let res = createResponse();
+    await getMySquadHandler({ user: { userId: viewerId } }, res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.error.code, "INTERACTION_BLOCKED");
+
+    res = createResponse();
+    await getSquadHandler({ squadAccess: { squad, leader: squad.members[0] } }, res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.body.error.code, "INTERACTION_BLOCKED");
+    assert.equal(sessionReads, 0);
+  } finally {
+    Squad.find = originals.squadFind;
+    User.find = originals.userFind;
+    sessionService.getSquadSession = originals.session;
   }
 });
 
@@ -444,11 +568,14 @@ test("asymmetric encounter end rolls opponent back to idle when requeue fails", 
   const service = read("src/services/matchmakingService.js");
   const asymmetricHandler = section(service, "const endEncounterAsymmetric", "// ── Stuck-encounter sweeper");
 
-  assert.equal(asymmetricHandler.includes("let otherQueued = false;"), true);
   assert.equal(asymmetricHandler.includes('reason: "squad_disconnected"'), true);
   assert.equal(asymmetricHandler.includes("endedBySquadId: disconnectingSquadId"), true);
-  assert.equal(asymmetricHandler.includes("otherQueued = true;"), true);
-  assert.match(asymmetricHandler, /catch \(error\) \{[\s\S]*if \(!otherQueued\) \{[\s\S]*await rollbackSquadsToIdle\(\[otherSquadId\]\);[\s\S]*\}[\s\S]*throw error;[\s\S]*\}/);
+  assert.equal(
+    asymmetricHandler.indexOf("{ squadId: otherSquadId }") <
+      asymmetricHandler.indexOf("{ squadId: disconnectingSquadId }"),
+    true
+  );
+  assert.match(asymmetricHandler, /catch \(error\) \{[\s\S]*await rollbackSquadsToIdle\(\[otherSquadId\]\);[\s\S]*throw error;[\s\S]*\}/);
 });
 
 test("encounter requeue paths refuse mature or blocked tags", () => {
@@ -781,7 +908,7 @@ for (const [name, handler, req] of [
   });
 }
 
-async function runSearchWithUsers(users, tags = ["gaming"]) {
+async function runSearchWithUsers(users, tags = ["gaming"], members) {
   const originals = {
     acquire: redlock.acquire,
     findOne: Squad.findOne,
@@ -793,13 +920,16 @@ async function runSearchWithUsers(users, tags = ["gaming"]) {
     queued: queueService.getQueuedSquadsByRegion,
   };
   const memberUserId = "507f1f77bcf86cd799439011";
+  const roster = members || [
+    { memberId: "leader", userId: memberUserId, role: "leader", ready: true, inLobbyVideo: true },
+  ];
   const squad = {
     squadId: "sq_search",
     status: "idle",
     searchRegion: "global",
     tags,
     reputationScore: 100,
-    members: [{ memberId: "leader", userId: memberUserId, role: "leader", ready: true, inLobbyVideo: true }],
+    members: roster,
     async save() {},
   };
   let queued = 0;
@@ -810,8 +940,10 @@ async function runSearchWithUsers(users, tags = ["gaming"]) {
     lean: async () => users.map((user) => ({ ...user, blockedUserIds: user.blockedUserIds || [] })),
   });
   User.findById = () => ({ select: async () => ({ isPremium: false }) });
-  sessionService.getSquadSession = async () => ({ leader: { ready: true, inLobbyVideo: true } });
-  socketService.getOnlineUserIds = async () => new Set([memberUserId]);
+  sessionService.getSquadSession = async () => Object.fromEntries(
+    roster.map((member) => [member.memberId, { ready: true, inLobbyVideo: true }])
+  );
+  socketService.getOnlineUserIds = async () => new Set(roster.map((member) => member.userId));
   queueService.addToQueue = async () => { queued += 1; };
   queueService.getQueuedSquadsByRegion = async () => [];
 
@@ -852,6 +984,22 @@ test("search admits a verified-adult roster", async () => {
   ]);
   assert.equal(res.statusCode, 200);
   assert.equal(queued, 1);
+});
+
+test("search rejects a live blocked pair before queue insertion", async () => {
+  const firstId = "507f1f77bcf86cd799439011";
+  const secondId = "507f1f77bcf86cd799439012";
+  const { res, queued } = await runSearchWithUsers([
+    { _id: firstId, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [secondId] },
+    { _id: secondId, ageConfirmed: true, isAdult: true, ageVerified: true, blockedUserIds: [] },
+  ], ["gaming"], [
+    { memberId: "leader", userId: firstId, role: "leader", ready: true, inLobbyVideo: true },
+    { memberId: "member", userId: secondId, role: "member", ready: true, inLobbyVideo: true },
+  ]);
+
+  assert.equal(res.statusCode, 403);
+  assert.equal(res.body.error.code, "INTERACTION_BLOCKED");
+  assert.equal(queued, 0);
 });
 
 for (const tag of ["nsfw", "pedo"]) {

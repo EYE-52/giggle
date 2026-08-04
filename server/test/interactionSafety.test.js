@@ -5,12 +5,13 @@ const { after, test } = require("node:test");
 const mongoose = require("mongoose");
 const User = require("../src/models/User");
 const { Squad } = require("../src/models/Squad");
+const { Encounter } = require("../src/models/Encounter");
 const notificationModule = require("../src/models/Notification");
 const queueService = require("../src/services/queueService");
 const sessionService = require("../src/services/sessionService");
 const socketService = require("../src/services/socketService");
 const squadAccess = require("../src/app/squadAccess");
-const { redis, subClient } = require("../src/config/redisConfig");
+const { redlock, redis, subClient } = require("../src/config/redisConfig");
 
 after(async () => {
   await Promise.allSettled([redis.quit(), subClient.quit()]);
@@ -292,7 +293,10 @@ test("block atomically records canonical blocks and cleans legacy relationship i
   const originalTransaction = mongoose.connection.transaction;
   const originalDeleteBetween = notificationModule.deleteNotificationsBetweenUsers;
   const originalEmit = notificationModule.emitNotificationsChanged;
+  const originalAcquire = redlock.acquire;
+  const originalCleanup = squadAccess.removeBlockedIdentityFromSharedSquads;
   const writes = [];
+  const events = [];
   let transactionCount = 0;
   let deletion;
   const session = { transaction: true };
@@ -301,9 +305,18 @@ test("block atomically records canonical blocks and cleans legacy relationship i
   User.updateOne = async (...args) => { writes.push(["one", ...args]); return { modifiedCount: 1 }; };
   User.updateMany = async (...args) => { writes.push(["many", ...args]); return { modifiedCount: 2 }; };
   Squad.find = async () => [];
-  mongoose.connection.transaction = async (work) => { transactionCount += 1; return work(session); };
+  redlock.acquire = async (resources) => {
+    events.push(["lock", resources]);
+    return { release: async () => { events.push(["release"]); } };
+  };
+  mongoose.connection.transaction = async (work) => {
+    transactionCount += 1;
+    events.push(["transaction"]);
+    return work(session);
+  };
   notificationModule.deleteNotificationsBetweenUsers = async (...args) => { deletion = args; return { deletedCount: 2 }; };
   notificationModule.emitNotificationsChanged = () => {};
+  squadAccess.removeBlockedIdentityFromSharedSquads = async () => { events.push(["cleanup"]); };
 
   try {
     const { blockUsers } = controller();
@@ -316,6 +329,12 @@ test("block atomically records canonical blocks and cleans legacy relationship i
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.data, { status: "blocked", userIds: [targetA, targetB] });
     assert.equal(transactionCount, 1);
+    assert.deepEqual(events, [
+      ["lock", ["lock:matchmaking"]],
+      ["transaction"],
+      ["release"],
+      ["cleanup"],
+    ]);
     assert.deepEqual(writes[0], [
       "one",
       { _id: myId },
@@ -350,6 +369,8 @@ test("block atomically records canonical blocks and cleans legacy relationship i
     mongoose.connection.transaction = originalTransaction;
     notificationModule.deleteNotificationsBetweenUsers = originalDeleteBetween;
     notificationModule.emitNotificationsChanged = originalEmit;
+    redlock.acquire = originalAcquire;
+    squadAccess.removeBlockedIdentityFromSharedSquads = originalCleanup;
     delete require.cache[require.resolve("../src/controllers/friendsController")];
   }
 });
@@ -581,6 +602,130 @@ test("blocking removes the blocker from every shared squad and clears stale squa
     socketService.revokeUserRealtimeAccess = originals.revoke;
     socketService.emitToUser = originals.emitUser;
     socketService.emitToSquad = originals.emitSquad;
+  }
+});
+
+test("shared-squad cleanup uses the member index before its rare legacy scan fallback", async () => {
+  const [blockerId, targetId] = IDS;
+  const originalFind = Squad.find;
+  const queries = [];
+  Squad.find = async (query) => {
+    queries.push(query);
+    return [];
+  };
+
+  try {
+    await squadAccess.removeBlockedIdentityFromSharedSquads({ blockerId, blockedUserIds: [targetId] });
+
+    assert.deepEqual(queries[0], {
+      "members.userId": { $in: [blockerId, targetId] },
+    });
+    assert.equal(queries.length, 2);
+    assert.equal(queries[1]["members.userId"].$in.every((value) => value instanceof RegExp), true);
+  } finally {
+    Squad.find = originalFind;
+  }
+});
+
+test("last-member removal keeps Mongo membership retryable until encounter cleanup succeeds", async () => {
+  const matchmakingService = require("../src/services/matchmakingService");
+  const originals = {
+    findEncounter: Encounter.findOne,
+    clear: sessionService.clearMemberSession,
+    revoke: socketService.revokeUserRealtimeAccess,
+    emitUser: socketService.emitToUser,
+    asymmetric: matchmakingService.endEncounterAsymmetric,
+    deleteNotifications: notificationModule.Notification.deleteMany,
+    distinctNotifications: notificationModule.Notification.distinct,
+  };
+  const events = [];
+  let deletes = 0;
+  const squad = {
+    squadId: "last_member_squad",
+    status: "in_encounter",
+    currentEncounterId: "enc_active",
+    members: [{ memberId: "last_member", userId: IDS[0], role: "leader" }],
+    async deleteOne() { deletes += 1; events.push("persist-delete"); },
+  };
+  Encounter.findOne = async () => ({
+    encounterId: "enc_active",
+    squadAId: squad.squadId,
+    squadBId: "opponent_squad",
+  });
+  socketService.revokeUserRealtimeAccess = () => { events.push("revoke"); };
+  sessionService.clearMemberSession = async () => { events.push("clear-session"); };
+  socketService.emitToUser = () => { events.push("emit-removed"); };
+  matchmakingService.endEncounterAsymmetric = async () => {
+    events.push("requeue-opponent");
+    throw new Error("opponent transition failed");
+  };
+  notificationModule.Notification.deleteMany = async () => ({ deletedCount: 0 });
+  notificationModule.Notification.distinct = async () => [];
+
+  try {
+    await assert.rejects(
+      () => squadAccess.removeSquadMember(squad, 0),
+      /opponent transition failed/
+    );
+    assert.equal(deletes, 0);
+    assert.equal(squad.members.length, 1);
+    assert.deepEqual(events, ["revoke", "clear-session", "requeue-opponent"]);
+  } finally {
+    Encounter.findOne = originals.findEncounter;
+    sessionService.clearMemberSession = originals.clear;
+    socketService.revokeUserRealtimeAccess = originals.revoke;
+    socketService.emitToUser = originals.emitUser;
+    matchmakingService.endEncounterAsymmetric = originals.asymmetric;
+    notificationModule.Notification.deleteMany = originals.deleteNotifications;
+    notificationModule.Notification.distinct = originals.distinctNotifications;
+  }
+});
+
+test("last-member removal requeues the active opponent before deleting the empty squad", async () => {
+  const matchmakingService = require("../src/services/matchmakingService");
+  const originals = {
+    findEncounter: Encounter.findOne,
+    clear: sessionService.clearMemberSession,
+    revoke: socketService.revokeUserRealtimeAccess,
+    emitUser: socketService.emitToUser,
+    asymmetric: matchmakingService.endEncounterAsymmetric,
+    deleteNotifications: notificationModule.Notification.deleteMany,
+    distinctNotifications: notificationModule.Notification.distinct,
+  };
+  const events = [];
+  const squad = {
+    squadId: "last_member_squad",
+    status: "in_encounter",
+    currentEncounterId: "enc_active",
+    members: [{ memberId: "last_member", userId: IDS[0], role: "leader" }],
+    async deleteOne() { events.push("persist-delete"); },
+  };
+  Encounter.findOne = async () => ({
+    encounterId: "enc_active",
+    squadAId: squad.squadId,
+    squadBId: "opponent_squad",
+  });
+  socketService.revokeUserRealtimeAccess = () => { events.push("revoke"); };
+  sessionService.clearMemberSession = async () => { events.push("clear-session"); };
+  socketService.emitToUser = () => { events.push("emit-removed"); };
+  matchmakingService.endEncounterAsymmetric = async () => { events.push("requeue-opponent"); };
+  notificationModule.Notification.deleteMany = async () => ({ deletedCount: 0 });
+  notificationModule.Notification.distinct = async () => [];
+
+  try {
+    const result = await squadAccess.removeSquadMember(squad, 0);
+    assert.equal(result.squadDeleted, true);
+    assert.equal(squad.members.length, 0);
+    assert.ok(events.indexOf("requeue-opponent") < events.indexOf("persist-delete"));
+    assert.deepEqual(events, ["revoke", "clear-session", "requeue-opponent", "persist-delete", "emit-removed"]);
+  } finally {
+    Encounter.findOne = originals.findEncounter;
+    sessionService.clearMemberSession = originals.clear;
+    socketService.revokeUserRealtimeAccess = originals.revoke;
+    socketService.emitToUser = originals.emitUser;
+    matchmakingService.endEncounterAsymmetric = originals.asymmetric;
+    notificationModule.Notification.deleteMany = originals.deleteNotifications;
+    notificationModule.Notification.distinct = originals.distinctNotifications;
   }
 });
 

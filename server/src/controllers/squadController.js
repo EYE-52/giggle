@@ -131,6 +131,7 @@ const getMySquadHandler = async (req, res) => {
     if (!squad) {
       return res.status(200).json({ ok: true, data: { inSquad: false } });
     }
+    if (await anyBlockedPairInSquad(squad)) return interactionBlocked(res);
 
     const member = squad.members.find((candidate) => isSameMember(candidate, identity));
     const leader = squad.members.find((candidate) => candidate.role === "leader");
@@ -390,15 +391,6 @@ const joinSquadHandler = async (req, res) => {
           requestedAt: new Date(),
         });
         await squad.save();
-        if (await anyBlockedPairInSquad(squad, [userId])) {
-          squad.joinRequests = (squad.joinRequests || []).filter(
-            (request) => !hasIdentityId([request], userId, "userId")
-          );
-          await squad.save();
-          return interactionBlocked(res);
-        }
-        socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-
         // Notify the squad leader that someone wants to join.
         const leader = squad.members.find((m) => m.role === "leader");
         if (leader && leader.userId) {
@@ -414,6 +406,19 @@ const joinSquadHandler = async (req, res) => {
             squadName: squad.squadName,
           });
         }
+        // Persist the notification before the final check so a block cleanup
+        // cannot finish and then be followed by a stale notification insert.
+        if (await anyBlockedPairInSquad(squad, [userId])) {
+          squad.joinRequests = (squad.joinRequests || []).filter(
+            (request) => !hasIdentityId([request], userId, "userId")
+          );
+          await squad.save();
+          if (leader?.userId) {
+            await resolveJoinRequestNotification(leader.userId, userId, squad.squadId);
+          }
+          return interactionBlocked(res);
+        }
+        socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
       }
       await resolveSquadInviteNotification(userId, squad.squadId);
       return res.status(200).json({ ok: true, data: { status: "requested" } });
@@ -494,6 +499,7 @@ const joinSquadHandler = async (req, res) => {
 const getSquadHandler = async (req, res) => {
   try {
     const { squad, leader } = req.squadAccess;
+    if (await anyBlockedPairInSquad(squad)) return interactionBlocked(res);
 
     // Merge high-speed session data from Redis
     const sessionData = await sessionService.getSquadSession(squad.squadId);
@@ -779,7 +785,10 @@ const getJoinRequestsHandler = async (req, res) => {
     const memberUserIds = squad.members.map((member) => member.userId);
     const userIds = [...new Set([...memberUserIds, ...requests.map((request) => request.userId)])];
     const users = userIds.length
-      ? await User.find({ _id: { $in: userIds } })
+      ? await User.find(
+          { _id: { $in: userIds } },
+          "_id blockedUserIds gender languages country"
+        )
       : [];
     const byId = new Map(users.map((user) => [canonicalUserId(user._id), user]));
 
@@ -1099,14 +1108,6 @@ const inviteUserToSquadHandler = async (req, res) => {
     if (!alreadyInvited && !alreadyMember) {
       squad.invitedUserIds.push(targetUserId);
       await squad.save();
-      if (await anyBlockedPairInSquad(squad, [targetUserId])) {
-        squad.invitedUserIds = squad.invitedUserIds.filter(
-          (userId) => !hasIdentityId([userId], targetUserId)
-        );
-        await squad.save();
-        return interactionBlocked(res);
-      }
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
 
       await createNotification({
         userId: targetUserId,
@@ -1119,6 +1120,17 @@ const inviteUserToSquadHandler = async (req, res) => {
         squadCode: squad.squadCode,
         squadName: squad.squadName,
       });
+      // Insert first, then recheck: if block cleanup ran before this insert,
+      // remove both just-written artifacts here.
+      if (await anyBlockedPairInSquad(squad, [targetUserId])) {
+        squad.invitedUserIds = squad.invitedUserIds.filter(
+          (userId) => !hasIdentityId([userId], targetUserId)
+        );
+        await squad.save();
+        await resolveSquadInviteNotification(targetUserId, squad.squadId);
+        return interactionBlocked(res);
+      }
+      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
     }
 
     return res.status(200).json({ ok: true, data: { invited: true } });

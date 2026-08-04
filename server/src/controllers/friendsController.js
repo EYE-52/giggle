@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const { redlock } = require("../config/redisConfig");
 const { getOnlineUserIds } = require("../services/socketService");
 const {
   createNotification,
@@ -389,34 +390,40 @@ const blockUsers = async (req, res) => {
       return err(res, 404, "NOT_FOUND", "One or more accounts were not found");
     }
 
-    await mongoose.connection.transaction(async (session) => {
-      const targetIdMatchers = { $in: pullMatchers(userIds) };
-      const myIdMatcher = relationalIdMatcher(myId);
-      await User.updateOne(
-        { _id: myId },
-        {
-          $addToSet: { blockedUserIds: { $each: userIds } },
-          $pull: {
-            friends: targetIdMatchers,
-            friendRequestsIncoming: targetIdMatchers,
-            friendRequestsOutgoing: targetIdMatchers,
+    const matchmakingLock = await redlock.acquire(["lock:matchmaking"], 5000);
+    try {
+      await mongoose.connection.transaction(async (session) => {
+        const targetIdMatchers = { $in: pullMatchers(userIds) };
+        const myIdMatcher = relationalIdMatcher(myId);
+        await User.updateOne(
+          { _id: myId },
+          {
+            $addToSet: { blockedUserIds: { $each: userIds } },
+            $pull: {
+              friends: targetIdMatchers,
+              friendRequestsIncoming: targetIdMatchers,
+              friendRequestsOutgoing: targetIdMatchers,
+            },
           },
-        },
-        { session }
-      );
-      await User.updateMany(
-        { _id: { $in: userIds } },
-        {
-          $pull: {
-            friends: myIdMatcher,
-            friendRequestsIncoming: myIdMatcher,
-            friendRequestsOutgoing: myIdMatcher,
+          { session }
+        );
+        await User.updateMany(
+          { _id: { $in: userIds } },
+          {
+            $pull: {
+              friends: myIdMatcher,
+              friendRequestsIncoming: myIdMatcher,
+              friendRequestsOutgoing: myIdMatcher,
+            },
           },
-        },
-        { session }
-      );
-      await deleteNotificationsBetweenUsers(myId, userIds, { session });
-    });
+          { session }
+        );
+        await deleteNotificationsBetweenUsers(myId, userIds, { session });
+      });
+    } finally {
+      // Squad cleanup can requeue an opponent and must not nest this global lock.
+      await matchmakingLock.release();
+    }
     await removeBlockedIdentityFromSharedSquads({ blockerId: myId, blockedUserIds: userIds });
     emitNotificationsChanged([myId, ...userIds]);
     return res.json({ ok: true, data: { status: "blocked", userIds } });
