@@ -1,13 +1,13 @@
 # Giggle Session Handoff
 
-Updated: 2026-08-05 (Asia/Kolkata)
+Updated: 2026-08-10 (Asia/Kolkata)
 
 ## Start here
 
 - Canonical repository: `/Users/divyansh/Projects/giggle-stack/giggle`
 - Active worktree: `/Users/divyansh/.config/superpowers/worktrees/giggle/global-age-safety`
 - Branch: `codex/global-age-safety`
-- Reviewed code commit: `fde3787a9bc01a619e19a9661065603a3399fb24`
+- Reviewed code commit: `6c1a41be69d950c9464eeb86d4fe2315024396c3`
 - Remote: `EYE-52/giggle`
 - Draft PR: https://github.com/EYE-52/giggle/pull/2 (targets `main`)
 - Do not use the old `giggle-app` or `giggle-web` split repositories.
@@ -47,20 +47,22 @@ The branch is pushed and clean. It is not merged into `main`. Production was dep
 
 - URL: https://giggle-server-production.up.railway.app
 - Railway project/service: `giggle` / `giggle-server`
-- Deployment: `480a5708-fa59-4257-967c-2d5548f76ffd`
-- Last health check: API `UP`, MongoDB connected, Redis connected.
+- Deployment: `1779e84a-f83f-459b-8790-524867236feb`
+- Last smoke check: API health and the public web, Privacy, Terms, Safety, and Support pages returned HTTP 200.
 
 ### Safety flags and blockers
 
 - `STRANGER_DISCOVERY_ENABLED=false` in Railway.
 - `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false` in Vercel.
-- Yoti production API key, SDK id, and callback are missing. Verification therefore fails closed; social access remains unavailable.
+- The Yoti callback is configured as `https://www.gigglemeet.com/home`; the previous documented API callback route did not exist and was corrected.
+- Yoti production API key and SDK id are still missing. Verification therefore fails closed; social access remains unavailable.
+- `ADMIN_EMAIL` is not configured in Railway, so the moderation review queue has no production admin identity yet.
 - Do not enable stranger discovery until Yoti, moderation/support staffing, legal review, trusted location handling, vendor retention/deletion, and app-store declarations are complete and evidenced.
 - Mobile source is pushed, but no App Store/Play Store build was deployed.
 
 ## Verification evidence
 
-Fresh checks on `fde3787` before deployment:
+Fresh checks on `6c1a41b`:
 
 - Server: 301/301 passed.
 - Core: 61/61 passed.
