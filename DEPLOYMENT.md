@@ -41,6 +41,8 @@ APPLE_KEY_ID
 APPLE_PRIVATE_KEY
 ```
 
+Set `AGE_VERIFICATION_CALLBACK_URL=https://www.gigglemeet.com/home`. Yoti appends its session id and returns the signed-in browser to the existing age gate, which reconciles the result server-to-server. There is no API callback route.
+
 Vercel build values:
 
 ```text
@@ -63,6 +65,12 @@ EXPO_PUBLIC_IOS_DISCOVERY_ENABLED=false
 Missing Yoti configuration leaves identity, support, data export, and account deletion available, but age verification and all social access fail closed.
 
 Redis TLS certificate verification stays enabled by default. Use `REDIS_TLS_REJECT_UNAUTHORIZED=false` only as a temporary escape hatch for a controlled deployment with a self-signed Redis TLS certificate.
+
+## Native store age controls
+
+- **Apple:** keep iOS stranger discovery disabled, complete the App Store age questionnaire, apply an **18+ age-rating override**, and evaluate the Declared Age Range capability for each distributed region before shipping a native build. Apple currently says services used primarily for random or anonymous chat do not belong on the App Store.
+- **Google Play:** declare an adult-only target audience, supply the public Safety standards and a staffed child-safety contact, and configure Play Console minor blocking before the random-chat rule takes effect on **August 26, 2026**. Use the Play Age Signals API only where applicable law requires an app-side age signal; it supplements rather than replaces Yoti's server-side verified-adult gate.
+- Record store-console screenshots, reviewer notes, and real-device results as release evidence. Checked-in source cannot prove these external settings.
 
 ## Release gates
 

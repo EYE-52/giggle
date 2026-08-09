@@ -29,6 +29,10 @@ test("unified deployment docs keep verified-adult discovery disabled by default"
   }
 
   assert.match(envExample, /^STRANGER_DISCOVERY_ENABLED=false$/m);
+  assert.match(
+    envExample,
+    /^AGE_VERIFICATION_CALLBACK_URL=https:\/\/www\.gigglemeet\.com\/home$/m
+  );
   assert.match(docs, /apps\/desktop/);
   assert.match(docs, /apps\/mobile/);
   assert.match(docs, /server\//);
@@ -37,6 +41,11 @@ test("unified deployment docs keep verified-adult discovery disabled by default"
   assert.match(docs, /identity[\s\S]*support[\s\S]*export[\s\S]*delet/i);
 
   const deploy = read("DEPLOYMENT.md");
+  assert.match(deploy, /Play Age Signals API/);
+  assert.match(deploy, /Declared Age Range/);
+  assert.match(deploy, /August 26, 2026/);
+  assert.match(deploy, /18\+ age-rating override/);
+
   const order = [
     "Provision Mongo",
     "Deploy `server/` to Railway",
