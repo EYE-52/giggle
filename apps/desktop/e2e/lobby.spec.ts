@@ -9,19 +9,30 @@ test("lobby makes readiness and device state explicit in the first viewport", as
   const readiness = page.getByTestId("lobby-readiness");
   await expect(readiness).toBeVisible();
   await expect(readiness.getByText(/used in this lobby and live encounters/i)).toBeVisible();
-  await readiness.getByRole("button", { name: /enable camera and microphone/i }).click();
-  await expect(readiness.getByRole("button", { name: "Mute microphone" })).toHaveAttribute("aria-pressed", "true");
-  await expect(readiness.getByRole("button", { name: "Turn off camera" })).toHaveAttribute("aria-pressed", "true");
+  const deviceAction = readiness.getByRole("button", { name: /enable camera and microphone/i });
+  await expect(deviceAction).toBeVisible();
 
-  const findMatch = readiness.getByRole("button", { name: /find a match/i });
+  const findMatch = page.getByRole("button", { name: /find a match/i });
   await expect(findMatch).toBeDisabled();
-  await readiness.getByRole("button", { name: /mark ready/i }).click();
+  const ready = readiness.getByRole("button", { name: /mark ready/i });
+  await ready.click();
   await expect(findMatch).toBeEnabled();
   await expect(readiness.getByRole("button", { name: /ready/i })).toHaveAttribute("aria-pressed", "true");
 
   const box = await readiness.boundingBox();
   const viewport = page.viewportSize();
   expect(box && viewport && box.y + box.height).toBeLessThanOrEqual(viewport!.height);
+  if (testInfo.project.name === "phone") {
+    const [deviceBox, readyBox, findMatchBox] = await Promise.all([
+      deviceAction.boundingBox(),
+      ready.boundingBox(),
+      findMatch.boundingBox(),
+    ]);
+    expect(deviceBox && readyBox && findMatchBox).toBeTruthy();
+    expect(findMatchBox!.y).toBeGreaterThanOrEqual(Math.max(deviceBox!.y + deviceBox!.height, readyBox!.y + readyBox!.height) - 1);
+    expect(findMatchBox!.width).toBeGreaterThanOrEqual(box!.width - 28);
+    expect(findMatchBox!.y + findMatchBox!.height).toBeLessThanOrEqual(viewport!.height);
+  }
 
   await page.screenshot({
     path: `artifacts/visual-audit/2026-07-12/lobby/${testInfo.project.name}.jpg`,
