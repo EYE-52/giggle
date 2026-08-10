@@ -14,7 +14,7 @@ test("lobby makes readiness and device state explicit in the first viewport", as
 
   const findMatch = page.getByRole("button", { name: /find a match/i });
   await expect(findMatch).toBeDisabled();
-  const ready = readiness.getByRole("button", { name: /mark ready/i });
+  const ready = readiness.getByTitle("Toggle ready");
   await ready.click();
   await expect(findMatch).toBeEnabled();
   await expect(readiness.getByRole("button", { name: /ready/i })).toHaveAttribute("aria-pressed", "true");
