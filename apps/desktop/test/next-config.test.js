@@ -430,9 +430,21 @@ test("matchmaking queue status is informational, not a premium priority upsell",
 test("compact-phone matchmaking keeps the cancel action in view", () => {
   const page = matchmakingSource();
   assert.equal(page.includes("const isShortPhone = isPhone && height <= 650"), true);
-  assert.equal(page.includes('const dim = isShortPhone ? 190'), true);
-  assert.equal(page.includes('width: isShortPhone ? "25%"'), true);
+  assert.equal(page.includes("const signalSize = isShortPhone ? 48"), true);
+  assert.equal(page.includes('aria-label="Matchmaking search signal"'), true);
   assert.equal(page.includes("!matchFound && !isShortPhone"), true);
+});
+
+test("matchmaking inherits the active theme without radar decoration", () => {
+  const page = matchmakingSource();
+
+  assert.equal(page.includes('data-theme="dark"'), false);
+  assert.equal(page.includes("conic-gradient"), false);
+  assert.equal(page.includes("#7C5CFF"), false);
+  assert.equal(page.includes("#C2FF3D"), false);
+  assert.equal(page.includes('<AvatarStack names={squadMemberNames}'), true);
+  assert.equal(page.includes('background: "var(--accent-soft)"'), true);
+  assert.equal(page.includes('background: "var(--surface)"'), true);
 });
 
 test("desktop matchmaking cancel stays put when backend cancel fails", () => {
