@@ -11,6 +11,7 @@ const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/(app)/
 const matchSource = () => readFileSync(path.join(__dirname, "../app/(app)/match/page.tsx"), "utf8");
 const lobbySource = () => readFileSync(path.join(__dirname, "../app/(app)/lobby/page.tsx"), "utf8");
 const encounterSource = () => readFileSync(path.join(__dirname, "../app/(app)/encounter/page.tsx"), "utf8");
+const encounterE2eSource = () => readFileSync(path.join(__dirname, "../e2e/encounter.spec.ts"), "utf8");
 const venueCardSource = () => readFileSync(path.join(__dirname, "../components/VenueCard.tsx"), "utf8");
 const authCallbackSource = () => readFileSync(path.join(__dirname, "../app/auth/callback/page.tsx"), "utf8");
 const authCallbackLayoutSource = () => readFileSync(path.join(__dirname, "../app/auth/callback/layout.tsx"), "utf8");
@@ -1377,6 +1378,29 @@ test("browser fixtures use an explicit development-only age bypass", () => {
   assert.match(config, /NODE_ENV: "development"/);
   assert.match(config, /AGE_VERIFICATION_BYPASS: "true"/);
   assert.doesNotMatch(config, /NODE_ENV: "production"[\s\S]{0,100}AGE_VERIFICATION_BYPASS: "true"/);
+});
+
+test("encounter browser coverage avoids real Agora while preserving call flows", () => {
+  const e2e = encounterE2eSource();
+  const responsive = e2e.slice(
+    e2e.indexOf('test("fixture encounter keeps media, chat, and controls usable across resize"'),
+    e2e.indexOf('test("encounter chat retry'),
+  );
+  const remoteEnded = e2e.slice(
+    e2e.indexOf('test("opponent ending preserves a clear recovery state"'),
+    e2e.indexOf('test("mocked rosters'),
+  );
+
+  assert.doesNotMatch(e2e, /async function enterQueue/);
+  assert.doesNotMatch(e2e, /async function createEncounter/);
+  assert.match(e2e, /page\.routeWebSocket\(\/socket\\\.io\//);
+  assert.match(responsive, /installEncounterFixture\(page/);
+  assert.match(responsive, /openFixture\(page, 2\)/);
+  assert.match(responsive, /injectSyntheticVideo/);
+  assert.match(responsive, /Chat message/);
+  assert.match(responsive, /setViewportSize/);
+  assert.match(remoteEnded, /emitOpponentEnded/);
+  assert.match(remoteEnded, /The other squad left/);
 });
 
 test("failed notification mark-all never restores a stale item snapshot", () => {

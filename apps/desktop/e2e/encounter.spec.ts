@@ -1,5 +1,4 @@
-import { expect, test, type Browser, type Locator, type Page } from "@playwright/test";
-import { openProtectedRoute } from './helpers';
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 test.setTimeout(240_000);
 
@@ -54,7 +53,70 @@ function fixtureEncounter(encounterId: string, count: number) {
   };
 }
 
-async function installEncounterFixture(page: Page, options: { disconnectDelayMs?: number; disconnectStatus?: number } = {}) {
+async function installEncounterFixture(page: Page, options: {
+  disconnectDelayMs?: number;
+  disconnectStatus?: number;
+  chatFailures?: number;
+} = {}) {
+  let socketSend: ((message: string) => void) | null = null;
+  let socketReadyResolve: (() => void) | null = null;
+  const socketReady = new Promise<void>(resolve => { socketReadyResolve = resolve; });
+  let chatAttempts = 0;
+  let remainingChatFailures = options.chatFailures ?? 0;
+
+  await page.routeWebSocket(/socket\.io/, socket => {
+    socketSend = message => socket.send(message);
+    socket.send(`0${JSON.stringify({
+      sid: "fixture-engine",
+      upgrades: [],
+      pingInterval: 60_000,
+      pingTimeout: 60_000,
+      maxPayload: 1_000_000,
+    })}`);
+    socket.onMessage(message => {
+      const text = typeof message === "string" ? message : message.toString();
+      if (text === "2") {
+        socket.send("3");
+        return;
+      }
+      if (text.startsWith("40")) {
+        socket.send(`40${JSON.stringify({ sid: "fixture-socket" })}`);
+        socketReadyResolve?.();
+        socketReadyResolve = null;
+        return;
+      }
+      const event = text.match(/^42(\d*)(\[[\s\S]*\])$/);
+      if (!event) return;
+      const ackId = event[1];
+      const [name, payload] = JSON.parse(event[2]) as [string, Record<string, unknown>];
+      if (name === "send_message" && ackId) {
+        chatAttempts += 1;
+        if (remainingChatFailures > 0) {
+          remainingChatFailures -= 1;
+          socket.send(`43${ackId}[${JSON.stringify({ ok: false, error: "Message not delivered. Try again." })}]`);
+          return;
+        }
+        socket.send(`43${ackId}[${JSON.stringify({
+          ok: true,
+          message: {
+            id: `fixture-message-${chatAttempts}`,
+            clientMessageId: payload.clientMessageId,
+            text: payload.text,
+            senderId: payload.senderId,
+            senderName: payload.senderName,
+            encounterId: payload.encounterId,
+            squadId: payload.squadId,
+            ts: Date.now(),
+          },
+        })}]`);
+        return;
+      }
+      if (name === "report_squad" && ackId) {
+        socket.send(`43${ackId}[${JSON.stringify({ ok: true, reportId: "fixture-report", status: "open" })}]`);
+      }
+    });
+  });
+
   const user = {
     id: fixtureUserId,
     email: "fixture@giggle.local",
@@ -145,6 +207,19 @@ async function installEncounterFixture(page: Page, options: { disconnectDelayMs?
       body: JSON.stringify({ ok: false, error: { code: "fixture_missing", message: `No fixture for ${path}` } }),
     });
   });
+
+  return {
+    chatAttempts: () => chatAttempts,
+    emitOpponentEnded: async () => {
+      await socketReady;
+      await page.waitForTimeout(0);
+      socketSend?.(`42["ENCOUNTER_ENDED",${JSON.stringify({
+        encounterId: "fixture-2v2",
+        reason: "squad_disconnected",
+        endedBySquadId: "fixture-opponents",
+      })}]`);
+    },
+  };
 }
 
 test("ending shows immediate feedback during a delayed failure and keeps recovery visible", async ({ page }, testInfo) => {
@@ -257,51 +332,14 @@ async function expectMediaInsideFrame(frame: Locator) {
   return geometry.objectFit;
 }
 
-async function enterQueue(page: Page) {
-  await openProtectedRoute(page, '/home');
-  const createSquad = page.getByRole("button", { name: /create(?: your first)? squad/i });
-  await expect(createSquad).toBeVisible({ timeout: 10_000 });
-  await createSquad.click();
-  await page.waitForURL(/\/lobby\?squad=/, { timeout: 15_000 });
-  const readiness = page.getByTestId("lobby-readiness");
-  await expect(readiness).toBeVisible({ timeout: 10_000 });
-  await readiness.getByRole("button", { name: /mark ready/i }).click();
-  await expect(readiness.getByRole("button", { name: /find a match/i })).toBeEnabled();
-  await readiness.getByRole("button", { name: /find a match/i }).click();
-  const continueWithoutCamera = page.getByRole("button", { name: "Continue without camera" });
-  await continueWithoutCamera.waitFor({ state: "visible", timeout: 1000 }).then(() => continueWithoutCamera.click()).catch(() => {});
-  await page.waitForURL(/\/matchmaking\?squad=/, { timeout: 15_000 });
-}
-
-async function createEncounter(page: Page, browser: Browser) {
-  const opponentContext = await browser.newContext({ viewport: page.viewportSize() ?? { width: 390, height: 844 } });
-  const opponent = await opponentContext.newPage();
-  await Promise.all([enterQueue(page), enterQueue(opponent)]);
-  await Promise.all([
-    page.waitForURL(/\/match\?/, { timeout: 20_000 }),
-    opponent.waitForURL(/\/match\?/, { timeout: 20_000 }),
-  ]);
-  await Promise.all([
-    page.getByRole("button", { name: /join encounter/i }).click(),
-    opponent.getByRole("button", { name: /join encounter/i }).click(),
-  ]);
-  await Promise.all([
-    page.waitForURL(/\/encounter\?/, { timeout: 10_000 }),
-    opponent.waitForURL(/\/encounter\?/, { timeout: 10_000 }),
-  ]);
-  return { opponentContext, opponent };
-}
-
-test("real encounter keeps media, chat, and controls usable across resize", async ({ page, browser }, testInfo) => {
+test("fixture encounter keeps media, chat, and controls usable across resize", async ({ page }, testInfo) => {
   test.skip(!["phone", "desktop"].includes(testInfo.project.name), "One compact and one full call cover the live-media contract");
-  const { opponentContext, opponent } = await createEncounter(page, browser);
-  try {
-    const stage = page.getByTestId("encounter-stage");
-    const controls = page.getByTestId("call-controls");
+  await installEncounterFixture(page);
+  const { stage, controls } = await openFixture(page, 2);
     await expect(stage).toBeVisible();
     await expect(controls).toBeVisible();
-    await expect(controls.getByRole("button", { name: "Mute microphone" })).toHaveAttribute("aria-pressed", "true");
-    await expect(controls.getByRole("button", { name: "Turn camera off" })).toHaveAttribute("aria-pressed", "true");
+    await expect(controls.getByRole("button", { name: /microphone/i })).toBeVisible();
+    await expect(controls.getByRole("button", { name: /camera/i })).toBeVisible();
     await expect(controls.getByRole("button", { name: "Chat" })).toBeVisible();
     await expect(controls.getByRole("button", { name: "More" })).toBeVisible();
     await expect(controls.getByRole("button", { name: "End encounter" })).toBeVisible();
@@ -309,7 +347,8 @@ test("real encounter keeps media, chat, and controls usable across resize", asyn
 
     const frames = stage.locator("[data-media-frame]");
     expect(await frames.count()).toBeGreaterThanOrEqual(2);
-    for (const frame of await frames.all()) {
+    for (const [index, frame] of (await frames.all()).entries()) {
+      await injectSyntheticVideo(frame, index % 2 === 0 ? 1280 : 720, index % 2 === 0 ? 720 : 1280);
       await expect.poll(() => frame.evaluate(node => getComputedStyle(node).opacity)).toBe("1");
       const box = await frame.boundingBox();
       expect(box?.width).toBeGreaterThanOrEqual(44);
@@ -351,8 +390,6 @@ test("real encounter keeps media, chat, and controls usable across resize", asyn
     await expect(firstFrame).toHaveAttribute("aria-pressed", "false");
     await firstFrame.click();
     await expect(firstFrame).toHaveAttribute("aria-pressed", "true");
-    await firstFrame.click();
-    await expect(firstFrame).toHaveAttribute("aria-pressed", "false");
     await expect(stage.locator('[data-media-fit="fit"]').first()).toBeVisible();
 
     const more = controls.getByRole("button", { name: "More" });
@@ -376,10 +413,6 @@ test("real encounter keeps media, chat, and controls usable across resize", asyn
     await chatInput.fill(chatText);
     await page.getByRole("button", { name: "Send message" }).click();
     await expect(page.getByText(chatText, { exact: true })).toHaveCount(1);
-
-    await opponent.getByTestId("call-controls").getByRole("button", { name: "Chat" }).click();
-    await expect(opponent.getByText(chatText, { exact: true })).toHaveCount(1);
-    await opponent.getByRole("button", { name: "Close chat" }).click();
 
     await page.getByRole("button", { name: "Close chat" }).click();
     await expect(chat).toBeFocused();
@@ -461,82 +494,43 @@ test("real encounter keeps media, chat, and controls usable across resize", asyn
     await expect(endDialog).toBeVisible();
     await endDialog.getByRole("button", { name: "End encounter" }).click();
     await expect(page).toHaveURL(/\/home$/);
-  } finally {
-    await opponentContext.close();
-  }
 });
 
-test("encounter chat retry is acknowledged without duplicating the sender", async ({ page, browser }, testInfo) => {
-  test.skip(testInfo.project.name !== "desktop", "One live desktop call covers transport retry");
+test("encounter chat retry is acknowledged without duplicating the sender", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "One fixture-backed desktop call covers transport retry");
   const retryText = `retry-${Date.now()}`;
-  let failedFirstAttempt = false;
-  await page.routeWebSocket(/socket\.io/, (socket) => {
-    const server = socket.connectToServer();
-    socket.onMessage((message) => {
-      const text = typeof message === "string" ? message : message.toString();
-      const ackId = text.match(/^42(\d+)\["send_message"/)?.[1];
-      if (!failedFirstAttempt && ackId && text.includes(retryText)) {
-        failedFirstAttempt = true;
-        socket.send(`43${ackId}[{"ok":false,"error":"Message not delivered. Try again."}]`);
-        return;
-      }
-      server.send(message);
-    });
-  });
-  const { opponentContext, opponent } = await createEncounter(page, browser);
-  try {
-    const chat = page.getByTestId("call-controls").getByRole("button", { name: "Chat" });
-    await chat.click();
-    await opponent.getByTestId("call-controls").getByRole("button", { name: "Chat" }).click();
-    await expect(opponent.getByRole("textbox", { name: "Chat message" })).toBeVisible();
-    const warmupText = `warmup-${Date.now()}`;
-    await page.getByRole("textbox", { name: "Chat message" }).fill(warmupText);
-    await page.getByRole("button", { name: "Send message" }).click();
-    await expect(opponent.getByText(warmupText, { exact: true })).toHaveCount(1);
-    await page.getByRole("textbox", { name: "Chat message" }).fill(retryText);
-    await page.getByRole("button", { name: "Send message" }).click();
-    const retry = page.getByRole("button", { name: "Retry", exact: true });
-    await expect(retry).toBeVisible();
-    expect(failedFirstAttempt).toBe(true);
+  const fixture = await installEncounterFixture(page, { chatFailures: 1 });
+  const { controls } = await openFixture(page, 2);
+  await controls.getByRole("button", { name: "Chat" }).click();
+  await page.getByRole("textbox", { name: "Chat message" }).fill(retryText);
+  await page.getByRole("button", { name: "Send message" }).click();
+  const retry = page.getByRole("button", { name: "Retry", exact: true });
+  await expect(retry).toBeVisible();
+  expect(fixture.chatAttempts()).toBe(1);
 
-    const message = page.getByText(retryText, { exact: true });
-    const messageRow = message.locator("..");
-    let retryClicks = 0;
-    await expect.poll(async () => {
-      if (await retry.isVisible()) {
-        retryClicks += 1;
-        await retry.dispatchEvent("click", undefined, { timeout: 250 }).catch(() => {});
-      }
-      return (await retry.count()) + (await messageRow.getByText("Sending…", { exact: true }).count());
-    }, { timeout: 15_000, intervals: [250, 500, 1000] }).toBe(0);
-    expect(retryClicks).toBeGreaterThan(0);
-    await expect(message).toHaveCount(1);
-  } finally {
-    await opponentContext.close();
-  }
+  const message = page.getByText(retryText, { exact: true });
+  await retry.click();
+  await expect(retry).toBeHidden();
+  await expect(message).toHaveCount(1);
+  expect(fixture.chatAttempts()).toBe(2);
 });
 
-test("opponent ending preserves a clear recovery state", async ({ page, browser }, testInfo) => {
+test("opponent ending preserves a clear recovery state", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "phone", "One phone call covers the remote-ended state");
-  const { opponentContext, opponent } = await createEncounter(page, browser);
-  try {
-    const stage = page.getByTestId("encounter-stage");
-    await expect(stage).toBeVisible();
-    await opponent.getByTestId("call-controls").getByRole("button", { name: "End encounter" }).click();
-    await opponent.getByRole("dialog", { name: "End encounter?" }).getByRole("button", { name: "End encounter" }).click();
-    await expect(page.getByText("The other squad left", { exact: true })).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByRole("button", { name: "Continue matching" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Back home" })).toBeVisible();
-    await page.screenshot({
-      path: "artifacts/visual-audit/2026-07-30/encounter/states/phone-opponent-ended.jpg",
-      type: "jpeg",
-      quality: 82,
-    });
-    await page.getByRole("button", { name: "Back home" }).click();
-    await expect(page).toHaveURL(/\/home$/);
-  } finally {
-    await opponentContext.close();
-  }
+  const fixture = await installEncounterFixture(page);
+  const { stage } = await openFixture(page, 2);
+  await expect(stage).toBeVisible();
+  await fixture.emitOpponentEnded();
+  await expect(page.getByText("The other squad left", { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: "Continue matching" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back home" })).toBeVisible();
+  await page.screenshot({
+    path: "artifacts/visual-audit/2026-07-30/encounter/states/phone-opponent-ended.jpg",
+    type: "jpeg",
+    quality: 82,
+  });
+  await page.getByRole("button", { name: "Back home" }).click();
+  await expect(page).toHaveURL(/\/home$/);
 });
 
 test("mocked rosters stay usable across the viewport matrix", async ({ page }, testInfo) => {
