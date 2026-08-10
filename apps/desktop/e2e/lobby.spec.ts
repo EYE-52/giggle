@@ -47,6 +47,29 @@ test("ready responds before the network round trip finishes", async ({ page }, t
   await expect(ready).toBeEnabled({ timeout: 5000 });
 });
 
+test("leaving shows local exit feedback before a delayed failure and stays recoverable", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "laptop", "One desktop project covers the shared leave action");
+  await openProtectedRoute(page, "/home");
+  await page.getByRole("button", { name: /create(?: your first)? squad/i }).click();
+  await page.waitForURL(/\/lobby\?squad=/);
+
+  const readiness = page.getByTestId("lobby-readiness");
+  await page.route("**/api/squads/*/leave", async route => {
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ ok: false, error: { message: "Leave is temporarily unavailable." } }) });
+  });
+
+  await page.getByRole("button", { name: "Leave", exact: true }).click();
+  const leaveDialog = page.getByRole("dialog", { name: "Leave this squad?" });
+  await leaveDialog.getByRole("button", { name: /leave.*hand off/i }).click();
+
+  await expect(page.getByRole("button", { name: "Leaving…", exact: true }).first()).toBeVisible({ timeout: 500 });
+  await expect(readiness.getByRole("button", { name: /enable camera and microphone/i })).toBeVisible({ timeout: 500 });
+  await expect(page).toHaveURL(/\/lobby\?squad=/);
+  await expect(page.locator("#main-content").getByText(/leave is temporarily unavailable/i)).toBeVisible({ timeout: 3000 });
+  await expect(page.getByRole("button", { name: "Leave", exact: true })).toBeEnabled();
+});
+
 test("short phones keep the readiness controls above the fold", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "phone", "The short-phone contract is a phone-only override");
   await page.setViewportSize({ width: 390, height: 650 });

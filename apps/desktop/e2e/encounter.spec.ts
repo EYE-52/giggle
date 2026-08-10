@@ -54,7 +54,7 @@ function fixtureEncounter(encounterId: string, count: number) {
   };
 }
 
-async function installEncounterFixture(page: Page) {
+async function installEncounterFixture(page: Page, options: { disconnectDelayMs?: number; disconnectStatus?: number } = {}) {
   const user = {
     id: fixtureUserId,
     email: "fixture@giggle.local",
@@ -121,9 +121,13 @@ async function installEncounterFixture(page: Page) {
       return;
     }
     if (path === "/api/encounters/disconnect") {
+      if (options.disconnectDelayMs) await new Promise(resolve => setTimeout(resolve, options.disconnectDelayMs));
       await route.fulfill({
+        status: options.disconnectStatus ?? 200,
         contentType: "application/json",
-        body: JSON.stringify({ ok: true, data: { encounterId: "fixture", disconnected: true } }),
+        body: JSON.stringify(options.disconnectStatus
+          ? { ok: false, error: { message: "Ending is temporarily unavailable." } }
+          : { ok: true, data: { encounterId: "fixture", disconnected: true } }),
       });
       return;
     }
@@ -142,6 +146,22 @@ async function installEncounterFixture(page: Page) {
     });
   });
 }
+
+test("ending shows immediate feedback during a delayed failure and keeps recovery visible", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "One desktop project covers the shared end action");
+  await installEncounterFixture(page, { disconnectDelayMs: 1200, disconnectStatus: 503 });
+  const { controls } = await openFixture(page, 2);
+
+  await controls.getByRole("button", { name: "End encounter" }).click();
+  const endDialog = page.getByRole("dialog", { name: "End encounter?" });
+  await endDialog.getByRole("button", { name: "End encounter" }).click();
+
+  await expect(endDialog.getByRole("button", { name: "End encounter", exact: true })).toContainText("Ending…", { timeout: 500 });
+  await expect(endDialog.getByRole("button", { name: "Keep talking" })).toBeDisabled({ timeout: 500 });
+  await expect(page).toHaveURL(/\/encounter\?squad=fixture-squad/);
+  await expect(endDialog.getByText(/couldn't end this encounter yet/i)).toBeVisible({ timeout: 3000 });
+  await expect(page.getByTestId("media-recovery-notice")).toBeVisible({ timeout: 3000 });
+});
 
 test("opponent blocking is confirmed and leaves only after both server steps", async ({ page }, testInfo) => {
   test.skip(!["phone", "desktop"].includes(testInfo.project.name), "One compact and one full call cover the block flow");

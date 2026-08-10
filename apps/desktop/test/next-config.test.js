@@ -628,6 +628,7 @@ test("desktop lobby leave starts pending feedback and media cleanup before the b
   assert.match(page, /<Button variant="secondary" fullWidth disabled=\{leavingSquad\} loading=\{leavingSquad\} onClick=\{handleLeaveSquad\}>/);
   assert.match(leaveBlock, /setMatchError\(\(e as \{ message\?: string \}\)\?\.message \|\| "Couldn't leave squad\."\)/);
   assert.equal(page.includes("onClick={handleLeaveSquad}"), true);
+  assert.equal(page.includes('{leavingSquad ? "Leaving…" : "Leave"}'), true);
 });
 
 test("desktop lobby ready toggle surfaces backend failures", () => {
@@ -871,6 +872,7 @@ test("desktop encounter starts local media cleanup before backend-confirmed navi
   assert.match(leaveBlock, /router\.replace\("\/home"\);/);
   assert.match(endBlock, /setEnding\(false\);/);
   assert.match(endBlock, /setEndError\("Couldn't end this encounter yet\. Reconnecting your video…"\);/);
+  assert.match(page, /onClick=\{handleEnd\}[\s\S]*?disabled=\{ending\}[\s\S]*?\{ending \? "Ending…" : "End encounter"\}/);
   assert.equal(page.includes('title="End encounter?"'), true);
   assert.equal(page.includes("This ends the current encounter for both squads."), true);
   assert.equal(page.includes("setEndConfirmOpen(true)"), true);

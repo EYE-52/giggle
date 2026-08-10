@@ -723,7 +723,6 @@ function LobbyInner() {
       await api.leaveSquad(squadId);
       router.push("/home");
     } catch (e) {
-      console.error("leaveSquad failed:", e);
       setMatchError((e as { message?: string })?.message || "Couldn't leave squad.");
       setLeavingSquad(false);
     }
