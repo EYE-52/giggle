@@ -1131,20 +1131,26 @@ function EncounterInner() {
     }
   }
 
-  async function leaveVideoAndGoHome() {
+  async function leaveVideo() {
     const client = vcRef.current;
     vcRef.current = null;
-    try { await client?.leave(); } catch {}
     setVideoJoined(false);
+    try { await client?.leave(); } catch {}
+  }
+
+  async function leaveVideoAndGoHome() {
+    await leaveVideo();
     router.replace("/home");
   }
 
   async function handleEnd() {
     setEnding(true);
     setEndError(null);
+    const mediaExit = leaveVideo();
+    void mediaExit;
     try {
       await api.disconnectEncounter(squadId, encId);
-      await leaveVideoAndGoHome();
+      router.replace("/home");
     } catch {
       setEnding(false);
       setEndError("Couldn't end this encounter yet.");

@@ -688,10 +688,19 @@ function LobbyInner() {
     }
   }
 
+  async function leaveLobbyMedia() {
+    const client = vcRef.current;
+    vcRef.current = null;
+    setVideoJoined(false);
+    try { await client?.leave().catch(() => {}); } catch {}
+  }
+
   async function handleLeaveSquad() {
     if (!squadId || leavingSquad) return;
     setLeavingSquad(true);
     setMatchError(null);
+    const mediaExit = leaveLobbyMedia();
+    void mediaExit;
     try {
       await api.leaveSquad(squadId);
       router.push("/home");
@@ -2232,7 +2241,7 @@ function LobbyInner() {
             You lead this squad. You can hand it off and leave, or delete it entirely.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <Button variant="secondary" fullWidth disabled={leavingSquad} onClick={handleLeaveSquad}>
+            <Button variant="secondary" fullWidth disabled={leavingSquad} loading={leavingSquad} onClick={handleLeaveSquad}>
               Leave &amp; hand off to another member
             </Button>
             <Button variant="danger" fullWidth loading={leavingSquad} onClick={handleDisbandSquad}>
