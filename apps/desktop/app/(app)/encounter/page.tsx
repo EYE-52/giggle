@@ -768,6 +768,7 @@ function EncounterInner() {
   // Serializes join/leave so a StrictMode double-mount never overlaps two joins
   // on the same uid (which triggers Agora UID_CONFLICT and blanks the video).
   const joinChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const videoGenerationRef = useRef(0);
   const localElRef = useRef<HTMLDivElement | null>(null);
   // Identity-based map: Agora uid -> tile element. Lets us route each remote
   // track to the exact member that owns that uid (opponent OR our own non-local
@@ -811,6 +812,8 @@ function EncounterInner() {
 
   async function joinVideo(isCancelled: () => boolean = () => false) {
     if (!squadId || !encId) throw new Error("This encounter is unavailable.");
+    const generation = ++videoGenerationRef.current;
+    const joinCancelled = () => isCancelled() || generation !== videoGenerationRef.current;
     setVideoError(null);
     setVideoJoined(false);
     setConnState("CONNECTING");
@@ -821,11 +824,11 @@ function EncounterInner() {
     const staleClient = vcRef.current;
     vcRef.current = null;
     try { await staleClient?.leave(); } catch {}
-    if (isCancelled()) return;
+    if (joinCancelled()) return;
 
     await api.setEncounterVideo(squadId, true);
     const tokenData = await api.encounterToken(squadId, encId);
-    if (isCancelled()) return;
+    if (joinCancelled()) return;
 
     const vc = createVideoClient();
     vcRef.current = vc;
@@ -859,7 +862,7 @@ function EncounterInner() {
     });
 
     await vc.join(tokenData, { audio: true, video: true });
-    if (isCancelled()) {
+    if (joinCancelled()) {
       vcRef.current = null;
       await vc.leave().catch(() => {});
       return;
@@ -1132,6 +1135,7 @@ function EncounterInner() {
   }
 
   async function leaveVideo() {
+    videoGenerationRef.current += 1;
     const client = vcRef.current;
     vcRef.current = null;
     setVideoJoined(false);
@@ -1147,13 +1151,15 @@ function EncounterInner() {
     setEnding(true);
     setEndError(null);
     const mediaExit = leaveVideo();
-    void mediaExit;
     try {
       await api.disconnectEncounter(squadId, encId);
+      await mediaExit;
       router.replace("/home");
     } catch {
+      await mediaExit;
       setEnding(false);
-      setEndError("Couldn't end this encounter yet.");
+      setEndError("Couldn't end this encounter yet. Reconnecting your video…");
+      retryVideo();
     }
   }
 

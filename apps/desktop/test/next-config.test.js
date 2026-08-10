@@ -614,7 +614,7 @@ test("desktop lobby leave starts pending feedback and media cleanup before the b
   assert.ok(leaveBlock.indexOf("setLeavingSquad(true);") < leaveBlock.indexOf("await api.leaveSquad(squadId);"));
   assert.ok(leaveBlock.indexOf("const mediaExit = leaveLobbyMedia();") < leaveBlock.indexOf("await api.leaveSquad(squadId);"));
   assert.match(leaveBlock, /void mediaExit;/);
-  assert.match(page, /async function leaveLobbyMedia\(\) \{[\s\S]*?vcRef\.current = null;[\s\S]*?setVideoJoined\(false\);[\s\S]*?await client\?\.leave\(\)\.catch\(\(\) => \{\}\);/);
+  assert.match(page, /async function leaveLobbyMedia\(\) \{[\s\S]*?vcRef\.current = null;[\s\S]*?setVideoJoined\(false\);[\s\S]*?await client\?\.leave\(\);/);
   assert.match(page, /<Button variant="secondary" fullWidth disabled=\{leavingSquad\} loading=\{leavingSquad\} onClick=\{handleLeaveSquad\}>/);
   assert.match(leaveBlock, /setMatchError\(\(e as \{ message\?: string \}\)\?\.message \|\| "Couldn't leave squad\."\)/);
   assert.equal(page.includes("onClick={handleLeaveSquad}"), true);
@@ -825,6 +825,20 @@ test("desktop encounter reports media failures and retries the existing call", (
   assert.equal(page.includes("if (vcRef.current === vc) setRemotes(next);"), true);
 });
 
+test("lobby and encounter exits invalidate media joins already in flight", () => {
+  const lobby = lobbySource();
+  const encounter = encounterSource();
+
+  assert.match(lobby, /const lobbyMediaGenerationRef = useRef\(0\);/);
+  assert.match(lobby, /const generation = \+\+lobbyMediaGenerationRef\.current;/);
+  assert.match(lobby, /if \(generation !== lobbyMediaGenerationRef\.current\)/);
+  assert.match(lobby, /async function leaveLobbyMedia\(\) \{[\s\S]*?lobbyMediaGenerationRef\.current \+= 1;/);
+  assert.match(encounter, /const videoGenerationRef = useRef\(0\);/);
+  assert.match(encounter, /const generation = \+\+videoGenerationRef\.current;/);
+  assert.match(encounter, /const joinCancelled = \(\) => isCancelled\(\) \|\| generation !== videoGenerationRef\.current;/);
+  assert.match(encounter, /async function leaveVideo\(\) \{[\s\S]*?videoGenerationRef\.current \+= 1;/);
+});
+
 test("desktop encounter starts local media cleanup before backend-confirmed navigation", () => {
   const page = encounterSource();
   const endBlock = page.slice(
@@ -840,12 +854,13 @@ test("desktop encounter starts local media cleanup before backend-confirmed navi
   assert.match(endBlock, /await api\.disconnectEncounter\(squadId, encId\);/);
   assert.ok(endBlock.indexOf("const mediaExit = leaveVideo();") < endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"));
   assert.ok(endBlock.indexOf('router.replace("/home");') > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"));
-  assert.match(endBlock, /void mediaExit;/);
+  assert.match(endBlock, /await mediaExit;/);
+  assert.match(endBlock, /catch \{[\s\S]*?retryVideo\(\);/);
   assert.match(leaveBlock, /await leaveVideo\(\);/);
   assert.match(page, /async function leaveVideo\(\) \{[\s\S]*?vcRef\.current = null;[\s\S]*?setVideoJoined\(false\);[\s\S]*?await client\?\.leave\(\);/);
   assert.match(leaveBlock, /router\.replace\("\/home"\);/);
   assert.match(endBlock, /setEnding\(false\);/);
-  assert.match(endBlock, /setEndError\("Couldn't end this encounter yet\."\);/);
+  assert.match(endBlock, /setEndError\("Couldn't end this encounter yet\. Reconnecting your video…"\);/);
   assert.equal(page.includes('title="End encounter?"'), true);
   assert.equal(page.includes("This ends the current encounter for both squads."), true);
   assert.equal(page.includes("setEndConfirmOpen(true)"), true);

@@ -437,7 +437,7 @@ test("ending an encounter requeues verified-adult rosters", async () => {
   assert.deepEqual(queued, ["sq_a", "sq_b"]);
 });
 
-test("asymmetric encounter end clears the departing roster sessions together", async () => {
+test("asymmetric encounter end clears departing sessions together without failing a committed teardown", async () => {
   const originals = {
     updateOne: Squad.updateOne,
     findOne: Squad.findOne,
@@ -445,10 +445,13 @@ test("asymmetric encounter end clears the departing roster sessions together", a
     clearSession: sessionService.clearMemberSession,
     emit: socketService.emitToSquad,
     close: socketService.closeEncounterRoom,
+    error: console.error,
   };
-  let releaseFirstClear;
+  let finishFirstClear;
   const clearCalls = [];
-  const firstClear = new Promise((resolve) => { releaseFirstClear = resolve; });
+  const firstClear = new Promise((_resolve, reject) => {
+    finishFirstClear = () => reject(new Error("session cleanup unavailable"));
+  });
   Squad.updateOne = async () => ({ matchedCount: 1 });
   Squad.findOne = async ({ squadId }) => squadId === "sq_a"
     ? { squadId, members: [{ memberId: "member_a1" }, { memberId: "member_a2" }] }
@@ -460,6 +463,7 @@ test("asymmetric encounter end clears the departing roster sessions together", a
   };
   socketService.emitToSquad = () => {};
   socketService.closeEncounterRoom = () => {};
+  console.error = () => {};
   const encounter = {
     encounterId: "enc_concurrent_clears",
     status: "active",
@@ -474,7 +478,7 @@ test("asymmetric encounter end clears the departing roster sessions together", a
   try {
     assert.deepEqual(clearCalls, ["member_a1", "member_a2"]);
   } finally {
-    releaseFirstClear();
+    finishFirstClear();
     try {
       await ending;
     } finally {
@@ -484,6 +488,7 @@ test("asymmetric encounter end clears the departing roster sessions together", a
       sessionService.clearMemberSession = originals.clearSession;
       socketService.emitToSquad = originals.emit;
       socketService.closeEncounterRoom = originals.close;
+      console.error = originals.error;
     }
   }
 });

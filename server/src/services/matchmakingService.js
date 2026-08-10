@@ -687,9 +687,14 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
 
   const disconnectingSquad = await Squad.findOne({ squadId: disconnectingSquadId });
   if (disconnectingSquad) {
-    await Promise.all(disconnectingSquad.members.map((member) =>
+    const cleanupResults = await Promise.allSettled(disconnectingSquad.members.map((member) =>
       sessionService.clearMemberSession(disconnectingSquadId, member.memberId)
     ));
+    for (const result of cleanupResults) {
+      if (result.status === "rejected") {
+        console.error("[Matchmaking] Post-encounter session cleanup failed:", result.reason);
+      }
+    }
   }
 };
 

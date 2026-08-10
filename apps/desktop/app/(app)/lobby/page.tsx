@@ -248,6 +248,7 @@ function LobbyInner() {
   const chatVisibleRef = useRef(false);
 
   const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
+  const lobbyMediaGenerationRef = useRef(0);
   const localVideoRef = useRef<HTMLDivElement>(null);
   const [videoJoined, setVideoJoined] = useState(false);
   const [videoJoining, setVideoJoining] = useState(false);
@@ -329,24 +330,38 @@ function LobbyInner() {
   async function enableLobbyMedia(withCamera = true): Promise<boolean> {
     if (!squadId || videoJoining) return videoJoined;
     if (videoJoined) return true;
+    const generation = ++lobbyMediaGenerationRef.current;
+    let vc: ReturnType<typeof createVideoClient> | null = null;
     setVideoJoining(true);
     setVideoError(null);
     try {
       const tokenData = await api.lobbyToken(squadId);
-      const vc = createVideoClient();
+      if (generation !== lobbyMediaGenerationRef.current) return false;
+      vc = createVideoClient();
       vcRef.current = vc;
       await vc.join(tokenData, { audio: true, video: withCamera });
+      if (generation !== lobbyMediaGenerationRef.current) {
+        if (vcRef.current === vc) vcRef.current = null;
+        await vc.leave().catch(() => {});
+        return false;
+      }
       await api.setLobbyVideo(squadId, true);
+      if (generation !== lobbyMediaGenerationRef.current) {
+        if (vcRef.current === vc) vcRef.current = null;
+        await Promise.allSettled([vc.leave(), api.setLobbyVideo(squadId, false)]);
+        return false;
+      }
       setCamOn(withCamera);
       setVideoJoined(true);
       return true;
     } catch (e) {
-      await vcRef.current?.leave().catch(() => {});
-      vcRef.current = null;
+      await vc?.leave().catch(() => {});
+      if (vcRef.current === vc) vcRef.current = null;
+      if (generation !== lobbyMediaGenerationRef.current) return false;
       setVideoError(describeVideoError(e));
       return false;
     } finally {
-      setVideoJoining(false);
+      if (generation === lobbyMediaGenerationRef.current) setVideoJoining(false);
     }
   }
 
@@ -372,6 +387,7 @@ function LobbyInner() {
 
     return () => {
       socket.off(SOCKET_EVENTS.SQUAD_UPDATED, onSquadUpdate);
+      lobbyMediaGenerationRef.current += 1;
       vcRef.current?.leave().catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -689,10 +705,12 @@ function LobbyInner() {
   }
 
   async function leaveLobbyMedia() {
+    lobbyMediaGenerationRef.current += 1;
     const client = vcRef.current;
     vcRef.current = null;
+    setVideoJoining(false);
     setVideoJoined(false);
-    try { await client?.leave().catch(() => {}); } catch {}
+    try { await client?.leave(); } catch {}
   }
 
   async function handleLeaveSquad() {
