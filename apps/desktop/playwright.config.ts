@@ -31,6 +31,8 @@ export default defineConfig({
         PORT: "3001",
         NODE_ENV: "development",
         AGE_VERIFICATION_BYPASS: "true",
+        JWT_SECRET: "giggle-e2e-only-secret",
+        MONGODB_URI: "mongodb://127.0.0.1:27017/giggle",
         MONGODB_DB_NAME: "giggle-e2e",
         REDIS_URL: "redis://127.0.0.1:6379/15",
       },
