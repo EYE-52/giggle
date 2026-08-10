@@ -50,6 +50,7 @@ export function Button({ label, onPress, variant = 'violet', style, disabled, ac
 
 const styles = StyleSheet.create({
   btn: {
+    minHeight: 44,
     borderRadius: RADII.pill,
     paddingVertical: SPACE.md,
     paddingHorizontal: SPACE.xl,

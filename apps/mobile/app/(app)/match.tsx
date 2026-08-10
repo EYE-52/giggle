@@ -1,12 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, ScrollView, useWindowDimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Screen } from '../../components/Screen';
 import { Button } from '../../components/Button';
 import { AvatarStack } from '../../components/Avatar';
 import { squadCoverSource } from '../../components/squadCover';
-import { COLORS, SPACE } from '../../constants/theme';
+import { COLORS, RADII, SPACE } from '../../constants/theme';
 import { api, ApiError, session } from '@giggle/core';
 import type { EncounterDetail, SquadState } from '@giggle/core';
 
@@ -187,45 +186,40 @@ export default function MatchScreen() {
   }
 
   const progress = Math.max(0, Math.min(1, countdown / countdownTotal));
+  const crews = [
+    { label: 'Your crew', name: yourName, members: yourMembers, cover: yourCoverImage },
+    { label: 'Joining you', name: theirName, members: theirMembers, cover: theirCoverImage },
+  ];
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={[styles.container, compact && styles.containerCompact]} showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>MATCH FOUND</Text>
-        <Text style={styles.heading}>Your squads are ready.</Text>
+        <Text style={styles.eyebrow}>THE ROOM IS OPEN</Text>
+        <Text style={styles.heading}>Room ready</Text>
 
-        <View style={[styles.versus, compact && styles.versusCompact]}>
-          <ImageBackground
-            source={yourCoverImage}
-            style={[styles.squadCol, compact && styles.squadColCompact, !yourCoverImage && styles.yourFallback]}
-            imageStyle={styles.panelImage}
-            resizeMode="cover"
-          >
-            <LinearGradient colors={['rgba(11,11,20,0.15)', 'rgba(11,11,20,0.92)']} style={StyleSheet.absoluteFill} />
-            <View style={styles.squadContent}>
-              <Text style={styles.sideLabel}>YOUR SQUAD</Text>
-              <AvatarStack names={yourMembers.map((member) => member.displayName)} size={30} />
-              <Text style={styles.squadName} numberOfLines={2}>{yourName}</Text>
-              <Text style={styles.squadRep}>{yourMembers.length} members</Text>
-            </View>
-          </ImageBackground>
-
-          <View style={styles.vsBadge}><Text style={styles.vsText}>VS</Text></View>
-
-          <ImageBackground
-            source={theirCoverImage}
-            style={[styles.squadCol, compact && styles.squadColCompact, !theirCoverImage && styles.theirFallback]}
-            imageStyle={styles.panelImage}
-            resizeMode="cover"
-          >
-            <LinearGradient colors={['rgba(7,18,13,0.12)', 'rgba(7,18,13,0.92)']} style={StyleSheet.absoluteFill} />
-            <View style={styles.squadContent}>
-              <Text style={[styles.sideLabel, styles.opponentLabel]}>OPPONENT</Text>
-              <AvatarStack names={theirMembers.map((member) => member.displayName)} size={30} />
-              <Text style={styles.squadName} numberOfLines={2}>{theirName}</Text>
-              <Text style={styles.squadRep}>{theirMembers.length} members</Text>
-            </View>
-          </ImageBackground>
+        <View style={[styles.roomCard, compact && styles.roomCardCompact]}>
+          {crews.map((crew, index) => {
+            const names = crew.members.map((member) => member.displayName);
+            const shownNames = names.slice(0, 4);
+            return (
+              <React.Fragment key={crew.label}>
+                {index > 0 && <View style={styles.crewDivider} />}
+                <View style={styles.crewRow}>
+                  {crew.cover ? (
+                    <ImageBackground source={crew.cover} style={styles.coverThumb} imageStyle={styles.coverImage} resizeMode="cover" />
+                  ) : (
+                    <View style={styles.coverThumb} />
+                  )}
+                  <View style={styles.crewCopy}>
+                    <Text style={styles.sideLabel}>{crew.label}</Text>
+                    <Text style={styles.squadName} numberOfLines={1}>{crew.name}</Text>
+                    <Text style={styles.squadRep}>{crew.members.length} members</Text>
+                  </View>
+                  <AvatarStack names={shownNames} size={28} extra={Math.max(0, names.length - shownNames.length)} />
+                </View>
+              </React.Fragment>
+            );
+          })}
         </View>
 
         <View style={styles.actionCard}>
@@ -269,26 +263,21 @@ const styles = StyleSheet.create({
   containerCompact: { justifyContent: 'flex-start', paddingVertical: SPACE.md },
   eyebrow: { color: COLORS.lime, fontSize: 11, fontWeight: '900', letterSpacing: 1.4, textAlign: 'center' },
   heading: { color: COLORS.text, fontSize: 26, fontWeight: '900', textAlign: 'center', marginTop: 4, marginBottom: SPACE.lg },
-  versus: { flexDirection: 'row', alignItems: 'center', width: '100%', marginBottom: SPACE.lg },
-  versusCompact: { marginBottom: SPACE.md },
-  squadCol: { flex: 1, height: 184, justifyContent: 'flex-end', borderRadius: 20, overflow: 'hidden' },
-  squadColCompact: { height: 144 },
-  yourFallback: { backgroundColor: '#211943' },
-  theirFallback: { backgroundColor: '#173528' },
-  panelImage: { width: '100%', height: '100%', borderRadius: 20 },
-  squadContent: { gap: 5, padding: SPACE.md, alignItems: 'center' },
-  sideLabel: { color: '#C7BEFF', fontSize: 9, fontWeight: '900', letterSpacing: 1 },
-  opponentLabel: { color: COLORS.lime },
-  squadName: { minHeight: 36, color: COLORS.text, fontSize: 15, lineHeight: 18, fontWeight: '800', textAlign: 'center' },
-  squadRep: { color: COLORS.textMuted, fontSize: 11 },
-  vsBadge: {
-    width: 46, height: 46, zIndex: 2, marginHorizontal: -4, borderRadius: 23,
-    alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.bgDeep,
-    borderWidth: 1, borderColor: COLORS.border,
+  roomCard: {
+    width: '100%', marginBottom: SPACE.lg, padding: SPACE.md, borderRadius: RADII.card,
+    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
   },
-  vsText: { color: COLORS.text, fontSize: 14, fontWeight: '900' },
+  roomCardCompact: { marginBottom: SPACE.md },
+  crewRow: { minHeight: 74, flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  crewDivider: { height: 1, marginVertical: SPACE.sm, backgroundColor: COLORS.border },
+  coverThumb: { width: 56, height: 56, borderRadius: RADII.tile, overflow: 'hidden', backgroundColor: COLORS.violetSoft },
+  coverImage: { borderRadius: RADII.tile },
+  crewCopy: { flex: 1, minWidth: 0 },
+  sideLabel: { color: COLORS.textMuted, fontSize: 10, fontWeight: '900', letterSpacing: 0.8, textTransform: 'uppercase' },
+  squadName: { color: COLORS.text, fontSize: 15, lineHeight: 19, fontWeight: '800', marginTop: 3 },
+  squadRep: { color: COLORS.textMuted, fontSize: 11 },
   actionCard: {
-    width: '100%', gap: SPACE.sm, padding: SPACE.lg, borderRadius: 20,
+    width: '100%', gap: SPACE.sm, padding: SPACE.lg, borderRadius: RADII.card,
     backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
   },
   vibeText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700', textAlign: 'center' },

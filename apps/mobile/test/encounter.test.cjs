@@ -10,6 +10,8 @@ const profileSource = () => readFileSync(path.join(__dirname, "../app/(app)/prof
 const lobbySource = () => readFileSync(path.join(__dirname, "../app/(app)/lobby.tsx"), "utf8");
 const matchSource = () => readFileSync(path.join(__dirname, "../app/(app)/match.tsx"), "utf8");
 const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/(app)/matchmaking.tsx"), "utf8");
+const screenSource = () => readFileSync(path.join(__dirname, "../components/Screen.tsx"), "utf8");
+const buttonSource = () => readFileSync(path.join(__dirname, "../components/Button.tsx"), "utf8");
 const venueCardSource = () => readFileSync(path.join(__dirname, "../components/VenueCard.tsx"), "utf8");
 const squadCoverSource = () => readFileSync(path.join(__dirname, "../components/squadCover.ts"), "utf8");
 const protectedLayoutSource = () => readFileSync(path.join(__dirname, "../app/(app)/_layout.tsx"), "utf8");
@@ -79,8 +81,8 @@ test("mobile encounter derives one adaptive layout from stable identities and re
   assert.equal(page.includes("onCaptureState"), true);
   assert.equal(page.includes("state.audio === 'denied' || state.audio === 'unavailable'"), true);
   assert.equal(page.includes("state.video === 'denied' || state.video === 'unavailable'"), true);
-  assert.equal(page.includes('fit="fit"'), true);
-  assert.equal(page.includes('fit="crop"'), true);
+  assert.equal(page.includes('fit={fit}'), true);
+  assert.equal(page.includes("styles.videoBackdrop"), false);
   for (const kind of ['remote-main', 'squad-split', 'featured-split', 'single-focus', 'dual-focus']) {
     assert.equal(page.includes(`layout.kind === '${kind}'`), true);
   }
@@ -91,8 +93,8 @@ test("mobile encounter derives one adaptive layout from stable identities and re
 
 test("mobile encounter keeps five controls while chat, More, reactions, and ending use sheets", () => {
   const page = source();
-  const endBlock = page.slice(page.indexOf("async function endEncounter()"), page.indexOf("const compactHeader"));
-  const cleanupBlock = page.slice(page.indexOf("async function leaveVideoAndGoHome()"), page.indexOf("async function blockOpponentSquad()"));
+  const endBlock = page.slice(page.indexOf("async function endEncounter()"), page.indexOf("const stackSides"));
+  const detachBlock = page.slice(page.indexOf("function detachVideo()"), page.indexOf("async function leaveVideoAndGoHome()"));
   const reactionBlock = page.slice(page.indexOf("function fireReaction"), page.indexOf("function retryVideo"));
 
   assert.equal(page.includes("accessibilityLabel={mic ? 'Mute microphone' : 'Unmute microphone'}"), true);
@@ -122,9 +124,11 @@ test("mobile encounter keeps five controls while chat, More, reactions, and endi
   assert.equal(page.includes("End encounter?"), true);
   assert.equal(page.includes("This ends the current encounter for both squads."), true);
   assert.equal(endBlock.indexOf("await api.disconnectEncounter(squadId, encId);") >= 0, true);
-  assert.equal(endBlock.indexOf("await leaveVideoAndGoHome();") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
-  assert.equal(cleanupBlock.includes("await vcRef.current?.leave();"), true);
+  assert.equal(endBlock.indexOf("const mediaExit = detachVideo();") < endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.equal(endBlock.indexOf("router.replace('/home');") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.equal(detachBlock.indexOf("videoAttemptRef.current += 1;") < detachBlock.indexOf("const clientExit = client?.leave().catch(() => {})"), true);
   assert.equal(page.includes("Couldn't end this encounter yet."), true);
+  assert.equal(page.includes("Reconnect call"), true);
 });
 
 test("mobile encounter exits cleanly when the other squad ends the call", () => {
@@ -187,9 +191,8 @@ test("mobile opponent blocking confirms, blocks, disconnects, then leaves withou
   assert.equal(handler.indexOf("await api.blockUsers(opponentUserIds);") >= 0, true);
   assert.equal(handler.indexOf("await api.disconnectEncounter(squadId, encId);") > handler.indexOf("await api.blockUsers(opponentUserIds);"), true);
   assert.equal(handler.indexOf("await leaveVideoAndGoHome();") > handler.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
-  assert.equal(cleanup.indexOf("await vcRef.current?.leave();") >= 0, true);
-  assert.equal(cleanup.indexOf("clearVideoListeners();") > cleanup.indexOf("await vcRef.current?.leave();"), true);
-  assert.equal(cleanup.indexOf("router.replace('/home');") > cleanup.indexOf("clearVideoListeners();"), true);
+  assert.equal(cleanup.indexOf("await detachVideo();") >= 0, true);
+  assert.equal(cleanup.indexOf("router.replace('/home');") > cleanup.indexOf("await detachVideo();"), true);
   assert.doesNotMatch(handler, /reportOpponentSquad|handleReport/);
 });
 
@@ -226,11 +229,32 @@ test("mobile encounter surfaces video join failures", () => {
   assert.equal(page.includes("Video unavailable"), true);
 });
 
-test("mobile encounter shows one recovery banner when video and capture fail together", () => {
+test("mobile encounter shows one prioritized call notice while preserving capture recovery", () => {
   const page = source();
 
-  assert.equal(page.includes("videoError && captureIssues.length === 0"), true);
+  assert.equal(page.includes("const callNotice = captureIssues.length > 0"), true);
+  assert.equal(page.includes("{callNotice ? ("), true);
+  assert.equal(page.includes("styles.videoErrorBanner"), false);
+  assert.equal(page.includes("styles.connectionText"), false);
   assert.equal(page.includes("captureIssues.length > 0"), true);
+  assert.equal(page.includes("styles.captureBanner"), true);
+  assert.equal(page.includes("styles.topVs"), false);
+});
+
+test("mobile encounter cancels stale joins before local or remote exit", () => {
+  const page = source();
+  const joinStart = page.indexOf("async function joinVideo");
+  const joinBlock = page.slice(joinStart, page.indexOf("useEffect(() => {", joinStart));
+  const remoteEndBlock = page.slice(page.indexOf("const onEnded ="), page.indexOf("socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED"));
+
+  assert.equal(page.includes("const videoAttemptRef = useRef(0)"), true);
+  assert.equal(joinBlock.includes("if (isCancelled()) return;"), true);
+  assert.equal(joinBlock.indexOf("if (isCancelled()) return;") < joinBlock.indexOf("const attempt = ++videoAttemptRef.current;"), true);
+  assert.equal(joinBlock.includes("const attempt = ++videoAttemptRef.current;"), true);
+  assert.equal(joinBlock.includes("attempt !== videoAttemptRef.current"), true);
+  assert.equal(joinBlock.includes("void api.setEncounterVideo(squadId, false)"), false);
+  assert.equal((joinBlock.match(/await api\.setEncounterVideo\(squadId, false\)\.catch/g) ?? []).length, 2);
+  assert.equal(remoteEndBlock.includes("void detachVideo();"), true);
 });
 
 test("mobile encounter surfaces video presence update failures", () => {
@@ -313,6 +337,19 @@ test("mobile match uses encounter covers and removes hardcoded photos and tags",
   assert.equal(page.includes("match-your-squad.jpg"), false);
   assert.equal(page.includes("match-opponent-squad.jpg"), false);
   assert.equal(page.includes("squad?.tags?.slice(0, 2).join(' & ')"), true);
+});
+
+test("mobile match uses a neutral Room ready handoff without battle framing", () => {
+  const page = matchSource();
+
+  assert.equal(page.includes("Room ready"), true);
+  assert.equal(page.includes(">VS<"), false);
+  assert.equal(page.includes("styles.vsBadge"), false);
+  assert.equal(page.includes("styles.opponentLabel"), false);
+  assert.equal(page.includes("styles.yourFallback"), false);
+  assert.equal(page.includes("styles.theirFallback"), false);
+  assert.equal(page.includes("<LinearGradient"), false);
+  assert.equal(page.includes("<AvatarStack"), true);
 });
 
 test("mobile match keeps recoverable handoff failures retryable", () => {
@@ -505,6 +542,8 @@ test("mobile matchmaking shows only real queue state and guards missing squad li
   assert.equal(page.includes("No squad selected"), true);
   assert.equal(page.includes("status.state !== 'searching'"), true);
   assert.equal(page.includes("router.replace(`/lobby?squad=${squadId}`)"), true);
+  assert.equal(page.includes("router.replace(`/match?squad=${squadId}&enc=${encounterId}`)"), true);
+  assert.equal(page.includes("router.push("), false);
 });
 
 test("mobile matchmaking cancel stays put when backend cancel fails", () => {
@@ -518,10 +557,28 @@ test("mobile matchmaking cancel stays put when backend cancel fails", () => {
 test("mobile matchmaking ignores matches while cancellation is pending", () => {
   const page = matchmakingSource();
 
-  assert.match(page, /const cancelling = useRef\(false\)/);
-  assert.match(page, /if \(navigated\.current \|\| cancelling\.current \|\| !squadId\) return/);
-  assert.match(page, /cancelling\.current = true;[\s\S]*await api\.cancelSearch\(squadId\)/);
-  assert.match(page, /catch \(e: any\) \{\s*cancelling\.current = false;/);
+  assert.match(page, /const cancellingRef = useRef\(false\)/);
+  assert.match(page, /const \[cancelling, setCancelling\] = useState\(false\)/);
+  assert.match(page, /if \(navigated\.current \|\| cancellingRef\.current \|\| !squadId\) return/);
+  assert.match(page, /cancellingRef\.current = true;[\s\S]*setCancelling\(true\);[\s\S]*await api\.cancelSearch\(squadId\)/);
+  assert.match(page, /catch \(e: any\) \{\s*cancellingRef\.current = false;\s*setCancelling\(false\);/);
+  assert.equal(page.includes("label={cancelling ? 'Cancelling…'"), true);
+  assert.equal(page.includes("const isLeader = squad?.members.some"), true);
+  assert.equal(page.includes("Your squad leader can cancel the search."), true);
+});
+
+test("mobile matchmaking keeps the real squad visible without a radar takeover", () => {
+  const page = matchmakingSource();
+
+  assert.equal(page.includes("Animated"), false);
+  assert.equal(page.includes("radarWrap"), false);
+  assert.equal(page.includes("ring1"), false);
+  assert.equal(page.includes("Scanning for squads"), false);
+  assert.equal(page.includes("await api.getSquad(squadId)"), true);
+  assert.equal(page.includes("SOCKET_EVENTS.SQUAD_UPDATED"), true);
+  assert.equal(page.includes("<AvatarStack"), true);
+  assert.equal(page.includes("Finding your match…"), true);
+  assert.equal(page.includes("COLORS.violetSoft"), true);
 });
 
 test("mobile matchmaking surfaces status polling failures", () => {
@@ -633,7 +690,7 @@ test("mobile lobby does not navigate to matchmaking when start search fails", ()
 
   assert.equal(page.includes("const [matchError, setMatchError]"), true);
   assert.equal(page.includes("setMatchError(e?.message || \"Couldn't start search yet.\")"), true);
-  assert.equal(page.includes("await api.startSearch(squadId);\n      router.push(`/matchmaking?squad=${squadId}`);"), true);
+  assert.equal(page.includes("await api.startSearch(squadId);\n      router.replace(`/matchmaking?squad=${squadId}`);"), true);
 });
 
 test("mobile lobby leaders can mark themselves ready before finding a match", () => {
@@ -726,4 +783,38 @@ test("mobile lobby leave does not navigate home when backend leave fails", () =>
 
   assert.equal(page.includes("setMatchError(e?.message || \"Couldn't leave squad.\")"), true);
   assert.equal(page.includes("if (squadId) { try { await api.leaveSquad(squadId); } catch {} }"), false);
+});
+
+test("mobile lobby stops media immediately and keeps failed leave retryable", () => {
+  const page = lobbySource();
+  const handler = page.slice(page.indexOf("async function leave()"), page.indexOf("async function shareInvite()"));
+
+  assert.equal(page.includes("const [leaving, setLeaving] = useState(false)"), true);
+  assert.equal(page.includes("const leavingRef = useRef(false)"), true);
+  assert.equal(handler.indexOf("setLeaving(true);") < handler.indexOf("await api.leaveSquad(squadId);"), true);
+  assert.equal(handler.indexOf("videoAttemptRef.current += 1;") < handler.indexOf("await api.leaveSquad(squadId);"), true);
+  assert.equal(handler.indexOf("vcRef.current = null;") < handler.indexOf("await api.leaveSquad(squadId);"), true);
+  assert.equal(handler.indexOf("setVideoReady(false);") < handler.indexOf("await api.leaveSquad(squadId);"), true);
+  assert.equal(handler.lastIndexOf("router.replace('/home');") > handler.indexOf("await api.leaveSquad(squadId);"), true);
+  assert.equal(handler.includes("setLeaving(false);"), true);
+  assert.equal(page.includes("{leaving ? 'Leaving…' : 'Leave'}"), true);
+});
+
+test("mobile lobby gives the leader match action its own stable dock row", () => {
+  const page = lobbySource();
+
+  assert.equal(page.includes("styles.mediaReadyRow"), true);
+  assert.equal(page.includes("styles.matchActionRow"), true);
+  assert.equal(page.includes("label={finding ? 'Finding…' : 'Find a match'}"), true);
+});
+
+test("mobile shared controls use Expo safe areas and 44 point minimum targets", () => {
+  const screen = screenSource();
+  const button = buttonSource();
+  const encounter = source();
+
+  assert.equal(screen.includes("from 'react-native-safe-area-context'"), true);
+  assert.equal(screen.includes("SafeAreaView, StyleSheet"), false);
+  assert.equal(button.includes("minHeight: 44"), true);
+  assert.equal(encounter.includes("segmentButton: { minWidth: 86, minHeight: 44"), true);
 });

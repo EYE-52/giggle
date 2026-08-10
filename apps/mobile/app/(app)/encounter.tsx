@@ -137,6 +137,7 @@ export default function EncounterScreen() {
   const reactionCountRef = useRef(0);
   const reactionTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const vcRef = useRef<VideoClient | null>(null);
+  const videoAttemptRef = useRef(0);
   const myUidRef = useRef<string | number | null>(null);
   const joinChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const videoUnsubsRef = useRef<Array<() => void>>([]);
@@ -149,6 +150,9 @@ export default function EncounterScreen() {
 
   async function joinVideo(isCancelled: () => boolean = () => false) {
     if (!squadId || !encId) throw new Error('This encounter is unavailable.');
+    if (isCancelled()) return;
+    const attempt = ++videoAttemptRef.current;
+    const isStale = () => isCancelled() || attempt !== videoAttemptRef.current;
     setVideoReady(false);
     setVideoError('');
     setConnState('CONNECTING');
@@ -160,11 +164,18 @@ export default function EncounterScreen() {
     vcRef.current = null;
     clearVideoListeners();
     try { await staleClient?.leave(); } catch {}
-    if (isCancelled()) return;
+    if (isStale()) return;
 
     await api.setEncounterVideo(squadId, true);
+    if (isStale()) {
+      await api.setEncounterVideo(squadId, false).catch(() => {});
+      return;
+    }
     const token = await api.encounterToken(squadId, encId);
-    if (isCancelled()) return;
+    if (isStale()) {
+      await api.setEncounterVideo(squadId, false).catch(() => {});
+      return;
+    }
 
     const vc = createVideoClient();
     vcRef.current = vc;
@@ -197,8 +208,13 @@ export default function EncounterScreen() {
     if (connectionUnsub) videoUnsubsRef.current.push(connectionUnsub);
     if (captureUnsub) videoUnsubsRef.current.push(captureUnsub);
 
-    await vc.join(token, { audio: true, video: true });
-    if (isCancelled()) {
+    try {
+      await vc.join(token, { audio: true, video: true });
+    } catch (error) {
+      if (isStale()) return;
+      throw error;
+    }
+    if (isStale()) {
       if (vcRef.current === vc) vcRef.current = null;
       clearVideoListeners();
       await vc.leave().catch(() => {});
@@ -239,6 +255,7 @@ export default function EncounterScreen() {
     boot();
     return () => {
       cancelled = true;
+      videoAttemptRef.current += 1;
       joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
         const staleClient = vcRef.current;
         vcRef.current = null;
@@ -289,13 +306,7 @@ export default function EncounterScreen() {
       setBlockConfirmOpen(false);
       setRemoteEndError('');
       setRemoteEnded(payload?.reason === 'squad_disconnected' ? 'opponent-left' : 'ended');
-      setVideoReady(false);
-      joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
-        const staleClient = vcRef.current;
-        vcRef.current = null;
-        clearVideoListeners();
-        try { await staleClient?.leave(); } catch {}
-      });
+      void detachVideo();
     };
     socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED, onEnded);
     return () => { socket.off(SOCKET_EVENTS.ENCOUNTER_ENDED, onEnded); };
@@ -534,10 +545,22 @@ export default function EncounterScreen() {
     }
   }
 
-  async function leaveVideoAndGoHome() {
-    try { await vcRef.current?.leave(); } catch {}
+  function detachVideo() {
+    videoAttemptRef.current += 1;
+    const client = vcRef.current;
     vcRef.current = null;
     clearVideoListeners();
+    setVideoReady(false);
+    setConnState('DISCONNECTED');
+    setCaptureState({ audio: 'off', video: 'off' });
+    setRemotes([]);
+    setLoudestUid(null);
+    const clientExit = client?.leave().catch(() => {}) ?? Promise.resolve();
+    return clientExit;
+  }
+
+  async function leaveVideoAndGoHome() {
+    await detachVideo();
     router.replace('/home');
   }
 
@@ -559,10 +582,12 @@ export default function EncounterScreen() {
     if (!squadId || !encId || ending) return;
     setEnding(true);
     setEndError('');
+    const mediaExit = detachVideo();
+    void mediaExit;
     try {
       await api.disconnectEncounter(squadId, encId);
       setEndConfirmOpen(false);
-      await leaveVideoAndGoHome();
+      router.replace('/home');
     } catch {
       setEnding(false);
       setEndError("Couldn't end this encounter yet.");
@@ -602,7 +627,6 @@ export default function EncounterScreen() {
     );
   }
 
-  const compactHeader = viewportClass === 'phone' || height < 500;
   const stackSides = viewportClass === 'phone' && height >= Math.max(width, 640);
   const captureIssues = [
     captureState.audio === 'denied' ? 'Microphone permission is blocked.'
@@ -610,6 +634,27 @@ export default function EncounterScreen() {
     captureState.video === 'denied' ? 'Camera permission is blocked.'
       : captureState.video === 'unavailable' ? 'No usable camera was found.' : null,
   ].filter((message): message is string => !!message);
+  const callNotice = captureIssues.length > 0
+    ? null
+    : videoError
+      ? {
+          title: videoReady ? 'Call issue' : 'Video unavailable',
+          copy: videoError,
+          retry: true,
+          error: true,
+        }
+      : connState !== 'CONNECTED'
+        ? {
+            title: connState === 'RECONNECTING' ? 'Reconnecting' : connState === 'DISCONNECTED' ? 'Disconnected' : 'Connecting',
+            copy: connState === 'RECONNECTING'
+              ? 'Trying to restore video. Chat stays available.'
+              : connState === 'DISCONNECTED'
+                ? 'Video is offline. Chat is still available.'
+                : 'Connecting camera and microphone.',
+            retry: connState === 'DISCONNECTED',
+            error: connState === 'DISCONNECTED',
+          }
+        : null;
   const localParticipant = participants.find((person) => person.isLocal);
   const hasFocusedFrame = layout.kind !== 'squad-split';
   const hasCompactSelfView = !!localParticipant && localParticipant.id !== layout.focusId &&
@@ -654,19 +699,7 @@ export default function EncounterScreen() {
       >
         <LinearGradient colors={[color + '52', color + '18']} style={StyleSheet.absoluteFill} />
         {hasVideo ? (
-          fit === 'fit' ? (
-            <>
-              <RtcSurface
-                fit="crop"
-                pointerEvents="none"
-                style={[StyleSheet.absoluteFill, styles.videoBackdrop]}
-                canvas={canvas}
-              />
-              <RtcSurface fit="fit" pointerEvents="none" style={StyleSheet.absoluteFill} canvas={canvas} />
-            </>
-          ) : (
-            <RtcSurface fit="crop" pointerEvents="none" style={StyleSheet.absoluteFill} canvas={canvas} />
-          )
+          <RtcSurface fit={fit} pointerEvents="none" style={StyleSheet.absoluteFill} canvas={canvas} />
         ) : (
           <View style={styles.participantFallback}>
             <Avatar name={person.name} size={compact ? 34 : 58} colorIndex={person.colorIndex} />
@@ -823,24 +856,9 @@ export default function EncounterScreen() {
     <Screen>
       {/* ── Slim top bar ── */}
       <View style={styles.topBar}>
-        {!compactHeader && (
-          <View style={styles.topLeft}>
-            <Text style={styles.topSquadA} numberOfLines={1}>{mySquad?.name} · {mineParticipants.length}</Text>
-            <Text style={styles.topVs}>vs</Text>
-            <Text style={styles.topSquadB} numberOfLines={1}>{theirSquad?.name} · {theirParticipants.length}</Text>
-          </View>
-        )}
         <View style={styles.topRight}>
-          {connState === 'CONNECTED' ? (
-            <>
-              <View style={styles.livePill}><Text style={styles.liveText}>LIVE</Text></View>
-              <Text style={styles.timer}>{fmt(elapsed)}</Text>
-            </>
-          ) : (
-            <Text style={[styles.connectionText, connState === 'DISCONNECTED' && styles.connectionError]}>
-              {connState === 'RECONNECTING' ? 'Reconnecting' : connState === 'DISCONNECTED' ? 'Disconnected' : 'Connecting'}
-            </Text>
-          )}
+          {connState === 'CONNECTED' && <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>LIVE</Text></View>}
+          <Text style={styles.timer}>{fmt(elapsed)}</Text>
         </View>
       </View>
 
@@ -852,22 +870,28 @@ export default function EncounterScreen() {
           </View>
         ) : (
           <>
-            {videoError && captureIssues.length === 0 ? (
-              <View style={styles.videoErrorBanner} accessibilityRole="alert">
+            {callNotice ? (
+              <View
+                style={[styles.callNotice, callNotice.error && styles.callNoticeError]}
+                accessibilityRole={callNotice.error ? 'alert' : undefined}
+                accessibilityLiveRegion="polite"
+              >
                 <View style={styles.issueCopy}>
-                  <Text style={styles.videoErrorTitle}>{videoReady ? 'Call issue' : 'Video unavailable'}</Text>
-                  <Text style={styles.videoErrorCopy}>{videoError}</Text>
+                  <Text style={[styles.callNoticeTitle, callNotice.error && styles.callNoticeTitleError]}>{callNotice.title}</Text>
+                  <Text style={styles.callNoticeCopy}>{callNotice.copy}</Text>
                 </View>
-                <TouchableOpacity
-                  onPress={retryVideo}
-                  disabled={videoRetrying}
-                  accessibilityRole="button"
-                  accessibilityLabel="Retry video"
-                  accessibilityState={{ disabled: videoRetrying }}
-                  style={styles.retryButton}
-                >
-                  <Text style={styles.retryButtonText}>{videoRetrying ? 'Retrying…' : 'Retry'}</Text>
-                </TouchableOpacity>
+                {callNotice.retry && (
+                  <TouchableOpacity
+                    onPress={retryVideo}
+                    disabled={videoRetrying}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry video"
+                    accessibilityState={{ disabled: videoRetrying }}
+                    style={styles.retryButton}
+                  >
+                    <Text style={styles.retryButtonText}>{videoRetrying ? 'Retrying…' : 'Retry'}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : null}
             {captureIssues.length > 0 && (
@@ -1224,13 +1248,16 @@ export default function EncounterScreen() {
             {endError ? <Text style={styles.endError} accessibilityRole="alert">{endError}</Text> : null}
             <View style={styles.confirmActions}>
               <TouchableOpacity
-                onPress={() => setEndConfirmOpen(false)}
+                onPress={() => {
+                  if (endError) retryVideo();
+                  setEndConfirmOpen(false);
+                }}
                 disabled={ending}
                 accessibilityRole="button"
-                accessibilityLabel="Keep talking"
+                accessibilityLabel={endError ? 'Reconnect call' : 'Keep talking'}
                 style={styles.confirmSecondary}
               >
-                <Text style={styles.confirmSecondaryText}>Keep talking</Text>
+                <Text style={styles.confirmSecondaryText}>{endError ? 'Reconnect call' : 'Keep talking'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={endEncounter}
@@ -1320,20 +1347,15 @@ const styles = StyleSheet.create({
 
   // ── Slim top bar ──
   topBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
     paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm,
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
-  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: SPACE.sm },
-  topSquadA: { fontSize: 13, fontWeight: '700', color: COLORS.violet, maxWidth: 160 },
-  topVs: { fontSize: 11, color: COLORS.textDim, fontWeight: '600' },
-  topSquadB: { fontSize: 13, fontWeight: '700', color: COLORS.coral, maxWidth: 160 },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' },
-  livePill: { backgroundColor: COLORS.coral, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 },
-  liveText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  livePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.limeSoft, borderRadius: RADII.pill, paddingVertical: 3, paddingHorizontal: 8 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.lime },
+  liveText: { fontSize: 10, fontWeight: '800', color: COLORS.lime, letterSpacing: 1 },
   timer: { fontSize: 12, color: COLORS.textMuted, fontVariant: ['tabular-nums'] as any },
-  connectionText: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted },
-  connectionError: { color: COLORS.coral },
 
   // ── Video area ──
   videoArea: { flex: 1, overflow: 'hidden' },
@@ -1356,24 +1378,26 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
   },
-  videoErrorBanner: {
+  callNotice: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     marginHorizontal: SPACE.md,
     marginTop: SPACE.sm,
     padding: SPACE.sm,
     borderRadius: RADII.tile,
     borderWidth: 1,
-    borderColor: 'rgba(255,92,92,0.28)',
-    backgroundColor: 'rgba(255,92,92,0.10)',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
-  videoErrorTitle: { color: COLORS.coral, fontSize: 12, fontWeight: '900' },
-  videoErrorCopy: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+  callNoticeError: { borderColor: COLORS.coral, backgroundColor: COLORS.coralSoft },
+  callNoticeTitle: { color: COLORS.text, fontSize: 12, fontWeight: '900' },
+  callNoticeTitleError: { color: COLORS.coral },
+  callNoticeCopy: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
   issueCopy: { flex: 1 },
   captureBanner: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     marginHorizontal: SPACE.md, marginTop: SPACE.sm, padding: SPACE.sm,
-    borderRadius: RADII.tile, borderWidth: 1, borderColor: 'rgba(255,176,32,0.34)',
-    backgroundColor: 'rgba(255,176,32,0.10)',
+    borderRadius: RADII.tile, borderWidth: 1, borderColor: COLORS.coral,
+    backgroundColor: COLORS.coralSoft,
   },
   captureCopy: { flex: 1, color: COLORS.text, fontSize: 12, lineHeight: 18 },
   retryButton: { minWidth: 64, minHeight: 48, paddingHorizontal: SPACE.sm, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
@@ -1404,11 +1428,6 @@ const styles = StyleSheet.create({
   participantTileSpeaking: { borderColor: COLORS.lime, borderWidth: 2 },
   participantFallback: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   participantStatus: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600' },
-  videoBackdrop: {
-    opacity: 0.46,
-    transform: [{ scale: 1.08 }],
-    filter: [{ blur: 22 }, { brightness: 0.46 }],
-  },
   filmstrip: { flexGrow: 0, height: 76 },
   filmstripContent: { gap: 7, paddingRight: 4 },
   filmstripItem: { width: 108, height: 72 },
@@ -1423,8 +1442,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center', flexDirection: 'row', padding: 3, borderRadius: 999,
     backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
   },
-  segmentButton: { minWidth: 86, minHeight: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  segmentButtonActive: { backgroundColor: 'rgba(124,92,255,0.22)' },
+  segmentButton: { minWidth: 86, minHeight: 44, borderRadius: RADII.pill, alignItems: 'center', justifyContent: 'center' },
+  segmentButtonActive: { backgroundColor: COLORS.violetSoft },
   segmentText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
   segmentTextActive: { color: COLORS.text },
 
@@ -1534,8 +1553,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: COLORS.border,
   },
-  ctrlOff: { backgroundColor: 'rgba(255,92,92,0.15)', borderColor: COLORS.coral },
-  ctrlActive: { borderColor: COLORS.violet, backgroundColor: 'rgba(124,92,255,0.1)' },
+  ctrlOff: { backgroundColor: COLORS.coralSoft, borderColor: COLORS.coral },
+  ctrlActive: { borderColor: COLORS.violet, backgroundColor: COLORS.violetSoft },
   moreGlyph: { color: COLORS.text, fontSize: 18, fontWeight: '900', letterSpacing: 1 },
   unreadBadge: { position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.coral },
   unreadText: { color: '#fff', fontSize: 10, fontWeight: '900' },
