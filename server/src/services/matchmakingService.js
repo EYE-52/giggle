@@ -615,16 +615,14 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   // Both resets are guarded by the old encounter id. A failed write leaves the
   // encounter retryable; a later retry cannot clobber a squad that has already
   // joined a newer encounter.
-  const [, otherReset] = await Promise.all([
-    Squad.updateOne(
-      { squadId: disconnectingSquadId, currentEncounterId: encounter.encounterId },
-      { $set: idleState }
-    ),
-    Squad.updateOne(
-      { squadId: otherSquadId, currentEncounterId: encounter.encounterId },
-      { $set: idleState }
-    ),
-  ]);
+  await Squad.updateOne(
+    { squadId: disconnectingSquadId, currentEncounterId: encounter.encounterId },
+    { $set: idleState }
+  );
+  const otherReset = await Squad.updateOne(
+    { squadId: otherSquadId, currentEncounterId: encounter.encounterId },
+    { $set: idleState }
+  );
 
   if (!encounterWasEnded) {
     encounter.status = "ended";
