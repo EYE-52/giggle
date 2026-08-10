@@ -506,9 +506,9 @@ test("desktop match countdown follows the server handoff deadline", () => {
   assert.equal(page.includes("const secondsLeft = Math.ceil((deadline - Date.now()) / 1000);"), true);
   assert.equal(page.includes("setCountdownTotal(secondsLeft);"), true);
   assert.equal(page.includes("Math.max(0, Math.ceil((deadline - Date.now()) / 1000))"), true);
-  assert.equal(page.includes("const progress = countdown / countdownTotal;"), true);
+  assert.equal(page.includes('aria-label={`${countdown} of ${countdownTotal} seconds remaining`}'), true);
   assert.equal(page.includes("useState(20)"), false);
-  assert.equal(page.includes("countdown / 20"), false);
+  assert.equal(page.includes("Starts in {countdown}s"), true);
 });
 
 test("desktop match keeps recoverable load and join failures on the handoff", () => {
@@ -517,7 +517,7 @@ test("desktop match keeps recoverable load and join failures on the handoff", ()
 
   assert.equal(page.includes("function isExpiredEncounterError"), true);
   assert.equal(page.includes('setHandoffError(expired ? "This match handoff has expired." : error instanceof Error ? error.message : "Couldn\'t load this match.")'), true);
-  assert.equal(page.includes('{handoffExpired ? "Match expired" : "Couldn\'t open match"}'), true);
+  assert.equal(page.includes('{handoffExpired ? "Match expired" : "Couldn\'t open room"}'), true);
   assert.equal(page.includes("window.location.reload()"), true);
   assert.equal(join.includes("if (isExpiredEncounterError(error))"), true);
   assert.equal(join.includes("setJoining(false);"), true);
@@ -535,13 +535,22 @@ test("desktop match preserves leader and roster data when squad detail is unavai
 test("mobile match keeps the action card in normal flow", () => {
   const page = matchSource();
 
-  assert.equal(page.includes('gridRow: isPhone ? 2 : undefined'), true);
-  assert.equal(page.includes('joinPressed ? "panelFade 0.5s ease both" : "fadeUp 0.45s 0.15s both"'), true);
-  assert.equal(page.includes('resolveCover(myCover)'), true);
-  assert.equal(page.includes('resolveCover(opponentCover)'), true);
-  assert.equal(page.includes("@media (max-width: 640px) and (max-height: 680px)"), true);
-  assert.equal(page.includes(".match-countdown { display: none !important; }"), true);
+  assert.equal(page.includes('width: "min(640px, 100%)"'), true);
+  assert.equal(page.includes('gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr"'), true);
   assert.equal(page.includes('overflowY: isPhone ? "auto" : "hidden"'), true);
+});
+
+test("desktop match uses a theme-native Room ready handoff", () => {
+  const page = matchSource();
+
+  assert.equal(page.includes('data-theme="dark"'), false);
+  assert.equal(page.includes(">VS<"), false);
+  assert.equal(page.includes("resolveCover"), false);
+  assert.equal(page.includes("Room ready"), true);
+  assert.equal(page.includes('<AvatarStack names={myMembers}'), true);
+  assert.equal(page.includes('<AvatarStack names={opponentMembers}'), true);
+  assert.equal(page.includes('background: "var(--surface)"'), true);
+  assert.equal(page.includes('aria-label="Opening room"'), true);
 });
 
 test("desktop match expiry does not navigate away when leader skip fails", () => {
