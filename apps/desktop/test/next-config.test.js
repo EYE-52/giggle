@@ -538,7 +538,6 @@ test("mobile match keeps the action card in normal flow", () => {
 
   assert.equal(page.includes('width: "min(640px, 100%)"'), true);
   assert.equal(page.includes('gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr"'), true);
-  assert.equal(page.includes('overflowY: isPhone ? "auto" : "hidden"'), true);
 });
 
 test("desktop match uses a theme-native Room ready handoff", () => {
@@ -552,6 +551,14 @@ test("desktop match uses a theme-native Room ready handoff", () => {
   assert.equal(page.includes('<AvatarStack names={opponentMembers}'), true);
   assert.equal(page.includes('background: "var(--surface)"'), true);
   assert.equal(page.includes('aria-label="Opening room"'), true);
+  assert.equal(page.includes('role="group" aria-label={rosterLabel}'), true);
+  assert.equal(page.includes('const rosterLabel = `${mySquadName}: ${myMembers.join(", ")}. ${pairedSquadName}: ${opponentMembers.join(", ")}`;'), true);
+});
+
+test("desktop match keeps handoff actions reachable in phone landscape", () => {
+  const page = matchSource();
+
+  assert.match(page, /overflowY: "auto"/);
 });
 
 test("desktop match expiry does not navigate away when leader skip fails", () => {

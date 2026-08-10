@@ -209,6 +209,7 @@ function MatchInner() {
   const vibeLabel = (squad?.tags && squad.tags.length > 0)
     ? squad.tags.slice(0, 2).join(" & ")
     : null;
+  const rosterLabel = `${mySquadName}: ${myMembers.join(", ")}. ${pairedSquadName}: ${opponentMembers.join(", ")}`;
 
   if (loading) {
     return (
@@ -238,7 +239,7 @@ function MatchInner() {
   }
 
   return (
-    <div style={{ minHeight: "100%", background: "var(--bg)", display: "grid", placeItems: "center", padding: isPhone ? "16px" : "24px", boxSizing: "border-box", overflowY: isPhone ? "auto" : "hidden" }}>
+    <div style={{ minHeight: "100%", background: "var(--bg)", display: "grid", placeItems: "center", padding: isPhone ? "16px" : "24px", boxSizing: "border-box", overflowY: "auto" }}>
       <section style={{ width: "min(640px, 100%)", background: "var(--surface)", border: "var(--control-border)", borderRadius: "var(--radius-card, 20px)", padding: isPhone ? "20px" : "28px", boxShadow: "var(--shadow-card)", display: "flex", flexDirection: "column", gap: isPhone ? 18 : 24, textAlign: "center" }}>
         <header style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
           <span style={{ borderRadius: "var(--radius-pill, 999px)", padding: "5px 10px", background: "var(--accent-soft)", border: "1px solid var(--accent-line)", color: "var(--accent)", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>Room ready</span>
@@ -246,7 +247,7 @@ function MatchInner() {
           {vibeLabel && <div style={{ color: textMuted, fontSize: 13 }}>Shared vibe · {vibeLabel}</div>}
         </header>
 
-        <div aria-label="Squads joining this room" style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: 12, textAlign: "left" }}>
+        <div role="group" aria-label={rosterLabel} style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: 12, textAlign: "left" }}>
           <div style={{ minWidth: 0, padding: "14px", borderRadius: "var(--radius-tile, 16px)", background: "var(--overlay)", border: "var(--control-border)", display: "flex", flexDirection: "column", gap: 10 }}>
             <span style={{ color: textMuted, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>Your squad</span>
             <div style={{ color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mySquadName}</div>
