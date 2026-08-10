@@ -376,18 +376,17 @@ export default function HomePage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Find-a-Match CTA — the page's single primary action (spec 07). */}
           {!showFirstRun && (
-          <div style={{ background: "linear-gradient(135deg, var(--accent) 0%, #7C5CFF 55%, #9F7BFF 100%)", borderRadius: RADIUS_CARD, color: "#fff", padding: 20, boxShadow: "0 10px 28px -10px color-mix(in srgb, var(--accent) 55%, transparent)" }}>
-            <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", color: "#fff" }}>Ready to giggle?</h2>
-            <p style={{ margin: "5px 0 14px", fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>Match your squad with another crew on live video.</p>
+          <div style={{ background: "var(--surface)", border: CONTROL_BORDER, borderRadius: RADIUS_CARD, color: "var(--text)", padding: 20, boxShadow: SHADOW_CARD }}>
+            <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", color: "var(--text)" }}>Ready to giggle?</h2>
+            <p style={{ margin: "5px 0 14px", fontSize: 13, color: "var(--text-body)", lineHeight: 1.5 }}>Match your squad with another crew on live video.</p>
             <Button
-              variant="secondary"
+              variant="primary"
               size="sm"
               onClick={() => {
                 const led = mySquads.find(s => s.myRole === "leader") ?? promoted ?? mySquads[0];
                 if (led) router.push(squadDestination(led));
                 else router.push("/discover");
               }}
-              style={{ background: "#fff", color: "var(--accent)", border: "none", boxShadow: "none" }}
             >
               Find a Match
             </Button>

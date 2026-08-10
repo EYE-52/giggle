@@ -1809,7 +1809,7 @@ function LobbyInner() {
               opacity: 0,
               boxShadow: isPhone ? "none" : "0 8px 32px rgba(0,0,0,0.4)",
               flexShrink: 0,
-              flexWrap: isPhone && !videoJoined ? "wrap" as const : "nowrap" as const,
+              flexWrap: isPhone ? "wrap" as const : "nowrap" as const,
               position: "relative" as const,
               bottom: undefined,
               left: undefined,
@@ -1927,7 +1927,8 @@ function LobbyInner() {
                     style={{
                       height: isPhone ? 44 : 50,
                       minWidth: isPhone ? 0 : 162,
-                      flex: isPhone ? 1 : undefined,
+                      flex: isPhone ? "1 0 100%" : undefined,
+                      width: isPhone ? "100%" : undefined,
                     }}
                   >
                     {allReady && !findingMatch && <Icon.discover size={18} color="var(--on-accent, #fff)" />}

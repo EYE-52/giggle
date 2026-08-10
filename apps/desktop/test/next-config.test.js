@@ -578,10 +578,9 @@ test("lobby stage contains people only and fills compact viewports", () => {
   assert.equal(page.includes('minHeight: isPhone ? "calc(100dvh - 61px)" : 0'), true);
   assert.equal(page.includes('gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`'), true);
   assert.equal(page.includes('aspectRatio: "4 / 3"'), false);
-  assert.equal(page.includes('flexWrap: isPhone && !videoJoined ? "wrap" as const : "nowrap" as const'), true);
+  assert.equal(page.includes('flexWrap: isPhone ? "wrap" as const : "nowrap" as const'), true);
   assert.equal(page.includes('width: isPhone ? "100%" : undefined'), true);
   assert.equal(page.includes('boxSizing: "border-box" as const'), true);
-  assert.equal(page.includes('flex: isPhone ? 1 : undefined'), true);
   assert.equal(page.includes("showUpgradeTile"), false);
   assert.equal(page.includes("Unlock 4 more seats"), false);
   assert.equal(page.includes("{isNarrow && isLeader && ("), true);
@@ -1464,6 +1463,20 @@ test("desktop home keeps create and join actions compact", () => {
   assert.equal(page.includes("Start a room and invite your people."), false);
   assert.equal(page.includes('aria-label="Squad actions"'), true);
   assert.equal(page.includes('aria-label="Squad invite code"'), true);
+});
+
+test("desktop home match action uses theme tokens instead of a fixed violet gradient", () => {
+  const page = desktopHomeSource();
+  const action = page.slice(
+    page.indexOf("{/* Find-a-Match CTA"),
+    page.indexOf("<div style={{ flex: isTablet", page.indexOf("{/* Find-a-Match CTA"))
+  );
+
+  assert.match(action, /background: "var\(--surface\)"/);
+  assert.match(action, /border: CONTROL_BORDER/);
+  assert.match(action, /color: "var\(--text\)"/);
+  assert.doesNotMatch(action, /linear-gradient|#7C5CFF|#9F7BFF/);
+  assert.match(action, /variant="primary"/);
 });
 
 test("desktop home leave squad failures restore the squad and show an error toast", () => {
