@@ -437,6 +437,101 @@ test("ending an encounter requeues verified-adult rosters", async () => {
   assert.deepEqual(queued, ["sq_a", "sq_b"]);
 });
 
+test("asymmetric encounter end starts both guarded squad resets together", async () => {
+  const originals = {
+    updateOne: Squad.updateOne,
+    findOne: Squad.findOne,
+    remove: queueService.removeFromQueue,
+    clearSession: sessionService.clearMemberSession,
+    emit: socketService.emitToSquad,
+    close: socketService.closeEncounterRoom,
+  };
+  let releaseFirstReset;
+  const resetCalls = [];
+  const firstReset = new Promise((resolve) => { releaseFirstReset = resolve; });
+  Squad.updateOne = async ({ squadId }) => {
+    resetCalls.push(squadId);
+    if (squadId === "sq_a") await firstReset;
+    return { matchedCount: 1 };
+  };
+  Squad.findOne = async ({ squadId }) => ({ squadId, members: [] });
+  queueService.removeFromQueue = async () => {};
+  sessionService.clearMemberSession = async () => {};
+  socketService.emitToSquad = () => {};
+  socketService.closeEncounterRoom = () => {};
+  const encounter = {
+    encounterId: "enc_concurrent_resets",
+    status: "active",
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    async save() {},
+  };
+
+  const ending = endEncounterAsymmetric({ encounter, disconnectingSquadId: "sq_a" });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  try {
+    assert.deepEqual(resetCalls, ["sq_a", "sq_b"]);
+  } finally {
+    releaseFirstReset();
+    await ending;
+    Squad.updateOne = originals.updateOne;
+    Squad.findOne = originals.findOne;
+    queueService.removeFromQueue = originals.remove;
+    sessionService.clearMemberSession = originals.clearSession;
+    socketService.emitToSquad = originals.emit;
+    socketService.closeEncounterRoom = originals.close;
+  }
+});
+
+test("asymmetric encounter end clears the departing roster sessions together", async () => {
+  const originals = {
+    updateOne: Squad.updateOne,
+    findOne: Squad.findOne,
+    remove: queueService.removeFromQueue,
+    clearSession: sessionService.clearMemberSession,
+    emit: socketService.emitToSquad,
+    close: socketService.closeEncounterRoom,
+  };
+  let releaseFirstClear;
+  const clearCalls = [];
+  const firstClear = new Promise((resolve) => { releaseFirstClear = resolve; });
+  Squad.updateOne = async () => ({ matchedCount: 1 });
+  Squad.findOne = async ({ squadId }) => squadId === "sq_a"
+    ? { squadId, members: [{ memberId: "member_a1" }, { memberId: "member_a2" }] }
+    : { squadId, members: [] };
+  queueService.removeFromQueue = async () => {};
+  sessionService.clearMemberSession = async (_squadId, memberId) => {
+    clearCalls.push(memberId);
+    if (memberId === "member_a1") await firstClear;
+  };
+  socketService.emitToSquad = () => {};
+  socketService.closeEncounterRoom = () => {};
+  const encounter = {
+    encounterId: "enc_concurrent_clears",
+    status: "active",
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    async save() {},
+  };
+
+  const ending = endEncounterAsymmetric({ encounter, disconnectingSquadId: "sq_a" });
+  await new Promise((resolve) => setImmediate(resolve));
+
+  try {
+    assert.deepEqual(clearCalls, ["member_a1", "member_a2"]);
+  } finally {
+    releaseFirstClear();
+    await ending;
+    Squad.updateOne = originals.updateOne;
+    Squad.findOne = originals.findOne;
+    queueService.removeFromQueue = originals.remove;
+    sessionService.clearMemberSession = originals.clearSession;
+    socketService.emitToSquad = originals.emit;
+    socketService.closeEncounterRoom = originals.close;
+  }
+});
+
 test("asymmetric encounter end leaves an ineligible remaining roster idle", async () => {
   const originals = {
     acquire: redlock.acquire,
