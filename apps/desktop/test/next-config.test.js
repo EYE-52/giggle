@@ -431,7 +431,8 @@ test("compact-phone matchmaking keeps the cancel action in view", () => {
   const page = matchmakingSource();
   assert.equal(page.includes("const isShortPhone = isPhone && height <= 650"), true);
   assert.equal(page.includes("const signalSize = isShortPhone ? 48"), true);
-  assert.equal(page.includes('aria-label="Matchmaking search signal"'), true);
+  assert.equal(page.includes('<div aria-hidden style={{ width: signalSize'), true);
+  assert.equal(page.includes('overflowY: isPhone ? "auto" : "hidden"'), true);
   assert.equal(page.includes("!matchFound && !isShortPhone"), true);
 });
 
@@ -571,11 +572,11 @@ test("desktop match expiry does not navigate away when leader skip fails", () =>
 test("desktop matchmaking clears delayed match reveal navigations on unmount", () => {
   const page = matchmakingSource();
 
-  assert.equal(page.includes("const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);"), true);
   assert.equal(page.includes("const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);"), true);
   assert.equal(page.includes("function clearRevealTimers()"), true);
   assert.equal(page.includes("clearRevealTimers();"), true);
-  assert.equal(page.includes("revealTimeoutRef.current = setTimeout(() => setMatchVisible(true), 30);"), true);
+  assert.equal(page.includes("revealTimeoutRef"), false);
+  assert.equal(page.includes("setMatchVisible"), false);
   assert.equal(page.includes("navigationTimeoutRef.current = setTimeout(() => {"), true);
 });
 
@@ -960,6 +961,21 @@ test("desktop encounter report button only shows success after persistence ackno
   assert.equal(reportBlock.includes("console.error(\"report_squad emit failed"), false);
   assert.equal(reportBlock.indexOf("setReported(true);") > reportBlock.indexOf("if (!result.ok) {"), true);
   assert.equal(page.includes("disabled={reported || reporting}"), true);
+});
+
+test("desktop matchmaking keeps cancel reachable on short phones", () => {
+  const page = readFileSync(path.join(__dirname, "../app/(app)/matchmaking/page.tsx"), "utf8");
+
+  assert.match(page, /overflowY: isPhone \? "auto" : "hidden"/);
+  assert.match(page, /justifyContent: isShortPhone \? "flex-start" : "center"/);
+});
+
+test("desktop encounter consolidates recovery and transient notices", () => {
+  const page = encounterSource();
+
+  assert.equal(page.includes('data-testid="media-recovery-notice"'), true);
+  assert.equal(page.includes('data-testid="encounter-transient-notice"'), true);
+  assert.match(page, /reported \? "reported" : connState === "RECONNECTING"/);
 });
 
 test("desktop encounter blocks the validated opponent roster before leaving", () => {

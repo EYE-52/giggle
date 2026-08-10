@@ -21,7 +21,6 @@ function MatchmakingInner() {
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [matchFound, setMatchFound] = useState<{ encounterId: string; opponentName?: string } | null>(null);
-  const [matchVisible, setMatchVisible] = useState(false);
   // Consecutive matchStatus poll failures — after ≥3 we surface a reconnect note.
   const [pollFailures, setPollFailures] = useState(0);
   const pollFailuresRef = useRef(0);
@@ -36,17 +35,12 @@ function MatchmakingInner() {
   // Set the instant the user cancels — makes the poll/socket stop triggering a
   // match reveal so a late in-flight response can't re-add or resurrect the search.
   const cancelledRef = useRef(false);
-  const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // getSquad silent auto-retry timer — cleared on unmount so the retry can't
   // setState after the page is gone.
   const squadRetryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function clearRevealTimers() {
-    if (revealTimeoutRef.current) {
-      clearTimeout(revealTimeoutRef.current);
-      revealTimeoutRef.current = null;
-    }
     if (navigationTimeoutRef.current) {
       clearTimeout(navigationTimeoutRef.current);
       navigationTimeoutRef.current = null;
@@ -161,8 +155,6 @@ function MatchmakingInner() {
     revealedRef.current = true;
     clearRevealTimers();
     setMatchFound({ encounterId, opponentName });
-    // Brief mount delay so the animation plays
-    revealTimeoutRef.current = setTimeout(() => setMatchVisible(true), 30);
     // Navigate after reveal (~2s — leaves time for the SR announcement to land)
     navigationTimeoutRef.current = setTimeout(() => {
       router.push(`/match?squad=${squadId}&enc=${encounterId}`);
@@ -207,15 +199,15 @@ function MatchmakingInner() {
   return (
     <div style={{
       height: "100%", minHeight: 0, width: "100%", background: "var(--bg)",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: isShortPhone ? "flex-start" : "center",
       gap: isShortPhone ? 10 : isPhone ? 18 : 28,
       padding: isShortPhone ? "10px 16px" : isPhone ? "20px 16px" : "24px",
-      boxSizing: "border-box", overflow: "hidden", position: "relative",
+      boxSizing: "border-box", overflowX: "hidden", overflowY: isPhone ? "auto" : "hidden", position: "relative",
     }}>
       {matchFound && (
         <div role="status" aria-live="assertive" style={{ position: "fixed", inset: 0, zIndex: 100, background: "var(--overlay-strong)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
           <span style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" as const, border: 0 }}>Match found — starting now.</span>
-          <div aria-hidden style={{ visibility: matchVisible ? "visible" : "hidden", width: "min(400px, 100%)", background: "var(--surface)", border: "1px solid var(--accent-line)", borderRadius: "var(--radius-card, 20px)", padding: isPhone ? "28px 24px" : "40px 48px", textAlign: "center", boxShadow: "var(--shadow-pop)", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
+          <div aria-hidden style={{ width: "min(400px, 100%)", background: "var(--surface)", border: "1px solid var(--accent-line)", borderRadius: "var(--radius-card, 20px)", padding: isPhone ? "28px 24px" : "40px 48px", textAlign: "center", boxShadow: "var(--shadow-pop)", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
             <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent-line)", borderRadius: 999, padding: "6px 14px", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "var(--accent)" }}>Match found</div>
             <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 22 : 30, fontWeight: 700, color: textPrimary, letterSpacing: "-0.03em", lineHeight: 1.1 }}>Squad located!</div>
             {matchFound.opponentName && (
@@ -229,7 +221,7 @@ function MatchmakingInner() {
         </div>
       )}
 
-      <div aria-label="Matchmaking search signal" style={{ width: signalSize, height: signalSize, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "var(--accent-soft)", border: "1px solid var(--accent-line)" }}>
+      <div aria-hidden style={{ width: signalSize, height: signalSize, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "var(--accent-soft)", border: "1px solid var(--accent-line)" }}>
         <Icon.discover size={isShortPhone ? 22 : 26} color="var(--accent)" />
       </div>
 

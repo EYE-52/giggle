@@ -1770,6 +1770,8 @@ function EncounterInner() {
       ? "No usable camera was found."
       : null,
   ].filter((message): message is string => !!message);
+  const recoveryMessages = [...new Set([videoError, ...captureIssues].filter((message): message is string => !!message))];
+  const transientNotice = reported ? "reported" : connState === "RECONNECTING" && !reconnectDismissed ? "reconnecting" : null;
 
   if (!squadId || !encId) {
     return (
@@ -2011,10 +2013,9 @@ function EncounterInner() {
                 pointerEvents: "none",
               }}
             >
-            {/* Video failure banner — non-blocking, dismissible. Chat, controls,
-                reactions all stay usable; avatar fallbacks already cover tiles. */}
-            {videoError && (
+            {recoveryMessages.length > 0 && (
               <div
+                data-testid="media-recovery-notice"
                 role="alert"
                 style={{
                   pointerEvents: "auto",
@@ -2031,150 +2032,61 @@ function EncounterInner() {
                   boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
                 }}
               >
-                <span style={{ width: 7, height: 7, borderRadius: 999, background: coral, flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--coral)", lineHeight: 1.4 }}>
-                  {videoError}
+                <span aria-hidden style={{ width: 7, height: 7, borderRadius: 999, background: coral, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}>
+                  {recoveryMessages.join(" ")}
                 </span>
-                {(!videoJoined || connState === "DISCONNECTED") && (
-                  <button
-                    onClick={retryVideo}
-                    disabled={videoRetrying}
-                    style={{ minHeight: 44, padding: "0 13px", borderRadius: 999, border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.08)", color: textPrimary, fontWeight: 700, cursor: videoRetrying ? "default" : "pointer" }}
-                  >
-                    {videoRetrying ? "Retrying…" : "Retry video"}
-                  </button>
-                )}
-                <button
-                  onClick={() => setVideoError(null)}
-                  title="Dismiss"
-                  aria-label="Dismiss"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: textMuted,
-                    fontSize: 16,
-                    lineHeight: 1,
-                    width: 44,
-                    height: 44,
-                    padding: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            )}
-
-            {captureIssues.length > 0 && (
-              <div
-                style={{
-                  pointerEvents: "auto",
-                  display: "flex",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  maxWidth: "100%",
-                  padding: "8px 10px 8px 14px",
-                  borderRadius: 12,
-                  background: "rgba(18,18,26,.96)",
-                  border: "1px solid rgba(255,176,32,.34)",
-                  boxShadow: "0 8px 30px rgba(0,0,0,.45)",
-                }}
-              >
-                {captureIssues.map((message) => (
-                  <span key={message} role="status" style={{ color: textPrimary, fontSize: 13, fontWeight: 600 }}>
-                    {message}
-                  </span>
-                ))}
                 <button
                   onClick={retryVideo}
                   disabled={videoRetrying}
-                  style={{ minHeight: 44, padding: "0 13px", borderRadius: 999, border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.08)", color: textPrimary, fontWeight: 700, cursor: videoRetrying ? "default" : "pointer" }}
+                  style={{ minHeight: 44, padding: "0 13px", borderRadius: 999, border: "var(--control-border)", background: "var(--overlay)", color: textPrimary, fontWeight: 700, cursor: videoRetrying ? "default" : "pointer" }}
                 >
                   {videoRetrying ? "Retrying…" : "Retry devices"}
                 </button>
+                {videoError && (
+                  <button
+                    onClick={() => setVideoError(null)}
+                    title="Dismiss"
+                    aria-label="Dismiss media notice"
+                    style={{ background: "none", border: "none", cursor: "pointer", color: textMuted, fontSize: 16, width: 44, height: 44, padding: 0 }}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             )}
 
-            {/* "Reported" confirmation toast */}
-            {reported && (
+            {transientNotice && (
               <div
+                data-testid="encounter-transient-notice"
                 role="status"
                 style={{
                   pointerEvents: "auto",
-                  background: "rgba(18,18,26,0.94)",
+                  background: "var(--surface)",
                   backdropFilter: "blur(16px)",
-                  border: "1px solid rgba(194,255,61,0.4)",
-                  borderRadius: 999,
-                  padding: "8px 18px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  whiteSpace: "nowrap" as const,
-                  boxShadow: "0 4px 30px rgba(0,0,0,0.5)",
-                  fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: lime,
-                }}
-              >
-                <Icon.flag size={14} color="#C2FF3D" />
-                Reported — thanks for keeping Giggle safe
-              </div>
-            )}
-
-            {/* Reconnecting banner — real Agora connection state, dismissible */}
-            {connState === "RECONNECTING" && !reconnectDismissed && (
-              <div
-                role="status"
-                style={{
-                  pointerEvents: "auto",
+                  border: transientNotice === "reported" ? "1px solid var(--accent-line)" : "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
+                  borderRadius: 12,
+                  padding: "8px 10px 8px 14px",
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  background: "rgba(18,18,26,0.94)",
-                  backdropFilter: "blur(16px)",
-                  border: "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
-                  borderRadius: 12,
-                  padding: "9px 12px 9px 14px",
-                  boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+                  whiteSpace: "nowrap" as const,
+                  boxShadow: "var(--shadow-card)",
+                  fontFamily: "var(--font-display, var(--font-space-grotesk))",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: transientNotice === "reported" ? lime : textPrimary,
                 }}
               >
-                <span
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: 999,
-                    border: "2px solid color-mix(in srgb, var(--amber) 25%, transparent)",
-                    borderTopColor: "var(--amber)",
-                    animation: "gg-spin 0.9s linear infinite",
-                    flexShrink: 0,
-                  }}
-                />
-                <span style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}>
-                  Reconnecting…
-                </span>
-                <button
-                  onClick={() => setReconnectDismissed(true)}
-                  title="Dismiss"
-                  aria-label="Dismiss reconnecting notice"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: textMuted,
-                    fontSize: 16,
-                    lineHeight: 1,
-                    padding: "0 2px",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  ×
-                </button>
+                {transientNotice === "reported" ? (
+                  <><Icon.flag size={14} color={lime} />Reported — thanks for keeping Giggle safe</>
+                ) : (
+                  <>
+                    <span aria-hidden style={{ width: 14, height: 14, borderRadius: 999, border: "2px solid color-mix(in srgb, var(--amber) 25%, transparent)", borderTopColor: "var(--amber)", animation: "gg-spin 0.9s linear infinite", flexShrink: 0 }} />
+                    <span>Reconnecting…</span>
+                    <button onClick={() => setReconnectDismissed(true)} aria-label="Dismiss reconnecting notice" style={{ background: "none", border: "none", cursor: "pointer", color: textMuted, fontSize: 16, width: 44, height: 44, padding: 0 }}>×</button>
+                  </>
+                )}
               </div>
             )}
             </div>
