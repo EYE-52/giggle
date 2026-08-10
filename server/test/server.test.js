@@ -67,18 +67,28 @@ test("server module exports start helpers without listening immediately", async 
 });
 
 test("production startup config fails fast when MongoDB URI is missing", () => {
-  const originalNodeEnv = process.env.NODE_ENV;
-  const originalJwtSecret = process.env.JWT_SECRET;
-  const originalMongoUri = process.env.MONGODB_URI;
-  const originalAuthExchangeSecret = process.env.AUTH_EXCHANGE_SECRET;
-  const originalBackendPublicUrl = process.env.BACKEND_PUBLIC_URL;
-  const originalFrontendUrl = process.env.FRONTEND_URL;
+  const originals = {
+    NODE_ENV: process.env.NODE_ENV,
+    JWT_SECRET: process.env.JWT_SECRET,
+    MONGODB_URI: process.env.MONGODB_URI,
+    REDIS_URL: process.env.REDIS_URL,
+    REDIS_HOST: process.env.REDIS_HOST,
+    AGORA_APP_ID: process.env.AGORA_APP_ID,
+    AGORA_APP_CERTIFICATE: process.env.AGORA_APP_CERTIFICATE,
+    AUTH_EXCHANGE_SECRET: process.env.AUTH_EXCHANGE_SECRET,
+    BACKEND_PUBLIC_URL: process.env.BACKEND_PUBLIC_URL,
+    FRONTEND_URL: process.env.FRONTEND_URL,
+  };
 
   process.env.NODE_ENV = "production";
   process.env.JWT_SECRET = STRONG_JWT_SECRET;
   process.env.AUTH_EXCHANGE_SECRET = STRONG_EXCHANGE_SECRET;
   process.env.BACKEND_PUBLIC_URL = "https://api.example.com";
   process.env.FRONTEND_URL = "https://app.example.com";
+  process.env.REDIS_URL = "redis://127.0.0.1:6379";
+  process.env.REDIS_HOST = "";
+  process.env.AGORA_APP_ID = "agora-app";
+  process.env.AGORA_APP_CERTIFICATE = "agora-cert";
   process.env.MONGODB_URI = "";
 
   try {
@@ -87,18 +97,10 @@ test("production startup config fails fast when MongoDB URI is missing", () => {
       /MONGODB_URI is not set/
     );
   } finally {
-    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = originalNodeEnv;
-    if (originalJwtSecret === undefined) delete process.env.JWT_SECRET;
-    else process.env.JWT_SECRET = originalJwtSecret;
-    if (originalMongoUri === undefined) delete process.env.MONGODB_URI;
-    else process.env.MONGODB_URI = originalMongoUri;
-    if (originalAuthExchangeSecret === undefined) delete process.env.AUTH_EXCHANGE_SECRET;
-    else process.env.AUTH_EXCHANGE_SECRET = originalAuthExchangeSecret;
-    if (originalBackendPublicUrl === undefined) delete process.env.BACKEND_PUBLIC_URL;
-    else process.env.BACKEND_PUBLIC_URL = originalBackendPublicUrl;
-    if (originalFrontendUrl === undefined) delete process.env.FRONTEND_URL;
-    else process.env.FRONTEND_URL = originalFrontendUrl;
+    for (const [key, value] of Object.entries(originals)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
     delete require.cache[require.resolve("../src/server")];
   }
 });
