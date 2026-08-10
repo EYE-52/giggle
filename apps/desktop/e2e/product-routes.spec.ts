@@ -95,6 +95,10 @@ test("join code field uses one shared focus ring", async ({ page }, testInfo) =>
   const input = page.getByRole("textbox", { name: "Squad invite code" });
   await input.focus();
 
-  expect(await input.evaluate(node => getComputedStyle(node).boxShadow)).toBe("none");
-  await expect.poll(() => input.locator("..").evaluate(node => getComputedStyle(node).boxShadow)).not.toBe("none");
+  const hasBoxShadow = (node: HTMLElement) => {
+    const shadow = getComputedStyle(node).boxShadow;
+    return Boolean(shadow && shadow !== "none");
+  };
+  expect(await input.evaluate(hasBoxShadow)).toBe(false);
+  await expect.poll(() => input.locator("..").evaluate(hasBoxShadow)).toBe(true);
 });
