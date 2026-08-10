@@ -3,10 +3,13 @@ const { Squad } = require("../models/Squad");
 const {
   getMatchmakingStatus,
   getEncounterById,
+  getEncounterRosterContext,
   ackEncounterForSquad,
   endEncounterAndRequeue,
 } = require("../services/matchmakingService");
 const { hashStringToUid } = require("../services/agoraTokenService");
+const socketService = require("../services/socketService");
+const { withMatchmakingLock } = require("../config/redisConfig");
 
 const getMatchmakingStatusHandler = async (req, res) => {
   const { squadId } = req.params;
@@ -21,6 +24,12 @@ const getMatchmakingStatusHandler = async (req, res) => {
     }
 
     const { squad, queue, match } = status;
+    if (status.interactionBlocked) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "INTERACTION_BLOCKED", message: "This encounter is unavailable" },
+      });
+    }
 
     return res.status(200).json({
       ok: true,
@@ -53,13 +62,13 @@ const getEncounterHandoffHandler = async (req, res) => {
       });
     }
 
-    // Multi-squad membership: authorize against THIS encounter's two squads
-    // specifically (the user's most-recent squad may be unrelated to it).
     const [squadA, squadB] = await Promise.all([
       Squad.findOne({ squadId: encounter.squadAId }),
       Squad.findOne({ squadId: encounter.squadBId }),
     ]);
 
+    // Membership comes before block state so an outsider with an encounter id
+    // cannot distinguish a blocked encounter from any other forbidden one.
     const isInEncounter =
       (squadA && squadA.members.some((m) => isSameMember(m, identity))) ||
       (squadB && squadB.members.some((m) => isSameMember(m, identity)));
@@ -68,6 +77,13 @@ const getEncounterHandoffHandler = async (req, res) => {
       return res.status(403).json({
         ok: false,
         error: { code: "FORBIDDEN", message: "Not authorized for this encounter" },
+      });
+    }
+    const { allowed } = await getEncounterRosterContext({ encounter, squadA, squadB });
+    if (!allowed) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "INTERACTION_BLOCKED", message: "This encounter is unavailable" },
       });
     }
 
@@ -120,8 +136,22 @@ const ackEncounterJoinHandler = async (req, res) => {
   }
 
   try {
-    // Multi-squad membership: verify membership in the SPECIFIC squad being
-    // acked, not just "the user's one squad".
+    let encounter = await getEncounterById(encounterId);
+    if (!encounter) {
+      return res.status(404).json({
+        ok: false,
+        error: { code: "ENCOUNTER_NOT_FOUND", message: "Encounter not found" },
+      });
+    }
+    if (![encounter.squadAId, encounter.squadBId].includes(squadId)) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "FORBIDDEN", message: "Squad is not part of this encounter" },
+      });
+    }
+
+    // Verify membership in this encounter squad before any block-specific
+    // response. The user's most-recent squad may be unrelated.
     const squad = await Squad.findOne({ squadId });
     if (!squad || !squad.members.some((m) => isSameMember(m, identity))) {
       return res.status(403).json({
@@ -130,25 +160,54 @@ const ackEncounterJoinHandler = async (req, res) => {
       });
     }
 
-    const encounter = await getEncounterById(encounterId);
-    const result = await ackEncounterForSquad({ encounter, squadId });
+    const outcome = await withMatchmakingLock(async (signal) => {
+      encounter = await getEncounterById(encounterId);
+      if (!encounter) {
+        return { error: { status: 404, code: "ENCOUNTER_NOT_FOUND", message: "Encounter not found" } };
+      }
+      if (![encounter.squadAId, encounter.squadBId].includes(squadId)) {
+        return { error: { status: 403, code: "FORBIDDEN", message: "Squad is not part of this encounter" } };
+      }
+      const [squadA, squadB] = await Promise.all([
+        Squad.findOne({ squadId: encounter.squadAId }),
+        Squad.findOne({ squadId: encounter.squadBId }),
+      ]);
+      const lockedSquad = squadId === encounter.squadAId ? squadA : squadB;
+      if (!lockedSquad || !lockedSquad.members.some((m) => isSameMember(m, identity))) {
+        return { error: { status: 403, code: "FORBIDDEN", message: "Cannot acknowledge for another squad" } };
+      }
+      const context = await getEncounterRosterContext({ encounter, squadA, squadB });
+      if (!context.allowed) {
+        return { error: { status: 403, code: "INTERACTION_BLOCKED", message: "This encounter is unavailable" } };
+      }
+      if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+      const result = await ackEncounterForSquad({ encounter, squadId, emitRealtime: false });
+      if (result.error) return { error: result.error, realtime: result.realtime };
+      return {
+        realtime: result.realtime,
+        data: {
+          encounterId,
+          squadId,
+          acknowledged: result.acknowledged,
+          allAcked: result.allAcked,
+        },
+      };
+    });
 
-    if (result.error) {
-      return res.status(result.error.status).json({
+    if (outcome.realtime?.close) {
+      socketService.closeEncounterRoom(encounterId);
+    }
+    if (outcome.realtime?.activate) {
+      socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ACTIVE", { encounterId });
+      socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ACTIVE", { encounterId });
+    }
+    if (outcome.error) {
+      return res.status(outcome.error.status).json({
         ok: false,
-        error: { code: result.error.code, message: result.error.message },
+        error: { code: outcome.error.code, message: outcome.error.message },
       });
     }
-
-    return res.status(200).json({
-      ok: true,
-      data: {
-        encounterId,
-        squadId,
-        acknowledged: result.acknowledged,
-        allAcked: result.allAcked,
-      },
-    });
+    return res.status(200).json({ ok: true, data: outcome.data });
   } catch (error) {
     console.error("Error acknowledging encounter:", error);
     return res.status(500).json({
@@ -200,14 +259,14 @@ const skipEncounterHandler = async (req, res) => {
       });
     }
 
-    await endEncounterAndRequeue({ encounter, triggeringSquadId: squadId });
+    const requeuedSquad = await endEncounterAndRequeue({ encounter, triggeringSquadId: squadId });
 
     return res.status(200).json({
       ok: true,
       data: {
         squadId,
         previousEncounterId: encounterId,
-        queueStatus: "searching",
+        queueStatus: requeuedSquad?.squadId === squadId ? "searching" : "idle",
       },
     });
   } catch (error) {

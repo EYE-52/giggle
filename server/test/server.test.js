@@ -26,7 +26,7 @@ async function closeRedisClientsIfLoaded() {
   await Promise.allSettled([redis.quit(), subClient.quit()]);
 }
 
-async function fetchFromApp(app, requestPath) {
+async function fetchFromApp(app, requestPath, init) {
   const testServer = http.createServer(app);
   await new Promise((resolve, reject) => {
     testServer.once("error", reject);
@@ -35,7 +35,7 @@ async function fetchFromApp(app, requestPath) {
 
   const { port } = testServer.address();
   try {
-    return await fetch(`http://127.0.0.1:${port}${requestPath}`);
+    return await fetch(`http://127.0.0.1:${port}${requestPath}`, init);
   } finally {
     await new Promise((resolve, reject) => {
       testServer.close((err) => (err ? reject(err) : resolve()));
@@ -67,18 +67,28 @@ test("server module exports start helpers without listening immediately", async 
 });
 
 test("production startup config fails fast when MongoDB URI is missing", () => {
-  const originalNodeEnv = process.env.NODE_ENV;
-  const originalJwtSecret = process.env.JWT_SECRET;
-  const originalMongoUri = process.env.MONGODB_URI;
-  const originalAuthExchangeSecret = process.env.AUTH_EXCHANGE_SECRET;
-  const originalBackendPublicUrl = process.env.BACKEND_PUBLIC_URL;
-  const originalFrontendUrl = process.env.FRONTEND_URL;
+  const originals = {
+    NODE_ENV: process.env.NODE_ENV,
+    JWT_SECRET: process.env.JWT_SECRET,
+    MONGODB_URI: process.env.MONGODB_URI,
+    REDIS_URL: process.env.REDIS_URL,
+    REDIS_HOST: process.env.REDIS_HOST,
+    AGORA_APP_ID: process.env.AGORA_APP_ID,
+    AGORA_APP_CERTIFICATE: process.env.AGORA_APP_CERTIFICATE,
+    AUTH_EXCHANGE_SECRET: process.env.AUTH_EXCHANGE_SECRET,
+    BACKEND_PUBLIC_URL: process.env.BACKEND_PUBLIC_URL,
+    FRONTEND_URL: process.env.FRONTEND_URL,
+  };
 
   process.env.NODE_ENV = "production";
   process.env.JWT_SECRET = STRONG_JWT_SECRET;
   process.env.AUTH_EXCHANGE_SECRET = STRONG_EXCHANGE_SECRET;
   process.env.BACKEND_PUBLIC_URL = "https://api.example.com";
   process.env.FRONTEND_URL = "https://app.example.com";
+  process.env.REDIS_URL = "redis://127.0.0.1:6379";
+  process.env.REDIS_HOST = "";
+  process.env.AGORA_APP_ID = "agora-app";
+  process.env.AGORA_APP_CERTIFICATE = "agora-cert";
   process.env.MONGODB_URI = "";
 
   try {
@@ -87,18 +97,10 @@ test("production startup config fails fast when MongoDB URI is missing", () => {
       /MONGODB_URI is not set/
     );
   } finally {
-    if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-    else process.env.NODE_ENV = originalNodeEnv;
-    if (originalJwtSecret === undefined) delete process.env.JWT_SECRET;
-    else process.env.JWT_SECRET = originalJwtSecret;
-    if (originalMongoUri === undefined) delete process.env.MONGODB_URI;
-    else process.env.MONGODB_URI = originalMongoUri;
-    if (originalAuthExchangeSecret === undefined) delete process.env.AUTH_EXCHANGE_SECRET;
-    else process.env.AUTH_EXCHANGE_SECRET = originalAuthExchangeSecret;
-    if (originalBackendPublicUrl === undefined) delete process.env.BACKEND_PUBLIC_URL;
-    else process.env.BACKEND_PUBLIC_URL = originalBackendPublicUrl;
-    if (originalFrontendUrl === undefined) delete process.env.FRONTEND_URL;
-    else process.env.FRONTEND_URL = originalFrontendUrl;
+    for (const [key, value] of Object.entries(originals)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
     delete require.cache[require.resolve("../src/server")];
   }
 });
@@ -283,6 +285,38 @@ test("server responses do not expose Express fingerprint headers", async () => {
   }
 });
 
+test("browser preflight responses cache the stable CORS policy", async () => {
+  const originals = {
+    JWT_SECRET: process.env.JWT_SECRET,
+    MONGODB_URI: process.env.MONGODB_URI,
+  };
+
+  process.env.JWT_SECRET = "test-secret";
+  process.env.MONGODB_URI = "mongodb://127.0.0.1:27017/giggle-test";
+
+  try {
+    const { app } = reloadServerModule();
+    const response = await fetchFromApp(app, "/api/squads/squad-a/ready", {
+      method: "OPTIONS",
+      headers: {
+        Origin: "http://localhost:4000",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "authorization,content-type",
+      },
+    });
+
+    assert.equal(response.status, 204);
+    assert.equal(response.headers.get("access-control-max-age"), "86400");
+  } finally {
+    await closeRedisClientsIfLoaded();
+    for (const [key, value] of Object.entries(originals)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+    delete require.cache[require.resolve("../src/server")];
+  }
+});
+
 test("server disables Express x-powered-by setting explicitly", async () => {
   const originals = {
     JWT_SECRET: process.env.JWT_SECRET,
@@ -333,6 +367,86 @@ test("unknown API routes return the app JSON error shape", async () => {
     }
     delete require.cache[require.resolve("../src/server")];
   }
+});
+
+test("profile read, age setup, account rights, and admin review use identity-only auth", () => {
+  const meRoutes = readFileSync(path.join(__dirname, "../src/routes/meRoutes.js"), "utf8");
+  const adminRoutes = readFileSync(path.join(__dirname, "../src/routes/adminRoutes.js"), "utf8");
+
+  assert.equal(
+    meRoutes.includes('router.get("/me/profile", requireIdentityAuth, getMyProfile);'),
+    true
+  );
+  assert.equal(
+    meRoutes.includes('router.post("/me/age", requireIdentityAuth, setMyAge);'),
+    true
+  );
+  assert.equal(
+    meRoutes.includes(
+      'router.post("/me/age/verification-session", requireIdentityAuth, startAgeVerification);'
+    ),
+    true
+  );
+  assert.equal(
+    meRoutes.includes(
+      'router.get("/me/age/verification-status", requireIdentityAuth, getAgeVerificationStatus);'
+    ),
+    true
+  );
+  assert.equal(
+    meRoutes.includes('router.patch("/me/profile", requireApiAuth, updateMyProfile);'),
+    true
+  );
+  assert.equal(
+    meRoutes.includes('router.get("/me/export", requireIdentityAuth, exportAccountHandler);'),
+    true
+  );
+  assert.equal(
+    meRoutes.includes('router.delete("/me/account", requireIdentityAuth, deleteAccountHandler);'),
+    true
+  );
+  assert.equal(
+    adminRoutes.includes(
+      'router.get("/pending-users", requireIdentityAuth, requireAdmin, getPendingUsersHandler);'
+    ),
+    true
+  );
+  assert.equal(
+    adminRoutes.includes(
+      'router.post("/approve-user/:userId", requireIdentityAuth, requireAdmin, approveUserHandler);'
+    ),
+    true
+  );
+});
+
+test("account deletion retry worker starts after Mongo connects", () => {
+  const serverSource = readFileSync(path.join(__dirname, "../src/server.js"), "utf8");
+  const connectIndex = serverSource.indexOf("await connectDatabase();");
+  const sweepIndex = serverSource.indexOf("startAccountDeletionSweeper");
+
+  assert.notEqual(sweepIndex, -1);
+  assert.ok(sweepIndex > connectIndex);
+});
+
+test("lobby and encounter video token routes keep verified-adult auth", () => {
+  const agoraRoutes = readFileSync(path.join(__dirname, "../src/routes/agoraRoutes.js"), "utf8");
+  const encounterRoutes = readFileSync(
+    path.join(__dirname, "../src/routes/encounterRoutes.js"),
+    "utf8"
+  );
+
+  assert.equal(
+    agoraRoutes.includes(
+      'router.post("/agora/lobby-token/:squadId", requireApiAuth, requireSquadMemberAccess, getLobbyTokenHandler);'
+    ),
+    true
+  );
+  assert.equal(
+    encounterRoutes.includes(
+      'router.post("/encounters/token", requireApiAuth, issueEncounterTokenHandler);'
+    ),
+    true
+  );
 });
 
 test("swagger server URL follows BACKEND_PUBLIC_URL when configured", async () => {

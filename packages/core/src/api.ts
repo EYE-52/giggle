@@ -1,6 +1,15 @@
 import { backendRequest } from "./client";
 import type { AgoraToken } from "./types";
 
+export type AgeVerificationStatus = "not_started" | "pending" | "verified" | "rejected" | "restricted";
+
+export interface AgeVerificationResult {
+  status: AgeVerificationStatus;
+  ageVerified: boolean;
+  url?: string;
+  reason?: string;
+}
+
 /**
  * Typed wrappers over the giggle-server REST API.
  * Field names match the real backend contract (squadId/squadCode/memberId, {ok,data,error}).
@@ -18,12 +27,20 @@ export const api = {
     backendRequest<ReferralInfo>("/api/auth/me/referral"),
   getMyProfile: () =>
     backendRequest<UserProfile>("/api/me/profile"),
-  updateMyProfile: (body: { gender?: string; age?: number | null; languages?: string[]; country?: string; vibes?: string[] }) =>
+  exportAccount: () =>
+    backendRequest<AccountExport>("/api/me/export"),
+  deleteAccount: () =>
+    backendRequest<{ status: "deleted" | "pending" }>("/api/me/account", { method: "DELETE" }),
+  updateMyProfile: (body: { gender?: string; languages?: string[]; country?: string; vibes?: string[] }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
   // Self-attested date of birth (set-once). Raw birthDate never comes back — the
-  // backend derives and returns only the boolean gates. 409 if already set.
+  // backend derives and returns only the boolean gates.
   setAge: (birthDate: string) =>
-    backendRequest<{ isAdult: boolean; ageConfirmed: boolean }>("/api/me/age", { method: "POST", body: { birthDate } }),
+    backendRequest<{ isAdult: boolean; ageConfirmed: boolean; ageVerified: boolean }>("/api/me/age", { method: "POST", body: { birthDate } }),
+  startAgeVerification: () =>
+    backendRequest<AgeVerificationResult>("/api/me/age/verification-session", { method: "POST" }),
+  getAgeVerificationStatus: () =>
+    backendRequest<AgeVerificationResult>("/api/me/age/verification-status"),
 
   // --- squads ---
   createSquad: (body: { squadName?: string; displayName?: string; tags?: string[] }) =>
@@ -118,6 +135,12 @@ export const api = {
     backendRequest<{ status: "declined" }>("/api/friends/decline", { method: "POST", body: { userId } }),
   removeFriend: (userId: string) =>
     backendRequest<{ status: "removed" }>("/api/friends/remove", { method: "POST", body: { userId } }),
+  blockUsers: (userIds: string[]) =>
+    backendRequest<{ status: "blocked"; userIds: string[] }>("/api/users/block", { method: "POST", body: { userIds } }),
+  unblockUser: (userId: string) =>
+    backendRequest<{ status: "unblocked"; userId: string }>(`/api/users/${userId}/block`, { method: "DELETE" }),
+  listBlockedUsers: () =>
+    backendRequest<{ accounts: BlockedAccount[] }>("/api/me/blocks"),
 
   // --- notifications ---
   listNotifications: () =>
@@ -165,23 +188,110 @@ export interface FriendRequestUser {
   image?: string;
   online?: boolean;
 }
+export interface BlockedAccount {
+  userId: string;
+  name: string | null;
+  image: string | null;
+}
 export interface JoinRequestUser {
   userId: string;
   name: string;
   requestedAt: string;
   gender?: string;
-  age?: number;
   languages?: string[];
   country?: string;
 }
 export interface UserProfile {
   gender?: string;
-  age?: number;
   languages?: string[];
   country?: string;
   vibes?: string[];
   name: string;
   email: string;
+  isAdult?: boolean;
+  ageConfirmed?: boolean;
+  ageVerified?: boolean;
+  accountStatus?: "active" | "unavailable" | "pending_deletion";
+}
+
+export interface AccountExport {
+  generatedAt: string;
+  account: {
+    id: string;
+    email: string | null;
+    status: "active" | "unavailable" | "pending_deletion";
+    isApproved: boolean;
+    isPremium: boolean;
+    premiumExpiresAt: string | null;
+    createdAt: string | null;
+    updatedAt: string | null;
+  };
+  ageAssurance: {
+    birthDate: string | null;
+    ageConfirmed: boolean;
+    isAdult: boolean;
+    ageVerified: boolean;
+    provider: string | null;
+    status: string;
+    method: string | null;
+    threshold: number | null;
+    policyVersion: string | null;
+    requestedAt: string | null;
+    verifiedAt: string | null;
+  };
+  profile: {
+    name: string | null;
+    image: string | null;
+    gender: string | null;
+    languages: string[];
+    country: string | null;
+    vibes: string[];
+  };
+  friends: Array<{ userId: string; name: string | null; image: string | null }>;
+  blocks: Array<{ userId: string; name: string | null; image: string | null }>;
+  squads: Array<{
+    squadId: string;
+    squadCode: string;
+    squadName: string;
+    status: string;
+    visibility: string;
+    joinPolicy: string;
+    tags: string[];
+    coverImage: string | null;
+    members: Array<{ userId: string; displayName: string | null; role: string; joinedAt: string | null }>;
+    createdAt: string | null;
+  }>;
+  notifications: Array<{
+    id: string;
+    type: string;
+    title: string | null;
+    body: string | null;
+    fromUserId: string | null;
+    fromName: string | null;
+    squadId: string | null;
+    squadCode: string | null;
+    squadName: string | null;
+    read: boolean;
+    createdAt: string | null;
+  }>;
+  safetyReports: Array<{
+    id: string;
+    reporterSquadId: string;
+    targetSquadId: string;
+    targetUserIds: string[];
+    encounterId: string;
+    category: string;
+    details: string;
+    status: string;
+    createdAt: string | null;
+    updatedAt: string | null;
+  }>;
+  walletAndReferral: {
+    referralCode: string | null;
+    referredBy: string | null;
+    referralCount: number;
+    tokens: number;
+  };
 }
 
 // --- response shapes (match backend) ---
@@ -194,10 +304,11 @@ export interface BackendUser {
   isApproved: boolean;
   /** Age gating (self-attested DOB at signup). Raw birthDate is NOT sent to the
    *  client — only these derived booleans. `ageConfirmed` = the user has set a
-   *  DOB; `isAdult` = that DOB is 18+; `ageVerified` = hard-verified (future). */
+   *  DOB; `isAdult` = that DOB is 18+; `ageVerified` = provider-verified. */
   isAdult?: boolean;
   ageConfirmed?: boolean;
   ageVerified?: boolean;
+  accountStatus?: "active" | "unavailable" | "pending_deletion";
   /** Referral & wallet (present from /api/auth/exchange) */
   referralCode?: string;
   referralCount?: number;
@@ -223,7 +334,6 @@ export interface SquadMemberState {
   online?: boolean;
   joinedAt?: string;
   gender?: string;
-  age?: number;
   languages?: string[];
   country?: string;
 }

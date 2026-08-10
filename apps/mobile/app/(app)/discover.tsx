@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Screen } from '../components/Screen';
-import { VenueCard } from '../components/VenueCard';
-import { COLORS, SPACE, RADII } from '../constants/theme';
+import { Screen } from '../../components/Screen';
+import { VenueCard } from '../../components/VenueCard';
+import { COLORS, SPACE, RADII } from '../../constants/theme';
 import { api, randomSquadName, session, type PublicSquad } from '@giggle/core';
-import { Button } from '../components/Button';
+import { Button } from '../../components/Button';
 
 const FILTERS = ['All', 'Gaming', 'Casual', 'Chill', 'Competitive', 'Comedy', 'Late Night'];
 

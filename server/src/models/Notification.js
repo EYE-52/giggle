@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { relationalIdMatcher } = require("../services/interactionSafetyService");
 
 const notificationSchema = new mongoose.Schema({
   // Recipient of the notification.
@@ -37,14 +38,23 @@ const emitNotificationsChanged = (userIds) => {
   }
 };
 
+const emitNotification = (doc) => {
+  try {
+    const { emitToUser } = require("../services/socketService");
+    emitToUser(String(doc.userId), "notification", toPublic(doc));
+  } catch (err) {
+    console.warn("[notification] real-time emit failed:", err.message);
+  }
+};
+
 /**
  * Persist a notification and push it in real-time to the recipient's
- * per-user socket room. Returns the saved doc. Never throws — a failed
- * notification must not break the triggering action.
+ * per-user socket room. Returns the saved doc. Transactional callers can mark
+ * persistence as required so their surrounding action rolls back on failure.
  */
-const createNotification = async (fields) => {
+const createNotification = async (fields, { session, required = false, emit = true } = {}) => {
   try {
-    const doc = await Notification.create({
+    const payload = {
       userId: fields.userId,
       type: fields.type,
       title: fields.title,
@@ -54,25 +64,27 @@ const createNotification = async (fields) => {
       squadId: fields.squadId,
       squadCode: fields.squadCode,
       squadName: fields.squadName,
-    });
+    };
+    const doc = session
+      ? (await Notification.create([payload], { session }))[0]
+      : await Notification.create(payload);
 
-    // Lazy require to avoid a circular dependency (socketService -> models).
-    try {
-      const { emitToUser } = require("../services/socketService");
-      emitToUser(String(fields.userId), "notification", toPublic(doc));
-    } catch (emitErr) {
-      console.warn("[notification] real-time emit failed:", emitErr.message);
-    }
+    if (emit) emitNotification(doc);
 
     return doc;
   } catch (err) {
     console.error("[notification] createNotification error:", err);
+    if (required || session) throw err;
     return null;
   }
 };
 
-/** Delete notifications resolved by their source action. Never breaks that action. */
-const deleteNotifications = async (filter, affectedUserIds) => {
+/** Delete resolved notifications; transactional callers can require rollback on failure. */
+const deleteNotifications = async (
+  filter,
+  affectedUserIds,
+  { session, required = false, emit = true } = {}
+) => {
   let userIds = affectedUserIds ?? (filter.userId ? [filter.userId] : []);
   if (!affectedUserIds && !filter.userId) {
     try {
@@ -82,13 +94,30 @@ const deleteNotifications = async (filter, affectedUserIds) => {
     }
   }
   try {
-    const result = await Notification.deleteMany(filter);
-    if (result.deletedCount) emitNotificationsChanged(userIds);
+    const result = session
+      ? await Notification.deleteMany(filter, { session })
+      : await Notification.deleteMany(filter);
+    if (emit && result.deletedCount) emitNotificationsChanged(userIds);
     return result;
   } catch (err) {
     console.error("[notification] deleteNotifications error:", err);
+    if (required || session) throw err;
     return null;
   }
+};
+
+const deleteNotificationsBetweenUsers = (userId, otherUserIds, { session } = {}) => {
+  const userMatcher = relationalIdMatcher(userId);
+  const idMatchers = (otherUserIds || []).map(relationalIdMatcher).filter(Boolean);
+  return Notification.deleteMany(
+    {
+      $or: [
+        { userId: userMatcher, fromUserId: { $in: idMatchers } },
+        { userId: { $in: idMatchers }, fromUserId: userMatcher },
+      ],
+    },
+    { session }
+  );
 };
 
 /** Shape a Notification doc into the client contract (id + fields). */
@@ -106,4 +135,12 @@ const toPublic = (n) => ({
   createdAt: n.createdAt,
 });
 
-module.exports = { Notification, createNotification, deleteNotifications, emitNotificationsChanged, toPublic };
+module.exports = {
+  Notification,
+  createNotification,
+  deleteNotifications,
+  deleteNotificationsBetweenUsers,
+  emitNotification,
+  emitNotificationsChanged,
+  toPublic,
+};

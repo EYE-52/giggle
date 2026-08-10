@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const { Squad } = require("../models/Squad");
 const User = require("../models/User");
 const {
@@ -5,6 +6,7 @@ const {
   MIN_MEMBERS_TO_SEARCH,
   FREE_MAX_MEMBERS,
   PREMIUM_MAX_MEMBERS,
+  isStrangerDiscoveryEnabled,
 } = require("../config/appConfig");
 const {
   getRequesterIdentity,
@@ -13,20 +15,36 @@ const {
   findSquadForIdentity,
   findSquadsForIdentity,
   deleteSquadAndNotifications,
-  persistSquadAfterMemberRemoval,
+  removeSquadMember,
 } = require("../app/squadAccess");
 const { generateId, generateSquadCode } = require("../utils/idGenerator");
 const { tryMatchmakeForSquad } = require("../services/matchmakingService");
+const { allUsersHaveAdultAccess, hasAdultAccess } = require("../services/ageAccessService");
 const queueService = require("../services/queueService");
 const socketService = require("../services/socketService");
 const sessionService = require("../services/sessionService");
-const { redlock } = require("../config/redisConfig");
-const { createNotification, deleteNotifications } = require("../models/Notification");
+const { redlock, withMatchmakingLock } = require("../config/redisConfig");
+const {
+  createNotification,
+  deleteNotifications,
+  emitNotification,
+} = require("../models/Notification");
 const { shuffle } = require("../utils/random");
 const { normalizeSquadTags } = require("../utils/squadValidation");
-const { classifyVibe, tagsAreMature, firstBlockedTag } = require("../utils/moderation");
+const { classifyVibe } = require("../utils/moderation");
 const { normalizeSquadCoverImage } = require("../utils/squadCoverValidation");
 const { firstDisplayName } = require("../utils/identityValidation");
+const {
+  anyBlockedPair,
+  canonicalUserId,
+  filterBlockedCandidates,
+  hasBlockedPair,
+} = require("../services/interactionSafetyService");
+
+const discoveryDisabled = (res) => res.status(503).json({
+  ok: false,
+  error: { code: "DISCOVERY_DISABLED", message: "Stranger discovery is temporarily unavailable" },
+});
 
 // Effective member capacity for a squad: 8 when the leader has Giggle+, else 4.
 // Always clamped to the global hard cap (MAX_SQUAD_MEMBERS). Looks up the
@@ -54,13 +72,6 @@ const getUserPremiumStatus = async (userId) => {
   if (!userId) return false;
   const user = await User.findById(userId).select("isPremium");
   return Boolean(user && user.isPremium);
-};
-
-// Defensive: legacy/missing users are treated as NOT adult (must set DOB first).
-const getUserIsAdult = async (userId) => {
-  if (!userId) return false;
-  const user = await User.findById(userId).select("isAdult");
-  return Boolean(user && user.isAdult);
 };
 
 const getSquadPremiumStatus = async (squad) => {
@@ -94,6 +105,17 @@ const publicSquadTags = (squad) => {
 const isValidUserObjectId = (value) =>
   typeof value === "string" && /^[a-f\d]{24}$/i.test(value);
 
+const anyBlockedPairInSquad = (squad, additionalUserIds = [], options = {}) =>
+  anyBlockedPair([
+    ...(squad?.members || []).map((member) => member.userId),
+    ...additionalUserIds,
+  ], { User, ...options });
+
+const interactionBlocked = (res) => res.status(403).json({
+  ok: false,
+  error: { code: "INTERACTION_BLOCKED", message: "This interaction is unavailable" },
+});
+
 const resolveSquadInviteNotification = async (userId, squadId) =>
   deleteNotifications({ userId, type: "squad_invite", squadId });
 
@@ -120,6 +142,7 @@ const getMySquadHandler = async (req, res) => {
     if (!squad) {
       return res.status(200).json({ ok: true, data: { inSquad: false } });
     }
+    if (await anyBlockedPairInSquad(squad)) return interactionBlocked(res);
 
     const member = squad.members.find((candidate) => isSameMember(candidate, identity));
     const leader = squad.members.find((candidate) => candidate.role === "leader");
@@ -163,7 +186,9 @@ const getMySquadsHandler = async (req, res) => {
       providerAccountId: identity.providerAccountId,
     });
 
-    const data = await Promise.all(squads.map(async (squad) => {
+    const blocked = await Promise.all(squads.map((squad) => anyBlockedPairInSquad(squad)));
+    const visibleSquads = squads.filter((_squad, index) => !blocked[index]);
+    const data = await Promise.all(visibleSquads.map(async (squad) => {
       const leader = squad.members.find((m) => m.role === "leader");
       const myMember = squad.members.find((m) => isSameMember(m, identity));
       return {
@@ -226,20 +251,10 @@ const createSquadHandler = async (req, res) => {
       });
     }
 
-    // Server-side content moderation on tags: reject blocked outright, and mark
-    // the squad adult when any tag is a "mature" vibe. Never trust the client.
-    const blocked = firstBlockedTag(normalizedTags.tags);
-    if (blocked) {
+    if (normalizedTags.tags.some((tag) => classifyVibe(tag) !== "ok")) {
       return res.status(400).json({
         ok: false,
         error: { code: "TAG_BLOCKED", message: "One or more tags are not allowed." },
-      });
-    }
-    const isAdultSquad = tagsAreMature(normalizedTags.tags);
-    if (isAdultSquad && !(await getUserIsAdult(userId))) {
-      return res.status(403).json({
-        ok: false,
-        error: { code: "AGE_RESTRICTED", message: "You must be 18+ to create an adult squad" },
       });
     }
 
@@ -268,7 +283,6 @@ const createSquadHandler = async (req, res) => {
       status: "idle",
       isPremiumSquad: await getUserPremiumStatus(userId),
       tags: normalizedTags.tags,
-      adult: isAdultSquad,
       visibility: normalizedVisibility,
       members: [newMember],
       createdAt: new Date().toISOString(),
@@ -344,6 +358,8 @@ const joinSquadHandler = async (req, res) => {
       });
     }
 
+    if (await anyBlockedPairInSquad(squad, [userId])) return interactionBlocked(res);
+
     const existingMember = squad.members.find((candidate) => isSameMember(candidate, { userId, providerAccountId }));
     if (existingMember) {
       await resolveSquadInviteNotification(userId, squad.squadId);
@@ -357,15 +373,6 @@ const joinSquadHandler = async (req, res) => {
           members: squad.members,
           status: squad.status,
         },
-      });
-    }
-
-    // Adult-content gate: an adult squad may only be joined by 18+ users.
-    // Applies to both join-by-code and join-by-id (this handler serves both).
-    if (squad.adult && !existingUser.isAdult) {
-      return res.status(403).json({
-        ok: false,
-        error: { code: "AGE_RESTRICTED", message: "You must be 18+ to join an adult squad" },
       });
     }
 
@@ -389,33 +396,64 @@ const joinSquadHandler = async (req, res) => {
     // requester (not already a member, not the leader) is added to the pending
     // joinRequests list (deduped by userId) instead of becoming a member.
     if (squad.joinPolicy === "request") {
-      const alreadyRequested = hasIdentityId(squad.joinRequests, userId, "userId");
-      if (!alreadyRequested) {
-        squad.joinRequests.push({
-          userId,
-          name: firstDisplayName(displayName, name, email),
-          requestedAt: new Date(),
-        });
-        await squad.save();
-        socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+      const outcome = await withMatchmakingLock(async (signal) => {
+        return mongoose.connection.transaction(async (session) => {
+          const currentSquad = await Squad.findOne(
+            { squadId: squad.squadId },
+            null,
+            { session }
+          );
+          if (!currentSquad) {
+            return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
+          }
+          if (currentSquad.joinPolicy !== "request") {
+            return { error: { status: 409, code: "SQUAD_CHANGED", message: "Squad join settings changed" } };
+          }
+          if (await anyBlockedPairInSquad(currentSquad, [userId], { session })) {
+            return { blocked: true };
+          }
+          if (hasIdentityId(currentSquad.joinRequests, userId, "userId")) {
+            return { added: false, squadId: currentSquad.squadId };
+          }
+          if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
 
-        // Notify the squad leader that someone wants to join.
-        const leader = squad.members.find((m) => m.role === "leader");
-        if (leader && leader.userId) {
-          await createNotification({
-            userId: leader.userId,
-            type: "join_request",
-            title: "New join request",
-            body: `${firstDisplayName(displayName, name, email)} wants to join ${squad.squadName}`,
-            fromUserId: userId,
-            fromName: firstDisplayName(displayName, name, email),
-            squadId: squad.squadId,
-            squadCode: squad.squadCode,
-            squadName: squad.squadName,
+          currentSquad.joinRequests.push({
+            userId,
+            name: firstDisplayName(displayName, name, email),
+            requestedAt: new Date(),
           });
-        }
+          await currentSquad.save({ session });
+
+          const leader = currentSquad.members.find((member) => member.role === "leader");
+          const notification = leader?.userId
+            ? await createNotification({
+                userId: leader.userId,
+                type: "join_request",
+                title: "New join request",
+                body: `${firstDisplayName(displayName, name, email)} wants to join ${currentSquad.squadName}`,
+                fromUserId: userId,
+                fromName: firstDisplayName(displayName, name, email),
+                squadId: currentSquad.squadId,
+                squadCode: currentSquad.squadCode,
+                squadName: currentSquad.squadName,
+              }, { session, required: true, emit: false })
+            : null;
+          if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+          return { added: true, notification, squadId: currentSquad.squadId };
+        });
+      });
+      if (outcome.blocked) return interactionBlocked(res);
+      if (outcome.error) {
+        return res.status(outcome.error.status).json({
+          ok: false,
+          error: { code: outcome.error.code, message: outcome.error.message },
+        });
       }
-      await resolveSquadInviteNotification(userId, squad.squadId);
+      if (outcome.added) {
+        if (outcome.notification) emitNotification(outcome.notification);
+        socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
+      }
+      await resolveSquadInviteNotification(userId, outcome.squadId || squad.squadId);
       return res.status(200).json({ ok: true, data: { status: "requested" } });
     }
 
@@ -462,6 +500,12 @@ const joinSquadHandler = async (req, res) => {
 
     squad.members.push(newMember);
     await squad.save();
+    if (await anyBlockedPairInSquad(squad)) {
+      const addedIndex = squad.members.findIndex((member) => member.memberId === memberId);
+      if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+      await squad.save();
+      return interactionBlocked(res);
+    }
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
     await resolveSquadInviteNotification(userId, squad.squadId);
 
@@ -488,21 +532,35 @@ const joinSquadHandler = async (req, res) => {
 const getSquadHandler = async (req, res) => {
   try {
     const { squad, leader } = req.squadAccess;
+    if (await anyBlockedPairInSquad(squad)) return interactionBlocked(res);
 
-    // Merge high-speed session data from Redis
-    const sessionData = await sessionService.getSquadSession(squad.squadId);
-
-    // Batch-load member demographics from User to avoid N queries.
+    // Load independent lobby state together; this endpoint runs after every
+    // generic squad update, so serial remote reads make every member wait.
     const memberUserIds = squad.members.map((m) => m.userId).filter(Boolean);
-    const demoUsers = memberUserIds.length
-      ? await User.find({ _id: { $in: memberUserIds } })
-      : [];
+    const [sessionData, demoUsers, onlineMemberIds] = await Promise.all([
+      sessionService.getSquadSession(squad.squadId),
+      memberUserIds.length
+        ? User.find({ _id: { $in: memberUserIds } })
+            .select("_id gender languages country isPremium")
+            .lean()
+        : Promise.resolve([]),
+      socketService.getOnlineUserIds(memberUserIds),
+    ]);
     const demoById = new Map(demoUsers.map((u) => [u._id.toString(), u]));
-    const onlineMemberIds = await socketService.getOnlineUserIds(memberUserIds);
+    const capacityLeader = leader ||
+      squad.members.find((member) => member.role === "leader") ||
+      squad.members.find((member) => member.memberId === squad.leaderMemberId);
+    const leaderUser = capacityLeader?.userId
+      ? demoById.get(String(capacityLeader.userId))
+      : undefined;
+    const maxSlots = Math.min(
+      leaderUser?.isPremium ? PREMIUM_MAX_MEMBERS : FREE_MAX_MEMBERS,
+      MAX_SQUAD_MEMBERS
+    );
 
     const mergedMembers = squad.members.map(member => {
       const live = sessionData[member.memberId] || {};
-      const u = demoById.get(member.userId);
+      const u = demoById.get(String(member.userId));
       return {
         ...member.toObject(),
         ready: live.ready !== undefined ? live.ready : member.ready,
@@ -511,7 +569,6 @@ const getSquadHandler = async (req, res) => {
         // Live presence — is this member actually connected right now?
         online: onlineMemberIds.has(member.userId),
         gender: u ? u.gender : undefined,
-        age: u ? u.age : undefined,
         languages: u ? u.languages || [] : undefined,
         country: u ? u.country : undefined,
       };
@@ -525,7 +582,7 @@ const getSquadHandler = async (req, res) => {
         squadName: squad.squadName,
         status: squad.status,
         members: mergedMembers,
-        maxSlots: await getSquadCapacity(squad),
+        maxSlots,
         leaderMemberId: leader ? leader.memberId : undefined,
         tags: squad.tags,
         coverImage: squad.coverImage ?? null,
@@ -557,6 +614,9 @@ const getSquadPreviewHandler = async (req, res) => {
         error: { code: "NOT_FOUND", message: "Squad not found" },
       });
     }
+
+    const viewerId = getRequesterIdentity(req).userId;
+    if (await anyBlockedPairInSquad(squad, [viewerId])) return interactionBlocked(res);
 
     const leader =
       squad.members.find((m) => m.role === "leader") ||
@@ -636,7 +696,10 @@ const updateReadyStateHandler = async (req, res) => {
     // High-speed update in Redis
     await sessionService.setSessionField(squad.squadId, member.memberId, 'ready', ready);
 
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {
+      memberId: member.memberId,
+      ready,
+    });
 
     return res.status(200).json({
       ok: true,
@@ -766,21 +829,31 @@ const getJoinRequestsHandler = async (req, res) => {
     const { squad } = req.squadAccess;
     const requests = squad.joinRequests || [];
 
-    // Enrich each request with the requester's demographics in one batch query.
-    const userIds = requests.map((r) => r.userId);
+    // Load the live roster and pending users together so stale/missing/blocked
+    // requests fail closed before any profile fields are returned.
+    const memberUserIds = squad.members.map((member) => member.userId);
+    const userIds = [...new Set([...memberUserIds, ...requests.map((request) => request.userId)])];
     const users = userIds.length
-      ? await User.find({ _id: { $in: userIds } })
+      ? await User.find(
+          { _id: { $in: userIds } },
+          "_id blockedUserIds gender languages country"
+        )
       : [];
-    const byId = new Map(users.map((u) => [u._id.toString(), u]));
+    const byId = new Map(users.map((user) => [canonicalUserId(user._id), user]));
 
-    const enriched = requests.map((r) => {
-      const u = byId.get(r.userId);
+    const enriched = requests.filter((request) => {
+      const requester = byId.get(canonicalUserId(request.userId));
+      return requester && memberUserIds.every((memberUserId) => {
+        const member = byId.get(canonicalUserId(memberUserId));
+        return member && !hasBlockedPair(member, requester);
+      });
+    }).map((r) => {
+      const u = byId.get(canonicalUserId(r.userId));
       return {
         userId: r.userId,
         name: r.name,
         requestedAt: r.requestedAt,
         gender: u ? u.gender : undefined,
-        age: u ? u.age : undefined,
         languages: u ? u.languages || [] : undefined,
         country: u ? u.country : undefined,
       };
@@ -815,6 +888,21 @@ const approveJoinRequestHandler = async (req, res) => {
 
     const request = squad.joinRequests[reqIndex];
 
+    const targetUser = await User.findById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({
+        ok: false,
+        error: { code: "REQUEST_USER_NOT_FOUND", message: "Join request user no longer exists" },
+      });
+    }
+    if (!hasAdultAccess(targetUser)) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
+      });
+    }
+    if (await anyBlockedPairInSquad(squad, [targetUserId])) return interactionBlocked(res);
+
     // If already a member, just clear the stale request.
     const alreadyMember = hasIdentityId(squad.members, targetUserId, "userId");
     if (alreadyMember) {
@@ -836,30 +924,6 @@ const approveJoinRequestHandler = async (req, res) => {
       });
     }
 
-    const targetUser = await User.findById(targetUserId);
-    if (!targetUser) {
-      squad.joinRequests.splice(reqIndex, 1);
-      await squad.save();
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-      await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
-      return res.status(404).json({
-        ok: false,
-        error: { code: "REQUEST_USER_NOT_FOUND", message: "Join request user no longer exists" },
-      });
-    }
-
-    // Adult-content gate: never approve a non-adult user into an adult squad.
-    if (squad.adult && !targetUser.isAdult) {
-      squad.joinRequests.splice(reqIndex, 1);
-      await squad.save();
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-      await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
-      return res.status(403).json({
-        ok: false,
-        error: { code: "AGE_RESTRICTED", message: "This user must be 18+ to join an adult squad" },
-      });
-    }
-
     const newMember = {
       memberId: generateId("mem"),
       userId: targetUserId,
@@ -873,6 +937,12 @@ const approveJoinRequestHandler = async (req, res) => {
     squad.members.push(newMember);
     squad.joinRequests.splice(reqIndex, 1);
     await squad.save();
+    if (await anyBlockedPairInSquad(squad)) {
+      const addedIndex = squad.members.findIndex((member) => member.memberId === newMember.memberId);
+      if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+      await squad.save();
+      return interactionBlocked(res);
+    }
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
     await resolveJoinRequestNotification(leaderUserId, targetUserId, squad.squadId);
 
@@ -938,6 +1008,7 @@ const inviteToSquadHandler = async (req, res) => {
 
   try {
     const { squad } = req.squadAccess;
+    const inviterIdentity = getRequesterIdentity(req);
 
     let targetUserId = typeof bodyUserId === "string" && bodyUserId.trim() ? bodyUserId.trim() : null;
 
@@ -960,27 +1031,76 @@ const inviteToSquadHandler = async (req, res) => {
       });
     }
 
-    const targetUser = await User.findById(targetUserId).select("_id");
+    const targetUser = await User.findById(targetUserId).select(
+      "_id ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+    );
     if (!targetUser) {
       return res.status(404).json({
         ok: false,
         error: { code: "INVITE_USER_NOT_FOUND", message: "Invite target user no longer exists" },
       });
     }
+    if (!hasAdultAccess(targetUser)) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
+      });
+    }
+    const outcome = await withMatchmakingLock(async (signal) => {
+      return mongoose.connection.transaction(async (session) => {
+        const currentSquad = await Squad.findOne(
+          { squadId: squad.squadId },
+          null,
+          { session }
+        );
+        if (!currentSquad) {
+          return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
+        }
+        const currentLeader = currentSquad.members.find(
+          (candidate) => candidate.role === "leader" && isSameMember(candidate, inviterIdentity)
+        );
+        if (!currentLeader) {
+          return { error: { status: 403, code: "LEADER_ONLY", message: "Only the squad leader can invite" } };
+        }
+        if (await anyBlockedPairInSquad(currentSquad, [targetUserId], { session })) {
+          return { blocked: true };
+        }
+        if (!Array.isArray(currentSquad.invitedUserIds)) currentSquad.invitedUserIds = [];
+        if (hasIdentityId(currentSquad.invitedUserIds, targetUserId)) {
+          return {
+            added: false,
+            squadId: currentSquad.squadId,
+            invitedCount: currentSquad.invitedUserIds.length,
+          };
+        }
 
-    if (!Array.isArray(squad.invitedUserIds)) squad.invitedUserIds = [];
-    if (!hasIdentityId(squad.invitedUserIds, targetUserId)) {
-      squad.invitedUserIds.push(targetUserId);
-      await squad.save();
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+        currentSquad.invitedUserIds.push(targetUserId);
+        await currentSquad.save({ session });
+        if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+        return {
+          added: true,
+          squadId: currentSquad.squadId,
+          invitedCount: currentSquad.invitedUserIds.length,
+        };
+      });
+    });
+    if (outcome.blocked) return interactionBlocked(res);
+    if (outcome.error) {
+      return res.status(outcome.error.status).json({
+        ok: false,
+        error: { code: outcome.error.code, message: outcome.error.message },
+      });
+    }
+    if (outcome.added) {
+      socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
     }
 
     return res.status(200).json({
       ok: true,
       data: {
-        squadId: squad.squadId,
+        squadId: outcome.squadId,
         invitedUserId: targetUserId,
-        invitedCount: squad.invitedUserIds.length,
+        invitedCount: outcome.invitedCount,
       },
     });
   } catch (error) {
@@ -1045,36 +1165,74 @@ const inviteUserToSquadHandler = async (req, res) => {
 
   try {
     const { squad } = req.squadAccess;
-    const inviterName = req.giggleIdentity?.name || getRequesterIdentity(req).name;
-    const targetUser = await User.findById(targetUserId).select("_id");
+    const inviterIdentity = getRequesterIdentity(req);
+    const inviterName = req.giggleIdentity?.name || inviterIdentity.name;
+    const targetUser = await User.findById(targetUserId).select(
+      "_id ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+    );
     if (!targetUser) {
       return res.status(404).json({
         ok: false,
         error: { code: "INVITE_USER_NOT_FOUND", message: "Invite target user no longer exists" },
       });
     }
-
-    if (!Array.isArray(squad.invitedUserIds)) squad.invitedUserIds = [];
-
-    const alreadyInvited = hasIdentityId(squad.invitedUserIds, targetUserId);
-    const alreadyMember = hasIdentityId(squad.members, targetUserId, "userId");
-
-    if (!alreadyInvited && !alreadyMember) {
-      squad.invitedUserIds.push(targetUserId);
-      await squad.save();
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-
-      await createNotification({
-        userId: targetUserId,
-        type: "squad_invite",
-        title: "Squad invite",
-        body: `${inviterName || "Someone"} invited you to ${squad.squadName}`,
-        fromUserId: getRequesterIdentity(req).userId,
-        fromName: inviterName,
-        squadId: squad.squadId,
-        squadCode: squad.squadCode,
-        squadName: squad.squadName,
+    if (!hasAdultAccess(targetUser)) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "AGE_RESTRICTED", message: "This user must complete adult age verification" },
       });
+    }
+    const outcome = await withMatchmakingLock(async (signal) => {
+      return mongoose.connection.transaction(async (session) => {
+        const currentSquad = await Squad.findOne(
+          { squadId: squad.squadId },
+          null,
+          { session }
+        );
+        if (!currentSquad) {
+          return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
+        }
+        if (!currentSquad.members.some((candidate) => isSameMember(candidate, inviterIdentity))) {
+          return { error: { status: 403, code: "FORBIDDEN", message: "Squad member access required" } };
+        }
+        if (await anyBlockedPairInSquad(currentSquad, [targetUserId], { session })) {
+          return { blocked: true };
+        }
+        if (!Array.isArray(currentSquad.invitedUserIds)) currentSquad.invitedUserIds = [];
+        const alreadyInvited = hasIdentityId(currentSquad.invitedUserIds, targetUserId);
+        const alreadyMember = hasIdentityId(currentSquad.members, targetUserId, "userId");
+        if (alreadyInvited || alreadyMember) {
+          return { added: false, squadId: currentSquad.squadId };
+        }
+        if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+
+        currentSquad.invitedUserIds.push(targetUserId);
+        await currentSquad.save({ session });
+        const notification = await createNotification({
+          userId: targetUserId,
+          type: "squad_invite",
+          title: "Squad invite",
+          body: `${inviterName || "Someone"} invited you to ${currentSquad.squadName}`,
+          fromUserId: inviterIdentity.userId,
+          fromName: inviterName,
+          squadId: currentSquad.squadId,
+          squadCode: currentSquad.squadCode,
+          squadName: currentSquad.squadName,
+        }, { session, required: true, emit: false });
+        if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+        return { added: true, notification, squadId: currentSquad.squadId };
+      });
+    });
+    if (outcome.blocked) return interactionBlocked(res);
+    if (outcome.error) {
+      return res.status(outcome.error.status).json({
+        ok: false,
+        error: { code: outcome.error.code, message: outcome.error.message },
+      });
+    }
+    if (outcome.added) {
+      emitNotification(outcome.notification);
+      socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
     }
 
     return res.status(200).json({ ok: true, data: { invited: true } });
@@ -1088,6 +1246,8 @@ const inviteUserToSquadHandler = async (req, res) => {
 };
 
 const startSearchHandler = async (req, res) => {
+  if (!isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
+
   let searchStateSaved = false;
   let squad = null;
   let admissionLock;
@@ -1120,6 +1280,24 @@ const startSearchHandler = async (req, res) => {
         },
       });
     }
+
+    if ((squad.tags || []).some((tag) => classifyVibe(tag) !== "ok")) {
+      return res.status(400).json({
+        ok: false,
+        error: { code: "TAG_BLOCKED", message: "One or more tags are not allowed." },
+      });
+    }
+
+    if (!(await allUsersHaveAdultAccess(squad.members.map((member) => member.userId), { User }))) {
+      return res.status(403).json({
+        ok: false,
+        error: {
+          code: "AGE_RESTRICTED",
+          message: "Every squad member must complete adult age verification",
+        },
+      });
+    }
+    if (await anyBlockedPairInSquad(squad)) return interactionBlocked(res);
 
     // Fetch live session data from Redis to check ready/video states
     const sessionData = await sessionService.getSquadSession(squad.squadId);
@@ -1164,24 +1342,6 @@ const startSearchHandler = async (req, res) => {
       });
     }
 
-    // Adult-content enqueue gate: an adult squad may only enter matchmaking when
-    // EVERY member is 18+. (A non-adult squad has no such restriction.)
-    if (squad.adult) {
-      const memberUserIds = squad.members.map((m) => m.userId).filter(Boolean);
-      const adultUsers = memberUserIds.length
-        ? await User.find({ _id: { $in: memberUserIds }, isAdult: true }).select("_id")
-        : [];
-      if (adultUsers.length !== memberUserIds.length) {
-        return res.status(403).json({
-          ok: false,
-          error: {
-            code: "AGE_RESTRICTED",
-            message: "All squad members must be 18+ before an adult squad can start matchmaking",
-          },
-        });
-      }
-    }
-
     const now = new Date();
     squad.status = "searching";
     squad.searchQueuedAt = now;
@@ -1197,29 +1357,21 @@ const startSearchHandler = async (req, res) => {
     // Add to Redis Queue
     await queueService.addToQueue(squad.squadId, squad.members.length, squad.searchRegion, squad.tags, squad.reputationScore);
 
-    const encounter = await tryMatchmakeForSquad(squad);
-    if (encounter) {
-      return res.status(200).json({
-        ok: true,
-        data: {
-          squadId: squad.squadId,
-          status: "matched",
-          startedByMemberId: member.memberId,
-          encounterId: encounter.encounterId,
-        },
-      });
-    }
-
-    return res.status(200).json({
+    // The queue write is the durable boundary the caller needs. Flush the
+    // response before the candidate scan so navigation does not wait on it.
+    const response = res.status(200).json({
       ok: true,
       data: {
         squadId: squad.squadId,
-        status: squad.status,
+        status: "searching",
         startedByMemberId: member.memberId,
       },
     });
+    await tryMatchmakeForSquad(squad);
+    return response;
   } catch (error) {
     console.error("Error starting search:", error);
+    if (res.headersSent) return;
     if (searchStateSaved) {
       try {
         if (squad) {
@@ -1242,39 +1394,38 @@ const startSearchHandler = async (req, res) => {
 };
 
 const cancelSearchHandler = async (req, res) => {
-  let lock;
   try {
     const { squad: accessedSquad, member } = req.squadAccess;
-    lock = await redlock.acquire(["lock:matchmaking"], 5000);
-    const squad = await Squad.findOne({ squadId: accessedSquad.squadId });
+    const outcome = await withMatchmakingLock(async (signal) => {
+      const squad = await Squad.findOne({ squadId: accessedSquad.squadId });
+      if (!squad) {
+        return { error: { status: 404, code: "SQUAD_NOT_FOUND", message: "Squad not found" } };
+      }
+      if (squad.status !== "searching") {
+        return { error: { status: 409, code: "NOT_IN_SEARCH", message: "Squad is not in searching state" } };
+      }
 
-    if (!squad) {
-      return res.status(404).json({
+      squad.status = "idle";
+      squad.searchQueuedAt = null;
+      if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+      await squad.save();
+      await queueService.removeFromQueue(squad.squadId);
+      return { squadId: squad.squadId, status: squad.status };
+    });
+
+    if (outcome.error) {
+      return res.status(outcome.error.status).json({
         ok: false,
-        error: { code: "SQUAD_NOT_FOUND", message: "Squad not found" },
+        error: { code: outcome.error.code, message: outcome.error.message },
       });
     }
-
-    if (squad.status !== "searching") {
-      return res.status(409).json({
-        ok: false,
-        error: { code: "NOT_IN_SEARCH", message: "Squad is not in searching state" },
-      });
-    }
-
-    squad.status = "idle";
-    squad.searchQueuedAt = null;
-    await squad.save();
-    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-
-    // Remove from Redis Queue
-    await queueService.removeFromQueue(squad.squadId);
+    socketService.emitToSquad(outcome.squadId, "SQUAD_UPDATED", {});
 
     return res.status(200).json({
       ok: true,
       data: {
-        squadId: squad.squadId,
-        status: squad.status,
+        squadId: outcome.squadId,
+        status: outcome.status,
         cancelledByMemberId: member.memberId,
       },
     });
@@ -1284,8 +1435,6 @@ const cancelSearchHandler = async (req, res) => {
       ok: false,
       error: { code: "INTERNAL_ERROR", message: "Failed to cancel search" },
     });
-  } finally {
-    if (lock) await lock.release();
   }
 };
 
@@ -1394,43 +1543,9 @@ const promoteMemberHandler = async (req, res) => {
 const leaveSquadHandler = async (req, res) => {
   try {
     const { squad, memberIndex } = req.squadAccess;
-    const leavingMember = squad.members[memberIndex];
-    const wasSearching = squad.status === "searching";
-
-    squad.members.splice(memberIndex, 1);
-
-    // A squad that loses a member mid-search shouldn't keep searching: pull it
-    // out of the matchmaking queue and (if it survives) reset it to idle so a
-    // depleted squad never gets matched.
-    if (wasSearching && squad.members.length > 0) {
-      squad.status = "idle";
-      squad.searchQueuedAt = null;
-    }
-
-    const { squadDeleted, newLeaderMemberId } = await persistSquadAfterMemberRemoval(squad, {
-      removedMemberRole: leavingMember.role,
-    });
-
-    socketService.revokeUserRealtimeAccess({
-      userId: leavingMember.userId,
-      squadId: squad.squadId,
-      encounterId: squad.currentEncounterId,
-    });
-    socketService.emitToUser(leavingMember.userId, "SQUAD_UPDATED", { squadId: squad.squadId, removed: true });
-
-    if (wasSearching) {
-      // Always dequeue: covers both the surviving-but-depleted squad and the
-      // now-deleted (empty) squad — a deleted squad must not linger in Redis.
-      try {
-        await queueService.removeFromQueue(squad.squadId);
-      } catch (dequeueErr) {
-        console.error("Error dequeuing squad on leave:", dequeueErr);
-      }
-    }
-
-    if (!squadDeleted) {
-      socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-    }
+    const result = await removeSquadMember(squad, memberIndex);
+    if (!result) throw new Error("Squad member no longer exists");
+    const { removedMember: leavingMember, squadDeleted, newLeaderMemberId } = result;
 
     return res.status(200).json({
       ok: true,
@@ -1569,9 +1684,7 @@ const updateSquadTagsHandler = async (req, res) => {
     });
   }
 
-  // Server-side moderation: reject blocked tags outright.
-  const blocked = firstBlockedTag(normalized.tags);
-  if (blocked) {
+  if (normalized.tags.some((tag) => classifyVibe(tag) !== "ok")) {
     return res.status(400).json({
       ok: false,
       error: { code: "TAG_BLOCKED", message: "One or more tags are not allowed." },
@@ -1580,21 +1693,9 @@ const updateSquadTagsHandler = async (req, res) => {
 
   try {
     const { squad } = req.squadAccess;
-    const willBeAdult = tagsAreMature(normalized.tags);
-
-    // If this update turns the squad into an adult room, the acting user must be 18+.
-    if (willBeAdult && !squad.adult) {
-      const actorId = getRequesterIdentity(req).userId;
-      if (!(await getUserIsAdult(actorId))) {
-        return res.status(403).json({
-          ok: false,
-          error: { code: "AGE_RESTRICTED", message: "You must be 18+ to make a squad adult" },
-        });
-      }
-    }
 
     squad.tags = normalized.tags;
-    squad.adult = willBeAdult;
+    squad.adult = false;
     await squad.save();
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
 
@@ -1679,7 +1780,16 @@ const findJoinableSquads = async (identity) => {
     query["members.providerAccountId"] = { $nin: exclude };
   }
 
-  return Squad.find(query).sort({ createdAt: -1 }).limit(30);
+  const squads = await Squad.find(query).sort({ createdAt: -1 }).limit(30);
+  const memberUserIds = squads.flatMap((squad) =>
+    (squad.members || []).map((member) => member.userId)
+  );
+  const allowedIds = new Set(
+    await filterBlockedCandidates(identity.userId, memberUserIds, { User })
+  );
+  return squads.filter((squad) =>
+    (squad.members || []).every((member) => allowedIds.has(canonicalUserId(member.userId)))
+  );
 };
 
 const discoverSquadsHandler = async (req, res) => {
@@ -1691,6 +1801,7 @@ const discoverSquadsHandler = async (req, res) => {
       error: { code: "UNAUTHORIZED", message: "Authentication required" },
     });
   }
+  if (!isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
 
   try {
     const joinable = await findJoinableSquads(identity);
@@ -1718,9 +1829,7 @@ const tryJoinSquadOnce = async (squadId, identity, displayName) => {
     const capacity = await getSquadCapacity(squad);
     if (squad.members.length >= capacity) return null;
     if (squad.members.some((m) => isSameMember(m, identity))) return null;
-    // Never drop a non-adult user into an adult squad via random matching.
-    if (squad.adult && !(await getUserIsAdult(identity.userId))) return null;
-
+    if (await anyBlockedPairInSquad(squad, [identity.userId])) return null;
     const newMember = {
       memberId: generateId("mem"),
       userId: identity.userId,
@@ -1733,6 +1842,12 @@ const tryJoinSquadOnce = async (squadId, identity, displayName) => {
 
     squad.members.push(newMember);
     await squad.save();
+    if (await anyBlockedPairInSquad(squad)) {
+      const addedIndex = squad.members.findIndex((member) => member.memberId === newMember.memberId);
+      if (addedIndex >= 0) squad.members.splice(addedIndex, 1);
+      await squad.save();
+      return null;
+    }
     return newMember;
   } catch (error) {
     // VersionError or other concurrent-write conflict — treat as a failed
@@ -1751,6 +1866,7 @@ const joinRandomSquadHandler = async (req, res) => {
       error: { code: "UNAUTHORIZED", message: "Authentication required" },
     });
   }
+  if (!isStrangerDiscoveryEnabled()) return discoveryDisabled(res);
 
   const displayName = typeof req.body?.displayName === "string" ? req.body.displayName : undefined;
 

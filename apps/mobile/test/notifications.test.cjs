@@ -5,14 +5,14 @@ const test = require('node:test');
 
 const componentPath = path.join(__dirname, '../components/NotificationBell.tsx');
 const componentSource = () => existsSync(componentPath) ? readFileSync(componentPath, 'utf8') : '';
-const homeSource = () => readFileSync(path.join(__dirname, '../app/home.tsx'), 'utf8');
+const homeSource = () => readFileSync(path.join(__dirname, '../app/(app)/home.tsx'), 'utf8');
 
 test('mobile home exposes notifications in its existing header', () => {
   const home = homeSource();
   const bell = componentSource();
 
   assert.equal(existsSync(componentPath), true);
-  assert.equal(home.includes("import { NotificationBell } from '../components/NotificationBell';"), true);
+  assert.equal(home.includes("import { NotificationBell } from '../../components/NotificationBell';"), true);
   assert.equal(home.includes('<NotificationBell />'), true);
   assert.equal(bell.includes('accessibilityLabel="Notifications"'), true);
   assert.equal(bell.includes('<Modal'), true);

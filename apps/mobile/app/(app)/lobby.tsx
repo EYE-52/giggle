@@ -3,18 +3,18 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Share, useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Screen } from '../components/Screen';
-import { Button } from '../components/Button';
-import { Avatar } from '../components/Avatar';
-import { Icon } from '../components/Icon';
-import { RtcSurface } from '../components/RtcSurface';
-import { SwitchControl } from '../components/SwitchControl';
-import { COLORS, SPACE, RADII } from '../constants/theme';
+import { Screen } from '../../components/Screen';
+import { Button } from '../../components/Button';
+import { Avatar } from '../../components/Avatar';
+import { Icon } from '../../components/Icon';
+import { RtcSurface } from '../../components/RtcSurface';
+import { SwitchControl } from '../../components/SwitchControl';
+import { COLORS, SPACE, RADII } from '../../constants/theme';
 import { api, session, connectSocket, SOCKET_EVENTS } from '@giggle/core';
 import type { SquadState } from '@giggle/core';
 import { createVideoClient } from '@giggle/agora';
 import type { VideoClient } from '@giggle/agora';
+import { NATIVE_DISCOVERY_ENABLED } from '../../constants/discovery';
 
 const CURATED_VIBES = ['Gaming', 'Music', 'Chill', 'Comedy', 'Deep Talks', 'Late Night', 'Sports', 'Art', 'Study', 'Hype', 'Fitness', 'Foodies'];
 
@@ -39,10 +39,12 @@ export default function LobbyScreen() {
   const [squadError, setSquadError] = useState('');
   const [readying, setReadying] = useState(false);
   const [finding, setFinding] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [matchError, setMatchError] = useState('');
   const vcRef = useRef<VideoClient | null>(null);
   const videoAttemptRef = useRef(0);
   const videoPresenceRef = useRef(false);
+  const leavingRef = useRef(false);
 
   const myUserId = session.user?.id;
 
@@ -66,7 +68,19 @@ export default function LobbyScreen() {
 
     try {
       const sock = connectSocket(squadId);
-      const onUpdate = () => refetch();
+      const onUpdate = (update: { memberId?: string; ready?: boolean } = {}) => {
+        const { memberId, ready } = update;
+        if (memberId && typeof ready === 'boolean') {
+          setSquad((current) => current ? {
+            ...current,
+            members: current.members.map((member) =>
+              member.memberId === memberId ? { ...member, ready } : member
+            ),
+          } : current);
+          return;
+        }
+        void refetch();
+      };
       sock.on(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate);
       cleanupSocket = () => { sock.off(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate); };
     } catch {}
@@ -95,7 +109,7 @@ export default function LobbyScreen() {
   );
 
   async function startVideo() {
-    if (!squadId || videoJoining || videoReady) return;
+    if (!squadId || videoJoining || videoReady || leavingRef.current) return;
     const attempt = ++videoAttemptRef.current;
     let vc: VideoClient | null = null;
     setVideoJoining(true);
@@ -196,6 +210,10 @@ export default function LobbyScreen() {
 
   async function findMatch() {
     if (!squadId || finding) return;
+    if (!NATIVE_DISCOVERY_ENABLED) {
+      setMatchError('Stranger discovery is unavailable.');
+      return;
+    }
     if (!everyoneReady) {
       setMatchError('Everyone online needs to be ready before you find a match.');
       return;
@@ -208,7 +226,7 @@ export default function LobbyScreen() {
     setMatchError('');
     try {
       await api.startSearch(squadId);
-      router.push(`/matchmaking?squad=${squadId}`);
+      router.replace(`/matchmaking?squad=${squadId}`);
     } catch (e: any) {
       setMatchError(e?.message || "Couldn't start search yet.");
     } finally {
@@ -237,16 +255,36 @@ export default function LobbyScreen() {
   }
 
   async function leave() {
-    if (squadId) {
-      setMatchError('');
-      try {
-        await api.leaveSquad(squadId);
-      } catch (e: any) {
-        setMatchError(e?.message || "Couldn't leave squad.");
-        return;
-      }
+    if (!squadId) {
+      router.replace('/home');
+      return;
     }
-    router.push('/home');
+    if (leavingRef.current) return;
+    leavingRef.current = true;
+    setLeaving(true);
+    setMatchError('');
+    setVideoError('');
+
+    videoAttemptRef.current += 1;
+    const client = vcRef.current;
+    vcRef.current = null;
+    const hadVideoPresence = videoPresenceRef.current;
+    videoPresenceRef.current = false;
+    setVideoReady(false);
+    setVideoJoining(false);
+    setMicOn(false);
+    setCamOn(false);
+    try { if (client) void client.leave().catch(() => {}); } catch {}
+    if (hadVideoPresence) void api.setLobbyVideo(squadId, false).catch(() => {});
+
+    try {
+      await api.leaveSquad(squadId);
+      router.replace('/home');
+    } catch (e: any) {
+      leavingRef.current = false;
+      setLeaving(false);
+      setMatchError(e?.message || "Couldn't leave squad.");
+    }
   }
 
   async function shareInvite() {
@@ -342,8 +380,15 @@ export default function LobbyScreen() {
           >
             <Text style={styles.headerBtnText}>Invite</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={leave} style={[styles.headerBtn, styles.headerBtnRed]} accessibilityRole="button" accessibilityLabel="Leave squad">
-            <Text style={styles.headerBtnTextRed}>Leave</Text>
+          <TouchableOpacity
+            onPress={leave}
+            disabled={leaving}
+            style={[styles.headerBtn, styles.headerBtnRed, leaving && styles.headerBtnDisabled]}
+            accessibilityRole="button"
+            accessibilityLabel="Leave squad"
+            accessibilityState={{ disabled: leaving, busy: leaving }}
+          >
+            <Text style={styles.headerBtnTextRed}>{leaving ? 'Leaving…' : 'Leave'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -400,16 +445,13 @@ export default function LobbyScreen() {
             const displayLabel = isMe ? `${m.displayName} (You)` : m.displayName;
             return (
               <View key={m.memberId} style={[styles.tile, { width: tileW, height: tileH }]}>
-                <LinearGradient
-                  colors={['rgba(124,92,255,0.22)', 'rgba(124,92,255,0.08)']}
-                  style={styles.tileInner}
-                >
+                <View style={styles.tileInner}>
                   {isMe && camOn && videoReady ? (
                     <RtcSurface style={styles.tileVideo} canvas={{ uid: 0 }} />
                   ) : (
                     <Avatar name={m.displayName} size={tileCount === 1 ? 72 : 44} colorIndex={i} />
                   )}
-                </LinearGradient>
+                </View>
 
                 {/* Name pill at bottom */}
                 <View style={styles.namePill}>
@@ -469,7 +511,7 @@ export default function LobbyScreen() {
 
       {/* ── Bottom control row (round buttons) ── */}
       <View style={styles.dock}>
-        <View style={styles.controlRow}>
+        <View style={styles.mediaReadyRow}>
           {videoReady ? (
             <>
               {/* Mic */}
@@ -537,27 +579,18 @@ export default function LobbyScreen() {
             <Text style={styles.ctrlLabel}>{myMember?.ready ? 'Ready ✓' : 'Ready'}</Text>
           </View>
 
-          {/* Find a Match — leader only */}
-          {isLeader && (
-            <View style={styles.ctrlWrap}>
-              <TouchableOpacity
-                onPress={findMatch}
-                style={[styles.ctrlBtn, styles.ctrlBtnFind, (!everyoneReady || !everyoneInVideo || finding) && styles.ctrlBtnDisabled]}
-                activeOpacity={0.75}
-                disabled={!everyoneReady || !everyoneInVideo || finding}
-                accessibilityRole="button"
-                accessibilityLabel="Find a match"
-              >
-                {finding
-                  ? <Text style={styles.ctrlBtnInnerText}>…</Text>
-                  : <Icon.search size={20} color="#fff" />
-                }
-              </TouchableOpacity>
-              <Text style={styles.ctrlLabel}>Find</Text>
-            </View>
-          )}
-
         </View>
+        {/* Find a Match — leader only */}
+        {NATIVE_DISCOVERY_ENABLED && isLeader && (
+          <View style={styles.matchActionRow}>
+            <Button
+              label={finding ? 'Finding…' : 'Find a match'}
+              onPress={findMatch}
+              disabled={!everyoneReady || !everyoneInVideo || finding}
+              style={styles.matchButton}
+            />
+          </View>
+        )}
       </View>
     </Screen>
   );
@@ -581,23 +614,23 @@ const styles = StyleSheet.create({
   squadName: { fontSize: 17, fontWeight: '700', color: COLORS.text, letterSpacing: -0.3 },
   headerMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
   codeChip: {
-    backgroundColor: 'rgba(194,255,61,0.12)',
+    backgroundColor: COLORS.limeSoft,
     borderRadius: 999,
     paddingVertical: 2,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: 'rgba(194,255,61,0.35)',
+    borderColor: COLORS.lime,
   },
   codeText: { fontFamily: 'monospace', fontSize: 12, fontWeight: '700', color: COLORS.lime, letterSpacing: 1.5 },
   vibePreview: {
-    backgroundColor: 'rgba(124,92,255,0.1)',
+    backgroundColor: COLORS.violetSoft,
     borderRadius: 999,
     minHeight: 44,
     justifyContent: 'center',
     paddingVertical: 2,
     paddingHorizontal: 10,
     borderWidth: 1,
-    borderColor: 'rgba(124,92,255,0.25)',
+    borderColor: COLORS.violet,
     maxWidth: 120,
   },
   vibePreviewText: { fontSize: 11, color: COLORS.violet, fontWeight: '600' },
@@ -608,15 +641,16 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 999,
-    backgroundColor: 'rgba(124,92,255,0.1)',
+    backgroundColor: COLORS.violetSoft,
     borderWidth: 1,
-    borderColor: 'rgba(124,92,255,0.25)',
+    borderColor: COLORS.violet,
   },
   headerBtnText: { color: COLORS.violet, fontWeight: '600', fontSize: 12 },
   headerBtnRed: {
-    backgroundColor: 'rgba(255,92,92,0.08)',
-    borderColor: 'rgba(255,92,92,0.25)',
+    backgroundColor: COLORS.coralSoft,
+    borderColor: COLORS.coral,
   },
+  headerBtnDisabled: { opacity: 0.5 },
   headerBtnTextRed: { color: COLORS.coral, fontWeight: '600', fontSize: 12 },
 
   // ── Ready bar ──
@@ -688,7 +722,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     borderWidth: 1,
-    borderColor: 'rgba(124,92,255,0.25)',
+    borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
   },
   tileInner: {
@@ -772,11 +806,14 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.border,
     backgroundColor: COLORS.bg,
   },
-  controlRow: {
+  mediaReadyRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     alignItems: 'flex-start',
+    gap: SPACE.xl,
   },
+  matchActionRow: { width: '100%', marginTop: SPACE.md },
+  matchButton: { width: '100%' },
   ctrlWrap: { alignItems: 'center', gap: 5, minWidth: 56 },
   ctrlBtn: {
     width: 52,
@@ -788,8 +825,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctrlBtnOff: { backgroundColor: 'rgba(255,92,92,0.12)', borderColor: COLORS.coral },
-  ctrlBtnReady: { backgroundColor: 'rgba(194,255,61,0.12)', borderColor: COLORS.lime },
+  ctrlBtnOff: { backgroundColor: COLORS.coralSoft, borderColor: COLORS.coral },
+  ctrlBtnReady: { backgroundColor: COLORS.limeSoft, borderColor: COLORS.lime },
   ctrlBtnFind: { backgroundColor: COLORS.violet, borderColor: COLORS.violet },
   ctrlBtnDisabled: { opacity: 0.45 },
   ctrlBtnInnerText: { fontSize: 18, color: COLORS.text, fontWeight: '700' },

@@ -5,7 +5,7 @@ import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Icon } from "@/components/Icons";
-import { billing, getMyAvatar, subscribeAvatar, session, DEFAULT_AVATAR_ID, api, type UserProfile } from "@giggle/core";
+import { billing, getMyAvatar, subscribeAvatar, session, DEFAULT_AVATAR_ID, api, type BlockedAccount, type UserProfile } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
@@ -19,11 +19,8 @@ const DEFAULT_VIBES = ["Gaming", "Music", "Chill", "Late Night", "Deep Talks"];
 const MAX_PROFILE_VIBES = 5;
 const DEFAULT_PROFILE_SETTINGS = {
   notificationsOn: true,
-  openToDiscovery: true,
-  showOnlineStatus: false,
 };
 
-type ProfileSettingKey = keyof typeof DEFAULT_PROFILE_SETTINGS;
 type ProfileSettings = typeof DEFAULT_PROFILE_SETTINGS;
 
 const GENDER_OPTIONS: { value: string; label: string }[] = [
@@ -76,12 +73,6 @@ function normalizeProfileSettings(value: unknown): ProfileSettings {
     notificationsOn: typeof source.notificationsOn === "boolean"
       ? source.notificationsOn
       : DEFAULT_PROFILE_SETTINGS.notificationsOn,
-    openToDiscovery: typeof source.openToDiscovery === "boolean"
-      ? source.openToDiscovery
-      : DEFAULT_PROFILE_SETTINGS.openToDiscovery,
-    showOnlineStatus: typeof source.showOnlineStatus === "boolean"
-      ? source.showOnlineStatus
-      : DEFAULT_PROFILE_SETTINGS.showOnlineStatus,
   };
 }
 
@@ -143,8 +134,11 @@ export default function ProfilePage() {
   // Account toggles
   const manageAccountRef = useRef<HTMLElement>(null);
   const [notificationsOn, setNotificationsOn] = useState(true);
-  const [openToDiscovery, setOpenToDiscovery] = useState(true);
-  const [showOnlineStatus, setShowOnlineStatus] = useState(false);
+  const [blockedAccounts, setBlockedAccounts] = useState<BlockedAccount[]>([]);
+  const [blocksLoading, setBlocksLoading] = useState(true);
+  const [blocksError, setBlocksError] = useState("");
+  const [blocksLoadAttempt, setBlocksLoadAttempt] = useState(0);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -154,27 +148,43 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
+    let active = true;
+    setBlocksLoading(true);
+    setBlocksError("");
+    api.listBlockedUsers()
+      .then(({ accounts }) => { if (active) setBlockedAccounts(accounts ?? []); })
+      .catch(() => { if (active) setBlocksError("Couldn't load blocked accounts."); })
+      .finally(() => { if (active) setBlocksLoading(false); });
+    return () => { active = false; };
+  }, [blocksLoadAttempt]);
+
+  async function unblockAccount(account: BlockedAccount) {
+    if (unblockingId) return;
+    setUnblockingId(account.userId);
+    setBlocksError("");
+    try {
+      await api.unblockUser(account.userId);
+      setBlockedAccounts((current) => current.filter((item) => item.userId !== account.userId));
+    } catch {
+      setBlocksError("Couldn't unblock that account.");
+    } finally {
+      setUnblockingId(null);
+    }
+  }
+
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(PROFILE_SETTINGS_STORAGE_KEY);
       if (!raw) return;
       const parsed = normalizeProfileSettings(JSON.parse(raw));
       setNotificationsOn(parsed.notificationsOn);
-      setOpenToDiscovery(parsed.openToDiscovery);
-      setShowOnlineStatus(parsed.showOnlineStatus);
     } catch {}
   }, []);
 
-  function setProfileSetting(key: ProfileSettingKey, value: boolean) {
-    if (key === "notificationsOn") setNotificationsOn(value);
-    if (key === "openToDiscovery") setOpenToDiscovery(value);
-    if (key === "showOnlineStatus") setShowOnlineStatus(value);
+  function setNotificationPopups(value: boolean) {
+    setNotificationsOn(value);
     try {
-      const raw = localStorage.getItem(PROFILE_SETTINGS_STORAGE_KEY);
-      const current = raw ? normalizeProfileSettings(JSON.parse(raw)) : DEFAULT_PROFILE_SETTINGS;
-      localStorage.setItem(PROFILE_SETTINGS_STORAGE_KEY, JSON.stringify({
-        ...current,
-        [key]: value,
-      }));
+      localStorage.setItem(PROFILE_SETTINGS_STORAGE_KEY, JSON.stringify({ notificationsOn: value }));
     } catch {}
   }
 
@@ -226,7 +236,6 @@ export default function ProfilePage() {
 
   // Demographics ("About you") — SSR-safe: empty defaults, fetch on mount
   const [gender, setGender] = useState("");
-  const [age, setAge] = useState("");
   const [languages, setLanguages] = useState<string[]>([]);
   const [country, setCountry] = useState("");
   const [langDraft, setLangDraft] = useState("");
@@ -238,7 +247,6 @@ export default function ProfilePage() {
   const [savedDemo, setSavedDemo] = useState(false);
   const [demoError, setDemoError] = useState<string | null>(null);
   const [langInputFocus, setLangInputFocus] = useState(false);
-  const [ageFocus, setAgeFocus] = useState(false);
   const [countryFocus, setCountryFocus] = useState(false);
   // True once the user edits any About-You field — a late-arriving fetch must
   // not clobber in-progress edits (it still becomes the dirty-check baseline).
@@ -253,7 +261,6 @@ export default function ProfilePage() {
       setLoadedProfile(p);
       if (demoTouchedRef.current) return;
       setGender(p.gender ?? "");
-      setAge(p.age != null ? String(p.age) : "");
       setLanguages(p.languages ?? []);
       setCountry(p.country ?? "");
     }).catch((error: unknown) => {
@@ -285,38 +292,22 @@ export default function ProfilePage() {
   const demoDirty =
     gender !== (loadedProfile?.gender ?? "") ||
     country.trim() !== (loadedProfile?.country ?? "") ||
-    age.trim() !== (loadedProfile?.age != null ? String(loadedProfile.age) : "") ||
     JSON.stringify(languages) !== JSON.stringify(loadedProfile?.languages ?? []);
 
   async function saveDemographics() {
     setDemoError(null);
-    const body: { gender?: string; age?: number | null; languages?: string[]; country?: string } = {};
+    const body: { gender?: string; languages?: string[]; country?: string } = {};
     const trimmedCountry = country.trim();
     if (gender !== (loadedProfile?.gender ?? "")) body.gender = gender;
     if (trimmedCountry !== (loadedProfile?.country ?? "")) body.country = trimmedCountry;
     const langChanged = JSON.stringify(languages) !== JSON.stringify(loadedProfile?.languages ?? []);
     if (langChanged) body.languages = languages;
-    const ageStr = age.trim();
-    const prevAgeStr = loadedProfile?.age != null ? String(loadedProfile.age) : "";
-    if (ageStr !== prevAgeStr) {
-      if (ageStr === "") {
-        body.age = null;
-      } else {
-        const n = Number(ageStr);
-        if (!Number.isInteger(n) || n < 13 || n > 120) {
-          setDemoError("Age must be a whole number between 13 and 120.");
-          return;
-        }
-        body.age = n;
-      }
-    }
     if (Object.keys(body).length === 0) return;
     setSavingDemo(true);
     try {
       const updated = await api.updateMyProfile(body);
       setLoadedProfile(updated);
       setGender(updated.gender ?? "");
-      setAge(updated.age != null ? String(updated.age) : "");
       setLanguages(updated.languages ?? []);
       setCountry(updated.country ?? "");
       demoTouchedRef.current = false;
@@ -333,6 +324,47 @@ export default function ProfilePage() {
   const [vibeTagHover, setVibeTagHover] = useState<string | null>(null);
   const [vibeChipHover, setVibeChipHover] = useState<string | null>(null);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  async function downloadAccountData() {
+    if (exporting) return;
+    setExporting(true);
+    setExportError("");
+    let url = "";
+    try {
+      const data = await api.exportAccount();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `giggle-data-${new Date().toISOString().slice(0, 10)}.json`;
+      anchor.click();
+    } catch {
+      setExportError("Couldn't export your data. Please try again.");
+    } finally {
+      if (url) URL.revokeObjectURL(url);
+      setExporting(false);
+    }
+  }
+
+  async function deleteAccount() {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await api.deleteAccount();
+      session.signOut();
+      router.replace("/signin");
+    } catch {
+      setDeleteError("Couldn't start account deletion. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const avatarSize = isPhone ? 88 : 120;
   const outerGrid: React.CSSProperties = isPhone
@@ -574,28 +606,8 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Age + Country row */}
-          <div style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: 14, marginBottom: 18 }}>
-            <div>
-              <div style={{ color: textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Age</div>
-              <input
-                type="number"
-                min={13}
-                max={120}
-                value={age}
-                onChange={(e) => { demoTouchedRef.current = true; setAge(e.target.value); }}
-                onFocus={() => setAgeFocus(true)}
-                onBlur={() => setAgeFocus(false)}
-                placeholder="e.g. 24"
-                style={{
-                  width: "100%", boxSizing: "border-box", minHeight: 44, padding: "10px 14px", fontSize: 14,
-                  borderRadius: "var(--radius-control, 14px)", border: ageFocus ? "1px solid var(--accent, var(--violet))" : "1px solid var(--border-strong)",
-                  boxShadow: ageFocus ? "0 0 0 3px color-mix(in srgb, var(--accent, var(--violet)) 30%, transparent)" : "none",
-                  background: "var(--overlay)", color: textPrimary, outline: "none",
-                  transition: "box-shadow .2s var(--ease-ui), border-color .2s var(--ease-ui)",
-                }}
-              />
-            </div>
+          {/* Country */}
+          <div style={{ marginBottom: 18 }}>
             <div>
               <div style={{ color: textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Country</div>
               <div style={{ position: "relative", display: "flex" }}>
@@ -716,20 +728,47 @@ export default function ProfilePage() {
             label="Notification pop-ups"
             desc="Show an alert when a new request or invite arrives"
             value={notificationsOn}
-            onChange={(v) => setProfileSetting("notificationsOn", v)}
+            onChange={setNotificationPopups}
           />
-          <SwitchRow
-            label="Open to Discovery"
-            desc="Let others find you via vibe matching"
-            value={openToDiscovery}
-            onChange={(v) => setProfileSetting("openToDiscovery", v)}
-          />
-          <SwitchRow
-            label="Show Online Status"
-            desc="Display when you are active on Giggle"
-            value={showOnlineStatus}
-            onChange={(v) => setProfileSetting("showOnlineStatus", v)}
-          />
+          <div style={{ paddingTop: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div>
+                <div style={{ color: textPrimary, fontSize: 14, fontWeight: 700 }}>Blocked accounts</div>
+                <div style={{ color: textTertiary, fontSize: 12, marginTop: 2 }}>Unblocking does not restore a friendship.</div>
+              </div>
+              {blocksError && (
+                <Button variant="ghost" size="sm" onClick={() => setBlocksLoadAttempt((attempt) => attempt + 1)}>Retry</Button>
+              )}
+            </div>
+            {blocksError && <div role="alert" style={{ color: coral, fontSize: 12, marginTop: 10 }}>{blocksError}</div>}
+            {blocksLoading ? (
+              <div style={{ color: textMuted, fontSize: 13, paddingTop: 12 }}>Loading…</div>
+            ) : blockedAccounts.length === 0 ? (
+              !blocksError && <div style={{ color: textMuted, fontSize: 13, paddingTop: 12 }}>No blocked accounts.</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 12 }}>
+                {blockedAccounts.map((account) => {
+                  const name = account.name || "Blocked account";
+                  return (
+                    <div key={account.userId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: "1px solid var(--border)" }}>
+                      {account.image ? <AvatarArt value={account.image} size={36} /> : <Avatar name={name} size={36} />}
+                      <span style={{ color: textPrimary, fontSize: 14, fontWeight: 600, minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                      <Button variant="ghost" size="sm" loading={unblockingId === account.userId} disabled={!!unblockingId} onClick={() => unblockAccount(account)}>Unblock</Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, paddingTop: 18, marginTop: 18, borderTop: "1px solid var(--border)" }}>
+            <Button variant="secondary" loading={exporting} disabled={deleting} onClick={downloadAccountData}>
+              Download my data
+            </Button>
+            <Button variant="danger" disabled={exporting || deleting} onClick={() => { setDeleteError(""); setDeleteStep(1); }}>
+              Delete account
+            </Button>
+          </div>
+          {exportError && <div role="alert" style={{ color: coral, fontSize: 12, marginTop: 10 }}>{exportError}</div>}
         </section>
         </div>
 
@@ -754,6 +793,31 @@ export default function ProfilePage() {
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
           <Button variant="ghost" onClick={() => setLogoutConfirm(false)}>Cancel</Button>
           <Button variant="danger" onClick={() => { session.signOut(); router.push("/"); }}>Log out</Button>
+        </div>
+      </Modal>
+    )}
+    {deleteStep === 1 && (
+      <Modal
+        onClose={() => setDeleteStep(0)}
+        title="Delete account?"
+        subtitle="Deletion revokes access immediately and may finish in the background."
+      >
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
+          <Button variant="ghost" onClick={() => setDeleteStep(0)}>Cancel</Button>
+          <Button variant="danger" onClick={() => setDeleteStep(2)}>Continue</Button>
+        </div>
+      </Modal>
+    )}
+    {deleteStep === 2 && (
+      <Modal
+        onClose={() => { if (!deleting) setDeleteStep(0); }}
+        title="Delete permanently?"
+        subtitle="Your account and social access cannot be restored after cleanup completes."
+      >
+        {deleteError && <div role="alert" style={{ color: coral, fontSize: 13, marginBottom: 12 }}>{deleteError}</div>}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
+          <Button variant="ghost" disabled={deleting} onClick={() => setDeleteStep(0)}>Cancel</Button>
+          <Button variant="danger" loading={deleting} onClick={deleteAccount}>Delete account</Button>
         </div>
       </Modal>
     )}

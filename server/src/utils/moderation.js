@@ -8,8 +8,7 @@
 // Buckets:
 //   • "blocked" — disallowed outright (slurs, hate, sexual content involving
 //                 minors, illegal). Never accepted.
-//   • "mature"  — adult (18+) but legal. Allowed, but the squad becomes an adult
-//                 room: gate it behind an 18+ confirmation.
+//   • "mature"  — adult sexual content. Current squad endpoints reject it.
 //   • "ok"      — everything else.
 
 // Normalize leetspeak / spacing so "s3x" / "s e x" don't slip past.
@@ -40,7 +39,8 @@ const BLOCKED = [
   "nigger", "faggot", "kike", "chink", "spic", "tranny", "retard",
 ];
 
-// Adult (18+) but legal — triggers the age-gate, not a block.
+// Adult sexual content. Kept separate from illegal/hate content for reporting,
+// but current squad endpoints reject both buckets.
 const MATURE = [
   "sex", "sexy", "nsfw", "nude", "nudes", "naked", "porn", "porno", "xxx",
   "hookup", "hookups", "fuck", "onlyfans", "kink", "kinky", "fetish", "bdsm",

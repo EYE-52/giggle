@@ -1,9 +1,11 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const { hasAdultAccess } = require("../services/ageAccessService");
 
 const isMongoObjectIdString = (value) =>
   typeof value === "string" && /^[a-f\d]{24}$/i.test(value);
 
-const requireApiAuth = (req, res, next) => {
+const requireIdentityAuth = (req, res, next) => {
   const authHeader = req.headers.authorization || "";
   const match = authHeader.match(/^Bearer\s+(.+)$/i);
   const token = match?.[1];
@@ -30,7 +32,7 @@ const requireApiAuth = (req, res, next) => {
     req.user = decoded;
     req.giggleIdentity = decoded;
 
-    next();
+    return next();
   } catch (err) {
     return res.status(401).json({
       ok: false,
@@ -39,4 +41,54 @@ const requireApiAuth = (req, res, next) => {
   }
 };
 
-module.exports = { requireApiAuth, isMongoObjectIdString };
+const requireApiAuth = (req, res, next) =>
+  requireIdentityAuth(req, res, async () => {
+    const userId = req.user.userId || req.user.sub;
+    let user;
+
+    try {
+      user = await User.findById(userId).select(
+        "ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+      );
+    } catch (error) {
+      console.error("Adult authorization lookup failed:", error);
+      return res.status(503).json({
+        ok: false,
+        error: {
+          code: "AUTHORIZATION_UNAVAILABLE",
+          message: "Unable to verify account access",
+        },
+      });
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        ok: false,
+        error: { code: "INVALID_TOKEN", message: "Token user no longer exists" },
+      });
+    }
+
+    req.userRecord = user;
+    if (!hasAdultAccess(user)) {
+      const unavailable =
+        user.isSuspended === true ||
+        user.isShadowBanned === true ||
+        user.deletionStatus === "pending";
+      const restricted = user.ageConfirmed === true && user.isAdult === false;
+      return res.status(403).json({
+        ok: false,
+        error: unavailable
+          ? { code: "ACCOUNT_UNAVAILABLE", message: "This account is unavailable" }
+          : restricted
+          ? { code: "AGE_RESTRICTED", message: "Giggle is available only to adults 18+" }
+          : {
+              code: "AGE_VERIFICATION_REQUIRED",
+              message: "Verified adult access is required",
+            },
+      });
+    }
+
+    return next();
+  });
+
+module.exports = { requireApiAuth, requireIdentityAuth, isMongoObjectIdString };

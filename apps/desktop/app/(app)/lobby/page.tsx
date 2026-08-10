@@ -17,6 +17,7 @@ import type { SquadState, SquadMemberState, JoinRequestUser } from "@giggle/core
 import { createVideoClient } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
+import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 
 const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
 
@@ -247,6 +248,7 @@ function LobbyInner() {
   const chatVisibleRef = useRef(false);
 
   const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
+  const lobbyMediaGenerationRef = useRef(0);
   const localVideoRef = useRef<HTMLDivElement>(null);
   const [videoJoined, setVideoJoined] = useState(false);
   const [videoJoining, setVideoJoining] = useState(false);
@@ -325,26 +327,41 @@ function LobbyInner() {
   // Returns true only if the camera/mic actually joined — callers that gate a
   // follow-up action (e.g. the "Enable camera" match flow) must not proceed on
   // a swallowed failure.
-  async function enableLobbyMedia(): Promise<boolean> {
+  async function enableLobbyMedia(withCamera = true): Promise<boolean> {
     if (!squadId || videoJoining) return videoJoined;
     if (videoJoined) return true;
+    const generation = ++lobbyMediaGenerationRef.current;
+    let vc: ReturnType<typeof createVideoClient> | null = null;
     setVideoJoining(true);
     setVideoError(null);
     try {
       const tokenData = await api.lobbyToken(squadId);
-      const vc = createVideoClient();
+      if (generation !== lobbyMediaGenerationRef.current) return false;
+      vc = createVideoClient();
       vcRef.current = vc;
-      await vc.join(tokenData, { audio: true, video: true });
+      await vc.join(tokenData, { audio: true, video: withCamera });
+      if (generation !== lobbyMediaGenerationRef.current) {
+        if (vcRef.current === vc) vcRef.current = null;
+        await vc.leave().catch(() => {});
+        return false;
+      }
       await api.setLobbyVideo(squadId, true);
+      if (generation !== lobbyMediaGenerationRef.current) {
+        if (vcRef.current === vc) vcRef.current = null;
+        await Promise.allSettled([vc.leave(), api.setLobbyVideo(squadId, false)]);
+        return false;
+      }
+      setCamOn(withCamera);
       setVideoJoined(true);
       return true;
     } catch (e) {
-      await vcRef.current?.leave().catch(() => {});
-      vcRef.current = null;
+      await vc?.leave().catch(() => {});
+      if (vcRef.current === vc) vcRef.current = null;
+      if (generation !== lobbyMediaGenerationRef.current) return false;
       setVideoError(describeVideoError(e));
       return false;
     } finally {
-      setVideoJoining(false);
+      if (generation === lobbyMediaGenerationRef.current) setVideoJoining(false);
     }
   }
 
@@ -353,10 +370,24 @@ function LobbyInner() {
     fetchSquad();
 
     const socket = connectSocket(squadId);
-    socket.on(SOCKET_EVENTS.SQUAD_UPDATED, fetchSquad);
+    const onSquadUpdate = (update: { memberId?: string; ready?: boolean } = {}) => {
+      const { memberId, ready } = update;
+      if (memberId && typeof ready === "boolean") {
+        setSquad(current => current ? {
+          ...current,
+          members: current.members.map(member =>
+            member.memberId === memberId ? { ...member, ready } : member
+          ),
+        } : current);
+        return;
+      }
+      void fetchSquad();
+    };
+    socket.on(SOCKET_EVENTS.SQUAD_UPDATED, onSquadUpdate);
 
     return () => {
-      socket.off(SOCKET_EVENTS.SQUAD_UPDATED, fetchSquad);
+      socket.off(SOCKET_EVENTS.SQUAD_UPDATED, onSquadUpdate);
+      lobbyMediaGenerationRef.current += 1;
       vcRef.current?.leave().catch(() => {});
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -589,6 +620,10 @@ function LobbyInner() {
 
   async function handleFindMatch() {
     if (!squadId) return;
+    if (!WEB_DISCOVERY_ENABLED) {
+      setMatchError("Stranger discovery is unavailable.");
+      return;
+    }
     // Only members who are actually connected gate the match. An offline member
     // who never marked ready must not permanently trap the leader (mirrors the
     // server's online-only ready-check). online === false means offline;
@@ -613,7 +648,6 @@ function LobbyInner() {
     setFindingMatch(true);
     setMatchError(null);
     try {
-      await api.setLobbyVideo(squadId, true);
       await api.startSearch(squadId);
       router.push(`/matchmaking?squad=${squadId}`);
     } catch (e) {
@@ -670,15 +704,25 @@ function LobbyInner() {
     }
   }
 
+  async function leaveLobbyMedia() {
+    lobbyMediaGenerationRef.current += 1;
+    const client = vcRef.current;
+    vcRef.current = null;
+    setVideoJoining(false);
+    setVideoJoined(false);
+    try { await client?.leave(); } catch {}
+  }
+
   async function handleLeaveSquad() {
     if (!squadId || leavingSquad) return;
     setLeavingSquad(true);
     setMatchError(null);
+    const mediaExit = leaveLobbyMedia();
+    void mediaExit;
     try {
       await api.leaveSquad(squadId);
       router.push("/home");
     } catch (e) {
-      console.error("leaveSquad failed:", e);
       setMatchError((e as { message?: string })?.message || "Couldn't leave squad.");
       setLeavingSquad(false);
     }
@@ -977,7 +1021,6 @@ function LobbyInner() {
           )}
           {joinReqs.map((r, i) => {
             const dem = [
-              r.age != null ? String(r.age) : null,
               r.country || null,
               ...(r.languages?.slice(0, 2) ?? []),
             ].filter(Boolean).join(" · ");
@@ -1034,7 +1077,6 @@ function LobbyInner() {
           const isThisMe = session.user?.id ? member.userId === session.user.id : i === 0;
           const isOffline = !isThisMe && member.online === false;
           const dem = [
-            member.age != null ? String(member.age) : null,
             member.country || null,
             ...(member.languages?.slice(0, 2) ?? []),
           ].filter(Boolean).join(" · ");
@@ -1784,7 +1826,7 @@ function LobbyInner() {
               opacity: 0,
               boxShadow: isPhone ? "none" : "0 8px 32px rgba(0,0,0,0.4)",
               flexShrink: 0,
-              flexWrap: isPhone && !videoJoined ? "wrap" as const : "nowrap" as const,
+              flexWrap: isPhone ? "wrap" as const : "nowrap" as const,
               position: "relative" as const,
               bottom: undefined,
               left: undefined,
@@ -1844,7 +1886,7 @@ function LobbyInner() {
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5, flex: isPhone ? "1 0 100%" : undefined }}>
                   <Button
-                    onClick={enableLobbyMedia}
+                    onClick={() => void enableLobbyMedia()}
                     loading={videoJoining}
                     variant="secondary"
                     aria-label="Enable camera and microphone"
@@ -1890,7 +1932,7 @@ function LobbyInner() {
               </button>
 
               {/* Find a Match (leader only) */}
-              {isLeader && (
+              {WEB_DISCOVERY_ENABLED && isLeader && (
                 <>
                   {!isPhone && <div style={{ width: 1, height: 28, background: "var(--border)", margin: "0 2px" }} />}
                   <Button
@@ -1902,7 +1944,8 @@ function LobbyInner() {
                     style={{
                       height: isPhone ? 44 : 50,
                       minWidth: isPhone ? 0 : 162,
-                      flex: isPhone ? 1 : undefined,
+                      flex: isPhone ? "1 0 100%" : undefined,
+                      width: isPhone ? "100%" : undefined,
                     }}
                   >
                     {allReady && !findingMatch && <Icon.discover size={18} color="var(--on-accent, #fff)" />}
@@ -2216,7 +2259,7 @@ function LobbyInner() {
             You lead this squad. You can hand it off and leave, or delete it entirely.
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <Button variant="secondary" fullWidth disabled={leavingSquad} onClick={handleLeaveSquad}>
+            <Button variant="secondary" fullWidth disabled={leavingSquad} loading={leavingSquad} onClick={handleLeaveSquad}>
               Leave &amp; hand off to another member
             </Button>
             <Button variant="danger" fullWidth loading={leavingSquad} onClick={handleDisbandSquad}>
@@ -2275,6 +2318,14 @@ function LobbyInner() {
               variant="ghost"
               disabled={noCamEnabling}
               onClick={async () => {
+                setNoCamEnabling(true);
+                let ok = false;
+                try {
+                  ok = await enableLobbyMedia(false);
+                } finally {
+                  setNoCamEnabling(false);
+                }
+                if (!ok) return;
                 setNoCamConfirmOpen(false);
                 await proceedFindMatch();
               }}

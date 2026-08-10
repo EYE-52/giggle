@@ -647,6 +647,8 @@ export default function LandingPage() {
           <div style={{ display: "flex", alignItems: "center", gap: 22, fontSize: 13.5, color: C.muted }}>
             <Link href="/privacy" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "inherit", textDecoration: "none" }}>Privacy</Link>
             <Link href="/terms" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "inherit", textDecoration: "none" }}>Terms</Link>
+            <Link href="/safety" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "inherit", textDecoration: "none" }}>Safety</Link>
+            <Link href="/support" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "inherit", textDecoration: "none" }}>Support</Link>
             <span style={{ color: C.dim }}>© {new Date().getFullYear()} Giggle</span>
           </div>
         </footer>

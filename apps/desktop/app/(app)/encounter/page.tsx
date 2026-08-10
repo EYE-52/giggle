@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { advanceSpeakerFocus, api, connectSocket, deriveEncounterLayout, EMPTY_SPEAKER_FOCUS, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, session, sendChatMessage, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
+import { advanceSpeakerFocus, api, connectSocket, createOpponentUserIds, deriveEncounterLayout, EMPTY_SPEAKER_FOCUS, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, session, sendChatMessage, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
 import type { EncounterDetail } from "@giggle/core";
 import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
@@ -14,6 +14,7 @@ import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/a
 import { useViewport } from "@/components/useViewport";
 import { coverBackground, coverKind, fallbackGradient } from "@/components/covers";
 import { useTheme } from "@/components/useTheme";
+import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 
 const avatarColors = ["#7C5CFF", "#3DD6C0", "#FF8A5C", "#C2FF3D", "#FF5C8A", "#5C8CFF", "#FFC65C", "#9B7CFF"];
 
@@ -670,6 +671,10 @@ function EncounterInner() {
   const endedNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [findingNextMatch, setFindingNextMatch] = useState(false);
   const [reported, setReported] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const [blockError, setBlockError] = useState<string | null>(null);
   // Unread chat badge while the chat panel is closed (mirrors the lobby pattern).
   const [unread, setUnread] = useState(0);
   const [chatMessages, setChatMessages] = useState<ChatPanelMessage[]>([]);
@@ -763,6 +768,7 @@ function EncounterInner() {
   // Serializes join/leave so a StrictMode double-mount never overlaps two joins
   // on the same uid (which triggers Agora UID_CONFLICT and blanks the video).
   const joinChainRef = useRef<Promise<unknown>>(Promise.resolve());
+  const videoGenerationRef = useRef(0);
   const localElRef = useRef<HTMLDivElement | null>(null);
   // Identity-based map: Agora uid -> tile element. Lets us route each remote
   // track to the exact member that owns that uid (opponent OR our own non-local
@@ -806,6 +812,8 @@ function EncounterInner() {
 
   async function joinVideo(isCancelled: () => boolean = () => false) {
     if (!squadId || !encId) throw new Error("This encounter is unavailable.");
+    const generation = ++videoGenerationRef.current;
+    const joinCancelled = () => isCancelled() || generation !== videoGenerationRef.current;
     setVideoError(null);
     setVideoJoined(false);
     setConnState("CONNECTING");
@@ -816,11 +824,11 @@ function EncounterInner() {
     const staleClient = vcRef.current;
     vcRef.current = null;
     try { await staleClient?.leave(); } catch {}
-    if (isCancelled()) return;
+    if (joinCancelled()) return;
 
     await api.setEncounterVideo(squadId, true);
     const tokenData = await api.encounterToken(squadId, encId);
-    if (isCancelled()) return;
+    if (joinCancelled()) return;
 
     const vc = createVideoClient();
     vcRef.current = vc;
@@ -854,7 +862,7 @@ function EncounterInner() {
     });
 
     await vc.join(tokenData, { audio: true, video: true });
-    if (isCancelled()) {
+    if (joinCancelled()) {
       vcRef.current = null;
       await vc.leave().catch(() => {});
       return;
@@ -981,6 +989,8 @@ function EncounterInner() {
       ? { name: encounter.squadBName, members: encounter.squadBMembers, cover: encounter.squadBCover, id: encounter.squadBId }
       : { name: encounter.squadAName, members: encounter.squadAMembers, cover: encounter.squadACover, id: encounter.squadAId }
     : null;
+  const opponentUserIds = createOpponentUserIds({ squadId, ownUserId: session.user?.id, encounter }) ?? [];
+  const canBlockOpponent = opponentUserIds.length > 0;
 
   const myMembers = mySquad?.members ?? [];
   const oppMembers = oppSquad?.members ?? [];
@@ -1124,29 +1134,60 @@ function EncounterInner() {
     }
   }
 
+  async function leaveVideo() {
+    videoGenerationRef.current += 1;
+    const client = vcRef.current;
+    vcRef.current = null;
+    setVideoJoined(false);
+    try { await client?.leave(); } catch {}
+  }
+
+  async function leaveVideoAndGoHome() {
+    await leaveVideo();
+    router.replace("/home");
+  }
+
   async function handleEnd() {
     setEnding(true);
     setEndError(null);
+    const mediaExit = leaveVideo();
     try {
       await api.disconnectEncounter(squadId, encId);
-      try { await vcRef.current?.leave(); } catch {}
-      setEndConfirmOpen(false);
-      router.push("/home");
+      await mediaExit;
+      router.replace("/home");
     } catch {
+      await mediaExit;
       setEnding(false);
-      setEndError("Couldn't end this encounter yet.");
+      setEndError("Couldn't end this encounter yet. Reconnecting your video…");
+      retryVideo();
     }
   }
 
-  function handleReport() {
-    if (reported || !encounter) return;
+  async function handleBlockOpponent() {
+    if (!canBlockOpponent || blocking) return;
+    setBlocking(true);
+    setBlockError(null);
+    try {
+      await api.blockUsers(opponentUserIds);
+      await api.disconnectEncounter(squadId, encId);
+      await leaveVideoAndGoHome();
+    } catch {
+      setBlocking(false);
+      setBlockError("Couldn't block this squad yet. Try again.");
+    }
+  }
+
+  async function handleReport() {
+    if (reported || reporting || !encounter) return;
     setVideoError(null);
-    const sent = reportOpponentSquad({
+    setReporting(true);
+    const result = await reportOpponentSquad({
       encounterId: encId,
       squadId,
       encounter,
     });
-    if (!sent) {
+    setReporting(false);
+    if (!result.ok) {
       setVideoError("Report was not sent. Check your connection and try again.");
       return;
     }
@@ -1729,6 +1770,8 @@ function EncounterInner() {
       ? "No usable camera was found."
       : null,
   ].filter((message): message is string => !!message);
+  const recoveryMessages = [...new Set([videoError, ...captureIssues].filter((message): message is string => !!message))];
+  const transientNotice = reported ? "reported" : connState === "RECONNECTING" && !reconnectDismissed ? "reconnecting" : null;
 
   if (!squadId || !encId) {
     return (
@@ -1970,10 +2013,9 @@ function EncounterInner() {
                 pointerEvents: "none",
               }}
             >
-            {/* Video failure banner — non-blocking, dismissible. Chat, controls,
-                reactions all stay usable; avatar fallbacks already cover tiles. */}
-            {videoError && (
+            {recoveryMessages.length > 0 && (
               <div
+                data-testid="media-recovery-notice"
                 role="alert"
                 style={{
                   pointerEvents: "auto",
@@ -1990,150 +2032,61 @@ function EncounterInner() {
                   boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
                 }}
               >
-                <span style={{ width: 7, height: 7, borderRadius: 999, background: coral, flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--coral)", lineHeight: 1.4 }}>
-                  {videoError}
+                <span aria-hidden style={{ width: 7, height: 7, borderRadius: 999, background: coral, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}>
+                  {recoveryMessages.join(" ")}
                 </span>
-                {(!videoJoined || connState === "DISCONNECTED") && (
-                  <button
-                    onClick={retryVideo}
-                    disabled={videoRetrying}
-                    style={{ minHeight: 44, padding: "0 13px", borderRadius: 999, border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.08)", color: textPrimary, fontWeight: 700, cursor: videoRetrying ? "default" : "pointer" }}
-                  >
-                    {videoRetrying ? "Retrying…" : "Retry video"}
-                  </button>
-                )}
-                <button
-                  onClick={() => setVideoError(null)}
-                  title="Dismiss"
-                  aria-label="Dismiss"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: textMuted,
-                    fontSize: 16,
-                    lineHeight: 1,
-                    width: 44,
-                    height: 44,
-                    padding: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            )}
-
-            {captureIssues.length > 0 && (
-              <div
-                style={{
-                  pointerEvents: "auto",
-                  display: "flex",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 8,
-                  maxWidth: "100%",
-                  padding: "8px 10px 8px 14px",
-                  borderRadius: 12,
-                  background: "rgba(18,18,26,.96)",
-                  border: "1px solid rgba(255,176,32,.34)",
-                  boxShadow: "0 8px 30px rgba(0,0,0,.45)",
-                }}
-              >
-                {captureIssues.map((message) => (
-                  <span key={message} role="status" style={{ color: textPrimary, fontSize: 13, fontWeight: 600 }}>
-                    {message}
-                  </span>
-                ))}
                 <button
                   onClick={retryVideo}
                   disabled={videoRetrying}
-                  style={{ minHeight: 44, padding: "0 13px", borderRadius: 999, border: "1px solid rgba(255,255,255,.14)", background: "rgba(255,255,255,.08)", color: textPrimary, fontWeight: 700, cursor: videoRetrying ? "default" : "pointer" }}
+                  style={{ minHeight: 44, padding: "0 13px", borderRadius: 999, border: "var(--control-border)", background: "var(--overlay)", color: textPrimary, fontWeight: 700, cursor: videoRetrying ? "default" : "pointer" }}
                 >
                   {videoRetrying ? "Retrying…" : "Retry devices"}
                 </button>
+                {videoError && (
+                  <button
+                    onClick={() => setVideoError(null)}
+                    title="Dismiss"
+                    aria-label="Dismiss media notice"
+                    style={{ background: "none", border: "none", cursor: "pointer", color: textMuted, fontSize: 16, width: 44, height: 44, padding: 0 }}
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             )}
 
-            {/* "Reported" confirmation toast */}
-            {reported && (
+            {transientNotice && (
               <div
+                data-testid="encounter-transient-notice"
                 role="status"
                 style={{
                   pointerEvents: "auto",
-                  background: "rgba(18,18,26,0.94)",
+                  background: "var(--surface)",
                   backdropFilter: "blur(16px)",
-                  border: "1px solid rgba(194,255,61,0.4)",
-                  borderRadius: 999,
-                  padding: "8px 18px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  whiteSpace: "nowrap" as const,
-                  boxShadow: "0 4px 30px rgba(0,0,0,0.5)",
-                  fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: lime,
-                }}
-              >
-                <Icon.flag size={14} color="#C2FF3D" />
-                Reported — thanks for keeping Giggle safe
-              </div>
-            )}
-
-            {/* Reconnecting banner — real Agora connection state, dismissible */}
-            {connState === "RECONNECTING" && !reconnectDismissed && (
-              <div
-                role="status"
-                style={{
-                  pointerEvents: "auto",
+                  border: transientNotice === "reported" ? "1px solid var(--accent-line)" : "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
+                  borderRadius: 12,
+                  padding: "8px 10px 8px 14px",
                   display: "flex",
                   alignItems: "center",
                   gap: 10,
-                  background: "rgba(18,18,26,0.94)",
-                  backdropFilter: "blur(16px)",
-                  border: "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
-                  borderRadius: 12,
-                  padding: "9px 12px 9px 14px",
-                  boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+                  whiteSpace: "nowrap" as const,
+                  boxShadow: "var(--shadow-card)",
+                  fontFamily: "var(--font-display, var(--font-space-grotesk))",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: transientNotice === "reported" ? lime : textPrimary,
                 }}
               >
-                <span
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: 999,
-                    border: "2px solid color-mix(in srgb, var(--amber) 25%, transparent)",
-                    borderTopColor: "var(--amber)",
-                    animation: "gg-spin 0.9s linear infinite",
-                    flexShrink: 0,
-                  }}
-                />
-                <span style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}>
-                  Reconnecting…
-                </span>
-                <button
-                  onClick={() => setReconnectDismissed(true)}
-                  title="Dismiss"
-                  aria-label="Dismiss reconnecting notice"
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: textMuted,
-                    fontSize: 16,
-                    lineHeight: 1,
-                    padding: "0 2px",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  ×
-                </button>
+                {transientNotice === "reported" ? (
+                  <><Icon.flag size={14} color={lime} />Reported — thanks for keeping Giggle safe</>
+                ) : (
+                  <>
+                    <span aria-hidden style={{ width: 14, height: 14, borderRadius: 999, border: "2px solid color-mix(in srgb, var(--amber) 25%, transparent)", borderTopColor: "var(--amber)", animation: "gg-spin 0.9s linear infinite", flexShrink: 0 }} />
+                    <span>Reconnecting…</span>
+                    <button onClick={() => setReconnectDismissed(true)} aria-label="Dismiss reconnecting notice" style={{ background: "none", border: "none", cursor: "pointer", color: textMuted, fontSize: 16, width: 44, height: 44, padding: 0 }}>×</button>
+                  </>
+                )}
               </div>
             )}
             </div>
@@ -2166,7 +2119,7 @@ function EncounterInner() {
                   {endedReason === "opponent-left" ? "The other squad left" : "Encounter ended"}
                 </div>
                 <div style={{ fontSize: 13, color: textMuted }}>
-                  {endedReason === "opponent-left"
+                  {WEB_DISCOVERY_ENABLED && endedReason === "opponent-left"
                     ? "You can jump straight into another match."
                     : "Thanks for hanging out."}
                 </div>
@@ -2176,24 +2129,26 @@ function EncounterInner() {
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                  <Button
-                    onClick={async () => {
-                      if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
-                      setEndError(null);
-                      setFindingNextMatch(true);
-                      try {
-                        if (endedReason !== "opponent-left") await api.startSearch(squadId);
-                        router.push(`/matchmaking?squad=${squadId}`);
-                      } catch (error) {
-                        setEndError((error as { message?: string })?.message || "Couldn't start matchmaking.");
-                        setFindingNextMatch(false);
-                      }
-                    }}
-                    loading={findingNextMatch}
-                    variant="primary"
-                  >
-                    {endedReason === "opponent-left" ? "Continue matching" : "Find another match"}
-                  </Button>
+                  {WEB_DISCOVERY_ENABLED && (
+                    <Button
+                      onClick={async () => {
+                        if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
+                        setEndError(null);
+                        setFindingNextMatch(true);
+                        try {
+                          if (endedReason !== "opponent-left") await api.startSearch(squadId);
+                          router.push(`/matchmaking?squad=${squadId}`);
+                        } catch (error) {
+                          setEndError((error as { message?: string })?.message || "Couldn't start matchmaking.");
+                          setFindingNextMatch(false);
+                        }
+                      }}
+                      loading={findingNextMatch}
+                      variant="primary"
+                    >
+                      {endedReason === "opponent-left" ? "Continue matching" : "Find another match"}
+                    </Button>
+                  )}
                   <Button
                     onClick={() => {
                       if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
@@ -2357,11 +2312,25 @@ function EncounterInner() {
                               handleReport();
                               closeMore(true);
                             }}
-                            disabled={reported}
-                            style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: reported ? "var(--live)" : "var(--text)", display: "flex", alignItems: "center", gap: 9, cursor: reported ? "default" : "pointer", fontWeight: 700 }}
+                            disabled={reported || reporting}
+                            style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: reported ? "var(--live)" : "var(--text)", display: "flex", alignItems: "center", gap: 9, cursor: reported || reporting ? "default" : "pointer", fontWeight: 700 }}
                           >
                             <Icon.flag size={17} color={reported ? "var(--live)" : "var(--text-muted)"} />
-                            {reported ? "Reported" : "Report opponent squad"}
+                            {reported ? "Reported" : reporting ? "Sending report…" : "Report opponent squad"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBlockError(null);
+                              setBlockConfirmOpen(true);
+                              closeMore(true);
+                            }}
+                            disabled={!canBlockOpponent || blocking}
+                            aria-label="Block opponent squad"
+                            style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: "var(--coral)", display: "flex", alignItems: "center", gap: 9, cursor: !canBlockOpponent || blocking ? "default" : "pointer", fontWeight: 700 }}
+                          >
+                            <Icon.shield size={17} color="var(--coral)" />
+                            Block opponent squad
                           </button>
                           {hasFocusedFrame && (
                             <button
@@ -2527,6 +2496,52 @@ function EncounterInner() {
             onSend={sendEncounterMessage}
             onRetry={retryEncounterMessage}
           />
+        </Modal>
+      )}
+
+      {blockConfirmOpen && (
+        <Modal
+          onClose={() => {
+            if (blocking) return;
+            setBlockConfirmOpen(false);
+            setBlockError(null);
+          }}
+          title="Block opponent squad?"
+          subtitle="Every visible member of the opponent squad will be blocked. This does not send a report."
+          showClose={false}
+          closeOnBackdrop={!blocking}
+          width={420}
+        >
+          {blockError && (
+            <div role="alert" style={{ color: "var(--coral)", fontSize: 13, marginBottom: 16 }}>
+              {blockError}
+            </div>
+          )}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setBlockConfirmOpen(false);
+                setBlockError(null);
+              }}
+              disabled={blocking}
+              className="gg-press"
+              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: blocking ? "default" : "pointer" }}
+            >
+              Keep talking
+            </button>
+            <button
+              type="button"
+              onClick={handleBlockOpponent}
+              disabled={!canBlockOpponent || blocking}
+              aria-label="Block opponent squad"
+              aria-busy={blocking}
+              className="gg-press"
+              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--coral)", color: "#fff", fontWeight: 800, cursor: !canBlockOpponent || blocking ? "default" : "pointer" }}
+            >
+              {blocking ? "Blocking…" : "Block everyone and leave"}
+            </button>
+          </div>
         </Modal>
       )}
 

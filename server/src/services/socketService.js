@@ -1,5 +1,6 @@
 const { Squad } = require('../models/Squad');
 const { Encounter } = require('../models/Encounter');
+const SafetyReport = require('../models/SafetyReport');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
@@ -8,18 +9,24 @@ const { randomBase36 } = require('../utils/random');
 const { buildAllowedOrigins } = require('../config/corsOrigins');
 const {
   authorizeEncounterRoomJoin,
+  authorizeRealtimeSend,
   authorizeSquadReport,
   authorizeSquadRoomJoin,
   normalizeRealtimeId,
+  resolveReportTargetSquadId,
 } = require('../utils/socketAccess');
 const { firstDisplayName } = require('../utils/identityValidation');
+const { classifyVibe } = require('../utils/moderation');
 const { isMongoObjectIdString } = require('../middlewares/authMiddleware');
+const { hasAdultAccess } = require('./ageAccessService');
 
 let io;
 const MAX_CHAT_TEXT_LENGTH = 500;
 const CHAT_RATE_LIMIT = { limit: 20, windowMs: 10_000 };
 const REACTION_RATE_LIMIT = { limit: 30, windowMs: 10_000 };
 const REPORT_RATE_LIMIT = { limit: 3, windowMs: 60_000 };
+const REPORT_CATEGORIES = new Set(['harassment', 'hate', 'sexual', 'minor_safety', 'spam', 'other']);
+const REPORT_UNAVAILABLE = { ok: false, error: 'Report unavailable.' };
 
 const isRealtimeDebugEnabled = (env = process.env) => {
   return env.REALTIME_DEBUG === 'true' || env.NODE_ENV !== 'production';
@@ -45,9 +52,46 @@ const normalizeSocketIdentity = (decoded = {}) => {
   };
 };
 
-const resolveSocketAuthToken = ({ auth = {}, query = {} } = {}, isProduction = process.env.NODE_ENV === "production") => {
-  if (auth.token) return auth.token;
-  return isProduction ? undefined : query.token;
+const resolveSocketAuthToken = ({ auth, query } = {}, isProduction = process.env.NODE_ENV === "production") => {
+  if (auth && Object.prototype.hasOwnProperty.call(auth, 'token')) return auth.token;
+  return isProduction ? undefined : query?.token;
+};
+
+const authenticateSocket = async (socket, next) => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const token = resolveSocketAuthToken(socket.handshake, process.env.NODE_ENV === 'production');
+
+  if (token === undefined) {
+    if (!isDevelopment) return next(new Error('UNAUTHORIZED'));
+    socket.userId = null;
+    socket.userName = null;
+    console.warn(`[socket] connection ${socket.id} without auth token (dev mode)`);
+    return next();
+  }
+
+  let identity;
+  try {
+    identity = normalizeSocketIdentity(jwt.verify(token, process.env.JWT_SECRET));
+  } catch (error) {
+    console.warn(`[socket] connection ${socket.id} with invalid token: ${error.message}`);
+    return next(new Error('UNAUTHORIZED'));
+  }
+  if (!identity) return next(new Error('UNAUTHORIZED'));
+
+  let user;
+  try {
+    user = await User.findById(identity.userId).select(
+      'ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus'
+    );
+  } catch (error) {
+    console.error('[socket] adult authorization lookup failed:', error);
+    return next(new Error('UNAUTHORIZED'));
+  }
+  if (!user || !hasAdultAccess(user)) return next(new Error('UNAUTHORIZED'));
+
+  socket.userId = identity.userId;
+  socket.userName = identity.userName;
+  return next();
 };
 
 const normalizeReactionEmoji = (value) => {
@@ -86,6 +130,83 @@ const createSocketRateLimiter = ({ limit, windowMs }) => {
 const chatLimiter = createSocketRateLimiter(CHAT_RATE_LIMIT);
 const reactionLimiter = createSocketRateLimiter(REACTION_RATE_LIMIT);
 const reportLimiter = createSocketRateLimiter(REPORT_RATE_LIMIT);
+
+const normalizeReportDetails = (value) => {
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value !== 'string') return null;
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  return normalized.length <= 500 ? normalized : null;
+};
+
+const persistSquadReport = async ({
+  payload: rawPayload = {},
+  userId,
+  Squad: SquadModel = Squad,
+  Encounter: EncounterModel = Encounter,
+  ReportModel = SafetyReport,
+}) => {
+  const payload = rawPayload && !Array.isArray(rawPayload) && typeof rawPayload === 'object'
+    ? rawPayload
+    : {};
+  const category = payload.category ?? 'other';
+  const details = normalizeReportDetails(payload.details);
+  if (!REPORT_CATEGORIES.has(category) || details === null) return REPORT_UNAVAILABLE;
+
+  const filter = {
+    reporterUserId: String(userId || ''),
+    encounterId: normalizeRealtimeId(payload.encounterId),
+    targetSquadId: resolveReportTargetSquadId(payload),
+  };
+  if (!filter.reporterUserId || !filter.encounterId || !filter.targetSquadId) return REPORT_UNAVAILABLE;
+
+  if (typeof ReportModel.findOne === 'function') {
+    const existing = await ReportModel.findOne(filter);
+    const existingId = String(existing?._id ?? existing?.id ?? '');
+    if (existingId) return { ok: true, reportId: existingId, status: 'open' };
+  }
+
+  const scope = await authorizeSquadReport({
+    payload,
+    userId,
+    Squad: SquadModel,
+    Encounter: EncounterModel,
+  });
+  if (!scope.allowed) return REPORT_UNAVAILABLE;
+
+  const targetSquad = await SquadModel.findOne({ squadId: scope.targetSquadId });
+  const targetUserIds = [...new Set(
+    (targetSquad?.members || [])
+      .map((member) => String(member?.userId || '').trim())
+      .filter(Boolean)
+  )];
+  if (targetUserIds.length === 0) return REPORT_UNAVAILABLE;
+
+  const update = {
+    $setOnInsert: {
+      ...filter,
+      reporterSquadId: normalizeRealtimeId(payload.squadId),
+      targetUserIds,
+      category,
+      details,
+      status: 'open',
+    },
+  };
+
+  let report;
+  try {
+    report = await ReportModel.findOneAndUpdate(
+      filter,
+      update,
+      { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+    );
+  } catch (error) {
+    if (error?.code !== 11000 || typeof ReportModel.findOne !== 'function') throw error;
+    report = await ReportModel.findOne(filter);
+  }
+  const reportId = String(report?._id ?? report?.id ?? '');
+  if (!reportId) throw new Error('Safety report persistence returned no record');
+  return { ok: true, reportId, status: 'open' };
+};
 
 // ── Online presence (Redis-backed) ──────────────────────────────────────────
 // A user is online while at least one active socket key exists in Redis. This
@@ -162,37 +283,9 @@ const init = (server) => {
   const { pubClient, subClient } = require('../config/redisConfig');
   io.adapter(createAdapter(pubClient, subClient));
 
-  // Authentication handshake. Reads a JWT from handshake.auth.token (or
-  // handshake.query.token) and attaches identity to the socket. To avoid
-  // breaking existing dev clients that don't send a token, connections are
-  // still allowed when the token is missing/invalid — just with a null identity.
+  // Authentication and live age access complete before any room or presence work.
   const IS_PROD = process.env.NODE_ENV === "production";
-  io.use((socket, next) => {
-    const token = resolveSocketAuthToken(socket.handshake, IS_PROD);
-    if (!token) {
-      // In production every socket MUST be authenticated (prevents identity
-      // spoofing in chat/reports). In dev we allow token-less connections so the
-      // placeholder/passwordless flow keeps working.
-      if (IS_PROD) return next(new Error("UNAUTHORIZED"));
-      socket.userId = null;
-      socket.userName = null;
-      console.warn(`[socket] connection ${socket.id} without auth token (dev mode)`);
-      return next();
-    }
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const identity = normalizeSocketIdentity(decoded);
-      socket.userId = identity?.userId || null;
-      socket.userName = identity?.userName || null;
-      if (IS_PROD && !socket.userId) return next(new Error("UNAUTHORIZED"));
-    } catch (err) {
-      console.warn(`[socket] connection ${socket.id} with invalid token: ${err.message}`);
-      if (IS_PROD) return next(new Error("UNAUTHORIZED")); // reject invalid tokens in prod
-      socket.userId = null;
-      socket.userName = null;
-    }
-    return next();
-  });
+  io.use(authenticateSocket);
 
   io.on('connection', (socket) => {
     logRealtimeDebug('New client connected:', socket.id);
@@ -223,6 +316,7 @@ const init = (server) => {
           userId: socket.userId,
           isProduction: IS_PROD,
           Squad,
+          User,
         });
         if (!result.allowed) return;
         logRealtimeDebug(`Socket ${socket.id} joining squad room: ${result.room}`);
@@ -240,6 +334,7 @@ const init = (server) => {
           isProduction: IS_PROD,
           Squad,
           Encounter,
+          User,
         });
         if (!result.allowed) return;
         logRealtimeDebug(`Socket ${socket.id} joining encounter room: ${result.room}`);
@@ -249,56 +344,70 @@ const init = (server) => {
       }
     });
 
-    socket.on('send_message', ({ encounterId, text, senderName, senderId, squadId, clientMessageId } = {}, ack) => {
+    socket.on('send_message', async ({ encounterId, text, senderName, senderId, squadId, clientMessageId } = {}, ack) => {
       const reply = typeof ack === 'function' ? ack : () => {};
-      if (!chatLimiter.allow(socket.id)) return reply({ ok: false, error: 'Too many messages. Try again in a moment.' });
-      if (IS_PROD && !socket.userId) return reply({ ok: false, error: 'Sign in again to send.' });
-      const normalizedText = normalizeChatText(text);
-      if (!normalizedText || normalizedText.length > MAX_CHAT_TEXT_LENGTH) {
-        return reply({ ok: false, error: 'Write a message up to 500 characters.' });
+      try {
+        if (!chatLimiter.allow(socket.id)) return reply({ ok: false, error: 'Too many messages. Try again in a moment.' });
+        if (IS_PROD && !socket.userId) return reply({ ok: false, error: 'Sign in again to send.' });
+        const normalizedText = normalizeChatText(text);
+        if (!normalizedText || normalizedText.length > MAX_CHAT_TEXT_LENGTH) {
+          return reply({ ok: false, error: 'Write a message up to 500 characters.' });
+        }
+        if (classifyVibe(normalizedText) !== 'ok') {
+          return reply({ ok: false, error: 'That message is not allowed.' });
+        }
+
+        const normalizedEncounterId = normalizeRealtimeId(encounterId);
+        const normalizedSquadId = normalizeRealtimeId(squadId);
+        const normalizedClientMessageId = normalizeRealtimeId(clientMessageId);
+        const authorization = await authorizeRealtimeSend({
+          encounterId: normalizedEncounterId,
+          squadId: normalizedSquadId,
+          userId: socket.userId,
+          isProduction: IS_PROD,
+          Squad,
+          Encounter,
+          User,
+        });
+        if (!authorization.allowed || !socket.rooms.has(authorization.room)) {
+          return reply({ ok: false, error: 'That message is not allowed.' });
+        }
+
+        const previousMessage = normalizedClientMessageId
+          ? sentChatMessages.get(normalizedClientMessageId)
+          : null;
+        if (previousMessage) return reply({ ok: true, message: previousMessage });
+
+        const ts = Date.now();
+        // Derive the sender from the authenticated socket when available; fall
+        // back to client-supplied values only for dev clients with no identity.
+        const resolvedSenderId = socket.userId || senderId;
+        const resolvedSenderName = resolveSocketSenderName(socket.userName, senderName);
+        const message = {
+          id: `${ts}-${randomBase36(9)}`,
+          text: normalizedText,
+          senderName: resolvedSenderName,
+          senderId: resolvedSenderId,
+          clientMessageId: normalizedClientMessageId || undefined,
+          encounterId: normalizedEncounterId || undefined,
+          squadId: normalizedSquadId || undefined,
+          ts,
+          timestamp: new Date(ts).toISOString(),
+        };
+
+        if (normalizedClientMessageId) {
+          if (sentChatMessages.size >= 200) sentChatMessages.delete(sentChatMessages.keys().next().value);
+          sentChatMessages.set(normalizedClientMessageId, message);
+        }
+        io.to(authorization.room).emit('new_message', message);
+        reply({ ok: true, message });
+      } catch (err) {
+        console.error('send_message error:', err);
+        reply({ ok: false, error: 'That message is not allowed.' });
       }
-
-      const normalizedEncounterId = normalizeRealtimeId(encounterId);
-      const normalizedSquadId = normalizeRealtimeId(squadId);
-      const normalizedClientMessageId = normalizeRealtimeId(clientMessageId);
-      const room = normalizedEncounterId
-        ? `encounter_${normalizedEncounterId}`
-        : (normalizedSquadId ? `squad_${normalizedSquadId}` : null);
-      if (!room || !socket.rooms.has(room)) {
-        return reply({ ok: false, error: 'You are no longer in this chat.' });
-      }
-
-      const previousMessage = normalizedClientMessageId
-        ? sentChatMessages.get(normalizedClientMessageId)
-        : null;
-      if (previousMessage) return reply({ ok: true, message: previousMessage });
-
-      const ts = Date.now();
-      // Derive the sender from the authenticated socket when available; fall
-      // back to client-supplied values only for dev clients with no identity.
-      const resolvedSenderId = socket.userId || senderId;
-      const resolvedSenderName = resolveSocketSenderName(socket.userName, senderName);
-      const message = {
-        id: `${ts}-${randomBase36(9)}`,
-        text: normalizedText,
-        senderName: resolvedSenderName,
-        senderId: resolvedSenderId,
-        clientMessageId: normalizedClientMessageId || undefined,
-        encounterId: normalizedEncounterId || undefined,
-        squadId: normalizedSquadId || undefined,
-        ts,
-        timestamp: new Date(ts).toISOString(),
-      };
-
-      if (normalizedClientMessageId) {
-        if (sentChatMessages.size >= 200) sentChatMessages.delete(sentChatMessages.keys().next().value);
-        sentChatMessages.set(normalizedClientMessageId, message);
-      }
-      io.to(room).emit('new_message', message);
-      reply({ ok: true, message });
     });
 
-    socket.on('send_reaction', ({ encounterId, squadId, emoji }) => {
+    socket.on('send_reaction', async ({ encounterId, squadId, emoji }) => {
       // Must be authenticated, send a sane emoji, and actually belong to the
       // target room. Never trust client-supplied sender identity.
       if (!reactionLimiter.allow(socket.id)) return;
@@ -307,51 +416,49 @@ const init = (server) => {
       if (!normalizedEmoji) return;
       const normalizedEncounterId = normalizeRealtimeId(encounterId);
       const normalizedSquadId = normalizeRealtimeId(squadId);
-      const room = normalizedEncounterId
-        ? `encounter_${normalizedEncounterId}`
-        : (normalizedSquadId ? `squad_${normalizedSquadId}` : null);
-      if (!room || !socket.rooms.has(room)) return;
-      io.to(room).emit('new_reaction', {
-        id: `${Date.now()}-${randomBase36(9)}`,
-        emoji: normalizedEmoji,
-        senderId: socket.userId,
-        senderName: resolveSocketSenderName(socket.userName),
-        encounterId: normalizedEncounterId || undefined,
-        squadId: normalizedSquadId || undefined,
-        ts: Date.now(),
-      });
+      try {
+        const authorization = await authorizeRealtimeSend({
+          encounterId: normalizedEncounterId,
+          squadId: normalizedSquadId,
+          userId: socket.userId,
+          isProduction: IS_PROD,
+          Squad,
+          Encounter,
+          User,
+        });
+        if (!authorization.allowed || !socket.rooms.has(authorization.room)) return;
+        io.to(authorization.room).emit('new_reaction', {
+          id: `${Date.now()}-${randomBase36(9)}`,
+          emoji: normalizedEmoji,
+          senderId: socket.userId,
+          senderName: resolveSocketSenderName(socket.userName),
+          encounterId: normalizedEncounterId || undefined,
+          squadId: normalizedSquadId || undefined,
+          ts: Date.now(),
+        });
+      } catch (err) {
+        console.error('send_reaction error:', err);
+      }
     });
 
-    socket.on('report_squad', async (payload = {}) => {
+    socket.on('report_squad', async (payload = {}, ack) => {
+      const reply = typeof ack === 'function' ? ack : () => {};
       try {
-        if (!reportLimiter.allow(socket.id)) return;
-        const result = await authorizeSquadReport({
+        if (!reportLimiter.allow(socket.id)) {
+          return reply({ ok: false, error: 'Too many reports. Try again in a moment.' });
+        }
+        const result = await persistSquadReport({
           payload,
           userId: socket.userId,
           Squad,
           Encounter,
+          ReportModel: SafetyReport,
         });
-        if (!result.allowed) return;
-
-        logRealtimeDebug(`Squad ${result.targetSquadId} reported`);
-        const targetSquad = await Squad.findOne({ squadId: result.targetSquadId });
-        if (!targetSquad) return;
-
-        targetSquad.reputationScore = Math.max(0, (targetSquad.reputationScore || 100) - 10);
-        await targetSquad.save();
-
-        const userIds = targetSquad.members.map(m => m.userId);
-        for (const userId of userIds) {
-          const user = await User.findById(userId);
-          if (user) {
-            user.reputationScore = Math.max(0, (user.reputationScore || 100) - 15);
-            user.reportCount = (user.reportCount || 0) + 1;
-            user.lastReportedAt = new Date();
-            if (user.reportCount >= 5) user.isShadowBanned = true;
-            await user.save();
-          }
-        }
-      } catch (err) { console.error('Report error:', err); }
+        reply(result);
+      } catch (err) {
+        console.error('Report error:', err);
+        reply({ ok: false, error: 'Report could not be saved. Try again.' });
+      }
     });
 
     socket.on('disconnect', async () => {
@@ -421,6 +528,12 @@ const emitToUser = (userId, event, payload) => {
   }
 };
 
+const disconnectUserSockets = (userId, server = io) => {
+  const normalizedUserId = String(userId || '');
+  if (!server || !normalizedUserId) return;
+  server.in(`user_${normalizedUserId}`).disconnectSockets(true);
+};
+
 const revokeUserRealtimeAccess = ({ userId, squadId, encounterId } = {}, server = io) => {
   const normalizedSquadId = normalizeRealtimeId(squadId);
   const normalizedEncounterId = normalizeRealtimeId(encounterId);
@@ -440,7 +553,9 @@ const closeEncounterRoom = (encounterId, server = io) => {
 };
 
 module.exports = {
+  authenticateSocket,
   closeEncounterRoom,
+  disconnectUserSockets,
   init,
   getIO,
   emitToSquad,
@@ -454,6 +569,7 @@ module.exports = {
   createSocketRateLimiter,
   resolveSocketAuthToken,
   normalizeReactionEmoji,
+  persistSquadReport,
   resolveSocketSenderName,
   MAX_CHAT_TEXT_LENGTH,
 };

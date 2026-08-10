@@ -320,7 +320,6 @@ export function SquadPreview({
               <div style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: 10 }}>
                 {members.map(m => {
                   const badges: string[] = [];
-                  if (m.age) badges.push(String(m.age));
                   if (m.country) badges.push(m.country);
                   if (m.languages && m.languages.length) badges.push(...m.languages.slice(0, 2));
                   return (

@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict");
-const { readFileSync } = require("node:fs");
+const { existsSync, readFileSync } = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
@@ -11,6 +11,7 @@ const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/(app)/
 const matchSource = () => readFileSync(path.join(__dirname, "../app/(app)/match/page.tsx"), "utf8");
 const lobbySource = () => readFileSync(path.join(__dirname, "../app/(app)/lobby/page.tsx"), "utf8");
 const encounterSource = () => readFileSync(path.join(__dirname, "../app/(app)/encounter/page.tsx"), "utf8");
+const encounterE2eSource = () => readFileSync(path.join(__dirname, "../e2e/encounter.spec.ts"), "utf8");
 const venueCardSource = () => readFileSync(path.join(__dirname, "../components/VenueCard.tsx"), "utf8");
 const authCallbackSource = () => readFileSync(path.join(__dirname, "../app/auth/callback/page.tsx"), "utf8");
 const authCallbackLayoutSource = () => readFileSync(path.join(__dirname, "../app/auth/callback/layout.tsx"), "utf8");
@@ -30,16 +31,120 @@ const profileSource = () => readFileSync(path.join(__dirname, "../app/(app)/prof
 const chatPanelSource = () => readFileSync(path.join(__dirname, "../components/ChatPanel.tsx"), "utf8");
 const referralCardSource = () => readFileSync(path.join(__dirname, "../components/ReferralCard.tsx"), "utf8");
 const appLayoutSource = () => readFileSync(path.join(__dirname, "../app/(app)/layout.tsx"), "utf8");
+const joinByCodeSource = () => readFileSync(path.join(__dirname, "../app/join/[code]/page.tsx"), "utf8");
 const topNavSource = () => readFileSync(path.join(__dirname, "../components/TopNav.tsx"), "utf8");
 const privacySource = () => readFileSync(path.join(__dirname, "../app/privacy/page.tsx"), "utf8");
 const termsSource = () => readFileSync(path.join(__dirname, "../app/terms/page.tsx"), "utf8");
+const safetyPath = path.join(__dirname, "../app/safety/page.tsx");
+const supportPath = path.join(__dirname, "../app/support/page.tsx");
+const safetySource = () => readFileSync(safetyPath, "utf8");
+const supportSource = () => readFileSync(supportPath, "utf8");
 const globalStylesSource = () => readFileSync(path.join(__dirname, "../app/globals.css"), "utf8");
 const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../../../vercel.json"), "utf8"));
+const discoveryConfigSource = () => readFileSync(path.join(__dirname, "../lib/discovery.ts"), "utf8");
+const identityAccountPath = path.join(__dirname, "../components/IdentityOnlyAccount.tsx");
+
+test("web discovery build flag hides stranger matching without hiding private squads", () => {
+  const config = discoveryConfigSource();
+  const layout = appLayoutSource();
+  const nav = topNavSource();
+  const home = desktopHomeSource();
+  const lobby = lobbySource();
+  const encounter = encounterSource();
+
+  assert.match(config, /process\.env\.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED/);
+  assert.match(config, /flag !== "false"/);
+  assert.match(layout, /WEB_DISCOVERY_ENABLED/);
+  for (const route of ["discover", "matchmaking", "match"]) {
+    assert.match(layout, new RegExp(`"/${route}"`));
+  }
+  assert.doesNotMatch(layout, /DISCOVERY_ROUTES = \[[^\]]*"\/encounter"/);
+  assert.match(nav, /WEB_DISCOVERY_ENABLED/);
+  assert.match(home, /WEB_DISCOVERY_ENABLED/);
+  assert.match(home, /if \(!WEB_DISCOVERY_ENABLED\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
+  assert.match(home, /Join with code/i);
+  assert.match(lobby, /WEB_DISCOVERY_ENABLED && isLeader/);
+  assert.match(encounter, /WEB_DISCOVERY_ENABLED && \(/);
+  assert.equal(vercelConfig().env.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED, "false");
+  assert.doesNotMatch(config, /AGE|country|Country/);
+});
+
+test("desktop keeps unavailable accounts on an identity-only profile surface", () => {
+  const layout = appLayoutSource();
+  const gate = ageGateSource();
+
+  assert.match(layout, /const identityOnlyAccess = authReady && session\.hasIdentityOnlyAccess/);
+  assert.match(layout, /identityOnlyAccess && session\.accountStatus !== "active" && pathname !== "\/profile"/);
+  assert.match(layout, /router\.replace\("\/profile"\)/);
+  assert.match(layout, /identityOnlyAccess && pathname === "\/profile"/);
+  assert.match(layout, /<AgeGate[\s\S]*onManageAccount=\{\(\) => router\.push\("\/profile"\)\}/);
+  assert.match(layout, /<IdentityOnlyAccount[\s\S]*onReturnToVerification/);
+  assert.match(gate, /onManageAccount\?: \(\) => void/);
+  assert.match(gate, /Account &amp; data/);
+  assert.ok(layout.indexOf("if (identityRouteBlocked)") < layout.indexOf("if (!hasAdultAccess)"));
+  assert.equal(existsSync(identityAccountPath), true);
+
+  const account = readFileSync(identityAccountPath, "utf8");
+  assert.match(account, /api\.exportAccount\(\)/);
+  assert.match(account, /api\.deleteAccount\(\)/);
+  assert.match(account, /href="\/support"/);
+  assert.match(account, /session\.signOut\(\)/);
+  assert.match(account, /onReturnToVerification/);
+  assert.match(account, /Return to age verification/);
+  assert.doesNotMatch(account, /updateMyProfile|listBlockedUsers|connectSocket|billing/);
+});
+
+test("desktop confirms blocks separately from removing friends and lets users unblock accounts", () => {
+  const friends = friendsPageSource();
+  const profile = profileSource();
+
+  assert.match(friends, /setConfirmBlock/);
+  assert.match(friends, /Block \{confirmBlock\.name\}\?/);
+  assert.match(friends, /api\.blockUsers\(\[confirmBlock\.userId\]\)/);
+  assert.match(friends, /Remove friend/);
+  assert.match(profile, /Blocked accounts/);
+  assert.match(profile, /api\.listBlockedUsers\(\)/);
+  assert.match(profile, /api\.unblockUser\(account\.userId\)/);
+});
 
 test("auth proxy never falls back to a production backend", () => {
   const config = source();
 
   assert.equal(config.includes("giggle-server-production.up.railway.app"), false);
+});
+
+test("public legal, safety, and support pages state the adult policy without false claims", () => {
+  assert.equal(existsSync(safetyPath), true);
+  assert.equal(existsSync(supportPath), true);
+
+  const pages = [privacySource(), termsSource(), safetySource(), supportSource()];
+  for (const page of pages) {
+    assert.match(page, /verified (?:users |adults )?18\+/i);
+    assert.match(page, /2026-08-04/);
+  }
+
+  const allCopy = pages.join("\n");
+  assert.doesNotMatch(allCopy, /Giggle records calls/i);
+  assert.doesNotMatch(allCopy, /stores raw Yoti (?:selfies|documents)/i);
+  assert.doesNotMatch(allCopy, /accepts sexual content/i);
+  assert.doesNotMatch(allCopy, /globally certified/i);
+
+  const support = supportSource();
+  for (const subject of ["Account%20help", "Age%20verification%20appeal", "Safety%20report", "Data%20export", "Account%20deletion"]) {
+    assert.match(support, new RegExp(`mailto:support@gigglemeet\\.com\\?subject=${subject}`));
+  }
+  assert.doesNotMatch(support, /<form/i);
+});
+
+test("landing and legal layout link every public policy and help route", () => {
+  const landing = landingSource();
+  for (const route of ["privacy", "terms", "safety", "support"]) {
+    assert.match(landing, new RegExp(`href=\"/${route}\"`));
+  }
+
+  const legal = legalPageSource();
+  assert.match(legal, /links: Array<\{ href: string; label: string \}>/);
+  assert.match(legal, /links\.map\(\(link\) =>/);
 });
 
 test("auth proxy local fallback is development-only", () => {
@@ -74,6 +179,8 @@ test("Playwright owns isolated backend and frontend development servers", () => 
   assert.equal((config.match(/http:\/\/localhost:4011/g) ?? []).length, 2);
   assert.equal(config.includes("webServer: ["), true);
   assert.equal(config.includes('command: "pnpm --dir ../../server start"'), true);
+  assert.equal(config.includes('JWT_SECRET: "giggle-e2e-only-secret"'), true);
+  assert.equal(config.includes('MONGODB_URI: "mongodb://127.0.0.1:27017/giggle"'), true);
   assert.equal(config.includes('MONGODB_DB_NAME: "giggle-e2e"'), true);
   assert.equal(config.includes('REDIS_URL: "redis://127.0.0.1:6379/15"'), true);
   assert.equal(config.includes('command: "pnpm exec next dev -p 4011"'), true);
@@ -326,9 +433,22 @@ test("matchmaking queue status is informational, not a premium priority upsell",
 test("compact-phone matchmaking keeps the cancel action in view", () => {
   const page = matchmakingSource();
   assert.equal(page.includes("const isShortPhone = isPhone && height <= 650"), true);
-  assert.equal(page.includes('const dim = isShortPhone ? 190'), true);
-  assert.equal(page.includes('width: isShortPhone ? "25%"'), true);
+  assert.equal(page.includes("const signalSize = isShortPhone ? 48"), true);
+  assert.equal(page.includes('<div aria-hidden style={{ width: signalSize'), true);
+  assert.equal(page.includes('overflowY: isPhone ? "auto" : "hidden"'), true);
   assert.equal(page.includes("!matchFound && !isShortPhone"), true);
+});
+
+test("matchmaking inherits the active theme without radar decoration", () => {
+  const page = matchmakingSource();
+
+  assert.equal(page.includes('data-theme="dark"'), false);
+  assert.equal(page.includes("conic-gradient"), false);
+  assert.equal(page.includes("#7C5CFF"), false);
+  assert.equal(page.includes("#C2FF3D"), false);
+  assert.equal(page.includes('<AvatarStack names={squadMemberNames}'), true);
+  assert.equal(page.includes('background: "var(--accent-soft)"'), true);
+  assert.equal(page.includes('background: "var(--surface)"'), true);
 });
 
 test("desktop matchmaking cancel stays put when backend cancel fails", () => {
@@ -347,6 +467,21 @@ test("desktop matchmaking resumes an existing encounter regardless of handoff st
   assert.equal(page.includes("if (status.match?.encounterId)"), true);
   assert.equal(page.includes('if (status.state === "matched" && status.match)'), false);
   assert.equal(page.includes("triggerMatchReveal(status.match.encounterId);"), true);
+});
+
+test("desktop matchmaking never overlaps status polls", () => {
+  const page = matchmakingSource();
+
+  assert.equal(page.includes("const pollInterval = setInterval"), false);
+  assert.match(page, /await api\.matchStatus\(squadId\)/);
+  assert.match(page, /pollTimeout = setTimeout\(pollStatus, 2000\)/);
+});
+
+test("desktop matchmaking resumes polling when cancel fails", () => {
+  const page = matchmakingSource();
+
+  assert.match(page, /if \(cancelledRef\.current\) \{\s*schedulePoll\(\);\s*return;\s*\}/);
+  assert.match(page, /cancelledRef\.current = false;\s*setCancelling\(false\)/);
 });
 
 test("desktop match does not return to matchmaking when leader skip fails", () => {
@@ -375,9 +510,9 @@ test("desktop match countdown follows the server handoff deadline", () => {
   assert.equal(page.includes("const secondsLeft = Math.ceil((deadline - Date.now()) / 1000);"), true);
   assert.equal(page.includes("setCountdownTotal(secondsLeft);"), true);
   assert.equal(page.includes("Math.max(0, Math.ceil((deadline - Date.now()) / 1000))"), true);
-  assert.equal(page.includes("const progress = countdown / countdownTotal;"), true);
+  assert.equal(page.includes('aria-label={`${countdown} of ${countdownTotal} seconds remaining`}'), true);
   assert.equal(page.includes("useState(20)"), false);
-  assert.equal(page.includes("countdown / 20"), false);
+  assert.equal(page.includes("Starts in {countdown}s"), true);
 });
 
 test("desktop match keeps recoverable load and join failures on the handoff", () => {
@@ -386,7 +521,7 @@ test("desktop match keeps recoverable load and join failures on the handoff", ()
 
   assert.equal(page.includes("function isExpiredEncounterError"), true);
   assert.equal(page.includes('setHandoffError(expired ? "This match handoff has expired." : error instanceof Error ? error.message : "Couldn\'t load this match.")'), true);
-  assert.equal(page.includes('{handoffExpired ? "Match expired" : "Couldn\'t open match"}'), true);
+  assert.equal(page.includes('{handoffExpired ? "Match expired" : "Couldn\'t open room"}'), true);
   assert.equal(page.includes("window.location.reload()"), true);
   assert.equal(join.includes("if (isExpiredEncounterError(error))"), true);
   assert.equal(join.includes("setJoining(false);"), true);
@@ -404,13 +539,29 @@ test("desktop match preserves leader and roster data when squad detail is unavai
 test("mobile match keeps the action card in normal flow", () => {
   const page = matchSource();
 
-  assert.equal(page.includes('gridRow: isPhone ? 2 : undefined'), true);
-  assert.equal(page.includes('joinPressed ? "panelFade 0.5s ease both" : "fadeUp 0.45s 0.15s both"'), true);
-  assert.equal(page.includes('resolveCover(myCover)'), true);
-  assert.equal(page.includes('resolveCover(opponentCover)'), true);
-  assert.equal(page.includes("@media (max-width: 640px) and (max-height: 680px)"), true);
-  assert.equal(page.includes(".match-countdown { display: none !important; }"), true);
-  assert.equal(page.includes('overflowY: isPhone ? "auto" : "hidden"'), true);
+  assert.equal(page.includes('width: "min(640px, 100%)"'), true);
+  assert.equal(page.includes('gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr"'), true);
+});
+
+test("desktop match uses a theme-native Room ready handoff", () => {
+  const page = matchSource();
+
+  assert.equal(page.includes('data-theme="dark"'), false);
+  assert.equal(page.includes(">VS<"), false);
+  assert.equal(page.includes("resolveCover"), false);
+  assert.equal(page.includes("Room ready"), true);
+  assert.equal(page.includes('<AvatarStack names={myMembers}'), true);
+  assert.equal(page.includes('<AvatarStack names={opponentMembers}'), true);
+  assert.equal(page.includes('background: "var(--surface)"'), true);
+  assert.equal(page.includes('aria-label="Opening room"'), true);
+  assert.equal(page.includes('role="group" aria-label={rosterLabel}'), true);
+  assert.equal(page.includes('const rosterLabel = `${mySquadName}: ${myMembers.join(", ")}. ${pairedSquadName}: ${opponentMembers.join(", ")}`;'), true);
+});
+
+test("desktop match keeps handoff actions reachable in phone landscape", () => {
+  const page = matchSource();
+
+  assert.match(page, /overflowY: "auto"/);
 });
 
 test("desktop match expiry does not navigate away when leader skip fails", () => {
@@ -431,11 +582,11 @@ test("desktop match expiry does not navigate away when leader skip fails", () =>
 test("desktop matchmaking clears delayed match reveal navigations on unmount", () => {
   const page = matchmakingSource();
 
-  assert.equal(page.includes("const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);"), true);
   assert.equal(page.includes("const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);"), true);
   assert.equal(page.includes("function clearRevealTimers()"), true);
   assert.equal(page.includes("clearRevealTimers();"), true);
-  assert.equal(page.includes("revealTimeoutRef.current = setTimeout(() => setMatchVisible(true), 30);"), true);
+  assert.equal(page.includes("revealTimeoutRef"), false);
+  assert.equal(page.includes("setMatchVisible"), false);
   assert.equal(page.includes("navigationTimeoutRef.current = setTimeout(() => {"), true);
 });
 
@@ -459,10 +610,9 @@ test("lobby stage contains people only and fills compact viewports", () => {
   assert.equal(page.includes('minHeight: isPhone ? "calc(100dvh - 61px)" : 0'), true);
   assert.equal(page.includes('gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`'), true);
   assert.equal(page.includes('aspectRatio: "4 / 3"'), false);
-  assert.equal(page.includes('flexWrap: isPhone && !videoJoined ? "wrap" as const : "nowrap" as const'), true);
+  assert.equal(page.includes('flexWrap: isPhone ? "wrap" as const : "nowrap" as const'), true);
   assert.equal(page.includes('width: isPhone ? "100%" : undefined'), true);
   assert.equal(page.includes('boxSizing: "border-box" as const'), true);
-  assert.equal(page.includes('flex: isPhone ? 1 : undefined'), true);
   assert.equal(page.includes("showUpgradeTile"), false);
   assert.equal(page.includes("Unlock 4 more seats"), false);
   assert.equal(page.includes("{isNarrow && isLeader && ("), true);
@@ -471,13 +621,24 @@ test("lobby stage contains people only and fills compact viewports", () => {
   assert.equal(page.includes('display: isNarrow ? "none" : "flex"'), true);
 });
 
-test("desktop lobby leave button calls backend before leaving the lobby", () => {
+test("desktop lobby leave starts pending feedback and media cleanup before the backend", () => {
   const page = lobbySource();
+  const leaveBlock = page.slice(
+    page.indexOf("async function handleLeaveSquad()"),
+    page.indexOf("async function handleDisbandSquad()")
+  );
 
-  assert.equal(page.includes("async function handleLeaveSquad()"), true);
-  assert.equal(page.includes("await api.leaveSquad(squadId);"), true);
-  assert.equal(page.includes("setMatchError((e as { message?: string })?.message || \"Couldn't leave squad.\")"), true);
+  assert.match(leaveBlock, /setLeavingSquad\(true\);/);
+  assert.match(leaveBlock, /const mediaExit = leaveLobbyMedia\(\);/);
+  assert.match(leaveBlock, /await api\.leaveSquad\(squadId\);/);
+  assert.ok(leaveBlock.indexOf("setLeavingSquad(true);") < leaveBlock.indexOf("await api.leaveSquad(squadId);"));
+  assert.ok(leaveBlock.indexOf("const mediaExit = leaveLobbyMedia();") < leaveBlock.indexOf("await api.leaveSquad(squadId);"));
+  assert.match(leaveBlock, /void mediaExit;/);
+  assert.match(page, /async function leaveLobbyMedia\(\) \{[\s\S]*?vcRef\.current = null;[\s\S]*?setVideoJoined\(false\);[\s\S]*?await client\?\.leave\(\);/);
+  assert.match(page, /<Button variant="secondary" fullWidth disabled=\{leavingSquad\} loading=\{leavingSquad\} onClick=\{handleLeaveSquad\}>/);
+  assert.match(leaveBlock, /setMatchError\(\(e as \{ message\?: string \}\)\?\.message \|\| "Couldn't leave squad\."\)/);
   assert.equal(page.includes("onClick={handleLeaveSquad}"), true);
+  assert.equal(page.includes('{leavingSquad ? "Leaving…" : "Leave"}'), true);
 });
 
 test("desktop lobby ready toggle surfaces backend failures", () => {
@@ -488,10 +649,13 @@ test("desktop lobby ready toggle surfaces backend failures", () => {
   assert.equal(page.includes('console.error("setReady failed:", e);'), false);
   assert.match(handler, /setSquad\(current =>/);
   assert.doesNotMatch(handler, /await fetchSquad\(\)/);
+  assert.match(page, /typeof ready === "boolean"/);
+  assert.match(page, /member\.memberId === memberId \? \{ \.\.\.member, ready \} : member/);
 });
 
 test("desktop lobby requires every online member to be ready before starting a match", () => {
   const page = lobbySource();
+  const proceedFindMatch = page.match(/async function proceedFindMatch\(\) \{([\s\S]*?)\n  \}\n\n  function toggleVibeChip/)?.[1] ?? "";
 
   assert.equal(page.includes("try { await api.setReady(squadId, true); } catch {}"), false);
   assert.equal(page.includes("try { await api.setLobbyVideo(squadId, true); } catch {}"), false);
@@ -499,7 +663,8 @@ test("desktop lobby requires every online member to be ready before starting a m
   assert.equal(page.includes("const everyoneReady = activeMembers.length > 0 && activeMembers.every(member => member.ready);"), true);
   assert.equal(page.includes("Everyone online needs to be ready before you find a match."), true);
   assert.equal(page.includes("await api.setReady(squadId, true);\n      await api.setLobbyVideo"), false);
-  assert.equal(page.includes("await api.setLobbyVideo(squadId, true);\n      await api.startSearch(squadId);"), true);
+  assert.match(proceedFindMatch, /await api\.startSearch\(squadId\)/);
+  assert.doesNotMatch(proceedFindMatch, /setLobbyVideo/);
 });
 
 test("lobby asks before starting camera and microphone", () => {
@@ -508,6 +673,16 @@ test("lobby asks before starting camera and microphone", () => {
   assert.equal(page.includes("Used in this lobby and live encounters."), true);
   assert.equal(page.includes('aria-label="Enable camera and microphone"'), true);
   assert.equal(page.includes("if (!joinStartedRef.current)"), false);
+});
+
+test("desktop lobby joins audio before continuing without camera", () => {
+  const page = lobbySource();
+
+  assert.match(page, /async function enableLobbyMedia\(withCamera = true\)/);
+  assert.match(page, /await vc\.join\(tokenData, \{ audio: true, video: withCamera \}\)/);
+  assert.equal(page.includes("onClick={enableLobbyMedia}"), false);
+  assert.match(page, /ok = await enableLobbyMedia\(false\)/);
+  assert.match(page, /if \(!ok\) return;[\s\S]*?await proceedFindMatch\(\)/);
 });
 
 test("desktop lobby copy actions only show success after clipboard writes succeed", () => {
@@ -671,19 +846,43 @@ test("desktop encounter reports media failures and retries the existing call", (
   assert.equal(page.includes("if (vcRef.current === vc) setRemotes(next);"), true);
 });
 
-test("desktop encounter confirms and ends on the backend before leaving media", () => {
+test("lobby and encounter exits invalidate media joins already in flight", () => {
+  const lobby = lobbySource();
+  const encounter = encounterSource();
+
+  assert.match(lobby, /const lobbyMediaGenerationRef = useRef\(0\);/);
+  assert.match(lobby, /const generation = \+\+lobbyMediaGenerationRef\.current;/);
+  assert.match(lobby, /if \(generation !== lobbyMediaGenerationRef\.current\)/);
+  assert.match(lobby, /async function leaveLobbyMedia\(\) \{[\s\S]*?lobbyMediaGenerationRef\.current \+= 1;/);
+  assert.match(encounter, /const videoGenerationRef = useRef\(0\);/);
+  assert.match(encounter, /const generation = \+\+videoGenerationRef\.current;/);
+  assert.match(encounter, /const joinCancelled = \(\) => isCancelled\(\) \|\| generation !== videoGenerationRef\.current;/);
+  assert.match(encounter, /async function leaveVideo\(\) \{[\s\S]*?videoGenerationRef\.current \+= 1;/);
+});
+
+test("desktop encounter starts local media cleanup before backend-confirmed navigation", () => {
   const page = encounterSource();
   const endBlock = page.slice(
     page.indexOf("async function handleEnd()"),
-    page.indexOf("  function handleReport()")
+    page.indexOf("async function handleBlockOpponent()")
+  );
+  const leaveBlock = page.slice(
+    page.indexOf("async function leaveVideoAndGoHome()"),
+    page.indexOf("async function handleEnd()")
   );
 
+  assert.match(endBlock, /const mediaExit = leaveVideo\(\);/);
   assert.match(endBlock, /await api\.disconnectEncounter\(squadId, encId\);/);
-  assert.match(endBlock, /await vcRef\.current\?\.leave\(\);/);
-  assert.match(endBlock, /router\.push\("\/home"\);/);
-  assert.equal(endBlock.indexOf("await vcRef.current?.leave();") > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
+  assert.ok(endBlock.indexOf("const mediaExit = leaveVideo();") < endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"));
+  assert.ok(endBlock.indexOf('router.replace("/home");') > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"));
+  assert.match(endBlock, /await mediaExit;/);
+  assert.match(endBlock, /catch \{[\s\S]*?retryVideo\(\);/);
+  assert.match(leaveBlock, /await leaveVideo\(\);/);
+  assert.match(page, /async function leaveVideo\(\) \{[\s\S]*?vcRef\.current = null;[\s\S]*?setVideoJoined\(false\);[\s\S]*?await client\?\.leave\(\);/);
+  assert.match(leaveBlock, /router\.replace\("\/home"\);/);
   assert.match(endBlock, /setEnding\(false\);/);
-  assert.match(endBlock, /setEndError\("Couldn't end this encounter yet\."\);/);
+  assert.match(endBlock, /setEndError\("Couldn't end this encounter yet\. Reconnecting your video…"\);/);
+  assert.match(page, /onClick=\{handleEnd\}[\s\S]*?disabled=\{ending\}[\s\S]*?\{ending \? "Ending…" : "End encounter"\}/);
   assert.equal(page.includes('title="End encounter?"'), true);
   assert.equal(page.includes("This ends the current encounter for both squads."), true);
   assert.equal(page.includes("setEndConfirmOpen(true)"), true);
@@ -757,19 +956,57 @@ test("desktop encounter reactions only animate after realtime send succeeds", ()
   assert.equal(fireBlock.includes("spawnReaction(emoji); // optimistic local"), false);
 });
 
-test("desktop encounter report button only shows success after realtime send succeeds", () => {
+test("desktop encounter report button only shows success after persistence acknowledgement", () => {
   const page = encounterSource();
   const reportBlock = page.slice(
-    page.indexOf("function handleReport()"),
+    page.indexOf("async function handleReport()"),
     page.indexOf("  // Spawn a floating emoji")
   );
 
   assert.equal(page.includes("reportOpponentSquad"), true);
-  assert.match(reportBlock, /const sent = reportOpponentSquad\(\{/);
-  assert.match(reportBlock, /if \(!sent\) \{/);
+  assert.match(reportBlock, /async function handleReport\(\)/);
+  assert.match(reportBlock, /setReporting\(true\);/);
+  assert.match(reportBlock, /const result = await reportOpponentSquad\(\{/);
+  assert.match(reportBlock, /setReporting\(false\);/);
+  assert.match(reportBlock, /if \(!result\.ok\) \{/);
   assert.match(reportBlock, /setVideoError\("Report was not sent\. Check your connection and try again\."\);/);
   assert.equal(reportBlock.includes("console.error(\"report_squad emit failed"), false);
-  assert.equal(reportBlock.indexOf("setReported(true);") > reportBlock.indexOf("if (!sent) {"), true);
+  assert.equal(reportBlock.indexOf("setReported(true);") > reportBlock.indexOf("if (!result.ok) {"), true);
+  assert.equal(page.includes("disabled={reported || reporting}"), true);
+});
+
+test("desktop matchmaking keeps cancel reachable on short phones", () => {
+  const page = readFileSync(path.join(__dirname, "../app/(app)/matchmaking/page.tsx"), "utf8");
+
+  assert.match(page, /overflowY: isPhone \? "auto" : "hidden"/);
+  assert.match(page, /justifyContent: isShortPhone \? "flex-start" : "center"/);
+});
+
+test("desktop encounter consolidates recovery and transient notices", () => {
+  const page = encounterSource();
+
+  assert.equal(page.includes('data-testid="media-recovery-notice"'), true);
+  assert.equal(page.includes('data-testid="encounter-transient-notice"'), true);
+  assert.match(page, /reported \? "reported" : connState === "RECONNECTING"/);
+});
+
+test("desktop encounter blocks the validated opponent roster before leaving", () => {
+  const page = encounterSource();
+  const blockHandler = page.slice(
+    page.indexOf("async function handleBlockOpponent()"),
+    page.indexOf("async function handleReport()")
+  );
+
+  assert.match(page, /createOpponentUserIds\(\{ squadId, ownUserId: session\.user\?\.id, encounter \}\)/);
+  assert.equal(page.includes('title="Block opponent squad?"'), true);
+  assert.equal(page.includes("setBlockConfirmOpen(true)"), true);
+  assert.ok(blockHandler.indexOf("await api.blockUsers(opponentUserIds);") >= 0);
+  assert.ok(blockHandler.indexOf("await api.disconnectEncounter(squadId, encId);") > blockHandler.indexOf("await api.blockUsers(opponentUserIds);"));
+  assert.ok(blockHandler.indexOf("await leaveVideoAndGoHome();") > blockHandler.indexOf("await api.disconnectEncounter(squadId, encId);"));
+  assert.equal(blockHandler.includes("reportOpponentSquad"), false);
+  assert.match(blockHandler, /setBlockError\("Couldn't block this squad yet\. Try again\."\)/);
+  assert.equal(page.includes("disabled={!canBlockOpponent || blocking}"), true);
+  assert.equal(page.includes('aria-label="Block opponent squad"'), true);
 });
 
 test("venue cards use real photo defaults instead of synthetic photo placeholders", () => {
@@ -862,15 +1099,13 @@ test("desktop wallet does not promise production redemption before it launches",
   assert.equal(page.includes("Earn tokens, then spend them on your squad identity."), false);
 });
 
-test("profile account switches persist locally instead of resetting on remount", () => {
+test("profile shows only account controls backed by real behavior", () => {
   const page = profileSource();
 
-  assert.equal(page.includes("PROFILE_SETTINGS_STORAGE_KEY"), true);
-  assert.equal(page.includes("localStorage.getItem(PROFILE_SETTINGS_STORAGE_KEY)"), true);
-  assert.equal(page.includes("localStorage.setItem(PROFILE_SETTINGS_STORAGE_KEY"), true);
-  assert.equal(page.includes("setProfileSetting(\"notificationsOn\""), true);
-  assert.equal(page.includes("setProfileSetting(\"openToDiscovery\""), true);
-  assert.equal(page.includes("setProfileSetting(\"showOnlineStatus\""), true);
+  assert.equal(page.includes('label="Open to Discovery"'), false);
+  assert.equal(page.includes('label="Show Online Status"'), false);
+  assert.equal(page.includes("const [age, setAge]"), false);
+  assert.equal(page.includes('label="Notification pop-ups"'), true);
 });
 
 test("desktop notification preference controls truthful in-app pop-ups", () => {
@@ -885,14 +1120,14 @@ test("desktop notification preference controls truthful in-app pop-ups", () => {
   assert.equal(bell.includes("if (notificationPopupsEnabled()) setToast(n);"), true);
 });
 
-test("profile account switch persistence ignores malformed stored settings", () => {
+test("profile notification persistence ignores malformed stored settings", () => {
   const page = profileSource();
 
   assert.equal(page.includes("function normalizeProfileSettings("), true);
   assert.equal(page.includes("const parsed = normalizeProfileSettings(JSON.parse(raw));"), true);
-  assert.equal(page.includes("const current = raw ? normalizeProfileSettings(JSON.parse(raw)) : DEFAULT_PROFILE_SETTINGS;"), true);
-  assert.equal(page.includes("...current,"), true);
-  assert.equal(page.includes("const current = raw ? JSON.parse(raw) : {};"), false);
+  assert.equal(page.includes("JSON.stringify({ notificationsOn: value })"), true);
+  assert.equal(page.includes("openToDiscovery"), false);
+  assert.equal(page.includes("showOnlineStatus"), false);
 });
 
 test("profile vibe preferences are normalized before render and persistence", () => {
@@ -1076,11 +1311,42 @@ test("stale squad invites expire without navigating to a dead lobby", () => {
   assert.equal(joinAction.includes("return;"), true);
 });
 
-test("age gate completes only after the shared session state is synchronized", () => {
+test("age gate completes only after provider verification and a live session sync", () => {
   const gate = ageGateSource();
 
-  assert.equal(gate.includes("await session.setAge(iso);\n      onDone();"), true);
-  assert.equal(gate.includes("if (status === 409)"), false);
+  assert.match(gate, /api\.startAgeVerification\(\)/);
+  assert.match(gate, /api\.getAgeVerificationStatus\(\)/);
+  assert.match(gate, /window\.location\.assign\(providerUrl\.toString\(\)\)/);
+  assert.match(gate, /async function startVerification\(\) \{\s*const operation = \+\+operationGeneration\.current;/);
+  assert.match(gate, /document\.addEventListener\("visibilitychange"/);
+  assert.match(gate, /window\.addEventListener\("focus"/);
+  assert.match(gate, /MAX_STATUS_POLLS/);
+  assert.match(gate, /await session\.syncAgeFromServer\(\)[\s\S]*session\.hasAdultAccess[\s\S]*onDone\(\)/);
+  assert.equal((gate.match(/onDone\(\)/g) || []).length, 1);
+  assert.match(gate, /Giggle is for verified adults 18\+/);
+  assert.match(gate, /mailto:support@gigglemeet\.com\?subject=Age%20verification%20help/);
+  assert.match(gate, /session\.signOut\(\)/);
+  assert.match(gate, />Continue with Yoti<\/Button>/);
+  assert.doesNotMatch(gate, /adult content/i);
+  for (const state of ["pending", "rejected", "unavailable"]) {
+    assert.match(gate, new RegExp(`\\"${state}\\"`));
+  }
+});
+
+test("age verification ignores stale operations and only opens the exact Yoti host", () => {
+  const gate = ageGateSource();
+  const start = gate.slice(gate.indexOf("async function startVerification"), gate.indexOf("function signOut"));
+
+  assert.match(gate, /const mounted = useRef\(true\)/);
+  assert.match(gate, /const reconcileInFlight = useRef<Promise<void> \| null>\(null\)/);
+  assert.match(gate, /if \(reconcileInFlight\.current\) return reconcileInFlight\.current/);
+  assert.match(start, /const operation = \+\+operationGeneration\.current/);
+  assert.match(start, /await api\.startAgeVerification\(\)[\s\S]*!mounted\.current[\s\S]*operation !== operationGeneration\.current/);
+  assert.match(start, /new URL\(result\.url\)/);
+  assert.match(start, /providerUrl\.protocol !== "https:"/);
+  assert.match(start, /providerUrl\.hostname !== "age\.yoti\.com"/);
+  assert.doesNotMatch(start, /window\.location\.assign\(result\.url\)/);
+  assert.match(gate, /function signOut\(\) \{\s*mounted\.current = false;\s*operationGeneration\.current \+= 1;/);
 });
 
 test("returning users resolve stale age state before the app leaves its opening screen", () => {
@@ -1092,6 +1358,51 @@ test("returning users resolve stale age state before the app leaves its opening 
 
   assert.ok(existingSession.indexOf("await session.syncAgeFromServer();") < existingSession.indexOf("setAuthReady(true);"));
   assert.equal((existingSession.match(/setAuthReady\(true\)/g) || []).length, 1);
+  assert.match(layout, /if \(!authReady \|\| !hasAdultAccess \|\| !session\.isAuthed\(\)\) return;/);
+  assert.match(layout, /if \(session\.isAuthed\(\) && session\.hasAdultAccess\) connectSocket\(\);/);
+});
+
+test("join links make the same live adult-access decision before joining", () => {
+  const join = joinByCodeSource();
+  const guard = join.slice(join.indexOf("await session.syncAgeFromServer()"), join.indexOf("api.joinSquad"));
+
+  assert.match(guard, /await session\.syncAgeFromServer\(\)/);
+  assert.match(guard, /session\.hasIdentityOnlyAccess && session\.accountStatus !== "active"/);
+  assert.match(guard, /router\.replace\("\/profile"\)/);
+  assert.match(guard, /!session\.hasAdultAccess/);
+  assert.match(join, /onManageAccount=\{\(\) => router\.push\("\/profile"\)\}/);
+  assert.ok(join.indexOf("await session.syncAgeFromServer()") < join.indexOf("api.joinSquad"));
+});
+
+test("browser fixtures use an explicit development-only age bypass", () => {
+  const config = playwrightConfigSource();
+
+  assert.match(config, /NODE_ENV: "development"/);
+  assert.match(config, /AGE_VERIFICATION_BYPASS: "true"/);
+  assert.doesNotMatch(config, /NODE_ENV: "production"[\s\S]{0,100}AGE_VERIFICATION_BYPASS: "true"/);
+});
+
+test("encounter browser coverage avoids real Agora while preserving call flows", () => {
+  const e2e = encounterE2eSource();
+  const responsive = e2e.slice(
+    e2e.indexOf('test("fixture encounter keeps media, chat, and controls usable across resize"'),
+    e2e.indexOf('test("encounter chat retry'),
+  );
+  const remoteEnded = e2e.slice(
+    e2e.indexOf('test("opponent ending preserves a clear recovery state"'),
+    e2e.indexOf('test("mocked rosters'),
+  );
+
+  assert.doesNotMatch(e2e, /async function enterQueue/);
+  assert.doesNotMatch(e2e, /async function createEncounter/);
+  assert.match(e2e, /page\.routeWebSocket\(\/socket\\\.io\//);
+  assert.match(responsive, /installEncounterFixture\(page/);
+  assert.match(responsive, /openFixture\(page, 2\)/);
+  assert.match(responsive, /injectSyntheticVideo/);
+  assert.match(responsive, /Chat message/);
+  assert.match(responsive, /setViewportSize/);
+  assert.match(remoteEnded, /emitOpponentEnded/);
+  assert.match(remoteEnded, /The other squad left/);
 });
 
 test("failed notification mark-all never restores a stale item snapshot", () => {
@@ -1239,6 +1550,20 @@ test("desktop home keeps create and join actions compact", () => {
   assert.equal(page.includes("Start a room and invite your people."), false);
   assert.equal(page.includes('aria-label="Squad actions"'), true);
   assert.equal(page.includes('aria-label="Squad invite code"'), true);
+});
+
+test("desktop home match action uses theme tokens instead of a fixed violet gradient", () => {
+  const page = desktopHomeSource();
+  const action = page.slice(
+    page.indexOf("{/* Find-a-Match CTA"),
+    page.indexOf("<div style={{ flex: isTablet", page.indexOf("{/* Find-a-Match CTA"))
+  );
+
+  assert.match(action, /background: "var\(--surface\)"/);
+  assert.match(action, /border: CONTROL_BORDER/);
+  assert.match(action, /color: "var\(--text\)"/);
+  assert.doesNotMatch(action, /linear-gradient|#7C5CFF|#9F7BFF/);
+  assert.match(action, /variant="primary"/);
 });
 
 test("desktop home leave squad failures restore the squad and show an error toast", () => {
@@ -1407,13 +1732,12 @@ test("profile load failures stay visible and retryable before saving demographic
   assert.equal(page.includes("Couldn't load your profile."), true);
 });
 
-test("profile can clear a previously saved age", () => {
+test("profile does not expose a second editable age field", () => {
   const page = profileSource();
   const api = readFileSync(path.join(__dirname, "../../../packages/core/src/api.ts"), "utf8");
 
-  assert.equal(page.includes("const body: { gender?: string; age?: number | null; languages?: string[]; country?: string } = {};"), true);
-  assert.equal(page.includes("body.age = null;"), true);
-  assert.equal(api.includes("age?: number | null"), true);
+  assert.equal(page.includes("body.age"), false);
+  assert.equal(api.includes("age?: number | null"), false);
 });
 
 test("profile keeps account identifiers out of the identity hero", () => {
@@ -1423,4 +1747,17 @@ test("profile keeps account identifiers out of the identity hero", () => {
   assert.equal(hero.includes("user?.email"), false);
   assert.equal(hero.includes("handle"), false);
   assert.equal(account.includes("Signed in as"), true);
+});
+
+test("desktop profile exports JSON and requires two confirmations before deletion", () => {
+  const page = profileSource();
+
+  assert.match(page, /await api\.exportAccount\(\)/);
+  assert.match(page, /new Blob\(\[JSON\.stringify\(data, null, 2\)\]/);
+  assert.match(page, /giggle-data-\$\{new Date\(\)\.toISOString\(\)\.slice\(0, 10\)\}\.json/);
+  assert.match(page, /Delete account\?/);
+  assert.match(page, /Delete permanently\?/);
+  assert.match(page, /await api\.deleteAccount\(\)[\s\S]*session\.signOut\(\)[\s\S]*router\.replace\("\/signin"\)/);
+  assert.match(page, /may finish in the background/i);
+  assert.match(page, /Couldn't start account deletion\. Please try again\./);
 });

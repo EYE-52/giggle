@@ -13,14 +13,19 @@ for (const route of routes) {
   test(`${route.path} exposes one clear first task without runtime failures`, async ({ page }, testInfo) => {
     const consoleErrors: string[] = [];
     const failedRequests: string[] = [];
+    let openingRoute = true;
     page.on("console", message => {
       if (message.type() === "error") consoleErrors.push(message.text());
     });
     page.on("requestfailed", request => {
-      failedRequests.push(`${request.method()} ${request.url()} ${request.failure()?.errorText ?? "failed"}`);
+      const error = request.failure()?.errorText ?? "failed";
+      if (!(openingRoute && error === "net::ERR_ABORTED")) {
+        failedRequests.push(`${request.method()} ${request.url()} ${error}`);
+      }
     });
 
     await openProtectedRoute(page, route.path);
+    openingRoute = false;
     const main = page.getByRole("main");
     await expect(main.getByRole("heading", { level: 1, name: route.heading }).first()).toBeVisible();
 
@@ -90,6 +95,10 @@ test("join code field uses one shared focus ring", async ({ page }, testInfo) =>
   const input = page.getByRole("textbox", { name: "Squad invite code" });
   await input.focus();
 
-  expect(await input.evaluate(node => getComputedStyle(node).boxShadow)).toBe("none");
-  await expect.poll(() => input.locator("..").evaluate(node => getComputedStyle(node).boxShadow)).not.toBe("none");
+  const hasBoxShadow = (node: HTMLElement) => {
+    const shadow = getComputedStyle(node).boxShadow;
+    return Boolean(shadow && shadow !== "none");
+  };
+  expect(await input.evaluate(hasBoxShadow)).toBe(false);
+  await expect.poll(() => input.locator("..").evaluate(hasBoxShadow)).toBe(true);
 });

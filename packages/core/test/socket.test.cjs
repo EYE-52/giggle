@@ -12,7 +12,7 @@ test("createReportOpponentPayload reports squad B when requester is squad A", as
       squadId: "sq_a",
       encounter: { squadAId: "sq_a", squadBId: "sq_b" },
     }),
-    { encounterId: "enc_1", squadId: "sq_a", reportedSquadId: "sq_b" }
+    { encounterId: "enc_1", squadId: "sq_a", reportedSquadId: "sq_b", category: "other" }
   );
 });
 
@@ -25,7 +25,7 @@ test("createReportOpponentPayload reports squad A when requester is squad B", as
       squadId: "sq_b",
       encounter: { squadAId: "sq_a", squadBId: "sq_b" },
     }),
-    { encounterId: "enc_1", squadId: "sq_b", reportedSquadId: "sq_a" }
+    { encounterId: "enc_1", squadId: "sq_b", reportedSquadId: "sq_a", category: "other" }
   );
 });
 
@@ -36,11 +36,81 @@ test("createReportOpponentPayload returns null for missing or unrelated squads",
   assert.equal(createReportOpponentPayload({ encounterId: "", squadId: "sq_a", encounter: { squadAId: "sq_a", squadBId: "sq_b" } }), null);
 });
 
+test("createReportOpponentPayload rejects unbounded or malformed report details", async () => {
+  const { createReportOpponentPayload } = await import("../src/report.ts");
+  const scope = { encounterId: "enc_1", squadId: "sq_a", encounter: { squadAId: "sq_a", squadBId: "sq_b" } };
+
+  assert.equal(createReportOpponentPayload({ ...scope, details: "x".repeat(501) }), null);
+  assert.equal(createReportOpponentPayload({ ...scope, details: { raw: true } }), null);
+});
+
+test("createOpponentUserIds returns only the validated opposite roster", async () => {
+  const { createOpponentUserIds } = await import("../src/report.ts");
+  const me = "507f1f77bcf86cd799439011";
+  const teammate = "507f1f77bcf86cd799439012";
+  const opponent = "507F1F77BCF86CD799439013";
+  const encounter = {
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    squadAMembers: [{ userId: me }, { userId: teammate }],
+    squadBMembers: [{ userId: opponent }, { userId: opponent.toLowerCase() }, { userId: me }],
+  };
+
+  assert.deepEqual(
+    createOpponentUserIds({ squadId: "sq_a", ownUserId: me, encounter }),
+    [opponent.toLowerCase()]
+  );
+});
+
+test("createOpponentUserIds fails closed for unrelated or incomplete rosters", async () => {
+  const { createOpponentUserIds } = await import("../src/report.ts");
+  const me = "507f1f77bcf86cd799439011";
+  const opponent = "507f1f77bcf86cd799439013";
+  const valid = {
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    squadAMembers: [{ userId: me }],
+    squadBMembers: [{ userId: opponent }],
+  };
+
+  assert.equal(createOpponentUserIds({ squadId: "sq_x", ownUserId: me, encounter: valid }), null);
+  assert.equal(createOpponentUserIds({ squadId: " sq_a ", ownUserId: me, encounter: valid }), null);
+  assert.equal(createOpponentUserIds({ squadId: "sq_a", ownUserId: me, encounter: { ...valid, squadAId: " sq_a " } }), null);
+  assert.equal(createOpponentUserIds({ squadId: "sq_a", ownUserId: opponent, encounter: valid }), null);
+  assert.equal(createOpponentUserIds({ squadId: "sq_a", ownUserId: me, encounter: { ...valid, squadBMembers: [] } }), null);
+  assert.equal(createOpponentUserIds({ squadId: "sq_a", ownUserId: me, encounter: { ...valid, squadBMembers: [{ userId: "bad" }] } }), null);
+  assert.equal(createOpponentUserIds({
+    squadId: "sq_a",
+    ownUserId: me,
+    encounter: {
+      ...valid,
+      squadBMembers: Array.from({ length: 9 }, (_, index) => ({
+        userId: `507f1f77bcf86cd7994390${20 + index}`,
+      })),
+    },
+  }), null);
+});
+
 test("signOut disconnects the authenticated realtime socket", () => {
   const sessionSource = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
 
-  assert.equal(sessionSource.includes('import { disconnectSocket } from "./socket";'), true);
-  assert.match(sessionSource, /signOut\(\)\s*{[\s\S]*disconnectSocket\(\);/);
+  assert.match(sessionSource, /import \{[^}]*disconnectSocket[^}]*\} from "\.\/socket";/);
+  assert.match(sessionSource, /function invalidateAdultAccess\(\)[\s\S]*disconnectSocket\(\);/);
+  assert.match(sessionSource, /signOut\(\)\s*{[\s\S]*identityOperationVersion \+= 1;[\s\S]*invalidateAdultAccess\(\);/);
+});
+
+test("socket connection is refused until the registered live access check passes", () => {
+  const socketSource = readFileSync(path.join(__dirname, "../src/socket.ts"), "utf8");
+  const sessionSource = readFileSync(path.join(__dirname, "../src/session.ts"), "utf8");
+  const connectBlock = socketSource.slice(
+    socketSource.indexOf("export function connectSocket"),
+    socketSource.indexOf("export function disconnectSocket")
+  );
+
+  assert.match(socketSource, /export function setAdultAccessGetter/);
+  assert.match(connectBlock, /if \(!adultAccessGetter\(\)\) return s;/);
+  assert.ok(connectBlock.indexOf("adultAccessGetter()") < connectBlock.indexOf("s.connect()"));
+  assert.match(sessionSource, /setAdultAccessGetter\(\(\) => session\.hasAdultAccess\);/);
 });
 
 test("OAuth callback tokens must be decoded and validated before persistence", () => {
@@ -79,7 +149,7 @@ test("age submission reconciles an already-confirmed server session", () => {
 
   assert.match(setAgeBlock, /AGE_ALREADY_CONFIRMED/);
   assert.match(setAgeBlock, /await session\.syncAgeFromServer\(\)/);
-  assert.match(setAgeBlock, /if \(!confirmed\) throw error;/);
+  assert.match(setAgeBlock, /!session\.ageConfirmed/);
 });
 
 test("magic-link sign-in forwards pending referral codes", () => {
@@ -175,16 +245,20 @@ test("reaction send reports disconnected socket failures to callers", () => {
   assert.match(sendBlock, /catch \{\s*return false;\s*\}/);
 });
 
-test("report opponent only reports success when realtime emit can be sent", () => {
+test("report opponent resolves success only after the server persists and acknowledges it", () => {
   const socketSource = readFileSync(path.join(__dirname, "../src/socket.ts"), "utf8");
   const reportBlock = socketSource.slice(
-    socketSource.indexOf("export function reportOpponentSquad"),
+    socketSource.indexOf("export async function reportOpponentSquad"),
     socketSource.indexOf("// --- Notifications")
   );
 
+  assert.match(reportBlock, /Promise<ReportSendResult>/);
   assert.match(reportBlock, /const s = connectSocket\(payload\.squadId\);/);
-  assert.match(reportBlock, /if \(!s\.connected\) return false;/);
-  assert.match(reportBlock, /s\.emit\(SOCKET_EMIT\.REPORT_SQUAD, payload\);/);
+  assert.match(reportBlock, /if \(!s\.connected\) return \{ ok: false, error:/);
+  assert.match(reportBlock, /s\.timeout\(5000\)\.emit/);
+  assert.match(reportBlock, /error \|\| !result/);
+  assert.match(reportBlock, /result\.ok && result\.reportId/);
+  assert.match(reportBlock, /resolve\(\{ ok: true, reportId: result\.reportId, status: result\.status \}\)/);
 });
 
 test("encounter lifecycle events use the server contract names", () => {

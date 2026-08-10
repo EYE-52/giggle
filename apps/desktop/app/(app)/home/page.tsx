@@ -15,6 +15,7 @@ import { session, api, randomSquadName, coverName, getTokenBalance, billing, for
 import { useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
 import { coverKind, coverBackground, coverSwatchBackground, coverInk } from "@/components/covers";
+import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 
 const MY_STATUS_LABEL: Record<string, string> = {
   idle: "Open",
@@ -35,6 +36,7 @@ const STATUS_RANK: Record<string, number> = { in_encounter: 0, searching: 1, mat
 const POLL_MS = 20_000;
 
 function squadDestination(squad: MySquadLite | PublicSquad) {
+  if (!WEB_DISCOVERY_ENABLED) return `/lobby?squad=${squad.squadId}`;
   return ["searching", "matched", "in_encounter"].includes(squad.status)
     ? `/matchmaking?squad=${squad.squadId}`
     : `/lobby?squad=${squad.squadId}`;
@@ -80,6 +82,10 @@ export default function HomePage() {
 
   // Poll discover so "Open signals" and the Live-signals rail stay live.
   useEffect(() => {
+    if (!WEB_DISCOVERY_ENABLED) {
+      setTrending([]);
+      return;
+    }
     let alive = true;
     const fetchTrending = () => {
       api.discoverSquads()
@@ -215,7 +221,7 @@ export default function HomePage() {
       a.squadName.localeCompare(b.squadName));
   const openSignals = trending?.length ?? 0;
   const showFirstRun = !mySquadsLoading && !mySquadsError && mySquads.length === 0;
-  const showLiveSignals = !showFirstRun || trendingError || trending === null || trending.length > 0;
+  const showLiveSignals = WEB_DISCOVERY_ENABLED && (!showFirstRun || trendingError || trending === null || trending.length > 0);
   const leavingSquad = removeConfirmId ? mySquads.find(s => s.squadId === removeConfirmId) ?? null : null;
   // Squads you already belong to must never offer "Join" in the live rail —
   // they open the lobby instead (mirrors the squad-preview membership fix).
@@ -265,7 +271,7 @@ export default function HomePage() {
             ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, width: "100%" }
             : { display: "flex", alignItems: "stretch", gap: 12, flexWrap: "wrap" }}>
             <StatTile label="Your squads" value={mySquadsLoading || mySquadsError ? "—" : String(mySquads.length)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
-            <StatTile label="Open signals" value={trending === null ? "—" : String(openSignals)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
+            {WEB_DISCOVERY_ENABLED && <StatTile label="Open signals" value={trending === null ? "—" : String(openSignals)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />}
             <StatTile label="Live now" value={stats === null ? "—" : String(stats.liveEncounters)} live style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
           </div>
         )}
@@ -290,7 +296,7 @@ export default function HomePage() {
             <Icon.account size={18} color={ACCENT} />
             <h2 style={sectionTitle}>Your squads</h2>
             {mySquads.length > 0 && <span style={{ fontSize: 13, color: "var(--text-dim)", fontWeight: 600 }}>{mySquads.length}</span>}
-            {mySquads.length > 0 && (
+            {WEB_DISCOVERY_ENABLED && mySquads.length > 0 && (
               <button onClick={() => router.push("/discover")} style={linkBtn}>Find more →</button>
             )}
           </div>
@@ -346,7 +352,7 @@ export default function HomePage() {
               )}
               {/* Ghost card — fills the dead area under a short squad list on
                   desktop and gives the column a natural next action. */}
-              <button
+              {WEB_DISCOVERY_ENABLED && <button
                 onClick={() => router.push("/discover")}
                 className="gg-press gg-row"
                 style={{
@@ -358,7 +364,7 @@ export default function HomePage() {
                 }}
               >
                 <span aria-hidden="true">＋</span> Browse open squads
-              </button>
+              </button>}
             </>
           )}
         </div>
@@ -370,18 +376,17 @@ export default function HomePage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Find-a-Match CTA — the page's single primary action (spec 07). */}
           {!showFirstRun && (
-          <div style={{ background: "linear-gradient(135deg, var(--accent) 0%, #7C5CFF 55%, #9F7BFF 100%)", borderRadius: RADIUS_CARD, color: "#fff", padding: 20, boxShadow: "0 10px 28px -10px color-mix(in srgb, var(--accent) 55%, transparent)" }}>
-            <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", color: "#fff" }}>Ready to giggle?</h2>
-            <p style={{ margin: "5px 0 14px", fontSize: 13, color: "rgba(255,255,255,0.85)", lineHeight: 1.5 }}>Match your squad with another crew on live video.</p>
+          <div style={{ background: "var(--surface)", border: CONTROL_BORDER, borderRadius: RADIUS_CARD, color: "var(--text)", padding: 20, boxShadow: SHADOW_CARD }}>
+            <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", color: "var(--text)" }}>Ready to giggle?</h2>
+            <p style={{ margin: "5px 0 14px", fontSize: 13, color: "var(--text-body)", lineHeight: 1.5 }}>Match your squad with another crew on live video.</p>
             <Button
-              variant="secondary"
+              variant="primary"
               size="sm"
               onClick={() => {
                 const led = mySquads.find(s => s.myRole === "leader") ?? promoted ?? mySquads[0];
                 if (led) router.push(squadDestination(led));
                 else router.push("/discover");
               }}
-              style={{ background: "#fff", color: "var(--accent)", border: "none", boxShadow: "none" }}
             >
               Find a Match
             </Button>

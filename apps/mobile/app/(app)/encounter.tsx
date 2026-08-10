@@ -5,16 +5,17 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Screen } from '../components/Screen';
-import { Icon } from '../components/Icon';
-import { Avatar } from '../components/Avatar';
-import { RtcSurface } from '../components/RtcSurface';
-import { COLORS, SPACE, RADII } from '../constants/theme';
+import { Screen } from '../../components/Screen';
+import { Icon } from '../../components/Icon';
+import { Avatar } from '../../components/Avatar';
+import { RtcSurface } from '../../components/RtcSurface';
+import { COLORS, SPACE, RADII } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   advanceSpeakerFocus,
   api,
   connectSocket,
+  createOpponentUserIds,
   createReportOpponentPayload,
   deriveEncounterLayout,
   EMPTY_SPEAKER_FOCUS,
@@ -31,6 +32,7 @@ import {
 import type { ChatMessage, EncounterDetail, EncounterSide } from '@giggle/core';
 import { createVideoClient } from '@giggle/agora';
 import type { CaptureState, ConnectionState, VideoClient, RemoteParticipant } from '@giggle/agora';
+import { NATIVE_DISCOVERY_ENABLED } from '../../constants/discovery';
 
 const TILE_COLORS = ['#7C5CFF', '#3DD6C0', '#FF8A5C', '#C2FF3D', '#FF5C8A', '#5C8CFF'];
 
@@ -106,6 +108,7 @@ export default function EncounterScreen() {
   const [encounterError, setEncounterError] = useState('');
   const [chatError, setChatError] = useState('');
   const [reported, setReported] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const [connState, setConnState] = useState<ConnectionState | null>(null);
   const [captureState, setCaptureState] = useState<CaptureState>({ audio: 'off', video: 'off' });
   const [loudestUid, setLoudestUid] = useState<string | null>(null);
@@ -122,6 +125,9 @@ export default function EncounterScreen() {
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
   const [ending, setEnding] = useState(false);
   const [endError, setEndError] = useState('');
+  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+  const [blockError, setBlockError] = useState('');
   const [remoteEnded, setRemoteEnded] = useState<'opponent-left' | 'ended' | null>(null);
   const [remoteEndError, setRemoteEndError] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -131,6 +137,7 @@ export default function EncounterScreen() {
   const reactionCountRef = useRef(0);
   const reactionTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const vcRef = useRef<VideoClient | null>(null);
+  const videoAttemptRef = useRef(0);
   const myUidRef = useRef<string | number | null>(null);
   const joinChainRef = useRef<Promise<unknown>>(Promise.resolve());
   const videoUnsubsRef = useRef<Array<() => void>>([]);
@@ -143,6 +150,9 @@ export default function EncounterScreen() {
 
   async function joinVideo(isCancelled: () => boolean = () => false) {
     if (!squadId || !encId) throw new Error('This encounter is unavailable.');
+    if (isCancelled()) return;
+    const attempt = ++videoAttemptRef.current;
+    const isStale = () => isCancelled() || attempt !== videoAttemptRef.current;
     setVideoReady(false);
     setVideoError('');
     setConnState('CONNECTING');
@@ -154,11 +164,18 @@ export default function EncounterScreen() {
     vcRef.current = null;
     clearVideoListeners();
     try { await staleClient?.leave(); } catch {}
-    if (isCancelled()) return;
+    if (isStale()) return;
 
     await api.setEncounterVideo(squadId, true);
+    if (isStale()) {
+      await api.setEncounterVideo(squadId, false).catch(() => {});
+      return;
+    }
     const token = await api.encounterToken(squadId, encId);
-    if (isCancelled()) return;
+    if (isStale()) {
+      await api.setEncounterVideo(squadId, false).catch(() => {});
+      return;
+    }
 
     const vc = createVideoClient();
     vcRef.current = vc;
@@ -191,8 +208,13 @@ export default function EncounterScreen() {
     if (connectionUnsub) videoUnsubsRef.current.push(connectionUnsub);
     if (captureUnsub) videoUnsubsRef.current.push(captureUnsub);
 
-    await vc.join(token, { audio: true, video: true });
-    if (isCancelled()) {
+    try {
+      await vc.join(token, { audio: true, video: true });
+    } catch (error) {
+      if (isStale()) return;
+      throw error;
+    }
+    if (isStale()) {
       if (vcRef.current === vc) vcRef.current = null;
       clearVideoListeners();
       await vc.leave().catch(() => {});
@@ -233,6 +255,7 @@ export default function EncounterScreen() {
     boot();
     return () => {
       cancelled = true;
+      videoAttemptRef.current += 1;
       joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
         const staleClient = vcRef.current;
         vcRef.current = null;
@@ -280,15 +303,10 @@ export default function EncounterScreen() {
       setShowChat(false);
       setMoreOpen(false);
       setEndConfirmOpen(false);
+      setBlockConfirmOpen(false);
       setRemoteEndError('');
       setRemoteEnded(payload?.reason === 'squad_disconnected' ? 'opponent-left' : 'ended');
-      setVideoReady(false);
-      joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
-        const staleClient = vcRef.current;
-        vcRef.current = null;
-        clearVideoListeners();
-        try { await staleClient?.leave(); } catch {}
-      });
+      void detachVideo();
     };
     socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED, onEnded);
     return () => { socket.off(SOCKET_EVENTS.ENCOUNTER_ENDED, onEnded); };
@@ -458,12 +476,16 @@ export default function EncounterScreen() {
 
   const reportPayload = createReportOpponentPayload({ encounterId: encId, squadId, encounter: enc });
   const canReport = Boolean(reportPayload);
+  const opponentUserIds = createOpponentUserIds({ squadId, ownUserId: myUserId, encounter: enc });
+  const canBlockOpponent = Boolean(opponentUserIds?.length);
 
-  function handleReport() {
-    if (reported || !canReport) return;
+  async function handleReport() {
+    if (reported || reporting || !canReport) return;
     setMoreError('');
-    const sent = reportOpponentSquad({ encounterId: encId, squadId, encounter: enc });
-    if (!sent) {
+    setReporting(true);
+    const result = await reportOpponentSquad({ encounterId: encId, squadId, encounter: enc });
+    setReporting(false);
+    if (!result.ok) {
       setMoreError("Couldn't send this report. Try again.");
       return;
     }
@@ -523,15 +545,47 @@ export default function EncounterScreen() {
     }
   }
 
+  function detachVideo() {
+    videoAttemptRef.current += 1;
+    const client = vcRef.current;
+    vcRef.current = null;
+    clearVideoListeners();
+    setVideoReady(false);
+    setConnState('DISCONNECTED');
+    setCaptureState({ audio: 'off', video: 'off' });
+    setRemotes([]);
+    setLoudestUid(null);
+    const clientExit = client?.leave().catch(() => {}) ?? Promise.resolve();
+    return clientExit;
+  }
+
+  async function leaveVideoAndGoHome() {
+    await detachVideo();
+    router.replace('/home');
+  }
+
+  async function blockOpponentSquad() {
+    if (!squadId || !encId || !opponentUserIds || blocking) return;
+    setBlocking(true);
+    setBlockError('');
+    try {
+      await api.blockUsers(opponentUserIds);
+      await api.disconnectEncounter(squadId, encId);
+      await leaveVideoAndGoHome();
+    } catch {
+      setBlocking(false);
+      setBlockError("Couldn't block this squad yet. Try again.");
+    }
+  }
+
   async function endEncounter() {
     if (!squadId || !encId || ending) return;
     setEnding(true);
     setEndError('');
+    const mediaExit = detachVideo();
+    void mediaExit;
     try {
       await api.disconnectEncounter(squadId, encId);
-      try { await vcRef.current?.leave(); } catch {}
-      vcRef.current = null;
-      clearVideoListeners();
       setEndConfirmOpen(false);
       router.replace('/home');
     } catch {
@@ -573,7 +627,6 @@ export default function EncounterScreen() {
     );
   }
 
-  const compactHeader = viewportClass === 'phone' || height < 500;
   const stackSides = viewportClass === 'phone' && height >= Math.max(width, 640);
   const captureIssues = [
     captureState.audio === 'denied' ? 'Microphone permission is blocked.'
@@ -581,6 +634,27 @@ export default function EncounterScreen() {
     captureState.video === 'denied' ? 'Camera permission is blocked.'
       : captureState.video === 'unavailable' ? 'No usable camera was found.' : null,
   ].filter((message): message is string => !!message);
+  const callNotice = captureIssues.length > 0
+    ? null
+    : videoError
+      ? {
+          title: videoReady ? 'Call issue' : 'Video unavailable',
+          copy: videoError,
+          retry: true,
+          error: true,
+        }
+      : connState !== 'CONNECTED'
+        ? {
+            title: connState === 'RECONNECTING' ? 'Reconnecting' : connState === 'DISCONNECTED' ? 'Disconnected' : 'Connecting',
+            copy: connState === 'RECONNECTING'
+              ? 'Trying to restore video. Chat stays available.'
+              : connState === 'DISCONNECTED'
+                ? 'Video is offline. Chat is still available.'
+                : 'Connecting camera and microphone.',
+            retry: connState === 'DISCONNECTED',
+            error: connState === 'DISCONNECTED',
+          }
+        : null;
   const localParticipant = participants.find((person) => person.isLocal);
   const hasFocusedFrame = layout.kind !== 'squad-split';
   const hasCompactSelfView = !!localParticipant && localParticipant.id !== layout.focusId &&
@@ -625,19 +699,7 @@ export default function EncounterScreen() {
       >
         <LinearGradient colors={[color + '52', color + '18']} style={StyleSheet.absoluteFill} />
         {hasVideo ? (
-          fit === 'fit' ? (
-            <>
-              <RtcSurface
-                fit="crop"
-                pointerEvents="none"
-                style={[StyleSheet.absoluteFill, styles.videoBackdrop]}
-                canvas={canvas}
-              />
-              <RtcSurface fit="fit" pointerEvents="none" style={StyleSheet.absoluteFill} canvas={canvas} />
-            </>
-          ) : (
-            <RtcSurface fit="crop" pointerEvents="none" style={StyleSheet.absoluteFill} canvas={canvas} />
-          )
+          <RtcSurface fit={fit} pointerEvents="none" style={StyleSheet.absoluteFill} canvas={canvas} />
         ) : (
           <View style={styles.participantFallback}>
             <Avatar name={person.name} size={compact ? 34 : 58} colorIndex={person.colorIndex} />
@@ -794,24 +856,9 @@ export default function EncounterScreen() {
     <Screen>
       {/* ── Slim top bar ── */}
       <View style={styles.topBar}>
-        {!compactHeader && (
-          <View style={styles.topLeft}>
-            <Text style={styles.topSquadA} numberOfLines={1}>{mySquad?.name} · {mineParticipants.length}</Text>
-            <Text style={styles.topVs}>vs</Text>
-            <Text style={styles.topSquadB} numberOfLines={1}>{theirSquad?.name} · {theirParticipants.length}</Text>
-          </View>
-        )}
         <View style={styles.topRight}>
-          {connState === 'CONNECTED' ? (
-            <>
-              <View style={styles.livePill}><Text style={styles.liveText}>LIVE</Text></View>
-              <Text style={styles.timer}>{fmt(elapsed)}</Text>
-            </>
-          ) : (
-            <Text style={[styles.connectionText, connState === 'DISCONNECTED' && styles.connectionError]}>
-              {connState === 'RECONNECTING' ? 'Reconnecting' : connState === 'DISCONNECTED' ? 'Disconnected' : 'Connecting'}
-            </Text>
-          )}
+          {connState === 'CONNECTED' && <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>LIVE</Text></View>}
+          <Text style={styles.timer}>{fmt(elapsed)}</Text>
         </View>
       </View>
 
@@ -823,22 +870,28 @@ export default function EncounterScreen() {
           </View>
         ) : (
           <>
-            {videoError && captureIssues.length === 0 ? (
-              <View style={styles.videoErrorBanner} accessibilityRole="alert">
+            {callNotice ? (
+              <View
+                style={[styles.callNotice, callNotice.error && styles.callNoticeError]}
+                accessibilityRole={callNotice.error ? 'alert' : undefined}
+                accessibilityLiveRegion="polite"
+              >
                 <View style={styles.issueCopy}>
-                  <Text style={styles.videoErrorTitle}>{videoReady ? 'Call issue' : 'Video unavailable'}</Text>
-                  <Text style={styles.videoErrorCopy}>{videoError}</Text>
+                  <Text style={[styles.callNoticeTitle, callNotice.error && styles.callNoticeTitleError]}>{callNotice.title}</Text>
+                  <Text style={styles.callNoticeCopy}>{callNotice.copy}</Text>
                 </View>
-                <TouchableOpacity
-                  onPress={retryVideo}
-                  disabled={videoRetrying}
-                  accessibilityRole="button"
-                  accessibilityLabel="Retry video"
-                  accessibilityState={{ disabled: videoRetrying }}
-                  style={styles.retryButton}
-                >
-                  <Text style={styles.retryButtonText}>{videoRetrying ? 'Retrying…' : 'Retry'}</Text>
-                </TouchableOpacity>
+                {callNotice.retry && (
+                  <TouchableOpacity
+                    onPress={retryVideo}
+                    disabled={videoRetrying}
+                    accessibilityRole="button"
+                    accessibilityLabel="Retry video"
+                    accessibilityState={{ disabled: videoRetrying }}
+                    style={styles.retryButton}
+                  >
+                    <Text style={styles.retryButtonText}>{videoRetrying ? 'Retrying…' : 'Retry'}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : null}
             {captureIssues.length > 0 && (
@@ -1069,14 +1122,29 @@ export default function EncounterScreen() {
               {moreError ? <Text style={styles.moreError} accessibilityRole="alert">{moreError}</Text> : null}
               <TouchableOpacity
               onPress={handleReport}
-              disabled={!canReport || reported}
+              disabled={!canReport || reported || reporting}
               accessibilityRole="button"
-              accessibilityLabel={!canReport ? 'Report unavailable' : reported ? 'Report sent' : 'Report opponent squad'}
-              accessibilityState={{ disabled: !canReport || reported }}
-              style={[styles.actionRow, (!canReport || reported) && styles.actionRowDisabled]}
+              accessibilityLabel={!canReport ? 'Report unavailable' : reported ? 'Report sent' : reporting ? 'Sending report' : 'Report opponent squad'}
+              accessibilityState={{ disabled: !canReport || reported || reporting }}
+              style={[styles.actionRow, (!canReport || reported || reporting) && styles.actionRowDisabled]}
             >
               <Icon.flag size={20} color={reported ? COLORS.lime : COLORS.textMuted} />
-              <Text style={styles.actionText}>{reported ? 'Reported' : 'Report opponent squad'}</Text>
+              <Text style={styles.actionText}>{reported ? 'Reported' : reporting ? 'Sending report…' : 'Report opponent squad'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setMoreOpen(false);
+                  setBlockError('');
+                  setBlockConfirmOpen(true);
+                }}
+                disabled={!canBlockOpponent || blocking}
+                accessibilityRole="button"
+                accessibilityLabel={!canBlockOpponent ? 'Block unavailable' : blocking ? 'Blocking opponent squad' : 'Block opponent squad'}
+                accessibilityState={{ disabled: !canBlockOpponent || blocking, busy: blocking }}
+                style={[styles.actionRow, (!canBlockOpponent || blocking) && styles.actionRowDisabled]}
+              >
+                <Icon.shield size={20} color={COLORS.coral} />
+                <Text style={styles.actionText}>{blocking ? 'Blocking opponent squad…' : 'Block opponent squad'}</Text>
               </TouchableOpacity>
               {hasFocusedFrame && (
                 <TouchableOpacity
@@ -1123,6 +1191,48 @@ export default function EncounterScreen() {
       </Modal>
 
       <Modal
+        visible={blockConfirmOpen}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => {
+          if (!blocking) setBlockConfirmOpen(false);
+        }}
+      >
+        <View style={styles.confirmOverlay}>
+          <View accessibilityViewIsModal style={styles.confirmCard}>
+            <Text style={styles.confirmTitle}>Block opponent squad?</Text>
+            <Text style={styles.confirmCopy}>
+              Everyone in the other squad will be blocked, and your squad will leave this encounter. This does not send a report.
+            </Text>
+            {blockError ? <Text style={styles.endError} accessibilityRole="alert">{blockError}</Text> : null}
+            <View style={styles.confirmActions}>
+              <TouchableOpacity
+                onPress={() => setBlockConfirmOpen(false)}
+                disabled={blocking}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel blocking"
+                accessibilityState={{ disabled: blocking }}
+                style={[styles.confirmSecondary, blocking && styles.actionRowDisabled]}
+              >
+                <Text style={styles.confirmSecondaryText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={blockOpponentSquad}
+                disabled={blocking}
+                accessibilityRole="button"
+                accessibilityLabel={blocking ? 'Blocking opponent squad' : 'Confirm block opponent squad'}
+                accessibilityState={{ disabled: blocking, busy: blocking }}
+                style={[styles.confirmDanger, blocking && styles.actionRowDisabled]}
+              >
+                <Text style={styles.confirmDangerText}>{blocking ? 'Blocking…' : 'Block squad'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={endConfirmOpen}
         transparent
         animationType="fade"
@@ -1138,13 +1248,16 @@ export default function EncounterScreen() {
             {endError ? <Text style={styles.endError} accessibilityRole="alert">{endError}</Text> : null}
             <View style={styles.confirmActions}>
               <TouchableOpacity
-                onPress={() => setEndConfirmOpen(false)}
+                onPress={() => {
+                  if (endError) retryVideo();
+                  setEndConfirmOpen(false);
+                }}
                 disabled={ending}
                 accessibilityRole="button"
-                accessibilityLabel="Keep talking"
+                accessibilityLabel={endError ? 'Reconnect call' : 'Keep talking'}
                 style={styles.confirmSecondary}
               >
-                <Text style={styles.confirmSecondaryText}>Keep talking</Text>
+                <Text style={styles.confirmSecondaryText}>{endError ? 'Reconnect call' : 'Keep talking'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={endEncounter}
@@ -1175,7 +1288,9 @@ export default function EncounterScreen() {
               {remoteEnded === 'opponent-left' ? 'The other squad left' : 'Encounter ended'}
             </Text>
             <Text style={styles.confirmCopy}>
-              {remoteEnded === 'opponent-left' ? 'Your squad is already back in matchmaking.' : 'Thanks for hanging out.'}
+              {NATIVE_DISCOVERY_ENABLED && remoteEnded === 'opponent-left'
+                ? 'Your squad is already back in matchmaking.'
+                : 'Thanks for hanging out.'}
             </Text>
             {remoteEndError ? <Text style={styles.endError} accessibilityRole="alert">{remoteEndError}</Text> : null}
             <View style={styles.confirmActions}>
@@ -1187,25 +1302,27 @@ export default function EncounterScreen() {
               >
                 <Text style={styles.confirmSecondaryText}>Back home</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                onPress={async () => {
-                  if (!squadId) return router.replace('/home');
-                  setRemoteEndError('');
-                  try {
-                    if (remoteEnded !== 'opponent-left') await api.startSearch(squadId);
-                    router.replace(`/matchmaking?squad=${squadId}`);
-                  } catch (error: any) {
-                    setRemoteEndError(error?.message || "Couldn't start matchmaking.");
-                  }
-                }}
-                accessibilityRole="button"
-                accessibilityLabel={remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
-                style={styles.confirmDanger}
-              >
-                <Text style={styles.confirmDangerText}>
-                  {remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
-                </Text>
-              </TouchableOpacity>
+              {NATIVE_DISCOVERY_ENABLED && (
+                <TouchableOpacity
+                  onPress={async () => {
+                    if (!squadId) return router.replace('/home');
+                    setRemoteEndError('');
+                    try {
+                      if (remoteEnded !== 'opponent-left') await api.startSearch(squadId);
+                      router.replace(`/matchmaking?squad=${squadId}`);
+                    } catch (error: any) {
+                      setRemoteEndError(error?.message || "Couldn't start matchmaking.");
+                    }
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
+                  style={styles.confirmDanger}
+                >
+                  <Text style={styles.confirmDangerText}>
+                    {remoteEnded === 'opponent-left' ? 'Continue matching' : 'Find another match'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -1230,20 +1347,15 @@ const styles = StyleSheet.create({
 
   // ── Slim top bar ──
   topBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end',
     paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm,
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
-  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: SPACE.sm },
-  topSquadA: { fontSize: 13, fontWeight: '700', color: COLORS.violet, maxWidth: 160 },
-  topVs: { fontSize: 11, color: COLORS.textDim, fontWeight: '600' },
-  topSquadB: { fontSize: 13, fontWeight: '700', color: COLORS.coral, maxWidth: 160 },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' },
-  livePill: { backgroundColor: COLORS.coral, borderRadius: 999, paddingVertical: 2, paddingHorizontal: 8 },
-  liveText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 1 },
+  livePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.limeSoft, borderRadius: RADII.pill, paddingVertical: 3, paddingHorizontal: 8 },
+  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.lime },
+  liveText: { fontSize: 10, fontWeight: '800', color: COLORS.lime, letterSpacing: 1 },
   timer: { fontSize: 12, color: COLORS.textMuted, fontVariant: ['tabular-nums'] as any },
-  connectionText: { fontSize: 12, fontWeight: '700', color: COLORS.textMuted },
-  connectionError: { color: COLORS.coral },
 
   // ── Video area ──
   videoArea: { flex: 1, overflow: 'hidden' },
@@ -1266,24 +1378,26 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: 'center',
   },
-  videoErrorBanner: {
+  callNotice: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     marginHorizontal: SPACE.md,
     marginTop: SPACE.sm,
     padding: SPACE.sm,
     borderRadius: RADII.tile,
     borderWidth: 1,
-    borderColor: 'rgba(255,92,92,0.28)',
-    backgroundColor: 'rgba(255,92,92,0.10)',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
   },
-  videoErrorTitle: { color: COLORS.coral, fontSize: 12, fontWeight: '900' },
-  videoErrorCopy: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
+  callNoticeError: { borderColor: COLORS.coral, backgroundColor: COLORS.coralSoft },
+  callNoticeTitle: { color: COLORS.text, fontSize: 12, fontWeight: '900' },
+  callNoticeTitleError: { color: COLORS.coral },
+  callNoticeCopy: { color: COLORS.textMuted, fontSize: 12, marginTop: 2 },
   issueCopy: { flex: 1 },
   captureBanner: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     marginHorizontal: SPACE.md, marginTop: SPACE.sm, padding: SPACE.sm,
-    borderRadius: RADII.tile, borderWidth: 1, borderColor: 'rgba(255,176,32,0.34)',
-    backgroundColor: 'rgba(255,176,32,0.10)',
+    borderRadius: RADII.tile, borderWidth: 1, borderColor: COLORS.coral,
+    backgroundColor: COLORS.coralSoft,
   },
   captureCopy: { flex: 1, color: COLORS.text, fontSize: 12, lineHeight: 18 },
   retryButton: { minWidth: 64, minHeight: 48, paddingHorizontal: SPACE.sm, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
@@ -1314,11 +1428,6 @@ const styles = StyleSheet.create({
   participantTileSpeaking: { borderColor: COLORS.lime, borderWidth: 2 },
   participantFallback: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   participantStatus: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600' },
-  videoBackdrop: {
-    opacity: 0.46,
-    transform: [{ scale: 1.08 }],
-    filter: [{ blur: 22 }, { brightness: 0.46 }],
-  },
   filmstrip: { flexGrow: 0, height: 76 },
   filmstripContent: { gap: 7, paddingRight: 4 },
   filmstripItem: { width: 108, height: 72 },
@@ -1333,8 +1442,8 @@ const styles = StyleSheet.create({
     alignSelf: 'center', flexDirection: 'row', padding: 3, borderRadius: 999,
     backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border,
   },
-  segmentButton: { minWidth: 86, minHeight: 34, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  segmentButtonActive: { backgroundColor: 'rgba(124,92,255,0.22)' },
+  segmentButton: { minWidth: 86, minHeight: 44, borderRadius: RADII.pill, alignItems: 'center', justifyContent: 'center' },
+  segmentButtonActive: { backgroundColor: COLORS.violetSoft },
   segmentText: { color: COLORS.textMuted, fontSize: 12, fontWeight: '700' },
   segmentTextActive: { color: COLORS.text },
 
@@ -1444,8 +1553,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: COLORS.border,
   },
-  ctrlOff: { backgroundColor: 'rgba(255,92,92,0.15)', borderColor: COLORS.coral },
-  ctrlActive: { borderColor: COLORS.violet, backgroundColor: 'rgba(124,92,255,0.1)' },
+  ctrlOff: { backgroundColor: COLORS.coralSoft, borderColor: COLORS.coral },
+  ctrlActive: { borderColor: COLORS.violet, backgroundColor: COLORS.violetSoft },
   moreGlyph: { color: COLORS.text, fontSize: 18, fontWeight: '900', letterSpacing: 1 },
   unreadBadge: { position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.coral },
   unreadText: { color: '#fff', fontSize: 10, fontWeight: '900' },

@@ -7,20 +7,23 @@ import { Logomark } from "@/components/Brand";
 import { useViewport } from "@/components/useViewport";
 import { session, connectSocket } from "@giggle/core";
 import { AgeGate } from "@/components/AgeGate";
+import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
+import { IdentityOnlyAccount } from "@/components/IdentityOnlyAccount";
 
 const CALLING_ROUTES = ["/lobby", "/encounter", "/matchmaking", "/match"];
+const DISCOVERY_ROUTES = ["/discover", "/matchmaking", "/match"];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isCalling = CALLING_ROUTES.some((r) => pathname === r);
+  const discoveryRouteDisabled = !WEB_DISCOVERY_ENABLED && DISCOVERY_ROUTES.includes(pathname);
   const { isPhone } = useViewport();
   const [authReady, setAuthReady] = useState(false);
-  // Age gate: once auth is ready, block the app until the user has attested a
-  // date of birth. `ageConfirmed` is undefined until the backend ships /api/me/age
-  // (or for fresh devSignIn users) — treat anything other than an explicit true
-  // as "not confirmed" so the gate shows. Cleared once AgeGate reports success.
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [hasAdultAccess, setHasAdultAccess] = useState(false);
+  const identityOnlyAccess = authReady && session.hasIdentityOnlyAccess;
+  const identityRouteBlocked = identityOnlyAccess && session.accountStatus !== "active" && pathname !== "/profile";
+  const identityProfile = identityOnlyAccess && pathname === "/profile";
 
   // Auth gate: the whole (app) area requires a session. In production the only
   // way in is real OAuth — unauthenticated users are sent to /signin. In local
@@ -30,12 +33,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     async function ensureSession() {
       if (session.isAuthed()) {
-        let confirmed = session.ageConfirmed;
-        // Resolve legacy/stale tokens while the opening state is still visible;
-        // otherwise a confirmed user briefly sees a false age gate.
-        if (!confirmed) confirmed = await session.syncAgeFromServer();
+        await session.syncAgeFromServer();
         if (!cancelled) {
-          setAgeConfirmed(confirmed);
+          setHasAdultAccess(session.hasAdultAccess);
           setAuthReady(true);
         }
         return;
@@ -43,8 +43,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (process.env.NODE_ENV !== "production") {
         try {
           await session.devSignIn();
+          await session.syncAgeFromServer();
           if (!cancelled) {
-            setAgeConfirmed(session.ageConfirmed);
+            setHasAdultAccess(session.hasAdultAccess);
             setAuthReady(true);
           }
         } catch {
@@ -58,6 +59,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [router]);
 
+  useEffect(() => {
+    if (identityRouteBlocked) router.replace("/profile");
+    else if (discoveryRouteDisabled) router.replace("/home");
+  }, [discoveryRouteDisabled, identityRouteBlocked, router]);
+
   // Open the authenticated presence socket for the app session so the user
   // counts as "online" app-wide (the backend marks online via the handshake).
   // Not torn down on route changes — kept for the whole app session. Network
@@ -66,7 +72,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // resumes instead of latching offline for the rest of the session.
   const reconnectTimer = useRef<number | null>(null);
   useEffect(() => {
-    if (!authReady || !session.isAuthed()) return;
+    if (!authReady || !hasAdultAccess || !session.isAuthed()) return;
     const s = connectSocket();
     const onDisconnect = (reason: string) => {
       // socket.io retries every other reason on its own.
@@ -74,7 +80,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (reconnectTimer.current != null) window.clearTimeout(reconnectTimer.current);
       reconnectTimer.current = window.setTimeout(() => {
         reconnectTimer.current = null;
-        if (session.isAuthed()) connectSocket();
+        if (session.isAuthed() && session.hasAdultAccess) connectSocket();
       }, 400);
     };
     s.on("disconnect", onDisconnect);
@@ -82,7 +88,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       s.off("disconnect", onDisconnect);
       if (reconnectTimer.current != null) window.clearTimeout(reconnectTimer.current);
     };
-  }, [authReady]);
+  }, [authReady, hasAdultAccess]);
 
   if (!authReady) {
     return (
@@ -98,12 +104,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Blocking age gate — stands in front of the whole app until a DOB is set.
-  if (!ageConfirmed) {
+  if (identityRouteBlocked) {
+    return <div role="status" aria-live="polite">Opening account controls…</div>;
+  }
+
+  if (identityProfile) {
     return (
       <ToastProvider>
-        <AgeGate onDone={() => setAgeConfirmed(true)} />
+        <IdentityOnlyAccount
+          onReturnToVerification={session.accountStatus === "active" ? () => router.replace("/home") : undefined}
+        />
       </ToastProvider>
+    );
+  }
+
+  if (!hasAdultAccess) {
+    return (
+      <ToastProvider>
+        <AgeGate
+          onDone={() => setHasAdultAccess(true)}
+          onManageAccount={() => router.push("/profile")}
+        />
+      </ToastProvider>
+    );
+  }
+
+  if (discoveryRouteDisabled) {
+    return (
+      <div role="status" aria-live="polite" style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--text-muted)" }}>
+        Stranger discovery is unavailable.
+      </div>
     );
   }
 

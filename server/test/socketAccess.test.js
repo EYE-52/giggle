@@ -1,22 +1,90 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { after } = require("node:test");
+const jwt = require("jsonwebtoken");
+
+const User = require("../src/models/User");
 
 const {
   authorizeEncounterRoomJoin,
+  authorizeRealtimeSend,
   authorizeSquadReport,
   authorizeSquadRoomJoin,
   normalizeRealtimeId,
   resolveReportTargetSquadId,
 } = require("../src/utils/socketAccess");
 const {
+  authenticateSocket,
   closeEncounterRoom,
+  disconnectUserSockets,
   isRealtimeDebugEnabled,
   normalizeSocketIdentity,
   revokeUserRealtimeAccess,
   resolveSocketAuthToken,
 } = require("../src/services/socketService");
 const { isMatchmakingDebugEnabled } = require("../src/services/matchmakingService");
+
+const USER_ID = "64b7f3c9a1b2c3d4e5f67890";
+const ROOM_USER_A = "507f1f77bcf86cd799439011";
+const ROOM_USER_B = "507f1f77bcf86cd799439012";
+const ROOM_USER_C = "507f1f77bcf86cd799439013";
+
+async function withSocketAuthEnvironment(run) {
+  const originals = {
+    JWT_SECRET: process.env.JWT_SECRET,
+    NODE_ENV: process.env.NODE_ENV,
+    AGE_VERIFICATION_BYPASS: process.env.AGE_VERIFICATION_BYPASS,
+  };
+  process.env.JWT_SECRET = "test-secret";
+  process.env.NODE_ENV = "production";
+  process.env.AGE_VERIFICATION_BYPASS = "true";
+
+  try {
+    return await run();
+  } finally {
+    for (const [key, value] of Object.entries(originals)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+async function withSocketUser(user, run) {
+  const originalFindById = User.findById;
+  let selectedFields;
+  User.findById = () => ({
+    select: async (fields) => {
+      selectedFields = fields;
+      if (user instanceof Error) throw user;
+      return user;
+    },
+  });
+
+  try {
+    return await run(() => selectedFields);
+  } finally {
+    User.findById = originalFindById;
+  }
+}
+
+function socketWithToken(token) {
+  return {
+    id: "socket_1",
+    handshake: { auth: token === undefined ? {} : { token }, query: {} },
+  };
+}
+
+function signSocketToken(claims = {}) {
+  return jwt.sign({ userId: USER_ID, name: "Ana", ...claims }, process.env.JWT_SECRET);
+}
+
+async function runSocketAuth(socket) {
+  let error;
+  await authenticateSocket(socket, (nextError) => {
+    error = nextError || null;
+  });
+  return error;
+}
 
 after(async () => {
   const redisPath = require.resolve("../src/config/redisConfig");
@@ -50,6 +118,14 @@ const squadModel = (squads) => ({
 const encounterModel = (encounters) => ({
   async findOne(query) {
     return encounters.find((encounter) => encounter.encounterId === query.encounterId) || null;
+  },
+});
+
+const blockUserModel = (users) => ({
+  find({ _id: { $in: ids } }) {
+    return {
+      lean: async () => users.filter((user) => ids.includes(user._id)),
+    };
   },
 });
 
@@ -93,6 +169,130 @@ test("production sockets do not accept JWTs from query strings", () => {
   );
 });
 
+test("socket auth loads only live age-access fields and allows a verified adult", async () => {
+  await withSocketAuthEnvironment(() =>
+    withSocketUser(
+      { ageConfirmed: true, isAdult: true, ageVerified: true },
+      async (getSelectedFields) => {
+        const socket = socketWithToken(signSocketToken());
+
+        assert.equal(await runSocketAuth(socket), null);
+        assert.equal(
+          getSelectedFields(),
+          "ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
+        );
+        assert.equal(socket.userId, USER_ID);
+        assert.equal(socket.userName, "Ana");
+      }
+    )
+  );
+});
+
+test("production socket auth rejects moderated or pending-deletion accounts", async () => {
+  const adult = { ageConfirmed: true, isAdult: true, ageVerified: true };
+
+  await withSocketAuthEnvironment(async () => {
+    for (const unavailable of [
+      { ...adult, isSuspended: true },
+      { ...adult, isShadowBanned: true },
+      { ...adult, deletionStatus: "pending" },
+    ]) {
+      await withSocketUser(unavailable, async () => {
+        const error = await runSocketAuth(socketWithToken(signSocketToken()));
+        assert.equal(error?.message, "UNAUTHORIZED");
+      });
+    }
+  });
+});
+
+test("production socket auth rejects missing, minor, self-attested, and rejected users", async () => {
+  const deniedUsers = [
+    null,
+    { ageConfirmed: true, isAdult: false, ageVerified: false },
+    { ageConfirmed: true, isAdult: true, ageVerified: false },
+    { ageConfirmed: true, isAdult: true, ageVerified: false, ageVerificationStatus: "rejected" },
+  ];
+
+  await withSocketAuthEnvironment(async () => {
+    for (const user of deniedUsers) {
+      await withSocketUser(user, async () => {
+        const socket = socketWithToken(signSocketToken());
+        const error = await runSocketAuth(socket);
+
+        assert.equal(error?.message, "UNAUTHORIZED");
+        assert.equal(socket.userId, undefined);
+      });
+    }
+  });
+});
+
+test("production socket auth ignores the development age bypass", async () => {
+  await withSocketAuthEnvironment(() =>
+    withSocketUser(
+      { ageConfirmed: true, isAdult: true, ageVerified: false },
+      async () => {
+        const error = await runSocketAuth(socketWithToken(signSocketToken()));
+        assert.equal(error?.message, "UNAUTHORIZED");
+      }
+    )
+  );
+});
+
+test("socket auth fails closed when the live user lookup fails", async () => {
+  const originalConsoleError = console.error;
+  console.error = () => {};
+
+  try {
+    await withSocketAuthEnvironment(() =>
+      withSocketUser(new Error("database unavailable"), async () => {
+        const error = await runSocketAuth(socketWithToken(signSocketToken()));
+        assert.equal(error?.message, "UNAUTHORIZED");
+      })
+    );
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+
+test("malformed presented socket tokens reject even in development", async () => {
+  await withSocketAuthEnvironment(async () => {
+    process.env.NODE_ENV = "development";
+    const originalConsoleWarn = console.warn;
+    console.warn = () => {};
+    try {
+      for (const token of ["not-a-jwt", "", null]) {
+        const error = await runSocketAuth(socketWithToken(token));
+        assert.equal(error?.message, "UNAUTHORIZED");
+      }
+    } finally {
+      console.warn = originalConsoleWarn;
+    }
+  });
+});
+
+test("only exact development mode permits a tokenless anonymous socket", async () => {
+  await withSocketAuthEnvironment(async () => {
+    const productionError = await runSocketAuth(socketWithToken());
+    assert.equal(productionError?.message, "UNAUTHORIZED");
+
+    process.env.NODE_ENV = "test";
+    const testError = await runSocketAuth(socketWithToken());
+    assert.equal(testError?.message, "UNAUTHORIZED");
+
+    process.env.NODE_ENV = "development";
+    const originalConsoleWarn = console.warn;
+    console.warn = () => {};
+    try {
+      const socket = socketWithToken();
+      assert.equal(await runSocketAuth(socket), null);
+      assert.equal(socket.userId, null);
+      assert.equal(socket.userName, null);
+    } finally {
+      console.warn = originalConsoleWarn;
+    }
+  });
+});
+
 test("revoking squad access removes every user socket from squad and encounter rooms", () => {
   const calls = [];
   const server = {
@@ -131,6 +331,20 @@ test("closing an encounter removes every socket from its stale room", () => {
   ]);
 });
 
+test("disconnectUserSockets disconnects every device for the user", () => {
+  const calls = [];
+  const server = {
+    in(room) {
+      calls.push(["in", room]);
+      return { disconnectSockets: (close) => calls.push(["disconnect", close]) };
+    },
+  };
+
+  disconnectUserSockets("user_a", server);
+
+  assert.deepEqual(calls, [["in", "user_user_a"], ["disconnect", true]]);
+});
+
 test("matchmaking debug logging is opt-in for production", () => {
   assert.equal(isMatchmakingDebugEnabled({ NODE_ENV: "production" }), false);
   assert.equal(isMatchmakingDebugEnabled({ NODE_ENV: "production", MATCHMAKING_DEBUG: "true" }), true);
@@ -139,21 +353,27 @@ test("matchmaking debug logging is opt-in for production", () => {
 
 test("authorizeSquadRoomJoin requires membership for authenticated sockets", async () => {
   const Squad = squadModel([
-    { squadId: "sq_a", members: [{ userId: "user_a" }] },
-    { squadId: "sq_b", members: [{ userId: "user_b" }] },
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }] },
+    { squadId: "sq_b", members: [{ userId: ROOM_USER_B }] },
+  ]);
+  const User = blockUserModel([
+    { _id: ROOM_USER_A, blockedUserIds: [] },
+    { _id: ROOM_USER_B, blockedUserIds: [] },
   ]);
 
   const allowed = await authorizeSquadRoomJoin({
     squadId: "sq_a",
-    userId: "user_a",
+    userId: ROOM_USER_A,
     isProduction: true,
     Squad,
+    User,
   });
   const denied = await authorizeSquadRoomJoin({
     squadId: "sq_b",
-    userId: "user_a",
+    userId: ROOM_USER_A,
     isProduction: true,
     Squad,
+    User,
   });
 
   assert.deepEqual(allowed, { allowed: true, room: "squad_sq_a" });
@@ -162,8 +382,12 @@ test("authorizeSquadRoomJoin requires membership for authenticated sockets", asy
 
 test("authorizeEncounterRoomJoin requires membership in either encounter squad", async () => {
   const Squad = squadModel([
-    { squadId: "sq_a", members: [{ userId: "user_a" }] },
-    { squadId: "sq_b", members: [{ userId: "user_b" }] },
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }] },
+    { squadId: "sq_b", members: [{ userId: ROOM_USER_B }] },
+  ]);
+  const User = blockUserModel([
+    { _id: ROOM_USER_A, blockedUserIds: [] },
+    { _id: ROOM_USER_B, blockedUserIds: [] },
   ]);
   const Encounter = encounterModel([
     { encounterId: "enc_1", squadAId: "sq_a", squadBId: "sq_b", status: "active" },
@@ -171,21 +395,100 @@ test("authorizeEncounterRoomJoin requires membership in either encounter squad",
 
   const allowed = await authorizeEncounterRoomJoin({
     encounterId: "enc_1",
-    userId: "user_a",
+    userId: ROOM_USER_A,
     isProduction: true,
     Squad,
     Encounter,
+    User,
   });
   const denied = await authorizeEncounterRoomJoin({
     encounterId: "enc_1",
-    userId: "user_c",
+    userId: ROOM_USER_C,
     isProduction: true,
     Squad,
     Encounter,
+    User,
   });
 
   assert.deepEqual(allowed, { allowed: true, room: "encounter_enc_1" });
   assert.equal(denied.allowed, false);
+});
+
+test("realtime room and send authorization fail closed for blocked live rosters", async () => {
+  const Squad = squadModel([
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }] },
+    { squadId: "sq_b", members: [{ userId: ROOM_USER_B }] },
+  ]);
+  const Encounter = encounterModel([
+    { encounterId: "enc_1", squadAId: "sq_a", squadBId: "sq_b", status: "active" },
+  ]);
+  const User = blockUserModel([
+    { _id: ROOM_USER_A, blockedUserIds: [ROOM_USER_B] },
+    { _id: ROOM_USER_B, blockedUserIds: [] },
+  ]);
+
+  assert.equal((await authorizeSquadRoomJoin({
+    squadId: "sq_a",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    User,
+  })).allowed, true);
+  assert.equal((await authorizeEncounterRoomJoin({
+    encounterId: "enc_1",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    Encounter,
+    User,
+  })).allowed, false);
+  assert.equal((await authorizeRealtimeSend({
+    encounterId: "enc_1",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    Encounter,
+    User,
+  })).allowed, false);
+});
+
+test("squad room authorization rejects a blocked teammate pair", async () => {
+  const Squad = squadModel([
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }, { userId: ROOM_USER_B }] },
+  ]);
+  const User = blockUserModel([
+    { _id: ROOM_USER_A, blockedUserIds: [] },
+    { _id: ROOM_USER_B, blockedUserIds: [ROOM_USER_A] },
+  ]);
+
+  const result = await authorizeSquadRoomJoin({
+    squadId: "sq_a",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    User,
+  });
+  assert.equal(result.allowed, false);
+});
+
+test("encounter room authorization requires both complete live rosters", async () => {
+  const Squad = squadModel([
+    { squadId: "sq_a", members: [{ userId: ROOM_USER_A }] },
+  ]);
+  const Encounter = encounterModel([
+    { encounterId: "enc_1", squadAId: "sq_a", squadBId: "sq_missing", status: "active" },
+  ]);
+  const User = blockUserModel([{ _id: ROOM_USER_A, blockedUserIds: [] }]);
+
+  const result = await authorizeEncounterRoomJoin({
+    encounterId: "enc_1",
+    userId: ROOM_USER_A,
+    isProduction: true,
+    Squad,
+    Encounter,
+    User,
+  });
+  assert.equal(result.allowed, false);
 });
 
 test("resolveReportTargetSquadId prefers the reported squad over reporter squad", () => {
@@ -252,4 +555,31 @@ test("chat broadcasts include scope, client ids, and explicit acknowledgements",
   assert.match(messageBlock, /reply\(\{ ok: false, error:/);
   assert.match(messageBlock, /reply\(\{ ok: true, message \}\);/);
   assert.match(messageBlock, /sentChatMessages\.get\(normalizedClientMessageId\)/);
+  assert.match(messageBlock, /classifyVibe\(normalizedText\) !== 'ok'/);
+  assert.equal(
+    messageBlock.indexOf("await authorizeRealtimeSend") <
+      messageBlock.indexOf("sentChatMessages.get(normalizedClientMessageId)"),
+    true
+  );
+  assert.match(messageBlock, /error: 'That message is not allowed\.'/);
+});
+
+test("report_squad acknowledges only persisted reports and never applies automatic punishment", () => {
+  const source = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "../src/services/socketService.js"),
+    "utf8"
+  );
+  const reportBlock = source.slice(
+    source.indexOf("socket.on('report_squad'"),
+    source.indexOf("socket.on('disconnect'")
+  );
+
+  assert.match(reportBlock, /async \(payload = \{}, ack\) =>/);
+  assert.match(reportBlock, /const reply = typeof ack === 'function' \? ack : \(\) => \{};/);
+  assert.match(reportBlock, /await persistSquadReport/);
+  assert.match(reportBlock, /reply\(result\);/);
+  assert.match(reportBlock, /reply\(\{ ok: false, error: 'Report could not be saved\. Try again\.' \}\);/);
+  for (const forbidden of ["reputationScore", "reportCount", "lastReportedAt", "isShadowBanned", ".save()"] ) {
+    assert.equal(reportBlock.includes(forbidden), false);
+  }
 });

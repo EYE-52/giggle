@@ -1,57 +1,93 @@
-# Giggle Web Handoff
+# Giggle Session Handoff
 
-Date: 2026-07-12
+Updated: 2026-08-10 (Asia/Kolkata)
 
-## Source
+## Start here
 
-- Canonical repository: `/Users/divyansh/Projects/giggle-stack/giggle-web`
-- Branch: `ui-redesign`
-- Local frontend: `http://localhost:4000`
-- Local backend: `http://localhost:3001`
-- Runtime: Node `22.13.0` from `.node-version`
+- Canonical repository: `/Users/divyansh/Projects/giggle-stack/giggle`
+- Active worktree: `/Users/divyansh/.config/superpowers/worktrees/giggle/global-age-safety`
+- Branch: `codex/global-age-safety`
+- Reviewed code commit: `6c1a41be69d950c9464eeb86d4fe2315024396c3`
+- Remote: `EYE-52/giggle`
+- Draft PR: https://github.com/EYE-52/giggle/pull/2 (targets `main`)
+- Do not use the old `giggle-app` or `giggle-web` split repositories.
 
-## Delivered
+The branch is pushed and clean. It is not merged into `main`. Production was deployed manually from this branch, so production is currently ahead of `main`.
 
-- Responsive public story with scroll-scrub video, poster fallback, reduced motion, and keyboard/legal navigation.
-- Google-first sign-in with retryable provider handoff and safe per-tab continuation routing.
-- Device-specific authenticated navigation: phone bottom bar, tablet icon navigation, desktop labeled navigation.
-- Explicit lobby media consent, readiness rules, recoverable media/API states, and short-phone layout.
-- Progressive matchmaking, safe cancellation/retry, real two-user match handoff, and stable encounter controls/media layouts.
-- Audited Home, Discover, Friends, Profile, and Wallet across five viewport classes.
-- Shared theme persistence, focus rings, 44px phone targets, contrast checks, and console/network/overflow assertions.
+## What was delivered
 
-## Verification
+### Verified-adult safety
 
-Run from the repository root with Node `22.13.0`:
+- One live verified-18+ access decision across API, squads, matchmaking, sockets, Agora, desktop, and mobile.
+- Under-18 and unverified accounts cannot use social/video discovery.
+- Identity-only access remains available for support, account export, deletion, recovery, and sign-out.
+- Report, block/unblock, moderation review, privacy, deletion serialization, and discovery kill switches are implemented.
+- Production stranger discovery is explicitly disabled.
+
+### Performance
+
+- Ready state updates locally instead of waiting for full squad reloads.
+- Redis session and queue mutations use pipelines with rollback/error handling.
+- Squad reads parallelize independent network work.
+- Matchmaking returns after durable queue insertion and polls without overlapping requests.
+- Desktop and mobile cancellation races are guarded.
+- Desktop audio-only lobby entry and chat retry behavior are covered by regressions.
+
+## Production state
+
+### Web
+
+- URL: https://www.gigglemeet.com
+- Vercel project: `giggle-web`
+- Deployment: `dpl_GQCeHK2wxfibCSbowx2NJg2rrLZ8`
+- Deployment URL: https://giggle-rc16tpkhl-divyansh24888-5115s-projects.vercel.app
+- Last smoke check: HTTP 200; Vercel target `production`, status `Ready`.
+
+### API
+
+- URL: https://giggle-server-production.up.railway.app
+- Railway project/service: `giggle` / `giggle-server`
+- Deployment: `1779e84a-f83f-459b-8790-524867236feb`
+- Last smoke check: API health and the public web, Privacy, Terms, Safety, and Support pages returned HTTP 200.
+
+### Safety flags and blockers
+
+- `STRANGER_DISCOVERY_ENABLED=false` in Railway.
+- `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false` in Vercel.
+- The Yoti callback is configured as `https://www.gigglemeet.com/home`; the previous documented API callback route did not exist and was corrected.
+- Yoti production API key and SDK id are still missing. Verification therefore fails closed; social access remains unavailable.
+- `ADMIN_EMAIL` is not configured in Railway, so the moderation review queue has no production admin identity yet.
+- Do not enable stranger discovery until Yoti, moderation/support staffing, legal review, trusted location handling, vendor retention/deletion, and app-store declarations are complete and evidenced.
+- Mobile source is pushed, but no App Store/Play Store build was deployed.
+
+## Verification evidence
+
+Fresh checks on `6c1a41b`:
+
+- Server: 301/301 passed.
+- Core: 61/61 passed.
+- Desktop: 145/145 passed.
+- Mobile: 104/104 passed.
+- Desktop production build passed.
+- Mobile TypeScript check and Expo web export passed (20 routes).
+- Root production audit: no known vulnerabilities.
+- Server production audit: 0 vulnerabilities.
+- Local verification used Node 25.6.1 with engine warnings; the repository supports Node `>=20.18 <25`, and Vercel built successfully on Node 22.
+
+## Next session
 
 ```bash
-pnpm install --frozen-lockfile
-pnpm test
-pnpm --filter @giggle/core test
-pnpm test:e2e
-NEXT_PUBLIC_BACKEND_URL=https://giggle-server-production.up.railway.app pnpm build
+cd /Users/divyansh/.config/superpowers/worktrees/giggle/global-age-safety
+git status -sb
+git fetch origin --prune
+gh pr view 2
 ```
 
-Final results:
+Then:
 
-- Web unit tests: 94 passed
-- Core unit tests: 25 passed
-- Playwright: 92 passed, 23 intentionally skipped duplicate viewport checks
-- Production build: passed; 19 routes generated
-- Browser matrix: 390x844, 390x650, 768x1024, 1280x800, 1440x1100, 1728x1117, phone landscape, and reduced motion
-- Visual evidence: `artifacts/visual-audit/2026-07-12/`
+1. Review PR #2 and merge it only when the user asks; `main` has not been changed.
+2. Provision and live-test Yoti plus the external launch gates before enabling discovery.
+3. Run a real two-account production smoke test for sign-in, age verification, lobby media, matchmaking, encounter, report/block, and exit/requeue.
+4. Handle native store builds separately when the user resumes mobile deployment.
 
-## Deploy
-
-1. Confirm Vercel is linked to this repository root, not the legacy monorepo desktop path.
-2. Confirm `NEXT_PUBLIC_BACKEND_URL` resolves to the production API; `vercel.json` currently sets the Railway production URL.
-3. Confirm the backend OAuth credentials and Google redirect URI match the production Giggle domain and proxied `/api/auth/google` flow.
-4. Run `vercel deploy --prod --yes --archive=tgz` from this repository root.
-5. Smoke test Google sign-in, lobby camera/microphone consent, a two-squad match, encounter end, and mobile safe areas on the deployed URL.
-
-## Remaining Risks
-
-- Payments and production token redemption remain intentionally deferred; Wallet does not expose checkout.
-- Automated OAuth tests verify frontend handoff and callback safety, not the live Google consent screen or production secrets.
-- Browser media tests verify nonblank participant frames and responsive controls; a production smoke test on real camera/microphone hardware and a constrained network is still required.
-- Next development mode may print an HMR origin advisory for `127.0.0.1`; it is not present in the production build or page console checks.
+Never print Railway, Vercel, Yoti, MongoDB, Redis, Agora, auth, or email secret values while checking configuration.

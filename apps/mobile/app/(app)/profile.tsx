@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, Linking, Share, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Screen } from '../components/Screen';
-import { Card } from '../components/Card';
-import { Avatar } from '../components/Avatar';
-import { Button } from '../components/Button';
-import { Icon } from '../components/Icon';
-import { COLORS, SPACE } from '../constants/theme';
-import { api, session } from '@giggle/core';
+import { Screen } from '../../components/Screen';
+import { Card } from '../../components/Card';
+import { Avatar } from '../../components/Avatar';
+import { Button } from '../../components/Button';
+import { Icon } from '../../components/Icon';
+import { COLORS, SPACE } from '../../constants/theme';
+import { api, session, type BlockedAccount } from '@giggle/core';
 import Svg, { Circle } from 'react-native-svg';
 
 const CURATED_VIBES = ['Gaming', 'Music', 'Chill', 'Comedy', 'Deep Talks', 'Late Night', 'Sports', 'Art', 'Study', 'Hype', 'Fitness', 'Foodies'];
@@ -44,6 +44,16 @@ export default function ProfileScreen() {
   const [vibeError, setVibeError] = useState('');
   const [vibeLoadAttempt, setVibeLoadAttempt] = useState(0);
   const [vibeModalVisible, setVibeModalVisible] = useState(false);
+  const [resourceError, setResourceError] = useState('');
+  const [blockedAccounts, setBlockedAccounts] = useState<BlockedAccount[]>([]);
+  const [blocksLoading, setBlocksLoading] = useState(true);
+  const [blocksError, setBlocksError] = useState('');
+  const [blocksLoadAttempt, setBlocksLoadAttempt] = useState(0);
+  const [unblockingId, setUnblockingId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [accountActionMessage, setAccountActionMessage] = useState('');
+  const [accountActionError, setAccountActionError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -55,6 +65,17 @@ export default function ProfileScreen() {
       .finally(() => { if (active) setVibeLoading(false); });
     return () => { active = false; };
   }, [vibeLoadAttempt]);
+
+  useEffect(() => {
+    let active = true;
+    setBlocksLoading(true);
+    setBlocksError('');
+    api.listBlockedUsers()
+      .then(({ accounts }) => { if (active) setBlockedAccounts(accounts ?? []); })
+      .catch(() => { if (active) setBlocksError("Couldn't load blocked accounts."); })
+      .finally(() => { if (active) setBlocksLoading(false); });
+    return () => { active = false; };
+  }, [blocksLoadAttempt]);
 
   async function saveVibes(next: string[]) {
     const previous = vibePrefs;
@@ -81,6 +102,77 @@ export default function ProfileScreen() {
     if (vibeSaving || vibePrefs.includes(v)) return;
     setVibeModalVisible(false);
     void saveVibes([...vibePrefs, v]);
+  }
+
+  async function unblockAccount(account: BlockedAccount) {
+    if (unblockingId) return;
+    setUnblockingId(account.userId);
+    setBlocksError('');
+    try {
+      await api.unblockUser(account.userId);
+      setBlockedAccounts((current) => current.filter((item) => item.userId !== account.userId));
+    } catch {
+      setBlocksError("Couldn't unblock that account.");
+    } finally {
+      setUnblockingId(null);
+    }
+  }
+
+  async function openResource(url: string) {
+    setResourceError('');
+    try {
+      await Linking.openURL(url);
+    } catch {
+      setResourceError("Couldn't open that page. Visit gigglemeet.com in your browser.");
+    }
+  }
+
+  async function exportAccountData() {
+    if (exporting) return;
+    setExporting(true);
+    setAccountActionError('');
+    setAccountActionMessage('');
+    try {
+      const data = await api.exportAccount();
+      const result = await Share.share({
+        title: 'Giggle account data',
+        message: JSON.stringify(data, null, 2),
+      });
+      setAccountActionMessage(result.action === Share.dismissedAction ? 'Sharing cancelled.' : 'Account data shared.');
+    } catch {
+      setAccountActionError("Couldn't export your data. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function deleteAccount() {
+    if (deleting) return;
+    setDeleting(true);
+    setAccountActionError('');
+    try {
+      await api.deleteAccount();
+      session.signOut();
+      router.replace('/');
+    } catch {
+      setAccountActionError("Couldn't start account deletion. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function confirmAccountDeletion() {
+    Alert.alert('Delete account?', 'Deletion revokes access immediately and may finish in the background.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Continue',
+        style: 'destructive',
+        onPress: () => Alert.alert('Delete permanently?', 'Your account cannot be restored after cleanup completes.', [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete account', style: 'destructive', onPress: () => void deleteAccount() },
+        ]),
+      },
+    ]);
   }
 
   return (
@@ -213,6 +305,90 @@ export default function ProfileScreen() {
           </View>
         </Modal>
 
+        <Text style={styles.sectionLabel}>Blocked accounts</Text>
+        <Card style={styles.blockedList}>
+          {blocksLoading ? (
+            <Text style={styles.blockedHelp}>Loading…</Text>
+          ) : blocksError ? null : blockedAccounts.length === 0 ? (
+            <Text style={styles.blockedHelp}>No blocked accounts.</Text>
+          ) : (
+            blockedAccounts.map((account, index) => {
+              const name = account.name || 'Blocked account';
+              return (
+                <View key={account.userId} style={[styles.blockedRow, index > 0 && styles.resourceDivider]}>
+                  <Avatar name={name} size={36} colorIndex={index} />
+                  <Text style={styles.blockedName} numberOfLines={1}>{name}</Text>
+                  <TouchableOpacity
+                    onPress={() => void unblockAccount(account)}
+                    disabled={!!unblockingId}
+                    style={[styles.unblockButton, !!unblockingId && styles.disabled]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Unblock ${name}`}
+                  >
+                    <Text style={styles.unblockText}>{unblockingId === account.userId ? 'Unblocking…' : 'Unblock'}</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          )}
+        </Card>
+        {!!blocksError && (
+          <View style={styles.vibeErrorRow} accessibilityLiveRegion="polite">
+            <Text style={styles.vibeErrorText}>{blocksError}</Text>
+            <TouchableOpacity
+              onPress={() => setBlocksLoadAttempt((attempt) => attempt + 1)}
+              style={styles.retryButton}
+              accessibilityRole="button"
+              accessibilityLabel="Retry blocked accounts"
+            >
+              <Text style={styles.retryText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <Text style={styles.sectionLabel}>Help & policies</Text>
+        <Card style={styles.resourceList}>
+          <TouchableOpacity
+            onPress={() => void openResource('https://gigglemeet.com/safety')}
+            style={styles.resourceLink}
+            accessibilityRole="link"
+            accessibilityLabel="Open Safety Center"
+          >
+            <Text style={styles.resourceText}>Safety</Text>
+            <Icon.chevron size={18} color={COLORS.textDim} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => void openResource('https://gigglemeet.com/support')}
+            style={[styles.resourceLink, styles.resourceDivider]}
+            accessibilityRole="link"
+            accessibilityLabel="Open Support"
+          >
+            <Text style={styles.resourceText}>Support</Text>
+            <Icon.chevron size={18} color={COLORS.textDim} />
+          </TouchableOpacity>
+        </Card>
+        {!!resourceError && <Text style={styles.resourceError} accessibilityRole="alert">{resourceError}</Text>}
+
+        <Text style={styles.sectionLabel}>Your data</Text>
+        <Card style={styles.dataCard}>
+          <Text style={styles.dataHelp}>Download a copy of your account data or permanently delete your account.</Text>
+          <Button
+            label={exporting ? 'Preparing export…' : 'Share my data'}
+            onPress={() => void exportAccountData()}
+            variant="outline"
+            disabled={exporting || deleting}
+          />
+          <Button
+            label={deleting ? 'Deleting…' : 'Delete account'}
+            onPress={confirmAccountDeletion}
+            variant="coral"
+            disabled={exporting || deleting}
+            style={styles.dataButton}
+          />
+        </Card>
+        {!!accountActionMessage && <Text style={styles.accountActionMessage} accessibilityLiveRegion="polite">{accountActionMessage}</Text>}
+        {!!accountActionError && <Text style={styles.resourceError} accessibilityRole="alert">{accountActionError}</Text>}
+
         <Button
           label="Log Out"
           onPress={() => {
@@ -281,6 +457,21 @@ const styles = StyleSheet.create({
   vibeErrorText: { flex: 1, color: COLORS.coral, fontSize: 13 },
   retryButton: { minHeight: 44, minWidth: 44, justifyContent: 'center', alignItems: 'center' },
   retryText: { color: COLORS.violet, fontSize: 13, fontWeight: '700' },
+  resourceList: { paddingVertical: 0 },
+  resourceLink: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  resourceDivider: { borderTopWidth: 1, borderTopColor: COLORS.border },
+  resourceText: { color: COLORS.text, fontSize: 15, fontWeight: '700' },
+  resourceError: { color: COLORS.coral, fontSize: 13, marginTop: SPACE.sm },
+  dataCard: { gap: SPACE.md },
+  dataHelp: { color: COLORS.textMuted, fontSize: 13, lineHeight: 19 },
+  dataButton: { marginTop: 0 },
+  accountActionMessage: { color: COLORS.lime, fontSize: 13, marginTop: SPACE.sm },
+  blockedList: { paddingVertical: 0 },
+  blockedRow: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  blockedName: { flex: 1, color: COLORS.text, fontSize: 14, fontWeight: '700' },
+  blockedHelp: { minHeight: 56, color: COLORS.textMuted, fontSize: 14, textAlignVertical: 'center' },
+  unblockButton: { minHeight: 44, minWidth: 72, alignItems: 'center', justifyContent: 'center' },
+  unblockText: { color: COLORS.violet, fontSize: 13, fontWeight: '700' },
   logout: { marginTop: SPACE.xl },
   // modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },

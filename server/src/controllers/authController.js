@@ -41,6 +41,12 @@ function normalizeProfileImage(value) {
   }
 }
 
+function clientAccountStatus(user) {
+  if (user?.deletionStatus === "pending") return "pending_deletion";
+  if (user?.isSuspended === true || user?.isShadowBanned === true) return "unavailable";
+  return "active";
+}
+
 // CSPRNG-backed code: referral codes are shareable credentials, so use
 // crypto.randomBytes (not Math.random) to make enumeration infeasible.
 function randomCode(len = 8) {
@@ -116,6 +122,7 @@ async function issueSessionForEmail({ email, name, image, ref } = {}) {
   }
 
   const userId = user._id.toString();
+  const accountStatus = clientAccountStatus(user);
   const token = jwt.sign(
     {
       sub: userId,
@@ -131,6 +138,7 @@ async function issueSessionForEmail({ email, name, image, ref } = {}) {
       isAdult: user.isAdult || false,
       ageConfirmed: user.ageConfirmed || false,
       ageVerified: user.ageVerified || false,
+      accountStatus,
     },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
@@ -152,6 +160,7 @@ async function issueSessionForEmail({ email, name, image, ref } = {}) {
       isAdult: user.isAdult || false,
       ageConfirmed: user.ageConfirmed || false,
       ageVerified: user.ageVerified || false,
+      accountStatus,
       referralApplied,
       referralReward: referralApplied ? REFERRAL_REWARD : 0,
     },
@@ -247,7 +256,6 @@ const getMyProfile = async (req, res) => {
       ok: true,
       data: {
         gender: user.gender,
-        age: user.age,
         languages: user.languages || [],
         country: user.country,
         vibes: user.vibes || [],
@@ -257,6 +265,7 @@ const getMyProfile = async (req, res) => {
         isAdult: user.isAdult || false,
         ageConfirmed: user.ageConfirmed || false,
         ageVerified: user.ageVerified || false,
+        accountStatus: clientAccountStatus(user),
       },
     });
   } catch (error) {
@@ -268,7 +277,7 @@ const getMyProfile = async (req, res) => {
 const normalizeProfilePatch = (body = {}) => {
   const patch = {};
   const unset = [];
-  const { gender, age, languages, country, vibes } = body;
+  const { gender, languages, country, vibes } = body;
 
   if (gender !== undefined) {
     const value = String(gender).trim();
@@ -276,18 +285,6 @@ const normalizeProfilePatch = (body = {}) => {
       return { error: "gender must be a short string" };
     }
     patch.gender = value;
-  }
-
-  if (age !== undefined) {
-    if (age === null) {
-      unset.push("age");
-    } else {
-    const n = Number(age);
-    if (!Number.isFinite(n) || n < 13 || n > 120) {
-      return { error: "age must be a number between 13 and 120" };
-    }
-    patch.age = n;
-    }
   }
 
   if (languages !== undefined) {
@@ -368,7 +365,6 @@ const updateMyProfile = async (req, res) => {
       ok: true,
       data: {
         gender: user.gender,
-        age: user.age,
         languages: user.languages || [],
         country: user.country,
         vibes: user.vibes || [],
@@ -422,8 +418,7 @@ const computeAge = (birthDate, now = new Date()) => {
  * POST /api/me/age — self-attested date of birth.
  * Body: { birthDate: "YYYY-MM-DD" }. SET-ONCE: once ageConfirmed is true it
  * cannot be changed; retries return the persisted flags. Sets birthDate, ageConfirmed=true, and
- * isAdult=(age>=18). Returns { isAdult, ageConfirmed }. ageVerified is NOT
- * touched here (reserved for a future real-ID vendor).
+ * isAdult=(age>=18). Self-attestation never sets ageVerified.
  */
 const setMyAge = async (req, res) => {
   try {
@@ -451,20 +446,38 @@ const setMyAge = async (req, res) => {
 
     // SET-ONCE: prevent re-attesting a different DOB to bypass age gating.
     if (user.ageConfirmed) {
+      if (user.isAdult !== true) {
+        return res.status(403).json({
+          ok: false,
+          error: { code: "AGE_RESTRICTED", message: "Giggle is available only to adults 18+" },
+        });
+      }
       return res.status(200).json({
         ok: true,
-        data: { isAdult: user.isAdult, ageConfirmed: true },
+        data: {
+          isAdult: true,
+          ageConfirmed: true,
+          ageVerified: user.ageVerified === true,
+        },
       });
     }
 
     user.birthDate = date;
     user.ageConfirmed = true;
     user.isAdult = age >= 18;
+    user.ageVerified = false;
     await user.save();
+
+    if (!user.isAdult) {
+      return res.status(403).json({
+        ok: false,
+        error: { code: "AGE_RESTRICTED", message: "Giggle is available only to adults 18+" },
+      });
+    }
 
     return res.status(200).json({
       ok: true,
-      data: { isAdult: user.isAdult, ageConfirmed: user.ageConfirmed },
+      data: { isAdult: true, ageConfirmed: true, ageVerified: false },
     });
   } catch (error) {
     console.error("setMyAge Error:", error);

@@ -1,95 +1,34 @@
-# giggle-server
+# Giggle API
 
-Backend service for Giggle MVP.
+Express, MongoDB, Redis, Socket.IO, Agora, and Yoti power the API in this repository's `server/` directory.
 
-## Run
+## Run locally
 
-1. Install dependencies
-
-```bash
+```sh
 npm install
-```
-
-2. Configure environment variables
-
-```bash
-PORT=3001
-MONGODB_URI=mongodb://localhost:27017/giggle
-JWT_SECRET=replace-me-with-a-long-random-string
-AUTH_EXCHANGE_SECRET=replace-me-with-another-long-random-string
-REDIS_URL=redis://127.0.0.1:6379
-BACKEND_PUBLIC_URL=http://localhost:3001
-FRONTEND_URL=http://localhost:4000
-ADMIN_EMAIL=admin@example.com
-
-# Squad settings
-MAX_SQUAD_MEMBERS=4
-MIN_MEMBERS_TO_SEARCH=2
-
-# Agora (required in production for lobby + encounter video)
-AGORA_APP_ID=replace-me
-AGORA_APP_CERTIFICATE=replace-me
-AGORA_TOKEN_EXPIRY_SECONDS=3600
-
-# OAuth / email sign-in
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-APPLE_SERVICE_ID=
-APPLE_TEAM_ID=
-APPLE_KEY_ID=
-APPLE_PRIVATE_KEY=
-RESEND_API_KEY=
-RESEND_FROM=Giggle <onboarding@resend.dev>
-
-# Logging
-ENABLE_REQUEST_LOGS=true
-LOG_REQUEST_BODY=false
-```
-
-3. Start server
-
-```bash
 npm run dev
 ```
 
-Swagger docs are served at `/api-docs`.
+Start from the sanitized `server/.env.example`. Keep JWT, auth-provider, Agora, email, and Yoti values server-side; never copy them into `NEXT_PUBLIC_*`, `EXPO_PUBLIC_*`, `vercel.json`, or `app.json`.
 
-## Squad APIs (Phase 1)
+Required verified-adult settings:
 
-- `POST /api/squads/create`
-- `GET /api/squads/me`
-- `POST /api/squads/join`
-- `GET /api/squads/:squadId`
-- `POST /api/squads/:squadId/ready`
-- `POST /api/squads/:squadId/search` (leader only)
-- `POST /api/squads/:squadId/search/cancel` (leader only)
-- `POST /api/squads/:squadId/members/:memberId/kick` (leader only)
-- `POST /api/squads/:squadId/members/:memberId/promote` (leader only)
-- `POST /api/squads/:squadId/leave`
+```text
+YOTI_AGE_API_KEY
+YOTI_AGE_SDK_ID
+AGE_VERIFICATION_CALLBACK_URL
+ADMIN_EMAIL
+STRANGER_DISCOVERY_ENABLED=false
+```
 
-## Agora APIs (Phase 1)
+If any Yoti setting is missing or invalid, age verification and social access fail closed. Identity authentication plus support, export, and deletion remain available while the User record exists.
 
-- `POST /api/agora/lobby-token/:squadId`
+`STRANGER_DISCOVERY_ENABLED` gates public squad discovery, random joining, queue entry, matching, and automatic encounter requeue. Private squad creation, invite/code joining, profile, support, export, and deletion remain available.
 
-This endpoint is authenticated and squad-member protected. It returns:
+## Checks
 
-- `appId`
-- `channelName` (format: `lobby_<squadId>`)
-- `rtcToken`
-- `uid`
-- `expiresIn`
-- `expiresAt`
+```sh
+npm test
+```
 
-## Access Control Rules
-
-- All squad endpoints require bearer JWT.
-- In production, `POST /api/auth/exchange` requires `AUTH_EXCHANGE_SECRET` from trusted server callers.
-- User identity is resolved from JWT (`userId` primary).
-- JWT `userId` values must be valid Mongo ObjectId strings before controllers or realtime sockets trust them.
-- Squad member and leader checks are enforced through dedicated middleware.
-- Leader-only actions return `403 LEADER_ONLY` for non-leaders.
-- Users may belong to multiple squads simultaneously; "current squad" views use the most recent membership.
-
-## Auto-Deletion Behavior
-
-- When a member leaves and squad becomes empty, squad is automatically deleted.
+After starting the service, check `GET /health`. Swagger documentation is available at `/api-docs` in environments where it is enabled.

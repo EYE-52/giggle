@@ -1,28 +1,42 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
-const { getOnlineUserIds } = require("../services/socketService");
-const { createNotification, deleteNotifications } = require("../models/Notification");
+const { withMatchmakingLock } = require("../config/redisConfig");
+const { disconnectUserSockets, getOnlineUserIds } = require("../services/socketService");
+const {
+  createNotification,
+  deleteNotifications,
+  deleteNotificationsBetweenUsers,
+  emitNotification,
+  emitNotificationsChanged,
+} = require("../models/Notification");
 const { firstDisplayName } = require("../utils/identityValidation");
+const { removeBlockedIdentityFromSharedSquads } = require("../app/squadAccess");
+const {
+  canonicalUserId,
+  relationalIdMatcher,
+  hasBlockedPair,
+  filterBlockedCandidates,
+} = require("../services/interactionSafetyService");
 
 // ── helpers ──────────────────────────────────────────────────────────────
-const authedUserId = (req) => req.user?.userId || req.user?.sub;
+const authedUserId = (req) => canonicalUserId(req.user?.userId || req.user?.sub);
 
-const isValidId = (id) =>
-  typeof id === "string" && mongoose.Types.ObjectId.isValid(id);
-const toIdString = (id) => {
-  if (!id) return "";
-  if (typeof id === "string") return id;
-  if (typeof id.toString === "function") return id.toString();
-  return "";
-};
+const isValidId = (id) => typeof id === "string" && Boolean(canonicalUserId(id));
+const toIdString = canonicalUserId;
 const hasId = (ids = [], id) => ids.some((value) => toIdString(value) === id);
+const pullMatchers = (ids) => ids.map(relationalIdMatcher).filter(Boolean);
+const friendRequestNotificationFilter = (userId, fromUserId) => ({
+  userId: relationalIdMatcher(userId),
+  type: "friend_request",
+  fromUserId: relationalIdMatcher(fromUserId),
+});
 
 /** Shape a User doc into the public friend/presence projection. */
 const toPublic = (u, onlineSet) => ({
-  userId: u._id.toString(),
+  userId: canonicalUserId(u._id),
   name: u.name || null,
   image: u.image || null,
-  online: onlineSet ? onlineSet.has(u._id.toString()) : false,
+  online: onlineSet ? onlineSet.has(canonicalUserId(u._id)) : false,
 });
 
 const err = (res, status, code, message) =>
@@ -34,11 +48,11 @@ const listFriends = async (req, res) => {
     const me = await User.findById(authedUserId(req)).lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
 
-    const ids = me.friends || [];
+    const ids = await filterBlockedCandidates(authedUserId(req), me.friends || [], { User });
     const docs = ids.length
       ? await User.find({ _id: { $in: ids } }, "name image").lean()
       : [];
-    const onlineSet = await getOnlineUserIds(docs.map((d) => d._id.toString()));
+    const onlineSet = await getOnlineUserIds(docs.map((d) => canonicalUserId(d._id)));
 
     return res.json({
       ok: true,
@@ -56,14 +70,23 @@ const listRequests = async (req, res) => {
     const me = await User.findById(authedUserId(req)).lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
 
-    const incomingIds = me.friendRequestsIncoming || [];
-    const outgoingIds = me.friendRequestsOutgoing || [];
-    const allIds = [...new Set([...incomingIds, ...outgoingIds])];
+    const allIds = await filterBlockedCandidates(
+      authedUserId(req),
+      [...(me.friendRequestsIncoming || []), ...(me.friendRequestsOutgoing || [])],
+      { User }
+    );
+    const allowed = new Set(allIds.map(toIdString));
+    const incomingIds = [...new Set(
+      (me.friendRequestsIncoming || []).map(toIdString).filter((id) => allowed.has(id))
+    )];
+    const outgoingIds = [...new Set(
+      (me.friendRequestsOutgoing || []).map(toIdString).filter((id) => allowed.has(id))
+    )];
 
     const docs = allIds.length
       ? await User.find({ _id: { $in: allIds } }, "name image").lean()
       : [];
-    const byId = new Map(docs.map((d) => [d._id.toString(), d]));
+    const byId = new Map(docs.map((d) => [canonicalUserId(d._id), d]));
     const onlineSet = await getOnlineUserIds(allIds);
 
     const incoming = incomingIds
@@ -75,7 +98,7 @@ const listRequests = async (req, res) => {
       .map((id) => byId.get(id))
       .filter(Boolean)
       .map((d) => ({
-        userId: d._id.toString(),
+        userId: canonicalUserId(d._id),
         name: d.name || null,
         image: d.image || null,
       }));
@@ -91,67 +114,88 @@ const listRequests = async (req, res) => {
 const sendRequest = async (req, res) => {
   try {
     const myId = authedUserId(req);
-    const targetId = req.body?.userId;
+    const rawTargetId = req.body?.userId;
 
-    if (!isValidId(targetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
+    if (!isValidId(rawTargetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
+    const targetId = canonicalUserId(rawTargetId);
     if (targetId === myId) return err(res, 400, "INVALID_REQUEST", "Cannot friend yourself");
+    const senderName = firstDisplayName(req.user?.name, req.user?.email);
+    const result = await mongoose.connection.transaction(async (session) => {
+      const target = await User.findById(
+        targetId,
+        "friends friendRequestsIncoming friendRequestsOutgoing blockedUserIds",
+        { session }
+      ).lean();
+      if (!target) return { error: [404, "NOT_FOUND", "Target user not found"] };
 
-    const target = await User.findById(targetId, "friends friendRequestsIncoming friendRequestsOutgoing").lean();
-    if (!target) return err(res, 404, "NOT_FOUND", "Target user not found");
+      const me = await User.findById(
+        myId,
+        "friends friendRequestsOutgoing blockedUserIds",
+        { session }
+      ).lean();
+      if (!me) return { error: [404, "NOT_FOUND", "User not found"] };
+      if (hasBlockedPair(me, target)) {
+        return {
+          error: [403, "INTERACTION_BLOCKED", "Friend requests are unavailable for this account"],
+        };
+      }
 
-    const me = await User.findById(myId, "friends friendRequestsOutgoing").lean();
-    if (!me) return err(res, 404, "NOT_FOUND", "User not found");
+      if (hasId(me.friends, targetId)) return { status: "friends" };
+      if (hasId(me.friendRequestsOutgoing, targetId)) return { status: "requested" };
+      if (hasId(target.friendRequestsIncoming, myId)) return { status: "requested" };
 
-    if (hasId(me.friends, targetId)) {
-      return res.json({ ok: true, data: { status: "friends" } });
-    }
-    if (hasId(me.friendRequestsOutgoing, targetId)) {
-      return res.json({ ok: true, data: { status: "requested" } });
-    }
-    if (hasId(target.friendRequestsIncoming, myId)) {
-      return res.json({ ok: true, data: { status: "requested" } });
-    }
-
-    // Reciprocal request already pending → auto-accept into friends.
-    const reciprocal = hasId(target.friendRequestsOutgoing, myId);
-    if (reciprocal) {
-      await Promise.all([
-        User.updateOne(
+      const targetIds = relationalIdMatcher(targetId);
+      const myIds = relationalIdMatcher(myId);
+      if (hasId(target.friendRequestsOutgoing, myId)) {
+        await User.updateOne(
           { _id: myId },
           {
             $addToSet: { friends: targetId },
-            $pull: { friendRequestsIncoming: targetId, friendRequestsOutgoing: targetId },
-          }
-        ),
-        User.updateOne(
+            $pull: { friendRequestsIncoming: targetIds, friendRequestsOutgoing: targetIds },
+          },
+          { session }
+        );
+        await User.updateOne(
           { _id: targetId },
           {
             $addToSet: { friends: myId },
-            $pull: { friendRequestsIncoming: myId, friendRequestsOutgoing: myId },
-          }
-        ),
-      ]);
-      await deleteNotifications({ userId: myId, type: "friend_request", fromUserId: targetId });
-      return res.json({ ok: true, data: { status: "friends" } });
-    }
+            $pull: { friendRequestsIncoming: myIds, friendRequestsOutgoing: myIds },
+          },
+          { session }
+        );
+        await deleteNotifications(
+          friendRequestNotificationFilter(myId, targetId),
+          [myId],
+          { session, required: true, emit: false }
+        );
+        return { status: "friends", notificationsChanged: [myId] };
+      }
 
-    // Standard request: add to my outgoing + their incoming.
-    await Promise.all([
-      User.updateOne({ _id: myId }, { $addToSet: { friendRequestsOutgoing: targetId } }),
-      User.updateOne({ _id: targetId }, { $addToSet: { friendRequestsIncoming: myId } }),
-    ]);
-
-    const senderName = firstDisplayName(req.user?.name, req.user?.email);
-    await createNotification({
-      userId: targetId,
-      type: "friend_request",
-      title: "New friend request",
-      body: `${senderName || "Someone"} wants to be friends`,
-      fromUserId: myId,
-      fromName: senderName,
+      await User.updateOne(
+        { _id: myId },
+        { $addToSet: { friendRequestsOutgoing: targetId } },
+        { session }
+      );
+      await User.updateOne(
+        { _id: targetId },
+        { $addToSet: { friendRequestsIncoming: myId } },
+        { session }
+      );
+      const notification = await createNotification({
+        userId: targetId,
+        type: "friend_request",
+        title: "New friend request",
+        body: `${senderName || "Someone"} wants to be friends`,
+        fromUserId: myId,
+        fromName: senderName,
+      }, { session, required: true, emit: false });
+      return { status: "requested", notification };
     });
 
-    return res.json({ ok: true, data: { status: "requested" } });
+    if (result.error) return err(res, ...result.error);
+    if (result.notification) emitNotification(result.notification);
+    if (result.notificationsChanged) emitNotificationsChanged(result.notificationsChanged);
+    return res.json({ ok: true, data: { status: result.status } });
   } catch (e) {
     console.error("[friends] sendRequest error:", e);
     return err(res, 500, "SERVER_ERROR", "Failed to send friend request");
@@ -162,36 +206,61 @@ const sendRequest = async (req, res) => {
 const acceptRequest = async (req, res) => {
   try {
     const myId = authedUserId(req);
-    const targetId = req.body?.userId;
-    if (!isValidId(targetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
+    const rawTargetId = req.body?.userId;
+    if (!isValidId(rawTargetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
+    const targetId = canonicalUserId(rawTargetId);
 
-    const me = await User.findById(myId, "friendRequestsIncoming").lean();
-    if (!me) return err(res, 404, "NOT_FOUND", "User not found");
+    const result = await mongoose.connection.transaction(async (session) => {
+      const me = await User.findById(
+        myId,
+        "friendRequestsIncoming blockedUserIds",
+        { session }
+      ).lean();
+      if (!me) return { error: [404, "NOT_FOUND", "User not found"] };
 
-    if (!hasId(me.friendRequestsIncoming, targetId)) {
-      return err(res, 400, "NO_REQUEST", "No incoming friend request from this user");
-    }
+      if (!hasId(me.friendRequestsIncoming, targetId)) {
+        return { error: [400, "NO_REQUEST", "No incoming friend request from this user"] };
+      }
 
-    const target = await User.findById(targetId, "_id").lean();
-    if (!target) return err(res, 404, "NOT_FOUND", "Target user not found");
+      const target = await User.findById(targetId, "_id blockedUserIds", { session }).lean();
+      if (!target) return { error: [404, "NOT_FOUND", "Target user not found"] };
+      if (hasBlockedPair(me, target)) {
+        return {
+          error: [403, "INTERACTION_BLOCKED", "Friend requests are unavailable for this account"],
+        };
+      }
 
-    await Promise.all([
-      User.updateOne(
+      const targetIdMatcher = relationalIdMatcher(targetId);
+      const myIdMatcher = relationalIdMatcher(myId);
+      await User.updateOne(
         { _id: myId },
         {
           $addToSet: { friends: targetId },
-          $pull: { friendRequestsIncoming: targetId, friendRequestsOutgoing: targetId },
-        }
-      ),
-      User.updateOne(
+          $pull: {
+            friendRequestsIncoming: targetIdMatcher,
+            friendRequestsOutgoing: targetIdMatcher,
+          },
+        },
+        { session }
+      );
+      await User.updateOne(
         { _id: targetId },
         {
           $addToSet: { friends: myId },
-          $pull: { friendRequestsIncoming: myId, friendRequestsOutgoing: myId },
-        }
-      ),
-    ]);
-    await deleteNotifications({ userId: myId, type: "friend_request", fromUserId: targetId });
+          $pull: { friendRequestsIncoming: myIdMatcher, friendRequestsOutgoing: myIdMatcher },
+        },
+        { session }
+      );
+      await deleteNotifications(
+        friendRequestNotificationFilter(myId, targetId),
+        [myId],
+        { session, required: true, emit: false }
+      );
+      return { status: "friends" };
+    });
+
+    if (result.error) return err(res, ...result.error);
+    emitNotificationsChanged([myId]);
     return res.json({ ok: true, data: { status: "friends" } });
   } catch (e) {
     console.error("[friends] acceptRequest error:", e);
@@ -203,8 +272,9 @@ const acceptRequest = async (req, res) => {
 const declineRequest = async (req, res) => {
   try {
     const myId = authedUserId(req);
-    const targetId = req.body?.userId;
-    if (!isValidId(targetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
+    const rawTargetId = req.body?.userId;
+    if (!isValidId(rawTargetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
+    const targetId = canonicalUserId(rawTargetId);
 
     const me = await User.findById(myId, "friendRequestsIncoming").lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
@@ -215,11 +285,13 @@ const declineRequest = async (req, res) => {
     const target = await User.findById(targetId, "_id").lean();
     if (!target) return err(res, 404, "NOT_FOUND", "Target user not found");
 
+    const targetIdMatcher = relationalIdMatcher(targetId);
+    const myIdMatcher = relationalIdMatcher(myId);
     await Promise.all([
-      User.updateOne({ _id: myId }, { $pull: { friendRequestsIncoming: targetId } }),
-      User.updateOne({ _id: targetId }, { $pull: { friendRequestsOutgoing: myId } }),
+      User.updateOne({ _id: myId }, { $pull: { friendRequestsIncoming: targetIdMatcher } }),
+      User.updateOne({ _id: targetId }, { $pull: { friendRequestsOutgoing: myIdMatcher } }),
     ]);
-    await deleteNotifications({ userId: myId, type: "friend_request", fromUserId: targetId });
+    await deleteNotifications(friendRequestNotificationFilter(myId, targetId), [myId]);
     return res.json({ ok: true, data: { status: "declined" } });
   } catch (e) {
     console.error("[friends] declineRequest error:", e);
@@ -231,8 +303,9 @@ const declineRequest = async (req, res) => {
 const removeFriend = async (req, res) => {
   try {
     const myId = authedUserId(req);
-    const targetId = req.body?.userId;
-    if (!isValidId(targetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
+    const rawTargetId = req.body?.userId;
+    if (!isValidId(rawTargetId)) return err(res, 400, "INVALID_REQUEST", "Valid userId is required");
+    const targetId = canonicalUserId(rawTargetId);
 
     const me = await User.findById(myId, "friends").lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
@@ -243,9 +316,11 @@ const removeFriend = async (req, res) => {
     const target = await User.findById(targetId, "_id").lean();
     if (!target) return err(res, 404, "NOT_FOUND", "Target user not found");
 
+    const targetIdMatcher = relationalIdMatcher(targetId);
+    const myIdMatcher = relationalIdMatcher(myId);
     await Promise.all([
-      User.updateOne({ _id: myId }, { $pull: { friends: targetId } }),
-      User.updateOne({ _id: targetId }, { $pull: { friends: myId } }),
+      User.updateOne({ _id: myId }, { $pull: { friends: targetIdMatcher } }),
+      User.updateOne({ _id: targetId }, { $pull: { friends: myIdMatcher } }),
     ]);
     return res.json({ ok: true, data: { status: "removed" } });
   } catch (e) {
@@ -269,7 +344,7 @@ const searchUsers = async (req, res) => {
     const me = await User.findById(myId, "friends").lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
 
-    const exclude = [myId, ...(me.friends || [])].map(toIdString).filter(isValidId);
+    const exclude = [...new Set([myId, ...(me.friends || [])].map(toIdString).filter(Boolean))];
     // Case-insensitive substring (prefix included) match on name.
     const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const docs = await User.find(
@@ -282,14 +357,144 @@ const searchUsers = async (req, res) => {
       .limit(20)
       .lean();
 
-    const onlineSet = await getOnlineUserIds(docs.map((d) => d._id.toString()));
+    const allowedIds = new Set(await filterBlockedCandidates(myId, docs.map((d) => d._id), { User }));
+    const visibleDocs = docs.filter((doc) => allowedIds.has(canonicalUserId(doc._id)));
+    const onlineSet = await getOnlineUserIds(visibleDocs.map((d) => canonicalUserId(d._id)));
     return res.json({
       ok: true,
-      data: { users: docs.map((d) => toPublic(d, onlineSet)) },
+      data: { users: visibleDocs.map((d) => toPublic(d, onlineSet)) },
     });
   } catch (e) {
     console.error("[friends] searchUsers error:", e);
     return err(res, 500, "SERVER_ERROR", "Failed to search users");
+  }
+};
+
+const normalizeBlockTargets = (value, myId) => {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 8) return null;
+  if (!value.every(isValidId)) return null;
+  const ids = value.map(canonicalUserId);
+  if (new Set(ids).size !== ids.length || ids.includes(myId)) return null;
+  return ids;
+};
+
+// ── POST /api/users/block { userIds } ───────────────────────────────────────
+const blockUsers = async (req, res) => {
+  const myId = authedUserId(req);
+  const userIds = normalizeBlockTargets(req.body?.userIds, myId);
+  if (!userIds) return err(res, 400, "INVALID_REQUEST", "Provide 1 to 8 unique valid account ids");
+
+  try {
+    const targets = await User.find({ _id: { $in: userIds } }, "_id").lean();
+    if (targets.length !== userIds.length) {
+      return err(res, 404, "NOT_FOUND", "One or more accounts were not found");
+    }
+
+    let blockCommitted = false;
+    let lockError = null;
+    try {
+      await withMatchmakingLock(async (signal) => {
+        await mongoose.connection.transaction(async (session) => {
+          const targetIdMatchers = { $in: pullMatchers(userIds) };
+          const myIdMatcher = relationalIdMatcher(myId);
+          await User.updateOne(
+            { _id: myId },
+            {
+              $addToSet: { blockedUserIds: { $each: userIds } },
+              $pull: {
+                friends: targetIdMatchers,
+                friendRequestsIncoming: targetIdMatchers,
+                friendRequestsOutgoing: targetIdMatchers,
+              },
+            },
+            { session }
+          );
+          await User.updateMany(
+            { _id: { $in: userIds } },
+            {
+              $pull: {
+                friends: myIdMatcher,
+                friendRequestsIncoming: myIdMatcher,
+                friendRequestsOutgoing: myIdMatcher,
+              },
+            },
+            { session }
+          );
+          await deleteNotificationsBetweenUsers(myId, userIds, { session });
+          if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+        });
+        blockCommitted = true;
+      });
+    } catch (error) {
+      lockError = error;
+    }
+
+    // Cleanup can requeue an opponent and therefore stays outside the global
+    // matchmaking lock. A release failure must not skip cleanup after commit.
+    if (blockCommitted) {
+      try {
+        await removeBlockedIdentityFromSharedSquads({ blockerId: myId, blockedUserIds: userIds });
+        emitNotificationsChanged([myId, ...userIds]);
+      } finally {
+        disconnectUserSockets(myId);
+      }
+    }
+    if (lockError) throw lockError;
+    return res.json({ ok: true, data: { status: "blocked", userIds } });
+  } catch (e) {
+    console.error("[friends] blockUsers error:", e);
+    return err(res, 500, "SERVER_ERROR", "Failed to block accounts");
+  }
+};
+
+// ── DELETE /api/users/:userId/block ─────────────────────────────────────────
+const unblockUser = async (req, res) => {
+  const myId = authedUserId(req);
+  const rawUserId = req.params?.userId;
+  if (!isValidId(rawUserId)) {
+    return err(res, 400, "INVALID_REQUEST", "A valid account id is required");
+  }
+  const userId = canonicalUserId(rawUserId);
+  if (userId === myId) {
+    return err(res, 400, "INVALID_REQUEST", "A valid account id is required");
+  }
+
+  try {
+    const target = await User.findById(userId, "_id").lean();
+    if (!target) return err(res, 404, "NOT_FOUND", "Account not found");
+    await User.updateOne(
+      { _id: myId },
+      { $pull: { blockedUserIds: relationalIdMatcher(userId) } }
+    );
+    return res.json({ ok: true, data: { status: "unblocked", userId } });
+  } catch (e) {
+    console.error("[friends] unblockUser error:", e);
+    return err(res, 500, "SERVER_ERROR", "Failed to unblock account");
+  }
+};
+
+// ── GET /api/me/blocks ──────────────────────────────────────────────────────
+const listBlockedUsers = async (req, res) => {
+  try {
+    const me = await User.findById(authedUserId(req), "blockedUserIds").lean();
+    if (!me) return err(res, 404, "NOT_FOUND", "User not found");
+    const ids = [...new Set((me.blockedUserIds || []).map(toIdString).filter(Boolean))];
+    const docs = ids.length
+      ? await User.find({ _id: { $in: ids } }, "name image").lean()
+      : [];
+    return res.json({
+      ok: true,
+      data: {
+        accounts: docs.map((user) => ({
+          userId: canonicalUserId(user._id),
+          name: user.name || null,
+          image: user.image || null,
+        })),
+      },
+    });
+  } catch (e) {
+    console.error("[friends] listBlockedUsers error:", e);
+    return err(res, 500, "SERVER_ERROR", "Failed to list blocked accounts");
   }
 };
 
@@ -301,5 +506,8 @@ module.exports = {
   declineRequest,
   removeFriend,
   searchUsers,
+  blockUsers,
+  unblockUser,
+  listBlockedUsers,
   isValidId,
 };

@@ -65,6 +65,8 @@ export default function FriendsPage() {
 
   // Inline remove confirmation
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [confirmBlock, setConfirmBlock] = useState<Friend | FriendRequestUser | null>(null);
+  const [blocking, setBlocking] = useState(false);
   const [searchFocus, setSearchFocus] = useState(false);
 
   // Invite-to-squad flow: pick a squad for a chosen friend.
@@ -193,6 +195,30 @@ export default function FriendsPage() {
     }
   }
 
+  async function handleBlock() {
+    if (!confirmBlock || blocking) return;
+    setBlocking(true);
+    try {
+      await api.blockUsers([confirmBlock.userId]);
+      const blockedId = confirmBlock.userId;
+      setFriends((items) => items.filter((item) => item.userId !== blockedId));
+      setIncoming((items) => items.filter((item) => item.userId !== blockedId));
+      setOutgoing((items) => items.filter((item) => item.userId !== blockedId));
+      setResults((items) => items.filter((item) => item.userId !== blockedId));
+      setRequested((items) => {
+        const next = new Set(items);
+        next.delete(blockedId);
+        return next;
+      });
+      setConfirmBlock(null);
+      toast(`${confirmBlock.name} blocked.`, "success");
+    } catch (e) {
+      toast((e as { message?: string })?.message || "Couldn't block that account.", "error");
+    } finally {
+      setBlocking(false);
+    }
+  }
+
   // Online friends first, then a stable name (then id) tiebreak so 20s polls
   // don't shuffle equal-status friends.
   const sortedFriends = [...friends].sort((a, b) => {
@@ -292,13 +318,14 @@ export default function FriendsPage() {
                 const isRequested = !incomingIds.has(u.userId) && (requested.has(u.userId) || outgoing.some((o) => o.userId === u.userId));
                 return (
                   <Row key={u.userId} u={u}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
                     {isFriend ? (
                       <Pill tone="muted">Friends</Pill>
                     ) : incomingRequest ? (
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <>
                         <ActionButton onClick={() => handleAccept(incomingRequest)} tone="violet">Accept</ActionButton>
                         <ActionButton onClick={() => handleDecline(incomingRequest)} tone="ghost">Decline</ActionButton>
-                      </div>
+                      </>
                     ) : isRequested ? (
                       <Pill tone="muted">Requested</Pill>
                     ) : (
@@ -306,6 +333,8 @@ export default function FriendsPage() {
                         <Icon.plus size={15} color={onAccent} strokeWidth={2.4} /> Add
                       </ActionButton>
                     )}
+                    <ActionButton onClick={() => setConfirmBlock(u)} tone="danger">Block</ActionButton>
+                    </div>
                   </Row>
                 );
               })
@@ -323,15 +352,19 @@ export default function FriendsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {incoming.map((u) => (
               <Row key={u.userId} u={u}>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
                   <ActionButton onClick={() => handleAccept(u)} tone="violet">Accept</ActionButton>
                   <ActionButton onClick={() => handleDecline(u)} tone="ghost">Decline</ActionButton>
+                  <ActionButton onClick={() => setConfirmBlock(u)} tone="danger">Block</ActionButton>
                 </div>
               </Row>
             ))}
             {outgoing.map((u) => (
               <Row key={`out-${u.userId}`} u={u}>
-                <Pill tone="muted">Pending</Pill>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  <Pill tone="muted">Pending</Pill>
+                  <ActionButton onClick={() => setConfirmBlock(u)} tone="danger">Block</ActionButton>
+                </div>
               </Row>
             ))}
           </div>
@@ -443,6 +476,7 @@ export default function FriendsPage() {
                   >
                     <Icon.close size={15} color={muted} strokeWidth={2.2} />
                   </button>
+                  <ActionButton onClick={() => setConfirmBlock(f)} tone="danger">Block</ActionButton>
                   </div>
                 )}
               </div>
@@ -458,6 +492,20 @@ export default function FriendsPage() {
           isPhone={isPhone}
           onClose={() => setInviteFriend(null)}
         />
+      )}
+      {confirmBlock && (
+        <Modal
+          onClose={() => { if (!blocking) setConfirmBlock(null); }}
+          title={<>Block {confirmBlock.name}?</>}
+          subtitle="This removes your friendship and pending requests. You can unblock them later from Profile."
+          sheet={isPhone}
+          width={420}
+        >
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <Button variant="ghost" onClick={() => setConfirmBlock(null)} disabled={blocking}>Cancel</Button>
+            <Button variant="danger" onClick={handleBlock} loading={blocking}>Block</Button>
+          </div>
+        </Modal>
       )}
     </div>
   );

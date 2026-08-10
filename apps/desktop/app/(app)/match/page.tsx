@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AvatarStack } from "@/components/Avatar";
 import { useViewport } from "@/components/useViewport";
 import { Button } from "@/components/Button";
-import { api, ApiError, session, resolveCover } from "@giggle/core";
+import { api, ApiError, session } from "@giggle/core";
 import type { EncounterDetail, SquadState } from "@giggle/core";
 
 function isExpiredEncounterError(error: unknown) {
@@ -25,7 +25,6 @@ function MatchInner() {
   const [handoffExpired, setHandoffExpired] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
-  const [joinPressed, setJoinPressed] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [countdown, setCountdown] = useState(1);
   const [countdownTotal, setCountdownTotal] = useState(1);
@@ -62,15 +61,12 @@ function MatchInner() {
   const isLeaderRef = useRef(false);
   useEffect(() => { isLeaderRef.current = isLeader; }, [isLeader]);
 
-  const violet = "var(--accent, var(--violet))";
-  const lime = "var(--lime)";
-  const limeText = "var(--lime-text)";
   const textPrimary = "var(--text)";
   const textMuted = "var(--text-muted)";
 
   useEffect(() => {
     // Reached without the required params (e.g. direct URL) — recover instead of
-    // showing a broken VS screen and redirecting to an empty ?squad=.
+    // showing a broken handoff and redirecting to an empty ?squad=.
     if (!encId || !squadId) { router.replace(squadId ? `/matchmaking?squad=${squadId}` : "/home"); return; }
     let cancelled = false;
     setLoading(true);
@@ -159,18 +155,15 @@ function MatchInner() {
     // If the ack fails (e.g. server handoff TTL expired), the countdown's
     // expiry effect still runs as a fallback so the user is never stranded.
     setJoining(true);
-    setJoinPressed(true);
     try {
       await api.ackEncounter(encId, squadId);
       // Ack confirmed — now it's safe to stop the auto-skip countdown.
       if (tickRef.current) clearInterval(tickRef.current);
       clearDeferredNavigation();
-      // Brief join animation plays (~500ms), then navigate
       joinNavTimeoutRef.current = setTimeout(() => {
         navigate(`/encounter?squad=${squadId}&enc=${encId}`);
       }, 520);
     } catch (error: unknown) {
-      setJoinPressed(false);
       setJoining(false);
       if (isExpiredEncounterError(error)) {
         setJoinExpired(true);
@@ -204,63 +197,40 @@ function MatchInner() {
   const mySquadName = squad?.squadName ?? (encounter
     ? (encounter.squadAId === squadId ? encounter.squadAName : encounter.squadBName)
     : "Your Squad");
-  const opponentName = encounter
+  const pairedSquadName = encounter
     ? (encounter.squadAId === squadId ? encounter.squadBName : encounter.squadAName)
-    : "Finding opponent…";
-  const myCover = encounter
-    ? (encounter.squadAId === squadId ? encounter.squadACover : encounter.squadBCover)
-    : null;
-  const opponentCover = encounter
-    ? (encounter.squadAId === squadId ? encounter.squadBCover : encounter.squadACover)
-    : null;
-
+    : "Another squad";
   const myMembers = (squad?.members ?? encounterMembers).map(m => m.displayName);
   const opponentMembers = (encounter
     ? (encounter.squadAId === squadId ? encounter.squadBMembers : encounter.squadAMembers)
     : null
   )?.map((m: { displayName: string }) => m.displayName) ?? [];
-
   // Vibe chip — derive from the squad's real tags rather than hardcoded text.
   const vibeLabel = (squad?.tags && squad.tags.length > 0)
     ? squad.tags.slice(0, 2).join(" & ")
     : null;
-
-  // Countdown ring
-  const radius = 34;
-  const circumference = 2 * Math.PI * radius;
-  const progress = countdown / countdownTotal;
+  const rosterLabel = `${mySquadName}: ${myMembers.join(", ")}. ${pairedSquadName}: ${opponentMembers.join(", ")}`;
 
   if (loading) {
-    // Low-fi VS skeleton — two shimmering squad panels with a center VS mark,
-    // so the handoff screen's shape is visible while the encounter resolves.
     return (
-      <div data-theme="dark" aria-busy="true" aria-label="Opening match" style={{ position: "relative", minHeight: "100%", background: "var(--bg)", display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: isPhone ? 12 : 16, padding: isPhone ? 16 : 24, boxSizing: "border-box" }}>
-        <div className="gg-shimmer" style={{ borderRadius: "var(--radius-card, 20px)", minHeight: isPhone ? 200 : 420 }} />
-        <div className="gg-shimmer" style={{ borderRadius: "var(--radius-card, 20px)", minHeight: isPhone ? 200 : 420 }} />
-        <div style={{
-          position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-          width: 64, height: 64, borderRadius: "50%",
-          background: "var(--bg)", border: "1px solid var(--border-strong)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 17, fontWeight: 700, color: "var(--text-muted)",
-          boxShadow: "0 8px 28px rgba(0,0,0,.36)",
-        }}>VS</div>
+      <div aria-busy="true" aria-label="Opening room" style={{ minHeight: "100%", background: "var(--bg)", display: "grid", placeItems: "center", padding: 24, boxSizing: "border-box" }}>
+        <div style={{ width: "min(460px, 100%)", background: "var(--surface)", border: "var(--control-border)", borderRadius: "var(--radius-card, 20px)", padding: 24, textAlign: "center", boxShadow: "var(--shadow-card)" }}>
+          <div className="gg-shimmer" style={{ width: 48, height: 48, borderRadius: "50%", margin: "0 auto 16px" }} />
+          <h1 style={{ margin: 0, color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700 }}>Preparing your room</h1>
+          <p style={{ margin: "10px 0 0", color: textMuted, lineHeight: 1.5, fontSize: 14 }}>Bringing both squads together…</p>
+        </div>
       </div>
     );
   }
 
   if (handoffError || !encounter) {
     return (
-      <div data-theme="dark" style={{ minHeight: "100%", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
-        <div style={{ width: "min(460px, 100%)", textAlign: "center", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-card, 20px)", padding: 24, boxShadow: "var(--shadow-card, var(--elev))" }}>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>{handoffExpired ? "Match expired" : "Couldn't open match"}</h1>
-          <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14 }}>{handoffError ?? "This match is no longer available."}</p>
+      <div style={{ minHeight: "100%", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
+        <div style={{ width: "min(460px, 100%)", textAlign: "center", background: "var(--surface)", border: "var(--control-border)", borderRadius: "var(--radius-card, 20px)", padding: 24, boxShadow: "var(--shadow-card)" }}>
+          <h1 style={{ margin: 0, color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>{handoffExpired ? "Match expired" : "Couldn't open room"}</h1>
+          <p style={{ margin: "10px 0 22px", color: textMuted, lineHeight: 1.5, fontSize: 14 }}>{handoffError ?? "This room is no longer available."}</p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            {handoffExpired ? (
-              <Button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} variant="primary">Find another</Button>
-            ) : (
-              <Button onClick={() => window.location.reload()} variant="primary">Retry</Button>
-            )}
+            {handoffExpired ? <Button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} variant="primary">Find another</Button> : <Button onClick={() => window.location.reload()} variant="primary">Retry</Button>}
             <Button onClick={() => router.push("/home")} variant="secondary">Home</Button>
           </div>
         </div>
@@ -269,286 +239,42 @@ function MatchInner() {
   }
 
   return (
-    <>
-      <style>{`
-        @keyframes slideLeft { from { transform: translateX(-60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes slideRight { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes popIn { 0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; } 60% { transform: translate(-50%, -50%) scale(1.08); } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
-        @keyframes fadeUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        @keyframes joinFlash {
-          0% { transform: translate(-50%, -50%) scale(1); }
-          30% { transform: translate(-50%, -50%) scale(1.12); }
-          60% { transform: translate(-50%, -50%) scale(0.96); }
-          100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-        }
-        @keyframes squadRushLeft {
-          0% { transform: translateX(0); opacity: 1; }
-          100% { transform: translateX(40%); opacity: 0; }
-        }
-        @keyframes squadRushRight {
-          0% { transform: translateX(0); opacity: 1; }
-          100% { transform: translateX(-40%); opacity: 0; }
-        }
-        @keyframes panelFade {
-          from { opacity: 1; }
-          to { opacity: 0; }
-        }
-        @keyframes vibeChipIn {
-          from { transform: translateY(12px) scale(0.92); opacity: 0; }
-          to { transform: translateY(0) scale(1); opacity: 1; }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
+    <div style={{ minHeight: "100%", background: "var(--bg)", display: "grid", placeItems: "center", padding: isPhone ? "16px" : "24px", boxSizing: "border-box", overflowY: "auto" }}>
+      <section style={{ width: "min(640px, 100%)", background: "var(--surface)", border: "var(--control-border)", borderRadius: "var(--radius-card, 20px)", padding: isPhone ? "20px" : "28px", boxShadow: "var(--shadow-card)", display: "flex", flexDirection: "column", gap: isPhone ? 18 : 24, textAlign: "center" }}>
+        <header style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          <span style={{ borderRadius: "var(--radius-pill, 999px)", padding: "5px 10px", background: "var(--accent-soft)", border: "1px solid var(--accent-line)", color: "var(--accent)", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>Room ready</span>
+          <h1 style={{ margin: 0, color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 24 : 30, fontWeight: 700, letterSpacing: "-0.03em" }}>Your squads can join now</h1>
+          {vibeLabel && <div style={{ color: textMuted, fontSize: 13 }}>Shared vibe · {vibeLabel}</div>}
+        </header>
 
-        /* ── PREMIUM MICRO-INTERACTION SPEC (shared) ── */
-        .match-fx button:not(:disabled) {
-          -webkit-tap-highlight-color: transparent;
-          transition: transform .14s cubic-bezier(.22,1,.36,1), box-shadow .2s cubic-bezier(.4,0,.2,1), background .2s cubic-bezier(.4,0,.2,1), color .2s cubic-bezier(.4,0,.2,1), border-color .2s cubic-bezier(.4,0,.2,1), filter .2s cubic-bezier(.4,0,.2,1);
-        }
-        .match-fx button:not(:disabled):active {
-          transform: scale(.94) !important;
-          transition-duration: .06s;
-        }
-        .match-fx button:disabled { cursor: not-allowed; }
-        .match-fx button:focus-visible {
-          outline: none;
-          box-shadow: 0 0 0 2px var(--bg, #0B0B0F), 0 0 0 4px var(--violet, #7C5CFF);
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .match-fx *,
-          .match-fx *::before,
-          .match-fx *::after {
-            animation-duration: .001ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: .001ms !important;
-          }
-          .match-fx button:not(:disabled):active { transform: none !important; }
-        }
-        @media (max-width: 640px) and (max-height: 680px) {
-          .match-squad-panel { min-height: 140px !important; }
-          .match-center { gap: 10px !important; padding: 12px 0 !important; }
-          .match-vs { width: 52px !important; height: 52px !important; }
-          .match-card { gap: 10px !important; padding: 14px 16px !important; }
-          .match-countdown { display: none !important; }
-          /* Compact numeric countdown chip stands in when the ring is hidden */
-          .match-countdown-chip { display: inline-flex !important; }
-        }
-        .match-countdown-chip { display: none; }
-      `}</style>
-
-      <div className="match-fx" style={{
-        position: "relative",
-        display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr",
-        height: "100%", minHeight: 0,
-        borderRadius: 0, overflowX: "hidden", overflowY: isPhone ? "auto" : "hidden",
-        border: "none",
-      }}>
-        {/* YOUR SQUAD panel */}
-        <div className="match-squad-panel" style={{
-          position: "relative", minHeight: isPhone ? 200 : 520,
-          gridRow: isPhone ? 1 : undefined,
-          background: "#0e0b1e",
-          animation: joinPressed ? "squadRushLeft 0.5s ease-in both" : "slideLeft 0.55s ease both",
-          display: "flex", flexDirection: "column", justifyContent: "flex-end",
-        }}>
-          <div style={{ position: "absolute", inset: 0, background: resolveCover(myCover), filter: "saturate(.85) brightness(.7)" }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(9,7,18,.96) 6%, rgba(9,7,18,.55) 48%, rgba(9,7,18,.2) 100%)" }} />
-          {/* Subtle glow */}
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse 60% 50% at 30% 60%, rgba(124,92,255,0.09) 0%, transparent 70%)",
-          }} />
-          <div style={{ position: "relative", padding: isPhone ? "20px 20px" : "32px 40px" }}>
-            <div style={{ color: "#9A9AB0", fontSize: 12, letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 6 }}>
-              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#7C5CFF", marginRight: 6, animation: "pulse 2s ease infinite", verticalAlign: "middle" }} />
-              Your Squad
-            </div>
-            <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 22 : 30, fontWeight: 700, color: "#F4F4F7", marginBottom: 10 }}>{mySquadName}</div>
-            <AvatarStack names={myMembers} size={32} extra={0} />
+        <div role="group" aria-label={rosterLabel} style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: 12, textAlign: "left" }}>
+          <div style={{ minWidth: 0, padding: "14px", borderRadius: "var(--radius-tile, 16px)", background: "var(--overlay)", border: "var(--control-border)", display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={{ color: textMuted, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>Your squad</span>
+            <div style={{ color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mySquadName}</div>
+            <AvatarStack names={myMembers} size={32} total={myMembers.length} max={4} />
+          </div>
+          <div style={{ minWidth: 0, padding: "14px", borderRadius: "var(--radius-tile, 16px)", background: "var(--overlay)", border: "var(--control-border)", display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={{ color: textMuted, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>Joining you</span>
+            <div style={{ color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pairedSquadName}</div>
+            <AvatarStack names={opponentMembers} size={32} total={opponentMembers.length} max={4} />
           </div>
         </div>
 
-        {/* OPPONENT panel */}
-        <div className="match-squad-panel" style={{
-          position: "relative", minHeight: isPhone ? 200 : 520,
-          gridRow: isPhone ? 3 : undefined,
-          background: "#0b1510",
-          animation: joinPressed ? "squadRushRight 0.5s ease-in both" : "slideRight 0.55s 0.12s both",
-          display: "flex", flexDirection: "column", justifyContent: "flex-end",
-        }}>
-          <div style={{ position: "absolute", inset: 0, background: resolveCover(opponentCover), filter: "saturate(.85) brightness(.7)" }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(6,14,9,.96) 6%, rgba(6,14,9,.55) 48%, rgba(6,14,9,.2) 100%)" }} />
-          <div style={{
-            position: "absolute", inset: 0,
-            background: "radial-gradient(ellipse 60% 50% at 70% 60%, rgba(194,255,61,0.07) 0%, transparent 70%)",
-          }} />
-          <div style={{ position: "relative", padding: isPhone ? "20px 20px" : "32px 40px" }}>
-            <div style={{ color: "#C2FF3D", fontSize: 12, letterSpacing: "0.12em", textTransform: "uppercase" as const, marginBottom: 6 }}>
-              <span style={{ display: "inline-block", width: 7, height: 7, borderRadius: "50%", background: "#C2FF3D", marginRight: 6, animation: "pulse 2s 0.5s ease infinite", verticalAlign: "middle" }} />
-              Opponent
-            </div>
-            <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 22 : 30, fontWeight: 700, color: "#F4F4F7", marginBottom: 10 }}>{opponentName}</div>
-            {opponentMembers.length > 0 ? (
-              <AvatarStack names={opponentMembers} size={32} extra={0} />
-            ) : (
-              // Roster still resolving — shimmer avatar placeholders instead of a gap.
-              <div aria-hidden style={{ display: "flex" }}>
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="gg-shimmer" style={{
-                    width: 32, height: 32, borderRadius: "50%",
-                    border: "2px solid rgba(9,7,18,0.8)",
-                    marginLeft: i > 0 ? -10 : 0,
-                  }} />
-                ))}
-              </div>
-            )}
-          </div>
+        <div role="timer" aria-label={`${countdown} of ${countdownTotal} seconds remaining`} style={{ alignSelf: "center", borderRadius: "var(--radius-pill, 999px)", padding: "8px 14px", background: "var(--live-soft)", color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums" as const }}>
+          Starts in {countdown}s
         </div>
+        <div aria-live="polite" style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" as const, border: 0 }}>{srAnnounce}</div>
 
-        {/* Central VS + action card overlay */}
-        <div className="match-center" style={{
-          position: isPhone ? "relative" : "absolute",
-          top: isPhone ? undefined : "50%",
-          left: isPhone ? undefined : "50%",
-          gridColumn: isPhone ? "1 / -1" : undefined,
-          gridRow: isPhone ? 2 : undefined,
-          display: "flex", flexDirection: "column", alignItems: "center", justifyContent: isPhone ? "center" : undefined, gap: 20,
-          zIndex: 20,
-          padding: isPhone ? "24px 0" : undefined,
-          animation: isPhone
-            ? (joinPressed ? "panelFade 0.5s ease both" : "fadeUp 0.45s 0.15s both")
-            : (joinPressed ? "joinFlash 0.5s ease both" : "popIn 0.65s 0.25s both"),
-        }}>
-          {/* VS circle */}
-          <div className="match-vs" style={{
-            width: 72, height: 72, borderRadius: "50%",
-            background: "var(--bg)",
-            border: "1px solid var(--border-strong)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary,
-            boxShadow: "0 8px 28px rgba(0,0,0,.36)",
-          }}>VS</div>
-
-          {/* Match Found card */}
-          <div className="match-card" style={{
-            background: "rgba(18,22,21,.96)", border: "1px solid var(--border-strong)",
-            backdropFilter: "blur(16px)", borderRadius: "var(--radius-card, 20px)",
-            padding: isPhone ? "20px 20px" : "28px 36px", textAlign: "center",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
-            minWidth: isPhone ? "calc(100vw - 48px)" : 296,
-            boxShadow: "0 18px 50px rgba(0,0,0,.42)",
-          }}>
-            <div style={{
-              fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700,
-              color: textPrimary, letterSpacing: "-0.5px",
-            }}>Match found</div>
-
-            {/* Compact countdown chip — visible only when the ring is hidden
-                (short phones, via .match-countdown media rules above). */}
-            <div className="match-countdown-chip" style={{
-              alignItems: "center", gap: 6,
-              padding: "4px 14px", borderRadius: 999,
-              border: "1px solid var(--lime-border, rgba(194,255,61,0.35))",
-              background: "rgba(194,255,61,0.10)",
-              color: limeText, fontFamily: "var(--font-display, var(--font-space-grotesk))",
-              fontSize: 14, fontWeight: 700, fontVariantNumeric: "tabular-nums" as const,
-            }}>{countdown}s</div>
-
-            {/* Throttled SR countdown announcements (10s / 5s / expiry) */}
-            <div aria-live="polite" style={{
-              position: "absolute", width: 1, height: 1, padding: 0, margin: -1,
-              overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" as const, border: 0,
-            }}>{srAnnounce}</div>
-
-            {/* Vibe chip — only when we have real squad tags */}
-            {vibeLabel && (
-              <div style={{
-                borderRadius: 0, padding: 0,
-                fontSize: 13, fontWeight: 600, color: textMuted,
-                animation: "vibeChipIn 0.4s 0.55s both",
-              }}>
-                Vibe match · {vibeLabel}
-              </div>
-            )}
-
-            {/* Countdown ring */}
-            <div className="match-countdown" role="timer" aria-label={`${countdown} seconds remaining`} style={{ position: "relative", width: 80, height: 80 }}>
-              <svg width="80" height="80" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r={radius} fill="none" stroke="var(--border)" strokeWidth="6" />
-                <circle cx="40" cy="40" r={radius} fill="none" stroke={lime} strokeWidth="6"
-                  strokeDasharray={`${circumference * progress} ${circumference}`}
-                  strokeLinecap="round" transform="rotate(-90 40 40)"
-                  style={{ transition: "stroke-dasharray 0.9s linear" }}
-                />
-              </svg>
-              <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary,
-              }}>{countdown}</div>
-            </div>
-
-            {/* Join button — fixed width, no reflow */}
-            <Button
-              onClick={handleJoin}
-              loading={joining}
-              disabled={joinExpired}
-              variant="primary"
-              style={{ width: isPhone ? "100%" : 220 }}
-            >
-              {joinExpired ? "Match expired" : joining ? "Joining…" : "Join Encounter"}
-            </Button>
-
-            {joinExpired && (
-              <div style={{
-                color: limeText, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13,
-                width: isPhone ? "100%" : 220, textAlign: "center",
-                animation: "pulse 1.2s ease infinite",
-              }}>
-                This match expired — finding you another…
-              </div>
-            )}
-
-            {actionError && (
-              <div role="alert" style={{
-                color: "var(--coral)",
-                fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                fontSize: 13,
-                fontWeight: 700,
-                width: isPhone ? "100%" : 220,
-                textAlign: "center",
-                lineHeight: 1.35,
-              }}>
-                {actionError}
-              </div>
-            )}
-
-            {isLeader ? (
-              <Button
-                onClick={handleSkip}
-                loading={skipping}
-                variant="ghost"
-                style={{ width: isPhone ? "100%" : 220 }}
-              >{skipping ? "Skipping…" : `Skip (${countdown}s)`}</Button>
-            ) : (
-              <div style={{
-                color: textMuted, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13,
-                width: isPhone ? "100%" : 220, textAlign: "center", padding: "8px 0",
-              }}>
-                Waiting for your leader to start — or join now ({countdown}s)
-              </div>
-            )}
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <Button onClick={handleJoin} loading={joining} disabled={joinExpired} variant="primary" style={{ width: isPhone ? "100%" : 220 }}>
+            {joinExpired ? "Match expired" : joining ? "Joining…" : "Join room"}
+          </Button>
+          {joinExpired && <div style={{ color: "var(--coral)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13, width: isPhone ? "100%" : 220 }}>This match expired — finding you another…</div>}
+          {actionError && <div role="alert" style={{ color: "var(--coral)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13, fontWeight: 700, width: isPhone ? "100%" : 220, textAlign: "center", lineHeight: 1.35 }}>{actionError}</div>}
+          {isLeader ? <Button onClick={handleSkip} loading={skipping} variant="ghost" style={{ width: isPhone ? "100%" : 220 }}>{skipping ? "Skipping…" : `Skip (${countdown}s)`}</Button> : <div style={{ color: textMuted, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13, width: isPhone ? "100%" : 220, textAlign: "center", padding: "8px 0" }}>Waiting for your leader to start — or join now ({countdown}s)</div>}
         </div>
-      </div>
-
-      {/* Spinner keyframe needed inline for the joining spinner */}
-      <style>{`
-        @keyframes rotateSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-    </>
+      </section>
+    </div>
   );
 }
 

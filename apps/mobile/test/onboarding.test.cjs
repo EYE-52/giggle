@@ -76,6 +76,21 @@ test("onboarding custom touch targets expose button semantics", () => {
   assert.equal(page.includes('accessibilityLabel="Skip with a dev account"'), true);
 });
 
+test("native onboarding opens separate Terms and Privacy pages", () => {
+  const page = read("app/index.tsx");
+
+  assert.match(page, /Linking/);
+  assert.match(page, /https:\/\/gigglemeet\.com\/terms/);
+  assert.match(page, /https:\/\/gigglemeet\.com\/privacy/);
+  for (const label of ["Open Terms", "Open Privacy Policy"]) {
+    const labelAt = page.indexOf(`accessibilityLabel="${label}"`);
+    const control = page.slice(page.lastIndexOf("<TouchableOpacity", labelAt), page.indexOf("</TouchableOpacity>", labelAt));
+    assert.notEqual(labelAt, -1, label);
+    assert.match(control, /accessibilityRole="link"/, label);
+  }
+  assert.match(page, /await Linking\.openURL\(url\)/);
+});
+
 test("onboarding avoids the old oversized blocky auth layout", () => {
   const page = read("app/index.tsx");
 
@@ -89,34 +104,35 @@ test("onboarding avoids the old oversized blocky auth layout", () => {
 });
 
 test("mobile layout redirects unauthenticated production users away from app routes", () => {
-  const layout = read("app/_layout.tsx");
+  const root = read("app/_layout.tsx");
+  const layout = read("app/(app)/_layout.tsx");
 
-  assert.equal(layout.includes("PUBLIC_ROUTES"), true);
   assert.equal(layout.includes("session.isAuthed()"), true);
   assert.equal(layout.includes("process.env.NODE_ENV !== 'production'"), true);
   assert.equal(layout.includes("router.replace('/')"), true);
-  assert.equal(layout.includes("<Stack.Screen name=\"auth/callback\""), true);
+  assert.equal(root.includes("<Stack.Screen name=\"auth/callback\""), true);
+  assert.equal(root.includes("<Stack.Screen name=\"(app)\""), true);
 });
 
-test("mobile protected routes wait for the shared age gate", () => {
+test("mobile protected routes wait for shared verified-adult access", () => {
   const gatePath = path.join(__dirname, "../components/AgeGate.tsx");
   assert.equal(existsSync(gatePath), true);
 
-  const layout = read("app/_layout.tsx");
+  const layout = read("app/(app)/_layout.tsx");
   const gate = read("components/AgeGate.tsx");
 
-  assert.equal(layout.includes("import { AgeGate } from '../components/AgeGate';"), true);
+  assert.equal(layout.includes("import { AgeGate } from '../../components/AgeGate';"), true);
   assert.equal(layout.includes("await session.syncAgeFromServer()"), true);
-  assert.equal(layout.includes("if (!isPublicRoute && !authReady)"), true);
-  assert.equal(layout.includes("if (!isPublicRoute && !ageConfirmed)"), true);
-  assert.equal(layout.includes("<AgeGate onDone={() => setAgeConfirmed(true)} />"), true);
+  assert.equal(layout.includes("if (!authReady)"), true);
+  assert.equal(layout.includes("if (!hasAdultAccess)"), true);
+  assert.match(layout, /<AgeGate[\s\S]*onDone=\{\(\) => setHasAdultAccess\(true\)\}[\s\S]*onManageAccount=\{\(\) => router\.push\('\/profile'\)\}/);
   assert.equal(gate.includes("await session.setAge(birthDate);"), true);
   assert.equal(gate.includes('keyboardType="number-pad"'), true);
-  assert.equal(gate.includes("You must be at least 13 to use Giggle."), true);
+  assert.equal(gate.includes("Giggle is for verified adults 18+"), true);
 });
 
 test("mobile home actions do not create dev sessions from protected routes", () => {
-  const page = read("app/home.tsx");
+  const page = read("app/(app)/home.tsx");
 
   assert.equal(page.includes("await session.devSignIn();"), false);
   assert.equal(page.includes("router.replace('/')"), true);
@@ -124,7 +140,7 @@ test("mobile home actions do not create dev sessions from protected routes", () 
 });
 
 test("mobile discover uses live squad discovery instead of static venue fixtures", () => {
-  const page = read("app/discover.tsx");
+  const page = read("app/(app)/discover.tsx");
 
   assert.equal(page.includes("api.discoverSquads()"), true);
   assert.equal(page.includes("api.joinSquadById("), true);
@@ -133,7 +149,7 @@ test("mobile discover uses live squad discovery instead of static venue fixtures
 });
 
 test("mobile discover actions fail closed when the user is unauthenticated", () => {
-  const page = read("app/discover.tsx");
+  const page = read("app/(app)/discover.tsx");
 
   assert.equal(page.includes("function ensureAuthed()"), true);
   assert.equal(page.includes("if (session.isAuthed()) return true;"), true);

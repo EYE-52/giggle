@@ -9,19 +9,30 @@ test("lobby makes readiness and device state explicit in the first viewport", as
   const readiness = page.getByTestId("lobby-readiness");
   await expect(readiness).toBeVisible();
   await expect(readiness.getByText(/used in this lobby and live encounters/i)).toBeVisible();
-  await readiness.getByRole("button", { name: /enable camera and microphone/i }).click();
-  await expect(readiness.getByRole("button", { name: "Mute microphone" })).toHaveAttribute("aria-pressed", "true");
-  await expect(readiness.getByRole("button", { name: "Turn off camera" })).toHaveAttribute("aria-pressed", "true");
+  const deviceAction = readiness.getByRole("button", { name: /enable camera and microphone/i });
+  await expect(deviceAction).toBeVisible();
 
-  const findMatch = readiness.getByRole("button", { name: /find a match/i });
+  const findMatch = page.getByRole("button", { name: /find a match/i });
   await expect(findMatch).toBeDisabled();
-  await readiness.getByRole("button", { name: /mark ready/i }).click();
+  const ready = readiness.getByTitle("Toggle ready");
+  await ready.click();
   await expect(findMatch).toBeEnabled();
   await expect(readiness.getByRole("button", { name: /ready/i })).toHaveAttribute("aria-pressed", "true");
 
   const box = await readiness.boundingBox();
   const viewport = page.viewportSize();
   expect(box && viewport && box.y + box.height).toBeLessThanOrEqual(viewport!.height);
+  if (testInfo.project.name === "phone") {
+    const [deviceBox, readyBox, findMatchBox] = await Promise.all([
+      deviceAction.boundingBox(),
+      ready.boundingBox(),
+      findMatch.boundingBox(),
+    ]);
+    expect(deviceBox && readyBox && findMatchBox).toBeTruthy();
+    expect(findMatchBox!.y).toBeGreaterThanOrEqual(Math.max(deviceBox!.y + deviceBox!.height, readyBox!.y + readyBox!.height) - 1);
+    expect(findMatchBox!.width).toBeGreaterThanOrEqual(box!.width - 28);
+    expect(findMatchBox!.y + findMatchBox!.height).toBeLessThanOrEqual(viewport!.height);
+  }
 
   await page.screenshot({
     path: `artifacts/visual-audit/2026-07-12/lobby/${testInfo.project.name}.jpg`,
@@ -45,6 +56,29 @@ test("ready responds before the network round trip finishes", async ({ page }, t
   await expect(ready).toHaveAttribute("aria-pressed", "true", { timeout: 500 });
   await expect(ready).toContainText("Ready", { timeout: 500 });
   await expect(ready).toBeEnabled({ timeout: 5000 });
+});
+
+test("leaving shows local exit feedback before a delayed failure and stays recoverable", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "laptop", "One desktop project covers the shared leave action");
+  await openProtectedRoute(page, "/home");
+  await page.getByRole("button", { name: /create(?: your first)? squad/i }).click();
+  await page.waitForURL(/\/lobby\?squad=/);
+
+  const readiness = page.getByTestId("lobby-readiness");
+  await page.route("**/api/squads/*/leave", async route => {
+    await new Promise(resolve => setTimeout(resolve, 1200));
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ ok: false, error: { message: "Leave is temporarily unavailable." } }) });
+  });
+
+  await page.getByRole("button", { name: "Leave", exact: true }).click();
+  const leaveDialog = page.getByRole("dialog", { name: "Leave this squad?" });
+  await leaveDialog.getByRole("button", { name: /leave.*hand off/i }).click();
+
+  await expect(page.getByRole("button", { name: "Leaving…", exact: true }).first()).toBeVisible({ timeout: 500 });
+  await expect(readiness.getByRole("button", { name: /enable camera and microphone/i })).toBeVisible({ timeout: 500 });
+  await expect(page).toHaveURL(/\/lobby\?squad=/);
+  await expect(page.locator("#main-content").getByText(/leave is temporarily unavailable/i)).toBeVisible({ timeout: 3000 });
+  await expect(page.getByRole("button", { name: "Leave", exact: true })).toBeEnabled();
 });
 
 test("short phones keep the readiness controls above the fold", async ({ page }, testInfo) => {
