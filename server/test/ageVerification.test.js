@@ -243,6 +243,67 @@ test("POST /api/me/age: adult DOB sets isAdult true", async () => {
   });
 });
 
+test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS treats adult DOB as verified", async () => {
+  const user = fakeUser();
+  const prior = process.env.SELF_DECLARED_AGE_ACCESS;
+  process.env.SELF_DECLARED_AGE_ACCESS = "true";
+  try {
+    await withMockedFindById(user, async () => {
+      const req = { user: { userId: "u1" }, body: { birthDate: isoYearsAgo(30) } };
+      const res = createMockResponse();
+      await setMyAge(req, res);
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.data.ageVerified, true);
+      assert.equal(user.ageVerified, true);
+    });
+  } finally {
+    if (prior === undefined) delete process.env.SELF_DECLARED_AGE_ACCESS;
+    else process.env.SELF_DECLARED_AGE_ACCESS = prior;
+  }
+});
+
+test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS never verifies a 13-17 minor", async () => {
+  const user = fakeUser();
+  const prior = process.env.SELF_DECLARED_AGE_ACCESS;
+  process.env.SELF_DECLARED_AGE_ACCESS = "true";
+  try {
+    await withMockedFindById(user, async () => {
+      const req = { user: { userId: "u1" }, body: { birthDate: isoYearsAgo(15) } };
+      const res = createMockResponse();
+      await setMyAge(req, res);
+      assert.equal(res.statusCode, 403);
+      assert.equal(user.ageConfirmed, true);
+      assert.equal(user.isAdult, false);
+      assert.equal(user.ageVerified, false);
+    });
+  } finally {
+    if (prior === undefined) delete process.env.SELF_DECLARED_AGE_ACCESS;
+    else process.env.SELF_DECLARED_AGE_ACCESS = prior;
+  }
+});
+
+test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS upgrades an already-confirmed adult on retry", async () => {
+  const user = fakeUser();
+  user.ageConfirmed = true;
+  user.isAdult = true;
+  user.ageVerified = false;
+  const prior = process.env.SELF_DECLARED_AGE_ACCESS;
+  process.env.SELF_DECLARED_AGE_ACCESS = "true";
+  try {
+    await withMockedFindById(user, async () => {
+      const req = { user: { userId: "u1" }, body: { birthDate: isoYearsAgo(30) } };
+      const res = createMockResponse();
+      await setMyAge(req, res);
+      assert.equal(res.statusCode, 200);
+      assert.equal(res.body.data.ageVerified, true);
+      assert.equal(user.ageVerified, true);
+    });
+  } finally {
+    if (prior === undefined) delete process.env.SELF_DECLARED_AGE_ACCESS;
+    else process.env.SELF_DECLARED_AGE_ACCESS = prior;
+  }
+});
+
 test("POST /api/me/age: minor DOB is stored once and denied with AGE_RESTRICTED", async () => {
   const user = fakeUser();
   await withMockedFindById(user, async () => {

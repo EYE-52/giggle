@@ -62,7 +62,7 @@ EXPO_PUBLIC_IOS_DISCOVERY_ENABLED=false
 
 `JWT_SECRET` and `AUTH_EXCHANGE_SECRET` must each be at least 32 characters. `NEXT_PUBLIC_*` and `EXPO_PUBLIC_*` values are visible in client bundles and are surface controls, not authorization. Never put Yoti, Agora certificate, JWT, OAuth, email, database, or Redis secrets in public variables, `vercel.json`, or `app.json`. The server flag is the enforcement boundary and takes effect after an API restart.
 
-Missing Yoti configuration leaves identity, support, data export, and account deletion available, but age verification and all social access fail closed.
+Missing Yoti configuration leaves identity, support, data export, and account deletion available, but age verification and all social access fail closed — unless `SELF_DECLARED_AGE_ACCESS=true` is set, in which case self-attested DOB (18+) alone grants adult access with no document/liveness check. This is a **temporary, weaker-than-verified-adult posture**: unset it in Railway (or leave default `false`) the moment `YOTI_AGE_API_KEY`/`YOTI_AGE_SDK_ID` are live, and treat it as still-open in the release gates below until then.
 
 Redis TLS certificate verification stays enabled by default. Use `REDIS_TLS_REJECT_UNAUTHORIZED=false` only as a temporary escape hatch for a controlled deployment with a self-signed Redis TLS certificate.
 
@@ -76,7 +76,7 @@ Redis TLS certificate verification stays enabled by default. Use `REDIS_TLS_REJE
 
 Do not enable stranger discovery, submit store builds, or describe the product as globally compliant until there is evidence for:
 
-- production Yoti tenant, callback, consent/retention terms, appeal path, and live verification tests;
+- production Yoti tenant, callback, consent/retention terms, appeal path, and live verification tests (`SELF_DECLARED_AGE_ACCESS=true` does NOT satisfy this gate — it's a stopgap, not verification);
 - trusted geolocation and counsel-reviewed jurisdiction policy;
 - staffed moderation/support, report response, emergency, CSAM, and law-enforcement processes;
 - reviewed legal entity identity, addresses, Terms, Privacy, Safety, and store declarations;

@@ -414,11 +414,19 @@ const computeAge = (birthDate, now = new Date()) => {
   return age;
 };
 
+// ponytail: SELF_DECLARED_AGE_ACCESS=true treats DOB self-attestation alone as
+// "verified" — a temporary stand-in for Yoti while its credentials aren't
+// provisioned. Ceiling: no document/liveness check, so it's weaker than the
+// verified-adult claim in DEPLOYMENT.md. Upgrade path: unset this env var once
+// YOTI_AGE_API_KEY / YOTI_AGE_SDK_ID are live in production.
+const selfDeclaredAgeAccess = () => process.env.SELF_DECLARED_AGE_ACCESS === "true";
+
 /**
  * POST /api/me/age — self-attested date of birth.
  * Body: { birthDate: "YYYY-MM-DD" }. SET-ONCE: once ageConfirmed is true it
  * cannot be changed; retries return the persisted flags. Sets birthDate, ageConfirmed=true, and
- * isAdult=(age>=18). Self-attestation never sets ageVerified.
+ * isAdult=(age>=18). Self-attestation sets ageVerified only when
+ * SELF_DECLARED_AGE_ACCESS is enabled; otherwise it stays false pending Yoti.
  */
 const setMyAge = async (req, res) => {
   try {
@@ -452,6 +460,10 @@ const setMyAge = async (req, res) => {
           error: { code: "AGE_RESTRICTED", message: "Giggle is available only to adults 18+" },
         });
       }
+      if (user.ageVerified !== true && selfDeclaredAgeAccess()) {
+        user.ageVerified = true;
+        await user.save();
+      }
       return res.status(200).json({
         ok: true,
         data: {
@@ -465,7 +477,7 @@ const setMyAge = async (req, res) => {
     user.birthDate = date;
     user.ageConfirmed = true;
     user.isAdult = age >= 18;
-    user.ageVerified = false;
+    user.ageVerified = user.isAdult && selfDeclaredAgeAccess();
     await user.save();
 
     if (!user.isAdult) {
@@ -477,7 +489,7 @@ const setMyAge = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
-      data: { isAdult: true, ageConfirmed: true, ageVerified: false },
+      data: { isAdult: true, ageConfirmed: true, ageVerified: user.ageVerified },
     });
   } catch (error) {
     console.error("setMyAge Error:", error);
