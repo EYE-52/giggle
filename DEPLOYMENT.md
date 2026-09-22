@@ -27,7 +27,7 @@ Last verified: **23 September 2026 (Asia/Kolkata)**. This section records the li
 - **Vercel:** import the repository root (`./`), production branch `main`, Next.js framework. The checked-in [`vercel.json`](vercel.json) installs with `pnpm install --frozen-lockfile --filter @giggle/desktop...`, builds with `pnpm --filter @giggle/desktop build`, and publishes `apps/desktop/.next`. Do not change the Vercel root to `apps/desktop` while using these root-level commands.
 - **Railway:** source `EYE-52/giggle`, branch `main`, root directory **`/server`**, Railpack builder. The observed build uses `npm install` and starts with `npm run start` (`node src/server.js`). The service runs in US West with one replica. It previously used CLI uploads; on 23 September it was connected to GitHub and deployed from `main`.
 - Vercel builds **production only**: `vercel.json` sets `git.deploymentEnabled` so only `main` deploys, and branches/PRs get no preview deployment (previews failed because `NEXT_PUBLIC_BACKEND_URL` is only set for Production). To re-enable previews, add the two public variables to the Preview environment and remove that rule.
-- Vercel automatically deployed the latest push. Railway's setup screen showed **“Auto deploy unavailable”** when the repository was connected; the successful release below was triggered with **Deploy Changes**. Check Railway after every push and explicitly deploy the latest `main` commit if no build starts. Do not assume that GitHub connection alone guarantees automatic deployment.
+- Vercel automatically deploys pushes to `main`. Railway's setup screen once showed **“Auto deploy unavailable”**, but since 23 September merges to `main` have deployed automatically (Railway posts a `giggle - giggle-server` commit status). Still check Railway after every push and use **Deploy Changes** on the latest `main` commit if no build starts.
 - Google sign-in goes through `https://www.gigglemeet.com/api/auth/google/callback`. Next.js proxies `/api/auth/*` to Railway; normal API calls and realtime sockets use the Railway backend URL directly. Keep the branded callback URL registered with Google when updating OAuth settings.
 
 ### Configuration and temporary age form
@@ -56,11 +56,11 @@ From commit `279d64a`, temporary access is evaluated from the server setting and
 
 ### Last verified release
 
-- Commit: [`279d64a`](https://github.com/EYE-52/giggle/commit/279d64a63e66c49bd889792b010ea07b3dd6d242) — `fix: make temporary age declaration access reversible`.
-- Vercel: [`6V1dLaY8A4aB3csrwjR8qCLt2h1M`](https://vercel.com/divyansh24888-5115s-projects/giggle-meet/6V1dLaY8A4aB3csrwjR8qCLt2h1M), **Ready**, serving the production domains.
-- Railway: [`102e277a-ed36-45d1-8600-623a861d5146`](https://railway.com/project/2e301782-c882-4553-94e4-61b898d98f1f/service/7874f27b-f974-4fb4-9523-fb3043c38f31?environmentId=bd367c27-b9f2-4715-a40c-842f19a1f66c&id=102e277a-ed36-45d1-8600-623a861d5146), **Active**, deployed via GitHub.
-- Verified live: Google sign-in for an existing declared adult, squad home loads without a Yoti prompt, API/database/Redis healthy. New-user and underage behavior was covered by targeted automated tests, not a new production account.
-- Local validation: production web build succeeded; 70 targeted age/access/auth/socket tests passed. The broader server suite was stopped after tests repeatedly tried to connect to unavailable local Redis, so a complete full-suite pass was not established.
+- Commits: [`8082a68`](https://github.com/EYE-52/giggle/commit/8082a68) — UI polish, API query/scaling fixes (#5); [`9de82e9`](https://github.com/EYE-52/giggle/commit/9de82e9) — shared illustrated avatars (#6).
+- Vercel: [`EYBbgMMVTNa51PG9796UAoTrn6CP`](https://vercel.com/divyansh24888-5115s-projects/giggle-meet/EYBbgMMVTNa51PG9796UAoTrn6CP), **Ready**, serving the production domains.
+- Railway: [`c6e953f3-de8a-45d9-85ed-ca1d7ce26ff6`](https://railway.com/project/2e301782-c882-4553-94e4-61b898d98f1f/service/7874f27b-f974-4fb4-9523-fb3043c38f31?environmentId=bd367c27-b9f2-4715-a40c-842f19a1f66c&id=c6e953f3-de8a-45d9-85ed-ca1d7ce26ff6), **Success**. Both merges to `main` deployed on Railway automatically from GitHub.
+- Verified live: `/health` reports API `UP`, database and Redis `connected`; the website returns 200; `PATCH /api/me/profile` rejects unauthenticated requests; API responses carry the Redis-backed rate-limit headers. A signed-in production account was not exercised.
+- Local validation: web type-check and production build passed; unit tests desktop 143/143, core 74/74, server 328/328 (with Redis). Playwright against a real local API (MongoDB 8 replica set + Redis 7.4): real two-browser squad lifecycle, dev sign-in and avatar flows 16/16; full suite 110 passed on phone/tablet/laptop/desktop. Three desktop encounter tests still assert the pre-redesign call layout (`remote-main`/`dual-focus` kinds, "fit" default, three theme accents) and fail on both old and new code.
 - Update this section after future releases; these IDs are a historical checkpoint, not necessarily tomorrow's latest deployment.
 
 ## Runtime
