@@ -87,7 +87,7 @@ export function AdaptiveVideoStage({ mine, theirs, mineLabel, theirsLabel, rende
   const layout = useMemo(() => arrangeVideoCall(JSON.parse(mineRatios), JSON.parse(theirRatios), bounds.width, bounds.height),
     [mineRatios, theirRatios, bounds.width, bounds.height]);
   return <div ref={host} className={styles.stage} data-adaptive-video-stage>
-    <div className={styles.groups} style={{ flexDirection: layout.stacked ? "column" : "row", justifyContent: layout.stacked ? "flex-start" : "center", gap: layout.gap }}>
+    <div className={styles.groups} style={{ flexDirection: layout.stacked ? "column" : "row", justifyContent: "center", gap: layout.gap }}>
       {([
         { id: "theirs", people: theirs, label: theirsLabel, box: layout.theirs },
         { id: "mine", people: mine, label: mineLabel, box: layout.mine },

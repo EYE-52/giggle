@@ -112,6 +112,11 @@
 .gg-header a {
   text-decoration: none;
 }
+.gg-header-inner > a:first-child {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
 .gg-main-nav {
   display: flex;
   gap: 10px;
@@ -137,6 +142,19 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+/* App content column: same max width and side padding as .gg-header-inner so
+   page content lines up with the logo at every breakpoint. */
+.gg-app-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 40px 56px;
+}
+@media (max-width: 850px) {
+  .gg-app-container { padding: 28px 24px 48px; }
+}
+@media (max-width: 600px) {
+  .gg-app-container { padding: 20px 18px calc(96px + env(safe-area-inset-bottom)); }
 }
 .gg-profile-link {
   width: 44px;
@@ -183,7 +201,7 @@
 }
 .gg-squad-feature {
   border-radius: 22px;
-  padding: 24px;
+  padding: 28px;
   background: var(--accent-soft);
 }
 .gg-eyebrow {
@@ -221,28 +239,43 @@
 .gg-squad-feature-footer p {
   font-size: 14px;
 }
+.gg-home-side {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
 .gg-join-form {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 14px;
+  gap: 10px;
+  padding: 20px 22px 22px;
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 22px;
 }
 .gg-join-form label {
-  flex-shrink: 0;
-  font-size: 14px;
+  grid-column: 1 / -1;
+  font-size: 17px;
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 .gg-join-form input {
   min-width: 0;
   width: 100%;
-  padding: 12px;
-  min-height: 46px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 10px;
+  padding: 0 14px;
+  min-height: 48px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  border-radius: 12px;
   color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.gg-join-form input::placeholder {
+  color: var(--text-faint);
 }
 .gg-home-panel {
   background: var(--surface);
@@ -251,8 +284,11 @@
   padding: 22px;
 }
 .gg-home-panel h2 {
-  font-size: 23px;
-  letter-spacing: -0.035em;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+.gg-home-panel > h2 {
+  margin-bottom: 6px;
 }
 .gg-home-panel-heading {
   display: flex;
@@ -269,7 +305,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 0;
+  padding: 12px 0;
   border-top: 1px solid var(--border);
 }
 .gg-home-row:first-child {
@@ -280,9 +316,11 @@
   min-width: 0;
 }
 .gg-home-row h3 {
-  font-size: 17px;
-  margin: 0 0 3px;
-  overflow-wrap: anywhere;
+  font-size: 16px;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .gg-home-row p {
   font-size: 13px;
@@ -326,8 +364,8 @@
     padding: 0 24px;
   }
   .gg-home-grid {
-    gap: 20px;
-    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 1fr);
+    gap: 16px;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 600px) {
@@ -402,15 +440,16 @@
     gap: 10px;
   }
   .gg-join-form {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-  }
-  .gg-join-form label {
-    grid-column: 1/-1;
+    padding: 18px;
   }
   .gg-home-panel {
     padding: 18px;
+  }
+}
+/* Short landscape phones: drop the decorative seat row so the squad action stays above the fold. */
+@media (max-height: 500px) {
+  .gg-squad-faces {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {

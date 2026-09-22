@@ -138,7 +138,10 @@ function Row({
   const [resolved, setResolved] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const ts = typeStyle(n.type);
-  const dim = n.read;
+  // Opening the panel marks everything read; only fade items that need no
+  // action, so pending requests never look disabled.
+  const needsAction = n.type === "friend_request" || n.type === "join_request" || n.type === "squad_invite";
+  const dim = !!resolved || (n.read && !needsAction);
 
   const accept = async () => {
     if (busy || !n.fromUserId) return;
@@ -249,7 +252,7 @@ function Row({
         padding: "12px 14px",
         borderRadius: "var(--radius-control, 14px)",
         cursor: rowClickable ? "pointer" : "default",
-        opacity: dim ? 0.55 : 1,
+        opacity: dim ? 0.7 : 1,
         transition: "opacity var(--dur) var(--ease-inout), background-color var(--dur) var(--ease-inout)",
       }}
     >

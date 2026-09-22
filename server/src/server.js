@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const { RedisStore } = require('rate-limit-redis');
 const mongoose = require('mongoose');
 const cookieParser = require('cookie-parser');
 const swaggerUi = require('swagger-ui-express');
@@ -93,6 +94,38 @@ app.use(cookieParser());
 
 // Rate limiting: a general limiter for all /api traffic, plus a stricter
 // limiter on the auth exchange endpoint to slow credential-stuffing.
+// When Redis is configured the counters live in Redis so limits hold across
+// replicas; local dev without Redis keeps the in-memory store.
+const useRedisRateLimitStore = Boolean(process.env.REDIS_URL || process.env.REDIS_HOST);
+
+class ResilientRedisStore extends RedisStore {
+  async increment(key) {
+    try {
+      return await super.increment(key);
+    } catch (error) {
+      // A failed SCRIPT LOAD (e.g. Redis unreachable at boot) leaves a rejected
+      // script promise that would fail every later call; reload it next time.
+      this.incrementScriptSha = this.loadIncrementScript();
+      this.incrementScriptSha.catch(() => {});
+      throw error;
+    }
+  }
+}
+
+function rateLimitStore(prefix) {
+  if (!useRedisRateLimitStore) return {};
+  const { redis } = require('./config/redisConfig');
+  return {
+    store: new ResilientRedisStore({
+      prefix,
+      sendCommand: (command, ...args) => redis.call(command, ...args),
+    }),
+    // Fail open like the previous in-memory limiter: a Redis outage must not
+    // turn every API request into a 500.
+    passOnStoreError: true,
+  };
+}
+
 const generalLimiter = rateLimit({
   // This is a REALTIME app: clients poll matchmaking/encounter status every ~2s
   // (≈30 req/min/user) on top of normal traffic, and several users can share one
@@ -103,6 +136,7 @@ const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { ok: false, error: { code: "RATE_LIMITED", message: "Too many requests, please try again later" } },
+  ...rateLimitStore("rl:api:"),
 });
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -110,6 +144,7 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { ok: false, error: { code: "RATE_LIMITED", message: "Too many attempts — please wait a minute and try again." } },
+  ...rateLimitStore("rl:auth:"),
 });
 // All auth provider routes (exchange, google, apple, email magic-link) share
 // the stricter auth limiter to slow credential-stuffing / link spamming.
@@ -283,11 +318,73 @@ async function startServer(port = PORT) {
   return server;
 }
 
+const SHUTDOWN_TIMEOUT_MS = 10 * 1000;
+let shutdownPromise = null;
+
+function closeRedisClient(client) {
+  // QUIT only on a live connection: on a lazy/reconnecting client it would sit
+  // in the offline queue (forever for the pub/sub clients) instead of closing.
+  if (client.status !== 'ready') {
+    client.disconnect();
+    return Promise.resolve();
+  }
+  return client.quit().catch(() => client.disconnect());
+}
+
+// Graceful shutdown for SIGTERM/SIGINT (Railway/Docker/k8s redeploys): stop
+// background sweepers, close sockets and the HTTP listener, then disconnect
+// Mongo and Redis. A hard exit guarantees the process ends within 10s.
+function shutdown(signal) {
+  if (shutdownPromise) return shutdownPromise;
+  console.log(`[shutdown] ${signal} received, shutting down gracefully...`);
+
+  const hardExit = setTimeout(() => {
+    console.error(`[shutdown] Timed out after ${SHUTDOWN_TIMEOUT_MS / 1000}s, forcing exit`);
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  hardExit.unref();
+
+  shutdownPromise = (async () => {
+    require('./services/matchmakingService').stopEncounterSweeper();
+    require('./services/accountDeletionService').stopAccountDeletionSweeper();
+
+    const httpClosed = new Promise((resolve) => {
+      if (!server.listening) return resolve();
+      server.close(() => resolve());
+    });
+    if (socketInitialized) await socketService.close();
+    if (typeof server.closeIdleConnections === 'function') server.closeIdleConnections();
+    await httpClosed;
+
+    // disconnect() waits out a still-pending initial connect (up to the 30s
+    // server-selection timeout), so only close an established connection.
+    if (mongoose.connection.readyState === 1) await mongoose.disconnect();
+    const { redis, pubClient, subClient } = require('./config/redisConfig');
+    await Promise.allSettled([redis, pubClient, subClient].map(closeRedisClient));
+    console.log('[shutdown] Clean shutdown complete');
+  })()
+    .then(() => {
+      process.exitCode = process.exitCode || 0;
+    })
+    .catch((err) => {
+      console.error('[shutdown] Error during shutdown:', err);
+      process.exitCode = 1;
+    })
+    .finally(() => {
+      clearTimeout(hardExit);
+      process.exit();
+    });
+
+  return shutdownPromise;
+}
+
 if (require.main === module) {
+  process.once('SIGTERM', () => shutdown('SIGTERM'));
+  process.once('SIGINT', () => shutdown('SIGINT'));
   startServer().catch((err) => {
     console.error(err.message || err);
     process.exitCode = 1;
   });
 }
 
-module.exports = { app, server, startServer, connectDatabase, getSwaggerSpec, publicApiBaseUrl };
+module.exports = { app, server, startServer, connectDatabase, getSwaggerSpec, publicApiBaseUrl, shutdown };

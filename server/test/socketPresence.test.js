@@ -14,8 +14,8 @@ test("socket presence is Redis-backed for multi-instance deployments", () => {
   assert.equal(service.includes("async function markUserOffline"), true);
   assert.equal(service.includes("async function isUserOnline"), true);
   assert.equal(service.includes("async function getOnlineUserIds"), true);
-  assert.equal(service.includes("redis.sadd(userKey, socketId);"), true);
-  assert.equal(service.includes("redis.set(socketKey, userId, \"EX\", PRESENCE_TTL_SECONDS);"), true);
+  assert.equal(service.includes(".sadd(userKey, socketId)"), true);
+  assert.equal(service.includes(".set(socketKey, userId, \"EX\", PRESENCE_TTL_SECONDS)"), true);
   assert.equal(service.includes("onlineCounts = new Map"), false);
 });
 

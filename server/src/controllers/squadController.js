@@ -37,9 +37,11 @@ const { normalizeSquadCoverImage } = require("../utils/squadCoverValidation");
 const { firstDisplayName } = require("../utils/identityValidation");
 const {
   anyBlockedPair,
+  anyBlockedPairInState,
   canonicalUserId,
   filterBlockedCandidates,
   hasBlockedPair,
+  loadBlockState,
 } = require("../services/interactionSafetyService");
 
 const discoveryDisabled = (res) => res.status(503).json({
@@ -51,22 +53,45 @@ const discoveryDisabled = (res) => res.status(503).json({
 // Always clamped to the global hard cap (MAX_SQUAD_MEMBERS). Looks up the
 // leader's live `isPremium` from the User record so upgrades take effect
 // immediately. Falls back to 4 if the leader/user can't be resolved.
+const findCapacityLeader = (squad) =>
+  squad.members.find((m) => m.role === "leader") ||
+  (squad.leaderMemberId
+    ? squad.members.find((m) => m.memberId === squad.leaderMemberId)
+    : null);
+
+const capacityForPremium = (isPremium) =>
+  Math.min(isPremium ? PREMIUM_MAX_MEMBERS : FREE_MAX_MEMBERS, MAX_SQUAD_MEMBERS);
+
 const getSquadCapacity = async (squad) => {
   try {
-    const leader =
-      squad.members.find((m) => m.role === "leader") ||
-      (squad.leaderMemberId
-        ? squad.members.find((m) => m.memberId === squad.leaderMemberId)
-        : null);
+    const leader = findCapacityLeader(squad);
     if (!leader || !leader.userId) return FREE_MAX_MEMBERS;
-    const leaderUser = await User.findById(leader.userId);
-    const isPremium = Boolean(leaderUser && leaderUser.isPremium);
-    const capacity = isPremium ? PREMIUM_MAX_MEMBERS : FREE_MAX_MEMBERS;
-    return Math.min(capacity, MAX_SQUAD_MEMBERS);
+    const leaderUser = await User.findById(leader.userId, "isPremium", { lean: true });
+    return capacityForPremium(Boolean(leaderUser && leaderUser.isPremium));
   } catch (error) {
     console.warn("getSquadCapacity failed:", error.message);
     return FREE_MAX_MEMBERS;
   }
+};
+
+// Batched getSquadCapacity for list endpoints: one User query for all leaders
+// instead of one per squad. Same fallback (free capacity) on any failure.
+const getSquadCapacities = async (squads) => {
+  const leaderIds = squads.map((squad) => {
+    const leader = findCapacityLeader(squad);
+    return leader && isValidUserObjectId(leader.userId) ? leader.userId.toLowerCase() : null;
+  });
+  const uniqueIds = [...new Set(leaderIds.filter(Boolean))];
+  const premiumById = new Map();
+  if (uniqueIds.length > 0) {
+    try {
+      const users = await User.find({ _id: { $in: uniqueIds } }, "isPremium", { lean: true });
+      for (const user of users) premiumById.set(String(user._id), Boolean(user.isPremium));
+    } catch (error) {
+      console.warn("getSquadCapacities failed:", error.message);
+    }
+  }
+  return leaderIds.map((id) => capacityForPremium(Boolean(id && premiumById.get(id))));
 };
 
 const getUserPremiumStatus = async (userId) => {
@@ -187,9 +212,21 @@ const getMySquadsHandler = async (req, res) => {
       providerAccountId: identity.providerAccountId,
     });
 
-    const blocked = await Promise.all(squads.map((squad) => anyBlockedPairInSquad(squad)));
+    // One block-state query for every member of every squad (was one per squad);
+    // per-squad semantics match anyBlockedPairInSquad, failing closed on error.
+    const memberIdsBySquad = squads.map((squad) => (squad.members || []).map((member) => member.userId));
+    let blockState = null;
+    try {
+      blockState = await loadBlockState(memberIdsBySquad.flat(), { User });
+    } catch {
+      blockState = null;
+    }
+    const blocked = memberIdsBySquad.map((userIds) =>
+      userIds.length > 0 && anyBlockedPairInState(userIds, blockState)
+    );
     const visibleSquads = squads.filter((_squad, index) => !blocked[index]);
-    const data = await Promise.all(visibleSquads.map(async (squad) => {
+    const capacities = await getSquadCapacities(visibleSquads);
+    const data = visibleSquads.map((squad, index) => {
       const leader = squad.members.find((m) => m.role === "leader");
       const myMember = squad.members.find((m) => isSameMember(m, identity));
       return {
@@ -198,14 +235,14 @@ const getMySquadsHandler = async (req, res) => {
         squadName: squad.squadName,
         status: squad.status,
         memberCount: squad.members.length,
-        maxSlots: await getSquadCapacity(squad),
+        maxSlots: capacities[index],
         coverImage: squad.coverImage ?? null,
         tags: squad.tags || [],
         leaderName: leader ? leader.displayName : undefined,
         myRole: myMember ? myMember.role : undefined,
         joinPolicy: squad.joinPolicy || "open",
       };
-    }));
+    });
 
     return res.status(200).json({ ok: true, data: { squads: data } });
   } catch (error) {

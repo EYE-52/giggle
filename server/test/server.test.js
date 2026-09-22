@@ -496,7 +496,7 @@ test("deployment docs keep Vercel env vars aligned with the desktop app", () => 
   const desktopSignin = readFileSync(path.join(__dirname, "../../apps/desktop/app/signin/page.tsx"), "utf8");
   const vercelLine = deploymentDoc
     .split("\n")
-    .find((line) => line.startsWith("- **Vercel project `giggle-web`")) || "";
+    .find((line) => line.startsWith("- **Vercel project `giggle-meet`")) || "";
 
   assert.equal(desktopConfig.includes("NEXT_PUBLIC_BACKEND_URL"), true);
   assert.equal(desktopSignin.includes("NEXT_PUBLIC_GOOGLE_CLIENT_ID"), false);

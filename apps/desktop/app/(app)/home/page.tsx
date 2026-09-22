@@ -15,6 +15,7 @@ import { Avatar } from "@/components/Avatar";
 import { Icon } from "@/components/Icons";
 import { useToast } from "@/components/Toast";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
+import { pollWhileVisible } from "@/lib/poll";
 
 const rank: Record<string, number> = { in_encounter: 0, matched: 1, searching: 2, idle: 3 };
 function squadDestination(squad: MySquadLite | PublicSquad) {
@@ -82,10 +83,10 @@ export default function HomePage() {
       }
     }
     void load();
-    const timer = setInterval(load, requested.length ? 3000 : 20000);
+    const stopPolling = pollWhileVisible(load, requested.length ? 3000 : 20000);
     return () => {
       alive = false;
-      clearInterval(timer);
+      stopPolling();
     };
   }, [reload, requested, router]);
   useEffect(() => {
@@ -103,10 +104,10 @@ export default function HomePage() {
       }
     }
     void load();
-    const timer = setInterval(load, 20000);
+    const stopPolling = pollWhileVisible(load, 20000);
     return () => {
       alive = false;
-      clearInterval(timer);
+      stopPolling();
     };
   }, [reload]);
   useEffect(() => {
@@ -221,10 +222,7 @@ export default function HomePage() {
           </Button>
         )}
       </div>
-      <div
-        className="gg-home-grid"
-        style={!WEB_DISCOVERY_ENABLED ? { gridTemplateColumns: "minmax(0,760px)" } : undefined}
-      >
+      <div className="gg-home-grid">
         <div className="gg-home-primary">
           {loadError ? (
             <div role="alert" className="gg-home-panel">
@@ -275,6 +273,8 @@ export default function HomePage() {
               </div>
             </section>
           )}
+        </div>
+        <aside className="gg-home-side">
           <form
             className="gg-join-form"
             onSubmit={(event) => {
@@ -318,6 +318,7 @@ export default function HomePage() {
               <h2>Manage your squads</h2>
               {squads.map((s) => (
                 <div className="gg-home-row" key={s.squadId}>
+                  <Avatar name={s.squadName} size={40} />
                   <div className="gg-home-row-copy">
                     <h3>{s.squadName}</h3>
                     <p>
@@ -325,11 +326,13 @@ export default function HomePage() {
                       {s.myRole === "leader" ? "You lead this squad" : "Member"}
                     </p>
                   </div>
-                  <Button variant="ghost" onClick={() => router.push(squadDestination(s))}>
+                  <Button size="sm" variant="secondary" onClick={() => router.push(squadDestination(s))}>
                     Open
                   </Button>
                   <Button
+                    size="sm"
                     variant="ghost"
+                    style={{ width: 44, padding: 0, color: "var(--text-muted)" }}
                     aria-label={`${s.myRole === "leader" ? "End" : "Leave"} ${s.squadName}`}
                     onClick={() => setLeaving(s)}
                   >
@@ -339,9 +342,8 @@ export default function HomePage() {
               ))}
             </section>
           )}
-        </div>
         {WEB_DISCOVERY_ENABLED && (
-          <aside className="gg-home-panel">
+          <section className="gg-home-panel">
             <div className="gg-home-panel-heading">
               <h2>Open squads</h2>
               <Link href="/discover">See all →</Link>
@@ -392,8 +394,9 @@ export default function HomePage() {
               })
             )}
 
-          </aside>
+          </section>
         )}
+        </aside>
       </div>
       {createOpen && (
         <Modal

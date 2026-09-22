@@ -2,7 +2,7 @@ const { Squad } = require("../models/Squad");
 const { Encounter } = require("../models/Encounter");
 const User = require("../models/User");
 const { generateId } = require("../utils/idGenerator");
-const { withMatchmakingLock } = require("../config/redisConfig");
+const { withMatchmakingLock, runAsSingleReplica } = require("../config/redisConfig");
 const queueService = require("./queueService");
 const socketService = require("./socketService");
 const sessionService = require("./sessionService");
@@ -368,8 +368,13 @@ const tryMatchmakeForSquad = async (squad) => {
   }
 };
 
-const getMatchmakingStatus = async (squadId) => {
-  const squad = await Squad.findOne({ squadId });
+// Read-only status snapshot. Callers that already loaded the squad (e.g. the
+// squad-access middleware) pass it in to avoid a second full-document fetch.
+const getMatchmakingStatus = async (squadId, { squad: preloadedSquad } = {}) => {
+  const squad =
+    preloadedSquad && preloadedSquad.squadId === squadId
+      ? preloadedSquad
+      : await Squad.findOne({ squadId }).select("-coverImage").lean();
   if (!squad) {
     return null;
   }
@@ -377,10 +382,12 @@ const getMatchmakingStatus = async (squadId) => {
   let match = null;
   let interactionBlocked = false;
   if (squad.currentEncounterId) {
-    const encounter = await Encounter.findOne({ encounterId: squad.currentEncounterId });
+    const encounter = await Encounter.findOne({ encounterId: squad.currentEncounterId }).lean();
     if (encounter) {
       const opponentSquadId = encounter.squadAId === squadId ? encounter.squadBId : encounter.squadAId;
-      const opponentSquad = await Squad.findOne({ squadId: opponentSquadId });
+      const opponentSquad = await Squad.findOne({ squadId: opponentSquadId })
+        .select("squadId squadName members.userId")
+        .lean();
       const context = await getEncounterRosterContext({
         encounter,
         squadA: encounter.squadAId === squadId ? squad : opponentSquad,
@@ -759,12 +766,26 @@ const sweepStuckEncounters = async () => {
 const STUCK_ENCOUNTER_SWEEP_INTERVAL_MS = 30 * 1000;
 let sweepTimer = null;
 
+// Lease slightly shorter than the interval so exactly one replica sweeps per tick.
+const STUCK_ENCOUNTER_SWEEP_LEASE_MS = STUCK_ENCOUNTER_SWEEP_INTERVAL_MS - 5 * 1000;
+
+const runEncounterSweepTick = () =>
+  runAsSingleReplica("encounter-sweeper", STUCK_ENCOUNTER_SWEEP_LEASE_MS, sweepStuckEncounters)
+    .catch((err) => {
+      console.error("[Sweeper] Skipped stuck-encounter sweep (leader lease unavailable):", err.message);
+    });
+
 const startEncounterSweeper = () => {
   if (sweepTimer) return sweepTimer;
-  sweepTimer = setInterval(sweepStuckEncounters, STUCK_ENCOUNTER_SWEEP_INTERVAL_MS);
+  sweepTimer = setInterval(runEncounterSweepTick, STUCK_ENCOUNTER_SWEEP_INTERVAL_MS);
   if (typeof sweepTimer.unref === "function") sweepTimer.unref();
   logMatchmakingDebug(`[Sweeper] Stuck-encounter sweeper started (every ${STUCK_ENCOUNTER_SWEEP_INTERVAL_MS / 1000}s)`);
   return sweepTimer;
+};
+
+const stopEncounterSweeper = () => {
+  if (sweepTimer) clearInterval(sweepTimer);
+  sweepTimer = null;
 };
 
 module.exports = {
@@ -773,6 +794,7 @@ module.exports = {
   tryMatchmakeForSquad,
   sweepStuckEncounters,
   startEncounterSweeper,
+  stopEncounterSweeper,
   getMatchmakingStatus,
   getEncounterById,
   getEncounterRosterContext,

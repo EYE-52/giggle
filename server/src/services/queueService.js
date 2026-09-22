@@ -3,6 +3,19 @@ const { redis } = require('../config/redisConfig');
 const QUEUE_PREFIX = 'matchmaking_queue:';
 const METADATA_PREFIX = 'squad_meta:';
 
+// Non-blocking replacement for KEYS: iterate the keyspace with SCAN so a large
+// Redis never stalls on a single O(N) command. Returns unique region queue keys.
+const scanQueueKeys = async () => {
+  const found = new Set();
+  let cursor = '0';
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', `${QUEUE_PREFIX}*`, 'COUNT', 250);
+    keys.forEach((key) => found.add(key));
+    cursor = nextCursor;
+  } while (cursor !== '0');
+  return [...found];
+};
+
 /**
  * Adds a squad to the matchmaking queue for a specific region.
  * @param {string} squadId 
@@ -46,7 +59,7 @@ const removeFromQueue = async (squadId) => {
   const meta = await redis.hgetall(`${METADATA_PREFIX}${squadId}`);
   if (!meta || !meta.region) {
     // Fallback search across common regions if meta is lost
-    const regions = await redis.keys(`${QUEUE_PREFIX}*`);
+    const regions = await scanQueueKeys();
     const pipe = redis.pipeline();
     regions.forEach(key => pipe.zrem(key, squadId));
     pipe.del(`${METADATA_PREFIX}${squadId}`);
@@ -86,7 +99,7 @@ const getQueuedSquadsByRegion = async (region) => {
  * Gets all squads from all regions.
  */
 const getAllQueuedSquads = async () => {
-  const regionKeys = await redis.keys(`${QUEUE_PREFIX}*`);
+  const regionKeys = await scanQueueKeys();
   if (!regionKeys.length) return [];
 
   const allSquads = [];

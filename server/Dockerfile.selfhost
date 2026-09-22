@@ -1,0 +1,22 @@
+# Production image for the Giggle API + realtime server.
+# Portable off Railway: any container host that sets PORT (default 3000) and
+# the variables documented in .env.example can run this image unchanged.
+FROM node:22-alpine
+
+ENV NODE_ENV=production
+WORKDIR /app
+
+# Install production dependencies from the lockfile only (cached layer).
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
+COPY src ./src
+
+# Drop root: the official image ships an unprivileged "node" user.
+USER node
+
+ENV PORT=3000
+EXPOSE ${PORT}
+
+# Exec form so node is PID 1 and receives SIGTERM for graceful shutdown.
+CMD ["node", "src/server.js"]

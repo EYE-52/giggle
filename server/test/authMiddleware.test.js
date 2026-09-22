@@ -48,10 +48,12 @@ async function withAuthEnvironment(run) {
 async function withLiveUser(user, run) {
   const originalFindById = User.findById;
   User.findById = () => ({
-    select: async () => {
-      if (user instanceof Error) throw user;
-      return user;
-    },
+    select: () => ({
+      lean: async () => {
+        if (user instanceof Error) throw user;
+        return user;
+      },
+    }),
   });
 
   try {

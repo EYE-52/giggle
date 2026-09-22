@@ -4,7 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { TopNav } from "@/components/TopNav";
 import { ToastProvider } from "@/components/Toast";
 import { Logomark } from "@/components/Brand";
-import { useViewport } from "@/components/useViewport";
 import { session, connectSocket } from "@giggle/core";
 import { AgeGate } from "@/components/AgeGate";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
@@ -18,7 +17,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const isCalling = CALLING_ROUTES.some((r) => pathname === r);
   const discoveryRouteDisabled = !WEB_DISCOVERY_ENABLED && DISCOVERY_ROUTES.includes(pathname);
-  const { isPhone } = useViewport();
   const [authReady, setAuthReady] = useState(false);
   const [hasAdultAccess, setHasAdultAccess] = useState(false);
   const identityOnlyAccess = authReady && session.hasIdentityOnlyAccess;
@@ -158,12 +156,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               }
             : {
                 flex: 1,
-                maxWidth: 1200,
-                margin: "0 auto",
+                minHeight: 0,
                 width: "100%",
-                padding: isPhone ? "20px 18px calc(90px + env(safe-area-inset-bottom))" : "28px 40px 40px",
                 overflowY: "auto",
-                boxSizing: "border-box",
+                // Full-width scroller so the scrollbar sits on the window edge;
+                // the centered column lives in .gg-app-container.
+                scrollbarGutter: "stable both-edges",
               }
         }
       >
@@ -172,11 +170,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         ) : (
           // No per-pathname key: the entrance reveal runs once on mount instead
           // of re-running on every route change.
-          <div
-            style={{
-              animation: "gg-reveal 0.32s var(--ease-out) both",
-            }}
-          >
+          <div className="gg-app-container" style={{ animation: "gg-reveal 0.32s var(--ease-out) both" }}>
             {children}
           </div>
         )}

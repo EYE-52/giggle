@@ -53,6 +53,8 @@ const squadSchema = new mongoose.Schema({
 
 // Indexes for hot lookups (squadId/squadCode already indexed via unique:true)
 squadSchema.index({ "members.userId": 1 });
+// findSquadsForIdentity $elemMatch/$or also matches on providerAccountId.
+squadSchema.index({ "members.providerAccountId": 1 });
 squadSchema.index({ status: 1 });
 
 const Squad = mongoose.model("Squad", squadSchema);

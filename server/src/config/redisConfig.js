@@ -6,17 +6,19 @@ const { getRedisOptions } = require('./redisOptions');
  * Production-Grade Redis Configuration
  * Optimized for Render + Upstash / Managed Redis
  */
-// 1. Primary Client (Also used for Pub)
+// 1. Primary command client. Bounded retries so API requests fail fast
+//    (instead of hanging forever) while Redis is unavailable.
 const redis = new Redis(...getRedisOptions());
 
-// 2. Dedicated Sub Client (Sub must be separate)
-const subClient = new Redis(...getRedisOptions());
-
-// Re-use primary for Pub as allowed by Socket.io adapter
-const pubClient = redis; 
+// 2. Socket.io adapter pub/sub clients keep unlimited per-request retries so
+//    cross-replica broadcasts queue through a Redis blip. Pub is lazy: it only
+//    connects once the adapter publishes (i.e. when sockets are initialised).
+const subClient = new Redis(...getRedisOptions({ maxRetriesPerRequest: null }));
+const pubClient = new Redis(...getRedisOptions({ maxRetriesPerRequest: null, lazyConnect: true }));
 
 const clients = [
-  { name: 'Primary/Pub', client: redis },
+  { name: 'Primary', client: redis },
+  { name: 'Pub', client: pubClient },
   { name: 'Sub', client: subClient }
 ];
 
@@ -68,10 +70,27 @@ const withMatchmakingLock = (routine) =>
     }
   );
 
+// Multi-replica guard for periodic background jobs: each tick, only the replica
+// that wins a short SET NX PX lease runs the routine. The lease is not released
+// early, so replicas whose timers fire a little later in the same tick skip it.
+// Returns undefined (without running) when another replica holds the lease.
+const runAsSingleReplica = async (jobName, leaseMs, routine) => {
+  const acquired = await redis.set(
+    `lock:job:${jobName}`,
+    `${process.pid}:${Date.now()}`,
+    'PX',
+    leaseMs,
+    'NX'
+  );
+  if (acquired !== 'OK') return undefined;
+  return routine();
+};
+
 module.exports = {
   redis,
   pubClient,
   subClient,
   redlock,
   withMatchmakingLock,
+  runAsSingleReplica,
 };

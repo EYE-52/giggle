@@ -3,7 +3,7 @@ const User = require("../models/User");
 const { Squad } = require("../models/Squad");
 const { Notification } = require("../models/Notification");
 const SafetyReport = require("../models/SafetyReport");
-const { redlock, withMatchmakingLock } = require("../config/redisConfig");
+const { redlock, withMatchmakingLock, runAsSingleReplica } = require("../config/redisConfig");
 const { removeSquadMember } = require("../app/squadAccess");
 const { disconnectUserSockets } = require("./socketService");
 const { canonicalUserId, relationalIdMatcher } = require("./interactionSafetyService");
@@ -166,11 +166,18 @@ const sweepPendingAccountDeletions = async (options = {}) => {
   return { attempted: users.length, deleted, pending };
 };
 
+// Per-account work is already redlock-protected; the lease just stops every
+// replica from re-scanning the same pending accounts on each tick.
+const SWEEP_LEASE_MS = SWEEP_INTERVAL_MS - 5_000;
+
 const startAccountDeletionSweeper = (options = {}) => {
   if (sweepTimer) return sweepTimer;
   const setIntervalFn = options.setIntervalFn || setInterval;
+  const runExclusive = options.runExclusive || runAsSingleReplica;
   sweepTimer = setIntervalFn(() => {
-    void sweepPendingAccountDeletions(options).catch((error) => {
+    void runExclusive("account-deletion-sweeper", SWEEP_LEASE_MS, () =>
+      sweepPendingAccountDeletions(options)
+    ).catch((error) => {
       (options.logger || console).error("Account deletion sweep failed:", error);
     });
   }, SWEEP_INTERVAL_MS);
@@ -178,9 +185,15 @@ const startAccountDeletionSweeper = (options = {}) => {
   return sweepTimer;
 };
 
+const stopAccountDeletionSweeper = (options = {}) => {
+  if (sweepTimer) (options.clearIntervalFn || clearInterval)(sweepTimer);
+  sweepTimer = null;
+};
+
 module.exports = {
   requestAccountDeletion,
   resumeAccountDeletion,
   sweepPendingAccountDeletions,
   startAccountDeletionSweeper,
+  stopAccountDeletionSweeper,
 };

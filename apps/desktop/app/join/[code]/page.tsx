@@ -6,6 +6,7 @@ import Link from "next/link";
 import { session, api, formatSquadCodeInput, isValidSquadCode } from "@giggle/core";
 import { Logomark } from "@/components/Brand";
 import { AgeGate } from "@/components/AgeGate";
+import { pollWhileVisible } from "@/lib/poll";
 
 // Invite-link landing: /join/<CODE>. Someone opens a squad invite link →
 // we join them to the squad and drop them straight into the lobby. If they're
@@ -90,8 +91,8 @@ export default function JoinByLinkPage() {
       } catch { /* Keep the request screen; retry on the next poll. */ }
     };
     void check();
-    const timer = setInterval(check, 3000);
-    return () => { cancelled = true; clearInterval(timer); };
+    const stopPolling = pollWhileVisible(check, 3000);
+    return () => { cancelled = true; stopPolling(); };
   }, [phase, code, router]);
 
   if (phase === "age") {
