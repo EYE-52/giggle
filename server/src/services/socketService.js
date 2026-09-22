@@ -22,6 +22,7 @@ const { hasAdultAccess } = require('./ageAccessService');
 const { claimOrGetChatMessage } = require('./chatDeliveryService');
 
 let io;
+let shuttingDown = false;
 const MAX_CHAT_TEXT_LENGTH = 500;
 const CHAT_RATE_LIMIT = { limit: 20, windowMs: 10_000 };
 const REACTION_RATE_LIMIT = { limit: 30, windowMs: 10_000 };
@@ -227,9 +228,15 @@ async function markUserOnline(userId, socketId, redis = getRedisClient()) {
   if (!userId || !socketId) return;
   const userKey = presenceUserKey(userId);
   const socketKey = presenceSocketKey(socketId);
-  await redis.sadd(userKey, socketId);
-  await redis.expire(userKey, PRESENCE_TTL_SECONDS);
-  await redis.set(socketKey, userId, "EX", PRESENCE_TTL_SECONDS);
+  // One round trip per heartbeat (MULTI/EXEC) instead of three sequential calls.
+  const results = await redis
+    .multi()
+    .sadd(userKey, socketId)
+    .expire(userKey, PRESENCE_TTL_SECONDS)
+    .set(socketKey, userId, "EX", PRESENCE_TTL_SECONDS)
+    .exec();
+  const commandError = results?.find(([error]) => error)?.[0];
+  if (commandError) throw commandError;
 }
 
 async function markUserOffline(userId, socketId, redis = getRedisClient()) {
@@ -473,6 +480,9 @@ const init = (server) => {
       reactionLimiter.forget(socket.id);
       reportLimiter.forget(socket.id);
       if (!socket.userId) return; // dev sockets with no identity — nothing to clean up
+      // Graceful shutdown: clients reconnect to another replica, so don't dequeue
+      // their squads; presence keys expire on their own TTL.
+      if (shuttingDown) return;
 
       const userId = socket.userId;
 
@@ -512,6 +522,14 @@ const init = (server) => {
 
   return io;
 };
+
+// Graceful shutdown: disconnect every socket and close the engine (socket.io
+// also closes the attached HTTP server). Resolves once closed.
+const close = () => new Promise((resolve) => {
+  shuttingDown = true;
+  if (!io) return resolve();
+  io.close(() => resolve());
+});
 
 const getIO = () => {
   if (!io) {
@@ -562,6 +580,7 @@ module.exports = {
   closeEncounterRoom,
   disconnectUserSockets,
   init,
+  close,
   getIO,
   emitToSquad,
   emitToUser,

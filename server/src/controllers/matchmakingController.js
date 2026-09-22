@@ -16,7 +16,7 @@ const getMatchmakingStatusHandler = async (req, res) => {
   const { squadId } = req.params;
 
   try {
-    const status = await getMatchmakingStatus(squadId);
+    const status = await getMatchmakingStatus(squadId, { squad: req.squadAccess?.squad });
     if (!status) {
       return res.status(404).json({
         ok: false,

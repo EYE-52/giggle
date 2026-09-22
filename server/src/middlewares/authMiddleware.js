@@ -47,9 +47,10 @@ const requireApiAuth = (req, res, next) =>
     let user;
 
     try {
-      user = await User.findById(userId).select(
-        "ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus"
-      );
+      // Read-only projection: req.userRecord is never mutated/saved, so lean.
+      user = await User.findById(userId)
+        .select("ageConfirmed isAdult ageVerified isSuspended isShadowBanned deletionStatus")
+        .lean();
     } catch (error) {
       console.error("Adult authorization lookup failed:", error);
       return res.status(503).json({

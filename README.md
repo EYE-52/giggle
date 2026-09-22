@@ -15,6 +15,8 @@ Live site: [www.gigglemeet.com](https://www.gigglemeet.com/).
 
 **Start with [DEPLOYMENT.md](DEPLOYMENT.md#current-production-setup)** for the current Vercel and Railway projects, dashboard links, build settings, environment-variable locations, temporary age-form mode, deployment and rollback steps, and the last verified release. The canonical deployment branch is `main`.
 
+For how the services scale and how to move them to other hosts, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Local development
 
 Use Node 22, pnpm 10 for the monorepo, and npm 10 for `server/`.

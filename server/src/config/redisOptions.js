@@ -1,9 +1,14 @@
-const getRedisOptions = () => {
+// Command clients fail fast (a couple of reconnect attempts) so API requests
+// return an error instead of hanging while Redis is down. The socket.io adapter
+// pub/sub clients pass { maxRetriesPerRequest: null } to queue until Redis returns.
+const DEFAULT_MAX_RETRIES_PER_REQUEST = 2;
+
+const getRedisOptions = ({ maxRetriesPerRequest = DEFAULT_MAX_RETRIES_PER_REQUEST, ...overrides } = {}) => {
   const redisUrl = process.env.REDIS_URL;
   const isTls = redisUrl?.startsWith("rediss://");
 
   const baseOptions = {
-    maxRetriesPerRequest: null,
+    maxRetriesPerRequest,
     enableReadyCheck: true,
     // Railway private network (*.railway.internal) is IPv6-only; family:0 lets
     // ioredis resolve both stacks (works for local IPv4 + managed/cloud too).
@@ -15,6 +20,7 @@ const getRedisOptions = () => {
     reconnectOnError(err) {
       return err.message.includes("READONLY");
     },
+    ...overrides,
   };
 
   if (isTls) {
@@ -37,4 +43,4 @@ const getRedisOptions = () => {
   }];
 };
 
-module.exports = { getRedisOptions };
+module.exports = { getRedisOptions, DEFAULT_MAX_RETRIES_PER_REQUEST };
