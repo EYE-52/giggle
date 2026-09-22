@@ -133,6 +133,17 @@ const deleteSquadAndNotifications = async (squad) => {
   await deleteNotifications({ squadId: squad.squadId });
   await sessionService.clearSquadSession(squad.squadId);
   await squad.deleteOne();
+  await deleteSquadCoversQuietly(squad.squadId);
+};
+
+// Best effort: the squad is already gone and a leftover image is unreachable,
+// so storage trouble never fails a leave/disband/account deletion.
+const deleteSquadCoversQuietly = async (squadId) => {
+  try {
+    await require("../services/coverStorage").deleteSquadCovers(squadId);
+  } catch (error) {
+    console.error("Error deleting squad covers:", error);
+  }
 };
 
 const persistSquadAfterMemberRemoval = async (squad, { removedMemberRole }) => {
