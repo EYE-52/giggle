@@ -15,6 +15,8 @@ export default defineConfig({
   snapshotPathTemplate: "artifacts/playwright-snapshots/{testFilePath}/{arg}-{projectName}{ext}",
   use: {
     baseURL: "http://localhost:4011",
+    // Skip the one-time avatar picker; local-auth.spec.ts covers it explicitly.
+    storageState: "e2e/avatar-prompted.json",
     launchOptions: {
       args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
     },

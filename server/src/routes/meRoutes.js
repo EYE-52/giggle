@@ -19,12 +19,15 @@ const router = express.Router();
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: gender, languages, country, name, email
+ *         description: gender, languages, country, name, email, avatar
  *   patch:
  *     summary: Update the authed user's profile demographics
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
+ *     description: >
+ *       Accepts gender, languages, country, vibes and avatar (an illustrated
+ *       avatar id from utils/avatars.js; null or "" clears it).
  *     responses:
  *       200:
  *         description: Updated profile fields

@@ -5,15 +5,14 @@ import styles from "./lobby.module.css";
 import { Wordmark } from "@/components/Brand";
 import type { RemoteParticipant } from "@giggle/agora";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Avatar } from "@/components/Avatar";
-import { AvatarArt } from "@/components/AvatarArt";
+import { PersonAvatar } from "@/components/PersonAvatar";
 import { Icon } from "@/components/Icons";
 import { ChatPanel } from "@/components/ChatPanel";
 import { CoverPicker } from "@/components/CoverPicker";
 import { InviteToSquad } from "@/components/InviteToSquad";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
-import { api, connectSocket, SOCKET_EVENTS, session, getMyAvatar, subscribeAvatar, subscribeChat, joinChat, DEFAULT_AVATAR_ID, classifyVibe } from "@giggle/core";
+import { api, connectSocket, SOCKET_EVENTS, session, subscribeChat, joinChat, classifyVibe } from "@giggle/core";
 import { coverKind, coverBackground } from "@/components/covers";
 import type { SquadState, SquadMemberState, JoinRequestUser } from "@giggle/core";
 import { createVideoClient } from "@giggle/agora";
@@ -160,13 +159,6 @@ function LobbyInner() {
   const [joinReqs, setJoinReqs] = useState<JoinRequestUser[]>([]);
   const [reqBusy, setReqBusy] = useState<string | null>(null); // userId currently approving/declining
   const [reqError, setReqError] = useState<string | null>(null);
-
-  // Local user's chosen avatar (SSR-safe: read after mount)
-  const [myAvatar, setMyAvatarState] = useState<string>(DEFAULT_AVATAR_ID);
-  useEffect(() => {
-    setMyAvatarState(getMyAvatar());
-    return subscribeAvatar((v) => setMyAvatarState(v));
-  }, []);
 
   // Squad chat
   const [chatOpen, setChatOpen] = useState(false); // phone docked chat sheet
@@ -770,7 +762,7 @@ function LobbyInner() {
               const isMe = member.userId === myUserId;
               const remote = remotes.find(r => String(r.uid) === String(member.uid));
               return <article className={styles.person} key={member.memberId} data-testid="lobby-person">
-                {isMe && myAvatar !== DEFAULT_AVATAR_ID ? <AvatarArt value={myAvatar} size={64} /> : <Avatar name={member.displayName} size={64} colorIndex={i} />}
+                <PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size={64} />
                 <span className={styles.mediaStatus}>{member.online === false && !isMe ? "Offline" : isMe ? (videoJoined ? (camOn ? "" : "Camera off") : "Camera off") : remote?.hasVideo ? "" : "Camera off"}</span>
                 {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: camOn && videoJoined ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: remote?.hasVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
                 <div className={styles.personLabel}><span>{isMe ? "You" : member.displayName}</span><span>{member.ready ? "Ready" : member.memberId === squad.leaderMemberId ? "Leader" : ""}</span></div>

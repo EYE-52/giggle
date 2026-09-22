@@ -35,3 +35,18 @@ test("stored avatars ignore legacy unsafe localStorage values", async () => {
     delete global.localStorage;
   }
 });
+
+test("people without a shared avatar get a stable free illustrated default", async () => {
+  const { DEFAULT_AVATARS, FREE_AVATAR_COUNT, defaultAvatarFor, resolveAvatar } = await import("../src/avatars.ts");
+  const freeIds = DEFAULT_AVATARS.slice(0, FREE_AVATAR_COUNT).map((avatar) => avatar.id);
+
+  for (const seed of ["507f1f77bcf86cd799439011", "u2", "Maya Chen", ""]) {
+    const avatar = defaultAvatarFor(seed);
+    assert.equal(avatar, defaultAvatarFor(seed));
+    assert.ok(freeIds.includes(avatar), `${avatar} should be a free avatar`);
+    assert.equal(resolveAvatar(null, seed), avatar);
+    assert.equal(resolveAvatar("not-an-avatar", seed), avatar);
+    assert.equal(resolveAvatar("https://lh3.googleusercontent.com/a/photo", seed), avatar);
+  }
+  assert.equal(resolveAvatar("mint-bolt", "u2"), "mint-bolt");
+});

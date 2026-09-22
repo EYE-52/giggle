@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test.skip(process.env.GIGGLE_LOCAL_AUTH_E2E !== 'true', 'Requires local development API');
 for (const width of [390, 1440]) {
   test(`real squad lifecycle at ${width}px`, async ({ browser }) => {
-    const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 }, permissions: ['clipboard-read', 'clipboard-write'] })));
+    const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 }, permissions: ['clipboard-read', 'clipboard-write'], storageState: 'e2e/avatar-prompted.json' })));
     const [leader, friend] = await Promise.all(contexts.map(context => context.newPage()));
     try {
       await leader.goto('/signin');
@@ -73,7 +73,7 @@ for (const width of [390, 1440]) {
 }
 
 for (const entry of ['invite link', 'home code']) test(`request approval from ${entry} opens the lobby and removal returns home`, async ({ browser }) => {
-  const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width: 390, height: 844 } })));
+  const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width: 390, height: 844 }, storageState: 'e2e/avatar-prompted.json' })));
   const [leader, friend] = await Promise.all(contexts.map(context => context.newPage()));
   try {
     await leader.goto('/signin');

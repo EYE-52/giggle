@@ -79,6 +79,10 @@ const appleFormParser = express.urlencoded({
  *                     image:
  *                       type: string
  *                       example: https://lh3.googleusercontent.com/a/photo.jpg
+ *                     avatar:
+ *                       type: string
+ *                       nullable: true
+ *                       example: teal-bot
  *       400:
  *         description: Missing or invalid input
  *       500:

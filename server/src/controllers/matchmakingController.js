@@ -1,5 +1,6 @@
 const { getRequesterIdentity, getSquadAccessContext, isSameMember } = require("../app/squadAccess");
 const { Squad } = require("../models/Squad");
+const User = require("../models/User");
 const {
   getMatchmakingStatus,
   getEncounterById,
@@ -11,6 +12,8 @@ const {
 const { hashStringToUid } = require("../services/agoraTokenService");
 const socketService = require("../services/socketService");
 const { withMatchmakingLock } = require("../config/redisConfig");
+const { loadAvatarsByUserId } = require("../utils/avatars");
+const { canonicalUserId } = require("../services/interactionSafetyService");
 
 const getMatchmakingStatusHandler = async (req, res) => {
   const { squadId } = req.params;
@@ -88,6 +91,12 @@ const getEncounterHandoffHandler = async (req, res) => {
       });
     }
 
+    // One batched avatar lookup for both rosters; avatar is null on failure.
+    const avatars = await loadAvatarsByUserId(
+      [...(squadA?.members || []), ...(squadB?.members || [])].map((m) => m.userId),
+      { User }
+    );
+
     // uid MUST match the RTC token uid so the client can map uid -> member.
     // Computed with the same hash + input (`encounterId:userId`) the token service uses.
     const mapMembers = (members) => (members || []).map(m => ({
@@ -96,6 +105,7 @@ const getEncounterHandoffHandler = async (req, res) => {
       displayName: m.displayName || m.userId,
       role: m.role,
       uid: hashStringToUid(`${encounter.encounterId}:${m.userId}`),
+      avatar: avatars.get(canonicalUserId(m.userId)) ?? null,
     }));
 
     return res.status(200).json({

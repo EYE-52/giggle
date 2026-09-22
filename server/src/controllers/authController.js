@@ -3,6 +3,7 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { normalizeDisplayName } = require("../utils/identityValidation");
+const { isAvatarId, publicAvatar } = require("../utils/avatars");
 
 // Tokens granted to BOTH the inviter and the invitee when a referral converts.
 const REFERRAL_REWARD = 100;
@@ -163,6 +164,7 @@ async function issueSessionForEmail({ email, name, image, ref, devFixture = fals
       email: user.email,
       name: user.name,
       image: user.image,
+      avatar: publicAvatar(user.avatar),
       isPremium: user.isPremium || false,
       isApproved: user.isApproved || false,
       referralCode: user.referralCode,
@@ -273,6 +275,7 @@ const getMyProfile = async (req, res) => {
         vibes: user.vibes || [],
         name: user.name,
         email: user.email,
+        avatar: publicAvatar(user.avatar),
         // Age-gating flags (client-facing). birthDate (PII) is NEVER included.
         isAdult: user.isAdult || false,
         ageConfirmed: user.ageConfirmed || false,
@@ -289,7 +292,7 @@ const getMyProfile = async (req, res) => {
 const normalizeProfilePatch = (body = {}) => {
   const patch = {};
   const unset = [];
-  const { gender, languages, country, vibes } = body;
+  const { gender, languages, country, vibes, avatar } = body;
 
   if (gender !== undefined) {
     const value = String(gender).trim();
@@ -347,6 +350,16 @@ const normalizeProfilePatch = (body = {}) => {
       .slice(0, 5);
   }
 
+  if (avatar !== undefined) {
+    if (avatar === null || avatar === "") {
+      unset.push("avatar");
+    } else if (isAvatarId(avatar)) {
+      patch.avatar = avatar;
+    } else {
+      return { error: "avatar must be one of the available avatar ids" };
+    }
+  }
+
   return { patch, unset };
 };
 
@@ -382,6 +395,7 @@ const updateMyProfile = async (req, res) => {
         vibes: user.vibes || [],
         name: user.name,
         email: user.email,
+        avatar: publicAvatar(user.avatar),
         // Age-gating flags (client-facing). birthDate (PII) is NEVER included.
         isAdult: user.isAdult || false,
         ageConfirmed: user.ageConfirmed || false,

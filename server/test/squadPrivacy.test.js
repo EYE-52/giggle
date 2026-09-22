@@ -312,7 +312,7 @@ test("join-request reads omit missing and blocked requesters", async () => {
     }, res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.data.requests.map((request) => request.userId), [allowedId]);
-    assert.equal(projection, "_id blockedUserIds gender languages country");
+    assert.equal(projection, "_id blockedUserIds gender languages country avatar");
   } finally {
     User.find = originalFind;
   }

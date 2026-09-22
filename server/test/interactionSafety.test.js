@@ -551,7 +551,7 @@ test("unblock is idempotent and list exposes only safe account fields", async ()
     }
     const listRes = response();
     await listBlockedUsers({ user: { userId: myId } }, listRes);
-    assert.deepEqual(listRes.body.data.accounts, [{ userId: targetId, name: "Blocked person", image: "avatar-1" }]);
+    assert.deepEqual(listRes.body.data.accounts, [{ userId: targetId, name: "Blocked person", image: "avatar-1", avatar: null }]);
     assert.deepEqual(updates[0][1], {
       $pull: { blockedUserIds: new RegExp(`^${targetId}$`, "i") },
     });

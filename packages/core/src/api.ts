@@ -31,7 +31,7 @@ export const api = {
     backendRequest<AccountExport>("/api/me/export"),
   deleteAccount: () =>
     backendRequest<{ status: "deleted" | "pending" }>("/api/me/account", { method: "DELETE" }),
-  updateMyProfile: (body: { gender?: string; languages?: string[]; country?: string; vibes?: string[] }) =>
+  updateMyProfile: (body: { gender?: string; languages?: string[]; country?: string; vibes?: string[]; avatar?: string | null }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
   // Self-attested date of birth (set-once). Raw birthDate never comes back — the
   // backend derives and returns only the boolean gates.
@@ -180,12 +180,15 @@ export interface Friend {
   userId: string;
   name: string;
   image?: string;
+  /** Chosen illustrated avatar id (DEFAULT_AVATARS), or null. */
+  avatar?: string | null;
   online: boolean;
 }
 export interface FriendRequestUser {
   userId: string;
   name: string;
   image?: string;
+  avatar?: string | null;
   online?: boolean;
 }
 export interface BlockedAccount {
@@ -196,6 +199,7 @@ export interface BlockedAccount {
 export interface JoinRequestUser {
   userId: string;
   name: string;
+  avatar?: string | null;
   requestedAt: string;
   gender?: string;
   languages?: string[];
@@ -206,6 +210,7 @@ export interface UserProfile {
   languages?: string[];
   country?: string;
   vibes?: string[];
+  avatar?: string | null;
   name: string;
   email: string;
   isAdult?: boolean;
@@ -300,6 +305,7 @@ export interface BackendUser {
   email: string;
   name: string;
   image?: string;
+  avatar?: string | null;
   isPremium: boolean;
   isApproved: boolean;
   /** Age gating (self-attested DOB at signup). Raw birthDate is NOT sent to the
@@ -327,6 +333,7 @@ export interface SquadMemberState {
   userId: string;
   uid?: number;
   displayName: string;
+  avatar?: string | null;
   role: "leader" | "member";
   ready: boolean;
   inLobbyVideo: boolean;

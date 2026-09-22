@@ -2,8 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icons";
-import { Avatar } from "@/components/Avatar";
-import { AvatarArt } from "@/components/AvatarArt";
+import { PersonAvatar } from "@/components/PersonAvatar";
 import { useViewport } from "@/components/useViewport";
 import { api, session } from "@giggle/core";
 import type { Friend } from "@giggle/core";
@@ -26,10 +25,9 @@ const muted = "var(--text-muted)";
 const dim = "var(--text-dim)";
 const MAX_SEARCH_QUERY = 64;
 
-/** Prefer the user's avatar art when present, else initials. */
-function UserAvatar({ name, image, size = 40, online }: { name: string; image?: string; size?: number; online?: boolean }) {
-  if (image) return <AvatarArt value={image} size={size} online={online} />;
-  return <Avatar name={name} size={size} online={online} />;
+/** The person's shared illustrated avatar (or their seeded default). */
+function UserAvatar({ userId, name, avatar, size = 40, online }: { userId: string; name: string; avatar?: string | null; size?: number; online?: boolean }) {
+  return <PersonAvatar userId={userId} name={name} avatar={avatar} size={size} online={online} />;
 }
 
 export function InviteToSquad({ squadId, squadName, onClose }: Props) {
@@ -322,7 +320,7 @@ function PersonRow({ person, state, error, onInvite }: { person: Friend; state: 
           background: "var(--overlay)", border: "1px solid var(--border)",
         }}
       >
-        <UserAvatar name={person.name} image={person.image} size={40} online={person.online} />
+        <UserAvatar userId={person.userId} name={person.name} avatar={person.avatar} size={40} online={person.online} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {person.name}
