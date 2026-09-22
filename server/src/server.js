@@ -9,7 +9,7 @@ const cookieParser = require('cookie-parser');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJSDoc = require('swagger-jsdoc');
 const { requestLogger } = require('./middlewares/requestLogger');
-const { ENABLE_REQUEST_LOGS, LOG_REQUEST_BODY } = require('./config/appConfig');
+const { ENABLE_REQUEST_LOGS, LOG_REQUEST_BODY, publicApiBaseUrl } = require('./config/appConfig');
 const { buildAllowedOrigins } = require('./config/corsOrigins');
 const socketService = require('./services/socketService');
 const http = require('http');
@@ -28,11 +28,6 @@ if (process.env.NODE_ENV === 'production') {
 
 function isStrongSecret(value) {
   return typeof value === "string" && value.length >= 32;
-}
-
-function publicApiBaseUrl() {
-  const base = (process.env.BACKEND_PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
-  return `${base}/api`;
 }
 
 function validateRequiredEnv() {
@@ -235,6 +230,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
+const coverRoutes = require("./routes/coverRoutes");
 const squadRoutes = require("./routes/squadRoutes");
 const authRoutes = require("./routes/authRoutes");
 const agoraRoutes = require("./routes/agoraRoutes");
@@ -245,6 +241,8 @@ const statsRoutes = require("./routes/statsRoutes");
 const friendsRoutes = require("./routes/friendsRoutes");
 const meRoutes = require("./routes/meRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+// Public, unauthenticated: uploaded squad cover images.
+app.use("/api", coverRoutes);
 app.use("/api", squadRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api", agoraRoutes);

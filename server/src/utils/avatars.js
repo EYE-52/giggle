@@ -25,7 +25,16 @@ const AVATAR_IDS = Object.freeze([
 
 const AVATAR_ID_SET = new Set(AVATAR_IDS);
 
+// The first 8 are free; the rest are the premium "vibe_pack" (FREE_AVATAR_COUNT
+// in packages/core). Vibe Pack redemption is a local preview only, so
+// production accepts free avatars until server-side entitlements exist.
+const FREE_AVATAR_COUNT = 8;
+const FREE_AVATAR_ID_SET = new Set(AVATAR_IDS.slice(0, FREE_AVATAR_COUNT));
+
 const isAvatarId = (value) => typeof value === "string" && AVATAR_ID_SET.has(value);
+
+const isSelectableAvatarId = (value, { production = process.env.NODE_ENV === "production" } = {}) =>
+  isAvatarId(value) && (!production || FREE_AVATAR_ID_SET.has(value));
 
 /** Client-facing avatar: a known id, or null (never echoes unknown stored values). */
 const publicAvatar = (value) => (isAvatarId(value) ? value : null);
@@ -51,4 +60,4 @@ const loadAvatarsByUserId = async (userIds, { User } = {}) => {
   return avatars;
 };
 
-module.exports = { AVATAR_IDS, isAvatarId, publicAvatar, loadAvatarsByUserId };
+module.exports = { AVATAR_IDS, FREE_AVATAR_COUNT, isAvatarId, isSelectableAvatarId, publicAvatar, loadAvatarsByUserId };

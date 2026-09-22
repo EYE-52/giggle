@@ -457,3 +457,24 @@ test("encounter detail rosters include member avatars", async () => {
     delete require.cache[controllerPath];
   }
 });
+
+test("production only accepts the free avatar set until Vibe Pack entitlements exist", () => {
+  const { AVATAR_IDS, FREE_AVATAR_COUNT, isSelectableAvatarId } = require("../src/utils/avatars");
+  const free = AVATAR_IDS.slice(0, FREE_AVATAR_COUNT);
+  const premium = AVATAR_IDS.slice(FREE_AVATAR_COUNT);
+  assert.equal(premium.length > 0, true);
+  for (const id of free) assert.equal(isSelectableAvatarId(id, { production: true }), true);
+  for (const id of premium) {
+    assert.equal(isSelectableAvatarId(id, { production: true }), false);
+    assert.equal(isSelectableAvatarId(id, { production: false }), true);
+  }
+  assert.equal(isSelectableAvatarId("not-an-avatar", { production: false }), false);
+});
+
+test("server free-avatar count matches packages/core", () => {
+  const { FREE_AVATAR_COUNT } = require("../src/utils/avatars");
+  const source = readFileSync(path.join(__dirname, "../../packages/core/src/avatars.ts"), "utf8");
+  const match = source.match(/export const FREE_AVATAR_COUNT = (\d+);/);
+  assert.ok(match, "packages/core must export FREE_AVATAR_COUNT");
+  assert.equal(Number(match[1]), FREE_AVATAR_COUNT);
+});
