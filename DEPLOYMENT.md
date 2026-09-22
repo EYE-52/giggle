@@ -2,6 +2,66 @@
 
 This runbook deploys the unified repository. It does not certify worldwide compliance. Keep production stranger discovery off until the external release gates below are complete.
 
+## Current production setup
+
+Last verified: **23 September 2026 (Asia/Kolkata)**. This section records the live setup; the provisioning and release requirements below also cover work that is not yet enabled.
+
+| Component | Current deployment |
+| --- | --- |
+| Canonical source | [EYE-52/giggle](https://github.com/EYE-52/giggle), branch `main` |
+| Public website | [www.gigglemeet.com](https://www.gigglemeet.com/) |
+| Apex domain | `gigglemeet.com` redirects to `https://www.gigglemeet.com/` with HTTP 308 |
+| Web hosting | Vercel team `divyansh24888-5115s-projects`, project **`giggle-meet`** ([dashboard](https://vercel.com/divyansh24888-5115s-projects/giggle-meet)) |
+| Vercel fallback URL | [giggle-meet.vercel.app](https://giggle-meet.vercel.app/) |
+| API and realtime hosting | Railway workspace **Divyansh's Projects**, project **`giggle`**, environment **`production`**, service **`giggle-server`** ([dashboard](https://railway.com/project/2e301782-c882-4553-94e4-61b898d98f1f/service/7874f27b-f974-4fb4-9523-fb3043c38f31?environmentId=bd367c27-b9f2-4715-a40c-842f19a1f66c)) |
+| API URL | `https://giggle-server-production.up.railway.app` |
+| Health check | [API /health](https://giggle-server-production.up.railway.app/health), reports API, MongoDB and Redis status |
+| Redis | Existing Railway service **`giggle-redis`** in the same project/environment |
+| MongoDB | Existing database configured through Railway `MONGODB_URI`; its provider/account was not audited during this deployment |
+| Domain registrar | Namecheap; domain migration used Vercel's project-domain move and required no registrar DNS changes |
+
+**Use `giggle-meet`, not the old Vercel `giggle-web` project.** Both production domains were moved to `giggle-meet`. The old `giggle-web` project was not deleted during this handover. A separate older Vercel project named `giggle` is also not the current web deployment. JobCraft is a separate project and is not part of this setup.
+
+### How each service builds
+
+- **Vercel:** import the repository root (`./`), production branch `main`, Next.js framework. The checked-in [`vercel.json`](vercel.json) installs with `pnpm install --frozen-lockfile --filter @giggle/desktop...`, builds with `pnpm --filter @giggle/desktop build`, and publishes `apps/desktop/.next`. Do not change the Vercel root to `apps/desktop` while using these root-level commands.
+- **Railway:** source `EYE-52/giggle`, branch `main`, root directory **`/server`**, Railpack builder. The observed build uses `npm install` and starts with `npm run start` (`node src/server.js`). The service runs in US West with one replica. It previously used CLI uploads; on 23 September it was connected to GitHub and deployed from `main`.
+- Vercel automatically deployed the latest push. Railway's setup screen showed **“Auto deploy unavailable”** when the repository was connected; the successful release below was triggered with **Deploy Changes**. Check Railway after every push and explicitly deploy the latest `main` commit if no build starts. Do not assume that GitHub connection alone guarantees automatic deployment.
+- Google sign-in goes through `https://www.gigglemeet.com/api/auth/google/callback`. Next.js proxies `/api/auth/*` to Railway; normal API calls and realtime sockets use the Railway backend URL directly. Keep the branded callback URL registered with Google when updating OAuth settings.
+
+### Configuration and temporary age form
+
+Production configuration is stored in the **Railway service Variables** and **Vercel project Environment Variables** screens. Do not copy secret values into this repository.
+
+| Setting | Location | Current state / purpose |
+| --- | --- | --- |
+| `NEXT_PUBLIC_BACKEND_URL` | Vercel / `vercel.json` | `https://giggle-server-production.up.railway.app` |
+| `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED` | Vercel / `vercel.json` | `false` |
+| `SELF_DECLARED_AGE_ACCESS` | Railway | **`true`**, verified in the production Variables screen |
+| `STRANGER_DISCOVERY_ENABLED` | Railway | Required to remain `false` until release gates pass; recheck the actual value before any discovery release |
+| Database, Redis, Google OAuth, Agora and signing secrets | Railway | Existing server-only variables; use `server/.env.example` for names, never for production credentials |
+
+The current age flow accepts a date-of-birth declaration for adults **18+** and skips the hosted Yoti check. Existing adults who already declared their age can proceed without repeating the form. Under-18 declarations remain blocked. This is self-declaration, not independent age verification.
+
+From commit `279d64a`, temporary access is evaluated from the server setting and **does not set the database's permanent `ageVerified` flag**. When Yoti is ready, configure its server credentials and callback, set `SELF_DECLARED_AGE_ACCESS=false`, deploy/restart Railway, and test the hosted flow. Before that switch, audit any accounts created under older code: the earlier temporary implementation could have persisted `ageVerified=true` without Yoti. Disabling the flag alone does not undo those older persisted values; reconcile them against genuine provider evidence before claiming all users are Yoti-verified.
+
+### Deploy the next change
+
+1. Merge reviewed changes into `main` in `EYE-52/giggle` and push. Keep credentials out of commits.
+2. For backend changes, check Railway's source branch and `/server` root, then verify that the latest commit is deployed. If deployment does not start automatically, use the service's deployment controls to deploy latest `main`; redeploying an older deployment can reuse its older source.
+3. Check the Vercel **`giggle-meet`** deployment for the same commit and wait for **Ready** with the production domains assigned. Public environment variables are build-time values and need a new frontend build after changes.
+4. Check `/health` for API `UP`, database `connected`, and Redis `connected`. Open the public website, sign in with Google, and confirm access to `/home`. For a new account, test the date-of-birth form with an authorized adult test identity; do not overwrite a real user's saved birth date.
+5. For a rollback, use Vercel's previous production deployment and Railway's previous successful backend deployment as appropriate. Check environment variables separately: rolling back code is not a guarantee that variables are restored. Repeat health and sign-in checks after rollback.
+
+### Last verified release
+
+- Commit: [`279d64a`](https://github.com/EYE-52/giggle/commit/279d64a63e66c49bd889792b010ea07b3dd6d242) — `fix: make temporary age declaration access reversible`.
+- Vercel: [`6V1dLaY8A4aB3csrwjR8qCLt2h1M`](https://vercel.com/divyansh24888-5115s-projects/giggle-meet/6V1dLaY8A4aB3csrwjR8qCLt2h1M), **Ready**, serving the production domains.
+- Railway: [`102e277a-ed36-45d1-8600-623a861d5146`](https://railway.com/project/2e301782-c882-4553-94e4-61b898d98f1f/service/7874f27b-f974-4fb4-9523-fb3043c38f31?environmentId=bd367c27-b9f2-4715-a40c-842f19a1f66c&id=102e277a-ed36-45d1-8600-623a861d5146), **Active**, deployed via GitHub.
+- Verified live: Google sign-in for an existing declared adult, squad home loads without a Yoti prompt, API/database/Redis healthy. New-user and underage behavior was covered by targeted automated tests, not a new production account.
+- Local validation: production web build succeeded; 70 targeted age/access/auth/socket tests passed. The broader server suite was stopped after tests repeatedly tried to connect to unavailable local Redis, so a complete full-suite pass was not established.
+- Update this section after future releases; these IDs are a historical checkpoint, not necessarily tomorrow's latest deployment.
+
 ## Runtime
 
 - **Frontend runtime:** Node 22.13.0 and pnpm 10.x.
@@ -50,7 +110,7 @@ NEXT_PUBLIC_BACKEND_URL
 NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false
 ```
 
-- **Vercel project `giggle-web`:** configure `NEXT_PUBLIC_BACKEND_URL` and `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false`; keep server and OAuth secrets out.
+- **Vercel project `giggle-meet`:** configure `NEXT_PUBLIC_BACKEND_URL` and `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false`; keep server and OAuth secrets out.
 
 Expo/EAS build values:
 
