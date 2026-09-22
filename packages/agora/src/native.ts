@@ -5,6 +5,7 @@ import type {
   ConnectionState,
   RemoteParticipant,
   VideoClient,
+  VideoDimensions,
   VolumeLevel,
 } from "./types";
 
@@ -28,6 +29,24 @@ export function normalizeNativeVolume(
   };
 }
 
+/** Normalize one Agora video-size event into layout dimensions. */
+export function normalizeNativeVideoDimensions(
+  localUid: string | number,
+  uid: number,
+  width: number,
+  height: number,
+  rotation: number,
+): VideoDimensions | null {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return null;
+  if (!Number.isFinite(rotation)) return null;
+  const rotated = rotation === 90 || rotation === 270;
+  return {
+    uid: uid === 0 ? localUid : uid,
+    width: rotated ? height : width,
+    height: rotated ? width : height,
+  };
+}
+
 function assertAgoraResult(result: unknown, action: string) {
   if (typeof result === "number" && result < 0) {
     throw new Error(`${action} failed (${result}).`);
@@ -36,10 +55,10 @@ function assertAgoraResult(result: unknown, action: string) {
 
 // Native implementation backed by react-native-agora. Screens render video via
 // <RtcSurfaceView canvas={{ uid }} /> — uid 0 is the local user.
-export function createVideoClient(): VideoClient {
+export function createVideoClient(loadSdk = () => require("react-native-agora")): VideoClient {
   // Lazy require keeps the web bundle away from the native module.
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const Agora = require("react-native-agora");
+  const Agora = loadSdk();
   const {
     ChannelProfileType,
     ClientRoleType,
@@ -58,11 +77,16 @@ export function createVideoClient(): VideoClient {
   let connection: ConnectionState = "DISCONNECTED";
   let micEnabled = true;
   let camEnabled = true;
+  let registeredHandler: any = null;
+  let videoGeneration = 0;
+  let cancelJoin: (() => void) | null = null;
   const remoteByUid = new Map<number, RemoteParticipant>();
   const remoteListeners = new Set<(r: RemoteParticipant[]) => void>();
   const volumeListeners = new Set<(levels: VolumeLevel[]) => void>();
   const connectionListeners = new Set<(state: ConnectionState) => void>();
   const captureListeners = new Set<(state: CaptureState) => void>();
+  const dimensionsByUid = new Map<string, VideoDimensions>();
+  const dimensionListeners = new Set<(dimensions: VideoDimensions[]) => void>();
 
   function emitRemotes() {
     remotes = Array.from(remoteByUid.values());
@@ -71,13 +95,14 @@ export function createVideoClient(): VideoClient {
     });
   }
 
-  function updateRemote(uid: number, patch: Partial<Pick<RemoteParticipant, "hasVideo" | "hasAudio">>) {
+  function updateRemote(uid: number, patch: Partial<Pick<RemoteParticipant, "hasVideo" | "hasAudio" | "mutedForMe">>) {
     remoteByUid.set(uid, mergeRemoteParticipant(remoteByUid.get(uid), uid, patch));
     emitRemotes();
   }
 
   function removeRemote(uid: number) {
     remoteByUid.delete(uid);
+    if (dimensionsByUid.delete(String(uid))) emitDimensions();
     emitRemotes();
   }
 
@@ -86,6 +111,21 @@ export function createVideoClient(): VideoClient {
     connectionListeners.forEach((cb) => {
       try { cb(connection); } catch {}
     });
+  }
+
+  function emitDimensions() {
+    const snapshot = Array.from(dimensionsByUid.values());
+    dimensionListeners.forEach((cb) => { try { cb(snapshot); } catch {} });
+  }
+
+  function updateDimensions(uid: number, width: number, height: number, rotation: number) {
+    const next = normalizeNativeVideoDimensions(localUid, uid, width, height, rotation);
+    if (!next) return;
+    const key = String(uid);
+    const previous = dimensionsByUid.get(key);
+    if (previous && previous.width === next.width && previous.height === next.height) return;
+    dimensionsByUid.set(key, next);
+    emitDimensions();
   }
 
   function setCapture(patch: Partial<CaptureState>) {
@@ -119,7 +159,14 @@ export function createVideoClient(): VideoClient {
       cb({ ...capture });
       return () => captureListeners.delete(cb);
     },
+    onVideoDimensions(cb) {
+      dimensionListeners.add(cb);
+      cb(Array.from(dimensionsByUid.values()));
+      return () => dimensionListeners.delete(cb);
+    },
     async join(token: AgoraToken, opts = { audio: true, video: true }) {
+      if (engine || cancelJoin) throw new Error("This client is already joining or in a call.");
+      const generation = ++videoGeneration;
       localUid = token.uid;
       micEnabled = !!opts.audio;
       camEnabled = !!opts.video;
@@ -127,6 +174,8 @@ export function createVideoClient(): VideoClient {
         audio: opts.audio ? "pending" : "off",
         video: opts.video ? "pending" : "off",
       });
+      dimensionsByUid.clear();
+      emitDimensions();
       emitConnection("CONNECTING");
 
       let settled = false;
@@ -145,6 +194,8 @@ export function createVideoClient(): VideoClient {
         };
       });
 
+      const cancelThisJoin = () => rejectJoin(new Error("Call cancelled."));
+      cancelJoin = cancelThisJoin;
       const timeout = setTimeout(
         () => rejectJoin(new Error("Video connection timed out.")),
         15_000
@@ -153,7 +204,7 @@ export function createVideoClient(): VideoClient {
       try {
         engine = Agora.createAgoraRtcEngine();
         assertAgoraResult(engine.initialize({ appId: token.appId }), "Agora initialization");
-        engine.registerEventHandler({
+        registeredHandler = {
           onJoinChannelSuccess: () => {
             emitConnection("CONNECTED");
             resolveJoin();
@@ -171,6 +222,9 @@ export function createVideoClient(): VideoClient {
                 state === RemoteVideoState.RemoteVideoStateDecoding ||
                 state === RemoteVideoState.RemoteVideoStateFrozen,
             });
+          },
+          onVideoSizeChanged: (_connection: unknown, _sourceType: unknown, uid: number, width: number, height: number, rotation: number) => {
+            if (generation === videoGeneration && engine) updateDimensions(uid, width, height, rotation);
           },
           onRemoteAudioStateChanged: (_connection: unknown, uid: number, state: number) => {
             updateRemote(uid, {
@@ -227,7 +281,16 @@ export function createVideoClient(): VideoClient {
               setCapture({ video: "unavailable" });
             }
           },
-        });
+        };
+        // Native callbacks can already be queued when a handler is removed.
+        // Bind every callback to the call that registered it.
+        registeredHandler = Object.fromEntries(Object.entries(registeredHandler).map(([name, handler]) => [
+          name, (...args: unknown[]) => {
+            if (generation !== videoGeneration || !engine) return;
+            return (handler as (...values: unknown[]) => void)(...args);
+          },
+        ]));
+        engine.registerEventHandler(registeredHandler);
 
         let publishCameraTrack = !!opts.video;
         if (publishCameraTrack) {
@@ -257,9 +320,17 @@ export function createVideoClient(): VideoClient {
 
         await joined;
       } catch (error) {
+        if (generation !== videoGeneration) throw error;
+        videoGeneration += 1;
         try { engine?.leaveChannel(); } catch {}
+        try { if (registeredHandler) engine?.unregisterEventHandler(registeredHandler); } catch {}
+        registeredHandler = null;
         try { engine?.release(); } catch {}
         engine = null;
+        remoteByUid.clear();
+        dimensionsByUid.clear();
+        emitRemotes();
+        emitDimensions();
         setCapture({
           audio: capture.audio === "denied" || capture.audio === "unavailable" ? capture.audio : "off",
           video: capture.video === "denied" || capture.video === "unavailable" ? capture.video : "off",
@@ -268,16 +339,25 @@ export function createVideoClient(): VideoClient {
         throw error;
       } finally {
         clearTimeout(timeout);
+        if (cancelJoin === cancelThisJoin) cancelJoin = null;
       }
     },
     async leave() {
-      try {
-        engine?.leaveChannel();
-        engine?.release();
-      } catch {}
+      videoGeneration += 1;
+      const leavingEngine = engine, leavingHandler = registeredHandler;
       engine = null;
+      registeredHandler = null;
+      const cancel = cancelJoin;
+      cancelJoin = null;
+      cancel?.();
+      // Release still runs if either leave or handler removal fails.
+      try { leavingEngine?.leaveChannel(); } catch {}
+      try { if (leavingHandler) leavingEngine?.unregisterEventHandler(leavingHandler); } catch {}
+      try { leavingEngine?.release(); } catch {}
       remoteByUid.clear();
+      dimensionsByUid.clear();
       emitRemotes();
+      emitDimensions();
       setCapture({ audio: "off", video: "off" });
       emitConnection("DISCONNECTED");
     },
@@ -294,6 +374,15 @@ export function createVideoClient(): VideoClient {
       else assertAgoraResult(engine.stopPreview(), "Stop camera preview");
       camEnabled = on;
       setCapture({ video: on ? "pending" : "off" });
+    },
+    async setRemoteAudioMuted(uid, muted) {
+      const remoteUid = Number(uid);
+      if (!engine || !Number.isSafeInteger(remoteUid) || !remoteByUid.has(remoteUid) || String(uid) === String(localUid)) {
+        throw new Error("This person is not connected.");
+      }
+      // Playback gain does not change the sender's microphone or subscription.
+      assertAgoraResult(engine.adjustUserPlaybackSignalVolume(remoteUid, muted ? 0 : 100), "Listening update");
+      updateRemote(remoteUid, { mutedForMe: muted });
     },
     async switchCamera() {
       if (!engine) throw new Error("Camera is unavailable.");

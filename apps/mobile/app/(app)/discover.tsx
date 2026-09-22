@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen } from '../../components/Screen';
 import { VenueCard } from '../../components/VenueCard';
 import { COLORS, SPACE, RADII } from '../../constants/theme';
-import { api, randomSquadName, session, type PublicSquad } from '@giggle/core';
+import { api, session, type PublicSquad } from '@giggle/core';
 import { Button } from '../../components/Button';
 
 const FILTERS = ['All', 'Gaming', 'Casual', 'Chill', 'Competitive', 'Comedy', 'Late Night'];
@@ -77,20 +77,9 @@ export default function DiscoverScreen() {
     }
   }
 
-  async function createFilteredSquad() {
-    if (creating) return;
+  function createFilteredSquad() {
     if (!ensureAuthed()) return;
-    setCreating(true);
-    setNotice('');
-    setActionError('');
-    try {
-      const squad = await api.createSquad({ squadName: randomSquadName(), tags: filter === 'All' ? [] : [filter] });
-      router.push(`/lobby?squad=${squad.squadId}`);
-    } catch (e: any) {
-      setActionError(e?.message || "Couldn't create a squad.");
-    } finally {
-      setCreating(false);
-    }
+    router.push('/home?create=1');
   }
 
   return (
@@ -137,7 +126,7 @@ export default function DiscoverScreen() {
             <Text style={styles.stateTitle}>No squads in this vibe yet</Text>
             <Text style={styles.stateText}>Start a squad and set the tone yourself.</Text>
             <Button
-              label={creating ? 'Creating…' : filter === 'All' ? 'Create a squad' : `Create ${filter} squad`}
+              label="Create a squad"
               onPress={createFilteredSquad}
               variant="lime"
               disabled={creating}

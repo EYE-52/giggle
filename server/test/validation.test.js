@@ -32,7 +32,9 @@ after(async () => {
   const redisPath = require.resolve("../src/config/redisConfig");
   if (!require.cache[redisPath]) return;
   const { redis, subClient } = require("../src/config/redisConfig");
-  await Promise.allSettled([redis.quit(), subClient.quit()]);
+  // quit() waits for a connection that does not exist in unit-test runs.
+  redis.disconnect();
+  subClient.disconnect();
 });
 
 function createResponse() {

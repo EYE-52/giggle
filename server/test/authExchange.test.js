@@ -80,3 +80,39 @@ test("auth exchange rejects malformed email identities before touching user data
     User.create = originalCreate;
   }
 });
+
+for (const scenario of [
+  { name: 'local dev account opens the app', mode: 'development', enabled: 'true', email: 'browser@dev.giggle.local', fixture: true, verified: true },
+  { name: 'dev access stays off without the explicit flag', mode: 'development', enabled: 'false', email: 'browser@dev.giggle.local', fixture: true, verified: false },
+  { name: 'ordinary accounts keep the age gate', mode: 'development', enabled: 'true', email: 'person@example.com', fixture: true, verified: false },
+  { name: 'OAuth sessions never inherit dev fixture access', mode: 'development', enabled: 'true', email: 'browser@dev.giggle.local', fixture: false, verified: false },
+  { name: 'production ignores the dev fixture option', mode: 'production', enabled: 'true', email: 'browser@dev.giggle.local', fixture: true, verified: false },
+]) {
+  test(scenario.name, async () => {
+    const { issueSessionForEmail } = require('../src/controllers/authController');
+    const previous = { NODE_ENV: process.env.NODE_ENV, DEV_AUTH_ENABLED: process.env.DEV_AUTH_ENABLED, JWT_SECRET: process.env.JWT_SECRET };
+    const originalFindOne = User.findOne;
+    const user = {
+      _id: '507f1f77bcf86cd799439011', email: scenario.email, name: 'Local tester',
+      referralCode: 'LOCAL42', ageConfirmed: false, isAdult: false, ageVerified: false,
+      async save() { return this; },
+    };
+    User.findOne = async () => user;
+    process.env.NODE_ENV = scenario.mode;
+    process.env.DEV_AUTH_ENABLED = scenario.enabled;
+    process.env.JWT_SECRET = 'local-test-only-secret-not-for-deployment';
+    try {
+      const result = await issueSessionForEmail({ email: scenario.email, devFixture: scenario.fixture });
+      assert.equal(result.user.ageVerified, scenario.verified);
+      assert.equal(result.user.ageConfirmed, scenario.verified);
+      assert.equal(result.user.isAdult, scenario.verified);
+      assert.equal(user.ageVerified, scenario.verified);
+    } finally {
+      User.findOne = originalFindOne;
+      for (const [key, value] of Object.entries(previous)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+  });
+}

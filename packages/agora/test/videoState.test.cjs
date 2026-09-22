@@ -6,7 +6,7 @@ const test = require("node:test");
 test("late web subscriptions cannot become unhandled disconnect errors", () => {
   const source = readFileSync(path.join(__dirname, "../src/web.ts"), "utf8");
   const published = source.slice(source.indexOf('client.on("user-published"'), source.indexOf('client.on("user-unpublished"'));
-  assert.match(published, /try\s*{\s*await client\.subscribe\(user, mediaType\);\s*}\s*catch\s*{\s*return;\s*}/);
+  assert.match(published, /try\s*{\s*await joinedClient\.subscribe\(user, mediaType\);\s*}\s*catch\s*{\s*return;\s*}/);
 });
 
 test("web capture errors distinguish denial from unavailable devices", async () => {
@@ -68,4 +68,23 @@ test("native local volume zero maps back to the token uid", async () => {
   const { normalizeNativeVolume } = await import("../src/native.ts");
   assert.deepEqual(normalizeNativeVolume(77, { uid: 0, volume: 128 }), { uid: 77, level: 50 });
   assert.deepEqual(normalizeNativeVolume(77, { uid: 81, volume: 255 }), { uid: 81, level: 100 });
+});
+
+test("native video dimensions normalize rotation and local uid exactly once", async () => {
+  const { normalizeNativeVideoDimensions } = await import("../src/native.ts");
+  assert.deepEqual(normalizeNativeVideoDimensions("local-7", 0, 1920, 1080, 0), {
+    uid: "local-7", width: 1920, height: 1080,
+  });
+  assert.deepEqual(normalizeNativeVideoDimensions("local-7", 0, 1920, 1080, 90), {
+    uid: "local-7", width: 1080, height: 1920,
+  });
+  assert.deepEqual(normalizeNativeVideoDimensions("local-7", 42, 640, 480, 180), {
+    uid: 42, width: 640, height: 480,
+  });
+  assert.deepEqual(normalizeNativeVideoDimensions("local-7", 42, 640, 480, 270), {
+    uid: 42, width: 480, height: 640,
+  });
+  assert.equal(normalizeNativeVideoDimensions("local-7", 42, 0, 480, 0), null);
+  assert.equal(normalizeNativeVideoDimensions("local-7", 42, 640, NaN, 0), null);
+  assert.equal(normalizeNativeVideoDimensions("local-7", 42, 640, 480, NaN), null);
 });

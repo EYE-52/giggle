@@ -95,7 +95,7 @@ test("onboarding avoids the old oversized blocky auth layout", () => {
   const page = read("app/index.tsx");
 
   assert.equal(page.includes("Math.round(height * 0.82)"), false);
-  assert.equal(page.includes("heroH = isWide ? Math.min(height - 72, 720) : Math.round(height * 0.56)"), true);
+  assert.equal(page.includes("<ImageBackground"), false);
   assert.equal(page.includes("authStage"), true);
   assert.equal(page.includes("panelSurface"), true);
   assert.equal(page.includes("Continue with Google"), true);

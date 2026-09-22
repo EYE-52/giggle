@@ -18,6 +18,7 @@ const base = (color = "#F4F4F7", sw = 2) => ({
 });
 
 export const Icon = {
+  hangup: ({ size, color, strokeWidth }: P) => <Svg size={size}><path d="M3 10c5-5 13-5 18 0v5h-4v-4a15 15 0 0 0-10 0v4H3z" {...base(color, strokeWidth)} /></Svg>,
   home: ({ size, color, strokeWidth }: P) => (
     <Svg size={size}><path d="M3 11l9-8 9 8M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" {...base(color, strokeWidth)} /></Svg>
   ),

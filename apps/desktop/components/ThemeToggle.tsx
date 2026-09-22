@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
  * (see components/covers.ts): "dark" moody covers vs "light" pastel covers.
  */
 export const THEMES = [
+  { id: "together", label: "Together", bg: "#faf7f2", accent: "#ba4b33", coverStyle: "light" },
   // Ids stay "dark"/"light" for localStorage compat; labels are the v3 names.
   { id: "dark", label: "Midnight", bg: "#0E0D12", accent: "#6D52FF", coverStyle: "dark" },
   { id: "light", label: "Cloud", bg: "#F7F7F9", accent: "#5B3DF5", coverStyle: "light" },
@@ -63,7 +64,7 @@ function ThemeDot({ bg, accent, size = 16 }: { bg: string; accent: string; size?
  * click-outside close, focus returns to the trigger.
  */
 export function ThemeToggle({ size = 44 }: { size?: number }) {
-  const [theme, setTheme] = useState<ThemeId>("dark");
+  const [theme, setTheme] = useState<ThemeId>("together");
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null);

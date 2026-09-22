@@ -27,8 +27,8 @@ export interface ButtonProps {
 }
 
 const SIZES: Record<"sm" | "md", CSSProperties> = {
-  sm: { minHeight: 36, padding: "0 16px", fontSize: 13 },
-  md: { minHeight: 44, padding: "0 24px", fontSize: 14 },
+  sm: { minHeight: 44, padding: "0 16px", fontSize: 13 },
+  md: { minHeight: 48, padding: "0 24px", fontSize: 16 },
 };
 
 /* Colors/borders/shadows live in globals.css (.gg-btn--*) so :hover works. */
@@ -60,7 +60,7 @@ export function Button({
     gap: 8,
     borderRadius: "var(--radius-btn)",
     fontFamily: "var(--font-body)",
-    fontWeight: 600,
+    fontWeight: 700,
     cursor: isDisabled ? "not-allowed" : "pointer",
     width: fullWidth ? "100%" : undefined,
     opacity: isDisabled ? 0.55 : 1,

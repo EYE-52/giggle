@@ -1,29 +1,33 @@
-import React from 'react';
-import Svg, { Circle, Defs, LinearGradient, Stop, G } from 'react-native-svg';
+import React, { useEffect, useRef } from 'react';
+import { AccessibilityInfo, Animated, Easing } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
+import { logoPaths, logoViewBox } from '@giggle/ui-tokens';
+import { COLORS } from '../constants/theme';
 
-/**
- * Giggle logomark — three balanced "squad" circles flowing through one cohesive
- * violet→blue→lime diagonal gradient, crisp separator strokes, highlight dot.
- * Mirrors the desktop Brand.tsx Logomark.
- */
-export function Logomark({ size = 32 }: { size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 48 48">
-      <Defs>
-        <LinearGradient id="grad" x1="10" y1="10" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <Stop stopColor="#9B7CFF" />
-          <Stop offset="0.55" stopColor="#6C8BFF" />
-          <Stop offset="1" stopColor="#C2FF3D" />
-        </LinearGradient>
-      </Defs>
-      {/* Three equal circles in balanced triangle (top-center, bottom-left, bottom-right) */}
-      <G stroke="#0B0B0F" strokeWidth="2.4" fill="url(#grad)">
-        <Circle cx="24" cy="15" r="9.5" />
-        <Circle cx="15.5" cy="31" r="9.5" />
-        <Circle cx="32.5" cy="31" r="9.5" />
-      </G>
-      {/* Subtle white highlight dot on top circle for dimension */}
-      <Circle cx="21" cy="12" r="2.6" fill="#FFFFFF" fillOpacity="0.35" />
-    </Svg>
-  );
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+
+export function Logomark({ size = 32, animated = false }: { size?: number; animated?: boolean }) {
+  const first = useRef(new Animated.Value(0)).current;
+  const second = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    let active = true;
+    let animation: Animated.CompositeAnimation | undefined;
+    const still = () => { animation?.stop(); first.setValue(0); second.setValue(0); };
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', reduced => { if (reduced) still(); });
+    if (animated) {
+      AccessibilityInfo.isReduceMotionEnabled().then(reduced => {
+        if (!active || reduced) return;
+        first.setValue(200); second.setValue(200);
+        animation = Animated.stagger(280, [first, second].map(value => Animated.timing(value, {
+          toValue: 0, duration: 850, easing: Easing.out(Easing.cubic), useNativeDriver: false,
+        })));
+        animation.start();
+      }).catch(still);
+    } else still();
+    return () => { active = false; animation?.stop(); subscription.remove(); };
+  }, [animated, first, second]);
+  return <Svg width={size} height={size} viewBox={logoViewBox} fill="none" accessible={false}>
+    {logoPaths.map((path, index) => <AnimatedPath key={path} d={path} stroke={COLORS.violet} strokeWidth={3.5}
+      strokeLinecap="round" strokeLinejoin="round" strokeDasharray="200 200" strokeDashoffset={index === 0 ? first : second} />)}
+  </Svg>;
 }

@@ -32,7 +32,9 @@ const {
 const read = (relativePath) => readFileSync(path.join(__dirname, "..", relativePath), "utf8");
 
 after(async () => {
-  await Promise.allSettled([redis.quit(), subClient.quit()]);
+  // quit() waits for a connection that does not exist in unit-test runs.
+  redis.disconnect();
+  subClient.disconnect();
 });
 
 function createResponse() {

@@ -245,7 +245,7 @@ export default function FriendsPage() {
       {/* Header */}
       <PageHeader
         title="Friends"
-        subtitle={showFirstRun ? "Search by display name and start your circle." : onlineCount > 0 ? `${onlineCount} online now` : "Find people and see who's around."}
+        subtitle={showFirstRun ? "Search by display name to add a friend." : onlineCount > 0 ? `${onlineCount} online now` : "Your friends and friend requests."}
       />
 
       {loadError && (
@@ -259,8 +259,8 @@ export default function FriendsPage() {
       <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {showFirstRun && (
           <div style={{ paddingTop: isPhone ? 8 : 16 }}>
-            <div style={{ color: violet, fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Your circle</div>
-            <h2 style={{ margin: "8px 0 6px", color: text, fontFamily: fontDisplay, fontSize: isPhone ? 28 : 34, lineHeight: 1.1, fontWeight: 800 }}>Find your people.</h2>
+            <div style={{ color: violet, fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Friends</div>
+            <h2 style={{ margin: "8px 0 6px", color: text, fontFamily: fontDisplay, fontSize: isPhone ? 28 : 34, lineHeight: 1.1, fontWeight: 800 }}>Add friends.</h2>
             <p style={{ margin: 0, maxWidth: 520, color: muted, fontSize: 14, lineHeight: 1.55 }}>Search their display name to send a friend request and see when they’re online.</p>
           </div>
         )}

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Logomark } from '../../components/Logomark';
 import { Screen } from '../../components/Screen';
 import { Button } from '../../components/Button';
 import { AvatarStack } from '../../components/Avatar';
@@ -151,12 +152,12 @@ export default function MatchmakingScreen() {
     <Screen>
       <View style={styles.container}>
         <View style={styles.signal} accessibilityRole="progressbar" accessibilityLabel="Searching for a squad">
-          <View style={styles.signalDot} />
+          <Logomark size={42} animated />
         </View>
 
-        <Text style={styles.heading}>Finding your match…</Text>
+        <Text style={styles.heading}>Finding a squad…</Text>
         <Text style={styles.sub}>
-          {elapsed >= 20 ? 'Still searching — few squads are live right now.' : "Looking for a squad that matches your crew's vibe."}
+          {elapsed >= 20 ? 'Still searching. You can cancel and return to your lobby.' : "Your squad will join the call when a match is ready."}
         </Text>
 
         <View style={styles.squadCard} accessibilityLabel="Your squad">

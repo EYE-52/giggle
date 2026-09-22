@@ -1,369 +1,106 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Modal, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { api, formatSquadCodeInput, isValidSquadCode, session } from '@giggle/core';
+import type { MySquadLite } from '@giggle/core';
 import { Screen } from '../../components/Screen';
 import { Button } from '../../components/Button';
 import { Card } from '../../components/Card';
-import { VibeChip } from '../../components/VibeChip';
-import { Wordmark } from '../../components/Wordmark';
 import { Icon } from '../../components/Icon';
 import { NotificationBell } from '../../components/NotificationBell';
-import { COLORS, SPACE, RADII } from '../../constants/theme';
-import { LinearGradient } from 'expo-linear-gradient';
-import { session, api, randomSquadName, formatSquadCodeInput, isValidSquadCode } from '@giggle/core';
-import type { MySquadLite } from '@giggle/core';
+import { Wordmark } from '../../components/Wordmark';
+import { COLORS, RADII, SPACE } from '../../constants/theme';
 import { NATIVE_DISCOVERY_ENABLED } from '../../constants/discovery';
 
-const VIBES = ['Competitive', 'Casual', 'Chill', 'Comedy', 'Gaming', 'Late Night'];
-
+const ACTIVE_STATUSES = ['searching', 'matched', 'in_encounter'];
 function squadDestination(squad: MySquadLite) {
   if (!NATIVE_DISCOVERY_ENABLED) return `/lobby?squad=${squad.squadId}`;
-  return ['searching', 'matched', 'in_encounter'].includes(squad.status)
-    ? `/matchmaking?squad=${squad.squadId}`
-    : `/lobby?squad=${squad.squadId}`;
+  return ['searching', 'matched', 'in_encounter'].includes(squad.status) ? `/matchmaking?squad=${squad.squadId}` : `/lobby?squad=${squad.squadId}`;
 }
+function readableStatus(status: string) { if (status === 'in_encounter') return 'In a live encounter'; if (status === 'searching') return 'Looking for a squad'; if (status === 'matched') return 'Match found'; return 'Ready to play'; }
 
 export default function HomeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ create?: string }>();
   const [joinCode, setJoinCode] = useState('');
-  const [activeVibe, setActiveVibe] = useState('Casual');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [squadName, setSquadName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [pendingJoinCode, setPendingJoinCode] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const actionRef = useRef<'create' | 'join' | null>(null);
+  const loadRef = useRef(false);
   const [actionError, setActionError] = useState('');
+  const [actionNotice, setActionNotice] = useState('');
   const [mySquads, setMySquads] = useState<MySquadLite[] | null>(null);
-  const [squadsError, setSquadsError] = useState('');
-  const [squadsReload, setSquadsReload] = useState(0);
-
   useEffect(() => {
-    if (!session.isAuthed()) {
-      setMySquads([]);
-      return;
-    }
-    let alive = true;
-    setSquadsError('');
-    api.mySquads()
-      .then(({ squads }) => { if (alive) setMySquads(squads ?? []); })
-      .catch((e: any) => { if (alive) setSquadsError(e?.message || "Couldn't load your squads."); });
-    return () => { alive = false; };
-  }, [squadsReload]);
+    if (params.create === '1') { setSquadName(''); setCreateOpen(true); }
+  }, [params.create]);
+  const [loadError, setLoadError] = useState('');
 
-  async function ensureAuthed() {
-    if (session.isAuthed()) return true;
-    setActionError('Sign in to continue.');
-    router.replace('/');
-    return false;
-  }
-
-  async function handleCreate() {
-    if (creating) return;
-    setCreating(true);
-    setActionError('');
-    const authed = await ensureAuthed();
-    if (!authed) {
-      setCreating(false);
-      return;
-    }
+  const loadSquads = useCallback(async () => {
+    if (loadRef.current) return;
+    loadRef.current = true;
+    setLoadError('');
     try {
-      const squad = await api.createSquad({ squadName: randomSquadName(), tags: [activeVibe] });
-      router.push(`/lobby?squad=${squad.squadId}`);
-    } catch (e: any) {
-      setActionError(e?.message || "Couldn't create a squad. Please try again.");
-    } finally {
-      setCreating(false);
-    }
+      const { squads: next } = await api.mySquads();
+      setMySquads([...next].sort((a, b) => Number(ACTIVE_STATUSES.includes(b.status)) - Number(ACTIVE_STATUSES.includes(a.status)) || a.squadName.localeCompare(b.squadName)));
+    } catch (error: unknown) {
+      setLoadError(error instanceof Error ? error.message : "Couldn't load your squads.");
+    } finally { loadRef.current = false; }
+  }, []);
+  useEffect(() => { void loadSquads(); }, [loadSquads]);
+  useFocusEffect(useCallback(() => { void loadSquads(); }, [loadSquads]));
+  useEffect(() => {
+    if (!pendingJoinCode) return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const result = await api.mySquads();
+        const joined = result.squads.find(squad => squad.squadCode === pendingJoinCode);
+        if (joined && !cancelled) { setPendingJoinCode(null); router.replace(`/lobby?squad=${joined.squadId}`); }
+      } catch { /* Keep waiting and retry. */ }
+    };
+    void check();
+    const timer = setInterval(check, 3000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [pendingJoinCode]);
+  const activeSquad = useMemo(() => mySquads?.find((squad) => ACTIVE_STATUSES.includes(squad.status)) ?? mySquads?.[0], [mySquads]);
+  const otherSquads = useMemo(() => mySquads?.filter((squad) => squad.squadId !== activeSquad?.squadId) ?? [], [activeSquad?.squadId, mySquads]);
+
+  function ensureAuthed() { if (session.isAuthed()) return true; setActionError('Sign in to continue.'); router.replace('/'); return false; }
+  async function createSquad() {
+    if (actionRef.current) return;
+    if (!ensureAuthed()) return;
+    if (!squadName.trim()) { setActionError('Give your squad a name.'); return; }
+    actionRef.current = 'create'; setCreating(true); setActionError(''); setActionNotice('');
+    try { const squad = await api.createSquad({ squadName: squadName.trim(), tags: [] }); setCreateOpen(false); router.push(`/lobby?squad=${squad.squadId}`); }
+    catch (error: unknown) { setActionError(error instanceof Error ? error.message : "Couldn't create a squad. Please try again."); }
+    finally { actionRef.current = null; setCreating(false); }
+  }
+  async function joinSquad() {
+    if (actionRef.current) return;
+    const code = formatSquadCodeInput(joinCode); setJoinCode(code);
+    if (!isValidSquadCode(code)) { setActionError('Enter a code like ABC-123.'); return; }
+    if (!ensureAuthed()) return;
+    actionRef.current = 'join'; setJoining(true); setActionError(''); setActionNotice('');
+    try { const result = await api.joinSquad({ squadCode: code }); if ('status' in result && result.status === 'requested') { setActionNotice('Request sent. You will enter if the leader approves.'); setPendingJoinCode(code); } else if ('squadId' in result) router.push(`/lobby?squad=${result.squadId}`); }
+    catch (error: unknown) { setActionError(error instanceof Error ? error.message : "Couldn't join that squad. Check the code and try again."); }
+    finally { actionRef.current = null; setJoining(false); }
   }
 
-  async function handleJoin() {
-    if (joining) return;
-    const normalizedCode = formatSquadCodeInput(joinCode);
-    setJoinCode(normalizedCode);
-    if (!isValidSquadCode(normalizedCode)) {
-      setActionError('Enter a squad code in the format ABC-123.');
-      return;
-    }
-    setJoining(true);
-    setActionError('');
-    const authed = await ensureAuthed();
-    if (!authed) {
-      setJoining(false);
-      return;
-    }
-    try {
-      const squad = await api.joinSquad({ squadCode: normalizedCode });
-      if ('squadId' in squad) {
-        router.push(`/lobby?squad=${squad.squadId}`);
-      } else {
-        setActionError('Request sent. The leader will review it.');
-      }
-    } catch (e: any) {
-      setActionError(e?.message || "Couldn't join that squad. Check the code and try again.");
-    } finally {
-      setJoining(false);
-    }
-  }
-
-  return (
-    <Screen>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Top Nav */}
-        <View style={styles.topNav}>
-          <Wordmark size={20} />
-          <View style={styles.topActions}>
-            <NotificationBell />
-            <TouchableOpacity
-              onPress={() => router.push('/profile')}
-              style={styles.profileBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Open profile"
-            >
-              <Icon.profile size={24} color={COLORS.textMuted} />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Compact value prop header */}
-        <View style={styles.heroCopy}>
-          <Text style={styles.headline}>
-            Your squad,{' '}
-            <Text style={styles.headlineAccent}>another squad</Text>
-            {', live on video.'}
-          </Text>
-        </View>
-
-        {mySquads === null ? (
-          <Card style={styles.squadsState}>
-            <Text style={styles.squadsStateText}>Loading your squads…</Text>
-          </Card>
-        ) : squadsError ? (
-          <Card style={styles.squadsState}>
-            <Text style={styles.errorText}>{squadsError}</Text>
-            <TouchableOpacity
-              onPress={() => { setMySquads(null); setSquadsReload((value) => value + 1); }}
-              style={styles.retryBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Retry loading squads"
-            >
-              <Text style={styles.retryText}>Retry</Text>
-            </TouchableOpacity>
-          </Card>
-        ) : mySquads.length > 0 ? (
-          <View style={styles.squadsSection}>
-            <Text style={styles.sectionLabel}>Your squads</Text>
-            <Card style={styles.squadsCard}>
-              {mySquads.map((squad, index) => (
-                <TouchableOpacity
-                  key={squad.squadId}
-                  onPress={() => router.push(squadDestination(squad))}
-                  style={[styles.squadRow, index < mySquads.length - 1 && styles.squadRowBorder]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Open ${squad.squadName}`}
-                >
-                  <View style={styles.squadMark}>
-                    <Text style={styles.squadMarkText}>{squad.squadName.slice(0, 1).toUpperCase()}</Text>
-                  </View>
-                  <View style={styles.squadCopy}>
-                    <Text style={styles.squadName} numberOfLines={1}>{squad.squadName}</Text>
-                    <Text style={styles.squadMeta} numberOfLines={1}>
-                      {squad.memberCount}/{squad.maxSlots} members · {squad.status.replace(/_/g, ' ')}
-                    </Text>
-                  </View>
-                  <Icon.chevron size={18} color={COLORS.textDim} />
-                </TouchableOpacity>
-              ))}
-            </Card>
-          </View>
-        ) : null}
-
-        {/* Create a Squad — primary action */}
-        <LinearGradient
-          colors={['rgba(124,92,255,0.18)', 'rgba(124,92,255,0.06)']}
-          style={styles.heroCard}
-        >
-          <View style={styles.heroIconRow}>
-            <View style={styles.iconTile}>
-              <Icon.plus size={22} color="#fff" strokeWidth={2.6} />
-            </View>
-            <Text style={styles.heroTitle}>Create a Squad</Text>
-          </View>
-          <Text style={styles.heroBody}>
-            {NATIVE_DISCOVERY_ENABLED
-              ? 'Invite your crew and match with another squad.'
-              : 'Invite your crew to a private room.'}
-          </Text>
-          {/* Fixed-width button to prevent layout shift on label change */}
-          <Button
-            label={creating ? 'Creating…' : 'Create Squad'}
-            onPress={handleCreate}
-            variant="violet"
-            disabled={creating}
-            style={styles.fixedBtn}
-          />
-        </LinearGradient>
-
-        {/* Join with Code — secondary */}
-        <Card style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.iconTile, styles.iconTileMuted]}>
-              <Icon.enter size={20} color={COLORS.textMuted} />
-            </View>
-            <Text style={styles.cardTitle}>Join with Code</Text>
-          </View>
-          <View style={styles.codeRow}>
-            <TextInput
-              style={styles.codeInput}
-              placeholder="ENTER-CODE"
-              placeholderTextColor={COLORS.textDim}
-              value={joinCode}
-              onChangeText={(value) => {
-                setJoinCode(formatSquadCodeInput(value));
-                if (actionError) setActionError('');
-              }}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              spellCheck={false}
-              onSubmitEditing={handleJoin}
-            />
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Join squad"
-              style={[styles.joinBtn, (!isValidSquadCode(joinCode) || joining) && styles.joinBtnDisabled]}
-              onPress={handleJoin}
-              disabled={!isValidSquadCode(joinCode) || joining}
-            >
-              <Text style={styles.joinBtnText}>{joining ? '…' : 'Join'}</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.feedbackArea}>
-            {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
-          </View>
-        </Card>
-
-        {/* Flexible spacer */}
-        <View style={{ flex: 1, minHeight: SPACE.xxl }} />
-
-        {NATIVE_DISCOVERY_ENABLED && (
-          <>
-            {/* Vibe + Find — lower, lighter */}
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Pick your vibe</Text>
-              <View style={styles.chips}>
-                {VIBES.map((v) => (
-                  <VibeChip key={v} label={v} active={activeVibe === v} onPress={() => setActiveVibe(v)} />
-                ))}
-              </View>
-              <Button
-                label="Find a Squad →"
-                onPress={() => router.push(`/discover?vibe=${encodeURIComponent(activeVibe)}`)}
-                variant="lime"
-                style={styles.findBtn}
-              />
-            </View>
-
-            <TouchableOpacity
-              onPress={() => router.push('/discover')}
-              style={styles.sceneRow}
-              accessibilityRole="button"
-              accessibilityLabel="Browse live scenes"
-            >
-              <Text style={styles.sceneText}>Or browse live scenes →</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </ScrollView>
-    </Screen>
-  );
+  return <Screen><KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    <View style={styles.topNav}><Wordmark size={22} /><View style={styles.topActions}><NotificationBell /><TouchableOpacity style={styles.iconButton} onPress={() => router.push('/profile')} accessibilityRole="button" accessibilityLabel="Open account"><Icon.profile size={21} color={COLORS.text} /></TouchableOpacity></View></View>
+    <Text style={styles.eyebrow}>YOUR SQUAD</Text><Text style={styles.title}>Meet another squad.</Text><Text style={styles.subtitle}>{NATIVE_DISCOVERY_ENABLED ? 'Join a group video call with your friends.' : 'Create a private room and invite your friends.'}</Text>
+    <Card style={styles.createCard}><View style={styles.cardIcon}><Icon.plus size={22} color={COLORS.surface} /></View><Text style={styles.cardTitle}>Create a squad</Text><Text style={styles.cardBody}>{NATIVE_DISCOVERY_ENABLED ? 'Invite friends and meet another squad.' : 'Invite friends to a private room.'}</Text><Button label={creating ? 'Creating…' : 'Create squad'} onPress={() => { setSquadName(''); setActionError(''); setCreateOpen(true); }} disabled={creating} style={styles.createButton} /></Card>
+    <Card style={styles.joinCard}><Text style={styles.sectionTitle}>Have an invite code?</Text><View style={styles.joinRow}><TextInput value={joinCode} onChangeText={(value) => { setJoinCode(formatSquadCodeInput(value)); setActionError(''); }} onSubmitEditing={() => void joinSquad()} placeholder="ABC-123" placeholderTextColor={COLORS.textDim} autoCapitalize="characters" autoCorrect={false} spellCheck={false} style={styles.codeInput} accessibilityLabel="Squad invite code" /><TouchableOpacity onPress={() => void joinSquad()} disabled={joining || !isValidSquadCode(joinCode)} style={[styles.joinButton, (!isValidSquadCode(joinCode) || joining) && styles.disabled]} accessibilityRole="button" accessibilityLabel="Join squad"><Text style={styles.joinButtonText}>{joining ? '…' : 'Join'}</Text></TouchableOpacity></View>{actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}{actionNotice ? <Text accessibilityLiveRegion="polite" style={styles.notice}>{actionNotice}</Text> : null}</Card>
+    {loadError ? <Card style={styles.stateCard}><Text style={styles.error}>{loadError}</Text><TouchableOpacity onPress={() => { setMySquads(null); void loadSquads(); }} style={styles.retry} accessibilityRole="button" accessibilityLabel="Retry loading squads"><Text style={styles.retryText}>Try again</Text></TouchableOpacity></Card> : mySquads === null ? <View style={styles.state}><ActivityIndicator color={COLORS.violet} /><Text style={styles.stateText}>Loading your squads…</Text></View> : activeSquad ? <View style={styles.squadsBlock}><Text style={styles.sectionLabel}>Pick up where you left off</Text><TouchableOpacity onPress={() => router.push(squadDestination(activeSquad))} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={`Resume ${activeSquad.squadName}`}><Card style={styles.activeCard}><View style={styles.activeTop}><View style={styles.squadMark}><Text style={styles.squadMarkText}>{activeSquad.squadName.slice(0, 1).toUpperCase()}</Text></View><View style={styles.cardCopy}><Text style={styles.activeName} numberOfLines={1}>{activeSquad.squadName}</Text><Text style={styles.activeStatus}>{readableStatus(activeSquad.status)}</Text></View><Icon.chevron size={20} color={COLORS.textDim} /></View><View style={styles.activeFooter}><Text style={styles.memberText}>{activeSquad.memberCount}/{activeSquad.maxSlots} members</Text><Text style={styles.resumeText}>{ACTIVE_STATUSES.includes(activeSquad.status) ? 'Open match' : 'Open lobby'}  →</Text></View></Card></TouchableOpacity>{otherSquads.length > 0 ? <Text style={[styles.sectionLabel, styles.otherLabel]}>Your other squads</Text> : null}{otherSquads.map((squad) => <TouchableOpacity key={squad.squadId} onPress={() => router.push(squadDestination(squad))} style={styles.otherRow} accessibilityRole="button" accessibilityLabel={`Open ${squad.squadName}`}><View style={styles.smallMark}><Text style={styles.smallMarkText}>{squad.squadName.slice(0, 1).toUpperCase()}</Text></View><View style={styles.cardCopy}><Text style={styles.otherName} numberOfLines={1}>{squad.squadName}</Text><Text style={styles.otherMeta}>{squad.memberCount}/{squad.maxSlots} members · {readableStatus(squad.status)}</Text></View><Icon.chevron size={18} color={COLORS.textDim} /></TouchableOpacity>)}</View> : <View style={styles.empty}><Text style={styles.emptyTitle}>Your first squad starts here.</Text><Text style={styles.stateText}>Create one above, or join a friend with their code.</Text></View>}
+    {NATIVE_DISCOVERY_ENABLED ? <TouchableOpacity onPress={() => router.push('/discover')} style={styles.discoverLink} accessibilityRole="button" accessibilityLabel="Browse live squads"><Icon.discover size={18} color={COLORS.violet} /><Text style={styles.discoverText}>Browse live squads</Text><Icon.chevron size={18} color={COLORS.violet} /></TouchableOpacity> : null}
+  </ScrollView></KeyboardAvoidingView>
+  <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => { if (!creating) setCreateOpen(false); }}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,.35)', justifyContent: 'center', padding: 20 }}><View style={{ padding: 22, borderRadius: 20, backgroundColor: COLORS.surface, gap: 16 }}><Text style={styles.cardTitle}>Create a squad</Text><Text style={styles.cardBody}>Give your squad a name. Invite friends next.</Text><TextInput autoFocus accessibilityLabel="Squad name" value={squadName} onChangeText={setSquadName} maxLength={40} placeholder="Squad name" placeholderTextColor={COLORS.textMuted} style={{ borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, padding: 12, minHeight: 48, color: COLORS.text }} />{actionError ? <Text accessibilityRole="alert" style={styles.error}>{actionError}</Text> : null}<Button label={creating ? 'Creating…' : 'Create squad'} disabled={creating} onPress={() => void createSquad()} /><Button label="Cancel" disabled={creating} variant="outline" onPress={() => setCreateOpen(false)} /></View></KeyboardAvoidingView>
+  </Modal></Screen>;
 }
 
-const styles = StyleSheet.create({
-  scroll: { padding: SPACE.lg, paddingTop: SPACE.md, flexGrow: 1 },
-
-  topNav: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginBottom: SPACE.xl,
-  },
-  topActions: { flexDirection: 'row', alignItems: 'center' },
-  profileBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-
-  // Compact value prop — small headline, no eyebrow/subtext competing
-  heroCopy: { marginBottom: SPACE.lg },
-  headline: { fontSize: 22, fontWeight: '800', color: COLORS.text, letterSpacing: -0.4, lineHeight: 30 },
-  headlineAccent: { color: COLORS.violet },
-
-  squadsSection: { marginBottom: SPACE.lg },
-  squadsCard: { padding: 0, overflow: 'hidden' },
-  squadsState: {
-    minHeight: 64, marginBottom: SPACE.lg, flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', gap: SPACE.md,
-  },
-  squadsStateText: { color: COLORS.textMuted, fontSize: 13 },
-  squadRow: { minHeight: 68, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: SPACE.md },
-  squadRowBorder: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  squadMark: {
-    width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(124,92,255,0.16)', borderWidth: 1, borderColor: 'rgba(124,92,255,0.28)',
-  },
-  squadMarkText: { color: COLORS.violet, fontSize: 17, fontWeight: '800' },
-  squadCopy: { flex: 1, minWidth: 0 },
-  squadName: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
-  squadMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 3, textTransform: 'capitalize' },
-  retryBtn: { minWidth: 56, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  retryText: { color: COLORS.violet, fontSize: 13, fontWeight: '700' },
-
-  heroCard: {
-    borderRadius: RADII.card, padding: SPACE.lg,
-    borderWidth: 1, borderColor: 'rgba(124,92,255,0.25)',
-    marginBottom: SPACE.lg,
-  },
-  heroIconRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
-  heroTitle: { fontSize: 17, fontWeight: '700', color: COLORS.text },
-  heroBody: { fontSize: 13, color: COLORS.textMuted, marginBottom: SPACE.md, lineHeight: 18 },
-  iconTile: {
-    width: 38, height: 38, borderRadius: 11,
-    backgroundColor: COLORS.violet, alignItems: 'center', justifyContent: 'center',
-  },
-  iconTileMuted: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: COLORS.border },
-
-  // Fixed button: no layout shift when label changes
-  fixedBtn: { minWidth: 160, alignSelf: 'flex-start' },
-
-  card: { marginBottom: SPACE.lg },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: SPACE.sm },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: COLORS.text },
-  codeRow: { flexDirection: 'row', gap: 10 },
-  codeInput: {
-    flex: 1, height: 46, borderRadius: RADII.input,
-    backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: COLORS.border,
-    color: COLORS.text, paddingHorizontal: 16, fontSize: 14, letterSpacing: 2,
-  },
-  joinBtn: {
-    // Fixed width so "Join" vs "…" don't reflow
-    width: 72, height: 46, borderRadius: RADII.input,
-    backgroundColor: COLORS.violet, alignItems: 'center', justifyContent: 'center',
-  },
-  joinBtnDisabled: { opacity: 0.4 },
-  joinBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  feedbackArea: {
-    minHeight: 22,
-    justifyContent: 'center',
-    marginTop: SPACE.sm,
-  },
-  errorText: { color: COLORS.coral, fontSize: 13, lineHeight: 18 },
-
-  // Lower, lighter section for discovery
-  section: { marginBottom: SPACE.md },
-  sectionLabel: {
-    fontSize: 11, fontWeight: '600', color: COLORS.textDim,
-    textTransform: 'uppercase', letterSpacing: 1, marginBottom: SPACE.sm,
-  },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: SPACE.md },
-  findBtn: {},
-
-  // Inline text link — minimal footprint
-  sceneRow: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingVertical: SPACE.sm,
-    marginBottom: SPACE.lg,
-  },
-  sceneText: { fontSize: 13, color: COLORS.textDim },
-});
+const styles = StyleSheet.create({ flex: { flex: 1 }, scroll: { padding: SPACE.lg, paddingTop: SPACE.sm, paddingBottom: SPACE.xxl }, topNav: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACE.xl }, topActions: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs }, iconButton: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border }, eyebrow: { color: COLORS.violet, fontSize: 11, fontWeight: '800', letterSpacing: 1.1, marginBottom: SPACE.sm }, title: { color: COLORS.text, fontSize: 30, lineHeight: 34, fontWeight: '800', letterSpacing: -0.6 }, subtitle: { color: COLORS.textMuted, fontSize: 15, lineHeight: 21, marginTop: SPACE.sm, marginBottom: SPACE.xl, maxWidth: 330 }, createCard: { backgroundColor: COLORS.violetSoft, borderColor: COLORS.violetSoft, padding: SPACE.lg, marginBottom: SPACE.md }, cardIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: COLORS.violet, alignItems: 'center', justifyContent: 'center', marginBottom: SPACE.md }, cardCopy: { flex: 1, minWidth: 0 }, cardTitle: { color: COLORS.text, fontSize: 18, fontWeight: '800' }, cardBody: { color: COLORS.textMuted, fontSize: 14, lineHeight: 19, marginTop: 3, marginBottom: SPACE.md }, createButton: { alignSelf: 'stretch', backgroundColor: COLORS.violet }, joinCard: { padding: SPACE.lg, marginBottom: SPACE.xl }, sectionTitle: { color: COLORS.text, fontSize: 16, fontWeight: '700', marginBottom: SPACE.md }, joinRow: { flexDirection: 'row', gap: SPACE.sm }, codeInput: { flex: 1, height: 48, borderRadius: RADII.input, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.bg, color: COLORS.text, paddingHorizontal: SPACE.md, fontSize: 15, letterSpacing: 1.5 }, joinButton: { height: 48, minWidth: 72, borderRadius: RADII.input, backgroundColor: COLORS.text, alignItems: 'center', justifyContent: 'center' }, joinButtonText: { color: COLORS.surface, fontWeight: '800', fontSize: 15 }, disabled: { opacity: 0.4 }, notice: { color: COLORS.lime, fontSize: 13, lineHeight: 18, marginTop: SPACE.sm }, error: { color: COLORS.coral, fontSize: 13, lineHeight: 18, marginTop: SPACE.sm }, state: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, minHeight: 52 }, stateText: { color: COLORS.textMuted, fontSize: 14 }, stateCard: { padding: SPACE.md, marginBottom: SPACE.md }, retry: { minHeight: 42, justifyContent: 'center', alignSelf: 'flex-start' }, retryText: { color: COLORS.violet, fontWeight: '800', fontSize: 14 }, squadsBlock: { marginTop: SPACE.sm }, sectionLabel: { color: COLORS.textDim, fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: SPACE.sm }, activeCard: { padding: SPACE.lg, backgroundColor: COLORS.surface, marginBottom: SPACE.md }, activeTop: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md }, squadMark: { width: 48, height: 48, borderRadius: 16, backgroundColor: COLORS.limeSoft, alignItems: 'center', justifyContent: 'center' }, squadMarkText: { color: COLORS.lime, fontSize: 20, fontWeight: '800' }, activeName: { color: COLORS.text, fontSize: 17, fontWeight: '800' }, activeStatus: { color: COLORS.textMuted, fontSize: 13, marginTop: 3 }, activeFooter: { flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: COLORS.border, marginTop: SPACE.md, paddingTop: SPACE.md }, memberText: { color: COLORS.textMuted, fontSize: 13 }, resumeText: { color: COLORS.violet, fontSize: 13, fontWeight: '800' }, otherLabel: { marginTop: SPACE.md }, otherRow: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingVertical: SPACE.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border }, smallMark: { width: 36, height: 36, borderRadius: 12, backgroundColor: COLORS.violetSoft, alignItems: 'center', justifyContent: 'center' }, smallMarkText: { color: COLORS.violet, fontWeight: '800' }, otherName: { color: COLORS.text, fontWeight: '700', fontSize: 14 }, otherMeta: { color: COLORS.textMuted, fontSize: 12, marginTop: 3 }, empty: { paddingVertical: SPACE.lg, alignItems: 'center' }, emptyTitle: { color: COLORS.text, fontSize: 16, fontWeight: '800', marginBottom: SPACE.xs }, discoverLink: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginTop: SPACE.xl, paddingHorizontal: SPACE.md, borderRadius: RADII.input, backgroundColor: COLORS.limeSoft }, discoverText: { color: COLORS.violet, fontSize: 14, fontWeight: '800', flex: 1 } });

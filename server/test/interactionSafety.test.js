@@ -14,7 +14,9 @@ const squadAccess = require("../src/app/squadAccess");
 const { redlock, redis, subClient } = require("../src/config/redisConfig");
 
 after(async () => {
-  await Promise.allSettled([redis.quit(), subClient.quit()]);
+  // Unit tests must also tear down when Redis is unavailable.
+  redis.disconnect();
+  subClient.disconnect();
 });
 
 const IDS = [

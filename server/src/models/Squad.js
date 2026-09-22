@@ -43,6 +43,8 @@ const squadSchema = new mongoose.Schema({
   isPremiumSquad: { type: Boolean, default: false },
   searchQueuedAt: { type: Date, default: null },
   currentEncounterId: { type: String, default: null },
+  lastEncounterId: { type: String, default: null },
+  lastEncounterEndedAt: { type: Date, default: null },
   opponentSquadId: { type: String, default: null },
   matchedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },

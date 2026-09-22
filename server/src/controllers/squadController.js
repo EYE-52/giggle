@@ -1,3 +1,4 @@
+const { hashStringToUid } = require("../services/agoraTokenService");
 const mongoose = require("mongoose");
 const { Squad } = require("../models/Squad");
 const User = require("../models/User");
@@ -563,6 +564,7 @@ const getSquadHandler = async (req, res) => {
       const u = demoById.get(String(member.userId));
       return {
         ...member.toObject(),
+        uid: hashStringToUid(`${squad.squadId}:${member.userId}`),
         ready: live.ready !== undefined ? live.ready : member.ready,
         inLobbyVideo: live.inLobbyVideo !== undefined ? live.inLobbyVideo : member.inLobbyVideo,
         inEncounterVideo: live.inEncounterVideo !== undefined ? live.inEncounterVideo : member.inEncounterVideo,

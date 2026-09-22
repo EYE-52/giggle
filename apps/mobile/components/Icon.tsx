@@ -11,6 +11,8 @@ const base = (color = '#F4F4F7', sw = 2) => ({
 });
 
 export const Icon = {
+  wallet: ({ size = 22, color, strokeWidth }: P) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none"><Rect x={3} y={5} width={18} height={15} rx={3} {...base(color, strokeWidth)} /><Path d="M3 8V6a2 2 0 0 1 2-2h13M21 11h-5v4h5" {...base(color, strokeWidth)} /></Svg>,
+  hangup: ({ size = 22, color, strokeWidth }: P) => <Svg width={size} height={size} viewBox="0 0 24 24" fill="none"><Path d="M3 10c5-5 13-5 18 0v5h-4v-4a15 15 0 0 0-10 0v4H3z" {...base(color, strokeWidth)} /></Svg>,
   home: ({ size = 22, color, strokeWidth }: P) => (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <Path d="M3 11l9-8 9 8M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5" {...base(color, strokeWidth)} />

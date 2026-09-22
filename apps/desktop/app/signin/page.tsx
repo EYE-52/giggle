@@ -80,7 +80,7 @@ export default function AuthPage() {
     const destination = `${base}/api/auth/${provider}${ref}`;
     try {
       const response = await fetch(destination, {
-        method: "HEAD",
+        method: "GET",
         credentials: "same-origin",
         redirect: "manual",
         cache: "no-store",
@@ -89,6 +89,15 @@ export default function AuthPage() {
         || response.type === "opaqueredirect"
         || (response.status >= 300 && response.status < 400);
       if (!handoffReady) {
+        const failure = await response.json().catch(() => null);
+        if (failure?.error?.code === "PROVIDER_NOT_CONFIGURED") {
+          setErr(process.env.NODE_ENV !== "production"
+            ? "Google sign-in is not configured locally. Use the dev account below to test the app."
+            : "Google sign-in is unavailable right now. Please try again later.");
+          setStatus("failed");
+          setActiveProvider(null);
+          return;
+        }
         throw new Error("AUTH_UNAVAILABLE");
       }
       window.location.assign(destination);
@@ -100,22 +109,19 @@ export default function AuthPage() {
   };
 
   return (
-    <main data-theme="dark" style={{ height: "100dvh", minHeight: 560, position: "relative", overflow: "hidden", display: "grid", placeItems: "center", padding: isPhone ? 16 : 28, fontFamily: "var(--font-inter), Inter, sans-serif", background: "var(--bg)", color: "var(--text)" }}>
-      <div aria-hidden style={{ position: "absolute", inset: 0, backgroundImage: isPhone
-        // Phone: full dark scrim over the whole hero so the card sits on consistent contrast.
-        ? "radial-gradient(120% 100% at 50% 0%, rgba(6,8,9,.88), rgba(6,8,9,.94)), url('/img/onboarding-hero.jpg')"
-        : "linear-gradient(90deg, rgba(6,8,9,.94), rgba(6,8,9,.78) 52%, rgba(6,8,9,.58)), url('/img/onboarding-hero.jpg')", backgroundSize: "cover", backgroundPosition: "center", filter: "saturate(.82)" }} />
+    <main style={{ minHeight: "100svh", position: "relative", overflow: "auto", display: "grid", placeItems: "center", padding: isPhone ? 16 : 28, fontFamily: "var(--font-inter), Inter, sans-serif", background: "var(--bg)", color: "var(--text)" }}>
 
-      <section style={{ position: "relative", width: "100%", maxWidth: 430, padding: isPhone ? 22 : 30, borderRadius: "var(--radius-card, 20px)", background: "rgba(12,15,16,.88)", border: "1px solid rgba(255,255,255,.12)", backdropFilter: "blur(18px)", boxShadow: "0 28px 80px rgba(0,0,0,.42)" }}>
+
+      <section style={{ position: "relative", width: "100%", maxWidth: 430, padding: isPhone ? 22 : 30, borderRadius: "var(--radius-card, 20px)", background: "var(--surface)", border: "1px solid var(--border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
           <Logomark size={34} glow={false} />
           <span style={{ fontFamily: "var(--font-display, var(--font-space-grotesk)), sans-serif", fontWeight: 700, fontSize: 20 }}>Giggle</span>
         </div>
 
-        <h1 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk)), sans-serif", fontSize: 30, fontWeight: 700, lineHeight: 1.05, letterSpacing: "-0.02em", maxWidth: 330 }}>Join Giggle with your squad.</h1>
-        <p style={{ margin: "12px 0 24px", color: "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>Bring a friend, match with another squad, and go live together.</p>
+        <h1 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk)), sans-serif", fontSize: 30, fontWeight: 700, lineHeight: 1.05, letterSpacing: "-0.02em", maxWidth: 330 }}>Sign in to Giggle</h1>
+        <p style={{ margin: "12px 0 24px", color: "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>Create an account or return to your squad.</p>
 
-        {refCode && <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16, padding: "10px 12px", borderRadius: "var(--radius-control, 14px)", background: "color-mix(in srgb, var(--accent, var(--violet, #7657FF)) 14%, transparent)", color: "#d8d1ff", fontSize: 13 }}><Icon.gift size={17} color="var(--violet-bright)" /> Invite accepted. You both get 100 tokens.</div>}
+        {refCode && <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16, padding: "10px 12px", borderRadius: "var(--radius-control, 14px)", background: "color-mix(in srgb, var(--accent, var(--violet, #7657FF)) 14%, transparent)", color: "var(--accent)", fontSize: 13 }}><Icon.gift size={17} color="var(--violet-bright)" /> Invite accepted. You both get 100 tokens.</div>}
 
         <div style={{ display: "grid", gap: 10 }}>
           <button
@@ -146,30 +152,35 @@ export default function AuthPage() {
         {err && (
           <div style={{ marginTop: 12 }}>
             <p role="alert" style={{ margin: 0, color: "var(--coral, #ff7979)", fontSize: 13, lineHeight: 1.45 }}>{err}</p>
-            <button onClick={() => { setErr(""); setStatus("idle"); }} style={{ minHeight: 44, padding: 0, border: 0, background: "transparent", color: "#d8d1ff", font: "600 13px var(--font-inter), sans-serif", cursor: "pointer" }}>Try again</button>
+            <button onClick={() => { setErr(""); setStatus("idle"); }} style={{ minHeight: 44, padding: 0, border: 0, background: "transparent", color: "var(--accent)", font: "600 13px var(--font-inter), sans-serif", cursor: "pointer" }}>Try again</button>
           </div>
         )}
         <p style={{ margin: "16px 0 0", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.5 }}>By continuing, you agree to our <Link href="/terms" style={{ color: "var(--text-body)", textDecoration: "underline" }}>Terms</Link> and <Link href="/privacy" style={{ color: "var(--text-body)", textDecoration: "underline" }}>Privacy Policy</Link>.</p>
 
         {process.env.NODE_ENV !== "production" && (
+          <div style={{ marginTop: 20, padding: 16, borderRadius: "var(--radius-control, 14px)", background: "var(--overlay)", border: "1px solid var(--border)" }}>
+          <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700 }}>Local testing</p>
+          <p style={{ margin: "0 0 12px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.5 }}>Open a test account without Google or age verification. Use another browser profile to test with a second person.</p>
           <button
             className="gg-press"
             onClick={devFinish}
             disabled={busy}
             style={{
-              background: "transparent",
+              background: "var(--accent)",
               border: "none",
-              color: "var(--text-muted)",
+              color: "var(--on-accent)",
               cursor: "pointer",
-              fontSize: 12,
+              fontSize: 14,
               fontFamily: "inherit",
               minHeight: 44,
-              padding: 0,
-              marginTop: 8,
+              padding: "0 16px",
+              width: "100%",
+              borderRadius: "var(--radius-control, 14px)",
             }}
           >
             {status === "dev" ? "Opening dev account..." : "Use dev account"}
           </button>
+          </div>
         )}
       </section>
     </main>

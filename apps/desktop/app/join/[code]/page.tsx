@@ -79,6 +79,21 @@ export default function JoinByLinkPage() {
     return () => { cancelled = true; };
   }, [code, router, proceed]);
 
+  useEffect(() => {
+    if (phase !== "requested") return;
+    let cancelled = false;
+    const check = async () => {
+      try {
+        const result = await api.mySquads();
+        const joined = result.squads.find(squad => squad.squadCode === code);
+        if (!cancelled && joined) router.replace(`/lobby?squad=${joined.squadId}`);
+      } catch { /* Keep the request screen; retry on the next poll. */ }
+    };
+    void check();
+    const timer = setInterval(check, 3000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [phase, code, router]);
+
   if (phase === "age") {
     return (
       <AgeGate
@@ -101,13 +116,13 @@ export default function JoinByLinkPage() {
             <div role="status" aria-live="polite" style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 20, fontWeight: 700 }}>
               <span className="gg-spinner" aria-hidden /> Joining squad…
             </div>
-            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 14 }}>Hang tight — dropping you into <b style={{ fontFamily: "monospace", letterSpacing: "0.08em" }}>{code || "the squad"}</b>.</p>
+            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 14 }}>Opening squad <b style={{ fontFamily: "monospace", letterSpacing: "0.08em" }}>{code || "the squad"}</b>.</p>
           </>
         )}
         {phase === "requested" && (
           <>
             <h1 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700 }}>Request sent!</h1>
-            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 14 }}>This squad reviews new members. The leader will let you in shortly.</p>
+            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 14 }}>This squad reviews new members. You will enter automatically if the leader approves.</p>
             <Link href="/home" style={{ marginTop: 4, padding: "11px 22px", borderRadius: "var(--radius-btn, 999px)", background: "var(--accent, var(--violet))", color: "var(--on-accent, #fff)", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>Back to Home</Link>
           </>
         )}

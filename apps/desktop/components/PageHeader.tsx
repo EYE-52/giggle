@@ -54,8 +54,8 @@ export function PageHeader({
             margin: 0,
             fontFamily: "var(--font-display)",
             fontWeight: 800,
-            fontSize: isPhone ? 26 : 30,
-            letterSpacing: "-0.02em",
+            fontSize: isPhone ? 32 : 40,
+            letterSpacing: "-0.045em",
             lineHeight: 1.05,
             color: "var(--text)",
             textWrap: "balance" as React.CSSProperties["textWrap"],
@@ -67,7 +67,7 @@ export function PageHeader({
           <p
             style={{
               margin: "7px 0 0",
-              fontSize: 14,
+              fontSize: 16,
               color: "var(--text-muted)",
               lineHeight: 1.5,
             }}

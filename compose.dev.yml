@@ -1,0 +1,32 @@
+# Local development only. Ports bind to loopback and do not replace other projects.
+services:
+  mongo:
+    # Opt in on compatible hosts. This Mac currently has Docker kernel 7.0.12,
+    # which MongoDB 8 refuses to run on; see docs/design/2026-09-10-implementation-status.md.
+    profiles: ["database"]
+    image: mongo:8.0
+    command: ["mongod", "--replSet", "giggle-dev", "--bind_ip_all"]
+    ports:
+      - "127.0.0.1:17017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:16379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+volumes:
+  mongo-data:
+  redis-data:

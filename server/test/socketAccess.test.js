@@ -553,12 +553,13 @@ test("chat broadcasts include scope, client ids, and explicit acknowledgements",
   assert.match(messageBlock, /squadId: normalizedSquadId \|\| undefined,/);
   assert.match(messageBlock, /clientMessageId: normalizedClientMessageId \|\| undefined,/);
   assert.match(messageBlock, /reply\(\{ ok: false, error:/);
-  assert.match(messageBlock, /reply\(\{ ok: true, message \}\);/);
-  assert.match(messageBlock, /sentChatMessages\.get\(normalizedClientMessageId\)/);
+  assert.match(messageBlock, /reply\(\{ ok: true, message: delivery\.message \}\);/);
+  assert.match(messageBlock, /claimOrGetChatMessage/);
+  assert.match(messageBlock, /redis: getRedisClient\(\)/);
   assert.match(messageBlock, /classifyVibe\(normalizedText\) !== 'ok'/);
   assert.equal(
     messageBlock.indexOf("await authorizeRealtimeSend") <
-      messageBlock.indexOf("sentChatMessages.get(normalizedClientMessageId)"),
+      messageBlock.indexOf("claimOrGetChatMessage"),
     true
   );
   assert.match(messageBlock, /error: 'That message is not allowed\.'/);

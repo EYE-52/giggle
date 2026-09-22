@@ -1,633 +1,474 @@
 "use client";
-import { useState, useEffect } from "react";
-import type React from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Icon } from "@/components/Icons";
-import { EmptyState } from "@/components/EmptyState";
-import { PageHeader } from "@/components/PageHeader";
-import { Modal } from "@/components/Modal";
+import {
+  api,
+  session,
+  formatSquadCodeInput,
+  isValidSquadCode,
+} from "@giggle/core";
+import type { MySquadLite, PublicSquad, SquadMemberState } from "@giggle/core";
 import { Button } from "@/components/Button";
-import { StatTile } from "@/components/StatTile";
-import { Badge } from "@/components/Badge";
+import { Modal } from "@/components/Modal";
+import { Avatar } from "@/components/Avatar";
+import { Icon } from "@/components/Icons";
 import { useToast } from "@/components/Toast";
-import type { PublicSquad, MySquadLite } from "@giggle/core";
-import { session, api, randomSquadName, coverName, getTokenBalance, billing, formatSquadCodeInput, isValidSquadCode } from "@giggle/core";
-import { useViewport } from "@/components/useViewport";
-import { useTheme } from "@/components/useTheme";
-import { coverKind, coverBackground, coverSwatchBackground, coverInk } from "@/components/covers";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 
-const MY_STATUS_LABEL: Record<string, string> = {
-  idle: "Open",
-  searching: "Searching",
-  matched: "Matched",
-  in_encounter: "Live",
-};
-
-// A squad earns the wide "promoted" slot only when it has live operational
-// state — never by preference. Promote state, not favouritism.
-const PROMOTABLE = new Set(["in_encounter", "searching", "matched"]);
-
-// Live/active squads sort first; equal statuses fall back to name so 20s
-// refreshes don't shuffle the grid.
-const STATUS_RANK: Record<string, number> = { in_encounter: 0, searching: 1, matched: 2, idle: 3 };
-
-// Mirror the friends page's live-presence poll cadence.
-const POLL_MS = 20_000;
-
+const rank: Record<string, number> = { in_encounter: 0, matched: 1, searching: 2, idle: 3 };
 function squadDestination(squad: MySquadLite | PublicSquad) {
   if (!WEB_DISCOVERY_ENABLED) return `/lobby?squad=${squad.squadId}`;
   return ["searching", "matched", "in_encounter"].includes(squad.status)
     ? `/matchmaking?squad=${squad.squadId}`
     : `/lobby?squad=${squad.squadId}`;
 }
-
-// Semantic theme tokens (with fallbacks so this page works before/after the
-// multi-theme token system lands in globals.css).
-const RADIUS_CARD = "var(--radius-card, 20px)";
-const RADIUS_TILE = "var(--radius-tile, 16px)";
-const RADIUS_CONTROL = "var(--radius-control, 14px)";
-const CONTROL_BORDER = "var(--control-border, 1px solid var(--border))";
-const SHADOW_CARD = "var(--shadow-card, var(--elev))";
-const ACCENT = "var(--accent, var(--violet))";
-const LIVE = "var(--live, var(--lime))";
-const FONT_DISPLAY = "var(--font-display, var(--font-space-grotesk))";
-// Squad tiles render text over a cover image + dark scrim ("stage") — these
-// stay light in every theme because the scrim is always dark.
-const STAGE = "var(--stage, #1B1420)";
-const ON_STAGE = "#F4F4F7";
-const ON_STAGE_SOFT = "#E7E7F0";
-const ON_STAGE_MUTED = "#C9C9DA";
+const message = (error: unknown, fallback: string) =>
+  error instanceof Error ? error.message : fallback;
 
 export default function HomePage() {
   const router = useRouter();
-  const themeId = useTheme();
   const { toast } = useToast();
-  const { isPhone, isTablet } = useViewport();
-  const [squadCode, setSquadCode] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [joining, setJoining] = useState(false);
-  const [squadCodeFocused, setSquadCodeFocused] = useState(false);
-  const [stats, setStats] = useState<{ liveEncounters: number } | null>(null);
-  const [mySquads, setMySquads] = useState<MySquadLite[]>([]);
-  const [mySquadsLoading, setMySquadsLoading] = useState(true);
-  const [mySquadsError, setMySquadsError] = useState(false);
-  const [trending, setTrending] = useState<PublicSquad[] | null>(null);
-  const [trendingError, setTrendingError] = useState(false);
-  const [homeReload, setHomeReload] = useState(0);
-  const [joiningId, setJoiningId] = useState<string | null>(null);
-  const [tokenBal, setTokenBal] = useState(0);
-  const [openHoveredId, setOpenHoveredId] = useState<string | null>(null);
-  const [removeConfirmId, setRemoveConfirmId] = useState<string | null>(null);
-
-  // Poll discover so "Open signals" and the Live-signals rail stay live.
+  const [squads, setSquads] = useState<MySquadLite[] | null>(null);
+  const [openSquads, setOpenSquads] = useState<PublicSquad[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [openError, setOpenError] = useState("");
+  const [reload, setReload] = useState(0);
+  const [roster, setRoster] = useState<SquadMemberState[]>([]);
+  const [code, setCode] = useState("");
+  const [joinError, setJoinError] = useState("");
+  const [pending, setPending] = useState("");
+  const action = useRef(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [createError, setCreateError] = useState("");
+  const [leaving, setLeaving] = useState<MySquadLite | null>(null);
+  const [requested, setRequested] = useState<string[]>([]);
+  const active = squads?.[0];
   useEffect(() => {
-    if (!WEB_DISCOVERY_ENABLED) {
-      setTrending([]);
-      return;
+    if (new URLSearchParams(window.location.search).get("create") === "1") {
+      setName("");
+      setCreateOpen(true);
     }
-    let alive = true;
-    const fetchTrending = () => {
-      api.discoverSquads()
-        .then((d) => { if (alive) { setTrending(d.squads ?? []); setTrendingError(false); } })
-        .catch(() => { if (alive) setTrendingError(true); });
-    };
-    fetchTrending();
-    const id = setInterval(fetchTrending, POLL_MS);
-    return () => { alive = false; clearInterval(id); };
-  }, [homeReload]);
-
-  useEffect(() => {
-    setTokenBal(getTokenBalance());
-    return billing.subscribe(() => setTokenBal(getTokenBalance()));
   }, []);
-
-  // Poll stats so "Live now" stays live; fetch errors keep the previous value
-  // (or the initial null → "—"), never a misleading 0.
-  useEffect(() => {
-    let alive = true;
-    const fetchStats = () => {
-      api.getStats()
-        .then(data => { if (alive) setStats(data); })
-        .catch(() => {/* keep last value — strip shows a dash while null */});
-    };
-    fetchStats();
-    const id = setInterval(fetchStats, POLL_MS);
-    return () => { alive = false; clearInterval(id); };
-  }, []);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const { squads } = await api.mySquads();
-        if (alive) { setMySquads(squads ?? []); setMySquadsError(false); }
-      } catch { if (alive) setMySquadsError(true); }
-      finally { if (alive) setMySquadsLoading(false); }
-    })();
-    return () => { alive = false; };
-  }, [homeReload]);
-
-  function retryHomeLoads() {
-    setTrendingError(false);
-    setMySquadsError(false);
-    setMySquadsLoading(true);
-    setHomeReload((value) => value + 1);
-  }
-
-  async function handleLeaveSquad(squadId: string, asLeader: boolean) {
-    const previousSquads = mySquads;
-    setMySquads(prev => prev.filter(s => s.squadId !== squadId));
-    setRemoveConfirmId(null);
-    try {
-      // Leaders "delete" (disband the whole squad); members just leave.
-      if (asLeader) await api.disbandSquad(squadId);
-      else await api.leaveSquad(squadId);
-      toast(asLeader ? "Squad deleted." : "You left the squad.", "success");
-    } catch (e) {
-      setMySquads(previousSquads);
-      toast((e as { message?: string })?.message || (asLeader ? "Couldn't delete that squad." : "Couldn't leave that squad."), "error");
-    }
-  }
-
   function ensureAuthed() {
     if (session.isAuthed()) return true;
-    toast("Sign in to continue.", "error");
+    setJoinError("Sign in to continue.");
     router.push("/signin");
     return false;
   }
-
-  async function handleCreate() {
-    if (!ensureAuthed()) return;
-    setCreating(true);
-    try {
-      const squad = await api.createSquad({ squadName: randomSquadName(), tags: [] });
-      router.push(`/lobby?squad=${squad.squadId}`);
-    } catch (e: unknown) {
-      console.error("createSquad failed:", e);
-      toast((e as { message?: string })?.message || "Couldn't create a squad. Please try again.", "error");
-    } finally {
-      setCreating(false);
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      try {
+        const data = await api.mySquads();
+        if (alive) {
+          setSquads(
+            [...data.squads].sort(
+              (a, b) =>
+                (rank[a.status] ?? 4) - (rank[b.status] ?? 4) ||
+                a.squadName.localeCompare(b.squadName),
+            ),
+          );
+          setLoadError("");
+          const approved = data.squads.find(squad => requested.includes(squad.squadId) || requested.includes(squad.squadCode));
+          if (approved) {
+            setRequested([]);
+            router.replace(`/lobby?squad=${approved.squadId}`);
+          }
+        }
+      } catch (error) {
+        if (alive) setLoadError(message(error, "Couldn't load your squads."));
+      }
     }
+    void load();
+    const timer = setInterval(load, requested.length ? 3000 : 20000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [reload, requested, router]);
+  useEffect(() => {
+    if (!WEB_DISCOVERY_ENABLED) return;
+    let alive = true;
+    async function load() {
+      try {
+        const data = await api.discoverSquads();
+        if (alive) {
+          setOpenSquads(data.squads);
+          setOpenError("");
+        }
+      } catch (error) {
+        if (alive) setOpenError(message(error, "Couldn't load open squads."));
+      }
+    }
+    void load();
+    const timer = setInterval(load, 20000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [reload]);
+  useEffect(() => {
+    let alive = true;
+    setRoster([]);
+    if (active)
+      api
+        .getSquad(active.squadId)
+        .then((data) => {
+          if (alive) setRoster(data.members);
+        })
+        .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [active?.squadId, active?.memberCount]);
+  function openCreate() {
+    if (!ensureAuthed()) return;
+    setName("");
+    setCreateError("");
+    setCreateOpen(true);
   }
-
-  async function handleJoin() {
-    const normalizedSquadCode = formatSquadCodeInput(squadCode);
-    setSquadCode(normalizedSquadCode);
-    if (!isValidSquadCode(normalizedSquadCode)) {
-      toast("Enter a squad code in the format ABC-123.", "error");
+  async function create() {
+    if (action.current) return;
+    if (!ensureAuthed()) return;
+    if (!name.trim()) {
+      setCreateError("Give your squad a name.");
       return;
     }
-    if (!ensureAuthed()) return;
-    setJoining(true);
+    action.current = true;
+    setPending("create");
+    setCreateError("");
     try {
-      const squad = await api.joinSquad({ squadCode: normalizedSquadCode });
-      if ("status" in squad && squad.status === "requested") {
-        toast("Request sent — the leader will review it.", "success");
-        return;
-      }
+      const squad = await api.createSquad({ squadName: name.trim(), tags: [] });
+      setCreateOpen(false);
       router.push(`/lobby?squad=${squad.squadId}`);
-    } catch (e: unknown) {
-      console.error("joinSquad failed:", e);
-      toast((e as { message?: string })?.message || "Couldn't join — check the code and try again.", "error");
+    } catch (error) {
+      setCreateError(message(error, "Couldn't create your squad. Try again."));
     } finally {
-      setJoining(false);
+      action.current = false;
+      setPending("");
     }
   }
-
-  async function handleJoinTrending(sq: PublicSquad) {
-    if (joiningId) return; // a join is already in flight
-    setJoiningId(sq.squadId);
+  async function join(squad?: PublicSquad) {
+    if (action.current) return;
+    if (!ensureAuthed()) return;
+    if (!squad && !isValidSquadCode(code)) {
+      setJoinError("Use a squad code like ABC-123.");
+      return;
+    }
+    action.current = true;
+    setPending(squad?.squadId ?? "join");
+    setJoinError("");
     try {
-      const res = await api.joinSquadById(sq.squadId);
-      if ("status" in res && res.status === "requested") {
-        toast("Request sent — the leader will review it.", "success");
-        setJoiningId(null);
-        return;
-      }
-      router.push(`/lobby?squad=${res.squadId}`);
-    } catch (e: unknown) {
-      toast((e as { message?: string })?.message || "Couldn't join that squad.", "error");
-      setJoiningId(null);
+      const result = squad
+        ? await api.joinSquadById(squad.squadId)
+        : await api.joinSquad({ squadCode: formatSquadCodeInput(code) });
+      if ("status" in result && result.status === "requested") {
+        setRequested((previous) => [...previous, squad?.squadId ?? formatSquadCodeInput(code)]);
+        toast("Request sent. You will enter if the leader approves.", "success");
+      } else router.push(`/lobby?squad=${result.squadId}`);
+    } catch (error) {
+      const text = message(error, "Couldn't join. Check the code and try again.");
+      if (squad) toast(text, "error");
+      else setJoinError(text);
+    } finally {
+      action.current = false;
+      setPending("");
     }
   }
-
-  const firstName = (session.user?.name || "").split(" ")[0];
-  const promoted = mySquads.find(s => PROMOTABLE.has(s.status)) ?? null;
-  const restSquads = mySquads
-    .filter(s => s !== promoted)
-    .sort((a, b) =>
-      (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9) ||
-      a.squadName.localeCompare(b.squadName));
-  const openSignals = trending?.length ?? 0;
-  const showFirstRun = !mySquadsLoading && !mySquadsError && mySquads.length === 0;
-  const showLiveSignals = WEB_DISCOVERY_ENABLED && (!showFirstRun || trendingError || trending === null || trending.length > 0);
-  const leavingSquad = removeConfirmId ? mySquads.find(s => s.squadId === removeConfirmId) ?? null : null;
-  // Squads you already belong to must never offer "Join" in the live rail —
-  // they open the lobby instead (mirrors the squad-preview membership fix).
-  const mySquadIdSet = new Set(mySquads.map(s => s.squadId));
-
-  const squadActions = (
-    <div aria-label="Squad actions" style={{ display: "flex", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
-      <Button variant="tonal" onClick={handleCreate} loading={creating} style={{ height: 46 }}>
-        {!creating && <Icon.plus size={17} color="var(--accent)" />}
-        {creating ? "Creating…" : showFirstRun ? "Create your first squad" : "Create squad"}
-      </Button>
-      <div style={{ display: "flex", flexDirection: "column", gap: 5, flex: isPhone ? "1 1 100%" : "0 1 310px", minWidth: isPhone ? 0 : 260 }}>
-        <div style={{ display: "flex", alignItems: "stretch", height: 46, borderRadius: "var(--radius-control, 14px)", border: squadCodeFocused ? `1px solid ${ACCENT}` : "var(--control-border, 1px solid var(--border-strong))", boxShadow: squadCodeFocused ? `0 0 0 3px color-mix(in srgb, ${ACCENT} 14%, transparent)` : "none", background: "var(--surface)", overflow: "hidden", transition: "border-color .2s var(--ease-ui), box-shadow .2s var(--ease-ui)" }}>
-          <input
-            aria-label="Squad invite code"
-            aria-describedby="squad-code-hint"
-            value={squadCode}
-            onChange={e => setSquadCode(formatSquadCodeInput(e.target.value))}
-            onKeyDown={e => { if (e.key === "Enter") handleJoin(); }}
-            placeholder="Join with code"
-            autoCapitalize="characters" autoComplete="off" spellCheck={false} inputMode="text"
-            onFocus={() => setSquadCodeFocused(true)} onBlur={() => setSquadCodeFocused(false)}
-            style={{ minWidth: 0, flex: 1, height: "100%", background: "transparent", border: "none", outline: "none", boxShadow: "none", color: "var(--text)", padding: "0 14px", fontSize: 14, fontFamily: "var(--font-inter)" }}
-          />
-          <button aria-label="Join squad" onClick={handleJoin} disabled={joining || !isValidSquadCode(squadCode)} className="gg-press" style={{ flexShrink: 0, width: 48, height: "100%", display: "flex", alignItems: "center", justifyContent: "center", border: "none", borderLeft: "1px solid var(--border-strong)", background: "var(--overlay)", cursor: joining || !isValidSquadCode(squadCode) ? "not-allowed" : "pointer", opacity: joining || !isValidSquadCode(squadCode) ? 0.45 : 1, transition: "opacity .2s var(--ease-ui)" }}>
-            {joining ? <span className="gg-spinner" /> : <Icon.enter size={18} color="var(--text)" />}
-          </button>
-        </div>
-        <span id="squad-code-hint" style={{ fontSize: 12, fontWeight: 500, color: "var(--text-dim)", paddingLeft: 2 }}>
-          Code looks like ABC-123
-        </span>
-      </div>
-    </div>
-  );
-
+  async function leave() {
+    if (!leaving || action.current) return;
+    if (!ensureAuthed()) return;
+    const target = leaving;
+    action.current = true;
+    setPending("leave");
+    try {
+      if (target.myRole === "leader") await api.disbandSquad(target.squadId);
+      else await api.leaveSquad(target.squadId);
+      setSquads((previous) => previous?.filter((s) => s.squadId !== target.squadId) ?? []);
+      setLeaving(null);
+      toast(target.myRole === "leader" ? "Squad ended." : "You left the squad.", "success");
+    } catch (error) {
+      toast(message(error, "Couldn't leave your squad. Try again."), "error");
+    } finally {
+      action.current = false;
+      setPending("");
+    }
+  }
+  const retry = () => {
+    setLoadError("");
+    setOpenError("");
+    setReload((value) => value + 1);
+  };
   return (
-    <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", paddingBottom: 48, maxWidth: 1120, width: "100%", margin: "0 auto" }}>
-
-      {/* ── GREETING + LIVE STRIP ─────────────────────────────────── */}
-      <PageHeader
-        title={showFirstRun
-          ? (firstName ? <>Hey, {firstName}.<br />Start with your people.</> : "Start with your people.")
-          : (firstName ? <>Hey, {firstName}.</> : "Welcome back.")}
-        subtitle={showFirstRun ? "Create a room for your crew, or join theirs with an invite code." : "Pick up where your squad left off."}
-        right={showFirstRun ? undefined : (
-          <div aria-label="Live activity" style={isPhone
-            ? { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, width: "100%" }
-            : { display: "flex", alignItems: "stretch", gap: 12, flexWrap: "wrap" }}>
-            <StatTile label="Your squads" value={mySquadsLoading || mySquadsError ? "—" : String(mySquads.length)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
-            {WEB_DISCOVERY_ENABLED && <StatTile label="Open signals" value={trending === null ? "—" : String(openSignals)} style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />}
-            <StatTile label="Live now" value={stats === null ? "—" : String(stats.liveEncounters)} live style={isPhone ? { minWidth: 0, padding: "10px 12px" } : undefined} />
-          </div>
-        )}
-      />
-
-      {!showFirstRun && <div style={{ marginBottom: 24 }}>{squadActions}</div>}
-
-      {/* ── DASHBOARD: your squads (main) + live signals (rail) ───── */}
-      <div style={{ display: "grid", gridTemplateColumns: isTablet || !showLiveSignals ? "1fr" : showFirstRun ? "minmax(0, 1.35fr) minmax(320px, .65fr)" : "1.55fr 1fr", gap: 24, alignItems: isTablet ? "start" : "stretch" }}>
-        {/* MAIN — your squads */}
-        {showFirstRun ? (
-          <section aria-label="Your first room" style={{ boxSizing: "border-box", padding: isPhone ? 20 : 28, background: "var(--surface)", border: CONTROL_BORDER, borderTop: `3px solid ${ACCENT}`, borderRadius: RADIUS_CARD, boxShadow: SHADOW_CARD }}>
-            <div style={{ marginBottom: 12, color: ACCENT, fontSize: 11, fontWeight: 800, letterSpacing: ".1em", textTransform: "uppercase" }}>Your first room</div>
-            <p style={{ margin: "0 0 22px", maxWidth: 560, color: "var(--text-body)", fontSize: 14, lineHeight: 1.55 }}>
-              Invite friends after creating the room, then choose your squad vibe together.
-            </p>
-            {squadActions}
-          </section>
-        ) : (
+    <div className="gg-home">
+      <div className="gg-home-heading">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
-            <Icon.account size={18} color={ACCENT} />
-            <h2 style={sectionTitle}>Your squads</h2>
-            {mySquads.length > 0 && <span style={{ fontSize: 13, color: "var(--text-dim)", fontWeight: 600 }}>{mySquads.length}</span>}
-            {WEB_DISCOVERY_ENABLED && mySquads.length > 0 && (
-              <button onClick={() => router.push("/discover")} style={linkBtn}>Find more →</button>
-            )}
-          </div>
-
-          {mySquadsLoading ? (
-            <div aria-label="Loading your squads" style={{ height: 160, boxSizing: "border-box", padding: 16, borderRadius: RADIUS_CARD, border: CONTROL_BORDER, background: "var(--surface)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                <span className="gg-shimmer" style={{ width: 70, height: 22, borderRadius: 7 }} />
-                <span className="gg-shimmer" style={{ width: 44, height: 22, borderRadius: 7 }} />
-              </div>
-              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 18 }}>
-                <div style={{ flex: 1, display: "grid", gap: 8 }}>
-                  <span className="gg-shimmer" style={{ width: "42%", minWidth: 120, height: 20, borderRadius: 6 }} />
-                  <span className="gg-shimmer" style={{ width: "28%", minWidth: 84, height: 12, borderRadius: 5 }} />
-                </div>
-                <span className="gg-shimmer" style={{ width: 76, height: 40, borderRadius: 999 }} />
-              </div>
+          <h1>
+            {active ? 'Your squad' : 'Start a squad'}
+          </h1>
+          <p>
+            {WEB_DISCOVERY_ENABLED
+              ? "Bring your friends. Meet another squad."
+              : "Bring your friends together in a private room."}
+          </p>
+        </div>
+        {active && (
+          <Button variant="secondary" onClick={openCreate}>
+            <Icon.plus size={18} />
+            Start a squad
+          </Button>
+        )}
+      </div>
+      <div
+        className="gg-home-grid"
+        style={!WEB_DISCOVERY_ENABLED ? { gridTemplateColumns: "minmax(0,760px)" } : undefined}
+      >
+        <div className="gg-home-primary">
+          {loadError ? (
+            <div role="alert" className="gg-home-panel">
+              <h2>We couldn’t load your squads.</h2>
+              <p>{loadError}</p>
+              <Button variant="secondary" onClick={retry}>
+                Try again
+              </Button>
             </div>
-          ) : mySquadsError ? (
-            <div role="alert">
-              <EmptyState
-                icon={<Icon.account size={20} color="var(--text-dim)" />}
-                title="Couldn't load your squads"
-                body="Check your connection and try again."
-                primary={{ label: "Retry", onClick: retryHomeLoads }}
-              />
+          ) : squads === null ? (
+            <div role="status" className="gg-squad-feature">
+              <span className="gg-spinner" /> Loading your squads…
             </div>
           ) : (
-            <>
-              {promoted && (
-                <SquadTile
-                  squad={promoted}
-                  promoted
-                  hovered={openHoveredId === promoted.squadId}
-                  onHover={setOpenHoveredId}
-                  onOpen={() => router.push(squadDestination(promoted))}
-                  onAskLeave={() => setRemoveConfirmId(promoted.squadId)}
-                />
-              )}
-              {restSquads.length > 0 && (
-                <div style={{ marginTop: promoted ? 12 : 0, background: "var(--surface)", border: CONTROL_BORDER, borderRadius: RADIUS_CARD, boxShadow: SHADOW_CARD, padding: 6 }}>
-                  {restSquads.map(s => (
-                    <SquadRow
-                      key={s.squadId}
-                      squad={s}
-                      hovered={openHoveredId === s.squadId}
-                      onHover={setOpenHoveredId}
-                      onOpen={() => router.push(squadDestination(s))}
-                      onAskLeave={() => setRemoveConfirmId(s.squadId)}
-                    />
-                  ))}
-                </div>
-              )}
-              {/* Ghost card — fills the dead area under a short squad list on
-                  desktop and gives the column a natural next action. */}
-              {WEB_DISCOVERY_ENABLED && <button
-                onClick={() => router.push("/discover")}
-                className="gg-press gg-row"
-                style={{
-                  marginTop: 12, width: "100%", minHeight: 56, boxSizing: "border-box",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  borderRadius: RADIUS_TILE, border: "1px dashed var(--border-strong)",
-                  background: "transparent", color: "var(--text-muted)", cursor: "pointer",
-                  fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 14,
-                }}
+            <section className="gg-squad-feature">
+              <span className="gg-eyebrow">{active ? "Your squad" : "Create a squad"}</span>
+              <h2>{active?.squadName ?? "Invite your friends."}</h2>
+              <div
+                className="gg-squad-faces"
+                aria-label={
+                  active ? `${active.memberCount} people in your squad` : "Your first squad"
+                }
               >
-                <span aria-hidden="true">＋</span> Browse open squads
-              </button>}
-            </>
+                {(roster.length
+                  ? roster.slice(0, 4)
+                  : [{ memberId: "you", displayName: session.user?.name ?? "You" }]
+                ).map((person, i) => (
+                  <div className="gg-squad-seat" key={person.memberId}>
+                    <Avatar name={person.displayName} size={56} colorIndex={i} />
+                  </div>
+                ))}
+                {!active && (
+                  <div className="gg-squad-seat">
+                    <Icon.users size={30} />
+                  </div>
+                )}
+              </div>
+              <div className="gg-squad-feature-footer">
+                <p>
+                  {active
+                    ? `${active.memberCount} ${active.memberCount === 1 ? "person" : "people"} · ${active.status === "idle" ? "Ready to hang out" : active.status.replace(/_/g, " ")}`
+                    : "Create a squad, then invite your friends."}
+                </p>
+                <Button onClick={active ? () => router.push(squadDestination(active)) : openCreate}>
+                  {active ? "Back to your squad" : "Start a squad"}
+                  <Icon.chevron size={18} />
+                </Button>
+              </div>
+            </section>
+          )}
+          <form
+            className="gg-join-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void join();
+            }}
+          >
+            <label htmlFor="squad-code">Joining your friends?</label>
+            <input
+              id="squad-code"
+              aria-label="Squad invite code"
+              aria-invalid={!!joinError}
+              aria-describedby={joinError ? "join-error" : undefined}
+              value={code}
+              placeholder="ABC-123"
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={7}
+              onChange={(event) => {
+                setCode(formatSquadCodeInput(event.target.value));
+                setJoinError("");
+              }}
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              loading={pending === "join"}
+              disabled={!!pending || !isValidSquadCode(code)}
+            >
+              {requested.includes(code) ? "Request again" : "Join squad"}
+            </Button>
+          </form>
+          {joinError && (
+            <p id="join-error" role="alert" className="gg-inline-error">
+              {joinError}
+            </p>
+          )}
+          {!!squads?.length && (
+            <section className="gg-home-panel">
+              <h2>Manage your squads</h2>
+              {squads.map((s) => (
+                <div className="gg-home-row" key={s.squadId}>
+                  <div className="gg-home-row-copy">
+                    <h3>{s.squadName}</h3>
+                    <p>
+                      {s.memberCount} people ·{" "}
+                      {s.myRole === "leader" ? "You lead this squad" : "Member"}
+                    </p>
+                  </div>
+                  <Button variant="ghost" onClick={() => router.push(squadDestination(s))}>
+                    Open
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    aria-label={`${s.myRole === "leader" ? "End" : "Leave"} ${s.squadName}`}
+                    onClick={() => setLeaving(s)}
+                  >
+                    <Icon.close size={17} />
+                  </Button>
+                </div>
+              ))}
+            </section>
           )}
         </div>
-        )}
-
-        {/* RAIL — live signals + find a match. Flexes to match the squads
-            column height so a short squad list doesn't leave a dead viewport. */}
-        {showLiveSignals && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Find-a-Match CTA — the page's single primary action (spec 07). */}
-          {!showFirstRun && (
-          <div style={{ background: "var(--surface)", border: CONTROL_BORDER, borderRadius: RADIUS_CARD, color: "var(--text)", padding: 20, boxShadow: SHADOW_CARD }}>
-            <h2 style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, letterSpacing: "-0.01em", color: "var(--text)" }}>Ready to giggle?</h2>
-            <p style={{ margin: "5px 0 14px", fontSize: 13, color: "var(--text-body)", lineHeight: 1.5 }}>Match your squad with another crew on live video.</p>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => {
-                const led = mySquads.find(s => s.myRole === "leader") ?? promoted ?? mySquads[0];
-                if (led) router.push(squadDestination(led));
-                else router.push("/discover");
-              }}
-            >
-              Find a Match
-            </Button>
-          </div>
-          )}
-
-          <div style={{ flex: isTablet ? undefined : 1, background: "var(--surface)", border: CONTROL_BORDER, borderRadius: RADIUS_CARD, boxShadow: SHADOW_CARD, overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "15px 16px 12px" }}>
-              <Icon.trend size={18} color={LIVE} />
-              <h2 style={sectionTitle}>Live signals</h2>
-              <button onClick={() => router.push("/discover")} style={{ ...linkBtn, marginLeft: "auto" }}>View all</button>
+        {WEB_DISCOVERY_ENABLED && (
+          <aside className="gg-home-panel">
+            <div className="gg-home-panel-heading">
+              <h2>Open squads</h2>
+              <Link href="/discover">See all →</Link>
             </div>
-            {trending === null ? (
-              trendingError ? (
-                <div role="alert" style={{ padding: 16, borderTop: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, color: "var(--text-muted)", fontSize: 13 }}>
-                  <span>Couldn't load open squads.</span>
-                  <Button variant="ghost" size="sm" onClick={retryHomeLoads}>Retry</Button>
-                </div>
-              ) : [0, 1, 2].map(i => <div key={i} className="gg-shimmer" style={{ height: 62, borderTop: "1px solid var(--border)" }} />)
-            ) : trending.length === 0 ? (
-              <div style={{ padding: "16px", borderTop: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 13 }}>
-                No open squads right now.
+            {openError ? (
+              <div role="alert">
+                <p>{openError}</p>
+                <Button variant="ghost" onClick={retry}>
+                  Try again
+                </Button>
               </div>
+            ) : openSquads === null ? (
+              <p role="status">Loading open squads…</p>
+            ) : !openSquads.length ? (
+              <p>No open squads yet. Start one with your friends.</p>
             ) : (
-              trending.slice(0, 5).map(sq => {
-                const spots = Math.max(0, sq.maxSlots - sq.memberCount);
-                const rowJoining = joiningId === sq.squadId;
-                const isMember = mySquadIdSet.has(sq.squadId);
-                // A join elsewhere is in flight: handleJoinTrending will refuse
-                // (single-flight), so non-member rows must not look clickable.
-                // Member rows just navigate, so they stay active.
-                const blocked = !isMember && !!joiningId;
-                const activateRow = () => { if (blocked) return; isMember ? router.push(squadDestination(sq)) : handleJoinTrending(sq); };
+              openSquads.slice(0, 3).map((s) => {
+                const member = squads?.some((m) => m.squadId === s.squadId);
+                const full = s.memberCount >= s.maxSlots;
                 return (
-                  <div key={sq.squadId} onClick={activateRow} role="button" tabIndex={blocked ? -1 : 0}
-                    aria-disabled={blocked || undefined}
-                    onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activateRow(); } }}
-                    className="gg-focusable"
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px", borderTop: "1px solid var(--border)", cursor: blocked ? "default" : "pointer", pointerEvents: blocked ? "none" : undefined, opacity: rowJoining ? 0.6 : (blocked ? 0.75 : 1), background: openHoveredId === `signal-${sq.squadId}` ? "var(--surface-2)" : "transparent", transition: "background .18s var(--ease-ui), opacity .2s var(--ease-ui)" }}
-                    onMouseEnter={() => setOpenHoveredId(`signal-${sq.squadId}`)}
-                    onMouseLeave={() => setOpenHoveredId(null)}>
-                    <span style={{ width: 38, height: 38, borderRadius: RADIUS_CONTROL, flexShrink: 0, background: coverBackground(sq.coverImage, coverKind(sq.coverImage, themeId)), filter: coverKind(sq.coverImage, themeId) === "dark" ? "saturate(0.8) brightness(0.85)" : undefined, boxShadow: "inset 0 0 0 1px var(--border)" }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sq.squadName}</div>
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 3 }}>
-                        {(sq.tags ?? []).slice(0, 2).map(t => (
-                          <span key={t} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-body)", background: "var(--overlay)", borderRadius: 6, padding: "1px 7px" }}>{t}</span>
-                        ))}
-                        {(!sq.tags || sq.tags.length === 0) && <span style={{ fontSize: 12, color: "var(--text-dim)" }}>No vibes</span>}
-                      </div>
+                  <div className="gg-home-row" key={s.squadId}>
+                    <Avatar name={s.squadName} size={40} />
+                    <div className="gg-home-row-copy">
+                      <h3>{s.squadName}</h3>
+                      <p>
+                        {s.memberCount} people · {s.tags?.[0] ?? "Open to a hello"}
+                      </p>
                     </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-dim)", fontVariantNumeric: "tabular-nums" }}>{isMember ? "Joined" : `${spots} spot${spots !== 1 ? "s" : ""}`}</div>
-                      <span className="gg-press" style={{ display: "inline-block", marginTop: 5, height: 28, lineHeight: "28px", padding: "0 12px", borderRadius: "var(--radius-pill, 999px)", background: "var(--accent-soft)", color: "var(--accent)", fontWeight: 700, fontSize: 12 }}>
-                        {isMember ? "Open" : (joiningId === sq.squadId ? "…" : "Join")}
-                      </span>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      loading={pending === s.squadId}
+                      disabled={!member && (!!pending || full || requested.includes(s.squadId))}
+                      onClick={() => (member ? router.push(squadDestination(s)) : void join(s))}
+                    >
+                      {member
+                        ? "Open"
+                        : requested.includes(s.squadId)
+                          ? "Requested"
+                          : full
+                            ? "Full"
+                            : s.joinPolicy === "request"
+                              ? "Ask to join"
+                              : "Join"}
+                    </Button>
                   </div>
                 );
               })
             )}
-          </div>
-        </div>
+
+          </aside>
         )}
       </div>
-
-      {/* Leave / delete-squad confirmation dialog (leaders delete, members leave) */}
-      {leavingSquad && (() => {
-        const isLeader = leavingSquad.myRole === "leader";
-        return (
+      {createOpen && (
         <Modal
-          onClose={() => setRemoveConfirmId(null)}
-          ariaLabel={isLeader ? "Delete squad" : "Leave squad"}
-          showClose={false}
-          width={360}
+          title="Start a squad"
+          subtitle="Choose a name. Invite friends next."
+          onClose={() => {
+            if (!pending) setCreateOpen(false);
+          }}
+          closeOnBackdrop={!pending}
+          showClose={!pending}
         >
-          <div style={{ fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {isLeader ? "Delete" : "Leave"} “{leavingSquad.squadName}”?
-          </div>
-          <p style={{ margin: "8px 0 18px", fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5 }}>
-            {isLeader
-              ? "This permanently deletes the squad for everyone in it. This can't be undone."
-              : "You'll drop out of this squad. You can rejoin later with an invite."}
-          </p>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-            <Button variant="ghost" onClick={() => setRemoveConfirmId(null)}>Cancel</Button>
-            <Button variant="danger" onClick={() => handleLeaveSquad(leavingSquad.squadId, isLeader)}>{isLeader ? "Delete squad" : "Leave"}</Button>
+          <form
+            className="gg-form-stack"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void create();
+            }}
+          >
+            <label>
+              Squad name
+              <input
+                value={name}
+                maxLength={40}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setCreateError("");
+                }}
+                disabled={!!pending}
+              />
+            </label>
+            {createError && (
+              <p role="alert" className="gg-inline-error">
+                {createError}
+              </p>
+            )}
+            <div className="gg-form-actions">
+              <Button variant="ghost" onClick={() => setCreateOpen(false)} disabled={!!pending}>
+                Cancel
+              </Button>
+              <Button type="submit" loading={pending === "create"} disabled={!!pending}>
+                Create squad
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+      {leaving && (
+        <Modal
+          title={leaving.myRole === "leader" ? "End this squad?" : "Leave this squad?"}
+          subtitle={
+            leaving.myRole === "leader"
+              ? "This closes the squad for everyone."
+              : "Your friends can keep hanging out."
+          }
+          onClose={() => {
+            if (!pending) setLeaving(null);
+          }}
+          closeOnBackdrop={!pending}
+          showClose={!pending}
+        >
+          <div className="gg-form-actions">
+            <Button variant="secondary" disabled={!!pending} onClick={() => setLeaving(null)}>
+              Stay
+            </Button>
+            <Button
+              variant="danger"
+              loading={pending === "leave"}
+              disabled={!!pending}
+              onClick={() => void leave()}
+            >
+              {leaving.myRole === "leader" ? "End squad" : "Leave squad"}
+            </Button>
           </div>
         </Modal>
-      ); })()}
+      )}
     </div>
   );
 }
-
-/* ── Squad row — spec 07 list row: 44px cover thumb, 14/600 name, 12 muted
-   meta, status Badge on the right. Hover = --surface-2 fill. ─────────────── */
-function SquadRow({
-  squad, hovered, onHover, onOpen, onAskLeave,
-}: {
-  squad: MySquadLite;
-  hovered: boolean;
-  onHover: (id: string | null) => void;
-  onOpen: () => void;
-  onAskLeave: () => void;
-}) {
-  const themeId = useTheme();
-  const isLive = squad.status === "in_encounter";
-  const tone = isLive ? "live" : squad.status === "idle" ? "open" : "info";
-  const label = isLive ? "LIVE" : (MY_STATUS_LABEL[squad.status] ?? squad.status).toUpperCase();
-  const meta = [
-    ...(squad.tags ?? []).slice(0, 2),
-    squad.leaderName ? `led by ${squad.leaderName}` : (squad.myRole === "leader" ? "led by you" : `${squad.memberCount}/${squad.maxSlots} members`),
-  ].join(" · ");
-  return (
-    <div
-      onClick={onOpen}
-      role="button" tabIndex={0}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      onMouseEnter={() => onHover(squad.squadId)}
-      onMouseLeave={() => onHover(null)}
-      className="gg-focusable"
-      style={{
-        display: "flex", alignItems: "center", gap: 12, padding: 10, borderRadius: RADIUS_CONTROL,
-        cursor: "pointer", background: hovered ? "var(--surface-2)" : "transparent",
-        transition: "background .15s var(--ease-ui)",
-      }}
-    >
-      <span style={{ width: 44, height: 44, borderRadius: RADIUS_CONTROL, flexShrink: 0, background: coverBackground(squad.coverImage, coverKind(squad.coverImage, themeId)), boxShadow: "inset 0 0 0 1px var(--border)" }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{squad.squadName}</div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{meta}</div>
-      </div>
-      <Badge tone={tone}>{label}</Badge>
-      <button onClick={e => { e.stopPropagation(); onAskLeave(); }} aria-label={`Leave ${squad.squadName}`} title="Leave squad" className="gg-press" style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 8, border: "none", background: "transparent", cursor: "pointer", display: "grid", placeItems: "center" }}>
-        <Icon.close size={12} color="var(--text-muted)" />
-      </button>
-    </div>
-  );
-}
-
-/* ── Squad tile — cover-driven, with a visible (supportive) theme label ───── */
-function SquadTile({
-  squad, promoted = false, hovered, onHover, onOpen, onAskLeave,
-}: {
-  squad: MySquadLite;
-  promoted?: boolean;
-  hovered: boolean;
-  onHover: (id: string | null) => void;
-  onOpen: () => void;
-  onAskLeave: () => void;
-}) {
-  const themeId = useTheme();
-  const statusLabel = MY_STATUS_LABEL[squad.status] ?? squad.status;
-  const isLive = squad.status === "in_encounter";
-  const theme = coverName(squad.coverImage) ?? "Aurora";
-  // Photos always render with the dark "stage" scrim + light text; generated
-  // gradient covers flip to bright pastels + ink text on light themes.
-  const kind = coverKind(squad.coverImage, themeId);
-  const ink = coverInk(kind);
-  const onStage = kind === "light" ? ink.text : ON_STAGE;
-  const onStageSoft = kind === "light" ? ink.textSoft : ON_STAGE_SOFT;
-  const onStageMuted = kind === "light" ? ink.textMuted : ON_STAGE_MUTED;
-  const stage = kind === "light" ? "#FFFFFF" : STAGE;
-
-  return (
-    <div
-      onClick={onOpen}
-      role="button" tabIndex={0}
-      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } }}
-      onMouseEnter={() => onHover(squad.squadId)}
-      onMouseLeave={() => onHover(null)}
-      className="gg-focusable gg-press-card"
-      style={{
-        position: "relative", overflow: "hidden", borderRadius: RADIUS_CARD, cursor: "pointer",
-        minHeight: promoted ? undefined : 160,
-        padding: promoted ? "20px 22px" : 15,
-        border: hovered ? "1px solid var(--border-strong)" : CONTROL_BORDER,
-        boxShadow: hovered ? "0 16px 40px -22px rgba(0,0,0,0.7)" : SHADOW_CARD,
-        transform: hovered ? "translateY(-3px)" : "translateY(0)",
-        transition: "transform .18s var(--ease-ui), box-shadow .2s var(--ease-ui), border-color .2s var(--ease-ui)",
-        display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 12,
-      }}
-    >
-      {/* cover + legibility scrim — the cover reads as a moody, muted backdrop
-          (identity, not glare): desaturated + a strong dark gradient. */}
-      <div style={{ position: "absolute", inset: 0, background: coverBackground(squad.coverImage, kind), filter: kind === "dark" ? "saturate(0.9) brightness(0.8)" : undefined }} />
-      <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to top, color-mix(in srgb, ${stage} 94%, transparent) 18%, color-mix(in srgb, ${stage} 58%, transparent) 58%, color-mix(in srgb, ${stage} 20%, transparent) 100%)` }} />
-
-      {/* top row: status + members + theme + leave */}
-      <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 8px", borderRadius: 7, background: `color-mix(in srgb, ${stage} 62%, transparent)`, boxShadow: isLive ? `inset 0 0 0 1px color-mix(in srgb, ${LIVE} 50%, transparent)` : (kind === "light" ? "inset 0 0 0 1px rgba(27,20,32,0.16)" : "inset 0 0 0 1px rgba(255,255,255,0.14)") }}>
-            {isLive && <span style={{ width: 6, height: 6, borderRadius: "var(--radius-pill, 999px)", background: LIVE, boxShadow: `0 0 8px ${LIVE}` }} />}
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.06em", color: isLive ? LIVE : onStageSoft, textTransform: "uppercase" }}>{isLive ? "Live now" : statusLabel}</span>
-          </span>
-          {theme && (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: onStageMuted }}>
-              <span style={{ width: 9, height: 9, borderRadius: 3, background: coverSwatchBackground(squad.coverImage, kind), boxShadow: kind === "light" ? "inset 0 0 0 1px rgba(27,20,32,0.25)" : "inset 0 0 0 1px rgba(255,255,255,0.35)" }} />
-              {theme}
-            </span>
-          )}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: onStageMuted }}>
-            <Icon.account size={12} color={onStageSoft} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: onStageSoft, fontVariantNumeric: "tabular-nums" }}>{squad.memberCount}/{squad.maxSlots}</span>
-          </span>
-          <button onClick={e => { e.stopPropagation(); onAskLeave(); }} aria-label={`Leave ${squad.squadName}`} title="Leave squad" className="gg-press" style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 9, border: "none", background: "transparent", cursor: "pointer", display: "grid", placeItems: "center" }}>
-            <Icon.close size={13} color={onStageSoft} />
-          </button>
-        </div>
-      </div>
-
-      {/* bottom: name + vibes + open */}
-      <div style={{ position: "relative", display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: promoted ? 22 : 18, color: onStage, letterSpacing: "-0.01em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{squad.squadName}</div>
-          <div style={{ fontSize: 12, color: onStageMuted, marginTop: 2 }}>
-            {squad.leaderName ? `Led by ${squad.leaderName}` : (squad.myRole === "leader" ? "You lead this" : "Your squad")}
-          </div>
-          {squad.tags && squad.tags.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 0, marginTop: 8, color: onStageMuted }}>
-              {squad.tags.slice(0, promoted ? 4 : 2).map((t, index, visibleTags) => (
-                <span key={t} style={{ fontSize: 11, fontWeight: 600 }}>
-                  {t}{index < visibleTags.length - 1 ? <span aria-hidden style={{ margin: "0 7px", opacity: 0.55 }}>·</span> : null}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <button onClick={e => { e.stopPropagation(); onOpen(); }} className="gg-press" style={{ flexShrink: 0, height: 40, padding: "0 18px", borderRadius: "var(--radius-pill, 999px)", border: "none", cursor: "pointer", background: ACCENT, color: "var(--on-accent, #fff)", fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 14, boxShadow: `0 0 18px -8px color-mix(in srgb, ${ACCENT} 80%, transparent)` }}>
-          {isLive ? "Rejoin" : "Open"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-const sectionTitle: React.CSSProperties = {
-  margin: 0, fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 17, color: "var(--text)", letterSpacing: "-0.01em",
-};
-const linkBtn: React.CSSProperties = {
-  background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, fontWeight: 600, cursor: "pointer", padding: "0 2px", transition: "color .2s var(--ease-ui)",
-};

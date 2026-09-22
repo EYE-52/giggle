@@ -1,6 +1,8 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react";
 import {
+  chatMessageMatchesScope,
+  mergeChatMessage,
   joinChat,
   sendChatMessage,
   subscribeChat,
@@ -34,7 +36,13 @@ export function ChatPanel({
   messages: controlledMessages,
   onSend,
   onRetry,
+  audienceControls,
+  draft,
+  onDraftChange,
 }: {
+  audienceControls?: ReactNode;
+  draft?: string;
+  onDraftChange?: (value: string) => void;
   scope: ChatScope;
   onClose?: () => void;
   title?: string;
@@ -43,15 +51,22 @@ export function ChatPanel({
   onRetry?: (message: ChatPanelMessage) => void;
 }) {
   const [localMessages, setLocalMessages] = useState<ChatPanelMessage[]>([]);
-  const [input, setInput] = useState("");
+  const [localInput, setLocalInput] = useState("");
+  const input = draft ?? localInput;
+  const setInput = onDraftChange ?? setLocalInput;
   const [sendError, setSendError] = useState("");
   const [inputFocused, setInputFocused] = useState(false);
   const [closeHovered, setCloseHovered] = useState(false);
   const [sendHovered, setSendHovered] = useState(false);
+  const [newMessageCount, setNewMessageCount] = useState(0);
 
+  const messagesRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const nearBottomRef = useRef(true);
+  const lastMessageKeyRef = useRef<string | null>(null);
+  const sentMessageRef = useRef(false);
   const myId = session.user?.id;
-  const messages = controlledMessages ?? localMessages;
+  const allMessages = controlledMessages ?? localMessages;
   const controlled = controlledMessages !== undefined;
 
   // Only the scope fields we care about for filtering — keeps the effect from
@@ -63,24 +78,30 @@ export function ChatPanel({
   // Decide whether an incoming message belongs in this panel.
   const accepts = useCallback(
     (msg: ChatMessage): boolean => {
-      if (scopeKind === "lobby") {
-        // Lobby: only this squad's chatter. Be lenient if squadId is missing.
-        return msg.squadId == null || msg.squadId === scopeSquadId;
-      }
-      return msg.encounterId === scopeEncounterId;
+      return chatMessageMatchesScope(
+        msg,
+        scopeKind === "lobby"
+          ? { kind: "lobby", squadId: scopeSquadId }
+          : { kind: "encounter", squadId: scopeSquadId, encounterId: scopeEncounterId ?? "" },
+      );
     },
-    [scopeKind, scopeSquadId, scopeEncounterId]
+    [scopeKind, scopeSquadId, scopeEncounterId],
   );
+
+  const messages = useMemo(() => allMessages.filter(accepts), [allMessages, accepts]);
+  useEffect(() => {
+    setSendError("");
+    setNewMessageCount(0);
+    nearBottomRef.current = true;
+    lastMessageKeyRef.current = null;
+  }, [scopeKind, scopeSquadId, scopeEncounterId]);
 
   useEffect(() => {
     joinChat(scope);
     if (controlled) return;
     const unsub = subscribeChat((msg) => {
       if (!accepts(msg)) return;
-      setLocalMessages((prev) => {
-        if (prev.some((m) => m.id === msg.id)) return prev; // de-dupe by id
-        return [...prev, msg];
-      });
+      setLocalMessages((prev) => mergeChatMessage(prev, msg));
     });
     return () => {
       try {
@@ -91,10 +112,37 @@ export function ChatPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scopeKind, scopeSquadId, scopeEncounterId, accepts, controlled]);
 
-  // Auto-scroll to bottom whenever messages change.
+  const scrollToLatest = useCallback(() => {
+    const behavior = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    endRef.current?.scrollIntoView({ behavior, block: "end" });
+    nearBottomRef.current = true;
+    setNewMessageCount(0);
+  }, []);
+
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages]);
+    const last = messages[messages.length - 1];
+    const key = last ? `${messages.length}:${last.id}` : "empty";
+    if (lastMessageKeyRef.current === null) {
+      lastMessageKeyRef.current = key;
+      scrollToLatest();
+      return;
+    }
+    if (key === lastMessageKeyRef.current) return;
+    lastMessageKeyRef.current = key;
+    if (sentMessageRef.current || nearBottomRef.current) {
+      sentMessageRef.current = false;
+      scrollToLatest();
+    } else {
+      setNewMessageCount((count) => count + 1);
+    }
+  }, [messages, scrollToLatest]);
+
+  function handleMessagesScroll() {
+    const element = messagesRef.current;
+    if (!element) return;
+    nearBottomRef.current = element.scrollHeight - element.scrollTop - element.clientHeight < 48;
+    if (nearBottomRef.current) setNewMessageCount(0);
+  }
 
   function send() {
     const text = input.trim();
@@ -111,6 +159,8 @@ export function ChatPanel({
       return;
     }
     setInput("");
+    sentMessageRef.current = true;
+    scrollToLatest();
     // No optimistic append — the server echo arrives via subscribeChat.
   }
 
@@ -161,7 +211,9 @@ export function ChatPanel({
             title="Close chat"
             aria-label="Close chat"
             style={{
-              background: closeHovered ? "var(--overlay-hover, rgba(255,255,255,0.1))" : "transparent",
+              background: closeHovered
+                ? "var(--overlay-hover, rgba(255,255,255,0.1))"
+                : "transparent",
               border: "none",
               cursor: "pointer",
               color: closeHovered ? "var(--text)" : "var(--text-muted)",
@@ -179,8 +231,12 @@ export function ChatPanel({
         )}
       </div>
 
+      {audienceControls}
+
       {/* Messages */}
       <div
+        ref={messagesRef}
+        onScroll={handleMessagesScroll}
         role="log"
         aria-live="polite"
         aria-label="Chat messages"
@@ -192,6 +248,7 @@ export function ChatPanel({
           flexDirection: "column",
           gap: 10,
           padding: "14px",
+          position: "relative",
         }}
       >
         {messages.length === 0 ? (
@@ -210,7 +267,9 @@ export function ChatPanel({
             }}
           >
             <span style={{ fontSize: 26 }}>💬</span>
-            <span>No messages yet — say hi <span aria-hidden="true">👋</span></span>
+            <span>
+              No messages yet — say hi <span aria-hidden="true">👋</span>
+            </span>
           </div>
         ) : (
           messages.map((msg) => {
@@ -259,14 +318,18 @@ export function ChatPanel({
                     >
                       {msg.name}
                     </span>
-                    <span style={{ color: "var(--text-dim)", fontWeight: 500 }}>{relTime(msg.ts)}</span>
+                    <span style={{ color: "var(--text-dim)", fontWeight: 500 }}>
+                      {relTime(msg.ts)}
+                    </span>
                   </span>
                 )}
                 <div
                   style={{
                     background: own ? "var(--accent, var(--violet))" : "var(--surface)",
                     color: own ? "var(--on-accent)" : "var(--text)",
-                    border: own ? "1px solid transparent" : "var(--control-border, 1px solid var(--border))",
+                    border: own
+                      ? "1px solid transparent"
+                      : "var(--control-border, 1px solid var(--border))",
                     borderRadius: own ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
                     padding: "8px 12px",
                     fontSize: 13,
@@ -305,8 +368,35 @@ export function ChatPanel({
             );
           })
         )}
+
         <div ref={endRef} />
       </div>
+
+        {newMessageCount > 0 ? (
+          <button
+            type="button"
+            onClick={scrollToLatest}
+            aria-label={`Jump to ${newMessageCount} new message${newMessageCount === 1 ? "" : "s"}`}
+            style={{
+              position: "relative",
+              alignSelf: "center",
+              margin: "4px 12px",
+              flexShrink: 0,
+              minHeight: 44,
+              padding: "0 12px",
+              borderRadius: 999,
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--accent, var(--violet))",
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(0,0,0,.12)",
+            }}
+          >
+            New messages ↓
+          </button>
+        ) : null}
 
       {/* Input */}
       <div
@@ -381,22 +471,33 @@ export function ChatPanel({
               flexShrink: 0,
               borderRadius: "var(--radius-control, 14px)",
               border: "none",
-              cursor: input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH ? "pointer" : "not-allowed",
+              cursor:
+                input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH
+                  ? "pointer"
+                  : "not-allowed",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH
-                ? sendHovered
-                  ? "var(--accent, var(--violet))"
-                  : "var(--violet-soft, rgba(124,92,255,0.2))"
-                : "var(--overlay, rgba(255,255,255,0.05))",
-              color: input.trim() && sendHovered ? "var(--on-accent)" : "var(--accent, var(--violet))",
+              background:
+                input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH
+                  ? sendHovered
+                    ? "var(--accent, var(--violet))"
+                    : "var(--violet-soft, rgba(124,92,255,0.2))"
+                  : "var(--overlay, rgba(255,255,255,0.05))",
+              color:
+                input.trim() && sendHovered ? "var(--on-accent)" : "var(--accent, var(--violet))",
               opacity: input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH ? 1 : 0.5,
               transition: "all .15s ease",
-              transform: sendHovered && input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH ? "scale(1.05)" : "scale(1)",
+              transform:
+                sendHovered && input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH
+                  ? "scale(1.05)"
+                  : "scale(1)",
             }}
           >
-            <Icon.send size={16} color={input.trim() && sendHovered ? "var(--on-accent)" : "var(--violet)"} />
+            <Icon.send
+              size={16}
+              color={input.trim() && sendHovered ? "var(--on-accent)" : "var(--violet)"}
+            />
           </button>
         </div>
       </div>

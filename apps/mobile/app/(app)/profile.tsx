@@ -18,10 +18,10 @@ function StatusRing({ approved, size = 100 }: { approved: boolean; size?: number
   const dash = approved ? circ : 0;
   return (
     <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.08)" strokeWidth={6} fill="none" />
+      <Circle cx={size / 2} cy={size / 2} r={r} stroke={COLORS.border} strokeWidth={2} fill="none" />
       <Circle
         cx={size / 2} cy={size / 2} r={r}
-        stroke="#C2FF3D" strokeWidth={6} fill="none"
+        stroke={COLORS.lime} strokeWidth={2} fill="none"
         strokeDasharray={`${dash} ${circ}`}
         strokeLinecap="round"
       />
@@ -218,7 +218,7 @@ export default function ProfileScreen() {
         >
           <Card style={styles.premCard}>
             <View style={styles.premRow}>
-              <Icon.star size={20} color="#C2FF3D" fill="#C2FF3D" />
+              <Icon.star size={20} color={COLORS.lime} fill={COLORS.lime} />
               <View style={{ flex: 1, marginLeft: SPACE.md }}>
                 <Text style={styles.premTitle}>Wallet</Text>
                 <Text style={styles.premSub}>View your token balance and referral rewards</Text>
@@ -229,7 +229,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionLabel, styles.sectionHeaderLabel]}>Vibe Preferences</Text>
+          <Text style={[styles.sectionLabel, styles.sectionHeaderLabel]}>Interests</Text>
           <TouchableOpacity
             onPress={() => setVibeModalVisible(true)}
             style={[styles.addMoreBtn, (vibeLoading || vibeSaving) && styles.disabled]}
@@ -259,7 +259,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))
           ) : (
-            <Text style={styles.vibeHelp}>No vibe preferences yet.</Text>
+            <Text style={styles.vibeHelp}>No interests added yet.</Text>
           )}
         </View>
         {!!vibeError && (
@@ -279,8 +279,8 @@ export default function ProfileScreen() {
         <Modal visible={vibeModalVisible} transparent animationType="slide" onRequestClose={() => setVibeModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <View style={styles.modalSheet}>
-              <Text style={styles.modalTitle}>Add Vibes</Text>
-              <View style={styles.modalChips}>
+              <Text style={styles.modalTitle}>Add interests</Text>
+              <ScrollView style={{ maxHeight: 280 }} contentContainerStyle={styles.modalChips}>
                 {CURATED_VIBES.filter((v) => !vibePrefs.includes(v)).map((v) => (
                   <TouchableOpacity
                     key={v}
@@ -292,7 +292,7 @@ export default function ProfileScreen() {
                     <Text style={styles.modalChipText}>{v}</Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
               <TouchableOpacity
                 onPress={() => setVibeModalVisible(false)}
                 style={styles.modalCancel}
@@ -415,9 +415,9 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 24, fontWeight: '900', color: COLORS.text, marginBottom: 4 },
   tierBadge: {
-    backgroundColor: 'rgba(194,255,61,0.12)', borderRadius: 999,
+    backgroundColor: COLORS.limeSoft, borderRadius: 999,
     paddingVertical: 4, paddingHorizontal: 14,
-    borderWidth: 1, borderColor: 'rgba(194,255,61,0.4)',
+    borderWidth: 1, borderColor: COLORS.limeSoft,
   },
   tierText: { color: COLORS.lime, fontWeight: '700', fontSize: 13 },
   sectionLabel: {
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   vibeChipRemovable: {
     minHeight: 44, flexDirection: 'row', alignItems: 'center',
     paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999,
-    backgroundColor: 'rgba(124,92,255,0.12)', borderWidth: 1, borderColor: 'rgba(124,92,255,0.3)',
+    backgroundColor: COLORS.violetSoft, borderWidth: 1, borderColor: COLORS.violetSoft,
   },
   vibeChipText: { color: COLORS.violet, fontWeight: '600', fontSize: 14 },
   vibeChipX: { color: COLORS.violet, fontWeight: '400', fontSize: 13 },
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   sectionHeaderLabel: { marginTop: 0, marginBottom: 0 },
   addMoreBtn: {
     minHeight: 44, justifyContent: 'center', paddingVertical: 4, paddingHorizontal: 12, borderRadius: 999,
-    backgroundColor: 'rgba(124,92,255,0.12)', borderWidth: 1, borderColor: 'rgba(124,92,255,0.3)',
+    backgroundColor: COLORS.violetSoft, borderWidth: 1, borderColor: COLORS.violetSoft,
   },
   addMoreText: { color: COLORS.violet, fontWeight: '600', fontSize: 13 },
   disabled: { opacity: 0.5 },
@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
   // modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: '#16161E', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    backgroundColor: COLORS.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: SPACE.xl, paddingBottom: SPACE.xxl,
     borderTopWidth: 1, borderColor: COLORS.border,
   },

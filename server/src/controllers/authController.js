@@ -74,7 +74,7 @@ async function generateUniqueReferralCode() {
  * Google, Apple, magic-link). Returns { token, user } in the SAME shape the
  * /api/auth/exchange response uses, so all providers behave identically.
  */
-async function issueSessionForEmail({ email, name, image, ref } = {}) {
+async function issueSessionForEmail({ email, name, image, ref, devFixture = false } = {}) {
   const normalizedEmail = normalizeEmail(email);
   if (!isValidEmailIdentity(normalizedEmail)) {
     const err = new Error("Valid email is required");
@@ -118,6 +118,17 @@ async function issueSessionForEmail({ email, name, image, ref } = {}) {
     if (!user.referralCode) {
       user.referralCode = await generateUniqueReferralCode();
     }
+    await user.save();
+  }
+
+  // Explicit local test identities only. OAuth and ordinary accounts never
+  // receive these fixture flags, even when the development option is enabled.
+  if (devFixture && process.env.NODE_ENV === "development" &&
+      process.env.DEV_AUTH_ENABLED === "true" && email.endsWith("@dev.giggle.local")) {
+    user.birthDate = new Date("2000-01-01T00:00:00.000Z");
+    user.isAdult = true;
+    user.ageConfirmed = true;
+    user.ageVerified = true;
     await user.save();
   }
 
@@ -199,7 +210,7 @@ const exchangeAuth = async (req, res) => {
   }
 
   try {
-    const session = await issueSessionForEmail({ email, name, image, ref });
+    const session = await issueSessionForEmail({ email, name, image, ref, devFixture: true });
     return res.json(session);
   } catch (error) {
     if (error.code === "INVALID_REQUEST") {

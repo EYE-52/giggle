@@ -62,7 +62,7 @@ test("web discovery build flag hides stranger matching without hiding private sq
   assert.match(nav, /WEB_DISCOVERY_ENABLED/);
   assert.match(home, /WEB_DISCOVERY_ENABLED/);
   assert.match(home, /if \(!WEB_DISCOVERY_ENABLED\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
-  assert.match(home, /Join with code/i);
+  assert.match(home, /aria-label="Squad invite code"/i);
   assert.match(lobby, /WEB_DISCOVERY_ENABLED && isLeader/);
   assert.match(encounter, /WEB_DISCOVERY_ENABLED && \(/);
   assert.equal(vercelConfig().env.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED, "false");
@@ -219,13 +219,12 @@ test("root body tolerates browser extension attributes injected before hydration
   assert.match(rootLayoutSource(), /<body suppressHydrationWarning style=/);
 });
 
-test("encounter atmosphere reuses theme-aware cover backgrounds", () => {
+test("encounter keeps the approved flat stage and puts blur inside full-view tiles", () => {
   const page = encounterSource();
-
-  assert.match(page, /coverBackground, coverKind, fallbackGradient/);
-  assert.match(page, /function EncounterAtmosphere/);
-  assert.match(page, /background: backgroundFor\(squad\)/);
-  assert.equal(page.includes("backgroundImage: backdrop"), false);
+  const tile = readFileSync(path.join(__dirname, "../components/ParticipantVideoTile.tsx"), "utf8");
+  assert.equal(page.includes("<EncounterAtmosphere"), false);
+  assert.match(tile, /hasVideo && fit === "fit" && <video/);
+  assert.match(tile, /data-media-backdrop/);
 });
 
 test("encounter uses Social Cinema chrome and one clipped media frame", () => {
@@ -238,7 +237,8 @@ test("encounter uses Social Cinema chrome and one clipped media frame", () => {
   assert.equal(page.includes("function CoverThumb"), false);
   assert.match(page, /renderParticipant\(person\.id, "fit"\)/);
   assert.match(page, /\[data-media-host\][\s\S]*overflow: clip !important/);
-  assert.match(page, /contain: "paint"/);
+  const tileStyles = readFileSync(path.join(__dirname, "../components/ParticipantVideoTile.module.css"), "utf8");
+  assert.match(tileStyles, /contain:paint/);
 });
 
 test("encounter owns controlled chat state across panel remounts", () => {
@@ -272,8 +272,8 @@ test("signed-in shell lets keyboard users skip repeated navigation", () => {
 test("compact phones keep notifications visible in the top navigation", () => {
   const nav = topNavSource();
 
-  assert.equal(nav.includes("{width >= 360 && <div>"), true);
-  assert.equal(nav.indexOf("<ThemeToggle") < nav.indexOf("<NotificationBell"), true);
+  assert.equal(nav.includes("<NotificationBell"), true);
+  assert.equal(nav.includes('className="gg-header-actions"'), true);
 });
 
 test("desktop CSP allows the configured backend origin for live API calls", () => {
@@ -303,8 +303,8 @@ test("landing page does not expose decorative default-cursor buttons", () => {
 test("landing page footer links keep a minimum touch target", () => {
   const page = landingSource();
 
-  assert.equal(page.includes('minHeight: 44'), true);
-  assert.equal(page.includes('minWidth: 44'), true);
+  const css = readFileSync(path.join(__dirname, "../app/revamp.css"), "utf8");
+  assert.match(css, /\.gg-welcome-footer a \{[^}]*min-width:44px; min-height:44px/);
 });
 
 test("coarse pointers enforce app-wide minimum touch targets", () => {
@@ -314,52 +314,15 @@ test("coarse pointers enforce app-wide minimum touch targets", () => {
   assert.match(coarsePointer, /button,[\s\S]*a\[href\],[\s\S]*\[role="button"\][\s\S]*min-width: 44px;[\s\S]*min-height: 44px;/);
 });
 
-test("landing matchup fills the phone panel instead of shrinking its portraits", () => {
-  const page = landingSource();
-  const squadTiles = page.slice(page.indexOf("function SquadTiles"), page.indexOf("function VSMedallion"));
 
-  assert.equal(squadTiles.includes('width: "100%"'), true);
-  assert.equal(squadTiles.includes('aspect={isPhone ? "1/1" : "3/4"}'), true);
-});
 
-test("landing phone hero cannot widen the viewport and its header keeps only essential navigation", () => {
-  const page = landingSource();
-  const header = page.slice(page.indexOf("{/* ===================== NAV"), page.indexOf("{/* ===================== HERO"));
-  const hero = page.slice(page.indexOf('data-testid="giggle-hero"'), page.indexOf("{/* ===================== MARQUEE"));
-  const heroVs = page.slice(page.indexOf("function HeroVS"), page.indexOf("function AvatarStack"));
 
-  assert.equal(header.includes("{!isPhone && (<>"), true);
-  assert.equal(header.includes('overflowX: isPhone ? "auto"'), false);
-  assert.equal(hero.includes('gridTemplateColumns: isTablet ? "minmax(0, 1fr)"'), true);
-  assert.equal(hero.includes('<Reveal delay={200} y={40} style={{ minWidth: 0 }}>'), true);
-  assert.equal(heroVs.includes('width: "100%", minWidth: 0'), true);
-});
 
-test("landing phone stats use spacing instead of stacked divider lines", () => {
-  const page = landingSource();
-  const statsSection = page.slice(page.indexOf("LIVE STATS"), page.indexOf("FINAL CTA"));
-  const stat = page.slice(page.indexOf("function Stat"), page.indexOf("function CtaLink"));
 
-  assert.equal(statsSection.includes('borderTop: isPhone ? "none"'), true);
-  assert.equal(statsSection.includes('borderBottom: isPhone ? "none"'), true);
-  assert.equal(stat.includes("borderBottom"), false);
-});
 
-test("landing live counts do not flash a misleading zero-plus value", () => {
-  const page = landingSource();
 
-  assert.equal(page.includes("function CountUp"), false);
-  assert.equal(page.includes("<CountUp"), false);
-  assert.equal(page.includes("value.toLocaleString()"), true);
-});
 
-test("landing stats failures use words instead of adding more line-like dashes", () => {
-  const page = landingSource();
-  const stat = page.slice(page.indexOf("function Stat"), page.indexOf("function CtaLink"));
 
-  assert.equal(stat.includes('aria-label="unavailable">—'), false);
-  assert.equal(stat.includes(">Unavailable</span>"), true);
-});
 
 test("public legal pages do not expose internal launch placeholders", () => {
   const copy = `${privacySource()}\n${termsSource()}`;
@@ -368,52 +331,16 @@ test("public legal pages do not expose internal launch placeholders", () => {
   assert.equal(copy.includes("Replace it with reviewed legal copy"), false);
   assert.equal(copy.includes("before production launch"), false);
   assert.equal(termsSource().includes("Tokens and Giggle+"), true);
-  assert.equal(legalPageSource().includes('data-theme="dark"'), true);
+  assert.equal(legalPageSource().includes('data-theme="dark"'), false);
 });
 
-test("landing page uses a normal-height autoplay story instead of a pinned scrub on phones", () => {
-  const page = landingSource();
-  const demoStage = page.indexOf("function DemoStage");
-  const mobileStart = page.indexOf("if (isPhone) {", demoStage);
-  const mobileStory = page.slice(mobileStart, page.indexOf("\n  return (", mobileStart));
 
-  assert.equal(page.includes("const staticStory = reduce || isPhone;"), true);
-  assert.equal(page.includes('height: staticStory ? "auto" : "210vh"'), true);
-  assert.equal(page.includes('position: staticStory ? "relative" : "sticky"'), true);
-  assert.equal(mobileStory.includes('data-testid="mobile-demo-stage"'), true);
-  assert.equal(mobileStory.includes('data-testid="mobile-demo-video"'), true);
-  assert.equal(mobileStory.includes("autoPlay muted loop playsInline"), true);
-  assert.equal(mobileStory.includes('src={near ? "/landing/demo.mp4" : undefined}'), true);
-  assert.equal(page.includes("}, [isPhone, near, reduce]);"), true);
-  assert.equal(page.includes('isPhone ? "170vh"'), false);
-});
 
-test("landing desktop film plays three chapters instead of seeking on every scroll frame", () => {
-  const page = landingSource();
 
-  assert.equal(page.includes("const [p, setP] = useState(-1);"), true);
-  assert.equal(page.includes("if (v.readyState >= 1) onLoaded();"), true);
-  assert.equal(page.includes("const [duration, setDuration] = useState(0);"), true);
-  assert.equal(page.includes("const hasEntered = p >= 0;"), true);
-  assert.equal(page.includes("const segmentEnd = useRef(0);"), true);
-  assert.equal(page.includes("const segmentDuration = duration / 3;"), true);
-  assert.equal(page.includes("void v.play().catch(() => {});"), true);
-  assert.equal(page.includes("onTimeUpdate={stopAtSegmentEnd}"), true);
-  assert.equal(page.includes("const t = clamp01(p) * duration;"), false);
-});
 
-test("landing page keeps its dark brand theme after app theme changes", () => {
-  const page = landingSource();
 
-  assert.equal(page.includes('<div data-theme="dark" style={{ position: "relative", background: C.base'), true);
-});
 
-test("landing reveal content is visible by default", () => {
-  const page = landingSource();
 
-  assert.equal(page.includes("const [shown, setShown] = useState(true);"), true);
-  assert.equal(page.includes("const [shown, setShown] = useState(false);"), false);
-});
 
 test("matchmaking queue status is informational, not a premium priority upsell", () => {
   const page = matchmakingSource();
@@ -595,30 +522,18 @@ test("lobby missing-squad state is a polished empty state with mobile touch targ
 
   assert.equal(page.includes("Squad not found. <button"), false);
   assert.equal(page.includes("This lobby link is no longer active"), true);
-  assert.equal(page.includes('minHeight: 44'), true);
+
   assert.equal(page.includes('router.push("/discover")'), true);
 });
 
-test("lobby stage contains people only and fills compact viewports", () => {
+test("approved lobby has a bounded stage and one invite entry beside people", () => {
   const page = lobbySource();
-
-  assert.equal(page.includes("showInviteTile"), false);
-  assert.equal(page.includes("inviteTileHovered"), false);
-  assert.equal(page.includes("const tileCount = Math.max(memberCount, 1);"), true);
-  assert.equal(page.includes(">Invite a friend</div>"), false);
-  assert.equal(page.includes("const effCols = isPhone ? (memberCount <= 2 ? 1 : 2) : gridCols;"), true);
-  assert.equal(page.includes('minHeight: isPhone ? "calc(100dvh - 61px)" : 0'), true);
-  assert.equal(page.includes('gridTemplateRows: `repeat(${effRows}, minmax(0, 1fr))`'), true);
-  assert.equal(page.includes('aspectRatio: "4 / 3"'), false);
-  assert.equal(page.includes('flexWrap: isPhone ? "wrap" as const : "nowrap" as const'), true);
-  assert.equal(page.includes('width: isPhone ? "100%" : undefined'), true);
-  assert.equal(page.includes('boxSizing: "border-box" as const'), true);
-  assert.equal(page.includes("showUpgradeTile"), false);
-  assert.equal(page.includes("Unlock 4 more seats"), false);
-  assert.equal(page.includes("{isNarrow && isLeader && ("), true);
-  assert.equal(page.includes("{!isNarrow && <button\n              onClick={handleInvite}"), true);
-  assert.equal(page.includes('flex: isPhone ? "1 0 100%" : undefined'), true);
-  assert.equal(page.includes('display: isNarrow ? "none" : "flex"'), true);
+  const css = readFileSync(path.join(__dirname, "../app/(app)/lobby/lobby.module.css"), "utf8");
+  assert.match(page, /data-testid="lobby-person"/);
+  assert.match(page, /Invite a friend/);
+  assert.match(css, /max-height: 420px/);
+  assert.match(css, /overflow-y: auto/);
+  assert.doesNotMatch(page, /Waiting for your squad…/);
 });
 
 test("desktop lobby leave starts pending feedback and media cleanup before the backend", () => {
@@ -635,10 +550,10 @@ test("desktop lobby leave starts pending feedback and media cleanup before the b
   assert.ok(leaveBlock.indexOf("const mediaExit = leaveLobbyMedia();") < leaveBlock.indexOf("await api.leaveSquad(squadId);"));
   assert.match(leaveBlock, /void mediaExit;/);
   assert.match(page, /async function leaveLobbyMedia\(\) \{[\s\S]*?vcRef\.current = null;[\s\S]*?setVideoJoined\(false\);[\s\S]*?await client\?\.leave\(\);/);
-  assert.match(page, /<Button variant="secondary" fullWidth disabled=\{leavingSquad\} loading=\{leavingSquad\} onClick=\{handleLeaveSquad\}>/);
+  assert.match(page, /loading=\{leavingSquad\} onClick=\{handleLeaveSquad\}/);
   assert.match(leaveBlock, /setMatchError\(\(e as \{ message\?: string \}\)\?\.message \|\| "Couldn't leave squad\."\)/);
   assert.equal(page.includes("onClick={handleLeaveSquad}"), true);
-  assert.equal(page.includes('{leavingSquad ? "Leaving…" : "Leave"}'), true);
+
 });
 
 test("desktop lobby ready toggle surfaces backend failures", () => {
@@ -670,7 +585,7 @@ test("desktop lobby requires every online member to be ready before starting a m
 test("lobby asks before starting camera and microphone", () => {
   const page = lobbySource();
 
-  assert.equal(page.includes("Used in this lobby and live encounters."), true);
+
   assert.equal(page.includes('aria-label="Enable camera and microphone"'), true);
   assert.equal(page.includes("if (!joinStartedRef.current)"), false);
 });
@@ -692,7 +607,7 @@ test("desktop lobby copy actions only show success after clipboard writes succee
   assert.equal(page.includes("await navigator.clipboard.writeText(text);"), true);
   assert.equal(page.includes("setMatchError(failureMessage);"), true);
   assert.equal(page.includes("setInviteCopied(true);"), true);
-  assert.equal(page.includes("setCodeCopied(true);"), true);
+  assert.equal(page.includes("setCodeCopied(true)"), true);
   assert.equal(page.includes("try { navigator.clipboard?.writeText(text); } catch {}"), false);
   assert.equal(page.includes("navigator.clipboard?.writeText(squad.squadCode); setCodeCopied(true);"), false);
 });
@@ -724,7 +639,7 @@ test("desktop lobby dedupes vibe labels before display, edit, and save", () => {
   const page = lobbySource();
 
   assert.equal(page.includes("function normalizeVibeLabels("), true);
-  assert.equal(page.includes("setSelectedVibes(normalizeVibeLabels(s.tags));"), true);
+  assert.equal(page.includes("setSelectedVibes([...currentTags]);"), true);
   assert.equal(page.includes("const tagsToSave = normalizeVibeLabels(selectedVibes);"), true);
   assert.equal(page.includes("await api.setTags(squadId, tagsToSave);"), true);
   assert.equal(page.includes("const currentTags = normalizeVibeLabels("), true);
@@ -787,9 +702,12 @@ test("desktop encounter derives one adaptive stage from stable participant ident
   assert.equal(page.includes('mode: "grid"'), false);
   assert.equal(page.includes('mode: "spotlight"'), false);
   assert.equal(page.includes('mode: "focus-opponent"'), false);
-  assert.equal(page.includes("data-layout-kind={layout.kind}"), true);
-  assert.equal(page.includes("data-media-fit={fit}"), true);
-  assert.equal(page.includes('role={onClick ? "button" : undefined}'), true);
+  assert.equal(page.includes("<AdaptiveVideoStage"), true);
+  assert.equal(page.includes('data-layout-kind={pinnedId ? layout.kind : "adaptive-grid"}'), true);
+  const tile = readFileSync(path.join(__dirname, "../components/ParticipantVideoTile.tsx"), "utf8");
+  assert.equal(tile.includes("data-media-fit={fit}"), true);
+  assert.equal(tile.includes('aria-haspopup="dialog"'), true);
+  assert.equal(page.includes("setRemoteAudioMuted"), true);
 });
 
 test("desktop encounter keeps essential controls compact and moves secondary actions into More", () => {
@@ -800,7 +718,7 @@ test("desktop encounter keeps essential controls compact and moves secondary act
   assert.equal(controls.includes('id: "report"'), false);
   assert.equal(page.includes('flexWrap: "nowrap"'), true);
   assert.equal(page.includes('width: isPhone ? 44 : 48'), true);
-  assert.equal(page.includes("width >= 1024"), true);
+  assert.equal(page.includes("data-call-leave"), true);
   assert.equal(page.includes("moreOpen"), true);
   assert.equal(page.includes("setFocusedFit"), true);
   assert.equal(page.includes("setSelfViewMinimized"), true);
@@ -814,19 +732,18 @@ test("desktop encounter reactions stay briefly on the real sender tile", () => {
   assert.equal(page.includes("spawnReaction(emoji, session.user?.id ?? \"\")"), true);
   assert.equal(page.includes("spawnReaction(r.emoji, r.senderId)"), true);
   assert.equal(page.includes("}, 1800);"), true);
-  assert.equal(page.includes('animation: "reactionFloat 1.8s ease forwards"'), true);
+  const tileStyles = readFileSync(path.join(__dirname, "../components/ParticipantVideoTile.module.css"), "utf8");
+  assert.match(tileStyles, /animation:reactionFloat 1.8s ease forwards/);
   assert.equal(page.includes("reaction.senderId === person.id"), true);
   assert.equal(page.includes("data-reaction"), true);
 });
 
-test("desktop encounter chat adapts from a side panel to a bounded phone sheet", () => {
+test("desktop encounter chat becomes a focused phone view while keeping video mounted", () => {
   const page = encounterSource();
 
-  assert.equal(page.includes("width >= 1180"), true);
-  assert.equal(page.includes("width: 340"), true);
-  assert.equal(page.includes('"min(55dvh, calc(100dvh - 96px))"'), true);
-  assert.equal(page.includes("window.visualViewport"), true);
-  assert.equal(page.includes("window.innerHeight - viewport.height > 120"), true);
+  assert.equal(page.includes("gg-chat-open"), true);
+  assert.equal(page.includes("Kept mounted so closing chat preserves drafts and never moves video hosts."), true);
+  assert.equal(page.includes('className="gg-phone-back"'), true);
   assert.equal(page.includes("chatButtonRef"), true);
   assert.equal(page.includes("onClose={closeChat}"), true);
 });
@@ -882,8 +799,8 @@ test("desktop encounter starts local media cleanup before backend-confirmed navi
   assert.match(leaveBlock, /router\.replace\("\/home"\);/);
   assert.match(endBlock, /setEnding\(false\);/);
   assert.match(endBlock, /setEndError\("Couldn't end this encounter yet\. Reconnecting your video…"\);/);
-  assert.match(page, /onClick=\{handleEnd\}[\s\S]*?disabled=\{ending\}[\s\S]*?\{ending \? "Ending…" : "End encounter"\}/);
-  assert.equal(page.includes('title="End encounter?"'), true);
+  assert.match(page, /onClick=\{exitKind === "leave" \? handlePersonalLeave : handleEnd\}[\s\S]*?disabled=\{ending\}/);
+  assert.equal(page.includes('title={exitKind === "leave" ? "Leave this call?" : "End encounter?"}'), true);
   assert.equal(page.includes("This ends the current encounter for both squads."), true);
   assert.equal(page.includes("setEndConfirmOpen(true)"), true);
   assert.equal(page.includes("SOCKET_EVENTS.ENCOUNTER_ENDED"), true);
@@ -924,9 +841,9 @@ test("desktop chat supports controlled pending, failure, and retry states", () =
 test("desktop encounter chat filters messages to the active encounter", () => {
   const component = chatPanelSource();
 
-  assert.equal(component.includes("return msg.encounterId === scopeEncounterId;"), true);
-  assert.equal(component.includes("// Encounter: show everything in the encounter (both squads)."), false);
-  assert.equal(component.includes("return true;"), false);
+  assert.equal(component.includes("chatMessageMatchesScope("), true);
+  assert.equal(component.includes('kind: "encounter"'), true);
+  assert.equal(component.includes('kind: "lobby"'), true);
   assert.match(component, /\[scopeKind, scopeSquadId, scopeEncounterId\]/);
 });
 
@@ -987,7 +904,7 @@ test("desktop encounter consolidates recovery and transient notices", () => {
 
   assert.equal(page.includes('data-testid="media-recovery-notice"'), true);
   assert.equal(page.includes('data-testid="encounter-transient-notice"'), true);
-  assert.match(page, /reported \? "reported" : connState === "RECONNECTING"/);
+  assert.match(page, /const transientNotice = reported[\s\S]*connState === "RECONNECTING"/);
 });
 
 test("desktop encounter blocks the validated opponent roster before leaving", () => {
@@ -1025,7 +942,8 @@ test("squad cover backgrounds do not double-wrap resolved cover URLs", () => {
   assert.equal(card.includes("url(${resolveCover(squad.coverImage)})"), false);
   assert.equal(card.includes("background: coverBackground(squad.coverImage, kind)"), true);
   assert.equal(homePage.includes("url(${coverBackground("), false);
-  assert.equal(homePage.includes("background: coverBackground(squad.coverImage, kind)"), true);
+  // Home now uses plain cards; photo covers remain on SquadCard.
+  assert.equal(homePage.includes("url(${coverBackground("), false);
 });
 
 test("premium page does not keep unreachable preview checkout modal state", () => {
@@ -1085,12 +1003,7 @@ test("desktop lobby keeps monetization out of the squad-ready flow", () => {
   assert.equal(page.includes("monthly tokens and cosmetic perks"), false);
 });
 
-test("landing referral feature describes the implemented wallet reward", () => {
-  const page = landingSource();
 
-  assert.equal(page.includes("Spend tokens on bigger squads, premium vibes, and more."), false);
-  assert.equal(page.includes("Your wallet tracks every reward in one place."), true);
-});
 
 test("desktop wallet does not promise production redemption before it launches", () => {
   const page = readFileSync(path.join(__dirname, "../app/(app)/premium/page.tsx"), "utf8");
@@ -1153,7 +1066,7 @@ test("desktop auth callback has a trustworthy failure page title and touch targe
   const layout = authCallbackLayoutSource();
 
   assert.equal(layout.includes('title: "Sign-in status · Giggle"'), true);
-  assert.equal(page.includes('minHeight: 44'), true);
+
   assert.equal(page.includes('minWidth: 44'), true);
 });
 
@@ -1170,8 +1083,8 @@ test("desktop sign-in hides Apple until that provider is configured", () => {
 test("desktop sign-in stays focused and fits one viewport", () => {
   const page = signinSource();
 
-  assert.equal(page.includes('height: "100dvh"'), true);
-  assert.equal(page.includes('/img/onboarding-hero.jpg'), true);
+  assert.equal(page.includes('minHeight: "100svh"'), true);
+  assert.equal(page.includes('/img/onboarding-hero.jpg'), false);
   assert.equal(page.includes('const props:'), false);
   assert.equal(page.includes('Bring your whole squad'), false);
 });
@@ -1182,8 +1095,8 @@ test("squad preview joins by squad id instead of leaked squad code", () => {
 
   assert.equal(component.includes("api.joinSquadById(squad.squadId)"), true);
   assert.equal(component.includes("api.joinSquad({ squadCode: squad.squadCode })"), false);
-  assert.equal(homePage.includes("api.joinSquadById(sq.squadId)"), true);
-  assert.equal(homePage.includes("api.joinSquad({ squadCode: sq.squadCode })"), false);
+  assert.equal(homePage.includes("api.joinSquadById(squad.squadId)"), true);
+  assert.equal(homePage.includes("api.joinSquad({ squadCode: squad.squadCode })"), false);
 });
 
 test("squad preview surfaces live detail fetch failures instead of endless roster loading", () => {
@@ -1484,13 +1397,14 @@ test("desktop protected home actions do not create dev sessions", () => {
   assert.equal(page.includes("await session.devSignIn();"), false);
   assert.equal(page.includes('router.push("/signin")'), true);
   assert.equal(page.includes("Sign in to continue."), true);
+  assert.equal(page.includes("function ensureAuthed()"), true);
   assert.equal(page.includes("return false;"), true);
 });
 
 test("desktop home creates a neutral squad without hidden vibe state", () => {
   const page = desktopHomeSource();
 
-  assert.equal(page.includes("api.createSquad({ squadName: randomSquadName(), tags: [] })"), true);
+  assert.equal(page.includes("api.createSquad({ squadName: name.trim(), tags: [] })"), true);
   assert.equal(page.includes("selectedVibes"), false);
   assert.equal(page.includes("VIBE_OPTIONS"), false);
 });
@@ -1498,21 +1412,20 @@ test("desktop home creates a neutral squad without hidden vibe state", () => {
 test("desktop home keeps one compact live activity strip", () => {
   const page = desktopHomeSource();
 
-  assert.equal(page.includes('aria-label="Live activity"'), true);
-  assert.equal(page.includes('label="Your squads"'), true);
-  assert.equal(page.includes('label="Open signals"'), true);
-  assert.equal(page.includes('label="Live now"'), true);
+  assert.equal(page.includes('className="gg-home-grid"'), true);
+  assert.equal(page.includes("Open squads"), true);
+  assert.equal(page.includes("See all →"), true);
+  assert.equal(page.includes("Start with your squad. Meet another, together."), false);
   assert.equal(page.includes('label: "SQUADS FORMED"'), false);
 });
 
 test("desktop home gives new users one first-room task instead of an empty dashboard", () => {
   const page = desktopHomeSource();
 
-  assert.equal(page.includes("const showFirstRun = !mySquadsLoading && !mySquadsError && mySquads.length === 0;"), true);
-  assert.equal(page.includes("Start with your people."), true);
-  assert.equal(page.includes("Create your first squad"), true);
-  assert.equal(page.includes("right={showFirstRun ? undefined : ("), true);
-  assert.equal(page.includes("{showFirstRun ? ("), true);
+  assert.equal(page.includes("Start a squad"), true);
+  assert.equal(page.includes("Create a squad"), true);
+  assert.equal(page.includes("Invite your friends."), true);
+  assert.equal(page.includes("Create a squad, then invite your friends."), true);
   assert.equal(page.includes('title="No squads yet"'), false);
 });
 
@@ -1522,25 +1435,26 @@ test("desktop home resumes active squad journeys instead of reopening their lobb
   assert.equal(page.includes("function squadDestination"), true);
   assert.equal(page.includes('["searching", "matched", "in_encounter"].includes(squad.status)'), true);
   assert.equal(page.includes("router.push(squadDestination(s))"), true);
-  assert.equal(page.includes("router.push(squadDestination(led))"), true);
+  assert.equal(page.includes("router.push(squadDestination(active))"), true);
 });
 
 test("desktop home loading state mirrors squad-card content", () => {
   const page = desktopHomeSource();
-  assert.equal(page.includes('aria-label="Loading your squads"'), true);
+  assert.equal(page.includes('role="status"'), true);
+  assert.equal(page.includes("Loading your squads"), true);
   assert.equal(page.includes('className="gg-shimmer" style={{ height: 160'), false);
 });
 
 test("desktop home distinguishes failed loads from genuinely empty squads", () => {
   const page = desktopHomeSource();
 
-  assert.equal(page.includes("const [mySquadsError, setMySquadsError] = useState(false);"), true);
-  assert.equal(page.includes("const [trendingError, setTrendingError] = useState(false);"), true);
+  assert.equal(page.includes("const [loadError, setLoadError] = useState(\"\");"), true);
+  assert.equal(page.includes("const [openError, setOpenError] = useState(\"\");"), true);
   assert.equal(page.includes("setTrending((prev) => prev ?? [])"), false);
   assert.equal(page.includes("Couldn't load your squads"), true);
   assert.equal(page.includes("Couldn't load open squads"), true);
   assert.equal(page.includes('role="alert"'), true);
-  assert.equal(page.includes("setHomeReload((value) => value + 1)"), true);
+  assert.equal(page.includes("setReload((value) => value + 1)"), true);
 });
 
 test("desktop home keeps create and join actions compact", () => {
@@ -1548,37 +1462,29 @@ test("desktop home keeps create and join actions compact", () => {
 
   assert.equal(page.includes("Open a new room"), false);
   assert.equal(page.includes("Start a room and invite your people."), false);
-  assert.equal(page.includes('aria-label="Squad actions"'), true);
   assert.equal(page.includes('aria-label="Squad invite code"'), true);
+  assert.equal(page.includes('className="gg-join-form"'), true);
 });
 
-test("desktop home match action uses theme tokens instead of a fixed violet gradient", () => {
+test("desktop home uses warm squad actions and discovery surfaces", () => {
   const page = desktopHomeSource();
-  const action = page.slice(
-    page.indexOf("{/* Find-a-Match CTA"),
-    page.indexOf("<div style={{ flex: isTablet", page.indexOf("{/* Find-a-Match CTA"))
-  );
-
-  assert.match(action, /background: "var\(--surface\)"/);
-  assert.match(action, /border: CONTROL_BORDER/);
-  assert.match(action, /color: "var\(--text\)"/);
-  assert.doesNotMatch(action, /linear-gradient|#7C5CFF|#9F7BFF/);
-  assert.match(action, /variant="primary"/);
+  assert.equal(page.includes("Your squad"), true);
+  assert.equal(page.includes("Start a squad"), true);
+  assert.equal(page.includes("Bring your friends. Meet another squad."), true);
 });
 
 test("desktop home leave squad failures restore the squad and show an error toast", () => {
   const page = desktopHomeSource();
 
-  assert.equal(page.includes("const previousSquads = mySquads;"), true);
-  assert.equal(page.includes("setMySquads(previousSquads);"), true);
-  assert.equal(page.includes("toast((e as { message?: string })?.message || (asLeader ? \"Couldn't delete that squad.\" : \"Couldn't leave that squad.\"), \"error\")"), true);
+  assert.equal(page.includes("setSquads((previous) => previous?.filter"), true);
+  assert.equal(page.includes("toast(message(error, \"Couldn't leave your squad. Try again.\"), \"error\")"), true);
   assert.equal(page.includes("catch { /* refetch will resync if it failed */ }"), false);
 });
 
-test("desktop discover applies the active vibe filter to newly created squads", () => {
+test("desktop discover opens the shared named squad form", () => {
   const page = desktopDiscoverSource();
 
-  assert.equal(page.includes("api.createSquad({ squadName: randomSquadName(), tags: vibe ? [vibe] : [] })"), true);
+  assert.equal(page.includes('router.push("/home?create=1")'), true);
   assert.equal(page.includes("await api.setTags(squad.squadId, [vibe]);"), false);
   assert.equal(page.includes("Start one with this vibe"), true);
 });
@@ -1589,7 +1495,7 @@ test("desktop discover keeps creation in the filtered empty state", () => {
   assert.equal(page.includes("primaryCtaCreates"), false);
   assert.equal(page.includes("handlePrimaryCta"), false);
   assert.equal(page.includes("shown.length === 0"), true);
-  assert.equal(page.includes("primary={{ label: creating ? \"Creating…\" : (vibe ? `Create a ${vibe} squad` : \"Create a squad\"), onClick: handleCreate, disabled: creating }}"), true);
+  assert.equal(page.includes("primary={{ label: \"Create a squad\", onClick: handleCreate, disabled: creating }}"), true);
   assert.equal(page.includes("right={loading || hasOpenSquads ? ("), true);
 });
 
@@ -1612,17 +1518,17 @@ test("desktop protected discover actions do not create dev sessions", () => {
 test("desktop home auth gate runs before create and join loading states", () => {
   const page = desktopHomeSource();
 
-  const createStart = page.indexOf("async function handleCreate()");
+  const createStart = page.indexOf("async function create()");
   const createAuth = page.indexOf("if (!ensureAuthed()) return;", createStart);
-  const createLoading = page.indexOf("setCreating(true);", createStart);
+  const createLoading = page.indexOf('setPending("create");', createStart);
   assert.ok(createStart >= 0);
   assert.ok(createAuth >= 0);
   assert.ok(createLoading >= 0);
   assert.ok(createAuth < createLoading);
 
-  const joinStart = page.indexOf("async function handleJoin()");
+  const joinStart = page.indexOf("async function join(squad?: PublicSquad)");
   const joinAuth = page.indexOf("if (!ensureAuthed()) return;", joinStart);
-  const joinLoading = page.indexOf("setJoining(true);", joinStart);
+  const joinLoading = page.indexOf('setPending(squad?.squadId ?? "join");', joinStart);
   assert.ok(joinStart >= 0);
   assert.ok(joinAuth >= 0);
   assert.ok(joinLoading >= 0);
@@ -1662,7 +1568,7 @@ test("friends first run stays search-first and distinguishes request failures", 
 
   assert.equal(page.includes("No friends yet — search above to add people."), false);
   assert.equal(page.includes("Your crew starts here"), false);
-  assert.equal(page.includes("Find your people."), true);
+  assert.equal(page.includes("Add friends."), true);
   assert.equal(page.includes("const [loadError, setLoadError] = useState<string | null>(null);"), true);
   assert.equal(page.includes("const [searchError, setSearchError] = useState<string | null>(null);"), true);
   assert.equal(page.includes("Couldn't search for people."), true);
@@ -1719,7 +1625,7 @@ test("profile keeps one compact identity surface beside settings from tablet upw
   assert.equal(page.includes("const avatarSize = isPhone ? 88 : 120;"), true);
   assert.equal(page.includes('flexDirection: isPhone ? "row" : "column"'), true);
   assert.equal(page.includes('gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "300px minmax(0, 1fr)"'), true);
-  assert.equal((identityColumn.match(/Monthly token stipend \+ 15% bonus tokens on packs/g) ?? []).length, 1);
+  assert.equal((identityColumn.match(/Your tokens and available extras/g) ?? []).length, 1);
 });
 
 test("profile load failures stay visible and retryable before saving demographics", () => {

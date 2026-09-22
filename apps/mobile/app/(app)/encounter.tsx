@@ -1,18 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  AccessibilityInfo, Animated, BackHandler, Keyboard, KeyboardAvoidingView, Modal,
+  AccessibilityInfo, Animated, BackHandler, KeyboardAvoidingView, Modal,
   Platform, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, useWindowDimensions,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '../../components/Screen';
 import { Icon } from '../../components/Icon';
-import { Avatar } from '../../components/Avatar';
 import { RtcSurface } from '../../components/RtcSurface';
-import { COLORS, SPACE, RADII } from '../../constants/theme';
+import { ParticipantOptions, type PersonalFraming } from '../../components/ParticipantOptions';
+import { AdaptiveVideoStage } from '../../components/AdaptiveVideoStage';
+import { CALL_COLORS as COLORS, SPACE, RADII } from '../../constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   advanceSpeakerFocus,
+  chatMessageMatchesScope,
+  mergeChatMessage,
   api,
   connectSocket,
   createOpponentUserIds,
@@ -31,7 +34,7 @@ import {
 } from '@giggle/core';
 import type { ChatMessage, EncounterDetail, EncounterSide } from '@giggle/core';
 import { createVideoClient } from '@giggle/agora';
-import type { CaptureState, ConnectionState, VideoClient, RemoteParticipant } from '@giggle/agora';
+import type { CaptureState, ConnectionState, VideoClient, RemoteParticipant, VideoDimensions } from '@giggle/agora';
 import { NATIVE_DISCOVERY_ENABLED } from '../../constants/discovery';
 
 const TILE_COLORS = ['#7C5CFF', '#3DD6C0', '#FF8A5C', '#C2FF3D', '#FF5C8A', '#5C8CFF'];
@@ -101,8 +104,21 @@ export default function EncounterScreen() {
   const [enc, setEnc] = useState<EncounterDetail | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [draft, setDraft] = useState('');
+  const [chatAudience, setChatAudience] = useState<'everyone' | 'squad'>('everyone');
+  const [drafts, setDrafts] = useState({ everyone: '', squad: '' });
+  const draft = drafts[chatAudience];
+  const setDraft = (value: string) => setDrafts((previous) => ({ ...previous, [chatAudience]: value }));
+  const [sendingChat, setSendingChat] = useState(false);
+  const sendingChatRef = useRef(false);
+  const chatAudienceRef = useRef(chatAudience);
+  chatAudienceRef.current = chatAudience;
+  const chatScrollRef = useRef<ScrollView>(null);
+  const visibleMessages = messages.filter((message) => chatMessageMatchesScope(message,
+    chatAudience === 'everyone'
+      ? { kind: 'encounter', encounterId: encId ?? '', squadId: squadId ?? '' }
+      : { kind: 'lobby', squadId: squadId ?? '' }));
   const [remotes, setRemotes] = useState<RemoteParticipant[]>([]);
+  const [videoDimensions, setVideoDimensions] = useState<VideoDimensions[]>([]);
   const [videoReady, setVideoReady] = useState(false);
   const [videoError, setVideoError] = useState('');
   const [encounterError, setEncounterError] = useState('');
@@ -112,6 +128,8 @@ export default function EncounterScreen() {
   const [connState, setConnState] = useState<ConnectionState | null>(null);
   const [captureState, setCaptureState] = useState<CaptureState>({ audio: 'off', video: 'off' });
   const [loudestUid, setLoudestUid] = useState<string | null>(null);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [personalFraming, setPersonalFraming] = useState<Record<string, PersonalFraming>>({});
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [speakerFocus, setSpeakerFocus] = useState(EMPTY_SPEAKER_FOCUS);
   const [stripSide, setStripSide] = useState<EncounterSide>('mine');
@@ -119,10 +137,16 @@ export default function EncounterScreen() {
   const [focusedFit, setFocusedFit] = useState<'fit' | 'crop'>('fit');
   const [moreOpen, setMoreOpen] = useState(false);
   const [moreError, setMoreError] = useState('');
-  const [unread, setUnread] = useState(0);
+  const [chatUnread, setChatUnread] = useState({ everyone: 0, squad: 0 });
+  const unread = chatUnread.everyone + chatUnread.squad;
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const [videoRetrying, setVideoRetrying] = useState(false);
+  const [exitKind, setExitKind] = useState<'leave' | 'end'>('leave');
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [nextConfirmOpen, setNextConfirmOpen] = useState(false);
+  const [nextPending, setNextPending] = useState(false);
+  const [nextError, setNextError] = useState('');
+  const nextPendingRef = useRef(false);
   const [ending, setEnding] = useState(false);
   const [endError, setEndError] = useState('');
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
@@ -130,10 +154,8 @@ export default function EncounterScreen() {
   const [blockError, setBlockError] = useState('');
   const [remoteEnded, setRemoteEnded] = useState<'opponent-left' | 'ended' | null>(null);
   const [remoteEndError, setRemoteEndError] = useState('');
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
   const chatVisibleRef = useRef(false);
-  const messageIdsRef = useRef(new Set<string>());
   const reactionCountRef = useRef(0);
   const reactionTimersRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
   const vcRef = useRef<VideoClient | null>(null);
@@ -158,6 +180,7 @@ export default function EncounterScreen() {
     setConnState('CONNECTING');
     setCaptureState({ audio: 'off', video: 'off' });
     setRemotes([]);
+    setVideoDimensions([]);
     setLoudestUid(null);
 
     const staleClient = vcRef.current;
@@ -204,9 +227,13 @@ export default function EncounterScreen() {
       if (state.video === 'active') setCam(true);
       else if (state.video === 'denied' || state.video === 'unavailable') setCam(false);
     });
+    const dimensionsUnsub = vc.onVideoDimensions?.((next) => {
+      if (vcRef.current === vc) setVideoDimensions(next);
+    });
     if (volumeUnsub) videoUnsubsRef.current.push(volumeUnsub);
     if (connectionUnsub) videoUnsubsRef.current.push(connectionUnsub);
     if (captureUnsub) videoUnsubsRef.current.push(captureUnsub);
+    if (dimensionsUnsub) videoUnsubsRef.current.push(dimensionsUnsub);
 
     try {
       await vc.join(token, { audio: true, video: true });
@@ -256,31 +283,29 @@ export default function EncounterScreen() {
     return () => {
       cancelled = true;
       videoAttemptRef.current += 1;
-      joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
-        const staleClient = vcRef.current;
-        vcRef.current = null;
-        clearVideoListeners();
-        try { await staleClient?.leave(); } catch {}
-      });
+      const staleClient = vcRef.current;
+      vcRef.current = null;
+      clearVideoListeners();
+      const stopping = staleClient?.leave().catch(() => {});
+      joinChainRef.current = joinChainRef.current.catch(() => {}).then(() => stopping);
     };
   }, [encId, squadId]);
 
   useEffect(() => {
     if (!encId || !squadId) return;
     const scope = { kind: 'encounter' as const, encounterId: encId, squadId };
-    messageIdsRef.current.clear();
     reactionTimersRef.current.splice(0).forEach(clearTimeout);
     setMessages([]);
-    setUnread(0);
+    setChatUnread({ everyone: 0, squad: 0 });
+    setDrafts({ everyone: '', squad: '' });
     setFloatingReactions([]);
     joinChat(scope);
     const unsubscribeChat = subscribeChat((message) => {
-      if (message.encounterId !== encId) return;
-      if (messageIdsRef.current.has(message.id)) return;
-      messageIdsRef.current.add(message.id);
-      setMessages((previous) => [...previous, message]);
-      if (!chatVisibleRef.current && message.userId !== session.user?.id) {
-        setUnread((value) => Math.min(value + 1, 99));
+      if (!chatMessageMatchesScope(message, scope) && !chatMessageMatchesScope(message, { kind: 'lobby', squadId })) return;
+      setMessages((previous) => mergeChatMessage(previous, message));
+      const audience = message.encounterId ? 'everyone' : 'squad';
+      if (message.userId !== session.user?.id && (!chatVisibleRef.current || chatAudienceRef.current !== audience)) {
+        setChatUnread((counts) => ({ ...counts, [audience]: Math.min(counts[audience] + 1, 99) }));
       }
     });
     const unsubscribeReaction = subscribeReaction((reaction) => {
@@ -297,8 +322,14 @@ export default function EncounterScreen() {
     if (!encId || !squadId) return;
     const socket = connectSocket(squadId);
     socket.emit(SOCKET_EMIT.JOIN_ENCOUNTER, encId);
-    const onEnded = (payload?: { encounterId?: string; reason?: string; endedBySquadId?: string }) => {
+    const onEnded = (payload?: { encounterId?: string; reason?: string; queueStatus?: string; endedBySquadId?: string }) => {
       if (payload?.encounterId && payload.encounterId !== encId) return;
+      if (nextPendingRef.current) return;
+      if (payload?.reason === 'next_squad') {
+        void detachVideo();
+        router.replace(`/${payload.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
+        return;
+      }
       if (payload?.endedBySquadId === squadId) return;
       setShowChat(false);
       setMoreOpen(false);
@@ -314,8 +345,8 @@ export default function EncounterScreen() {
 
   chatVisibleRef.current = showChat;
   useEffect(() => {
-    if (showChat) setUnread(0);
-  }, [showChat]);
+    if (showChat) setChatUnread((counts) => ({ ...counts, [chatAudience]: 0 }));
+  }, [showChat, chatAudience]);
 
   useEffect(() => {
     let mounted = true;
@@ -329,14 +360,7 @@ export default function EncounterScreen() {
     };
   }, []);
 
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', (event) => setKeyboardHeight(event.endCoordinates.height));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
+
 
   useEffect(() => () => {
     reactionTimersRef.current.splice(0).forEach(clearTimeout);
@@ -425,25 +449,37 @@ export default function EncounterScreen() {
   const participantById = new Map(participants.map((person) => [person.id, person]));
   const remoteFor = (person: EncounterParticipant) =>
     person.uid == null ? undefined : remotes.find((remote) => String(remote.uid) === String(person.uid));
+  const ratioFor = (person: EncounterParticipant) => {
+    const uid = person.isLocal ? 0 : person.uid;
+    const dimensions = videoDimensions.find((item) => String(item.uid) === String(uid));
+    return dimensions && dimensions.height > 0 ? dimensions.width / dimensions.height : 1;
+  };
 
   function sendMessage() {
     const text = draft.trim();
-    if (!text) return;
+    if (!text || sendingChatRef.current) return;
     setChatError('');
-    if (!encId || !squadId) {
-      setChatError("Chat isn't connected yet.");
-      return;
-    }
+    if (!encId || !squadId) { setChatError("Chat isn't connected yet."); return; }
+    const audience = chatAudience;
+    sendingChatRef.current = true;
+    setSendingChat(true);
     const sent = sendChatMessage(
-      { kind: 'encounter', encounterId: encId, squadId },
+      audience === 'everyone' ? { kind: 'encounter', encounterId: encId, squadId } : { kind: 'lobby', squadId },
       text,
       { id: session.user?.id ?? '', name: session.user?.name ?? 'You' },
+      { clientMessageId: `${Date.now()}-${Math.random().toString(36).slice(2)}`, ack: (result) => {
+        sendingChatRef.current = false;
+        setSendingChat(false);
+        if (!result.ok) { setChatError(result.error); return; }
+        setMessages((previous) => mergeChatMessage(previous, result.message));
+        setDrafts((previous) => ({ ...previous, [audience]: previous[audience].trim() === text ? '' : previous[audience] }));
+      } },
     );
     if (!sent) {
-      setChatError("Couldn't send message.");
-      return;
+      sendingChatRef.current = false;
+      setSendingChat(false);
+      setChatError("Couldn't send. Your message is saved here. Try again.");
     }
-    setDraft('');
   }
 
   async function handleMicToggle() {
@@ -554,6 +590,7 @@ export default function EncounterScreen() {
     setConnState('DISCONNECTED');
     setCaptureState({ audio: 'off', video: 'off' });
     setRemotes([]);
+    setVideoDimensions([]);
     setLoudestUid(null);
     const clientExit = client?.leave().catch(() => {}) ?? Promise.resolve();
     return clientExit;
@@ -575,6 +612,35 @@ export default function EncounterScreen() {
     } catch {
       setBlocking(false);
       setBlockError("Couldn't block this squad yet. Try again.");
+    }
+  }
+
+  async function leaveCall() {
+    setEnding(true);
+    setEndError('');
+    await detachVideo();
+    try {
+      await api.setEncounterVideo(squadId, false);
+      router.replace('/home');
+    } catch {
+      setEnding(false);
+      setEndError('Your camera and microphone are off. Couldn’t update your call status. Try leaving again.');
+    }
+  }
+
+  async function findNextSquad() {
+    if (!squadId || !encId || nextPendingRef.current) return;
+    nextPendingRef.current = true;
+    setNextPending(true);
+    setNextError('');
+    try {
+      const result = await api.skip(squadId, encId);
+      await detachVideo();
+      router.replace(`/${result.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
+    } catch {
+      nextPendingRef.current = false;
+      setNextPending(false);
+      setNextError('Couldn’t move your squad. Try again.');
     }
   }
 
@@ -657,11 +723,10 @@ export default function EncounterScreen() {
         : null;
   const localParticipant = participants.find((person) => person.isLocal);
   const hasFocusedFrame = layout.kind !== 'squad-split';
+  const focusedPersonalFit = layout.focusId ? personalFraming[layout.focusId]?.fit ?? focusedFit : focusedFit;
   const hasCompactSelfView = !!localParticipant && localParticipant.id !== layout.focusId &&
     (layout.kind === 'remote-main' || layout.kind === 'single-focus');
-  const chatSheetHeight = keyboardHeight > 0
-    ? Math.max(180, height - keyboardHeight - 96)
-    : Math.max(180, Math.min(height - 96, height * 0.55));
+  const phoneChat = width < 700 || (height < 500 && width < 950);
 
   function renderParticipant(id: string | null, fit: 'fit' | 'crop', compact = false) {
     if (!id) return null;
@@ -679,7 +744,8 @@ export default function EncounterScreen() {
           ? 'Camera unavailable'
           : !videoReady || captureState.video === 'pending' ? 'Connecting' : 'Camera off'
       : !videoReady || !remote ? 'Connecting' : 'Camera off';
-    const color = TILE_COLORS[person.colorIndex % TILE_COLORS.length];
+    const personalView = personalFraming[person.id] ?? { fit, zoom: 1 };
+    const mutedForMe = remote?.mutedForMe === true;
     const speaking = String(person.isLocal ? myUidRef.current : person.uid) === loudestUid;
     const canvas = { uid: person.isLocal ? 0 : person.uid };
 
@@ -687,26 +753,28 @@ export default function EncounterScreen() {
       <TouchableOpacity
         key={person.id}
         activeOpacity={0.9}
-        onPress={() => setPinnedId((current) => current === person.id ? null : person.id)}
+        onPress={() => setSelectedPersonId(person.id)}
         accessibilityRole="button"
-        accessibilityLabel={`${pinnedId === person.id ? 'Unpin' : 'Pin'} ${person.name}'s video`}
+        accessibilityLabel={`${person.isLocal ? 'Your' : `${person.name}'s`} options`}
         accessibilityState={{ selected: pinnedId === person.id }}
         style={[
           styles.participantTile,
           compact && styles.participantTileCompact,
-          speaking && styles.participantTileSpeaking,
+
         ]}
       >
-        <LinearGradient colors={[color + '52', color + '18']} style={StyleSheet.absoluteFill} />
+
         {hasVideo ? (
-          <RtcSurface fit={fit} pointerEvents="none" style={StyleSheet.absoluteFill} canvas={canvas} />
+          <RtcSurface fit={personalView.fit} pointerEvents="none" style={[StyleSheet.absoluteFill, { transform: [{ scale: personalView.zoom }] }]} canvas={canvas} />
         ) : (
           <View style={styles.participantFallback}>
-            <Avatar name={person.name} size={compact ? 34 : 58} colorIndex={person.colorIndex} />
+            <View style={[styles.personInitial, compact && { width: 34, height: 34 }]}>
+              <Text style={[styles.personInitialText, compact && { fontSize: 18 }]}>{person.name.slice(0, 1).toUpperCase()}</Text>
+            </View>
             {!compact && <Text style={styles.participantStatus}>{status}</Text>}
           </View>
         )}
-        <View style={styles.tileNamePill}>
+        <LinearGradient pointerEvents="none" colors={['transparent', '#0009']} style={styles.tileNamePill}>
           <Text
             style={styles.tileNameText}
             numberOfLines={1}
@@ -719,7 +787,9 @@ export default function EncounterScreen() {
               <Icon.mic size={9} color="#fff" />
             </View>
           )}
-        </View>
+          {mutedForMe && <Text style={styles.personalMute} accessibilityLabel="Muted for you">Quiet</Text>}
+          {speaking && !mutedForMe && <View style={styles.speakingDot} accessibilityLabel="Speaking" />}
+        </LinearGradient>
         <View pointerEvents="none" style={styles.reactionStack}>
           {floatingReactions
             .filter((reaction) => reaction.senderId === person.id)
@@ -823,6 +893,17 @@ export default function EncounterScreen() {
   }
 
   function renderAdaptiveStage() {
+    if (!pinnedId) {
+      return (
+        <AdaptiveVideoStage
+          mine={mineParticipants.map((person) => ({ id: person.id, side: 'mine' as const, ratio: ratioFor(person) }))}
+          theirs={theirParticipants.map((person) => ({ id: person.id, side: 'theirs' as const, ratio: ratioFor(person) }))}
+          renderTile={(person) => renderParticipant(person.id, 'crop')}
+          mineLabel={`${mySquad?.name ?? 'Yours'} · ${mineParticipants.length}`}
+          theirsLabel={`${theirSquad?.name ?? 'Theirs'} · ${theirParticipants.length}`}
+        />
+      );
+    }
     if (layout.kind === 'remote-main') return renderFocusedStage(false);
     if (layout.kind === 'squad-split') {
       return (
@@ -852,8 +933,11 @@ export default function EncounterScreen() {
     return null;
   }
 
+  const selectedPerson = participants.find(person => person.id === selectedPersonId);
+  const selectedRemote = selectedPerson ? remoteFor(selectedPerson) : undefined;
   return (
-    <Screen>
+    <Screen style={{ backgroundColor: COLORS.bg }}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* ── Slim top bar ── */}
       <View style={styles.topBar}>
         <View style={styles.topRight}>
@@ -862,6 +946,8 @@ export default function EncounterScreen() {
         </View>
       </View>
 
+      <View style={{ flex: 1, minHeight: 0, flexDirection: phoneChat ? 'column' : 'row' }}>
+      <View style={{ flex: 1, minHeight: 0, minWidth: 0, display: phoneChat && showChat ? 'none' : 'flex' }}>
       <View style={styles.videoArea}>
         {!enc ? (
           <View style={styles.encounterState}>
@@ -914,6 +1000,84 @@ export default function EncounterScreen() {
         )}
       </View>
 
+      </View>
+          <View
+            style={[
+              styles.chatSheet,
+              { display: showChat ? 'flex' : 'none', width: phoneChat ? '100%' : 300, height: '100%', flex: phoneChat ? 1 : undefined },
+            ]}
+          >
+            <View style={styles.sheetHeader}>
+              <View>
+                {phoneChat ? <TouchableOpacity onPress={() => setShowChat(false)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center' }}><Text style={styles.sheetTitle}>← Back to video</Text></TouchableOpacity> : <Text style={styles.sheetTitle}>Chat</Text>}
+                <Text style={styles.sheetSubtitle}>{chatAudience === 'everyone' ? 'Both squads can see this' : 'Only your squad can see this'}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowChat(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close chat"
+                style={styles.sheetClose}
+              >
+                <Icon.close size={18} color={COLORS.textMuted} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', paddingHorizontal: 12, gap: 6 }}>
+              {(['everyone', 'squad'] as const).map((audience) => <TouchableOpacity key={audience}
+                onPress={() => { setChatAudience(audience); setChatError(''); }}
+                accessibilityRole="button" accessibilityState={{ selected: audience === chatAudience }}
+                style={{ flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: audience === chatAudience ? COLORS.violetSoft : 'transparent' }}>
+                <Text style={{ color: audience === chatAudience ? COLORS.violet : COLORS.textMuted, fontWeight: '700' }}>
+                  {audience === 'everyone' ? 'Everyone' : 'Your squad'}{chatUnread[audience] ? ` ${chatUnread[audience]}` : ''}
+                </Text>
+              </TouchableOpacity>)}
+            </View>
+            {chatError ? (
+              <View style={styles.chatError} accessibilityRole="alert">
+                <Text style={styles.chatErrorTitle}>Message not sent</Text>
+                <Text style={styles.chatErrorText}>{chatError}</Text>
+              </View>
+            ) : null}
+            <ScrollView
+              ref={chatScrollRef}
+              onContentSizeChange={() => chatScrollRef.current?.scrollToEnd({ animated: !reduceMotion })}
+              style={styles.chatMessages}
+              contentContainerStyle={styles.chatScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              {visibleMessages.length === 0 && <Text style={styles.chatEmpty}>No messages yet.</Text>}
+              {visibleMessages.map((message) => (
+                <View key={message.id} style={[styles.chatMsg, message.userId === myUserId && styles.chatMsgOwn]}>
+                  <Text style={styles.chatFrom}>{message.userId === myUserId ? 'You' : message.name || 'Someone'}</Text>
+                  <Text style={styles.chatText}>{message.text}</Text>
+                </View>
+              ))}
+            </ScrollView>
+            <View style={styles.chatInputRow}>
+              <TextInput
+                style={styles.chatInput}
+                placeholder={chatAudience === 'everyone' ? 'Message everyone…' : 'Message your squad…'}
+                placeholderTextColor={COLORS.textDim}
+                value={draft}
+                onChangeText={setDraft}
+                onSubmitEditing={sendMessage}
+                accessibilityLabel="Chat message"
+                editable={!sendingChat}
+                maxLength={500}
+                returnKeyType="send"
+              />
+              <TouchableOpacity
+                disabled={!draft.trim() || sendingChat}
+                accessibilityState={{ disabled: !draft.trim() || sendingChat }}
+                style={[styles.chatSend, (!draft.trim() || sendingChat) && { opacity: 0.45 }]}
+                onPress={sendMessage}
+                accessibilityRole="button"
+                accessibilityLabel="Send message"
+              >
+                <Text style={styles.chatSendText}>{sendingChat ? 'Sending…' : 'Send'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+      </View>
       {/* ── Bottom control row ── */}
       <View style={styles.controls}>
         <View style={styles.ctrlWrap}>
@@ -925,8 +1089,8 @@ export default function EncounterScreen() {
             style={[styles.ctrl, !mic && styles.ctrlOff]}
           >
             <Icon.mic size={22} color={mic ? COLORS.text : COLORS.coral} />
+            <Text style={styles.ctrlLabel}>Mic</Text>
           </TouchableOpacity>
-          <Text style={styles.ctrlLabel}>Mic</Text>
         </View>
 
         <View style={styles.ctrlWrap}>
@@ -938,8 +1102,8 @@ export default function EncounterScreen() {
             style={[styles.ctrl, !cam && styles.ctrlOff]}
           >
             <Icon.cam size={22} color={cam ? COLORS.text : COLORS.coral} />
+            <Text style={styles.ctrlLabel}>Camera</Text>
           </TouchableOpacity>
-          <Text style={styles.ctrlLabel}>Cam</Text>
         </View>
 
         <View style={styles.ctrlWrap}>
@@ -960,8 +1124,8 @@ export default function EncounterScreen() {
                 <Text style={styles.unreadText}>{unread > 9 ? '9+' : unread}</Text>
               </View>
             )}
+            <Text style={styles.ctrlLabel}>Chat</Text>
           </TouchableOpacity>
-          <Text style={styles.ctrlLabel}>Chat</Text>
         </View>
 
         <View style={styles.ctrlWrap}>
@@ -978,8 +1142,8 @@ export default function EncounterScreen() {
             style={[styles.ctrl, moreOpen && styles.ctrlActive]}
           >
             <Text style={styles.moreGlyph}>•••</Text>
+            <Text style={styles.ctrlLabel}>More</Text>
           </TouchableOpacity>
-          <Text style={styles.ctrlLabel}>More</Text>
         </View>
 
         <View style={styles.ctrlWrap}>
@@ -987,95 +1151,36 @@ export default function EncounterScreen() {
             onPress={() => {
               setShowChat(false);
               setMoreOpen(false);
+              setExitKind('leave');
               setEndError('');
               setEndConfirmOpen(true);
             }}
             accessibilityRole="button"
-            accessibilityLabel="End encounter"
+            accessibilityLabel="Leave call"
             style={[styles.ctrl, styles.ctrlEnd]}
           >
-            <Icon.close size={20} color="#fff" />
+            <Icon.hangup size={23} color="#fff" />
+            <Text style={styles.ctrlLabel}>Leave</Text>
           </TouchableOpacity>
-          <Text style={styles.ctrlLabel}>End</Text>
         </View>
       </View>
 
-      <Modal
-        visible={showChat}
-        transparent
-        animationType="slide"
-        statusBarTranslucent
-        onRequestClose={() => setShowChat(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.modalOverlay}
-        >
-          <View
-            accessibilityViewIsModal
-            style={[
-              styles.chatSheet,
-              { height: chatSheetHeight, paddingBottom: Math.max(insets.bottom, SPACE.sm) },
-            ]}
-          >
-            <View style={styles.sheetHeader}>
-              <View>
-                <Text style={styles.sheetTitle}>Chat</Text>
-                <Text style={styles.sheetSubtitle}>Both squads</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setShowChat(false)}
-                accessibilityRole="button"
-                accessibilityLabel="Close chat"
-                style={styles.sheetClose}
-              >
-                <Icon.close size={18} color={COLORS.textMuted} />
-              </TouchableOpacity>
-            </View>
-            {chatError ? (
-              <View style={styles.chatError} accessibilityRole="alert">
-                <Text style={styles.chatErrorTitle}>Message not sent</Text>
-                <Text style={styles.chatErrorText}>{chatError}</Text>
-              </View>
-            ) : null}
-            <ScrollView
-              style={styles.chatMessages}
-              contentContainerStyle={styles.chatScroll}
-              keyboardShouldPersistTaps="handled"
-            >
-              {messages.length === 0 && <Text style={styles.chatEmpty}>No messages yet. Say hi!</Text>}
-              {messages.map((message) => (
-                <View key={message.id} style={[styles.chatMsg, message.userId === myUserId && styles.chatMsgOwn]}>
-                  <Text style={styles.chatFrom}>{message.userId === myUserId ? 'You' : message.name || 'Someone'}</Text>
-                  <Text style={styles.chatText}>{message.text}</Text>
-                </View>
-              ))}
-            </ScrollView>
-            <View style={styles.chatInputRow}>
-              <TextInput
-                style={styles.chatInput}
-                placeholder="Message…"
-                placeholderTextColor={COLORS.textDim}
-                value={draft}
-                onChangeText={setDraft}
-                onSubmitEditing={sendMessage}
-                accessibilityLabel="Chat message"
-                maxLength={500}
-                returnKeyType="send"
-              />
-              <TouchableOpacity
-                style={styles.chatSend}
-                onPress={sendMessage}
-                accessibilityRole="button"
-                accessibilityLabel="Send message"
-              >
-                <Text style={styles.chatSendText}>Send</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
+      </KeyboardAvoidingView>
 
+      {selectedPerson && <ParticipantOptions key={selectedPerson.id}
+        name={selectedPerson.name} isLocal={selectedPerson.isLocal}
+        hasVideo={videoReady && (selectedPerson.isLocal ? cam && captureState.video === 'active' : !!selectedRemote?.hasVideo)}
+        mutedForMe={selectedRemote?.mutedForMe === true}
+        onMute={!selectedPerson.isLocal && selectedPerson.uid != null && selectedRemote ? async muted => {
+          if (!vcRef.current) throw new Error('The call is reconnecting. Try again.');
+          await vcRef.current.setRemoteAudioMuted(selectedPerson.uid!, muted);
+        } : undefined}
+        framing={personalFraming[selectedPerson.id] ?? { fit: pinnedId === selectedPerson.id ? focusedFit : 'crop', zoom: 1 }}
+        onFraming={next => setPersonalFraming(previous => ({ ...previous, [selectedPerson.id]: next }))}
+        onClose={() => setSelectedPersonId(null)}
+        onFocus={() => setPinnedId(current => current === selectedPerson.id ? null : selectedPerson.id)}
+        focused={pinnedId === selectedPerson.id}
+      />}
       <Modal
         visible={moreOpen}
         transparent
@@ -1103,6 +1208,10 @@ export default function EncounterScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView contentContainerStyle={styles.moreContent}>
+              {NATIVE_DISCOVERY_ENABLED && mySquad?.members.some(member => member.userId === session.user?.id && member.role === 'leader') && (
+                <TouchableOpacity style={styles.actionRow} accessibilityRole="button" accessibilityLabel="Next squad" onPress={() => { setMoreOpen(false); setNextError(''); setNextConfirmOpen(true); }}><Text style={styles.actionText}>Next squad</Text></TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.actionRow} accessibilityRole="button" accessibilityLabel="End encounter" onPress={() => { setExitKind('end'); setMoreOpen(false); setEndError(''); setEndConfirmOpen(true); }}><Text style={styles.actionText}>End encounter for both squads</Text></TouchableOpacity>
               <Text style={styles.actionLabel}>Reactions</Text>
               <View style={styles.reactionChoices}>
               {REACTION_EMOJIS.map((emoji) => (
@@ -1149,15 +1258,20 @@ export default function EncounterScreen() {
               {hasFocusedFrame && (
                 <TouchableOpacity
                 onPress={() => {
-                  setFocusedFit((current) => current === 'fit' ? 'crop' : 'fit');
+                  const nextFit = focusedPersonalFit === 'fit' ? 'crop' : 'fit';
+                  setFocusedFit(nextFit);
+                  if (layout.focusId) {
+                    const focusId = layout.focusId;
+                    setPersonalFraming(previous => ({ ...previous, [focusId]: { fit: nextFit, zoom: 1 } }));
+                  }
                   setMoreOpen(false);
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={focusedFit === 'fit' ? 'Crop focused video' : 'Fit focused video'}
+                accessibilityLabel={focusedPersonalFit === 'fit' ? 'Crop focused video' : 'Fit focused video'}
                 style={styles.actionRow}
               >
                 <Icon.cam size={20} color={COLORS.textMuted} />
-                <Text style={styles.actionText}>{focusedFit === 'fit' ? 'Crop focused video' : 'Fit focused video'}</Text>
+                <Text style={styles.actionText}>{focusedPersonalFit === 'fit' ? 'Crop focused video' : 'Fit focused video'}</Text>
                 </TouchableOpacity>
               )}
               {hasCompactSelfView && (
@@ -1232,6 +1346,18 @@ export default function EncounterScreen() {
         </View>
       </Modal>
 
+      <Modal visible={nextConfirmOpen} transparent animationType="fade" statusBarTranslucent onRequestClose={() => { if (!nextPending) setNextConfirmOpen(false); }}>
+        <View style={styles.confirmOverlay}><View accessibilityViewIsModal style={styles.confirmCard}>
+          <Text style={styles.confirmTitle}>Find another squad?</Text>
+          <Text style={styles.confirmCopy}>Your whole squad will leave this call and search together.</Text>
+          {nextError ? <Text style={styles.endError} accessibilityRole="alert">{nextError}</Text> : null}
+          <View style={styles.confirmActions}>
+            <TouchableOpacity disabled={nextPending} style={styles.confirmSecondary} accessibilityRole="button" onPress={() => setNextConfirmOpen(false)}><Text style={styles.confirmSecondaryText}>Keep talking</Text></TouchableOpacity>
+            <TouchableOpacity disabled={nextPending} style={styles.confirmDanger} accessibilityRole="button" accessibilityLabel="Confirm next squad" onPress={findNextSquad}><Text style={styles.confirmDangerText}>{nextPending ? 'Moving squad…' : 'Next squad'}</Text></TouchableOpacity>
+          </View>
+        </View></View>
+      </Modal>
+
       <Modal
         visible={endConfirmOpen}
         transparent
@@ -1243,8 +1369,8 @@ export default function EncounterScreen() {
       >
         <View style={styles.confirmOverlay}>
           <View accessibilityViewIsModal style={styles.confirmCard}>
-            <Text style={styles.confirmTitle}>End encounter?</Text>
-            <Text style={styles.confirmCopy}>This ends the current encounter for both squads.</Text>
+            <Text style={styles.confirmTitle}>{exitKind === 'leave' ? 'Leave this call?' : 'End encounter?'}</Text>
+            <Text style={styles.confirmCopy}>{exitKind === 'leave' ? 'Only you will leave. Your squad can keep talking.' : 'This ends the current encounter for both squads.'}</Text>
             {endError ? <Text style={styles.endError} accessibilityRole="alert">{endError}</Text> : null}
             <View style={styles.confirmActions}>
               <TouchableOpacity
@@ -1260,14 +1386,14 @@ export default function EncounterScreen() {
                 <Text style={styles.confirmSecondaryText}>{endError ? 'Reconnect call' : 'Keep talking'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={endEncounter}
+                onPress={exitKind === 'leave' ? leaveCall : endEncounter}
                 disabled={ending}
                 accessibilityRole="button"
-                accessibilityLabel="End encounter"
+                accessibilityLabel={exitKind === 'leave' ? 'Confirm leave call' : 'End encounter'}
                 accessibilityState={{ disabled: ending }}
                 style={styles.confirmDanger}
               >
-                <Text style={styles.confirmDangerText}>{ending ? 'Ending…' : 'End encounter'}</Text>
+                <Text style={styles.confirmDangerText}>{ending ? 'Leaving…' : exitKind === 'leave' ? 'Leave call' : 'End encounter'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1383,8 +1509,8 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACE.md,
     marginTop: SPACE.sm,
     padding: SPACE.sm,
-    borderRadius: RADII.tile,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: 0,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
   },
@@ -1419,13 +1545,15 @@ const styles = StyleSheet.create({
     minHeight: 0,
     overflow: 'hidden',
     position: 'relative',
-    borderRadius: RADII.tile,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderRadius: 14,
+    borderWidth: 0,
+    borderColor: 'transparent',
     backgroundColor: COLORS.surface,
   },
   participantTileCompact: { borderRadius: 11 },
   participantTileSpeaking: { borderColor: COLORS.lime, borderWidth: 2 },
+  personInitial: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#514b43', alignItems: 'center', justifyContent: 'center' },
+  personInitialText: { color: '#faf7f2', fontSize: 26 },
   participantFallback: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
   participantStatus: { color: COLORS.textMuted, fontSize: 11, fontWeight: '600' },
   filmstrip: { flexGrow: 0, height: 76 },
@@ -1450,16 +1578,15 @@ const styles = StyleSheet.create({
   // Name pill overlay
   tileNamePill: {
     position: 'absolute',
-    bottom: 5, left: 5, right: 5,
+    bottom: 0, left: 0, right: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 7,
-    paddingVertical: 3,
-    paddingHorizontal: 7,
+    paddingTop: 22, paddingBottom: 8, paddingHorizontal: 8,
   },
-  tileNameText: { fontSize: 10, fontWeight: '700', color: '#fff', flex: 1 },
+  tileNameText: { fontSize: 12, fontWeight: '500', color: '#fff', flex: 1 },
+  personalMute: { color: '#f5c2ae', fontSize: 10 },
+  speakingDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#b7cba5' },
   mutedBadge: {
     width: 20, height: 20, borderRadius: 10, backgroundColor: COLORS.coral,
     alignItems: 'center', justifyContent: 'center',
@@ -1491,8 +1618,8 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACE.lg,
     marginTop: SPACE.md,
     padding: SPACE.sm,
-    borderRadius: RADII.tile,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: 0,
     borderColor: 'rgba(255,92,92,0.28)',
     backgroundColor: 'rgba(255,92,92,0.10)',
   },
@@ -1540,18 +1667,17 @@ const styles = StyleSheet.create({
 
   // ── Bottom controls ──
   controls: {
-    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-start',
-    paddingHorizontal: SPACE.lg, paddingVertical: SPACE.md,
-    borderTopWidth: 1, borderTopColor: COLORS.border,
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8,
+    paddingHorizontal: 8, paddingVertical: 12,
     backgroundColor: COLORS.bg,
   },
   ctrlWrap: { alignItems: 'center', gap: 5, minWidth: 52 },
-  ctrlLabel: { fontSize: 9, color: COLORS.textDim, fontWeight: '600' },
+  ctrlLabel: { fontSize: 12, color: '#faf7f2', fontWeight: '400' },
   ctrl: {
     position: 'relative',
-    width: 52, height: 52, borderRadius: 26,
+    width: 52, height: 60, borderRadius: 14, gap: 5,
     backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: COLORS.border,
+    borderWidth: 0,
   },
   ctrlOff: { backgroundColor: COLORS.coralSoft, borderColor: COLORS.coral },
   ctrlActive: { borderColor: COLORS.violet, backgroundColor: COLORS.violetSoft },
@@ -1559,7 +1685,7 @@ const styles = StyleSheet.create({
   unreadBadge: { position: 'absolute', top: -4, right: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.coral },
   unreadText: { color: '#fff', fontSize: 10, fontWeight: '900' },
   ctrlEnd: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: COLORS.coral, borderColor: COLORS.coral,
+    width: 52, height: 60, borderRadius: 14,
+    backgroundColor: '#b34e36',
   },
 });

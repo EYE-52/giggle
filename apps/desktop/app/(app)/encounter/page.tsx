@@ -1,62 +1,43 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { advanceSpeakerFocus, api, connectSocket, createOpponentUserIds, deriveEncounterLayout, EMPTY_SPEAKER_FOCUS, SOCKET_EVENTS, SOCKET_EMIT, getMyAvatar, subscribeAvatar, DEFAULT_AVATAR_ID, session, sendChatMessage, sendReaction, subscribeReaction, reportOpponentSquad, joinChat, subscribeChat } from "@giggle/core";
+import {
+  advanceSpeakerFocus,
+  chatMessageMatchesScope,
+  mergeChatMessage,
+  api,
+  connectSocket,
+  createOpponentUserIds,
+  deriveEncounterLayout,
+  EMPTY_SPEAKER_FOCUS,
+  SOCKET_EVENTS,
+  SOCKET_EMIT,
+  getMyAvatar,
+  subscribeAvatar,
+  DEFAULT_AVATAR_ID,
+  session,
+  sendChatMessage,
+  sendReaction,
+  subscribeReaction,
+  reportOpponentSquad,
+  joinChat,
+  subscribeChat,
+} from "@giggle/core";
 import type { EncounterDetail } from "@giggle/core";
 import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { Icon } from "@/components/Icons";
 import { ChatPanel, type ChatPanelMessage } from "@/components/ChatPanel";
 import { Button } from "@/components/Button";
+import { ParticipantVideoTile as VideoTile } from "@/components/ParticipantVideoTile";
+import { AdaptiveVideoStage } from "@/components/AdaptiveVideoStage";
 import { Modal } from "@/components/Modal";
 import { createVideoClient } from "@giggle/agora";
 import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
-import { coverBackground, coverKind, fallbackGradient } from "@/components/covers";
-import { useTheme } from "@/components/useTheme";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 
-const avatarColors = ["#7C5CFF", "#3DD6C0", "#FF8A5C", "#C2FF3D", "#FF5C8A", "#5C8CFF", "#FFC65C", "#9B7CFF"];
-
 const REACTION_EMOJIS = ["👋", "🔥", "😂", "❤️", "👏"];
-
-function EncounterAtmosphere({
-  mine,
-  theirs,
-}: {
-  mine: { cover?: string | null; key: string };
-  theirs: { cover?: string | null; key: string };
-}) {
-  const themeId = useTheme();
-  const backgroundFor = ({ cover, key }: { cover?: string | null; key: string }) =>
-    cover
-      ? coverBackground(cover, coverKind(cover, themeId))
-      : fallbackGradient(key, coverKind(null, themeId));
-
-  return (
-    <div aria-hidden data-encounter-atmosphere style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
-      {[
-        { squad: mine, left: "-18%", right: "auto", top: "-24%" },
-        { squad: theirs, left: "auto", right: "-18%", top: "18%" },
-      ].map(({ squad, ...position }) => (
-        <div
-          key={squad.key}
-          style={{
-            position: "absolute",
-            ...position,
-            width: "70%",
-            height: "86%",
-            background: backgroundFor(squad),
-            filter: "blur(64px) saturate(.82)",
-            opacity: .2,
-            transform: "scale(1.12)",
-          }}
-        />
-      ))}
-      <div style={{ position: "absolute", inset: 0, background: "rgba(10,10,13,.62)" }} />
-    </div>
-  );
-}
 
 // Translate a thrown ApiError / Agora error into a friendly, non-technical
 // message for the video banner.
@@ -189,414 +170,6 @@ interface EncounterParticipant {
   isLocal: boolean;
 }
 
-function VideoTile({
-  name,
-  colorIndex,
-  micOn,
-  videoRef,
-  isLocal,
-  isSpeaking,
-  animClass,
-  onClick,
-  focused,
-  showFocusHint,
-  compact,
-  fit = "crop",
-  reactions = [],
-  localAvatarValue,
-  statusText = "Camera off",
-}: {
-  name: string;
-  colorIndex: number;
-  /** Mic state when KNOWN — pill renders only on explicit `false` (never on unknown). */
-  micOn?: boolean;
-  videoRef?: (el: HTMLDivElement | null) => void;
-  isLocal?: boolean;
-  isSpeaking?: boolean;
-  animClass?: string;
-  onClick?: () => void;
-  focused?: boolean;
-  showFocusHint?: boolean;
-  compact?: boolean;
-  fit?: MediaFit;
-  reactions?: FloatingReaction[];
-  /** Only passed for the local participant — renders their chosen AvatarArt instead of initials. */
-  localAvatarValue?: string;
-  /** Fallback status under the avatar: "Camera off" (default) or "Connecting…". */
-  statusText?: string;
-}) {
-  const bg = avatarColors[colorIndex % avatarColors.length];
-  const { isPhone } = useViewport();
-  // compact = strip/thumbnail tiles (short) → smaller avatar, no center name/subtext
-  const small = isPhone || compact;
-  const avSize = small ? 44 : 72;
-  const glowSize = small ? 54 : 160;
-  const [hovered, setHovered] = useState(false);
-  const mediaHostRef = useRef<HTMLDivElement | null>(null);
-  const backdropVideoRef = useRef<HTMLVideoElement | null>(null);
-
-  useEffect(() => {
-    const host = mediaHostRef.current;
-    const backdrop = backdropVideoRef.current;
-    if (fit !== "fit" || !host || !backdrop) return;
-
-    let foreground: HTMLVideoElement | null = null;
-    const sync = () => {
-      if (!foreground?.srcObject || backdrop.srcObject === foreground.srcObject) return;
-      backdrop.srcObject = foreground.srcObject;
-      backdrop.play().catch(() => {});
-    };
-
-    const bind = () => {
-      const next = host.querySelector("video");
-      if (next === foreground) return sync();
-      foreground?.removeEventListener("loadedmetadata", sync);
-      foreground?.removeEventListener("playing", sync);
-      foreground = next;
-      foreground?.addEventListener("loadedmetadata", sync);
-      foreground?.addEventListener("playing", sync);
-      sync();
-    };
-    const observer = new MutationObserver(bind);
-    observer.observe(host, { childList: true, subtree: true });
-    bind();
-    return () => {
-      observer.disconnect();
-      foreground?.removeEventListener("loadedmetadata", sync);
-      foreground?.removeEventListener("playing", sync);
-      backdrop.pause();
-      backdrop.srcObject = null;
-    };
-  }, [fit]);
-
-  return (
-    <div
-      data-media-frame
-      data-media-fit={fit}
-      onClick={onClick}
-      role={onClick ? "button" : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      aria-label={onClick ? (focused ? `Unpin ${name}'s video` : `Pin ${name}'s video`) : undefined}
-      aria-pressed={onClick ? !!focused : undefined}
-      onKeyDown={
-        onClick
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: `linear-gradient(155deg, ${bg}14, #0A0A0E 62%)`,
-        // One calm neutral frame. Speaking is drawn inside this boundary below.
-        border: focused
-          ? "1.5px solid rgba(255,255,255,0.32)"
-          : "1px solid rgba(255,255,255,0.09)",
-        borderRadius: "var(--radius-tile, 16px)",
-        overflow: "hidden",
-        contain: "paint",
-        isolation: "isolate",
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        minHeight: 0,
-        animation: animClass
-          ? undefined
-          : "tileIn 0.4s cubic-bezier(.22,1,.36,1) forwards",
-        boxShadow: focused
-          ? "0 12px 34px -14px rgba(0,0,0,0.75)"
-          : hovered
-          ? "0 14px 34px -14px rgba(0,0,0,0.7)"
-          : "0 8px 24px -16px rgba(0,0,0,0.6)",
-        transform: hovered && onClick ? "translateY(-2px)" : "translateY(0)",
-        transition: "border-color .3s cubic-bezier(.4,0,.2,1), box-shadow .3s cubic-bezier(.4,0,.2,1), transform .25s cubic-bezier(.22,1,.36,1)",
-        cursor: onClick ? "pointer" : undefined,
-      }}
-    >
-      {/* Camera-off fallback */}
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 12,
-          zIndex: 0,
-          minHeight: 0,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            width: glowSize,
-            height: glowSize,
-            borderRadius: "50%",
-            background: `radial-gradient(circle, ${bg}3A, transparent 70%)`,
-            filter: "blur(14px)",
-            flexShrink: 0,
-          }}
-        />
-        {isLocal && localAvatarValue ? (
-          /* Local user — show their chosen avatar */
-          <div style={{
-            position: "relative",
-            width: avSize, height: avSize,
-            flexShrink: 0,
-            borderRadius: "50%",
-            overflow: "hidden",
-            boxShadow: `0 0 28px -6px ${bg}, 0 0 0 1px rgba(255,255,255,0.12), inset 0 0 0 2px rgba(255,255,255,0.06)`,
-          }}>
-            <AvatarArt value={localAvatarValue} size={avSize} />
-          </div>
-        ) : (
-          /* Remote participants — initials circle (TODO: per-user avatars via backend) */
-          <div
-            style={{
-              position: "relative",
-              width: avSize,
-              height: avSize,
-              flexShrink: 0,
-              aspectRatio: "1 / 1",
-              borderRadius: "50%",
-              background: `linear-gradient(150deg, ${bg}, ${bg}99)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontFamily: "var(--font-display, var(--font-space-grotesk))",
-              fontWeight: 700,
-              fontSize: small ? 18 : 30,
-              color: "#0B0B0F",
-              boxShadow: `0 0 28px -6px ${bg}, 0 0 0 1px rgba(255,255,255,0.14), inset 0 -6px 14px -6px rgba(0,0,0,0.4)`,
-            }}
-          >
-            {name[0]}
-          </div>
-        )}
-        <div
-          style={{
-            position: "relative",
-            display: small ? "none" : "block",
-            fontFamily: "var(--font-display, var(--font-space-grotesk))",
-            fontWeight: 600,
-            fontSize: 13,
-            color: "#F4F4F7",
-          }}
-        >
-          {name}
-        </div>
-        <div
-          style={{
-            position: "relative",
-            display: small ? "none" : "flex",
-            alignItems: "center",
-            gap: 5,
-            fontSize: 12,
-            color: "#9A9AB0",
-          }}
-        >
-          <span
-            style={{
-              width: 5,
-              height: 5,
-              borderRadius: 999,
-              background: "#9A9AB0",
-              flexShrink: 0,
-            }}
-          />
-          {statusText}
-        </div>
-      </div>
-
-      {/* Soft fill behind focused Fit media. */}
-      {videoRef && fit === "fit" && (
-        <video
-          ref={backdropVideoRef}
-          data-media-backdrop
-          aria-hidden
-          muted
-          playsInline
-          style={{
-            position: "absolute",
-            inset: 0,
-            width: "100%",
-            height: "100%",
-            zIndex: 1,
-            filter: "blur(22px) brightness(.46) saturate(.8)",
-            transform: "scale(1.12)",
-            pointerEvents: "none",
-          }}
-        />
-      )}
-
-      {isSpeaking && (
-        <div
-          aria-hidden
-          data-speaking-cue
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 7,
-            border: "2px solid var(--live, #A3E635)",
-            borderRadius: "inherit",
-            pointerEvents: "none",
-          }}
-        />
-      )}
-
-      {/* Live video layer */}
-      {videoRef && (
-        <div
-          ref={(el) => {
-            mediaHostRef.current = el;
-            videoRef(el);
-          }}
-          data-media-host
-          style={{ position: "absolute", inset: 0, zIndex: 2, borderRadius: "inherit", overflow: "clip" }}
-        />
-      )}
-
-      {/* Bottom gradient overlay */}
-      <div
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: 68,
-          background: "linear-gradient(transparent, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.78))",
-          zIndex: 2,
-        }}
-      />
-
-      {/* Name pill */}
-      <div
-        style={{
-          position: "absolute",
-          left: 10,
-          bottom: 10,
-          zIndex: 6,
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          background: "color-mix(in srgb, var(--surface) 88%, transparent)",
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          border: "var(--control-border, 1px solid rgba(255,255,255,0.10))",
-          borderRadius: "var(--radius-pill, 999px)",
-          padding: "3px 10px 3px 8px",
-          boxShadow: "0 2px 10px -2px rgba(0,0,0,0.5)",
-          maxWidth: "calc(100% - 20px)",
-        }}
-      >
-        <span
-          style={{
-            fontSize: 12,
-            color: "var(--text, #F4F4F7)",
-            fontFamily: "var(--font-display, var(--font-space-grotesk))",
-            fontWeight: 600,
-            letterSpacing: "0.01em",
-            maxWidth: 160,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap" as const,
-          }}
-        >
-          {name}
-          {isLocal ? " (You)" : ""}
-        </span>
-      </div>
-
-      {/* Focus / expand hint icon (hover) */}
-      {showFocusHint && (hovered || focused) && (
-        <div
-          style={{
-            position: "absolute",
-            top: 10,
-            right: focused ? 44 : 10,
-            zIndex: 6,
-            background: "rgba(10,10,14,0.5)",
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderRadius: 9,
-            width: 28,
-            height: 28,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 14,
-            color: "#F4F4F7",
-            opacity: hovered ? 1 : 0.7,
-            transition: "opacity 0.15s",
-          }}
-          title={focused ? "Unpin" : "Pin / focus"}
-          aria-hidden
-        >
-          {focused ? <Icon.close size={13} color="#F4F4F7" /> : <Icon.pin size={13} color="#F4F4F7" />}
-        </div>
-      )}
-
-      {/* Mic indicator — only when the mic state is KNOWN to be off */}
-      {micOn === false && (
-        <div
-          style={{
-            position: "absolute",
-            top: 10,
-            right: 10,
-            background: "rgba(255,92,92,0.16)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            border: "1px solid rgba(255,92,92,0.4)",
-            borderRadius: 999,
-            padding: "3px 9px 3px 7px",
-            fontSize: 12,
-            color: "#FF8A8A",
-            fontWeight: 700,
-            letterSpacing: "0.02em",
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            zIndex: 6,
-            boxShadow: "0 2px 10px -2px rgba(255,92,92,0.45)",
-          }}
-        >
-          <Icon.mic size={10} color="#FF8A8A" />
-          Muted
-        </div>
-      )}
-
-      {reactions.map((reaction, index) => (
-        <div
-          key={reaction.id}
-          data-reaction
-          aria-hidden
-          style={{
-            position: "absolute",
-            right: 12 + index * 6,
-            bottom: 16 + index * 10,
-            zIndex: 8,
-            fontSize: compact ? 24 : 32,
-            lineHeight: 1,
-            pointerEvents: "none",
-            animation: "reactionFloat 1.8s ease forwards",
-            filter: "drop-shadow(0 4px 8px rgba(0,0,0,.55))",
-          }}
-        >
-          {reaction.emoji}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** Graceful placeholder shown while waiting for the other squad — never fake tiles. */
 function WaitingForSquad({ label = "Waiting for the other squad…" }: { label?: string }) {
   return (
     <div
@@ -607,7 +180,8 @@ function WaitingForSquad({ label = "Waiting for the other squad…" }: { label?:
         maxHeight: "100%",
         borderRadius: 18,
         border: "1px dashed rgba(124,92,255,0.28)",
-        background: "radial-gradient(120% 120% at 50% 20%, rgba(124,92,255,0.08), rgba(255,255,255,0.015) 60%)",
+        background:
+          "radial-gradient(120% 120% at 50% 20%, rgba(124,92,255,0.08), rgba(255,255,255,0.015) 60%)",
         boxShadow: "inset 0 0 40px -16px rgba(124,92,255,0.4)",
         display: "flex",
         flexDirection: "column",
@@ -628,7 +202,14 @@ function WaitingForSquad({ label = "Waiting for the other squad…" }: { label?:
           animation: "gg-spin 0.9s linear infinite",
         }}
       />
-      <div style={{ fontSize: 14, fontWeight: 600, color: "rgba(255,255,255,0.55)", fontFamily: "var(--font-display, var(--font-space-grotesk))" }}>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 600,
+          color: "rgba(255,255,255,0.55)",
+          fontFamily: "var(--font-display, var(--font-space-grotesk))",
+        }}
+      >
         {label}
       </div>
     </div>
@@ -644,12 +225,26 @@ function EncounterInner() {
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatAudience, setChatAudience] = useState<"everyone" | "squad">("everyone");
+  const [chatDrafts, setChatDrafts] = useState({ everyone: "", squad: "" });
+  const [chatUnread, setChatUnread] = useState({ everyone: 0, squad: 0 });
+  const chatAudienceRef = useRef(chatAudience);
+  chatAudienceRef.current = chatAudience;
+  const chatScope =
+    chatAudience === "everyone"
+      ? { kind: "encounter" as const, encounterId: encId, squadId }
+      : { kind: "lobby" as const, squadId };
   const [elapsed, setElapsed] = useState(0);
   const [encounter, setEncounter] = useState<EncounterDetail | null>(null);
   const [encounterLoading, setEncounterLoading] = useState(true);
   const [encounterError, setEncounterError] = useState<string | null>(null);
   const [ending, setEnding] = useState(false);
+  const [exitKind, setExitKind] = useState<"leave" | "end">("leave");
   const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [nextConfirmOpen, setNextConfirmOpen] = useState(false);
+  const [nextPending, setNextPending] = useState(false);
+  const [nextError, setNextError] = useState('');
+  const nextPendingRef = useRef(false);
   const [endError, setEndError] = useState<string | null>(null);
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([]);
   const reactionCountRef = useRef(0);
@@ -658,10 +253,16 @@ function EncounterInner() {
   const uiTimersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
   useEffect(() => {
     const timers = uiTimersRef.current;
-    return () => { timers.forEach(clearTimeout); timers.clear(); };
+    return () => {
+      timers.forEach(clearTimeout);
+      timers.clear();
+    };
   }, []);
   function setUiTimeout(fn: () => void, ms: number) {
-    const t = setTimeout(() => { uiTimersRef.current.delete(t); fn(); }, ms);
+    const t = setTimeout(() => {
+      uiTimersRef.current.delete(t);
+      fn();
+    }, ms);
     uiTimersRef.current.add(t);
   }
   const [endedNotice, setEndedNotice] = useState(false);
@@ -676,7 +277,7 @@ function EncounterInner() {
   const [blocking, setBlocking] = useState(false);
   const [blockError, setBlockError] = useState<string | null>(null);
   // Unread chat badge while the chat panel is closed (mirrors the lobby pattern).
-  const [unread, setUnread] = useState(0);
+  const unread = chatUnread.everyone + chatUnread.squad;
   const [chatMessages, setChatMessages] = useState<ChatPanelMessage[]>([]);
   const chatVisibleRef = useRef(false);
   // Reconnect UX: Agora connection lifecycle + user dismissal of the banner.
@@ -703,7 +304,7 @@ function EncounterInner() {
   const [hoveredCtrl, setHoveredCtrl] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
-  const [keyboardRaised, setKeyboardRaised] = useState(false);
+  const [keyboardInset, setKeyboardInset] = useState(0);
   const chatButtonRef = useRef<HTMLButtonElement | null>(null);
   const moreButtonRef = useRef<HTMLButtonElement | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
@@ -731,12 +332,14 @@ function EncounterInner() {
         moreOpen &&
         !moreMenuRef.current?.contains(target) &&
         !moreButtonRef.current?.contains(target)
-      ) closeMore(true);
+      )
+        closeMore(true);
       if (
         reactionsOpen &&
         !reactionMenuRef.current?.contains(target) &&
         !reactionButtonRef.current?.contains(target)
-      ) closeReactions(true);
+      )
+        closeReactions(true);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -753,12 +356,13 @@ function EncounterInner() {
 
   useEffect(() => {
     if (!chatOpen || width >= 1180) {
-      setKeyboardRaised(false);
+      setKeyboardInset(0);
       return;
     }
     const viewport = window.visualViewport;
     if (!viewport) return;
-    const sync = () => setKeyboardRaised(window.innerHeight - viewport.height > 120);
+    const sync = () =>
+      setKeyboardInset(Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop));
     sync();
     viewport.addEventListener("resize", sync);
     return () => viewport.removeEventListener("resize", sync);
@@ -782,14 +386,14 @@ function EncounterInner() {
   // per-tile "Muted" / "Camera off" / "Connecting…" signals.
   const [remotes, setRemotes] = useState<RemoteParticipant[]>([]);
   const remoteUids = remotes.map((r) => r.uid);
+  const remoteVideoKey = JSON.stringify(remotes.map(r => [r.uid, r.hasVideo]));
 
   const setLocalEl = (el: HTMLDivElement | null) => {
     localElRef.current = el;
   };
-  const setRemoteElByUid =
-    (uid: string | number) => (el: HTMLDivElement | null) => {
-      remoteElsRef.current.set(uid, el);
-    };
+  const setRemoteElByUid = (uid: string | number) => (el: HTMLDivElement | null) => {
+    remoteElsRef.current.set(uid, el);
+  };
   // Resolve media only by identity. Unknown remote UIDs keep their honest
   // connecting fallback instead of borrowing another person's stream.
   const participantRef = (
@@ -823,7 +427,9 @@ function EncounterInner() {
 
     const staleClient = vcRef.current;
     vcRef.current = null;
-    try { await staleClient?.leave(); } catch {}
+    try {
+      await staleClient?.leave();
+    } catch {}
     if (joinCancelled()) return;
 
     await api.setEncounterVideo(squadId, true);
@@ -846,10 +452,10 @@ function EncounterInner() {
     });
     vc.onVolumes?.((levels) => {
       if (vcRef.current !== vc) return;
-      const loudest = levels.reduce(
-        (best, level) => level.level > best.level ? level : best,
-        { uid: 0, level: 5 }
-      );
+      const loudest = levels.reduce((best, level) => (level.level > best.level ? level : best), {
+        uid: 0,
+        level: 5,
+      });
       setLoudestUid(loudest.level > 5 ? String(loudest.uid) : null);
     });
     vc.onConnectionState?.((state) => {
@@ -863,7 +469,7 @@ function EncounterInner() {
 
     await vc.join(tokenData, { audio: true, video: true });
     if (joinCancelled()) {
-      vcRef.current = null;
+      if (vcRef.current === vc) vcRef.current = null;
       await vc.leave().catch(() => {});
       return;
     }
@@ -878,8 +484,19 @@ function EncounterInner() {
     let socket: ReturnType<typeof connectSocket> | undefined;
     const endedEvent = SOCKET_EVENTS.ENCOUNTER_ENDED;
     const activeEvent = SOCKET_EVENTS.ENCOUNTER_ACTIVE;
-    const onEnded = (payload?: { encounterId?: string; reason?: string; endedBySquadId?: string }) => {
+    const onEnded = (payload?: {
+      encounterId?: string;
+      reason?: string;
+      queueStatus?: string;
+      endedBySquadId?: string;
+    }) => {
       if (payload?.encounterId && payload.encounterId !== encId) return;
+      if (nextPendingRef.current) return;
+      if (payload?.reason === 'next_squad') {
+        void leaveVideo();
+        router.replace(`/${payload.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
+        return;
+      }
       if (payload?.endedBySquadId === squadId) return;
       setEndedReason(payload?.reason === "squad_disconnected" ? "opponent-left" : "ended");
       setEndedNotice(true);
@@ -891,7 +508,10 @@ function EncounterInner() {
       endedNavTimerRef.current = setTimeout(() => router.push("/home"), 6500);
     };
     const onActive = () => {
-      api.getEncounter(encId).then(setEncounter).catch(() => {});
+      api
+        .getEncounter(encId)
+        .then(setEncounter)
+        .catch(() => {});
     };
 
     setEncounterLoading(true);
@@ -914,43 +534,46 @@ function EncounterInner() {
         return;
       }
 
-      joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
-        if (cancelled) return;
-        try {
-          await joinVideo(() => cancelled);
-        } catch (error) {
-          if (!cancelled) {
-            setConnState("DISCONNECTED");
-            setVideoError(describeVideoError(error));
+      joinChainRef.current = joinChainRef.current
+        .catch(() => {})
+        .then(async () => {
+          if (cancelled) return;
+          try {
+            await joinVideo(() => cancelled);
+          } catch (error) {
+            if (!cancelled) {
+              setConnState("DISCONNECTED");
+              setVideoError(describeVideoError(error));
+            }
           }
-        }
-      });
+        });
 
       socket = connectSocket(squadId);
-    socket.emit(SOCKET_EMIT.JOIN_ENCOUNTER, encId);
+      socket.emit(SOCKET_EMIT.JOIN_ENCOUNTER, encId);
 
-    // Lifecycle: opponent (or server) ended the encounter -> show a brief notice
-    // then return home so the user isn't stuck on a dead call.
-    socket.on(endedEvent, onEnded);
-    socket.on(activeEvent, onActive);
-
+      // Lifecycle: opponent (or server) ended the encounter -> show a brief notice
+      // then return home so the user isn't stuck on a dead call.
+      socket.on(endedEvent, onEnded);
+      socket.on(activeEvent, onActive);
     };
 
     boot();
 
     return () => {
-      if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
+      if (endedNavTimerRef.current) {
+        clearTimeout(endedNavTimerRef.current);
+        endedNavTimerRef.current = null;
+      }
       socket?.off(endedEvent, onEnded);
       socket?.off(activeEvent, onActive);
-      // Mark this mount cancelled and queue the leave AFTER the in-flight join
-      // on the same chain — so a StrictMode remount's join waits for this leave
-      // to finish (no overlapping joins on the same uid → no UID_CONFLICT).
+      // Stop owned media now, even while a permission prompt is pending.
+      // The chain still prevents the next join from overlapping SDK cleanup.
       cancelled = true;
-      joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
-        const staleClient = vcRef.current;
-        vcRef.current = null;
-        try { await staleClient?.leave(); } catch {}
-      });
+      videoGenerationRef.current += 1;
+      const staleClient = vcRef.current;
+      vcRef.current = null;
+      const stopping = staleClient?.leave().catch(() => {});
+      joinChainRef.current = joinChainRef.current.catch(() => {}).then(() => stopping);
       setVideoJoined(false);
     };
   }, [squadId, encId, router]);
@@ -958,16 +581,18 @@ function EncounterInner() {
   function retryVideo() {
     if (videoRetrying) return;
     setVideoRetrying(true);
-    joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
-      try {
-        await joinVideo();
-      } catch (error) {
-        setConnState("DISCONNECTED");
-        setVideoError(describeVideoError(error));
-      } finally {
-        setVideoRetrying(false);
-      }
-    });
+    joinChainRef.current = joinChainRef.current
+      .catch(() => {})
+      .then(async () => {
+        try {
+          await joinVideo();
+        } catch (error) {
+          setConnState("DISCONNECTED");
+          setVideoError(describeVideoError(error));
+        } finally {
+          setVideoRetrying(false);
+        }
+      });
   }
 
   useEffect(() => {
@@ -976,20 +601,40 @@ function EncounterInner() {
     return () => clearInterval(tick);
   }, [connState]);
 
-  const fmt = (s: number) =>
-    `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   const mySquad = encounter
     ? encounter.squadAId === squadId
-      ? { name: encounter.squadAName, members: encounter.squadAMembers, cover: encounter.squadACover, id: encounter.squadAId }
-      : { name: encounter.squadBName, members: encounter.squadBMembers, cover: encounter.squadBCover, id: encounter.squadBId }
+      ? {
+          name: encounter.squadAName,
+          members: encounter.squadAMembers,
+          cover: encounter.squadACover,
+          id: encounter.squadAId,
+        }
+      : {
+          name: encounter.squadBName,
+          members: encounter.squadBMembers,
+          cover: encounter.squadBCover,
+          id: encounter.squadBId,
+        }
     : null;
   const oppSquad = encounter
     ? encounter.squadAId === squadId
-      ? { name: encounter.squadBName, members: encounter.squadBMembers, cover: encounter.squadBCover, id: encounter.squadBId }
-      : { name: encounter.squadAName, members: encounter.squadAMembers, cover: encounter.squadACover, id: encounter.squadAId }
+      ? {
+          name: encounter.squadBName,
+          members: encounter.squadBMembers,
+          cover: encounter.squadBCover,
+          id: encounter.squadBId,
+        }
+      : {
+          name: encounter.squadAName,
+          members: encounter.squadAMembers,
+          cover: encounter.squadACover,
+          id: encounter.squadAId,
+        }
     : null;
-  const opponentUserIds = createOpponentUserIds({ squadId, ownUserId: session.user?.id, encounter }) ?? [];
+  const opponentUserIds =
+    createOpponentUserIds({ squadId, ownUserId: session.user?.id, encounter }) ?? [];
   const canBlockOpponent = opponentUserIds.length > 0;
 
   const myMembers = mySquad?.members ?? [];
@@ -1002,7 +647,9 @@ function EncounterInner() {
     side: "mine",
     colorIndex: i,
     uid: m.uid,
-    isLocal: m.userId === myUserId || (myUidRef.current != null && String(m.uid) === String(myUidRef.current)),
+    isLocal:
+      m.userId === myUserId ||
+      (myUidRef.current != null && String(m.uid) === String(myUidRef.current)),
   }));
   const theirParticipants: EncounterParticipant[] = oppMembers.map((m, i) => ({
     id: m.userId,
@@ -1016,7 +663,9 @@ function EncounterInner() {
   const participants = [...mineParticipants, ...theirParticipants];
   const participantIdsKey = JSON.stringify(participants.map((person) => person.id));
   const activeSpeakerId = loudestUid
-    ? participants.find((person) => String(person.isLocal ? myUidRef.current : person.uid) === loudestUid)?.id ?? null
+    ? (participants.find(
+        (person) => String(person.isLocal ? myUidRef.current : person.uid) === loudestUid,
+      )?.id ?? null)
     : null;
   const viewportClass = width >= 1180 ? "wide" : isPhone ? "phone" : "narrow";
   const layout = deriveEncounterLayout({
@@ -1033,9 +682,10 @@ function EncounterInner() {
       return;
     }
     const ids = participants.map((person) => person.id);
-    const advance = () => setSpeakerFocus((previous) =>
-      advanceSpeakerFocus(ids, previous, activeSpeakerId, Date.now())
-    );
+    const advance = () =>
+      setSpeakerFocus((previous) =>
+        advanceSpeakerFocus(ids, previous, activeSpeakerId, Date.now()),
+      );
     advance();
     const tick = setInterval(advance, 200);
     return () => clearInterval(tick);
@@ -1051,13 +701,8 @@ function EncounterInner() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        event.key === "Escape" &&
-        !moreOpen &&
-        !reactionsOpen &&
-        !chatOpen &&
-        !endConfirmOpen
-      ) setPinnedId(null);
+      if (event.key === "Escape" && !moreOpen && !reactionsOpen && !chatOpen && !endConfirmOpen)
+        setPinnedId(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -1090,7 +735,7 @@ function EncounterInner() {
         vcRef.current?.playLocal(localElRef.current);
       } catch {}
     }
-  }, [videoJoined, camOn, participantIdsKey, layout.kind, focusedFit]);
+  }, [videoJoined, camOn, participantIdsKey, layout.kind, pinnedId]);
 
   useEffect(() => {
     if (!videoJoined) return;
@@ -1103,7 +748,7 @@ function EncounterInner() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remotes, videoJoined, participantIdsKey, layout.kind, focusedFit]);
+  }, [remoteVideoKey, videoJoined, participantIdsKey, layout.kind, pinnedId]);
 
   async function toggleMic() {
     const previous = micOn;
@@ -1139,12 +784,43 @@ function EncounterInner() {
     const client = vcRef.current;
     vcRef.current = null;
     setVideoJoined(false);
-    try { await client?.leave(); } catch {}
+    try {
+      await client?.leave();
+    } catch {}
   }
 
   async function leaveVideoAndGoHome() {
     await leaveVideo();
     router.replace("/home");
+  }
+
+  async function handlePersonalLeave() {
+    setEnding(true);
+    setEndError(null);
+    await leaveVideo();
+    try {
+      await api.setEncounterVideo(squadId, false);
+      router.replace("/home");
+    } catch {
+      setEnding(false);
+      setEndError("Your camera and microphone are off. Couldn’t update your call status. Try leaving again.");
+    }
+  }
+
+  async function findNextSquad() {
+    if (!squadId || !encId || nextPendingRef.current) return;
+    nextPendingRef.current = true;
+    setNextPending(true);
+    setNextError('');
+    try {
+      const result = await api.skip(squadId, encId);
+      await leaveVideo();
+      router.replace(`/${result.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
+    } catch {
+      nextPendingRef.current = false;
+      setNextPending(false);
+      setNextError('Couldn’t move your squad. Try again.');
+    }
   }
 
   async function handleEnd() {
@@ -1208,11 +884,10 @@ function EncounterInner() {
   function fireReaction(emoji: string) {
     if (!encId || !squadId) return;
     setVideoError(null);
-    const sent = sendReaction(
-      { kind: "encounter", encounterId: encId, squadId },
-      emoji,
-      { id: session.user?.id ?? "", name: session.user?.name ?? "You" },
-    );
+    const sent = sendReaction({ kind: "encounter", encounterId: encId, squadId }, emoji, {
+      id: session.user?.id ?? "",
+      name: session.user?.name ?? "You",
+    });
     if (!sent) {
       setVideoError("Reaction was not sent. Check your connection and try again.");
       return;
@@ -1232,26 +907,24 @@ function EncounterInner() {
   }, [encId]);
 
   const upsertChatMessage = useCallback((message: ChatPanelMessage) => {
-    setChatMessages((previous) => {
-      const index = previous.findIndex((item) =>
-        item.id === message.id || (
-          !!message.clientMessageId && item.clientMessageId === message.clientMessageId
-        )
-      );
-      if (index < 0) return [...previous, message];
-      return previous.map((item, itemIndex) => itemIndex === index ? { ...item, ...message } : item);
-    });
+    setChatMessages((previous) => mergeChatMessage(previous, message));
   }, []);
 
   const markChatFailed = useCallback((clientMessageId: string) => {
-    setChatMessages((previous) => previous.map((message) =>
-      message.clientMessageId === clientMessageId && message.delivery !== "delivered"
-        ? { ...message, delivery: "failed" }
-        : message
-    ));
+    setChatMessages((previous) =>
+      previous.map((message) =>
+        message.clientMessageId === clientMessageId && message.delivery !== "delivered"
+          ? { ...message, delivery: "failed" }
+          : message,
+      ),
+    );
   }, []);
 
-  function sendEncounterMessage(text: string, retryClientMessageId?: string): boolean {
+  function sendEncounterMessage(
+    text: string,
+    retryClientMessageId?: string,
+    audience = chatAudience,
+  ): boolean {
     if (!encId || !squadId) return false;
     const clientMessageId = retryClientMessageId ?? crypto.randomUUID();
     upsertChatMessage({
@@ -1261,12 +934,14 @@ function EncounterInner() {
       name: session.user?.name ?? "You",
       text,
       ts: Date.now(),
-      encounterId: encId,
+      encounterId: audience === "everyone" ? encId : undefined,
       squadId,
       delivery: "sending",
     });
     const sent = sendChatMessage(
-      { kind: "encounter", encounterId: encId, squadId },
+      audience === "everyone"
+        ? { kind: "encounter", encounterId: encId, squadId }
+        : { kind: "lobby", squadId },
       text,
       { id: session.user?.id ?? "", name: session.user?.name ?? "You" },
       {
@@ -1282,33 +957,51 @@ function EncounterInner() {
   }
 
   function retryEncounterMessage(message: ChatPanelMessage) {
-    sendEncounterMessage(message.text, message.clientMessageId ?? message.id);
+    sendEncounterMessage(
+      message.text,
+      message.clientMessageId ?? message.id,
+      message.encounterId ? "everyone" : "squad",
+    );
   }
 
   // Keep encounter messages for the route lifetime. Count messages from others
   // while the panel is closed and clear the badge as soon as it opens.
   useEffect(() => {
     if (!encId || !squadId) return;
-    try { joinChat({ kind: "encounter", encounterId: encId, squadId }); } catch {}
+    try {
+      joinChat({ kind: "encounter", encounterId: encId, squadId });
+    } catch {}
     const unsub = subscribeChat((m) => {
-      if (m.encounterId !== encId) return;
+      if (
+        !chatMessageMatchesScope(m, { kind: "encounter", encounterId: encId, squadId }) &&
+        !chatMessageMatchesScope(m, { kind: "lobby", squadId })
+      )
+        return;
       upsertChatMessage({ ...m, delivery: "delivered" });
       if (myUserId && m.userId === myUserId) return;
-      if (chatVisibleRef.current) return;
-      setUnread((u) => Math.min(u + 1, 99));
+      const audience = m.encounterId ? "everyone" : "squad";
+      if (chatVisibleRef.current && chatAudienceRef.current === audience) return;
+      setChatUnread((counts) => ({ ...counts, [audience]: Math.min(counts[audience] + 1, 99) }));
     });
     return unsub;
   }, [encId, squadId, myUserId, upsertChatMessage]);
   chatVisibleRef.current = chatOpen;
-  useEffect(() => { if (chatOpen) setUnread(0); }, [chatOpen]);
+  useEffect(() => {
+    if (chatOpen) setChatUnread((counts) => ({ ...counts, [chatAudience]: 0 }));
+  }, [chatOpen, chatAudience]);
+  useEffect(() => {
+    setChatMessages([]);
+    setChatDrafts({ everyone: "", squad: "" });
+    setChatUnread({ everyone: 0, squad: 0 });
+  }, [encId, squadId]);
 
   function handleTileClick(id: string) {
-    setPinnedId((previous) => previous === id ? null : id);
+    setPinnedId((previous) => (previous === id ? null : id));
   }
 
   const participantById = new Map(participants.map((person) => [person.id, person]));
 
-  function renderParticipant(id: string, fit: MediaFit, compact = false) {
+  function renderParticipant(id: string, fit: MediaFit, compact = false, adaptive = false) {
     const person = participantById.get(id);
     if (!person) return null;
     return (
@@ -1317,6 +1010,12 @@ function EncounterInner() {
         name={person.name}
         colorIndex={person.colorIndex}
         micOn={micOnFor(person.isLocal, person.uid)}
+        hasVideo={videoJoined && (person.isLocal ? camOn && captureState.video === "active" : !!remoteFor(person.uid)?.hasVideo)}
+        mutedForMe={remoteFor(person.uid)?.mutedForMe}
+        onMute={!person.isLocal && person.uid != null && remoteFor(person.uid) ? async muted => {
+          if (!vcRef.current) throw new Error("The call is reconnecting. Try again.");
+          await vcRef.current.setRemoteAudioMuted(person.uid!, muted);
+        } : undefined}
         videoRef={participantRef(person.isLocal, person.uid)}
         isLocal={person.isLocal}
         localAvatarValue={person.isLocal ? myAvatar : undefined}
@@ -1327,15 +1026,13 @@ function EncounterInner() {
         showFocusHint
         compact={compact}
         fit={fit}
+        backdrop
         reactions={floatingReactions.filter((reaction) => reaction.senderId === person.id)}
       />
     );
   }
 
-  function squadLabel(
-    name: string,
-    count: number,
-  ) {
+  function squadLabel(name: string, count: number) {
     return (
       <div
         style={{
@@ -1354,7 +1051,16 @@ function EncounterInner() {
           border: "var(--control-border, 1px solid rgba(255,255,255,.11))",
         }}
       >
-        <span style={{ color: "var(--text)", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <span
+          style={{
+            color: "var(--text)",
+            fontSize: 12,
+            fontWeight: 700,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
           {name}
         </span>
         <span style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700 }}>{count}</span>
@@ -1400,7 +1106,10 @@ function EncounterInner() {
           {label}
         </div>
         {ids.map((id) => (
-          <div key={id} style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}>
+          <div
+            key={id}
+            style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}
+          >
             {renderParticipant(id, "crop", true)}
           </div>
         ))}
@@ -1425,7 +1134,20 @@ function EncounterInner() {
           flexShrink: 0,
         }}
       >
-        <div role="group" aria-label="Filmstrip squad" style={{ display: "flex", gap: 4, height: 50, padding: 3, borderRadius: "var(--radius-pill, 999px)", background: "color-mix(in srgb, var(--surface) 90%, transparent)", border: "var(--control-border)", alignSelf: "center" }}>
+        <div
+          role="group"
+          aria-label="Filmstrip squad"
+          style={{
+            display: "flex",
+            gap: 4,
+            height: 50,
+            padding: 3,
+            borderRadius: "var(--radius-pill, 999px)",
+            background: "color-mix(in srgb, var(--surface) 90%, transparent)",
+            border: "var(--control-border)",
+            alignSelf: "center",
+          }}
+        >
           {(["mine", "theirs"] as const).map((side) => {
             const selected = stripSide === side;
             return (
@@ -1468,7 +1190,10 @@ function EncounterInner() {
           }}
         >
           {selectedIds.map((id) => (
-            <div key={id} style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}>
+            <div
+              key={id}
+              style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}
+            >
               {renderParticipant(id, "crop", true)}
             </div>
           ))}
@@ -1509,16 +1234,43 @@ function EncounterInner() {
       >
         {squadLabel(squad?.name ?? (side === "mine" ? "Your squad" : "Their squad"), people.length)}
         {people.length ? (
-          <div style={{ position: "relative", zIndex: 1, display: "flex", flexWrap: people.length > 2 ? "wrap" : "nowrap", gap: 8, height: "100%", minHeight: 0 }}>
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              display: "flex",
+              flexWrap: people.length > 2 ? "wrap" : "nowrap",
+              gap: 8,
+              height: "100%",
+              minHeight: 0,
+            }}
+          >
             {people.map((person) => (
-              <div key={person.id} style={{ flex: people.length > 2 ? "1 1 calc(50% - 4px)" : 1, minWidth: 0, minHeight: 0 }}>
+              <div
+                key={person.id}
+                style={{
+                  flex: people.length > 2 ? "1 1 calc(50% - 4px)" : 1,
+                  minWidth: 0,
+                  minHeight: 0,
+                }}
+              >
                 {renderParticipant(person.id, "fit")}
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ position: "relative", zIndex: 1, height: "100%", display: "grid", placeItems: "center" }}>
-            <WaitingForSquad label={side === "mine" ? "Waiting for your squad…" : "Waiting for the other squad…"} />
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              height: "100%",
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <WaitingForSquad
+              label={side === "mine" ? "Waiting for your squad…" : "Waiting for the other squad…"}
+            />
           </div>
         )}
       </section>
@@ -1560,19 +1312,39 @@ function EncounterInner() {
             <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
               {renderParticipant(primaryId, focusedFit)}
             </div>
-            {useFilmstrip ? renderFilmstrip(stripIds, side === "mine" ? "Yours" : "Theirs") : stripIds.length > 0 && (
-              <div style={{ width: "29%", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
-                {stripIds.map((id) => (
-                  <div key={id} style={{ flex: 1, minHeight: 0 }}>
-                    {renderParticipant(id, "crop", true)}
+            {useFilmstrip
+              ? renderFilmstrip(stripIds, side === "mine" ? "Yours" : "Theirs")
+              : stripIds.length > 0 && (
+                  <div
+                    style={{
+                      width: "29%",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      minHeight: 0,
+                    }}
+                  >
+                    {stripIds.map((id) => (
+                      <div key={id} style={{ flex: 1, minHeight: 0 }}>
+                        {renderParticipant(id, "crop", true)}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                )}
           </div>
         ) : (
-          <div style={{ position: "relative", zIndex: 1, height: "100%", display: "grid", placeItems: "center" }}>
-            <WaitingForSquad label={side === "mine" ? "Waiting for your squad…" : "Waiting for the other squad…"} />
+          <div
+            style={{
+              position: "relative",
+              zIndex: 1,
+              height: "100%",
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            <WaitingForSquad
+              label={side === "mine" ? "Waiting for your squad…" : "Waiting for the other squad…"}
+            />
           </div>
         )}
       </section>
@@ -1586,21 +1358,52 @@ function EncounterInner() {
     const showSelfView = local && local.id !== focusId;
     const mineIds = layout.mineStripIds.filter((id) => id !== local?.id);
     const theirIds = layout.theirsStripIds;
-    const companionIds = participants.filter((person) => person.id !== focusId && person.id !== local?.id).map((person) => person.id);
+    const companionIds = participants
+      .filter((person) => person.id !== focusId && person.id !== local?.id)
+      .map((person) => person.id);
     return (
-      <div style={{ position: "relative", flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
+      <div
+        style={{
+          position: "relative",
+          flex: 1,
+          minWidth: 0,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          overflow: "hidden",
+        }}
+      >
         <div style={{ position: "relative", zIndex: 1, flex: 1, minHeight: 0 }}>
           {renderParticipant(focusId, focusedFit)}
         </div>
         {withFilmstrip
           ? renderSegmentedFilmstrip(mineIds, theirIds)
           : companionIds.length > 0 && (
-            <div style={{ position: "absolute", right: 12, bottom: 12, zIndex: 5, width: isPhone ? 112 : 168, aspectRatio: "16 / 10" }}>
-              {renderParticipant(companionIds[0], "crop", true)}
-            </div>
-          )}
+              <div
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  bottom: 12,
+                  zIndex: 5,
+                  width: isPhone ? 112 : 168,
+                  aspectRatio: "16 / 10",
+                }}
+              >
+                {renderParticipant(companionIds[0], "crop", true)}
+              </div>
+            )}
         {showSelfView && !selfViewMinimized && (
-          <div style={{ position: "absolute", top: 12, right: 12, zIndex: 6, width: isPhone ? 96 : 148, aspectRatio: "16 / 10" }}>
+          <div
+            style={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              zIndex: 6,
+              width: isPhone ? 96 : 148,
+              aspectRatio: "16 / 10",
+            }}
+          >
             {renderParticipant(local.id, "crop", true)}
           </div>
         )}
@@ -1609,10 +1412,27 @@ function EncounterInner() {
   }
 
   function renderAdaptiveStage() {
+    if (!pinnedId) return <AdaptiveVideoStage
+      mine={mineParticipants.map(person => ({ id: person.id, cameraOn: person.isLocal ? camOn && videoJoined : !!remoteFor(person.uid)?.hasVideo }))}
+      theirs={theirParticipants.map(person => ({ id: person.id, cameraOn: !!remoteFor(person.uid)?.hasVideo }))}
+      mineLabel={mySquad?.name ? `Your squad · ${mySquad.name}` : "Your squad"}
+      theirsLabel={oppSquad?.name ? `Their squad · ${oppSquad.name}` : "Their squad"}
+      renderParticipant={id => renderParticipant(id, "crop", false, true)}
+    />;
+
     if (layout.kind === "remote-main") return renderFocusedStage(false);
     if (layout.kind === "squad-split") {
       return (
-        <div style={{ display: "flex", flexDirection: isPhone ? "column" : "row", gap: 8, flex: 1, minWidth: 0, minHeight: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: isPhone ? "column" : "row",
+            gap: 8,
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+          }}
+        >
           {renderSquadSplitSide("mine")}
           {renderSquadSplitSide("theirs")}
         </div>
@@ -1620,7 +1440,16 @@ function EncounterInner() {
     }
     if (layout.kind === "featured-split") {
       return (
-        <div style={{ display: "flex", flexDirection: isPhone && height >= Math.max(width, 640) ? "column" : "row", gap: 8, flex: 1, minWidth: 0, minHeight: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: isPhone && height >= Math.max(width, 640) ? "column" : "row",
+            gap: 8,
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+          }}
+        >
           {renderFeaturedSide("mine", false)}
           {renderFeaturedSide("theirs", false)}
         </div>
@@ -1628,7 +1457,16 @@ function EncounterInner() {
     }
     if (layout.kind === "dual-focus") {
       return (
-        <div style={{ display: "flex", flexDirection: "row", gap: 8, flex: 1, minWidth: 0, minHeight: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            gap: 8,
+            flex: 1,
+            minWidth: 0,
+            minHeight: 0,
+          }}
+        >
           {renderFeaturedSide("mine", true)}
           {renderFeaturedSide("theirs", true)}
         </div>
@@ -1639,7 +1477,7 @@ function EncounterInner() {
 
   const renderStage = () => (
     <div
-      data-layout-kind={layout.kind}
+      data-layout-kind={pinnedId ? layout.kind : "adaptive-grid"}
       style={{
         position: "relative",
         flex: 1,
@@ -1710,9 +1548,11 @@ function EncounterInner() {
     setReactionsOpen(next);
   }
 
-  const hasFocusedFrame = layout.kind !== "squad-split";
+  const hasFocusedFrame = !!pinnedId;
   const localParticipant = participants.find((person) => person.isLocal);
-  const hasCompactSelfView = !!localParticipant &&
+  const hasCompactSelfView =
+    !!pinnedId &&
+    !!localParticipant &&
     localParticipant.id !== layout.focusId &&
     (layout.kind === "remote-main" || layout.kind === "single-focus");
 
@@ -1746,7 +1586,19 @@ function EncounterInner() {
     },
     {
       id: "more",
-      icon: <span aria-hidden style={{ color: moreOpen ? "var(--accent)" : "var(--text)", fontSize: 18, fontWeight: 800, letterSpacing: 1 }}>•••</span>,
+      icon: (
+        <span
+          aria-hidden
+          style={{
+            color: moreOpen ? "var(--accent)" : "var(--text)",
+            fontSize: 18,
+            fontWeight: 800,
+            letterSpacing: 1,
+          }}
+        >
+          •••
+        </span>
+      ),
       active: moreOpen,
       danger: false,
       onClick: toggleMore,
@@ -1755,38 +1607,122 @@ function EncounterInner() {
     },
   ];
 
-  const pinnedMemberName = pinnedId
-    ? participantById.get(pinnedId)?.name ?? null
-    : null;
+  const pinnedMemberName = pinnedId ? (participantById.get(pinnedId)?.name ?? null) : null;
   const captureIssues = [
     captureState.audio === "denied"
       ? "Microphone permission is blocked."
       : captureState.audio === "unavailable"
-      ? "No usable microphone was found."
-      : null,
+        ? "No usable microphone was found."
+        : null,
     captureState.video === "denied"
       ? "Camera permission is blocked."
       : captureState.video === "unavailable"
-      ? "No usable camera was found."
-      : null,
+        ? "No usable camera was found."
+        : null,
   ].filter((message): message is string => !!message);
-  const recoveryMessages = [...new Set([videoError, ...captureIssues].filter((message): message is string => !!message))];
-  const transientNotice = reported ? "reported" : connState === "RECONNECTING" && !reconnectDismissed ? "reconnecting" : null;
+  const recoveryMessages = [
+    ...new Set([videoError, ...captureIssues].filter((message): message is string => !!message)),
+  ];
+  const transientNotice = reported
+    ? "reported"
+    : connState === "RECONNECTING" && !reconnectDismissed
+      ? "reconnecting"
+      : null;
 
   if (!squadId || !encId) {
     return (
-      <div style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--text)", padding: 24 }}>
-        <div style={{ width: "min(460px, 100%)", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, textAlign: "center", boxShadow: "var(--shadow-card, var(--elev))" }}>
-          <div style={{ width: 54, height: 54, borderRadius: 16, margin: "0 auto 16px", display: "grid", placeItems: "center", background: "var(--overlay)", border: "1px solid var(--border)" }}>
+      <div
+        style={{
+          height: "100%",
+          display: "grid",
+          placeItems: "center",
+          background: "var(--bg)",
+          color: "var(--text)",
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            width: "min(460px, 100%)",
+            background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))",
+            border: "1px solid var(--border-strong)",
+            borderRadius: 20,
+            padding: 24,
+            textAlign: "center",
+            boxShadow: "var(--shadow-card, var(--elev))",
+          }}
+        >
+          <div
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 16,
+              margin: "0 auto 16px",
+              display: "grid",
+              placeItems: "center",
+              background: "var(--overlay)",
+              border: "1px solid var(--border)",
+            }}
+          >
             <Icon.cam size={24} color="var(--lime)" />
           </div>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>Encounter unavailable</h1>
-          <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14 }}>This live room link is missing required details.</p>
+          <h1
+            style={{
+              margin: 0,
+              color: "var(--text)",
+              fontFamily: "var(--font-display, var(--font-space-grotesk))",
+              fontSize: 22,
+              fontWeight: 700,
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Encounter unavailable
+          </h1>
+          <p
+            style={{
+              margin: "10px 0 22px",
+              color: "var(--text-muted)",
+              lineHeight: 1.5,
+              fontSize: 14,
+            }}
+          >
+            This live room link is missing required details.
+          </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             {squadId && (
-              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Find a match</button>
+              <button
+                onClick={() => router.push(`/lobby?squad=${squadId}`)}
+                className="gg-press"
+                style={{
+                  minHeight: 44,
+                  padding: "0 18px",
+                  borderRadius: 999,
+                  border: "none",
+                  background: "var(--violet)",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Find a match
+              </button>
             )}
-            <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: "pointer" }}>Home</button>
+            <button
+              onClick={() => router.push("/home")}
+              className="gg-press"
+              style={{
+                minHeight: 44,
+                padding: "0 18px",
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--overlay)",
+                color: "var(--text)",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Home
+            </button>
           </div>
         </div>
       </div>
@@ -1795,7 +1731,16 @@ function EncounterInner() {
 
   if (encounterLoading) {
     return (
-      <div style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--text)", padding: 24 }}>
+      <div
+        style={{
+          height: "100%",
+          display: "grid",
+          placeItems: "center",
+          background: "var(--bg)",
+          color: "var(--text)",
+          padding: 24,
+        }}
+      >
         <WaitingForSquad label="Opening encounter..." />
       </div>
     );
@@ -1803,18 +1748,98 @@ function EncounterInner() {
 
   if (encounterError || !encounter) {
     return (
-      <div style={{ height: "100%", display: "grid", placeItems: "center", background: "var(--bg)", color: "var(--text)", padding: 24 }}>
-        <div style={{ width: "min(460px, 100%)", background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))", border: "1px solid var(--border-strong)", borderRadius: 20, padding: 24, textAlign: "center", boxShadow: "var(--shadow-card, var(--elev))" }}>
-          <div style={{ width: 54, height: 54, borderRadius: 16, margin: "0 auto 16px", display: "grid", placeItems: "center", background: "var(--overlay)", border: "1px solid var(--border)" }}>
+      <div
+        style={{
+          height: "100%",
+          display: "grid",
+          placeItems: "center",
+          background: "var(--bg)",
+          color: "var(--text)",
+          padding: 24,
+        }}
+      >
+        <div
+          style={{
+            width: "min(460px, 100%)",
+            background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))",
+            border: "1px solid var(--border-strong)",
+            borderRadius: 20,
+            padding: 24,
+            textAlign: "center",
+            boxShadow: "var(--shadow-card, var(--elev))",
+          }}
+        >
+          <div
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 16,
+              margin: "0 auto 16px",
+              display: "grid",
+              placeItems: "center",
+              background: "var(--overlay)",
+              border: "1px solid var(--border)",
+            }}
+          >
             <Icon.cam size={24} color="var(--lime)" />
           </div>
-          <h1 style={{ margin: 0, color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>Encounter unavailable</h1>
-          <p style={{ margin: "10px 0 22px", color: "var(--text-muted)", lineHeight: 1.5, fontSize: 14 }}>{encounterError ?? "This live room could not be loaded."}</p>
+          <h1
+            style={{
+              margin: 0,
+              color: "var(--text)",
+              fontFamily: "var(--font-display, var(--font-space-grotesk))",
+              fontSize: 22,
+              fontWeight: 700,
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Encounter unavailable
+          </h1>
+          <p
+            style={{
+              margin: "10px 0 22px",
+              color: "var(--text-muted)",
+              lineHeight: 1.5,
+              fontSize: 14,
+            }}
+          >
+            {encounterError ?? "This live room could not be loaded."}
+          </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             {squadId && (
-              <button onClick={() => router.push(`/lobby?squad=${squadId}`)} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--violet)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>Find a match</button>
+              <button
+                onClick={() => router.push(`/lobby?squad=${squadId}`)}
+                className="gg-press"
+                style={{
+                  minHeight: 44,
+                  padding: "0 18px",
+                  borderRadius: 999,
+                  border: "none",
+                  background: "var(--violet)",
+                  color: "#fff",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Find a match
+              </button>
             )}
-            <button onClick={() => router.push("/home")} className="gg-press" style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: "pointer" }}>Home</button>
+            <button
+              onClick={() => router.push("/home")}
+              className="gg-press"
+              style={{
+                minHeight: 44,
+                padding: "0 18px",
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--overlay)",
+                color: "var(--text)",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Home
+            </button>
           </div>
         </div>
       </div>
@@ -1829,7 +1854,7 @@ function EncounterInner() {
         style={{
           display: "flex",
           flexDirection: "column",
-          height: "100%",
+          height: `calc(100% - ${keyboardInset}px)`,
           background: "var(--bg)",
           color: "var(--text)",
           fontFamily: "var(--font-body, var(--font-inter))",
@@ -1855,7 +1880,17 @@ function EncounterInner() {
         >
           {/* Friendly room context, not a competitive matchup. Phone labels live
               directly over the corresponding video groups. */}
-          <div style={{ display: isPhoneChrome ? "none" : "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden", whiteSpace: "nowrap" as const, flexShrink: 1 }}>
+          <div
+            style={{
+              display: isPhoneChrome ? "none" : "flex",
+              alignItems: "center",
+              gap: 6,
+              minWidth: 0,
+              overflow: "hidden",
+              whiteSpace: "nowrap" as const,
+              flexShrink: 1,
+            }}
+          >
             {[
               [mySquad?.name ?? "Your squad", mineParticipants.length],
               [oppSquad?.name ?? "Their squad", theirParticipants.length],
@@ -1903,7 +1938,16 @@ function EncounterInner() {
               }}
             >
               <Icon.pin size={12} color="var(--accent)" />
-              <span style={{ maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{pinnedMemberName}</span>
+              <span
+                style={{
+                  maxWidth: 160,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap" as const,
+                }}
+              >
+                {pinnedMemberName}
+              </span>
               <button
                 onClick={() => setPinnedId(null)}
                 style={{
@@ -1945,10 +1989,25 @@ function EncounterInner() {
                     letterSpacing: ".08em",
                   }}
                 >
-                  <span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--live)", animation: "livePulse 1.6s ease-in-out infinite" }} />
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: 999,
+                      background: "var(--live)",
+                      animation: "livePulse 1.6s ease-in-out infinite",
+                    }}
+                  />
                   LIVE
                 </span>
-                <span style={{ color: textPrimary, fontSize: isPhoneChrome ? 13 : 14, fontWeight: 700, minWidth: isPhoneChrome ? 38 : 48 }}>
+                <span
+                  style={{
+                    color: textPrimary,
+                    fontSize: isPhoneChrome ? 13 : 14,
+                    fontWeight: 700,
+                    minWidth: isPhoneChrome ? 38 : 48,
+                  }}
+                >
                   {fmt(elapsed)}
                 </span>
               </>
@@ -1964,8 +2023,19 @@ function EncounterInner() {
                   fontWeight: 700,
                 }}
               >
-                <span style={{ width: 7, height: 7, borderRadius: 999, background: connState === "DISCONNECTED" ? coral : "var(--amber, #FFB020)" }} />
-                {connState === "RECONNECTING" ? "Reconnecting" : connState === "DISCONNECTED" ? "Disconnected" : "Connecting"}
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 999,
+                    background: connState === "DISCONNECTED" ? coral : "var(--amber, #FFB020)",
+                  }}
+                />
+                {connState === "RECONNECTING"
+                  ? "Reconnecting"
+                  : connState === "DISCONNECTED"
+                    ? "Disconnected"
+                    : "Connecting"}
               </span>
             )}
           </div>
@@ -1973,6 +2043,7 @@ function EncounterInner() {
 
         {/* ── MAIN AREA ────────────────────────────────────────────────────── */}
         <div
+          className={`gg-encounter-content ${chatOpen ? "gg-chat-open" : ""}`}
           style={{
             display: "flex",
             flex: 1,
@@ -1993,10 +2064,6 @@ function EncounterInner() {
               overflow: "hidden",
             }}
           >
-            <EncounterAtmosphere
-              mine={{ cover: mySquad?.cover, key: mySquad?.id ?? "mine" }}
-              theirs={{ cover: oppSquad?.cover, key: oppSquad?.id ?? "theirs" }}
-            />
             {/* Top toast stack — banners stack vertically instead of overlapping */}
             <div
               style={{
@@ -2013,82 +2080,143 @@ function EncounterInner() {
                 pointerEvents: "none",
               }}
             >
-            {recoveryMessages.length > 0 && (
-              <div
-                data-testid="media-recovery-notice"
-                role="alert"
-                style={{
-                  pointerEvents: "auto",
-                  maxWidth: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 10,
-                  background: "var(--surface, rgba(22,22,30,0.97))",
-                  backgroundImage: "linear-gradient(var(--coral-soft), var(--coral-soft))",
-                  border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
-                  borderRadius: 12,
-                  padding: "9px 12px 9px 14px",
-                  boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
-                }}
-              >
-                <span aria-hidden style={{ width: 7, height: 7, borderRadius: 999, background: coral, flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}>
-                  {recoveryMessages.join(" ")}
-                </span>
-                <button
-                  onClick={retryVideo}
-                  disabled={videoRetrying}
-                  style={{ minHeight: 44, padding: "0 13px", borderRadius: 999, border: "var(--control-border)", background: "var(--overlay)", color: textPrimary, fontWeight: 700, cursor: videoRetrying ? "default" : "pointer" }}
+              {recoveryMessages.length > 0 && (
+                <div
+                  data-testid="media-recovery-notice"
+                  role="alert"
+                  style={{
+                    pointerEvents: "auto",
+                    maxWidth: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: 10,
+                    background: "var(--surface, rgba(22,22,30,0.97))",
+                    backgroundImage: "linear-gradient(var(--coral-soft), var(--coral-soft))",
+                    border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
+                    borderRadius: 12,
+                    padding: "9px 12px 9px 14px",
+                    boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+                  }}
                 >
-                  {videoRetrying ? "Retrying…" : "Retry devices"}
-                </button>
-                {videoError && (
-                  <button
-                    onClick={() => setVideoError(null)}
-                    title="Dismiss"
-                    aria-label="Dismiss media notice"
-                    style={{ background: "none", border: "none", cursor: "pointer", color: textMuted, fontSize: 16, width: 44, height: 44, padding: 0 }}
+                  <span
+                    aria-hidden
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 999,
+                      background: coral,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}
                   >
-                    ×
+                    {recoveryMessages.join(" ")}
+                  </span>
+                  <button
+                    onClick={retryVideo}
+                    disabled={videoRetrying}
+                    style={{
+                      minHeight: 44,
+                      padding: "0 13px",
+                      borderRadius: 999,
+                      border: "var(--control-border)",
+                      background: "var(--overlay)",
+                      color: textPrimary,
+                      fontWeight: 700,
+                      cursor: videoRetrying ? "default" : "pointer",
+                    }}
+                  >
+                    {videoRetrying ? "Retrying…" : "Retry devices"}
                   </button>
-                )}
-              </div>
-            )}
+                  {videoError && (
+                    <button
+                      onClick={() => setVideoError(null)}
+                      title="Dismiss"
+                      aria-label="Dismiss media notice"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: textMuted,
+                        fontSize: 16,
+                        width: 44,
+                        height: 44,
+                        padding: 0,
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              )}
 
-            {transientNotice && (
-              <div
-                data-testid="encounter-transient-notice"
-                role="status"
-                style={{
-                  pointerEvents: "auto",
-                  background: "var(--surface)",
-                  backdropFilter: "blur(16px)",
-                  border: transientNotice === "reported" ? "1px solid var(--accent-line)" : "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
-                  borderRadius: 12,
-                  padding: "8px 10px 8px 14px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  whiteSpace: "nowrap" as const,
-                  boxShadow: "var(--shadow-card)",
-                  fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: transientNotice === "reported" ? lime : textPrimary,
-                }}
-              >
-                {transientNotice === "reported" ? (
-                  <><Icon.flag size={14} color={lime} />Reported — thanks for keeping Giggle safe</>
-                ) : (
-                  <>
-                    <span aria-hidden style={{ width: 14, height: 14, borderRadius: 999, border: "2px solid color-mix(in srgb, var(--amber) 25%, transparent)", borderTopColor: "var(--amber)", animation: "gg-spin 0.9s linear infinite", flexShrink: 0 }} />
-                    <span>Reconnecting…</span>
-                    <button onClick={() => setReconnectDismissed(true)} aria-label="Dismiss reconnecting notice" style={{ background: "none", border: "none", cursor: "pointer", color: textMuted, fontSize: 16, width: 44, height: 44, padding: 0 }}>×</button>
-                  </>
-                )}
-              </div>
-            )}
+              {transientNotice && (
+                <div
+                  data-testid="encounter-transient-notice"
+                  role="status"
+                  style={{
+                    pointerEvents: "auto",
+                    background: "var(--surface)",
+                    backdropFilter: "blur(16px)",
+                    border:
+                      transientNotice === "reported"
+                        ? "1px solid var(--accent-line)"
+                        : "1px solid color-mix(in srgb, var(--amber) 45%, transparent)",
+                    borderRadius: 12,
+                    padding: "8px 10px 8px 14px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    whiteSpace: "nowrap" as const,
+                    boxShadow: "var(--shadow-card)",
+                    fontFamily: "var(--font-display, var(--font-space-grotesk))",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: transientNotice === "reported" ? lime : textPrimary,
+                  }}
+                >
+                  {transientNotice === "reported" ? (
+                    <>
+                      <Icon.flag size={14} color={lime} />
+                      Reported — thanks for keeping Giggle safe
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        aria-hidden
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 999,
+                          border: "2px solid color-mix(in srgb, var(--amber) 25%, transparent)",
+                          borderTopColor: "var(--amber)",
+                          animation: "gg-spin 0.9s linear infinite",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span>Reconnecting…</span>
+                      <button
+                        onClick={() => setReconnectDismissed(true)}
+                        aria-label="Dismiss reconnecting notice"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: textMuted,
+                          fontSize: 16,
+                          width: 44,
+                          height: 44,
+                          padding: 0,
+                        }}
+                      >
+                        ×
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Encounter-ended overlay (opponent left / server ended) */}
@@ -2128,18 +2256,32 @@ function EncounterInner() {
                     {endError}
                   </div>
                 )}
-                <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    marginTop: 8,
+                    flexWrap: "wrap",
+                    justifyContent: "center",
+                  }}
+                >
                   {WEB_DISCOVERY_ENABLED && (
                     <Button
                       onClick={async () => {
-                        if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
+                        if (endedNavTimerRef.current) {
+                          clearTimeout(endedNavTimerRef.current);
+                          endedNavTimerRef.current = null;
+                        }
                         setEndError(null);
                         setFindingNextMatch(true);
                         try {
                           if (endedReason !== "opponent-left") await api.startSearch(squadId);
                           router.push(`/matchmaking?squad=${squadId}`);
                         } catch (error) {
-                          setEndError((error as { message?: string })?.message || "Couldn't start matchmaking.");
+                          setEndError(
+                            (error as { message?: string })?.message ||
+                              "Couldn't start matchmaking.",
+                          );
                           setFindingNextMatch(false);
                         }
                       }}
@@ -2151,7 +2293,10 @@ function EncounterInner() {
                   )}
                   <Button
                     onClick={() => {
-                      if (endedNavTimerRef.current) { clearTimeout(endedNavTimerRef.current); endedNavTimerRef.current = null; }
+                      if (endedNavTimerRef.current) {
+                        clearTimeout(endedNavTimerRef.current);
+                        endedNavTimerRef.current = null;
+                      }
                       router.push("/home");
                     }}
                     variant="secondary"
@@ -2172,332 +2317,336 @@ function EncounterInner() {
                 minHeight: 0,
                 display: "flex",
                 flexDirection: "column",
-                paddingBottom: isPhone ? 96 : 80,
+                paddingBottom: 8,
               }}
             >
               {renderStage()}
             </div>
-
-            {/* ── FLOATING CONTROL BAR ─────────────────────────────────── */}
-            <div
-              style={{
-                position: "absolute",
-                bottom: 16,
-                left: 0,
-                right: 0,
-                display: "flex",
-                justifyContent: "center",
-                zIndex: 20,
-                pointerEvents: "none",
-              }}
-            >
-              <div
-                data-testid="call-controls"
-                role="toolbar"
-                aria-label="Encounter controls"
-                style={{
-                  pointerEvents: "auto",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: isPhone ? 4 : 8,
-                  flexWrap: "nowrap",
-                  maxWidth: "calc(100vw - 16px)",
-                  padding: isPhone ? 8 : "9px 12px",
-                  borderRadius: "var(--radius-card, 20px)",
-                  border: "var(--control-border)",
-                  background: "color-mix(in srgb, var(--surface) 92%, transparent)",
-                  backdropFilter: "blur(22px)",
-                  WebkitBackdropFilter: "blur(22px)",
-                  boxShadow: "var(--shadow-pop)",
-                  animation: "controlIn .5s cubic-bezier(.22,1,.36,1) .2s forwards",
-                  opacity: 0,
-                }}
-              >
-                {ctrlBtns.map(({ id, icon, active, danger, onClick, title, badge }) => {
-                  const hovered = hoveredCtrl === id;
-                  const off = danger && active === false;
-                  const selected = !danger && active === true;
-                  const background = off
-                    ? "var(--coral)"
-                    : selected
-                    ? "var(--accent-soft)"
-                    : hovered
-                    ? "var(--overlay-hover)"
-                    : "var(--overlay)";
-                  return (
-                    <div key={id} style={{ position: "relative", display: "flex", flexShrink: 0 }}>
-                      <button
-                        ref={id === "chat" ? chatButtonRef : id === "more" ? moreButtonRef : undefined}
-                        onClick={onClick}
-                        onMouseEnter={() => setHoveredCtrl(id)}
-                        onMouseLeave={() => setHoveredCtrl(null)}
-                        title={title}
-                        aria-label={title}
-                        aria-pressed={id === "more" ? undefined : typeof active === "boolean" ? active : undefined}
-                        aria-expanded={id === "more" ? moreOpen : undefined}
-                        className="gg-press"
-                        style={{
-                          position: "relative",
-                          width: isPhone ? 44 : 48,
-                          height: isPhone ? 44 : 48,
-                          flexShrink: 0,
-                          borderRadius: "var(--radius-control, 14px)",
-                          border: off ? "1px solid var(--coral)" : "var(--control-border)",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          background,
-                          color: off ? "#fff" : selected ? "var(--accent)" : "var(--text)",
-                          boxShadow: "none",
-                        }}
-                      >
-                        {icon}
-                        {badge > 0 && (
-                          <span
-                            aria-label={String(badge) + " unread message" + (badge === 1 ? "" : "s")}
-                            style={{
-                              position: "absolute",
-                              top: -3,
-                              right: -3,
-                              minWidth: 18,
-                              height: 18,
-                              padding: "0 4px",
-                              borderRadius: 999,
-                              background: coral,
-                              color: "#fff",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              lineHeight: "18px",
-                              textAlign: "center",
-                              border: "1.5px solid rgba(14,14,20,.94)",
-                            }}
-                          >
-                            {badge > 9 ? "9+" : badge}
-                          </span>
-                        )}
-                      </button>
-
-                      {id === "more" && moreOpen && (
-                        <div
-                          ref={moreMenuRef}
-                          role="group"
-                          aria-label="More call actions"
-                          style={{
-                            position: "absolute",
-                            right: isPhone ? "auto" : 0,
-                            left: isPhone ? "50%" : "auto",
-                            transform: isPhone ? "translateX(-50%)" : undefined,
-                            bottom: "calc(100% + 10px)",
-                            width: "min(280px, calc(100vw - 24px))",
-                            padding: 10,
-                            borderRadius: "var(--radius-card)",
-                            border: "var(--control-border)",
-                            background: "var(--surface)",
-                            backdropFilter: "blur(18px)",
-                            boxShadow: "var(--shadow-pop)",
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 7,
-                          }}
-                        >
-                          <div style={{ color: textMuted, fontSize: 11, fontWeight: 800, letterSpacing: ".08em", textTransform: "uppercase", padding: "2px 4px 0" }}>
-                            Reactions
-                          </div>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            {reactionChoices(() => closeMore(true))}
-                          </div>
-                          <button
-                            onClick={() => {
-                              handleReport();
-                              closeMore(true);
-                            }}
-                            disabled={reported || reporting}
-                            style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: reported ? "var(--live)" : "var(--text)", display: "flex", alignItems: "center", gap: 9, cursor: reported || reporting ? "default" : "pointer", fontWeight: 700 }}
-                          >
-                            <Icon.flag size={17} color={reported ? "var(--live)" : "var(--text-muted)"} />
-                            {reported ? "Reported" : reporting ? "Sending report…" : "Report opponent squad"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setBlockError(null);
-                              setBlockConfirmOpen(true);
-                              closeMore(true);
-                            }}
-                            disabled={!canBlockOpponent || blocking}
-                            aria-label="Block opponent squad"
-                            style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: "var(--coral)", display: "flex", alignItems: "center", gap: 9, cursor: !canBlockOpponent || blocking ? "default" : "pointer", fontWeight: 700 }}
-                          >
-                            <Icon.shield size={17} color="var(--coral)" />
-                            Block opponent squad
-                          </button>
-                          {hasFocusedFrame && (
-                            <button
-                              onClick={() => {
-                                setFocusedFit((fit) => fit === "fit" ? "crop" : "fit");
-                                closeMore(true);
-                              }}
-                              style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: "var(--text)", textAlign: "left", cursor: "pointer", fontWeight: 700 }}
-                            >
-                              {focusedFit === "fit" ? "Crop focused video" : "Fit focused video"}
-                            </button>
-                          )}
-                          {hasCompactSelfView && (
-                            <button
-                              onClick={() => {
-                                setSelfViewMinimized((minimized) => !minimized);
-                                closeMore(true);
-                              }}
-                              style={{ minHeight: 44, padding: "0 12px", borderRadius: "var(--radius-control)", border: "var(--control-border)", background: "var(--overlay)", color: "var(--text)", textAlign: "left", cursor: "pointer", fontWeight: 700 }}
-                            >
-                              {selfViewMinimized ? "Restore self-view" : "Minimize self-view"}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {width >= 1024 && (
-                  <div style={{ position: "relative", display: "flex", flexShrink: 0 }}>
-                    <button
-                      ref={reactionButtonRef}
-                      onClick={toggleReactions}
-                      title="Reactions"
-                      aria-label="Reactions"
-                      aria-expanded={reactionsOpen}
-                      className="gg-press"
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: "var(--radius-control, 14px)",
-                        border: "var(--control-border)",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 20,
-                        background: reactionsOpen ? "var(--accent-soft)" : "var(--overlay)",
-                      }}
-                    >
-                      😀
-                    </button>
-                    {reactionsOpen && (
-                      <div
-                        ref={reactionMenuRef}
-                        style={{
-                          position: "absolute",
-                          right: 0,
-                          bottom: "calc(100% + 10px)",
-                          display: "flex",
-                          gap: 6,
-                          padding: "8px 10px",
-                          borderRadius: "var(--radius-pill)",
-                          border: "var(--control-border)",
-                          background: "var(--surface)",
-                          backdropFilter: "blur(18px)",
-                          boxShadow: "var(--shadow-pop)",
-                        }}
-                      >
-                        {reactionChoices(() => closeReactions(true))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div aria-hidden style={{ width: 1, height: 28, flexShrink: 0, background: "rgba(255,255,255,.1)", margin: "0 2px", display: isPhone ? "none" : "block" }} />
-
-                <button
-                  onClick={() => {
-                    setEndError(null);
-                    setEndConfirmOpen(true);
-                  }}
-                  disabled={ending}
-                  aria-label="End encounter"
-                  onMouseEnter={() => setHoveredCtrl("end")}
-                  onMouseLeave={() => setHoveredCtrl(null)}
-                  className="gg-press"
-                  style={{
-                    height: isPhone ? 44 : 48,
-                    minWidth: isPhone ? 64 : 110,
-                    flexShrink: 0,
-                    padding: isPhone ? "0 14px" : "0 20px",
-                    borderRadius: "var(--radius-btn, 999px)",
-                    border: "none",
-                    cursor: ending ? "default" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    background: coral,
-                    color: "#fff",
-                    fontSize: 14,
-                    fontWeight: 800,
-                    boxShadow: "none",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {isPhone ? "End" : "End encounter"}
-                </button>
-              </div>
-            </div>
           </div>
 
-          {/* ── CHAT PANEL ──────────────────────────────────────────────── */}
-          {chatOpen && width >= 1180 && (
-            <div
+          {/* Kept mounted so closing chat preserves drafts and never moves video hosts. */}
+          <aside className="gg-encounter-chat" hidden={!chatOpen} aria-label="Call chat">
+            <ChatPanel
+              scope={chatScope}
+              title="Chat"
+              onClose={closeChat}
+              messages={chatMessages}
+              onSend={sendEncounterMessage}
+              onRetry={retryEncounterMessage}
+              draft={chatDrafts[chatAudience]}
+              onDraftChange={(value) =>
+                setChatDrafts((drafts) => ({ ...drafts, [chatAudience]: value }))
+              }
+              audienceControls={
+                <div className="gg-chat-audience">
+                  <button className="gg-phone-back" onClick={closeChat}>
+                    ← Back to video
+                  </button>
+                  <div role="group" aria-label="Send messages to">
+                    {(["everyone", "squad"] as const).map((audience) => (
+                      <button
+                        key={audience}
+                        aria-pressed={chatAudience === audience}
+                        onClick={() => setChatAudience(audience)}
+                      >
+                        {audience === "everyone" ? "Everyone" : "Your squad"}
+                        {chatUnread[audience] > 0 && <span> {chatUnread[audience]}</span>}
+                      </button>
+                    ))}
+                  </div>
+                  <p>
+                    {chatAudience === "everyone"
+                      ? "Both squads can see these messages."
+                      : "Only your squad can see these messages."}
+                  </p>
+                </div>
+              }
+            />
+          </aside>
+        </div>
+        {/* ── FLOATING CONTROL BAR ─────────────────────────────────── */}
+        <div
+          className="gg-call-controls-wrap"
+          style={{
+            position: "relative",
+            padding: "8px 0",
+            flexShrink: 0,
+            display: "flex",
+            justifyContent: "center",
+            zIndex: 40,
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            data-testid="call-controls"
+            role="toolbar"
+            aria-label="Encounter controls"
+            style={{
+              pointerEvents: "auto",
+              display: "flex",
+              alignItems: "center",
+              gap: isPhone ? 4 : 8,
+              flexWrap: "nowrap",
+              maxWidth: "calc(100vw - 16px)",
+              padding: isPhone ? 8 : "9px 12px",
+              borderRadius: "var(--radius-card, 20px)",
+              border: "var(--control-border)",
+              background: "color-mix(in srgb, var(--surface) 92%, transparent)",
+              backdropFilter: "blur(22px)",
+              WebkitBackdropFilter: "blur(22px)",
+              boxShadow: "var(--shadow-pop)",
+              opacity: 1,
+            }}
+          >
+            {ctrlBtns.map(({ id, icon, active, danger, onClick, title, badge }) => {
+              const hovered = hoveredCtrl === id;
+              const off = danger && active === false;
+              const selected = !danger && active === true;
+              const background = off
+                ? "var(--coral)"
+                : selected
+                  ? "var(--accent-soft)"
+                  : hovered
+                    ? "var(--overlay-hover)"
+                    : "var(--overlay)";
+              return (
+                <div key={id} style={{ position: "relative", display: "flex", flexShrink: 0 }}>
+                  <button
+                    ref={id === "chat" ? chatButtonRef : id === "more" ? moreButtonRef : undefined}
+                    onClick={onClick}
+                    onMouseEnter={() => setHoveredCtrl(id)}
+                    onMouseLeave={() => setHoveredCtrl(null)}
+                    title={title}
+                    aria-label={title}
+                    aria-pressed={
+                      id === "more" ? undefined : typeof active === "boolean" ? active : undefined
+                    }
+                    aria-expanded={id === "more" ? moreOpen : undefined}
+                    className="gg-press" data-call-control
+                    style={{
+                      position: "relative",
+                      width: isPhone ? 44 : 48,
+                      height: isPhone ? 44 : 48,
+                      flexShrink: 0,
+                      borderRadius: "var(--radius-control, 14px)",
+                      border: off ? "1px solid var(--coral)" : "var(--control-border)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background,
+                      color: off ? "#fff" : selected ? "var(--accent)" : "var(--text)",
+                      boxShadow: "none",
+                    }}
+                  >
+                    {icon}
+                    <span className="gg-control-label">{id === "cam" ? "Camera" : id === "mic" ? (micOn ? "Mic" : "Unmute") : id === "chat" ? "Chat" : "More"}</span>
+                    {badge > 0 && (
+                      <span
+                        aria-label={String(badge) + " unread message" + (badge === 1 ? "" : "s")}
+                        style={{
+                          position: "absolute",
+                          top: -3,
+                          right: -3,
+                          minWidth: 18,
+                          height: 18,
+                          padding: "0 4px",
+                          borderRadius: 999,
+                          background: coral,
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          lineHeight: "18px",
+                          textAlign: "center",
+                          border: "1.5px solid rgba(14,14,20,.94)",
+                        }}
+                      >
+                        {badge > 9 ? "9+" : badge}
+                      </span>
+                    )}
+                  </button>
+
+                  {id === "more" && moreOpen && (
+                    <div
+                      ref={moreMenuRef}
+                      role="group"
+                      aria-label="More call actions"
+                      style={{
+                        position: "absolute",
+                        right: isPhone ? "auto" : 0,
+                        left: isPhone ? "50%" : "auto",
+                        transform: isPhone ? "translateX(-50%)" : undefined,
+                        bottom: "calc(100% + 10px)",
+                        width: "min(280px, calc(100vw - 24px))",
+                        padding: 10,
+                        borderRadius: "var(--radius-card)",
+                        border: "var(--control-border)",
+                        background: "var(--surface)",
+                        backdropFilter: "blur(18px)",
+                        boxShadow: "var(--shadow-pop)",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 7,
+                      }}
+                    >
+                      {WEB_DISCOVERY_ENABLED && mySquad?.members.some(member => member.userId === session.user?.id && member.role === 'leader') && (
+                        <button onClick={() => { closeMore(false); setNextError(''); setNextConfirmOpen(true); }} style={{ minHeight: 44, background: 'transparent', border: 0, color: 'var(--text)', textAlign: 'left' }}>Next squad</button>
+                      )}
+                      <button onClick={() => { setExitKind("end"); setEndError(null); closeMore(false); setEndConfirmOpen(true); }} aria-label="End encounter" style={{ minHeight: 44, background: "transparent", border: 0, color: "var(--coral)", textAlign: "left" }}>End encounter for both squads</button>
+                      <div
+                        style={{
+                          color: textMuted,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          letterSpacing: ".08em",
+                          textTransform: "uppercase",
+                          padding: "2px 4px 0",
+                        }}
+                      >
+                        Reactions
+                      </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {reactionChoices(() => closeMore(true))}
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleReport();
+                          closeMore(true);
+                        }}
+                        disabled={reported || reporting}
+                        style={{
+                          minHeight: 44,
+                          padding: "0 12px",
+                          borderRadius: "var(--radius-control)",
+                          border: "var(--control-border)",
+                          background: "var(--overlay)",
+                          color: reported ? "var(--live)" : "var(--text)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 9,
+                          cursor: reported || reporting ? "default" : "pointer",
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Icon.flag
+                          size={17}
+                          color={reported ? "var(--live)" : "var(--text-muted)"}
+                        />
+                        {reported
+                          ? "Reported"
+                          : reporting
+                            ? "Sending report…"
+                            : "Report opponent squad"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setBlockError(null);
+                          setBlockConfirmOpen(true);
+                          closeMore(true);
+                        }}
+                        disabled={!canBlockOpponent || blocking}
+                        aria-label="Block opponent squad"
+                        style={{
+                          minHeight: 44,
+                          padding: "0 12px",
+                          borderRadius: "var(--radius-control)",
+                          border: "var(--control-border)",
+                          background: "var(--overlay)",
+                          color: "var(--coral)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 9,
+                          cursor: !canBlockOpponent || blocking ? "default" : "pointer",
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Icon.shield size={17} color="var(--coral)" />
+                        Block opponent squad
+                      </button>
+                      {hasFocusedFrame && (
+                        <button
+                          onClick={() => {
+                            setFocusedFit((fit) => (fit === "fit" ? "crop" : "fit"));
+                            closeMore(true);
+                          }}
+                          style={{
+                            minHeight: 44,
+                            padding: "0 12px",
+                            borderRadius: "var(--radius-control)",
+                            border: "var(--control-border)",
+                            background: "var(--overlay)",
+                            color: "var(--text)",
+                            textAlign: "left",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {focusedFit === "fit" ? "Crop focused video" : "Fit focused video"}
+                        </button>
+                      )}
+                      {hasCompactSelfView && (
+                        <button
+                          onClick={() => {
+                            setSelfViewMinimized((minimized) => !minimized);
+                            closeMore(true);
+                          }}
+                          style={{
+                            minHeight: 44,
+                            padding: "0 12px",
+                            borderRadius: "var(--radius-control)",
+                            border: "var(--control-border)",
+                            background: "var(--overlay)",
+                            color: "var(--text)",
+                            textAlign: "left",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {selfViewMinimized ? "Restore self-view" : "Minimize self-view"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <button
+              onClick={() => {
+                setExitKind("leave");
+                setEndError(null);
+                setEndConfirmOpen(true);
+              }}
+              disabled={ending}
+              aria-label="Leave call"
+              onMouseEnter={() => setHoveredCtrl("end")}
+              onMouseLeave={() => setHoveredCtrl(null)}
+              className="gg-press" data-call-control data-call-leave
               style={{
-                position: "relative",
-                width: 340,
+                height: isPhone ? 44 : 48,
+                minWidth: isPhone ? 64 : 110,
                 flexShrink: 0,
+                padding: isPhone ? "0 14px" : "0 20px",
+                borderRadius: "var(--radius-btn, 999px)",
+                border: "none",
+                cursor: ending ? "default" : "pointer",
                 display: "flex",
-                flexDirection: "column",
-                background: "var(--surface, rgba(16,16,22,0.98))",
-                border: "1px solid var(--border, rgba(255,255,255,0.06))",
-                borderRadius: 0,
-                margin: 0,
-                overflow: "hidden",
-                animation: "chatSlideIn 0.22s ease forwards",
+                alignItems: "center",
+                justifyContent: "center",
+                background: coral,
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 800,
+                boxShadow: "none",
+                whiteSpace: "nowrap",
               }}
             >
-              <ChatPanel
-                scope={{ kind: "encounter", encounterId: encId, squadId }}
-                onClose={closeChat}
-                messages={chatMessages}
-                onSend={sendEncounterMessage}
-                onRetry={retryEncounterMessage}
-              />
-            </div>
-          )}
+              <Icon.hangup size={23} color="#fff" /><span className="gg-control-label">Leave</span>
+            </button>
+          </div>
         </div>
       </div>
-
-      {chatOpen && width < 1180 && (
-        <Modal
-          onClose={closeChat}
-          ariaLabel="Encounter chat"
-          showClose={false}
-          padding={0}
-          sheet={isPhoneChrome}
-          width="min(440px, calc(100vw - 24px))"
-          style={isPhoneChrome
-            ? {
-                height: keyboardRaised ? "calc(100dvh - 96px)" : "min(55dvh, calc(100dvh - 96px))",
-                maxHeight: "calc(100dvh - 96px)",
-                overflow: "hidden",
-              }
-            : { height: "min(70dvh, 620px)", overflow: "hidden" }}
-        >
-          <ChatPanel
-            scope={{ kind: "encounter", encounterId: encId, squadId }}
-            onClose={closeChat}
-            messages={chatMessages}
-            onSend={sendEncounterMessage}
-            onRetry={retryEncounterMessage}
-          />
-        </Modal>
-      )}
 
       {blockConfirmOpen && (
         <Modal
@@ -2526,7 +2675,16 @@ function EncounterInner() {
               }}
               disabled={blocking}
               className="gg-press"
-              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: blocking ? "default" : "pointer" }}
+              style={{
+                minHeight: 44,
+                padding: "0 18px",
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--overlay)",
+                color: "var(--text)",
+                fontWeight: 700,
+                cursor: blocking ? "default" : "pointer",
+              }}
             >
               Keep talking
             </button>
@@ -2537,10 +2695,29 @@ function EncounterInner() {
               aria-label="Block opponent squad"
               aria-busy={blocking}
               className="gg-press"
-              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--coral)", color: "#fff", fontWeight: 800, cursor: !canBlockOpponent || blocking ? "default" : "pointer" }}
+              style={{
+                minHeight: 44,
+                padding: "0 18px",
+                borderRadius: 999,
+                border: "none",
+                background: "var(--coral)",
+                color: "#fff",
+                fontWeight: 800,
+                cursor: !canBlockOpponent || blocking ? "default" : "pointer",
+              }}
             >
               {blocking ? "Blocking…" : "Block everyone and leave"}
             </button>
+          </div>
+        </Modal>
+      )}
+
+      {nextConfirmOpen && (
+        <Modal title="Find another squad?" subtitle="Your whole squad will leave this call and search together." onClose={() => { if (!nextPending) setNextConfirmOpen(false); }} showClose={false} closeOnBackdrop={!nextPending} width={420}>
+          {nextError && <p role="alert" style={{ color: 'var(--coral)' }}>{nextError}</p>}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, flexWrap: 'wrap' }}>
+            <Button variant="secondary" disabled={nextPending} onClick={() => setNextConfirmOpen(false)}>Keep talking</Button>
+            <Button loading={nextPending} onClick={findNextSquad} aria-label="Confirm next squad">{nextPending ? 'Moving squad…' : 'Next squad'}</Button>
           </div>
         </Modal>
       )}
@@ -2549,11 +2726,12 @@ function EncounterInner() {
         <Modal
           onClose={() => {
             if (ending) return;
+            if (endError && exitKind === "leave") retryVideo();
             setEndConfirmOpen(false);
             setEndError(null);
           }}
-          title="End encounter?"
-          subtitle="This ends the current encounter for both squads."
+          title={exitKind === "leave" ? "Leave this call?" : "End encounter?"}
+          subtitle={exitKind === "leave" ? "Only you will leave. Your squad can keep talking." : "This ends the current encounter for both squads."}
           showClose={false}
           closeOnBackdrop={!ending}
           width={420}
@@ -2567,24 +2745,43 @@ function EncounterInner() {
             <button
               type="button"
               onClick={() => {
+                if (endError && exitKind === "leave") retryVideo();
                 setEndConfirmOpen(false);
                 setEndError(null);
               }}
               disabled={ending}
               className="gg-press"
-              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "1px solid var(--border)", background: "var(--overlay)", color: "var(--text)", fontWeight: 700, cursor: ending ? "default" : "pointer" }}
+              style={{
+                minHeight: 44,
+                padding: "0 18px",
+                borderRadius: 999,
+                border: "1px solid var(--border)",
+                background: "var(--overlay)",
+                color: "var(--text)",
+                fontWeight: 700,
+                cursor: ending ? "default" : "pointer",
+              }}
             >
-              Keep talking
+              {endError && exitKind === "leave" ? "Reconnect call" : "Keep talking"}
             </button>
             <button
               type="button"
-              onClick={handleEnd}
+              onClick={exitKind === "leave" ? handlePersonalLeave : handleEnd}
               disabled={ending}
-              aria-label="End encounter"
+              aria-label={exitKind === "leave" ? "Confirm leave call" : "End encounter"}
               className="gg-press"
-              style={{ minHeight: 44, padding: "0 18px", borderRadius: 999, border: "none", background: "var(--coral)", color: "#fff", fontWeight: 800, cursor: ending ? "wait" : "pointer" }}
+              style={{
+                minHeight: 44,
+                padding: "0 18px",
+                borderRadius: 999,
+                border: "none",
+                background: "var(--coral)",
+                color: "#fff",
+                fontWeight: 800,
+                cursor: ending ? "wait" : "pointer",
+              }}
             >
-              {ending ? "Ending…" : "End encounter"}
+              {ending ? (exitKind === "leave" ? "Leaving…" : "Ending…") : exitKind === "leave" ? "Leave call" : "End encounter"}
             </button>
           </div>
         </Modal>
@@ -2595,13 +2792,7 @@ function EncounterInner() {
 
 export default function EncounterPage() {
   return (
-    <Suspense
-      fallback={
-        <div style={{ color: "#9A9AB0", padding: 40 }}>
-          Loading encounter…
-        </div>
-      }
-    >
+    <Suspense fallback={<div style={{ color: "#9A9AB0", padding: 40 }}>Loading encounter…</div>}>
       <EncounterInner />
     </Suspense>
   );

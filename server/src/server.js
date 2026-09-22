@@ -273,7 +273,7 @@ async function startServer(port = PORT) {
     };
 
     server.once("error", onError);
-    server.listen(port, () => {
+    server.listen(port, process.env.HOST || "0.0.0.0", () => {
       server.off("error", onError);
       console.log(`Server running on port ${port}`);
       resolve();

@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ImageBackground,
   useWindowDimensions,
   TextInput,
   KeyboardAvoidingView,
@@ -27,7 +26,6 @@ export default function OnboardingScreen() {
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const isWide = width >= 760;
-  const heroH = isWide ? Math.min(height - 72, 720) : Math.round(height * 0.56);
   const isProduction = process.env.NODE_ENV === 'production';
   const showDevSkip = process.env.NODE_ENV !== 'production';
 
@@ -103,26 +101,6 @@ export default function OnboardingScreen() {
 
   return (
     <View style={styles.root}>
-      <ImageBackground
-        source={require('../assets/img/onboarding-hero.jpg')}
-        style={[styles.hero, { height: heroH }]}
-        resizeMode="cover"
-      >
-        <LinearGradient
-          colors={isWide
-            ? ['rgba(5,5,8,0.10)', 'rgba(5,5,8,0.32)', 'rgba(5,5,8,0.78)', '#050508']
-            : ['rgba(11,11,15,0.15)', 'rgba(11,11,15,0.30)', 'rgba(11,11,15,0.82)', 'rgba(11,11,15,0.97)', '#0B0B0F']}
-          locations={isWide ? [0, 0.35, 0.70, 1] : [0, 0.32, 0.60, 0.80, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-        <LinearGradient
-          colors={['rgba(194,255,61,0.20)', 'rgba(124,92,255,0.16)', 'rgba(5,5,8,0)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.brandWash}
-        />
-      </ImageBackground>
-
       {/* Keyboard-aware scroll so form is visible when keyboard opens */}
       <KeyboardAvoidingView
         style={styles.kavContainer}
@@ -145,27 +123,12 @@ export default function OnboardingScreen() {
                 <Text style={styles.brandName}>Giggle</Text>
               </View>
               <Text style={[styles.headline, isWide && styles.headlineWide]}>
-                Meet in squads,{'\n'}not alone.
+                Meet new people.{'\n'}Bring your friends.
               </Text>
               <Text style={styles.subhead}>
-                Bring your people, match with another crew, and let the night start before anyone says hello.
+                Create a squad with friends, then meet another squad on a group video call.
               </Text>
-              <View style={styles.proofRow}>
-                <View style={styles.proofItem}>
-                  <Text style={styles.proofNumber}>4v4</Text>
-                  <Text style={styles.proofLabel}>squad rooms</Text>
-                </View>
-                <View style={styles.proofDivider} />
-                <View style={styles.proofItem}>
-                  <Text style={styles.proofNumber}>Live</Text>
-                  <Text style={styles.proofLabel}>encounters</Text>
-                </View>
-                <View style={styles.proofDivider} />
-                <View style={styles.proofItem}>
-                  <Text style={styles.proofNumber}>Safe</Text>
-                  <Text style={styles.proofLabel}>crew-first</Text>
-                </View>
-              </View>
+
             </View>
 
             <View style={[styles.panelSurface, isWide && styles.panelWide]}>
@@ -248,7 +211,7 @@ export default function OnboardingScreen() {
                 activeOpacity={0.84}
               >
                 {loading
-                  ? <ActivityIndicator color="#07100A" size="small" />
+                  ? <ActivityIndicator color="#fff" size="small" />
                   : <Text style={styles.submitBtnText}>
                       {mode === 'create' ? 'Create account' : 'Sign in'}
                     </Text>
@@ -309,7 +272,7 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#050508' },
+  root: { flex: 1, backgroundColor: COLORS.bg },
   hero: { position: 'absolute', top: 0, left: 0, right: 0, width: '100%' },
   brandWash: {
     position: 'absolute',
@@ -363,9 +326,9 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: RADII.pill,
-    backgroundColor: 'rgba(5,5,8,0.58)',
+    backgroundColor: COLORS.bg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: COLORS.border,
     marginBottom: SPACE.md,
   },
   brandName: {
@@ -382,7 +345,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 38,
     marginBottom: 10,
-    textShadow: '0 3px 18px rgba(0,0,0,0.82)',
+
   },
   headlineWide: {
     fontSize: 58,
@@ -392,7 +355,7 @@ const styles = StyleSheet.create({
   },
   subhead: {
     maxWidth: 520,
-    color: 'rgba(244,244,247,0.78)',
+    color: COLORS.textMuted,
     fontSize: 16,
     lineHeight: 22,
     textAlign: 'center',
@@ -406,7 +369,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: RADII.tile,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: COLORS.border,
     backgroundColor: 'rgba(5,5,8,0.46)',
     overflow: 'hidden',
   },
@@ -432,12 +395,11 @@ const styles = StyleSheet.create({
   },
 
   panelSurface: {
-    backgroundColor: 'rgba(13,16,18,0.78)',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: COLORS.border,
     borderRadius: 22,
     padding: 14,
-    boxShadow: '0 22px 60px rgba(0,0,0,0.52)',
   },
   panelWide: {
     width: 410,
@@ -473,7 +435,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     gap: 10,
-    boxShadow: '0 14px 30px rgba(124,92,255,0.24)',
   },
   primaryOauthIcon: {
     width: 24,
@@ -495,9 +456,9 @@ const styles = StyleSheet.create({
     minHeight: 52,
     width: '100%',
     borderRadius: RADII.pill,
-    backgroundColor: 'rgba(255,255,255,0.055)',
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -518,9 +479,9 @@ const styles = StyleSheet.create({
   input: {
     minHeight: 50,
     borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.065)',
+    backgroundColor: COLORS.bg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: COLORS.border,
     color: COLORS.text,
     paddingHorizontal: 16,
     fontSize: 16,
@@ -539,13 +500,12 @@ const styles = StyleSheet.create({
     minHeight: 52,
     width: '100%',
     borderRadius: 16,
-    backgroundColor: COLORS.lime,
+    backgroundColor: COLORS.violet,
     alignItems: 'center',
     justifyContent: 'center',
-    boxShadow: '0 12px 30px rgba(194,255,61,0.24)',
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: '#07100A', fontWeight: '900', fontSize: 16 },
+  submitBtnText: { color: '#fff', fontWeight: '900', fontSize: 16 },
 
   toggleBtn: {
     minHeight: 44,
@@ -556,7 +516,7 @@ const styles = StyleSheet.create({
 
   toggleText: {
     fontSize: 14,
-    color: 'rgba(244,244,247,0.80)',
+    color: COLORS.textMuted,
     textAlign: 'center',
     textDecorationLine: 'underline',
   },
@@ -566,7 +526,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 10,
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.12)' },
+  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
   dividerLabel: { color: COLORS.textDim, fontSize: 12, marginHorizontal: 12 },
 
   legal: {

@@ -1,6 +1,6 @@
 // Mobile theme re-exports the shared @giggle/ui-tokens package as the single
 // source of truth. Names below (COLORS/SPACE/RADII) are the ones the screens use.
-import { colors, radii, space } from '@giggle/ui-tokens';
+import { colors, callColors, radii, space } from '@giggle/ui-tokens';
 
 export const COLORS = {
   bg: colors.bg,
@@ -34,3 +34,5 @@ export const SPACE = {
   xl: space.xl,
   xxl: space.xxl,
 } as const;
+
+export const CALL_COLORS = { ...COLORS, ...callColors, text: callColors.textPrimary, textMuted: callColors.textSecondary, textDim: callColors.textTertiary };

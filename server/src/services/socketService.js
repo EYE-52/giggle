@@ -19,6 +19,7 @@ const { firstDisplayName } = require('../utils/identityValidation');
 const { classifyVibe } = require('../utils/moderation');
 const { isMongoObjectIdString } = require('../middlewares/authMiddleware');
 const { hasAdultAccess } = require('./ageAccessService');
+const { claimOrGetChatMessage } = require('./chatDeliveryService');
 
 let io;
 const MAX_CHAT_TEXT_LENGTH = 500;
@@ -289,10 +290,6 @@ const init = (server) => {
 
   io.on('connection', (socket) => {
     logRealtimeDebug('New client connected:', socket.id);
-    // ponytail: per-socket retry cache; use a shared TTL store only if retries
-    // must remain idempotent after reconnecting to another server instance.
-    const sentChatMessages = new Map();
-
     // Track online presence for authenticated sockets.
     let presenceHeartbeat = null;
     if (socket.userId) {
@@ -373,11 +370,6 @@ const init = (server) => {
           return reply({ ok: false, error: 'That message is not allowed.' });
         }
 
-        const previousMessage = normalizedClientMessageId
-          ? sentChatMessages.get(normalizedClientMessageId)
-          : null;
-        if (previousMessage) return reply({ ok: true, message: previousMessage });
-
         const ts = Date.now();
         // Derive the sender from the authenticated socket when available; fall
         // back to client-supplied values only for dev clients with no identity.
@@ -395,15 +387,28 @@ const init = (server) => {
           timestamp: new Date(ts).toISOString(),
         };
 
-        if (normalizedClientMessageId) {
-          if (sentChatMessages.size >= 200) sentChatMessages.delete(sentChatMessages.keys().next().value);
-          sentChatMessages.set(normalizedClientMessageId, message);
+        let delivery = { claimed: true, message };
+        if (normalizedClientMessageId && resolvedSenderId) {
+          delivery = await claimOrGetChatMessage({
+            senderId: resolvedSenderId,
+            room: authorization.room,
+            clientMessageId: normalizedClientMessageId,
+            message,
+            redis: getRedisClient(),
+          });
         }
-        io.to(authorization.room).emit('new_message', message);
-        reply({ ok: true, message });
+        // Re-send the canonical ID on retry: a worker may have stopped after
+        // storing the claim but before broadcasting. Clients merge by message ID.
+        io.to(authorization.room).emit('new_message', delivery.message);
+        reply({ ok: true, message: delivery.message });
       } catch (err) {
         console.error('send_message error:', err);
-        reply({ ok: false, error: 'That message is not allowed.' });
+        reply({
+          ok: false,
+          error: err?.code === 'CHAT_DEDUP_UNAVAILABLE'
+            ? 'Message delivery is temporarily unavailable. Try again.'
+            : 'That message is not allowed.',
+        });
       }
     });
 

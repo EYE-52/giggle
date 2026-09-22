@@ -6,6 +6,7 @@ const {
   getEncounterRosterContext,
   ackEncounterForSquad,
   endEncounterAndRequeue,
+  tryMatchmakeForSquad,
 } = require("../services/matchmakingService");
 const { hashStringToUid } = require("../services/agoraTokenService");
 const socketService = require("../services/socketService");
@@ -229,48 +230,27 @@ const skipEncounterHandler = async (req, res) => {
   }
 
   try {
-    const context = await getSquadAccessContext({ squadId, identity });
-    if (context.error) {
-      return res.status(context.error.status).json({
-        ok: false,
-        error: { code: context.error.code, message: context.error.message },
-      });
-    }
-
-    if (!context.isLeader) {
-      return res.status(403).json({
-        ok: false,
-        error: { code: "LEADER_ONLY", message: "Only squad leader can skip encounter" },
-      });
-    }
-
-    const encounter = await getEncounterById(encounterId);
-    if (!encounter) {
-      return res.status(404).json({
-        ok: false,
-        error: { code: "ENCOUNTER_NOT_FOUND", message: "Encounter not found" },
-      });
-    }
-
-    if (![encounter.squadAId, encounter.squadBId].includes(squadId)) {
-      return res.status(403).json({
-        ok: false,
-        error: { code: "FORBIDDEN", message: "Squad is not part of this encounter" },
-      });
-    }
-
-    const requeuedSquad = await endEncounterAndRequeue({ encounter, triggeringSquadId: squadId });
-
-    return res.status(200).json({
-      ok: true,
-      data: {
-        squadId,
-        previousEncounterId: encounterId,
-        queueStatus: requeuedSquad?.squadId === squadId ? "searching" : "idle",
-      },
+    const outcome = await withMatchmakingLock(async (signal) => {
+      const context = await getSquadAccessContext({ squadId, identity });
+      if (context.error) return { error: context.error };
+      if (!context.isLeader) return { error: { status: 403, code: "LEADER_ONLY", message: "Only squad leader can skip encounter" } };
+      const encounter = await getEncounterById(encounterId);
+      if (!encounter) return { error: { status: 404, code: "ENCOUNTER_NOT_FOUND", message: "Encounter not found" } };
+      if (![encounter.squadAId, encounter.squadBId].includes(squadId)) return { error: { status: 403, code: "FORBIDDEN", message: "Squad is not part of this encounter" } };
+      // A retry must never reset a squad which has already entered another call.
+      if (encounter.status === "ended") return { queueStatus: context.squad?.status === "idle" ? "idle" : "searching" };
+      if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+      const requeuedSquad = await endEncounterAndRequeue({ encounter, triggeringSquadId: squadId, matchImmediately: false });
+      return { requeuedSquad, queueStatus: requeuedSquad?.squadId === squadId ? "searching" : "idle" };
     });
+    if (outcome.error) return res.status(outcome.error.status).json({ ok: false, error: { code: outcome.error.code, message: outcome.error.message } });
+    const response = res.status(200).json({ ok: true, data: { squadId, previousEncounterId: encounterId, queueStatus: outcome.queueStatus } });
+    // The matcher owns the same lock. Run it only after the transition releases it.
+    if (outcome.requeuedSquad) await tryMatchmakeForSquad(outcome.requeuedSquad);
+    return response;
   } catch (error) {
     console.error("Error skipping encounter:", error);
+    if (res.headersSent) return;
     return res.status(500).json({
       ok: false,
       error: { code: "INTERNAL_ERROR", message: "Failed to skip encounter" },

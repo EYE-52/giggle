@@ -4,9 +4,9 @@
    Keep this list in sync with THEMES in components/ThemeToggle.tsx. */
 (function () {
   try {
-    var themes = ["dark", "light", "tangerine"];
+    var themes = ["together", "dark", "light", "tangerine"];
     var t = localStorage.getItem("giggle.theme");
-    if (themes.indexOf(t) < 0) t = "dark";
+    if (themes.indexOf(t) < 0) t = "together";
     document.documentElement.setAttribute("data-theme", t);
   } catch (e) {}
 })();

@@ -13,12 +13,13 @@ import { COLORS, SPACE, RADII } from '../../constants/theme';
 import { api, session, connectSocket, SOCKET_EVENTS } from '@giggle/core';
 import type { SquadState } from '@giggle/core';
 import { createVideoClient } from '@giggle/agora';
-import type { VideoClient } from '@giggle/agora';
+import { LobbyChat } from '../../components/LobbyChat';
+import { Wordmark } from '../../components/Wordmark';
+import type { VideoClient, RemoteParticipant } from '@giggle/agora';
 import { NATIVE_DISCOVERY_ENABLED } from '../../constants/discovery';
 
 const CURATED_VIBES = ['Gaming', 'Music', 'Chill', 'Comedy', 'Deep Talks', 'Late Night', 'Sports', 'Art', 'Study', 'Hype', 'Fitness', 'Foodies'];
 
-const TILE_GAP = 10;
 
 export default function LobbyScreen() {
   const router = useRouter();
@@ -26,6 +27,11 @@ export default function LobbyScreen() {
   const params = useLocalSearchParams<{ squad?: string }>();
   const squadId = typeof params.squad === 'string' ? params.squad : undefined;
 
+  const [settingsVisible, setSettingsVisible] = useState(false);
+  const [leaveConfirm, setLeaveConfirm] = useState(false);
+  const [chatVisible, setChatVisible] = useState(false);
+  const [remotes, setRemotes] = useState<RemoteParticipant[]>([]);
+  const remoteUnsub = useRef<(() => void) | null>(null);
   const [squad, setSquad] = useState<SquadState | null>(null);
   const [micOn, setMicOn] = useState(false);
   const [camOn, setCamOn] = useState(false);
@@ -34,7 +40,6 @@ export default function LobbyScreen() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
   const [videoJoining, setVideoJoining] = useState(false);
-  const [stageHeight, setStageHeight] = useState(0);
   const [videoError, setVideoError] = useState('');
   const [squadError, setSquadError] = useState('');
   const [readying, setReadying] = useState(false);
@@ -54,8 +59,10 @@ export default function LobbyScreen() {
     try {
       const s = await api.getSquad(squadId);
       setSquad(s);
+      if (NATIVE_DISCOVERY_ENABLED && ["searching", "matched", "in_encounter"].includes(s.status)) router.replace(`/matchmaking?squad=${squadId}`);
       setIsPrivate(s.visibility !== 'open');
     } catch (e: any) {
+      if (e?.status === 403 || e?.status === 404) { router.replace("/home"); return; }
       setSquadError(e?.message || "Couldn't load this squad.");
     }
   }, [squadId]);
@@ -82,10 +89,14 @@ export default function LobbyScreen() {
         void refetch();
       };
       sock.on(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate);
-      cleanupSocket = () => { sock.off(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate); };
+      sock.on(SOCKET_EVENTS.MATCH_FOUND, onUpdate);
+      cleanupSocket = () => { sock.off(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate); sock.off(SOCKET_EVENTS.MATCH_FOUND, onUpdate); };
     } catch {}
 
+    const poll = setInterval(refetch, 3000);
     return () => {
+      clearInterval(poll);
+      remoteUnsub.current?.();
       cleanupSocket?.();
       videoAttemptRef.current += 1;
       try { void vcRef.current?.leave(); } catch {}
@@ -119,6 +130,14 @@ export default function LobbyScreen() {
       if (attempt !== videoAttemptRef.current) return;
       vc = createVideoClient();
       vcRef.current = vc;
+      remoteUnsub.current?.();
+      const offRemote = vc.onRemoteChange(setRemotes);
+      const offCapture = vc.onCaptureState?.(state => {
+        if (attempt !== videoAttemptRef.current) return;
+        setMicOn(state.audio === 'active');
+        setCamOn(state.video === 'active');
+      });
+      remoteUnsub.current = () => { offRemote(); offCapture?.(); };
       await vc.join(token, { audio: true, video: true });
       if (attempt !== videoAttemptRef.current) {
         await vc.leave();
@@ -131,8 +150,6 @@ export default function LobbyScreen() {
         return;
       }
       videoPresenceRef.current = true;
-      setMicOn(true);
-      setCamOn(true);
       setVideoReady(true);
     } catch (e: any) {
       if (attempt !== videoAttemptRef.current) return;
@@ -332,379 +349,79 @@ export default function LobbyScreen() {
 
   const currentVibes = squad?.tags ?? selectedVibes;
   const allReadyCount = displayMembers.filter((m) => m.ready).length;
-  const visibilityValue = isPrivate ? 'Private' : 'Open';
-  const gridWidth = Math.min(width, 760);
-  const tileCount = Math.max(displayMembers.length, 1);
-  const tileCols = width < 600
-    ? (tileCount <= 2 ? 1 : 2)
-    : (tileCount <= 2 ? tileCount : tileCount <= 4 ? 2 : 3);
-  const tileRows = Math.ceil(tileCount / tileCols);
-  const tileW = (gridWidth - SPACE.lg * 2 - TILE_GAP * (tileCols - 1)) / tileCols;
-  const usableStageHeight = Math.max(140, stageHeight - SPACE.lg * 2);
-  const tileH = Math.max(140, (usableStageHeight - TILE_GAP * (tileRows - 1)) / tileRows);
-
+  const cardWidth = Math.min((width - 44) / 2, 300);
   return (
     <Screen style={styles.screen}>
-      {/* ── Slim calling-style header ── */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.squadName} numberOfLines={1}>{squad?.squadName ?? 'Squad'}</Text>
-          <View style={styles.headerMeta}>
-            <View style={styles.codeChip}>
-              <Text style={styles.codeText}>{squad?.squadCode ?? '—'}</Text>
-            </View>
-            {isLeader ? (
-              <TouchableOpacity
-                onPress={() => { setSelectedVibes(squad?.tags ?? []); setVibeModalVisible(true); }}
-                style={styles.vibePreview}
-                accessibilityRole="button"
-                accessibilityLabel="Edit vibes"
-              >
-                <Text style={styles.vibePreviewText} numberOfLines={1}>
-                  {currentVibes.length ? currentVibes.slice(0, 2).join(' · ') : '+ Vibes'}
-                </Text>
-              </TouchableOpacity>
-            ) : currentVibes.length > 0 ? (
-              <View style={styles.vibePreview}>
-                <Text style={styles.vibePreviewText} numberOfLines={1}>{currentVibes.slice(0, 2).join(' · ')}</Text>
-              </View>
-            ) : null}
-          </View>
+      <ScrollView style={{ display: chatVisible ? "none" : "flex" }} contentContainerStyle={roomStyles.page} keyboardShouldPersistTaps="handled">
+        <View style={roomStyles.nav}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Back home" onPress={() => router.replace('/home')}><Wordmark size={25} /></TouchableOpacity><Button label="Settings" variant="outline" onPress={() => setSettingsVisible(true)} /></View>
+        <Text style={roomStyles.title}>{squad.squadName}</Text>
+        <Text style={roomStyles.copy}>Invite friends and check your camera before joining a call.</Text>
+        {matchError || squadError ? <Text accessibilityRole="alert" style={roomStyles.error}>{matchError || squadError}</Text> : null}
+        <View style={roomStyles.grid}>{displayMembers.map((member, index) => {
+          const isMe = member.userId === myUserId;
+          const remote = remotes.find(person => String(person.uid) === String(member.uid));
+          return <View key={member.memberId} style={[roomStyles.tile, { width: cardWidth, height: cardWidth }]}>
+            {isMe && camOn && videoReady ? <RtcSurface style={styles.tileVideo} canvas={{ uid: 0 }} /> : !isMe && remote?.hasVideo && member.uid !== undefined ? <RtcSurface style={styles.tileVideo} canvas={{ uid: member.uid }} /> : <><Avatar name={member.displayName} size={56} colorIndex={index} /><Text style={roomStyles.cameraOff}>{member.online === false && !isMe ? 'Offline' : 'Camera off'}</Text></>}
+            <View style={roomStyles.nameRow}><Text style={roomStyles.name} numberOfLines={1}>{isMe ? 'You' : member.displayName}</Text><Text style={roomStyles.ready}>{member.ready ? 'Ready' : member.memberId === squad.leaderMemberId ? 'Leader' : ''}</Text></View>
+          </View>;
+        })}{displayMembers.length < (squad.maxSlots ?? 4) && <TouchableOpacity style={[roomStyles.empty, { width: cardWidth, height: cardWidth }]} accessibilityRole="button" accessibilityLabel="Invite a friend" onPress={() => void shareInvite()}><Icon.plus size={28} color={COLORS.textMuted} /><Text style={roomStyles.copy}>Invite a friend</Text></TouchableOpacity>}</View>
+        <View style={roomStyles.controls}>{videoReady ? <><Button label={micOn ? 'Mic on' : 'Mic off'} variant="outline" onPress={handleMicToggle} /><Button label={camOn ? 'Camera on' : 'Camera off'} variant="outline" onPress={handleCamToggle} /></> : <Button label={videoJoining ? 'Connecting…' : 'Enable camera & mic'} accessibilityLabel="Enable camera and microphone" disabled={videoJoining} variant="outline" onPress={() => void startVideo()} />}<Button label="Chat" variant="outline" onPress={() => setChatVisible(true)} /></View>
+        {videoError ? <Text accessibilityRole="alert" style={roomStyles.error}>{videoError}</Text> : null}
+        <View style={roomStyles.details}><View style={roomStyles.nav}><Text style={roomStyles.subtitle}>Your squad</Text><Text style={roomStyles.copy}>{displayMembers.length} / {squad.maxSlots ?? 4}</Text></View><View style={roomStyles.code}><Text style={roomStyles.codeText}>{squad.squadCode}</Text><Button label="Share invite" variant="outline" onPress={() => void shareInvite()} /></View>
+          <View style={roomStyles.nav}><Text style={roomStyles.copy}>{currentVibes.length ? currentVibes.join(' · ') : 'No interests added'}</Text>{isLeader && <Button label="Edit interests" variant="outline" onPress={() => { setSelectedVibes(squad.tags ?? []); setVibeModalVisible(true); }} />}</View>
+          <Text style={roomStyles.copy}>{displayMembers.length === 1 ? 'Invite friends or join a call on your own.' : `${allReadyCount} of ${displayMembers.length} ready`}</Text>
+          <Button label={readying ? 'Saving…' : myMember?.ready ? 'Not ready' : "I'm ready"} variant={myMember?.ready ? 'outline' : 'violet'} disabled={readying} onPress={toggleReady} />
+          {NATIVE_DISCOVERY_ENABLED && isLeader && <Button label={finding ? 'Finding…' : 'Find a squad'} disabled={!everyoneReady || finding} onPress={findMatch} />}
+          <Text style={roomStyles.copy}>{isLeader ? everyoneReady ? 'Connect your devices before starting a call.' : 'Everyone online needs to mark ready first.' : 'Your squad leader starts the search when everyone is ready.'}</Text>
         </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={() => void shareInvite()}
-            style={styles.headerBtn}
-            accessibilityRole="button"
-            accessibilityLabel="Invite friends"
-          >
-            <Text style={styles.headerBtnText}>Invite</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={leave}
-            disabled={leaving}
-            style={[styles.headerBtn, styles.headerBtnRed, leaving && styles.headerBtnDisabled]}
-            accessibilityRole="button"
-            accessibilityLabel="Leave squad"
-            accessibilityState={{ disabled: leaving, busy: leaving }}
-          >
-            <Text style={styles.headerBtnTextRed}>{leaving ? 'Leaving…' : 'Leave'}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* ── Ready count pill ── */}
-      <View style={styles.readyBar}>
-        <Text style={styles.readyBarText}>
-          {allReadyCount}/{displayMembers.length} ready
-        </Text>
-        {isLeader ? (
-          <View style={styles.visibilityRow}>
-            <Text style={styles.visibilityLabel}>Private</Text>
-            <SwitchControl
-              label="Private squad"
-              value={isPrivate}
-              onValueChange={handlePrivacyToggle}
-            />
-          </View>
-        ) : (
-          <View style={styles.visibilityPill} accessibilityLabel="Only leaders can change squad privacy">
-            <Text style={styles.visibilityPillText}>{visibilityValue}</Text>
-          </View>
-        )}
-      </View>
-      {matchError ? (
-        <View style={styles.matchError}>
-          <Text style={styles.matchErrorText}>{matchError}</Text>
-        </View>
-      ) : null}
-      {videoError ? (
-        <View style={styles.videoError}>
-          <Text style={styles.videoErrorTitle}>Video unavailable</Text>
-          <Text style={styles.videoErrorText}>{videoError}</Text>
-        </View>
-      ) : null}
-
-      {/* ── People-only video stage ── */}
-      <ScrollView
-        style={styles.gridScroll}
-        contentContainerStyle={styles.gridContent}
-        showsVerticalScrollIndicator={false}
-        onLayout={({ nativeEvent }) => setStageHeight(nativeEvent.layout.height)}
-      >
-        {displayMembers.length === 0 ? (
-          <View style={styles.squadState}>
-            <Text style={styles.squadStateTitle}>Lobby empty</Text>
-            <Text style={styles.squadStateText}>Invite someone to start this lobby.</Text>
-          </View>
-        ) : (
-        <View style={styles.grid}>
-          {displayMembers.map((m, i) => {
-            const isLead = squad?.leaderMemberId === m.memberId || (members.length === 0 && i === 0);
-            const isMe = m.userId === myUserId;
-            const displayLabel = isMe ? `${m.displayName} (You)` : m.displayName;
-            return (
-              <View key={m.memberId} style={[styles.tile, { width: tileW, height: tileH }]}>
-                <View style={styles.tileInner}>
-                  {isMe && camOn && videoReady ? (
-                    <RtcSurface style={styles.tileVideo} canvas={{ uid: 0 }} />
-                  ) : (
-                    <Avatar name={m.displayName} size={tileCount === 1 ? 72 : 44} colorIndex={i} />
-                  )}
-                </View>
-
-                {/* Name pill at bottom */}
-                <View style={styles.namePill}>
-                  <Text style={styles.namePillText} numberOfLines={1}>{displayLabel}</Text>
-                  {isLead && <View style={styles.leadDot}><Text style={styles.leadDotText}>LEAD</Text></View>}
-                </View>
-
-                {/* Mic/cam indicators top-right */}
-                <View style={styles.indicators}>
-                  <View style={[styles.indDot, m.inLobbyVideo ? styles.indGreen : styles.indRed]}>
-                    <Icon.mic size={9} color="#fff" />
-                  </View>
-                </View>
-
-                {/* Ready badge top-left */}
-                {m.ready && (
-                  <View style={styles.readyBadge}>
-                    <Text style={styles.readyBadgeText}>✓</Text>
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
-        )}
       </ScrollView>
-
-      {/* ── Vibe Edit Modal ── */}
-      <Modal visible={vibeModalVisible} transparent animationType="slide" onRequestClose={() => setVibeModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <Text style={styles.modalTitle}>Edit Vibes</Text>
-            <Text style={styles.modalSub}>Choose up to 5 vibes for your squad</Text>
-            <View style={styles.modalChips}>
-              {CURATED_VIBES.map((v) => {
-                const active = selectedVibes.includes(v);
-                return (
-                  <TouchableOpacity
-                    key={v}
-                    onPress={() => toggleVibeSelection(v)}
-                    style={[styles.modalChip, active && styles.modalChipActive]}
-                    activeOpacity={0.75}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: active }}
-                  >
-                    <Text style={[styles.modalChipText, active && styles.modalChipTextActive]}>{v}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Text style={styles.modalCount}>{selectedVibes.length}/5 selected</Text>
-            <Button label="Save" onPress={saveVibes} variant="violet" style={{ marginBottom: SPACE.md }} />
-            <Button label="Cancel" onPress={() => setVibeModalVisible(false)} variant="outline" />
-          </View>
-        </View>
+      <View style={{ flex: 1, display: chatVisible ? "flex" : "none" }}><LobbyChat squadId={squadId} onClose={() => setChatVisible(false)} /></View>
+      <Modal visible={settingsVisible || leaveConfirm} transparent animationType="fade" onRequestClose={() => { if (!leaving) { setSettingsVisible(false); setLeaveConfirm(false); } }}>
+        <View style={styles.modalOverlay}><View accessibilityViewIsModal style={styles.modalSheet}>
+          {leaveConfirm ? <View style={{ gap: 16 }}>
+            <Text style={styles.modalTitle}>Leave this squad?</Text>
+            <Text style={styles.modalSub}>{isLeader ? displayMembers.length > 1 ? 'Leadership will pass to another member.' : 'You are the only member. Leaving will close the squad.' : 'The rest of your squad can keep talking.'}</Text>
+            {matchError ? <Text accessibilityRole="alert" style={roomStyles.error}>{matchError}</Text> : null}
+            <Button label={leaving ? 'Leaving…' : 'Confirm leave squad'} disabled={leaving} onPress={leave} />
+            <Button label="Keep talking" variant="outline" disabled={leaving} onPress={() => { setLeaveConfirm(false); setSettingsVisible(false); }} />
+          </View> : <ScrollView contentContainerStyle={{ gap: 16 }}>
+            <Text style={styles.modalTitle}>Squad settings</Text>
+            {matchError ? <Text accessibilityRole="alert" style={roomStyles.error}>{matchError}</Text> : null}
+            <View style={roomStyles.nav}><Text style={roomStyles.copy}>Private squad</Text><SwitchControl label="Private squad" value={isPrivate} disabled={!isLeader} onValueChange={handlePrivacyToggle} /></View>
+            {!isLeader && <Text style={roomStyles.copy}>Only the leader can change privacy.</Text>}
+            {displayMembers.map(member => <Text key={member.memberId} style={roomStyles.copy}>{member.displayName}{member.memberId === squad.leaderMemberId ? ' · Leader' : ''}</Text>)}
+            <Button label="Leave squad" variant="coral" onPress={() => setLeaveConfirm(true)} />
+            <Button label="Close settings" variant="outline" onPress={() => setSettingsVisible(false)} />
+          </ScrollView>}
+        </View></View>
       </Modal>
-
-      {/* ── Bottom control row (round buttons) ── */}
-      <View style={styles.dock}>
-        <View style={styles.mediaReadyRow}>
-          {videoReady ? (
-            <>
-              {/* Mic */}
-              <View style={styles.ctrlWrap}>
-                <TouchableOpacity
-                  onPress={handleMicToggle}
-                  style={[styles.ctrlBtn, !micOn && styles.ctrlBtnOff]}
-                  activeOpacity={0.75}
-                  accessibilityRole="button"
-                  accessibilityLabel={micOn ? 'Mute microphone' : 'Unmute microphone'}
-                >
-                  <Icon.mic size={20} color={micOn ? COLORS.text : COLORS.coral} />
-                </TouchableOpacity>
-                <Text style={styles.ctrlLabel}>{micOn ? 'Mic' : 'Muted'}</Text>
-              </View>
-
-              {/* Cam */}
-              <View style={styles.ctrlWrap}>
-                <TouchableOpacity
-                  onPress={handleCamToggle}
-                  style={[styles.ctrlBtn, !camOn && styles.ctrlBtnOff]}
-                  activeOpacity={0.75}
-                  accessibilityRole="button"
-                  accessibilityLabel={camOn ? 'Turn camera off' : 'Turn camera on'}
-                >
-                  <Icon.cam size={20} color={camOn ? COLORS.text : COLORS.coral} />
-                </TouchableOpacity>
-                <Text style={styles.ctrlLabel}>{camOn ? 'Cam' : 'Off'}</Text>
-              </View>
-            </>
-          ) : (
-            <View style={styles.ctrlWrap}>
-              <TouchableOpacity
-                onPress={() => void startVideo()}
-                style={[styles.ctrlBtn, styles.ctrlBtnFind, videoJoining && styles.ctrlBtnDisabled]}
-                activeOpacity={0.75}
-                disabled={videoJoining}
-                accessibilityRole="button"
-                accessibilityLabel="Enable camera and microphone"
-              >
-                {videoJoining
-                  ? <Text style={styles.ctrlBtnInnerText}>…</Text>
-                  : <Icon.cam size={20} color="#fff" />
-                }
-              </TouchableOpacity>
-              <Text style={styles.ctrlLabel}>{videoJoining ? 'Enabling…' : 'Enable video'}</Text>
-            </View>
-          )}
-
-          {/* Ready — everyone, including leader */}
-          <View style={styles.ctrlWrap}>
-            <TouchableOpacity
-              onPress={toggleReady}
-              style={[styles.ctrlBtn, myMember?.ready && styles.ctrlBtnReady, (!myMember || readying) && styles.ctrlBtnDisabled]}
-              activeOpacity={0.75}
-              disabled={!myMember || readying}
-              accessibilityRole="button"
-              accessibilityLabel={myMember?.ready ? 'Mark not ready' : 'Mark ready'}
-            >
-              {readying
-                ? <Text style={styles.ctrlBtnInnerText}>…</Text>
-                : <Icon.check size={20} color={myMember?.ready ? COLORS.lime : COLORS.text} />
-              }
-            </TouchableOpacity>
-            <Text style={styles.ctrlLabel}>{myMember?.ready ? 'Ready ✓' : 'Ready'}</Text>
-          </View>
-
-        </View>
-        {/* Find a Match — leader only */}
-        {NATIVE_DISCOVERY_ENABLED && isLeader && (
-          <View style={styles.matchActionRow}>
-            <Button
-              label={finding ? 'Finding…' : 'Find a match'}
-              onPress={findMatch}
-              disabled={!everyoneReady || !everyoneInVideo || finding}
-              style={styles.matchButton}
-            />
-          </View>
-        )}
-      </View>
+      <Modal visible={vibeModalVisible} transparent animationType="fade" onRequestClose={() => setVibeModalVisible(false)}><View style={styles.modalOverlay}><View style={styles.modalSheet}><ScrollView contentContainerStyle={{ gap: 14 }}><Text style={styles.modalTitle}>Edit interests</Text><Text style={styles.modalSub}>Choose up to five.</Text>{matchError ? <Text accessibilityRole="alert" style={roomStyles.error}>{matchError}</Text> : null}<View style={styles.modalChips}>{CURATED_VIBES.map(interest => <TouchableOpacity key={interest} accessibilityRole="button" accessibilityState={{ selected: selectedVibes.includes(interest) }} style={[styles.modalChip, selectedVibes.includes(interest) && styles.modalChipActive]} onPress={() => toggleVibeSelection(interest)}><Text style={styles.modalChipText}>{interest}</Text></TouchableOpacity>)}</View><Button label="Save interests" onPress={saveVibes} /><Button label="Cancel" variant="outline" onPress={() => setVibeModalVisible(false)} /></ScrollView></View></View></Modal>
     </Screen>
   );
 }
 
+const roomStyles = StyleSheet.create({
+  page: { padding: 16, gap: 18, width: '100%', maxWidth: 720, alignSelf: 'center' },
+  nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  title: { fontSize: 30, color: COLORS.text, fontWeight: '700', letterSpacing: -1 },
+  subtitle: { fontSize: 19, color: COLORS.text, fontWeight: '700' },
+  copy: { color: COLORS.textMuted, fontSize: 13, lineHeight: 19, flexShrink: 1 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
+  tile: { backgroundColor: '#33312e', borderRadius: 18, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  empty: { backgroundColor: '#e8ece1', borderColor: '#a6b19b', borderStyle: 'dashed', borderWidth: 1, borderRadius: 18, alignItems: 'center', justifyContent: 'center', gap: 12 },
+  nameRow: { position: 'absolute', left: 12, right: 12, bottom: 12, flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  name: { color: '#fff', fontSize: 12, flexShrink: 1 },
+  ready: { color: '#d3deca', fontSize: 11 },
+  cameraOff: { color: '#c0bbb2', fontSize: 11 },
+  controls: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+  details: { padding: 18, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface, borderRadius: 20, gap: 16 },
+  code: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  codeText: { fontFamily: 'monospace', letterSpacing: 2, fontWeight: '700', fontSize: 19, color: COLORS.text },
+  error: { color: COLORS.coral, fontSize: 13, lineHeight: 19 },
+});
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-
-  // ── Slim header ──
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACE.lg,
-    paddingTop: SPACE.md,
-    paddingBottom: SPACE.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  headerLeft: { flex: 1, marginRight: SPACE.sm },
-  squadName: { fontSize: 17, fontWeight: '700', color: COLORS.text, letterSpacing: -0.3 },
-  headerMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
-  codeChip: {
-    backgroundColor: COLORS.limeSoft,
-    borderRadius: 999,
-    paddingVertical: 2,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: COLORS.lime,
-  },
-  codeText: { fontFamily: 'monospace', fontSize: 12, fontWeight: '700', color: COLORS.lime, letterSpacing: 1.5 },
-  vibePreview: {
-    backgroundColor: COLORS.violetSoft,
-    borderRadius: 999,
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingVertical: 2,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: COLORS.violet,
-    maxWidth: 120,
-  },
-  vibePreviewText: { fontSize: 11, color: COLORS.violet, fontWeight: '600' },
-  headerActions: { flexDirection: 'row', gap: 8 },
-  headerBtn: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 999,
-    backgroundColor: COLORS.violetSoft,
-    borderWidth: 1,
-    borderColor: COLORS.violet,
-  },
-  headerBtnText: { color: COLORS.violet, fontWeight: '600', fontSize: 12 },
-  headerBtnRed: {
-    backgroundColor: COLORS.coralSoft,
-    borderColor: COLORS.coral,
-  },
-  headerBtnDisabled: { opacity: 0.5 },
-  headerBtnTextRed: { color: COLORS.coral, fontWeight: '600', fontSize: 12 },
-
-  // ── Ready bar ──
-  readyBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACE.lg,
-    paddingVertical: SPACE.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  readyBarText: { fontSize: 13, color: COLORS.textMuted, fontWeight: '600' },
-  visibilityRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  visibilityLabel: { fontSize: 12, color: COLORS.textDim },
-  visibilityPill: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-  },
-  visibilityPillText: { fontSize: 12, color: COLORS.textMuted, fontWeight: '700' },
-  matchError: {
-    paddingHorizontal: SPACE.lg,
-    paddingVertical: SPACE.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,92,92,0.18)',
-    backgroundColor: 'rgba(255,92,92,0.08)',
-  },
-  matchErrorText: { color: COLORS.coral, fontSize: 12.5, lineHeight: 18, fontWeight: '600' },
-  videoError: {
-    paddingHorizontal: SPACE.lg,
-    paddingVertical: SPACE.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,92,92,0.18)',
-    backgroundColor: 'rgba(255,92,92,0.08)',
-  },
-  videoErrorTitle: { color: COLORS.coral, fontSize: 12, fontWeight: '900' },
-  videoErrorText: { color: COLORS.textMuted, fontSize: 12, lineHeight: 17, marginTop: 2 },
-
-  // ── People-only adaptive tile grid ──
-  gridScroll: { flex: 1 },
-  gridContent: { padding: SPACE.lg, flexGrow: 1, width: '100%', maxWidth: 760, alignSelf: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: TILE_GAP },
-  squadState: {
-    flexGrow: 1,
-    minHeight: 260,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: SPACE.xl,
-  },
   squadStateTitle: { color: COLORS.text, fontSize: 18, fontWeight: '900', textAlign: 'center' },
   squadStateText: { color: COLORS.textMuted, fontSize: 13, lineHeight: 20, textAlign: 'center' },
   missingState: {
@@ -716,66 +433,11 @@ const styles = StyleSheet.create({
   },
   missingActions: { width: '100%', gap: SPACE.sm, marginTop: SPACE.sm },
   missingButton: { width: '100%' },
-
-  tile: {
-    borderRadius: 14,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
-  },
-  tileInner: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   tileVideo: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: '#000',
   },
-
-  // Name pill — bottom overlay
-  namePill: {
-    position: 'absolute',
-    bottom: 6,
-    left: 6,
-    right: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    borderRadius: 8,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-  },
-  namePillText: { fontSize: 11, fontWeight: '700', color: '#fff', flex: 1 },
-  leadDot: {
-    backgroundColor: COLORS.lime,
-    borderRadius: 4,
-    paddingVertical: 1,
-    paddingHorizontal: 5,
-  },
-  leadDotText: { fontSize: 8, fontWeight: '800', color: '#0B0B0F', letterSpacing: 0.3 },
-
-  // Mic indicator
-  indicators: { position: 'absolute', top: 6, right: 6, flexDirection: 'row', gap: 4 },
-  indDot: { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  indGreen: { backgroundColor: 'rgba(34,197,94,0.8)' },
-  indRed: { backgroundColor: 'rgba(255,92,92,0.7)' },
-
-  // Ready badge
-  readyBadge: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: 'rgba(194,255,61,0.85)',
-    borderRadius: 6,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-  },
-  readyBadgeText: { fontSize: 10, fontWeight: '800', color: '#0B0B0F' },
 
   // ── Modal ──
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'flex-end' },
@@ -794,41 +456,4 @@ const styles = StyleSheet.create({
   },
   modalChipActive: { backgroundColor: 'rgba(124,92,255,0.18)', borderColor: COLORS.violet },
   modalChipText: { color: COLORS.textMuted, fontWeight: '600', fontSize: 14 },
-  modalChipTextActive: { color: COLORS.violet },
-  modalCount: { color: COLORS.textDim, fontSize: 13, marginBottom: SPACE.lg, textAlign: 'center' },
-
-  // ── Bottom control dock ──
-  dock: {
-    paddingHorizontal: SPACE.lg,
-    paddingBottom: SPACE.lg,
-    paddingTop: SPACE.sm,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.bg,
-  },
-  mediaReadyRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    gap: SPACE.xl,
-  },
-  matchActionRow: { width: '100%', marginTop: SPACE.md },
-  matchButton: { width: '100%' },
-  ctrlWrap: { alignItems: 'center', gap: 5, minWidth: 56 },
-  ctrlBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctrlBtnOff: { backgroundColor: COLORS.coralSoft, borderColor: COLORS.coral },
-  ctrlBtnReady: { backgroundColor: COLORS.limeSoft, borderColor: COLORS.lime },
-  ctrlBtnFind: { backgroundColor: COLORS.violet, borderColor: COLORS.violet },
-  ctrlBtnDisabled: { opacity: 0.45 },
-  ctrlBtnInnerText: { fontSize: 18, color: COLORS.text, fontWeight: '700' },
-  ctrlLabel: { fontSize: 10, color: COLORS.textDim, fontWeight: '600', textAlign: 'center' },
 });

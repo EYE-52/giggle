@@ -36,8 +36,8 @@ test("native discovery build flags hide stranger matching without hiding private
   assert.match(layout, /<Redirect href="\/home"/);
   assert.match(home, /NATIVE_DISCOVERY_ENABLED/);
   assert.match(home, /if \(!NATIVE_DISCOVERY_ENABLED\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
-  assert.match(home, /Invite your crew to a private room\./);
-  assert.match(home, /Join with Code/);
+  assert.match(home, /Invite friends to a private room\./);
+  assert.match(home, /Have an invite code\?/);
   assert.match(lobby, /NATIVE_DISCOVERY_ENABLED && isLeader/);
   assert.match(encounter, /NATIVE_DISCOVERY_ENABLED && \(/);
   assert.doesNotMatch(config, /AGE|country|Country/);
@@ -65,8 +65,8 @@ test("mobile profile lists blocked accounts and keeps failed unblocks retryable"
 test("mobile encounter derives one adaptive layout from stable identities and real media", () => {
   const page = source();
 
-  assert.equal(page.includes("deriveEncounterLayout"), true);
-  assert.equal(page.includes("advanceSpeakerFocus"), true);
+  assert.equal(page.includes("AdaptiveVideoStage"), true);
+  assert.equal(page.includes("onVideoDimensions"), true);
   assert.equal(page.includes("type ViewMode"), false);
   assert.equal(page.includes("const MODES"), false);
   assert.equal(page.includes("displayTiles"), false);
@@ -81,17 +81,17 @@ test("mobile encounter derives one adaptive layout from stable identities and re
   assert.equal(page.includes("onCaptureState"), true);
   assert.equal(page.includes("state.audio === 'denied' || state.audio === 'unavailable'"), true);
   assert.equal(page.includes("state.video === 'denied' || state.video === 'unavailable'"), true);
-  assert.equal(page.includes('fit={fit}'), true);
+  assert.equal(page.includes('fit={personalView.fit}'), true);
+  assert.equal(page.includes('setSelectedPersonId(person.id)'), true);
+  assert.equal(page.includes('setRemoteAudioMuted'), true);
   assert.equal(page.includes("styles.videoBackdrop"), false);
-  for (const kind of ['remote-main', 'squad-split', 'featured-split', 'single-focus', 'dual-focus']) {
-    assert.equal(page.includes(`layout.kind === '${kind}'`), true);
-  }
+  assert.equal(page.includes("if (!pinnedId)"), true);
   assert.equal(page.includes("BackHandler.addEventListener"), true);
   assert.equal(page.includes("{person.isLocal ? 'You' : person.name}"), true);
   assert.equal(page.includes("{person.name}{person.isLocal ? ' (You)' : ''}"), false);
 });
 
-test("mobile encounter keeps five controls while chat, More, reactions, and ending use sheets", () => {
+test("mobile encounter keeps five controls with inline chat and sheets for other actions", () => {
   const page = source();
   const endBlock = page.slice(page.indexOf("async function endEncounter()"), page.indexOf("const stackSides"));
   const detachBlock = page.slice(page.indexOf("function detachVideo()"), page.indexOf("async function leaveVideoAndGoHome()"));
@@ -100,7 +100,7 @@ test("mobile encounter keeps five controls while chat, More, reactions, and endi
   assert.equal(page.includes("accessibilityLabel={mic ? 'Mute microphone' : 'Unmute microphone'}"), true);
   assert.equal(page.includes("accessibilityLabel={cam ? 'Turn camera off' : 'Turn camera on'}"), true);
   for (const label of ['Chat', 'More', 'End encounter']) assert.equal(page.includes(`accessibilityLabel="${label}"`), true);
-  assert.equal(page.includes("width: 52, height: 52"), true);
+  assert.equal(page.includes("width: 52, height: 60"), true);
   assert.equal(page.includes("<Modal"), true);
   assert.equal(page.includes("onRequestClose"), true);
   assert.equal(page.includes("KeyboardAvoidingView"), true);
@@ -115,11 +115,11 @@ test("mobile encounter keeps five controls while chat, More, reactions, and endi
   assert.equal(reactionBlock.indexOf("spawnReaction(emoji, session.user?.id ?? '')") > reactionBlock.indexOf("if (!sent)"), true);
   assert.equal(page.includes("Animated.timing"), true);
   assert.equal(page.includes("AccessibilityInfo.isReduceMotionEnabled"), true);
-  assert.equal(page.includes("messageIdsRef.current.has(message.id)"), true);
-  assert.equal(page.includes("message.encounterId !== encId"), true);
-  assert.equal(page.includes("visible={showChat}"), true);
-  assert.equal(page.includes("height * 0.55"), true);
-  assert.equal(page.includes("height - keyboardHeight - 96"), true);
+  assert.equal(page.includes("mergeChatMessage(previous, message)"), true);
+  assert.equal(page.includes("chatMessageMatchesScope(message, scope)"), true);
+  assert.equal(page.includes("visible={showChat}"), false);
+  assert.equal(page.includes("display: showChat ? 'flex' : 'none'"), true);
+  assert.equal(page.includes("phoneChat && showChat ? 'none' : 'flex'"), true);
   assert.equal(page.includes("switchCamera"), true);
   assert.equal(page.includes("End encounter?"), true);
   assert.equal(page.includes("This ends the current encounter for both squads."), true);
@@ -272,10 +272,10 @@ test("mobile encounter does not present unsent chat as sent", () => {
   assert.equal(page.includes("const [chatError, setChatError]"), true);
   assert.equal(sendBlock.includes("const sent = sendChatMessage("), true);
   assert.equal(sendBlock.includes("if (!sent)"), true);
-  assert.equal(sendBlock.includes("setChatError(\"Couldn't send message.\")"), true);
+  assert.equal(sendBlock.includes("if (!result.ok) { setChatError(result.error); return; }"), true);
   assert.equal(page.includes("Message not sent"), true);
-  assert.equal(sendBlock.includes("setMessages("), false);
-  assert.equal(sendBlock.indexOf("setDraft('');") > sendBlock.indexOf("if (!sent)"), true);
+  assert.equal(sendBlock.indexOf("setMessages(") > sendBlock.indexOf("if (!result.ok)"), true);
+  assert.equal(sendBlock.indexOf("setDrafts(") > sendBlock.indexOf("if (!result.ok)"), true);
 });
 
 test("mobile encounter rolls back mic and camera controls when video updates fail", () => {
@@ -362,12 +362,12 @@ test("mobile match keeps recoverable handoff failures retryable", () => {
   assert.equal(page.includes("Find another"), true);
 });
 
-test("mobile home applies the selected vibe to create and discover flows", () => {
+test("mobile home uses neutral squad creation and unfiltered discovery", () => {
   const page = homeSource();
 
-  assert.equal(page.includes("api.createSquad({ squadName: randomSquadName(), tags: [activeVibe] })"), true);
+  assert.equal(page.includes("api.createSquad({ squadName: squadName.trim(), tags: [] })"), true);
   assert.equal(page.includes("await api.setTags(squad.squadId, [activeVibe]);"), false);
-  assert.equal(page.includes("router.push(`/discover?vibe=${encodeURIComponent(activeVibe)}`)"), true);
+  assert.equal(page.includes("router.push('/discover')"), true);
 });
 
 test("mobile home create does not redirect to an existing squad on stale single-squad errors", () => {
@@ -381,8 +381,8 @@ test("mobile home lists and reopens the user's real squads", () => {
   const page = homeSource();
 
   assert.equal(page.includes("api.mySquads()"), true);
-  assert.equal(page.includes("setMySquads(squads ?? [])"), true);
-  assert.equal(page.includes(">Your squads</Text>"), true);
+  assert.equal(page.includes("setMySquads([...next]"), true);
+  assert.equal(page.includes("Pick up where you left off"), true);
   assert.equal(page.includes("function squadDestination"), true);
   assert.equal(page.includes("['searching', 'matched', 'in_encounter'].includes(squad.status)"), true);
   assert.equal(page.includes("router.push(squadDestination(squad))"), true);
@@ -404,10 +404,10 @@ test("mobile discover supports the home screen default Casual vibe", () => {
   assert.equal(page.includes("'Casual'"), true);
 });
 
-test("mobile discover empty state creates a squad with the active vibe filter", () => {
+test("mobile discover opens the shared named squad form", () => {
   const page = discoverSource();
 
-  assert.equal(page.includes("api.createSquad({ squadName: randomSquadName(), tags: filter === 'All' ? [] : [filter] })"), true);
+  assert.equal(page.includes("router.push('/home?create=1')"), true);
   assert.equal(page.includes("onPress={createFilteredSquad}"), true);
   assert.equal(page.includes("router.push('/home')"), false);
 });
@@ -577,7 +577,7 @@ test("mobile matchmaking keeps the real squad visible without a radar takeover",
   assert.equal(page.includes("await api.getSquad(squadId)"), true);
   assert.equal(page.includes("SOCKET_EVENTS.SQUAD_UPDATED"), true);
   assert.equal(page.includes("<AvatarStack"), true);
-  assert.equal(page.includes("Finding your match…"), true);
+  assert.equal(page.includes("Finding a squad…"), true);
   assert.equal(page.includes("COLORS.violetSoft"), true);
 });
 
@@ -638,7 +638,7 @@ test("mobile lobby surfaces video join failures", () => {
 
   assert.equal(page.includes("const [videoError, setVideoError]"), true);
   assert.equal(page.includes("setVideoError(e?.message || \"Couldn't join lobby video.\")"), true);
-  assert.equal(page.includes("Video unavailable"), true);
+  assert.match(page, /accessibilityRole="alert" style=\{roomStyles.error\}>\{videoError\}/);
 });
 
 test("mobile lobby surfaces video presence update failures", () => {
@@ -678,11 +678,7 @@ test("mobile lobby rolls back mic and camera controls when video updates fail", 
 });
 
 test("mobile lobby privacy switch is leader-only", () => {
-  const page = lobbySource();
-
-  assert.equal(page.includes("{isLeader ? ("), true);
-  assert.equal(page.includes("Only leaders can change squad privacy"), true);
-  assert.equal(page.includes("visibilityValue"), true);
+  assert.match(lobbySource(), /disabled=\{!isLeader\} onValueChange=\{handlePrivacyToggle\}/);
 });
 
 test("mobile lobby does not navigate to matchmaking when start search fails", () => {
@@ -693,30 +689,17 @@ test("mobile lobby does not navigate to matchmaking when start search fails", ()
   assert.equal(page.includes("await api.startSearch(squadId);\n      router.replace(`/matchmaking?squad=${squadId}`);"), true);
 });
 
-test("mobile lobby leaders can mark themselves ready before finding a match", () => {
+test("mobile lobby exposes ready for every member and search only for leaders", () => {
   const page = lobbySource();
-
-  assert.equal(page.includes("/* Ready — everyone, including leader */"), true);
-  assert.equal(page.includes("/* Find a Match — leader only */"), true);
-  assert.equal(page.includes("{NATIVE_DISCOVERY_ENABLED && isLeader && ("), true);
-  assert.equal(page.includes("{!isLeader ? ("), false);
+  assert.match(page, /onPress=\{toggleReady\}/);
+  assert.match(page, /NATIVE_DISCOVERY_ENABLED && isLeader && <Button/);
 });
 
-test("mobile lobby stage contains people only and adapts its rows to the viewport", () => {
+test("mobile lobby uses bounded tiles and an invite seat", () => {
   const page = lobbySource();
-
-  assert.equal(page.includes("Empty \"Invite\""), false);
-  assert.equal(page.includes("styles.emptyTile"), false);
-  assert.equal(page.includes("const TILE_COLS = 2"), false);
-  assert.equal(page.includes("const tileCols = width < 600"), true);
-  assert.equal(page.includes("const tileRows = Math.ceil"), true);
-  assert.equal(page.includes("const [stageHeight, setStageHeight] = useState(0)"), true);
-  assert.equal(page.includes("onLayout={({ nativeEvent }) => setStageHeight(nativeEvent.layout.height)}"), true);
-  assert.equal(page.includes("stageHeight - SPACE.lg * 2"), true);
-  assert.equal(page.includes("height - 270"), false);
-  assert.equal(page.includes("size={tileCount === 1 ? 72 : 44}"), true);
-  assert.equal(page.includes("tileW * (9 / 16)"), false);
-  assert.equal(page.includes("/* Boost (leader only) */"), false);
+  assert.match(page, /Math.min\(\(width - 44\) \/ 2, 300\)/);
+  assert.match(page, /width: cardWidth, height: cardWidth/);
+  assert.match(page, /accessibilityLabel="Invite a friend"/);
 });
 
 test("mobile lobby rejects links without a squad instead of exposing empty controls", () => {
@@ -735,14 +718,14 @@ test("mobile discover keeps list retries separate from join and create errors", 
   assert.equal(page.includes("{loadError ? ("), true);
   assert.equal(page.includes("{actionError ? <Text style={styles.actionError}"), true);
   assert.equal(page.includes("setActionError(e?.message || \"Couldn't join that squad.\")"), true);
-  assert.equal(page.includes("setActionError(e?.message || \"Couldn't create a squad.\")"), true);
+  assert.equal(page.includes("router.push('/home?create=1')"), true);
 });
 
-test("mobile lobby keeps invite sharing outside the video stage", () => {
+test("mobile lobby shares a real squad invite", () => {
   const page = lobbySource();
 
   assert.equal(page.includes("await Share.share"), true);
-  assert.equal(page.includes("accessibilityLabel=\"Invite friends\""), true);
+  assert.equal(page.includes("accessibilityLabel=\"Invite a friend\""), true);
   assert.equal(page.includes("styles.emptyLabel"), false);
 });
 
@@ -755,7 +738,7 @@ test("mobile lobby requires every online member to be ready and in video before 
   assert.equal(page.includes("member.userId === myUserId ? videoReady || member.inLobbyVideo : member.inLobbyVideo"), true);
   assert.equal(page.includes("Everyone online needs to be ready before you find a match."), true);
   assert.equal(page.includes("Everyone online needs to join lobby video before you find a match."), true);
-  assert.equal(page.includes("disabled={!everyoneReady || !everyoneInVideo || finding}"), true);
+  assert.match(page, /if \(!everyoneInVideo\) \{[\s\S]*?return;/);
 });
 
 test("mobile lobby ready toggle surfaces backend failures", () => {
@@ -797,15 +780,13 @@ test("mobile lobby stops media immediately and keeps failed leave retryable", ()
   assert.equal(handler.indexOf("setVideoReady(false);") < handler.indexOf("await api.leaveSquad(squadId);"), true);
   assert.equal(handler.lastIndexOf("router.replace('/home');") > handler.indexOf("await api.leaveSquad(squadId);"), true);
   assert.equal(handler.includes("setLeaving(false);"), true);
-  assert.equal(page.includes("{leaving ? 'Leaving…' : 'Leave'}"), true);
+  assert.match(page, /disabled=\{leaving\} onPress=\{leave\}/);
 });
 
-test("mobile lobby gives the leader match action its own stable dock row", () => {
+test("mobile lobby keeps chat separate and preserves it when hidden", () => {
   const page = lobbySource();
-
-  assert.equal(page.includes("styles.mediaReadyRow"), true);
-  assert.equal(page.includes("styles.matchActionRow"), true);
-  assert.equal(page.includes("label={finding ? 'Finding…' : 'Find a match'}"), true);
+  assert.match(page, /display: chatVisible \? "flex" : "none"/);
+  assert.match(page, /<LobbyChat squadId=\{squadId\}/);
 });
 
 test("mobile shared controls use Expo safe areas and 44 point minimum targets", () => {

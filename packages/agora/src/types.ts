@@ -4,14 +4,18 @@ export interface RemoteParticipant {
   uid: string | number;
   hasVideo: boolean;
   hasAudio: boolean;
+  /** Local listening preference, independent of the sender microphone. */
+  mutedForMe?: boolean;
 }
 
 export function mergeRemoteParticipant(
   current: RemoteParticipant | undefined,
   uid: string | number,
-  patch: Partial<Pick<RemoteParticipant, "hasVideo" | "hasAudio">>
+  patch: Partial<Pick<RemoteParticipant, "hasVideo" | "hasAudio" | "mutedForMe">>
 ): RemoteParticipant {
   return {
+    ...current,
+    ...patch,
     uid,
     hasVideo: patch.hasVideo ?? current?.hasVideo ?? false,
     hasAudio: patch.hasAudio ?? current?.hasAudio ?? false,
@@ -22,6 +26,12 @@ export function mergeRemoteParticipant(
 export interface VolumeLevel {
   uid: string | number;
   level: number;
+}
+
+export interface VideoDimensions {
+  uid: string | number;
+  width: number;
+  height: number;
 }
 
 /** Simplified connection lifecycle states shared by web + native. */
@@ -44,6 +54,8 @@ export interface VideoClient {
   leave(): Promise<void>;
   setMicEnabled(on: boolean): Promise<void>;
   setCamEnabled(on: boolean): Promise<void>;
+  /** Change this listener only; do not alter the sender or other listeners. */
+  setRemoteAudioMuted(uid: string | number, muted: boolean): Promise<void>;
   /** Switch between front and rear cameras when supported by the native SDK. */
   switchCamera?(): Promise<void>;
   /** Attach the local camera preview to a DOM element (web) or returns a render handle (native). */
@@ -63,6 +75,8 @@ export interface VideoClient {
   onConnectionState?(cb: (state: ConnectionState) => void): () => void;
   /** Subscribe to truthful local camera and microphone capture state. */
   onCaptureState?(cb: (state: CaptureState) => void): () => void;
+  /** Subscribe to valid camera dimensions. Native implementations may omit this. */
+  onVideoDimensions?(cb: (dimensions: VideoDimensions[]) => void): () => void;
   readonly remotes: RemoteParticipant[];
 }
 

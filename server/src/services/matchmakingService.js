@@ -288,6 +288,8 @@ const tryMatchmakeForSquad = async (squad) => {
         await queueService.removeFromQueue(freshSquad.squadId);
         return null;
       }
+      if (freshSquad.lastEncounterId && freshSquad.lastEncounterId === freshCandidate.lastEncounterId &&
+          Date.now() - new Date(freshSquad.lastEncounterEndedAt).getTime() < 120_000) continue;
       if (freshCandidate.status !== "searching") {
         logMatchmakingDebug(`[Matchmaking] Candidate ${freshCandidate.squadId} is already in state: ${freshCandidate.status}. Skipping.`);
         continue;
@@ -491,7 +493,7 @@ const ackEncounterForSquad = async ({ encounter, squadId, emitRealtime = true })
   };
 };
 
-const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
+const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmediately = true }) => {
   if (!isStrangerDiscoveryEnabled()) {
     await endEncounterToIdle({ encounter });
     return null;
@@ -502,9 +504,6 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
   encounter.endedAt = new Date();
   await encounter.save();
 
-  // Notify squads that encounter ended
-  socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-  socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
   socketService.closeEncounterRoom(encounter.encounterId);
 
   // Clear encounter state and set both squads to searching with no encounter
@@ -514,6 +513,8 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
     {
       $set: {
         status: "searching",
+        lastEncounterId: encounter.encounterId,
+        lastEncounterEndedAt: now,
         currentEncounterId: null,
         opponentSquadId: null,
         matchedAt: null,
@@ -548,6 +549,15 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
     throw error;
   }
 
+  // Publish only after queue admission so every squad member follows the same state.
+  for (const squadId of squadIds) {
+    socketService.emitToSquad(squadId, "ENCOUNTER_ENDED", {
+      encounterId: encounter.encounterId,
+      reason: "next_squad",
+      queueStatus: requeuedSquadIds.includes(squadId) ? "searching" : "idle",
+    });
+  }
+
   const triggeringSquad = squads.find(
     (s) => s.squadId === triggeringSquadId && requeuedSquadIds.includes(s.squadId)
   ) || squads.find((s) => requeuedSquadIds.includes(s.squadId));
@@ -555,7 +565,7 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId }) => {
     return null;
   }
 
-  await tryMatchmakeForSquad(triggeringSquad);
+  if (matchImmediately) await tryMatchmakeForSquad(triggeringSquad);
 
   return triggeringSquad;
 };

@@ -63,7 +63,7 @@ const GRADIENTS: Record<string, [string, string, string]> = {
 
 export function Avatar({ name, size = 40, colorIndex = 0, ring = false, online, style }: AvatarProps) {
   const base = colors.avatar[colorIndex % colors.avatar.length];
-  const [from, to, fg] = GRADIENTS[base] ?? [base, base, "#0B0B0F"];
+  const [from, to, fg] = GRADIENTS[base] ?? [base, base, "#fff"];
   const initial = name ? name[0].toUpperCase() : "?";
   return (
     <OnlineWrap size={size} online={online}>

@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Chip } from "@/components/Chip";
 import { Button } from "@/components/Button";
 import { useViewport } from "@/components/useViewport";
-import { api, session, randomSquadName, type PublicSquad } from "@giggle/core";
+import { api, session, type PublicSquad } from "@giggle/core";
 
 export default function DiscoverPage() {
   const router = useRouter();
@@ -128,18 +128,9 @@ export default function DiscoverPage() {
     goToLobby(squadId);
   }
 
-  async function handleCreate() {
-    setJoinError(null);
+  function handleCreate() {
     if (!ensureAuthed()) return;
-    setCreating(true);
-    try {
-      const squad = await api.createSquad({ squadName: randomSquadName(), tags: vibe ? [vibe] : [] });
-      goToLobby(squad.squadId);
-    } catch (e: any) {
-      console.error("createSquad failed:", e);
-      setJoinError(e?.message || "Couldn't create a squad. Try again.");
-      setCreating(false);
-    }
+    router.push("/home?create=1");
   }
 
   const gridCols = isPhone ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))";
@@ -150,7 +141,7 @@ export default function DiscoverPage() {
           action (join a random open squad) when there's live inventory. */}
       <PageHeader
         title="Discover squads"
-        subtitle="Find a crew that matches your mood. Preview before joining."
+        subtitle="Browse open squads. Check who is there before joining."
         right={loading || hasOpenSquads ? (
           <Button variant="tonal" onClick={handleRandom} disabled={loading} loading={randomLoading}>
             {randomLoading ? "Finding…" : (<><Icon.lightning size={15} color={violet} /> Surprise me</>)}
@@ -287,7 +278,7 @@ export default function DiscoverPage() {
           icon={<Icon.discover size={20} color="var(--text-dim)" />}
           title={vibe ? `No open “${vibe}” squads right now` : "No open squads right now"}
           body={vibe ? "Start one with this vibe, or clear the filter to browse other live signals." : "Start the first open room and make your squad discoverable."}
-          primary={{ label: creating ? "Creating…" : (vibe ? `Create a ${vibe} squad` : "Create a squad"), onClick: handleCreate, disabled: creating }}
+          primary={{ label: "Create a squad", onClick: handleCreate, disabled: creating }}
           secondary={vibe ? { label: "Clear filter", onClick: () => applyVibe(null) } : undefined}
         />
       )}

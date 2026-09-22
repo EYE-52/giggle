@@ -26,6 +26,7 @@ function createResponse() {
 
 async function runSkip(requeueResult) {
   const originals = {
+    using: redlock.using,
     getRequesterIdentity: squadAccess.getRequesterIdentity,
     getSquadAccessContext: squadAccess.getSquadAccessContext,
   };
@@ -33,6 +34,7 @@ async function runSkip(requeueResult) {
   const servicePath = require.resolve("../src/services/matchmakingService");
   const originalServiceModule = require.cache[servicePath];
 
+  redlock.using = (_keys, _ttl, routine) => routine({ aborted: false });
   squadAccess.getRequesterIdentity = () => ({ userId: "leader" });
   squadAccess.getSquadAccessContext = async () => ({ isLeader: true });
   require.cache[servicePath] = {
@@ -48,6 +50,7 @@ async function runSkip(requeueResult) {
       }),
       ackEncounterForSquad: async () => ({}),
       endEncounterAndRequeue: async () => requeueResult,
+      tryMatchmakeForSquad: async () => null,
     },
   };
   delete require.cache[controllerPath];
@@ -61,6 +64,7 @@ async function runSkip(requeueResult) {
     }, res);
     return res;
   } finally {
+    redlock.using = originals.using;
     Object.assign(squadAccess, {
       getRequesterIdentity: originals.getRequesterIdentity,
       getSquadAccessContext: originals.getSquadAccessContext,

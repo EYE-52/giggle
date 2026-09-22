@@ -467,7 +467,7 @@ export default function ProfilePage() {
               >
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 15, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Wallet &amp; Giggle+</div>
-                  <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Monthly token stipend + 15% bonus tokens on packs</div>
+                  <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Your tokens and available extras</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                   <span style={{ background: violet, color: "#fff", borderRadius: 999, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>View</span>
@@ -482,9 +482,9 @@ export default function ProfilePage() {
       {/* RIGHT COLUMN — Prefs + Settings + Manage Account + Log Out */}
       <div style={{ display: "flex", flexDirection: "column", gap: isPhone ? 16 : 18 }}>
         <div style={{ ...surface, padding: 0, overflow: "hidden" }}>
-        {/* Vibe Preferences */}
+        {/* Interests */}
         <section style={settingsSection}>
-          <h2 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary, margin: "0 0 14px", letterSpacing: "-0.02em" }}>Vibe Preferences</h2>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary, margin: "0 0 14px", letterSpacing: "-0.02em" }}>Interests</h2>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
             {vibes.map(t => (
               <button
@@ -567,7 +567,7 @@ export default function ProfilePage() {
         {/* About you — demographics editor */}
         <section style={settingsSection}>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary, margin: "0 0 4px", letterSpacing: "-0.02em" }}>About You</h2>
-          <div style={{ color: textMuted, fontSize: 13, marginBottom: 16 }}>Help us tailor your vibe matches.</div>
+          <div style={{ color: textMuted, fontSize: 13, marginBottom: 16 }}>Choose what you want to share.</div>
 
           {profileLoading && (
             <div role="status" style={{ color: textMuted, fontSize: 13, marginBottom: 16 }}>Loading your profile…</div>

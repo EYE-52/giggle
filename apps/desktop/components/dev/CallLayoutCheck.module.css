@@ -1,0 +1,103 @@
+.page { min-height: 100dvh; background: #faf7f2; color: #252323; padding: 24px; font-family: var(--font-inter, sans-serif); }
+.page button { font: inherit; cursor: pointer; }
+.page button:focus-visible, .page input:focus-visible, .page select:focus-visible { outline: 3px solid #e99378; outline-offset: 3px; }
+.previewLabel { max-width: 1180px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #81796f; font-size: 12px; }
+.previewShell { max-width: 100%; height: min(650px, calc(100dvh - 164px)); min-height: 400px; margin: 0 auto; display: flex; flex-direction: column; background: #242321; border: 1px solid #3c3833; border-radius: 26px; overflow: hidden; box-shadow: 0 20px 60px #32251a1c; color: #faf7f2; }
+.header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 21px 20px 18px; flex: none; }
+.header strong, .header span { display: block; }
+.header strong { font-size: 16px; letter-spacing: -.025em; }
+.header span { color: #aba59d; font-size: 11px; margin-top: 5px; }
+.header .live { color: #c2cdb8; display: flex; align-items: center; gap: 6px; font-size: 10px; }
+.live i { width: 6px; height: 6px; border-radius: 50%; background: #b9caa3; }
+.callBody { display: flex; flex: 1; min-height: 0; min-width: 0; }
+.stageWrap { display: flex; flex: 1; min-width: 0; min-height: 0; padding: 0 14px; }
+.feed { width: 100%; height: 100%; position: relative; overflow: hidden; border-radius: 13px; background: #302e2b; }
+.photo { position: absolute; width: 100%; height: 100%; object-fit: cover; display: block; }
+.feed::after { content: ""; position: absolute; inset: 65% 0 0; background: linear-gradient(transparent, #171615b3); pointer-events: none; }
+.name { position: absolute; z-index: 1; left: 10px; bottom: 9px; color: #fffaf5; font-size: 12px; font-weight: 550; text-shadow: 0 1px 3px #0008; }
+.cameraOff { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #b8afa5; gap: 8px; font-size: 11px; }
+.controls { display: flex; justify-content: center; gap: 12px; padding: 19px 14px 20px; flex: none; }
+.controls button { width: 58px; min-height: 56px; padding: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border: 1px solid #4a453e; background: #33302c; color: #faf7f2; border-radius: 17px; }
+.controls button span { font-size: 10px; color: #d5cec5; }
+.controls button:hover { background: #494038; }
+.controls .controlActive { background: #695341; border-color: #b19176; }
+.controls .controlOff { background: #613c30; border-color: #bf8067; }
+.controls .leave { background: #b94b34; border-color: #c65e46; margin-left: 8px; }
+.controls .leave span { color: #fff4e9; }
+.chat { display: flex; flex-direction: column; flex: 0 0 290px; min-width: 0; min-height: 0; background: #2c2925; border-left: 1px solid #494239; }
+.chatHeader { display: flex; justify-content: space-between; align-items: center; padding: 12px 12px 4px 18px; gap: 8px; }
+.chatHeader strong { font-size: 13px; font-weight: 500; }
+.chatHeader button { display: grid; place-items: center; min-width: 44px; height: 44px; border: 0; background: transparent; color: #faf7f2; }
+.chatTabs { display: flex; gap: 5px; margin: 0 18px; background: #201e1b; padding: 4px; border-radius: 12px; }
+.chatTabs button { flex: 1; min-height: 36px; border: 0; border-radius: 9px; background: transparent; color: #bdb4a8; font-size: 12px; }
+.chatTabs button[aria-pressed="true"] { background: #4c4136; color: #fff0df; }
+.chatHint { font-size: 10px; color: #ada295; margin: 12px 18px; }
+.messages { flex: 1; overflow: auto; overscroll-behavior: contain; padding: 10px 18px; }
+.message { margin: 0 25px 16px 0; }
+.message small { display: block; color: #c5b9aa; font-size: 10px; margin: 0 0 6px 3px; }
+.message p { margin: 0; padding: 11px 13px; border-radius: 3px 13px 13px; background: #403930; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.message[data-own="true"] { margin: 0 0 16px 25px; }
+.message[data-own="true"] p { background: #64483a; border-radius: 13px 3px 13px 13px; }
+.composer { display: flex; gap: 8px; padding: 12px; }
+.composer input { width: 0; min-width: 0; flex: 1; min-height: 44px; border: 1px solid #625545; border-radius: 12px; background: #26221e; color: #faf7f2; padding: 0 12px; font: inherit; font-size: 14px; }
+.composer button, .ended button { min-height: 44px; min-width: 44px; border: 0; border-radius: 12px; background: #b94b34; color: #fff5ec; }
+.composer button { display: grid; place-items: center; }
+.composer button:disabled { opacity: .4; cursor: default; }
+.previewShell[data-device="phone"] .callBody[data-chat="true"] .stageWrap { display: none; }
+.previewShell[data-device="phone"] .chat { flex: 1; border-left: 0; }
+.previewTools { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 18px auto 0; }
+.deviceTabs { display: flex; gap: 2px; padding: 3px; border: 1px solid #e3dbd0; border-radius: 12px; }
+.deviceTabs button { border: 0; background: transparent; color: #7a7166; border-radius: 8px; padding: 9px 12px; font-size: 11px; min-height: 36px; }
+.deviceTabs button[aria-pressed="true"] { background: #e9ded0; color: #503a2d; }
+.settingsToggle { display: flex; align-items: center; gap: 7px; min-height: 44px; background: transparent; color: #796f63; border: 0; padding: 8px 0; font-size: 11px !important; }
+.settings { width: min(100%, 660px); margin: 16px auto 0; padding: 18px; border: 1px solid #e3dbd0; background: #f3eee7; border-radius: 16px; display: flex; flex-wrap: wrap; gap: 12px; color: #796f63; font-size: 11px; }
+.settings label { display: flex; flex: 1; min-width: 120px; flex-direction: column; gap: 7px; }
+.settings select { min-height: 40px; padding: 0 10px; border: 1px solid #d9cdbd; border-radius: 8px; background: #fffaf3; color: #332a21; }
+.settings p { flex-basis: 100%; margin: 0; line-height: 1.5; }
+.ended { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+.ended h1 { font-size: 26px; letter-spacing: -.05em; margin: 20px 0 0; }
+.ended p { color: #c0b4a6; font-size: 13px; }
+.ended button { padding: 0 18px; margin-top: 10px; font-size: 13px; }
+@media (max-width: 600px) { .page { padding: 14px 10px; } .previewLabel { margin: 0 6px 14px; } .previewLabel > span:last-child { font-size: 10px; } .previewShell { height: calc(100dvh - 148px); min-height: 350px; border-radius: 22px; } .previewTools { gap: 12px; margin-top: 12px; } .header { padding: 16px; } .controls { padding: 14px 12px; } .callBody[data-chat="true"] .stageWrap { display: none; } .chat { flex: 1; border-left: 0; } }
+@media (max-height: 540px) and (min-width: 601px) { .previewShell { height: 370px; min-height: 370px; } }
+
+/* Restore the warm call chrome and let the camera frames provide the colour. */
+.previewShell { background: #fffdf9; border: 1px solid #e4dbcf; color: #292723; border-radius: 22px; box-shadow: 0 18px 65px #5d493517; }
+.header { padding: 18px 20px; }
+.header strong { font-size: 24px; font-weight: 700; letter-spacing: -.045em; }
+.header span { color: #8b8277; font-size: 11px; }
+.header .live { color: #637056; }
+.live i { background: #879970; }
+.stageWrap { padding: 0 12px; }
+.naturalStage { display: flex; width: 100%; flex: 1; gap: 18px; min-width: 0; min-height: 0; padding: 12px 14px 14px; border-radius: 18px; background: #252522; }
+.naturalGroup { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; }
+.naturalGroup[data-own="true"] { flex: 0 0 22%; }
+.squadHeading { display: flex; align-items: center; justify-content: space-between; min-height: 34px; gap: 8px; flex: none; color: #d1cbc3; font-size: 12px; }
+.squadHeading > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.squadHeading small { display: inline-block; margin-left: 4px; font-size: 10px; color: #8f9386; }
+.naturalCanvas { flex: 1; min-height: 0; min-width: 0; position: relative; }
+.naturalTile { position: absolute; }
+.naturalStage[data-compact="true"] { flex-direction: column; gap: 9px; }
+.naturalStage[data-compact="true"] .naturalGroup[data-own="true"] { flex: 0 0 120px; }
+.pager { display: flex; align-items: center; gap: 3px; flex: none; font-size: 10px; color: #a5a294; }
+.pager button { display: grid; place-items: center; width: 36px; min-height: 44px; padding: 0; border: 0; background: transparent; color: #eee7de; font-size: 23px; line-height: 1; border-radius: 8px; }
+.pager button:disabled { opacity: .25; cursor: default; }
+.pager button:not(:disabled):hover { background: #403f37; }
+.feed { border-radius: 12px; background: #343731; }
+.name { font-size: 12px; bottom: 10px; left: 10px; max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.controls { gap: 13px; padding: 17px 12px; }
+.controls button { width: 54px; min-height: 54px; border: 1px solid #e5ddd2; background: #f3efe8; color: #4c493f; border-radius: 16px; gap: 6px; }
+.controls button span { color: #777062; font-size: 10px; }
+.controls button:hover { background: #e8dfd1; }
+.controls .controlActive { background: #e9ebde; border-color: #c5cbb2; }
+.controls .controlOff { background: #f4ded1; border-color: #dcbaa7; }
+.controls .leave { color: white; margin-left: 10px; }
+.chat { color: #faf7f2; border-radius: 16px; margin-right: 12px; border: 0; }
+.ended p { color: #827569; }
+@media (max-width: 600px) { .header { padding: 16px 18px; } .previewShell { border-radius: 20px; } .controls { padding: 14px 12px; } }
+@media (max-height: 660px) { .naturalStage[data-compact="true"] .naturalGroup[data-own="true"] { flex-basis: 92px; } .header strong { font-size: 20px; } .header { padding-block: 12px; } }
+.previewShell[data-device="phone"] { height: min(580px, calc(100dvh - 164px)); }
+@media (max-width: 600px) { .previewShell { height: min(580px, calc(100dvh - 148px)); } }
+.page button { appearance: none; -webkit-appearance: none; }
+.previewShell[data-device="phone"] .chat { margin-left: 12px; }
+@media (max-width: 600px) { .chat { margin-left: 12px; } }

@@ -139,7 +139,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
-    <div style={{ height: "100dvh", display: "flex", flexDirection: "column", background: "var(--app-bg, var(--bg))", overflow: "hidden" }}>
+    <div className={pathname === "/encounter" ? "gg-call-theme" : undefined} style={{ height: "100dvh", display: "flex", flexDirection: "column", background: "var(--app-bg, var(--bg))", overflow: "hidden" }}>
       {!isCalling && <a className="gg-skip-link" href="#main-content">Skip to content</a>}
       {!isCalling && <TopNav />}
       <main
@@ -161,7 +161,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 maxWidth: 1200,
                 margin: "0 auto",
                 width: "100%",
-                padding: isPhone ? "14px 16px 40px" : "32px 40px 48px",
+                padding: isPhone ? "20px 18px calc(90px + env(safe-area-inset-bottom))" : "28px 40px 40px",
                 overflowY: "auto",
                 boxSizing: "border-box",
               }

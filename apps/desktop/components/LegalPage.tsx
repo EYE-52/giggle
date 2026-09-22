@@ -28,7 +28,7 @@ export function LegalPage({
   links: Array<{ href: string; label: string }>;
 }) {
   return (
-    <main data-theme="dark" style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", padding: "32px 24px 80px" }}>
+    <main style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", padding: "32px 24px 80px" }}>
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, marginBottom: 72 }}>
           <Wordmark size={22} />

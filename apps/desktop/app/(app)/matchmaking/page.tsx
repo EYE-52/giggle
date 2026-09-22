@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Logomark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
 import { api, connectSocket, SOCKET_EVENTS } from "@giggle/core";
 import type { SquadState } from "@giggle/core";
@@ -222,13 +223,13 @@ function MatchmakingInner() {
       )}
 
       <div aria-hidden style={{ width: signalSize, height: signalSize, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "var(--accent-soft)", border: "1px solid var(--accent-line)" }}>
-        <Icon.discover size={isShortPhone ? 22 : 26} color="var(--accent)" />
+        <Logomark size={isShortPhone ? 30 : 42} animated />
       </div>
 
       <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 8, maxWidth: 460 }}>
-        <h1 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isShortPhone ? 22 : isPhone ? 22 : 30, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0 }}>Finding your match…</h1>
+        <h1 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isShortPhone ? 22 : isPhone ? 22 : 30, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0 }}>Finding a squad…</h1>
         <div style={{ color: textMuted, fontSize: isShortPhone ? 12 : 14 }}>
-          {isShortPhone && elapsed >= 20 ? "Still searching — few squads are live right now." : "Looking for a squad that matches your crew's vibe."}
+          {isShortPhone && elapsed >= 20 ? "Still searching. You can cancel and return to your lobby." : "Your squad will join the call when a match is ready."}
         </div>
         {elapsed >= 20 && !matchFound && !isShortPhone && !showLongSearch && (
           <div style={{ marginTop: 4, maxWidth: 420, alignSelf: "center", padding: isPhone ? "10px 16px" : "12px 20px", borderRadius: "var(--radius-control, 14px)", background: "var(--surface)", border: "1px solid var(--border)", color: textMuted, fontSize: 14, lineHeight: 1.5 }}>
@@ -283,7 +284,7 @@ function MatchmakingInner() {
           <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, flexShrink: 0, background: "var(--live)" }} />
           <span>{progressLabel}<span style={{ opacity: 0.7 }}>…</span></span>
         </div>
-        <div style={{ color: "color-mix(in srgb, var(--text-muted) 78%, transparent)", fontSize: isShortPhone ? 12 : 13 }}>We&apos;ll bring you a compatible squad as soon as one is online.</div>
+        <div style={{ color: "color-mix(in srgb, var(--text-muted) 78%, transparent)", fontSize: isShortPhone ? 12 : 13 }}>Keep this screen open while we find another squad.</div>
       </div>
 
       <Button onClick={handleCancel} loading={cancelling} variant="ghost" style={{ minWidth: 176, width: isPhone ? "100%" : undefined }}>

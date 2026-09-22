@@ -1,18 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Space_Grotesk, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
+import "./revamp.css";
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-space-grotesk",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
+const cabinet = localFont({
+  src: [
+    { path: "../public/fonts/CabinetGrotesk-Regular.woff2", weight: "400" },
+    { path: "../public/fonts/CabinetGrotesk-Bold.woff2", weight: "700" },
+    { path: "../public/fonts/CabinetGrotesk-Extrabold.woff2", weight: "800" },
+  ], variable: "--font-cabinet", display: "swap",
 });
 
 // Explicit viewport export (Next 16 Metadata API: `viewport` object, not a
@@ -23,15 +20,12 @@ export const viewport: Viewport = {
   // Draw under the notch / home indicator so env(safe-area-inset-*) engages and
   // the app renders edge-to-edge like a native shell.
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0E0D12" },
-    { media: "(prefers-color-scheme: light)", color: "#F7F7F9" },
-  ],
+  themeColor: "#faf7f2",
 };
 
 export const metadata: Metadata = {
   title: "Giggle — Meet in squads",
-  description: "Squad-based video encounter app",
+  description: "Meet new people. Bring your friends. Live video, together.",
   manifest: "/manifest.webmanifest",
   applicationName: "Giggle",
   // Installable, fullscreen "Add to Home Screen" behaviour on iOS — makes the
@@ -51,8 +45,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${inter.variable}`}>
-      <body suppressHydrationWarning style={{ fontFamily: "var(--font-inter), Inter, sans-serif" }}>
+    <html lang="en" suppressHydrationWarning className={cabinet.variable} data-theme="together">
+      <body suppressHydrationWarning style={{ fontFamily: "var(--font-body)" }}>
         {/* External beforeInteractive script (loaded by src, not inline
             children) applies the saved theme pre-paint without the React 19
             "script tag while rendering" warning. */}
