@@ -7,7 +7,9 @@ export default defineConfig({
   workers: 1,
   outputDir: "artifacts/prod-smoke-results",
   use: {
-    baseURL: process.env.GIGGLE_PROD_WEB_URL || "https://www.gigglemeet.com",
+    launchOptions: { args: ["--mute-audio"] },
+    baseURL: process.env.GIGGLE_PROD_WEB_URL
+      || (process.env.GIGGLE_SMOKE_LOCAL === "true" ? "http://localhost:4000" : "https://www.gigglemeet.com"),
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },

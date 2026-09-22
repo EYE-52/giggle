@@ -5,6 +5,8 @@ const SafetyReport = require("../models/SafetyReport");
 const { getRequesterIdentity } = require("../app/squadAccess");
 const { requestAccountDeletion } = require("../services/accountDeletionService");
 const { canonicalUserId, relationalIdMatcher } = require("../services/interactionSafetyService");
+const coverStorage = require("../services/coverStorage");
+const { uploadCoverKey } = require("../utils/squadCovers");
 
 const USER_EXPORT_FIELDS = [
   "_id email name image avatar birthDate ageConfirmed isAdult ageVerified ageVerification.provider",
@@ -29,12 +31,22 @@ const iso = (value) => {
 
 const id = (value) => value == null ? null : String(value);
 
+// The export carries an uploaded cover as the image itself (a data URL), not
+// the internal "upload:<key>" storage reference.
+const exportCoverImage = async (coverImage, getCover) => {
+  const key = uploadCoverKey(coverImage);
+  if (!key) return coverImage ?? null;
+  const cover = await getCover(key);
+  return cover ? `data:${cover.contentType};base64,${cover.bytes.toString("base64")}` : null;
+};
+
 const buildAccountExport = async (userId, dependencies = {}) => {
   const deps = {
     User,
     Squad,
     Notification,
     SafetyReport,
+    getCover: coverStorage.getCover,
     now: () => new Date(),
     ...dependencies,
   };
@@ -61,6 +73,9 @@ const buildAccountExport = async (userId, dependencies = {}) => {
       image: contact?.image ?? null,
     };
   };
+  const coverImages = await Promise.all(
+    squads.map((squad) => exportCoverImage(squad.coverImage, deps.getCover))
+  );
   const verification = user.ageVerification || {};
   const unavailable = user.isSuspended === true || user.isShadowBanned === true;
 
@@ -102,7 +117,7 @@ const buildAccountExport = async (userId, dependencies = {}) => {
     },
     friends: friendIds.map(mapContact),
     blocks: blockedIds.map(mapContact),
-    squads: squads.map((squad) => ({
+    squads: squads.map((squad, index) => ({
       squadId: squad.squadId,
       squadCode: squad.squadCode,
       squadName: squad.squadName,
@@ -110,7 +125,7 @@ const buildAccountExport = async (userId, dependencies = {}) => {
       visibility: squad.visibility,
       joinPolicy: squad.joinPolicy,
       tags: (squad.tags || []).map(String),
-      coverImage: squad.coverImage ?? null,
+      coverImage: coverImages[index],
       members: (squad.members || []).map((member) => ({
         userId: id(member.userId),
         displayName: member.displayName ?? null,

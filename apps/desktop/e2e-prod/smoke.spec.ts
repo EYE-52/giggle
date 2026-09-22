@@ -6,11 +6,15 @@ import { expect, test, type APIRequestContext } from "@playwright/test";
 // server-to-server auth exchange (x-giggle-auth-exchange-secret), so production
 // needs no extra login route. The secret is Railway's AUTH_EXCHANGE_SECRET,
 // read from the environment or the gitignored apps/desktop/.env.prod-smoke.
-const API = process.env.GIGGLE_PROD_API_URL || "https://giggle-server-production.up.railway.app";
+// Local mode (GIGGLE_SMOKE_LOCAL=true) targets a local production build and a
+// development API, whose exchange needs no secret.
+const LOCAL = process.env.GIGGLE_SMOKE_LOCAL === "true";
+const API = process.env.GIGGLE_PROD_API_URL || (LOCAL ? "http://localhost:3001" : "https://giggle-server-production.up.railway.app");
 const TEST_EMAIL = "prod-smoke@e2e.gigglemeet.test";
 const TEST_AVATAR = "teal-bot";
 
 function exchangeSecret(): string | undefined {
+  if (LOCAL) return "local-development";
   if (process.env.GIGGLE_AUTH_EXCHANGE_SECRET) return process.env.GIGGLE_AUTH_EXCHANGE_SECRET;
   const file = path.join(__dirname, "..", ".env.prod-smoke");
   if (!existsSync(file)) return undefined;
