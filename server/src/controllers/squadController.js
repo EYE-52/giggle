@@ -34,6 +34,7 @@ const { shuffle } = require("../utils/random");
 const { normalizeSquadTags } = require("../utils/squadValidation");
 const { classifyVibe } = require("../utils/moderation");
 const { normalizeSquadCoverImage } = require("../utils/squadCoverValidation");
+const { publicCoverImage } = require("../utils/squadCovers");
 const { firstDisplayName } = require("../utils/identityValidation");
 const { loadAvatarsByUserId, publicAvatar } = require("../utils/avatars");
 const {
@@ -249,7 +250,7 @@ const getMySquadsHandler = async (req, res) => {
         status: squad.status,
         memberCount: squad.members.length,
         maxSlots: capacities[index],
-        coverImage: squad.coverImage ?? null,
+        coverImage: publicCoverImage(squad),
         tags: squad.tags || [],
         leaderName: leader ? leader.displayName : undefined,
         myRole: myMember ? myMember.role : undefined,
@@ -638,7 +639,7 @@ const getSquadHandler = async (req, res) => {
         maxSlots,
         leaderMemberId: leader ? leader.memberId : undefined,
         tags: squad.tags,
-        coverImage: squad.coverImage ?? null,
+        coverImage: publicCoverImage(squad),
         visibility: squad.visibility || "private",
         joinPolicy: squad.joinPolicy || "open",
         invitedCount: (squad.invitedUserIds || []).length,
@@ -698,7 +699,7 @@ const getSquadPreviewHandler = async (req, res) => {
         leaderMemberId: leader ? leader.memberId : undefined,
         leaderName: leader ? publicMemberName(leader) : undefined,
         tags: publicSquadTags(squad),
-        coverImage: squad.coverImage ?? null,
+        coverImage: publicCoverImage(squad),
         joinPolicy: squad.joinPolicy || "open",
         // Whether the requester is on the invite allow-list (so the UI can show
         // "you're invited" vs the invite-only block for invite-only squads).
@@ -1774,6 +1775,22 @@ const updateSquadTagsHandler = async (req, res) => {
 
 const updateSquadCoverHandler = async (req, res) => {
   const { squad } = req.squadAccess;
+  // Clients only ever see an uploaded cover as its served URL; re-applying the
+  // current cover sends that URL back. Keep the stored image instead of saving
+  // a URL that points at itself.
+  const currentPublicCover = publicCoverImage(squad);
+  if (
+    currentPublicCover &&
+    currentPublicCover !== squad.coverImage &&
+    typeof req.body?.coverImage === "string" &&
+    req.body.coverImage.trim() === currentPublicCover
+  ) {
+    return res.status(200).json({
+      ok: true,
+      data: { squadId: squad.squadId, coverImage: currentPublicCover },
+    });
+  }
+
   const normalized = normalizeSquadCoverImage(req.body?.coverImage);
 
   if (normalized.error) {
@@ -1789,7 +1806,7 @@ const updateSquadCoverHandler = async (req, res) => {
     socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
     return res.status(200).json({
       ok: true,
-      data: { squadId: squad.squadId, coverImage: squad.coverImage },
+      data: { squadId: squad.squadId, coverImage: publicCoverImage(squad) },
     });
   } catch (error) {
     console.error("Error updating squad cover:", error);
@@ -1808,7 +1825,7 @@ const toPublicSquad = async (squad) => {
     memberCount: squad.members.length,
     maxSlots: await getSquadCapacity(squad),
     tags: publicSquadTags(squad),
-    coverImage: squad.coverImage ?? null,
+    coverImage: publicCoverImage(squad),
     status: squad.status,
     visibility: squad.visibility || "private",
     joinPolicy: squad.joinPolicy || "open",

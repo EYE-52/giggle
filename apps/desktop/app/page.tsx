@@ -13,7 +13,7 @@ export default function LandingPage() {
         <section className="gg-welcome-copy">
           <h1>Meet new people.<br />Bring your friends<span>.</span></h1>
           <p>Start with your squad. Meet another, live on video.</p>
-          <div className="gg-welcome-adults"><Icon.shield size={19} color="currentColor" /> For verified adults 18+</div>
+          <div className="gg-welcome-adults"><Icon.shield size={19} color="currentColor" /> For adults 18+</div>
           <Link href="/signin" className="gg-welcome-start">Create your account <Icon.enter size={20} color="currentColor" /></Link>
         </section>
         <div className="gg-welcome-photos" aria-label="Illustration of a group video call using sample photos">

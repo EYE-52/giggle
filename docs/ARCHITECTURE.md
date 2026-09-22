@@ -27,7 +27,7 @@ The browser talks to the API directly at `NEXT_PUBLIC_BACKEND_URL` (REST and a w
 
 ## Known limits before scaling further
 
-1. **Squad cover images are stored as base64 inside squad documents** (up to ~2 MB each). This is the largest source of payload and database weight. Move uploads to object storage (S3/R2) and store only a URL. After that, the 3 MB JSON body limit in `server.js` can drop back to the default.
+1. **Uploaded squad covers are still stored as base64 inside squad documents** (up to ~2 MB). They are no longer sent in API responses: clients get `GET /api/covers/:squadId/:hash`, served with an immutable cache header, where the hash is a content hash that makes the URL unguessable. Database weight remains. When it matters, move uploads to object storage (S3/R2), point `publicCoverImage` in `server/src/utils/squadCovers.js` at the stored URL, and lower the 3 MB JSON body limit in `server.js`.
 2. **Matchmaking uses one global Redis lock.** Throughput is bounded by one pairing loop at a time. Lock per region, or claim candidates atomically, before stranger discovery sees real load.
 3. **Notifications and encounters have no TTL index**, so they grow without bound. Add TTL indexes or an archival job.
 4. **`/stats` caches for 30s per replica, in memory.** That's fine for a public counter; move it to Redis if exact cross-replica numbers matter.

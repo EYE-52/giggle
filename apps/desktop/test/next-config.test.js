@@ -282,6 +282,8 @@ test("desktop CSP allows the configured backend origin for live API calls", () =
   assert.equal(config.includes("const BACKEND_CONNECT_SRC = new URL(AUTH_BACKEND_URL).origin;"), true);
   assert.equal(config.includes('"connect-src \'self\' https: wss:"'), false);
   assert.equal(config.includes("`connect-src 'self' ${BACKEND_CONNECT_SRC} ${BACKEND_SOCKET_CONNECT_SRC} https: wss:`"), true);
+  // Uploaded squad covers are served by the backend (http://localhost in dev).
+  assert.equal(config.includes("`img-src 'self' ${BACKEND_CONNECT_SRC} data: blob: https:`"), true);
 });
 
 test("desktop CSP allows the configured backend websocket origin for sockets", () => {

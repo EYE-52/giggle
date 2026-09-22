@@ -3,7 +3,7 @@ const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { normalizeDisplayName } = require("../utils/identityValidation");
-const { isAvatarId, publicAvatar } = require("../utils/avatars");
+const { isAvatarId, isSelectableAvatarId, publicAvatar } = require("../utils/avatars");
 
 // Tokens granted to BOTH the inviter and the invitee when a referral converts.
 const REFERRAL_REWARD = 100;
@@ -353,8 +353,10 @@ const normalizeProfilePatch = (body = {}) => {
   if (avatar !== undefined) {
     if (avatar === null || avatar === "") {
       unset.push("avatar");
-    } else if (isAvatarId(avatar)) {
+    } else if (isSelectableAvatarId(avatar)) {
       patch.avatar = avatar;
+    } else if (isAvatarId(avatar)) {
+      return { error: "That avatar is part of the Vibe Pack, which isn't available yet" };
     } else {
       return { error: "avatar must be one of the available avatar ids" };
     }

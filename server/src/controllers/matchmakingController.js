@@ -13,6 +13,7 @@ const { hashStringToUid } = require("../services/agoraTokenService");
 const socketService = require("../services/socketService");
 const { withMatchmakingLock } = require("../config/redisConfig");
 const { loadAvatarsByUserId } = require("../utils/avatars");
+const { publicCoverImage } = require("../utils/squadCovers");
 const { canonicalUserId } = require("../services/interactionSafetyService");
 
 const getMatchmakingStatusHandler = async (req, res) => {
@@ -115,11 +116,11 @@ const getEncounterHandoffHandler = async (req, res) => {
         status: encounter.status,
         squadAId: encounter.squadAId,
         squadAName: squadA?.squadName || "Unknown squad",
-        squadACover: squadA?.coverImage || null,
+        squadACover: publicCoverImage(squadA) || null,
         squadAMembers: mapMembers(squadA?.members),
         squadBId: encounter.squadBId,
         squadBName: squadB?.squadName || "Unknown squad",
-        squadBCover: squadB?.coverImage || null,
+        squadBCover: publicCoverImage(squadB) || null,
         squadBMembers: mapMembers(squadB?.members),
         ack: Object.fromEntries(encounter.ackBySquad || []),
         expiresAt: encounter.expiresAt,

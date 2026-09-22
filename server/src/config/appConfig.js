@@ -14,6 +14,12 @@ const LOG_REQUEST_BODY = process.env.LOG_REQUEST_BODY === "true";
 const isStrangerDiscoveryEnabled = (env = process.env) =>
   env.STRANGER_DISCOVERY_ENABLED === "true" ||
   (env.STRANGER_DISCOVERY_ENABLED !== "false" && env.NODE_ENV !== "production");
+// Public base URL of this API (".../api"), as clients reach it. Read at call
+// time so tests and late env changes are honored.
+const publicApiBaseUrl = (env = process.env) => {
+  const base = (env.BACKEND_PUBLIC_URL || `http://localhost:${env.PORT || 3000}`).replace(/\/$/, "");
+  return `${base}/api`;
+};
 
 module.exports = {
   FREE_MAX_MEMBERS,
@@ -23,4 +29,5 @@ module.exports = {
   ENABLE_REQUEST_LOGS,
   LOG_REQUEST_BODY,
   isStrangerDiscoveryEnabled,
+  publicApiBaseUrl,
 };

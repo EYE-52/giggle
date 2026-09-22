@@ -530,33 +530,14 @@ test("mocked rosters stay usable across the viewport matrix", async ({ page }, t
     await page.setViewportSize({ width, height });
     for (const count of fixtureCounts) {
       const { stage, controls } = await openFixture(page, count);
-      const expectedLayout = count === 1
-        ? "remote-main"
-        : count === 2
-        ? "squad-split"
-        : count <= 4
-        ? "featured-split"
-        : width >= 1180
-        ? "dual-focus"
-        : "single-focus";
-      await expect(stage.locator(`[data-layout-kind="${expectedLayout}"]`)).toBeVisible();
+      // Unpinned calls use the adaptive grid for every roster size; named
+      // layouts (remote-main, featured-split, …) only apply once someone is pinned.
+      await expect(stage.locator('[data-layout-kind="adaptive-grid"]')).toBeVisible();
 
       const frames = stage.locator("[data-media-frame]");
-      const segmented = count === 8 && width < 1180;
-      await expect(frames).toHaveCount(segmented ? count + 1 : count * 2);
-      const participantLabels = new Set(await frames.evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label"))));
-      if (segmented) {
-        const segmentGroup = stage.getByRole("group", { name: "Filmstrip squad" });
-        for (const name of ["Show your squad", "Show opponent squad"]) {
-          const button = segmentGroup.getByRole("button", { name });
-          const box = await button.boundingBox();
-          expect(box?.width).toBeGreaterThanOrEqual(44);
-          expect(box?.height).toBeGreaterThanOrEqual(44);
-        }
-        await segmentGroup.getByRole("button", { name: "Show opponent squad" }).click();
-        for (const label of await frames.evaluateAll(nodes => nodes.map(node => node.getAttribute("aria-label")))) participantLabels.add(label);
-        await segmentGroup.getByRole("button", { name: "Show your squad" }).click();
-      }
+      await expect(frames).toHaveCount(count * 2);
+      // Each tile's options button is named after its person.
+      const participantLabels = new Set(await frames.evaluateAll(nodes => nodes.map(node => node.querySelector('button[aria-haspopup="dialog"]')?.getAttribute("aria-label"))));
       expect(participantLabels.size).toBe(count * 2);
       const unreachable = await frames.evaluateAll(nodes => nodes.flatMap(node => {
         const frame = node as HTMLElement;
@@ -618,8 +599,11 @@ test("mixed portrait, square, landscape, and ultrawide feeds stay inside their f
     for (let index = 0; index < dimensions.length; index += 1) {
       const [mediaWidth, mediaHeight] = dimensions[index];
       await injectSyntheticVideo(frames.nth(index), mediaWidth, mediaHeight);
-      await expect(frames.nth(index)).toHaveAttribute("data-media-fit", "fit");
-      expect(await expectMediaInsideFrame(frames.nth(index))).toBe("contain");
+      // The adaptive grid crops by default (tiles take the camera's shape once a
+      // live feed reports it; this fixture has no Agora feed, so tiles stay square).
+      // Whatever the shape, the picture must never spill outside its frame.
+      await expect(frames.nth(index)).toHaveAttribute("data-media-fit", "crop");
+      expect(await expectMediaInsideFrame(frames.nth(index))).toBe("cover");
     }
     await page.screenshot({
       path: `artifacts/visual-audit/2026-08-02/encounter/mixed-${viewportName}.jpg`,
@@ -720,9 +704,11 @@ test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page 
       quality: 82,
     });
   }
-  expect(accents.size).toBe(3);
-  expect(shellBackgrounds.size).toBe(3);
-  expect(headerBackgrounds.size).toBeGreaterThanOrEqual(2);
+  // Calls always use the dedicated dark call theme (.gg-call-theme), so the
+  // call chrome must look the same whatever app theme is saved.
+  expect(accents.size).toBe(1);
+  expect(shellBackgrounds.size).toBe(1);
+  expect(headerBackgrounds.size).toBe(1);
   await expect(page.getByText("vs", { exact: true })).toHaveCount(0);
 
   await page.emulateMedia({ reducedMotion: "reduce" });
