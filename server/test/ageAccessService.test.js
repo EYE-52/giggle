@@ -138,3 +138,16 @@ test("allUsersHaveAdultAccess fails when a roster user is missing or ineligible"
     false
   );
 });
+
+
+test("temporary declaration access is reversible and preserves account restrictions", () => {
+  const adult = { ageConfirmed: true, isAdult: true, ageVerified: false };
+  const temporary = { NODE_ENV: "production", SELF_DECLARED_AGE_ACCESS: "true" };
+  assert.equal(hasAdultAccess(adult, temporary), true);
+  assert.equal(hasAdultAccess(adult, production), false);
+  assert.equal(adult.ageVerified, false);
+  for (const override of [{ ageConfirmed: false }, { isAdult: false },
+    { isSuspended: true }, { isShadowBanned: true }, { deletionStatus: "pending" }]) {
+    assert.equal(hasAdultAccess({ ...adult, ...override }, temporary), false);
+  }
+});

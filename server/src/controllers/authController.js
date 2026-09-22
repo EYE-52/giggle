@@ -1,3 +1,4 @@
+const { isAgeCheckSatisfied } = require("../services/ageAccessService");
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -148,7 +149,7 @@ async function issueSessionForEmail({ email, name, image, ref, devFixture = fals
       // gate re-appears on every login even after the user confirmed their age.
       isAdult: user.isAdult || false,
       ageConfirmed: user.ageConfirmed || false,
-      ageVerified: user.ageVerified || false,
+      ageVerified: isAgeCheckSatisfied(user),
       accountStatus,
     },
     process.env.JWT_SECRET,
@@ -170,7 +171,7 @@ async function issueSessionForEmail({ email, name, image, ref, devFixture = fals
       // Age-gating flags (client-facing). birthDate (PII) is NEVER included.
       isAdult: user.isAdult || false,
       ageConfirmed: user.ageConfirmed || false,
-      ageVerified: user.ageVerified || false,
+      ageVerified: isAgeCheckSatisfied(user),
       accountStatus,
       referralApplied,
       referralReward: referralApplied ? REFERRAL_REWARD : 0,
@@ -275,7 +276,7 @@ const getMyProfile = async (req, res) => {
         // Age-gating flags (client-facing). birthDate (PII) is NEVER included.
         isAdult: user.isAdult || false,
         ageConfirmed: user.ageConfirmed || false,
-        ageVerified: user.ageVerified || false,
+        ageVerified: isAgeCheckSatisfied(user),
         accountStatus: clientAccountStatus(user),
       },
     });
@@ -384,7 +385,7 @@ const updateMyProfile = async (req, res) => {
         // Age-gating flags (client-facing). birthDate (PII) is NEVER included.
         isAdult: user.isAdult || false,
         ageConfirmed: user.ageConfirmed || false,
-        ageVerified: user.ageVerified || false,
+        ageVerified: isAgeCheckSatisfied(user),
       },
     });
   } catch (error) {
@@ -425,19 +426,12 @@ const computeAge = (birthDate, now = new Date()) => {
   return age;
 };
 
-// ponytail: SELF_DECLARED_AGE_ACCESS=true treats DOB self-attestation alone as
-// "verified" — a temporary stand-in for Yoti while its credentials aren't
-// provisioned. Ceiling: no document/liveness check, so it's weaker than the
-// verified-adult claim in DEPLOYMENT.md. Upgrade path: unset this env var once
-// YOTI_AGE_API_KEY / YOTI_AGE_SDK_ID are live in production.
-const selfDeclaredAgeAccess = () => process.env.SELF_DECLARED_AGE_ACCESS === "true";
-
 /**
  * POST /api/me/age — self-attested date of birth.
  * Body: { birthDate: "YYYY-MM-DD" }. SET-ONCE: once ageConfirmed is true it
  * cannot be changed; retries return the persisted flags. Sets birthDate, ageConfirmed=true, and
- * isAdult=(age>=18). Self-attestation sets ageVerified only when
- * SELF_DECLARED_AGE_ACCESS is enabled; otherwise it stays false pending Yoti.
+ * isAdult=(age>=18). The client ageVerified flag reflects the current access policy;
+ * persisted ageVerified remains reserved for provider verification.
  */
 const setMyAge = async (req, res) => {
   try {
@@ -471,16 +465,12 @@ const setMyAge = async (req, res) => {
           error: { code: "AGE_RESTRICTED", message: "Giggle is available only to adults 18+" },
         });
       }
-      if (user.ageVerified !== true && selfDeclaredAgeAccess()) {
-        user.ageVerified = true;
-        await user.save();
-      }
       return res.status(200).json({
         ok: true,
         data: {
           isAdult: true,
           ageConfirmed: true,
-          ageVerified: user.ageVerified === true,
+          ageVerified: isAgeCheckSatisfied(user),
         },
       });
     }
@@ -488,7 +478,7 @@ const setMyAge = async (req, res) => {
     user.birthDate = date;
     user.ageConfirmed = true;
     user.isAdult = age >= 18;
-    user.ageVerified = user.isAdult && selfDeclaredAgeAccess();
+    user.ageVerified = false;
     await user.save();
 
     if (!user.isAdult) {
@@ -500,7 +490,7 @@ const setMyAge = async (req, res) => {
 
     return res.status(200).json({
       ok: true,
-      data: { isAdult: true, ageConfirmed: true, ageVerified: user.ageVerified },
+      data: { isAdult: true, ageConfirmed: true, ageVerified: isAgeCheckSatisfied(user) },
     });
   } catch (error) {
     console.error("setMyAge Error:", error);

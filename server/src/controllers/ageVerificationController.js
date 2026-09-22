@@ -1,3 +1,4 @@
+const { isAgeCheckSatisfied } = require("../services/ageAccessService");
 const crypto = require("node:crypto");
 const User = require("../models/User");
 const {
@@ -40,7 +41,7 @@ function checkDeclaration(user, res) {
 }
 
 function normalizedState(user) {
-  if (user?.ageConfirmed === true && user?.isAdult === true && user?.ageVerified === true) {
+  if (isAgeCheckSatisfied(user)) {
     return { status: "verified", ageVerified: true };
   }
   if (user?.ageConfirmed === true && user?.isAdult === false) {
@@ -97,7 +98,7 @@ async function startAgeVerification(req, res) {
       });
     }
     if (!checkDeclaration(user, res)) return res;
-    if (user.ageVerified === true) {
+    if (isAgeCheckSatisfied(user)) {
       return res.json({ ok: true, data: { status: "verified", ageVerified: true } });
     }
 
@@ -169,7 +170,7 @@ async function getAgeVerificationStatus(req, res) {
       });
     }
     if (!checkDeclaration(user, res)) return res;
-    if (user.ageVerified === true) {
+    if (isAgeCheckSatisfied(user)) {
       return res.json({ ok: true, data: { status: "verified", ageVerified: true } });
     }
 

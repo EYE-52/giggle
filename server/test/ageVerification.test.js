@@ -243,7 +243,7 @@ test("POST /api/me/age: adult DOB sets isAdult true", async () => {
   });
 });
 
-test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS treats adult DOB as verified", async () => {
+test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS grants temporary access without storing verification", async () => {
   const user = fakeUser();
   const prior = process.env.SELF_DECLARED_AGE_ACCESS;
   process.env.SELF_DECLARED_AGE_ACCESS = "true";
@@ -254,7 +254,7 @@ test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS treats adult DOB as verified", 
       await setMyAge(req, res);
       assert.equal(res.statusCode, 200);
       assert.equal(res.body.data.ageVerified, true);
-      assert.equal(user.ageVerified, true);
+      assert.equal(user.ageVerified, false);
     });
   } finally {
     if (prior === undefined) delete process.env.SELF_DECLARED_AGE_ACCESS;
@@ -282,7 +282,7 @@ test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS never verifies a 13-17 minor", 
   }
 });
 
-test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS upgrades an already-confirmed adult on retry", async () => {
+test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS accepts an already-confirmed adult without storing verification", async () => {
   const user = fakeUser();
   user.ageConfirmed = true;
   user.isAdult = true;
@@ -296,7 +296,7 @@ test("POST /api/me/age: SELF_DECLARED_AGE_ACCESS upgrades an already-confirmed a
       await setMyAge(req, res);
       assert.equal(res.statusCode, 200);
       assert.equal(res.body.data.ageVerified, true);
-      assert.equal(user.ageVerified, true);
+      assert.equal(user.ageVerified, false);
     });
   } finally {
     if (prior === undefined) delete process.env.SELF_DECLARED_AGE_ACCESS;
@@ -788,4 +788,27 @@ test("tagsAreMature / firstBlockedTag", () => {
   assert.equal(tagsAreMature(["gaming", "music"]), false);
   assert.equal(firstBlockedTag(["gaming", "pedo"]), "pedo");
   assert.equal(firstBlockedTag(["gaming", "nsfw"]), null);
+});
+
+
+test("temporary mode skips Yoti for existing adults and restores it when disabled", async () => {
+  const user = fakeUser({ ageConfirmed: true, isAdult: true });
+  await withMockedFindById(user, async () => {
+    await withEnvironment({ SELF_DECLARED_AGE_ACCESS: "true" }, async () => {
+      for (const handler of [getAgeVerificationStatus, startAgeVerification, getMyProfile]) {
+        const res = createMockResponse();
+        await handler({ user: { userId: "u1" } }, res);
+        assert.equal(res.statusCode, 200);
+        assert.equal(res.body.data.ageVerified, true);
+      }
+      assert.equal(user.ageVerified, false);
+      assert.equal(user.saved, false);
+    });
+    await withEnvironment({ SELF_DECLARED_AGE_ACCESS: "false" }, async () => {
+      const res = createMockResponse();
+      await getAgeVerificationStatus({ user: { userId: "u1" } }, res);
+      assert.equal(res.body.data.status, "not_started");
+      assert.equal(res.body.data.ageVerified, false);
+    });
+  });
 });

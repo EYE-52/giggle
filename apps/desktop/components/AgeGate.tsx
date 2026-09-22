@@ -322,7 +322,7 @@ export function AgeGate({ onDone, onManageAccount }: { onDone: () => void; onMan
     return (
       <Shell>
         <Logomark size={44} />
-        <h1 style={headingStyle}>Giggle is for verified adults 18+</h1>
+        <h1 style={headingStyle}>Giggle is for adults 18+</h1>
         <p style={bodyStyle}>This account can&apos;t access squads, matching, chat, or video calls.</p>
         <AgeHelp />
         {onManageAccount && <Button variant="secondary" fullWidth onClick={onManageAccount}>Account &amp; data</Button>}
@@ -372,7 +372,7 @@ export function AgeGate({ onDone, onManageAccount }: { onDone: () => void; onMan
     <Shell>
       <Logomark size={44} />
       <h1 style={headingStyle}>Confirm your age</h1>
-      <p style={bodyStyle}>Giggle is for verified adults 18+. Enter your date of birth to continue.</p>
+      <p style={bodyStyle}>Giggle is for adults 18+. Enter your date of birth to continue.</p>
       <form onSubmit={submitDob} style={{ width: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
         <fieldset style={{ border: 0, padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           <legend style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", padding: 0, marginBottom: 2 }}>Date of birth</legend>
