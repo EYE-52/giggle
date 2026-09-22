@@ -7,7 +7,7 @@ const { requestAccountDeletion } = require("../services/accountDeletionService")
 const { canonicalUserId, relationalIdMatcher } = require("../services/interactionSafetyService");
 
 const USER_EXPORT_FIELDS = [
-  "_id email name image birthDate ageConfirmed isAdult ageVerified ageVerification.provider",
+  "_id email name image avatar birthDate ageConfirmed isAdult ageVerified ageVerification.provider",
   "ageVerification.status ageVerification.method ageVerification.threshold ageVerification.policyVersion",
   "ageVerification.requestedAt ageVerification.verifiedAt gender languages country vibes friends",
   "blockedUserIds isApproved isPremium premiumExpiresAt isSuspended isShadowBanned deletionStatus",
@@ -94,6 +94,7 @@ const buildAccountExport = async (userId, dependencies = {}) => {
     profile: {
       name: user.name ?? null,
       image: user.image ?? null,
+      avatar: user.avatar ?? null,
       gender: user.gender ?? null,
       languages: (user.languages || []).map(String),
       country: user.country ?? null,

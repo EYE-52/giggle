@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Avatar } from "@/components/Avatar";
+import { PersonAvatar } from "@/components/PersonAvatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { Icon } from "@/components/Icons";
@@ -223,7 +223,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     // Sync value after mount (localStorage may differ from SSR default)
-    setMyAvatarState(getMyAvatar());
+    setMyAvatarState(getMyAvatar(session.user?.id));
     return subscribeAvatar((v) => setMyAvatarState(v));
   }, []);
 
@@ -764,7 +764,7 @@ export default function ProfilePage() {
                   const name = account.name || "Blocked account";
                   return (
                     <div key={account.userId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: "1px solid var(--border)" }}>
-                      {account.image ? <AvatarArt value={account.image} size={36} /> : <Avatar name={name} size={36} />}
+                      <PersonAvatar userId={account.userId} name={name} size={36} />
                       <span style={{ color: textPrimary, fontSize: 14, fontWeight: 600, minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
                       <Button variant="ghost" size="sm" loading={unblockingId === account.userId} disabled={!!unblockingId} onClick={() => unblockAccount(account)}>Unblock</Button>
                     </div>

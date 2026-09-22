@@ -24,6 +24,7 @@ test("account export maps identity data explicitly without internal or third-par
           email: "member@example.com",
           name: "Member",
           image: "avatar-1",
+          avatar: "teal-bot",
           birthDate: new Date("2000-02-03T00:00:00.000Z"),
           ageConfirmed: true,
           isAdult: true,
@@ -149,6 +150,7 @@ test("account export maps identity data explicitly without internal or third-par
   ]);
   assert.equal(exported.generatedAt, "2026-08-04T10:00:00.000Z");
   assert.equal(exported.ageAssurance.birthDate, "2000-02-03");
+  assert.equal(exported.profile.avatar, "teal-bot");
   assert.deepEqual(exported.friends, [{ userId: FRIEND_ID, name: "Friend", image: "friend-avatar" }]);
   assert.deepEqual(exported.blocks, [{ userId: BLOCKED_ID, name: "Blocked", image: null }]);
   assert.deepEqual(Object.keys(exported.squads[0]), [

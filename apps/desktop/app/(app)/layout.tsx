@@ -4,13 +4,16 @@ import { usePathname, useRouter } from "next/navigation";
 import { TopNav } from "@/components/TopNav";
 import { ToastProvider } from "@/components/Toast";
 import { Logomark } from "@/components/Brand";
-import { session, connectSocket } from "@giggle/core";
+import { session, connectSocket, getMyAvatar } from "@giggle/core";
+import { AvatarPicker } from "@/components/AvatarPicker";
+import { reconcileMyAvatar } from "@/lib/avatarSync";
 import { AgeGate } from "@/components/AgeGate";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 import { IdentityOnlyAccount } from "@/components/IdentityOnlyAccount";
 
 const CALLING_ROUTES = ["/lobby", "/encounter", "/matchmaking", "/match"];
 const DISCOVERY_ROUTES = ["/discover", "/matchmaking", "/match"];
+const AVATAR_PROMPTED_KEY = "giggle.avatarPrompted";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -22,6 +25,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const identityOnlyAccess = authReady && session.hasIdentityOnlyAccess;
   const identityRouteBlocked = identityOnlyAccess && session.accountStatus !== "active" && pathname !== "/profile";
   const identityProfile = identityOnlyAccess && pathname === "/profile";
+  const [avatarPrompt, setAvatarPrompt] = useState(false);
 
   // Auth gate: the whole (app) area requires a session. In production the only
   // way in is real OAuth — unauthenticated users are sent to /signin. In local
@@ -61,6 +65,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (identityRouteBlocked) router.replace("/profile");
     else if (discoveryRouteDisabled) router.replace("/home");
   }, [discoveryRouteDisabled, identityRouteBlocked, router]);
+
+  // Sync the shared avatar once adult access is confirmed; people who have
+  // never picked one get a one-time picker (never over a call).
+  useEffect(() => {
+    if (!authReady || !hasAdultAccess) return;
+    const neverPicked = reconcileMyAvatar(session.user?.avatar);
+    let prompted = false;
+    try { prompted = localStorage.getItem(AVATAR_PROMPTED_KEY) === "1"; } catch {}
+    if (neverPicked && !prompted) setAvatarPrompt(true);
+  }, [authReady, hasAdultAccess]);
+
+  function closeAvatarPrompt() {
+    setAvatarPrompt(false);
+    try { localStorage.setItem(AVATAR_PROMPTED_KEY, "1"); } catch {}
+  }
 
   // Open the authenticated presence socket for the app session so the user
   // counts as "online" app-wide (the backend marks online via the handshake).
@@ -175,6 +194,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </main>
+      {avatarPrompt && !isCalling && (
+        <AvatarPicker
+          current={getMyAvatar(session.user?.id)}
+          title="Pick your avatar"
+          subtitle="This is how friends and squads will see you. You can change it anytime in your profile."
+          onClose={closeAvatarPrompt}
+        />
+      )}
     </div>
     </ToastProvider>
   );

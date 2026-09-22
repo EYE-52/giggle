@@ -1,8 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Icon } from "@/components/Icons";
-import { Avatar } from "@/components/Avatar";
-import { AvatarArt } from "@/components/AvatarArt";
+import { PersonAvatar } from "@/components/PersonAvatar";
 import { useViewport } from "@/components/useViewport";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
@@ -17,12 +16,14 @@ interface Friend {
   userId: string;
   name: string;
   image?: string;
+  avatar?: string | null;
   online: boolean;
 }
 interface FriendRequestUser {
   userId: string;
   name: string;
   image?: string;
+  avatar?: string | null;
   online?: boolean;
 }
 
@@ -39,10 +40,9 @@ const fontDisplay = "var(--font-display, var(--font-space-grotesk))";
 const onAccent = "var(--on-accent, #fff)";
 const MAX_SEARCH_QUERY = 64;
 
-/** Avatar that prefers the user's avatar art when present, else initials. */
-function UserAvatar({ name, image, size = 44, online }: { name: string; image?: string; size?: number; online?: boolean }) {
-  if (image) return <AvatarArt value={image} size={size} online={online} />;
-  return <Avatar name={name} size={size} online={online} />;
+/** The person's shared illustrated avatar (or their seeded default). */
+function UserAvatar({ userId, name, avatar, size = 44, online }: { userId: string; name: string; avatar?: string | null; size?: number; online?: boolean }) {
+  return <PersonAvatar userId={userId} name={name} avatar={avatar} size={size} online={online} />;
 }
 
 export default function FriendsPage() {
@@ -419,7 +419,7 @@ export default function FriendsPage() {
                   border: controlBorder,
                 }}
               >
-                <UserAvatar name={f.name} image={f.image} size={46} online={f.online} />
+                <UserAvatar userId={f.userId} name={f.name} avatar={f.avatar} size={46} online={f.online} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {f.name}
@@ -626,7 +626,7 @@ function Row({ u, children }: { u: Friend | FriendRequestUser; children: React.R
         border: controlBorder,
       }}
     >
-      <UserAvatar name={u.name} image={u.image} size={40} online={!!u.online} />
+      <UserAvatar userId={u.userId} name={u.name} avatar={u.avatar} size={40} online={!!u.online} />
       <div style={{ minWidth: 0, flex: "1 1 110px" }}>
         <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {u.name}

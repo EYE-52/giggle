@@ -1,7 +1,9 @@
 /**
- * Giggle avatar system — client-side only (localStorage).
+ * Giggle avatar system.
  * Storage key: "giggle.avatar"
  * Value: a DEFAULT_AVATARS id string OR a data: URL for custom uploads.
+ * Illustrated ids are also saved on the server profile (`avatar`) so other
+ * people see them; custom uploads stay on this device only.
  */
 
 export type AvatarStyle =
@@ -40,6 +42,9 @@ export const DEFAULT_AVATARS: DefaultAvatar[] = [
   { id: "mint-bolt",     name: "Mint Bolt",     colors: ["#A8FFE0", "#14B87A"], style: "bolt" },
 ];
 
+/** The first avatars are free; the rest belong to the premium "vibe_pack". */
+export const FREE_AVATAR_COUNT = 8;
+
 const STORAGE_KEY = "giggle.avatar";
 const DEFAULT_ID = DEFAULT_AVATARS[0].id;
 const MAX_CUSTOM_AVATAR_LENGTH = 2_000_000;
@@ -65,13 +70,8 @@ export function getMyAvatar(userId?: string): string {
       if (normalized) return normalized;
       localStorage.removeItem(STORAGE_KEY);
     }
-    // Stable seed from userId so the default feels personal
-    if (userId) {
-      let h = 0;
-      for (let i = 0; i < userId.length; i++) h = (h * 31 + userId.charCodeAt(i)) >>> 0;
-      return DEFAULT_AVATARS[h % DEFAULT_AVATARS.length].id;
-    }
-    return DEFAULT_ID;
+    // Same seeded default other people see for this user.
+    return userId ? defaultAvatarFor(userId) : DEFAULT_ID;
   } catch {
     return DEFAULT_ID;
   }
@@ -84,6 +84,29 @@ export function setMyAvatar(value: string): void {
     localStorage.setItem(STORAGE_KEY, next);
     _notify(next);
   } catch {}
+}
+
+/** The avatar explicitly chosen on this device, or null when none was picked. */
+export function getStoredAvatar(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? normalizeAvatarValue(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Stable illustrated avatar for someone who hasn't picked one (free set only). */
+export function defaultAvatarFor(seed: string): string {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return DEFAULT_AVATARS[h % FREE_AVATAR_COUNT].id;
+}
+
+/** A shared (server-side) avatar id, or the seeded default when it is missing or unknown. */
+export function resolveAvatar(avatar: string | null | undefined, seed: string): string {
+  return avatar && getDefaultAvatarById(avatar) ? avatar : defaultAvatarFor(seed);
 }
 
 export function isCustomAvatar(value: string): boolean {

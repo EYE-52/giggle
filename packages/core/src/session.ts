@@ -106,6 +106,7 @@ function normalizeSessionUser(storedUser: Partial<BackendUser> | null | undefine
     ageConfirmed: payload.ageConfirmed ?? storedUser?.ageConfirmed,
     ageVerified: payload.ageVerified ?? storedUser?.ageVerified,
     accountStatus: payload.accountStatus ?? storedUser?.accountStatus,
+    avatar: payload.avatar ?? storedUser?.avatar ?? null,
   } as BackendUser;
 }
 
@@ -309,6 +310,7 @@ export const session = {
         ageConfirmed: p.ageConfirmed === true,
         ageVerified: p.ageVerified === true,
         accountStatus: p.accountStatus ?? "active",
+        avatar: p.avatar ?? null,
       };
       ageAccessSynced = true;
       persist();

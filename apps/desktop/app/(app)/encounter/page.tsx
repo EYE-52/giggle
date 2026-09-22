@@ -13,6 +13,7 @@ import {
   SOCKET_EVENTS,
   SOCKET_EMIT,
   getMyAvatar,
+  resolveAvatar,
   subscribeAvatar,
   DEFAULT_AVATAR_ID,
   session,
@@ -166,6 +167,8 @@ interface EncounterParticipant {
   name: string;
   side: "mine" | "theirs";
   colorIndex: number;
+  /** Shared illustrated avatar (or seeded default) shown when the camera is off. */
+  avatar: string;
   uid?: number;
   isLocal: boolean;
 }
@@ -290,7 +293,7 @@ function EncounterInner() {
   const [myAvatar, setMyAvatarState] = useState<string>(DEFAULT_AVATAR_ID);
 
   useEffect(() => {
-    setMyAvatarState(getMyAvatar());
+    setMyAvatarState(getMyAvatar(session.user?.id));
     return subscribeAvatar((v) => setMyAvatarState(v));
   }, []);
 
@@ -646,6 +649,7 @@ function EncounterInner() {
     name: m.displayName,
     side: "mine",
     colorIndex: i,
+    avatar: resolveAvatar(m.avatar, m.userId),
     uid: m.uid,
     isLocal:
       m.userId === myUserId ||
@@ -657,6 +661,7 @@ function EncounterInner() {
     name: m.displayName,
     side: "theirs",
     colorIndex: i + 4,
+    avatar: resolveAvatar(m.avatar, m.userId),
     uid: m.uid,
     isLocal: false,
   }));
@@ -1018,7 +1023,7 @@ function EncounterInner() {
         } : undefined}
         videoRef={participantRef(person.isLocal, person.uid)}
         isLocal={person.isLocal}
-        localAvatarValue={person.isLocal ? myAvatar : undefined}
+        avatarValue={person.isLocal ? myAvatar : person.avatar}
         isSpeaking={isSpeakingFor(person.isLocal, person.uid)}
         statusText={statusTextFor(person.isLocal, person.uid)}
         onClick={() => handleTileClick(person.id)}

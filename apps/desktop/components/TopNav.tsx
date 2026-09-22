@@ -4,6 +4,8 @@ import { usePathname } from 'next/navigation';
 import { Wordmark } from './Brand';
 import { Icon } from './Icons';
 import { NotificationBell } from './NotificationBell';
+import { PersonAvatar } from './PersonAvatar';
+import { session } from '@giggle/core';
 import { WEB_DISCOVERY_ENABLED } from '@/lib/discovery';
 
 const NAV = [
@@ -19,7 +21,7 @@ export function TopNav() {
     <header className="gg-header"><div className="gg-header-inner">
       <Link href="/home" aria-label="Giggle home"><Wordmark/></Link>
       <nav data-testid="desktop-navigation" className="gg-main-nav" aria-label="Primary navigation">{links}</nav>
-      <div className="gg-header-actions"><NotificationBell/><Link href="/profile" className="gg-profile-link" aria-label="Your profile"><Icon.profile size={21} color="currentColor"/></Link></div>
+      <div className="gg-header-actions"><NotificationBell/><Link href="/profile" className="gg-profile-link" aria-label="Your profile"><PersonAvatar isMe userId={session.user?.id} name={session.user?.name ?? "You"} size={40}/></Link></div>
     </div></header>
     <nav data-testid="mobile-navigation" className="gg-mobile-nav gg-bottom-nav" aria-label="Primary navigation">{links}</nav>
   </>;

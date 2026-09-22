@@ -12,7 +12,7 @@ type Props = {
   videoRef?: (el: HTMLDivElement | null) => void;
   hasVideo: boolean; mutedForMe?: boolean; onMute?: (muted: boolean) => Promise<void>;
   onClick?: () => void; focused?: boolean; showFocusHint?: boolean; compact?: boolean;
-  fit?: Fit; backdrop?: boolean; animClass?: string; localAvatarValue?: string; statusText?: string;
+  fit?: Fit; backdrop?: boolean; animClass?: string; avatarValue?: string; statusText?: string;
   reactions?: { id: number; emoji: string }[];
 };
 
@@ -42,7 +42,7 @@ function PersonMenu({ anchor, onClose, children, name }: {
 
 /** Stable media host: framing and menus never rejoin, resubscribe or move a track. */
 export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeaking, videoRef, hasVideo,
-  mutedForMe, onMute, onClick, focused, fit: initialFit = "crop", localAvatarValue, statusText = "Camera off", reactions = [] }: Props) {
+  mutedForMe, onMute, onClick, focused, fit: initialFit = "crop", avatarValue, statusText = "Camera off", reactions = [] }: Props) {
   const host = useRef<HTMLDivElement>(null), button = useRef<HTMLButtonElement>(null);
   const backdrop = useRef<HTMLVideoElement>(null), preview = useRef<HTMLVideoElement>(null);
   const [fit, setFit] = useState<Fit>(initialFit), [zoom, setZoom] = useState(1);
@@ -111,7 +111,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
   const chooseFit = (value: Fit) => { setFit(value); setZoom(1); };
   return <div className={styles.tile} data-media-frame data-local={isLocal} data-media-fit={fit} style={frameStyle}>
     <div className={styles.fallback}>
-      {isLocal && localAvatarValue ? <AvatarArt value={localAvatarValue} size={58} /> : <span className={styles.initial}>{name.slice(0, 1).toUpperCase()}</span>}
+      {avatarValue ? <AvatarArt value={avatarValue} size={58} /> : <span className={styles.initial}>{name.slice(0, 1).toUpperCase()}</span>}
       <span>{statusText}</span>
     </div>
     {hasVideo && fit === "fit" && <video ref={backdrop} data-media-backdrop className={styles.backdrop} muted playsInline aria-hidden="true" />}

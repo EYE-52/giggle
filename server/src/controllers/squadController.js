@@ -35,6 +35,7 @@ const { normalizeSquadTags } = require("../utils/squadValidation");
 const { classifyVibe } = require("../utils/moderation");
 const { normalizeSquadCoverImage } = require("../utils/squadCoverValidation");
 const { firstDisplayName } = require("../utils/identityValidation");
+const { loadAvatarsByUserId, publicAvatar } = require("../utils/avatars");
 const {
   anyBlockedPair,
   anyBlockedPairInState,
@@ -123,6 +124,18 @@ const publicSquadName = (squad) => normalizeSquadName(squad?.squadName).slice(0,
 
 const publicMemberName = (member) => firstDisplayName(member?.displayName, "Someone");
 
+// Members with each user's chosen illustrated avatar. Looked up live from User
+// (never persisted on member subdocs, where it would go stale) in one batched
+// query; avatar is null when unset or when the lookup fails.
+const withMemberAvatars = async (members) => {
+  const list = [...(members || [])];
+  const avatars = await loadAvatarsByUserId(list.map((member) => member?.userId), { User });
+  return list.map((member) => ({
+    ...(typeof member?.toObject === "function" ? member.toObject() : member),
+    avatar: avatars.get(canonicalUserId(member?.userId)) ?? null,
+  }));
+};
+
 const publicSquadTags = (squad) => {
   const normalized = normalizeSquadTags(squad?.tags ?? []);
   return normalized.tags || [];
@@ -184,7 +197,7 @@ const getMySquadHandler = async (req, res) => {
         member,
         leaderMemberId: leader ? leader.memberId : null,
         maxSlots: await getSquadCapacity(squad),
-        members: squad.members,
+        members: await withMemberAvatars(squad.members),
       },
     });
   } catch (error) {
@@ -336,7 +349,7 @@ const createSquadHandler = async (req, res) => {
         squadName: newSquad.squadName,
         tags: newSquad.tags,
         member: newMember,
-        members: [newMember],
+        members: await withMemberAvatars([newMember]),
         status: newSquad.status,
       },
     });
@@ -408,7 +421,7 @@ const joinSquadHandler = async (req, res) => {
           squadCode: squad.squadCode,
           squadName: squad.squadName,
           member: existingMember,
-          members: squad.members,
+          members: await withMemberAvatars(squad.members),
           status: squad.status,
         },
       });
@@ -554,7 +567,7 @@ const joinSquadHandler = async (req, res) => {
         squadCode: squad.squadCode,
         squadName: squad.squadName,
         member: newMember,
-        members: squad.members,
+        members: await withMemberAvatars(squad.members),
         status: squad.status,
       },
     });
@@ -579,7 +592,7 @@ const getSquadHandler = async (req, res) => {
       sessionService.getSquadSession(squad.squadId),
       memberUserIds.length
         ? User.find({ _id: { $in: memberUserIds } })
-            .select("_id gender languages country isPremium")
+            .select("_id gender languages country isPremium avatar")
             .lean()
         : Promise.resolve([]),
       socketService.getOnlineUserIds(memberUserIds),
@@ -610,6 +623,7 @@ const getSquadHandler = async (req, res) => {
         gender: u ? u.gender : undefined,
         languages: u ? u.languages || [] : undefined,
         country: u ? u.country : undefined,
+        avatar: publicAvatar(u?.avatar),
       };
     });
 
@@ -663,11 +677,13 @@ const getSquadPreviewHandler = async (req, res) => {
         ? squad.members.find((m) => m.memberId === squad.leaderMemberId)
         : undefined);
 
+    const avatars = await loadAvatarsByUserId(squad.members.map((member) => member.userId), { User });
     const members = squad.members.map((member) => ({
       memberId: member.memberId,
       displayName: publicMemberName(member),
       role: member.role,
       avatarId: member.avatarId,
+      avatar: avatars.get(canonicalUserId(member.userId)) ?? null,
     }));
 
     return res.status(200).json({
@@ -875,7 +891,7 @@ const getJoinRequestsHandler = async (req, res) => {
     const users = userIds.length
       ? await User.find(
           { _id: { $in: userIds } },
-          "_id blockedUserIds gender languages country"
+          "_id blockedUserIds gender languages country avatar"
         )
       : [];
     const byId = new Map(users.map((user) => [canonicalUserId(user._id), user]));
@@ -895,6 +911,7 @@ const getJoinRequestsHandler = async (req, res) => {
         gender: u ? u.gender : undefined,
         languages: u ? u.languages || [] : undefined,
         country: u ? u.country : undefined,
+        avatar: publicAvatar(u?.avatar),
       };
     });
 
@@ -990,7 +1007,7 @@ const approveJoinRequestHandler = async (req, res) => {
       data: {
         squadId: squad.squadId,
         member: newMember,
-        members: squad.members,
+        members: await withMemberAvatars(squad.members),
         status: squad.status,
       },
     });
@@ -1935,7 +1952,7 @@ const joinRandomSquadHandler = async (req, res) => {
             squadCode: fresh.squadCode,
             squadName: fresh.squadName,
             member,
-            members: fresh.members,
+            members: await withMemberAvatars(fresh.members),
             status: fresh.status,
             leaderMemberId: leader ? leader.memberId : undefined,
           },

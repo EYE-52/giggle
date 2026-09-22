@@ -12,6 +12,7 @@ import type { MySquadLite, PublicSquad, SquadMemberState } from "@giggle/core";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { Avatar } from "@/components/Avatar";
+import { PersonAvatar } from "@/components/PersonAvatar";
 import { Icon } from "@/components/Icons";
 import { useToast } from "@/components/Toast";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
@@ -248,10 +249,16 @@ export default function HomePage() {
               >
                 {(roster.length
                   ? roster.slice(0, 4)
-                  : [{ memberId: "you", displayName: session.user?.name ?? "You" }]
-                ).map((person, i) => (
+                  : [{ memberId: "you", userId: session.user?.id ?? "", displayName: session.user?.name ?? "You", avatar: null }]
+                ).map((person) => (
                   <div className="gg-squad-seat" key={person.memberId}>
-                    <Avatar name={person.displayName} size={56} colorIndex={i} />
+                    <PersonAvatar
+                      userId={person.userId}
+                      name={person.displayName}
+                      avatar={person.avatar}
+                      isMe={person.userId === session.user?.id}
+                      size={56}
+                    />
                   </div>
                 ))}
                 {!active && (

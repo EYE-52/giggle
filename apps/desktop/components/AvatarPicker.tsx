@@ -1,7 +1,8 @@
 "use client";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DEFAULT_AVATARS, setMyAvatar, billing } from "@giggle/core";
+import { DEFAULT_AVATARS, FREE_AVATAR_COUNT, billing } from "@giggle/core";
+import { saveMyAvatar } from "@/lib/avatarSync";
 import { AvatarArt } from "./AvatarArt";
 import { Icon } from "./Icons";
 import { Modal } from "./Modal";
@@ -10,14 +11,14 @@ import { Button } from "./Button";
 interface AvatarPickerProps {
   current: string;
   onClose: () => void;
+  title?: string;
+  subtitle?: string;
 }
 
-// The first 8 avatars are always free; the rest are a premium "vibe_pack".
-const FREE_AVATAR_COUNT = 8;
 const MAX_UPLOAD_IMAGE_BYTES = 2_000_000;
 const ALLOWED_UPLOAD_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
 
-export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
+export function AvatarPicker({ current, onClose, title = "Choose your avatar", subtitle = "Friends and squads see your pick. Uploaded photos stay on this device." }: AvatarPickerProps) {
   const router = useRouter();
   const [selected, setSelected] = useState(current);
   const [preview, setPreview] = useState<string | null>(null);
@@ -25,6 +26,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
   const [saving, setSaving] = useState(false);
   const [vibePackUnlocked, setVibePackUnlocked] = useState(false);
   const [hint, setHint] = useState("");
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     setVibePackUnlocked(billing.hasPerk("vibe_pack"));
@@ -66,20 +68,24 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
     if (file) handleFile(file);
   }
 
-  function handleSave() {
+  async function handleSave() {
     setSaving(true);
-    setMyAvatar(effectiveSelected);
-    setTimeout(() => {
-      setSaving(false);
+    setSaveError("");
+    try {
+      await saveMyAvatar(effectiveSelected);
       onClose();
-    }, 120);
+    } catch {
+      setSaveError("Saved on this device, but we couldn't share it. Try again.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <Modal
       onClose={onClose}
-      title="Choose your avatar"
-      subtitle="Pick a vibe or upload your own photo"
+      title={title}
+      subtitle={subtitle}
       closeLabel="Close avatar picker"
       style={{
         background: "linear-gradient(160deg, var(--surface-grad-from) 0%, var(--surface-grad-to) 100%)",
@@ -87,14 +93,9 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
     >
       <div>
         {/* Preview of currently-highlighted avatar */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-          <div style={{ position: "relative" }}>
-            <AvatarArt value={effectiveSelected} size={80} />
-            <div style={{
-              position: "absolute", inset: -4, borderRadius: "50%",
-              background: "conic-gradient(from 0deg, var(--accent, var(--violet, #7657FF)) 0%, var(--live, var(--lime, #B7FF2A)) 50%, var(--accent, var(--violet, #7657FF)) 100%)",
-              filter: "blur(6px)", opacity: 0.6, zIndex: -1,
-            }} />
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <div style={{ borderRadius: "50%", boxShadow: "0 0 0 4px var(--surface), 0 0 0 6px var(--accent-line)" }}>
+            <AvatarArt value={effectiveSelected} size={72} />
           </div>
         </div>
 
@@ -102,7 +103,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(72px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))",
             gap: 10,
             marginBottom: 20,
           }}
@@ -114,6 +115,8 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
               <button
                 key={av.id}
                 title={locked ? `${av.name} — premium` : av.name}
+                aria-label={locked ? `${av.name} (premium)` : av.name}
+                aria-pressed={isActive}
                 onClick={() => {
                   if (locked) { setHint(`“${av.name}” is in the premium Vibe Pack.`); return; }
                   setSelected(av.id); setPreview(null); setHint("");
@@ -124,7 +127,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 6,
-                  padding: "10px 6px 8px",
+                  padding: "8px 4px 6px",
                   borderRadius: "var(--radius-tile, 16px)",
                   border: isActive
                     ? "2px solid var(--accent, var(--violet, #7657FF))"
@@ -188,7 +191,7 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
               alignItems: "center",
               justifyContent: "center",
               gap: 6,
-              padding: "10px 6px 8px",
+              padding: "8px 4px 6px",
               borderRadius: "var(--radius-tile, 16px)",
               border: dragOver
                 ? "2px solid var(--live, var(--lime))"
@@ -242,6 +245,10 @@ export function AvatarPicker({ current, onClose }: AvatarPickerProps) {
               Unlock
             </Button>
           </div>
+        )}
+
+        {saveError && (
+          <p role="alert" className="gg-inline-error" style={{ marginBottom: 12 }}>{saveError}</p>
         )}
 
         {/* Footer buttons */}

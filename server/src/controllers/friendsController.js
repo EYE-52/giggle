@@ -10,6 +10,7 @@ const {
   emitNotificationsChanged,
 } = require("../models/Notification");
 const { firstDisplayName } = require("../utils/identityValidation");
+const { publicAvatar } = require("../utils/avatars");
 const { removeBlockedIdentityFromSharedSquads } = require("../app/squadAccess");
 const {
   canonicalUserId,
@@ -36,6 +37,7 @@ const toPublic = (u, onlineSet) => ({
   userId: canonicalUserId(u._id),
   name: u.name || null,
   image: u.image || null,
+  avatar: publicAvatar(u.avatar),
   online: onlineSet ? onlineSet.has(canonicalUserId(u._id)) : false,
 });
 
@@ -50,7 +52,7 @@ const listFriends = async (req, res) => {
 
     const ids = await filterBlockedCandidates(authedUserId(req), me.friends || [], { User });
     const docs = ids.length
-      ? await User.find({ _id: { $in: ids } }, "name image").lean()
+      ? await User.find({ _id: { $in: ids } }, "name image avatar").lean()
       : [];
     const onlineSet = await getOnlineUserIds(docs.map((d) => canonicalUserId(d._id)));
 
@@ -84,7 +86,7 @@ const listRequests = async (req, res) => {
     )];
 
     const docs = allIds.length
-      ? await User.find({ _id: { $in: allIds } }, "name image").lean()
+      ? await User.find({ _id: { $in: allIds } }, "name image avatar").lean()
       : [];
     const byId = new Map(docs.map((d) => [canonicalUserId(d._id), d]));
     const onlineSet = await getOnlineUserIds(allIds);
@@ -101,6 +103,7 @@ const listRequests = async (req, res) => {
         userId: canonicalUserId(d._id),
         name: d.name || null,
         image: d.image || null,
+        avatar: publicAvatar(d.avatar),
       }));
 
     return res.json({ ok: true, data: { incoming, outgoing } });
@@ -352,7 +355,7 @@ const searchUsers = async (req, res) => {
         _id: { $nin: exclude },
         name: { $regex: escaped, $options: "i" },
       },
-      "name image"
+      "name image avatar"
     )
       .limit(20)
       .lean();
@@ -480,7 +483,7 @@ const listBlockedUsers = async (req, res) => {
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
     const ids = [...new Set((me.blockedUserIds || []).map(toIdString).filter(Boolean))];
     const docs = ids.length
-      ? await User.find({ _id: { $in: ids } }, "name image").lean()
+      ? await User.find({ _id: { $in: ids } }, "name image avatar").lean()
       : [];
     return res.json({
       ok: true,
@@ -489,6 +492,7 @@ const listBlockedUsers = async (req, res) => {
           userId: canonicalUserId(user._id),
           name: user.name || null,
           image: user.image || null,
+          avatar: publicAvatar(user.avatar),
         })),
       },
     });
