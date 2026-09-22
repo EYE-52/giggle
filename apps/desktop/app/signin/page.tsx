@@ -132,7 +132,7 @@ export default function AuthPage() {
               display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 11,
               width: "100%", height: 50, borderRadius: "var(--radius-control, 14px)",
               fontFamily: "inherit", fontWeight: 600, fontSize: 14,
-              background: "#FFFFFF", color: "#0B0B0F", border: "none",
+              background: "#FFFFFF", color: "#1f1f1f", border: "1px solid var(--border-strong)",
               boxShadow: "var(--shadow-sm)",
               cursor: busy ? "wait" : "pointer", whiteSpace: "nowrap",
               opacity: busy ? 0.7 : 1,

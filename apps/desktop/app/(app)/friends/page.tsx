@@ -10,6 +10,7 @@ import { Button } from "@/components/Button";
 import { useToast } from "@/components/Toast";
 import { api } from "@giggle/core";
 import type { MySquadLite } from "@giggle/core";
+import { pollWhileVisible } from "@/lib/poll";
 
 // ── Contract types (mirror the backend/core agent's interfaces) ───────────────
 interface Friend {
@@ -64,7 +65,7 @@ export default function FriendsPage() {
   const [requested, setRequested] = useState<Set<string>>(new Set());
 
   // Inline remove confirmation
-  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [manageUser, setManageUser] = useState<{ user: Friend | FriendRequestUser; isFriend: boolean } | null>(null);
   const [confirmBlock, setConfirmBlock] = useState<Friend | FriendRequestUser | null>(null);
   const [blocking, setBlocking] = useState(false);
   const [searchFocus, setSearchFocus] = useState(false);
@@ -100,11 +101,11 @@ export default function FriendsPage() {
 
   // Live presence: poll every 20s + on window focus.
   useEffect(() => {
-    const id = setInterval(refetch, 20_000);
+    const stopPolling = pollWhileVisible(refetch, 20_000);
     const onFocus = () => refetch();
     window.addEventListener("focus", onFocus);
     return () => {
-      clearInterval(id);
+      stopPolling();
       window.removeEventListener("focus", onFocus);
     };
   }, [refetch]);
@@ -185,7 +186,7 @@ export default function FriendsPage() {
   }
 
   async function handleRemove(u: Friend) {
-    setConfirmRemove(null);
+    setManageUser(null);
     setFriends((f) => f.filter((x) => x.userId !== u.userId));
     try {
       await api.removeFriend(u.userId);
@@ -333,7 +334,7 @@ export default function FriendsPage() {
                         <Icon.plus size={15} color={onAccent} strokeWidth={2.4} /> Add
                       </ActionButton>
                     )}
-                    <ActionButton onClick={() => setConfirmBlock(u)} tone="danger">Block</ActionButton>
+                    <MoreButton name={u.name} onClick={() => setManageUser({ user: u, isFriend })} />
                     </div>
                   </Row>
                 );
@@ -355,7 +356,7 @@ export default function FriendsPage() {
                 <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
                   <ActionButton onClick={() => handleAccept(u)} tone="violet">Accept</ActionButton>
                   <ActionButton onClick={() => handleDecline(u)} tone="ghost">Decline</ActionButton>
-                  <ActionButton onClick={() => setConfirmBlock(u)} tone="danger">Block</ActionButton>
+                  <MoreButton name={u.name} onClick={() => setManageUser({ user: u, isFriend: false })} />
                 </div>
               </Row>
             ))}
@@ -363,7 +364,7 @@ export default function FriendsPage() {
               <Row key={`out-${u.userId}`} u={u}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
                   <Pill tone="muted">Pending</Pill>
-                  <ActionButton onClick={() => setConfirmBlock(u)} tone="danger">Block</ActionButton>
+                  <MoreButton name={u.name} onClick={() => setManageUser({ user: u, isFriend: false })} />
                 </div>
               </Row>
             ))}
@@ -424,61 +425,18 @@ export default function FriendsPage() {
                     {f.name}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: radiusPill, background: f.online ? lime : "var(--border-strong)", boxShadow: f.online ? `0 0 8px ${lime}` : undefined }} />
+                    <span style={{ width: 7, height: 7, borderRadius: radiusPill, background: f.online ? lime : "var(--border-strong)" }} />
                     <span style={{ fontSize: 13, fontWeight: 600, color: f.online ? "var(--lime-text)" : dim, fontFamily: "var(--font-inter)" }}>
                       {f.online ? "Online" : "Offline"}
                     </span>
                   </div>
                 </div>
-                {confirmRemove === f.userId ? (
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <ActionButton onClick={() => handleRemove(f)} tone="danger">Remove</ActionButton>
-                    <ActionButton onClick={() => setConfirmRemove(null)} tone="ghost">Cancel</ActionButton>
-                  </div>
-                ) : (
-                  <div style={{ display: "flex", gap: 6 }}>
-                  <button
-                    onClick={() => setInviteFriend(f)}
-                    title="Invite to squad"
-                    aria-label={`Invite ${f.name} to a squad`}
-                    className="gg-press"
-                    style={{
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      width: 44, height: 44,
-                      borderRadius: radiusPill,
-                      background: "var(--accent-soft)",
-                      border: "1px solid var(--accent-line)",
-                      cursor: "pointer",
-                      transition: "transform .14s ease, background .2s var(--ease-ui), border-color .2s var(--ease-ui)",
-                    }}
-                  >
-                    {/* users + plus badge — distinct from the nav's plain users icon */}
-                    <span aria-hidden="true" style={{ position: "relative", display: "inline-flex" }}>
-                      <Icon.users size={15} color={violet} strokeWidth={2.2} />
-                      <span style={{ position: "absolute", top: -5, right: -6, width: 12, height: 12, borderRadius: radiusPill, background: "var(--surface)", boxShadow: `0 0 0 1px ${violet}`, display: "grid", placeItems: "center" }}>
-                        <Icon.plus size={8} color={violet} strokeWidth={3} />
-                      </span>
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setConfirmRemove(f.userId)}
-                    title="Remove friend"
-                    className="gg-press"
-                    style={{
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      width: 44, height: 44,
-                      borderRadius: radiusPill,
-                      background: "var(--overlay)",
-                      border: controlBorder,
-                      cursor: "pointer",
-                      transition: "transform .14s ease, background .2s var(--ease-ui), border-color .2s var(--ease-ui)",
-                    }}
-                  >
-                    <Icon.close size={15} color={muted} strokeWidth={2.2} />
-                  </button>
-                  <ActionButton onClick={() => setConfirmBlock(f)} tone="danger">Block</ActionButton>
-                  </div>
-                )}
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <Button size="sm" variant="secondary" onClick={() => setInviteFriend(f)} aria-label={`Invite ${f.name} to a squad`}>
+                    Invite
+                  </Button>
+                  <MoreButton name={f.name} onClick={() => setManageUser({ user: f, isFriend: true })} />
+                </div>
               </div>
             ))}
           </div>
@@ -492,6 +450,27 @@ export default function FriendsPage() {
           isPhone={isPhone}
           onClose={() => setInviteFriend(null)}
         />
+      )}
+      {manageUser && (
+        <Modal onClose={() => setManageUser(null)} title={manageUser.user.name} subtitle="Manage this person">
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {manageUser.isFriend && (
+              <Button variant="secondary" fullWidth onClick={() => void handleRemove(manageUser.user as Friend)}>
+                Remove friend
+              </Button>
+            )}
+            <Button
+              variant="danger"
+              fullWidth
+              onClick={() => {
+                setConfirmBlock(manageUser.user);
+                setManageUser(null);
+              }}
+            >
+              Block {manageUser.user.name}
+            </Button>
+          </div>
+        </Modal>
       )}
       {confirmBlock && (
         <Modal
@@ -638,8 +617,9 @@ function Row({ u, children }: { u: Friend | FriendRequestUser; children: React.R
       className="gg-row"
       style={{
         display: "flex",
+        flexWrap: "wrap",
         alignItems: "center",
-        gap: 12,
+        gap: "8px 12px",
         padding: "10px 14px",
         borderRadius: radiusControl,
         background: "var(--surface)",
@@ -647,7 +627,7 @@ function Row({ u, children }: { u: Friend | FriendRequestUser; children: React.R
       }}
     >
       <UserAvatar name={u.name} image={u.image} size={40} online={!!u.online} />
-      <div style={{ minWidth: 0, flex: 1 }}>
+      <div style={{ minWidth: 0, flex: "1 1 110px" }}>
         <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {u.name}
         </div>
@@ -655,7 +635,7 @@ function Row({ u, children }: { u: Friend | FriendRequestUser; children: React.R
           <div style={{ fontSize: 12, fontWeight: 600, color: "var(--lime-text)", fontFamily: "var(--font-inter)", marginTop: 1 }}>Online</div>
         )}
       </div>
-      {children}
+      <div style={{ marginLeft: "auto" }}>{children}</div>
     </div>
   );
 }
@@ -666,6 +646,14 @@ function ActionButton({ children, onClick, tone }: { children: React.ReactNode; 
   return (
     <Button variant={variant} size="sm" onClick={onClick}>
       {children}
+    </Button>
+  );
+}
+
+function MoreButton({ name, onClick }: { name: string; onClick: () => void }) {
+  return (
+    <Button size="sm" variant="ghost" onClick={onClick} aria-label={`More options for ${name}`} style={{ width: 44, padding: 0, color: muted }}>
+      <Icon.more size={20} />
     </Button>
   );
 }

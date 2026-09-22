@@ -15,7 +15,6 @@ const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late
 const VIBE_STORAGE_KEY = "giggle.vibes";
 const PROFILE_SETTINGS_STORAGE_KEY = "giggle.profile.settings";
 
-const DEFAULT_VIBES = ["Gaming", "Music", "Chill", "Late Night", "Deep Talks"];
 const MAX_PROFILE_VIBES = 5;
 const DEFAULT_PROFILE_SETTINGS = {
   notificationsOn: true,
@@ -47,7 +46,7 @@ const COMMON_COUNTRIES: { code: string; label: string; flag: string }[] = [
 ];
 const MAX_LANGUAGES = 6;
 
-function normalizeProfileVibes(value: unknown, fallback: string[] = DEFAULT_VIBES): string[] {
+function normalizeProfileVibes(value: unknown, fallback: string[] = []): string[] {
   if (!Array.isArray(value)) return fallback;
   const normalized: string[] = [];
   const seen = new Set<string>();
@@ -111,7 +110,9 @@ export default function ProfilePage() {
     borderBottom: "1px solid var(--border)",
   };
   // Vibe preferences state (persisted to localStorage)
-  const [vibes, setVibes] = useState<string[]>(() => normalizeProfileVibes(DEFAULT_VIBES));
+  const [vibes, setVibes] = useState<string[]>([]);
+  const vibesTouchedRef = useRef(false);
+  const [vibesError, setVibesError] = useState<string | null>(null);
   const [vibePickerOpen, setVibePickerOpen] = useState(false);
 
   // Premium state from billing module
@@ -140,12 +141,14 @@ export default function ProfilePage() {
   const [blocksLoadAttempt, setBlocksLoadAttempt] = useState(0);
   const [unblockingId, setUnblockingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(VIBE_STORAGE_KEY);
-      if (stored) setVibes(normalizeProfileVibes(JSON.parse(stored)));
-    } catch {}
-  }, []);
+  // Interests live on the server profile (PATCH /api/me/profile { vibes }).
+  // localStorage only carries picks made before server sync existed.
+  function persistVibes(next: string[]) {
+    vibesTouchedRef.current = true;
+    setVibesError(null);
+    try { localStorage.removeItem(VIBE_STORAGE_KEY); } catch {}
+    api.updateMyProfile({ vibes: next }).catch(() => setVibesError("Couldn't save your interests. Please try again."));
+  }
 
   useEffect(() => {
     let active = true;
@@ -188,39 +191,29 @@ export default function ProfilePage() {
     } catch {}
   }
 
+  function applyVibes(next: string[]) {
+    setVibes(next);
+    persistVibes(next);
+  }
+
   function toggleVibe(vibe: string) {
-    setVibes(prev => {
-      const label = normalizeProfileVibes([vibe])[0];
-      if (!label) return prev;
-      const exists = prev.some(v => v.replace(/^[^\w]+/, "").trim() === label || v === label);
-      let nextRaw: string[];
-      if (exists) {
-        nextRaw = prev.filter(v => !(v.replace(/^[^\w]+/, "").trim().toLowerCase() === label.toLowerCase() || v.toLowerCase() === label.toLowerCase()));
-      } else {
-        nextRaw = [...prev, label];
-      }
-      const next = normalizeProfileVibes(nextRaw, []);
-      try { localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
+    const label = normalizeProfileVibes([vibe])[0];
+    if (!label) return;
+    const exists = vibes.some(v => v.replace(/^[^\w]+/, "").trim() === label || v === label);
+    const nextRaw = exists
+      ? vibes.filter(v => !(v.replace(/^[^\w]+/, "").trim().toLowerCase() === label.toLowerCase() || v.toLowerCase() === label.toLowerCase()))
+      : [...vibes, label];
+    applyVibes(normalizeProfileVibes(nextRaw, []));
   }
 
   function removeVibe(vibe: string) {
-    setVibes(prev => {
-      const key = vibe.replace(/^[^\w]+/, "").trim().toLowerCase();
-      const next = normalizeProfileVibes(prev.filter(v => v.replace(/^[^\w]+/, "").trim().toLowerCase() !== key), []);
-      try { localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
+    const key = vibe.replace(/^[^\w]+/, "").trim().toLowerCase();
+    applyVibes(normalizeProfileVibes(vibes.filter(v => v.replace(/^[^\w]+/, "").trim().toLowerCase() !== key), []));
   }
 
   function addCuratedVibe(vibe: string) {
-    setVibes(prev => {
-      if (prev.some(v => v.replace(/^[^\w]+/, "").trim() === vibe || v === vibe)) return prev;
-      const next = normalizeProfileVibes([...prev, vibe], []);
-      try { localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
+    if (vibes.some(v => v.replace(/^[^\w]+/, "").trim() === vibe || v === vibe)) return;
+    applyVibes(normalizeProfileVibes([...vibes, vibe], []));
   }
 
   // Avatar state — SSR-safe: default on server, real value after mount
@@ -259,6 +252,20 @@ export default function ProfilePage() {
     api.getMyProfile().then((p) => {
       if (!active) return;
       setLoadedProfile(p);
+      if (!vibesTouchedRef.current) {
+        const serverVibes = normalizeProfileVibes(p.vibes, []);
+        let legacy: string[] = [];
+        try {
+          const stored = localStorage.getItem(VIBE_STORAGE_KEY);
+          if (stored) legacy = normalizeProfileVibes(JSON.parse(stored), []);
+        } catch {}
+        if (!serverVibes.length && legacy.length) {
+          setVibes(legacy);
+          persistVibes(legacy);
+        } else {
+          setVibes(serverVibes);
+        }
+      }
       if (demoTouchedRef.current) return;
       setGender(p.gender ?? "");
       setLanguages(p.languages ?? []);
@@ -470,8 +477,7 @@ export default function ProfilePage() {
                   <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Your tokens and available extras</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  <span style={{ background: violet, color: "#fff", borderRadius: 999, padding: "4px 12px", fontSize: 12, fontWeight: 700 }}>View</span>
-                  <Icon.chevron size={18} color={violet} />
+                  <Icon.chevron size={18} color={textMuted} />
                 </div>
               </button>
             )}
@@ -493,11 +499,12 @@ export default function ProfilePage() {
                 onMouseEnter={() => setVibeTagHover(t)}
                 onMouseLeave={() => setVibeTagHover(null)}
                 className="gg-press"
+                aria-label={`Remove ${t}`}
                 style={{
-                  background: vibeTagHover === t ? "color-mix(in srgb, var(--accent, var(--violet)) 20%, transparent)" : "color-mix(in srgb, var(--accent, var(--violet)) 13%, transparent)",
-                  color: violet, borderRadius: 20, padding: "0 16px", minHeight: 44,
-                  fontSize: 14, fontWeight: 500,
-                  border: `1px solid ${vibeTagHover === t ? "color-mix(in srgb, var(--accent, var(--violet)) 53%, transparent)" : "color-mix(in srgb, var(--accent, var(--violet)) 27%, transparent)"}`,
+                  background: vibeTagHover === t ? "var(--surface-2)" : "var(--surface)",
+                  color: textPrimary, borderRadius: 999, padding: "0 14px 0 16px", minHeight: 40,
+                  fontSize: 14, fontWeight: 600,
+                  border: `1px solid ${vibeTagHover === t ? "var(--border-strong)" : "var(--border)"}`,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", gap: 6,
                   transition: "all .15s ease",
@@ -505,18 +512,24 @@ export default function ProfilePage() {
                 }}
               >
                 {t}
-                <Icon.close size={12} color={violet} />
+                <Icon.close size={12} color={textMuted} />
               </button>
             ))}
             <Button
               onClick={() => setVibePickerOpen(true)}
               variant="tonal"
-              style={{ borderRadius: 20, fontSize: 14, fontWeight: 500, padding: "0 16px" }}
+              style={{ borderRadius: 999, fontSize: 14, fontWeight: 600, padding: "0 16px", minHeight: 40 }}
             >
-              <Icon.plus size={14} color={violet} />
-              Add More
+              <Icon.plus size={14} />
+              {vibes.length ? "Add more" : "Add interests"}
             </Button>
           </div>
+          {!vibes.length && !profileLoading && (
+            <p style={{ color: textMuted, fontSize: 14, marginTop: 12 }}>Pick a few so squads know what you&apos;re into.</p>
+          )}
+          {vibesError && (
+            <p role="alert" className="gg-inline-error" style={{ marginTop: 10 }}>{vibesError}</p>
+          )}
 
           {/* Curated vibe picker */}
           {vibePickerOpen && (
@@ -656,8 +669,8 @@ export default function ProfilePage() {
                 <span
                   key={lang}
                   style={{
-                    background: "color-mix(in srgb, var(--accent, var(--violet)) 13%, transparent)", color: violet, borderRadius: 20, padding: "6px 12px",
-                    fontSize: 13, fontWeight: 500, border: "1px solid color-mix(in srgb, var(--accent, var(--violet)) 27%, transparent)",
+                    background: "var(--surface)", color: textPrimary, borderRadius: 999, padding: "4px 6px 4px 14px",
+                    fontSize: 14, fontWeight: 600, border: "1px solid var(--border)",
                     display: "flex", alignItems: "center", gap: 6,
                   }}
                 >
@@ -667,7 +680,7 @@ export default function ProfilePage() {
                     aria-label={`Remove ${lang}`}
                   style={{ background: "none", border: "none", padding: 0, minWidth: 32, minHeight: 32, cursor: "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center" }}
                   >
-                    <Icon.close size={12} color={violet} />
+                    <Icon.close size={12} color={textMuted} />
                   </button>
                 </span>
               ))}
@@ -775,7 +788,7 @@ export default function ProfilePage() {
         {/* Log Out */}
         <Button
           onClick={() => setLogoutConfirm(true)}
-          variant="danger"
+          variant="secondary"
           style={{
             alignSelf: isPhone ? "stretch" : "flex-start",
             minHeight: 48,
@@ -783,8 +796,8 @@ export default function ProfilePage() {
             fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 14, fontWeight: 600,
           }}
         >
-          <Icon.enter size={18} color={coral} />
-          Log Out
+          <Icon.enter size={18} />
+          Log out
         </Button>
       </div>
     </div>

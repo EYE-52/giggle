@@ -2,6 +2,7 @@ export type Tile = { x: number; y: number; width: number; height: number };
 export type VideoPack = { tiles: Tile[]; area: number; smallest: number };
 const GAP = 10;
 const LABEL = 26;
+const SQUAD_GAP = 28;
 /** Camera metadata can be absent during join, rotation, or camera-off. */
 export function normalizeVideoRatio(ratio?: number): number {
   return ratio && Number.isFinite(ratio) && ratio >= 0.2 && ratio <= 5 ? ratio : 1;
@@ -95,6 +96,41 @@ function packScore(pack: VideoPack) {
     Math.min(1, pack.smallest / 80)
   );
 }
+// When every feed has the same shape (e.g. all cameras off), a uniform grid
+// with a centered last row (3 people -> 2 + 1) beats both row packers, which
+// only allow a lone tile to stretch to the full row width.
+function packUniformGrid(ratios: number[], width: number, height: number): VideoPack | null {
+  const count = ratios.length;
+  if (count < 3 || count > 16 || width <= 0 || height <= 0) return null;
+  const ratio = ratios[0];
+  if (ratios.some((r) => Math.abs(r - ratio) > 0.01)) return null;
+  const gap = Math.min(GAP, width / (count * 2), height / (count * 2));
+  let best: VideoPack | null = null;
+  for (let columns = 2; columns < count; columns++) {
+    const rowCount = Math.ceil(count / columns);
+    const h = Math.max(0, Math.min(
+      (height - gap * (rowCount - 1)) / rowCount,
+      (width - gap * (columns - 1)) / columns / ratio,
+    ));
+    const w = h * ratio;
+    const usedHeight = rowCount * h + gap * (rowCount - 1);
+    const tiles = ratios.map((_, index) => {
+      const row = Math.floor(index / columns);
+      const inRow = Math.min(columns, count - row * columns);
+      const rowWidth = inRow * w + gap * (inRow - 1);
+      return {
+        x: (width - rowWidth) / 2 + (index % columns) * (w + gap),
+        y: (height - usedHeight) / 2 + row * (h + gap),
+        width: w,
+        height: h,
+      };
+    });
+    const pack = { tiles, area: count * w * h, smallest: Math.min(w, h) };
+    if (!best || packScore(pack) > packScore(best)) best = pack;
+  }
+  return best;
+}
+
 export function packVideoFeeds(
   ratios: number[],
   width: number,
@@ -103,6 +139,12 @@ export function packVideoFeeds(
   ratios = ratios.map(normalizeVideoRatio);
   width = Number.isFinite(width) ? Math.max(0, width) : 0;
   height = Number.isFinite(height) ? Math.max(0, height) : 0;
+  const packed = packRowsOrColumns(ratios, width, height);
+  const grid = packUniformGrid(ratios, width, height);
+  return grid && packScore(grid) > packScore(packed) ? grid : packed;
+}
+
+function packRowsOrColumns(ratios: number[], width: number, height: number): VideoPack {
   const rows = packRows(ratios, width, height);
   const columns = packRows(
     ratios.map((ratio) => 1 / ratio),
@@ -173,7 +215,8 @@ export function arrangeVideoCall(
   width = Number.isFinite(width) ? Math.max(0, width) : 0;
   height = Number.isFinite(height) ? Math.max(0, height) : 0;
   const label = Math.min(LABEL, height / 4);
-  const gap = Math.min(GAP, width / 4, height / 4);
+  // Wider than the tile gutter so the two squads read as separate groups.
+  const gap = Math.min(SQUAD_GAP, width / 4, height / 4);
   if (!mine.length || !theirs.length) {
     const box = { width, height };
     return { stacked: false, label, gap,
@@ -224,13 +267,18 @@ export function arrangeVideoCall(
       };
     }
   }
-  if (result?.stacked) {
+  // Shrink each squad box to its tiles so the squad label sits directly above
+  // its own feeds; the stage centers the two boxes.
+  if (result) {
     for (const group of [result.mine, result.theirs]) {
       if (!group.tiles.length) continue;
+      const left = Math.min(...group.tiles.map(tile => tile.x));
+      const right = Math.max(...group.tiles.map(tile => tile.x + tile.width));
       const top = Math.min(...group.tiles.map(tile => tile.y));
       const bottom = Math.max(...group.tiles.map(tile => tile.y + tile.height));
+      group.width = right - left;
       group.height = bottom - top + label;
-      group.tiles = group.tiles.map(tile => ({ ...tile, y: tile.y - top }));
+      group.tiles = group.tiles.map(tile => ({ ...tile, x: tile.x - left, y: tile.y - top }));
     }
   }
   return result!;

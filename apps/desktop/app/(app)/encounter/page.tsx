@@ -2064,6 +2064,80 @@ function EncounterInner() {
               overflow: "hidden",
             }}
           >
+            {recoveryMessages.length > 0 && (
+              <div
+                data-testid="media-recovery-notice"
+                role="alert"
+                style={{
+                  // In flow (not a floating toast) so it never covers a person's tile.
+                  flexShrink: 0,
+                  alignSelf: "center",
+                  margin: "10px 12px 0",
+                  maxWidth: "calc(100% - 24px)",
+                  display: "flex",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 10,
+                  background: "var(--surface, rgba(22,22,30,0.97))",
+                  backgroundImage: "linear-gradient(var(--coral-soft), var(--coral-soft))",
+                  border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
+                  borderRadius: 12,
+                  padding: "9px 12px 9px 14px",
+                  boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
+                }}
+              >
+                <span
+                  aria-hidden
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 999,
+                    background: coral,
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}
+                >
+                {recoveryMessages.join(" ")}
+                </span>
+                <button
+                  onClick={retryVideo}
+                  disabled={videoRetrying}
+                  style={{
+                    minHeight: 44,
+                    padding: "0 13px",
+                    borderRadius: 999,
+                    border: "var(--control-border)",
+                    background: "var(--overlay)",
+                    color: textPrimary,
+                    fontWeight: 700,
+                    cursor: videoRetrying ? "default" : "pointer",
+                  }}
+                >
+                  {videoRetrying ? "Retrying…" : "Retry devices"}
+                </button>
+                {videoError && (
+                  <button
+                    onClick={() => setVideoError(null)}
+                    title="Dismiss"
+                    aria-label="Dismiss media notice"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: textMuted,
+                      fontSize: 16,
+                      width: 44,
+                      height: 44,
+                      padding: 0,
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            )}
             {/* Top toast stack — banners stack vertically instead of overlapping */}
             <div
               style={{
@@ -2080,78 +2154,6 @@ function EncounterInner() {
                 pointerEvents: "none",
               }}
             >
-              {recoveryMessages.length > 0 && (
-                <div
-                  data-testid="media-recovery-notice"
-                  role="alert"
-                  style={{
-                    pointerEvents: "auto",
-                    maxWidth: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: 10,
-                    background: "var(--surface, rgba(22,22,30,0.97))",
-                    backgroundImage: "linear-gradient(var(--coral-soft), var(--coral-soft))",
-                    border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
-                    borderRadius: 12,
-                    padding: "9px 12px 9px 14px",
-                    boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: 999,
-                      background: coral,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span
-                    style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}
-                  >
-                    {recoveryMessages.join(" ")}
-                  </span>
-                  <button
-                    onClick={retryVideo}
-                    disabled={videoRetrying}
-                    style={{
-                      minHeight: 44,
-                      padding: "0 13px",
-                      borderRadius: 999,
-                      border: "var(--control-border)",
-                      background: "var(--overlay)",
-                      color: textPrimary,
-                      fontWeight: 700,
-                      cursor: videoRetrying ? "default" : "pointer",
-                    }}
-                  >
-                    {videoRetrying ? "Retrying…" : "Retry devices"}
-                  </button>
-                  {videoError && (
-                    <button
-                      onClick={() => setVideoError(null)}
-                      title="Dismiss"
-                      aria-label="Dismiss media notice"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        color: textMuted,
-                        fontSize: 16,
-                        width: 44,
-                        height: 44,
-                        padding: 0,
-                      }}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              )}
-
               {transientNotice && (
                 <div
                   data-testid="encounter-transient-notice"

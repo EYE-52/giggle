@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { openProtectedRoute } from './helpers';
 
 const routes = [
-  { path: "/home", slug: "home", heading: /hey,|welcome back/i, action: /create(?: your first)? squad/i },
+  { path: "/home", slug: "home", heading: /your squad|start a squad/i, action: /start a squad/i },
   { path: "/discover", slug: "discover", heading: /discover squads/i, action: /surprise me|create a squad|preview/i },
   { path: "/friends", slug: "friends", heading: /^friends$/i, action: /search (?:people )?by name/i },
   { path: "/profile", slug: "profile", heading: /.+/, action: /edit avatar/i },
@@ -99,6 +99,7 @@ test("join code field uses one shared focus ring", async ({ page }, testInfo) =>
     const shadow = getComputedStyle(node).boxShadow;
     return Boolean(shadow && shadow !== "none");
   };
-  expect(await input.evaluate(hasBoxShadow)).toBe(false);
-  await expect.poll(() => input.locator("..").evaluate(hasBoxShadow)).toBe(true);
+  // Exactly one ring: on the field itself, not doubled on the surrounding card.
+  await expect.poll(() => input.evaluate(hasBoxShadow)).toBe(true);
+  expect(await input.locator("..").evaluate(hasBoxShadow)).toBe(false);
 });

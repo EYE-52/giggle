@@ -123,7 +123,7 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
     <div style={{
       position: "relative",
       overflow: "hidden",
-      background: "linear-gradient(135deg, var(--violet-soft) 0%, color-mix(in srgb, var(--live, var(--lime, #B7FF2A)) 7%, transparent) 100%)",
+      background: "var(--surface)",
       border: `1px solid ${border}`,
       borderRadius: "var(--radius-card, 20px)",
       padding: isPhone ? "20px 18px" : compact ? "22px 24px" : "28px 32px",
@@ -131,14 +131,8 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
       flexDirection: "column",
       gap: 18,
     }}>
-      {/* accent bar */}
-      <div style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: 3,
-        background: "linear-gradient(90deg, var(--accent, var(--violet)), var(--live, var(--lime)))",
-      }} />
-
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" as const }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: 1 }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
             <span style={{
               display: "inline-flex", alignItems: "center", justifyContent: "center",
@@ -187,9 +181,10 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
           variant="secondary"
           style={{
             flexShrink: 0,
+            flex: isPhone ? 1 : undefined,
             ...(copied ? {
-              background: "var(--live, var(--lime))",
-              border: "1px solid var(--live, var(--lime))",
+              background: "var(--live-soft)",
+              border: "1px solid var(--live)",
               color: "var(--live-contrast)",
             } : {}),
             transition: "all .15s ease",
@@ -198,7 +193,7 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
           <Icon.copy size={15} color={copied ? "var(--live-contrast)" : "currentColor"} />
           {copied ? "Copied!" : "Copy"}
         </Button>
-        <Button onClick={share} variant="tonal" style={{ flexShrink: 0 }}>
+        <Button onClick={share} variant="tonal" style={{ flexShrink: 0, flex: isPhone ? 1 : undefined }}>
           <Icon.share size={15} color="currentColor" />
           Share
         </Button>

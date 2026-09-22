@@ -1,11 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { openProtectedRoute } from './helpers';
 
-test("app shell preserves theme and exposes keyboard navigation", async ({ page }, testInfo) => {
+test("app shell exposes keyboard navigation and readable text tokens", async ({ page }, testInfo) => {
   test.skip(!["phone", "desktop"].includes(testInfo.project.name), "One compact and one full shell cover this contract");
 
   await openProtectedRoute(page, '/home');
-  await expect(page.getByRole("heading", { name: /hey,/i })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /your squad|start a squad/i })).toBeVisible();
 
   await page.keyboard.press("Tab");
   const skipLink = page.getByRole("link", { name: "Skip to content" });
@@ -15,16 +15,6 @@ test("app shell preserves theme and exposes keyboard navigation", async ({ page 
 
   await page.keyboard.press("Enter");
   await expect(page.getByRole("main")).toBeFocused();
-
-  const themeToggle = page.getByRole("button", { name: /Theme: .*\. Choose theme/i });
-  await themeToggle.click();
-  await page.getByRole("menuitemradio", { name: "Cloud" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.getByRole("button", { name: "Theme: Cloud. Choose theme" })).toBeVisible();
-
-  await page.reload();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.getByRole("button", { name: "Theme: Cloud. Choose theme" })).toBeVisible();
 
   const contrastRatios = await page.evaluate(() => {
     const parse = (value: string) => {
@@ -41,7 +31,7 @@ test("app shell preserves theme and exposes keyboard navigation", async ({ page 
     };
     const root = document.documentElement;
     const originalTheme = root.getAttribute("data-theme");
-    const results = ["dark", "light"].flatMap(theme => {
+    const results = ["together", "dark", "light"].flatMap(theme => {
       root.setAttribute("data-theme", theme);
       const styles = getComputedStyle(root);
       const background = styles.getPropertyValue("--bg").trim();
@@ -68,7 +58,6 @@ test("phone shell keeps primary touch targets at least 44 CSS pixels", async ({ 
 
   for (const target of [
     page.getByRole("link", { name: "Giggle home" }),
-    page.getByRole("button", { name: /Theme: .*\. Choose theme/i }),
     page.getByRole("button", { name: "Notifications" }),
   ]) {
     const box = await target.boundingBox();

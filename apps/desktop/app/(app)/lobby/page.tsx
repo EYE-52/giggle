@@ -20,6 +20,7 @@ import { createVideoClient } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
+import { pollWhileVisible } from "@/lib/poll";
 
 const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
 
@@ -307,10 +308,11 @@ function LobbyInner() {
     };
     socket.on(SOCKET_EVENTS.SQUAD_UPDATED, onSquadUpdate);
     socket.on(SOCKET_EVENTS.MATCH_FOUND, onSquadUpdate);
-    const poll = setInterval(fetchSquad, 3000);
+    // SQUAD_UPDATED pushes changes; polling is only a fallback for missed events.
+    const stopPolling = pollWhileVisible(fetchSquad, 10_000);
 
     return () => {
-      clearInterval(poll);
+      stopPolling();
       socket.off(SOCKET_EVENTS.MATCH_FOUND, onSquadUpdate);
       socket.off(SOCKET_EVENTS.SQUAD_UPDATED, onSquadUpdate);
       mediaUnsubRef.current?.();
@@ -397,10 +399,10 @@ function LobbyInner() {
     const socket = connectSocket(squadId);
     const onUpdate = () => fetchJoinRequests();
     socket.on(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate);
-    const poll = setInterval(fetchJoinRequests, 15000);
+    const stopPolling = pollWhileVisible(fetchJoinRequests, 15000);
     return () => {
       socket.off(SOCKET_EVENTS.SQUAD_UPDATED, onUpdate);
-      clearInterval(poll);
+      stopPolling();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [squadId, isLeader]);

@@ -103,7 +103,7 @@ async function installMatchmakingFixture(page: Page, cancelFailures = 0) {
 async function openMatchmaking(page: Page, cancelFailures = 0) {
   const fixture = await installMatchmakingFixture(page, cancelFailures);
   await page.goto(`/matchmaking?squad=${fixtureSquadId}`);
-  await expect(page.getByRole("heading", { name: /finding your match/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /finding a squad/i })).toBeVisible();
   return fixture;
 }
 

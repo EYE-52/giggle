@@ -22,7 +22,7 @@ test("an under-18 declaration stays blocked with help and sign-out", async ({ pa
   await expect(initialGate.getByRole("button", { name: /sign out/i })).toBeVisible();
   const gate = await submitDob(page, 16);
 
-  await expect(gate.getByRole("heading", { name: /verified adults 18\+/i })).toBeVisible();
+  await expect(gate.getByRole("heading", { name: /adults 18\+/i })).toBeVisible();
   const help = gate.getByRole("link", { name: /age verification help/i });
   await expect(help).toHaveAttribute("href", /^mailto:support@gigglemeet.com/);
   expect((await help.boundingBox())?.height).toBeGreaterThanOrEqual(44);
@@ -177,7 +177,7 @@ test("an unavailable verifier stays blocked and offers a retry", async ({ page }
 test("sign-in explains the handoff and keeps Google primary", async ({ page }, testInfo) => {
   await page.goto("/signin?next=%2Fdiscover&ref=CREW42");
 
-  await expect(page.getByRole("heading", { name: /join giggle/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /sign in to giggle/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
   await expect(page.getByText(/name and email/i)).toBeVisible();
   await expect(page.getByText(/invite accepted/i)).toBeVisible();
@@ -214,7 +214,7 @@ test("dev sign-in rejects an external continuation", async ({ page }) => {
 
 test("OAuth callback returns to the stored safe continuation", async ({ page }) => {
   await page.goto("/signin?next=%2Fdiscover");
-  await expect(page.getByRole("heading", { name: /join giggle/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /sign in to giggle/i })).toBeVisible();
 
   const payload = Buffer.from(JSON.stringify({ sub: "oauth-test", email: "oauth@example.com", name: "OAuth Test" })).toString("base64url");
   await page.goto(`/auth/callback#token=header.${payload}.signature`);

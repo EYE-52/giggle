@@ -990,7 +990,6 @@ test("profile premium upsell does not advertise unbuilt priority or HD features"
   assert.equal(page.includes("priority"), false);
   assert.equal(page.includes('aria-label="View Wallet and Giggle Plus details"'), true);
   assert.equal(page.includes(">Wallet &amp; Giggle+</div>"), true);
-  assert.equal(page.includes(">View</span>"), true);
   assert.equal(page.includes('aria-label="Upgrade to Giggle+"'), false);
   assert.equal(page.includes(">Upgrade</span>"), false);
 });
@@ -1047,10 +1046,11 @@ test("profile vibe preferences are normalized before render and persistence", ()
   const page = profileSource();
 
   assert.equal(page.includes("function normalizeProfileVibes("), true);
-  assert.equal(page.includes("const [vibes, setVibes] = useState<string[]>(() => normalizeProfileVibes(DEFAULT_VIBES));"), true);
-  assert.equal(page.includes("setVibes(normalizeProfileVibes(JSON.parse(stored)));"), true);
-  assert.equal(page.includes("const next = normalizeProfileVibes("), true);
-  assert.equal(page.includes("localStorage.setItem(VIBE_STORAGE_KEY, JSON.stringify(next));"), true);
+  // Interests are server-backed: loaded from the profile, saved via PATCH, never pre-filled.
+  assert.equal(page.includes("const [vibes, setVibes] = useState<string[]>([]);"), true);
+  assert.equal(page.includes("const serverVibes = normalizeProfileVibes(p.vibes, []);"), true);
+  assert.equal(page.includes("api.updateMyProfile({ vibes: next })"), true);
+  assert.equal(page.includes("DEFAULT_VIBES"), false);
   assert.equal(page.includes("setVibes(JSON.parse(stored));"), false);
 });
 
@@ -1236,7 +1236,8 @@ test("age gate completes only after provider verification and a live session syn
   assert.match(gate, /MAX_STATUS_POLLS/);
   assert.match(gate, /await session\.syncAgeFromServer\(\)[\s\S]*session\.hasAdultAccess[\s\S]*onDone\(\)/);
   assert.equal((gate.match(/onDone\(\)/g) || []).length, 1);
-  assert.match(gate, /Giggle is for verified adults 18\+/);
+  // Self-declared access (SELF_DECLARED_AGE_ACCESS) must not claim verification.
+  assert.match(gate, /Giggle is for adults 18\+/);
   assert.match(gate, /mailto:support@gigglemeet\.com\?subject=Age%20verification%20help/);
   assert.match(gate, /session\.signOut\(\)/);
   assert.match(gate, />Continue with Yoti<\/Button>/);
@@ -1580,10 +1581,12 @@ test("friends first run stays search-first and distinguishes request failures", 
 
 test("friend card icon actions meet the 44px touch target", () => {
   const page = friendsPageSource();
-  const actions = page.slice(page.indexOf('aria-label={`Invite ${f.name} to a squad`}'), page.indexOf("{inviteFriend && ("));
+  const more = page.slice(page.indexOf("function MoreButton("), page.indexOf("function Pill("));
 
-  assert.equal(actions.includes("width: 44, height: 44"), true);
-  assert.equal(actions.includes("width: 40, height: 40"), false);
+  // Button size="sm" has a 44px min-height; the icon-only overflow button is 44px wide.
+  assert.equal(page.includes('<Button size="sm" variant="secondary" onClick={() => setInviteFriend(f)}'), true);
+  assert.equal(more.includes('size="sm"'), true);
+  assert.equal(more.includes("width: 44"), true);
 });
 
 test("friends search treats incoming request users as actionable requests", () => {

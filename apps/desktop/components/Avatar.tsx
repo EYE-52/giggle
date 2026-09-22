@@ -12,7 +12,7 @@ interface AvatarProps {
 }
 
 /**
- * Wraps an avatar element with a glowing lime presence ring + status dot when
+ * Wraps an avatar element with a presence status dot when
  * `online` is true. Used by both Avatar (initials) and AvatarArt.
  */
 export function OnlineWrap({ children, size, online }: { children: ReactNode; size: number; online?: boolean }) {
@@ -20,15 +20,9 @@ export function OnlineWrap({ children, size, online }: { children: ReactNode; si
   const dot = Math.max(8, Math.round(size * 0.28));
   return (
     <div style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
-      <div
-        style={{
-          borderRadius: radii.pill,
-          boxShadow: "0 0 0 2px var(--bg), 0 0 0 4px var(--lime), 0 0 10px var(--lime)",
-        }}
-      >
-        {children}
-      </div>
+      {children}
       <span
+        aria-hidden="true"
         style={{
           position: "absolute",
           right: -1,
@@ -36,13 +30,20 @@ export function OnlineWrap({ children, size, online }: { children: ReactNode; si
           width: dot,
           height: dot,
           borderRadius: radii.pill,
-          background: "var(--lime)",
-          border: "2px solid var(--bg)",
+          background: "var(--live)",
+          border: "2px solid var(--surface)",
           boxSizing: "border-box",
         }}
       />
     </div>
   );
+}
+
+/** Stable palette slot for a name, so one person keeps one color everywhere. */
+function nameColorIndex(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  return hash;
 }
 
 // Paired gradient stops per avatar accent for a premium, dimensional look.
@@ -61,8 +62,8 @@ const GRADIENTS: Record<string, [string, string, string]> = {
   "#9B7CFF": ["#B49BFF", "#6344C2", "#fff"],
 };
 
-export function Avatar({ name, size = 40, colorIndex = 0, ring = false, online, style }: AvatarProps) {
-  const base = colors.avatar[colorIndex % colors.avatar.length];
+export function Avatar({ name, size = 40, colorIndex, ring = false, online, style }: AvatarProps) {
+  const base = colors.avatar[(colorIndex ?? nameColorIndex(name || "")) % colors.avatar.length];
   const [from, to, fg] = GRADIENTS[base] ?? [base, base, "#fff"];
   const initial = name ? name[0].toUpperCase() : "?";
   return (
@@ -81,7 +82,7 @@ export function Avatar({ name, size = 40, colorIndex = 0, ring = false, online, 
           fontSize: size * 0.42,
           color: fg,
           flexShrink: 0,
-          boxShadow: ring && !online ? `0 0 0 2px var(--bg), 0 0 18px -2px ${from}` : undefined,
+          boxShadow: ring && !online ? "0 0 0 2px var(--surface)" : undefined,
           ...style,
         }}
       >
