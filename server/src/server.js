@@ -326,13 +326,19 @@ const COVER_BACKFILL_LEASE_MS = 10 * 60 * 1000;
 
 function scheduleCoverBackfill() {
   if (process.env.COVER_BACKFILL_ON_START === 'false') return;
-  const timer = setTimeout(() => {
-    const { runAsSingleReplica } = require('./config/redisConfig');
-    const { migrateSquadCovers } = require('../scripts/migrate-squad-covers');
-    runAsSingleReplica('cover-backfill', COVER_BACKFILL_LEASE_MS, () =>
-      migrateSquadCovers({ log: (...args) => console.log('[cover-backfill]', ...args) })
-    ).catch((err) => console.warn('[cover-backfill] failed:', err.message));
-  }, COVER_BACKFILL_DELAY_MS);
+  const timer = setTimeout(async () => {
+    // Everything, including the requires, stays inside try: a throw in a timer
+    // callback is an uncaught exception that would crash the whole server.
+    try {
+      const { runAsSingleReplica } = require('./config/redisConfig');
+      const { migrateSquadCovers } = require('./services/coverMigration');
+      await runAsSingleReplica('cover-backfill', COVER_BACKFILL_LEASE_MS, () =>
+        migrateSquadCovers({ log: (...args) => console.log('[cover-backfill]', ...args) })
+      );
+    } catch (err) {
+      console.warn('[cover-backfill] failed:', err.message);
+    }
+  }, Number(process.env.COVER_BACKFILL_DELAY_MS) || COVER_BACKFILL_DELAY_MS);
   timer.unref();
 }
 

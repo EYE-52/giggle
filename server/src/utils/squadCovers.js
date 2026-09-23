@@ -5,7 +5,7 @@ const { parseCoverKey } = require("../services/coverStorage");
 // Squad.coverImage holds a preset id, an https URL, null, or for uploads a
 // short reference "upload:<key>" into coverStorage. Squads created before the
 // cover migration may still hold the image inline as a base64 data URL
-// (legacy, until scripts/migrate-squad-covers.js has run).
+// (legacy, until the cover migration in services/coverMigration.js has run).
 //
 // API responses carry a short, cacheable URL for uploads instead of image
 // data; the bytes are served by GET /api/covers/:squadId/:hash (see
