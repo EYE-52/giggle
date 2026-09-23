@@ -18,7 +18,8 @@ export default defineConfig({
     // Skip the one-time avatar picker; local-auth.spec.ts covers it explicitly.
     storageState: "e2e/avatar-prompted.json",
     launchOptions: {
-      args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
+      // --mute-audio: fake mic tones and call audio must never play through the speakers.
+      args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--mute-audio"],
     },
     screenshot: "only-on-failure",
     trace: "retain-on-failure",

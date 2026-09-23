@@ -19,7 +19,6 @@ async function installMatchmakingFixture(page: Page, cancelFailures = 0) {
     squadId: fixtureSquadId,
     squadCode: "OWL-123",
     squadName: "Night Owls",
-    status: "searching" as const,
     leaderMemberId: "mine-1",
     members: [
       { memberId: "mine-1", userId: fixtureUserId, displayName: "Maya", role: "leader", ready: true, inLobbyVideo: true, inEncounterVideo: false },
@@ -43,6 +42,9 @@ async function installMatchmakingFixture(page: Page, cancelFailures = 0) {
 
   let cancelAttempts = 0;
   let statusPolls = 0;
+  // Like the real API: the squad leaves "searching" once a cancel succeeds, so
+  // the lobby doesn't bounce back to matchmaking.
+  let squadStatus: "searching" | "idle" = "searching";
   await page.route("**/api/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -56,7 +58,7 @@ async function installMatchmakingFixture(page: Page, cancelFailures = 0) {
       return;
     }
     if (path === `/api/squads/${fixtureSquadId}` && request.method() === "GET") {
-      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: squad }) });
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { ...squad, status: squadStatus } }) });
       return;
     }
     if (path === `/api/squads/${fixtureSquadId}/requests`) {
@@ -81,6 +83,7 @@ async function installMatchmakingFixture(page: Page, cancelFailures = 0) {
         });
         return;
       }
+      squadStatus = "idle";
       await route.fulfill({
         contentType: "application/json",
         body: JSON.stringify({ ok: true, data: { squadId: fixtureSquadId, status: "idle" } }),

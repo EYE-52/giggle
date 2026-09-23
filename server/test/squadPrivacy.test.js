@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 const User = require("../src/models/User");
 const { Squad } = require("../src/models/Squad");
 const { Notification } = require("../src/models/Notification");
+const { SquadCover } = require("../src/models/SquadCover");
 const { redlock, redis, subClient } = require("../src/config/redisConfig");
 const queueService = require("../src/services/queueService");
 const sessionService = require("../src/services/sessionService");
@@ -130,6 +131,7 @@ test("last-member removal clears stale queue and squad session state", async () 
     emitUser: socketService.emitToUser,
     deleteNotifications: Notification.deleteMany,
     distinctNotifications: Notification.distinct,
+    deleteCovers: SquadCover.deleteMany,
   };
   const events = [];
   const squad = {
@@ -150,6 +152,7 @@ test("last-member removal clears stale queue and squad session state", async () 
   socketService.emitToUser = () => { events.push("emit-removed"); };
   Notification.deleteMany = async () => ({ deletedCount: 0 });
   Notification.distinct = async () => [];
+  SquadCover.deleteMany = async (query) => { events.push(`delete-covers:${query.squadId}`); };
 
   try {
     const result = await squadAccess.removeSquadMember(squad, 0);
@@ -160,6 +163,7 @@ test("last-member removal clears stale queue and squad session state", async () 
       "dequeue",
       "clear-squad-session",
       "delete-squad",
+      "delete-covers:stale_last_member_squad",
       "emit-removed",
     ]);
   } finally {
@@ -170,6 +174,7 @@ test("last-member removal clears stale queue and squad session state", async () 
     socketService.emitToUser = originals.emitUser;
     Notification.deleteMany = originals.deleteNotifications;
     Notification.distinct = originals.distinctNotifications;
+    SquadCover.deleteMany = originals.deleteCovers;
   }
 });
 
