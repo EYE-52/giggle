@@ -12,7 +12,6 @@ const mongoose = require("mongoose");
   await mongoose.connect(uri);
   const { Squad } = require("../src/models/Squad");
   const { Encounter } = require("../src/models/Encounter");
-  const { SquadCover } = require("../src/models/SquadCover");
   const User = require("../src/models/User");
 
   const before = {
@@ -23,7 +22,6 @@ const mongoose = require("mongoose");
 
   // 1) Wipe all squads + encounters (all are test rooms pre-launch).
   const sq = await Squad.deleteMany({});
-  await SquadCover.deleteMany({}); // uploaded cover images of those squads
   const en = await Encounter.deleteMany({});
 
   // 2) Delete dev sign-in users + obvious test accounts. KEEP real users

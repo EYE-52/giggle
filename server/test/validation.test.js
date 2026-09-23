@@ -5,7 +5,6 @@ const mongoose = require("mongoose");
 const { dismissNotification, markOneRead } = require("../src/controllers/notificationController");
 const { Notification, deleteNotifications } = require("../src/models/Notification");
 const { Squad } = require("../src/models/Squad");
-const { SquadCover } = require("../src/models/SquadCover");
 const User = require("../src/models/User");
 const { hasIdentityId, persistSquadAfterMemberRemoval } = require("../src/app/squadAccess");
 const {
@@ -193,21 +192,15 @@ test("notification invalidation lookup failure never skips cleanup", async () =>
   }
 });
 
-test("deleting an empty squad also deletes its notifications and stored covers", async () => {
+test("deleting an empty squad also deletes its notifications", async () => {
   const originalDistinct = Notification.distinct;
   const originalDeleteMany = Notification.deleteMany;
-  const originalDeleteCovers = SquadCover.deleteMany;
   let notificationQuery = null;
-  let coverQuery = null;
   let squadDeleted = false;
   Notification.distinct = async () => [];
   Notification.deleteMany = async (query) => {
     notificationQuery = query;
     return { deletedCount: 2 };
-  };
-  SquadCover.deleteMany = async (query) => {
-    coverQuery = query;
-    return { deletedCount: 1 };
   };
 
   try {
@@ -218,28 +211,20 @@ test("deleting an empty squad also deletes its notifications and stored covers",
     }, { removedMemberRole: "leader" });
 
     assert.deepEqual(notificationQuery, { squadId: "squad_empty" });
-    assert.deepEqual(coverQuery, { squadId: "squad_empty" });
     assert.equal(squadDeleted, true);
     assert.equal(result.squadDeleted, true);
   } finally {
     Notification.distinct = originalDistinct;
     Notification.deleteMany = originalDeleteMany;
-    SquadCover.deleteMany = originalDeleteCovers;
   }
 });
 
-test("disbanding a squad also deletes its notifications and stored covers", async () => {
+test("disbanding a squad also deletes its notifications", async () => {
   const socketService = require("../src/services/socketService");
   const originalDistinct = Notification.distinct;
   const originalDeleteMany = Notification.deleteMany;
-  const originalDeleteCovers = SquadCover.deleteMany;
   const originalRevoke = socketService.revokeUserRealtimeAccess;
   let notificationQuery = null;
-  let coverQuery = null;
-  SquadCover.deleteMany = async (query) => {
-    coverQuery = query;
-    return { deletedCount: 1 };
-  };
   const revoked = [];
   Notification.distinct = async () => [];
   Notification.deleteMany = async (query) => {
@@ -269,7 +254,6 @@ test("disbanding a squad also deletes its notifications and stored covers", asyn
     await disbandSquadHandler(req, res);
 
     assert.deepEqual(notificationQuery, { squadId: "squad_disbanded" });
-    assert.deepEqual(coverQuery, { squadId: "squad_disbanded" });
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.data.disbanded, true);
     assert.deepEqual(revoked, [
@@ -279,7 +263,6 @@ test("disbanding a squad also deletes its notifications and stored covers", asyn
   } finally {
     Notification.distinct = originalDistinct;
     Notification.deleteMany = originalDeleteMany;
-    SquadCover.deleteMany = originalDeleteCovers;
     socketService.revokeUserRealtimeAccess = originalRevoke;
   }
 });

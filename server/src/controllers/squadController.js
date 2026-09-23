@@ -34,13 +34,7 @@ const { shuffle } = require("../utils/random");
 const { normalizeSquadTags } = require("../utils/squadValidation");
 const { classifyVibe } = require("../utils/moderation");
 const { normalizeSquadCoverImage } = require("../utils/squadCoverValidation");
-const {
-  decodeCoverDataUrl,
-  publicCoverImage,
-  uploadCoverKey,
-  uploadCoverRef,
-} = require("../utils/squadCovers");
-const coverStorage = require("../services/coverStorage");
+const { publicCoverImage } = require("../utils/squadCovers");
 const { firstDisplayName } = require("../utils/identityValidation");
 const { loadAvatarsByUserId, publicAvatar } = require("../utils/avatars");
 const {
@@ -1806,52 +1800,20 @@ const updateSquadCoverHandler = async (req, res) => {
     });
   }
 
-  // Uploaded image bytes go to coverStorage; the squad keeps a short reference.
-  const previousCover = squad.coverImage;
-  const previousKey = uploadCoverKey(previousCover);
-  let storedKey = null;
   try {
-    let nextCover = normalized.coverImage;
-    const upload = decodeCoverDataUrl(nextCover);
-    if (upload) {
-      ({ key: storedKey } = await coverStorage.putCover({
-        squadId: squad.squadId,
-        contentType: upload.contentType,
-        bytes: upload.body,
-      }));
-      nextCover = uploadCoverRef(storedKey);
-    }
-    squad.coverImage = nextCover;
+    squad.coverImage = normalized.coverImage;
     await squad.save();
+    socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
+    return res.status(200).json({
+      ok: true,
+      data: { squadId: squad.squadId, coverImage: publicCoverImage(squad) },
+    });
   } catch (error) {
-    squad.coverImage = previousCover;
-    // The squad was deleted meanwhile, so nothing will ever reference the new
-    // image. After other failures the write may still have landed; keep it.
-    if (storedKey && storedKey !== previousKey && error?.name === "DocumentNotFoundError") {
-      await deleteCoverQuietly(storedKey);
-    }
     console.error("Error updating squad cover:", error);
     return res.status(500).json({
       ok: false,
       error: { code: "INTERNAL_ERROR", message: "Failed to update squad cover" },
     });
-  }
-
-  if (previousKey && previousKey !== storedKey) await deleteCoverQuietly(previousKey);
-  socketService.emitToSquad(squad.squadId, "SQUAD_UPDATED", {});
-  return res.status(200).json({
-    ok: true,
-    data: { squadId: squad.squadId, coverImage: publicCoverImage(squad) },
-  });
-};
-
-// Best effort: a leftover image is only wasted space (squad deletion removes
-// all of a squad's covers), so it never fails the request.
-const deleteCoverQuietly = async (key) => {
-  try {
-    await coverStorage.deleteCover(key);
-  } catch (error) {
-    console.error("Error deleting squad cover:", error);
   }
 };
 

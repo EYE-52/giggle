@@ -12,8 +12,7 @@
     "test": "node --test test/*.test.js",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
-    "test:prod-smoke": "playwright test -c playwright.prod.config.ts",
-    "test:local-smoke": "GIGGLE_SMOKE_LOCAL=true playwright test -c playwright.prod.config.ts"
+    "test:prod-smoke": "playwright test -c playwright.prod.config.ts"
   },
   "dependencies": {
     "@giggle/agora": "workspace:*",
