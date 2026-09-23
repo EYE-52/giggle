@@ -313,27 +313,7 @@ async function startServer(port = PORT) {
     });
   });
 
-  scheduleCoverBackfill();
   return server;
-}
-
-// Moves legacy base64 squad covers into cover storage shortly after boot, so
-// deploys migrate existing data without shell access. Idempotent and
-// conditional per squad; the lease keeps it to one replica. Never blocks
-// startup or crashes the process. Opt out with COVER_BACKFILL_ON_START=false.
-const COVER_BACKFILL_DELAY_MS = 15 * 1000;
-const COVER_BACKFILL_LEASE_MS = 10 * 60 * 1000;
-
-function scheduleCoverBackfill() {
-  if (process.env.COVER_BACKFILL_ON_START === 'false') return;
-  const timer = setTimeout(() => {
-    const { runAsSingleReplica } = require('./config/redisConfig');
-    const { migrateSquadCovers } = require('../scripts/migrate-squad-covers');
-    runAsSingleReplica('cover-backfill', COVER_BACKFILL_LEASE_MS, () =>
-      migrateSquadCovers({ log: (...args) => console.log('[cover-backfill]', ...args) })
-    ).catch((err) => console.warn('[cover-backfill] failed:', err.message));
-  }, COVER_BACKFILL_DELAY_MS);
-  timer.unref();
 }
 
 const SHUTDOWN_TIMEOUT_MS = 10 * 1000;
