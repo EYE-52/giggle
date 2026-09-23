@@ -6,20 +6,23 @@ Use Node 20.18–24 and pnpm 10. This setup creates local test accounts. It is n
 
 The current machine runs the API at `http://localhost:3001` and web app at `http://localhost:4000`. Health is available at `/health` on the API.
 
-Redis can start with:
+This Mac runs MongoDB and Redis natively (its Docker kernel cannot run MongoDB 8). Both live under `~/.local/share/giggle-tools/` and do not start after a reboot:
+
+```sh
+T=~/.local/share/giggle-tools
+$T/mongodb-macos-aarch64-8.0.4/bin/mongod --dbpath $T/mongo-data --port 17017 --bind_ip 127.0.0.1 --replSet giggle-dev --fork --logpath $T/mongod.log
+$T/redis-7.4.2/src/redis-server --port 16379 --bind 127.0.0.1 --dir $T/redis-data --daemonize yes --appendonly yes --logfile $T/redis.log
+```
+
+MongoDB 8.0.4 runs as replica set `giggle-dev` on `127.0.0.1:17017` (already initiated; the data directory keeps it). Redis 7.4.2 runs on `127.0.0.1:16379`.
+
+On a host where Docker can run MongoDB 8, `compose.dev.yml` provides the same services instead. Keep them off the native ports:
 
 ```sh
 docker compose -f compose.dev.yml up -d redis
-```
-
-MongoDB must use a replica set. On a compatible Docker host:
-
-```sh
 docker compose -f compose.dev.yml --profile database up -d mongo
 docker compose -f compose.dev.yml exec mongo mongosh --eval 'rs.initiate({_id:"giggle-dev",members:[{_id:0,host:"localhost:27017"}]})'
 ```
-
-This Mac's Docker kernel currently cannot run MongoDB 8. It uses native MongoDB 8.0.30 instead, bound to `127.0.0.1:17017`, replica set `giggle-dev`. Its files are under `~/.local/share/giggle-tools/`. Keep the native database and Docker MongoDB from using the same port. Do not remove an existing data volume to switch runtimes.
 
 Copy `server/.env.example` to ignored `server/.env.local` and set:
 
@@ -70,5 +73,25 @@ NEXT_PUBLIC_BACKEND_URL=http://localhost:3001 pnpm --filter @giggle/desktop buil
 pnpm --filter @giggle/mobile exec tsc --noEmit
 EXPO_PUBLIC_BACKEND_URL=http://localhost:3001 pnpm --filter @giggle/mobile exec expo export --platform web --output-dir /tmp/giggle-mobile-export
 ```
+
+## Verify before merging
+
+All testing happens locally. Before a change goes to `main`:
+
+```sh
+npm --prefix server run verify:deploy-bundle
+```
+
+This boots the API from only the files the deploy ships (`server/` minus `.dockerignore`) and fails unless it stays healthy after its delayed startup jobs.
+
+Then run the production web build against the local API and the signed-in smoke test:
+
+```sh
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3001 NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false pnpm --filter @giggle/desktop build
+NEXT_PUBLIC_BACKEND_URL=http://localhost:3001 NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=false pnpm --filter @giggle/desktop exec next start -p 4000
+pnpm --filter @giggle/desktop test:local-smoke
+```
+
+The Playwright suite in `apps/desktop/e2e` runs in two modes. The age-gate specs need the API started with the test settings from `playwright.config.ts` (`AGE_VERIFICATION_BYPASS=true`, no dev auth). The real two-browser specs (`lobby-flow`, `local-auth`) need `GIGGLE_LOCAL_AUTH_E2E=true` and the API from `.env.local` with dev auth. Test browsers run with `--mute-audio`.
 
 These are local build settings. Use the actual HTTPS backend address when building for production and follow `DEPLOYMENT.md` for provider and deployment checks.
