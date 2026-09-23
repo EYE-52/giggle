@@ -7,6 +7,7 @@ const User = require("../src/models/User");
 const { Squad } = require("../src/models/Squad");
 const { Encounter } = require("../src/models/Encounter");
 const notificationModule = require("../src/models/Notification");
+const { SquadCover } = require("../src/models/SquadCover");
 const queueService = require("../src/services/queueService");
 const sessionService = require("../src/services/sessionService");
 const socketService = require("../src/services/socketService");
@@ -793,6 +794,7 @@ test("last-member removal requeues the active opponent before deleting the empty
     asymmetric: matchmakingService.endEncounterAsymmetric,
     deleteNotifications: notificationModule.Notification.deleteMany,
     distinctNotifications: notificationModule.Notification.distinct,
+    deleteCovers: SquadCover.deleteMany,
   };
   const events = [];
   const squad = {
@@ -813,13 +815,16 @@ test("last-member removal requeues the active opponent before deleting the empty
   matchmakingService.endEncounterAsymmetric = async () => { events.push("requeue-opponent"); };
   notificationModule.Notification.deleteMany = async () => ({ deletedCount: 0 });
   notificationModule.Notification.distinct = async () => [];
+  SquadCover.deleteMany = async () => { events.push("delete-covers"); };
 
   try {
     const result = await squadAccess.removeSquadMember(squad, 0);
     assert.equal(result.squadDeleted, true);
     assert.equal(squad.members.length, 0);
     assert.ok(events.indexOf("requeue-opponent") < events.indexOf("persist-delete"));
-    assert.deepEqual(events, ["revoke", "clear-session", "requeue-opponent", "persist-delete", "emit-removed"]);
+    assert.deepEqual(events, [
+      "revoke", "clear-session", "requeue-opponent", "persist-delete", "delete-covers", "emit-removed",
+    ]);
   } finally {
     Encounter.findOne = originals.findEncounter;
     sessionService.clearMemberSession = originals.clear;
@@ -828,6 +833,7 @@ test("last-member removal requeues the active opponent before deleting the empty
     matchmakingService.endEncounterAsymmetric = originals.asymmetric;
     notificationModule.Notification.deleteMany = originals.deleteNotifications;
     notificationModule.Notification.distinct = originals.distinctNotifications;
+    SquadCover.deleteMany = originals.deleteCovers;
   }
 });
 

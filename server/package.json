@@ -12,7 +12,9 @@
     "dev": "nodemon src/server.js",
     "test": "node --test test/*.test.js",
     "test:integration": "node test/integration/live-flow.cjs && node test/integration/live-flow.cjs --skip",
-    "dev:local": "node --env-file=.env.local src/server.js"
+    "dev:local": "node --env-file=.env.local src/server.js",
+    "migrate:covers": "node scripts/migrate-squad-covers.js",
+    "verify:deploy-bundle": "node scripts/verify-deploy-bundle.js"
   },
   "keywords": [],
   "author": "",
