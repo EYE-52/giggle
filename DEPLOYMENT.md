@@ -56,12 +56,17 @@ From commit `279d64a`, temporary access is evaluated from the server setting and
 
 ### Last verified release
 
-- Commits: [`8082a68`](https://github.com/EYE-52/giggle/commit/8082a68) — UI polish, API query/scaling fixes (#5); [`9de82e9`](https://github.com/EYE-52/giggle/commit/9de82e9) — shared illustrated avatars (#6).
-- Vercel: [`EYBbgMMVTNa51PG9796UAoTrn6CP`](https://vercel.com/divyansh24888-5115s-projects/giggle-meet/EYBbgMMVTNa51PG9796UAoTrn6CP), **Ready**, serving the production domains.
-- Railway: [`c6e953f3-de8a-45d9-85ed-ca1d7ce26ff6`](https://railway.com/project/2e301782-c882-4553-94e4-61b898d98f1f/service/7874f27b-f974-4fb4-9523-fb3043c38f31?environmentId=bd367c27-b9f2-4715-a40c-842f19a1f66c&id=c6e953f3-de8a-45d9-85ed-ca1d7ce26ff6), **Success**. Both merges to `main` deployed on Railway automatically from GitHub.
-- Verified live: `/health` reports API `UP`, database and Redis `connected`; the website returns 200; `PATCH /api/me/profile` rejects unauthenticated requests; API responses carry the Redis-backed rate-limit headers. A signed-in production account was not exercised.
-- Local validation: web type-check and production build passed; unit tests desktop 143/143, core 74/74, server 328/328 (with Redis). Playwright against a real local API (MongoDB 8 replica set + Redis 7.4): real two-browser squad lifecycle, dev sign-in and avatar flows 16/16; full suite 110 passed on phone/tablet/laptop/desktop. Three desktop encounter tests still assert the pre-redesign call layout (`remote-main`/`dual-focus` kinds, "fit" default, three theme accents) and fail on both old and new code.
-- Update this section after future releases; these IDs are a historical checkpoint, not necessarily tomorrow's latest deployment.
+- Commit: [`7c58c1b`](https://github.com/EYE-52/giggle/commit/7c58c1b) — re-land squad cover storage without crashing the deployed server (#11). It builds on UI polish and API scaling (#5), shared avatars (#6), covers served by URL, free-only avatars and the production smoke test (#8), and cover storage (#9, reverted in #10, fixed in #11).
+- Vercel: [`9MSk3kZE6KEFLEkHbpRr4BCrsTAC`](https://vercel.com/divyansh24888-5115s-projects/giggle-meet/9MSk3kZE6KEFLEkHbpRr4BCrsTAC), **Ready**, serving the production domains.
+- Railway: [`deeb5b20-7141-4bf9-98bb-f6c0e4d09501`](https://railway.com/project/2e301782-c882-4553-94e4-61b898d98f1f/service/7874f27b-f974-4fb4-9523-fb3043c38f31?environmentId=bd367c27-b9f2-4715-a40c-842f19a1f66c&id=deeb5b20-7141-4bf9-98bb-f6c0e4d09501), **Success**, deployed automatically from GitHub.
+- Verified live: `/health` returned 200 with API `UP` and database and Redis `connected` at every 28-second check for 6.5 minutes after the deploy (16:11–16:18 UTC, 23 September 2026). The website returns 200.
+- Local validation (all testing is local):
+  - Unit tests: server 359/359 with Redis, desktop 143/143, core 74/74.
+  - `verify:deploy-bundle` passed.
+  - The local production build plus the real API passed `test:local-smoke` (phone and desktop).
+  - Playwright: 135 passed and 0 failed on phone, tablet, laptop, desktop and wide; the real two-browser lifecycle and avatar specs passed 16/16.
+- Incident: #9 (`dfcb2a5`) crashed the API about 15 seconds after every boot, from about 22:43 UTC on 22 September until #10 restored service at about 15:58 UTC on 23 September. The startup job required a file from `server/scripts/`, which `.dockerignore` excludes from the deployed image. `test/deployBundle.test.js` and `verify:deploy-bundle` now catch that failure, and step 4 above requires watching `/health` for 5 minutes after each deploy.
+- Update this section after future releases; these IDs are a historical checkpoint, not necessarily the latest deployment.
 
 ## Runtime
 
