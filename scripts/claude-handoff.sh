@@ -29,7 +29,7 @@ case "$mode" in
     # Optional screenshots: scripts/claude-handoff.sh spark TASK_FILE [IMAGE...]
     images=()
     for image in "${@:3}"; do [[ -f "$image" ]] || { printf 'Image missing: %s\n' "$image" >&2; exit 1; }; images+=(--image "$image"); done
-    exec muse exec --model "$MUSE_SPARK_MODEL" --trust-workspace --workspace "$ROOT" --max-model-steps 30 --prompt-file "$prompt_file" ${images[@]+"${images[@]}"}
+    exec muse exec --model "$MUSE_SPARK_MODEL" --trust-workspace --workspace "$ROOT" --max-model-steps "${MUSE_MAX_STEPS:-30}" --prompt-file "$prompt_file" ${images[@]+"${images[@]}"}
     ;;
   glm|flash)
     if [[ "$mode" == "glm" ]]; then

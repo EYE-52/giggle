@@ -111,7 +111,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
   const chooseFit = (value: Fit) => { setFit(value); setZoom(1); };
   return <div className={styles.tile} data-media-frame data-local={isLocal} data-media-fit={fit} style={frameStyle}>
     <div className={styles.fallback}>
-      {avatarValue ? <AvatarArt value={avatarValue} size={58} /> : <span className={styles.initial}>{name.slice(0, 1).toUpperCase()}</span>}
+      {avatarValue ? <AvatarArt value={avatarValue} size={58} /> : <AvatarArt value={name} size={58} />}
       <span>{statusText}</span>
     </div>
     {hasVideo && fit === "fit" && <video ref={backdrop} data-media-backdrop className={styles.backdrop} muted playsInline aria-hidden="true" />}

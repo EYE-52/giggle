@@ -11,9 +11,9 @@ import styles from "./playground.module.css";
 
 const initial: CharacterConfig = { ...CHARACTER_DEFAULTS };
 const presets: { name: string; settings: typeof initial }[] = [
-  { name: "Curls", settings: { ...initial, shirtColor: "#d97654", accent: "#e5dbc9", freckles: true, eyeSize: 40 } },
-  { name: "Bob", settings: { ...initial, hair: "bob", clothing: "sweater", earrings: "hoops", face: "round", skin: "#efbd98", hairColor: "#482f39", shirtColor: "#657f6b", accent: "#e4dce9", eyeSpacing: 40, faceWidth: 35 } },
-  { name: "Swoop", settings: { ...initial, hair: "swoop", clothing: "jacket", face: "angular", skin: "#86523e", hairColor: "#272b36", shirtColor: "#8c8ebe", accent: "#d5e2dd", glasses: "round", eyeSize: 45 } },
+  { name: "Curls", settings: { ...initial, skin: "#684332", hairColor: "#25252a", shirtColor: "#c8502e", accent: "#eab676", expression: "laugh", freckles: true, eyeSize: 40 } },
+  { name: "Bob", settings: { ...initial, hair: "bob", clothing: "sweater", earrings: "hoops", accessoryColor: "#d2a951", face: "round", skin: "#f6d4b8", hairColor: "#39302e", shirtColor: "#2f6f5e", accent: "#93b8d4", expression: "surprised", eyeSpacing: 40, faceWidth: 35 } },
+  { name: "Swoop", settings: { ...initial, hair: "swoop", clothing: "jacket", face: "angular", skin: "#493126", hairColor: "#25252a", shirtColor: "#274e67", accessoryColor: "#e9a13b", accent: "#e5a9a0", glasses: "round", eyeSize: 45 } },
 ];
 const sections = ["Face", "Hair", "Details", "Outfit", "Colors"] as const;
 type Section = typeof sections[number];
@@ -23,9 +23,9 @@ const colors = { skin: "Skin tone", hairColor: "Hair color", shirtColor: "Clothi
 const palettes: Record<keyof typeof colors, string[]> = {
   skin: ["#f6d4b8", "#efbd98", "#dca47c", "#bd815e", "#a36c4b", "#86523e", "#684332", "#493126"],
   hairColor: ["#25252a", "#39302e", "#633e30", "#9e5a39", "#c18a49", "#dfbf85", "#bcb4ad", "#ece0c9"],
-  shirtColor: ["#f4ecdd", "#d97654", "#953d48", "#bd943e", "#657f6b", "#446c87", "#8c8ebe", "#30313b"],
-  accessoryColor: ["#d2a951", "#c5c7cc", "#74618c", "#466957", "#a45443", "#324d67", "#dfb9ae", "#292b32"],
-  accent: ["#e5dbc9", "#e4dce9", "#d5e2dd", "#d9e6ef", "#f1d9ca", "#efdfa7", "#e6ccd4", "#dededc"],
+  shirtColor: ["#f4ecdd", "#d97654", "#953d48", "#bd943e", "#657f6b", "#446c87", "#8c8ebe", "#30313b", "#c8502e", "#e9a13b", "#2f6f5e", "#274e67", "#6f5aa8"],
+  accessoryColor: ["#d2a951", "#c5c7cc", "#74618c", "#466957", "#a45443", "#324d67", "#dfb9ae", "#292b32", "#c8502e", "#1f7a6d", "#e9a13b", "#8c2f39"],
+  accent: ["#e5dbc9", "#e4dce9", "#d5e2dd", "#d9e6ef", "#f1d9ca", "#efdfa7", "#e6ccd4", "#dededc", "#eab676", "#a9c6a2", "#93b8d4", "#e5a9a0", "#274e67", "#b7a3d9"],
 };
 function ColorChoices({ name, value, onChange }: { name: keyof typeof colors; value: string; onChange: (color: string) => void }) {
   return <fieldset className={styles.colorGroup}><legend>{colors[name]}</legend><div className={styles.swatches}>{palettes[name].map((color, index) => <button key={color} type="button" aria-label={`${colors[name]} option ${index + 1}: ${color}`} title={color} aria-pressed={value.toLowerCase() === color} style={{ backgroundColor: color }} onClick={() => onChange(color)}>{value.toLowerCase() === color && <span aria-hidden="true">✓</span>}</button>)}<label className={styles.customColor}><span>Custom</span><input aria-label={`Custom ${colors[name].toLowerCase()}`} type="color" value={value} onChange={e => onChange(e.target.value)} /></label></div></fieldset>;

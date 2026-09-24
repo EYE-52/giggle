@@ -71,10 +71,10 @@ export function GiggleAvatar({
       {label && <title id={`${id}-title`}>{label}</title>}
       <style>{`
         .giggle-avatar { overflow: visible; }
-        .giggle-avatar[data-animated="true"] .gg-avatar-head { animation: gg-avatar-sway 6s ease-in-out infinite; transform-origin: 120px 170px; }
-        .giggle-avatar[data-animated="true"] .gg-avatar-eyes { animation: gg-avatar-blink 5.6s infinite; transform-origin: 120px 111px; }
-        @keyframes gg-avatar-sway { 0%,100% { transform: rotate(-2deg) translateY(0); } 50% { transform: rotate(2deg) translateY(-3px); } }
-        @keyframes gg-avatar-blink { 0%,43%,47%,100% { transform: scaleY(1); } 45% { transform: scaleY(.08); } }
+        .giggle-avatar[data-animated="true"] .gg-avatar-head { animation: gg-avatar-sway 5s ease-in-out infinite; transform-origin: 120px 170px; }
+        .giggle-avatar[data-animated="true"] .gg-avatar-eyes { animation: gg-avatar-blink 4.4s infinite; transform-origin: 120px 111px; }
+        @keyframes gg-avatar-sway { 0%,100% { transform: rotate(-2.5deg) translateY(0); } 50% { transform: rotate(2.5deg) translateY(-4px); } }
+        @keyframes gg-avatar-blink { 0%,41%,45%,47.5%,49%,100% { transform: scaleY(1); } 43%,48% { transform: scaleY(.08); } }
         @media (prefers-reduced-motion: reduce) { .giggle-avatar .gg-avatar-head, .giggle-avatar .gg-avatar-eyes { animation: none !important; } }
       `}</style>
       <defs><clipPath id={`${id}-circle`}><circle cx="120" cy="120" r="112" /></clipPath></defs>
@@ -116,9 +116,9 @@ export function GiggleAvatar({
           <g className="gg-avatar-eyes" fill={ink}>
             {expression === "laugh" ? <path d="M84 112q8-11 16 0m40 0q8-11 16 0" fill="none" stroke={ink} strokeWidth="4" strokeLinecap="round" /> : <>
               <g transform={`translate(93 111) scale(${eyes})`}>
-                <ellipse rx="6" ry="8" fill={ink} /><ellipse cx="-1.5" cy="-2.5" rx="1.7" ry="2.2" fill="#fff8ed" />
+                <ellipse rx="6" ry="8" fill={ink} /><ellipse cx="-1.5" cy="-2.5" rx="2.1" ry="2.7" fill="#fff8ed" />
               </g>
-              {expression === "wink" ? <path d="M140 112q8-8 16 0" fill="none" stroke={ink} strokeWidth="4" strokeLinecap="round" /> : <g transform={`translate(148 111) scale(${eyes})`}><ellipse rx="6" ry="8" /><ellipse cx="-1.5" cy="-2.5" rx="1.7" ry="2.2" fill="#fff8ed" /></g>}
+              {expression === "wink" ? <path d="M140 112q8-8 16 0" fill="none" stroke={ink} strokeWidth="4" strokeLinecap="round" /> : <g transform={`translate(148 111) scale(${eyes})`}><ellipse rx="6" ry="8" /><ellipse cx="-1.5" cy="-2.5" rx="2.1" ry="2.7" fill="#fff8ed" /></g>}
             </>}
           </g>
           </g>
@@ -128,8 +128,8 @@ export function GiggleAvatar({
             <path d="M111 109q9-6 19 0M65 106l9 3m93 0 8-3" />
           </g>}
           <path transform={`translate(120 120) scale(${nose}) translate(-120 -120)`} d="M120 114q-1 8-5 11-1 5 7 4" fill="none" stroke={ink} strokeOpacity=".3" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-          <ellipse cx="83" cy="133" rx="10" ry="5" fill="#da6a63" opacity=".25" />
-          <ellipse cx="156" cy="133" rx="10" ry="5" fill="#da6a63" opacity=".25" />
+          <ellipse cx="83" cy="133" rx="11" ry="5.5" fill="#d66a5f" opacity=".34" />
+          <ellipse cx="156" cy="133" rx="11" ry="5.5" fill="#d66a5f" opacity=".34" />
           {freckles && <g fill="#794733" opacity=".55">{[76, 85, 94, 146, 155, 164].map((x, i) => <circle key={x} cx={x} cy={135 + i % 2 * 4} r="1.5" />)}</g>}
           {(facialHair === "beard" || facialHair === "stubble") && <path d="M68 130q8 10 20 9l10 18q22 13 44 0l10-18q12 1 20-9c-4 31-24 47-52 47s-48-16-52-47Z" fill={hairColor} opacity={facialHair === "stubble" ? .3 : 1} />}
           <g transform={`translate(120 145) scale(${mouth} 1) translate(-120 -145)`}>

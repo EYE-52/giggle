@@ -1,7 +1,7 @@
 "use client";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { DEFAULT_AVATARS, FREE_AVATAR_COUNT, billing } from "@giggle/core";
+import { CHARACTER_PRESETS, encodeCharacter } from "@giggle/core";
 import { saveMyAvatar } from "@/lib/avatarSync";
 import { AvatarArt } from "./AvatarArt";
 import { Icon } from "./Icons";
@@ -24,14 +24,9 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
   const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
-  const [vibePackUnlocked, setVibePackUnlocked] = useState(false);
   const [hint, setHint] = useState("");
   const [saveError, setSaveError] = useState("");
 
-  useEffect(() => {
-    setVibePackUnlocked(billing.hasPerk("vibe_pack"));
-    return billing.subscribe(() => setVibePackUnlocked(billing.hasPerk("vibe_pack")));
-  }, []);
   const [uploadHover, setUploadHover] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
@@ -92,43 +87,66 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
       }}
     >
       <div>
-        {/* Preview of currently-highlighted avatar */}
+        <style>{`
+          @media (prefers-reduced-motion: no-preference) {
+            .gg-avatar-tile .gg-avatar-hello { display: inline-flex; transform-origin: 50% 85%; }
+            .gg-avatar-tile:hover .gg-avatar-hello, .gg-avatar-tile:focus-visible .gg-avatar-hello,
+            .gg-avatar-tile[aria-pressed="true"] .gg-avatar-hello { animation: gg-avatar-hello .5s ease; }
+          }
+          @keyframes gg-avatar-hello {
+            0% { transform: rotate(0) scale(1); }
+            35% { transform: rotate(-7deg) scale(1.07); }
+            70% { transform: rotate(5deg) scale(1.03); }
+            100% { transform: rotate(0) scale(1); }
+          }
+        `}</style>
+        {/* Preview of currently-highlighted avatar. The character art fills
+            its circle inside the viewBox, so render it slightly oversized in a
+            fixed circular window: the whole face stays inside the ring. */}
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
-          <div style={{ borderRadius: "50%", boxShadow: "0 0 0 4px var(--surface), 0 0 0 6px var(--accent-line)" }}>
-            <AvatarArt value={effectiveSelected} size={72} />
+          <div style={{
+            width: 96,
+            height: 96,
+            borderRadius: "50%",
+            overflow: "hidden",
+            boxShadow: "0 0 0 4px var(--surface), 0 0 0 6px var(--accent-line)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+            <AvatarArt value={effectiveSelected} size={104} />
           </div>
         </div>
 
         <Button onClick={() => { onClose(); router.push("/avatar-playground"); }} style={{ width: "100%", marginBottom: 20 }}>Create or edit your character</Button>
-        {/* Grid of default avatars */}
+        {/* Grid of character looks */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(64px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(76px, 1fr))",
             gap: 10,
             marginBottom: 20,
           }}
         >
-          {DEFAULT_AVATARS.map((av, idx) => {
-            const isActive = effectiveSelected === av.id;
-            const locked = idx >= FREE_AVATAR_COUNT && !vibePackUnlocked;
+          {CHARACTER_PRESETS.map((preset) => {
+            const value = encodeCharacter(preset.config);
+            const isActive = effectiveSelected === value;
             return (
               <button
-                key={av.id}
-                title={locked ? `${av.name} — premium` : av.name}
-                aria-label={locked ? `${av.name} (premium)` : av.name}
+                key={preset.id}
+                title={preset.name}
+                aria-label={preset.name}
                 aria-pressed={isActive}
                 onClick={() => {
-                  if (locked) { setHint(`“${av.name}” is in the premium Vibe Pack.`); return; }
-                  setSelected(av.id); setPreview(null); setHint("");
+                  setSelected(value); setPreview(null); setHint("");
                 }}
-                className="gg-press gg-focusable"
+                className="gg-press gg-focusable gg-avatar-tile"
                 style={{
                   display: "flex",
                   flexDirection: "column",
                   alignItems: "center",
                   gap: 6,
-                  padding: "8px 4px 6px",
+                  padding: "6px 4px 6px",
                   borderRadius: "var(--radius-tile, 16px)",
                   border: isActive
                     ? "2px solid var(--accent, var(--violet, #7657FF))"
@@ -143,8 +161,10 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
                 }}
               >
                 <div style={{ position: "relative" }}>
-                  <AvatarArt value={av.id} size={44} />
-                  {isActive && !locked && (
+                  <span className="gg-avatar-hello">
+                    <AvatarArt value={value} size={58} />
+                  </span>
+                  {isActive && (
                     <div aria-hidden style={{
                       position: "absolute", bottom: -2, right: -2, width: 16, height: 16,
                       borderRadius: "50%", background: "var(--accent, var(--violet, #7657FF))",
@@ -152,15 +172,6 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                       <svg width="8" height="8" viewBox="0 0 11 11" fill="none" aria-hidden><path d="M2 5.5 4.5 8 9 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                    </div>
-                  )}
-                  {locked && (
-                    <div style={{
-                      position: "absolute", inset: 0, borderRadius: "50%",
-                      background: "var(--overlay-strong, rgba(0,0,0,0.5))",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <Icon.shield size={14} color="#fff" />
                     </div>
                   )}
                 </div>
@@ -171,7 +182,7 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                   maxWidth: 60,
                 }}>
-                  {locked ? "Premium" : (av.name.split(" ")[1] ?? av.name)}
+                  {preset.name}
                 </span>
               </button>
             );
@@ -185,7 +196,7 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
-            className="gg-press gg-focusable"
+            className="gg-press gg-focusable gg-avatar-tile"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -210,15 +221,16 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
             }}
           >
             {preview ? (
-              <AvatarArt value={preview} size={44} />
+              <span className="gg-avatar-hello">
+                <AvatarArt value={preview} size={58} />
+              </span>
             ) : (
               <div style={{
-                width: 44, height: 44, borderRadius: "50%",
+                width: 58, height: 58, borderRadius: "50%",
                 background: "var(--overlay-hover, var(--surface-2))",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 22,
               }}>
-                <span aria-hidden="true">📷</span>
+                <Icon.plus size={22} color="var(--accent, #ba4b33)" />
               </div>
             )}
             <span style={{
@@ -238,13 +250,10 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
           </button>
         </div>
 
-        {/* Premium hint */}
+        {/* Upload hint */}
         {hint && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14, padding: "8px 12px", borderRadius: "var(--radius-control, 14px)", background: "var(--coral-soft)" }}>
+          <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: "var(--radius-control, 14px)", background: "var(--coral-soft)" }}>
             <span style={{ fontSize: 12, color: "var(--coral)", fontWeight: 600 }}>{hint}</span>
-            <Button size="sm" onClick={() => router.push("/premium")} style={{ whiteSpace: "nowrap" }}>
-              Unlock
-            </Button>
           </div>
         )}
 
