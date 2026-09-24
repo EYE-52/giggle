@@ -75,7 +75,7 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
       await saveMyAvatar(effectiveSelected);
       onClose();
     } catch {
-      setSaveError("Saved on this device, but we couldn't share it. Try again.");
+      setSaveError("Couldn't save your avatar. Try again.");
     } finally {
       setSaving(false);
     }
@@ -99,6 +99,7 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
           </div>
         </div>
 
+        <Button onClick={() => { onClose(); router.push("/avatar-playground"); }} style={{ width: "100%", marginBottom: 20 }}>Create or edit your character</Button>
         {/* Grid of default avatars */}
         <div
           style={{

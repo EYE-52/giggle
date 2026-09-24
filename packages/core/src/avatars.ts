@@ -1,3 +1,6 @@
+import { parseCharacter } from "../../../server/src/utils/characterConfig.js";
+export { parseCharacter, encodeCharacter, validateCharacter, CHARACTER_DEFAULTS, CHARACTER_OPTIONS } from "../../../server/src/utils/characterConfig.js";
+export type { CharacterConfig } from "../../../server/src/utils/characterConfig.js";
 /**
  * Giggle avatar system.
  * Storage key: "giggle.avatar"
@@ -56,7 +59,7 @@ export const DEFAULT_AVATAR_ID = DEFAULT_ID;
 
 function normalizeAvatarValue(value: string): string | null {
   const avatar = value.trim();
-  if (getDefaultAvatarById(avatar) || isCustomAvatar(avatar)) return avatar;
+  if (getDefaultAvatarById(avatar) || parseCharacter(avatar) || isCustomAvatar(avatar)) return avatar;
   return null;
 }
 
@@ -106,7 +109,7 @@ export function defaultAvatarFor(seed: string): string {
 
 /** A shared (server-side) avatar id, or the seeded default when it is missing or unknown. */
 export function resolveAvatar(avatar: string | null | undefined, seed: string): string {
-  return avatar && getDefaultAvatarById(avatar) ? avatar : defaultAvatarFor(seed);
+  return avatar && (getDefaultAvatarById(avatar) || parseCharacter(avatar)) ? avatar : defaultAvatarFor(seed);
 }
 
 export function isCustomAvatar(value: string): boolean {

@@ -17,6 +17,7 @@ import { Icon } from "@/components/Icons";
 import { useToast } from "@/components/Toast";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 import { pollWhileVisible } from "@/lib/poll";
+import community from "@/components/Community.module.css";
 
 const rank: Record<string, number> = { in_encounter: 0, matched: 1, searching: 2, idle: 3 };
 function squadDestination(squad: MySquadLite | PublicSquad) {
@@ -204,16 +205,15 @@ export default function HomePage() {
     setReload((value) => value + 1);
   };
   return (
-    <div className="gg-home">
+    <div className={`gg-home ${community.home}`}>
       <div className="gg-home-heading">
         <div>
-          <h1>
-            {active ? 'Your squad' : 'Start a squad'}
-          </h1>
+          <p className={community.greeting}>YOUR LITTLE CORNER OF GIGGLE</p>
+          <h1 className={community.heading}>Good to have <em>you here.</em></h1>
           <p>
             {WEB_DISCOVERY_ENABLED
               ? "Bring your friends. Meet another squad."
-              : "Bring your friends together in a private room."}
+              : "A familiar face. A new inside joke. Make a little time for your people."}
           </p>
         </div>
         {active && (
@@ -238,9 +238,9 @@ export default function HomePage() {
               <span className="gg-spinner" /> Loading your squads…
             </div>
           ) : (
-            <section className="gg-squad-feature">
+            <section className={`gg-squad-feature ${community.feature}`}>
               <span className="gg-eyebrow">{active ? "Your squad" : "Create a squad"}</span>
-              <h2>{active?.squadName ?? "Invite your friends."}</h2>
+              <h2>{active?.squadName ?? "Save a seat for your friends."}</h2>
               <div
                 className="gg-squad-faces"
                 aria-label={
@@ -280,16 +280,21 @@ export default function HomePage() {
               </div>
             </section>
           )}
+          <section className={community.ritual}>
+            <span className={community.ritualMark} aria-hidden="true">✳</span>
+            <div><h2>A tiny plan for your next hangout</h2><p>Everyone brings one thing: a song, a story, or the most ridiculous part of their day.</p><Link href="/friends">Find your people →</Link></div>
+          </section>
         </div>
         <aside className="gg-home-side">
           <form
-            className="gg-join-form"
+            className={`gg-join-form ${community.join}`}
             onSubmit={(event) => {
               event.preventDefault();
               void join();
             }}
           >
-            <label htmlFor="squad-code">Joining your friends?</label>
+            <label htmlFor="squad-code">Got a seat saved?</label>
+            <p className={community.joinHint}>Pop in the invite code from your friends.</p>
             <input
               id="squad-code"
               aria-label="Squad invite code"
@@ -322,7 +327,7 @@ export default function HomePage() {
           )}
           {!!squads?.length && (
             <section className="gg-home-panel">
-              <h2>Manage your squads</h2>
+              <h2>Your squads</h2>
               {squads.map((s) => (
                 <div className="gg-home-row" key={s.squadId}>
                   <Avatar name={s.squadName} size={40} />
@@ -405,6 +410,7 @@ export default function HomePage() {
         )}
         </aside>
       </div>
+      <div className={community.note}><p>A good hangout starts with making everyone feel welcome.</p><Link href="/safety">The Giggle way ↗</Link></div>
       {createOpen && (
         <Modal
           title="Start a squad"

@@ -1,4 +1,5 @@
 import { backendRequest } from "./client";
+import type { CharacterConfig } from "./avatars";
 import type { AgoraToken } from "./types";
 
 export type AgeVerificationStatus = "not_started" | "pending" | "verified" | "rejected" | "restricted";
@@ -151,6 +152,12 @@ export const api = {
     backendRequest<{ unread: number }>(`/api/notifications/${id}/read`, { method: "POST" }),
   dismissNotification: (id: string) =>
     backendRequest<{ dismissed: boolean; unread: number }>(`/api/notifications/${id}`, { method: "DELETE" }),
+
+  // --- avatar photo matching (flag-gated; responses carry no `data` wrapper) ---
+  getAvatarSuggestStatus: () =>
+    backendRequest<AvatarSuggestAvailability>("/api/me/avatar/suggest/status"),
+  suggestAvatar: (body: AvatarSuggestBody) =>
+    backendRequest<AvatarSuggestResult>("/api/me/avatar/suggest", { method: "POST", body, timeoutMs: 30000 }),
 };
 
 // --- notification shapes ---
@@ -297,6 +304,30 @@ export interface AccountExport {
     referralCount: number;
     tokens: number;
   };
+}
+
+// --- avatar photo matching shapes (no `data` wrapper: backendRequest returns
+// the whole success envelope for these endpoints) ---
+export interface AvatarSuggestAvailability {
+  enabled: boolean;
+  remainingToday: number | null;
+  remainingMonth: number | null;
+}
+export interface AvatarSuggestBody {
+  /** JPEG data URL produced by client-side cropping (512×512, quality 0.85). */
+  image: string;
+  /** Current editor config the suggestion builds variations from. */
+  base?: CharacterConfig;
+  /** Fresh UUID v4 per attempt — the server idempotency key. */
+  requestId: string;
+}
+export type AvatarSuggestOutcome = "match" | "no_face" | "multiple_faces" | "unclear_photo";
+export interface AvatarSuggestResult {
+  status: AvatarSuggestOutcome;
+  /** Three CharacterConfigs on "match"; empty otherwise. */
+  configs: CharacterConfig[];
+  model?: string;
+  promptVersion?: string;
 }
 
 // --- response shapes (match backend) ---

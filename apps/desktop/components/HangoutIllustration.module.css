@@ -1,0 +1,15 @@
+.scene { position:relative; width:100%; aspect-ratio:1.12; isolation:isolate; }
+.orbit { position:absolute; inset:15% 5% 4%; border:1px dashed #baa590; border-radius:50%; transform:rotate(-20deg); }
+.person { position:absolute; width:43%; border:7px solid #fffaf0; border-radius:42% 42% 38% 38%; box-shadow:0 12px 0 #34291b0a; overflow:hidden; }
+.person svg { display:block; }
+.one { left:5%; top:7%; transform:rotate(-10deg); background:#d3dec5; }
+.two { right:0; top:0; transform:rotate(9deg); background:#e6ccdf; }
+.three { left:12%; bottom:0; transform:rotate(5deg); background:#efc36b; }
+.four { right:-2%; bottom:7%; transform:rotate(-7deg); background:#bacfdc; }
+.spark { position:absolute; right:0; top:44%; font-size:52px; line-height:1; color:#b74f35; z-index:3; }
+.squiggle { position:absolute; width:34%; height:45px; right:13%; bottom:-9%; color:#ba4b33; }
+.compact { max-width:230px; }
+.compact .person { border-width:3px; }
+.compact .spark { font-size:28px; }
+.compact .squiggle { display:none; }
+

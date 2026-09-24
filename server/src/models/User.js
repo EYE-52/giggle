@@ -1,7 +1,7 @@
 // src/models/User.js
 
 const mongoose = require("mongoose");
-const { AVATAR_IDS } = require("../utils/avatars");
+const { publicAvatar } = require("../utils/avatars");
 
 const ageVerificationSchema = new mongoose.Schema(
   {
@@ -47,7 +47,7 @@ const userSchema = new mongoose.Schema(
     },
     // Chosen illustrated avatar id (see utils/avatars.js). This — never `image`
     // (the Google photo) — is the avatar other users see.
-    avatar: { type: String, enum: AVATAR_IDS },
+    avatar: { type: String, maxlength: 1500, validate: { validator: value => value == null || publicAvatar(value) !== null, message: "Invalid avatar" } },
     reputationScore: { type: Number, default: 100 },
     reportCount: { type: Number, default: 0 },
     isShadowBanned: { type: Boolean, default: false },

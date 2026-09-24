@@ -245,8 +245,8 @@ export default function FriendsPage() {
     <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 40 }}>
       {/* Header */}
       <PageHeader
-        title="Friends"
-        subtitle={showFirstRun ? "Search by display name to add a friend." : onlineCount > 0 ? `${onlineCount} online now` : "Your friends and friend requests."}
+        title="Your people"
+        subtitle={showFirstRun ? "Every good hangout starts with a hello. Find a friend by their display name." : onlineCount > 0 ? `${onlineCount} online now` : "Familiar faces. More reasons to hang out."}
       />
 
       {loadError && (

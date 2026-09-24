@@ -1,0 +1,48 @@
+/* Button rules are scoped under .photoSection to outrank the editor's `.page button { font:inherit; color:inherit }`.
+   "Use a photo" panel — matches the existing editor look. Relies on the
+   --ink / --muted / --line variables playground.module.css sets on .page, and
+   reuses only colors already present in the editor's palette. */
+
+.photoSection { margin-top: 12px; }
+
+.photoSection .openButton { border: 1px solid var(--line); border-radius: 12px; background: transparent; padding: 12px 18px; font-size: 14px; }
+
+.panel { margin-top: 12px; border: 1px solid var(--line); border-radius: 16px; background: #f7f6f2; padding: 16px; min-width: 0; }
+.panel button:disabled { opacity: .6; cursor: wait; }
+
+.consent { font-size: 13px; line-height: 1.6; margin-bottom: 14px; }
+.hint { font-size: 12px; line-height: 1.6; color: var(--muted); margin-bottom: 10px; }
+.error { color: #9f3434; font-size: 13px; line-height: 1.5; margin-top: 12px; }
+
+.row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+.photoSection .primaryButton { border: 1px solid #352a43; border-radius: 12px; background: #352a43; color: white; padding: 12px 18px; font-size: 14px; }
+.photoSection .secondaryButton { border: 1px solid var(--line); border-radius: 12px; background: transparent; padding: 12px 18px; font-size: 14px; }
+
+.previewStage { position: relative; width: min(260px, 100%); aspect-ratio: 1; margin: 0 auto 12px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #eee8f4; touch-action: none; cursor: grab; }
+.previewStage:active { cursor: grabbing; }
+.previewStage:focus-visible { outline: 3px solid #8b4d37; outline-offset: 3px; }
+.previewImg { position: absolute; height: auto; max-width: none; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+
+.zoomRow { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 13px; margin-top: 4px; }
+.zoomRow span { color: var(--muted); }
+.zoomRow input { flex: 1; min-width: 0; min-height: 44px; cursor: pointer; }
+
+.statusLine { margin-top: 12px; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.dots { width: 8px; height: 8px; border-radius: 50%; background: #c5c7cc; animation: photoPulse 1s ease-in-out infinite; }
+@keyframes photoPulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .dots { animation: none; } }
+
+.resultLine { font-size: 13px; line-height: 1.6; margin-bottom: 4px; }
+.options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+.option { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); border-radius: 12px; background: white; padding: 10px 6px; font-size: 12px; min-width: 0; }
+.option svg { width: min(84px, 100%); height: auto; }
+.optionLabel { color: var(--muted); }
+.saveHint { font-size: 12px; line-height: 1.6; color: var(--muted); margin-top: 10px; }
+
+@media (max-width: 420px) {
+  .panel { padding: 14px; }
+  .option svg { width: 68px; }
+  .previewStage { width: min(220px, 100%); }
+}
+
+.hiddenInput { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

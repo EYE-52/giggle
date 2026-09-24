@@ -6,6 +6,8 @@ import { Logomark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
 import { session, setPendingReferral, BACKEND_URL } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
+import { HangoutIllustration } from "@/components/HangoutIllustration";
+import community from "@/components/Community.module.css";
 
 type SignInStatus = "idle" | "redirecting" | "dev" | "failed";
 const AUTH_NEXT_KEY = "giggle.auth.next";
@@ -109,9 +111,13 @@ export default function AuthPage() {
   };
 
   return (
-    <main style={{ minHeight: "100svh", position: "relative", overflow: "auto", display: "grid", placeItems: "center", padding: isPhone ? 16 : 28, fontFamily: "var(--font-inter), Inter, sans-serif", background: "var(--bg)", color: "var(--text)" }}>
-
-
+    <main className={community.auth}>
+      <div className={community.authIntro}>
+        <Link href="/">← Back to Giggle</Link>
+        <h2>Your people.<br />Your kind of <em>happy.</em></h2>
+        <p>A little less scrolling. A little more “you had to be there.”</p>
+        <div className={community.authArt}><HangoutIllustration /></div>
+      </div>
       <section style={{ position: "relative", width: "100%", maxWidth: 430, padding: isPhone ? 22 : 30, borderRadius: "var(--radius-card, 20px)", background: "var(--surface)", border: "1px solid var(--border)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
           <Logomark size={34} glow={false} />
@@ -119,7 +125,7 @@ export default function AuthPage() {
         </div>
 
         <h1 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk)), sans-serif", fontSize: 30, fontWeight: 700, lineHeight: 1.05, letterSpacing: "-0.02em", maxWidth: 330 }}>Sign in to Giggle</h1>
-        <p style={{ margin: "12px 0 24px", color: "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>Create an account or return to your squad.</p>
+        <p style={{ margin: "12px 0 24px", color: "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>First hello or familiar face. There’s a place for you here.</p>
 
         {refCode && <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16, padding: "10px 12px", borderRadius: "var(--radius-control, 14px)", background: "color-mix(in srgb, var(--accent, var(--violet, #7657FF)) 14%, transparent)", color: "var(--accent)", fontSize: 13 }}><Icon.gift size={17} color="var(--violet-bright)" /> Invite accepted. You both get 100 tokens.</div>}
 

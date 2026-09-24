@@ -1,3 +1,4 @@
+const { parseCharacter } = require("./characterConfig");
 const { canonicalUserId } = require("../services/interactionSafetyService");
 
 // Illustrated avatars a user may pick for their public profile. Must match the
@@ -34,10 +35,10 @@ const FREE_AVATAR_ID_SET = new Set(AVATAR_IDS.slice(0, FREE_AVATAR_COUNT));
 const isAvatarId = (value) => typeof value === "string" && AVATAR_ID_SET.has(value);
 
 const isSelectableAvatarId = (value, { production = process.env.NODE_ENV === "production" } = {}) =>
-  isAvatarId(value) && (!production || FREE_AVATAR_ID_SET.has(value));
+  Boolean(parseCharacter(value)) || (isAvatarId(value) && (!production || FREE_AVATAR_ID_SET.has(value)));
 
 /** Client-facing avatar: a known id, or null (never echoes unknown stored values). */
-const publicAvatar = (value) => (isAvatarId(value) ? value : null);
+const publicAvatar = (value) => ((isAvatarId(value) || parseCharacter(value)) ? value : null);
 
 /**
  * One batched avatar lookup for a set of user ids. Returns a Map of

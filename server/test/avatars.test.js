@@ -26,6 +26,7 @@ const {
 } = require("../src/controllers/squadController");
 
 const CORE_AVATARS_PATH = path.join(__dirname, "../../packages/core/src/avatars.ts");
+const SHARED_CHARACTER = require("../src/utils/characterConfig").encodeCharacter({ clothing: "jacket", headwear: "cap" });
 const LEADER_ID = "507f1f77bcf86cd799439011";
 const MEMBER_ID = "507f1f77bcf86cd799439012";
 const OTHER_ID = "507f1f77bcf86cd799439013";
@@ -87,7 +88,7 @@ function buildSquad() {
 }
 
 const USERS = [
-  { _id: LEADER_ID, avatar: "teal-bot", isPremium: false },
+  { _id: LEADER_ID, avatar: SHARED_CHARACTER, isPremium: false },
   { _id: MEMBER_ID }, // never picked an avatar
   { _id: OTHER_ID, avatar: "gold-moon", ageConfirmed: true, isAdult: true, ageVerified: true },
 ];
@@ -114,7 +115,8 @@ test("isAvatarId and publicAvatar accept only known ids", () => {
     assert.equal(publicAvatar(value), null);
   }
   assert.equal(publicAvatar("teal-bot"), "teal-bot");
-  assert.equal(User.schema.path("avatar").enumValues.length, 16);
+  assert.ok(new User({ email: "invalid@example.com", avatar: "unknown" }).validateSync()?.errors.avatar);
+  for (const avatar of AVATAR_IDS) assert.equal(new User({ email: "valid@example.com", avatar }).validateSync(), undefined);
 });
 
 test("normalizeProfilePatch sets, clears and rejects avatar values", () => {
@@ -222,7 +224,7 @@ test("friends list and friend requests include each user's avatar", async () => 
   };
   const friendUsers = [
     { ...me },
-    { _id: MEMBER_ID, name: "Member", image: null, avatar: "lime-ghost" },
+    { _id: MEMBER_ID, name: "Member", image: null, avatar: SHARED_CHARACTER },
     { _id: OTHER_ID, name: "Other", image: null, avatar: "not-a-real-avatar" },
   ];
   const { find, projections } = mockUserFind(friendUsers);
@@ -237,7 +239,7 @@ test("friends list and friend requests include each user's avatar", async () => 
     await listFriends({ user: { userId: LEADER_ID } }, res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.data.friends, [
-      { userId: MEMBER_ID, name: "Member", image: null, avatar: "lime-ghost", online: true },
+      { userId: MEMBER_ID, name: "Member", image: null, avatar: SHARED_CHARACTER, online: true },
     ]);
     assert.equal(projections.includes("name image avatar"), true);
 
@@ -248,14 +250,14 @@ test("friends list and friend requests include each user's avatar", async () => 
       { userId: OTHER_ID, name: "Other", image: null, avatar: null, online: false },
     ]);
     assert.deepEqual(res.body.data.outgoing, [
-      { userId: MEMBER_ID, name: "Member", image: null, avatar: "lime-ghost" },
+      { userId: MEMBER_ID, name: "Member", image: null, avatar: SHARED_CHARACTER },
     ]);
 
     me.blockedUserIds = [MEMBER_ID];
     res = createResponse();
     await listBlockedUsers({ user: { userId: LEADER_ID } }, res);
     assert.deepEqual(res.body.data.accounts, [
-      { userId: MEMBER_ID, name: "Member", image: null, avatar: "lime-ghost" },
+      { userId: MEMBER_ID, name: "Member", image: null, avatar: SHARED_CHARACTER },
     ]);
   } finally {
     User.findById = originals.findById;
@@ -282,7 +284,7 @@ test("squad lobby members include avatars from the existing member query", async
     await getSquadHandler({ squadAccess: { squad, leader: squad.members[0] } }, res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.data.members.map((m) => [m.memberId, m.displayName, m.avatar]), [
-      ["mem_leader", "Leader", "teal-bot"],
+      ["mem_leader", "Leader", SHARED_CHARACTER],
       ["mem_member", "Member", null],
     ]);
     assert.equal(projections.includes("avatar"), false, "lobby reuses its member query");
@@ -315,7 +317,7 @@ test("my squad, join, preview and join requests include member avatars with one 
     await getMySquadHandler({ user: { userId: MEMBER_ID } }, res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.data.members.map((m) => [m.memberId, m.userId, m.role, m.avatar]), [
-      ["mem_leader", LEADER_ID, "leader", "teal-bot"],
+      ["mem_leader", LEADER_ID, "leader", SHARED_CHARACTER],
       ["mem_member", MEMBER_ID, "member", null],
     ]);
     assert.equal(projections.filter((p) => p === "avatar").length, 1);
@@ -324,7 +326,7 @@ test("my squad, join, preview and join requests include member avatars with one 
     res = createResponse();
     await joinSquadHandler({ body: { squadCode: "ABC-123" }, params: {}, user: { userId: MEMBER_ID } }, res);
     assert.equal(res.statusCode, 200);
-    assert.deepEqual(res.body.data.members.map((m) => m.avatar), ["teal-bot", null]);
+    assert.deepEqual(res.body.data.members.map((m) => m.avatar), [SHARED_CHARACTER, null]);
     assert.equal(res.body.data.member.memberId, "mem_member");
     assert.equal(projections.filter((p) => p === "avatar").length, 1);
 
@@ -333,7 +335,7 @@ test("my squad, join, preview and join requests include member avatars with one 
     await getSquadPreviewHandler({ params: { squadId: squad.squadId }, user: { userId: OTHER_ID } }, res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.data.members.map((m) => [m.memberId, m.displayName, m.avatar]), [
-      ["mem_leader", "Leader", "teal-bot"],
+      ["mem_leader", "Leader", SHARED_CHARACTER],
       ["mem_member", "Member", null],
     ]);
     assert.equal(projections.filter((p) => p === "avatar").length, 1);
@@ -378,7 +380,7 @@ test("approving a join request returns members with avatars", async () => {
     }, res);
     assert.equal(res.statusCode, 200);
     assert.deepEqual(res.body.data.members.map((m) => [m.userId, m.avatar]), [
-      [LEADER_ID, "teal-bot"],
+      [LEADER_ID, SHARED_CHARACTER],
       [OTHER_ID, "gold-moon"],
     ]);
     assert.equal("avatar" in res.body.data.member, false);
@@ -445,7 +447,7 @@ test("encounter detail rosters include member avatars", async () => {
     const res = createResponse();
     await getEncounterHandoffHandler({ params: { encounterId: "enc_avatar" }, user: { userId: LEADER_ID } }, res);
     assert.equal(res.statusCode, 200);
-    assert.equal(res.body.data.squadAMembers[0].avatar, "teal-bot");
+    assert.equal(res.body.data.squadAMembers[0].avatar, SHARED_CHARACTER);
     assert.equal(res.body.data.squadBMembers[0].avatar, "gold-moon");
     assert.equal(res.body.data.squadBMembers[0].displayName, "Other");
     assert.equal(projections.filter((p) => p === "avatar").length, 1);
@@ -477,4 +479,28 @@ test("server free-avatar count matches packages/core", () => {
   const match = source.match(/export const FREE_AVATAR_COUNT = (\d+);/);
   assert.ok(match, "packages/core must export FREE_AVATAR_COUNT");
   assert.equal(Number(match[1]), FREE_AVATAR_COUNT);
+});
+
+test("custom character survives profile persistence and public serialization", async () => {
+  const { encodeCharacter, CHARACTER_DEFAULTS } = require("../src/utils/characterConfig");
+  const { isSelectableAvatarId, loadAvatarsByUserId } = require("../src/utils/avatars");
+  const avatar = encodeCharacter({ ...CHARACTER_DEFAULTS, clothing: "hoodie", headwear: "beanie", earrings: "hoops" });
+  assert.equal(isSelectableAvatarId(avatar, { production: true }), true);
+  assert.equal(publicAvatar(avatar), avatar);
+  assert.equal(normalizeProfilePatch({ avatar }).patch.avatar, avatar);
+  assert.ok(normalizeProfilePatch({ avatar: 'giggle:v1:{"clothing":"script"}' }).error);
+  const original = User.findById;
+  const user = new User({ email: "character-test@example.com", name: "Character Test" });
+  user.save = async function () { await this.validate(); return this; };
+  User.findById = async () => user;
+  try {
+    const saved = createResponse();
+    await updateMyProfile({ user: { userId: LEADER_ID }, body: { avatar } }, saved);
+    assert.equal(saved.statusCode, 200);
+    const loaded = createResponse();
+    await getMyProfile({ user: { userId: LEADER_ID } }, loaded);
+    assert.equal(loaded.body.data.avatar, avatar);
+    const lookup = await loadAvatarsByUserId([LEADER_ID], { User: { find: mockUserFind([{ _id: LEADER_ID, avatar }]).find } });
+    assert.equal(lookup.get(LEADER_ID), avatar);
+  } finally { User.findById = original; }
 });

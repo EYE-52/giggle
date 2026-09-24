@@ -1,5 +1,6 @@
 "use client";
-import { isCustomAvatar, getDefaultAvatarById, DEFAULT_AVATARS, type AvatarStyle } from "@giggle/core";
+import { GiggleAvatar } from "../../../packages/avatars/src";
+import { parseCharacter, isCustomAvatar, getDefaultAvatarById, DEFAULT_AVATARS, type AvatarStyle } from "@giggle/core";
 import { OnlineWrap } from "./Avatar";
 
 interface AvatarArtProps {
@@ -26,6 +27,8 @@ export function AvatarArt({ value, size = 40, online, style }: AvatarArtProps) {
 }
 
 function AvatarArtInner({ value, size = 40, style }: AvatarArtProps) {
+  const character = parseCharacter(value);
+  if (character) return <span style={{ display: "inline-flex", width: size, height: size, flexShrink: 0, ...style }}><GiggleAvatar {...character} size={size} animated={false} label="Giggle character" /></span>;
   if (isCustomAvatar(value)) {
     return (
       <img

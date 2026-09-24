@@ -24,8 +24,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Giggle — Meet in squads",
-  description: "Meet new people. Bring your friends. Live video, together.",
+  title: "Giggle — Good to be together",
+  description: "A little place to hang out with your people. Start a squad, share an invite, and settle into a group video call.",
   manifest: "/manifest.webmanifest",
   applicationName: "Giggle",
   // Installable, fullscreen "Add to Home Screen" behaviour on iOS — makes the

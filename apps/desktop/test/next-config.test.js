@@ -1085,7 +1085,7 @@ test("desktop sign-in hides Apple until that provider is configured", () => {
 test("desktop sign-in stays focused and fits one viewport", () => {
   const page = signinSource();
 
-  assert.equal(page.includes('minHeight: "100svh"'), true);
+  assert.match(readFileSync(path.join(__dirname, "../components/Community.module.css"), "utf8"), /\.auth\s*\{[^}]*min-height:100svh/);
   assert.equal(page.includes('/img/onboarding-hero.jpg'), false);
   assert.equal(page.includes('const props:'), false);
   assert.equal(page.includes('Bring your whole squad'), false);
@@ -1427,7 +1427,6 @@ test("desktop home gives new users one first-room task instead of an empty dashb
 
   assert.equal(page.includes("Start a squad"), true);
   assert.equal(page.includes("Create a squad"), true);
-  assert.equal(page.includes("Invite your friends."), true);
   assert.equal(page.includes("Create a squad, then invite your friends."), true);
   assert.equal(page.includes('title="No squads yet"'), false);
 });
@@ -1466,7 +1465,7 @@ test("desktop home keeps create and join actions compact", () => {
   assert.equal(page.includes("Open a new room"), false);
   assert.equal(page.includes("Start a room and invite your people."), false);
   assert.equal(page.includes('aria-label="Squad invite code"'), true);
-  assert.equal(page.includes('className="gg-join-form"'), true);
+  assert.match(page, /className=\{`gg-join-form /);
 });
 
 test("desktop home uses warm squad actions and discovery surfaces", () => {

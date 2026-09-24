@@ -1,12 +1,12 @@
-import { api, getDefaultAvatarById, getStoredAvatar, isCustomAvatar, setMyAvatar } from "@giggle/core";
+import { api, parseCharacter, getDefaultAvatarById, getStoredAvatar, isCustomAvatar, setMyAvatar } from "@giggle/core";
 
 /**
  * Sets this device's avatar and, for illustrated avatars, saves it on the
  * server profile so friends and squads see it. Custom photos stay local.
  */
 export async function saveMyAvatar(value: string): Promise<void> {
+  if (getDefaultAvatarById(value) || parseCharacter(value)) await api.updateMyProfile({ avatar: value });
   setMyAvatar(value);
-  if (getDefaultAvatarById(value)) await api.updateMyProfile({ avatar: value });
 }
 
 /**
@@ -15,12 +15,12 @@ export async function saveMyAvatar(value: string): Promise<void> {
  */
 export function reconcileMyAvatar(serverAvatar: string | null | undefined): boolean {
   const local = getStoredAvatar();
-  if (serverAvatar && getDefaultAvatarById(serverAvatar)) {
+  if (serverAvatar && (getDefaultAvatarById(serverAvatar) || parseCharacter(serverAvatar))) {
     // A local custom photo wins on this device; otherwise follow the account.
     if (local !== serverAvatar && !(local && isCustomAvatar(local))) setMyAvatar(serverAvatar);
     return false;
   }
-  if (local && getDefaultAvatarById(local)) {
+  if (local && (getDefaultAvatarById(local) || parseCharacter(local))) {
     // Picked before avatars were shared: publish it once.
     void api.updateMyProfile({ avatar: local }).catch(() => {});
     return false;

@@ -14,6 +14,9 @@ const LOG_REQUEST_BODY = process.env.LOG_REQUEST_BODY === "true";
 const isStrangerDiscoveryEnabled = (env = process.env) =>
   env.STRANGER_DISCOVERY_ENABLED === "true" ||
   (env.STRANGER_DISCOVERY_ENABLED !== "false" && env.NODE_ENV !== "production");
+// Selfie→avatar matching ships dark in every environment (including local and
+// tests) and only turns on with an explicit opt-in.
+const isSelfieMatchingEnabled = (env = process.env) => env.SELFIE_MATCHING_ENABLED === "true";
 // Public base URL of this API (".../api"), as clients reach it. Read at call
 // time so tests and late env changes are honored.
 const publicApiBaseUrl = (env = process.env) => {
@@ -29,5 +32,6 @@ module.exports = {
   ENABLE_REQUEST_LOGS,
   LOG_REQUEST_BODY,
   isStrangerDiscoveryEnabled,
+  isSelfieMatchingEnabled,
   publicApiBaseUrl,
 };
