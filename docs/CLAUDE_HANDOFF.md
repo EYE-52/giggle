@@ -56,7 +56,7 @@ The previous Codex goal was marked blocked because only the standard key name wa
 
 ## Status (24 September 2026, Claude manager session)
 
-All five items from the previous "Next work" list are done. Nothing is committed or deployed.
+All five items from the previous "Next work" list are done. Deployed on 24 September 2026 as commit `54af062` (Vercel and Railway both reported success; production health stayed UP). Photo matching ships dark: `SELFIE_MATCHING_ENABLED` is not set on Railway. The repo remote now uses SSH (`git@github.com:EYE-52/giggle.git`, key `~/.ssh/id_ed25519_github`).
 
 - **Workers:** `muse-spark-1.3-contributor` is the user-chosen default (cheaper) and verified. GLM IDs are verified. The launcher passes `--trust-workspace` to headless Muse and accepts optional `IMAGE...` args for Spark. Workers can't write outside the repo; use the git-ignored `.worker-scratch/` (listed in `.git/info/exclude`).
 - **Artwork:** removed the stray cheek shading and the hair highlight that reached the skin, and lowered the tee collar trim so it no longer ghosts the neck. The trim is now limited to tee/sweater/hoodie. Spark accepted the before/after renders across all hairstyles and outfits. Someone outside the workers also lengthened the neck path and set `.panel` min-height to 260px; both were kept.
@@ -67,7 +67,7 @@ All five items from the previous "Next work" list are done. Nothing is committed
 
 ## Next work
 
-1. Before enabling in production: create a separate capped OpenRouter key for Railway (`AVATAR_MATCH_API_KEY`), review provider retention for real photos, and set `SELFIE_MATCHING_ENABLED=true` for internal accounts only. Follow `DEPLOYMENT.md` and deploy only when the user asks.
+1. Before enabling photo matching in production: create a separate capped OpenRouter key for Railway (`AVATAR_MATCH_API_KEY`), review provider retention for real photos, then set `SELFIE_MATCHING_ENABLED=true`. There is no per-account allowlist yet, so turning the flag on enables it for every signed-in user, within the quotas and the $1/day and $10/month caps.
 2. Evaluate on ~30 consented real photos under the $1 evaluation budget; judge likeness by human review.
 3. Optional: a per-command Redis timeout for the match service. Also consider per-hairstyle calibration if real photos show systematic confusions (for example, long read as bob).
 
