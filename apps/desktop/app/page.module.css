@@ -1,25 +1,29 @@
-.page { background:#faf7f0; color:#302c27; min-height:100svh; padding:0 5%; display:flex; flex-direction:column; }
-.page h1, .page h2, .page h3 { font-family:"Clash Display",var(--font-body); font-weight:600; }
-.page>main { flex:1; display:flex; align-items:center; width:100%; }
-.page a { text-decoration:none; }
-.nav { width:100%; max-width:1220px; margin:0 auto; min-height:104px; display:flex; align-items:center; justify-content:space-between; gap:24px; border-bottom:1px solid #ded6c9; }
-.signin { display:flex; align-items:center; gap:12px; border:1px solid #c5b9a8; border-radius:999px; min-height:44px; padding:10px 21px; color:#302c27; font-weight:700; }
-.hero { width:100%; max-width:1220px; margin:0 auto; padding:80px 0 100px; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:56px; align-items:center; }
-.eyebrow { font-size:11px; letter-spacing:.13em; font-weight:800; color:#80543e; display:inline-flex; align-items:center; gap:10px; }
-.eyebrow>span { font-size:23px; }
-.copy h1 { font-size:clamp(36px,5.6vw,80px); letter-spacing:-.035em; line-height:1.08; font-weight:600; margin:25px 0; }
-.page em { font-family:inherit; font-style:normal; font-weight:inherit; letter-spacing:inherit; color:#b24932; }
-.copy p { max-width:440px; font-size:19px; line-height:1.65; color:#6b6155; }
-.cta { display:inline-flex; gap:25px; align-items:center; justify-content:center; background:#b24932; color:#fffaf0; padding:18px 24px; border-radius:18px; margin-top:30px; font-weight:700; font-size:17px; box-shadow:0 4px 0 #80351f; transition:transform .18s; }
-.cta:hover { transform:translateY(-2px); background:#9e3d29; }
-.art { padding:0 12px 25px; }
-.footer { width:100%; max-width:1220px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:24px; padding:25px 0 max(24px,env(safe-area-inset-bottom)); flex-shrink:0; border-top:1px solid #ded6c9; }
-.footer>div { display:flex; align-items:center; gap:22px; }
-.footer>div>span:last-child { font-size:12px; color:#756b5f; }
-.footer nav { display:flex; gap:8px 22px; font-size:12px; flex-wrap:wrap; }
-.footer nav a { min-height:44px; display:flex; align-items:center; }
-.page a:focus-visible { outline:3px solid #b24932; outline-offset:5px; }
-@media(min-width:1600px) { .hero { padding-top:110px; padding-bottom:125px; } }
-@media(max-width:1000px) { .hero { gap:24px; } .footer>div { flex-direction:column; align-items:flex-start; gap:8px; } }
-@media(max-width:640px) { .page { padding:0 22px; } .nav { min-height:80px; } .hero { grid-template-columns:1fr; padding:40px 0 50px; gap:30px; } .copy h1 { font-size:clamp(32px,10.5vw,64px); margin:20px 0; } .copy p { font-size:17px; } .cta { width:100%; margin-top:24px; } .art { max-width:430px; width:100%; margin:auto; padding:10px 14px 25px; } .footer { align-items:flex-start; flex-direction:column; gap:12px; } .footer nav { flex-wrap:wrap; } }
-@media(prefers-reduced-motion:reduce) { .cta { transition:none; } .cta:hover { transform:none; } }
+/* Landing (first-run) — token-based so the skin system owns the treatment:
+ * the header hooks the mock `.nav`/`.brand`, the hero copy is a
+ * `.page-head` with `.title`/`.lede` hooks, and the CTAs are real
+ * `.btn btn-primary|secondary` elements (app/skins/*.css restyle all of
+ * them per skin, light and dark). Only structure/spacing lives here. */
+.page { background: var(--bg); color: var(--text); min-height: 100svh; padding: 0 5%; display: flex; flex-direction: column; font-family: var(--font-body); }
+.page > main { flex: 1; display: flex; align-items: center; width: 100%; }
+.page a { text-decoration: none; }
+.nav { width: 100%; max-width: 1220px; margin: 0 auto; min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.signin { color: var(--text); }
+.hero { width: 100%; max-width: 1220px; margin: 0 auto; padding: 72px 0 96px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 56px; align-items: center; }
+/* Skins size `.title` themselves (soft/clay/scrap set their display sizes;
+ * Doodle writes `font-size: 2em`), so the copy column carries the em base. */
+.copy { font-size: clamp(21px, 2.4vw, 27px); min-width: 0; }
+.copy h1 { font-size: clamp(36px, 5vw, 72px); letter-spacing: -0.03em; line-height: 1.08; font-weight: 700; margin: 12px 0 14px; font-family: var(--font-display); }
+.page em { font-family: inherit; font-style: normal; font-weight: inherit; letter-spacing: inherit; color: var(--brand-deep, var(--accent)); }
+.copy p { max-width: 440px; font-size: 18px; line-height: 1.65; color: var(--text-muted); }
+.cta { margin-top: 26px; font-size: 17px; }
+.art { padding: 0 12px 25px; }
+.footer { width: 100%; max-width: 1220px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 22px 0 max(24px, env(safe-area-inset-bottom)); flex-shrink: 0; border-top: 1px solid var(--border); }
+.footer > div { display: flex; align-items: center; gap: 22px; }
+.footer > div > span:last-child { font-size: 13px; color: var(--text-muted); }
+.footer nav { display: flex; gap: 8px 22px; font-size: 13px; flex-wrap: wrap; }
+.footer nav a { min-height: 44px; display: flex; align-items: center; color: var(--text-muted); }
+.footer nav a:hover { color: var(--text); }
+.page a:focus-visible { outline: 3px solid var(--brand, var(--accent)); outline-offset: 5px; }
+@media(min-width:1600px) { .hero { padding-top: 100px; padding-bottom: 120px; } }
+@media(max-width:1000px) { .hero { gap: 24px; } .footer > div { flex-direction: column; align-items: flex-start; gap: 8px; } }
+@media(max-width:640px) { .page { padding: 0 22px; } .nav { min-height: 76px; } .hero { grid-template-columns: 1fr; padding: 36px 0 48px; gap: 30px; } .copy h1 { font-size: clamp(32px, 10.5vw, 56px); margin: 10px 0 12px; } .copy { font-size: 19px; } .copy p { font-size: 16px; } .cta { width: 100%; margin-top: 22px; } .art { max-width: 430px; width: 100%; margin: auto; padding: 10px 14px 25px; } .footer { align-items: flex-start; flex-direction: column; gap: 12px; } .footer nav { flex-wrap: wrap; } }

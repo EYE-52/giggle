@@ -303,10 +303,33 @@ html[data-skin] .gg-lobby-root .preview-meta {
   html[data-skin] .gg-lobby-root .lobby-stage {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* One explicit column must mean one column: skins that place their
+   * previews/controls into a two-column grid (Bold Play writes
+   * grid-column: 2 on the invite and 1/-1 on the controls) would otherwise
+   * mint an implicit second track and confine the controls to column 1,
+   * squeezing its buttons out of the tile. Stack the stage children
+   * (equal specificity to the skins' own placements; this file loads
+   * last, so it wins the tie). */
+  html[data-skin] .gg-lobby-root .lobby-stage .preview.self,
+  html[data-skin] .gg-lobby-root .lobby-stage .preview.invite,
+  html[data-skin] .gg-lobby-root .lobby-stage .lobby-controls {
+    grid-column: auto;
+    grid-row: auto;
+  }
   html[data-skin] .gg-lobby-root .lobby-stage .preview {
     aspect-ratio: auto;
     max-height: none;
   }
+}
+
+/* Lobby invite slot: a real call to action, not a grey empty box. The
+ * skins' own `.preview.invite` shapes stay, but every skin gets the
+ * brand-tinted inviting wash; the two palette-specific contrast fixes below
+ * still override this where they apply. */
+html[data-skin] .preview.invite {
+  background: var(--accent-soft);
+  border: 1.5px dashed var(--accent-line);
+  color: var(--text);
 }
 
 /* Doodle invite tile: honey-light's muted label rides under the 4.5:1 floor
@@ -374,4 +397,83 @@ html[data-skin] .cbtn {
 html[data-skin="scrap"] .cbtn:focus-visible {
   outline: 2.5px solid color-mix(in srgb, var(--brand) 72%, transparent);
   outline-offset: 2px;
+}
+
+/* ── Phase 3 (Appearance live previews) ──────────────────────────────────── */
+
+/* Home join card is the secondary action — keep it smaller and quieter under
+ * every skin (the skins' .card.join-card rules would restore full padding
+ * and title scale). Doodle's handwritten face gets a touch more size. */
+html[data-skin] .card.join-card.gg-join-quiet {
+  padding: 16px 18px 18px;
+  gap: 8px;
+}
+html[data-skin] .card.join-card.gg-join-quiet .card-title {
+  font-size: 15.5px;
+  letter-spacing: -0.01em;
+}
+html[data-skin="paper"] .card.join-card.gg-join-quiet .card-title {
+  font-size: 17.5px;
+}
+/* Doodle's handwritten body needs the 2a ≥14px floor even on the quieter
+ * card (the p2a right-column check samples this hint). */
+html[data-skin] .card.join-card.gg-join-quiet .hint {
+  font-size: 13px;
+}
+/* Doodle's handwritten body needs the 2a ≥14px floor even on the quieter
+ * card (the p2a right-column check samples this hint). */
+html[data-skin="paper"] .card.join-card.gg-join-quiet .hint {
+  font-size: 14.5px;
+}
+html[data-skin] .card.join-card.gg-join-quiet .input {
+  min-height: 44px;
+  font-size: 14px;
+}
+
+/* Doodle's sketch opt-ins key off html[data-skin="paper"], which matches the
+ * WHOLE document — including live-preview samples of other skins. Inside a
+ * foreign preview the sketch renderer must stay off (only a Doodle preview
+ * looks hand-drawn). SketchLayer only runs under the paper skin, so scoping
+ * the kill to it is enough. */
+html[data-skin="paper"] [data-skin-preview]:not([data-skin-preview="paper"]) :is(.btn, .card, .card-title, .title, .tip-title, .chip, .badge, .input, .search, .code-box, .modal, .preview, .icon-btn, .pa, .seat, .kicker, .switch, .tip-idea) {
+  --sketch: none;
+}
+
+/* The ACTIVE skin's .btn font rule (paper writes its display face onto
+ * buttons) would bleed into other skins' previews, whose own alias sets no
+ * font. Normalize preview buttons to the previewed skin's body face; a
+ * Doodle preview overrides this via its (0,4,1) alias. */
+html[data-skin] [data-skin-preview] .btn {
+  font-family: var(--font-body);
+}
+
+/* The preview container itself never carries page-level paint (the picker's
+ * own layout styles it); only its sample content adopts the previewed skin. */
+
+/* ── Bold Play tilt pass: readability guards ─────────────────────────────── */
+/* In dark mode the pop color stays bright, so sticker text on it uses the
+ * palette's dark ink (--on-brand is dark in every dark palette). */
+html[data-skin="play"][data-mode="dark"] :is(.page-head .eyebrow, .kicker, .badge, .count, .call-top .timer, .chip.is-on, .tip-mark) {
+  color: var(--on-brand);
+}
+/* Phone: idea chips wrap instead of truncating (tilt kept). */
+@media (max-width: 720px) {
+  html[data-skin="play"] .tip-idea {
+    white-space: normal;
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  html[data-skin="play"] .tip-idea > span {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+  /* the wiggle overlay paints nothing; keep it inside the chip's box */
+  html[data-skin="play"] .tip-idea::after {
+    inset: 0;
+  }
+}
+/* Honey's pop is raspberry: dark ink on it is 3.6:1, white is 4.7:1. */
+html[data-skin="play"][data-palette="honey"][data-mode="light"] :is(.page-head .eyebrow, .kicker, .badge, .count, .call-top .timer, .chip.is-on, .tip-mark) {
+  color: var(--on-brand);
 }

@@ -41,12 +41,12 @@ for (const width of [390, 1440]) {
       await expect(friend.getByText(message, { exact: true })).toBeVisible();
       for (const page of [leader, friend]) await page.getByRole('button', { name: 'Close chat' }).click();
       await expect(leader.getByRole('button', { name: 'Find a squad', exact: true })).toBeDisabled();
-      for (const page of [leader, friend]) await page.getByRole('button', { name: "I'm ready", exact: true }).click();
+      for (const page of [leader, friend]) await page.getByRole('button', { name: "I'm ready to join", exact: true }).click();
       await expect(leader.getByRole('button', { name: 'Find a squad', exact: true })).toBeEnabled();
       await expect(friend.getByRole('button', { name: 'Find a squad', exact: true })).toHaveCount(0);
       await leader.getByRole('button', { name: 'Find a squad', exact: true }).click();
       const devices = leader.getByRole('dialog', { name: 'Connect your devices' });
-      await devices.getByRole('button', { name: 'Enable camera & mic', exact: true }).click();
+      await devices.getByRole('button', { name: 'Turn on camera & mic', exact: true }).click();
       await expect(devices.getByRole('alert')).toContainText("Video isn't available right now.");
       await devices.getByRole('button', { name: /close/i }).click();
       await leader.getByRole('button', { name: 'Squad settings', exact: true }).click();

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useLook } from "@/lib/look";
 
@@ -166,7 +166,21 @@ function registerSketchProps() {
 export function SketchLayer() {
   const look = useLook();
   const pathname = usePathname();
-  const active = look.skin === "paper";
+  /* Doodle draws when it is the active skin OR when a Doodle live preview is
+   * on screen (Profile → Appearance renders [data-skin-preview="paper"]; its
+   * sketch props come from the preview-scoped rules in app/skins/*.css, and
+   * foreign previews opt out via port-overrides.css). The watcher keeps this
+   * reactive without coupling the layer to the picker. */
+  const [paperPreview, setPaperPreview] = useState(false);
+  useEffect(() => {
+    if (typeof document === "undefined" || !document.body) return;
+    const query = () => setPaperPreview(!!document.querySelector('[data-skin-preview="paper"]'));
+    query();
+    const observer = new MutationObserver(query);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [pathname]);
+  const active = look.skin === "paper" || paperPreview;
 
   useEffect(() => {
     if (!active) {

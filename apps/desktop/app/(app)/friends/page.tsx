@@ -6,7 +6,7 @@ import { useViewport } from "@/components/useViewport";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { useToast } from "@/components/Toast";
-import { api } from "@giggle/core";
+import { api, session, type ReferralInfo } from "@giggle/core";
 import type { MySquadLite } from "@giggle/core";
 import { pollWhileVisible } from "@/lib/poll";
 import styles from "./friends.module.css";
@@ -264,6 +264,10 @@ export default function FriendsPage() {
           />
         </div>
 
+        {/* First run: a welcoming empty state — one line, the invite link,
+            and a hint that friends can find you by your display name. */}
+        {showFirstRun && <InviteCard />}
+
         {query.trim() && (
           <ul className={`friend-list ${styles.list}`}>
             {searchError ? (
@@ -429,6 +433,99 @@ export default function FriendsPage() {
 }
 
 // ── Small building blocks ─────────────────────────────────────────────────────
+
+/**
+ * First-run invite card (no friends and no requests yet). Copies the same
+ * referral link ReferralCard shares (origin/?ref=CODE — both sides earn
+ * tokens when the friend joins), plus a hint that friends can find you by
+ * your display name. Hidden entirely when the referral service is
+ * unavailable so it never shows a dead button.
+ */
+function InviteCard() {
+  const [info, setInfo] = useState<ReferralInfo | null>(null);
+  const [origin, setOrigin] = useState("");
+  const [failed, setFailed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    try { setOrigin(window.location.origin); } catch {}
+    let alive = true;
+    api.getReferral()
+      .then((data) => { if (alive) setInfo(data); })
+      .catch(() => { if (alive) setFailed(true); });
+    return () => {
+      alive = false;
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+
+  if (failed || !info) {
+    // Reserve nothing while loading; a failed referral leaves the hint alone.
+    if (failed) {
+      return (
+        <div className={`card ${styles.inviteCard}`}>
+          <p className={`hint ${styles.inviteHint}`}>Friends can find you by your display name — {session.user?.name ?? "yours"}.</p>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  const link = `${origin}/?ref=${info.code}`;
+
+  async function copyInviteLink() {
+    setCopyError(false);
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(link);
+      ok = true;
+    } catch {}
+    if (!ok) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = link;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand("copy");
+        ta.remove();
+      } catch {}
+    }
+    if (!ok) {
+      setCopyError(true);
+      return;
+    }
+    setCopied(true);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(false), 1800);
+  }
+
+  return (
+    <div className={`card ${styles.inviteCard}`}>
+      <div className={styles.inviteRow}>
+        <div className={styles.inviteCopy}>
+          <h2 className={`card-title ${styles.inviteTitle}`}>Bring your first friend over</h2>
+          <p className={`hint ${styles.inviteHint}`}>
+            {copyError
+              ? "Couldn't copy the link — send them your display name instead."
+              : copied
+                ? "Invite link copied — paste it to them."
+                : `Copy your invite link and you both get ${info.rewardPerInvite} tokens when they join.`}
+          </p>
+          <p className={`hint ${styles.inviteHint}`}>Friends can also find you by your display name, {session.user?.name ?? "the name on your profile"}.</p>
+        </div>
+        <Button onClick={() => void copyInviteLink()} className={styles.inviteBtn}>
+          <Icon.link size={16} color="currentColor" />
+          {copied ? "Copied!" : "Invite a friend"}
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 function FriendsEmptyState() {
   return (

@@ -31,6 +31,10 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
   const [dragOver, setDragOver] = useState(false);
 
   const effectiveSelected = preview ?? selected;
+  const selectedPresetName =
+    !preview && selected
+      ? CHARACTER_PRESETS.find((preset) => encodeCharacter(preset.config) === selected)?.name
+      : undefined;
 
   const handleFile = useCallback((file: File) => {
     if (!ALLOWED_UPLOAD_IMAGE_TYPES.has(file.type)) {
@@ -82,9 +86,6 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
       title={title}
       subtitle={subtitle}
       closeLabel="Close avatar picker"
-      style={{
-        background: "linear-gradient(160deg, var(--surface-grad-from) 0%, var(--surface-grad-to) 100%)",
-      }}
     >
       <div>
         <style>{`
@@ -100,13 +101,14 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
             100% { transform: rotate(0) scale(1); }
           }
         `}</style>
-        {/* Preview of currently-highlighted avatar. The character art fills
-            its circle inside the viewBox, so render it slightly oversized in a
-            fixed circular window: the whole face stays inside the ring. */}
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+        {/* Preview of the currently-selected avatar — tapping a preset swaps
+            this instantly. The character art fills its circle inside the
+            viewBox, so render it slightly oversized in a fixed circular
+            window: the whole face stays inside the ring. */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 14 }}>
           <div style={{
-            width: 96,
-            height: 96,
+            width: 104,
+            height: 104,
             borderRadius: "50%",
             overflow: "hidden",
             boxShadow: "0 0 0 4px var(--surface), 0 0 0 6px var(--accent-line)",
@@ -114,11 +116,14 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
             alignItems: "center",
             justifyContent: "center",
           }}>
-            <AvatarArt value={effectiveSelected} size={104} />
+            <AvatarArt value={effectiveSelected} size={112} />
           </div>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-muted)" }}>
+            {preview ? "Your upload" : selectedPresetName ?? "Your pick"}
+          </span>
         </div>
 
-        <Button onClick={() => { onClose(); router.push("/avatar-playground"); }} style={{ width: "100%", marginBottom: 20 }}>Create or edit your character</Button>
+        <Button variant="secondary" onClick={() => { onClose(); router.push("/avatar-playground"); }} style={{ width: "100%", marginBottom: 18 }}>Create or edit your character</Button>
         {/* Grid of character looks */}
         <div
           style={{
@@ -176,11 +181,11 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
                   )}
                 </div>
                 <span style={{
-                  fontSize: 12, fontWeight: 600,
+                  fontSize: 13, fontWeight: 600,
                   color: isActive ? "var(--accent, var(--violet))" : "var(--text-muted)",
                   fontFamily: "var(--font-display, var(--font-space-grotesk)), 'Space Grotesk', sans-serif",
                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                  maxWidth: 60,
+                  maxWidth: 68,
                 }}>
                   {preset.name}
                 </span>
@@ -234,7 +239,7 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
               </div>
             )}
             <span style={{
-              fontSize: 12, fontWeight: 600,
+              fontSize: 13, fontWeight: 600,
               color: preview ? "var(--lime-text)" : "var(--text-muted)",
               fontFamily: "var(--font-display, var(--font-space-grotesk)), 'Space Grotesk', sans-serif",
             }}>
@@ -253,7 +258,7 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
         {/* Upload hint */}
         {hint && (
           <div style={{ marginBottom: 14, padding: "8px 12px", borderRadius: "var(--radius-control, 14px)", background: "var(--coral-soft)" }}>
-            <span style={{ fontSize: 12, color: "var(--coral)", fontWeight: 600 }}>{hint}</span>
+            <span style={{ fontSize: 13, color: "var(--coral)", fontWeight: 600 }}>{hint}</span>
           </div>
         )}
 
@@ -261,10 +266,10 @@ export function AvatarPicker({ current, onClose, title = "Choose your avatar", s
           <p role="alert" className="gg-inline-error" style={{ marginBottom: 12 }}>{saveError}</p>
         )}
 
-        {/* Footer buttons */}
+        {/* Footer: one clear primary action — Save */}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} loading={saving} style={{ minWidth: 80 }}>
+          <Button onClick={handleSave} loading={saving} style={{ minWidth: 96 }}>
             {saving ? "Saving…" : "Save"}
           </Button>
         </div>

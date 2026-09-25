@@ -58,6 +58,24 @@
  * DOM are dropped. Rules mixing live and future selectors keep only the live
  * ones.
  *
+ * Phase 3 — LIVE PREVIEW SCOPE. Profile → Appearance renders each skin's
+ * real markup inside a [data-skin-preview="X"] container. Every rule whose
+ * final compound is a preview-able hook (button/card/avatar/chip primitives
+ * — PREVIEW_HOOKS below) is additionally emitted scoped to that container:
+ *   html[data-skin="X"] REST                  → html[data-skin] [data-skin-preview="X"][data-skin-preview="X"] REST
+ *   html[data-skin="X"][data-mode="dark"] R   → html[data-skin][data-mode="dark"] [data-skin-preview="X"][data-skin-preview="X"] R
+ * The doubled [data-skin-preview] compound keeps the alias (0,4,1) above
+ * every real skin rule (max (0,4,1), and that one shape — soft's dark
+ * desktop .friend — never appears in a preview), so inside the container the
+ * preview scope always wins over the ACTIVE skin's own rules; the dark alias
+ * (0,5,1) beats the light alias, so previews follow the resolved mode.
+ * @media device wraps stay around the alias. Root custom-property blocks
+ * also alias onto the container itself (so --sp, --r and --ink tokens resolve inside
+ * the preview); body/shell/call-screen selectors never exist inside a
+ * preview and are not aliased. The palette vars (--brand/--bg/…) are NOT
+ * aliased: previews inherit them from html[data-palette], so a preview
+ * always shows the chosen palette in the previewed skin's material.
+ *
  * Phase 2c — VIDEO GEOMETRY GUARD. The call stage's tile boxes come from
  * packages/core arrangeVideoCall + the app's own stage CSS; skins may only
  * restyle paint. translateBody() therefore drops, per selector tier:
@@ -221,6 +239,60 @@ function translateSelector(sel, skin, forceDark = false) {
   return s ? { selector: s, media } : null;
 }
 
+/* ── Phase 3: preview scope ──────────────────────────────────────────────────
+ * Final-compound classes a preview sample can carry. Anything else (shell,
+ * screen roots, home/friends/lobby/call-specific hooks) cannot appear inside
+ * a [data-skin-preview] container, so those rules are not aliased. */
+const PREVIEW_HOOKS = new Set([
+  // primitives that a mini-preview renders for real
+  "btn", "btn-primary", "btn-secondary", "btn-ghost", "btn-tonal", "btn-danger",
+  "small", "wide", "card", "card-title", "card-foot", "hint", "fine", "link",
+  "kicker", "muted", "eyebrow", "title", "lede", "page-head",
+  "input", "code", "chip", "is-on", "badge",
+  "pa", "av", "presence", "on",
+  "modal", "modal-head", "icon-btn", "ic",
+  "seat", "seat-row", "filled", "empty",
+]);
+
+function lastCompoundOf(selector) {
+  return selector.trim().split(/[\s>+~]+/).pop() ?? "";
+}
+
+/**
+ * Phase 3: the [data-skin-preview="X"] alias for one translated selector.
+ * Returns the alias selector string, or null when the rule cannot apply
+ * inside a preview (body/shell/call roots) or its target hook is not
+ * preview-able.
+ */
+function previewAlias(selector, skin) {
+  const light = `html[data-skin="${skin}"]`;
+  const doubled = `html[data-skin="${skin}"][data-skin="${skin}"]`;
+  const dark = `html[data-skin="${skin}"][data-mode="dark"]`;
+  const darkDoubled = `html[data-skin="${skin}"][data-mode="dark"][data-skin="${skin}"]`;
+  // Root custom-property block: alias onto the container itself so the
+  // skin's spacing/radius/ink tokens resolve inside the preview.
+  if (selector === light) return `[data-skin-preview="${skin}"]`;
+
+  let rest = null;
+  let isDark = false;
+  for (const [prefix, dark_] of [[darkDoubled, true], [dark, true], [doubled, false], [light, false]]) {
+    if (selector.startsWith(prefix + " ")) {
+      rest = selector.slice(prefix.length + 1);
+      isDark = dark_;
+      break;
+    }
+  }
+  if (rest == null) return null; // view-transition / other roots — never in a preview
+
+  if (/^body(::[a-z-]+)?$/.test(rest)) return null; // the page body is not preview-able
+  const compound = lastCompoundOf(rest).replace(/:[A-Za-z-]+(\([^)]*\))?/g, "");
+  const hooks = classesOf(compound);
+  if (![...hooks].every((cls) => PREVIEW_HOOKS.has(cls))) return null;
+
+  const scope = `[data-skin-preview="${skin}"][data-skin-preview="${skin}"]`;
+  return (isDark ? `html[data-skin][data-mode="dark"] ` : `html[data-skin] `) + scope + " " + rest;
+}
+
 /* ── declaration translation ──────────────────────────────────────────────── */
 
 const FRAME_CHROME = new Set(["border", "border-radius", "box-shadow", "border-color", "border-width", "border-style"]);
@@ -372,6 +444,25 @@ function parseRules(css) {
 
 /* ── emission ─────────────────────────────────────────────────────────────── */
 
+/** Split a selector list on TOP-LEVEL commas only — commas inside :is()/
+ * :where()/:not() keep the list together (a naive split once emitted broken
+ * `:is(.btn` fragments and stray global rules from Scrapbook's focus rule). */
+function splitSelectorList(head) {
+  const parts = [];
+  let depth = 0;
+  let current = "";
+  for (const ch of head) {
+    if (ch === "(") depth++;
+    else if (ch === ")") depth--;
+    if (ch === "," && depth === 0) {
+      parts.push(current);
+      current = "";
+    } else current += ch;
+  }
+  parts.push(current);
+  return parts.map((p) => p.trim()).filter(Boolean);
+}
+
 function formatPairs(pairs) {
   const merged = new Map();
   for (const { selector, decls } of pairs) {
@@ -387,10 +478,21 @@ function formatPairs(pairs) {
   return lines;
 }
 
+/** Phase 3: a selector's pairs plus its [data-skin-preview] alias pairs. */
+function pairsWithAliases(pairs, item, skin) {
+  const out = [];
+  for (const { selector, decls } of pairs) {
+    out.push({ selector, decls });
+    const alias = previewAlias(selector, skin);
+    if (alias) out.push({ selector: alias, decls: translateBody(item.body, alias) });
+  }
+  return out;
+}
+
 /** Translate one style rule; returns lines. */
 function styleRule(item, skin, forceDark = false) {
   const buckets = { min: [], max: [], none: [] };
-  for (const part of item.head.split(",")) {
+  for (const part of splitSelectorList(item.head)) {
     const t = translateSelector(part, skin, forceDark);
     if (t) buckets[t.media ?? "none"].push(t.selector);
   }
@@ -420,13 +522,16 @@ function styleRule(item, skin, forceDark = false) {
     const lines = [];
     if (htmlDecls.length) lines.push(`html[data-skin="${skin}"] {`, ...htmlDecls.map((d) => `  ${d};`), `}`);
     if (bodyDecls.length) lines.push(`html[data-skin="${skin}"] body {`, ...bodyDecls.map((d) => `  ${d};`), `}`);
+    // Phase 3: the same tokens on the preview container (custom props only —
+    // the container has no body/backdrop of its own).
+    if (htmlDecls.length) lines.push(`[data-skin-preview="${skin}"] {`, ...htmlDecls.map((d) => `  ${d};`), `}`);
     return lines;
   }
 
-  const lines = formatPairs(buckets.none.map((sel) => ({ selector: sel, decls: translateBody(item.body, sel) })));
+  const lines = formatPairs(pairsWithAliases(buckets.none.map((sel) => ({ selector: sel, decls: translateBody(item.body, sel) })), item, skin));
   for (const [key, query] of [["min", "@media (min-width: 721px)"], ["max", "@media (max-width: 720px)"]]) {
     if (!buckets[key].length) continue;
-    const inner = formatPairs(buckets[key].map((sel) => ({ selector: sel, decls: translateBody(item.body, sel) })));
+    const inner = formatPairs(pairsWithAliases(buckets[key].map((sel) => ({ selector: sel, decls: translateBody(item.body, sel) })), item, skin));
     if (!inner.length) continue;
     lines.push(`${query} {`, ...inner.map((l) => `  ${l}`), `}`);
   }
@@ -458,8 +563,10 @@ for (const skin of SKINS) {
   const src = readFileSync(join(DESIGN, `skin-${skin}.css`), "utf8");
   const chunks = [
     `/* GENERATED by apps/desktop/scripts/port-skins.mjs from design/skins/skin-${skin}.css — do not edit.
- * Skin system phase 2c: the approved "${skin}" skin translated onto the real
- * app DOM. See the script header for the full rule table. */
+ * Skin system phase 3: the approved "${skin}" skin translated onto the real
+ * app DOM, plus [data-skin-preview="${skin}"] aliases so Profile → Appearance
+ * can render live samples in this skin. See the script header for the full
+ * rule table. */
 `,
   ];
   for (const item of parseRules(src)) {

@@ -276,6 +276,12 @@
   border: 1px solid var(--border);
   border-radius: 22px;
 }
+/* Joining is the SECONDARY path ("Start a squad" is the primary action), so
+ * the invite-code card sits smaller and quieter than the hero card. */
+.gg-join-quiet { padding: 16px 18px 18px; gap: 8px; }
+.gg-join-quiet label { font-size: 15.5px; letter-spacing: -0.01em; }
+.gg-join-quiet .hint { font-size: 13px; }
+.gg-join-quiet input { min-height: 44px; font-size: 14px; }
 .gg-join-form label {
   font-size: 17px;
   font-weight: 700;

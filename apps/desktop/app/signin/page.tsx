@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Logomark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
 import { session, setPendingReferral, BACKEND_URL } from "@giggle/core";
-import { useViewport } from "@/components/useViewport";
 import { HangoutIllustration } from "@/components/HangoutIllustration";
 import community from "@/components/Community.module.css";
 
@@ -19,7 +18,6 @@ function safeNextPath(value: string | null) {
 
 export default function AuthPage() {
   const router = useRouter();
-  const { isPhone } = useViewport();
   const [status, setStatus] = useState<SignInStatus>("idle");
   const [activeProvider, setActiveProvider] = useState<"google" | "apple" | null>(null);
   const [err, setErr] = useState("");
@@ -111,38 +109,30 @@ export default function AuthPage() {
   };
 
   return (
-    <main className={community.auth}>
-      <div className={community.authIntro}>
-        <Link href="/">← Back to Giggle</Link>
-        <h2>Your people.<br />Your kind of <em>happy.</em></h2>
-        <p>A little less scrolling. A little more “you had to be there.”</p>
+    <main className={`gg-landing ${community.auth}`}>
+      <div className={`page-head ${community.authIntro}`}>
+        <Link href="/" className={community.backLink}>← Back to Giggle</Link>
+        <h2 className="title">Your people.<br />Your kind of <em>happy.</em></h2>
+        <p className="lede">A little less scrolling. A little more “you had to be there.”</p>
         <div className={community.authArt}><HangoutIllustration /></div>
       </div>
-      <section style={{ position: "relative", width: "100%", maxWidth: 430, padding: isPhone ? 22 : 30, borderRadius: "var(--radius-card, 20px)", background: "var(--surface)", border: "1px solid var(--border)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24 }}>
+      <section className={`card ${community.authCard}`}>
+        <div className={community.authBrand}>
           <Logomark size={34} glow={false} />
-          <span style={{ fontFamily: "var(--font-display, var(--font-space-grotesk)), sans-serif", fontWeight: 700, fontSize: 20 }}>Giggle</span>
+          <span className="wordmark">Giggle</span>
         </div>
 
-        <h1 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk)), sans-serif", fontSize: 30, fontWeight: 700, lineHeight: 1.05, letterSpacing: "-0.02em", maxWidth: 330 }}>Sign in to Giggle</h1>
-        <p style={{ margin: "12px 0 24px", color: "var(--text-body)", fontSize: 14, lineHeight: 1.5 }}>First hello or familiar face. There’s a place for you here.</p>
+        <h1 className={community.authHeading}>Sign in to Giggle</h1>
+        <p className={community.authSub}>First hello or familiar face. There’s a place for you here.</p>
 
-        {refCode && <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 16, padding: "10px 12px", borderRadius: "var(--radius-control, 14px)", background: "color-mix(in srgb, var(--accent, var(--violet, #7657FF)) 14%, transparent)", color: "var(--accent)", fontSize: 13 }}><Icon.gift size={17} color="var(--violet-bright)" /> Invite accepted. You both get 100 tokens.</div>}
+        {refCode && <div className={community.refNote}><Icon.gift size={17} color="currentColor" /> Invite accepted. You both get 100 tokens.</div>}
 
         <div style={{ display: "grid", gap: 10 }}>
           <button
-            className="gg-press"
+            className="gg-press gg-btn btn btn-secondary"
             onClick={() => oauthRedirect("google")}
             disabled={busy}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 11,
-              width: "100%", height: 50, borderRadius: "var(--radius-control, 14px)",
-              fontFamily: "inherit", fontWeight: 600, fontSize: 14,
-              background: "#FFFFFF", color: "#1f1f1f", border: "1px solid var(--border-strong)",
-              boxShadow: "var(--shadow-sm)",
-              cursor: busy ? "wait" : "pointer", whiteSpace: "nowrap",
-              opacity: busy ? 0.7 : 1,
-            }}
+            style={{ width: "100%", whiteSpace: "nowrap", opacity: busy ? 0.7 : 1, cursor: busy ? "wait" : "pointer" }}
           >
             {status === "redirecting" && activeProvider === "google"
               ? (<><span className="gg-spinner" aria-hidden /> Opening Google...</>)
@@ -154,35 +144,24 @@ export default function AuthPage() {
               APPLE_* env vars are set, so we never ship a dead provider. */}
         </div>
 
-        <p style={{ margin: "12px 0 0", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.45 }}>We use your name and email to create your profile. We never post on your behalf.</p>
+        <p className={community.finePrint}>We use your name and email to create your profile. We never post on your behalf.</p>
         {err && (
           <div style={{ marginTop: 12 }}>
-            <p role="alert" style={{ margin: 0, color: "var(--coral, #ff7979)", fontSize: 13, lineHeight: 1.45 }}>{err}</p>
-            <button onClick={() => { setErr(""); setStatus("idle"); }} style={{ minHeight: 44, padding: 0, border: 0, background: "transparent", color: "var(--accent)", font: "600 13px var(--font-inter), sans-serif", cursor: "pointer" }}>Try again</button>
+            <p role="alert" className={community.authError}>{err}</p>
+            <button onClick={() => { setErr(""); setStatus("idle"); }} className={community.retry}>Try again</button>
           </div>
         )}
-        <p style={{ margin: "16px 0 0", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.5 }}>By continuing, you agree to our <Link href="/terms" style={{ color: "var(--text-body)", textDecoration: "underline" }}>Terms</Link> and <Link href="/privacy" style={{ color: "var(--text-body)", textDecoration: "underline" }}>Privacy Policy</Link>.</p>
+        <p className={community.finePrint}>By continuing, you agree to our <Link href="/terms" className={community.legalLink}>Terms</Link> and <Link href="/privacy" className={community.legalLink}>Privacy Policy</Link>.</p>
 
         {process.env.NODE_ENV !== "production" && (
-          <div style={{ marginTop: 20, padding: 16, borderRadius: "var(--radius-control, 14px)", background: "var(--overlay)", border: "1px solid var(--border)" }}>
-          <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700 }}>Local testing</p>
-          <p style={{ margin: "0 0 12px", color: "var(--text-muted)", fontSize: 12, lineHeight: 1.5 }}>Open a test account without Google or age verification. Use another browser profile to test with a second person.</p>
+          <div className={community.devBox}>
+          <p className={community.devTitle}>Local testing</p>
+          <p className={community.finePrint}>Open a test account without Google or age verification. Use another browser profile to test with a second person.</p>
           <button
-            className="gg-press"
+            className="gg-press gg-btn btn btn-primary"
             onClick={devFinish}
             disabled={busy}
-            style={{
-              background: "var(--accent)",
-              border: "none",
-              color: "var(--on-accent)",
-              cursor: "pointer",
-              fontSize: 14,
-              fontFamily: "inherit",
-              minHeight: 44,
-              padding: "0 16px",
-              width: "100%",
-              borderRadius: "var(--radius-control, 14px)",
-            }}
+            style={{ width: "100%" }}
           >
             {status === "dev" ? "Opening dev account..." : "Use dev account"}
           </button>

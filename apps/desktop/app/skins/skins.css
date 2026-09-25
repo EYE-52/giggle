@@ -35,3 +35,35 @@ html[data-skin="scrap"] {
   /* Scrapbook's handwritten accent face (labels, tape notes — phase 2). */
   --font-hand: var(--font-caveat), "Caveat", cursive;
 }
+
+/* ── Phase 3: preview scopes ──────────────────────────────────────────────────
+ * Profile → Appearance renders each skin's real markup inside a
+ * [data-skin-preview="X"] container (the ported skin-*.css alias their rules
+ * under the same scope). Font mapping lives HERE, not in the port output, so
+ * each preview needs its own --font-display/--font-body block — the active
+ * skin's html-level mapping would otherwise win by inheritance. */
+[data-skin-preview="soft"] {
+  --font-display: var(--font-bricolage), "Bricolage Grotesque", var(--font-jakarta), system-ui, sans-serif;
+  --font-body: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+[data-skin-preview="play"] {
+  --font-display: var(--font-baloo), "Baloo 2", var(--font-nunito), system-ui, sans-serif;
+  --font-body: var(--font-nunito), "Nunito", system-ui, -apple-system, sans-serif;
+}
+
+[data-skin-preview="paper"] {
+  --font-display: var(--font-caveat-brush), "Caveat Brush", var(--font-kalam), cursive;
+  --font-body: var(--font-kalam), "Kalam", system-ui, cursive;
+}
+
+[data-skin-preview="clay"] {
+  --font-display: var(--font-fredoka), "Fredoka", var(--font-nunito), system-ui, sans-serif;
+  --font-body: var(--font-nunito), "Nunito", system-ui, -apple-system, sans-serif;
+}
+
+[data-skin-preview="scrap"] {
+  --font-display: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  --font-body: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  --font-hand: var(--font-caveat), "Caveat", cursive;
+}

@@ -301,13 +301,13 @@ export default function HomePage() {
         </div>
         <aside className="gg-home-side">
           <form
-            className={`gg-join-form card join-card`}
+            className={`gg-join-form card join-card gg-join-quiet`}
             onSubmit={(event) => {
               event.preventDefault();
               void join();
             }}
           >
-            <label htmlFor="squad-code" className="card-title">Got a seat saved?</label>
+            <label htmlFor="squad-code" className="card-title">Have an invite code?</label>
             <p className={`hint ${community.joinHint}`}>Pop in the invite code from your friends.</p>
             <div className="gg-join-row join">
               <input
@@ -317,7 +317,7 @@ export default function HomePage() {
                 aria-invalid={!!joinError}
                 aria-describedby={joinError ? "join-error" : undefined}
                 value={code}
-                placeholder="ABC-123"
+                placeholder="Enter code"
                 autoCapitalize="characters"
                 autoComplete="off"
                 spellCheck={false}

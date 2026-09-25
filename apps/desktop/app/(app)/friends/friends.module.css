@@ -91,7 +91,7 @@
 .firstLede {
   margin: 0;
   max-width: 520px;
-  color: var(--text-muted);
+  color: var(--text-body);
   font-size: 14px;
   line-height: 1.55;
 }
@@ -362,6 +362,42 @@ html:not([data-skin]) .search:focus-within .searchInput {
   margin: 3px 0 0;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+/* First-run invite card (mock `.card` hook so skins restyle it). */
+.inviteCard {
+  display: flex;
+  padding: 18px 20px;
+  border-radius: var(--radius-card, 18px);
+  border: 1px dashed var(--border-strong);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.inviteRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.inviteCopy {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.inviteTitle {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text);
+}
+.inviteHint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-body);
+}
+.inviteBtn {
+  flex-shrink: 0;
 }
 
 /* ── squad picker modal rows ─────────────────────────────────────────────── */

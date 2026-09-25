@@ -286,9 +286,14 @@ test("skins.css only carries structural per-skin font rules", () => {
     assert.ok(css.includes(`html[data-skin="${skin}"]`), `${skin} font block`);
   }
   // Every skin sets both faces; scrap also keeps its handwritten accent face.
-  assert.equal((css.match(/--font-display:/g) ?? []).length, 5);
-  assert.equal((css.match(/--font-body:/g) ?? []).length, 5);
+  // Phase 3 adds one [data-skin-preview] mirror per skin (Appearance live
+  // samples), so each count doubles from 5 to 10.
+  assert.equal((css.match(/--font-display:/g) ?? []).length, 10);
+  assert.equal((css.match(/--font-body:/g) ?? []).length, 10);
   assert.match(css, /html\[data-skin="scrap"\] \{[\s\S]*?--font-hand:/s);
+  for (const skin of ["soft", "play", "paper", "clay", "scrap"]) {
+    assert.ok(css.includes(`[data-skin-preview="${skin}"]`), `${skin} preview font block`);
+  }
 });
 
 test("Icons.tsx keeps its API while rendering Phosphor path data at the skin's weight", () => {
@@ -732,7 +737,7 @@ test("lobby asks before starting camera and microphone", () => {
   const page = lobbySource();
 
 
-  assert.equal(page.includes('aria-label="Enable camera and microphone"'), true);
+  assert.equal(page.includes('aria-label="Turn on camera and microphone"'), true);
   assert.equal(page.includes("if (!joinStartedRef.current)"), false);
 });
 
