@@ -477,3 +477,17 @@ html[data-skin="play"][data-mode="dark"] :is(.page-head .eyebrow, .kicker, .badg
 html[data-skin="play"][data-palette="honey"][data-mode="light"] :is(.page-head .eyebrow, .kicker, .badge, .count, .call-top .timer, .chip.is-on, .tip-mark) {
   color: var(--on-brand);
 }
+
+/* Landing header: the app top bar's panel (background, radius, shadow) sits
+ * inside the page margins here and reads as a stray box. Keep it a plain
+ * header with the divider line, in every skin. */
+html[data-skin] .gg-landing > .nav {
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  --sketch: none;
+}

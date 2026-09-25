@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type CSSProperties } from "react";
 import { logoPaths, logoViewBox } from "../../ui-tokens/src/logo";
 
 export type AvatarHair = "crop" | "curls" | "bob" | "swoop" | "buzz" | "bald" | "long" | "bun";
@@ -51,6 +51,17 @@ export function GiggleAvatar({
   noseSize = 50, mouthWidth = 50, shirtColor = "#f9f0dc",
 }: GiggleAvatarProps) {
   const id = useId();
+  // Give each character its own rhythm so a row of them never sways or blinks in unison.
+  // Derived from the SSR-stable useId, so server and client markup match.
+  let seed = 0;
+  for (const char of id) seed = (seed * 31 + char.charCodeAt(0)) >>> 0;
+  const phase = (salt: number) => ((Math.imul(seed ^ salt, 2654435761) >>> 0) % 1000) / 1000;
+  const motion = {
+    "--gg-sway-duration": `${(4.6 + phase(1) * 1.4).toFixed(2)}s`,
+    "--gg-sway-delay": `${(-phase(2) * 6).toFixed(2)}s`,
+    "--gg-blink-duration": `${(3.8 + phase(3) * 2.4).toFixed(2)}s`,
+    "--gg-blink-delay": `${(-phase(4) * 6).toFixed(2)}s`,
+  } as CSSProperties;
   const ink = "#342923";
   const unit = (value: number) => Number.isFinite(value) ? Math.max(0, Math.min(100, value)) / 100 : .5;
   const width = .88 + unit(faceWidth) * .24;
@@ -66,13 +77,13 @@ export function GiggleAvatar({
   };
   return (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width={size} height={size}
-      className={`giggle-avatar ${className}`} data-animated={animated}
+      className={`giggle-avatar ${className}`} data-animated={animated} style={animated ? motion : undefined}
       role={label ? "img" : undefined} aria-labelledby={label ? `${id}-title` : undefined} aria-hidden={label ? undefined : true}>
       {label && <title id={`${id}-title`}>{label}</title>}
       <style>{`
         .giggle-avatar { overflow: visible; }
-        .giggle-avatar[data-animated="true"] .gg-avatar-head { animation: gg-avatar-sway 5s ease-in-out infinite; transform-origin: 120px 170px; }
-        .giggle-avatar[data-animated="true"] .gg-avatar-eyes { animation: gg-avatar-blink 4.4s infinite; transform-origin: 120px 111px; }
+        .giggle-avatar[data-animated="true"] .gg-avatar-head { animation: gg-avatar-sway var(--gg-sway-duration, 5s) ease-in-out var(--gg-sway-delay, 0s) infinite; transform-origin: 120px 170px; }
+        .giggle-avatar[data-animated="true"] .gg-avatar-eyes { animation: gg-avatar-blink var(--gg-blink-duration, 4.4s) var(--gg-blink-delay, 0s) infinite; transform-origin: 120px 111px; }
         @keyframes gg-avatar-sway { 0%,100% { transform: rotate(-2.5deg) translateY(0); } 50% { transform: rotate(2.5deg) translateY(-4px); } }
         @keyframes gg-avatar-blink { 0%,41%,45%,47.5%,49%,100% { transform: scaleY(1); } 43%,48% { transform: scaleY(.08); } }
         @media (prefers-reduced-motion: reduce) { .giggle-avatar .gg-avatar-head, .giggle-avatar .gg-avatar-eyes { animation: none !important; } }
