@@ -29,3 +29,4 @@ export * from "./encounterLayout";
 
 export * from "./chat";
 export * from "./videoLayout";
+export * from "./focusLayout";
