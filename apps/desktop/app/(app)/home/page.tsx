@@ -8,7 +8,7 @@ import {
   formatSquadCodeInput,
   isValidSquadCode,
 } from "@giggle/core";
-import type { MySquadLite, PublicSquad, SquadMemberState } from "@giggle/core";
+import type { Friend, MySquadLite, PublicSquad, SquadMemberState } from "@giggle/core";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { Avatar } from "@/components/Avatar";
@@ -17,7 +17,7 @@ import { Icon } from "@/components/Icons";
 import { useToast } from "@/components/Toast";
 import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
 import { pollWhileVisible } from "@/lib/poll";
-import community from "@/components/Community.module.css";
+import styles from "./home.module.css";
 
 const rank: Record<string, number> = { in_encounter: 0, matched: 1, searching: 2, idle: 3 };
 function squadDestination(squad: MySquadLite | PublicSquad) {
@@ -28,15 +28,6 @@ function squadDestination(squad: MySquadLite | PublicSquad) {
 }
 const message = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
-
-/* Tip-card idea sets (the approved "Try this next call" design) — the shuffle
- * button cycles through these, matching the studio's IDEAS list. */
-type TipIcon = React.ComponentType<{ size?: number }>;
-const IDEA_SETS: [TipIcon, string][][] = [
-  [[Icon.music, "A song"], [Icon.book, "A story"], [Icon.wink, "Funniest moment"]],
-  [[Icon.popcorn, "Snack reveal"], [Icon.dice, "Quick game"], [Icon.bulb, "Hot take"]],
-  [[Icon.wave, "Best news"], [Icon.confetti, "Small win"], [Icon.mic, "Worst song"]],
-];
 
 export default function HomePage() {
   const router = useRouter();
@@ -56,15 +47,10 @@ export default function HomePage() {
   const [createError, setCreateError] = useState("");
   const [leaving, setLeaving] = useState<MySquadLite | null>(null);
   const [requested, setRequested] = useState<string[]>([]);
-  const [tipIndex, setTipIndex] = useState(0);
-  const [tipShuffled, setTipShuffled] = useState(false);
+  const [friends, setFriends] = useState<Friend[] | null>(null);
+  const [invited, setInvited] = useState<string[]>([]);
+  const [inviteAfterCreate, setInviteAfterCreate] = useState<Friend | null>(null);
   const active = squads?.[0];
-  function shuffleTipIdeas() {
-    setTipShuffled(false);
-    setTipIndex((i) => (i + 1) % IDEA_SETS.length);
-    // Re-adding .is-shuffled after the swap replays the skins' idea animations.
-    requestAnimationFrame(() => requestAnimationFrame(() => setTipShuffled(true)));
-  }
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("create") === "1") {
       setName("");
@@ -143,7 +129,46 @@ export default function HomePage() {
       alive = false;
     };
   }, [active?.squadId, active?.memberCount]);
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      try {
+        const data = await api.listFriends();
+        if (alive) setFriends(data.friends);
+      } catch {
+        if (alive) setFriends((previous) => previous ?? []);
+      }
+    }
+    void load();
+    const stopPolling = pollWhileVisible(load, 20000);
+    return () => {
+      alive = false;
+      stopPolling();
+    };
+  }, [reload]);
+  async function invite(friend: Friend) {
+    if (!ensureAuthed()) return;
+    if (!active) {
+      // no squad yet: start one, then invite them straight away
+      setInviteAfterCreate(friend);
+      setName("");
+      setCreateError("");
+      setCreateOpen(true);
+      return;
+    }
+    setPending(`invite-${friend.userId}`);
+    try {
+      await api.inviteUserToSquad(active.squadId, friend.userId);
+      setInvited((previous) => [...previous, friend.userId]);
+      toast(`Invite sent to ${friend.name}.`, "success");
+    } catch (error) {
+      toast(message(error, `Couldn't invite ${friend.name}. Try again.`), "error");
+    } finally {
+      setPending("");
+    }
+  }
   function openCreate() {
+    setInviteAfterCreate(null);
     if (!ensureAuthed()) return;
     setName("");
     setCreateError("");
@@ -161,6 +186,7 @@ export default function HomePage() {
     setCreateError("");
     try {
       const squad = await api.createSquad({ squadName: name.trim(), tags: [] });
+      if (inviteAfterCreate) await api.inviteUserToSquad(squad.squadId, inviteAfterCreate.userId).catch(() => {});
       setCreateOpen(false);
       router.push(`/lobby?squad=${squad.squadId}`);
     } catch (error) {
@@ -221,247 +247,210 @@ export default function HomePage() {
     setOpenError("");
     setReload((value) => value + 1);
   };
+  const people = [...(friends ?? [])].sort((a, b) => Number(b.online) - Number(a.online) || a.name.localeCompare(b.name));
+  const onlineCount = people.filter((f) => f.online).length;
+  const trayAction = active
+    ? active.status === "in_encounter" || active.status === "matched"
+      ? "Back to call"
+      : "Open lobby"
+    : "Start a squad";
+  const seats = active ? Math.max(active.maxSlots, roster.length) : 0;
   return (
-    <div className={`gg-home gg-screen gg-screen-home ${community.home}`}>
-      <div className="gg-home-heading">
-        <div className="page-head">
-          <p className={`eyebrow ${community.greeting}`}>YOUR LITTLE CORNER OF GIGGLE</p>
-          <h1 className={`title ${community.heading}`}>Good to have <em>you here.</em></h1>
-          <p className="lede">
-            {WEB_DISCOVERY_ENABLED
-              ? "Bring your friends. Meet another squad."
-              : "A familiar face. A new inside joke. Make a little time for your people."}
-          </p>
-        </div>
-        {active && (
-          <Button variant="secondary" onClick={openCreate}>
-            <Icon.plus size={18} />
-            Start a squad
-          </Button>
-        )}
-      </div>
-      <div className="gg-home-grid">
-        <div className="gg-home-primary">
-          {loadError ? (
-            <div role="alert" className="gg-home-panel card">
-              <h2>We couldn’t load your squads.</h2>
-              <p>{loadError}</p>
-              <Button variant="secondary" onClick={retry}>
-                Try again
-              </Button>
-            </div>
-          ) : squads === null ? (
-            <div role="status" className="gg-squad-feature">
-              <span className="gg-spinner" /> Loading your squads…
+    <div className={`gg-screen gg-home-people ${styles.home}`}>
+      <div className={styles.columns}>
+        <section className={`card ${styles.panel}`} aria-labelledby="home-friends">
+          <div className={styles.panelBody}>
+          <header className={styles.panelHead}>
+            <h2 id="home-friends" className={styles.panelTitle}>Friends</h2>
+            {people.length > 0 && <span className={`count ${styles.count}`}>{onlineCount} online</span>}
+            <Link href="/friends" className={`link ${styles.headLink}`}>Add friends</Link>
+          </header>
+          {friends === null ? (
+            <p role="status" className={styles.quiet}><span className="gg-spinner" /> Loading friends…</p>
+          ) : people.length === 0 ? (
+            <div className={styles.empty}>
+              <p>Friends you add show up here, ready to invite.</p>
+              <Button variant="secondary" onClick={() => router.push("/friends")}>Find friends</Button>
             </div>
           ) : (
-            <section className="gg-squad-feature card create">
-              <span className="gg-eyebrow kicker">{active ? "Your squad" : "Create a squad"}</span>
-              <h2 className="card-title">{active?.squadName ?? "Save a seat for your friends."}</h2>
-              <div
-                className="gg-squad-faces seat-row"
-                aria-label={
-                  active ? `${active.memberCount} people in your squad` : "Your first squad"
-                }
-              >
-                {(roster.length
-                  ? roster.slice(0, 4)
-                  : [{ memberId: "you", userId: session.user?.id ?? "", displayName: session.user?.name ?? "You", avatar: null }]
-                ).map((person) => (
-                  <div className="gg-squad-seat seat filled" key={person.memberId}>
-                    <PersonAvatar
-                      userId={person.userId}
-                      name={person.displayName}
-                      avatar={person.avatar}
-                      isMe={person.userId === session.user?.id}
-                      size="fill"
-                    />
-                  </div>
-                ))}
-                {!active &&
-                  [0, 1, 2].map((seat) => (
-                    <div className="gg-squad-seat seat empty" key={`empty-${seat}`}>
-                      <Icon.plus size={22} />
-                    </div>
-                  ))}
-              </div>
-              <div className="gg-squad-feature-footer card-foot">
-                <p className="hint">
-                  {active
-                    ? `${active.memberCount} ${active.memberCount === 1 ? "person" : "people"} · ${active.status === "idle" ? "Ready to hang out" : active.status.replace(/_/g, " ")}`
-                    : "Create a squad, then invite your friends."}
-                </p>
-                <Button onClick={active ? () => router.push(squadDestination(active)) : openCreate}>
-                  {active ? "Back to your squad" : "Start a squad"}
-                  <Icon.chevron size={18} />
-                </Button>
-              </div>
-            </section>
+            <ul className={styles.list}>
+              {people.map((friend) => {
+                const sent = invited.includes(friend.userId);
+                return (
+                  <li key={friend.userId} className={styles.person}>
+                    <PersonAvatar userId={friend.userId} name={friend.name} avatar={friend.avatar} size={40} online={friend.online} wrapClassName="pa" />
+                    <span className={styles.personText}>
+                      <b>{friend.name}</b>
+                      <small className="muted">{friend.online ? "Online" : "Offline"}</small>
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      loading={pending === `invite-${friend.userId}`}
+                      disabled={sent || (!!pending && pending !== `invite-${friend.userId}`)}
+                      onClick={() => void invite(friend)}
+                      aria-label={sent ? `${friend.name} invited` : `Invite ${friend.name}${active ? ` to ${active.squadName}` : ""}`}
+                    >
+                      {sent ? "Invited" : "Invite"}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-        </div>
-        <aside className="gg-home-side">
+          </div>
+        </section>
+
+        <section className={`card ${styles.panel}`} aria-labelledby="home-squads">
+          <div className={styles.panelBody}>
+          <header className={styles.panelHead}>
+            <h2 id="home-squads" className={styles.panelTitle}>Squads</h2>
+          </header>
+          {loadError ? (
+            <div role="alert" className={styles.empty}>
+              <p>{loadError}</p>
+              <Button variant="secondary" onClick={retry}>Try again</Button>
+            </div>
+          ) : squads === null ? (
+            <p role="status" className={styles.quiet}><span className="gg-spinner" /> Loading your squads…</p>
+          ) : (
+            <ul className={styles.list}>
+              {squads.map((s) => (
+                <li key={s.squadId} className={styles.squadRow}>
+                  <Avatar name={s.squadName} size={40} />
+                  <span className={styles.personText}>
+                    <b>{s.squadName}</b>
+                    <small className="muted">
+                      {s.status === "in_encounter" || s.status === "matched" ? "In a call" : s.status === "searching" ? "Finding a squad" : `${s.memberCount} of ${s.maxSlots}`}
+                      {s.myRole === "leader" ? " · You lead" : ""}
+                    </small>
+                  </span>
+                  <Button size="sm" variant="secondary" onClick={() => router.push(squadDestination(s))}>Open</Button>
+                  <button type="button" className={`icon-btn ${styles.iconBtn}`} aria-label={`${s.myRole === "leader" ? "End" : "Leave"} ${s.squadName}`} onClick={() => setLeaving(s)}>
+                    <Icon.close size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {active && (
+            <button type="button" className={`btn btn-secondary ${styles.newSquad}`} onClick={openCreate}>
+              <Icon.plus size={18} /> Start another squad
+            </button>
+          )}
           <form
-            className={`gg-join-form card join-card gg-join-quiet`}
+            className={`join ${styles.join}`}
             onSubmit={(event) => {
               event.preventDefault();
               void join();
             }}
           >
-            <label htmlFor="squad-code" className="card-title">Have an invite code?</label>
-            <p className={`hint ${community.joinHint}`}>Pop in the invite code from your friends.</p>
-            <div className="gg-join-row join">
-              <input
-                id="squad-code"
-                className="input code"
-                aria-label="Squad invite code"
-                aria-invalid={!!joinError}
-                aria-describedby={joinError ? "join-error" : undefined}
-                value={code}
-                placeholder="Enter code"
-                autoCapitalize="characters"
-                autoComplete="off"
-                spellCheck={false}
-                maxLength={7}
-                onChange={(event) => {
-                  setCode(formatSquadCodeInput(event.target.value));
-                  setJoinError("");
-                }}
-              />
-              <Button
-                type="submit"
-                variant="secondary"
-                loading={pending === "join"}
-                disabled={!!pending || !isValidSquadCode(code)}
-              >
-                {requested.includes(code) ? "Request again" : "Join squad"}
-              </Button>
-            </div>
+            <input
+              id="squad-code"
+              aria-label="Squad invite code"
+              className="input code"
+              aria-invalid={!!joinError}
+              aria-describedby={joinError ? "join-error" : undefined}
+              value={code}
+              placeholder="Invite code"
+              autoCapitalize="characters"
+              autoComplete="off"
+              spellCheck={false}
+              maxLength={7}
+              onChange={(event) => {
+                setCode(formatSquadCodeInput(event.target.value));
+                setJoinError("");
+              }}
+            />
+            <Button type="submit" variant="secondary" loading={pending === "join"} disabled={!!pending || !isValidSquadCode(code)}>
+              {requested.includes(code) ? "Request again" : "Join squad"}
+            </Button>
           </form>
-          {joinError && (
-            <p id="join-error" role="alert" className="gg-inline-error">
-              {joinError}
-            </p>
-          )}
-          {/* The approved mocks place the tip card in the right column under
-              the join card (grid-areas "create join" / "create tip"); on phone
-              it follows the join card in the single column. */}
-          <section className="gg-tip card tip">
-            <span className="tip-mark" aria-hidden="true">
-              <Icon.sparkle size={22} />
-            </span>
-            <div className="tip-body">
-              <h2 className="card-title tip-title">Try this next call</h2>
-              <button
-                type="button"
-                className="icon-btn tip-shuffle"
-                aria-label="New idea"
-                onClick={shuffleTipIdeas}
-              >
-                <Icon.shuffle size={17} />
-              </button>
-              <ul className={`tip-ideas${tipShuffled ? " is-shuffled" : ""}`} aria-live="polite">
-                {IDEA_SETS[tipIndex].map(([TipIcon, label]) => (
-                  <li className="tip-idea" key={label}>
-                    <TipIcon size={16} />
-                    <span>{label}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/friends" className="link tip-cta">
-                Find your people <Icon.arrowRight size={16} />
-              </Link>
+          {joinError && <p id="join-error" role="alert" className="gg-inline-error">{joinError}</p>}
+          {WEB_DISCOVERY_ENABLED && (
+            <div className={styles.open}>
+              <header className={styles.panelHead}>
+                <h3 className={styles.panelTitle}>Open squads</h3>
+                <Link href="/discover" className={`link ${styles.headLink}`}>See all</Link>
+              </header>
+              {openError ? (
+                <div role="alert"><p>{openError}</p><Button variant="ghost" onClick={retry}>Try again</Button></div>
+              ) : openSquads === null ? (
+                <p role="status" className={styles.quiet}>Loading open squads…</p>
+              ) : !openSquads.length ? (
+                <p className={styles.quiet}>No open squads right now.</p>
+              ) : (
+                <ul className={styles.list}>
+                  {openSquads.slice(0, 3).map((s) => {
+                    const member = squads?.some((m) => m.squadId === s.squadId);
+                    const full = s.memberCount >= s.maxSlots;
+                    return (
+                      <li key={s.squadId} className={styles.squadRow}>
+                        <Avatar name={s.squadName} size={40} />
+                        <span className={styles.personText}>
+                          <b>{s.squadName}</b>
+                          <small className="muted">{s.memberCount} of {s.maxSlots}</small>
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          loading={pending === s.squadId}
+                          disabled={!member && (!!pending || full || requested.includes(s.squadId))}
+                          onClick={() => (member ? router.push(squadDestination(s)) : void join(s))}
+                        >
+                          {member ? "Open" : requested.includes(s.squadId) ? "Requested" : full ? "Full" : s.joinPolicy === "request" ? "Ask to join" : "Join"}
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </div>
-          </section>
-          {!!squads?.length && (
-            <section className="gg-home-panel card">
-              <h2>Your squads</h2>
-              {squads.map((s) => (
-                <div className="gg-home-row" key={s.squadId}>
-                  <Avatar name={s.squadName} size={40} />
-                  <div className="gg-home-row-copy">
-                    <h3>{s.squadName}</h3>
-                    <p>
-                      {s.memberCount} people ·{" "}
-                      {s.myRole === "leader" ? "You lead this squad" : "Member"}
-                    </p>
-                  </div>
-                  <Button size="sm" variant="secondary" onClick={() => router.push(squadDestination(s))}>
-                    Open
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    style={{ width: 44, padding: 0 }}
-                    aria-label={`${s.myRole === "leader" ? "End" : "Leave"} ${s.squadName}`}
-                    onClick={() => setLeaving(s)}
-                  >
-                    <Icon.close size={17} />
-                  </Button>
-                </div>
-              ))}
-            </section>
           )}
-        {WEB_DISCOVERY_ENABLED && (
-          <section className="gg-home-panel card">
-            <div className="gg-home-panel-heading">
-              <h2>Open squads</h2>
-              <Link href="/discover">See all →</Link>
-            </div>
-            {openError ? (
-              <div role="alert">
-                <p>{openError}</p>
-                <Button variant="ghost" onClick={retry}>
-                  Try again
-                </Button>
-              </div>
-            ) : openSquads === null ? (
-              <p role="status">Loading open squads…</p>
-            ) : !openSquads.length ? (
-              <p>No open squads yet. Start one with your friends.</p>
-            ) : (
-              openSquads.slice(0, 3).map((s) => {
-                const member = squads?.some((m) => m.squadId === s.squadId);
-                const full = s.memberCount >= s.maxSlots;
-                return (
-                  <div className="gg-home-row" key={s.squadId}>
-                    <Avatar name={s.squadName} size={40} />
-                    <div className="gg-home-row-copy">
-                      <h3>{s.squadName}</h3>
-                      <p>
-                        {s.memberCount} people · {s.tags?.[0] ?? "Open to a hello"}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      loading={pending === s.squadId}
-                      disabled={!member && (!!pending || full || requested.includes(s.squadId))}
-                      onClick={() => (member ? router.push(squadDestination(s)) : void join(s))}
-                    >
-                      {member
-                        ? "Open"
-                        : requested.includes(s.squadId)
-                          ? "Requested"
-                          : full
-                            ? "Full"
-                            : s.joinPolicy === "request"
-                              ? "Ask to join"
-                              : "Join"}
-                    </Button>
-                  </div>
-                );
-              })
-            )}
-
-          </section>
-        )}
-        </aside>
+          </div>
+        </section>
       </div>
-      <div className={community.note}><p className="hint">A good hangout starts with making everyone feel welcome.</p><Link href="/safety">The Giggle way ↗</Link></div>
+
+      <div className={styles.trayDock}>
+      <div className={`card ${styles.trayCard}`} role="region" aria-label={active ? `${active.squadName}, your squad` : "Your squad"}>
+        <div className={styles.trayRow}>
+        {active ? (
+          <>
+            <div className={styles.traySeats} aria-hidden="true">
+              {Array.from({ length: Math.min(seats, 8) }, (_, i) => {
+                const person = roster[i];
+                return person ? (
+                  <span key={person.memberId} className={styles.traySeat}>
+                    <PersonAvatar userId={person.userId} name={person.displayName} avatar={person.avatar} size={32} isMe={person.userId === session.user?.id} online={person.online} />
+                  </span>
+                ) : (
+                  <span key={`open-${i}`} className={`${styles.traySeat} ${styles.openSeat}`} />
+                );
+              })}
+            </div>
+            <span className={styles.trayText}>
+              <b>{active.squadName}</b>
+              <small className="muted">{active.memberCount} of {active.maxSlots} here</small>
+            </span>
+          </>
+        ) : (
+          <span className={styles.trayText}>
+            <b>No squad yet</b>
+            <small className="muted">Start one, then invite friends.</small>
+          </span>
+        )}
+        <Button onClick={() => (active ? router.push(squadDestination(active)) : openCreate())}>
+          {trayAction}
+          <Icon.arrowRight size={18} />
+        </Button>
+        </div>
+      </div>
+      </div>
+
       {createOpen && (
         <Modal
           title="Start a squad"
-          subtitle="Choose a name. Invite friends next."
+          subtitle={inviteAfterCreate ? `Name it, and ${inviteAfterCreate.name} gets an invite.` : "Name it, then invite friends."}
           onClose={() => {
             if (!pending) setCreateOpen(false);
           }}

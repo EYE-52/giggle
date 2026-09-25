@@ -684,8 +684,9 @@ test("approved lobby has a bounded stage and one invite entry beside people", ()
   const css = readFileSync(path.join(__dirname, "../app/(app)/lobby/lobby.module.css"), "utf8");
   assert.match(page, /data-testid="lobby-person"/);
   assert.match(page, /Invite a friend/);
-  assert.match(css, /max-height: 420px/);
-  assert.match(css, /overflow-y: auto/);
+  // the lobby fits one screen: seats share the space between the bar and the dock
+  assert.match(css, /\.page \{[^}]*overflow: hidden/);
+  assert.match(css, /grid-auto-rows: minmax\(0, 1fr\)/);
   assert.doesNotMatch(page, /Waiting for your squad…/);
 });
 
@@ -1575,9 +1576,15 @@ test("desktop home creates a neutral squad without hidden vibe state", () => {
 test("desktop home keeps one compact live activity strip", () => {
   const page = desktopHomeSource();
 
-  assert.equal(page.includes('className="gg-home-grid"'), true);
+  // People-first Home: friends (online first) with Invite, squads, and one squad tray.
+  assert.equal(page.includes("api.listFriends()"), true);
+  assert.equal(page.includes("api.inviteUserToSquad(active.squadId, friend.userId)"), true);
+  assert.equal(page.includes("styles.trayDock"), true);
   assert.equal(page.includes("Open squads"), true);
-  assert.equal(page.includes("See all →"), true);
+  assert.equal(page.includes("See all"), true);
+  // no hero headline, eyebrow label or tips card
+  assert.equal(page.includes("YOUR LITTLE CORNER"), false);
+  assert.equal(page.includes("Try this next call"), false);
   assert.equal(page.includes("Start with your squad. Meet another, together."), false);
   assert.equal(page.includes('label: "SQUADS FORMED"'), false);
 });
@@ -1585,9 +1592,10 @@ test("desktop home keeps one compact live activity strip", () => {
 test("desktop home gives new users one first-room task instead of an empty dashboard", () => {
   const page = desktopHomeSource();
 
+  // the squad tray carries the one first step for a new user
   assert.equal(page.includes("Start a squad"), true);
-  assert.equal(page.includes("Create a squad"), true);
-  assert.equal(page.includes("Create a squad, then invite your friends."), true);
+  assert.equal(page.includes("No squad yet"), true);
+  assert.equal(page.includes("Start one, then invite friends."), true);
   assert.equal(page.includes('title="No squads yet"'), false);
 });
 
@@ -1625,14 +1633,16 @@ test("desktop home keeps create and join actions compact", () => {
   assert.equal(page.includes("Open a new room"), false);
   assert.equal(page.includes("Start a room and invite your people."), false);
   assert.equal(page.includes('aria-label="Squad invite code"'), true);
-  assert.match(page, /className=\{`gg-join-form /);
+  assert.match(page, /className=\{`join \$\{styles\.join\}`\}/);
 });
 
 test("desktop home uses warm squad actions and discovery surfaces", () => {
   const page = desktopHomeSource();
   assert.equal(page.includes("Your squad"), true);
   assert.equal(page.includes("Start a squad"), true);
-  assert.equal(page.includes("Bring your friends. Meet another squad."), true);
+  // discovery shows as its own compact list; no taglines on Home
+  assert.equal(page.includes("Open squads"), true);
+  assert.equal(page.includes("Bring your friends. Meet another squad."), false);
 });
 
 test("desktop home leave squad failures restore the squad and show an error toast", () => {

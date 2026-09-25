@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test.skip(process.env.GIGGLE_LOCAL_AUTH_E2E !== 'true', 'Requires local development API');
 for (const width of [390, 1440]) {
   test(`real squad lifecycle at ${width}px`, async ({ browser }) => {
-    const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 }, permissions: ['clipboard-read', 'clipboard-write'], storageState: 'e2e/avatar-prompted.json' })));
+    const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width, height: width === 390 ? 844 : 900 }, permissions: ['clipboard-read', 'clipboard-write'], storageState: process.env.PW_STORAGE_STATE ?? 'e2e/avatar-prompted.json' })));
     const [leader, friend] = await Promise.all(contexts.map(context => context.newPage()));
     try {
       await leader.goto('/signin');
@@ -16,7 +16,8 @@ for (const width of [390, 1440]) {
       await leader.getByLabel('Squad name').fill(name);
       await leader.getByRole('button', { name: 'Create squad', exact: true }).click();
       await expect(leader.getByRole('heading', { name, exact: true })).toBeVisible();
-      await expect(leader.getByText('None added', { exact: true })).toBeVisible();
+      // interests only show once the squad has some (no "None added" filler)
+      await expect(leader.getByText('None added', { exact: true })).toHaveCount(0);
       await expect(leader.getByTestId('lobby-person')).toHaveCount(1);
       const card = await leader.getByTestId('lobby-person').boundingBox();
       expect(card!.height).toBeLessThanOrEqual(420);
@@ -40,20 +41,25 @@ for (const width of [390, 1440]) {
       await leader.getByRole('button', { name: 'Send message' }).click();
       await expect(friend.getByText(message, { exact: true })).toBeVisible();
       for (const page of [leader, friend]) await page.getByRole('button', { name: 'Close chat' }).click();
-      await expect(leader.getByRole('button', { name: 'Find a squad', exact: true })).toBeDisabled();
-      for (const page of [leader, friend]) await page.getByRole('button', { name: "I'm ready to join", exact: true }).click();
-      await expect(leader.getByRole('button', { name: 'Find a squad', exact: true })).toBeEnabled();
-      await expect(friend.getByRole('button', { name: 'Find a squad', exact: true })).toHaveCount(0);
-      await leader.getByRole('button', { name: 'Find a squad', exact: true }).click();
-      const devices = leader.getByRole('dialog', { name: 'Connect your devices' });
-      await devices.getByRole('button', { name: 'Turn on camera & mic', exact: true }).click();
-      await expect(devices.getByRole('alert')).toContainText("Video isn't available right now.");
-      await devices.getByRole('button', { name: /close/i }).click();
-      await leader.getByRole('button', { name: 'Squad settings', exact: true }).click();
+      // Matchmaking needs stranger discovery; production runs without it
+      // (GIGGLE_E2E_DISCOVERY=false skips just these steps).
+      if (process.env.GIGGLE_E2E_DISCOVERY !== 'false') {
+        await expect(leader.getByRole('button', { name: 'Find a squad', exact: true })).toBeDisabled();
+        for (const page of [leader, friend]) await page.getByRole('button', { name: "I'm ready to join", exact: true }).click();
+        await expect(leader.getByRole('button', { name: 'Find a squad', exact: true })).toBeEnabled();
+        await expect(friend.getByRole('button', { name: 'Find a squad', exact: true })).toHaveCount(0);
+        await leader.getByRole('button', { name: 'Find a squad', exact: true }).click();
+        const devices = leader.getByRole('dialog', { name: 'Connect your devices' });
+        await devices.getByRole('button', { name: 'Turn on camera & mic', exact: true }).click();
+        await expect(devices.getByRole('alert')).toContainText("Video isn't available right now.");
+        await devices.getByRole('button', { name: /close/i }).click();
+      }
+      await leader.getByRole('button', { name: /^Squad settings/ }).click();
       await leader.getByRole('button', { name: 'Rename squad', exact: true }).click();
       await leader.getByLabel('Squad name').fill(`${name} renamed`);
       await leader.getByRole('button', { name: 'Save name', exact: true }).click();
       await expect(friend.getByRole('heading', { name: `${name} renamed`, exact: true })).toBeVisible();
+      await leader.getByRole('button', { name: /^Squad settings/ }).click();
       await leader.getByRole('button', { name: 'Edit interests', exact: true }).click();
       await leader.getByRole('button', { name: 'Music', exact: true }).click();
       await leader.waitForTimeout(3300); // polling must not overwrite an open editor
@@ -63,7 +69,8 @@ for (const width of [390, 1440]) {
       await leader.getByRole('button', { name: 'Leave squad', exact: true }).click();
       await leader.getByRole('button', { name: 'Leave squad', exact: true }).click();
       await expect(leader).toHaveURL(/\/home$/);
-      await expect(friend.getByRole('button', { name: 'Find a squad', exact: true })).toBeVisible();
+      // the friend is leader now (the search button is discovery-only)
+      if (process.env.GIGGLE_E2E_DISCOVERY !== 'false') await expect(friend.getByRole('button', { name: 'Find a squad', exact: true })).toBeVisible();
       await friend.getByRole('button', { name: 'Squad settings', exact: true }).click();
       await friend.getByRole('button', { name: 'Leave squad', exact: true }).click();
       await friend.getByRole('button', { name: 'Leave squad', exact: true }).click();
@@ -73,7 +80,7 @@ for (const width of [390, 1440]) {
 }
 
 for (const entry of ['invite link', 'home code']) test(`request approval from ${entry} opens the lobby and removal returns home`, async ({ browser }) => {
-  const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width: 390, height: 844 }, storageState: 'e2e/avatar-prompted.json' })));
+  const contexts = await Promise.all([0, 1].map(() => browser.newContext({ viewport: { width: 390, height: 844 }, storageState: process.env.PW_STORAGE_STATE ?? 'e2e/avatar-prompted.json' })));
   const [leader, friend] = await Promise.all(contexts.map(context => context.newPage()));
   try {
     await leader.goto('/signin');
