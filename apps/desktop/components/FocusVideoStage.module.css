@@ -1,0 +1,14 @@
+.stage { position: relative; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
+/* Each squad is a full-stage, click-through layer (keeps its group role for
+ * screen readers); cells position against the stage. */
+.group { position: absolute; inset: 0; pointer-events: none; }
+.cell {
+  position: absolute;
+  pointer-events: auto;
+  min-width: 0;
+  min-height: 0;
+}
+.stage[data-animating] .cell {
+  transition: left .28s cubic-bezier(.2, .8, .2, 1), top .28s cubic-bezier(.2, .8, .2, 1), width .28s cubic-bezier(.2, .8, .2, 1), height .28s cubic-bezier(.2, .8, .2, 1);
+}
+@media (prefers-reduced-motion: reduce) { .stage[data-animating] .cell { transition: none; } }

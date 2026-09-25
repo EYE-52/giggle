@@ -383,7 +383,9 @@ test("encounter uses Social Cinema chrome and one clipped media frame", () => {
   assert.doesNotMatch(page, />vs<\/span>/i);
   assert.equal(page.includes("function SplitRoomBackdrop"), false);
   assert.equal(page.includes("function CoverThumb"), false);
-  assert.match(page, /renderParticipant\(person\.id, "fit"\)/);
+  // every tile fills its box (cropped around the face); "Adjust view" still offers Full view per person
+  assert.match(page, /renderParticipant=\{renderParticipant\}/);
+  assert.match(page, /fit="crop"/);
   assert.match(page, /\[data-media-host\][\s\S]*overflow: clip !important/);
   const tileStyles = readFileSync(path.join(__dirname, "../components/ParticipantVideoTile.module.css"), "utf8");
   assert.match(tileStyles, /contain:paint/);
@@ -843,27 +845,35 @@ test("desktop encounter rolls back mic and camera controls when video updates fa
   assert.equal(page.includes("await vcRef.current?.setCamEnabled(next);"), false);
 });
 
-test("desktop encounter derives one adaptive stage from stable participant identities", () => {
+test("desktop encounter lays out one focus stage from stable participant identities", () => {
   const page = encounterSource();
 
-  assert.equal(page.includes("advanceSpeakerFocus"), true);
-  assert.equal(page.includes("deriveEncounterLayout"), true);
+  // One stage for every roster: same-size tiles per squad, viewer zoom and pin.
+  // The old spotlight layouts (pinnedId, speaker focus, filmstrips) are gone.
+  assert.equal(page.includes("<FocusVideoStage"), true);
+  assert.equal(page.includes('data-layout-kind="focus-grid"'), true);
+  assert.equal(page.includes("advanceSpeakerFocus"), false);
+  assert.equal(page.includes("deriveEncounterLayout"), false);
+  assert.equal(page.includes("pinnedId"), false);
   assert.equal(page.includes("id: m.userId"), true);
   assert.equal(page.includes("VIEW_MODES"), false);
   assert.equal(page.includes('mode: "grid"'), false);
   assert.equal(page.includes('mode: "spotlight"'), false);
   assert.equal(page.includes('mode: "focus-opponent"'), false);
-  assert.equal(page.includes("<AdaptiveVideoStage"), true);
-  assert.equal(page.includes('data-layout-kind={pinnedId ? layout.kind : "adaptive-grid"}'), true);
+  const stage = readFileSync(path.join(__dirname, "../components/FocusVideoStage.tsx"), "utf8");
+  assert.equal(stage.includes("arrangeFocusCall"), true);
+  // tiles are siblings keyed by person, so layout changes never remount video
+  assert.equal(stage.includes("key={id}"), true);
   const tile = readFileSync(path.join(__dirname, "../components/ParticipantVideoTile.tsx"), "utf8");
   assert.equal(tile.includes("data-media-fit={fit}"), true);
   assert.equal(tile.includes('aria-haspopup="dialog"'), true);
+  assert.equal(tile.includes("Keep this size"), true);
   assert.equal(page.includes("setRemoteAudioMuted"), true);
 });
 
 test("desktop encounter keeps essential controls compact and moves secondary actions into More", () => {
   const page = encounterSource();
-  const controls = page.slice(page.indexOf("const ctrlBtns"), page.indexOf("const pinnedMemberName"));
+  const controls = page.slice(page.indexOf("const ctrlBtns"), page.indexOf("return (", page.indexOf("const ctrlBtns")));
 
   for (const id of ["mic", "cam", "chat", "more"]) assert.equal(controls.includes(`id: "${id}"`), true);
   assert.equal(controls.includes('id: "report"'), false);
@@ -871,8 +881,9 @@ test("desktop encounter keeps essential controls compact and moves secondary act
   assert.equal(page.includes('width: isPhone ? 44 : 48'), true);
   assert.equal(page.includes("data-call-leave"), true);
   assert.equal(page.includes("moreOpen"), true);
-  assert.equal(page.includes("setFocusedFit"), true);
-  assert.equal(page.includes("setSelfViewMinimized"), true);
+  // call chrome floats over the video and fades when idle; viewers can keep it shown
+  assert.equal(page.includes('data-chrome={chromeShown || chromeAlways ? "shown" : "hidden"}'), true);
+  assert.equal(page.includes('"giggle.callChrome"'), true);
   assert.equal(page.includes('aria-label="End encounter"'), true);
 });
 

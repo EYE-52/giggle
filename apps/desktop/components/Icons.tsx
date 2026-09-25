@@ -76,6 +76,7 @@ export const Icon = {
   flag: makeIcon("flag", { color: "var(--coral)" }),
   more: makeIcon("more"),
   plus: makeIcon("plus"),
+  minus: makeIcon("minus"),
   enter: makeIcon("enter"),
   close: makeIcon("close"),
   chevron: makeIcon("chevron"),

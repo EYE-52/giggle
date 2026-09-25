@@ -102,3 +102,20 @@ test('a zoomed person is never smaller than an unzoomed squadmate, even beside a
     assert.ok(area('mine-0') >= area('mine-1'), `${w}x${h}: zoomed ${area('mine-0')} < unzoomed ${area('mine-1')}`);
   }
 });
+
+test('zooming never turns a squadmate into a sliver', () => {
+  for (const [w, h] of [[1440, 900], [1280, 720], [390, 844], [844, 390]]) for (const n of [2, 3, 4, 5, 8]) for (const target of [0, 1, n - 1]) {
+    const layout = focus.arrangeFocusCall(people('mine', 3), people('theirs', n, { [target]: { weight: 4 } }), w, h);
+    for (const t of layout.tiles) {
+      const aspect = t.width / t.height;
+      assert.ok(aspect < 2.6 && aspect > 0.38, `${w}x${h} n=${n} zoom ${target}: ${t.id} is ${Math.round(t.width)}x${Math.round(t.height)}`);
+    }
+  }
+});
+
+test('a pinned squad never leaves a dead sliver beside the pin', () => {
+  const layout = focus.arrangeFocusCall(people('mine', 3, { 1: { pinned: { width: 420, height: 300 } } }), people('theirs', 4, { 1: { weight: 4 } }), 1440, 900);
+  const mine = layout.tiles.filter(t => t.side === 'mine');
+  const minX = Math.min(...mine.map(t => t.x)), maxX = Math.max(...mine.map(t => t.x + t.width));
+  assert.ok(maxX - minX <= 420 + 1, `your squad spans ${Math.round(maxX - minX)}px for a 420px pin`);
+});

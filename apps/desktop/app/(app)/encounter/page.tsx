@@ -2,14 +2,11 @@
 import { useState, useEffect, useRef, useCallback, Suspense, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  advanceSpeakerFocus,
   chatMessageMatchesScope,
   mergeChatMessage,
   api,
   connectSocket,
   createOpponentUserIds,
-  deriveEncounterLayout,
-  EMPTY_SPEAKER_FOCUS,
   SOCKET_EVENTS,
   SOCKET_EMIT,
   getMyAvatar,
@@ -31,7 +28,7 @@ import { Icon } from "@/components/Icons";
 import { ChatPanel, type ChatPanelMessage } from "@/components/ChatPanel";
 import { Button } from "@/components/Button";
 import { ParticipantVideoTile as VideoTile } from "@/components/ParticipantVideoTile";
-import { AdaptiveVideoStage } from "@/components/AdaptiveVideoStage";
+import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoStage";
 import { Modal } from "@/components/Modal";
 import { createVideoClient } from "@giggle/agora";
 import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/agora";
@@ -159,7 +156,6 @@ interface FloatingReaction {
   senderId: string;
 }
 
-type MediaFit = "fit" | "crop";
 
 interface EncounterParticipant {
   id: string;
@@ -297,16 +293,21 @@ function EncounterInner() {
     return subscribeAvatar((v) => setMyAvatarState(v));
   }, []);
 
-  const [pinnedId, setPinnedId] = useState<string | null>(null);
-  const [focusedFit, setFocusedFit] = useState<MediaFit>("fit");
-  const [selfViewMinimized, setSelfViewMinimized] = useState(false);
-  const [stripSide, setStripSide] = useState<"mine" | "theirs">("mine");
-  const [speakerFocus, setSpeakerFocus] = useState(EMPTY_SPEAKER_FOCUS);
 
   // Hover states
   const [hoveredCtrl, setHoveredCtrl] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
+  // Call chrome (header + controls) floats over the video and fades out when idle.
+  // It comes back on any pointer move, tap, key press or focus; it never hides while
+  // hovered, focused, while a menu or chat is open, or for viewers who asked to keep it.
+  // state, not a ref: the shell mounts after the loading screen, and the idle timer must attach then
+  const [shellEl, setShellEl] = useState<HTMLDivElement | null>(null);
+  const [chromeShown, setChromeShown] = useState(true);
+  const [chromeAlways, setChromeAlways] = useState(false);
+  useEffect(() => {
+    try { setChromeAlways(localStorage.getItem("giggle.callChrome") === "always"); } catch {}
+  }, []);
   const [keyboardInset, setKeyboardInset] = useState(0);
   const chatButtonRef = useRef<HTMLButtonElement | null>(null);
   const moreButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -672,46 +673,27 @@ function EncounterInner() {
         (person) => String(person.isLocal ? myUidRef.current : person.uid) === loudestUid,
       )?.id ?? null)
     : null;
-  const viewportClass = width >= 1180 ? "wide" : isPhone ? "phone" : "narrow";
-  const layout = deriveEncounterLayout({
-    viewport: viewportClass,
-    mine: mineParticipants,
-    theirs: theirParticipants,
-    pinnedId,
-    automaticFocusId: speakerFocus.focusedId,
-  });
-
   useEffect(() => {
-    if (participants.length < 5) {
-      setSpeakerFocus(EMPTY_SPEAKER_FOCUS);
-      return;
-    }
-    const ids = participants.map((person) => person.id);
-    const advance = () =>
-      setSpeakerFocus((previous) =>
-        advanceSpeakerFocus(ids, previous, activeSpeakerId, Date.now()),
-      );
-    advance();
-    const tick = setInterval(advance, 200);
-    return () => clearInterval(tick);
-    // participantIdsKey intentionally represents the stable roster identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [participantIdsKey, participants.length, activeSpeakerId]);
-
-  useEffect(() => {
-    if (pinnedId && !participants.some((person) => person.id === pinnedId)) setPinnedId(null);
-    // participantIdsKey intentionally represents the stable roster identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pinnedId, participantIdsKey]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !moreOpen && !reactionsOpen && !chatOpen && !endConfirmOpen)
-        setPinnedId(null);
+    const shell = shellEl;
+    if (!shell) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const busy = () => {
+      if (chromeAlways || moreOpen || reactionsOpen || chatOpen || endConfirmOpen) return true;
+      const active = document.activeElement;
+      const chrome = shell.querySelectorAll(".call-top, .gg-call-controls-wrap");
+      return [...chrome].some(el => el.matches(":hover") || (active != null && el.contains(active)));
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [moreOpen, reactionsOpen, chatOpen, endConfirmOpen]);
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { if (!busy()) setChromeShown(false); else schedule(); }, 3200);
+    };
+    const wake = () => { setChromeShown(true); schedule(); };
+    // Page-wide: keyboard users start from the body or the skip link, outside the shell.
+    const events = ["pointermove", "pointerdown", "keydown", "focusin", "touchstart"] as const;
+    events.forEach(name => window.addEventListener(name, wake, { passive: true }));
+    wake();
+    return () => { if (timer) clearTimeout(timer); events.forEach(name => window.removeEventListener(name, wake)); };
+  }, [shellEl, chromeAlways, moreOpen, reactionsOpen, chatOpen, endConfirmOpen]);
 
   // ── Truthful per-participant signals ─────────────────────────────────────
   // Look up a remote participant's live track state by uid. Returns undefined
@@ -740,7 +722,7 @@ function EncounterInner() {
         vcRef.current?.playLocal(localElRef.current);
       } catch {}
     }
-  }, [videoJoined, camOn, participantIdsKey, layout.kind, pinnedId]);
+  }, [videoJoined, camOn, participantIdsKey]);
 
   useEffect(() => {
     if (!videoJoined) return;
@@ -753,7 +735,7 @@ function EncounterInner() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [remoteVideoKey, videoJoined, participantIdsKey, layout.kind, pinnedId]);
+  }, [remoteVideoKey, videoJoined, participantIdsKey]);
 
   async function toggleMic() {
     const previous = micOn;
@@ -1000,13 +982,9 @@ function EncounterInner() {
     setChatUnread({ everyone: 0, squad: 0 });
   }, [encId, squadId]);
 
-  function handleTileClick(id: string) {
-    setPinnedId((previous) => (previous === id ? null : id));
-  }
-
   const participantById = new Map(participants.map((person) => [person.id, person]));
 
-  function renderParticipant(id: string, fit: MediaFit, compact = false, adaptive = false) {
+  function renderParticipant(id: string, size: TileSizeControls) {
     const person = participantById.get(id);
     if (!person) return null;
     return (
@@ -1026,469 +1004,32 @@ function EncounterInner() {
         avatarValue={person.isLocal ? myAvatar : person.avatar}
         isSpeaking={isSpeakingFor(person.isLocal, person.uid)}
         statusText={statusTextFor(person.isLocal, person.uid)}
-        onClick={() => handleTileClick(person.id)}
-        focused={pinnedId === person.id}
-        showFocusHint
-        compact={compact}
-        fit={fit}
+        size={size}
+        fit="crop"
         backdrop
         reactions={floatingReactions.filter((reaction) => reaction.senderId === person.id)}
       />
     );
   }
 
-  function squadLabel(name: string, count: number) {
-    return (
-      <div
-        style={{
-          position: "absolute",
-          top: 10,
-          left: 10,
-          zIndex: 5,
-          display: "flex",
-          alignItems: "center",
-          gap: 7,
-          maxWidth: "calc(100% - 20px)",
-          padding: "5px 10px",
-          borderRadius: "var(--radius-pill, 999px)",
-          background: "color-mix(in srgb, var(--surface) 88%, transparent)",
-          backdropFilter: "blur(12px)",
-          border: "var(--control-border, 1px solid rgba(255,255,255,.11))",
-        }}
-      >
-        <span
-          style={{
-            color: "var(--text)",
-            fontSize: 12,
-            fontWeight: 700,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {name}
-        </span>
-        <span style={{ color: "var(--text-muted)", fontSize: 11, fontWeight: 700 }}>{count}</span>
-      </div>
-    );
-  }
-
-  function renderFilmstrip(ids: string[], label: string) {
-    if (!ids.length) return null;
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "stretch",
-          gap: 8,
-          width: "100%",
-          minWidth: 0,
-          height: isPhone ? 82 : 104,
-          minHeight: 0,
-          flexShrink: 0,
-          overflowX: "auto",
-          WebkitOverflowScrolling: "touch",
-        }}
-      >
-        <div
-          style={{
-            position: "sticky",
-            left: 0,
-            zIndex: 3,
-            display: "flex",
-            alignItems: "center",
-            padding: "0 8px",
-            color: "var(--text)",
-            background: "color-mix(in srgb, var(--surface) 90%, transparent)",
-            border: "var(--control-border)",
-            borderRadius: "var(--radius-control, 10px)",
-            fontSize: 11,
-            fontWeight: 800,
-            letterSpacing: ".08em",
-            textTransform: "uppercase",
-          }}
-        >
-          {label}
-        </div>
-        {ids.map((id) => (
-          <div
-            key={id}
-            style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}
-          >
-            {renderParticipant(id, "crop", true)}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  function renderSegmentedFilmstrip(mineIds: string[], theirIds: string[]) {
-    if (!mineIds.length && !theirIds.length) return null;
-    const selectedIds = stripSide === "mine" ? mineIds : theirIds;
-    return (
-      <div
-        style={{
-          position: "relative",
-          zIndex: 1,
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          width: "100%",
-          minWidth: 0,
-          height: isPhone ? 138 : 160,
-          flexShrink: 0,
-        }}
-      >
-        <div
-          role="group"
-          aria-label="Filmstrip squad"
-          style={{
-            display: "flex",
-            gap: 4,
-            height: 50,
-            padding: 3,
-            borderRadius: "var(--radius-pill, 999px)",
-            background: "color-mix(in srgb, var(--surface) 90%, transparent)",
-            border: "var(--control-border)",
-            alignSelf: "center",
-          }}
-        >
-          {(["mine", "theirs"] as const).map((side) => {
-            const selected = stripSide === side;
-            return (
-              <button
-                key={side}
-                type="button"
-                onClick={() => setStripSide(side)}
-                aria-pressed={selected}
-                aria-label={side === "mine" ? "Show your squad" : "Show opponent squad"}
-                style={{
-                  minWidth: 92,
-                  height: 44,
-                  padding: "0 14px",
-                  border: selected ? "1px solid rgba(255,255,255,.16)" : "1px solid transparent",
-                  borderRadius: "var(--radius-pill, 999px)",
-                  background: selected ? "var(--accent-soft)" : "transparent",
-                  color: selected ? "var(--accent)" : "var(--text-muted)",
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: ".08em",
-                  textTransform: "uppercase",
-                  cursor: "pointer",
-                }}
-              >
-                {side === "mine" ? "Yours" : "Theirs"}
-              </button>
-            );
-          })}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "stretch",
-            gap: 8,
-            width: "100%",
-            minWidth: 0,
-            height: isPhone ? 82 : 104,
-            overflowX: "auto",
-            WebkitOverflowScrolling: "touch",
-          }}
-        >
-          {selectedIds.map((id) => (
-            <div
-              key={id}
-              style={{ height: "100%", aspectRatio: isPhone ? "4 / 3" : "16 / 9", flexShrink: 0 }}
-            >
-              {renderParticipant(id, "crop", true)}
-            </div>
-          ))}
-          {!selectedIds.length && (
-            <div
-              style={{
-                width: "100%",
-                display: "grid",
-                alignItems: "center",
-                justifyContent: "center",
-                color: textMuted,
-                fontSize: 12,
-              }}
-            >
-              No other participants
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  function renderSquadSplitSide(side: "mine" | "theirs") {
-    const people = side === "mine" ? mineParticipants : theirParticipants;
-    const squad = side === "mine" ? mySquad : oppSquad;
-    return (
-      <section
-        aria-label={side === "mine" ? "Your squad" : "Other squad"}
-        style={{
-          position: "relative",
-          flex: 1,
-          minWidth: 0,
-          minHeight: 0,
-          overflow: "hidden",
-          borderRadius: "var(--radius-card, 18px)",
-          padding: "38px 4px 4px",
-        }}
-      >
-        {squadLabel(squad?.name ?? (side === "mine" ? "Your squad" : "Their squad"), people.length)}
-        {people.length ? (
-          <div
-            style={{
-              position: "relative",
-              zIndex: 1,
-              display: "flex",
-              flexWrap: people.length > 2 ? "wrap" : "nowrap",
-              gap: 8,
-              height: "100%",
-              minHeight: 0,
-            }}
-          >
-            {people.map((person) => (
-              <div
-                key={person.id}
-                style={{
-                  flex: people.length > 2 ? "1 1 calc(50% - 4px)" : 1,
-                  minWidth: 0,
-                  minHeight: 0,
-                }}
-              >
-                {renderParticipant(person.id, "fit")}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div
-            style={{
-              position: "relative",
-              zIndex: 1,
-              height: "100%",
-              display: "grid",
-              placeItems: "center",
-            }}
-          >
-            <WaitingForSquad
-              label={side === "mine" ? "Waiting for your squad…" : "Waiting for the other squad…"}
-            />
-          </div>
-        )}
-      </section>
-    );
-  }
-
-  function renderFeaturedSide(side: "mine" | "theirs", filmstrip: boolean) {
-    const primaryId = side === "mine" ? layout.minePrimaryId : layout.theirsPrimaryId;
-    const stripIds = side === "mine" ? layout.mineStripIds : layout.theirsStripIds;
-    const squad = side === "mine" ? mySquad : oppSquad;
-    const count = side === "mine" ? mineParticipants.length : theirParticipants.length;
-    const useFilmstrip = filmstrip || isPhone;
-    return (
-      <section
-        aria-label={side === "mine" ? "Your squad" : "Other squad"}
-        style={{
-          position: "relative",
-          flex: 1,
-          minWidth: 0,
-          minHeight: 0,
-          overflow: "hidden",
-          borderRadius: "var(--radius-card, 18px)",
-          padding: "38px 4px 4px",
-        }}
-      >
-        {squadLabel(squad?.name ?? (side === "mine" ? "Your squad" : "Their squad"), count)}
-        {primaryId ? (
-          <div
-            style={{
-              position: "relative",
-              zIndex: 1,
-              display: "flex",
-              flexDirection: useFilmstrip ? "column" : "row",
-              gap: 8,
-              height: "100%",
-              minHeight: 0,
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-              {renderParticipant(primaryId, focusedFit)}
-            </div>
-            {useFilmstrip
-              ? renderFilmstrip(stripIds, side === "mine" ? "Yours" : "Theirs")
-              : stripIds.length > 0 && (
-                  <div
-                    style={{
-                      width: "29%",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 8,
-                      minHeight: 0,
-                    }}
-                  >
-                    {stripIds.map((id) => (
-                      <div key={id} style={{ flex: 1, minHeight: 0 }}>
-                        {renderParticipant(id, "crop", true)}
-                      </div>
-                    ))}
-                  </div>
-                )}
-          </div>
-        ) : (
-          <div
-            style={{
-              position: "relative",
-              zIndex: 1,
-              height: "100%",
-              display: "grid",
-              placeItems: "center",
-            }}
-          >
-            <WaitingForSquad
-              label={side === "mine" ? "Waiting for your squad…" : "Waiting for the other squad…"}
-            />
-          </div>
-        )}
-      </section>
-    );
-  }
-
-  function renderFocusedStage(withFilmstrip: boolean) {
-    const focusId = layout.focusId ?? layout.theirsPrimaryId ?? layout.minePrimaryId;
-    if (!focusId) return <WaitingForSquad />;
-    const local = participants.find((person) => person.isLocal);
-    const showSelfView = local && local.id !== focusId;
-    const mineIds = layout.mineStripIds.filter((id) => id !== local?.id);
-    const theirIds = layout.theirsStripIds;
-    const companionIds = participants
-      .filter((person) => person.id !== focusId && person.id !== local?.id)
-      .map((person) => person.id);
-    return (
-      <div
-        style={{
-          position: "relative",
-          flex: 1,
-          minWidth: 0,
-          minHeight: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ position: "relative", zIndex: 1, flex: 1, minHeight: 0 }}>
-          {renderParticipant(focusId, focusedFit)}
-        </div>
-        {withFilmstrip
-          ? renderSegmentedFilmstrip(mineIds, theirIds)
-          : companionIds.length > 0 && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: 12,
-                  bottom: 12,
-                  zIndex: 5,
-                  width: isPhone ? 112 : 168,
-                  aspectRatio: "16 / 10",
-                }}
-              >
-                {renderParticipant(companionIds[0], "crop", true)}
-              </div>
-            )}
-        {showSelfView && !selfViewMinimized && (
-          <div
-            style={{
-              position: "absolute",
-              top: 12,
-              right: 12,
-              zIndex: 6,
-              width: isPhone ? 96 : 148,
-              aspectRatio: "16 / 10",
-            }}
-          >
-            {renderParticipant(local.id, "crop", true)}
-          </div>
-        )}
-      </div>
-    );
-  }
-
   function renderAdaptiveStage() {
-    if (!pinnedId) return <AdaptiveVideoStage
-      mine={mineParticipants.map(person => ({ id: person.id, cameraOn: person.isLocal ? camOn && videoJoined : !!remoteFor(person.uid)?.hasVideo }))}
-      theirs={theirParticipants.map(person => ({ id: person.id, cameraOn: !!remoteFor(person.uid)?.hasVideo }))}
+    return <FocusVideoStage
+      mine={mineParticipants.map(person => person.id)}
+      theirs={theirParticipants.map(person => person.id)}
       mineLabel={mySquad?.name ? `Your squad · ${mySquad.name}` : "Your squad"}
       theirsLabel={oppSquad?.name ? `Their squad · ${oppSquad.name}` : "Their squad"}
-      renderParticipant={id => renderParticipant(id, "crop", false, true)}
+      renderParticipant={renderParticipant}
     />;
-
-    if (layout.kind === "remote-main") return renderFocusedStage(false);
-    if (layout.kind === "squad-split") {
-      return (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: isPhone ? "column" : "row",
-            gap: 8,
-            flex: 1,
-            minWidth: 0,
-            minHeight: 0,
-          }}
-        >
-          {renderSquadSplitSide("mine")}
-          {renderSquadSplitSide("theirs")}
-        </div>
-      );
-    }
-    if (layout.kind === "featured-split") {
-      return (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: isPhone && height >= Math.max(width, 640) ? "column" : "row",
-            gap: 8,
-            flex: 1,
-            minWidth: 0,
-            minHeight: 0,
-          }}
-        >
-          {renderFeaturedSide("mine", false)}
-          {renderFeaturedSide("theirs", false)}
-        </div>
-      );
-    }
-    if (layout.kind === "dual-focus") {
-      return (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            gap: 8,
-            flex: 1,
-            minWidth: 0,
-            minHeight: 0,
-          }}
-        >
-          {renderFeaturedSide("mine", true)}
-          {renderFeaturedSide("theirs", true)}
-        </div>
-      );
-    }
-    return renderFocusedStage(true);
   }
 
   const renderStage = () => (
     <div
-      data-layout-kind={pinnedId ? layout.kind : "adaptive-grid"}
+      data-layout-kind="focus-grid"
       style={{
         position: "relative",
         flex: 1,
         minHeight: 0,
         display: "flex",
-        padding: isPhone ? 6 : 10,
         overflow: "hidden",
       }}
     >
@@ -1553,14 +1094,6 @@ function EncounterInner() {
     setReactionsOpen(next);
   }
 
-  const hasFocusedFrame = !!pinnedId;
-  const localParticipant = participants.find((person) => person.isLocal);
-  const hasCompactSelfView =
-    !!pinnedId &&
-    !!localParticipant &&
-    localParticipant.id !== layout.focusId &&
-    (layout.kind === "remote-main" || layout.kind === "single-focus");
-
   const ctrlBtns = [
     {
       id: "mic",
@@ -1612,7 +1145,6 @@ function EncounterInner() {
     },
   ];
 
-  const pinnedMemberName = pinnedId ? (participantById.get(pinnedId)?.name ?? null) : null;
   const captureIssues = [
     captureState.audio === "denied"
       ? "Microphone permission is blocked."
@@ -1855,9 +1387,12 @@ function EncounterInner() {
     <>
       <style>{KEYFRAMES}</style>
       <div
+        ref={setShellEl}
         data-testid="encounter-shell"
         className="gg-screen-call"
+        data-chrome={chromeShown || chromeAlways ? "shown" : "hidden"}
         style={{
+          position: "relative",
           display: "flex",
           flexDirection: "column",
           height: `calc(100% - ${keyboardInset}px)`,
@@ -1875,9 +1410,11 @@ function EncounterInner() {
             display: "flex",
             alignItems: "center",
             gap: isPhoneChrome ? 6 : 12,
-            padding: isPhoneChrome ? "7px 10px" : "9px 20px",
+            padding: isPhoneChrome ? "max(8px, env(safe-area-inset-top)) 10px 18px" : "12px 20px 24px",
             flexShrink: 0,
-            zIndex: 10,
+            zIndex: 30,
+            // on a phone the open chat takes the whole screen; the header steps aside
+            visibility: isPhoneChrome && chatOpen ? "hidden" : undefined,
             overflow: "hidden",
             maxWidth: "100vw",
           }}
@@ -1896,12 +1433,14 @@ function EncounterInner() {
             }}
           >
             {[
-              [mySquad?.name ?? "Your squad", mineParticipants.length],
-              [oppSquad?.name ?? "Their squad", theirParticipants.length],
-            ].map(([name, count]) => (
+              // same order as the stage: their squad left, yours right
+              [oppSquad?.name ?? "Their squad", theirParticipants.length, "theirs"],
+              [mySquad?.name ?? "Your squad", mineParticipants.length, "mine"],
+            ].map(([name, count, side]) => (
               <span
-                key={String(name)}
+                key={String(side)}
                 className="call-title"
+                data-side={side}
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -1917,56 +1456,6 @@ function EncounterInner() {
               </span>
             ))}
           </div>
-
-          {/* Focused chip — only shown when a person is pinned */}
-          {pinnedMemberName && (
-            <div
-              style={{
-                display: isPhoneChrome ? "none" : "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "var(--accent-soft)",
-                border: "1px solid var(--accent-line)",
-                borderRadius: "var(--radius-pill)",
-                padding: "3px 10px",
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--accent)",
-                flexShrink: 0,
-                fontFamily: "var(--font-display, var(--font-space-grotesk))",
-              }}
-            >
-              <Icon.pin size={12} color="var(--accent)" />
-              <span
-                style={{
-                  maxWidth: 160,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap" as const,
-                }}
-              >
-                {pinnedMemberName}
-              </span>
-              <button
-                onClick={() => setPinnedId(null)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--text-muted)",
-                  fontSize: 13,
-                  lineHeight: 1,
-                  padding: "0 2px",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-                title="Exit focus"
-                aria-label="Exit focus"
-              >
-                <Icon.close size={12} color="var(--text-muted)" />
-              </button>
-            </div>
-          )}
 
           <div style={{ flex: 1 }} />
 
@@ -2064,14 +1553,15 @@ function EncounterInner() {
                 data-testid="media-recovery-notice"
                 role="alert"
                 style={{
-                  // In flow (not a floating toast) so it never covers a person's tile.
+                  // In flow (not floating) so it never covers a person's tile; it only
+                  // appears while video can't start and can be dismissed.
                   flexShrink: 0,
                   alignSelf: "center",
-                  margin: "10px 12px 0",
+                  margin: isPhoneChrome ? "52px 12px 6px" : "60px 12px 8px",
                   maxWidth: "calc(100% - 24px)",
                   display: "flex",
                   alignItems: "center",
-                  flexWrap: "wrap",
+                  flexWrap: "nowrap",
                   gap: 10,
                   background: "var(--surface, rgba(22,22,30,0.97))",
                   backgroundImage: "linear-gradient(var(--coral-soft), var(--coral-soft))",
@@ -2092,7 +1582,7 @@ function EncounterInner() {
                   }}
                 />
                 <span
-                  style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4 }}
+                  style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4, minWidth: 0, flex: "1 1 auto" }}
                 >
                 {recoveryMessages.join(" ")}
                 </span>
@@ -2314,7 +1804,6 @@ function EncounterInner() {
                 minHeight: 0,
                 display: "flex",
                 flexDirection: "column",
-                paddingBottom: 8,
               }}
             >
               {renderStage()}
@@ -2553,48 +2042,6 @@ function EncounterInner() {
                         <Icon.shield size={17} color="var(--coral)" />
                         Block opponent squad
                       </button>
-                      {hasFocusedFrame && (
-                        <button
-                          onClick={() => {
-                            setFocusedFit((fit) => (fit === "fit" ? "crop" : "fit"));
-                            closeMore(true);
-                          }}
-                          style={{
-                            minHeight: 44,
-                            padding: "0 12px",
-                            borderRadius: "var(--radius-control)",
-                            border: "var(--control-border)",
-                            background: "var(--overlay)",
-                            color: "var(--text)",
-                            textAlign: "left",
-                            cursor: "pointer",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {focusedFit === "fit" ? "Crop focused video" : "Fit focused video"}
-                        </button>
-                      )}
-                      {hasCompactSelfView && (
-                        <button
-                          onClick={() => {
-                            setSelfViewMinimized((minimized) => !minimized);
-                            closeMore(true);
-                          }}
-                          style={{
-                            minHeight: 44,
-                            padding: "0 12px",
-                            borderRadius: "var(--radius-control)",
-                            border: "var(--control-border)",
-                            background: "var(--overlay)",
-                            color: "var(--text)",
-                            textAlign: "left",
-                            cursor: "pointer",
-                            fontWeight: 700,
-                          }}
-                        >
-                          {selfViewMinimized ? "Restore self-view" : "Minimize self-view"}
-                        </button>
-                      )}
                     </div>
                   )}
                 </div>

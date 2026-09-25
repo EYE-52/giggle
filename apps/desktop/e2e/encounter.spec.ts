@@ -140,6 +140,9 @@ async function installEncounterFixture(page: Page, options: {
   await page.addInitScript(({ sessionValue }) => {
     localStorage.setItem("giggle.session", sessionValue);
     localStorage.setItem("giggle.look", JSON.stringify({ skin: "soft", palette: "honey", mode: "dark" }));
+    // Keep the call chrome shown so fixture clicks never race the idle fade;
+    // "call chrome fades when idle and wakes on input" covers the fade itself.
+    if (!sessionStorage.getItem("giggle.test.chromeFade")) localStorage.setItem("giggle.callChrome", "always");
   }, { sessionValue: JSON.stringify({ token: `e30.${payload}.fixture`, user }) });
 
   await page.route("**/api/**", async route => {
@@ -385,11 +388,17 @@ test("fixture encounter keeps media, chat, and controls usable across resize", a
     }
 
     await expect(stage.locator("[data-layout-kind]")).toBeVisible();
-    const firstFrame = frames.first();
-    await firstFrame.getByRole("button", { name: /options$/ }).click();
-    await page.getByRole("button", { name: "Focus on this person", exact: true }).click();
-    await expect(stage.locator('[data-media-fit="fit"]').first()).toBeVisible();
-    await page.keyboard.press("Escape");
+    // Viewer-local sizing: make someone bigger (others re-flow), then keep that size.
+    const firstCell = stage.locator("[data-participant-id]").first();
+    const sizeBefore = await firstCell.boundingBox();
+    await firstCell.getByRole("button", { name: /options$/ }).click();
+    await page.getByRole("button", { name: "Make bigger", exact: true }).click();
+    await expect(firstCell).toHaveAttribute("data-weight", "2");
+    await expect.poll(async () => { const box = await firstCell.boundingBox(); return box!.width * box!.height; })
+      .toBeGreaterThan(sizeBefore!.width * sizeBefore!.height * 1.2);
+    await firstCell.getByRole("button", { name: /options$/ }).click();
+    await page.getByRole("button", { name: /^Keep this size/ }).click();
+    await expect(firstCell).toHaveAttribute("data-pinned", "true");
     const more = controls.getByRole("button", { name: "More", exact: true });
 
     const chat = controls.getByRole("button", { name: "Chat" });
@@ -530,9 +539,8 @@ test("mocked rosters stay usable across the viewport matrix", async ({ page }, t
     await page.setViewportSize({ width, height });
     for (const count of fixtureCounts) {
       const { stage, controls } = await openFixture(page, count);
-      // Unpinned calls use the adaptive grid for every roster size; named
-      // layouts (remote-main, featured-split, …) only apply once someone is pinned.
-      await expect(stage.locator('[data-layout-kind="adaptive-grid"]')).toBeVisible();
+      // Every roster uses the focus grid (same-size tiles per squad; viewer zoom/pin).
+      await expect(stage.locator('[data-layout-kind="focus-grid"]')).toBeVisible();
 
       const frames = stage.locator("[data-media-frame]");
       await expect(frames).toHaveCount(count * 2);
@@ -753,4 +761,24 @@ test("personal leave updates only this member and does not end the encounter", a
   await presence;
   await expect(page).toHaveURL(/\/home$/);
   expect(mutations).not.toContain("/api/encounters/disconnect");
+});
+
+test("call chrome fades when idle and wakes on input", async ({ page }, testInfo) => {
+  test.skip(!["desktop", "laptop"].includes(testInfo.project.name), "One wide project covers the idle fade");
+  await page.addInitScript(() => sessionStorage.setItem("giggle.test.chromeFade", "1"));
+  await installEncounterFixture(page);
+  const { stage } = await openFixture(page, 2);
+  await expect(stage).toBeVisible();
+  const shell = page.getByTestId("encounter-shell");
+  await expect(shell).toHaveAttribute("data-chrome", "shown");
+  // rest the pointer over the video (hovering the header or controls keeps them shown)
+  const box = await stage.boundingBox();
+  await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+  await expect(shell).toHaveAttribute("data-chrome", "hidden", { timeout: 8000 });
+  await page.mouse.move(box!.x + box!.width / 2 + 30, box!.y + box!.height / 2 + 20);
+  await expect(shell).toHaveAttribute("data-chrome", "shown");
+  // keyboard users bring it back by focusing a control
+  await expect(shell).toHaveAttribute("data-chrome", "hidden", { timeout: 8000 });
+  await page.keyboard.press("Tab");
+  await expect(shell).toHaveAttribute("data-chrome", "shown");
 });
