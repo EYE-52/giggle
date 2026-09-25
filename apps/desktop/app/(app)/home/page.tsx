@@ -298,33 +298,6 @@ export default function HomePage() {
               </div>
             </section>
           )}
-          <section className="gg-tip card tip">
-            <span className="tip-mark" aria-hidden="true">
-              <Icon.sparkle size={22} />
-            </span>
-            <div className="tip-body">
-              <h2 className="card-title tip-title">Try this next call</h2>
-              <button
-                type="button"
-                className="icon-btn tip-shuffle"
-                aria-label="New idea"
-                onClick={shuffleTipIdeas}
-              >
-                <Icon.shuffle size={17} />
-              </button>
-              <ul className={`tip-ideas${tipShuffled ? " is-shuffled" : ""}`} aria-live="polite">
-                {IDEA_SETS[tipIndex].map(([TipIcon, label]) => (
-                  <li className="tip-idea" key={label}>
-                    <TipIcon size={16} />
-                    <span>{label}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link href="/friends" className="link tip-cta">
-                Find your people <Icon.arrowRight size={16} />
-              </Link>
-            </div>
-          </section>
         </div>
         <aside className="gg-home-side">
           <form
@@ -369,6 +342,36 @@ export default function HomePage() {
               {joinError}
             </p>
           )}
+          {/* The approved mocks place the tip card in the right column under
+              the join card (grid-areas "create join" / "create tip"); on phone
+              it follows the join card in the single column. */}
+          <section className="gg-tip card tip">
+            <span className="tip-mark" aria-hidden="true">
+              <Icon.sparkle size={22} />
+            </span>
+            <div className="tip-body">
+              <h2 className="card-title tip-title">Try this next call</h2>
+              <button
+                type="button"
+                className="icon-btn tip-shuffle"
+                aria-label="New idea"
+                onClick={shuffleTipIdeas}
+              >
+                <Icon.shuffle size={17} />
+              </button>
+              <ul className={`tip-ideas${tipShuffled ? " is-shuffled" : ""}`} aria-live="polite">
+                {IDEA_SETS[tipIndex].map(([TipIcon, label]) => (
+                  <li className="tip-idea" key={label}>
+                    <TipIcon size={16} />
+                    <span>{label}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link href="/friends" className="link tip-cta">
+                Find your people <Icon.arrowRight size={16} />
+              </Link>
+            </div>
+          </section>
           {!!squads?.length && (
             <section className="gg-home-panel card">
               <h2>Your squads</h2>

@@ -120,3 +120,85 @@ html[data-skin="play"][data-mode="dark"] .card.create .hint {
 html[data-skin="play"][data-mode="dark"] .card.create .btn-primary {
   color: var(--bg);
 }
+
+/* ── Phase 2a fixes ─────────────────────────────────────────────────────── */
+
+/* Phone tab bar vs. desktop: the ported skins re-flex `.tabbar`
+ * unconditionally (in the studio the bar only ever lived inside the phone
+ * device frame), which beats the app's class-only hide rules — on desktop the
+ * phone nav showed up as an extra row under the header (soft/clay/scrap), and
+ * scrap's `position: relative` pulled the fixed phone bar into the flow. */
+@media (min-width: 721px) {
+  html[data-skin] .gg-mobile-nav.tabbar {
+    display: none;
+  }
+}
+@media (max-width: 720px) {
+  html[data-skin] .gg-mobile-nav.tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+  }
+  /* Skins run their phone layout down to 720px while the app's own bottom
+   * padding only grows at 600px — keep the last content clear of the ~60px
+   * bar across the whole skin phone range (app's own phone value + safe
+   * area, comfortably ≥ bar height + 16px). */
+  html[data-skin] .gg-app-container {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Home title: scrap's approved title is the skin's Nunito — the port kept
+ * the app's "Clash Display" (Community.module.css) because the mock took the
+ * face from a shared base rule; Clash's 0.1em word gaps read as one squashed
+ * word ("Goodtohaveyouhere."). */
+html[data-skin="scrap"] .gg-home .page-head .title {
+  font-family: var(--font-display);
+}
+/* Narrow-space display faces (Bricolage .19em, Baloo .17em) sit just under
+ * the readable word-gap floor — nudge every skin's title to ≥0.2em. */
+html[data-skin] .gg-home .page-head .title {
+  word-spacing: 0.05em;
+}
+
+/* Tip idea chips on phone: the mock card is desktop-wide, so its chips could
+ * stay on one row with ellipsized labels; on the app's phone they wrap to
+ * full-text lines. */
+@media (max-width: 720px) {
+  html[data-skin] .card.tip .tip-ideas {
+    flex-wrap: wrap;
+  }
+  html[data-skin] .card.tip .tip-idea {
+    flex: 0 1 auto;
+  }
+  html[data-skin] .card.tip .tip-idea span {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
+/* Clay phone create card: the mock sizes the foot's hint with a row flex
+ * basis (`flex: 1 1 180px` = width); the app's phone foot stacks (column), so
+ * that basis reads as a 180px HEIGHT and pushes the primary action under the
+ * fixed tab bar. Neutralise the basis in the stacked direction. */
+@media (max-width: 720px) {
+  html[data-skin="clay"] .card.create .card-foot .hint {
+    flex-basis: auto;
+  }
+}
+
+/* Doodle (paper) desktop right column: the app's own join-form sizes (17px
+ * label, 13px module hint) are smaller than the approved Doodle card (21px
+ * title, 14px hint) — restore the mock sizes so the column reads at body
+ * scale. */
+@media (min-width: 721px) {
+  html[data-skin="paper"] .gg-join-form .card-title {
+    font-size: 21px;
+  }
+  html[data-skin="paper"] .gg-join-form .hint {
+    font-size: 14.5px;
+  }
+}
