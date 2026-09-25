@@ -94,7 +94,7 @@ function RadioGroup<T extends string>({
       onKeyDown={onKeyDown}
       style={
         layout === "skin"
-          ? { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(184px, 1fr))", gap: 10 }
+          ? { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 150px), 1fr))", gap: 10 }
           : layout === "palette"
             ? { display: "flex", flexWrap: "wrap", gap: 8 }
             : { display: "inline-flex", gap: 2, padding: 3, borderRadius: 999, background: "var(--overlay)", border: "1px solid var(--border)" }
@@ -176,16 +176,15 @@ function SkinSample({ skinId, name }: { skinId: SkinId; name: string }) {
       aria-hidden="true"
       style={{ display: "block", pointerEvents: "none", minWidth: 0 }}
     >
-      <div className="card" style={{ display: "grid", gap: 8, padding: 12, margin: 0 }}>
-        <PersonAvatar userId={`skin-sample-${skinId}`} name={name} size={30} wrapClassName="pa" />
+      <div className="card" style={{ display: "grid", gap: 6, padding: 10, margin: 0 }}>
+        <PersonAvatar userId={`skin-sample-${skinId}`} name={name} size={26} wrapClassName="pa" />
         <span
           className="card-title"
           style={{ fontSize: 14.5, lineHeight: 1.2, width: "fit-content", maxWidth: "100%" }}
         >
           Friday crew
         </span>
-        <span className="hint" style={{ fontSize: 13 }}>2 of 4 ready</span>
-        <span className="gg-btn btn btn-primary" style={{ minHeight: 38, fontSize: 13 }}>
+        <span className="gg-btn btn btn-primary" style={{ minHeight: 34, fontSize: 13 }}>
           Join
         </span>
       </div>
