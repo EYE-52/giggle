@@ -174,17 +174,14 @@ html[data-palette][data-mode] body {
    shadows --text/--text-muted/--surface on the wrapper. These higher-
    specificity overrides re-point it at the palette's dark values (via the
    --ink/--panel aliases, since var(--text) on the wrapper would be
-   self-referential) while keeping the approved structure. */
+   self-referential) while keeping the approved structure.
+   Phase 2c: the controls' own paint is no longer forced here — the base
+   classes in revamp.css carry it and the ported skins (.call-bar/.cbtn at
+   equal-or-higher specificity, later in the cascade) restyle it, so the
+   toolbar follows the skin like the rest of the call screen. */
 html[data-palette] .gg-call-theme .gg-call-controls-wrap {
   background: var(--bg);
   --text: var(--ink);
   --text-muted: color-mix(in srgb, var(--muted) 85%, var(--ink) 15%);
   --surface: var(--panel);
-}
-html[data-palette] .gg-call-theme .gg-call-controls-wrap [data-call-control] {
-  background: var(--surface-2);
-  color: var(--ink);
-}
-html[data-palette] .gg-call-theme .gg-call-controls-wrap [data-call-leave] {
-  background: color-mix(in srgb, #E5484D 78%, #000000 22%) !important;
 }

@@ -86,15 +86,15 @@ export function AdaptiveVideoStage({ mine, theirs, mineLabel, theirsLabel, rende
   const theirRatios = JSON.stringify(theirs.map(p => p.cameraOn ? ratios[p.id] ?? normalizeVideoRatio(p.aspectRatio) : 1));
   const layout = useMemo(() => arrangeVideoCall(JSON.parse(mineRatios), JSON.parse(theirRatios), bounds.width, bounds.height),
     [mineRatios, theirRatios, bounds.width, bounds.height]);
-  return <div ref={host} className={styles.stage} data-adaptive-video-stage>
-    <div className={styles.groups} style={{ flexDirection: layout.stacked ? "column" : "row", justifyContent: "center", gap: layout.gap }}>
+  return <div ref={host} className={`${styles.stage} vstage`} data-adaptive-video-stage>
+    <div className={`${styles.groups} vgroups`} style={{ flexDirection: layout.stacked ? "column" : "row", justifyContent: "center", gap: layout.gap }}>
       {([
         { id: "theirs", people: theirs, label: theirsLabel, box: layout.theirs },
         { id: "mine", people: mine, label: mineLabel, box: layout.mine },
-      ] as const).map(group => <section key={group.id} className={styles.group} aria-label={group.label}
+      ] as const).map(group => <section key={group.id} className={`${styles.group} vgroup`} aria-label={group.label}
         style={{ display: group.people.length ? "block" : "none", width: group.box.width, height: group.box.height }}>
-        <div className={styles.label} style={{ height: layout.label }}><span>{group.label}</span><span>{group.people.length}</span></div>
-        <div className={styles.feeds} style={{ top: layout.label }}>
+        <div className={`${styles.label} vlabel`} style={{ height: layout.label }}><span>{group.label}</span><span>{group.people.length}</span></div>
+        <div className={`${styles.feeds} vfeeds`} style={{ top: layout.label }}>
           {group.people.map((person, index) => <CameraCell key={person.id} person={person} tile={group.box.tiles[index]} onRatio={onRatio}>
             {renderParticipant(person.id)}
           </CameraCell>)}

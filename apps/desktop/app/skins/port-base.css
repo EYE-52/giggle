@@ -59,3 +59,23 @@ html[data-skin] .lobby-stage {
 html[data-skin] .gg-lobby-root .lobby-grid {
   align-items: stretch;
 }
+
+/* ── Phase 2c (Call) ─────────────────────────────────────────────────────── */
+
+/* Mock base call label: the studio's .vname is a small floating pill inside
+ * the tile (left/bottom inset, content width). The app's scrim spans the full
+ * tile bottom — fine as the unskinned look, but the ported skins' pill
+ * styling needs the mock's anchor to read as a label. Name labels are
+ * explicitly restylable; this never touches the tile box itself. */
+html[data-skin] .vtile .vname {
+  left: 8px;
+  right: auto;
+  bottom: 8px;
+  width: auto;
+  max-width: calc(100% - 16px);
+}
+
+/* The mock stage is a rounded inset panel (skins paint it); the app's stage
+ * host already clips, so tiles' speaking rings/frames stay inside. No rule
+ * needed — kept as a note that geometry here is frozen by
+ * AdaptiveVideoStage.module.css + arrangeVideoCall. */

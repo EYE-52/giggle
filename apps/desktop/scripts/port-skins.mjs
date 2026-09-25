@@ -22,6 +22,10 @@
  *   .s-home                                   → .gg-screen-home (Home page root)
  *   .s-friends                                → .gg-screen-friends (Friends page root)
  *   .s-lobby                                  → .gg-screen-lobby (Lobby page root)
+ *   .s-call / .screen.s-call                  → .gg-screen-call (2c: Call screen root —
+ *                                              the encounter shell; it is NOT a
+ *                                              .gg-screen, which is a padded,
+ *                                              scrollable column)
  *   .screen                                   → .gg-screen      (any screen root)
  *   .home-grid                                → .gg-home-grid — but grid PLACEMENT
  *                                              declarations on the grid root are dropped:
@@ -51,8 +55,27 @@
  *   the mock's visually-hidden checkbox styles would hide it.
  *
  * Scope: selectors that reference mock classes which do not exist in the real
- * DOM yet (the Call screen and the component board arrive in phase 2c) are
- * dropped. Rules mixing live and future selectors keep only the live ones.
+ * DOM are dropped. Rules mixing live and future selectors keep only the live
+ * ones.
+ *
+ * Phase 2c — VIDEO GEOMETRY GUARD. The call stage's tile boxes come from
+ * packages/core arrangeVideoCall + the app's own stage CSS; skins may only
+ * restyle paint. translateBody() therefore drops, per selector tier:
+ *   TIER STRICT (.vstage/.vgroups/.vgroup/.vfeeds/.vtile and compounds like
+ *     .vtile.speaking): every size/place property (width, height, min- and
+ *     max-width/height, left/right/top/bottom, inset, position, transform,
+ *     margin-*, padding-*, flex-*, display, aspect-ratio, gap-*, order,
+ *     align-*, justify-*) and border widths (a border would eat into the
+ *     tile's fixed box and shrink the video). Background, radius ≤18px,
+ *     box-shadow/outline, ::before/::after frames, animations, fonts and
+ *     colors pass through.
+ *   TIER CHROME (.gg-screen-call/.call-top/.call-title/.call-bar): the same
+ *     drops plus line-height/white-space/overflow-wrap/word-break — these
+ *     elements size the stage's height, and per-skin fonts must never change
+ *     it (the app pins the chrome text metrics in revamp.css instead).
+ *   Everything else (.pill/.timer/.cbtn/.vname/.vlabel/.av/.ic/…) passes
+ *     freely: those live inside rows whose heights are already pinned
+ *     (inline styles, the toolbar lock, or the tile box itself).
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
@@ -89,11 +112,16 @@ const LIVE_CLASSES = new Set([
   "lobby-head", "lobby-grid", "lobby-stage", "lobby-controls",
   "preview", "self", "invite", "cam-off", "preview-meta",
   "squad-panel", "panel-head", "count", "code-box", "code-val", "meta-row",
+  // call (2c)
+  "call-top", "call-title", "timer", "pill", "live", "dot",
+  "vstage", "vgroups", "vgroup", "vlabel", "vfeeds",
+  "vtile", "speaking", "off", "cam", "vname",
+  "call-bar", "cbtn", "leave",
   // overlays
   "modal", "modal-head", "modal-foot", "toast",
   // mapped app hooks (may appear in translated selectors)
   "gg-app-root", "gg-screen", "gg-screen-home", "gg-home-grid",
-  "gg-screen-friends", "gg-screen-lobby",
+  "gg-screen-friends", "gg-screen-lobby", "gg-screen-call",
   "gg-switch", "gg-switch-track",
 ]);
 
@@ -156,6 +184,8 @@ function translateSelector(sel, skin, forceDark = false) {
   s = s.replace(/(?<![\w-])\.app(?![\w-])/g, ".gg-app-root");
 
   // screens
+  s = s.replace(/\.screen\.s-call\b/g, ".gg-screen-call");
+  s = s.replace(/\.s-call\b/g, ".gg-screen-call");
   s = s.replace(/\.s-home\b/g, ".gg-screen-home");
   s = s.replace(/\.s-friends\b/g, ".gg-screen-friends");
   s = s.replace(/\.s-lobby\b/g, ".gg-screen-lobby");
@@ -243,9 +273,49 @@ function placementKind(selector) {
   return null;
 }
 
+/* ── Phase 2c: video geometry guard ──────────────────────────────────────────
+ * Which selector tier a translated selector falls into, per its LAST compound
+ * (pseudo-classes stripped): the stage graph, or the chrome rows that size it. */
+const STAGE_HOOKS = new Set(["vstage", "vgroups", "vgroup", "vfeeds", "vtile"]);
+const CHROME_HOOKS = new Set(["gg-screen-call", "call-top", "call-title", "call-bar"]);
+
+function geometryTier(selector) {
+  const lastCompound = selector.trim().split(/[\s>+~]+/).pop() ?? "";
+  const classes = classesOf(lastCompound.replace(/:[A-Za-z-]+(\([^)]*\))?/g, ""));
+  for (const cls of classes) {
+    if (STAGE_HOOKS.has(cls)) return "stage";
+    if (CHROME_HOOKS.has(cls)) return "chrome";
+  }
+  return null;
+}
+
+/* Size/place properties skins may never set on the stage graph or the chrome
+ * rows (see the script header). border* included: with the app's fixed boxes a
+ * border would either shrink the video (tiles) or grow the row (chrome). */
+const GEOMETRY_PROPS = new Set([
+  "width", "height",
+  "min-width", "min-height", "max-width", "max-height",
+  "left", "right", "top", "bottom", "inset",
+  "position", "transform", "aspect-ratio",
+  "order", "display",
+]);
+const GEOMETRY_PROP_RE = /^(margin|padding|flex|gap|align|justify|row-gap|column-gap)-?/;
+/* Border WIDTH changes the box (tiles shrink their video, chrome rows grow);
+ * paint-only border properties (radius/color/style) stay allowed. */
+const BORDER_GEOMETRY_RE = /^border$|^border-(top|right|bottom|left|block|inline|width)/;
+
+function isGeometryProp(prop) {
+  return GEOMETRY_PROPS.has(prop) || GEOMETRY_PROP_RE.test(prop) || BORDER_GEOMETRY_RE.test(prop);
+}
+
+/* Chrome rows additionally must not reflow text: their heights are pinned by
+ * the app (revamp.css) so every skin's stage box stays identical. */
+const CHROME_TEXT_RE = /^(line-height|white-space|overflow-wrap|word-break|vertical-align)$/;
+
 function translateBody(body, selector) {
   const kind = placementKind(selector);
   const rootKindValue = rootKind(selector);
+  const tier = geometryTier(selector);
   const decls = [];
   for (const raw of body.split(";")) {
     const idx = raw.indexOf(":");
@@ -261,6 +331,9 @@ function translateBody(body, selector) {
     if (kind === "homeGrid" && (GRID_TEMPLATE.has(p) || GRID_SELF_PLACEMENT.has(p) || p === "align-items")) continue;
     if (kind === "homeCard" && GRID_SELF_PLACEMENT.has(p)) continue;
     if (rootKindValue === "screen" && p.startsWith("padding")) continue; // .gg-app-container pads
+    // phase 2c: the video stage + the rows that size it are geometry-frozen
+    if (tier && isGeometryProp(p)) continue;
+    if (tier === "chrome" && CHROME_TEXT_RE.test(p)) continue;
     if (p === "font-family") { decls.push(`${p}: ${translateFontFamily(value)}`); continue; }
     decls.push(`${p}: ${translateValue(value)}`);
   }
@@ -385,7 +458,7 @@ for (const skin of SKINS) {
   const src = readFileSync(join(DESIGN, `skin-${skin}.css`), "utf8");
   const chunks = [
     `/* GENERATED by apps/desktop/scripts/port-skins.mjs from design/skins/skin-${skin}.css — do not edit.
- * Skin system phase 2b: the approved "${skin}" skin translated onto the real
+ * Skin system phase 2c: the approved "${skin}" skin translated onto the real
  * app DOM. See the script header for the full rule table. */
 `,
   ];

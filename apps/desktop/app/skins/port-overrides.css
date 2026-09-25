@@ -330,3 +330,48 @@ html[data-skin] .gg-screen-friends .page-head .title,
 html[data-skin] .gg-screen-lobby .lobby-head .title {
   word-spacing: 0.05em;
 }
+
+/* ── Phase 2c (Call) ─────────────────────────────────────────────────────── */
+
+/* Control STATE floors: the skins restyle the call controls' paint freely,
+ * but the app's semantic states must survive every skin — a muted mic / dead
+ * camera reads coral, an open panel (chat) reads as the active accent.
+ * !important beats whatever background the skin painted on .cbtn; geometry
+ * stays owned by the toolbar lock in revamp.css. */
+html[data-skin] .gg-call-theme .cbtn[data-cbtn-state="off"] {
+  background: var(--coral) !important;
+  border-color: color-mix(in srgb, var(--coral) 60%, transparent) !important;
+  color: #fff !important;
+}
+html[data-skin] .gg-call-theme .cbtn[data-cbtn-state="on"] {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+}
+
+/* Bold Play paints call name labels pop-over-ink (1.4:1 on the always-dark
+ * call surfaces, where --text is the palette's light ink). The approved DARK
+ * mock already swaps them to surface-backed labels — calls are always dark,
+ * so that treatment applies here too. */
+html[data-skin="play"] .gg-call-theme .vname {
+  background: var(--surface);
+  color: var(--text);
+}
+/* Same pairing the 2a rule established for play's pop primaries: dark ink on
+ * the pop fill (the light mock's own combination) keeps the Leave label ≥4.5. */
+html[data-skin="play"] .gg-call-theme .cbtn.leave {
+  color: var(--bg);
+}
+
+/* Scrapbook's focus rule was written as :is(.btn, …, .cbtn, …):focus-visible;
+ * the port script splits selector lists on every comma, so the generated file
+ * carries the split's leftovers — including a stray GLOBAL `.cbtn { outline }`
+ * that would ring every call button permanently in ANY skin (the file is
+ * always loaded; only its scoped rules wait for data-skin). Restore the
+ * intended focus-only outline. */
+html[data-skin] .cbtn {
+  outline: none;
+}
+html[data-skin="scrap"] .cbtn:focus-visible {
+  outline: 2.5px solid color-mix(in srgb, var(--brand) 72%, transparent);
+  outline-offset: 2px;
+}

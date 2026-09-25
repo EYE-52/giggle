@@ -596,13 +596,71 @@
 }
 @media(prefers-reduced-motion:reduce){.gg-logo-draw path{animation:none;stroke-dashoffset:0}}
 
-/* Approved call toolbar: compact, borderless, and identical on phone and desktop. */
+/* Approved call toolbar: compact, and identical on phone and desktop.
+   Phase 2c (skins): GEOMETRY stays !important-locked — the video stage above
+   sizes itself from these rows, so no skin may change their heights — but the
+   PAINT (background, border, radius, shadow, backdrop) moved off !important
+   into the .call-bar/.cbtn base rules below, where the ported skins
+   (html[data-skin] …, higher specificity) can override it. */
 .gg-call-controls-wrap { background:#242323; padding:12px 8px max(12px, env(safe-area-inset-bottom)) !important; --text:#faf7f2; --text-muted:#c5beb3; --surface:#33312f; }
-.gg-call-controls-wrap [data-testid="call-controls"] { border:0 !important; border-radius:0 !important; padding:0 !important; background:transparent !important; box-shadow:none !important; backdrop-filter:none !important; gap:8px !important; }
-.gg-call-controls-wrap [data-call-control] { width:60px !important; min-width:52px !important; height:64px !important; padding:8px 4px !important; border:0 !important; border-radius:14px !important; flex-direction:column; gap:5px; background:#33312f; color:#faf7f2; }
-.gg-call-controls-wrap [data-call-leave] { background:#b34e36 !important; }
+.gg-call-controls-wrap [data-testid="call-controls"] { padding:0 !important; gap:8px !important; }
+.gg-call-controls-wrap [data-call-control] { width:60px !important; min-width:52px !important; height:64px !important; padding:8px 4px !important; flex-direction:column; gap:5px; }
 .gg-control-label { font-size:12px; font-weight:400; line-height:16px; color:inherit; }
 @media(max-width:699px), (max-height:500px) and (max-width:950px) { .gg-call-controls-wrap [data-call-control] { width:52px !important; height:60px !important; } }
+
+/* ── Phase 2c: call chrome hooks ──────────────────────────────────────────
+   The encounter chrome carries the mock's stable class hooks (call-top,
+   call-title, pill live, dot, timer, call-bar, cbtn/leave) so the ported
+   skins can restyle its paint. These base rules reproduce the approved
+   look AND pin the chrome's text metrics: the explicit line-heights keep
+   every skin's fonts from changing the header row's height, so the video
+   stage — and every tile box inside it — sizes identically in all skins.
+   (Values are the soft/default look's natural line boxes.) */
+.gg-call-theme .call-top { background: var(--surface); border-bottom: var(--control-border); box-shadow: var(--shadow-sm); }
+.gg-call-theme .call-title {
+  background: var(--overlay);
+  color: var(--text);
+  border: var(--control-border);
+  border-radius: var(--radius-pill, 999px);
+  font-family: var(--font-display);
+  font-weight: 700;
+  /* 1px border + 4px padding + 16px line box + 4px + 1px = the approved 26px
+   * chip in every skin's fonts (the default look's natural metrics). */
+  line-height: 16px;
+}
+.gg-call-theme .gg-call-status { line-height: 15px; }
+.gg-call-theme .pill.live {
+  color: var(--live);
+  background: var(--live-soft);
+  border: 1px solid color-mix(in srgb, var(--live) 30%, transparent);
+  border-radius: var(--radius-pill, 999px);
+  font-weight: 800;
+  line-height: 16px;
+  letter-spacing: .08em;
+}
+.gg-call-theme .pill.live .dot { background: var(--live); }
+.gg-call-theme .timer { color: var(--text); font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; }
+.gg-call-theme .call-bar {
+  border-radius: var(--radius-card, 20px);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  box-shadow: var(--shadow-pop);
+}
+.gg-call-theme .cbtn {
+  border-radius: var(--radius-control, 14px);
+  border: var(--control-border);
+  background: var(--cbtn-bg, var(--surface-2));
+  color: var(--cbtn-fg, var(--text));
+  box-shadow: none;
+}
+.gg-call-theme .cbtn.leave {
+  border: none;
+  border-radius: var(--radius-btn, 999px);
+  background: color-mix(in srgb, #E5484D 78%, #000000 22%);
+  color: #fff;
+  box-shadow: none;
+}
 
 .gg-welcome { min-height:100svh; background:var(--bg); color:var(--text); display:flex; flex-direction:column; padding:0 clamp(20px,5vw,80px); }
 .gg-welcome a { color:inherit; text-decoration:none; }

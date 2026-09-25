@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   advanceSpeakerFocus,
@@ -1856,6 +1856,7 @@ function EncounterInner() {
       <style>{KEYFRAMES}</style>
       <div
         data-testid="encounter-shell"
+        className="gg-screen-call"
         style={{
           display: "flex",
           flexDirection: "column",
@@ -1869,14 +1870,12 @@ function EncounterInner() {
         {/* ── SLIM HEADER ─────────────────────────────────────────────────── */}
         <div
           data-testid="encounter-header"
+          className="call-top"
           style={{
             display: "flex",
             alignItems: "center",
             gap: isPhoneChrome ? 6 : 12,
             padding: isPhoneChrome ? "7px 10px" : "9px 20px",
-            background: "var(--surface)",
-            borderBottom: "var(--control-border)",
-            boxShadow: "var(--shadow-sm)",
             flexShrink: 0,
             zIndex: 10,
             overflow: "hidden",
@@ -1902,6 +1901,7 @@ function EncounterInner() {
             ].map(([name, count]) => (
               <span
                 key={String(name)}
+                className="call-title"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
@@ -1909,12 +1909,6 @@ function EncounterInner() {
                   minWidth: 0,
                   maxWidth: 190,
                   padding: "4px 9px",
-                  border: "var(--control-border)",
-                  borderRadius: "var(--radius-pill)",
-                  background: "var(--overlay)",
-                  color: "var(--text)",
-                  fontFamily: "var(--font-display)",
-                  fontWeight: 700,
                   fontSize: 13,
                 }}
               >
@@ -1980,21 +1974,17 @@ function EncounterInner() {
             {connState === "CONNECTED" ? (
               <>
                 <span
+                  className="pill live"
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 5,
                     fontSize: 12,
-                    fontWeight: 800,
-                    color: "var(--live)",
-                    background: "var(--live-soft)",
-                    border: "1px solid color-mix(in srgb, var(--live) 30%, transparent)",
-                    borderRadius: "var(--radius-pill)",
                     padding: isPhoneChrome ? "2px 7px" : "3px 10px",
-                    letterSpacing: ".08em",
                   }}
                 >
                   <span
+                    className="dot"
                     style={{
                       width: 6,
                       height: 6,
@@ -2006,10 +1996,9 @@ function EncounterInner() {
                   LIVE
                 </span>
                 <span
+                  className="timer"
                   style={{
-                    color: textPrimary,
                     fontSize: isPhoneChrome ? 13 : 14,
-                    fontWeight: 700,
                     minWidth: isPhoneChrome ? 38 : 48,
                   }}
                 >
@@ -2019,6 +2008,7 @@ function EncounterInner() {
             ) : (
               <span
                 role="status"
+                className="gg-call-status"
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -2388,6 +2378,7 @@ function EncounterInner() {
             data-testid="call-controls"
             role="toolbar"
             aria-label="Encounter controls"
+            className="call-bar"
             style={{
               pointerEvents: "auto",
               display: "flex",
@@ -2396,12 +2387,6 @@ function EncounterInner() {
               flexWrap: "nowrap",
               maxWidth: "calc(100vw - 16px)",
               padding: isPhone ? 8 : "9px 12px",
-              borderRadius: "var(--radius-card, 20px)",
-              border: "var(--control-border)",
-              background: "color-mix(in srgb, var(--surface) 92%, transparent)",
-              backdropFilter: "blur(22px)",
-              WebkitBackdropFilter: "blur(22px)",
-              boxShadow: "var(--shadow-pop)",
               opacity: 1,
             }}
           >
@@ -2429,22 +2414,19 @@ function EncounterInner() {
                       id === "more" ? undefined : typeof active === "boolean" ? active : undefined
                     }
                     aria-expanded={id === "more" ? moreOpen : undefined}
-                    className="gg-press" data-call-control
+                    className="gg-press cbtn" data-call-control data-cbtn-state={off ? "off" : selected ? "on" : undefined}
                     style={{
                       position: "relative",
                       width: isPhone ? 44 : 48,
                       height: isPhone ? 44 : 48,
                       flexShrink: 0,
-                      borderRadius: "var(--radius-control, 14px)",
-                      border: off ? "1px solid var(--coral)" : "var(--control-border)",
                       cursor: "pointer",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      background,
-                      color: off ? "#fff" : selected ? "var(--accent)" : "var(--text)",
-                      boxShadow: "none",
-                    }}
+                      "--cbtn-bg": background,
+                      "--cbtn-fg": off ? "#fff" : selected ? "var(--accent)" : "var(--text)",
+                    } as CSSProperties}
                   >
                     {icon}
                     <span className="gg-control-label">{id === "cam" ? "Camera" : id === "mic" ? (micOn ? "Mic" : "Unmute") : id === "chat" ? "Chat" : "More"}</span>
@@ -2629,27 +2611,22 @@ function EncounterInner() {
               aria-label="Leave call"
               onMouseEnter={() => setHoveredCtrl("end")}
               onMouseLeave={() => setHoveredCtrl(null)}
-              className="gg-press" data-call-control data-call-leave
+              className="gg-press cbtn leave" data-call-control data-call-leave
               style={{
                 height: isPhone ? 44 : 48,
                 minWidth: isPhone ? 64 : 110,
                 flexShrink: 0,
                 padding: isPhone ? "0 14px" : "0 20px",
-                borderRadius: "var(--radius-btn, 999px)",
-                border: "none",
                 cursor: ending ? "default" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                background: coral,
-                color: "#fff",
                 fontSize: 14,
                 fontWeight: 800,
-                boxShadow: "none",
                 whiteSpace: "nowrap",
               }}
             >
-              <Icon.hangup size={23} color="#fff" /><span className="gg-control-label">Leave</span>
+              <Icon.hangup size={23} color="currentColor" /><span className="gg-control-label">Leave</span>
             </button>
           </div>
         </div>

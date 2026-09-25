@@ -109,14 +109,20 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
   }
   const frameStyle = { "--person-zoom": zoom } as CSSProperties;
   const chooseFit = (value: Fit) => { setFit(value); setZoom(1); };
-  return <div className={styles.tile} data-media-frame data-local={isLocal} data-media-fit={fit} style={frameStyle}>
+  const tileClasses = [
+    styles.tile,
+    "vtile",
+    hasVideo ? "cam" : "off",
+    isSpeaking ? "speaking" : "",
+  ].filter(Boolean).join(" ");
+  return <div className={tileClasses} data-media-frame data-local={isLocal} data-media-fit={fit} style={frameStyle}>
     <div className={styles.fallback}>
       {avatarValue ? <AvatarArt value={avatarValue} size={58} /> : <AvatarArt value={name} size={58} />}
       <span>{statusText}</span>
     </div>
     {hasVideo && fit === "fit" && <video ref={backdrop} data-media-backdrop className={styles.backdrop} muted playsInline aria-hidden="true" />}
     <div ref={el => { host.current = el; videoRef?.(el); }} data-media-host className={styles.media} style={{ visibility: hasVideo ? "visible" : "hidden" }} />
-    <span className={styles.name}>{isLocal ? "You" : name}{micOn === false && <span aria-label="Microphone off"> · Mic off</span>}{mutedForMe && <span aria-label="Muted for you"> · Muted for you</span>}{isSpeaking && !mutedForMe && <span className={styles.speaking} aria-label="Speaking" />}</span>
+    <span className={`${styles.name} vname`}>{isLocal ? "You" : name}{micOn === false && <span aria-label="Microphone off"> · Mic off</span>}{mutedForMe && <span aria-label="Muted for you"> · Muted for you</span>}{isSpeaking && !mutedForMe && <span className={styles.speaking} aria-label="Speaking" />}</span>
     <button ref={button} type="button" className={styles.trigger} aria-label={`${isLocal ? "Your" : `${name}'s`} options`} aria-haspopup="dialog" aria-expanded={panel !== null} onClick={() => { setError(""); setPanel("menu"); }}><span className={styles.dots} aria-hidden="true">•••</span></button>
     <div className={styles.reactions} aria-live="polite">{reactions.map(r => <span key={r.id} data-reaction>{r.emoji}</span>)}</div>
     {panel === "menu" && <PersonMenu anchor={button.current} onClose={() => setPanel(null)} name={isLocal ? "You" : name}>
