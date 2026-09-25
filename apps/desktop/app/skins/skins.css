@@ -1,7 +1,7 @@
 /* SKIN SYSTEM · PHASE 1 — per-skin structural font rules only.
  *
  * The font families are loaded with next/font/google in app/layout.tsx and
- * exposed as CSS variables there (--font-bricolage, --font-jakarta, …).
+ * exposed as CSS variables there (--font-fraunces, --font-karla, …).
  * Each skin maps its display/body faces from its META line in
  * design/skins/skin-*.css. Phase 2 ports the rest of each skin's look
  * (shapes, shadows, backgrounds, sketch props) here.
@@ -10,8 +10,8 @@
  * case a skin is previewed outside the loader), then system stacks. */
 
 html[data-skin="soft"] {
-  --font-display: var(--font-bricolage), "Bricolage Grotesque", var(--font-jakarta), system-ui, sans-serif;
-  --font-body: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-fraunces), "Fraunces", var(--font-karla), system-ui, sans-serif;
+  --font-body: var(--font-karla), "Karla", system-ui, -apple-system, sans-serif;
 }
 
 html[data-skin="play"] {
@@ -43,8 +43,8 @@ html[data-skin="scrap"] {
  * each preview needs its own --font-display/--font-body block — the active
  * skin's html-level mapping would otherwise win by inheritance. */
 [data-skin-preview="soft"] {
-  --font-display: var(--font-bricolage), "Bricolage Grotesque", var(--font-jakarta), system-ui, sans-serif;
-  --font-body: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-fraunces), "Fraunces", var(--font-karla), system-ui, sans-serif;
+  --font-body: var(--font-karla), "Karla", system-ui, -apple-system, sans-serif;
 }
 
 [data-skin-preview="play"] {

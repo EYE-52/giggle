@@ -319,8 +319,8 @@ function translateValue(v) {
 /* Raw Google family names from the mock CSS are NOT loaded in the app (skins
  * load fonts through next/font CSS variables) — map any font-family that
  * names a skin face onto the matching variable. */
-const DISPLAY_FACES = ["Bricolage Grotesque", "Baloo 2", "Fredoka", "Caveat Brush"];
-const BODY_FACES = ["Plus Jakarta Sans", "Nunito", "Kalam", "Caveat"];
+const DISPLAY_FACES = ["Fraunces", "Bricolage Grotesque", "Baloo 2", "Fredoka", "Caveat Brush"];
+const BODY_FACES = ["Karla", "Plus Jakarta Sans", "Nunito", "Kalam", "Caveat"];
 
 function translateFontFamily(v) {
   if (DISPLAY_FACES.some((f) => v.includes(f))) return "var(--font-display)";

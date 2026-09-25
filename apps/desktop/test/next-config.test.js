@@ -235,10 +235,10 @@ test("root layout wires the look system after the legacy stylesheets", () => {
 
   // All 8 skin font families load through next/font/google as CSS variables.
   assert.match(layout, /from "next\/font\/google"/);
-  for (const family of ["Bricolage_Grotesque", "Plus_Jakarta_Sans", "Baloo_2", "Nunito", "Caveat_Brush", "Kalam", "Fredoka", "Caveat"]) {
+  for (const family of ["Fraunces", "Karla", "Baloo_2", "Nunito", "Caveat_Brush", "Kalam", "Fredoka", "Caveat"]) {
     assert.ok(layout.includes(family), `layout loads ${family}`);
   }
-  for (const variable of ["--font-bricolage", "--font-jakarta", "--font-baloo", "--font-nunito", "--font-caveat-brush", "--font-kalam", "--font-fredoka", "--font-caveat"]) {
+  for (const variable of ["--font-fraunces", "--font-karla", "--font-baloo", "--font-nunito", "--font-caveat-brush", "--font-kalam", "--font-fredoka", "--font-caveat"]) {
     assert.ok(layout.includes(variable), `layout exposes ${variable}`);
   }
 

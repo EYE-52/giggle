@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import localFont from "next/font/local";
 import {
-  Bricolage_Grotesque,
-  Plus_Jakarta_Sans,
+  Fraunces,
+  Karla,
   Baloo_2,
   Nunito,
   Caveat_Brush,
@@ -38,8 +38,8 @@ const cabinet = localFont({
    app/skins/skins.css maps them onto --font-display/--font-body per
    html[data-skin]. Only the default skin's fonts preload — the rest load
    lazily when their skin is chosen. */
-const bricolage = Bricolage_Grotesque({ subsets: ["latin"], axes: ["opsz"], variable: "--font-bricolage", display: "swap" });
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta", display: "swap" });
+const fraunces = Fraunces({ subsets: ["latin"], axes: ["opsz"], variable: "--font-fraunces", display: "swap" });
+const karla = Karla({ subsets: ["latin"], variable: "--font-karla", display: "swap" });
 const baloo = Baloo_2({ subsets: ["latin"], variable: "--font-baloo", display: "swap", preload: false });
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", display: "swap", preload: false });
 const caveatBrush = Caveat_Brush({ weight: "400", subsets: ["latin"], variable: "--font-caveat-brush", display: "swap", preload: false });
@@ -48,8 +48,8 @@ const fredoka = Fredoka({ subsets: ["latin"], variable: "--font-fredoka", displa
 const caveat = Caveat({ subsets: ["latin"], variable: "--font-caveat", display: "swap", preload: false });
 
 const SKIN_FONT_CLASSNAMES = [
-  bricolage.variable,
-  jakarta.variable,
+  fraunces.variable,
+  karla.variable,
   baloo.variable,
   nunito.variable,
   caveatBrush.variable,

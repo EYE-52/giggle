@@ -50,7 +50,7 @@ export interface Palette {
 
 /* Registries — skin facts come from the META line of design/skins/skin-*.css. */
 export const SKINS: readonly Skin[] = [
-  { id: "soft", name: "Soft Depth", description: "Calm surfaces with soft depth", iconWeight: "bold", fonts: ["Bricolage Grotesque", "Plus Jakarta Sans"], defaultPalette: "honey" },
+  { id: "soft", name: "Soft Depth", description: "Calm surfaces with soft depth", iconWeight: "bold", fonts: ["Fraunces", "Karla"], defaultPalette: "honey" },
   { id: "play", name: "Bold Play", description: "Chunky outlines and pop energy", iconWeight: "bold", fonts: ["Baloo 2", "Nunito"], defaultPalette: "raspberry" },
   { id: "paper", name: "Doodle", description: "Hand-drawn, notebook feel", iconWeight: "bold", fonts: ["Caveat Brush", "Kalam"], defaultPalette: "honey" },
   { id: "clay", name: "Clay", description: "Rounded, friendly shapes", iconWeight: "fill", fonts: ["Fredoka", "Nunito"], defaultPalette: "grape" },
