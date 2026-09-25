@@ -17,7 +17,7 @@ export function useMyAvatar(): string | null {
  * A person's illustrated avatar: their shared pick, or a stable default seeded
  * from their user id, so everyone sees the same face for them. Never initials.
  */
-export function PersonAvatar({ userId, name, avatar, size = 40, online, isMe = false, className }: {
+export function PersonAvatar({ userId, name, avatar, size = 40, online, isMe = false, className, wrapClassName }: {
   userId?: string;
   name: string;
   avatar?: string | null;
@@ -25,8 +25,10 @@ export function PersonAvatar({ userId, name, avatar, size = 40, online, isMe = f
   online?: boolean;
   isMe?: boolean;
   className?: string;
+  /** Class for the presence wrapper (mock `.pa` hook), not the avatar art. */
+  wrapClassName?: string;
 }) {
   const mine = useMyAvatar();
   const value = isMe && mine ? mine : resolveAvatar(avatar, userId || name);
-  return <AvatarArt value={value} size={size} online={online} className={className} />;
+  return <AvatarArt value={value} size={size} online={online} className={className} wrapClassName={wrapClassName} />;
 }

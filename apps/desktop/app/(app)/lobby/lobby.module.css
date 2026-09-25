@@ -1,35 +1,53 @@
-/* Full-width scroller (scrollbar on the window edge); side padding centers a 1200px column matching the app header. */
+/* Full-width scroller (scrollbar on the window edge); side padding centers a 1200px column matching the app header.
+ * Mock hook classes (nav / lobby-head / title / lede / lobby-grid / lobby-stage / preview / cam-off /
+ * preview-meta / badge / lobby-controls / card squad-panel / panel-head / count / code-box / code-val /
+ * meta-row / muted / link / hint / fine) ride along so the ported skins can restyle the lobby. */
 .page { width: 100%; box-sizing: border-box; flex: 1; overflow-y: auto; padding: 0 max(40px, calc((100% - 1200px) / 2)) 36px; color: var(--text); min-height: 0; }
 .nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 76px; }
 .nav a { text-decoration: none; }
-.heading { margin: 28px 0 24px; }
-.heading h1 { font: 700 clamp(28px, 3vw, 38px)/1.15 var(--font-display); margin: 0; overflow-wrap: anywhere; letter-spacing: -.035em; }
-.heading p { color: var(--text-muted); margin: 10px 0 0; line-height: 1.5; }
+.lobbyHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin: 28px 0 24px; }
+.lobbyHeadCopy { min-width: 0; flex: 1 1 320px; }
+.cover { width: 52px; height: 52px; border-radius: 14px; margin-bottom: 14px; background-size: cover; background-position: center; }
+.title { font: 700 clamp(28px, 3vw, 38px)/1.15 var(--font-display); margin: 0; overflow-wrap: anywhere; letter-spacing: -.035em; }
+.lede { color: var(--text-muted); margin: 10px 0 0; line-height: 1.5; }
 .layout { display: grid; grid-template-columns: minmax(0,1fr) 310px; gap: 28px; align-items: start; }
-.stage { min-width: 0; }
-.grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.stage { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; min-width: 0; }
 .person { background: #33312e; color: #faf8f3; position: relative; border-radius: 18px; min-height: 0; aspect-ratio: 1.35; display: flex; flex-direction: column; gap: 12px; align-items: center; justify-content: center; overflow: hidden; }
-.grid[data-count="1"] { max-width: 480px; }
-.grid[data-count="2"] .person,.grid[data-count="2"] .emptySeat { aspect-ratio: .95; max-height: 420px; }
+.person .av { width: 64px; height: 64px; }
+/* Tile geometry below is the app-default (no-skin) look. Under a skin the
+ * ported rules own the stage arrangement (flex column, card grids, tall
+ * previews), so aspect caps and clamps scope to html:not([data-skin]).
+ * The declarations themselves stay verbatim — test/next-config.test.js
+ * asserts the bounded stage (max-height: 420px / overflow-y: auto). */
+html:not([data-skin]) .stage[data-count="1"] { max-width: 480px; }
+html:not([data-skin]) .stage[data-count="2"] .person,
+html:not([data-skin]) .stage[data-count="2"] .emptySeat { aspect-ratio: .95; max-height: 420px; }
 .mediaStatus { color: #c0bbb2; font-size: 12px; }
 .personLabel { position: absolute; inset: auto 0 0; z-index: 2; padding: 30px 14px 14px; background: linear-gradient(transparent,rgba(0,0,0,.6)); display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
 .personLabel span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.personLabel span:last-child { color: #d3deca; }
+/* `span + span` (not :last-child) keeps this weaker than the skins' `.badge`
+ * rules so badges stay readable on their own chip background. */
+.personLabel span + span { color: #d3deca; }
 .video,.video > div { position: absolute!important; inset: 0!important; width: 100%!important; height: 100%!important; }
+/* The video fills the tile; skins restyle the tile's radius (and paper sets
+ * overflow:visible), so clip the feed to the live shape itself. */
+.video { overflow: hidden; border-radius: inherit; }
 .video video { object-fit: cover!important; }
 .emptySeat { border: 1.5px dashed var(--border-strong); background: transparent; color: var(--text-muted); border-radius: 18px; min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; font: 600 14px var(--font-inter); cursor: pointer; transition: background var(--dur) var(--ease-ui), color var(--dur) var(--ease-ui), border-color var(--dur) var(--ease-ui); }
 .emptySeat:hover { background: var(--surface); color: var(--accent); border-color: var(--accent-line); }
-.controls { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+.controls { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
 .controls button { font-size: 13px; padding: 0 14px; }
 .sidebar { padding: 22px; border: 1px solid var(--border); border-radius: 20px; background: var(--surface); display: grid; gap: 16px; }
-.sidebar h2 { font-size: 19px; margin: 0; }
+.panelTitle { font-size: 19px; margin: 0; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
 .row > span:first-child { overflow-wrap: anywhere; flex: 1; }
 .muted { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.interestLabel { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
+.count { color: var(--text-muted); font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .code { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 4px 6px 4px 14px; }
 .code strong { font-family: var(--font-display); font-size: 20px; font-weight: 800; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
 .interests { display: flex; flex-wrap: wrap; gap: 8px 12px; font-size: 13px; align-items: center; line-height: 1.5; }
-.quiet { background: none; border: 0; min-height: 36px; padding: 0; color: var(--accent); cursor: pointer; font: inherit; }
+.quiet { background: none; border: 0; min-height: 44px; padding: 0; color: var(--accent); cursor: pointer; font: inherit; }
 .nextStep { display: grid; gap: 10px; padding-top: 6px; }
 .nextStep p { margin: 0 0 4px; font-size: 14px; line-height: 1.5; }
 .back { text-align: center; color: var(--text-muted); font-size: 13px; padding: 8px; }
@@ -48,8 +66,8 @@
 .page button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 /* Keep a full 2x2 squad plus the device controls inside the viewport on laptop screens. */
 @media(min-width: 761px) {
- .grid:not([data-count="1"]):not([data-count="2"]) .person,
- .grid:not([data-count="1"]):not([data-count="2"]) .emptySeat { aspect-ratio: auto; height: clamp(180px, calc((100dvh - 360px) / 2), 320px); }
+ html:not([data-skin]) .stage:not([data-count="1"]):not([data-count="2"]) .person,
+ html:not([data-skin]) .stage:not([data-count="1"]):not([data-count="2"]) .emptySeat { aspect-ratio: auto; height: clamp(180px, calc((100dvh - 360px) / 2), 320px); }
 }
 @media(max-width: 850px) and (min-width: 761px) {
  .page { padding: 0 24px 32px; }
@@ -57,12 +75,15 @@
 @media(max-width: 760px) {
  .page { padding: 0 16px 28px; }
  .nav { min-height: 60px; }
- .nav button { font-size: 12px; padding: 0 8px; }
- .heading { margin: 18px 0; }
- .heading p { font-size: 13px; max-width: 300px; }
+ .lobbyHead { margin: 18px 0; }
+ .lobbyHead button { font-size: 12px; padding: 0 8px; }
+ .lede { font-size: 13px; max-width: 300px; }
  .layout { grid-template-columns: minmax(0,1fr); gap: 20px; }
- .grid[data-count="2"] .person,.grid[data-count="2"] .emptySeat { aspect-ratio: 1; max-height: 210px; }
- .person { aspect-ratio: 1.15; }
+ /* App-default phone tiles stay the compact 2-up grid; under a skin the
+  * port-overrides switch the stage to the mock's single full-width column. */
+ html:not([data-skin]) .stage[data-count="2"] .person,
+ html:not([data-skin]) .stage[data-count="2"] .emptySeat { aspect-ratio: 1; max-height: 210px; }
+ html:not([data-skin]) .person { aspect-ratio: 1.15; }
  .emptySeat { min-height: 120px; }
  .sidebar { padding: 18px; gap: 12px; }
  .sidebar .nextStep { padding-top: 0; }

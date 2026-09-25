@@ -744,53 +744,55 @@ function LobbyInner() {
   const closeChat = () => { setChatOpen(false); setSidebarTab("info"); };
 
   return (
-    <div className={`gg-lobby-root ${styles.page}`} data-testid="lobby-page">
-      <nav className={styles.nav} aria-label="Lobby navigation">
-        <Link href="/home" aria-label="Giggle home"><Wordmark /></Link>
-        <Button variant="ghost" aria-label="Squad settings" onClick={() => setSettingsOpen(true)}><Icon.settings color="currentColor" size={18} />Squad settings{joinReqs.length > 0 ? ` (${joinReqs.length})` : ""}</Button>
+    <div className={`gg-lobby-root gg-screen gg-screen-lobby ${styles.page}`} data-testid="lobby-page">
+      <nav className={`nav ${styles.nav}`} aria-label="Lobby navigation">
+        <Link href="/home" className="brand" aria-label="Giggle home"><Wordmark /></Link>
       </nav>
-      <header className={styles.heading}>
-        {squad.coverImage && <div aria-label="Squad cover" style={{ width: 52, height: 52, borderRadius: 14, marginBottom: 14, background: coverBackground(squad.coverImage, coverKind(squad.coverImage, themeId)), backgroundSize: "cover", backgroundPosition: "center" }} />}
-        <h1>{squad.squadName}</h1>
-        <p>Invite friends and check your camera before joining a call.</p>
+      <header className={`lobby-head ${styles.lobbyHead}`}>
+        <div className={styles.lobbyHeadCopy}>
+          {squad.coverImage && <div aria-label="Squad cover" className={styles.cover} style={{ background: coverBackground(squad.coverImage, coverKind(squad.coverImage, themeId)) }} />}
+          <h1 className={`title ${styles.title}`}>{squad.squadName}</h1>
+          <p className={`lede ${styles.lede}`}>Invite friends and check your camera before joining a call.</p>
+        </div>
+        <Button variant="ghost" aria-label="Squad settings" onClick={() => setSettingsOpen(true)}><Icon.settings size={18} />Squad settings{joinReqs.length > 0 ? ` (${joinReqs.length})` : ""}</Button>
       </header>
       {(matchError || connTrouble) && <div role="alert" className={styles.notice}>{matchError || "Connection lost. Reconnecting to your squad…"}<Button variant="ghost" onClick={() => void fetchSquad()}>Retry</Button></div>}
-      <div className={styles.layout}>
-        <section className={styles.stage} hidden={isPhone && chatVisible} aria-label="Squad members">
-          <div className={styles.grid} data-count={memberCount + (canInvite ? 1 : 0)}>
-            {squad.members.map((member, i) => {
-              const isMe = member.userId === myUserId;
-              const remote = remotes.find(r => String(r.uid) === String(member.uid));
-              return <article className={styles.person} key={member.memberId} data-testid="lobby-person">
-                <PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size={64} />
-                <span className={styles.mediaStatus}>{member.online === false && !isMe ? "Offline" : isMe ? (videoJoined ? (camOn ? "" : "Camera off") : "Camera off") : remote?.hasVideo ? "" : "Camera off"}</span>
-                {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: camOn && videoJoined ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: remote?.hasVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
-                <div className={styles.personLabel}><span>{isMe ? "You" : member.displayName}</span><span>{member.ready ? "Ready" : member.memberId === squad.leaderMemberId ? "Leader" : ""}</span></div>
-              </article>;
-            })}
-            {canInvite && <button className={styles.emptySeat} onClick={() => setInviteSheetOpen(true)}><Icon.plus color="currentColor" size={30} /><span>Invite a friend</span></button>}
-          </div>
-          <div className={styles.controls}>
+      <div className={`lobby-grid ${styles.layout}`}>
+        <section className={`lobby-stage ${styles.stage}`} data-count={memberCount + (canInvite ? 1 : 0)} hidden={isPhone && chatVisible} aria-label="Squad members">
+          {squad.members.map((member, i) => {
+            const isMe = member.userId === myUserId;
+            const remote = remotes.find(r => String(r.uid) === String(member.uid));
+            const camLabel = member.online === false && !isMe ? "Offline" : isMe ? (videoJoined ? (camOn ? "" : "Camera off") : "Camera off") : remote?.hasVideo ? "" : "Camera off";
+            const roleLabel = member.ready ? "Ready" : member.memberId === squad.leaderMemberId ? "Leader" : "";
+            return <article className={`preview gg-person ${isMe ? "self " : ""}${styles.person}`} key={member.memberId} data-testid="lobby-person">
+              <PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size="fill" />
+              {camLabel && <span className={`cam-off ${styles.mediaStatus}`}>{camLabel}</span>}
+              {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: camOn && videoJoined ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: remote?.hasVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
+              <div className={`preview-meta ${styles.personLabel}`}><span>{isMe ? "You" : member.displayName}</span>{roleLabel && <span className="badge">{roleLabel}</span>}</div>
+            </article>;
+          })}
+          {canInvite && <button className={`preview invite ${styles.emptySeat}`} onClick={() => setInviteSheetOpen(true)}><Icon.plus size={30} /><span>Invite a friend</span></button>}
+          <div className={`lobby-controls ${styles.controls}`}>
             {videoJoined ? <>
-              <Button variant="secondary" onClick={toggleMic} aria-label={micOn ? "Mute microphone" : "Unmute microphone"}><Icon.mic color="currentColor" size={19} />{micOn ? "Mic on" : "Mic off"}</Button>
-              <Button variant="secondary" onClick={toggleCam} aria-label={camOn ? "Turn camera off" : "Turn camera on"}><Icon.cam color="currentColor" size={19} />{camOn ? "Camera on" : "Camera off"}</Button>
-            </> : <Button variant="secondary" loading={videoJoining} onClick={() => void enableLobbyMedia()} aria-label="Enable camera and microphone"><Icon.cam color="currentColor" size={19} />Enable camera &amp; mic</Button>}
-            <Button variant="secondary" onClick={() => { setChatOpen(true); setSidebarCollapsed(false); setSidebarTab("chat"); }}><Icon.chat color="currentColor" size={19} />Chat{unread > 0 ? ` (${unread})` : ""}</Button>
+              <Button variant="secondary" onClick={toggleMic} aria-label={micOn ? "Mute microphone" : "Unmute microphone"}><Icon.mic size={19} />{micOn ? "Mic on" : "Mic off"}</Button>
+              <Button variant="secondary" onClick={toggleCam} aria-label={camOn ? "Turn camera off" : "Turn camera on"}><Icon.cam size={19} />{camOn ? "Camera on" : "Camera off"}</Button>
+            </> : <Button variant="secondary" loading={videoJoining} onClick={() => void enableLobbyMedia()} aria-label="Enable camera and microphone"><Icon.cam size={19} />Enable camera &amp; mic</Button>}
+            <Button variant="secondary" onClick={() => { setChatOpen(true); setSidebarCollapsed(false); setSidebarTab("chat"); }}><Icon.chat size={19} />Chat{unread > 0 ? ` (${unread})` : ""}</Button>
           </div>
           {videoError && <p role="alert" className={styles.error}>{videoError}</p>}
         </section>
-        <aside className={styles.sidebar} hidden={chatVisible} aria-label="Squad details">
-          <div className={styles.row}><h2>Your squad</h2><span className={styles.muted}>{memberCount} / {MAX_SLOTS}</span></div>
-          <div className={styles.code}><strong>{squad.squadCode}</strong><Button variant="ghost" aria-label="Copy squad code" onClick={() => void copyToClipboard(squad.squadCode, () => setCodeCopied(true), "Couldn't copy the code.")}>{codeCopied ? "Copied" : "Copy"}</Button></div>
-          <Button variant="secondary" fullWidth disabled={!canInvite} onClick={() => setInviteSheetOpen(true)}><Icon.plus color="currentColor" size={18} />Invite friends</Button>
-          <div className={styles.interests}><span className={styles.muted}>Interests</span>{currentTags.length ? <span>{currentTags.join(" · ")}</span> : <span className={styles.muted}>None added</span>}{isLeader && <button className={styles.quiet} onClick={() => { setSelectedVibes([...currentTags]); setVibeEditorOpen(true); }}>Edit interests</button>}</div>
+        <aside className={`card squad-panel ${styles.sidebar}`} hidden={chatVisible} aria-label="Squad details">
+          <div className={`panel-head ${styles.row}`}><h2 className={`card-title ${styles.panelTitle}`}>Your squad</h2><span className={`count ${styles.count}`}>{memberCount} / {MAX_SLOTS}</span></div>
+          <div className={`code-box ${styles.code}`}><strong className="code-val">{squad.squadCode}</strong><Button variant="ghost" size="sm" aria-label="Copy squad code" onClick={() => void copyToClipboard(squad.squadCode, () => setCodeCopied(true), "Couldn't copy the code.")}>{codeCopied ? "Copied" : "Copy"}</Button></div>
+          <Button variant="secondary" fullWidth disabled={!canInvite} onClick={() => setInviteSheetOpen(true)}><Icon.plus size={18} />Invite friends</Button>
+          <div className={`meta-row ${styles.interests}`}><span className={styles.interestLabel}>Interests</span>{currentTags.length ? <span>{currentTags.join(" · ")}</span> : <span className="muted">None added</span>}{isLeader && <button className={`link ${styles.quiet}`} onClick={() => { setSelectedVibes([...currentTags]); setVibeEditorOpen(true); }}>Edit interests</button>}</div>
           <div className={styles.nextStep}>
-            <p>{memberCount === 1 ? "Invite friends or join a call on your own." : `${readyCount} of ${memberCount} ready`}</p>
+            <p className="hint">{memberCount === 1 ? "Invite friends or join a call on your own." : `${readyCount} of ${memberCount} ready`}</p>
             <Button variant={myReady ? "secondary" : "primary"} fullWidth loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : "I'm ready"}</Button>
             {WEB_DISCOVERY_ENABLED && isLeader && <Button fullWidth disabled={!allReady || findingMatch} loading={findingMatch} onClick={handleFindMatch}>Find a squad<Icon.chevron size={18} /></Button>}
-            {!isLeader && <p className={styles.muted}>Your squad leader starts the search when everyone is ready.</p>}
-            {isLeader && !allReady && <p className={styles.muted}>Everyone online needs to mark ready first.</p>}
-            <Link href="/home" className={styles.back}>Back home</Link>
+            {!isLeader && <p className="muted fine">Your squad leader starts the search when everyone is ready.</p>}
+            {isLeader && !allReady && <p className="muted fine">Everyone online needs to mark ready first.</p>}
+            <Link href="/home" className={`link ${styles.back}`}>Back home</Link>
           </div>
         </aside>
         <aside className={styles.chat} hidden={!chatVisible} aria-label="Squad chat">

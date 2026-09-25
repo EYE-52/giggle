@@ -4,12 +4,12 @@ import { Icon } from "@/components/Icons";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { useViewport } from "@/components/useViewport";
 import { Modal } from "@/components/Modal";
-import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/Button";
 import { useToast } from "@/components/Toast";
 import { api } from "@giggle/core";
 import type { MySquadLite } from "@giggle/core";
 import { pollWhileVisible } from "@/lib/poll";
+import styles from "./friends.module.css";
 
 // ── Contract types (mirror the backend/core agent's interfaces) ───────────────
 interface Friend {
@@ -27,22 +27,13 @@ interface FriendRequestUser {
   online?: boolean;
 }
 
-const violet = "var(--accent, var(--violet))";
-const lime = "var(--live, var(--lime))";
-const text = "var(--text)";
-const muted = "var(--text-muted)";
-const dim = "var(--text-dim)";
-const radiusTile = "var(--radius-tile, 16px)";
-const radiusControl = "var(--radius-control, 14px)";
-const radiusPill = "var(--radius-pill, 999px)";
-const controlBorder = "var(--control-border, 1px solid var(--border))";
-const fontDisplay = "var(--font-display, var(--font-space-grotesk))";
-const onAccent = "var(--on-accent, #fff)";
 const MAX_SEARCH_QUERY = 64;
 
-/** The person's shared illustrated avatar (or their seeded default). */
-function UserAvatar({ userId, name, avatar, size = 44, online }: { userId: string; name: string; avatar?: string | null; size?: number; online?: boolean }) {
-  return <PersonAvatar userId={userId} name={name} avatar={avatar} size={size} online={online} />;
+/** The person's shared illustrated avatar (or their seeded default).
+ * `wrapClassName="pa"` puts the mock's `.pa` hook on the presence wrapper so
+ * the ported skins can frame/size friend avatars in either presence state. */
+function UserAvatar({ userId, name, avatar, size = 44, online }: { userId: string; name: string; avatar?: string | null; size?: number | "fill"; online?: boolean }) {
+  return <PersonAvatar userId={userId} name={name} avatar={avatar} size={size} online={online} wrapClassName="pa" />;
 }
 
 export default function FriendsPage() {
@@ -68,7 +59,6 @@ export default function FriendsPage() {
   const [manageUser, setManageUser] = useState<{ user: Friend | FriendRequestUser; isFriend: boolean } | null>(null);
   const [confirmBlock, setConfirmBlock] = useState<Friend | FriendRequestUser | null>(null);
   const [blocking, setBlocking] = useState(false);
-  const [searchFocus, setSearchFocus] = useState(false);
 
   // Invite-to-squad flow: pick a squad for a chosen friend.
   const [inviteFriend, setInviteFriend] = useState<Friend | null>(null);
@@ -232,165 +222,135 @@ export default function FriendsPage() {
   const incomingIds = new Set(incoming.map((u) => u.userId));
   const showFirstRun = !loading && !loadError && friends.length === 0 && incoming.length === 0 && outgoing.length === 0;
 
-  const sectionTitleStyle: React.CSSProperties = {
-    fontFamily: fontDisplay,
-    fontSize: 17,
-    fontWeight: 700,
-    color: text,
-    margin: 0,
-    letterSpacing: "-0.01em",
-  };
-
   return (
-    <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 40 }}>
-      {/* Header */}
-      <PageHeader
-        title="Your people"
-        subtitle={showFirstRun ? "Every good hangout starts with a hello. Find a friend by their display name." : onlineCount > 0 ? `${onlineCount} online now` : "Familiar faces. More reasons to hang out."}
-      />
+    <div className={`gg-reveal gg-screen gg-screen-friends ${styles.screen}`}>
+      {/* Header (mock .page-head) */}
+      <div className={`page-head ${styles.head}`}>
+        <h1 className={`title ${styles.headTitle}`}>Your people</h1>
+        <p className={`lede ${styles.headLede}`}>
+          {showFirstRun
+            ? "Every good hangout starts with a hello. Find a friend by their display name."
+            : onlineCount > 0
+              ? `${onlineCount} online now`
+              : "Familiar faces. More reasons to hang out."}
+        </p>
+      </div>
 
       {loadError && (
-        <div role="alert" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 10px 10px 14px", borderRadius: radiusControl, border: "1px solid color-mix(in srgb, var(--coral) 45%, transparent)", background: "var(--coral-soft)", color: "var(--text-body)", fontSize: 14 }}>
+        <div role="alert" className={styles.alert}>
           <span>{loadError} Check your connection and try again.</span>
           <Button variant="ghost" size="sm" onClick={() => { setLoadError(null); setLoading(true); void refetch(); }}>Retry</Button>
         </div>
       )}
 
       {/* ── Add friends ──────────────────────────────────────────── */}
-      <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <section className={`gg-friends-search ${styles.addSection}`}>
         {showFirstRun && (
-          <div style={{ paddingTop: isPhone ? 8 : 16 }}>
-            <div style={{ color: violet, fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Friends</div>
-            <h2 style={{ margin: "8px 0 6px", color: text, fontFamily: fontDisplay, fontSize: isPhone ? 28 : 34, lineHeight: 1.1, fontWeight: 800 }}>Add friends.</h2>
-            <p style={{ margin: 0, maxWidth: 520, color: muted, fontSize: 14, lineHeight: 1.55 }}>Search their display name to send a friend request and see when they’re online.</p>
+          <div className={styles.firstRun}>
+            <div className={styles.firstKicker}>Friends</div>
+            <h2 className={styles.firstTitle}>Add friends.</h2>
+            <p className={styles.firstLede}>Search their display name to send a friend request and see when they’re online.</p>
           </div>
         )}
-        <div style={{ position: "relative" }}>
-          <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
-            <Icon.discover size={18} color={dim} />
-          </span>
+        <div className={`search ${styles.search}`}>
+          <Icon.discover size={18} />
           <input
+            className={`input ${styles.searchInput}`}
             aria-label="Search people by name"
             value={query}
             onChange={(e) => setQuery(e.target.value.slice(0, MAX_SEARCH_QUERY))}
-            onFocus={() => setSearchFocus(true)}
-            onBlur={() => setSearchFocus(false)}
             placeholder="Search by name…"
             maxLength={MAX_SEARCH_QUERY}
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              padding: "13px 16px 13px 42px",
-              borderRadius: radiusControl,
-              background: "var(--surface)",
-              border: searchFocus ? `1px solid ${violet}` : controlBorder,
-              boxShadow: searchFocus ? `0 0 0 3px color-mix(in srgb, ${violet} 30%, transparent)` : "none",
-              color: text,
-              fontSize: 14,
-              fontFamily: "var(--font-inter)",
-              outline: "none",
-              transition: "box-shadow .2s var(--ease-ui), border-color .2s var(--ease-ui)",
-            }}
           />
         </div>
 
         {query.trim() && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <ul className={`friend-list ${styles.list}`}>
             {searchError ? (
-              <div role="alert" style={{ minHeight: 52, padding: "8px 10px 8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, borderRadius: radiusControl, border: "1px solid color-mix(in srgb, var(--coral) 45%, transparent)", color: "var(--text-body)", fontSize: 13 }}>
-                <span>{searchError}</span>
-                <Button variant="ghost" size="sm" onClick={() => setSearchRetry((value) => value + 1)}>Retry search</Button>
-              </div>
+              <li>
+                <div role="alert" className={styles.alertSlim}>
+                  <span>{searchError}</span>
+                  <Button variant="ghost" size="sm" onClick={() => setSearchRetry((value) => value + 1)}>Retry search</Button>
+                </div>
+              </li>
             ) : query.trim().length < 2 ? (
-              <EmptyHint>Type at least 2 characters to search.</EmptyHint>
+              <li><EmptyHint>Type at least 2 characters to search.</EmptyHint></li>
             ) : searching && results.length === 0 ? (
               // Skeleton rows matching the result-row height — no spinner jump.
-              <div aria-label="Searching" role="status" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <li aria-label="Searching" role="status" className={styles.skeletons}>
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className="gg-shimmer" style={{ height: 62, borderRadius: radiusControl }} />
+                  <div key={i} className={`gg-shimmer ${styles.skeleton}`} />
                 ))}
-              </div>
+              </li>
             ) : results.length === 0 && searched ? (
-              <EmptyHint>No people found for “{query.trim()}”.</EmptyHint>
+              <li><EmptyHint>No people found for “{query.trim()}”.</EmptyHint></li>
             ) : (
               results.map((u) => {
                 const isFriend = friendIds.has(u.userId);
                 const incomingRequest = incoming.find((i) => i.userId === u.userId);
                 const isRequested = !incomingIds.has(u.userId) && (requested.has(u.userId) || outgoing.some((o) => o.userId === u.userId));
                 return (
-                  <Row key={u.userId} u={u}>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                  <Row key={u.userId} u={u} request={!!incomingRequest}>
                     {isFriend ? (
-                      <Pill tone="muted">Friends</Pill>
+                      <Pill>Friends</Pill>
                     ) : incomingRequest ? (
                       <>
                         <ActionButton onClick={() => handleAccept(incomingRequest)} tone="violet">Accept</ActionButton>
                         <ActionButton onClick={() => handleDecline(incomingRequest)} tone="ghost">Decline</ActionButton>
                       </>
                     ) : isRequested ? (
-                      <Pill tone="muted">Requested</Pill>
+                      <Pill>Requested</Pill>
                     ) : (
                       <ActionButton onClick={() => handleAdd(u)} tone="violet">
-                        <Icon.plus size={15} color={onAccent} strokeWidth={2.4} /> Add
+                        <Icon.plus size={15} strokeWidth={2.4} /> Add
                       </ActionButton>
                     )}
                     <MoreButton name={u.name} onClick={() => setManageUser({ user: u, isFriend })} />
-                    </div>
                   </Row>
                 );
               })
             )}
-          </div>
+          </ul>
         )}
       </section>
 
       {/* ── Requests ─────────────────────────────────────────────── */}
       {(incoming.length > 0 || outgoing.length > 0) && (
-        <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <h2 style={sectionTitleStyle}>
-            Requests {incoming.length > 0 && <span style={{ color: violet }}>· {incoming.length}</span>}
+        <section className={`gg-friends-requests ${styles.section}`}>
+          <h2 className={styles.sectionTitle}>
+            Requests {incoming.length > 0 && <span className={styles.sectionTitleAccent}>· {incoming.length}</span>}
           </h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <ul className={`friend-list ${styles.list}`}>
             {incoming.map((u) => (
-              <Row key={u.userId} u={u}>
-                <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
-                  <ActionButton onClick={() => handleAccept(u)} tone="violet">Accept</ActionButton>
-                  <ActionButton onClick={() => handleDecline(u)} tone="ghost">Decline</ActionButton>
-                  <MoreButton name={u.name} onClick={() => setManageUser({ user: u, isFriend: false })} />
-                </div>
+              <Row key={u.userId} u={u} request>
+                <ActionButton onClick={() => handleAccept(u)} tone="violet">Accept</ActionButton>
+                <ActionButton onClick={() => handleDecline(u)} tone="ghost">Decline</ActionButton>
+                <MoreButton name={u.name} onClick={() => setManageUser({ user: u, isFriend: false })} />
               </Row>
             ))}
             {outgoing.map((u) => (
               <Row key={`out-${u.userId}`} u={u}>
-                <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
-                  <Pill tone="muted">Pending</Pill>
-                  <MoreButton name={u.name} onClick={() => setManageUser({ user: u, isFriend: false })} />
-                </div>
+                <Pill>Pending</Pill>
+                <MoreButton name={u.name} onClick={() => setManageUser({ user: u, isFriend: false })} />
               </Row>
             ))}
-          </div>
+          </ul>
         </section>
       )}
 
       {/* ── Your friends ─────────────────────────────────────────── */}
       {!showFirstRun && (!loadError || friends.length > 0) && (!query.trim() || friends.length > 0) && (
-      <section style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <h2 style={sectionTitleStyle}>Your friends {friends.length > 0 && <span style={{ color: muted }}>· {friends.length}</span>}</h2>
+      <section className={`gg-friends-main ${styles.section}`}>
+        <h2 className={styles.sectionTitle}>Your friends {friends.length > 0 && <span className={styles.sectionTitleMuted}>· {friends.length}</span>}</h2>
 
         {loading ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isPhone ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: 12,
-            }}
-          >
+          <div className={styles.gridSkeletons}>
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 14, borderRadius: radiusTile, background: "var(--surface)", border: controlBorder }}>
-                <div className="gg-shimmer" style={{ width: 46, height: 46, borderRadius: radiusPill }} />
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div className="gg-shimmer" style={{ height: 14, width: "55%", borderRadius: 6 }} />
-                  <div className="gg-shimmer" style={{ height: 11, width: "32%", borderRadius: 6 }} />
+              <div key={i} className={styles.gridSkeleton}>
+                <span className={`gg-shimmer av`} />
+                <div className={styles.skeletonLines}>
+                  <i className="gg-shimmer" style={{ height: 14, width: "55%" }} />
+                  <i className="gg-shimmer" style={{ height: 11, width: "32%" }} />
                 </div>
               </div>
             ))}
@@ -398,48 +358,26 @@ export default function FriendsPage() {
         ) : friends.length === 0 ? (
           <FriendsEmptyState />
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: isPhone ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: 12,
-            }}
-          >
+          <ul className={`friend-list ${styles.listGrid}`}>
             {sortedFriends.map((f) => (
-              <div
+              <li
                 key={f.userId}
-                className="gg-row"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: 14,
-                  borderRadius: radiusTile,
-                  background: "var(--surface)",
-                  border: controlBorder,
-                }}
+                className={`friend gg-row ${styles.cardRow}`}
               >
-                <UserAvatar userId={f.userId} name={f.name} avatar={f.avatar} size={46} online={f.online} />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {f.name}
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                    <span style={{ width: 7, height: 7, borderRadius: radiusPill, background: f.online ? lime : "var(--border-strong)" }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: f.online ? "var(--lime-text)" : dim, fontFamily: "var(--font-inter)" }}>
-                      {f.online ? "Online" : "Offline"}
-                    </span>
-                  </div>
+                <UserAvatar userId={f.userId} name={f.name} avatar={f.avatar} size="fill" online={f.online} />
+                <div className={styles.rowCopy}>
+                  <b>{f.name}</b>
+                  <small className={f.online ? "on" : undefined}>{f.online ? "Online" : "Offline"}</small>
                 </div>
-                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <span className={`pair ${styles.pair}`}>
                   <Button size="sm" variant="secondary" onClick={() => setInviteFriend(f)} aria-label={`Invite ${f.name} to a squad`}>
                     Invite
                   </Button>
                   <MoreButton name={f.name} onClick={() => setManageUser({ user: f, isFriend: true })} />
-                </div>
-              </div>
+                </span>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
       </section>
       )}
@@ -494,13 +432,13 @@ export default function FriendsPage() {
 
 function FriendsEmptyState() {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "18px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-      <div style={{ width: 40, height: 40, borderRadius: 10, display: "grid", placeItems: "center", background: "var(--overlay)", flexShrink: 0 }}>
-        <Icon.users size={18} color={violet} />
+    <div className={styles.empty}>
+      <div className={styles.emptyIcon}>
+        <Icon.users size={18} />
       </div>
       <div>
-        <h3 style={{ margin: 0, color: text, fontFamily: fontDisplay, fontSize: 14, fontWeight: 700 }}>No friends yet</h3>
-        <p style={{ margin: "3px 0 0", color: muted, fontSize: 13 }}>Search above to send a request.</p>
+        <h3 className={styles.emptyTitle}>No friends yet</h3>
+        <p className={styles.emptyLede}>Search above to send a request.</p>
       </div>
     </div>
   );
@@ -556,17 +494,17 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
     <Modal
       onClose={onClose}
       title="Invite to squad"
-      subtitle={<>Pick a squad for <span style={{ color: text, fontWeight: 600 }}>{friend.name}</span></>}
+      subtitle={<>Pick a squad for <b>{friend.name}</b></>}
       sheet={isPhone}
       width={420}
     >
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className={styles.pickerStack}>
           {loading ? (
             <EmptyHint><span className="gg-spinner" style={{ marginRight: 8 }} />Loading your squads…</EmptyHint>
           ) : error ? (
             <EmptyHint>{error}</EmptyHint>
           ) : squads.length === 0 ? (
-            <div style={{ padding: "24px 12px", textAlign: "center", color: muted, fontSize: 14, fontFamily: "var(--font-inter)" }}>
+            <div className={styles.pickerEmpty}>
               Create a squad first — then you can invite {friend.name}.
             </div>
           ) : (
@@ -576,31 +514,17 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
               const inviting = st === "inviting";
               return (
                 <div key={sq.squadId}>
-                  <div className="gg-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", borderRadius: radiusControl, background: "var(--surface)", border: controlBorder }}>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sq.squadName}</div>
-                      <div style={{ fontSize: 12, color: dim, fontFamily: "var(--font-inter)", marginTop: 1 }}>{sq.memberCount}/{sq.maxSlots} members</div>
+                  <div className={`gg-row ${styles.pickerRow}`}>
+                    <div className={styles.pickerCopy}>
+                      <div className={styles.pickerName}>{sq.squadName}</div>
+                      <div className={styles.pickerMeta}>{sq.memberCount}/{sq.maxSlots} members</div>
                     </div>
-                    <button
-                      onClick={() => invite(sq.squadId)}
-                      disabled={invited || inviting}
-                      className="gg-press"
-                      style={{
-                        display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
-                        minHeight: 38, padding: "8px 16px", borderRadius: radiusPill,
-                        fontFamily: "var(--font-inter)", fontWeight: 700, fontSize: 14, whiteSpace: "nowrap",
-                        cursor: invited || inviting ? "default" : "pointer",
-                        border: invited ? `1px solid ${lime}` : "none",
-                        background: invited ? `color-mix(in srgb, ${lime} 14%, transparent)` : violet,
-                        color: invited ? "var(--lime-text)" : onAccent,
-                        transition: "background .2s var(--ease-ui), color .2s var(--ease-ui)",
-                      }}
-                    >
+                    <Button size="sm" variant="primary" onClick={() => invite(sq.squadId)} disabled={invited || inviting}>
                       {invited ? (<>Invited <span aria-hidden="true">✓</span></>) : inviting ? "Inviting…" : "Invite"}
-                    </button>
+                    </Button>
                   </div>
                   {rowErr[sq.squadId] && (
-                    <div style={{ fontSize: 12, color: "var(--coral)", fontFamily: "var(--font-inter)", padding: "5px 12px 0" }}>{rowErr[sq.squadId]}</div>
+                    <div className={styles.rowError}>{rowErr[sq.squadId]}</div>
                   )}
                 </div>
               );
@@ -611,32 +535,23 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
   );
 }
 
-function Row({ u, children }: { u: Friend | FriendRequestUser; children: React.ReactNode }) {
+/**
+ * One person row (mock `.friend`): avatar in a `.pa` presence wrapper, a
+ * name/status block (`b` + `small`), and the action cluster (`.pair`).
+ * `request` marks incoming requests (mock `.friend.request`).
+ */
+function Row({ u, children, request = false }: { u: Friend | FriendRequestUser; children: React.ReactNode; request?: boolean }) {
   return (
-    <div
-      className="gg-row"
-      style={{
-        display: "flex",
-        flexWrap: "wrap",
-        alignItems: "center",
-        gap: "8px 12px",
-        padding: "10px 14px",
-        borderRadius: radiusControl,
-        background: "var(--surface)",
-        border: controlBorder,
-      }}
+    <li
+      className={`friend gg-row ${request ? "request " : ""}${styles.row}`}
     >
-      <UserAvatar userId={u.userId} name={u.name} avatar={u.avatar} size={40} online={!!u.online} />
-      <div style={{ minWidth: 0, flex: "1 1 110px" }}>
-        <div style={{ fontFamily: fontDisplay, fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-          {u.name}
-        </div>
-        {u.online && (
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--lime-text)", fontFamily: "var(--font-inter)", marginTop: 1 }}>Online</div>
-        )}
+      <UserAvatar userId={u.userId} name={u.name} avatar={u.avatar} size="fill" online={!!u.online} />
+      <div className={styles.rowCopy}>
+        <b>{u.name}</b>
+        {u.online && <small className="on">Online</small>}
       </div>
-      <div style={{ marginLeft: "auto" }}>{children}</div>
-    </div>
+      <span className={`pair ${styles.pair}`}>{children}</span>
+    </li>
   );
 }
 
@@ -652,36 +567,18 @@ function ActionButton({ children, onClick, tone }: { children: React.ReactNode; 
 
 function MoreButton({ name, onClick }: { name: string; onClick: () => void }) {
   return (
-    <Button size="sm" variant="ghost" onClick={onClick} aria-label={`More options for ${name}`} style={{ width: 44, padding: 0, color: muted }}>
+    <Button size="sm" variant="ghost" onClick={onClick} aria-label={`More options for ${name}`} className={styles.more}>
       <Icon.more size={20} />
     </Button>
   );
 }
 
-function Pill({ children, tone }: { children: React.ReactNode; tone: "muted" }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        padding: "7px 14px",
-        borderRadius: radiusPill,
-        fontFamily: "var(--font-inter)",
-        fontWeight: 600,
-        fontSize: 13,
-        color: dim,
-        background: "var(--overlay)",
-        border: controlBorder,
-        whiteSpace: "nowrap",
-      }}
-    >
-      {children}
-    </span>
-  );
+function Pill({ children }: { children: React.ReactNode }) {
+  return <span className={styles.pill}>{children}</span>;
 }
 
 function EmptyHint({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ padding: "12px 4px", color: muted, fontSize: 14, fontFamily: "var(--font-inter)" }}>{children}</div>
+    <div className={styles.hint}>{children}</div>
   );
 }

@@ -10,6 +10,8 @@ interface AvatarArtProps {
   online?: boolean;
   style?: React.CSSProperties;
   className?: string;
+  /** Class for the presence wrapper (mock `.pa` hook), not the avatar art. */
+  wrapClassName?: string;
 }
 
 /**
@@ -23,9 +25,9 @@ interface AvatarArtProps {
  * The sizing span carries the mock's `av` class so the ported skins can
  * restyle avatars in context (`.seat .av`, `.nav-end .av.me`, …).
  */
-export function AvatarArt({ value, size = 40, online, style, className }: AvatarArtProps) {
+export function AvatarArt({ value, size = 40, online, style, className, wrapClassName }: AvatarArtProps) {
   return (
-    <OnlineWrap online={online}>
+    <OnlineWrap online={online} className={wrapClassName}>
       <AvatarArtInner value={value} size={size} style={style} className={className} />
     </OnlineWrap>
   );

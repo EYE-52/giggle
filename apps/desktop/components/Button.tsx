@@ -23,6 +23,8 @@ export interface ButtonProps {
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
   style?: CSSProperties;
+  /** Additive class hook (skin-port hooks / CSS modules) alongside the base classes. */
+  className?: string;
   "aria-label"?: string;
 }
 
@@ -48,6 +50,7 @@ export function Button({
   disabled,
   type = "button",
   style,
+  className,
   "aria-label": ariaLabel,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -60,6 +63,7 @@ export function Button({
     size === "sm" ? "gg-btn--sm small" : "gg-btn--md",
   ];
   if (fullWidth) classes.push("gg-btn--wide wide");
+  if (className) classes.push(className);
 
   return (
     <button

@@ -202,3 +202,131 @@ html[data-skin] .gg-home .page-head .title {
     font-size: 14.5px;
   }
 }
+
+/* ── Phase 2b (Friends + Lobby) ──────────────────────────────────────────── */
+
+/* Desktop fill: the approved Friends/Lobby mocks fill the viewport height
+ * (friend cards and previews grow into the leftover space). The app column
+ * is a plain block — flex it only for these screens so Home keeps its 2a
+ * layout, and let the screen's last list absorb the height. */
+@media (min-width: 721px) {
+  html[data-skin] .gg-app-container:has(> .gg-screen-friends) {
+    display: flex;
+    flex-direction: column;
+  }
+  html[data-skin] .gg-screen-friends {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  html[data-skin] .gg-friends-main {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  html[data-skin] .gg-friends-main .friend-list {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  html[data-skin] .gg-lobby-root {
+    display: flex;
+    flex-direction: column;
+  }
+  html[data-skin] .gg-lobby-root .lobby-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+/* Doodle (paper) friends: the mock keeps the list single-column on desktop
+ * (studio base grid with no template); the app default is an auto-fill grid. */
+@media (min-width: 721px) {
+  html[data-skin="paper"] .gg-screen-friends .friend-list {
+    grid-template-columns: 1fr;
+    grid-auto-rows: minmax(0, 1fr);
+  }
+}
+
+/* Lobby preview meta: the app's video scrim keeps tile captions light; the
+ * skins' `.preview-meta` colors are written for surface-backed previews, and
+ * soft's `width: 100%` over-constrains the absolutely-positioned label
+ * (left+right+width → width wins → spills the tile's right edge). */
+html[data-skin] .gg-lobby-root .preview-meta {
+  color: #faf8f3;
+  width: auto;
+}
+
+/* Friend cards: the app's rows wrap (long names push actions to a second
+ * line); the mock cards never wrap, and wrapping a skin's desktop COLUMN
+ * card side-stacks its children into overflowing columns. Phone rows keep
+ * the app's wrap so clustered actions drop under long names. The skins'
+ * `height: 100%` (fill the mock's 1fr row) and phone `flex: 1 1 0` (share
+ * the list, ignoring content) stop the card growing around taller content —
+ * the app's request cards carry a third "more" action — so let the box
+ * float to its content and the stretched row/list do the filling. The
+ * search/requests lists never stretch, and their skins' 1fr row templates
+ * resolve against the card min-height instead of the content — auto rows
+ * keep those cards content-sized. */
+@media (min-width: 721px) {
+  html[data-skin] .gg-screen.gg-screen-friends .friend {
+    flex-wrap: nowrap;
+    height: auto;
+  }
+  /* The search/requests lists never stretch, and Chrome resolves their skins'
+   * 1fr rows to the card min-height — the taller request content then
+   * overflows the stretched card. Those lists size rows to content and let
+   * the cards float free of the row stretch. */
+  html[data-skin] .gg-friends-requests .friend-list,
+  html[data-skin] .gg-friends-search .friend-list {
+    grid-template-rows: none;
+    grid-auto-rows: max-content;
+  }
+  html[data-skin] .gg-friends-requests .friend,
+  html[data-skin] .gg-friends-search .friend {
+    align-self: start;
+    height: auto;
+  }
+}
+@media (max-width: 720px) {
+  html[data-skin] .gg-screen.gg-screen-friends .friend {
+    flex-basis: auto;
+  }
+}
+
+/* Phone lobby: the mock phone lobbies are single-column (the studio phone
+ * markup has no lobby-grid/stage at all), but play writes its desktop
+ * 1fr/330px and 1fr/1fr templates unscoped — they would squeeze the stage
+ * beside the panel on the app's phone. One column on phones for every skin;
+ * tile aspect caps are the app-default look only. */
+@media (max-width: 760px) {
+  html[data-skin] .gg-lobby-root .lobby-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-skin] .gg-lobby-root .lobby-stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-skin] .gg-lobby-root .lobby-stage .preview {
+    aspect-ratio: auto;
+    max-height: none;
+  }
+}
+
+/* Doodle invite tile: honey-light's muted label rides under the 4.5:1 floor
+ * on the transparent preview — lift it with the same mix the approved
+ * scrapbook skin uses for its muted tile labels. */
+html[data-skin="paper"] .preview.invite {
+  color: color-mix(in srgb, var(--muted) 42%, var(--text));
+}
+
+/* Bold Play dark invite tile: the approved pop/surface mix (3.8:1 with the
+ * light label) rides under the app's 4.5:1 button floor — lean the mix
+ * further toward the surface, the same way the 2a primary-button floor
+ * deepened brand fills (raspberry dark: 55%→40% pop = 5.6:1). */
+html[data-skin="play"][data-mode="dark"] .preview.invite {
+  background-color: color-mix(in srgb, var(--pop) 40%, var(--surface));
+}
+
+/* Title word gaps (2a D2 rule extended to the new screens): narrow-space
+ * display faces sit just under the readable word-gap floor. */
+html[data-skin] .gg-screen-friends .page-head .title,
+html[data-skin] .gg-screen-lobby .lobby-head .title {
+  word-spacing: 0.05em;
+}

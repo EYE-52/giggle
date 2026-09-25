@@ -1726,12 +1726,15 @@ test("friends first run stays search-first and distinguishes request failures", 
 
 test("friend card icon actions meet the 44px touch target", () => {
   const page = friendsPageSource();
+  const css = readFileSync(path.join(__dirname, "../app/(app)/friends/friends.module.css"), "utf8");
   const more = page.slice(page.indexOf("function MoreButton("), page.indexOf("function Pill("));
 
-  // Button size="sm" has a 44px min-height; the icon-only overflow button is 44px wide.
+  // Button size="sm" has a 44px min-height; the icon-only overflow button is 44px wide
+  // (the width moved from an inline style to the .more module class so the
+  // skin port can restyle the button without fighting inline declarations).
   assert.equal(page.includes('<Button size="sm" variant="secondary" onClick={() => setInviteFriend(f)}'), true);
   assert.equal(more.includes('size="sm"'), true);
-  assert.equal(more.includes("width: 44"), true);
+  assert.match(css, /\.more\s*\{[^}]*width:\s*44px/);
 });
 
 test("friends search treats incoming request users as actionable requests", () => {

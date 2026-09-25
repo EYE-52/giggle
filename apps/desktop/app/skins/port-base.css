@@ -41,3 +41,21 @@ html[data-skin] .gg-bottom-nav a.tb {
   width: 100%;
   height: 100%;
 }
+
+/* ── Phase 2b (Friends + Lobby) ──────────────────────────────────────────── */
+
+/* Mock base lobby stage rows: the previews fill the first grid row and the
+ * controls sit in an auto row underneath (design/skins/base.css
+ * `.lobby-stage`). Skins that re-display the stage as a flex column
+ * (soft/clay) ignore the row template entirely. */
+html[data-skin] .lobby-stage {
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+/* Mock base lobby grid: items stretch down the stage/panel columns (the
+ * studio base grid has no align-items, so the stretch default applies). The
+ * app's own layout aligns items to start, which would leave skins that don't
+ * set align-items (paper) with a short stage. */
+html[data-skin] .gg-lobby-root .lobby-grid {
+  align-items: stretch;
+}

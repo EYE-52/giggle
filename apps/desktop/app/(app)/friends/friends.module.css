@@ -1,0 +1,415 @@
+/* Friends screen — app-default look (the inline styles the page carried
+ * before the skin port). The mock hook classes (search / friend-list /
+ * friend / pa / pair / page-head / title / lede / btn …) ride along on the
+ * same elements so the ported skins (app/skins/skin-*.css) can restyle them;
+ * every default below is overridable by the generated skin rules. */
+
+/* ── screen scaffold ─────────────────────────────────────────────────────── */
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 40px;
+  min-width: 0;
+}
+
+/* ── page head (mock .page-head: title + lede) ───────────────────────────── */
+.head {
+  margin-bottom: 22px;
+  min-width: 0;
+}
+.headTitle {
+  margin: 0;
+  font-family: var(--font-display, var(--font-space-grotesk));
+  font-weight: 800;
+  font-size: 40px;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+  color: var(--text);
+}
+.headLede {
+  margin: 7px 0 0;
+  font-size: 16px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 52ch;
+}
+@media (max-width: 640px) {
+  .headTitle {
+    font-size: 32px;
+  }
+}
+
+/* ── sections ────────────────────────────────────────────────────────────── */
+.addSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.sectionTitle {
+  font-family: var(--font-display, var(--font-space-grotesk));
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.sectionTitleAccent {
+  color: var(--accent, var(--violet));
+}
+.sectionTitleMuted {
+  color: var(--text-muted);
+}
+
+/* First-run hero ("Add friends.") shown while the account has no people. */
+.firstRun {
+  padding-top: 16px;
+}
+.firstKicker {
+  color: var(--accent, var(--violet));
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.firstTitle {
+  margin: 8px 0 6px;
+  color: var(--text);
+  font-family: var(--font-display, var(--font-space-grotesk));
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.firstLede {
+  margin: 0;
+  max-width: 520px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+@media (max-width: 640px) {
+  .firstRun {
+    padding-top: 8px;
+  }
+  .firstTitle {
+    font-size: 28px;
+  }
+}
+
+/* ── search (mock .search: icon + bare .input inside a skinned shell) ────── */
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.search .ic {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-dim);
+}
+.searchInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 16px 13px 42px;
+  border-radius: var(--radius-control, 14px);
+  background: var(--surface);
+  border: var(--control-border, 1px solid var(--border));
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--font-inter);
+  outline: none;
+  transition: box-shadow 0.2s var(--ease-ui), border-color 0.2s var(--ease-ui);
+}
+/* Focus ring stays on the app-default input only — skins draw it on the
+ * .search shell instead (their `.search:focus-within` rules). */
+html:not([data-skin]) .search:focus-within .searchInput {
+  border-color: var(--accent, var(--violet));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, var(--violet)) 30%, transparent);
+}
+
+/* ── people lists (mock .friend-list) ────────────────────────────────────── */
+.list {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.listGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+@media (max-width: 640px) {
+  .listGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── person row / card (mock .friend) ────────────────────────────────────── */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-control, 14px);
+  background: var(--surface);
+  border: var(--control-border, 1px solid var(--border));
+  min-width: 0;
+}
+.row .av {
+  width: 40px;
+  height: 40px;
+}
+.cardRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-tile, 16px);
+  background: var(--surface);
+  border: var(--control-border, 1px solid var(--border));
+  min-width: 0;
+}
+.cardRow .av {
+  width: 46px;
+  height: 46px;
+}
+.rowCopy {
+  min-width: 0;
+  flex: 1 1 110px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.rowCopy b {
+  font-family: var(--font-display, var(--font-space-grotesk));
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rowCopy small {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  font-family: var(--font-inter);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cardRow .rowCopy small {
+  font-size: 13px;
+}
+.rowCopy small.on {
+  color: var(--lime-text);
+}
+
+/* Action cluster (mock .pair) */
+.pair {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.cardRow .pair {
+  flex-shrink: 0;
+}
+.more {
+  width: 44px;
+  padding: 0;
+  color: var(--text-muted);
+}
+
+/* Status pill (Friends / Requested / Pending) — app-local, intentionally
+ * unhooked from the skins (it is a state label, not an interactive chip). */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  border-radius: var(--radius-pill, 999px);
+  font-family: var(--font-inter);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-dim);
+  background: var(--overlay);
+  border: var(--control-border, 1px solid var(--border));
+  white-space: nowrap;
+}
+
+/* ── small states ────────────────────────────────────────────────────────── */
+.alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 10px 14px;
+  border-radius: var(--radius-control, 14px);
+  border: 1px solid color-mix(in srgb, var(--coral) 45%, transparent);
+  background: var(--coral-soft);
+  color: var(--text-body);
+  font-size: 14px;
+}
+.alertSlim {
+  min-height: 52px;
+  padding: 8px 10px 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-radius: var(--radius-control, 14px);
+  border: 1px solid color-mix(in srgb, var(--coral) 45%, transparent);
+  color: var(--text-body);
+  font-size: 13px;
+}
+.hint {
+  padding: 12px 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-family: var(--font-inter);
+}
+.skeletons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeleton {
+  height: 62px;
+  border-radius: var(--radius-control, 14px);
+}
+.gridSkeletons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.gridSkeleton {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-tile, 16px);
+  background: var(--surface);
+  border: var(--control-border, 1px solid var(--border));
+}
+.gridSkeleton .av {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--radius-pill, 999px);
+}
+.skeletonLines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeletonLines > i {
+  display: block;
+  border-radius: 6px;
+}
+@media (max-width: 640px) {
+  .gridSkeletons {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Empty friends state */
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.emptyIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--overlay);
+  flex-shrink: 0;
+  color: var(--accent, var(--violet));
+}
+.emptyTitle {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-display, var(--font-space-grotesk));
+  font-size: 14px;
+  font-weight: 700;
+}
+.emptyLede {
+  margin: 3px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+/* ── squad picker modal rows ─────────────────────────────────────────────── */
+.pickerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control, 14px);
+  background: var(--surface);
+  border: var(--control-border, 1px solid var(--border));
+}
+.pickerCopy {
+  min-width: 0;
+  flex: 1;
+}
+.pickerName {
+  font-family: var(--font-display, var(--font-space-grotesk));
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pickerMeta {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: var(--font-inter);
+  margin-top: 1px;
+}
+.pickerEmpty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-family: var(--font-inter);
+}
+.pickerStack {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rowError {
+  font-size: 12px;
+  color: var(--coral);
+  font-family: var(--font-inter);
+  padding: 5px 12px 0;
+}
