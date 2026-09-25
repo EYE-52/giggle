@@ -30,8 +30,9 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 const AUTO_DISMISS_MS = 4000;
 
 /* Spec 06: toasts are dark ink pills with white text in EVERY theme —
-   only the status icon color changes (soft lime / soft coral / soft violet). */
-const INK = "#1A1823";
+   only the status icon color changes (soft lime / soft coral / soft violet).
+   Colors live in globals.css (.gg-toast-card) so the skin system's `toast`
+   hook can restyle them. */
 const VARIANT_STYLE: Record<ToastVariant, { icon: ReactNode }> = {
   success: { icon: <Icon.star size={15} color="#A3E635" fill="#A3E635" /> },
   error: { icon: <Icon.flag size={15} color="#FCA5A5" /> },
@@ -41,33 +42,14 @@ const VARIANT_STYLE: Record<ToastVariant, { icon: ReactNode }> = {
 function ToastCard({ t, onDismiss }: { t: ToastItem; onDismiss: (id: number) => void }) {
   const v = VARIANT_STYLE[t.variant];
   return (
-    <div
-      role={t.variant === "error" ? "alert" : "status"}
-      className="gg-toast"
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 10,
-        padding: "11px 12px 11px 16px",
-        borderRadius: 12,
-        border: "1px solid rgba(255,255,255,0.08)",
-        background: INK,
-        boxShadow: "var(--shadow-pop)",
-        color: "#FFFFFF",
-        fontSize: 13,
-        fontWeight: 600,
-        lineHeight: 1.4,
-        pointerEvents: "auto",
-        maxWidth: "min(420px, calc(100vw - 32px))",
-      }}
-    >
-      <span aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }}>{v.icon}</span>
-      <span style={{ minWidth: 0 }}>{t.message}</span>
+    <div role={t.variant === "error" ? "alert" : "status"} className="gg-toast gg-toast-card toast">
+      <span aria-hidden="true" className="gg-toast-icon">{v.icon}</span>
+      <span className="gg-toast-message">{t.message}</span>
       <button
         type="button"
         onClick={() => onDismiss(t.id)}
         aria-label="Dismiss notification"
-        className="gg-press gg-focusable"
+        className="gg-press gg-focusable gg-toast-dismiss"
         style={{
           flexShrink: 0,
           width: 28,
@@ -80,10 +62,9 @@ function ToastCard({ t, onDismiss }: { t: ToastItem; onDismiss: (id: number) => 
           alignItems: "center",
           justifyContent: "center",
           cursor: "pointer",
-          color: "rgba(255,255,255,0.7)",
         }}
       >
-        <Icon.close size={13} color="rgba(255,255,255,0.7)" />
+        <Icon.close size={13} color="currentColor" />
       </button>
     </div>
   );

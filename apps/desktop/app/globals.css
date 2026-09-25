@@ -481,7 +481,27 @@ button {
    Five intents, one shape. Backgrounds live here (not inline) so
    :hover can restyle them. Primary = solid accent + colored glow,
    hover darkens (lightens in dark themes) and lifts 1px. Tonal =
-   accent-soft fill + accent text. Danger = tonal coral, never solid. */
+   accent-soft fill + accent text. Danger = tonal coral, never solid.
+
+    Base geometry lives in .gg-btn / .gg-btn--sm / .gg-btn--wide (below)
+    so the skin system's `btn` hooks (app/skins/*.css) can restyle it. */
+.gg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 16px;
+  min-height: 48px;
+  padding: 0 24px;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+.gg-btn--sm { min-height: 44px; padding: 0 16px; font-size: 13px; }
+.gg-btn--wide { width: 100%; }
+.gg-btn:disabled { cursor: not-allowed; opacity: 0.55; }
 .gg-btn--primary {
   background: var(--accent);
   color: var(--accent-contrast);
@@ -578,6 +598,257 @@ button {
    (larger) 44px hit area. */
 .gg-switch:focus-visible { box-shadow: none; outline: none; }
 .gg-switch:focus-visible .gg-switch-track { box-shadow: var(--focus-ring); }
+
+/* ── Skin-system era primitives ──────────────────────────────────
+    These moved out of component inline styles so the ported skins
+    (app/skins/skin-*.css) can restyle them. The mock class hooks
+    (switch / chip / badge / toast / modal / icon-btn / card / pa)
+    ride along on the same elements. */
+
+/* App shell root: the (app) layout container (mock `.app`). */
+.gg-app-root { background: var(--app-bg, var(--bg)); }
+
+/* Switch — thumb is the track's ::after so skins' `.switch span::after`
+   rules restyle it (mock base geometry: 44×26 track, 20px thumb). */
+.gg-switch {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.gg-switch:disabled { opacity: 0.5; cursor: not-allowed; }
+.gg-switch-track {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  box-sizing: border-box;
+  background: var(--surface-2);
+  border: var(--border-w) solid var(--border-strong);
+  transition: background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout);
+}
+.gg-switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  transition: left var(--dur) var(--ease-out), transform var(--dur) var(--ease-out), background-color var(--dur) var(--ease-inout);
+}
+.gg-switch[aria-checked="true"] .gg-switch-track {
+  background: var(--accent);
+  border-color: transparent;
+}
+.gg-switch[aria-checked="true"] .gg-switch-track::after {
+  left: 21px;
+  background: var(--on-accent);
+}
+
+/* Chip — selectable pill (mock `chip` / `is-on`). */
+.gg-chip-wrap { display: inline-flex; align-items: center; }
+.gg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--surface);
+  border: var(--border-w) solid var(--border-strong);
+  color: var(--text-body);
+  box-sizing: border-box;
+}
+button.gg-chip { cursor: pointer; }
+.gg-chip[aria-pressed="true"],
+.gg-chip--on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.gg-chip[disabled],
+.gg-chip--disabled { opacity: 0.5; cursor: not-allowed; }
+.gg-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 -10px 0 0;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Badge — tinted status pill (mock `badge`). */
+.gg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 8px;
+  padding: 4px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+.gg-badge--live { background: var(--live-soft); color: var(--lime-text); }
+.gg-badge--open { background: var(--sky-soft); color: var(--sky); }
+.gg-badge--full { background: var(--surface-2); color: var(--text-muted); }
+.gg-badge--info { background: var(--accent-soft); color: var(--accent); }
+.gg-badge--error { background: var(--coral-soft); color: var(--coral); }
+.gg-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--lime);
+  flex-shrink: 0;
+}
+
+/* Toast card — dark ink pill (mock `toast`); skins restyle it. */
+.gg-toast-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px 11px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: #1A1823;
+  box-shadow: var(--shadow-pop);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: auto;
+  max-width: min(420px, calc(100vw - 32px));
+}
+.gg-toast-icon { flex-shrink: 0; margin-top: 1px; }
+.gg-toast-message { min-width: 0; }
+.gg-toast-dismiss { color: currentColor; opacity: 0.7; }
+
+/* Modal (mock `modal` / `modal-head` / `icon-btn` close). */
+.gg-modal-backdrop {
+  background: var(--overlay-strong);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.gg-modal {
+  background: var(--surface);
+  border: var(--border-w) solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px 24px 22px;
+  box-shadow: var(--shadow-pop);
+}
+.gg-modal--sheet { border-radius: var(--radius-card) var(--radius-card) 0 0; }
+.gg-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.gg-modal-heading { min-width: 0; }
+.gg-modal-title {
+  font-family: var(--font-display);
+  font-size: 17px; /* v3 type scale: 30/22/17/14/13/12 */
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.gg-modal-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+.gg-modal-close {
+  flex-shrink: 0;
+  border-radius: var(--radius-control);
+  border: var(--control-border);
+  background: var(--overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+/* Icon button (bell, modal close …) — mock `icon-btn`. */
+.gg-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  /* 38px rounded square on one baseline with the other TopNav controls;
+     phones keep the full 44px touch target. */
+  min-width: 38px;
+  min-height: 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.gg-icon-btn:hover,
+.gg-icon-btn.is-open { background: var(--overlay-hover); }
+.gg-icon-btn:hover .ic,
+.gg-icon-btn.is-open .ic { color: var(--accent, var(--violet)); }
+@media (max-width: 640px) {
+  .gg-icon-btn { min-width: 44px; min-height: 44px; width: 44px; height: 44px; }
+}
+.gg-icon-btn-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent, var(--violet));
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
+  font-family: var(--font-display, var(--font-space-grotesk));
+}
+
+/* Presence avatars (mock `pa` / `presence on`). */
+.gg-pa { position: relative; display: inline-flex; flex-shrink: 0; }
+.gg-presence {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--live);
+  border: 2px solid var(--surface);
+  box-sizing: border-box;
+}
+
+/* Card primitive (mock `card`). */
+.gg-card {
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 24px;
+  box-sizing: border-box;
+}
+.gg-card--glow { box-shadow: 0 0 34px -6px rgba(124,92,255,0.4); }
 
 /* Gentle default transitions on interactive elements. Scoped to the
    common feedback properties so component inline styles that animate

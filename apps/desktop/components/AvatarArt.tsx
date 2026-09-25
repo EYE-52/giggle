@@ -5,9 +5,11 @@ import { OnlineWrap } from "./Avatar";
 
 interface AvatarArtProps {
   value: string;
-  size?: number;
+  /** Pixel size, or "fill" to size from the skinned container (e.g. seats). */
+  size?: number | "fill";
   online?: boolean;
   style?: React.CSSProperties;
+  className?: string;
 }
 
 /**
@@ -18,11 +20,13 @@ interface AvatarArtProps {
  * - anything else / empty → a character seeded from the value
  *
  * When `online` is true, the avatar gets a glowing lime presence ring + dot.
+ * The sizing span carries the mock's `av` class so the ported skins can
+ * restyle avatars in context (`.seat .av`, `.nav-end .av.me`, …).
  */
-export function AvatarArt({ value, size = 40, online, style }: AvatarArtProps) {
+export function AvatarArt({ value, size = 40, online, style, className }: AvatarArtProps) {
   return (
-    <OnlineWrap size={size} online={online}>
-      <AvatarArtInner value={value} size={size} style={style} />
+    <OnlineWrap online={online}>
+      <AvatarArtInner value={value} size={size} style={style} className={className} />
     </OnlineWrap>
   );
 }
@@ -33,28 +37,33 @@ export function AvatarArt({ value, size = 40, online, style }: AvatarArtProps) {
  */
 export const AVATAR_ANIMATION_MIN_SIZE = 72;
 
-function CharacterArt({ config, size, style }: { config: CharacterConfig; size: number; style?: React.CSSProperties }) {
+function CharacterArt({ config, size, style, className }: { config: CharacterConfig; size: number | "fill"; style?: React.CSSProperties; className?: string }) {
+  const fill = size === "fill";
+  const px = fill ? 96 : size;
+  const classes = ["av", className, fill ? "gg-av--fill" : ""].filter(Boolean).join(" ");
   return (
-    <span style={{ display: "inline-flex", width: size, height: size, flexShrink: 0, ...style }}>
-      <GiggleAvatar {...config} size={size} animated={config.animated && size >= AVATAR_ANIMATION_MIN_SIZE} label="Giggle character" />
+    <span
+      className={classes}
+      style={{ display: "inline-flex", ...(fill ? null : { width: size, height: size }), flexShrink: 0, ...style }}
+    >
+      <GiggleAvatar {...config} size={px} animated={config.animated && px >= AVATAR_ANIMATION_MIN_SIZE} label="Giggle character" />
     </span>
   );
 }
 
-function AvatarArtInner({ value, size = 40, style }: AvatarArtProps) {
+function AvatarArtInner({ value, size, style, className }: { value: string; size: number | "fill"; style?: React.CSSProperties; className?: string }) {
   const character = parseCharacter(value) ?? legacyCharacterFor(value);
-  if (character) return <CharacterArt config={character} size={size} style={style} />;
+  if (character) return <CharacterArt config={character} size={size} style={style} className={className} />;
   if (isCustomAvatar(value)) {
+    const fill = size === "fill";
     return (
       <img
         src={value}
         alt="My avatar"
-        width={size}
-        height={size}
+        className={["av", className, fill ? "gg-av--fill" : ""].filter(Boolean).join(" ")}
+        width={fill ? undefined : size}
+        height={fill ? undefined : size}
         style={{
-          width: size,
-          height: size,
-          borderRadius: "50%",
           objectFit: "cover",
           flexShrink: 0,
           display: "block",
@@ -63,5 +72,5 @@ function AvatarArtInner({ value, size = 40, style }: AvatarArtProps) {
       />
     );
   }
-  return <CharacterArt config={seededCharacterFor(value || "giggle")} size={size} style={style} />;
+  return <CharacterArt config={seededCharacterFor(value || "giggle")} size={size} style={style} className={className} />;
 }

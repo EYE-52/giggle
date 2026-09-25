@@ -2,20 +2,11 @@
 .home { padding-top:8px; }
 .home .greeting { margin-bottom:10px; font-size:11px; font-weight:800; letter-spacing:.13em; color:var(--accent); }
 .home .heading { font-size:clamp(36px,4.6vw,58px); max-width:680px; }
-.heading em { font-family:inherit; font-style:normal; font-weight:inherit; color:var(--accent); }
-.home .feature { position:relative; overflow:hidden; background:#e8ecdf; border:1px solid #d5dccb; padding:32px; min-height:300px; border-radius:28px 28px 60px 28px; }
-.feature:after { content:""; position:absolute; right:-50px; top:-65px; width:230px; height:230px; border:1px solid #bfcaad; border-radius:50%; pointer-events:none; }
-.home .feature h2 { font-size:36px; max-width:85%; overflow-wrap:anywhere; }
-.home .feature :global(.gg-squad-seat) { border-radius:50%; width:76px; height:76px; background:#fffdf7; border:1px solid #d3dcc6; }
-.home .feature :global(.gg-squad-faces) { margin:26px 0; }
-.home .join { background:#f3e8dc; border-color:#e2d0bf; border-radius:22px; }
-.home .join label { font-size:22px; }
+.heading em { font-family:inherit; font-style:normal; font-weight:inherit; }
+/* The squad feature / join card / tip card now carry the skin-system hooks
+   (card create / card join-card / card tip — see app/skins/*.css); the old
+   hard-coded sage/cream looks are gone. */
 .home .joinHint { grid-column:1/-1; font-size:13px; margin-top:-3px; }
-.ritual { margin-top:8px; padding:25px 8px; display:flex; align-items:flex-start; gap:18px; border-bottom:1px solid var(--border); }
-.ritualMark { display:grid; place-items:center; width:42px; height:42px; flex-shrink:0; background:#ece3f0; color:#73578b; border-radius:50%; font-size:29px; }
-.ritual h2 { font-size:19px; margin:0 0 8px; letter-spacing:-.025em; }
-.ritual p { font-size:14px; max-width:420px; }
-.ritual a { display:inline-flex; align-items:center; min-height:44px; font-size:13px; font-weight:700; color:var(--accent); }
 .note { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 24px; border:1px dashed var(--border-strong); border-radius:18px; }
 .note p { font-size:13px; }
 .note a { flex-shrink:0; font-size:13px; color:var(--accent); min-height:44px; display:flex; align-items:center; }
@@ -26,5 +17,4 @@
 .authIntro>p { color:#6b6155; font-size:17px; line-height:1.6; max-width:340px; }
 .authArt { max-width:310px; margin:35px 0 30px 35px; }
 .authIntro>a { display:inline-flex; min-height:44px; align-items:center; color:#775b45; font-size:13px; }
-@media(max-width:760px) { .auth { grid-template-columns:1fr; align-content:center; padding:28px 20px; gap:25px; } .authIntro { max-width:430px; } .authIntro h2 { font-size:38px; margin-top:8px; } .authIntro>p, .authArt { display:none; } .auth>section { justify-self:center; } .home .feature { padding:24px; border-bottom-right-radius:42px; } .home .feature h2 { font-size:30px; } .note { padding:16px; gap:12px; flex-wrap:wrap; } }
-@media(max-width:380px) { .home .feature :global(.gg-squad-seat) { width:58px; height:62px; } }
+@media(max-width:760px) { .auth { grid-template-columns:1fr; align-content:center; padding:28px 20px; gap:25px; } .authIntro { max-width:430px; } .authIntro h2 { font-size:38px; margin-top:8px; } .authIntro>p, .authArt { display:none; } .auth>section { justify-self:center; } .note { padding:16px; gap:12px; flex-wrap:wrap; } }

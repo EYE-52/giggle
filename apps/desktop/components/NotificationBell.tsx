@@ -440,7 +440,6 @@ export function NotificationBell() {
   const [items, setItems] = useState<AppNotification[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
-  const [hover, setHover] = useState(false);
   const [toast, setToast] = useState<AppNotification | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
@@ -572,57 +571,21 @@ export function NotificationBell() {
 
   return (
     <div ref={wrapRef} style={{ position: "relative", marginLeft: isPhone ? 2 : 4 }}>
-      {/* bell button */}
+      {/* bell button — chrome lives in globals.css (.gg-icon-btn) so the skin
+          system's `icon-btn` hook can restyle it; hover/active move to CSS. */}
       <button
         type="button"
         aria-label="Notifications"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={toggle}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        className="gg-press gg-focusable"
-        style={{
-          position: "relative",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 8,
-          // 38px rounded square on one baseline with the other TopNav
-          // controls; phone keeps the full 44px touch target.
-          minWidth: isPhone ? 44 : 38,
-          minHeight: isPhone ? 44 : 38,
-          width: isPhone ? 44 : 38,
-          height: isPhone ? 44 : 38,
-          borderRadius: 10,
-          background: open || hover ? "var(--overlay-hover)" : "transparent",
-          border: "1px solid transparent",
-          cursor: "pointer",
-          transition:
-            "background-color var(--dur) var(--ease-inout), border-color var(--dur) var(--ease-inout), transform var(--dur) var(--ease-out)",
-        }}
+        className={`gg-press gg-focusable gg-icon-btn icon-btn${open ? " is-open" : ""}${unread > 0 ? " has-unread" : ""}`}
       >
-        <Icon.bell size={18} color={open || hover ? "var(--accent, var(--violet))" : "var(--text-muted)"} />
+        <Icon.bell size={18} />
         {badge && (
           <span
             aria-label={`${unread} unread`}
-            style={{
-              position: "absolute",
-              top: 2,
-              right: 2,
-              minWidth: 16,
-              height: 16,
-              padding: "0 4px",
-              borderRadius: 999,
-              background: "var(--accent, var(--violet))",
-              color: "#fff",
-              fontSize: 10,
-              fontWeight: 800,
-              lineHeight: "16px",
-              textAlign: "center",
-              boxShadow: "0 0 0 2px var(--bg)",
-              fontFamily: "var(--font-display, var(--font-space-grotesk))",
-            }}
+            className="gg-icon-btn-badge"
           >
             {badge}
           </span>

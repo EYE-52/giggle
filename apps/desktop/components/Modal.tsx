@@ -100,7 +100,7 @@ export interface ModalProps {
   width?: number | string;
   /** Bottom-sheet presentation (full-width, bottom-aligned, top radius only). */
   sheet?: boolean;
-  /** Card padding. Default "24px 24px 22px" (sheet: side padding kept, no top radius change). */
+  /** Card padding. Default from CSS (.gg-modal: 24px 24px 22px). */
   padding?: number | string;
   /** Extra styles merged onto the card. */
   style?: CSSProperties;
@@ -126,7 +126,7 @@ export function Modal({
   closeLabel = "Close",
   width = "min(520px, calc(100vw - 32px))",
   sheet = false,
-  padding = "24px 24px 22px",
+  padding,
   style,
   initialFocusRef,
   zIndex = 1100,
@@ -150,13 +150,11 @@ export function Modal({
       onClick={(e) => {
         if (closeOnBackdrop && e.target === e.currentTarget) onClose();
       }}
+      className="gg-modal-backdrop"
       style={{
         position: "fixed",
         inset: 0,
         zIndex,
-        background: "var(--overlay-strong)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
         display: "flex",
         alignItems: sheet ? "flex-end" : "center",
         justifyContent: "center",
@@ -169,76 +167,43 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={title != null ? titleId : undefined}
         aria-label={title == null ? ariaLabel : undefined}
-        className="gg-reveal"
+        className={`gg-modal modal${sheet ? " gg-modal--sheet" : ""} gg-reveal`}
         style={{
-          background: "var(--surface)",
-          border: "var(--border-w) solid var(--border)",
-          borderRadius: sheet ? "var(--radius-card) var(--radius-card) 0 0" : "var(--radius-card)",
-          padding,
+          ...(padding != null ? { padding } : undefined),
           width: sheet ? "100%" : width,
           maxWidth: "100%",
           maxHeight: sheet ? "88dvh" : "calc(100dvh - 32px)",
           overflowY: "auto",
           boxSizing: "border-box",
-          boxShadow: "var(--shadow-pop)",
           display: "flex",
           flexDirection: "column",
           ...style,
         }}
       >
         {(title != null || showClose) && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 12,
-              marginBottom: title != null ? 18 : 0,
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
+          <div className="gg-modal-head modal-head">
+            <div className="gg-modal-heading" style={{ minWidth: 0 }}>
               {title != null && (
-                <div
-                  id={titleId}
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontSize: 17, /* v3 type scale: 30/22/17/14/13/12 */
-                    fontWeight: 700,
-                    color: "var(--text)",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
+                <div id={titleId} className="gg-modal-title card-title">
                   {title}
                 </div>
               )}
-              {subtitle != null && (
-                <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 3 }}>
-                  {subtitle}
-                </div>
-              )}
+              {subtitle != null && <div className="gg-modal-subtitle hint">{subtitle}</div>}
             </div>
             {showClose && (
               <button
                 type="button"
                 onClick={onClose}
                 aria-label={closeLabel}
-                className="gg-press gg-focusable"
+                className="gg-press gg-focusable gg-modal-close icon-btn"
                 style={{
                   flexShrink: 0,
                   width: 44,
                   height: 44,
                   margin: title != null ? "-6px -8px 0 0" : "-6px -8px -6px 0",
-                  borderRadius: "var(--radius-control)",
-                  border: "var(--control-border)",
-                  background: "var(--overlay)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  color: "var(--text-muted)",
                 }}
               >
-                <Icon.close size={17} color="var(--text-muted)" />
+                <Icon.close size={17} />
               </button>
             )}
           </div>

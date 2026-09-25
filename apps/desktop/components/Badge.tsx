@@ -10,49 +10,22 @@ export interface BadgeProps {
 }
 
 /* Tinted-pill pairs (Design System v3, spec 04): soft tint bg + strong tone
-   text. Never bare lime text — live pairs the dot-lime tint with the darker
-   --lime-text tier. */
-const TONES: Record<BadgeTone, { bg: string; color: string; dot?: boolean }> = {
-  live: { bg: "var(--live-soft)", color: "var(--lime-text)", dot: true },
-  open: { bg: "var(--sky-soft)", color: "var(--sky)" },
-  full: { bg: "var(--surface-2)", color: "var(--text-muted)" },
-  info: { bg: "var(--accent-soft)", color: "var(--accent)" },
-  error: { bg: "var(--coral-soft)", color: "var(--coral)" },
+ * text. Never bare lime text — live pairs the dot-lime tint with the darker
+ * --lime-text tier. Colors live in globals.css (.gg-badge--<tone>) so the
+ * skin system's `badge` hook can restyle them. */
+const TONE_CLASS: Record<BadgeTone, string> = {
+  live: "gg-badge--live",
+  open: "gg-badge--open",
+  full: "gg-badge--full",
+  info: "gg-badge--info",
+  error: "gg-badge--error",
 };
 
 /** Tinted status badge (LIVE / OPEN / FULL / info / error). */
 export function Badge({ children, tone, style }: BadgeProps) {
-  const t = TONES[tone];
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 5,
-        borderRadius: 8,
-        padding: "4px 9px",
-        fontSize: 12,
-        fontWeight: 700,
-        letterSpacing: "0.04em",
-        fontFamily: "var(--font-body)",
-        background: t.bg,
-        color: t.color,
-        whiteSpace: "nowrap",
-        ...style,
-      }}
-    >
-      {t.dot && (
-        <span
-          aria-hidden="true"
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: 999,
-            background: "var(--lime)",
-            flexShrink: 0,
-          }}
-        />
-      )}
+    <span className={`gg-badge badge ${TONE_CLASS[tone]}`} style={style}>
+      {tone === "live" && <span aria-hidden="true" className="gg-badge-dot" />}
       {children}
     </span>
   );

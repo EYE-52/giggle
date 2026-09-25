@@ -12,29 +12,18 @@ interface AvatarProps {
 }
 
 /**
- * Wraps an avatar element with a presence status dot when
- * `online` is true. Used by both Avatar (initials) and AvatarArt.
+ * Wraps an avatar element with a presence status dot when `online` is true.
+ * Used by both Avatar (initials) and AvatarArt. `pa` (presence avatar) and
+ * `presence on` are the skin-system hooks from the approved mock markup.
  */
-export function OnlineWrap({ children, size, online }: { children: ReactNode; size: number; online?: boolean }) {
-  if (!online) return <>{children}</>;
-  const dot = Math.max(8, Math.round(size * 0.28));
+export function OnlineWrap({ children, online, className }: { children: ReactNode; online?: boolean; className?: string }) {
+  if (!online) {
+    return <div className={`gg-pa${className ? ` ${className}` : ""}`}>{children}</div>;
+  }
   return (
-    <div style={{ position: "relative", display: "inline-flex", flexShrink: 0 }}>
+    <div className={`gg-pa pa${className ? ` ${className}` : ""}`}>
       {children}
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          right: -1,
-          bottom: -1,
-          width: dot,
-          height: dot,
-          borderRadius: radii.pill,
-          background: "var(--live)",
-          border: "2px solid var(--surface)",
-          boxSizing: "border-box",
-        }}
-      />
+      <span aria-hidden="true" className="gg-presence presence on" />
     </div>
   );
 }
@@ -67,7 +56,7 @@ export function Avatar({ name, size = 40, colorIndex, ring = false, online, styl
   const [from, to, fg] = GRADIENTS[base] ?? [base, base, "#fff"];
   const initial = name ? name[0].toUpperCase() : "?";
   return (
-    <OnlineWrap size={size} online={online}>
+    <OnlineWrap online={online}>
       <div
         style={{
           width: size,

@@ -1,5 +1,4 @@
 "use client";
-import { colors, radii } from "./tokens";
 import { CSSProperties, ReactNode } from "react";
 
 interface CardProps {
@@ -8,18 +7,11 @@ interface CardProps {
   glow?: boolean;
 }
 
+/* Surface colors live in globals.css (.gg-card / .gg-card--glow) so palettes
+ * and skins can restyle the card; `card` is the skin-system hook. */
 export function Card({ children, style, glow }: CardProps) {
   return (
-    <div
-      style={{
-        background: colors.surface,
-        borderRadius: radii.card,
-        border: `1px solid ${colors.border}`,
-        padding: 24,
-        boxShadow: glow ? "0 0 34px -6px rgba(124,92,255,0.4)" : undefined,
-        ...style,
-      }}
-    >
+    <div className={`gg-card card${glow ? " gg-card--glow" : ""}`} style={style}>
       {children}
     </div>
   );

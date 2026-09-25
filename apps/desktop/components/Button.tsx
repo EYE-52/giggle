@@ -26,18 +26,16 @@ export interface ButtonProps {
   "aria-label"?: string;
 }
 
-const SIZES: Record<"sm" | "md", CSSProperties> = {
-  sm: { minHeight: 44, padding: "0 16px", fontSize: 13 },
-  md: { minHeight: 48, padding: "0 24px", fontSize: 16 },
-};
-
-/* Colors/borders/shadows live in globals.css (.gg-btn--*) so :hover works. */
+/* Colors/borders/shadows live in globals.css (.gg-btn--*) so :hover works.
+ * Base geometry lives in the .gg-btn / .gg-btn--sm / .gg-btn--wide classes so
+ * the skin system (.btn / .btn-* in app/skins/*.css) can restyle buttons.
+ * The mock skin classes (btn, btn-primary, …) are additive hooks. */
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  primary: "gg-btn--primary",
-  tonal: "gg-btn--tonal",
-  secondary: "gg-btn--secondary",
-  ghost: "gg-btn--ghost",
-  danger: "gg-btn--danger",
+  primary: "gg-btn--primary btn-primary",
+  tonal: "gg-btn--tonal btn-tonal",
+  secondary: "gg-btn--secondary btn-secondary",
+  ghost: "gg-btn--ghost btn-ghost",
+  danger: "gg-btn--danger btn-danger",
 };
 
 export function Button({
@@ -53,20 +51,15 @@ export function Button({
   "aria-label": ariaLabel,
 }: ButtonProps) {
   const isDisabled = disabled || loading;
-  const base: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: "var(--radius-btn)",
-    fontFamily: "var(--font-body)",
-    fontWeight: 700,
-    cursor: isDisabled ? "not-allowed" : "pointer",
-    width: fullWidth ? "100%" : undefined,
-    opacity: isDisabled ? 0.55 : 1,
-    whiteSpace: "nowrap",
-    boxSizing: "border-box",
-  };
+  const classes = [
+    "gg-press",
+    "gg-focusable",
+    "gg-btn",
+    "btn",
+    VARIANT_CLASS[variant],
+    size === "sm" ? "gg-btn--sm small" : "gg-btn--md",
+  ];
+  if (fullWidth) classes.push("gg-btn--wide wide");
 
   return (
     <button
@@ -75,8 +68,8 @@ export function Button({
       disabled={isDisabled}
       aria-label={ariaLabel}
       aria-busy={loading || undefined}
-      className={`gg-press gg-focusable ${VARIANT_CLASS[variant]}`}
-      style={{ ...base, ...SIZES[size], ...style }}
+      className={classes.join(" ")}
+      style={style}
     >
       {loading && <span className="gg-spinner" aria-hidden="true" />}
       {children}

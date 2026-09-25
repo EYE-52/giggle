@@ -36,6 +36,8 @@ function makeIcon(name: string, defaults: Partial<P> = {}) {
     const paths = (entry && (entry[w] ?? entry.regular)) ?? [];
     return (
       <svg
+        className="ic"
+        data-i={name}
         width={size ?? defaults.size ?? 22}
         height={size ?? defaults.size ?? 22}
         viewBox="0 0 256 256"
@@ -85,6 +87,19 @@ export const Icon = {
   share: makeIcon("share"),
   send: makeIcon("send"),
   users: makeIcon("users"),
+  /* Skin-phase additions (Home tip card + mock icon hooks). `arrowRight`
+   * keeps the mock's data-i="arrow-right" hover nudge working. */
+  arrowRight: makeIcon("arrow-right"),
+  shuffle: makeIcon("shuffle"),
+  sparkle: makeIcon("sparkle"),
+  music: makeIcon("music"),
+  book: makeIcon("book"),
+  wink: makeIcon("wink"),
+  popcorn: makeIcon("popcorn"),
+  dice: makeIcon("dice"),
+  bulb: makeIcon("bulb"),
+  wave: makeIcon("wave"),
+  confetti: makeIcon("confetti"),
 };
 
 export type IconName = keyof typeof Icon;

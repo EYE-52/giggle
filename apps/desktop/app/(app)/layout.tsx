@@ -156,7 +156,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
-    <div className={pathname === "/encounter" ? "gg-call-theme" : undefined} style={{ height: "100dvh", display: "flex", flexDirection: "column", background: "var(--app-bg, var(--bg))", overflow: "hidden" }}>
+    <div
+      className={pathname === "/encounter" ? "gg-call-theme gg-app-root" : "gg-app-root"}
+      style={{ height: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}
+    >
       {!isCalling && <a className="gg-skip-link" href="#main-content">Skip to content</a>}
       {!isCalling && <TopNav />}
       <main

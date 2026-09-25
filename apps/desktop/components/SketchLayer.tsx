@@ -175,6 +175,7 @@ export function SketchLayer() {
     }
     let disposed = false;
     let observer: ResizeObserver | null = null;
+    let mutationObserver: MutationObserver | null = null;
     let scheduled = 0;
 
     (async () => {
@@ -192,6 +193,16 @@ export function SketchLayer() {
       observer = new ResizeObserver(schedule);
       if (document.documentElement) observer.observe(document.documentElement);
       if (document.body) observer.observe(document.body);
+      // React re-renders replace DOM nodes (roster loads, modals, toasts…),
+      // orphaning the sketch SVGs inside them — redraw on real DOM changes.
+      // Sketch appends/removals are filtered so drawing never re-triggers itself.
+      if (typeof MutationObserver !== "undefined" && document.body) {
+        const isSketchNode = (n: Node) => n instanceof Element && n.classList.contains("gg-sketch");
+        mutationObserver = new MutationObserver((mutations) => {
+          if (mutations.some((m) => [...m.addedNodes, ...m.removedNodes].some((n) => !isSketchNode(n)))) schedule();
+        });
+        mutationObserver.observe(document.body, { childList: true, subtree: true });
+      }
       // Fonts change text metrics (and therefore box sizes) after first paint.
       document.fonts?.ready.then(() => { if (!disposed) schedule(); }).catch(() => {});
       // Parity with design/skins/sketch.js — handy for devtools/debugging.
@@ -206,6 +217,7 @@ export function SketchLayer() {
     return () => {
       disposed = true;
       observer?.disconnect();
+      mutationObserver?.disconnect();
       cancelAnimationFrame(scheduled);
     };
   }, [active, pathname]);

@@ -416,7 +416,8 @@ test("compact phones keep notifications visible in the top navigation", () => {
   const nav = topNavSource();
 
   assert.equal(nav.includes("<NotificationBell"), true);
-  assert.equal(nav.includes('className="gg-header-actions"'), true);
+  // The actions container also carries the skin hook (`nav-end`).
+  assert.equal(nav.includes('className="gg-header-actions nav-end"'), true);
 });
 
 test("desktop CSP allows the configured backend origin for live API calls", () => {

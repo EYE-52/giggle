@@ -1,0 +1,122 @@
+/* SKIN SYSTEM · PHASE 2A — app-side corrections layered OVER the ported skins.
+ *
+ * Each rule exists because the real app differs from the approved mock in a
+ * documented way (touch-target policy, contrast floor, components the mock
+ * drew with icon fonts, screens that arrive in later phases). Keep this file
+ * small and commented; everything else belongs in the generated skin files.
+ */
+
+/* Skin `.nav` rules replace the header's padding wholesale (mock navs have no
+ * notch); re-assert the safe-area inset the app shell relies on. */
+html[data-skin] .gg-header.nav {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* The phone tab bar's items stack icon-over-label — and the DESKTOP tab strip
+   stays hidden on phones (revamp hides .gg-main-nav at 600px, but skin `.tabs`
+   rules re-flex it). */
+@media (max-width: 600px) {
+  html[data-skin] .gg-main-nav.tabs {
+    display: none;
+  }
+}
+
+/* The app's Home heading is a flex ROW (title block + action). Play's mock
+   `.page-head { flex: none }` (written for a column screen) would stop the
+   title block from shrinking → phone overflow. Let it shrink. */
+html[data-skin] .gg-home-heading .page-head {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The approved phone mock shows three seats (1 filled + 2 empty); the app's
+   fourth empty seat overflows the 390px card in chunky skins. */
+@media (max-width: 720px) {
+  html[data-skin] .seat-row .seat:nth-child(4) {
+    display: none;
+  }
+}
+
+/* Phone touch target for the tip-card shuffle button (mock keeps it 32–36px
+   as a decorative control; the app's 44px floor wins). Specificity beats the
+   skins' own `.card.tip .tip-shuffle` sizing. */
+@media (max-width: 720px) {
+  html[data-skin] .card.tip .tip-shuffle {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Contrast floor — the honey/lagoon light-mode brands cannot carry 4.5:1
+   text in either direction (white 2.9:1 / 3.5:1, ink ~4.4:1), so primary
+   buttons deepen toward brand-deep in exactly those palette+mode pairs.
+   Values precomputed from the palettes (honey #C98600×#5E3D00 55/45 → #996500;
+   lagoon #0C9B8A×#0A544C 55/45 → #0B7B6E) so computed styles stay simple rgb.
+   Paper is excluded — its primaries are sketch-drawn on transparent. */
+html:not([data-skin="paper"])[data-palette="honey"][data-mode="light"] .btn-primary {
+  background: #996500;
+}
+html:not([data-skin="paper"])[data-palette="lagoon"][data-mode="light"] .btn-primary {
+  background: #0B7B6E;
+}
+/* Play paints the create card's primary with the palette pop (dark ink on
+   gold passes comfortably) — keep the approved fill under the rule above. */
+html[data-skin="play"] .card.create .btn-primary {
+  background: var(--pop);
+}
+
+/* Scrapbook body copy rides at --muted, a hair under 4.5:1 on its warm paper
+   in lagoon light; nudge toward text. */
+html[data-skin="scrap"] .hint,
+html[data-skin="scrap"] .eyebrow,
+html[data-skin="scrap"] .lede,
+html[data-skin="scrap"] .fine {
+  color: color-mix(in srgb, var(--muted) 85%, var(--text) 15%);
+}
+
+/* Phone touch targets: the mock lets a few skins shrink small buttons to
+   36–40px on the component board; the app's 44px phone floor wins. */
+@media (max-width: 720px) {
+  html[data-skin] .btn.small {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Skins that paint the page backdrop on <body> keep the app shell transparent
+ * (mock: .app floats over the .device canvas). */
+html[data-skin="play"] .gg-app-root,
+html[data-skin="paper"] .gg-app-root {
+  background: transparent;
+}
+
+/* Scrapbook swaps .tip-mark's icon for a hand-drawn background sticker; the
+ * mock hid the icon-font glyph with font-size: 0, which cannot hide an SVG. */
+html[data-skin="scrap"] .tip-mark .ic {
+  display: none;
+}
+
+/* Doodle never sketches avatars inside the call stage (the mock only circles
+ * standalone .pa avatars; call tiles are phase 2c). */
+html[data-skin="paper"] .gg-call-theme .pa {
+  --sketch: none;
+}
+
+/* Dark-mode legibility: the approved Bold Play dark home paints brand-tinted
+ * cards but keeps light-mode's dark on-brand text, which falls below the
+ * app's 4.5:1 body-text floor. Re-point the card text at the palette text. */
+html[data-skin="play"][data-mode="dark"] .card.create .card-title,
+html[data-skin="play"][data-mode="dark"] .card.create .hint,
+html[data-skin="play"][data-mode="dark"] .card.create .kicker {
+  color: var(--text);
+}
+html[data-skin="play"][data-mode="dark"] .card.create .hint {
+  color: color-mix(in srgb, var(--text) 82%, transparent);
+}
+/* The create card's pop-colored primary keeps light-mode's light text in the
+   approved dark mock (1.4:1) — flip to the dark page ink on the pop fill. */
+html[data-skin="play"][data-mode="dark"] .card.create .btn-primary {
+  color: var(--bg);
+}

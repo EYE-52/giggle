@@ -19,28 +19,12 @@ export interface ChipProps {
  * Selectable pill. Interactive chips (onClick) render as aria-pressed toggle
  * buttons; static chips render as spans. Removable variant adds a dedicated
  * remove button. Min height 44px for touch.
+ *
+ * Colors live in globals.css (.gg-chip / .gg-chip--on) so the skin system's
+ * `chip` / `is-on` hooks (app/skins/*.css) can restyle them.
  */
 export function Chip({ children, onClick, selected = false, onRemove, removeLabel, disabled, style }: ChipProps) {
-  const shell: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    minHeight: 44,
-    padding: onRemove ? "0 6px 0 16px" : "0 16px",
-    borderRadius: "var(--radius-pill)",
-    fontFamily: "var(--font-body)",
-    fontSize: 13,
-    fontWeight: 600,
-    // Spec 04: selected = solid accent chip; unselected = surface + strong border.
-    background: selected ? "var(--accent)" : "var(--surface)",
-    border: selected
-      ? "var(--border-w) solid var(--accent)"
-      : "var(--border-w) solid var(--border-strong)",
-    color: selected ? "var(--accent-contrast)" : "var(--text-body)",
-    opacity: disabled ? 0.5 : 1,
-    boxSizing: "border-box",
-    ...style,
-  };
+  const shellClasses = `gg-chip chip${selected ? " gg-chip--on is-on" : ""}${disabled ? " gg-chip--disabled" : ""}`;
 
   const removeButton = onRemove ? (
     <button
@@ -51,19 +35,7 @@ export function Chip({ children, onClick, selected = false, onRemove, removeLabe
       }}
       disabled={disabled}
       aria-label={removeLabel ?? "Remove"}
-      className="gg-press gg-focusable"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 32,
-        height: 32,
-        borderRadius: 999,
-        border: "none",
-        background: "transparent",
-        color: "inherit",
-        cursor: disabled ? "not-allowed" : "pointer",
-      }}
+      className="gg-press gg-focusable gg-chip-remove"
     >
       <Icon.close size={12} color="currentColor" />
     </button>
@@ -71,14 +43,14 @@ export function Chip({ children, onClick, selected = false, onRemove, removeLabe
 
   if (onClick) {
     return (
-      <span style={{ display: "inline-flex", alignItems: "center" }}>
+      <span className="gg-chip-wrap">
         <button
           type="button"
           onClick={onClick}
           disabled={disabled}
           aria-pressed={selected}
-          className="gg-press gg-focusable"
-          style={{ ...shell, cursor: disabled ? "not-allowed" : "pointer" }}
+          className={`gg-press gg-focusable ${shellClasses}`}
+          style={style}
         >
           {children}
           {removeButton}
@@ -88,7 +60,7 @@ export function Chip({ children, onClick, selected = false, onRemove, removeLabe
   }
 
   return (
-    <span style={shell}>
+    <span className={shellClasses} style={style}>
       {children}
       {removeButton}
     </span>
