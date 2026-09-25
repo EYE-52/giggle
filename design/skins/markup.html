@@ -1,0 +1,184 @@
+<!-- SHARED MARKUP v2: real Giggle screens + component board. Skins style it; they never change it.
+     Icons: <i class="ic" data-i="NAME"></i> -> inline Phosphor SVG (fill=currentColor) in the skin's weight.
+     Avatars: <img class="av" src="assets/NAME.svg">.
+     The call stage (.vstage) is filled by script from the REAL layout engine (arrangeVideoCall):
+     every .vgroup / .vtile gets inline left/top/width/height. Skins must never change their size or position. -->
+<svg class="gg-filters" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <filter id="gg-wobble"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <filter id="gg-wobble-2"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="9" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <filter id="gg-marker"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="1" seed="5" result="g"/><feComposite in="SourceGraphic" in2="g" operator="in" result="t"/><feBlend in="SourceGraphic" in2="t" mode="multiply"/></filter>
+</svg>
+<div class="stage">
+  <!-- ===================== DESKTOP ===================== -->
+  <section class="device desktop" aria-label="Desktop" style="view-transition-name: gg-desk">
+    <div class="app">
+      <header class="nav">
+        <a class="brand" href="#" aria-label="Giggle home"><svg class="logo" viewBox="0 0 52 48" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15c0-12-17-12-17 0s17 12 17 0v18c0 12-17 12-17 3 0-10 18-7 28-7"/><path d="M46 12c0-12-17-12-17 0s17 12 17 0v20c0 12-17 12-17 3"/></svg><span class="wordmark">giggle</span></a>
+        <nav class="tabs" aria-label="Main">
+          <a class="tab" data-go="home" href="#"><i class="ic" data-i="house"></i><span>Home</span></a>
+          <a class="tab" data-go="friends" href="#"><i class="ic" data-i="users-three"></i><span>Friends</span></a>
+          <a class="tab" href="#"><i class="ic" data-i="user"></i><span>You</span></a>
+        </nav>
+        <div class="nav-end">
+          <button class="icon-btn has-dot" aria-label="Notifications"><i class="ic" data-i="bell"></i></button>
+          <img class="av me" src="assets/curls.svg" alt="Your avatar">
+        </div>
+      </header>
+
+      <!-- HOME (real content) -->
+      <main class="screen s-home">
+        <div class="page-head">
+          <p class="eyebrow">Your little corner of Giggle</p>
+          <h1 class="title">Good to have you here.</h1>
+          <p class="lede">A familiar face. A new inside joke. Make a little time for your people.</p>
+        </div>
+        <div class="home-grid">
+          <article class="card create">
+            <p class="kicker">Create a squad</p>
+            <h2 class="card-title">Save a seat for your friends.</h2>
+            <div class="seat-row"><span class="seat filled"><img class="av" src="assets/curls.svg" alt="You"></span><span class="seat empty"><i class="ic" data-i="plus"></i></span><span class="seat empty"><i class="ic" data-i="plus"></i></span><span class="seat empty"><i class="ic" data-i="plus"></i></span></div>
+            <div class="card-foot"><p class="hint">Create a squad, then invite your friends.</p><button class="btn btn-primary"><span>Start a squad</span><i class="ic" data-i="arrow-right"></i></button></div>
+          </article>
+          <article class="card join-card">
+            <h2 class="card-title">Got a seat saved?</h2>
+            <p class="hint">Pop in the invite code from your friends.</p>
+            <form class="join" onsubmit="return false"><label class="sr" for="code-d">Invite code</label><input class="input code" id="code-d" placeholder="ABC-123"><button class="btn btn-secondary">Join squad</button></form>
+          </article>
+          <article class="card tip">
+            <span class="tip-mark"><i class="ic" data-i="sparkle"></i></span>
+            <div class="tip-body">
+              <h2 class="card-title tip-title">Try this next call</h2>
+              <button class="icon-btn tip-shuffle" aria-label="New idea"><i class="ic" data-i="shuffle"></i></button>
+              <ul class="tip-ideas" aria-live="polite">
+                <li class="tip-idea"><i class="ic" data-i="music-notes"></i><span>A song</span></li>
+                <li class="tip-idea"><i class="ic" data-i="book-open-text"></i><span>A story</span></li>
+                <li class="tip-idea"><i class="ic" data-i="smiley-wink"></i><span>Funniest moment</span></li>
+              </ul>
+              <a class="link tip-cta" href="#">Find your people <i class="ic" data-i="arrow-right"></i></a>
+            </div>
+          </article>
+        </div>
+      </main>
+
+      <!-- LOBBY (real content) -->
+      <main class="screen s-lobby">
+        <div class="lobby-head"><div><h1 class="title">Friday crew</h1><p class="lede">Invite friends and check your camera before joining a call.</p></div><button class="btn btn-ghost"><i class="ic" data-i="gear"></i><span>Squad settings</span></button></div>
+        <div class="lobby-grid">
+          <div class="lobby-stage">
+            <figure class="preview self"><img class="av" src="assets/stubble.svg" alt=""><figcaption class="cam-off">Camera off</figcaption><div class="preview-meta"><span>You</span><span class="badge">Leader</span></div></figure>
+            <button class="preview invite"><i class="ic" data-i="plus"></i><span>Invite a friend</span></button>
+            <div class="lobby-controls"><button class="btn btn-secondary"><i class="ic" data-i="video-camera"></i><span>Enable camera &amp; mic</span></button><button class="btn btn-secondary"><i class="ic" data-i="chat-circle-dots"></i><span>Chat</span></button></div>
+          </div>
+          <aside class="card squad-panel">
+            <div class="panel-head"><h2 class="card-title">Your squad</h2><span class="count">1 / 4</span></div>
+            <div class="code-box"><span class="code-val">OQU-644</span><button class="btn btn-ghost small">Copy</button></div>
+            <button class="btn btn-secondary wide"><i class="ic" data-i="plus"></i><span>Invite friends</span></button>
+            <p class="meta-row"><span>Interests</span><span class="muted">None added</span><a class="link" href="#">Edit interests</a></p>
+            <p class="hint">Invite friends or join a call on your own.</p>
+            <button class="btn btn-primary wide">I'm ready</button>
+            <p class="fine">Everyone online needs to mark ready first.</p>
+          </aside>
+        </div>
+      </main>
+
+      <!-- CALL (squad vs squad; tiles placed by the real layout engine) -->
+      <main class="screen s-call">
+        <div class="call-top"><span class="pill live"><span class="dot"></span>Live</span><h1 class="call-title">Friday crew × Night owls</h1><span class="timer">12:48</span></div>
+        <div class="vstage" data-stage="desktop"></div>
+        <div class="call-bar" role="toolbar" aria-label="Call controls">
+          <button class="cbtn" aria-label="Mute"><i class="ic" data-i="microphone"></i></button>
+          <button class="cbtn" aria-label="Camera"><i class="ic" data-i="video-camera"></i></button>
+          <button class="cbtn" aria-label="React"><i class="ic" data-i="smiley"></i></button>
+          <button class="cbtn" aria-label="Chat"><i class="ic" data-i="chat-circle-dots"></i></button>
+          <button class="cbtn leave" aria-label="Leave">Leave</button>
+        </div>
+      </main>
+
+      <!-- FRIENDS (real content) -->
+      <main class="screen s-friends">
+        <div class="page-head"><h1 class="title">Your people</h1><p class="lede">Every good hangout starts with a hello. Find a friend by their display name.</p></div>
+        <div class="search"><i class="ic" data-i="magnifying-glass"></i><input class="input" placeholder="Search by name…" aria-label="Search by name"></div>
+        <ul class="friend-list">
+          <li class="friend"><span class="pa"><img class="av" src="assets/bob.svg" alt=""><span class="presence on"></span></span><div><b>Priya</b><small>Online</small></div><button class="btn btn-secondary small">Invite</button></li>
+          <li class="friend"><span class="pa"><img class="av" src="assets/swoop.svg" alt=""><span class="presence on"></span></span><div><b>Arjun</b><small>In a call</small></div><button class="btn btn-secondary small">Invite</button></li>
+          <li class="friend"><span class="pa"><img class="av" src="assets/long.svg" alt=""><span class="presence"></span></span><div><b>Sam</b><small>Last seen 2h ago</small></div><button class="btn btn-ghost small">Message</button></li>
+          <li class="friend request"><span class="pa"><img class="av" src="assets/cap.svg" alt=""></span><div><b>Dev</b><small>Wants to be friends</small></div><span class="pair"><button class="btn btn-primary small">Accept</button><button class="btn btn-ghost small">Ignore</button></span></li>
+        </ul>
+      </main>
+    </div>
+  </section>
+
+  <!-- ===================== PHONE ===================== -->
+  <section class="device phone" aria-label="Phone" style="view-transition-name: gg-phone">
+    <div class="app">
+      <header class="nav">
+        <a class="brand" href="#" aria-label="Giggle home"><svg class="logo" viewBox="0 0 52 48" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15c0-12-17-12-17 0s17 12 17 0v18c0 12-17 12-17 3 0-10 18-7 28-7"/><path d="M46 12c0-12-17-12-17 0s17 12 17 0v20c0 12-17 12-17 3"/></svg><span class="wordmark">giggle</span></a>
+        <div class="nav-end"><button class="icon-btn has-dot" aria-label="Notifications"><i class="ic" data-i="bell"></i></button><img class="av me" src="assets/curls.svg" alt="Your avatar"></div>
+      </header>
+      <main class="screen s-home">
+        <div class="page-head"><p class="eyebrow">Your little corner of Giggle</p><h1 class="title">Good to have you here.</h1></div>
+        <article class="card create">
+          <p class="kicker">Create a squad</p>
+          <h2 class="card-title">Save a seat for your friends.</h2>
+          <div class="seat-row"><span class="seat filled"><img class="av" src="assets/curls.svg" alt="You"></span><span class="seat empty"><i class="ic" data-i="plus"></i></span><span class="seat empty"><i class="ic" data-i="plus"></i></span></div>
+          <button class="btn btn-primary wide"><span>Start a squad</span><i class="ic" data-i="arrow-right"></i></button>
+        </article>
+        <article class="card join-card">
+          <h2 class="card-title">Got a seat saved?</h2>
+          <form class="join" onsubmit="return false"><label class="sr" for="code-m">Invite code</label><input class="input code" id="code-m" placeholder="ABC-123"><button class="btn btn-secondary">Join</button></form>
+        </article>
+      </main>
+      <main class="screen s-lobby">
+        <div class="lobby-head"><h1 class="title">Friday crew</h1></div>
+        <figure class="preview self"><img class="av" src="assets/stubble.svg" alt=""><figcaption class="cam-off">Camera off</figcaption><div class="preview-meta"><span>You</span><span class="badge">Leader</span></div></figure>
+        <div class="code-box"><span class="code-val">OQU-644</span><button class="btn btn-ghost small">Copy</button></div>
+        <button class="btn btn-secondary wide"><i class="ic" data-i="plus"></i><span>Invite friends</span></button>
+        <button class="btn btn-primary wide">I'm ready</button>
+      </main>
+      <main class="screen s-call">
+        <div class="call-top"><span class="pill live"><span class="dot"></span>Live</span><span class="timer">12:48</span></div>
+        <div class="vstage" data-stage="phone"></div>
+        <div class="call-bar" role="toolbar" aria-label="Call controls">
+          <button class="cbtn" aria-label="Mute"><i class="ic" data-i="microphone"></i></button>
+          <button class="cbtn" aria-label="Camera"><i class="ic" data-i="video-camera"></i></button>
+          <button class="cbtn" aria-label="React"><i class="ic" data-i="smiley"></i></button>
+          <button class="cbtn leave" aria-label="Leave">Leave</button>
+        </div>
+      </main>
+      <main class="screen s-friends">
+        <div class="page-head"><h1 class="title">Your people</h1></div>
+        <div class="search"><i class="ic" data-i="magnifying-glass"></i><input class="input" placeholder="Search by name…" aria-label="Search by name"></div>
+        <ul class="friend-list">
+          <li class="friend"><span class="pa"><img class="av" src="assets/bob.svg" alt=""><span class="presence on"></span></span><div><b>Priya</b><small>Online</small></div><button class="btn btn-secondary small">Invite</button></li>
+          <li class="friend"><span class="pa"><img class="av" src="assets/swoop.svg" alt=""><span class="presence on"></span></span><div><b>Arjun</b><small>In a call</small></div><button class="btn btn-secondary small">Invite</button></li>
+          <li class="friend request"><span class="pa"><img class="av" src="assets/cap.svg" alt=""></span><div><b>Dev</b><small>Wants to be friends</small></div><span class="pair"><button class="btn btn-primary small">Accept</button></span></li>
+        </ul>
+      </main>
+      <nav class="tabbar" aria-label="Main">
+        <a class="tb" data-go="home" href="#"><i class="ic" data-i="house"></i><span>Home</span></a>
+        <a class="tb" data-go="friends" href="#"><i class="ic" data-i="users-three"></i><span>Friends</span></a>
+        <a class="tb" href="#"><i class="ic" data-i="bell"></i><span>Alerts</span></a>
+        <a class="tb" href="#"><i class="ic" data-i="user"></i><span>You</span></a>
+      </nav>
+    </div>
+  </section>
+
+  <!-- ===================== COMPONENT BOARD ===================== -->
+  <section class="board" aria-label="Components">
+    <div class="app">
+      <div class="b-group"><h3 class="b-label">Buttons</h3><div class="b-row"><button class="btn btn-primary">Start a squad</button><button class="btn btn-secondary">Join squad</button><button class="btn btn-ghost">Cancel</button><button class="btn btn-danger">Leave</button><button class="btn btn-primary" disabled>I'm ready</button><button class="btn btn-secondary small"><i class="ic" data-i="link"></i><span>Copy link</span></button></div></div>
+      <div class="b-group"><h3 class="b-label">Inputs</h3><div class="b-row"><input class="input" placeholder="Squad name" aria-label="Squad name"><input class="input code" value="ABC-123" aria-label="Invite code"><div class="search"><i class="ic" data-i="magnifying-glass"></i><input class="input" placeholder="Search by name…" aria-label="Search"></div></div></div>
+      <div class="b-group"><h3 class="b-label">Chips, badges &amp; switch</h3><div class="b-row"><span class="chip">Music</span><span class="chip is-on">Movies</span><span class="chip">Gaming</span><span class="badge">Leader</span><span class="pill live"><span class="dot"></span>Live</span><label class="switch"><input type="checkbox" checked aria-label="Notification pop-ups"><span></span></label></div></div>
+      <div class="b-group"><h3 class="b-label">People</h3><div class="b-row"><span class="pa"><img class="av" src="assets/bob.svg" alt=""><span class="presence on"></span></span><span class="pa"><img class="av" src="assets/swoop.svg" alt=""><span class="presence away"></span></span><span class="pa"><img class="av" src="assets/long.svg" alt=""><span class="presence"></span></span><span class="stack"><img class="av" src="assets/buzz.svg" alt=""><img class="av" src="assets/hoops.svg" alt=""><img class="av" src="assets/bun.svg" alt=""><span class="more">+2</span></span></div></div>
+      <div class="b-group"><h3 class="b-label">Dialog &amp; toast</h3><div class="b-row">
+        <div class="modal" role="dialog" aria-label="Start a squad"><div class="modal-head"><div><h2 class="card-title">Start a squad</h2><p class="hint">Choose a name. Invite friends next.</p></div><button class="icon-btn close" aria-label="Close"><i class="ic" data-i="plus"></i></button></div><label class="field-label" for="sq-name">Squad name</label><input class="input" id="sq-name" value="Friday crew"><div class="modal-foot"><button class="btn btn-ghost">Cancel</button><button class="btn btn-primary">Create squad</button></div></div>
+        <div class="toast" role="status"><i class="ic" data-i="check"></i><span>Invite link copied</span></div>
+      </div></div>
+      <div class="b-group"><h3 class="b-label">Video tile states</h3><div class="b-row tiles-demo">
+        <div class="vtile demo speaking"><div class="feed"></div><span class="vname"><i class="ic" data-i="microphone"></i>Priya</span></div>
+        <div class="vtile demo off"><img class="av" src="assets/swoop.svg" alt=""><span class="vname">Arjun</span></div>
+        <div class="vtile demo muted"><div class="feed"></div><span class="vname">Leo · muted</span></div>
+      </div></div>
+    </div>
+  </section>
+</div>

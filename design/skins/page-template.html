@@ -1,0 +1,145 @@
+<title>Giggle Skin Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="%FONTURL%">
+<style>
+:root { --ui-bg:#f2f2f0; --ui-panel:#ffffff; --ui-ink:#1c1c1e; --ui-muted:#6c6c70; --ui-line:#e3e3e0; --ui-sel:#1c1c1e; --ui-on-sel:#ffffff; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ui-bg:#141415; --ui-panel:#1f1f21; --ui-ink:#f2f2f3; --ui-muted:#a1a1a6; --ui-line:#333336; --ui-sel:#f2f2f3; --ui-on-sel:#141415; color-scheme: dark; } }
+:root[data-theme="dark"] { --ui-bg:#141415; --ui-panel:#1f1f21; --ui-ink:#f2f2f3; --ui-muted:#a1a1a6; --ui-line:#333336; --ui-sel:#f2f2f3; --ui-on-sel:#141415; color-scheme: dark; }
+body { background: var(--ui-bg); color: var(--ui-ink); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; padding-inline: 16px; padding-block: 20px 48px; }
+.studio { max-width: 1760px; margin: 0 auto; display: grid; gap: 16px; }
+.intro h1 { margin: 0 0 4px; font-size: 22px; letter-spacing: -.01em; }
+.intro p { margin: 0; color: var(--ui-muted); max-width: 80ch; }
+.controls { background: var(--ui-panel); border: 1px solid var(--ui-line); border-radius: 16px; padding: 14px; display: grid; gap: 10px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lbl { width: 64px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ui-muted); }
+.opt, .sw, .seg button { border: 1px solid var(--ui-line); background: transparent; color: var(--ui-ink); border-radius: 12px; cursor: pointer; font: inherit; }
+.opt { display: grid; text-align: left; padding: 8px 12px; max-width: 230px; }
+.opt small { color: var(--ui-muted); font-size: 12px; line-height: 1.35; }
+.opt[aria-pressed="true"], .seg button[aria-pressed="true"] { background: var(--ui-sel); color: var(--ui-on-sel); border-color: var(--ui-sel); }
+.opt[aria-pressed="true"] small { color: inherit; opacity: .75; }
+.sw { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; }
+.sw span { width: 22px; height: 22px; border-radius: 50%; }
+.sw[aria-pressed="true"] { border-color: var(--ui-ink); box-shadow: inset 0 0 0 1px var(--ui-ink); font-weight: 700; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.seg button { padding: 6px 12px; }
+.hint-ui { color: var(--ui-muted); font-size: 12px; }
+.opt:focus-visible, .sw:focus-visible, .seg button:focus-visible { outline: 2px solid var(--ui-ink); outline-offset: 2px; }
+.viewport { overflow: hidden; border-radius: 18px; }
+.scaler { transform-origin: top left; }
+.frame > .stage { display: flex; gap: 32px; align-items: flex-start; }
+.frame[data-view="desktop"] .device.phone, .frame[data-view="phone"] .device.desktop { display: none; }
+.frame .device, .frame .board { border-radius: 22px; box-shadow: 0 1px 2px rgb(0 0 0/.08), 0 24px 60px -30px rgb(0 0 0/.45); }
+.frame .device.phone { border-radius: 44px; outline: 10px solid #121214; outline-offset: -1px; }
+.people-row-ui[hidden] { display: none !important; }
+/* simulated camera feed: fixed "video" look, independent of skin/palette */
+.frame .vtile .feed { background: radial-gradient(120% 90% at 30% 20%, #6b5a4e 0%, #3a302b 55%, #1f1a17 100%); }
+.frame .vtile .feed.alt { background: radial-gradient(120% 90% at 70% 25%, #4e6272 0%, #2b3640 55%, #171d22 100%); }
+.frame .vtile .feed.alt2 { background: radial-gradient(120% 90% at 50% 15%, #6f6a52 0%, #3d3a2c 55%, #1e1c16 100%); }
+.frame .vtile.cam img.av { width: 46%; max-width: 150px; }
+@media (max-width: 700px) { .lbl { width: 100%; } .opt { max-width: none; flex: 1 1 140px; } }
+</style>
+<style>
+%BASE%
+%SKINS%
+</style>
+<div class="studio">
+  <div class="intro"><h1>Giggle Skin Studio</h1><p>Real Giggle screens and components with each skin applied. A <b>skin</b> changes material, shape, type, icons and motion; a <b>palette</b> changes color. On the Call screen, tiles are placed by Giggle's real layout engine. Skins only restyle tiles; they never move them.</p></div>
+  <div class="controls" role="group" aria-label="Look controls">
+    <div class="row"><span class="lbl">Screen</span><span class="seg" id="screen"><button data-screen="home">Home</button><button data-screen="lobby">Lobby</button><button data-screen="call">Call</button><button data-screen="friends">Friends</button><button data-screen="board">Components</button></span>
+      <span class="row people-row-ui" id="people-ui"><span class="lbl" style="width:auto;margin-left:12px">In call</span><span class="seg" id="people"><button data-p="1v1">1 + 1</button><button data-p="2v2">2 + 2</button><button data-p="3v3">3 + 3</button><button data-p="4v2">4 + 2</button><button data-p="4v4">4 + 4</button></span></span></div>
+    <div class="row"><span class="lbl">Skin</span>%SKINBTNS%</div>
+    <div class="row"><span class="lbl">Palette</span>%PALBTNS%</div>
+    <div class="row"><span class="lbl">Mode</span><span class="seg" id="mode"><button data-mode="light">Light</button><button data-mode="dark">Dark</button></span>
+      <span class="lbl" style="width:auto;margin-left:12px">View</span><span class="seg" id="view"><button data-view="both">Both</button><button data-view="desktop">Desktop</button><button data-view="phone">Phone</button></span>
+      <span class="hint-ui" id="combo"></span></div>
+  </div>
+  <div class="viewport" id="viewport"><div class="scaler" id="scaler"><div class="frame" id="frame" data-skin="soft" data-palette="honey" data-mode="light" data-view="both" data-screen="home" data-people="3v3">%MARKUP%</div></div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/roughjs@4.6.6/bundled/rough.js"></script>
+<script>
+%SKETCHJS%
+</script>
+<script>
+%LAYOUTJS%
+const ICONS = %ICONS%;
+const SKINS = %METAS%;
+const PEOPLE = {
+  '1v1': [[16/9], [16/9]],
+  '2v2': [[16/9, 9/16], [4/3, 16/9]],
+  '3v3': [[16/9, 16/9, 9/16], [16/9, 4/3, 9/16]],
+  '4v2': [[16/9, 9/16, 16/9, 4/3], [16/9, 16/9]],
+  '4v4': [[16/9, 9/16, 16/9, 4/3], [9/16, 16/9, 16/9, 4/3]],
+};
+const FACES = ['curls', 'bob', 'swoop', 'buzz', 'long', 'bun', 'crop', 'beanie', 'hoops', 'stubble', 'cap', 'bald'];
+const NAMES = ['You', 'Priya', 'Arjun', 'Leo', 'Sam', 'Mei', 'Omar', 'Kai', 'Lena', 'Dev', 'Jo', 'Ria'];
+const frame = document.getElementById('frame');
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+function paintIcons() {
+  const w = SKINS[frame.dataset.skin].weight;
+  frame.querySelectorAll('.ic').forEach(el => { const ww = el.closest('.is-active') ? 'fill' : w; el.innerHTML = (ICONS[ww] && ICONS[ww][el.dataset.i]) || (ICONS[w] && ICONS[w][el.dataset.i]) || ''; });
+}
+function tileHTML(idx, t, speaking) {
+  const off = idx % 5 === 3;
+  const feed = off ? '' : '<div class="feed' + (idx % 3 === 1 ? ' alt' : idx % 3 === 2 ? ' alt2' : '') + '"></div>';
+  const mic = speaking ? '<i class="ic" data-i="microphone"></i>' : '';
+  return '<div class="vtile' + (off ? ' off' : ' cam') + (speaking ? ' speaking' : '') + '" data-tile="' + idx + '" style="left:' + t.x + 'px;top:' + t.y + 'px;width:' + t.width + 'px;height:' + t.height + 'px">' +
+    feed + '<img class="av" src="assets/' + FACES[idx % FACES.length] + '.svg" alt=""><span class="vname">' + mic + NAMES[idx % NAMES.length] + '</span></div>';
+}
+function renderCalls() {
+  if (frame.dataset.screen !== 'call') return;
+  const [mine, theirs] = PEOPLE[frame.dataset.people];
+  frame.querySelectorAll('.vstage').forEach(stage => {
+    const w = Math.floor(stage.clientWidth), h = Math.floor(stage.clientHeight);
+    if (!w || !h) return;
+    const L = GiggleLayout.arrangeVideoCall(mine, theirs, w, h);
+    let i = 0;
+    const group = (box, label, count, offset, speakIdx) => '<section class="vgroup" style="width:' + box.width + 'px;height:' + box.height + 'px"><div class="vlabel" style="height:' + L.label + 'px"><span>' + label + '</span><span>' + count + '</span></div><div class="vfeeds" style="top:' + L.label + 'px">' +
+      box.tiles.map((t, k) => tileHTML(offset + k, t, offset + k === speakIdx)).join('') + '</div></section>';
+    stage.innerHTML = '<div class="vgroups" style="flex-direction:' + (L.stacked ? 'column' : 'row') + ';gap:' + L.gap + 'px">' +
+      group(L.mine, 'Friday crew', mine.length, 0, -1) + group(L.theirs, 'Night owls', theirs.length, mine.length, mine.length) + '</div>';
+  });
+}
+function press(sel, attr, val) { document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', String(b.dataset[attr] === val))); }
+function fit() {
+  const vp = document.getElementById('viewport'), sc = document.getElementById('scaler'), st = frame.querySelector('.stage');
+  sc.style.transform = 'none';
+  const w = st.scrollWidth, h = st.scrollHeight, k = Math.min(1, vp.clientWidth / w);
+  sc.style.transform = 'scale(' + k + ')'; vp.style.height = Math.ceil(h * k) + 'px';
+}
+function sync() {
+  press('.skin-opt', 'skin', frame.dataset.skin); press('.sw', 'palette', frame.dataset.palette);
+  press('#mode button', 'mode', frame.dataset.mode); press('#view button', 'view', frame.dataset.view);
+  press('#screen button', 'screen', frame.dataset.screen); press('#people button', 'p', frame.dataset.people);
+  document.getElementById('people-ui').hidden = frame.dataset.screen !== 'call';
+  frame.querySelectorAll('[data-go]').forEach(a => a.classList.toggle('is-active', a.dataset.go === frame.dataset.screen));
+  const s = SKINS[frame.dataset.skin];
+  document.getElementById('combo').textContent = s.name + ' · ' + frame.dataset.palette + ' · ' + frame.dataset.mode + ' · icons: ' + s.weight;
+  renderCalls(); paintIcons(); fit(); if (window.GiggleSketch) GiggleSketch.schedule(frame);
+  store.set('gg.studio2', JSON.stringify({ skin: frame.dataset.skin, palette: frame.dataset.palette, mode: frame.dataset.mode, view: frame.dataset.view, screen: frame.dataset.screen, people: frame.dataset.people }));
+}
+document.querySelectorAll('.skin-opt').forEach(b => b.addEventListener('click', () => { const s = SKINS[b.dataset.skin]; frame.dataset.skin = b.dataset.skin; frame.dataset.palette = s.palette; frame.dataset.mode = s.mode; sync(); }));
+document.querySelectorAll('.sw').forEach(b => b.addEventListener('click', () => { frame.dataset.palette = b.dataset.palette; sync(); }));
+document.querySelectorAll('#mode button').forEach(b => b.addEventListener('click', () => { frame.dataset.mode = b.dataset.mode; sync(); }));
+document.querySelectorAll('#view button').forEach(b => b.addEventListener('click', () => { frame.dataset.view = b.dataset.view; sync(); }));
+function go(screen) { if (frame.dataset.screen === screen) return; const run = () => { frame.dataset.screen = screen; sync(); }; if (document.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) document.startViewTransition(run); else run(); }
+document.querySelectorAll('#screen button').forEach(b => b.addEventListener('click', () => go(b.dataset.screen)));
+document.querySelectorAll('#people button').forEach(b => b.addEventListener('click', () => { frame.dataset.people = b.dataset.p; sync(); }));
+frame.querySelectorAll('[data-go]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); go(a.dataset.go); }));
+const IDEAS = [[['music-notes','A song'],['book-open-text','A story'],['smiley-wink','Funniest moment']],[['popcorn','Snack reveal'],['dice-five','Quick game'],['lightbulb','Hot take']],[['hand-waving','Best news'],['confetti','Small win'],['microphone','Worst song']]];
+let ideaIdx = 0;
+frame.querySelectorAll('.tip-shuffle').forEach(btn => btn.addEventListener('click', () => {
+  ideaIdx = (ideaIdx + 1) % IDEAS.length;
+  const list = btn.closest('.tip').querySelector('.tip-ideas');
+  const swap = () => { list.innerHTML = IDEAS[ideaIdx].map(([i, t]) => '<li class="tip-idea"><i class="ic" data-i="' + i + '"></i><span>' + t + '</span></li>').join(''); paintIcons(); };
+  list.classList.remove('is-shuffled'); void list.offsetWidth; swap(); list.classList.add('is-shuffled'); if (window.GiggleSketch) GiggleSketch.schedule(frame);
+}));
+// Mirror the app's AdaptiveVideoStage: re-run the layout engine whenever a stage's size changes.
+const stageSizes = new WeakMap();
+const ro = new ResizeObserver(entries => { let changed = false; for (const e of entries) { const k = Math.floor(e.contentRect.width) + 'x' + Math.floor(e.contentRect.height); if (stageSizes.get(e.target) !== k) { stageSizes.set(e.target, k); changed = true; } } if (changed) { renderCalls(); paintIcons(); if (window.GiggleSketch) GiggleSketch.schedule(frame); } });
+frame.querySelectorAll('.vstage').forEach(s => ro.observe(s));
+window.addEventListener('resize', () => { fit(); if (window.GiggleSketch) GiggleSketch.schedule(frame); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => window.GiggleSketch && GiggleSketch.schedule(frame));
+try { const saved = JSON.parse(store.get('gg.studio2') || 'null'); if (saved && SKINS[saved.skin]) Object.assign(frame.dataset, saved); } catch (e) {}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+sync();
+</script>

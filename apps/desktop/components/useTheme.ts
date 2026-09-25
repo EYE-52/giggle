@@ -1,26 +1,29 @@
 "use client";
 import { useSyncExternalStore } from "react";
-import { THEMES, type ThemeId } from "@/components/ThemeToggle";
 
 /**
- * Live current theme id, read from <html data-theme="…">.
- * - SSR-safe: server snapshot is "together" (theme-init.js sets the real value
+ * Live resolved color mode ("light" | "dark"), read from
+ * <html data-mode="…"> (set by lib/look.ts / theme-init.js from the saved
+ * skin+palette+mode look). Used by cover styling to pick dark/bright squad
+ * cover gradients.
+ * - SSR-safe: server snapshot is "light" (theme-init.js sets the real value
  *   before first paint, so hydration settles immediately).
- * - Subscribes via MutationObserver so theme switches re-render consumers.
+ * - Subscribes via MutationObserver so look switches re-render consumers.
  */
 
-function readTheme(): ThemeId {
-  if (typeof document === "undefined") return "together";
-  const t = document.documentElement.getAttribute("data-theme");
-  return THEMES.some((x) => x.id === t) ? (t as ThemeId) : "together";
+export type ResolvedThemeMode = "light" | "dark";
+
+function readMode(): ResolvedThemeMode {
+  if (typeof document === "undefined") return "light";
+  return document.documentElement.getAttribute("data-mode") === "dark" ? "dark" : "light";
 }
 
 function subscribe(onChange: () => void): () => void {
   const obs = new MutationObserver(onChange);
-  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-mode"] });
   return () => obs.disconnect();
 }
 
-export function useTheme(): ThemeId {
-  return useSyncExternalStore(subscribe, readTheme, () => "together" as ThemeId);
+export function useTheme(): ResolvedThemeMode {
+  return useSyncExternalStore(subscribe, readMode, () => "light" as ResolvedThemeMode);
 }

@@ -1,0 +1,190 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SKIN SYSTEM · PHASE 1 — palettes + token bridge
+
+   1) PALETTES: the 6 approved palettes (raspberry, grape, lagoon, moss,
+      honey, petrol) × light/dark, copied verbatim from design/skins/base.css
+      (plus a `--pop` alias so the palette's supporting accent stays reachable
+      after the bridge re-points `--accent` at the brand color).
+
+   2) BRIDGE: maps the app's EXISTING token contract (globals.css ~44-105 and
+      revamp.css) onto the palette variables, so every screen adopts the
+      chosen palette + mode immediately — before any skin is ported.
+
+      Old token        → palette source
+      ─────────────────────────────────────────────────────────────
+      --accent         → var(--brand)          (primary action)
+      --accent-hover   → var(--brand-deep)     (pressed: darker in light,
+                                                brighter in dark)
+      --accent-soft    → var(--brand-tint)
+      --accent-line    → brand @ 38% alpha
+      --on-accent /
+      --accent-contrast→ var(--on-brand)
+      --violet/-bright/
+      -soft (legacy)   → brand / brand-deep / brand-tint
+      --bg             → palette --bg (set directly by the palette block)
+      --bg-2           → mix(bg, surface-2)
+      --surface/-2     → palette (set directly by the palette block)
+      --text           → palette (set directly by the palette block)
+      --text-body      → mix(text, muted)
+      --text-muted     → var(--muted)
+      --text-dim       → mix(muted, text)
+      --text-faint     → mix(muted, bg) (decorative tier)
+      --border         → var(--line)
+      --border-strong  → mix(line, text)
+      --overlay(-hover)→ text @ 5%/9% alpha
+      --live / --lime  → var(--ok)
+      --live-contrast  → ok darkened (light) / lightened (dark)
+      --live-soft      → ok @ 13% alpha
+      --focus-ring     → brand ring
+      shadows / elev   → mode-aware neutrals (no warm tint)
+
+      Specificity: `html[data-palette][data-mode]` (0,2,1) beats the old
+      `:root` / `[data-theme]` blocks (0,1,0) in globals.css and revamp.css,
+      and this file is imported after both.
+
+   3) CALL SCREENS: `.gg-call-theme` (call screens stay dark in every
+      palette/mode) gets each palette's DARK values via the
+      `html[data-palette="…"] .gg-call-theme` companion selectors, and the
+      dark side of the bridge. The old warm literals in revamp.css are
+      fully overridden.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. PALETTES ───────────────────────────────────────────────────────────
+   `--pop` mirrors the palette accent (the bridge re-points --accent at the
+   brand), and the dark blocks alias `--ink`/`--panel` (text/surface) so call
+   chrome can adopt palette values without fighting custom-property shadowing. */
+
+html[data-palette="raspberry"][data-mode="light"] { --brand:#DE1E6A; --brand-deep:#8F0F42; --brand-tint:#FDE3EE; --accent:#FFB020; --pop:#FFB020; --on-brand:#fff; --bg:#FBF6F8; --surface:#FFFFFF; --surface-2:#F6EDF1; --text:#24141B; --muted:#7A6570; --line:#EBDDE3; --ok:#1FB47A; --away:#F2A33A; }
+html[data-palette="raspberry"][data-mode="dark"],
+html[data-palette="raspberry"] .gg-call-theme { --brand:#FF4F8F; --brand-deep:#FFA3C4; --brand-tint:#3A1626; --accent:#FFC24D; --pop:#FFC24D; --on-brand:#1B0A11; --bg:#150D11; --surface:#211419; --surface-2:#2B1B22; --text:#FBEFF4; --ink:#FBEFF4; --panel:#211419; --muted:#BFA6B1; --line:#3A2630; --ok:#34D399; --away:#FBBF24; }
+
+html[data-palette="grape"][data-mode="light"] { --brand:#7C2FEB; --brand-deep:#44108A; --brand-tint:#EFE6FF; --accent:#18C4B8; --pop:#18C4B8; --on-brand:#fff; --bg:#F8F6FC; --surface:#FFFFFF; --surface-2:#F0ECF8; --text:#1C1628; --muted:#6E6680; --line:#E4DDF0; --ok:#12B886; --away:#F59F00; }
+html[data-palette="grape"][data-mode="dark"],
+html[data-palette="grape"] .gg-call-theme { --brand:#A474FF; --brand-deep:#D6C2FF; --brand-tint:#2A1D45; --accent:#3FE0D3; --pop:#3FE0D3; --on-brand:#12091F; --bg:#110D19; --surface:#1B1526; --surface-2:#251D33; --text:#F4EFFD; --ink:#F4EFFD; --panel:#1B1526; --muted:#B0A6C4; --line:#33294A; --ok:#34D399; --away:#FBBF24; }
+
+html[data-palette="lagoon"][data-mode="light"] { --brand:#0C9B8A; --brand-deep:#0A544C; --brand-tint:#DDF3EF; --accent:#FFC53D; --pop:#FFC53D; --on-brand:#fff; --bg:#F4F9F8; --surface:#FFFFFF; --surface-2:#EAF3F1; --text:#122523; --muted:#5F7572; --line:#D8E7E4; --ok:#12B886; --away:#F59F00; }
+html[data-palette="lagoon"][data-mode="dark"],
+html[data-palette="lagoon"] .gg-call-theme { --brand:#2BD4BD; --brand-deep:#9EF0E4; --brand-tint:#11322E; --accent:#FFD166; --pop:#FFD166; --on-brand:#06201C; --bg:#0B1514; --surface:#12201E; --surface-2:#1A2C29; --text:#EAF8F5; --ink:#EAF8F5; --panel:#12201E; --muted:#9CB8B3; --line:#23403B; --ok:#34D399; --away:#FBBF24; }
+
+html[data-palette="moss"][data-mode="light"] { --brand:#2E7D4E; --brand-deep:#123B24; --brand-tint:#E1F1E5; --accent:#FF7AA8; --pop:#FF7AA8; --on-brand:#fff; --bg:#F6F8F3; --surface:#FFFFFF; --surface-2:#EDF2E9; --text:#17231B; --muted:#65736A; --line:#DDE6DA; --ok:#1FA971; --away:#E8A33A; }
+html[data-palette="moss"][data-mode="dark"],
+html[data-palette="moss"] .gg-call-theme { --brand:#5FC287; --brand-deep:#B9EBCB; --brand-tint:#16301F; --accent:#FF9CC0; --pop:#FF9CC0; --on-brand:#08180E; --bg:#0D130F; --surface:#151F18; --surface-2:#1D2A21; --text:#EEF6F0; --ink:#EEF6F0; --panel:#151F18; --muted:#A3B6A8; --line:#263A2C; --ok:#4ADE80; --away:#FBBF24; }
+
+html[data-palette="honey"][data-mode="light"] { --brand:#C98600; --brand-deep:#5E3D00; --brand-tint:#FFF1C4; --accent:#DE1E6A; --pop:#DE1E6A; --on-brand:#fff; --bg:#FCF9F1; --surface:#FFFFFF; --surface-2:#F6F0E1; --text:#241C0C; --muted:#7A6D55; --line:#ECE3CC; --ok:#12B886; --away:#E8590C; }
+html[data-palette="honey"][data-mode="dark"],
+html[data-palette="honey"] .gg-call-theme { --brand:#FFB627; --brand-deep:#FFE1A1; --brand-tint:#3A2A08; --accent:#FF5C95; --pop:#FF5C95; --on-brand:#1E1400; --bg:#14110A; --surface:#1F1A10; --surface-2:#2A2316; --text:#FBF5E8; --ink:#FBF5E8; --panel:#1F1A10; --muted:#C2B597; --line:#3A3120; --ok:#34D399; --away:#FB923C; }
+
+html[data-palette="petrol"][data-mode="light"] { --brand:#146B8C; --brand-deep:#0A3343; --brand-tint:#DCEFF6; --accent:#FF6B9D; --pop:#FF6B9D; --on-brand:#fff; --bg:#F4F7F9; --surface:#FFFFFF; --surface-2:#EAF0F3; --text:#10202A; --muted:#5D707C; --line:#D8E3E9; --ok:#12B886; --away:#F59F00; }
+html[data-palette="petrol"][data-mode="dark"],
+html[data-palette="petrol"] .gg-call-theme { --brand:#4FB6DB; --brand-deep:#B7E3F3; --brand-tint:#11303D; --accent:#FF8FB5; --pop:#FF8FB5; --on-brand:#05161D; --bg:#0A1116; --surface:#111C23; --surface-2:#18262F; --text:#EAF3F7; --ink:#EAF3F7; --panel:#111C23; --muted:#9DB2BD; --line:#223641; --ok:#34D399; --away:#FBBF24; }
+
+/* ── 2. TOKEN BRIDGE (shared by both modes) ──────────────────────────────── */
+
+html[data-palette][data-mode],
+html[data-palette] .gg-call-theme {
+  /* Accent family → brand. */
+  --accent: var(--brand);
+  --accent-hover: var(--brand-deep);
+  --accent-soft: var(--brand-tint);
+  --accent-line: color-mix(in srgb, var(--brand) 38%, transparent);
+  --on-accent: var(--on-brand);
+  --accent-contrast: var(--on-brand);
+  /* Legacy violet aliases kept for components that still use them. */
+  --violet: var(--brand);
+  --violet-bright: var(--brand-deep);
+  --violet-soft: var(--brand-tint);
+
+  /* Surfaces. */
+  --bg-2: color-mix(in srgb, var(--bg) 62%, var(--surface-2) 38%);
+  --app-bg: var(--bg);
+  --surface-grad-from: var(--surface);
+  --surface-grad-to: var(--surface);
+
+  /* Text tiers derived from the palette's text/muted pair. */
+  --text-body: color-mix(in srgb, var(--text) 80%, var(--muted) 20%);
+  --text-muted: var(--muted);
+  --text-dim: color-mix(in srgb, var(--muted) 72%, var(--text) 28%);
+  --text-faint: color-mix(in srgb, var(--muted) 45%, var(--bg) 55%);
+
+  /* Lines + interaction overlays. */
+  --border: var(--line);
+  --border-strong: color-mix(in srgb, var(--line) 75%, var(--text) 25%);
+  --overlay: color-mix(in srgb, var(--text) 5%, transparent);
+  --overlay-hover: color-mix(in srgb, var(--text) 9%, transparent);
+  --overlay-strong: color-mix(in srgb, #000000 55%, transparent);
+
+  /* Live/online color → the palette's ok. */
+  --live: var(--ok);
+  --lime: var(--ok);
+  --live-soft: color-mix(in srgb, var(--ok) 13%, transparent);
+
+  /* Focus + primary glow follow the brand. */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--brand);
+  --btn-primary-shadow: 0 0 24px -6px color-mix(in srgb, var(--brand) 60%, transparent);
+  --btn-primary-border: var(--border-w) solid transparent;
+  --btn-offset-shadow: none;
+
+  /* Neutral (never warm-tinted) hairline. */
+  --hairline: linear-gradient(90deg, transparent, color-mix(in srgb, var(--text) 10%, transparent), transparent);
+
+  /* Video stage stays near-black in every palette/mode. */
+  --stage: color-mix(in srgb, var(--bg) 55%, #000000 45%);
+  --stage-2: color-mix(in srgb, var(--surface-2) 62%, #000000 38%);
+}
+
+/* ── 2a. Bridge, mode-dependent halves ───────────────────────────────────── */
+
+html[data-palette][data-mode="light"] {
+  --live-contrast: color-mix(in srgb, var(--ok) 50%, #000000 50%);
+  --lime-text: color-mix(in srgb, var(--ok) 50%, #000000 50%);
+  --coral: #E5484D;  --coral-soft: #FDEBEC;
+  --sky: #0B96E6;    --sky-soft: #E6F4FD;
+  --amber: #B45309;  --amber-soft: #FEF3E2;
+  --teal: #0D9488;
+  --shadow-sm: 0 1px 2px color-mix(in srgb, var(--text) 6%, transparent);
+  --shadow-card: 0 1px 2px color-mix(in srgb, var(--text) 5%, transparent), 0 8px 24px -8px color-mix(in srgb, var(--text) 12%, transparent);
+  --shadow-pop: 0 2px 4px color-mix(in srgb, var(--text) 8%, transparent), 0 24px 48px -12px color-mix(in srgb, var(--text) 22%, transparent);
+  color-scheme: light;
+}
+
+/* Call screens are always dark → the dark half of the bridge applies to
+   .gg-call-theme regardless of the page's resolved mode. */
+html[data-palette][data-mode="dark"],
+html[data-palette] .gg-call-theme {
+  --live-contrast: color-mix(in srgb, var(--ok) 45%, #FFFFFF 55%);
+  --lime-text: color-mix(in srgb, var(--ok) 45%, #FFFFFF 55%);
+  --coral: #FF5C5C;  --coral-soft: rgba(255,92,92,0.14);
+  --sky: #38BDF8;    --sky-soft: rgba(56,189,248,0.14);
+  --amber: #F59E0B;  --amber-soft: rgba(245,158,11,0.14);
+  --teal: #2FE6C8;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-card: 0 1px 0 rgba(255,255,255,0.05) inset, 0 14px 40px -24px rgba(0,0,0,0.7);
+  --shadow-pop: 0 1px 0 rgba(255,255,255,0.05) inset, 0 32px 80px rgba(0,0,0,0.5);
+  color-scheme: dark;
+}
+
+/* The old light theme painted a violet bloom on body; the palette's flat
+   --bg replaces it (skins may add their own backdrops in phase 2). */
+html[data-palette][data-mode] body {
+  background: var(--bg);
+}
+
+/* ── 3. CALL SCREEN CHROME ─────────────────────────────────────────────────
+   The approved call toolbar (revamp.css) hard-codes warm-dark literals and
+   shadows --text/--text-muted/--surface on the wrapper. These higher-
+   specificity overrides re-point it at the palette's dark values (via the
+   --ink/--panel aliases, since var(--text) on the wrapper would be
+   self-referential) while keeping the approved structure. */
+html[data-palette] .gg-call-theme .gg-call-controls-wrap {
+  background: var(--bg);
+  --text: var(--ink);
+  --text-muted: color-mix(in srgb, var(--muted) 85%, var(--ink) 15%);
+  --surface: var(--panel);
+}
+html[data-palette] .gg-call-theme .gg-call-controls-wrap [data-call-control] {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+html[data-palette] .gg-call-theme .gg-call-controls-wrap [data-call-leave] {
+  background: color-mix(in srgb, #E5484D 78%, #000000 22%) !important;
+}

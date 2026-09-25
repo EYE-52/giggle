@@ -33,7 +33,7 @@ async function signInFixture(page: Page) {
   })).toString("base64url");
   await page.addInitScript(({ sessionValue }) => {
     localStorage.setItem("giggle.session", sessionValue);
-    localStorage.setItem("giggle.theme", "light");
+    localStorage.setItem("giggle.look", JSON.stringify({ skin: "soft", palette: "honey", mode: "light" }));
   }, { sessionValue: JSON.stringify({ token: `e30.${payload}.fixture`, user: fixtureUser }) });
 }
 

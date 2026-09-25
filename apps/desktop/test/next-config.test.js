@@ -215,6 +215,149 @@ test("dark violet actions keep readable foreground contrast", () => {
   assert.equal(darkTheme.includes("--on-accent: #0B0B0F"), false);
 });
 
+/* ── Skin system, phase 1 ────────────────────────────────────────────────── */
+
+const skinsCssSource = () => readFileSync(path.join(__dirname, "../app/skins/skins.css"), "utf8");
+const palettesCssSource = () => readFileSync(path.join(__dirname, "../app/skins/palettes.css"), "utf8");
+const lookSource = () => readFileSync(path.join(__dirname, "../lib/look.ts"), "utf8");
+const themeInitSource = () => readFileSync(path.join(__dirname, "../public/theme-init.js"), "utf8");
+const iconsSource = () => readFileSync(path.join(__dirname, "../components/Icons.tsx"), "utf8");
+const phosphorPathsSource = () => readFileSync(path.join(__dirname, "../components/phosphorPaths.ts"), "utf8");
+const appearancePickerSource = () => readFileSync(path.join(__dirname, "../components/AppearancePicker.tsx"), "utf8");
+const sketchLayerSource = () => readFileSync(path.join(__dirname, "../components/SketchLayer.tsx"), "utf8");
+
+test("root layout wires the look system after the legacy stylesheets", () => {
+  const layout = rootLayoutSource();
+
+  assert.ok(layout.indexOf("./globals.css") < layout.indexOf("./revamp.css"));
+  assert.ok(layout.indexOf("./revamp.css") < layout.indexOf("./skins/palettes.css"));
+  assert.ok(layout.indexOf("./skins/palettes.css") < layout.indexOf("./skins/skins.css"));
+
+  // All 8 skin font families load through next/font/google as CSS variables.
+  assert.match(layout, /from "next\/font\/google"/);
+  for (const family of ["Bricolage_Grotesque", "Plus_Jakarta_Sans", "Baloo_2", "Nunito", "Caveat_Brush", "Kalam", "Fredoka", "Caveat"]) {
+    assert.ok(layout.includes(family), `layout loads ${family}`);
+  }
+  for (const variable of ["--font-bricolage", "--font-jakarta", "--font-baloo", "--font-nunito", "--font-caveat-brush", "--font-kalam", "--font-fredoka", "--font-caveat"]) {
+    assert.ok(layout.includes(variable), `layout exposes ${variable}`);
+  }
+
+  // SSR defaults match DEFAULT_LOOK (soft + honey, light) and the sketch
+  // renderer is mounted exactly once; theme-init.js rewrites pre-paint.
+  assert.match(layout, /data-skin="soft"/);
+  assert.match(layout, /data-palette="honey"/);
+  assert.match(layout, /data-mode="light"/);
+  assert.match(layout, /data-theme="light"/);
+  assert.equal((layout.match(/<SketchLayer/g) ?? []).length, 1);
+});
+
+test("palettes.css defines every palette x mode and bridges the old token contract", () => {
+  const css = palettesCssSource();
+
+  for (const palette of ["raspberry", "grape", "lagoon", "moss", "honey", "petrol"]) {
+    assert.ok(css.includes(`html[data-palette="${palette}"][data-mode="light"]`), `${palette} light block`);
+    assert.ok(css.includes(`html[data-palette="${palette}"][data-mode="dark"]`), `${palette} dark block`);
+    // Call screens always render the palette's DARK values.
+    assert.ok(css.includes(`html[data-palette="${palette}"] .gg-call-theme`), `${palette} call-theme block`);
+  }
+
+  // The bridge uses a higher-specificity selector than the legacy
+  // :root / [data-theme] blocks and maps the old accent family onto the
+  // palette brand, so terracotta never shows by default.
+  const bridge = css.slice(css.indexOf("TOKEN BRIDGE"));
+  assert.match(bridge, /html\[data-palette\]\[data-mode\],\s*\nhtml\[data-palette\] \.gg-call-theme \{[\s\S]*?--accent: var\(--brand\);/);
+  assert.match(bridge, /--accent-hover: var\(--brand-deep\);/);
+  assert.match(bridge, /--accent-soft: var\(--brand-tint\);/);
+  assert.match(bridge, /--on-accent: var\(--on-brand\);/);
+  assert.match(bridge, /--text-muted: var\(--muted\);/);
+  assert.match(bridge, /--border: var\(--line\);/);
+  assert.match(bridge, /--live: var\(--ok\);/);
+  assert.match(bridge, /--violet: var\(--brand\);/);
+  assert.doesNotMatch(css, /#BA4B33|#ba4b33|#ED947B|#ed947b|#AC392C|#ac392c/);
+  // Modes declare color-scheme and the light body wash is neutralized.
+  assert.match(css, /html\[data-palette\]\[data-mode="light"\] \{[\s\S]*?color-scheme: light;/s);
+  assert.match(css, /html\[data-palette\]\[data-mode="dark"\],[\s\S]*?color-scheme: dark;/s);
+  assert.match(css, /html\[data-palette\]\[data-mode\] body \{\s*\n\s*background: var\(--bg\);/);
+});
+
+test("skins.css only carries structural per-skin font rules", () => {
+  const css = skinsCssSource();
+  for (const skin of ["soft", "play", "paper", "clay", "scrap"]) {
+    assert.ok(css.includes(`html[data-skin="${skin}"]`), `${skin} font block`);
+  }
+  // Every skin sets both faces; scrap also keeps its handwritten accent face.
+  assert.equal((css.match(/--font-display:/g) ?? []).length, 5);
+  assert.equal((css.match(/--font-body:/g) ?? []).length, 5);
+  assert.match(css, /html\[data-skin="scrap"\] \{[\s\S]*?--font-hand:/s);
+});
+
+test("Icons.tsx keeps its API while rendering Phosphor path data at the skin's weight", () => {
+  const icons = iconsSource();
+  const paths = phosphorPathsSource();
+
+  for (const name of [
+    "hangup", "home", "discover", "profile", "settings", "edit", "google", "apple",
+    "star", "lightning", "hd", "history", "shield", "bell", "account", "mic", "cam",
+    "chat", "flag", "more", "plus", "enter", "close", "chevron", "pin", "trend",
+    "gift", "link", "copy", "share", "send", "users",
+  ]) {
+    assert.match(icons, new RegExp(`^\\s+${name}: makeIcon\\("${name}"`, "m"), `Icon.${name} export`);
+    assert.ok(paths.includes(`${name}: {`), `phosphorPaths has ${name}`);
+  }
+  assert.match(icons, /export type IconName = keyof typeof Icon/);
+  // Weight follows the skin via useLook unless overridden; stroke width is
+  // accepted for compatibility but ignored; icons stay aria-hidden.
+  assert.match(icons, /useLook\(\)/);
+  assert.match(icons, /strokeWidth\?: number;/);
+  assert.match(icons, /weight\?: PhosphorWeight;/);
+  assert.match(icons, /aria-hidden/);
+  assert.match(icons, /viewBox="0 0 256 256"/);
+  // Vendored data: MIT attribution + all 6 weights per icon.
+  assert.match(paths, /@phosphor-icons\/core@2\.1\.1/);
+  assert.match(paths, /Copyright \(c\) 2023 Phosphor Icons/);
+  for (const weight of ["thin", "light", "regular", "bold", "fill", "duotone"]) {
+    assert.ok(new RegExp(`^\\s+${weight}: \\[`, "m").test(paths), `${weight} paths present`);
+  }
+});
+
+test("Profile hosts the accessible Appearance picker and the old theme menu is gone", () => {
+  const profile = profileSource();
+  const picker = appearancePickerSource();
+  const look = lookSource();
+
+  assert.match(profile, /<h2[^>]*>Appearance<\/h2>/);
+  assert.match(profile, /<AppearancePicker \/>/);
+  assert.equal(existsSync(path.join(__dirname, "../components/ThemeToggle.tsx")), false);
+
+  // Radio groups: skin cards, palette swatches, Light/Dark/Auto segments.
+  assert.match(picker, /role="radiogroup"/);
+  assert.match(picker, /role="radio"/);
+  assert.match(picker, /aria-checked=\{checked\}/);
+  assert.match(picker, /"ArrowRight" \|\| e\.key === "ArrowDown"/);
+  assert.match(picker, /applyLook\(/);
+  for (const mode of ["Light", "Dark", "Auto"]) {
+    assert.ok(picker.includes(`label: "${mode}"`), `${mode} mode option`);
+  }
+  for (const skin of ["Soft Depth", "Bold Play", "Doodle", "Clay", "Scrapbook"]) {
+    assert.ok(look.includes(`"${skin}"`), `look.ts registers ${skin}`);
+  }
+});
+
+test("SketchLayer ports the Doodle renderer and only runs for the paper skin", () => {
+  const layer = sketchLayerSource();
+  assert.match(layer, /look\.skin === "paper"/);
+  assert.match(layer, /import\("roughjs"\)/);
+  assert.match(layer, /new ResizeObserver/);
+  assert.match(layer, /document\.fonts\?\.ready/);
+  assert.match(layer, /usePathname\(\)/);
+  assert.match(layer, /--sketch/);
+  // SSR-safety: window/document only appear inside functions, never in
+  // top-level module statements (lines starting at column 0).
+  assert.doesNotMatch(layer, /^[^/\s}"'][^\n]*\bwindow\./m);
+  assert.doesNotMatch(layer, /^[^/\s}"'][^\n]*\bdocument\./m);
+});
+
+
 test("root body tolerates browser extension attributes injected before hydration", () => {
   assert.match(rootLayoutSource(), /<body suppressHydrationWarning style=/);
 });

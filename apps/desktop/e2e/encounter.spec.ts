@@ -139,7 +139,7 @@ async function installEncounterFixture(page: Page, options: {
   })).toString("base64url");
   await page.addInitScript(({ sessionValue }) => {
     localStorage.setItem("giggle.session", sessionValue);
-    localStorage.setItem("giggle.theme", "dark");
+    localStorage.setItem("giggle.look", JSON.stringify({ skin: "soft", palette: "honey", mode: "dark" }));
   }, { sessionValue: JSON.stringify({ token: `e30.${payload}.fixture`, user }) });
 
   await page.route("**/api/**", async route => {
@@ -671,13 +671,17 @@ test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page 
   const shell = page.getByTestId("encounter-shell");
   const videoStage = page.getByTestId("video-stage");
   const header = page.getByTestId("encounter-header");
-  for (const theme of ["dark", "light", "tangerine"] as const) {
+  for (const mode of ["dark", "light", "auto"] as const) {
     await page.evaluate(value => {
-      localStorage.setItem("giggle.theme", value);
-      document.documentElement.setAttribute("data-theme", value);
-    }, theme);
+      localStorage.setItem("giggle.look", JSON.stringify({ skin: "soft", palette: "honey", mode: value }));
+      const resolved = value === "auto"
+        ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+        : value;
+      document.documentElement.setAttribute("data-mode", resolved);
+      document.documentElement.setAttribute("data-theme", resolved);
+    }, mode);
     await page.screenshot({
-      path: `artifacts/visual-audit/2026-08-02/encounter/themes/phone-${theme}.jpg`,
+      path: `artifacts/visual-audit/2026-08-02/encounter/modes/phone-${mode}.jpg`,
       type: "jpeg",
       quality: 82,
     });
@@ -688,24 +692,28 @@ test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page 
   const accents = new Set<string>();
   const shellBackgrounds = new Set<string>();
   const headerBackgrounds = new Set<string>();
-  for (const theme of ["dark", "light", "tangerine"] as const) {
+  for (const mode of ["dark", "light", "auto"] as const) {
     await page.evaluate(value => {
-      localStorage.setItem("giggle.theme", value);
-      document.documentElement.setAttribute("data-theme", value);
-    }, theme);
+      localStorage.setItem("giggle.look", JSON.stringify({ skin: "soft", palette: "honey", mode: value }));
+      const resolved = value === "auto"
+        ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+        : value;
+      document.documentElement.setAttribute("data-mode", resolved);
+      document.documentElement.setAttribute("data-theme", resolved);
+    }, mode);
     await expect.poll(() => shell.evaluate(node => getComputedStyle(node).getPropertyValue("--accent").trim())).not.toBe("");
     accents.add(await shell.evaluate(node => getComputedStyle(node).getPropertyValue("--accent").trim()));
     shellBackgrounds.add(await shell.evaluate(node => getComputedStyle(node).backgroundColor));
     headerBackgrounds.add(await header.evaluate(node => getComputedStyle(node).backgroundColor));
     expect(await videoStage.evaluate(node => getComputedStyle(node).backgroundColor)).toBe(stageBackground);
     await page.screenshot({
-      path: `artifacts/visual-audit/2026-07-30/encounter/themes/${theme}.jpg`,
+      path: `artifacts/visual-audit/2026-07-30/encounter/modes/${mode}.jpg`,
       type: "jpeg",
       quality: 82,
     });
   }
-  // Calls always use the dedicated dark call theme (.gg-call-theme), so the
-  // call chrome must look the same whatever app theme is saved.
+  // Calls always render the palette's DARK values (.gg-call-theme), so the
+  // call chrome must look the same whatever app mode is saved.
   expect(accents.size).toBe(1);
   expect(shellBackgrounds.size).toBe(1);
   expect(headerBackgrounds.size).toBe(1);

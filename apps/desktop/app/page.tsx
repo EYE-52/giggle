@@ -1,3 +1,4 @@
+"use client";
 import Link from "next/link";
 import { Wordmark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";

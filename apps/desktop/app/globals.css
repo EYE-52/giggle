@@ -51,6 +51,8 @@
    is: (1) one [data-theme="name"] block overriding any subset of
    these vars, (2) one entry in the THEMES registry in
    components/ThemeToggle.tsx (+ the list in public/theme-init.js).
+   (Superseded by the skin system: palettes + the token bridge in
+   app/skins/palettes.css now drive these tokens — see lib/look.ts.)
 
    Type
      --font-display      display/headline face (titles, card names)

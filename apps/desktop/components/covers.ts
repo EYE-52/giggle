@@ -1,26 +1,25 @@
 "use client";
 /**
- * Theme-aware squad cover system.
+ * Mode-aware squad cover system.
  *
- * The preset gradients in @giggle/core were designed for the dark theme; on
- * light themes (e.g. "tangerine") they read as heavy dark slabs. This module
- * keeps the dark covers byte-identical and adds a BRIGHT twin for every preset
- * gradient — same hue family, pastel/vivid over a light base — plus bright
- * twins of the deterministic fallback gradients used when a squad has no cover.
+ * The preset gradients in @giggle/core were designed for dark surfaces; on
+ * light mode they read as heavy dark slabs. This module keeps the dark
+ * covers byte-identical and adds a BRIGHT twin for every preset gradient —
+ * same hue family, pastel/vivid over a light base — plus bright twins of the
+ * deterministic fallback gradients used when a squad has no cover.
  *
  * Selection model:
- *   theme id → coverStyle ("dark" | "light") via the THEMES registry
+ *   resolved mode ("light" | "dark", from useTheme) → coverStyle
  *   photo / uploaded covers → ALWAYS treated as "dark" (photos need a dark
- *   scrim + white text in every theme); only generated gradients switch.
+ *   scrim + white text in every mode); only generated gradients switch.
  */
 import { PRESET_COVERS, resolveCover, coverSwatch } from "@giggle/core";
-import { THEMES, type ThemeId } from "@/components/ThemeToggle";
 
 export type CoverStyle = "dark" | "light";
 
-/** coverStyle for a theme id, falling back to "dark" for unknown ids. */
-export function themeCoverStyle(themeId: ThemeId | string): CoverStyle {
-  return THEMES.find((t) => t.id === themeId)?.coverStyle ?? "dark";
+/** coverStyle for a resolved mode (unknown values fall back to "dark"). */
+export function themeCoverStyle(mode: string): CoverStyle {
+  return mode === "light" ? "light" : "dark";
 }
 
 /** True when the cover is a real image (preset photo, upload, or URL). */
@@ -36,12 +35,12 @@ export function isPhotoCover(coverImage?: string | null): boolean {
 }
 
 /**
- * Effective render style for one cover in one theme: photos are always "dark"
- * (dark scrim + white text); gradients follow the theme's coverStyle.
+ * Effective render style for one cover in one mode: photos are always "dark"
+ * (dark scrim + white text); gradients follow the resolved mode.
  */
-export function coverKind(coverImage: string | null | undefined, themeId: ThemeId | string): CoverStyle {
+export function coverKind(coverImage: string | null | undefined, mode: string): CoverStyle {
   if (isPhotoCover(coverImage)) return "dark";
-  return themeCoverStyle(themeId);
+  return themeCoverStyle(mode);
 }
 
 /* ── Bright twins of every preset gradient (same hue family, light base) ── */

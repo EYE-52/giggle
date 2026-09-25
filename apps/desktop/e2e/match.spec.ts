@@ -69,7 +69,7 @@ async function installMatchFixture(page: Page, options: FixtureOptions = {}) {
 
   await page.addInitScript(({ sessionValue }) => {
     localStorage.setItem("giggle.session", sessionValue);
-    localStorage.setItem("giggle.theme", "light");
+    localStorage.setItem("giggle.look", JSON.stringify({ skin: "soft", palette: "honey", mode: "light" }));
   }, { sessionValue: JSON.stringify({ token: `e30.${payload}.fixture`, user }) });
 
   let ackAttempts = 0;
@@ -151,6 +151,7 @@ test("route-mocked handoff exposes loading, both rosters, and the active theme",
   await expect(page.getByRole("heading", { name: "Preparing your room" })).toBeVisible();
   fixture.releaseEncounter();
   await expect(page.getByRole("heading", { name: "Your squads can join now" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("data-mode", "light");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.getByText("VS", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("group", { name: /Night Owls.*Maya.*Arjun.*Chaos Club.*Leo.*Nia/i })).toBeVisible();

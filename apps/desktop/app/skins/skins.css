@@ -1,0 +1,37 @@
+/* SKIN SYSTEM · PHASE 1 — per-skin structural font rules only.
+ *
+ * The font families are loaded with next/font/google in app/layout.tsx and
+ * exposed as CSS variables there (--font-bricolage, --font-jakarta, …).
+ * Each skin maps its display/body faces from its META line in
+ * design/skins/skin-*.css. Phase 2 ports the rest of each skin's look
+ * (shapes, shadows, backgrounds, sketch props) here.
+ *
+ * Fallbacks: the next/font variable, then the raw Google family name (in
+ * case a skin is previewed outside the loader), then system stacks. */
+
+html[data-skin="soft"] {
+  --font-display: var(--font-bricolage), "Bricolage Grotesque", var(--font-jakarta), system-ui, sans-serif;
+  --font-body: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+html[data-skin="play"] {
+  --font-display: var(--font-baloo), "Baloo 2", var(--font-nunito), system-ui, sans-serif;
+  --font-body: var(--font-nunito), "Nunito", system-ui, -apple-system, sans-serif;
+}
+
+html[data-skin="paper"] {
+  --font-display: var(--font-caveat-brush), "Caveat Brush", var(--font-kalam), cursive;
+  --font-body: var(--font-kalam), "Kalam", system-ui, cursive;
+}
+
+html[data-skin="clay"] {
+  --font-display: var(--font-fredoka), "Fredoka", var(--font-nunito), system-ui, sans-serif;
+  --font-body: var(--font-nunito), "Nunito", system-ui, sans-serif;
+}
+
+html[data-skin="scrap"] {
+  --font-display: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  --font-body: var(--font-nunito), "Nunito", system-ui, sans-serif;
+  /* Scrapbook's handwritten accent face (labels, tape notes — phase 2). */
+  --font-hand: var(--font-caveat), "Caveat", cursive;
+}

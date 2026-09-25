@@ -1,8 +1,21 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import localFont from "next/font/local";
+import {
+  Bricolage_Grotesque,
+  Plus_Jakarta_Sans,
+  Baloo_2,
+  Nunito,
+  Caveat_Brush,
+  Kalam,
+  Fredoka,
+  Caveat,
+} from "next/font/google";
 import "./globals.css";
 import "./revamp.css";
+import "./skins/palettes.css";
+import "./skins/skins.css";
+import { SketchLayer } from "@/components/SketchLayer";
 
 const cabinet = localFont({
   src: [
@@ -12,6 +25,31 @@ const cabinet = localFont({
   ], variable: "--font-cabinet", display: "swap",
 });
 
+/* Skin families (one pair per skin, from each skin's META line in
+   design/skins/skin-*.css). Loaded once here and exposed as CSS variables;
+   app/skins/skins.css maps them onto --font-display/--font-body per
+   html[data-skin]. Only the default skin's fonts preload — the rest load
+   lazily when their skin is chosen. */
+const bricolage = Bricolage_Grotesque({ subsets: ["latin"], axes: ["opsz"], variable: "--font-bricolage", display: "swap" });
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta", display: "swap" });
+const baloo = Baloo_2({ subsets: ["latin"], variable: "--font-baloo", display: "swap", preload: false });
+const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", display: "swap", preload: false });
+const caveatBrush = Caveat_Brush({ weight: "400", subsets: ["latin"], variable: "--font-caveat-brush", display: "swap", preload: false });
+const kalam = Kalam({ weight: ["300", "400", "700"], subsets: ["latin"], variable: "--font-kalam", display: "swap", preload: false });
+const fredoka = Fredoka({ subsets: ["latin"], variable: "--font-fredoka", display: "swap", preload: false });
+const caveat = Caveat({ subsets: ["latin"], variable: "--font-caveat", display: "swap", preload: false });
+
+const SKIN_FONT_CLASSNAMES = [
+  bricolage.variable,
+  jakarta.variable,
+  baloo.variable,
+  nunito.variable,
+  caveatBrush.variable,
+  kalam.variable,
+  fredoka.variable,
+  caveat.variable,
+].join(" ");
+
 // Explicit viewport export (Next 16 Metadata API: `viewport` object, not a
 // <meta> tag or metadata.viewport) — Safari must render 1:1 with Chrome.
 export const viewport: Viewport = {
@@ -20,7 +58,8 @@ export const viewport: Viewport = {
   // Draw under the notch / home indicator so env(safe-area-inset-*) engages and
   // the app renders edge-to-edge like a native shell.
   viewportFit: "cover",
-  themeColor: "#faf7f2",
+  // Default look (soft + honey) light background; dark picks it up from CSS.
+  themeColor: "#FCF9F1",
 };
 
 export const metadata: Metadata = {
@@ -45,12 +84,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={cabinet.variable} data-theme="together">
+    // Default look attributes match DEFAULT_LOOK (soft + honey, light SSR
+    // fallback for auto); theme-init.js rewrites them from localStorage
+    // before first paint. suppressHydrationWarning covers the swap.
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${cabinet.variable} ${SKIN_FONT_CLASSNAMES}`}
+      data-skin="soft"
+      data-palette="honey"
+      data-mode="light"
+      data-theme="light"
+    >
       <body suppressHydrationWarning style={{ fontFamily: "var(--font-body)" }}>
         {/* External beforeInteractive script (loaded by src, not inline
-            children) applies the saved theme pre-paint without the React 19
+            children) applies the saved look pre-paint without the React 19
             "script tag while rendering" warning. */}
         <Script id="giggle-theme-init" src="/theme-init.js" strategy="beforeInteractive" />
+        {/* Sketch (Doodle skin) renderer — runs only under data-skin="paper". */}
+        <SketchLayer />
         {children}
       </body>
     </html>
