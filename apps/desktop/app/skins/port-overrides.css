@@ -490,4 +490,25 @@ html[data-skin] .gg-landing > .nav {
   border-bottom: 1px solid var(--line);
   border-radius: 0;
   --sketch: none;
+  /* skins reset the app bar's margin to 0; the landing header is centered
+   * on the same 1220px column as the hero and footer */
+  margin-inline: auto;
+}
+
+/* Sign-in card: skins stretch .card to its grid row (for Home's columns).
+ * Here that made the card full-height and spread its rows apart. */
+html[data-skin] main.gg-landing > .card {
+  align-self: center;
+  align-content: start;
+  height: auto;
+}
+/* Sign-in intro stacks back link, title, lede and art. Some skins lay
+ * .page-head out as a row (Doodle put the title beside the back link). */
+html[data-skin] main.gg-landing > .page-head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+html[data-skin] main.gg-landing > .page-head > a {
+  align-self: flex-start;
 }

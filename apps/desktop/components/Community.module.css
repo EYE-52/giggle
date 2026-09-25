@@ -20,7 +20,6 @@
 .backLink:hover { color:var(--text); }
 .authCard { position:relative; width:100%; max-width:430px; padding:26px 26px 24px; justify-self:center; display:grid; gap:14px; }
 .authBrand { display:flex; align-items:center; gap:10px; }
-.authBrand .wordmark { font-family:var(--font-display); font-weight:800; font-size:21px; letter-spacing:-.04em; color:var(--text); }
 .authHeading { margin:0; font-family:var(--font-display); font-size:28px; font-weight:700; line-height:1.08; letter-spacing:-.02em; max-width:330px; color:var(--text); }
 .authSub { margin:0; color:var(--text-body); font-size:14px; line-height:1.5; }
 .refNote { display:flex; align-items:center; gap:9px; padding:10px 12px; border-radius:var(--radius-control, 14px); background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--brand-deep, var(--accent)); font-size:13px; font-weight:600; line-height:1.4; }

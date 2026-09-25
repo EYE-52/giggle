@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Logomark } from "@/components/Brand";
+import { Wordmark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
 import { session, setPendingReferral, BACKEND_URL } from "@giggle/core";
 import { HangoutIllustration } from "@/components/HangoutIllustration";
@@ -118,8 +118,7 @@ export default function AuthPage() {
       </div>
       <section className={`card ${community.authCard}`}>
         <div className={community.authBrand}>
-          <Logomark size={34} glow={false} />
-          <span className="wordmark">Giggle</span>
+          <Wordmark size={24} />
         </div>
 
         <h1 className={community.authHeading}>Sign in to Giggle</h1>
