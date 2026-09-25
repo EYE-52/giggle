@@ -478,12 +478,24 @@ function formatPairs(pairs) {
   return lines;
 }
 
+/** Adds :not(:where([data-skin-preview] *)) to the subject compound, before
+ * any pseudo-element, so the rule skips elements inside preview containers. */
+function guardFromPreviews(selector) {
+  const guard = ":not(:where([data-skin-preview] *))";
+  const m = selector.match(/^(.*?)(::[a-z-]+(\([^)]*\))?)?$/s);
+  return m[2] ? m[1] + guard + m[2] : selector + guard;
+}
+
 /** Phase 3: a selector's pairs plus its [data-skin-preview] alias pairs. */
 function pairsWithAliases(pairs, item, skin) {
   const out = [];
   for (const { selector, decls } of pairs) {
-    out.push({ selector, decls });
     const alias = previewAlias(selector, skin);
+    // The ACTIVE skin's rule must not reach inside another skin's preview
+    // (its tape/underlines leaked into every Appearance card). The guard has
+    // zero specificity, so the cascade between real rules is unchanged.
+    const guarded = alias && !alias.startsWith("[data-skin-preview") ? guardFromPreviews(selector) : selector;
+    out.push({ selector: guarded, decls });
     if (alias) out.push({ selector: alias, decls: translateBody(item.body, alias) });
   }
   return out;
