@@ -449,3 +449,10 @@ html:not([data-skin]) .search:focus-within .searchInput {
   font-family: var(--font-inter);
   padding: 5px 12px 0;
 }
+
+/* Compact people list (matches Home): 40px avatar, name + status, actions. */
+.compactList { list-style: none; margin: 0; padding: 6px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: 2px 12px; border: 1px solid var(--line, var(--border)); border-radius: 20px; background: var(--surface); }
+.compactRow { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 6px 6px 8px; border-radius: 14px; min-width: 0; }
+.compactRow:hover { background: var(--overlay, rgb(0 0 0 / .04)); }
+.compactRow > :first-child { flex: none; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

@@ -224,18 +224,7 @@ export default function FriendsPage() {
 
   return (
     <div className={`gg-reveal gg-screen gg-screen-friends ${styles.screen}`}>
-      {/* Header (mock .page-head) */}
-      <div className={`page-head ${styles.head}`}>
-        <h1 className={`title ${styles.headTitle}`}>Your people</h1>
-        <p className={`lede ${styles.headLede}`}>
-          {showFirstRun
-            ? "Every good hangout starts with a hello. Find a friend by their display name."
-            : onlineCount > 0
-              ? `${onlineCount} online now`
-              : "Familiar faces. More reasons to hang out."}
-        </p>
-      </div>
-
+      <h1 className={styles.srOnly}>Friends</h1>
       {loadError && (
         <div role="alert" className={styles.alert}>
           <span>{loadError} Check your connection and try again.</span>
@@ -345,7 +334,7 @@ export default function FriendsPage() {
       {/* ── Your friends ─────────────────────────────────────────── */}
       {!showFirstRun && (!loadError || friends.length > 0) && (!query.trim() || friends.length > 0) && (
       <section className={`gg-friends-main ${styles.section}`}>
-        <h2 className={styles.sectionTitle}>Your friends {friends.length > 0 && <span className={styles.sectionTitleMuted}>· {friends.length}</span>}</h2>
+        <h2 className={styles.sectionTitle}>Friends {friends.length > 0 && <span className={styles.sectionTitleMuted}>· {onlineCount > 0 ? `${onlineCount} online of ${friends.length}` : friends.length}</span>}</h2>
 
         {loading ? (
           <div className={styles.gridSkeletons}>
@@ -362,13 +351,13 @@ export default function FriendsPage() {
         ) : friends.length === 0 ? (
           <FriendsEmptyState />
         ) : (
-          <ul className={`friend-list ${styles.listGrid}`}>
+          <ul className={styles.compactList}>
             {sortedFriends.map((f) => (
               <li
                 key={f.userId}
-                className={`friend gg-row ${styles.cardRow}`}
+                className={styles.compactRow}
               >
-                <UserAvatar userId={f.userId} name={f.name} avatar={f.avatar} size="fill" online={f.online} />
+                <UserAvatar userId={f.userId} name={f.name} avatar={f.avatar} size={40} online={f.online} />
                 <div className={styles.rowCopy}>
                   <b>{f.name}</b>
                   <small className={f.online ? "on" : undefined}>{f.online ? "Online" : "Offline"}</small>

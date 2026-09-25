@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Wordmark } from "@/components/Brand";
+import { Icon } from "@/components/Icons";
 import { useEffect, useRef, useState } from "react";
 import { GiggleAvatar, type AvatarExpression, type AvatarFace, type AvatarGlasses, type AvatarFacialHair } from "../../../../packages/avatars/src";
 import { api, session, getMyAvatar, parseCharacter, encodeCharacter, CHARACTER_DEFAULTS, CHARACTER_OPTIONS, type CharacterConfig } from "@giggle/core";
@@ -78,8 +78,13 @@ export default function AvatarPlayground() {
     setNotice("Character settings exported. Your profile has not changed.");
   }
   return <main className={styles.page}>
-    <header className={styles.header}><Link href="/" aria-label="Giggle home"><Wordmark size={26} /></Link><Link href={authed ? "/profile" : "/"}>{authed ? "Back to profile" : "Back to Giggle"} ↗</Link></header>
-    <section className={styles.intro}><div><h1>Your character.</h1><p>Choose a look, then make it yours.</p></div><span className={styles.editorLabel}>Character studio</span></section>
+    <header className={styles.header}>
+      <Link href={authed ? "/profile" : "/"} className={styles.back} aria-label={authed ? "Back to profile" : "Back to Giggle"}><Icon.chevron size={20} /></Link>
+      <h1 className={styles.title}>Your character</h1>
+      {authed
+        ? <button type="button" className={`btn btn-primary ${styles.save}`} aria-label="Save to profile" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save"}</button>
+        : <Link href="/signin" className={`btn btn-primary ${styles.save}`}>Sign in to save</Link>}
+    </header>
     <fieldset className={styles.studio} disabled={saving} aria-label="Character editor">
       <section className={styles.preview} aria-label="Your character preview">
         <div className={styles.stage}><div className={styles.character}><GiggleAvatar {...avatar} size="100%" label="Your customized character" /></div></div>
@@ -110,7 +115,7 @@ export default function AvatarPlayground() {
           </>}
           {section === "Colors" && (Object.keys(colors) as (keyof typeof colors)[]).map(key => <ColorChoices key={key} name={key} value={avatar[key]} onChange={value => update(key, value)} />)}
         </div>
-        <div className={styles.actions}>{authed ? <button type="button" disabled={saving} onClick={save}>{saving ? "Saving…" : "Save to profile"}</button> : <Link href="/signin">Sign in to save</Link>}<button type="button" onClick={download}>Export</button><button type="button" onClick={() => { edited.current = true; setAvatar({ ...initial }); setNotice("Character reset."); }}>Reset</button></div>
+        <div className={styles.actions}><button type="button" onClick={download}>Export</button><button type="button" onClick={() => { edited.current = true; setAvatar({ ...initial }); setNotice("Character reset."); }}>Reset</button></div>
         {saveError && <p role="alert" className={styles.error}>{saveError}</p>}
         <p role="status" className={styles.notice}>{notice}</p>
         <PhotoMatch authed={authed} baseConfig={avatar} onApply={applyFromPhoto} />

@@ -83,3 +83,6 @@
 .chips button { background: var(--overlay); color: var(--text); border: 1px solid var(--border); border-radius: 24px; padding: 10px 14px; min-height: 44px; cursor: pointer; }
 .chips button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .page button:focus-visible, .page a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+/* skins style .icon-btn (Scrapbook shrinks it to 40px): keep 44px tap targets here */
+.bar .iconBtn.iconBtn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+.openSeat.openSeat { color: color-mix(in srgb, var(--text) 82%, transparent); }
