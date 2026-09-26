@@ -1,0 +1,234 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CLAY, done properly (2026-09-26). Practised in isolation first
+   (.worker-scratch/claylab) and ported here as the last layer for the Clay skin.
+
+   The recipe: one outer drop tinted with the palette hue + a dark inset at the
+   bottom + a light inset at the top. No borders, no outlines, no grey shadows.
+   One light source (top). Raised: buttons, cards, avatars, toggle thumbs, seats.
+   Inset (pressed into the surface): inputs, toggle tracks, counts, empty seats.
+   Dark mode: mid-tone fills on a deep tinted page, near-black drops, a faint
+   highlight and a 1px top rim.
+   The repeated [data-skin] raises specificity above the generated skin-clay.css.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-skin="clay"] {
+  --clay-page: color-mix(in oklch, var(--bg) 88%, var(--brand) 12%);
+  --clay-fill: color-mix(in oklch, var(--surface) 90%, var(--brand) 10%);
+  --clay-fill-2: color-mix(in oklch, var(--surface) 80%, var(--brand) 20%);
+  --clay-well: color-mix(in oklch, var(--clay-page) 90%, var(--brand-deep) 5%);
+  --clay-shade: color-mix(in oklch, var(--brand-deep) 38%, transparent);
+  --clay-shade-soft: color-mix(in oklch, var(--brand-deep) 22%, transparent);
+  --clay-light: color-mix(in oklch, white 85%, transparent);
+  --clay-rim: transparent;
+  --clay-cta-ink: var(--on-brand);
+  --clay-raised:
+    0 12px 20px -10px var(--clay-shade),
+    inset 0 -8px 14px -8px var(--clay-shade-soft),
+    inset 0 9px 14px -7px var(--clay-light),
+    inset 0 1px 0 var(--clay-rim);
+  --clay-raised-lg:
+    0 26px 44px -18px var(--clay-shade),
+    inset 0 -14px 24px -12px var(--clay-shade-soft),
+    inset 0 16px 24px -10px var(--clay-light),
+    inset 0 1px 0 var(--clay-rim);
+  --clay-small:
+    0 5px 9px -6px var(--clay-shade),
+    inset 0 -4px 7px -5px var(--clay-shade-soft),
+    inset 0 5px 7px -5px var(--clay-light);
+  --clay-inset:
+    inset 0 9px 16px -7px var(--clay-shade),
+    inset 0 -7px 12px -9px var(--clay-light);
+  --clay-pressed:
+    0 4px 8px -6px var(--clay-shade),
+    inset 0 10px 16px -8px var(--clay-shade-soft),
+    inset 0 -6px 12px -8px var(--clay-light);
+}
+html[data-skin="clay"][data-mode="dark"] {
+  --clay-page: color-mix(in oklch, var(--bg) 92%, var(--brand) 8%);
+  --clay-fill: color-mix(in oklch, var(--surface-2) 80%, var(--brand) 20%);
+  --clay-fill-2: color-mix(in oklch, var(--surface-2) 68%, var(--brand) 32%);
+  --clay-well: color-mix(in oklch, var(--bg) 80%, var(--brand) 6%);
+  --clay-shade: rgb(0 0 0 / .62);
+  --clay-shade-soft: rgb(0 0 0 / .42);
+  --clay-light: rgb(255 255 255 / .14);
+  --clay-rim: rgb(255 255 255 / .16);
+}
+/* white on gold or teal is under 4.5:1; those two palettes use dark ink on the CTA */
+html[data-skin="clay"][data-palette="honey"][data-mode="light"],
+html[data-skin="clay"][data-palette="lagoon"][data-mode="light"] { --clay-cta-ink: var(--text); }
+
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"] body,
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"] .gg-app-root { background: var(--clay-page); }
+
+/* ── surfaces ────────────────────────────────────────────────────────────── */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .card:not(:where([data-skin-preview] *)) {
+  background: var(--clay-fill);
+  border: 0;
+  outline: 0;
+  border-radius: 30px;
+  box-shadow: var(--clay-raised-lg);
+}
+
+/* ── buttons ─────────────────────────────────────────────────────────────── */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.btn, .gg-btn):not(.btn-ghost):not(:where([data-skin-preview] *)) {
+  --sq: 1;
+  border: 0;
+  outline: 0;
+  border-radius: 18px;
+  background: var(--clay-fill-2);
+  color: var(--text);
+  box-shadow: var(--clay-raised);
+  scale: 1 var(--sq);
+  transition: scale .2s cubic-bezier(.2,.8,.3,1.5), translate .2s cubic-bezier(.2,.8,.3,1.5), box-shadow .2s, filter .2s;
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.btn, .gg-btn).btn-primary:not(:where([data-skin-preview] *)) {
+  background: var(--brand);
+  color: var(--clay-cta-ink);
+  box-shadow:
+    0 14px 22px -10px color-mix(in oklch, var(--brand-deep) 70%, transparent),
+    inset 0 -9px 14px -8px color-mix(in oklch, var(--brand-deep) 55%, transparent),
+    inset 0 10px 14px -7px color-mix(in oklch, white 55%, transparent);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.btn, .gg-btn):not(:disabled):not(.btn-ghost):not(:where([data-skin-preview] *)):hover { translate: 0 -2px; filter: brightness(1.03); }
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.btn, .gg-btn):not(:disabled):not(.btn-ghost):not(:where([data-skin-preview] *)):active { --sq: .94; translate: 0 3px; box-shadow: var(--clay-pressed); }
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.btn, .gg-btn):disabled:not(:where([data-skin-preview] *)) {
+  background: var(--clay-well);
+  color: color-mix(in oklch, var(--text) 62%, var(--clay-well));
+  box-shadow: inset 0 6px 10px -6px var(--clay-shade-soft), inset 0 -4px 8px -6px var(--clay-light);
+  translate: none; filter: none;
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .btn-ghost:not(:where([data-skin-preview] *)) { border: 0; box-shadow: none; background: transparent; }
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .icon-btn:not(:where([data-skin-preview] *)) {
+  border: 0; outline: 0; border-radius: 16px;
+  background: var(--clay-fill-2); color: var(--text);
+  box-shadow: var(--clay-raised);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .icon-btn :is(svg):not(:where([data-skin-preview] *)) { filter: none; }
+
+/* ── inputs are wells ────────────────────────────────────────────────────── */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.input, input.input, .search):not(:where([data-skin-preview] *)) {
+  border: 0; outline: 0; border-radius: 20px;
+  background: var(--clay-well);
+  box-shadow: var(--clay-inset);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.input, .search):not(:where([data-skin-preview] *)):focus-within,
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .input:not(:where([data-skin-preview] *)):focus {
+  box-shadow: inset 0 7px 12px -8px var(--clay-shade), inset 0 -6px 10px -9px var(--clay-light), 0 0 0 4px color-mix(in oklch, var(--brand) 40%, transparent);
+}
+
+/* ── chips, badges, counts ───────────────────────────────────────────────── */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.chip, .badge):not(:where([data-skin-preview] *)) {
+  border: 0; outline: 0; border-radius: 999px;
+  background: var(--clay-fill-2); color: var(--text);
+  box-shadow: var(--clay-small);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .count:not(:where([data-skin-preview] *)) {
+  border: 0; border-radius: 999px; background: var(--clay-well); color: var(--text);
+  box-shadow: inset 0 5px 8px -5px var(--clay-shade-soft), inset 0 -3px 6px -5px var(--clay-light);
+}
+
+/* ── avatars: a raised medallion, face centred ───────────────────────────── */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .av:not(:where([data-skin-preview] *)) {
+  border: 0; outline: 0; padding: 3px; border-radius: 50%;
+  background: var(--clay-fill-2);
+  box-shadow: 0 6px 10px -6px var(--clay-shade), inset 0 -4px 6px -4px var(--clay-shade-soft), inset 0 5px 6px -4px var(--clay-light);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .pa:not(:where([data-skin-preview] *)) {
+  padding: 0; border: 0; background: transparent; box-shadow: none;
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .pa:not(:where([data-skin-preview] *))::after { content: none; }
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .presence.on:not(:where([data-skin-preview] *)) {
+  border: 0;
+  box-shadow: 0 0 0 3px var(--clay-fill), inset 0 -2px 3px rgb(0 0 0 / .2), inset 0 2px 2px rgb(255 255 255 / .5);
+}
+
+/* ── switch: inset track, raised ball ────────────────────────────────────── */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .gg-switch-track:not(:where([data-skin-preview] *)) {
+  border: 0; background: var(--clay-well); box-shadow: var(--clay-inset);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .gg-switch[aria-checked="true"] .gg-switch-track:not(:where([data-skin-preview] *)) {
+  background: color-mix(in oklch, var(--brand) 55%, var(--clay-fill));
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .gg-switch-track:not(:where([data-skin-preview] *))::after {
+  border: 0; background: var(--clay-fill-2);
+  box-shadow: 0 6px 10px -5px var(--clay-shade), inset 0 -5px 8px -6px var(--clay-shade-soft), inset 0 6px 8px -5px var(--clay-light);
+}
+
+/* ── navigation ──────────────────────────────────────────────────────────── */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .nav:not(:where([data-skin-preview] *)) {
+  background: var(--clay-page); border: 0; box-shadow: none;
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .tabs:not(:where([data-skin-preview] *)) {
+  border: 0; padding: 5px; border-radius: 999px; background: var(--clay-well); box-shadow: var(--clay-inset);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.tab, .tb):not(:where([data-skin-preview] *)) { border: 0; box-shadow: none; background: transparent; }
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .tab.is-active:not(:where([data-skin-preview] *)) {
+  background: var(--clay-fill-2); box-shadow: var(--clay-small);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .tabbar:not(:where([data-skin-preview] *)) {
+  border: 0; background: var(--clay-fill);
+  box-shadow: 0 -14px 26px -18px var(--clay-shade), inset 0 14px 20px -12px var(--clay-light), inset 0 1px 0 var(--clay-rim);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .tb.is-active:not(:where([data-skin-preview] *)) { color: var(--brand-deep); }
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-mode="dark"][data-skin="clay"] .tb.is-active { color: var(--brand); }
+
+/* ── lobby seats: raised when someone is there, a well when open ─────────── */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] [data-testid="lobby-person"]:not(:where([data-skin-preview] *)) {
+  background: var(--clay-fill-2); border: 0; box-shadow: var(--clay-raised-lg);
+}
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] [aria-label="Squad members"] > button:not(:where([data-skin-preview] *)) {
+  border: 0; background: var(--clay-well);
+  box-shadow: inset 0 14px 24px -12px var(--clay-shade), inset 0 -10px 18px -12px var(--clay-light);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="clay"] :is(.btn, .gg-btn) { transition: none; }
+}
+
+/* the Clay card on Profile → Appearance previews the real recipe */
+[data-skin-preview="clay"][data-skin-preview="clay"] .card { border: 0; outline: 0; border-radius: 26px; background: var(--clay-fill); box-shadow: var(--clay-raised-lg); }
+[data-skin-preview="clay"][data-skin-preview="clay"] :is(.btn, .gg-btn).btn-primary { border: 0; border-radius: 16px; background: var(--brand); color: var(--clay-cta-ink); box-shadow: 0 10px 18px -10px color-mix(in oklch, var(--brand-deep) 70%, transparent), inset 0 -8px 12px -8px color-mix(in oklch, var(--brand-deep) 55%, transparent), inset 0 9px 12px -7px color-mix(in oklch, white 55%, transparent); }
+[data-skin-preview="clay"][data-skin-preview="clay"] .av { border: 0; outline: 0; padding: 2px; border-radius: 50%; background: var(--clay-fill-2); box-shadow: 0 5px 8px -5px var(--clay-shade), inset 0 -3px 5px -4px var(--clay-shade-soft), inset 0 4px 5px -4px var(--clay-light); }
+
+/* Clay tokens inside its preview card, whatever skin is active */
+[data-skin-preview="clay"] {
+  --clay-page: color-mix(in oklch, var(--bg) 88%, var(--brand) 12%);
+  --clay-fill: color-mix(in oklch, var(--surface) 90%, var(--brand) 10%);
+  --clay-fill-2: color-mix(in oklch, var(--surface) 80%, var(--brand) 20%);
+  --clay-well: color-mix(in oklch, var(--clay-page) 90%, var(--brand-deep) 5%);
+  --clay-shade: color-mix(in oklch, var(--brand-deep) 38%, transparent);
+  --clay-shade-soft: color-mix(in oklch, var(--brand-deep) 22%, transparent);
+  --clay-light: color-mix(in oklch, white 85%, transparent);
+  --clay-rim: transparent;
+  --clay-cta-ink: var(--on-brand);
+  --clay-raised:
+    0 12px 20px -10px var(--clay-shade),
+    inset 0 -8px 14px -8px var(--clay-shade-soft),
+    inset 0 9px 14px -7px var(--clay-light),
+    inset 0 1px 0 var(--clay-rim);
+  --clay-raised-lg:
+    0 26px 44px -18px var(--clay-shade),
+    inset 0 -14px 24px -12px var(--clay-shade-soft),
+    inset 0 16px 24px -10px var(--clay-light),
+    inset 0 1px 0 var(--clay-rim);
+  --clay-small:
+    0 5px 9px -6px var(--clay-shade),
+    inset 0 -4px 7px -5px var(--clay-shade-soft),
+    inset 0 5px 7px -5px var(--clay-light);
+  --clay-inset:
+    inset 0 9px 16px -7px var(--clay-shade),
+    inset 0 -7px 12px -9px var(--clay-light);
+  --clay-pressed:
+    0 4px 8px -6px var(--clay-shade),
+    inset 0 10px 16px -8px var(--clay-shade-soft),
+    inset 0 -6px 12px -8px var(--clay-light);
+}
+html[data-mode="dark"] [data-skin-preview="clay"] {
+  --clay-page: color-mix(in oklch, var(--bg) 92%, var(--brand) 8%);
+  --clay-fill: color-mix(in oklch, var(--surface-2) 80%, var(--brand) 20%);
+  --clay-fill-2: color-mix(in oklch, var(--surface-2) 68%, var(--brand) 32%);
+  --clay-well: color-mix(in oklch, var(--bg) 80%, var(--brand) 6%);
+  --clay-shade: rgb(0 0 0 / .62);
+  --clay-shade-soft: rgb(0 0 0 / .42);
+  --clay-light: rgb(255 255 255 / .14);
+  --clay-rim: rgb(255 255 255 / .16);
+}

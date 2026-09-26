@@ -11,6 +11,9 @@
 /* skins stretch .card to its grid row; panels size to their own content */
 .columns > .panel.panel { min-width: 0; align-self: start; height: auto; }
 .panelBody { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+/* skins that give .card no padding (Clay) get the page's own */
+:global(html[data-skin="clay"]) .panelBody { padding: 18px 18px 16px; }
+@media (max-width: 720px) { :global(html[data-skin="clay"]) .panelBody { padding: 14px 12px 12px; } }
 .panelHead { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 4px; }
 .panelTitle { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; }
 .count { font-size: 12px; line-height: 1; padding: 5px 8px; border-radius: 999px; background: var(--overlay, rgb(0 0 0 / .05)); color: var(--text-muted); }
@@ -36,11 +39,17 @@
 
 /* The squad tray: always within reach, above the phone tab bar. */
 .trayDock { position: sticky; bottom: 16px; z-index: 20; margin-top: auto; }
-@media (max-width: 720px) { .trayDock { bottom: calc(76px + env(safe-area-inset-bottom)); } }
+/* Phone: the tray is a full-width dock just above the tab bar. An opaque band
+ * with a soft fade above it covers whatever scrolls beneath, so panel edges
+ * never show through or cross it. (Sticky, not fixed: the app container is
+ * transformed, which would anchor a fixed bar to it instead of the screen.) */
+@media (max-width: 720px) {
+  .trayDock { bottom: calc(69px + env(safe-area-inset-bottom)); margin: 8px -18px 0; padding: 22px 10px 8px; background: linear-gradient(to bottom, transparent, var(--clay-page, var(--bg)) 22px); }
+}
 /* The tray floats over scrolled content, so it is always solid (skins may give
  * cards glass or paper textures; the tray keeps their colour but not their
  * transparency). */
-.trayDock .trayCard.trayCard { padding: 10px 10px 10px 14px; background-color: var(--surface); box-shadow: 0 10px 30px color-mix(in srgb, var(--text) 14%, transparent); }
+.trayDock .trayCard.trayCard { padding: 10px 10px 10px 16px; background-color: var(--surface); box-shadow: 0 10px 30px color-mix(in srgb, var(--text) 14%, transparent); }
 .trayRow { display: flex; align-items: center; gap: 14px; }
 @media (max-width: 720px) { .trayRow { gap: 10px; } }
 .traySeats { display: flex; align-items: center; flex: none; padding-left: 8px; }
