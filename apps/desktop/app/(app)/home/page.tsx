@@ -421,7 +421,7 @@ export default function HomePage() {
                 const person = roster[i];
                 return person ? (
                   <span key={person.memberId} className={styles.traySeat}>
-                    <PersonAvatar userId={person.userId} name={person.displayName} avatar={person.avatar} size={32} isMe={person.userId === session.user?.id} online={person.online} />
+                    <PersonAvatar userId={person.userId} name={person.displayName} avatar={person.avatar} size="fill" isMe={person.userId === session.user?.id} />
                   </span>
                 ) : (
                   <span key={`open-${i}`} className={`${styles.traySeat} ${styles.openSeat}`} />

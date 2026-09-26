@@ -1,7 +1,10 @@
 /* Home: people first. Friends (online first) and squads side by side, one squad
  * tray pinned at the bottom with the single next action. Layout and spacing live
  * here; paint (card, button, input, avatar) comes from the active skin. */
-.home { display: flex; flex-direction: column; gap: 16px; min-height: 100%; }
+.home { display: flex; flex-direction: column; gap: 16px; flex: 1 1 auto; min-height: 0; }
+/* Home fills the scroll area, so the squad tray sits at the bottom edge no
+ * matter how long or short the lists are (it never jumps as they change). */
+:global(.gg-app-container):has(> .home) { display: flex; flex-direction: column; min-height: 100%; box-sizing: border-box; }
 .columns { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
 @media (max-width: 860px) { .columns { grid-template-columns: minmax(0, 1fr); } }
 
@@ -28,7 +31,7 @@
 .open { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; }
 
 .empty { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 6px 4px 4px; }
-.empty p { margin: 0; color: var(--text-muted); font-size: 14px; line-height: 1.45; }
+.empty p { margin: 0; color: color-mix(in srgb, var(--text) 78%, var(--bg)); font-size: 14px; line-height: 1.45; }
 .quiet { margin: 0; padding: 6px 4px; display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 14px; }
 
 /* The squad tray: always within reach, above the phone tab bar. */
@@ -42,9 +45,14 @@
 @media (max-width: 720px) { .trayRow { gap: 10px; } }
 .traySeats { display: flex; align-items: center; flex: none; padding-left: 8px; }
 .traySeat { width: 36px; height: 36px; margin-left: -8px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 0 0 2px var(--surface, #fff); background: var(--surface-2, #eee); overflow: hidden; }
+/* tray faces fill their seat; no skin ring (it would not fit 36px) */
+.traySeat.traySeat :global(.av) { width: 100% !important; height: 100% !important; padding: 0 !important; border: 0 !important; outline: 0 !important; box-shadow: none !important; }
 .openSeat { background: transparent; box-shadow: none; border: 2px dashed color-mix(in srgb, var(--text) 28%, transparent); }
 .trayText { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
 .trayText b { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trayText small { font-size: 13px; }
 @media (max-width: 420px) { .traySeats { display: none; } }
 
+/* compact rows: skin rings stay, but slim, so the face keeps its size */
+.person.person :global(.pa) { padding: 2px !important; }
+.person.person :global(.av) { padding: 0 !important; border-width: 2px !important; outline-width: 2px !important; }

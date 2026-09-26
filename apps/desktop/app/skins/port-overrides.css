@@ -512,3 +512,9 @@ html[data-skin] main.gg-landing > .page-head {
 html[data-skin] main.gg-landing > .page-head > a {
   align-self: flex-start;
 }
+
+/* Avatars: skins add borders and padding around .av (Clay's medallion). Size the
+ * box to include them and make the drawing fill what is left, so the face stays
+ * centred inside the ring instead of sliding to the bottom-right and clipping. */
+html[data-skin] .av { box-sizing: border-box; }
+html[data-skin] .av > svg { width: 100% !important; height: 100% !important; display: block; }
