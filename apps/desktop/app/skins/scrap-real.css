@@ -1,0 +1,166 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCRAPBOOK, rebuilt (2026-09-26). Practised in isolation first
+   (.worker-scratch/scraplab), then ported as the last layer for Scrapbook.
+
+   Cream journal paper with dots and a light grain; things are pasted onto it.
+   - Buttons are paper slips glued down: only a ::before paper layer tilts, so
+     the hit box and focus ring stay upright. Pressing flattens the glue shadow.
+   - Avatars are postage stamps: perforated edges (mask), white stamp paper,
+     a thin inner frame, a small tilt.
+   - Chips are tickets (notched ends). Inputs are label strips with a ruled line.
+   - Panels are pages glued in, with a curled contact shadow.
+   - Dark mode is a black album page; paper, slips and stamps stay light
+     (dimmed) so text on them keeps its contrast.
+   Rules skip elements inside other skins' Appearance previews.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-skin="scrap"] {
+  --sb-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.14'/%3E%3C/svg%3E");
+  --sb-page: #f3ead6;
+  --sb-dot: #2b21181f;
+  --sb-paper: #fffdf7;
+  --sb-ink: #2b2118;
+  --sb-ink-2: #6b5a45;
+  --sb-shadow: rgb(43 33 24 / .28);
+  --sb-cta-ink: var(--on-brand);
+}
+html[data-skin="scrap"][data-mode="dark"] {
+  --sb-page: #1c1a17;
+  --sb-dot: #ffffff14;
+  --sb-paper: #e9e2d2;
+  --sb-shadow: rgb(0 0 0 / .55);
+}
+html[data-skin="scrap"][data-palette="honey"][data-mode="light"],
+html[data-skin="scrap"][data-palette="lagoon"][data-mode="light"] { --sb-cta-ink: var(--text); }
+
+/* the page */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(body, .gg-app-root) {
+  background: radial-gradient(circle, var(--sb-dot) 1px, #0000 1.3px) 0 0 / 20px 20px, var(--sb-page);
+}
+
+/* panels: pages glued in */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] .card:not(:where([data-skin-preview] *)) {
+  background: var(--sb-noise), var(--sb-paper);
+  background-blend-mode: multiply;
+  color: var(--sb-ink);
+  border: 0;
+  border-radius: 3px;
+  box-shadow: 0 1px 2px var(--sb-shadow), 0 16px 18px -16px var(--sb-shadow);
+}
+
+/* buttons: paper slips; the element stays upright, its paper tilts */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.btn, .gg-btn):not(.btn-ghost):not(:where([data-skin-preview] *)) {
+  position: relative;
+  isolation: isolate;
+  background: none;
+  border: 0;
+  border-radius: 2px;
+  box-shadow: none;
+  color: var(--sb-ink);
+}
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.btn, .gg-btn):not(.btn-ghost):not(:where([data-skin-preview] *))::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  rotate: var(--sb-tilt, -1deg);
+  border-radius: 2px;
+  background: var(--sb-noise), var(--sb-paper);
+  background-blend-mode: multiply;
+  box-shadow: 0 1px 2px var(--sb-shadow), 0 5px 9px -5px var(--sb-shadow);
+  transition: box-shadow .12s, scale .12s;
+}
+html[data-skin="scrap"] li:nth-child(3n+2) :is(.btn, .gg-btn), html[data-skin="scrap"] :is(.btn, .gg-btn):nth-of-type(2n) { --sb-tilt: .9deg; }
+html[data-skin="scrap"] li:nth-child(3n) :is(.btn, .gg-btn), html[data-skin="scrap"] :is(.btn, .gg-btn):nth-of-type(3n) { --sb-tilt: -.4deg; }
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.btn, .gg-btn).btn-primary:not(:where([data-skin-preview] *)) { color: var(--sb-cta-ink); }
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.btn, .gg-btn).btn-primary:not(:where([data-skin-preview] *))::before { background: var(--sb-noise), var(--brand); }
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.btn, .gg-btn):not(:disabled):not(:where([data-skin-preview] *)):hover::before { box-shadow: 0 2px 3px var(--sb-shadow), 0 9px 14px -6px var(--sb-shadow); }
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.btn, .gg-btn):not(:disabled):not(:where([data-skin-preview] *)):active::before { box-shadow: 0 0 1px var(--sb-shadow); scale: .98; }
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.btn, .gg-btn):disabled:not(:where([data-skin-preview] *)) { color: var(--sb-ink-2); }
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.btn, .gg-btn):disabled:not(:where([data-skin-preview] *))::before {
+  background: transparent; box-shadow: none; border: 1.5px dashed color-mix(in srgb, var(--sb-ink-2) 60%, transparent);
+}
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] .icon-btn:not(:where([data-skin-preview] *)) {
+  border: 0; border-radius: 50%; background: var(--sb-paper); color: var(--sb-ink);
+  box-shadow: 0 1px 2px var(--sb-shadow), 0 4px 8px -4px var(--sb-shadow);
+}
+html[data-skin="scrap"] :is(.btn, .gg-btn, .icon-btn):focus-visible { outline: 3px solid #b3261e; outline-offset: 3px; }
+
+/* inputs: a label strip on lined paper */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.input, input.input, .search):not(:where([data-skin-preview] *)) {
+  border: 0;
+  border-bottom: 2px solid #6b5a45;
+  border-radius: 0;
+  color: var(--sb-ink);
+  background: linear-gradient(#0000 calc(100% - 1px), #6b5a4533 0) 0 0 / 100% 1.6em, var(--sb-paper);
+  box-shadow: none;
+}
+
+/* chips and badges: tickets with notched ends */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(.chip, .badge, .count):not(:where([data-skin-preview] *)) {
+  --n: 6px;
+  border: 0;
+  border-inline: 1px dashed rgb(107 90 69 / .45);
+  border-radius: 0;
+  padding-inline: 14px;
+  color: var(--sb-ink);
+  background: color-mix(in srgb, var(--brand) 16%, #fffdf7);
+  box-shadow: none;
+  -webkit-mask: radial-gradient(circle var(--n) at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--n) at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle var(--n) at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle var(--n) at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat;
+}
+
+/* avatars: postage stamps */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] .av:not(:where([data-skin-preview] *)) {
+  --r: 3px; --p: 8px;
+  border: 0;
+  outline: 1px solid rgb(43 33 24 / .2);
+  outline-offset: -4px;
+  border-radius: 0;
+  padding: 4px;
+  background: #fffdf7;
+  box-shadow: none;
+  -webkit-mask: radial-gradient(var(--r), #0000 96%, #000) round calc(var(--p) / -2) calc(var(--p) / -2) / var(--p) var(--p), linear-gradient(#000 0 0) 50% / calc(100% - 2 * var(--r)) calc(100% - 2 * var(--r)) no-repeat;
+  mask: radial-gradient(var(--r), #0000 96%, #000) round calc(var(--p) / -2) calc(var(--p) / -2) / var(--p) var(--p), linear-gradient(#000 0 0) 50% / calc(100% - 2 * var(--r)) calc(100% - 2 * var(--r)) no-repeat;
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / .3));
+  rotate: -2deg;
+}
+html[data-skin="scrap"] li:nth-child(2n) .av, html[data-skin="scrap"] .av.me { rotate: 1.5deg; }
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] .av:not(:where([data-skin-preview] *)) > svg { border-radius: 0; }
+/* the big face on a lobby seat gets bigger perforations */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] [data-testid="lobby-person"] .av { --r: 5px; --p: 16px; padding: 9px; }
+/* avatar wrappers: no frame of their own; keep the little tape strip on top */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] .pa:not(:where([data-skin-preview] *)) { padding: 0; border: 0; background: transparent; box-shadow: none; }
+
+/* lobby seats: an occupied seat is a page; an open seat is a pencilled outline */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] [data-testid="lobby-person"] {
+  background: var(--sb-noise), var(--sb-paper); background-blend-mode: multiply;
+  border-radius: 3px; box-shadow: 0 1px 2px var(--sb-shadow), 0 16px 18px -16px var(--sb-shadow);
+}
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] [aria-label="Squad members"] > button {
+  border: 2px dashed color-mix(in srgb, var(--sb-ink-2) 55%, transparent); border-radius: 4px; background: transparent;
+}
+html[data-skin="scrap"][data-mode="dark"] [aria-label="Squad members"] > button { color: #e9e2d2; }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="scrap"] :is(.btn, .gg-btn)::before { transition: none; rotate: 0deg; }
+}
+
+/* Paper stays light in dark mode, so everything written ON paper uses dark ink:
+ * re-point the text tokens inside paper surfaces (cards, seats, the tray). */
+html[data-skin="scrap"] :is(.card, [data-testid="lobby-person"]):not(:where([data-skin-preview] *)) {
+  --text: var(--sb-ink);
+  --text-body: var(--sb-ink);
+  --text-muted: var(--sb-ink-2);
+  --text-dim: var(--sb-ink-2);
+  --muted: var(--sb-ink-2);
+  color: var(--sb-ink);
+}
+html[data-skin="scrap"][data-mode="dark"] :is(.card, [data-testid="lobby-person"]):not(:where([data-skin-preview] *)) {
+  --brand-deep: color-mix(in srgb, var(--brand) 45%, #1c1a17);
+  --accent: color-mix(in srgb, var(--brand) 45%, #1c1a17);
+}
+html[data-skin="scrap"] .card :is(a, .link):not(:where([data-skin-preview] *)) { color: var(--sb-ink); }
+html[data-skin="scrap"] .card :is(.input, .search)::placeholder { color: var(--sb-ink-2); opacity: 1; }
+/* inputs are paper in both modes: ink text and ink placeholder everywhere */
+html[data-skin="scrap"] :is(.input, input.input, .search, .search input):not(:where([data-skin-preview] *)) { color: var(--sb-ink); }
+html[data-skin="scrap"] :is(.input, .search input, input.input)::placeholder { color: var(--sb-ink-2); opacity: 1; }

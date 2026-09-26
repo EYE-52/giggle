@@ -24,6 +24,7 @@ import "./skins/skin-clay.css";
 import "./skins/skin-scrap.css";
 import "./skins/port-overrides.css";
 import "./skins/clay-real.css";
+import "./skins/scrap-real.css";
 import { SketchLayer } from "@/components/SketchLayer";
 
 const cabinet = localFont({
