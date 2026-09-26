@@ -1,0 +1,97 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOLD PLAY, rebuilt (2026-09-26). Practised in isolation first
+   (.worker-scratch/playlab), then ported as the last layer for Bold Play.
+
+   Neo-brutalist stickers: 3px ink outlines, hard offset shadows with zero
+   blur, flat fills; pressing slides a control into its shadow. Only stickers
+   tilt (chips, badges, avatars); controls and text rows stay straight. Dark
+   mode: the ink turns cream (black shadows vanish on dark), fills stay punchy.
+   Rules skip elements inside other skins' Appearance previews.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-skin="play"] {
+  --pl-page: color-mix(in srgb, var(--bg) 85%, var(--pop, var(--accent)) 15%);
+  --pl-paper: var(--surface);
+  --pl-ink: #1b1320;
+  --pl-shadow: #1b1320;
+  --pl-pop: var(--pop, #ffb020);
+  --pl-pop-ink: #1b1320;
+  --pl-cta-ink: var(--on-brand);
+  --pl-well: color-mix(in srgb, var(--surface) 85%, var(--pop, var(--accent)) 15%);
+}
+html[data-skin="play"][data-mode="dark"] {
+  --pl-page: color-mix(in srgb, #121014 92%, var(--brand) 8%);
+  --pl-paper: #1f1b24;
+  --pl-ink: #fff6e5;
+  --pl-shadow: #fff6e5;
+  --pl-well: #17141b;
+}
+html[data-skin="play"][data-palette="honey"][data-mode="light"],
+html[data-skin="play"][data-palette="lagoon"][data-mode="light"] { --pl-cta-ink: #1b1320; }
+
+html[data-skin="play"][data-skin="play"][data-skin="play"] :is(body, .gg-app-root) { background: var(--pl-page); }
+
+/* panels */
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] .card:not(:where([data-skin-preview] *)) {
+  background: var(--pl-paper);
+  color: var(--pl-ink);
+  border: 3px solid var(--pl-ink);
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 var(--pl-shadow);
+  rotate: none;
+}
+
+/* buttons */
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] :is(.btn, .gg-btn):not(.btn-ghost):not(:where([data-skin-preview] *)) {
+  border: 3px solid var(--pl-ink);
+  border-radius: 12px;
+  background: var(--pl-paper);
+  color: var(--pl-ink);
+  box-shadow: 4px 4px 0 var(--pl-shadow);
+  rotate: none;
+  transition: translate .08s, box-shadow .08s;
+}
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] :is(.btn, .gg-btn).btn-primary:not(:where([data-skin-preview] *)) { background: var(--brand); color: var(--pl-cta-ink); }
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] :is(.btn, .gg-btn):not(:disabled):not(.btn-ghost):not(:where([data-skin-preview] *)):hover { translate: -1px -1px; box-shadow: 5px 5px 0 var(--pl-shadow); }
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] :is(.btn, .gg-btn):not(:disabled):not(.btn-ghost):not(:where([data-skin-preview] *)):active { translate: 4px 4px; box-shadow: 0 0 0 var(--pl-shadow); }
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] :is(.btn, .gg-btn):disabled:not(:where([data-skin-preview] *)) { box-shadow: none; border-style: dashed; }
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] .icon-btn:not(:where([data-skin-preview] *)) {
+  border: 3px solid var(--pl-ink); border-radius: 12px; background: var(--pl-paper); color: var(--pl-ink); box-shadow: 3px 3px 0 var(--pl-shadow);
+}
+html[data-skin="play"] :is(.btn, .gg-btn, .icon-btn):focus-visible { outline: 3px solid var(--pl-pop); outline-offset: 3px; }
+
+/* inputs */
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] :is(.input, input.input, .search):not(:where([data-skin-preview] *)) {
+  border: 3px solid var(--pl-ink); border-radius: 12px; background: var(--pl-paper); color: var(--pl-ink);
+  box-shadow: inset 3px 3px 0 color-mix(in srgb, var(--pl-ink) 14%, transparent);
+}
+html[data-skin="play"] :is(.input, .search input, input.input)::placeholder { color: color-mix(in srgb, var(--pl-ink) 62%, var(--pl-paper)); opacity: 1; }
+
+/* stickers: chips and badges tilt; counts stay flat */
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] :is(.chip, .badge):not(:where([data-skin-preview] *)) {
+  border: 2.5px solid var(--pl-ink); border-radius: 999px; background: var(--pl-pop); color: var(--pl-pop-ink); box-shadow: 2px 2px 0 var(--pl-shadow); rotate: -3deg;
+}
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] .count:not(:where([data-skin-preview] *)) {
+  border: 2.5px solid var(--pl-ink); border-radius: 999px; background: var(--pl-paper); color: var(--pl-ink); box-shadow: 2px 2px 0 var(--pl-shadow); rotate: none;
+}
+
+/* avatars: outlined sticker circles */
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] .av:not(:where([data-skin-preview] *)) {
+  border: 3px solid var(--pl-ink); outline: 0; padding: 0; border-radius: 50%; background: var(--pl-pop); box-shadow: 2px 2px 0 var(--pl-shadow); rotate: -4deg;
+}
+html[data-skin="play"] li:nth-child(2n) .av:not(:where([data-skin-preview] *)) { rotate: 3deg; }
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] .pa:not(:where([data-skin-preview] *)) { padding: 0; border: 0; background: transparent; box-shadow: none; }
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] .presence.on:not(:where([data-skin-preview] *)) { border: 2.5px solid var(--pl-ink); background: #3ddc84; box-shadow: none; }
+
+/* lobby seats */
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] [data-testid="lobby-person"] {
+  border: 3px solid var(--pl-ink); border-radius: 20px; background: color-mix(in srgb, var(--brand) 22%, var(--pl-paper)); box-shadow: 6px 6px 0 var(--pl-shadow);
+}
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] [aria-label="Squad members"] > button {
+  border: 3px dashed var(--pl-ink); border-radius: 20px; background: transparent; color: var(--pl-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin="play"] :is(.btn, .gg-btn) { transition: none; }
+}
+/* the join row is a plain row, not a second outlined box */
+html[data-skin="play"][data-skin="play"][data-skin="play"][data-skin="play"] form.join:not(:where([data-skin-preview] *)) { border: 0; box-shadow: none; background: transparent; padding: 0; border-radius: 0; }

@@ -1,0 +1,76 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   SOFT DEPTH, refined (2026-09-26). Glass only works with colour behind it:
+   the page carries large soft colour blobs (brand + pop), panels are frosted
+   glass that picks them up, with a light rim on top. Dark mode: glowing blobs
+   on a deep tinted page; glass slightly lighter than the page.
+   Rules skip elements inside other skins' Appearance previews.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-skin="soft"] {
+  --sd-glass: color-mix(in srgb, var(--surface) 64%, transparent);
+  --sd-glass-strong: color-mix(in srgb, var(--surface) 80%, transparent);
+  --sd-rim: rgb(255 255 255 / .7);
+  --sd-edge: color-mix(in srgb, var(--text) 8%, transparent);
+  --sd-shadow: color-mix(in srgb, var(--brand-deep) 18%, transparent);
+  --sd-blob-a: color-mix(in srgb, var(--brand) 26%, transparent);
+  --sd-blob-b: color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent);
+}
+html[data-skin="soft"][data-mode="dark"] {
+  --sd-glass: color-mix(in srgb, var(--surface-2) 58%, transparent);
+  --sd-glass-strong: color-mix(in srgb, var(--surface-2) 78%, transparent);
+  --sd-rim: rgb(255 255 255 / .12);
+  --sd-edge: rgb(255 255 255 / .08);
+  --sd-shadow: rgb(0 0 0 / .5);
+  --sd-blob-a: color-mix(in srgb, var(--brand) 30%, transparent);
+  --sd-blob-b: color-mix(in srgb, var(--pop, var(--accent)) 20%, transparent);
+}
+
+/* the page: soft colour blobs for the glass to catch */
+html[data-skin="soft"][data-skin="soft"][data-skin="soft"] :is(body, .gg-app-root) {
+  background:
+    radial-gradient(38rem 30rem at 12% 18%, var(--sd-blob-a), transparent 70%),
+    radial-gradient(34rem 28rem at 88% 72%, var(--sd-blob-b), transparent 70%),
+    radial-gradient(28rem 22rem at 70% 8%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* frosted panels */
+html[data-skin="soft"][data-skin="soft"][data-skin="soft"][data-skin="soft"] .card:not(:where([data-skin-preview] *)) {
+  background: var(--sd-glass);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  backdrop-filter: blur(22px) saturate(1.5);
+  border: 1px solid var(--sd-edge);
+  border-radius: 24px;
+  box-shadow: inset 0 1px 0 var(--sd-rim), 0 18px 40px -22px var(--sd-shadow);
+}
+
+/* buttons: glass pills; the primary is solid colour with a soft inner light */
+html[data-skin="soft"][data-skin="soft"][data-skin="soft"][data-skin="soft"] :is(.btn, .gg-btn):not(.btn-ghost):not(.btn-primary):not(:where([data-skin-preview] *)) {
+  background: var(--sd-glass-strong);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--sd-edge);
+  box-shadow: inset 0 1px 0 var(--sd-rim), 0 6px 14px -10px var(--sd-shadow);
+}
+html[data-skin="soft"][data-skin="soft"][data-skin="soft"][data-skin="soft"] :is(.btn, .gg-btn).btn-primary:not(:where([data-skin-preview] *)) {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .35), 0 10px 22px -10px color-mix(in srgb, var(--brand) 70%, transparent);
+}
+
+/* inputs: a soft well in the glass */
+html[data-skin="soft"][data-skin="soft"][data-skin="soft"][data-skin="soft"] :is(.input, input.input, .search):not(:where([data-skin-preview] *)) {
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border: 1px solid var(--sd-edge);
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+/* navigation sits on glass too */
+html[data-skin="soft"][data-skin="soft"][data-skin="soft"][data-skin="soft"] :is(.nav, .tabbar):not(:where([data-skin-preview] *)) {
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  border-color: var(--sd-edge);
+}
+/* the join row: one glass pill holds the field and button; the field itself is bare */
+html[data-skin="soft"][data-skin="soft"][data-skin="soft"][data-skin="soft"] form.join .input:not(:where([data-skin-preview] *)) {
+  background: transparent; border: 0; box-shadow: none;
+}

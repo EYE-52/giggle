@@ -12,8 +12,8 @@
 .columns > .panel.panel { min-width: 0; align-self: start; height: auto; }
 .panelBody { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 /* skins that give .card no padding (Clay) get the page's own */
-:global(html[data-skin="clay"]) .panelBody { padding: 18px 18px 16px; }
-@media (max-width: 720px) { :global(html[data-skin="clay"]) .panelBody { padding: 14px 12px 12px; } }
+:global(html[data-skin="clay"]) .panelBody, :global(html[data-skin="play"]) .panelBody { padding: 18px 18px 16px; }
+@media (max-width: 720px) { :global(html[data-skin="clay"]) .panelBody, :global(html[data-skin="play"]) .panelBody { padding: 14px 12px 12px; } }
 .panelHead { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 4px; }
 .panelTitle { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; }
 .count { font-size: 12px; line-height: 1; padding: 5px 8px; border-radius: 999px; background: var(--overlay, rgb(0 0 0 / .05)); color: var(--text-muted); }
@@ -28,7 +28,8 @@
 .iconBtn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--text-muted); cursor: pointer; }
 .iconBtn:hover { background: var(--overlay, rgb(0 0 0 / .05)); color: var(--text); }
 
-.newSquad { width: 100%; justify-content: center; gap: 8px; }
+/* icon and label stay on one line in every skin */
+.newSquad.newSquad { width: 100%; display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 8px; }
 .join { display: flex; gap: 8px; }
 .join input { flex: 1; min-width: 0; min-height: 44px; }
 .open { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; }

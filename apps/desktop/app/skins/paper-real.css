@@ -1,0 +1,40 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   DOODLE, refined (2026-09-26). Sketch-pen strokes stay (SketchLayer draws
+   them); handwriting is only for accents (titles, buttons, captions) and the
+   reading text is a legible rounded sans. Dark mode is a chalkboard: charcoal
+   page, slightly lighter slate panels, chalk-white strokes and text.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-skin="paper"] {
+  --font-body: var(--font-nunito), "Nunito", system-ui, sans-serif;
+}
+html[data-skin="paper"][data-mode="dark"] {
+  --bg: #171a1c;
+  --surface: #22272a;
+  --surface-2: #2a3033;
+  --text: #f1efe6;
+  --text-body: #e4e1d6;
+  --text-muted: #b9b6ac;
+  --muted: #b9b6ac;
+  --line: #4a5156;
+}
+/* reading text is upright sans; handwriting stays on titles, buttons and captions */
+html[data-skin="paper"][data-skin="paper"][data-skin="paper"] :is(p, li, small, b, span, label, input, .hint, .muted):not(:where([data-skin-preview] *)) {
+  font-style: normal;
+}
+html[data-skin="paper"][data-skin="paper"][data-skin="paper"] :is(input, .input, .search input):not(:where([data-skin-preview] *)) {
+  font-family: var(--font-body);
+}
+/* inputs: a pen line to write on */
+html[data-skin="paper"][data-skin="paper"][data-skin="paper"][data-skin="paper"] :is(.input, input.input):not(:where([data-skin-preview] *)) {
+  border: 0;
+  border-bottom: 2px solid color-mix(in srgb, var(--text) 70%, transparent);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-skin="paper"] :is(.input, input.input)::placeholder { color: var(--text-muted); opacity: 1; }
+/* chalkboard: panels are slate, not tinted with the palette; chalk strokes */
+html[data-skin="paper"][data-mode="dark"] :is(.card, .nav, .tabbar):not(:where([data-skin-preview] *)) {
+  --sketch-fill: var(--surface);
+  --sketch-stroke: #f1efe6;
+}
