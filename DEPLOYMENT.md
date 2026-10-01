@@ -37,9 +37,9 @@ Production configuration is stored in the **Railway service Variables** and **Ve
 | Setting | Location | Current state / purpose |
 | --- | --- | --- |
 | `NEXT_PUBLIC_BACKEND_URL` | Vercel / `vercel.json` | `https://giggle-server-production.up.railway.app` |
-| `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED` | Vercel / `vercel.json` | `true` (owner decision, 2 October 2026) |
+| `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED` | (retired) | No longer read by the web app, which asks the API (`GET /api/features`); a leftover value in the Vercel dashboard does nothing and can be deleted |
 | `SELF_DECLARED_AGE_ACCESS` | Railway | **`true`**, verified in the production Variables screen |
-| `STRANGER_DISCOVERY_ENABLED` | Railway | `true` to match the web build (owner decision, 2 October 2026; set by the owner in Railway). The API value is authoritative: with it `false`, "Find a squad" shows "Stranger discovery is temporarily unavailable." |
+| `STRANGER_DISCOVERY_ENABLED` | Railway | `true` (owner decision, 2 October 2026; set by the owner in Railway). The one switch for web matching: the site reads it from `GET /api/features` and shows or hides matching without a rebuild |
 | Database, Redis, Google OAuth, Agora and signing secrets | Railway | Existing server-only variables; use `server/.env.example` for names, never for production credentials |
 
 The current age flow accepts a date-of-birth declaration for adults **18+** and skips the hosted Yoti check. Existing adults who already declared their age can proceed without repeating the form. Under-18 declarations remain blocked. This is self-declaration, not independent age verification.
@@ -77,7 +77,7 @@ From commit `279d64a`, temporary access is evaluated from the server setting and
 
 1. **Provision Mongo, Redis, Agora, Yoti, auth providers, monitored support/safety mailboxes, and high-entropy secrets.** Configure Railway from `server/.env.example`; use reviewed production URLs and credentials.
 2. **Deploy `server/` to Railway from this repository.** Verify `/health`, Yoti verification session/status, report persistence, block enforcement, identity-only export, and staged account deletion before building clients.
-3. **Deploy the repository root to Vercel.** Use checked-in `vercel.json`, which builds `apps/desktop` and outputs `apps/desktop/.next`. Set `NEXT_PUBLIC_BACKEND_URL`; `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED` follows the owner's decision (currently `true`).
+3. **Deploy the repository root to Vercel.** Use checked-in `vercel.json`, which builds `apps/desktop` and outputs `apps/desktop/.next`. Set `NEXT_PUBLIC_BACKEND_URL`. Web matching follows the API's `STRANGER_DISCOVERY_ENABLED`; there is no web build flag for it.
 4. **Build `apps/mobile` with Expo/EAS after server verification.** Set `EXPO_PUBLIC_BACKEND_URL`, `EXPO_PUBLIC_STRANGER_DISCOVERY_ENABLED=false`, and `EXPO_PUBLIC_IOS_DISCOVERY_ENABLED=false` in the selected EAS environment. Rebuild after changing these public build-time values.
 5. **Smoke-test with two verified accounts.** Confirm report acknowledgement, blocking/no rematch, chat rejection, export, deletion staging, and a full match: search, automatic join, call, leave.
 
@@ -113,10 +113,9 @@ Vercel build values:
 
 ```text
 NEXT_PUBLIC_BACKEND_URL
-NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED=true
 ```
 
-- **Vercel project `giggle-meet`:** configure `NEXT_PUBLIC_BACKEND_URL` and `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED` (from `vercel.json`); keep server and OAuth secrets out.
+- **Vercel project `giggle-meet`:** configure `NEXT_PUBLIC_BACKEND_URL` (from `vercel.json`); keep server and OAuth secrets out.
 
 Expo/EAS build values:
 

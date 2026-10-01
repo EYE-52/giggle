@@ -33,7 +33,7 @@ import { Modal } from "@/components/Modal";
 import { createVideoClient } from "@giggle/agora";
 import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
-import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
+import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
 
 const REACTION_EMOJIS = ["👋", "🔥", "😂", "❤️", "👏"];
 
@@ -216,6 +216,8 @@ function WaitingForSquad({ label = "Waiting for the other squad…" }: { label?:
 }
 
 function EncounterInner() {
+  // stranger matching follows the API switch (see lib/discovery)
+  const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled() === true;
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
@@ -517,7 +519,7 @@ function EncounterInner() {
       endedNavTimerRef.current = setTimeout(() => {
         void leaveVideo();
         router.push(
-          WEB_DISCOVERY_ENABLED && payload?.reason === "squad_disconnected"
+          discoveryEnabledNow() && payload?.reason === "squad_disconnected"
             ? `/matchmaking?squad=${squadId}`
             : `/lobby?squad=${squadId}`,
         );

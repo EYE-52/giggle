@@ -3,6 +3,7 @@ const router = express.Router();
 const { Squad } = require("../models/Squad");
 const { Encounter } = require("../models/Encounter");
 const User = require("../models/User");
+const { isStrangerDiscoveryEnabled } = require("../config/appConfig");
 
 /**
  * @swagger
@@ -67,6 +68,24 @@ router.get("/stats", async (req, res) => {
     console.error("[stats] error:", err);
     res.status(500).json({ ok: false, error: { code: "STATS_ERROR", message: "Failed to fetch stats" } });
   }
+});
+
+/**
+ * @swagger
+ * /features:
+ *   get:
+ *     summary: Public feature switches the clients follow
+ *     tags: [Stats]
+ *     security: []
+ *     responses:
+ *       200:
+ *         description: Feature switches
+ */
+// Clients show or hide stranger matching from this answer, so the server's
+// STRANGER_DISCOVERY_ENABLED is the one switch (no build-time copies to drift).
+router.get("/features", (req, res) => {
+  res.set("Cache-Control", "public, max-age=30");
+  res.json({ ok: true, data: { strangerDiscovery: isStrangerDiscoveryEnabled() } });
 });
 
 module.exports = router;

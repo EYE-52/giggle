@@ -38,6 +38,6 @@ The web app opens at <http://localhost:4000>; the API defaults to <http://localh
 
 ## Release boundary
 
-The owner switched web stranger discovery on in production on 2 October 2026, before every gate in `DEPLOYMENT.md` was evidenced; those gates remain open and native builds keep discovery off. Public web/native flags only hide build surfaces; `STRANGER_DISCOVERY_ENABLED` on the API is authoritative.
+The owner switched web stranger discovery on in production on 2 October 2026, before every gate in `DEPLOYMENT.md` was evidenced; those gates remain open and native builds keep discovery off. The web app reads `STRANGER_DISCOVERY_ENABLED` from the API at run time (`GET /api/features`), so that one server variable switches web matching on or off; native flags only hide build surfaces.
 
 With `SELF_DECLARED_AGE_ACCESS=false`, missing Yoti configuration leaves identity, support, data export, and account deletion available while social access fails closed. Production temporarily uses `SELF_DECLARED_AGE_ACCESS=true` to accept adult date-of-birth declarations; see the deployment runbook before changing it.

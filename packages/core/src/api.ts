@@ -109,6 +109,10 @@ export const api = {
   skip: (squadId: string, encounterId: string) =>
     backendRequest<{ squadId: string; queueStatus: string }>("/api/matchmaking/skip", { method: "POST", body: { squadId, encounterId } }),
 
+  // --- public feature switches (the API is the one source of truth) ---
+  getFeatures: () =>
+    backendRequest<{ strangerDiscovery: boolean }>("/api/features"),
+
   // --- platform stats ---
   getStats: () =>
     backendRequest<{ squadsTotal: number; squadsOnline?: number; playersOnline: number; encountersTotal: number; searching: number; liveEncounters: number }>("/api/stats"),

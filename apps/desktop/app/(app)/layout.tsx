@@ -8,7 +8,7 @@ import { session, connectSocket, getMyAvatar } from "@giggle/core";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { reconcileMyAvatar } from "@/lib/avatarSync";
 import { AgeGate } from "@/components/AgeGate";
-import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
+import { useDiscoveryEnabled } from "@/lib/discovery";
 import { IdentityOnlyAccount } from "@/components/IdentityOnlyAccount";
 
 const CALLING_ROUTES = ["/lobby", "/encounter", "/matchmaking", "/match"];
@@ -19,7 +19,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isCalling = CALLING_ROUTES.some((r) => pathname === r);
-  const discoveryRouteDisabled = !WEB_DISCOVERY_ENABLED && DISCOVERY_ROUTES.includes(pathname);
+  // matching routes close only once the API has said matching is off
+  const discoveryRouteDisabled = useDiscoveryEnabled() === false && DISCOVERY_ROUTES.includes(pathname);
   const [authReady, setAuthReady] = useState(false);
   const [hasAdultAccess, setHasAdultAccess] = useState(false);
   const identityOnlyAccess = authReady && session.hasIdentityOnlyAccess;

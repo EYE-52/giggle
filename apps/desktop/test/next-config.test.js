@@ -46,7 +46,7 @@ const vercelConfig = () => JSON.parse(readFileSync(path.join(__dirname, "../../.
 const discoveryConfigSource = () => readFileSync(path.join(__dirname, "../lib/discovery.ts"), "utf8");
 const identityAccountPath = path.join(__dirname, "../components/IdentityOnlyAccount.tsx");
 
-test("web discovery build flag hides stranger matching without hiding private squads", () => {
+test("the API switch hides stranger matching without hiding private squads", () => {
   const config = discoveryConfigSource();
   const layout = appLayoutSource();
   const nav = topNavSource();
@@ -54,21 +54,21 @@ test("web discovery build flag hides stranger matching without hiding private sq
   const lobby = lobbySource();
   const encounter = encounterSource();
 
-  assert.match(config, /process\.env\.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED/);
-  assert.match(config, /flag !== "false"/);
-  assert.match(layout, /WEB_DISCOVERY_ENABLED/);
+  // one switch: the server's STRANGER_DISCOVERY_ENABLED, read at run time
+  assert.match(config, /api\.getFeatures\(\)/);
+  assert.doesNotMatch(config, /process\.env/);
+  assert.match(config, /export function useDiscoveryEnabled\(\)/);
+  assert.match(layout, /useDiscoveryEnabled\(\) === false && DISCOVERY_ROUTES\.includes\(pathname\)/);
   for (const route of ["discover", "matchmaking", "match"]) {
     assert.match(layout, new RegExp(`"/${route}"`));
   }
   assert.doesNotMatch(layout, /DISCOVERY_ROUTES = \[[^\]]*"\/encounter"/);
-  assert.match(nav, /WEB_DISCOVERY_ENABLED/);
-  assert.match(home, /WEB_DISCOVERY_ENABLED/);
-  assert.match(home, /if \(!WEB_DISCOVERY_ENABLED\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
+  assert.match(nav, /useDiscoveryEnabled\(\) === true/);
+  assert.match(home, /const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled\(\) === true;/);
+  assert.match(home, /if \(!discovery\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
   assert.match(home, /aria-label="Squad invite code"/i);
   assert.match(lobby, /WEB_DISCOVERY_ENABLED && isLeader/);
   assert.match(encounter, /WEB_DISCOVERY_ENABLED && \(/);
-  // web discovery is on by owner decision (2026-10-02); the API flag stays authoritative
-  assert.equal(vercelConfig().env.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED, "true");
   assert.doesNotMatch(config, /AGE|country|Country/);
 });
 
@@ -1623,8 +1623,8 @@ test("desktop home resumes active squad journeys instead of reopening their lobb
 
   assert.equal(page.includes("function squadDestination"), true);
   assert.equal(page.includes('["searching", "matched", "in_encounter"].includes(squad.status)'), true);
-  assert.equal(page.includes("router.push(squadDestination(s))"), true);
-  assert.equal(page.includes("router.push(squadDestination(active))"), true);
+  assert.equal(page.includes("router.push(squadDestination(s, WEB_DISCOVERY_ENABLED))"), true);
+  assert.equal(page.includes("router.push(squadDestination(active, WEB_DISCOVERY_ENABLED))"), true);
 });
 
 test("desktop home loading state mirrors squad-card content", () => {

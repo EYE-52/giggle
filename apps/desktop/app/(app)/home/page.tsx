@@ -15,13 +15,13 @@ import { Avatar } from "@/components/Avatar";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { Icon } from "@/components/Icons";
 import { useToast } from "@/components/Toast";
-import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
+import { useDiscoveryEnabled } from "@/lib/discovery";
 import { pollWhileVisible } from "@/lib/poll";
 import styles from "./home.module.css";
 
 const rank: Record<string, number> = { in_encounter: 0, matched: 1, searching: 2, idle: 3 };
-function squadDestination(squad: MySquadLite | PublicSquad) {
-  if (!WEB_DISCOVERY_ENABLED) return `/lobby?squad=${squad.squadId}`;
+function squadDestination(squad: MySquadLite | PublicSquad, discovery: boolean) {
+  if (!discovery) return `/lobby?squad=${squad.squadId}`;
   return ["searching", "matched", "in_encounter"].includes(squad.status)
     ? `/matchmaking?squad=${squad.squadId}`
     : `/lobby?squad=${squad.squadId}`;
@@ -30,6 +30,8 @@ const message = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
 
 export default function HomePage() {
+  // stranger matching follows the API switch (see lib/discovery)
+  const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled() === true;
   const router = useRouter();
   const { toast } = useToast();
   const [squads, setSquads] = useState<MySquadLite[] | null>(null);
@@ -114,7 +116,7 @@ export default function HomePage() {
       alive = false;
       stopPolling();
     };
-  }, [reload]);
+  }, [reload, WEB_DISCOVERY_ENABLED]);
   useEffect(() => {
     let alive = true;
     setRoster([]);
@@ -145,7 +147,7 @@ export default function HomePage() {
       alive = false;
       stopPolling();
     };
-  }, [reload]);
+  }, [reload, WEB_DISCOVERY_ENABLED]);
   async function invite(friend: Friend) {
     if (!ensureAuthed()) return;
     if (!active) {
@@ -325,7 +327,7 @@ export default function HomePage() {
                       {s.myRole === "leader" ? " · You lead" : ""}
                     </small>
                   </span>
-                  <Button size="sm" variant="secondary" onClick={() => router.push(squadDestination(s))}>Open</Button>
+                  <Button size="sm" variant="secondary" onClick={() => router.push(squadDestination(s, WEB_DISCOVERY_ENABLED))}>Open</Button>
                   <button type="button" className={`icon-btn ${styles.iconBtn}`} aria-label={`${s.myRole === "leader" ? "End" : "Leave"} ${s.squadName}`} onClick={() => setLeaving(s)}>
                     <Icon.close size={16} />
                   </button>
@@ -396,7 +398,7 @@ export default function HomePage() {
                           variant="secondary"
                           loading={pending === s.squadId}
                           disabled={!member && (!!pending || full || requested.includes(s.squadId))}
-                          onClick={() => (member ? router.push(squadDestination(s)) : void join(s))}
+                          onClick={() => (member ? router.push(squadDestination(s, WEB_DISCOVERY_ENABLED)) : void join(s))}
                         >
                           {member ? "Open" : requested.includes(s.squadId) ? "Requested" : full ? "Full" : s.joinPolicy === "request" ? "Ask to join" : "Join"}
                         </Button>
@@ -439,7 +441,7 @@ export default function HomePage() {
             <small className="muted">Start one, then invite friends.</small>
           </span>
         )}
-        <Button onClick={() => (active ? router.push(squadDestination(active)) : openCreate())}>
+        <Button onClick={() => (active ? router.push(squadDestination(active, WEB_DISCOVERY_ENABLED)) : openCreate())}>
           {trayAction}
           <Icon.arrowRight size={18} />
         </Button>

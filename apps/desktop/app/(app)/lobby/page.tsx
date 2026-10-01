@@ -17,7 +17,7 @@ import type { SquadState, SquadMemberState, JoinRequestUser } from "@giggle/core
 import { createVideoClient } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
-import { WEB_DISCOVERY_ENABLED } from "@/lib/discovery";
+import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
 import { pollWhileVisible } from "@/lib/poll";
 
 const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
@@ -54,6 +54,8 @@ function describeVideoError(e: unknown): string {
 }
 
 function LobbyInner() {
+  // stranger matching follows the API switch (see lib/discovery)
+  const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled() === true;
   const { isPhone } = useViewport();
   const themeId = useTheme();
   const router = useRouter();
@@ -199,7 +201,7 @@ function LobbyInner() {
     try {
       const s = await api.getSquad(squadId);
       setSquad(s);
-      if (WEB_DISCOVERY_ENABLED && ["searching", "matched", "in_encounter"].includes(s.status)) router.replace(`/matchmaking?squad=${squadId}`);
+      if (discoveryEnabledNow() && ["searching", "matched", "in_encounter"].includes(s.status)) router.replace(`/matchmaking?squad=${squadId}`);
       const vis = (s as { visibility?: "private" | "open" }).visibility;
       if (vis === "open" || vis === "private") setVisibility(vis);
       const jp = (s as { joinPolicy?: "open" | "request" | "invite" }).joinPolicy;
