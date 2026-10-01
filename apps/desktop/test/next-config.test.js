@@ -10,6 +10,8 @@ const rootLayoutSource = () => readFileSync(path.join(__dirname, "../app/layout.
 const matchmakingSource = () => readFileSync(path.join(__dirname, "../app/(app)/matchmaking/page.tsx"), "utf8");
 const matchSource = () => readFileSync(path.join(__dirname, "../app/(app)/match/page.tsx"), "utf8");
 const lobbySource = () => readFileSync(path.join(__dirname, "../app/(app)/lobby/page.tsx"), "utf8");
+const faceOffSource = () => readFileSync(path.join(__dirname, "../components/FaceOff.tsx"), "utf8");
+const faceOffCss = () => readFileSync(path.join(__dirname, "../components/FaceOff.module.css"), "utf8");
 const encounterSource = () => readFileSync(path.join(__dirname, "../app/(app)/encounter/page.tsx"), "utf8");
 const encounterE2eSource = () => readFileSync(path.join(__dirname, "../e2e/encounter.spec.ts"), "utf8");
 const venueCardSource = () => readFileSync(path.join(__dirname, "../components/VenueCard.tsx"), "utf8");
@@ -65,7 +67,8 @@ test("web discovery build flag hides stranger matching without hiding private sq
   assert.match(home, /aria-label="Squad invite code"/i);
   assert.match(lobby, /WEB_DISCOVERY_ENABLED && isLeader/);
   assert.match(encounter, /WEB_DISCOVERY_ENABLED && \(/);
-  assert.equal(vercelConfig().env.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED, "false");
+  // web discovery is on by owner decision (2026-10-02); the API flag stays authoritative
+  assert.equal(vercelConfig().env.NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED, "true");
   assert.doesNotMatch(config, /AGE|country|Country/);
 });
 
@@ -498,12 +501,10 @@ test("public legal pages do not expose internal launch placeholders", () => {
 test("matchmaking queue status is informational, not a premium priority upsell", () => {
   const page = matchmakingSource();
 
-  assert.equal(page.includes('<button\\n              style={{\\n                padding: "14px 36px", borderRadius: 999, cursor: "default"'), false);
-  assert.equal(page.includes('role="status"'), true);
-  assert.equal(page.includes("Checking active squads"), true);
-  assert.equal(page.includes("Matching your squad's vibes"), true);
-  assert.equal(page.includes("Finding the strongest live match"), true);
-  assert.equal(page.includes("Finding your squad"), false);
+  assert.equal(faceOffSource().includes('role="status" aria-live="polite"'), true);
+  assert.equal(page.includes("Looking for a squad"), true);
+  assert.equal(page.includes("Still looking"), true);
+  assert.equal(page.includes("Not many squads are live right now"), true);
   assert.equal(page.includes("Fast Pass"), false);
   assert.equal(page.includes("priority"), false);
   assert.equal(page.includes('router.push("/premium")'), false);
@@ -512,23 +513,29 @@ test("matchmaking queue status is informational, not a premium priority upsell",
 
 test("compact-phone matchmaking keeps the cancel action in view", () => {
   const page = matchmakingSource();
-  assert.equal(page.includes("const isShortPhone = isPhone && height <= 650"), true);
-  assert.equal(page.includes("const signalSize = isShortPhone ? 48"), true);
-  assert.equal(page.includes('<div aria-hidden style={{ width: signalSize'), true);
-  assert.equal(page.includes('overflowY: isPhone ? "auto" : "hidden"'), true);
-  assert.equal(page.includes("!matchFound && !isShortPhone"), true);
+  const css = faceOffCss();
+  // one screen: the people flex, the status and actions never leave the screen
+  assert.match(css, /\.page \{[^}]*overflow: hidden;/);
+  assert.match(css, /\.arena \{ flex: 1; min-height: 0;/);
+  assert.match(css, /\.foot \{ flex: none;/);
+  assert.match(css, /@media \(max-height: 640px\) \{ \.people \{ --face: 72px; \}/);
+  assert.equal(page.includes('backLabel="Back to lobby"'), true);
+  assert.equal(page.includes('cancelError ? "Try cancel again" : "Cancel search"'), true);
 });
 
 test("matchmaking inherits the active theme without radar decoration", () => {
   const page = matchmakingSource();
+  const faceOff = faceOffSource();
 
   assert.equal(page.includes('data-theme="dark"'), false);
   assert.equal(page.includes("conic-gradient"), false);
   assert.equal(page.includes("#7C5CFF"), false);
   assert.equal(page.includes("#C2FF3D"), false);
-  assert.equal(page.includes('<AvatarStack names={squadMemberNames}'), true);
-  assert.equal(page.includes('background: "var(--accent-soft)"'), true);
-  assert.equal(page.includes('background: "var(--surface)"'), true);
+  // the squad's own characters, on skinned cards
+  assert.equal(page.includes("<FaceOff"), true);
+  assert.equal(faceOff.includes("<PersonAvatar"), true);
+  assert.equal(faceOff.includes("className={`card ${styles.side}`}"), true);
+  assert.match(faceOffCss(), /background: var\(--surface\)/);
 });
 
 test("desktop matchmaking cancel stays put when backend cancel fails", () => {
@@ -590,9 +597,12 @@ test("desktop match countdown follows the server handoff deadline", () => {
   assert.equal(page.includes("const secondsLeft = Math.ceil((deadline - Date.now()) / 1000);"), true);
   assert.equal(page.includes("setCountdownTotal(secondsLeft);"), true);
   assert.equal(page.includes("Math.max(0, Math.ceil((deadline - Date.now()) / 1000))"), true);
-  assert.equal(page.includes('aria-label={`${countdown} of ${countdownTotal} seconds remaining`}'), true);
+  assert.equal(page.includes('aria-label={`${countdown} of ${countdownTotal} seconds left to join`}'), true);
   assert.equal(page.includes("useState(20)"), false);
-  assert.equal(page.includes("Starts in {countdown}s"), true);
+  // searching already said yes: the squad joins on its own after a short reveal
+  assert.equal(page.includes("const AUTO_JOIN_SECONDS = 3;"), true);
+  assert.equal(page.includes("Joining in ${autoLeft}…"), true);
+  assert.equal(page.includes("Starts in"), false);
 });
 
 test("desktop match keeps recoverable load and join failures on the handoff", () => {
@@ -601,7 +611,7 @@ test("desktop match keeps recoverable load and join failures on the handoff", ()
 
   assert.equal(page.includes("function isExpiredEncounterError"), true);
   assert.equal(page.includes('setHandoffError(expired ? "This match handoff has expired." : error instanceof Error ? error.message : "Couldn\'t load this match.")'), true);
-  assert.equal(page.includes('{handoffExpired ? "Match expired" : "Couldn\'t open room"}'), true);
+  assert.equal(page.includes('handoffExpired ? "That match expired before both squads joined." : handoffError ?? "This room is no longer available."'), true);
   assert.equal(page.includes("window.location.reload()"), true);
   assert.equal(join.includes("if (isExpiredEncounterError(error))"), true);
   assert.equal(join.includes("setJoining(false);"), true);
@@ -613,35 +623,39 @@ test("desktop match preserves leader and roster data when squad detail is unavai
 
   assert.equal(page.includes("const encounterMembers = encounter"), true);
   assert.equal(page.includes("?? encounterMembers.find(m => m.userId === session.user?.id)"), true);
-  assert.equal(page.includes("const myMembers = (squad?.members ?? encounterMembers).map(m => m.displayName);"), true);
+  assert.equal(page.includes("const myRoster = squad?.members ?? encounterMembers;"), true);
 });
 
 test("mobile match keeps the action card in normal flow", () => {
-  const page = matchSource();
+  const css = faceOffCss();
 
-  assert.equal(page.includes('width: "min(640px, 100%)"'), true);
-  assert.equal(page.includes('gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr"'), true);
+  assert.equal(matchSource().includes("<FaceOff"), true);
+  // phones stack the squads like the call: theirs on top, yours below, actions after
+  assert.match(css, /@media \(max-width: 720px\) \{ \.arena \{ grid-template-columns: minmax\(0, 1fr\); grid-template-rows: minmax\(0, 1fr\) auto minmax\(0, 1fr\);/);
+  assert.equal(css.includes("position: fixed"), false);
 });
 
 test("desktop match uses a theme-native Room ready handoff", () => {
   const page = matchSource();
+  const faceOff = faceOffSource();
 
   assert.equal(page.includes('data-theme="dark"'), false);
   assert.equal(page.includes(">VS<"), false);
   assert.equal(page.includes("resolveCover"), false);
-  assert.equal(page.includes("Room ready"), true);
-  assert.equal(page.includes('<AvatarStack names={myMembers}'), true);
-  assert.equal(page.includes('<AvatarStack names={opponentMembers}'), true);
-  assert.equal(page.includes('background: "var(--surface)"'), true);
   assert.equal(page.includes('aria-label="Opening room"'), true);
-  assert.equal(page.includes('role="group" aria-label={rosterLabel}'), true);
-  assert.equal(page.includes('const rosterLabel = `${mySquadName}: ${myMembers.join(", ")}. ${pairedSquadName}: ${opponentMembers.join(", ")}`;'), true);
+  assert.equal(page.includes("mine={mySide}"), true);
+  assert.equal(page.includes("theirs={theirSide}"), true);
+  // each squad is a labelled group of its people's characters
+  assert.equal(faceOff.includes("aria-label={side ? side.name"), true);
+  assert.equal(faceOff.includes("<PersonAvatar userId={person.userId} name={person.displayName} avatar={person.avatar}"), true);
+  // no shouty eyebrow labels
+  assert.equal(page.includes("textTransform"), false);
 });
 
 test("desktop match keeps handoff actions reachable in phone landscape", () => {
-  const page = matchSource();
-
-  assert.match(page, /overflowY: "auto"/);
+  const css = faceOffCss();
+  assert.match(css, /@media \(max-height: 640px\)/);
+  assert.match(css, /\.foot \{ flex: none;/);
 });
 
 test("desktop match expiry does not navigate away when leader skip fails", () => {
@@ -729,8 +743,10 @@ test("desktop lobby requires every online member to be ready before starting a m
   assert.equal(page.includes("try { await api.setReady(squadId, true); } catch {}"), false);
   assert.equal(page.includes("try { await api.setLobbyVideo(squadId, true); } catch {}"), false);
   assert.equal(page.includes("const activeMembers = (squad?.members ?? []).filter(m => m.online !== false);"), true);
-  assert.equal(page.includes("const everyoneReady = activeMembers.length > 0 && activeMembers.every(member => member.ready);"), true);
-  assert.equal(page.includes("Everyone online needs to be ready before you find a match."), true);
+  // everyone else online must be ready; pressing "Find a squad" readies the leader
+  assert.equal(page.includes("const waitingOn = activeMembers.filter(member => member.userId !== myUserId && !member.ready);"), true);
+  assert.equal(page.includes("Waiting for ${waitingOn.map(member => member.displayName).join(\", \")} to be ready."), true);
+  assert.equal(page.includes("// Pressing \"Find a squad\" is the leader saying they're ready."), true);
   assert.equal(page.includes("await api.setReady(squadId, true);\n      await api.setLobbyVideo"), false);
   assert.match(proceedFindMatch, /await api\.startSearch\(squadId\)/);
   assert.doesNotMatch(proceedFindMatch, /setLobbyVideo/);
@@ -954,7 +970,7 @@ test("desktop encounter starts local media cleanup before backend-confirmed navi
   assert.match(endBlock, /const mediaExit = leaveVideo\(\);/);
   assert.match(endBlock, /await api\.disconnectEncounter\(squadId, encId\);/);
   assert.ok(endBlock.indexOf("const mediaExit = leaveVideo();") < endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"));
-  assert.ok(endBlock.indexOf('router.replace("/home");') > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"));
+  assert.ok(endBlock.indexOf('router.replace(`/lobby?squad=${squadId}`);') > endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"));
   assert.match(endBlock, /await mediaExit;/);
   assert.match(endBlock, /catch \{[\s\S]*?retryVideo\(\);/);
   assert.match(leaveBlock, /await leaveVideo\(\);/);
@@ -963,13 +979,15 @@ test("desktop encounter starts local media cleanup before backend-confirmed navi
   assert.match(endBlock, /setEnding\(false\);/);
   assert.match(endBlock, /setEndError\("Couldn't end this encounter yet\. Reconnecting your video…"\);/);
   assert.match(page, /onClick=\{exitKind === "leave" \? handlePersonalLeave : handleEnd\}[\s\S]*?disabled=\{ending\}/);
-  assert.equal(page.includes('title={exitKind === "leave" ? "Leave this call?" : "End encounter?"}'), true);
-  assert.equal(page.includes("This ends the current encounter for both squads."), true);
+  assert.equal(page.includes('title={exitKind === "leave" ? "Leave this call?" : "End the call?"}'), true);
+  assert.equal(page.includes("This ends the call for both squads."), true);
+  // the last of a squad leaving ends the call so the other squad is not left in an empty room
+  assert.match(page, /async function handlePersonalLeave\(\) \{[\s\S]*?if \(lastOfMySquad\) return handleEnd\(\);/);
   assert.equal(page.includes("setEndConfirmOpen(true)"), true);
   assert.equal(page.includes("SOCKET_EVENTS.ENCOUNTER_ENDED"), true);
   assert.equal(page.includes('payload?.reason === "squad_disconnected"'), true);
   assert.equal(page.includes('payload?.endedBySquadId === squadId'), true);
-  assert.equal(page.includes("Continue matching"), true);
+  assert.equal(page.includes("Find another now"), true);
   assert.equal(endBlock.includes('console.error("End encounter failed (non-fatal):", e);'), false);
 });
 
@@ -1056,10 +1074,11 @@ test("desktop encounter report button only shows success after persistence ackno
 });
 
 test("desktop matchmaking keeps cancel reachable on short phones", () => {
-  const page = readFileSync(path.join(__dirname, "../app/(app)/matchmaking/page.tsx"), "utf8");
+  const css = faceOffCss();
 
-  assert.match(page, /overflowY: isPhone \? "auto" : "hidden"/);
-  assert.match(page, /justifyContent: isShortPhone \? "flex-start" : "center"/);
+  assert.match(css, /\.page \{[^}]*overflow: hidden;/);
+  assert.match(css, /\.foot \{ flex: none;/);
+  assert.equal(matchmakingSource().includes('backLabel="Back to lobby"'), true);
 });
 
 test("desktop encounter consolidates recovery and transient notices", () => {
@@ -1479,7 +1498,7 @@ test("encounter browser coverage avoids real Agora while preserving call flows",
   assert.match(responsive, /Chat message/);
   assert.match(responsive, /setViewportSize/);
   assert.match(remoteEnded, /emitOpponentEnded/);
-  assert.match(remoteEnded, /The other squad left/);
+  assert.match(remoteEnded, /Chaos Club left/);
 });
 
 test("failed notification mark-all never restores a stale item snapshot", () => {
@@ -1668,7 +1687,8 @@ test("desktop discover keeps creation in the filtered empty state", () => {
   assert.equal(page.includes("handlePrimaryCta"), false);
   assert.equal(page.includes("shown.length === 0"), true);
   assert.equal(page.includes("primary={{ label: \"Create a squad\", onClick: handleCreate, disabled: creating }}"), true);
-  assert.equal(page.includes("right={loading || hasOpenSquads ? ("), true);
+  // "Surprise me" sits with the filters only when there are squads to pick from
+  assert.equal(page.includes("{(loading || hasOpenSquads) && ("), true);
 });
 
 test("desktop discover presents load failures without logging handled errors", () => {

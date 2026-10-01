@@ -550,10 +550,23 @@ function LobbyInner() {
     // server's online-only ready-check). online === false means offline;
     // true/undefined counts as online.
     const activeMembers = (squad?.members ?? []).filter(m => m.online !== false);
-    const everyoneReady = activeMembers.length > 0 && activeMembers.every(member => member.ready);
-    if (!everyoneReady) {
-      setMatchError("Everyone online needs to be ready before you find a match.");
+    const waitingOn = activeMembers.filter(member => member.userId !== myUserId && !member.ready);
+    if (waitingOn.length) {
+      setMatchError(`Waiting for ${waitingOn.map(member => member.displayName).join(", ")} to be ready.`);
       return;
+    }
+    // Pressing "Find a squad" is the leader saying they're ready.
+    if (!squad?.members.find(member => member.userId === myUserId)?.ready) {
+      setFindingMatch(true);
+      try {
+        await api.setReady(squadId, true);
+        setSquad(current => current ? { ...current, members: current.members.map(member => member.userId === myUserId ? { ...member, ready: true } : member) } : current);
+      } catch (e) {
+        setFindingMatch(false);
+        setMatchError((e as { message?: string })?.message || "Couldn't get your squad ready.");
+        return;
+      }
+      setFindingMatch(false);
     }
     // Camera priming: if lobby media was never enabled, confirm before entering
     // the encounter camera-less (never auto-request on mount).
@@ -610,7 +623,7 @@ function LobbyInner() {
 
   async function saveName() {
     if (!squadId) return;
-    const next = nameDraft.trim().slice(0, 40);
+    const next = nameDraft.trim().slice(0, 32);
     if (!next || next === squad?.squadName) { setEditingName(false); return; }
     setSavingName(true);
     setMatchError(null);
@@ -738,15 +751,20 @@ function LobbyInner() {
   const currentTags = normalizeVibeLabels(squad.tags ?? []);
   const canInvite = memberCount < MAX_SLOTS;
   const onlineMembers = squad.members.filter(m => m.online !== false);
-  const allReady = onlineMembers.length > 0 && onlineMembers.every(m => m.ready);
+  const othersOnline = onlineMembers.filter(m => m.userId !== myUserId);
+  const othersReady = othersOnline.every(m => m.ready);
   const myReady = !!myMember?.ready;
   const closeChat = () => { setChatOpen(false); setSidebarTab("info"); };
 
   const onlineCount = onlineMembers.length;
   const openSeats = Math.max(0, MAX_SLOTS - memberCount);
-  const readyLine = WEB_DISCOVERY_ENABLED
-    ? `${readyCount} of ${onlineCount} ready${isLeader ? (allReady ? " · you can find a squad" : "") : " · your leader starts the search"}`
-    : memberCount === 1 ? "Just you so far" : `${onlineCount} of ${memberCount} here`;
+  const readyLine = !WEB_DISCOVERY_ENABLED
+    ? memberCount === 1 ? "Just you so far" : `${onlineCount} of ${memberCount} here`
+    : isLeader
+      ? othersOnline.length === 0
+        ? "Just you so far"
+        : othersReady ? "Everyone's ready" : `${othersOnline.filter(m => m.ready).length} of ${othersOnline.length} ready`
+      : myReady ? "Your leader starts the search" : `${readyCount} of ${onlineCount} ready`;
   const openChat = () => { setChatOpen(true); setSidebarCollapsed(false); setSidebarTab("chat"); };
 
   return (
@@ -776,7 +794,7 @@ function LobbyInner() {
       {(matchError || connTrouble) && <div role="alert" className={styles.notice}>{matchError || "Connection lost. Reconnecting to your squad…"}<Button variant="ghost" size="sm" onClick={() => void fetchSquad()}>Retry</Button></div>}
 
       <div className={styles.body}>
-        <section className={styles.seats} data-count={memberCount + (canInvite ? 1 : 0)} hidden={isPhone && chatVisible} aria-label="Squad members">
+        <section className={styles.seats} data-count={memberCount + Math.min(openSeats, 7)} hidden={isPhone && chatVisible} aria-label="Squad members">
           {squad.members.map((member) => {
             const isMe = member.userId === myUserId;
             const remote = remotes.find(r => String(r.uid) === String(member.uid));
@@ -814,8 +832,8 @@ function LobbyInner() {
             </> : null}
             <span className={`muted ${styles.readyLine}`}>{readyLine}</span>
             {!videoJoined && <Button variant={WEB_DISCOVERY_ENABLED ? "secondary" : "primary"} loading={videoJoining} onClick={() => void enableLobbyMedia()} aria-label="Turn on camera and microphone"><Icon.cam size={19} /><span className={styles.wide}>Turn on camera &amp; mic</span><span className={styles.narrow}>Camera &amp; mic</span></Button>}
-            {WEB_DISCOVERY_ENABLED && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : "I'm ready to join"}</Button>}
-            {WEB_DISCOVERY_ENABLED && isLeader && <Button disabled={!allReady || findingMatch} loading={findingMatch} onClick={handleFindMatch}>Find a squad<Icon.arrowRight size={18} /></Button>}
+            {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}
+            {WEB_DISCOVERY_ENABLED && isLeader && <Button disabled={!othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch}>Find a squad<Icon.arrowRight size={18} /></Button>}
           </div>
           {videoError && <p role="alert" className={styles.error}>{videoError}</p>}
         </div>
@@ -839,7 +857,7 @@ function LobbyInner() {
           <Button variant="danger" onClick={() => { setSettingsOpen(false); setLeaveMenuOpen(true); }}>Leave squad</Button>
         </div>
       </Modal>}
-      {editingName && <Modal title="Rename squad" onClose={() => { if (!savingName) setEditingName(false); }} width={420}><form className={styles.modalStack} onSubmit={e => { e.preventDefault(); void saveName(); }}><label className={styles.field}>Squad name<input autoFocus maxLength={40} value={nameDraft} onChange={e => setNameDraft(e.target.value)} /></label>{matchError && <p role="alert">{matchError}</p>}<Button type="submit" loading={savingName}>Save name</Button></form></Modal>}
+      {editingName && <Modal title="Rename squad" onClose={() => { if (!savingName) setEditingName(false); }} width={420}><form className={styles.modalStack} onSubmit={e => { e.preventDefault(); void saveName(); }}><label className={styles.field}>Squad name<input autoFocus maxLength={32} value={nameDraft} onChange={e => setNameDraft(e.target.value)} /></label>{matchError && <p role="alert">{matchError}</p>}<Button type="submit" loading={savingName}>Save name</Button></form></Modal>}
       {memberToRemove && <Modal title={`Remove ${memberToRemove.displayName}?`} onClose={() => { if (!removingMember) setMemberToRemove(null); }} width={420}><p>They will leave this squad. You can invite them again later.</p><Button variant="danger" loading={removingMember} onClick={handleRemoveMember}>Remove member</Button></Modal>}
       {leaveMenuOpen && <Modal title="Leave this squad?" onClose={() => { if (!leavingSquad) setLeaveMenuOpen(false); }} width={420}><div className={styles.modalStack}><p>{isLeader ? memberCount > 1 ? "Leadership will pass to another member. You can also end the squad for everyone." : "You are the only member. Leaving will close this squad." : "The rest of your squad can keep talking."}</p>{matchError && <p role="alert">{matchError}</p>}<Button variant="secondary" loading={leavingSquad} onClick={handleLeaveSquad}>Leave squad</Button>{isLeader && memberCount > 1 && <Button variant="danger" loading={leavingSquad} onClick={handleDisbandSquad}>End squad for everyone</Button>}</div></Modal>}
       {noCamConfirmOpen && <Modal title="Connect your devices" subtitle="Choose how you want to join the call." onClose={() => { if (!noCamEnabling) setNoCamConfirmOpen(false); }} width={420}><div className={styles.modalStack}>{videoError && <p role="alert" className={styles.error}>{videoError}</p>}<Button loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Turn on camera &amp; mic</Button><Button variant="secondary" loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(false); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Continue with audio only</Button></div></Modal>}

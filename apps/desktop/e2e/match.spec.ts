@@ -137,7 +137,7 @@ async function installMatchFixture(page: Page, options: FixtureOptions = {}) {
 
 async function openMatch(page: Page) {
   await page.goto("/match?squad=fixture-squad&enc=fixture-handoff");
-  await expect(page.getByText("Room ready", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Join now" })).toBeVisible();
 }
 
 test.beforeEach(({}, testInfo) => {
@@ -148,26 +148,27 @@ test("route-mocked handoff exposes loading, both rosters, and the active theme",
   const fixture = await installMatchFixture(page, { holdEncounter: true });
   await page.goto("/match?squad=fixture-squad&enc=fixture-handoff");
 
-  await expect(page.getByRole("heading", { name: "Preparing your room" })).toBeVisible();
+  await expect(page.getByLabel("Opening room")).toBeVisible();
   fixture.releaseEncounter();
-  await expect(page.getByRole("heading", { name: "Your squads can join now" })).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("data-mode", "light");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.getByText("VS", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("group", { name: /Night Owls.*Maya.*Arjun.*Chaos Club.*Leo.*Nia/i })).toBeVisible();
-  await expect(page.getByRole("timer")).toContainText(/Starts in \d+s/);
+  // each squad is a labelled group of its people, theirs and yours
+  await expect(page.getByRole("region", { name: "Night Owls" })).toContainText(/Maya|You/);
+  await expect(page.getByRole("region", { name: "Chaos Club" })).toContainText(/Leo.*Nia/);
+  await expect(page.getByRole("timer")).toContainText(/Joining in \d…/);
 });
 
 test("join acknowledgement stays retryable and navigates only after success", async ({ page }) => {
   const fixture = await installMatchFixture(page, { ackFailures: 1 });
   await openMatch(page);
 
-  await page.getByRole("button", { name: "Join room" }).click();
-  await expect(page.getByRole("alert").filter({ hasText: "Room is still syncing." })).toBeVisible();
+  // the squad joins by itself after the short reveal; a failed join stays on the handoff
+  await expect(page.getByRole("alert").filter({ hasText: "Room is still syncing." })).toBeVisible({ timeout: 6_000 });
   await expect(page).toHaveURL(/\/match\?squad=fixture-squad/);
   expect(fixture.ackAttempts()).toBe(1);
 
-  await page.getByRole("button", { name: "Join room" }).click();
+  await page.getByRole("button", { name: "Join now" }).click();
   await expect(page).toHaveURL(/\/encounter\?squad=fixture-squad&enc=fixture-handoff/, { timeout: 3_000 });
   expect(fixture.ackAttempts()).toBe(2);
   expect(fixture.calls.filter(call => call.path === `${encounterPath}/ack`).map(call => call.body)).toEqual([
@@ -180,8 +181,8 @@ test("expired handoff offers recovery without entering the room", async ({ page 
   await installMatchFixture(page, { expired: true });
   await page.goto("/match?squad=fixture-squad&enc=fixture-handoff");
 
-  await expect(page.getByRole("heading", { name: "Match expired" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Join room" })).toHaveCount(0);
+  await expect(page.getByText("That match expired before both squads joined.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Join now" })).toHaveCount(0);
   await page.getByRole("button", { name: "Find another" }).click();
   await expect(page).toHaveURL(/\/matchmaking\?squad=fixture-squad/);
 });
@@ -189,31 +190,24 @@ test("expired handoff offers recovery without entering the room", async ({ page 
 test("leader can skip while a member sees leader authority", async ({ page }) => {
   const leaderFixture = await installMatchFixture(page, { role: "leader" });
   await openMatch(page);
-  await page.getByRole("button", { name: /^Skip \(/ }).click();
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
   await expect(page).toHaveURL(/\/matchmaking\?squad=fixture-squad/);
   expect(leaderFixture.calls.some(call => call.path === "/api/matchmaking/skip")).toBe(true);
 
   const memberPage = await page.context().newPage();
   await installMatchFixture(memberPage, { role: "member" });
   await openMatch(memberPage);
-  await expect(memberPage.getByRole("button", { name: /^Skip \(/ })).toHaveCount(0);
-  await expect(memberPage.getByText(/Waiting for your leader to start/i)).toBeVisible();
+  await expect(memberPage.getByRole("button", { name: "Skip", exact: true })).toHaveCount(0);
+  await expect(memberPage.getByRole("button", { name: "Skip this squad" })).toBeDisabled();
 });
 
-test("reduced-motion phone landscape can scroll both actions into view", async ({ page }) => {
+test("reduced-motion phone landscape keeps both actions on screen", async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
   await page.emulateMedia({ reducedMotion: "reduce" });
   await installMatchFixture(page);
   await openMatch(page);
 
-  const section = page.getByRole("heading", { name: "Your squads can join now" }).locator("xpath=ancestor::section");
-  const scroller = section.locator("..");
-  await expect.poll(() => scroller.evaluate(node => getComputedStyle(node).overflowY)).toBe("auto");
-  await page.mouse.move(422, 280);
-  await page.mouse.wheel(0, 1_000);
-  await expect.poll(() => scroller.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
-
-  for (const button of [page.getByRole("button", { name: "Join room" }), page.getByRole("button", { name: /^Skip \(/ })]) {
+  for (const button of [page.getByRole("button", { name: "Join now" }), page.getByRole("button", { name: "Skip", exact: true })]) {
     const box = await button.boundingBox();
     expect(box?.y).toBeGreaterThanOrEqual(0);
     expect(box && box.y + box.height).toBeLessThanOrEqual(390);
@@ -223,4 +217,5 @@ test("reduced-motion phone landscape can scroll both actions into view", async (
     });
     expect(durationMs).toBeLessThanOrEqual(0.001);
   }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
 });

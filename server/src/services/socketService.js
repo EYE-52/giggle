@@ -513,6 +513,8 @@ const init = (server) => {
           );
           emitToSquad(squad.squadId, 'SQUAD_UPDATED', {});
         }
+
+        scheduleAbandonedEncounterCheck(userId);
       } catch (err) {
         // Never throw from the disconnect handler.
         console.error('[presence] disconnect cleanup error:', err);
@@ -521,6 +523,36 @@ const init = (server) => {
   });
 
   return io;
+};
+
+// A squad whose members all closed the app mid-call would leave the other
+// squad in an empty room. Page reloads reconnect within seconds, so wait a
+// grace period, then end the call for that squad (the other squad is told and
+// requeued exactly as if the squad had pressed End).
+const ENCOUNTER_ABANDON_GRACE_MS = 30_000;
+const endAbandonedEncounters = async (userId) => {
+  if (await isUserOnline(userId)) return 0;
+  const squads = await Squad.find({ 'members.userId': userId, status: 'in_encounter' });
+  let ended = 0;
+  for (const squad of squads) {
+    const onlineMemberIds = await getOnlineUserIds(squad.members.map((m) => m.userId));
+    if (onlineMemberIds.size > 0 || !squad.currentEncounterId) continue;
+    const { getEncounterById, endEncounterAsymmetric } = require('./matchmakingService');
+    const encounter = await getEncounterById(squad.currentEncounterId);
+    if (!encounter || encounter.status === 'ended') continue;
+    await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });
+    logRealtimeDebug(`[presence] Squad ${squad.squadId} left encounter ${encounter.encounterId} (all members offline)`);
+    ended += 1;
+  }
+  return ended;
+};
+const scheduleAbandonedEncounterCheck = (userId, graceMs = ENCOUNTER_ABANDON_GRACE_MS) => {
+  const timer = setTimeout(() => {
+    if (shuttingDown) return;
+    endAbandonedEncounters(userId).catch((err) => console.error('[presence] abandoned encounter check failed:', err));
+  }, graceMs);
+  if (typeof timer.unref === 'function') timer.unref();
+  return timer;
 };
 
 // Graceful shutdown: disconnect every socket and close the engine (socket.io
@@ -579,6 +611,7 @@ module.exports = {
   authenticateSocket,
   closeEncounterRoom,
   disconnectUserSockets,
+  endAbandonedEncounters,
   init,
   close,
   getIO,

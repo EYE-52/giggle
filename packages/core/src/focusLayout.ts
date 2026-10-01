@@ -5,8 +5,10 @@
  *   (2 = twice the area, up to MAX_WEIGHT) and everyone else re-flows around them.
  * - A pinned person keeps a fixed pixel size no matter what happens to the others;
  *   the rest of their squad fills the space that is left.
- * - Video is cropped to fill each tile (the renderer uses object-fit: cover), so
- *   tiles can take whatever shape fills the screen best.
+ * - Tiles always fill the squad's space (no holes). Each tile's shape follows the
+ *   person's camera (portrait phones get narrow tiles, laptops wide ones) so faces
+ *   come out about the same size and little of anyone's video is cropped. A tile
+ *   whose crop would still be heavy is shown whole (see videoCrop / CROP_LIMIT).
  * - Order is kept: people never jump around when someone is zoomed.
  *
  * Pure and deterministic; no DOM. The viewer's zoom/pin state is local to them.
@@ -18,6 +20,10 @@ export type FocusPerson = {
   weight?: number;
   /** Fixed pixel size while pinned (captured when the viewer pins). */
   pinned?: { width: number; height: number } | null;
+  /** The person's camera shape (width / height) while their video is on; unknown or camera off = any shape. */
+  aspect?: number | null;
+  /** The viewer themselves: kept reasonable but never bigger than the people they are talking to. */
+  self?: boolean;
 };
 
 export type FocusTile = { id: string; x: number; y: number; width: number; height: number; pinned: boolean; side: "mine" | "theirs" };
@@ -37,7 +43,11 @@ export type FocusOptions = {
 export const MAX_WEIGHT = 4;
 const DEFAULTS = { gap: 4, squadGap: 10, minShare: 0.28, minTile: 72 };
 
-const clampWeight = (weight?: number) => (Number.isFinite(weight) ? Math.max(1, Math.min(MAX_WEIGHT, weight as number)) : 1);
+/** Lowest weight the engine accepts (the viewer's own tile uses SELF_WEIGHT). */
+export const MIN_WEIGHT = 0.25;
+/** The viewer's own video gets half the room of everyone else by default. */
+export const SELF_WEIGHT = 0.5;
+const clampWeight = (weight?: number) => (Number.isFinite(weight) ? Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, weight as number)) : 1);
 const finite = (value: number) => (Number.isFinite(value) ? Math.max(0, value) : 0);
 
 /** Every way to cut n ordered items into contiguous lines (2^(n-1) ways; n is at most 8 per squad). */
@@ -76,52 +86,152 @@ function greedyPartitions(weights: number[]): number[][][] {
 
 type Placed = { index: number; x: number; y: number; width: number; height: number };
 
+/** Above this share of a video lost to cropping, the renderer shows the whole video instead. */
+export const CROP_LIMIT = 0.3;
+const NEUTRAL_ASPECT = 1.15; // camera off / unknown: an avatar is happy in any near-square tile
+
+const knownAspect = (aspect?: number | null) => (aspect && Number.isFinite(aspect) && aspect >= 0.2 && aspect <= 5 ? aspect : null);
+
+/** Share of a camera's picture a tile hides when the video fills it (object-fit: cover). */
+export function videoCrop(tileWidth: number, tileHeight: number, aspect?: number | null): number {
+  const a = knownAspect(aspect);
+  if (!a || tileWidth <= 0 || tileHeight <= 0) return 0;
+  const r = tileWidth / tileHeight;
+  return 1 - Math.min(r / a, a / r);
+}
+
 /**
- * Justified lines: every line spans the full box; line thickness is proportional to
- * the line's total weight and each tile's length to its own weight, so every tile's
- * area is proportional to its weight. Tries rows and columns and every line count,
- * and keeps the arrangement whose tiles are closest to a comfortable video shape.
+ * How big a person's face comes out in a tile: the height the video is drawn at
+ * (cropped when the crop is light, shown whole when it would be heavy). Camera
+ * off: the avatar, which is as big as the tile's shorter side.
  */
-function justify(weights: number[], box: FocusRect, gap: number): Placed[] {
-  const n = weights.length;
-  if (!n || box.width <= 0 || box.height <= 0) return weights.map((_, index) => ({ index, x: box.x, y: box.y, width: 0, height: 0 }));
+function faceSize(width: number, height: number, aspect?: number | null): number {
+  const a = knownAspect(aspect);
+  if (!a) return Math.min(width, height);
+  const r = width / Math.max(1e-6, height);
+  const cover = r < a ? height : width / a;
+  const contain = r < a ? width / a : height;
+  return videoCrop(width, height, a) <= CROP_LIMIT ? cover : contain;
+}
+
+type Scored = { width: number; height: number; weight: number; aspect?: number | null; self?: boolean; target?: number };
+
+/**
+ * Lower is better. The smallest face among the people you are talking to counts
+ * most, then how even everyone is (zoom counted), then overall size, then crop.
+ * Your own tile is left out of the fairness and only kept between a floor and the
+ * smallest face of everyone else.
+ */
+function arrangementCost(items: Scored[], minTile: number): number {
+  if (!items.length) return 0;
+  const others = items.filter(i => !i.self);
+  const pool = others.length ? others : items;
+  let smallest = Infinity, largest = 0, sum = 0, rawSmallest = Infinity;
+  for (const i of pool) {
+    const raw = faceSize(i.width, i.height, i.aspect);
+    const face = raw / Math.sqrt(i.weight);
+    smallest = Math.min(smallest, face);
+    largest = Math.max(largest, face);
+    rawSmallest = Math.min(rawSmallest, raw);
+    sum += face;
+  }
+  let cost = -Math.log(Math.max(1e-6, smallest)) + 0.5 * Math.log(Math.max(1e-6, largest) / Math.max(1e-6, smallest)) - 0.15 * Math.log(Math.max(1e-6, sum / pool.length));
+  let crop = 0, weight = 0;
+  const meanOtherArea = pool.reduce((acc, i) => acc + i.width * i.height, 0) / pool.length;
+  for (const i of items) {
+    // a zoomed person must come out clearly bigger than they were unzoomed
+    if (i.target) {
+      const face = faceSize(i.width, i.height, i.aspect);
+      if (face < i.target) cost += 8 * Math.log(i.target / Math.max(1e-6, face));
+    }
+    // your own tile is never the big one: about the size of an average tile at most
+    if (i.self && others.length && i.width * i.height > meanOtherArea * 1.15) cost += 0.35 * Math.log((i.width * i.height) / (meanOtherArea * 1.15));
+    const lost = videoCrop(i.width, i.height, i.aspect);
+    crop += (lost <= CROP_LIMIT ? lost : 0.1 + 0.4 * lost) * i.weight; // shown whole: the bars are waste
+    weight += i.weight;
+    const aspect = i.width / Math.max(1e-6, i.height);
+    if (!knownAspect(i.aspect)) cost += Math.max(0, Math.abs(Math.log(aspect)) - 0.75); // avatars: anything but a slab
+    // slivers read badly; a video shown whole in one is mostly bars (your own may
+    // sit in a wide strip under the people you are talking to)
+    const whole = !!knownAspect(i.aspect) && lost > CROP_LIMIT;
+    const known = !!knownAspect(i.aspect);
+    if (known && !whole && (aspect > 2.6 || aspect < 0.38)) cost += 4;
+    else if (!known && (aspect > 3.5 || aspect < 0.28)) cost += 4; // a character sits fine in a tall or wide tile, just not a strip
+    else if (whole && !i.self && (aspect > 3.2 || aspect < 0.32)) cost += 2;
+    else if (whole && i.self && aspect < 0.32) cost += 2;
+    if (Math.min(i.width, i.height) < minTile) cost += 2;
+    if (i.self && others.length) {
+      const own = faceSize(i.width, i.height, i.aspect);
+      if (own > rawSmallest) cost += 0.6 * Math.log(own / rawSmallest);
+      if (own < rawSmallest * 0.35) cost += 2 * Math.log((rawSmallest * 0.35) / Math.max(1e-6, own));
+    }
+  }
+  return cost + (1.6 * crop) / Math.max(1e-6, weight);
+}
+
+/**
+ * Justified lines: every line spans the full box and the lines fill it, so there is
+ * never a hole. Inside a line, each tile's length follows the person's camera shape
+ * (and zoom), so faces in a line match. Tries rows and columns, every way to break
+ * the (ordered) people into lines and a few ways to share the space between lines,
+ * and keeps the arrangement whose smallest face is biggest with the least cropping.
+ */
+function justify(people: { weight: number; aspect?: number | null; self?: boolean; target?: number }[], box: FocusRect, gap: number, minTile: number): Placed[] {
+  const n = people.length;
+  if (!n || box.width <= 0 || box.height <= 0) return people.map((_, index) => ({ index, x: box.x, y: box.y, width: 0, height: 0 }));
+  const weights = people.map(p => p.weight);
+  const shape = people.map(p => knownAspect(p.aspect) ?? NEUTRAL_ASPECT);
   let best: { cost: number; placed: Placed[] } | null = null;
-  const candidates = n <= 8 ? allPartitions(n) : greedyPartitions(weights);
+  // Big squads: lopsided line breaks never win, so only near-even ones are tried.
+  const candidates = n <= 5 ? allPartitions(n)
+    : n <= 8 ? allPartitions(n).filter(runs => Math.max(...runs.map(r => r.length)) - Math.min(...runs.map(r => r.length)) <= 2)
+    : greedyPartitions(weights);
   for (const orientation of ["rows", "columns"] as const) {
+    const along = orientation === "rows" ? box.width : box.height; // length of each line
+    const across = orientation === "rows" ? box.height : box.width; // lines stack this way
+    // a tile's length along its line per unit of line thickness; zoomed people get
+    // either sqrt(zoom) (same shape, bigger) or zoom (a longer tile) along the line
+    const anyZoom = weights.some(w => w > 1);
+    for (const zoomPow of anyZoom ? [0.5, 1] : [0.5]) {
+    const unit = (i: number) => (orientation === "rows" ? shape[i] : 1 / shape[i]) * Math.pow(weights[i], zoomPow);
     for (const runs of candidates) {
-      const lines = runs.length;
-      const along = orientation === "rows" ? box.width : box.height; // length of each line
-      const across = orientation === "rows" ? box.height : box.width; // lines stack this way
-      const usableAcross = across - gap * (lines - 1);
-      const total = weights.reduce((sum, w) => sum + w, 0);
-      const placed: Placed[] = [];
-      let cost = 0;
-      let offset = 0;
-      for (const run of runs) {
-        const runWeight = run.reduce((sum, i) => sum + weights[i], 0);
-        const thickness = (usableAcross * runWeight) / total;
-        const usableAlong = along - gap * (run.length - 1);
-        let cursor = 0;
-        for (const i of run) {
-          const length = (usableAlong * weights[i]) / runWeight;
-          const tile = orientation === "rows"
-            ? { index: i, x: box.x + cursor, y: box.y + offset, width: length, height: thickness }
-            : { index: i, x: box.x + offset, y: box.y + cursor, width: thickness, height: length };
-          placed.push(tile);
-          cursor += length + gap;
-          // Prefer 4:3-ish landscape to 3:4-ish portrait tiles; punish slivers hard.
-          const aspect = tile.width / Math.max(1e-6, tile.height);
-          const deviation = aspect >= 1 ? Math.abs(Math.log(aspect / (4 / 3))) : Math.abs(Math.log(aspect / (3 / 4))) * 1.15;
-          // slivers read badly on video: a mild push past 16:10 / 5:8, a hard one past 2.2 / 0.5
-          cost += weights[i] * (deviation + (aspect > 1.6 || aspect < 0.62 ? 0.6 : 0) + (aspect > 2.2 || aspect < 0.5 ? 3 : 0));
-        }
-        offset += thickness + gap;
+      const usableAcross = across - gap * (runs.length - 1);
+      if (usableAcross <= 0) continue;
+      // natural thickness: what each line needs to show everyone uncropped
+      const natural = runs.map(run => Math.max(1e-6, (along - gap * (run.length - 1)) / run.reduce((sum, i) => sum + unit(i), 0)));
+      for (const policy of [natural, natural.map(Math.sqrt), natural.map(() => 1)]) {
+        const total = policy.reduce((sum, t) => sum + t, 0);
+        const placed: Placed[] = [];
+        let offset = 0;
+        runs.forEach((run, r) => {
+          const thickness = (usableAcross * policy[r]) / total;
+          const usableAlong = along - gap * (run.length - 1);
+          const runUnits = run.reduce((sum, i) => sum + unit(i), 0);
+          let cursor = 0;
+          for (const i of run) {
+            const length = (usableAlong * unit(i)) / runUnits;
+            placed.push(orientation === "rows"
+              ? { index: i, x: box.x + cursor, y: box.y + offset, width: length, height: thickness }
+              : { index: i, x: box.x + offset, y: box.y + cursor, width: thickness, height: length });
+            cursor += length + gap;
+          }
+          offset += thickness + gap;
+        });
+        const cost = arrangementCost(placed.map(t => ({ width: t.width, height: t.height, weight: weights[t.index], aspect: people[t.index].aspect, self: people[t.index].self, target: people[t.index].target })), minTile);
+        if (!best || cost < best.cost - 1e-9) best = { cost, placed };
       }
-      if (!best || cost < best.cost - 1e-9) best = { cost, placed };
+    }
     }
   }
   return best!.placed.sort((a, b) => a.index - b.index);
 }
+
+/**
+ * Face size each zoomed person must reach in the arrangement being built: their
+ * unzoomed face times the square root of their zoom (zoom is area). Set by
+ * arrangeFocusCall for the duration of one arrangement.
+ */
+let zoomTargets = new Map<string, number>();
 
 /** One squad in its box: pinned people in a fixed strip along the outer edge, the rest justified. */
 /** Everyone unpinned in one rect: justified, zoom honoured as far as it keeps others at minTile. */
@@ -130,21 +240,16 @@ function placeFree(freeInOrder: FocusPerson[], rect: FocusRect, o: Required<Focu
   // Zoomed people lead their squad (so they get their own line); everyone else keeps
   // their order. Unzooming puts a person straight back in place.
   const free = freeInOrder.map((p, i) => ({ p, i })).sort((a, b) => clampWeight(b.p.weight) - clampWeight(a.p.weight) || a.i - b.i).map(x => x.p);
-  let weights = free.map(p => clampWeight(p.weight));
-  let placed = justify(weights, rect, o.gap);
+  // the viewer's own tile (unzoomed) starts at half weight
+  const isSelf = (p: FocusPerson) => !!p.self && clampWeight(p.weight) === 1;
+  let weights = free.map(p => (isSelf(p) ? SELF_WEIGHT : clampWeight(p.weight)));
+  const arrange = () => justify(free.map((p, i) => ({ weight: weights[i], aspect: p.aspect, self: isSelf(p), target: zoomTargets.get(p.id) })), rect, o.gap, o.minTile);
+  let placed = arrange();
   for (let guard = 0; guard < 12; guard++) {
     const smallest = Math.min(...placed.map(t => Math.min(t.width, t.height)));
-    if (smallest >= o.minTile || weights.every(w => w <= 1)) break;
+    if (smallest >= o.minTile || weights.every(w => w <= 1)) break; // only zooms give way
     weights = weights.map(w => (w > 1 ? Math.max(1, w * 0.8) : w));
-    placed = justify(weights, rect, o.gap);
-  }
-  // Nobody becomes a letterbox slab or a sliver: a lone person keeps 9:16..16:9, and
-  // anyone squeezed beside a big zoom keeps 1:2..2.2:1, centred in their slot.
-  const [lo, hi] = free.length === 1 ? [9 / 16, 16 / 9] : [0.5, 2.2];
-  for (const t of placed) {
-    const aspect = t.width / Math.max(1e-6, t.height);
-    if (aspect > hi) { const w = t.height * hi; t.x += (t.width - w) / 2; t.width = w; }
-    else if (aspect < lo) { const h = t.width / lo; t.y += (t.height - h) / 2; t.height = h; }
+    placed = arrange();
   }
   return placed.map(t => ({ id: free[t.index].id, x: t.x, y: t.y, width: t.width, height: t.height, pinned: false }));
 }
@@ -227,15 +332,47 @@ export function arrangeFocusCall(mine: FocusPerson[], theirs: FocusPerson[], wid
   const o = { ...DEFAULTS, ...options } as Required<FocusOptions>;
   width = finite(width);
   height = finite(height);
+  // Default: squads side by side, stacked on a portrait phone. Without pins the
+  // other direction is tried too and kept when faces come out clearly bigger
+  // (e.g. two laptops 1-on-1 on a wide screen read better one above the other).
+  const preferStacked = width < 700 && height > width * 0.65;
+  // Zoom is relative to where someone would be without it, so "bigger" always shows.
+  const zoomed = [...mine, ...theirs].filter(p => !p.pinned && clampWeight(p.weight) > 1);
+  zoomTargets = new Map();
+  if (zoomed.length) {
+    const plain = (people: FocusPerson[]) => people.map(p => (zoomed.includes(p) ? { ...p, weight: 1 } : p));
+    const base = arrangeFocusCall(plain(mine), plain(theirs), width, height, options);
+    for (const p of zoomed) {
+      const tile = base.tiles.find(t => t.id === p.id);
+      if (tile) zoomTargets.set(p.id, faceSize(tile.width, tile.height, p.aspect) * Math.sqrt(clampWeight(p.weight)) * 0.9);
+    }
+  }
+  const preferred = arrangeOriented(mine, theirs, width, height, o, preferStacked);
+  const anyPinned = [...mine, ...theirs].some(p => p.pinned && p.pinned.width > 0 && p.pinned.height > 0);
+  if (anyPinned || !mine.length || !theirs.length) return preferred;
+  const other = arrangeOriented(mine, theirs, width, height, o, !preferStacked);
+  const cost = (layout: FocusLayout) => stageCost(layout, [...mine, ...theirs], o.minTile);
+  return cost(other) < cost(preferred) - 0.12 ? other : preferred;
+}
+
+function stageCost(layout: FocusLayout, people: FocusPerson[], minTile: number): number {
+  const person = new Map(people.map(p => [p.id, p]));
+  return arrangementCost(layout.tiles.map(t => {
+    const p = person.get(t.id);
+    const self = !!p?.self && clampWeight(p?.weight) === 1;
+    return { width: t.width, height: t.height, weight: self ? SELF_WEIGHT : clampWeight(p?.weight), aspect: p?.aspect, self, target: zoomTargets.get(t.id) };
+  }), minTile);
+}
+
+function arrangeOriented(mine: FocusPerson[], theirs: FocusPerson[], width: number, height: number, o: Required<FocusOptions>, stacked: boolean): FocusLayout {
   const stage = { x: 0, y: 0, width, height };
-  const stacked = width < 700 && height > width * 0.65;
   const tag = (side: "mine" | "theirs") => (t: Omit<FocusTile, "side">): FocusTile => ({ ...t, side });
   if (!mine.length || !theirs.length) {
     const side = mine.length ? "mine" : "theirs";
     const people = mine.length ? mine : theirs;
     return { stacked: false, split: null, tiles: layoutSquad(people, stage, stacked ? "top" : "left", o).map(tag(side)) };
   }
-  const mass = (people: FocusPerson[]) => people.reduce((sum, p) => sum + (p.pinned ? MAX_WEIGHT / 2 : clampWeight(p.weight)), 0);
+  const mass = (people: FocusPerson[]) => people.reduce((sum, p) => sum + (p.pinned ? MAX_WEIGHT / 2 : p.self && clampWeight(p.weight) === 1 ? SELF_WEIGHT : clampWeight(p.weight)), 0);
   const gap = Math.min(o.squadGap, (stacked ? height : width) / 4);
   const usable = Math.max(0, (stacked ? height : width) - gap);
   // Space a squad must keep along the split so its pinned people stay exactly their
@@ -284,7 +421,24 @@ export function arrangeFocusCall(mine: FocusPerson[], theirs: FocusPerson[], wid
   const mineStrip = stripOf(mine), theirStrip = stripOf(theirs);
   if (mineStrip && mineStrip < usable - theirSize) candidates.push(usable - mineStrip);
   if (theirStrip && theirStrip < theirSize) candidates.push(theirStrip);
-  if (candidates.length === 1) return build(theirSize);
+  if (candidates.length === 1) {
+    if ([...mine, ...theirs].some(p => p.pinned && p.pinned.width > 0 && p.pinned.height > 0)) return build(theirSize);
+    // No pins: slide the split between the squads to where faces come out biggest
+    // and most even (camera shapes decide how much room each squad really needs).
+    const faceCost = (layout: FocusLayout) => stageCost(layout, [...mine, ...theirs], o.minTile);
+    const lo = Math.max(usable * o.minShare, theirNeed), hi = Math.min(usable * (1 - o.minShare), usable - mineNeed);
+    let best = build(theirSize);
+    let bestCost = faceCost(best);
+    for (let k = 1; k <= 8; k++) {
+      const extent = lo + ((hi - lo) * k) / 9;
+      if (Math.abs(extent - theirSize) < usable * 0.02) continue;
+      const next = build(extent);
+      const nextCost = faceCost(next);
+      // only move off the even split for a real gain
+      if (nextCost < bestCost - 0.03) { best = next; bestCost = nextCost; }
+    }
+    return best;
+  }
   const weightOf = new Map([...mine, ...theirs].map(p => [p.id, clampWeight(p.weight)]));
   const score = (layout: FocusLayout) => {
     const free = layout.tiles.filter(t => !t.pinned);

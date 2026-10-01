@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { arrangeFocusCall, MAX_WEIGHT, type FocusPerson } from "@giggle/core";
+import { arrangeFocusCall, CROP_LIMIT, MAX_WEIGHT, normalizeVideoRatio, videoCrop, type FocusPerson } from "@giggle/core";
 import styles from "./FocusVideoStage.module.css";
 
 /** What a tile needs to offer "bigger / smaller / keep this size" for its person. */
@@ -15,6 +15,8 @@ export type TileSizeControls = {
   /** Double-click: 1× → 2× → 4× → 1×. */
   cycle: () => void;
   togglePin: () => void;
+  /** Fill the tile (light crop) or show the whole picture (the shapes differ too much to crop). */
+  fit: "crop" | "fit";
 };
 
 /**
@@ -26,14 +28,53 @@ export type TileSizeControls = {
  * Every tile is a sibling in one list keyed by person, so layout changes only move
  * existing media hosts; they never remount video or restart the call.
  */
-export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderParticipant }: {
+export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderParticipant, videoOn = {}, selfId }: {
   mine: string[];
   theirs: string[];
   mineLabel: string;
   theirsLabel: string;
   renderParticipant: (id: string, size: TileSizeControls) => ReactNode;
+  /** Whose camera is on; their tiles follow their camera's shape. */
+  videoOn?: Record<string, boolean>;
+  /** The viewer: their own tile stays smaller than the people they are talking to. */
+  selfId?: string;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  // Each camera's shape, read from its <video> as frames arrive (and when a phone rotates).
+  const [ratios, setRatios] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const element = host.current;
+    if (!element) return;
+    const bound = new Set<HTMLVideoElement>();
+    const measure = () => {
+      const next: Record<string, number> = {};
+      element.querySelectorAll<HTMLElement>("[data-participant-id]").forEach(cell => {
+        const video = cell.querySelector<HTMLVideoElement>("[data-media-host] video");
+        if (video && video.videoWidth > 0 && video.videoHeight > 0) next[cell.dataset.participantId!] = normalizeVideoRatio(video.videoWidth / video.videoHeight);
+      });
+      setRatios(previous => {
+        const keys = new Set([...Object.keys(previous), ...Object.keys(next)]);
+        for (const key of keys) if (Math.abs((previous[key] ?? 0) - (next[key] ?? 0)) > 0.02) return next;
+        return previous;
+      });
+    };
+    const bind = () => {
+      element.querySelectorAll<HTMLVideoElement>("[data-media-host] video").forEach(video => {
+        if (bound.has(video)) return;
+        bound.add(video);
+        video.addEventListener("loadedmetadata", measure);
+        video.addEventListener("resize", measure);
+      });
+      measure();
+    };
+    const observer = new MutationObserver(bind);
+    observer.observe(element, { childList: true, subtree: true });
+    bind();
+    return () => {
+      observer.disconnect();
+      bound.forEach(video => { video.removeEventListener("loadedmetadata", measure); video.removeEventListener("resize", measure); });
+    };
+  }, []);
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
   const [weights, setWeights] = useState<Record<string, number>>({});
   const [pins, setPins] = useState<Record<string, { width: number; height: number }>>({});
@@ -76,10 +117,15 @@ export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderPa
     return () => observer.disconnect();
   }, []);
 
-  const toPerson = useCallback((id: string): FocusPerson => ({ id, weight: weights[id] ?? 1, pinned: pins[id] ?? null }), [weights, pins]);
+  // The call re-renders every second (timer, speaking); the layout only follows
+  // real changes: who is here, whose camera is on, camera shapes, zoom, pins, size.
+  const videoKey = Object.keys(videoOn).filter(id => videoOn[id]).sort().join("|");
+  const aspectOf = useCallback((id: string) => (videoKey.split("|").includes(id) ? ratios[id] ?? null : null), [videoKey, ratios]);
+  const toPerson = useCallback((id: string): FocusPerson => ({ id, weight: weights[id] ?? 1, pinned: pins[id] ?? null, aspect: aspectOf(id), self: id === selfId }), [weights, pins, aspectOf, selfId]);
+  const mineKey = mine.join("|"), theirsKey = theirs.join("|");
   const layout = useMemo(
-    () => arrangeFocusCall(mine.map(toPerson), theirs.map(toPerson), bounds.width, bounds.height),
-    [mine, theirs, toPerson, bounds.width, bounds.height],
+    () => arrangeFocusCall(mineKey ? mineKey.split("|").map(toPerson) : [], theirsKey ? theirsKey.split("|").map(toPerson) : [], bounds.width, bounds.height),
+    [mineKey, theirsKey, toPerson, bounds.width, bounds.height],
   );
   const tileById = useMemo(() => new Map(layout.tiles.map(tile => [tile.id, tile])), [layout]);
 
@@ -95,6 +141,7 @@ export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderPa
       grow: () => set(weight * 2),
       shrink: () => set(weight / 2),
       cycle: () => { if (!pinned) set(weight >= MAX_WEIGHT ? 1 : weight * 2); },
+      fit: (() => { const tile = tileById.get(id); return tile && videoCrop(tile.width, tile.height, aspectOf(id)) > CROP_LIMIT ? "fit" : "crop"; })(),
       togglePin: () => { glide(); setPins(previous => {
         const next = { ...previous };
         if (next[id]) delete next[id];
@@ -120,6 +167,9 @@ export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderPa
             data-side={side}
             data-weight={size.weight}
             data-pinned={size.pinned || undefined}
+            // edge marks let the floating header and controls push labels clear
+            data-edge-top={tile && tile.y <= 2 ? "" : undefined}
+            data-edge-bottom={tile && tile.y + tile.height >= bounds.height - 2 ? "" : undefined}
             style={{ left: tile?.x ?? 0, top: tile?.y ?? 0, width: tile?.width ?? 1, height: tile?.height ?? 1 }}
           >
             {renderParticipant(id, size)}

@@ -39,7 +39,14 @@ export async function setTrackEnabled(
 
 // Web implementation backed by agora-rtc-sdk-ng. The SDK is imported
 // dynamically so it never runs during Next.js SSR.
-export function createVideoClient(loadSdk = () => import("agora-rtc-sdk-ng")): VideoClient {
+// Local end-to-end runs have no Agora project; they inject a stand-in SDK on
+// the page before the app loads. Real sessions always load agora-rtc-sdk-ng.
+const loadAgoraSdk = (): Promise<any> => {
+  const stand = (globalThis as { __GIGGLE_TEST_RTC__?: unknown }).__GIGGLE_TEST_RTC__;
+  return stand ? Promise.resolve(stand) : import("agora-rtc-sdk-ng");
+};
+
+export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   let client: any = null;
   let generation = 0;
   let joining = false;

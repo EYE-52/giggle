@@ -108,7 +108,8 @@ test('zooming never turns a squadmate into a sliver', () => {
     const layout = focus.arrangeFocusCall(people('mine', 3), people('theirs', n, { [target]: { weight: 4 } }), w, h);
     for (const t of layout.tiles) {
       const aspect = t.width / t.height;
-      assert.ok(aspect < 2.6 && aspect > 0.38, `${w}x${h} n=${n} zoom ${target}: ${t.id} is ${Math.round(t.width)}x${Math.round(t.height)}`);
+      // camera-off tiles hold only a character: tall or wide is fine, a strip is not
+      assert.ok(aspect < 3.5 && aspect > 0.28, `${w}x${h} n=${n} zoom ${target}: ${t.id} is ${Math.round(t.width)}x${Math.round(t.height)}`);
     }
   }
 });
@@ -118,4 +119,40 @@ test('a pinned squad never leaves a dead sliver beside the pin', () => {
   const mine = layout.tiles.filter(t => t.side === 'mine');
   const minX = Math.min(...mine.map(t => t.x)), maxX = Math.max(...mine.map(t => t.x + t.width));
   assert.ok(maxX - minX <= 420 + 1, `your squad spans ${Math.round(maxX - minX)}px for a 420px pin`);
+});
+
+test('camera shapes: tiles fill the squad without holes and follow each camera', () => {
+  const L = 16 / 9, T = 4 / 3, P = 9 / 16;
+  const layout = focus.arrangeFocusCall(
+    [{ id: 'you', aspect: L, self: true }, { id: 'max', aspect: T }, { id: 'zoe', aspect: P }],
+    [{ id: 'ben', aspect: P }, { id: 'chidi', aspect: L }],
+    1440, 900);
+  assertSane(layout, 1440, 900, 5);
+  // no holes: the tiles cover the stage apart from the gaps
+  const covered = layout.tiles.reduce((sum, t) => sum + t.width * t.height, 0) / (1440 * 900);
+  assert.ok(covered > 0.97, `tiles cover ${Math.round(covered * 100)}% of the stage`);
+  // a portrait phone gets a portrait tile and a laptop a landscape one
+  const zoe = layout.tiles.find(t => t.id === 'zoe'), max = layout.tiles.find(t => t.id === 'max');
+  assert.ok(zoe.width / zoe.height < 0.8, `portrait camera got ${Math.round(zoe.width)}x${Math.round(zoe.height)}`);
+  assert.ok(max.width / max.height > 1.05, `4:3 camera got ${Math.round(max.width)}x${Math.round(max.height)}`);
+  for (const t of layout.tiles) {
+    const aspect = { you: L, max: T, zoe: P, ben: P, chidi: L }[t.id];
+    const crop = focus.videoCrop(t.width, t.height, aspect);
+    assert.ok(crop <= focus.CROP_LIMIT || t.id === 'ben', `${t.id} loses ${Math.round(crop * 100)}% of their video`);
+  }
+});
+
+test('your own tile is never the biggest', () => {
+  for (const [w, h] of [[1440, 900], [390, 844], [1280, 720]]) {
+    const layout = focus.arrangeFocusCall([{ id: 'you', self: true }, { id: 'm1' }], [{ id: 't0' }, { id: 't1' }], w, h);
+    const area = id => { const t = layout.tiles.find(x => x.id === id); return t.width * t.height; };
+    assert.ok(area('you') <= Math.max(area('t0'), area('t1'), area('m1')), `${w}x${h}: your tile is the biggest`);
+  }
+});
+
+test('zooming a camera-off person makes them clearly bigger', () => {
+  const mine = [{ id: 'm0', self: true }, { id: 'm1' }];
+  const before = focus.arrangeFocusCall(mine, [{ id: 't0' }, { id: 't1' }], 1440, 900).tiles.find(t => t.id === 't0');
+  const after = focus.arrangeFocusCall(mine, [{ id: 't0', weight: 2 }, { id: 't1' }], 1440, 900).tiles.find(t => t.id === 't0');
+  assert.ok(after.width * after.height > before.width * before.height * 1.25, `${Math.round(before.width)}x${Math.round(before.height)} -> ${Math.round(after.width)}x${Math.round(after.height)}`);
 });

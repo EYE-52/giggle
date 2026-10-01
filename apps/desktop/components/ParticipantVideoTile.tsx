@@ -125,7 +125,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
   ].filter(Boolean).join(" ");
   return <div className={tileClasses} data-media-frame data-local={isLocal} data-media-fit={fit} data-pinned={size?.pinned || undefined} style={frameStyle}>
     <div className={styles.fallback}>
-      {avatarValue ? <AvatarArt value={avatarValue} size={58} /> : <AvatarArt value={name} size={58} />}
+      <span className={styles.face}><AvatarArt value={avatarValue || name} size="fill" /></span>
       <span>{statusText}</span>
     </div>
     {hasVideo && fit === "fit" && <video ref={backdrop} data-media-backdrop className={styles.backdrop} muted playsInline aria-hidden="true" />}
@@ -137,7 +137,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
         if (clickTimer.current) clearTimeout(clickTimer.current);
         clickTimer.current = setTimeout(() => { clickTimer.current = null; openMenu(); }, 230);
       }}
-      onDoubleClick={() => { if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; } size?.cycle(); }}><span className={styles.dots} aria-hidden="true">•••</span></button>
+      onDoubleClick={() => { if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; } size?.cycle(); }}><span className={`${styles.dots} vdots`} aria-hidden="true">•••</span></button>
     {size && <div className={`${styles.sizeBar} vsize`} role="group" aria-label={`${isLocal ? "Your" : `${name}'s`} tile size`} data-open={size.pinned || size.weight > 1 || undefined}>
       <button type="button" aria-label={`Make ${isLocal ? "yourself" : name} smaller`} disabled={!size.canShrink} onClick={size.shrink}><Icon.minus size={16} weight="bold" /></button>
       <button type="button" aria-label={`Make ${isLocal ? "yourself" : name} bigger`} disabled={!size.canGrow} onClick={size.grow}><Icon.plus size={16} weight="bold" /></button>

@@ -389,6 +389,9 @@ function EncounterInner() {
   // Full remote participant state (uid + hasVideo/hasAudio) — drives truthful
   // per-tile "Muted" / "Camera off" / "Connecting…" signals.
   const [remotes, setRemotes] = useState<RemoteParticipant[]>([]);
+  const seenUidsRef = useRef<Set<string>>(new Set());
+  for (const remote of remotes) seenUidsRef.current.add(String(remote.uid));
+  const [arrivalWindowOver, setArrivalWindowOver] = useState(false);
   const remoteUids = remotes.map((r) => r.uid);
   const remoteVideoKey = JSON.stringify(remotes.map(r => [r.uid, r.hasVideo]));
 
@@ -509,7 +512,16 @@ function EncounterInner() {
       // Give people time to read the overlay + choose an action before we
       // auto-return home.
       if (endedNavTimerRef.current) clearTimeout(endedNavTimerRef.current);
-      endedNavTimerRef.current = setTimeout(() => router.push("/home"), 6500);
+      // The server already queued a squad whose opponent left; keep matching.
+      // Matchmaking sends an idle squad back to its lobby.
+      endedNavTimerRef.current = setTimeout(() => {
+        void leaveVideo();
+        router.push(
+          WEB_DISCOVERY_ENABLED && payload?.reason === "squad_disconnected"
+            ? `/matchmaking?squad=${squadId}`
+            : `/lobby?squad=${squadId}`,
+        );
+      }, 5000);
     };
     const onActive = () => {
       api
@@ -605,6 +617,13 @@ function EncounterInner() {
     return () => clearInterval(tick);
   }, [connState]);
 
+  useEffect(() => {
+    setArrivalWindowOver(false);
+    if (!videoJoined) return;
+    const timer = setTimeout(() => setArrivalWindowOver(true), 25_000);
+    return () => clearTimeout(timer);
+  }, [videoJoined, encId]);
+
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   const mySquad = encounter
@@ -667,6 +686,20 @@ function EncounterInner() {
     isLocal: false,
   }));
   const participants = [...mineParticipants, ...theirParticipants];
+  // The stage shows who is actually here. Someone not seen yet gets a
+  // "Connecting…" tile for the first moments of the call; after that, people
+  // who never arrived or who left drop off and the others re-flow.
+  const isHere = (person: EncounterParticipant) =>
+    person.isLocal ||
+    (person.uid != null && remotes.some((r) => String(r.uid) === String(person.uid))) ||
+    (!arrivalWindowOver && (person.uid == null || !seenUidsRef.current.has(String(person.uid))));
+  const mineHere = mineParticipants.filter(isHere);
+  // Squadmates count as still here if their video is connected or the server
+  // last saw them in the call (the safer reading: never end a call too early).
+  const lastOfMySquad = !myMembers.some((member) =>
+    member.userId !== myUserId &&
+    ((member.uid != null && remotes.some((r) => String(r.uid) === String(member.uid))) || member.inEncounterVideo === true));
+  const theirsHere = theirParticipants.filter(isHere);
   const participantIdsKey = JSON.stringify(participants.map((person) => person.id));
   const activeSpeakerId = loudestUid
     ? (participants.find(
@@ -782,6 +815,9 @@ function EncounterInner() {
   }
 
   async function handlePersonalLeave() {
+    // Leaving as the last of your squad ends the call; otherwise the other
+    // squad would sit in an empty room.
+    if (lastOfMySquad) return handleEnd();
     setEnding(true);
     setEndError(null);
     await leaveVideo();
@@ -817,7 +853,7 @@ function EncounterInner() {
     try {
       await api.disconnectEncounter(squadId, encId);
       await mediaExit;
-      router.replace("/home");
+      router.replace(`/lobby?squad=${squadId}`);
     } catch {
       await mediaExit;
       setEnding(false);
@@ -983,6 +1019,9 @@ function EncounterInner() {
   }, [encId, squadId]);
 
   const participantById = new Map(participants.map((person) => [person.id, person]));
+  const hasVideoFor = (person: EncounterParticipant) =>
+    videoJoined && (person.isLocal ? camOn && captureState.video === "active" : !!remoteFor(person.uid)?.hasVideo);
+  const videoOnById = Object.fromEntries(participants.map((person) => [person.id, hasVideoFor(person)]));
 
   function renderParticipant(id: string, size: TileSizeControls) {
     const person = participantById.get(id);
@@ -993,7 +1032,7 @@ function EncounterInner() {
         name={person.name}
         colorIndex={person.colorIndex}
         micOn={micOnFor(person.isLocal, person.uid)}
-        hasVideo={videoJoined && (person.isLocal ? camOn && captureState.video === "active" : !!remoteFor(person.uid)?.hasVideo)}
+        hasVideo={hasVideoFor(person)}
         mutedForMe={remoteFor(person.uid)?.mutedForMe}
         onMute={!person.isLocal && person.uid != null && remoteFor(person.uid) ? async muted => {
           if (!vcRef.current) throw new Error("The call is reconnecting. Try again.");
@@ -1005,7 +1044,7 @@ function EncounterInner() {
         isSpeaking={isSpeakingFor(person.isLocal, person.uid)}
         statusText={statusTextFor(person.isLocal, person.uid)}
         size={size}
-        fit="crop"
+        fit={size.fit}
         backdrop
         reactions={floatingReactions.filter((reaction) => reaction.senderId === person.id)}
       />
@@ -1014,8 +1053,10 @@ function EncounterInner() {
 
   function renderAdaptiveStage() {
     return <FocusVideoStage
-      mine={mineParticipants.map(person => person.id)}
-      theirs={theirParticipants.map(person => person.id)}
+      mine={mineHere.map(person => person.id)}
+      theirs={theirsHere.map(person => person.id)}
+      videoOn={videoOnById}
+      selfId={mineParticipants.find(person => person.isLocal)?.id}
       mineLabel={mySquad?.name ? `Your squad · ${mySquad.name}` : "Your squad"}
       theirsLabel={oppSquad?.name ? `Their squad · ${oppSquad.name}` : "Their squad"}
       renderParticipant={renderParticipant}
@@ -1041,6 +1082,7 @@ function EncounterInner() {
     return REACTION_EMOJIS.map((emoji) => (
       <button
         key={emoji}
+        type="button"
         onClick={() => {
           fireReaction(emoji);
           onDone();
@@ -1048,19 +1090,6 @@ function EncounterInner() {
         title={`React ${emoji}`}
         aria-label={`React ${emoji}`}
         className="gg-press"
-        style={{
-          width: 44,
-          height: 44,
-          flexShrink: 0,
-          borderRadius: "var(--radius-control, 14px)",
-          border: "var(--control-border)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 22,
-          background: "var(--overlay)",
-        }}
       >
         {emoji}
       </button>
@@ -1124,19 +1153,7 @@ function EncounterInner() {
     },
     {
       id: "more",
-      icon: (
-        <span
-          aria-hidden
-          style={{
-            color: moreOpen ? "var(--accent)" : "var(--text)",
-            fontSize: 18,
-            fontWeight: 800,
-            letterSpacing: 1,
-          }}
-        >
-          •••
-        </span>
-      ),
+      icon: <Icon.more size={20} color={moreOpen ? "var(--accent)" : "var(--text)"} />,
       active: moreOpen,
       danger: false,
       onClick: toggleMore,
@@ -1434,8 +1451,8 @@ function EncounterInner() {
           >
             {[
               // same order as the stage: their squad left, yours right
-              [oppSquad?.name ?? "Their squad", theirParticipants.length, "theirs"],
-              [mySquad?.name ?? "Your squad", mineParticipants.length, "mine"],
+              [oppSquad?.name ?? "Their squad", theirsHere.length, "theirs"],
+              [mySquad?.name ?? "Your squad", mineHere.length, "mine"],
             ].map(([name, count, side]) => (
               <span
                 key={String(side)}
@@ -1731,12 +1748,12 @@ function EncounterInner() {
                     color: textPrimary,
                   }}
                 >
-                  {endedReason === "opponent-left" ? "The other squad left" : "Encounter ended"}
+                  {endedReason === "opponent-left" ? `${oppSquad?.name ?? "The other squad"} left` : "The call ended"}
                 </div>
-                <div style={{ fontSize: 13, color: textMuted }}>
+                <div style={{ fontSize: 14, color: textMuted }}>
                   {WEB_DISCOVERY_ENABLED && endedReason === "opponent-left"
-                    ? "You can jump straight into another match."
-                    : "Thanks for hanging out."}
+                    ? "Finding you another squad…"
+                    : "Taking you back to your lobby…"}
                 </div>
                 {endError && (
                   <div role="alert" style={{ color: coral, fontSize: 13, textAlign: "center" }}>
@@ -1775,7 +1792,7 @@ function EncounterInner() {
                       loading={findingNextMatch}
                       variant="primary"
                     >
-                      {endedReason === "opponent-left" ? "Continue matching" : "Find another match"}
+                      {endedReason === "opponent-left" ? "Find another now" : "Find another squad"}
                     </Button>
                   )}
                   <Button
@@ -1784,11 +1801,13 @@ function EncounterInner() {
                         clearTimeout(endedNavTimerRef.current);
                         endedNavTimerRef.current = null;
                       }
-                      router.push("/home");
+                      void leaveVideo();
+                      if (endedReason === "opponent-left") void api.cancelSearch(squadId).catch(() => {});
+                      router.push(`/lobby?squad=${squadId}`);
                     }}
                     variant="secondary"
                   >
-                    Back home
+                    Back to lobby
                   </Button>
                 </div>
               </div>
@@ -1945,102 +1964,26 @@ function EncounterInner() {
                   </button>
 
                   {id === "more" && moreOpen && (
-                    <div
-                      ref={moreMenuRef}
-                      role="group"
-                      aria-label="More call actions"
-                      style={{
-                        position: "absolute",
-                        right: isPhone ? "auto" : 0,
-                        left: isPhone ? "50%" : "auto",
-                        transform: isPhone ? "translateX(-50%)" : undefined,
-                        bottom: "calc(100% + 10px)",
-                        width: "min(280px, calc(100vw - 24px))",
-                        padding: 10,
-                        borderRadius: "var(--radius-card)",
-                        border: "var(--control-border)",
-                        background: "var(--surface)",
-                        backdropFilter: "blur(18px)",
-                        boxShadow: "var(--shadow-pop)",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 7,
-                      }}
-                    >
-                      {WEB_DISCOVERY_ENABLED && mySquad?.members.some(member => member.userId === session.user?.id && member.role === 'leader') && (
-                        <button onClick={() => { closeMore(false); setNextError(''); setNextConfirmOpen(true); }} style={{ minHeight: 44, background: 'transparent', border: 0, color: 'var(--text)', textAlign: 'left' }}>Next squad</button>
-                      )}
-                      <button onClick={() => { setExitKind("end"); setEndError(null); closeMore(false); setEndConfirmOpen(true); }} aria-label="End encounter" style={{ minHeight: 44, background: "transparent", border: 0, color: "var(--coral)", textAlign: "left" }}>End encounter for both squads</button>
-                      <div
-                        style={{
-                          color: textMuted,
-                          fontSize: 11,
-                          fontWeight: 800,
-                          letterSpacing: ".08em",
-                          textTransform: "uppercase",
-                          padding: "2px 4px 0",
-                        }}
-                      >
-                        Reactions
-                      </div>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        {reactionChoices(() => closeMore(true))}
-                      </div>
-                      <button
-                        onClick={() => {
-                          handleReport();
-                          closeMore(true);
-                        }}
-                        disabled={reported || reporting}
-                        style={{
-                          minHeight: 44,
-                          padding: "0 12px",
-                          borderRadius: "var(--radius-control)",
-                          border: "var(--control-border)",
-                          background: "var(--overlay)",
-                          color: reported ? "var(--live)" : "var(--text)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 9,
-                          cursor: reported || reporting ? "default" : "pointer",
-                          fontWeight: 700,
-                        }}
-                      >
-                        <Icon.flag
-                          size={17}
-                          color={reported ? "var(--live)" : "var(--text-muted)"}
-                        />
-                        {reported
-                          ? "Reported"
-                          : reporting
-                            ? "Sending report…"
-                            : "Report opponent squad"}
+                    <div ref={moreMenuRef} role="group" aria-label="More call actions" className="gg-call-menu" data-placement={isPhone ? "center" : "end"}>
+                      <div className="gg-call-menu-reactions">{reactionChoices(() => closeMore(true))}</div>
+                      <button type="button" onClick={() => { handleReport(); closeMore(true); }} disabled={reported || reporting} data-tone={reported ? "ok" : undefined}>
+                        <Icon.flag size={18} color="currentColor" />
+                        {reported ? "Reported" : reporting ? "Sending report…" : "Report opponent squad"}
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setBlockError(null);
-                          setBlockConfirmOpen(true);
-                          closeMore(true);
-                        }}
-                        disabled={!canBlockOpponent || blocking}
-                        aria-label="Block opponent squad"
-                        style={{
-                          minHeight: 44,
-                          padding: "0 12px",
-                          borderRadius: "var(--radius-control)",
-                          border: "var(--control-border)",
-                          background: "var(--overlay)",
-                          color: "var(--coral)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 9,
-                          cursor: !canBlockOpponent || blocking ? "default" : "pointer",
-                          fontWeight: 700,
-                        }}
-                      >
-                        <Icon.shield size={17} color="var(--coral)" />
+                      <button type="button" onClick={() => { setBlockError(null); setBlockConfirmOpen(true); closeMore(true); }} disabled={!canBlockOpponent || blocking} aria-label="Block opponent squad" data-tone="danger">
+                        <Icon.shield size={18} color="currentColor" />
                         Block opponent squad
+                      </button>
+                      <hr />
+                      {WEB_DISCOVERY_ENABLED && mySquad?.members.some(member => member.userId === session.user?.id && member.role === 'leader') && (
+                        <button type="button" onClick={() => { closeMore(false); setNextError(''); setNextConfirmOpen(true); }}>
+                          <Icon.shuffle size={18} color="currentColor" />
+                          Next squad
+                        </button>
+                      )}
+                      <button type="button" onClick={() => { setExitKind("end"); setEndError(null); closeMore(false); setEndConfirmOpen(true); }} aria-label="End encounter" data-tone="danger">
+                        <Icon.hangup size={18} color="currentColor" />
+                        End call for both squads
                       </button>
                     </div>
                   )}
@@ -2161,8 +2104,12 @@ function EncounterInner() {
             setEndConfirmOpen(false);
             setEndError(null);
           }}
-          title={exitKind === "leave" ? "Leave this call?" : "End encounter?"}
-          subtitle={exitKind === "leave" ? "Only you will leave. Your squad can keep talking." : "This ends the current encounter for both squads."}
+          title={exitKind === "leave" ? "Leave this call?" : "End the call?"}
+          subtitle={exitKind === "leave"
+            ? lastOfMySquad
+              ? "You're the last one here from your squad, so the call ends."
+              : "Only you will leave. Your squad can keep talking."
+            : "This ends the call for both squads."}
           showClose={false}
           closeOnBackdrop={!ending}
           width={420}

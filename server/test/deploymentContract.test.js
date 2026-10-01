@@ -58,5 +58,7 @@ test("unified deployment docs keep verified-adult discovery disabled by default"
 
   const vercel = read("vercel.json");
   assert.doesNotMatch(vercel, /YOTI_|AGE_VERIFICATION_CALLBACK_URL|ADMIN_EMAIL/);
-  assert.match(vercel, /"NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED": "false"/);
+  // web discovery is on by owner decision (2 October 2026); new servers still default it off
+  assert.match(vercel, /"NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED": "true"/);
+  assert.match(deploy, /owner switched production stranger discovery on on 2 October 2026/);
 });

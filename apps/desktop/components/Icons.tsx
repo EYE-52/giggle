@@ -90,7 +90,7 @@ export const Icon = {
   users: makeIcon("users"),
   /* Skin-phase additions (Home tip card + mock icon hooks). `arrowRight`
    * keeps the mock's data-i="arrow-right" hover nudge working. */
-  arrowRight: makeIcon("arrow-right"),
+  arrowRight: makeIcon("arrowRight"),
   shuffle: makeIcon("shuffle"),
   sparkle: makeIcon("sparkle"),
   music: makeIcon("music"),

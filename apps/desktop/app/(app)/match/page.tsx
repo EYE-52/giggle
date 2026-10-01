@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AvatarStack } from "@/components/Avatar";
-import { useViewport } from "@/components/useViewport";
 import { Button } from "@/components/Button";
+import { FaceOff, FaceOffBar, faceOffStyles } from "@/components/FaceOff";
 import { api, ApiError, session } from "@giggle/core";
 import type { EncounterDetail, SquadState } from "@giggle/core";
 
@@ -12,7 +11,6 @@ function isExpiredEncounterError(error: unknown) {
 }
 
 function MatchInner() {
-  const { isPhone } = useViewport();
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
@@ -60,9 +58,6 @@ function MatchInner() {
   const isLeader = !!myMember && myMember.role === "leader";
   const isLeaderRef = useRef(false);
   useEffect(() => { isLeaderRef.current = isLeader; }, [isLeader]);
-
-  const textPrimary = "var(--text)";
-  const textMuted = "var(--text-muted)";
 
   useEffect(() => {
     // Reached without the required params (e.g. direct URL) — recover instead of
@@ -138,6 +133,26 @@ function MatchInner() {
 
   const [joinExpired, setJoinExpired] = useState(false);
 
+  // Searching already said "we want a call": after a short reveal the squad
+  // joins on its own. The leader can skip during the reveal.
+  const AUTO_JOIN_SECONDS = 3;
+  const [autoLeft, setAutoLeft] = useState(AUTO_JOIN_SECONDS);
+  const handleJoinRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!encounter || encounter.status !== "awaiting_ack") return;
+    setAutoLeft(AUTO_JOIN_SECONDS);
+    const startedAt = Date.now();
+    const timer = setInterval(() => {
+      const left = Math.max(0, AUTO_JOIN_SECONDS - Math.floor((Date.now() - startedAt) / 1000));
+      setAutoLeft(left);
+      if (left === 0) {
+        clearInterval(timer);
+        if (!navigatedRef.current) handleJoinRef.current();
+      }
+    }, 250);
+    return () => clearInterval(timer);
+  }, [encounter]);
+
   // SR countdown announcements — throttled to 10s / 5s / expiry only, so the
   // live region doesn't chatter every second.
   const [srAnnounce, setSrAnnounce] = useState("");
@@ -162,7 +177,7 @@ function MatchInner() {
       clearDeferredNavigation();
       joinNavTimeoutRef.current = setTimeout(() => {
         navigate(`/encounter?squad=${squadId}&enc=${encId}`);
-      }, 520);
+      }, 150);
     } catch (error: unknown) {
       setJoining(false);
       if (isExpiredEncounterError(error)) {
@@ -176,6 +191,8 @@ function MatchInner() {
       setActionError(error instanceof Error ? error.message : "Couldn't join this encounter yet.");
     }
   }
+
+  handleJoinRef.current = () => { if (!skipping) void handleJoin(); };
 
   async function handleSkip() {
     if (!squadId || !encId) return;
@@ -194,87 +211,68 @@ function MatchInner() {
     navigate(`/matchmaking?squad=${squadId}`);
   }
 
-  const mySquadName = squad?.squadName ?? (encounter
-    ? (encounter.squadAId === squadId ? encounter.squadAName : encounter.squadBName)
-    : "Your Squad");
-  const pairedSquadName = encounter
-    ? (encounter.squadAId === squadId ? encounter.squadBName : encounter.squadAName)
-    : "Another squad";
-  const myMembers = (squad?.members ?? encounterMembers).map(m => m.displayName);
-  const opponentMembers = (encounter
-    ? (encounter.squadAId === squadId ? encounter.squadBMembers : encounter.squadAMembers)
-    : null
-  )?.map((m: { displayName: string }) => m.displayName) ?? [];
-  // Vibe chip — derive from the squad's real tags rather than hardcoded text.
-  const vibeLabel = (squad?.tags && squad.tags.length > 0)
-    ? squad.tags.slice(0, 2).join(" & ")
-    : null;
-  const rosterLabel = `${mySquadName}: ${myMembers.join(", ")}. ${pairedSquadName}: ${opponentMembers.join(", ")}`;
+  const mineIsA = encounter ? encounter.squadAId === squadId : true;
+  const myRoster = squad?.members ?? encounterMembers;
+  const mySide = encounter || squad ? {
+    name: squad?.squadName ?? (encounter ? (mineIsA ? encounter.squadAName : encounter.squadBName) : "Your squad"),
+    people: myRoster.map(member => ({ userId: member.userId, displayName: member.displayName, avatar: member.avatar })),
+  } : null;
+  const theirSide = encounter ? {
+    name: mineIsA ? encounter.squadBName : encounter.squadAName,
+    people: (mineIsA ? encounter.squadBMembers : encounter.squadAMembers).map(member => ({ userId: member.userId, displayName: member.displayName, avatar: member.avatar })),
+  } : null;
+  const back = () => { if (isLeader) void handleSkip(); };
 
   if (loading) {
     return (
-      <div aria-busy="true" aria-label="Opening room" style={{ minHeight: "100%", background: "var(--bg)", display: "grid", placeItems: "center", padding: 24, boxSizing: "border-box" }}>
-        <div style={{ width: "min(460px, 100%)", background: "var(--surface)", border: "var(--control-border)", borderRadius: "var(--radius-card, 20px)", padding: 24, textAlign: "center", boxShadow: "var(--shadow-card)" }}>
-          <div className="gg-shimmer" style={{ width: 48, height: 48, borderRadius: "50%", margin: "0 auto 16px" }} />
-          <h1 style={{ margin: 0, color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700 }}>Preparing your room</h1>
-          <p style={{ margin: "10px 0 0", color: textMuted, lineHeight: 1.5, fontSize: 14 }}>Bringing both squads together…</p>
-        </div>
+      <div aria-busy="true" aria-label="Opening room" style={{ height: "100%" }}>
+        <FaceOff top={<FaceOffBar onBack={back} backLabel="Skip this squad" busy />} mine={null} theirs={null} status="Opening the room…" />
       </div>
     );
   }
 
   if (handoffError || !encounter) {
     return (
-      <div style={{ minHeight: "100%", display: "grid", placeItems: "center", background: "var(--bg)", padding: 24 }}>
-        <div style={{ width: "min(460px, 100%)", textAlign: "center", background: "var(--surface)", border: "var(--control-border)", borderRadius: "var(--radius-card, 20px)", padding: 24, boxShadow: "var(--shadow-card)" }}>
-          <h1 style={{ margin: 0, color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em" }}>{handoffExpired ? "Match expired" : "Couldn't open room"}</h1>
-          <p style={{ margin: "10px 0 22px", color: textMuted, lineHeight: 1.5, fontSize: 14 }}>{handoffError ?? "This room is no longer available."}</p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            {handoffExpired ? <Button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} variant="primary">Find another</Button> : <Button onClick={() => window.location.reload()} variant="primary">Retry</Button>}
-            <Button onClick={() => router.push("/home")} variant="secondary">Home</Button>
-          </div>
-        </div>
-      </div>
+      <FaceOff
+        top={<FaceOffBar onBack={() => router.push(squadId ? `/lobby?squad=${squadId}` : "/home")} backLabel="Back to lobby" title={mySide?.name} />}
+        mine={mySide}
+        theirs={null}
+        status={handoffExpired ? "That match expired before both squads joined." : handoffError ?? "This room is no longer available."}
+        actions={
+          <>
+            {handoffExpired
+              ? <Button onClick={() => router.push(squadId ? `/matchmaking?squad=${squadId}` : "/home")} variant="primary">Find another</Button>
+              : <Button onClick={() => window.location.reload()} variant="primary">Retry</Button>}
+            <Button onClick={() => router.push(squadId ? `/lobby?squad=${squadId}` : "/home")} variant="secondary">Back to lobby</Button>
+          </>
+        }
+      />
     );
   }
 
+  const status = joinExpired
+    ? "This match expired. Finding you another…"
+    : joining
+      ? `Joining ${theirSide?.name ?? "the call"}…`
+      : `Joining in ${autoLeft}…`;
+
   return (
-    <div style={{ minHeight: "100%", background: "var(--bg)", display: "grid", placeItems: "center", padding: isPhone ? "16px" : "24px", boxSizing: "border-box", overflowY: "auto" }}>
-      <section style={{ width: "min(640px, 100%)", background: "var(--surface)", border: "var(--control-border)", borderRadius: "var(--radius-card, 20px)", padding: isPhone ? "20px" : "28px", boxShadow: "var(--shadow-card)", display: "flex", flexDirection: "column", gap: isPhone ? 18 : 24, textAlign: "center" }}>
-        <header style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          <span style={{ borderRadius: "var(--radius-pill, 999px)", padding: "5px 10px", background: "var(--accent-soft)", border: "1px solid var(--accent-line)", color: "var(--accent)", fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>Room ready</span>
-          <h1 style={{ margin: 0, color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 24 : 30, fontWeight: 700, letterSpacing: "-0.03em" }}>Your squads can join now</h1>
-          {vibeLabel && <div style={{ color: textMuted, fontSize: 13 }}>Shared vibe · {vibeLabel}</div>}
-        </header>
-
-        <div role="group" aria-label={rosterLabel} style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: 12, textAlign: "left" }}>
-          <div style={{ minWidth: 0, padding: "14px", borderRadius: "var(--radius-tile, 16px)", background: "var(--overlay)", border: "var(--control-border)", display: "flex", flexDirection: "column", gap: 10 }}>
-            <span style={{ color: textMuted, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>Your squad</span>
-            <div style={{ color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mySquadName}</div>
-            <AvatarStack names={myMembers} size={32} total={myMembers.length} max={4} />
-          </div>
-          <div style={{ minWidth: 0, padding: "14px", borderRadius: "var(--radius-tile, 16px)", background: "var(--overlay)", border: "var(--control-border)", display: "flex", flexDirection: "column", gap: 10 }}>
-            <span style={{ color: textMuted, fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>Joining you</span>
-            <div style={{ color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 18, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pairedSquadName}</div>
-            <AvatarStack names={opponentMembers} size={32} total={opponentMembers.length} max={4} />
-          </div>
-        </div>
-
-        <div role="timer" aria-label={`${countdown} of ${countdownTotal} seconds remaining`} style={{ alignSelf: "center", borderRadius: "var(--radius-pill, 999px)", padding: "8px 14px", background: "var(--live-soft)", color: "var(--text)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 15, fontWeight: 700, fontVariantNumeric: "tabular-nums" as const }}>
-          Starts in {countdown}s
-        </div>
-        <div aria-live="polite" style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" as const, border: 0 }}>{srAnnounce}</div>
-
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-          <Button onClick={handleJoin} loading={joining} disabled={joinExpired} variant="primary" style={{ width: isPhone ? "100%" : 220 }}>
-            {joinExpired ? "Match expired" : joining ? "Joining…" : "Join room"}
-          </Button>
-          {joinExpired && <div style={{ color: "var(--coral)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13, width: isPhone ? "100%" : 220 }}>This match expired — finding you another…</div>}
-          {actionError && <div role="alert" style={{ color: "var(--coral)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13, fontWeight: 700, width: isPhone ? "100%" : 220, textAlign: "center", lineHeight: 1.35 }}>{actionError}</div>}
-          {isLeader ? <Button onClick={handleSkip} loading={skipping} variant="ghost" style={{ width: isPhone ? "100%" : 220 }}>{skipping ? "Skipping…" : `Skip (${countdown}s)`}</Button> : <div style={{ color: textMuted, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13, width: isPhone ? "100%" : 220, textAlign: "center", padding: "8px 0" }}>Waiting for your leader to start — or join now ({countdown}s)</div>}
-        </div>
-      </section>
-    </div>
+    <FaceOff
+      top={<FaceOffBar onBack={back} backLabel="Skip this squad" title={mySide?.name} busy={!isLeader || skipping || joining} />}
+      mine={mySide}
+      theirs={theirSide}
+      status={<>
+        <span role="timer" aria-label={`${countdown} of ${countdownTotal} seconds left to join`}>{status}</span>
+        <span aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>{srAnnounce}</span>
+      </>}
+      actions={
+        <>
+          <Button onClick={handleJoin} loading={joining} disabled={joinExpired} variant="primary">{joinExpired ? "Match expired" : "Join now"}</Button>
+          {isLeader && <Button onClick={handleSkip} loading={skipping} disabled={joining} variant="secondary">{skipping ? "Skipping…" : "Skip"}</Button>}
+          {actionError && <p role="alert" className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>{actionError}</p>}
+        </>
+      }
+    />
   );
 }
 

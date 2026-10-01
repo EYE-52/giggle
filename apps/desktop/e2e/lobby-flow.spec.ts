@@ -45,7 +45,9 @@ for (const width of [390, 1440]) {
       // (GIGGLE_E2E_DISCOVERY=false skips just these steps).
       if (process.env.GIGGLE_E2E_DISCOVERY !== 'false') {
         await expect(leader.getByRole('button', { name: 'Find a squad', exact: true })).toBeDisabled();
-        for (const page of [leader, friend]) await page.getByRole('button', { name: "I'm ready to join", exact: true }).click();
+        // members say they're ready; the leader's "Find a squad" readies the leader
+        await expect(leader.getByRole('button', { name: /^I.m ready/ })).toHaveCount(0);
+        await friend.getByRole('button', { name: /^I.m ready/ }).click();
         await expect(leader.getByRole('button', { name: 'Find a squad', exact: true })).toBeEnabled();
         await expect(friend.getByRole('button', { name: 'Find a squad', exact: true })).toHaveCount(0);
         await leader.getByRole('button', { name: 'Find a squad', exact: true }).click();

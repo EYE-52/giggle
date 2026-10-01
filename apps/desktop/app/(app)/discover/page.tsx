@@ -136,18 +136,10 @@ export default function DiscoverPage() {
   const gridCols = isPhone ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))";
 
   return (
-    <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 24, paddingBottom: 40 }}>
-      {/* Header — cards own the page; the header carries only a light secondary
-          action (join a random open squad) when there's live inventory. */}
-      <PageHeader
-        title="Discover squads"
-        subtitle="Browse open squads. Check who is there before joining."
-        right={loading || hasOpenSquads ? (
-          <Button variant="tonal" onClick={handleRandom} disabled={loading} loading={randomLoading}>
-            {randomLoading ? "Finding…" : (<><Icon.lightning size={15} color={violet} /> Surprise me</>)}
-          </Button>
-        ) : undefined}
-      />
+    <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 16, paddingBottom: 40 }}>
+      {/* No headline: the squads are the page. The title is for screen readers;
+          "Surprise me" sits with the filters when there are squads to pick from. */}
+      <h1 style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 }}>Discover squads</h1>
 
       {/* Inline join/create error */}
       {joinError && (
@@ -211,6 +203,7 @@ export default function DiscoverPage() {
             </>
           )}
         </div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
         {/* Kept mounted during load (shimmer) to avoid layout shift. */}
         {loading ? (
           <span className="gg-shimmer" aria-hidden="true" style={{ width: 76, height: 16, borderRadius: 6 }} />
@@ -229,6 +222,12 @@ export default function DiscoverPage() {
             )}
           </span>
         )}
+        {(loading || hasOpenSquads) && (
+          <Button variant="tonal" onClick={handleRandom} disabled={loading} loading={randomLoading}>
+            {randomLoading ? "Finding…" : (<><Icon.lightning size={15} color={violet} /> Surprise me</>)}
+          </Button>
+        )}
+        </div>
       </div>
 
       {/* Loading skeletons */}

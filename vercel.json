@@ -6,7 +6,7 @@
   "framework": "nextjs",
   "env": {
     "NEXT_PUBLIC_BACKEND_URL": "https://giggle-server-production.up.railway.app",
-    "NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED": "false"
+    "NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED": "true"
   },
   "git": {
     "deploymentEnabled": {

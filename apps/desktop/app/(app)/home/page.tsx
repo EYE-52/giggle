@@ -469,7 +469,7 @@ export default function HomePage() {
               <input
                 className="input"
                 value={name}
-                maxLength={40}
+                maxLength={32}
                 onChange={(event) => {
                   setName(event.target.value);
                   setCreateError("");

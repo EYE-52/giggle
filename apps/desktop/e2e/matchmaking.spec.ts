@@ -106,7 +106,7 @@ async function installMatchmakingFixture(page: Page, cancelFailures = 0) {
 async function openMatchmaking(page: Page, cancelFailures = 0) {
   const fixture = await installMatchmakingFixture(page, cancelFailures);
   await page.goto(`/matchmaking?squad=${fixtureSquadId}`);
-  await expect(page.getByRole("heading", { name: /finding a squad/i })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: /looking for a squad/i })).toBeVisible();
   return fixture;
 }
 
@@ -117,11 +117,12 @@ test.beforeEach(({}, testInfo) => {
 test("matchmaking explains progress and cancels back to the lobby", async ({ page }, testInfo) => {
   const fixture = await openMatchmaking(page);
 
-  await expect(page.getByRole("status").filter({ hasText: /checking active squads/i })).toBeVisible();
-  const squad = page.getByRole("region", { name: "Your squad" });
-  await expect(squad).toContainText("Night Owls");
-  await expect(squad).toContainText("Maya · Arjun");
-  await expect(squad).toContainText("2 together");
+  await expect(page.getByRole("status").filter({ hasText: /looking for a squad · 0:\d\d/i })).toBeVisible();
+  // your squad's people face the search for the other squad
+  const squad = page.getByRole("region", { name: "Night Owls" });
+  await expect(squad).toContainText(/Maya|You/);
+  await expect(squad).toContainText("Arjun");
+  await expect(page.getByRole("region", { name: "Looking for a squad" })).toBeVisible();
   await expect.poll(fixture.statusPolls).toBeGreaterThan(0);
 
   await page.screenshot({
@@ -130,7 +131,7 @@ test("matchmaking explains progress and cancels back to the lobby", async ({ pag
     quality: 82,
   });
 
-  await page.getByRole("button", { name: /cancel search/i }).click();
+  await page.getByRole("button", { name: "Cancel search", exact: true }).click();
   await expect(page).toHaveURL(`/lobby?squad=${fixtureSquadId}`);
   expect(fixture.cancelAttempts()).toBe(1);
 });
@@ -142,7 +143,7 @@ test("failed cancellation stays in queue and succeeds on retry", async ({ page }
   });
   const fixture = await openMatchmaking(page, 1);
 
-  await page.getByRole("button", { name: /cancel search/i }).click();
+  await page.getByRole("button", { name: "Cancel search", exact: true }).click();
 
   await expect(page).toHaveURL(`/matchmaking?squad=${fixtureSquadId}`);
   await expect(page.getByRole("alert").filter({ hasText: /still in the queue/i })).toBeVisible();

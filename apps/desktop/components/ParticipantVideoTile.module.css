@@ -1,18 +1,20 @@
 .tile { position:relative; width:100%; height:100%; min-height:0; border-radius:14px; overflow:hidden; isolation:isolate; contain:paint; container-type:size; background:#33312f; }
-.fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:#c5beb3; font-size:12px; padding-bottom:30px; }
-/* Small tiles: keep the avatar clear of the name bar and drop the status line. */
+.fallback { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:#c5beb3; font-size:13px; padding-bottom:26px; }
+/* Camera off: the character grows with the tile, like a face would. */
+.face { width:clamp(40px, 42cqmin, 220px); aspect-ratio:1; flex:none; display:block; }
+.face > * { width:100% !important; height:100% !important; }
+/* Small tiles: keep the character clear of the name bar and drop the status line. */
 @container (max-height: 170px) {
-  .fallback { gap:6px; padding-bottom:26px; }
+  .fallback { gap:4px; padding-bottom:24px; }
   .fallback > span:last-child { display:none; }
-  .fallback > :first-child { transform:scale(.78); }
-}
-@container (max-height: 110px) {
-  .fallback > :first-child { transform:scale(.6); }
 }
 .initial { width:58px; height:58px; display:grid; place-items:center; border-radius:50%; background:#514b43; color:#faf7f2; font-size:26px; }
 .media { position:absolute; inset:0; z-index:2; overflow:hidden; }
 .media > div, .media video { background:transparent !important; }
 .media video { transform:scale(var(--person-zoom)) !important; }
+/* crop fills the tile; fit shows the whole picture over its own blurred copy */
+.tile[data-media-fit=crop] .media video { object-fit:cover !important; }
+.tile[data-media-fit=fit] .media video { object-fit:contain !important; }
 .tile[data-local=true] .media video { transform:scale(var(--person-zoom)) scaleX(-1) !important; }
 .backdrop { position:absolute; inset:-12px; width:calc(100% + 24px); height:calc(100% + 24px); filter:blur(22px) brightness(.55); object-fit:cover; z-index:1; pointer-events:none; }
 .name { position:absolute; bottom:0; left:0; right:0; padding:24px 10px 9px; background:linear-gradient(transparent,#0009); color:white; display:flex; align-items:center; gap:5px; font-size:12px; z-index:3; pointer-events:none; }

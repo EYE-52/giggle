@@ -612,7 +612,8 @@
 .gg-call-controls-wrap [data-testid="call-controls"] { padding:0 !important; gap:8px !important; }
 .gg-call-controls-wrap [data-call-control] { width:60px !important; min-width:52px !important; height:64px !important; padding:8px 4px !important; flex-direction:column; gap:5px; }
 .gg-control-label { font-size:12px; font-weight:400; line-height:16px; color:inherit; }
-@media(max-width:699px), (max-height:500px) and (max-width:950px) { .gg-call-controls-wrap [data-call-control] { width:52px !important; height:60px !important; } }
+@media(max-width:699px), (max-height:500px) and (max-width:950px) { .gg-call-controls-wrap [data-call-control] { width:58px !important; min-width:58px !important; height:60px !important; } }
+.gg-control-label { white-space:nowrap; }
 
 /* ── Phase 2c: call chrome hooks ──────────────────────────────────────────
    The encounter chrome carries the mock's stable class hooks (call-top,
@@ -731,3 +732,53 @@
 .gg-screen-call .call-top { pointer-events: none; }
 .gg-screen-call .call-top > * { pointer-events: auto; }
 .gg-screen-call[data-chrome="hidden"] .call-top > * { pointer-events: none; }
+
+/* ── Call chrome, legible over any video (2026-10-02) ──────────────────────
+   The header and labels sit on camera feeds, so they are light-on-dark glass
+   in every skin and mode; skins keep their shapes. With chat open on a wide
+   screen the chrome centres over the video, not over the chat; on phones the
+   chat takes the screen and the chrome steps aside so the composer is free. */
+.gg-screen-call .call-top { --text: #fbf8f3; --text-muted: rgb(251 248 243 / .78); }
+html[data-skin] .gg-screen-call .call-top :is(.call-title, .pill.live, .timer) {
+  background: rgb(14 13 12 / .58) !important;
+  color: #fbf8f3 !important;
+  border-color: rgb(255 255 255 / .16) !important;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+html[data-skin] .gg-screen-call .call-top .pill.live { color: #86e6ae !important; }
+html[data-skin] .gg-screen-call .call-top .timer { padding: 3px 9px; border: 1px solid; border-radius: 999px; text-align: center; }
+.gg-screen-call .vcell :is(.vname, .vdots, .vsize) { transition: translate .25s ease, opacity .15s; }
+.gg-screen-call { --call-dock-lift: 84px; }
+.gg-screen-call[data-chrome="shown"] .vcell[data-edge-bottom] :is(.vname, .vdots) { translate: 0 calc(-1 * var(--call-dock-lift)); }
+.gg-screen-call[data-chrome="shown"] .vcell[data-edge-top] .vsize { translate: 0 44px; }
+@media (max-width: 699px), (max-height: 500px) and (max-width: 950px) { .gg-screen-call { --call-dock-lift: 76px; } }
+@media (prefers-reduced-motion: reduce) { .gg-screen-call .vcell :is(.vname, .vdots, .vsize) { transition: none; } }
+@media (min-width: 700px) {
+  .gg-screen-call:has(.gg-chat-open) :is(.call-top, .gg-call-controls-wrap) { right: 320px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .gg-screen-call:has(.gg-chat-open) :is(.call-top, .gg-call-controls-wrap) { right: 280px; }
+}
+@media (max-width: 699px), (max-height: 500px) and (max-width: 950px) {
+  .gg-screen-call:has(.gg-chat-open) :is(.call-top, .gg-call-controls-wrap) { display: none !important; }
+}
+
+/* the More menu: reactions on top, then one row style for every action */
+.gg-call-menu { position: absolute; bottom: calc(100% + 10px); right: 0; width: min(288px, calc(100vw - 24px)); box-sizing: border-box; padding: 8px; display: flex; flex-direction: column; gap: 2px; border-radius: 18px; background: #1f1d1b; color: #fbf8f3; box-shadow: 0 18px 40px -12px rgb(0 0 0 / .55), 0 0 0 1px rgb(255 255 255 / .08); z-index: 60; }
+.gg-call-menu[data-placement="center"] { right: auto; left: 50%; translate: -50% 0; }
+.gg-call-menu-reactions { display: flex; justify-content: space-between; gap: 4px; padding: 2px 2px 8px; margin-bottom: 4px; border-bottom: 1px solid rgb(255 255 255 / .1); }
+.gg-call-menu-reactions button { width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: rgb(255 255 255 / .07); font-size: 22px; line-height: 1; cursor: pointer; }
+.gg-call-menu-reactions button:hover { background: rgb(255 255 255 / .16); }
+.gg-call-menu > button { display: flex; align-items: center; gap: 12px; min-height: 46px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent; color: inherit; font: inherit; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; }
+.gg-call-menu > button:hover:not(:disabled), .gg-call-menu > button:focus-visible { background: rgb(255 255 255 / .09); }
+.gg-call-menu > button:disabled { opacity: .5; cursor: default; }
+.gg-call-menu > button[data-tone="danger"] { color: #ff8b80; }
+.gg-call-menu > button[data-tone="ok"] { color: #86e6ae; }
+.gg-call-menu > hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid rgb(255 255 255 / .1); }
+/* Leave reads as the one red action in every skin (skins keep its shape). */
+html[data-skin] .gg-screen-call .cbtn.leave { background: #d8433b !important; color: #fff !important; }
+html[data-skin]:not([data-skin="play"]) .gg-screen-call .cbtn.leave { border-color: transparent !important; }
+html[data-skin] .gg-screen-call .cbtn.leave:hover:not(:disabled) { background: #c03830 !important; }

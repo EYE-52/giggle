@@ -232,7 +232,7 @@ test("ending shows immediate feedback during a delayed failure and keeps recover
 
   await controls.getByRole("button", { name: "More", exact: true }).click();
   await controls.getByRole("button", { name: "End encounter", exact: true }).click();
-  const endDialog = page.getByRole("dialog", { name: "End encounter?" });
+  const endDialog = page.getByRole("dialog", { name: "End the call?" });
   await endDialog.getByRole("button", { name: "End encounter" }).click();
 
   await expect(endDialog.getByRole("button", { name: "End encounter", exact: true })).toContainText("Ending…", { timeout: 500 });
@@ -408,7 +408,8 @@ test("fixture encounter keeps media, chat, and controls usable across resize", a
     if (testInfo.project.name === "phone") {
       await expect(page.getByRole("complementary", { name: "Call chat" })).toBeVisible();
       await expect(stage).toBeHidden();
-      await expect(controls).toBeVisible();
+      // the chat takes the screen; the call controls step aside so the composer is free
+      await expect(controls).toBeHidden();
     }
     const chatText = `hello-${testInfo.project.name}-${Date.now()}`;
     await chatInput.fill(chatText);
@@ -481,7 +482,7 @@ test("fixture encounter keeps media, chat, and controls usable across resize", a
 
     await controls.getByRole("button", { name: "More", exact: true }).click();
   await controls.getByRole("button", { name: "End encounter", exact: true }).click();
-    const endDialog = page.getByRole("dialog", { name: "End encounter?" });
+    const endDialog = page.getByRole("dialog", { name: "End the call?" });
     await expect(endDialog).toBeVisible();
     await endDialog.getByRole("button", { name: "Keep talking" }).click();
     await expect(endDialog).toBeHidden();
@@ -518,16 +519,18 @@ test("opponent ending preserves a clear recovery state", async ({ page }, testIn
   const { stage } = await openFixture(page, 2);
   await expect(stage).toBeVisible();
   await fixture.emitOpponentEnded();
-  await expect(page.getByText("The other squad left", { exact: true })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole("button", { name: "Continue matching" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Back home" })).toBeVisible();
+  await expect(page.getByText("Chaos Club left", { exact: true })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole("button", { name: "Find another now" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Back to lobby" })).toBeVisible();
   await page.screenshot({
     path: "artifacts/visual-audit/2026-07-30/encounter/states/phone-opponent-ended.jpg",
     type: "jpeg",
     quality: 82,
   });
-  await page.getByRole("button", { name: "Back home" }).click();
-  await expect(page).toHaveURL(/\/home$/);
+  // the fixture has no lobby data (the lobby then sends it home), so catch the hop itself
+  const toLobby = page.waitForURL(/\/lobby\?squad=fixture-squad/, { waitUntil: "commit" });
+  await page.getByRole("button", { name: "Back to lobby" }).click();
+  await toLobby;
 });
 
 test("mocked rosters stay usable across the viewport matrix", async ({ page }, testInfo) => {
@@ -639,7 +642,10 @@ test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page 
   const chatPanel = page.getByRole("complementary", { name: "Call chat" });
   await expect(chatPanel).toBeVisible();
   await expect(stage).toBeHidden();
-  await expect(controls).toBeVisible();
+  // phone chat takes the screen; the controls step aside so they never cover the composer
+  await expect(controls).toBeHidden();
+  const composer = await page.getByRole("textbox", { name: "Chat message" }).boundingBox();
+  expect(composer && composer.y + composer.height).toBeLessThanOrEqual(844);
   const closeChat = page.getByRole("button", { name: "Back to video" });
   const closeBox = await closeChat.boundingBox();
   expect(closeBox?.width).toBeGreaterThanOrEqual(44);
@@ -665,7 +671,7 @@ test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page 
 
   await controls.getByRole("button", { name: "More", exact: true }).click();
   await controls.getByRole("button", { name: "End encounter", exact: true }).click();
-  const endDialog = page.getByRole("dialog", { name: "End encounter?" });
+  const endDialog = page.getByRole("dialog", { name: "End the call?" });
   await expect(endDialog).toBeVisible();
   await expect.poll(() => endDialog.evaluate(node => getComputedStyle(node).opacity)).toBe("1");
   await page.screenshot({

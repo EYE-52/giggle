@@ -1,18 +1,15 @@
 "use client";
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Logomark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
 import { api, connectSocket, SOCKET_EVENTS } from "@giggle/core";
 import type { SquadState } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 import { Button } from "@/components/Button";
-import { StatTile } from "@/components/StatTile";
-import { AvatarStack } from "@/components/Avatar";
+import { FaceOff, FaceOffBar, faceOffStyles } from "@/components/FaceOff";
 
 function MatchmakingInner() {
-  const { height, isPhone } = useViewport();
-  const isShortPhone = isPhone && height <= 650;
+  const { isPhone } = useViewport();
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
@@ -51,15 +48,7 @@ function MatchmakingInner() {
   const textPrimary = "var(--text)";
   const textMuted = "var(--text-muted)";
   const fmt = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-  const progressLabel = elapsed < 4
-    ? "Checking active squads"
-    : elapsed < 10
-      ? "Matching your squad's vibes"
-      : "Finding the strongest live match";
-  const squadMemberNames = squad?.members.map(member => member.displayName) ?? [];
-  const squadMemberSummary = squadMemberNames.length <= 3
-    ? squadMemberNames.join(" · ")
-    : `${squadMemberNames.slice(0, 2).join(" · ")} +${squadMemberNames.length - 2}`;
+  const progressLabel = elapsed < 10 ? "Looking for a squad" : "Still looking";
 
   useEffect(() => {
     if (!squadId) return;
@@ -102,6 +91,13 @@ function MatchmakingInner() {
         if (status.match?.encounterId) {
           stopPolling();
           triggerMatchReveal(status.match.encounterId);
+          return;
+        }
+        // Not queued (e.g. the server could not requeue after a call): this
+        // squad belongs in its lobby, not on a search that is not happening.
+        if ((status as { state?: string }).state === "idle") {
+          stopPolling();
+          router.replace(`/lobby?squad=${squadId}`);
           return;
         }
       } catch {
@@ -156,10 +152,10 @@ function MatchmakingInner() {
     revealedRef.current = true;
     clearRevealTimers();
     setMatchFound({ encounterId, opponentName });
-    // Navigate after reveal (~2s — leaves time for the SR announcement to land)
+    // The handoff screen shares this layout, so go straight there.
     navigationTimeoutRef.current = setTimeout(() => {
       router.push(`/match?squad=${squadId}&enc=${encounterId}`);
-    }, 2000);
+    }, 250);
   }
 
   async function handleCancel() {
@@ -195,107 +191,37 @@ function MatchmakingInner() {
     );
   }
 
-  const signalSize = isShortPhone ? 48 : isPhone ? 56 : 64;
+  const mine = squad ? {
+    name: squad.squadName,
+    people: squad.members.map(member => ({ userId: member.userId, displayName: member.displayName, avatar: member.avatar })),
+  } : null;
+  const status = matchFound
+    ? `Found ${matchFound.opponentName ?? "a squad"}…`
+    : pollFailures >= 3
+      ? "Reconnecting… your squad is still in the queue."
+      : showLongSearch
+        ? `Not many squads are live right now · ${fmt(elapsed)}`
+        : `${progressLabel} · ${fmt(elapsed)}`;
 
   return (
-    <div style={{
-      height: "100%", minHeight: 0, width: "100%", background: "var(--bg)",
-      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: isShortPhone ? "flex-start" : "center",
-      gap: isShortPhone ? 10 : isPhone ? 18 : 28,
-      padding: isShortPhone ? "10px 16px" : isPhone ? "20px 16px" : "24px",
-      boxSizing: "border-box", overflowX: "hidden", overflowY: isPhone ? "auto" : "hidden", position: "relative",
-    }}>
-      {matchFound && (
-        <div role="status" aria-live="assertive" style={{ position: "fixed", inset: 0, zIndex: 100, background: "var(--overlay-strong)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <span style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" as const, border: 0 }}>Match found — starting now.</span>
-          <div aria-hidden style={{ width: "min(400px, 100%)", background: "var(--surface)", border: "1px solid var(--accent-line)", borderRadius: "var(--radius-card, 20px)", padding: isPhone ? "28px 24px" : "40px 48px", textAlign: "center", boxShadow: "var(--shadow-pop)", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-            <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent-line)", borderRadius: 999, padding: "6px 14px", fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "var(--accent)" }}>Match found</div>
-            <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isPhone ? 22 : 30, fontWeight: 700, color: textPrimary, letterSpacing: "-0.03em", lineHeight: 1.1 }}>Squad located!</div>
-            {matchFound.opponentName && (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-                <div style={{ color: textMuted, fontSize: 13, letterSpacing: "0.08em", textTransform: "uppercase" as const }}>You matched with</div>
-                <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: "var(--accent)" }}>{matchFound.opponentName}</div>
-              </div>
-            )}
-            <div style={{ color: textMuted, fontSize: 14 }}>Heading to the encounter…</div>
-          </div>
-        </div>
-      )}
-
-      <div aria-hidden style={{ width: signalSize, height: signalSize, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0, background: "var(--accent-soft)", border: "1px solid var(--accent-line)" }}>
-        <Logomark size={isShortPhone ? 30 : 42} animated />
-      </div>
-
-      <div style={{ textAlign: "center", display: "flex", flexDirection: "column", gap: 8, maxWidth: 460 }}>
-        <h1 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: isShortPhone ? 22 : isPhone ? 22 : 30, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em", margin: 0 }}>Finding a squad…</h1>
-        <div style={{ color: textMuted, fontSize: isShortPhone ? 12 : 14 }}>
-          {isShortPhone && elapsed >= 20 ? "Still searching. You can cancel and return to your lobby." : "Your squad will join the call when a match is ready."}
-        </div>
-        {elapsed >= 20 && !matchFound && !isShortPhone && !showLongSearch && (
-          <div style={{ marginTop: 4, maxWidth: 420, alignSelf: "center", padding: isPhone ? "10px 16px" : "12px 20px", borderRadius: "var(--radius-control, 14px)", background: "var(--surface)", border: "1px solid var(--border)", color: textMuted, fontSize: 14, lineHeight: 1.5 }}>
-            Still searching — not many squads are live right now. Hang tight, or invite a friend.
-          </div>
-        )}
-      </div>
-
-      <section aria-label="Your squad" style={{ width: "min(520px, calc(100vw - 32px))", minHeight: isShortPhone ? 52 : 60, padding: isShortPhone ? "8px 10px" : "10px 12px", borderRadius: "var(--radius-control, 14px)", border: "1px solid var(--border)", background: "var(--surface)", display: "flex", alignItems: "center", gap: 12, boxSizing: "border-box" }}>
-        {squad ? (
-          <>
-            <AvatarStack names={squadMemberNames} size={isShortPhone ? 26 : 30} total={squadMemberNames.length} max={isPhone ? 3 : 4} />
-            <div style={{ minWidth: 0, flex: 1, textAlign: "left" }}>
-              <div style={{ color: textPrimary, fontSize: 13, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{squad.squadName}</div>
-              <div style={{ marginTop: 2, color: textMuted, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{squadMemberSummary}</div>
-            </div>
-            <span style={{ flexShrink: 0, color: "var(--live)", fontSize: 12, fontWeight: 700 }}>{squadMemberNames.length} together</span>
-          </>
-        ) : (
-          <span style={{ color: textMuted, fontSize: 13 }}>Keeping your squad together…</span>
-        )}
-      </section>
-
-      {showLongSearch && (
-        <div role="status" style={{ width: "min(440px, calc(100vw - 32px))", background: "var(--surface)", border: "var(--control-border)", borderRadius: "var(--radius-card, 20px)", padding: isShortPhone ? "12px 14px" : isPhone ? "16px 18px" : "18px 22px", boxShadow: "var(--shadow-card)", display: "flex", flexDirection: "column", gap: 12, textAlign: "center" }}>
-          <div style={{ color: textPrimary, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 17, fontWeight: 700, lineHeight: 1.4 }}>Still looking — no squads are free right now.</div>
-          <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" as const }}>
-            <Button variant="tonal" size="sm" onClick={() => setLongSearchBaseline(elapsed)}>Keep waiting</Button>
-            <Button variant="secondary" size="sm" onClick={() => router.push("/friends")}>Invite friends</Button>
-            <Button variant="ghost" size="sm" onClick={handleCancel} loading={cancelling}>Back to lobby</Button>
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: isShortPhone ? 8 : 12, justifyContent: "center", maxWidth: "min(720px, calc(100vw - 32px))", flexWrap: "wrap" as const }}>
-        <StatTile label="Elapsed" value={fmt(elapsed)} />
-        <StatTile label="Status" live={!!matchFound} value={matchFound ? "Found!" : pollFailures >= 3 ? "Reconnecting…" : "Searching"} />
-      </div>
-
-      {squadError && !squad && (
-        <button onClick={() => fetchSquad(false)} style={{ padding: 0, border: "none", background: "transparent", color: "var(--accent)", fontSize: 12, fontWeight: 700, textDecoration: "underline", cursor: "pointer" }}>Retry squad details</button>
-      )}
-
-      {pollFailures >= 3 && !matchFound && (
-        <div role="status" style={{ padding: "8px 18px", borderRadius: 999, background: "var(--coral-soft)", border: "1px solid color-mix(in srgb, var(--coral) 35%, transparent)", color: "var(--coral)", fontSize: 13, fontWeight: 600, textAlign: "center", maxWidth: "calc(100vw - 32px)" }}>
-          Reconnecting to matchmaking… your squad is still in the queue.
-        </div>
-      )}
-
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-        <div role="status" aria-live="polite" style={{ display: "inline-flex", alignItems: "center", gap: 9, justifyContent: "center", color: textMuted, fontFamily: "var(--font-body)", fontSize: isShortPhone ? 13 : 14, fontWeight: 500, letterSpacing: "0.01em" }}>
-          <span aria-hidden style={{ width: 8, height: 8, borderRadius: 999, flexShrink: 0, background: "var(--live)" }} />
-          <span>{progressLabel}<span style={{ opacity: 0.7 }}>…</span></span>
-        </div>
-        <div style={{ color: "color-mix(in srgb, var(--text-muted) 78%, transparent)", fontSize: isShortPhone ? 12 : 13 }}>Keep this screen open while we find another squad.</div>
-      </div>
-
-      <Button onClick={handleCancel} loading={cancelling} variant="ghost" style={{ minWidth: 176, width: isPhone ? "100%" : undefined }}>
-        {cancelError ? "Try cancel again" : "Cancel search"}
-      </Button>
-      {cancelError && (
-        <div role="alert" style={{ color: "var(--coral)", fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 13, fontWeight: 700, textAlign: "center", maxWidth: 360 }}>
-          {cancelError}
-        </div>
-      )}
-    </div>
+    <FaceOff
+      top={<FaceOffBar onBack={handleCancel} backLabel="Back to lobby" title={squad?.squadName} busy={cancelling || !!matchFound} />}
+      mine={mine}
+      theirs={null}
+      searching
+      status={status}
+      actions={
+        <>
+          {showLongSearch && <Button variant="primary" onClick={() => setLongSearchBaseline(elapsed)}>Keep waiting</Button>}
+          {showLongSearch && <Button variant="secondary" onClick={() => router.push("/friends")}>Invite friends</Button>}
+          <Button onClick={handleCancel} loading={cancelling} disabled={!!matchFound} variant={showLongSearch ? "ghost" : "secondary"}>
+            {cancelError ? "Try cancel again" : "Cancel search"}
+          </Button>
+          {cancelError && <p role="alert" className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>{cancelError}</p>}
+          {squadError && !squad && <button type="button" className={faceOffStyles.link} onClick={() => fetchSquad(false)}>Retry squad details</button>}
+        </>
+      }
+    />
   );
 }
 
