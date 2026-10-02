@@ -7,6 +7,7 @@ import { Modal, useFocusTrap } from "./Modal";
 import styles from "./ParticipantVideoTile.module.css";
 import type { TileSizeControls } from "./FocusVideoStage";
 import { Icon } from "./Icons";
+import { ReactionGlyph, reactionLabel } from "./Reaction";
 
 type Fit = "fit" | "crop";
 type Props = {
@@ -143,7 +144,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
       <button type="button" aria-label={`Make ${isLocal ? "yourself" : name} bigger`} disabled={!size.canGrow} onClick={size.grow}><Icon.plus size={16} weight="bold" /></button>
       <button type="button" aria-label={size.pinned ? `Let ${isLocal ? "your" : `${name}'s`} size change again` : `Keep ${isLocal ? "your" : `${name}'s`} size`} aria-pressed={size.pinned} onClick={size.togglePin}><Icon.pin size={16} weight={size.pinned ? "fill" : "bold"} color="currentColor" /></button>
     </div>}
-    <div className={styles.reactions} aria-live="polite">{reactions.map(r => <span key={r.id} data-reaction>{r.emoji}</span>)}</div>
+    <div className={styles.reactions} aria-live="polite">{reactions.map(r => <span key={r.id} data-reaction aria-label={reactionLabel(r.emoji)}><ReactionGlyph value={r.emoji} size={26} /></span>)}</div>
     {panel === "menu" && <PersonMenu anchor={button.current} onClose={() => setPanel(null)} name={isLocal ? "You" : name}>
       <button disabled={!hasVideo} onClick={() => setPanel("framing")}>Adjust view{!hasVideo && <small>Camera off</small>}</button>
       {!isLocal && <button disabled={!onMute || pending} onClick={() => void mute()}>{pending ? "Updating…" : mutedForMe ? "Unmute for me" : "Mute for me"}</button>}
@@ -155,7 +156,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
       {error && <p role="alert">{error}</p>}
       {!isLocal && <p>Listening changes affect only you.</p>}
     </PersonMenu>}
-    {panel === "framing" && <Modal title={isLocal ? "Your view" : `${name}'s view`} subtitle="Adjust what you see. Everyone else's view stays the same." onClose={() => setPanel(null)} width={380} style={{ background: "#faf7f2", color: "#292824", border: 0, animation: "none", "--text": "#292824", "--text-muted": "#756f66", "--surface": "#faf7f2" } as CSSProperties}>
+    {panel === "framing" && <Modal title={isLocal ? "Your view" : `${name}'s view`} subtitle="Adjust what you see. Everyone else's view stays the same." onClose={() => setPanel(null)} width={380} style={{ animation: "none" } as CSSProperties}>
       <div className={styles.settings}>
         <div className={styles.preview} style={{ aspectRatio: ratio, width: `min(100%, ${Math.min(220 * ratio, 336)}px)` }}><video ref={preview} muted playsInline aria-label={`${name}, framing preview`} style={{ objectFit: fit === "fit" ? "contain" : "cover", transform: `scale(${zoom})${isLocal ? " scaleX(-1)" : ""}` }} /></div>
         <div className={styles.fit}><button aria-pressed={fit === "fit"} onClick={() => chooseFit("fit")}>Full view</button><button aria-pressed={fit === "crop"} onClick={() => chooseFit("crop")}>Fill</button></div>

@@ -34,6 +34,21 @@ html[data-skin="play"] {
   --shadow-sm: 4px 4px 0 var(--text);
   --shadow-lg: 6px 6px 0 var(--text);
 }
+html[data-skin="play"] .gg-call-theme {
+  --sp1: 4px;
+  --sp2: 8px;
+  --sp3: 12px;
+  --sp4: 16px;
+  --sp5: 20px;
+  --sp6: 24px;
+  --r-card: 20px;
+  --r-input: 14px;
+  --r-tile: 14px;
+  --stroke: 3px;
+  --stroke-sm: 2.5px;
+  --shadow-sm: 4px 4px 0 var(--text);
+  --shadow-lg: 6px 6px 0 var(--text);
+}
 html[data-skin="play"] body {
   background-color: var(--bg);
   background-image: radial-gradient(color-mix(in srgb, var(--text) 10%, transparent) 1.3px, transparent 1.4px);

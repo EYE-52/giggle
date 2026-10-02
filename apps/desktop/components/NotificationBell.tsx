@@ -40,19 +40,20 @@ function relTime(iso: string): string {
   return `${w}w`;
 }
 
-// Per-type accent tint + icon. Uses brand vars where sensible, semantic tones otherwise.
+// Per-type tint + icon, all from the active palette.
 function typeStyle(type: NotificationType): { tint: string; icon: (s: number) => React.ReactNode } {
+  const on = "var(--on-brand, #fff)";
   switch (type) {
     case "friend_request":
-      return { tint: "var(--accent, var(--violet, #7657FF))", icon: (s) => <Icon.users size={s} color="#fff" strokeWidth={2} /> };
+      return { tint: "var(--brand, var(--accent))", icon: (s) => <Icon.users size={s} color={on} /> };
     case "squad_invite":
-      return { tint: "var(--sky, #38BDF8)", icon: (s) => <Icon.users size={s} color="#fff" strokeWidth={2} /> };
+      return { tint: "var(--brand-deep, var(--brand))", icon: (s) => <Icon.users size={s} color={on} /> };
     case "join_request":
-      return { tint: "var(--amber, #F59E0B)", icon: (s) => <Icon.users size={s} color="#fff" strokeWidth={2} /> };
+      return { tint: "var(--pop, var(--accent))", icon: (s) => <Icon.users size={s} color="var(--text)" /> };
     case "squad_joined":
-      return { tint: "var(--live, var(--lime, #B7FF2A))", icon: (s) => <Icon.users size={s} color="#0b0b12" strokeWidth={2.2} /> };
+      return { tint: "var(--ok, var(--live))", icon: (s) => <Icon.users size={s} color="var(--surface)" /> };
     default:
-      return { tint: "var(--text-muted, #9A9AB0)", icon: (s) => <Icon.bell size={s} color="#fff" /> };
+      return { tint: "var(--muted, var(--text-muted))", icon: (s) => <Icon.bell size={s} color="var(--surface)" /> };
   }
 }
 
@@ -75,21 +76,19 @@ function Pill({
   const bg =
     variant === "primary"
       ? hover
-        ? "var(--violet-bright)"
-        : "var(--violet)"
+        ? "var(--brand-deep, var(--brand))"
+        : "var(--brand, var(--accent))"
       : variant === "danger"
-      ? hover
-        ? "rgba(255,92,92,0.18)"
-        : "rgba(255,92,92,0.10)"
+      ? `color-mix(in srgb, var(--coral) ${hover ? 18 : 10}%, transparent)`
       : hover
       ? "var(--overlay-hover)"
       : "var(--overlay)";
-  const color = variant === "primary" ? "#fff" : variant === "danger" ? "#FF7A7A" : "var(--text)";
+  const color = variant === "primary" ? "var(--on-brand, #fff)" : variant === "danger" ? "var(--coral)" : "var(--text)";
   const border =
     variant === "primary"
       ? "1px solid transparent"
       : variant === "danger"
-      ? "1px solid rgba(255,92,92,0.28)"
+      ? "1px solid color-mix(in srgb, var(--coral) 28%, transparent)"
       : "1px solid var(--border)";
   return (
     <button
@@ -395,7 +394,7 @@ function LiveToast({
         backdropFilter: "blur(16px)",
         WebkitBackdropFilter: "blur(16px)",
         border: "1px solid var(--border-strong)",
-        boxShadow: "0 14px 40px rgba(0,0,0,0.45)",
+        boxShadow: "var(--shadow-pop)",
       }}
     >
       <div
@@ -613,7 +612,7 @@ export function NotificationBell() {
             zIndex: 70,
             background: "var(--surface)",
             border: "1px solid var(--border-strong)",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+            boxShadow: "var(--shadow-pop)",
             overflow: "hidden",
             display: "flex",
             flexDirection: "column",

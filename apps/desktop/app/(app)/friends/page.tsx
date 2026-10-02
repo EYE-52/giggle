@@ -606,7 +606,7 @@ function SquadPickerModal({ friend, isPhone, onClose }: { friend: Friend; isPhon
                       <div className={styles.pickerMeta}>{sq.memberCount}/{sq.maxSlots} members</div>
                     </div>
                     <Button size="sm" variant="primary" onClick={() => invite(sq.squadId)} disabled={invited || inviting}>
-                      {invited ? (<>Invited <span aria-hidden="true">✓</span></>) : inviting ? "Inviting…" : "Invite"}
+                      {invited ? (<>Invited <Icon.check size={14} color="currentColor" /></>) : inviting ? "Inviting…" : "Invite"}
                     </Button>
                   </div>
                   {rowErr[sq.squadId] && (

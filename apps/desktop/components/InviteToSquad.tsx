@@ -16,7 +16,7 @@ interface Props {
 // Per-person invite status. "idle" → "inviting" → "invited" | "error".
 type InviteState = "idle" | "inviting" | "invited" | "error";
 
-const violet = "var(--violet)";
+const violet = "var(--brand, var(--accent))";
 const lime = "var(--lime)";
 const limeText = "var(--lime-text)";
 const coral = "var(--coral)";
@@ -141,11 +141,10 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
 
   return (
     <div
-      data-theme="dark"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: "fixed", inset: 0, zIndex: 10000,
-        background: "rgba(0,0,0,0.68)", backdropFilter: "blur(8px)",
+        background: "var(--overlay-strong)", backdropFilter: "blur(8px)",
         display: "flex",
         alignItems: isPhone ? "flex-end" : "center",
         justifyContent: "center",
@@ -164,7 +163,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
           maxWidth: "100%",
           maxHeight: isPhone ? "88vh" : "80vh",
           display: "flex", flexDirection: "column",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+          boxShadow: "var(--shadow-pop)",
           overflow: "hidden",
           animation: isPhone ? "sheetUp .28s cubic-bezier(.22,1,.36,1)" : "modalIn .2s cubic-bezier(.22,1,.36,1)",
         }}
@@ -227,7 +226,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
                   style={{
                     flex: 1, minHeight: 44, padding: "8px 0", borderRadius: 999, border: "none", cursor: "pointer",
                     background: active ? violet : "transparent",
-                    color: active ? "#fff" : muted,
+                    color: active ? "var(--on-brand, #fff)" : muted,
                     fontSize: 13, fontWeight: 700, fontFamily: "var(--font-space-grotesk)",
                     transition: "all .15s ease",
                   }}
@@ -338,17 +337,17 @@ function PersonRow({ person, state, error, onInvite }: { person: Friend; state: 
           className="gg-press"
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
-            minHeight: 38, padding: "8px 16px", borderRadius: 999,
+            minHeight: 44, padding: "8px 16px", borderRadius: "var(--radius-btn, 999px)",
             fontFamily: "var(--font-inter)", fontWeight: 600, fontSize: 13,
             whiteSpace: "nowrap",
             cursor: invited || inviting ? "default" : "pointer",
-            border: invited ? "1px solid var(--lime)" : "none",
-            background: invited ? "color-mix(in srgb, var(--lime) 14%, transparent)" : inviting ? "color-mix(in srgb, var(--violet) 50%, transparent)" : violet,
-            color: invited ? limeText : "#fff",
+            border: invited ? "1px solid var(--ok, var(--live))" : "none",
+            background: invited ? "color-mix(in srgb, var(--ok, var(--live)) 14%, transparent)" : inviting ? "color-mix(in srgb, var(--brand, var(--accent)) 50%, transparent)" : violet,
+            color: invited ? "var(--ok, var(--live))" : "var(--on-brand, #fff)",
             transition: "background .18s ease, color .18s ease, border-color .18s ease",
           }}
         >
-          {invited ? (<>Invited <span aria-hidden="true">✓</span></>) : inviting ? "Inviting…" : (<><Icon.plus size={14} color="#fff" strokeWidth={2.4} /> Invite</>)}
+          {invited ? (<>Invited <Icon.check size={14} color="currentColor" /></>) : inviting ? "Inviting…" : (<><Icon.plus size={14} color="currentColor" /> Invite</>)}
         </button>
       </div>
       {error && (

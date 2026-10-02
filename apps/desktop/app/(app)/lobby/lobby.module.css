@@ -47,10 +47,11 @@
 .video { overflow: hidden; border-radius: inherit; z-index: 1; }
 .video video { object-fit: cover !important; }
 .seatLabel { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 2; display: flex; align-items: center; gap: 6px; min-width: 0; }
-.seatName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 10px; border-radius: 999px; background: rgb(12 12 14 / .62); color: #fff; font-size: 13px; font-weight: 650; line-height: 18px; }
+/* labels sit on video or the seat: theme glass (page colour) with theme ink */
+.seatName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--bg) 74%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--text); font-size: 13px; font-weight: 650; line-height: 18px; }
 .tag { flex: none; font-size: 11px; }
-.ready { background: var(--ok, #1fb47a); color: #fff; }
-.state { flex: none; margin-left: auto; padding: 3px 8px; border-radius: 999px; background: rgb(12 12 14 / .5); color: #fff; font-size: 12px; line-height: 16px; }
+.ready { background: var(--ok, #1fb47a); color: var(--surface); }
+.state { flex: none; margin-left: auto; padding: 3px 8px; border-radius: 999px; background: color-mix(in srgb, var(--bg) 74%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--text-muted, var(--muted)); font-size: 12px; line-height: 16px; }
 .openSeat { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border: 2px dashed color-mix(in srgb, var(--text) 22%, transparent); border-radius: 18px; background: transparent; color: var(--text-muted); cursor: pointer; font: inherit; padding: 12px; }
 .openSeat:hover { border-color: var(--brand, var(--accent)); color: var(--text); background: color-mix(in srgb, var(--brand, var(--accent)) 6%, transparent); }
 .openMark { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: var(--surface); color: var(--brand-deep, var(--accent)); box-shadow: 0 1px 0 rgb(0 0 0 / .04); }

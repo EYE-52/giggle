@@ -147,6 +147,11 @@ async function installEncounterFixture(page: Page, options: {
 
   await page.route("**/api/**", async route => {
     const path = new URL(route.request().url()).pathname;
+    // the site asks the API whether stranger matching is on
+    if (path === "/api/features") {
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { strangerDiscovery: true } }) });
+      return;
+    }
     if (path === "/api/me/profile") {
       await route.fulfill({
         contentType: "application/json",
@@ -440,7 +445,7 @@ test("fixture encounter keeps media, chat, and controls usable across resize", a
       }, 3000);
     }));
     await more.click();
-    await page.getByRole("button", { name: "React 👋" }).click();
+    await page.getByRole("button", { name: "React: Wave" }).click();
     await expect(localFrame.locator("[data-reaction]")).toHaveCount(1);
     const visibleFor = await reactionDuration;
     expect(visibleFor).toBeGreaterThanOrEqual(1700);

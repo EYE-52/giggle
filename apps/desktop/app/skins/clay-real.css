@@ -42,7 +42,9 @@ html[data-skin="clay"] {
     inset 0 10px 16px -8px var(--clay-shade-soft),
     inset 0 -6px 12px -8px var(--clay-light);
 }
-html[data-skin="clay"][data-mode="dark"] {
+html[data-skin="clay"][data-mode="dark"],
+/* the call is always dark: recompute this skin's derived tokens there too */
+html[data-skin="clay"] .gg-call-theme {
   --clay-page: color-mix(in oklch, var(--bg) 92%, var(--brand) 8%);
   --clay-fill: color-mix(in oklch, var(--surface-2) 80%, var(--brand) 20%);
   --clay-fill-2: color-mix(in oklch, var(--surface-2) 68%, var(--brand) 32%);

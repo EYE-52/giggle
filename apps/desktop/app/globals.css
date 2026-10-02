@@ -725,11 +725,12 @@ button.gg-chip { cursor: pointer; }
   align-items: flex-start;
   gap: 10px;
   padding: 11px 12px 11px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: #1A1823;
+  border-radius: var(--radius-card, 14px);
+  border: 1px solid var(--line, var(--border));
+  background: var(--surface);
   box-shadow: var(--shadow-pop);
-  color: #FFFFFF;
+  color: var(--text);
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.4;

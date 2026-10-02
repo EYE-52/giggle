@@ -98,6 +98,13 @@ export const Icon = {
   wink: makeIcon("wink"),
   popcorn: makeIcon("popcorn"),
   dice: makeIcon("dice"),
+  /* Reactions and small marks, so the interface never needs emoji (wave is above). */
+  fire: makeIcon("fire"),
+  heart: makeIcon("heart"),
+  laugh: makeIcon("laugh"),
+  clap: makeIcon("clap"),
+  check: makeIcon("check"),
+  chatDots: makeIcon("chatDots"),
   bulb: makeIcon("bulb"),
   wave: makeIcon("wave"),
   confetti: makeIcon("confetti"),

@@ -266,10 +266,8 @@ export function ChatPanel({
               padding: "20px 12px",
             }}
           >
-            <span style={{ fontSize: 26 }}>💬</span>
-            <span>
-              No messages yet — say hi <span aria-hidden="true">👋</span>
-            </span>
+            <span aria-hidden="true" style={{ color: "var(--brand, var(--accent))", display: "grid" }}><Icon.chatDots size={28} /></span>
+            <span>No messages yet. Say hi.</span>
           </div>
         ) : (
           messages.map((msg) => {

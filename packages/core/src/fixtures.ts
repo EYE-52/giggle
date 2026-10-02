@@ -12,7 +12,7 @@ const m = (id: string, name: string, extra: Partial<SquadMember> = {}): SquadMem
 
 export const mockSquad: Squad = {
   id: "sq_night_owls",
-  name: "Night Owls 🦉",
+  name: "Night Owls",
   code: "WGK-025",
   leaderId: "u_alex",
   status: "idle",
@@ -48,6 +48,6 @@ export const mockProfile = {
   name: "Alex Rivera",
   handle: "@alexr",
   reputation: 820,
-  tier: "Trusted ✦",
+  tier: "Trusted",
   stats: { encounters: 47, squads: 12, hours: 38 },
 };

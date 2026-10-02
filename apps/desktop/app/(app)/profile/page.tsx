@@ -31,19 +31,19 @@ const GENDER_OPTIONS: { value: string; label: string }[] = [
   { value: "prefer_not", label: "Prefer not to say" },
 ];
 
-const COMMON_COUNTRIES: { code: string; label: string; flag: string }[] = [
-  { code: "US", label: "United States", flag: "🇺🇸" },
-  { code: "IN", label: "India", flag: "🇮🇳" },
-  { code: "GB", label: "United Kingdom", flag: "🇬🇧" },
-  { code: "CA", label: "Canada", flag: "🇨🇦" },
-  { code: "AU", label: "Australia", flag: "🇦🇺" },
-  { code: "DE", label: "Germany", flag: "🇩🇪" },
-  { code: "FR", label: "France", flag: "🇫🇷" },
-  { code: "ES", label: "Spain", flag: "🇪🇸" },
-  { code: "BR", label: "Brazil", flag: "🇧🇷" },
-  { code: "JP", label: "Japan", flag: "🇯🇵" },
-  { code: "MX", label: "Mexico", flag: "🇲🇽" },
-  { code: "NG", label: "Nigeria", flag: "🇳🇬" },
+const COMMON_COUNTRIES: { code: string; label: string }[] = [
+  { code: "US", label: "United States" },
+  { code: "IN", label: "India" },
+  { code: "GB", label: "United Kingdom" },
+  { code: "CA", label: "Canada" },
+  { code: "AU", label: "Australia" },
+  { code: "DE", label: "Germany" },
+  { code: "FR", label: "France" },
+  { code: "ES", label: "Spain" },
+  { code: "BR", label: "Brazil" },
+  { code: "JP", label: "Japan" },
+  { code: "MX", label: "Mexico" },
+  { code: "NG", label: "Nigeria" },
 ];
 const MAX_LANGUAGES = 6;
 
@@ -648,7 +648,7 @@ export default function ProfilePage() {
                 >
                   <option value="">Select a country…</option>
                   {COMMON_COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>{c.flag} {c.label}</option>
+                    <option key={c.code} value={c.code}>{c.label}</option>
                   ))}
                   {/* Loaded country outside the common list — keep it selectable so it
                       displays and can't be silently wiped by the controlled select. */}

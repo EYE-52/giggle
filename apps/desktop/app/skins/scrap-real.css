@@ -23,7 +23,9 @@ html[data-skin="scrap"] {
   --sb-shadow: rgb(43 33 24 / .28);
   --sb-cta-ink: var(--on-brand);
 }
-html[data-skin="scrap"][data-mode="dark"] {
+html[data-skin="scrap"][data-mode="dark"],
+/* the call is always dark: recompute this skin's derived tokens there too */
+html[data-skin="scrap"] .gg-call-theme {
   --sb-page: #1c1a17;
   --sb-dot: #ffffff14;
   --sb-paper: #e9e2d2;

@@ -38,6 +38,23 @@ html[data-skin="scrap"] {
   --s6: 24px;
   --s8: 32px;
 }
+html[data-skin="scrap"] .gg-call-theme {
+  --hand: "Caveat",cursive;
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-pill: 999px;
+  --btn-h: 48px;
+  --btn-h-sm: 44px;
+  --in-h: 48px;
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+}
 html[data-skin="scrap"] body {
   background: var(--bg);
 }

@@ -1,13 +1,13 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { createPortal } from "react-dom";
-import { useFocusTrap, useBodyScrollLock } from "@/components/Modal";
+import { Modal } from "@/components/Modal";
+import { Button } from "@/components/Button";
+import { PersonAvatar } from "@/components/PersonAvatar";
+import styles from "./SquadPreview.module.css";
 import { Icon } from "@/components/Icons";
 import { useViewport } from "@/components/useViewport";
 import { api, session, type PublicSquad, type SquadState, type SquadMemberState } from "@giggle/core";
-import { useTheme } from "@/components/useTheme";
-import { coverKind, coverBackground, coverInk, fallbackGradient } from "@/components/covers";
 
 const STATUS_LABEL: Record<string, string> = {
   idle: "Open",
@@ -16,12 +16,6 @@ const STATUS_LABEL: Record<string, string> = {
   in_encounter: "Live",
 };
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 export function SquadPreview({
   squad,
@@ -39,11 +33,6 @@ export function SquadPreview({
   const [requested, setRequested] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [closeHover, setCloseHover] = useState(false);
-  const [btnHover, setBtnHover] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
-  useFocusTrap(cardRef);
-  useBodyScrollLock();
 
   // Fetch full detail (tags + members + joinPolicy). Fall back to the PublicSquad
   // fields while loading.
@@ -63,13 +52,6 @@ export function SquadPreview({
     return () => { alive = false; };
   }, [squad.squadId]);
 
-  // Esc closes.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   // Merge live detail over the card-level snapshot.
   const tags = detail?.tags ?? squad.tags ?? [];
   const members: SquadMemberState[] = detail?.members ?? [];
@@ -82,18 +64,6 @@ export function SquadPreview({
   const isLive = statusRaw === "in_encounter";
   const leaderName = squad.leaderName ?? members.find(m => m.role === "leader")?.displayName;
   const isFull = memberCount >= maxSlots;
-
-  const hasCover = !!squad.coverImage;
-  const themeId = useTheme();
-  // Photos always render dark-scrimmed; generated gradients follow the theme
-  // (bright pastel twins on light themes) — see components/covers.ts.
-  const kind = coverKind(squad.coverImage, themeId);
-  const ink = coverInk(kind);
-  // Single CSS `background` value for the cover — real cover when set, else a
-  // deterministic per-squad gradient so every card still has a distinct theme.
-  const coverBg = hasCover
-    ? coverBackground(squad.coverImage, kind)
-    : fallbackGradient(squad.squadId || squad.squadName, kind);
 
   const handleJoin = useCallback(async () => {
     setError(null);
@@ -149,316 +119,59 @@ export function SquadPreview({
     }
   }, [squad.squadId, onJoined, onClose]);
 
-  const text = "var(--text)";
-  const muted = "var(--text-muted)";
-
-  return createPortal(
-    <div
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`${squad.squadName} preview`}
-      style={{
-        position: "fixed", inset: 0, zIndex: 100,
-        display: "flex", alignItems: isPhone ? "flex-end" : "center", justifyContent: "center",
-        padding: isPhone ? 0 : 24,
-        background: "rgba(7,7,11,0.66)", backdropFilter: "blur(6px)",
-        animation: "sp-fade .22s var(--ease-entrance)",
-      }}
-    >
-      <div
-        ref={cardRef}
-        onClick={e => e.stopPropagation()}
-        style={{
-          position: "relative",
-          width: "100%", maxWidth: 560, maxHeight: isPhone ? "92vh" : "88vh",
-          display: "flex", flexDirection: "column",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: isPhone ? "22px 22px 0 0" : 22,
-          overflow: "hidden",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.5)",
-          animation: isPhone ? "sp-slide .26s var(--ease-entrance)" : "sp-pop .22s var(--ease-entrance)",
-        }}
-      >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          aria-label="Close"
-          onMouseEnter={() => setCloseHover(true)}
-          onMouseLeave={() => setCloseHover(false)}
-          className="gg-press"
-          style={{
-            position: "absolute", top: 12, right: 12, zIndex: 3,
-            width: 44, height: 44, borderRadius: 999, border: "none", cursor: "pointer",
-            background: closeHover ? "rgba(11,11,15,0.85)" : "rgba(11,11,15,0.55)",
-            backdropFilter: "blur(6px)",
-            transform: closeHover ? "translateY(-1px)" : "translateY(0)",
-            transition: "transform .14s ease, background .2s var(--ease-ui)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-        >
-          <Icon.close size={16} color="#E7E7F0" />
-        </button>
-
-        {/* ── Banner header — the squad's cover, big + themed ──────── */}
-        <div style={{
-          position: "relative", height: 208, flexShrink: 0,
-          background: kind === "light" ? "#FFFFFF" : "#0b0b0f",
-        }}>
-          <div style={{
-            position: "absolute", inset: 0,
-            background: coverBg,
-            backgroundSize: "cover", backgroundPosition: "center",
-          }} />
-          {/* Scrim melts into the surface only at the very bottom (for the name),
-              leaving the upper ~60% of the cover clearly visible so the squad's
-              theme actually reads as the banner. */}
-          <div style={{ position: "absolute", inset: 0, background: kind === "light"
-            ? "linear-gradient(to top, var(--surface) 2%, rgba(255,255,255,0.72) 20%, rgba(255,255,255,0.12) 52%, rgba(255,255,255,0.2) 100%)"
-            : "linear-gradient(to top, var(--surface) 2%, rgba(7,7,11,0.72) 20%, rgba(7,7,11,0.12) 52%, rgba(7,7,11,0.22) 100%)" }} />
-
-          {/* Status pill */}
-          <div style={{
-            position: "absolute", top: 12, left: 12,
-            display: "inline-flex", alignItems: "center", gap: 5,
-            padding: "4px 9px", borderRadius: 999,
-            background: "rgba(11,11,15,0.6)",
-            border: isLive ? "1px solid rgba(183,255,42,0.5)" : "1px solid rgba(255,255,255,0.18)",
-            backdropFilter: "blur(6px)",
-          }}>
-            {isLive && <span style={{ width: 6, height: 6, borderRadius: 999, background: "#B7FF2A", boxShadow: "0 0 8px #B7FF2A" }} />}
-            <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: isLive ? "#B7FF2A" : "#E7E7F0", textTransform: "uppercase" }}>{statusLabel}</span>
-          </div>
-
-          {/* Name + leader + member count */}
-          <div style={{ position: "absolute", left: 20, right: 20, bottom: 14, display: "flex", alignItems: "flex-end", gap: 12 }}>
-            {/* Cover thumbnail chip — reinforces the squad's theme next to its name */}
-            <div style={{
-              flexShrink: 0, width: 52, height: 52, borderRadius: 14,
-              background: coverBg, backgroundSize: "cover", backgroundPosition: "center",
-              border: kind === "light" ? "2px solid rgba(27,20,32,0.18)" : "2px solid rgba(255,255,255,0.16)",
-              boxShadow: "0 6px 18px rgba(0,0,0,0.45)",
-            }} />
-            <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: 24, color: ink.text, letterSpacing: "-0.02em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {squad.squadName}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
-              <span style={{ fontSize: 13, color: ink.textMuted }}>
-                {leaderName ? `Led by ${leaderName}` : "Open squad"}
-              </span>
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 13, color: ink.textMuted, fontWeight: 600 }}>
-                <Icon.account size={13} color={ink.textMuted} />
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>{memberCount}/{maxSlots}</span>
-              </span>
-            </div>
-            </div>
-          </div>
+  return (
+    <Modal onClose={onClose} title={squad.squadName} subtitle={`${leaderName ? `Led by ${leaderName}` : "Open squad"} · ${memberCount} of ${maxSlots}`} width={480} sheet={isPhone}>
+      <div className={styles.body}>
+        <div className={styles.facts}>
+          <span className={`chip ${styles.fact}`} data-live={isLive || undefined}>{isLive && <span className={styles.liveDot} aria-hidden="true" />}{statusLabel}</span>
+          <span className={`chip ${styles.fact}`}><Icon.shield size={14} color="currentColor" />{isRequest ? "The leader approves new members" : "Anyone can join"}</span>
         </div>
+        {detailError && <p role="alert" className={styles.error}>{detailError}</p>}
 
-        {/* ── Scrollable body ─────────────────────────────────────── */}
-        <div style={{ padding: isPhone ? "16px 20px" : "18px 24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 18 }}>
-          {/* Join-policy badge */}
-          {detailError && (
-            <div role="alert" className="gg-toast" style={{
-              display: "flex", alignItems: "center", gap: 8,
-              padding: "9px 12px", borderRadius: 12,
-              background: "color-mix(in srgb, var(--coral) 12%, var(--surface))",
-              border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
-              color: "var(--coral)",
-              fontSize: 13, fontWeight: 700,
-            }}>
-              <Icon.flag size={14} color="var(--coral)" />
-              <span>{detailError}</span>
-            </div>
+        <section aria-label="Interests" className={styles.section}>
+          {tags.length > 0
+            ? <div className={styles.tags}>{tags.map(tag => <span key={tag} className={`chip ${styles.tag}`}>{tag}</span>)}</div>
+            : <p className="muted">No interests added yet.</p>}
+        </section>
+
+        <section aria-label="Members" className={styles.section}>
+          {members.length > 0 ? (
+            <ul className={styles.members}>
+              {members.map(m => (
+                <li key={m.memberId} className={styles.member}>
+                  <span className={styles.face}><PersonAvatar userId={m.userId} name={m.displayName} avatar={m.avatar} size="fill" /></span>
+                  <span className={styles.memberText}>
+                    <b>{m.displayName}</b>
+                    <small className="muted">{[m.role === "leader" ? "Leader" : null, m.country, ...(m.languages ?? []).slice(0, 2)].filter(Boolean).join(" · ") || "Member"}</small>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">{detailError ? "Couldn't load who is in this squad." : detailLoading ? "Loading members…" : "No members to show."}</p>
           )}
+        </section>
 
-          {/* Join-policy badge */}
-          <div style={{
-            display: "inline-flex", alignSelf: "flex-start", alignItems: "center", gap: 7,
-            padding: "5px 12px", borderRadius: 999,
-            background: isRequest ? "color-mix(in srgb, var(--amber, #FFB020) 14%, var(--surface))" : "var(--violet-soft)",
-            border: isRequest ? "1px solid color-mix(in srgb, var(--amber, #FFB020) 40%, transparent)" : "1px solid rgba(118,87,255,0.3)",
-            color: isRequest ? "var(--amber, #FFB020)" : "var(--violet)",
-            fontSize: 12.5, fontWeight: 700,
-          }}>
-            <Icon.shield size={13} color={isRequest ? "var(--amber, #FFB020)" : "var(--violet)"} />
-            {isRequest ? "Request to join · leader approves" : "Open · instant"}
-          </div>
-
-          {/* Themes / vibes */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-              <Icon.trend size={15} color="var(--lime)" />
-              <span style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14, color: text }}>Vibes</span>
-            </div>
-            {tags.length > 0 ? (
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {tags.map(tag => (
-                  <span key={tag} style={{
-                    fontSize: 12.5, fontWeight: 600, color: text,
-                    background: "var(--overlay)", border: "1px solid var(--border)",
-                    borderRadius: 999, padding: "5px 12px",
-                  }}>{tag}</span>
-                ))}
-              </div>
-            ) : (
-              <div style={{ fontSize: 13, color: muted }}>This squad hasn&apos;t set vibes yet.</div>
-            )}
-          </div>
-
-          {/* Members */}
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-              <Icon.users size={15} color="var(--violet)" />
-              <span style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14, color: text }}>
-                Members {members.length > 0 && <span style={{ color: muted, fontWeight: 600 }}>· {members.length}</span>}
-              </span>
-            </div>
-            {members.length > 0 ? (
-              <div style={{ display: "grid", gridTemplateColumns: isPhone ? "1fr" : "1fr 1fr", gap: 10 }}>
-                {members.map(m => {
-                  const badges: string[] = [];
-                  if (m.country) badges.push(m.country);
-                  if (m.languages && m.languages.length) badges.push(...m.languages.slice(0, 2));
-                  return (
-                    <div key={m.memberId} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "8px 10px", borderRadius: 12,
-                      background: "var(--overlay)", border: "1px solid var(--border)",
-                    }}>
-                      <div style={{
-                        flexShrink: 0, width: 36, height: 36, borderRadius: 999,
-                        background: "var(--violet-soft)", color: "var(--violet)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: "var(--font-space-grotesk)", fontWeight: 800, fontSize: 13,
-                      }}>{initials(m.displayName)}</div>
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, color: text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{m.displayName}</span>
-                          {m.role === "leader" && <Icon.star size={12} color="var(--lime)" />}
-                        </div>
-                        {badges.length > 0 && (
-                          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 3 }}>
-                            {badges.map((b, i) => (
-                              <span key={i} style={{ fontSize: 10.5, fontWeight: 600, color: muted, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 999, padding: "1px 7px" }}>{b}</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ fontSize: 13, color: muted }}>
-                {detailError ? "Couldn't load live roster." : "Roster details unavailable."}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Footer action ───────────────────────────────────────── */}
-        <div style={{ padding: isPhone ? "12px 20px 18px" : "14px 24px 18px", borderTop: "1px solid var(--border)", flexShrink: 0 }}>
+        <footer className={styles.footer}>
           {requested ? (
-            <div className="gg-toast" style={{
-              display: "flex", alignItems: "center", gap: 10,
-              background: "color-mix(in srgb, var(--lime) 14%, var(--surface))",
-              border: "1px solid color-mix(in srgb, var(--lime) 45%, transparent)",
-              borderRadius: 12, padding: "12px 14px",
-              fontSize: 13.5, fontWeight: 600, color: text,
-            }}>
-              <Icon.send size={15} color="var(--lime)" />
-              <span>Request sent — the leader will review it.</span>
-            </div>
+            <p role="status" className={styles.sent}><Icon.send size={16} color="currentColor" />Request sent. The leader will review it.</p>
           ) : (
             <>
-              {error && (
-                <div role="alert" className="gg-toast" style={{
-                  display: "flex", alignItems: "center", gap: 8, marginBottom: 10,
-                  fontSize: 13, fontWeight: 600, color: "var(--coral)",
-                }}>
-                  <Icon.flag size={14} color="var(--coral)" />
-                  <span>{error}</span>
-                </div>
-              )}
+              {error && <p role="alert" className={styles.error}>{error}</p>}
               {isMember ? (
-                // Already a member → Open the lobby, or Leave the squad.
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <button
-                    onClick={openLobby}
-                    onMouseEnter={() => setBtnHover(true)}
-                    onMouseLeave={() => setBtnHover(false)}
-                    className="gg-press"
-                    style={{
-                      width: "100%", height: 50, borderRadius: 999, border: "none", cursor: "pointer",
-                      background: btnHover ? "var(--violet-bright)" : "var(--violet)", color: "var(--on-accent)",
-                      fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em",
-                      boxShadow: btnHover ? "0 0 36px -8px rgba(118,87,255,0.95)" : "0 0 24px -10px rgba(118,87,255,0.8)",
-                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      transform: btnHover ? "translateY(-1px)" : "translateY(0)",
-                      transition: "transform .14s ease, box-shadow .2s var(--ease-ui), background .2s var(--ease-ui)",
-                    }}
-                  >
-                    <Icon.enter size={16} color="var(--on-accent)" /> Open lobby
-                  </button>
-                  <button
-                    onClick={handleLeave}
-                    disabled={leaving}
-                    className="gg-press"
-                    style={{
-                      width: "100%", height: 46, borderRadius: 999,
-                      border: "1px solid color-mix(in srgb, var(--coral) 40%, transparent)",
-                      background: "transparent", color: "var(--coral)", cursor: leaving ? "wait" : "pointer",
-                      fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 14,
-                      display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-                      opacity: leaving ? 0.7 : 1, transition: "opacity .15s ease",
-                    }}
-                  >
-                    {leaving ? (<><span className="gg-spinner" /> Leaving…</>) : "Leave squad"}
-                  </button>
-                </div>
+                <>
+                  <Button onClick={openLobby} fullWidth>Open lobby<Icon.arrowRight size={18} /></Button>
+                  <Button variant="danger" onClick={handleLeave} loading={leaving} fullWidth>Leave squad</Button>
+                </>
               ) : (
-              <button
-                onClick={handleJoin}
-                disabled={joining || isFull || detailLoading}
-                onMouseEnter={() => setBtnHover(true)}
-                onMouseLeave={() => setBtnHover(false)}
-                className="gg-press"
-                style={{
-                  width: "100%", height: 50, borderRadius: 999, border: "none",
-                  cursor: joining || isFull || detailLoading ? "not-allowed" : "pointer",
-                  background: isFull ? "var(--overlay)" : (btnHover ? "var(--violet-bright)" : "var(--violet)"),
-                  color: isFull ? "var(--text-muted)" : "var(--on-accent)",
-                  fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em",
-                  boxShadow: isFull ? "none" : (btnHover ? "0 0 36px -8px rgba(118,87,255,0.95)" : "0 0 24px -10px rgba(118,87,255,0.8)"),
-                  display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  transform: !isFull && !joining && btnHover ? "translateY(-1px)" : "translateY(0)",
-                  transition: "transform .14s ease, box-shadow .2s var(--ease-ui), background .2s var(--ease-ui)",
-                  opacity: joining ? 0.85 : 1,
-                }}
-              >
-                {isFull
-                  ? "Squad full"
-                  : detailLoading
-                    ? (<><span className="gg-spinner" /> Loading…</>)
-                    : joining
-                      ? (<><span className="gg-spinner" /> {isRequest ? "Sending request…" : "Joining…"}</>)
-                      : (<><Icon.enter size={16} color="var(--on-accent)" /> {isRequest ? "Request to join" : "Join squad"}</>)}
-              </button>
+                <Button onClick={handleJoin} disabled={joining || isFull || detailLoading} loading={joining || detailLoading} fullWidth>
+                  {isFull ? "Squad full" : isRequest ? "Request to join" : "Join squad"}
+                </Button>
               )}
             </>
           )}
-        </div>
+        </footer>
       </div>
-
-      <style>{`
-        @keyframes sp-fade { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes sp-pop { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-        @keyframes sp-slide { from { transform: translateY(100%); } to { transform: translateY(0); } }
-      `}</style>
-    </div>,
-    document.body
+    </Modal>
   );
 }

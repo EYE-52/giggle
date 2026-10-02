@@ -23,6 +23,12 @@ html[data-skin="paper"] body {
   --paper-ink: var(--text);
   --paper-pen: var(--brand-deep);
 }
+html[data-skin="paper"] .gg-call-theme {
+  --paper-font-display: "Caveat Brush", "Shantell Sans", cursive;
+  --paper-font-body: "Kalam", "Patrick Hand", cursive;
+  --paper-ink: var(--text);
+  --paper-pen: var(--brand-deep);
+}
 html[data-skin="paper"] .gg-app-root {
   background: transparent;
   color: var(--text);

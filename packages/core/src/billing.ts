@@ -51,7 +51,7 @@ export const PRODUCTS: Record<string, Product> = {
     description: "200 tokens/month + 15% bonus on every token pack",
     priceUsd: 9.99,
     type: "subscription",
-    icon: "✦",
+    icon: "sparkle",
     tokens: 200,
   },
   premium_yearly: {
@@ -60,7 +60,7 @@ export const PRODUCTS: Record<string, Product> = {
     description: "200 tokens/month + 15% pack bonus — save 20%",
     priceUsd: 95.88,
     type: "subscription",
-    icon: "✦",
+    icon: "sparkle",
     tokens: 200,
   },
 

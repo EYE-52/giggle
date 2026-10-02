@@ -1122,7 +1122,7 @@ test("squad cover backgrounds do not double-wrap resolved cover URLs", () => {
   const homePage = readFileSync(path.join(__dirname, "../app/(app)/home/page.tsx"), "utf8");
 
   assert.equal(card.includes("url(${resolveCover(squad.coverImage)})"), false);
-  assert.equal(card.includes("background: coverBackground(squad.coverImage, kind)"), true);
+  assert.equal(card.includes("coverBackground(squad.coverImage, coverKind(squad.coverImage, themeId))"), true);
   assert.equal(homePage.includes("url(${coverBackground("), false);
   // Home now uses plain cards; photo covers remain on SquadCard.
   assert.equal(homePage.includes("url(${coverBackground("), false);
@@ -1286,17 +1286,19 @@ test("squad preview surfaces live detail fetch failures instead of endless roste
 
   assert.equal(component.includes("const [detailError, setDetailError]"), true);
   assert.equal(component.includes("setDetailError(\"Couldn't load live squad details.\")"), true);
-  assert.equal(component.includes("{detailError && ("), true);
-  assert.equal(component.includes("Couldn't load live roster."), true);
-  assert.equal(component.includes("Loading members…"), false);
+  assert.equal(component.includes("{detailError && <p role=\"alert\""), true);
+  // loading shows only while the first answer is pending; a failure replaces it
+  assert.equal(component.includes("detailError ? \"Couldn't load who is in this squad.\" : detailLoading ? \"Loading members…\""), true);
+  assert.equal(component.includes("const detailLoading = detail === null && !detailError;"), true);
 });
 
 test("squad preview is viewport-bound with accessible controls", () => {
   const preview = squadPreviewSource();
-  assert.equal(preview.includes("createPortal("), true);
-  assert.equal(preview.includes("document.body"), true);
-  assert.equal(preview.includes('role="dialog"'), true);
-  assert.equal(preview.includes('width: 44, height: 44'), true);
+  const modal = readFileSync(path.join(__dirname, "../components/Modal.tsx"), "utf8");
+  // the shared themed dialog: portalled, labelled, focus-trapped, 44px close
+  assert.equal(preview.includes("<Modal onClose={onClose} title={squad.squadName}"), true);
+  assert.equal(modal.includes("createPortal("), true);
+  assert.equal(modal.includes('role="dialog"'), true);
 });
 
 test("avatar and cover uploads validate type and size before previewing", () => {

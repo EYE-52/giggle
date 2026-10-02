@@ -43,6 +43,24 @@ html[data-skin="soft"] body {
   --stroke: color-mix(in srgb, var(--line) 78%, transparent);
   --stroke-strong: color-mix(in srgb, var(--line) 92%, var(--text) 8%);
 }
+html[data-skin="soft"] .gg-call-theme {
+  --sp1: 4px;
+  --sp2: 8px;
+  --sp3: 12px;
+  --sp4: 16px;
+  --sp5: 20px;
+  --sp6: 24px;
+  --sp7: 32px;
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-lg: 20px;
+  --r-pill: 999px;
+  --ink: var(--text);
+  --ink-soft: color-mix(in srgb, var(--text) 78%, var(--muted) 22%);
+  --ink-faint: color-mix(in srgb, var(--text) 62%, var(--muted) 38%);
+  --stroke: color-mix(in srgb, var(--line) 78%, transparent);
+  --stroke-strong: color-mix(in srgb, var(--line) 92%, var(--text) 8%);
+}
 html[data-skin="soft"] body {
   position: relative;
   overflow: hidden;

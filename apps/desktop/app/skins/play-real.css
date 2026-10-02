@@ -18,7 +18,9 @@ html[data-skin="play"] {
   --pl-cta-ink: var(--on-brand);
   --pl-well: color-mix(in srgb, var(--surface) 85%, var(--pop, var(--accent)) 15%);
 }
-html[data-skin="play"][data-mode="dark"] {
+html[data-skin="play"][data-mode="dark"],
+/* the call is always dark: recompute this skin's derived tokens there too */
+html[data-skin="play"] .gg-call-theme {
   --pl-page: color-mix(in srgb, #121014 92%, var(--brand) 8%);
   --pl-paper: #1f1b24;
   --pl-ink: #fff6e5;

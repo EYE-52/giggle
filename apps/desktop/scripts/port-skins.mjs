@@ -537,6 +537,10 @@ function styleRule(item, skin, forceDark = false) {
     // Phase 3: the same tokens on the preview container (custom props only —
     // the container has no body/backdrop of its own).
     if (htmlDecls.length) lines.push(`[data-skin-preview="${skin}"] {`, ...htmlDecls.map((d) => `  ${d};`), `}`);
+    // The call screen re-points the palette to its dark values on .gg-call-theme;
+    // derived tokens (--ink, --stroke, …) must be recomputed there too, or they
+    // keep the page's light-mode values inside the dark call.
+    if (htmlDecls.length) lines.push(`html[data-skin="${skin}"] .gg-call-theme {`, ...htmlDecls.filter((d) => d.startsWith("--")).map((d) => `  ${d};`), `}`);
     return lines;
   }
 

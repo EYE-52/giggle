@@ -518,3 +518,11 @@ html[data-skin] main.gg-landing > .page-head > a {
  * centred inside the ring instead of sliding to the bottom-right and clipping. */
 html[data-skin] .av { box-sizing: border-box; }
 html[data-skin] .av > svg { width: 100% !important; height: 100% !important; display: block; }
+
+/* Old components still name --font-inter / --font-space-grotesk (the pre-skin
+ * Cabinet aliases). Point them at the active skin's fonts so every text in the
+ * app is set in the theme's type. */
+html[data-skin] {
+  --font-inter: var(--font-body);
+  --font-space-grotesk: var(--font-display);
+}

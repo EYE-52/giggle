@@ -35,41 +35,32 @@ function nameColorIndex(name: string) {
   return hash;
 }
 
-// Paired gradient stops per avatar accent for a premium, dimensional look.
-const GRADIENTS: Record<string, [string, string, string]> = {
-  "#7657FF": ["#9278FF", "#5536CC", "#fff"],
-  "#2FE6C8": ["#5BE8D4", "#1F9A8A", "#06241f"],
-  "#B7FF2A": ["#D4FF6E", "#8FCF12", "#162400"],
-  "#9278FF": ["#B49BFF", "#6344C2", "#fff"],
-  "#7C5CFF": ["#9B7CFF", "#5436C9", "#fff"],
-  "#3DD6C0": ["#5BE8D4", "#1F9A8A", "#06241f"],
-  "#FF8A5C": ["#FFA877", "#D85E34", "#fff"],
-  "#C2FF3D": ["#D4FF6E", "#8FCF12", "#162400"],
-  "#FF5C8A": ["#FF7BA3", "#C2306B", "#fff"],
-  "#5C8CFF": ["#7BA3FF", "#2F5BD4", "#fff"],
-  "#FFC65C": ["#FFD787", "#D49A23", "#3a2a00"],
-  "#9B7CFF": ["#B49BFF", "#6344C2", "#fff"],
-};
+
+// Letter badges (squads without a cover) take the active palette: a tint of the
+// brand, pop or deep brand colour picked per name, ink text, the skin's display font.
+const BADGE_TONES = ["var(--brand, var(--accent))", "var(--pop, var(--accent))", "var(--brand-deep, var(--brand))"];
 
 export function Avatar({ name, size = 40, colorIndex, ring = false, online, style }: AvatarProps) {
-  const base = colors.avatar[(colorIndex ?? nameColorIndex(name || "")) % colors.avatar.length];
-  const [from, to, fg] = GRADIENTS[base] ?? [base, base, "#fff"];
-  const initial = name ? name[0].toUpperCase() : "?";
+  const tone = BADGE_TONES[(colorIndex ?? nameColorIndex(name || "")) % BADGE_TONES.length];
+  const initial = name ? name.trim()[0]?.toUpperCase() ?? "?" : "?";
   return (
     <OnlineWrap online={online}>
       <div
+        aria-hidden="true"
         style={{
           width: size,
           height: size,
           borderRadius: radii.pill,
-          background: `linear-gradient(150deg, ${from}, ${to})`,
+          background: `color-mix(in srgb, ${tone} 26%, var(--surface))`,
+          border: `1.5px solid color-mix(in srgb, ${tone} 45%, transparent)`,
+          boxSizing: "border-box",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontFamily: "var(--font-space-grotesk), 'Space Grotesk', sans-serif",
+          fontFamily: "var(--font-display)",
           fontWeight: 700,
           fontSize: size * 0.42,
-          color: fg,
+          color: "var(--text)",
           flexShrink: 0,
           boxShadow: ring && !online ? "0 0 0 2px var(--surface)" : undefined,
           ...style,

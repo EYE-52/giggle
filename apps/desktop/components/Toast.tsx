@@ -29,14 +29,13 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 const AUTO_DISMISS_MS = 4000;
 
-/* Spec 06: toasts are dark ink pills with white text in EVERY theme —
-   only the status icon color changes (soft lime / soft coral / soft violet).
-   Colors live in globals.css (.gg-toast-card) so the skin system's `toast`
-   hook can restyle them. */
+/* Toasts are cards of the active theme (surface, ink, body font; see
+   .gg-toast-card in globals.css); the status icon takes the theme's live,
+   coral or brand colour. The skin system's `toast` hook can restyle them. */
 const VARIANT_STYLE: Record<ToastVariant, { icon: ReactNode }> = {
-  success: { icon: <Icon.star size={15} color="#A3E635" fill="#A3E635" /> },
-  error: { icon: <Icon.flag size={15} color="#FCA5A5" /> },
-  info: { icon: <Icon.bell size={15} color="#B4A3FF" /> },
+  success: { icon: <Icon.check size={15} color="var(--live)" /> },
+  error: { icon: <Icon.flag size={15} color="var(--coral)" /> },
+  info: { icon: <Icon.bell size={15} color="var(--brand, var(--accent))" /> },
 };
 
 function ToastCard({ t, onDismiss }: { t: ToastItem; onDismiss: (id: number) => void }) {

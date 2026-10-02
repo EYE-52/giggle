@@ -1,0 +1,18 @@
+/* Squad preview: layout only. The dialog, chips and buttons are the skin's;
+ * every colour is a palette token. */
+.body { display: flex; flex-direction: column; gap: 16px; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; }
+.fact { display: inline-flex; align-items: center; gap: 6px; }
+.liveDot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok, var(--live)); }
+.section { display: flex; flex-direction: column; gap: 8px; }
+.section p { margin: 0; font-size: 14px; }
+.tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.members { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.member { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 8px; border-radius: var(--radius-control, 12px); background: color-mix(in srgb, var(--text) 4%, transparent); }
+.face { width: 44px; height: 44px; flex: none; display: block; }
+.memberText { display: flex; flex-direction: column; min-width: 0; }
+.memberText b { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.memberText small { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.footer { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
+.error { margin: 0; color: var(--coral); font-size: 14px; }
+.sent { margin: 0; display: flex; align-items: center; gap: 8px; color: var(--ok, var(--live)); font-weight: 600; }

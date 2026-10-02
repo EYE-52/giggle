@@ -1,0 +1,14 @@
+/* Layout only; the skin paints .card/.chip and the palette supplies colour. */
+.card { display: flex !important; flex-direction: column !important; overflow: hidden; cursor: pointer; padding: 0 !important; min-height: 220px; text-align: left; }
+.cover { position: relative; height: 92px; flex: none; display: flex; align-items: flex-start; justify-content: space-between; padding: 10px; box-sizing: border-box; }
+.cover[data-tone="0"] { background: linear-gradient(135deg, color-mix(in srgb, var(--brand, var(--accent)) 55%, var(--surface)), color-mix(in srgb, var(--pop, var(--accent)) 45%, var(--surface))); }
+.cover[data-tone="1"] { background: linear-gradient(135deg, color-mix(in srgb, var(--pop, var(--accent)) 55%, var(--surface)), color-mix(in srgb, var(--brand-deep, var(--brand)) 40%, var(--surface))); }
+.cover[data-tone="2"] { background: linear-gradient(135deg, color-mix(in srgb, var(--brand-deep, var(--brand)) 50%, var(--surface)), color-mix(in srgb, var(--brand, var(--accent)) 35%, var(--surface))); }
+.status { font-size: 12px; }
+.count { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; background: color-mix(in srgb, var(--surface) 82%, transparent); color: var(--text); font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.body { flex: 1; display: flex; flex-direction: column; gap: 3px; padding: 12px 14px 14px; min-width: 0; }
+.name { font: 700 18px/1.25 var(--font-display); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta, .tags { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview { margin-top: auto; padding-top: 8px; align-self: flex-end; display: inline-flex; align-items: center; gap: 6px; color: var(--brand-deep, var(--brand)); font-weight: 700; font-size: 14px; }
+:global(html[data-mode="dark"]) .preview { color: var(--brand, var(--accent)); }
+.card:hover .preview { text-decoration: underline; text-underline-offset: 3px; }

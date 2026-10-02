@@ -1,0 +1,14 @@
+/* Layout only; the skin paints .card and the palette supplies every colour. */
+.page { height: 100%; box-sizing: border-box; display: grid; place-items: center; padding: 24px; background: var(--bg); color: var(--text); }
+.overlay { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; padding: 20px; background: color-mix(in srgb, var(--bg) 78%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--text); }
+/* some skins stretch .card to its container; a notice is always content-height */
+.card { width: min(420px, 100%); height: auto !important; min-height: 0 !important; max-height: calc(100% - 16px); overflow: auto; align-self: center !important; justify-self: center !important; box-sizing: border-box; display: flex !important; flex-direction: column !important; align-items: center !important; gap: 10px; padding: 26px 24px 22px !important; text-align: center; }
+.icon { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--brand, var(--accent)) 14%, transparent); color: var(--brand, var(--accent)); margin-bottom: 4px; }
+.spinner { width: 40px; height: 40px; box-sizing: border-box; border-radius: 50%; border: 3px solid color-mix(in srgb, var(--brand, var(--accent)) 22%, transparent); border-top-color: var(--brand, var(--accent)); animation: spin .9s linear infinite; margin-bottom: 4px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; border-top-color: color-mix(in srgb, var(--brand, var(--accent)) 60%, transparent); } }
+.title { margin: 0; font: 700 22px/1.25 var(--font-display); letter-spacing: -.01em; color: var(--text); }
+.body { font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.body p { margin: 0; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 10px; }
+@media (max-width: 480px) { .actions { width: 100%; } .actions > * { flex: 1 1 140px; } }

@@ -14,7 +14,9 @@ html[data-skin="soft"] {
   --sd-blob-a: color-mix(in srgb, var(--brand) 26%, transparent);
   --sd-blob-b: color-mix(in srgb, var(--pop, var(--accent)) 22%, transparent);
 }
-html[data-skin="soft"][data-mode="dark"] {
+html[data-skin="soft"][data-mode="dark"],
+/* the call is always dark: recompute this skin's derived tokens there too */
+html[data-skin="soft"] .gg-call-theme {
   --sd-glass: color-mix(in srgb, var(--surface-2) 58%, transparent);
   --sd-glass-strong: color-mix(in srgb, var(--surface-2) 78%, transparent);
   --sd-rim: rgb(255 255 255 / .12);

@@ -34,8 +34,10 @@ import { createVideoClient } from "@giggle/agora";
 import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
+import { REACTIONS, ReactionGlyph } from "@/components/Reaction";
+import { CallNotice } from "@/components/CallNotice";
 
-const REACTION_EMOJIS = ["👋", "🔥", "😂", "❤️", "👏"];
+
 
 // Translate a thrown ApiError / Agora error into a friendly, non-technical
 // message for the video banner.
@@ -169,51 +171,6 @@ interface EncounterParticipant {
   isLocal: boolean;
 }
 
-function WaitingForSquad({ label = "Waiting for the other squad…" }: { label?: string }) {
-  return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: 420,
-        aspectRatio: "16 / 9",
-        maxHeight: "100%",
-        borderRadius: 18,
-        border: "1px dashed rgba(124,92,255,0.28)",
-        background:
-          "radial-gradient(120% 120% at 50% 20%, rgba(124,92,255,0.08), rgba(255,255,255,0.015) 60%)",
-        boxShadow: "inset 0 0 40px -16px rgba(124,92,255,0.4)",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 12,
-        margin: "0 auto",
-      }}
-    >
-      <div
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 999,
-          border: "2px solid rgba(124,92,255,0.22)",
-          borderTopColor: "rgba(124,92,255,0.85)",
-          boxShadow: "0 0 20px -6px rgba(124,92,255,0.6)",
-          animation: "gg-spin 0.9s linear infinite",
-        }}
-      />
-      <div
-        style={{
-          fontSize: 14,
-          fontWeight: 600,
-          color: "rgba(255,255,255,0.55)",
-          fontFamily: "var(--font-display, var(--font-space-grotesk))",
-        }}
-      >
-        {label}
-      </div>
-    </div>
-  );
-}
 
 function EncounterInner() {
   // stranger matching follows the API switch (see lib/discovery)
@@ -420,8 +377,6 @@ function EncounterInner() {
   const coral = "var(--coral, #FF5C5C)";
   const textPrimary = "var(--text, #F4F4F7)";
   const textMuted = "var(--text-muted, #9A9AB0)";
-  const _violet = "#7C5CFF";
-  const _coral = "#FF5C5C";
 
   async function joinVideo(isCancelled: () => boolean = () => false) {
     if (!squadId || !encId) throw new Error("This encounter is unavailable.");
@@ -1081,19 +1036,19 @@ function EncounterInner() {
   );
 
   function reactionChoices(onDone: () => void) {
-    return REACTION_EMOJIS.map((emoji) => (
+    return REACTIONS.map(({ value, label }) => (
       <button
-        key={emoji}
+        key={value}
         type="button"
         onClick={() => {
-          fireReaction(emoji);
+          fireReaction(value);
           onDone();
         }}
-        title={`React ${emoji}`}
-        aria-label={`React ${emoji}`}
+        title={label}
+        aria-label={`React: ${label}`}
         className="gg-press"
       >
-        {emoji}
+        <ReactionGlyph value={value} />
       </button>
     ));
   }
@@ -1185,220 +1140,30 @@ function EncounterInner() {
       ? "reconnecting"
       : null;
 
+  const toLobbyOrHome = (
+    <>
+      {squadId && <Button onClick={() => router.push(`/lobby?squad=${squadId}`)}>Back to lobby</Button>}
+      <Button variant="secondary" onClick={() => router.push("/home")}>Home</Button>
+    </>
+  );
+
   if (!squadId || !encId) {
     return (
-      <div
-        style={{
-          height: "100%",
-          display: "grid",
-          placeItems: "center",
-          background: "var(--bg)",
-          color: "var(--text)",
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            width: "min(460px, 100%)",
-            background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))",
-            border: "1px solid var(--border-strong)",
-            borderRadius: 20,
-            padding: 24,
-            textAlign: "center",
-            boxShadow: "var(--shadow-card, var(--elev))",
-          }}
-        >
-          <div
-            style={{
-              width: 54,
-              height: 54,
-              borderRadius: 16,
-              margin: "0 auto 16px",
-              display: "grid",
-              placeItems: "center",
-              background: "var(--overlay)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            <Icon.cam size={24} color="var(--lime)" />
-          </div>
-          <h1
-            style={{
-              margin: 0,
-              color: "var(--text)",
-              fontFamily: "var(--font-display, var(--font-space-grotesk))",
-              fontSize: 22,
-              fontWeight: 700,
-              letterSpacing: "-0.03em",
-            }}
-          >
-            Encounter unavailable
-          </h1>
-          <p
-            style={{
-              margin: "10px 0 22px",
-              color: "var(--text-muted)",
-              lineHeight: 1.5,
-              fontSize: 14,
-            }}
-          >
-            This live room link is missing required details.
-          </p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            {squadId && (
-              <button
-                onClick={() => router.push(`/lobby?squad=${squadId}`)}
-                className="gg-press"
-                style={{
-                  minHeight: 44,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  border: "none",
-                  background: "var(--violet)",
-                  color: "#fff",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                Find a match
-              </button>
-            )}
-            <button
-              onClick={() => router.push("/home")}
-              className="gg-press"
-              style={{
-                minHeight: 44,
-                padding: "0 18px",
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                background: "var(--overlay)",
-                color: "var(--text)",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              Home
-            </button>
-          </div>
-        </div>
-      </div>
+      <CallNotice icon={<Icon.cam size={26} color="currentColor" />} title="This call link is incomplete" actions={toLobbyOrHome} role="alert">
+        It is missing the squad or call details.
+      </CallNotice>
     );
   }
 
   if (encounterLoading) {
-    return (
-      <div
-        style={{
-          height: "100%",
-          display: "grid",
-          placeItems: "center",
-          background: "var(--bg)",
-          color: "var(--text)",
-          padding: 24,
-        }}
-      >
-        <WaitingForSquad label="Opening encounter..." />
-      </div>
-    );
+    return <CallNotice busy title="Opening the call…" role="status" />;
   }
 
   if (encounterError || !encounter) {
     return (
-      <div
-        style={{
-          height: "100%",
-          display: "grid",
-          placeItems: "center",
-          background: "var(--bg)",
-          color: "var(--text)",
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            width: "min(460px, 100%)",
-            background: "linear-gradient(155deg, var(--surface-grad-from), var(--surface-grad-to))",
-            border: "1px solid var(--border-strong)",
-            borderRadius: 20,
-            padding: 24,
-            textAlign: "center",
-            boxShadow: "var(--shadow-card, var(--elev))",
-          }}
-        >
-          <div
-            style={{
-              width: 54,
-              height: 54,
-              borderRadius: 16,
-              margin: "0 auto 16px",
-              display: "grid",
-              placeItems: "center",
-              background: "var(--overlay)",
-              border: "1px solid var(--border)",
-            }}
-          >
-            <Icon.cam size={24} color="var(--lime)" />
-          </div>
-          <h1
-            style={{
-              margin: 0,
-              color: "var(--text)",
-              fontFamily: "var(--font-display, var(--font-space-grotesk))",
-              fontSize: 22,
-              fontWeight: 700,
-              letterSpacing: "-0.03em",
-            }}
-          >
-            Encounter unavailable
-          </h1>
-          <p
-            style={{
-              margin: "10px 0 22px",
-              color: "var(--text-muted)",
-              lineHeight: 1.5,
-              fontSize: 14,
-            }}
-          >
-            {encounterError ?? "This live room could not be loaded."}
-          </p>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-            {squadId && (
-              <button
-                onClick={() => router.push(`/lobby?squad=${squadId}`)}
-                className="gg-press"
-                style={{
-                  minHeight: 44,
-                  padding: "0 18px",
-                  borderRadius: 999,
-                  border: "none",
-                  background: "var(--violet)",
-                  color: "#fff",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                Find a match
-              </button>
-            )}
-            <button
-              onClick={() => router.push("/home")}
-              className="gg-press"
-              style={{
-                minHeight: 44,
-                padding: "0 18px",
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                background: "var(--overlay)",
-                color: "var(--text)",
-                fontWeight: 700,
-                cursor: "pointer",
-              }}
-            >
-              Home
-            </button>
-          </div>
-        </div>
-      </div>
+      <CallNotice icon={<Icon.cam size={26} color="currentColor" />} title="This call isn't available" actions={toLobbyOrHome} role="alert">
+        {encounterError ?? "It may have ended already."}
+      </CallNotice>
     );
   }
 
@@ -1531,7 +1296,7 @@ function EncounterInner() {
                     width: 7,
                     height: 7,
                     borderRadius: 999,
-                    background: connState === "DISCONNECTED" ? coral : "var(--amber, #FFB020)",
+                    background: connState === "DISCONNECTED" ? coral : "var(--away, var(--amber))",
                   }}
                 />
                 {connState === "RECONNECTING"
@@ -1561,7 +1326,7 @@ function EncounterInner() {
               flex: 1,
               display: "flex",
               flexDirection: "column",
-              background: "var(--stage, #101013)",
+              background: "var(--bg)",
               position: "relative",
               minHeight: 0,
               overflow: "hidden",
@@ -1727,92 +1492,59 @@ function EncounterInner() {
 
             {/* Encounter-ended overlay (opponent left / server ended) */}
             {endedNotice && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  zIndex: 40,
-                  background: "rgba(11,11,15,0.82)",
-                  backdropFilter: "blur(8px)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 10,
-                }}
-              >
-                <div style={{ fontSize: 30 }}>👋</div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display, var(--font-space-grotesk))",
-                    fontSize: 22,
-                    fontWeight: 700,
-                    color: textPrimary,
-                  }}
-                >
-                  {endedReason === "opponent-left" ? `${oppSquad?.name ?? "The other squad"} left` : "The call ended"}
-                </div>
-                <div style={{ fontSize: 14, color: textMuted }}>
-                  {WEB_DISCOVERY_ENABLED && endedReason === "opponent-left"
-                    ? "Finding you another squad…"
-                    : "Taking you back to your lobby…"}
-                </div>
-                {endError && (
-                  <div role="alert" style={{ color: coral, fontSize: 13, textAlign: "center" }}>
-                    {endError}
-                  </div>
-                )}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    marginTop: 8,
-                    flexWrap: "wrap",
-                    justifyContent: "center",
-                  }}
-                >
-                  {WEB_DISCOVERY_ENABLED && (
+              <CallNotice
+                overlay
+                role="status"
+                icon={<Icon.users size={26} color="currentColor" />}
+                title={endedReason === "opponent-left" ? `${oppSquad?.name ?? "The other squad"} left` : "The call ended"}
+                actions={
+                  <>
+                    {WEB_DISCOVERY_ENABLED && (
+                      <Button
+                        onClick={async () => {
+                          if (endedNavTimerRef.current) {
+                            clearTimeout(endedNavTimerRef.current);
+                            endedNavTimerRef.current = null;
+                          }
+                          setEndError(null);
+                          setFindingNextMatch(true);
+                          try {
+                            if (endedReason !== "opponent-left") await api.startSearch(squadId);
+                            router.push(`/matchmaking?squad=${squadId}`);
+                          } catch (error) {
+                            setEndError((error as { message?: string })?.message || "Couldn't start matchmaking.");
+                            setFindingNextMatch(false);
+                          }
+                        }}
+                        loading={findingNextMatch}
+                      >
+                        {endedReason === "opponent-left" ? "Find another now" : "Find another squad"}
+                      </Button>
+                    )}
                     <Button
-                      onClick={async () => {
+                      variant="secondary"
+                      onClick={() => {
                         if (endedNavTimerRef.current) {
                           clearTimeout(endedNavTimerRef.current);
                           endedNavTimerRef.current = null;
                         }
-                        setEndError(null);
-                        setFindingNextMatch(true);
-                        try {
-                          if (endedReason !== "opponent-left") await api.startSearch(squadId);
-                          router.push(`/matchmaking?squad=${squadId}`);
-                        } catch (error) {
-                          setEndError(
-                            (error as { message?: string })?.message ||
-                              "Couldn't start matchmaking.",
-                          );
-                          setFindingNextMatch(false);
-                        }
+                        void leaveVideo();
+                        if (endedReason === "opponent-left") void api.cancelSearch(squadId).catch(() => {});
+                        router.push(`/lobby?squad=${squadId}`);
                       }}
-                      loading={findingNextMatch}
-                      variant="primary"
                     >
-                      {endedReason === "opponent-left" ? "Find another now" : "Find another squad"}
+                      Back to lobby
                     </Button>
-                  )}
-                  <Button
-                    onClick={() => {
-                      if (endedNavTimerRef.current) {
-                        clearTimeout(endedNavTimerRef.current);
-                        endedNavTimerRef.current = null;
-                      }
-                      void leaveVideo();
-                      if (endedReason === "opponent-left") void api.cancelSearch(squadId).catch(() => {});
-                      router.push(`/lobby?squad=${squadId}`);
-                    }}
-                    variant="secondary"
-                  >
-                    Back to lobby
-                  </Button>
-                </div>
-              </div>
+                  </>
+                }
+              >
+                <p>
+                  {WEB_DISCOVERY_ENABLED && endedReason === "opponent-left"
+                    ? "Finding you another squad…"
+                    : "Taking you back to your lobby…"}
+                </p>
+                {endError && <p role="alert" style={{ color: "var(--coral)", marginTop: 6 }}>{endError}</p>}
+              </CallNotice>
             )}
 
             {/* Tile area — paddingBottom leaves space for the floating control bar */}
@@ -1951,13 +1683,13 @@ function EncounterInner() {
                           height: 18,
                           padding: "0 4px",
                           borderRadius: 999,
-                          background: coral,
-                          color: "#fff",
+                          background: "var(--brand, var(--accent))",
+                          color: "var(--on-brand, #fff)",
                           fontSize: 12,
                           fontWeight: 700,
                           lineHeight: "18px",
                           textAlign: "center",
-                          border: "1.5px solid rgba(14,14,20,.94)",
+                          border: "1.5px solid var(--surface)",
                         }}
                       >
                         {badge > 9 ? "9+" : badge}
@@ -2038,52 +1770,15 @@ function EncounterInner() {
           width={420}
         >
           {blockError && (
-            <div role="alert" style={{ color: "var(--coral)", fontSize: 13, marginBottom: 16 }}>
+            <div role="alert" style={{ color: "var(--coral)", fontSize: 14, marginBottom: 16 }}>
               {blockError}
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={() => {
-                setBlockConfirmOpen(false);
-                setBlockError(null);
-              }}
-              disabled={blocking}
-              className="gg-press"
-              style={{
-                minHeight: 44,
-                padding: "0 18px",
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                background: "var(--overlay)",
-                color: "var(--text)",
-                fontWeight: 700,
-                cursor: blocking ? "default" : "pointer",
-              }}
-            >
-              Keep talking
-            </button>
-            <button
-              type="button"
-              onClick={handleBlockOpponent}
-              disabled={!canBlockOpponent || blocking}
-              aria-label="Block opponent squad"
-              aria-busy={blocking}
-              className="gg-press"
-              style={{
-                minHeight: 44,
-                padding: "0 18px",
-                borderRadius: 999,
-                border: "none",
-                background: "var(--coral)",
-                color: "#fff",
-                fontWeight: 800,
-                cursor: !canBlockOpponent || blocking ? "default" : "pointer",
-              }}
-            >
+            <Button variant="secondary" disabled={blocking} onClick={() => { setBlockConfirmOpen(false); setBlockError(null); }}>Keep talking</Button>
+            <Button variant="danger" onClick={handleBlockOpponent} disabled={!canBlockOpponent || blocking} aria-label="Block opponent squad" aria-busy={blocking}>
               {blocking ? "Blocking…" : "Block everyone and leave"}
-            </button>
+            </Button>
           </div>
         </Modal>
       )}
@@ -2117,52 +1812,30 @@ function EncounterInner() {
           width={420}
         >
           {endError && (
-            <div role="alert" style={{ color: "var(--coral)", fontSize: 13, marginBottom: 16 }}>
+            <div role="alert" style={{ color: "var(--coral)", fontSize: 14, marginBottom: 16 }}>
               {endError}
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              disabled={ending}
               onClick={() => {
                 if (endError && exitKind === "leave") retryVideo();
                 setEndConfirmOpen(false);
                 setEndError(null);
               }}
-              disabled={ending}
-              className="gg-press"
-              style={{
-                minHeight: 44,
-                padding: "0 18px",
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                background: "var(--overlay)",
-                color: "var(--text)",
-                fontWeight: 700,
-                cursor: ending ? "default" : "pointer",
-              }}
             >
               {endError && exitKind === "leave" ? "Reconnect call" : "Keep talking"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="danger"
               onClick={exitKind === "leave" ? handlePersonalLeave : handleEnd}
               disabled={ending}
               aria-label={exitKind === "leave" ? "Confirm leave call" : "End encounter"}
-              className="gg-press"
-              style={{
-                minHeight: 44,
-                padding: "0 18px",
-                borderRadius: 999,
-                border: "none",
-                background: "var(--coral)",
-                color: "#fff",
-                fontWeight: 800,
-                cursor: ending ? "wait" : "pointer",
-              }}
             >
-              {ending ? (exitKind === "leave" ? "Leaving…" : "Ending…") : exitKind === "leave" ? "Leave call" : "End encounter"}
-            </button>
+              {ending ? (exitKind === "leave" ? "Leaving…" : "Ending…") : exitKind === "leave" ? "Leave call" : "End the call"}
+            </Button>
           </div>
         </Modal>
       )}
@@ -2172,7 +1845,7 @@ function EncounterInner() {
 
 export default function EncounterPage() {
   return (
-    <Suspense fallback={<div style={{ color: "#9A9AB0", padding: 40 }}>Loading encounter…</div>}>
+    <Suspense fallback={<div style={{ color: "var(--text-muted)", padding: 40, fontFamily: "var(--font-body)" }}>Opening the call…</div>}>
       <EncounterInner />
     </Suspense>
   );
