@@ -67,8 +67,8 @@ function LobbyInner() {
   const mediaUnsubRef = useRef<(() => void) | null>(null);
   const [squad, setSquad] = useState<SquadState | null>(null);
   const [loading, setLoading] = useState(true);
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
+  const [micOn, setMicOn] = useState(false);
+  const [camOn, setCamOn] = useState(false);
   const [settingReady, setSettingReady] = useState(false);
   const [findingMatch, setFindingMatch] = useState(false);
   const [matchError, setMatchError] = useState<string | null>(null);
@@ -238,7 +238,7 @@ function LobbyInner() {
   // Returns true only if the camera/mic actually joined — callers that gate a
   // follow-up action (e.g. the "Enable camera" match flow) must not proceed on
   // a swallowed failure.
-  async function enableLobbyMedia(withCamera = true): Promise<boolean> {
+  async function enableLobbyMedia(withCamera = true, withAudio = true): Promise<boolean> {
     if (!squadId || videoJoining) return videoJoined;
     if (videoJoined) return true;
     const generation = ++lobbyMediaGenerationRef.current;
@@ -256,9 +256,14 @@ function LobbyInner() {
         if (generation !== lobbyMediaGenerationRef.current) return;
         setMicOn(state.audio === "active");
         setCamOn(state.video === "active");
+        if (state.audio === "denied" || state.video === "denied") {
+          setVideoError("Allow camera or microphone access in your browser, then try again.");
+        } else if (state.audio === "unavailable" || state.video === "unavailable") {
+          setVideoError("A camera or microphone couldn't connect. Try turning it on again.");
+        }
       });
       mediaUnsubRef.current = () => { offRemote(); offCapture?.(); };
-      await vc.join(tokenData, { audio: true, video: withCamera });
+      await vc.join(tokenData, { audio: withAudio, video: withCamera });
       if (generation !== lobbyMediaGenerationRef.current) {
         if (vcRef.current === vc) vcRef.current = null;
         await vc.leave().catch(() => {});
@@ -349,7 +354,11 @@ function LobbyInner() {
   useEffect(() => { if (chatVisible) setUnread(0); }, [chatVisible]);
 
   async function toggleDevice(kind: "audio" | "video") {
-    if (deviceBusyRef.current[kind] || !videoJoined) return;
+    if (deviceBusyRef.current[kind] || videoJoining) return;
+    if (!videoJoined) {
+      await enableLobbyMedia(kind === "video", kind === "audio");
+      return;
+    }
     const vc = vcRef.current;
     if (!vc) return;
     const generation = lobbyMediaGenerationRef.current;
@@ -535,7 +544,7 @@ function LobbyInner() {
   }
 
   async function handleFindMatch() {
-    if (!squadId) return;
+    if (!squadId || !isLeader || findingMatch) return;
     if (!WEB_DISCOVERY_ENABLED) {
       setMatchError("Stranger discovery is unavailable.");
       return;
@@ -690,7 +699,6 @@ function LobbyInner() {
     }
   }
 
-  const readyCount = squad?.members.filter(m => m.ready).length ?? 0;
   const memberCount = squad?.members.length ?? 0;
   // Capacity comes from the backend: 4 free, up to 8 when the leader is premium.
   const MAX_SLOTS = (squad as { maxSlots?: number } | null)?.maxSlots ?? 4;
@@ -751,15 +759,14 @@ function LobbyInner() {
   const myReady = !!myMember?.ready;
   const closeChat = () => { setChatOpen(false); setSidebarTab("info"); };
 
-  const onlineCount = onlineMembers.length;
   const openSeats = Math.max(0, MAX_SLOTS - memberCount);
   const readyLine = !WEB_DISCOVERY_ENABLED
-    ? memberCount === 1 ? "Just you so far" : `${onlineCount} of ${memberCount} here`
+    ? "Squad matching is unavailable right now"
     : isLeader
       ? othersOnline.length === 0
         ? "Just you so far"
         : othersReady ? "Everyone's ready" : `${othersOnline.filter(m => m.ready).length} of ${othersOnline.length} ready`
-      : myReady ? "Your leader starts the search" : `${readyCount} of ${onlineCount} ready`;
+      : myReady ? "Your leader starts the search" : "Get ready. Your leader starts the search.";
   const openChat = () => { setChatOpen(true); setSidebarCollapsed(false); setSidebarTab("chat"); };
 
   return (
@@ -819,17 +826,16 @@ function LobbyInner() {
         </aside>
       </div>
 
-      <footer className={styles.dockWrap} hidden={isPhone && chatVisible}>
+      <footer className={styles.dockWrap}>
         <div className={`card ${styles.dock}`}>
           <div className={styles.dockRow}>
-            {videoJoined ? <>
-              <button type="button" className={styles.devBtn} disabled={deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Unmute microphone"} data-off={!micOn || undefined}><Icon.mic size={20} /></button>
-              <button type="button" className={styles.devBtn} disabled={deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}><Icon.cam size={20} /></button>
-            </> : null}
-            <span className={`muted ${styles.readyLine}`}>{readyLine}</span>
-            {!videoJoined && <Button variant={WEB_DISCOVERY_ENABLED ? "secondary" : "primary"} loading={videoJoining} onClick={() => void enableLobbyMedia()} aria-label="Turn on camera and microphone"><Icon.cam size={19} /><span className={styles.wide}>Turn on camera &amp; mic</span><span className={styles.narrow}>Camera &amp; mic</span></Button>}
+            <div className={styles.devices} role="group" aria-label="Camera and microphone">
+              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}><Icon.mic size={20} /><span>Mic</span></button>
+              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}><Icon.cam size={20} /><span>Camera</span></button>
+            </div>
+            <span id="lobby-match-status" className={`muted ${styles.readyLine}`}>{readyLine}</span>
             {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}
-            {WEB_DISCOVERY_ENABLED && isLeader && <Button disabled={!othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch}>Find a squad<Icon.arrowRight size={18} /></Button>}
+            <Button disabled={!WEB_DISCOVERY_ENABLED || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} /></Button>
           </div>
           {videoError && <p role="alert" className={styles.error}>{videoError}</p>}
         </div>

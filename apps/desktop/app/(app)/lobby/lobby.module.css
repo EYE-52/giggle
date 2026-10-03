@@ -63,8 +63,10 @@
 .dockWrap { flex: none; }
 .dock { padding: 8px 8px 8px 10px; }
 .dockRow { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.devBtn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0; border: 1px solid var(--line, var(--border)); border-radius: 50%; background: var(--surface); color: var(--text); cursor: pointer; }
-.devBtn[data-off] { background: var(--coral, #e5484d); border-color: transparent; color: #fff; }
+.devices { display:flex; gap:6px; flex:none; }
+.devBtn { width: 60px; min-height: 54px; flex: none; display: flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding: 5px; border: 1px solid var(--line, var(--border)); border-radius: 12px; background: var(--surface); color: var(--text); cursor: pointer; }
+.devBtn span { font:600 10px/12px var(--font-body); }
+.devBtn[data-off] { background:var(--overlay); color:var(--text-muted); }
 .readyLine { flex: 1; min-width: 0; padding: 0 6px; font-size: 14px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .error { color: var(--coral); font-size: 13px; line-height: 1.5; margin: 6px 4px 0; }
 .narrow { display: none; }
@@ -99,7 +101,7 @@
 .openSeat.openSeat { color: color-mix(in srgb, var(--text) 82%, transparent); }
 
 .devBtn { position:relative; }
-.devBtn[data-off]::after { content:""; position:absolute; width:25px; height:2px; border-radius:2px; background:currentColor; transform:rotate(-45deg); box-shadow:0 0 0 2px var(--coral, #e5484d); pointer-events:none; }
+.devBtn[data-off]::after { content:""; position:absolute; width:25px; height:2px; top:16px; border-radius:2px; background:currentColor; transform:rotate(-45deg); box-shadow:0 0 0 2px var(--surface); pointer-events:none; }
 .devBtn:disabled { opacity:.5; cursor:wait; }
 :global(html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"]) .seat { border:7px solid var(--sb-photo-paper); border-bottom-width:34px; border-radius:2px; overflow:visible; background:color-mix(in srgb, var(--sb-note-mint) 60%, var(--sb-photo-paper)); box-shadow:0 1px 2px var(--sb-shadow), 2px 8px 12px -7px var(--sb-shadow); }
 :global(html[data-skin="scrap"]) .seats { padding-top:10px; gap:20px; }
@@ -110,3 +112,11 @@
 :global(html[data-skin="scrap"]) .state { padding:0 3px; background:transparent; color:var(--sb-note-muted); font-size:11px; backdrop-filter:none; }
 :global(html[data-skin="scrap"]) .chat { border-color:var(--sb-line); border-radius:3px; box-shadow:0 2px 3px var(--sb-shadow), 2px 8px 15px -10px var(--sb-shadow); }
 @media (max-width:520px) { :global(html[data-skin="scrap"]) .seats { gap:14px; } :global(html[data-skin="scrap"]) .seatLabel { overflow:hidden; } }
+
+@media (max-width:520px) {
+  .dockRow { gap:6px; }
+  .devices { margin-right:auto; }
+  .devBtn { width:48px; }
+  .readyLine { font-size:12px; }
+  .dockRow :global(.gg-btn) { font-size:12px; padding-inline:9px !important; }
+}

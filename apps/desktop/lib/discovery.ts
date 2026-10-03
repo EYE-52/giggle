@@ -34,8 +34,8 @@ function set(next: boolean) {
   listeners.forEach(listener => listener());
 }
 
-function load() {
-  if (loading || loaded || typeof window === "undefined") return;
+function load(refresh = false) {
+  if (loading || (!refresh && loaded) || typeof window === "undefined") return;
   if (state === null) state = readCache();
   loading = true;
   api.getFeatures()
@@ -44,10 +44,16 @@ function load() {
     .finally(() => { loading = false; });
 }
 
+function refreshOnFocus() { load(true); }
+
 function subscribe(listener: () => void) {
   listeners.add(listener);
+  if (listeners.size === 1) window.addEventListener("focus", refreshOnFocus);
   load();
-  return () => { listeners.delete(listener); };
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) window.removeEventListener("focus", refreshOnFocus);
+  };
 }
 
 /** true / false once known; null while the first answer is on its way. */

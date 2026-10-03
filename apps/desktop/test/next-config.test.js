@@ -67,7 +67,7 @@ test("the API switch hides stranger matching without hiding private squads", () 
   assert.match(home, /const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled\(\) === true;/);
   assert.match(home, /if \(!discovery\) return `\/lobby\?squad=\$\{squad\.squadId\}`/);
   assert.match(home, /aria-label="Squad invite code"/i);
-  assert.match(lobby, /WEB_DISCOVERY_ENABLED && isLeader/);
+  assert.match(lobby, /disabled=\{!WEB_DISCOVERY_ENABLED \|\| !isLeader/);
   assert.match(encounter, /WEB_DISCOVERY_ENABLED && \(/);
   assert.doesNotMatch(config, /AGE|country|Country/);
 });
@@ -756,15 +756,15 @@ test("lobby asks before starting camera and microphone", () => {
   const page = lobbySource();
 
 
-  assert.equal(page.includes('aria-label="Turn on camera and microphone"'), true);
+  assert.equal(page.includes('aria-label="Camera and microphone"'), true);
   assert.equal(page.includes("if (!joinStartedRef.current)"), false);
 });
 
 test("desktop lobby joins audio before continuing without camera", () => {
   const page = lobbySource();
 
-  assert.match(page, /async function enableLobbyMedia\(withCamera = true\)/);
-  assert.match(page, /await vc\.join\(tokenData, \{ audio: true, video: withCamera \}\)/);
+  assert.match(page, /async function enableLobbyMedia\(withCamera = true, withAudio = true\)/);
+  assert.match(page, /await vc\.join\(tokenData, \{ audio: withAudio, video: withCamera \}\)/);
   assert.equal(page.includes("onClick={enableLobbyMedia}"), false);
   assert.match(page, /ok = await enableLobbyMedia\(false\)/);
   assert.match(page, /if \(!ok\) return;[\s\S]*?await proceedFindMatch\(\)/);
@@ -839,7 +839,7 @@ test("desktop lobby surfaces join-request decline failures", () => {
 test("desktop lobby keeps device controls tied to capture truth", () => {
   const page = lobbySource();
   assert.equal(page.includes('vc.onCaptureState?.('), true);
-  assert.equal(page.includes('deviceBusyRef.current[kind] || !videoJoined'), true);
+  assert.equal(page.includes('deviceBusyRef.current[kind] || videoJoining'), true);
   assert.equal(page.includes('await (kind === "audio" ? vc.setMicEnabled(next) : vc.setCamEnabled(next))'), true);
   assert.equal(page.includes('setMicOn(next)'), false);
   assert.equal(page.includes('setCamOn(next)'), false);

@@ -73,7 +73,7 @@ From commit `279d64a`, temporary access is evaluated from the server setting and
 - Production still deploys automatically from `main`: Vercel serves the website, Railway serves the API and realtime connections.
 - `STRANGER_DISCOVERY_ENABLED=true` was restored on the Railway `giggle-server` service; `/api/features` now reports `strangerDiscovery: true`. The lobby leader gets **Find a squad**; other members must be ready first. Keep the existing external release gates in this runbook visible.
 - Friend refreshes discard snapshots started before a mutation, and crossed requests that become a friendship appear correctly. Lists keep their natural height across skins.
-- Media controls follow capture state, camera off releases capture, and repeated lobby refreshes no longer restart the same video playback.
+- Media controls follow capture state, camera off releases capture, and repeated lobby refreshes no longer restart the same video playback. Camera and microphone controls remain visible before connecting and during phone chat; each starts only its chosen device. Find a squad remains visible to all members, with a disabled state and explanation when the leader must act. Returning to the browser refreshes the matching feature switch.
 - Chat follows each skin, with native Unicode emoji choices. Scrapbook uses a ruled notepad and taped participant frames. No external emoji image library is required.
 - Validation: desktop and Agora checks, a production build, local friend acceptance/reload, local chat delivery, and visual checks of all five skins, including Scrapbook on a phone. Physical two-device camera/microphone validation is still needed.
 
