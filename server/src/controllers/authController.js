@@ -1,5 +1,6 @@
 const { isAgeCheckSatisfied } = require("../services/ageAccessService");
 const User = require("../models/User");
+const { hasActivePremium } = require("../utils/premium");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { normalizeDisplayName } = require("../utils/identityValidation");
@@ -143,7 +144,7 @@ async function issueSessionForEmail({ email, name, image, ref, devFixture = fals
       email: user.email,
       name: user.name,
       image: user.image,
-      isPremium: user.isPremium || false,
+      isPremium: hasActivePremium(user),
       isApproved: user.isApproved || false,
       // Age-gating flags must ride in the JWT: the OAuth flow only receives the
       // token (via URL hash) and decodes it client-side, so without these the
@@ -165,7 +166,7 @@ async function issueSessionForEmail({ email, name, image, ref, devFixture = fals
       name: user.name,
       image: user.image,
       avatar: publicAvatar(user.avatar),
-      isPremium: user.isPremium || false,
+      isPremium: hasActivePremium(user),
       isApproved: user.isApproved || false,
       referralCode: user.referralCode,
       referralCount: user.referralCount || 0,

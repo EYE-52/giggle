@@ -58,3 +58,13 @@ test("wardrobe renders all clothing, headwear and earring combinations", () => {
     for (const path of logo.logoPaths) assert.ok(html.includes(path), "Shared logo stays on every garment");
   }
 });
+
+test("new accessories appear in the SVG and layer with existing styles", () => {
+  for (const glasses of ["cat-eye", "sunglasses"]) for (const necklace of ["chain", "pendant", "beads"]) {
+    const html = renderToStaticMarkup(createElement(compiled.GiggleAvatar, { glasses, necklace, headphones: true, headwear: "bucket", earrings: "drops", faceWidth: 100, animated: false }));
+    for (const accessory of [glasses, necklace, "headphones", "bucket", "drops"]) assert.ok(html.includes(`data-accessory="${accessory}"`));
+    assert.doesNotMatch(html, /NaN|undefined/);
+  }
+  const plain = renderToStaticMarkup(createElement(compiled.GiggleAvatar, { animated: false }));
+  assert.doesNotMatch(plain, /data-accessory=/);
+});

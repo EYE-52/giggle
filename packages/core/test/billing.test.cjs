@@ -92,3 +92,20 @@ test("production builds do not redeem token perks from local-only storage", asyn
     }
   }
 });
+
+test("server wallet snapshots apply spending, expire Plus and never add the same credits twice", async () => {
+  installLocalStorage();
+  const { billing, syncEarnedWallet } = await import(`../src/billing.ts?earned-wallet=${Date.now()}`);
+  syncEarnedWallet({ credits: 225, premium: false, premiumUntil: null });
+  assert.equal(billing.getTokenBalance(), 225);
+  syncEarnedWallet({ credits: 25, premium: true, premiumUntil: new Date(Date.now() + 86400000).toISOString() });
+  assert.equal(billing.getTokenBalance(), 25);
+  assert.equal(billing.isPremium(), true);
+  assert.equal(billing.syncServerTokens(25), 0);
+  assert.equal(billing.getTokenBalance(), 25);
+  syncEarnedWallet({ credits: 25, premium: false, premiumUntil: new Date(Date.now() - 1).toISOString() });
+  assert.equal(billing.isPremium(), false);
+  syncEarnedWallet({ credits: -1, premium: true, premiumUntil: null });
+  assert.equal(billing.getTokenBalance(), 25);
+  assert.equal(billing.isPremium(), false);
+});

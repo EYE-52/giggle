@@ -1,24 +1,10 @@
 // =============================================================================
 // Giggle Billing & Entitlements — Token Economy
 // =============================================================================
-// ONE mental model, deliberately simple:
-//
-//   • TOKENS are the only spend currency. You spend tokens on cosmetic perks
-//     (cover themes, vibe packs). Nothing cosmetic is priced in dollars.
-//   • You get tokens two ways: buy a token pack (one-time), or subscribe to
-//     Giggle+ (monthly token stipend + a bonus on every pack you buy).
-//   • Giggle+ does NOT silently unlock cosmetics for free — members simply have
-//     tokens flowing (stipend + pack bonus), and spend them like everyone else.
-//     This keeps a single, honest pricing story instead of "why would a premium
-//     user ever spend tokens?".
-//
-// This module is processor-agnostic. The default preview processor simulates a
-// purchase locally OUTSIDE production only, so the UI can be exercised without
-// ever granting paid entitlements in a production build.
-//
-// TO USE STRIPE:  implement a Processor that creates a Checkout Session on your
-// backend, redirects to it, and resolves { ok: true } once your webhook has
-// confirmed payment. Then call setProcessor(stripeProcessor) at app startup.
+// The web launch wallet uses authenticated server rewards and Giggle+ passes.
+// `syncEarnedWallet` mirrors that balance and expiry for display only.
+// The legacy preview processor/catalog below stays disabled in production;
+// it does not grant server credits or offer a live checkout.
 // =============================================================================
 
 export type ProductType = "subscription" | "token_pack";
@@ -270,6 +256,18 @@ function _grantEntitlement(productId: string): void {
 /** Get current token balance. */
 export function getTokenBalance(): number {
   return readTokens();
+}
+
+/** Replace cached display data with the authenticated server wallet, including debits. */
+export function syncEarnedWallet(wallet: { credits: number; premium: boolean; premiumUntil: string | null }): void {
+  if (!Number.isSafeInteger(wallet.credits) || wallet.credits < 0) return;
+  const premiumUntil = wallet.premiumUntil ? Date.parse(wallet.premiumUntil) : undefined;
+  const current = safeRead();
+  const next = { ...current, premium: wallet.premium === true, premiumUntil };
+  writeTokens(wallet.credits);
+  try { localStorage.setItem(SERVER_SYNC_KEY, String(wallet.credits)); } catch {}
+  safeWrite(next);
+  _notify(next);
 }
 
 /**

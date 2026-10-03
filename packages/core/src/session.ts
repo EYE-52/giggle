@@ -16,7 +16,7 @@ export function setPendingReferral(code: string) {
   } catch {}
 }
 
-function getPendingReferral(): string | undefined {
+export function getPendingReferral(): string | undefined {
   try {
     if (typeof localStorage !== "undefined") {
       return localStorage.getItem(PENDING_REF_KEY) || undefined;
@@ -51,6 +51,27 @@ function invalidateAdultAccess() {
 }
 
 const STORAGE_KEY = "giggle.session";
+
+// Keep device-only photos and cached rewards with their account on shared browsers.
+function switchAccountCache(nextId: string) {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const ownerKey = "giggle.cacheOwner";
+    const previousId = localStorage.getItem(ownerKey) || user?.id;
+    if (previousId && previousId !== nextId) {
+      for (const key of ["giggle.avatar", "giggle.avatarPrompted", "giggle.vibes", "giggle.tokens", "giggle.tokens.serverSynced", "giggle.entitlements"]) {
+        const previous = localStorage.getItem(key);
+        const previousKey = `giggle.account.${previousId}.${key}`;
+        if (previous === null) localStorage.removeItem(previousKey);
+        else localStorage.setItem(previousKey, previous);
+        const next = localStorage.getItem(`giggle.account.${nextId}.${key}`);
+        if (next === null) localStorage.removeItem(key);
+        else localStorage.setItem(key, next);
+      }
+    }
+    localStorage.setItem(ownerKey, nextId);
+  } catch {}
+}
 
 function randomDevSeed() {
   const cryptoObj = globalThis.crypto;
@@ -129,6 +150,7 @@ function restore() {
         token = parsed.token;
         user = normalizeSessionUser(parsed.user, restoredPayload);
         if (!user) throw new Error("INVALID_AUTH_TOKEN");
+        switchAccountCache(user.id);
       }
     }
   } catch {
@@ -165,6 +187,7 @@ export const session = {
     const res = await api.exchange({ ...identity, ref });
     if (identityVersion !== identityOperationVersion) throw sessionChangedError();
     invalidateAdultAccess();
+    switchAccountCache(res.user.id);
     token = res.token;
     user = { ...res.user };
     persist();
@@ -230,6 +253,7 @@ export const session = {
     const payload = decodeJwtPayload(jwtToken);
     const nextUser = normalizeSessionUser(null, payload);
     if (!nextUser) throw new Error("INVALID_AUTH_TOKEN");
+    switchAccountCache(nextUser.id);
     token = jwtToken;
     user = nextUser;
     persist();

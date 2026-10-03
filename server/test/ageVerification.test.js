@@ -777,6 +777,15 @@ test("classifyVibe buckets ok / mature / blocked (incl. leet + spacing)", () => 
   assert.equal(classifyVibe("nsfw"), "mature");
   assert.equal(classifyVibe("s3x"), "mature"); // leet normalization
   assert.equal(classifyVibe("s e x"), "mature"); // spacing collapse
+  assert.equal(classifyVibe("ｎｓｆｗ"), "mature");
+  assert.equal(classifyVibe("sëx"), "mature");
+  assert.equal(classifyVibe("n\u200bs\u200bf\u200bw"), "mature");
+  assert.equal(classifyVibe("18+"), "mature");
+  assert.equal(classifyVibe("Spicy Food"), "ok");
+  assert.equal(classifyVibe("Music production"), "ok");
+  assert.equal(classifyVibe("Grape juice"), "ok");
+  assert.equal(classifyVibe("c p"), "blocked");
+  assert.equal(classifyVibe("r.a.p.e"), "blocked");
   assert.equal(classifyVibe("porn"), "mature");
   assert.equal(classifyVibe("pedo"), "blocked");
   assert.equal(classifyVibe("rape"), "blocked");

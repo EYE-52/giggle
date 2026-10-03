@@ -6,6 +6,7 @@ const {
 } = require("../controllers/ageVerificationController");
 const { requireApiAuth, requireIdentityAuth } = require("../middlewares/authMiddleware");
 const { exportAccountHandler, deleteAccountHandler } = require("../controllers/accountController");
+const { getWallet, redeemWalletPerk } = require("../controllers/walletController");
 
 const router = express.Router();
 
@@ -34,6 +35,8 @@ const router = express.Router();
  */
 router.get("/me/profile", requireIdentityAuth, getMyProfile);
 router.patch("/me/profile", requireApiAuth, updateMyProfile);
+router.get("/me/wallet", requireApiAuth, getWallet);
+router.post("/me/wallet/redeem", requireApiAuth, redeemWalletPerk);
 
 /**
  * @swagger

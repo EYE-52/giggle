@@ -2,6 +2,14 @@ import { backendRequest } from "./client";
 import type { CharacterConfig } from "./avatars";
 import type { AgoraToken } from "./types";
 
+export interface WalletInfo {
+  credits: number;
+  premium: boolean;
+  premiumUntil: string | null;
+  plus: { id: string; cost: number; days: number };
+  rewards: { id: string; credits: number; earned: boolean }[];
+}
+
 export type AgeVerificationStatus = "not_started" | "pending" | "verified" | "rejected" | "restricted";
 
 export interface AgeVerificationResult {
@@ -16,6 +24,8 @@ export interface AgeVerificationResult {
  * Field names match the real backend contract (squadId/squadCode/memberId, {ok,data,error}).
  */
 export const api = {
+  getWallet: () => backendRequest<WalletInfo>("/api/me/wallet"),
+  redeemPlus: () => backendRequest<WalletInfo>("/api/me/wallet/redeem", { method: "POST", body: { perkId: "giggle_plus" } }),
   // --- auth ---
   exchange: (payload: { email: string; name?: string; image?: string; ref?: string }) =>
     backendRequest<{ token: string; user: BackendUser }>("/api/auth/exchange", { method: "POST", body: payload }),

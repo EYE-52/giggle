@@ -4,16 +4,17 @@ const CHARACTER_PREFIX = "giggle:v1:";
 const CHARACTER_OPTIONS = Object.freeze({
   hair: ["curls", "crop", "bob", "swoop", "buzz", "bald", "long", "bun"],
   face: ["soft", "round", "angular"],
-  glasses: ["none", "round", "square"],
+  glasses: ["none", "round", "square", "cat-eye", "sunglasses"],
   facialHair: ["none", "stubble", "beard", "mustache"],
   expression: ["smile", "laugh", "wink", "surprised"],
   clothing: ["tee", "hoodie", "sweater", "jacket", "collared"],
-  headwear: ["none", "beanie", "cap"],
-  earrings: ["none", "studs", "hoops"],
+  headwear: ["none", "beanie", "cap", "bucket"],
+  earrings: ["none", "studs", "hoops", "drops"],
+  necklace: ["none", "chain", "pendant", "beads"],
 });
 const CHARACTER_DEFAULTS = Object.freeze({
   hair: "curls", face: "soft", glasses: "none", facialHair: "none", expression: "smile",
-  clothing: "tee", headwear: "none", earrings: "none",
+  clothing: "tee", headwear: "none", earrings: "none", necklace: "none", headphones: false,
   skin: "#bd815e", hairColor: "#39302e", accent: "#e5dbc9", shirtColor: "#d97654", accessoryColor: "#74618c",
   faceWidth: 50, eyeSize: 50, eyeSpacing: 50, browTilt: 50, noseSize: 50, mouthWidth: 50,
   freckles: false, animated: true,

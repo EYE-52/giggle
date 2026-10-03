@@ -2,8 +2,7 @@
 // Two buckets:
 //   • "blocked"  — disallowed outright (slurs, hate, sexual content involving
 //                  minors, illegal). Never accepted.
-//   • "mature"   — adult (18+) but legal. Allowed, but the squad becomes an
-//                  adult room: gate it behind an 18+ confirmation.
+//   • "mature"   — adult sexual content. Squad topics reject it.
 //   • "ok"       — everything else.
 //
 // This is a first-line UX guard, NOT a substitute for server-side moderation.
@@ -14,8 +13,9 @@ export type VibeVerdict = "ok" | "mature" | "blocked";
 // Normalize leetspeak / spacing so "s3x" / "s e x" don't slip past.
 function canon(input: string): string {
   return input
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, (m) => m) // keep for word-boundary checks below
     .replace(/1/g, "i")
     .replace(/3/g, "e")
     .replace(/4/g, "a")
@@ -34,13 +34,19 @@ function letters(input: string): string {
 // Hard-blocked: hate slurs + any sexualization of minors / illegal. Kept terse
 // and euphemized where possible; matched as substrings on the delettered form.
 const BLOCKED: string[] = [
-  "childporn", "cp", "loli", "shota", "pedo", "underage", "minorsex", "jailbait",
-  "rape", "bestiality", "incest",
+  "childporn", "loli", "shota", "pedo", "underage", "minorsex", "jailbait",
+  "bestiality", "incest",
   // common hate slurs (delettered)
-  "nigger", "faggot", "kike", "chink", "spic", "tranny", "retard",
+  "nigger", "faggot", "tranny",
 ];
 
-// Adult (18+) but legal — triggers the age-gate, not a block.
+// Ambiguous short terms match words (including spaced/punctuated spellings),
+// so ordinary topics such as Music production, Grape juice and Spicy food survive.
+const BLOCKED_WORDS = ["cp", "rape", "raped", "rapist", "kike", "chink", "spic", "retard"].map(
+  term => new RegExp("\\b" + term.split("").join("[^a-z]*") + "\\b"),
+);
+
+// Adult sexual content — rejected by squad endpoints.
 const MATURE: string[] = [
   "sex", "sexy", "nsfw", "nude", "nudes", "naked", "porn", "porno", "xxx",
   "hookup", "hookups", "fuck", "onlyfans", "kink", "kinky", "fetish", "bdsm",
@@ -56,8 +62,8 @@ function matches(list: string[], hay: string): boolean {
 export function classifyVibe(raw: string): VibeVerdict {
   const hay = letters(raw);
   if (!hay) return "ok";
-  if (matches(BLOCKED, hay)) return "blocked";
-  if (matches(MATURE, hay)) return "mature";
+  if (matches(BLOCKED, hay) || BLOCKED_WORDS.some(pattern => pattern.test(canon(raw)))) return "blocked";
+  if (matches(MATURE, hay) || /(?:^|[^0-9])18\s*(?:\+|plus)/i.test(raw.normalize("NFKC"))) return "mature";
   return "ok";
 }
 

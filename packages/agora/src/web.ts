@@ -67,6 +67,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   const captureListeners = new Set<(state: CaptureState) => void>();
   const remoteUsers = new Map<string, any>();
   const remoteState = new Map<string, RemoteParticipant>();
+  const mutedRemoteUids = new Set<string>();
   let localPlayback: { track: any; element: unknown } | null = null;
   const remotePlayback = new Map<string, { track: any; element: unknown }>();
 
@@ -107,6 +108,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     localVideoTrack = null;
     remoteUsers.clear();
     remoteState.clear();
+    mutedRemoteUids.clear();
     emit();
     setCapture({ audio: "off", video: "off" });
   }
@@ -192,6 +194,15 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
 
         const joinedClient = client;
         ownedClient = joinedClient;
+        client.on("user-joined", (user: any) => {
+          if (joinedGeneration !== generation) return;
+          const key = String(user.uid);
+          remoteUsers.set(key, user);
+          remoteState.set(key, mergeRemoteParticipant(remoteState.get(key), user.uid, {
+            mutedForMe: mutedRemoteUids.has(key),
+          }));
+          emit();
+        });
         client.on("user-published", async (user: any, mediaType: "video" | "audio") => {
           if (joinedGeneration !== generation) return;
           try { await joinedClient.subscribe(user, mediaType); } catch { return; }
@@ -201,10 +212,11 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           const previous = remoteState.get(String(user.uid));
           remoteState.set(String(user.uid), mergeRemoteParticipant(previous, user.uid, {
             [mediaType === "video" ? "hasVideo" : "hasAudio"]: true,
+            ...(mutedRemoteUids.has(String(user.uid)) ? { mutedForMe: true } : {}),
           }));
           if (mediaType === "audio" && user.audioTrack) {
             // Set volume before playback so a re-published track never leaks sound.
-            user.audioTrack.setVolume(previous?.mutedForMe ? 0 : 100);
+            user.audioTrack.setVolume(mutedRemoteUids.has(String(user.uid)) ? 0 : 100);
             user.audioTrack.play();
           }
           emit();
@@ -321,6 +333,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       if (!client || !previous || key === String(localUid)) throw new Error("This person is not connected.");
       const track = remoteUsers.get(key)?.audioTrack;
       if (track) track.setVolume(muted ? 0 : 100);
+      if (muted) mutedRemoteUids.add(key);
+      else mutedRemoteUids.delete(key);
       remoteState.set(key, mergeRemoteParticipant(previous, previous.uid, { mutedForMe: muted }));
       emit();
     },

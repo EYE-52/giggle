@@ -16,3 +16,14 @@ test('untrusted character config rejects markup, unsupported versions and invali
   assert.equal(parseCharacter('giggle:v1:{"__proto__":{}}'), null);
   assert.deepEqual(parseCharacter('giggle:v1:{}'), CHARACTER_DEFAULTS);
 });
+
+test('accessories round trip and existing characters receive empty accessory defaults', () => {
+  for (const necklace of CHARACTER_OPTIONS.necklace) for (const glasses of CHARACTER_OPTIONS.glasses) {
+    const config = { ...CHARACTER_DEFAULTS, necklace, glasses, headphones: true, headwear: 'bucket', earrings: 'drops' };
+    assert.deepEqual(parseCharacter(encodeCharacter(config)), config);
+  }
+  const { necklace, headphones, ...legacy } = CHARACTER_DEFAULTS;
+  assert.deepEqual(parseCharacter('giggle:v1:' + JSON.stringify(legacy)), CHARACTER_DEFAULTS);
+  assert.equal(validateCharacter({ necklace: 'unknown' }), null);
+  assert.equal(validateCharacter({ headphones: 'true' }), null);
+});

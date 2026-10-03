@@ -757,6 +757,7 @@ test("member squad reads parallelize live state and reuse the member query for c
     _id: leaderId,
     blockedUserIds: [],
     isPremium: true,
+    premiumExpiresAt: new Date(Date.now() + 86400000),
     gender: "private",
     languages: ["English"],
     country: "IN",
@@ -767,7 +768,8 @@ test("member squad reads parallelize live state and reuse the member query for c
     }
     starts.push("demographics");
     const query = {
-      select: () => ({ lean: () => demographicsResult.promise }),
+      select: fields => ({ lean: () => demographicsResult.promise.then(users => users.map(user =>
+        Object.fromEntries(fields.split(" ").filter(key => key in user).map(key => [key, user[key]])))) }),
       then: (resolve, reject) => demographicsResult.promise.then(resolve, reject),
     };
     return query;
@@ -798,6 +800,10 @@ test("member squad reads parallelize live state and reuse the member query for c
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.data.maxSlots, 8);
     assert.equal(res.body.data.members[0].ready, true);
+    demoUser.premiumExpiresAt = new Date(Date.now() - 1000);
+    const expired = createResponse();
+    await getSquadHandler({ squadAccess: { squad, leader: member } }, expired);
+    assert.equal(expired.body.data.maxSlots, 4);
   } finally {
     sessionResult.resolve({});
     demographicsResult.resolve([]);

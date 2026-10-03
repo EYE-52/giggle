@@ -69,6 +69,7 @@ const userSchema = new mongoose.Schema(
     referredBy: { type: String, default: null }, // referrer's userId
     referralCount: { type: Number, default: 0 }, // how many people this user invited
     tokens: { type: Number, default: 0 },
+    earnedRewardIds: [{ type: String, enum: ["first_squad"] }],
 
     // ── Member demographics ───────────────────────────────────────────────
     gender: { type: String }, // "male"|"female"|"nonbinary"|"other"|"prefer_not"

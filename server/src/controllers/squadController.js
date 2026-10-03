@@ -2,6 +2,7 @@ const { hashStringToUid } = require("../services/agoraTokenService");
 const mongoose = require("mongoose");
 const { Squad } = require("../models/Squad");
 const User = require("../models/User");
+const { hasActivePremium } = require("../utils/premium");
 const {
   MAX_SQUAD_MEMBERS,
   MIN_MEMBERS_TO_SEARCH,
@@ -74,8 +75,8 @@ const getSquadCapacity = async (squad) => {
   try {
     const leader = findCapacityLeader(squad);
     if (!leader || !leader.userId) return FREE_MAX_MEMBERS;
-    const leaderUser = await User.findById(leader.userId, "isPremium", { lean: true });
-    return capacityForPremium(Boolean(leaderUser && leaderUser.isPremium));
+    const leaderUser = await User.findById(leader.userId, "isPremium premiumExpiresAt", { lean: true });
+    return capacityForPremium(hasActivePremium(leaderUser));
   } catch (error) {
     console.warn("getSquadCapacity failed:", error.message);
     return FREE_MAX_MEMBERS;
@@ -93,8 +94,8 @@ const getSquadCapacities = async (squads) => {
   const premiumById = new Map();
   if (uniqueIds.length > 0) {
     try {
-      const users = await User.find({ _id: { $in: uniqueIds } }, "isPremium", { lean: true });
-      for (const user of users) premiumById.set(String(user._id), Boolean(user.isPremium));
+      const users = await User.find({ _id: { $in: uniqueIds } }, "isPremium premiumExpiresAt", { lean: true });
+      for (const user of users) premiumById.set(String(user._id), hasActivePremium(user));
     } catch (error) {
       console.warn("getSquadCapacities failed:", error.message);
     }
@@ -104,8 +105,8 @@ const getSquadCapacities = async (squads) => {
 
 const getUserPremiumStatus = async (userId) => {
   if (!userId) return false;
-  const user = await User.findById(userId).select("isPremium");
-  return Boolean(user && user.isPremium);
+  const user = await User.findById(userId).select("isPremium premiumExpiresAt");
+  return hasActivePremium(user);
 };
 
 const getSquadPremiumStatus = async (squad) => {
@@ -599,7 +600,7 @@ const getSquadHandler = async (req, res) => {
       sessionService.getSquadSession(squad.squadId),
       memberUserIds.length
         ? User.find({ _id: { $in: memberUserIds } })
-            .select("_id gender languages country isPremium avatar")
+            .select("_id gender languages country isPremium premiumExpiresAt avatar")
             .lean()
         : Promise.resolve([]),
       socketService.getOnlineUserIds(memberUserIds),
@@ -612,7 +613,7 @@ const getSquadHandler = async (req, res) => {
       ? demoById.get(String(capacityLeader.userId))
       : undefined;
     const maxSlots = Math.min(
-      leaderUser?.isPremium ? PREMIUM_MAX_MEMBERS : FREE_MAX_MEMBERS,
+      hasActivePremium(leaderUser) ? PREMIUM_MAX_MEMBERS : FREE_MAX_MEMBERS,
       MAX_SQUAD_MEMBERS
     );
 

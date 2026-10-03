@@ -13,7 +13,7 @@ const USER_EXPORT_FIELDS = [
   "ageVerification.status ageVerification.method ageVerification.threshold ageVerification.policyVersion",
   "ageVerification.requestedAt ageVerification.verifiedAt gender languages country vibes friends",
   "blockedUserIds isApproved isPremium premiumExpiresAt isSuspended isShadowBanned deletionStatus",
-  "referralCode referredBy referralCount tokens createdAt updatedAt",
+  "referralCode referredBy referralCount tokens earnedRewardIds createdAt updatedAt",
 ].join(" ");
 const CONTACT_EXPORT_FIELDS = "_id name image";
 const SQUAD_EXPORT_FIELDS =
@@ -164,6 +164,7 @@ const buildAccountExport = async (userId, dependencies = {}) => {
       referredBy: id(user.referredBy),
       referralCount: Number(user.referralCount) || 0,
       tokens: Number(user.tokens) || 0,
+      earnedRewardIds: user.earnedRewardIds || [],
     },
   };
 };

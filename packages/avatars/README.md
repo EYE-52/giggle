@@ -40,7 +40,7 @@ This records the creation process, not a legal clearance or a guarantee that no 
 
 ## Component editor (version 1)
 
-The playground now supports `face` (`soft`, `round`, `angular`), `glasses` (`none`, `round`, `square`), `facialHair` (`none`, `stubble`, `beard`, `mustache`), `freckles`, and `shirtColor`.
+The playground now supports `face` (`soft`, `round`, `angular`), `glasses` (`none`, `round`, `square`, `cat-eye`, `sunglasses`), `facialHair` (`none`, `stubble`, `beard`, `mustache`), `freckles`, and `shirtColor`.
 
 Six numeric controls accept 0–100 with a neutral value of 50: `faceWidth`, `eyeSize`, `eyeSpacing`, `browTilt`, `noseSize`, and `mouthWidth`. The renderer bounds them and falls back to neutral for non-finite inputs. Facial layers share a width transform to preserve alignment. Existing callers retain their original defaults.
 
@@ -50,10 +50,12 @@ The shirt emblem uses the same `logoPaths` and `logoViewBox` as the app header, 
 
 ## Wardrobe and profile integration
 
-Clothing: `tee`, `hoodie`, `sweater`, `jacket`, `collared`. Headwear: `none`, `beanie`, `cap`. Earrings: `none`, `studs`, `hoops`. `shirtColor` colors clothes; `accessoryColor` colors hats, earrings and jacket inserts. All parts are SVG geometry created for this project. Headwear hides front hair while preserving the chosen hairstyle for removal.
+Clothing: `tee`, `hoodie`, `sweater`, `jacket`, `collared`. Headwear: `none`, `beanie`, `cap`, `bucket`. Earrings: `none`, `studs`, `hoops`, `drops`. Necklaces: `none`, `chain`, `pendant`, `beads`. Set `headphones={true}` for over-ear headphones. `shirtColor` colors clothes; `accessoryColor` colors hats, earrings and jacket inserts. All parts are SVG geometry created for this project. Headwear hides front hair while preserving the chosen hairstyle for removal.
 
 `server/src/utils/characterConfig.js` is the dependency-free shared configuration contract, including validation and the `giggle:v1:` serialized format. It lives inside the server deploy boundary and is re-exported by `@giggle/core`. Profile `avatar` remains a string so all existing friends, squads and call payloads carry it without a new field. Legacy avatar IDs and local-only uploaded photos remain supported. Only validated catalog values, hex colors, booleans, and bounded integer proportions can be saved—never arbitrary SVG or URLs.
 
 `AvatarArt` renders saved characters wherever the web app already displays avatars. List/profile thumbnails are still images to avoid animating every member at once. The editor retains animation previews. This does not add a native React Native renderer.
 
-The editor includes eight preset colors per palette (skin, hair, clothes, accessories, and background), plus arbitrary custom hex colors. Color choices persist with the saved profile configuration.
+The editor includes preset colors per palette (skin, hair, clothes, accessories, and background), plus arbitrary custom hex colors. Color choices persist with the saved profile configuration.
+
+The editor groups controls into Face, Hair, Outfit, Accessories and Colors. Advanced proportions remain available under Fine-tune proportions. The desktop preview and control column have separate sizing; phones use a single column with a sticky Save header. New accessories are original SVG geometry, including the shared Giggle emblem on the pendant. Existing version-1 saved settings default missing necklace/headphone fields, preserving older characters. The renderer remains reusable without an account or backend.

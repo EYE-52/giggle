@@ -14,6 +14,8 @@
 // Normalize leetspeak / spacing so "s3x" / "s e x" don't slip past.
 function canon(input) {
   return String(input)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/1/g, "i")
     .replace(/3/g, "e")
@@ -33,11 +35,17 @@ function letters(input) {
 // Hard-blocked: hate slurs + any sexualization of minors / illegal. Kept terse
 // and euphemized where possible; matched as substrings on the delettered form.
 const BLOCKED = [
-  "childporn", "cp", "loli", "shota", "pedo", "underage", "minorsex", "jailbait",
-  "rape", "bestiality", "incest",
+  "childporn", "loli", "shota", "pedo", "underage", "minorsex", "jailbait",
+  "bestiality", "incest",
   // common hate slurs (delettered)
-  "nigger", "faggot", "kike", "chink", "spic", "tranny", "retard",
+  "nigger", "faggot", "tranny",
 ];
+
+// Ambiguous short terms match words (including spaced/punctuated spellings),
+// so ordinary topics such as Music production, Grape juice and Spicy food survive.
+const BLOCKED_WORDS = ["cp", "rape", "raped", "rapist", "kike", "chink", "spic", "retard"].map(
+  term => new RegExp("\\b" + term.split("").join("[^a-z]*") + "\\b"),
+);
 
 // Adult sexual content. Kept separate from illegal/hate content for reporting,
 // but current squad endpoints reject both buckets.
@@ -56,8 +64,8 @@ function matches(list, hay) {
 function classifyVibe(raw) {
   const hay = letters(raw);
   if (!hay) return "ok";
-  if (matches(BLOCKED, hay)) return "blocked";
-  if (matches(MATURE, hay)) return "mature";
+  if (matches(BLOCKED, hay) || BLOCKED_WORDS.some(pattern => pattern.test(canon(raw)))) return "blocked";
+  if (matches(MATURE, hay) || /(?:^|[^0-9])18\s*(?:\+|plus)/i.test(String(raw).normalize("NFKC"))) return "mature";
   return "ok";
 }
 

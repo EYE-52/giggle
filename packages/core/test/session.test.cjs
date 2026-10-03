@@ -394,3 +394,22 @@ test("mutating sign-in results cannot change the internal session user", async (
     runtime.cleanup();
   }
 });
+
+test('switching accounts isolates avatars and cached credits while preserving each account picks', async () => {
+  const runtime = loadSession({ exchange: async ({email}) => ({token:'token', user:backendUser(email)}) });
+  const values = new Map();
+  globalThis.localStorage = {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value),removeItem:key=>values.delete(key)};
+  try {
+    await runtime.session.signIn({email:'first'});
+    values.set('giggle.avatar','first-photo'); values.set('giggle.tokens','250'); values.set('giggle.entitlements','first-plus'); values.set('giggle.skin','scrap');
+    runtime.session.signOut();
+    await runtime.session.signIn({email:'second'});
+    assert.equal(values.has('giggle.avatar'),false); assert.equal(values.has('giggle.tokens'),false); assert.equal(values.has('giggle.entitlements'),false);
+    assert.equal(values.get('giggle.skin'),'scrap');
+    values.set('giggle.avatar','second-character');
+    await runtime.session.signIn({email:'first'});
+    assert.equal(values.get('giggle.avatar'),'first-photo'); assert.equal(values.get('giggle.tokens'),'250');
+    runtime.session.setTokenFromOAuth(oauthToken('second'));
+    assert.equal(values.get('giggle.avatar'),'second-character'); assert.equal(values.has('giggle.tokens'),false);
+  } finally {runtime.cleanup();}
+});

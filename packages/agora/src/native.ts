@@ -81,6 +81,7 @@ export function createVideoClient(loadSdk = () => require("react-native-agora"))
   let videoGeneration = 0;
   let cancelJoin: (() => void) | null = null;
   const remoteByUid = new Map<number, RemoteParticipant>();
+  const mutedRemoteUids = new Set<number>();
   const remoteListeners = new Set<(r: RemoteParticipant[]) => void>();
   const volumeListeners = new Set<(levels: VolumeLevel[]) => void>();
   const connectionListeners = new Set<(state: ConnectionState) => void>();
@@ -213,7 +214,16 @@ export function createVideoClient(loadSdk = () => require("react-native-agora"))
             if (code === 9 || code === 1501) return;
             rejectJoin(new Error(message || `Agora error ${code}.`));
           },
-          onUserJoined: (_connection: unknown, uid: number) => updateRemote(uid, {}),
+          onUserJoined: (_connection: unknown, uid: number) => {
+            let mutedForMe = false;
+            if (mutedRemoteUids.has(uid)) {
+              try {
+                assertAgoraResult(engine.adjustUserPlaybackSignalVolume(uid, 0), "Listening update");
+                mutedForMe = true;
+              } catch { /* Keep the preference, but do not claim a failed SDK update succeeded. */ }
+            }
+            updateRemote(uid, mutedForMe ? { mutedForMe: true } : {});
+          },
           onUserOffline: (_connection: unknown, uid: number) => removeRemote(uid),
           onRemoteVideoStateChanged: (_connection: unknown, uid: number, state: number) => {
             updateRemote(uid, {
@@ -328,6 +338,7 @@ export function createVideoClient(loadSdk = () => require("react-native-agora"))
         try { engine?.release(); } catch {}
         engine = null;
         remoteByUid.clear();
+        mutedRemoteUids.clear();
         dimensionsByUid.clear();
         emitRemotes();
         emitDimensions();
@@ -355,6 +366,7 @@ export function createVideoClient(loadSdk = () => require("react-native-agora"))
       try { if (leavingHandler) leavingEngine?.unregisterEventHandler(leavingHandler); } catch {}
       try { leavingEngine?.release(); } catch {}
       remoteByUid.clear();
+      mutedRemoteUids.clear();
       dimensionsByUid.clear();
       emitRemotes();
       emitDimensions();
@@ -382,6 +394,8 @@ export function createVideoClient(loadSdk = () => require("react-native-agora"))
       }
       // Playback gain does not change the sender's microphone or subscription.
       assertAgoraResult(engine.adjustUserPlaybackSignalVolume(remoteUid, muted ? 0 : 100), "Listening update");
+      if (muted) mutedRemoteUids.add(remoteUid);
+      else mutedRemoteUids.delete(remoteUid);
       updateRemote(remoteUid, { mutedForMe: muted });
     },
     async switchCamera() {

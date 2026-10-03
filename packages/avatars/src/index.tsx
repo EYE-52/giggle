@@ -6,15 +6,18 @@ import { logoPaths, logoViewBox } from "../../ui-tokens/src/logo";
 export type AvatarHair = "crop" | "curls" | "bob" | "swoop" | "buzz" | "bald" | "long" | "bun";
 export type AvatarExpression = "smile" | "laugh" | "wink" | "surprised";
 export type AvatarFace = "soft" | "round" | "angular";
-export type AvatarGlasses = "none" | "round" | "square";
+export type AvatarGlasses = "none" | "round" | "square" | "cat-eye" | "sunglasses";
 export type AvatarFacialHair = "none" | "stubble" | "beard" | "mustache";
 export type AvatarClothing = "tee" | "hoodie" | "sweater" | "jacket" | "collared";
-export type AvatarHeadwear = "none" | "beanie" | "cap";
-export type AvatarEarrings = "none" | "studs" | "hoops";
+export type AvatarHeadwear = "none" | "beanie" | "cap" | "bucket";
+export type AvatarEarrings = "none" | "studs" | "hoops" | "drops";
+export type AvatarNecklace = "none" | "chain" | "pendant" | "beads";
 export type GiggleAvatarProps = {
   clothing?: AvatarClothing;
   headwear?: AvatarHeadwear;
   earrings?: AvatarEarrings;
+  necklace?: AvatarNecklace;
+  headphones?: boolean;
   accessoryColor?: string;
   face?: AvatarFace;
   glasses?: AvatarGlasses;
@@ -45,7 +48,7 @@ export function GiggleAvatar({
   hair = "curls", skin = "#c98763", hairColor = "#39302e", accent = "#d4ddbd",
   expression = "smile", animated = true, size = 240,
   label = "Illustrated Giggle character", className = "",
-  clothing = "tee", headwear = "none", earrings = "none", accessoryColor = "#74618c",
+  clothing = "tee", headwear = "none", earrings = "none", necklace = "none", headphones = false, accessoryColor = "#74618c",
   face = "soft", glasses = "none", facialHair = "none", freckles = false,
   faceWidth = 50, eyeSize = 50, eyeSpacing = 50, browTilt = 50,
   noseSize = 50, mouthWidth = 50, shirtColor = "#f9f0dc",
@@ -104,6 +107,7 @@ export function GiggleAvatar({
           {hair === "long" && <path d="M55 89c0-74 132-79 132 0l8 106q-22 14-43 0l-9-52H91l-9 52q-21 14-38 0Z" fill={hairColor} />}
           {hair === "bun" && headwear === "none" && <circle cx="137" cy="36" r="28" fill={hairColor} />}
           {hair === "bob" && <path d="M56 94c-5-80 132-90 132 0l8 80c-37 23-111 23-150 0Z" fill={hairColor} />}
+          {headphones && <path data-accessory="headphone-band" d="M56 110V84c0-40 27-68 64-68s64 28 64 68v26" fill="none" stroke={accessoryColor} strokeWidth="9" strokeLinecap="round" />}
           <path d="M105 157h30v30q-15 14-30 0Z" fill={skin} />
           <path d="M106 160h28v17c-10 4-20 1-28-5Z" fill={ink} opacity=".1" />
           <ellipse cx="66" cy="116" rx="13" ry="18" fill={skin} />
@@ -133,11 +137,13 @@ export function GiggleAvatar({
             </>}
           </g>
           </g>
-          {glasses !== "none" && <g fill="none" stroke={ink} strokeWidth="3.5">
+          {(glasses === "round" || glasses === "square" || glasses === "sunglasses") && <g data-accessory={glasses} fill={glasses === "sunglasses" ? ink : "none"} stroke={glasses === "sunglasses" ? accessoryColor : ink} strokeWidth="3.5">
             <rect x="74" y="99" width="37" height="29" rx={glasses === "round" ? 14 : 6} />
             <rect x="130" y="99" width="37" height="29" rx={glasses === "round" ? 14 : 6} />
             <path d="M111 109q9-6 19 0M65 106l9 3m93 0 8-3" />
           </g>}
+          {glasses === "cat-eye" && <g data-accessory="cat-eye" fill="none" stroke={accessoryColor} strokeWidth="3.5" strokeLinejoin="round"><path d="M71 99l40 5v10c0 20-32 20-35 2Zm99 0-40 5v10c0 20 32 20 35 2Z" /><path d="M111 110q9-6 19 0M65 103l8 3m94 0 8-3" /></g>}
+          {glasses === "sunglasses" && <path d="m82 106 12 15m45-15 12 15" stroke="#fff" strokeOpacity=".22" strokeWidth="4" strokeLinecap="round" />}
           <path transform={`translate(120 120) scale(${nose}) translate(-120 -120)`} d="M120 114q-1 8-5 11-1 5 7 4" fill="none" stroke={ink} strokeOpacity=".3" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
           <ellipse cx="83" cy="133" rx="11" ry="5.5" fill="#d66a5f" opacity=".34" />
           <ellipse cx="156" cy="133" rx="11" ry="5.5" fill="#d66a5f" opacity=".34" />
@@ -152,11 +158,15 @@ export function GiggleAvatar({
           </g>
           {earrings === "studs" && <g fill={accessoryColor} stroke="#fff4da" strokeWidth="1"><circle cx="61" cy="131" r="3.5" /><circle cx="179" cy="131" r="3.5" /></g>}
           {earrings === "hoops" && <g fill="none" stroke={accessoryColor} strokeWidth="3.5"><ellipse cx="61" cy="138" rx="6" ry="9" /><ellipse cx="179" cy="138" rx="6" ry="9" /></g>}
+          {earrings === "drops" && <g data-accessory="drops" fill={accessoryColor} stroke={accessoryColor} strokeWidth="2"><path d="M61 131v9m118-9v9" /><path d="M61 138c-10 10-8 17 0 17s10-7 0-17Zm118 0c-10 10-8 17 0 17s10-7 0-17Z" /></g>}
           {headwear === "beanie" && <g><path d="M59 84c-3-41 19-66 61-66s64 25 61 66" fill={accessoryColor} /><path d="M68 62q52-12 104 0" fill="none" stroke="#fff" strokeOpacity=".12" strokeWidth="3" /><path d="M61 69q59-12 118 0v24q-59-12-118 0Z" fill={accessoryColor} stroke={ink} strokeOpacity=".15" strokeWidth="2" /><path d="M75 75v12m12-14v12m12-15v12m12-15v13m12-14v13m12-12v13m12-12v13m12-10v12m12-10v12" stroke={ink} strokeOpacity=".12" strokeWidth="2" /></g>}
           {headwear === "cap" && <g><path d="M60 79c0-37 22-60 60-60s59 23 60 60Z" fill={accessoryColor} /><path d="M120 22v48" stroke={ink} strokeOpacity=".15" strokeWidth="2" /><path d="M61 76q59-17 118 0l22 13q-43 15-72-4-35-2-68 5Z" fill={accessoryColor} stroke={ink} strokeOpacity=".18" strokeWidth="2" /><path d="M112 46h16" stroke="#fff" strokeOpacity=".5" strokeWidth="4" strokeLinecap="round" /></g>}
+          {headwear === "bucket" && <g data-accessory="bucket"><path d="m76 30-11 48h110l-11-48q-44-17-88 0Z" fill={accessoryColor} /><path d="M65 73 46 96q74 25 148 0l-19-23q-55 12-110 0Z" fill={accessoryColor} stroke={ink} strokeOpacity=".18" strokeWidth="2" /><path d="m81 34-6 31m84-31 6 31" stroke="#fff" strokeOpacity=".16" strokeWidth="2" /></g>}
+          {headphones && <g data-accessory="headphones" fill={accessoryColor}><rect x="46" y="103" width="20" height="38" rx="9" /><rect x="174" y="103" width="20" height="38" rx="9" /><path d="M52 112v20m130-20v20" stroke="#fff" strokeOpacity=".3" strokeWidth="3" strokeLinecap="round" /></g>}
           {facialHair === "mustache" && <path d="M120 136c-11-9-15 6-26 5 8 9 20 4 26-1 6 5 18 10 26 1-11 1-15-14-26-5Z" fill={hairColor} />}
           </g>
         </g>
+        {necklace !== "none" && <g data-accessory={necklace} fill="none" stroke={accessoryColor} strokeWidth={necklace === "beads" ? 6 : 3} strokeLinecap="round"><path d="M94 187q26 39 52 0" strokeDasharray={necklace === "beads" ? "1 8" : undefined} />{necklace === "pendant" && <><circle cx="120" cy="212" r="7" fill={accessoryColor} strokeWidth="2" /><svg x="115" y="207" width="10" height="10" viewBox={logoViewBox} stroke="#fff" strokeOpacity=".7" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">{logoPaths.map(path => <path key={path} d={path} />)}</svg></>}</g>}
         <svg x="157" y="201" width="20" height="19" viewBox={logoViewBox} fill="none" aria-hidden="true">
           {logoPaths.map(path => <path key={path} d={path} stroke={accent} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />)}
         </svg>
