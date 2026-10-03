@@ -77,6 +77,13 @@ From commit `279d64a`, temporary access is evaluated from the server setting and
 - Chat follows each skin, with native Unicode emoji choices. Scrapbook uses a ruled notepad and taped participant frames. No external emoji image library is required.
 - Validation: desktop and Agora checks, a production build, local friend acceptance/reload, local chat delivery, and visual checks of all five skins, including Scrapbook on a phone. Physical two-device camera/microphone validation is still needed.
 
+## 4 October 2026 prelaunch UI and QA
+
+- Home, Friends, Discover, Profile and sign-in now share more consistent spacing and theme surfaces. Scrapbook settings use notebook paper; Home retains the sticky-note cards and the shared Giggle mark.
+- Chat links are clickable, short-screen emoji pickers keep the input reachable, and notifications no longer sit below transformed page content.
+- Approved squad requests enter the lobby automatically. Encounter device controls follow actual capture state and cannot show a disconnected device as enabled.
+- Local validation and remaining physical-device gaps are recorded in [the prelaunch QA report](docs/superpowers/audits/2026-10-04-launch-qa.md). This does not close the external release gates or certify real camera/microphone behavior.
+
 ## Runtime
 
 - **Frontend runtime:** Node 22.13.0 and pnpm 10.x.

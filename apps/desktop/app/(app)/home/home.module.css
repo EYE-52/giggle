@@ -5,12 +5,12 @@
 /* Home fills the scroll area, so the squad tray sits at the bottom edge no
  * matter how long or short the lists are (it never jumps as they change). */
 :global(.gg-app-container):has(> .home) { display: flex; flex-direction: column; min-height: 100%; box-sizing: border-box; }
-.columns { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
 @media (max-width: 860px) { .columns { grid-template-columns: minmax(0, 1fr); } }
 
 /* skins stretch .card to its grid row; panels size to their own content */
 .columns > .panel.panel { padding: 0 !important; min-width: 0; align-self: start; height: auto; }
-.panelBody { padding: 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.panelBody { padding: 24px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .panelHead { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 4px; }
 .panelTitle { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; }
 .count { font-size: 12px; line-height: 1; padding: 5px 8px; border-radius: 999px; background: var(--overlay, rgb(0 0 0 / .05)); color: var(--text-muted); }
@@ -24,6 +24,7 @@
 .personText small { font-size: 13px; line-height: 1.3; }
 .iconBtn { width: 44px; height: 44px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; background: transparent; color: var(--text-muted); cursor: pointer; }
 .iconBtn:hover { background: var(--overlay, rgb(0 0 0 / .05)); color: var(--text); }
+.iconBtn:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 
 /* icon and label stay on one line in every skin */
 .newSquad.newSquad { width: 100%; display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 8px; }
@@ -37,6 +38,21 @@
 .empty { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 6px 4px 4px; }
 .empty p { margin: 0; color: color-mix(in srgb, var(--text) 78%, var(--bg)); font-size: 14px; line-height: 1.45; }
 .quiet { margin: 0; padding: 6px 4px; display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 14px; }
+.friendsEmpty { align-items:center; text-align:center; padding:26px 12px 24px; gap:12px; }
+.friendsEmpty h3 { margin:4px 0 0; font:700 21px/1.25 var(--font-display); letter-spacing:-.025em; }
+.friendsEmpty p { max-width:250px; }
+.emptyFaces { display:flex; align-items:center; justify-content:center; padding:8px 16px; }
+.emptyFaces > span { display:flex; padding:5px; border-radius:50%; background:var(--surface); box-shadow:0 6px 18px color-mix(in srgb, var(--text) 10%, transparent); }
+.emptyFaces > span + span { margin-left:-12px; }
+.emptyFaces > span:nth-child(2) { transform:translateY(-8px); z-index:1; }
+.emptyFaces :global(.av) { padding:0!important; border:0!important; outline:0!important; box-shadow:none!important; }
+.squadStamp { width:44px; height:44px; display:grid; place-items:center; flex:none; border-radius:13px; background-size:cover!important; background-position:center!important; overflow:hidden; box-shadow:inset 0 0 0 1px rgb(255 255 255 / .14); }
+.squadStamp :global(.gg-logomark) { color:#fff!important; filter:drop-shadow(0 1px 2px rgb(0 0 0 / .35)); }
+:global(html[data-skin="scrap"]) .squadStamp { border:3px solid var(--sb-photo-paper); border-radius:2px; box-shadow:1px 2px 3px var(--sb-shadow); transform:rotate(-3deg); }
+:global(html[data-skin="scrap"]) .emptyFaces > span { border-radius:2px; background:var(--sb-photo-paper); transform:rotate(-7deg); }
+:global(html[data-skin="scrap"]) .emptyFaces > span:nth-child(2) { transform:translateY(-8px) rotate(3deg); }
+:global(html[data-skin="scrap"]) .emptyFaces > span:nth-child(3) { transform:rotate(9deg); }
+:global(html[data-skin="play"]) .squadStamp { border:2px solid var(--text); box-shadow:2px 2px 0 var(--text); }
 
 /* The squad tray: always within reach, above the phone tab bar. */
 .trayDock { position: sticky; bottom: 16px; z-index: 20; margin-top: auto; }

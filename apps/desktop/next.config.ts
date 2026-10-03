@@ -44,6 +44,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The floating dev menu covers Home and emoji controls on narrow previews.
+  // Errors still show their normal overlay; keep the app's hit targets clear.
+  devIndicators: false,
   allowedDevOrigins: ["127.0.0.1"],
   transpilePackages: ["@giggle/core", "@giggle/ui-tokens", "@giggle/agora"],
   // Monorepo: pin the workspace root so Turbopack/Next file-tracing resolves

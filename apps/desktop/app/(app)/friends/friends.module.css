@@ -22,7 +22,7 @@
   margin: 0;
   font-family: var(--font-display, var(--font-space-grotesk));
   font-weight: 700;
-  font-size: 24px;
+  font-size: 28px;
   letter-spacing: -0.02em;
   line-height: 1.2;
   color: var(--text);
@@ -399,6 +399,8 @@ html:not([data-skin]) .search:focus-within .searchInput {
 .inviteBtn {
   flex-shrink: 0;
 }
+.inviteArt { width:136px; flex:none; padding:0 12px 10px 0; }
+@media(max-width:640px) { .inviteArt { display:none; } }
 
 /* ── squad picker modal rows ─────────────────────────────────────────────── */
 .pickerRow {

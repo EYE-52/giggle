@@ -4,12 +4,13 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icons";
 import { SquadCard } from "@/components/SquadCard";
 import { SquadPreview } from "@/components/SquadPreview";
-import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/EmptyState";
 import { Chip } from "@/components/Chip";
 import { Button } from "@/components/Button";
 import { useViewport } from "@/components/useViewport";
 import { api, session, type PublicSquad } from "@giggle/core";
+import { pollWhileVisible } from "@/lib/poll";
+import styles from "./discover.module.css";
 
 export default function DiscoverPage() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export default function DiscoverPage() {
   const [joinError, setJoinError] = useState<string | null>(null);
   const [previewSquad, setPreviewSquad] = useState<PublicSquad | null>(null);
   const [requestNotice, setRequestNotice] = useState<string | null>(null);
+  const [requestedSquadId, setRequestedSquadId] = useState<string | null>(null);
 
   // Optional ?vibe=<name> deep-link (from Home's Trending Vibes) → filter to
   // open squads that share that vibe.
@@ -92,6 +94,23 @@ export default function DiscoverPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!requestedSquadId) return;
+    let active = true;
+    const checkApproval = async () => {
+      try {
+        const { squads } = await api.mySquads();
+        if (active && squads.some(squad => squad.squadId === requestedSquadId))
+          router.replace(`/lobby?squad=${requestedSquadId}`);
+      } catch {
+        // A temporary network error must not lose the pending join request.
+      }
+    };
+    void checkApproval();
+    const stopPolling = pollWhileVisible(checkApproval, 3000);
+    return () => { active = false; stopPolling(); };
+  }, [requestedSquadId, router]);
+
   function goToLobby(squadId: string) {
     router.push(`/lobby?squad=${squadId}`);
   }
@@ -122,6 +141,7 @@ export default function DiscoverPage() {
   function handleJoined(squadId: string | null, requested: boolean) {
     setPreviewSquad(null);
     if (requested || !squadId) {
+      setRequestedSquadId(previewSquad?.squadId ?? null);
       setRequestNotice("Request sent — the leader will review it.");
       return;
     }
@@ -136,10 +156,11 @@ export default function DiscoverPage() {
   const gridCols = isPhone ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))";
 
   return (
-    <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 16, paddingBottom: 40 }}>
-      {/* No headline: the squads are the page. The title is for screen readers;
-          "Surprise me" sits with the filters when there are squads to pick from. */}
-      <h1 style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", border: 0 }}>Discover squads</h1>
+    <div className={`gg-reveal ${styles.screen}`}>
+      <header className={styles.header}>
+        <div><h1>Discover</h1><p>Join an open squad, or start your own.</p></div>
+        <Button variant="secondary" onClick={handleCreate}><Icon.plus size={17} /> Create a squad</Button>
+      </header>
 
       {/* Inline join/create error */}
       {joinError && (
@@ -184,7 +205,7 @@ export default function DiscoverPage() {
       )}
 
       {/* Vibe filter chips + result count */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" as const, gap: 8 }}>
+      <div className={styles.filters}>
         <div role="group" aria-label="Filter by vibe" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const, minWidth: 0 }}>
           {vibeChips.length > 0 && (
             <>
@@ -276,7 +297,7 @@ export default function DiscoverPage() {
           compact={!isPhone}
           icon={<Icon.discover size={20} color="var(--text-dim)" />}
           title={vibe ? `No open “${vibe}” squads right now` : "No open squads right now"}
-          body={vibe ? "Start one with this vibe, or clear the filter to browse other live signals." : "Start the first open room and make your squad discoverable."}
+          body={vibe ? "Try another interest, or create your own squad." : "Create a squad and set it to Open so people can join."}
           primary={{ label: "Create a squad", onClick: handleCreate, disabled: creating }}
           secondary={vibe ? { label: "Clear filter", onClick: () => applyVibe(null) } : undefined}
         />

@@ -52,6 +52,8 @@ html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] :is(body, .gg-app-
     repeating-linear-gradient(to bottom, transparent 0 31px, var(--sb-rule) 31px 32px),
     var(--sb-page);
 }
+/* Preserve notebook paper tokens when a nested card switches to sticky-note ink. */
+html[data-skin="scrap"] { --sb-sheet-paper:var(--sb-paper); --sb-sheet-ink:var(--sb-ink); --sb-sheet-muted:var(--sb-ink-2); }
 html[data-skin="scrap"] body::before { display: none; }
 
 :is(html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"], html[data-skin] [data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"]) :is(.card, [data-testid="lobby-person"]):not(:where([data-skin-preview]:not([data-skin-preview="scrap"]) *)) {

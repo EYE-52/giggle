@@ -7,11 +7,16 @@ import {
   session,
   formatSquadCodeInput,
   isValidSquadCode,
+  CHARACTER_PRESETS,
+  encodeCharacter,
 } from "@giggle/core";
 import type { Friend, MySquadLite, PublicSquad, SquadMemberState } from "@giggle/core";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
-import { Avatar } from "@/components/Avatar";
+import { AvatarArt } from "@/components/AvatarArt";
+import { Logomark } from "@/components/Brand";
+import { coverBackground, coverKind, fallbackGradient } from "@/components/covers";
+import { useTheme } from "@/components/useTheme";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { Icon } from "@/components/Icons";
 import { useToast } from "@/components/Toast";
@@ -28,6 +33,13 @@ function squadDestination(squad: MySquadLite | PublicSquad, discovery: boolean) 
 }
 const message = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback;
+
+function SquadStamp({ squad }: { squad: MySquadLite | PublicSquad }) {
+  const mode = useTheme();
+  const kind = coverKind(squad.coverImage, mode);
+  const background = squad.coverImage ? coverBackground(squad.coverImage, kind) : fallbackGradient(squad.squadId, kind);
+  return <span className={styles.squadStamp} style={{ background }} aria-hidden="true"><Logomark size={24} /></span>;
+}
 
 export default function HomePage() {
   // stranger matching follows the API switch (see lib/discovery)
@@ -270,7 +282,11 @@ export default function HomePage() {
           {friends === null ? (
             <p role="status" className={styles.quiet}><span className="gg-spinner" /> Loading friends…</p>
           ) : people.length === 0 ? (
-            <div className={styles.empty}>
+            <div className={`${styles.empty} ${styles.friendsEmpty}`}>
+              <div className={styles.emptyFaces} aria-hidden="true">
+                {CHARACTER_PRESETS.slice(0, 3).map((preset) => <span key={preset.id}><AvatarArt value={encodeCharacter(preset.config)} size={64} /></span>)}
+              </div>
+              <h3>Add your first friend</h3>
               <p>Add friends to invite them to your squad.</p>
               <Button variant="secondary" onClick={() => router.push("/friends")}><Icon.plus size={16} /> Add friends</Button>
             </div>
@@ -319,7 +335,7 @@ export default function HomePage() {
             <ul className={styles.list}>
               {squads.map((s) => (
                 <li key={s.squadId} className={styles.squadRow}>
-                  <Avatar name={s.squadName} size={40} />
+                  <SquadStamp squad={s} />
                   <span className={styles.personText}>
                     <b>{s.squadName}</b>
                     <small className="muted">
@@ -327,8 +343,8 @@ export default function HomePage() {
                       {s.myRole === "leader" ? " · You lead" : ""}
                     </small>
                   </span>
-                  <Button size="sm" variant="secondary" onClick={() => router.push(squadDestination(s, WEB_DISCOVERY_ENABLED))}>Open</Button>
-                  <button type="button" className={`icon-btn ${styles.iconBtn}`} aria-label={`${s.myRole === "leader" ? "End" : "Leave"} ${s.squadName}`} onClick={() => setLeaving(s)}>
+                  <Button size="sm" variant="ghost" onClick={() => router.push(squadDestination(s, WEB_DISCOVERY_ENABLED))}>Open <Icon.arrowRight size={15} /></Button>
+                  <button type="button" className={styles.iconBtn} aria-label={`${s.myRole === "leader" ? "End" : "Leave"} ${s.squadName}`} onClick={() => setLeaving(s)}>
                     <Icon.close size={16} />
                   </button>
                 </li>
@@ -336,7 +352,7 @@ export default function HomePage() {
             </ul>
           )}
           {active && (
-            <button type="button" className={`btn btn-secondary ${styles.newSquad}`} onClick={openCreate}>
+            <button type="button" className={`btn btn-ghost ${styles.newSquad}`} onClick={openCreate}>
               <Icon.plus size={18} /> Start another squad
             </button>
           )}
@@ -391,7 +407,7 @@ export default function HomePage() {
                     const full = s.memberCount >= s.maxSlots;
                     return (
                       <li key={s.squadId} className={styles.squadRow}>
-                        <Avatar name={s.squadName} size={40} />
+                        <SquadStamp squad={s} />
                         <span className={styles.personText}>
                           <b>{s.squadName}</b>
                           <small className="muted">{s.memberCount} of {s.maxSlots}</small>

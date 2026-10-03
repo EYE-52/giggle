@@ -180,8 +180,6 @@ function EncounterInner() {
   const squadId = params.get("squad") ?? "";
   const encId = params.get("enc") ?? "";
 
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatAudience, setChatAudience] = useState<"everyone" | "squad">("everyone");
   const [chatDrafts, setChatDrafts] = useState({ everyone: "", squad: "" });
@@ -345,6 +343,10 @@ function EncounterInner() {
   const [videoError, setVideoError] = useState<string | null>(null);
   const [videoRetrying, setVideoRetrying] = useState(false);
   const [captureState, setCaptureState] = useState<CaptureState>({ audio: "off", video: "off" });
+  const micOn = captureState.audio === "active";
+  const camOn = captureState.video === "active";
+  const [deviceBusy, setDeviceBusy] = useState(false);
+  const deviceBusyRef = useRef(false);
   // Full remote participant state (uid + hasVideo/hasAudio) — drives truthful
   // per-tile "Muted" / "Camera off" / "Connecting…" signals.
   const [remotes, setRemotes] = useState<RemoteParticipant[]>([]);
@@ -409,10 +411,6 @@ function EncounterInner() {
     vc.onCaptureState?.((next) => {
       if (vcRef.current !== vc) return;
       setCaptureState(next);
-      if (next.audio === "active") setMicOn(true);
-      else if (next.audio === "denied" || next.audio === "unavailable") setMicOn(false);
-      if (next.video === "active") setCamOn(true);
-      else if (next.video === "denied" || next.video === "unavailable") setCamOn(false);
     });
     vc.onVolumes?.((levels) => {
       if (vcRef.current !== vc) return;
@@ -727,40 +725,38 @@ function EncounterInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remoteVideoKey, videoJoined, participantIdsKey]);
 
-  async function toggleMic() {
-    const previous = micOn;
-    const next = !micOn;
-    setMicOn(next);
+  async function toggleDevice(kind: "audio" | "video") {
+    const client = vcRef.current;
+    if (!client || !videoJoined || deviceBusyRef.current) return;
+    const generation = videoGenerationRef.current;
+    deviceBusyRef.current = true;
+    setDeviceBusy(true);
     setVideoError(null);
     try {
-      if (!vcRef.current) throw new Error("Video is not connected yet.");
-      await vcRef.current.setMicEnabled(next);
-    } catch (e) {
-      setMicOn(previous);
-      setVideoError((e as { message?: string })?.message || "Couldn't update microphone.");
+      if (kind === "audio") await client.setMicEnabled(!micOn);
+      else await client.setCamEnabled(!camOn);
+    } catch (error) {
+      if (generation === videoGenerationRef.current)
+        setVideoError((error as { message?: string })?.message || "Couldn't update your device.");
+    } finally {
+      if (generation === videoGenerationRef.current) {
+        deviceBusyRef.current = false;
+        setDeviceBusy(false);
+      }
     }
   }
 
-  async function toggleCam() {
-    const previous = camOn;
-    const next = !camOn;
-    setCamOn(next);
-    setVideoError(null);
-    try {
-      if (!vcRef.current) throw new Error("Video is not connected yet.");
-      await vcRef.current.setCamEnabled(next);
-      if (next && localElRef.current) vcRef.current?.playLocal(localElRef.current);
-    } catch (e) {
-      setCamOn(previous);
-      setVideoError((e as { message?: string })?.message || "Couldn't update camera.");
-    }
-  }
+  const toggleMic = () => toggleDevice("audio");
+  const toggleCam = () => toggleDevice("video");
 
   async function leaveVideo() {
     videoGenerationRef.current += 1;
     const client = vcRef.current;
     vcRef.current = null;
     setVideoJoined(false);
+    setCaptureState({ audio: "off", video: "off" });
+    deviceBusyRef.current = false;
+    setDeviceBusy(false);
     try {
       await client?.leave();
     } catch {}
@@ -1648,6 +1644,8 @@ function EncounterInner() {
                   <button
                     ref={id === "chat" ? chatButtonRef : id === "more" ? moreButtonRef : undefined}
                     onClick={onClick}
+                    disabled={danger && (!videoJoined || videoRetrying || deviceBusy)}
+                    aria-busy={danger && deviceBusy}
                     onMouseEnter={() => setHoveredCtrl(id)}
                     onMouseLeave={() => setHoveredCtrl(null)}
                     title={title}

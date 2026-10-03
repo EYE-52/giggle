@@ -11,6 +11,7 @@ import {
   type ChatScope,
 } from "@giggle/core";
 import { Icon } from "@/components/Icons";
+import { chatTextParts } from "@/lib/chatLinks";
 import styles from "./ChatPanel.module.css";
 
 const MAX_CHAT_TEXT_LENGTH = 500;
@@ -204,7 +205,9 @@ export function ChatPanel({
               {!own && <span className={styles.sender}>{msg.name}</span>}
               <time dateTime={new Date(msg.ts).toISOString()}>{relTime(msg.ts)}</time>
             </div>
-            <div className={styles.bubble}>{msg.text}</div>
+            <div className={styles.bubble}>{chatTextParts(msg.text).map((part, i) => part.href
+              ? <a key={i} href={part.href} target="_blank" rel="noopener noreferrer">{part.text}</a>
+              : part.text)}</div>
             {msg.delivery === "sending" && <span className={styles.delivery}>Sending…</span>}
             {msg.delivery === "failed" && <button type="button" className={styles.retry} onClick={() => onRetry?.(msg)}>Retry</button>}
           </div>;

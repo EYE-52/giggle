@@ -10,6 +10,9 @@
  * notch); re-assert the safe-area inset the app shell relies on. */
 html[data-skin] .gg-header.nav {
   padding-top: env(safe-area-inset-top);
+  /* Keep notification actions above content that creates a glass/transform layer. */
+  position: relative;
+  z-index: 60;
 }
 
 /* The phone tab bar's items stack icon-over-label — and the DESKTOP tab strip

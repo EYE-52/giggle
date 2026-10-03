@@ -1,0 +1,12 @@
+.settings.settings { display:block; min-width:0; }
+.settings > section { min-width:0; }
+.settings > section:last-child { border-bottom:0; }
+:global(html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"]) .settings.settings {
+  --sb-paper:var(--sb-sheet-paper); --sb-ink:var(--sb-sheet-ink); --sb-ink-2:var(--sb-sheet-muted);
+  background:var(--sb-paper); color:var(--sb-ink); border:1px solid var(--sb-line); border-radius:8px;
+  box-shadow:0 4px 20px -12px var(--sb-shadow); transform:none;
+  --text:var(--sb-ink); --text-body:var(--sb-ink); --text-muted:var(--sb-ink-2); --text-dim:var(--sb-ink-2); --border:var(--sb-line);
+}
+:global(html[data-skin="scrap"]) .settings > section { position:relative; padding-left:32px!important; }
+:global(html[data-skin="scrap"]) .settings > section::before { content:""; position:absolute; inset:0 auto 0 18px; width:1px; background:var(--sb-margin-rule); pointer-events:none; }
+@media(max-width:640px) { :global(html[data-skin="scrap"]) .settings > section { padding-left:28px!important; } :global(html[data-skin="scrap"]) .settings > section::before { left:14px; } }

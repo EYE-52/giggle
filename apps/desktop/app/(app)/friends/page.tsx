@@ -2,11 +2,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Icon } from "@/components/Icons";
 import { PersonAvatar } from "@/components/PersonAvatar";
+import { HangoutIllustration } from "@/components/HangoutIllustration";
 import { useViewport } from "@/components/useViewport";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
 import { useToast } from "@/components/Toast";
-import { api, session, type ReferralInfo } from "@giggle/core";
+import { api, session, subscribeNotifications, type ReferralInfo } from "@giggle/core";
 import type { MySquadLite } from "@giggle/core";
 import { pollWhileVisible } from "@/lib/poll";
 import styles from "./friends.module.css";
@@ -97,10 +98,12 @@ export default function FriendsPage() {
   // Live presence: poll every 20s + on window focus.
   useEffect(() => {
     const stopPolling = pollWhileVisible(refetch, 20_000);
+    const unsubscribe = subscribeNotifications(() => void refetch(), () => void refetch());
     const onFocus = () => refetch();
     window.addEventListener("focus", onFocus);
     return () => {
       stopPolling();
+      unsubscribe();
       window.removeEventListener("focus", onFocus);
     };
   }, [refetch]);
@@ -520,6 +523,7 @@ function InviteCard() {
   return (
     <div className={`card ${styles.inviteCard}`}>
       <div className={styles.inviteRow}>
+        <div className={styles.inviteArt}><HangoutIllustration compact /></div>
         <div className={styles.inviteCopy}>
           <h2 className={`card-title ${styles.inviteTitle}`}>Bring your first friend over</h2>
           <p className={`hint ${styles.inviteHint}`}>

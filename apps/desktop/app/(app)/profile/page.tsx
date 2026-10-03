@@ -11,6 +11,7 @@ import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { Switch } from "@/components/Switch";
 import { AppearancePicker } from "@/components/AppearancePicker";
+import styles from "./profile.module.css";
 
 const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
 const VIBE_STORAGE_KEY = "giggle.vibes";
@@ -379,7 +380,7 @@ export default function ProfilePage() {
     ? { display: "flex", flexDirection: "column", gap: 16 }
     : {
         display: "grid",
-        gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "300px minmax(0, 1fr)",
+        gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "264px minmax(0, 1fr)",
         gap: isTablet ? 20 : 24,
         alignItems: "start",
       };
@@ -488,7 +489,7 @@ export default function ProfilePage() {
 
       {/* RIGHT COLUMN — Prefs + Settings + Manage Account + Log Out */}
       <div style={{ display: "flex", flexDirection: "column", gap: isPhone ? 16 : 18 }}>
-        <div style={{ ...surface, padding: 0, overflow: "hidden" }}>
+        <div className={`card ${styles.settings}`} style={{ padding: 0, overflow: "hidden" }}>
         {/* Appearance — skin, palette and light/dark/auto */}
         <section style={settingsSection}>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary, margin: "0 0 4px", letterSpacing: "-0.02em" }}>Appearance</h2>

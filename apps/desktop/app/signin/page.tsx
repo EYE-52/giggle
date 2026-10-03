@@ -112,8 +112,8 @@ export default function AuthPage() {
     <main className={`gg-landing ${community.auth}`}>
       <div className={`page-head ${community.authIntro}`}>
         <Link href="/" className={community.backLink}>← Back to Giggle</Link>
-        <h2 className="title">Your people.<br />Your kind of <em>happy.</em></h2>
-        <p className="lede">A little less scrolling. A little more “you had to be there.”</p>
+        <h2 className="title">Get your squad<br /><em>together.</em></h2>
+        <p className="lede">Create a squad, invite your friends, and join a video call.</p>
         <div className={community.authArt}><HangoutIllustration /></div>
       </div>
       <section className={`card ${community.authCard}`}>
@@ -122,7 +122,7 @@ export default function AuthPage() {
         </div>
 
         <h1 className={community.authHeading}>Sign in to Giggle</h1>
-        <p className={community.authSub}>First hello or familiar face. There’s a place for you here.</p>
+        <p className={community.authSub}>Use Google to sign in or create an account.</p>
 
         {refCode && <div className={community.refNote}><Icon.gift size={17} color="currentColor" /> Invite accepted. You both get 100 tokens.</div>}
 

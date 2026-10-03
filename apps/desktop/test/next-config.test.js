@@ -845,17 +845,16 @@ test("desktop lobby keeps device controls tied to capture truth", () => {
   assert.equal(page.includes('setCamOn(next)'), false);
 });
 
-test("desktop encounter rolls back mic and camera controls when video updates fail", () => {
+test("desktop encounter controls follow capture truth and serialize device updates", () => {
   const page = encounterSource();
-
-  assert.equal(page.includes("const previous = micOn;"), true);
-  assert.equal(page.includes("setMicOn(previous);"), true);
-  assert.equal(page.includes("setVideoError((e as { message?: string })?.message || \"Couldn't update microphone.\")"), true);
-  assert.equal(page.includes("const previous = camOn;"), true);
-  assert.equal(page.includes("setCamOn(previous);"), true);
-  assert.equal(page.includes("setVideoError((e as { message?: string })?.message || \"Couldn't update camera.\")"), true);
-  assert.equal(page.includes("await vcRef.current?.setMicEnabled(next);"), false);
-  assert.equal(page.includes("await vcRef.current?.setCamEnabled(next);"), false);
+  assert.equal(page.includes('const micOn = captureState.audio === "active"'), true);
+  assert.equal(page.includes('const camOn = captureState.video === "active"'), true);
+  assert.equal(page.includes("deviceBusyRef.current"), true);
+  assert.equal(page.includes("await client.setMicEnabled(!micOn)"), true);
+  assert.equal(page.includes("await client.setCamEnabled(!camOn)"), true);
+  assert.equal(page.includes("setMicOn("), false);
+  assert.equal(page.includes("setCamOn("), false);
+  assert.equal(page.includes("!videoJoined || videoRetrying || deviceBusy"), true);
 });
 
 test("desktop encounter lays out one focus stage from stable participant identities", () => {
@@ -929,8 +928,8 @@ test("desktop encounter reports media failures and retries the existing call", (
   assert.equal(page.includes("onCaptureState"), true);
   assert.equal(page.includes("Microphone permission is blocked."), true);
   assert.equal(page.includes("Camera permission is blocked."), true);
-  assert.equal(page.includes('next.audio === "denied" || next.audio === "unavailable"'), true);
-  assert.equal(page.includes('next.video === "denied" || next.video === "unavailable"'), true);
+  assert.equal(page.includes("setCaptureState(next)"), true);
+  assert.equal(page.includes('captureState.video === "denied"'), true);
   assert.equal(page.includes("function retryVideo()"), true);
   assert.equal(page.includes("await joinVideo();"), true);
   assert.equal(page.includes("Video disconnected — chat is still available."), true);
@@ -1675,7 +1674,7 @@ test("desktop discover opens the shared named squad form", () => {
 
   assert.equal(page.includes('router.push("/home?create=1")'), true);
   assert.equal(page.includes("await api.setTags(squad.squadId, [vibe]);"), false);
-  assert.equal(page.includes("Start one with this vibe"), true);
+  assert.equal(page.includes("Try another interest, or create your own squad."), true);
 });
 
 test("desktop discover keeps creation in the filtered empty state", () => {
@@ -1819,7 +1818,7 @@ test("profile keeps one compact identity surface beside settings from tablet upw
   assert.equal((identityColumn.match(/\.\.\.surface/g) ?? []).length, 1);
   assert.equal(page.includes("const avatarSize = isPhone ? 88 : 120;"), true);
   assert.equal(page.includes('flexDirection: isPhone ? "row" : "column"'), true);
-  assert.equal(page.includes('gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "300px minmax(0, 1fr)"'), true);
+  assert.equal(page.includes('gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "264px minmax(0, 1fr)"'), true);
   assert.equal((identityColumn.match(/Your tokens and available extras/g) ?? []).length, 1);
 });
 
