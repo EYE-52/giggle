@@ -59,7 +59,7 @@ Use an isolated local database and no real users. The test requires `AGE_VERIFIC
 npm --prefix server run test:integration
 ```
 
-This uses real API requests and four real socket clients. It simulates media presence, so Agora is not needed and media transport is not tested. It covers join, ready, match, acknowledgement, both chat audiences, retry IDs, personal leave, end, concurrent skip and previous-opponent exclusion. Synthetic accounts remain in the local database for inspection.
+This uses real API requests and four real socket clients. It simulates media presence, so Agora is not needed and media transport is not tested. It covers join, ready, match, acknowledgement, both chat audiences, retry IDs, report persistence and retry, report membership/privacy, personal leave, end, concurrent skip and previous-opponent exclusion. It also creates one disposable local identity per run and deletes it through the account API, checking revoked access and cleanup of friends, requests, blocks and notifications. Synthetic accounts remain in the local database for inspection.
 
 For a temporary manual browser fixture, `--keep` leaves the encounter active. `GIGGLE_TEST_SESSION_FILE` optionally writes its sessions to a private file. Do not publish that file. The test never marks users verified; browser QA must use deliberately seeded local test users or complete the real provider flow.
 

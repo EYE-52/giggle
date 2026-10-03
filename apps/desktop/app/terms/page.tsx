@@ -3,7 +3,7 @@ import { LegalPage } from "@/components/LegalPage";
 
 export const metadata: Metadata = {
   title: "Terms · Giggle",
-  description: "Ground rules for using Giggle squad discovery, live video, reporting, tokens, and subscriptions.",
+  description: "Ground rules for using Giggle squads, live video, safety controls and earned credits.",
 };
 
 const sections = [
@@ -20,8 +20,8 @@ const sections = [
     body: "Only join or invite people with permission. Everyone controls their own camera and microphone. Use report and block honestly; false or abusive reports are prohibited.",
   },
   {
-    title: "Paid products and stores",
-    body: "Tokens and Giggle+ provide only the benefits shown at purchase. Prices, billing, cancellation, and refunds also follow the terms of the app store or payment provider used for the purchase and applicable law.",
+    title: "Earned credits and Giggle+",
+    body: "Credits are noncash app rewards and cannot be exchanged for money or transferred to another account. You can redeem them for the Giggle+ benefits and duration shown in your Wallet. There are currently no payments or automatic renewals. Do not use fake accounts, spam or fraudulent invitations to earn credits.",
   },
   {
     title: "Availability and enforcement",
@@ -45,8 +45,8 @@ export default function TermsPage() {
       title="Ground rules for meeting safely."
       intro={
         <>
-          Effective <time dateTime="2026-08-04">August 4, 2026</time>. Giggle is for adults 18+. By using
-          Giggle, you agree to these rules for accounts, squads, live video, safety, and paid features.
+          Updated <time dateTime="2026-10-04">October 4, 2026</time>. Giggle is for adults 18+. By using
+          Giggle, you agree to these rules for accounts, squads, live video, safety, and earned credits.
         </>
       }
       sections={sections}

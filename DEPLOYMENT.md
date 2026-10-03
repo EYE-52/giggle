@@ -4,7 +4,7 @@ This runbook deploys the unified repository. It does not certify worldwide compl
 
 ## Current production setup
 
-Last verified: **3 October 2026 (Asia/Kolkata)**. This section records the live setup; the provisioning and release requirements below also cover work that is not yet enabled.
+Last verified: **4 October 2026 (Asia/Kolkata)**. This section records the live setup; the provisioning and release requirements below also cover work that is not yet enabled.
 
 | Component | Current deployment |
 | --- | --- |
@@ -54,19 +54,16 @@ From commit `279d64a`, temporary access is evaluated from the server setting and
 4. Check `/health` for API `UP`, database `connected`, and Redis `connected`. All testing happens locally: before merging, run the production web build against the local API (`next build` with `NEXT_PUBLIC_BACKEND_URL=http://localhost:3001`, then `next start -p 4000`, with the API from `server/.env.local`) and `pnpm --filter @giggle/desktop test:local-smoke`. This signs in a synthetic account through the development auth exchange, checks home, friends, wallet, profile and the avatar, then creates a squad and leaves it. Run the Playwright suite (`e2e/`) as well, plus `npm --prefix server run verify:deploy-bundle`. That check boots the API from only the files the deploy ships (`server/` minus `.dockerignore`) and fails unless it stays healthy after its delayed startup jobs; it exists because a require into the excluded `scripts/` folder once crashed production 15 seconds after every start. After deploying, check only the public production endpoints, and keep polling `/health` for at least 5 minutes: a crash that happens after startup only shows up once the deploy has already been marked successful. `test:prod-smoke` exists for production, but it needs Railway's `AUTH_EXCHANGE_SECRET` in the gitignored `apps/desktop/.env.prod-smoke` and is not part of the normal process.
 5. For a rollback, use Vercel's previous production deployment and Railway's previous successful backend deployment as appropriate. Check environment variables separately: rolling back code is not a guarantee that variables are restored. Repeat health and sign-in checks after rollback.
 
-### Last verified release
+### Verified production checkpoint (4 October 2026)
 
-- Commit: [`7c58c1b`](https://github.com/EYE-52/giggle/commit/7c58c1b) — re-land squad cover storage without crashing the deployed server (#11). It builds on UI polish and API scaling (#5), shared avatars (#6), covers served by URL, free-only avatars and the production smoke test (#8), and cover storage (#9, reverted in #10, fixed in #11).
-- Vercel: [`9MSk3kZE6KEFLEkHbpRr4BCrsTAC`](https://vercel.com/divyansh24888-5115s-projects/giggle-meet/9MSk3kZE6KEFLEkHbpRr4BCrsTAC), **Ready**, serving the production domains.
-- Railway: [`deeb5b20-7141-4bf9-98bb-f6c0e4d09501`](https://railway.com/project/2e301782-c882-4553-94e4-61b898d98f1f/service/7874f27b-f974-4fb4-9523-fb3043c38f31?environmentId=bd367c27-b9f2-4715-a40c-842f19a1f66c&id=deeb5b20-7141-4bf9-98bb-f6c0e4d09501), **Success**, deployed automatically from GitHub.
-- Verified live: `/health` returned 200 with API `UP` and database and Redis `connected` at every 28-second check for 6.5 minutes after the deploy (16:11–16:18 UTC, 23 September 2026). The website returns 200.
-- Local validation (all testing is local):
-  - Unit tests: server 359/359 with Redis, desktop 143/143, core 74/74.
-  - `verify:deploy-bundle` passed.
-  - The local production build plus the real API passed `test:local-smoke` (phone and desktop).
-  - Playwright: 135 passed and 0 failed on phone, tablet, laptop, desktop and wide; the real two-browser lifecycle and avatar specs passed 16/16.
-- Incident: #9 (`dfcb2a5`) crashed the API about 15 seconds after every boot, from about 22:43 UTC on 22 September until #10 restored service at about 15:58 UTC on 23 September. The startup job required a file from `server/scripts/`, which `.dockerignore` excludes from the deployed image. `test/deployBundle.test.js` and `verify:deploy-bundle` now catch that failure, and step 4 above requires watching `/health` for 5 minutes after each deploy.
-- Update this section after future releases; these IDs are a historical checkpoint, not necessarily the latest deployment.
+- Commit: [`eec12ff`](https://github.com/EYE-52/giggle/commit/eec12ff), including the earned-credit Wallet, seven-day Giggle+, character accessories, topics and call-state fixes.
+- Vercel: [`F33pPeVNUn7MkiRmrfKQ3aahtPfp`](https://vercel.com/divyansh24888-5115s-projects/giggle-meet/F33pPeVNUn7MkiRmrfKQ3aahtPfp), **Ready**, serving the production domains.
+- Railway: [`eb2f23f9-eec7-4459-9c80-0a8c5f3a7ecb`](https://railway.com/project/2e301782-c882-4553-94e4-61b898d98f1f/service/7874f27b-f974-4fb4-9523-fb3043c38f31?environmentId=bd367c27-b9f2-4715-a40c-842f19a1f66c&id=eb2f23f9-eec7-4459-9c80-0a8c5f3a7ecb), **Success**.
+- Production check: 12 public health checks over 316 seconds had zero failures; API, MongoDB and Redis stayed connected. Normal Google logout/login returned the owner to Home and preserved appearance preferences. The production Wallet loaded without granting rewards to an ineligible squad member.
+- Local validation: 710 automated tests passed; web production build, native TypeScript and server deploy-bundle startup passed. Browser layout and functional evidence, plus remaining physical-device limits, are recorded in [the QA report](docs/superpowers/audits/2026-10-04-launch-qa.md).
+- These deployment IDs identify a verified checkpoint. For any later push, inspect the current `main` deployment in both dashboards and repeat the checks above; do not redeploy an old ID expecting newer source.
+
+Historical incident: a September cover-storage release crashed the API about 15 seconds after boot because a startup job required a file excluded by `.dockerignore`. The bundle check and five-minute health watch remain required to catch delayed startup failures.
 
 ## 3 October 2026 UI and lobby fixes
 

@@ -124,7 +124,7 @@ test("public legal, safety, and support pages state the adult policy without fal
   for (const page of pages) {
     assert.match(page, /adults 18\+/i);
     assert.doesNotMatch(page, /for verified (?:users |adults )?18\+/i);
-    assert.match(page, /2026-08-04/);
+    assert.match(page, /<time dateTime="\d{4}-\d{2}-\d{2}">/);
   }
 
   const allCopy = pages.join("\n");
@@ -488,7 +488,9 @@ test("public legal pages do not expose internal launch placeholders", () => {
   assert.equal(copy.includes("preview terms"), false);
   assert.equal(copy.includes("Replace it with reviewed legal copy"), false);
   assert.equal(copy.includes("before production launch"), false);
-  assert.equal(termsSource().includes("Tokens and Giggle+"), true);
+  assert.equal(termsSource().includes("Earned credits and Giggle+"), true);
+  assert.match(termsSource(), /There are currently no payments or automatic renewals/);
+  assert.doesNotMatch(termsSource(), /shown at purchase|paid features|subscriptions/);
   assert.equal(legalPageSource().includes('data-theme="dark"'), false);
 });
 

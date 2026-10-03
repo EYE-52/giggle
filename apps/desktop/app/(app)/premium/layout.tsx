@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Premium · Giggle",
-  description: "Review your token wallet and premium Giggle perks.",
+  title: "Wallet · Giggle",
+  description: "See your earned credits and redeem a Giggle+ pass.",
 };
 
 export default function PremiumLayout({ children }: { children: React.ReactNode }) {

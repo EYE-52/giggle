@@ -80,6 +80,17 @@ const delay = ms => new Promise(r => setTimeout(r, ms));
     const retry = await send({ encounterId: enc }, 'Hello everyone', 'message-' + run);
     assert.equal(retry.message.id, everyone.message.id);
     console.log('Matchmaking, acknowledgements, everyone chat, private squad chat, retry IDs passed');
+    const reportPayload = { squadId: squads[0].squadId, reportedSquadId: squads[1].squadId, encounterId: enc, category: 'other', details: 'Synthetic local QA report' };
+    const report = (socket, payload) => new Promise((res, rej) => socket.timeout(5000).emit('report_squad', payload, (error, result) => error ? rej(error) : res(result)));
+    const savedReport = await report(sockets[0], reportPayload);
+    assert.equal(savedReport.ok, true);
+    assert.equal((await report(sockets[0], reportPayload)).reportId, savedReport.reportId);
+    assert.equal((await report(sockets[1], { ...reportPayload, squadId: squads[1].squadId, reportedSquadId: squads[0].squadId })).ok, false);
+    const exportedReports = (await api('/me/export', sessions[0])).safetyReports;
+    assert.equal(exportedReports.filter(r => r.id === savedReport.reportId).length, 1);
+    assert.equal(exportedReports.find(r => r.id === savedReport.reportId).details, reportPayload.details);
+    assert.equal((await api('/me/export', sessions[2])).safetyReports.length, 0);
+    console.log('Report persistence, idempotent retry, forged membership rejection and reporter privacy passed');
     await api(`/squads/${squads[0].squadId}/encounter-video`, sessions[1], { inEncounterVideo: false });
     assert.equal((await api('/matchmaking/encounters/' + enc, sessions[0])).status, 'active');
     console.log('Personal leave preserves the encounter');
@@ -106,6 +117,32 @@ const delay = ms => new Promise(r => setTimeout(r, ms));
         assert.equal((await api('/matchmaking/encounters/' + enc, sessions[0])).status, 'ended');
         console.log('End encounter persisted');
     }
+    // Create and delete only this disposable local identity. Existing fixture
+    // participants stay available for inspection and --keep browser checks.
+    const disposable = await api('/auth/exchange', null, { email: `qa-delete-${run}@dev.giggle.local`, name: 'Disposable QA account' });
+    await api('/me/age', disposable, { birthDate: '2000-01-01' });
+    const disposableId = String(disposable.user.id);
+    await api('/friends/request', disposable, { userId: String(sessions[0].user.id) });
+    await api('/friends/accept', sessions[0], { userId: disposableId });
+    await api('/friends/request', disposable, { userId: String(sessions[1].user.id) });
+    await api('/friends/request', sessions[2], { userId: disposableId });
+    await api('/users/block', sessions[0], { userIds: [disposableId] });
+    const disposableSquad = await api('/squads/create', disposable, { squadName: `Delete QA ${run}`, tags: ['Study'] });
+    const deletion = await api('/me/account', disposable, undefined, 'DELETE');
+    assert.equal(deletion.status, 'deleted');
+    const denied = await fetch(base + '/api/friends', { headers: { Authorization: 'Bearer ' + disposable.token }, signal: AbortSignal.timeout(5000) });
+    assert([401, 403, 404].includes(denied.status));
+    for (const participant of sessions) {
+        const account = await api('/me/export', participant);
+        assert(!account.friends.some(f => f.userId === disposableId));
+        assert(!account.blocks.some(b => b.userId === disposableId));
+        assert(!account.notifications.some(n => n.fromUserId === disposableId));
+        const requests = await api('/friends/requests', participant);
+        assert(!JSON.stringify(requests).includes(disposableId));
+    }
+    const formerSquad = await fetch(base + '/api/squads/' + disposableSquad.squadId, { headers: { Authorization: 'Bearer ' + sessions[0].token }, signal: AbortSignal.timeout(5000) });
+    assert([403, 404].includes(formerSquad.status));
+    console.log('Disposable account deletion revoked access and removed friendship, request, block and notification references');
     if (process.env.GIGGLE_TEST_SESSION_FILE) {
         const file = fs.openSync(process.env.GIGGLE_TEST_SESSION_FILE, 'w', 0o600);
         try {

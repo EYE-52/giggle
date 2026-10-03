@@ -79,7 +79,7 @@ export default function PremiumPage() {
     <button type="button" className={styles.back} onClick={() => router.push("/profile")}><Icon.chevron size={16} />Back to profile</button>
     <header className={styles.header}>
       <div><h1>Wallet &amp; Giggle+</h1><p>Earn credits by starting a squad and bringing friends.</p></div>
-      <div className={styles.balance} aria-label={wallet ? `${wallet.credits} earned credits` : "Loading credits"}>
+      <div className={styles.balance} aria-label={wallet ? `${wallet.credits} earned credits` : error ? "Credits unavailable" : "Loading credits"}>
         <span>Earned credits</span><strong>{wallet ? <AnimatedBalance value={wallet.credits} /> : "—"}</strong>
       </div>
     </header>
@@ -89,7 +89,7 @@ export default function PremiumPage() {
       <div className={styles.plusHeading}><span className={styles.star}><Icon.sparkle size={26} /></span><div><h2>Giggle+</h2><p>{wallet?.premium ? expiry ? `Active until ${expiry}` : "Active" : "Make room for a bigger squad."}</p></div>{wallet?.premium && <span className={styles.active}>Active</span>}</div>
       <ul><li><Icon.users size={18} />Squads with up to eight people</li><li><Icon.star size={18} />Giggle+ badge on your profile</li></ul>
       <div className={styles.unlock}>
-        <span>{wallet ? `${wallet.plus.days} days · ${wallet.plus.cost} credits` : "Loading reward details…"}</span>
+        <span>{wallet ? `${wallet.plus.days} days · ${wallet.plus.cost} credits` : error ? "Reward details unavailable" : "Loading reward details…"}</span>
         {wallet?.premium ? <span className={styles.redeemed}><Icon.check size={16} />Unlocked</span> : <Button disabled={!wallet || !enough} onClick={() => setConfirm(true)}>Unlock Giggle+</Button>}
       </div>
       {wallet && !wallet.premium && !enough && <p className={styles.progress}>{wallet.plus.cost - wallet.credits} more credits to unlock.</p>}
