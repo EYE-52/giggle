@@ -63,7 +63,7 @@ export const Icon = {
   edit: makeIcon("edit"),
   google: makeIcon("google", { size: 18 }),
   apple: makeIcon("apple", { size: 18 }),
-  star: makeIcon("star", { color: "var(--accent)", fill: "var(--accent-soft)" }),
+  star: makeIcon("star", { color: "var(--accent)" }),
   lightning: makeIcon("lightning", { fill: "var(--accent)" }),
   hd: makeIcon("hd"),
   history: makeIcon("history"),
