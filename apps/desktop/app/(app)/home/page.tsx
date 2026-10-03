@@ -265,14 +265,14 @@ export default function HomePage() {
           <header className={styles.panelHead}>
             <h2 id="home-friends" className={styles.panelTitle}>Friends</h2>
             {people.length > 0 && <span className={`count ${styles.count}`}>{onlineCount} online</span>}
-            <Link href="/friends" className={`link ${styles.headLink}`}>Add friends</Link>
+            {people.length > 0 && <Link href="/friends" className={`link ${styles.headLink}`}>Add friends</Link>}
           </header>
           {friends === null ? (
             <p role="status" className={styles.quiet}><span className="gg-spinner" /> Loading friends…</p>
           ) : people.length === 0 ? (
             <div className={styles.empty}>
-              <p>Friends you add show up here, ready to invite.</p>
-              <Button variant="secondary" onClick={() => router.push("/friends")}>Find friends</Button>
+              <p>Add friends to invite them to your squad.</p>
+              <Button variant="secondary" onClick={() => router.push("/friends")}><Icon.plus size={16} /> Add friends</Button>
             </div>
           ) : (
             <ul className={styles.list}>
@@ -340,6 +340,8 @@ export default function HomePage() {
               <Icon.plus size={18} /> Start another squad
             </button>
           )}
+          <div className={styles.joinArea}>
+          <label htmlFor="squad-code" className={styles.joinLabel}>Have an invite code?</label>
           <form
             className={`join ${styles.join}`}
             onSubmit={(event) => {
@@ -354,7 +356,7 @@ export default function HomePage() {
               aria-invalid={!!joinError}
               aria-describedby={joinError ? "join-error" : undefined}
               value={code}
-              placeholder="Invite code"
+              placeholder="ABC-123"
               autoCapitalize="characters"
               autoComplete="off"
               spellCheck={false}
@@ -369,6 +371,7 @@ export default function HomePage() {
             </Button>
           </form>
           {joinError && <p id="join-error" role="alert" className="gg-inline-error">{joinError}</p>}
+          </div>
           {WEB_DISCOVERY_ENABLED && (
             <div className={styles.open}>
               <header className={styles.panelHead}>

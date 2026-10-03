@@ -30,9 +30,10 @@ export function SquadCard({ squad, onPreview }: { squad: PublicSquad; onPreview:
       aria-label={`${squad.squadName}, ${squad.memberCount} of ${squad.maxSlots}. Preview`}
       onClick={open}
       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } }}
-      className={`card gg-focusable ${styles.card}`}
+      className={`card gg-squad-card gg-focusable ${styles.card}`}
+      data-note-tone={tone}
     >
-      <div className={styles.cover} data-tone={tone} style={cover ? { background: cover, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>
+      <div className={`gg-squad-cover ${styles.cover}`} data-tone={tone} style={cover ? { background: cover, backgroundSize: "cover", backgroundPosition: "center" } : undefined}>
         <span className={`chip ${styles.status}`} data-live={squad.status === "in_encounter" || undefined}>{statusLabel}</span>
         <span className={styles.count}><Icon.users size={14} color="currentColor" />{squad.memberCount} of {squad.maxSlots}</span>
       </div>
@@ -42,7 +43,7 @@ export function SquadCard({ squad, onPreview }: { squad: PublicSquad; onPreview:
         {squad.tags && squad.tags.length > 0 && (
           <span className={`muted ${styles.tags}`}>{squad.tags.slice(0, 3).join(" · ")}{squad.tags.length > 3 ? ` +${squad.tags.length - 3}` : ""}</span>
         )}
-        <span className={styles.preview}>Preview<Icon.arrowRight size={16} color="currentColor" /></span>
+        <span className={`gg-squad-preview ${styles.preview}`}>Preview<Icon.arrowRight size={16} color="currentColor" /></span>
       </div>
     </div>
   );

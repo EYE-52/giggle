@@ -68,7 +68,17 @@
 .readyLine { flex: 1; min-width: 0; padding: 0 6px; font-size: 14px; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .error { color: var(--coral); font-size: 13px; line-height: 1.5; margin: 6px 4px 0; }
 .narrow { display: none; }
-@media (max-width: 520px) { .wide { display: none; } .narrow { display: inline; } }
+@media (max-width: 520px) {
+  .wide { display: none; }
+  .narrow { display: inline; }
+  .seatLabel { flex-wrap: wrap; gap: 4px; }
+  .seatName { flex: 0 0 auto; max-width: 100%; }
+  .seatLabel .state { margin-left: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dockRow { flex-wrap: wrap; justify-content: center; }
+  /* Keep both actions on one row with every skin's button chrome. */
+  .dockRow :global(.gg-btn) { padding-inline: 12px !important; }
+  .readyLine { order: -1; flex: 1 0 100%; padding: 2px 4px 4px; text-align: center; white-space: normal; }
+}
 
 /* ── dialogs (unchanged) ─────────────────────────────────────────────────── */
 .row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }

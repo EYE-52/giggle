@@ -15,6 +15,6 @@ export function Logomark({ size = 32, animated = false }: { size?: number; glow?
   </svg>;
 }
 export function Wordmark({ size = 25, mark = true }: { size?: number; mark?: boolean }) {
-  const style: CSSProperties = { display:'inline-flex', alignItems:'center', gap:9, fontFamily:'var(--font-display)', fontWeight:800, fontSize:size, letterSpacing:'-.055em', color:'var(--text)' };
+  const style: CSSProperties = { display:'inline-flex', alignItems:'center', gap:9, fontFamily:'var(--font-nunito), Nunito, sans-serif', fontWeight:800, fontSize:size, letterSpacing:'-.055em', color:'var(--text)' };
   return <span className="wordmark" style={style}>{mark && <Logomark size={size * 1.3}/>}<span>giggle</span></span>;
 }

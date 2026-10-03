@@ -390,7 +390,7 @@ export default function ProfilePage() {
       {/* LEFT COLUMN — identity and membership. */}
       <div style={{ display: "flex", flexDirection: "column", gap: isPhone ? 14 : 16, ...(isTablet ? {} : { position: "sticky", top: 24 }) }}>
         {/* Avatar card */}
-        <div style={{ ...surface, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: isPhone ? 16 : 26, paddingBottom: isPhone ? 16 : 22 }}>
+        <div className="card" style={{ ...surface, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, paddingTop: isPhone ? 16 : 26, paddingBottom: isPhone ? 16 : 22 }}>
           <div style={{ width: "100%", display: "flex", flexDirection: isPhone ? "row" : "column", alignItems: "center", justifyContent: "center", gap: isPhone ? 16 : 14 }}>
           {/* Avatar — click to edit */}
           <button

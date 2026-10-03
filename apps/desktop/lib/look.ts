@@ -50,11 +50,11 @@ export interface Palette {
 
 /* Registries — skin facts come from the META line of design/skins/skin-*.css. */
 export const SKINS: readonly Skin[] = [
-  { id: "soft", name: "Soft Depth", description: "Calm surfaces with soft depth", iconWeight: "bold", fonts: ["Fraunces", "Karla"], defaultPalette: "honey" },
-  { id: "play", name: "Bold Play", description: "Chunky outlines and pop energy", iconWeight: "bold", fonts: ["Baloo 2", "Nunito"], defaultPalette: "raspberry" },
-  { id: "paper", name: "Doodle", description: "Hand-drawn, notebook feel", iconWeight: "bold", fonts: ["Caveat Brush", "Kalam"], defaultPalette: "honey" },
-  { id: "clay", name: "Clay", description: "Rounded, friendly shapes", iconWeight: "fill", fonts: ["Fredoka", "Nunito"], defaultPalette: "grape" },
-  { id: "scrap", name: "Scrapbook", description: "Cut paper and taped notes", iconWeight: "bold", fonts: ["Nunito", "Nunito"], defaultPalette: "lagoon" },
+  { id: "soft", name: "Soft Depth", description: "Soft glass and serif type", iconWeight: "bold", fonts: ["Fraunces", "Karla"], defaultPalette: "honey" },
+  { id: "play", name: "Bold Play", description: "Bold borders and offset shadows", iconWeight: "bold", fonts: ["Baloo 2", "Nunito"], defaultPalette: "raspberry" },
+  { id: "paper", name: "Doodle", description: "Pen outlines and handwriting", iconWeight: "bold", fonts: ["Kalam", "Nunito"], defaultPalette: "honey" },
+  { id: "clay", name: "Clay", description: "Matte shapes and soft shadows", iconWeight: "fill", fonts: ["Fredoka", "Nunito"], defaultPalette: "grape" },
+  { id: "scrap", name: "Scrapbook", description: "Ruled pages and sticky notes", iconWeight: "bold", fonts: ["Caveat", "Nunito"], defaultPalette: "lagoon" },
 ];
 
 export const PALETTES: readonly Palette[] = [

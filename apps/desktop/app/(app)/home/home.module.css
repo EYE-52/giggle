@@ -9,11 +9,8 @@
 @media (max-width: 860px) { .columns { grid-template-columns: minmax(0, 1fr); } }
 
 /* skins stretch .card to its grid row; panels size to their own content */
-.columns > .panel.panel { min-width: 0; align-self: start; height: auto; }
-.panelBody { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-/* skins that give .card no padding (Clay) get the page's own */
-:global(html[data-skin="clay"]) .panelBody, :global(html[data-skin="play"]) .panelBody { padding: 18px 18px 16px; }
-@media (max-width: 720px) { :global(html[data-skin="clay"]) .panelBody, :global(html[data-skin="play"]) .panelBody { padding: 14px 12px 12px; } }
+.columns > .panel.panel { padding: 0 !important; min-width: 0; align-self: start; height: auto; }
+.panelBody { padding: 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .panelHead { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 4px; }
 .panelTitle { margin: 0; font-family: var(--font-display); font-size: 18px; font-weight: 700; line-height: 1.25; letter-spacing: -.01em; }
 .count { font-size: 12px; line-height: 1; padding: 5px 8px; border-radius: 999px; background: var(--overlay, rgb(0 0 0 / .05)); color: var(--text-muted); }
@@ -32,7 +29,10 @@
 .newSquad.newSquad { width: 100%; display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 8px; }
 .join { display: flex; gap: 8px; }
 .join input { flex: 1; min-width: 0; min-height: 44px; }
-.open { display: flex; flex-direction: column; gap: 8px; padding-top: 6px; }
+.joinArea { display: grid; gap: 8px; padding: 12px 4px 4px; }
+.joinLabel { font-size: 13px; font-weight: 600; color: var(--text-body, var(--text)); }
+.open { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--line, var(--border)); }
+.open .panelTitle { font-size: 16px; }
 
 .empty { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 6px 4px 4px; }
 .empty p { margin: 0; color: color-mix(in srgb, var(--text) 78%, var(--bg)); font-size: 14px; line-height: 1.45; }
@@ -76,3 +76,12 @@
 /* compact rows: skin rings stay, but slim, so the face keeps its size */
 .person.person :global(.pa) { padding: 2px !important; }
 .person.person :global(.av) { padding: 0 !important; border-width: 2px !important; outline-width: 2px !important; }
+
+@media (max-width: 720px) {
+  .home { gap: 12px; }
+  .columns { gap: 12px; }
+  .panelBody { padding: 16px; }
+  .panelHead { padding: 0; }
+  .empty { gap: 10px; padding: 4px 0; }
+  .joinArea { padding: 6px 0 0; }
+}

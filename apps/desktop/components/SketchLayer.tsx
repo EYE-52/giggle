@@ -213,9 +213,11 @@ export function SketchLayer() {
       if (typeof MutationObserver !== "undefined" && document.body) {
         const isSketchNode = (n: Node) => n instanceof Element && n.classList.contains("gg-sketch");
         mutationObserver = new MutationObserver((mutations) => {
-          if (mutations.some((m) => [...m.addedNodes, ...m.removedNodes].some((n) => !isSketchNode(n)))) schedule();
+          if (mutations.some((m) => m.type === "attributes" || [...m.addedNodes, ...m.removedNodes].some((n) => !isSketchNode(n)))) schedule();
         });
         mutationObserver.observe(document.body, { childList: true, subtree: true });
+        // Repaint resolved colours, including OS changes while mode is Auto.
+        mutationObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-skin", "data-palette", "data-mode"] });
       }
       // Fonts change text metrics (and therefore box sizes) after first paint.
       document.fonts?.ready.then(() => { if (!disposed) schedule(); }).catch(() => {});

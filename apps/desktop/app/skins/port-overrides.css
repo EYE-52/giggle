@@ -526,3 +526,20 @@ html[data-skin] {
   --font-inter: var(--font-body);
   --font-space-grotesk: var(--font-display);
 }
+
+/* Sample geometry belongs to the picker, independent of each skin's frame.
+ * Grid stretch must not turn a 34px avatar into a full-width medallion. */
+html[data-skin] [data-skin-preview][data-skin-preview][data-skin-preview][data-skin-preview] .gg-skin-sample > .pa {
+  width: fit-content; height: auto; justify-self: start;
+  min-width: 0; min-height: 0; max-width: 100%;
+}
+html[data-skin] [data-skin-preview][data-skin-preview][data-skin-preview][data-skin-preview] .gg-skin-sample > .pa .av {
+  box-sizing: border-box;
+}
+
+/* The studio's Clay device had a 760px minimum height. Real phones can be
+ * shorter: let the shell follow the viewport so its dock stays above navigation. */
+html[data-skin][data-skin][data-skin] .gg-app-root {
+  min-height: 0;
+  height: 100dvh;
+}
