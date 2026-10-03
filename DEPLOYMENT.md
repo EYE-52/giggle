@@ -4,7 +4,7 @@ This runbook deploys the unified repository. It does not certify worldwide compl
 
 ## Current production setup
 
-Last verified: **23 September 2026 (Asia/Kolkata)**. This section records the live setup; the provisioning and release requirements below also cover work that is not yet enabled.
+Last verified: **3 October 2026 (Asia/Kolkata)**. This section records the live setup; the provisioning and release requirements below also cover work that is not yet enabled.
 
 | Component | Current deployment |
 | --- | --- |
@@ -67,6 +67,15 @@ From commit `279d64a`, temporary access is evaluated from the server setting and
   - Playwright: 135 passed and 0 failed on phone, tablet, laptop, desktop and wide; the real two-browser lifecycle and avatar specs passed 16/16.
 - Incident: #9 (`dfcb2a5`) crashed the API about 15 seconds after every boot, from about 22:43 UTC on 22 September until #10 restored service at about 15:58 UTC on 23 September. The startup job required a file from `server/scripts/`, which `.dockerignore` excludes from the deployed image. `test/deployBundle.test.js` and `verify:deploy-bundle` now catch that failure, and step 4 above requires watching `/health` for 5 minutes after each deploy.
 - Update this section after future releases; these IDs are a historical checkpoint, not necessarily the latest deployment.
+
+## 3 October 2026 UI and lobby fixes
+
+- Production still deploys automatically from `main`: Vercel serves the website, Railway serves the API and realtime connections.
+- `STRANGER_DISCOVERY_ENABLED=true` was restored on the Railway `giggle-server` service; `/api/features` now reports `strangerDiscovery: true`. The lobby leader gets **Find a squad**; other members must be ready first. Keep the existing external release gates in this runbook visible.
+- Friend refreshes discard snapshots started before a mutation, and crossed requests that become a friendship appear correctly. Lists keep their natural height across skins.
+- Media controls follow capture state, camera off releases capture, and repeated lobby refreshes no longer restart the same video playback.
+- Chat follows each skin, with native Unicode emoji choices. Scrapbook uses a ruled notepad and taped participant frames. No external emoji image library is required.
+- Validation: desktop and Agora checks, a production build, local friend acceptance/reload, local chat delivery, and visual checks of all five skins, including Scrapbook on a phone. Physical two-device camera/microphone validation is still needed.
 
 ## Runtime
 

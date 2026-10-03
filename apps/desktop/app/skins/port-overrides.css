@@ -401,6 +401,64 @@ html[data-skin="scrap"] .cbtn:focus-visible {
 
 /* ── Phase 3 (Appearance live previews) ──────────────────────────────────── */
 
+/* Real friend lists scroll with their content. The studio's viewport-fill
+ * cards made search/request lists shrink below their rows and overlap. */
+html[data-skin][data-skin][data-skin] .gg-screen-friends {
+  flex: none;
+  min-height: min-content;
+}
+html[data-skin][data-skin][data-skin] .gg-screen-friends :is(.gg-friends-main, .friend-list) {
+  flex: none;
+  height: auto;
+  min-height: min-content;
+}
+html[data-skin][data-skin][data-skin] .gg-screen-friends .friend-list {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: none;
+  grid-auto-rows: auto;
+  align-content: start;
+  gap: 12px;
+}
+html[data-skin][data-skin][data-skin] .gg-screen-friends .friend {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  height: auto;
+  min-height: 76px;
+  padding: 14px 16px;
+  text-align: left;
+  transform: none;
+}
+html[data-skin][data-skin][data-skin] .gg-screen-friends .friend > div {
+  width: auto;
+  margin-top: 0;
+  align-items: start;
+}
+html[data-skin][data-skin][data-skin] .gg-screen-friends .friend > .pa {
+  width: 44px;
+  height: 44px;
+  min-height: 0;
+}
+html[data-skin][data-skin][data-skin] .gg-screen-friends .friend .pair {
+  width: auto;
+  margin-top: 0;
+  flex-direction: row;
+}
+html[data-skin][data-skin][data-skin] .gg-screen-friends .friend .btn {
+  width: auto;
+}
+@media (max-width: 480px) {
+  html[data-skin][data-skin][data-skin] .gg-screen-friends .friend {
+    padding: 12px;
+    gap: 10px;
+  }
+  html[data-skin][data-skin][data-skin] .gg-screen-friends .friend .pair {
+    grid-column: 2 / -1;
+  }
+}
+
 /* Home join card is the secondary action — keep it smaller and quieter under
  * every skin (the skins' .card.join-card rules would restore full padding
  * and title scale). Doodle's handwritten face gets a touch more size. */

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useId, type ReactNode } from "react";
 import {
   chatMessageMatchesScope,
   mergeChatMessage,
@@ -11,8 +11,14 @@ import {
   type ChatScope,
 } from "@giggle/core";
 import { Icon } from "@/components/Icons";
+import styles from "./ChatPanel.module.css";
 
 const MAX_CHAT_TEXT_LENGTH = 500;
+const EMOJIS = [
+  ["🙂", "Smile"], ["😂", "Laugh"], ["❤️", "Heart"], ["👍", "Thumbs up"],
+  ["🎉", "Celebrate"], ["👋", "Wave"], ["🔥", "Fire"], ["😎", "Cool"],
+  ["🤔", "Thinking"], ["😅", "Nervous laugh"], ["🙌", "Raised hands"], ["👀", "Eyes"],
+] as const;
 
 export type ChatPanelMessage = ChatMessage & {
   delivery?: "sending" | "delivered" | "failed";
@@ -20,7 +26,7 @@ export type ChatPanelMessage = ChatMessage & {
 
 function relTime(ts: number): string {
   const diff = Date.now() - ts;
-  if (diff < 0 || diff < 45_000) return "now";
+  if (diff < 0 || diff < 60_000) return "now";
   const mins = Math.floor(diff / 60_000);
   if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
@@ -55,9 +61,9 @@ export function ChatPanel({
   const input = draft ?? localInput;
   const setInput = onDraftChange ?? setLocalInput;
   const [sendError, setSendError] = useState("");
-  const [inputFocused, setInputFocused] = useState(false);
-  const [closeHovered, setCloseHovered] = useState(false);
-  const [sendHovered, setSendHovered] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const emojiId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [newMessageCount, setNewMessageCount] = useState(0);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
@@ -164,339 +170,65 @@ export function ChatPanel({
     // No optimistic append — the server echo arrives via subscribeChat.
   }
 
+  function addEmoji(emoji: string) {
+    const start = inputRef.current?.selectionStart ?? input.length;
+    const end = inputRef.current?.selectionEnd ?? start;
+    const next = input.slice(0, start) + emoji + input.slice(end);
+    if (next.length > MAX_CHAT_TEXT_LENGTH) return;
+    setInput(next);
+    setSendError("");
+    setEmojiOpen(false);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  }
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        minHeight: 0,
-        width: "100%",
-        background: "transparent",
-        color: "var(--text)",
-        fontFamily: "var(--font-inter)",
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 8,
-          padding: "13px 16px",
-          borderBottom: "1px solid var(--border)",
-          flexShrink: 0,
-        }}
-      >
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            fontFamily: "var(--font-display, var(--font-space-grotesk))",
-            fontSize: 14,
-            fontWeight: 700,
-            color: "var(--text)",
-          }}
-        >
-          <Icon.chat size={15} color="var(--text-muted)" />
-          {title}
-        </span>
-        {onClose && (
-          <button
-            onClick={onClose}
-            onMouseEnter={() => setCloseHovered(true)}
-            onMouseLeave={() => setCloseHovered(false)}
-            title="Close chat"
-            aria-label="Close chat"
-            style={{
-              background: closeHovered
-                ? "var(--overlay-hover, rgba(255,255,255,0.1))"
-                : "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: closeHovered ? "var(--text)" : "var(--text-muted)",
-              borderRadius: "var(--radius-control, 14px)",
-              width: 44,
-              height: 44,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all .15s ease",
-            }}
-          >
-            <Icon.close size={16} color={closeHovered ? "var(--text)" : "var(--text-muted)"} />
-          </button>
-        )}
-      </div>
-
+    <div className={styles.panel}>
+      <header className={styles.header}>
+        <span className={styles.title}><Icon.chat size={18} />{title}</span>
+        {onClose && <button type="button" className={styles.tool} onClick={onClose} aria-label="Close chat"><Icon.close size={19} /></button>}
+      </header>
       {audienceControls}
-
-      {/* Messages */}
-      <div
-        ref={messagesRef}
-        onScroll={handleMessagesScroll}
-        role="log"
-        aria-live="polite"
-        aria-label="Chat messages"
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-          padding: "14px",
-          position: "relative",
-        }}
-      >
+      <div ref={messagesRef} onScroll={handleMessagesScroll} role="log" aria-live="polite" aria-label="Chat messages" className={styles.messages}>
         {messages.length === 0 ? (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              textAlign: "center",
-              color: "var(--text-dim)",
-              fontSize: 13,
-              padding: "20px 12px",
-            }}
-          >
-            <span aria-hidden="true" style={{ color: "var(--brand, var(--accent))", display: "grid" }}><Icon.chatDots size={28} /></span>
+          <div className={styles.empty}>
+            <span aria-hidden="true"><Icon.chatDots size={28} /></span>
             <span>No messages yet. Say hi.</span>
           </div>
-        ) : (
-          messages.map((msg) => {
-            const own = myId != null && msg.userId === myId;
-            return (
-              <div
-                key={msg.id}
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: own ? "flex-end" : "flex-start",
-                  gap: 3,
-                  maxWidth: "100%",
-                }}
-              >
-                {own ? (
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: "var(--text-dim)",
-                      padding: "0 2px",
-                    }}
-                  >
-                    {relTime(msg.ts)}
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: "var(--text-muted)",
-                      padding: "0 2px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        maxWidth: 140,
-                      }}
-                    >
-                      {msg.name}
-                    </span>
-                    <span style={{ color: "var(--text-dim)", fontWeight: 500 }}>
-                      {relTime(msg.ts)}
-                    </span>
-                  </span>
-                )}
-                <div
-                  style={{
-                    background: own ? "var(--accent, var(--violet))" : "var(--surface)",
-                    color: own ? "var(--on-accent)" : "var(--text)",
-                    border: own
-                      ? "1px solid transparent"
-                      : "var(--control-border, 1px solid var(--border))",
-                    borderRadius: own ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                    padding: "8px 12px",
-                    fontSize: 13,
-                    lineHeight: 1.45,
-                    maxWidth: "85%",
-                    wordBreak: "break-word",
-                    overflowWrap: "anywhere",
-                  }}
-                >
-                  {msg.text}
-                </div>
-                {msg.delivery === "sending" && (
-                  <span style={{ color: "var(--text-dim)", fontSize: 11, padding: "0 2px" }}>
-                    Sending…
-                  </span>
-                )}
-                {msg.delivery === "failed" && (
-                  <button
-                    type="button"
-                    onClick={() => onRetry?.(msg)}
-                    style={{
-                      minHeight: 28,
-                      padding: "0 8px",
-                      border: "none",
-                      background: "transparent",
-                      color: "var(--coral)",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: onRetry ? "pointer" : "default",
-                    }}
-                  >
-                    Retry
-                  </button>
-                )}
-              </div>
-            );
-          })
-        )}
-
+        ) : messages.map((msg) => {
+          const own = myId != null && msg.userId === myId;
+          return <div key={msg.id} className={styles.message} data-own={own}>
+            <div className={styles.meta}>
+              {!own && <span className={styles.sender}>{msg.name}</span>}
+              <time dateTime={new Date(msg.ts).toISOString()}>{relTime(msg.ts)}</time>
+            </div>
+            <div className={styles.bubble}>{msg.text}</div>
+            {msg.delivery === "sending" && <span className={styles.delivery}>Sending…</span>}
+            {msg.delivery === "failed" && <button type="button" className={styles.retry} onClick={() => onRetry?.(msg)}>Retry</button>}
+          </div>;
+        })}
         <div ref={endRef} />
       </div>
-
-        {newMessageCount > 0 ? (
-          <button
-            type="button"
-            onClick={scrollToLatest}
-            aria-label={`Jump to ${newMessageCount} new message${newMessageCount === 1 ? "" : "s"}`}
-            style={{
-              position: "relative",
-              alignSelf: "center",
-              margin: "4px 12px",
-              flexShrink: 0,
-              minHeight: 44,
-              padding: "0 12px",
-              borderRadius: 999,
-              border: "1px solid var(--border)",
-              background: "var(--surface)",
-              color: "var(--accent, var(--violet))",
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: "0 4px 14px rgba(0,0,0,.12)",
-            }}
-          >
-            New messages ↓
-          </button>
-        ) : null}
-
-      {/* Input */}
-      <div
-        style={{
-          display: "flex",
-          gap: 6,
-          padding: "10px 12px",
-          borderTop: "1px solid var(--border)",
-          flexShrink: 0,
-          flexDirection: "column",
-        }}
-      >
-        {sendError ? (
-          <div
-            role="alert"
-            style={{
-              color: "var(--coral)",
-              fontSize: 12,
-              lineHeight: 1.35,
-              fontWeight: 700,
-            }}
-          >
-            {sendError}
-          </div>
-        ) : null}
-        <div style={{ display: "flex", gap: 6 }}>
-          <input
-            value={input}
-            onChange={(e) => {
-              setSendError("");
-              setInput(e.target.value.slice(0, MAX_CHAT_TEXT_LENGTH));
-            }}
-            maxLength={MAX_CHAT_TEXT_LENGTH}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
-            }}
-            onFocus={() => setInputFocused(true)}
-            onBlur={() => setInputFocused(false)}
-            placeholder="Say something…"
-            aria-label="Chat message"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              height: 44,
-              borderRadius: "var(--radius-control, 14px)",
-              background: "var(--overlay, rgba(255,255,255,0.05))",
-              border: inputFocused
-                ? "1px solid var(--accent, var(--violet))"
-                : "var(--control-border, 1px solid var(--border))",
-              color: "var(--text)",
-              padding: "0 12px",
-              fontSize: 13,
-              outline: "none",
-              fontFamily: "var(--font-inter)",
-              transition: "border-color .15s ease",
-            }}
-          />
-          <button
-            onClick={send}
-            disabled={!input.trim() || input.trim().length > MAX_CHAT_TEXT_LENGTH}
-            onMouseEnter={() => setSendHovered(true)}
-            onMouseLeave={() => setSendHovered(false)}
-            title="Send"
-            aria-label="Send message"
-            className="gg-press"
-            style={{
-              width: 44,
-              height: 44,
-              flexShrink: 0,
-              borderRadius: "var(--radius-control, 14px)",
-              border: "none",
-              cursor:
-                input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH
-                  ? "pointer"
-                  : "not-allowed",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background:
-                input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH
-                  ? sendHovered
-                    ? "var(--accent, var(--violet))"
-                    : "var(--violet-soft, rgba(124,92,255,0.2))"
-                  : "var(--overlay, rgba(255,255,255,0.05))",
-              color:
-                input.trim() && sendHovered ? "var(--on-accent)" : "var(--accent, var(--violet))",
-              opacity: input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH ? 1 : 0.5,
-              transition: "all .15s ease",
-              transform:
-                sendHovered && input.trim() && input.trim().length <= MAX_CHAT_TEXT_LENGTH
-                  ? "scale(1.05)"
-                  : "scale(1)",
-            }}
-          >
-            <Icon.send
-              size={16}
-              color={input.trim() && sendHovered ? "var(--on-accent)" : "var(--violet)"}
-            />
-          </button>
+      {newMessageCount > 0 && <button type="button" className={styles.newMessages} onClick={scrollToLatest} aria-label={`Jump to ${newMessageCount} new message${newMessageCount === 1 ? "" : "s"}`}>New messages ↓</button>}
+      <div className={styles.composer}>
+        {sendError && <div role="alert" className={styles.error}>{sendError}</div>}
+        {emojiOpen && <div id={emojiId} role="group" aria-label="Emoji choices" className={styles.emojis} onKeyDown={(event) => {
+          if (event.key === "Escape") { setEmojiOpen(false); inputRef.current?.focus(); }
+        }}>
+          {EMOJIS.map(([emoji, label]) => <button type="button" key={label} className={styles.tool} aria-label={label} onClick={() => addEmoji(emoji)}>{emoji}</button>)}
+        </div>}
+        <div className={styles.inputRow}>
+          <button type="button" className={styles.tool} aria-label="Add emoji" aria-expanded={emojiOpen} aria-controls={emojiId} onClick={() => setEmojiOpen((open) => !open)}>🙂</button>
+          <input ref={inputRef} className={styles.input} value={input} onChange={(event) => {
+            setSendError("");
+            setInput(event.target.value.slice(0, MAX_CHAT_TEXT_LENGTH));
+          }} maxLength={MAX_CHAT_TEXT_LENGTH} onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); send(); }
+            if (event.key === "Escape") setEmojiOpen(false);
+          }} placeholder="Say something…" aria-label="Chat message" />
+          <button type="button" onClick={send} disabled={!input.trim() || input.trim().length > MAX_CHAT_TEXT_LENGTH} aria-label="Send message" className={styles.send}><Icon.send size={19} /></button>
         </div>
       </div>
     </div>

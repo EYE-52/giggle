@@ -177,6 +177,8 @@ function LobbyInner() {
   const localVideoRef = useRef<HTMLDivElement>(null);
   const [videoJoined, setVideoJoined] = useState(false);
   const [videoJoining, setVideoJoining] = useState(false);
+  const deviceBusyRef = useRef({ audio: false, video: false });
+  const [deviceBusy, setDeviceBusy] = useState({ audio: false, video: false });
   const [videoError, setVideoError] = useState<string | null>(null);
 
   // Hover states
@@ -320,7 +322,7 @@ function LobbyInner() {
     if (videoJoined && camOn && localVideoRef.current) {
       try { vcRef.current?.playLocal(localVideoRef.current); } catch {}
     }
-  }, [videoJoined, camOn, squad]);
+  }, [videoJoined, camOn]);
 
   // Unread chat tracking — runs even when the chat surface isn't mounted, so the
   // collapsed rail / header can show an unread dot. We join the lobby room and
@@ -346,32 +348,23 @@ function LobbyInner() {
   // Clear unread the moment chat becomes visible.
   useEffect(() => { if (chatVisible) setUnread(0); }, [chatVisible]);
 
-  async function toggleMic() {
-    const previous = micOn;
-    const next = !micOn;
-    setMicOn(next);
+  async function toggleDevice(kind: "audio" | "video") {
+    if (deviceBusyRef.current[kind] || !videoJoined) return;
+    const vc = vcRef.current;
+    if (!vc) return;
+    const generation = lobbyMediaGenerationRef.current;
+    const next = kind === "audio" ? !micOn : !camOn;
+    deviceBusyRef.current[kind] = true;
+    setDeviceBusy((current) => ({ ...current, [kind]: true }));
     setVideoError(null);
     try {
-      if (!vcRef.current) throw new Error("Lobby video is not connected yet.");
-      await vcRef.current.setMicEnabled(next);
-    } catch (e) {
-      setMicOn(previous);
-      setVideoError((e as { message?: string })?.message || "Couldn't update microphone.");
-    }
-  }
-
-  async function toggleCam() {
-    const previous = camOn;
-    const next = !camOn;
-    setCamOn(next);
-    setVideoError(null);
-    try {
-      if (!vcRef.current) throw new Error("Lobby video is not connected yet.");
-      await vcRef.current.setCamEnabled(next);
-      if (next && localVideoRef.current) vcRef.current?.playLocal(localVideoRef.current);
-    } catch (e) {
-      setCamOn(previous);
-      setVideoError((e as { message?: string })?.message || "Couldn't update camera.");
+      await (kind === "audio" ? vc.setMicEnabled(next) : vc.setCamEnabled(next));
+      // Capture events update the controls only after the device changes.
+    } catch (error) {
+      if (generation === lobbyMediaGenerationRef.current) setVideoError((error as Error)?.message || "Couldn't update your device.");
+    } finally {
+      deviceBusyRef.current[kind] = false;
+      if (generation === lobbyMediaGenerationRef.current) setDeviceBusy((current) => ({ ...current, [kind]: false }));
     }
   }
 
@@ -802,13 +795,14 @@ function LobbyInner() {
             const remote = remotes.find(r => String(r.uid) === String(member.uid));
             const offline = member.online === false && !isMe;
             const showVideo = isMe ? camOn && videoJoined : !!remote?.hasVideo;
-            return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-testid="lobby-person" data-offline={offline || undefined}>
+            return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-testid="lobby-person" data-offline={offline || undefined} data-video={showVideo}>
               <div className={styles.face}><PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size="fill" /></div>
               {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
               <div className={styles.seatLabel}>
                 <span className={styles.seatName}>{isMe ? "You" : member.displayName}</span>
                 {member.memberId === squad.leaderMemberId && <span className={`badge ${styles.tag}`}>Leader</span>}
                 {WEB_DISCOVERY_ENABLED && member.ready && <span className={`badge ${styles.tag} ${styles.ready}`}>Ready</span>}
+                {(isMe ? videoJoined && !micOn : remote && !remote.hasAudio) && <span className={styles.state}>Mic off</span>}
                 {offline ? <span className={styles.state}>Offline</span> : !showVideo ? <span className={styles.state}>Camera off</span> : null}
               </div>
             </article>;
@@ -829,8 +823,8 @@ function LobbyInner() {
         <div className={`card ${styles.dock}`}>
           <div className={styles.dockRow}>
             {videoJoined ? <>
-              <button type="button" className={`icon-btn ${styles.devBtn}`} aria-pressed={!micOn} onClick={toggleMic} aria-label={micOn ? "Mute microphone" : "Unmute microphone"} data-off={!micOn || undefined}><Icon.mic size={20} /></button>
-              <button type="button" className={`icon-btn ${styles.devBtn}`} aria-pressed={!camOn} onClick={toggleCam} aria-label={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}><Icon.cam size={20} /></button>
+              <button type="button" className={styles.devBtn} disabled={deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Unmute microphone"} data-off={!micOn || undefined}><Icon.mic size={20} /></button>
+              <button type="button" className={styles.devBtn} disabled={deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}><Icon.cam size={20} /></button>
             </> : null}
             <span className={`muted ${styles.readyLine}`}>{readyLine}</span>
             {!videoJoined && <Button variant={WEB_DISCOVERY_ENABLED ? "secondary" : "primary"} loading={videoJoining} onClick={() => void enableLobbyMedia()} aria-label="Turn on camera and microphone"><Icon.cam size={19} /><span className={styles.wide}>Turn on camera &amp; mic</span><span className={styles.narrow}>Camera &amp; mic</span></Button>}

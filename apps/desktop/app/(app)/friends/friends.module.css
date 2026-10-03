@@ -21,10 +21,10 @@
 .headTitle {
   margin: 0;
   font-family: var(--font-display, var(--font-space-grotesk));
-  font-weight: 800;
-  font-size: 40px;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
   color: var(--text);
 }
 .headLede {
@@ -36,7 +36,7 @@
 }
 @media (max-width: 640px) {
   .headTitle {
-    font-size: 32px;
+    font-size: 24px;
   }
 }
 

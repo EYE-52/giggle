@@ -66,23 +66,28 @@ export default function FriendsPage() {
   // Guards in-flight refetches from setting state after unmount (the interval
   // is cleared on unmount, but a pending request can still resolve later).
   const mounted = useRef(true);
+  const refreshSeq = useRef(0);
+  const activeMutations = useRef(0);
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
 
   const refetch = useCallback(async () => {
+    if (activeMutations.current > 0) return;
+    const seq = ++refreshSeq.current;
     try {
       const [f, r] = await Promise.all([api.listFriends(), api.friendRequests()]);
-      if (!mounted.current) return;
+      if (!mounted.current || seq !== refreshSeq.current || activeMutations.current > 0) return;
       setFriends(f?.friends ?? []);
       setIncoming(r?.incoming ?? []);
       setOutgoing(r?.outgoing ?? []);
+      setRequested(new Set((r?.outgoing ?? []).map((u) => u.userId)));
       setLoadError(null);
     } catch {
-      if (mounted.current) setLoadError("Couldn't load your friends.");
+      if (mounted.current && seq === refreshSeq.current) setLoadError("Couldn't load your friends.");
     } finally {
-      if (mounted.current) setLoading(false);
+      if (mounted.current && seq === refreshSeq.current) setLoading(false);
     }
   }, []);
 
@@ -103,6 +108,7 @@ export default function FriendsPage() {
   // Debounced search (~300ms)
   const searchSeq = useRef(0);
   useEffect(() => {
+    const seq = ++searchSeq.current;
     const q = query.trim();
     if (q.length < 2) {
       setResults([]);
@@ -113,7 +119,6 @@ export default function FriendsPage() {
     }
     setSearching(true);
     setSearchError(null);
-    const seq = ++searchSeq.current;
     const t = setTimeout(async () => {
       try {
         const { users } = await api.searchUsers(q);
@@ -132,15 +137,29 @@ export default function FriendsPage() {
         if (seq === searchSeq.current) setSearching(false);
       }
     }, 300);
-    return () => clearTimeout(t);
+    return () => { clearTimeout(t); ++searchSeq.current; };
   }, [query, searchRetry]);
 
   // ── Actions (optimistic) ───────────────────────────────────────────────────
+  // Discard reads begun before a write; don't poll until all writes settle.
+  function startMutation() {
+    ++activeMutations.current;
+    ++refreshSeq.current;
+  }
+  function finishMutation() {
+    --activeMutations.current;
+    void refetch();
+  }
   async function handleAdd(u: Friend) {
+    startMutation();
     setRequested((s) => new Set(s).add(u.userId));
     setOutgoing((o) => (o.some((x) => x.userId === u.userId) ? o : [...o, u]));
     try {
-      await api.sendFriendRequest(u.userId);
+      const { status } = await api.sendFriendRequest(u.userId);
+      if (status === "friends") {
+        setFriends((f) => f.some((x) => x.userId === u.userId) ? f : [...f, u]);
+        setOutgoing((o) => o.filter((x) => x.userId !== u.userId));
+      }
     } catch (e) {
       setRequested((s) => {
         const n = new Set(s);
@@ -149,33 +168,41 @@ export default function FriendsPage() {
       });
       setOutgoing((o) => o.filter((x) => x.userId !== u.userId));
       toast((e as { message?: string })?.message || "Couldn't send friend request.", "error");
+    } finally {
+      finishMutation();
     }
   }
 
   async function handleAccept(u: FriendRequestUser) {
+    startMutation();
     setIncoming((i) => i.filter((x) => x.userId !== u.userId));
-    setFriends((f) => [{ userId: u.userId, name: u.name, image: u.image, online: !!u.online }, ...f]);
+    setFriends((f) => [{ ...u, online: !!u.online }, ...f.filter((x) => x.userId !== u.userId)]);
     try {
       await api.acceptFriend(u.userId);
-      refetch();
     } catch (e) {
       setIncoming((i) => (i.some((x) => x.userId === u.userId) ? i : [u, ...i]));
       setFriends((f) => f.filter((x) => x.userId !== u.userId));
       toast((e as { message?: string })?.message || "Couldn't accept friend request.", "error");
+    } finally {
+      finishMutation();
     }
   }
 
   async function handleDecline(u: FriendRequestUser) {
+    startMutation();
     setIncoming((i) => i.filter((x) => x.userId !== u.userId));
     try {
       await api.declineFriend(u.userId);
     } catch (e) {
       setIncoming((i) => (i.some((x) => x.userId === u.userId) ? i : [u, ...i]));
       toast((e as { message?: string })?.message || "Couldn't decline friend request.", "error");
+    } finally {
+      finishMutation();
     }
   }
 
   async function handleRemove(u: Friend) {
+    startMutation();
     setManageUser(null);
     setFriends((f) => f.filter((x) => x.userId !== u.userId));
     try {
@@ -183,11 +210,14 @@ export default function FriendsPage() {
     } catch (e) {
       setFriends((f) => (f.some((x) => x.userId === u.userId) ? f : [u, ...f]));
       toast((e as { message?: string })?.message || "Couldn't remove friend.", "error");
+    } finally {
+      finishMutation();
     }
   }
 
   async function handleBlock() {
     if (!confirmBlock || blocking) return;
+    startMutation();
     setBlocking(true);
     try {
       await api.blockUsers([confirmBlock.userId]);
@@ -207,6 +237,7 @@ export default function FriendsPage() {
       toast((e as { message?: string })?.message || "Couldn't block that account.", "error");
     } finally {
       setBlocking(false);
+      finishMutation();
     }
   }
 
@@ -224,7 +255,7 @@ export default function FriendsPage() {
 
   return (
     <div className={`gg-reveal gg-screen gg-screen-friends ${styles.screen}`}>
-      <h1 className={styles.srOnly}>Friends</h1>
+      <h1 className={styles.headTitle}>Friends</h1>
       {loadError && (
         <div role="alert" className={styles.alert}>
           <span>{loadError} Check your connection and try again.</span>
@@ -234,13 +265,6 @@ export default function FriendsPage() {
 
       {/* ── Add friends ──────────────────────────────────────────── */}
       <section className={`gg-friends-search ${styles.addSection}`}>
-        {showFirstRun && (
-          <div className={styles.firstRun}>
-            <div className={styles.firstKicker}>Friends</div>
-            <h2 className={styles.firstTitle}>Add friends.</h2>
-            <p className={styles.firstLede}>Search their display name to send a friend request and see when they’re online.</p>
-          </div>
-        )}
         <div className={`search ${styles.search}`}>
           <Icon.discover size={18} />
           <input
@@ -255,7 +279,7 @@ export default function FriendsPage() {
 
         {/* First run: a welcoming empty state — one line, the invite link,
             and a hint that friends can find you by your display name. */}
-        {showFirstRun && <InviteCard />}
+        {showFirstRun && !query.trim() && <InviteCard />}
 
         {query.trim() && (
           <ul className={`friend-list ${styles.list}`}>
@@ -631,7 +655,7 @@ function Row({ u, children, request = false }: { u: Friend | FriendRequestUser; 
     <li
       className={`friend gg-row ${request ? "request " : ""}${styles.row}`}
     >
-      <UserAvatar userId={u.userId} name={u.name} avatar={u.avatar} size="fill" online={!!u.online} />
+      <UserAvatar userId={u.userId} name={u.name} avatar={u.avatar} size={44} online={!!u.online} />
       <div className={styles.rowCopy}>
         <b>{u.name}</b>
         {u.online && <small className="on">Online</small>}

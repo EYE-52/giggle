@@ -21,9 +21,14 @@ export function captureErrorKind(error: unknown): CaptureDeviceState {
 export async function setTrackEnabled(
   track: { setMuted?: (muted: boolean) => Promise<void>; setEnabled?: (on: boolean) => Promise<void> } | null,
   on: boolean,
-  label: string
+  label: string,
+  releaseCapture = false
 ): Promise<void> {
   if (!track) throw new Error(`${label} is unavailable.`);
+  if (releaseCapture && track.setEnabled) {
+    await track.setEnabled(on);
+    return;
+  }
   try {
     if (!track.setMuted) throw new Error(`${label} cannot be muted.`);
     await track.setMuted(!on);
@@ -48,6 +53,7 @@ const loadAgoraSdk = (): Promise<any> => {
 
 export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   let client: any = null;
+  let sdk: any = null;
   let generation = 0;
   let joining = false;
   let localVideoTrack: any = null;
@@ -61,6 +67,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   const captureListeners = new Set<(state: CaptureState) => void>();
   const remoteUsers = new Map<string, any>();
   const remoteState = new Map<string, RemoteParticipant>();
+  let localPlayback: { track: any; element: unknown } | null = null;
+  const remotePlayback = new Map<string, { track: any; element: unknown }>();
 
   function mapConnState(state: string): ConnectionState | null {
     if (state === "CONNECTED") return "CONNECTED";
@@ -92,12 +100,47 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   }
 
   function resetState() {
+    localPlayback = null;
+    remotePlayback.clear();
+    sdk = null;
     localAudioTrack = null;
     localVideoTrack = null;
     remoteUsers.clear();
     remoteState.clear();
     emit();
     setCapture({ audio: "off", video: "off" });
+  }
+
+  async function setDeviceEnabled(kind: "audio" | "video", on: boolean) {
+    const attempt = generation;
+    const joinedClient = client, AgoraRTC = sdk;
+    if (!joinedClient || joining) throw new Error("Video is not connected yet.");
+    const label = kind === "audio" ? "Microphone" : "Camera";
+    let track = kind === "audio" ? localAudioTrack : localVideoTrack;
+    if (!track && on) {
+      setCapture({ [kind]: "pending" });
+      try {
+        track = await (kind === "audio" ? AgoraRTC.createMicrophoneAudioTrack() : AgoraRTC.createCameraVideoTrack());
+        if (attempt !== generation) throw new Error("Call cancelled.");
+        if (kind === "audio") localAudioTrack = track;
+        else localVideoTrack = track;
+        await joinedClient.publish([track]);
+        if (attempt !== generation) throw new Error("Call cancelled.");
+      } catch (error) {
+        closeTrack(track);
+        if (attempt === generation) {
+          if (kind === "audio") localAudioTrack = null;
+          else localVideoTrack = null;
+          setCapture({ [kind]: captureErrorKind(error) });
+        }
+        throw error;
+      }
+    } else if (track) {
+      await setTrackEnabled(track, on, label, kind === "video");
+    }
+    if (attempt !== generation) throw new Error("Call cancelled.");
+    if (kind === "video") localPlayback = null;
+    setCapture({ [kind]: on ? "active" : "off" });
   }
 
   return {
@@ -142,6 +185,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         const mod = await loadSdk();
         assertCurrent();
         const AgoraRTC = mod.default ?? mod;
+        sdk = AgoraRTC;
         try { AgoraRTC.setLogLevel?.(4); } catch {}
         try { AgoraRTC.disableLogUpload?.(); } catch {}
         client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -152,6 +196,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           if (joinedGeneration !== generation) return;
           try { await joinedClient.subscribe(user, mediaType); } catch { return; }
           if (joinedGeneration !== generation) return;
+          if (mediaType === "video" ? user.hasVideo === false : user.hasAudio === false) return;
           remoteUsers.set(String(user.uid), user);
           const previous = remoteState.get(String(user.uid));
           remoteState.set(String(user.uid), mergeRemoteParticipant(previous, user.uid, {
@@ -166,6 +211,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         });
         client.on("user-unpublished", (user: any, mediaType: "video" | "audio") => {
           if (joinedGeneration !== generation) return;
+          if (mediaType === "video") remotePlayback.delete(String(user.uid));
           remoteUsers.set(String(user.uid), user);
           const previous = remoteState.get(String(user.uid));
           remoteState.set(String(user.uid), mergeRemoteParticipant(previous, user.uid, {
@@ -177,6 +223,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           if (joinedGeneration !== generation) return;
           remoteUsers.delete(String(user.uid));
           remoteState.delete(String(user.uid));
+          remotePlayback.delete(String(user.uid));
           emit();
         });
         client.on("connection-state-change", (current: string) => {
@@ -263,16 +310,10 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       try { await leavingClient?.leave(); } catch {}
     },
     async setMicEnabled(on: boolean) {
-      const attempt = generation;
-      await setTrackEnabled(localAudioTrack, on, "Microphone");
-      if (attempt !== generation) throw new Error("Call cancelled.");
-      setCapture({ audio: on ? "active" : "off" });
+      await setDeviceEnabled("audio", on);
     },
     async setCamEnabled(on: boolean) {
-      const attempt = generation;
-      await setTrackEnabled(localVideoTrack, on, "Camera");
-      if (attempt !== generation) throw new Error("Call cancelled.");
-      setCapture({ video: on ? "active" : "off" });
+      await setDeviceEnabled("video", on);
     },
     async setRemoteAudioMuted(uid, muted) {
       const key = String(uid);
@@ -284,11 +325,18 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       emit();
     },
     playLocal(el?: unknown) {
-      if (localVideoTrack && el) localVideoTrack.play(el as HTMLElement);
+      if (!localVideoTrack || !el) return;
+      if (localPlayback && localPlayback.track === localVideoTrack && localPlayback.element === el) return;
+      localVideoTrack.play(el as HTMLElement);
+      localPlayback = { track: localVideoTrack, element: el };
     },
     playRemote(uid, el?: unknown) {
-      const user = remoteUsers.get(String(uid));
-      if (user?.videoTrack && el) user.videoTrack.play(el as HTMLElement);
+      const key = String(uid), track = remoteUsers.get(key)?.videoTrack;
+      if (!track || !el) return;
+      const current = remotePlayback.get(key);
+      if (current && current.track === track && current.element === el) return;
+      track.play(el as HTMLElement);
+      remotePlayback.set(key, { track, element: el });
     },
   };
 }

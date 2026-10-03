@@ -40,8 +40,8 @@ test("web clients expose initial capture truth and reject missing tracks", async
   const states = [];
   client.onCaptureState((state) => states.push(state));
   assert.deepEqual(states, [{ audio: "off", video: "off" }]);
-  await assert.rejects(client.setMicEnabled(true), /Microphone is unavailable/);
-  await assert.rejects(client.setCamEnabled(true), /Camera is unavailable/);
+  await assert.rejects(client.setMicEnabled(true), /not connected yet/);
+  await assert.rejects(client.setCamEnabled(true), /not connected yet/);
 });
 
 test("native connection states map onto the shared lifecycle", async () => {
@@ -87,4 +87,95 @@ test("native video dimensions normalize rotation and local uid exactly once", as
   assert.equal(normalizeNativeVideoDimensions("local-7", 42, 0, 480, 0), null);
   assert.equal(normalizeNativeVideoDimensions("local-7", 42, 640, NaN, 0), null);
   assert.equal(normalizeNativeVideoDimensions("local-7", 42, 640, 480, NaN), null);
+});
+
+function mediaHarness() {
+  const handlers = {}, publications = [];
+  const audio = { muted: [], play() {}, stop() {}, close() {}, setVolume() {}, async setMuted(value) { this.muted.push(value); } };
+  const video = { enabled: [], plays: [], muted: [], stop() {}, close() {}, play(element) { this.plays.push(element); }, async setEnabled(value) { this.enabled.push(value); }, async setMuted(value) { this.muted.push(value); } };
+  const sdkClient = { on(name, handler) { handlers[name] = handler; }, async join() {}, async leave() {}, async publish(tracks) { publications.push(...tracks); }, async subscribe() {} };
+  const sdk = { createClient: () => sdkClient, createMicrophoneAudioTrack: async () => audio, createCameraVideoTrack: async () => video };
+  return { handlers, publications, audio, video, sdk, sdkClient };
+}
+const mediaToken = { appId: 'test', channelName: 'room', rtcToken: 'test', uid: 1 };
+
+test('camera releases capture, microphone mutes transmission and repeated renders do not restart playback', async () => {
+  const { createVideoClient } = await import('../src/web.ts');
+  const h = mediaHarness(), client = createVideoClient(async () => h.sdk), states = [];
+  client.onCaptureState(state => states.push(state));
+  await client.join(mediaToken);
+  const host = {};
+  client.playLocal(host); client.playLocal(host); client.playLocal(host);
+  assert.equal(h.video.plays.length, 1);
+  await client.setMicEnabled(false);
+  assert.deepEqual(h.audio.muted, [true]);
+  assert.equal(states.at(-1).audio, 'off');
+  await client.setCamEnabled(false);
+  assert.deepEqual(h.video.enabled, [false]);
+  assert.deepEqual(h.video.muted, []);
+  assert.equal(states.at(-1).video, 'off');
+  await client.setCamEnabled(true);
+  client.playLocal(host); client.playLocal(host);
+  assert.equal(h.video.plays.length, 2);
+  assert.deepEqual(h.video.enabled, [false, true]);
+  const remoteTrack = { plays: [], play(element) { this.plays.push(element); } };
+  const remote = { uid: 2, hasVideo: true, videoTrack: remoteTrack };
+  await h.handlers['user-published'](remote, 'video');
+  client.playRemote(2, host); client.playRemote(2, host);
+  assert.equal(remoteTrack.plays.length, 1);
+  h.handlers['user-unpublished'](remote, 'video');
+  await h.handlers['user-published'](remote, 'video');
+  client.playRemote(2, host);
+  assert.equal(remoteTrack.plays.length, 2);
+  client.playRemote(2, {});
+  assert.equal(remoteTrack.plays.length, 3);
+  await client.leave();
+});
+
+test('a device omitted at join can be enabled later and published once', async () => {
+  const { createVideoClient } = await import('../src/web.ts');
+  const h = mediaHarness(), client = createVideoClient(async () => h.sdk), states = [];
+  client.onCaptureState(state => states.push(state));
+  await client.join(mediaToken, { audio: false, video: false });
+  await client.setCamEnabled(true);
+  await client.setMicEnabled(true);
+  assert.deepEqual(h.publications, [h.video, h.audio]);
+  assert.deepEqual(states.at(-1), { audio: 'active', video: 'active' });
+  await client.setCamEnabled(false); await client.setCamEnabled(true);
+  assert.equal(h.publications.length, 2);
+  await client.leave();
+});
+
+test('an unpublish while subscribe is pending cannot resurrect a remote camera', async () => {
+  const { createVideoClient } = await import('../src/web.ts');
+  const h = mediaHarness(), client = createVideoClient(async () => h.sdk);
+  let release;
+  h.sdkClient.subscribe = () => new Promise(resolve => { release = resolve; });
+  await client.join(mediaToken, { audio: false, video: false });
+  const remote = { uid: 2, hasVideo: true };
+  const pending = h.handlers['user-published'](remote, 'video');
+  remote.hasVideo = false;
+  h.handlers['user-unpublished'](remote, 'video');
+  release(); await pending;
+  assert.equal(client.remotes.find(user => user.uid === 2).hasVideo, false);
+  await client.leave();
+});
+
+test('leaving during a later camera capture closes the old track without changing a new call', async () => {
+  const { createVideoClient } = await import('../src/web.ts');
+  const h = mediaHarness(), client = createVideoClient(async () => h.sdk);
+  let release;
+  h.video.closed = 0; h.video.close = () => h.video.closed++;
+  h.sdk.createCameraVideoTrack = () => new Promise(resolve => { release = () => resolve(h.video); });
+  const states = []; client.onCaptureState(state => states.push(state));
+  await client.join(mediaToken, { audio: false, video: false });
+  const pending = client.setCamEnabled(true).then(() => null, error => error);
+  await client.leave();
+  await client.join(mediaToken, { audio: false, video: false });
+  release();
+  assert.match((await pending).message, /cancelled/);
+  assert.equal(h.video.closed, 1);
+  assert.equal(h.publications.length, 0);
+  assert.deepEqual(states.at(-1), { audio: 'off', video: 'off' });
+  await client.leave();
 });

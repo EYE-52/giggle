@@ -836,17 +836,13 @@ test("desktop lobby surfaces join-request decline failures", () => {
   assert.equal(decline.includes('setReqError("Couldn\'t decline — try again.");'), true);
 });
 
-test("desktop lobby rolls back mic and camera controls when video updates fail", () => {
+test("desktop lobby keeps device controls tied to capture truth", () => {
   const page = lobbySource();
-
-  assert.equal(page.includes("const previous = micOn;"), true);
-  assert.equal(page.includes("setMicOn(previous);"), true);
-  assert.equal(page.includes("setVideoError((e as { message?: string })?.message || \"Couldn't update microphone.\")"), true);
-  assert.equal(page.includes("const previous = camOn;"), true);
-  assert.equal(page.includes("setCamOn(previous);"), true);
-  assert.equal(page.includes("setVideoError((e as { message?: string })?.message || \"Couldn't update camera.\")"), true);
-  assert.equal(page.includes("try { vcRef.current?.setMicEnabled(next); } catch {}"), false);
-  assert.equal(page.includes("await vcRef.current?.setCamEnabled(next);"), false);
+  assert.equal(page.includes('vc.onCaptureState?.('), true);
+  assert.equal(page.includes('deviceBusyRef.current[kind] || !videoJoined'), true);
+  assert.equal(page.includes('await (kind === "audio" ? vc.setMicEnabled(next) : vc.setCamEnabled(next))'), true);
+  assert.equal(page.includes('setMicOn(next)'), false);
+  assert.equal(page.includes('setCamOn(next)'), false);
 });
 
 test("desktop encounter rolls back mic and camera controls when video updates fail", () => {
@@ -1762,7 +1758,7 @@ test("friends first run stays search-first and distinguishes request failures", 
 
   assert.equal(page.includes("No friends yet — search above to add people."), false);
   assert.equal(page.includes("Your crew starts here"), false);
-  assert.equal(page.includes("Add friends."), true);
+  assert.equal(page.includes(">Friends</h1>"), true);
   assert.equal(page.includes("const [loadError, setLoadError] = useState<string | null>(null);"), true);
   assert.equal(page.includes("const [searchError, setSearchError] = useState<string | null>(null);"), true);
   assert.equal(page.includes("Couldn't search for people."), true);
