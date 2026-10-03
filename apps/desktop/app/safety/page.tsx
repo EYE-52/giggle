@@ -50,7 +50,7 @@ export default function SafetyPage() {
       title="Tools and rules for safer encounters."
       intro={
         <>
-          Effective <time dateTime="2026-08-04">August 4, 2026</time>. Giggle is for verified adults 18+. These
+          Effective <time dateTime="2026-08-04">August 4, 2026</time>. Giggle is for adults 18+. These
           rules explain how to act, report harm, block contact, and seek help.
         </>
       }

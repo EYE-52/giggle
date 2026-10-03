@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/Icons";
 import { useEffect, useRef, useState } from "react";
-import { GiggleAvatar, type AvatarExpression, type AvatarFace, type AvatarGlasses, type AvatarFacialHair } from "../../../../packages/avatars/src";
+import { GiggleAvatar, type AvatarExpression, type AvatarFace, type AvatarFacialHair } from "../../../../packages/avatars/src";
 import { api, session, getMyAvatar, parseCharacter, encodeCharacter, CHARACTER_DEFAULTS, CHARACTER_OPTIONS, type CharacterConfig } from "@giggle/core";
 import { saveMyAvatar } from "@/lib/avatarSync";
 import PhotoMatch from "./PhotoMatch";
@@ -15,10 +15,11 @@ const presets: { name: string; settings: typeof initial }[] = [
   { name: "Bob", settings: { ...initial, hair: "bob", clothing: "sweater", earrings: "hoops", accessoryColor: "#d2a951", face: "round", skin: "#f6d4b8", hairColor: "#39302e", shirtColor: "#2f6f5e", accent: "#93b8d4", expression: "surprised", eyeSpacing: 40, faceWidth: 35 } },
   { name: "Swoop", settings: { ...initial, hair: "swoop", clothing: "jacket", face: "angular", skin: "#493126", hairColor: "#25252a", shirtColor: "#274e67", accessoryColor: "#e9a13b", accent: "#e5a9a0", glasses: "round", eyeSize: 45 } },
 ];
-const sections = ["Face", "Hair", "Details", "Outfit", "Colors"] as const;
+const sections = ["Face", "Hair", "Outfit", "Accessories", "Colors"] as const;
 type Section = typeof sections[number];
 const proportions = { faceWidth: "Face width", eyeSize: "Eye size", eyeSpacing: "Eye spacing", browTilt: "Brow angle", noseSize: "Nose size", mouthWidth: "Mouth width" } as const;
 const colors = { skin: "Skin tone", hairColor: "Hair color", shirtColor: "Clothing", accessoryColor: "Accessories", accent: "Background" } as const;
+const optionLabels: Record<string, string> = { none: "None", "cat-eye": "Cat-eye", sunglasses: "Sunglasses", bucket: "Bucket hat", tee: "T-shirt", collared: "Shirt", drops: "Drop earrings" };
 
 const palettes: Record<keyof typeof colors, string[]> = {
   skin: ["#f6d4b8", "#efbd98", "#dca47c", "#bd815e", "#a36c4b", "#86523e", "#684332", "#493126"],
@@ -95,23 +96,27 @@ export default function AvatarPlayground() {
       <section className={styles.controls} aria-label="Customize your character">
         <div className={styles.tabs} aria-label="Character controls">{sections.map(value => <button key={value} type="button" aria-pressed={section === value} onClick={() => setSection(value)}>{value}</button>)}</div>
         <div className={styles.panel}>
+          <h2 className={styles.sectionTitle}>{section}</h2>
           {section === "Face" && <>
             <fieldset><legend>Face shape</legend><div className={styles.choices}>{(["soft", "round", "angular"] as AvatarFace[]).map(value => <button key={value} type="button" aria-pressed={avatar.face === value} onClick={() => update("face", value)}><GiggleAvatar {...avatar} hair="bald" headwear="none" face={value} size={62} animated={false} label="" />{value}</button>)}</div></fieldset>
+            <label className={styles.toggle}><input type="checkbox" checked={avatar.freckles} onChange={e => update("freckles", e.target.checked)} /> Freckles</label>
             <details className={styles.adjustments}><summary>Fine-tune proportions</summary><div className={styles.sliderGrid}>{(Object.keys(proportions) as (keyof typeof proportions)[]).map(key => <label key={key} className={styles.slider}><span>{proportions[key]}<output>{avatar[key]}</output></span><input type="range" min="0" max="100" value={avatar[key]} aria-label={proportions[key]} onChange={e => update(key, Number(e.target.value))} /></label>)}</div></details>
           </>}
           {section === "Hair" && <>
             <fieldset><legend>Hairstyle</legend><div className={styles.choices}>{CHARACTER_OPTIONS.hair.map(value => <button key={value} type="button" aria-pressed={avatar.hair === value} onClick={() => update("hair", value)}><GiggleAvatar {...avatar} hair={value} headwear="none" size={68} animated={false} label="" />{value}</button>)}</div></fieldset>
             <fieldset><legend>Facial hair</legend><div className={styles.choices}>{(["none", "stubble", "beard", "mustache"] as AvatarFacialHair[]).map(value => <button key={value} type="button" aria-pressed={avatar.facialHair === value} onClick={() => update("facialHair", value)}>{value}</button>)}</div></fieldset>
           </>}
-          {section === "Details" && <>
-            <fieldset><legend>Glasses</legend><div className={styles.choices}>{(["none", "round", "square"] as AvatarGlasses[]).map(value => <button key={value} type="button" aria-pressed={avatar.glasses === value} onClick={() => update("glasses", value)}><GiggleAvatar {...avatar} glasses={value} size={68} animated={false} label="" />{value}</button>)}</div></fieldset>
-            <label className={styles.toggle}><input type="checkbox" checked={avatar.freckles} onChange={e => update("freckles", e.target.checked)} /> Freckles</label>
-          </>}
           {section === "Outfit" && <>
-            <fieldset><legend>Clothes</legend><div className={styles.choices}>{CHARACTER_OPTIONS.clothing.map(value => <button key={value} type="button" aria-pressed={avatar.clothing === value} onClick={() => update("clothing", value)}><GiggleAvatar {...avatar} clothing={value} size={76} animated={false} label="" />{value}</button>)}</div></fieldset>
+            <fieldset><legend>Clothes</legend><div className={styles.choices}>{CHARACTER_OPTIONS.clothing.map(value => <button key={value} type="button" aria-pressed={avatar.clothing === value} onClick={() => update("clothing", value)}><GiggleAvatar {...avatar} clothing={value} size={76} animated={false} label="" />{optionLabels[value] || value}</button>)}</div></fieldset>
             <ColorChoices name="shirtColor" value={avatar.shirtColor} onChange={value => update("shirtColor", value)} />
-            <fieldset><legend>Headwear</legend><div className={styles.choices}>{CHARACTER_OPTIONS.headwear.map(value => <button key={value} type="button" aria-pressed={avatar.headwear === value} onClick={() => update("headwear", value)}><GiggleAvatar {...avatar} headwear={value} size={68} animated={false} label="" />{value}</button>)}</div></fieldset>
-            <fieldset><legend>Earrings</legend><div className={styles.choices}>{CHARACTER_OPTIONS.earrings.map(value => <button key={value} type="button" aria-pressed={avatar.earrings === value} onClick={() => update("earrings", value)}>{value}</button>)}</div></fieldset>
+          </>}
+          {section === "Accessories" && <>
+            <fieldset><legend>Glasses</legend><div className={styles.choices}>{CHARACTER_OPTIONS.glasses.map(value => <button key={value} type="button" aria-pressed={avatar.glasses === value} onClick={() => update("glasses", value)}><GiggleAvatar {...avatar} glasses={value} size={68} animated={false} label="" />{optionLabels[value] || value}</button>)}</div></fieldset>
+            <fieldset><legend>Hats</legend><div className={styles.choices}>{CHARACTER_OPTIONS.headwear.map(value => <button key={value} type="button" aria-pressed={avatar.headwear === value} onClick={() => update("headwear", value)}><GiggleAvatar {...avatar} headwear={value} size={68} animated={false} label="" />{optionLabels[value] || value}</button>)}</div></fieldset>
+            <fieldset><legend>Earrings</legend><div className={styles.choices}>{CHARACTER_OPTIONS.earrings.map(value => <button key={value} type="button" aria-pressed={avatar.earrings === value} onClick={() => update("earrings", value)}><GiggleAvatar {...avatar} earrings={value} headphones={false} size={68} animated={false} label="" />{optionLabels[value] || value}</button>)}</div></fieldset>
+            <fieldset><legend>Necklaces</legend><div className={styles.choices}>{CHARACTER_OPTIONS.necklace.map(value => <button key={value} type="button" aria-pressed={avatar.necklace === value} onClick={() => update("necklace", value)}><GiggleAvatar {...avatar} necklace={value} size={68} animated={false} label="" />{optionLabels[value] || value}</button>)}</div></fieldset>
+            <label className={styles.toggle}><input type="checkbox" checked={avatar.headphones} onChange={e => update("headphones", e.target.checked)} /> Headphones</label>
+            <ColorChoices name="accessoryColor" value={avatar.accessoryColor} onChange={value => update("accessoryColor", value)} />
           </>}
           {section === "Colors" && (Object.keys(colors) as (keyof typeof colors)[]).map(key => <ColorChoices key={key} name={key} value={avatar[key]} onChange={value => update(key, value)} />)}
         </div>

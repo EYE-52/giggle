@@ -22,7 +22,7 @@ export default function SupportPage() {
       title="Get help from Giggle."
       intro={
         <>
-          Effective <time dateTime="2026-08-04">August 4, 2026</time>. Giggle is for verified users 18+. Choose a
+          Effective <time dateTime="2026-08-04">August 4, 2026</time>. Giggle is for adults 18+. Choose a
           subject below to open your email app. We may verify your identity before acting on account or data requests.
         </>
       }

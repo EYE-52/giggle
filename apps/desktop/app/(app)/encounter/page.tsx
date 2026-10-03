@@ -1,4 +1,5 @@
 "use client";
+import { describeVideoError } from "@/lib/videoError";
 import { useState, useEffect, useRef, useCallback, Suspense, type CSSProperties } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -39,20 +40,6 @@ import { CallNotice } from "@/components/CallNotice";
 
 
 
-// Translate a thrown ApiError / Agora error into a friendly, non-technical
-// message for the video banner.
-function describeVideoError(e: unknown): string {
-  const code = (e as { code?: string })?.code ?? "";
-  const msg = (e as { message?: string })?.message ?? String(e ?? "");
-  const blob = `${code} ${msg}`;
-  if (/AGORA_NOT_CONFIGURED|NOT_CONFIGURED|not available|unavailable/i.test(blob)) {
-    return "Video isn't available right now.";
-  }
-  if (/PERMISSION_DENIED|NotAllowed|NotAllowedError|Permission denied/i.test(blob)) {
-    return "Camera/mic blocked — others can't see or hear you. Check browser permissions.";
-  }
-  return "Couldn't connect video — you can still use chat.";
-}
 
 const KEYFRAMES = `
 /* Thumbnails crop for density. Focused media stays fully visible and uses a
@@ -127,14 +114,14 @@ const KEYFRAMES = `
 [data-testid="encounter-shell"] button:focus-visible,
 [data-testid="encounter-shell"] input:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px #0B0B0F, 0 0 0 4px var(--violet, #7C5CFF);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 }
 [data-testid="encounter-shell"] input {
   transition: border-color .18s cubic-bezier(.4,0,.2,1), box-shadow .18s cubic-bezier(.4,0,.2,1), background .18s cubic-bezier(.4,0,.2,1);
 }
 [data-testid="encounter-shell"] input:focus {
-  border-color: var(--violet, #7C5CFF) !important;
-  box-shadow: 0 0 0 3px rgba(124,92,255,0.22);
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 @media (prefers-reduced-motion: reduce) {
   [data-testid="encounter-shell"] *,
@@ -692,11 +679,16 @@ function EncounterInner() {
   // while connecting so no pill is faked).
   const micOnFor = (isLocal: boolean, uid: number | undefined): boolean | undefined =>
     isLocal ? micOn : remoteFor(uid)?.hasAudio;
-  // Fallback status: a remote we know about but with no tracks yet is
-  // "Connecting…"; a connected remote without video is "Camera off".
+  // Do not leave a disconnected call looking as if video is still loading.
   const statusTextFor = (isLocal: boolean, uid: number | undefined): string => {
-    if (isLocal) return "Camera off";
-    return remoteFor(uid) ? "Camera off" : "Connecting…";
+    if (!videoJoined && connState === "DISCONNECTED") return "Video disconnected";
+    if (isLocal) {
+      if (captureState.video === "denied") return "Camera blocked";
+      if (captureState.video === "unavailable") return "Camera unavailable";
+      if (captureState.video === "pending") return "Starting camera…";
+      return "Camera off";
+    }
+    return remoteFor(uid) ? "Camera off" : connState === "CONNECTED" ? "Waiting for video" : "Connecting…";
   };
   // Real speaking state from audio levels (never faked).
   const isSpeakingFor = (isLocal: boolean, uid: number | undefined): boolean => {
@@ -737,7 +729,7 @@ function EncounterInner() {
       else await client.setCamEnabled(!camOn);
     } catch (error) {
       if (generation === videoGenerationRef.current)
-        setVideoError((error as { message?: string })?.message || "Couldn't update your device.");
+        setVideoError(describeVideoError(error));
     } finally {
       if (generation === videoGenerationRef.current) {
         deviceBusyRef.current = false;
@@ -1127,9 +1119,7 @@ function EncounterInner() {
         ? "No usable camera was found."
         : null,
   ].filter((message): message is string => !!message);
-  const recoveryMessages = [
-    ...new Set([videoError, ...captureIssues].filter((message): message is string => !!message)),
-  ];
+  const recoveryMessages = videoError ? [videoError] : captureIssues;
   const transientNotice = reported
     ? "reported"
     : connState === "RECONNECTING" && !reconnectDismissed

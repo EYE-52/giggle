@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { TopNav } from "@/components/TopNav";
 import { ToastProvider } from "@/components/Toast";
 import { Logomark } from "@/components/Brand";
-import { session, connectSocket, getMyAvatar } from "@giggle/core";
+import { session, connectSocket, getMyAvatar, api, syncEarnedWallet } from "@giggle/core";
 import { AvatarPicker } from "@/components/AvatarPicker";
 import { reconcileMyAvatar } from "@/lib/avatarSync";
 import { AgeGate } from "@/components/AgeGate";
@@ -27,6 +27,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const identityRouteBlocked = identityOnlyAccess && session.accountStatus !== "active" && pathname !== "/profile";
   const identityProfile = identityOnlyAccess && pathname === "/profile";
   const [avatarPrompt, setAvatarPrompt] = useState(false);
+
+  useEffect(() => {
+    if (!authReady || !hasAdultAccess || pathname === "/premium") return;
+    let current = true;
+    void api.getWallet().then(wallet => { if (current) syncEarnedWallet(wallet); }).catch(() => {});
+    return () => { current = false; };
+  }, [authReady, hasAdultAccess, pathname]);
 
   // Auth gate: the whole (app) area requires a session. In production the only
   // way in is real OAuth — unauthenticated users are sent to /signin. In local

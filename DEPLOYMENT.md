@@ -84,6 +84,19 @@ From commit `279d64a`, temporary access is evaluated from the server setting and
 - Approved squad requests enter the lobby automatically. Encounter device controls follow actual capture state and cannot show a disconnected device as enabled.
 - Local validation and remaining physical-device gaps are recorded in [the prelaunch QA report](docs/superpowers/audits/2026-10-04-launch-qa.md). This does not close the external release gates or certify real camera/microphone behavior.
 
+## Earned credits and Giggle+ (4 October 2026)
+
+The web Wallet has no checkout, subscription pricing, token packs or automatic renewal. The legacy preview billing processor remains disabled in production. Credits are noncash app rewards; existing `User.tokens` stores their server balance.
+
+- A successful new-account referral gives the inviter and new member 100 credits each. Existing accounts cannot apply a referral again. The landing/sign-in flow preserves the invite code.
+- Leading a squad earns 25 credits once per account. `GET /api/me/wallet` checks authoritative squad membership and atomically records `first_squad` in `earnedRewardIds`; refreshes and concurrent requests cannot duplicate it. This also allows existing squad leaders to earn the reward once.
+- `POST /api/me/wallet/redeem` accepts only `perkId: "giggle_plus"`. The server atomically spends 200 credits and grants a seven-day pass. Active passes and insufficient balances return a conflict without spending. These values live in `server/src/services/walletService.js`.
+- Plus provides eight-person squad capacity and a profile badge. Free squads allow four. Capacity is calculated from the current leader's live, unexpired entitlement; an expired pass returns to four. Existing members are not evicted when a pass expires. Legacy permanent premium grants without an expiry remain supported.
+- Wallet reads/redemption require normal adult API authorization and use private, no-store responses. Cached client balances are display-only and are replaced by the server response, including debits.
+- Cover styles, character accessories and color controls remain freely available. Do not describe already-free cosmetics as paid perks. The native Wallet no longer advertises subscriptions or cosmetic purchases; pass redemption is currently on the website.
+
+Topics can be selected at squad creation and edited in the lobby. Popular topics count currently open squads rather than inventing a historical trend. Client and server reject known sexual/hateful/harmful terms, including common obfuscation, but this keyword filter does not replace moderation operations or detect every language and evasion.
+
 ## Runtime
 
 - **Frontend runtime:** Node 22.13.0 and pnpm 10.x.

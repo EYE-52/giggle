@@ -122,11 +122,13 @@ test("public legal, safety, and support pages state the adult policy without fal
 
   const pages = [privacySource(), termsSource(), safetySource(), supportSource()];
   for (const page of pages) {
-    assert.match(page, /verified (?:users |adults )?18\+/i);
+    assert.match(page, /adults 18\+/i);
+    assert.doesNotMatch(page, /for verified (?:users |adults )?18\+/i);
     assert.match(page, /2026-08-04/);
   }
 
   const allCopy = pages.join("\n");
+  assert.match(privacySource(), /When hosted verification is enabled, Yoti performs the check/);
   assert.doesNotMatch(allCopy, /Giggle records calls/i);
   assert.doesNotMatch(allCopy, /stores raw Yoti (?:selfies|documents)/i);
   assert.doesNotMatch(allCopy, /accepts sexual content/i);
@@ -738,7 +740,7 @@ test("desktop lobby ready toggle surfaces backend failures", () => {
 
 test("desktop lobby requires every online member to be ready before starting a match", () => {
   const page = lobbySource();
-  const proceedFindMatch = page.match(/async function proceedFindMatch\(\) \{([\s\S]*?)\n  \}\n\n  function toggleVibeChip/)?.[1] ?? "";
+  const proceedFindMatch = page.match(/async function proceedFindMatch\(\) \{([\s\S]*?)\n  \}\n\n  async function saveVibes/)?.[1] ?? "";
 
   assert.equal(page.includes("try { await api.setReady(squadId, true); } catch {}"), false);
   assert.equal(page.includes("try { await api.setLobbyVideo(squadId, true); } catch {}"), false);
@@ -1132,10 +1134,8 @@ test("premium page does not keep unreachable preview checkout modal state", () =
 });
 
 test("premium back button uses a left-facing icon", () => {
-  const page = readFileSync(path.join(__dirname, "../app/(app)/premium/page.tsx"), "utf8");
-
-  assert.equal(page.includes("rotate(180deg)"), true);
-  assert.equal(page.includes('display: "inline-flex"'), true);
+  const css = readFileSync(path.join(__dirname, "../app/(app)/premium/premium.module.css"), "utf8");
+  assert.match(css, /\.back svg.*rotate\(180deg\)/);
 });
 
 test("premium token perks do not sell backend priority features", () => {
@@ -1151,12 +1151,10 @@ test("premium token perks do not sell backend priority features", () => {
   assert.equal(page.includes("1080p HD Video"), false);
 });
 
-test("premium token perks do not present local-only redemption as production checkout", () => {
+test("wallet uses authenticated server redemption and keeps payment UI hidden", () => {
   const page = readFileSync(path.join(__dirname, "../app/(app)/premium/page.tsx"), "utf8");
-
-  assert.equal(page.includes("const canRedeemPerks = billing.canRedeemTokenPerksLocally();"), true);
-  assert.equal(page.includes("Perk redemption is in launch prep"), true);
-  assert.equal(page.includes('<Button size="sm" variant="secondary" disabled aria-describedby={comingSoonDescId}>'), true);
+  assert.match(page, /await api\.redeemPlus\(\)/);
+  assert.doesNotMatch(page, /billing\.purchase|priceUsd|TOKEN_PERKS|spendOnCoverThemes|spendOnVibePack/);
 });
 
 test("profile premium upsell does not advertise unbuilt priority or HD features", () => {
@@ -1181,11 +1179,11 @@ test("desktop lobby keeps monetization out of the squad-ready flow", () => {
 
 
 
-test("desktop wallet does not promise production redemption before it launches", () => {
+test("wallet describes earned credits and available Plus benefits", () => {
   const page = readFileSync(path.join(__dirname, "../app/(app)/premium/page.tsx"), "utf8");
-
-  assert.equal(page.includes("Earn and track tokens for your squad identity."), true);
-  assert.equal(page.includes("Earn tokens, then spend them on your squad identity."), false);
+  assert.match(page, /Squads with up to eight people/);
+  assert.match(page, /no payment or automatic renewal/);
+  assert.doesNotMatch(page, /Monthly token stipend|bonus tokens on packs/);
 });
 
 test("profile shows only account controls backed by real behavior", () => {
@@ -1581,10 +1579,10 @@ test("desktop protected home actions do not create dev sessions", () => {
   assert.equal(page.includes("return false;"), true);
 });
 
-test("desktop home creates a neutral squad without hidden vibe state", () => {
+test("desktop home creates a squad with explicitly selected topics", () => {
   const page = desktopHomeSource();
 
-  assert.equal(page.includes("api.createSquad({ squadName: name.trim(), tags: [] })"), true);
+  assert.equal(page.includes("api.createSquad({ squadName: name.trim(), tags: topics })"), true);
   assert.equal(page.includes("selectedVibes"), false);
   assert.equal(page.includes("VIBE_OPTIONS"), false);
 });
@@ -1819,7 +1817,7 @@ test("profile keeps one compact identity surface beside settings from tablet upw
   assert.equal(page.includes("const avatarSize = isPhone ? 88 : 120;"), true);
   assert.equal(page.includes('flexDirection: isPhone ? "row" : "column"'), true);
   assert.equal(page.includes('gridTemplateColumns: isTablet ? "240px minmax(0, 1fr)" : "264px minmax(0, 1fr)"'), true);
-  assert.equal((identityColumn.match(/Your tokens and available extras/g) ?? []).length, 1);
+  assert.equal((identityColumn.match(/Your earned credits and rewards/g) ?? []).length, 1);
 });
 
 test("profile load failures stay visible and retryable before saving demographics", () => {

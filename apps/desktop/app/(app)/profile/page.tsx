@@ -435,7 +435,7 @@ export default function ProfilePage() {
                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            {/* Verified badge — premium members only */}
+            {/* Giggle+ badge — never a verification claim */}
             {isPremium && (
               <div style={{
                 position: "absolute", bottom: 4, right: 4, width: 24, height: 24,
@@ -443,7 +443,7 @@ export default function ProfilePage() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 border: "2.5px solid var(--bg)",
               }}>
-                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden><path d="M2 5.5 4.5 8 9 3" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <span role="img" aria-label="Giggle Plus"><Icon.sparkle size={14} color="var(--on-accent)" /></span>
               </div>
             )}
           </button>
@@ -457,15 +457,15 @@ export default function ProfilePage() {
           {/* Giggle+ status stays inside the identity surface. */}
           <div style={{ width: "100%", paddingTop: 16, borderTop: "1px solid var(--border)" }}>
             {isPremium ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <button type="button" aria-label="View Wallet and Giggle Plus details" onClick={() => router.push("/premium")} className="gg-press-card" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: 0, border: 0, background: "transparent", color: "inherit", textAlign: "left", cursor: "pointer", minHeight: 44 }}>
                 <div style={{ width: 36, height: 36, borderRadius: "var(--radius-control, 14px)", background: "var(--accent-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <Icon.star size={18} color={violet} fill={violet} />
                 </div>
                 <div>
                   <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 14, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Giggle+ Active</div>
-                  <div style={{ color: textMuted, fontSize: 12 }}>Premium member</div>
+                  <div style={{ color: textMuted, fontSize: 12 }}>View your earned credits</div>
                 </div>
-              </div>
+              </button>
             ) : (
               <button
                 type="button"
@@ -476,7 +476,7 @@ export default function ProfilePage() {
               >
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 15, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Wallet &amp; Giggle+</div>
-                  <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Your tokens and available extras</div>
+                  <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Your earned credits and rewards</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
                   <Icon.chevron size={18} color={textMuted} />

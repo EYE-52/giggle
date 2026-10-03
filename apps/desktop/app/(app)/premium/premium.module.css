@@ -1,0 +1,35 @@
+.page { display:flex; flex-direction:column; gap:24px; max-width:860px; margin:auto; padding-bottom:40px; color:var(--text); }
+.back { align-self:flex-start; display:flex; align-items:center; gap:8px; min-height:44px; padding:0; border:0; background:transparent; color:var(--text-muted); cursor:pointer; font:inherit; font-size:13px; }
+.back svg { transform:rotate(180deg); }
+.header { display:flex; align-items:center; justify-content:space-between; gap:24px; }
+.header h1 { margin:0; font:700 30px/1.1 var(--font-display); letter-spacing:-.02em; }
+.header p { color:var(--text-muted); font-size:14px; line-height:1.5; margin:10px 0 0; max-width:40ch; }
+.balance { flex:none; display:flex; flex-direction:column; gap:4px; padding:12px 20px; border-left:1px solid var(--border); }
+.balance span { font-size:12px; color:var(--text-muted); }
+.balance strong { font:700 44px/1.1 var(--font-display); font-variant-numeric:tabular-nums; }
+.plus { padding:24px; border:1px solid var(--border); border-radius:var(--radius-card,24px); background:linear-gradient(135deg,var(--surface),color-mix(in srgb,var(--accent-soft) 60%,var(--surface))); box-shadow:var(--shadow-card); }
+.plusHeading { display:flex; align-items:center; gap:14px; }
+.star { display:grid; place-items:center; width:52px; height:52px; border-radius:var(--radius-control,16px); background:var(--accent-soft); color:var(--accent); }
+.plus h2, .earn h2 { margin:0; font:700 24px/1.2 var(--font-display); }
+.plus p { margin:5px 0 0; color:var(--text-muted); font-size:13px; line-height:1.5; }
+.active { margin-left:auto; color:var(--text); background:var(--accent-soft); border-radius:999px; padding:5px 10px; font-size:12px; font-weight:650; }
+.plus ul { margin:24px 0; padding:0; list-style:none; display:grid; gap:12px; }
+.plus li { display:flex; align-items:center; gap:10px; font-size:14px; line-height:1.5; }
+.plus li svg { flex:none; color:var(--accent); }
+.unlock { display:flex; justify-content:space-between; align-items:center; gap:16px; padding-top:20px; border-top:1px solid var(--border); font-size:13px; font-weight:600; }
+.plus p.progress { margin-top:12px; }
+.redeemed { display:flex; align-items:center; gap:7px; min-height:44px; color:inherit; }
+.earn { display:grid; gap:16px; }
+.reward { display:flex; align-items:center; gap:14px; padding:16px 0; border-block:1px solid var(--border); }
+.reward > span { display:grid; gap:5px; flex:1; min-width:0; font-size:14px; }
+.reward small { color:var(--text-muted); font-size:12px; line-height:1.5; }
+.reward strong { display:flex; gap:5px; align-items:center; font-size:13px; flex:none; }
+.error { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13px; color:var(--coral); }
+.notice { color:var(--text); background:var(--accent-soft); padding:12px 16px; border-radius:var(--radius-control,12px); font-size:13px; line-height:1.5; margin:0; }
+.confirm { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:10px; }
+.page button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+@media(max-width:600px) { .page { gap:20px; } .header { align-items:flex-start; flex-direction:column; gap:18px; } .header h1 { font-size:26px; } .balance { flex-direction:row; align-items:baseline; gap:14px; border:0; padding:0; } .balance strong { font-size:36px; } .plus { padding:18px; } .unlock { align-items:stretch; flex-direction:column; gap:12px; } .reward { flex-wrap:wrap; } .reward > span { flex-basis:65%; } .reward > button { width:100%; } }
+:global(html[data-skin="scrap"]) .plus { position:relative; background:var(--sb-note); color:var(--sb-note-ink); border-radius:2px; box-shadow:1px 4px 6px var(--sb-shadow); }
+:global(html[data-skin="scrap"]) .plus::before { content:""; position:absolute; pointer-events:none; width:74px; height:22px; top:-10px; left:calc(50% - 37px); background:var(--sb-tape); transform:rotate(-3deg); box-shadow:0 1px 1px var(--sb-shadow); }
+:global(html[data-skin="scrap"]) .plus p { color:var(--sb-note-muted); }
+:global(html[data-skin="scrap"]) .plus h2 { font-family:var(--font-hand); }

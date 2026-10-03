@@ -1,0 +1,8 @@
+.picker { min-width:0; margin:0; padding:0; border:0; color:var(--text); }
+.picker legend { display:flex; gap:10px; font-size:14px; font-weight:700; }
+.picker legend span, .picker p { color:var(--text-muted); font-size:12px; font-weight:400; }
+.picker p { margin:6px 0 12px; line-height:1.5; }
+.options { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.add { display:flex; gap:8px; align-items:center; }
+.add input { flex:1; min-width:0; }
+.picker p.error { color:var(--coral); }

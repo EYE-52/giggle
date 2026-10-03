@@ -6,7 +6,7 @@ import { Card } from '../../components/Card';
 import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
 import { COLORS, SPACE } from '../../constants/theme';
-import { api, session, TOKEN_PERKS, type ReferralInfo } from '@giggle/core';
+import { api, session, type ReferralInfo } from '@giggle/core';
 
 export default function PremiumScreen() {
   const router = useRouter();
@@ -63,18 +63,18 @@ export default function PremiumScreen() {
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text style={styles.heading}>Wallet</Text>
-            <Text style={styles.sub}>Earn and track tokens for your squad identity.</Text>
+            <Text style={styles.sub}>Earn credits by bringing friends to Giggle.</Text>
           </View>
           <Card style={styles.balanceCard}>
             <Text style={styles.balanceLabel}>Balance</Text>
             <View style={styles.balanceRow}>
               <Text style={styles.balanceValue}>{balance}</Text>
-              <Text style={styles.balanceUnit}>tokens</Text>
+              <Text style={styles.balanceUnit}>credits</Text>
             </View>
           </Card>
         </View>
 
-        <Text style={styles.sectionLabel}>Earn tokens</Text>
+        <Text style={styles.sectionLabel}>Earn credits</Text>
         <Card style={styles.referralCard}>
           <View style={styles.referralTop}>
             <View style={styles.iconBox}>
@@ -84,7 +84,7 @@ export default function PremiumScreen() {
               <Text style={styles.cardTitle}>Invite friends</Text>
               <Text style={styles.cardBody}>
                 {referral
-                  ? `${referral.referralCount} joined · ${referral.rewardPerInvite} tokens each`
+                  ? `${referral.referralCount} joined · ${referral.rewardPerInvite} credits each`
                   : loading ? 'Loading your referral code…' : 'Referral details unavailable'}
               </Text>
             </View>
@@ -117,35 +117,15 @@ export default function PremiumScreen() {
         )}
         {!!shareError && <Text style={styles.shareError} accessibilityLiveRegion="polite">{shareError}</Text>}
 
-        <Text style={styles.sectionLabel}>Token perks</Text>
-        <Text style={styles.sectionNote}>Your balance is tracked now. Server-backed perk redemption is launching soon.</Text>
-        <View style={styles.perkList}>
-          {TOKEN_PERKS.map((perk, index) => (
-              <View key={perk.id} style={[styles.perkRow, index > 0 && styles.perkDivider]}>
-                <View style={styles.iconBox}>
-                  <Icon.star size={19} color={COLORS.violet} fill="transparent" />
-                </View>
-                <View style={styles.perkCopy}>
-                  <Text style={styles.perkName}>{perk.name}</Text>
-                  <Text style={styles.perkDescription}>{perk.description}</Text>
-                </View>
-                <View style={styles.perkMeta}>
-                  <Text style={styles.perkCost}>{perk.tokenCost} tokens</Text>
-                  <Text style={styles.comingSoon} numberOfLines={1}>Coming soon</Text>
-                </View>
-              </View>
-          ))}
-        </View>
-
         <Card style={styles.membershipCard}>
           <View style={styles.iconBox}>
             <Icon.star size={20} color={COLORS.lime} fill={COLORS.lime} />
           </View>
           <View style={styles.membershipCopy}>
             <Text style={styles.cardTitle}>Giggle+</Text>
-            <Text style={styles.cardBody}>Monthly token stipend and bonus tokens on packs.</Text>
+            <Text style={styles.cardBody}>Use earned credits on gigglemeet.com to unlock a seven-day pass for bigger squads and a profile badge.</Text>
           </View>
-          <Text style={styles.launchStatus}>Launching soon</Text>
+
         </Card>
       </ScrollView>
     </Screen>

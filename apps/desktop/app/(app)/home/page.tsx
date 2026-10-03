@@ -22,6 +22,8 @@ import { Icon } from "@/components/Icons";
 import { useToast } from "@/components/Toast";
 import { useDiscoveryEnabled } from "@/lib/discovery";
 import { pollWhileVisible } from "@/lib/poll";
+import { popularTopics } from "@/lib/topics";
+import { TopicPicker } from "@/components/TopicPicker";
 import styles from "./home.module.css";
 
 const rank: Record<string, number> = { in_encounter: 0, matched: 1, searching: 2, idle: 3 };
@@ -58,6 +60,7 @@ export default function HomePage() {
   const action = useRef(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
+  const [topics, setTopics] = useState<string[]>([]);
   const [createError, setCreateError] = useState("");
   const [leaving, setLeaving] = useState<MySquadLite | null>(null);
   const [requested, setRequested] = useState<string[]>([]);
@@ -166,6 +169,7 @@ export default function HomePage() {
       // no squad yet: start one, then invite them straight away
       setInviteAfterCreate(friend);
       setName("");
+      setTopics([]);
       setCreateError("");
       setCreateOpen(true);
       return;
@@ -185,6 +189,7 @@ export default function HomePage() {
     setInviteAfterCreate(null);
     if (!ensureAuthed()) return;
     setName("");
+    setTopics([]);
     setCreateError("");
     setCreateOpen(true);
   }
@@ -199,7 +204,7 @@ export default function HomePage() {
     setPending("create");
     setCreateError("");
     try {
-      const squad = await api.createSquad({ squadName: name.trim(), tags: [] });
+      const squad = await api.createSquad({ squadName: name.trim(), tags: topics });
       if (inviteAfterCreate) await api.inviteUserToSquad(squad.squadId, inviteAfterCreate.userId).catch(() => {});
       setCreateOpen(false);
       router.push(`/lobby?squad=${squad.squadId}`);
@@ -401,7 +406,7 @@ export default function HomePage() {
               ) : !openSquads.length ? (
                 <p className={styles.quiet}>No open squads right now.</p>
               ) : (
-                <ul className={styles.list}>
+                <><ul className={styles.list}>
                   {openSquads.slice(0, 3).map((s) => {
                     const member = squads?.some((m) => m.squadId === s.squadId);
                     const full = s.memberCount >= s.maxSlots;
@@ -425,6 +430,10 @@ export default function HomePage() {
                     );
                   })}
                 </ul>
+                {popularTopics(openSquads).length > 0 && <section className={styles.topics} aria-label="Popular topics">
+                  <h4>Popular topics <small>In open squads</small></h4>
+                  <div>{popularTopics(openSquads).slice(0, 6).map(topic => <Link key={topic.key} href={`/discover?vibe=${encodeURIComponent(topic.key)}`} className="gg-chip chip">{topic.label}<small>{topic.count}</small></Link>)}</div>
+                </section>}</>
               )}
             </div>
           )}
@@ -498,6 +507,7 @@ export default function HomePage() {
                 disabled={!!pending}
               />
             </label>
+            <TopicPicker value={topics} onChange={setTopics} disabled={!!pending} />
             {createError && (
               <p role="alert" className="gg-inline-error">
                 {createError}

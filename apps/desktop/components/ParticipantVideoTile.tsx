@@ -131,7 +131,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
     </div>
     {hasVideo && fit === "fit" && <video ref={backdrop} data-media-backdrop className={styles.backdrop} muted playsInline aria-hidden="true" />}
     <div ref={el => { host.current = el; videoRef?.(el); }} data-media-host className={styles.media} style={{ visibility: hasVideo ? "visible" : "hidden" }} />
-    <span className={`${styles.name} vname`}>{isLocal ? "You" : name}{micOn === false && <span aria-label="Microphone off"> · Mic off</span>}{mutedForMe && <span aria-label="Muted for you"> · Muted for you</span>}{isSpeaking && !mutedForMe && <span className={styles.speaking} aria-label="Speaking" />}</span>
+    <span className={`${styles.name} vname`}><span className={styles.personName}>{isLocal ? "You" : name}</span>{micOn === false && <span aria-label="Microphone off"> · Mic off</span>}{mutedForMe && <span aria-label="Muted for you"> · Muted for you</span>}{isSpeaking && !mutedForMe && <span className={styles.speaking} aria-label="Speaking" />}</span>
     <button ref={button} type="button" className={styles.trigger} aria-label={`${isLocal ? "Your" : `${name}'s`} options`} aria-haspopup="dialog" aria-expanded={panel !== null}
       onClick={e => {
         if (!size || e.detail === 0) { openMenu(); return; } // keyboard opens at once

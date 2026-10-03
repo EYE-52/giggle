@@ -10,6 +10,7 @@ import { Button } from "@/components/Button";
 import { useViewport } from "@/components/useViewport";
 import { api, session, type PublicSquad } from "@giggle/core";
 import { pollWhileVisible } from "@/lib/poll";
+import { normalizeTopics, popularTopics } from "@/lib/topics";
 import styles from "./discover.module.css";
 
 export default function DiscoverPage() {
@@ -35,7 +36,7 @@ export default function DiscoverPage() {
       if (v) setVibe(v);
     } catch {}
   }, []);
-  const norm = (t: string) => t.replace(/^[^\w]+/, "").trim().toLowerCase();
+  const norm = (t: string) => normalizeTopics([t])[0]?.toLowerCase() ?? "";
   const shown = vibe
     ? squads.filter(s => (s.tags ?? []).some(t => norm(t) === vibe.toLowerCase()))
     : squads;
@@ -43,22 +44,7 @@ export default function DiscoverPage() {
 
   // In-page vibe filter chips, derived from the loaded squads' vibes (top 8 by
   // count). Clicking one applies the same filter as the ?vibe= deep link.
-  const vibeChips = (() => {
-    const counts = new Map<string, { label: string; n: number }>();
-    for (const s of squads) {
-      for (const t of s.tags ?? []) {
-        const key = norm(t);
-        if (!key) continue;
-        const cur = counts.get(key);
-        if (cur) cur.n += 1;
-        else counts.set(key, { label: t, n: 1 });
-      }
-    }
-    return [...counts.entries()]
-      .sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0]))
-      .slice(0, 8)
-      .map(([key, v]) => ({ key, label: v.label }));
-  })();
+  const vibeChips = popularTopics(squads);
 
   function applyVibe(next: string | null) {
     setVibe(next);
@@ -206,13 +192,15 @@ export default function DiscoverPage() {
 
       {/* Vibe filter chips + result count */}
       <div className={styles.filters}>
-        <div role="group" aria-label="Filter by vibe" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const, minWidth: 0 }}>
+        <div className={styles.topicFilters}>
+        {vibeChips.length > 0 && <span className={styles.topicCaption}>Popular topics <small>Across open squads</small></span>}
+        <div role="group" aria-label="Filter by topic" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" as const, minWidth: 0 }}>
           {vibeChips.length > 0 && (
             <>
               <Chip onClick={() => applyVibe(null)} selected={!vibe}>All</Chip>
-              {vibeChips.map(({ key, label }) => (
+              {vibeChips.map(({ key, label, count }) => (
                 <Chip key={key} onClick={() => applyVibe(vibe === key ? null : key)} selected={vibe === key}>
-                  {label}
+                  {label}<small className={styles.topicCount}>{count}</small>
                 </Chip>
               ))}
               {/* Deep-linked vibe with no matching chip still shows as selected */}
@@ -223,6 +211,7 @@ export default function DiscoverPage() {
               )}
             </>
           )}
+        </div>
         </div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 12, marginLeft: "auto" }}>
         {/* Kept mounted during load (shimmer) to avoid layout shift. */}

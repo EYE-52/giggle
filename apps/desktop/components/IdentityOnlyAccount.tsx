@@ -11,6 +11,7 @@ export function IdentityOnlyAccount({ onReturnToVerification }: { onReturnToVeri
   const router = useRouter();
   const pendingDeletion = session.accountStatus === "pending_deletion";
   const unavailable = session.accountStatus === "unavailable";
+  const underage = session.ageConfirmed && !session.isAdult;
   const user = session.user;
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
@@ -62,15 +63,17 @@ export function IdentityOnlyAccount({ onReturnToVerification }: { onReturnToVeri
         <section aria-labelledby="account-access-title" style={{ width: "min(100%, 520px)", padding: 28, borderRadius: "var(--radius-card, 20px)", border: "1px solid var(--border)", background: "var(--surface)", boxShadow: "var(--elev)" }}>
           <Logomark size={38} />
           <div style={{ marginTop: 22, color: "var(--accent)", fontSize: 13, fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>
-            {pendingDeletion ? "Deletion pending" : unavailable ? "Account unavailable" : "Account & data"}
+            {pendingDeletion ? "Deletion pending" : unavailable ? "Account unavailable" : "Social access restricted"}
           </div>
-          <h1 id="account-access-title" style={{ margin: "8px 0", fontSize: 30, lineHeight: 1.12 }}>Your account controls remain available</h1>
+          <h1 id="account-access-title" style={{ margin: "8px 0", fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1.12 }}>Account &amp; data</h1>
           <p style={{ margin: "0 0 18px", color: "var(--text-muted)", lineHeight: 1.55 }}>
             {pendingDeletion
               ? "Your deletion request is being processed. Social features stay disabled while cleanup finishes."
               : unavailable
                 ? "Social features are disabled for this account. You can still contact support, export your data, or delete your account."
-                : "Social features stay disabled until age verification is complete. Your account controls remain available."}
+                : underage
+                  ? "Giggle is for adults 18+. This account cannot use social features. You can still manage your data or contact support."
+                  : "Complete the age check to use social features. You can still manage your data or contact support."}
           </p>
           <div style={{ padding: "12px 14px", borderRadius: 12, background: "var(--surface-2)", color: "var(--text-muted)", fontSize: 14, overflowWrap: "anywhere" }}>
             {user?.email || "Signed-in account"}
@@ -83,7 +86,7 @@ export function IdentityOnlyAccount({ onReturnToVerification }: { onReturnToVeri
             <Button variant="danger" disabled={exporting || deleting} onClick={() => setDeleteStep(1)}>Delete account</Button>
           </div>
           {exportError && <p role="alert" style={{ margin: "12px 0 0", color: "var(--coral)", fontSize: 13 }}>{exportError}</p>}
-          {onReturnToVerification && <Button variant="secondary" fullWidth onClick={onReturnToVerification}>Return to age verification</Button>}
+          {onReturnToVerification && <Button variant="secondary" fullWidth style={{ marginTop: 18 }} onClick={onReturnToVerification}>{underage ? "Review age access" : "Return to age verification"}</Button>}
           <button onClick={signOut} style={{ marginTop: 22, minHeight: 44, padding: 0, border: 0, background: "none", color: "var(--text-muted)", font: "inherit", fontWeight: 700, cursor: "pointer" }}>Sign out</button>
         </section>
       </main>

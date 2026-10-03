@@ -6,10 +6,10 @@ import { Button } from "./Button";
 import { useViewport } from "./useViewport";
 
 /**
- * Invite-for-tokens card. Shows the signed-in user's referral code + link.
- * When a friend signs up via the link, BOTH sides are credited tokens
+ * Invite-for-credits card. Shows the signed-in user's referral code + link.
+ * When a friend signs up via the link, BOTH sides are awarded credits
  * (server-side in authController). We refresh on mount and sync any newly
- * earned tokens into the local wallet so the balance updates live.
+ * earned credits into the local wallet so the balance updates live.
  */
 export function ReferralCard({ compact = false }: { compact?: boolean }) {
   const { isPhone } = useViewport();
@@ -28,7 +28,7 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
     try {
       const data = await api.getReferral();
       setInfo(data);
-      // A referrer's tokens accrue server-side; mirror the increase into wallet.
+      // A referrer's credits accrue server-side; mirror the increase into wallet.
       if (typeof data.tokens === "number") billing.syncServerTokens(data.tokens);
     } catch {
       // not authed / offline — card stays hidden
@@ -98,7 +98,7 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
   async function share() {
     const shareData = {
       title: "Join me on Giggle",
-      text: `Meet new squads on Giggle — use my invite and we both get ${reward} tokens!`,
+      text: `Meet new squads on Giggle — use my invite and we both get ${reward} credits!`,
       url: link,
     };
     if (typeof navigator !== "undefined" && "share" in navigator && typeof navigator.share === "function") {
@@ -142,11 +142,11 @@ export function ReferralCard({ compact = false }: { compact?: boolean }) {
               <Icon.gift size={17} color="var(--accent, var(--violet))" />
             </span>
             <span style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 17, fontWeight: 700, color: text, letterSpacing: "-0.02em" }}>
-              Invite friends, earn tokens
+              Invite friends, earn credits
             </span>
           </div>
           <div style={{ fontSize: 13, color: muted, lineHeight: 1.5, maxWidth: 460 }}>
-            Share your link. When a friend joins, <strong style={{ color: text }}>you both get {reward} tokens</strong> — instantly.
+            Share your link. When a new friend signs up, <strong style={{ color: text }}>you both get {reward} credits</strong>.
           </div>
         </div>
 

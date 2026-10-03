@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Logomark } from "@/components/Brand";
 import { Button } from "@/components/Button";
 import { api, session } from "@giggle/core";
+import styles from "./AgeGate.module.css";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -376,7 +377,7 @@ export function AgeGate({ onDone, onManageAccount }: { onDone: () => void; onMan
       <form onSubmit={submitDob} style={{ width: "100%", display: "flex", flexDirection: "column", gap: 16 }}>
         <fieldset style={{ border: 0, padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 8 }}>
           <legend style={{ fontSize: 13, fontWeight: 700, color: "var(--text-muted)", padding: 0, marginBottom: 2 }}>Date of birth</legend>
-          <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.9fr 1.1fr", gap: 10 }}>
+          <div className={styles.dateFields}>
             <DobSelect label="Birth month" value={month} placeholder="Month" onChange={setMonth}>
               {MONTHS.map((label, index) => <option key={label} value={index}>{label}</option>)}
             </DobSelect>

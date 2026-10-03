@@ -101,3 +101,9 @@
   .empty { gap: 10px; padding: 4px 0; }
   .joinArea { padding: 6px 0 0; }
 }
+.topics { margin-top:20px; padding-top:16px; border-top:1px solid var(--border); }
+.topics h4 { margin:0 0 12px; display:flex; align-items:baseline; justify-content:space-between; gap:12px; font-size:14px; }
+.topics h4 small { color:var(--text-muted); font-size:11px; font-weight:400; }
+.topics > div { display:flex; flex-wrap:wrap; gap:8px; }
+.topics a { text-decoration:none; gap:8px; }
+.topics a small { opacity:.65; font-size:11px; }

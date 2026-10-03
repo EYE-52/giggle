@@ -19,10 +19,12 @@
 .backdrop { position:absolute; inset:-12px; width:calc(100% + 24px); height:calc(100% + 24px); filter:blur(22px) brightness(.55); object-fit:cover; z-index:1; pointer-events:none; }
 .name { position:absolute; bottom:0; left:0; right:0; padding:24px 10px 9px; background:linear-gradient(transparent, color-mix(in srgb, var(--bg) 60%, transparent)); color:var(--text); display:flex; align-items:center; gap:5px; font-size:12px; z-index:3; pointer-events:none; }
 .name > span { font-size:11px; }
+.name .personName { font-size:inherit; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .speaking { width:5px; height:5px; border-radius:50%; background:var(--ok, var(--live)); flex:none; }
 .trigger { position:absolute; inset:0; width:100%; height:100%; background:transparent; border:0; border-radius:inherit; cursor:pointer; z-index:4; }
 .dots { position:absolute; bottom:6px; right:6px; width:32px; height:32px; display:grid; place-items:center; border-radius:50%; color:var(--text); background:color-mix(in srgb, var(--bg) 66%, transparent); opacity:0; letter-spacing:1px; }
 @media(hover:hover) { .trigger:hover .dots { opacity:1; } }
+@media(hover:none) { .dots { opacity:1; } }
 .trigger:focus-visible .dots,.trigger[aria-expanded=true] .dots { opacity:1; }
 .trigger:focus-visible { outline:2px solid var(--brand, var(--accent)); outline-offset:-3px; }
 .menuVeil { position:fixed; inset:0; z-index:1150; }

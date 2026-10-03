@@ -1,4 +1,5 @@
 "use client";
+import { describeVideoError } from "@/lib/videoError";
 import { useState, useEffect, useRef, Suspense } from "react";
 import Link from "next/link";
 import styles from "./lobby.module.css";
@@ -11,7 +12,7 @@ import { CoverPicker } from "@/components/CoverPicker";
 import { InviteToSquad } from "@/components/InviteToSquad";
 import { Modal } from "@/components/Modal";
 import { Button } from "@/components/Button";
-import { api, connectSocket, SOCKET_EVENTS, session, subscribeChat, joinChat, classifyVibe } from "@giggle/core";
+import { api, connectSocket, SOCKET_EVENTS, session, subscribeChat, joinChat } from "@giggle/core";
 import { coverKind, coverBackground } from "@/components/covers";
 import type { SquadState, SquadMemberState, JoinRequestUser } from "@giggle/core";
 import { createVideoClient } from "@giggle/agora";
@@ -19,39 +20,11 @@ import { useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
 import { pollWhileVisible } from "@/lib/poll";
+import { TopicPicker } from "@/components/TopicPicker";
+import { normalizeTopics } from "@/lib/topics";
 
-const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
+function normalizeVibeLabels(vibes: string[] = []) { return normalizeTopics(vibes); }
 
-function normalizeVibeLabels(vibes: string[] = []) {
-  const normalized: string[] = [];
-  const seen = new Set<string>();
-  for (const vibe of vibes) {
-    if (typeof vibe !== "string") continue;
-    const label = vibe.replace(/^[^\w]+/, "").replace(/\s+/g, " ").trim().slice(0, 15);
-    if (!label) continue;
-    const key = label.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    normalized.push(label);
-    if (normalized.length >= 5) break;
-  }
-  return normalized;
-}
-
-// Translate a thrown ApiError / Agora error into a friendly, non-technical
-// message for the video banner. Returns null only if the error is unknown.
-function describeVideoError(e: unknown): string {
-  const code = (e as { code?: string })?.code ?? "";
-  const msg = (e as { message?: string })?.message ?? String(e ?? "");
-  const blob = `${code} ${msg}`;
-  if (/AGORA_NOT_CONFIGURED|NOT_CONFIGURED|not available|unavailable/i.test(blob)) {
-    return "Video isn't available right now.";
-  }
-  if (/PERMISSION_DENIED|NotAllowed|NotAllowedError|Permission denied/i.test(blob)) {
-    return "Camera/mic blocked — others can't see or hear you. Check browser permissions.";
-  }
-  return "Couldn't connect video — you can still use chat.";
-}
 
 function LobbyInner() {
   // stranger matching follows the API switch (see lib/discovery)
@@ -84,6 +57,9 @@ function LobbyInner() {
   const [leaveMenuOpen, setLeaveMenuOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<SquadMemberState | null>(null);
   const [removingMember, setRemovingMember] = useState(false);
+  const [personOptionsId, setPersonOptionsId] = useState<string | null>(null);
+  const [listeningBusy, setListeningBusy] = useState(false);
+  const [listeningError, setListeningError] = useState("");
 
   // Cover picker
   const [coverPickerOpen, setCoverPickerOpen] = useState(false);
@@ -102,52 +78,6 @@ function LobbyInner() {
   const [vibeEditorOpen, setVibeEditorOpen] = useState(false);
   const [selectedVibes, setSelectedVibes] = useState<string[]>([]);
   const [savingVibes, setSavingVibes] = useState(false);
-  // Search box + a growing list of user-created vibes (persisted locally so
-  // created vibes keep showing up as suggestions next time).
-  const [vibeSearch, setVibeSearch] = useState("");
-  const [customVibes, setCustomVibes] = useState<string[]>([]);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("giggle.customVibes");
-      if (raw) setCustomVibes(JSON.parse(raw));
-    } catch {}
-  }, []);
-  const MAX_VIBES = 5;
-  // Moderation UX for user-created vibes: block disallowed terms, and require an
-  // 18+ confirmation for adult vibes (which turns the squad into an adult room).
-  const [vibeWarning, setVibeWarning] = useState<string | null>(null);
-
-  // Non-adults can't create adult rooms: they confirmed a DOB at signup, so we
-  // trust session.isAdult and hard-block instead of offering an 18+ opt-in.
-  function commitVibe(v: string) {
-    const lower = v.toLowerCase();
-    if (selectedVibes.some(x => x.toLowerCase() === lower)) { setVibeSearch(""); return; }
-    if (selectedVibes.length >= MAX_VIBES) return;
-    setSelectedVibes(prev => [...prev, v]);
-    setCustomVibes(prev => {
-      if (prev.some(x => x.toLowerCase() === lower) || CURATED_VIBES.some(x => x.toLowerCase() === lower)) return prev;
-      const next = [v, ...prev].slice(0, 40);
-      try { localStorage.setItem("giggle.customVibes", JSON.stringify(next)); } catch {}
-      return next;
-    });
-    setVibeSearch("");
-  }
-  function addCustomVibe(raw: string) {
-    const v = raw.trim().replace(/\s+/g, " ");
-    if (!v || v.length > 24) return;
-    setVibeWarning(null);
-    const verdict = classifyVibe(v);
-    if (verdict === "blocked") {
-      setVibeWarning("That vibe isn't allowed. Try something that keeps Giggle welcoming for everyone.");
-      return;
-    }
-    if (verdict === "mature") {
-      setVibeWarning("Choose a different interest.");
-      return;
-    }
-    commitVibe(v);
-  }
-
   // Visibility toggle
   const [visibility, setVisibility] = useState<"private" | "open">("private");
   const [savingVisibility, setSavingVisibility] = useState(false);
@@ -370,7 +300,7 @@ function LobbyInner() {
       await (kind === "audio" ? vc.setMicEnabled(next) : vc.setCamEnabled(next));
       // Capture events update the controls only after the device changes.
     } catch (error) {
-      if (generation === lobbyMediaGenerationRef.current) setVideoError((error as Error)?.message || "Couldn't update your device.");
+      if (generation === lobbyMediaGenerationRef.current) setVideoError(describeVideoError(error));
     } finally {
       deviceBusyRef.current[kind] = false;
       if (generation === lobbyMediaGenerationRef.current) setDeviceBusy((current) => ({ ...current, [kind]: false }));
@@ -595,14 +525,6 @@ function LobbyInner() {
     }
   }
 
-  function toggleVibeChip(vibe: string) {
-    setSelectedVibes(prev => {
-      if (prev.includes(vibe)) return prev.filter(v => v !== vibe);
-      if (prev.length >= 5) return prev;
-      return [...prev, vibe];
-    });
-  }
-
   async function saveVibes() {
     if (!squadId) return;
     setSavingVibes(true);
@@ -768,6 +690,21 @@ function LobbyInner() {
         : othersReady ? "Everyone's ready" : `${othersOnline.filter(m => m.ready).length} of ${othersOnline.length} ready`
       : myReady ? "Your leader starts the search" : "Get ready. Your leader starts the search.";
   const openChat = () => { setChatOpen(true); setSidebarCollapsed(false); setSidebarTab("chat"); };
+  const personOptions = squad.members.find(member => member.memberId === personOptionsId);
+  const personRemote = personOptions && remotes.find(remote => String(remote.uid) === String(personOptions.uid));
+
+  async function toggleListening() {
+    const client = vcRef.current;
+    if (!client || !personOptions || !personRemote || listeningBusy) return;
+    setListeningBusy(true);
+    setListeningError("");
+    try {
+      await client.setRemoteAudioMuted(personRemote.uid, !personRemote.mutedForMe);
+      setPersonOptionsId(null);
+    } catch (error) {
+      setListeningError(error instanceof Error ? error.message : "Couldn't update listening. Try again.");
+    } finally { setListeningBusy(false); }
+  }
 
   return (
     <div className={`gg-lobby-root gg-screen ${styles.page}`} data-testid="lobby-page" data-chat={chatVisible || undefined}>
@@ -781,6 +718,7 @@ function LobbyInner() {
             {currentTags.map(tag => <span key={tag} className={styles.interest}>{tag}</span>)}
           </span>
         </div>
+        {isLeader && <button type="button" className={`icon-btn ${styles.iconBtn}`} aria-label="Edit squad topics" onClick={() => { setSelectedVibes([...currentTags]); setVibeEditorOpen(true); }}><Icon.star size={19} color="currentColor" /></button>}
         <button type="button" className={`${styles.codeChip}`} aria-label={`Copy squad code ${squad.squadCode}`} onClick={() => void copyToClipboard(squad.squadCode, () => setCodeCopied(true), "Couldn't copy the code.")}>
           <strong className={styles.codeText}>{squad.squadCode}</strong>
           <span className={styles.codeHint}>{codeCopied ? "Copied" : <Icon.copy size={16} />}</span>
@@ -810,8 +748,10 @@ function LobbyInner() {
                 {member.memberId === squad.leaderMemberId && <span className={`badge ${styles.tag}`}>Leader</span>}
                 {WEB_DISCOVERY_ENABLED && member.ready && <span className={`badge ${styles.tag} ${styles.ready}`}>Ready</span>}
                 {(isMe ? videoJoined && !micOn : remote && !remote.hasAudio) && <span className={styles.state}>Mic off</span>}
+                {remote?.mutedForMe && <span className={styles.state}>Muted for you</span>}
                 {offline ? <span className={styles.state}>Offline</span> : !showVideo ? <span className={styles.state}>Camera off</span> : null}
               </div>
+              {!isMe && <button type="button" className={styles.personOptions} aria-label={`${member.displayName}'s options`} aria-haspopup="dialog" onClick={() => { setListeningError(""); setPersonOptionsId(member.memberId); }}><span aria-hidden="true">•••</span></button>}
             </article>;
           })}
           {Array.from({ length: Math.min(openSeats, 7) }, (_, i) => (
@@ -840,6 +780,14 @@ function LobbyInner() {
           {videoError && <p role="alert" className={styles.error}>{videoError}</p>}
         </div>
       </footer>
+      {personOptions && <Modal title={personOptions.displayName} onClose={() => { if (!listeningBusy) setPersonOptionsId(null); }} width={360}>
+        <div className={styles.modalStack}>
+          <Button variant="secondary" disabled={!personRemote || !videoJoined} loading={listeningBusy} onClick={() => void toggleListening()}>{personRemote?.mutedForMe ? "Unmute for me" : "Mute for me"}</Button>
+          <p className="muted">Listening changes affect only you.{!videoJoined ? " Connect your microphone or camera first." : !personRemote ? " This person hasn't connected their devices yet." : ""}</p>
+          {listeningError && <p role="alert" className={styles.error}>{listeningError}</p>}
+          {isLeader && <Button variant="ghost" disabled={listeningBusy} onClick={() => { setPersonOptionsId(null); setMemberToRemove(personOptions); }}>Remove from squad</Button>}
+        </div>
+      </Modal>}
       {inviteSheetOpen && <Modal title="Invite friends" subtitle={`Join ${squad.squadName} with this code or link.`} onClose={() => setInviteSheetOpen(false)} width={420}>
         <div className={styles.modalStack}>
           <div className={styles.code}><strong>{squad.squadCode}</strong><Button variant="ghost" onClick={() => void copyToClipboard(squad.squadCode, () => setCodeCopied(true), "Couldn't copy the code.")}>{codeCopied ? "Copied" : "Copy code"}</Button></div>
@@ -851,7 +799,7 @@ function LobbyInner() {
       {settingsOpen && <Modal title="Squad settings" onClose={() => setSettingsOpen(false)} width={460}>
         <div className={styles.modalStack}>
           {matchError && <p role="alert" className={styles.error}>{matchError}</p>}
-          {isLeader && <><Button variant="secondary" onClick={() => { setSettingsOpen(false); startRename(); }}>Rename squad</Button><Button variant="secondary" onClick={() => { setSettingsOpen(false); setCoverPickerOpen(true); }}>Change cover</Button><Button variant="secondary" onClick={() => { setSettingsOpen(false); setSelectedVibes([...currentTags]); setVibeEditorOpen(true); }}>Edit interests</Button></>}
+          {isLeader && <><Button variant="secondary" onClick={() => { setSettingsOpen(false); startRename(); }}>Rename squad</Button><Button variant="secondary" onClick={() => { setSettingsOpen(false); setCoverPickerOpen(true); }}>Change cover</Button><Button variant="secondary" onClick={() => { setSettingsOpen(false); setSelectedVibes([...currentTags]); setVibeEditorOpen(true); }}>Edit topics</Button></>}
           <label className={styles.field}>Visibility<select value={visibility} disabled={!isLeader || savingVisibility} onChange={e => void handleVisibility(e.target.value as "private" | "open")}><option value="private">Private — join with a code or invite</option><option value="open">Open — listed in Discover</option></select></label>
           <label className={styles.field}>Who can join<select value={joinPolicy} disabled={!isLeader || savingJoinPolicy} onChange={e => void handleJoinPolicy(e.target.value as "open" | "request" | "invite")}><option value="open">Anyone with access</option><option value="request">Ask to join</option><option value="invite">Invited people only</option></select></label>
           {isLeader && joinReqs.length > 0 && <section><h3>Join requests</h3>{reqError && <p role="alert">{reqError}</p>}{joinReqs.map(r => <div className={styles.row} key={r.userId}><span>{r.name}</span><Button size="sm" loading={reqBusy === r.userId} onClick={() => void handleApprove(r.userId)}>Approve</Button><Button size="sm" variant="ghost" disabled={!!reqBusy} onClick={() => void handleDecline(r.userId)}>Decline</Button></div>)}</section>}
@@ -865,7 +813,7 @@ function LobbyInner() {
       {noCamConfirmOpen && <Modal title="Connect your devices" subtitle="Choose how you want to join the call." onClose={() => { if (!noCamEnabling) setNoCamConfirmOpen(false); }} width={420}><div className={styles.modalStack}>{videoError && <p role="alert" className={styles.error}>{videoError}</p>}<Button loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Turn on camera &amp; mic</Button><Button variant="secondary" loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(false); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Continue with audio only</Button></div></Modal>}
       {invitePeopleOpen && <InviteToSquad squadId={squadId} squadName={squad.squadName} onClose={() => setInvitePeopleOpen(false)} />}
       {coverPickerOpen && <CoverPicker squadId={squadId} currentCover={squad.coverImage} onClose={() => setCoverPickerOpen(false)} onSaved={async () => { await fetchSquad(); setCoverPickerOpen(false); }} />}
-      {vibeEditorOpen && <Modal title="Edit interests" subtitle={`Choose up to ${MAX_VIBES}.`} onClose={() => { if (!savingVibes) setVibeEditorOpen(false); }} width={440}><div className={styles.modalStack}><label className={styles.field}>Find or add an interest<input value={vibeSearch} maxLength={15} onChange={e => setVibeSearch(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustomVibe(vibeSearch); } }} /></label>{(vibeWarning || matchError) && <p role="alert" className={styles.error}>{vibeWarning || matchError}</p>}<div className={styles.chips}>{Array.from(new Set([...selectedVibes, ...customVibes, ...CURATED_VIBES])).filter(v => v.toLowerCase().includes(vibeSearch.toLowerCase())).map(v => <button key={v} aria-pressed={selectedVibes.includes(v)} disabled={!selectedVibes.includes(v) && selectedVibes.length >= MAX_VIBES} onClick={() => toggleVibeChip(v)}>{v}</button>)}</div>{vibeSearch.trim() && <Button variant="secondary" onClick={() => addCustomVibe(vibeSearch)}>Add interest</Button>}<Button loading={savingVibes} onClick={saveVibes}>Save interests</Button></div></Modal>}
+      {vibeEditorOpen && <Modal title="Edit topics" onClose={() => { if (!savingVibes) setVibeEditorOpen(false); }} width={440}><div className={styles.modalStack}><TopicPicker value={selectedVibes} onChange={setSelectedVibes} disabled={savingVibes} />{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<Button loading={savingVibes} onClick={saveVibes}>Save topics</Button></div></Modal>}
     </div>
   );
 }

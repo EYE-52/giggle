@@ -45,7 +45,7 @@ export default function TermsPage() {
       title="Ground rules for meeting safely."
       intro={
         <>
-          Effective <time dateTime="2026-08-04">August 4, 2026</time>. Giggle is for verified adults 18+. By using
+          Effective <time dateTime="2026-08-04">August 4, 2026</time>. Giggle is for adults 18+. By using
           Giggle, you agree to these rules for accounts, squads, live video, safety, and paid features.
         </>
       }

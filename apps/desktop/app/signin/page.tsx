@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Wordmark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
-import { session, setPendingReferral, BACKEND_URL } from "@giggle/core";
+import { session, setPendingReferral, getPendingReferral, BACKEND_URL } from "@giggle/core";
 import { HangoutIllustration } from "@/components/HangoutIllustration";
 import community from "@/components/Community.module.css";
 
@@ -40,7 +40,7 @@ export default function AuthPage() {
   // Capture an inbound invite code (?ref=CODE) and remember it through signup.
   useEffect(() => {
     try {
-      const code = new URLSearchParams(window.location.search).get("ref");
+      const code = new URLSearchParams(window.location.search).get("ref")?.trim() || getPendingReferral();
       const continuation = safeNextPath(new URLSearchParams(window.location.search).get("next"));
       setNextPath(continuation);
       sessionStorage.setItem(AUTH_NEXT_KEY, continuation);
@@ -124,7 +124,7 @@ export default function AuthPage() {
         <h1 className={community.authHeading}>Sign in to Giggle</h1>
         <p className={community.authSub}>Use Google to sign in or create an account.</p>
 
-        {refCode && <div className={community.refNote}><Icon.gift size={17} color="currentColor" /> Invite accepted. You both get 100 tokens.</div>}
+        {refCode && <div className={community.refNote}><Icon.gift size={17} color="currentColor" /> Using a friend&apos;s invite.</div>}
 
         <div style={{ display: "grid", gap: 10 }}>
           <button

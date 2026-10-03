@@ -40,6 +40,10 @@
   .seats[data-count="5"], .seats[data-count="6"], .seats[data-count="7"], .seats[data-count="8"], .seats[data-count="9"] { --cols: 2; }
 }
 .seat { position: relative; min-width: 0; min-height: 0; border-radius: 18px; overflow: hidden; background: var(--surface-2, var(--overlay)); container-type: size; isolation: isolate; }
+.personOptions { position:absolute; inset:0; z-index:4; width:100%; height:100%; padding:0; border:0; border-radius:inherit; background:transparent; cursor:pointer; }
+.personOptions span { position:absolute; top:6px; right:6px; display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:var(--surface); color:var(--text); opacity:0; letter-spacing:1px; }
+.personOptions:hover span, .personOptions:focus-visible span { opacity:1; }
+@media(hover:none) { .personOptions span { opacity:1; } }
 .seat[data-offline] .face { opacity: .55; filter: grayscale(.4); }
 .face { position: absolute; left: 50%; top: 46%; width: min(44cqw, 56cqh, 220px); aspect-ratio: 1; transform: translate(-50%, -50%); }
 .video, .video > div { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
@@ -48,7 +52,7 @@
 .video video { object-fit: cover !important; }
 .seatLabel { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 2; display: flex; align-items: center; gap: 6px; min-width: 0; }
 /* labels sit on video or the seat: theme glass (page colour) with theme ink */
-.seatName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--bg) 74%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--text); font-size: 13px; font-weight: 650; line-height: 18px; }
+.seatName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 10px; border-radius: 999px; background: color-mix(in srgb, var(--bg) 94%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--text); font-size: 13px; font-weight: 650; line-height: 18px; }
 .tag { flex: none; font-size: 11px; }
 .ready { background: var(--ok, #1fb47a); color: var(--surface); }
 .state { flex: none; margin-left: auto; padding: 3px 8px; border-radius: 999px; background: color-mix(in srgb, var(--bg) 74%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--text-muted, var(--muted)); font-size: 12px; line-height: 16px; }

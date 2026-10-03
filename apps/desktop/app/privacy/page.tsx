@@ -13,7 +13,7 @@ const sections = [
   },
   {
     title: "Age assurance",
-    body: "Your date of birth is private and is used to derive eligibility gates. Yoti performs the verification check. Giggle keeps only a minimized receipt with the result, method, threshold, provider references, policy version, and timestamps; Giggle does not keep the selfie or identity document used by Yoti.",
+    body: "Your declared date of birth is private and is used to determine age eligibility. When hosted verification is enabled, Yoti performs the check. Giggle keeps only a minimized verification receipt with the result, method, threshold, provider references, policy version, and timestamps; Giggle does not keep the selfie or identity document used by Yoti.",
   },
   {
     title: "Squads, friends, messages, and live media",
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
       intro={
         <>
           Effective <time dateTime="2026-08-04">August 4, 2026</time>. This notice explains how Giggle handles
-          information for accounts, matching, live services, and safety. Giggle is for verified users 18+.
+          information for accounts, matching, live services, and safety. Giggle is for adults 18+.
         </>
       }
       sections={sections}

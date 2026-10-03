@@ -1,13 +1,13 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { api, syncEarnedWallet, type WalletInfo } from "@giggle/core";
 import { Icon } from "@/components/Icons";
 import { ReferralCard } from "@/components/ReferralCard";
 import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
-import { useToast } from "@/components/Toast";
-import { useViewport } from "@/components/useViewport";
-import { billing, getTokenBalance, TOKEN_PERKS, type Entitlements, type TokenPerk } from "@giggle/core";
+import { pollWhileVisible } from "@/lib/poll";
+import styles from "./premium.module.css";
 
 /** Animates the displayed balance toward `value` over ~400ms (spend feedback). */
 function AnimatedBalance({ value }: { value: number }) {
@@ -39,169 +39,66 @@ function AnimatedBalance({ value }: { value: number }) {
 
 export default function PremiumPage() {
   const router = useRouter();
-  const { isPhone } = useViewport();
-  const { toast } = useToast();
-  const [entitlements, setEntitlements] = useState<Entitlements>({ premium: false, activePerks: {} });
-  const [tokenBalance, setTokenBalance] = useState(0);
-  const [balanceLoaded, setBalanceLoaded] = useState(false);
-  const [confirmPerk, setConfirmPerk] = useState<TokenPerk | null>(null);
-  const [spendLoading, setSpendLoading] = useState(false);
-  const referralRef = useRef<HTMLDivElement | null>(null);
-  const canRedeemPerks = billing.canRedeemTokenPerksLocally();
-
-  const sync = useCallback(() => {
-    setEntitlements(billing.getEntitlements());
-    setTokenBalance(getTokenBalance());
-    setBalanceLoaded(true);
+  const [wallet, setWallet] = useState<WalletInfo | null>(null);
+  const [error, setError] = useState("");
+  const [confirm, setConfirm] = useState(false);
+  const [spending, setSpending] = useState(false);
+  const [notice, setNotice] = useState("");
+  const revision = useRef(0), spendingRef = useRef(false);
+  const load = useCallback(async () => {
+    if (spendingRef.current) return;
+    const version = ++revision.current;
+    try {
+      const next = await api.getWallet();
+      if (version !== revision.current) return;
+      setWallet(next); syncEarnedWallet(next); setError("");
+    } catch { if (version === revision.current) setError("Couldn't load your credits. Try again."); }
   }, []);
-
   useEffect(() => {
-    sync();
-    return billing.subscribe(sync);
-  }, [sync]);
-
-  const scrollToReferral = useCallback(() => {
-    referralRef.current?.scrollIntoView({
-      behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth",
-      block: "start",
-    });
-  }, []);
-
-  function confirmSpend(perk: TokenPerk) {
-    if (!canRedeemPerks) return;
-    setSpendLoading(true);
-    const ok = perk.id === "cover_themes"
-      ? billing.spendOnCoverThemes()
-      : perk.id === "vibe_pack" && billing.spendOnVibePack();
-    setSpendLoading(false);
-    setConfirmPerk(null);
-    if (ok) {
-      sync();
-      toast(`${perk.name} unlocked`, "success");
-    } else {
-      toast(`Couldn't unlock ${perk.name}. Please try again.`, "error");
-    }
+    void load();
+    const stop = pollWhileVisible(load, 15000);
+    return () => { revision.current++; stop(); };
+  }, [load]);
+  async function unlock() {
+    if (spendingRef.current) return;
+    spendingRef.current = true; revision.current++;
+    setSpending(true); setError(""); setNotice("");
+    try {
+      const next = await api.redeemPlus();
+      setWallet(next); syncEarnedWallet(next); setConfirm(false);
+      setNotice("Giggle+ is active. Your squads can now have up to eight people.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't unlock Giggle+. Try again.");
+      setConfirm(false);
+    } finally { spendingRef.current = false; setSpending(false); }
+    await load();
   }
-
-  const comingSoonDescId = "perk-coming-soon-desc";
-
-  return (
-    <div className="gg-reveal" style={{ display: "flex", flexDirection: "column", gap: 22, paddingBottom: 40 }}>
-      <button onClick={() => router.push("/home")} className="gg-press" style={{ alignSelf: "flex-start", minHeight: 44, display: "inline-flex", alignItems: "center", gap: 7, border: "none", background: "transparent", color: "var(--text-muted)", fontWeight: 600, cursor: "pointer" }}>
-        <span style={{ transform: "rotate(180deg)", display: "inline-flex" }}><Icon.chevron size={15} color="var(--text-muted)" /></span>
-        Back
-      </button>
-
-      <header style={{ display: "flex", alignItems: isPhone ? "flex-start" : "flex-end", justifyContent: "space-between", flexDirection: isPhone ? "column" : "row", gap: 18, paddingBottom: 22, borderBottom: "1px solid var(--border)" }}>
-        <div>
-          <h1 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 30, fontWeight: 700, lineHeight: 1, color: "var(--text)" }}>Wallet</h1>
-          <p style={{ margin: "8px 0 0", color: "var(--text-muted)", fontSize: 14 }}>Earn and track tokens for your squad identity.</p>
-        </div>
-        {/* Balance — StatTile-style presentation (v3 spec 04) */}
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-control, 14px)", padding: "12px 16px", minWidth: 118, boxShadow: "var(--shadow-sm)", boxSizing: "border-box" }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>Balance</div>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
-            {balanceLoaded ? (
-              <strong style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 38, fontWeight: 700, lineHeight: 1.15, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-                <AnimatedBalance value={tokenBalance} />
-              </strong>
-            ) : (
-              <span className="gg-shimmer" aria-hidden style={{ display: "inline-block", width: 92, height: 38, borderRadius: 10 }} />
-            )}
-            <span style={{ color: "var(--text-muted)", fontSize: 13, fontWeight: 600 }}>tokens</span>
-          </div>
-        </div>
-      </header>
-
-      <div ref={referralRef} style={{ scrollMarginTop: 16 }}>
-        <ReferralCard />
+  const enough = wallet && wallet.credits >= wallet.plus.cost;
+  const expiry = wallet?.premiumUntil ? new Date(wallet.premiumUntil).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : null;
+  return <div className={`gg-reveal ${styles.page}`}>
+    <button type="button" className={styles.back} onClick={() => router.push("/profile")}><Icon.chevron size={16} />Back to profile</button>
+    <header className={styles.header}>
+      <div><h1>Wallet &amp; Giggle+</h1><p>Earn credits by starting a squad and bringing friends.</p></div>
+      <div className={styles.balance} aria-label={wallet ? `${wallet.credits} earned credits` : "Loading credits"}>
+        <span>Earned credits</span><strong>{wallet ? <AnimatedBalance value={wallet.credits} /> : "—"}</strong>
       </div>
-
-      <section>
-        <div style={{ marginBottom: 12 }}>
-          <h2 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: "var(--text)" }}>Token perks</h2>
-          <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: 13 }}>
-            {canRedeemPerks ? "Cosmetics are always priced in tokens." : "Perk redemption is in launch prep. Your balance is already tracked."}
-          </p>
-        </div>
-        {!canRedeemPerks && (
-          <p id={comingSoonDescId} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap", margin: -1, padding: 0, border: 0 }}>
-            Perk redemption launches soon
-          </p>
-        )}
-        <div style={{ borderTop: "1px solid var(--border)" }}>
-          {TOKEN_PERKS.map(perk => {
-            const canAfford = tokenBalance >= perk.tokenCost;
-            const needsTokens = canRedeemPerks && !canAfford;
-            const IconComp = (Icon as Record<string, React.ComponentType<{ size: number; color: string }>>)[perk.icon] ?? Icon.star;
-            const priceAndAction = (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0, ...(isPhone ? { width: "100%", justifyContent: "space-between" } : { flexDirection: "column" as const, alignItems: "flex-end", gap: 5 }) }}>
-                <div style={{ color: "var(--text)", fontWeight: 700, fontSize: 13 }}>{perk.tokenCost} tokens</div>
-                {canRedeemPerks ? (
-                  canAfford ? (
-                    <Button size="sm" onClick={() => setConfirmPerk(perk)}>Unlock</Button>
-                  ) : (
-                    <span style={{ display: "inline-flex", alignItems: "center", minHeight: 28, padding: "0 12px", borderRadius: 999, background: "var(--amber-soft)", color: "var(--amber)", fontSize: 12, fontWeight: 700, whiteSpace: "nowrap" }}>
-                      Need tokens
-                    </span>
-                  )
-                ) : (
-                  <span title="Perk redemption launches soon">
-                    <Button size="sm" variant="secondary" disabled aria-describedby={comingSoonDescId}>
-                      Coming soon
-                    </Button>
-                  </span>
-                )}
-              </div>
-            );
-            return (
-              <div key={perk.id} style={{ borderBottom: "1px solid var(--border)", padding: "12px 0" }}>
-                <div style={{ minHeight: isPhone ? 0 : 64, display: "flex", flexDirection: isPhone ? "column" : "row", alignItems: isPhone ? "stretch" : "center", gap: isPhone ? 12 : 14 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 0 }}>
-                    <span style={{ width: 40, height: 40, borderRadius: "var(--radius-control, 14px)", display: "grid", placeItems: "center", background: "var(--overlay)", border: "var(--control-border, 1px solid var(--border))", flexShrink: 0 }}><IconComp size={19} color="var(--accent, var(--violet))" /></span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ color: "var(--text)", fontSize: 14, fontWeight: 700 }}>{perk.name}</div>
-                      <div style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 2 }}>{perk.description}</div>
-                    </div>
-                  </div>
-                  {priceAndAction}
-                </div>
-                {needsTokens && (
-                  <button
-                    onClick={scrollToReferral}
-                    className="gg-press"
-                    style={{ marginTop: 4, minHeight: 32, padding: 0, border: "none", background: "transparent", color: "var(--accent, var(--violet))", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 5 }}
-                  >
-                    Earn tokens by inviting friends ↑
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section style={{ padding: isPhone ? 18 : 24, borderRadius: "var(--radius-card, 20px)", border: "1px solid var(--border-strong)", background: "var(--surface)", boxShadow: "var(--shadow-card, var(--elev))", display: "flex", flexDirection: isPhone ? "column" : "row", alignItems: isPhone ? "flex-start" : "center", gap: 18 }}>
-        <span style={{ width: 44, height: 44, borderRadius: "var(--radius-control, 14px)", display: "grid", placeItems: "center", background: "var(--violet-soft)", flexShrink: 0 }}><Icon.star size={20} color="var(--live, var(--lime))" /></span>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 17, fontWeight: 700, color: "var(--text)" }}>{entitlements.premium ? "Giggle+ active" : "Giggle+"}</h2>
-          <p style={{ margin: "5px 0 0", color: "var(--text-muted)", fontSize: 13, lineHeight: 1.5 }}>Monthly token stipend + 15% bonus tokens on packs. Cosmetics still cost tokens.</p>
-        </div>
-        <span style={{ color: entitlements.premium ? "var(--lime-text)" : "var(--text-dim)", fontSize: 12, fontWeight: 700 }}>{entitlements.premium ? "Active" : "Launching soon"}</span>
-      </section>
-
-      {confirmPerk && (
-        <Modal
-          onClose={() => setConfirmPerk(null)}
-          title={`Unlock ${confirmPerk.name}?`}
-          subtitle={`This spends ${confirmPerk.tokenCost} tokens from your balance.`}
-        >
-          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
-            <Button variant="ghost" onClick={() => setConfirmPerk(null)}>Cancel</Button>
-            <Button loading={spendLoading} onClick={() => confirmSpend(confirmPerk)}>Unlock</Button>
-          </div>
-        </Modal>
-      )}
-    </div>
-  );
+    </header>
+    {error && <div role="alert" className={styles.error}>{error}<Button size="sm" variant="ghost" onClick={() => void load()}>Retry</Button></div>}
+    {notice && <p role="status" className={styles.notice}>{notice}</p>}
+    <section className={styles.plus} aria-label="Giggle Plus">
+      <div className={styles.plusHeading}><span className={styles.star}><Icon.sparkle size={26} /></span><div><h2>Giggle+</h2><p>{wallet?.premium ? expiry ? `Active until ${expiry}` : "Active" : "Make room for a bigger squad."}</p></div>{wallet?.premium && <span className={styles.active}>Active</span>}</div>
+      <ul><li><Icon.users size={18} />Squads with up to eight people</li><li><Icon.star size={18} />Giggle+ badge on your profile</li></ul>
+      <div className={styles.unlock}>
+        <span>{wallet ? `${wallet.plus.days} days · ${wallet.plus.cost} credits` : "Loading reward details…"}</span>
+        {wallet?.premium ? <span className={styles.redeemed}><Icon.check size={16} />Unlocked</span> : <Button disabled={!wallet || !enough} onClick={() => setConfirm(true)}>Unlock Giggle+</Button>}
+      </div>
+      {wallet && !wallet.premium && !enough && <p className={styles.progress}>{wallet.plus.cost - wallet.credits} more credits to unlock.</p>}
+    </section>
+    <section className={styles.earn} aria-label="Earn credits">
+      <h2>Earn credits</h2>
+      {wallet?.rewards.map(reward => <div key={reward.id} className={styles.reward}><span><b>Lead your first squad</b><small>{reward.earned ? "Reward earned" : "Create a squad and invite your friends."}</small></span><strong>{reward.earned ? <><Icon.check size={16} />Earned</> : `+${reward.credits}`}</strong>{!reward.earned && <Button size="sm" variant="secondary" onClick={() => router.push("/home?create=1")}>Create squad</Button>}</div>)}
+      <ReferralCard />
+    </section>
+    {confirm && wallet && <Modal title="Unlock Giggle+?" subtitle={`Use ${wallet.plus.cost} earned credits for ${wallet.plus.days} days. There is no payment or automatic renewal.`} onClose={() => { if (!spending) setConfirm(false); }} closeOnBackdrop={!spending} showClose={!spending}><div className={styles.confirm}><Button variant="ghost" disabled={spending} onClick={() => setConfirm(false)}>Cancel</Button><Button loading={spending} onClick={() => void unlock()}>Use credits</Button></div></Modal>}
+  </div>;
 }
