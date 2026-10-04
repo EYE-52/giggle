@@ -242,6 +242,7 @@ const friendsRoutes = require("./routes/friendsRoutes");
 const meRoutes = require("./routes/meRoutes");
 const avatarMatchRoutes = require("./routes/avatarMatchRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const gameRoutes = require("./routes/gameRoutes");
 // Public, unauthenticated: uploaded squad cover images.
 app.use("/api", coverRoutes);
 app.use("/api", squadRoutes);
@@ -255,6 +256,7 @@ app.use("/api", friendsRoutes);
 app.use("/api", meRoutes);
 app.use("/api", avatarMatchRoutes);
 app.use("/api", notificationRoutes);
+app.use("/api", gameRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

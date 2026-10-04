@@ -4,6 +4,7 @@ const { Squad } = require("../models/Squad");
 const { Encounter } = require("../models/Encounter");
 const User = require("../models/User");
 const { isStrangerDiscoveryEnabled } = require("../config/appConfig");
+const { isGamesEnabled } = require("../services/gameBridgeService");
 
 /**
  * @swagger
@@ -83,9 +84,11 @@ router.get("/stats", async (req, res) => {
  */
 // Clients show or hide stranger matching from this answer, so the server's
 // STRANGER_DISCOVERY_ENABLED is the one switch (no build-time copies to drift).
+// `games` follows the same rule: true only when the bridge is correctly
+// configured (valid GAMES_PUBLIC_URL + strong GAME_BRIDGE_SECRET).
 router.get("/features", (req, res) => {
   res.set("Cache-Control", "public, max-age=30");
-  res.json({ ok: true, data: { strangerDiscovery: isStrangerDiscoveryEnabled() } });
+  res.json({ ok: true, data: { strangerDiscovery: isStrangerDiscoveryEnabled(), games: isGamesEnabled() } });
 });
 
 module.exports = router;

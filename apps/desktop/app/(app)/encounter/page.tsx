@@ -27,6 +27,8 @@ import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { Icon } from "@/components/Icons";
 import { ChatPanel, type ChatPanelMessage } from "@/components/ChatPanel";
+import { GamePanel, type GameLayoutOverride } from "@/components/GamePanel";
+import { mapCaptureToVoiceMic, resolveGameLayout, type GamePresentation } from "@/lib/gameBridge";
 import { Button } from "@/components/Button";
 import { ParticipantVideoTile as VideoTile } from "@/components/ParticipantVideoTile";
 import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoStage";
@@ -35,6 +37,7 @@ import { createVideoClient } from "@giggle/agora";
 import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
+import { useGamesEnabled } from "@/lib/games";
 import { REACTIONS, ReactionGlyph } from "@/components/Reaction";
 import { CallNotice } from "@/components/CallNotice";
 import feedbackStyles from "./call-feedback.module.css";
@@ -168,12 +171,36 @@ interface EncounterParticipant {
 function EncounterInner() {
   // stranger matching follows the API switch (see lib/discovery)
   const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled() === true;
+  // encounter games follow the API switch (see lib/games)
+  const GAMES_ENABLED = useGamesEnabled() === true;
   const router = useRouter();
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
   const encId = params.get("enc") ?? "";
 
   const [chatOpen, setChatOpen] = useState(false);
+  // Encounter games open INSIDE this call (no navigation, no new tab): the
+  // game stage mounts beside the video stage while vcRef, media nodes, and
+  // call controls stay put. Both squads share one game room; opening games
+  // requests no camera/mic permission.
+  const [gameOpen, setGameOpen] = useState(false);
+  // Contextual video: the child's hint (auto) plus the user's override pin.
+  // The override persists across game changes until Auto; closing games
+  // resets both (see the gameOpen effect below). Layout changes restyle the
+  // rail only — video nodes and the Agora client are never touched.
+  const [gamePresentation, setGamePresentation] = useState<GamePresentation>("balanced");
+  const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
+  // Stable subscriber: GamePanel reads it via ref, so auth never re-runs.
+  const handlePresentation = useCallback((p: GamePresentation) => {
+    setGamePresentation(p);
+  }, []);
+  const effectiveLayout = resolveGameLayout(layoutOverride, gamePresentation);
+  useEffect(() => {
+    if (!gameOpen) {
+      setLayoutOverride("auto");
+      setGamePresentation("balanced");
+    }
+  }, [gameOpen]);
   const [chatAudience, setChatAudience] = useState<"everyone" | "squad">("everyone");
   const [chatDrafts, setChatDrafts] = useState({ everyone: "", squad: "" });
   const [chatUnread, setChatUnread] = useState({ everyone: 0, squad: 0 });
@@ -449,6 +476,9 @@ function EncounterInner() {
     }) => {
       if (payload?.encounterId && payload.encounterId !== encId) return;
       if (nextPendingRef.current) return;
+      // The call is over: close the shared game room with it (the overlay
+      // takes the screen; renewal would be denied from here on anyway).
+      setGameOpen(false);
       if (payload?.reason === 'next_squad') {
         void leaveVideo();
         router.replace(`/${payload.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
@@ -1083,6 +1113,13 @@ function EncounterInner() {
     setChatOpen((open) => !open);
   }
 
+  // Games toggle is state-only: no join/leave, no navigation, no permission
+  // prompt — the Agora client and every video node stay exactly as they are.
+  function toggleGames() {
+    setMoreOpen(false);
+    setGameOpen((open) => !open);
+  }
+
   function closeChat() {
     setChatOpen(false);
     requestAnimationFrame(() => chatButtonRef.current?.focus());
@@ -1122,6 +1159,21 @@ function EncounterInner() {
       title: "Chat",
       badge: !chatOpen && unread > 0 ? unread : 0,
     },
+    // Play together with the other squad, inside this call. State-only
+    // toggle (see toggleGames): the call never drops, moves, or re-asks.
+    ...(GAMES_ENABLED
+      ? [
+          {
+            id: "games",
+            icon: <Icon.dice size={20} color={gameOpen ? "var(--accent)" : "var(--text)"} />,
+            active: gameOpen,
+            danger: false,
+            onClick: toggleGames,
+            title: gameOpen ? "Close games" : "Play together",
+            badge: 0,
+          },
+        ]
+      : []),
     {
       id: "more",
       icon: <Icon.more size={20} color={moreOpen ? "var(--accent)" : "var(--text)"} />,
@@ -1217,6 +1269,7 @@ function EncounterInner() {
         ref={setShellEl}
         data-testid="encounter-shell"
         className="gg-screen-call"
+        data-games={gameOpen && GAMES_ENABLED || undefined}
         data-chrome={chromeShown || chromeAlways ? "shown" : "hidden"}
         style={{
           position: "relative",
@@ -1354,7 +1407,8 @@ function EncounterInner() {
 
         {/* ── MAIN AREA ────────────────────────────────────────────────────── */}
         <div
-          className={`gg-encounter-content ${chatOpen ? "gg-chat-open" : ""}`}
+          className={`gg-encounter-content ${chatOpen ? "gg-chat-open" : ""} ${gameOpen && GAMES_ENABLED ? "gg-games-open" : ""}`}
+          data-games-layout={gameOpen && GAMES_ENABLED ? effectiveLayout : undefined}
           style={{
             display: "flex",
             flex: 1,
@@ -1362,6 +1416,16 @@ function EncounterInner() {
             overflow: "hidden",
           }}
         >
+          {/* Encounter games: one shared room for both squads, mounted INSIDE
+              this call beside the video stage. The stage below stays mounted
+              with the same tiles and the same Agora client across open,
+              layout, game, and close changes; on a phone the game hides
+              (never unmounts) while chat takes the screen. */}
+          {gameOpen && GAMES_ENABLED && (
+            <section data-testid="encounter-game-stage" className="gg-encounter-game" hidden={isPhone && chatOpen} aria-label="Encounter games">
+              <GamePanel squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
+            </section>
+          )}
           {/* ── VIDEO STAGE ─────────────────────────────────────────────── */}
           <div
             data-testid="video-stage"

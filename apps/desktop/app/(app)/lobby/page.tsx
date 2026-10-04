@@ -1,6 +1,6 @@
 "use client";
 import { describeVideoError } from "@/lib/videoError";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
 import styles from "./lobby.module.css";
 import type { RemoteParticipant } from "@giggle/agora";
@@ -8,6 +8,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { Icon } from "@/components/Icons";
 import { ChatPanel } from "@/components/ChatPanel";
+import { GamePanel, type GameLayoutOverride } from "@/components/GamePanel";
+import { mapCaptureToVoiceMic, resolveGameLayout, type GamePresentation, type VoiceMic } from "@/lib/gameBridge";
 import { CoverPicker } from "@/components/CoverPicker";
 import { InviteToSquad } from "@/components/InviteToSquad";
 import { Modal } from "@/components/Modal";
@@ -19,6 +21,7 @@ import { createVideoClient } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
+import { useGamesEnabled } from "@/lib/games";
 import { pollWhileVisible } from "@/lib/poll";
 import { TopicPicker } from "@/components/TopicPicker";
 import { normalizeTopics } from "@/lib/topics";
@@ -29,6 +32,8 @@ function normalizeVibeLabels(vibes: string[] = []) { return normalizeTopics(vibe
 function LobbyInner() {
   // stranger matching follows the API switch (see lib/discovery)
   const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled() === true;
+  // squad games follow the API switch (see lib/games)
+  const GAMES_ENABLED = useGamesEnabled() === true;
   const { isPhone } = useViewport();
   const themeId = useTheme();
   const router = useRouter();
@@ -41,6 +46,9 @@ function LobbyInner() {
   const [squad, setSquad] = useState<SquadState | null>(null);
   const [loading, setLoading] = useState(true);
   const [micOn, setMicOn] = useState(false);
+  // Actual mic capture truth for game voice prompts (denied/unavailable stay
+  // honest instead of collapsing to off).
+  const [micCapture, setMicCapture] = useState<VoiceMic>("off");
   const [camOn, setCamOn] = useState(false);
   const [settingReady, setSettingReady] = useState(false);
   const [findingMatch, setFindingMatch] = useState(false);
@@ -94,6 +102,30 @@ function LobbyInner() {
   // Squad chat
   const [chatOpen, setChatOpen] = useState(false); // phone docked chat sheet
 
+  // Squad games open INSIDE this lobby (no navigation): the stage mounts
+  // beside the seats while vcRef, media nodes, and call controls stay put.
+  const [gameOpen, setGameOpen] = useState(false);
+  // Contextual video: the child's hint (auto), the user's override pin, and
+  // the focused seat. The override persists across game changes until Auto;
+  // closing games resets all three (see the gameOpen effect below).
+  const [gamePresentation, setGamePresentation] = useState<GamePresentation>("balanced");
+  const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
+  const [focusedMemberId, setFocusedMemberId] = useState<string | null>(null);
+  // Stable subscriber: GamePanel reads it via ref, so auth never re-runs.
+  const handlePresentation = useCallback((p: GamePresentation) => {
+    setGamePresentation(p);
+  }, []);
+  // Effective rail: explicit pins win; auto maps the hint (social→faces,
+  // immersive→compact, board/balanced stay calm side-by-side).
+  const effectiveLayout = resolveGameLayout(layoutOverride, gamePresentation);
+  useEffect(() => {
+    if (!gameOpen) {
+      setFocusedMemberId(null);
+      setLayoutOverride("auto");
+      setGamePresentation("balanced");
+    }
+  }, [gameOpen]);
+
   // Collapsible sidebar (desktop) + integrated chat
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<"info" | "chat">("info");
@@ -102,6 +134,8 @@ function LobbyInner() {
 
   const chatVisibleRef = useRef(false);
   const chatButtonRef = useRef<HTMLButtonElement>(null);
+  // Video rail (games-open): scrolled rail-only to reveal a focused tile.
+  const seatsRef = useRef<HTMLElement | null>(null);
 
   const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
   const lobbyMediaGenerationRef = useRef(0);
@@ -186,6 +220,7 @@ function LobbyInner() {
       const offCapture = vc.onCaptureState?.(state => {
         if (generation !== lobbyMediaGenerationRef.current) return;
         setMicOn(state.audio === "active");
+        setMicCapture(mapCaptureToVoiceMic(state.audio));
         setCamOn(state.video === "active");
         if (state.audio === "denied" || state.video === "denied") {
           setVideoError("Allow camera or microphone access in your browser, then try again.");
@@ -283,6 +318,42 @@ function LobbyInner() {
   chatVisibleRef.current = chatVisible;
   // Clear unread the moment chat becomes visible.
   useEffect(() => { if (chatVisible) setUnread(0); }, [chatVisible]);
+
+  // Focused seat hygiene: a member who left (or went offline) clears the
+  // pin; opening phone chat clears it too (seats hidden). Clearing never
+  // touches the call — no leave, no navigation. ESC restores the same way
+  // and returns keyboard focus to the seat's button.
+  useEffect(() => {
+    if (!focusedMemberId) return;
+    const m = squad?.members.find(mm => mm.memberId === focusedMemberId);
+    if (!m || (m.online === false && m.userId !== myUserId)) setFocusedMemberId(null);
+  }, [squad, focusedMemberId, myUserId]);
+  useEffect(() => {
+    if (isPhone && chatVisible) setFocusedMemberId(null);
+  }, [isPhone, chatVisible]);
+  useEffect(() => {
+    if (!focusedMemberId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const id = focusedMemberId;
+      setFocusedMemberId(null);
+      requestAnimationFrame(() => {
+        document.querySelector<HTMLElement>(`[data-focus-btn="${id}"]`)?.focus({ preventScroll: true });
+      });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusedMemberId]);
+  // Focused tile visibility: the tile gets order:-1 (rail start) via CSS.
+  // One rail-only scroll reveals it when the rail was parked on a later
+  // member. No window scroll, no timers, no game frame touch.
+  useEffect(() => {
+    if (!focusedMemberId || !gameOpen) return;
+    const rail = seatsRef.current;
+    if (!rail) return;
+    rail.scrollTop = 0;
+    rail.scrollLeft = 0;
+  }, [focusedMemberId, gameOpen]);
 
   async function toggleDevice(kind: "audio" | "video") {
     if (deviceBusyRef.current[kind] || videoJoining) return;
@@ -727,6 +798,7 @@ function LobbyInner() {
           <strong className={styles.codeText}>{squad.squadCode}</strong>
           <span className={styles.codeHint}>{codeCopied ? "Copied" : <Icon.copy size={16} />}</span>
         </button>
+        {GAMES_ENABLED && <button type="button" className={styles.playBtn} aria-expanded={gameOpen} onClick={() => setGameOpen(v => !v)}><span className={styles.wide}>Play together</span><span className={styles.narrow}>Play</span></button>}
         <button type="button" className={`icon-btn ${styles.iconBtn}`} aria-label="Invite friends" disabled={!canInvite} onClick={() => setInviteSheetOpen(true)}><Icon.share size={19} /></button>
         <button ref={chatButtonRef} type="button" className={`icon-btn ${styles.iconBtn}`} aria-label={`Chat${unread > 0 ? `, ${unread} unread` : ""}`} onClick={openChat}>
           <Icon.chat size={19} />{unread > 0 && <span className={styles.dot} aria-hidden="true">{unread}</span>}
@@ -737,14 +809,20 @@ function LobbyInner() {
       </header>
       {(matchError || connTrouble) && <div role="alert" className={styles.notice}>{matchError || "Connection lost. Reconnecting to your squad…"}<Button variant="ghost" size="sm" onClick={() => void fetchSquad()}>Retry</Button></div>}
 
-      <div className={styles.body}>
-        <section className={styles.seats} data-count={memberCount + Math.min(openSeats, 7)} hidden={isPhone && chatVisible} aria-label="Squad members">
+      <div className={styles.body} data-games={gameOpen || undefined} data-layout={gameOpen ? effectiveLayout : undefined}>
+        {gameOpen && (
+          <section className={styles.stage} hidden={isPhone && chatVisible} aria-label="Squad games">
+            <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
+          </section>
+        )}
+        <section className={styles.seats} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={isPhone && chatVisible} aria-label="Squad members">
           {squad.members.map((member) => {
             const isMe = member.userId === myUserId;
             const remote = remotes.find(r => String(r.uid) === String(member.uid));
             const offline = member.online === false && !isMe;
             const showVideo = isMe ? camOn && videoJoined : !!remote?.hasVideo;
-            return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-testid="lobby-person" data-offline={offline || undefined} data-video={showVideo}>
+            const focused = focusedMemberId === member.memberId;
+            return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-testid="lobby-person" data-offline={offline || undefined} data-video={showVideo} data-focused={focused || undefined}>
               <div className={styles.face}><PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size="fill" /></div>
               {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
               <div className={styles.seatLabel}>
@@ -755,6 +833,7 @@ function LobbyInner() {
                 {offline ? <span className={styles.state}>Offline</span> : !showVideo ? <span className={styles.state} aria-label="Camera off" title="Camera off"><Icon.camOff size={14} weight="regular" /><span className={styles.cameraStateText}>Camera off</span></span> : null}
               </div>
               {!isMe && <button type="button" className={styles.personOptions} aria-label={`${member.displayName}'s options`} aria-haspopup="dialog" onClick={() => { setListeningError(""); setPersonOptionsId(member.memberId); }}><span aria-hidden="true">•••</span></button>}
+              {gameOpen && <button type="button" className={styles.focusBtn} data-focus-btn={member.memberId} aria-pressed={focused} aria-label={focused ? (isMe ? "Restore your video" : `Restore ${member.displayName}`) : (isMe ? "Enlarge your video" : `Enlarge ${member.displayName}`)} onClick={() => setFocusedMemberId(cur => cur === member.memberId ? null : member.memberId)}><Icon.pin size={16} color="currentColor" /></button>}
             </article>;
           })}
           {Array.from({ length: Math.min(openSeats, 7) }, (_, i) => (
