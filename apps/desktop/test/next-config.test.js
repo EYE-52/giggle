@@ -515,14 +515,14 @@ test("matchmaking queue status is informational, not a premium priority upsell",
   assert.equal(page.includes('billing.hasPerk("fast_pass")'), false);
 });
 
-test("compact-phone matchmaking keeps the cancel action in view", () => {
+test("compact-phone matchmaking keeps people and cancellation reachable", () => {
   const page = matchmakingSource();
   const css = faceOffCss();
-  // one screen: the people flex, the status and actions never leave the screen
-  assert.match(css, /\.page \{[^}]*overflow: hidden;/);
-  assert.match(css, /\.arena \{ flex: 1; min-height: 0;/);
+  // Short screens scroll instead of shrinking labels to zero or clipping actions.
+  assert.match(css, /\.page \{[^}]*overflow: hidden auto;/);
+  assert.match(css, /\.arena \{ flex: 1; min-height: 220px;/);
   assert.match(css, /\.foot \{ flex: none;/);
-  assert.match(css, /@media \(max-height: 640px\) \{ \.people \{ --face: 72px; \}/);
+  assert.match(css, /@media \(min-width: 721px\) and \(max-height: 640px\) \{ \.people \{ --face: 72px; \}/);
   assert.equal(page.includes('backLabel="Back to lobby"'), true);
   assert.equal(page.includes('cancelError ? "Try cancel again" : "Cancel search"'), true);
 });
@@ -630,12 +630,12 @@ test("desktop match preserves leader and roster data when squad detail is unavai
   assert.equal(page.includes("const myRoster = squad?.members ?? encounterMembers;"), true);
 });
 
-test("mobile match keeps the action card in normal flow", () => {
+test("phone match keeps the action card in normal flow", () => {
   const css = faceOffCss();
 
   assert.equal(matchSource().includes("<FaceOff"), true);
   // phones stack the squads like the call: theirs on top, yours below, actions after
-  assert.match(css, /@media \(max-width: 720px\) \{ \.arena \{ grid-template-columns: minmax\(0, 1fr\); grid-template-rows: minmax\(0, 1fr\) auto minmax\(0, 1fr\);/);
+  assert.match(css, /@media \(max-width: 720px\) \{\s*\.arena \{ min-height: 320px; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: minmax\(0, 1fr\) auto minmax\(0, 1fr\);/);
   assert.equal(css.includes("position: fixed"), false);
 });
 
@@ -658,7 +658,7 @@ test("desktop match uses a theme-native Room ready handoff", () => {
 
 test("desktop match keeps handoff actions reachable in phone landscape", () => {
   const css = faceOffCss();
-  assert.match(css, /@media \(max-height: 640px\)/);
+  assert.match(css, /@media \(min-width: 721px\) and \(max-height: 640px\)/);
   assert.match(css, /\.foot \{ flex: none;/);
 });
 
@@ -1083,7 +1083,7 @@ test("desktop encounter report button only shows success after persistence ackno
 test("desktop matchmaking keeps cancel reachable on short phones", () => {
   const css = faceOffCss();
 
-  assert.match(css, /\.page \{[^}]*overflow: hidden;/);
+  assert.match(css, /\.page \{[^}]*overflow: hidden auto;/);
   assert.match(css, /\.foot \{ flex: none;/);
   assert.equal(matchmakingSource().includes('backLabel="Back to lobby"'), true);
 });

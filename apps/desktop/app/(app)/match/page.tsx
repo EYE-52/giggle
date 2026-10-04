@@ -3,8 +3,10 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/Button";
 import { FaceOff, FaceOffBar, faceOffStyles } from "@/components/FaceOff";
-import { api, ApiError, session } from "@giggle/core";
+import { api, ApiError, session, connectSocket, SOCKET_EVENTS } from "@giggle/core";
 import type { EncounterDetail, SquadState } from "@giggle/core";
+import { pollWhileVisible } from "@/lib/poll";
+import { Icon } from "@/components/Icons";
 
 function isExpiredEncounterError(error: unknown) {
   return error instanceof ApiError && ["ENCOUNTER_EXPIRED", "ENCOUNTER_ENDED", "ENCOUNTER_NOT_FOUND"].includes(error.code);
@@ -23,6 +25,9 @@ function MatchInner() {
   const [handoffExpired, setHandoffExpired] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [joining, setJoining] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const [waitingError, setWaitingError] = useState("");
+  const joinPendingRef = useRef(false);
   const [skipping, setSkipping] = useState(false);
   const [countdown, setCountdown] = useState(1);
   const [countdownTotal, setCountdownTotal] = useState(1);
@@ -67,6 +72,7 @@ function MatchInner() {
     setLoading(true);
     setHandoffError(null);
     setHandoffExpired(false);
+    setWaiting(false); setWaitingError("");
     Promise.all([
       api.getEncounter(encId),
       api.getSquad(squadId).catch(() => null),
@@ -85,6 +91,7 @@ function MatchInner() {
         setLoading(false);
         return;
       }
+      setWaiting(encounterData.ack?.[squadId] === true);
       setEncounter(encounterData);
       if (squadData) setSquad(squadData);
       setCountdown(secondsLeft);
@@ -108,6 +115,43 @@ function MatchInner() {
       clearDeferredNavigation();
     };
   }, [encId, squadId, router]);
+
+  // Socket activation is immediate; visible-tab polling covers a missed event.
+  useEffect(() => {
+    if (!waiting || !encId || !squadId) return;
+    let active = true, pending = false;
+    const refresh = async (event?: { encounterId?: string }) => {
+      if (event?.encounterId && event.encounterId !== encId) return;
+      if (!active || pending || navigatedRef.current) return;
+      pending = true;
+      try {
+        const detail = await api.getEncounter(encId);
+        if (!active || navigatedRef.current) return;
+        setWaitingError("");
+        if (detail.status === "active") {
+          if (tickRef.current) clearInterval(tickRef.current);
+          navigate(`/encounter?squad=${squadId}&enc=${encId}`);
+        } else if (detail.status === "ended") {
+          if (tickRef.current) clearInterval(tickRef.current);
+          setWaiting(false);
+          setHandoffExpired(true);
+          setHandoffError("This match handoff has expired.");
+        }
+      } catch {
+        if (active) setWaitingError("Couldn't check the other squad. We'll keep trying.");
+      } finally { pending = false; }
+    };
+    const socket = connectSocket(squadId);
+    socket.on(SOCKET_EVENTS.ENCOUNTER_ACTIVE, refresh);
+    socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED, refresh);
+    const stop = pollWhileVisible(refresh, 2000);
+    void refresh();
+    return () => {
+      active = false; stop();
+      socket.off(SOCKET_EVENTS.ENCOUNTER_ACTIVE, refresh);
+      socket.off(SOCKET_EVENTS.ENCOUNTER_ENDED, refresh);
+    };
+  }, [waiting, encId, squadId, router]);
 
   // On countdown expiry: leader issues the skip, everyone returns to matchmaking.
   useEffect(() => {
@@ -139,7 +183,7 @@ function MatchInner() {
   const [autoLeft, setAutoLeft] = useState(AUTO_JOIN_SECONDS);
   const handleJoinRef = useRef<() => void>(() => {});
   useEffect(() => {
-    if (!encounter || encounter.status !== "awaiting_ack") return;
+    if (!encounter || encounter.status !== "awaiting_ack" || waiting || handoffExpired || handoffError) return;
     setAutoLeft(AUTO_JOIN_SECONDS);
     const startedAt = Date.now();
     const timer = setInterval(() => {
@@ -151,7 +195,7 @@ function MatchInner() {
       }
     }, 250);
     return () => clearInterval(timer);
-  }, [encounter]);
+  }, [encounter, waiting, handoffExpired, handoffError]);
 
   // SR countdown announcements — throttled to 10s / 5s / expiry only, so the
   // live region doesn't chatter every second.
@@ -163,7 +207,8 @@ function MatchInner() {
   }, [countdown]);
 
   async function handleJoin() {
-    if (!encId || !squadId || joining) return;
+    if (!encId || !squadId || joinPendingRef.current || waiting || skipping || navigatedRef.current) return;
+    joinPendingRef.current = true;
     setActionError(null);
     setJoinExpired(false);
     // Don't clear the countdown timer yet — only stop it once the ack SUCCEEDS.
@@ -171,8 +216,12 @@ function MatchInner() {
     // expiry effect still runs as a fallback so the user is never stranded.
     setJoining(true);
     try {
-      await api.ackEncounter(encId, squadId);
-      // Ack confirmed — now it's safe to stop the auto-skip countdown.
+      const result = await api.ackEncounter(encId, squadId);
+      if (!result.allAcked) {
+        setJoining(false); setWaiting(true);
+        return;
+      }
+      // Both squads confirmed — now it's safe to stop the auto-skip countdown.
       if (tickRef.current) clearInterval(tickRef.current);
       clearDeferredNavigation();
       joinNavTimeoutRef.current = setTimeout(() => {
@@ -189,7 +238,7 @@ function MatchInner() {
         return;
       }
       setActionError(error instanceof Error ? error.message : "Couldn't join this encounter yet.");
-    }
+    } finally { joinPendingRef.current = false; }
   }
 
   handleJoinRef.current = () => { if (!skipping) void handleJoin(); };
@@ -252,6 +301,10 @@ function MatchInner() {
 
   const status = joinExpired
     ? "This match expired. Finding you another…"
+    : waiting
+      ? `Waiting for ${theirSide?.name ?? "the other squad"}…`
+      : actionError
+        ? "Your squad hasn't joined yet. Try again."
     : joining
       ? `Joining ${theirSide?.name ?? "the call"}…`
       : `Joining in ${autoLeft}…`;
@@ -263,12 +316,16 @@ function MatchInner() {
       theirs={theirSide}
       status={<>
         <span role="timer" aria-label={`${countdown} of ${countdownTotal} seconds left to join`}>{status}</span>
+        {waiting && <span className={faceOffStyles.waitingTime} aria-hidden="true">{countdown}s before this match expires</span>}
         <span aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>{srAnnounce}</span>
       </>}
       actions={
         <>
-          <Button onClick={handleJoin} loading={joining} disabled={joinExpired} variant="primary">{joinExpired ? "Match expired" : "Join now"}</Button>
+          {waiting
+            ? <span role="status" aria-label="Your squad is ready" className={faceOffStyles.ready}><Icon.check size={18} />Your squad is ready</span>
+            : <Button onClick={handleJoin} loading={joining} disabled={joinExpired || skipping} variant="primary">{joinExpired ? "Match expired" : actionError ? "Try joining again" : "Join now"}</Button>}
           {isLeader && <Button onClick={handleSkip} loading={skipping} disabled={joining} variant="secondary">{skipping ? "Skipping…" : "Skip"}</Button>}
+          {waitingError && <p role="alert" className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>{waitingError}</p>}
           {actionError && <p role="alert" className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>{actionError}</p>}
         </>
       }

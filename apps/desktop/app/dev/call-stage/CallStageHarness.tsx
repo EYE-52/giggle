@@ -4,6 +4,9 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { AdaptiveVideoStage, type AdaptiveParticipant } from "@/components/AdaptiveVideoStage";
 import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoStage";
 import { ParticipantVideoTile } from "@/components/ParticipantVideoTile";
+import { FaceOff, FaceOffBar, faceOffStyles } from "@/components/FaceOff";
+import { Button } from "@/components/Button";
+import { Icon } from "@/components/Icons";
 import { arrangeVideoCall, arrangeFocusCall, MAX_WEIGHT, type Tile, type FocusPerson } from "@giggle/core";
 
 // ── prototype layouts (variant=fair|grid); "current" uses the real AdaptiveVideoStage ──
@@ -231,6 +234,16 @@ export function CallStageHarness() {
     return () => { window.removeEventListener("resize", check); cancelAnimationFrame(frame); };
   }, [variant]);
   if (!params) return null;
+  if (variant === "handoff") {
+    const people = (side: AdaptiveParticipant[], offset: number) => side.map((p, i) => ({ userId: p.id, displayName: NAMES[(i + offset) % NAMES.length] }));
+    return <div data-testid="handoff-harness" style={{ position: "fixed", inset: 0, background: "var(--bg)" }}>
+      <FaceOff top={<FaceOffBar onBack={() => window.location.assign("/profile")} backLabel="Back to profile" title="Friday crew" />}
+        mine={{ name: "Friday crew", people: people(mine, 0) }} theirs={{ name: "Night owls", people: people(theirs, mine.length) }}
+        status={<>Waiting for Night owls…<span className={faceOffStyles.waitingTime}>42s before this match expires</span></>}
+        actions={<><span className={faceOffStyles.ready}><Icon.check size={18} />Your squad is ready</span><Button variant="secondary" onClick={() => window.location.assign("/profile")}>Back to profile</Button>
+          {params.get("error") === "1" && <p role="alert" className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>Couldn't check the other squad. We'll keep trying.</p>}</>} />
+    </div>;
+  }
   const renderTile = (id: string) => {
     const shape = shapes[id];
     const index = Number(id.split("-")[1]) - 1 + (id.startsWith("theirs") ? mine.length : 0);

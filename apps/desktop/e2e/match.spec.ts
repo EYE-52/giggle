@@ -8,6 +8,9 @@ type FixtureOptions = {
   holdEncounter?: boolean;
   expired?: boolean;
   ackFailures?: number;
+  waitForOpponent?: boolean;
+  alreadyAcknowledged?: boolean;
+  refreshFailures?: number;
 };
 
 function fixtureMembers(role: "leader" | "member") {
@@ -40,6 +43,7 @@ async function installMatchFixture(page: Page, options: FixtureOptions = {}) {
   const encounter = {
     encounterId: "fixture-handoff",
     status: "awaiting_ack",
+    ack: { "fixture-squad": options.alreadyAcknowledged ?? false },
     squadAId: "fixture-squad",
     squadAName: "Night Owls",
     squadAMembers: members.mine,
@@ -73,6 +77,7 @@ async function installMatchFixture(page: Page, options: FixtureOptions = {}) {
   }, { sessionValue: JSON.stringify({ token: `e30.${payload}.fixture`, user }) });
 
   let ackAttempts = 0;
+  let remainingRefreshFailures = options.refreshFailures ?? 0;
   let releaseEncounter = () => {};
   const encounterGate = options.holdEncounter
     ? new Promise<void>(resolve => { releaseEncounter = resolve; })
@@ -93,6 +98,11 @@ async function installMatchFixture(page: Page, options: FixtureOptions = {}) {
     }
     if (path === encounterPath && request.method() === "GET") {
       await encounterGate;
+      if (encounter.ack["fixture-squad"] && remainingRefreshFailures > 0) {
+        remainingRefreshFailures--;
+        await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ ok: false, error: { code: 'RETRY', message: 'Temporarily unavailable.' } }) });
+        return;
+      }
       if (options.expired) {
         await route.fulfill({
           status: 410,
@@ -118,7 +128,9 @@ async function installMatchFixture(page: Page, options: FixtureOptions = {}) {
         });
         return;
       }
-      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { encounterId: "fixture-handoff", allAcked: true } }) });
+      encounter.ack["fixture-squad"] = true;
+      if (!options.waitForOpponent) encounter.status = "active";
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { encounterId: "fixture-handoff", allAcked: !options.waitForOpponent } }) });
       return;
     }
     if (path === "/api/matchmaking/skip") {
@@ -132,7 +144,7 @@ async function installMatchFixture(page: Page, options: FixtureOptions = {}) {
     });
   });
 
-  return { calls, ackAttempts: () => ackAttempts, releaseEncounter };
+  return { calls, ackAttempts: () => ackAttempts, releaseEncounter, activate: () => { encounter.status = "active"; } };
 }
 
 async function openMatch(page: Page) {
@@ -168,7 +180,7 @@ test("join acknowledgement stays retryable and navigates only after success", as
   await expect(page).toHaveURL(/\/match\?squad=fixture-squad/);
   expect(fixture.ackAttempts()).toBe(1);
 
-  await page.getByRole("button", { name: "Join now" }).click();
+  await page.getByRole("button", { name: "Try joining again" }).click();
   await expect(page).toHaveURL(/\/encounter\?squad=fixture-squad&enc=fixture-handoff/, { timeout: 3_000 });
   expect(fixture.ackAttempts()).toBe(2);
   expect(fixture.calls.filter(call => call.path === `${encounterPath}/ack`).map(call => call.body)).toEqual([
@@ -218,4 +230,29 @@ test("reduced-motion phone landscape keeps both actions on screen", async ({ pag
     expect(durationMs).toBeLessThanOrEqual(0.001);
   }
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+});
+
+
+test("a first acknowledgement waits for the opponent without starting media", async ({ page }) => {
+  const fixture = await installMatchFixture(page, { waitForOpponent: true, refreshFailures: 1 });
+  await openMatch(page);
+  await page.getByRole('button', { name: 'Join now', exact: true }).click();
+  await expect(page.getByRole('timer')).toContainText('Waiting for Chaos Club');
+  await expect(page.getByRole('status', { name: 'Your squad is ready', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Skip', exact: true })).toBeEnabled();
+  await expect(page.getByRole('alert').filter({ hasText: "Couldn't check the other squad" })).toBeVisible();
+  await expect(page.getByRole('alert').filter({ hasText: "Couldn't check the other squad" })).toHaveCount(0);
+  expect(fixture.ackAttempts()).toBe(1);
+  expect(fixture.calls.some(call => call.path.includes('encounter-video') || call.path === '/api/encounters/token')).toBe(false);
+  fixture.activate();
+  await expect(page).toHaveURL(/\/encounter\?squad=fixture-squad&enc=fixture-handoff/);
+});
+
+test("a pending call link resumes its acknowledged handoff instead of opening devices", async ({ page }) => {
+  const fixture = await installMatchFixture(page, { waitForOpponent: true, alreadyAcknowledged: true });
+  await page.goto('/encounter?squad=fixture-squad&enc=fixture-handoff');
+  await expect(page).toHaveURL(/\/match\?squad=fixture-squad&enc=fixture-handoff/);
+  await expect(page.getByRole('timer')).toContainText('Waiting for Chaos Club');
+  expect(fixture.ackAttempts()).toBe(0);
+  expect(fixture.calls.some(call => call.path.includes('encounter-video') || call.path === '/api/encounters/token')).toBe(false);
 });

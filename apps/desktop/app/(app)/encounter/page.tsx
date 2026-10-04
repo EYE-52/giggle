@@ -505,6 +505,10 @@ function EncounterInner() {
       try {
         const detail = await api.getEncounter(encId);
         if (cancelled) return;
+        if (detail.status === "awaiting_ack") {
+          router.replace(`/match?squad=${squadId}&enc=${encId}`);
+          return;
+        }
         setEncounter(detail);
         setEncounterLoading(false);
         if (detail.status === "ended") return;

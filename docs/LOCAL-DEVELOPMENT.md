@@ -71,6 +71,8 @@ After viewport resizing, the controls preview records whether tiles are still gl
 
 Add `&muteFailure=once` to the controls preview to fail each person's first viewer-mute attempt. The real participant menu should show an error without changing mute state, stay inside the viewport when the error adds height, and allow a successful retry without replacing the synthetic streams. This option only changes the development fixture, not the production audio client.
 
+For roster and waiting-screen layout checks, open `/dev/call-stage?variant=handoff&m=8&t=8&error=1`. This uses the shared FaceOff component with original Giggle avatars, a waiting status and an optional connection-error notice. It does not create an encounter or exercise acknowledgement transport. Short screens scroll to preserve the roster labels and actions. This preview is also unavailable in production.
+
 ```sh
 REDIS_URL=redis://127.0.0.1:16379/15 npm --prefix server test
 pnpm --filter @giggle/desktop test

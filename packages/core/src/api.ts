@@ -444,6 +444,7 @@ export interface MatchStatus {
 }
 export interface EncounterDetail {
   encounterId: string;
+  ack?: Record<string, boolean>;
   status: "awaiting_ack" | "active" | "ended";
   squadAId: string;
   squadAName: string;

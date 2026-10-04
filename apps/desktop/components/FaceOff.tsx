@@ -39,7 +39,7 @@ export function FaceOff({ mine, theirs, searching = false, status, actions, top 
   return (
     <div className={styles.page}>
       {top}
-      <div className={styles.arena} data-state={theirs ? "matched" : searching ? "searching" : "loading"}>
+      <div className={styles.arena} data-state={theirs ? "matched" : searching ? "searching" : "loading"} data-count={Math.max(mine?.people.length ?? 3, theirs?.people.length ?? 3)}>
         <Side side={theirs} placeholder={searching ? "Looking for a squad" : ""} kind="theirs" />
         <div className={styles.vs} aria-hidden="true">{theirs ? "vs" : <span className={styles.dots}><i /><i /><i /></span>}</div>
         <Side side={mine} kind="mine" />
