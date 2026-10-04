@@ -13,6 +13,8 @@ html[data-skin="scrap"] .gg-call-theme {
   --sb-note-ink: #30382b;
   --sb-note-muted: #606650;
   --sb-photo-paper: #fffdf6;
+  --sb-photo-ink: #30382b;
+  --sb-photo-muted: #606650;
   --sb-paper: #fffefb;
   --sb-ink: #303a36;
   --sb-ink-2: #626c65;
@@ -32,13 +34,15 @@ html[data-skin="scrap"] .gg-call-theme {
 }
 :is(html[data-skin="scrap"][data-mode="dark"], html[data-mode="dark"] [data-skin-preview="scrap"]),
 html[data-skin="scrap"] .gg-call-theme {
-  --sb-page: #202829;
+  --sb-page: #1d2423;
   --sb-rule: rgb(135 172 185 / .14);
   --sb-margin-rule: rgb(218 137 140 / .27);
-  --sb-note: #d9ca85;
-  --sb-note-pink: #cfaab7;
-  --sb-note-mint: #aebf95;
-  --sb-paper: #303a36;
+  --sb-note: #484232;
+  --sb-note-pink: #483640;
+  --sb-note-mint: #34463d;
+  --sb-note-ink: #f3ecdb;
+  --sb-note-muted: #cec7b5;
+  --sb-paper: #2b3430;
   --sb-highlight: #566148;
   --sb-ink: #f3f1e7;
   --sb-ink-2: #c0c6bc;
@@ -114,10 +118,10 @@ html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"]
 :is(html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"], html[data-skin] [data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"]) :is(.btn, .gg-btn):not(.btn-ghost):not(:where([data-skin-preview]:not([data-skin-preview="scrap"]) *)) {
   position: relative; isolation: auto;
   background: var(--sb-paper); color: var(--sb-ink);
-  border: 1px solid var(--sb-line); border-radius: 7px;
-  box-shadow: 0 2px 0 var(--sb-line);
+  border: 1px solid var(--sb-line); border-radius: 3px 7px 4px 6px;
+  box-shadow: 1px 2px 0 var(--sb-line);
   rotate: none; transform: none;
-  font-weight: 750; letter-spacing: 0;
+  font-family:var(--font-pencil); font-weight:700; letter-spacing:0;
   transition: translate .12s, box-shadow .12s;
 }
 
@@ -127,6 +131,17 @@ html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"]
 
 :is(html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"], html[data-skin] [data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"]) :is(.btn, .gg-btn).btn-primary:not(:where([data-skin-preview]:not([data-skin-preview="scrap"]) *)) {
   background: var(--brand); color: var(--sb-cta-ink); border-color: transparent; box-shadow: 0 2px 0 color-mix(in srgb, var(--brand-deep) 60%, transparent);
+}
+
+/* Printed accent on dark paper, rather than a bright plastic rectangle. */
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-mode="dark"] :is(.btn, .gg-btn).btn-primary:not(:disabled):not(:where([data-skin-preview] *)),
+html[data-mode="dark"] [data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"] :is(.btn, .gg-btn).btn-primary {
+  background:color-mix(in srgb, var(--brand) 18%, var(--sb-paper)); color:var(--sb-ink);
+  border-color:color-mix(in srgb, var(--brand) 38%, var(--sb-paper));
+}
+html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"] .gg-btn.btn-primary:not(:disabled):not(:where([data-skin-preview] *))::after {
+  content:""; position:absolute; right:10px; top:-4px; width:28px; height:7px;
+  background:var(--sb-tape); opacity:.55; rotate:-3deg; pointer-events:none;
 }
 
 :is(html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"], html[data-skin] [data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"]) :is(.btn, .gg-btn):not(:disabled):not(.btn-ghost):hover:not(:where([data-skin-preview]:not([data-skin-preview="scrap"]) *)) {

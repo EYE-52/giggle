@@ -68,7 +68,7 @@
 
 .actions button:disabled { opacity:.6; cursor:wait; }
 .error { color:var(--coral, #b3261e); font-size:13px; line-height:1.5; margin-top:16px; }
-@media(max-width:420px) { .tabs button { padding:10px 12px; font-size:13px; } .tabs { margin-top:-16px; } .controls { padding:16px; } }
+@media(max-width:420px) { .tabs button { min-width:44px; padding:10px 4px; font-size:12px; } .tabs { margin-top:-16px; } .controls { padding:16px; } }
 
 .controls .colorGroup { margin:0 0 24px; }
 .swatches { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
@@ -77,3 +77,17 @@
 .swatches button span { display:grid; place-items:center; width:18px; height:18px; background:#fff; color:#302633; border-radius:50%; font-size:12px; }
 .customColor { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); min-height:44px; margin-left:4px; }
 .customColor input { width:34px; height:34px; border:1px solid var(--line); padding:2px; border-radius:8px; background:white; }
+
+/* Scrapbook's studio is a photo on notebook paper, with the same ink as settings. */
+:global(html[data-skin="scrap"]) .page {
+  --bg:var(--sb-page); --surface:var(--sb-sheet-paper); --surface-2:var(--sb-sheet-paper);
+  --text:var(--sb-sheet-ink); --text-muted:var(--sb-sheet-muted); --ink:var(--sb-sheet-ink); --muted:var(--sb-sheet-muted);
+  background:repeating-linear-gradient(to bottom, transparent 0 31px, var(--sb-rule) 31px 32px), var(--sb-page);
+}
+:global(html[data-skin="scrap"]) .title { flex:0 1 auto; }
+:global(html[data-skin="scrap"]) .save { margin-left:auto; }
+:global(html[data-skin="scrap"]) .stage { position:relative; box-sizing:border-box; border:8px solid var(--sb-photo-paper); border-bottom-width:20px; border-radius:2px; box-shadow:1px 4px 8px var(--sb-shadow); }
+:global(html[data-skin="scrap"]) .stage::before { content:""; position:absolute; z-index:1; width:64px; height:20px; top:-17px; left:calc(50% - 32px); background:var(--sb-tape); rotate:-3deg; pointer-events:none; }
+:global(html[data-skin="scrap"]) .controls { border-radius:3px; background:repeating-linear-gradient(to bottom, transparent 0 31px, var(--sb-rule) 31px 32px), var(--sb-sheet-paper); }
+:global(html[data-skin="scrap"]) .expressionRow button, :global(html[data-skin="scrap"]) .tabs button { font-family:var(--font-pencil); }
+@media(max-width:720px) { :global(html[data-skin="scrap"]) .stage .character { width:min(235px,54%); height:auto; } }

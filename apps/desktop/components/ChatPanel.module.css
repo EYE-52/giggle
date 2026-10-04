@@ -38,7 +38,7 @@
 :global(html[data-skin="scrap"]) .messages { padding:18px 18px 24px 30px; gap:20px; background:linear-gradient(90deg, transparent 20px, var(--sb-margin-rule) 20px 21px, transparent 21px), repeating-linear-gradient(to bottom, transparent 0 27px, var(--sb-rule) 27px 28px); }
 :global(html[data-skin="scrap"]) .meta { color:var(--sb-ink-2); }
 :global(html[data-skin="scrap"]) .sender { font-weight:600; }
-:global(html[data-skin="scrap"]) .panel .bubble { font:400 17px/28px var(--font-pencil); border:0; border-radius:2px; padding:3px 9px; background:color-mix(in srgb, var(--sb-note-mint) 70%, var(--sb-photo-paper)); color:var(--sb-note-ink); box-shadow:0 1px 1px var(--sb-shadow), 1px 4px 6px -4px var(--sb-shadow); }
+:global(html[data-skin="scrap"]) .panel .bubble { font:400 17px/28px var(--font-pencil); border:0; border-radius:2px; padding:3px 9px; background:color-mix(in srgb, var(--sb-note-mint) 88%, var(--sb-paper)); color:var(--sb-note-ink); box-shadow:0 1px 1px var(--sb-shadow), 1px 4px 6px -4px var(--sb-shadow); }
 :global(html[data-skin="scrap"]) .panel .message[data-own="true"] .bubble { background:var(--sb-note); color:var(--sb-note-ink); border-radius:2px; }
 :global(html[data-skin="scrap"]) .composer { background:var(--sb-paper); border-top:1px solid var(--sb-margin-rule); }
 :global(html[data-skin="scrap"]) .input { border:0; border-bottom:1px solid var(--sb-line); border-radius:0; background:transparent; font:400 17px/28px var(--font-pencil); padding-inline:6px; }
