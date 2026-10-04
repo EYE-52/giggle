@@ -79,6 +79,7 @@ Historical incident: a September cover-storage release crashed the API about 15 
 - Home, Friends, Discover, Profile and sign-in now share more consistent spacing and theme surfaces. Scrapbook settings use notebook paper; Home retains the sticky-note cards and the shared Giggle mark.
 - Chat links are clickable, short-screen emoji pickers keep the input reachable, and notifications no longer sit below transformed page content.
 - Approved squad requests enter the lobby automatically. Encounter device controls follow actual capture state and cannot show a disconnected device as enabled.
+- The web handoff waits for both squads to accept before opening devices. `/api/encounters/token` issues new media tokens only while the encounter is `active`; pending and unknown states return `409 ENCOUNTER_NOT_ACTIVE`, and ended records return `409 ENCOUNTER_ENDED` when the squad still references that encounter. Normal membership checks can reject a stale ended request first. This gate does not revoke a previously issued Agora token.
 - Local validation and remaining physical-device gaps are recorded in [the prelaunch QA report](docs/superpowers/audits/2026-10-04-launch-qa.md). This does not close the external release gates or certify real camera/microphone behavior.
 
 ## Earned credits and Giggle+ (4 October 2026)

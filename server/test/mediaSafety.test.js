@@ -1,6 +1,9 @@
 const assert = require("node:assert/strict");
 const { after, test } = require("node:test");
 
+process.env.AGORA_APP_ID = "a".repeat(32);
+process.env.AGORA_APP_CERTIFICATE = "b".repeat(32);
+
 const User = require("../src/models/User");
 const { Squad } = require("../src/models/Squad");
 const { Encounter } = require("../src/models/Encounter");
@@ -83,6 +86,36 @@ test("encounter token issuance fails closed for a blocked cross-squad roster", a
     }, res);
     assert.equal(res.statusCode, 403);
     assert.equal(res.body.error.code, "INTERACTION_BLOCKED");
+  } finally {
+    Squad.findOne = originals.squadFindOne;
+    Encounter.findOne = originals.encounterFindOne;
+    User.find = originals.userFind;
+  }
+});
+
+test("only an active encounter can issue a media token, even with stale squad membership", async () => {
+  const originals = { squadFindOne: Squad.findOne, encounterFindOne: Encounter.findOne, userFind: User.find };
+  const squad = { squadId: "sq_a", currentEncounterId: "enc_1", members: [{ memberId: "mem_a", userId: USER_A }] };
+  Squad.findOne = async () => squad;
+  User.find = () => ({ lean: async () => [{ _id: USER_A, blockedUserIds: [] }] });
+  const encounter = { encounterId: "enc_1", squadAId: "sq_a", squadBId: "sq_b", status: "awaiting_ack" };
+  Encounter.findOne = async () => encounter;
+  const request = { body: { squadId: "sq_a", encounterId: "enc_1" }, user: { userId: USER_A } };
+  try {
+    for (const status of ["awaiting_ack", "ended", undefined, "unknown"]) {
+      encounter.status = status;
+      const res = response();
+      await issueEncounterTokenHandler(request, res);
+      assert.equal(res.statusCode, 409, `${status} must not issue media access`);
+      assert.equal(res.body.error.code, status === "ended" ? "ENCOUNTER_ENDED" : "ENCOUNTER_NOT_ACTIVE");
+      assert.equal(res.body.data, undefined);
+    }
+    encounter.status = "active";
+    const res = response();
+    await issueEncounterTokenHandler(request, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.channelName, "encounter_enc_1");
+    assert.ok(res.body.data.rtcToken);
   } finally {
     Squad.findOne = originals.squadFindOne;
     Encounter.findOne = originals.encounterFindOne;

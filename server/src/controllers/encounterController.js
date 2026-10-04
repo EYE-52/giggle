@@ -55,6 +55,15 @@ const issueEncounterTokenHandler = async (req, res) => {
         error: { code: "MEMBER_NOT_IN_ENCOUNTER", message: "Member is not part of this encounter" },
       });
     }
+    if (encounter.status !== "active") {
+      return res.status(409).json({
+        ok: false,
+        error: {
+          code: encounter.status === "ended" ? "ENCOUNTER_ENDED" : "ENCOUNTER_NOT_ACTIVE",
+          message: encounter.status === "ended" ? "This call has ended" : "Both squads must join before opening call devices",
+        },
+      });
+    }
     if (!(await getEncounterRosterContext({ encounter })).allowed) {
       return res.status(403).json({
         ok: false,
