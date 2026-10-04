@@ -75,6 +75,15 @@ test('zoom never squeezes anyone below the minimum tile size when it can be avoi
   for (const t of layout.tiles) assert.ok(Math.min(t.width, t.height) >= 40, `${t.id} is ${t.width}x${t.height}`);
 });
 
+test('mixed cameras in a full Plus call keep phone tile targets at least 44px', () => {
+  const aspects = [16 / 9, 9 / 16, null, 4 / 3];
+  const roster = side => Array.from({ length: 8 }, (_, i) => ({ id: `${side}-${i}`, aspect: aspects[i % 4], self: side === 'mine' && i === 0 }));
+  // 320×568 viewport minus the call preview's 10px inset on each edge.
+  const layout = focus.arrangeFocusCall(roster('mine'), roster('theirs'), 300, 548);
+  assertSane(layout, 300, 548, 16);
+  for (const tile of layout.tiles) assert.ok(Math.min(tile.width, tile.height) >= 44, `${tile.id} is ${tile.width}×${tile.height}`);
+});
+
 test('order is kept and nothing is NaN on tiny or broken stages', () => {
   const layout = focus.arrangeFocusCall(people('mine', 3), people('theirs', 2), 1440, 900);
   assert.deepEqual(layout.tiles.filter(t => t.side === 'mine').map(t => t.id), ['mine-0', 'mine-1', 'mine-2']);

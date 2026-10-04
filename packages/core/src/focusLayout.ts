@@ -159,7 +159,9 @@ function arrangementCost(items: Scored[], minTile: number): number {
     else if (!known && (aspect > 3.5 || aspect < 0.28)) cost += 4; // a character sits fine in a tall or wide tile, just not a strip
     else if (whole && !i.self && (aspect > 3.2 || aspect < 0.32)) cost += 2;
     else if (whole && i.self && aspect < 0.32) cost += 2;
-    if (Math.min(i.width, i.height) < minTile) cost += 2;
+    const shorterSide = Math.min(i.width, i.height);
+    // A severe sliver must cost more than a tile that only just misses the floor.
+    if (shorterSide < minTile) cost += 4 * Math.log(minTile / Math.max(1e-6, shorterSide));
     if (i.self && others.length) {
       const own = faceSize(i.width, i.height, i.aspect);
       if (own > rawSmallest) cost += 0.6 * Math.log(own / rawSmallest);
