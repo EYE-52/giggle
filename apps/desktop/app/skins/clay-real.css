@@ -227,3 +227,8 @@ html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is
 /* Call controls retain their semantic colors, with the same soft clay edge. */
 html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.cbtn, .logo) { box-shadow:var(--clay-raised); }
 html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .cbtn:active { box-shadow:var(--clay-pressed); }
+
+/* A search field has one recessed shell, not another well inside it. */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .search { padding:0; min-height:48px; }
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .search .input,
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .search .input:focus { background:transparent; border:0; outline:0; box-shadow:none; border-radius:inherit; padding:12px 16px 12px 44px; min-height:48px; font-size:16px; }

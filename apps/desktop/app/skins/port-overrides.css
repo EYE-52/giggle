@@ -600,3 +600,21 @@ html[data-skin][data-skin][data-skin] .gg-app-root {
   min-height: 0;
   height: 100dvh;
 }
+
+/* The fixed navigation owns the edge where scrolling content passes beneath.
+ * Clay/Soft blend the cut into their light; paper skins show a page edge and
+ * Bold Play uses a graphic rule. The overlay never catches pointer input. */
+html[data-skin] .gg-header.nav {
+  --nav-edge-height:20px;
+  --nav-edge-fill:linear-gradient(to bottom, var(--bg), transparent);
+  --nav-edge-shadow:none;
+}
+html[data-skin] .gg-header.nav::after {
+  content:""; position:absolute; top:100%; left:0; right:0; height:var(--nav-edge-height);
+  background:var(--nav-edge-fill); box-shadow:var(--nav-edge-shadow); pointer-events:none;
+}
+html[data-skin] .gg-app-main:not(.gg-app-main--calling) { scroll-padding-top:32px; }
+html[data-skin="clay"] .gg-header.nav { --nav-edge-height:28px; --nav-edge-fill:linear-gradient(to bottom, var(--clay-page), color-mix(in srgb, var(--clay-page) 85%, transparent) 25%, transparent); }
+html[data-skin="play"] .gg-header.nav { --nav-edge-height:2px; --nav-edge-fill:var(--pl-ink); --nav-edge-shadow:0 3px 0 color-mix(in srgb, var(--pl-ink) 10%, transparent); }
+html[data-skin="paper"] .gg-header.nav { --nav-edge-height:1px; --nav-edge-fill:color-mix(in srgb, var(--text) 35%, var(--bg)); --nav-edge-shadow:0 2px 3px color-mix(in srgb, var(--text) 8%, transparent); }
+html[data-skin="scrap"] .gg-header.nav { --nav-edge-height:6px; --nav-edge-fill:linear-gradient(to bottom, var(--sb-page) 0 5px, var(--sb-rule) 5px); --nav-edge-shadow:0 3px 5px rgb(0 0 0 / .08); }
