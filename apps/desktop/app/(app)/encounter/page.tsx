@@ -446,8 +446,9 @@ function EncounterInner() {
         router.replace(`/${payload.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
         return;
       }
-      if (payload?.endedBySquadId === squadId) return;
-      setEndedReason(payload?.reason === "squad_disconnected" ? "opponent-left" : "ended");
+      const opponentLeft = payload?.reason === "squad_disconnected" && payload?.endedBySquadId !== squadId;
+      void leaveVideo();
+      setEndedReason(opponentLeft ? "opponent-left" : "ended");
       setEndedNotice(true);
       setEndError(null);
       setFindingNextMatch(false);
@@ -459,7 +460,7 @@ function EncounterInner() {
       endedNavTimerRef.current = setTimeout(() => {
         void leaveVideo();
         router.push(
-          discoveryEnabledNow() && payload?.reason === "squad_disconnected"
+          discoveryEnabledNow() && opponentLeft
             ? `/matchmaking?squad=${squadId}`
             : `/lobby?squad=${squadId}`,
         );
@@ -484,6 +485,7 @@ function EncounterInner() {
         if (cancelled) return;
         setEncounter(detail);
         setEncounterLoading(false);
+        if (detail.status === "ended") return;
       } catch {
         if (!cancelled) {
           setEncounterError("This encounter is no longer available.");
@@ -1151,6 +1153,12 @@ function EncounterInner() {
         {encounterError ?? "It may have ended already."}
       </CallNotice>
     );
+  }
+
+  if (encounter.status === "ended") {
+    return <CallNotice icon={<Icon.hangup size={26} color="currentColor" />} title="This call has ended" actions={toLobbyOrHome} role="status">
+      Return to your lobby to meet another squad.
+    </CallNotice>;
   }
 
   return (

@@ -985,7 +985,10 @@ test("desktop encounter starts local media cleanup before backend-confirmed navi
   assert.equal(page.includes("setEndConfirmOpen(true)"), true);
   assert.equal(page.includes("SOCKET_EVENTS.ENCOUNTER_ENDED"), true);
   assert.equal(page.includes('payload?.reason === "squad_disconnected"'), true);
-  assert.equal(page.includes('payload?.endedBySquadId === squadId'), true);
+  const endedEvent = page.slice(page.indexOf("const onEnded ="), page.indexOf("const onActive ="));
+  assert.doesNotMatch(endedEvent, /if \(payload\?\.endedBySquadId === squadId\) return;/);
+  assert.match(endedEvent, /payload\?\.endedBySquadId !== squadId/);
+  assert.ok(endedEvent.indexOf('void leaveVideo();') < endedEvent.indexOf('setEndedNotice(true);'));
   assert.equal(page.includes("Find another now"), true);
   assert.equal(endBlock.includes('console.error("End encounter failed (non-fatal):", e);'), false);
 });
@@ -1494,7 +1497,7 @@ test("encounter browser coverage avoids real Agora while preserving call flows",
   assert.match(responsive, /injectSyntheticVideo/);
   assert.match(responsive, /Chat message/);
   assert.match(responsive, /setViewportSize/);
-  assert.match(remoteEnded, /emitOpponentEnded/);
+  assert.match(remoteEnded, /emitSquadEnded/);
   assert.match(remoteEnded, /Chaos Club left/);
 });
 

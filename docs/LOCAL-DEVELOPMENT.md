@@ -69,6 +69,8 @@ For call-control QA without a camera, open `/dev/call-stage?variant=controls&m=2
 
 After viewport resizing, the controls preview records whether tiles are still gliding and how many are outside the viewport two animation frames after the resize event. Use it to check rotation immediately after zooming or pinning; a settled screenshot alone can miss this transient fault. The diagnostic describes the synthetic preview, not physical-device media behavior.
 
+Add `&muteFailure=once` to the controls preview to fail each person's first viewer-mute attempt. The real participant menu should show an error without changing mute state, stay inside the viewport when the error adds height, and allow a successful retry without replacing the synthetic streams. This option only changes the development fixture, not the production audio client.
+
 ```sh
 REDIS_URL=redis://127.0.0.1:16379/15 npm --prefix server test
 pnpm --filter @giggle/desktop test

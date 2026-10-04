@@ -36,8 +36,11 @@ function PersonMenu({ anchor, onClose, children, name }: {
         top: Math.max(12, Math.min(box.bottom + 6, window.innerHeight - menu.height - 12)) });
     };
     place();
+    // Errors and wrapped text can grow the menu after it has opened.
+    const observer = new ResizeObserver(place);
+    if (ref.current) observer.observe(ref.current);
     window.addEventListener("resize", place);
-    return () => window.removeEventListener("resize", place);
+    return () => { observer.disconnect(); window.removeEventListener("resize", place); };
   }, [anchor]);
   return createPortal(<div className={styles.menuVeil} onClick={onClose} onKeyDown={e => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}>
     <div ref={ref} role="dialog" aria-modal="true" aria-label={`${name}'s options`} className={styles.menu} style={position} onClick={e => e.stopPropagation()}>

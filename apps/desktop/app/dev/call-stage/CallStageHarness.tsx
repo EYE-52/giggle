@@ -130,12 +130,19 @@ function SyntheticCamera({ shape, color, label, host }: { shape: [number, number
 }
 
 /** Uses the encounter's real tile and controls; mute changes synthetic viewer state only. */
-function ControlTile({ id, index, shape, size }: { id: string; index: number; shape: Shape; size: TileSizeControls }) {
+function ControlTile({ id, index, shape, size, failFirstMute }: { id: string; index: number; shape: Shape; size: TileSizeControls; failFirstMute: boolean }) {
   const host = useRef<HTMLDivElement>(null);
   const [muted, setMuted] = useState(false);
+  const failNextMute = useRef(failFirstMute);
   return <>
     <ParticipantVideoTile name={NAMES[index % NAMES.length]} colorIndex={index} isLocal={id === "mine-1"}
-      hasVideo={!!shape} micOn={true} mutedForMe={muted} onMute={async value => setMuted(value)}
+      hasVideo={!!shape} micOn={true} mutedForMe={muted} onMute={async value => {
+        if (failNextMute.current) {
+          failNextMute.current = false;
+          throw new Error("Could not change audio. Try again.");
+        }
+        setMuted(value);
+      }}
       videoRef={element => { host.current = element; }} size={size} fit={size.fit} />
     {shape && <SyntheticCamera host={host} shape={shape} color={COLORS[index % COLORS.length]} label={id} />}
   </>;
@@ -245,6 +252,7 @@ export function CallStageHarness() {
         mineLabel="Your squad" theirsLabel="Their squad" selfId="mine-1"
         videoOn={Object.fromEntries([...mine, ...theirs].map(person => [person.id, person.cameraOn]))}
         renderParticipant={(id, size) => <ControlTile id={id} size={size} shape={shapes[id]}
+          failFirstMute={params.get("muteFailure") === "once"}
           index={Number(id.split("-")[1]) - 1 + (id.startsWith("theirs") ? mine.length : 0)} />}
       /> : variant === "current" ? (
       <AdaptiveVideoStage

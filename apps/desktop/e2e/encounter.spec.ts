@@ -1,5 +1,28 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+test("failed viewer mute keeps the menu open and retry preserves video", async ({ page }) => {
+  await page.goto('/dev/call-stage?variant=controls&m=2&t=2&shapes=16:9,9:16,off,4:3&muteFailure=once');
+  const videos = page.locator('[data-media-host] video');
+  await expect(videos).toHaveCount(3);
+  const streams = await videos.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-synthetic-stream')));
+  const opener = page.getByRole('button', { name: "Maya's options", exact: true });
+  await opener.press('Enter');
+  const menu = page.getByRole('dialog', { name: "Maya's options", exact: true });
+  await menu.getByRole('button', { name: 'Mute for me', exact: true }).click();
+  await expect(menu.getByRole('alert')).toHaveText('Could not change audio. Try again.');
+  await expect.poll(() => menu.evaluate(el => {
+    const box = el.getBoundingClientRect();
+    return box.left >= 0 && box.top >= 0 && box.right <= innerWidth && box.bottom <= innerHeight;
+  })).toBe(true);
+  await expect(menu.getByRole('button', { name: 'Mute for me', exact: true })).toBeEnabled();
+  await expect(page.getByLabel('Muted for you', { exact: true })).toHaveCount(0);
+  await menu.getByRole('button', { name: 'Mute for me', exact: true }).click();
+  await expect(menu).toHaveCount(0);
+  await expect(opener).toBeFocused();
+  await expect(page.getByLabel('Muted for you', { exact: true })).toBeVisible();
+  expect(await videos.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-synthetic-stream')))).toEqual(streams);
+});
+
 test("real participant controls preserve synthetic streams and restore focus", async ({ page }) => {
   await page.goto('/dev/call-stage?variant=controls&m=2&t=2&shapes=16:9,9:16,off,4:3');
   const videos = page.locator('[data-media-host] video');
@@ -113,6 +136,7 @@ function fixtureEncounter(encounterId: string, count: number) {
 }
 
 async function installEncounterFixture(page: Page, options: {
+  ended?: boolean;
   disconnectDelayMs?: number;
   disconnectStatus?: number;
   chatFailures?: number;
@@ -230,7 +254,7 @@ async function installEncounterFixture(page: Page, options: {
       const count = Number(encounterMatch[2]);
       await route.fulfill({
         contentType: "application/json",
-        body: JSON.stringify({ ok: true, data: fixtureEncounter(encounterMatch[1], count) }),
+        body: JSON.stringify({ ok: true, data: { ...fixtureEncounter(encounterMatch[1], count), ...(options.ended ? { status: "ended" } : {}) } }),
       });
       return;
     }
@@ -277,17 +301,29 @@ async function installEncounterFixture(page: Page, options: {
 
   return {
     chatAttempts: () => chatAttempts,
-    emitOpponentEnded: async () => {
+    emitSquadEnded: async (endedBySquadId = "fixture-opponents") => {
       await socketReady;
       await page.waitForTimeout(0);
       socketSend?.(`42["ENCOUNTER_ENDED",${JSON.stringify({
         encounterId: "fixture-2v2",
         reason: "squad_disconnected",
-        endedBySquadId: "fixture-opponents",
+        endedBySquadId,
       })}]`);
     },
   };
 }
+
+test("an ended encounter link shows recovery actions without starting media", async ({ page }) => {
+  await installEncounterFixture(page, { ended: true });
+  const mediaRequests: string[] = [];
+  page.on('request', request => { if (request.url().includes('/api/encounters/token')) mediaRequests.push(request.url()); });
+  await page.goto('/encounter?squad=fixture-squad&enc=fixture-2v2');
+  await expect(page.getByRole('heading', { name: 'This call has ended', exact: true })).toBeVisible();
+  await expect(page.getByRole('toolbar', { name: 'Encounter controls' })).toHaveCount(0);
+  expect(mediaRequests).toEqual([]);
+  await page.getByRole('button', { name: 'Back to lobby', exact: true }).click();
+  await expect(page).toHaveURL(/\/lobby\?squad=fixture-squad/);
+});
 
 test("ending shows immediate feedback during a delayed failure and keeps recovery visible", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "One desktop project covers the shared end action");
@@ -577,12 +613,23 @@ test("encounter chat retry is acknowledged without duplicating the sender", asyn
   expect(fixture.chatAttempts()).toBe(2);
 });
 
+test("a squadmate ending the call shows recovery and returns our squad to its lobby", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "One project covers the shared squad lifecycle");
+  const fixture = await installEncounterFixture(page);
+  await openFixture(page, 2);
+  const toLobby = page.waitForURL(/\/lobby\?squad=fixture-squad/, { waitUntil: "commit" });
+  await fixture.emitSquadEnded('fixture-squad');
+  await expect(page.getByRole('heading', { name: 'The call ended', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Find another squad', exact: true })).toBeVisible();
+  await toLobby;
+});
+
 test("opponent ending preserves a clear recovery state", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "phone", "One phone call covers the remote-ended state");
   const fixture = await installEncounterFixture(page);
   const { stage } = await openFixture(page, 2);
   await expect(stage).toBeVisible();
-  await fixture.emitOpponentEnded();
+  await fixture.emitSquadEnded();
   await expect(page.getByText("Chaos Club left", { exact: true })).toBeVisible({ timeout: 10_000 });
   await expect(page.getByRole("button", { name: "Find another now" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Back to lobby" })).toBeVisible();
