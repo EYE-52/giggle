@@ -1174,7 +1174,7 @@ test("profile premium upsell does not advertise unbuilt priority or HD features"
   assert.equal(page.includes("HD video"), false);
   assert.equal(page.includes("priority"), false);
   assert.equal(page.includes('aria-label="View Wallet and Giggle Plus details"'), true);
-  assert.equal(page.includes(">Wallet &amp; Giggle+</div>"), true);
+  assert.match(page, /Wallet &(?:amp;)? Giggle\+/);
   assert.equal(page.includes('aria-label="Upgrade to Giggle+"'), false);
   assert.equal(page.includes(">Upgrade</span>"), false);
 });

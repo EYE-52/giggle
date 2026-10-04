@@ -87,10 +87,10 @@ export default function PremiumPage() {
     {notice && <p role="status" className={styles.notice}>{notice}</p>}
     <section className={styles.plus} aria-label="Giggle Plus">
       <div className={styles.plusHeading}><span className={styles.star}><Icon.sparkle size={26} /></span><div><h2>Giggle+</h2><p>{wallet?.premium ? expiry ? `Active until ${expiry}` : "Active" : "Make room for a bigger squad."}</p></div>{wallet?.premium && <span className={styles.active}>Active</span>}</div>
-      <ul><li><Icon.users size={18} />Squads with up to eight people</li><li><Icon.star size={18} />Giggle+ badge on your profile</li></ul>
+      <ul><li><Icon.users size={18} />Squads with up to eight people</li><li><Icon.sparkle size={18} />Giggle+ badge on your profile</li></ul>
       <div className={styles.unlock}>
         <span>{wallet ? `${wallet.plus.days} days · ${wallet.plus.cost} credits` : error ? "Reward details unavailable" : "Loading reward details…"}</span>
-        {wallet?.premium ? <span className={styles.redeemed}><Icon.check size={16} />Unlocked</span> : <Button disabled={!wallet || !enough} onClick={() => setConfirm(true)}>Unlock Giggle+</Button>}
+        {wallet?.premium ? <span className={styles.redeemed}><Icon.check size={16} />Unlocked</span> : <Button disabled={!wallet || !enough} onClick={() => setConfirm(true)}><Icon.sparkle size={18} />Unlock Giggle+</Button>}
       </div>
       {wallet && !wallet.premium && !enough && <p className={styles.progress}>{wallet.plus.cost - wallet.credits} more credits to unlock.</p>}
     </section>

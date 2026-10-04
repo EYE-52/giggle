@@ -456,33 +456,20 @@ export default function ProfilePage() {
 
           {/* Giggle+ status stays inside the identity surface. */}
           <div style={{ width: "100%", paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-            {isPremium ? (
-              <button type="button" aria-label="View Wallet and Giggle Plus details" onClick={() => router.push("/premium")} className="gg-press-card" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", padding: 0, border: 0, background: "transparent", color: "inherit", textAlign: "left", cursor: "pointer", minHeight: 44 }}>
-                <div style={{ width: 36, height: 36, borderRadius: "var(--radius-control, 14px)", background: "var(--accent-soft)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <Icon.star size={18} color={violet} fill={violet} />
-                </div>
-                <div>
-                  <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 14, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Giggle+ Active</div>
-                  <div style={{ color: textMuted, fontSize: 12 }}>View your earned credits</div>
-                </div>
-              </button>
-            ) : (
-              <button
-                type="button"
-                aria-label="View Wallet and Giggle Plus details"
-                onClick={() => router.push("/premium")}
-                className="gg-press-card"
-                style={{ width: "100%", minHeight: 44, padding: 0, cursor: "pointer", background: "transparent", border: "none", color: "inherit", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, textAlign: "left" }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 15, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>Wallet &amp; Giggle+</div>
-                  <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>Your earned credits and rewards</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                  <Icon.chevron size={18} color={textMuted} />
-                </div>
-              </button>
-            )}
+            <button
+              type="button"
+              aria-label="View Wallet and Giggle Plus details"
+              onClick={() => router.push("/premium")}
+              className="gg-press-card"
+              style={{ width: "100%", minHeight: 44, padding: 0, cursor: "pointer", background: "transparent", border: "none", color: "inherit", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}
+            >
+              <span style={{ display: "flex", flexShrink: 0, color: violet }}><Icon.sparkle size={22} /></span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 15, fontWeight: 700, color: textPrimary, letterSpacing: "-0.02em" }}>{isPremium ? "Giggle+ Active" : "Wallet & Giggle+"}</div>
+                <div style={{ color: textMuted, fontSize: 13, marginTop: 2 }}>{isPremium ? "View your earned credits" : "Your earned credits and rewards"}</div>
+              </div>
+              <span style={{ display: "flex", flexShrink: 0 }}><Icon.chevron size={18} color={textMuted} /></span>
+            </button>
           </div>
         </div>
       </div>
