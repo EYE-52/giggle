@@ -1051,7 +1051,8 @@ test("desktop encounter reactions only animate after realtime send succeeds", ()
 
   assert.match(fireBlock, /const sent = sendReaction\(/);
   assert.match(fireBlock, /if \(!sent\) \{/);
-  assert.match(fireBlock, /setVideoError\("Reaction was not sent\. Check your connection and try again\."\);/);
+  assert.match(fireBlock, /setFailedReaction\(emoji\);/);
+  assert.doesNotMatch(fireBlock, /setVideoError/);
   assert.equal(fireBlock.indexOf('spawnReaction(emoji, session.user?.id ?? "")') > fireBlock.indexOf("if (!sent) {"), true);
   assert.equal(fireBlock.includes("spawnReaction(emoji); // optimistic local"), false);
 });
@@ -1069,7 +1070,11 @@ test("desktop encounter report button only shows success after persistence ackno
   assert.match(reportBlock, /const result = await reportOpponentSquad\(\{/);
   assert.match(reportBlock, /setReporting\(false\);/);
   assert.match(reportBlock, /if \(!result\.ok\) \{/);
-  assert.match(reportBlock, /setVideoError\("Report was not sent\. Check your connection and try again\."\);/);
+  assert.match(reportBlock, /setReportError\(result\.error/);
+  assert.doesNotMatch(reportBlock, /setVideoError/);
+  assert.match(reportBlock, /category: reportCategory/);
+  assert.match(reportBlock, /details: reportDetails/);
+  assert.match(reportBlock, /reportCallRef\.current !== submittedCall/);
   assert.equal(reportBlock.includes("console.error(\"report_squad emit failed"), false);
   assert.equal(reportBlock.indexOf("setReported(true);") > reportBlock.indexOf("if (!result.ok) {"), true);
   assert.equal(page.includes("disabled={reported || reporting}"), true);
@@ -1088,7 +1093,7 @@ test("desktop encounter consolidates recovery and transient notices", () => {
 
   assert.equal(page.includes('data-testid="media-recovery-notice"'), true);
   assert.equal(page.includes('data-testid="encounter-transient-notice"'), true);
-  assert.match(page, /const transientNotice = reported[\s\S]*connState === "RECONNECTING"/);
+  assert.match(page, /const transientNotice = reportNotice[\s\S]*connState === "RECONNECTING"/);
 });
 
 test("desktop encounter blocks the validated opponent roster before leaving", () => {

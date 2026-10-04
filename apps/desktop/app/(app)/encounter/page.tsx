@@ -22,7 +22,7 @@ import {
   joinChat,
   subscribeChat,
 } from "@giggle/core";
-import type { EncounterDetail } from "@giggle/core";
+import type { EncounterDetail, SafetyReportCategory } from "@giggle/core";
 import { Avatar } from "@/components/Avatar";
 import { AvatarArt } from "@/components/AvatarArt";
 import { Icon } from "@/components/Icons";
@@ -37,10 +37,16 @@ import { useViewport } from "@/components/useViewport";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
 import { REACTIONS, ReactionGlyph } from "@/components/Reaction";
 import { CallNotice } from "@/components/CallNotice";
+import feedbackStyles from "./call-feedback.module.css";
 
-
-
-
+const REPORT_REASONS: { value: SafetyReportCategory; label: string }[] = [
+  { value: "harassment", label: "Harassment or bullying" },
+  { value: "hate", label: "Hate or discrimination" },
+  { value: "sexual", label: "Sexual content" },
+  { value: "minor_safety", label: "Concern about a minor" },
+  { value: "spam", label: "Spam or scams" },
+  { value: "other", label: "Something else" },
+];
 const KEYFRAMES = `
 /* Thumbnails crop for density. Focused media stays fully visible and uses a
    restrained blurred copy as fill, so ultrawide and portrait cameras remain
@@ -215,7 +221,23 @@ function EncounterInner() {
   const endedNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [findingNextMatch, setFindingNextMatch] = useState(false);
   const [reported, setReported] = useState(false);
+  const [reportNotice, setReportNotice] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [reportCategory, setReportCategory] = useState<SafetyReportCategory | "">("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportError, setReportError] = useState("");
+  const reportPendingRef = useRef(false);
+  const reportReasonRef = useRef<HTMLSelectElement>(null);
+  const callKey = `${squadId}:${encId}`;
+  const reportCallRef = useRef(callKey);
+  reportCallRef.current = callKey;
+  const [failedReaction, setFailedReaction] = useState<string | null>(null);
+  useEffect(() => {
+    reportPendingRef.current = false;
+    setReporting(false); setReportOpen(false); setReported(false); setReportNotice(false);
+    setReportCategory(""); setReportDetails(""); setReportError(""); setFailedReaction(null);
+  }, [callKey]);
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
   const [blockError, setBlockError] = useState<string | null>(null);
@@ -655,7 +677,7 @@ function EncounterInner() {
     if (!shell) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const busy = () => {
-      if (chromeAlways || moreOpen || reactionsOpen || chatOpen || endConfirmOpen) return true;
+      if (chromeAlways || moreOpen || reactionsOpen || chatOpen || endConfirmOpen || reportOpen) return true;
       const active = document.activeElement;
       const chrome = shell.querySelectorAll(".call-top, .gg-call-controls-wrap");
       return [...chrome].some(el => el.matches(":hover") || (active != null && el.contains(active)));
@@ -670,7 +692,7 @@ function EncounterInner() {
     events.forEach(name => window.addEventListener(name, wake, { passive: true }));
     wake();
     return () => { if (timer) clearTimeout(timer); events.forEach(name => window.removeEventListener(name, wake)); };
-  }, [shellEl, chromeAlways, moreOpen, reactionsOpen, chatOpen, endConfirmOpen]);
+  }, [shellEl, chromeAlways, moreOpen, reactionsOpen, chatOpen, endConfirmOpen, reportOpen]);
 
   // ── Truthful per-participant signals ─────────────────────────────────────
   // Look up a remote participant's live track state by uid. Returns undefined
@@ -824,21 +846,36 @@ function EncounterInner() {
   }
 
   async function handleReport() {
-    if (reported || reporting || !encounter) return;
-    setVideoError(null);
+    if (reported || reportPendingRef.current || !reportCategory || !encounter) return;
+    const submittedCall = callKey;
+    reportPendingRef.current = true;
+    setReportError("");
     setReporting(true);
     const result = await reportOpponentSquad({
       encounterId: encId,
       squadId,
       encounter,
+      category: reportCategory,
+      details: reportDetails,
     });
+    if (reportCallRef.current !== submittedCall) return;
+    reportPendingRef.current = false;
     setReporting(false);
     if (!result.ok) {
-      setVideoError("Report was not sent. Check your connection and try again.");
+      setReportError(result.error || "Report was not sent. Check your connection and try again.");
       return;
     }
+    closeReport();
+    setReportCategory(""); setReportDetails("");
     setReported(true);
-    setUiTimeout(() => setReported(false), 2500);
+    setReportNotice(true);
+    setUiTimeout(() => { if (reportCallRef.current === submittedCall) setReportNotice(false); }, 2500);
+  }
+
+  function closeReport() {
+    if (reportPendingRef.current) return;
+    setReportOpen(false);
+    requestAnimationFrame(() => moreButtonRef.current?.focus());
   }
 
   // Spawn a floating emoji locally (used for both our own taps and ones we
@@ -853,13 +890,13 @@ function EncounterInner() {
 
   function fireReaction(emoji: string) {
     if (!encId || !squadId) return;
-    setVideoError(null);
+    setFailedReaction(null);
     const sent = sendReaction({ kind: "encounter", encounterId: encId, squadId }, emoji, {
       id: session.user?.id ?? "",
       name: session.user?.name ?? "You",
     });
     if (!sent) {
-      setVideoError("Reaction was not sent. Check your connection and try again.");
+      setFailedReaction(emoji);
       return;
     }
     spawnReaction(emoji, session.user?.id ?? "");
@@ -1122,7 +1159,7 @@ function EncounterInner() {
         : null,
   ].filter((message): message is string => !!message);
   const recoveryMessages = videoError ? [videoError] : captureIssues;
-  const transientNotice = reported
+  const transientNotice = reportNotice
     ? "reported"
     : connState === "RECONNECTING" && !reconnectDismissed
       ? "reconnecting"
@@ -1401,6 +1438,12 @@ function EncounterInner() {
                 )}
               </div>
             )}
+            {failedReaction && <div role="alert" data-testid="reaction-error" className={feedbackStyles.reactionError}
+              style={{ margin: recoveryMessages.length ? "0 12px 6px" : isPhoneChrome ? "52px 12px 6px" : "60px 12px 8px" }}>
+              <span>Reaction wasn’t sent. Check your connection and retry.</span>
+              <Button variant="secondary" size="sm" onClick={() => fireReaction(failedReaction)}>Retry reaction</Button>
+              <button type="button" className={feedbackStyles.dismiss} aria-label="Dismiss reaction error" onClick={() => setFailedReaction(null)}><Icon.close size={16} /></button>
+            </div>}
             {/* Top toast stack — banners stack vertically instead of overlapping */}
             <div
               style={{
@@ -1697,7 +1740,7 @@ function EncounterInner() {
                   {id === "more" && moreOpen && (
                     <div ref={moreMenuRef} role="group" aria-label="More call actions" className="gg-call-menu" data-placement={isPhone ? "center" : "end"}>
                       <div className="gg-call-menu-reactions">{reactionChoices(() => closeMore(true))}</div>
-                      <button type="button" onClick={() => { handleReport(); closeMore(true); }} disabled={reported || reporting} data-tone={reported ? "ok" : undefined}>
+                      <button type="button" onClick={() => { setReportError(""); closeMore(false); setReportOpen(true); }} disabled={reported || reporting} data-tone={reported ? "ok" : undefined}>
                         <Icon.flag size={18} color="currentColor" />
                         {reported ? "Reported" : reporting ? "Sending report…" : "Report opponent squad"}
                       </button>
@@ -1752,6 +1795,30 @@ function EncounterInner() {
           </div>
         </div>
       </div>
+
+      {reportOpen && (
+        <Modal title="Report opponent squad" subtitle="Your report is private. It won't block anyone or end this call." onClose={closeReport}
+          closeOnBackdrop={!reporting} showClose={!reporting} width={440} initialFocusRef={reportReasonRef}>
+          <form className={feedbackStyles.reportForm} onSubmit={e => { e.preventDefault(); void handleReport(); }}>
+            <label>Reason
+              <select ref={reportReasonRef} value={reportCategory} required disabled={reporting} onChange={e => setReportCategory(e.target.value as SafetyReportCategory | "")}>
+                <option value="" disabled>Choose a reason</option>
+                {REPORT_REASONS.map(reason => <option key={reason.value} value={reason.value}>{reason.label}</option>)}
+              </select>
+            </label>
+            <label>Details (optional)
+              <textarea value={reportDetails} maxLength={500} disabled={reporting} rows={3} placeholder="What happened?"
+                aria-describedby="report-details-count" onChange={e => setReportDetails(e.target.value)} />
+            </label>
+            <span id="report-details-count" className={feedbackStyles.count}>{reportDetails.length} / 500</span>
+            {reportError && <p role="alert" className={feedbackStyles.reportError}>{reportError}</p>}
+            <div className={feedbackStyles.actions}>
+              <Button variant="secondary" disabled={reporting} onClick={closeReport}>Cancel</Button>
+              <Button type="submit" loading={reporting} disabled={!reportCategory}>{reporting ? "Sending report…" : reportError ? "Try again" : "Send report"}</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {blockConfirmOpen && (
         <Modal

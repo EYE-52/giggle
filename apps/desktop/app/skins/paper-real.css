@@ -80,3 +80,9 @@ html[data-skin="paper"][data-skin="paper"][data-skin="paper"][data-skin="paper"]
   --sketch: none;
   text-decoration: underline; text-decoration-color: var(--brand); text-decoration-thickness: 1.5px; text-underline-offset: 6px;
 }
+
+/* Dialogs need an opaque page so the call beneath cannot show through text. */
+html[data-skin="paper"][data-skin="paper"] .gg-modal {
+  background: var(--surface);
+  --sketch-fill: var(--surface);
+}

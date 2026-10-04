@@ -140,12 +140,15 @@ async function installEncounterFixture(page: Page, options: {
   disconnectDelayMs?: number;
   disconnectStatus?: number;
   chatFailures?: number;
+  reportFailures?: number;
 } = {}) {
   let socketSend: ((message: string) => void) | null = null;
   let socketReadyResolve: (() => void) | null = null;
   const socketReady = new Promise<void>(resolve => { socketReadyResolve = resolve; });
   let chatAttempts = 0;
   let remainingChatFailures = options.chatFailures ?? 0;
+  let remainingReportFailures = options.reportFailures ?? 0;
+  const submittedReports: Record<string, unknown>[] = [];
 
   await page.routeWebSocket(/socket\.io/, socket => {
     socketSend = message => socket.send(message);
@@ -195,6 +198,12 @@ async function installEncounterFixture(page: Page, options: {
         return;
       }
       if (name === "report_squad" && ackId) {
+        submittedReports.push(payload);
+        if (remainingReportFailures > 0) {
+          remainingReportFailures--;
+          socket.send(`43${ackId}[${JSON.stringify({ ok: false, error: "Report was not saved. Try again." })}]`);
+          return;
+        }
         socket.send(`43${ackId}[${JSON.stringify({ ok: true, reportId: "fixture-report", status: "open" })}]`);
       }
     });
@@ -300,6 +309,7 @@ async function installEncounterFixture(page: Page, options: {
   });
 
   return {
+    submittedReports: () => submittedReports,
     chatAttempts: () => chatAttempts,
     emitSquadEnded: async (endedBySquadId = "fixture-opponents") => {
       await socketReady;
@@ -323,6 +333,38 @@ test("an ended encounter link shows recovery actions without starting media", as
   expect(mediaRequests).toEqual([]);
   await page.getByRole('button', { name: 'Back to lobby', exact: true }).click();
   await expect(page).toHaveURL(/\/lobby\?squad=fixture-squad/);
+});
+
+test("report confirmation preserves its draft after failure without clearing media recovery", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'One project covers the shared reporting form');
+  const fixture = await installEncounterFixture(page, { reportFailures: 1 });
+  await openFixture(page, 2);
+  const recovery = page.getByTestId('media-recovery-notice');
+  await expect(recovery).toBeVisible();
+  const recoveryText = await recovery.innerText();
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await page.getByRole('button', { name: 'Report opponent squad', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Report opponent squad', exact: true });
+  const reason = dialog.getByRole('combobox', { name: 'Reason', exact: true });
+  await expect(reason).toBeFocused();
+  await expect(dialog.getByRole('button', { name: 'Send report', exact: true })).toBeDisabled();
+  await reason.selectOption('spam');
+  const details = dialog.getByRole('textbox', { name: 'Details (optional)', exact: true });
+  await details.fill('Synthetic local QA: repeated invite spam.');
+  await dialog.getByRole('button', { name: 'Send report', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toHaveText('Report was not saved. Try again.');
+  await expect(reason).toHaveValue('spam');
+  await expect(details).toHaveValue('Synthetic local QA: repeated invite spam.');
+  await expect(recovery).toHaveText(recoveryText);
+  await dialog.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'More', exact: true })).toBeFocused();
+  await expect(page.getByText('Reported — thanks for keeping Giggle safe', { exact: true })).toBeVisible();
+  expect(fixture.submittedReports()).toHaveLength(2);
+  expect(fixture.submittedReports()[1].category).toBe('spam');
+  expect(fixture.submittedReports()[1].details).toBe('Synthetic local QA: repeated invite spam.');
+  await page.getByRole('button', { name: 'More', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Reported', exact: true })).toBeDisabled();
 });
 
 test("ending shows immediate feedback during a delayed failure and keeps recovery visible", async ({ page }, testInfo) => {
@@ -549,6 +591,8 @@ test("fixture encounter keeps media, chat, and controls usable across resize", a
 
     await more.click();
     await page.getByRole("button", { name: "Report opponent squad" }).click();
+    await page.getByRole('combobox', { name: 'Reason', exact: true }).selectOption('other');
+    await page.getByRole('button', { name: 'Send report', exact: true }).click();
     await expect(page.getByText(/reported — thanks/i)).toBeVisible();
 
     await page.screenshot({

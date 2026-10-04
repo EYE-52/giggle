@@ -1,0 +1,16 @@
+.reportForm { display:grid; gap:14px; color:var(--text); font-family:var(--font-body); }
+.reportForm label { display:grid; gap:8px; font-size:14px; font-weight:700; }
+.reportForm select,.reportForm textarea { box-sizing:border-box; width:100%; min-width:0; min-height:44px; border:1px solid var(--border-strong, var(--border)); border-radius:var(--radius-control, 12px); padding:11px 12px; background:var(--surface-2, var(--surface)); color:var(--text); font:400 16px/1.4 var(--font-body); }
+.reportForm textarea { resize:vertical; max-height:30dvh; }
+.reportForm select:focus-visible,.reportForm textarea:focus-visible { outline:2px solid var(--brand, var(--accent)); outline-offset:2px; }
+.reportForm select:disabled,.reportForm textarea:disabled { opacity:.7; }
+.count { justify-self:end; margin-top:-8px; font-size:12px; color:var(--text); }
+.reportError { margin:0; border-left:2px solid var(--coral); padding:8px 12px; background:var(--surface-2, var(--surface)); color:var(--text); font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
+.actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
+.actions button { min-height:44px; }
+.reactionError { flex:none; align-self:center; max-width:calc(100% - 24px); box-sizing:border-box; display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:6px 8px 6px 12px; border:1px solid var(--border); border-left:3px solid var(--coral); border-radius:var(--radius-control, 12px); background:var(--surface); color:var(--text); font:600 13px/1.4 var(--font-body); }
+.reactionError span { flex:1 1 130px; }
+.reactionError button { min-height:44px; }
+.dismiss { width:44px; flex:none; display:grid; place-items:center; padding:0; border:0; border-radius:10px; background:transparent; color:inherit; cursor:pointer; }
+.dismiss:hover { background:var(--overlay); }
+.dismiss:focus-visible { outline:2px solid var(--brand, var(--accent)); outline-offset:2px; }
