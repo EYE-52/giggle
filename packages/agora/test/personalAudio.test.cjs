@@ -50,6 +50,36 @@ test('failed audio updates do not claim success and late subscriptions cannot re
   assert.deepEqual(late.audioTrack.calls, []);
 });
 
+test('a delayed subscription cannot restore a departed participant or interfere with their rejoin', async () => {
+  const { client, handlers, sdkClient, track } = await webHarness();
+  const complete = [];
+  sdkClient.subscribe = () => new Promise(resolve => complete.push(resolve));
+  const departed = { uid: 2, audioTrack: track() };
+  handlers['user-joined'](departed);
+  const oldPublication = handlers['user-published'](departed, 'audio');
+  handlers['user-left'](departed);
+  assert.deepEqual(client.remotes, []);
+  complete[0](); await oldPublication;
+  assert.deepEqual(client.remotes, []);
+  assert.deepEqual(departed.audioTrack.calls, []);
+  handlers['user-joined'](departed);
+  const secondOldPublication = handlers['user-published'](departed, 'audio');
+  handlers['user-left'](departed);
+  const returned = { uid: 2, audioTrack: track() };
+  handlers['user-joined'](returned);
+  const newPublication = handlers['user-published'](returned, 'audio');
+  complete[2](); await newPublication;
+  await client.setRemoteAudioMuted(2, true);
+  complete[1](); await secondOldPublication;
+  assert.deepEqual(departed.audioTrack.calls, []);
+  assert.deepEqual(returned.audioTrack.calls, [['volume', 100], ['play'], ['volume', 0]]);
+  assert.deepEqual(client.remotes, [{ uid: 2, hasAudio: true, hasVideo: false, mutedForMe: true }]);
+  await client.setRemoteAudioMuted(2, false);
+  assert.deepEqual(returned.audioTrack.calls.at(-1), ['volume', 100]);
+  assert.deepEqual(departed.audioTrack.calls, []);
+  await client.leave();
+});
+
 test('a joined person can be muted before publishing and stays muted through reconnects in this call', async () => {
   const { client, handlers, track } = await webHarness();
   handlers['user-joined']({ uid: 2 });

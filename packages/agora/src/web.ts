@@ -66,6 +66,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   const connListeners = new Set<(state: ConnectionState) => void>();
   const captureListeners = new Set<(state: CaptureState) => void>();
   const remoteUsers = new Map<string, any>();
+  const remoteEpochs = new Map<string, number>();
   const remoteState = new Map<string, RemoteParticipant>();
   const mutedRemoteUids = new Set<string>();
   let localPlayback: { track: any; element: unknown } | null = null;
@@ -107,6 +108,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     localAudioTrack = null;
     localVideoTrack = null;
     remoteUsers.clear();
+    remoteEpochs.clear();
     remoteState.clear();
     mutedRemoteUids.clear();
     emit();
@@ -205,8 +207,10 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         });
         client.on("user-published", async (user: any, mediaType: "video" | "audio") => {
           if (joinedGeneration !== generation) return;
+          // A UID can rejoin while its previous subscription is still resolving.
+          const key = String(user.uid), epoch = remoteEpochs.get(key) ?? 0;
           try { await joinedClient.subscribe(user, mediaType); } catch { return; }
-          if (joinedGeneration !== generation) return;
+          if (joinedGeneration !== generation || epoch !== (remoteEpochs.get(key) ?? 0)) return;
           if (mediaType === "video" ? user.hasVideo === false : user.hasAudio === false) return;
           remoteUsers.set(String(user.uid), user);
           const previous = remoteState.get(String(user.uid));
@@ -233,6 +237,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         });
         client.on("user-left", (user: any) => {
           if (joinedGeneration !== generation) return;
+          const key = String(user.uid);
+          remoteEpochs.set(key, (remoteEpochs.get(key) ?? 0) + 1);
           remoteUsers.delete(String(user.uid));
           remoteState.delete(String(user.uid));
           remotePlayback.delete(String(user.uid));
