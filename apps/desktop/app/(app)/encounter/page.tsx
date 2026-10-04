@@ -263,7 +263,6 @@ function EncounterInner() {
   // Hover states
   const [hoveredCtrl, setHoveredCtrl] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [reactionsOpen, setReactionsOpen] = useState(false);
   // Call chrome (header + controls) floats over the video and fades out when idle.
   // It comes back on any pointer move, tap, key press or focus; it never hides while
   // hovered, focused, while a menu or chat is open, or for viewers who asked to keep it.
@@ -278,8 +277,6 @@ function EncounterInner() {
   const chatButtonRef = useRef<HTMLButtonElement | null>(null);
   const moreButtonRef = useRef<HTMLButtonElement | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
-  const reactionButtonRef = useRef<HTMLButtonElement | null>(null);
-  const reactionMenuRef = useRef<HTMLDivElement | null>(null);
 
   const { width, height, isPhone } = useViewport();
   const isPhoneChrome = isPhone || height <= 500;
@@ -289,13 +286,9 @@ function EncounterInner() {
     if (restoreFocus) requestAnimationFrame(() => moreButtonRef.current?.focus());
   }
 
-  function closeReactions(restoreFocus = false) {
-    setReactionsOpen(false);
-    if (restoreFocus) requestAnimationFrame(() => reactionButtonRef.current?.focus());
-  }
-
   useEffect(() => {
-    if (!moreOpen && !reactionsOpen) return;
+    if (!moreOpen) return;
+    moreMenuRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
       if (
@@ -303,18 +296,11 @@ function EncounterInner() {
         !moreMenuRef.current?.contains(target) &&
         !moreButtonRef.current?.contains(target)
       )
-        closeMore(true);
-      if (
-        reactionsOpen &&
-        !reactionMenuRef.current?.contains(target) &&
-        !reactionButtonRef.current?.contains(target)
-      )
-        closeReactions(true);
+        closeMore();
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (reactionsOpen) closeReactions(true);
-      else if (moreOpen) closeMore(true);
+      closeMore(true);
     };
     document.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("keydown", onKeyDown);
@@ -322,7 +308,7 @@ function EncounterInner() {
       document.removeEventListener("pointerdown", onPointerDown, true);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [moreOpen, reactionsOpen]);
+  }, [moreOpen, isPhoneChrome]);
 
   useEffect(() => {
     if (!chatOpen || width >= 1180) {
@@ -681,7 +667,7 @@ function EncounterInner() {
     if (!shell) return;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const busy = () => {
-      if (chromeAlways || moreOpen || reactionsOpen || chatOpen || endConfirmOpen || reportOpen) return true;
+      if (chromeAlways || moreOpen || chatOpen || endConfirmOpen || reportOpen) return true;
       const active = document.activeElement;
       const chrome = shell.querySelectorAll(".call-top, .gg-call-controls-wrap");
       return [...chrome].some(el => el.matches(":hover") || (active != null && el.contains(active)));
@@ -696,7 +682,7 @@ function EncounterInner() {
     events.forEach(name => window.addEventListener(name, wake, { passive: true }));
     wake();
     return () => { if (timer) clearTimeout(timer); events.forEach(name => window.removeEventListener(name, wake)); };
-  }, [shellEl, chromeAlways, moreOpen, reactionsOpen, chatOpen, endConfirmOpen, reportOpen]);
+  }, [shellEl, chromeAlways, moreOpen, chatOpen, endConfirmOpen, reportOpen]);
 
   // ── Truthful per-participant signals ─────────────────────────────────────
   // Look up a remote participant's live track state by uid. Returns undefined
@@ -892,9 +878,8 @@ function EncounterInner() {
     }, 1800);
   }
 
-  function fireReaction(emoji: string) {
+  function fireReaction(emoji: string, restoreFocus = false) {
     if (!encId || !squadId) return;
-    setFailedReaction(null);
     const sent = sendReaction({ kind: "encounter", encounterId: encId, squadId }, emoji, {
       id: session.user?.id ?? "",
       name: session.user?.name ?? "You",
@@ -903,7 +888,14 @@ function EncounterInner() {
       setFailedReaction(emoji);
       return;
     }
+    setFailedReaction(null);
     spawnReaction(emoji, session.user?.id ?? "");
+    if (restoreFocus) requestAnimationFrame(() => moreButtonRef.current?.focus());
+  }
+
+  function dismissReactionError() {
+    setFailedReaction(null);
+    requestAnimationFrame(() => moreButtonRef.current?.focus());
   }
 
   // Receive reactions from other participants (skip our own echo).
@@ -1088,7 +1080,6 @@ function EncounterInner() {
 
   function toggleChat() {
     setMoreOpen(false);
-    setReactionsOpen(false);
     setChatOpen((open) => !open);
   }
 
@@ -1100,21 +1091,13 @@ function EncounterInner() {
   function toggleMore() {
     const next = !moreOpen;
     setChatOpen(false);
-    setReactionsOpen(false);
     setMoreOpen(next);
-  }
-
-  function toggleReactions() {
-    const next = !reactionsOpen;
-    setChatOpen(false);
-    setMoreOpen(false);
-    setReactionsOpen(next);
   }
 
   const ctrlBtns = [
     {
       id: "mic",
-      icon: <Icon.mic size={20} color={micOn ? "var(--text)" : "#fff"} />,
+      icon: <Icon.mic size={20} color="currentColor" />,
       active: micOn,
       danger: true,
       onClick: toggleMic,
@@ -1123,7 +1106,7 @@ function EncounterInner() {
     },
     {
       id: "cam",
-      icon: <Icon.cam size={20} color={camOn ? "var(--text)" : "#fff"} />,
+      icon: <Icon.cam size={20} color="currentColor" />,
       active: camOn,
       danger: true,
       onClick: toggleCam,
@@ -1201,6 +1184,31 @@ function EncounterInner() {
       Return to your lobby to meet another squad.
     </CallNotice>;
   }
+
+  const moreActions = moreOpen ? (
+    <div ref={moreMenuRef} role="group" aria-label="More call actions" className="gg-call-menu" data-placement={isPhoneChrome ? "center" : "end"}>
+      <div className="gg-call-menu-reactions">{reactionChoices(() => closeMore(true))}</div>
+      <button type="button" onClick={() => { setReportError(""); closeMore(false); setReportOpen(true); }} disabled={reported || reporting} data-tone={reported ? "ok" : undefined}>
+        <Icon.flag size={18} color="currentColor" />
+        {reported ? "Reported" : reporting ? "Sending report…" : "Report opponent squad"}
+      </button>
+      <button type="button" className="gg-btn--danger" onClick={() => { setBlockError(null); setBlockConfirmOpen(true); closeMore(true); }} disabled={!canBlockOpponent || blocking} aria-label="Block opponent squad" data-tone="danger">
+        <Icon.shield size={18} color="currentColor" />
+        Block opponent squad
+      </button>
+      <hr />
+      {WEB_DISCOVERY_ENABLED && mySquad?.members.some(member => member.userId === session.user?.id && member.role === 'leader') && (
+        <button type="button" onClick={() => { closeMore(false); setNextError(''); setNextConfirmOpen(true); }}>
+          <Icon.shuffle size={18} color="currentColor" />
+          Next squad
+        </button>
+      )}
+      <button type="button" className="gg-btn--danger" onClick={() => { setExitKind("end"); setEndError(null); closeMore(false); setEndConfirmOpen(true); }} aria-label="End encounter" data-tone="danger">
+        <Icon.hangup size={18} color="currentColor" />
+        End call for both squads
+      </button>
+    </div>
+  ) : null;
 
   return (
     <>
@@ -1445,8 +1453,8 @@ function EncounterInner() {
             {failedReaction && <div role="alert" data-testid="reaction-error" className={feedbackStyles.reactionError}
               style={{ margin: recoveryMessages.length ? "0 12px 6px" : isPhoneChrome ? "52px 12px 6px" : "60px 12px 8px" }}>
               <span>Reaction wasn’t sent. Check your connection and retry.</span>
-              <Button variant="secondary" size="sm" onClick={() => fireReaction(failedReaction)}>Retry reaction</Button>
-              <button type="button" className={feedbackStyles.dismiss} aria-label="Dismiss reaction error" onClick={() => setFailedReaction(null)}><Icon.close size={16} /></button>
+              <Button variant="secondary" size="sm" onClick={() => fireReaction(failedReaction, true)}>Retry reaction</Button>
+              <button type="button" className={feedbackStyles.dismiss} aria-label="Dismiss reaction error" onClick={dismissReactionError}><Icon.close size={16} /></button>
             </div>}
             {/* Top toast stack — banners stack vertically instead of overlapping */}
             <div
@@ -1700,7 +1708,7 @@ function EncounterInner() {
                       id === "more" ? undefined : typeof active === "boolean" ? active : undefined
                     }
                     aria-expanded={id === "more" ? moreOpen : undefined}
-                    className="gg-press cbtn" data-call-control data-cbtn-state={off ? "off" : selected ? "on" : undefined}
+                    className={`gg-press cbtn${off ? " gg-btn--danger" : ""}`} data-call-control data-cbtn-state={off ? "off" : selected ? "on" : undefined}
                     style={{
                       position: "relative",
                       width: isPhone ? 44 : 48,
@@ -1741,36 +1749,14 @@ function EncounterInner() {
                     )}
                   </button>
 
-                  {id === "more" && moreOpen && (
-                    <div ref={moreMenuRef} role="group" aria-label="More call actions" className="gg-call-menu" data-placement={isPhone ? "center" : "end"}>
-                      <div className="gg-call-menu-reactions">{reactionChoices(() => closeMore(true))}</div>
-                      <button type="button" onClick={() => { setReportError(""); closeMore(false); setReportOpen(true); }} disabled={reported || reporting} data-tone={reported ? "ok" : undefined}>
-                        <Icon.flag size={18} color="currentColor" />
-                        {reported ? "Reported" : reporting ? "Sending report…" : "Report opponent squad"}
-                      </button>
-                      <button type="button" onClick={() => { setBlockError(null); setBlockConfirmOpen(true); closeMore(true); }} disabled={!canBlockOpponent || blocking} aria-label="Block opponent squad" data-tone="danger">
-                        <Icon.shield size={18} color="currentColor" />
-                        Block opponent squad
-                      </button>
-                      <hr />
-                      {WEB_DISCOVERY_ENABLED && mySquad?.members.some(member => member.userId === session.user?.id && member.role === 'leader') && (
-                        <button type="button" onClick={() => { closeMore(false); setNextError(''); setNextConfirmOpen(true); }}>
-                          <Icon.shuffle size={18} color="currentColor" />
-                          Next squad
-                        </button>
-                      )}
-                      <button type="button" onClick={() => { setExitKind("end"); setEndError(null); closeMore(false); setEndConfirmOpen(true); }} aria-label="End encounter" data-tone="danger">
-                        <Icon.hangup size={18} color="currentColor" />
-                        End call for both squads
-                      </button>
-                    </div>
-                  )}
+                  {id === "more" && !isPhoneChrome && moreActions}
                 </div>
               );
             })}
 
             <button
               onClick={() => {
+                closeMore();
                 setExitKind("leave");
                 setEndError(null);
                 setEndConfirmOpen(true);
@@ -1779,7 +1765,7 @@ function EncounterInner() {
               aria-label="Leave call"
               onMouseEnter={() => setHoveredCtrl("end")}
               onMouseLeave={() => setHoveredCtrl(null)}
-              className="gg-press cbtn leave" data-call-control data-call-leave
+              className="gg-press cbtn leave gg-btn--danger" data-call-control data-call-leave
               style={{
                 height: isPhone ? 44 : 48,
                 minWidth: isPhone ? 64 : 110,
@@ -1797,6 +1783,7 @@ function EncounterInner() {
               <Icon.hangup size={23} color="currentColor" /><span className="gg-control-label">Leave</span>
             </button>
           </div>
+          {isPhoneChrome && moreActions}
         </div>
       </div>
 

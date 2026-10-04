@@ -335,6 +335,27 @@ test("an ended encounter link shows recovery actions without starting media", as
   await expect(page).toHaveURL(/\/lobby\?squad=fixture-squad/);
 });
 
+test("call action focus enters the popup and returns after Escape and leave cancellation", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop', 'One project covers shared keyboard controls');
+  await installEncounterFixture(page);
+  await openFixture(page, 2);
+  const more = page.getByRole('button', { name: 'More', exact: true });
+  const wave = page.getByRole('button', { name: 'React: Wave', exact: true });
+  await more.press('Enter');
+  await expect(wave).toBeFocused();
+  await wave.press('Escape');
+  await expect(more).toBeFocused();
+  await expect(page.getByRole('group', { name: 'More call actions', exact: true })).toHaveCount(0);
+  await more.press('Enter');
+  const leave = page.getByRole('button', { name: 'Leave call', exact: true });
+  await leave.press('Enter');
+  await expect(page.getByRole('group', { name: 'More call actions', exact: true })).toHaveCount(0);
+  const keepTalking = page.getByRole('button', { name: 'Keep talking', exact: true });
+  await expect(keepTalking).toBeFocused();
+  await keepTalking.press('Enter');
+  await expect(leave).toBeFocused();
+});
+
 test("report confirmation preserves its draft after failure without clearing media recovery", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'One project covers the shared reporting form');
   const fixture = await installEncounterFixture(page, { reportFailures: 1 });
@@ -373,7 +394,7 @@ test("ending shows immediate feedback during a delayed failure and keeps recover
   const { controls } = await openFixture(page, 2);
 
   await controls.getByRole("button", { name: "More", exact: true }).click();
-  await controls.getByRole("button", { name: "End encounter", exact: true }).click();
+  await page.getByRole("button", { name: "End encounter", exact: true }).click();
   const endDialog = page.getByRole("dialog", { name: "End the call?" });
   await endDialog.getByRole("button", { name: "End encounter" }).click();
 
@@ -625,14 +646,14 @@ test("fixture encounter keeps media, chat, and controls usable across resize", a
     }
 
     await controls.getByRole("button", { name: "More", exact: true }).click();
-  await controls.getByRole("button", { name: "End encounter", exact: true }).click();
+    await page.getByRole("button", { name: "End encounter", exact: true }).click();
     const endDialog = page.getByRole("dialog", { name: "End the call?" });
     await expect(endDialog).toBeVisible();
     await endDialog.getByRole("button", { name: "Keep talking" }).click();
     await expect(endDialog).toBeHidden();
     await expect(stage).toBeVisible();
     await controls.getByRole("button", { name: "More", exact: true }).click();
-  await controls.getByRole("button", { name: "End encounter", exact: true }).click();
+    await page.getByRole("button", { name: "End encounter", exact: true }).click();
     await expect(endDialog).toBeVisible();
     await endDialog.getByRole("button", { name: "End encounter" }).click();
     await expect(page).toHaveURL(/\/home$/);
@@ -737,6 +758,29 @@ test("mocked rosters stay usable across the viewport matrix", async ({ page }, t
         const box = await button.boundingBox();
         expect(box?.width).toBeGreaterThanOrEqual(44);
         expect(box?.height).toBeGreaterThanOrEqual(44);
+        expect(box?.x).toBeGreaterThanOrEqual(0);
+        expect(box && box.x + box.width).toBeLessThanOrEqual(width + 0.5);
+      }
+
+      if (count === 2) {
+        await controls.getByRole('button', { name: 'More', exact: true }).press('Enter');
+        const actions = page.getByRole('group', { name: 'More call actions', exact: true });
+        await expect(actions).toBeVisible();
+        await expect(page.getByRole('button', { name: 'React: Wave', exact: true })).toBeFocused();
+        const menu = await actions.boundingBox();
+        expect(menu?.x).toBeGreaterThanOrEqual(0);
+        expect(menu?.y).toBeGreaterThanOrEqual(0);
+        expect(menu && menu.x + menu.width).toBeLessThanOrEqual(width);
+        expect(menu && menu.y + menu.height).toBeLessThanOrEqual(height);
+        for (const button of await actions.getByRole('button').all()) {
+          const box = await button.boundingBox();
+          expect(box?.width).toBeGreaterThanOrEqual(44);
+          expect(box?.height).toBeGreaterThanOrEqual(44);
+          expect(box?.x).toBeGreaterThanOrEqual(0);
+          expect(box && box.x + box.width).toBeLessThanOrEqual(width);
+        }
+        await page.getByRole('button', { name: 'React: Wave', exact: true }).press('Escape');
+        await expect(controls.getByRole('button', { name: 'More', exact: true })).toBeFocused();
       }
 
       await page.screenshot({
@@ -816,6 +860,15 @@ test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page 
   await controls.getByRole("button", { name: "More" }).click();
   const moreActions = page.getByRole("group", { name: "More call actions" });
   await expect(moreActions).toBeVisible();
+  const menuBox = await moreActions.boundingBox();
+  expect(menuBox?.x).toBeGreaterThanOrEqual(12);
+  expect(menuBox && menuBox.x + menuBox.width).toBeLessThanOrEqual(390 - 12);
+  for (const button of await moreActions.getByRole('button').all()) {
+    const box = await button.boundingBox();
+    expect(box?.width).toBeGreaterThanOrEqual(44);
+    expect(box?.height).toBeGreaterThanOrEqual(44);
+    expect(box && box.x + box.width).toBeLessThanOrEqual(390);
+  }
   await expect(page.getByRole("button", { name: "Report opponent squad" })).toBeVisible();
   await page.screenshot({
     path: "artifacts/visual-audit/2026-07-30/encounter/states/phone-more.jpg",
@@ -825,7 +878,7 @@ test("mocked call chrome keeps dialogs, themes, and zoom usable", async ({ page 
   await page.keyboard.press("Escape");
 
   await controls.getByRole("button", { name: "More", exact: true }).click();
-  await controls.getByRole("button", { name: "End encounter", exact: true }).click();
+  await page.getByRole("button", { name: "End encounter", exact: true }).click();
   const endDialog = page.getByRole("dialog", { name: "End the call?" });
   await expect(endDialog).toBeVisible();
   await expect.poll(() => endDialog.evaluate(node => getComputedStyle(node).opacity)).toBe("1");

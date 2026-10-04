@@ -361,14 +361,10 @@ html[data-skin] .gg-screen-lobby .lobby-head .title {
 
 /* Control STATE floors: the skins restyle the call controls' paint freely,
  * but the app's semantic states must survive every skin — a muted mic / dead
- * camera reads coral, an open panel (chat) reads as the active accent.
+ * camera uses the shared danger ink/fill, an open panel (chat) reads as the active accent.
  * !important beats whatever background the skin painted on .cbtn; geometry
  * stays owned by the toolbar lock in revamp.css. */
-html[data-skin] .gg-call-theme .cbtn[data-cbtn-state="off"] {
-  background: var(--coral) !important;
-  border-color: color-mix(in srgb, var(--coral) 60%, transparent) !important;
-  color: #fff !important;
-}
+/* Off controls carry gg-btn--danger, including its matched readable colors. */
 html[data-skin] .gg-call-theme .cbtn[data-cbtn-state="on"] {
   background: var(--accent-soft) !important;
   color: var(--accent) !important;
