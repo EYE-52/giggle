@@ -41,6 +41,17 @@ test("real participant controls preserve synthetic streams and restore focus", a
   await opener.press('Enter');
   await menu.getByRole('button', { name: /^Keep this size/ }).click();
   await expect(tile).toHaveAttribute('data-pinned', 'true');
+  await page.setViewportSize({ width: 844, height: 390 });
+  const rotated = await page.evaluate(async () => {
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    const cells = Array.from(document.querySelectorAll('[data-participant-id]'));
+    return {
+      animating: document.querySelector('[data-focus-stage]')?.getAttribute('data-animating'),
+      outside: cells.some(cell => { const box = cell.getBoundingClientRect(); return box.left < -0.5 || box.top < -0.5 || box.right > innerWidth + 0.5 || box.bottom > innerHeight + 0.5; }),
+    };
+  });
+  expect(rotated.animating).not.toBe('true');
+  expect(rotated.outside).toBe(false);
   await opener.press('Enter');
   await expect(menu.getByRole('button', { name: 'Make bigger', exact: true })).toBeDisabled();
   await close.click();

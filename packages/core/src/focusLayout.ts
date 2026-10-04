@@ -64,6 +64,10 @@ function allPartitions(n: number): number[][][] {
   return out;
 }
 
+// At most eight people per squad: these index-only partitions never change.
+const PARTITIONS = Array.from({ length: 9 }, (_, n) => n === 0 ? [] : allPartitions(n).filter(runs =>
+  n <= 5 || Math.max(...runs.map(r => r.length)) - Math.min(...runs.map(r => r.length)) <= 2));
+
 /** Fallback for very large squads: balanced greedy runs for each line count. */
 function greedyPartitions(weights: number[]): number[][][] {
   const total = weights.reduce((sum, w) => sum + w, 0);
@@ -124,20 +128,23 @@ type Scored = { width: number; height: number; weight: number; aspect?: number |
  */
 function arrangementCost(items: Scored[], minTile: number): number {
   if (!items.length) return 0;
-  const others = items.filter(i => !i.self);
-  const pool = others.length ? others : items;
+  const otherCount = items.reduce((count, item) => count + Number(!item.self), 0);
+  const poolCount = otherCount || items.length;
   let smallest = Infinity, largest = 0, sum = 0, rawSmallest = Infinity;
-  for (const i of pool) {
+  let poolArea = 0;
+  for (const i of items) {
+    if (otherCount && i.self) continue;
     const raw = faceSize(i.width, i.height, i.aspect);
     const face = raw / Math.sqrt(i.weight);
     smallest = Math.min(smallest, face);
     largest = Math.max(largest, face);
     rawSmallest = Math.min(rawSmallest, raw);
     sum += face;
+    poolArea += i.width * i.height;
   }
-  let cost = -Math.log(Math.max(1e-6, smallest)) + 0.5 * Math.log(Math.max(1e-6, largest) / Math.max(1e-6, smallest)) - 0.15 * Math.log(Math.max(1e-6, sum / pool.length));
+  let cost = -Math.log(Math.max(1e-6, smallest)) + 0.5 * Math.log(Math.max(1e-6, largest) / Math.max(1e-6, smallest)) - 0.15 * Math.log(Math.max(1e-6, sum / poolCount));
   let crop = 0, weight = 0;
-  const meanOtherArea = pool.reduce((acc, i) => acc + i.width * i.height, 0) / pool.length;
+  const meanOtherArea = poolArea / poolCount;
   for (const i of items) {
     // a zoomed person must come out clearly bigger than they were unzoomed
     if (i.target) {
@@ -145,7 +152,7 @@ function arrangementCost(items: Scored[], minTile: number): number {
       if (face < i.target) cost += 8 * Math.log(i.target / Math.max(1e-6, face));
     }
     // your own tile is never the big one: about the size of an average tile at most
-    if (i.self && others.length && i.width * i.height > meanOtherArea * 1.15) cost += 0.35 * Math.log((i.width * i.height) / (meanOtherArea * 1.15));
+    if (i.self && otherCount && i.width * i.height > meanOtherArea * 1.15) cost += 0.35 * Math.log((i.width * i.height) / (meanOtherArea * 1.15));
     const lost = videoCrop(i.width, i.height, i.aspect);
     crop += (lost <= CROP_LIMIT ? lost : 0.1 + 0.4 * lost) * i.weight; // shown whole: the bars are waste
     weight += i.weight;
@@ -162,7 +169,7 @@ function arrangementCost(items: Scored[], minTile: number): number {
     const shorterSide = Math.min(i.width, i.height);
     // A severe sliver must cost more than a tile that only just misses the floor.
     if (shorterSide < minTile) cost += 4 * Math.log(minTile / Math.max(1e-6, shorterSide));
-    if (i.self && others.length) {
+    if (i.self && otherCount) {
       const own = faceSize(i.width, i.height, i.aspect);
       if (own > rawSmallest) cost += 0.6 * Math.log(own / rawSmallest);
       if (own < rawSmallest * 0.35) cost += 2 * Math.log((rawSmallest * 0.35) / Math.max(1e-6, own));
@@ -183,11 +190,11 @@ function justify(people: { weight: number; aspect?: number | null; self?: boolea
   if (!n || box.width <= 0 || box.height <= 0) return people.map((_, index) => ({ index, x: box.x, y: box.y, width: 0, height: 0 }));
   const weights = people.map(p => p.weight);
   const shape = people.map(p => knownAspect(p.aspect) ?? NEUTRAL_ASPECT);
+  // Reuse candidate geometry; only keep a copy when it beats the current winner.
+  const placed = people.map((person, index) => ({ ...person, index, x: 0, y: 0, width: 0, height: 0 }));
   let best: { cost: number; placed: Placed[] } | null = null;
   // Big squads: lopsided line breaks never win, so only near-even ones are tried.
-  const candidates = n <= 5 ? allPartitions(n)
-    : n <= 8 ? allPartitions(n).filter(runs => Math.max(...runs.map(r => r.length)) - Math.min(...runs.map(r => r.length)) <= 2)
-    : greedyPartitions(weights);
+  const candidates = n <= 8 ? PARTITIONS[n] : greedyPartitions(weights);
   for (const orientation of ["rows", "columns"] as const) {
     const along = orientation === "rows" ? box.width : box.height; // length of each line
     const across = orientation === "rows" ? box.height : box.width; // lines stack this way
@@ -195,32 +202,33 @@ function justify(people: { weight: number; aspect?: number | null; self?: boolea
     // either sqrt(zoom) (same shape, bigger) or zoom (a longer tile) along the line
     const anyZoom = weights.some(w => w > 1);
     for (const zoomPow of anyZoom ? [0.5, 1] : [0.5]) {
-    const unit = (i: number) => (orientation === "rows" ? shape[i] : 1 / shape[i]) * Math.pow(weights[i], zoomPow);
+    const units = shape.map((aspect, i) => (orientation === "rows" ? aspect : 1 / aspect) * Math.pow(weights[i], zoomPow));
     for (const runs of candidates) {
       const usableAcross = across - gap * (runs.length - 1);
       if (usableAcross <= 0) continue;
       // natural thickness: what each line needs to show everyone uncropped
-      const natural = runs.map(run => Math.max(1e-6, (along - gap * (run.length - 1)) / run.reduce((sum, i) => sum + unit(i), 0)));
+      const runUnits = runs.map(run => run.reduce((sum, i) => sum + units[i], 0));
+      const natural = runs.map((run, r) => Math.max(1e-6, (along - gap * (run.length - 1)) / runUnits[r]));
       for (const policy of [natural, natural.map(Math.sqrt), natural.map(() => 1)]) {
         const total = policy.reduce((sum, t) => sum + t, 0);
-        const placed: Placed[] = [];
         let offset = 0;
         runs.forEach((run, r) => {
           const thickness = (usableAcross * policy[r]) / total;
           const usableAlong = along - gap * (run.length - 1);
-          const runUnits = run.reduce((sum, i) => sum + unit(i), 0);
           let cursor = 0;
           for (const i of run) {
-            const length = (usableAlong * unit(i)) / runUnits;
-            placed.push(orientation === "rows"
-              ? { index: i, x: box.x + cursor, y: box.y + offset, width: length, height: thickness }
-              : { index: i, x: box.x + offset, y: box.y + cursor, width: thickness, height: length });
+            const length = (usableAlong * units[i]) / runUnits[r];
+            const tile = placed[i];
+            tile.x = box.x + (orientation === "rows" ? cursor : offset);
+            tile.y = box.y + (orientation === "rows" ? offset : cursor);
+            tile.width = orientation === "rows" ? length : thickness;
+            tile.height = orientation === "rows" ? thickness : length;
             cursor += length + gap;
           }
           offset += thickness + gap;
         });
-        const cost = arrangementCost(placed.map(t => ({ width: t.width, height: t.height, weight: weights[t.index], aspect: people[t.index].aspect, self: people[t.index].self, target: people[t.index].target })), minTile);
-        if (!best || cost < best.cost - 1e-9) best = { cost, placed };
+        const cost = arrangementCost(placed, minTile);
+        if (!best || cost < best.cost - 1e-9) best = { cost, placed: placed.map(tile => ({ ...tile })) };
       }
     }
     }

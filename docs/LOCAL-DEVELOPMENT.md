@@ -67,6 +67,8 @@ For a temporary manual browser fixture, `--keep` leaves the encounter active. `G
 
 For call-control QA without a camera, open `/dev/call-stage?variant=controls&m=2&t=2&shapes=16:9,9:16,off,4:3` on the development web server. This preview uses the real encounter stage and participant tiles with synthetic canvas video. Open a person's options to check framing, zoom, sizing, pinning and focus restoration. Mute changes only synthetic viewer state; it does not verify audible Agora mute. Counts `m`/`t` support up to eight people per squad. The route returns 404 in production.
 
+After viewport resizing, the controls preview records whether tiles are still gliding and how many are outside the viewport two animation frames after the resize event. Use it to check rotation immediately after zooming or pinning; a settled screenshot alone can miss this transient fault. The diagnostic describes the synthetic preview, not physical-device media behavior.
+
 ```sh
 REDIS_URL=redis://127.0.0.1:16379/15 npm --prefix server test
 pnpm --filter @giggle/desktop test

@@ -187,6 +187,7 @@ function FocusStage({ mine, theirs, render }: { mine: AdaptiveParticipant[]; the
 
 export function CallStageHarness() {
   const [params, setParams] = useState<URLSearchParams | null>(null);
+  const [resizeCheck, setResizeCheck] = useState<{ animating: boolean; outside: number; width: number; height: number } | null>(null);
   useEffect(() => setParams(new URLSearchParams(window.location.search)), []);
   const { mine, theirs, shapes, keys, variant } = useMemo(() => {
     const m = Math.max(0, Math.min(8, Number(params?.get("m") ?? 2)));
@@ -203,6 +204,25 @@ export function CallStageHarness() {
     });
     return { mine: make("mine", m, 0), theirs: make("theirs", t, m), shapes, keys, variant: params?.get("variant") ?? "current" };
   }, [params]);
+  useEffect(() => {
+    if (variant !== "controls") return;
+    let frame = 0;
+    const check = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => {
+          const stage = document.querySelector("[data-focus-stage]");
+          const outside = Array.from(stage?.querySelectorAll("[data-participant-id]") ?? []).filter(cell => {
+            const box = cell.getBoundingClientRect();
+            return box.left < -.5 || box.top < -.5 || box.right > innerWidth + .5 || box.bottom > innerHeight + .5;
+          }).length;
+          setResizeCheck({ animating: stage?.getAttribute("data-animating") === "true", outside, width: innerWidth, height: innerHeight });
+        });
+      });
+    };
+    window.addEventListener("resize", check);
+    return () => { window.removeEventListener("resize", check); cancelAnimationFrame(frame); };
+  }, [variant]);
   if (!params) return null;
   const renderTile = (id: string) => {
     const shape = shapes[id];
@@ -217,6 +237,9 @@ export function CallStageHarness() {
   };
   return (
     <div className="gg-call-theme" data-testid="call-stage-harness" style={{ position: "fixed", inset: 0, background: "#0d0d12", display: "flex", padding: 10 }}>
+      {variant === "controls" && resizeCheck && <output aria-label="Viewport resize check" style={{ position: "absolute", top: 10, left: 10, zIndex: 10, pointerEvents: "none", padding: "4px 8px", background: "#0d0d12", color: "#fff", font: "12px system-ui" }}>
+        {resizeCheck.width}×{resizeCheck.height} after two frames: {resizeCheck.animating ? "gliding" : "snapped"} · {resizeCheck.outside} outside
+      </output>}
 {variant === "controls" ? <FocusVideoStage
         mine={mine.map(person => person.id)} theirs={theirs.map(person => person.id)}
         mineLabel="Your squad" theirsLabel="Their squad" selfId="mine-1"

@@ -109,6 +109,9 @@ export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderPa
       const width = Math.floor(entry.contentRect.width);
       const height = Math.floor(entry.contentRect.height);
       if (width <= 0 || height <= 0) return;
+      // Rotation/viewport changes must snap even during a previous zoom or pin glide.
+      if (animTimer.current) { clearTimeout(animTimer.current); animTimer.current = null; }
+      setAnimating(false);
       setBounds(previous => (previous.width === width && previous.height === height ? previous : { width, height }));
     });
     observer.observe(element);

@@ -84,6 +84,18 @@ test('mixed cameras in a full Plus call keep phone tile targets at least 44px', 
   for (const tile of layout.tiles) assert.ok(Math.min(tile.width, tile.height) >= 44, `${tile.id} is ${tile.width}×${tile.height}`);
 });
 
+test('layout searches do not mutate previous results or shared candidate partitions', () => {
+  const mine = people('mine', 8, { 0: { self: true, aspect: 16 / 9 }, 1: { aspect: 9 / 16 } });
+  const theirs = people('theirs', 8, { 0: { weight: 2, aspect: 4 / 3 } });
+  const first = focus.arrangeFocusCall(mine, theirs, 300, 548);
+  const saved = structuredClone(first);
+  for (const n of [1, 4, 8, 9]) {
+    focus.arrangeFocusCall(people('other-mine', n), people('other-theirs', n, { 0: { weight: 4 } }), 1440, 900);
+  }
+  assert.deepEqual(first, saved);
+  assert.deepEqual(focus.arrangeFocusCall(mine, theirs, 300, 548), saved);
+});
+
 test('order is kept and nothing is NaN on tiny or broken stages', () => {
   const layout = focus.arrangeFocusCall(people('mine', 3), people('theirs', 2), 1440, 900);
   assert.deepEqual(layout.tiles.filter(t => t.side === 'mine').map(t => t.id), ['mine-0', 'mine-1', 'mine-2']);
