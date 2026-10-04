@@ -11,13 +11,18 @@ test('invitation retry keeps focus trapped and closing restores the lobby opener
   await expect(page.getByRole('button', { name: 'Invite friends', exact: true })).toBeVisible();
 
   let friendLoads = 0;
-  await page.route('**/api/friends', route => route.fulfill({
-    status: ++friendLoads === 1 ? 503 : 200,
-    contentType: 'application/json',
-    body: JSON.stringify(friendLoads === 1
-      ? { ok: false, error: { code: 'UNAVAILABLE', message: 'Temporary test outage' } }
-      : { ok: true, data: { friends: [] } }),
-  }));
+  let friendsAvailable = false;
+  // Keep the outage active through development StrictMode's repeated mount.
+  await page.route('**/api/friends', route => {
+    friendLoads++;
+    return route.fulfill({
+      status: friendsAvailable ? 200 : 503,
+      contentType: 'application/json',
+      body: JSON.stringify(friendsAvailable
+        ? { ok: true, data: { friends: [] } }
+        : { ok: false, error: { code: 'UNAVAILABLE', message: 'Temporary test outage' } }),
+    });
+  });
   try {
     const opener = page.getByRole('button', { name: 'Invite friends', exact: true });
     await opener.click();
@@ -32,9 +37,11 @@ test('invitation retry keeps focus trapped and closing restores the lobby opener
     await expect(close).toBeFocused();
     await close.press('Shift+Tab');
     await expect(retry).toBeFocused();
+    const failedLoads = friendLoads;
+    friendsAvailable = true;
     await retry.click();
     await expect(dialog.getByText('No friends yet — use Search to invite anyone.')).toBeVisible();
-    expect(friendLoads).toBe(2);
+    expect(friendLoads).toBe(failedLoads + 1);
     await expect(close).toBeFocused();
     await dialog.getByRole('button', { name: 'Search', exact: true }).click();
     const input = dialog.getByPlaceholder('Search anyone by name…');
