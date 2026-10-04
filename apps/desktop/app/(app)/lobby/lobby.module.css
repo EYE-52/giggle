@@ -173,3 +173,7 @@
   .readyLine { font-size:12px; }
   .dockRow :global(.gg-btn) { font-size:12px; padding-inline:9px !important; }
 }
+
+/* Clay device controls share the material; an off device sits in a soft well. */
+:global(html[data-skin="clay"]) .devBtn { border:0; border-radius:16px; background:var(--clay-fill); color:var(--text); box-shadow:var(--clay-raised); }
+:global(html[data-skin="clay"]) .devBtn[data-off] { background:var(--clay-well); color:var(--text); box-shadow:var(--clay-inset); }

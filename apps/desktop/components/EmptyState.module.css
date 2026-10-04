@@ -1,0 +1,13 @@
+/* Only geometry: the card and Button hooks keep each skin's material intact. */
+.root.root { display:flex!important; flex-direction:column!important; align-items:center; justify-content:center; gap:12px!important; padding:28px 24px!important; min-width:0; min-height:0; height:auto; width:100%; box-sizing:border-box; text-align:center; }
+.icon { width:42px; height:42px; display:grid; place-items:center; flex:none; }
+.copy { min-width:0; }
+.title { font:700 16px/1.35 var(--font-display); color:var(--text); }
+.body { margin-top:4px; font-size:13px; line-height:1.5; color:var(--text-muted); overflow-wrap:anywhere; }
+.actions { display:flex; justify-content:center; flex-wrap:wrap; gap:10px; margin-top:4px; max-width:100%; }
+.actions > button { min-height:44px!important; max-width:100%; white-space:normal; }
+.compact.compact { flex-direction:row!important; justify-content:flex-start; padding:18px 20px!important; text-align:left; gap:16px!important; }
+.compact .icon { width:34px; height:34px; }
+.compact .copy { flex:1; }
+.compact .actions { margin:0; flex:none; }
+@media(max-width:600px) { .compact.compact { flex-wrap:wrap; } .compact .actions { width:100%; justify-content:flex-start; padding-left:50px; box-sizing:border-box; } .root.root { padding:24px 18px!important; } }

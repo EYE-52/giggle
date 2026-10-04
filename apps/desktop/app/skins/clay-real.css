@@ -1,36 +1,32 @@
-/* ═══════════════════════════════════════════════════════════════════════════
-   CLAY: matte sculpted shapes, lit from the upper left. The contact edge,
-   broad inner shading and cast shadow give each object visible thickness.
-
-   The recipe: one outer drop tinted with the palette hue + a dark inset at the
-   bottom + a light inset at the top. No borders, no outlines, no grey shadows.
-   One light source (top). Raised: buttons, cards, avatars, toggle thumbs, seats.
-   Inset (pressed into the surface): inputs, toggle tracks, counts, empty seats.
-   Dark mode: mid-tone fills on a deep tinted page, near-black drops, a faint
-   highlight and a 1px top rim.
-   The repeated [data-skin] raises specificity above the generated skin-clay.css.
-   ═══════════════════════════════════════════════════════════════════════════ */
+/* Clay uses a matte face, a soft convex rim and a blurred contact shadow.
+   All raised objects share an upper-left light source. Recessed controls use
+   the opposite lighting. Never add a solid bottom extrusion to this material.
+   Repeated attributes keep the recipe above the generated skin rules. */
 :is(html[data-skin="clay"], html[data-skin] [data-skin-preview="clay"]),
 html[data-skin="clay"] .gg-call-theme {
   --clay-page: color-mix(in srgb, var(--brand) 5%, #f7f8fc);
-  --clay-fill: color-mix(in srgb, var(--brand) 4%, #fff);
-  --clay-fill-2: color-mix(in srgb, var(--brand) 10%, #fff);
+  --clay-fill: color-mix(in srgb, var(--brand) 7%, #fff);
+  --clay-fill-2: color-mix(in srgb, var(--brand) 11%, #f5f6fa);
   --clay-well: color-mix(in srgb, var(--brand) 7%, #edf0f5);
   --clay-shade: color-mix(in srgb, var(--brand-deep) 24%, transparent);
   --clay-shade-soft: color-mix(in srgb, var(--brand-deep) 16%, transparent);
   --clay-light: rgb(255 255 255 / .95);
   --clay-rim: rgb(255 255 255 / .7);
   --clay-cta-ink: var(--on-brand);
+  --clay-cta-fill: var(--brand);
+  --text-muted: color-mix(in srgb, var(--text) 70%, var(--clay-fill));
+  --text-dim: var(--text-muted);
   --clay-raised:
-    inset 3px 5px 8px var(--clay-light),
-    inset -4px -7px 10px var(--clay-shade-soft),
-    0 3px 0 color-mix(in srgb, var(--clay-fill-2) 82%, var(--brand-deep)),
-    3px 8px 13px -5px var(--clay-shade);
+    inset 2px 3px 5px var(--clay-light),
+    inset -4px -5px 9px var(--clay-shade-soft),
+    2px 5px 9px -4px var(--clay-shade),
+    5px 10px 20px -9px var(--clay-shade-soft);
   --clay-raised-lg:
-    inset 6px 8px 14px var(--clay-light),
-    inset -7px -10px 16px var(--clay-shade-soft),
-    0 5px 0 color-mix(in srgb, var(--clay-fill) 85%, var(--brand-deep)),
-    7px 16px 24px -10px var(--clay-shade);
+    inset 2px 3px 6px var(--clay-light),
+    inset 10px 12px 22px -8px var(--clay-light),
+    inset -10px -12px 22px -8px var(--clay-shade-soft),
+    3px 6px 12px -6px var(--clay-shade),
+    8px 16px 30px -14px var(--clay-shade);
   --clay-small:
     inset 2px 3px 5px var(--clay-light),
     inset -2px -4px 6px var(--clay-shade-soft),
@@ -40,8 +36,7 @@ html[data-skin="clay"] .gg-call-theme {
     inset -2px -3px 5px var(--clay-light);
   --clay-pressed:
     inset 2px 3px 6px var(--clay-shade-soft),
-    inset -2px -3px 5px var(--clay-light),
-    0 1px 0 var(--clay-shade-soft);
+    inset -2px -3px 5px var(--clay-light);
   --surface-grad-from: var(--clay-fill);
   --surface-grad-to: var(--clay-fill-2);
   --shadow-card: var(--clay-raised-lg);
@@ -53,14 +48,20 @@ html[data-skin="clay"] .gg-call-theme {
 /* the call is always dark: recompute this skin's derived tokens there too */
 :is(html[data-skin="clay"], html[data-skin] [data-skin-preview="clay"]) .gg-call-theme {
   --clay-page: color-mix(in srgb, var(--brand) 4%, #181b26);
-  --clay-fill: color-mix(in srgb, var(--brand) 10%, #333746);
-  --clay-fill-2: color-mix(in srgb, var(--brand) 16%, #393d50);
+  --clay-fill: color-mix(in srgb, var(--brand) 12%, #414457);
+  --clay-fill-2: color-mix(in srgb, var(--brand) 14%, #3b3e50);
   --clay-well: color-mix(in srgb, var(--brand) 5%, #242838);
   --clay-shade: rgb(0 0 0 / .45);
   --clay-shade-soft: rgb(0 0 0 / .3);
-  --clay-light: rgb(255 255 255 / .1);
+  --clay-light: rgb(255 255 255 / .16);
   --clay-rim: rgb(255 255 255 / .08);
+  --text-muted: color-mix(in srgb, var(--text) 80%, var(--clay-fill));
+  --text-dim: var(--text-muted);
 
+}
+/* Leave headroom for the highlight around light-mode white labels. */
+:is(html[data-skin="clay"][data-mode="light"]:not([data-palette="honey"]):not([data-palette="lagoon"]), html[data-skin][data-mode="light"]:not([data-palette="honey"]):not([data-palette="lagoon"]) [data-skin-preview="clay"]) {
+  --clay-cta-fill: color-mix(in srgb, var(--brand) 90%, var(--brand-deep));
 }
 /* white on gold or teal is under 4.5:1; those two palettes use dark ink on the CTA */
 :is(html[data-skin="clay"][data-palette="honey"][data-mode="light"], html[data-skin][data-palette="honey"][data-mode="light"] [data-skin-preview="clay"]),
@@ -78,7 +79,7 @@ html[data-skin="clay"][data-skin="clay"] .vtile.off { background: var(--clay-wel
 html[data-skin="clay"][data-skin="clay"] .vtile.speaking { box-shadow: inset 0 0 0 2px var(--ok), inset 0 -2px 4px var(--clay-shade-soft); }
 
 :is(html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"], html[data-skin] [data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"]) .card:not(:where([data-skin-preview]:not([data-skin-preview="clay"]) *)) {
-  background: linear-gradient(135deg, var(--clay-fill), var(--clay-fill-2));
+  background: linear-gradient(145deg, var(--clay-fill), var(--clay-fill-2));
   color: var(--text);
   border: 0;
   outline: 0;
@@ -92,20 +93,21 @@ html[data-skin="clay"][data-skin="clay"] .vtile.speaking { box-shadow: inset 0 0
   border: 0;
   outline: 0;
   border-radius: 18px;
-  background: linear-gradient(135deg, var(--clay-fill), var(--clay-fill-2));
+  background: linear-gradient(145deg, var(--clay-fill), var(--clay-fill-2));
   color: var(--text);
   box-shadow: var(--clay-raised);
   scale: 1 var(--sq);
   transition: scale .2s cubic-bezier(.2,.8,.3,1.5), translate .2s cubic-bezier(.2,.8,.3,1.5), box-shadow .2s, filter .2s;
 }
 :is(html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"], html[data-skin] [data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"]) :is(.btn, .gg-btn).btn-primary:not(:where([data-skin-preview]:not([data-skin-preview="clay"]) *)) {
-  background: var(--brand);
+  background: var(--clay-cta-fill);
   color: var(--clay-cta-ink);
   box-shadow:
-    inset 5px 6px 12px rgb(255 255 255 / .22),
-    inset -5px -8px 14px rgb(0 0 0 / .16),
-    0 3px 0 color-mix(in srgb, var(--brand) 72%, #1e2332),
-    3px 8px 14px -5px var(--clay-shade);
+    inset 2px 3px 5px rgb(255 255 255 / .24),
+    inset 5px 6px 12px -3px rgb(255 255 255 / .18),
+    inset -4px -6px 10px rgb(0 0 0 / .18),
+    2px 5px 9px -4px var(--clay-shade),
+    5px 10px 18px -9px var(--clay-shade-soft);
 }
 :is(html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"], html[data-skin] [data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"]) :is(.btn, .gg-btn):not(:disabled):not(.btn-ghost):not(:where([data-skin-preview]:not([data-skin-preview="clay"]) *)):hover { translate: 0 -2px; filter: brightness(1.03); }
 :is(html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"], html[data-skin] [data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"]) :is(.btn, .gg-btn):not(:disabled):not(.btn-ghost):not(:where([data-skin-preview]:not([data-skin-preview="clay"]) *)):active { --sq: .94; translate: 0 3px; box-shadow: var(--clay-pressed); }
@@ -192,7 +194,7 @@ html[data-skin="clay"][data-skin="clay"] .vtile.speaking { box-shadow: inset 0 0
 
 /* ── lobby seats: raised when someone is there, a well when open ─────────── */
 :is(html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"], html[data-skin] [data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"]) [data-testid="lobby-person"]:not(:where([data-skin-preview]:not([data-skin-preview="clay"]) *)) {
-  background: linear-gradient(135deg, var(--clay-fill), var(--clay-fill-2)); border: 0; border-radius: 28px; box-shadow: var(--clay-raised-lg);
+  background: linear-gradient(145deg, var(--clay-fill), var(--clay-fill-2)); border: 0; border-radius: 28px; box-shadow: var(--clay-raised-lg);
 }
 :is(html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"], html[data-skin] [data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"]) [aria-label="Squad members"] > button:not(:where([data-skin-preview]:not([data-skin-preview="clay"]) *)) {
   border: 0; background: var(--clay-well);
@@ -221,3 +223,7 @@ html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is
 html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(#home-friends, #home-squads) {
   font-size: 24px; font-weight: 550; line-height: 1.2;
 }
+
+/* Call controls retain their semantic colors, with the same soft clay edge. */
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] :is(.cbtn, .logo) { box-shadow:var(--clay-raised); }
+html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"] .cbtn:active { box-shadow:var(--clay-pressed); }
