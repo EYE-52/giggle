@@ -101,6 +101,7 @@ function LobbyInner() {
   const [unread, setUnread] = useState(0);
 
   const chatVisibleRef = useRef(false);
+  const chatButtonRef = useRef<HTMLButtonElement>(null);
 
   const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
   const lobbyMediaGenerationRef = useRef(0);
@@ -679,7 +680,10 @@ function LobbyInner() {
   const othersOnline = onlineMembers.filter(m => m.userId !== myUserId);
   const othersReady = othersOnline.every(m => m.ready);
   const myReady = !!myMember?.ready;
-  const closeChat = () => { setChatOpen(false); setSidebarTab("info"); };
+  const closeChat = () => {
+    setChatOpen(false); setSidebarTab("info");
+    requestAnimationFrame(() => chatButtonRef.current?.focus());
+  };
 
   const openSeats = Math.max(0, MAX_SLOTS - memberCount);
   const readyLine = !WEB_DISCOVERY_ENABLED
@@ -724,7 +728,7 @@ function LobbyInner() {
           <span className={styles.codeHint}>{codeCopied ? "Copied" : <Icon.copy size={16} />}</span>
         </button>
         <button type="button" className={`icon-btn ${styles.iconBtn}`} aria-label="Invite friends" disabled={!canInvite} onClick={() => setInviteSheetOpen(true)}><Icon.share size={19} /></button>
-        <button type="button" className={`icon-btn ${styles.iconBtn}`} aria-label={`Chat${unread > 0 ? `, ${unread} unread` : ""}`} onClick={openChat}>
+        <button ref={chatButtonRef} type="button" className={`icon-btn ${styles.iconBtn}`} aria-label={`Chat${unread > 0 ? `, ${unread} unread` : ""}`} onClick={openChat}>
           <Icon.chat size={19} />{unread > 0 && <span className={styles.dot} aria-hidden="true">{unread}</span>}
         </button>
         <button type="button" className={`icon-btn ${styles.iconBtn}`} aria-label={`Squad settings${joinReqs.length ? `, ${joinReqs.length} join request${joinReqs.length > 1 ? "s" : ""}` : ""}`} onClick={() => setSettingsOpen(true)}>
@@ -762,7 +766,7 @@ function LobbyInner() {
           ))}
         </section>
         <aside className={styles.chat} hidden={!chatVisible} aria-label="Squad chat">
-          <ChatPanel scope={{ kind: "lobby", squadId }} title="Squad chat" onClose={closeChat} />
+          <ChatPanel active={chatVisible} scope={{ kind: "lobby", squadId }} title="Squad chat" onClose={closeChat} />
         </aside>
       </div>
 

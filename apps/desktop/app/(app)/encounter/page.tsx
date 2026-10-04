@@ -1552,6 +1552,7 @@ function EncounterInner() {
           {/* Kept mounted so closing chat preserves drafts and never moves video hosts. */}
           <aside className="gg-encounter-chat" hidden={!chatOpen} aria-label="Call chat">
             <ChatPanel
+              active={chatOpen}
               scope={chatScope}
               title="Chat"
               onClose={closeChat}

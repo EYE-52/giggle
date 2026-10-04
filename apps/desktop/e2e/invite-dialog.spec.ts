@@ -3,7 +3,7 @@ import { openProtectedRoute } from './helpers';
 
 test.skip(process.env.GIGGLE_LOCAL_AUTH_E2E !== 'true', 'Uses a disposable squad on the local development API');
 
-test('invitation retry keeps focus trapped and closing restores the lobby opener', async ({ page }) => {
+test('squad invitation and chat panels support keyboard navigation and recovery', async ({ page }) => {
   await openProtectedRoute(page, '/home');
   await page.getByRole('button', { name: /^(Start a squad|Start another squad)$/ }).click();
   await page.getByLabel('Squad name').fill(`Invite QA ${Date.now()}`);
@@ -52,11 +52,53 @@ test('invitation retry keeps focus trapped and closing restores the lobby opener
     await expect(dialog).toBeHidden();
     await expect(opener).toBeFocused();
     expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden');
+
+    const chatOpener = page.getByRole('button', { name: 'Chat', exact: true });
+    await chatOpener.click();
+    const chat = page.getByRole('complementary', { name: 'Squad chat', exact: true });
+    const composer = chat.getByRole('textbox', { name: 'Chat message', exact: true });
+    await expect(composer).toBeFocused();
+    await composer.dispatchEvent('keydown', { key: 'Escape', isComposing: true });
+    await expect(chat).toBeVisible();
+    await composer.fill('hello world');
+    await composer.press('Home');
+    for (let i = 0; i < 5; i++) await composer.press('ArrowRight');
+    const addEmoji = chat.getByRole('button', { name: 'Add emoji', exact: true });
+    await addEmoji.press('Enter');
+    await expect(chat.getByRole('button', { name: 'Smile', exact: true })).toBeFocused();
+    await chat.getByRole('button', { name: 'Smile', exact: true }).press('ArrowDown');
+    await expect(chat.getByRole('button', { name: 'Fire', exact: true })).toBeFocused();
+    await chat.getByRole('button', { name: 'Fire', exact: true }).press('End');
+    await expect(chat.getByRole('button', { name: 'Eyes', exact: true })).toBeFocused();
+    await chat.getByRole('button', { name: 'Eyes', exact: true }).press('ArrowRight');
+    await expect(chat.getByRole('button', { name: 'Smile', exact: true })).toBeFocused();
+    await chat.getByRole('button', { name: 'Smile', exact: true }).press('Enter');
+    await expect(composer).toHaveValue('hello🙂 world');
+    await expect(composer).toBeFocused();
+    expect(await composer.evaluate((input: HTMLInputElement) => input.selectionStart)).toBe(7);
+    await composer.fill('x'.repeat(499));
+    await addEmoji.click();
+    await chat.getByRole('button', { name: 'Smile', exact: true }).press('Enter');
+    await expect(chat.getByRole('alert')).toContainText('Your message is full.');
+    await expect(composer).toHaveValue('x'.repeat(499));
+    await chat.getByRole('button', { name: 'Smile', exact: true }).press('Escape');
+    await expect(chat.getByRole('group', { name: 'Emoji choices' })).toBeHidden();
+    await expect(addEmoji).toBeFocused();
+    await addEmoji.press('Escape');
+    await expect(chat).toBeHidden();
+    await expect(chatOpener).toBeFocused();
+    await chatOpener.click();
+    await expect(composer).toHaveValue('x'.repeat(499));
+    await composer.fill('');
+    await chat.getByRole('button', { name: 'Close chat', exact: true }).click();
+    await expect(chatOpener).toBeFocused();
   } finally {
     await page.unroute('**/api/friends');
     // Only the disposable squad created above is removed.
     const dialog = page.getByRole('dialog');
     if (await dialog.count()) await dialog.getByRole('button', { name: 'Close', exact: true }).click();
+    const closeChat = page.getByRole('button', { name: 'Close chat', exact: true });
+    if (await closeChat.isVisible()) await closeChat.click();
     await page.getByRole('button', { name: 'Squad settings', exact: true }).click();
     await page.getByRole('button', { name: 'Leave squad', exact: true }).click();
     await page.getByRole('dialog', { name: 'Leave this squad?' }).getByRole('button', { name: 'Leave squad', exact: true }).click();

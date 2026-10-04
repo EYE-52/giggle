@@ -15,6 +15,7 @@ import { chatTextParts } from "@/lib/chatLinks";
 import styles from "./ChatPanel.module.css";
 
 const MAX_CHAT_TEXT_LENGTH = 500;
+const EMOJI_OFFSETS: Partial<Record<string, number>> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 6, ArrowUp: -6 };
 const EMOJIS = [
   ["🙂", "Smile"], ["😂", "Laugh"], ["❤️", "Heart"], ["👍", "Thumbs up"],
   ["🎉", "Celebrate"], ["👋", "Wave"], ["🔥", "Fire"], ["😎", "Cool"],
@@ -40,6 +41,7 @@ export function ChatPanel({
   scope,
   onClose,
   title = "Chat",
+  active = true,
   messages: controlledMessages,
   onSend,
   onRetry,
@@ -53,6 +55,7 @@ export function ChatPanel({
   scope: ChatScope;
   onClose?: () => void;
   title?: string;
+  active?: boolean;
   messages?: ChatPanelMessage[];
   onSend?: (text: string) => boolean;
   onRetry?: (message: ChatPanelMessage) => void;
@@ -65,6 +68,8 @@ export function ChatPanel({
   const [emojiOpen, setEmojiOpen] = useState(false);
   const emojiId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
   const [newMessageCount, setNewMessageCount] = useState(0);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
@@ -75,6 +80,22 @@ export function ChatPanel({
   const myId = session.user?.id;
   const allMessages = controlledMessages ?? localMessages;
   const controlled = controlledMessages !== undefined;
+
+  useEffect(() => {
+    if (active) inputRef.current?.focus({ preventScroll: true });
+    else setEmojiOpen(false);
+  }, [active]);
+
+  useEffect(() => {
+    if (!emojiOpen) return;
+    emojiRef.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+    const dismiss = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!emojiRef.current?.contains(target) && !emojiButtonRef.current?.contains(target)) setEmojiOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss, true);
+    return () => document.removeEventListener("pointerdown", dismiss, true);
+  }, [emojiOpen]);
 
   // Only the scope fields we care about for filtering — keeps the effect from
   // re-subscribing on every render when a fresh scope object is passed inline.
@@ -175,7 +196,10 @@ export function ChatPanel({
     const start = inputRef.current?.selectionStart ?? input.length;
     const end = inputRef.current?.selectionEnd ?? start;
     const next = input.slice(0, start) + emoji + input.slice(end);
-    if (next.length > MAX_CHAT_TEXT_LENGTH) return;
+    if (next.length > MAX_CHAT_TEXT_LENGTH) {
+      setSendError("Your message is full. Remove a little text to add this emoji.");
+      return;
+    }
     setInput(next);
     setSendError("");
     setEmojiOpen(false);
@@ -186,7 +210,16 @@ export function ChatPanel({
   }
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} onKeyDown={(event) => {
+      if (event.key !== "Escape" || event.nativeEvent.isComposing) return;
+      if (!emojiOpen && !onClose) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (emojiOpen) {
+        setEmojiOpen(false);
+        if (document.activeElement !== inputRef.current) emojiButtonRef.current?.focus();
+      } else onClose?.();
+    }}>
       <header className={styles.header}>
         <span className={styles.title}><Icon.chat size={18} />{title}</span>
         {onClose && <button type="button" className={styles.tool} onClick={onClose} aria-label="Close chat"><Icon.close size={19} /></button>}
@@ -217,19 +250,25 @@ export function ChatPanel({
       {newMessageCount > 0 && <button type="button" className={styles.newMessages} onClick={scrollToLatest} aria-label={`Jump to ${newMessageCount} new message${newMessageCount === 1 ? "" : "s"}`}>New messages ↓</button>}
       <div className={styles.composer}>
         {sendError && <div role="alert" className={styles.error}>{sendError}</div>}
-        {emojiOpen && <div id={emojiId} role="group" aria-label="Emoji choices" className={styles.emojis} onKeyDown={(event) => {
-          if (event.key === "Escape") { setEmojiOpen(false); inputRef.current?.focus(); }
+        {emojiOpen && <div ref={emojiRef} id={emojiId} role="group" aria-label="Emoji choices" className={styles.emojis} onKeyDown={(event) => {
+          const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button"));
+          const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+          const offset = EMOJI_OFFSETS[event.key];
+          if (offset == null && event.key !== "Home" && event.key !== "End") return;
+          event.preventDefault();
+          event.stopPropagation();
+          const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (index + (offset ?? 0) + buttons.length) % buttons.length;
+          buttons[next]?.focus();
         }}>
           {EMOJIS.map(([emoji, label]) => <button type="button" key={label} className={styles.tool} aria-label={label} onClick={() => addEmoji(emoji)}>{emoji}</button>)}
         </div>}
         <div className={styles.inputRow}>
-          <button type="button" className={styles.tool} aria-label="Add emoji" aria-expanded={emojiOpen} aria-controls={emojiId} onClick={() => setEmojiOpen((open) => !open)}>🙂</button>
+          <button ref={emojiButtonRef} type="button" className={styles.tool} aria-label="Add emoji" aria-expanded={emojiOpen} aria-controls={emojiId} onClick={() => setEmojiOpen((open) => !open)}>🙂</button>
           <input ref={inputRef} className={styles.input} value={input} onChange={(event) => {
             setSendError("");
             setInput(event.target.value.slice(0, MAX_CHAT_TEXT_LENGTH));
           }} maxLength={MAX_CHAT_TEXT_LENGTH} onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); send(); }
-            if (event.key === "Escape") setEmojiOpen(false);
           }} placeholder="Say something…" aria-label="Chat message" />
           <button type="button" onClick={send} disabled={!input.trim() || input.trim().length > MAX_CHAT_TEXT_LENGTH} aria-label="Send message" className={styles.send}><Icon.send size={19} /></button>
         </div>
