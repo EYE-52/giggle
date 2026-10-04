@@ -759,8 +759,9 @@ function LobbyInner() {
           })}
           {Array.from({ length: Math.min(openSeats, 7) }, (_, i) => (
             <button key={`open-${i}`} type="button" className={styles.openSeat} onClick={() => setInviteSheetOpen(true)} aria-label={i === 0 ? "Invite a friend" : `Open seat ${i + 1}, invite a friend`} tabIndex={i === 0 ? 0 : -1}>
+              <span className={styles.emptyPortrait} aria-hidden="true"><Icon.profile size={48} weight="thin" /></span>
               <span className={styles.openMark} aria-hidden="true"><Icon.plus size={20} /></span>
-              {i === 0 && <span className={styles.openText}>Invite a friend</span>}
+              {i === 0 && <span className={styles.openText}>Invite</span>}
             </button>
           ))}
         </section>
@@ -773,8 +774,8 @@ function LobbyInner() {
         <div className={`card ${styles.dock}`}>
           <div className={styles.dockRow}>
             <div className={styles.devices} role="group" aria-label="Camera and microphone">
-              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}>{micOn ? <Icon.mic size={22} weight="regular" /> : <Icon.micOff size={22} weight="regular" />}<span>Mic {micOn ? "on" : "off"}</span></button>
-              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}>{camOn ? <Icon.cam size={22} weight="regular" /> : <Icon.camOff size={22} weight="regular" />}<span>Camera {camOn ? "on" : "off"}</span></button>
+              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} title={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}>{micOn ? <Icon.mic size={22} weight="regular" /> : <Icon.micOff size={22} weight="regular" />}</button>
+              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} title={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}>{camOn ? <Icon.cam size={22} weight="regular" /> : <Icon.camOff size={22} weight="regular" />}</button>
             </div>
             <span id="lobby-match-status" className={`muted ${styles.readyLine}`}>{readyLine}</span>
             {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}

@@ -204,10 +204,6 @@ html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"]
   padding: 0; border-width: 4px; border-bottom-width: 9px;
 }
 
-:is(html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"], html[data-skin] [data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"]) [aria-label="Squad members"] > button {
-  border: 1px dashed color-mix(in srgb, var(--sb-ink-2) 40%, transparent); border-radius: 5px; background: transparent; color: var(--sb-ink-2);
-}
-
 /* Navigation stays plain so the ruled page and notes carry the theme. */
 
 :is(html[data-skin="scrap"][data-skin="scrap"][data-skin="scrap"][data-skin="scrap"], html[data-skin] [data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"][data-skin-preview="scrap"]) :is(.nav, .tabbar):not(:where([data-skin-preview]:not([data-skin-preview="scrap"]) *)) {

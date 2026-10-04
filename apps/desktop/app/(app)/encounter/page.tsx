@@ -1723,7 +1723,7 @@ function EncounterInner() {
                     } as CSSProperties}
                   >
                     {icon}
-                    <span className="gg-control-label">{id === "cam" ? "Camera" : id === "mic" ? (micOn ? "Mic" : "Unmute") : id === "chat" ? "Chat" : "More"}</span>
+                    {(id === "chat" || id === "more") && <span className="gg-control-label">{id === "chat" ? "Chat" : "More"}</span>}
                     {badge > 0 && (
                       <span
                         aria-label={String(badge) + " unread message" + (badge === 1 ? "" : "s")}
