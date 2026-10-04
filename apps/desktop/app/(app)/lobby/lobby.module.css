@@ -40,10 +40,20 @@
   .seats[data-count="5"], .seats[data-count="6"], .seats[data-count="7"], .seats[data-count="8"], .seats[data-count="9"] { --cols: 2; }
 }
 .seat { position: relative; min-width: 0; min-height: 0; border-radius: 18px; overflow: hidden; background: var(--surface-2, var(--overlay)); container-type: size; isolation: isolate; }
-.personOptions { position:absolute; inset:0; z-index:4; width:100%; height:100%; padding:0; border:0; border-radius:inherit; background:transparent; cursor:pointer; }
-.personOptions span { position:absolute; top:6px; right:6px; display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:var(--surface); color:var(--text); opacity:0; letter-spacing:1px; }
+/* Friend options: a small ••• button (never a full-seat hit area) so video
+ * stays clickable and the focus/pin control beside it is never blocked. The
+ * mute/remove dialog, keyboard focus, and touch visibility are unchanged. */
+.personOptions { position:absolute; top:6px; right:6px; z-index:4; width:44px; height:44px; display:grid; place-items:center; padding:0; border:0; border-radius:12px; background:transparent; cursor:pointer; }
+.personOptions span { display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:var(--surface); color:var(--text); opacity:0; letter-spacing:1px; }
 .personOptions:hover span, .personOptions:focus-visible span { opacity:1; }
 @media(hover:none) { .personOptions span { opacity:1; } }
+/* Focus/pin: an explicit per-seat button (own + friends, games-open only)
+ * that enlarges the ORIGINAL tile inside the rail — same nodes, same video,
+ * no overlay on the game. Theme tokens; 44px touch target; no motion. */
+.focusBtn { position:absolute; top:6px; left:6px; z-index:5; width:44px; height:44px; display:grid; place-items:center; padding:0; border:1px solid var(--line, var(--border)); border-radius:12px; background:color-mix(in srgb, var(--bg) 88%, transparent); color:var(--text); cursor:pointer; opacity:0; }
+.seat:hover .focusBtn, .focusBtn:focus-visible { opacity:1; }
+.seat[data-focused] .focusBtn { opacity:1; background:var(--brand, var(--accent)); color:var(--on-brand, #fff); border-color:transparent; }
+@media(hover:none) { .focusBtn { opacity:1; } }
 .seat[data-offline] .face { opacity: .55; filter: grayscale(.4); }
 .face { position: absolute; left: 50%; top: 46%; width: min(44cqw, 56cqh, 220px); aspect-ratio: 1; transform: translate(-50%, -50%); }
 .video, .video > div { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; }
@@ -177,3 +187,51 @@
 /* Clay device controls share the material; an off device sits in a soft well. */
 :global(html[data-skin="clay"]) .devBtn { border:0; border-radius:16px; background:var(--clay-fill); color:var(--text); box-shadow:var(--clay-raised); }
 :global(html[data-skin="clay"]) .devBtn[data-off] { background:var(--clay-well); color:var(--text); box-shadow:var(--clay-inset); }
+
+/* ── squad games (inside this lobby; media nodes stay mounted) ────────────── */
+.playBtn { flex: none; min-height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 999px; background: var(--brand, var(--accent)); color: var(--on-brand, #fff); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.playBtn:hover:not(:disabled) { filter: brightness(1.06); }
+.playBtn[aria-expanded="true"] { background: var(--overlay); color: var(--text); border-color: var(--line, var(--border)); }
+.stage { flex: 1; min-width: 0; min-height: 0; display: flex; }
+.stage > * { flex: 1; min-width: 0; min-height: 0; }
+/* With games open the seats shrink to a compact persistent rail — the same
+ * mounted nodes, so video, mic/cam controls, and membership never reset.
+ * Empty invite tiles hide (nodes stay mounted) to protect gameplay space. */
+.body[data-games] .seats { flex: none; width: 232px; display: flex; flex-direction: column; overflow-y: auto; }
+.body[data-games] .seat, .body[data-games] .openSeat { flex: none; min-height: 118px; }
+.body[data-games] .openSeat { display: none; }
+.body[data-games] .openMark { width: 32px; height: 32px; }
+/* Contextual rail: faces for social games (large video), compact filmstrip
+ * for immersive 3d/realtime (maximum game area), balanced default (board +
+ * the rest). Auto follows the child's hint; the header select pins faces or
+ * compact across game changes. Balanced keeps the D11 phone geometry. */
+.body[data-games][data-layout="faces"] .seats { width: 300px; }
+.body[data-games][data-layout="faces"] .seat { min-height: 160px; }
+.body[data-games][data-layout="compact"] .seats { width: 168px; }
+.body[data-games][data-layout="compact"] .seat { min-height: 84px; }
+/* Focused seat: order + size on the ORIGINAL tile only — same nodes, same
+ * video, rail outer size unchanged so the game never shrinks or scrolls. */
+.body[data-games] .seats .seat[data-focused] { order: -1; }
+@media (min-width: 721px) {
+  .body[data-games] .seats .seat[data-focused] { min-height: 240px; }
+}
+@media (max-width: 720px) {
+  /* Phone: game viewport on top, compact friends rail below, dock stays. */
+  .body[data-games] { flex-direction: column; }
+  .body[data-games] .stage { flex: 1; min-height: 0; }
+  .body[data-games] .seats { flex: none; width: auto; height: 108px; display: flex; flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+  .body[data-games] .seat, .body[data-games] .openSeat { flex: none; width: 148px; min-height: 0; height: 100%; }
+  .body[data-games] .face { width: min(30cqw, 52cqh, 120px); }
+  .body[data-games][data-layout="faces"] .seats { height: 132px; }
+  .body[data-games][data-layout="faces"] .seat { width: 180px; min-height: 0; height: 100%; }
+  .body[data-games][data-layout="compact"] .seats { height: 84px; }
+  .body[data-games][data-layout="compact"] .seat { width: 112px; min-height: 0; height: 100%; }
+  .body[data-games] .seats .seat[data-focused] { width: 220px; }
+}
+@media (max-width: 900px) and (min-width: 721px) {
+  /* Narrow desktop: faces stays generous without starving the game. */
+  .body[data-games][data-layout="faces"] .seats { width: 240px; }
+}
+@media (max-width: 520px) {
+  .playBtn { padding: 0 12px; }
+}

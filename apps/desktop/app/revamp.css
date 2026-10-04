@@ -595,6 +595,54 @@
   }
 }
 
+/* Encounter games: the shared game room mounts beside the video stage inside
+   the call. The stage keeps its mounted tiles and Agora client — it only
+   shrinks to a rail (same geometry as the lobby rail). Layout pins and the
+   child's hint switch the rail size; nothing here unmounts or moves media. */
+.gg-encounter-game {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+.gg-encounter-game > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.gg-encounter-game[hidden] {
+  display: none;
+}
+.gg-games-open [data-testid="video-stage"] {
+  flex: none !important;
+  width: 232px !important;
+}
+.gg-games-open[data-games-layout="faces"] [data-testid="video-stage"] {
+  width: 300px !important;
+}
+.gg-games-open[data-games-layout="compact"] [data-testid="video-stage"] {
+  width: 168px !important;
+}
+@media (max-width: 699px) and (orientation: portrait) {
+  /* Phone: game viewport on top, compact friends rail below, controls stay. */
+  .gg-games-open [data-testid="video-stage"] {
+    width: auto !important;
+    height: 108px !important;
+  }
+  .gg-games-open[data-games-layout="faces"] [data-testid="video-stage"] {
+    height: 132px !important;
+  }
+  .gg-games-open[data-games-layout="compact"] [data-testid="video-stage"] {
+    height: 84px !important;
+  }
+}
+@media (max-width: 900px) and (min-width: 700px) {
+  /* Narrow desktop: faces stays generous without starving the game. */
+  .gg-games-open[data-games-layout="faces"] [data-testid="video-stage"] {
+    width: 240px !important;
+  }
+}
+
 @keyframes giggle-draw { from { stroke-dasharray:200; stroke-dashoffset:200; } to { stroke-dasharray:200; stroke-dashoffset:0; } }
 @media(prefers-reduced-motion:no-preference){
  .gg-logo-draw path{animation:giggle-draw .85s ease-out backwards}
@@ -784,3 +832,68 @@ html[data-skin] .gg-screen-call .call-top .timer { padding: 3px 9px; border: 1px
 .gg-call-menu > button[data-tone="ok"] { color: var(--ok, var(--live)); }
 .gg-call-menu > hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--line, var(--border)); }
 /* Call danger actions reuse the shared matched ink/fill pair; skins keep their shapes. */
+
+/* ── Call + games: chrome reserves its rows, never overlays the game ─────────
+   Call-only keeps the floating overlay above untouched. With games open the
+   SAME header/dock sit in normal flow above/below the game+video area, so the
+   header never covers the GamePanel title and the dock never covers game
+   controls; idle autohide is off so every control stays reachable mid-game.
+   No DOM moves: video nodes, the Agora client, and the GamePanel iframe stay
+   mounted in place — layout changes only restyle them. Paint stays on palette
+   vars, so all five skins (and reduced-motion/safe-area rules above) apply. */
+.gg-screen-call[data-games] .call-top {
+  position: relative !important;
+  background: var(--surface) !important;
+  border-bottom: var(--control-border) !important;
+  box-shadow: var(--shadow-sm) !important;
+  padding-bottom: 12px !important;
+}
+.gg-screen-call[data-games] .gg-call-controls-wrap {
+  position: relative !important;
+}
+/* in-flow chrome always shows mid-game, even when the call goes idle */
+.gg-screen-call[data-games][data-chrome="hidden"] :is(.call-top, .gg-call-controls-wrap) {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.gg-screen-call[data-games][data-chrome="hidden"] .call-top > * {
+  pointer-events: auto;
+}
+/* compact games header: the GamePanel already titles the room, so the call's
+   squad chips step aside; LIVE/timer/status stay put. */
+.gg-screen-call[data-games] .call-top .call-title {
+  display: none;
+}
+/* in-flow chrome spans the content width: the overlay's chat-side offset would
+   shift it, so it is unset here. The phone chat-takes-screen display:none
+   above still wins (it sets display, which nothing here touches). */
+.gg-screen-call[data-games]:has(.gg-chat-open) :is(.call-top, .gg-call-controls-wrap) {
+  right: auto;
+}
+/* the tile-label lifts compensate for the floating dock; with the dock in
+   flow the rail tiles need none. */
+.gg-screen-call[data-games][data-chrome="shown"] .vcell[data-edge-bottom] :is(.vname, .vdots) {
+  translate: none;
+}
+.gg-screen-call[data-games][data-chrome="shown"] .vcell[data-edge-top] .vsize {
+  translate: none;
+}
+/* phone games: all six controls fit 390px with no scroll — the call-only row
+   sizes five cells, so games-open shrinks cells/gaps (and the <=360px calc
+   divides by six). Heights, safe-area padding, and chat hides are untouched. */
+@media (max-width: 699px), (max-height: 500px) and (max-width: 950px) {
+  .gg-screen-call[data-games] .gg-call-controls-wrap [data-testid="call-controls"] {
+    gap: 4px !important;
+  }
+  .gg-screen-call[data-games] .gg-call-controls-wrap [data-call-control] {
+    width: 52px !important;
+    min-width: 44px !important;
+  }
+}
+@media (max-width: 360px) {
+  .gg-screen-call[data-games] .gg-call-controls-wrap :is([data-call-control], [data-call-leave]) {
+    width: clamp(44px, calc((100vw - 48px) / 6), 58px) !important;
+    min-width: 44px !important;
+  }
+}

@@ -34,3 +34,21 @@ test("api exposes typed account export and deletion wrappers", () => {
   assert.match(api, /exportAccount:\s*\(\).*backendRequest<AccountExport>\("\/api\/me\/export"\)/s);
   assert.match(api, /deleteAccount:\s*\(\).*backendRequest<\{ status: "deleted" \| "pending" \}>\("\/api\/me\/account", \{ method: "DELETE" \}\)/s);
 });
+
+test("api exposes typed squad game ticket wrapper and games flag", () => {
+  const api = readFileSync(path.join(__dirname, "../src/api.ts"), "utf8");
+
+  assert.match(api, /export interface GameTicket/);
+  assert.match(api, /gameUrl: string;/);
+  assert.match(api, /ticket: string;/);
+  assert.match(api, /gameToken:\s*\(squadId: string\).*backendRequest<GameTicket>\(`\/api\/squads\/\$\{squadId\}\/games\/token`, \{ method: "POST" \}\)/s);
+  assert.match(api, /getFeatures:\s*\(\)\s*=>\s*\n?\s*backendRequest<\{ strangerDiscovery: boolean; games\?: boolean \}>\("\/api\/features"\)/);
+});
+
+test("api exposes typed encounter game ticket wrapper for the shared room", () => {
+  const api = readFileSync(path.join(__dirname, "../src/api.ts"), "utf8");
+
+  assert.match(api, /export interface EncounterGameTicket/);
+  assert.match(api, /encounterId: string;/);
+  assert.match(api, /encounterGameToken:\s*\(encounterId: string\).*backendRequest<EncounterGameTicket>\(`\/api\/encounters\/\$\{encounterId\}\/games\/token`, \{ method: "POST" \}\)/s);
+});

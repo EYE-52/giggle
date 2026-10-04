@@ -121,11 +121,24 @@ export const api = {
 
   // --- public feature switches (the API is the one source of truth) ---
   getFeatures: () =>
-    backendRequest<{ strangerDiscovery: boolean }>("/api/features"),
+    backendRequest<{ strangerDiscovery: boolean; games?: boolean }>("/api/features"),
 
   // --- platform stats ---
   getStats: () =>
     backendRequest<{ squadsTotal: number; squadsOnline?: number; playersOnline: number; encountersTotal: number; searching: number; liveEncounters: number }>("/api/stats"),
+
+  // --- squad games (Game Night embed bridge) ---
+  // Single-use 90s ticket for one verified member; identity comes from the
+  // session, never from callers. The ticket is NOT a Giggle backend JWT.
+  gameToken: (squadId: string) =>
+    backendRequest<GameTicket>(`/api/squads/${squadId}/games/token`, { method: "POST" }),
+
+  // --- encounter games (one shared Game Night room for both squads in a call) ---
+  // Same 90s single-use ticket protocol; both sides receive tickets for the
+  // same namespaced encounter room. Identity comes from the session, scope
+  // from the encounter id — never from callers.
+  encounterGameToken: (encounterId: string) =>
+    backendRequest<EncounterGameTicket>(`/api/encounters/${encounterId}/games/token`, { method: "POST" }),
 
   // --- agora tokens ---
   lobbyToken: (squadId: string) =>
@@ -401,6 +414,25 @@ export interface SquadState {
   coverImage?: string | null;
   visibility?: "private" | "open";
   joinPolicy?: "open" | "request" | "invite";
+}
+// --- squad games (Game Night embed bridge) ---
+export interface GameTicket {
+  squadId: string;
+  /** Game Night base URL to frame (from server config, not callers). */
+  gameUrl: string;
+  /** 90s single-use ticket; delivered to the iframe via postMessage only. */
+  ticket: string;
+}
+// --- encounter games (both squads share one Game Night room) ---
+export interface EncounterGameTicket {
+  encounterId: string;
+  /** The requester's own squad (display/debug only — the ticket's room claim
+   *  is the shared namespaced encounter room, not this squad). */
+  squadId: string;
+  /** Game Night base URL to frame (from server config, not callers). */
+  gameUrl: string;
+  /** 90s single-use ticket; delivered to the iframe via postMessage only. */
+  ticket: string;
 }
 export type SquadSummary = SquadState;
 export interface PublicSquad {
