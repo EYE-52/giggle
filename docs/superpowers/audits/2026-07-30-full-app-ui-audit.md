@@ -25,7 +25,7 @@ Make every Giggle route clean, useful, truthful, accessible, and deliberately re
 
 - Web reintroduced an Invite tile, phone `4 / 3` tiles, a scroll-first stage, and a wrapping media-control row after the approved people-first Lobby work.
 - Native renders enough empty Invite tiles to reach four cells and uses fixed two-column 16:9 cards.
-- Both contradict `docs/superpowers/specs/2026-07-12-lobby-stage-design.md`.
+- Both contradict `docs/superpowers/archive/2026-07-12/specs/2026-07-12-lobby-stage-design.md`.
 - The earlier member-only implementation still exists in git history and should be restored selectively rather than rewritten.
 
 ### Matchmaking

@@ -364,7 +364,7 @@ export default function HomePage() {
           <div className={styles.joinArea}>
           <label htmlFor="squad-code" className={styles.joinLabel}>Have an invite code?</label>
           <form
-            className={`join ${styles.join}`}
+            className={styles.join}
             onSubmit={(event) => {
               event.preventDefault();
               void join();

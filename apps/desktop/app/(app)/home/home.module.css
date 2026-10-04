@@ -29,7 +29,9 @@
 /* icon and label stay on one line in every skin */
 .newSquad.newSquad { width: 100%; display: flex; flex-direction: row; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 8px; }
 .join { display: flex; gap: 8px; }
-.join input { flex: 1; min-width: 0; min-height: 44px; }
+.join input { flex: 1; min-width: 0; min-height: 48px; box-sizing: border-box; padding: 12px 14px !important; font-size: 16px; }
+:global(html[data-skin="soft"]) .join input { border-radius:var(--radius-control, 14px); }
+@media (max-width: 420px) { .join { flex-direction: column; } }
 .joinArea { display: grid; gap: 8px; padding: 12px 4px 4px; }
 .joinLabel { font-size: 13px; font-weight: 600; color: var(--text-body, var(--text)); }
 .open { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--line, var(--border)); }

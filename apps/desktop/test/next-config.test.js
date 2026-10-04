@@ -1657,7 +1657,6 @@ test("desktop home keeps create and join actions compact", () => {
   assert.equal(page.includes("Open a new room"), false);
   assert.equal(page.includes("Start a room and invite your people."), false);
   assert.equal(page.includes('aria-label="Squad invite code"'), true);
-  assert.match(page, /className=\{`join \$\{styles\.join\}`\}/);
 });
 
 test("desktop home uses warm squad actions and discovery surfaces", () => {

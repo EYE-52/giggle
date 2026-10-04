@@ -70,6 +70,13 @@ html[data-skin="clay"] .gg-call-theme {
 :is(html[data-skin="clay"][data-skin="clay"][data-skin="clay"], html[data-skin] [data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"]) .gg-app-root { background: var(--clay-page); }
 
 /* ── surfaces ────────────────────────────────────────────────────────────── */
+/* Dense video grids need a quiet inner rim rather than the card's thick lip. */
+html[data-skin="clay"][data-skin="clay"] .vtile {
+  box-shadow: inset 0 1px 0 var(--clay-rim), inset 0 -2px 4px var(--clay-shade-soft);
+}
+html[data-skin="clay"][data-skin="clay"] .vtile.off { background: var(--clay-well); }
+html[data-skin="clay"][data-skin="clay"] .vtile.speaking { box-shadow: inset 0 0 0 2px var(--ok), inset 0 -2px 4px var(--clay-shade-soft); }
+
 :is(html[data-skin="clay"][data-skin="clay"][data-skin="clay"][data-skin="clay"], html[data-skin] [data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"][data-skin-preview="clay"]) .card:not(:where([data-skin-preview]:not([data-skin-preview="clay"]) *)) {
   background: linear-gradient(135deg, var(--clay-fill), var(--clay-fill-2));
   color: var(--text);

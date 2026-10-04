@@ -1097,7 +1097,7 @@ function EncounterInner() {
   const ctrlBtns = [
     {
       id: "mic",
-      icon: <Icon.mic size={20} color="currentColor" />,
+      icon: micOn ? <Icon.mic size={20} weight="regular" color="currentColor" /> : <Icon.micOff size={20} weight="regular" color="currentColor" />,
       active: micOn,
       danger: true,
       onClick: toggleMic,
@@ -1106,7 +1106,7 @@ function EncounterInner() {
     },
     {
       id: "cam",
-      icon: <Icon.cam size={20} color="currentColor" />,
+      icon: camOn ? <Icon.cam size={20} weight="regular" color="currentColor" /> : <Icon.camOff size={20} weight="regular" color="currentColor" />,
       active: camOn,
       danger: true,
       onClick: toggleCam,

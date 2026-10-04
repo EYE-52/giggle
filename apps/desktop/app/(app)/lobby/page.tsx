@@ -748,12 +748,11 @@ function LobbyInner() {
               <div className={styles.face}><PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size="fill" /></div>
               {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
               <div className={styles.seatLabel}>
-                <span className={styles.seatName}>{isMe ? "You" : member.displayName}</span>
-                {member.memberId === squad.leaderMemberId && <span className={`badge ${styles.tag}`}>Leader</span>}
-                {WEB_DISCOVERY_ENABLED && member.ready && <span className={`badge ${styles.tag} ${styles.ready}`}>Ready</span>}
+                <span className={styles.seatName}><span className={styles.nameText}>{isMe ? "You" : member.displayName}</span>{member.memberId === squad.leaderMemberId && <span className={styles.memberRole}>Leader</span>}</span>
+                {WEB_DISCOVERY_ENABLED && member.ready && <span className={styles.ready}><Icon.check size={12} weight="regular" />Ready</span>}
                 {(isMe ? videoJoined && !micOn : remote && !remote.hasAudio) && <span className={styles.state}>Mic off</span>}
                 {remote?.mutedForMe && <span className={styles.state}>Muted for you</span>}
-                {offline ? <span className={styles.state}>Offline</span> : !showVideo ? <span className={styles.state}>Camera off</span> : null}
+                {offline ? <span className={styles.state}>Offline</span> : !showVideo ? <span className={styles.state} aria-label="Camera off" title="Camera off"><Icon.camOff size={14} weight="regular" /><span className={styles.cameraStateText}>Camera off</span></span> : null}
               </div>
               {!isMe && <button type="button" className={styles.personOptions} aria-label={`${member.displayName}'s options`} aria-haspopup="dialog" onClick={() => { setListeningError(""); setPersonOptionsId(member.memberId); }}><span aria-hidden="true">•••</span></button>}
             </article>;
@@ -774,12 +773,12 @@ function LobbyInner() {
         <div className={`card ${styles.dock}`}>
           <div className={styles.dockRow}>
             <div className={styles.devices} role="group" aria-label="Camera and microphone">
-              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}><Icon.mic size={20} /><span>Mic</span></button>
-              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}><Icon.cam size={20} /><span>Camera</span></button>
+              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}>{micOn ? <Icon.mic size={22} weight="regular" /> : <Icon.micOff size={22} weight="regular" />}<span>Mic {micOn ? "on" : "off"}</span></button>
+              <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}>{camOn ? <Icon.cam size={22} weight="regular" /> : <Icon.camOff size={22} weight="regular" />}<span>Camera {camOn ? "on" : "off"}</span></button>
             </div>
             <span id="lobby-match-status" className={`muted ${styles.readyLine}`}>{readyLine}</span>
             {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}
-            <Button disabled={!WEB_DISCOVERY_ENABLED || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} /></Button>
+            <Button variant={isLeader ? "primary" : "secondary"} disabled={!WEB_DISCOVERY_ENABLED || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} weight="regular" /></Button>
           </div>
           {videoError && <p role="alert" className={styles.error}>{videoError}</p>}
         </div>
