@@ -770,7 +770,12 @@ button.gg-chip { cursor: pointer; }
   padding: 24px 24px 22px;
   box-shadow: var(--shadow-pop);
 }
-.gg-modal--sheet { border-radius: var(--radius-card) var(--radius-card) 0 0; }
+.gg-modal--sheet {
+  /* Full-width sheets must meet the screen edge even in tilted paper skins. */
+  border-radius: var(--radius-card) var(--radius-card) 0 0 !important;
+  transform: none !important;
+  rotate: none !important;
+}
 .gg-modal-head {
   display: flex;
   align-items: flex-start;

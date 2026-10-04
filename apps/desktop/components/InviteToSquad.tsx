@@ -2,6 +2,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/Icons";
+import { Modal } from "@/components/Modal";
+import { Button } from "@/components/Button";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { useViewport } from "@/components/useViewport";
 import { api, session } from "@giggle/core";
@@ -32,6 +34,7 @@ function UserAvatar({ userId, name, avatar, size = 40, online }: { userId: strin
 
 export function InviteToSquad({ squadId, squadName, onClose }: Props) {
   const router = useRouter();
+  const closeRef = useRef<HTMLButtonElement>(null);
   const { isPhone } = useViewport();
   const [tab, setTab] = useState<"friends" | "search">("friends");
 
@@ -39,6 +42,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
   const [friendsError, setFriendsError] = useState<string | null>(null);
+  const [friendsAttempt, setFriendsAttempt] = useState(0);
 
   // Search
   const [query, setQuery] = useState("");
@@ -61,9 +65,11 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
     return false;
   }
 
-  // Load friends on mount.
+  // Retry keeps the current dialog and search/invite state intact.
   useEffect(() => {
     let alive = true;
+    setLoadingFriends(true);
+    setFriendsError(null);
     (async () => {
       try {
         if (!ensureAuthed()) return;
@@ -77,7 +83,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [friendsAttempt]);
 
   // Debounced search (~300ms) when q ≥ 2 chars.
   const searchSeq = useRef(0);
@@ -114,13 +120,6 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
     return () => clearTimeout(t);
   }, [query]);
 
-  // Close on Escape.
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
   const handleInvite = useCallback(async (person: Friend) => {
     if (!ensureAuthed()) return;
     const id = person.userId;
@@ -140,42 +139,16 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
   const list = tab === "friends" ? friends : results;
 
   return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed", inset: 0, zIndex: 10000,
-        background: "var(--overlay-strong)", backdropFilter: "blur(8px)",
-        display: "flex",
-        alignItems: isPhone ? "flex-end" : "center",
-        justifyContent: "center",
-        padding: isPhone ? 0 : 20,
-      }}
+    <Modal
+      onClose={onClose}
+      ariaLabel={squadName ? `Invite people to ${squadName}` : "Invite people to squad"}
+      showClose={false}
+      width={460}
+      padding={0}
+      sheet={isPhone}
+      zIndex={10000}
+      style={{ maxHeight: isPhone ? "88dvh" : "80dvh", overflow: "hidden" }}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={squadName ? `Invite people to ${squadName}` : "Invite people to squad"}
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--border-strong)",
-          borderRadius: isPhone ? "24px 24px 0 0" : 24,
-          width: isPhone ? "100%" : 460,
-          maxWidth: "100%",
-          maxHeight: isPhone ? "88vh" : "80vh",
-          display: "flex", flexDirection: "column",
-          boxShadow: "var(--shadow-pop)",
-          overflow: "hidden",
-          animation: isPhone ? "sheetUp .28s cubic-bezier(.22,1,.36,1)" : "modalIn .2s cubic-bezier(.22,1,.36,1)",
-        }}
-      >
-        <style>{`
-          @keyframes modalIn { from { opacity: 0; transform: scale(.96) translateY(8px); } to { opacity: 1; transform: none; } }
-          @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-          @media (prefers-reduced-motion: reduce) {
-            [data-theme="dark"] [role="dialog"] { animation: none !important; }
-          }
-        `}</style>
-
         {/* Header */}
         <div style={{ padding: isPhone ? "18px 18px 12px" : "22px 24px 14px", flexShrink: 0 }}>
           {isPhone && (
@@ -185,17 +158,18 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Icon.users size={18} color={violet} />
-                <h2 style={{ fontFamily: "var(--font-space-grotesk)", fontSize: 17, fontWeight: 700, color: text, margin: 0, letterSpacing: "-0.01em" }}>
+                <h2 style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: text, margin: 0, letterSpacing: "-0.01em" }}>
                   Invite to squad
                 </h2>
               </div>
               {squadName && (
-                <div style={{ color: muted, fontSize: 13, fontFamily: "var(--font-inter)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ color: muted, fontSize: 13, fontFamily: "var(--font-body)", marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   Add people to <span style={{ color: text, fontWeight: 600 }}>{squadName}</span>
                 </div>
               )}
             </div>
             <button
+              ref={closeRef}
               onClick={onClose}
               title="Close"
               aria-label="Close"
@@ -227,7 +201,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
                     flex: 1, minHeight: 44, padding: "8px 0", borderRadius: 999, border: "none", cursor: "pointer",
                     background: active ? violet : "transparent",
                     color: active ? "var(--on-brand, #fff)" : muted,
-                    fontSize: 13, fontWeight: 700, fontFamily: "var(--font-space-grotesk)",
+                    fontSize: 13, fontWeight: 700, fontFamily: "var(--font-display)",
                     transition: "all .15s ease",
                   }}
                 >
@@ -257,7 +231,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
                   background: "var(--overlay)",
                   border: searchFocus ? "1px solid var(--violet)" : "1px solid var(--border)",
                   boxShadow: searchFocus ? "0 0 0 3px color-mix(in srgb, var(--violet) 28%, transparent)" : "none",
-                  color: text, fontSize: 14, fontFamily: "var(--font-inter)", outline: "none",
+                  color: text, fontSize: 14, fontFamily: "var(--font-body)", outline: "none",
                   transition: "box-shadow .18s ease, border-color .18s ease",
                 }}
               />
@@ -275,7 +249,10 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
             loadingFriends ? (
               <SkeletonRows />
             ) : friendsError ? (
-              <EmptyState>{friendsError}</EmptyState>
+              <div role="alert" style={{ display: "grid", gap: 8, justifyItems: "center", paddingBottom: 12 }}>
+                <EmptyState>{friendsError}</EmptyState>
+                <Button variant="secondary" onClick={() => { closeRef.current?.focus(); setFriendsAttempt(n => n + 1); }}>Retry friends</Button>
+              </div>
             ) : friends.length === 0 ? (
               <EmptyState>No friends yet — use Search to invite anyone.</EmptyState>
             ) : (
@@ -299,8 +276,7 @@ export function InviteToSquad({ squadId, squadName, onClose }: Props) {
             )
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -321,12 +297,12 @@ function PersonRow({ person, state, error, onInvite }: { person: Friend; state: 
       >
         <UserAvatar userId={person.userId} name={person.name} avatar={person.avatar} size={40} online={person.online} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontFamily: "var(--font-space-grotesk)", fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 14, color: text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {person.name}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
             <span style={{ width: 7, height: 7, borderRadius: 999, background: person.online ? lime : "var(--border-strong)", boxShadow: person.online ? `0 0 8px ${lime}` : undefined }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: person.online ? limeText : dim, fontFamily: "var(--font-inter)" }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: person.online ? limeText : dim, fontFamily: "var(--font-body)" }}>
               {person.online ? "Online" : "Offline"}
             </span>
           </div>
@@ -338,7 +314,7 @@ function PersonRow({ person, state, error, onInvite }: { person: Friend; state: 
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5,
             minHeight: 44, padding: "8px 16px", borderRadius: "var(--radius-btn, 999px)",
-            fontFamily: "var(--font-inter)", fontWeight: 600, fontSize: 13,
+            fontFamily: "var(--font-body)", fontWeight: 600, fontSize: 13,
             whiteSpace: "nowrap",
             cursor: invited || inviting ? "default" : "pointer",
             border: invited ? "1px solid var(--ok, var(--live))" : "none",
@@ -351,7 +327,7 @@ function PersonRow({ person, state, error, onInvite }: { person: Friend; state: 
         </button>
       </div>
       {error && (
-        <div style={{ fontSize: 12, color: coral, fontFamily: "var(--font-inter)", padding: "5px 12px 0" }}>{error}</div>
+        <div style={{ fontSize: 12, color: coral, fontFamily: "var(--font-body)", padding: "5px 12px 0" }}>{error}</div>
       )}
     </div>
   );
@@ -361,7 +337,7 @@ function EmptyState({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       padding: "28px 16px", textAlign: "center",
-      color: muted, fontSize: 14, fontFamily: "var(--font-inter)",
+      color: muted, fontSize: 14, fontFamily: "var(--font-body)",
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
       {children}
