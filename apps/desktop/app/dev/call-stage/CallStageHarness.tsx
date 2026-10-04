@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { AdaptiveVideoStage, type AdaptiveParticipant } from "@/components/AdaptiveVideoStage";
+import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoStage";
+import { ParticipantVideoTile } from "@/components/ParticipantVideoTile";
 import { arrangeVideoCall, arrangeFocusCall, MAX_WEIGHT, type Tile, type FocusPerson } from "@giggle/core";
 
 // ── prototype layouts (variant=fair|grid); "current" uses the real AdaptiveVideoStage ──
@@ -90,8 +92,9 @@ function PrototypeStage({ variant, mine, theirs, shapeKeys, render }: { variant:
 type Shape = [number, number] | null;
 const SHAPES: Record<string, Shape> = { "16:9": [1280, 720], "9:16": [720, 1280], "4:3": [640, 480], "1:1": [720, 720], "21:9": [2560, 1080], off: null };
 const COLORS = ["#5b6cff", "#ff7a59", "#2fb88a", "#c05bd6", "#e6b422", "#3aa7d9", "#ef5d8f", "#8a9a3b"];
+const NAMES = ["You", "Maya", "Theo", "Alexandria-Rose", "Kit", "June", "Sam", "Priya", "Jonas", "Noor", "Bartholomew", "Eli", "Ana", "Zed", "Liv", "Rio"];
 
-function SyntheticCamera({ shape, color, label }: { shape: [number, number]; color: string; label: string }) {
+function SyntheticCamera({ shape, color, label, host }: { shape: [number, number]; color: string; label: string; host?: RefObject<HTMLDivElement | null> }) {
   const video = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const [w, h] = shape;
@@ -112,10 +115,30 @@ function SyntheticCamera({ shape, color, label }: { shape: [number, number]; col
       ctx.fillText(`${label} ${w}×${h}`, 24, Math.min(w, h) / 7);
     }
     const stream = canvas.captureStream(5);
-    if (video.current) video.current.srcObject = stream;
-    return () => stream.getTracks().forEach(t => t.stop());
-  }, [shape, color, label]);
+    const element = host ? document.createElement("video") : video.current;
+    if (element) {
+      element.autoplay = true; element.muted = true; element.playsInline = true;
+      element.style.cssText = "width:100%;height:100%;display:block";
+      element.dataset.syntheticStream = stream.id;
+      element.srcObject = stream;
+      if (host) host.current?.appendChild(element);
+    }
+    return () => { stream.getTracks().forEach(t => t.stop()); if (host) element?.remove(); };
+  }, [shape, color, label, host]);
+  if (host) return null;
   return <video ref={video} autoPlay muted playsInline style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />;
+}
+
+/** Uses the encounter's real tile and controls; mute changes synthetic viewer state only. */
+function ControlTile({ id, index, shape, size }: { id: string; index: number; shape: Shape; size: TileSizeControls }) {
+  const host = useRef<HTMLDivElement>(null);
+  const [muted, setMuted] = useState(false);
+  return <>
+    <ParticipantVideoTile name={NAMES[index % NAMES.length]} colorIndex={index} isLocal={id === "mine-1"}
+      hasVideo={!!shape} micOn={true} mutedForMe={muted} onMute={async value => setMuted(value)}
+      videoRef={element => { host.current = element; }} size={size} fit={size.fit} />
+    {shape && <SyntheticCamera host={host} shape={shape} color={COLORS[index % COLORS.length]} label={id} />}
+  </>;
 }
 
 /** Viewer-controlled layout: zoom (weight) re-flows everyone; a pin freezes that person's size. */
@@ -184,7 +207,7 @@ export function CallStageHarness() {
   const renderTile = (id: string) => {
     const shape = shapes[id];
     const index = Number(id.split("-")[1]) - 1 + (id.startsWith("theirs") ? mine.length : 0);
-    const name = ["You", "Maya", "Theo", "Alexandria-Rose", "Kit", "June", "Sam", "Priya", "Jonas", "Noor", "Bartholomew", "Eli", "Ana", "Zed", "Liv", "Rio"][index % 16];
+    const name = NAMES[index % NAMES.length];
     return (
       <div data-media-host style={{ position: "absolute", inset: 0, overflow: "hidden", borderRadius: 12, background: "#23232b", display: "grid", placeItems: "center", color: "#fff", font: "600 14px system-ui" }}>
         {shape ? <SyntheticCamera shape={shape} color={COLORS[index % COLORS.length]} label={id} /> : <span style={{ width: "38%", aspectRatio: "1", borderRadius: "50%", background: COLORS[index % COLORS.length], display: "grid", placeItems: "center", fontSize: 18 }}>{name[0]}</span>}
@@ -194,7 +217,13 @@ export function CallStageHarness() {
   };
   return (
     <div className="gg-call-theme" data-testid="call-stage-harness" style={{ position: "fixed", inset: 0, background: "#0d0d12", display: "flex", padding: 10 }}>
-{variant === "current" ? (
+{variant === "controls" ? <FocusVideoStage
+        mine={mine.map(person => person.id)} theirs={theirs.map(person => person.id)}
+        mineLabel="Your squad" theirsLabel="Their squad" selfId="mine-1"
+        videoOn={Object.fromEntries([...mine, ...theirs].map(person => [person.id, person.cameraOn]))}
+        renderParticipant={(id, size) => <ControlTile id={id} size={size} shape={shapes[id]}
+          index={Number(id.split("-")[1]) - 1 + (id.startsWith("theirs") ? mine.length : 0)} />}
+      /> : variant === "current" ? (
       <AdaptiveVideoStage
         mine={mine}
         theirs={theirs}

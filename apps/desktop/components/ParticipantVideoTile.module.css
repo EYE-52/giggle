@@ -30,6 +30,9 @@
 .menuVeil { position:fixed; inset:0; z-index:1150; }
 .menu { position:fixed; width:244px; max-width:calc(100vw - 24px); max-height:calc(100dvh - 24px); overflow:auto; padding:8px; border-radius:var(--radius-card, 16px); color:var(--text); background:var(--surface); box-shadow:0 8px 30px rgb(0 0 0 / .3), 0 0 0 1px var(--line, var(--border)); font-family:var(--font-body); font-size:14px; }
 .menu strong { display:block; padding:8px 10px; color:var(--muted, var(--text-muted)); font-size:12px; }
+.menuHead { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.menuHead strong { min-width:0; overflow-wrap:anywhere; }
+.menu .menuHead button { width:44px; height:44px; flex:none; padding:0; display:grid; place-items:center; }
 .menu button { display:block; text-align:left; padding:10px; width:100%; min-height:44px; border:0; border-radius:9px; background:transparent; color:inherit; font:inherit; cursor:pointer; }
 .menu button:hover,.menu button:focus-visible { background:color-mix(in srgb, var(--text) 8%, transparent); }
 .menu button:disabled { opacity:.6; cursor:default; }

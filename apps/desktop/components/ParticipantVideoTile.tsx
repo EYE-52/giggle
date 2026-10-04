@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { AvatarArt } from "./AvatarArt";
-import { Modal, useFocusTrap } from "./Modal";
+import { Modal, useBodyScrollLock, useFocusTrap } from "./Modal";
 import styles from "./ParticipantVideoTile.module.css";
 import type { TileSizeControls } from "./FocusVideoStage";
 import { Icon } from "./Icons";
@@ -27,6 +27,7 @@ function PersonMenu({ anchor, onClose, children, name }: {
   const ref = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ left: 12, top: 12 });
   useFocusTrap(ref);
+  useBodyScrollLock();
   useLayoutEffect(() => {
     const place = () => {
       if (!anchor || !ref.current) return;
@@ -40,7 +41,7 @@ function PersonMenu({ anchor, onClose, children, name }: {
   }, [anchor]);
   return createPortal(<div className={styles.menuVeil} onClick={onClose} onKeyDown={e => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}>
     <div ref={ref} role="dialog" aria-modal="true" aria-label={`${name}'s options`} className={styles.menu} style={position} onClick={e => e.stopPropagation()}>
-      <strong>{name}</strong>{children}
+      <div className={styles.menuHead}><strong>{name}</strong><button type="button" aria-label="Close person options" onClick={onClose}><Icon.close size={18} /></button></div>{children}
     </div>
   </div>, document.body);
 }
@@ -125,7 +126,7 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
     isSpeaking ? "speaking" : "",
   ].filter(Boolean).join(" ");
   return <div className={tileClasses} data-media-frame data-local={isLocal} data-media-fit={fit} data-pinned={size?.pinned || undefined} style={frameStyle}>
-    <div className={styles.fallback}>
+    <div className={styles.fallback} aria-hidden={hasVideo}>
       <span className={styles.face}><AvatarArt value={avatarValue || name} size="fill" /></span>
       <span>{statusText}</span>
     </div>
@@ -152,7 +153,6 @@ export function ParticipantVideoTile({ name, colorIndex, micOn, isLocal, isSpeak
       {size && <button disabled={!size.canShrink} onClick={() => { size.shrink(); setPanel(null); }}>Make smaller</button>}
       {size && <button aria-pressed={size.pinned} onClick={() => { size.togglePin(); setPanel(null); }}>{size.pinned ? "Let size change again" : "Keep this size"}<small>{size.pinned ? "Others can resize around them" : "Stays put while you resize others"}</small></button>}
       {!size && onClick && <button onClick={() => { setPanel(null); onClick(); }}>{focused ? "Back to grid" : "Focus on this person"}</button>}
-      {!isLocal && <button disabled>Enhance voice<small>Not available yet</small></button>}
       {error && <p role="alert">{error}</p>}
       {!isLocal && <p>Listening changes affect only you.</p>}
     </PersonMenu>}

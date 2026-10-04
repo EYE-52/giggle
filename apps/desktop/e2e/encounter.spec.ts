@@ -1,5 +1,53 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+test("real participant controls preserve synthetic streams and restore focus", async ({ page }) => {
+  await page.goto('/dev/call-stage?variant=controls&m=2&t=2&shapes=16:9,9:16,off,4:3');
+  const videos = page.locator('[data-media-host] video');
+  await expect(videos).toHaveCount(3);
+  await expect.poll(() => videos.evaluateAll(nodes => nodes.every(node => (node as HTMLVideoElement).readyState >= 2))).toBe(true);
+  const streams = await videos.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-synthetic-stream')));
+  const tile = page.locator('[data-participant-id="mine-2"]');
+  await expect(tile.locator('[aria-hidden="true"]').first()).toBeAttached();
+  const opener = page.getByRole('button', { name: "Maya's options", exact: true });
+  await opener.press('Enter');
+  const menu = page.getByRole('dialog', { name: "Maya's options", exact: true });
+  const close = menu.getByRole('button', { name: 'Close person options', exact: true });
+  await expect(close).toBeFocused();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe('hidden');
+  await close.press('Shift+Tab');
+  await expect(menu.getByRole('button', { name: /^Keep this size/ })).toBeFocused();
+  await menu.getByRole('button', { name: /^Keep this size/ }).press('Tab');
+  await expect(close).toBeFocused();
+  await menu.getByRole('button', { name: 'Mute for me', exact: true }).click();
+  await expect(opener).toBeFocused();
+  await expect(tile.getByLabel('Muted for you', { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => document.body.style.overflow)).not.toBe('hidden');
+  await opener.press('Enter');
+  await expect(menu.getByRole('button', { name: 'Unmute for me', exact: true })).toBeEnabled();
+  await menu.getByRole('button', { name: 'Adjust view', exact: true }).click();
+  const framing = page.getByRole('dialog', { name: "Maya's view", exact: true });
+  await expect(framing.getByRole('button', { name: 'Close', exact: true })).toBeFocused();
+  await framing.getByRole('button', { name: 'Full view', exact: true }).click();
+  await framing.getByRole('slider', { name: "Zoom Maya's view", exact: true }).press('ArrowRight');
+  await expect(tile.locator('[data-media-frame]')).toHaveAttribute('data-media-fit', 'fit');
+  await expect(tile.locator('[data-media-frame]')).toHaveCSS('--person-zoom', '1.1');
+  await framing.getByRole('button', { name: 'Reset view', exact: true }).click();
+  await expect(tile.locator('[data-media-frame]')).toHaveCSS('--person-zoom', '1');
+  await framing.getByRole('button', { name: 'Close', exact: true }).press('Escape');
+  await expect(opener).toBeFocused();
+  await opener.press('Enter');
+  await menu.getByRole('button', { name: 'Make bigger', exact: true }).click();
+  await expect(tile).toHaveAttribute('data-weight', '2');
+  await opener.press('Enter');
+  await menu.getByRole('button', { name: /^Keep this size/ }).click();
+  await expect(tile).toHaveAttribute('data-pinned', 'true');
+  await opener.press('Enter');
+  await expect(menu.getByRole('button', { name: 'Make bigger', exact: true })).toBeDisabled();
+  await close.click();
+  await expect(opener).toBeFocused();
+  expect(await videos.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-synthetic-stream')))).toEqual(streams);
+});
+
 test.setTimeout(240_000);
 
 const viewportMatrix = [
