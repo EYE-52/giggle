@@ -354,6 +354,21 @@ test("call action focus enters the popup and returns after Escape and leave canc
   await expect(keepTalking).toBeFocused();
   await keepTalking.press('Enter');
   await expect(leave).toBeFocused();
+  for (const [action, title] of [
+    ['Block opponent squad', 'Block opponent squad?'],
+    ['Next squad', 'Find another squad?'],
+    ['End encounter', 'End the call?'],
+  ]) {
+    await more.press('Enter');
+    await page.getByRole('group', { name: 'More call actions', exact: true })
+      .getByRole('button', { name: action, exact: true }).press('Enter');
+    const dialog = page.getByRole('dialog', { name: title, exact: true });
+    const cancel = dialog.getByRole('button', { name: 'Keep talking', exact: true });
+    await expect(cancel).toBeFocused();
+    await cancel.press('Enter');
+    await expect(dialog).toHaveCount(0);
+    await expect(more).toBeFocused();
+  }
 });
 
 test("report confirmation preserves its draft after failure without clearing media recovery", async ({ page }, testInfo) => {

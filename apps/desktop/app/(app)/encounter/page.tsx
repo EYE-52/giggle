@@ -283,7 +283,7 @@ function EncounterInner() {
 
   function closeMore(restoreFocus = false) {
     setMoreOpen(false);
-    if (restoreFocus) requestAnimationFrame(() => moreButtonRef.current?.focus());
+    if (restoreFocus) moreButtonRef.current?.focus();
   }
 
   useEffect(() => {
@@ -1192,18 +1192,18 @@ function EncounterInner() {
         <Icon.flag size={18} color="currentColor" />
         {reported ? "Reported" : reporting ? "Sending report…" : "Report opponent squad"}
       </button>
-      <button type="button" className="gg-btn--danger" onClick={() => { setBlockError(null); setBlockConfirmOpen(true); closeMore(true); }} disabled={!canBlockOpponent || blocking} aria-label="Block opponent squad" data-tone="danger">
+      <button type="button" className="gg-btn--danger" onClick={() => { setBlockError(null); closeMore(true); setBlockConfirmOpen(true); }} disabled={!canBlockOpponent || blocking} aria-label="Block opponent squad" data-tone="danger">
         <Icon.shield size={18} color="currentColor" />
         Block opponent squad
       </button>
       <hr />
       {WEB_DISCOVERY_ENABLED && mySquad?.members.some(member => member.userId === session.user?.id && member.role === 'leader') && (
-        <button type="button" onClick={() => { closeMore(false); setNextError(''); setNextConfirmOpen(true); }}>
+        <button type="button" onClick={() => { closeMore(true); setNextError(''); setNextConfirmOpen(true); }}>
           <Icon.shuffle size={18} color="currentColor" />
           Next squad
         </button>
       )}
-      <button type="button" className="gg-btn--danger" onClick={() => { setExitKind("end"); setEndError(null); closeMore(false); setEndConfirmOpen(true); }} aria-label="End encounter" data-tone="danger">
+      <button type="button" className="gg-btn--danger" onClick={() => { setExitKind("end"); setEndError(null); closeMore(true); setEndConfirmOpen(true); }} aria-label="End encounter" data-tone="danger">
         <Icon.hangup size={18} color="currentColor" />
         End call for both squads
       </button>
