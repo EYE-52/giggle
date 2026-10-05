@@ -1,0 +1,76 @@
+/* Restyle the original call nodes in place, above the game but below dialogs.
+   Required overrides beat the existing phone rails and inline encounter size. */
+.shell[data-floating-call="true"] {
+  position: absolute !important;
+  flex: none !important;
+  width: 256px !important;
+  max-width: calc(100% - 24px);
+  /* Leave room for one face, while reserving the game header in short views. */
+  height: min(300px, max(184px, 48%), calc(100% - 76px)) !important;
+  min-height: 44px;
+  inset: auto 12px 12px auto;
+  z-index: 6;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  padding: 6px !important;
+  box-sizing: border-box;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+  border: 2px solid var(--line, var(--border));
+  border-radius: 18px;
+  background: var(--surface) !important;
+  box-shadow: 4px 5px 0 color-mix(in srgb, var(--text) 18%, transparent);
+}
+.shell[data-floating-call="true"][data-call-corner="top-left"] { inset: 64px auto auto 12px; }
+.shell[data-floating-call="true"][data-call-corner="top-right"] { inset: 64px 12px auto auto; }
+.shell[data-floating-call="true"][data-call-corner="bottom-left"] { inset: auto auto 12px 12px; }
+.shell[data-floating-call="true"][data-call-corner="bottom-right"] { inset: auto 12px 12px auto; }
+.shell[data-floating-call="true"][data-call-collapsed="true"] { height: 58px !important; }
+.shell[data-floating-call="true"][data-call-collapsed="true"] > article,
+.shell[data-floating-call="true"][data-call-collapsed="true"] > :global([data-testid="encounter-stage"]) { display: none !important; }
+/* Call errors still surface when videos are collapsed. */
+.shell[data-floating-call="true"][data-call-collapsed="true"]:has([role="alert"]) {
+  height: auto !important;
+  max-height: 48%;
+}
+.shell[data-floating-call="true"][hidden] { display: none !important; }
+.tools {
+  flex: none;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  order: -2;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--surface);
+}
+.tools select, .tools button {
+  min-height: 44px;
+  min-width: 0;
+  border: 1px solid var(--line, var(--border));
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: 600 13px/1.2 var(--font-body);
+  cursor: pointer;
+}
+.tools select { flex: 1; padding: 6px; }
+.tools button { flex: none; padding: 6px 10px; }
+.tools button:hover { background: var(--overlay); }
+.tools select:focus-visible, .tools button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (max-width: 720px) {
+  .shell[data-floating-call="true"] {
+    width: 208px !important;
+    height: min(192px, max(156px, 42%), calc(100% - 76px)) !important;
+    border-radius: 14px;
+  }
+  .shell[data-floating-call="true"][data-call-collapsed="true"] { height: 58px !important; }
+  .tools { gap: 6px; }
+  .tools button { padding-inline: 6px; }
+  .tools select { font-size: 16px; }
+}

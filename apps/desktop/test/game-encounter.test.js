@@ -37,6 +37,7 @@ test("game rail layout resolves pins over the contextual hint (behavioral)", () 
   for (const presentation of ["social", "board", "immersive", "balanced"]) {
     assert.equal(bridge.resolveGameLayout("faces", presentation), "faces", `faces pins ${presentation}`);
     assert.equal(bridge.resolveGameLayout("compact", presentation), "compact", `compact pins ${presentation}`);
+    assert.equal(bridge.resolveGameLayout("floating", presentation), "floating", `floating pins ${presentation}`);
   }
 });
 

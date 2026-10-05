@@ -164,7 +164,13 @@ An omitted hint remains compatible with older children and uses
 `balanced`; unfamiliar catalog metadata also derives `balanced`.
 
 Video modes follow the same contract: **Auto** tracks the hint above,
-**Faces** pins large faces, **Compact** pins the filmstrip. Layout changes,
+**Faces** pins large faces, **Compact** pins the filmstrip, and **Floating**
+overlays the existing call inside the game view. The floating call has four
+corner positions and a Hide/Friends toggle; hiding tiles leaves the call
+connected. Mic/camera controls stay in the page's control bar. Closing games
+resets the floating corner to bottom right and restores expanded tiles.
+This is an in-page floating panel; it does not create a separate browser
+picture-in-picture window. Layout changes,
 tile focus, game changes and rematches preserve the iframe, Agora client
 and video nodes. Focusing reveals the original tile with a one-time rail
 scroll; Escape restores its size and returns focus with `preventScroll`.
@@ -227,5 +233,8 @@ calls. Hosting, env matrix and restart procedure live in PartyBox
   call. No real-call quality, media, or billing behavior is asserted.
 - No Discord Activity implementation; the embed contract (URL + context
   message) is the documented future adapter boundary.
-- No deployment claims: this adapter frames a configured Game Night
-  origin and is validated on local/dev origins only.
+- Floating-call lifecycle checks use local development accounts, an actual
+  game WebSocket room, and synthetic video at 1280px and 390px widths.
+  Switching corners/layouts, collapsing/expanding and phone chat preserve
+  the same media host and game iframe. A physical camera/microphone call
+  still requires manual acceptance testing.

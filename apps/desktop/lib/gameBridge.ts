@@ -38,13 +38,14 @@ export function isValidPresentation(p: unknown): p is GamePresentation {
 // contextual hint (social->faces, immersive->compact, board/balanced stay
 // calm side-by-side). Layout changes only restyle the rail — the call,
 // its client, and every video node stay mounted.
-export type GameRailLayout = "faces" | "balanced" | "compact";
+export type GameRailLayout = "faces" | "balanced" | "compact" | "floating";
 export function resolveGameLayout(
-  override: "auto" | "faces" | "compact",
+  override: "auto" | "faces" | "compact" | "floating",
   presentation: GamePresentation,
 ): GameRailLayout {
   if (override === "faces") return "faces";
   if (override === "compact") return "compact";
+  if (override === "floating") return "floating";
   if (presentation === "social") return "faces";
   if (presentation === "immersive") return "compact";
   return "balanced";

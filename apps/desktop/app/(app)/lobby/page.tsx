@@ -9,6 +9,8 @@ import { PersonAvatar } from "@/components/PersonAvatar";
 import { Icon } from "@/components/Icons";
 import { ChatPanel } from "@/components/ChatPanel";
 import { GamePanel, type GameLayoutOverride } from "@/components/GamePanel";
+import { FloatingCallTools, type CallCorner } from "@/components/FloatingCallTools";
+import floatingStyles from "@/components/FloatingCallTools.module.css";
 import { mapCaptureToVoiceMic, resolveGameLayout, type GamePresentation, type VoiceMic } from "@/lib/gameBridge";
 import { CoverPicker } from "@/components/CoverPicker";
 import { InviteToSquad } from "@/components/InviteToSquad";
@@ -107,9 +109,11 @@ function LobbyInner() {
   const [gameOpen, setGameOpen] = useState(false);
   // Contextual video: the child's hint (auto), the user's override pin, and
   // the focused seat. The override persists across game changes until Auto;
-  // closing games resets all three (see the gameOpen effect below).
+  // Closing games resets the layout, focus and floating call controls.
   const [gamePresentation, setGamePresentation] = useState<GamePresentation>("balanced");
   const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
+  const [callCorner, setCallCorner] = useState<CallCorner>("bottom-right");
+  const [callCollapsed, setCallCollapsed] = useState(false);
   const [focusedMemberId, setFocusedMemberId] = useState<string | null>(null);
   // Stable subscriber: GamePanel reads it via ref, so auth never re-runs.
   const handlePresentation = useCallback((p: GamePresentation) => {
@@ -123,6 +127,8 @@ function LobbyInner() {
       setFocusedMemberId(null);
       setLayoutOverride("auto");
       setGamePresentation("balanced");
+      setCallCorner("bottom-right");
+      setCallCollapsed(false);
     }
   }, [gameOpen]);
 
@@ -815,7 +821,10 @@ function LobbyInner() {
             <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
           </section>
         )}
-        <section className={styles.seats} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={isPhone && chatVisible} aria-label="Squad members">
+        <section className={`${styles.seats} ${floatingStyles.shell}`} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={isPhone && chatVisible} aria-label="Squad members"
+          data-floating-call={gameOpen && effectiveLayout === "floating" || undefined}
+          data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}>
+          {gameOpen && effectiveLayout === "floating" && <FloatingCallTools corner={callCorner} collapsed={callCollapsed} onCornerChange={setCallCorner} onToggle={() => setCallCollapsed(value => !value)} />}
           {squad.members.map((member) => {
             const isMe = member.userId === myUserId;
             const remote = remotes.find(r => String(r.uid) === String(member.uid));

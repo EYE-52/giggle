@@ -28,6 +28,8 @@ import { AvatarArt } from "@/components/AvatarArt";
 import { Icon } from "@/components/Icons";
 import { ChatPanel, type ChatPanelMessage } from "@/components/ChatPanel";
 import { GamePanel, type GameLayoutOverride } from "@/components/GamePanel";
+import { FloatingCallTools, type CallCorner } from "@/components/FloatingCallTools";
+import floatingStyles from "@/components/FloatingCallTools.module.css";
 import { mapCaptureToVoiceMic, resolveGameLayout, type GamePresentation } from "@/lib/gameBridge";
 import { Button } from "@/components/Button";
 import { ParticipantVideoTile as VideoTile } from "@/components/ParticipantVideoTile";
@@ -190,6 +192,8 @@ function EncounterInner() {
   // rail only — video nodes and the Agora client are never touched.
   const [gamePresentation, setGamePresentation] = useState<GamePresentation>("balanced");
   const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
+  const [callCorner, setCallCorner] = useState<CallCorner>("bottom-right");
+  const [callCollapsed, setCallCollapsed] = useState(false);
   // Stable subscriber: GamePanel reads it via ref, so auth never re-runs.
   const handlePresentation = useCallback((p: GamePresentation) => {
     setGamePresentation(p);
@@ -199,6 +203,8 @@ function EncounterInner() {
     if (!gameOpen) {
       setLayoutOverride("auto");
       setGamePresentation("balanced");
+      setCallCorner("bottom-right");
+      setCallCollapsed(false);
     }
   }, [gameOpen]);
   const [chatAudience, setChatAudience] = useState<"everyone" | "squad">("everyone");
@@ -1411,6 +1417,7 @@ function EncounterInner() {
           data-games-layout={gameOpen && GAMES_ENABLED ? effectiveLayout : undefined}
           style={{
             display: "flex",
+            position: "relative",
             flex: 1,
             minHeight: 0,
             overflow: "hidden",
@@ -1429,6 +1436,10 @@ function EncounterInner() {
           {/* ── VIDEO STAGE ─────────────────────────────────────────────── */}
           <div
             data-testid="video-stage"
+            className={floatingStyles.shell}
+            hidden={isPhone && chatOpen}
+            data-floating-call={gameOpen && GAMES_ENABLED && effectiveLayout === "floating" || undefined}
+            data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}
             style={{
               flex: 1,
               display: "flex",
@@ -1439,6 +1450,7 @@ function EncounterInner() {
               overflow: "hidden",
             }}
           >
+            {gameOpen && GAMES_ENABLED && effectiveLayout === "floating" && <FloatingCallTools corner={callCorner} collapsed={callCollapsed} onCornerChange={setCallCorner} onToggle={() => setCallCollapsed(value => !value)} />}
             {recoveryMessages.length > 0 && (
               <div
                 data-testid="media-recovery-notice"

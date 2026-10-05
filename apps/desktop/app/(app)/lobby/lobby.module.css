@@ -31,7 +31,7 @@
 .notice { flex: none; padding: 6px 8px 6px 14px; border-radius: 12px; background: var(--overlay); display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; }
 
 /* ── seats ───────────────────────────────────────────────────────────────── */
-.body { flex: 1; min-height: 0; display: flex; gap: 12px; }
+.body { position: relative; flex: 1; min-height: 0; display: flex; gap: 12px; }
 .seats { --cols: 2; flex: 1; min-width: 0; min-height: 0; display: grid; gap: 10px; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
 .seats[data-count="1"] { --cols: 1; }
 .seats[data-count="5"], .seats[data-count="6"], .seats[data-count="7"], .seats[data-count="8"], .seats[data-count="9"] { --cols: 3; }
@@ -209,6 +209,7 @@
 .body[data-games][data-layout="faces"] .seat { min-height: 160px; }
 .body[data-games][data-layout="compact"] .seats { width: 168px; }
 .body[data-games][data-layout="compact"] .seat { min-height: 84px; }
+.body[data-games][data-layout="floating"] .seat { width: 100%; min-height: 118px; height: 118px; }
 /* Focused seat: order + size on the ORIGINAL tile only — same nodes, same
  * video, rail outer size unchanged so the game never shrinks or scrolls. */
 .body[data-games] .seats .seat[data-focused] { order: -1; }
@@ -227,6 +228,10 @@
   .body[data-games][data-layout="compact"] .seats { height: 84px; }
   .body[data-games][data-layout="compact"] .seat { width: 112px; min-height: 0; height: 100%; }
   .body[data-games] .seats .seat[data-focused] { width: 220px; }
+  .body[data-games][data-layout="floating"] .seat { width: 100%; min-height: 92px; height: 92px; }
+}
+@media (max-height: 480px) {
+  .body[data-games][data-layout="floating"] .seat { min-height: 84px; height: 84px; }
 }
 @media (max-width: 900px) and (min-width: 721px) {
   /* Narrow desktop: faces stays generous without starving the game. */

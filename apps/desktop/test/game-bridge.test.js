@@ -283,7 +283,7 @@ test("lobby adds games inside the page without disturbing the call", () => {
   assert.match(lobby, /<GamePanel squadId=\{squadId\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: micCapture, onEnableMic: \(\) => void toggleDevice\("audio"\) \}\} \/>/);
   assert.doesNotMatch(lobby, /router\.push\([^)]*[Gg]ame/);
   // The seats (media nodes) stay mounted: no conditional around them.
-  assert.match(lobby, /<section className=\{styles\.seats\}/);
+  assert.match(lobby, /<section className=\{`\$\{styles\.seats\} \$\{floatingStyles\.shell\}`\}/);
   assert.match(lobby, /data-games=\{gameOpen \|\| undefined\}/);
   // Contextual rail: auto maps the hint, pins win, close resets.
   assert.match(lobby, /data-layout=\{gameOpen \? effectiveLayout : undefined\}/);
