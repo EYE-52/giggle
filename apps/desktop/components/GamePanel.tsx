@@ -35,7 +35,7 @@ const READY_TIMEOUT_MS = 20_000;
 
 // Video layout override owned by the lobby: auto follows the child's
 // contextual hint, faces/compact pin one layout across game changes.
-export type GameLayoutOverride = "auto" | "faces" | "compact";
+export type GameLayoutOverride = "auto" | "faces" | "compact" | "floating";
 
 interface Props {
   squadId: string;
@@ -412,6 +412,7 @@ export function GamePanel({ squadId, onClose, onPresentation, layout = "auto", o
               <option value="auto">Auto</option>
               <option value="faces">Faces</option>
               <option value="compact">Compact</option>
+              <option value="floating">Floating</option>
             </select>
           </label>
         )}

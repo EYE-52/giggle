@@ -43,7 +43,7 @@
 }
 .close {
   flex: none;
-  min-height: 40px;
+  min-height: 44px;
   padding: 8px 14px;
   border: 1px solid var(--line, var(--border));
   border-radius: 12px;
@@ -68,7 +68,7 @@
 }
 .layoutLabel { line-height: 1; }
 .layoutSelect {
-  min-height: 40px;
+  min-height: 44px;
   max-width: 118px;
   padding: 6px 8px;
   border: 1px solid var(--line, var(--border));
@@ -116,14 +116,14 @@
   line-height: 1.5;
   color: var(--text-muted);
 }
-/* Authorization errors stay visible ABOVE the frame (which keeps its last
+/* Authorization errors stay visible ABOVE the frame and floating call (which keeps its last
  * pixels) with an accessible retry — never hidden behind the game. */
 .authError {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 2;
+  z-index: 8;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -138,7 +138,7 @@
   line-height: 1.4;
   color: var(--text);
 }
-/* Voice request prompt: bottom-anchored so it never overlaps the top auth
+/* Voice request prompt: above the floating call, bottom-anchored so it never overlaps the top auth
  * banner; same surface/tokens as the rest of the panel. The Enable button
  * is a real native button — the player's click on it is the user gesture
  * that invokes the page's existing mic toggle. Nothing here touches video. */
@@ -147,7 +147,7 @@
   left: 12px;
   right: 12px;
   bottom: 12px;
-  z-index: 2;
+  z-index: 8;
   display: flex;
   align-items: center;
   gap: 10px;
