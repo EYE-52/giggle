@@ -404,17 +404,17 @@ export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, lay
     <div className={styles.panel} data-testid="game-panel" data-status={status}>
       <div className={styles.head}>
         <div className={styles.title}>
-          <strong>Play together</strong>
+          <strong>Game night</strong>
           <span className={styles.sub}>
             {presence && presence.game
-              ? `Game in progress · ${presence.players} playing` +
+              ? `${presence.players} playing` +
                 (presence.watchers ? ` · ${presence.watchers} watching` : "")
-              : "Pick a game to play together"}
+              : "Pick something to play"}
           </span>
         </div>
         {onLayoutChange && (
           <label className={styles.layoutSwitch}>
-            <span className={styles.layoutLabel} aria-hidden="true">Video</span>
+            <svg className={styles.layoutLabel} aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="12" height="14" rx="3"/><path d="m15 9 6-3v12l-6-3" strokeLinejoin="round"/></svg>
             <select
               className={styles.layoutSelect}
               value={layout}
@@ -430,7 +430,7 @@ export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, lay
           </label>
         )}
         <button type="button" className={styles.close} onClick={onClose} aria-label="Close games">
-          Close
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
         </button>
       </div>
       {status === "unavailable" || (!embedUrl && status !== "loading") ? (
