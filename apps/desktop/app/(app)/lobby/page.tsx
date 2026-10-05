@@ -11,7 +11,9 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { GamePanel, type GameLayoutOverride } from "@/components/GamePanel";
 import { FloatingCallTools, type CallCorner } from "@/components/FloatingCallTools";
 import floatingStyles from "@/components/FloatingCallTools.module.css";
-import { mapCaptureToVoiceMic, resolveGameLayout, type GamePresentation, type VoiceMic } from "@/lib/gameBridge";
+import { CameraGameCaption, useCameraTiles } from "@/components/CameraGameStage";
+import cameraStyles from "@/components/CameraGameStage.module.css";
+import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, type GameCameraScene, type GamePresentation, type VoiceMic } from "@/lib/gameBridge";
 import { CoverPicker } from "@/components/CoverPicker";
 import { InviteToSquad } from "@/components/InviteToSquad";
 import { Modal } from "@/components/Modal";
@@ -111,6 +113,8 @@ function LobbyInner() {
   // the focused seat. The override persists across game changes until Auto;
   // Closing games resets the layout, focus and floating call controls.
   const [gamePresentation, setGamePresentation] = useState<GamePresentation>("balanced");
+  const [cameraScene, setCameraScene] = useState<GameCameraScene | null>(null);
+  const handleCameraScene = useCallback((scene: GameCameraScene | null) => setCameraScene(scene), []);
   const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
   const [callCorner, setCallCorner] = useState<CallCorner>("bottom-right");
   const [callCollapsed, setCallCollapsed] = useState(false);
@@ -121,12 +125,14 @@ function LobbyInner() {
   }, []);
   // Effective rail: explicit pins win; auto maps the hint (social→faces,
   // immersive→compact, board/balanced stay calm side-by-side).
-  const effectiveLayout = resolveGameLayout(layoutOverride, gamePresentation);
+  const effectiveLayout = resolveGameLayout(layoutOverride, gamePresentation, cameraScene);
+  const stageScene = gameOpen && effectiveLayout === "stage" ? cameraScene ?? CAMERA_GALLERY_SCENE : null;
   useEffect(() => {
     if (!gameOpen) {
       setFocusedMemberId(null);
       setLayoutOverride("auto");
       setGamePresentation("balanced");
+      setCameraScene(null);
       setCallCorner("bottom-right");
       setCallCollapsed(false);
     }
@@ -142,6 +148,7 @@ function LobbyInner() {
   const chatButtonRef = useRef<HTMLButtonElement>(null);
   // Video rail (games-open): scrolled rail-only to reveal a focused tile.
   const seatsRef = useRef<HTMLElement | null>(null);
+  const cameraTiles = useCameraTiles(seatsRef, squad?.members.map(member => member.userId) ?? [], stageScene?.featured ?? null, !!stageScene);
 
   const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
   const lobbyMediaGenerationRef = useRef(0);
@@ -818,20 +825,24 @@ function LobbyInner() {
       <div className={styles.body} data-games={gameOpen || undefined} data-layout={gameOpen ? effectiveLayout : undefined}>
         {gameOpen && (
           <section className={styles.stage} hidden={isPhone && chatVisible} aria-label="Squad games">
-            <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
+            <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
           </section>
         )}
-        <section className={`${styles.seats} ${floatingStyles.shell}`} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={isPhone && chatVisible} aria-label="Squad members"
+        <section className={`${styles.seats} ${floatingStyles.shell} ${cameraStyles.shell}`} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={isPhone && chatVisible} aria-label="Squad members"
+          data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={stageScene?.mode}
           data-floating-call={gameOpen && effectiveLayout === "floating" || undefined}
           data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}>
           {gameOpen && effectiveLayout === "floating" && <FloatingCallTools corner={callCorner} collapsed={callCollapsed} onCornerChange={setCallCorner} onToggle={() => setCallCollapsed(value => !value)} />}
+          {stageScene && <CameraGameCaption scene={stageScene} />}
           {squad.members.map((member) => {
             const isMe = member.userId === myUserId;
             const remote = remotes.find(r => String(r.uid) === String(member.uid));
             const offline = member.online === false && !isMe;
             const showVideo = isMe ? camOn && videoJoined : !!remote?.hasVideo;
             const focused = focusedMemberId === member.memberId;
-            return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-testid="lobby-person" data-offline={offline || undefined} data-video={showVideo} data-focused={focused || undefined}>
+            return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-testid="lobby-person" data-offline={offline || undefined} data-video={showVideo} data-focused={focused || undefined}
+              data-camera-featured={stageScene?.mode === "spotlight" && stageScene.featured === member.userId || undefined}
+              style={stageScene ? cameraTiles.get(member.userId) : undefined}>
               <div className={styles.face}><PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size="fill" /></div>
               {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
               <div className={styles.seatLabel}>

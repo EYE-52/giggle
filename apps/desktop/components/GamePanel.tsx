@@ -11,11 +11,13 @@ import {
   isFreshAuthAck,
   isGameChildMessage,
   isValidCount,
+  isValidCameraScene,
   isValidPresentation,
   isValidVoiceMic,
   parseGamesUrl,
   type GameParentMessage,
   type GamePresentation,
+  type GameCameraScene,
   type VoiceMic,
 } from "@/lib/gameBridge";
 import { useTheme } from "@/components/useTheme";
@@ -35,7 +37,7 @@ const READY_TIMEOUT_MS = 20_000;
 
 // Video layout override owned by the lobby: auto follows the child's
 // contextual hint, faces/compact pin one layout across game changes.
-export type GameLayoutOverride = "auto" | "faces" | "compact" | "floating";
+export type GameLayoutOverride = "auto" | "faces" | "compact" | "floating" | "stage";
 
 interface Props {
   squadId: string;
@@ -43,6 +45,7 @@ interface Props {
   // Stable presentation updates for the lobby rail (deduped; authed only).
   // Read via ref so subscribing never re-runs auth effects.
   onPresentation?: (p: GamePresentation) => void;
+  onCameraScene?: (scene: GameCameraScene | null) => void;
   layout?: GameLayoutOverride;
   onLayoutChange?: (l: GameLayoutOverride) => void;
   // Encounter calls share ONE game room for both squads: when set, tickets
@@ -59,7 +62,7 @@ interface Props {
 // Squad games inside the lobby (or encounter games inside the call): frames
 // Game Night and passes single-use tickets over postMessage v1. The iframe
 // gets NO camera/mic permission — media stays entirely in this parent page.
-export function GamePanel({ squadId, onClose, onPresentation, layout = "auto", onLayoutChange, encounter, voice }: Props) {
+export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, layout = "auto", onLayoutChange, encounter, voice }: Props) {
   const themeMode = useTheme();
   const [status, setStatus] = useState<"loading" | "live" | "unavailable" | "error">("loading");
   const [detail, setDetail] = useState<string | null>(null);
@@ -107,6 +110,9 @@ export function GamePanel({ squadId, onClose, onPresentation, layout = "auto", o
   // Last hint forwarded: identical snapshots (per-tick room echoes) never
   // re-notify the lobby.
   const presentationRef = useRef<GamePresentation>(DEFAULT_PRESENTATION);
+  const onCameraSceneRef = useRef(onCameraScene);
+  onCameraSceneRef.current = onCameraScene;
+  const cameraKeyRef = useRef("null");
 
   // Voice capability WITHOUT re-running auth: the message handler and the
   // Enable button read this ref, so the page's per-render voice object never
@@ -327,6 +333,12 @@ export function GamePanel({ squadId, onClose, onPresentation, layout = "auto", o
         // re-notify. The frame is never touched here — same iframe across
         // modes, game changes, and rematches.
         if (authedRef.current) {
+          const camera = isValidCameraScene(ev.data.camera) ? ev.data.camera : null;
+          const cameraKey = JSON.stringify(camera);
+          if (cameraKey !== cameraKeyRef.current) {
+            cameraKeyRef.current = cameraKey;
+            onCameraSceneRef.current?.(camera);
+          }
           const raw = ev.data.presentation ?? DEFAULT_PRESENTATION;
           const next = isValidPresentation(raw) ? raw : DEFAULT_PRESENTATION;
           if (next !== presentationRef.current) {
@@ -413,6 +425,7 @@ export function GamePanel({ squadId, onClose, onPresentation, layout = "auto", o
               <option value="faces">Faces</option>
               <option value="compact">Compact</option>
               <option value="floating">Floating</option>
+              <option value="stage">Game stage</option>
             </select>
           </label>
         )}

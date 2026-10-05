@@ -238,3 +238,12 @@ calls. Hosting, env matrix and restart procedure live in PartyBox
   Switching corners/layouts, collapsing/expanding and phone chat preserve
   the same media host and game iframe. A physical camera/microphone call
   still requires manual acceptance testing.
+
+
+## Camera games: the call is the playfield
+
+The optional v1 `state.camera` field is `{mode: "spotlight" | "gallery", featured: string | null, caption: string}`. Captions are public, capped at120 characters. A spotlight carries the verified Giggle user ID mapped by the trusted game server from a stable seat; gallery has `featured: null`. Malformed scenes reject the message. Origin, iframe-source and live authorization checks apply before any scene changes the parent.
+
+`GamePanel.onCameraScene` reports deduplicated scenes through a callback ref, without changing authorization effects or frame identity. Auto chooses Game stage for an active scene. Explicit Faces/Compact/Floating pins win; an explicit Game stage pin shows a gallery even for another game. Closing games clears the scene. The same original lobby articles and encounter video components retain their keys and media hosts. `arrangeCameraStage` returns only boxes: spotlight occupies over half the playfield, gallery uses the available viewport; phones put video above controls. Existing camera/microphone controls and the explicit voice-request flow remain authoritative. No media stream crosses postMessage, and the iframe has no camera or microphone permission.
+
+Pose Party rotates a performer; Show & Go shows everyone collecting an ordinary object; Charades spotlights the actor while the answer stays private. Their shared camera engine owns deadlines and ballots. Automated checks cover bounded scenes, verified identity vs duplicate names, private Charades answers, layout pins, phone/desktop geometry, fixed performance windows, duplicate/stale actions, scoring and complete matches. Browser QA uses a labeled synthetic SDK; physical two-device Agora video/audio acceptance must be tested separately.

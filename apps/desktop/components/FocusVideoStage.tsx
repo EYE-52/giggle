@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { arrangeFocusCall, CROP_LIMIT, MAX_WEIGHT, normalizeVideoRatio, videoCrop, type FocusPerson } from "@giggle/core";
 import styles from "./FocusVideoStage.module.css";
+import { arrangeCameraStage } from "@/lib/cameraStage";
+import type { GameCameraScene } from "@/lib/gameBridge";
 
 /** What a tile needs to offer "bigger / smaller / keep this size" for its person. */
 export type TileSizeControls = {
@@ -28,7 +30,7 @@ export type TileSizeControls = {
  * Every tile is a sibling in one list keyed by person, so layout changes only move
  * existing media hosts; they never remount video or restart the call.
  */
-export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderParticipant, videoOn = {}, selfId }: {
+export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderParticipant, videoOn = {}, selfId, cameraScene }: {
   mine: string[];
   theirs: string[];
   mineLabel: string;
@@ -38,6 +40,7 @@ export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderPa
   videoOn?: Record<string, boolean>;
   /** The viewer: their own tile stays smaller than the people they are talking to. */
   selfId?: string;
+  cameraScene?: GameCameraScene | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   // Each camera's shape, read from its <video> as frames arrive (and when a phone rotates).
@@ -127,8 +130,10 @@ export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderPa
   const toPerson = useCallback((id: string): FocusPerson => ({ id, weight: weights[id] ?? 1, pinned: pins[id] ?? null, aspect: aspectOf(id), self: id === selfId }), [weights, pins, aspectOf, selfId]);
   const mineKey = mine.join("|"), theirsKey = theirs.join("|");
   const layout = useMemo(
-    () => arrangeFocusCall(mineKey ? mineKey.split("|").map(toPerson) : [], theirsKey ? theirsKey.split("|").map(toPerson) : [], bounds.width, bounds.height),
-    [mineKey, theirsKey, toPerson, bounds.width, bounds.height],
+    () => cameraScene
+      ? { tiles: arrangeCameraStage([...mine, ...theirs], bounds.width, bounds.height, cameraScene.mode === "spotlight" ? cameraScene.featured : null), stacked: false }
+      : arrangeFocusCall(mineKey ? mineKey.split("|").map(toPerson) : [], theirsKey ? theirsKey.split("|").map(toPerson) : [], bounds.width, bounds.height),
+    [mineKey, theirsKey, toPerson, bounds.width, bounds.height, cameraScene],
   );
   const tileById = useMemo(() => new Map(layout.tiles.map(tile => [tile.id, tile])), [layout]);
 
@@ -168,6 +173,7 @@ export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderPa
             className={`${styles.cell} vcell`}
             data-participant-id={id}
             data-side={side}
+            data-camera-featured={cameraScene?.mode === "spotlight" && cameraScene.featured === id || undefined}
             data-weight={size.weight}
             data-pinned={size.pinned || undefined}
             // edge marks let the floating header and controls push labels clear

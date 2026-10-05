@@ -10,6 +10,7 @@
   /* Keep tile depth inside its allocated frame, clear of adjacent feeds. */
   contain: paint;
 }
+.cell[data-camera-featured] { outline: 3px solid var(--accent); outline-offset: -3px; border-radius: 16px; }
 .stage[data-animating] .cell {
   transition: left .28s cubic-bezier(.2, .8, .2, 1), top .28s cubic-bezier(.2, .8, .2, 1), width .28s cubic-bezier(.2, .8, .2, 1), height .28s cubic-bezier(.2, .8, .2, 1);
 }
