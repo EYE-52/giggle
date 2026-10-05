@@ -30,7 +30,9 @@ import { ChatPanel, type ChatPanelMessage } from "@/components/ChatPanel";
 import { GamePanel, type GameLayoutOverride } from "@/components/GamePanel";
 import { FloatingCallTools, type CallCorner } from "@/components/FloatingCallTools";
 import floatingStyles from "@/components/FloatingCallTools.module.css";
-import { mapCaptureToVoiceMic, resolveGameLayout, type GamePresentation } from "@/lib/gameBridge";
+import { CameraGameCaption } from "@/components/CameraGameStage";
+import cameraStyles from "@/components/CameraGameStage.module.css";
+import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, type GameCameraScene, type GamePresentation } from "@/lib/gameBridge";
 import { Button } from "@/components/Button";
 import { ParticipantVideoTile as VideoTile } from "@/components/ParticipantVideoTile";
 import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoStage";
@@ -191,6 +193,8 @@ function EncounterInner() {
   // resets both (see the gameOpen effect below). Layout changes restyle the
   // rail only — video nodes and the Agora client are never touched.
   const [gamePresentation, setGamePresentation] = useState<GamePresentation>("balanced");
+  const [cameraScene, setCameraScene] = useState<GameCameraScene | null>(null);
+  const handleCameraScene = useCallback((scene: GameCameraScene | null) => setCameraScene(scene), []);
   const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
   const [callCorner, setCallCorner] = useState<CallCorner>("bottom-right");
   const [callCollapsed, setCallCollapsed] = useState(false);
@@ -198,11 +202,13 @@ function EncounterInner() {
   const handlePresentation = useCallback((p: GamePresentation) => {
     setGamePresentation(p);
   }, []);
-  const effectiveLayout = resolveGameLayout(layoutOverride, gamePresentation);
+  const effectiveLayout = resolveGameLayout(layoutOverride, gamePresentation, cameraScene);
+  const stageScene = gameOpen && GAMES_ENABLED && effectiveLayout === "stage" ? cameraScene ?? CAMERA_GALLERY_SCENE : null;
   useEffect(() => {
     if (!gameOpen) {
       setLayoutOverride("auto");
       setGamePresentation("balanced");
+      setCameraScene(null);
       setCallCorner("bottom-right");
       setCallCollapsed(false);
     }
@@ -1059,8 +1065,8 @@ function EncounterInner() {
         avatarValue={person.isLocal ? myAvatar : person.avatar}
         isSpeaking={isSpeakingFor(person.isLocal, person.uid)}
         statusText={statusTextFor(person.isLocal, person.uid)}
-        size={size}
-        fit={size.fit}
+        size={stageScene ? undefined : size}
+        fit={stageScene ? "fit" : size.fit}
         backdrop
         reactions={floatingReactions.filter((reaction) => reaction.senderId === person.id)}
       />
@@ -1076,6 +1082,7 @@ function EncounterInner() {
       mineLabel={mySquad?.name ? `Your squad · ${mySquad.name}` : "Your squad"}
       theirsLabel={oppSquad?.name ? `Their squad · ${oppSquad.name}` : "Their squad"}
       renderParticipant={renderParticipant}
+      cameraScene={stageScene}
     />;
   }
 
@@ -1429,14 +1436,15 @@ function EncounterInner() {
               layout, game, and close changes; on a phone the game hides
               (never unmounts) while chat takes the screen. */}
           {gameOpen && GAMES_ENABLED && (
-            <section data-testid="encounter-game-stage" className="gg-encounter-game" hidden={isPhone && chatOpen} aria-label="Encounter games">
-              <GamePanel squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
+            <section data-testid="encounter-game-stage" className={`gg-encounter-game ${cameraStyles.companion}`} hidden={isPhone && chatOpen} aria-label="Encounter games">
+              <GamePanel squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
             </section>
           )}
           {/* ── VIDEO STAGE ─────────────────────────────────────────────── */}
           <div
             data-testid="video-stage"
-            className={floatingStyles.shell}
+            className={`${floatingStyles.shell} ${cameraStyles.shell}`}
+            data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={stageScene?.mode}
             hidden={isPhone && chatOpen}
             data-floating-call={gameOpen && GAMES_ENABLED && effectiveLayout === "floating" || undefined}
             data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}
@@ -1451,6 +1459,7 @@ function EncounterInner() {
             }}
           >
             {gameOpen && GAMES_ENABLED && effectiveLayout === "floating" && <FloatingCallTools corner={callCorner} collapsed={callCollapsed} onCornerChange={setCallCorner} onToggle={() => setCallCollapsed(value => !value)} />}
+            {stageScene && <CameraGameCaption scene={stageScene} />}
             {recoveryMessages.length > 0 && (
               <div
                 data-testid="media-recovery-notice"

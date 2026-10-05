@@ -86,7 +86,7 @@ test("encounter games mount beside the video stage, which stays mounted", () => 
   assert.match(encounter, /data-testid="encounter-game-stage"/);
   assert.match(
     encounter,
-    /<GamePanel squadId=\{squadId\} encounter=\{\{ encounterId: encId \}\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: mapCaptureToVoiceMic\(captureState\.audio\), onEnableMic: toggleMic \}\} \/>/
+    /<GamePanel squadId=\{squadId\} encounter=\{\{ encounterId: encId \}\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: mapCaptureToVoiceMic\(captureState\.audio\), onEnableMic: toggleMic \}\} \/>/
   );
   // On a phone the game hides (nodes stay mounted) while chat takes over.
   assert.match(encounter, /hidden=\{isPhone && chatOpen\}/);
@@ -98,7 +98,7 @@ test("encounter games mount beside the video stage, which stays mounted", () => 
     encounter.indexOf('data-testid="video-stage"')
   );
   assert.doesNotMatch(gameBlock, /joinVideo|retryVideo|leaveVideo|router\.push|router\.replace/);
-  // The stage render path takes no games/layout input: same ids, same keys,
+  // The stage accepts camera geometry: same ids, same keys,
   // same tile components across open/select/layout/close.
   const stageBlock = encounter.slice(
     encounter.indexOf("function renderAdaptiveStage"),
@@ -111,7 +111,7 @@ test("encounter games mount beside the video stage, which stays mounted", () => 
   assert.match(stageSource(), /key=\{id\}/);
   assert.match(stageSource(), /they never remount video or restart the call/);
   // Layout resolution is the shared tested helper; close resets the pins.
-  assert.match(encounter, /const effectiveLayout = resolveGameLayout\(layoutOverride, gamePresentation\);/);
+  assert.match(encounter, /const effectiveLayout = resolveGameLayout\(layoutOverride, gamePresentation, cameraScene\);/);
   assert.match(encounter, /data-games-layout=\{gameOpen && GAMES_ENABLED \? effectiveLayout : undefined\}/);
   assert.match(encounter, /if \(!gameOpen\) \{\s*setLayoutOverride\("auto"\);\s*setGamePresentation\("balanced"\);/);
 });

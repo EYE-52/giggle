@@ -38,14 +38,26 @@ export function isValidPresentation(p: unknown): p is GamePresentation {
 // contextual hint (social->faces, immersive->compact, board/balanced stay
 // calm side-by-side). Layout changes only restyle the rail — the call,
 // its client, and every video node stay mounted.
-export type GameRailLayout = "faces" | "balanced" | "compact" | "floating";
+export type GameCameraScene = { mode: "spotlight" | "gallery"; featured: string | null; caption: string };
+export const CAMERA_GALLERY_SCENE: GameCameraScene = { mode: "gallery", featured: null, caption: "" };
+export function isValidCameraScene(value: unknown): value is GameCameraScene {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const scene = value as Record<string, unknown>;
+  if (typeof scene.caption !== "string" || scene.caption.length > 120) return false;
+  if (scene.mode === "gallery") return scene.featured === null;
+  return scene.mode === "spotlight" && typeof scene.featured === "string" && scene.featured.length > 0 && scene.featured.length <= 128;
+}
+
+export type GameRailLayout = "faces" | "balanced" | "compact" | "floating" | "stage";
 export function resolveGameLayout(
-  override: "auto" | "faces" | "compact" | "floating",
+  override: "auto" | "faces" | "compact" | "floating" | "stage",
   presentation: GamePresentation,
+  camera?: GameCameraScene | null,
 ): GameRailLayout {
   if (override === "faces") return "faces";
   if (override === "compact") return "compact";
   if (override === "floating") return "floating";
+  if (override === "stage" || camera) return "stage";
   if (presentation === "social") return "faces";
   if (presentation === "immersive") return "compact";
   return "balanced";
@@ -55,7 +67,7 @@ export type GameChildMessage =
   | { v: 1; t: "ready" }
   | { v: 1; t: "auth-needed" }
   | { v: 1; t: "authed"; n?: string }
-  | { v: 1; t: "state"; game?: string | null; players?: number; watchers?: number; presentation?: GamePresentation }
+  | { v: 1; t: "state"; game?: string | null; players?: number; watchers?: number; presentation?: GamePresentation; camera?: GameCameraScene | null }
   | { v: 1; t: "voice-request"; id: string };
 
 export type GameParentMessage =
@@ -133,6 +145,7 @@ export function isGameChildMessage(data: unknown): data is GameChildMessage {
     // the panel; a present-but-unknown value rejects the snapshot outright
     // (like out-of-shape counts) so spoofed layouts never apply.
     if (msg.presentation !== undefined && !isValidPresentation(msg.presentation)) return false;
+    if (msg.camera !== undefined && msg.camera !== null && !isValidCameraScene(msg.camera)) return false;
     return true;
   }
   return false;

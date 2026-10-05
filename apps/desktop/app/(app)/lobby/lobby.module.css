@@ -210,6 +210,9 @@
 .body[data-games][data-layout="compact"] .seats { width: 168px; }
 .body[data-games][data-layout="compact"] .seat { min-height: 84px; }
 .body[data-games][data-layout="floating"] .seat { width: 100%; min-height: 118px; height: 118px; }
+.body[data-games][data-layout="stage"] .stage { flex: none; width: min(40%, 380px); }
+.body[data-games][data-layout="stage"] .video :global(video) { object-fit: contain !important; }
+.body[data-games][data-layout="stage"] .focusBtn { display: none; }
 /* Focused seat: order + size on the ORIGINAL tile only — same nodes, same
  * video, rail outer size unchanged so the game never shrinks or scrolls. */
 .body[data-games] .seats .seat[data-focused] { order: -1; }
@@ -229,6 +232,7 @@
   .body[data-games][data-layout="compact"] .seat { width: 112px; min-height: 0; height: 100%; }
   .body[data-games] .seats .seat[data-focused] { width: 220px; }
   .body[data-games][data-layout="floating"] .seat { width: 100%; min-height: 92px; height: 92px; }
+  .body[data-games][data-layout="stage"] .stage { order: 2; width: 100%; height: 56%; flex: none; }
 }
 @media (max-height: 480px) {
   .body[data-games][data-layout="floating"] .seat { min-height: 84px; height: 84px; }

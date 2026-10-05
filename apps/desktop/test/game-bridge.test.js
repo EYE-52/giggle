@@ -235,7 +235,7 @@ test("game panel renews on a stable channel and keeps errors visible", () => {
   assert.match(panel, /const onPresentationRef = useRef\(onPresentation\);/);
   assert.match(panel, /onPresentationRef\.current = onPresentation;/);
   assert.match(panel, /const presentationRef = useRef<GamePresentation>\(DEFAULT_PRESENTATION\);/);
-  assert.match(panel, /if \(authedRef\.current\) \{\s*const raw = ev\.data\.presentation \?\? DEFAULT_PRESENTATION;/);
+  assert.match(panel, /if \(authedRef\.current\) \{[\s\S]*?const raw = ev\.data\.presentation \?\? DEFAULT_PRESENTATION;/);
   assert.match(panel, /isValidPresentation\(raw\) \? raw : DEFAULT_PRESENTATION/);
   assert.match(panel, /if \(next !== presentationRef\.current\) \{\s*presentationRef\.current = next;\s*onPresentationRef\.current\?\.\(next\);/);
   // Layout override switcher in the panel header (no extra row).
@@ -270,7 +270,7 @@ test("game panel fallback and error banner stay bounded to the panel", () => {
   // never the full lobby (which would cover call controls).
   assert.match(css, /\.panel \{\s*position: relative;/);
   assert.match(css, /\.authError \{/);
-  assert.match(css, /\.authError \{[^}]*position: absolute;[^}]*z-index: 2;/s);
+  assert.match(css, /\.authError \{[^}]*position: absolute;[^}]*z-index: 8;/s);
 });
 
 test("lobby adds games inside the page without disturbing the call", () => {
@@ -280,16 +280,16 @@ test("lobby adds games inside the page without disturbing the call", () => {
   // Strong entry gated on the API switch; games open in-page, not away.
   assert.match(lobby, /useGamesEnabled\(\) === true/);
   assert.match(lobby, /Play together/);
-  assert.match(lobby, /<GamePanel squadId=\{squadId\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: micCapture, onEnableMic: \(\) => void toggleDevice\("audio"\) \}\} \/>/);
+  assert.match(lobby, /<GamePanel squadId=\{squadId\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: micCapture, onEnableMic: \(\) => void toggleDevice\("audio"\) \}\} \/>/);
   assert.doesNotMatch(lobby, /router\.push\([^)]*[Gg]ame/);
   // The seats (media nodes) stay mounted: no conditional around them.
-  assert.match(lobby, /<section className=\{`\$\{styles\.seats\} \$\{floatingStyles\.shell\}`\}/);
+  assert.match(lobby, /<section className=\{`\$\{styles\.seats\} \$\{floatingStyles\.shell\} \$\{cameraStyles\.shell\}`\}/);
   assert.match(lobby, /data-games=\{gameOpen \|\| undefined\}/);
   // Contextual rail: auto maps the hint, pins win, close resets.
   assert.match(lobby, /data-layout=\{gameOpen \? effectiveLayout : undefined\}/);
-  assert.match(lobby, /resolveGameLayout\(layoutOverride, gamePresentation\)/);
-  assert.match(lobby, /resolveGameLayout\(layoutOverride, gamePresentation\)/);
-  assert.match(lobby, /resolveGameLayout\(layoutOverride, gamePresentation\)/);
+  assert.match(lobby, /resolveGameLayout\(layoutOverride, gamePresentation, cameraScene\)/);
+  assert.match(lobby, /resolveGameLayout\(layoutOverride, gamePresentation, cameraScene\)/);
+  assert.match(lobby, /resolveGameLayout\(layoutOverride, gamePresentation, cameraScene\)/);
   assert.match(lobby, /if \(!gameOpen\) \{\s*setFocusedMemberId\(null\);\s*setLayoutOverride\("auto"\);/);
   // Focus/pin: explicit per-seat button (own + friends), original tile grows
   // via data-focused; stale pins clear on leave/offline/chat/ESC — no call
