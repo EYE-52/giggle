@@ -10,6 +10,7 @@ import { reconcileMyAvatar } from "@/lib/avatarSync";
 import { AgeGate } from "@/components/AgeGate";
 import { useDiscoveryEnabled } from "@/lib/discovery";
 import { IdentityOnlyAccount } from "@/components/IdentityOnlyAccount";
+import { SquadCallLifetime } from "@/lib/squadCall";
 
 const CALLING_ROUTES = ["/lobby", "/encounter", "/matchmaking", "/match"];
 const DISCOVERY_ROUTES = ["/discover", "/matchmaking", "/match"];
@@ -164,6 +165,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
+      <SquadCallLifetime />
     <div
       className={pathname === "/encounter" ? "gg-call-theme gg-app-root" : "gg-app-root"}
       style={{ height: "100dvh", display: "flex", flexDirection: "column", overflow: "hidden" }}

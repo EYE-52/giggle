@@ -7,6 +7,9 @@ This monorepo is the only canonical Giggle source:
 - API and realtime services: `server/`
 - shared client code: `packages/`
 
+New contributors: read [the developer handover](docs/HANDOVER.md) and run
+`scripts/setup-dev.sh --check` before preparing a local environment.
+
 Giggle is an adults-only (18+) service. Production currently uses a temporary date-of-birth declaration while Yoti is being set up. A 13–17 stranger-discovery mode is not implemented, and teen/adult discovery must not be mixed.
 
 ## Production deployment

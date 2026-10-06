@@ -2,8 +2,9 @@
 
 Squads can play Game Night together **inside** the existing lobby page,
 beside the same call, friends, and invitations. This is a small embed
-adapter — not a replacement auth/call framework. The lobby keeps owning
-the Agora client; games add no video, auth, or billing of their own.
+adapter — not a replacement auth/call framework. The shared squad session
+owns the Agora client across lobby, matchmaking, match and encounter pages;
+games add no video, auth, or billing of their own.
 
 ## How it works
 

@@ -13,7 +13,8 @@ export function captureErrorKind(error: unknown): CaptureDeviceState {
   const name = error instanceof DOMException
     ? error.name
     : (error as { name?: string } | null)?.name;
-  return name === "NotAllowedError" || name === "SecurityError"
+  const code = (error as { code?: string } | null)?.code;
+  return name === "NotAllowedError" || name === "SecurityError" || code === "PERMISSION_DENIED"
     ? "denied"
     : "unavailable";
 }
@@ -51,11 +52,16 @@ const loadAgoraSdk = (): Promise<any> => {
   return stand ? Promise.resolve(stand) : import("agora-rtc-sdk-ng");
 };
 
+/** Warm the module only. Devices are still acquired solely on an explicit request. */
+export async function preloadVideoSdk(): Promise<void> { await loadAgoraSdk(); }
+
 export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   let client: any = null;
   let sdk: any = null;
   let generation = 0;
   let joining = false;
+  let moving = false;
+  let channelEpoch = 0;
   let localVideoTrack: any = null;
   let localAudioTrack: any = null;
   let localUid: string | number = 0;
@@ -65,6 +71,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   const volumeListeners = new Set<(levels: VolumeLevel[]) => void>();
   const connListeners = new Set<(state: ConnectionState) => void>();
   const captureListeners = new Set<(state: CaptureState) => void>();
+  const tokenListeners = new Set<() => void>();
+  const publishedTracks = new Set<any>();
   const remoteUsers = new Map<string, any>();
   const remoteEpochs = new Map<string, number>();
   const remoteState = new Map<string, RemoteParticipant>();
@@ -111,6 +119,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     remoteEpochs.clear();
     remoteState.clear();
     mutedRemoteUids.clear();
+    publishedTracks.clear();
     emit();
     setCapture({ audio: "off", video: "off" });
   }
@@ -118,7 +127,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   async function setDeviceEnabled(kind: "audio" | "video", on: boolean) {
     const attempt = generation;
     const joinedClient = client, AgoraRTC = sdk;
-    if (!joinedClient || joining) throw new Error("Video is not connected yet.");
+    if (!joinedClient || joining || moving) throw new Error("Video is not connected yet.");
     const label = kind === "audio" ? "Microphone" : "Camera";
     let track = kind === "audio" ? localAudioTrack : localVideoTrack;
     if (!track && on) {
@@ -130,6 +139,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         else localVideoTrack = track;
         await joinedClient.publish([track]);
         if (attempt !== generation) throw new Error("Call cancelled.");
+        publishedTracks.add(track);
       } catch (error) {
         closeTrack(track);
         if (attempt === generation) {
@@ -141,6 +151,12 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       }
     } else if (track) {
       await setTrackEnabled(track, on, label, kind === "video");
+      if (attempt !== generation) throw new Error("Call cancelled.");
+      if (on && !publishedTracks.has(track)) {
+        await joinedClient.publish([track]);
+        if (attempt !== generation) throw new Error("Call cancelled.");
+        publishedTracks.add(track);
+      }
     }
     if (attempt !== generation) throw new Error("Call cancelled.");
     if (kind === "video") localPlayback = null;
@@ -168,6 +184,45 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       captureListeners.add(cb);
       cb({ ...capture });
       return () => captureListeners.delete(cb);
+    },
+    onTokenExpiring(cb) {
+      tokenListeners.add(cb);
+      return () => tokenListeners.delete(cb);
+    },
+    async renewToken(token) {
+      if (!client || joining || moving) throw new Error("Call is changing rooms.");
+      await client.renewToken(token.rtcToken);
+    },
+    async moveToChannel(token) {
+      if (!client || joining || moving) throw new Error("Video is not connected yet.");
+      moving = true;
+      const attempt = generation, movingClient = client;
+      channelEpoch += 1;
+      const assertCurrent = () => {
+        if (attempt !== generation || client !== movingClient) throw new Error("Call cancelled.");
+      };
+      try {
+        // Stop listening to the old room before joining the next one. Capture
+        // and its on/off choices stay owned by this client throughout the move.
+        for (const user of remoteUsers.values()) { try { user.audioTrack?.stop(); } catch {} }
+        await movingClient.leave();
+        assertCurrent();
+        remoteUsers.clear(); remoteEpochs.clear(); remoteState.clear();
+        mutedRemoteUids.clear(); remotePlayback.clear(); publishedTracks.clear();
+        emit();
+        localUid = token.uid;
+        await movingClient.join(token.appId, token.channelName, token.rtcToken, token.uid);
+        assertCurrent();
+        const tracks = [capture.audio === "active" ? localAudioTrack : null, capture.video === "active" ? localVideoTrack : null].filter(Boolean);
+        if (tracks.length) await movingClient.publish(tracks);
+        assertCurrent();
+        tracks.forEach(track => publishedTracks.add(track));
+      } catch (error) {
+        try { await movingClient.leave(); } catch {}
+        throw error;
+      } finally {
+        if (attempt === generation) moving = false;
+      }
     },
     async join(token: AgoraToken, opts = { audio: true, video: true }) {
       if (joining || client) throw new Error("This client is already joining or in a call.");
@@ -208,9 +263,9 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         client.on("user-published", async (user: any, mediaType: "video" | "audio") => {
           if (joinedGeneration !== generation) return;
           // A UID can rejoin while its previous subscription is still resolving.
-          const key = String(user.uid), epoch = remoteEpochs.get(key) ?? 0;
+          const key = String(user.uid), epoch = remoteEpochs.get(key) ?? 0, room = channelEpoch;
           try { await joinedClient.subscribe(user, mediaType); } catch { return; }
-          if (joinedGeneration !== generation || epoch !== (remoteEpochs.get(key) ?? 0)) return;
+          if (joinedGeneration !== generation || room !== channelEpoch || epoch !== (remoteEpochs.get(key) ?? 0)) return;
           if (mediaType === "video" ? user.hasVideo === false : user.hasAudio === false) return;
           remoteUsers.set(String(user.uid), user);
           const previous = remoteState.get(String(user.uid));
@@ -246,11 +301,17 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         });
         client.on("connection-state-change", (current: string) => {
           if (joinedGeneration !== generation) return;
+          if (moving && current === "DISCONNECTED") return;
           const mapped = mapConnState(String(current));
           if (mapped) connListeners.forEach((cb) => {
             try { cb(mapped); } catch {}
           });
         });
+        for (const event of ["token-privilege-will-expire", "token-privilege-did-expire"]) {
+          client.on(event, () => {
+            if (joinedGeneration === generation) tokenListeners.forEach(cb => { try { cb(); } catch {} });
+          });
+        }
         try {
           client.enableAudioVolumeIndicator?.();
           client.on("volume-indicator", (volumes: { uid: string | number; level: number }[]) => {
@@ -265,16 +326,43 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           });
         } catch {}
 
+        // A joint acquisition asks once and overlaps device startup with the
+        // channel handshake. Late permission results remain cancellation-safe.
+        const combined = opts.audio && opts.video && AgoraRTC.createMicrophoneAndCameraTracks
+          ? AgoraRTC.createMicrophoneAndCameraTracks().then((tracks: any[]) => {
+              [ownedAudio, ownedVideo] = tracks;
+              if (joinedGeneration !== generation) { closeTrack(ownedAudio); closeTrack(ownedVideo); }
+              return null;
+            }).catch((error: unknown) => error)
+          : null;
         await joinedClient.join(token.appId, token.channelName, token.rtcToken, token.uid);
         assertCurrent();
 
-        if (opts.audio) {
+        if (combined) {
+          const captureError = await combined;
+          assertCurrent();
+          try {
+            if (captureError) throw captureError;
+            localAudioTrack = ownedAudio; localVideoTrack = ownedVideo;
+            await joinedClient.publish([ownedAudio, ownedVideo]);
+            assertCurrent();
+            publishedTracks.add(ownedAudio); publishedTracks.add(ownedVideo);
+            setCapture({ audio: "active", video: "active" });
+          } catch (error) {
+            closeTrack(ownedAudio); closeTrack(ownedVideo);
+            assertCurrent();
+            localAudioTrack = null; localVideoTrack = null;
+            setCapture({ audio: captureErrorKind(error), video: captureErrorKind(error) });
+          }
+        }
+        if (opts.audio && !combined) {
           try {
             ownedAudio = await AgoraRTC.createMicrophoneAudioTrack();
             assertCurrent();
             localAudioTrack = ownedAudio;
             await joinedClient.publish([ownedAudio]);
             assertCurrent();
+            publishedTracks.add(ownedAudio);
             setCapture({ audio: "active" });
           } catch (error) {
             closeTrack(ownedAudio);
@@ -283,13 +371,14 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
             setCapture({ audio: captureErrorKind(error) });
           }
         }
-        if (opts.video) {
+        if (opts.video && !combined) {
           try {
             ownedVideo = await AgoraRTC.createCameraVideoTrack();
             assertCurrent();
             localVideoTrack = ownedVideo;
             await joinedClient.publish([ownedVideo]);
             assertCurrent();
+            publishedTracks.add(ownedVideo);
             setCapture({ video: "active" });
           } catch (error) {
             closeTrack(ownedVideo);
@@ -320,6 +409,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
       const audio = localAudioTrack, video = localVideoTrack;
       client = null;
       joining = false;
+      moving = false;
+      channelEpoch += 1;
       // Clear synchronously: a later leave completion cannot clear a new call.
       resetState();
       closeTrack(video);

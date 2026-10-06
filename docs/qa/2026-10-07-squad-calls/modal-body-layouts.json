@@ -1,0 +1,57 @@
+[
+  {
+    "bodyScroll": 392,
+    "bodyWide": false,
+    "close": {
+      "h": 44.30610275268555,
+      "w": 44.306121826171875,
+      "x": 284.5391540527344,
+      "y": 38.45615768432617
+    },
+    "skin": "scrap"
+  },
+  {
+    "bodyScroll": 381,
+    "bodyWide": false,
+    "close": {
+      "h": 44,
+      "w": 44,
+      "x": 287,
+      "y": 31.048967361450195
+    },
+    "skin": "soft"
+  },
+  {
+    "bodyScroll": 371,
+    "bodyWide": false,
+    "close": {
+      "h": 44,
+      "w": 44,
+      "x": 285,
+      "y": 33.116790771484375
+    },
+    "skin": "play"
+  },
+  {
+    "bodyScroll": 400,
+    "bodyWide": false,
+    "close": {
+      "h": 44,
+      "w": 44,
+      "x": 284,
+      "y": 34.02941131591797
+    },
+    "skin": "paper"
+  },
+  {
+    "bodyScroll": 0,
+    "bodyWide": false,
+    "close": {
+      "h": 44,
+      "w": 44,
+      "x": 284,
+      "y": 36.07716369628906
+    },
+    "skin": "clay"
+  }
+]

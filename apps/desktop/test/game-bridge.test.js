@@ -300,10 +300,10 @@ test("lobby adds games inside the page without disturbing the call", () => {
   assert.match(lobby, /aria-pressed=\{focused\}/);
   assert.match(lobby, /e\.key !== "Escape"\) return;/);
   assert.doesNotMatch(lobby, /vcRef\.current = createVideoClient\(\);\s*\/\/ focus/);
-  // The lobby still owns the Agora client with squadId/unmount cleanup.
-  assert.match(lobby, /vcRef\.current\?\.leave\(\)/);
+  // Pages observe the squad-owned call; changing page never closes capture.
+  assert.match(lobby, /useSquadCall\(squadId\)/);
   assert.match(lobby, /}, \[squadId\]\);/);
-  assert.match(lobby, /api\.setLobbyVideo\(squadId, false\)/);
+  assert.match(lobby, /await squadCall\.stop\(\)/);
   // Stage + persistent rail layout, desktop and phone.
   assert.match(css, /\.stage \{ flex: 1;/);
   assert.match(css, /\.body\[data-games\] \.seats/);

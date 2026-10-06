@@ -3,7 +3,8 @@ import { describeVideoError } from "@/lib/videoError";
 import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
 import styles from "./lobby.module.css";
-import type { RemoteParticipant } from "@giggle/agora";
+import type { VideoClient } from "@giggle/agora";
+import { squadCall, useSquadCall } from "@/lib/squadCall";
 import { useRouter, useSearchParams } from "next/navigation";
 import { PersonAvatar } from "@/components/PersonAvatar";
 import { Icon } from "@/components/Icons";
@@ -13,7 +14,7 @@ import { FloatingCallTools, type CallCorner } from "@/components/FloatingCallToo
 import floatingStyles from "@/components/FloatingCallTools.module.css";
 import { CameraGameCaption, useCameraTiles } from "@/components/CameraGameStage";
 import cameraStyles from "@/components/CameraGameStage.module.css";
-import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, type GameCameraScene, type GamePresentation, type VoiceMic } from "@/lib/gameBridge";
+import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, type GameCameraScene, type GamePresentation } from "@/lib/gameBridge";
 import { CoverPicker } from "@/components/CoverPicker";
 import { InviteToSquad } from "@/components/InviteToSquad";
 import { Modal } from "@/components/Modal";
@@ -21,7 +22,6 @@ import { Button } from "@/components/Button";
 import { api, connectSocket, SOCKET_EVENTS, session, subscribeChat, joinChat } from "@giggle/core";
 import { coverKind, coverBackground } from "@/components/covers";
 import type { SquadState, SquadMemberState, JoinRequestUser } from "@giggle/core";
-import { createVideoClient } from "@giggle/agora";
 import { useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
@@ -44,16 +44,14 @@ function LobbyInner() {
   const params = useSearchParams();
   const squadId = params.get("squad") ?? "";
 
-  const [remotes, setRemotes] = useState<RemoteParticipant[]>([]);
+  const media = useSquadCall(squadId);
+  const remotes = media.remotes;
   const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
-  const mediaUnsubRef = useRef<(() => void) | null>(null);
   const [squad, setSquad] = useState<SquadState | null>(null);
   const [loading, setLoading] = useState(true);
-  const [micOn, setMicOn] = useState(false);
-  // Actual mic capture truth for game voice prompts (denied/unavailable stay
-  // honest instead of collapsing to off).
-  const [micCapture, setMicCapture] = useState<VoiceMic>("off");
-  const [camOn, setCamOn] = useState(false);
+  const micOn = media.capture.audio === "active";
+  const micCapture = mapCaptureToVoiceMic(media.capture.audio);
+  const camOn = media.capture.video === "active";
   const [settingReady, setSettingReady] = useState(false);
   const [findingMatch, setFindingMatch] = useState(false);
   const [matchError, setMatchError] = useState<string | null>(null);
@@ -150,14 +148,21 @@ function LobbyInner() {
   const seatsRef = useRef<HTMLElement | null>(null);
   const cameraTiles = useCameraTiles(seatsRef, squad?.members.map(member => member.userId) ?? [], stageScene?.featured ?? null, !!stageScene);
 
-  const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
+  const vcRef = useRef<VideoClient | null>(null);
+  vcRef.current = media.client;
   const lobbyMediaGenerationRef = useRef(0);
   const localVideoRef = useRef<HTMLDivElement>(null);
-  const [videoJoined, setVideoJoined] = useState(false);
-  const [videoJoining, setVideoJoining] = useState(false);
+  const videoJoined = media.joined;
+  const videoJoining = media.pending;
   const deviceBusyRef = useRef({ audio: false, video: false });
   const [deviceBusy, setDeviceBusy] = useState({ audio: false, video: false });
   const [videoError, setVideoError] = useState<string | null>(null);
+  useEffect(() => {
+    if (media.error) setVideoError(describeVideoError(media.error));
+    else if (media.capture.audio === "denied" || media.capture.video === "denied") setVideoError("Allow camera or microphone access in your browser, then try again.");
+    else if (media.capture.audio === "unavailable" || media.capture.video === "unavailable") setVideoError("A camera or microphone couldn't connect. Try turning it on again.");
+    else setVideoError(null);
+  }, [media.error, media.capture.audio, media.capture.video]);
 
   // Hover states
 
@@ -219,51 +224,16 @@ function LobbyInner() {
   async function enableLobbyMedia(withCamera = true, withAudio = true): Promise<boolean> {
     if (!squadId || videoJoining) return videoJoined;
     if (videoJoined) return true;
-    const generation = ++lobbyMediaGenerationRef.current;
-    let vc: ReturnType<typeof createVideoClient> | null = null;
-    setVideoJoining(true);
+    const generation = lobbyMediaGenerationRef.current;
     setVideoError(null);
     try {
-      const tokenData = await api.lobbyToken(squadId);
+      await squadCall.connect(squadId, null, { audio: withAudio, video: withCamera });
       if (generation !== lobbyMediaGenerationRef.current) return false;
-      vc = createVideoClient();
-      vcRef.current = vc;
-      mediaUnsubRef.current?.();
-      const offRemote = vc.onRemoteChange(setRemotes);
-      const offCapture = vc.onCaptureState?.(state => {
-        if (generation !== lobbyMediaGenerationRef.current) return;
-        setMicOn(state.audio === "active");
-        setMicCapture(mapCaptureToVoiceMic(state.audio));
-        setCamOn(state.video === "active");
-        if (state.audio === "denied" || state.video === "denied") {
-          setVideoError("Allow camera or microphone access in your browser, then try again.");
-        } else if (state.audio === "unavailable" || state.video === "unavailable") {
-          setVideoError("A camera or microphone couldn't connect. Try turning it on again.");
-        }
-      });
-      mediaUnsubRef.current = () => { offRemote(); offCapture?.(); };
-      await vc.join(tokenData, { audio: withAudio, video: withCamera });
-      if (generation !== lobbyMediaGenerationRef.current) {
-        if (vcRef.current === vc) vcRef.current = null;
-        await vc.leave().catch(() => {});
-        return false;
-      }
-      await api.setLobbyVideo(squadId, true);
-      if (generation !== lobbyMediaGenerationRef.current) {
-        if (vcRef.current === vc) vcRef.current = null;
-        await Promise.allSettled([vc.leave(), api.setLobbyVideo(squadId, false)]);
-        return false;
-      }
-      setVideoJoined(true);
-      return true;
-    } catch (e) {
-      await vc?.leave().catch(() => {});
-      if (vcRef.current === vc) vcRef.current = null;
-      if (generation !== lobbyMediaGenerationRef.current) return false;
-      setVideoError(describeVideoError(e));
+      const capture = squadCall.getSnapshot().capture;
+      return (!withAudio || capture.audio === "active") && (!withCamera || capture.video === "active");
+    } catch (error) {
+      if (generation === lobbyMediaGenerationRef.current) setVideoError(describeVideoError(error));
       return false;
-    } finally {
-      if (generation === lobbyMediaGenerationRef.current) setVideoJoining(false);
     }
   }
 
@@ -294,10 +264,9 @@ function LobbyInner() {
       stopPolling();
       socket.off(SOCKET_EVENTS.MATCH_FOUND, onSquadUpdate);
       socket.off(SOCKET_EVENTS.SQUAD_UPDATED, onSquadUpdate);
-      mediaUnsubRef.current?.();
       lobbyMediaGenerationRef.current += 1;
-      vcRef.current?.leave().catch(() => {});
-      void api.setLobbyVideo(squadId, false).catch(() => {});
+      vcRef.current = null;
+      // The authenticated layout owns the call across search and match pages.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [squadId]);
@@ -382,7 +351,7 @@ function LobbyInner() {
     setDeviceBusy((current) => ({ ...current, [kind]: true }));
     setVideoError(null);
     try {
-      await (kind === "audio" ? vc.setMicEnabled(next) : vc.setCamEnabled(next));
+      await squadCall.setDevice(squadId, kind, next);
       // Capture events update the controls only after the device changes.
     } catch (error) {
       if (generation === lobbyMediaGenerationRef.current) setVideoError(describeVideoError(error));
@@ -651,13 +620,8 @@ function LobbyInner() {
 
   async function leaveLobbyMedia() {
     lobbyMediaGenerationRef.current += 1;
-    mediaUnsubRef.current?.();
-    setRemotes([]);
-    const client = vcRef.current;
     vcRef.current = null;
-    setVideoJoining(false);
-    setVideoJoined(false);
-    try { await client?.leave(); } catch {}
+    await squadCall.stop();
   }
 
   async function handleLeaveSquad() {
@@ -876,7 +840,7 @@ function LobbyInner() {
               <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} title={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}>{micOn ? <Icon.mic size={22} weight="regular" /> : <Icon.micOff size={22} weight="regular" />}</button>
               <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} title={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}>{camOn ? <Icon.cam size={22} weight="regular" /> : <Icon.camOff size={22} weight="regular" />}</button>
             </div>
-            <span id="lobby-match-status" className={`muted ${styles.readyLine}`}>{readyLine}</span>
+            <span id="lobby-match-status" className={`muted ${styles.readyLine}`} role="status">{videoJoining ? <><span className="gg-spinner" aria-hidden="true" /> Connecting your devices…</> : readyLine}</span>
             {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}
             <Button variant={isLeader ? "primary" : "secondary"} disabled={!WEB_DISCOVERY_ENABLED || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} weight="regular" /></Button>
           </div>

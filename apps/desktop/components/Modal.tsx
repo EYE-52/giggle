@@ -173,7 +173,7 @@ export function Modal({
           width: sheet ? "100%" : width,
           maxWidth: "100%",
           maxHeight: sheet ? "88dvh" : "calc(100dvh - 32px)",
-          overflowY: "auto",
+          overflow: "visible",
           boxSizing: "border-box",
           display: "flex",
           flexDirection: "column",
@@ -208,7 +208,7 @@ export function Modal({
             )}
           </div>
         )}
-        {children}
+        <div className="gg-modal-body">{children}</div>
       </div>
     </div>,
     document.body

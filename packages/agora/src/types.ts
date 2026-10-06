@@ -52,6 +52,10 @@ export interface VideoClient {
   /** Join a channel using a server-issued token. */
   join(token: AgoraToken, opts?: { audio?: boolean; video?: boolean }): Promise<void>;
   leave(): Promise<void>;
+  /** Change rooms while retaining capture and explicit mic/camera choices (web). */
+  moveToChannel?(token: AgoraToken): Promise<void>;
+  renewToken?(token: AgoraToken): Promise<void>;
+  onTokenExpiring?(cb: () => void): () => void;
   setMicEnabled(on: boolean): Promise<void>;
   setCamEnabled(on: boolean): Promise<void>;
   /** Change this listener only; do not alter the sender or other listeners. */

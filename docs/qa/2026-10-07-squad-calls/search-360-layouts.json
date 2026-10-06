@@ -1,0 +1,42 @@
+[
+  {
+    "cancelBottom": 626,
+    "height": 640,
+    "overflow": false,
+    "panelBottom": 352.8515625,
+    "skin": "scrap",
+    "width": 360
+  },
+  {
+    "cancelBottom": 626,
+    "height": 640,
+    "overflow": false,
+    "panelBottom": 352.421875,
+    "skin": "soft",
+    "width": 360
+  },
+  {
+    "cancelBottom": 626,
+    "height": 640,
+    "overflow": false,
+    "panelBottom": 355.484375,
+    "skin": "play",
+    "width": 360
+  },
+  {
+    "cancelBottom": 626,
+    "height": 640,
+    "overflow": false,
+    "panelBottom": 352.8515625,
+    "skin": "paper",
+    "width": 360
+  },
+  {
+    "cancelBottom": 626,
+    "height": 640,
+    "overflow": false,
+    "panelBottom": 352.8515625,
+    "skin": "clay",
+    "width": 360
+  }
+]
