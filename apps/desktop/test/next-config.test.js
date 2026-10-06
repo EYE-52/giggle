@@ -520,7 +520,7 @@ test("compact-phone matchmaking keeps people and cancellation reachable", () => 
   const css = faceOffCss();
   // Short screens scroll instead of shrinking labels to zero or clipping actions.
   assert.match(css, /\.page \{[^}]*overflow: hidden auto;/);
-  assert.match(css, /\.arena \{ flex: 1; min-height: 220px;/);
+  assert.match(css, /\.arena \{ flex: 1 0 auto; min-height: 220px;/);
   assert.match(css, /\.foot \{ flex: none;/);
   assert.match(css, /@media \(min-width: 721px\) and \(max-height: 640px\) \{ \.people \{ --face: 72px; \}/);
   assert.equal(page.includes('backLabel="Back to lobby"'), true);
@@ -635,7 +635,7 @@ test("phone match keeps the action card in normal flow", () => {
 
   assert.equal(matchSource().includes("<FaceOff"), true);
   // phones stack the squads like the call: theirs on top, yours below, actions after
-  assert.match(css, /@media \(max-width: 720px\) \{\s*\.arena \{ min-height: 320px; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: minmax\(0, 1fr\) auto minmax\(0, 1fr\);/);
+  assert.match(css, /@media \(max-width: 720px\) \{\s*\.arena \{ min-height: 320px; grid-template-columns: minmax\(0, 1fr\); grid-template-rows: minmax\(min-content, 1fr\) auto minmax\(min-content, 1fr\);/);
   assert.equal(css.includes("position: fixed"), false);
 });
 
