@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/Button";
 import { FaceOff, FaceOffBar, faceOffStyles } from "@/components/FaceOff";
+import { SquadCallPanel } from "@/components/SquadCallPanel";
 import { api, ApiError, session, connectSocket, SOCKET_EVENTS } from "@giggle/core";
 import type { EncounterDetail, SquadState } from "@giggle/core";
 import { pollWhileVisible } from "@/lib/poll";
@@ -264,7 +265,7 @@ function MatchInner() {
   const myRoster = squad?.members ?? encounterMembers;
   const mySide = encounter || squad ? {
     name: squad?.squadName ?? (encounter ? (mineIsA ? encounter.squadAName : encounter.squadBName) : "Your squad"),
-    people: myRoster.map(member => ({ userId: member.userId, displayName: member.displayName, avatar: member.avatar })),
+    people: myRoster.map(member => ({ userId: member.userId, uid: member.uid, displayName: member.displayName, avatar: member.avatar })),
   } : null;
   const theirSide = encounter ? {
     name: mineIsA ? encounter.squadBName : encounter.squadAName,
@@ -285,6 +286,7 @@ function MatchInner() {
       <FaceOff
         top={<FaceOffBar onBack={() => router.push(squadId ? `/lobby?squad=${squadId}` : "/home")} backLabel="Back to lobby" title={mySide?.name} />}
         mine={mySide}
+        mineContent={mySide && <SquadCallPanel squadId={squadId} people={mySide.people} />}
         theirs={null}
         status={handoffExpired ? "That match expired before both squads joined." : handoffError ?? "This room is no longer available."}
         actions={
@@ -313,6 +315,7 @@ function MatchInner() {
     <FaceOff
       top={<FaceOffBar onBack={back} backLabel="Skip this squad" title={mySide?.name} busy={!isLeader || skipping || joining} />}
       mine={mySide}
+      mineContent={mySide && <SquadCallPanel squadId={squadId} people={mySide.people} />}
       theirs={theirSide}
       status={<>
         <span role="timer" aria-label={`${countdown} of ${countdownTotal} seconds left to join`}>{status}</span>

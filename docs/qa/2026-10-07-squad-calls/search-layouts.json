@@ -1,0 +1,87 @@
+[
+  {
+    "cancel": {
+      "bottom": 830,
+      "x": 12,
+      "y": 782
+    },
+    "overflow": false,
+    "panel": {
+      "height": 227.25,
+      "width": 342,
+      "x": 24,
+      "y": 234.125
+    },
+    "skin": "scrap",
+    "tileCount": 8,
+    "width": 390
+  },
+  {
+    "cancel": {
+      "bottom": 830,
+      "x": 12,
+      "y": 782
+    },
+    "overflow": false,
+    "panel": {
+      "height": 226.390625,
+      "width": 340,
+      "x": 25,
+      "y": 234.5546875
+    },
+    "skin": "soft",
+    "tileCount": 8,
+    "width": 390
+  },
+  {
+    "cancel": {
+      "bottom": 830,
+      "x": 12,
+      "y": 785
+    },
+    "overflow": false,
+    "panel": {
+      "height": 225.515625,
+      "width": 338,
+      "x": 26,
+      "y": 238.4921875
+    },
+    "skin": "play",
+    "tileCount": 8,
+    "width": 390
+  },
+  {
+    "cancel": {
+      "bottom": 830,
+      "x": 12,
+      "y": 782
+    },
+    "overflow": false,
+    "panel": {
+      "height": 227.25,
+      "width": 342,
+      "x": 24,
+      "y": 234.125
+    },
+    "skin": "paper",
+    "tileCount": 8,
+    "width": 390
+  },
+  {
+    "cancel": {
+      "bottom": 830,
+      "x": 12,
+      "y": 782
+    },
+    "overflow": false,
+    "panel": {
+      "height": 227.25,
+      "width": 342,
+      "x": 24,
+      "y": 234.125
+    },
+    "skin": "clay",
+    "tileCount": 8,
+    "width": 390
+  }
+]

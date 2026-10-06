@@ -7,6 +7,7 @@ import type { SquadState } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 import { Button } from "@/components/Button";
 import { FaceOff, FaceOffBar, faceOffStyles } from "@/components/FaceOff";
+import { SquadCallPanel } from "@/components/SquadCallPanel";
 
 function MatchmakingInner() {
   const { isPhone } = useViewport();
@@ -193,7 +194,7 @@ function MatchmakingInner() {
 
   const mine = squad ? {
     name: squad.squadName,
-    people: squad.members.map(member => ({ userId: member.userId, displayName: member.displayName, avatar: member.avatar })),
+    people: squad.members.map(member => ({ userId: member.userId, uid: member.uid, displayName: member.displayName, avatar: member.avatar })),
   } : null;
   const status = matchFound
     ? `Found ${matchFound.opponentName ?? "a squad"}…`
@@ -207,6 +208,7 @@ function MatchmakingInner() {
     <FaceOff
       top={<FaceOffBar onBack={handleCancel} backLabel="Back to lobby" title={squad?.squadName} busy={cancelling || !!matchFound} />}
       mine={mine}
+      mineContent={mine && <SquadCallPanel squadId={squadId} people={mine.people} />}
       theirs={null}
       searching
       status={status}

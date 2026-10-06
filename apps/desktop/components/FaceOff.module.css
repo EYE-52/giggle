@@ -12,7 +12,22 @@
 
 /* skins may make .card a grid; the side is always one centred column */
 .side { width: 100%; height: 100%; max-height: 420px; align-self: center; container-type: inline-size; min-width: 0; min-height: min-content; box-sizing: border-box; display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; gap: 10px !important; padding: 20px 16px !important; text-align: center; }
+.side[data-live] { height: auto; max-height: none; }
+.side[data-live] .name { order: -1; }
+.side[data-live] .who { display: none; }
 @media (max-width: 720px) { .side { padding: 12px !important; gap: 6px !important; } }
+@media (max-width: 720px) {
+  .arena[data-live] { display: flex; flex-direction: column; justify-content: center; min-height: 0 !important; gap: 12px; }
+  .arena[data-live] .side { height: auto; max-height: none; }
+  .arena[data-live] .side[data-side="mine"] { order: 0; }
+  .arena[data-live] .vs { order: 1; }
+  .arena[data-live] .side[data-side="theirs"] { order: 2; }
+  .arena[data-live][data-state="searching"] .vs { display: none; }
+  .arena[data-live][data-state="searching"] .side[data-side="theirs"] { flex-direction: row !important; min-height: 76px; }
+  .arena[data-live][data-state="searching"] .side[data-side="theirs"] .people { --face: 30px; flex: none; gap: 5px; }
+  .arena[data-live][data-state="searching"] .side[data-side="theirs"] .who { display: none; }
+  .arena[data-live][data-state="searching"] .side[data-side="theirs"] .name { flex: 1; text-align: left; }
+}
 
 /* Only contain width: wrapped text must contribute to the card's height. */
 .people { --face: clamp(72px, 34cqi, 220px); display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 12px; max-width: calc(var(--face) * 4 + 36px); }

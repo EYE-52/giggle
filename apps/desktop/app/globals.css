@@ -777,11 +777,24 @@ button.gg-chip { cursor: pointer; }
   rotate: none !important;
 }
 .gg-modal-head {
+  flex: none;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 18px;
+}
+.gg-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  /* Let pen outlines and focus rings breathe inside the scroll surface. */
+  padding: 8px;
+  margin: -8px;
 }
 .gg-modal-heading { min-width: 0; }
 .gg-modal-title {
@@ -791,6 +804,7 @@ button.gg-chip { cursor: pointer; }
   color: var(--text);
   letter-spacing: -0.02em;
 }
+.gg-modal .gg-modal-head .gg-modal-title { line-height: 1.5; overflow-wrap: anywhere; padding-block: 2px; }
 .gg-modal-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
 .gg-modal-close {
   flex-shrink: 0;

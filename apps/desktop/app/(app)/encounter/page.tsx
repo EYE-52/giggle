@@ -37,8 +37,8 @@ import { Button } from "@/components/Button";
 import { ParticipantVideoTile as VideoTile } from "@/components/ParticipantVideoTile";
 import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoStage";
 import { Modal } from "@/components/Modal";
-import { createVideoClient } from "@giggle/agora";
-import type { CaptureState, ConnectionState, RemoteParticipant } from "@giggle/agora";
+import type { CaptureState, ConnectionState, RemoteParticipant, VideoClient } from "@giggle/agora";
+import { squadCall, useSquadCall } from "@/lib/squadCall";
 import { useViewport } from "@/components/useViewport";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
 import { useGamesEnabled } from "@/lib/games";
@@ -363,7 +363,9 @@ function EncounterInner() {
     return () => viewport.removeEventListener("resize", sync);
   }, [chatOpen, width]);
 
-  const vcRef = useRef<ReturnType<typeof createVideoClient> | null>(null);
+  useSquadCall(squadId);
+  const vcRef = useRef<VideoClient | null>(null);
+  const videoSubscriptionsRef = useRef<(() => void)[]>([]);
   // Serializes join/leave so a StrictMode double-mount never overlaps two joins
   // on the same uid (which triggers Agora UID_CONFLICT and blanks the video).
   const joinChainRef = useRef<Promise<unknown>>(Promise.resolve());
@@ -420,33 +422,28 @@ function EncounterInner() {
     const joinCancelled = () => isCancelled() || generation !== videoGenerationRef.current;
     setVideoError(null);
     setVideoJoined(false);
+    deviceBusyRef.current = false;
+    setDeviceBusy(false);
     setConnState("CONNECTING");
     setCaptureState({ audio: "off", video: "off" });
     setRemotes([]);
     setLoudestUid(null);
 
-    const staleClient = vcRef.current;
-    vcRef.current = null;
-    try {
-      await staleClient?.leave();
-    } catch {}
+    videoSubscriptionsRef.current.forEach(off => off());
+    videoSubscriptionsRef.current = [];
+    const vc = await squadCall.connect(squadId, encId);
     if (joinCancelled()) return;
-
-    await api.setEncounterVideo(squadId, true);
-    const tokenData = await api.encounterToken(squadId, encId);
-    if (joinCancelled()) return;
-
-    const vc = createVideoClient();
     vcRef.current = vc;
-    myUidRef.current = tokenData.uid;
-    vc.onRemoteChange((next) => {
+    myUidRef.current = squadCall.getSnapshot().uid;
+    const subscriptions = videoSubscriptionsRef.current;
+    subscriptions.push(vc.onRemoteChange((next) => {
       if (vcRef.current === vc) setRemotes(next);
-    });
-    vc.onCaptureState?.((next) => {
+    }));
+    const offCapture = vc.onCaptureState?.((next) => {
       if (vcRef.current !== vc) return;
       setCaptureState(next);
     });
-    vc.onVolumes?.((levels) => {
+    const offVolumes = vc.onVolumes?.((levels) => {
       if (vcRef.current !== vc) return;
       const loudest = levels.reduce((best, level) => (level.level > best.level ? level : best), {
         uid: 0,
@@ -454,7 +451,7 @@ function EncounterInner() {
       });
       setLoudestUid(loudest.level > 5 ? String(loudest.uid) : null);
     });
-    vc.onConnectionState?.((state) => {
+    const offConnection = vc.onConnectionState?.((state) => {
       if (vcRef.current !== vc) return;
       setConnState(state);
       if (state === "CONNECTED") setReconnectDismissed(false);
@@ -463,12 +460,9 @@ function EncounterInner() {
       }
     });
 
-    await vc.join(tokenData, { audio: true, video: true });
-    if (joinCancelled()) {
-      if (vcRef.current === vc) vcRef.current = null;
-      await vc.leave().catch(() => {});
-      return;
-    }
+    if (offCapture) subscriptions.push(offCapture);
+    if (offVolumes) subscriptions.push(offVolumes);
+    if (offConnection) subscriptions.push(offConnection);
     setVideoJoined(true);
     setConnState("CONNECTED");
   }
@@ -492,12 +486,12 @@ function EncounterInner() {
       // takes the screen; renewal would be denied from here on anyway).
       setGameOpen(false);
       if (payload?.reason === 'next_squad') {
-        void leaveVideo();
+        void leaveVideo(true);
         router.replace(`/${payload.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
         return;
       }
       const opponentLeft = payload?.reason === "squad_disconnected" && payload?.endedBySquadId !== squadId;
-      void leaveVideo();
+      void leaveVideo(true);
       setEndedReason(opponentLeft ? "opponent-left" : "ended");
       setEndedNotice(true);
       setEndError(null);
@@ -508,7 +502,7 @@ function EncounterInner() {
       // The server already queued a squad whose opponent left; keep matching.
       // Matchmaking sends an idle squad back to its lobby.
       endedNavTimerRef.current = setTimeout(() => {
-        void leaveVideo();
+        void leaveVideo(true);
         router.push(
           discoveryEnabledNow() && opponentLeft
             ? `/matchmaking?squad=${squadId}`
@@ -580,14 +574,13 @@ function EncounterInner() {
       }
       socket?.off(endedEvent, onEnded);
       socket?.off(activeEvent, onActive);
-      // Stop owned media now, even while a permission prompt is pending.
-      // The chain still prevents the next join from overlapping SDK cleanup.
+      // Detach this page without dropping the squad call during navigation.
       cancelled = true;
       videoGenerationRef.current += 1;
-      const staleClient = vcRef.current;
+      videoSubscriptionsRef.current.forEach(off => off());
+      videoSubscriptionsRef.current = [];
       vcRef.current = null;
-      const stopping = staleClient?.leave().catch(() => {});
-      joinChainRef.current = joinChainRef.current.catch(() => {}).then(() => stopping);
+      // Page cleanup detaches observers; the squad's call stays alive.
       setVideoJoined(false);
     };
   }, [squadId, encId, router]);
@@ -781,8 +774,7 @@ function EncounterInner() {
     setDeviceBusy(true);
     setVideoError(null);
     try {
-      if (kind === "audio") await client.setMicEnabled(!micOn);
-      else await client.setCamEnabled(!camOn);
+      await squadCall.setDevice(squadId, kind, kind === "audio" ? !micOn : !camOn);
     } catch (error) {
       if (generation === videoGenerationRef.current)
         setVideoError(describeVideoError(error));
@@ -797,16 +789,18 @@ function EncounterInner() {
   const toggleMic = () => toggleDevice("audio");
   const toggleCam = () => toggleDevice("video");
 
-  async function leaveVideo() {
+  async function leaveVideo(keepSquad = false) {
     videoGenerationRef.current += 1;
-    const client = vcRef.current;
+    videoSubscriptionsRef.current.forEach(off => off());
+    videoSubscriptionsRef.current = [];
     vcRef.current = null;
     setVideoJoined(false);
     setCaptureState({ audio: "off", video: "off" });
     deviceBusyRef.current = false;
     setDeviceBusy(false);
     try {
-      await client?.leave();
+      if (keepSquad) await squadCall.returnToSquad();
+      else await squadCall.stop();
     } catch {}
   }
 
@@ -838,7 +832,7 @@ function EncounterInner() {
     setNextError('');
     try {
       const result = await api.skip(squadId, encId);
-      await leaveVideo();
+      await leaveVideo(true);
       router.replace(`/${result.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
     } catch {
       nextPendingRef.current = false;
@@ -850,7 +844,7 @@ function EncounterInner() {
   async function handleEnd() {
     setEnding(true);
     setEndError(null);
-    const mediaExit = leaveVideo();
+    const mediaExit = leaveVideo(true);
     try {
       await api.disconnectEncounter(squadId, encId);
       await mediaExit;
@@ -1662,7 +1656,7 @@ function EncounterInner() {
                           clearTimeout(endedNavTimerRef.current);
                           endedNavTimerRef.current = null;
                         }
-                        void leaveVideo();
+                        void leaveVideo(true);
                         if (endedReason === "opponent-left") void api.cancelSearch(squadId).catch(() => {});
                         router.push(`/lobby?squad=${squadId}`);
                       }}

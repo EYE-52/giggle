@@ -159,11 +159,10 @@ test("lobby and encounter wire actual capture status to the existing toggles", (
 
   // Lobby: full capture truth (denied/unavailable stay honest) into the panel,
   // toggled by the EXISTING device switch — no new client, no new join.
-  assert.match(lobby, /mapCaptureToVoiceMic, resolveGameLayout, type GameCameraScene, type GamePresentation, type VoiceMic/);
-  assert.match(lobby, /const \[micCapture, setMicCapture\] = useState<VoiceMic>\("off"\);/);
-  assert.match(lobby, /setMicCapture\(mapCaptureToVoiceMic\(state\.audio\)\);/);
+  assert.match(lobby, /const media = useSquadCall\(squadId\);/);
+  assert.match(lobby, /const micCapture = mapCaptureToVoiceMic\(media\.capture\.audio\);/);
   assert.match(lobby, /onEnableMic: \(\) => void toggleDevice\("audio"\)/);
-  assert.match(lobby, /await \(kind === "audio" \? vc\.setMicEnabled\(next\) : vc\.setCamEnabled\(next\)\);/);
+  assert.match(lobby, /await squadCall\.setDevice\(squadId, kind, next\);/);
   // Encounter: the call's capture state maps straight in; the mic pill's own
   // toggle answers the prompt.
   assert.match(encounter, /mapCaptureToVoiceMic, resolveGameLayout/);
