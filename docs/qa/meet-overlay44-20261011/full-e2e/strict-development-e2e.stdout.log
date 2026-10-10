@@ -1,0 +1,64 @@
+
+Running 60 tests using 1 worker
+
+[1/60] [phone] › e2e/signin.spec.ts:14:5 › an under-18 declaration stays blocked with help and sign-out
+[2/60] [phone] › e2e/signin.spec.ts:34:5 › an adult explicitly launches the hosted verification provider
+[3/60] [phone] › e2e/signin.spec.ts:53:5 › untrusted and malformed provider links fail closed
+[4/60] [phone] › e2e/signin.spec.ts:82:5 › a newer operation prevents a stale provider response from navigating
+[5/60] [phone] › e2e/signin.spec.ts:114:5 › focus and visibility events share one status reconciliation
+[6/60] [phone] › e2e/signin.spec.ts:145:5 › pending verification can be rechecked and rejected without opening the app
+[7/60] [phone] › e2e/signin.spec.ts:163:5 › an unavailable verifier stays blocked and offers a retry
+[8/60] [phone] › e2e/signin.spec.ts:177:5 › sign-in explains the handoff and keeps Google primary
+[9/60] [phone] › e2e/signin.spec.ts:192:5 › sign-in exposes a failed provider handoff as retryable
+[10/60] [phone] › e2e/signin.spec.ts:201:5 › dev sign-in preserves a safe continuation
+[11/60] [phone] › e2e/signin.spec.ts:209:5 › dev sign-in rejects an external continuation
+[12/60] [phone] › e2e/signin.spec.ts:215:5 › OAuth callback returns to the stored safe continuation
+[13/60] [tablet] › e2e/signin.spec.ts:14:5 › an under-18 declaration stays blocked with help and sign-out
+[14/60] [tablet] › e2e/signin.spec.ts:34:5 › an adult explicitly launches the hosted verification provider
+[15/60] [tablet] › e2e/signin.spec.ts:53:5 › untrusted and malformed provider links fail closed
+[16/60] [tablet] › e2e/signin.spec.ts:82:5 › a newer operation prevents a stale provider response from navigating
+[17/60] [tablet] › e2e/signin.spec.ts:114:5 › focus and visibility events share one status reconciliation
+[18/60] [tablet] › e2e/signin.spec.ts:145:5 › pending verification can be rechecked and rejected without opening the app
+[19/60] [tablet] › e2e/signin.spec.ts:163:5 › an unavailable verifier stays blocked and offers a retry
+[20/60] [tablet] › e2e/signin.spec.ts:177:5 › sign-in explains the handoff and keeps Google primary
+[21/60] [tablet] › e2e/signin.spec.ts:192:5 › sign-in exposes a failed provider handoff as retryable
+[22/60] [tablet] › e2e/signin.spec.ts:201:5 › dev sign-in preserves a safe continuation
+[23/60] [tablet] › e2e/signin.spec.ts:209:5 › dev sign-in rejects an external continuation
+[24/60] [tablet] › e2e/signin.spec.ts:215:5 › OAuth callback returns to the stored safe continuation
+[25/60] [laptop] › e2e/signin.spec.ts:14:5 › an under-18 declaration stays blocked with help and sign-out
+[26/60] [laptop] › e2e/signin.spec.ts:34:5 › an adult explicitly launches the hosted verification provider
+[27/60] [laptop] › e2e/signin.spec.ts:53:5 › untrusted and malformed provider links fail closed
+[28/60] [laptop] › e2e/signin.spec.ts:82:5 › a newer operation prevents a stale provider response from navigating
+[29/60] [laptop] › e2e/signin.spec.ts:114:5 › focus and visibility events share one status reconciliation
+[30/60] [laptop] › e2e/signin.spec.ts:145:5 › pending verification can be rechecked and rejected without opening the app
+[31/60] [laptop] › e2e/signin.spec.ts:163:5 › an unavailable verifier stays blocked and offers a retry
+[32/60] [laptop] › e2e/signin.spec.ts:177:5 › sign-in explains the handoff and keeps Google primary
+[33/60] [laptop] › e2e/signin.spec.ts:192:5 › sign-in exposes a failed provider handoff as retryable
+[34/60] [laptop] › e2e/signin.spec.ts:201:5 › dev sign-in preserves a safe continuation
+[35/60] [laptop] › e2e/signin.spec.ts:209:5 › dev sign-in rejects an external continuation
+[36/60] [laptop] › e2e/signin.spec.ts:215:5 › OAuth callback returns to the stored safe continuation
+[37/60] [desktop] › e2e/signin.spec.ts:14:5 › an under-18 declaration stays blocked with help and sign-out
+[38/60] [desktop] › e2e/signin.spec.ts:34:5 › an adult explicitly launches the hosted verification provider
+[39/60] [desktop] › e2e/signin.spec.ts:53:5 › untrusted and malformed provider links fail closed
+[40/60] [desktop] › e2e/signin.spec.ts:82:5 › a newer operation prevents a stale provider response from navigating
+[41/60] [desktop] › e2e/signin.spec.ts:114:5 › focus and visibility events share one status reconciliation
+[42/60] [desktop] › e2e/signin.spec.ts:145:5 › pending verification can be rechecked and rejected without opening the app
+[43/60] [desktop] › e2e/signin.spec.ts:163:5 › an unavailable verifier stays blocked and offers a retry
+[44/60] [desktop] › e2e/signin.spec.ts:177:5 › sign-in explains the handoff and keeps Google primary
+[45/60] [desktop] › e2e/signin.spec.ts:192:5 › sign-in exposes a failed provider handoff as retryable
+[46/60] [desktop] › e2e/signin.spec.ts:201:5 › dev sign-in preserves a safe continuation
+[47/60] [desktop] › e2e/signin.spec.ts:209:5 › dev sign-in rejects an external continuation
+[48/60] [desktop] › e2e/signin.spec.ts:215:5 › OAuth callback returns to the stored safe continuation
+[49/60] [wide] › e2e/signin.spec.ts:14:5 › an under-18 declaration stays blocked with help and sign-out
+[50/60] [wide] › e2e/signin.spec.ts:34:5 › an adult explicitly launches the hosted verification provider
+[51/60] [wide] › e2e/signin.spec.ts:53:5 › untrusted and malformed provider links fail closed
+[52/60] [wide] › e2e/signin.spec.ts:82:5 › a newer operation prevents a stale provider response from navigating
+[53/60] [wide] › e2e/signin.spec.ts:114:5 › focus and visibility events share one status reconciliation
+[54/60] [wide] › e2e/signin.spec.ts:145:5 › pending verification can be rechecked and rejected without opening the app
+[55/60] [wide] › e2e/signin.spec.ts:163:5 › an unavailable verifier stays blocked and offers a retry
+[56/60] [wide] › e2e/signin.spec.ts:177:5 › sign-in explains the handoff and keeps Google primary
+[57/60] [wide] › e2e/signin.spec.ts:192:5 › sign-in exposes a failed provider handoff as retryable
+[58/60] [wide] › e2e/signin.spec.ts:201:5 › dev sign-in preserves a safe continuation
+[59/60] [wide] › e2e/signin.spec.ts:209:5 › dev sign-in rejects an external continuation
+[60/60] [wide] › e2e/signin.spec.ts:215:5 › OAuth callback returns to the stored safe continuation
+  60 passed (56.5s)

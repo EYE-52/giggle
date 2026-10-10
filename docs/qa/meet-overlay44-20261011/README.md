@@ -1,0 +1,19 @@
+# Meet floating controls — reviewed candidate
+
+Separate follow-up to PR19; no commit, deployment, auth policy or provider change in this packet. Exact six product and four test paths are in `selected-files.json`; `candidate.patch` is the reviewed diff against main `a056b00350f7f402da63be55e14ae1c8819f9cf8`.
+
+Collapsed call media stays mounted and hidden; its 44px Expand action belongs to the game header. Floating transient notices use bounded parent recovery rows so the report receipt cannot cover Hide. Normal call notices are unchanged. Hide and Copy squad code have 44px minimum targets. Focus, frame/media identity and existing alerts/actions are retained.
+
+## Gates and limits
+
+Node 24.21.0 / pnpm 10.33: 205 desktop tests, TypeScript, clean production build, 20-second deployment bundle pass. 124 server files exactly match the prior 453-test server snapshot. Disjoint development gates: strict 60 + general 270 (132 pass / 138 declared skips) + fresh local 50 = 380 registered, 242 pass / 138 skips / 0 fail. Direct compiled production: 23 pass / 3 declared skips / 0 fail. 855 tracked source files and 14 compiled CSS files are unchanged after checks. Raw test stdout/status is included; commands and expanded evidence remain at `/tmp/giggle-meet-overlay44-review-20261010`.
+
+`bounded-failures.json` distinguishes the retained original local 429 batch (43 pass / 7 fail), proxy smoke reset (1 pass / 1 fail), and fresh passing gates. No assertion, timing guard, rate limit or request-failure check was weakened. `covered-hide-before` preserves the confirmed receipt hit-target defect. `primary-native` preserves original primary captures/facts, including pre-fix 39.976×44 Hide and final 44×44.
+
+Primary native review used real Chrome controls on compiled production with synthetic local identity: 390 phone / 568×320 compact Hide/Expand focus and geometry, close/BackHome, no document overflow; initial review also covered tablet Chat. The HTTP Games child intentionally fails closed. Live RTC, dynamic Agora reconnect, real HTTPS child in this local run, physical touch devices and Safari remain unaccepted. Synthetic stream identity is a regression fixture, not real media acceptance. Owned services/session state were cleaned; no unrelated browser/tmux services touched.
+
+## Deployment recipe and rollback checkpoint
+
+Follow repository `DEPLOYMENT.md`, after primary approval only. PR19 merged to main and automatically built both providers; do not upload this local loopback QA `.next` artifact. Keep checked-in Vercel/Next/Railway configuration and provider variables unchanged. Required local commands are `pnpm install --frozen-lockfile`, `pnpm --filter @giggle/desktop test`, desktop `tsc --noEmit`, `pnpm --filter @giggle/desktop build`, the disjoint existing Playwright suites with declared synthetic local postures, `pnpm --filter @giggle/desktop test:local-smoke`, and `npm --prefix server run verify:deploy-bundle`. Isolate test rate-limit namespaces by cohort; do not disable limits. Review/merge the selected PR to main only after exact gates; verify both providers deploy that commit, then public health/signin/features and at least five minutes of API health.
+
+The actual prior PR19 rollback identity is main `a056b00350f7f402da63be55e14ae1c8819f9cf8`, Vercel **dpl_8pkDcXeF5A2NN4eqjFQmCZQSuhvi** (READY, `giggle-meet-4y921coos-divyansh24888-5115s-projects.vercel.app`), Railway **bf89e497-803e-4978-9091-e99b5e48afe4** (SUCCESS). `pr19-deployment-observation.json` is the original nonsecret provider/public-HTTP observation. Use provider rollback controls for these verified previous production deployments if required; restoring code does not restore variables. Recheck public health and authorized sign-in after rollback. No rollback/deployment command was executed here.

@@ -1,0 +1,27 @@
+{
+  "rateLimitAttempt": {
+    "path": "full-e2e",
+    "localPassed": 43,
+    "localFailed": 7,
+    "phase": "late wide profile",
+    "confirmedHTTP": 429,
+    "code": "RATE_LIMITED",
+    "limit": 3000,
+    "windowSeconds": 900,
+    "remaining": 0,
+    "retryAfterSeconds": 216,
+    "source": "server/src/server.js124-134 unchanged generalLimiter",
+    "resolution": "Full local50 rerun on fresh process/database/RedisDB2; normal unchanged limit, no assertion/timeout relaxation;50PASS. Originalfailedstdout/status retained."
+  },
+  "proxyAttempt": {
+    "path": "full-production",
+    "smokePassed": 1,
+    "smokeFailed": 1,
+    "failure": "GET localhost4015/friends?_rsc=\u2026 net::ERR_CONNECTION_RESET",
+    "contemporaneousProxyError": "BrokenPipeError at response write",
+    "inference": "Auxiliary proxy transport implicated; no unique product cause asserted.",
+    "resolution": "Full production gates repeated direct compiled Next4011;23PASS3declaredSKIP; failedRequests=[] unchanged."
+  },
+  "preparation": "Auxiliary production runner indentation error before execution corrected; no app/auth/service action occurred.",
+  "originals": "Unmodified originals also remain under /tmp/giggle-meet-overlay44-review-20261010/checks; packet excludes raw API/network/auth/env state."
+}

@@ -1,0 +1,7 @@
+{
+  "identical": true,
+  "serverFiles": 124,
+  "changed": [],
+  "carriedGate": "453 server tests PASS from final-v1/v2 exact identical server source",
+  "priorEvidence": "/tmp/giggle-meet-final-release-review-20261010/checks/server-tests.stdout.log"
+}

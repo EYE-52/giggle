@@ -87,7 +87,7 @@ test("encounter games mount beside the video stage, which stays mounted", () => 
   assert.match(encounter, /data-testid="encounter-game-stage"/);
   assert.match(
     encounter,
-    /<GamePanel squadId=\{squadId\} encounter=\{\{ encounterId: encId \}\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: mapCaptureToVoiceMic\(captureState\.audio\), onEnableMic: toggleMic \}\} \/>/
+    /<GamePanel squadId=\{squadId\} encounter=\{\{ encounterId: encId \}\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} floatingCall=\{effectiveLayout === "floating" \? \{ collapsed: callCollapsed, onExpand: \(\) => toggleFloatingCall\(false\), expandButtonRef: callExpandRef \} : undefined\} voice=\{\{ mic: mapCaptureToVoiceMic\(captureState\.audio\), onEnableMic: toggleMic \}\} \/>/
   );
   // On a phone the game hides (nodes stay mounted) while chat takes over.
   assert.match(encounter, /hidden=\{chatTakesStage && chatOpen\}/);

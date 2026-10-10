@@ -1,0 +1,25 @@
+{
+  "scope": "Synthetic local React/API fixture in real Chromium; ordinary controls and DOM center hit testing; no live RTC or production authentication",
+  "geometry": {
+    "capturedAt": "2026-10-10T18:06:40.991Z",
+    "hide": {
+      "x": 1372.015625,
+      "y": 708,
+      "width": 47.984375,
+      "height": 44
+    },
+    "notice": {
+      "x": 1153.3125,
+      "y": 720,
+      "width": 293.390625,
+      "height": 37.5
+    },
+    "hideCenterReachable": false,
+    "centerTag": "DIV",
+    "centerText": "Reported \u2014 thanks for keeping Giggle safe"
+  },
+  "screenshot": "/tmp/giggle-meet-overlay-review-20261010/checks/expanded-receipt-diagnostic.jpg",
+  "screenshotSHA256": "27a26fbec9e273cd8428f268b4227f447ba5924628296e77c6a494348e02900f",
+  "conclusion": "Expanded report receipt intercepts Hide center while receipt is shown. Separate collapsed receipt passing regression does not close this defect.",
+  "proposedFix": "Use existing parent recovery row for floating transient notices, expanded and collapsed; preserve normal call presentation. Awaiting primary approval."
+}

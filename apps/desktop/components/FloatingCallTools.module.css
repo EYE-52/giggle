@@ -27,14 +27,9 @@
 .shell[data-floating-call="true"][data-call-corner="top-right"] { inset: min(64px, max(0px, calc(100% - 70px))) 12px auto auto; }
 .shell[data-floating-call="true"][data-call-corner="bottom-left"] { inset: auto auto 12px 12px; }
 .shell[data-floating-call="true"][data-call-corner="bottom-right"] { inset: auto 12px 12px auto; }
-.shell[data-floating-call="true"][data-call-collapsed="true"] { height: 58px !important; }
-.shell[data-floating-call="true"][data-call-collapsed="true"] > article,
-.shell[data-floating-call="true"][data-call-collapsed="true"] > :global([data-testid="encounter-stage"]) { display: none !important; }
-/* Call errors still surface when videos are collapsed. */
-.shell[data-floating-call="true"][data-call-collapsed="true"]:has([role="alert"]) {
-  height: auto !important;
-  max-height: 48%;
-}
+/* Keep media mounted, but remove the entire collapsed overlay from layout.
+   Its expand control lives in the game header; feedback stays in the parent. */
+.shell[data-floating-call="true"][data-call-collapsed="true"] { display: none !important; }
 .shell[data-floating-call="true"][hidden] { display: none !important; }
 .tools {
   flex: none;
@@ -58,7 +53,7 @@
   cursor: pointer;
 }
 .tools select { flex: 1; padding: 6px; }
-.tools button { flex: none; padding: 6px 10px; }
+.tools button { flex: none; min-width: 44px; padding: 6px 10px; }
 .tools button:hover { background: var(--overlay); }
 .tools select:focus-visible, .tools button:focus-visible {
   outline: 2px solid var(--accent);
@@ -70,7 +65,6 @@
     height: min(192px, max(156px, 42%), calc(100% - 76px)) !important;
     border-radius: 14px;
   }
-  .shell[data-floating-call="true"][data-call-collapsed="true"] { height: 58px !important; }
   .tools { gap: 6px; }
   .tools button { padding-inline: 6px; }
   .tools select { font-size: 16px; }

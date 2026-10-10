@@ -1,0 +1,60 @@
+{
+  "scope": "Native Chrome extension, compiled production candidate before Hide min-width correction; local synthetic session; actual shipping parent UI",
+  "viewports": [
+    [
+      390,
+      844
+    ],
+    [
+      568,
+      320
+    ],
+    [
+      768,
+      1024
+    ]
+  ],
+  "observations": {
+    "collapsedShellDisplay": "none",
+    "phoneExpand": [
+      44,
+      44
+    ],
+    "phoneClose": [
+      44,
+      44
+    ],
+    "compactExpand": [
+      44,
+      44
+    ],
+    "compactClose": [
+      44,
+      44
+    ],
+    "copy": [
+      122.296875,
+      44
+    ],
+    "phoneHide": [
+      39.9765625,
+      44
+    ],
+    "keyboardFocus": "Expand after collapsing; Collapse after expanding",
+    "compactDocument": [
+      568,
+      320
+    ],
+    "chatOpened": true,
+    "backHomeObserved": true
+  },
+  "finding": "Hide phone width under44; narrow min-width44 correction required before acceptance",
+  "unverified": [
+    "real media retention in this native run: cameras/mics off and no video nodes",
+    "HTTPS game child: HTTP candidate intentionally fail-closed",
+    "RTC reconnect lifecycle",
+    "physical devices",
+    "Safari"
+  ],
+  "cleanup": "Synthetic session cleared through helper; viewport reset and owned tab closed next"
+}

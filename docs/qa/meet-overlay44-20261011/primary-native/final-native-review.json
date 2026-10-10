@@ -1,0 +1,92 @@
+{
+  "scope": "Native Chrome extension, exact44px compiled production candidate; local synthetic API/session; Games HTTP child fail-closed expected",
+  "candidate": "/tmp/giggle-meet-overlay44-review-20261010",
+  "observations": {
+    "phoneExpanded": {
+      "height": 44,
+      "minWidth": "44px",
+      "reachable": true,
+      "width": 44
+    },
+    "phoneCollapsed": {
+      "active": "Expand floating call",
+      "buttons": [
+        {
+          "name": "Expand floating call",
+          "rect": {
+            "bottom": 126,
+            "height": 44,
+            "left": 279,
+            "right": 323,
+            "top": 82,
+            "width": 44,
+            "x": 279,
+            "y": 82
+          }
+        },
+        {
+          "name": "Close games",
+          "rect": {
+            "bottom": 126,
+            "height": 44,
+            "left": 329,
+            "right": 373,
+            "top": 82,
+            "width": 44,
+            "x": 329,
+            "y": 82
+          }
+        }
+      ],
+      "shell": [
+        {
+          "display": "none",
+          "rect": {
+            "bottom": 0,
+            "height": 0,
+            "left": 0,
+            "right": 0,
+            "top": 0,
+            "width": 0,
+            "x": 0,
+            "y": 0
+          }
+        }
+      ]
+    },
+    "compact": {
+      "active": "Collapse floating call",
+      "hide": [
+        {
+          "reachable": true,
+          "rect": {
+            "bottom": 168,
+            "height": 44,
+            "left": 494,
+            "right": 538,
+            "top": 124,
+            "width": 44,
+            "x": 494,
+            "y": 124
+          }
+        }
+      ],
+      "size": [
+        568,
+        320,
+        568,
+        320
+      ]
+    }
+  },
+  "closeGamesAndBackHomeObserved": true,
+  "acceptance": "Scoped parent controls accepted",
+  "unverified": [
+    "live RTC/media retention",
+    "dynamic Agora reconnect lifecycle",
+    "real HTTPS child in this localnative run",
+    "physicaltouchdevices",
+    "Safari"
+  ],
+  "cleanup": "Synthetic session cleared byvisibleUI; viewportreset/own2tabsclosed"
+}

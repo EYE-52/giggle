@@ -1,0 +1,18 @@
+{
+  "ownedServicesStopped": true,
+  "verifiedNoListeners": [
+    4011,
+    4012,
+    4015,
+    8671,
+    8681,
+    28731,
+    6471
+  ],
+  "method": "Owned runners terminated their registered child processes; native preview sentinel after primary UI cleanup; ps/cwd ownership proof retained; lsof check returned no listeners.",
+  "ephemeralProductionAuthStateDeleted": true,
+  "sourceFilesUnchanged": 855,
+  "compiledCSSFilesUnchanged": 14,
+  "unrelatedUserServicesStorageTmux": "Untouched",
+  "noCommitDeploy": true
+}

@@ -6,7 +6,7 @@ const ts = require("typescript");
 
 // Run the production component's hooks, message handler and rendered Retry.
 // The frame models identity only; this does not exercise browser layout or RTC.
-function mountPanel() {
+function mountPanel(props = {}) {
   const slots = [], effects = [], timers = new Map(), listeners = new Map(), posted = [];
   let cursor = 0, dirty = false, tree, frame = null, timerId = 0, unavailable = false;
   const same = (a, b) => a && b && a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
@@ -73,7 +73,7 @@ function mountPanel() {
     [node, ...[].concat(node.props?.children ?? []).flatMap(all)];
   function render() {
     cursor = 0; dirty = false;
-    tree = GamePanel({ squadId: "squad", onClose() {} });
+    tree = GamePanel({ squadId: "squad", onClose() {}, ...props });
     const next = all(tree).find(node => node.type === "iframe");
     if (!next || frame?.key !== next.key) {
       if (frame) frame.ref.current = null;
@@ -89,6 +89,9 @@ function mountPanel() {
   render();
   return {
     settle, timers, listeners,
+    get nodes() { return all(tree); },
+    get frameIdentity() { return frame; },
+    update(next) { props = next; render(); },
     get status() { return tree.props["data-status"]; },
     get frameKey() { return frame?.key; },
     set unavailable(value) { unavailable = value; },
@@ -135,4 +138,31 @@ test("Retry preserves a heard live frame, and unmount removes auth timers and me
   panel.unmount();
   assert.equal(panel.timers.size, 0);
   assert.equal(panel.listeners.size, 0);
+});
+
+
+test("collapsed floating call offers header expansion without retiring the live frame", async () => {
+  const ref = { current: null };
+  let expanded = 0;
+  const panel = mountPanel();
+  await panel.settle();
+  panel.message({ v: 1, t: "ready" }); await panel.settle();
+  panel.ack(); await panel.settle();
+  const frame = panel.frameIdentity;
+  const timers = panel.timers.size;
+  panel.update({ floatingCall: { collapsed: true, onExpand: () => expanded++, expandButtonRef: ref } });
+  await panel.settle();
+  const expand = panel.nodes.find(node => node.props?.["aria-label"] === "Expand floating call");
+  assert.ok(expand, "collapsed control is in the parent header");
+  assert.equal(expand.props.ref, ref);
+  assert.equal(expand.props["aria-expanded"], false);
+  expand.props.onClick();
+  assert.equal(expanded, 1);
+  assert.equal(panel.frameIdentity, frame, "collapse never remounts the game iframe");
+  assert.equal(panel.timers.size, timers, "collapse never renews authorization");
+  panel.update({ floatingCall: { collapsed: false, onExpand() {}, expandButtonRef: ref } });
+  await panel.settle();
+  assert.equal(panel.nodes.some(node => node.props?.["aria-label"] === "Expand floating call"), false);
+  assert.equal(panel.frameIdentity, frame);
+  panel.unmount();
 });

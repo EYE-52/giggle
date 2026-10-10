@@ -1,0 +1,26 @@
+{
+  "files": [
+    "apps/desktop/app/(app)/encounter/page.tsx",
+    "apps/desktop/app/(app)/lobby/lobby.module.css",
+    "apps/desktop/app/(app)/lobby/page.tsx",
+    "apps/desktop/components/FloatingCallTools.module.css",
+    "apps/desktop/components/FloatingCallTools.tsx",
+    "apps/desktop/components/GamePanel.tsx",
+    "apps/desktop/e2e/encounter.spec.ts",
+    "apps/desktop/test/game-bridge.test.js",
+    "apps/desktop/test/game-encounter.test.js",
+    "apps/desktop/test/game-panel-recovery.test.js"
+  ],
+  "hashes": {
+    "apps/desktop/app/(app)/encounter/page.tsx": "313a6c82ed12b006e17dddad6c082695c087f3d2d6ad19ca239bf2c761874986",
+    "apps/desktop/app/(app)/lobby/lobby.module.css": "cca0317fdc9efe01bd1fcc029666a84e6f4274553444534bab65077ba9b6e1b7",
+    "apps/desktop/app/(app)/lobby/page.tsx": "727d5d28accd466f4b8a04b4c94cd67f5a6e843640c6f201c1edf88e10ca3e3f",
+    "apps/desktop/components/FloatingCallTools.module.css": "8434ef91e019b8fad1da9a78d89695ee3a64743a6e468fb8903824903a58109c",
+    "apps/desktop/components/FloatingCallTools.tsx": "059ad96fb008a35f6fbf51a5f3e1c8c8168eb2297ba1585e6e5ab5c358364bb2",
+    "apps/desktop/components/GamePanel.tsx": "4de80f56b56f4fab078722dd39b2844a11c7dffb6c9e9375b9e3d69ebf469a4d",
+    "apps/desktop/e2e/encounter.spec.ts": "e67d3f79cf2fb786ae9b1d07fff5367d9ff3966565216742ff59fae1cbbda5f4",
+    "apps/desktop/test/game-bridge.test.js": "6df2c38b96c5b707e68ad94871a189c0fe791c6b8b4df859bfb72087a4bc5671",
+    "apps/desktop/test/game-encounter.test.js": "c1caf546e7bad4d7f037bcd61bf477c2b947cd26fd0359f45db7784510b30359",
+    "apps/desktop/test/game-panel-recovery.test.js": "2aa4a653f5ed362abbb6399ed9adfb2e8210ca0161bcc64a822dd05ce6e0fe62"
+  }
+}
