@@ -206,6 +206,9 @@ export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, lay
       const code = (e as { code?: string })?.code;
       const statusCode = (e as { status?: number })?.status;
       if (code === "GAMES_UNAVAILABLE" || statusCode === 503) {
+        // Unavailable removes the iframe. Its replacement has not answered,
+        // so Retry must reload that new document if it stays blank.
+        heardRef.current = false;
         setStatus("unavailable");
         setDetail(null);
       } else if (code === "INTERACTION_BLOCKED" || statusCode === 403) {
