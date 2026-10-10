@@ -1,0 +1,10 @@
+{
+  "ownedPid": 50755,
+  "observedCommand": "next-server (v16.2.12)",
+  "observedCwd": "/private/tmp/giggle-tablet-rotation-rca-20261010/apps/desktop",
+  "execSession": 68038,
+  "action": "SIGINT via owned execsession only",
+  "exitCode": 0,
+  "otherServices": "untouched",
+  "commit": "none"
+}

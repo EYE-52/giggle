@@ -1,0 +1,20 @@
+
+Running 5 tests using 1 worker
+
+(node:93326) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [tablet] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (2.1s)
+(node:93800) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [tablet-reduced] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (2.0s)
+(node:94258) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [portrait] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (1.5s)
+(node:94662) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [landscape] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (1.3s)
+(node:94997) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [desktop] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (1.2s)
+
+  5 passed (10.9s)

@@ -1,0 +1,83 @@
+{
+  "reviewedAt": "2026-10-10T16:47:01.644725+00:00",
+  "actor": "primary native Chrome extension",
+  "pass": true,
+  "fixture": "http://localhost:4023/fixture",
+  "bootstrap": "Explicit visible synthetic Match/handoff-error/join-error buttons; declared local identity/API; no real provider or media.",
+  "clock": "Ordinary three-second automatic join retained. No clock/state injection.",
+  "roster": "Native scroll preserved named squad rosters and footer actions at568x320 and844x390.",
+  "longHandoff": {
+    "chars": 4400,
+    "statusClientHeight": 48,
+    "statusScrollHeight": 1116,
+    "nativeEndScrollTop": 76.5,
+    "retryAndBackBottom": 310,
+    "actionHeight": 48,
+    "horizontalOverflow": 0
+  },
+  "longAction": {
+    "chars": 4100,
+    "noticeClientHeight": 47,
+    "noticeScrollHeight": 791,
+    "nativeEndScrollTop": 104,
+    "retryAndSkipBottom": 253.5,
+    "actionHeight": 48,
+    "horizontalOverflow": 0
+  },
+  "failedAttempts": [
+    {
+      "kind": "initial Join wait in separate call missed ordinary three-second window",
+      "result": "Selector timeout retained; later same-call snapshot captured Join normally."
+    },
+    {
+      "kind": "long-action button initial wait",
+      "result": "Selector3.3s deadline expired just before automatic failedack painted; subsequent actualDOM contained Tryjoiningagain and original fullnotice."
+    }
+  ],
+  "originalCandidateFailure": "Original long-error.png and long-error.log in isolateddir retained, Retrybottom1130.84 beforefix.",
+  "integratedPaths": [
+    "components/FaceOff.tsx",
+    "components/FaceOff.module.css",
+    "app/(app)/match/page.tsx",
+    "e2e/match.spec.ts"
+  ],
+  "integration": "All four original/candidate hashes checked before exact copy; primary gitdiff--checkPASS.",
+  "productionCss": "Not yet verified for final source.",
+  "limitations": [
+    "Synthetic protected route; no real encounter/media/device",
+    "Desktop portrait style unchanged by scoped media rule; viewport emulation not physicaldevice",
+    "Base Meet palette not certified by this bounded layout review"
+  ],
+  "screenshots": [
+    {
+      "path": "match-568-waiting-native.png",
+      "bytes": 14223,
+      "sha256": "44be1fb15d630dd4c8cc6166061cc7f18e03b2a291d8d703584af30c1e2e88b5"
+    },
+    {
+      "path": "match-568-roster-scrolled-native.png",
+      "bytes": 14746,
+      "sha256": "50e6a058d822163e5c2101e2bb8705231b665033e47f50c9c3055899fa86d2d5"
+    },
+    {
+      "path": "match-844-waiting-native.png",
+      "bytes": 24174,
+      "sha256": "b5ad59b040505f44774a72a485af89db2b17c19973af3629cfa586b43ceacba6"
+    },
+    {
+      "path": "match-844-initial-join-native.png",
+      "bytes": 22288,
+      "sha256": "09f0b24087480d9e1f883ef197c939ce2fc1ae9bcf7bba98fe83d07d12b9fe8c"
+    },
+    {
+      "path": "match-568-long-handoff-native.png",
+      "bytes": 17432,
+      "sha256": "05eec47f766c89c80415c4b44ca8c6a7762ef81a19831d54b6420758be8aa7e0"
+    },
+    {
+      "path": "match-568-long-action-native.png",
+      "bytes": 22934,
+      "sha256": "8932f0ea24497fb1f2155656a7f00f391bc4ac662ca99ec567937b8ca8f5b9c9"
+    }
+  ]
+}

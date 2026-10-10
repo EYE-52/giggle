@@ -1,0 +1,13 @@
+{
+  "scope": "Original build progress and Playwright error-context bytes preserved; whitespace warnings are retained diagnostic data, not product code. All remaining staged paths pass diff-check.",
+  "files": [
+    {
+      "path": "final-integrated-checks/production-build.stdout.log",
+      "sha256": "dcfe74b5ef9ef193e614d853755f0ef2d867af5e61b7cdfca9512a93c0564d84"
+    },
+    {
+      "path": "rotation-regression/original-failure/error-context.md",
+      "sha256": "bc48d190667676735aaf05a92330c3dffa7dba47141037abba7afa28d0d5e0ca"
+    }
+  ]
+}

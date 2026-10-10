@@ -1,0 +1,58 @@
+{
+  "sourceCommit": "adf55d0f8a6a3e250c87ddca5b1ad23fe0151107",
+  "sourceFilesVerified": 750,
+  "sourceMismatches": [],
+  "selectedWorkingSourceVerified": 37,
+  "selectedMismatches": [],
+  "compiledCssFilesVerified": 14,
+  "cssMismatches": [],
+  "artifactSha256": "ee9da3ffce0f7fe30a7081390672f3d9e9e1945253fc26a2eb86d5ea03252f4b",
+  "browserResults": {
+    "production-protected-results.json": {
+      "passed": 14,
+      "skipped": 2,
+      "failures": [],
+      "skipTitles": [
+        "compact phone routes keep their primary action usable without clipping",
+        "join code field uses one shared focus ring"
+      ]
+    },
+    "production-public-results.json": {
+      "passed": 7,
+      "skipped": 1,
+      "failures": [],
+      "skipTitles": [
+        "landing navigation, start action, and legal links work by keyboard"
+      ]
+    },
+    "production-smoke-results.json": {
+      "passed": 2,
+      "skipped": 0,
+      "failures": [],
+      "skipTitles": []
+    },
+    "general-dev-results.json": {
+      "stats": {
+        "startTime": "2026-10-10T17:21:10.278Z",
+        "duration": 247110.39899999998,
+        "expected": 127,
+        "skipped": 138,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "statuses": {
+        "expected": 127,
+        "skipped": 138
+      },
+      "sourceDeclaredSkipsByFile": {
+        "../../../../../../../private/tmp/giggle-meet-final-v2-release-review-20261010/execution/source/apps/desktop/e2e/encounter.spec.ts": 45,
+        "../../../../../../../private/tmp/giggle-meet-final-v2-release-review-20261010/execution/source/apps/desktop/e2e/landing.spec.ts": 4,
+        "../../../../../../../private/tmp/giggle-meet-final-v2-release-review-20261010/execution/source/apps/desktop/e2e/match.spec.ts": 68,
+        "../../../../../../../private/tmp/giggle-meet-final-v2-release-review-20261010/execution/source/apps/desktop/e2e/matchmaking.spec.ts": 6,
+        "../../../../../../../private/tmp/giggle-meet-final-v2-release-review-20261010/execution/source/apps/desktop/e2e/product-routes.spec.ts": 8,
+        "../../../../../../../private/tmp/giggle-meet-final-v2-release-review-20261010/execution/source/apps/desktop/e2e/shell-accessibility.spec.ts": 7
+      },
+      "failures": []
+    }
+  }
+}

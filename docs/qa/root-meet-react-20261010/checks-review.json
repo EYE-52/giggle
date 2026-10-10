@@ -1,0 +1,63 @@
+{
+  "applicationSource": {
+    "base": "1602b32f65ddabed1aa35f905bc51dd0ccb9a855",
+    "selectedApplicationFiles": 19,
+    "selectedTestRefreshFiles": 5,
+    "typecheckCandidateOnlyDifferences": [
+      "apps/desktop/e2e/entry.spec.ts",
+      "apps/desktop/e2e/landing.spec.ts",
+      "apps/desktop/e2e/navigation.spec.ts",
+      "apps/desktop/e2e/product-routes.spec.ts",
+      "apps/desktop/e2e-prod/smoke.spec.ts"
+    ]
+  },
+  "checks": {
+    "desktopUnitTests": 204,
+    "typescript": "pass including refreshed tests",
+    "productionBuild": "pass unchanged app source",
+    "selectedPublicProductionE2E": {
+      "pass": 7,
+      "skip": 1
+    },
+    "selectedProtectedProductionE2E": {
+      "pass": 14,
+      "skip": 2
+    },
+    "productionSmoke": {
+      "pass": 2
+    },
+    "walletNegativeGuardRerun": {
+      "pass": 12,
+      "skip": 2
+    },
+    "shippingOnlyBackendStartup": {
+      "healthySeconds": 20
+    }
+  },
+  "remainingFullE2E": "Running all13 specs for desktop+phone; selected checks do not imply that full suite passed.",
+  "priorFailures": [
+    "Initial pnpm11 rejected by declared engine; repeated with declared pnpm10.33.0.",
+    "Local strict smoke reached Yoti gate because declaration-access flag omitted; original failure retained.",
+    "Process-only local declaration posture matched existing production setting; stale Home and avatar/header code assumptions then failed.",
+    "Obsolete landing/Home/Discover/Wallet selectors failed prior E2E.",
+    "Phone clearance and hidden header code presentation assumptions failed before current behavior assertions."
+  ],
+  "testRefreshReview": "Preserves geometry, keyboard navigation, browser errors and checkout guard; asserts actual named sections, saved avatar API persistence and reachable phone invite dialog.",
+  "syntheticLocalAccountAndFixtureLimits": [
+    "Synthetic local auth exchange and process-only declaration-access setting; no real OAuth/Yoti/media/device acceptance",
+    "Existing protected E2E helpers project synthetic verified status; no product auth bypass",
+    "No full repository E2E suite verdict; only named selected suites"
+  ],
+  "secretTraceHandling": "Temporary auth state removed; token-bearing local trace files not published.",
+  "originalFailureEvidence": "Preserved in local isolated review attempts; this summary does not rewrite original results.",
+  "finalPatchSha256": "5e7304581700e7e077d5d7c49b1b3258c29871c2043b0a0ef0cf0796c6017aa8",
+  "checksEvidenceHashes": {
+    "desktop-tests.log": "29656d9242eb0f83eb8868f604b1e55a1015177ad23cf1a340b5e62457730cb8",
+    "tsc.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "build.log": "fd038d8b4c94792b2ed1bd338474891759674086207300d4173176ebf3f1bf40",
+    "test-contract-checks-2/updated-public-e2e.log": "85a38796016d4d0e5e018d054f83e857b0cdb27c282d8170c907db9fd0c204cb",
+    "test-contract-checks-2/updated-protected-e2e.log": "af58e18ca22daa42ca7e2b490ef188a4a4b758defc7b2b92a6bb94ce6a1af6a0",
+    "test-contract-checks-3/updated-production-smoke.log": "4aeaa041b773cca4795c65ea69db460c4ee1de34e2ae00b4393b7399de77cbe2",
+    "test-contract-checks-4/updated-product-routes.log": "9bedf3fe950f6ffabc77155deff98c60e0a7c9a202d3a4d2683bcd3aaaaf78aa"
+  }
+}

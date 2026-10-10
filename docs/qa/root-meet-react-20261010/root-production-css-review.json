@@ -1,0 +1,19 @@
+{
+  "candidateBase": "1602b32f65ddabed1aa35f905bc51dd0ccb9a855",
+  "independentPrimaryBytesCheck": true,
+  "cssFilesEach": 14,
+  "allContentHashesEqual": true,
+  "orderedRoutes": [
+    "lobby",
+    "encounter",
+    "signin"
+  ],
+  "orderedRoutesHashEqual": true,
+  "fixtureOnlySourceChanges": [
+    "apps/desktop/app/layout.tsx (synthetic SDK loader)",
+    "apps/desktop/next.config.ts (fixture exact loopback origin)",
+    "apps/desktop/lib/gameBridge.ts (fixture exact loopback origin)"
+  ],
+  "productionSecuritySourceUnchanged": true,
+  "productionAuthenticationLiveMediaAcceptance": false
+}

@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "adf55d0f8a6a3e250c87ddca5b1ad23fe0151107",
+  "sourceFiles": 750,
+  "changes": {
+    "source": [],
+    "execution/source": []
+  },
+  "developmentRegistered": 375,
+  "developmentPassed": 237,
+  "developmentSkipped": 138,
+  "developmentFailed": 0,
+  "general": {
+    "registered": 265,
+    "passed": 127,
+    "skipped": 138
+  },
+  "carryForward": {
+    "localPassed": 50,
+    "strictSigninPassed": 60,
+    "serverPassed": 453,
+    "identicalOtherFiles": 748
+  },
+  "rerun": {
+    "desktopPassed": 204,
+    "tsc": "PASS",
+    "cleanProductionBuild": "PASS",
+    "deploymentBundle20s": "PASS",
+    "productionPassed": 23,
+    "productionSkipped": 3
+  },
+  "productionArtifactSHA256": "ee9da3ffce0f7fe30a7081390672f3d9e9e1945253fc26a2eb86d5ea03252f4b",
+  "scope": "Synthetic local auth/declaration and media/provider fixtures; no genuine RTC/heard/device/production-auth acceptance. Original attempts retained. Preview separate owned service pending primary review."
+}

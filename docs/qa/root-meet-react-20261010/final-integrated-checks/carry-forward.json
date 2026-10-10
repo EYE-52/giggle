@@ -1,0 +1,15 @@
+{
+  "priorCommit": "2a2e0c8eba8690208cfac9fe8e0c39dbd26f40b0",
+  "finalCommit": "adf55d0f8a6a3e250c87ddca5b1ad23fe0151107",
+  "identicalFiles": 748,
+  "changedFiles": [
+    "apps/desktop/components/FocusVideoStage.tsx",
+    "apps/desktop/e2e/encounter.spec.ts"
+  ],
+  "carriedChecks": {
+    "server": 453,
+    "local": 50,
+    "strictSignin": 60
+  },
+  "priorEvidenceRoot": "/tmp/giggle-meet-final-release-review-20261010"
+}

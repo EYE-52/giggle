@@ -1,0 +1,51 @@
+[
+  {
+    "owner": "native-games-bridge",
+    "label": "games-frozen25",
+    "pid": 98471,
+    "command": "98471 S    /Users/divyansh/.local/share/agentklar/node-v24.21.0-darwin-arm64/bin/node server/server.js",
+    "cwd": "p98471\nfcwd\nn/Users/divyansh/Projects/giggle-games-repair/releases/2026-10-10-ludo-0.1.25-checked/runtime"
+  },
+  {
+    "owner": "native-games-bridge",
+    "label": "api-bridge",
+    "pid": 98524,
+    "command": "98524 S    /Users/divyansh/.local/share/agentklar/node-v24.21.0-darwin-arm64/bin/node src/server.js",
+    "cwd": "p98524\nfcwd\nn/private/tmp/giggle-meet-final-v2-release-review-20261010/execution/source/server"
+  },
+  {
+    "owner": "native-production-preview",
+    "label": "mongo",
+    "pid": 35930,
+    "command": "35930 S    /Users/divyansh/.local/share/giggle-tools/mongodb-macos-aarch64-8.0.4/bin/mongod --bind_ip 127.0.0.1 --port 28731 --replSet giggle-final-review --dbpath /tmp/giggle-meet-final-v2-release-review-20261010/checks/final/mongo-data",
+    "cwd": "p35930\nfcwd\nn/private/tmp/giggle-meet-final-v2-release-review-20261010/checks/native-production-preview"
+  },
+  {
+    "owner": "native-production-preview",
+    "label": "redis",
+    "pid": 35931,
+    "command": "35931 S    /Users/divyansh/.local/share/giggle-tools/redis-7.4.2/src/redis-server 127.0.0.1:6471",
+    "cwd": "p35931\nfcwd\nn/private/tmp/giggle-meet-final-v2-release-review-20261010/checks/native-production-preview"
+  },
+  {
+    "owner": "native-production-preview",
+    "label": "api",
+    "pid": 35933,
+    "command": "35933 Z    <defunct>",
+    "cwd": ""
+  },
+  {
+    "owner": "native-production-preview",
+    "label": "web-production",
+    "pid": 36147,
+    "command": "36147 S    next-server (v16.2.12)",
+    "cwd": "p36147\nfcwd\nn/private/tmp/giggle-meet-final-v2-release-review-20261010/execution/source/apps/desktop"
+  },
+  {
+    "owner": "native-production-preview",
+    "label": "bootstrap-proxy",
+    "pid": 36198,
+    "command": "36198 S    /Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python /tmp/giggle-meet-final-v2-release-review-20261010/checks/bootstrap-proxy.py",
+    "cwd": "p36198\nfcwd\nn/private/tmp/giggle-meet-final-v2-release-review-20261010/checks/native-production-preview"
+  }
+]

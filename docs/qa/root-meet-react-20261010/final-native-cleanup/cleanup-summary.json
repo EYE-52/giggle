@@ -1,0 +1,27 @@
+{
+  "createdAt": "2026-10-10T17:38:24.114922+00:00",
+  "sourceCommit": "adf55d0f8a6a3e250c87ddca5b1ad23fe0151107",
+  "sourceFiles": 750,
+  "sourceChanges": {
+    "source": [],
+    "execution/source": []
+  },
+  "productionCSSFiles": 14,
+  "productionCSSChanges": [],
+  "gamesRuntimeFiles": 578,
+  "gamesRuntimeChanges": [],
+  "activeOwnedProcesses": [],
+  "ownedPortListeners": {
+    "4012": "",
+    "4015": "",
+    "8567": "",
+    "8671": "",
+    "28731": "",
+    "6471": ""
+  },
+  "ownedServicesStopped": true,
+  "nativeReviewScope": "Primary native compiled Lobby/Signin review; primary reports eight observed static CSS response hashes matched frozen fourteen. This agent did not perform that native review.",
+  "integrationLimit": "Local API feature switch games true, but compiled production parseGamesUrl rejects HTTP Games URL as expected; no accepted HTTPS embedding/live RTC/production-auth claim. No policy or source bypass applied.",
+  "sessionCleanup": "Primary reports synthetic4015 session cleared through bootstrap button, tab closed and viewport reset.",
+  "cleanupScope": "Only recorded owned bridge/API/Games/Next/proxy/Mongo/Redis services stopped. No tmux/user process changes."
+}

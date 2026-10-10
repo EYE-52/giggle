@@ -1,0 +1,14 @@
+{
+  "testedCommit": "adf55d0f8a6a3e250c87ddca5b1ad23fe0151107",
+  "mergedMain": "1602b32f65ddabed1aa35f905bc51dd0ccb9a855",
+  "restoredReviewedPaths": 37,
+  "conflicts": [
+    "apps/desktop/app/(app)/encounter/page.tsx",
+    "apps/desktop/app/(app)/lobby/page.tsx",
+    "apps/desktop/components/FaceOff.tsx"
+  ],
+  "resolvedTree": "d83484bac0274265db49f31b1cc737b0c61343e5",
+  "testedTree": "d83484bac0274265db49f31b1cc737b0c61343e5",
+  "entireTrackedTreeIdentical": true,
+  "scope": "Ancestry reconciliation only; every tracked source byte equals tested release. Untracked QA/private state not staged."
+}

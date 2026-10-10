@@ -1,0 +1,21 @@
+
+Running 16 tests using 1 worker
+
+[1/16] [phone] › e2e/navigation.spec.ts:4:5 › navigation is curated for each device class
+[2/16] [phone] › e2e/product-routes.spec.ts:13:7 › /home exposes one clear first task without runtime failures
+[3/16] [phone] › e2e/product-routes.spec.ts:13:7 › /discover exposes one clear first task without runtime failures
+[4/16] [phone] › e2e/product-routes.spec.ts:13:7 › /friends exposes one clear first task without runtime failures
+[5/16] [phone] › e2e/product-routes.spec.ts:13:7 › /profile exposes one clear first task without runtime failures
+[6/16] [phone] › e2e/product-routes.spec.ts:13:7 › /premium exposes one clear first task without runtime failures
+[7/16] [phone] › e2e/product-routes.spec.ts:64:5 › compact phone routes keep their primary action usable without clipping
+[8/16] [phone] › e2e/product-routes.spec.ts:106:5 › join code field uses one shared focus ring
+[9/16] [desktop] › e2e/navigation.spec.ts:4:5 › navigation is curated for each device class
+[10/16] [desktop] › e2e/product-routes.spec.ts:13:7 › /home exposes one clear first task without runtime failures
+[11/16] [desktop] › e2e/product-routes.spec.ts:13:7 › /discover exposes one clear first task without runtime failures
+[12/16] [desktop] › e2e/product-routes.spec.ts:13:7 › /friends exposes one clear first task without runtime failures
+[13/16] [desktop] › e2e/product-routes.spec.ts:13:7 › /profile exposes one clear first task without runtime failures
+[14/16] [desktop] › e2e/product-routes.spec.ts:13:7 › /premium exposes one clear first task without runtime failures
+[15/16] [desktop] › e2e/product-routes.spec.ts:64:5 › compact phone routes keep their primary action usable without clipping
+[16/16] [desktop] › e2e/product-routes.spec.ts:106:5 › join code field uses one shared focus ring
+  2 skipped
+  14 passed (15.0s)

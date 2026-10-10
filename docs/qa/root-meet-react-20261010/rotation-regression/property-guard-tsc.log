@@ -1,0 +1,6 @@
+landscape-resize.config.ts(1,389): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'reducedMotion' does not exist in type 'UseOptions<PlaywrightTestOptions & CustomProperties<unknown>, PlaywrightWorkerOptions & CustomProperties<unknown>>'.
+profiles.config.ts(1,381): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Object literal may only specify known properties, and 'reducedMotion' does not exist in type 'UseOptions<PlaywrightTestOptions & CustomProperties<unknown>, PlaywrightWorkerOptions & CustomProperties<unknown>>'.

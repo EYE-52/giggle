@@ -1,0 +1,10 @@
+
+Running 1 test using 1 worker
+
+(node:51638) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+immediate [{"id":"theirs-1","rect":{"x":10,"y":10,"width":361.765625,"height":183,"top":10,"right":371.765625,"bottom":193,"left":10},"style":"left: 0px; top: 0px; width: 361.778px; height: 183px;","transition":"0s"},{"id":"theirs-2","rect":{"x":10,"y":197,"width":361.765625,"height":183,"top":197,"right":371.765625,"bottom":380,"left":10},"style":"left: 0px; top: 187px; width: 361.778px; height: 183px;","transition":"0s"},{"id":"mine-1","rect":{"x":381.765625,"y":10,"width":279.53125,"height":370,"top":10,"right":661.296875,"bottom":380,"left":381.765625},"style":"left: 371.778px; top: 0px; width: 279.546px; height: 370px;","transition":"0s"},{"id":"mine-2","rect":{"x":665.3125,"y":10.984375,"width":168.671875,"height":370,"top":10.984375,"right":833.984375,"bottom":380.984375,"left":665.3125},"style":"left: 655.324px; top: 0px; width: 168.676px; height: 370px;","transition":"0s"}]
+settled [{"id":"theirs-1","rect":{"x":10,"y":10,"width":361.765625,"height":183,"top":10,"right":371.765625,"bottom":193,"left":10},"style":"left: 0px; top: 0px; width: 361.778px; height: 183px;","transition":"0s"},{"id":"theirs-2","rect":{"x":10,"y":197,"width":361.765625,"height":183,"top":197,"right":371.765625,"bottom":380,"left":10},"style":"left: 0px; top: 187px; width: 361.778px; height: 183px;","transition":"0s"},{"id":"mine-1","rect":{"x":381.765625,"y":10,"width":279.53125,"height":370,"top":10,"right":661.296875,"bottom":380,"left":381.765625},"style":"left: 371.778px; top: 0px; width: 279.546px; height: 370px;","transition":"0s"},{"id":"mine-2","rect":{"x":665.3125,"y":10,"width":168.671875,"height":370,"top":10,"right":833.984375,"bottom":380,"left":665.3125},"style":"left: 655.324px; top: 0px; width: 168.676px; height: 370px;","transition":"0s"}]
+  ✓  1 e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (7.4s)
+
+  1 passed (8.0s)

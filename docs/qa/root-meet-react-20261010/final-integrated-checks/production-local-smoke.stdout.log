@@ -1,0 +1,6 @@
+
+Running 2 tests using 1 worker
+
+[1/2] [phone] › e2e-prod/smoke.spec.ts:51:5 › signed-in production app works end to end
+[2/2] [desktop] › e2e-prod/smoke.spec.ts:51:5 › signed-in production app works end to end
+  2 passed (7.0s)
