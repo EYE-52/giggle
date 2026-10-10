@@ -1,5 +1,5 @@
 {
-  "scope": "Original build progress and Playwright error-context bytes preserved; whitespace warnings are retained diagnostic data, not product code. All remaining staged paths pass diff-check.",
+  "scope": "Original Next progress and Playwright failure bytes preserved. Exact four diagnostic files explain all whitespace warnings; all other release paths pass diff-check. No product code exception.",
   "files": [
     {
       "path": "final-integrated-checks/production-build.stdout.log",
@@ -8,6 +8,14 @@
     {
       "path": "rotation-regression/original-failure/error-context.md",
       "sha256": "bc48d190667676735aaf05a92330c3dffa7dba47141037abba7afa28d0d5e0ca"
+    },
+    {
+      "path": "rotation-regression/candidate-profiles.log",
+      "sha256": "40eebff615eae2023a7e62a2d6228a3a4fd24e7530a8d86f0722f78ff179eacc"
+    },
+    {
+      "path": "rotation-regression/repeat5.log",
+      "sha256": "8ddc069acdcd0702746bd504c204d54ec825b5024380d428c925b9bbddec2d8c"
     }
   ]
 }

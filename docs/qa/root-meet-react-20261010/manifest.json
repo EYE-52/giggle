@@ -323,8 +323,8 @@
     },
     {
       "path": "retained-original-whitespace.json",
-      "bytes": 548,
-      "sha256": "65debbc4676e00d48e836b7fcebd444b29ff4b9ac2955f801f1bddbcdaeb2e63"
+      "bytes": 859,
+      "sha256": "81828d679e9910ad28dd59818b988e3204b878652a027a720b65f7715141cb76"
     },
     {
       "path": "root-production-css-review.json",
