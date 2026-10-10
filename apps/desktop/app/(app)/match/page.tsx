@@ -284,6 +284,7 @@ function MatchInner() {
   if (handoffError || !encounter) {
     return (
       <FaceOff
+        compactHandoff
         top={<FaceOffBar onBack={() => router.push(squadId ? `/lobby?squad=${squadId}` : "/home")} backLabel="Back to lobby" title={mySide?.name} />}
         mine={mySide}
         mineContent={mySide && <SquadCallPanel squadId={squadId} people={mySide.people} />}
@@ -313,6 +314,7 @@ function MatchInner() {
 
   return (
     <FaceOff
+      compactHandoff
       top={<FaceOffBar onBack={back} backLabel="Skip this squad" title={mySide?.name} busy={!isLeader || skipping || joining} />}
       mine={mySide}
       mineContent={mySide && <SquadCallPanel squadId={squadId} people={mySide.people} />}
@@ -328,8 +330,8 @@ function MatchInner() {
             ? <span role="status" aria-label="Your squad is ready" className={faceOffStyles.ready}><Icon.check size={18} />Your squad is ready</span>
             : <Button onClick={handleJoin} loading={joining} disabled={joinExpired || skipping} variant="primary">{joinExpired ? "Match expired" : actionError ? "Try joining again" : "Join now"}</Button>}
           {isLeader && <Button onClick={handleSkip} loading={skipping} disabled={joining} variant="secondary">{skipping ? "Skipping…" : "Skip"}</Button>}
-          {waitingError && <p role="alert" className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>{waitingError}</p>}
-          {actionError && <p role="alert" className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>{actionError}</p>}
+          {waitingError && <p role="alert" tabIndex={0} className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>{waitingError}</p>}
+          {actionError && <p role="alert" tabIndex={0} className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>{actionError}</p>}
         </>
       }
     />

@@ -5,7 +5,11 @@ test("app shell exposes keyboard navigation and readable text tokens", async ({ 
   test.skip(!["phone", "desktop"].includes(testInfo.project.name), "One compact and one full shell cover this contract");
 
   await openProtectedRoute(page, '/home');
-  await expect(page.getByRole("heading", { level: 1, name: /your squad|start a squad/i })).toBeVisible();
+  for (const name of ["Friends", "Squads"]) {
+    const region = page.getByRole("region", { name, exact: true });
+    await expect(region).toBeVisible();
+    await expect(region.getByRole("heading", { level: 2, name, exact: true })).toBeVisible();
+  }
 
   await page.keyboard.press("Tab");
   const skipLink = page.getByRole("link", { name: "Skip to content" });

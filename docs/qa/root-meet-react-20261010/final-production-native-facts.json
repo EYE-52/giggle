@@ -1,0 +1,838 @@
+[
+  {
+    "view": "tablet-chat-before-games",
+    "observed": {
+      "controls": [
+        {
+          "name": "Edit squad topics",
+          "rect": {
+            "bottom": 56,
+            "height": 44,
+            "left": 409.96875,
+            "right": 453.96875,
+            "top": 12,
+            "width": 44,
+            "x": 409.96875,
+            "y": 12
+          }
+        },
+        {
+          "name": "Copy squad code MYV-683",
+          "rect": {
+            "bottom": 54,
+            "height": 40,
+            "left": 461.96875,
+            "right": 588,
+            "top": 14,
+            "width": 126.03125,
+            "x": 461.96875,
+            "y": 14
+          }
+        },
+        {
+          "name": "Invite friends",
+          "rect": {
+            "bottom": 56,
+            "height": 44,
+            "left": 596,
+            "right": 640,
+            "top": 12,
+            "width": 44,
+            "x": 596,
+            "y": 12
+          }
+        },
+        {
+          "name": "Chat",
+          "rect": {
+            "bottom": 56,
+            "height": 44,
+            "left": 648,
+            "right": 692,
+            "top": 12,
+            "width": 44,
+            "x": 648,
+            "y": 12
+          }
+        },
+        {
+          "name": "Squad settings",
+          "rect": {
+            "bottom": 56,
+            "height": 44,
+            "left": 700,
+            "right": 744,
+            "top": 12,
+            "width": 44,
+            "x": 700,
+            "y": 12
+          }
+        },
+        {
+          "name": "Retry",
+          "rect": {
+            "bottom": 125,
+            "height": 44,
+            "left": 664.6953125,
+            "right": 736,
+            "top": 81,
+            "width": 71.3046875,
+            "x": 664.6953125,
+            "y": 81
+          }
+        },
+        {
+          "name": "Invite a friend",
+          "rect": {
+            "bottom": 517,
+            "height": 376,
+            "left": 203,
+            "right": 372,
+            "top": 141,
+            "width": 169,
+            "x": 203,
+            "y": 141
+          }
+        },
+        {
+          "name": "Open seat 2, invite a friend",
+          "rect": {
+            "bottom": 903,
+            "height": 376,
+            "left": 24,
+            "right": 193,
+            "top": 527,
+            "width": 169,
+            "x": 24,
+            "y": 527
+          }
+        },
+        {
+          "name": "Open seat 3, invite a friend",
+          "rect": {
+            "bottom": 903,
+            "height": 376,
+            "left": 203,
+            "right": 372,
+            "top": 527,
+            "width": 169,
+            "x": 203,
+            "y": 527
+          }
+        },
+        {
+          "name": "Close chat",
+          "rect": {
+            "bottom": 196,
+            "height": 44,
+            "left": 683,
+            "right": 727,
+            "top": 152,
+            "width": 44,
+            "x": 683,
+            "y": 152
+          }
+        },
+        {
+          "name": "Add emoji",
+          "rect": {
+            "bottom": 890,
+            "height": 44,
+            "left": 397,
+            "right": 441,
+            "top": 846,
+            "width": 44,
+            "x": 397,
+            "y": 846
+          }
+        },
+        {
+          "name": "Send message",
+          "rect": {
+            "bottom": 890,
+            "height": 44,
+            "left": 687,
+            "right": 731,
+            "top": 846,
+            "width": 44,
+            "x": 687,
+            "y": 846
+          }
+        },
+        {
+          "name": "Turn on microphone",
+          "rect": {
+            "bottom": 986,
+            "height": 48,
+            "left": 48,
+            "right": 96,
+            "top": 938,
+            "width": 48,
+            "x": 48,
+            "y": 938
+          }
+        },
+        {
+          "name": "Turn camera on",
+          "rect": {
+            "bottom": 986,
+            "height": 48,
+            "left": 102,
+            "right": 150,
+            "top": 938,
+            "width": 48,
+            "x": 102,
+            "y": 938
+          }
+        },
+        {
+          "name": "Find a squad",
+          "rect": {
+            "bottom": 986,
+            "height": 48,
+            "left": 571.765625,
+            "right": 720,
+            "top": 938,
+            "width": 148.234375,
+            "x": 571.765625,
+            "y": 938
+          }
+        }
+      ],
+      "overflow": false,
+      "size": [
+        768,
+        1024
+      ],
+      "url": "http://localhost:4015/lobby?squad=sq_1791653394201_hgxhuq1o80"
+    }
+  },
+  {
+    "view": "phone-games-fallback-floating",
+    "observed": {
+      "controls": [
+        {
+          "name": "Play",
+          "rect": {
+            "bottom": 52,
+            "height": 44,
+            "left": 178.015625,
+            "right": 230,
+            "top": 8,
+            "width": 51.984375,
+            "x": 178.015625,
+            "y": 8
+          }
+        },
+        {
+          "name": "Invite friends",
+          "rect": {
+            "bottom": 52,
+            "height": 44,
+            "left": 236,
+            "right": 280,
+            "top": 8,
+            "width": 44,
+            "x": 236,
+            "y": 8
+          }
+        },
+        {
+          "name": "Chat",
+          "rect": {
+            "bottom": 52,
+            "height": 44,
+            "left": 286,
+            "right": 330,
+            "top": 8,
+            "width": 44,
+            "x": 286,
+            "y": 8
+          }
+        },
+        {
+          "name": "Squad settings",
+          "rect": {
+            "bottom": 52,
+            "height": 44,
+            "left": 336,
+            "right": 380,
+            "top": 8,
+            "width": 44,
+            "x": 336,
+            "y": 8
+          }
+        },
+        {
+          "name": "Close games",
+          "rect": {
+            "bottom": 126,
+            "height": 44,
+            "left": 329,
+            "right": 373,
+            "top": 82,
+            "width": 44,
+            "x": 329,
+            "y": 82
+          }
+        },
+        {
+          "name": "Retry",
+          "rect": {
+            "bottom": 486.9453125,
+            "height": 48,
+            "left": 154.109375,
+            "right": 235.8828125,
+            "top": 438.9453125,
+            "width": 81.7734375,
+            "x": 154.109375,
+            "y": 438.9453125
+          }
+        },
+        {
+          "name": "Collapse floating call",
+          "rect": {
+            "bottom": 572.8046875,
+            "height": 44,
+            "left": 320.0234375,
+            "right": 360,
+            "top": 528.8046875,
+            "width": 39.9765625,
+            "x": 320.0234375,
+            "y": 528.8046875
+          }
+        },
+        {
+          "name": "Enlarge your video",
+          "rect": {
+            "bottom": 629.8046875,
+            "height": 44,
+            "left": 175,
+            "right": 219,
+            "top": 585.8046875,
+            "width": 44,
+            "x": 175,
+            "y": 585.8046875
+          }
+        },
+        {
+          "name": "Turn on microphone",
+          "rect": {
+            "bottom": 824,
+            "height": 48,
+            "left": 20,
+            "right": 68,
+            "top": 776,
+            "width": 48,
+            "x": 20,
+            "y": 776
+          }
+        },
+        {
+          "name": "Turn camera on",
+          "rect": {
+            "bottom": 824,
+            "height": 48,
+            "left": 74,
+            "right": 122,
+            "top": 776,
+            "width": 48,
+            "x": 74,
+            "y": 776
+          }
+        },
+        {
+          "name": "Find a squad",
+          "rect": {
+            "bottom": 824,
+            "height": 48,
+            "left": 247.765625,
+            "right": 370,
+            "top": 776,
+            "width": 122.234375,
+            "x": 247.765625,
+            "y": 776
+          }
+        }
+      ],
+      "css": [
+        "/_next/static/chunks/3my9-zx41o-nv.css",
+        "/_next/static/chunks/29-41x9mqif3e.css",
+        "/_next/static/chunks/2tqau-xpheg_y.css",
+        "/_next/static/chunks/36rg22ao7qtlg.css",
+        "/_next/static/chunks/2-3hy33pv29uo.css",
+        "/_next/static/chunks/1n5716ldm362p.css",
+        "/_next/static/chunks/0eh6ow1gm9bh7.css"
+      ],
+      "overflow": false,
+      "size": [
+        390,
+        844
+      ],
+      "url": "http://localhost:4015/lobby?squad=sq_1791653394201_hgxhuq1o80"
+    }
+  },
+  {
+    "view": "tablet-games-chat-stage",
+    "observed": {
+      "chat": {
+        "bottom": 903,
+        "height": 828,
+        "left": 24,
+        "right": 744,
+        "top": 75,
+        "width": 720,
+        "x": 24,
+        "y": 75
+      },
+      "controls": [
+        {
+          "centerReachable": true,
+          "name": "Edit squad topics",
+          "rect": {
+            "bottom": 56,
+            "height": 44,
+            "left": 285.390625,
+            "right": 329.390625,
+            "top": 12,
+            "width": 44,
+            "x": 285.390625,
+            "y": 12
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Copy squad code MYV-683",
+          "rect": {
+            "bottom": 54,
+            "height": 40,
+            "left": 337.390625,
+            "right": 463.421875,
+            "top": 14,
+            "width": 126.03125,
+            "x": 337.390625,
+            "y": 14
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Play together",
+          "rect": {
+            "bottom": 56,
+            "height": 44,
+            "left": 471.421875,
+            "right": 588,
+            "top": 12,
+            "width": 116.578125,
+            "x": 471.421875,
+            "y": 12
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Invite friends",
+          "rect": {
+            "bottom": 56,
+            "height": 44,
+            "left": 596,
+            "right": 640,
+            "top": 12,
+            "width": 44,
+            "x": 596,
+            "y": 12
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Chat",
+          "rect": {
+            "bottom": 56,
+            "height": 44,
+            "left": 648,
+            "right": 692,
+            "top": 12,
+            "width": 44,
+            "x": 648,
+            "y": 12
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Squad settings",
+          "rect": {
+            "bottom": 56,
+            "height": 44,
+            "left": 700,
+            "right": 744,
+            "top": 12,
+            "width": 44,
+            "x": 700,
+            "y": 12
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Close chat",
+          "rect": {
+            "bottom": 130,
+            "height": 44,
+            "left": 683,
+            "right": 727,
+            "top": 86,
+            "width": 44,
+            "x": 683,
+            "y": 86
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Add emoji",
+          "rect": {
+            "bottom": 890,
+            "height": 44,
+            "left": 37,
+            "right": 81,
+            "top": 846,
+            "width": 44,
+            "x": 37,
+            "y": 846
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Chat message",
+          "rect": {
+            "bottom": 890,
+            "height": 44,
+            "left": 87,
+            "right": 681,
+            "top": 846,
+            "width": 594,
+            "x": 87,
+            "y": 846
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Send message",
+          "rect": {
+            "bottom": 890,
+            "height": 44,
+            "left": 687,
+            "right": 731,
+            "top": 846,
+            "width": 44,
+            "x": 687,
+            "y": 846
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Turn on microphone",
+          "rect": {
+            "bottom": 986,
+            "height": 48,
+            "left": 48,
+            "right": 96,
+            "top": 938,
+            "width": 48,
+            "x": 48,
+            "y": 938
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Turn camera on",
+          "rect": {
+            "bottom": 986,
+            "height": 48,
+            "left": 102,
+            "right": 150,
+            "top": 938,
+            "width": 48,
+            "x": 102,
+            "y": 938
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Find a squad",
+          "rect": {
+            "bottom": 986,
+            "height": 48,
+            "left": 571.765625,
+            "right": 720,
+            "top": 938,
+            "width": 148.234375,
+            "x": 571.765625,
+            "y": 938
+          }
+        }
+      ],
+      "overflow": false,
+      "size": [
+        768,
+        1024
+      ],
+      "url": "http://localhost:4015/lobby?squad=sq_1791653394201_hgxhuq1o80"
+    }
+  },
+  {
+    "view": "compact-games-fallback",
+    "observed": {
+      "controls": [
+        {
+          "centerReachable": true,
+          "name": "Copy squad code MYV-683",
+          "rect": {
+            "bottom": 46,
+            "height": 40,
+            "left": 151.390625,
+            "right": 277.421875,
+            "top": 6,
+            "width": 126.03125,
+            "x": 151.390625,
+            "y": 6
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Play together",
+          "rect": {
+            "bottom": 48,
+            "height": 44,
+            "left": 285.421875,
+            "right": 402,
+            "top": 4,
+            "width": 116.578125,
+            "x": 285.421875,
+            "y": 4
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Invite friends",
+          "rect": {
+            "bottom": 48,
+            "height": 44,
+            "left": 410,
+            "right": 454,
+            "top": 4,
+            "width": 44,
+            "x": 410,
+            "y": 4
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Chat",
+          "rect": {
+            "bottom": 48,
+            "height": 44,
+            "left": 462,
+            "right": 506,
+            "top": 4,
+            "width": 44,
+            "x": 462,
+            "y": 4
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Squad settings",
+          "rect": {
+            "bottom": 48,
+            "height": 44,
+            "left": 514,
+            "right": 558,
+            "top": 4,
+            "width": 44,
+            "x": 514,
+            "y": 4
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Video layout",
+          "rect": {
+            "bottom": 99,
+            "height": 44,
+            "left": 247,
+            "right": 347,
+            "top": 55,
+            "width": 100,
+            "x": 247,
+            "y": 55
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Close games",
+          "rect": {
+            "bottom": 99,
+            "height": 44,
+            "left": 353,
+            "right": 397,
+            "top": 55,
+            "width": 44,
+            "x": 353,
+            "y": 55
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Retry",
+          "rect": {
+            "bottom": 241.09375,
+            "height": 48,
+            "left": 166.109375,
+            "right": 247.8828125,
+            "top": 193.09375,
+            "width": 81.7734375,
+            "x": 166.109375,
+            "y": 193.09375
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Enlarge your video",
+          "rect": {
+            "bottom": 103,
+            "height": 44,
+            "left": 417,
+            "right": 461,
+            "top": 59,
+            "width": 44,
+            "x": 417,
+            "y": 59
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Turn on microphone",
+          "rect": {
+            "bottom": 313,
+            "height": 44,
+            "left": 18,
+            "right": 62,
+            "top": 269,
+            "width": 44,
+            "x": 18,
+            "y": 269
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Turn camera on",
+          "rect": {
+            "bottom": 313,
+            "height": 44,
+            "left": 68,
+            "right": 112,
+            "top": 269,
+            "width": 44,
+            "x": 68,
+            "y": 269
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Find a squad",
+          "rect": {
+            "bottom": 313,
+            "height": 44,
+            "left": 401.765625,
+            "right": 550,
+            "top": 269,
+            "width": 148.234375,
+            "x": 401.765625,
+            "y": 269
+          }
+        }
+      ],
+      "overflow": false,
+      "size": [
+        568,
+        320
+      ],
+      "url": "http://localhost:4015/lobby?squad=sq_1791653394201_hgxhuq1o80"
+    }
+  },
+  {
+    "view": "phone-signin",
+    "observed": {
+      "controls": [
+        {
+          "centerReachable": true,
+          "name": "Back to Giggle",
+          "rect": {
+            "bottom": 64,
+            "height": 44,
+            "left": 20,
+            "right": 143.3515625,
+            "top": 20,
+            "width": 123.3515625,
+            "x": 20,
+            "y": 20
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Continue with Google",
+          "rect": {
+            "bottom": 470.09375,
+            "height": 48,
+            "left": 41,
+            "right": 349,
+            "top": 422.09375,
+            "width": 308,
+            "x": 41,
+            "y": 422.09375
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Terms",
+          "rect": {
+            "bottom": 634.09375,
+            "height": 44,
+            "left": 41,
+            "right": 83.2109375,
+            "top": 590.09375,
+            "width": 42.2109375,
+            "x": 41,
+            "y": 590.09375
+          }
+        },
+        {
+          "centerReachable": true,
+          "name": "Privacy Policy",
+          "rect": {
+            "bottom": 634.09375,
+            "height": 44,
+            "left": 99.2109375,
+            "right": 192.796875,
+            "top": 590.09375,
+            "width": 93.5859375,
+            "x": 99.2109375,
+            "y": 590.09375
+          }
+        }
+      ],
+      "css": [
+        "/_next/static/chunks/3my9-zx41o-nv.css",
+        "/_next/static/chunks/29-41x9mqif3e.css",
+        "/_next/static/chunks/2tqau-xpheg_y.css",
+        "/_next/static/chunks/36rg22ao7qtlg.css",
+        "/_next/static/chunks/2-3hy33pv29uo.css",
+        "/_next/static/chunks/2ol0js_a_gugp.css"
+      ],
+      "overflow": false,
+      "size": [
+        390,
+        844
+      ],
+      "url": "http://localhost:4015/signin"
+    }
+  }
+]

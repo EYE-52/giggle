@@ -1,0 +1,84 @@
+{
+  "animating": null,
+  "cells": [
+    {
+      "box": {
+        "bottom": 193,
+        "height": 183,
+        "left": 10,
+        "right": 371.7734375,
+        "top": 10,
+        "width": 361.7734375,
+        "x": 10,
+        "y": 10
+      },
+      "id": "theirs-1",
+      "pinned": null,
+      "weight": "1"
+    },
+    {
+      "box": {
+        "bottom": 380,
+        "height": 183,
+        "left": 10,
+        "right": 371.7734375,
+        "top": 197,
+        "width": 361.7734375,
+        "x": 10,
+        "y": 197
+      },
+      "id": "theirs-2",
+      "pinned": null,
+      "weight": "1"
+    },
+    {
+      "box": {
+        "bottom": 380,
+        "height": 370,
+        "left": 381.7734375,
+        "right": 661.3125,
+        "top": 10,
+        "width": 279.5390625,
+        "x": 381.7734375,
+        "y": 10
+      },
+      "id": "mine-1",
+      "pinned": null,
+      "weight": "1"
+    },
+    {
+      "box": {
+        "bottom": 380,
+        "height": 370,
+        "left": 665.3203125,
+        "right": 833.9921875,
+        "top": 10,
+        "width": 168.671875,
+        "x": 665.3203125,
+        "y": 10
+      },
+      "id": "mine-2",
+      "pinned": "true",
+      "weight": "2"
+    }
+  ],
+  "focus": "Maya's options",
+  "videos": [
+    {
+      "ready": 4,
+      "synthetic": "51793626-4b77-4dc3-bb4b-1d38f1641214"
+    },
+    {
+      "ready": 4,
+      "synthetic": "69ab2796-1127-4004-838c-b785aa002148"
+    },
+    {
+      "ready": 4,
+      "synthetic": "20426fbf-78b0-495c-88ba-ec3d599a0a1f"
+    }
+  ],
+  "viewport": [
+    844,
+    390
+  ]
+}

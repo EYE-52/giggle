@@ -270,6 +270,17 @@ async function isUserOnline(userId, redis = getRedisClient()) {
   return online;
 }
 
+// Refresh authoritative roster projections when distributed presence changes.
+// A roster query/broadcast failure must not interrupt socket or search cleanup.
+async function broadcastUserPresence(userId) {
+  try {
+    const squads = await Squad.find({ 'members.userId': userId }).select('squadId');
+    for (const squad of squads) emitToSquad(squad.squadId, 'SQUAD_UPDATED', {});
+  } catch (err) {
+    console.error('[presence] roster refresh error:', err);
+  }
+}
+
 /** Given an array of userIds, return a Set of those currently online. */
 async function getOnlineUserIds(ids = [], redis = getRedisClient()) {
   const uniqueIds = [...new Set(ids.map((id) => String(id || '')).filter(Boolean))];
@@ -299,8 +310,13 @@ const init = (server) => {
     logRealtimeDebug('New client connected:', socket.id);
     // Track online presence for authenticated sockets.
     let presenceHeartbeat = null;
+    let presenceRegistration = Promise.resolve();
     if (socket.userId) {
-      markUserOnline(socket.userId, socket.id).catch((err) => {
+      presenceRegistration = (async () => {
+        const wasOnline = await isUserOnline(socket.userId);
+        await markUserOnline(socket.userId, socket.id);
+        if (!wasOnline) await broadcastUserPresence(socket.userId);
+      })().catch((err) => {
         console.error('[presence] online mark error:', err);
       });
       presenceHeartbeat = setInterval(() => {
@@ -491,8 +507,11 @@ const init = (server) => {
       // ghost — pull it out of the matchmaking queue and reset to idle so it
       // doesn't linger and get matched against real squads.
       try {
+        // A fast disconnect must not race a pending online registration.
+        await presenceRegistration;
         await markUserOffline(userId, socket.id);
         if (await isUserOnline(userId)) return; // user still has another socket open
+        await broadcastUserPresence(userId);
 
         const searchingSquads = await Squad.find({
           'members.userId': userId,

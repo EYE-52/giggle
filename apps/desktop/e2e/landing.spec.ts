@@ -5,8 +5,8 @@ test("landing exposes the product and one primary start action", async ({ page }
 
   const hero = page.getByTestId("giggle-hero");
   await expect(hero).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1, name: /meet new people.*bring your friends/i })).toBeVisible();
-  await expect(hero.getByRole("link", { name: /create your account/i })).toHaveAttribute("href", "/signin");
+  await expect(page.getByRole("heading", { level: 1, name: /^Good company\.\s*Great nonsense\.$/ })).toBeVisible();
+  await expect(hero.getByRole("link", { name: /^Start a hangout$/i })).toHaveAttribute("href", "/signin");
 
   await page.screenshot({
     path: `artifacts/visual-audit/2026-07-12/landing/${testInfo.project.name}-baseline.png`,
@@ -41,7 +41,7 @@ test("landing navigation, start action, and legal links work by keyboard", async
   await expect(privacy).toHaveAttribute("href", "/privacy");
   await expect(terms).toHaveAttribute("href", "/terms");
 
-  for (const name of ["Giggle home", "Sign in", "Create your account"]) {
+  for (const name of ["Giggle home", "Sign in", "Start a hangout"]) {
     await page.keyboard.press("Tab");
     await expect(page.getByRole("link", { name, exact: true }).first()).toBeFocused();
   }

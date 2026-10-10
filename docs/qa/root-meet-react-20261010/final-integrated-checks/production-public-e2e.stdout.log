@@ -1,0 +1,13 @@
+
+Running 8 tests using 1 worker
+
+[1/8] [phone] › e2e/entry.spec.ts:3:5 › welcome and sign-in keep their main action reachable on small screens
+[2/8] [phone] › e2e/landing.spec.ts:3:5 › landing exposes the product and one primary start action
+[3/8] [phone] › e2e/landing.spec.ts:16:5 › landing stays within the viewport without browser failures
+[4/8] [phone] › e2e/landing.spec.ts:35:5 › landing navigation, start action, and legal links work by keyboard
+[5/8] [desktop] › e2e/entry.spec.ts:3:5 › welcome and sign-in keep their main action reachable on small screens
+[6/8] [desktop] › e2e/landing.spec.ts:3:5 › landing exposes the product and one primary start action
+[7/8] [desktop] › e2e/landing.spec.ts:16:5 › landing stays within the viewport without browser failures
+[8/8] [desktop] › e2e/landing.spec.ts:35:5 › landing navigation, start action, and legal links work by keyboard
+  1 skipped
+  7 passed (3.3s)

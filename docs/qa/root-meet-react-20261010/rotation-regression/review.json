@@ -1,0 +1,33 @@
+{
+  "commit": "2a2e0c8",
+  "sourceHashes": {
+    "apps/desktop/components/FocusVideoStage.tsx": "9b09af59744b313453207667d0954bddbec39720a2bc5e6bd31b3023741f530f",
+    "apps/desktop/components/FocusVideoStage.module.css": "a2557dbe9c271072927df132ee809f5281491061c601d60fae347722ac879ccf",
+    "packages/core/src/focusLayout.ts": "02f89c42cd32f401296d172f91bdd319f3075a2c239faef538829f3eacab1de2",
+    "apps/desktop/app/dev/call-stage/CallStageHarness.tsx": "1ed70ce17ae80bb7bc7c6fecf21f02023542240a14faa2c085753a4d98f7af72"
+  },
+  "sourceUnchanged": true,
+  "fixture": "ordinary Playwright participant controls plus synthetic canvas media; no physicalRTC",
+  "baselineRepeat5": {
+    "failed": 1,
+    "passed": 4,
+    "element": "mine-2",
+    "bottom": 390.828125,
+    "viewportBottom": 390,
+    "threshold": 390.5,
+    "stageAnimating": false,
+    "computedTransitionDuration": "0s",
+    "liveAnimationProperty": "top",
+    "liveAnimationTimeMs": 136.587,
+    "settledBottom": 380
+  },
+  "proposal": "Cancel only live left/top/width/height CSS transitions on participant cells inside existing ResizeObserver snap; preserve non-position media/reactions and zoomglide. No implementation pending root review.",
+  "testObservationDelay": "600ms is diagnostic settled observation only; original two-frame geometry assertion retained unchanged",
+  "service": {
+    "port": 4024,
+    "pid": 50755,
+    "session": 68038,
+    "cwd": "/tmp/giggle-tablet-rotation-rca-20261010/apps/desktop",
+    "command": "Node24 next dev --webpack -p4024"
+  }
+}

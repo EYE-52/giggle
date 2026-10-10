@@ -1,0 +1,19 @@
+{
+  "change": "Cancel only positional CSS transitions on participant hosts during ResizeObserver snap",
+  "tabletexactpath5repeat": "PASS5/5 with live positional count0, originaltwoframesgeometry/mediaidentity/focus",
+  "profiles": "PASS tablet768x1024, reducedtablet768x1024, portrait390x844, landscape844x400, desktop1440x900 allto844x390",
+  "normalglide": "Makebigger producesrunningCSStransition beforepin/resize undernonreducedmotion; no assertionsforcingstate",
+  "retainedlimits": [
+    "Original1/5 failure preserved",
+    "Landscape same-size844x390 probe timedout resize diagnostic as no resize occurred, correctedprofile844x400",
+    "Initialcandidate test returnedtransitioncount without assertion; correctedfinalsource/assertionsrerun",
+    "No physicaldevice, liveRTC, connectedChrome or providerclaims"
+  ],
+  "service": {
+    "port": 4024,
+    "pid": 50755,
+    "session": 68038,
+    "readyForRootNativeReview": true
+  },
+  "sharedSource": "unchanged; no commit/deploy"
+}

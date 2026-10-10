@@ -40,10 +40,15 @@ async function signInTestAccount(request: APIRequestContext) {
   }
   const avatar = await request.patch(`${API}/api/me/profile`, { headers: auth, data: { avatar: TEST_AVATAR } });
   expect(avatar.ok(), await avatar.text()).toBe(true);
+  const savedAvatar = await avatar.json();
+  expect(savedAvatar.data.avatar).toBe(TEST_AVATAR);
+  const profile = await request.get(`${API}/api/me/profile`, { headers: auth });
+  expect(profile.ok(), await profile.text()).toBe(true);
+  expect((await profile.json()).data.avatar).toBe(TEST_AVATAR);
   return { token, user, auth };
 }
 
-test("signed-in production app works end to end", async ({ page, request }) => {
+test("signed-in production app works end to end", async ({ page, request }, testInfo) => {
   test.setTimeout(90_000);
   const { token, user, auth } = await signInTestAccount(request);
   const consoleErrors: string[] = [];
@@ -59,13 +64,16 @@ test("signed-in production app works end to end", async ({ page, request }) => {
   }, [token, user] as const);
 
   await page.goto("/home");
-  await expect(page.getByRole("heading", { level: 1, name: /your squad|start a squad/i })).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByRole("link", { name: "Your profile" }).getByRole("img", { name: "Teal Bot" })).toBeVisible();
+  for (const name of ["Friends", "Squads"]) {
+    await expect(page.getByRole("main").getByRole("region", { name, exact: true }).getByRole("heading", { level: 2, name, exact: true })).toBeVisible({ timeout: 20_000 });
+  }
+  await expect(page.getByRole("region", { name: "Your squad", exact: true }).getByRole("button", { name: "Start a squad", exact: true })).toBeEnabled();
+  await expect(page.getByRole("link", { name: "Your profile" }).getByRole("img", { name: "Giggle character" })).toBeVisible();
 
   await page.goto("/friends");
   await expect(page.getByRole("heading", { level: 1, name: /^friends$/i })).toBeVisible();
   await page.goto("/premium");
-  await expect(page.getByRole("heading", { level: 1, name: /^wallet$/i })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: /^Wallet & Giggle\+$/ })).toBeVisible();
   await page.goto("/profile");
   await expect(page.getByRole("heading", { name: "Interests" })).toBeVisible();
 
@@ -78,8 +86,22 @@ test("signed-in production app works end to end", async ({ page, request }) => {
   const squadId = new URL(page.url()).searchParams.get("squad");
   try {
     await expect(page.getByTestId("lobby-person")).toHaveCount(1);
-    await expect(page.locator("strong").filter({ hasText: /^[A-Z]{3}-\d{3}$/ })).toBeVisible();
-    await expect(page.getByTestId("lobby-person").getByRole("img", { name: "Teal Bot" })).toBeVisible();
+    if (testInfo.project.name === "desktop") {
+      await expect(page.locator("strong").filter({ hasText: /^[A-Z]{3}-\d{3}$/ })).toBeVisible();
+    }
+    const invite = page.getByRole("button", { name: "Invite friends", exact: true });
+    await expect(invite).toBeInViewport();
+    await invite.click();
+    const dialog = page.getByRole("dialog", { name: "Invite friends", exact: true });
+    await expect(dialog.locator("strong").filter({ hasText: /^[A-Z]{3}-\d{3}$/ })).toBeVisible();
+    for (const name of ["Copy code", "Copy invite link"]) {
+      await expect(dialog.getByRole("button", { name, exact: true })).toBeVisible();
+      await expect(dialog.getByRole("button", { name, exact: true })).toBeEnabled();
+    }
+    await dialog.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(invite).toBeFocused();
+    await expect(page.getByTestId("lobby-person").getByRole("img", { name: "Giggle character" })).toBeVisible();
   } finally {
     if (squadId) await request.post(`${API}/api/squads/${squadId}/leave`, { headers: auth });
   }

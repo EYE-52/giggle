@@ -1,0 +1,10 @@
+{
+  "apps/desktop/components/FocusVideoStage.tsx": {
+    "frozen": "9b09af59744b313453207667d0954bddbec39720a2bc5e6bd31b3023741f530f",
+    "candidate": "b7e7828e7b456cc5562fdc807149fbef752bb303c41d556efc498ea5b88d0e1a"
+  },
+  "apps/desktop/e2e/encounter.spec.ts": {
+    "frozen": "b9996befdf9d99b1cbc94b536e02cf6adfbccb0c33a0f711e18c2103bbaf7401",
+    "candidate": "bd2c27e0a5f060ea8d2b2d0082ba1dfb7e2c6f2b4b1ef95fafffbb8d00d54f62"
+  }
+}

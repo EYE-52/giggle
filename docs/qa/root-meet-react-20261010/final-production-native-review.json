@@ -1,0 +1,94 @@
+{
+  "sourceCommit": "adf55d0f8a6a3e250c87ddca5b1ad23fe0151107",
+  "nativeBrowser": "Chrome extension",
+  "syntheticLocalOrigin": "http://localhost:4015",
+  "compiledSourceChanged": false,
+  "assetObservations": [
+    {
+      "path": "/_next/static/chunks/0eh6ow1gm9bh7.css",
+      "sha256": "c2d19c1bffe68d90e96954c1ff27c3ae6fcad53d06d496c4e60255ff0b30bcfe",
+      "expected": "c2d19c1bffe68d90e96954c1ff27c3ae6fcad53d06d496c4e60255ff0b30bcfe",
+      "match": true
+    },
+    {
+      "path": "/_next/static/chunks/1n5716ldm362p.css",
+      "sha256": "195f87cd36072625b74fd42a024065821dfdd8fc5ec5b0d2886e3ae8e77b7fba",
+      "expected": "195f87cd36072625b74fd42a024065821dfdd8fc5ec5b0d2886e3ae8e77b7fba",
+      "match": true
+    },
+    {
+      "path": "/_next/static/chunks/2-3hy33pv29uo.css",
+      "sha256": "9c5b011daa5ca838d79bd761f294c79a1ba9b412a18434f734a300bc11846ba2",
+      "expected": "9c5b011daa5ca838d79bd761f294c79a1ba9b412a18434f734a300bc11846ba2",
+      "match": true
+    },
+    {
+      "path": "/_next/static/chunks/29-41x9mqif3e.css",
+      "sha256": "497797e9baba7b7ca1ff0f2b930df438ce2198dee5e66b3b5731fbfa742435b2",
+      "expected": "497797e9baba7b7ca1ff0f2b930df438ce2198dee5e66b3b5731fbfa742435b2",
+      "match": true
+    },
+    {
+      "path": "/_next/static/chunks/2ol0js_a_gugp.css",
+      "sha256": "11739ea49801d7bdc440b99e6753b339a833a5136cb16935919547a194c5ad9c",
+      "expected": "11739ea49801d7bdc440b99e6753b339a833a5136cb16935919547a194c5ad9c",
+      "match": true
+    },
+    {
+      "path": "/_next/static/chunks/2tqau-xpheg_y.css",
+      "sha256": "da8fd82829b499d52b18ce37a73c792eb411cf2e97d2b41b5f78e23583aeaa62",
+      "expected": "da8fd82829b499d52b18ce37a73c792eb411cf2e97d2b41b5f78e23583aeaa62",
+      "match": true
+    },
+    {
+      "path": "/_next/static/chunks/36rg22ao7qtlg.css",
+      "sha256": "7058977e2e548cb2a33d212cb316be8be2dfc237be53fa4d98d31565d398da41",
+      "expected": "7058977e2e548cb2a33d212cb316be8be2dfc237be53fa4d98d31565d398da41",
+      "match": true
+    },
+    {
+      "path": "/_next/static/chunks/3my9-zx41o-nv.css",
+      "sha256": "0180d83f8c94426592f96e0feaa8ce9a0ac9097f4cb550251e2a7002f1207bc6",
+      "expected": "0180d83f8c94426592f96e0feaa8ce9a0ac9097f4cb550251e2a7002f1207bc6",
+      "match": true
+    }
+  ],
+  "orderedRouteCss": {
+    "phone-games-fallback-floating": [
+      "/_next/static/chunks/3my9-zx41o-nv.css",
+      "/_next/static/chunks/29-41x9mqif3e.css",
+      "/_next/static/chunks/2tqau-xpheg_y.css",
+      "/_next/static/chunks/36rg22ao7qtlg.css",
+      "/_next/static/chunks/2-3hy33pv29uo.css",
+      "/_next/static/chunks/1n5716ldm362p.css",
+      "/_next/static/chunks/0eh6ow1gm9bh7.css"
+    ],
+    "phone-signin": [
+      "/_next/static/chunks/3my9-zx41o-nv.css",
+      "/_next/static/chunks/29-41x9mqif3e.css",
+      "/_next/static/chunks/2tqau-xpheg_y.css",
+      "/_next/static/chunks/36rg22ao7qtlg.css",
+      "/_next/static/chunks/2-3hy33pv29uo.css",
+      "/_next/static/chunks/2ol0js_a_gugp.css"
+    ]
+  },
+  "gamesChild": "Expected fail-closed: production parse rejects configured HTTP loopback Games URL; no client policy override",
+  "nativeAcceptance": [
+    "ordinary synthetic session and squad creation",
+    "compiled Lobby568x320 controls",
+    "phone Floating Games unavailable controls",
+    "tablet Chat stage uses720x828whenGamesopen",
+    "ordinary devices dialogCancel and Backhome",
+    "synthetic origin session cleared through UI",
+    "phone productionSign-in has48pxGooglebutton"
+  ],
+  "pending": [
+    "HTTPS embeddedGames onrealwww afterdeploy",
+    "realOAuth",
+    "RTC",
+    "physicaltouch/softkeyboard",
+    "nativeSafari",
+    "heardgameaudio"
+  ],
+  "temporaryStorage": "Only4015synthetic session cleared; existing4011/userproduction sessions unchanged"
+}

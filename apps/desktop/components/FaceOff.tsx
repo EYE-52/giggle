@@ -27,7 +27,8 @@ export type FaceOffSide = { name: string; people: FaceOffPerson[] };
  * other, a status line and the actions underneath. A live squad stays first
  * on phones; the empty search card becomes a small status strip.
  */
-export function FaceOff({ mine, theirs, searching = false, status, actions, top, mineContent }: {
+export function FaceOff({ mine, theirs, searching = false, status, actions, top, mineContent, compactHandoff = false }: {
+  compactHandoff?: boolean;
   mine: FaceOffSide | null;
   /** null while searching or loading */
   theirs: FaceOffSide | null;
@@ -39,7 +40,7 @@ export function FaceOff({ mine, theirs, searching = false, status, actions, top,
   mineContent?: ReactNode;
 }) {
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${compactHandoff ? styles.compactHandoff : ""}`}>
       {top}
       <div className={styles.arena} data-live={!!mineContent || undefined} data-state={theirs ? "matched" : searching ? "searching" : "loading"} data-count={Math.max(mine?.people.length ?? 3, theirs?.people.length ?? 3)}>
         <Side side={theirs} placeholder={searching ? "Looking for a squad" : ""} kind="theirs" />
@@ -47,7 +48,7 @@ export function FaceOff({ mine, theirs, searching = false, status, actions, top,
         <Side side={mine} kind="mine" content={mineContent} />
       </div>
       <div className={styles.foot}>
-        <div role="status" aria-live="polite" className={styles.status}>{status}</div>
+        <div role="status" aria-live="polite" tabIndex={compactHandoff ? 0 : undefined} className={styles.status}>{status}</div>
         {actions && <div className={styles.actions}>{actions}</div>}
       </div>
     </div>

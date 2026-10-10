@@ -1,0 +1,11 @@
+{
+  "originalHelperRefusals": "Resolved /private/tmp was compared to /tmp command spelling. Primary initially also rejected dev launcher whose dependency path resolves through a shared node_modules symlink; that launcher was preserved until exact recorded argv, canonical cwd, process group and child were verified.",
+  "stoppedOwnedGroups": [
+    8888,
+    8889,
+    80011,
+    80012
+  ],
+  "nextChildVerified": 80290,
+  "noUnrelatedProcessesStopped": true
+}

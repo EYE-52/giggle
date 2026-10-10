@@ -39,7 +39,7 @@ import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoS
 import { Modal } from "@/components/Modal";
 import type { CaptureState, ConnectionState, RemoteParticipant, VideoClient } from "@giggle/agora";
 import { squadCall, useSquadCall } from "@/lib/squadCall";
-import { useViewport } from "@/components/useViewport";
+import { chatUsesStage, useViewport } from "@/components/useViewport";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
 import { useGamesEnabled } from "@/lib/games";
 import { REACTIONS, ReactionGlyph } from "@/components/Reaction";
@@ -312,13 +312,14 @@ function EncounterInner() {
   useEffect(() => {
     try { setChromeAlways(localStorage.getItem("giggle.callChrome") === "always"); } catch {}
   }, []);
-  const [keyboardInset, setKeyboardInset] = useState(0);
   const chatButtonRef = useRef<HTMLButtonElement | null>(null);
   const moreButtonRef = useRef<HTMLButtonElement | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
 
-  const { width, height, isPhone } = useViewport();
+  const { width, height, isPhone, viewportInset } = useViewport();
   const isPhoneChrome = isPhone || height <= 500;
+  const chatTakesStage = chatUsesStage(width, height, gameOpen && GAMES_ENABLED);
+  const keyboardInset = chatOpen || gameOpen && GAMES_ENABLED ? viewportInset : 0;
 
   function closeMore(restoreFocus = false) {
     setMoreOpen(false);
@@ -348,20 +349,6 @@ function EncounterInner() {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [moreOpen, isPhoneChrome]);
-
-  useEffect(() => {
-    if (!chatOpen || width >= 1180) {
-      setKeyboardInset(0);
-      return;
-    }
-    const viewport = window.visualViewport;
-    if (!viewport) return;
-    const sync = () =>
-      setKeyboardInset(Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop));
-    sync();
-    viewport.addEventListener("resize", sync);
-    return () => viewport.removeEventListener("resize", sync);
-  }, [chatOpen, width]);
 
   useSquadCall(squadId);
   const vcRef = useRef<VideoClient | null>(null);
@@ -1277,6 +1264,7 @@ function EncounterInner() {
         data-testid="encounter-shell"
         className="gg-screen-call"
         data-games={gameOpen && GAMES_ENABLED || undefined}
+        data-short-games={gameOpen && GAMES_ENABLED && height - keyboardInset <= 500 || undefined}
         data-chrome={chromeShown || chromeAlways ? "shown" : "hidden"}
         style={{
           position: "relative",
@@ -1301,7 +1289,7 @@ function EncounterInner() {
             flexShrink: 0,
             zIndex: 30,
             // on a phone the open chat takes the whole screen; the header steps aside
-            visibility: isPhoneChrome && chatOpen ? "hidden" : undefined,
+            visibility: chatUsesStage(width, height, false) && chatOpen ? "hidden" : undefined,
             overflow: "hidden",
             maxWidth: "100vw",
           }}
@@ -1412,10 +1400,35 @@ function EncounterInner() {
           </div>
         </div>
 
+        {/* Recoverable failures share one bounded flow row above the rails.
+            Retry/Dismiss remain reachable without covering game or video. */}
+        {(recoveryMessages.length > 0 || failedReaction) && <div data-testid="recovery-notices" className={feedbackStyles.recoveryRows}>
+          {recoveryMessages.length > 0 && (
+            <div data-testid="media-recovery-notice" role="alert" className={feedbackStyles.mediaRecovery}>
+              <span aria-hidden className={feedbackStyles.recoveryDot} />
+              <span className={feedbackStyles.recoveryText}>{recoveryMessages.join(" ")}</span>
+              <div className={feedbackStyles.recoveryActions}>
+                <button className={feedbackStyles.recoveryRetry} onClick={retryVideo} disabled={videoRetrying}>
+                  {videoRetrying ? "Retrying…" : "Retry devices"}
+                </button>
+                {videoError && <button className={feedbackStyles.dismiss} onClick={() => setVideoError(null)} title="Dismiss" aria-label="Dismiss media notice"><Icon.close size={16} /></button>}
+              </div>
+            </div>
+          )}
+          {failedReaction && <div role="alert" data-testid="reaction-error" className={feedbackStyles.mediaRecovery}>
+            <span className={feedbackStyles.recoveryText}>Reaction wasn’t sent. Check your connection and retry.</span>
+            <div className={feedbackStyles.recoveryActions}>
+              <button type="button" className={feedbackStyles.recoveryRetry} onClick={() => fireReaction(failedReaction, true)}>Retry reaction</button>
+              <button type="button" className={feedbackStyles.dismiss} aria-label="Dismiss reaction error" onClick={dismissReactionError}><Icon.close size={16} /></button>
+            </div>
+          </div>}
+        </div>}
+
         {/* ── MAIN AREA ────────────────────────────────────────────────────── */}
         <div
           className={`gg-encounter-content ${chatOpen ? "gg-chat-open" : ""} ${gameOpen && GAMES_ENABLED ? "gg-games-open" : ""}`}
           data-games-layout={gameOpen && GAMES_ENABLED ? effectiveLayout : undefined}
+          data-chat-stage={chatTakesStage && chatOpen || undefined}
           style={{
             display: "flex",
             position: "relative",
@@ -1430,7 +1443,7 @@ function EncounterInner() {
               layout, game, and close changes; on a phone the game hides
               (never unmounts) while chat takes the screen. */}
           {gameOpen && GAMES_ENABLED && (
-            <section data-testid="encounter-game-stage" className={`gg-encounter-game ${cameraStyles.companion}`} hidden={isPhone && chatOpen} aria-label="Encounter games">
+            <section data-testid="encounter-game-stage" className={`gg-encounter-game ${cameraStyles.companion}`} hidden={chatTakesStage && chatOpen} aria-label="Encounter games">
               <GamePanel squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
             </section>
           )}
@@ -1439,7 +1452,7 @@ function EncounterInner() {
             data-testid="video-stage"
             className={`${floatingStyles.shell} ${cameraStyles.shell}`}
             data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={stageScene?.mode}
-            hidden={isPhone && chatOpen}
+            hidden={chatTakesStage && chatOpen}
             data-floating-call={gameOpen && GAMES_ENABLED && effectiveLayout === "floating" || undefined}
             data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}
             style={{
@@ -1454,87 +1467,6 @@ function EncounterInner() {
           >
             {gameOpen && GAMES_ENABLED && effectiveLayout === "floating" && <FloatingCallTools corner={callCorner} collapsed={callCollapsed} onCornerChange={setCallCorner} onToggle={() => setCallCollapsed(value => !value)} />}
             {stageScene && <CameraGameCaption scene={stageScene} />}
-            {recoveryMessages.length > 0 && (
-              <div
-                data-testid="media-recovery-notice"
-                role="alert"
-                style={{
-                  // In flow (not floating) so it never covers a person's tile; it only
-                  // appears while video can't start and can be dismissed.
-                  flexShrink: 0,
-                  alignSelf: "center",
-                  margin: isPhoneChrome ? "52px 12px 6px" : "60px 12px 8px",
-                  maxWidth: "calc(100% - 24px)",
-                  display: "flex",
-                  alignItems: "center",
-                  flexWrap: "nowrap",
-                  gap: 10,
-                  background: "var(--surface, rgba(22,22,30,0.97))",
-                  backgroundImage: "linear-gradient(var(--coral-soft), var(--coral-soft))",
-                  border: "1px solid color-mix(in srgb, var(--coral) 38%, transparent)",
-                  borderRadius: 12,
-                  padding: "9px 12px 9px 14px",
-                  boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
-                }}
-              >
-                <span
-                  aria-hidden
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: 999,
-                    background: coral,
-                    flexShrink: 0,
-                  }}
-                />
-                <span
-                  style={{ fontSize: 13, fontWeight: 600, color: textPrimary, lineHeight: 1.4, minWidth: 0, flex: "1 1 auto" }}
-                >
-                {recoveryMessages.join(" ")}
-                </span>
-                <button
-                  onClick={retryVideo}
-                  disabled={videoRetrying}
-                  style={{
-                    minHeight: 44,
-                    padding: "0 13px",
-                    borderRadius: 999,
-                    border: "var(--control-border)",
-                    background: "var(--overlay)",
-                    color: textPrimary,
-                    fontWeight: 700,
-                    cursor: videoRetrying ? "default" : "pointer",
-                  }}
-                >
-                  {videoRetrying ? "Retrying…" : "Retry devices"}
-                </button>
-                {videoError && (
-                  <button
-                    onClick={() => setVideoError(null)}
-                    title="Dismiss"
-                    aria-label="Dismiss media notice"
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      color: textMuted,
-                      fontSize: 16,
-                      width: 44,
-                      height: 44,
-                      padding: 0,
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            )}
-            {failedReaction && <div role="alert" data-testid="reaction-error" className={feedbackStyles.reactionError}
-              style={{ margin: recoveryMessages.length ? "0 12px 6px" : isPhoneChrome ? "52px 12px 6px" : "60px 12px 8px" }}>
-              <span>Reaction wasn’t sent. Check your connection and retry.</span>
-              <Button variant="secondary" size="sm" onClick={() => fireReaction(failedReaction, true)}>Retry reaction</Button>
-              <button type="button" className={feedbackStyles.dismiss} aria-label="Dismiss reaction error" onClick={dismissReactionError}><Icon.close size={16} /></button>
-            </div>}
             {/* Top toast stack — banners stack vertically instead of overlapping */}
             <div
               style={{
@@ -1798,7 +1730,7 @@ function EncounterInner() {
                       alignItems: "center",
                       justifyContent: "center",
                       "--cbtn-bg": background,
-                      "--cbtn-fg": off ? "#fff" : selected ? "var(--accent)" : "var(--text)",
+                      "--cbtn-fg": off ? "#fff" : selected ? "var(--accent-ink, var(--accent))" : "var(--text)",
                     } as CSSProperties}
                   >
                     {icon}

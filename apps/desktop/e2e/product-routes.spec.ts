@@ -2,11 +2,11 @@ import { expect, test } from "@playwright/test";
 import { openProtectedRoute } from './helpers';
 
 const routes = [
-  { path: "/home", slug: "home", heading: /your squad|start a squad/i, action: /start a squad/i },
-  { path: "/discover", slug: "discover", heading: /discover squads/i, action: /surprise me|create a squad|preview/i },
+  { path: "/home", slug: "home", heading: null, action: /^Start a squad$/ },
+  { path: "/discover", slug: "discover", heading: /^Discover$/, action: /^Create a squad$/ },
   { path: "/friends", slug: "friends", heading: /^friends$/i, action: /search (?:people )?by name/i },
   { path: "/profile", slug: "profile", heading: /.+/, action: /edit avatar/i },
-  { path: "/premium", slug: "premium", heading: /^wallet$/i, action: /^back$/i },
+  { path: "/premium", slug: "premium", heading: /^Wallet & Giggle\+$/, action: /^Back to profile$/ },
 ] as const;
 
 for (const route of routes) {
@@ -27,7 +27,14 @@ for (const route of routes) {
     await openProtectedRoute(page, route.path);
     openingRoute = false;
     const main = page.getByRole("main");
-    await expect(main.getByRole("heading", { level: 1, name: route.heading }).first()).toBeVisible();
+    if (route.slug === "home") {
+      for (const name of ["Friends", "Squads"]) {
+        await expect(main.getByRole("region", { name, exact: true }).getByRole("heading", { level: 2, name, exact: true })).toBeVisible();
+      }
+      await expect(main.getByRole("region", { name: "Your squad", exact: true }).getByRole("button", { name: "Start a squad", exact: true })).toBeEnabled();
+    } else {
+      await expect(main.getByRole("heading", { level: 1, name: route.heading! })).toBeVisible();
+    }
 
     const command = main.getByRole("button", { name: route.action })
       .or(main.getByRole("link", { name: route.action }))
@@ -35,7 +42,8 @@ for (const route of routes) {
       .first();
     await expect(command).toBeVisible();
     if (route.slug === "premium") {
-      await expect(main.getByText(/launching soon/i)).toBeVisible();
+      await expect(main.getByLabel(/^\d+ earned credits$/)).toBeVisible();
+      await expect(main.getByRole("heading", { level: 2, name: "Giggle+", exact: true })).toBeVisible();
       await expect(main.getByRole("button", { name: /buy|subscribe|checkout/i })).toHaveCount(0);
     }
     await expect.poll(() => page.locator("#main-content > div").evaluate(node => getComputedStyle(node).opacity)).toBe("1");
@@ -65,7 +73,14 @@ test("compact phone routes keep their primary action usable without clipping", a
     for (const route of routes) {
       await openProtectedRoute(page, route.path);
       const main = page.getByRole("main");
-      await expect(main.getByRole("heading", { level: 1, name: route.heading }).first()).toBeVisible();
+      if (route.slug === "home") {
+        for (const name of ["Friends", "Squads"]) {
+          await expect(main.getByRole("region", { name, exact: true }).getByRole("heading", { level: 2, name, exact: true })).toBeVisible();
+        }
+        await expect(main.getByRole("region", { name: "Your squad", exact: true }).getByRole("button", { name: "Start a squad", exact: true })).toBeEnabled();
+      } else {
+        await expect(main.getByRole("heading", { level: 1, name: route.heading! })).toBeVisible();
+      }
 
       const command = main.getByRole("button", { name: route.action })
         .or(main.getByRole("link", { name: route.action }))

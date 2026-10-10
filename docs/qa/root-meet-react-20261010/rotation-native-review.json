@@ -1,0 +1,30 @@
+{
+  "reviewedAt": "2026-10-10T17:20:07.106907+00:00",
+  "scope": "Primary nativeChrome candidate visual/geometry/ordinarymenu review, separate from headless2-frame transient regression. Synthetic media fixture, not RTC or UI aesthetic approval of diagnostic test colors.",
+  "sourceCommitIntegrated": "adf55d0f8a6a3e250c87ddca5b1ad23fe0151107",
+  "candidatePatchSHA256": "eddeb20bfdecc5b0757017728ef8babbf6489e18ed92c0b0f14988872fcb6cdd",
+  "nativeActions": [
+    "Ordinary Mayaoptions\u2192Makebigger\u2192options\u2192Keepthissize; viewport768x1024\u2192844x390",
+    "Allfourboxes within844x390, maxima380px bottom; pinnedMayaweight2",
+    "Same3syntheticstream IDs retained ready4; focusMayaoptions"
+  ],
+  "nativeTransientAnimationsMeasured": false,
+  "inspectionLimits": [
+    "Read-onlyCUADOM scope does not exposegetAnimations; firstattemptraisedTypeError in inspection, not product. Subsequent unbound-variable attempt was corrected. No app source or browser state modified by those failed reads.",
+    "No browserresponsehashinterception; nativepixels alone are not immutablebundle proof."
+  ],
+  "agentRegression": "Exacttablet5repeat +responsive profiles passed; originalinvalidreducedMotionfixtureclaim withdrawn. Correct contextOptions.reducedMotion rerun independently passed. Guardedcandidate5profiles/tsc pass.",
+  "sourceReview": "Cell-local getAnimations only; transitionPropertyguard filtersleft/top/width/height; no subtree/media/reaction cancellation/remount/timeouts; normalzoom assertion retained.",
+  "evidenceFiles": [
+    {
+      "path": "rotation-native.png",
+      "bytes": 27756,
+      "sha256": "fb3e5ab11ee2e2640c6448010d3dbda3ea0ad40eb0278d68656b7d0233fc6efb"
+    },
+    {
+      "path": "rotation-native-facts.json",
+      "bytes": 1548,
+      "sha256": "5dbc03f174e8eb4ad940b028177c6e19217660b63f7025e6bf98ef57d81a2ee9"
+    }
+  ]
+}

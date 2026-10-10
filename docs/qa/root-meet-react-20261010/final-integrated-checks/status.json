@@ -1,0 +1,53 @@
+{
+  "pnpm-install": {
+    "exitCode": 0,
+    "elapsedSeconds": 5.36934232711792
+  },
+  "npm-ci": {
+    "exitCode": 0,
+    "elapsedSeconds": 2.6768949031829834
+  },
+  "desktop-tests": {
+    "exitCode": 0,
+    "elapsedSeconds": 0.7053670883178711
+  },
+  "replica-init": {
+    "exitCode": 0,
+    "elapsedSeconds": 1.6240358352661133
+  },
+  "tsc": {
+    "exitCode": 0,
+    "elapsedSeconds": 2.7942850589752197
+  },
+  "production-build": {
+    "exitCode": 0,
+    "elapsedSeconds": 8.037564039230347
+  },
+  "productionArtifactSHA256": "ee9da3ffce0f7fe30a7081390672f3d9e9e1945253fc26a2eb86d5ea03252f4b",
+  "verify-deploy-bundle": {
+    "exitCode": 0,
+    "elapsedSeconds": 20.65640616416931
+  },
+  "development-e2e": {
+    "exitCode": 0,
+    "elapsedSeconds": 247.49591088294983
+  },
+  "production-protected-e2e": {
+    "exitCode": 0,
+    "elapsedSeconds": 15.347947120666504
+  },
+  "production-public-e2e": {
+    "exitCode": 0,
+    "elapsedSeconds": 3.642324924468994
+  },
+  "production-local-smoke": {
+    "exitCode": 0,
+    "elapsedSeconds": 7.321906805038452
+  },
+  "completed": true,
+  "previewReady": true,
+  "deletedEphemeralStateSHA256": "91705d9ce4a6e375cdb0d92ebecaea511876ea2508533b7783e20349b94a12d5",
+  "ownedServicesStopped": true,
+  "executionSourceChanges": [],
+  "frozenSourceUnchanged": true
+}

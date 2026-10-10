@@ -22,7 +22,7 @@ import { Button } from "@/components/Button";
 import { api, connectSocket, SOCKET_EVENTS, session, subscribeChat, joinChat } from "@giggle/core";
 import { coverKind, coverBackground } from "@/components/covers";
 import type { SquadState, SquadMemberState, JoinRequestUser } from "@giggle/core";
-import { useViewport } from "@/components/useViewport";
+import { chatUsesStage, useViewport } from "@/components/useViewport";
 import { useTheme } from "@/components/useTheme";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
 import { useGamesEnabled } from "@/lib/games";
@@ -38,7 +38,7 @@ function LobbyInner() {
   const WEB_DISCOVERY_ENABLED = useDiscoveryEnabled() === true;
   // squad games follow the API switch (see lib/games)
   const GAMES_ENABLED = useGamesEnabled() === true;
-  const { isPhone } = useViewport();
+  const { isPhone, width, height, viewportInset } = useViewport();
   const themeId = useTheme();
   const router = useRouter();
   const params = useSearchParams();
@@ -107,6 +107,7 @@ function LobbyInner() {
   // Squad games open INSIDE this lobby (no navigation): the stage mounts
   // beside the seats while vcRef, media nodes, and call controls stay put.
   const [gameOpen, setGameOpen] = useState(false);
+  const chatTakesStage = chatUsesStage(width, height, gameOpen, true);
   // Contextual video: the child's hint (auto), the user's override pin, and
   // the focused seat. The override persists across game changes until Auto;
   // Closing games resets the layout, focus and floating call controls.
@@ -759,7 +760,7 @@ function LobbyInner() {
   }
 
   return (
-    <div className={`gg-lobby-root gg-screen ${styles.page}`} data-testid="lobby-page" data-chat={chatVisible || undefined}>
+    <div className={`gg-lobby-root gg-screen ${styles.page}`} data-testid="lobby-page" data-chat={chatVisible || undefined} data-games={gameOpen || undefined} data-short-games={gameOpen && height - viewportInset <= 500 || undefined} style={{ marginBottom: chatVisible || gameOpen ? viewportInset : undefined }}>
       <header className={styles.bar}>
         <Link href="/home" className={`icon-btn ${styles.iconBtn} ${styles.back}`} aria-label="Back home"><Icon.chevron size={20} /></Link>
         {squad.coverImage && <span aria-hidden="true" className={styles.cover} style={{ background: coverBackground(squad.coverImage, coverKind(squad.coverImage, themeId)) }} />}
@@ -770,7 +771,7 @@ function LobbyInner() {
             {currentTags.map(tag => <span key={tag} className={styles.interest}>{tag}</span>)}
           </span>
         </div>
-        {isLeader && <button type="button" className={`icon-btn ${styles.iconBtn}`} aria-label="Edit squad topics" onClick={() => { setSelectedVibes([...currentTags]); setVibeEditorOpen(true); }}><Icon.star size={19} color="currentColor" /></button>}
+        {isLeader && <button type="button" className={`icon-btn ${styles.iconBtn} ${styles.topicEdit}`} aria-label="Edit squad topics" onClick={() => { setSelectedVibes([...currentTags]); setVibeEditorOpen(true); }}><Icon.star size={19} color="currentColor" /></button>}
         <button type="button" className={`${styles.codeChip}`} aria-label={`Copy squad code ${squad.squadCode}`} onClick={() => void copyToClipboard(squad.squadCode, () => setCodeCopied(true), "Couldn't copy the code.")}>
           <strong className={styles.codeText}>{squad.squadCode}</strong>
           <span className={styles.codeHint}>{codeCopied ? "Copied" : <Icon.copy size={16} />}</span>
@@ -786,13 +787,13 @@ function LobbyInner() {
       </header>
       {(matchError || connTrouble) && <div role="alert" className={styles.notice}>{matchError || "Connection lost. Reconnecting to your squad…"}<Button variant="ghost" size="sm" onClick={() => void fetchSquad()}>Retry</Button></div>}
 
-      <div className={styles.body} data-games={gameOpen || undefined} data-layout={gameOpen ? effectiveLayout : undefined}>
+      <div className={styles.body} data-games={gameOpen || undefined} data-layout={gameOpen ? effectiveLayout : undefined} data-chat-stage={chatTakesStage && chatVisible || undefined}>
         {gameOpen && (
-          <section className={styles.stage} hidden={isPhone && chatVisible} aria-label="Squad games">
+          <section className={styles.stage} hidden={chatTakesStage && chatVisible} aria-label="Squad games">
             <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
           </section>
         )}
-        <section className={`${styles.seats} ${floatingStyles.shell} ${cameraStyles.shell}`} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={isPhone && chatVisible} aria-label="Squad members"
+        <section className={`${styles.seats} ${floatingStyles.shell} ${cameraStyles.shell}`} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={chatTakesStage && chatVisible} aria-label="Squad members"
           data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={stageScene?.mode}
           data-floating-call={gameOpen && effectiveLayout === "floating" || undefined}
           data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}>
@@ -809,9 +810,9 @@ function LobbyInner() {
               style={stageScene ? cameraTiles.get(member.userId) : undefined}>
               <div className={styles.face}><PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size="fill" /></div>
               {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
-              <div className={styles.seatLabel}>
-                <span className={styles.seatName}><span className={styles.nameText}>{isMe ? "You" : member.displayName}</span>{member.memberId === squad.leaderMemberId && <span className={styles.memberRole}>Leader</span>}</span>
-                {WEB_DISCOVERY_ENABLED && member.ready && <span className={styles.ready}><Icon.check size={12} weight="regular" />Ready</span>}
+              <div className={styles.seatLabel} data-call-person-label>
+                <span className={styles.seatName} data-call-person-name><span className={styles.nameText}>{isMe ? "You" : member.displayName}</span>{member.memberId === squad.leaderMemberId && <span className={styles.memberRole}>Leader</span>}</span>
+                {WEB_DISCOVERY_ENABLED && member.ready && <span className={styles.ready} data-call-person-ready><Icon.check size={12} weight="regular" />Ready</span>}
                 {(isMe ? videoJoined && !micOn : remote && !remote.hasAudio) && <span className={styles.state}>Mic off</span>}
                 {remote?.mutedForMe && <span className={styles.state}>Muted for you</span>}
                 {offline ? <span className={styles.state}>Offline</span> : !showVideo ? <span className={styles.state} aria-label="Camera off" title="Camera off"><Icon.camOff size={14} weight="regular" /><span className={styles.cameraStateText}>Camera off</span></span> : null}
@@ -840,7 +841,7 @@ function LobbyInner() {
               <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.audio} aria-pressed={!micOn} onClick={() => void toggleDevice("audio")} aria-label={micOn ? "Mute microphone" : "Turn on microphone"} title={micOn ? "Mute microphone" : "Turn on microphone"} data-off={!micOn || undefined}>{micOn ? <Icon.mic size={22} weight="regular" /> : <Icon.micOff size={22} weight="regular" />}</button>
               <button type="button" className={styles.devBtn} disabled={videoJoining || deviceBusy.video} aria-pressed={!camOn} onClick={() => void toggleDevice("video")} aria-label={camOn ? "Turn camera off" : "Turn camera on"} title={camOn ? "Turn camera off" : "Turn camera on"} data-off={!camOn || undefined}>{camOn ? <Icon.cam size={22} weight="regular" /> : <Icon.camOff size={22} weight="regular" />}</button>
             </div>
-            <span id="lobby-match-status" className={`muted ${styles.readyLine}`} role="status">{videoJoining ? <><span className="gg-spinner" aria-hidden="true" /> Connecting your devices…</> : readyLine}</span>
+            <span id="lobby-match-status" className={`muted ${styles.readyLine}`} data-joining={videoJoining || undefined} role="status">{videoJoining ? <><span className="gg-spinner" aria-hidden="true" /> Connecting your devices…</> : readyLine}</span>
             {WEB_DISCOVERY_ENABLED && !isLeader && <Button variant={myReady ? "secondary" : "primary"} loading={settingReady} onClick={handleReady}>{myReady ? "Not ready" : <><span className={styles.wide}>I&apos;m ready to join</span><span className={styles.narrow}>I&apos;m ready</span></>}</Button>}
             <Button variant={isLeader ? "primary" : "secondary"} disabled={!WEB_DISCOVERY_ENABLED || !isLeader || !othersReady || findingMatch} loading={findingMatch} onClick={handleFindMatch} aria-describedby="lobby-match-status">Find a squad<Icon.arrowRight size={18} weight="regular" /></Button>
           </div>

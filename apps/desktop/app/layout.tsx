@@ -28,6 +28,7 @@ import "./skins/scrap-real.css";
 import "./skins/play-real.css";
 import "./skins/paper-real.css";
 import "./skins/soft-real.css";
+import "./call-room.css";
 import { SketchLayer } from "@/components/SketchLayer";
 
 const cabinet = localFont({

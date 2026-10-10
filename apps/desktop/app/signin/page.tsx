@@ -1,14 +1,14 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Wordmark } from "@/components/Brand";
+import { Logomark } from "@/components/Brand";
 import { Icon } from "@/components/Icons";
 import { session, setPendingReferral, getPendingReferral, BACKEND_URL } from "@giggle/core";
-import { HangoutIllustration } from "@/components/HangoutIllustration";
-import community from "@/components/Community.module.css";
+import styles from "./signin.module.css";
 
 type SignInStatus = "idle" | "redirecting" | "dev" | "failed";
+type OAuthAttempt = { controller: AbortController; watchdog: number };
 const AUTH_NEXT_KEY = "giggle.auth.next";
 
 function safeNextPath(value: string | null) {
@@ -23,19 +23,26 @@ export default function AuthPage() {
   const [err, setErr] = useState("");
   const [refCode, setRefCode] = useState<string | null>(null);
   const [nextPath, setNextPath] = useState("/home");
+  const oauthAttempt = useRef<OAuthAttempt | null>(null);
+  const mounted = useRef(true);
   const busy = status === "redirecting" || status === "dev";
 
-  // Redirect watchdog: the OAuth handoff is a full-page navigation, so if we're
-  // still here 8s after starting it, something is stuck — recover to idle.
+  const cancelOAuth = useCallback(() => {
+    const attempt = oauthAttempt.current;
+    oauthAttempt.current = null;
+    if (attempt) {
+      window.clearTimeout(attempt.watchdog);
+      attempt.controller.abort();
+    }
+  }, []);
+
   useEffect(() => {
-    if (status !== "redirecting") return;
-    const id = window.setTimeout(() => {
-      setStatus("idle");
-      setActiveProvider(null);
-      setErr("Taking longer than expected — try again.");
-    }, 8000);
-    return () => window.clearTimeout(id);
-  }, [status]);
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      cancelOAuth();
+    };
+  }, [cancelOAuth]);
 
   // Capture an inbound invite code (?ref=CODE) and remember it through signup.
   useEffect(() => {
@@ -56,19 +63,35 @@ export default function AuthPage() {
   // email), so two windows are two different users — required for 2-squad testing.
   // session.devSignIn() still consumes any captured ?ref via the shared sign-in path.
   const devFinish = useCallback(async () => {
+    cancelOAuth();
     setStatus("dev"); setErr("");
     try {
       await session.devSignIn();
+      if (!mounted.current) return;
       router.push(nextPath);
     } catch (error: unknown) {
+      if (!mounted.current) return;
       setErr(error instanceof Error ? error.message : "Sign in failed. Try again.");
       setStatus("failed");
     }
-  }, [nextPath, router]);
+  }, [nextPath, router, cancelOAuth]);
 
   // Real OAuth: full-page redirect to the Express backend, which redirects to
   // Google consent and then back to /auth/callback#token=<jwt>.
   const oauthRedirect = async (provider: "google" | "apple") => {
+    cancelOAuth();
+    const attempt: OAuthAttempt = { controller: new AbortController(), watchdog: 0 };
+    oauthAttempt.current = attempt;
+    const isCurrent = () => mounted.current && oauthAttempt.current === attempt && !attempt.controller.signal.aborted;
+    // A timed-out request is retired before the form unlocks. Even if a server
+    // ignores cancellation, its late response cannot redirect a newer attempt.
+    attempt.watchdog = window.setTimeout(() => {
+      if (!isCurrent()) return;
+      cancelOAuth();
+      setStatus("idle");
+      setActiveProvider(null);
+      setErr("Taking longer than expected — try again.");
+    }, 8000);
     setErr("");
     setStatus("redirecting");
     setActiveProvider(provider);
@@ -84,13 +107,17 @@ export default function AuthPage() {
         credentials: "same-origin",
         redirect: "manual",
         cache: "no-store",
+        signal: attempt.controller.signal,
       });
+      if (!isCurrent()) return;
       const handoffReady = response.ok
         || response.type === "opaqueredirect"
         || (response.status >= 300 && response.status < 400);
       if (!handoffReady) {
         const failure = await response.json().catch(() => null);
+        if (!isCurrent()) return;
         if (failure?.error?.code === "PROVIDER_NOT_CONFIGURED") {
+          cancelOAuth();
           setErr(process.env.NODE_ENV !== "production"
             ? "Google sign-in is not configured locally. Use the dev account below to test the app."
             : "Google sign-in is unavailable right now. Please try again later.");
@@ -100,8 +127,11 @@ export default function AuthPage() {
         }
         throw new Error("AUTH_UNAVAILABLE");
       }
+      window.clearTimeout(attempt.watchdog);
       window.location.assign(destination);
     } catch {
+      if (!isCurrent()) return;
+      cancelOAuth();
       setErr(`We couldn't reach ${provider === "google" ? "Google" : "Apple"} sign-in. Check your connection and try again.`);
       setStatus("failed");
       setActiveProvider(null);
@@ -109,64 +139,48 @@ export default function AuthPage() {
   };
 
   return (
-    <main className={`gg-landing ${community.auth}`}>
-      <div className={`page-head ${community.authIntro}`}>
-        <Link href="/" className={community.backLink}>← Back to Giggle</Link>
-        <h2 className="title">Get your squad<br /><em>together.</em></h2>
-        <p className="lede">Create a squad, invite your friends, and join a video call.</p>
-        <div className={community.authArt}><HangoutIllustration /></div>
-      </div>
-      <section className={`card ${community.authCard}`}>
-        <div className={community.authBrand}>
-          <Wordmark size={24} />
-        </div>
+    <main className={styles.screen} data-testid="signin-page">
+      <Link href="/" className={styles.backLink}><Icon.chevron size={18} /> Back to Giggle</Link>
+      <div className={styles.content}>
+        <section className={styles.card} aria-labelledby="signin-title" aria-busy={busy}>
+          <div className={styles.brand} aria-label="Giggle"><Logomark size={40} /><span>giggle</span></div>
+          <div className={styles.intro}>
+            <h1 id="signin-title" className={styles.heading}>Sign in to Giggle</h1>
+            <p className={styles.description}>Sign in or create an account with Google.</p>
+          </div>
 
-        <h1 className={community.authHeading}>Sign in to Giggle</h1>
-        <p className={community.authSub}>Use Google to sign in or create an account.</p>
+          {refCode && <p className={styles.refNote}><Icon.gift size={18} /> Using a friend&apos;s invite.</p>}
 
-        {refCode && <div className={community.refNote}><Icon.gift size={17} color="currentColor" /> Using a friend&apos;s invite.</div>}
-
-        <div style={{ display: "grid", gap: 10 }}>
-          <button
-            className="gg-press gg-btn btn btn-secondary"
-            onClick={() => oauthRedirect("google")}
-            disabled={busy}
-            style={{ width: "100%", whiteSpace: "nowrap", opacity: busy ? 0.7 : 1, cursor: busy ? "wait" : "pointer" }}
-          >
+          <button type="button" className={styles.primary} onClick={() => oauthRedirect("google")} disabled={busy} aria-describedby="signin-profile-note">
             {status === "redirecting" && activeProvider === "google"
-              ? (<><span className="gg-spinner" aria-hidden /> Opening Google...</>)
+              ? (<><span className="gg-spinner" aria-hidden /> Opening Google…</>)
               : (<><Icon.google size={20} /> Continue with Google</>)}
           </button>
-
           {/* Apple Sign-In is not configured yet (needs an Apple Developer
               service ID + key on the backend). Re-add the button once
               APPLE_* env vars are set, so we never ship a dead provider. */}
-        </div>
 
-        <p className={community.finePrint}>We use your name and email to create your profile. We never post on your behalf.</p>
-        {err && (
-          <div style={{ marginTop: 12 }}>
-            <p role="alert" className={community.authError}>{err}</p>
-            <button onClick={() => { setErr(""); setStatus("idle"); }} className={community.retry}>Try again</button>
-          </div>
-        )}
-        <p className={community.finePrint}>By continuing, you agree to our <Link href="/terms" className={community.legalLink}>Terms</Link> and <Link href="/privacy" className={community.legalLink}>Privacy Policy</Link>.</p>
+          <p id="signin-profile-note" className={styles.profileNote}>We use your name and email to create your profile. We never post on your behalf.</p>
+          {status === "redirecting" && <p className={styles.handoff} role="status">Opening Google sign-in…</p>}
+          {err && <div className={styles.errorBox}>
+            <p role="alert" className={styles.error}>{err}</p>
+            <button type="button" onClick={() => { setErr(""); setStatus("idle"); }} className={styles.retry}>Try again</button>
+          </div>}
 
-        {process.env.NODE_ENV !== "production" && (
-          <div className={community.devBox}>
-          <p className={community.devTitle}>Local testing</p>
-          <p className={community.finePrint}>Open a test account without Google or age verification. Use another browser profile to test with a second person.</p>
-          <button
-            className="gg-press gg-btn btn btn-primary"
-            onClick={devFinish}
-            disabled={busy}
-            style={{ width: "100%" }}
-          >
-            {status === "dev" ? "Opening dev account..." : "Use dev account"}
-          </button>
+          <div className={styles.legal}>
+            <p>By continuing, you agree to our:</p>
+            <div className={styles.legalLinks}><Link href="/terms">Terms</Link><Link href="/privacy">Privacy Policy</Link></div>
           </div>
-        )}
-      </section>
+
+          {process.env.NODE_ENV !== "production" && <div className={styles.devBox}>
+            <p className={styles.devTitle}>Local testing</p>
+            <p className={styles.devNote}>Open a test account without Google.</p>
+            <button type="button" className={styles.secondary} onClick={devFinish} disabled={busy}>
+              {status === "dev" ? "Opening dev account…" : "Use dev account"}
+            </button>
+          </div>}
+        </section>
+      </div>
     </main>
   );
 }

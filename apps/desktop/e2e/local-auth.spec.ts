@@ -1,5 +1,32 @@
 import { expect, test } from '@playwright/test';
 
+// Exact shipped Bob preset: persistence must not silently retain the default.
+const PICKED_AVATAR = 'giggle:v1:' + JSON.stringify({
+  "hair": "bob",
+  "face": "round",
+  "glasses": "none",
+  "facialHair": "none",
+  "expression": "surprised",
+  "clothing": "sweater",
+  "headwear": "none",
+  "earrings": "hoops",
+  "necklace": "none",
+  "headphones": false,
+  "skin": "#f6d4b8",
+  "hairColor": "#39302e",
+  "accent": "#93b8d4",
+  "shirtColor": "#2f6f5e",
+  "accessoryColor": "#d2a951",
+  "faceWidth": 35,
+  "eyeSize": 50,
+  "eyeSpacing": 40,
+  "browTilt": 50,
+  "noseSize": 50,
+  "mouthWidth": 50,
+  "freckles": false,
+  "animated": true
+});
+
 // Opt-in: creates synthetic users against the running local API, without mocks.
 test.skip(process.env.GIGGLE_LOCAL_AUTH_E2E !== 'true', 'Requires local API with DEV_AUTH_ENABLED=true');
 
@@ -32,15 +59,28 @@ test('a new account picks a shared avatar once and friends-facing surfaces use i
     await page.getByRole('button', { name: 'Use dev account', exact: true }).click();
     const picker = page.getByRole('dialog', { name: 'Pick your avatar' });
     await expect(picker).toBeVisible();
-    await picker.getByRole('button', { name: 'Teal Bot' }).click();
+    await picker.getByRole('button', { name: 'Bob', exact: true }).click();
     const saved = page.waitForResponse(response => response.url().endsWith('/api/me/profile') && response.request().method() === 'PATCH');
     await picker.getByRole('button', { name: 'Save', exact: true }).click();
-    expect((await (await saved).json()).data.avatar).toBe('teal-bot');
+    const savedResponse = await saved;
+    expect(savedResponse.status()).toBe(200);
+    expect(savedResponse.request().postDataJSON().avatar).toBe(PICKED_AVATAR);
+    expect((await savedResponse.json()).data.avatar).toBe(PICKED_AVATAR);
+    const profile = await page.request.get(savedResponse.url(), { headers: { authorization: (await savedResponse.request().allHeaders()).authorization } });
+    expect(profile.status()).toBe(200);
+    expect((await profile.json()).data.avatar).toBe(PICKED_AVATAR);
     await expect(picker).toBeHidden();
 
     await page.reload();
     await expect(page.getByRole('main')).toBeVisible();
     await expect(page.getByRole('dialog', { name: 'Pick your avatar' })).toHaveCount(0);
+    await page.goto('/profile');
+    const profileAvatar = page.getByRole('button', { name: 'Edit avatar', exact: true }).getByRole('img', { name: 'Giggle character', exact: true });
+    await expect(profileAvatar).toBeVisible();
+    // Bob's sky background and green sweater distinguish the picked look
+    // from the default Curls amber background and terracotta shirt.
+    await expect(profileAvatar.locator('circle[fill="#93b8d4"]').first()).toBeVisible();
+    await expect(profileAvatar.locator('path[fill="#2f6f5e"]').first()).toBeVisible();
   } finally {
     await context.close();
   }
@@ -54,8 +94,14 @@ test('squad-mates see the avatar a member picked', async ({ browser }) => {
     await leader.goto('/signin');
     await leader.getByRole('button', { name: 'Use dev account', exact: true }).click();
     const picker = leader.getByRole('dialog', { name: 'Pick your avatar' });
-    await picker.getByRole('button', { name: 'Orange Cat' }).click();
+    await picker.getByRole('button', { name: 'Bob', exact: true }).click();
+    const saved = leader.waitForResponse(response => response.url().endsWith('/api/me/profile') && response.request().method() === 'PATCH');
     await picker.getByRole('button', { name: 'Save', exact: true }).click();
+    const savedResponse = await saved;
+    expect(savedResponse.status()).toBe(200);
+    expect((await savedResponse.json()).data.avatar).toBe(PICKED_AVATAR);
+    const profile = await leader.request.get(savedResponse.url(), { headers: { authorization: (await savedResponse.request().allHeaders()).authorization } });
+    expect((await profile.json()).data.avatar).toBe(PICKED_AVATAR);
     await expect(picker).toBeHidden();
 
     await leader.getByRole('button', { name: 'Start a squad', exact: true }).click();
@@ -69,7 +115,10 @@ test('squad-mates see the avatar a member picked', async ({ browser }) => {
     const leaderName = await leader.evaluate(() => localStorage.getItem('giggle.devname') ?? '');
     expect(leaderName).not.toBe('');
     const leaderTile = friend.getByTestId('lobby-person').filter({ hasText: leaderName });
-    await expect(leaderTile.getByRole('img', { name: 'Orange Cat' })).toBeVisible();
+    const leaderAvatar = leaderTile.getByRole('img', { name: 'Giggle character', exact: true });
+    await expect(leaderAvatar).toBeVisible();
+    await expect(leaderAvatar.locator('circle[fill="#93b8d4"]').first()).toBeVisible();
+    await expect(leaderAvatar.locator('path[fill="#2f6f5e"]').first()).toBeVisible();
   } finally {
     await Promise.all([leaderContext.close(), friendContext.close()]);
   }

@@ -1,0 +1,270 @@
+
+Running 265 tests using 1 worker
+
+[1/265] [phone] › e2e/encounter.spec.ts:3:5 › failed viewer mute keeps the menu open and retry preserves video
+[2/265] [phone] › e2e/encounter.spec.ts:26:5 › real participant controls preserve synthetic streams and restore focus
+[3/265] [phone] › e2e/encounter.spec.ts:349:5 › an ended encounter link shows recovery actions without starting media
+[4/265] [phone] › e2e/encounter.spec.ts:362:5 › call action focus enters the popup and returns after Escape and leave cancellation
+[5/265] [phone] › e2e/encounter.spec.ts:398:5 › report confirmation preserves its draft after failure without clearing media recovery
+[6/265] [phone] › e2e/encounter.spec.ts:430:5 › ending shows immediate feedback during a delayed failure and keeps recovery visible
+[7/265] [phone] › e2e/encounter.spec.ts:447:5 › opponent blocking is confirmed and leaves only after both server steps
+[8/265] [phone] › e2e/encounter.spec.ts:541:5 › fixture encounter keeps media, chat, and controls usable across resize
+[9/265] [phone] › e2e/encounter.spec.ts:701:5 › encounter chat retry is acknowledged without duplicating the sender
+[10/265] [phone] › e2e/encounter.spec.ts:720:5 › a squadmate ending the call shows recovery and returns our squad to its lobby
+[11/265] [phone] › e2e/encounter.spec.ts:731:5 › opponent ending preserves a clear recovery state
+[12/265] [phone] › e2e/encounter.spec.ts:751:5 › mocked rosters stay usable across the viewport matrix
+[13/265] [phone] › e2e/encounter.spec.ts:834:5 › mixed portrait, square, landscape, and ultrawide feeds stay inside their frames
+[14/265] [phone] › e2e/encounter.spec.ts:872:5 › mocked call chrome keeps dialogs, themes, and zoom usable
+[15/265] [phone] › e2e/encounter.spec.ts:1004:5 › personal leave updates only this member and does not end the encounter
+[16/265] [phone] › e2e/encounter.spec.ts:1019:5 › call chrome fades when idle and wakes on input
+[17/265] [phone] › e2e/entry.spec.ts:3:5 › welcome and sign-in keep their main action reachable on small screens
+[18/265] [phone] › e2e/landing.spec.ts:3:5 › landing exposes the product and one primary start action
+[19/265] [phone] › e2e/landing.spec.ts:16:5 › landing stays within the viewport without browser failures
+[20/265] [phone] › e2e/landing.spec.ts:35:5 › landing navigation, start action, and legal links work by keyboard
+[21/265] [phone] › e2e/match.spec.ts:159:5 › route-mocked handoff exposes loading, both rosters, and the active theme
+[22/265] [phone] › e2e/match.spec.ts:174:5 › join acknowledgement stays retryable and navigates only after success
+[23/265] [phone] › e2e/match.spec.ts:192:5 › expired handoff offers recovery without entering the room
+[24/265] [phone] › e2e/match.spec.ts:202:5 › leader can skip while a member sees leader authority
+[25/265] [phone] › e2e/match.spec.ts:218:7 › short landscape 844x390 reduce keeps handoff actions visible
+[26/265] [phone] › e2e/match.spec.ts:218:7 › short landscape 844x390 no-preference keeps handoff actions visible
+[27/265] [phone] › e2e/match.spec.ts:218:7 › short landscape 568x320 reduce keeps handoff actions visible
+[28/265] [phone] › e2e/match.spec.ts:218:7 › short landscape 568x320 no-preference keeps handoff actions visible
+[29/265] [phone] › e2e/match.spec.ts:218:7 › short landscape 667x375 reduce keeps handoff actions visible
+[30/265] [phone] › e2e/match.spec.ts:218:7 › short landscape 667x375 no-preference keeps handoff actions visible
+[31/265] [phone] › e2e/match.spec.ts:218:7 › short landscape 390x320 reduce keeps handoff actions visible
+[32/265] [phone] › e2e/match.spec.ts:218:7 › short landscape 390x320 no-preference keeps handoff actions visible
+[33/265] [phone] › e2e/match.spec.ts:251:5 › a first acknowledgement waits for the opponent without starting media
+[34/265] [phone] › e2e/match.spec.ts:266:5 › a pending call link resumes its acknowledged handoff instead of opening devices
+[35/265] [phone] › e2e/match.spec.ts:276:6 › short landscape retains actions and full handoff error
+[36/265] [phone] › e2e/match.spec.ts:276:6 › short landscape retains actions and full action error
+[37/265] [phone] › e2e/match.spec.ts:276:6 › short landscape retains actions and full waiting error
+[38/265] [phone] › e2e/matchmaking.spec.ts:117:5 › matchmaking explains progress and cancels back to the lobby
+[39/265] [phone] › e2e/matchmaking.spec.ts:139:5 › failed cancellation stays in queue and succeeds on retry
+[40/265] [phone] › e2e/navigation.spec.ts:4:5 › navigation is curated for each device class
+[41/265] [phone] › e2e/photo-match.spec.ts:167:5 › photo entry stays hidden when the feature is disabled or the visitor is signed out
+[42/265] [phone] › e2e/photo-match.spec.ts:185:5 › matching a photo offers three options; Apply stages them and Save is still required
+[43/265] [phone] › e2e/photo-match.spec.ts:258:5 › no_face gets a specific friendly line and recovery actions
+[44/265] [phone] › e2e/photo-match.spec.ts:278:5 › QUOTA_EXCEEDED shows a calm message and never the raw server error
+[45/265] [phone] › e2e/product-routes.spec.ts:13:7 › /home exposes one clear first task without runtime failures
+[46/265] [phone] › e2e/product-routes.spec.ts:13:7 › /discover exposes one clear first task without runtime failures
+[47/265] [phone] › e2e/product-routes.spec.ts:13:7 › /friends exposes one clear first task without runtime failures
+[48/265] [phone] › e2e/product-routes.spec.ts:13:7 › /profile exposes one clear first task without runtime failures
+[49/265] [phone] › e2e/product-routes.spec.ts:13:7 › /premium exposes one clear first task without runtime failures
+[50/265] [phone] › e2e/product-routes.spec.ts:64:5 › compact phone routes keep their primary action usable without clipping
+[51/265] [phone] › e2e/product-routes.spec.ts:106:5 › join code field uses one shared focus ring
+[52/265] [phone] › e2e/shell-accessibility.spec.ts:4:5 › app shell exposes keyboard navigation and readable text tokens
+[53/265] [phone] › e2e/shell-accessibility.spec.ts:73:5 › phone shell keeps primary touch targets at least 44 CSS pixels
+[54/265] [tablet] › e2e/encounter.spec.ts:3:5 › failed viewer mute keeps the menu open and retry preserves video
+[55/265] [tablet] › e2e/encounter.spec.ts:26:5 › real participant controls preserve synthetic streams and restore focus
+[56/265] [tablet] › e2e/encounter.spec.ts:349:5 › an ended encounter link shows recovery actions without starting media
+[57/265] [tablet] › e2e/encounter.spec.ts:362:5 › call action focus enters the popup and returns after Escape and leave cancellation
+[58/265] [tablet] › e2e/encounter.spec.ts:398:5 › report confirmation preserves its draft after failure without clearing media recovery
+[59/265] [tablet] › e2e/encounter.spec.ts:430:5 › ending shows immediate feedback during a delayed failure and keeps recovery visible
+[60/265] [tablet] › e2e/encounter.spec.ts:447:5 › opponent blocking is confirmed and leaves only after both server steps
+[61/265] [tablet] › e2e/encounter.spec.ts:541:5 › fixture encounter keeps media, chat, and controls usable across resize
+[62/265] [tablet] › e2e/encounter.spec.ts:701:5 › encounter chat retry is acknowledged without duplicating the sender
+[63/265] [tablet] › e2e/encounter.spec.ts:720:5 › a squadmate ending the call shows recovery and returns our squad to its lobby
+[64/265] [tablet] › e2e/encounter.spec.ts:731:5 › opponent ending preserves a clear recovery state
+[65/265] [tablet] › e2e/encounter.spec.ts:751:5 › mocked rosters stay usable across the viewport matrix
+[66/265] [tablet] › e2e/encounter.spec.ts:834:5 › mixed portrait, square, landscape, and ultrawide feeds stay inside their frames
+[67/265] [tablet] › e2e/encounter.spec.ts:872:5 › mocked call chrome keeps dialogs, themes, and zoom usable
+[68/265] [tablet] › e2e/encounter.spec.ts:1004:5 › personal leave updates only this member and does not end the encounter
+[69/265] [tablet] › e2e/encounter.spec.ts:1019:5 › call chrome fades when idle and wakes on input
+[70/265] [tablet] › e2e/entry.spec.ts:3:5 › welcome and sign-in keep their main action reachable on small screens
+[71/265] [tablet] › e2e/landing.spec.ts:3:5 › landing exposes the product and one primary start action
+[72/265] [tablet] › e2e/landing.spec.ts:16:5 › landing stays within the viewport without browser failures
+[73/265] [tablet] › e2e/landing.spec.ts:35:5 › landing navigation, start action, and legal links work by keyboard
+[74/265] [tablet] › e2e/match.spec.ts:159:5 › route-mocked handoff exposes loading, both rosters, and the active theme
+[75/265] [tablet] › e2e/match.spec.ts:174:5 › join acknowledgement stays retryable and navigates only after success
+[76/265] [tablet] › e2e/match.spec.ts:192:5 › expired handoff offers recovery without entering the room
+[77/265] [tablet] › e2e/match.spec.ts:202:5 › leader can skip while a member sees leader authority
+[78/265] [tablet] › e2e/match.spec.ts:218:7 › short landscape 844x390 reduce keeps handoff actions visible
+[79/265] [tablet] › e2e/match.spec.ts:218:7 › short landscape 844x390 no-preference keeps handoff actions visible
+[80/265] [tablet] › e2e/match.spec.ts:218:7 › short landscape 568x320 reduce keeps handoff actions visible
+[81/265] [tablet] › e2e/match.spec.ts:218:7 › short landscape 568x320 no-preference keeps handoff actions visible
+[82/265] [tablet] › e2e/match.spec.ts:218:7 › short landscape 667x375 reduce keeps handoff actions visible
+[83/265] [tablet] › e2e/match.spec.ts:218:7 › short landscape 667x375 no-preference keeps handoff actions visible
+[84/265] [tablet] › e2e/match.spec.ts:218:7 › short landscape 390x320 reduce keeps handoff actions visible
+[85/265] [tablet] › e2e/match.spec.ts:218:7 › short landscape 390x320 no-preference keeps handoff actions visible
+[86/265] [tablet] › e2e/match.spec.ts:251:5 › a first acknowledgement waits for the opponent without starting media
+[87/265] [tablet] › e2e/match.spec.ts:266:5 › a pending call link resumes its acknowledged handoff instead of opening devices
+[88/265] [tablet] › e2e/match.spec.ts:276:6 › short landscape retains actions and full handoff error
+[89/265] [tablet] › e2e/match.spec.ts:276:6 › short landscape retains actions and full action error
+[90/265] [tablet] › e2e/match.spec.ts:276:6 › short landscape retains actions and full waiting error
+[91/265] [tablet] › e2e/matchmaking.spec.ts:117:5 › matchmaking explains progress and cancels back to the lobby
+[92/265] [tablet] › e2e/matchmaking.spec.ts:139:5 › failed cancellation stays in queue and succeeds on retry
+[93/265] [tablet] › e2e/navigation.spec.ts:4:5 › navigation is curated for each device class
+[94/265] [tablet] › e2e/photo-match.spec.ts:167:5 › photo entry stays hidden when the feature is disabled or the visitor is signed out
+[95/265] [tablet] › e2e/photo-match.spec.ts:185:5 › matching a photo offers three options; Apply stages them and Save is still required
+[96/265] [tablet] › e2e/photo-match.spec.ts:258:5 › no_face gets a specific friendly line and recovery actions
+[97/265] [tablet] › e2e/photo-match.spec.ts:278:5 › QUOTA_EXCEEDED shows a calm message and never the raw server error
+[98/265] [tablet] › e2e/product-routes.spec.ts:13:7 › /home exposes one clear first task without runtime failures
+[99/265] [tablet] › e2e/product-routes.spec.ts:13:7 › /discover exposes one clear first task without runtime failures
+[100/265] [tablet] › e2e/product-routes.spec.ts:13:7 › /friends exposes one clear first task without runtime failures
+[101/265] [tablet] › e2e/product-routes.spec.ts:13:7 › /profile exposes one clear first task without runtime failures
+[102/265] [tablet] › e2e/product-routes.spec.ts:13:7 › /premium exposes one clear first task without runtime failures
+[103/265] [tablet] › e2e/product-routes.spec.ts:64:5 › compact phone routes keep their primary action usable without clipping
+[104/265] [tablet] › e2e/product-routes.spec.ts:106:5 › join code field uses one shared focus ring
+[105/265] [tablet] › e2e/shell-accessibility.spec.ts:4:5 › app shell exposes keyboard navigation and readable text tokens
+[106/265] [tablet] › e2e/shell-accessibility.spec.ts:73:5 › phone shell keeps primary touch targets at least 44 CSS pixels
+[107/265] [laptop] › e2e/encounter.spec.ts:3:5 › failed viewer mute keeps the menu open and retry preserves video
+[108/265] [laptop] › e2e/encounter.spec.ts:26:5 › real participant controls preserve synthetic streams and restore focus
+[109/265] [laptop] › e2e/encounter.spec.ts:349:5 › an ended encounter link shows recovery actions without starting media
+[110/265] [laptop] › e2e/encounter.spec.ts:362:5 › call action focus enters the popup and returns after Escape and leave cancellation
+[111/265] [laptop] › e2e/encounter.spec.ts:398:5 › report confirmation preserves its draft after failure without clearing media recovery
+[112/265] [laptop] › e2e/encounter.spec.ts:430:5 › ending shows immediate feedback during a delayed failure and keeps recovery visible
+[113/265] [laptop] › e2e/encounter.spec.ts:447:5 › opponent blocking is confirmed and leaves only after both server steps
+[114/265] [laptop] › e2e/encounter.spec.ts:541:5 › fixture encounter keeps media, chat, and controls usable across resize
+[115/265] [laptop] › e2e/encounter.spec.ts:701:5 › encounter chat retry is acknowledged without duplicating the sender
+[116/265] [laptop] › e2e/encounter.spec.ts:720:5 › a squadmate ending the call shows recovery and returns our squad to its lobby
+[117/265] [laptop] › e2e/encounter.spec.ts:731:5 › opponent ending preserves a clear recovery state
+[118/265] [laptop] › e2e/encounter.spec.ts:751:5 › mocked rosters stay usable across the viewport matrix
+[119/265] [laptop] › e2e/encounter.spec.ts:834:5 › mixed portrait, square, landscape, and ultrawide feeds stay inside their frames
+[120/265] [laptop] › e2e/encounter.spec.ts:872:5 › mocked call chrome keeps dialogs, themes, and zoom usable
+[121/265] [laptop] › e2e/encounter.spec.ts:1004:5 › personal leave updates only this member and does not end the encounter
+[122/265] [laptop] › e2e/encounter.spec.ts:1019:5 › call chrome fades when idle and wakes on input
+[123/265] [laptop] › e2e/entry.spec.ts:3:5 › welcome and sign-in keep their main action reachable on small screens
+[124/265] [laptop] › e2e/landing.spec.ts:3:5 › landing exposes the product and one primary start action
+[125/265] [laptop] › e2e/landing.spec.ts:16:5 › landing stays within the viewport without browser failures
+[126/265] [laptop] › e2e/landing.spec.ts:35:5 › landing navigation, start action, and legal links work by keyboard
+[127/265] [laptop] › e2e/match.spec.ts:159:5 › route-mocked handoff exposes loading, both rosters, and the active theme
+[128/265] [laptop] › e2e/match.spec.ts:174:5 › join acknowledgement stays retryable and navigates only after success
+[129/265] [laptop] › e2e/match.spec.ts:192:5 › expired handoff offers recovery without entering the room
+[130/265] [laptop] › e2e/match.spec.ts:202:5 › leader can skip while a member sees leader authority
+[131/265] [laptop] › e2e/match.spec.ts:218:7 › short landscape 844x390 reduce keeps handoff actions visible
+[132/265] [laptop] › e2e/match.spec.ts:218:7 › short landscape 844x390 no-preference keeps handoff actions visible
+[133/265] [laptop] › e2e/match.spec.ts:218:7 › short landscape 568x320 reduce keeps handoff actions visible
+[134/265] [laptop] › e2e/match.spec.ts:218:7 › short landscape 568x320 no-preference keeps handoff actions visible
+[135/265] [laptop] › e2e/match.spec.ts:218:7 › short landscape 667x375 reduce keeps handoff actions visible
+[136/265] [laptop] › e2e/match.spec.ts:218:7 › short landscape 667x375 no-preference keeps handoff actions visible
+[137/265] [laptop] › e2e/match.spec.ts:218:7 › short landscape 390x320 reduce keeps handoff actions visible
+[138/265] [laptop] › e2e/match.spec.ts:218:7 › short landscape 390x320 no-preference keeps handoff actions visible
+[139/265] [laptop] › e2e/match.spec.ts:251:5 › a first acknowledgement waits for the opponent without starting media
+[140/265] [laptop] › e2e/match.spec.ts:266:5 › a pending call link resumes its acknowledged handoff instead of opening devices
+[141/265] [laptop] › e2e/match.spec.ts:276:6 › short landscape retains actions and full handoff error
+[142/265] [laptop] › e2e/match.spec.ts:276:6 › short landscape retains actions and full action error
+[143/265] [laptop] › e2e/match.spec.ts:276:6 › short landscape retains actions and full waiting error
+[144/265] [laptop] › e2e/matchmaking.spec.ts:117:5 › matchmaking explains progress and cancels back to the lobby
+[145/265] [laptop] › e2e/matchmaking.spec.ts:139:5 › failed cancellation stays in queue and succeeds on retry
+[146/265] [laptop] › e2e/navigation.spec.ts:4:5 › navigation is curated for each device class
+[147/265] [laptop] › e2e/photo-match.spec.ts:167:5 › photo entry stays hidden when the feature is disabled or the visitor is signed out
+[148/265] [laptop] › e2e/photo-match.spec.ts:185:5 › matching a photo offers three options; Apply stages them and Save is still required
+[149/265] [laptop] › e2e/photo-match.spec.ts:258:5 › no_face gets a specific friendly line and recovery actions
+[150/265] [laptop] › e2e/photo-match.spec.ts:278:5 › QUOTA_EXCEEDED shows a calm message and never the raw server error
+[151/265] [laptop] › e2e/product-routes.spec.ts:13:7 › /home exposes one clear first task without runtime failures
+[152/265] [laptop] › e2e/product-routes.spec.ts:13:7 › /discover exposes one clear first task without runtime failures
+[153/265] [laptop] › e2e/product-routes.spec.ts:13:7 › /friends exposes one clear first task without runtime failures
+[154/265] [laptop] › e2e/product-routes.spec.ts:13:7 › /profile exposes one clear first task without runtime failures
+[155/265] [laptop] › e2e/product-routes.spec.ts:13:7 › /premium exposes one clear first task without runtime failures
+[156/265] [laptop] › e2e/product-routes.spec.ts:64:5 › compact phone routes keep their primary action usable without clipping
+[157/265] [laptop] › e2e/product-routes.spec.ts:106:5 › join code field uses one shared focus ring
+[158/265] [laptop] › e2e/shell-accessibility.spec.ts:4:5 › app shell exposes keyboard navigation and readable text tokens
+[159/265] [laptop] › e2e/shell-accessibility.spec.ts:73:5 › phone shell keeps primary touch targets at least 44 CSS pixels
+[160/265] [desktop] › e2e/encounter.spec.ts:3:5 › failed viewer mute keeps the menu open and retry preserves video
+[161/265] [desktop] › e2e/encounter.spec.ts:26:5 › real participant controls preserve synthetic streams and restore focus
+[162/265] [desktop] › e2e/encounter.spec.ts:349:5 › an ended encounter link shows recovery actions without starting media
+[163/265] [desktop] › e2e/encounter.spec.ts:362:5 › call action focus enters the popup and returns after Escape and leave cancellation
+[164/265] [desktop] › e2e/encounter.spec.ts:398:5 › report confirmation preserves its draft after failure without clearing media recovery
+[165/265] [desktop] › e2e/encounter.spec.ts:430:5 › ending shows immediate feedback during a delayed failure and keeps recovery visible
+[166/265] [desktop] › e2e/encounter.spec.ts:447:5 › opponent blocking is confirmed and leaves only after both server steps
+[167/265] [desktop] › e2e/encounter.spec.ts:541:5 › fixture encounter keeps media, chat, and controls usable across resize
+[168/265] [desktop] › e2e/encounter.spec.ts:701:5 › encounter chat retry is acknowledged without duplicating the sender
+[169/265] [desktop] › e2e/encounter.spec.ts:720:5 › a squadmate ending the call shows recovery and returns our squad to its lobby
+[170/265] [desktop] › e2e/encounter.spec.ts:731:5 › opponent ending preserves a clear recovery state
+[171/265] [desktop] › e2e/encounter.spec.ts:751:5 › mocked rosters stay usable across the viewport matrix
+[172/265] [desktop] › e2e/encounter.spec.ts:834:5 › mixed portrait, square, landscape, and ultrawide feeds stay inside their frames
+[173/265] [desktop] › e2e/encounter.spec.ts:872:5 › mocked call chrome keeps dialogs, themes, and zoom usable
+[174/265] [desktop] › e2e/encounter.spec.ts:1004:5 › personal leave updates only this member and does not end the encounter
+[175/265] [desktop] › e2e/encounter.spec.ts:1019:5 › call chrome fades when idle and wakes on input
+[176/265] [desktop] › e2e/entry.spec.ts:3:5 › welcome and sign-in keep their main action reachable on small screens
+[177/265] [desktop] › e2e/landing.spec.ts:3:5 › landing exposes the product and one primary start action
+[178/265] [desktop] › e2e/landing.spec.ts:16:5 › landing stays within the viewport without browser failures
+[179/265] [desktop] › e2e/landing.spec.ts:35:5 › landing navigation, start action, and legal links work by keyboard
+[180/265] [desktop] › e2e/match.spec.ts:159:5 › route-mocked handoff exposes loading, both rosters, and the active theme
+[181/265] [desktop] › e2e/match.spec.ts:174:5 › join acknowledgement stays retryable and navigates only after success
+[182/265] [desktop] › e2e/match.spec.ts:192:5 › expired handoff offers recovery without entering the room
+[183/265] [desktop] › e2e/match.spec.ts:202:5 › leader can skip while a member sees leader authority
+[184/265] [desktop] › e2e/match.spec.ts:218:7 › short landscape 844x390 reduce keeps handoff actions visible
+[185/265] [desktop] › e2e/match.spec.ts:218:7 › short landscape 844x390 no-preference keeps handoff actions visible
+[186/265] [desktop] › e2e/match.spec.ts:218:7 › short landscape 568x320 reduce keeps handoff actions visible
+[187/265] [desktop] › e2e/match.spec.ts:218:7 › short landscape 568x320 no-preference keeps handoff actions visible
+[188/265] [desktop] › e2e/match.spec.ts:218:7 › short landscape 667x375 reduce keeps handoff actions visible
+[189/265] [desktop] › e2e/match.spec.ts:218:7 › short landscape 667x375 no-preference keeps handoff actions visible
+[190/265] [desktop] › e2e/match.spec.ts:218:7 › short landscape 390x320 reduce keeps handoff actions visible
+[191/265] [desktop] › e2e/match.spec.ts:218:7 › short landscape 390x320 no-preference keeps handoff actions visible
+[192/265] [desktop] › e2e/match.spec.ts:251:5 › a first acknowledgement waits for the opponent without starting media
+[193/265] [desktop] › e2e/match.spec.ts:266:5 › a pending call link resumes its acknowledged handoff instead of opening devices
+[194/265] [desktop] › e2e/match.spec.ts:276:6 › short landscape retains actions and full handoff error
+[195/265] [desktop] › e2e/match.spec.ts:276:6 › short landscape retains actions and full action error
+[196/265] [desktop] › e2e/match.spec.ts:276:6 › short landscape retains actions and full waiting error
+[197/265] [desktop] › e2e/matchmaking.spec.ts:117:5 › matchmaking explains progress and cancels back to the lobby
+[198/265] [desktop] › e2e/matchmaking.spec.ts:139:5 › failed cancellation stays in queue and succeeds on retry
+[199/265] [desktop] › e2e/navigation.spec.ts:4:5 › navigation is curated for each device class
+[200/265] [desktop] › e2e/photo-match.spec.ts:167:5 › photo entry stays hidden when the feature is disabled or the visitor is signed out
+[201/265] [desktop] › e2e/photo-match.spec.ts:185:5 › matching a photo offers three options; Apply stages them and Save is still required
+[202/265] [desktop] › e2e/photo-match.spec.ts:258:5 › no_face gets a specific friendly line and recovery actions
+[203/265] [desktop] › e2e/photo-match.spec.ts:278:5 › QUOTA_EXCEEDED shows a calm message and never the raw server error
+[204/265] [desktop] › e2e/product-routes.spec.ts:13:7 › /home exposes one clear first task without runtime failures
+[205/265] [desktop] › e2e/product-routes.spec.ts:13:7 › /discover exposes one clear first task without runtime failures
+[206/265] [desktop] › e2e/product-routes.spec.ts:13:7 › /friends exposes one clear first task without runtime failures
+[207/265] [desktop] › e2e/product-routes.spec.ts:13:7 › /profile exposes one clear first task without runtime failures
+[208/265] [desktop] › e2e/product-routes.spec.ts:13:7 › /premium exposes one clear first task without runtime failures
+[209/265] [desktop] › e2e/product-routes.spec.ts:64:5 › compact phone routes keep their primary action usable without clipping
+[210/265] [desktop] › e2e/product-routes.spec.ts:106:5 › join code field uses one shared focus ring
+[211/265] [desktop] › e2e/shell-accessibility.spec.ts:4:5 › app shell exposes keyboard navigation and readable text tokens
+[212/265] [desktop] › e2e/shell-accessibility.spec.ts:73:5 › phone shell keeps primary touch targets at least 44 CSS pixels
+[213/265] [wide] › e2e/encounter.spec.ts:3:5 › failed viewer mute keeps the menu open and retry preserves video
+[214/265] [wide] › e2e/encounter.spec.ts:26:5 › real participant controls preserve synthetic streams and restore focus
+[215/265] [wide] › e2e/encounter.spec.ts:349:5 › an ended encounter link shows recovery actions without starting media
+[216/265] [wide] › e2e/encounter.spec.ts:362:5 › call action focus enters the popup and returns after Escape and leave cancellation
+[217/265] [wide] › e2e/encounter.spec.ts:398:5 › report confirmation preserves its draft after failure without clearing media recovery
+[218/265] [wide] › e2e/encounter.spec.ts:430:5 › ending shows immediate feedback during a delayed failure and keeps recovery visible
+[219/265] [wide] › e2e/encounter.spec.ts:447:5 › opponent blocking is confirmed and leaves only after both server steps
+[220/265] [wide] › e2e/encounter.spec.ts:541:5 › fixture encounter keeps media, chat, and controls usable across resize
+[221/265] [wide] › e2e/encounter.spec.ts:701:5 › encounter chat retry is acknowledged without duplicating the sender
+[222/265] [wide] › e2e/encounter.spec.ts:720:5 › a squadmate ending the call shows recovery and returns our squad to its lobby
+[223/265] [wide] › e2e/encounter.spec.ts:731:5 › opponent ending preserves a clear recovery state
+[224/265] [wide] › e2e/encounter.spec.ts:751:5 › mocked rosters stay usable across the viewport matrix
+[225/265] [wide] › e2e/encounter.spec.ts:834:5 › mixed portrait, square, landscape, and ultrawide feeds stay inside their frames
+[226/265] [wide] › e2e/encounter.spec.ts:872:5 › mocked call chrome keeps dialogs, themes, and zoom usable
+[227/265] [wide] › e2e/encounter.spec.ts:1004:5 › personal leave updates only this member and does not end the encounter
+[228/265] [wide] › e2e/encounter.spec.ts:1019:5 › call chrome fades when idle and wakes on input
+[229/265] [wide] › e2e/entry.spec.ts:3:5 › welcome and sign-in keep their main action reachable on small screens
+[230/265] [wide] › e2e/landing.spec.ts:3:5 › landing exposes the product and one primary start action
+[231/265] [wide] › e2e/landing.spec.ts:16:5 › landing stays within the viewport without browser failures
+[232/265] [wide] › e2e/landing.spec.ts:35:5 › landing navigation, start action, and legal links work by keyboard
+[233/265] [wide] › e2e/match.spec.ts:159:5 › route-mocked handoff exposes loading, both rosters, and the active theme
+[234/265] [wide] › e2e/match.spec.ts:174:5 › join acknowledgement stays retryable and navigates only after success
+[235/265] [wide] › e2e/match.spec.ts:192:5 › expired handoff offers recovery without entering the room
+[236/265] [wide] › e2e/match.spec.ts:202:5 › leader can skip while a member sees leader authority
+[237/265] [wide] › e2e/match.spec.ts:218:7 › short landscape 844x390 reduce keeps handoff actions visible
+[238/265] [wide] › e2e/match.spec.ts:218:7 › short landscape 844x390 no-preference keeps handoff actions visible
+[239/265] [wide] › e2e/match.spec.ts:218:7 › short landscape 568x320 reduce keeps handoff actions visible
+[240/265] [wide] › e2e/match.spec.ts:218:7 › short landscape 568x320 no-preference keeps handoff actions visible
+[241/265] [wide] › e2e/match.spec.ts:218:7 › short landscape 667x375 reduce keeps handoff actions visible
+[242/265] [wide] › e2e/match.spec.ts:218:7 › short landscape 667x375 no-preference keeps handoff actions visible
+[243/265] [wide] › e2e/match.spec.ts:218:7 › short landscape 390x320 reduce keeps handoff actions visible
+[244/265] [wide] › e2e/match.spec.ts:218:7 › short landscape 390x320 no-preference keeps handoff actions visible
+[245/265] [wide] › e2e/match.spec.ts:251:5 › a first acknowledgement waits for the opponent without starting media
+[246/265] [wide] › e2e/match.spec.ts:266:5 › a pending call link resumes its acknowledged handoff instead of opening devices
+[247/265] [wide] › e2e/match.spec.ts:276:6 › short landscape retains actions and full handoff error
+[248/265] [wide] › e2e/match.spec.ts:276:6 › short landscape retains actions and full action error
+[249/265] [wide] › e2e/match.spec.ts:276:6 › short landscape retains actions and full waiting error
+[250/265] [wide] › e2e/matchmaking.spec.ts:117:5 › matchmaking explains progress and cancels back to the lobby
+[251/265] [wide] › e2e/matchmaking.spec.ts:139:5 › failed cancellation stays in queue and succeeds on retry
+[252/265] [wide] › e2e/navigation.spec.ts:4:5 › navigation is curated for each device class
+[253/265] [wide] › e2e/photo-match.spec.ts:167:5 › photo entry stays hidden when the feature is disabled or the visitor is signed out
+[254/265] [wide] › e2e/photo-match.spec.ts:185:5 › matching a photo offers three options; Apply stages them and Save is still required
+[255/265] [wide] › e2e/photo-match.spec.ts:258:5 › no_face gets a specific friendly line and recovery actions
+[256/265] [wide] › e2e/photo-match.spec.ts:278:5 › QUOTA_EXCEEDED shows a calm message and never the raw server error
+[257/265] [wide] › e2e/product-routes.spec.ts:13:7 › /home exposes one clear first task without runtime failures
+[258/265] [wide] › e2e/product-routes.spec.ts:13:7 › /discover exposes one clear first task without runtime failures
+[259/265] [wide] › e2e/product-routes.spec.ts:13:7 › /friends exposes one clear first task without runtime failures
+[260/265] [wide] › e2e/product-routes.spec.ts:13:7 › /profile exposes one clear first task without runtime failures
+[261/265] [wide] › e2e/product-routes.spec.ts:13:7 › /premium exposes one clear first task without runtime failures
+[262/265] [wide] › e2e/product-routes.spec.ts:64:5 › compact phone routes keep their primary action usable without clipping
+[263/265] [wide] › e2e/product-routes.spec.ts:106:5 › join code field uses one shared focus ring
+[264/265] [wide] › e2e/shell-accessibility.spec.ts:4:5 › app shell exposes keyboard navigation and readable text tokens
+[265/265] [wide] › e2e/shell-accessibility.spec.ts:73:5 › phone shell keeps primary touch targets at least 44 CSS pixels
+  138 skipped
+  127 passed (4.1m)

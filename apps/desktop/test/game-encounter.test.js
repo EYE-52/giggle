@@ -3,6 +3,7 @@ const { readFileSync } = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const ts = require("typescript");
+const vm = require("node:vm");
 
 const encounterSource = () => readFileSync(path.join(__dirname, "../app/(app)/encounter/page.tsx"), "utf8");
 const panelSource = () => readFileSync(path.join(__dirname, "../components/GamePanel.tsx"), "utf8");
@@ -89,7 +90,8 @@ test("encounter games mount beside the video stage, which stays mounted", () => 
     /<GamePanel squadId=\{squadId\} encounter=\{\{ encounterId: encId \}\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: mapCaptureToVoiceMic\(captureState\.audio\), onEnableMic: toggleMic \}\} \/>/
   );
   // On a phone the game hides (nodes stay mounted) while chat takes over.
-  assert.match(encounter, /hidden=\{isPhone && chatOpen\}/);
+  assert.match(encounter, /hidden=\{chatTakesStage && chatOpen\}/);
+  assert.match(encounter, /const chatTakesStage = chatUsesStage\(width, height, gameOpen && GAMES_ENABLED\);/);
   // The video stage itself is unconditional: exactly one, never inside a
   // gameOpen branch, so tiles and media hosts are never remounted.
   assert.equal(encounter.split('data-testid="video-stage"').length - 1, 1);
@@ -139,4 +141,110 @@ test("encounter games restyle the rail without unmounting or hiding video", () =
   );
   assert.equal(stageHides.length, 1);
   assert.match(stageHides[0][1], /\.gg-chat-open/);
+});
+
+
+test("media and reaction recovery controls stay outside bounded game and video rails", () => {
+  const tree = ts.createSourceFile("encounter.tsx", encounterSource(), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const testId = node => ts.isJsxElement(node) ? node.openingElement.attributes.properties.find(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(tree) === "data-testid")?.initializer?.text : undefined;
+  const notices = new Map();
+  function visit(node) {
+    if (["media-recovery-notice","reaction-error"].includes(testId(node))) notices.set(testId(node),node);
+    ts.forEachChild(node, visit);
+  }
+  visit(tree);
+  for (const [id,retry,dismiss] of [["media-recovery-notice","retryVideo","setVideoError(null)"],["reaction-error","fireReaction(failedReaction, true)","dismissReactionError"]]) {
+    const notice = notices.get(id);
+    assert.ok(notice, `${id} remains in the real failure path`);
+    const ancestors = [];
+    for (let node = notice.parent; node; node = node.parent) if (ts.isJsxElement(node)) ancestors.push(testId(node));
+    assert.deepEqual(ancestors.slice(0,2), ["recovery-notices","encounter-shell"], `${id} shares the bounded shell row, outside the 84px Compact rail`);
+    assert.equal(ancestors.includes("video-stage"), false);
+    assert.equal(ancestors.includes("encounter-game-stage"), false);
+    const handlers = [];
+    function button(node) {
+      if (ts.isJsxElement(node) && node.openingElement.tagName.getText(tree) === "button") {
+        const action = node.openingElement.attributes.properties.find(attribute => ts.isJsxAttribute(attribute) && attribute.name.getText(tree) === "onClick");
+        if (action) handlers.push(action.initializer.getText(tree));
+      }
+      ts.forEachChild(node, button);
+    }
+    button(notice);
+    assert.equal(handlers.length, 2, `${id} keeps separate Retry and Dismiss controls`);
+    assert.ok(handlers.some(handler => handler.includes(retry)), "Retry keeps its actual existing handler");
+    assert.ok(handlers.some(handler => handler.includes(dismiss)), "Dismiss keeps its actual existing handler");
+  }
+  const css = readFileSync(path.join(__dirname, "../app/(app)/encounter/call-feedback.module.css"), "utf8");
+  assert.match(css, /\.recoveryRows \{[^}]*max-height:[^;]+;[^}]*overflow-y:auto;/);
+  assert.match(css, /\.recoveryActions button \{[^}]*height:44px;[^}]*min-height:44px;/);
+});
+
+test("call-only recovery reserves its real header row instead of overlapping it", () => {
+  const css = revampCssSource();
+  const recoveryHeader = css.match(/\.gg-screen-call:not\(\[data-games\]\):has\(\[data-testid="recovery-notices"\]\) \.call-top \{([^}]+)\}/)?.[1];
+  assert.ok(recoveryHeader, "games-closed failures must reserve the header's actual height");
+  assert.match(recoveryHeader, /position:\s*relative\s*!important/);
+  assert.match(recoveryHeader, /left:\s*auto/);
+  assert.match(recoveryHeader, /right:\s*auto/);
+});
+
+test("selected chat audience text has readable call-theme contrast", () => {
+  const css = revampCssSource();
+  const selected = css.match(/\.gg-chat-audience button\[aria-pressed="true"\] \{([^}]+)\}/)[1];
+  const tokens = readFileSync(path.join(__dirname, "../app/call-room.css"), "utf8");
+  const color = property => {
+    const variable = selected.match(new RegExp(property + ":\\s*var\\((--[\\w-]+)"))[1];
+    return tokens.match(new RegExp(variable + ":\\s*(#[\\da-f]{6})", "i"))[1];
+  };
+  const luminance = hex => {
+    const rgb = [1,3,5].map(index => parseInt(hex.slice(index,index + 2),16) / 255).map(channel => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4);
+    return rgb.reduce((sum,channel,index) => sum + channel * [.2126,.7152,.0722][index],0);
+  };
+  const pair = [luminance(color("color")),luminance(color("background"))].sort((a,b) => a-b);
+  assert.ok((pair[1] + .05) / (pair[0] + .05) >= 4.5, "14px audience text needs at least 4.5:1 on its actual call fill");
+});
+
+
+// Evaluate only arithmetic from the actual padding declarations, with explicit
+// synthetic safe-area values. This is source geometry, not physical-device QA.
+function paddingPixels(value, edges, viewportWidth) {
+  let depth = 0, token = "", tokens = [];
+  for (const char of value.trim()) {
+    if (/\s/.test(char) && depth === 0) { if (token) tokens.push(token); token = ""; continue; }
+    token += char;
+    if (char === "(") depth++;
+    if (char === ")") depth--;
+  }
+  if (token) tokens.push(token);
+  const pixels = tokens.map(expression => {
+    const numeric = expression.replace(/env\(safe-area-inset-(top|right|bottom|left)\)/g, (_, edge) => String(edges[edge])).replace(/([\d.]+)%/g, (_, n) => String(viewportWidth * Number(n) / 100)).replace(/px\b/g, "").replace(/calc\(/g, "(");
+    assert.match(numeric.replace(/\b(max|min)\b/g,""), /^[\d\s,.()+*/-]+$/);
+    return vm.runInNewContext(numeric, {max:Math.max,min:Math.min});
+  });
+  return pixels.length === 4 ? pixels : pixels.length === 3 ? [pixels[0],pixels[1],pixels[2],pixels[1]] : pixels;
+}
+
+test("lobby padding reserves each nonzero safe edge once in phone and short layouts", () => {
+  const css = readFileSync(path.join(__dirname, "../app/(app)/lobby/lobby.module.css"), "utf8");
+  const pageRules = [...css.matchAll(/\.page \{([^}]+)\}/g)];
+  const padding = rule => rule.match(/padding:\s*([^;]+);/)[1];
+  const short = css.match(/\.page\[data-short-games\] \{([^}]+)\}/)[1];
+  assert.deepEqual(paddingPixels(padding(pageRules[1][1]),{top:47,right:0,bottom:34,left:0},390), [47,10,34,10]);
+  assert.deepEqual(paddingPixels(padding(short),{top:47,right:0,bottom:34,left:0},390), [47,10,34,10]);
+  assert.deepEqual(paddingPixels(padding(short),{top:0,right:44,bottom:21,left:44},844), [4,44,21,44]);
+  assert.deepEqual(paddingPixels(padding(short),{top:0,right:0,bottom:0,left:0},1024), [4,10,6,10]);
+});
+
+test("encounter short chrome preserves safe edges and chat owns hidden bar insets", () => {
+  const css = revampCssSource();
+  const header = css.match(/\.gg-screen-call\[data-short-games\] \.call-top \{[^}]*padding:\s*([^;]+);/)[1].replace(/\s*!important$/, "");
+  const footer = css.match(/\.gg-screen-call\[data-short-games\] \.gg-call-controls-wrap \{[^}]*padding:\s*([^;]+);/)[1].replace(/\s*!important$/, "");
+  const portrait = {top:47,right:0,bottom:34,left:0};
+  assert.deepEqual(paddingPixels(header,portrait,390), [47,10,4,10]);
+  assert.deepEqual(paddingPixels(footer,portrait,390), [4,8,34,8]);
+  assert.match(css, /\.gg-screen-call:has\(\.gg-chat-open\) \{ padding-top: env\(safe-area-inset-top\); padding-bottom: env\(safe-area-inset-bottom\); \}/);
+  assert.match(css, /\.gg-screen-call:not\(\[data-games\]\) :is\(\.call-top, \.gg-call-controls-wrap\) \{ left: env\(safe-area-inset-left\); right: env\(safe-area-inset-right\); \}/);
+  const layout = readFileSync(path.join(__dirname, "../app/(app)/layout.tsx"), "utf8");
+  assert.match(layout, /!isCalling && <TopNav/);
+  assert.match(layout, /isCalling \? \(\s*children/);
 });

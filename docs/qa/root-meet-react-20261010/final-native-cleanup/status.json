@@ -1,0 +1,6 @@
+{
+  "ready": true,
+  "bootstrapURL": "http://localhost:4015/__qa_bootstrap",
+  "scope": "Unchanged compiled production app; separate synthetic-local auth bootstrap; process-only CORS adds exactly localhost4015",
+  "ownedServicesStopped": true
+}

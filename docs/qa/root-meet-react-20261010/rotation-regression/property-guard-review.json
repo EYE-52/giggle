@@ -1,0 +1,7 @@
+{
+  "guard": "transitionProperty in animation + String whitelist; no constructor dependency",
+  "targetedProfiles": "5pass",
+  "typecheck": "pass after isolated fixture contextOptions correction",
+  "reducedMotionCorrection": "Original10case packet untouched; previous top-level use.reducedMotion was invalid fixture config, so its reduced scope was not proven. Correct contextOptions.reducedMotion now rerun independently.",
+  "sharedSource": "unchanged"
+}

@@ -1,0 +1,52 @@
+
+Running 5 tests using 1 worker
+
+(node:82140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [tablet] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (2.1s)
+(node:82643) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [tablet-reduced] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (1.8s)
+(node:83010) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [portrait] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (1.7s)
+(node:83465) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 [landscape] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (6.6s)
+(node:84767) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [desktop] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus (1.8s)
+
+
+  1) [landscape] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByLabel('Viewport resize check')
+    Expected substring: "844×390 after two frames:"
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByLabel('Viewport resize check')
+
+
+      45 |   await expect(tile).toHaveAttribute('data-pinned', 'true');
+      46 |   await page.setViewportSize({ width: 844, height: 390 });
+    > 47 |   await expect(page.getByLabel('Viewport resize check')).toContainText('844×390 after two frames:');
+         |                                                          ^
+      48 |   const rotated = await page.evaluate(async () => {
+      49 |     await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      50 |     const cells = Array.from(document.querySelectorAll('[data-participant-id]'));
+        at /private/tmp/giggle-tablet-rotation-rca-20261010/apps/desktop/e2e/rotation.spec.ts:47:58
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../tmp/giggle-tablet-rotation-rca-20261010/candidate-profiles/rotation-real-participant--9f5b6-c-streams-and-restore-focus-landscape/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../tmp/giggle-tablet-rotation-rca-20261010/candidate-profiles/rotation-real-participant--9f5b6-c-streams-and-restore-focus-landscape/error-context.md
+
+  1 failed
+    [landscape] › e2e/rotation.spec.ts:2:5 › real participant controls preserve synthetic streams and restore focus 
+  4 passed (17.0s)

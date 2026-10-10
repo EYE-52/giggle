@@ -113,6 +113,12 @@ export function FocusVideoStage({ mine, theirs, mineLabel, theirsLabel, renderPa
       const height = Math.floor(entry.contentRect.height);
       if (width <= 0 || height <= 0) return;
       // Rotation/viewport changes must snap even during a previous zoom or pin glide.
+      // Removing the transition rule can leave an already-running CSS transition alive.
+      element.querySelectorAll<HTMLElement>("[data-participant-id]").forEach(cell => {
+        cell.getAnimations().forEach(animation => {
+          if ('transitionProperty' in animation && ["left", "top", "width", "height"].includes(String(animation.transitionProperty))) animation.cancel();
+        });
+      });
       if (animTimer.current) { clearTimeout(animTimer.current); animTimer.current = null; }
       setAnimating(false);
       setBounds(previous => (previous.width === width && previous.height === height ? previous : { width, height }));

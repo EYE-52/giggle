@@ -1,0 +1,16 @@
+{
+  "commit": "1602b32f65ddabed1aa35f905bc51dd0ccb9a855",
+  "vercel": {
+    "project": "giggle-meet",
+    "deploymentId": "dpl_H8gVXXhyPvK5W6XT6iSRjJuzX4ob",
+    "url": "giggle-meet-7bwg3npan-divyansh24888-5115s-projects.vercel.app",
+    "state": "READY"
+  },
+  "railway": {
+    "service": "giggle-server",
+    "deploymentId": "5b78296e-c3ac-4bc5-9c98-36e42fba3613",
+    "state": "SUCCESS"
+  },
+  "configuration": "No provider environment changes selected. Reviewed frontend and socket presence source; main merge may rebuild both services.",
+  "releaseState": "Scoped local and native gates passed; production deployment pending."
+}

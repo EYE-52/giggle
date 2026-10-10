@@ -1,0 +1,114 @@
+.screen {
+  --bg: #171922;
+  --surface: #21242f;
+  --surface-2: #2a2f3d;
+  --line: #363c4d;
+  --text: #f5f6fa;
+  --text-muted: #a8b0c5;
+  --accent: #da216c;
+  --accent-hover: #c91d62;
+  --font-body: var(--font-cabinet), "Cabinet Grotesk", system-ui, sans-serif;
+  --font-display: var(--font-body);
+  position: relative;
+  z-index: 1;
+  min-height: 100svh;
+  width: 100%;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 16px/1.5 var(--font-body);
+  color-scheme: dark;
+}
+.screen, .screen * { box-sizing: border-box; }
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  min-height: 44px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.backLink svg { transform: rotate(180deg); }
+.backLink:hover { color: var(--text); }
+.content { flex: 1; display: grid; place-items: center; padding-bottom: 32px; }
+.card {
+  width: 100%;
+  max-width: 480px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--surface);
+}
+.brand { display: flex; align-items: center; gap: 8px; font: 800 28px/1 var(--font-body); letter-spacing: -.04em; }
+.screen .brand svg {
+  flex: none;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  stroke: currentColor !important;
+}
+.intro { display: grid; gap: 8px; }
+.heading { margin: 0; font: 800 36px/1.15 var(--font-body); letter-spacing: -.03em; text-wrap: balance; }
+/* Saved skins use highly specific global heading and logo selectors. Keep the
+   authentication identity local, including when a scrapbook skin is selected. */
+.screen .heading {
+  font-family: var(--font-body) !important;
+  letter-spacing: -.03em !important;
+  background: none !important;
+}
+.description, .profileNote, .legal p, .devNote { margin: 0; color: var(--text-muted); }
+.refNote { margin: 0; display: flex; gap: 8px; align-items: center; color: var(--text); }
+.refNote svg { color: var(--accent); flex: none; }
+.primary, .secondary, .retry {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font: 700 16px/1.5 var(--font-body);
+  cursor: pointer;
+}
+.primary { width: 100%; background: var(--accent); color: #fff; font-size: 20px; line-height: 1.2; }
+.primary:hover:not(:disabled) { background: var(--accent-hover); }
+.secondary, .retry { background: var(--surface-2); color: var(--text); border-color: var(--line); }
+.secondary { width: 100%; }
+.secondary:hover:not(:disabled), .retry:hover { border-color: var(--text-muted); }
+.primary:disabled, .secondary:disabled { cursor: progress; }
+.handoff { margin: -8px 0 0; color: var(--text-muted); }
+.errorBox { display: grid; justify-items: start; gap: 8px; border-left: 2px solid var(--accent); padding-left: 16px; }
+.error { margin: 0; color: var(--text); }
+.legal { display: grid; gap: 0; }
+.legalLinks { display: flex; flex-wrap: wrap; gap: 16px; }
+.legalLinks a { min-height: 44px; display: inline-flex; align-items: center; color: var(--text); text-decoration: underline; text-underline-offset: 4px; }
+.legalLinks a:hover { color: var(--text-muted); }
+.devBox { border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 8px; }
+.devTitle { margin: 0; font-weight: 700; }
+.screen :is(button, a):focus-visible {
+  outline: 2px solid var(--text) !important;
+  outline-offset: 4px !important;
+  box-shadow: none !important;
+}
+@media (max-width: 600px) {
+  .screen { padding: 20px; gap: 16px; }
+  .content { padding-bottom: 0; }
+  .card { padding: 20px; gap: 24px; }
+  .heading { font-size: 28px; }
+}
+@media (max-height: 600px) {
+  .screen { gap: 8px; }
+  .content { place-items: start center; padding-bottom: 0; }
+}

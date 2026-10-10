@@ -49,7 +49,8 @@ for (const width of [390, 1440]) {
         await expect(leader.getByRole('button', { name: /^I.m ready/ })).toHaveCount(0);
         await friend.getByRole('button', { name: /^I.m ready/ }).click();
         await expect(leader.getByRole('button', { name: 'Find a squad', exact: true })).toBeEnabled();
-        await expect(friend.getByRole('button', { name: 'Find a squad', exact: true })).toHaveCount(0);
+        await expect(friend.getByRole('button', { name: 'Find a squad', exact: true })).toBeVisible();
+        await expect(friend.getByRole('button', { name: 'Find a squad', exact: true })).toBeDisabled();
         await leader.getByRole('button', { name: 'Find a squad', exact: true }).click();
         const devices = leader.getByRole('dialog', { name: 'Connect your devices' });
         await devices.getByRole('button', { name: 'Turn on camera & mic', exact: true }).click();
@@ -62,10 +63,10 @@ for (const width of [390, 1440]) {
       await leader.getByRole('button', { name: 'Save name', exact: true }).click();
       await expect(friend.getByRole('heading', { name: `${name} renamed`, exact: true })).toBeVisible();
       await leader.getByRole('button', { name: /^Squad settings/ }).click();
-      await leader.getByRole('button', { name: 'Edit interests', exact: true }).click();
+      await leader.getByRole('button', { name: 'Edit topics', exact: true }).click();
       await leader.getByRole('button', { name: 'Music', exact: true }).click();
       await leader.waitForTimeout(3300); // polling must not overwrite an open editor
-      await leader.getByRole('button', { name: 'Save interests', exact: true }).click();
+      await leader.getByRole('button', { name: 'Save topics', exact: true }).click();
       await expect(friend.getByText('Music', { exact: true })).toBeVisible();
       await leader.getByRole('button', { name: 'Squad settings', exact: true }).click();
       await leader.getByRole('button', { name: 'Leave squad', exact: true }).click();
