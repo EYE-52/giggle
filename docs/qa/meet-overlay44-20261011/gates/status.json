@@ -1,0 +1,53 @@
+{
+  "desktop-tests": {
+    "exitCode": 0,
+    "elapsedSeconds": 0.8465242385864258,
+    "argv": [
+      "/Users/divyansh/.local/share/agentklar/node-v24.21.0-darwin-arm64/bin/node",
+      "--test",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/auth-links.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/camera-games.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/chat-links.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/game-bridge.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/game-encounter.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/game-panel-recovery.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/look.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/next-config.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/signin.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/topics.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/video-error.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/viewport-space.test.js",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/test/voice-game-bridge.test.js"
+    ]
+  },
+  "tsc": {
+    "exitCode": 0,
+    "elapsedSeconds": 3.320901870727539,
+    "argv": [
+      "/Users/divyansh/.local/share/agentklar/node-v24.21.0-darwin-arm64/bin/node",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ]
+  },
+  "production-build": {
+    "exitCode": 0,
+    "elapsedSeconds": 11.614780187606812,
+    "argv": [
+      "/Users/divyansh/.local/share/agentklar/node-v24.21.0-darwin-arm64/bin/node",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/node_modules/next/dist/bin/next",
+      "build"
+    ]
+  },
+  "e2e": {
+    "exitCode": 0,
+    "elapsedSeconds": 19.070178031921387,
+    "argv": [
+      "/Users/divyansh/.local/share/agentklar/node-v24.21.0-darwin-arm64/bin/node",
+      "/tmp/giggle-meet-overlay44-review-20261010/source/node_modules/@playwright/test/cli.js",
+      "test",
+      "-c",
+      "/tmp/giggle-meet-overlay44-review-20261010/configs/e2e.config.ts"
+    ]
+  },
+  "ownedServiceStopped": true
+}

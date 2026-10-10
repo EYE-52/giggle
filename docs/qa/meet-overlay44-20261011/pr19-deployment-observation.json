@@ -1,0 +1,33 @@
+{
+  "observedAt": 1791654310.14774,
+  "vercel": {
+    "id": "dpl_8pkDcXeF5A2NN4eqjFQmCZQSuhvi",
+    "url": "giggle-meet-4y921coos-divyansh24888-5115s-projects.vercel.app",
+    "readyState": "READY",
+    "createdAt": 1791654128960,
+    "target": "production"
+  },
+  "railway": {
+    "id": "bf89e497-803e-4978-9091-e99b5e48afe4",
+    "status": "SUCCESS",
+    "createdAt": "2026-10-10T17:42:06.727Z",
+    "commit": "a056b00350f7f402da63be55e14ae1c8819f9cf8"
+  },
+  "http": [
+    {
+      "url": "https://www.gigglemeet.com/signin",
+      "status": 200,
+      "bytes": 19899
+    },
+    {
+      "url": "https://giggle-server-production.up.railway.app/health",
+      "status": 200,
+      "bytes": 131
+    },
+    {
+      "url": "https://giggle-server-production.up.railway.app/api/features",
+      "status": 200,
+      "bytes": 58
+    }
+  ]
+}

@@ -280,7 +280,7 @@ test("lobby adds games inside the page without disturbing the call", () => {
   // Strong entry gated on the API switch; games open in-page, not away.
   assert.match(lobby, /useGamesEnabled\(\) === true/);
   assert.match(lobby, /Play together/);
-  assert.match(lobby, /<GamePanel squadId=\{squadId\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: micCapture, onEnableMic: \(\) => void toggleDevice\("audio"\) \}\} \/>/);
+  assert.match(lobby, /<GamePanel squadId=\{squadId\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} floatingCall=\{effectiveLayout === "floating" \? \{ collapsed: callCollapsed, onExpand: \(\) => toggleFloatingCall\(false\), expandButtonRef: callExpandRef \} : undefined\} voice=\{\{ mic: micCapture, onEnableMic: \(\) => void toggleDevice\("audio"\) \}\} \/>/);
   assert.doesNotMatch(lobby, /router\.push\([^)]*[Gg]ame/);
   // The seats (media nodes) stay mounted: no conditional around them.
   assert.match(lobby, /<section className=\{`\$\{styles\.seats\} \$\{floatingStyles\.shell\} \$\{cameraStyles\.shell\}`\}/);

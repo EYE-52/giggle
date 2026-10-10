@@ -1,0 +1,473 @@
+diff --git a/apps/desktop/app/(app)/encounter/page.tsx b/apps/desktop/app/(app)/encounter/page.tsx
+index dbace0d..561f21d 100644
+--- a/apps/desktop/app/(app)/encounter/page.tsx
++++ b/apps/desktop/app/(app)/encounter/page.tsx
+@@ -198,6 +198,18 @@ function EncounterInner() {
+   const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
+   const [callCorner, setCallCorner] = useState<CallCorner>("bottom-right");
+   const [callCollapsed, setCallCollapsed] = useState(false);
++  const callExpandRef = useRef<HTMLButtonElement>(null);
++  const callHideRef = useRef<HTMLButtonElement>(null);
++  const callToggleFocusRef = useRef(false);
++  const toggleFloatingCall = (collapsed: boolean) => {
++    callToggleFocusRef.current = true;
++    setCallCollapsed(collapsed);
++  };
++  useEffect(() => {
++    if (!callToggleFocusRef.current) return;
++    callToggleFocusRef.current = false;
++    (callCollapsed ? callExpandRef : callHideRef).current?.focus();
++  }, [callCollapsed]);
+   // Stable subscriber: GamePanel reads it via ref, so auth never re-runs.
+   const handlePresentation = useCallback((p: GamePresentation) => {
+     setGamePresentation(p);
+@@ -1402,7 +1414,7 @@ function EncounterInner() {
+ 
+         {/* Recoverable failures share one bounded flow row above the rails.
+             Retry/Dismiss remain reachable without covering game or video. */}
+-        {(recoveryMessages.length > 0 || failedReaction) && <div data-testid="recovery-notices" className={feedbackStyles.recoveryRows}>
++        {(recoveryMessages.length > 0 || failedReaction || (gameOpen && effectiveLayout === "floating" && transientNotice)) && <div data-testid="recovery-notices" className={feedbackStyles.recoveryRows}>
+           {recoveryMessages.length > 0 && (
+             <div data-testid="media-recovery-notice" role="alert" className={feedbackStyles.mediaRecovery}>
+               <span aria-hidden className={feedbackStyles.recoveryDot} />
+@@ -1415,6 +1427,12 @@ function EncounterInner() {
+               </div>
+             </div>
+           )}
++          {gameOpen && effectiveLayout === "floating" && transientNotice && (
++            <div role="status" data-testid="floating-call-notice" className={feedbackStyles.mediaRecovery}>
++              <span className={feedbackStyles.recoveryText}>{transientNotice === "reported" ? "Reported — thanks for keeping Giggle safe" : "Reconnecting…"}</span>
++              {transientNotice === "reconnecting" && <div className={feedbackStyles.recoveryActions}><button type="button" className={feedbackStyles.dismiss} aria-label="Dismiss reconnecting notice" onClick={() => setReconnectDismissed(true)}><Icon.close size={16} /></button></div>}
++            </div>
++          )}
+           {failedReaction && <div role="alert" data-testid="reaction-error" className={feedbackStyles.mediaRecovery}>
+             <span className={feedbackStyles.recoveryText}>Reaction wasn’t sent. Check your connection and retry.</span>
+             <div className={feedbackStyles.recoveryActions}>
+@@ -1444,7 +1462,7 @@ function EncounterInner() {
+               (never unmounts) while chat takes the screen. */}
+           {gameOpen && GAMES_ENABLED && (
+             <section data-testid="encounter-game-stage" className={`gg-encounter-game ${cameraStyles.companion}`} hidden={chatTakesStage && chatOpen} aria-label="Encounter games">
+-              <GamePanel squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
++              <GamePanel squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} floatingCall={effectiveLayout === "floating" ? { collapsed: callCollapsed, onExpand: () => toggleFloatingCall(false), expandButtonRef: callExpandRef } : undefined} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
+             </section>
+           )}
+           {/* ── VIDEO STAGE ─────────────────────────────────────────────── */}
+@@ -1465,7 +1483,7 @@ function EncounterInner() {
+               overflow: "hidden",
+             }}
+           >
+-            {gameOpen && GAMES_ENABLED && effectiveLayout === "floating" && <FloatingCallTools corner={callCorner} collapsed={callCollapsed} onCornerChange={setCallCorner} onToggle={() => setCallCollapsed(value => !value)} />}
++            {gameOpen && GAMES_ENABLED && effectiveLayout === "floating" && !callCollapsed && <FloatingCallTools corner={callCorner} onCornerChange={setCallCorner} onCollapse={() => toggleFloatingCall(true)} hideButtonRef={callHideRef} />}
+             {stageScene && <CameraGameCaption scene={stageScene} />}
+             {/* Top toast stack — banners stack vertically instead of overlapping */}
+             <div
+@@ -1483,7 +1501,7 @@ function EncounterInner() {
+                 pointerEvents: "none",
+               }}
+             >
+-              {transientNotice && (
++              {transientNotice && !(gameOpen && effectiveLayout === "floating") && (
+                 <div
+                   data-testid="encounter-transient-notice"
+                   role="status"
+diff --git a/apps/desktop/app/(app)/lobby/lobby.module.css b/apps/desktop/app/(app)/lobby/lobby.module.css
+index d2b15d4..8acef53 100644
+--- a/apps/desktop/app/(app)/lobby/lobby.module.css
++++ b/apps/desktop/app/(app)/lobby/lobby.module.css
+@@ -19,7 +19,7 @@
+ .title { margin: 0; font: 700 20px/1.2 var(--font-display); letter-spacing: -.015em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+ .subtitle { display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 1.3; overflow: hidden; white-space: nowrap; }
+ .interest { padding: 0 7px; border-radius: 999px; background: var(--overlay, rgb(0 0 0 / .05)); line-height: 18px; }
+-.codeChip { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 10px 0 14px; flex: none; border: 1px solid var(--line, var(--border)); border-radius: 999px; background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
++.codeChip { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 10px 0 14px; flex: none; border: 1px solid var(--line, var(--border)); border-radius: 999px; background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
+ .codeChip:hover { border-color: color-mix(in srgb, var(--text) 30%, transparent); }
+ .codeText { font: 800 15px/1 var(--font-display); letter-spacing: .1em; font-variant-numeric: tabular-nums; }
+ .codeHint { display: grid; place-items: center; min-width: 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); }
+diff --git a/apps/desktop/app/(app)/lobby/page.tsx b/apps/desktop/app/(app)/lobby/page.tsx
+index c85b87d..613b36f 100644
+--- a/apps/desktop/app/(app)/lobby/page.tsx
++++ b/apps/desktop/app/(app)/lobby/page.tsx
+@@ -117,6 +117,18 @@ function LobbyInner() {
+   const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
+   const [callCorner, setCallCorner] = useState<CallCorner>("bottom-right");
+   const [callCollapsed, setCallCollapsed] = useState(false);
++  const callExpandRef = useRef<HTMLButtonElement>(null);
++  const callHideRef = useRef<HTMLButtonElement>(null);
++  const callToggleFocusRef = useRef(false);
++  const toggleFloatingCall = (collapsed: boolean) => {
++    callToggleFocusRef.current = true;
++    setCallCollapsed(collapsed);
++  };
++  useEffect(() => {
++    if (!callToggleFocusRef.current) return;
++    callToggleFocusRef.current = false;
++    (callCollapsed ? callExpandRef : callHideRef).current?.focus();
++  }, [callCollapsed]);
+   const [focusedMemberId, setFocusedMemberId] = useState<string | null>(null);
+   // Stable subscriber: GamePanel reads it via ref, so auth never re-runs.
+   const handlePresentation = useCallback((p: GamePresentation) => {
+@@ -790,14 +802,14 @@ function LobbyInner() {
+       <div className={styles.body} data-games={gameOpen || undefined} data-layout={gameOpen ? effectiveLayout : undefined} data-chat-stage={chatTakesStage && chatVisible || undefined}>
+         {gameOpen && (
+           <section className={styles.stage} hidden={chatTakesStage && chatVisible} aria-label="Squad games">
+-            <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
++            <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} floatingCall={effectiveLayout === "floating" ? { collapsed: callCollapsed, onExpand: () => toggleFloatingCall(false), expandButtonRef: callExpandRef } : undefined} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
+           </section>
+         )}
+         <section className={`${styles.seats} ${floatingStyles.shell} ${cameraStyles.shell}`} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={chatTakesStage && chatVisible} aria-label="Squad members"
+           data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={stageScene?.mode}
+           data-floating-call={gameOpen && effectiveLayout === "floating" || undefined}
+           data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}>
+-          {gameOpen && effectiveLayout === "floating" && <FloatingCallTools corner={callCorner} collapsed={callCollapsed} onCornerChange={setCallCorner} onToggle={() => setCallCollapsed(value => !value)} />}
++          {gameOpen && effectiveLayout === "floating" && !callCollapsed && <FloatingCallTools corner={callCorner} onCornerChange={setCallCorner} onCollapse={() => toggleFloatingCall(true)} hideButtonRef={callHideRef} />}
+           {stageScene && <CameraGameCaption scene={stageScene} />}
+           {squad.members.map((member) => {
+             const isMe = member.userId === myUserId;
+diff --git a/apps/desktop/components/FloatingCallTools.module.css b/apps/desktop/components/FloatingCallTools.module.css
+index 64e8810..ab79631 100644
+--- a/apps/desktop/components/FloatingCallTools.module.css
++++ b/apps/desktop/components/FloatingCallTools.module.css
+@@ -27,14 +27,9 @@
+ .shell[data-floating-call="true"][data-call-corner="top-right"] { inset: min(64px, max(0px, calc(100% - 70px))) 12px auto auto; }
+ .shell[data-floating-call="true"][data-call-corner="bottom-left"] { inset: auto auto 12px 12px; }
+ .shell[data-floating-call="true"][data-call-corner="bottom-right"] { inset: auto 12px 12px auto; }
+-.shell[data-floating-call="true"][data-call-collapsed="true"] { height: 58px !important; }
+-.shell[data-floating-call="true"][data-call-collapsed="true"] > article,
+-.shell[data-floating-call="true"][data-call-collapsed="true"] > :global([data-testid="encounter-stage"]) { display: none !important; }
+-/* Call errors still surface when videos are collapsed. */
+-.shell[data-floating-call="true"][data-call-collapsed="true"]:has([role="alert"]) {
+-  height: auto !important;
+-  max-height: 48%;
+-}
++/* Keep media mounted, but remove the entire collapsed overlay from layout.
++   Its expand control lives in the game header; feedback stays in the parent. */
++.shell[data-floating-call="true"][data-call-collapsed="true"] { display: none !important; }
+ .shell[data-floating-call="true"][hidden] { display: none !important; }
+ .tools {
+   flex: none;
+@@ -58,7 +53,7 @@
+   cursor: pointer;
+ }
+ .tools select { flex: 1; padding: 6px; }
+-.tools button { flex: none; padding: 6px 10px; }
++.tools button { flex: none; min-width: 44px; padding: 6px 10px; }
+ .tools button:hover { background: var(--overlay); }
+ .tools select:focus-visible, .tools button:focus-visible {
+   outline: 2px solid var(--accent);
+@@ -70,7 +65,6 @@
+     height: min(192px, max(156px, 42%), calc(100% - 76px)) !important;
+     border-radius: 14px;
+   }
+-  .shell[data-floating-call="true"][data-call-collapsed="true"] { height: 58px !important; }
+   .tools { gap: 6px; }
+   .tools button { padding-inline: 6px; }
+   .tools select { font-size: 16px; }
+diff --git a/apps/desktop/components/FloatingCallTools.tsx b/apps/desktop/components/FloatingCallTools.tsx
+index fc6d744..eb794cb 100644
+--- a/apps/desktop/components/FloatingCallTools.tsx
++++ b/apps/desktop/components/FloatingCallTools.tsx
+@@ -1,14 +1,15 @@
+ "use client";
++import type { RefObject } from "react";
+ import styles from "./FloatingCallTools.module.css";
+ 
+ export type CallCorner = "top-left" | "top-right" | "bottom-left" | "bottom-right";
+ 
+ // Controls the existing media container. No portal, new stream or call client.
+-export function FloatingCallTools({ corner, collapsed, onCornerChange, onToggle }: {
++export function FloatingCallTools({ corner, onCornerChange, onCollapse, hideButtonRef }: {
+   corner: CallCorner;
+-  collapsed: boolean;
+   onCornerChange: (corner: CallCorner) => void;
+-  onToggle: () => void;
++  onCollapse: () => void;
++  hideButtonRef: RefObject<HTMLButtonElement | null>;
+ }) {
+   return <div className={styles.tools} data-testid="floating-call-tools">
+     <select aria-label="Floating call corner" value={corner}
+@@ -18,10 +19,9 @@ export function FloatingCallTools({ corner, collapsed, onCornerChange, onToggle
+       <option value="bottom-left">Bottom left</option>
+       <option value="bottom-right">Bottom right</option>
+     </select>
+-    <button type="button" aria-expanded={!collapsed} onClick={onToggle}
+-      aria-label={collapsed ? "Expand floating call" : "Collapse floating call"}
+-      title={collapsed ? "Show your friends. The call is still on." : "Hide video tiles. The call stays on."}>
+-      {collapsed ? "Friends" : "Hide"}
++    <button ref={hideButtonRef} type="button" aria-expanded={true} onClick={onCollapse}
++      aria-label="Collapse floating call" title="Hide video tiles. The call stays on.">
++      Hide
+     </button>
+   </div>;
+ }
+diff --git a/apps/desktop/components/GamePanel.tsx b/apps/desktop/components/GamePanel.tsx
+index 77d9a94..1b034be 100644
+--- a/apps/desktop/components/GamePanel.tsx
++++ b/apps/desktop/components/GamePanel.tsx
+@@ -46,6 +46,7 @@ interface Props {
+   // Read via ref so subscribing never re-runs auth effects.
+   onPresentation?: (p: GamePresentation) => void;
+   onCameraScene?: (scene: GameCameraScene | null) => void;
++  floatingCall?: { collapsed: boolean; onExpand: () => void; expandButtonRef: React.RefObject<HTMLButtonElement | null> };
+   layout?: GameLayoutOverride;
+   onLayoutChange?: (l: GameLayoutOverride) => void;
+   // Encounter calls share ONE game room for both squads: when set, tickets
+@@ -62,7 +63,7 @@ interface Props {
+ // Squad games inside the lobby (or encounter games inside the call): frames
+ // Game Night and passes single-use tickets over postMessage v1. The iframe
+ // gets NO camera/mic permission — media stays entirely in this parent page.
+-export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, layout = "auto", onLayoutChange, encounter, voice }: Props) {
++export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, layout = "auto", onLayoutChange, floatingCall, encounter, voice }: Props) {
+   const themeMode = useTheme();
+   const [status, setStatus] = useState<"loading" | "live" | "unavailable" | "error">("loading");
+   const [detail, setDetail] = useState<string | null>(null);
+@@ -432,6 +433,11 @@ export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, lay
+             </select>
+           </label>
+         )}
++        {floatingCall?.collapsed && (
++          <button ref={floatingCall.expandButtonRef} type="button" className={styles.close} onClick={floatingCall.onExpand} aria-label="Expand floating call" aria-expanded={false}>
++            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="12" height="14" rx="3"/><path d="m15 9 6-3v12l-6-3" strokeLinejoin="round"/></svg>
++          </button>
++        )}
+         <button type="button" className={styles.close} onClick={onClose} aria-label="Close games">
+           <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+         </button>
+diff --git a/apps/desktop/e2e/encounter.spec.ts b/apps/desktop/e2e/encounter.spec.ts
+index a590879..3fc6846 100644
+--- a/apps/desktop/e2e/encounter.spec.ts
++++ b/apps/desktop/e2e/encounter.spec.ts
+@@ -142,6 +142,7 @@ function fixtureEncounter(encounterId: string, count: number) {
+ }
+ 
+ async function installEncounterFixture(page: Page, options: {
++  games?: boolean;
+   ended?: boolean;
+   disconnectDelayMs?: number;
+   disconnectStatus?: number;
+@@ -247,7 +248,11 @@ async function installEncounterFixture(page: Page, options: {
+     const path = new URL(route.request().url()).pathname;
+     // the site asks the API whether stranger matching is on
+     if (path === "/api/features") {
+-      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { strangerDiscovery: true } }) });
++      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { strangerDiscovery: true, games: options.games === true } }) });
++      return;
++    }
++    if (options.games && path.endsWith("/games/token")) {
++      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { gameUrl: "http://127.0.0.1:8567", ticket: "synthetic-test-ticket" } }) });
+       return;
+     }
+     if (path === "/api/me/profile") {
+@@ -1035,3 +1040,124 @@ test("call chrome fades when idle and wakes on input", async ({ page }, testInfo
+   await page.keyboard.press("Tab");
+   await expect(shell).toHaveAttribute("data-chrome", "shown");
+ });
++
++
++test("floating call collapse leaves game controls clear and preserves mounted media", async ({ page }, testInfo) => {
++  await installEncounterFixture(page, { games: true });
++  await page.route("http://127.0.0.1:8567/**", route => route.fulfill({ contentType: "text/html", body: `<!doctype html><style>body{margin:0}button{position:fixed;bottom:4px;right:4px;min-height:44px}p{position:fixed;bottom:48px;right:4px}</style><p>Pick three choices</p><button onclick="this.textContent='Choices ready'">Generate choices</button><script>const send=m=>parent.postMessage(m,'*');addEventListener('message',e=>{if(e.data.t==='auth')send({v:1,t:'authed',n:e.data.n})});send({v:1,t:'ready'});</script>` }));
++  for (const route of ["/encounter?squad=fixture-squad&enc=fixture-2v2", "/lobby?squad=fixture-squad"]) {
++    await page.goto(route);
++    await page.getByRole("button", { name: route.startsWith("/lobby") && testInfo.project.name === "phone" ? "Play" : "Play together", exact: true }).click();
++    const panel = page.getByTestId("game-panel");
++    await panel.getByLabel("Video layout").selectOption("floating");
++    const shell = page.locator('[data-floating-call="true"]');
++    const shellIdentity = await shell.elementHandle();
++    const frameIdentity = await panel.locator("iframe").elementHandle();
++    const mediaNodes = await shell.locator('[data-media-host], [data-testid="lobby-person"]').elementHandles();
++    expect(mediaNodes.length).toBeGreaterThan(0);
++    // Synthetic stream only: verifies DOM/stream identity across presentation,
++    // without claiming device capture, an Agora join, or real RTC.
++    const videoIdentity = route.startsWith("/encounter") ? await shell.locator("[data-media-host]").first().evaluateHandle(host => {
++      const canvas = document.createElement("canvas");
++      canvas.width = 160; canvas.height = 90;
++      const video = document.createElement("video");
++      video.srcObject = canvas.captureStream(1);
++      host.appendChild(video);
++      return video;
++    }) : null;
++    const streamIdentity = videoIdentity ? await videoIdentity.evaluateHandle(video => video.srcObject) : null;
++    const recovery = page.getByTestId("media-recovery-notice");
++    const recoveryText = await recovery.isVisible() ? await recovery.innerText() : null;
++    if (route.startsWith("/encounter")) {
++      if (testInfo.project.name === "phone") await page.setViewportSize({ width: 568, height: 320 });
++      await page.getByRole("button", { name: "More", exact: true }).click();
++      await page.getByRole("button", { name: "Report opponent squad", exact: true }).click();
++      const dialog = page.getByRole("dialog", { name: "Report opponent squad", exact: true });
++      await dialog.getByRole("combobox", { name: "Reason", exact: true }).selectOption("spam");
++      await dialog.getByRole("button", { name: "Send report", exact: true }).click();
++      await expect(page.getByTestId("floating-call-notice")).toBeVisible();
++      await expect(page.getByTestId("encounter-transient-notice")).toHaveCount(0);
++      if (testInfo.project.name === "phone") {
++        for (const control of [panel.getByLabel("Video layout"), panel.getByRole("button", { name: "Close games", exact: true })]) {
++          const box = await control.boundingBox();
++          expect(box!.height).toBeGreaterThanOrEqual(44);
++          expect(box!.y).toBeGreaterThanOrEqual(0);
++          expect(box!.y + box!.height).toBeLessThanOrEqual(320);
++        }
++      }
++      await page.screenshot({ path: testInfo.outputPath("floating-receipt-expanded.jpg"), type: "jpeg" });
++      const hide = page.getByRole("button", { name: "Collapse floating call", exact: true });
++      const hideBox = await hide.boundingBox();
++      expect(hideBox!.width).toBeGreaterThanOrEqual(44);
++      expect(hideBox!.height).toBeGreaterThanOrEqual(44);
++      expect(await hide.evaluate(button => {
++        const box = button.getBoundingClientRect();
++        const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
++        return hit === button || button.contains(hit);
++      })).toBe(true);
++      await hide.click();
++      // Collapse must work during the receipt, not after its timeout expires.
++      await expect(page.getByTestId("floating-call-notice")).toBeVisible();
++    } else {
++      await page.getByRole("button", { name: "Collapse floating call", exact: true }).click();
++    }
++    const expand = panel.getByRole("button", { name: "Expand floating call", exact: true });
++    await expect(expand).toBeFocused();
++    await expect(shell).toBeHidden();
++    await expect(page.getByTestId("floating-call-tools")).toHaveCount(0);
++    if (route.startsWith("/encounter")) {
++      await expect(page.getByTestId("floating-call-notice")).toHaveText("Reported — thanks for keeping Giggle safe");
++      await expect(page.getByTestId("floating-call-notice")).toBeVisible();
++      await expect(page.getByTestId("encounter-transient-notice")).toHaveCount(0);
++    }
++    const box = await expand.boundingBox();
++    expect(box!.width).toBeGreaterThanOrEqual(44); expect(box!.height).toBeGreaterThanOrEqual(44);
++    expect(await shellIdentity!.evaluate(node => node.isConnected)).toBe(true);
++    expect(await frameIdentity!.evaluate(node => node.isConnected)).toBe(true);
++    for (const node of mediaNodes) expect(await node.evaluate(node => node.isConnected)).toBe(true);
++    if (recoveryText) await expect(recovery).toHaveText(recoveryText, { useInnerText: true });
++    await expect(panel.frameLocator("iframe").getByText("Pick three choices", { exact: true })).toBeVisible();
++    await panel.frameLocator("iframe").getByRole("button", { name: "Generate choices", exact: true }).click();
++    await expect(panel.frameLocator("iframe").getByRole("button", { name: "Choices ready", exact: true })).toBeVisible();
++    await expand.click();
++    const hide = page.getByRole("button", { name: "Collapse floating call", exact: true });
++    await expect(hide).toBeFocused();
++    await expect(shell).toBeVisible();
++    await expect.poll(async () => {
++      const box = await hide.boundingBox();
++      return Boolean(box && box.width >= 44 && box.height >= 44);
++    }).toBe(true);
++    expect(await frameIdentity!.evaluate(node => node.isConnected)).toBe(true);
++    for (const node of mediaNodes) expect(await node.evaluate(node => node.isConnected)).toBe(true);
++    if (videoIdentity && streamIdentity) {
++      expect(await videoIdentity.evaluate((video, stream) => video.isConnected && video.srcObject === stream, streamIdentity)).toBe(true);
++      expect(await videoIdentity.evaluate(video => (video.srcObject as MediaStream).getVideoTracks()[0].readyState)).toBe("live");
++      await videoIdentity.evaluate(video => (video.srcObject as MediaStream).getTracks().forEach(track => track.stop()));
++    }
++    await panel.getByRole("button", { name: "Close games", exact: true }).click();
++    if (route.startsWith("/encounter") && testInfo.project.name === "phone") await page.setViewportSize({ width: 390, height: 844 });
++    if (route.startsWith("/lobby") && testInfo.project.name !== "phone") {
++      const code = await page.getByRole("button", { name: "Copy squad code FIXTURE", exact: true }).boundingBox();
++      expect(code!.height).toBeGreaterThanOrEqual(44);
++    }
++  }
++  if (testInfo.project.name === "phone") {
++    await page.setViewportSize({ width: 568, height: 320 });
++    const code = page.getByRole("button", { name: "Copy squad code FIXTURE", exact: true });
++    await expect(code).toBeVisible();
++    expect((await code.boundingBox())!.height).toBeGreaterThanOrEqual(44);
++    await page.getByRole("button", { name: "Play together", exact: true }).click();
++    const panel = page.getByTestId("game-panel");
++    await panel.getByLabel("Video layout").selectOption("floating");
++    await page.getByRole("button", { name: "Collapse floating call", exact: true }).click();
++    const header = panel.getByRole("button", { name: "Expand floating call", exact: true });
++    const close = panel.getByRole("button", { name: "Close games", exact: true });
++    for (const control of [header, close, panel.getByLabel("Video layout")]) {
++      const box = await control.boundingBox();
++      expect(box!.height).toBeGreaterThanOrEqual(44);
++      expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(568);
++    }
++    await panel.frameLocator("iframe").getByRole("button", { name: "Generate choices", exact: true }).click();
++    await close.click();
++  }
++});
+diff --git a/apps/desktop/test/game-bridge.test.js b/apps/desktop/test/game-bridge.test.js
+index f56e688..9cd516a 100644
+--- a/apps/desktop/test/game-bridge.test.js
++++ b/apps/desktop/test/game-bridge.test.js
+@@ -280,7 +280,7 @@ test("lobby adds games inside the page without disturbing the call", () => {
+   // Strong entry gated on the API switch; games open in-page, not away.
+   assert.match(lobby, /useGamesEnabled\(\) === true/);
+   assert.match(lobby, /Play together/);
+-  assert.match(lobby, /<GamePanel squadId=\{squadId\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: micCapture, onEnableMic: \(\) => void toggleDevice\("audio"\) \}\} \/>/);
++  assert.match(lobby, /<GamePanel squadId=\{squadId\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} floatingCall=\{effectiveLayout === "floating" \? \{ collapsed: callCollapsed, onExpand: \(\) => toggleFloatingCall\(false\), expandButtonRef: callExpandRef \} : undefined\} voice=\{\{ mic: micCapture, onEnableMic: \(\) => void toggleDevice\("audio"\) \}\} \/>/);
+   assert.doesNotMatch(lobby, /router\.push\([^)]*[Gg]ame/);
+   // The seats (media nodes) stay mounted: no conditional around them.
+   assert.match(lobby, /<section className=\{`\$\{styles\.seats\} \$\{floatingStyles\.shell\} \$\{cameraStyles\.shell\}`\}/);
+diff --git a/apps/desktop/test/game-encounter.test.js b/apps/desktop/test/game-encounter.test.js
+index 558b6c5..38e94c7 100644
+--- a/apps/desktop/test/game-encounter.test.js
++++ b/apps/desktop/test/game-encounter.test.js
+@@ -87,7 +87,7 @@ test("encounter games mount beside the video stage, which stays mounted", () =>
+   assert.match(encounter, /data-testid="encounter-game-stage"/);
+   assert.match(
+     encounter,
+-    /<GamePanel squadId=\{squadId\} encounter=\{\{ encounterId: encId \}\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} voice=\{\{ mic: mapCaptureToVoiceMic\(captureState\.audio\), onEnableMic: toggleMic \}\} \/>/
++    /<GamePanel squadId=\{squadId\} encounter=\{\{ encounterId: encId \}\} onClose=\{\(\) => setGameOpen\(false\)\} onPresentation=\{handlePresentation\} onCameraScene=\{handleCameraScene\} layout=\{layoutOverride\} onLayoutChange=\{setLayoutOverride\} floatingCall=\{effectiveLayout === "floating" \? \{ collapsed: callCollapsed, onExpand: \(\) => toggleFloatingCall\(false\), expandButtonRef: callExpandRef \} : undefined\} voice=\{\{ mic: mapCaptureToVoiceMic\(captureState\.audio\), onEnableMic: toggleMic \}\} \/>/
+   );
+   // On a phone the game hides (nodes stay mounted) while chat takes over.
+   assert.match(encounter, /hidden=\{chatTakesStage && chatOpen\}/);
+diff --git a/apps/desktop/test/game-panel-recovery.test.js b/apps/desktop/test/game-panel-recovery.test.js
+index 3080c97..6864fe2 100644
+--- a/apps/desktop/test/game-panel-recovery.test.js
++++ b/apps/desktop/test/game-panel-recovery.test.js
+@@ -6,7 +6,7 @@ const ts = require("typescript");
+ 
+ // Run the production component's hooks, message handler and rendered Retry.
+ // The frame models identity only; this does not exercise browser layout or RTC.
+-function mountPanel() {
++function mountPanel(props = {}) {
+   const slots = [], effects = [], timers = new Map(), listeners = new Map(), posted = [];
+   let cursor = 0, dirty = false, tree, frame = null, timerId = 0, unavailable = false;
+   const same = (a, b) => a && b && a.length === b.length && a.every((v, i) => Object.is(v, b[i]));
+@@ -73,7 +73,7 @@ function mountPanel() {
+     [node, ...[].concat(node.props?.children ?? []).flatMap(all)];
+   function render() {
+     cursor = 0; dirty = false;
+-    tree = GamePanel({ squadId: "squad", onClose() {} });
++    tree = GamePanel({ squadId: "squad", onClose() {}, ...props });
+     const next = all(tree).find(node => node.type === "iframe");
+     if (!next || frame?.key !== next.key) {
+       if (frame) frame.ref.current = null;
+@@ -89,6 +89,9 @@ function mountPanel() {
+   render();
+   return {
+     settle, timers, listeners,
++    get nodes() { return all(tree); },
++    get frameIdentity() { return frame; },
++    update(next) { props = next; render(); },
+     get status() { return tree.props["data-status"]; },
+     get frameKey() { return frame?.key; },
+     set unavailable(value) { unavailable = value; },
+@@ -136,3 +139,30 @@ test("Retry preserves a heard live frame, and unmount removes auth timers and me
+   assert.equal(panel.timers.size, 0);
+   assert.equal(panel.listeners.size, 0);
+ });
++
++
++test("collapsed floating call offers header expansion without retiring the live frame", async () => {
++  const ref = { current: null };
++  let expanded = 0;
++  const panel = mountPanel();
++  await panel.settle();
++  panel.message({ v: 1, t: "ready" }); await panel.settle();
++  panel.ack(); await panel.settle();
++  const frame = panel.frameIdentity;
++  const timers = panel.timers.size;
++  panel.update({ floatingCall: { collapsed: true, onExpand: () => expanded++, expandButtonRef: ref } });
++  await panel.settle();
++  const expand = panel.nodes.find(node => node.props?.["aria-label"] === "Expand floating call");
++  assert.ok(expand, "collapsed control is in the parent header");
++  assert.equal(expand.props.ref, ref);
++  assert.equal(expand.props["aria-expanded"], false);
++  expand.props.onClick();
++  assert.equal(expanded, 1);
++  assert.equal(panel.frameIdentity, frame, "collapse never remounts the game iframe");
++  assert.equal(panel.timers.size, timers, "collapse never renews authorization");
++  panel.update({ floatingCall: { collapsed: false, onExpand() {}, expandButtonRef: ref } });
++  await panel.settle();
++  assert.equal(panel.nodes.some(node => node.props?.["aria-label"] === "Expand floating call"), false);
++  assert.equal(panel.frameIdentity, frame);
++  panel.unmount();
++});

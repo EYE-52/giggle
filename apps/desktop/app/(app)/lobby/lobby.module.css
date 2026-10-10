@@ -19,7 +19,7 @@
 .title { margin: 0; font: 700 20px/1.2 var(--font-display); letter-spacing: -.015em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .subtitle { display: flex; align-items: center; gap: 6px; font-size: 13px; line-height: 1.3; overflow: hidden; white-space: nowrap; }
 .interest { padding: 0 7px; border-radius: 999px; background: var(--overlay, rgb(0 0 0 / .05)); line-height: 18px; }
-.codeChip { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 10px 0 14px; flex: none; border: 1px solid var(--line, var(--border)); border-radius: 999px; background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
+.codeChip { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 10px 0 14px; flex: none; border: 1px solid var(--line, var(--border)); border-radius: 999px; background: var(--surface); color: var(--text); cursor: pointer; font: inherit; }
 .codeChip:hover { border-color: color-mix(in srgb, var(--text) 30%, transparent); }
 .codeText { font: 800 15px/1 var(--font-display); letter-spacing: .1em; font-variant-numeric: tabular-nums; }
 .codeHint { display: grid; place-items: center; min-width: 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); }

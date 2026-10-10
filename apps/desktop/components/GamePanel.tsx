@@ -46,6 +46,7 @@ interface Props {
   // Read via ref so subscribing never re-runs auth effects.
   onPresentation?: (p: GamePresentation) => void;
   onCameraScene?: (scene: GameCameraScene | null) => void;
+  floatingCall?: { collapsed: boolean; onExpand: () => void; expandButtonRef: React.RefObject<HTMLButtonElement | null> };
   layout?: GameLayoutOverride;
   onLayoutChange?: (l: GameLayoutOverride) => void;
   // Encounter calls share ONE game room for both squads: when set, tickets
@@ -62,7 +63,7 @@ interface Props {
 // Squad games inside the lobby (or encounter games inside the call): frames
 // Game Night and passes single-use tickets over postMessage v1. The iframe
 // gets NO camera/mic permission — media stays entirely in this parent page.
-export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, layout = "auto", onLayoutChange, encounter, voice }: Props) {
+export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, layout = "auto", onLayoutChange, floatingCall, encounter, voice }: Props) {
   const themeMode = useTheme();
   const [status, setStatus] = useState<"loading" | "live" | "unavailable" | "error">("loading");
   const [detail, setDetail] = useState<string | null>(null);
@@ -431,6 +432,11 @@ export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, lay
               <option value="stage">Game stage</option>
             </select>
           </label>
+        )}
+        {floatingCall?.collapsed && (
+          <button ref={floatingCall.expandButtonRef} type="button" className={styles.close} onClick={floatingCall.onExpand} aria-label="Expand floating call" aria-expanded={false}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="12" height="14" rx="3"/><path d="m15 9 6-3v12l-6-3" strokeLinejoin="round"/></svg>
+          </button>
         )}
         <button type="button" className={styles.close} onClick={onClose} aria-label="Close games">
           <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>

@@ -142,6 +142,7 @@ function fixtureEncounter(encounterId: string, count: number) {
 }
 
 async function installEncounterFixture(page: Page, options: {
+  games?: boolean;
   ended?: boolean;
   disconnectDelayMs?: number;
   disconnectStatus?: number;
@@ -247,7 +248,11 @@ async function installEncounterFixture(page: Page, options: {
     const path = new URL(route.request().url()).pathname;
     // the site asks the API whether stranger matching is on
     if (path === "/api/features") {
-      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { strangerDiscovery: true } }) });
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { strangerDiscovery: true, games: options.games === true } }) });
+      return;
+    }
+    if (options.games && path.endsWith("/games/token")) {
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { gameUrl: "http://127.0.0.1:8567", ticket: "synthetic-test-ticket" } }) });
       return;
     }
     if (path === "/api/me/profile") {
@@ -1034,4 +1039,125 @@ test("call chrome fades when idle and wakes on input", async ({ page }, testInfo
   await expect(shell).toHaveAttribute("data-chrome", "hidden", { timeout: 8000 });
   await page.keyboard.press("Tab");
   await expect(shell).toHaveAttribute("data-chrome", "shown");
+});
+
+
+test("floating call collapse leaves game controls clear and preserves mounted media", async ({ page }, testInfo) => {
+  await installEncounterFixture(page, { games: true });
+  await page.route("http://127.0.0.1:8567/**", route => route.fulfill({ contentType: "text/html", body: `<!doctype html><style>body{margin:0}button{position:fixed;bottom:4px;right:4px;min-height:44px}p{position:fixed;bottom:48px;right:4px}</style><p>Pick three choices</p><button onclick="this.textContent='Choices ready'">Generate choices</button><script>const send=m=>parent.postMessage(m,'*');addEventListener('message',e=>{if(e.data.t==='auth')send({v:1,t:'authed',n:e.data.n})});send({v:1,t:'ready'});</script>` }));
+  for (const route of ["/encounter?squad=fixture-squad&enc=fixture-2v2", "/lobby?squad=fixture-squad"]) {
+    await page.goto(route);
+    await page.getByRole("button", { name: route.startsWith("/lobby") && testInfo.project.name === "phone" ? "Play" : "Play together", exact: true }).click();
+    const panel = page.getByTestId("game-panel");
+    await panel.getByLabel("Video layout").selectOption("floating");
+    const shell = page.locator('[data-floating-call="true"]');
+    const shellIdentity = await shell.elementHandle();
+    const frameIdentity = await panel.locator("iframe").elementHandle();
+    const mediaNodes = await shell.locator('[data-media-host], [data-testid="lobby-person"]').elementHandles();
+    expect(mediaNodes.length).toBeGreaterThan(0);
+    // Synthetic stream only: verifies DOM/stream identity across presentation,
+    // without claiming device capture, an Agora join, or real RTC.
+    const videoIdentity = route.startsWith("/encounter") ? await shell.locator("[data-media-host]").first().evaluateHandle(host => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 160; canvas.height = 90;
+      const video = document.createElement("video");
+      video.srcObject = canvas.captureStream(1);
+      host.appendChild(video);
+      return video;
+    }) : null;
+    const streamIdentity = videoIdentity ? await videoIdentity.evaluateHandle(video => video.srcObject) : null;
+    const recovery = page.getByTestId("media-recovery-notice");
+    const recoveryText = await recovery.isVisible() ? await recovery.innerText() : null;
+    if (route.startsWith("/encounter")) {
+      if (testInfo.project.name === "phone") await page.setViewportSize({ width: 568, height: 320 });
+      await page.getByRole("button", { name: "More", exact: true }).click();
+      await page.getByRole("button", { name: "Report opponent squad", exact: true }).click();
+      const dialog = page.getByRole("dialog", { name: "Report opponent squad", exact: true });
+      await dialog.getByRole("combobox", { name: "Reason", exact: true }).selectOption("spam");
+      await dialog.getByRole("button", { name: "Send report", exact: true }).click();
+      await expect(page.getByTestId("floating-call-notice")).toBeVisible();
+      await expect(page.getByTestId("encounter-transient-notice")).toHaveCount(0);
+      if (testInfo.project.name === "phone") {
+        for (const control of [panel.getByLabel("Video layout"), panel.getByRole("button", { name: "Close games", exact: true })]) {
+          const box = await control.boundingBox();
+          expect(box!.height).toBeGreaterThanOrEqual(44);
+          expect(box!.y).toBeGreaterThanOrEqual(0);
+          expect(box!.y + box!.height).toBeLessThanOrEqual(320);
+        }
+      }
+      await page.screenshot({ path: testInfo.outputPath("floating-receipt-expanded.jpg"), type: "jpeg" });
+      const hide = page.getByRole("button", { name: "Collapse floating call", exact: true });
+      const hideBox = await hide.boundingBox();
+      expect(hideBox!.width).toBeGreaterThanOrEqual(44);
+      expect(hideBox!.height).toBeGreaterThanOrEqual(44);
+      expect(await hide.evaluate(button => {
+        const box = button.getBoundingClientRect();
+        const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        return hit === button || button.contains(hit);
+      })).toBe(true);
+      await hide.click();
+      // Collapse must work during the receipt, not after its timeout expires.
+      await expect(page.getByTestId("floating-call-notice")).toBeVisible();
+    } else {
+      await page.getByRole("button", { name: "Collapse floating call", exact: true }).click();
+    }
+    const expand = panel.getByRole("button", { name: "Expand floating call", exact: true });
+    await expect(expand).toBeFocused();
+    await expect(shell).toBeHidden();
+    await expect(page.getByTestId("floating-call-tools")).toHaveCount(0);
+    if (route.startsWith("/encounter")) {
+      await expect(page.getByTestId("floating-call-notice")).toHaveText("Reported — thanks for keeping Giggle safe");
+      await expect(page.getByTestId("floating-call-notice")).toBeVisible();
+      await expect(page.getByTestId("encounter-transient-notice")).toHaveCount(0);
+    }
+    const box = await expand.boundingBox();
+    expect(box!.width).toBeGreaterThanOrEqual(44); expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(await shellIdentity!.evaluate(node => node.isConnected)).toBe(true);
+    expect(await frameIdentity!.evaluate(node => node.isConnected)).toBe(true);
+    for (const node of mediaNodes) expect(await node.evaluate(node => node.isConnected)).toBe(true);
+    if (recoveryText) await expect(recovery).toHaveText(recoveryText, { useInnerText: true });
+    await expect(panel.frameLocator("iframe").getByText("Pick three choices", { exact: true })).toBeVisible();
+    await panel.frameLocator("iframe").getByRole("button", { name: "Generate choices", exact: true }).click();
+    await expect(panel.frameLocator("iframe").getByRole("button", { name: "Choices ready", exact: true })).toBeVisible();
+    await expand.click();
+    const hide = page.getByRole("button", { name: "Collapse floating call", exact: true });
+    await expect(hide).toBeFocused();
+    await expect(shell).toBeVisible();
+    await expect.poll(async () => {
+      const box = await hide.boundingBox();
+      return Boolean(box && box.width >= 44 && box.height >= 44);
+    }).toBe(true);
+    expect(await frameIdentity!.evaluate(node => node.isConnected)).toBe(true);
+    for (const node of mediaNodes) expect(await node.evaluate(node => node.isConnected)).toBe(true);
+    if (videoIdentity && streamIdentity) {
+      expect(await videoIdentity.evaluate((video, stream) => video.isConnected && video.srcObject === stream, streamIdentity)).toBe(true);
+      expect(await videoIdentity.evaluate(video => (video.srcObject as MediaStream).getVideoTracks()[0].readyState)).toBe("live");
+      await videoIdentity.evaluate(video => (video.srcObject as MediaStream).getTracks().forEach(track => track.stop()));
+    }
+    await panel.getByRole("button", { name: "Close games", exact: true }).click();
+    if (route.startsWith("/encounter") && testInfo.project.name === "phone") await page.setViewportSize({ width: 390, height: 844 });
+    if (route.startsWith("/lobby") && testInfo.project.name !== "phone") {
+      const code = await page.getByRole("button", { name: "Copy squad code FIXTURE", exact: true }).boundingBox();
+      expect(code!.height).toBeGreaterThanOrEqual(44);
+    }
+  }
+  if (testInfo.project.name === "phone") {
+    await page.setViewportSize({ width: 568, height: 320 });
+    const code = page.getByRole("button", { name: "Copy squad code FIXTURE", exact: true });
+    await expect(code).toBeVisible();
+    expect((await code.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await page.getByRole("button", { name: "Play together", exact: true }).click();
+    const panel = page.getByTestId("game-panel");
+    await panel.getByLabel("Video layout").selectOption("floating");
+    await page.getByRole("button", { name: "Collapse floating call", exact: true }).click();
+    const header = panel.getByRole("button", { name: "Expand floating call", exact: true });
+    const close = panel.getByRole("button", { name: "Close games", exact: true });
+    for (const control of [header, close, panel.getByLabel("Video layout")]) {
+      const box = await control.boundingBox();
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+      expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(568);
+    }
+    await panel.frameLocator("iframe").getByRole("button", { name: "Generate choices", exact: true }).click();
+    await close.click();
+  }
 });

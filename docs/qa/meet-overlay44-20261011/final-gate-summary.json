@@ -1,0 +1,29 @@
+{
+  "sourceFiles": 855,
+  "sourceUnchanged": true,
+  "sourceChanges": [],
+  "compiledCSSFiles": 14,
+  "compiledCSSUnchanged": true,
+  "cssChanges": [],
+  "desktopTests": 205,
+  "serverTestsCarried": 453,
+  "identicalServerFiles": 124,
+  "development": {
+    "registered": 380,
+    "passed": 242,
+    "declaredSkipped": 138,
+    "failed": 0,
+    "partitions": "strict60 + general270(132 pass/138 skip) + fresh-local50"
+  },
+  "production": {
+    "passed": 23,
+    "declaredSkipped": 3,
+    "failed": 0,
+    "origin": "direct compiled Next4011"
+  },
+  "retainedFailedAttempts": [
+    "full-e2e local43PASS7FAIL after unchangedAPI3000/15min IP limit exhausted",
+    "full-production proxy4015 smoke1PASS1FAIL requestreset and BrokenPipe"
+  ],
+  "scope": "Synthetic local auth/declaration/provider/media fixtures; root separately reviewed real compiled parent UI. HTTP Games intentionally fails closed. No production auth/live RTC/HTTPS embed/physical acceptance."
+}

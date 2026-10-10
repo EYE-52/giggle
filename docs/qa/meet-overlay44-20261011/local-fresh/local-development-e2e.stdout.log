@@ -1,0 +1,54 @@
+
+Running 50 tests using 1 worker
+
+[1/50] [phone] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[2/50] [phone] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[3/50] [phone] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[4/50] [phone] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+[5/50] [phone] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+[6/50] [phone] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+[7/50] [phone] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+[8/50] [phone] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+[9/50] [phone] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+[10/50] [phone] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+[11/50] [tablet] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[12/50] [tablet] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[13/50] [tablet] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[14/50] [tablet] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+[15/50] [tablet] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+[16/50] [tablet] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+[17/50] [tablet] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+[18/50] [tablet] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+[19/50] [tablet] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+[20/50] [tablet] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+[21/50] [laptop] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[22/50] [laptop] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[23/50] [laptop] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[24/50] [laptop] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+[25/50] [laptop] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+[26/50] [laptop] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+[27/50] [laptop] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+[28/50] [laptop] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+[29/50] [laptop] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+[30/50] [laptop] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+[31/50] [desktop] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[32/50] [desktop] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[33/50] [desktop] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[34/50] [desktop] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+[35/50] [desktop] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+[36/50] [desktop] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+[37/50] [desktop] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+[38/50] [desktop] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+[39/50] [desktop] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+[40/50] [desktop] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+[41/50] [wide] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[42/50] [wide] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[43/50] [wide] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[44/50] [wide] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+[45/50] [wide] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+[46/50] [wide] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+[47/50] [wide] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+[48/50] [wide] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+[49/50] [wide] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+[50/50] [wide] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+  50 passed (5.0m)

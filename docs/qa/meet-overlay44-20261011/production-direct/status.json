@@ -1,0 +1,17 @@
+{
+  "production-protected-e2e": {
+    "exitCode": 0,
+    "elapsedSeconds": 13.756102323532104
+  },
+  "production-public-e2e": {
+    "exitCode": 0,
+    "elapsedSeconds": 2.5943329334259033
+  },
+  "production-local-smoke": {
+    "exitCode": 0,
+    "elapsedSeconds": 5.759867906570435
+  },
+  "completed": true,
+  "deletedEphemeralStateSHA256": "153fd1b81c794a692cbe3f8e757cbd75b394bb6e8dde48896486d5b61487dc01",
+  "ownedWebStopped": true
+}

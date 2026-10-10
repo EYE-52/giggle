@@ -1,0 +1,23 @@
+{
+  "verify-deploy-bundle": {
+    "exitCode": 0,
+    "elapsedSeconds": 20.64353585243225
+  },
+  "strict-development-e2e": {
+    "exitCode": 0,
+    "elapsedSeconds": 56.81063413619995
+  },
+  "strictCompleted": true,
+  "general-development-e2e": {
+    "exitCode": 0,
+    "elapsedSeconds": 245.6761679649353
+  },
+  "local-development-e2e": {
+    "exitCode": 1,
+    "elapsedSeconds": 419.51751708984375
+  },
+  "runnerError": "Local E2E failed",
+  "ownedServicesStopped": true,
+  "executionSourceChanges": [],
+  "frozenSourceUnchanged": true
+}

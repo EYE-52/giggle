@@ -198,6 +198,18 @@ function EncounterInner() {
   const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
   const [callCorner, setCallCorner] = useState<CallCorner>("bottom-right");
   const [callCollapsed, setCallCollapsed] = useState(false);
+  const callExpandRef = useRef<HTMLButtonElement>(null);
+  const callHideRef = useRef<HTMLButtonElement>(null);
+  const callToggleFocusRef = useRef(false);
+  const toggleFloatingCall = (collapsed: boolean) => {
+    callToggleFocusRef.current = true;
+    setCallCollapsed(collapsed);
+  };
+  useEffect(() => {
+    if (!callToggleFocusRef.current) return;
+    callToggleFocusRef.current = false;
+    (callCollapsed ? callExpandRef : callHideRef).current?.focus();
+  }, [callCollapsed]);
   // Stable subscriber: GamePanel reads it via ref, so auth never re-runs.
   const handlePresentation = useCallback((p: GamePresentation) => {
     setGamePresentation(p);
@@ -1402,7 +1414,7 @@ function EncounterInner() {
 
         {/* Recoverable failures share one bounded flow row above the rails.
             Retry/Dismiss remain reachable without covering game or video. */}
-        {(recoveryMessages.length > 0 || failedReaction) && <div data-testid="recovery-notices" className={feedbackStyles.recoveryRows}>
+        {(recoveryMessages.length > 0 || failedReaction || (gameOpen && effectiveLayout === "floating" && transientNotice)) && <div data-testid="recovery-notices" className={feedbackStyles.recoveryRows}>
           {recoveryMessages.length > 0 && (
             <div data-testid="media-recovery-notice" role="alert" className={feedbackStyles.mediaRecovery}>
               <span aria-hidden className={feedbackStyles.recoveryDot} />
@@ -1413,6 +1425,12 @@ function EncounterInner() {
                 </button>
                 {videoError && <button className={feedbackStyles.dismiss} onClick={() => setVideoError(null)} title="Dismiss" aria-label="Dismiss media notice"><Icon.close size={16} /></button>}
               </div>
+            </div>
+          )}
+          {gameOpen && effectiveLayout === "floating" && transientNotice && (
+            <div role="status" data-testid="floating-call-notice" className={feedbackStyles.mediaRecovery}>
+              <span className={feedbackStyles.recoveryText}>{transientNotice === "reported" ? "Reported — thanks for keeping Giggle safe" : "Reconnecting…"}</span>
+              {transientNotice === "reconnecting" && <div className={feedbackStyles.recoveryActions}><button type="button" className={feedbackStyles.dismiss} aria-label="Dismiss reconnecting notice" onClick={() => setReconnectDismissed(true)}><Icon.close size={16} /></button></div>}
             </div>
           )}
           {failedReaction && <div role="alert" data-testid="reaction-error" className={feedbackStyles.mediaRecovery}>
@@ -1444,7 +1462,7 @@ function EncounterInner() {
               (never unmounts) while chat takes the screen. */}
           {gameOpen && GAMES_ENABLED && (
             <section data-testid="encounter-game-stage" className={`gg-encounter-game ${cameraStyles.companion}`} hidden={chatTakesStage && chatOpen} aria-label="Encounter games">
-              <GamePanel squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
+              <GamePanel squadId={squadId} encounter={{ encounterId: encId }} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} floatingCall={effectiveLayout === "floating" ? { collapsed: callCollapsed, onExpand: () => toggleFloatingCall(false), expandButtonRef: callExpandRef } : undefined} voice={{ mic: mapCaptureToVoiceMic(captureState.audio), onEnableMic: toggleMic }} />
             </section>
           )}
           {/* ── VIDEO STAGE ─────────────────────────────────────────────── */}
@@ -1465,7 +1483,7 @@ function EncounterInner() {
               overflow: "hidden",
             }}
           >
-            {gameOpen && GAMES_ENABLED && effectiveLayout === "floating" && <FloatingCallTools corner={callCorner} collapsed={callCollapsed} onCornerChange={setCallCorner} onToggle={() => setCallCollapsed(value => !value)} />}
+            {gameOpen && GAMES_ENABLED && effectiveLayout === "floating" && !callCollapsed && <FloatingCallTools corner={callCorner} onCornerChange={setCallCorner} onCollapse={() => toggleFloatingCall(true)} hideButtonRef={callHideRef} />}
             {stageScene && <CameraGameCaption scene={stageScene} />}
             {/* Top toast stack — banners stack vertically instead of overlapping */}
             <div
@@ -1483,7 +1501,7 @@ function EncounterInner() {
                 pointerEvents: "none",
               }}
             >
-              {transientNotice && (
+              {transientNotice && !(gameOpen && effectiveLayout === "floating") && (
                 <div
                   data-testid="encounter-transient-notice"
                   role="status"

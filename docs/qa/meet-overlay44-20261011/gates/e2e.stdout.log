@@ -1,0 +1,9 @@
+
+Running 5 tests using 1 worker
+
+[1/5] [phone] › e2e/encounter.spec.ts:1045:5 › floating call collapse leaves game controls clear and preserves mounted media
+[2/5] [tablet] › e2e/encounter.spec.ts:1045:5 › floating call collapse leaves game controls clear and preserves mounted media
+[3/5] [laptop] › e2e/encounter.spec.ts:1045:5 › floating call collapse leaves game controls clear and preserves mounted media
+[4/5] [desktop] › e2e/encounter.spec.ts:1045:5 › floating call collapse leaves game controls clear and preserves mounted media
+[5/5] [wide] › e2e/encounter.spec.ts:1045:5 › floating call collapse leaves game controls clear and preserves mounted media
+  5 passed (18.6s)

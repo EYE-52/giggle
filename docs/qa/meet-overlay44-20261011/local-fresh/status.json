@@ -1,0 +1,10 @@
+{
+  "local-development-e2e": {
+    "exitCode": 0,
+    "elapsedSeconds": 301.30276107788086
+  },
+  "completed": true,
+  "ownedServicesStopped": true,
+  "executionSourceChanges": [],
+  "frozenSourceUnchanged": true
+}

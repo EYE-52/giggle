@@ -1,0 +1,268 @@
+
+Running 50 tests using 1 worker
+
+[1/50] [phone] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[2/50] [phone] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[3/50] [phone] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[4/50] [phone] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+[5/50] [phone] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+[6/50] [phone] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+[7/50] [phone] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+[8/50] [phone] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+[9/50] [phone] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+[10/50] [phone] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+[11/50] [tablet] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[12/50] [tablet] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[13/50] [tablet] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[14/50] [tablet] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+[15/50] [tablet] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+[16/50] [tablet] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+[17/50] [tablet] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+[18/50] [tablet] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+[19/50] [tablet] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+[20/50] [tablet] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+[21/50] [laptop] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[22/50] [laptop] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[23/50] [laptop] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[24/50] [laptop] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+[25/50] [laptop] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+[26/50] [laptop] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+[27/50] [laptop] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+[28/50] [laptop] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+[29/50] [laptop] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+[30/50] [laptop] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+[31/50] [desktop] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[32/50] [desktop] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[33/50] [desktop] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[34/50] [desktop] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+[35/50] [desktop] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+[36/50] [desktop] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+[37/50] [desktop] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+[38/50] [desktop] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+[39/50] [desktop] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+[40/50] [desktop] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+[41/50] [wide] › e2e/invite-dialog.spec.ts:6:5 › squad invitation and chat panels support keyboard navigation and recovery
+[42/50] [wide] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 390px
+[43/50] [wide] › e2e/lobby-flow.spec.ts:5:7 › real squad lifecycle at 1440px
+[44/50] [wide] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home
+  1) [wide] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: browserContext.close: Protocol error (Target.disposeBrowserContext): Failed to find context with id 9BD9246F327CB4AF0009149BAA73207D
+
+      116 |     await leader.getByRole('button', { name: 'Leave squad', exact: true }).click();
+      117 |     await expect(leader).toHaveURL(/\/home$/);
+    > 118 |   } finally { await Promise.all(contexts.map(context => context.close())); }
+          |               ^
+      119 | });
+      120 |
+        at /private/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/e2e/lobby-flow.spec.ts:118:15
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/lobby-flow-request-approva-b77cd-by-and-removal-returns-home-wide/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/lobby-flow-request-approva-b77cd-by-and-removal-returns-home-wide/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/lobby-flow-request-approva-b77cd-by-and-removal-returns-home-wide/error-context.md
+
+
+[45/50] [wide] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home
+  2) [wide] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: browserContext.close: Test ended.
+    Browser logs:
+
+    <launching> /Users/divyansh/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --use-fake-device-for-media-stream --use-fake-ui-for-media-stream --mute-audio --user-data-dir=/var/folders/sj/vl26r9qn3pl322k4bhjd__y00000gn/T/playwright_chromiumdev_profile-SIncUk --remote-debugging-pipe --no-startup-window
+    <launched> pid=71508
+    [pid=71508][err] [1011/000241.436049:INFO:CONSOLE:2490] "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold", source: http://localhost:4011/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js (2490)
+    [pid=71508][err] [1011/000241.493217:INFO:CONSOLE:2490] "[HMR] connected", source: http://localhost:4011/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js (2490)
+    [pid=71508] <gracefully close start>
+
+      116 |     await leader.getByRole('button', { name: 'Leave squad', exact: true }).click();
+      117 |     await expect(leader).toHaveURL(/\/home$/);
+    > 118 |   } finally { await Promise.all(contexts.map(context => context.close())); }
+          |               ^
+      119 | });
+      120 |
+        at /private/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/e2e/lobby-flow.spec.ts:118:15
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/lobby-flow-request-approva-d1e7b-by-and-removal-returns-home-wide/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/lobby-flow-request-approva-d1e7b-by-and-removal-returns-home-wide/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/lobby-flow-request-approva-d1e7b-by-and-removal-returns-home-wide/error-context.md
+
+
+[46/50] [wide] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px
+  3) [wide] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px ───────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('main').getByRole('alert')
+    Expected substring: "Google sign-in is not configured locally"
+    Received string:    "We couldn't reach Google sign-in. Check your connection and try again."
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('main').getByRole('alert')
+        14 × locator resolved to <p role="alert" class="signin-module__9t-IsW__error">We couldn't reach Google sign-in. Check your conn…</p>
+           - unexpected value "We couldn't reach Google sign-in. Check your connection and try again."
+
+
+      36 |     await page.goto('/signin');
+      37 |     await page.getByRole('button', { name: 'Continue with Google' }).click();
+    > 38 |     await expect(page.getByRole('main').getByRole('alert')).toContainText('Google sign-in is not configured locally');
+         |                                                             ^
+      39 |     const devButton = page.getByRole('button', { name: 'Use dev account', exact: true });
+      40 |     await expect(devButton).toBeEnabled();
+      41 |     const bounds = await devButton.boundingBox();
+        at /private/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/e2e/local-auth.spec.ts:38:61
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/local-auth-local-dev-sign-in-opens-the-app-at-390px-wide/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/local-auth-local-dev-sign-in-opens-the-app-at-390px-wide/error-context.md
+
+
+[47/50] [wide] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px
+  4) [wide] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px ──────────────
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByRole('main').getByRole('alert')
+    Expected substring: "Google sign-in is not configured locally"
+    Received string:    "We couldn't reach Google sign-in. Check your connection and try again."
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByRole('main').getByRole('alert')
+        13 × locator resolved to <p role="alert" class="signin-module__9t-IsW__error">We couldn't reach Google sign-in. Check your conn…</p>
+           - unexpected value "We couldn't reach Google sign-in. Check your connection and try again."
+
+
+      36 |     await page.goto('/signin');
+      37 |     await page.getByRole('button', { name: 'Continue with Google' }).click();
+    > 38 |     await expect(page.getByRole('main').getByRole('alert')).toContainText('Google sign-in is not configured locally');
+         |                                                             ^
+      39 |     const devButton = page.getByRole('button', { name: 'Use dev account', exact: true });
+      40 |     await expect(devButton).toBeEnabled();
+      41 |     const bounds = await devButton.boundingBox();
+        at /private/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/e2e/local-auth.spec.ts:38:61
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/local-auth-local-dev-sign-in-opens-the-app-at-1440px-wide/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/local-auth-local-dev-sign-in-opens-the-app-at-1440px-wide/error-context.md
+
+
+[48/50] [wide] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it
+  5) [wide] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('dialog', { name: 'Pick your avatar' })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for getByRole('dialog', { name: 'Pick your avatar' })
+
+
+      59 |     await page.getByRole('button', { name: 'Use dev account', exact: true }).click();
+      60 |     const picker = page.getByRole('dialog', { name: 'Pick your avatar' });
+    > 61 |     await expect(picker).toBeVisible();
+         |                          ^
+      62 |     await picker.getByRole('button', { name: 'Bob', exact: true }).click();
+      63 |     const saved = page.waitForResponse(response => response.url().endsWith('/api/me/profile') && response.request().method() === 'PATCH');
+      64 |     await picker.getByRole('button', { name: 'Save', exact: true }).click();
+        at /private/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/e2e/local-auth.spec.ts:61:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/local-auth-a-new-account-p-f2435-ends-facing-surfaces-use-it-wide/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/local-auth-a-new-account-p-f2435-ends-facing-surfaces-use-it-wide/error-context.md
+
+
+[49/50] [wide] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked
+  6) [wide] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked ─────────────
+
+    Test timeout of 30000ms exceeded.
+
+    Error: browserContext.close: Test ended.
+    Browser logs:
+
+    <launching> /Users/divyansh/Library/Caches/ms-playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --use-fake-device-for-media-stream --use-fake-ui-for-media-stream --mute-audio --user-data-dir=/var/folders/sj/vl26r9qn3pl322k4bhjd__y00000gn/T/playwright_chromiumdev_profile-qjnsih --remote-debugging-pipe --no-startup-window
+    <launched> pid=74818
+    [pid=74818][err] [1011/000329.391150:INFO:CONSOLE:2490] "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold", source: http://localhost:4011/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js (2490)
+    [pid=74818][err] [1011/000329.433486:INFO:CONSOLE:2490] "[HMR] connected", source: http://localhost:4011/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js (2490)
+    [pid=74818] <gracefully close start>
+
+      121 |     await expect(leaderAvatar.locator('path[fill="#2f6f5e"]').first()).toBeVisible();
+      122 |   } finally {
+    > 123 |     await Promise.all([leaderContext.close(), friendContext.close()]);
+          |     ^
+      124 |   }
+      125 | });
+      126 |
+        at /private/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/e2e/local-auth.spec.ts:123:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/local-auth-squad-mates-see-the-avatar-a-member-picked-wide/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/local-auth-squad-mates-see-the-avatar-a-member-picked-wide/error-context.md
+
+
+[50/50] [wide] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling
+  7) [wide] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: browserContext.close: Target page, context or browser has been closed
+
+      56 |     await expect(find).toBeEnabled();
+      57 |   } finally {
+    > 58 |     await Promise.all([leaderContext.close(), friendContext.close()]);
+         |     ^
+      59 |   }
+      60 | });
+      61 |
+        at /private/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/e2e/socket-presence.spec.ts:58:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/socket-presence-roster-pre-06e89-last-socket-without-polling-wide/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/socket-presence-roster-pre-06e89-last-socket-without-polling-wide/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-e2e/local-dev-results/socket-presence-roster-pre-06e89-last-socket-without-polling-wide/error-context.md
+
+
+  7 failed
+    [wide] › e2e/lobby-flow.spec.ts:85:55 › request approval from invite link opens the lobby and removal returns home 
+    [wide] › e2e/lobby-flow.spec.ts:85:55 › request approval from home code opens the lobby and removal returns home 
+    [wide] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 390px ────────────────
+    [wide] › e2e/local-auth.spec.ts:34:7 › local dev sign-in opens the app at 1440px ───────────────
+    [wide] › e2e/local-auth.spec.ts:54:5 › a new account picks a shared avatar once and friends-facing surfaces use it 
+    [wide] › e2e/local-auth.spec.ts:89:5 › squad-mates see the avatar a member picked ──────────────
+    [wide] › e2e/socket-presence.spec.ts:5:5 › roster presence follows first and last socket without polling 
+  43 passed (7.0m)

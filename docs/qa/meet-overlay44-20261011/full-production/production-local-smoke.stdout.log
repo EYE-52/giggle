@@ -1,0 +1,36 @@
+
+Running 2 tests using 1 worker
+
+[1/2] [phone] › e2e-prod/smoke.spec.ts:51:5 › signed-in production app works end to end
+[2/2] [desktop] › e2e-prod/smoke.spec.ts:51:5 › signed-in production app works end to end
+  1) [desktop] › e2e-prod/smoke.spec.ts:51:5 › signed-in production app works end to end ───────────
+
+    Error: expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "GET http://localhost:4015/friends?_rsc=yBIVcYedKAlBIsrR net::ERR_CONNECTION_RESET",
+    + ]
+
+      107 |   }
+      108 |
+    > 109 |   expect(failedRequests).toEqual([]);
+          |                          ^
+      110 |   expect(consoleErrors).toEqual([]);
+      111 | });
+      112 |
+        at /private/tmp/giggle-meet-overlay44-review-20261010/source/apps/desktop/e2e-prod/smoke.spec.ts:109:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-production/production-smoke-results/smoke-signed-in-production-app-works-end-to-end-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../../../tmp/giggle-meet-overlay44-review-20261010/checks/full-production/production-smoke-results/smoke-signed-in-production-app-works-end-to-end-desktop/error-context.md
+
+
+  1 failed
+    [desktop] › e2e-prod/smoke.spec.ts:51:5 › signed-in production app works end to end ────────────
+  1 passed (5.5s)

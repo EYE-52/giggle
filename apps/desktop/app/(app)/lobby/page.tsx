@@ -117,6 +117,18 @@ function LobbyInner() {
   const [layoutOverride, setLayoutOverride] = useState<GameLayoutOverride>("auto");
   const [callCorner, setCallCorner] = useState<CallCorner>("bottom-right");
   const [callCollapsed, setCallCollapsed] = useState(false);
+  const callExpandRef = useRef<HTMLButtonElement>(null);
+  const callHideRef = useRef<HTMLButtonElement>(null);
+  const callToggleFocusRef = useRef(false);
+  const toggleFloatingCall = (collapsed: boolean) => {
+    callToggleFocusRef.current = true;
+    setCallCollapsed(collapsed);
+  };
+  useEffect(() => {
+    if (!callToggleFocusRef.current) return;
+    callToggleFocusRef.current = false;
+    (callCollapsed ? callExpandRef : callHideRef).current?.focus();
+  }, [callCollapsed]);
   const [focusedMemberId, setFocusedMemberId] = useState<string | null>(null);
   // Stable subscriber: GamePanel reads it via ref, so auth never re-runs.
   const handlePresentation = useCallback((p: GamePresentation) => {
@@ -790,14 +802,14 @@ function LobbyInner() {
       <div className={styles.body} data-games={gameOpen || undefined} data-layout={gameOpen ? effectiveLayout : undefined} data-chat-stage={chatTakesStage && chatVisible || undefined}>
         {gameOpen && (
           <section className={styles.stage} hidden={chatTakesStage && chatVisible} aria-label="Squad games">
-            <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
+            <GamePanel squadId={squadId} onClose={() => setGameOpen(false)} onPresentation={handlePresentation} onCameraScene={handleCameraScene} layout={layoutOverride} onLayoutChange={setLayoutOverride} floatingCall={effectiveLayout === "floating" ? { collapsed: callCollapsed, onExpand: () => toggleFloatingCall(false), expandButtonRef: callExpandRef } : undefined} voice={{ mic: micCapture, onEnableMic: () => void toggleDevice("audio") }} />
           </section>
         )}
         <section className={`${styles.seats} ${floatingStyles.shell} ${cameraStyles.shell}`} ref={(el) => { seatsRef.current = el; }} data-count={memberCount + Math.min(openSeats, 7)} hidden={chatTakesStage && chatVisible} aria-label="Squad members"
           data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={stageScene?.mode}
           data-floating-call={gameOpen && effectiveLayout === "floating" || undefined}
           data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}>
-          {gameOpen && effectiveLayout === "floating" && <FloatingCallTools corner={callCorner} collapsed={callCollapsed} onCornerChange={setCallCorner} onToggle={() => setCallCollapsed(value => !value)} />}
+          {gameOpen && effectiveLayout === "floating" && !callCollapsed && <FloatingCallTools corner={callCorner} onCornerChange={setCallCorner} onCollapse={() => toggleFloatingCall(true)} hideButtonRef={callHideRef} />}
           {stageScene && <CameraGameCaption scene={stageScene} />}
           {squad.members.map((member) => {
             const isMe = member.userId === myUserId;
