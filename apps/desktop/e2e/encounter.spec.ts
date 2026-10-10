@@ -61,6 +61,9 @@ test("real participant controls preserve synthetic streams and restore focus", a
   await opener.press('Enter');
   await menu.getByRole('button', { name: 'Make bigger', exact: true }).click();
   await expect(tile).toHaveAttribute('data-weight', '2');
+  if (!await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+    await expect.poll(() => page.locator('[data-participant-id]').evaluateAll(cells => cells.flatMap(cell => cell.getAnimations()).some(animation => 'transitionProperty' in animation && animation.playState === 'running'))).toBe(true);
+  }
   await opener.press('Enter');
   await menu.getByRole('button', { name: /^Keep this size/ }).click();
   await expect(tile).toHaveAttribute('data-pinned', 'true');
@@ -70,11 +73,13 @@ test("real participant controls preserve synthetic streams and restore focus", a
     await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     const cells = Array.from(document.querySelectorAll('[data-participant-id]'));
     return {
+      positionalTransitions: cells.flatMap(cell => cell.getAnimations()).filter(animation => 'transitionProperty' in animation && ["left", "top", "width", "height"].includes(String(animation.transitionProperty)) && animation.playState === "running").length,
       animating: document.querySelector('[data-focus-stage]')?.getAttribute('data-animating'),
       outside: cells.some(cell => { const box = cell.getBoundingClientRect(); return box.left < -0.5 || box.top < -0.5 || box.right > innerWidth + 0.5 || box.bottom > innerHeight + 0.5; }),
     };
   });
   expect(rotated.animating).not.toBe('true');
+  expect(rotated.positionalTransitions).toBe(0);
   expect(rotated.outside).toBe(false);
   await opener.press('Enter');
   await expect(menu.getByRole('button', { name: /^Make bigger\s*Size is kept$/ })).toBeDisabled();
@@ -690,7 +695,7 @@ test("fixture encounter keeps media, chat, and controls usable across resize", a
     await page.getByRole("button", { name: "End encounter", exact: true }).click();
     await expect(endDialog).toBeVisible();
     await endDialog.getByRole("button", { name: "End encounter" }).click();
-    await expect(page).toHaveURL(/\/home$/);
+    await expect(page).toHaveURL(/\/lobby\?squad=fixture-squad$/);
 });
 
 test("encounter chat retry is acknowledged without duplicating the sender", async ({ page }, testInfo) => {
