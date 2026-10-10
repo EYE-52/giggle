@@ -213,25 +213,40 @@ test("leader can skip while a member sees leader authority", async ({ page }) =>
   await expect(memberPage.getByRole("button", { name: "Skip this squad" })).toBeDisabled();
 });
 
-test("reduced-motion phone landscape keeps both actions on screen", async ({ page }) => {
-  await page.setViewportSize({ width: 844, height: 390 });
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await installMatchFixture(page);
-  await openMatch(page);
-
-  for (const button of [page.getByRole("button", { name: "Join now" }), page.getByRole("button", { name: "Skip", exact: true })]) {
+for (const viewport of [{ width: 844, height: 390 }, { width: 568, height: 320 }, { width: 667, height: 375 }, { width: 390, height: 320 }]) {
+ for (const reducedMotion of ["reduce", "no-preference"] as const) {
+  test(`short landscape ${viewport.width}x${viewport.height} ${reducedMotion} keeps handoff actions visible`, async ({ page }) => {
+   await page.setViewportSize(viewport);
+   await page.emulateMedia({ reducedMotion });
+   await installMatchFixture(page, { waitForOpponent: true });
+   await openMatch(page);
+   const join = page.getByRole("button", { name: "Join now" });
+   const skip = page.getByRole("button", { name: "Skip", exact: true });
+   for (const button of [join, skip]) {
     const box = await button.boundingBox();
     expect(box?.y).toBeGreaterThanOrEqual(0);
-    expect(box && box.y + box.height).toBeLessThanOrEqual(390);
-    const durationMs = await button.evaluate(node => {
+    expect(box && box.y + box.height).toBeLessThanOrEqual(viewport.height);
+    if (reducedMotion === "reduce") {
+     const durationMs = await button.evaluate(node => {
       const duration = getComputedStyle(node).transitionDuration;
-      return Number.parseFloat(duration) * (duration.endsWith("ms") ? 1 : 1_000);
-    });
-    expect(durationMs).toBeLessThanOrEqual(0.001);
-  }
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
-});
-
+      return Number.parseFloat(duration) * (duration.endsWith("ms") ? 1 : 1000);
+     });
+     expect(durationMs).toBeLessThanOrEqual(0.001);
+    }
+   }
+   const roster = page.locator('[data-state="matched"]');
+   expect(await roster.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
+   await roster.evaluate(node => { node.scrollTop = node.scrollHeight; });
+   await expect(page.getByRole("region", { name: "Chaos Club" })).toBeInViewport();
+   await roster.evaluate(node => { node.scrollTop = 0; });
+   await expect(page.getByRole("region", { name: "Night Owls" })).toBeInViewport();
+   await page.getByRole("button", { name: "Start squad call" }).scrollIntoViewIfNeeded();
+   const afterScroll = await join.boundingBox();
+   expect(afterScroll && afterScroll.y + afterScroll.height).toBeLessThanOrEqual(viewport.height);
+   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  });
+ }
+}
 
 test("a first acknowledgement waits for the opponent without starting media", async ({ page }) => {
   const fixture = await installMatchFixture(page, { waitForOpponent: true, refreshFailures: 1 });
@@ -256,3 +271,39 @@ test("a pending call link resumes its acknowledged handoff instead of opening de
   expect(fixture.ackAttempts()).toBe(0);
   expect(fixture.calls.some(call => call.path.includes('encounter-video') || call.path === '/api/encounters/token')).toBe(false);
 });
+
+for (const errorKind of ["handoff", "action", "waiting"] as const) {
+ test(`short landscape retains actions and full ${errorKind} error`, async ({ page }) => {
+  await page.setViewportSize({ width: 568, height: 320 });
+  await installMatchFixture(page, { waitForOpponent: true });
+  const message = "Long synthetic notice with details. ".repeat(100);
+  let acknowledged = false;
+  await page.route("**/api/matchmaking/encounters/fixture-handoff", async route => {
+   if (errorKind === "handoff" || (errorKind === "waiting" && acknowledged)) {
+    await route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "FIXTURE_LONG", message } }) });
+   } else await route.fallback();
+  });
+  await page.route("**/api/matchmaking/encounters/fixture-handoff/ack", async route => { acknowledged = true; await route.fallback(); });
+  if (errorKind === "action") {
+   await page.route("**/api/matchmaking/encounters/fixture-handoff/ack", route => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ ok: false, error: { code: "FIXTURE_LONG", message } }) }));
+  }
+  await page.goto("/match?squad=fixture-squad&enc=fixture-handoff");
+  if (errorKind !== "handoff") await page.getByRole("button", { name: "Join now" }).click();
+  const notice = errorKind === "handoff" ? page.getByRole("status").filter({ hasText: message }) : page.locator("p[role=alert]");
+  await expect(notice).toBeVisible();
+  await test.info().attach(`${errorKind}-notice`, { body: await page.screenshot(), contentType: "image/png" });
+  if (errorKind !== "waiting") {
+   await expect(notice).toHaveText(message.trim());
+   expect(await notice.evaluate(node => node.scrollHeight > node.clientHeight)).toBe(true);
+   await notice.focus();
+   await page.keyboard.press("End");
+   await expect.poll(() => notice.evaluate(node => node.scrollTop)).toBeGreaterThan(0);
+  }
+  const actions = errorKind === "handoff" ? ["Retry", "Back to lobby"] : errorKind === "action" ? ["Try joining again", "Skip"] : ["Skip"];
+  for (const name of actions) {
+   const box = await page.getByRole("button", { name, exact: true }).last().boundingBox();
+   expect(box?.y).toBeGreaterThanOrEqual(0);
+   expect(box && box.y + box.height).toBeLessThanOrEqual(320);
+  }
+ });
+}

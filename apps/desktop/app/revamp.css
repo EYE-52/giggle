@@ -497,6 +497,7 @@
 }
 
 .gg-encounter-content {
+  container: meet-call / size;
   flex-direction: row;
   min-width: 0;
 }
@@ -511,6 +512,13 @@
 }
 .gg-encounter-chat[hidden] {
   display: none;
+}
+.gg-encounter-content[data-chat-stage] .gg-encounter-chat {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
 }
 .gg-chat-audience {
   padding: 6px 12px;
@@ -533,7 +541,7 @@
 }
 .gg-chat-audience button[aria-pressed="true"] {
   background: var(--accent-soft);
-  color: var(--accent);
+  color: var(--accent-ink, var(--accent));
   font-weight: 700;
 }
 .gg-chat-audience p {
@@ -640,6 +648,15 @@
   /* Narrow desktop: faces stays generous without starving the game. */
   .gg-games-open[data-games-layout="faces"] [data-testid="video-stage"] {
     width: 240px !important;
+  }
+}
+@media (max-width: 699px) and (orientation: portrait) {
+  /* A keyboard or short host must leave the game some of the real content
+     height, rather than reserving a fixed rail before the iframe is sized. */
+  @container meet-call (max-height: 480px) {
+    .gg-games-open [data-testid="video-stage"] { height: min(108px, 22cqh) !important; }
+    .gg-games-open[data-games-layout="faces"] [data-testid="video-stage"] { height: min(132px, 28cqh) !important; }
+    .gg-games-open[data-games-layout="compact"] [data-testid="video-stage"] { height: min(84px, 18cqh) !important; }
   }
 }
 
@@ -753,7 +770,7 @@
    Header and controls float over the video and fade out when the viewer is idle
    (the page toggles data-chrome on .gg-screen-call). Squads are told apart by
    colour: your squad's tiles and chip use --squad-mine, theirs --squad-theirs. */
-.gg-screen-call { --squad-mine: var(--brand, #4f8cff); --squad-theirs: var(--pop, #ffb020); }
+.gg-screen-call { --squad-mine: var(--brand, #4f8cff); --squad-theirs: var(--pop, #ffb020); box-sizing: border-box; padding-inline: env(safe-area-inset-left) env(safe-area-inset-right); }
 .gg-screen-call .call-top {
   position: absolute !important; top: 0; left: 0; right: 0;
   background: linear-gradient(to bottom, rgb(8 8 10 / .62), rgb(8 8 10 / 0)) !important;
@@ -765,6 +782,9 @@
   background: transparent !important;
   transition: opacity .25s ease, transform .25s ease;
 }
+/* Absolute call-only chrome ignores root padding; games chrome is in flow
+   and uses that root inset directly. Do not apply it to both boundaries. */
+.gg-screen-call:not([data-games]) :is(.call-top, .gg-call-controls-wrap) { left: env(safe-area-inset-left); right: env(safe-area-inset-right); }
 .gg-screen-call[data-chrome="hidden"] .call-top { opacity: 0; transform: translateY(-10px); pointer-events: none; }
 .gg-screen-call[data-chrome="hidden"] .gg-call-controls-wrap { opacity: 0; transform: translateY(10px); pointer-events: none; }
 .gg-screen-call[data-chrome="hidden"] .vstage { cursor: none; }
@@ -806,13 +826,15 @@ html[data-skin] .gg-screen-call .call-top .timer { padding: 3px 9px; border: 1px
 @media (max-width: 699px), (max-height: 500px) and (max-width: 950px) { .gg-screen-call { --call-dock-lift: 76px; } }
 @media (prefers-reduced-motion: reduce) { .gg-screen-call .vcell :is(.vname, .vdots, .vsize) { transition: none; } }
 @media (min-width: 700px) {
-  .gg-screen-call:has(.gg-chat-open) :is(.call-top, .gg-call-controls-wrap) { right: 320px; }
+  .gg-screen-call:has(.gg-chat-open) :is(.call-top, .gg-call-controls-wrap) { right: calc(320px + env(safe-area-inset-right)); }
 }
 @media (orientation: landscape) and (max-height: 500px) {
-  .gg-screen-call:has(.gg-chat-open) :is(.call-top, .gg-call-controls-wrap) { right: 280px; }
+  .gg-screen-call:has(.gg-chat-open) :is(.call-top, .gg-call-controls-wrap) { right: calc(280px + env(safe-area-inset-right)); }
 }
 @media (max-width: 699px), (max-height: 500px) and (max-width: 950px) {
   .gg-screen-call:has(.gg-chat-open) :is(.call-top, .gg-call-controls-wrap) { display: none !important; }
+  /* Chat hides both inset-owning bars, so the root takes their edges once. */
+  .gg-screen-call:has(.gg-chat-open) { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 }
 
 /* the More menu: reactions on top, then one row style for every action; all
@@ -832,6 +854,15 @@ html[data-skin] .gg-screen-call .call-top .timer { padding: 3px 9px; border: 1px
 .gg-call-menu > button[data-tone="ok"] { color: var(--ok, var(--live)); }
 .gg-call-menu > hr { width: 100%; margin: 4px 0; border: 0; border-top: 1px solid var(--line, var(--border)); }
 /* Call danger actions reuse the shared matched ink/fill pair; skins keep their shapes. */
+
+/* A recovery row must start below the call-only header, too. Reserve the
+   existing header height while a notice is present; its flow inset comes
+   from the shell, so the absolute overlay's side offsets are cleared. */
+.gg-screen-call:not([data-games]):has([data-testid="recovery-notices"]) .call-top {
+  position: relative !important;
+  left: auto;
+  right: auto;
+}
 
 /* ── Call + games: chrome reserves its rows, never overlays the game ─────────
    Call-only keeps the floating overlay above untouched. With games open the
@@ -897,3 +928,9 @@ html[data-skin] .gg-screen-call .call-top .timer { padding: 3px 9px; border: 1px
     min-width: 44px !important;
   }
 }
+/* Reserve less chrome when the real remaining viewport is short, including
+   visual-keyboard insets. The existing call actions keep 44px hit targets. */
+.gg-screen-call[data-short-games] .call-top { padding: max(4px, env(safe-area-inset-top)) 10px 4px !important; }
+.gg-screen-call[data-short-games] .gg-call-controls-wrap { padding: 4px 8px max(4px, env(safe-area-inset-bottom)) !important; }
+.gg-screen-call[data-short-games] .gg-call-controls-wrap [data-call-control] { width: 52px !important; min-width: 44px !important; height: 44px !important; padding: 4px !important; gap: 0; }
+.gg-screen-call[data-short-games] .gg-call-controls-wrap .gg-control-label { display: none; }

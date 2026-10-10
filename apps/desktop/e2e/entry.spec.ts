@@ -4,7 +4,7 @@ test('welcome and sign-in keep their main action reachable on small screens', as
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/');
-    const start = page.getByRole('link', { name: 'Create your account' });
+    const start = page.getByRole('link', { name: 'Start a hangout' });
     await expect(start).toBeVisible();
     const box = await start.boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0);

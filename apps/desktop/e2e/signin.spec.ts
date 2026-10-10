@@ -180,7 +180,7 @@ test("sign-in explains the handoff and keeps Google primary", async ({ page }, t
   await expect(page.getByRole("heading", { name: /sign in to giggle/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /continue with google/i })).toBeVisible();
   await expect(page.getByText(/name and email/i)).toBeVisible();
-  await expect(page.getByText(/invite accepted/i)).toBeVisible();
+  await expect(page.getByText("Using a friend's invite.", { exact: true })).toBeVisible();
 
   await page.screenshot({
     path: `artifacts/visual-audit/2026-07-12/signin/${testInfo.project.name}.jpg`,

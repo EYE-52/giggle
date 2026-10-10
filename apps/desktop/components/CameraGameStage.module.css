@@ -31,10 +31,10 @@
   background: color-mix(in srgb, var(--accent) 6%, var(--surface));
 }
 .caption strong { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.caption span { color: var(--accent); }
+.caption span { color: var(--accent-ink, var(--accent)); }
 :global(.gg-games-open[data-games-layout="stage"]) .companion { flex: none; width: min(40%, 380px); }
-@media (max-width: 699px) {
+@media (max-width: 699px) and (orientation: portrait) {
   :global(.gg-games-open[data-games-layout="stage"]) .companion { order: 2; width: 100%; height: 56%; flex: none; }
   .shell[data-camera-stage] { order: 1; }
-  .caption { font-size: 14px; }
 }
+@media (max-width: 699px) { .caption { font-size: 14px; } }

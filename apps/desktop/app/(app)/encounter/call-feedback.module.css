@@ -8,9 +8,18 @@
 .reportError { margin:0; border-left:2px solid var(--coral); padding:8px 12px; background:var(--surface-2, var(--surface)); color:var(--text); font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
 .actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; }
 .actions button { min-height:44px; }
-.reactionError { flex:none; align-self:center; max-width:calc(100% - 24px); box-sizing:border-box; display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:6px 8px 6px 12px; border:1px solid var(--border); border-left:3px solid var(--coral); border-radius:var(--radius-control, 12px); background:var(--surface); color:var(--text); font:600 13px/1.4 var(--font-body); }
-.reactionError span { flex:1 1 130px; }
-.reactionError button { min-height:44px; }
 .dismiss { width:44px; flex:none; display:grid; place-items:center; padding:0; border:0; border-radius:10px; background:transparent; color:inherit; cursor:pointer; }
 .dismiss:hover { background:var(--overlay); }
 .dismiss:focus-visible { outline:2px solid var(--brand, var(--accent)); outline-offset:2px; }
+
+/* Recovery belongs to the shell, outside the bounded video/game rails. Long
+   notices scroll themselves instead of consuming the entire remaining call. */
+.recoveryRows { flex:none; align-self:center; width:calc(100% - 24px); max-width:960px; min-height:0; max-height:min(160px, max(64px, 32%)); display:flex; flex-direction:column; gap:6px; margin:0 12px 6px; overflow-y:auto; overscroll-behavior:contain; }
+.mediaRecovery { flex:none; min-width:0; box-sizing:border-box; display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border); border-left:3px solid var(--coral); border-radius:12px; background:var(--surface); color:var(--text); font:600 13px/1.4 var(--font-body); }
+.recoveryDot { flex:none; width:7px; height:7px; border-radius:50%; background:var(--coral); }
+.recoveryText { flex:1 1 120px; min-width:0; overflow-wrap:anywhere; }
+.recoveryActions { flex:none; display:flex; align-items:center; gap:8px; }
+.recoveryActions button { height:44px; min-height:44px; flex:none; }
+.recoveryRetry { padding:0 13px; border:1px solid var(--border); border-radius:10px; background:var(--overlay); color:var(--text); font:700 13px/1.2 var(--font-body); cursor:pointer; }
+.recoveryRetry:disabled { opacity:.6; cursor:progress; }
+.recoveryRetry:focus-visible { outline:2px solid var(--accent-ink, var(--accent)); outline-offset:2px; }

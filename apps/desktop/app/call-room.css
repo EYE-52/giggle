@@ -1,0 +1,238 @@
+/* Call rooms have one quiet frame around people and games. Profile skins
+   continue to style the rest of Meet; a game keeps its own visual identity. */
+:is(.gg-lobby-root, .gg-screen-call) {
+  --bg: #171922;
+  --bg-2: #1b1e28;
+  --surface: #21242f;
+  --surface-2: #2a2f3d;
+  --text: #f5f6fa;
+  --text-body: #d0d5e2;
+  --text-muted: #a8b0c5;
+  --muted: #a8b0c5;
+  --text-dim: #a8b0c5;
+  --border: #363c4d;
+  --line: #363c4d;
+  --border-strong: #586078;
+  --overlay: #2a2f3d;
+  --overlay-hover: #363d4f;
+  --accent: #da216c;
+  --accent-hover: #c91d62;
+  --accent-ink: #ff91bd;
+  --accent-soft: #382337;
+  --accent-line: #794460;
+  --accent-contrast: #fff;
+  --on-accent: #fff;
+  --brand: #da216c;
+  --brand-deep: #da216c;
+  --on-brand: #fff;
+  --ok: #6ee3b4;
+  --live: #6ee3b4;
+  --live-soft: #183e35;
+  --live-contrast: #c4f8e5;
+  --coral: #ff9aab;
+  --coral-soft: #472530;
+  --stage: #171922;
+  --stage-2: #21242f;
+  --font-body: var(--font-cabinet), "Cabinet Grotesk", system-ui, sans-serif;
+  --font-display: var(--font-body);
+  --font-hand: var(--font-body);
+  --font-pencil: var(--font-body);
+  --radius-card: 18px;
+  --radius-tile: 14px;
+  --radius-control: 12px;
+  --radius-btn: 12px;
+  --control-border: 1px solid var(--border);
+  --shadow-sm: none;
+  --shadow-card: none;
+  --shadow-pop: 0 12px 36px #0006;
+  --btn-offset-shadow: none;
+  --sd-glass: var(--surface);
+  --sd-glass-strong: var(--surface-2);
+  --sd-edge: var(--border);
+  --sd-rim: transparent;
+  --sb-sheet-paper: var(--surface);
+  --sb-sheet-ink: var(--text);
+  --sb-sheet-muted: var(--text-muted);
+  --sb-photo-paper: var(--surface-2);
+  --sb-photo-ink: var(--text);
+  --sb-photo-muted: var(--text-muted);
+  --sb-paper: var(--surface);
+  --sb-ink: var(--text);
+  --sb-ink-2: var(--text-muted);
+  --sb-line: var(--border);
+  --sb-note: #2a2f3d;
+  --sb-note-mint: #2a2f3d;
+  --sb-note-pink: #382337;
+  --sb-note-ink: #f5f6fa;
+  --sb-note-muted: #a8b0c5;
+  --sb-rule: transparent;
+  --sb-margin-rule: transparent;
+  --clay-fill: var(--surface-2);
+  --clay-well: var(--surface);
+  --clay-raised: none;
+  --clay-inset: none;
+  background: var(--bg) !important;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color-scheme: dark;
+}
+
+/* Some profile skins redefine tokens on cards themselves. Re-establish the
+   call palette at those boundaries so foreground and surface stay paired. */
+:is(.gg-lobby-root, .gg-screen-call) :is(.card, [data-testid="lobby-person"]) {
+  --bg: #171922 !important;
+  --surface: #21242f !important;
+  --surface-2: #2a2f3d !important;
+  --text: #f5f6fa !important;
+  --text-body: #d0d5e2 !important;
+  --text-muted: #a8b0c5 !important;
+  --text-dim: #a8b0c5 !important;
+  --muted: #a8b0c5 !important;
+  --line: #363c4d !important;
+  --border: #363c4d !important;
+  --sb-ink: #f5f6fa !important;
+  --sb-ink-2: #a8b0c5 !important;
+  --sb-line: #363c4d !important;
+  --sb-paper: #21242f !important;
+  --sb-note: #2a2f3d !important;
+}
+
+/* The legacy skins use high-specificity paint rules. These narrow overrides
+   are the room boundary, rather than another competing site-wide skin. */
+.gg-lobby-root > header {
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.gg-lobby-root > header h1 {
+  font: 700 20px/1.25 var(--font-body) !important;
+  letter-spacing: -.02em !important;
+  width: 100% !important;
+  background: none !important;
+}
+.gg-lobby-root > header > :is(a, button) {
+  font-family: var(--font-body) !important;
+  font-size: 14px !important;
+  font-weight: 700;
+  border-radius: 12px !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.gg-lobby-root > header > button[aria-expanded] {
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
+}
+.gg-lobby-root > header > button[aria-expanded="true"] {
+  background: var(--surface-2) !important;
+}
+.gg-lobby-root > header > button[aria-label^="Copy squad code"] {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+}
+.gg-lobby-root > header > :is(a, button):hover:not(:disabled) {
+  background: var(--overlay-hover) !important;
+}
+.gg-lobby-root > header > :is(a, button)::before,
+.gg-lobby-root > header > :is(a, button)::after,
+.gg-lobby-root > footer button::before,
+.gg-lobby-root > footer button::after { content: none !important; }
+.gg-lobby-root > header > button[aria-expanded="false"]:hover {
+  background: var(--accent-hover) !important;
+}
+.gg-lobby-root [data-testid="lobby-person"] {
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  background: var(--surface) !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+  transform: none !important;
+}
+.gg-lobby-root [data-testid="lobby-person"]::before,
+.gg-lobby-root [data-testid="lobby-person"]::after { content: none !important; }
+.gg-lobby-root [data-call-person-label] {
+  bottom: 8px !important;
+  left: 8px !important;
+  right: 8px !important;
+  gap: 6px !important;
+  flex-wrap: nowrap !important;
+}
+.gg-lobby-root [data-call-person-name] {
+  flex: 1;
+  padding: 4px 8px !important;
+  background: #171922e8 !important;
+  color: var(--text) !important;
+  border-radius: 8px !important;
+  font: 700 13px/18px var(--font-body) !important;
+}
+.gg-lobby-root[data-games] [data-call-person-ready] { display: none; }
+.gg-lobby-root > footer > .card {
+  border: 0 !important;
+  border-top: 1px solid var(--border) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.gg-lobby-root > footer :is(button, .gg-btn) {
+  font: 700 14px/20px var(--font-body) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+.gg-lobby-root > footer .btn-primary {
+  background: var(--accent) !important;
+  border-color: transparent !important;
+  color: var(--on-accent) !important;
+}
+.gg-lobby-root > footer .btn-primary:hover:not(:disabled) { background: var(--accent-hover) !important; }
+.gg-lobby-root > footer button:disabled { opacity: .5; }
+:is(.gg-lobby-root, .gg-screen-call) [data-testid="game-panel"] {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+:is(.gg-lobby-root, .gg-screen-call) [data-testid="game-panel"] > :first-child {
+  background: var(--surface);
+}
+:is(.gg-lobby-root, .gg-screen-call) [data-testid="game-panel"] strong {
+  font-family: var(--font-body);
+  font-size: 16px;
+  letter-spacing: 0;
+}
+.gg-screen-call .call-top {
+  background: var(--bg) !important;
+  box-shadow: none !important;
+}
+.gg-screen-call [data-call-control], .gg-screen-call [data-call-leave] {
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  font-family: var(--font-body) !important;
+}
+html[data-skin] .gg-screen-call .cbtn[data-cbtn-state="on"] { color: var(--accent-ink) !important; }
+.gg-screen-call .vcell {
+  border-radius: 14px !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  background: var(--surface) !important;
+}
+.gg-screen-call .vname { font: 700 13px/18px var(--font-body) !important; }
+@media (max-width: 520px) {
+  .gg-lobby-root > header { gap: 6px; }
+  .gg-lobby-root > header h1 { font-size: 18px !important; }
+  /* Saved skins set display:grid on icon buttons with higher specificity than
+     the phone layout. Topics remain available in Squad settings. */
+  .gg-lobby-root > header > button[aria-label="Edit squad topics"] { display: none !important; }
+}
+.gg-lobby-root[data-short-games] > header { padding-bottom: 0; border-bottom: 0; }
+.gg-lobby-root[data-short-games] > header > button[aria-label="Edit squad topics"] { display: none !important; }
+.gg-lobby-root[data-short-games] { gap: 4px !important; }

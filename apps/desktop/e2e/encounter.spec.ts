@@ -65,6 +65,7 @@ test("real participant controls preserve synthetic streams and restore focus", a
   await menu.getByRole('button', { name: /^Keep this size/ }).click();
   await expect(tile).toHaveAttribute('data-pinned', 'true');
   await page.setViewportSize({ width: 844, height: 390 });
+  await expect(page.getByLabel('Viewport resize check')).toContainText('844×390 after two frames:');
   const rotated = await page.evaluate(async () => {
     await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     const cells = Array.from(document.querySelectorAll('[data-participant-id]'));
@@ -76,7 +77,7 @@ test("real participant controls preserve synthetic streams and restore focus", a
   expect(rotated.animating).not.toBe('true');
   expect(rotated.outside).toBe(false);
   await opener.press('Enter');
-  await expect(menu.getByRole('button', { name: 'Make bigger', exact: true })).toBeDisabled();
+  await expect(menu.getByRole('button', { name: /^Make bigger\s*Size is kept$/ })).toBeDisabled();
   await close.click();
   await expect(opener).toBeFocused();
   expect(await videos.evaluateAll(nodes => nodes.map(node => node.getAttribute('data-synthetic-stream')))).toEqual(streams);
@@ -258,6 +259,23 @@ async function installEncounterFixture(page: Page, options: {
       });
       return;
     }
+    // Recovery returns to a member's existing lobby, rather than a missing squad.
+    if (path === "/api/squads/fixture-squad" && route.request().method() === "GET") {
+      await route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, data: {
+          squadId: "fixture-squad", squadCode: "FIXTURE", squadName: "Night Owls",
+          status: "idle", leaderMemberId: "mine-member-1", maxSlots: 8,
+          members: [fixtureMember("mine", 0), fixtureMember("mine", 1)],
+          tags: [], coverImage: null, visibility: "private", joinPolicy: "open",
+        } }),
+      });
+      return;
+    }
+    if (path === "/api/squads/fixture-squad/requests") {
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({ ok: true, data: { requests: [] } }) });
+      return;
+    }
     const encounterMatch = path.match(/^\/api\/matchmaking\/encounters\/(fixture-(\d+)v\2)$/);
     if (encounterMatch) {
       const count = Number(encounterMatch[2]);
@@ -333,6 +351,7 @@ test("an ended encounter link shows recovery actions without starting media", as
   expect(mediaRequests).toEqual([]);
   await page.getByRole('button', { name: 'Back to lobby', exact: true }).click();
   await expect(page).toHaveURL(/\/lobby\?squad=fixture-squad/);
+  await expect(page.getByRole('heading', { name: 'Night Owls', exact: true })).toBeVisible();
 });
 
 test("call action focus enters the popup and returns after Escape and leave cancellation", async ({ page }, testInfo) => {
@@ -391,7 +410,7 @@ test("report confirmation preserves its draft after failure without clearing med
   await expect(dialog.getByRole('alert')).toHaveText('Report was not saved. Try again.');
   await expect(reason).toHaveValue('spam');
   await expect(details).toHaveValue('Synthetic local QA: repeated invite spam.');
-  await expect(recovery).toHaveText(recoveryText);
+  await expect(recovery).toHaveText(recoveryText, { useInnerText: true });
   await dialog.getByRole('button', { name: 'Try again', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'More', exact: true })).toBeFocused();

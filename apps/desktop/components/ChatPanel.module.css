@@ -18,7 +18,7 @@
 .bubble a:focus-visible { outline:2px solid currentColor; outline-offset:2px; }
 .delivery { font-size:11px; color:var(--text-muted); }
 .retry { min-height:32px; border:0; background:transparent; color:var(--chat-error-ink); cursor:pointer; }
-.newMessages { align-self:center; flex:none; min-height:44px; padding:0 14px; margin:4px 12px; border:1px solid var(--border); border-radius:999px; background:var(--surface); color:var(--accent); cursor:pointer; }
+.newMessages { align-self:center; flex:none; min-height:44px; padding:0 14px; margin:4px 12px; border:1px solid var(--border); border-radius:999px; background:var(--surface); color:var(--accent-ink, var(--accent)); cursor:pointer; }
 .composer { position:relative; display:flex; flex-direction:column; gap:8px; padding:12px; border-top:1px solid var(--border); flex:none; }
 .inputRow { display:flex; align-items:center; gap:6px; }
 .input { flex:1; min-width:0; height:44px; box-sizing:border-box; padding:0 12px; border:1px solid var(--border); border-radius:var(--radius-control, 12px); background:var(--overlay); color:inherit; font:inherit; font-size:14px; }
@@ -44,8 +44,19 @@
 :global(html[data-skin="scrap"]) .input { border:0; border-bottom:1px solid var(--sb-line); border-radius:0; background:transparent; font:400 17px/28px var(--font-pencil); padding-inline:6px; }
 :global(html[data-skin="scrap"]) .send { border-radius:4px; }
 :global(html[data-skin="scrap"]) .emojis { border-radius:2px; }
+
+:global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel { --chat-error-ink:#ffb4bc; }
+:global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel .title { font:700 17px/1.2 var(--font-body); }
+:global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel .header { padding-left:16px; }
+:global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel .messages { padding:18px 16px; gap:16px; background:none; }
+:global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel .bubble { font:400 14px/1.5 var(--font-body); padding:10px 13px; border:1px solid var(--border); border-radius:16px 16px 16px 4px; background:var(--surface-2); color:var(--text); box-shadow:none; }
+:global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel .message[data-own="true"] .bubble { background:var(--accent); color:var(--on-accent); border-color:transparent; border-radius:16px 16px 4px 16px; }
+:global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel .composer { border-top:1px solid var(--border); }
+:global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel .input { font:400 14px/1.5 var(--font-body); padding-inline:12px; border:1px solid var(--border); border-radius:12px; background:var(--overlay); }
+:global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel .send { border-radius:12px; }
 @media (max-width:380px) { .composer { padding:10px 8px; } .inputRow { gap:2px; } }
 @media (max-height:500px) {
+  :global(html[data-skin]) :is(:global(.gg-lobby-root), :global(.gg-screen-call)) .panel .messages { padding:4px 8px; gap:8px; }
   :global(html[data-skin]) .header { padding:0 8px; }
   :global(html[data-skin]) .messages { padding:4px 8px; gap:8px; }
   :global(html[data-skin]) .composer { padding:4px 6px; }
