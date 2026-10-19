@@ -489,7 +489,7 @@ export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, lay
               ref={frameRef}
               key={frameKey}
               data-testid="game-frame"
-              title="Squad games"
+              aria-label="Squad games"
               src={embedUrl}
               className={styles.frame}
               onError={frameFailed}

@@ -80,6 +80,12 @@ html[data-skin="soft"][data-skin="soft"][data-skin="soft"][data-skin="soft"] :is
   box-shadow: inset 0 1px 3px color-mix(in srgb, var(--text) 10%, transparent);
 }
 
+/* a search shell is the well; its field is bare (no double border) */
+html[data-skin="soft"][data-skin="soft"][data-skin="soft"][data-skin="soft"] .search .input:not(:where([data-skin-preview] *)),
+[data-skin-preview="soft"][data-skin-preview="soft"][data-skin-preview="soft"][data-skin-preview="soft"] .search .input {
+  background: transparent; border-color: transparent; box-shadow: none;
+}
+
 /* navigation sits on glass too */
 html[data-skin="soft"][data-skin="soft"][data-skin="soft"][data-skin="soft"] :is(.nav, .tabbar):not(:where([data-skin-preview] *)),
 [data-skin-preview="soft"][data-skin-preview="soft"][data-skin-preview="soft"][data-skin-preview="soft"] :is(.nav, .tabbar) {

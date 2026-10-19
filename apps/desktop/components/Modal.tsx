@@ -6,6 +6,7 @@ import {
   useEffect,
   useId,
   useRef,
+  useState,
 } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "./Icons";
@@ -133,6 +134,9 @@ export function Modal({
 }: ModalProps) {
   const titleId = useId();
   const cardRef = useRef<HTMLDivElement>(null);
+  // Dialogs portal to <body>, outside the call room's palette scope: carry
+  // the room's colors along when one is open behind this dialog.
+  const [inCallRoom] = useState(() => typeof document !== "undefined" && !!document.querySelector(".gg-lobby-root, .gg-screen-call"));
 
   useBodyScrollLock();
   useFocusTrap(cardRef, true, initialFocusRef);
@@ -150,7 +154,7 @@ export function Modal({
       onClick={(e) => {
         if (closeOnBackdrop && e.target === e.currentTarget) onClose();
       }}
-      className="gg-modal-backdrop"
+      className={`gg-modal-backdrop${inCallRoom ? " gg-call-room-modal" : ""}`}
       style={{
         position: "fixed",
         inset: 0,

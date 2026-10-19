@@ -1,6 +1,8 @@
 /* Call rooms have one quiet frame around people and games. Profile skins
    continue to style the rest of Meet; a game keeps its own visual identity. */
-:is(.gg-lobby-root, .gg-screen-call) {
+/* .gg-call-room-modal: dialogs opened from a call room (portaled to <body>)
+   wear the room's palette instead of the profile skin's. */
+:is(.gg-lobby-root, .gg-screen-call, .gg-call-room-modal) {
   --bg: #171922;
   --bg-2: #1b1e28;
   --surface: #21242f;
@@ -12,6 +14,9 @@
   --text-dim: #a8b0c5;
   --border: #363c4d;
   --line: #363c4d;
+  /* Skin strokes derive from --line at the root; re-derive them here. */
+  --stroke: color-mix(in srgb, var(--line) 78%, transparent);
+  --stroke-strong: color-mix(in srgb, var(--line) 92%, var(--text) 8%);
   --border-strong: #586078;
   --overlay: #2a2f3d;
   --overlay-hover: #363d4f;
@@ -78,6 +83,8 @@
   line-height: 1.5;
   color-scheme: dark;
 }
+/* The room's dialogs keep a see-through dimmed backdrop, not the room fill. */
+.gg-modal-backdrop.gg-call-room-modal { background: rgba(8, 9, 14, 0.72) !important; }
 
 /* Some profile skins redefine tokens on cards themselves. Re-establish the
    call palette at those boundaries so foreground and surface stay paired. */
@@ -165,7 +172,8 @@
   flex-wrap: nowrap !important;
 }
 .gg-lobby-root [data-call-person-name] {
-  flex: 1;
+  /* Hug the name (ellipsis when long) instead of a full-width bar. */
+  flex: 0 1 auto;
   padding: 4px 8px !important;
   background: #171922e8 !important;
   color: var(--text) !important;
