@@ -42,6 +42,7 @@ import { squadCall, useSquadCall } from "@/lib/squadCall";
 import { chatUsesStage, useViewport } from "@/components/useViewport";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
 import { useGamesEnabled } from "@/lib/games";
+import { pollWhileVisible } from "@/lib/poll";
 import { REACTIONS, ReactionGlyph } from "@/components/Reaction";
 import { CallNotice } from "@/components/CallNotice";
 import feedbackStyles from "./call-feedback.module.css";
@@ -471,6 +472,8 @@ function EncounterInner() {
 
     let cancelled = false;
     let socket: ReturnType<typeof connectSocket> | undefined;
+    let stopEndedPoll: (() => void) | undefined;
+    let endedSeen = false;
     const endedEvent = SOCKET_EVENTS.ENCOUNTER_ENDED;
     const activeEvent = SOCKET_EVENTS.ENCOUNTER_ACTIVE;
     const onEnded = (payload?: {
@@ -481,6 +484,8 @@ function EncounterInner() {
     }) => {
       if (payload?.encounterId && payload.encounterId !== encId) return;
       if (nextPendingRef.current) return;
+      endedSeen = true;
+      stopEndedPoll?.();
       // The call is over: close the shared game room with it (the overlay
       // takes the screen; renewal would be denied from here on anyway).
       setGameOpen(false);
@@ -562,6 +567,15 @@ function EncounterInner() {
       // then return home so the user isn't stuck on a dead call.
       socket.on(endedEvent, onEnded);
       socket.on(activeEvent, onActive);
+      // A missed ENCOUNTER_ENDED (dropped socket, sleeping tab) must not leave
+      // this squad on a dead call, so check the encounter now and then.
+      stopEndedPoll = pollWhileVisible(async () => {
+        if (cancelled || endedSeen) return;
+        try {
+          const latest = await api.getEncounter(encId);
+          if (!cancelled && !endedSeen && latest.status === "ended") onEnded({ encounterId: encId });
+        } catch {}
+      }, 15000);
     };
 
     boot();
@@ -571,6 +585,7 @@ function EncounterInner() {
         clearTimeout(endedNavTimerRef.current);
         endedNavTimerRef.current = null;
       }
+      stopEndedPoll?.();
       socket?.off(endedEvent, onEnded);
       socket?.off(activeEvent, onActive);
       // Detach this page without dropping the squad call during navigation.
@@ -1590,6 +1605,14 @@ function EncounterInner() {
                             if (endedReason !== "opponent-left") await api.startSearch(squadId);
                             router.push(`/matchmaking?squad=${squadId}`);
                           } catch (error) {
+                            // The match cleared everyone's ready state (and only the
+                            // leader may search): the squad readies up again in its lobby.
+                            const code = (error as { code?: string })?.code;
+                            if (code === "NOT_READY_TO_SEARCH" || code === "FORBIDDEN") {
+                              void leaveVideo(true);
+                              router.push(`/lobby?squad=${squadId}`);
+                              return;
+                            }
                             setEndError((error as { message?: string })?.message || "Couldn't start matchmaking.");
                             setFindingNextMatch(false);
                           }

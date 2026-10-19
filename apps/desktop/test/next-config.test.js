@@ -560,6 +560,15 @@ test("desktop matchmaking offers cancel only to the squad leader", () => {
   assert.equal(page.includes('<FaceOffBar onBack={leaveForHome} backLabel="Back to home"'), true);
 });
 
+test("desktop encounter polls for an end the socket missed", () => {
+  const page = encounterSource();
+  const lifecycle = page.slice(page.indexOf("let stopEndedPoll"), page.indexOf("function retryVideo()"));
+
+  assert.match(lifecycle, /stopEndedPoll = pollWhileVisible\(async \(\) => \{[\s\S]*?latest\.status === "ended"\) onEnded\(\{ encounterId: encId \}\);/);
+  assert.match(lifecycle, /endedSeen = true;\s*stopEndedPoll\?\.\(\);/);
+  assert.match(lifecycle, /return \(\) => \{[\s\S]*?stopEndedPoll\?\.\(\);/);
+});
+
 test("desktop matchmaking resumes an existing encounter regardless of handoff state", () => {
   const page = matchmakingSource();
 
