@@ -29,6 +29,10 @@ const router = express.Router();
  *     description: >
  *       Accepts gender, languages, country, vibes and avatar (an illustrated
  *       avatar id from utils/avatars.js; null or "" clears it).
+ *       Also accepts anonymousInEncounters (boolean) and encounterAlias
+ *       (2-24 letters, numbers, spaces or . _ ' -; null or "" clears it):
+ *       when anonymous, other squads see only the alias (or a stable
+ *       "Guest NNNN" fallback), never the real name or avatar.
  *     responses:
  *       200:
  *         description: Updated profile fields

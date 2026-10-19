@@ -19,6 +19,16 @@ const ageVerificationSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const anonymousBlockSchema = new mongoose.Schema(
+  {
+    userId: { type: String, required: true, maxlength: 128 },
+    handle: { type: String, required: true, maxlength: 64 },
+    alias: { type: String, required: true, maxlength: 24 },
+    blockedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     email: {
@@ -42,6 +52,18 @@ const userSchema = new mongoose.Schema(
     friendRequestsIncoming: [{ type: String }], // userIds who requested me
     friendRequestsOutgoing: [{ type: String }], // userIds I requested
     blockedUserIds: [{ type: String }],
+    // Blocks made from an encounter against an ANONYMOUS opponent. The account
+    // id still goes in blockedUserIds (enforcement); this keeps the alias and
+    // opaque handle the blocker saw, so lists and exports never reveal who it was.
+    anonymousBlocks: {
+      type: [anonymousBlockSchema],
+      default: undefined,
+    },
+    // ── Encounter anonymity ───────────────────────────────────────────────
+    // When on, other squads (encounters, squad previews) see only
+    // encounterAlias (or a stable "Guest NNNN"), never the real name/avatar.
+    anonymousInEncounters: { type: Boolean, default: false },
+    encounterAlias: { type: String, trim: true, maxlength: 24, default: "" },
     image: {
       type: String,
     },
