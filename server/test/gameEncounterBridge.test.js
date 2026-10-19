@@ -106,6 +106,10 @@ test("issued encounter tickets share one room claim under the fixed bridge proto
 
   const long = issueEncounterGameTicket({ encounterId: ENC, userId: ALICE, displayName: "x".repeat(200) });
   assert.equal(jwt.decode(long.ticket).displayName.length, 64);
+  assert.equal(decodedA.team, undefined, "no team claim unless the route gives one");
+  const named = issueEncounterGameTicket({ encounterId: ENC, userId: ALICE, team: "A", teamName: "y".repeat(80) });
+  assert.equal(jwt.decode(named.ticket).team, "A");
+  assert.equal(jwt.decode(named.ticket).teamName.length, 32);
 
   assert.throws(() => issueEncounterGameTicket({ userId: ALICE }), /MISSING_IDENTITY/);
 });
@@ -166,11 +170,13 @@ function makeFixtures() {
     squads: {
       [SQUAD_A]: {
         squadId: SQUAD_A,
+        squadName: "Night Owls",
         currentEncounterId: ENC,
         members: [member("m-a1", ALICE, "Ann", "leader"), member("m-a2", AMY, "Amy")],
       },
       [SQUAD_B]: {
         squadId: SQUAD_B,
+        squadName: "Day Larks",
         currentEncounterId: ENC,
         members: [member("m-b1", BRUNO, "Bruno", "leader"), member("m-b2", BEN, "Ben")],
       },
@@ -258,6 +264,12 @@ test("POST encounter games/token issues both squads the SAME shared room", async
       assert.equal(decodedA.displayName, "Ann");
       assert.equal(decodedB.displayName, "Bruno");
       assert.equal(decodedA.exp - decodedA.iat, 90);
+      // Squad vs squad: each side gets its opaque team key and squad name.
+      assert.equal(decodedA.team, "A");
+      assert.equal(decodedB.team, "B");
+      assert.equal(decodedA.teamName, "Night Owls");
+      assert.equal(decodedB.teamName, "Day Larks");
+      assert.ok(!JSON.stringify(decodedA).includes(SQUAD_A), "no raw squad id in the ticket");
       assert.notEqual(decodedA.jti, decodedB.jti);
     } finally {
       restore();

@@ -183,6 +183,8 @@ const postEncounterGameTokenHandler = async (req, res) => {
       encounterId,
       userId,
       displayName,
+      team: ownSquad === squadA ? "A" : "B",
+      teamName: ownSquad.squadName,
     });
 
     return res.status(200).json({
