@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "test": "node --test test/*.test.js",
+    "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
     "test:prod-smoke": "playwright test -c playwright.prod.config.ts",
