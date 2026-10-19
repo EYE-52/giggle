@@ -148,6 +148,9 @@ export default function EncounterScreen() {
   const [nextError, setNextError] = useState('');
   const nextPendingRef = useRef(false);
   const [ending, setEnding] = useState(false);
+  // Set only on the device that asked the server to end the call, so its own
+  // ENCOUNTER_ENDED echo is ignored while squadmates still get the notice.
+  const endingRef = useRef(false);
   const [endError, setEndError] = useState('');
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
@@ -335,13 +338,13 @@ export default function EncounterScreen() {
         router.replace(`/${payload.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
         return;
       }
-      if (payload?.endedBySquadId === squadId) return;
+      if (payload?.endedBySquadId === squadId && endingRef.current) return;
       setShowChat(false);
       setMoreOpen(false);
       setEndConfirmOpen(false);
       setBlockConfirmOpen(false);
       setRemoteEndError('');
-      setRemoteEnded(payload?.reason === 'squad_disconnected' ? 'opponent-left' : 'ended');
+      setRemoteEnded(payload?.reason === 'squad_disconnected' && payload?.endedBySquadId !== squadId ? 'opponent-left' : 'ended');
       void detachVideo();
     };
     socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED, onEnded);
@@ -612,9 +615,11 @@ export default function EncounterScreen() {
     setBlockError('');
     try {
       await api.blockUsers(opponentUserIds);
+      endingRef.current = true;
       await api.disconnectEncounter(squadId, encId);
       await leaveVideoAndGoHome();
     } catch {
+      endingRef.current = false;
       setBlocking(false);
       setBlockError("Couldn't block this squad yet. Try again.");
     }
@@ -655,11 +660,13 @@ export default function EncounterScreen() {
     setEndError('');
     const mediaExit = detachVideo();
     void mediaExit;
+    endingRef.current = true;
     try {
       await api.disconnectEncounter(squadId, encId);
       setEndConfirmOpen(false);
       router.replace('/home');
     } catch {
+      endingRef.current = false;
       setEnding(false);
       setEndError("Couldn't end this encounter yet.");
     }
@@ -1442,6 +1449,12 @@ export default function EncounterScreen() {
                       if (remoteEnded !== 'opponent-left') await api.startSearch(squadId);
                       router.replace(`/matchmaking?squad=${squadId}`);
                     } catch (error: any) {
+                      // The match cleared everyone's ready state (and only the
+                      // leader may search): the squad readies up again in its lobby.
+                      if (error?.code === 'NOT_READY_TO_SEARCH' || error?.code === 'FORBIDDEN') {
+                        router.replace(`/lobby?squad=${squadId}`);
+                        return;
+                      }
                       setRemoteEndError(error?.message || "Couldn't start matchmaking.");
                     }
                   }}

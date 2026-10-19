@@ -811,3 +811,14 @@ test("mobile match waits for both squads to ack before opening the call", () => 
   // The call screen sends a squad still in the handoff back to it.
   assert.match(source(), /if \(detail\.status === 'awaiting_ack' && squadId\) \{\s*router\.replace\(`\/match\?squad=\$\{squadId\}&enc=\$\{encId\}`\);/);
 });
+
+test("mobile teammates see the call end even when their own squad ended it", () => {
+  const page = source();
+  const remoteEndBlock = page.slice(page.indexOf("const onEnded ="), page.indexOf("socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED"));
+  const endBlock = page.slice(page.indexOf("async function endEncounter()"), page.indexOf("if (!squadId || !encId || (encounterError && !enc))"));
+
+  assert.equal(remoteEndBlock.includes("if (payload?.endedBySquadId === squadId && endingRef.current) return;"), true);
+  assert.equal(remoteEndBlock.includes("payload?.endedBySquadId !== squadId ? 'opponent-left' : 'ended'"), true);
+  assert.ok(endBlock.indexOf("endingRef.current = true;") < endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"));
+  assert.equal(endBlock.includes("endingRef.current = false;"), true);
+});
