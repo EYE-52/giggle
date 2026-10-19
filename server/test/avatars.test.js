@@ -54,6 +54,8 @@ function createResponse() {
 
 // Mongoose-like User.find double: supports .select()/.lean() chains and plain
 // awaiting, records each projection so tests can count avatar lookups.
+const { IDENTITY_USER_FIELDS } = require("../src/services/encounterIdentityService");
+
 function mockUserFind(users, { failAvatarLookup = false } = {}) {
   const projections = [];
   const find = (query, projection) => {
@@ -450,7 +452,8 @@ test("encounter detail rosters include member avatars", async () => {
     assert.equal(res.body.data.squadAMembers[0].avatar, SHARED_CHARACTER);
     assert.equal(res.body.data.squadBMembers[0].avatar, "gold-moon");
     assert.equal(res.body.data.squadBMembers[0].displayName, "Other");
-    assert.equal(projections.filter((p) => p === "avatar").length, 1);
+    // One batched identity lookup (avatar + anonymity) for both rosters.
+    assert.equal(projections.filter((p) => p === IDENTITY_USER_FIELDS).length, 1);
   } finally {
     User.find = originals.find;
     Squad.findOne = originals.squadFindOne;

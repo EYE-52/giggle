@@ -568,7 +568,7 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmed
   // Another ender (End, the sweeper, a late ack) already won: never requeue.
   if (!(await markEncounterEnded(encounter))) return null;
 
-  socketService.closeEncounterRoom(encounter.encounterId);
+  socketService.closeEncounterRoom(encounter);
 
   // Clear encounter state and set squads to searching with no encounter. The
   // encounter-id guard keeps a squad that already left this call (e.g. a
@@ -649,7 +649,7 @@ const endEncounterToIdle = async ({ encounter, emitRealtime = true }) => {
   if (emitRealtime) {
     socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
     socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-    socketService.closeEncounterRoom(encounter.encounterId);
+    socketService.closeEncounterRoom(encounter);
   }
 
   // Clear encounter state and inEncounterVideo flags for all members
@@ -704,7 +704,7 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
     };
     socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", endedPayload);
     socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", endedPayload);
-    socketService.closeEncounterRoom(encounter.encounterId);
+    socketService.closeEncounterRoom(encounter);
 
     const otherSquad = await Squad.findOne({ squadId: otherSquadId });
     const otherWasResetNow = didMatch(otherReset);
@@ -807,7 +807,7 @@ const sweepStuckEncounters = async () => {
         // Notify any connected clients so they bounce out of the handoff UI.
         socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
         socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-        socketService.closeEncounterRoom(encounter.encounterId);
+        socketService.closeEncounterRoom(encounter);
 
         // Only squads still on THIS dead encounter are reset.
         await releaseSquadsFromEncounter(encounter);

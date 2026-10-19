@@ -10,12 +10,10 @@ const {
   releaseSquadsFromEncounter,
   tryMatchmakeForSquad,
 } = require("../services/matchmakingService");
-const { hashStringToUid } = require("../services/agoraTokenService");
 const socketService = require("../services/socketService");
 const { withMatchmakingLock } = require("../config/redisConfig");
-const { loadAvatarsByUserId } = require("../utils/avatars");
+const { loadEncounterIdentityUsers, projectEncounterRosters } = require("../services/encounterIdentityService");
 const { publicCoverImage } = require("../utils/squadCovers");
-const { canonicalUserId } = require("../services/interactionSafetyService");
 
 const getMatchmakingStatusHandler = async (req, res) => {
   const { squadId } = req.params;
@@ -75,11 +73,14 @@ const getEncounterHandoffHandler = async (req, res) => {
 
     // Membership comes before block state so an outsider with an encounter id
     // cannot distinguish a blocked encounter from any other forbidden one.
-    const isInEncounter =
-      (squadA && squadA.members.some((m) => isSameMember(m, identity))) ||
-      (squadB && squadB.members.some((m) => isSameMember(m, identity)));
+    const viewerSquad =
+      squadA && squadA.members.some((m) => isSameMember(m, identity))
+        ? squadA
+        : squadB && squadB.members.some((m) => isSameMember(m, identity))
+          ? squadB
+          : null;
 
-    if (!isInEncounter) {
+    if (!viewerSquad) {
       return res.status(403).json({
         ok: false,
         error: { code: "FORBIDDEN", message: "Not authorized for this encounter" },
@@ -93,22 +94,21 @@ const getEncounterHandoffHandler = async (req, res) => {
       });
     }
 
-    // One batched avatar lookup for both rosters; avatar is null on failure.
-    const avatars = await loadAvatarsByUserId(
+    // Each member is projected for the viewer's squad: the own squad sees real
+    // identities, the other squad sees anonymous members only by alias with an
+    // opaque id. uid matches the RTC token uid (same keyed derivation), so the
+    // client can map uid -> member; callId matches the encounter game seat.
+    const users = await loadEncounterIdentityUsers(
       [...(squadA?.members || []), ...(squadB?.members || [])].map((m) => m.userId),
       { User }
     );
-
-    // uid MUST match the RTC token uid so the client can map uid -> member.
-    // Computed with the same hash + input (`encounterId:userId`) the token service uses.
-    const mapMembers = (members) => (members || []).map(m => ({
-      memberId: m.memberId,
-      userId: m.userId,
-      displayName: m.displayName || m.userId,
-      role: m.role,
-      uid: hashStringToUid(`${encounter.encounterId}:${m.userId}`),
-      avatar: avatars.get(canonicalUserId(m.userId)) ?? null,
-    }));
+    const { squadAMembers, squadBMembers } = projectEncounterRosters({
+      encounter,
+      squadA,
+      squadB,
+      viewerSquadId: viewerSquad.squadId,
+      users,
+    });
 
     return res.status(200).json({
       ok: true,
@@ -118,11 +118,11 @@ const getEncounterHandoffHandler = async (req, res) => {
         squadAId: encounter.squadAId,
         squadAName: squadA?.squadName || "Unknown squad",
         squadACover: publicCoverImage(squadA) || null,
-        squadAMembers: mapMembers(squadA?.members),
+        squadAMembers,
         squadBId: encounter.squadBId,
         squadBName: squadB?.squadName || "Unknown squad",
         squadBCover: publicCoverImage(squadB) || null,
-        squadBMembers: mapMembers(squadB?.members),
+        squadBMembers,
         ack: Object.fromEntries(encounter.ackBySquad || []),
         expiresAt: encounter.expiresAt,
       },
@@ -214,7 +214,7 @@ const ackEncounterJoinHandler = async (req, res) => {
         socketService.emitToSquad(endedSquadId, "ENCOUNTER_ENDED", { encounterId });
         socketService.emitToSquad(endedSquadId, "SQUAD_UPDATED", {});
       }
-      socketService.closeEncounterRoom(encounterId);
+      socketService.closeEncounterRoom(encounter || encounterId);
     }
     if (outcome.realtime?.activate) {
       socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ACTIVE", { encounterId });

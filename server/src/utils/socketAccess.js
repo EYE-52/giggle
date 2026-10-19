@@ -44,15 +44,30 @@ async function authorizeEncounterRoomJoin({ encounterId, userId, isProduction, S
   if (!squadA || !squadB) return { allowed: false };
 
   const squads = [squadA, squadB];
-  const isMember = squads.some((squad) =>
+  const ownSquad = squads.find((squad) =>
     squad.members.some((member) => String(member.userId) === String(userId))
   );
-  if (!isMember) return { allowed: false };
+  if (!ownSquad) return { allowed: false };
   const blocked = await anyBlockedPair(
     squads.flatMap((squad) => squad.members.map((member) => member.userId)),
     { User }
   );
-  return blocked ? { allowed: false } : { allowed: true, room };
+  if (blocked) return { allowed: false };
+  // Besides the shared room, each socket joins its own squad's side of the
+  // call so per-squad projections (anonymous senders) reach only that squad.
+  return {
+    allowed: true,
+    room,
+    sideRoom: encounterSideRoom(normalizedEncounterId, ownSquad.squadId),
+    encounter,
+    squadA,
+    squadB,
+    ownSquadId: ownSquad.squadId,
+  };
+}
+
+function encounterSideRoom(encounterId, squadId) {
+  return `encounter_${encounterId}:squad_${squadId}`;
 }
 
 const authorizeRealtimeSend = ({ encounterId, squadId, ...dependencies }) =>
@@ -91,6 +106,7 @@ async function authorizeSquadReport({ payload = {}, userId, Squad, Encounter }) 
 
 module.exports = {
   authorizeEncounterRoomJoin,
+  encounterSideRoom,
   authorizeRealtimeSend,
   authorizeSquadReport,
   authorizeSquadRoomJoin,

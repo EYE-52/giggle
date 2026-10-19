@@ -4,6 +4,7 @@ const {
   AGORA_APP_CERTIFICATE,
   AGORA_TOKEN_EXPIRY_SECONDS,
 } = require("../config/agoraConfig");
+const { encounterRtcUid } = require("./encounterIdentityService");
 
 const isAgoraConfigured = () => {
   return Boolean(AGORA_APP_ID && AGORA_APP_CERTIFICATE);
@@ -57,7 +58,9 @@ const createEncounterRtcToken = ({ encounterId, userId }) => {
   }
 
   const channelName = buildEncounterChannelName(encounterId);
-  const uid = hashStringToUid(`${encounterId}:${userId}`);
+  // Keyed with a server secret: the other squad sees this uid and must not be
+  // able to test a known account id against it (anonymous members).
+  const uid = encounterRtcUid(encounterId, userId);
   const currentTimestamp = Math.floor(Date.now() / 1000);
   const privilegeExpireTs = currentTimestamp + AGORA_TOKEN_EXPIRY_SECONDS;
 

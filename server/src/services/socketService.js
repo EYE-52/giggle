@@ -12,6 +12,7 @@ const {
   authorizeRealtimeSend,
   authorizeSquadReport,
   authorizeSquadRoomJoin,
+  encounterSideRoom,
   normalizeRealtimeId,
   resolveReportTargetSquadId,
 } = require('../utils/socketAccess');
@@ -20,6 +21,12 @@ const { classifyVibe } = require('../utils/moderation');
 const { isMongoObjectIdString } = require('../middlewares/authMiddleware');
 const { hasAdultAccess } = require('./ageAccessService');
 const { claimOrGetChatMessage } = require('./chatDeliveryService');
+const { canonicalUserId } = require('./interactionSafetyService');
+const {
+  identityUserFor,
+  loadEncounterIdentityUsers,
+  publicEncounterIdentity,
+} = require('./encounterIdentityService');
 
 let io;
 let shuttingDown = false;
@@ -210,6 +217,56 @@ const persistSquadReport = async ({
   return { ok: true, reportId, status: 'open' };
 };
 
+// ── Per-squad projection of encounter chat and reactions ───────────────────
+// The sender's own squad gets the payload as sent (real identity). The other
+// squad gets the sender as publicEncounterIdentity shows them: their squad
+// display name, or only their alias and an opaque id when they are anonymous.
+// Squad-room (lobby) traffic and dev sockets without an identity are unchanged.
+const projectRealtimeSender = (payload, view) => ({
+  ...payload,
+  senderId: view.userId,
+  senderName: view.displayName,
+});
+
+const emitRealtimeProjection = async ({
+  authorization,
+  senderUserId,
+  event,
+  payload,
+  server = io,
+  UserModel = User,
+}) => {
+  if (!server) return;
+  const { room, encounter, squadA, squadB } = authorization || {};
+  const sender = canonicalUserId(senderUserId);
+  if (!encounter || !squadA || !squadB || !sender) {
+    server.to(room).emit(event, payload);
+    return;
+  }
+  const findSender = (squad) =>
+    (squad.members || []).find((member) => canonicalUserId(member.userId) === sender);
+  const senderSquad = findSender(squadA) ? squadA : findSender(squadB) ? squadB : null;
+  if (!senderSquad) return;
+  const senderMember = findSender(senderSquad);
+  // Throws on lookup failure: never fall back to the real identity.
+  const users = await loadEncounterIdentityUsers([sender], { User: UserModel });
+  for (const viewerSquad of [squadA, squadB]) {
+    const sideRoom = encounterSideRoom(encounter.encounterId, viewerSquad.squadId);
+    if (viewerSquad.squadId === senderSquad.squadId) {
+      server.to(sideRoom).emit(event, payload);
+      continue;
+    }
+    const view = publicEncounterIdentity({
+      viewerSquadId: viewerSquad.squadId,
+      memberSquadId: senderSquad.squadId,
+      member: senderMember,
+      user: identityUserFor(users, sender),
+      encounterId: encounter.encounterId,
+    });
+    server.to(sideRoom).emit(event, projectRealtimeSender(payload, view));
+  }
+};
+
 // ── Online presence (Redis-backed) ──────────────────────────────────────────
 // A user is online while at least one active socket key exists in Redis. This
 // keeps friends, squad rosters, and matchmaking liveness correct across server
@@ -358,7 +415,7 @@ const init = (server) => {
         });
         if (!result.allowed) return;
         logRealtimeDebug(`Socket ${socket.id} joining encounter room: ${result.room}`);
-        socket.join(result.room);
+        socket.join(result.sideRoom ? [result.room, result.sideRoom] : result.room);
       } catch (err) {
         console.error('join_encounter error:', err);
       }
@@ -422,7 +479,14 @@ const init = (server) => {
         }
         // Re-send the canonical ID on retry: a worker may have stopped after
         // storing the claim but before broadcasting. Clients merge by message ID.
-        io.to(authorization.room).emit('new_message', delivery.message);
+        // Encounter messages go to each squad's side separately so an anonymous
+        // sender reaches the other squad only under their alias.
+        await emitRealtimeProjection({
+          authorization,
+          senderUserId: socket.userId,
+          event: 'new_message',
+          payload: delivery.message,
+        });
         reply({ ok: true, message: delivery.message });
       } catch (err) {
         console.error('send_message error:', err);
@@ -455,14 +519,19 @@ const init = (server) => {
           User,
         });
         if (!authorization.allowed || !socket.rooms.has(authorization.room)) return;
-        io.to(authorization.room).emit('new_reaction', {
-          id: `${Date.now()}-${randomBase36(9)}`,
-          emoji: normalizedEmoji,
-          senderId: socket.userId,
-          senderName: resolveSocketSenderName(socket.userName),
-          encounterId: normalizedEncounterId || undefined,
-          squadId: normalizedSquadId || undefined,
-          ts: Date.now(),
+        await emitRealtimeProjection({
+          authorization,
+          senderUserId: socket.userId,
+          event: 'new_reaction',
+          payload: {
+            id: `${Date.now()}-${randomBase36(9)}`,
+            emoji: normalizedEmoji,
+            senderId: socket.userId,
+            senderName: resolveSocketSenderName(socket.userName),
+            encounterId: normalizedEncounterId || undefined,
+            squadId: normalizedSquadId || undefined,
+            ts: Date.now(),
+          },
         });
       } catch (err) {
         console.error('send_reaction error:', err);
@@ -638,15 +707,24 @@ const revokeUserRealtimeAccess = ({ userId, squadId, encounterId } = {}, server 
   if (!server || !normalizedUserId || !normalizedSquadId) return;
 
   const rooms = [`squad_${normalizedSquadId}`];
-  if (normalizedEncounterId) rooms.push(`encounter_${normalizedEncounterId}`);
+  if (normalizedEncounterId) {
+    rooms.push(`encounter_${normalizedEncounterId}`, encounterSideRoom(normalizedEncounterId, normalizedSquadId));
+  }
   server.in(`user_${normalizedUserId}`).socketsLeave(rooms);
 };
 
-const closeEncounterRoom = (encounterId, server = io) => {
-  const normalizedEncounterId = normalizeRealtimeId(encounterId);
+// Accepts an encounter id or an encounter record; with a record, both squads'
+// side rooms are emptied too.
+const closeEncounterRoom = (encounterOrId, server = io) => {
+  const encounter = encounterOrId && typeof encounterOrId === 'object' ? encounterOrId : null;
+  const normalizedEncounterId = normalizeRealtimeId(encounter ? encounter.encounterId : encounterOrId);
   if (!server || !normalizedEncounterId) return;
   const room = `encounter_${normalizedEncounterId}`;
-  server.in(room).socketsLeave(room);
+  const sideRooms = [encounter?.squadAId, encounter?.squadBId]
+    .map(normalizeRealtimeId)
+    .filter(Boolean)
+    .map((squadId) => encounterSideRoom(normalizedEncounterId, squadId));
+  server.in(room).socketsLeave(sideRooms.length ? [room, ...sideRooms] : room);
 };
 
 module.exports = {
@@ -654,6 +732,7 @@ module.exports = {
   closeEncounterRoom,
   disconnectUserSockets,
   clearEncounterVideoPresence,
+  emitRealtimeProjection,
   endAbandonedEncounters,
   init,
   close,
