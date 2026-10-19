@@ -6,6 +6,7 @@ import { Card } from '../../components/Card';
 import { Avatar } from '../../components/Avatar';
 import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
+import { EncounterAnonymityCard } from '../../components/EncounterAnonymityCard';
 import { COLORS, SPACE } from '../../constants/theme';
 import { api, session, type BlockedAccount } from '@giggle/core';
 import Svg, { Circle } from 'react-native-svg';
@@ -305,6 +306,9 @@ export default function ProfileScreen() {
           </View>
         </Modal>
 
+        <Text style={styles.sectionLabel}>Other squads</Text>
+        <EncounterAnonymityCard />
+
         <Text style={styles.sectionLabel}>Blocked accounts</Text>
         <Card style={styles.blockedList}>
           {blocksLoading ? (
@@ -317,7 +321,7 @@ export default function ProfileScreen() {
               return (
                 <View key={account.userId} style={[styles.blockedRow, index > 0 && styles.resourceDivider]}>
                   <Avatar name={name} size={36} colorIndex={index} />
-                  <Text style={styles.blockedName} numberOfLines={1}>{name}</Text>
+                  <Text style={styles.blockedName} numberOfLines={1}>{name}{account.anonymous ? ' · anonymous in a call' : ''}</Text>
                   <TouchableOpacity
                     onPress={() => void unblockAccount(account)}
                     disabled={!!unblockingId}

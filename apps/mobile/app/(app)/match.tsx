@@ -149,6 +149,9 @@ export default function MatchScreen() {
   const myMember = squad?.members.find((member) => member.userId === session.user?.id)
     ?? yourMembers.find((member) => member.userId === session.user?.id);
   const isLeader = myMember?.role === 'leader';
+  // Own-squad encounter rosters carry the alias the other squad sees.
+  const myEncounterMember = yourMembers.find((member) => member.userId === session.user?.id);
+  const myEncounterAlias = myEncounterMember?.anonymous ? myEncounterMember.alias ?? null : null;
   const vibeLabel = squad?.tags?.slice(0, 2).join(' & ');
 
   const handleJoin = useCallback(async () => {
@@ -276,6 +279,7 @@ export default function MatchScreen() {
 
         <View style={styles.actionCard}>
           {!!vibeLabel && <Text style={styles.vibeText}>Vibe match · {vibeLabel}</Text>}
+          {myEncounterAlias && <Text style={styles.leaderHint} testID="match-anonymous-note">You appear to {theirName || 'them'} as {myEncounterAlias}</Text>}
           <View style={styles.deadlineRow}>
             <View>
               <Text style={styles.deadlineLabel}>Handoff closes in</Text>

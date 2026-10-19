@@ -394,6 +394,10 @@ export default function EncounterScreen() {
       : { id: enc.squadAId, name: enc.squadAName, members: enc.squadAMembers }
     : null;
   const myUserId = session.user?.id ?? '';
+  // When the user stays anonymous with other squads, remind them which name
+  // the other squad sees (own-squad rosters carry the alias).
+  const myMember = mySquad?.members.find((m) => m.userId === myUserId);
+  const myEncounterAlias = myMember?.anonymous ? myMember.alias ?? null : null;
   const mineParticipants: EncounterParticipant[] = (mySquad?.members ?? []).map((m, index) => ({
     id: m.userId,
     memberId: m.memberId,
@@ -952,6 +956,11 @@ export default function EncounterScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* ── Slim top bar ── */}
       <View style={styles.topBar}>
+        {myEncounterAlias && (
+          <Text style={styles.anonymousNote} numberOfLines={1} testID="encounter-anonymous-note" accessibilityLabel={`The other squad sees you as ${myEncounterAlias}`}>
+            You appear as {myEncounterAlias}
+          </Text>
+        )}
         <View style={styles.topRight}>
           {connState === 'CONNECTED' && <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>LIVE</Text></View>}
           <Text style={styles.timer}>{fmt(elapsed)}</Text>
@@ -1496,6 +1505,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' },
+  anonymousNote: { flexShrink: 1, fontSize: 12, color: COLORS.textMuted, fontWeight: '600' },
   livePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.limeSoft, borderRadius: RADII.pill, paddingVertical: 3, paddingHorizontal: 8 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.lime },
   liveText: { fontSize: 10, fontWeight: '800', color: COLORS.lime, letterSpacing: 1 },
