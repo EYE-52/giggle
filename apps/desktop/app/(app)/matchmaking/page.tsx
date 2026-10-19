@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@/components/Icons";
-import { api, connectSocket, SOCKET_EVENTS } from "@giggle/core";
+import { api, connectSocket, session, SOCKET_EVENTS } from "@giggle/core";
 import type { SquadState } from "@giggle/core";
 import { useViewport } from "@/components/useViewport";
 import { Button } from "@/components/Button";
@@ -192,6 +192,11 @@ function MatchmakingInner() {
     );
   }
 
+  // Cancelling the search is leader-only on the server. Other members get a
+  // plain way out instead; their lobby would send a searching squad back here.
+  const isNonLeader = !!squad && !squad.members.some(member => member.userId === session.user?.id && member.role === "leader");
+  const leaveForHome = () => router.push("/home");
+
   const mine = squad ? {
     name: squad.squadName,
     people: squad.members.map(member => ({ userId: member.userId, uid: member.uid, displayName: member.displayName, avatar: member.avatar })),
@@ -206,7 +211,9 @@ function MatchmakingInner() {
 
   return (
     <FaceOff
-      top={<FaceOffBar onBack={handleCancel} backLabel="Back to lobby" title={squad?.squadName} busy={cancelling || !!matchFound} />}
+      top={isNonLeader
+        ? <FaceOffBar onBack={leaveForHome} backLabel="Back to home" title={squad?.squadName} busy={!!matchFound} />
+        : <FaceOffBar onBack={handleCancel} backLabel="Back to lobby" title={squad?.squadName} busy={cancelling || !!matchFound} />}
       mine={mine}
       mineContent={mine && <SquadCallPanel squadId={squadId} people={mine.people} />}
       theirs={null}
@@ -216,9 +223,16 @@ function MatchmakingInner() {
         <>
           {showLongSearch && <Button variant="primary" onClick={() => setLongSearchBaseline(elapsed)}>Keep waiting</Button>}
           {showLongSearch && <Button variant="secondary" onClick={() => router.push("/friends")}>Invite friends</Button>}
-          <Button onClick={handleCancel} loading={cancelling} disabled={!!matchFound} variant={showLongSearch ? "ghost" : "secondary"}>
-            {cancelError ? "Try cancel again" : "Cancel search"}
-          </Button>
+          {isNonLeader ? (
+            <>
+              <Button onClick={leaveForHome} disabled={!!matchFound} variant={showLongSearch ? "ghost" : "secondary"}>Back to home</Button>
+              <p style={{ flexBasis: "100%", margin: 0, color: textMuted, fontSize: 13, textAlign: "center" }}>Your squad leader can cancel the search.</p>
+            </>
+          ) : (
+            <Button onClick={handleCancel} loading={cancelling} disabled={!!matchFound} variant={showLongSearch ? "ghost" : "secondary"}>
+              {cancelError ? "Try cancel again" : "Cancel search"}
+            </Button>
+          )}
           {cancelError && <p role="alert" className={faceOffStyles.alert} style={{ flexBasis: "100%" }}>{cancelError}</p>}
           {squadError && !squad && <button type="button" className={faceOffStyles.link} onClick={() => fetchSquad(false)}>Retry squad details</button>}
         </>

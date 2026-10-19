@@ -552,6 +552,14 @@ test("desktop matchmaking cancel stays put when backend cancel fails", () => {
   assert.equal(page.includes('router.push(`/lobby?squad=${squadId}`);'), true);
 });
 
+test("desktop matchmaking offers cancel only to the squad leader", () => {
+  const page = matchmakingSource();
+
+  assert.match(page, /const isNonLeader = !!squad && !squad\.members\.some\(member => member\.userId === session\.user\?\.id && member\.role === "leader"\);/);
+  assert.match(page, /\{isNonLeader \? \([\s\S]*?Back to home[\s\S]*?Your squad leader can cancel the search\.[\s\S]*?\) : \([\s\S]*?Cancel search/);
+  assert.equal(page.includes('<FaceOffBar onBack={leaveForHome} backLabel="Back to home"'), true);
+});
+
 test("desktop matchmaking resumes an existing encounter regardless of handoff state", () => {
   const page = matchmakingSource();
 
