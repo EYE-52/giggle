@@ -10,9 +10,12 @@ const {
   stopSearchesWhileDiscoveryDisabled,
   sweepStuckEncounters,
 } = require("../src/services/matchmakingService");
+const { disbandSquadHandler } = require("../src/controllers/squadController");
 const squadAccess = require("../src/app/squadAccess");
 const { Squad } = require("../src/models/Squad");
 const { Encounter } = require("../src/models/Encounter");
+const { Notification } = require("../src/models/Notification");
+const { SquadCover } = require("../src/models/SquadCover");
 const User = require("../src/models/User");
 const { redlock, redis, subClient } = require("../src/config/redisConfig");
 const queueService = require("../src/services/queueService");
@@ -430,6 +433,55 @@ test("an End that lost the race to a skip still takes its squad out of the searc
   assert.equal(store.byId.get("sq_a").status, "idle");
   assert.deepEqual(removed, ["sq_a"]);
   assert.equal(store.byId.get("sq_b").status, "searching");
+});
+
+test("disbanding mid-call ends the encounter and requeues the other squad", async () => {
+  process.env.STRANGER_DISCOVERY_ENABLED = "true";
+  const disbanding = squad("sq_a", USER_A, {
+    status: "in_encounter",
+    currentEncounterId: "enc_live",
+    deleteOne: async () => {},
+  });
+  const store = squadStore([
+    disbanding,
+    squad("sq_b", USER_B, { status: "in_encounter", currentEncounterId: "enc_live" }),
+  ]);
+  stubSquads(store);
+  const statuses = new Map([["enc_live", "active"]]);
+  stubEncounterEnd(statuses);
+  stub(Encounter, "findOne", async ({ encounterId }) => ({
+    encounterId,
+    status: statuses.get(encounterId),
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+  }));
+  const queued = [];
+  stub(queueService, "addToQueue", async (squadId) => { queued.push(squadId); });
+  stub(queueService, "removeFromQueue", async () => {});
+  stub(queueService, "getQueuedSquadsByRegion", async () => []);
+  stub(queueService, "getAllQueuedSquads", async () => []);
+  stub(sessionService, "setSessionField", async () => {});
+  stub(sessionService, "clearMemberSession", async () => {});
+  stub(sessionService, "clearSquadSession", async () => {});
+  stub(socketService, "getOnlineUserIds", async (ids) => new Set(ids));
+  stub(socketService, "revokeUserRealtimeAccess", () => {});
+  stub(socketService, "emitToUser", () => {});
+  stub(Notification, "distinct", async () => []);
+  stub(Notification, "deleteMany", async () => ({ deletedCount: 0 }));
+  stub(SquadCover, "deleteMany", async () => ({ deletedCount: 0 }));
+  stubSafeUsers();
+  const events = stubRealtime();
+  stubLock();
+
+  const res = response();
+  await disbandSquadHandler({ squadAccess: { isLeader: true, squad: disbanding } }, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(statuses.get("enc_live"), "ended");
+  assert.equal(store.byId.get("sq_b").status, "searching");
+  assert.deepEqual(queued, ["sq_b"]);
+  const ended = events.find(({ squadId, event }) => squadId === "sq_b" && event === "ENCOUNTER_ENDED");
+  assert.equal(ended.payload.endedBySquadId, "sq_a");
 });
 
 test("skip frees a squad left pointing at an already-ended encounter", async () => {

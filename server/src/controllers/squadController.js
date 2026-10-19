@@ -20,7 +20,11 @@ const {
   removeSquadMember,
 } = require("../app/squadAccess");
 const { generateId, generateSquadCode } = require("../utils/idGenerator");
-const { tryMatchmakeForSquad } = require("../services/matchmakingService");
+const {
+  endEncounterAsymmetric,
+  getEncounterById,
+  tryMatchmakeForSquad,
+} = require("../services/matchmakingService");
 const { allUsersHaveAdultAccess, hasAdultAccess } = require("../services/ageAccessService");
 const queueService = require("../services/queueService");
 const socketService = require("../services/socketService");
@@ -1646,6 +1650,13 @@ const disbandSquadHandler = async (req, res) => {
     // Pull it out of matchmaking before it disappears.
     if (squad.status === "searching") {
       try { await queueService.removeFromQueue(squad.squadId); } catch (e) { console.error("Error dequeuing squad on disband:", e); }
+    }
+
+    // Mid-call: end the encounter for the other squad (and requeue it) first,
+    // as when the last member leaves; otherwise it sits in a dead call.
+    if (squad.currentEncounterId && ["matched", "in_encounter"].includes(squad.status)) {
+      const encounter = await getEncounterById(squad.currentEncounterId);
+      if (encounter) await endEncounterAsymmetric({ encounter, disconnectingSquadId: squad.squadId });
     }
 
     const removedMembers = [...squad.members];
