@@ -32,7 +32,7 @@ import { FloatingCallTools, type CallCorner } from "@/components/FloatingCallToo
 import floatingStyles from "@/components/FloatingCallTools.module.css";
 import { CameraGameCaption } from "@/components/CameraGameStage";
 import cameraStyles from "@/components/CameraGameStage.module.css";
-import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, type GameCameraScene, type GamePresentation } from "@/lib/gameBridge";
+import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, sceneForCallTiles, type GameCameraScene, type GamePresentation } from "@/lib/gameBridge";
 import { Button } from "@/components/Button";
 import { ParticipantVideoTile as VideoTile } from "@/components/ParticipantVideoTile";
 import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoStage";
@@ -169,6 +169,8 @@ interface EncounterParticipant {
   /** Shared illustrated avatar (or seeded default) shown when the camera is off. */
   avatar: string;
   uid?: number;
+  /** Opaque per-encounter id; the shared game room seats people by it. */
+  callId?: string;
   isLocal: boolean;
 }
 
@@ -676,6 +678,7 @@ function EncounterInner() {
     colorIndex: i,
     avatar: resolveAvatar(m.avatar, m.userId),
     uid: m.uid,
+    callId: m.callId,
     isLocal:
       m.userId === myUserId ||
       (myUidRef.current != null && String(m.uid) === String(myUidRef.current)),
@@ -688,9 +691,12 @@ function EncounterInner() {
     colorIndex: i + 4,
     avatar: resolveAvatar(m.avatar, m.userId),
     uid: m.uid,
+    callId: m.callId,
     isLocal: false,
   }));
   const participants = [...mineParticipants, ...theirParticipants];
+  // Game seats name people by callId; call tiles by participant id.
+  const tileScene = sceneForCallTiles(stageScene, participants);
   // The stage shows who is actually here. Someone not seen yet gets a
   // "Connecting…" tile for the first moments of the call; after that, people
   // who never arrived or who left drop off and the others re-flow.
@@ -1090,7 +1096,7 @@ function EncounterInner() {
       mineLabel={mySquad?.name ? `Your squad · ${mySquad.name}` : "Your squad"}
       theirsLabel={oppSquad?.name ? `Their squad · ${oppSquad.name}` : "Their squad"}
       renderParticipant={renderParticipant}
-      cameraScene={stageScene}
+      cameraScene={tileScene}
     />;
   }
 
@@ -1484,7 +1490,7 @@ function EncounterInner() {
           <div
             data-testid="video-stage"
             className={`${floatingStyles.shell} ${cameraStyles.shell}`}
-            data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={stageScene?.mode}
+            data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={tileScene?.mode}
             hidden={chatTakesStage && chatOpen}
             data-floating-call={gameOpen && GAMES_ENABLED && effectiveLayout === "floating" || undefined}
             data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}

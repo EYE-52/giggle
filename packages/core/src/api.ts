@@ -388,8 +388,15 @@ export interface ReferralInfo {
 }
 export interface SquadMemberState {
   memberId: string;
+  /** Account id; for an anonymous member of the OTHER squad, an opaque per-encounter id. */
   userId: string;
   uid?: number;
+  /** Encounter rosters: opaque per-encounter id (also the game seat's callUserId). */
+  callId?: string;
+  /** Encounter rosters: the member is anonymous to other squads. */
+  anonymous?: boolean;
+  /** Own-squad encounter rosters only: the alias the other squad sees. */
+  alias?: string;
   displayName: string;
   avatar?: string | null;
   role: "leader" | "member";

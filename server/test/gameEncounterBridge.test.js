@@ -15,6 +15,7 @@ const {
   issueEncounterGameTicket,
 } = require("../src/services/gameBridgeService");
 const gameRoutes = require("../src/routes/gameRoutes");
+const { opaqueEncounterId, fallbackEncounterAlias } = require("../src/services/encounterIdentityService");
 const User = require("../src/models/User");
 const { Squad } = require("../src/models/Squad");
 const { Encounter } = require("../src/models/Encounter");
@@ -259,8 +260,12 @@ test("POST encounter games/token issues both squads the SAME shared room", async
       assert.notEqual(decodedA.squadId, SQUAD_A);
       assert.notEqual(decodedA.squadId, SQUAD_B);
       // Distinct seats with the fixed 90s single-use protocol.
-      assert.equal(decodedA.sub, ALICE);
-      assert.equal(decodedB.sub, BRUNO);
+      // The seat subject is the opaque per-encounter call id, never the
+      // account id (Game Night shows it to everyone as callUserId).
+      assert.equal(decodedA.sub, opaqueEncounterId(ENC, ALICE));
+      assert.equal(decodedB.sub, opaqueEncounterId(ENC, BRUNO));
+      assert.ok(!JSON.stringify(decodedA).includes(ALICE));
+      assert.ok(!JSON.stringify(decodedB).includes(BRUNO));
       assert.equal(decodedA.displayName, "Ann");
       assert.equal(decodedB.displayName, "Bruno");
       assert.equal(decodedA.exp - decodedA.iat, 90);
@@ -271,6 +276,36 @@ test("POST encounter games/token issues both squads the SAME shared room", async
       assert.equal(decodedB.teamName, "Day Larks");
       assert.ok(!JSON.stringify(decodedA).includes(SQUAD_A), "no raw squad id in the ticket");
       assert.notEqual(decodedA.jti, decodedB.jti);
+    } finally {
+      restore();
+    }
+  });
+});
+
+test("POST encounter games/token seats anonymous players under their alias only", async () => {
+  await withHttpEnv(async () => {
+    const fixtures = makeFixtures();
+    fixtures.blockUsers = fixtures.blockUsers.map((user) =>
+      user._id === BRUNO ? { ...user, anonymousInEncounters: true, encounterAlias: "Quiet Fox" }
+        : user._id === AMY ? { ...user, anonymousInEncounters: true }
+          : user
+    );
+    const restore = stubEncounterDb(fixtures);
+    try {
+      const app = buildTokenApp();
+      const forBruno = await postEncounterToken(app, ENC, { token: jwt.sign({ userId: BRUNO, name: "Bruno Account" }, HTTP_JWT_SECRET) });
+      const forAmy = await postEncounterToken(app, ENC, { token: jwt.sign({ userId: AMY }, HTTP_JWT_SECRET) });
+      assert.equal(forBruno.status, 200);
+      assert.equal(forAmy.status, 200);
+      const bruno = decodeTicket(forBruno.payload.data.ticket);
+      const amy = decodeTicket(forAmy.payload.data.ticket);
+      assert.equal(bruno.displayName, "Quiet Fox");
+      assert.equal(bruno.sub, opaqueEncounterId(ENC, BRUNO));
+      assert.equal(amy.displayName, fallbackEncounterAlias(AMY));
+      for (const secret of [BRUNO, "Bruno", "Bruno Account"]) {
+        assert.ok(!JSON.stringify(bruno).includes(secret), `ticket leaked ${secret}`);
+      }
+      assert.ok(!JSON.stringify(amy).includes("Amy"));
     } finally {
       restore();
     }
@@ -296,7 +331,7 @@ test("POST encounter games/token ignores forged body identity and room claims", 
       assert.equal(payload.data.squadId, SQUAD_A);
       const decoded = decodeTicket(payload.data.ticket);
       assert.equal(decoded.squadId, `enc:${ENC}`);
-      assert.equal(decoded.sub, ALICE);
+      assert.equal(decoded.sub, opaqueEncounterId(ENC, ALICE));
       assert.equal(decoded.displayName, "Ann");
     } finally {
       restore();

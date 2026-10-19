@@ -48,7 +48,21 @@ export function isValidCameraScene(value: unknown): value is GameCameraScene {
   return scene.mode === "spotlight" && typeof scene.featured === "string" && scene.featured.length > 0 && scene.featured.length <= 128;
 }
 
-export type GameRailLayout = "faces" | "balanced" | "compact" | "floating" | "stage";
+// Encounter games seat each player under an opaque per-encounter call id
+// (never an account id, so anonymous members stay anonymous to the other
+// squad). The encounter roster carries the same id as each member's callId;
+// this maps a spotlight onto the call tile ids. Unknown seats fall back to
+// the gallery rather than spotlighting nobody.
+export function sceneForCallTiles(
+  scene: GameCameraScene | null,
+  people: ReadonlyArray<{ id: string; callId?: string }>,
+): GameCameraScene | null {
+  if (!scene || scene.mode !== "spotlight") return scene;
+  const person = people.find(candidate => candidate.callId === scene.featured || candidate.id === scene.featured);
+  return person ? { ...scene, featured: person.id } : { mode: "gallery", featured: null, caption: scene.caption };
+}
+
+export type GameRailLayout ="faces" | "balanced" | "compact" | "floating" | "stage";
 export function resolveGameLayout(
   override: "auto" | "faces" | "compact" | "floating" | "stage",
   presentation: GamePresentation,
