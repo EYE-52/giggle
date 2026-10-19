@@ -258,3 +258,183 @@ test("squad (lobby) chat is unchanged", async () => {
   });
   assert.deepEqual(server.emits, [{ room: "squad_sq-B", event: "new_message", payload }]);
 });
+
+// ── Block / unblock / list via opaque encounter ids ──────────────────────────
+const mongoose = require("mongoose");
+const { Encounter } = require("../src/models/Encounter");
+const notificationModule = require("../src/models/Notification");
+const socketService = require("../src/services/socketService");
+const squadAccess = require("../src/app/squadAccess");
+const { redlock } = require("../src/config/redisConfig");
+
+function friendsController() {
+  const controllerPath = require.resolve("../src/controllers/friendsController");
+  delete require.cache[controllerPath];
+  return require(controllerPath);
+}
+
+async function withBlockStubs(run) {
+  const originals = {
+    find: User.find,
+    findById: User.findById,
+    updateOne: User.updateOne,
+    updateMany: User.updateMany,
+    squadFindOne: Squad.findOne,
+    encounterFindOne: Encounter.findOne,
+    transaction: mongoose.connection.transaction,
+    deleteBetween: notificationModule.deleteNotificationsBetweenUsers,
+    emit: notificationModule.emitNotificationsChanged,
+    using: redlock.using,
+    cleanup: squadAccess.removeBlockedIdentityFromSharedSquads,
+    disconnect: socketService.disconnectUserSockets,
+  };
+  const writes = [];
+  const cleanups = [];
+  const find = userFind();
+  User.find = (query, projection) => {
+    const chain = find(query, projection);
+    return projection === "_id" ? { lean: async () => (query._id.$in || []).map((_id) => ({ _id })) } : chain;
+  };
+  User.updateOne = async (...args) => { writes.push(["one", ...args]); return { modifiedCount: 1 }; };
+  User.updateMany = async (...args) => { writes.push(["many", ...args]); return { modifiedCount: 1 }; };
+  Squad.findOne = async ({ squadId }) => (squadId === "sq-A" ? squadA : squadId === "sq-B" ? squadB : null);
+  Encounter.findOne = async ({ encounterId }) => (encounterId === ENC ? encounter : null);
+  mongoose.connection.transaction = async (work) => work({ transaction: true });
+  notificationModule.deleteNotificationsBetweenUsers = async () => ({ deletedCount: 0 });
+  notificationModule.emitNotificationsChanged = () => {};
+  redlock.using = async (_resources, _duration, routine) => routine({ aborted: false });
+  squadAccess.removeBlockedIdentityFromSharedSquads = async (args) => { cleanups.push(args); };
+  socketService.disconnectUserSockets = () => {};
+  try {
+    return await run({ writes, cleanups, controller: friendsController() });
+  } finally {
+    Object.assign(User, { find: originals.find, findById: originals.findById, updateOne: originals.updateOne, updateMany: originals.updateMany });
+    Squad.findOne = originals.squadFindOne;
+    Encounter.findOne = originals.encounterFindOne;
+    mongoose.connection.transaction = originals.transaction;
+    notificationModule.deleteNotificationsBetweenUsers = originals.deleteBetween;
+    notificationModule.emitNotificationsChanged = originals.emit;
+    redlock.using = originals.using;
+    squadAccess.removeBlockedIdentityFromSharedSquads = originals.cleanup;
+    socketService.disconnectUserSockets = originals.disconnect;
+    delete require.cache[require.resolve("../src/controllers/friendsController")];
+  }
+}
+
+test("blocking an anonymous opponent by opaque id resolves server-side and never echoes the account id", async () => {
+  await withBlockStubs(async ({ writes, cleanups, controller }) => {
+    const brunoId = opaqueEncounterId(ENC, BRUNO);
+    const res = createResponse();
+    await controller.blockUsers({ user: { userId: ALICE }, body: { userIds: [brunoId, BEN], encounterId: ENC } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.data, { status: "blocked", userIds: [brunoId, BEN] });
+    assert.ok(!JSON.stringify(res.body).includes(BRUNO));
+
+    const [main, pullAnon, pushAnon] = writes.filter(([kind, filter]) => kind === "one" && filter._id === ALICE);
+    assert.deepEqual(main[2].$addToSet, { blockedUserIds: { $each: [BRUNO, BEN] } });
+    assert.deepEqual(pullAnon[2], { $pull: { anonymousBlocks: { userId: { $in: [BRUNO] } } } });
+    const entries = pushAnon[2].$push.anonymousBlocks.$each;
+    assert.equal(entries.length, 1);
+    assert.deepEqual({ ...entries[0], blockedAt: undefined }, { userId: BRUNO, handle: brunoId, alias: "Quiet Fox", blockedAt: undefined });
+    assert.deepEqual(cleanups[0].blockedUserIds, [BRUNO, BEN]);
+  });
+});
+
+test("opaque block ids need the encounter and only resolve for its other squad", async () => {
+  await withBlockStubs(async ({ writes, controller }) => {
+    const brunoId = opaqueEncounterId(ENC, BRUNO);
+    let res = createResponse();
+    await controller.blockUsers({ user: { userId: ALICE }, body: { userIds: [brunoId] } }, res);
+    assert.equal(res.statusCode, 400);
+
+    res = createResponse();
+    await controller.blockUsers({ user: { userId: BEN }, body: { userIds: [brunoId], encounterId: ENC } }, res);
+    assert.equal(res.statusCode, 404, "a squadmate's opaque id is not resolvable");
+
+    res = createResponse();
+    await controller.blockUsers({ user: { userId: "507f1f77bcf86cd799439099" }, body: { userIds: [brunoId], encounterId: ENC } }, res);
+    assert.equal(res.statusCode, 404, "outsiders cannot resolve opaque ids");
+
+    res = createResponse();
+    await controller.blockUsers({ user: { userId: ALICE }, body: { userIds: ["anon_nothex"], encounterId: ENC } }, res);
+    assert.equal(res.statusCode, 400);
+    assert.equal(writes.length, 0);
+  });
+});
+
+test("the block list and unblock keep an anonymous block anonymous", async () => {
+  await withBlockStubs(async ({ writes, controller }) => {
+    const brunoId = opaqueEncounterId(ENC, BRUNO);
+    const me = {
+      _id: ALICE,
+      blockedUserIds: [BRUNO, BEN],
+      anonymousBlocks: [{ userId: BRUNO, handle: brunoId, alias: "Quiet Fox" }],
+    };
+    User.findById = (id) => ({ lean: async () => (String(id) === ALICE ? me : { _id: id }) });
+    const usersWithNames = [{ _id: BRUNO, name: "Bruno Account", image: "photo.jpg" }, { _id: BEN, name: "Ben", image: null }];
+    User.find = (query) => ({ lean: async () => usersWithNames.filter((u) => query._id.$in.includes(u._id)) });
+
+    let res = createResponse();
+    await controller.listBlockedUsers({ user: { userId: ALICE } }, res);
+    assert.deepEqual(res.body.data.accounts, [
+      { userId: BEN, name: "Ben", image: null, avatar: null },
+      { userId: brunoId, name: "Quiet Fox", image: null, avatar: null, anonymous: true },
+    ]);
+    assert.ok(!JSON.stringify(res.body).includes(BRUNO));
+    assert.ok(!JSON.stringify(res.body).includes("Bruno Account"));
+
+    // Unblocking by a guessed account id does not lift (or confirm) the anonymous block.
+    res = createResponse();
+    await controller.unblockUser({ user: { userId: ALICE }, params: { userId: BRUNO } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(writes.at(-1)[1], { _id: ALICE, "anonymousBlocks.userId": { $ne: BRUNO } });
+
+    // The handle unblocks it.
+    res = createResponse();
+    await controller.unblockUser({ user: { userId: ALICE }, params: { userId: brunoId } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual(res.body.data, { status: "unblocked", userId: brunoId });
+    assert.deepEqual(writes.at(-1)[2], {
+      $pull: { blockedUserIds: new RegExp(`^${BRUNO}$`, "i"), anonymousBlocks: { handle: brunoId } },
+    });
+
+    res = createResponse();
+    await controller.unblockUser({ user: { userId: ALICE }, params: { userId: opaqueEncounterId("enc_x", BRUNO) } }, res);
+    assert.equal(res.statusCode, 404);
+  });
+});
+
+test("the account export shows anonymous blocks by alias and omits reported account ids", async () => {
+  const { buildAccountExport } = require("../src/controllers/accountController");
+  const brunoId = opaqueEncounterId(ENC, BRUNO);
+  const exported = await buildAccountExport(ALICE, {
+    User: {
+      findById: async () => ({
+        _id: ALICE,
+        email: "ann@example.com",
+        blockedUserIds: [BRUNO],
+        anonymousBlocks: [{ userId: BRUNO, handle: brunoId, alias: "Quiet Fox" }],
+        anonymousInEncounters: true,
+        encounterAlias: "Owl",
+      }),
+      find: async (query) => {
+        assert.deepEqual(query._id.$in, [], "anonymous blocks are never looked up by name");
+        return [];
+      },
+    },
+    Squad: { find: async () => [] },
+    Notification: { find: async () => [] },
+    SafetyReport: {
+      find: async (_filter, projection) => {
+        assert.ok(!projection.includes("targetUserIds"));
+        return [{ _id: "r1", reporterSquadId: "sq-A", targetSquadId: "sq-B", targetUserIds: [BRUNO], encounterId: ENC, category: "other", status: "open" }];
+      },
+    },
+    getCover: async () => null,
+    now: () => new Date("2026-10-01T00:00:00.000Z"),
+  });
+  assert.deepEqual(exported.blocks, [{ userId: brunoId, name: "Quiet Fox", image: null }]);
+  assert.equal(exported.profile.anonymousInEncounters, true);
+  assert.equal(exported.profile.encounterAlias, "Owl");
+  assert.ok(!JSON.stringify(exported).includes(BRUNO));
+});

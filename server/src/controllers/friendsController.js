@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const { Squad } = require("../models/Squad");
+const { Encounter } = require("../models/Encounter");
 const { withMatchmakingLock } = require("../config/redisConfig");
 const { disconnectUserSockets, getOnlineUserIds } = require("../services/socketService");
 const {
@@ -18,6 +20,10 @@ const {
   hasBlockedPair,
   filterBlockedCandidates,
 } = require("../services/interactionSafetyService");
+const {
+  isOpaqueEncounterId,
+  resolveEncounterOpaqueIds,
+} = require("../services/encounterIdentityService");
 
 // ── helpers ──────────────────────────────────────────────────────────────
 const authedUserId = (req) => canonicalUserId(req.user?.userId || req.user?.sub);
@@ -373,21 +379,44 @@ const searchUsers = async (req, res) => {
   }
 };
 
+// Targets are account ids or, from an encounter, the opaque per-encounter
+// ids the other squad's anonymous members are shown under.
 const normalizeBlockTargets = (value, myId) => {
   if (!Array.isArray(value) || value.length < 1 || value.length > 8) return null;
-  if (!value.every(isValidId)) return null;
-  const ids = value.map(canonicalUserId);
+  if (!value.every((id) => isValidId(id) || isOpaqueEncounterId(id))) return null;
+  const ids = value.map((id) => (isOpaqueEncounterId(id) ? id : canonicalUserId(id)));
   if (new Set(ids).size !== ids.length || ids.includes(myId)) return null;
   return ids;
 };
 
-// ── POST /api/users/block { userIds } ───────────────────────────────────────
+// ── POST /api/users/block { userIds, encounterId? } ────────────────────────
+// Opaque ids resolve server-side, only against the other squad of an
+// encounter the requester is in. The response echoes the ids as sent, so the
+// real account id of an anonymous opponent never reaches the client.
 const blockUsers = async (req, res) => {
   const myId = authedUserId(req);
-  const userIds = normalizeBlockTargets(req.body?.userIds, myId);
-  if (!userIds) return err(res, 400, "INVALID_REQUEST", "Provide 1 to 8 unique valid account ids");
+  const requestedIds = normalizeBlockTargets(req.body?.userIds, myId);
+  if (!requestedIds) return err(res, 400, "INVALID_REQUEST", "Provide 1 to 8 unique valid account ids");
 
   try {
+    const resolution = await resolveEncounterOpaqueIds({
+      ids: requestedIds,
+      encounterId: req.body?.encounterId,
+      requesterId: myId,
+      Encounter,
+      Squad,
+      User,
+    });
+    if (resolution.error === "ENCOUNTER_REQUIRED") {
+      return err(res, 400, "INVALID_REQUEST", "encounterId is required to block call participants");
+    }
+    if (resolution.error) return err(res, 404, "NOT_FOUND", "One or more accounts were not found");
+    const userIds = resolution.userIds;
+    const anonymousTargets = resolution.anonymousTargets;
+    if (new Set(userIds).size !== userIds.length || userIds.includes(myId)) {
+      return err(res, 400, "INVALID_REQUEST", "Provide 1 to 8 unique valid account ids");
+    }
+
     const targets = await User.find({ _id: { $in: userIds } }, "_id").lean();
     if (targets.length !== userIds.length) {
       return err(res, 404, "NOT_FOUND", "One or more accounts were not found");
@@ -412,6 +441,26 @@ const blockUsers = async (req, res) => {
             },
             { session }
           );
+          if (anonymousTargets.length) {
+            // Keep what the blocker saw (alias + opaque handle) so the block
+            // list and data export never reveal who the anonymous person was.
+            await User.updateOne(
+              { _id: myId },
+              { $pull: { anonymousBlocks: { userId: { $in: anonymousTargets.map((target) => target.userId) } } } },
+              { session }
+            );
+            await User.updateOne(
+              { _id: myId },
+              {
+                $push: {
+                  anonymousBlocks: {
+                    $each: anonymousTargets.map(({ userId, handle, alias }) => ({ userId, handle, alias, blockedAt: new Date() })),
+                  },
+                },
+              },
+              { session }
+            );
+          }
           await User.updateMany(
             { _id: { $in: userIds } },
             {
@@ -443,7 +492,7 @@ const blockUsers = async (req, res) => {
       }
     }
     if (lockError) throw lockError;
-    return res.json({ ok: true, data: { status: "blocked", userIds } });
+    return res.json({ ok: true, data: { status: "blocked", userIds: requestedIds } });
   } catch (e) {
     console.error("[friends] blockUsers error:", e);
     return err(res, 500, "SERVER_ERROR", "Failed to block accounts");
@@ -454,6 +503,7 @@ const blockUsers = async (req, res) => {
 const unblockUser = async (req, res) => {
   const myId = authedUserId(req);
   const rawUserId = req.params?.userId;
+  if (isOpaqueEncounterId(rawUserId)) return unblockAnonymousUser(req, res, myId, rawUserId);
   if (!isValidId(rawUserId)) {
     return err(res, 400, "INVALID_REQUEST", "A valid account id is required");
   }
@@ -465,8 +515,10 @@ const unblockUser = async (req, res) => {
   try {
     const target = await User.findById(userId, "_id").lean();
     if (!target) return err(res, 404, "NOT_FOUND", "Account not found");
+    // A block made against an anonymous opponent is only undone through its
+    // handle: unblocking by a guessed account id must not confirm who it was.
     await User.updateOne(
-      { _id: myId },
+      { _id: myId, "anonymousBlocks.userId": { $ne: userId } },
       { $pull: { blockedUserIds: relationalIdMatcher(userId) } }
     );
     return res.json({ ok: true, data: { status: "unblocked", userId } });
@@ -476,24 +528,64 @@ const unblockUser = async (req, res) => {
   }
 };
 
+// DELETE /api/users/:handle/block for an anonymous block (opaque handle).
+const unblockAnonymousUser = async (req, res, myId, handle) => {
+  try {
+    const me = await User.findById(myId, "anonymousBlocks").lean();
+    const entry = (me?.anonymousBlocks || []).find((block) => block?.handle === handle);
+    const userId = canonicalUserId(entry?.userId);
+    if (!userId) return err(res, 404, "NOT_FOUND", "Account not found");
+    await User.updateOne(
+      { _id: myId },
+      { $pull: { blockedUserIds: relationalIdMatcher(userId), anonymousBlocks: { handle } } }
+    );
+    return res.json({ ok: true, data: { status: "unblocked", userId: handle } });
+  } catch (e) {
+    console.error("[friends] unblockAnonymousUser error:", e);
+    return err(res, 500, "SERVER_ERROR", "Failed to unblock account");
+  }
+};
+
+// Anonymous blocks keyed by the blocked account id.
+const anonymousBlocksById = (user) => new Map(
+  (user?.anonymousBlocks || [])
+    .map((block) => [canonicalUserId(block?.userId), block])
+    .filter(([userId, block]) => userId && isOpaqueEncounterId(block?.handle))
+);
+
 // ── GET /api/me/blocks ──────────────────────────────────────────────────────
 const listBlockedUsers = async (req, res) => {
   try {
-    const me = await User.findById(authedUserId(req), "blockedUserIds").lean();
+    const me = await User.findById(authedUserId(req), "blockedUserIds anonymousBlocks").lean();
     if (!me) return err(res, 404, "NOT_FOUND", "User not found");
+    const anonymous = anonymousBlocksById(me);
     const ids = [...new Set((me.blockedUserIds || []).map(toIdString).filter(Boolean))];
-    const docs = ids.length
-      ? await User.find({ _id: { $in: ids } }, "name image avatar").lean()
+    const namedIds = ids.filter((id) => !anonymous.has(id));
+    const docs = namedIds.length
+      ? await User.find({ _id: { $in: namedIds } }, "name image avatar").lean()
       : [];
+    // Anonymous opponents stay as the blocker saw them: alias + opaque handle.
+    const anonymousAccounts = ids
+      .filter((id) => anonymous.has(id))
+      .map((id) => ({
+        userId: anonymous.get(id).handle,
+        name: anonymous.get(id).alias || null,
+        image: null,
+        avatar: null,
+        anonymous: true,
+      }));
     return res.json({
       ok: true,
       data: {
-        accounts: docs.map((user) => ({
-          userId: canonicalUserId(user._id),
-          name: user.name || null,
-          image: user.image || null,
-          avatar: publicAvatar(user.avatar),
-        })),
+        accounts: [
+          ...docs.map((user) => ({
+            userId: canonicalUserId(user._id),
+            name: user.name || null,
+            image: user.image || null,
+            avatar: publicAvatar(user.avatar),
+          })),
+          ...anonymousAccounts,
+        ],
       },
     });
   } catch (e) {
@@ -513,5 +605,6 @@ module.exports = {
   blockUsers,
   unblockUser,
   listBlockedUsers,
+  anonymousBlocksById,
   isValidId,
 };
