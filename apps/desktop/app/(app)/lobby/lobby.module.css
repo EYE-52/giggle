@@ -280,3 +280,16 @@
 /* Keep status available to assistive technology and the action's description,
    while the joining progress and recoverable errors still remain visible. */
 .page[data-short-games] .readyLine:not([data-joining]) { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Narrow call tiles (a game beside the call): the name must stay readable,
+ * so the camera state shrinks to its icon and the role tag steps aside
+ * (the leader is still named in Squad settings). */
+@container (max-width: 240px) {
+  .cameraStateText { display: none; }
+  .memberRole { display: none; }
+  .seatLabel .state { padding-inline: 6px; }
+}
+/* Short call tiles: the portrait sits higher and smaller so the name tag
+ * at the bottom never covers it. */
+@container (max-height: 120px) {
+  .face { top: 36%; width: min(44cqw, 44cqh); }
+}
