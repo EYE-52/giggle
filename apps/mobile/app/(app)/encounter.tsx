@@ -262,6 +262,11 @@ export default function EncounterScreen() {
       try {
         const detail = await api.getEncounter(encId);
         if (cancelled) return;
+        // Call devices open only once both squads acked; wait in the handoff.
+        if (detail.status === 'awaiting_ack' && squadId) {
+          router.replace(`/match?squad=${squadId}&enc=${encId}`);
+          return;
+        }
         setEnc(detail);
         if (!squadId) return;
         joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {

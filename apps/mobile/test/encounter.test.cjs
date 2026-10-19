@@ -799,3 +799,15 @@ test("mobile shared controls use Expo safe areas and 44 point minimum targets", 
   assert.equal(button.includes("minHeight: 44"), true);
   assert.equal(encounter.includes("segmentButton: { minWidth: 86, minHeight: 44"), true);
 });
+
+test("mobile match waits for both squads to ack before opening the call", () => {
+  const page = matchSource();
+  const joinBlock = page.slice(page.indexOf("const handleJoin = useCallback"), page.indexOf("const handleSkip = useCallback"));
+
+  assert.match(joinBlock, /const result = await api\.ackEncounter\(encId, squadId\);\s*\/\/[^\n]*\n\s*if \(!result\.allAcked\) \{[\s\S]*?setWaiting\(true\);\s*return;/);
+  assert.equal(page.includes("setWaiting(encounterData.ack?.[squadId] === true);"), true);
+  assert.equal(page.includes("socket.on(SOCKET_EVENTS.ENCOUNTER_ACTIVE, refresh);"), true);
+  assert.match(page, /if \(detail\.status === 'active'\) \{[\s\S]*?router\.replace\(`\/encounter\?squad=\$\{squadId\}&enc=\$\{encId\}`\);/);
+  // The call screen sends a squad still in the handoff back to it.
+  assert.match(source(), /if \(detail\.status === 'awaiting_ack' && squadId\) \{\s*router\.replace\(`\/match\?squad=\$\{squadId\}&enc=\$\{encId\}`\);/);
+});
