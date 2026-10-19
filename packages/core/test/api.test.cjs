@@ -52,3 +52,17 @@ test("api exposes typed encounter game ticket wrapper for the shared room", () =
   assert.match(api, /encounterId: string;/);
   assert.match(api, /encounterGameToken:\s*\(encounterId: string\).*backendRequest<EncounterGameTicket>\(`\/api\/encounters\/\$\{encounterId\}\/games\/token`, \{ method: "POST" \}\)/s);
 });
+
+test("profile API carries the anonymity settings and the alias check mirrors the server", async () => {
+  const api = readFileSync(path.join(__dirname, "../src/api.ts"), "utf8");
+  assert.match(api, /anonymousInEncounters\?: boolean; encounterAlias\?: string \| null \}/);
+  assert.match(api, /encounterAliasFallback\?: string;/);
+  const { checkEncounterAlias, encounterAppearsAs } = await import("../src/encounterAlias.ts");
+  assert.deepEqual(checkEncounterAlias("  Quiet   Fox "), { value: "Quiet Fox" });
+  assert.deepEqual(checkEncounterAlias(""), { value: "" });
+  assert.ok(checkEncounterAlias("x").error);
+  assert.ok(checkEncounterAlias("x".repeat(25)).error);
+  assert.ok(checkEncounterAlias("<b>hi</b>").error);
+  assert.equal(encounterAppearsAs({ encounterAlias: "", encounterAliasFallback: "Guest 1234" }), "Guest 1234");
+  assert.equal(encounterAppearsAs({ encounterAlias: "Fox", encounterAliasFallback: "Guest 1234" }), "Fox");
+});

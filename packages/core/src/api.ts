@@ -42,7 +42,7 @@ export const api = {
     backendRequest<AccountExport>("/api/me/export"),
   deleteAccount: () =>
     backendRequest<{ status: "deleted" | "pending" }>("/api/me/account", { method: "DELETE" }),
-  updateMyProfile: (body: { gender?: string; languages?: string[]; country?: string; vibes?: string[]; avatar?: string | null }) =>
+  updateMyProfile: (body: { gender?: string; languages?: string[]; country?: string; vibes?: string[]; avatar?: string | null; anonymousInEncounters?: boolean; encounterAlias?: string | null }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
   // Self-attested date of birth (set-once). Raw birthDate never comes back — the
   // backend derives and returns only the boolean gates.
@@ -256,6 +256,12 @@ export interface UserProfile {
   ageConfirmed?: boolean;
   ageVerified?: boolean;
   accountStatus?: "active" | "unavailable" | "pending_deletion";
+  /** Other squads (calls, squad previews) see only your alias, never your name or avatar. */
+  anonymousInEncounters?: boolean;
+  /** Your chosen alias for other squads ("" when unset). */
+  encounterAlias?: string;
+  /** The stable "Guest NNNN" alias used while encounterAlias is empty. */
+  encounterAliasFallback?: string;
 }
 
 export interface AccountExport {

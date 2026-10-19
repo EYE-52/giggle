@@ -670,6 +670,10 @@ function EncounterInner() {
   const myMembers = mySquad?.members ?? [];
   const oppMembers = oppSquad?.members ?? [];
   const myUserId = session.user?.id ?? "";
+  // When the user stays anonymous with other squads, remind them which name
+  // the other squad sees (own-squad rosters carry the alias).
+  const myMember = myMembers.find((m) => m.userId === myUserId);
+  const myEncounterAlias = myMember?.anonymous ? myMember.alias ?? null : null;
   const mineParticipants: EncounterParticipant[] = myMembers.map((m, i) => ({
     id: m.userId,
     memberId: m.memberId,
@@ -1364,6 +1368,16 @@ function EncounterInner() {
               </span>
             ))}
           </div>
+          {myEncounterAlias && (
+            <span
+              data-testid="encounter-anonymous-note"
+              className="call-title"
+              title="The other squad sees only this name, with no avatar or profile."
+              style={{ minWidth: 0, maxWidth: isPhoneChrome ? 150 : 220, padding: "4px 9px", fontSize: 12, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 1 }}
+            >
+              You appear as {myEncounterAlias}
+            </span>
+          )}
 
           <div style={{ flex: 1 }} />
 

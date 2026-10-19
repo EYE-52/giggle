@@ -26,6 +26,7 @@ export * from "./billing";
 export * from "./squadCode";
 export * from "./moderation";
 export * from "./encounterLayout";
+export * from "./encounterAlias";
 
 export * from "./chat";
 export * from "./videoLayout";

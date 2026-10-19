@@ -62,6 +62,9 @@ function MatchInner() {
   const myMember = squad?.members.find(m => m.userId === session.user?.id)
     ?? encounterMembers.find(m => m.userId === session.user?.id);
   const isLeader = !!myMember && myMember.role === "leader";
+  // Own-squad encounter rosters carry the alias the other squad sees.
+  const myEncounterMember = encounterMembers.find(m => m.userId === session.user?.id);
+  const myEncounterAlias = myEncounterMember?.anonymous ? myEncounterMember.alias ?? null : null;
   const isLeaderRef = useRef(false);
   useEffect(() => { isLeaderRef.current = isLeader; }, [isLeader]);
 
@@ -322,6 +325,7 @@ function MatchInner() {
       status={<>
         <span role="timer" aria-label={`${countdown} of ${countdownTotal} seconds left to join`}>{status}</span>
         {waiting && <span className={faceOffStyles.waitingTime} aria-hidden="true">{countdown}s before this match expires</span>}
+        {myEncounterAlias && <span data-testid="match-anonymous-note" className={faceOffStyles.waitingTime}>You appear to {theirSide?.name ?? "them"} as {myEncounterAlias}</span>}
         <span aria-live="polite" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>{srAnnounce}</span>
       </>}
       actions={
