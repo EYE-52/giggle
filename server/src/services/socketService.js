@@ -533,6 +533,14 @@ const init = (server) => {
           emitToSquad(squad.squadId, 'SQUAD_UPDATED', {});
         }
 
+        // A user with no socket left is not in the encounter video either; a
+        // stale flag would make squadmates think the call still has them.
+        try {
+          await clearEncounterVideoPresence(userId);
+        } catch (err) {
+          console.error('[presence] encounter video cleanup error:', err);
+        }
+
         scheduleAbandonedEncounterCheck(userId);
       } catch (err) {
         // Never throw from the disconnect handler.
@@ -542,6 +550,21 @@ const init = (server) => {
   });
 
   return io;
+};
+
+// A user whose last socket closed is no longer in any encounter video; drop
+// the flag so it cannot keep reading as present.
+const clearEncounterVideoPresence = async (userId) => {
+  const squads = await Squad.find({ 'members.userId': userId, status: { $in: ['matched', 'in_encounter'] } });
+  if (!squads.length) return 0;
+  const sessionService = require('./sessionService');
+  for (const squad of squads) {
+    for (const member of squad.members.filter((m) => m.userId === userId)) {
+      await sessionService.setSessionField(squad.squadId, member.memberId, 'inEncounterVideo', false);
+    }
+    emitToSquad(squad.squadId, 'SQUAD_UPDATED', {});
+  }
+  return squads.length;
 };
 
 // A squad whose members all closed the app mid-call would leave the other
@@ -630,6 +653,7 @@ module.exports = {
   authenticateSocket,
   closeEncounterRoom,
   disconnectUserSockets,
+  clearEncounterVideoPresence,
   endAbandonedEncounters,
   init,
   close,

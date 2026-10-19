@@ -529,3 +529,14 @@ test("skip frees a squad left pointing at an already-ended encounter", async () 
   assert.equal(res.body.data.queueStatus, "idle");
   assert.deepEqual(released, ["encounter_1"]);
 });
+
+test("a user's last socket closing clears their encounter-video flag", async () => {
+  stub(Squad, "find", async () => [
+    { squadId: "sq_a", members: [{ memberId: "member_gone", userId: USER_A }, { memberId: "member_here", userId: USER_B }] },
+  ]);
+  const writes = [];
+  stub(sessionService, "setSessionField", async (...args) => { writes.push(args); });
+
+  assert.equal(await socketService.clearEncounterVideoPresence(USER_A), 1);
+  assert.deepEqual(writes, [["sq_a", "member_gone", "inEncounterVideo", false]]);
+});
