@@ -7,6 +7,7 @@ const {
   getEncounterRosterContext,
   ackEncounterForSquad,
   endEncounterAndRequeue,
+  releaseSquadsFromEncounter,
   tryMatchmakeForSquad,
 } = require("../services/matchmakingService");
 const { hashStringToUid } = require("../services/agoraTokenService");
@@ -207,6 +208,12 @@ const ackEncounterJoinHandler = async (req, res) => {
     });
 
     if (outcome.realtime?.close) {
+      // The ack ended the handoff (expired or discovery disabled) and freed both
+      // squads; tell both so neither keeps waiting on a dead encounter.
+      for (const endedSquadId of [encounter.squadAId, encounter.squadBId]) {
+        socketService.emitToSquad(endedSquadId, "ENCOUNTER_ENDED", { encounterId });
+        socketService.emitToSquad(endedSquadId, "SQUAD_UPDATED", {});
+      }
       socketService.closeEncounterRoom(encounterId);
     }
     if (outcome.realtime?.activate) {
@@ -248,8 +255,15 @@ const skipEncounterHandler = async (req, res) => {
       const encounter = await getEncounterById(encounterId);
       if (!encounter) return { error: { status: 404, code: "ENCOUNTER_NOT_FOUND", message: "Encounter not found" } };
       if (![encounter.squadAId, encounter.squadBId].includes(squadId)) return { error: { status: 403, code: "FORBIDDEN", message: "Squad is not part of this encounter" } };
-      // A retry must never reset a squad which has already entered another call.
-      if (encounter.status === "ended") return { queueStatus: context.squad?.status === "idle" ? "idle" : "searching" };
+      // A retry must never reset a squad which has already entered another call,
+      // but a squad still pointing at this ended encounter is stuck: free it.
+      if (encounter.status === "ended") {
+        if (context.squad?.currentEncounterId === encounterId) {
+          await releaseSquadsFromEncounter(encounter);
+          return { queueStatus: "idle" };
+        }
+        return { queueStatus: context.squad?.status === "idle" ? "idle" : "searching" };
+      }
       if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
       const requeuedSquad = await endEncounterAndRequeue({ encounter, triggeringSquadId: squadId, matchImmediately: false });
       return { requeuedSquad, queueStatus: requeuedSquad?.squadId === squadId ? "searching" : "idle" };

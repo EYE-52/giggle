@@ -63,6 +63,54 @@ const rollbackSquadsToIdle = async (squadIds) => {
   }
 };
 
+const IDLE_ENCOUNTER_STATE = {
+  status: "idle",
+  currentEncounterId: null,
+  opponentSquadId: null,
+  matchedAt: null,
+  searchQueuedAt: null,
+  "members.$[].inEncounterVideo": false,
+};
+
+// Only one ender may move an encounter to "ended" (skip, End, sweeper, a late
+// ack). Returns false when another path already ended it, or when `fromStatus`
+// is given and the encounter has since left that status.
+const markEncounterEnded = async (encounter, { fromStatus } = {}) => {
+  const endedAt = new Date();
+  const ended = await Encounter.findOneAndUpdate(
+    { encounterId: encounter.encounterId, status: fromStatus || { $ne: "ended" } },
+    { $set: { status: "ended", endedAt } },
+    { new: true }
+  );
+  if (!ended) return false;
+  encounter.status = "ended";
+  encounter.endedAt = endedAt;
+  return true;
+};
+
+// Frees squads still pointing at an encounter that is over. Guarded by the
+// encounter id so a squad that already moved on is never clobbered.
+const releaseSquadsFromEncounter = async (
+  encounter,
+  { squadIds = [encounter.squadAId, encounter.squadBId], emitRealtime = true } = {}
+) => {
+  await Squad.updateMany(
+    { squadId: { $in: squadIds }, currentEncounterId: encounter.encounterId },
+    { $set: IDLE_ENCOUNTER_STATE }
+  );
+
+  // Sync Redis
+  for (const squadId of squadIds) {
+    const squad = await Squad.findOne({ squadId });
+    if (squad) {
+      for (const m of squad.members) {
+        await sessionService.setSessionField(squadId, m.memberId, 'inEncounterVideo', false);
+      }
+    }
+    if (emitRealtime) socketService.emitToSquad(squadId, "SQUAD_UPDATED", {});
+  }
+};
+
 const scoreCandidate = ({ seeker, candidate, now }) => {
   const seekerSize = seeker.size || getSquadSize(seeker);
   const candidateSize = parseInt(candidate.size) || 0;
@@ -383,7 +431,8 @@ const getMatchmakingStatus = async (squadId, { squad: preloadedSquad } = {}) => 
   let interactionBlocked = false;
   if (squad.currentEncounterId) {
     const encounter = await Encounter.findOne({ encounterId: squad.currentEncounterId }).lean();
-    if (encounter) {
+    // An ended encounter is never a match to reveal or rejoin.
+    if (encounter && encounter.status !== "ended") {
       const opponentSquadId = encounter.squadAId === squadId ? encounter.squadBId : encounter.squadAId;
       const opponentSquad = await Squad.findOne({ squadId: opponentSquadId })
         .select("squadId squadName members.userId")
@@ -458,10 +507,9 @@ const ackEncounterForSquad = async ({ encounter, squadId, emitRealtime = true })
   }
 
   if (new Date(encounter.expiresAt).getTime() < Date.now()) {
-    encounter.status = "ended";
-    encounter.endedAt = new Date();
-    await encounter.save();
-    if (emitRealtime) socketService.closeEncounterRoom(encounter.encounterId);
+    // Free both squads too: nothing else moves a squad out of "matched" once
+    // its encounter has ended.
+    await endEncounterToIdle({ encounter, emitRealtime });
     return {
       error: { status: 409, code: "ENCOUNTER_EXPIRED", message: "Encounter handoff expired" },
       realtime: { close: true },
@@ -507,16 +555,27 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmed
   }
 
   const squadIds = [encounter.squadAId, encounter.squadBId];
-  encounter.status = "ended";
-  encounter.endedAt = new Date();
-  await encounter.save();
+  // A handoff that timed out says nothing about a squad that never acked (it
+  // may have closed the app), so only the skipping squad and squads that did
+  // ack go back to searching.
+  const handoffExpired =
+    encounter.status === "awaiting_ack" && new Date(encounter.expiresAt).getTime() < Date.now();
+  const searchingSquadIds = handoffExpired
+    ? squadIds.filter((squadId) => squadId === triggeringSquadId || Boolean(encounter.ackBySquad?.get?.(squadId)))
+    : squadIds;
+  const idleSquadIds = squadIds.filter((squadId) => !searchingSquadIds.includes(squadId));
+
+  // Another ender (End, the sweeper, a late ack) already won: never requeue.
+  if (!(await markEncounterEnded(encounter))) return null;
 
   socketService.closeEncounterRoom(encounter.encounterId);
 
-  // Clear encounter state and set both squads to searching with no encounter
+  // Clear encounter state and set squads to searching with no encounter. The
+  // encounter-id guard keeps a squad that already left this call (e.g. a
+  // concurrent End) out of the queue.
   const now = new Date();
   await Squad.updateMany(
-    { squadId: { $in: squadIds } },
+    { squadId: { $in: searchingSquadIds }, currentEncounterId: encounter.encounterId },
     {
       $set: {
         status: "searching",
@@ -530,9 +589,14 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmed
       },
     }
   );
+  if (idleSquadIds.length) {
+    await releaseSquadsFromEncounter(encounter, { squadIds: idleSquadIds });
+  }
 
-  // Add back to Redis queue
-  const squads = await Squad.find({ squadId: { $in: squadIds } });
+  // Add back to Redis queue only the squads this call moved to searching.
+  const squads = (await Squad.find({ squadId: { $in: searchingSquadIds } })).filter(
+    (s) => s.status === "searching" && !s.currentEncounterId && s.lastEncounterId === encounter.encounterId
+  );
   const requeuedSquadIds = [];
   try {
     for (const s of squads) {
@@ -578,11 +642,9 @@ const endEncounterAndRequeue = async ({ encounter, triggeringSquadId, matchImmed
 };
 
 const endEncounterToIdle = async ({ encounter, emitRealtime = true }) => {
-  const squadIds = [encounter.squadAId, encounter.squadBId];
-
-  encounter.status = "ended";
-  encounter.endedAt = new Date();
-  await encounter.save();
+  // Squads are released even when another path already ended the encounter,
+  // so a squad left pointing at a dead encounter is repaired here too.
+  await markEncounterEnded(encounter);
 
   if (emitRealtime) {
     socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
@@ -591,116 +653,108 @@ const endEncounterToIdle = async ({ encounter, emitRealtime = true }) => {
   }
 
   // Clear encounter state and inEncounterVideo flags for all members
-  await Squad.updateMany(
-    { squadId: { $in: squadIds } },
-    {
-      $set: {
-        status: "idle",
-        currentEncounterId: null,
-        opponentSquadId: null,
-        matchedAt: null,
-        searchQueuedAt: null,
-        "members.$[].inEncounterVideo": false,
-      },
-    }
-  );
-
-  // Sync Redis
-  for (const squadId of squadIds) {
-    const squad = await Squad.findOne({ squadId });
-    if (squad) {
-      for (const m of squad.members) {
-        await sessionService.setSessionField(squadId, m.memberId, 'inEncounterVideo', false);
-      }
-    }
-  }
+  await releaseSquadsFromEncounter(encounter, { emitRealtime });
 };
+
+const didMatch = (result) => (result?.matchedCount ?? result?.n ?? 0) > 0;
 
 const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
   const otherSquadId = encounter.squadAId === disconnectingSquadId ? encounter.squadBId : encounter.squadAId;
-  const encounterWasEnded = encounter.status === "ended";
 
-  const idleState = {
-    status: "idle",
-    currentEncounterId: null,
-    opponentSquadId: null,
-    matchedAt: null,
-    searchQueuedAt: null,
-    "members.$[].inEncounterVideo": false,
-  };
+  const idleState = IDLE_ENCOUNTER_STATE;
 
-  // Both resets are guarded by the old encounter id. A failed write leaves the
-  // encounter retryable; a later retry cannot clobber a squad that has already
-  // joined a newer encounter.
-  await Squad.updateOne(
-    { squadId: disconnectingSquadId, currentEncounterId: encounter.encounterId },
-    { $set: idleState }
-  );
-  const otherReset = await Squad.updateOne(
-    { squadId: otherSquadId, currentEncounterId: encounter.encounterId },
-    { $set: idleState }
-  );
-
-  if (!encounterWasEnded) {
-    encounter.status = "ended";
-    encounter.endedAt = new Date();
-    await encounter.save();
-  }
-
-  // Notify only after both durable squad transitions and the encounter write.
-  const endedPayload = {
-    encounterId: encounter.encounterId,
-    reason: "squad_disconnected",
-    endedBySquadId: disconnectingSquadId,
-  };
-  socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", endedPayload);
-  socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", endedPayload);
-  socketService.closeEncounterRoom(encounter.encounterId);
-
-  const otherSquad = await Squad.findOne({ squadId: otherSquadId });
-  const otherWasResetNow = (otherReset?.matchedCount ?? otherReset?.n ?? 0) > 0;
-  if (!isStrangerDiscoveryEnabled()) {
-    await queueService.removeFromQueue(otherSquadId);
-  } else if (otherWasResetNow && otherSquad?.status === "idle" && !otherSquad.currentEncounterId) {
-    try {
-      const canRequeue =
-        !(otherSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&
-        await allUsersHaveAdultAccess(otherSquad.members.map((member) => member.userId), { User }) &&
-        !(await anyBlockedPair(otherSquad.members.map((member) => member.userId), { User }));
-      if (!canRequeue) {
-        await queueService.removeFromQueue(otherSquadId);
-      } else {
-        const now = new Date();
-        const promoted = await Squad.updateOne(
-          { squadId: otherSquadId, status: "idle", currentEncounterId: null },
-          { $set: { ...idleState, status: "searching", searchQueuedAt: now } }
-        );
-        if ((promoted?.matchedCount ?? promoted?.n ?? 1) > 0) {
-          otherSquad.status = "searching";
-          otherSquad.searchQueuedAt = now;
-          otherSquad.currentEncounterId = null;
-          otherSquad.opponentSquadId = null;
-          otherSquad.matchedAt = null;
-          await queueService.addToQueue(
-            otherSquad.squadId,
-            getSquadSize(otherSquad),
-            otherSquad.searchRegion,
-            otherSquad.tags,
-            otherSquad.reputationScore
-          );
-          // Sync Redis for other squad
-          for (const m of otherSquad.members) {
-            await sessionService.setSessionField(otherSquadId, m.memberId, 'inEncounterVideo', false);
-          }
-          // Start matching for them immediately
-          await tryMatchmakeForSquad(otherSquad);
-        }
-      }
-    } catch (error) {
-      await rollbackSquadsToIdle([otherSquadId]);
-      throw error;
+  // The transition holds the matchmaking lock so a concurrent skip or ack
+  // cannot interleave with it. Matching takes the same lock, so it runs only
+  // after the transition has released it.
+  const squadToMatch = await withMatchmakingLock(async (signal) => {
+    // Both resets are guarded by the old encounter id. A failed write leaves the
+    // encounter retryable; a later retry cannot clobber a squad that has already
+    // joined a newer encounter.
+    const disconnectingReset = await Squad.updateOne(
+      { squadId: disconnectingSquadId, currentEncounterId: encounter.encounterId },
+      { $set: idleState }
+    );
+    const otherReset = await Squad.updateOne(
+      { squadId: otherSquadId, currentEncounterId: encounter.encounterId },
+      { $set: idleState }
+    );
+    if (!didMatch(disconnectingReset)) {
+      // A skip that won the race already requeued this squad. End still means
+      // stop, so take it back out of the search that skip started.
+      const pulledFromSearch = await Squad.updateOne(
+        {
+          squadId: disconnectingSquadId,
+          status: "searching",
+          currentEncounterId: null,
+          lastEncounterId: encounter.encounterId,
+        },
+        { $set: idleState }
+      );
+      if (didMatch(pulledFromSearch)) await queueService.removeFromQueue(disconnectingSquadId);
     }
-  }
+
+    // No-op when another path already ended it.
+    await markEncounterEnded(encounter);
+
+    // Notify only after both durable squad transitions and the encounter write.
+    const endedPayload = {
+      encounterId: encounter.encounterId,
+      reason: "squad_disconnected",
+      endedBySquadId: disconnectingSquadId,
+    };
+    socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", endedPayload);
+    socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", endedPayload);
+    socketService.closeEncounterRoom(encounter.encounterId);
+
+    const otherSquad = await Squad.findOne({ squadId: otherSquadId });
+    const otherWasResetNow = didMatch(otherReset);
+    if (!isStrangerDiscoveryEnabled()) {
+      await queueService.removeFromQueue(otherSquadId);
+    } else if (otherWasResetNow && otherSquad?.status === "idle" && !otherSquad.currentEncounterId) {
+      try {
+        const canRequeue =
+          !(otherSquad.tags || []).some((tag) => classifyVibe(tag) !== "ok") &&
+          await allUsersHaveAdultAccess(otherSquad.members.map((member) => member.userId), { User }) &&
+          !(await anyBlockedPair(otherSquad.members.map((member) => member.userId), { User }));
+        if (!canRequeue) {
+          await queueService.removeFromQueue(otherSquadId);
+        } else {
+          const now = new Date();
+          if (signal.aborted) throw signal.error || new Error("Matchmaking lock was lost");
+          const promoted = await Squad.updateOne(
+            { squadId: otherSquadId, status: "idle", currentEncounterId: null },
+            { $set: { ...idleState, status: "searching", searchQueuedAt: now } }
+          );
+          if ((promoted?.matchedCount ?? promoted?.n ?? 1) > 0) {
+            otherSquad.status = "searching";
+            otherSquad.searchQueuedAt = now;
+            otherSquad.currentEncounterId = null;
+            otherSquad.opponentSquadId = null;
+            otherSquad.matchedAt = null;
+            await queueService.addToQueue(
+              otherSquad.squadId,
+              getSquadSize(otherSquad),
+              otherSquad.searchRegion,
+              otherSquad.tags,
+              otherSquad.reputationScore
+            );
+            // Sync Redis for other squad
+            for (const m of otherSquad.members) {
+              await sessionService.setSessionField(otherSquadId, m.memberId, 'inEncounterVideo', false);
+            }
+            // Start matching for them as soon as the lock is released
+            return otherSquad;
+          }
+        }
+      } catch (error) {
+        await rollbackSquadsToIdle([otherSquadId]);
+        throw error;
+      }
+    }
+    return null;
+  });
+
+  if (squadToMatch) await tryMatchmakeForSquad(squadToMatch);
 
   const disconnectingSquad = await Squad.findOne({ squadId: disconnectingSquadId });
   if (disconnectingSquad) {
@@ -719,44 +773,52 @@ const endEncounterAsymmetric = async ({ encounter, disconnectingSquadId }) => {
 // Encounters created in "awaiting_ack" expire if both squads never ack. When
 // that happens the squads can stay stuck in "matched" with a currentEncounterId
 // pointing at the dead encounter. This sweeper periodically ends expired
-// awaiting_ack encounters and frees those squads back to "idle".
+// awaiting_ack encounters and frees those squads back to "idle". It also frees
+// any squad still pointing at an encounter that some other path already ended.
+const releaseSquadsFromEndedEncounters = async () => {
+  const pointing = await Squad.find({
+    status: { $in: ["matched", "in_encounter"] },
+    currentEncounterId: { $ne: null },
+  }).select("squadId currentEncounterId").lean();
+  if (!pointing.length) return 0;
+
+  const encounterIds = [...new Set(pointing.map((squad) => squad.currentEncounterId))];
+  const ended = await Encounter.find({ encounterId: { $in: encounterIds }, status: "ended" });
+  for (const encounter of ended) {
+    await releaseSquadsFromEncounter(encounter);
+  }
+  return ended.length;
+};
+
 const sweepStuckEncounters = async () => {
   try {
-    const now = new Date();
-    const stuck = await Encounter.find({ status: "awaiting_ack", expiresAt: { $lt: now } });
-    if (!stuck.length) return 0;
+    // Holds the matchmaking lock so the sweep cannot interleave with an ack
+    // that is activating the same encounter.
+    return await withMatchmakingLock(async () => {
+      const now = new Date();
+      const stuck = await Encounter.find({ status: "awaiting_ack", expiresAt: { $lt: now } });
 
-    let freedSquads = 0;
-    for (const encounter of stuck) {
-      encounter.status = "ended";
-      encounter.endedAt = now;
-      await encounter.save();
+      let swept = 0;
+      for (const encounter of stuck) {
+        // Conditional: an ack that activated the call first wins.
+        if (!(await markEncounterEnded(encounter, { fromStatus: "awaiting_ack" }))) continue;
+        swept += 1;
 
-      // Notify any connected clients so they bounce out of the handoff UI.
-      socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-      socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
-      socketService.closeEncounterRoom(encounter.encounterId);
+        // Notify any connected clients so they bounce out of the handoff UI.
+        socketService.emitToSquad(encounter.squadAId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+        socketService.emitToSquad(encounter.squadBId, "ENCOUNTER_ENDED", { encounterId: encounter.encounterId });
+        socketService.closeEncounterRoom(encounter.encounterId);
 
-      for (const squadId of [encounter.squadAId, encounter.squadBId]) {
-        const squad = await Squad.findOne({ squadId });
-        // Only reset squads still stuck on THIS dead encounter.
-        if (!squad || squad.status !== "matched" || squad.currentEncounterId !== encounter.encounterId) {
-          continue;
-        }
-        squad.status = "idle";
-        squad.currentEncounterId = null;
-        squad.opponentSquadId = null;
-        squad.matchedAt = null;
-        squad.searchQueuedAt = null;
-        await squad.save();
-        await queueService.removeFromQueue(squadId);
-        socketService.emitToSquad(squadId, "SQUAD_UPDATED", {});
-        freedSquads += 1;
+        // Only squads still on THIS dead encounter are reset.
+        await releaseSquadsFromEncounter(encounter);
       }
-    }
 
-    logMatchmakingDebug(`[Sweeper] Ended ${stuck.length} stuck awaiting_ack encounter(s); freed ${freedSquads} squad(s) to idle`);
-    return stuck.length;
+      const repaired = await releaseSquadsFromEndedEncounters();
+      if (swept || repaired) {
+        logMatchmakingDebug(`[Sweeper] Ended ${swept} stuck awaiting_ack encounter(s); released squads from ${repaired} ended encounter(s)`);
+      }
+      return swept;
+    });
   } catch (err) {
     console.error("[Sweeper] Error sweeping stuck encounters:", err);
     return 0;
@@ -802,5 +864,6 @@ module.exports = {
   endEncounterAndRequeue,
   endEncounterToIdle,
   endEncounterAsymmetric,
+  releaseSquadsFromEncounter,
   isMatchmakingDebugEnabled,
 };
