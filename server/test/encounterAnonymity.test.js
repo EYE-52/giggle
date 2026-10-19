@@ -438,3 +438,67 @@ test("the account export shows anonymous blocks by alias and omits reported acco
   assert.equal(exported.profile.encounterAlias, "Owl");
   assert.ok(!JSON.stringify(exported).includes(BRUNO));
 });
+
+// ── Squad preview / discovery (people outside the squad) ─────────────────────
+const { getSquadPreviewHandler, discoverSquadsHandler } = require("../src/controllers/squadController");
+
+async function withSquadStubs(run) {
+  const originals = { findOne: Squad.findOne, find: Squad.find, userFind: User.find, findById: User.findById };
+  const anonymousSquad = {
+    squadId: "sq-B",
+    squadName: "Day Larks",
+    status: "idle",
+    visibility: "open",
+    joinPolicy: "open",
+    members: squadB.members.map((m) => ({ ...m, providerAccountId: m.userId })),
+  };
+  Squad.findOne = async () => anonymousSquad;
+  Squad.find = () => ({ sort() { return this; }, limit: async () => [anonymousSquad] });
+  User.find = (query) => {
+    const ids = (query?._id?.$in || []).map(String);
+    const rows = [...USERS, { _id: ALICE }].filter((u) => ids.includes(String(u._id))).map((u) => ({ blockedUserIds: [], ...u }));
+    return { lean: async () => rows };
+  };
+  User.findById = () => ({ select: () => ({ lean: async () => ({ isPremium: false }) }), lean: async () => ({ isPremium: false }) });
+  try {
+    return await run();
+  } finally {
+    Object.assign(Squad, { findOne: originals.findOne, find: originals.find });
+    Object.assign(User, { find: originals.userFind, findById: originals.findById });
+  }
+}
+
+test("squad previews show anonymous members to outsiders only by alias", async () => {
+  await withSquadStubs(async () => {
+    let res = createResponse();
+    await getSquadPreviewHandler({ params: { squadId: "sq-B" }, user: { userId: ALICE } }, res);
+    assert.equal(res.statusCode, 200);
+    const [bruno, ben] = res.body.data.members;
+    assert.equal(bruno.displayName, "Quiet Fox");
+    assert.equal(bruno.avatar, null);
+    assert.equal(bruno.anonymous, true);
+    assert.match(bruno.memberId, /^anon_[a-f0-9]{24}$/);
+    assert.equal(res.body.data.leaderMemberId, bruno.memberId);
+    assert.equal(res.body.data.leaderName, "Quiet Fox");
+    assert.equal(ben.displayName, "Ben");
+    assert.equal(ben.memberId, "m-b2");
+    const json = JSON.stringify(res.body);
+    for (const secret of [BRUNO, "Bruno Real", "teal-bot", "m-b1"]) assert.ok(!json.includes(secret), secret);
+
+    // A member previewing their own squad sees it for real.
+    res = createResponse();
+    await getSquadPreviewHandler({ params: { squadId: "sq-B" }, user: { userId: BEN } }, res);
+    assert.equal(res.body.data.members[0].displayName, "Bruno Real");
+    assert.equal(res.body.data.leaderMemberId, "m-b1");
+  });
+});
+
+test("squad discovery shows an anonymous leader only by alias", async () => {
+  await withSquadStubs(async () => {
+    const res = createResponse();
+    await discoverSquadsHandler({ user: { userId: ALICE } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.data.squads[0].leaderName, "Quiet Fox");
+    assert.ok(!JSON.stringify(res.body).includes("Bruno Real"));
+  });
+});

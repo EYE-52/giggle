@@ -60,7 +60,7 @@ function mockUserFind(users, { failAvatarLookup = false } = {}) {
   const projections = [];
   const find = (query, projection) => {
     projections.push(projection);
-    if (failAvatarLookup && projection === "avatar") throw new Error("avatar lookup down");
+    if (failAvatarLookup && (projection === "avatar" || projection === IDENTITY_USER_FIELDS)) throw new Error("avatar lookup down");
     const ids = (query?._id?.$in || []).map(String);
     const rows = users
       .filter((user) => ids.includes(String(user._id)))
@@ -340,7 +340,7 @@ test("my squad, join, preview and join requests include member avatars with one 
       ["mem_leader", "Leader", SHARED_CHARACTER],
       ["mem_member", "Member", null],
     ]);
-    assert.equal(projections.filter((p) => p === "avatar").length, 1);
+    assert.equal(projections.filter((p) => p === IDENTITY_USER_FIELDS).length, 1);
 
     projections.length = 0;
     res = createResponse();

@@ -49,6 +49,11 @@ const coverStorage = require("../services/coverStorage");
 const { firstDisplayName } = require("../utils/identityValidation");
 const { loadAvatarsByUserId, publicAvatar } = require("../utils/avatars");
 const {
+  identityUserFor,
+  loadEncounterIdentityUsers,
+  publicEncounterIdentity,
+} = require("../services/encounterIdentityService");
+const {
   anyBlockedPair,
   anyBlockedPairInState,
   canonicalUserId,
@@ -135,6 +140,34 @@ const normalizeSquadName = (value) => {
 const publicSquadName = (squad) => normalizeSquadName(squad?.squadName).slice(0, 60) || "Untitled squad";
 
 const publicMemberName = (member) => firstDisplayName(member?.displayName, "Someone");
+
+// One identity lookup (avatar + anonymity) for members shown outside their
+// squad. A failed lookup returns null: callers then treat everyone as
+// anonymous (fail closed) instead of showing real identities.
+const loadPublicIdentityUsers = async (members) => {
+  try {
+    return await loadEncounterIdentityUsers((members || []).map((member) => member?.userId), { User });
+  } catch (error) {
+    console.warn("loadPublicIdentityUsers failed:", error.message);
+    return null;
+  }
+};
+
+// How a squad member appears to someone OUTSIDE the squad (previews,
+// discovery): members who stay anonymous with other squads show only their
+// alias, no avatar, and an opaque id scoped to this squad's public views.
+const publicMemberView = (squad, member, users) => {
+  const view = publicEncounterIdentity({
+    viewerSquadId: null,
+    memberSquadId: squad.squadId,
+    member,
+    user: users ? identityUserFor(users, member?.userId) : undefined,
+    scope: `squad-public:${squad.squadId}`,
+  });
+  return view.anonymous
+    ? { memberId: view.memberId, displayName: view.displayName, avatar: null, anonymous: true }
+    : { memberId: member.memberId, displayName: publicMemberName(member), avatar: view.avatar };
+};
 
 // Members with each user's chosen illustrated avatar. Looked up live from User
 // (never persisted on member subdocs, where it would go stale) in one batched
@@ -689,13 +722,24 @@ const getSquadPreviewHandler = async (req, res) => {
         ? squad.members.find((m) => m.memberId === squad.leaderMemberId)
         : undefined);
 
-    const avatars = await loadAvatarsByUserId(squad.members.map((member) => member.userId), { User });
+    // Members see their own squad for real; everyone else sees anonymous
+    // members only by alias (publicMemberView).
+    const viewerIsMember = squad.members.some((member) => isSameMember(member, getRequesterIdentity(req)));
+    const users = await loadPublicIdentityUsers(squad.members);
+    const views = new Map(squad.members.map((member) => [
+      member,
+      viewerIsMember
+        ? {
+            memberId: member.memberId,
+            displayName: publicMemberName(member),
+            avatar: publicAvatar(identityUserFor(users || new Map(), member.userId)?.avatar),
+          }
+        : publicMemberView(squad, member, users),
+    ]));
     const members = squad.members.map((member) => ({
-      memberId: member.memberId,
-      displayName: publicMemberName(member),
+      ...views.get(member),
       role: member.role,
       avatarId: member.avatarId,
-      avatar: avatars.get(canonicalUserId(member.userId)) ?? null,
     }));
 
     return res.status(200).json({
@@ -707,8 +751,8 @@ const getSquadPreviewHandler = async (req, res) => {
         members,
         memberCount: squad.members.length,
         maxSlots: await getSquadCapacity(squad),
-        leaderMemberId: leader ? leader.memberId : undefined,
-        leaderName: leader ? publicMemberName(leader) : undefined,
+        leaderMemberId: leader ? views.get(leader)?.memberId : undefined,
+        leaderName: leader ? views.get(leader)?.displayName : undefined,
         tags: publicSquadTags(squad),
         coverImage: publicCoverImage(squad),
         joinPolicy: squad.joinPolicy || "open",
@@ -1867,7 +1911,7 @@ const deleteCoverQuietly = async (key) => {
   }
 };
 
-const toPublicSquad = async (squad) => {
+const toPublicSquad = async (squad, users) => {
   const leader = squad.members.find((m) => m.role === "leader");
   return {
     squadId: squad.squadId,
@@ -1879,7 +1923,8 @@ const toPublicSquad = async (squad) => {
     status: squad.status,
     visibility: squad.visibility || "private",
     joinPolicy: squad.joinPolicy || "open",
-    leaderName: leader ? publicMemberName(leader) : undefined,
+    // Viewers are never members here; anonymous leaders show only their alias.
+    leaderName: leader ? publicMemberView(squad, leader, users).displayName : undefined,
   };
 };
 
@@ -1928,7 +1973,11 @@ const discoverSquadsHandler = async (req, res) => {
 
   try {
     const joinable = await findJoinableSquads(identity);
-    const squads = await Promise.all(joinable.slice(0, 30).map(toPublicSquad));
+    const listed = joinable.slice(0, 30);
+    const users = await loadPublicIdentityUsers(
+      listed.map((squad) => squad.members.find((member) => member.role === "leader")).filter(Boolean)
+    );
+    const squads = await Promise.all(listed.map((squad) => toPublicSquad(squad, users)));
     return res.status(200).json({ ok: true, data: { squads } });
   } catch (error) {
     console.error("Error discovering squads:", error);
