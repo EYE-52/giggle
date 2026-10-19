@@ -188,8 +188,8 @@ test("mobile opponent blocking confirms, blocks, disconnects, then leaves withou
   assert.equal(page.includes("Block opponent squad?"), true);
   assert.equal(page.includes("visible={blockConfirmOpen}"), true);
   assert.equal(page.includes("setBlockConfirmOpen(true)"), true);
-  assert.equal(handler.indexOf("await api.blockUsers(opponentUserIds);") >= 0, true);
-  assert.equal(handler.indexOf("await api.disconnectEncounter(squadId, encId);") > handler.indexOf("await api.blockUsers(opponentUserIds);"), true);
+  assert.equal(handler.indexOf("await api.blockUsers(opponentUserIds, encId);") >= 0, true);
+  assert.equal(handler.indexOf("await api.disconnectEncounter(squadId, encId);") > handler.indexOf("await api.blockUsers(opponentUserIds, encId);"), true);
   assert.equal(handler.indexOf("await leaveVideoAndGoHome();") > handler.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
   assert.equal(cleanup.indexOf("await detachVideo();") >= 0, true);
   assert.equal(cleanup.indexOf("router.replace('/home');") > cleanup.indexOf("await detachVideo();"), true);

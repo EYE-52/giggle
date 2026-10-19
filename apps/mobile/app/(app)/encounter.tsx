@@ -614,7 +614,7 @@ export default function EncounterScreen() {
     setBlocking(true);
     setBlockError('');
     try {
-      await api.blockUsers(opponentUserIds);
+      await api.blockUsers(opponentUserIds, encId);
       endingRef.current = true;
       await api.disconnectEncounter(squadId, encId);
       await leaveVideoAndGoHome();

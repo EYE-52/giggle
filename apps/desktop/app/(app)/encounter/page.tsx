@@ -882,7 +882,7 @@ function EncounterInner() {
     setBlocking(true);
     setBlockError(null);
     try {
-      await api.blockUsers(opponentUserIds);
+      await api.blockUsers(opponentUserIds, encId);
       await api.disconnectEncounter(squadId, encId);
       await leaveVideoAndGoHome();
     } catch {

@@ -22,7 +22,7 @@ test("api exposes typed block, unblock, and blocked-account wrappers", () => {
   const api = readFileSync(path.join(__dirname, "../src/api.ts"), "utf8");
 
   assert.match(api, /export interface BlockedAccount/);
-  assert.match(api, /blockUsers:\s*\(userIds: string\[\]\).*"\/api\/users\/block"/s);
+  assert.match(api, /blockUsers:\s*\(userIds: string\[\], encounterId\?: string\).*"\/api\/users\/block".*encounterId \? \{ userIds, encounterId \} : \{ userIds \}/s);
   assert.match(api, /unblockUser:\s*\(userId: string\).*`\/api\/users\/\$\{userId\}\/block`/s);
   assert.match(api, /listBlockedUsers:\s*\(\).*"\/api\/me\/blocks"/s);
 });

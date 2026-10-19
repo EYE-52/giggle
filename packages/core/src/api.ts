@@ -163,8 +163,10 @@ export const api = {
     backendRequest<{ status: "declined" }>("/api/friends/decline", { method: "POST", body: { userId } }),
   removeFriend: (userId: string) =>
     backendRequest<{ status: "removed" }>("/api/friends/remove", { method: "POST", body: { userId } }),
-  blockUsers: (userIds: string[]) =>
-    backendRequest<{ status: "blocked"; userIds: string[] }>("/api/users/block", { method: "POST", body: { userIds } }),
+  // From a call, pass the encounter: anonymous opponents are listed under
+  // opaque per-encounter ids that only the server can map back.
+  blockUsers: (userIds: string[], encounterId?: string) =>
+    backendRequest<{ status: "blocked"; userIds: string[] }>("/api/users/block", { method: "POST", body: encounterId ? { userIds, encounterId } : { userIds } }),
   unblockUser: (userId: string) =>
     backendRequest<{ status: "unblocked"; userId: string }>(`/api/users/${userId}/block`, { method: "DELETE" }),
   listBlockedUsers: () =>
@@ -226,9 +228,12 @@ export interface FriendRequestUser {
   online?: boolean;
 }
 export interface BlockedAccount {
+  /** Account id, or the opaque handle of a block made against an anonymous opponent. */
   userId: string;
   name: string | null;
   image: string | null;
+  /** Blocked from a call while they were anonymous: shown by the alias you saw. */
+  anonymous?: boolean;
 }
 export interface JoinRequestUser {
   userId: string;
@@ -285,6 +290,8 @@ export interface AccountExport {
     languages: string[];
     country: string | null;
     vibes: string[];
+    anonymousInEncounters?: boolean;
+    encounterAlias?: string | null;
   };
   friends: Array<{ userId: string; name: string | null; image: string | null }>;
   blocks: Array<{ userId: string; name: string | null; image: string | null }>;
@@ -317,7 +324,6 @@ export interface AccountExport {
     id: string;
     reporterSquadId: string;
     targetSquadId: string;
-    targetUserIds: string[];
     encounterId: string;
     category: string;
     details: string;

@@ -62,6 +62,26 @@ test("createOpponentUserIds returns only the validated opposite roster", async (
   );
 });
 
+test("createOpponentUserIds keeps opaque ids of anonymous opponents for the server to resolve", async () => {
+  const { createOpponentUserIds } = await import("../src/report.ts");
+  const me = "507f1f77bcf86cd799439011";
+  const anonymous = "anon_0123456789abcdef01234567";
+  const encounter = {
+    squadAId: "sq_a",
+    squadBId: "sq_b",
+    squadAMembers: [{ userId: me }],
+    squadBMembers: [{ userId: anonymous }, { userId: "507f1f77bcf86cd799439013" }],
+  };
+  assert.deepEqual(
+    createOpponentUserIds({ squadId: "sq_a", ownUserId: me, encounter }),
+    [anonymous, "507f1f77bcf86cd799439013"]
+  );
+  // Malformed opaque ids still fail closed.
+  assert.equal(createOpponentUserIds({
+    squadId: "sq_a", ownUserId: me, encounter: { ...encounter, squadBMembers: [{ userId: "anon_XYZ" }] },
+  }), null);
+});
+
 test("createOpponentUserIds fails closed for unrelated or incomplete rosters", async () => {
   const { createOpponentUserIds } = await import("../src/report.ts");
   const me = "507f1f77bcf86cd799439011";
