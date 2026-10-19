@@ -620,7 +620,7 @@ export default function EncounterScreen() {
     setEndError('');
     await detachVideo();
     try {
-      await api.setEncounterVideo(squadId, false);
+      if (squadId) await api.setEncounterVideo(squadId, false);
       router.replace('/home');
     } catch {
       setEnding(false);

@@ -5,5 +5,6 @@
   "main": "src/index.tsx",
   "types": "src/index.tsx",
   "exports": { ".": "./src/index.tsx" },
+  "scripts": { "test": "node --test render.test.cjs" },
   "peerDependencies": { "react": ">=18" }
 }

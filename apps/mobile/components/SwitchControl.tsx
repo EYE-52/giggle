@@ -5,19 +5,22 @@ export function SwitchControl({
   value,
   onValueChange,
   label,
+  disabled = false,
 }: {
   value: boolean;
   onValueChange: (value: boolean) => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <TouchableOpacity
       accessibilityRole="switch"
       accessibilityLabel={label}
-      accessibilityState={{ checked: value }}
+      accessibilityState={{ checked: value, disabled }}
       activeOpacity={0.78}
+      disabled={disabled}
       onPress={() => onValueChange(!value)}
-      style={styles.hitArea}
+      style={[styles.hitArea, disabled && styles.disabled]}
     >
       <View style={[styles.track, value && styles.trackOn]}>
         <View style={[styles.thumb, value && styles.thumbOn]} />
@@ -32,6 +35,9 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  disabled: {
+    opacity: 0.45,
   },
   track: {
     width: 44,

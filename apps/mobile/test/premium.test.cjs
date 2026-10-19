@@ -40,15 +40,13 @@ test("mobile wallet uses the real referral balance and native sharing", () => {
   assert.equal(page.includes("setLoadAttempt((attempt) => attempt + 1)"), true);
 });
 
-test("mobile wallet presents unavailable perks as a compact truthful list", () => {
+test("mobile wallet describes earned credits and the Giggle+ pass truthfully", () => {
   const page = source();
 
-  assert.equal(page.includes("TOKEN_PERKS.map"), true);
-  assert.equal(page.includes("Coming soon"), true);
-  assert.equal(page.includes("Earn and track tokens for your squad identity."), true);
-  assert.equal(page.includes("Earn tokens, then spend them on your squad identity."), false);
+  assert.equal(page.includes("Earn credits by bringing friends to Giggle."), true);
+  assert.equal(page.includes("Use earned credits on gigglemeet.com to unlock a seven-day pass"), true);
+  assert.equal(page.includes("TOKEN_PERKS"), false);
   assert.equal(page.includes("canRedeemTokenPerksLocally"), false);
   assert.equal(page.includes("spendOnVibePack"), false);
   assert.equal(page.includes("spendOnCoverThemes"), false);
-  assert.equal(page.includes("Icon.palette"), false);
 });
