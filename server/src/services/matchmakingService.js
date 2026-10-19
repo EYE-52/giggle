@@ -825,6 +825,80 @@ const sweepStuckEncounters = async () => {
   }
 };
 
+// Turning stranger discovery off must also stop searches already in flight;
+// otherwise those squads sit in "searching" with nothing to match them.
+const stopSearchesWhileDiscoveryDisabled = async () => {
+  if (isStrangerDiscoveryEnabled()) return 0;
+  try {
+    return await withMatchmakingLock(async () => {
+      const [searching, queued] = await Promise.all([
+        Squad.find({ status: "searching" }).select("squadId").lean(),
+        queueService.getAllQueuedSquads(),
+      ]);
+      const searchingIds = searching.map((squad) => squad.squadId);
+      if (searchingIds.length) {
+        await Squad.updateMany(
+          { squadId: { $in: searchingIds }, status: "searching" },
+          { $set: { status: "idle", searchQueuedAt: null } }
+        );
+      }
+      const queuedIds = new Set([...searchingIds, ...queued.map((entry) => entry.squadId)]);
+      for (const squadId of queuedIds) {
+        await queueService.removeFromQueue(squadId);
+      }
+      for (const squadId of searchingIds) {
+        socketService.emitToSquad(squadId, "SQUAD_UPDATED", {});
+      }
+      if (searchingIds.length) {
+        logMatchmakingDebug(`[Sweeper] Discovery disabled: stopped ${searchingIds.length} search(es)`);
+      }
+      return searchingIds.length;
+    });
+  } catch (err) {
+    console.error("[Sweeper] Error stopping searches while discovery is disabled:", err);
+    return 0;
+  }
+};
+
+// Matching otherwise runs only when a search starts or a call ends, so two
+// squads that missed each other (a failed attempt, the post-skip cooldown)
+// would wait forever. Retry the longest-waiting searches each tick.
+const SEARCH_RETRY_BATCH_SIZE = 25;
+const retrySearchingSquads = async ({ limit = SEARCH_RETRY_BATCH_SIZE } = {}) => {
+  if (!isStrangerDiscoveryEnabled()) return 0;
+  try {
+    const searching = await Squad.find({ status: "searching" })
+      .select("squadId status")
+      .sort({ searchQueuedAt: 1 })
+      .limit(limit)
+      .lean();
+    // A single searcher has nobody to match with.
+    if (searching.length < 2) return 0;
+
+    const matchedSquadIds = new Set();
+    let matches = 0;
+    for (const squad of searching) {
+      if (matchedSquadIds.has(squad.squadId)) continue;
+      const encounter = await tryMatchmakeForSquad(squad);
+      if (encounter) {
+        matches += 1;
+        matchedSquadIds.add(encounter.squadAId);
+        matchedSquadIds.add(encounter.squadBId);
+      }
+    }
+    return matches;
+  } catch (err) {
+    console.error("[Sweeper] Error retrying searching squads:", err);
+    return 0;
+  }
+};
+
+const runMatchmakingMaintenance = async () => {
+  await sweepStuckEncounters();
+  await stopSearchesWhileDiscoveryDisabled();
+  await retrySearchingSquads();
+};
+
 const STUCK_ENCOUNTER_SWEEP_INTERVAL_MS = 30 * 1000;
 let sweepTimer = null;
 
@@ -832,7 +906,7 @@ let sweepTimer = null;
 const STUCK_ENCOUNTER_SWEEP_LEASE_MS = STUCK_ENCOUNTER_SWEEP_INTERVAL_MS - 5 * 1000;
 
 const runEncounterSweepTick = () =>
-  runAsSingleReplica("encounter-sweeper", STUCK_ENCOUNTER_SWEEP_LEASE_MS, sweepStuckEncounters)
+  runAsSingleReplica("encounter-sweeper", STUCK_ENCOUNTER_SWEEP_LEASE_MS, runMatchmakingMaintenance)
     .catch((err) => {
       console.error("[Sweeper] Skipped stuck-encounter sweep (leader lease unavailable):", err.message);
     });
@@ -855,6 +929,9 @@ module.exports = {
   scoreCandidate,
   tryMatchmakeForSquad,
   sweepStuckEncounters,
+  stopSearchesWhileDiscoveryDisabled,
+  retrySearchingSquads,
+  runMatchmakingMaintenance,
   startEncounterSweeper,
   stopEncounterSweeper,
   getMatchmakingStatus,

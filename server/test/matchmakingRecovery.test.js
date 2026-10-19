@@ -6,6 +6,8 @@ const {
   endEncounterAndRequeue,
   endEncounterAsymmetric,
   getMatchmakingStatus,
+  retrySearchingSquads,
+  stopSearchesWhileDiscoveryDisabled,
   sweepStuckEncounters,
 } = require("../src/services/matchmakingService");
 const squadAccess = require("../src/app/squadAccess");
@@ -244,6 +246,84 @@ test("the sweeper frees squads stuck on an ended encounter but leaves acked call
     events.filter(({ event }) => event === "SQUAD_UPDATED").map(({ squadId }) => squadId).sort(),
     ["sq_a", "sq_b"]
   );
+});
+
+test("turning discovery off stops in-flight searches and clears the queue", async () => {
+  process.env.STRANGER_DISCOVERY_ENABLED = "false";
+  const store = squadStore([
+    squad("sq_a", USER_A, { status: "searching", searchQueuedAt: new Date() }),
+    squad("sq_b", USER_B, { status: "in_encounter", currentEncounterId: "enc_live" }),
+  ]);
+  stubSquads(store);
+  stub(Squad, "find", (filter) => {
+    const result = store.find(filter);
+    return { select: () => ({ lean: () => result }) };
+  });
+  const removed = [];
+  stub(queueService, "getAllQueuedSquads", async () => [{ squadId: "sq_a" }, { squadId: "sq_ghost" }]);
+  stub(queueService, "removeFromQueue", async (squadId) => { removed.push(squadId); });
+  const events = stubRealtime();
+  stubLock();
+
+  assert.equal(await stopSearchesWhileDiscoveryDisabled(), 1);
+  assert.equal(store.byId.get("sq_a").status, "idle");
+  assert.equal(store.byId.get("sq_a").searchQueuedAt, null);
+  assert.equal(store.byId.get("sq_b").status, "in_encounter");
+  assert.deepEqual(removed.sort(), ["sq_a", "sq_ghost"]);
+  assert.deepEqual(events.map(({ squadId, event }) => [squadId, event]), [["sq_a", "SQUAD_UPDATED"]]);
+});
+
+test("stopping searches is a no-op while discovery is enabled", async () => {
+  process.env.STRANGER_DISCOVERY_ENABLED = "true";
+  stub(Squad, "find", () => assert.fail("enabled discovery must not scan searching squads"));
+
+  assert.equal(await stopSearchesWhileDiscoveryDisabled(), 0);
+});
+
+test("the periodic matcher pairs two squads that were left searching", async () => {
+  process.env.STRANGER_DISCOVERY_ENABLED = "true";
+  const store = squadStore([
+    squad("sq_a", USER_A, { status: "searching", searchQueuedAt: new Date(Date.now() - 200_000) }),
+    squad("sq_b", USER_B, { status: "searching", searchQueuedAt: new Date(Date.now() - 150_000) }),
+  ]);
+  stubSquads(store);
+  stub(Squad, "find", (filter) => {
+    const result = store.find(filter);
+    const chain = { select: () => chain, sort: () => chain, limit: () => chain, lean: async () => result };
+    return chain;
+  });
+  const queue = [
+    { squadId: "sq_a", size: "1", queuedAt: String(Date.now() - 200_000) },
+    { squadId: "sq_b", size: "1", queuedAt: String(Date.now() - 150_000) },
+  ];
+  stub(queueService, "getQueuedSquadsByRegion", async () => queue);
+  stub(queueService, "getAllQueuedSquads", async () => queue);
+  stub(queueService, "removeFromQueue", async () => {});
+  stub(socketService, "getOnlineUserIds", async (ids) => new Set(ids));
+  stub(sessionService, "setSessionField", async () => {});
+  stubSafeUsers();
+  stubRealtime();
+  const lock = stubLock();
+  const created = [];
+  stub(Encounter, "create", async (data) => { created.push(data); return data; });
+
+  assert.equal(await retrySearchingSquads(), 1);
+  assert.equal(created.length, 1);
+  assert.equal(store.byId.get("sq_a").status, "matched");
+  assert.equal(store.byId.get("sq_b").status, "matched");
+  // The partner matched in this tick is not retried on its own.
+  assert.equal(lock.uses, 1);
+});
+
+test("the periodic matcher does nothing for a lone searcher", async () => {
+  process.env.STRANGER_DISCOVERY_ENABLED = "true";
+  stub(Squad, "find", () => {
+    const chain = { select: () => chain, sort: () => chain, limit: () => chain, lean: async () => [{ squadId: "sq_a", status: "searching" }] };
+    return chain;
+  });
+  stub(redlock, "using", () => assert.fail("a lone searcher needs no matching attempt"));
+
+  assert.equal(await retrySearchingSquads(), 0);
 });
 
 test("skip never requeues a squad that already ended the call", async () => {
