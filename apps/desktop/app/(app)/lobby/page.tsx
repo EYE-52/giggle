@@ -239,11 +239,19 @@ function LobbyInner() {
   // a swallowed failure.
   async function enableLobbyMedia(withCamera = true, withAudio = true): Promise<boolean> {
     if (!squadId || videoJoining) return videoJoined;
-    if (videoJoined) return true;
     const generation = lobbyMediaGenerationRef.current;
     setVideoError(null);
     try {
-      await squadCall.connect(squadId, null, { audio: withAudio, video: withCamera });
+      if (videoJoined) {
+        // The call is up but a device failed before (blocked, busy, missing):
+        // ask for it again rather than reporting success without it.
+        let failure: unknown = null;
+        for (const [kind, wanted] of [["audio", withAudio], ["video", withCamera]] as const) {
+          if (!wanted || squadCall.getSnapshot().capture[kind] === "active") continue;
+          await squadCall.setDevice(squadId, kind, true).catch(error => { failure ??= error; });
+        }
+        if (failure) throw failure;
+      } else await squadCall.connect(squadId, null, { audio: withAudio, video: withCamera });
       if (generation !== lobbyMediaGenerationRef.current) return false;
       const capture = squadCall.getSnapshot().capture;
       return (!withAudio || capture.audio === "active") && (!withCamera || capture.video === "active");

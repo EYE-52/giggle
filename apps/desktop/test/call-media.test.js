@@ -30,3 +30,11 @@ test('encounter "Retry devices" asks again for a blocked or missing device of th
   assert.match(retry, /await squadCall\.setDevice\(squadId, kind, true\);/);
   assert.match(retry, /call\.encounterId !== encId \|\| !call\.joined/);
 });
+
+test('"Turn on camera & mic" before a search retries failed devices instead of passing without them', () => {
+  const lobby = page('lobby');
+  const enable = lobby.slice(lobby.indexOf('async function enableLobbyMedia'), lobby.indexOf('useEffect(', lobby.indexOf('async function enableLobbyMedia')));
+  assert.doesNotMatch(enable, /if \(videoJoined\) return true;/);
+  assert.match(enable, /await squadCall\.setDevice\(squadId, kind, true\)/);
+  assert.match(enable, /return \(!withAudio \|\| capture\.audio === "active"\) && \(!withCamera \|\| capture\.video === "active"\);/);
+});
