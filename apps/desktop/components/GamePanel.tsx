@@ -458,7 +458,9 @@ export function GamePanel({ squadId, onClose, onPresentation, onCameraScene, lay
         <div className={styles.frameWrap}>
           {status === "loading" && !embedUrl && (
             <div className={styles.fallback} role="status">
-              <p className={styles.fallbackTitle}>Loading games…</p>
+              <span className={styles.loader} aria-hidden="true" />
+              <p className={styles.fallbackTitle}>Getting your games ready</p>
+              <p className={styles.fallbackSub}>This takes a few seconds.</p>
             </div>
           )}
           {status === "error" && embedUrl && (
