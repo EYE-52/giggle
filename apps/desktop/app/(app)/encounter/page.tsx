@@ -612,8 +612,24 @@ function EncounterInner() {
         } catch (error) {
           setConnState("DISCONNECTED");
           setVideoError(describeVideoError(error));
+          return;
         } finally {
           setVideoRetrying(false);
+        }
+        // Rejoining an open call keeps its capture as it is, so a blocked or
+        // missing device must be asked for again or "Retry devices" does nothing.
+        for (const kind of ["audio", "video"] as const) {
+          const call = squadCall.getSnapshot();
+          if (call.encounterId !== encId || !call.joined) return;
+          if (call.capture[kind] !== "denied" && call.capture[kind] !== "unavailable") continue;
+          setVideoRetrying(true);
+          try {
+            await squadCall.setDevice(squadId, kind, true);
+          } catch (error) {
+            setVideoError(describeVideoError(error));
+          } finally {
+            setVideoRetrying(false);
+          }
         }
       });
   }
