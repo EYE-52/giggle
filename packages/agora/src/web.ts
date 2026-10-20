@@ -124,25 +124,51 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     setCapture({ audio: "off", video: "off" });
   }
 
+  const currentTrack = (kind: "audio" | "video") => kind === "audio" ? localAudioTrack : localVideoTrack;
+
+  /** Own a capture track and notice when its device goes away underneath the call. */
+  function adoptTrack(kind: "audio" | "video", track: any) {
+    if (kind === "audio") localAudioTrack = track;
+    else localVideoTrack = track;
+    // Unplugging a device, another app taking it or revoking the permission
+    // ends the browser track. Agora keeps the dead track "enabled", so without
+    // this the controls would say "on" over a frozen picture for everyone.
+    try { track?.on?.("track-ended", () => { void loseTrack(kind, track); }); } catch {}
+  }
+
+  async function loseTrack(kind: "audio" | "video", track: any) {
+    if (!track || currentTrack(kind) !== track) return;
+    if (kind === "audio") localAudioTrack = null;
+    else { localVideoTrack = null; localPlayback = null; }
+    const wasPublished = publishedTracks.delete(track), owner = client;
+    setCapture({ [kind]: "unavailable" });
+    // The next "turn on" creates a fresh track from whatever device is present.
+    if (wasPublished && owner) { try { await owner.unpublish?.([track]); } catch {} }
+    closeTrack(track);
+  }
+
   async function setDeviceEnabled(kind: "audio" | "video", on: boolean) {
     const attempt = generation;
     const joinedClient = client, AgoraRTC = sdk;
     if (!joinedClient || joining || moving) throw new Error("Video is not connected yet.");
     const label = kind === "audio" ? "Microphone" : "Camera";
-    let track = kind === "audio" ? localAudioTrack : localVideoTrack;
+    let track = currentTrack(kind);
+    const assertTrack = () => {
+      if (attempt !== generation) throw new Error("Call cancelled.");
+      if (on && currentTrack(kind) !== track) throw new Error(`${label} was disconnected. Try turning it on again.`);
+    };
     if (!track && on) {
       setCapture({ [kind]: "pending" });
       try {
         track = await (kind === "audio" ? AgoraRTC.createMicrophoneAudioTrack() : AgoraRTC.createCameraVideoTrack());
         if (attempt !== generation) throw new Error("Call cancelled.");
-        if (kind === "audio") localAudioTrack = track;
-        else localVideoTrack = track;
+        adoptTrack(kind, track);
         await joinedClient.publish([track]);
-        if (attempt !== generation) throw new Error("Call cancelled.");
+        assertTrack();
         publishedTracks.add(track);
       } catch (error) {
         closeTrack(track);
-        if (attempt === generation) {
+        if (attempt === generation && currentTrack(kind) === track) {
           if (kind === "audio") localAudioTrack = null;
           else localVideoTrack = null;
           setCapture({ [kind]: captureErrorKind(error) });
@@ -150,15 +176,23 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         throw error;
       }
     } else if (track) {
-      await setTrackEnabled(track, on, label, kind === "video");
-      if (attempt !== generation) throw new Error("Call cancelled.");
+      try {
+        await setTrackEnabled(track, on, label, kind === "video");
+      } catch (error) {
+        // A camera re-enable captures again and can be refused or find the
+        // device busy; report that instead of leaving a silent "off".
+        if (on && attempt === generation && currentTrack(kind) === track) setCapture({ [kind]: captureErrorKind(error) });
+        throw error;
+      }
+      assertTrack();
       if (on && !publishedTracks.has(track)) {
         await joinedClient.publish([track]);
-        if (attempt !== generation) throw new Error("Call cancelled.");
+        assertTrack();
         publishedTracks.add(track);
       }
     }
     if (attempt !== generation) throw new Error("Call cancelled.");
+    assertTrack();
     if (kind === "video") localPlayback = null;
     setCapture({ [kind]: on ? "active" : "off" });
   }
@@ -343,7 +377,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           assertCurrent();
           try {
             if (captureError) throw captureError;
-            localAudioTrack = ownedAudio; localVideoTrack = ownedVideo;
+            adoptTrack("audio", ownedAudio); adoptTrack("video", ownedVideo);
             await joinedClient.publish([ownedAudio, ownedVideo]);
             assertCurrent();
             publishedTracks.add(ownedAudio); publishedTracks.add(ownedVideo);
@@ -359,7 +393,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           try {
             ownedAudio = await AgoraRTC.createMicrophoneAudioTrack();
             assertCurrent();
-            localAudioTrack = ownedAudio;
+            adoptTrack("audio", ownedAudio);
             await joinedClient.publish([ownedAudio]);
             assertCurrent();
             publishedTracks.add(ownedAudio);
@@ -375,7 +409,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           try {
             ownedVideo = await AgoraRTC.createCameraVideoTrack();
             assertCurrent();
-            localVideoTrack = ownedVideo;
+            adoptTrack("video", ownedVideo);
             await joinedClient.publish([ownedVideo]);
             assertCurrent();
             publishedTracks.add(ownedVideo);
