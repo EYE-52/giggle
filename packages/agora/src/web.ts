@@ -216,7 +216,6 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         publishedTracks.add(track);
       }
     }
-    if (attempt !== generation) throw new Error("Call cancelled.");
     assertTrack();
     if (kind === "video") localPlayback = null;
     setCapture({ [kind]: on ? "active" : "off" });
