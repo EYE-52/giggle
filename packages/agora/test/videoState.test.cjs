@@ -243,3 +243,45 @@ test('a camera that cannot restart reports why instead of a silent off', async (
   assert.equal(states.at(-1).video, 'active');
   await client.leave();
 });
+
+test('a missing camera does not stop the microphone from joining the call', async () => {
+  const { createVideoClient } = await import('../src/web.ts');
+  const h = mediaHarness(), client = createVideoClient(async () => h.sdk), states = [], asked = [];
+  h.sdk.createMicrophoneAndCameraTracks = async () => { asked.push('both'); throw new DOMException('Requested device not found', 'NotFoundError'); };
+  h.sdk.createMicrophoneAudioTrack = async () => { asked.push('audio'); return h.audio; };
+  h.sdk.createCameraVideoTrack = async () => { asked.push('video'); throw new DOMException('Requested device not found', 'NotFoundError'); };
+  client.onCaptureState(state => states.push(state));
+  await client.join(mediaToken, { audio: true, video: true });
+  assert.deepEqual(asked, ['both', 'audio', 'video']);
+  assert.deepEqual(h.publications, [h.audio]);
+  assert.deepEqual(states.at(-1), { audio: 'active', video: 'unavailable' });
+  await client.leave();
+});
+
+test('a refused joint prompt is not asked again device by device', async () => {
+  const { createVideoClient } = await import('../src/web.ts');
+  const h = mediaHarness(), client = createVideoClient(async () => h.sdk), states = [];
+  let singles = 0;
+  h.sdk.createMicrophoneAndCameraTracks = async () => { throw new DOMException('Permission denied', 'NotAllowedError'); };
+  h.sdk.createMicrophoneAudioTrack = async () => { singles++; return h.audio; };
+  h.sdk.createCameraVideoTrack = async () => { singles++; return h.video; };
+  client.onCaptureState(state => states.push(state));
+  await client.join(mediaToken, { audio: true, video: true });
+  assert.equal(singles, 0);
+  assert.deepEqual(states.at(-1), { audio: 'denied', video: 'denied' });
+  await client.leave();
+});
+
+test('only a device that is allowed, or askable beside a blocked one, is retried after a denial', async () => {
+  const { devicesWorthRetrying } = await import('../src/web.ts');
+  const denied = new DOMException('Permission denied', 'NotAllowedError');
+  const states = (microphone, camera) => async name => (name === 'camera' ? camera : microphone);
+  assert.deepEqual(await devicesWorthRetrying(denied, states('granted', 'denied')), { audio: true, video: false });
+  assert.deepEqual(await devicesWorthRetrying(denied, states('prompt', 'denied')), { audio: true, video: false });
+  assert.deepEqual(await devicesWorthRetrying(denied, states('denied', 'granted')), { audio: false, video: true });
+  assert.deepEqual(await devicesWorthRetrying(denied, states('prompt', 'prompt')), { audio: false, video: false });
+  assert.deepEqual(await devicesWorthRetrying(denied, states('denied', 'denied')), { audio: false, video: false });
+  assert.deepEqual(await devicesWorthRetrying(denied, states(null, null)), { audio: false, video: false });
+  assert.deepEqual(await devicesWorthRetrying(denied), { audio: false, video: false });
+  assert.deepEqual(await devicesWorthRetrying(new DOMException('busy', 'NotReadableError'), states('denied', 'denied')), { audio: true, video: true });
+});

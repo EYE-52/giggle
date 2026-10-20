@@ -43,6 +43,30 @@ export async function setTrackEnabled(
   }
 }
 
+async function queryDevicePermission(name: "camera" | "microphone"): Promise<string | null> {
+  try {
+    return (await navigator.permissions.query({ name } as unknown as PermissionDescriptor)).state;
+  } catch {
+    return null; // Not every browser can query device permissions.
+  }
+}
+
+/**
+ * After a joint camera + microphone request failed, which devices to ask for
+ * one at a time. A missing or busy device is retried separately. A denial is
+ * retried only for a device that is already allowed, or still askable while
+ * the other one is blocked, so a dismissed prompt never asks twice more.
+ */
+export async function devicesWorthRetrying(
+  error: unknown,
+  query: (name: "camera" | "microphone") => Promise<string | null> = queryDevicePermission
+): Promise<{ audio: boolean; video: boolean }> {
+  if (captureErrorKind(error) !== "denied") return { audio: true, video: true };
+  const [audio, video] = await Promise.all([query("microphone"), query("camera")]);
+  const worth = (mine: string | null, other: string | null) => mine === "granted" || (mine === "prompt" && other === "denied");
+  return { audio: worth(audio, video), video: worth(video, audio) };
+}
+
 // Web implementation backed by agora-rtc-sdk-ng. The SDK is imported
 // dynamically so it never runs during Next.js SSR.
 // Local end-to-end runs have no Agora project; they inject a stand-in SDK on
@@ -372,11 +396,19 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         await joinedClient.join(token.appId, token.channelName, token.rtcToken, token.uid);
         assertCurrent();
 
+        let separately = { audio: !!opts.audio && !combined, video: !!opts.video && !combined };
         if (combined) {
           const captureError = await combined;
           assertCurrent();
-          try {
-            if (captureError) throw captureError;
+          if (captureError) {
+            // A joint request fails as a whole. A missing camera, a busy one or
+            // a blocked one must not also silence a working microphone.
+            separately = await devicesWorthRetrying(captureError);
+            assertCurrent();
+            for (const kind of ["audio", "video"] as const) {
+              if (!separately[kind]) setCapture({ [kind]: captureErrorKind(captureError) });
+            }
+          } else try {
             adoptTrack("audio", ownedAudio); adoptTrack("video", ownedVideo);
             await joinedClient.publish([ownedAudio, ownedVideo]);
             assertCurrent();
@@ -389,7 +421,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
             setCapture({ audio: captureErrorKind(error), video: captureErrorKind(error) });
           }
         }
-        if (opts.audio && !combined) {
+        if (separately.audio) {
           try {
             ownedAudio = await AgoraRTC.createMicrophoneAudioTrack();
             assertCurrent();
@@ -405,7 +437,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
             setCapture({ audio: captureErrorKind(error) });
           }
         }
-        if (opts.video && !combined) {
+        if (separately.video) {
           try {
             ownedVideo = await AgoraRTC.createCameraVideoTrack();
             assertCurrent();
