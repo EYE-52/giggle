@@ -164,7 +164,10 @@ function LobbyInner() {
   const vcRef = useRef<VideoClient | null>(null);
   vcRef.current = media.client;
   const lobbyMediaGenerationRef = useRef(0);
-  const localVideoRef = useRef<HTMLDivElement>(null);
+  // Held in state, not a ref: the seat mounts only after the squad loads, which
+  // is often after a call that is already running (back from search, a match
+  // or an encounter). Playback must follow the host element itself.
+  const [localVideoHost, setLocalVideoHost] = useState<HTMLDivElement | null>(null);
   const videoJoined = media.joined;
   const videoJoining = media.pending;
   const deviceBusyRef = useRef({ audio: false, video: false });
@@ -285,10 +288,9 @@ function LobbyInner() {
   }, [squadId]);
 
   useEffect(() => {
-    if (videoJoined && camOn && localVideoRef.current) {
-      try { vcRef.current?.playLocal(localVideoRef.current); } catch {}
-    }
-  }, [videoJoined, camOn]);
+    if (!camOn || !localVideoHost) return;
+    try { media.client?.playLocal(localVideoHost); } catch {}
+  }, [camOn, localVideoHost, media.client]);
 
   // Unread chat tracking — runs even when the chat surface isn't mounted, so the
   // collapsed rail / header can show an unread dot. We join the lobby room and
@@ -815,13 +817,14 @@ function LobbyInner() {
             const isMe = member.userId === myUserId;
             const remote = remotes.find(r => String(r.uid) === String(member.uid));
             const offline = member.online === false && !isMe;
-            const showVideo = isMe ? camOn && videoJoined : !!remote?.hasVideo;
+            // Your own preview is local capture: it stays up while the call reconnects.
+            const showVideo = isMe ? camOn : !!remote?.hasVideo;
             const focused = focusedMemberId === member.memberId;
             return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-testid="lobby-person" data-offline={offline || undefined} data-video={showVideo} data-focused={focused || undefined}
               data-camera-featured={stageScene?.mode === "spotlight" && stageScene.featured === member.userId || undefined}
               style={stageScene ? cameraTiles.get(member.userId) : undefined}>
               <div className={styles.face}><PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size="fill" /></div>
-              {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
+              {isMe ? <div ref={setLocalVideoHost} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
               <div className={styles.seatLabel} data-call-person-label>
                 <span className={styles.seatName} data-call-person-name><span className={styles.nameText}>{isMe ? "You" : member.displayName}</span>{member.memberId === squad.leaderMemberId && <span className={styles.memberRole}>Leader</span>}</span>
                 {WEB_DISCOVERY_ENABLED && member.ready && <span className={styles.ready} data-call-person-ready><Icon.check size={12} weight="regular" />Ready</span>}
