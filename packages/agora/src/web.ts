@@ -174,9 +174,10 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   async function setDeviceEnabled(kind: "audio" | "video", on: boolean) {
     const attempt = generation;
     const joinedClient = client, AgoraRTC = sdk;
-    if (!joinedClient || joining || moving) throw new Error("Video is not connected yet.");
     const label = kind === "audio" ? "Microphone" : "Camera";
     let track = currentTrack(kind);
+    // Only turning on needs the channel. Off is local to the capture track.
+    if (on && (!joinedClient || joining || moving)) throw new Error("Video is not connected yet.");
     const assertTrack = () => {
       if (attempt !== generation) throw new Error("Call cancelled.");
       if (on && currentTrack(kind) !== track) throw new Error(`${label} was disconnected. Try turning it on again.`);

@@ -352,14 +352,14 @@ function LobbyInner() {
 
   async function toggleDevice(kind: "audio" | "video") {
     if (deviceBusyRef.current[kind] || videoJoining) return;
-    if (!videoJoined) {
+    const next = kind === "audio" ? !micOn : !camOn;
+    // A dropped call still turns a live device off; only "on" needs to connect.
+    if (!videoJoined && next) {
       await enableLobbyMedia(kind === "video", kind === "audio");
       return;
     }
-    const vc = vcRef.current;
-    if (!vc) return;
+    if (!vcRef.current) return;
     const generation = lobbyMediaGenerationRef.current;
-    const next = kind === "audio" ? !micOn : !camOn;
     deviceBusyRef.current[kind] = true;
     setDeviceBusy((current) => ({ ...current, [kind]: true }));
     setVideoError(null);
