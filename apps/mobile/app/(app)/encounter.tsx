@@ -148,6 +148,9 @@ export default function EncounterScreen() {
   const [nextError, setNextError] = useState('');
   const nextPendingRef = useRef(false);
   const [ending, setEnding] = useState(false);
+  // Set only on the device that asked the server to end the call, so its own
+  // ENCOUNTER_ENDED echo is ignored while squadmates still get the notice.
+  const endingRef = useRef(false);
   const [endError, setEndError] = useState('');
   const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
@@ -262,6 +265,11 @@ export default function EncounterScreen() {
       try {
         const detail = await api.getEncounter(encId);
         if (cancelled) return;
+        // Call devices open only once both squads acked; wait in the handoff.
+        if (detail.status === 'awaiting_ack' && squadId) {
+          router.replace(`/match?squad=${squadId}&enc=${encId}`);
+          return;
+        }
         setEnc(detail);
         if (!squadId) return;
         joinChainRef.current = joinChainRef.current.catch(() => {}).then(async () => {
@@ -330,13 +338,13 @@ export default function EncounterScreen() {
         router.replace(`/${payload.queueStatus === 'searching' ? 'matchmaking' : 'lobby'}?squad=${squadId}`);
         return;
       }
-      if (payload?.endedBySquadId === squadId) return;
+      if (payload?.endedBySquadId === squadId && endingRef.current) return;
       setShowChat(false);
       setMoreOpen(false);
       setEndConfirmOpen(false);
       setBlockConfirmOpen(false);
       setRemoteEndError('');
-      setRemoteEnded(payload?.reason === 'squad_disconnected' ? 'opponent-left' : 'ended');
+      setRemoteEnded(payload?.reason === 'squad_disconnected' && payload?.endedBySquadId !== squadId ? 'opponent-left' : 'ended');
       void detachVideo();
     };
     socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED, onEnded);
@@ -386,6 +394,10 @@ export default function EncounterScreen() {
       : { id: enc.squadAId, name: enc.squadAName, members: enc.squadAMembers }
     : null;
   const myUserId = session.user?.id ?? '';
+  // When the user stays anonymous with other squads, remind them which name
+  // the other squad sees (own-squad rosters carry the alias).
+  const myMember = mySquad?.members.find((m) => m.userId === myUserId);
+  const myEncounterAlias = myMember?.anonymous ? myMember.alias ?? null : null;
   const mineParticipants: EncounterParticipant[] = (mySquad?.members ?? []).map((m, index) => ({
     id: m.userId,
     memberId: m.memberId,
@@ -606,10 +618,12 @@ export default function EncounterScreen() {
     setBlocking(true);
     setBlockError('');
     try {
-      await api.blockUsers(opponentUserIds);
+      await api.blockUsers(opponentUserIds, encId);
+      endingRef.current = true;
       await api.disconnectEncounter(squadId, encId);
       await leaveVideoAndGoHome();
     } catch {
+      endingRef.current = false;
       setBlocking(false);
       setBlockError("Couldn't block this squad yet. Try again.");
     }
@@ -620,7 +634,7 @@ export default function EncounterScreen() {
     setEndError('');
     await detachVideo();
     try {
-      await api.setEncounterVideo(squadId, false);
+      if (squadId) await api.setEncounterVideo(squadId, false);
       router.replace('/home');
     } catch {
       setEnding(false);
@@ -650,11 +664,13 @@ export default function EncounterScreen() {
     setEndError('');
     const mediaExit = detachVideo();
     void mediaExit;
+    endingRef.current = true;
     try {
       await api.disconnectEncounter(squadId, encId);
       setEndConfirmOpen(false);
       router.replace('/home');
     } catch {
+      endingRef.current = false;
       setEnding(false);
       setEndError("Couldn't end this encounter yet.");
     }
@@ -940,6 +956,11 @@ export default function EncounterScreen() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {/* ── Slim top bar ── */}
       <View style={styles.topBar}>
+        {myEncounterAlias && (
+          <Text style={styles.anonymousNote} numberOfLines={1} testID="encounter-anonymous-note" accessibilityLabel={`The other squad sees you as ${myEncounterAlias}`}>
+            You appear as {myEncounterAlias}
+          </Text>
+        )}
         <View style={styles.topRight}>
           {connState === 'CONNECTED' && <View style={styles.livePill}><View style={styles.liveDot} /><Text style={styles.liveText}>LIVE</Text></View>}
           <Text style={styles.timer}>{fmt(elapsed)}</Text>
@@ -1437,6 +1458,12 @@ export default function EncounterScreen() {
                       if (remoteEnded !== 'opponent-left') await api.startSearch(squadId);
                       router.replace(`/matchmaking?squad=${squadId}`);
                     } catch (error: any) {
+                      // The match cleared everyone's ready state (and only the
+                      // leader may search): the squad readies up again in its lobby.
+                      if (error?.code === 'NOT_READY_TO_SEARCH' || error?.code === 'FORBIDDEN') {
+                        router.replace(`/lobby?squad=${squadId}`);
+                        return;
+                      }
                       setRemoteEndError(error?.message || "Couldn't start matchmaking.");
                     }
                   }}
@@ -1478,6 +1505,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   topRight: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' },
+  anonymousNote: { flexShrink: 1, fontSize: 12, color: COLORS.textMuted, fontWeight: '600' },
   livePill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: COLORS.limeSoft, borderRadius: RADII.pill, paddingVertical: 3, paddingHorizontal: 8 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.lime },
   liveText: { fontSize: 10, fontWeight: '800', color: COLORS.lime, letterSpacing: 1 },

@@ -552,6 +552,23 @@ test("desktop matchmaking cancel stays put when backend cancel fails", () => {
   assert.equal(page.includes('router.push(`/lobby?squad=${squadId}`);'), true);
 });
 
+test("desktop matchmaking offers cancel only to the squad leader", () => {
+  const page = matchmakingSource();
+
+  assert.match(page, /const isNonLeader = !!squad && !squad\.members\.some\(member => member\.userId === session\.user\?\.id && member\.role === "leader"\);/);
+  assert.match(page, /\{isNonLeader \? \([\s\S]*?Back to home[\s\S]*?Your squad leader can cancel the search\.[\s\S]*?\) : \([\s\S]*?Cancel search/);
+  assert.equal(page.includes('<FaceOffBar onBack={leaveForHome} backLabel="Back to home"'), true);
+});
+
+test("desktop encounter polls for an end the socket missed", () => {
+  const page = encounterSource();
+  const lifecycle = page.slice(page.indexOf("let stopEndedPoll"), page.indexOf("function retryVideo()"));
+
+  assert.match(lifecycle, /stopEndedPoll = pollWhileVisible\(async \(\) => \{[\s\S]*?latest\.status === "ended"\) onEnded\(\{ encounterId: encId \}\);/);
+  assert.match(lifecycle, /endedSeen = true;\s*stopEndedPoll\?\.\(\);/);
+  assert.match(lifecycle, /return \(\) => \{[\s\S]*?stopEndedPoll\?\.\(\);/);
+});
+
 test("desktop matchmaking resumes an existing encounter regardless of handoff state", () => {
   const page = matchmakingSource();
 
@@ -1106,8 +1123,8 @@ test("desktop encounter blocks the validated opponent roster before leaving", ()
   assert.match(page, /createOpponentUserIds\(\{ squadId, ownUserId: session\.user\?\.id, encounter \}\)/);
   assert.equal(page.includes('title="Block opponent squad?"'), true);
   assert.equal(page.includes("setBlockConfirmOpen(true)"), true);
-  assert.ok(blockHandler.indexOf("await api.blockUsers(opponentUserIds);") >= 0);
-  assert.ok(blockHandler.indexOf("await api.disconnectEncounter(squadId, encId);") > blockHandler.indexOf("await api.blockUsers(opponentUserIds);"));
+  assert.ok(blockHandler.indexOf("await api.blockUsers(opponentUserIds, encId);") >= 0);
+  assert.ok(blockHandler.indexOf("await api.disconnectEncounter(squadId, encId);") > blockHandler.indexOf("await api.blockUsers(opponentUserIds, encId);"));
   assert.ok(blockHandler.indexOf("await leaveVideoAndGoHome();") > blockHandler.indexOf("await api.disconnectEncounter(squadId, encId);"));
   assert.equal(blockHandler.includes("reportOpponentSquad"), false);
   assert.match(blockHandler, /setBlockError\("Couldn't block this squad yet\. Try again\."\)/);

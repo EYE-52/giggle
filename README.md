@@ -39,6 +39,16 @@ pnpm dev:mobile
 
 The web app opens at <http://localhost:4000>; the API defaults to <http://localhost:3001>. Configure the API from the sanitized `server/.env.example` without committing secrets.
 
+## Checks
+
+Run these before a pull request. GitHub Actions runs the same checks on every pull request.
+
+```sh
+pnpm test          # unit tests for apps/ and packages/
+pnpm typecheck     # web and mobile TypeScript
+cd server && npm test   # API tests; start a local Redis first (redis-server)
+```
+
 ## Release boundary
 
 The owner switched web stranger discovery on in production on 2 October 2026, before every gate in `DEPLOYMENT.md` was evidenced; those gates remain open and native builds keep discovery off. The web app reads `STRANGER_DISCOVERY_ENABLED` from the API at run time (`GET /api/features`), so that one server variable switches web matching on or off; native flags only hide build surfaces.

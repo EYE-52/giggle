@@ -3,6 +3,7 @@ const { after, afterEach, test } = require("node:test");
 
 const appConfig = require("../src/config/appConfig");
 const { Squad } = require("../src/models/Squad");
+const { Encounter } = require("../src/models/Encounter");
 const User = require("../src/models/User");
 const { Notification } = require("../src/models/Notification");
 const { redlock, redis, subClient } = require("../src/config/redisConfig");
@@ -210,11 +211,13 @@ test("disabled matcher cannot overwrite a squad matched after a stale call began
 test("disabled discovery ends awaiting handoff instead of activating it", async () => {
   process.env.STRANGER_DISCOVERY_ENABLED = "false";
   const originals = {
+    endEncounter: Encounter.findOneAndUpdate,
     updateMany: Squad.updateMany,
     findOne: Squad.findOne,
     emit: socketService.emitToSquad,
     close: socketService.closeEncounterRoom,
   };
+  Encounter.findOneAndUpdate = async () => ({});
   const updates = [];
   const events = [];
   Squad.updateMany = async (_filter, update) => { updates.push(update); };
@@ -240,6 +243,7 @@ test("disabled discovery ends awaiting handoff instead of activating it", async 
     assert.equal(events.includes("ENCOUNTER_ACTIVE"), false);
   } finally {
     Squad.updateMany = originals.updateMany;
+    Encounter.findOneAndUpdate = originals.endEncounter;
     Squad.findOne = originals.findOne;
     socketService.emitToSquad = originals.emit;
     socketService.closeEncounterRoom = originals.close;
@@ -249,12 +253,14 @@ test("disabled discovery ends awaiting handoff instead of activating it", async 
 test("disabled encounter requeue ends both squads at idle without queueing", async () => {
   process.env.STRANGER_DISCOVERY_ENABLED = "false";
   const originals = {
+    endEncounter: Encounter.findOneAndUpdate,
     updateMany: Squad.updateMany,
     findOne: Squad.findOne,
     add: queueService.addToQueue,
     emit: socketService.emitToSquad,
     close: socketService.closeEncounterRoom,
   };
+  Encounter.findOneAndUpdate = async () => ({});
   const updates = [];
   let queued = 0;
   Squad.updateMany = async (_filter, update) => { updates.push(update); };
@@ -276,6 +282,7 @@ test("disabled encounter requeue ends both squads at idle without queueing", asy
     assert.equal(queued, 0);
   } finally {
     Squad.updateMany = originals.updateMany;
+    Encounter.findOneAndUpdate = originals.endEncounter;
     Squad.findOne = originals.findOne;
     queueService.addToQueue = originals.add;
     socketService.emitToSquad = originals.emit;

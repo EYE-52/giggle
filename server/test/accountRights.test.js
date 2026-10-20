@@ -158,7 +158,7 @@ test("account export maps identity data explicitly without internal or third-par
   ]);
   assert.deepEqual(Object.keys(exported.squads[0].members[0]), ["userId", "displayName", "role", "joinedAt"]);
   assert.deepEqual(Object.keys(exported.safetyReports[0]), [
-    "id", "reporterSquadId", "targetSquadId", "targetUserIds", "encounterId", "category", "details", "status", "createdAt", "updatedAt",
+    "id", "reporterSquadId", "targetSquadId", "encounterId", "category", "details", "status", "createdAt", "updatedAt",
   ]);
   assert.equal(calls.every(([, projection]) => typeof projection === "string" && projection.length > 0), true);
 

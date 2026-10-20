@@ -222,3 +222,21 @@ test('a recovered connection restores call status without an app-level rejoin', 
   assert.equal(h.instances[0].joins.length, 1); assert.equal(h.captures(), 1);
   await h.session.stop();
 });
+
+test('a dropped call can still turn the camera and microphone off without reconnecting', async () => {
+  const h = await harness();
+  await h.session.connect('squad', null, { audio: true, video: true });
+  h.instances[0].handlers['connection-state-change']('DISCONNECTED');
+  assert.equal(h.session.getSnapshot().joined, false);
+  await h.session.setDevice('squad', 'video', false);
+  await h.session.setDevice('squad', 'audio', false);
+  assert.deepEqual(h.video.enabled, [false]);
+  assert.deepEqual(h.audio.muted, [true]);
+  assert.deepEqual(h.session.getSnapshot().capture, { audio: 'off', video: 'off' });
+  assert.equal(h.instances[0].joins.length, 1);
+  assert.equal(h.tokens.length, 1);
+  // Another squad's request never touches this call.
+  await h.session.setDevice('other', 'video', false);
+  assert.deepEqual(h.video.enabled, [false]);
+  await h.session.stop();
+});

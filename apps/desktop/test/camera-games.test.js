@@ -24,6 +24,20 @@ test('only bounded public camera scenes enter the authenticated protocol', () =>
   for (const pin of ['faces', 'compact', 'floating']) assert.equal(bridge.resolveGameLayout(pin, 'social', scene), pin);
   assert.equal(bridge.resolveGameLayout('auto', 'board', null), 'balanced');
 });
+test('encounter spotlights map opaque game seat ids onto call tiles', () => {
+  const people = [{ id: 'real-user', callId: 'anon_aaaaaaaaaaaaaaaaaaaaaaaa' }, { id: 'anon_bbbbbbbbbbbbbbbbbbbbbbbb', callId: 'anon_bbbbbbbbbbbbbbbbbbbbbbbb' }];
+  const spotlight = (featured) => ({ mode: 'spotlight', featured, caption: 'Pose!' });
+  assert.deepEqual(bridge.sceneForCallTiles(spotlight('anon_aaaaaaaaaaaaaaaaaaaaaaaa'), people), spotlight('real-user'));
+  assert.deepEqual(bridge.sceneForCallTiles(spotlight('anon_bbbbbbbbbbbbbbbbbbbbbbbb'), people), spotlight('anon_bbbbbbbbbbbbbbbbbbbbbbbb'));
+  assert.deepEqual(bridge.sceneForCallTiles(spotlight('stranger'), people), { mode: 'gallery', featured: null, caption: 'Pose!' });
+  assert.equal(bridge.sceneForCallTiles(null, people), null);
+  const gallery = { mode: 'gallery', featured: null, caption: '' };
+  assert.equal(bridge.sceneForCallTiles(gallery, people), gallery);
+  const page = readFileSync(path.join(__dirname, '../app/(app)/encounter/page.tsx'), 'utf8');
+  assert.match(page, /const tileScene = sceneForCallTiles\(stageScene, participants\);/);
+  assert.match(page, /cameraScene=\{tileScene\}/);
+  assert.match(page, /callId: m\.callId,/);
+});
 test('camera boxes stay inside desktop and phone viewports, with stable identity', () => {
   for (const [width, height] of [[1000, 620], [390, 360], [320, 200], [1, 1], [680, 260]]) {
     for (let n = 1; n <= 24; n++) {

@@ -143,8 +143,11 @@ export function createCallSession(deps: {
   }
 
   function setDevice(squadId: string, kind: "audio" | "video", on: boolean): Promise<void> {
-    if (!record || record.squadId !== squadId || !snapshot.joined) {
-      if (!on) return Promise.resolve();
+    const ownsCall = !!record && record.squadId === squadId;
+    // Turning a device off is local and must work while the call is dropped
+    // or reconnecting; otherwise the camera light stays on with no way out.
+    if (!ownsCall && !on) return Promise.resolve();
+    if (!ownsCall || (!snapshot.joined && on)) {
       const wasConnected = !!record && record.squadId === squadId;
       return connect(squadId, wasConnected ? record!.encounterId : null, { audio: kind === "audio", video: kind === "video" })
         .then(() => wasConnected ? setDevice(squadId, kind, on) : undefined);

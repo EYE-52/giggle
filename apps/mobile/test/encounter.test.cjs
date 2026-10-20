@@ -188,8 +188,8 @@ test("mobile opponent blocking confirms, blocks, disconnects, then leaves withou
   assert.equal(page.includes("Block opponent squad?"), true);
   assert.equal(page.includes("visible={blockConfirmOpen}"), true);
   assert.equal(page.includes("setBlockConfirmOpen(true)"), true);
-  assert.equal(handler.indexOf("await api.blockUsers(opponentUserIds);") >= 0, true);
-  assert.equal(handler.indexOf("await api.disconnectEncounter(squadId, encId);") > handler.indexOf("await api.blockUsers(opponentUserIds);"), true);
+  assert.equal(handler.indexOf("await api.blockUsers(opponentUserIds, encId);") >= 0, true);
+  assert.equal(handler.indexOf("await api.disconnectEncounter(squadId, encId);") > handler.indexOf("await api.blockUsers(opponentUserIds, encId);"), true);
   assert.equal(handler.indexOf("await leaveVideoAndGoHome();") > handler.indexOf("await api.disconnectEncounter(squadId, encId);"), true);
   assert.equal(cleanup.indexOf("await detachVideo();") >= 0, true);
   assert.equal(cleanup.indexOf("router.replace('/home');") > cleanup.indexOf("await detachVideo();"), true);
@@ -798,4 +798,27 @@ test("mobile shared controls use Expo safe areas and 44 point minimum targets", 
   assert.equal(screen.includes("SafeAreaView, StyleSheet"), false);
   assert.equal(button.includes("minHeight: 44"), true);
   assert.equal(encounter.includes("segmentButton: { minWidth: 86, minHeight: 44"), true);
+});
+
+test("mobile match waits for both squads to ack before opening the call", () => {
+  const page = matchSource();
+  const joinBlock = page.slice(page.indexOf("const handleJoin = useCallback"), page.indexOf("const handleSkip = useCallback"));
+
+  assert.match(joinBlock, /const result = await api\.ackEncounter\(encId, squadId\);\s*\/\/[^\n]*\n\s*if \(!result\.allAcked\) \{[\s\S]*?setWaiting\(true\);\s*return;/);
+  assert.equal(page.includes("setWaiting(encounterData.ack?.[squadId] === true);"), true);
+  assert.equal(page.includes("socket.on(SOCKET_EVENTS.ENCOUNTER_ACTIVE, refresh);"), true);
+  assert.match(page, /if \(detail\.status === 'active'\) \{[\s\S]*?router\.replace\(`\/encounter\?squad=\$\{squadId\}&enc=\$\{encId\}`\);/);
+  // The call screen sends a squad still in the handoff back to it.
+  assert.match(source(), /if \(detail\.status === 'awaiting_ack' && squadId\) \{\s*router\.replace\(`\/match\?squad=\$\{squadId\}&enc=\$\{encId\}`\);/);
+});
+
+test("mobile teammates see the call end even when their own squad ended it", () => {
+  const page = source();
+  const remoteEndBlock = page.slice(page.indexOf("const onEnded ="), page.indexOf("socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED"));
+  const endBlock = page.slice(page.indexOf("async function endEncounter()"), page.indexOf("if (!squadId || !encId || (encounterError && !enc))"));
+
+  assert.equal(remoteEndBlock.includes("if (payload?.endedBySquadId === squadId && endingRef.current) return;"), true);
+  assert.equal(remoteEndBlock.includes("payload?.endedBySquadId !== squadId ? 'opponent-left' : 'ended'"), true);
+  assert.ok(endBlock.indexOf("endingRef.current = true;") < endBlock.indexOf("await api.disconnectEncounter(squadId, encId);"));
+  assert.equal(endBlock.includes("endingRef.current = false;"), true);
 });

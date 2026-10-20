@@ -14,14 +14,17 @@ const USER_EXPORT_FIELDS = [
   "ageVerification.requestedAt ageVerification.verifiedAt gender languages country vibes friends",
   "blockedUserIds isApproved isPremium premiumExpiresAt isSuspended isShadowBanned deletionStatus",
   "referralCode referredBy referralCount tokens earnedRewardIds createdAt updatedAt",
+  "anonymousInEncounters encounterAlias anonymousBlocks.userId anonymousBlocks.handle anonymousBlocks.alias",
 ].join(" ");
 const CONTACT_EXPORT_FIELDS = "_id name image";
 const SQUAD_EXPORT_FIELDS =
   "squadId squadCode squadName status visibility joinPolicy tags coverImage members.userId members.displayName members.role members.joinedAt createdAt";
 const NOTIFICATION_EXPORT_FIELDS =
   "_id type title body fromUserId fromName squadId squadCode squadName read createdAt";
+// targetUserIds stays out: the reported squad's account ids are moderation
+// data about other people (and would unmask anonymous members).
 const REPORT_EXPORT_FIELDS =
-  "_id reporterSquadId targetSquadId targetUserIds encounterId category details status createdAt updatedAt";
+  "_id reporterSquadId targetSquadId encounterId category details status createdAt updatedAt";
 
 const iso = (value) => {
   if (!value) return null;
@@ -58,8 +61,15 @@ const buildAccountExport = async (userId, dependencies = {}) => {
 
   const friendIds = (user.friends || []).map(id).filter(Boolean);
   const blockedIds = (user.blockedUserIds || []).map(id).filter(Boolean);
+  // Blocks made against anonymous opponents export as the blocker saw them.
+  const anonymousBlocks = new Map(
+    (user.anonymousBlocks || [])
+      .filter((block) => canonicalUserId(block?.userId) && block?.handle)
+      .map((block) => [canonicalUserId(block.userId), block])
+  );
+  const namedBlockedIds = blockedIds.filter((blockedId) => !anonymousBlocks.has(canonicalUserId(blockedId)));
   const [contacts, squads, notifications, reports] = await Promise.all([
-    deps.User.find({ _id: { $in: [...new Set([...friendIds, ...blockedIds])] } }, CONTACT_EXPORT_FIELDS),
+    deps.User.find({ _id: { $in: [...new Set([...friendIds, ...namedBlockedIds])] } }, CONTACT_EXPORT_FIELDS),
     deps.Squad.find({ "members.userId": identityMatcher }, SQUAD_EXPORT_FIELDS),
     deps.Notification.find({ userId: identityMatcher }, NOTIFICATION_EXPORT_FIELDS, { sort: { createdAt: 1 } }),
     deps.SafetyReport.find({ reporterUserId: identityMatcher }, REPORT_EXPORT_FIELDS, { sort: { createdAt: 1 } }),
@@ -114,9 +124,16 @@ const buildAccountExport = async (userId, dependencies = {}) => {
       languages: (user.languages || []).map(String),
       country: user.country ?? null,
       vibes: (user.vibes || []).map(String),
+      anonymousInEncounters: user.anonymousInEncounters === true,
+      encounterAlias: user.encounterAlias || null,
     },
     friends: friendIds.map(mapContact),
-    blocks: blockedIds.map(mapContact),
+    blocks: blockedIds.map((blockedId) => {
+      const anonymous = anonymousBlocks.get(canonicalUserId(blockedId));
+      return anonymous
+        ? { userId: anonymous.handle, name: anonymous.alias ?? null, image: null }
+        : mapContact(blockedId);
+    }),
     squads: squads.map((squad, index) => ({
       squadId: squad.squadId,
       squadCode: squad.squadCode,
@@ -151,7 +168,6 @@ const buildAccountExport = async (userId, dependencies = {}) => {
       id: id(report._id),
       reporterSquadId: report.reporterSquadId,
       targetSquadId: report.targetSquadId,
-      targetUserIds: (report.targetUserIds || []).map(id).filter(Boolean),
       encounterId: report.encounterId,
       category: report.category,
       details: report.details || "",

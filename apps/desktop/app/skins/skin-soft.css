@@ -2090,7 +2090,7 @@ html[data-skin="soft"] .gg-switch[aria-checked="true"] .gg-switch-track::after {
   background: var(--surface);
 }
 html[data-skin="soft"] .modal:not(:where([data-skin-preview] *)) {
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: var(--surface);
   border-radius: var(--r-lg);
   border: 1px solid var(--stroke-strong);
   box-shadow: 0 24px 60px -28px color-mix(in srgb, var(--text) 40%, transparent);
@@ -2101,7 +2101,7 @@ html[data-skin="soft"] .modal:not(:where([data-skin-preview] *)) {
   min-width: min(360px, 100%);
 }
 html[data-skin] [data-skin-preview="soft"][data-skin-preview="soft"] .modal {
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: var(--surface);
   border-radius: var(--r-lg);
   border: 1px solid var(--stroke-strong);
   box-shadow: 0 24px 60px -28px color-mix(in srgb, var(--text) 40%, transparent);

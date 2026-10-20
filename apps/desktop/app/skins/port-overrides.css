@@ -618,3 +618,11 @@ html[data-skin="clay"] .gg-header.nav { --nav-edge-height:28px; --nav-edge-fill:
 html[data-skin="play"] .gg-header.nav { --nav-edge-height:2px; --nav-edge-fill:var(--pl-ink); --nav-edge-shadow:0 3px 0 color-mix(in srgb, var(--pl-ink) 10%, transparent); }
 html[data-skin="paper"] .gg-header.nav { --nav-edge-height:1px; --nav-edge-fill:color-mix(in srgb, var(--text) 35%, var(--bg)); --nav-edge-shadow:0 2px 3px color-mix(in srgb, var(--text) 8%, transparent); }
 html[data-skin="scrap"] .gg-header.nav { --nav-edge-height:6px; --nav-edge-fill:linear-gradient(to bottom, var(--sb-page) 0 5px, var(--sb-rule) 5px); --nav-edge-shadow:0 3px 5px rgb(0 0 0 / .08); }
+
+/* Soft Depth caps card titles at 16ch, which breaks ordinary headings
+ * ("Bring your first friend over") into two short lines beside empty space.
+ * Allow a normal line, still balanced when it does wrap. */
+html[data-skin="soft"] .card-title.card-title:not(:where([data-skin-preview] *)) {
+  max-width: 32ch;
+  text-wrap: balance;
+}

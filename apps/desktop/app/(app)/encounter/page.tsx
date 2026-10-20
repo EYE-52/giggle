@@ -32,7 +32,7 @@ import { FloatingCallTools, type CallCorner } from "@/components/FloatingCallToo
 import floatingStyles from "@/components/FloatingCallTools.module.css";
 import { CameraGameCaption } from "@/components/CameraGameStage";
 import cameraStyles from "@/components/CameraGameStage.module.css";
-import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, type GameCameraScene, type GamePresentation } from "@/lib/gameBridge";
+import { CAMERA_GALLERY_SCENE, mapCaptureToVoiceMic, resolveGameLayout, sceneForCallTiles, type GameCameraScene, type GamePresentation } from "@/lib/gameBridge";
 import { Button } from "@/components/Button";
 import { ParticipantVideoTile as VideoTile } from "@/components/ParticipantVideoTile";
 import { FocusVideoStage, type TileSizeControls } from "@/components/FocusVideoStage";
@@ -42,6 +42,7 @@ import { squadCall, useSquadCall } from "@/lib/squadCall";
 import { chatUsesStage, useViewport } from "@/components/useViewport";
 import { discoveryEnabledNow, useDiscoveryEnabled } from "@/lib/discovery";
 import { useGamesEnabled } from "@/lib/games";
+import { pollWhileVisible } from "@/lib/poll";
 import { REACTIONS, ReactionGlyph } from "@/components/Reaction";
 import { CallNotice } from "@/components/CallNotice";
 import feedbackStyles from "./call-feedback.module.css";
@@ -168,6 +169,8 @@ interface EncounterParticipant {
   /** Shared illustrated avatar (or seeded default) shown when the camera is off. */
   avatar: string;
   uid?: number;
+  /** Opaque per-encounter id; the shared game room seats people by it. */
+  callId?: string;
   isLocal: boolean;
 }
 
@@ -471,6 +474,8 @@ function EncounterInner() {
 
     let cancelled = false;
     let socket: ReturnType<typeof connectSocket> | undefined;
+    let stopEndedPoll: (() => void) | undefined;
+    let endedSeen = false;
     const endedEvent = SOCKET_EVENTS.ENCOUNTER_ENDED;
     const activeEvent = SOCKET_EVENTS.ENCOUNTER_ACTIVE;
     const onEnded = (payload?: {
@@ -481,6 +486,8 @@ function EncounterInner() {
     }) => {
       if (payload?.encounterId && payload.encounterId !== encId) return;
       if (nextPendingRef.current) return;
+      endedSeen = true;
+      stopEndedPoll?.();
       // The call is over: close the shared game room with it (the overlay
       // takes the screen; renewal would be denied from here on anyway).
       setGameOpen(false);
@@ -562,6 +569,15 @@ function EncounterInner() {
       // then return home so the user isn't stuck on a dead call.
       socket.on(endedEvent, onEnded);
       socket.on(activeEvent, onActive);
+      // A missed ENCOUNTER_ENDED (dropped socket, sleeping tab) must not leave
+      // this squad on a dead call, so check the encounter now and then.
+      stopEndedPoll = pollWhileVisible(async () => {
+        if (cancelled || endedSeen) return;
+        try {
+          const latest = await api.getEncounter(encId);
+          if (!cancelled && !endedSeen && latest.status === "ended") onEnded({ encounterId: encId });
+        } catch {}
+      }, 15000);
     };
 
     boot();
@@ -571,6 +587,7 @@ function EncounterInner() {
         clearTimeout(endedNavTimerRef.current);
         endedNavTimerRef.current = null;
       }
+      stopEndedPoll?.();
       socket?.off(endedEvent, onEnded);
       socket?.off(activeEvent, onActive);
       // Detach this page without dropping the squad call during navigation.
@@ -595,8 +612,24 @@ function EncounterInner() {
         } catch (error) {
           setConnState("DISCONNECTED");
           setVideoError(describeVideoError(error));
+          return;
         } finally {
           setVideoRetrying(false);
+        }
+        // Rejoining an open call keeps its capture as it is, so a blocked or
+        // missing device must be asked for again or "Retry devices" does nothing.
+        for (const kind of ["audio", "video"] as const) {
+          const call = squadCall.getSnapshot();
+          if (call.encounterId !== encId || !call.joined) return;
+          if (call.capture[kind] !== "denied" && call.capture[kind] !== "unavailable") continue;
+          setVideoRetrying(true);
+          try {
+            await squadCall.setDevice(squadId, kind, true);
+          } catch (error) {
+            setVideoError(describeVideoError(error));
+          } finally {
+            setVideoRetrying(false);
+          }
         }
       });
   }
@@ -653,6 +686,10 @@ function EncounterInner() {
   const myMembers = mySquad?.members ?? [];
   const oppMembers = oppSquad?.members ?? [];
   const myUserId = session.user?.id ?? "";
+  // When the user stays anonymous with other squads, remind them which name
+  // the other squad sees (own-squad rosters carry the alias).
+  const myMember = myMembers.find((m) => m.userId === myUserId);
+  const myEncounterAlias = myMember?.anonymous ? myMember.alias ?? null : null;
   const mineParticipants: EncounterParticipant[] = myMembers.map((m, i) => ({
     id: m.userId,
     memberId: m.memberId,
@@ -661,6 +698,7 @@ function EncounterInner() {
     colorIndex: i,
     avatar: resolveAvatar(m.avatar, m.userId),
     uid: m.uid,
+    callId: m.callId,
     isLocal:
       m.userId === myUserId ||
       (myUidRef.current != null && String(m.uid) === String(myUidRef.current)),
@@ -673,9 +711,12 @@ function EncounterInner() {
     colorIndex: i + 4,
     avatar: resolveAvatar(m.avatar, m.userId),
     uid: m.uid,
+    callId: m.callId,
     isLocal: false,
   }));
   const participants = [...mineParticipants, ...theirParticipants];
+  // Game seats name people by callId; call tiles by participant id.
+  const tileScene = sceneForCallTiles(stageScene, participants);
   // The stage shows who is actually here. Someone not seen yet gets a
   // "Connecting…" tile for the first moments of the call; after that, people
   // who never arrived or who left drop off and the others re-flow.
@@ -861,7 +902,7 @@ function EncounterInner() {
     setBlocking(true);
     setBlockError(null);
     try {
-      await api.blockUsers(opponentUserIds);
+      await api.blockUsers(opponentUserIds, encId);
       await api.disconnectEncounter(squadId, encId);
       await leaveVideoAndGoHome();
     } catch {
@@ -1075,7 +1116,7 @@ function EncounterInner() {
       mineLabel={mySquad?.name ? `Your squad · ${mySquad.name}` : "Your squad"}
       theirsLabel={oppSquad?.name ? `Their squad · ${oppSquad.name}` : "Their squad"}
       renderParticipant={renderParticipant}
-      cameraScene={stageScene}
+      cameraScene={tileScene}
     />;
   }
 
@@ -1343,6 +1384,16 @@ function EncounterInner() {
               </span>
             ))}
           </div>
+          {myEncounterAlias && (
+            <span
+              data-testid="encounter-anonymous-note"
+              className="call-title"
+              title="The other squad sees only this name, with no avatar or profile."
+              style={{ minWidth: 0, maxWidth: isPhoneChrome ? 150 : 220, padding: "4px 9px", fontSize: 12, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 1 }}
+            >
+              You appear as {myEncounterAlias}
+            </span>
+          )}
 
           <div style={{ flex: 1 }} />
 
@@ -1469,7 +1520,7 @@ function EncounterInner() {
           <div
             data-testid="video-stage"
             className={`${floatingStyles.shell} ${cameraStyles.shell}`}
-            data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={stageScene?.mode}
+            data-camera-stage={stageScene ? "true" : undefined} data-camera-mode={tileScene?.mode}
             hidden={chatTakesStage && chatOpen}
             data-floating-call={gameOpen && GAMES_ENABLED && effectiveLayout === "floating" || undefined}
             data-call-corner={callCorner} data-call-collapsed={callCollapsed || undefined}
@@ -1590,6 +1641,14 @@ function EncounterInner() {
                             if (endedReason !== "opponent-left") await api.startSearch(squadId);
                             router.push(`/matchmaking?squad=${squadId}`);
                           } catch (error) {
+                            // The match cleared everyone's ready state (and only the
+                            // leader may search): the squad readies up again in its lobby.
+                            const code = (error as { code?: string })?.code;
+                            if (code === "NOT_READY_TO_SEARCH" || code === "FORBIDDEN") {
+                              void leaveVideo(true);
+                              router.push(`/lobby?squad=${squadId}`);
+                              return;
+                            }
                             setEndError((error as { message?: string })?.message || "Couldn't start matchmaking.");
                             setFindingNextMatch(false);
                           }

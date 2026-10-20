@@ -164,7 +164,10 @@ function LobbyInner() {
   const vcRef = useRef<VideoClient | null>(null);
   vcRef.current = media.client;
   const lobbyMediaGenerationRef = useRef(0);
-  const localVideoRef = useRef<HTMLDivElement>(null);
+  // Held in state, not a ref: the seat mounts only after the squad loads, which
+  // is often after a call that is already running (back from search, a match
+  // or an encounter). Playback must follow the host element itself.
+  const [localVideoHost, setLocalVideoHost] = useState<HTMLDivElement | null>(null);
   const videoJoined = media.joined;
   const videoJoining = media.pending;
   const deviceBusyRef = useRef({ audio: false, video: false });
@@ -236,11 +239,19 @@ function LobbyInner() {
   // a swallowed failure.
   async function enableLobbyMedia(withCamera = true, withAudio = true): Promise<boolean> {
     if (!squadId || videoJoining) return videoJoined;
-    if (videoJoined) return true;
     const generation = lobbyMediaGenerationRef.current;
     setVideoError(null);
     try {
-      await squadCall.connect(squadId, null, { audio: withAudio, video: withCamera });
+      if (videoJoined) {
+        // The call is up but a device failed before (blocked, busy, missing):
+        // ask for it again rather than reporting success without it.
+        let failure: unknown = null;
+        for (const [kind, wanted] of [["audio", withAudio], ["video", withCamera]] as const) {
+          if (!wanted || squadCall.getSnapshot().capture[kind] === "active") continue;
+          await squadCall.setDevice(squadId, kind, true).catch(error => { failure ??= error; });
+        }
+        if (failure) throw failure;
+      } else await squadCall.connect(squadId, null, { audio: withAudio, video: withCamera });
       if (generation !== lobbyMediaGenerationRef.current) return false;
       const capture = squadCall.getSnapshot().capture;
       return (!withAudio || capture.audio === "active") && (!withCamera || capture.video === "active");
@@ -285,10 +296,9 @@ function LobbyInner() {
   }, [squadId]);
 
   useEffect(() => {
-    if (videoJoined && camOn && localVideoRef.current) {
-      try { vcRef.current?.playLocal(localVideoRef.current); } catch {}
-    }
-  }, [videoJoined, camOn]);
+    if (!camOn || !localVideoHost) return;
+    try { media.client?.playLocal(localVideoHost); } catch {}
+  }, [camOn, localVideoHost, media.client]);
 
   // Unread chat tracking — runs even when the chat surface isn't mounted, so the
   // collapsed rail / header can show an unread dot. We join the lobby room and
@@ -352,14 +362,14 @@ function LobbyInner() {
 
   async function toggleDevice(kind: "audio" | "video") {
     if (deviceBusyRef.current[kind] || videoJoining) return;
-    if (!videoJoined) {
+    const next = kind === "audio" ? !micOn : !camOn;
+    // A dropped call still turns a live device off; only "on" needs to connect.
+    if (!videoJoined && next) {
       await enableLobbyMedia(kind === "video", kind === "audio");
       return;
     }
-    const vc = vcRef.current;
-    if (!vc) return;
+    if (!vcRef.current) return;
     const generation = lobbyMediaGenerationRef.current;
-    const next = kind === "audio" ? !micOn : !camOn;
     deviceBusyRef.current[kind] = true;
     setDeviceBusy((current) => ({ ...current, [kind]: true }));
     setVideoError(null);
@@ -815,13 +825,14 @@ function LobbyInner() {
             const isMe = member.userId === myUserId;
             const remote = remotes.find(r => String(r.uid) === String(member.uid));
             const offline = member.online === false && !isMe;
-            const showVideo = isMe ? camOn && videoJoined : !!remote?.hasVideo;
+            // Your own preview is local capture: it stays up while the call reconnects.
+            const showVideo = isMe ? camOn : !!remote?.hasVideo;
             const focused = focusedMemberId === member.memberId;
             return <article className={`${styles.seat} ${isMe ? styles.me : ""}`} key={member.memberId} data-testid="lobby-person" data-offline={offline || undefined} data-video={showVideo} data-focused={focused || undefined}
               data-camera-featured={stageScene?.mode === "spotlight" && stageScene.featured === member.userId || undefined}
               style={stageScene ? cameraTiles.get(member.userId) : undefined}>
               <div className={styles.face}><PersonAvatar userId={member.userId} name={member.displayName} avatar={member.avatar} isMe={isMe} size="fill" /></div>
-              {isMe ? <div ref={localVideoRef} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
+              {isMe ? <div ref={setLocalVideoHost} className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} /> : <div className={styles.video} style={{ opacity: showVideo ? 1 : 0 }} ref={el => { if (el && remote?.hasVideo && member.uid !== undefined) { try { vcRef.current?.playRemote(member.uid, el); } catch { setVideoError("Couldn’t show their video. Try reconnecting your devices."); } } }} />}
               <div className={styles.seatLabel} data-call-person-label>
                 <span className={styles.seatName} data-call-person-name><span className={styles.nameText}>{isMe ? "You" : member.displayName}</span>{member.memberId === squad.leaderMemberId && <span className={styles.memberRole}>Leader</span>}</span>
                 {WEB_DISCOVERY_ENABLED && member.ready && <span className={styles.ready} data-call-person-ready><Icon.check size={12} weight="regular" />Ready</span>}
@@ -860,12 +871,19 @@ function LobbyInner() {
           {videoError && <p role="alert" className={styles.error}>{videoError}</p>}
         </div>
       </footer>
-      {personOptions && <Modal title={personOptions.displayName} onClose={() => { if (!listeningBusy) setPersonOptionsId(null); }} width={360}>
-        <div className={styles.modalStack}>
-          <Button variant="secondary" disabled={!personRemote || !videoJoined} loading={listeningBusy} onClick={() => void toggleListening()}>{personRemote?.mutedForMe ? "Unmute for me" : "Mute for me"}</Button>
-          <p className="muted">Listening changes affect only you.{!videoJoined ? " Connect your microphone or camera first." : !personRemote ? " This person hasn't connected their devices yet." : ""}</p>
-          {listeningError && <p role="alert" className={styles.error}>{listeningError}</p>}
-          {isLeader && <Button variant="ghost" disabled={listeningBusy} onClick={() => { setPersonOptionsId(null); setMemberToRemove(personOptions); }}>Remove from squad</Button>}
+      {personOptions && <Modal title={personOptions.displayName} onClose={() => { if (!listeningBusy) setPersonOptionsId(null); }} width={380}>
+        <div className="gg-sheet">
+          <section className="gg-sheet-section" aria-label="Listening">
+            <div className="gg-list">
+              <button type="button" className="gg-list-row" disabled={!personRemote || !videoJoined || listeningBusy} aria-busy={listeningBusy || undefined} onClick={() => void toggleListening()}>
+                <span className="gg-list-main"><span className="gg-list-title">{personRemote?.mutedForMe ? "Unmute for me" : "Mute for me"}</span><span className="gg-list-sub">Only you hear the change.{!videoJoined ? " Connect your microphone or camera first." : !personRemote ? " They haven't connected their devices yet." : ""}</span></span>
+              </button>
+            </div>
+            {listeningError && <p role="alert" className={styles.error}>{listeningError}</p>}
+          </section>
+          {isLeader && <div className="gg-list">
+            <button type="button" className="gg-list-row gg-list-row--danger" disabled={listeningBusy} onClick={() => { setPersonOptionsId(null); setMemberToRemove(personOptions); }}>Remove from squad</button>
+          </div>}
         </div>
       </Modal>}
       {inviteSheetOpen && <Modal title="Invite friends" subtitle={`Join ${squad.squadName} with this code or link.`} onClose={() => setInviteSheetOpen(false)} width={420}>
@@ -876,24 +894,75 @@ function LobbyInner() {
           {matchError && <p role="alert" className={styles.error}>{matchError}</p>}
         </div>
       </Modal>}
-      {settingsOpen && <Modal title="Squad settings" onClose={() => setSettingsOpen(false)} width={460}>
-        <div className={styles.modalStack}>
+      {settingsOpen && <Modal title="Squad settings" subtitle={`${squad.squadName} · ${memberCount} of ${MAX_SLOTS} members`} onClose={() => setSettingsOpen(false)} width={460}>
+        <div className="gg-sheet">
           {matchError && <p role="alert" className={styles.error}>{matchError}</p>}
-          {isLeader && <><Button variant="secondary" onClick={() => { setSettingsOpen(false); startRename(); }}>Rename squad</Button><Button variant="secondary" onClick={() => { setSettingsOpen(false); setCoverPickerOpen(true); }}>Change cover</Button><Button variant="secondary" onClick={() => { setSettingsOpen(false); setSelectedVibes([...currentTags]); setVibeEditorOpen(true); }}>Edit topics</Button></>}
-          <label className={styles.field}>Visibility<select value={visibility} disabled={!isLeader || savingVisibility} onChange={e => void handleVisibility(e.target.value as "private" | "open")}><option value="private">Private — join with a code or invite</option><option value="open">Open — listed in Discover</option></select></label>
-          <label className={styles.field}>Who can join<select value={joinPolicy} disabled={!isLeader || savingJoinPolicy} onChange={e => void handleJoinPolicy(e.target.value as "open" | "request" | "invite")}><option value="open">Anyone with access</option><option value="request">Ask to join</option><option value="invite">Invited people only</option></select></label>
-          {isLeader && joinReqs.length > 0 && <section><h3>Join requests</h3>{reqError && <p role="alert">{reqError}</p>}{joinReqs.map(r => <div className={styles.row} key={r.userId}><span>{r.name}</span><Button size="sm" loading={reqBusy === r.userId} onClick={() => void handleApprove(r.userId)}>Approve</Button><Button size="sm" variant="ghost" disabled={!!reqBusy} onClick={() => void handleDecline(r.userId)}>Decline</Button></div>)}</section>}
-          <section className={styles.modalStack}><h3>Members</h3>{squad.members.map(m => <div className={styles.row} key={m.memberId}><span>{m.displayName}{m.memberId === squad.leaderMemberId ? " · Leader" : ""}</span>{isLeader && m.userId !== myUserId && <Button size="sm" variant="ghost" onClick={() => { setSettingsOpen(false); setMemberToRemove(m); }}>Remove</Button>}</div>)}</section>
-          <Button variant="danger" onClick={() => { setSettingsOpen(false); setLeaveMenuOpen(true); }}>Leave squad</Button>
+          {isLeader && <section className="gg-sheet-section" aria-label="Squad details">
+            <h3 className="gg-sheet-label">Squad</h3>
+            <div className="gg-list">
+              <button type="button" className="gg-list-row" onClick={() => { setSettingsOpen(false); startRename(); }}>
+                <span className="gg-list-main"><span className="gg-list-title">Name</span></span>
+                <span className="gg-list-meta">{squad.squadName}</span><span className="gg-list-chev" aria-hidden="true"><Icon.chevron size={16} /></span>
+              </button>
+              <button type="button" className="gg-list-row" onClick={() => { setSettingsOpen(false); setCoverPickerOpen(true); }}>
+                <span className="gg-list-main"><span className="gg-list-title">Cover</span></span>
+                <span className="gg-list-meta">Change</span><span className="gg-list-chev" aria-hidden="true"><Icon.chevron size={16} /></span>
+              </button>
+              <button type="button" className="gg-list-row" onClick={() => { setSettingsOpen(false); setSelectedVibes([...currentTags]); setVibeEditorOpen(true); }}>
+                <span className="gg-list-main"><span className="gg-list-title">Topics</span></span>
+                <span className="gg-list-meta">{currentTags.length ? currentTags.join(", ") : "None"}</span><span className="gg-list-chev" aria-hidden="true"><Icon.chevron size={16} /></span>
+              </button>
+            </div>
+          </section>}
+          <section className="gg-sheet-section" aria-label="Privacy">
+            <h3 className="gg-sheet-label">Privacy</h3>
+            <div className="gg-list">
+              <label className="gg-list-row">
+                <span className="gg-list-main"><span className="gg-list-title">Visibility</span><span className="gg-list-sub">{visibility === "open" ? "Listed in Discover" : "Join with a code or invite"}</span></span>
+                <select className="gg-select" value={visibility} disabled={!isLeader || savingVisibility} onChange={e => void handleVisibility(e.target.value as "private" | "open")}><option value="private">Private</option><option value="open">Open</option></select>
+              </label>
+              <label className="gg-list-row">
+                <span className="gg-list-main"><span className="gg-list-title">Who can join</span><span className="gg-list-sub">{joinPolicy === "request" ? "You approve each request" : joinPolicy === "invite" ? "Only people you invite" : "Anyone with the code or link"}</span></span>
+                <select className="gg-select" value={joinPolicy} disabled={!isLeader || savingJoinPolicy} onChange={e => void handleJoinPolicy(e.target.value as "open" | "request" | "invite")}><option value="open">Anyone</option><option value="request">Ask first</option><option value="invite">Invite only</option></select>
+              </label>
+            </div>
+            {!isLeader && <p className="gg-list-sub" style={{ margin: "0 2px" }}>Only the leader can change these.</p>}
+          </section>
+          {isLeader && joinReqs.length > 0 && <section className="gg-sheet-section" aria-label="Join requests">
+            <h3 className="gg-sheet-label">Join requests · {joinReqs.length}</h3>
+            {reqError && <p role="alert" className={styles.error}>{reqError}</p>}
+            <div className="gg-list">
+              {joinReqs.map(r => <div className="gg-list-row" key={r.userId}>
+                <PersonAvatar userId={r.userId} name={r.name} size={32} />
+                <span className="gg-list-main"><span className="gg-list-title">{r.name}</span></span>
+                <button type="button" className="gg-row-action" disabled={!!reqBusy} onClick={() => void handleDecline(r.userId)}>Decline</button>
+                <button type="button" className="gg-row-action gg-row-action--primary" disabled={!!reqBusy} aria-busy={reqBusy === r.userId || undefined} onClick={() => void handleApprove(r.userId)}>{reqBusy === r.userId ? "Approving…" : "Approve"}</button>
+              </div>)}
+            </div>
+          </section>}
+          <section className="gg-sheet-section" aria-label="Members">
+            <h3 className="gg-sheet-label">Members · {memberCount}</h3>
+            <div className="gg-list">
+              {squad.members.map(m => <div className="gg-list-row" key={m.memberId}>
+                <PersonAvatar userId={m.userId} name={m.displayName} avatar={m.avatar} isMe={m.userId === myUserId} size={32} />
+                <span className="gg-list-main"><span className="gg-list-title">{m.displayName}{m.userId === myUserId ? " (you)" : ""}</span></span>
+                {m.memberId === squad.leaderMemberId && <span className="gg-tag">Leader</span>}
+                {isLeader && m.userId !== myUserId && <button type="button" className="gg-row-action gg-row-action--danger" aria-label={`Remove ${m.displayName}`} onClick={() => { setSettingsOpen(false); setMemberToRemove(m); }}>Remove</button>}
+              </div>)}
+            </div>
+          </section>
+          <div className="gg-list">
+            <button type="button" className="gg-list-row gg-list-row--danger" onClick={() => { setSettingsOpen(false); setLeaveMenuOpen(true); }}>Leave squad</button>
+          </div>
         </div>
       </Modal>}
-      {editingName && <Modal title="Rename squad" onClose={() => { if (!savingName) setEditingName(false); }} width={420}><form className={styles.modalStack} onSubmit={e => { e.preventDefault(); void saveName(); }}><label className={styles.field}>Squad name<input autoFocus maxLength={32} value={nameDraft} onChange={e => setNameDraft(e.target.value)} /></label>{matchError && <p role="alert">{matchError}</p>}<Button type="submit" loading={savingName}>Save name</Button></form></Modal>}
-      {memberToRemove && <Modal title={`Remove ${memberToRemove.displayName}?`} onClose={() => { if (!removingMember) setMemberToRemove(null); }} width={420}><p>They will leave this squad. You can invite them again later.</p><Button variant="danger" loading={removingMember} onClick={handleRemoveMember}>Remove member</Button></Modal>}
-      {leaveMenuOpen && <Modal title="Leave this squad?" onClose={() => { if (!leavingSquad) setLeaveMenuOpen(false); }} width={420}><div className={styles.modalStack}><p>{isLeader ? memberCount > 1 ? "Leadership will pass to another member. You can also end the squad for everyone." : "You are the only member. Leaving will close this squad." : "The rest of your squad can keep talking."}</p>{matchError && <p role="alert">{matchError}</p>}<Button variant="secondary" loading={leavingSquad} onClick={handleLeaveSquad}>Leave squad</Button>{isLeader && memberCount > 1 && <Button variant="danger" loading={leavingSquad} onClick={handleDisbandSquad}>End squad for everyone</Button>}</div></Modal>}
-      {noCamConfirmOpen && <Modal title="Connect your devices" subtitle="Choose how you want to join the call." onClose={() => { if (!noCamEnabling) setNoCamConfirmOpen(false); }} width={420}><div className={styles.modalStack}>{videoError && <p role="alert" className={styles.error}>{videoError}</p>}<Button loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Turn on camera &amp; mic</Button><Button variant="secondary" loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(false); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Continue with audio only</Button></div></Modal>}
+      {editingName && <Modal title="Rename squad" onClose={() => { if (!savingName) setEditingName(false); }} width={420}><form className={styles.modalStack} onSubmit={e => { e.preventDefault(); void saveName(); }}><label className={styles.field}>Squad name<input autoFocus maxLength={32} value={nameDraft} onChange={e => setNameDraft(e.target.value)} /></label>{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions"><Button variant="secondary" disabled={savingName} onClick={() => setEditingName(false)}>Cancel</Button><Button type="submit" loading={savingName}>Save</Button></div></form></Modal>}
+      {memberToRemove && <Modal title={`Remove ${memberToRemove.displayName}?`} onClose={() => { if (!removingMember) setMemberToRemove(null); }} width={420}><div className={styles.modalStack}><p className="gg-dialog-text">They will leave this squad. You can invite them again later.</p><div className="gg-dialog-actions"><Button variant="secondary" disabled={removingMember} onClick={() => setMemberToRemove(null)}>Cancel</Button><Button variant="danger" loading={removingMember} onClick={handleRemoveMember}>Remove</Button></div></div></Modal>}
+      {leaveMenuOpen && <Modal title="Leave this squad?" onClose={() => { if (!leavingSquad) setLeaveMenuOpen(false); }} width={440}><div className={styles.modalStack}><p className="gg-dialog-text">{isLeader ? memberCount > 1 ? "Leadership will pass to another member. You can also end the squad for everyone." : "You are the only member. Leaving will close this squad." : "The rest of your squad can keep talking."}</p>{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions">{isLeader && memberCount > 1 ? <Button variant="secondary" loading={leavingSquad} onClick={handleDisbandSquad}>End for everyone</Button> : <Button variant="secondary" disabled={leavingSquad} onClick={() => setLeaveMenuOpen(false)}>Cancel</Button>}<Button variant="danger" loading={leavingSquad} onClick={handleLeaveSquad}>Leave squad</Button></div></div></Modal>}
+      {noCamConfirmOpen && <Modal title="Connect your devices" subtitle="Choose how you want to join the call." onClose={() => { if (!noCamEnabling) setNoCamConfirmOpen(false); }} width={440}><div className={styles.modalStack}>{videoError && <p role="alert" className={styles.error}>{videoError}</p>}<div className="gg-dialog-actions"><Button loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Turn on camera &amp; mic</Button><Button variant="secondary" loading={noCamEnabling} onClick={async () => { setNoCamEnabling(true); const ok = await enableLobbyMedia(false); setNoCamEnabling(false); if (!ok) return; setNoCamConfirmOpen(false); await proceedFindMatch(); }}>Audio only</Button></div></div></Modal>}
       {invitePeopleOpen && <InviteToSquad squadId={squadId} squadName={squad.squadName} onClose={() => setInvitePeopleOpen(false)} />}
       {coverPickerOpen && <CoverPicker squadId={squadId} currentCover={squad.coverImage} onClose={() => setCoverPickerOpen(false)} onSaved={async () => { await fetchSquad(); setCoverPickerOpen(false); }} />}
-      {vibeEditorOpen && <Modal title="Edit topics" onClose={() => { if (!savingVibes) setVibeEditorOpen(false); }} width={440}><div className={styles.modalStack}><TopicPicker value={selectedVibes} onChange={setSelectedVibes} disabled={savingVibes} />{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<Button loading={savingVibes} onClick={saveVibes}>Save topics</Button></div></Modal>}
+      {vibeEditorOpen && <Modal title="Edit topics" onClose={() => { if (!savingVibes) setVibeEditorOpen(false); }} width={440}><div className={styles.modalStack}><TopicPicker value={selectedVibes} onChange={setSelectedVibes} disabled={savingVibes} />{matchError && <p role="alert" className={styles.error}>{matchError}</p>}<div className="gg-dialog-actions"><Button variant="secondary" disabled={savingVibes} onClick={() => setVibeEditorOpen(false)}>Cancel</Button><Button loading={savingVibes} onClick={saveVibes}>Save</Button></div></div></Modal>}
     </div>
   );
 }

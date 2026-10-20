@@ -357,6 +357,7 @@ test("matcher purges a candidate whose fresh roster contains a blocked pair", as
 async function runEncounterRequeue(users) {
   const originals = {
     acquire: redlock.acquire,
+    endEncounter: Encounter.findOneAndUpdate,
     updateMany: Squad.updateMany,
     find: Squad.find,
     findOne: Squad.findOne,
@@ -371,6 +372,8 @@ async function runEncounterRequeue(users) {
   };
   const squads = ["sq_a", "sq_b"].map((squadId, index) => ({
     squadId,
+    status: "in_encounter",
+    currentEncounterId: "enc_1",
     searchRegion: "global",
     tags: [],
     reputationScore: 100,
@@ -379,7 +382,15 @@ async function runEncounterRequeue(users) {
   const queued = [];
   const updates = [];
   redlock.acquire = async () => ({ release: async () => {} });
-  Squad.updateMany = async (filter, update) => { updates.push([filter, update]); };
+  Encounter.findOneAndUpdate = async () => ({});
+  Squad.updateMany = async (filter, update) => {
+    updates.push([filter, update]);
+    for (const squad of squads) {
+      if (!filter.squadId.$in.includes(squad.squadId)) continue;
+      if ("currentEncounterId" in filter && squad.currentEncounterId !== filter.currentEncounterId) continue;
+      Object.assign(squad, update.$set);
+    }
+  };
   Squad.find = async () => squads;
   Squad.findOne = async ({ squadId }) => squads.find((squad) => squad.squadId === squadId) || null;
   User.find = ({ _id: { $in: ids } }) => {
@@ -405,6 +416,7 @@ async function runEncounterRequeue(users) {
     return { queued, result, updates };
   } finally {
     redlock.acquire = originals.acquire;
+    Encounter.findOneAndUpdate = originals.endEncounter;
     Squad.updateMany = originals.updateMany;
     Squad.find = originals.find;
     Squad.findOne = originals.findOne;
@@ -439,6 +451,8 @@ test("ending an encounter requeues verified-adult rosters", async () => {
 
 test("asymmetric encounter end clears departing sessions together without failing a committed teardown", async () => {
   const originals = {
+    using: redlock.using,
+    endEncounter: Encounter.findOneAndUpdate,
     updateOne: Squad.updateOne,
     findOne: Squad.findOne,
     remove: queueService.removeFromQueue,
@@ -447,6 +461,8 @@ test("asymmetric encounter end clears departing sessions together without failin
     close: socketService.closeEncounterRoom,
     error: console.error,
   };
+  redlock.using = async (_resources, _duration, routine) => routine({ aborted: false });
+  Encounter.findOneAndUpdate = async () => ({});
   let finishFirstClear;
   const clearCalls = [];
   const firstClear = new Promise((_resolve, reject) => {
@@ -483,6 +499,8 @@ test("asymmetric encounter end clears departing sessions together without failin
       await ending;
     } finally {
       Squad.updateOne = originals.updateOne;
+      redlock.using = originals.using;
+      Encounter.findOneAndUpdate = originals.endEncounter;
       Squad.findOne = originals.findOne;
       queueService.removeFromQueue = originals.remove;
       sessionService.clearMemberSession = originals.clearSession;
@@ -495,6 +513,8 @@ test("asymmetric encounter end clears departing sessions together without failin
 
 test("asymmetric encounter end leaves an ineligible remaining roster idle", async () => {
   const originals = {
+    using: redlock.using,
+    endEncounter: Encounter.findOneAndUpdate,
     acquire: redlock.acquire,
     updateOne: Squad.updateOne,
     updateMany: Squad.updateMany,
@@ -508,6 +528,8 @@ test("asymmetric encounter end leaves an ineligible remaining roster idle", asyn
     emit: socketService.emitToSquad,
     close: socketService.closeEncounterRoom,
   };
+  redlock.using = async (_resources, _duration, routine) => routine({ aborted: false });
+  Encounter.findOneAndUpdate = async () => ({});
   const other = {
     squadId: "sq_b",
     status: "in_encounter",
@@ -559,6 +581,8 @@ test("asymmetric encounter end leaves an ineligible remaining roster idle", asyn
   } finally {
     redlock.acquire = originals.acquire;
     Squad.updateOne = originals.updateOne;
+    redlock.using = originals.using;
+    Encounter.findOneAndUpdate = originals.endEncounter;
     Squad.updateMany = originals.updateMany;
     Squad.findOne = originals.findOne;
     User.find = originals.users;
@@ -576,6 +600,7 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
   const originals = {
     acquire: redlock.acquire,
     using: redlock.using,
+    endEncounter: Encounter.findOneAndUpdate,
     updateOne: Squad.updateOne,
     updateMany: Squad.updateMany,
     findOne: Squad.findOne,
@@ -620,6 +645,7 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
     lockUses += 1;
     return routine({ aborted: false });
   };
+  Encounter.findOneAndUpdate = async () => ({});
   Squad.updateOne = async (filter, update) => {
     const target = filter.squadId === other.squadId ? other : disconnecting;
     if (filter.currentEncounterId && target.currentEncounterId !== filter.currentEncounterId) {
@@ -657,12 +683,14 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
     await endEncounterAsymmetric({ encounter, disconnectingSquadId: "sq_a" });
     assert.deepEqual(queued, ["sq_b"]);
     assert.equal(other.status, "searching");
-    assert.equal(lockUses, 1);
+    // One lock for the teardown, then a separate one for the rematch.
+    assert.equal(lockUses, 2);
     assert.equal(sessionWrites.every(([squadId]) => squadId === "sq_b"), true);
     assert.deepEqual(sessionClears, [["sq_a", "member_a"]]);
   } finally {
     redlock.acquire = originals.acquire;
     redlock.using = originals.using;
+    Encounter.findOneAndUpdate = originals.endEncounter;
     Squad.updateOne = originals.updateOne;
     Squad.updateMany = originals.updateMany;
     Squad.findOne = originals.findOne;
@@ -680,6 +708,8 @@ test("asymmetric encounter end immediately rematches with the opponent's searchi
 
 test("asymmetric encounter teardown stays retryable after its first guarded squad write fails", async () => {
   const originals = {
+    using: redlock.using,
+    endEncounter: Encounter.findOneAndUpdate,
     updateOne: Squad.updateOne,
     findOne: Squad.findOne,
     users: User.find,
@@ -690,6 +720,8 @@ test("asymmetric encounter teardown stays retryable after its first guarded squa
     close: socketService.closeEncounterRoom,
     add: queueService.addToQueue,
   };
+  redlock.using = async (_resources, _duration, routine) => routine({ aborted: false });
+  Encounter.findOneAndUpdate = async () => { saves += 1; return {}; };
   const writes = [];
   let queued = false;
   let failFirstWrite = true;
@@ -734,7 +766,7 @@ test("asymmetric encounter teardown stays retryable after its first guarded squa
     status: "active",
     squadAId: "sq_a",
     squadBId: "sq_b",
-    async save() { saves += 1; },
+    async save() {},
   };
 
   try {
@@ -759,6 +791,8 @@ test("asymmetric encounter teardown stays retryable after its first guarded squa
     assert.equal(queued, false);
   } finally {
     Squad.updateOne = originals.updateOne;
+    redlock.using = originals.using;
+    Encounter.findOneAndUpdate = originals.endEncounter;
     Squad.findOne = originals.findOne;
     User.find = originals.users;
     queueService.removeFromQueue = originals.remove;
@@ -772,6 +806,8 @@ test("asymmetric encounter teardown stays retryable after its first guarded squa
 
 test("asymmetric teardown never requeues an opponent whose old encounter guard missed", async () => {
   const originals = {
+    using: redlock.using,
+    endEncounter: Encounter.findOneAndUpdate,
     updateOne: Squad.updateOne,
     findOne: Squad.findOne,
     users: User.find,
@@ -780,6 +816,8 @@ test("asymmetric teardown never requeues an opponent whose old encounter guard m
     emit: socketService.emitToSquad,
     close: socketService.closeEncounterRoom,
   };
+  redlock.using = async (_resources, _duration, routine) => routine({ aborted: false });
+  Encounter.findOneAndUpdate = async () => ({});
   const other = {
     squadId: "sq_b",
     status: "idle",
@@ -811,6 +849,8 @@ test("asymmetric teardown never requeues an opponent whose old encounter guard m
     assert.equal(queued, false);
   } finally {
     Squad.updateOne = originals.updateOne;
+    redlock.using = originals.using;
+    Encounter.findOneAndUpdate = originals.endEncounter;
     Squad.findOne = originals.findOne;
     User.find = originals.users;
     queueService.addToQueue = originals.add;

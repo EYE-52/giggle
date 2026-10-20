@@ -41,11 +41,19 @@ const REPORT_CATEGORIES = new Set<SafetyReportCategory>([
   "harassment", "hate", "sexual", "minor_safety", "spam", "other",
 ]);
 const USER_ID_PATTERN = /^[a-f0-9]{24}$/;
+// Anonymous members of the other squad are listed under an opaque
+// per-encounter id; the server maps it back when blocking.
+const OPAQUE_ENCOUNTER_ID_PATTERN = /^anon_[a-f0-9]{24}$/;
 
 function canonicalUserId(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.trim().toLowerCase();
   return USER_ID_PATTERN.test(normalized) ? normalized : null;
+}
+
+function canonicalOpponentId(value: unknown): string | null {
+  if (typeof value === "string" && OPAQUE_ENCOUNTER_ID_PATTERN.test(value)) return value;
+  return canonicalUserId(value);
 }
 
 export function createOpponentUserIds(input: OpponentUsersInput): string[] | null {
@@ -65,7 +73,7 @@ export function createOpponentUserIds(input: OpponentUsersInput): string[] | nul
   const [ownMembers, opponentMembers] = rosters;
   if (!ownMembers?.length || ownMembers.length > 8 || !opponentMembers?.length || opponentMembers.length > 8) return null;
   const ownIds = ownMembers.map((member) => canonicalUserId(member.userId));
-  const opponentIds = opponentMembers.map((member) => canonicalUserId(member.userId));
+  const opponentIds = opponentMembers.map((member) => canonicalOpponentId(member.userId));
   if (ownIds.includes(null) || opponentIds.includes(null) || !ownIds.includes(ownUserId)) return null;
 
   const ownUserIds = new Set(ownIds as string[]);

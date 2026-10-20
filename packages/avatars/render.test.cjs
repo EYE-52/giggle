@@ -1,8 +1,13 @@
 const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const { test } = require("node:test");
-const { createElement } = require("react");
+const { createRequire } = require("node:module");
 const { renderToStaticMarkup } = require("react-dom/server");
+
+// Load React from beside react-dom: this package only peers on React, so a
+// separately installed copy here would break hooks (two React instances).
+const reactRequire = createRequire(require.resolve("react-dom/server"));
+const { createElement } = reactRequire("react");
 const ts = require("typescript");
 
 // Use the repository's existing TypeScript compiler; no test transform dependency.
@@ -15,7 +20,7 @@ const logoCode = ts.transpileModule(readFileSync(`${__dirname}/../ui-tokens/src/
   compilerOptions: { module: ts.ModuleKind.CommonJS },
 }).outputText;
 new Function("exports", logoCode)(logo);
-new Function("require", "exports", outputText)((name) => name === "../../ui-tokens/src/logo" ? logo : require(name), compiled);
+new Function("require", "exports", outputText)((name) => name === "../../ui-tokens/src/logo" ? logo : name.startsWith("react") ? reactRequire(name) : require(name), compiled);
 
 test("every character variant renders with unique IDs and accessible motion controls", () => {
   const characters = ["crop", "curls", "bob", "swoop"].flatMap((hair) =>

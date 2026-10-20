@@ -6,7 +6,7 @@ import { Button } from '../../components/Button';
 import { AvatarStack } from '../../components/Avatar';
 import { squadCoverSource } from '../../components/squadCover';
 import { COLORS, RADII, SPACE } from '../../constants/theme';
-import { api, ApiError, session } from '@giggle/core';
+import { api, ApiError, connectSocket, session, SOCKET_EVENTS } from '@giggle/core';
 import type { EncounterDetail, SquadState } from '@giggle/core';
 
 function isExpiredEncounterError(error: unknown) {
@@ -31,6 +31,9 @@ export default function MatchScreen() {
   const [encounterError, setEncounterError] = useState('');
   const [handoffExpired, setHandoffExpired] = useState(false);
   const [joining, setJoining] = useState(false);
+  // Our squad acked; the call opens only once the other squad acks too.
+  const [waiting, setWaiting] = useState(false);
+  const [waitingError, setWaitingError] = useState('');
   const [skipping, setSkipping] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const expiryHandled = useRef(false);
@@ -46,6 +49,8 @@ export default function MatchScreen() {
     setHandoffExpired(false);
     setJoinError('');
     setDeadlineMs(null);
+    setWaiting(false);
+    setWaitingError('');
     expiryHandled.current = false;
 
     Promise.all([
@@ -66,6 +71,7 @@ export default function MatchScreen() {
         setLoading(false);
         return;
       }
+      setWaiting(encounterData.ack?.[squadId] === true);
       setEnc(encounterData);
       setSquad(squadData);
       setCountdown(secondsLeft);
@@ -82,6 +88,46 @@ export default function MatchScreen() {
 
     return () => { active = false; };
   }, [encId, loadAttempt, router, squadId]);
+
+  // The socket activates the call immediately; polling covers a missed event.
+  useEffect(() => {
+    if (!waiting || !encId || !squadId) return;
+    let active = true;
+    let pending = false;
+    const refresh = async (event?: { encounterId?: string }) => {
+      if (event?.encounterId && event.encounterId !== encId) return;
+      if (!active || pending) return;
+      pending = true;
+      try {
+        const detail = await api.getEncounter(encId);
+        if (!active) return;
+        setWaitingError('');
+        if (detail.status === 'active') {
+          active = false;
+          router.replace(`/encounter?squad=${squadId}&enc=${encId}`);
+        } else if (detail.status === 'ended') {
+          setWaiting(false);
+          setHandoffExpired(true);
+          setEncounterError('This match handoff has expired.');
+        }
+      } catch {
+        if (active) setWaitingError("Couldn't check the other squad. We'll keep trying.");
+      } finally {
+        pending = false;
+      }
+    };
+    const socket = connectSocket(squadId);
+    socket.on(SOCKET_EVENTS.ENCOUNTER_ACTIVE, refresh);
+    socket.on(SOCKET_EVENTS.ENCOUNTER_ENDED, refresh);
+    const timer = setInterval(() => { void refresh(); }, 2000);
+    void refresh();
+    return () => {
+      active = false;
+      clearInterval(timer);
+      socket.off(SOCKET_EVENTS.ENCOUNTER_ACTIVE, refresh);
+      socket.off(SOCKET_EVENTS.ENCOUNTER_ENDED, refresh);
+    };
+  }, [waiting, encId, router, squadId]);
 
   useEffect(() => {
     if (!deadlineMs) return;
@@ -103,14 +149,23 @@ export default function MatchScreen() {
   const myMember = squad?.members.find((member) => member.userId === session.user?.id)
     ?? yourMembers.find((member) => member.userId === session.user?.id);
   const isLeader = myMember?.role === 'leader';
+  // Own-squad encounter rosters carry the alias the other squad sees.
+  const myEncounterMember = yourMembers.find((member) => member.userId === session.user?.id);
+  const myEncounterAlias = myEncounterMember?.anonymous ? myEncounterMember.alias ?? null : null;
   const vibeLabel = squad?.tags?.slice(0, 2).join(' & ');
 
   const handleJoin = useCallback(async () => {
     setJoinError('');
-    if (!encId || !squadId || joining) return;
+    if (!encId || !squadId || joining || waiting) return;
     setJoining(true);
     try {
-      await api.ackEncounter(encId, squadId);
+      const result = await api.ackEncounter(encId, squadId);
+      // The call devices open only after both squads ack.
+      if (!result.allAcked) {
+        setJoining(false);
+        setWaiting(true);
+        return;
+      }
       router.replace(`/encounter?squad=${squadId}&enc=${encId}`);
     } catch (e: any) {
       if (isExpiredEncounterError(e)) {
@@ -121,7 +176,7 @@ export default function MatchScreen() {
       }
       setJoining(false);
     }
-  }, [encId, joining, router, squadId]);
+  }, [encId, joining, router, squadId, waiting]);
 
   const handleSkip = useCallback(async () => {
     setJoinError('');
@@ -224,6 +279,7 @@ export default function MatchScreen() {
 
         <View style={styles.actionCard}>
           {!!vibeLabel && <Text style={styles.vibeText}>Vibe match · {vibeLabel}</Text>}
+          {myEncounterAlias && <Text style={styles.leaderHint} testID="match-anonymous-note">You appear to {theirName || 'them'} as {myEncounterAlias}</Text>}
           <View style={styles.deadlineRow}>
             <View>
               <Text style={styles.deadlineLabel}>Handoff closes in</Text>
@@ -235,10 +291,10 @@ export default function MatchScreen() {
             <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
           </View>
           <Button
-            label={joining ? 'Joining…' : 'Join Encounter'}
+            label={waiting ? `Waiting for ${theirName || 'the other squad'}…` : joining ? 'Joining…' : 'Join Encounter'}
             onPress={handleJoin}
             variant="violet"
-            disabled={joining || handoffExpired}
+            disabled={joining || waiting || handoffExpired}
             style={styles.fullButton}
           />
           {isLeader && (
@@ -251,6 +307,7 @@ export default function MatchScreen() {
             />
           )}
           {!isLeader && <Text style={styles.leaderHint}>Your squad leader can skip this match.</Text>}
+          {!!waitingError && <Text style={styles.errorText} accessibilityLiveRegion="polite">{waitingError}</Text>}
           {!!joinError && <Text style={styles.errorText} accessibilityLiveRegion="polite">{joinError}</Text>}
         </View>
       </ScrollView>

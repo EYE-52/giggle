@@ -42,7 +42,7 @@ export const api = {
     backendRequest<AccountExport>("/api/me/export"),
   deleteAccount: () =>
     backendRequest<{ status: "deleted" | "pending" }>("/api/me/account", { method: "DELETE" }),
-  updateMyProfile: (body: { gender?: string; languages?: string[]; country?: string; vibes?: string[]; avatar?: string | null }) =>
+  updateMyProfile: (body: { gender?: string; languages?: string[]; country?: string; vibes?: string[]; avatar?: string | null; anonymousInEncounters?: boolean; encounterAlias?: string | null }) =>
     backendRequest<UserProfile>("/api/me/profile", { method: "PATCH", body }),
   // Self-attested date of birth (set-once). Raw birthDate never comes back — the
   // backend derives and returns only the boolean gates.
@@ -163,8 +163,10 @@ export const api = {
     backendRequest<{ status: "declined" }>("/api/friends/decline", { method: "POST", body: { userId } }),
   removeFriend: (userId: string) =>
     backendRequest<{ status: "removed" }>("/api/friends/remove", { method: "POST", body: { userId } }),
-  blockUsers: (userIds: string[]) =>
-    backendRequest<{ status: "blocked"; userIds: string[] }>("/api/users/block", { method: "POST", body: { userIds } }),
+  // From a call, pass the encounter: anonymous opponents are listed under
+  // opaque per-encounter ids that only the server can map back.
+  blockUsers: (userIds: string[], encounterId?: string) =>
+    backendRequest<{ status: "blocked"; userIds: string[] }>("/api/users/block", { method: "POST", body: encounterId ? { userIds, encounterId } : { userIds } }),
   unblockUser: (userId: string) =>
     backendRequest<{ status: "unblocked"; userId: string }>(`/api/users/${userId}/block`, { method: "DELETE" }),
   listBlockedUsers: () =>
@@ -226,9 +228,12 @@ export interface FriendRequestUser {
   online?: boolean;
 }
 export interface BlockedAccount {
+  /** Account id, or the opaque handle of a block made against an anonymous opponent. */
   userId: string;
   name: string | null;
   image: string | null;
+  /** Blocked from a call while they were anonymous: shown by the alias you saw. */
+  anonymous?: boolean;
 }
 export interface JoinRequestUser {
   userId: string;
@@ -251,6 +256,12 @@ export interface UserProfile {
   ageConfirmed?: boolean;
   ageVerified?: boolean;
   accountStatus?: "active" | "unavailable" | "pending_deletion";
+  /** Other squads (calls, squad previews) see only your alias, never your name or avatar. */
+  anonymousInEncounters?: boolean;
+  /** Your chosen alias for other squads ("" when unset). */
+  encounterAlias?: string;
+  /** The stable "Guest NNNN" alias used while encounterAlias is empty. */
+  encounterAliasFallback?: string;
 }
 
 export interface AccountExport {
@@ -285,6 +296,8 @@ export interface AccountExport {
     languages: string[];
     country: string | null;
     vibes: string[];
+    anonymousInEncounters?: boolean;
+    encounterAlias?: string | null;
   };
   friends: Array<{ userId: string; name: string | null; image: string | null }>;
   blocks: Array<{ userId: string; name: string | null; image: string | null }>;
@@ -317,7 +330,6 @@ export interface AccountExport {
     id: string;
     reporterSquadId: string;
     targetSquadId: string;
-    targetUserIds: string[];
     encounterId: string;
     category: string;
     details: string;
@@ -388,8 +400,15 @@ export interface ReferralInfo {
 }
 export interface SquadMemberState {
   memberId: string;
+  /** Account id; for an anonymous member of the OTHER squad, an opaque per-encounter id. */
   userId: string;
   uid?: number;
+  /** Encounter rosters: opaque per-encounter id (also the game seat's callUserId). */
+  callId?: string;
+  /** Encounter rosters: the member is anonymous to other squads. */
+  anonymous?: boolean;
+  /** Own-squad encounter rosters only: the alias the other squad sees. */
+  alias?: string;
   displayName: string;
   avatar?: string | null;
   role: "leader" | "member";

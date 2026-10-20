@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJSDoc = require('swagger-jsdoc');
 const { requestLogger } = require('./middlewares/requestLogger');
+const { rejectQueryOperators } = require('./middlewares/rejectQueryOperators');
 const { ENABLE_REQUEST_LOGS, LOG_REQUEST_BODY, publicApiBaseUrl } = require('./config/appConfig');
 const { buildAllowedOrigins } = require('./config/corsOrigins');
 const socketService = require('./services/socketService');
@@ -86,6 +87,7 @@ app.use(cors({
 // Cover images are sent as base64 — allow a generous body limit.
 app.use(express.json({ limit: "3mb" }));
 app.use(cookieParser());
+app.use(rejectQueryOperators);
 
 // Rate limiting: a general limiter for all /api traffic, plus a stricter
 // limiter on the auth exchange endpoint to slow credential-stuffing.

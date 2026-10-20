@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const { normalizeDisplayName } = require("../utils/identityValidation");
 const { isAvatarId, isSelectableAvatarId, publicAvatar } = require("../utils/avatars");
+const { normalizeEncounterAlias, fallbackEncounterAlias } = require("../services/encounterIdentityService");
 
 // Tokens granted to BOTH the inviter and the invitee when a referral converts.
 const REFERRAL_REWARD = 100;
@@ -260,6 +261,13 @@ const getMyReferral = async (req, res) => {
 };
 
 /** GET /api/me/profile — the authed user's demographics + identity. */
+// How the user appears to other squads (encounters, squad previews).
+const encounterIdentitySettings = (user) => ({
+  anonymousInEncounters: user.anonymousInEncounters === true,
+  encounterAlias: normalizeEncounterAlias(user.encounterAlias ?? "").value || "",
+  encounterAliasFallback: fallbackEncounterAlias(user._id),
+});
+
 const getMyProfile = async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?.sub;
@@ -277,6 +285,7 @@ const getMyProfile = async (req, res) => {
         name: user.name,
         email: user.email,
         avatar: publicAvatar(user.avatar),
+        ...encounterIdentitySettings(user),
         // Age-gating flags (client-facing). birthDate (PII) is NEVER included.
         isAdult: user.isAdult || false,
         ageConfirmed: user.ageConfirmed || false,
@@ -293,7 +302,7 @@ const getMyProfile = async (req, res) => {
 const normalizeProfilePatch = (body = {}) => {
   const patch = {};
   const unset = [];
-  const { gender, languages, country, vibes, avatar } = body;
+  const { gender, languages, country, vibes, avatar, anonymousInEncounters, encounterAlias } = body;
 
   if (gender !== undefined) {
     const value = String(gender).trim();
@@ -363,6 +372,19 @@ const normalizeProfilePatch = (body = {}) => {
     }
   }
 
+  if (anonymousInEncounters !== undefined) {
+    if (typeof anonymousInEncounters !== "boolean") {
+      return { error: "anonymousInEncounters must be true or false" };
+    }
+    patch.anonymousInEncounters = anonymousInEncounters;
+  }
+
+  if (encounterAlias !== undefined) {
+    const alias = normalizeEncounterAlias(encounterAlias);
+    if (alias.error) return { error: alias.error };
+    patch.encounterAlias = alias.value;
+  }
+
   return { patch, unset };
 };
 
@@ -399,6 +421,7 @@ const updateMyProfile = async (req, res) => {
         name: user.name,
         email: user.email,
         avatar: publicAvatar(user.avatar),
+        ...encounterIdentitySettings(user),
         // Age-gating flags (client-facing). birthDate (PII) is NEVER included.
         isAdult: user.isAdult || false,
         ageConfirmed: user.ageConfirmed || false,

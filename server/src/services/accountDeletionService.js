@@ -43,6 +43,7 @@ const cleanupAccount = async (userId, deps, signal) => {
       friendRequestsIncoming: matcher,
       friendRequestsOutgoing: matcher,
       blockedUserIds: matcher,
+      anonymousBlocks: { userId: matcher },
     },
   });
   assertAccountLock(signal);

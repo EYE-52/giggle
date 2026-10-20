@@ -217,7 +217,7 @@ export default function DiscoverPage() {
         {/* Kept mounted during load (shimmer) to avoid layout shift. */}
         {loading ? (
           <span className="gg-shimmer" aria-hidden="true" style={{ width: 76, height: 16, borderRadius: 6 }} />
-        ) : !error && (
+        ) : !error && (squads.length > 0 || vibe) && (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--text-dim)", fontSize: 13, fontWeight: 600 }}>
             {vibe
               ? `Showing ${shown.length} of ${squads.length} ${squads.length === 1 ? "squad" : "squads"}`

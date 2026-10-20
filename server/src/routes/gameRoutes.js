@@ -1,6 +1,11 @@
 const express = require("express");
 const { issueGameTicket, issueEncounterGameTicket, getGamesConfig } = require("../services/gameBridgeService");
 const { anyBlockedPair } = require("../services/interactionSafetyService");
+const {
+  identityUserFor,
+  loadEncounterIdentityUsers,
+  publicEncounterIdentity,
+} = require("../services/encounterIdentityService");
 const User = require("../models/User");
 const { Squad } = require("../models/Squad");
 const { getRequesterIdentity, isSameMember } = require("../app/squadAccess");
@@ -177,12 +182,28 @@ const postEncounterGameTokenHandler = async (req, res) => {
       });
     }
 
-    const userId = identity.userId;
-    const displayName = member.displayName || identity.name || "Player";
+    // Both squads share this game room, so the seat shows the player as the
+    // OTHER squad sees them: an anonymous member plays under their alias.
+    // The ticket subject is the player's opaque per-encounter call id (never
+    // the account id): Game Night exposes it as the seat's callUserId, and the
+    // encounter payload carries the same id as each member's callId so the
+    // Giggle client can map spotlighted seats to call tiles.
+    const otherSquad = ownSquad === squadA ? squadB : squadA;
+    const users = await loadEncounterIdentityUsers([member.userId], { User });
+    const seat = publicEncounterIdentity({
+      viewerSquadId: otherSquad.squadId,
+      memberSquadId: ownSquad.squadId,
+      member,
+      user: identityUserFor(users, member.userId),
+      encounterId,
+    });
+    const displayName = seat.anonymous ? seat.displayName : member.displayName || identity.name || "Player";
     const { ticket, gameUrl } = issueEncounterGameTicket({
       encounterId,
-      userId,
+      userId: seat.callId,
       displayName,
+      team: ownSquad === squadA ? "A" : "B",
+      teamName: ownSquad.squadName,
     });
 
     return res.status(200).json({

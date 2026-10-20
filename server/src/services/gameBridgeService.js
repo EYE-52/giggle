@@ -79,7 +79,7 @@ const isGamesEnabled = (env = process.env) => getGamesConfig(env).enabled;
 // Mint one single-use ticket. Identity MUST come from the verified session
 // (req.squadAccess + req.giggleIdentity), never from the request body —
 // the route enforces that; this function just signs what it is given.
-const issueGameTicket = ({ squadId, userId, displayName } = {}, env = process.env) => {
+const issueGameTicket = ({ squadId, userId, displayName, team, teamName } = {}, env = process.env) => {
   const config = getGamesConfig(env);
   if (!config.enabled) {
     const error = new Error("GAMES_UNAVAILABLE");
@@ -95,6 +95,9 @@ const issueGameTicket = ({ squadId, userId, displayName } = {}, env = process.en
     {
       squadId: String(squadId),
       displayName: String(displayName || "Player").slice(0, 64),
+      // Squad vs squad (encounters only): which side the player is on, as an
+      // opaque "A"/"B" key (never a squad id), and that squad's public name.
+      ...(team ? { team: String(team), teamName: String(teamName || "Squad").slice(0, 32) } : {}),
     },
     env.GAME_BRIDGE_SECRET,
     {
@@ -113,9 +116,9 @@ const issueGameTicket = ({ squadId, userId, displayName } = {}, env = process.en
 // tickets whose room claim is the SAME namespaced encounter key, so Game
 // Night seats them in one shared room — never each side's own squad room.
 // Same protocol as issueGameTicket (claims, issuer, audience, TTL, jti).
-const issueEncounterGameTicket = ({ encounterId, userId, displayName } = {}, env = process.env) => {
+const issueEncounterGameTicket = ({ encounterId, userId, displayName, team, teamName } = {}, env = process.env) => {
   return issueGameTicket(
-    { squadId: encounterRoomKey(encounterId), userId, displayName },
+    { squadId: encounterRoomKey(encounterId), userId, displayName, team, teamName },
     env
   );
 };

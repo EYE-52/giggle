@@ -310,7 +310,7 @@ test("revoking squad access removes every user socket from squad and encounter r
 
   assert.deepEqual(calls, [
     ["in", "user_user_a"],
-    ["leave", ["squad_sq_a", "encounter_enc_1"]],
+    ["leave", ["squad_sq_a", "encounter_enc_1", "encounter_enc_1:squad_sq_a"]],
   ]);
 });
 
@@ -328,6 +328,13 @@ test("closing an encounter removes every socket from its stale room", () => {
   assert.deepEqual(calls, [
     ["in", "encounter_enc_1"],
     ["leave", "encounter_enc_1"],
+  ]);
+
+  calls.length = 0;
+  closeEncounterRoom({ encounterId: "enc_1", squadAId: "sq_a", squadBId: "sq_b" }, server);
+  assert.deepEqual(calls, [
+    ["in", "encounter_enc_1"],
+    ["leave", ["encounter_enc_1", "encounter_enc_1:squad_sq_a", "encounter_enc_1:squad_sq_b"]],
   ]);
 });
 
@@ -410,7 +417,12 @@ test("authorizeEncounterRoomJoin requires membership in either encounter squad",
     User,
   });
 
-  assert.deepEqual(allowed, { allowed: true, room: "encounter_enc_1" });
+  assert.equal(allowed.allowed, true);
+  assert.equal(allowed.room, "encounter_enc_1");
+  // Each socket also joins its own squad's side of the call for per-squad
+  // projections (anonymous senders are shown by alias to the other squad).
+  assert.equal(allowed.sideRoom, "encounter_enc_1:squad_sq_a");
+  assert.equal(allowed.ownSquadId, "sq_a");
   assert.equal(denied.allowed, false);
 });
 

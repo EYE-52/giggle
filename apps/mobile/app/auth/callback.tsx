@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACE.md,
     padding: SPACE.xl,
-    borderRadius: RADII.xl,
+    borderRadius: RADII.card,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.14)',
     backgroundColor: 'rgba(255,255,255,0.06)',

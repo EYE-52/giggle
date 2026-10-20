@@ -897,7 +897,8 @@ test("public squad discovery and preview normalize stale display fields", () => 
   assert.equal(controller.includes("const publicSquadTags = (squad) =>"), true);
   assert.equal(publicSerializer.includes("squadName: publicSquadName(squad),"), true);
   assert.equal(publicSerializer.includes("tags: publicSquadTags(squad),"), true);
-  assert.equal(publicSerializer.includes("leaderName: leader ? publicMemberName(leader) : undefined,"), true);
+  assert.equal(publicSerializer.includes("leaderName: leader ? publicMemberView(squad, leader, users).displayName : undefined,"), true);
+  assert.equal(controller.includes(": { memberId: member.memberId, displayName: publicMemberName(member), avatar: view.avatar };"), true);
   assert.equal(previewHandler.includes("squadName: publicSquadName(squad),"), true);
   assert.equal(previewHandler.includes("displayName: publicMemberName(member),"), true);
   assert.equal(previewHandler.includes("tags: publicSquadTags(squad),"), true);

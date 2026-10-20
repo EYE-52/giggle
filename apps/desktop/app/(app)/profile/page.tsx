@@ -11,6 +11,7 @@ import { Button } from "@/components/Button";
 import { Modal } from "@/components/Modal";
 import { Switch } from "@/components/Switch";
 import { AppearancePicker } from "@/components/AppearancePicker";
+import { EncounterAnonymitySettings } from "@/components/EncounterAnonymitySettings";
 import styles from "./profile.module.css";
 
 const CURATED_VIBES = ["Gaming", "Music", "Chill", "Comedy", "Deep Talks", "Late Night", "Sports", "Art", "Study", "Hype", "Fitness", "Foodies"];
@@ -724,6 +725,13 @@ export default function ProfilePage() {
           </div>
         </section>
 
+        {/* Other squads — anonymity in calls and squad previews */}
+        <section style={settingsSection}>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary, margin: "0 0 4px", letterSpacing: "-0.02em" }}>Other squads</h2>
+          <div style={{ color: textMuted, fontSize: 13, marginBottom: 4 }}>Choose how you appear when your squad meets another one.</div>
+          <EncounterAnonymitySettings profile={loadedProfile} onSaved={setLoadedProfile} />
+        </section>
+
         {/* Account — the real, functional settings (privacy + notifications) */}
         <section ref={manageAccountRef} style={{ ...settingsSection, borderBottom: "none" }}>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: textPrimary, margin: "0 0 4px", letterSpacing: "-0.02em" }}>Account</h2>
@@ -761,7 +769,7 @@ export default function ProfilePage() {
                   return (
                     <div key={account.userId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderTop: "1px solid var(--border)" }}>
                       <PersonAvatar userId={account.userId} name={name} size={36} />
-                      <span style={{ color: textPrimary, fontSize: 14, fontWeight: 600, minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</span>
+                      <span style={{ color: textPrimary, fontSize: 14, fontWeight: 600, minWidth: 0, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}{account.anonymous && <span style={{ color: textTertiary, fontWeight: 500 }}> · anonymous in a call</span>}</span>
                       <Button variant="ghost" size="sm" loading={unblockingId === account.userId} disabled={!!unblockingId} onClick={() => unblockAccount(account)}>Unblock</Button>
                     </div>
                   );

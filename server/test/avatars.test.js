@@ -54,11 +54,13 @@ function createResponse() {
 
 // Mongoose-like User.find double: supports .select()/.lean() chains and plain
 // awaiting, records each projection so tests can count avatar lookups.
+const { IDENTITY_USER_FIELDS } = require("../src/services/encounterIdentityService");
+
 function mockUserFind(users, { failAvatarLookup = false } = {}) {
   const projections = [];
   const find = (query, projection) => {
     projections.push(projection);
-    if (failAvatarLookup && projection === "avatar") throw new Error("avatar lookup down");
+    if (failAvatarLookup && (projection === "avatar" || projection === IDENTITY_USER_FIELDS)) throw new Error("avatar lookup down");
     const ids = (query?._id?.$in || []).map(String);
     const rows = users
       .filter((user) => ids.includes(String(user._id)))
@@ -338,7 +340,7 @@ test("my squad, join, preview and join requests include member avatars with one 
       ["mem_leader", "Leader", SHARED_CHARACTER],
       ["mem_member", "Member", null],
     ]);
-    assert.equal(projections.filter((p) => p === "avatar").length, 1);
+    assert.equal(projections.filter((p) => p === IDENTITY_USER_FIELDS).length, 1);
 
     projections.length = 0;
     res = createResponse();
@@ -450,7 +452,8 @@ test("encounter detail rosters include member avatars", async () => {
     assert.equal(res.body.data.squadAMembers[0].avatar, SHARED_CHARACTER);
     assert.equal(res.body.data.squadBMembers[0].avatar, "gold-moon");
     assert.equal(res.body.data.squadBMembers[0].displayName, "Other");
-    assert.equal(projections.filter((p) => p === "avatar").length, 1);
+    // One batched identity lookup (avatar + anonymity) for both rosters.
+    assert.equal(projections.filter((p) => p === IDENTITY_USER_FIELDS).length, 1);
   } finally {
     User.find = originals.find;
     Squad.findOne = originals.squadFindOne;
