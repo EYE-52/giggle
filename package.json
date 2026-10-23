@@ -19,7 +19,8 @@
     "web:mobile": "pnpm --filter @giggle/mobile web",
     "test:games": "npm --prefix apps/games test",
     "build:games": "npm --prefix apps/games run build",
-    "test:games:integration": "node apps/games/test/canonical-bridge.js && node apps/games/test/canonical-release.js"
+    "test:games:integration": "node apps/games/test/canonical-bridge.js && node apps/games/test/canonical-release.js",
+    "test:games:browser:bridge": "node apps/games/test/canonical-bridge-browser.cjs"
   },
   "pnpm": {
     "overrides": {

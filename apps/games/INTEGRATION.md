@@ -49,3 +49,5 @@ No production source, config, credential, grant or infrastructure changes
 are part of this local integration. Owner security confirmation, provider
 authorization, current topology, incident clearance and fresh rollback
 identity verification remain production gates.
+
+The optional `npm run test:games:browser:bridge` uses installed Playwright/Chromium and real canonical-issued tickets to verify cross-origin dialog focus, native Tab/Escape and strict console checks with camera/microphone denied. Set `PLAYWRIGHT_EXECUTABLE_PATH` if needed.

@@ -99,7 +99,7 @@ export function openHowto({ game, opener, meta, buildFooter }) {
     `<div class="howto-head">` +
     `<img class="howto-art" alt="" loading="lazy">` +
     `<div class="howto-titles"><h2 id="howtoTitle"></h2><p class="howto-tag"></p></div>` +
-    `<button class="btn ghost dlg-x" id="howtoClose" aria-label="Close game details" autofocus><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>` +
+    `<button class="btn ghost dlg-x" id="howtoClose" aria-label="Close game details"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>` +
     `</div>` +
     `<div class="howto-meta"></div>` +
     `<div class="howto-tabs" role="tablist" aria-label="Game details"><button type="button" role="tab" id="howtoPlayTab" aria-controls="howtoPlayPanel" aria-selected="true">Play</button><button type="button" role="tab" id="howtoRulesTab" aria-controls="howtoRulesPanel" aria-selected="false" tabindex="-1">How to play</button></div>` +
@@ -169,4 +169,8 @@ export function openHowto({ game, opener, meta, buildFooter }) {
   });
   document.addEventListener('keydown', escGuard, true);
   el.showModal();
+  // HTML autofocus is blocked when this UI is framed by Giggle. Focus the
+  // dialog control explicitly during the user-triggered open instead.
+  const close = el.querySelector('#howtoClose');
+  try { close.focus({ preventScroll: true }); } catch { close.focus(); }
 }
