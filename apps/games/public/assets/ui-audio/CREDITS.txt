@@ -1,0 +1,19 @@
+Shared UI cue recordings
+
+Creator: Kenney
+Pack: Interface Sounds 1.0 (100 recordings; seven distinct recordings included here)
+Source: https://kenney.nl/assets/interface-sounds
+License: Creative Commons Zero 1.0 Universal (CC0)
+https://creativecommons.org/publicdomain/zero/1.0/
+The original pack license is preserved in KENNEY_LICENSE.txt.
+
+Processing: decoded to mono 22050 Hz, normalized to 0.7 peak, encoded as 16-bit PCM WAV. Full durations retained. No generated oscillators, loops, or pitch changes.
+Source archive, source recording and output hashes are recorded in manifest.json.
+
+click: click_003.ogg -> click.wav
+lock: confirmation_001.ogg -> lock.wav
+reveal: maximize_003.ogg -> reveal.wav
+win: confirmation_004.ogg -> win.wav
+tick: tick_001.ogg -> tick.wav
+turn: select_003.ogg -> turn.wav
+pop: drop_001.ogg -> pop.wav

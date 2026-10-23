@@ -2,6 +2,25 @@
 
 This runbook deploys the unified repository. It does not certify worldwide compliance. The owner switched production stranger discovery on on 2 October 2026, before the external release gates below were complete; those gates are still open.
 
+## Integrated Game Night source
+
+Game Night is part of this sole source repository under `apps/games`; see
+[its integration record](apps/games/INTEGRATION.md) and
+[backend-first release runbook](apps/games/DEPLOYMENT_PLAN.md).
+The Meet and Games hosting projects remain distinct. The root Vercel build
+still builds only Meet; it does not release Games. Games uses Node 24 and
+its npm lockfile, outside the pnpm workspace. The manual `Deploy Games`
+workflow requires the reviewed current canonical `main` SHA, complete
+existing credentials, explicit incident and room-reset approval, an exact
+successful Railway deployment, and a matching frontend fingerprint.
+It never runs on a push or pull request. No credentials or provider
+configuration are created by this integration.
+
+Before any publication, reverify automatic Meet deployment behavior,
+security response, provider access, topology and current rollback pairs.
+The historical production checkpoints below are not a claim of current
+provider state.
+
 ## Current production setup
 
 Last verified: **4 October 2026 (Asia/Kolkata)**. This section records the live setup; the provisioning and release requirements below also cover work that is not yet enabled.

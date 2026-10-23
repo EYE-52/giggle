@@ -1,0 +1,21 @@
+/* Warm Words: the closest word so far over a flat meaning meter, then the
+ * shared guesses. Tokens only (shared parts: compact-answer-games.css). */
+.ww .ww-stage, .ww .ww-result { display: flex; flex-direction: column; gap: 10px; }
+.ww [data-ww-best] { display: flex; flex-direction: column; gap: 4px; min-height: 92px; }
+.ww .ww-best { font: 800 clamp(28px, 4.4vw, 40px)/1.15 var(--font-display); color: var(--ink); overflow-wrap: anywhere; }
+.ww .ww-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--ink-dim); font: 600 15px/1.4 var(--font-body); }
+.ww .ww-meter { height: 10px; border-radius: 5px; background: var(--well); border: 1px solid var(--line); overflow: hidden; }
+.ww .ww-fill { height: 100%; width: 0; background: var(--accent); border-radius: 5px; transition: width .25s ease; }
+.ww .ww-hint { margin: 0; }
+.ww .ww-feed-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ww .ww-feed-head h3 { margin: 0; font: 800 16px/1.3 var(--font-body); color: var(--ink); }
+.ww .ww-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 5.5em; align-items: center; gap: 4px 12px;
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+}
+.ww .ww-row.is-you { border-color: var(--accent); }
+.ww .ww-who { min-width: 0; }
+.ww .ww-word { font: 800 17px/1.3 var(--font-body); overflow-wrap: anywhere; }
+.ww .ww-player { font: 600 13px/1.3 var(--font-body); color: var(--ink-dim); }
+.ww .ww-reading { font: 800 15px/1.3 var(--font-body); font-variant-numeric: tabular-nums; text-align: right; }
+@media (prefers-reduced-motion: reduce) { .ww .ww-fill { transition: none; } }

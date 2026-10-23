@@ -1,0 +1,73 @@
+/* Elevated arenas HUD. Chrome uses the page tokens (Day, Night and the
+ * Giggle navy look); the touch pad stays a fixed dark gamepad surface so
+ * its light glyphs read on any arena. Flat cards, 1px borders. */
+.pke{--pke-panel:color-mix(in srgb,var(--card) 94%,transparent);--pke-pad:#141a26e6;--pke-pad-edge:#ffffff38;position:relative;isolation:isolate;width:100%;height:100dvh;min-height:260px;overflow:hidden;color:var(--ink);background:var(--bg);font:700 16px/1.25 var(--font-body);container:pke/inline-size}
+.pke *{box-sizing:border-box}.pke [hidden]{display:none!important}
+.pke-stage{position:absolute;inset:0;touch-action:none;user-select:none;-webkit-user-select:none}.pke-stage canvas{display:block;width:100%;height:100%;outline:none}
+.pke-health{position:absolute;right:16px;top:calc(64px + env(safe-area-inset-top,0px));display:flex;align-items:center;gap:6px;width:112px;padding:4px 7px;background:var(--pke-panel);border:1px solid var(--line-strong);border-radius:8px;pointer-events:none}.pke-health svg{width:20px;height:20px;flex:none}.pke-health>span{flex:1;height:8px;background:var(--well);border-radius:4px;overflow:hidden}.pke-health i{display:block;height:100%;background:var(--green);transform-origin:left;transition:transform .12s ease-out}.pke-health[data-low="true"] i{background:var(--melon)}.pke-damage{position:absolute;inset:0;pointer-events:none;opacity:0;box-shadow:inset 0 0 60px #ff375e99;z-index:1}
+@media(prefers-reduced-motion:reduce){.pke-health i{transition:none}}
+.pke button,.pke select{font:inherit;color:var(--ink);border:1px solid var(--line-strong);background:var(--card);border-radius:10px;min-height:44px;box-shadow:none;padding:10px 16px;cursor:pointer}
+.pke button:disabled{opacity:.5;cursor:default}.pke :focus-visible{outline:3px solid var(--accent);outline-offset:3px}.pke svg{display:block;width:30px;height:30px}
+.pke-top{position:absolute;inset:calc(12px + env(safe-area-inset-top,0px)) 16px auto;display:flex;align-items:center;gap:8px;pointer-events:none}.pke-top>*{pointer-events:auto}
+.pke-menu summary,.pke-score,.pke-top time{border:1px solid var(--line-strong);background:var(--pke-panel);border-radius:10px}
+.pke-menu summary{list-style:none;cursor:pointer;width:44px;height:44px;display:grid;place-items:center;font-size:24px}.pke-menu summary::-webkit-details-marker{display:none}
+.pke-score{padding:8px 11px;font-size:13px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums}
+.pke-top time{position:absolute;left:50%;transform:translateX(-50%);min-width:84px;height:40px;padding:4px 14px;text-align:center;font:800 24px/1.25 var(--font-display);color:var(--ink);font-variant-numeric:tabular-nums}
+.pke-protection{margin-left:auto}
+/* Inventory stays with the driving instruments, clear of the chase view. */
+:is(.pk,.pke) .kart-item{position:relative;display:flex;align-items:center;gap:10px;min-height:66px;width:100%;padding:3px 0 7px;border-bottom:1px solid var(--line);color:var(--ink)}
+:is(.pk,.pke) .kart-item-art{display:flex;align-items:center;justify-content:center;flex:none;width:64px;height:58px;border-radius:12px;background:var(--well);border:1px solid var(--line)}
+:is(.pk,.pke) .kart-item-art .kart-weapon-thumbnail,:is(.pk,.pke) .kart-item-art svg{width:60px;height:56px;object-fit:contain}
+:is(.pk,.pke) .kart-item-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+:is(.pk,.pke) .kart-item-copy strong{font:800 15px/1.2 var(--font-body);overflow-wrap:anywhere}
+:is(.pk,.pke) .kart-item-copy small{font:700 12px/1.25 var(--font-body);color:var(--ink-dim)}
+:is(.pk,.pke) .kart-item-count{flex:none;align-self:flex-end;font:800 16px/1.3 var(--font-body);color:var(--accent-deep);font-variant-numeric:tabular-nums}
+:is(.pk,.pke) .kart-item[data-state="ready"] .kart-item-art{border-color:var(--accent);animation:kart-equip .2s ease-out}
+:is(.pk,.pke) .kart-item[data-state="firing"] .kart-item-copy small{color:var(--accent-deep)}
+:is(.pk,.pke) .kart-item[data-state="empty"] .kart-item-art{opacity:.55}
+:is(.pk,.pke) .kart-item-key{position:absolute;left:0;bottom:8px;padding:1px 4px;border:1px solid var(--line-strong);border-radius:4px;background:var(--card);color:var(--ink);font:700 12px/1.2 var(--font-body);pointer-events:none}
+@keyframes kart-equip{from{opacity:.6}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){:is(.pk,.pke) .kart-item[data-state="ready"] .kart-item-art{animation:none}}
+.pke-panel{position:absolute;top:54px;left:0;width:min(300px,calc(100cqw - 32px));padding:20px;background:var(--card);border:1px solid var(--line-strong);border-radius:14px;box-shadow:var(--shadow-card)}.pke-panel h2{font:800 20px/1.2 var(--font-body);margin:0 0 12px}.pke-panel p{font-size:14px;color:var(--ink-dim);line-height:1.5;margin:12px 0}.pke-panel label{display:flex;align-items:center;justify-content:space-between;gap:12px}.pke-panel button{width:100%}.pke-panel select{padding:6px 12px;max-width:165px}
+.pke-notice{position:absolute;left:50%;top:25%;transform:translateX(-50%);margin:0;padding:10px 16px;background:var(--pke-panel);border:1px solid var(--line-strong);border-radius:12px;text-align:center}
+.pke-bottom{position:absolute;bottom:calc(18px + env(safe-area-inset-bottom,0px));left:18px;display:flex;flex-direction:column;align-items:stretch;gap:8px;width:252px;max-width:calc(100% - 28px);background:var(--pke-panel);padding:6px 12px;border:1px solid var(--line-strong);border-radius:12px}
+.pke-instruments{display:flex;align-items:center;justify-content:space-between;gap:18px;min-height:26px}
+.pke-speed{display:flex;align-items:baseline;gap:5px}.pke-speed b{font-size:24px;font-variant-numeric:tabular-nums}.pke-speed small{font-size:12px;color:var(--ink-dim)}
+.pke-charge{position:relative;width:85px;height:8px;border-radius:8px;background:var(--well);border:1px solid var(--line-strong)}.pke-charge:after{content:'';display:block;width:calc(var(--charge,1)*100%);height:100%;background:#22d7ef;border-radius:8px}.pke-charge svg{position:absolute;width:17px;height:17px;top:-6px;left:-10px;z-index:1}
+.pke-touch{position:absolute;inset:auto 0 calc(16px + env(safe-area-inset-bottom,0px));height:145px;pointer-events:none}
+.pke-stick{position:absolute;left:22px;bottom:0;width:110px;height:110px;border-radius:50%;border:1px solid var(--pke-pad-edge);background:var(--pke-pad);pointer-events:auto;touch-action:none}
+.pke-stick span{position:absolute;width:50px;height:50px;border-radius:50%;left:calc(50% - 25px);top:calc(50% - 25px);background:#e9eef6;border:2px solid #fff;transform:translate(calc(var(--pk-sx,0)*30px),calc(var(--pk-sy,0)*30px))}
+.pke-actions{position:absolute;right:18px;bottom:0;width:218px;height:134px;pointer-events:none}
+.pke-actions button{position:absolute;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;padding:0;touch-action:none;pointer-events:auto;border:1px solid var(--pke-pad-edge);background:var(--pke-pad);color:#f5f8ff;box-shadow:none}
+.pke-actions [data-gas]{left:0;bottom:54px}.pke-actions [data-reverse]{left:0;bottom:0}.pke-actions [data-brake]{right:71px;bottom:80px}
+.pke-actions [data-use]{right:0;bottom:0;width:68px;height:68px;background:var(--accent);border-color:var(--accent)}.pke-actions [data-use] svg{width:34px;height:34px}
+.pke-actions [data-use-ammo]{position:absolute;right:-2px;top:-3px;min-width:21px;height:21px;padding:2px 4px;border-radius:7px;border:1px solid var(--accent);background:#fff;color:#141a26;font-size:13px;line-height:16px;font-variant-numeric:tabular-nums}
+.pke-actions [data-nitro]{right:82px;bottom:13px;width:52px;height:52px;border:2px solid transparent;background:linear-gradient(#141a26,#141a26) padding-box,conic-gradient(#83edff calc(var(--charge,1)*1turn),#5a6b7a66 0) border-box}
+.pke-actions [data-held]{transform:translateY(1px);box-shadow:0 0 0 2px #f5f8ff}.pke-touch-mode .pke-bottom{bottom:136px;padding:4px 9px}.pke-touch-mode .pke-speed b{font-size:20px}
+.pke-touch-mode .pke-bottom{width:222px}.pke-touch-mode .kart-item-art{width:54px;height:48px}.pke-touch-mode .kart-item-art .kart-weapon-thumbnail,.pke-touch-mode .kart-item-art svg{width:52px;height:48px}.pke-touch-mode .kart-item{min-height:56px}.pke-touch-mode .kart-item-copy strong{font-size:13px}
+.pke-result{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));max-height:calc(100% - 150px);overflow:auto;padding:22px 24px;background:var(--card);color:var(--ink);border:1px solid var(--line-strong);border-radius:14px;box-shadow:var(--shadow-card)}
+/* Final scores, shared markup with classic arenas (kart-results.mjs). */
+:is(.pk,.pke) .pk-final-title{margin:0;font:800 28px/1.2 var(--font-display);color:var(--ink);text-align:center}
+:is(.pk,.pke) .pk-final-line{margin:6px 0 16px;min-height:1.45em;font:600 16px/1.45 var(--font-body);color:var(--ink-dim);text-align:center}
+:is(.pk,.pke) .pk-final-head{margin:0 0 8px;font:800 13px/1.3 var(--font-body);color:var(--ink-dim)}
+:is(.pk,.pke) .pk-final-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+:is(.pk,.pke) .pk-final-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto auto;align-items:center;gap:10px;min-height:44px;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:var(--well);font:700 16px/1.3 var(--font-body);color:var(--ink)}
+:is(.pk,.pke) .pk-final-row.pk-final-self{border-color:var(--accent);background:var(--accent-soft)}
+:is(.pk,.pke) .pk-final-row.pk-final-out{color:var(--ink-dim)}
+:is(.pk,.pke) .pk-final-rank{font:800 18px/1 var(--font-display);color:var(--ink-dim);text-align:center;font-variant-numeric:tabular-nums}
+:is(.pk,.pke) .pk-final-self .pk-final-rank{color:var(--accent-deep)}
+:is(.pk,.pke) .pk-final-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(.pk,.pke) .pk-final-name small{font-size:13px;font-weight:700;color:var(--ink-dim)}
+:is(.pk,.pke) .pk-final-left{padding:1px 6px;border:1px solid var(--line-strong);border-radius:6px}
+:is(.pk,.pke) .pk-final-score{font-size:15px;color:var(--ink-dim);white-space:nowrap;font-variant-numeric:tabular-nums}
+:is(.pk,.pke) .pk-final-points{min-width:64px;text-align:right;font:800 15px/1.3 var(--font-body);color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pke-loading{position:absolute;inset:0;display:flex;flex-direction:column;gap:14px;justify-content:center;align-items:center;text-align:center;padding:24px;background:var(--bg);color:var(--ink);z-index:3}.pke-loading p{max-width:340px}.pke-loading button{min-width:150px}
+body.game-immersive:has(.pke) #gbody>#rematch{bottom:18px;background:var(--card);border:1px solid var(--line-strong);border-radius:14px;box-shadow:var(--shadow-card);z-index:4}body.game-immersive:has(.pke) #gbody>#rematch button{min-height:48px;padding:8px 20px;border:1px solid var(--accent);border-radius:10px;box-shadow:none;background:var(--accent);color:var(--accent-ink);font:800 16px/1.2 var(--font-body)}body.game-immersive:has(.pke) #gbody>#rematch button.ghost{min-height:44px;background:var(--card);color:var(--ink);border-color:var(--line-strong)}body.game-immersive:has(.pke) #gbody>#rematch #hostWait{margin:0;font-size:13px;color:var(--ink-dim)}
+.pke-has-room .pke-score{margin-left:108px}.room-menu .pke-room-settings{position:static;width:auto;margin-top:16px;padding:14px 0 0;border:0;border-top:1px solid var(--line);box-shadow:none;background:none}.room-menu .pke-room-settings h2{font-size:18px}.room-menu .pke-room-settings label{display:flex;align-items:center;justify-content:space-between;gap:10px}.room-menu .pke-room-settings select{min-height:44px;padding:8px 12px;border-radius:10px;background:var(--card);color:var(--ink);border:1px solid var(--line-strong)}.room-menu .pke-room-settings button{width:100%;min-height:44px;color:var(--ink);background:var(--card);border:1px solid var(--line-strong);border-radius:10px}
+@container pke (max-width:650px){.pke-top{left:10px;right:10px;gap:6px}.pke-score{position:absolute;top:50px;left:0;max-width:145px;font-size:12px;padding:6px 9px}.pke-has-room .pke-score{margin-left:0}.pke-top time{font-size:21px;padding:3px 12px}.pke-bottom{left:14px}.pke-actions{right:12px;width:208px}.pke-stick{left:14px;width:104px;height:104px}.pke-actions [data-use]{width:66px;height:66px}.pke-result{max-height:calc(100% - 155px)}}
+@container pke (max-width:350px){.pke-stick{left:12px;width:96px;height:96px}.pke-actions{width:148px;height:156px}.pke-actions [data-gas]{bottom:104px}.pke-actions [data-reverse]{bottom:52px}.pke-actions [data-brake]{left:0;right:auto;bottom:0}.pke-actions [data-nitro]{right:0;bottom:80px}}
+@media (max-height:450px){.pke-top{top:calc(8px + env(safe-area-inset-top,0px))}.pke-touch{bottom:calc(12px + env(safe-area-inset-bottom,0px));height:126px}.pke-stick{width:94px;height:94px}.pke-stick span{width:44px;height:44px;left:calc(50% - 22px);top:calc(50% - 22px)}.pke-touch-mode .pke-bottom{bottom:116px;padding:4px 8px}.pke-speed b{font-size:19px}.pke-result{padding:14px;max-height:calc(100% - 130px)}.pke-result h2{font-size:22px;margin-bottom:8px}.pke-result li{padding:4px}.pke-panel{max-height:calc(100dvh - 80px);overflow:auto}}
+
+.pke .kart-weapon-thumbnail { display:block; width:40px; height:40px; object-fit:contain; }
+.pke [data-use] .kart-weapon-thumbnail { width:44px; height:44px; }
+.pke-done :is(.pke-score,.pke-top time,.pke-protection,.pke-health,.pke-bottom,.pke-notice){display:none}

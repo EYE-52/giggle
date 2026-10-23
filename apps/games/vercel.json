@@ -1,0 +1,58 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build",
+  "rewrites": [
+    {
+      "source": "/api/reports",
+      "destination": "https://giggle-play-production.up.railway.app/api/reports"
+    },
+    {
+      "source": "/api/reports/:id",
+      "destination": "https://giggle-play-production.up.railway.app/api/reports/:id"
+    },
+    {
+      "source": "/config.json",
+      "destination": "https://giggle-play-production.up.railway.app/config.json"
+    },
+    {
+      "source": "/qr.svg",
+      "destination": "https://giggle-play-production.up.railway.app/qr.svg"
+    },
+    {
+      "source": "/r/:code",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://www.gigglemeet.com"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://www.gigglemeet.com"
+        }
+      ]
+    },
+    {
+      "source": "/r/:code",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://www.gigglemeet.com"
+        }
+      ]
+    }
+  ]
+}

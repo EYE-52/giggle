@@ -1,0 +1,20 @@
+/* Charades: the actor's camera in the call is the stage; the game carries
+ * the secret word (actor), the letter mask (guessers), guesses and scores.
+ * Flat, tokens only (shared parts: compact-answer-games.css). */
+.ch .ch-stage {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
+  padding: 16px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--gk-radius, 12px);
+}
+.ch .ch-stage .gk-meta { margin: 0; }
+.ch .ch-secret { font-size: clamp(28px, 5vw, 44px); color: var(--accent-deep); }
+.ch .ch-mask { font-size: clamp(26px, 5vw, 40px); letter-spacing: .08em; white-space: pre-wrap; }
+.ch .ch-found:empty { display: none; }
+.ch .ch-guess {
+  display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--card); font: 600 16px/1.4 var(--font-body);
+}
+.ch .ch-who { font-weight: 800; }
+.ch .ch-txt { min-width: 0; overflow-wrap: anywhere; }
+@media (max-height: 520px) {
+  .ch .ch-stage { padding: 10px 14px; }
+}

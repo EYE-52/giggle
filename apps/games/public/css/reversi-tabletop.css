@@ -1,0 +1,22 @@
+/* Reversi board art: a flat green board with charcoal and ivory discs. */
+.rv-duel .rv-frame{fill:#1f6b48}
+.rv-duel .rv-felt{fill:#2e8a5e}
+.rv-duel .rv-grid{stroke:#1d5f40;stroke-width:2}
+.rv-duel .rv-star{fill:#1d5f40}
+.rv-duel .rv-hit{fill:transparent}
+.rv-duel .rv-lastsq{fill:#ffffff;opacity:.14;pointer-events:none}
+.rv-duel .rv-legal{fill:#ffffff;opacity:.55;pointer-events:none}
+.rv-duel [data-cell][aria-disabled=false]{cursor:pointer}
+.rv-duel [data-cell][aria-disabled=false]:hover .rv-hit{fill:#ffffff1f}
+.rv-duel [data-cell][aria-disabled=false]:hover .rv-legal{opacity:.9}
+.rv-duel .rv-cursor{stroke:var(--accent);stroke-width:3;opacity:0;pointer-events:none}
+.rv-duel [data-cell]:focus{outline:none}
+.rv-duel [data-cell]:focus-visible .rv-cursor{opacity:1}
+.rv-duel .rv-disc{transform-box:fill-box;transform-origin:center;pointer-events:none}
+.rv-duel .rv-flip{animation:rv-flip .4s cubic-bezier(.2,.65,.3,1) var(--flip-delay) both}
+.rv-duel .rv-old-face{animation:rv-face .4s steps(1,end) var(--flip-delay) both}
+.rv-duel .rv-place{animation:rv-place .22s ease-out both}
+@keyframes rv-flip{0%{transform:scaleX(1)}45%{transform:scaleX(.04)}100%{transform:scaleX(1)}}
+@keyframes rv-face{0%,44%{opacity:1}45%,100%{opacity:0}}
+@keyframes rv-place{0%{transform:scale(.85);opacity:.5}100%{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.rv-duel .rv-old-face{opacity:0}}

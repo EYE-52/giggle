@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Shared recorded gameplay cues — native smoke</title>
+<style>
+body{font:17px/1.5 system-ui;max-width:48rem;margin:2rem auto;padding:0 1rem;color:#252237;background:#FAFAFD}
+button{font:inherit;min-height:48px;padding:10px 20px;border:0;border-radius:12px;background:#D82F73;color:white}
+pre{white-space:pre-wrap;font:14px/1.5 ui-monospace;background:white;border:1px solid #ddd;padding:16px;border-radius:12px}
+</style>
+<h1>Shared recorded gameplay cues</h1>
+<p>Native browser decoding, gesture unlock, immediate scheduling and mute checks. This fixture observes the production sound API; it does not judge perceived sound quality or physical devices.</p>
+<button id="verify">Verify recorded gameplay audio</button>
+<p id="status" role="status">Ready for a native click. Reload before repeating.</p>
+<pre id="report">No audio context or sample fetch before the gesture.</pre>
+<script type="module">
+const audio={loads:[],decodes:[],starts:[],stops:[]}, bytesToFile=new WeakMap(), buffersToFile=new WeakMap(), contexts=[];
+const nativeFetch=window.fetch;
+window.fetch=async(...args)=>{
+  const response=await nativeFetch(...args), url=String(args[0]);
+  if(!url.includes('/assets/game-audio/') || !url.endsWith('.wav'))return response;
+  const file=url.split('/').at(-1), read=response.arrayBuffer.bind(response);
+  audio.loads.push({file,status:response.status});
+  response.arrayBuffer=async()=>{const bytes=await read();bytesToFile.set(bytes,file);return bytes;};
+  return response;
+};
+const NativeContext=window.AudioContext||window.webkitAudioContext;
+if(NativeContext){
+  window.AudioContext=function(...args){const context=new NativeContext(...args);contexts.push(context);return context;};
+  window.AudioContext.prototype=NativeContext.prototype;
+  const decode=NativeContext.prototype.decodeAudioData, create=NativeContext.prototype.createBufferSource;
+  NativeContext.prototype.decodeAudioData=function(bytes,...args){
+    if(!contexts.includes(this))contexts.push(this);
+    const result=decode.call(this,bytes,...args), file=bytesToFile.get(bytes);
+    result.then(buffer=>{buffersToFile.set(buffer,file);audio.decodes.push({file,duration:buffer.duration,channels:buffer.numberOfChannels,sampleRate:buffer.sampleRate});},error=>audio.decodes.push({file,error:String(error)}));
+    return result;
+  };
+  NativeContext.prototype.createBufferSource=function(...args){
+    const source=create.apply(this,args), start=source.start, stop=source.stop;
+    source.start=function(...values){const result=start.apply(this,values);audio.starts.push({file:buffersToFile.get(this.buffer),at:performance.now(),futureArguments:values.length});return result;};
+    source.stop=function(...values){const result=stop.apply(this,values);audio.stops.push({file:buffersToFile.get(this.buffer),at:performance.now()});return result;};
+    return source;
+  };
+}
+const {sound}=await import('/js/fx.js');
+const names=['piece','capture','dice','deal','place','burst','correct','reveal','win'];
+const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+for(const name of ['click','lock','tick','turn','pop'])sound[name]();
+const verify=document.getElementById('verify'), status=document.getElementById('status'), output=document.getElementById('report');
+verify.onclick=async event=>{
+  verify.disabled=true;status.textContent='Checking native audio…';
+  const checks=[], saved=localStorage.getItem('pb_sound'), initialEnabled=sound.enabled;
+  const check=(name,pass)=>checks.push({name,pass:!!pass});
+  try{
+    check('native trusted gesture',event.isTrusted);
+    check('no context or sample load before gesture',contexts.length===0&&audio.loads.length===0);
+    if(!sound.enabled)sound.toggle();sound.unlock();sound.cue('dice');
+    check('cold cue dropped without a promise',audio.starts.length===0);
+    sound.toggle();
+    const until=performance.now()+5000;
+    while(audio.decodes.length<9&&performance.now()<until)await delay(20);
+    check('all nine recordings decoded',audio.decodes.length===9&&audio.decodes.every(d=>!d.error&&d.duration>0&&d.duration<=.651));
+    check('gesture context running',contexts[0]?.state==='running');
+    check('decode completion after mute stayed silent',audio.starts.length===0&&!sound.enabled);
+    sound.toggle();await delay(30);check('unmute did not replay a cold cue',audio.starts.length===0);
+    for(const name of names){
+      const before=audio.starts.length;sound.cue(name);
+      check(name+' native source scheduled',audio.starts.length===before+1&&audio.starts.at(-1).file===name+'.wav');
+      await delay(850);
+    }
+    const starts=audio.starts.length, stops=audio.stops.length;sound.win();sound.toggle();sound.cue('piece');
+    check('mute stopped the active clip and refused new cues',audio.starts.length===starts+1&&audio.stops.length===stops+1&&!sound.enabled);
+    sound.toggle();await delay(30);check('no stale cue after unmute',audio.starts.length===starts+1);
+    sound.unlock();await delay(30);check('recordings decoded and fetched once',audio.loads.length===9&&audio.decodes.length===9);
+    check('no delayed start times',audio.starts.every(start=>start.futureArguments===0));
+  }catch(error){checks.push({name:'native verification error',pass:false,error:String(error)});}
+  finally{
+    if(sound.enabled!==initialEnabled)sound.toggle();
+    if(saved===null)localStorage.removeItem('pb_sound');else localStorage.setItem('pb_sound',saved);
+  }
+  const result={pass:checks.every(c=>c.pass),capturedAt:new Date().toISOString(),userAgent:navigator.userAgent,contextState:contexts[0]?.state,checks,audio,boundary:'Native browser backend and trusted UI gesture; no subjective listening or physical-device claim.'};
+  status.textContent=result.pass?'PASS · nine recordings decoded; gesture, cache, scheduling and mute verified.':'FAIL · see recorded checks.';
+  output.textContent=JSON.stringify(result,null,2);
+  await nativeFetch('/__qa/report',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(result)});
+};
+</script>

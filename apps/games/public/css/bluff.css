@@ -1,0 +1,25 @@
+/* Bluff on the game kit (game-ui.css). Tokens only. */
+.bl-scene { padding: 4px 0 24px; }
+
+.bl-mine p { margin: 4px 0 0; font: 700 17px/1.45 var(--font-body); color: var(--ink); overflow-wrap: anywhere; }
+.bl-winner { color: var(--ink); font-weight: 800; }
+.bl-list { list-style: none; margin: 0; padding: 0; }
+.bl-list .gk-choice { cursor: default; }
+.bl-list .gk-choice:not(.is-correct):not(.is-wrong):hover { border-color: var(--line-strong); }
+.bl-list .gk-meta { margin-top: 2px; font-weight: 600; }
+.bl-foot { min-height: 48px; }
+
+/* Vote share on reveal cards: flat track, accent fill. */
+.pb-share { display: block; height: 6px; margin-top: 8px; border-radius: 3px; background: var(--well); overflow: hidden; }
+.pb-share > span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.gk-choice.is-correct .pb-share > span { background: var(--green); }
+
+/* Short frames (a small Giggle panel, zoomed text): tighter rhythm so the
+ * question and the main action stay in view. */
+@media (max-height: 560px) {
+  .bl-scene { gap: 10px; padding-bottom: 12px; }
+  .bl-scene .gk-prompt { font-size: 22px; }
+  .bl-scene .gk-sub { font-size: 16px; }
+  .bl-scene .gk-choice { min-height: 48px; padding-block: 8px; }
+  .bl-scene .pb-share { margin-top: 5px; }
+}

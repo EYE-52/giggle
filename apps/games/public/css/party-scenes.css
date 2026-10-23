@@ -1,0 +1,247 @@
+/* Live party games: shared typography and controls.
+ *
+ * Flat and token-only (specs/GAME_UI_STANDARD.md). This sheet never
+ * redefines the theme tokens, so Day, Night and Inside Giggle
+ * (body.is-embed) all read correctly. One accent (--accent) for selection
+ * and primary actions in every party game. Tints are mixed from tokens.
+ */
+.party-scene {
+  --party-gap: 14px;
+  --party-radius: 12px;
+  --party-tint-good: color-mix(in srgb, var(--green) 14%, var(--card));
+  --party-tint-bad: color-mix(in srgb, var(--melon) 14%, var(--card));
+  --party-tint-sun: color-mix(in srgb, var(--sun) 14%, var(--card));
+  max-width: 760px; margin: 0 auto; padding: 16px 0 24px; min-width: 0;
+  background: transparent; border: 0; border-radius: 0; box-shadow: none;
+  color: var(--ink); font: 17px/1.45 var(--font-body); overflow-wrap: anywhere;
+  container: party / inline-size;
+}
+.party-scene *, .party-scene *::before, .party-scene *::after { box-sizing: border-box; }
+.party-scene [hidden] { display: none !important; }
+.party-scene :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.party-scene :is(button, summary) { touch-action: manipulation; }
+
+/* ---- prompt, HUD, status lines ---- */
+#gbody .party-scene .party-prompt.party-prompt {
+  font: 800 clamp(26px, 3vw, 32px)/1.2 var(--font-display);
+  letter-spacing: normal; margin: 10px 0 18px; padding: 0; border: 0;
+  background: none; color: var(--ink); text-shadow: none; overflow-wrap: anywhere; text-wrap: balance;
+}
+.party-hud { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; min-height: 32px; margin: 0 0 12px; padding: 0; border: 0; background: transparent; }
+#gbody .party-scene .party-hud, #gbody .party-scene .party-hud > * { font: 700 14px/1.4 var(--font-body); color: var(--ink-dim); }
+.party-hud > * { min-width: 0; max-width: 100%; }
+.party-hud .party-round { font-weight: 800 !important; color: var(--ink) !important; }
+.party-progress { margin-left: auto; font-variant-numeric: tabular-nums; }
+.party-spectator { padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--well); }
+
+#gbody .party-scene .party-status, #gbody .party-scene .party-lock { font: 600 16px/1.45 var(--font-body); margin: 12px 0; color: var(--ink-dim); }
+.party-lock { padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: var(--party-radius); background: var(--accent-soft); }
+#gbody .party-scene .party-lock { color: var(--ink); }
+
+#gbody .party-scene .party-meta { font: 600 14px/1.45 var(--font-body); color: var(--ink-dim); margin: 8px 0 0; overflow-wrap: anywhere; }
+#gbody .party-scene .party-label { display: block; font: 800 14px/1.4 var(--font-body); color: var(--ink-dim); margin: 0 0 6px; }
+
+/* ---- choices ---- */
+.party-choices { display: grid; gap: 12px; margin-top: 16px; grid-auto-rows: 1fr; }
+#gbody .party-scene .party-choice, #gbody .party-scene .party-person {
+  appearance: none; display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 56px;
+  width: 100%; padding: 12px 16px; border: 1px solid var(--line-strong); border-radius: var(--party-radius);
+  background: var(--card); color: var(--ink); font: 700 18px/1.35 var(--font-body);
+  text-align: left; overflow-wrap: anywhere; box-shadow: none; cursor: pointer;
+  transition: border-color .15s, background-color .15s, opacity .15s;
+}
+#gbody .party-scene :is(.party-choice, .party-person):disabled { cursor: default; opacity: 1; }
+#gbody .party-scene :is(.party-choice, .party-person).is-picked,
+#gbody .party-scene :is(.party-choice, .party-person)[aria-pressed="true"] {
+  border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* Side variants keep a quiet tinted marker instead of coloured fills. */
+
+#gbody .party-scene .party-choice.is-correct { border-color: var(--green); background: var(--party-tint-good); box-shadow: inset 0 0 0 1px var(--green); }
+#gbody .party-scene .party-choice.is-wrong { border-color: var(--melon); background: var(--party-tint-bad); text-decoration: line-through; text-decoration-thickness: 2px; }
+
+/* ---- compose (text inputs) ---- */
+.party-compose { display: grid; gap: 12px; max-width: 760px; margin-top: 18px; padding: 16px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--party-radius); box-shadow: none; }
+.party-compose .party-actions { margin-top: 4px; }
+.party-compose > .party-label { margin-bottom: 0; }
+.party-field label { display: block; font-weight: 800; font-size: 15px; margin-bottom: 6px; color: var(--ink); }
+#gbody .party-scene .party-compose input[type="text"], #gbody .party-scene .party-field input[type="text"] {
+  min-width: 0; width: 100%; max-width: 100%; min-height: 48px; padding: 10px 14px;
+  border: 1px solid var(--line-strong); border-radius: var(--party-radius);
+  background: var(--input-bg, var(--card)); color: var(--ink); font: 600 17px/1.3 var(--font-body); font-size: 17px; box-shadow: none;
+}
+#gbody .party-scene .party-compose input[type="text"]:focus, #gbody .party-scene .party-field input[type="text"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.party-compose input::placeholder { color: var(--ink-dim); opacity: 1; }
+
+/* ---- buttons ---- */
+.party-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0 0; }
+#gbody .party-scene .btn {
+  min-height: 48px; min-width: 44px; padding: 10px 22px; font: 800 16px/1.2 var(--font-body);
+  background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: var(--party-radius);
+  box-shadow: none; cursor: pointer; transition: background-color .15s, border-color .15s, filter .15s;
+}
+#gbody .party-scene .btn.ghost { min-height: 44px; background: var(--card); color: var(--ink); border-color: var(--line-strong); }
+#gbody .party-scene .btn:disabled { opacity: 1; cursor: default; background: var(--well); border-color: var(--line); color: var(--ink-dim); }
+@media (hover: hover) {
+  #gbody .party-scene .btn:not(:disabled):hover { filter: brightness(1.06); }
+  #gbody .party-scene .btn.ghost:not(:disabled):hover { filter: none; border-color: var(--ink-dim); }
+}
+
+/* ---- reveals and results ---- */
+.party-reveals { display: grid; gap: 12px; margin-top: 16px; }
+.party-result { padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: var(--party-radius); }
+.party-result--winner { border-color: var(--accent); background: var(--accent-soft); }
+.party-result-body, #gbody .party-scene .party-result > p:not(.party-meta):not(.party-status):not(.party-emoji) { font: 800 20px/1.35 var(--font-body); color: var(--ink); margin: 0 0 6px; overflow-wrap: anywhere; }
+.party-meter { height: 10px; margin-top: 10px; border: 0; border-radius: 999px; background: var(--well); overflow: hidden; }
+.party-meter > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .25s ease; }
+
+/* ---- scoreboard (older markup; new screens use gk-results, which may
+ * carry these class names as aliases and then keep the kit's look) ---- */
+.party-scoreboard:not(.gk-ranks) { display: grid; gap: 6px; margin-top: 16px; }
+.party-score:not(.gk-rank-row) { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--party-radius); background: var(--card); font: 700 16px/1.35 var(--font-body); min-width: 0; overflow-wrap: anywhere; }
+.party-score:not(.gk-rank-row) > span { min-width: 0; }
+.party-score:not(.gk-rank-row) b { margin-left: auto; flex: none; font-variant-numeric: tabular-nums; color: var(--ink); }
+.party-score--top:not(.gk-rank-row) .party-rank-num { color: var(--accent-deep); }
+.party-rank-num:not(.gk-rank) { flex: none; min-width: 2ch; font-weight: 800; color: var(--ink-dim); }
+#gbody .party-scene .party-score .party-person { padding: 0; background: none; border: 0; box-shadow: none; flex: 1; cursor: inherit; font-size: 16px; min-height: 32px; }
+.party-scene .gk-results { margin-top: 8px; }
+.party-avatar { white-space: nowrap; flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 50%; background: var(--accent-soft); color: var(--accent-deep); font: 800 15px var(--font-body); }
+
+/* ---- story, rank list, emoji, misc ---- */
+
+.party-rank-list { display: grid; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+.party-rank-item { display: flex; align-items: center; gap: 12px; min-width: 0; min-height: 56px; padding: 8px 12px; background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--party-radius); font: 700 17px/1.35 var(--font-body); overflow-wrap: anywhere; }
+.party-rank-name { flex: 1; min-width: 0; }
+.party-rank-item .party-actions { flex-wrap: nowrap; margin: 0 0 0 auto; }
+#gbody .party-scene .party-rank-item .party-actions .btn { min-width: 44px; min-height: 44px; padding: 8px; }
+.party-rank-item b { margin-left: auto; flex: none; font-variant-numeric: tabular-nums; }
+
+.party-more { margin-top: 16px; }
+.party-more > summary, .party-scene--poll details > summary { display: flex; align-items: center; min-height: 44px; font: 700 15px var(--font-body); color: var(--ink-dim); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.party-more > .party-meta { margin: 4px 0 12px; }
+
+/* ==== per-game compositions (layout only; no own colours) ==== */
+
+.hot-room-split { max-width: 760px; margin: 20px 0; }
+.hot-split-track { display: flex; overflow: hidden; height: 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--well); }
+.hot-split-track > span { display: block; height: 100%; background: var(--green); transition: width .25s; }
+.hot-split-track > span + span { background: var(--melon); }
+.hot-split-labels { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 10px; }
+.hot-split-side > b { font-size: 20px; }
+.hot-split-side:last-child { text-align: right; }
+.party-scene--hot .party-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#gbody .party-scene--hot .party-choice { min-height: 88px; justify-content: center; text-align: center; font-size: 20px; font-weight: 800; }
+.party-scene--hot { max-width: 760px; }
+.party-scene--hot .hot-choice { min-height: 72px; font-size: 19px; font-weight: 800; }
+.party-scene--hot .hot-room-split { margin: 0; }
+.party-scene--hot .party-reveals { margin-top: 0; gap: 8px; }
+.party-scene--hot .hot-take-row .party-result-body { font-size: 18px; }
+.party-scene--hot .hot-take-row .hot-split-track { margin: 8px 0 0; height: 10px; }
+#gbody .party-scene--hot .hot-tag { margin: 0 0 4px; color: var(--accent-deep); }
+.party-scene--hot .hot-actions { min-height: 48px; }
+.party-scene--hot .party-compose .gk-input-row { margin: 0; }
+#gbody .party-scene--hot .hot-starter { margin: 0; }
+
+.party-scene--rank { max-width: 760px; }
+.party-scene--rank .party-rank-item.is-moved { border-color: var(--accent); }
+
+.party-scene--rank .party-rank-list { margin: 0; }
+.party-scene--rank .party-rank-item .gk-mark { width: 30px; height: 30px; }
+.rank-reveal { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.rank-reveal .party-rank-item { min-height: 48px; padding: 6px 12px; font-size: 16px; }
+.rank-reveal .rank-note { display: block; font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+.party-scene--rank .rank-actions { min-height: 48px; }
+@container party (max-width: 640px) { .rank-reveal { grid-template-columns: 1fr; } }
+
+.party-scene--spotlight, .party-scene--truth { text-align: center; }
+#gbody .party-scene--spotlight > .party-prompt, #gbody .party-scene--truth > .party-prompt { max-width: 28ch; margin: 18px auto; }
+.party-lineup { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 16px 0; }
+#gbody .party-scene--spotlight .party-lineup .party-person { width: auto; min-height: 44px; font-size: 16px; padding: 8px 14px; background: var(--well); border-radius: 999px; }
+
+.party-scene--spotlight .party-actions, .party-scene--truth .party-actions { justify-content: center; }
+.party-scene--spotlight .party-reveals, .party-scene--truth .party-reveals { text-align: left; }
+
+/* Spinner (Dare Roulette): flat disc, player colours come from the game. */
+.party-spin-desk { position: relative; width: 240px; margin: 18px auto 24px; }
+.party-wheel { position: relative; width: 240px; height: 240px; margin: 18px auto; border: 6px solid var(--card); border-radius: 50%; box-shadow: 0 0 0 1px var(--line-strong); }
+.party-wheel-disc { position: absolute; inset: 0; border-radius: 50%; transform: rotate(var(--wheel-angle, 0deg)); transition: transform .5s cubic-bezier(.2, .8, .2, 1); }
+.party-wheel-disc::after { content: ''; position: absolute; inset: 38%; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--card); }
+.party-wheel-name { position: absolute; inset: 0; transform: rotate(var(--seat-angle)); }
+.party-wheel-name > span { position: absolute; top: 10px; left: calc(50% - 16px); width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--card); color: var(--ink); font-size: 15px; font-weight: 800; transform: rotate(calc(0deg - var(--seat-angle))); }
+.party-wheel-pin { position: absolute; z-index: 2; top: -13px; left: calc(50% - 11px); border: 11px solid transparent; border-top: 22px solid var(--accent); }
+#gbody .party-spin-desk > #drSpin { position: relative; margin-top: 0; min-height: 48px; width: 100%; }
+.party-wheel.is-landed { width: 140px; height: 140px; border-width: 4px; }
+.party-wheel.is-landed .party-wheel-name { display: none; }
+.party-wheel.is-spinning .party-wheel-disc { animation: party-spin .6s ease-out; }
+@keyframes party-spin { to { transform: rotate(360deg); } }
+
+/* Polls (Rapid Polls). */
+.party-scene--poll { max-width: 760px; }
+.party-scene--poll .party-choices { grid-template-columns: 1fr; gap: 10px; grid-auto-rows: auto; }
+.party-poll-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#gbody .party-scene--poll .party-choice { position: relative; isolation: isolate; display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; align-items: center; min-height: 60px; overflow: hidden; }
+.party-poll-fill { position: absolute; z-index: -1; inset: 0 auto 0 0; background: var(--accent-soft); transition: width .25s ease; }
+.party-choice-tally { display: grid; justify-items: center; min-width: 3ch; font-variant-numeric: tabular-nums; font-size: 20px; }
+.party-choice-tally small { font-size: 13px; color: var(--ink-dim); }
+.party-scene--poll .party-compose { max-width: none; margin-top: 0; }
+.party-scene--poll .party-reveals { margin-top: 0; gap: 8px; }
+.party-scene--poll .party-result { padding: 12px 14px; }
+#gbody .party-scene--poll .party-result-body { display: flex; align-items: center; gap: 12px; margin: 0; font-size: 17px; line-height: 1.35; }
+#gbody .party-scene--poll .party-result-body .gk-mark { width: 28px; height: 28px; font-size: 13px; }
+.party-scene--poll .party-result .party-meter { margin-top: 8px; height: 8px; }
+.party-scene--poll .party-result .party-meta { margin-top: 6px; font-size: 13px; }
+.party-scene--poll .rp-actions { min-height: 48px; }
+
+@media (hover: hover) {
+
+  #gbody .party-scene :is(button.party-choice, button.party-person):not(:disabled):hover { border-color: var(--accent); }
+}
+@container party (max-width: 640px) {
+  .party-hud .party-progress { margin-left: 0; }
+
+  .party-poll-options { grid-template-columns: 1fr; }
+
+  .party-rank-item { gap: 8px; padding: 8px 10px; }
+  .party-compose { padding: 14px; }
+
+}
+@media (max-width: 640px) {
+  .party-scene { padding: 10px 0 20px; }
+  #gbody .party-scene .party-prompt.party-prompt { font-size: clamp(22px, 6vw, 26px); }
+
+  #gbody .party-scene .party-choice { font-size: 16px; }
+  #gbody .party-scene--hot .party-choice { font-size: 18px; min-height: 72px; padding: 14px; }
+  #gbody .party-scene .party-hud, #gbody .party-scene .party-hud > * { font-size: 13px; }
+}
+@media (max-height: 500px) {
+  .party-scene { padding-top: 8px; }
+  #gbody .party-scene .party-prompt.party-prompt { margin-bottom: 12px; }
+
+}
+/* Keep the category beside its task during the five-second input window. */
+
+@media (prefers-reduced-motion: reduce) {
+  .party-scene *, .party-scene *::before, .party-scene *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+/* Kit columns own their rhythm (gk-stack gaps); small frames stay compact. */
+#gbody .party-scene.gk-stack > .party-prompt.party-prompt { margin: 0; }
+@media (max-height: 640px) {
+  .party-scene.gk-stack { padding-top: 4px; gap: 10px; }
+}
+@media (max-height: 640px) {
+  .party-scene--rank .party-rank-list { gap: 6px; }
+  .party-scene--rank .party-rank-item { min-height: 48px; padding: 2px 10px; }
+  .party-scene--poll .gk-sub { display: none; }
+  .party-scene--poll .party-compose { gap: 8px; padding: 12px 14px; }
+  .party-scene--poll .party-field label { margin-bottom: 2px; font-size: 14px; }
+}
+@container party (min-width: 480px) and (max-width: 640px) {
+  .party-poll-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-height: 640px) {
+  /* The Lock / Update button already says whether the ladder is saved. */
+  .party-scene--rank .js-feedback { display: none; }
+  .party-scene--rank .party-rank-list { gap: 4px; }
+}
+/* A kit column keeps the standard 760px width. */
+.party-scene.gk-col { max-width: 760px; }

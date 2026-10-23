@@ -1,0 +1,25 @@
+/* Five Second Rule on the game kit (game-ui.css). Tokens only. */
+.fs-scene { padding: 4px 0 24px; }
+
+.fs-answers {
+  list-style: none; margin: 0; padding: 4px 16px; min-width: 0;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--gk-radius, 12px);
+}
+.fs-answers li { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 6px 0; font: 700 18px/1.35 var(--font-body); color: var(--ink); overflow-wrap: anywhere; }
+.fs-answers li + li { border-top: 1px solid var(--line); }
+.fs-answers li > span:last-child { min-width: 0; }
+.fs-none { margin: 0; font: 600 16px/1.45 var(--font-body); color: var(--ink-dim); }
+.fs-verdict { justify-content: center; }
+.fs-verdict .gk-choice-text { flex: 0 1 auto; }
+.fs-verdict-line { color: var(--ink); font-weight: 800; }
+.fs-foot { min-height: 48px; }
+
+/* Short frames (a small Giggle panel, zoomed text): tighter rhythm so the
+ * question and the main action stay in view. */
+@media (max-height: 560px) {
+  .fs-scene { gap: 10px; padding-bottom: 12px; }
+  .fs-scene .gk-prompt { font-size: 22px; }
+  .fs-scene .gk-sub { font-size: 16px; }
+  .fs-scene .gk-choice { min-height: 48px; padding-block: 8px; }
+  .fs-scene .pb-share { margin-top: 5px; }
+}

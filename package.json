@@ -16,7 +16,10 @@
     "typecheck": "pnpm --filter @giggle/desktop typecheck && pnpm --filter @giggle/mobile typecheck",
     "audit:prod": "pnpm audit --prod --audit-level moderate",
     "ios": "pnpm --filter @giggle/mobile ios",
-    "web:mobile": "pnpm --filter @giggle/mobile web"
+    "web:mobile": "pnpm --filter @giggle/mobile web",
+    "test:games": "npm --prefix apps/games test",
+    "build:games": "npm --prefix apps/games run build",
+    "test:games:integration": "node apps/games/test/canonical-bridge.js && node apps/games/test/canonical-release.js"
   },
   "pnpm": {
     "overrides": {

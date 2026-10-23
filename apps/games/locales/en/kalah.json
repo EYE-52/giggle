@@ -1,0 +1,10 @@
+{
+  "strings": {
+    "title": "Kalah", "variant": "Mancala · 6 bowls · 4 seeds", "jade": "Jade", "amber": "Amber", "yourTurn": "Your move", "waiting": "Their move", "watching": "Watching",
+    "choose": "Choose one of your glowing bowls.", "sowing": "Sowing seeds…", "extra": "Another turn — you landed in your store.", "capture": "Captured the opposite bowl!", "waitingHint": "Plan your next move while your friend plays.",
+    "win": "wins", "draw": "Draw", "collectedReason": "All seeds collected", "resignReason": "Opponent resigned", "help": "How to play", "flip": "Flip board",
+    "resign": "Resign", "confirmResign": "Confirm resign", "cancel": "Cancel", "seed": "seed", "seeds": "seeds", "bowl": "Bowl", "store": "Store", "empty": "empty", "retry": "No response yet. Try your move again.",
+    "instructions": "Pick a bowl on your side. Sow one seed in each bowl and your store, skipping the other store. Finish in your store for another turn. Finish in an empty bowl on your side to capture that seed and the opposite seeds, if the opposite bowl has seeds. When one side empties, the other side moves their remaining seeds into their own store. Most seeds wins; 24 each is a draw.",
+    "spectatorHelp": "Friends are playing. You can flip the board and watch every seed."
+  }
+}

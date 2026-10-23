@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kart weapon HUD-only review</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:20px;background:#edf0f3;color:#192431;font:15px/1.5 system-ui,sans-serif}h1{font-size:24px;margin:0 0 4px}p{margin:0 0 14px}button,select{font:inherit;min-height:44px;border:1px solid #acb6c2;border-radius:8px;background:#fff;color:inherit;padding:8px 13px;cursor:pointer}button[aria-pressed=true]{background:#243a50;color:white}button:focus-visible,select:focus-visible{outline:3px solid #2278bf;outline-offset:2px}.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;max-width:1280px}.gallery button{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px}.gallery img{width:58px;height:58px;object-fit:contain}.preview{overflow:auto;max-width:100%;border:1px solid #9eacbb;background:#d5dbe1;margin:16px 0}iframe{display:block;border:0;flex:none}pre{white-space:pre-wrap;background:#fff;border:1px solid #c7d0da;padding:14px;border-radius:8px;font-size:12px;max-width:1280px}#status{font-weight:650}small{color:#526274}.break{height:1px;background:#bac5d0;max-width:1280px;margin:18px 0}
+</style>
+<h1>Kart weapon HUD-only review</h1>
+<p>Real weapon painter, decoded shipping thumbnails and HUD styles. Neutral backdrop; no gameplay, physics, audio or game connection.</p>
+<div class="toolbar" aria-label="Viewport">
+  <button data-size="1280,800" aria-pressed="true">1280 × 800</button><button data-size="390,844" aria-pressed="false">390 × 844</button><button data-size="568,320" aria-pressed="false">568 × 320</button>
+  <label>Renderer <select id="renderer"><option value="classic">Classic</option><option value="elevated">Elevated</option></select></label>
+  <button id="touch" aria-pressed="false">Touch review: off</button><button id="auto">Use detected controls</button>
+</div>
+<div class="toolbar" aria-label="Weapon state"><button data-state="ready" aria-pressed="true">Ready</button><button data-state="firing" aria-pressed="false">Firing / deploying</button><button data-state="empty" aria-pressed="false">Empty</button><button id="matrix">Check all viewports and states</button></div>
+<p id="status" role="status">Decoding all 14 weapon images…</p><small id="hardware"></small>
+<div class="preview"><iframe id="preview" title="Actual kart weapon HUD on neutral backdrop" width="1280" height="800" src="/frame?renderer=classic"></iframe></div>
+<div class="gallery" id="gallery" aria-label="Choose one of 14 decoded weapons"></div>
+<div class="break"></div><p>Geometry checks inspect the actual rendered elements. Hidden touch controls are marked not applicable. The full matrix checks both renderers, three viewports, keyboard/touch preferences, all 14 weapons and three inventory states.</p>
+<pre id="report" aria-live="polite">Waiting for the HUD frame.</pre>
+<script type="module">
+import {loadKartWeaponThumbnails,weaponThumbnailArt} from '/js/engines/kart-assets.mjs';
+import {kartWeaponDisplay} from '/js/engines/kart-weapon-hud.mjs';
+const frame=document.querySelector('#preview'),status=document.querySelector('#status'),report=document.querySelector('#report');
+let kind='bomb',state='ready',preference='keyboard',renderer='classic';
+const kinds=Object.keys(await (await fetch('/inventory.json')).json());
+await loadKartWeaponThumbnails();
+for(const value of kinds){
+  const button=document.createElement('button');button.type='button';button.dataset.kind=value;button.setAttribute('aria-pressed',String(value===kind));
+  button.innerHTML=weaponThumbnailArt(value)+'<span></span>';button.querySelector('span').textContent=kartWeaponDisplay({weapon:value,ammo:1}).label;
+  button.onclick=()=>{kind=value;update();};document.querySelector('#gallery').append(button);
+}
+async function readyFrame(){
+  const deadline=performance.now()+10000;
+  while(!frame.contentWindow.hudReview){
+    if(performance.now()>deadline)throw Error('HUD frame did not initialize');
+    await new Promise(resolve=>setTimeout(resolve,20));
+  }
+  await frame.contentWindow.hudReview.ready;
+}
+async function update(){
+  await readyFrame();const value=await frame.contentWindow.hudReview.set({kind,state,preference});
+  report.textContent=JSON.stringify(value,null,2);document.querySelector('#hardware').textContent='Actual hardware detection (unchanged): '+JSON.stringify(value.capabilities)+' · review preference: '+preference;
+  document.querySelectorAll('[data-kind]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.kind===kind)));
+  document.querySelectorAll('[data-state]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.state===state)));
+  const touch=document.querySelector('#touch');touch.setAttribute('aria-pressed',String(value.touch));touch.textContent='Touch review: '+(value.touch?'on':'off');
+  status.textContent='14 / 14 images decoded · '+renderer+' · '+state+' · '+(value.pass?'geometry passes':'geometry findings below');
+  return value;
+}
+function viewport(width,height){frame.width=width;frame.height=height;document.querySelectorAll('[data-size]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.size===width+','+height)));}
+document.querySelectorAll('[data-size]').forEach(button=>button.onclick=()=>{viewport(...button.dataset.size.split(',').map(Number));update();});
+document.querySelectorAll('[data-state]').forEach(button=>button.onclick=()=>{state=button.dataset.state;update();});
+document.querySelector('#touch').onclick=()=>{preference=frame.contentWindow.hudReview.touch?'keyboard':'touch';update();};
+document.querySelector('#auto').onclick=()=>{preference='auto';update();};
+async function layout(value){renderer=value;document.querySelector('#renderer').value=value;frame.src='/frame?renderer='+value;await new Promise(resolve=>frame.addEventListener('load',resolve,{once:true}));await readyFrame();}
+document.querySelector('#renderer').onchange=async event=>{await layout(event.target.value);update();};
+document.querySelector('#matrix').onclick=async event=>{
+  const controls=[...document.querySelectorAll('button,select')];controls.forEach(control=>{control.disabled=true;});const saved={kind,state,preference,renderer,width:frame.width,height:frame.height};
+  const cases=[];status.textContent='Checking actual HUD geometry…';
+  try{
+    for(const mode of ['classic','elevated']){
+      await layout(mode);
+      for(const [width,height] of [[1280,800],[390,844],[568,320]]){
+        viewport(width,height);
+        for(const controls of ['keyboard','touch'])for(const weapon of kinds)for(const stage of ['ready','firing','empty']){
+          const result=await frame.contentWindow.hudReview.set({kind:weapon,state:stage,preference:controls});
+          cases.push({renderer:mode,viewport:[width,height],controls,weapon,state:stage,pass:result.pass,checks:result.checks});
+        }
+      }
+    }
+    window.hudMatrixReport={pass:cases.every(value=>value.pass),cases:cases.length,failures:cases.filter(value=>!value.pass),boundary:'HUD-only native DOM geometry; no driving/physics/GPU or subjective art acceptance.'};
+    report.textContent=JSON.stringify(window.hudMatrixReport,null,2);status.textContent=(window.hudMatrixReport.pass?'PASS':'FINDINGS')+' · '+cases.length+' HUD layout/state cases';
+  }catch(error){report.textContent=String(error);status.textContent='Fixture failed';}
+  finally{kind=saved.kind;state=saved.state;preference=saved.preference;await layout(saved.renderer);viewport(saved.width,saved.height);await frame.contentWindow.hudReview.set({kind,state,preference});controls.forEach(control=>{control.disabled=false;});}
+};
+try{await update();}catch(error){status.textContent='Fixture initialization failed';report.textContent=String(error);}
+</script></html>

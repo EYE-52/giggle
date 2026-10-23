@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFF6F8">
+<title>20 Questions — Game Night by Giggle</title>
+<meta name="description" content="Yes/no your way to it. Ask yes/no questions or guess the secret word. The host chooses 10–50 questions per round (20 by default). Optional shared letter…">
+<link rel="canonical" href="https://play.gigglemeet.com/games/twenty-questions/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="20 Questions — Game Night by Giggle">
+<meta property="og:description" content="Yes/no your way to it. Ask yes/no questions or guess the secret word. The host chooses 10–50 questions per round (20 by default). Optional shared letter…">
+<meta property="og:url" content="https://play.gigglemeet.com/games/twenty-questions/">
+<link rel="preload" href="/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/game-page.css">
+<script>try{var t=localStorage.getItem('pb_theme');if(t==='night'||t==='dark'||t==='arcade')document.documentElement.dataset.theme='night';}catch(e){}</script>
+</head>
+<body>
+<div class="gp-wrap">
+  <nav class="gp-crumb" aria-label="Breadcrumb">
+    <a href="/">All games</a>
+    <span aria-hidden="true">›</span>
+    <span aria-current="page">20 Questions</span>
+  </nav>
+
+  <header class="gp-hero">
+    <img class="gp-art" src="/img/games/twenty-questions.webp" alt="" width="480" height="270" loading="eager">
+    <div class="gp-hero-text">
+      <h1>20 Questions</h1>
+      <p class="gp-tag">Yes/no your way to it</p>
+      <ul class="gp-pills" aria-label="Game facts">
+        <li>3–12 players</li>
+        <li>Everyone plays</li>
+        <li>Customizable</li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="gp-how" aria-labelledby="gpHow">
+      <h2 id="gpHow">How to play</h2>
+      <p>Ask yes/no questions or guess the secret word.</p>
+      <p>The host chooses 10–50 questions per round (20 by default).</p>
+      <p>Optional shared letter hints cost 50 points each, up to two per round.</p>
+      <p class="gp-fact">3–12 players per room.</p>
+    </section>
+
+      <section class="gp-custom" aria-labelledby="gpCustom">
+        <h2 id="gpCustom">Make it yours</h2>
+        <p>The host can adjust these before the game starts.</p>
+        <h3>Room settings</h3>
+        <ul class="gp-list">
+          <li><strong>Rounds</strong> <span>1–12, default Auto (one per player)</span></li>
+          <li><strong>Pace</strong> <span>Options: Relaxed · Normal · Quick. Default: Normal</span></li>
+          <li><strong>Seconds per round</strong> <span>30–600, default 180</span></li>
+          <li><strong>Questions per round</strong> <span>10–50, default 20</span></li>
+          <li><strong>Shared letter hints (50 points each, up to 2)</strong> <span>Default: off</span></li>
+        </ul>
+        <h3>Custom content</h3>
+        <ul class="gp-list">
+          <li><strong>Custom secret words</strong> <span>Bring your own (at least 5, each ≤ 40 chars)</span></li>
+        </ul>
+      </section>
+
+    <section class="gp-start" aria-labelledby="gpGo">
+      <h2 id="gpGo">Start a room</h2>
+      <form class="gp-cta" method="GET" action="/">
+        <input type="hidden" name="game" value="twenty-questions">
+        <label class="gp-field">
+          <span>Your party name</span>
+          <input type="text" name="name" required maxlength="16" autocomplete="nickname"
+            placeholder="e.g. Pippa" aria-describedby="gpCtaNote">
+        </label>
+        <div class="gp-actions">
+          <button class="gp-btn gp-btn-hot" type="submit">Create room</button>
+          <button class="gp-btn gp-btn-soft" type="submit" name="wantsetup" value="1">Customize + Create</button>
+        </div>
+      </form>
+      <p class="gp-note" id="gpCtaNote">Pick a name, create a room, and invite your friends. No account needed.</p>
+    </section>
+  </main>
+
+  <footer class="gp-foot">
+    <a href="/">← Back to all games</a>
+    <span>Game Night by Giggle</span>
+  </footer>
+</div>
+</body>
+</html>

@@ -25,3 +25,7 @@ env-secrets
 .vercel
 .superpowers/
 .env*
+
+# Inert component examples are source, never real credentials.
+!apps/games/.env.example
+apps/games/evidence/

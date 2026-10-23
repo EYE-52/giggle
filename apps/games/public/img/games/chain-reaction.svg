@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400" role="img" aria-label="Colorful orbs bursting across a Chain Reaction board">
+ <rect width="640" height="400" fill="#fff0c5"/><path d="M0 322Q135 254 287 338T640 305V400H0Z" fill="#ffd7df"/>
+ <g transform="translate(181 55) rotate(-7 145 145)" stroke="#252936" stroke-width="4">
+  <rect x="0" y="0" width="285" height="285" rx="23" fill="#fffdf6"/>
+  <path d="M95 0V285M190 0V285M0 95H285M0 190H285" opacity=".2"/>
+  <g fill="#da3159"><circle cx="32" cy="33" r="13"/><circle cx="62" cy="55" r="13"/><circle cx="122" cy="127" r="13"/><circle cx="152" cy="125" r="13"/><circle cx="137" cy="153" r="13"/><circle cx="222" cy="61" r="13"/></g>
+  <g fill="#087b73"><path d="M47 219L62 234L47 249L32 234Z"/><path d="M142 219L157 234L142 249L127 234Z"/></g>
+  <g fill="#e7ae32"><path d="M238 122L254 151H222Z"/><path d="M237 222L253 251H221Z"/></g>
+ </g>
+ <g fill="none" stroke="#da3159" stroke-width="8" stroke-linecap="round"><path d="M483 113L514 95M491 142L527 146M467 85L476 56"/></g>
+ <g fill="#da3159" stroke="#252936" stroke-width="4"><circle cx="537" cy="78" r="14"/><circle cx="113" cy="179" r="18"/></g>
+ <path d="M84 233L114 212L119 241L144 228L137 261" fill="none" stroke="#ab6500" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+ <g fill="#252936" font-family="sans-serif" font-weight="900" font-size="21"><text x="44" y="78" transform="rotate(-10 44 78)">POP!</text><text x="478" y="312" transform="rotate(9 478 312)">BOOM!</text></g>
+</svg>

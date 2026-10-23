@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elevated kart physics · development prototype</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;background:#e7edf3;color:#142c3d;font:15px system-ui,sans-serif}header{display:flex;align-items:center;gap:16px;padding:12px 18px;background:white;position:sticky;top:0;z-index:1}header strong{font-size:17px}label{display:flex;gap:8px;align-items:center}select,button{font:inherit;min-height:44px;padding:8px 12px}p{margin:4px 18px 10px;color:#536573}iframe{display:block;border:0;background:#cbd9e0;flex:none;box-shadow:0 8px 32px #17314229}main{display:flex;justify-content:center;padding:0 18px 18px;min-width:max-content}@media(max-width:700px){header{flex-wrap:wrap;gap:8px}header strong{width:100%}}
+</style>
+<header><strong>Elevated kart physics · development prototype</strong><label>Viewport <select id="size"><option value="1280,800">Desktop 1280×800</option><option value="640,800">Narrow 640×800</option><option value="390,844">Phone 390×844</option><option value="844,390">Landscape 844×390</option><option value="568,320">Compact 568×320</option></select></label><button id="read">Read geometry</button><span id="status" role="status">Diagnostic arena</span></header>
+<p>Real Rapier chassis and suspension. No weapons, scoring, room networking or released elevated match. Physics geometry is shared; generated map concepts are not used as backgrounds.</p>
+<main><iframe id="game" title="Live isolated kart physics" width="1280" height="800" src="/scene"></iframe></main>
+<script>
+const frame=document.getElementById('game'),size=document.getElementById('size'),status=document.getElementById('status');
+size.onchange=()=>{const[w,h]=size.value.split(',');frame.width=w;frame.height=h;status.textContent=w+'×'+h+' live scene';};
+document.getElementById('read').onclick=()=>frame.contentWindow.postMessage({type:'geometry'},location.origin);
+addEventListener('message',e=>{if(e.origin===location.origin&&e.source===frame.contentWindow&&e.data.type==='geometry')status.textContent=e.data.summary;});
+</script></html>

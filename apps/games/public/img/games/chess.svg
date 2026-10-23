@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Chess thumbnail">
+<rect width="120" height="120" fill="#f4f4f7"/>
+<g fill="#55565e">
+<rect x="15" y="0" width="15" height="15"/><rect x="45" y="0" width="15" height="15"/><rect x="75" y="0" width="15" height="15"/><rect x="105" y="0" width="15" height="15"/>
+<rect x="0" y="15" width="15" height="15"/><rect x="30" y="15" width="15" height="15"/><rect x="60" y="15" width="15" height="15"/><rect x="90" y="15" width="15" height="15"/>
+<rect x="15" y="30" width="15" height="15"/><rect x="45" y="30" width="15" height="15"/><rect x="75" y="30" width="15" height="15"/><rect x="105" y="30" width="15" height="15"/>
+<rect x="0" y="45" width="15" height="15"/><rect x="30" y="45" width="15" height="15"/><rect x="60" y="45" width="15" height="15"/><rect x="90" y="45" width="15" height="15"/>
+<rect x="15" y="60" width="15" height="15"/><rect x="45" y="60" width="15" height="15"/><rect x="75" y="60" width="15" height="15"/><rect x="105" y="60" width="15" height="15"/>
+<rect x="0" y="75" width="15" height="15"/><rect x="30" y="75" width="15" height="15"/><rect x="60" y="75" width="15" height="15"/><rect x="90" y="75" width="15" height="15"/>
+<rect x="15" y="90" width="15" height="15"/><rect x="45" y="90" width="15" height="15"/><rect x="75" y="90" width="15" height="15"/><rect x="105" y="90" width="15" height="15"/>
+<rect x="0" y="105" width="15" height="15"/><rect x="30" y="105" width="15" height="15"/><rect x="60" y="105" width="15" height="15"/><rect x="90" y="105" width="15" height="15"/>
+</g>
+<rect x="0" y="0" width="120" height="120" rx="20" fill="none" stroke="#DE1E6A" stroke-width="6"/>
+<text x="60" y="84" text-anchor="middle" font-size="56" fill="#10141b" stroke="#ffffff" stroke-width="3">&#9822;</text>
+<path d="M96 12 l2.4 5 5.4 0.8 -3.9 3.8 0.9 5.4 -4.8 -2.5 -4.8 2.5 0.9 -5.4 -3.9 -3.8 5.4 -0.8z" fill="#ffc531" stroke="#10141b" stroke-width="1.5"/>
+</svg>

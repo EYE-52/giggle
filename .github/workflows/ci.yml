@@ -59,3 +59,22 @@ jobs:
         env:
           # Placeholder: the build only needs a valid URL, never a real API.
           NEXT_PUBLIC_BACKEND_URL: https://api.example.invalid
+
+  games:
+    name: Game engine and cross-app bridge
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            apps/games/package-lock.json
+            server/package-lock.json
+      - run: npm ci --prefix apps/games
+      - run: npm ci --prefix server
+      - run: npm run test:games
+      - run: npm run test:games:integration
+      - run: npm run build:games

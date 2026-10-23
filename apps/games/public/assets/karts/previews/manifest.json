@@ -1,0 +1,52 @@
+{
+  "source": "Native Safari captures of actual map worlds; profile keys distinguish classic and elevated maps. Daybreak overview, not promotional renders. WebP encoding only; no synthetic artwork.",
+  "width": 480,
+  "height": 270,
+  "images": [
+    {
+      "file": "assets/karts/previews/elevated-frost.webp",
+      "bytes": 16698,
+      "sha256": "17a96adbafe93e916bfdac7adeb209c9d0e1c1823d06ed2d246196273d5f4b79"
+    },
+    {
+      "file": "assets/karts/previews/elevated-garden.webp",
+      "bytes": 14152,
+      "sha256": "5bf955dfde803bb15dc69e5f70e01fa266958e4ae0860f6762346692b30c88c2"
+    },
+    {
+      "file": "assets/karts/previews/elevated-harbor.webp",
+      "bytes": 11226,
+      "sha256": "c34841fb941e3f30ee4b0e98a4400d8e893fea94a7c0021bee1a9a0883aa3d6c"
+    },
+    {
+      "file": "assets/karts/previews/elevated-neon.webp",
+      "bytes": 10898,
+      "sha256": "31aa81c4a37a5f9ec26be639318fe96f7b8849125bed874231e8ce4eaeea801f"
+    },
+    {
+      "file": "assets/karts/previews/legacy-blocks.webp",
+      "bytes": 20792,
+      "sha256": "ab1ef9d68742c39700fc1305f3b7a6f549e1c9dc55075605fdb46e73b43d0552"
+    },
+    {
+      "file": "assets/karts/previews/legacy-frost.webp",
+      "bytes": 21330,
+      "sha256": "0167cc47b84a71079be148b8a478ca3f138d6d71b8ede60001f9ee77f653fced"
+    },
+    {
+      "file": "assets/karts/previews/legacy-garden.webp",
+      "bytes": 20644,
+      "sha256": "36b8e3e7210294fd5f72d64b7eff14159523dbae9848f12eb3e3c4e8bccce8f3"
+    },
+    {
+      "file": "assets/karts/previews/legacy-neon.webp",
+      "bytes": 14440,
+      "sha256": "8477d03264404fa3b4290e191b05c8ca457afd9a5b8e68cf24837ddab08013e7"
+    },
+    {
+      "file": "assets/karts/previews/legacy-ring.webp",
+      "bytes": 20422,
+      "sha256": "e0927511c4c7888e557eb3bc54449e4499396fba83f6f722a4ab0495f5afd815"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+/* Word Chain: the word to link to, the turn field, the chain and the
+ * players. Flat, tokens only (shared parts: compact-answer-games.css). */
+.wc .wc-target { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.wc .wc-target .gk-meta { margin: 0; }
+.wc .wc-word { font-size: clamp(30px, 5vw, 44px); }
+/* The waiting line takes the input row's place and height. */
+.wc .wc-waiting {
+  justify-content: flex-start; min-height: 48px; padding: 0 14px; margin: 0;
+  border: 1px dashed var(--line-strong); border-radius: var(--gk-radius, 12px);
+}
+.wc .wc-challenge { justify-content: flex-start; }
+.wc .wc-challenge .gk-meta { margin: 0; }
+.wc .wc-ribbon { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; padding: 2px; scrollbar-width: thin; }
+.wc .wc-ribbon .wg-chip { flex: none; }
+.wc .wc-ribbon:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.wc .wc-lives { color: var(--accent-deep); letter-spacing: 1px; }
+.wc #wcOut { margin: 0; min-height: 19px; }
+.wc .wc-archive-list { margin: 4px 0 10px; padding-left: 2.2em; columns: 3 10em; color: var(--ink); font: 600 15px/1.6 var(--font-body); }
+.wc.wg-final .wc-ribbon { justify-content: center; flex-wrap: wrap; overflow: visible; }

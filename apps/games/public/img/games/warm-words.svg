@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400" role="img" aria-label="Warm Words: follow related words up a thermometer" style="--ink:#2b1220;--paper:#ffffff;--pink:#fde3ee;--accent:#de1e6a;--sun:#ffb020;--mint:#0e9b8a">
+  <defs>
+    <linearGradient id="heat" x1="0" y1="1" x2="0" y2="0">
+      <stop stop-color="var(--sun)"/>
+      <stop offset="1" stop-color="var(--accent)"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="400" rx="36" fill="var(--pink)"/>
+  <g transform="rotate(-8 135 200)" stroke="var(--ink)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="99" y="54" width="72" height="240" rx="36" fill="var(--paper)"/>
+    <circle cx="135" cy="291" r="59" fill="var(--paper)"/>
+    <path d="M135 107v185" stroke="url(#heat)" stroke-width="28"/>
+    <circle cx="135" cy="291" r="39" fill="var(--accent)" stroke="none"/>
+    <path d="m118 272 11-5" stroke="var(--paper)" stroke-width="10"/>
+    <path d="M153 92h12m-12 35h12m-12 35h12m-12 35h12m-12 35h12" stroke-width="4"/>
+  </g>
+  <g fill="var(--ink)">
+    <rect x="238" y="83" width="295" height="66" rx="18"/>
+    <rect x="220" y="175" width="278" height="66" rx="18"/>
+    <rect x="250" y="267" width="286" height="66" rx="18"/>
+  </g>
+  <g fill="var(--paper)" stroke="var(--ink)" stroke-width="4">
+    <rect x="232" y="77" width="295" height="66" rx="18"/>
+    <rect x="214" y="169" width="278" height="66" rx="18"/>
+    <rect x="244" y="261" width="286" height="66" rx="18"/>
+  </g>
+  <g font-family="Baloo 2,Nunito,system-ui,sans-serif" font-size="29" font-weight="800" fill="var(--ink)">
+    <text x="252" y="120">automobile</text>
+    <text x="235" y="212">vehicle</text>
+    <text x="267" y="304">car</text>
+  </g>
+  <circle cx="495" cy="109" r="9" fill="var(--sun)" stroke="var(--ink)" stroke-width="3"/>
+  <circle cx="460" cy="201" r="9" fill="var(--mint)" stroke="var(--ink)" stroke-width="3"/>
+  <path d="m496 278 5 10 11 2-8 8 2 11-10-5-10 5 2-11-8-8 11-2z" fill="var(--accent)" stroke="var(--ink)" stroke-width="3" stroke-linejoin="round"/>
+</svg>

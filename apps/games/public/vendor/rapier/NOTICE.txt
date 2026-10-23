@@ -1,0 +1,4 @@
+@dimforge/rapier3d-compat 0.21.0
+Copyright Dimforge contributors. Apache-2.0.
+https://github.com/dimforge/rapier.js
+Locally shipped compatibility build, including embedded WASM.

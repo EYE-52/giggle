@@ -1,0 +1,86 @@
+// Real Three object graph and upload/lifecycle contract. No browser/GPU or
+// ordinary match claim: root native review verifies shader visuals separately.
+import assert from 'node:assert/strict';
+import * as THREE from 'three';
+import {createKartImpactFX,IMPACT_FX_LIMITS} from '../public/js/engines/kart-impact-fx.mjs';
+let checks=0;const check=(ok,msg)=>{assert.ok(ok,msg);checks++;},eq=(a,b,msg)=>{assert.deepEqual(a,b,msg);checks++;};
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera();
+let allocations=0;
+const tracked={...THREE};for(const name of ['Group','InstancedBufferGeometry','BufferAttribute','InstancedBufferAttribute','ShaderMaterial','Mesh'])tracked[name]=class extends THREE[name]{constructor(...args){super(...args);allocations++;}};
+const fx=createKartImpactFX(tracked,scene);
+const root=scene.getObjectByName('KartImpactFX'),[fire,smoke,embers]=root.children;
+const active=mesh=>{const a=mesh.geometry.attributes.fxLife.array,t=mesh.material.uniforms.fxTime.value;let n=0;for(let i=0;i<a.length;i+=4)if(a[i+1]>0&&t-a[i]<a[i+1])n++;return n;};
+const counts=()=>root.children.map(active);
+const refs=root.children.map(m=>({geometry:m.geometry,material:m.material,attrs:Object.values(m.geometry.attributes).map(a=>a.array)}));
+eq(root.children.length,3,'Three bounded shader layers, not per-explosion nodes');
+eq(root.children.map(m=>m.geometry.instanceCount),[IMPACT_FX_LIMITS.fire,IMPACT_FX_LIMITS.smoke,IMPACT_FX_LIMITS.embers],'Fixed instance capacities');
+check(root.children.every(m=>m.material.depthTest&&!m.material.depthWrite&&!m.material.map),'World occlusion preserved, no texture creation or ground drawing');
+check(root.children.every(m=>m.geometry.isInstancedBufferGeometry&&!m.frustumCulled),'Billboard geometry keeps accepted elevated contacts renderable');
+const p={x:14,y:7.3,z:-9},rocket={id:'i1',type:'impact',pid:'a',weapon:'rocket',tick:4,position:p,from:{x:14,y:7.3,z:-15}};
+check(fx.emit(rocket),'Accepted xyz contact creates one explosion');
+eq(counts(),[13,7,12],'One contact flash plus twelve fire lobes, seven smoke lobes and twelve ember streaks');
+eq(Array.from(fire.geometry.attributes.fxOrigin.array.slice(0,3)),[14,Math.fround(7.3),-9],'Flash centered at actual accepted full xyz');
+check(!fx.emit({...rocket,id:'b1',type:'blast'}),'Impact then blast is one main explosion');
+eq(counts(),[13,7,12],'Opposite pair does not append particles');
+check(!fx.emit(rocket),'Repeated same authority event stays quiet');
+check(!fx.emit({id:'ko',type:'ko',position:p,weapon:'rocket'}),'KO cannot triple an accepted impact/blast explosion');
+check(!fx.emit({id:'hit',type:'hit',position:p,weapon:'rocket'}),'Hit does not invent another main explosion');
+check(!fx.emit({id:'legacy',type:'blast',x:14,z:-9}),'Legacy planar-only blast cannot invent contact height');
+check(!fx.emit({id:'bad',type:'impact',position:{x:0,y:NaN,z:0}}),'Invalid xyz cannot contaminate GPU buffers');
+fx.update(.4);eq(counts(),[0,7,0],'After fire and embers retire, smoke remains at .4sec');
+fx.update(.4);eq(counts(),[0,7,0],'Smoke is still pooled and active at .8sec');
+fx.update(.2);eq(counts(),[0,0,0],'All layers retire without residual geometry after1sec');
+fx.reset('new-life');eq(counts(),[0,0,0],'Explicit epoch/life reset clears all particle lifetimes');
+check(fx.emit({...rocket,id:'blast-first',type:'blast'}),'Blast-first order creates explosion');
+check(!fx.emit({...rocket,id:'impact-second'}),'Blast then impact is one main explosion');
+fx.reset();check(fx.emit(rocket),'Fresh epoch may use the same event IDs after reset');
+check(!fx.emit({id:'feedback-blast',kind:'blast',position:p}),'Classic normalized blast missing weapon/pid still pairs at same accepted contact');
+fx.reset();check(fx.emit({id:'classic-first',kind:'blast',position:p}),'Kind-only classic blast creates one explosion');
+check(!fx.emit(rocket),'Kind-only classic blast then raw rocket impact pairs in either order');
+fx.reset();check(fx.emit(rocket),'First distinct rocket at a coordinate is accepted');
+check(fx.emit({...rocket,id:'other-contact'}),'Same-type distinct events are not collapsed into one detonation');
+eq(counts(),[26,14,24],'Two real same-type contacts retain both bursts');
+check(!fx.emit({...rocket,id:'blast-pair-a',type:'blast'}),'First complementary blast pairs');
+check(!fx.emit({...rocket,id:'blast-pair-b',type:'blast'}),'Second complementary blast pairs');
+fx.reset();check(fx.emit(rocket),'Base shooter explosion accepted');
+check(fx.emit({...rocket,id:'other-owner',type:'blast',pid:'b'}),'Different known owners cannot suppress each other');
+check(fx.emit({...rocket,id:'other-tick',type:'blast',tick:5}),'Different known authority ticks cannot suppress each other');
+fx.reset();
+const bullet={id:'bullet',kind:'impact',weapon:'pulse',position:{x:2,y:8,z:4},from:{x:2,y:8,z:-10}};
+check(fx.emit(bullet),'Bullet contact emits directional small sparks');
+eq(counts(),[1,0,6],'Bullet has small flash/streaks and no main fire/smoke');
+check(embers.geometry.attributes.fxVelocity.array[2]<0,'Bullet sparks return away from accepted incoming segment');
+fx.update(.21);eq(counts(),[0,0,0],'Small bullet effects retire quickly');
+const contact={id:'bumper',kind:'collision',position:{x:2,y:.8,z:4},normal:{x:1,y:0,z:0},impulse:1000};
+check(fx.emit(contact),'Accepted bumper contact gets its own solver-scaled effect');
+eq(counts(),[0,1,10],'Hard bumper contact has dust and streaks, no explosion/fire flash');
+const velocities=embers.geometry.attributes.fxVelocity.array,life=embers.geometry.attributes.fxLife.array;
+for(let i=0;i<life.length/4;i++)if(life[i*4+1]>0&&embers.material.uniforms.fxTime.value-life[i*4]<life[i*4+1])check(velocities[i*3]>0,'Contact streak follows the positive-X solver normal');
+check(!fx.emit(contact),'Duplicate contact cannot retrigger particles');
+fx.update(.36);eq(counts(),[0,0,0],'Contact dust/streaks retire before next resting contact');
+check(fx.emit({...contact,id:'soft-contact',impulse:100}),'Small bump still has subtle feedback');
+eq(counts(),[0,0,4],'Small contact is quieter visually and has no dust/fireball');
+fx.update(.36);
+let compiled=0,rendered=0;await fx.warmup({async compileAsync(s,c){eq(s,scene,'Warmup compiles owned actual scene');eq(c,camera,'Warmup uses actual camera');check(root.children.every(m=>m.visible),'All three programs/instance buffers visible for prewarm');compiled++;},render(){rendered++;}},camera);
+eq([compiled,rendered],[1,1],'Pre-Ready warmup compiles and renders pooled resources once');
+check(root.children.every(m=>!m.visible),'Warmup does not leave expired particles visible');
+const constructed=allocations,Float32=globalThis.Float32Array;let typedAllocations=0;
+globalThis.Float32Array=class extends Float32{constructor(...args){super(...args);typedAllocations++;}};
+try{for(let i=0;i<500;i++){fx.emit({...rocket,id:'stress-'+i,tick:i,position:{x:i%17,y:3+i%5,z:-i%11}});fx.update(.001);}}
+finally{globalThis.Float32Array=Float32;}
+eq(allocations,constructed,'Five hundred bursts create no geometry/material/mesh/attribute resources');
+eq(typedAllocations,0,'Firing and update create no typed upload buffers');
+check(counts().every((n,i)=>n<=root.children[i].geometry.instanceCount),'Stress remains within fixed capacities');
+for(let i=0;i<3;i++){assert.equal(root.children[i].geometry,refs[i].geometry,'Geometry identity reused');checks++;assert.equal(root.children[i].material,refs[i].material,'Material identity reused');checks++;Object.values(root.children[i].geometry.attributes).forEach((a,j)=>{assert.equal(a.array,refs[i].attrs[j],'All upload buffer identities reused');checks++;});}
+let geometryDisposed=0,materialDisposed=0;for(const m of root.children){m.geometry.addEventListener('dispose',()=>geometryDisposed++);m.material.addEventListener('dispose',()=>materialDisposed++);}
+fx.dispose();fx.dispose();eq([geometryDisposed,materialDisposed],[3,3],'Exactly-once release of every owned geometry/material');
+check(!scene.getObjectByName('KartImpactFX'),'Dispose removes owned graph');check(!fx.emit(rocket),'Retired helper cannot resurrect particles');fx.update(.1);fx.reset();
+await assert.rejects(fx.warmup({compileAsync(){}},camera),/Retired/);checks++;
+const reducedScene=new THREE.Scene();let reduce=true;const reduced=createKartImpactFX(THREE,reducedScene,{reducedMotion:()=>reduce});const reducedRoot=reducedScene.getObjectByName('KartImpactFX');
+check(reduced.emit(rocket),'Reduced-motion accepted contact still gives subdued feedback');
+eq(reducedRoot.children.map(active),[1,0,0],'Reduced motion has flash only, no travel/fire/smoke');
+const g=reducedRoot.children[0].geometry;eq(Array.from(g.attributes.fxVelocity.array.slice(0,3)),[0,0,0],'Reduced flash is stationary');eq(g.attributes.fxSize.array[0],g.attributes.fxSize.array[1],'Reduced flash does not expand');eq(g.attributes.fxLife.array[3],2,'Reduced flash marks subdued opacity');
+reduced.update(.13);eq(reducedRoot.children.map(active),[0,0,0],'Reduced flash retires in .12sec');reduce=false;reduced.reset();check(reduced.emit(rocket),'Preference is read on each accepted contact');eq(reducedRoot.children.map(active),[13,7,12],'Full FX resume when preference allows');reduced.dispose();
+// Disposing during compile never renders/ACKs a retired scene.
+const retired=createKartImpactFX(THREE,new THREE.Scene());let resolve;const warming=retired.warmup({compileAsync:()=>new Promise(r=>resolve=r),render(){throw Error('retired renderer must not render');}},camera);retired.dispose();resolve();await assert.rejects(warming,/Retired/);checks++;
+console.log(JSON.stringify({pass:true,checks,scope:'Real Three pooled resources/lifecycle and accepted event contracts; shader pixels/GPU compilation require independent native review'}));

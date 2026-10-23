@@ -1,0 +1,32 @@
+{
+  "rules": "Say a supported English word related to the last word before your turn clock runs out. The offline dictionary checks spelling; the room judges the relationship. Unsupported words can be retried without resetting the clock. Repeats and blanks knock you out. A majority challenge knocks the previous word’s author out. Host starter words and extra accepted words are also allowed.",
+  "starters": [
+    "apple",
+    "ocean",
+    "thunder",
+    "guitar",
+    "mountain",
+    "rocket",
+    "pizza",
+    "dragon",
+    "candle",
+    "river",
+    "castle",
+    "tiger",
+    "piano",
+    "desert",
+    "robot",
+    "rainbow",
+    "forest",
+    "mirror",
+    "volcano",
+    "anchor",
+    "bridge",
+    "cloud",
+    "compass",
+    "lantern"
+  ],
+  "words": [
+    "apple"
+  ]
+}

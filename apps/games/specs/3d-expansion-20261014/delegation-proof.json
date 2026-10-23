@@ -1,0 +1,41 @@
+{
+  "scope": "Selected nonsecret actual run/tool events; no raw session transcript or auth fields published",
+  "events": [
+    {
+      "log": "muse-run.jsonl",
+      "kind": "run.model.configured",
+      "provider": "meta",
+      "model": "muse-spark-1.3-contributor"
+    },
+    {
+      "log": "muse-run.jsonl",
+      "kind": "tool.result",
+      "tool": "mcp__playwright__browser_tabs",
+      "outcome": "success",
+      "scope": "about:blank only; no game QA"
+    },
+    {
+      "log": "muse-run.jsonl",
+      "kind": "tool.result",
+      "tool": "mcp__playwright__browser_snapshot",
+      "outcome": "success",
+      "scope": "about:blank only; no game QA"
+    },
+    {
+      "log": "muse-run.jsonl",
+      "kind": "run.terminal.completed",
+      "terminal": "completed"
+    },
+    {
+      "log": "muse-revision-2.jsonl",
+      "kind": "run.model.configured",
+      "provider": "meta",
+      "model": "muse-spark-1.3-contributor"
+    },
+    {
+      "log": "muse-revision-2.jsonl",
+      "kind": "run.terminal.completed",
+      "terminal": "completed"
+    }
+  ]
+}

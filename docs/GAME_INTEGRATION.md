@@ -74,7 +74,7 @@ accepting messages from unrelated same-origin frames. The child treats
 the `parentOrigin` query value as a claim and confirms trust against the
 server's public `/config.json` (`giggleAllowedOrigins` + `allowHttp`)
 before sending `ready`/`auth-needed` or accepting `auth`/`context`.
-Child implementation: Game Night `public/js/embed.js`; parent:
+Child implementation: `apps/games/public/js/embed.js`; parent:
 `apps/desktop/lib/gameBridge.ts` + `components/GamePanel.tsx`.
 
 One seat is active at a time: when the same seat is taken over in
@@ -137,7 +137,7 @@ Tests: `server/test/gameBridge.test.js`,
 `server/test/gameEncounterBridge.test.js`,
 `packages/core/test/api.test.cjs`, `apps/desktop/test/game-bridge.test.js`,
 `apps/desktop/test/game-encounter.test.js`,
-`apps/desktop/test/voice-game-bridge.test.js`, plus Game Night `test/bridge.js`.
+`apps/desktop/test/voice-game-bridge.test.js`, plus `apps/games/test/bridge.js` and `apps/games/test/canonical-bridge.js`.
 
 ## Framed game UI
 
@@ -224,8 +224,8 @@ the game instance and action window to reject delayed moves and timers.
 Game Night is one stateful process: rooms and replay protection live in
 memory, so multiple replicas or overlapping releases are unsupported.
 A game-service restart resets game rooms; it does not terminate Giggle
-calls. Hosting, env matrix and restart procedure live in PartyBox
-`DEPLOYMENT_PLAN.md` alongside its source.
+calls. Hosting, env matrix and restart procedure live in
+`apps/games/DEPLOYMENT_PLAN.md` alongside its source in this repository.
 
 ## Honest limitations
 

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "RAILPACK",
+    "buildCommand": "npm ci"
+  },
+  "deploy": {
+    "startCommand": "npm start",
+    "healthcheckPath": "/config.json",
+    "healthcheckTimeout": 120,
+    "numReplicas": 1,
+    "region": "asia-southeast1-eqsg3a",
+    "multiRegionConfig": {
+      "asia-southeast1-eqsg3a": { "numReplicas": 1 }
+    },
+    "overlapSeconds": 0,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}

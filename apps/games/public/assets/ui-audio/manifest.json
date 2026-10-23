@@ -1,0 +1,96 @@
+{
+  "pack": "Kenney Interface Sounds 1.0",
+  "creator": "Kenney",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourcePage": "https://kenney.nl/assets/interface-sounds",
+  "sourceArchiveUrl": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+  "sourceArchiveSha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232",
+  "processing": "FFmpeg decode to mono 22050 Hz float PCM; linear peak normalization to 0.7; encode signed 16-bit PCM WAV. Full source duration retained, no synthesis, loops, concatenation or pitch changes. Runtime cue gains are 0.12\u20130.18.",
+  "cues": {
+    "click": {
+      "file": "click.wav",
+      "sourceFile": "Audio/click_003.ogg",
+      "sourceSha256": "2fa929138bc3a0f432696588f66eac94b8f6d463905ec8808c6461ce4b054292",
+      "outputSha256": "af28dc03a869d7661a96a46d476f1b5c05afb1c34868895c0db0037b84338c5b",
+      "bytes": 358,
+      "durationSeconds": 0.00712,
+      "sampleRate": 22050,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "peak": 0.700003
+    },
+    "lock": {
+      "file": "lock.wav",
+      "sourceFile": "Audio/confirmation_001.ogg",
+      "sourceSha256": "063564703b6094d70718a3e787a55cc9141611e4ecd6b6637f8828f79b4a8c3a",
+      "outputSha256": "a4ea8a48b339941de2216400a2b317559774fefbe6b3f9b42dd7d1c3325bef6b",
+      "bytes": 12826,
+      "durationSeconds": 0.289841,
+      "sampleRate": 22050,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "peak": 0.700003
+    },
+    "reveal": {
+      "file": "reveal.wav",
+      "sourceFile": "Audio/maximize_003.ogg",
+      "sourceSha256": "df16f25d45189f5d44d6a482ab20d5067350ca8525a9affa1f8ce599e31a20a5",
+      "outputSha256": "4e56bec45d372ef0fe07c3c467c2243520c34fb427287a04e4991be32f0059e4",
+      "bytes": 9388,
+      "durationSeconds": 0.211882,
+      "sampleRate": 22050,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "peak": 0.700003
+    },
+    "win": {
+      "file": "win.wav",
+      "sourceFile": "Audio/confirmation_004.ogg",
+      "sourceSha256": "568967a3d9f8a8f6af54ea01729c4882284308f2a27d78c07ffd7ee0d6951661",
+      "outputSha256": "0911292303a7062e5d555050a75264373b375b256c9cea6d5b0bf6b1c23492ed",
+      "bytes": 21672,
+      "durationSeconds": 0.490431,
+      "sampleRate": 22050,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "peak": 0.700003
+    },
+    "tick": {
+      "file": "tick.wav",
+      "sourceFile": "Audio/tick_001.ogg",
+      "sourceSha256": "9d057b918024c787bbe6c00beed13a7ef72a3fa0c259add3cef36582792f4230",
+      "outputSha256": "b3a0c801f4f6032401814ec5b2c8231b44031240833490566aab8d49615c4742",
+      "bytes": 2028,
+      "durationSeconds": 0.044989,
+      "sampleRate": 22050,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "peak": 0.700003
+    },
+    "turn": {
+      "file": "turn.wav",
+      "sourceFile": "Audio/select_003.ogg",
+      "sourceSha256": "9a612fd2f513d52a296906b41071c990f75defe56be3bee60d2d4e2423b51b8b",
+      "outputSha256": "a8b2f16e65ad60c48681a51671cbadde9c620c6d4f915dcb7e5eb6eede69751c",
+      "bytes": 16796,
+      "durationSeconds": 0.379864,
+      "sampleRate": 22050,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "peak": 0.700003
+    },
+    "pop": {
+      "file": "pop.wav",
+      "sourceFile": "Audio/drop_001.ogg",
+      "sourceSha256": "692ee3a6f1821402ca649ff735bee9591dc4846c8098fc7d6a90fd15fa57c1af",
+      "outputSha256": "bd533a282f2dd30bd1bac8a417115520e6ff88ffe00fce91ddc5b330e544b0d6",
+      "bytes": 5868,
+      "durationSeconds": 0.132063,
+      "sampleRate": 22050,
+      "channels": 1,
+      "bitsPerSample": 16,
+      "peak": 0.700003
+    }
+  }
+}

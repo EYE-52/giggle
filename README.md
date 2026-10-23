@@ -2,6 +2,8 @@
 
 This monorepo is the only canonical Giggle source:
 
+- Game Night engines, compact UI, reusable SDK and release gates: `apps/games` (Node 24 / npm; see [integration provenance](apps/games/INTEGRATION.md)).
+
 - web: `apps/desktop`
 - iOS, Android, and native web preview: `apps/mobile`
 - API and realtime services: `server/`

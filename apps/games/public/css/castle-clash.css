@@ -1,0 +1,131 @@
+/* Castle Clash 3D HUD styles — mirror of the inline CSS in
+ * public/js/games/castle-clash.js (that copy is authoritative: the shell
+ * loads no per-game CSS file, so the view injects its own <style>).
+ * Kept here for platform adoption / review. Do not edit without syncing. */
+.cc3d{font:inherit;color:#f1f3fa;width:100%;display:flex;flex-direction:column;gap:8px}
+.cc3d-status{display:flex;flex-direction:column;gap:6px}
+.cc3d-top{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:stretch}
+.cc3d-chip{min-width:0;background:rgba(29,35,51,.94);border:1px solid #465268;padding:6px 12px;box-shadow:0 1px 3px rgba(62,50,28,.16);font-size:13px;line-height:1.35;overflow-wrap:anywhere}
+.cc3d-chip.own{border-left:4px solid #0e8a7d;border-radius:4px 14px 14px 4px}
+.cc3d-chip.foe{border-right:4px solid #e0654f;border-radius:14px 4px 4px 14px;text-align:right}
+.cc3d-chip .nm{font-weight:800;font-size:15px}
+.cc3d-chip.own .nm{color:#74e2c3}
+.cc3d-chip.foe .nm{color:#ffa088}
+.cc3d-yours{font-weight:600;font-size:12px;opacity:.8}
+.cc3d-chip .hpbar{display:block;height:8px;background:rgba(0,0,0,.25);margin:5px -12px 4px;overflow:hidden}
+.cc3d-chip .hpbar i{display:block;height:100%;background:#0e8a7d}
+.cc3d-chip.foe .hpbar i{background:#e0654f}
+.cc3d-chip .meta{font-variant-numeric:tabular-nums}
+.cc3d-chip .cc3d-core{font-weight:800}
+.cc3d-chip .cc3d-piles b{font-size:14px}
+.cc3d-chip .who{opacity:.75;font-size:12px}
+.cc3d-mid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:#232c42;border:2px solid #e8b64c;border-radius:14px;padding:6px 16px;box-shadow:0 1px 3px rgba(62,50,28,.16);min-width:132px}
+.cc3d-phase{font-weight:800;font-size:14px;white-space:nowrap;color:#ffd390}
+.cc3d-timer{font-variant-numeric:tabular-nums;font-weight:800;font-size:24px;line-height:1.1;color:#ffd390}
+.cc3d-action{background:rgba(29,35,51,.94);border:1px solid #465268;border-radius:10px;box-shadow:inset 0 3px 0 #0e8a7d;padding:7px 12px;font-size:14px;font-weight:600;text-align:center;overflow-wrap:anywhere}
+.cc3d[data-phase="siege"] .cc3d-action{box-shadow:inset 0 3px 0 #e0654f}
+.cc3d-orders{font-size:13px;color:#c2ccdb;text-align:center;overflow-wrap:anywhere}
+.cc3d-orders:empty{display:none}
+.cc3d-guide{display:flex;gap:8px;align-items:center;background:rgba(29,35,51,.94);border:1px solid #0e8a7d;border-radius:10px;padding:6px 8px 6px 12px;font-size:13px;overflow-wrap:anywhere}
+.cc3d-guide[hidden]{display:none}
+.cc3d-guide ol{flex:1;margin:0;padding:0;list-style:none;display:flex;gap:10px;flex-wrap:wrap}
+.cc3d-guide li{opacity:.65}
+.cc3d-guide li.on{opacity:1;font-weight:800;color:#74e2c3}
+.cc3d-guide li b{display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;border-radius:999px;background:#344055;margin-right:4px;font-size:12px}
+.cc3d-guide li.on b{background:#0e8a7d;color:#fffdf6}
+.cc3d-guide button{flex:0 0 auto;min-height:44px;min-width:44px;padding:8px 12px;font:inherit;font-size:13px;font-weight:800;color:#f1f3fa;background:#344055;border:1px solid #465268;border-radius:10px;cursor:pointer}
+.cc3d-supply{position:absolute;right:10px;bottom:10px;z-index:3;min-height:44px;min-width:44px;padding:10px 14px;font:inherit;font-size:14px;font-weight:800;color:#2b2118;background:#e8b64c;border:2px solid #8a5a33;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer;animation:cc3d-claim 1.6s ease-in-out infinite}
+.cc3d-supply[hidden]{display:none}
+@keyframes cc3d-claim{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.cc3d-toast{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:4;max-width:min(92%,420px);padding:8px 14px;font-size:14px;font-weight:700;color:#fffdf6;background:rgba(20,24,34,.95);border:1px solid #73819a;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.4);text-align:center;overflow-wrap:anywhere;animation:cc3d-pop .18s ease-out}
+.cc3d-toast[hidden]{display:none}
+.cc3d-rel{display:block;height:4px;border-radius:2px;background:rgba(0,0,0,.25);margin-top:4px;overflow:hidden}
+.cc3d-rel i{display:block;height:100%;width:100%;border-radius:2px;background:#74e2c3}
+.cc3d[data-phase="siege"] .cc3d-rel i{background:#ffa088}
+.cc3d-result{background:rgba(29,35,51,.96);border:1px solid #0e8a7d;border-radius:10px;padding:8px 12px;font-size:15px;font-weight:800;overflow-wrap:anywhere}
+.cc3d-result small{display:block;font-weight:600;font-size:13px;opacity:.8}
+.cc3d-scene{position:relative;height:clamp(320px,58vh,560px);border-radius:14px;overflow:hidden;border:1px solid #465268;background:linear-gradient(180deg,#7a799b 0%,#dd919b 46%,#89b591 100%);box-shadow:0 2px 8px rgba(62,50,28,.2)}
+.cc3d-scene canvas{width:100%!important;height:100%!important;display:block;touch-action:none}
+.cc3d-note{background:rgba(29,35,51,.96);border:1px dashed #73819a;border-radius:10px;padding:8px 12px;font-size:14px;overflow-wrap:anywhere}
+.cc3d-hover{font-size:13px;min-height:20px;color:#c2ccdb;overflow-wrap:anywhere}
+.cc3d-cam{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.cc3d-cbtn{flex:1 0 auto;min-height:44px;min-width:44px;padding:8px 12px;font:inherit;font-size:14px;font-weight:700;color:#f1f3fa;background:rgba(29,35,51,.94);border:1px solid #465268;border-radius:999px;cursor:pointer;white-space:nowrap}
+.cc3d-cbtn:active{background:#344055}
+.cc3d-zoom{display:flex;gap:8px;justify-content:center;align-items:center;padding:6px 0 10px}
+.cc3d-zoom .cc3d-cbtn{flex:0 0 auto;width:56px;height:56px;min-width:56px;min-height:56px;padding:0;border-radius:50%;font-size:22px;line-height:1}
+.cc3d-zoom .cc3d-cbtn#cc3d-cam-reset{font-size:20px}
+.cc3d-hint{margin:0;font-size:13px;text-align:center;color:#c2ccdb}
+.cc3d-camera-menu,.cc3d-help{border:1px solid #465268;border-radius:10px;background:rgba(29,35,51,.9);padding:0 10px;font-size:14px}
+.cc3d-camera-menu summary,.cc3d-help summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:800}
+.cc3d-help-body{padding-bottom:8px;display:flex;flex-direction:column;gap:8px}
+.cc3d-tools{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.cc3d-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cc3d-modes:empty{display:none}
+.cc3d-mode{min-height:44px;min-width:44px;font:inherit;font-size:14px;font-weight:800;border-radius:10px;border:1px solid #465268;background:rgba(29,35,51,.9);color:#f1f3fa;cursor:pointer}
+.cc3d-mode[aria-pressed="true"]{background:#0e8a7d;border-color:#0e8a7d;color:#fffdf6}
+.cc3d-belt{display:flex;gap:6px;overflow-x:auto;padding:4px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;background:rgba(20,25,38,.9);border:1px solid #465268;border-radius:14px}
+.cc3d-belt:empty{display:none}
+.cc3d-pick{flex:0 0 120px;display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:6px;row-gap:1px;align-content:center;min-height:56px;min-width:72px;padding:6px 8px;font:inherit;text-align:left;background:rgba(29,35,51,.94);border:1px solid #465268;border-radius:12px;box-shadow:0 1px 2px rgba(62,50,28,.14);cursor:pointer;scroll-snap-align:start;color:#f1f3fa}
+.cc3d-pick .cc3d-ic{grid-column:1;grid-row:1/3;width:24px;height:24px;align-self:center;color:#74e2c3}
+.cc3d-pick .cc3d-ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cc3d[data-phase="siege"] .cc3d-pick .cc3d-ic{color:#ffa088}
+.cc3d-picktx{grid-column:2;grid-row:1;min-width:0;font-size:12px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc3d-picktx b{font-size:13px;text-transform:capitalize}
+.cc3d-sub{display:block;opacity:.8;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc3d-tag{grid-column:2;grid-row:2;font-size:11px;font-weight:800;color:#ffa088;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc3d-tag:empty{display:none}
+.cc3d-pick.sel{border-color:#0e8a7d;box-shadow:0 0 0 2px #0e8a7d}
+.cc3d[data-phase="siege"] .cc3d-pick.sel{border-color:#e0654f;box-shadow:0 0 0 2px #e0654f}
+.cc3d-pick:disabled{opacity:.6;cursor:default}
+.cc3d-pick.is-locked{border-style:dashed}
+.cc3d-pick.is-locked .cc3d-sub{color:#ffa088;opacity:1}
+.cc3d-pick.is-poor .cc3d-tag{color:#ffd390}
+.cc3d-pick.is-cooling .cc3d-ic{opacity:.55}
+.cc3d-pick .cc3d-rel{grid-column:1/-1}
+.cc3d-pick.fresh{border-color:#e0654f;box-shadow:0 0 0 2px #e0654f;animation:cc3d-pop .5s ease-out}
+@keyframes cc3d-pop{0%{transform:scale(.94)}100%{transform:scale(1)}}
+.cc3d-bhint{flex:1 0 100%;font-size:13px;background:rgba(29,35,51,.94);border:1px dashed #73819a;border-radius:10px;padding:8px;overflow-wrap:anywhere}
+.cc3d-unlock{font-size:13px;color:#c2ccdb;overflow-wrap:anywhere}
+.cc3d-more{border:1px solid #465268;border-radius:10px;background:rgba(29,35,51,.9);padding:0 10px;font-size:14px}
+.cc3d-more summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:800}
+.cc3d-more summary::before{content:'+';font-weight:800;color:#74e2c3}
+.cc3d-more[open] summary::before{content:'\2212'}
+.cc3d-kbrow{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;padding-bottom:4px}
+.cc3d-kbrow label{display:flex;flex-direction:column;gap:2px;font-size:13px;font-weight:700}
+.cc3d-kbrow input{width:72px;min-height:44px;font:inherit;font-size:16px;padding:6px 8px;border:1px solid #465268;border-radius:8px;background:#344055;color:#f1f3fa}
+.cc3d-kgo{min-height:44px;min-width:44px;padding:8px 16px;font:inherit;font-size:14px;font-weight:800;border-radius:10px;border:1px solid #0e8a7d;background:#0e8a7d;color:#fffdf6;cursor:pointer}
+.cc3d-kgo:disabled{opacity:.55;cursor:default}
+.cc3d-kbhint{font-size:13px;color:#c2ccdb;margin:0 0 8px;overflow-wrap:anywhere}
+.cc3d-log{max-height:120px;overflow:auto;font-size:14px;padding-bottom:8px;overflow-wrap:anywhere}
+.cc3d-log div+div{border-top:1px dashed rgba(0,0,0,.14)}
+.cc3d-rules{margin:0 0 10px;line-height:1.5}
+.cc3d-armory{display:flex;flex-direction:column;gap:8px;padding-bottom:10px}
+.cc3d-agroup{display:flex;flex-direction:column;gap:4px}
+.cc3d-arow{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.4}
+.cc3d-arow .cc3d-ic{flex:0 0 22px;width:22px;height:22px;color:#74e2c3}
+.cc3d-arow .cc3d-ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cc3d-arow b{text-transform:capitalize}
+.cc3d-foot{display:flex;gap:8px}
+.cc3d-lobby{min-height:44px;min-width:44px;padding:8px 16px;font:inherit;font-size:14px;font-weight:700;border-radius:10px;border:1px solid #465268;background:transparent;color:#c2ccdb;cursor:pointer}
+.cc3d-cbtn:focus-visible,.cc3d-mode:focus-visible,.cc3d-pick:focus-visible,.cc3d-kgo:focus-visible,.cc3d-lobby:focus-visible,.cc3d-supply:focus-visible,.cc3d-guide button:focus-visible,.cc3d-more summary:focus-visible,.cc3d-kbrow input:focus-visible,.cc3d-camera-menu summary:focus-visible,.cc3d-help summary:focus-visible{outline:3px solid #0e8a7d;outline-offset:2px}
+.cc3d-fb .cc3d-top,.cc3d-fb .cc3d-action,.cc3d-fb .cc3d-orders,.cc3d-fb .cc3d-guide,.cc3d-fb .cc3d-result,.cc3d-fb .cc3d-scene,.cc3d-fb .cc3d-hover,.cc3d-fb .cc3d-cam,.cc3d-fb .cc3d-zoom,.cc3d-fb .cc3d-hint,.cc3d-fb .cc3d-modes,.cc3d-fb .cc3d-belt,.cc3d-fb .cc3d-unlock,.cc3d-fb .cc3d-more,.cc3d-fb .cc3d-foot,.cc3d-fb .cc3d-status,.cc3d-fb .cc3d-tools,.cc3d-fb .cc3d-help,.cc3d-fb .cc3d-camera-menu{display:none}
+#cc3d-fallback:empty{display:none}
+.cc3d[data-role="watch"] .cc3d-belt{opacity:.75}
+@media(max-width:560px){
+  .cc3d-top{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .cc3d-mid{order:-1;grid-column:1/3;flex-direction:row;justify-content:space-between}
+  .cc3d-chip.foe{text-align:left}
+  .cc3d-scene{height:clamp(280px,52vh,480px)}
+  .cc3d-pick{flex-basis:120px}
+}
+html[data-theme="night"] .cc3d{color:#f0e8d6}
+html[data-theme="night"] .cc3d-chip,html[data-theme="night"] .cc3d-mid,html[data-theme="night"] .cc3d-action,html[data-theme="night"] .cc3d-note,html[data-theme="night"] .cc3d-bhint,html[data-theme="night"] .cc3d-more,html[data-theme="night"] .cc3d-camera-menu,html[data-theme="night"] .cc3d-help{background:rgba(26,30,32,.94);border-color:#4a5450}
+html[data-theme="night"] .cc3d-cbtn,html[data-theme="night"] .cc3d-mode,html[data-theme="night"] .cc3d-pick{background:rgba(26,30,32,.94);border-color:#4a5450;color:#f0e8d6}
+html[data-theme="night"] .cc3d-belt{background:rgba(18,22,24,.94);border-color:#4a5450}
+html[data-theme="night"] .cc3d-mode[aria-pressed="true"]{background:#0e8a7d;border-color:#0e8a7d;color:#fff}
+html[data-theme="night"] .cc3d-timer{color:#5ee0cf;border-color:#5ee0cf}
+html[data-theme="night"] .cc3d-hover,html[data-theme="night"] .cc3d-hint,html[data-theme="night"] .cc3d-unlock,html[data-theme="night"] .cc3d-kbhint{color:#c9c0aa}
+html[data-theme="night"] .cc3d-result{background:rgba(14,60,55,.94);border-color:#5ee0cf;color:#f0e8d6}
+html[data-theme="night"] .cc3d-kbrow input{background:#14181a;color:#f0e8d6;border-color:#4a5450}
+html[data-theme="night"] .cc3d-lobby{color:#c9c0aa;border-color:#4a5450}
+@media(prefers-reduced-motion:reduce){.cc3d *{transition:none!important;animation:none!important}}

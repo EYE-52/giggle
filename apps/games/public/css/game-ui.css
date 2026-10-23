@@ -1,0 +1,351 @@
+/* ==========================================================================
+ * Game kit: the standard components every game screen uses
+ * (specs/GAME_UI_STANDARD.md). Flat surfaces, 1px borders, tokens only, one
+ * accent. The same markup works in Day, Night and Inside Giggle
+ * (body.is-embed) because everything below reads the theme tokens.
+ * Helpers that print this markup live in public/js/kit.js.
+ *
+ * Layout
+ *   .gk-col              centred text/vote column (max 760px)
+ *   .gk-stack            vertical rhythm (14px gaps) for a column's parts
+ *   .gk-card             flat surface: --card, 1px --line, 12px radius
+ *   .gk-reserve          keeps its height while empty (min-height: var(--gk-reserve, 24px))
+ *
+ * HUD row (one line, first thing in the playfield)
+ *   <div class="gk-hud">
+ *     <span class="gk-hud-round">Round 2 of 5</span>
+ *     <span class="gk-hud-phase">Vote</span>
+ *     <span class="gk-hud-progress">2 of 4 locked in</span>
+ *     <span class="gk-hud-timer">12s</span>   (always present; empty keeps its space; .is-urgent)
+ *   </div>
+ *
+ * Prompt / meta
+ *   .gk-prompt           the question (26–32px desktop, 22–26px phone, weight 800)
+ *   .gk-sub              one line under the prompt (16–18px, --ink-dim)
+ *   .gk-meta             labels, counts (13–14px)
+ *
+ * Buttons (at least 44px; primary 48px; one primary per screen)
+ *   <button class="gk-btn gk-primary">Lock in</button>
+ *   <button class="gk-btn">Skip</button>            secondary: --card + 1px border
+ *   <button class="gk-btn gk-quiet">Details</button> text-weight action, no fill
+ *   .gk-actions          row of buttons (wraps; primary first)
+ *
+ * Choices (equal-height cards, letter/icon marker)
+ *   <div class="gk-choices" style="--gk-cols:2">       (.is-locked once the viewer locked in)
+ *     <button class="gk-choice" aria-pressed="false">
+ *       <span class="gk-mark">A</span><span class="gk-choice-text">1969</span>
+ *     </button>
+ *   </div>
+ *   States on .gk-choice: .is-selected (or aria-pressed="true"), .is-correct,
+ *   .is-wrong, .is-dim. Inside .gk-choices.is-locked the selected card shows
+ *   a check mark and the others dim. --gk-cols: 1–4 (phones fall back to 1
+ *   when --gk-cols-phone is not set).
+ *
+ * Input row (48px field + same-height button)
+ *   <form class="gk-input-row"><input class="gk-input" …><button class="gk-btn gk-primary">Send</button></form>
+ *
+ * Waiting line (never a blank area)
+ *   <p class="gk-wait">Waiting for 2 players</p>        (.is-done: no pulsing dot)
+ *   Nothing to do yet: a calm card with who we wait for and what is next
+ *   <div class="gk-card gk-wait-card"><p class="gk-wait-title">Dan is picking a word</p>
+ *     <p class="gk-sub">…</p><p class="gk-wait">Waiting for Dan</p></div>   (kit.js waitCardHtml)
+ *
+ * Round result and final scores
+ *   <section class="gk-results">
+ *     <h2 class="gk-results-title">Final scores</h2>
+ *     <p class="gk-winner">It's a tie: Ann and Bo</p>   (.is-tie)
+ *     <ol class="gk-ranks">
+ *       <li class="gk-rank-row is-top is-you"><span class="gk-rank">1</span>
+ *         <span class="gk-name">Ann <small>(you)</small></span><span class="gk-pts">300</span></li>
+ *     </ol>
+ *   </section>
+ *   Equal points share a rank (1, 1, 3); .is-you highlights the viewer.
+ *   kit.js resultsHtml() prints exactly this. The game over screen is
+ *   <div class="gk-final"> + gk-results + optional <p class="gk-final-note">
+ *   and no HUD row (kit.js finalHtml / paintFinal).
+ *
+ * Flat by default: inside #gbody the older sticker styling (offset --hard
+ * shadows, hover lifts, 2px ink borders) is turned off, so game screens are
+ * flat unless a game draws real game art.
+ * ========================================================================== */
+
+/* ---- flat defaults for every game surface ---- */
+#gbody {
+  --hard: transparent;
+  --gk-radius: 12px;
+}
+#gbody .btn { border-radius: var(--gk-radius); box-shadow: none; font-family: var(--font-body); }
+#gbody .btn.ghost { box-shadow: none; }
+@media (hover: hover) {
+  #gbody .btn:hover { transform: none; box-shadow: none; filter: brightness(1.06); }
+}
+#gbody .btn:active { transform: none; }
+#gbody .timerbar { border-width: 1px; }
+#gbody .avatar, #gbody .hosttag { border-width: 1px; }
+
+/* ---- layout ---- */
+.gk-col { width: 100%; max-width: 760px; margin-inline: auto; min-width: 0; }
+.gk-stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.gk-stack > * { margin: 0; }
+.gk-card {
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--gk-radius, 12px);
+  padding: 16px 18px; min-width: 0;
+}
+.gk-reserve { min-height: var(--gk-reserve, 24px); }
+
+/* ---- HUD row ---- */
+.gk-hud {
+  display: flex; align-items: center; gap: 4px 14px; min-height: 32px; min-width: 0;
+  font: 700 14px/1.4 var(--font-body); color: var(--ink-dim);
+}
+.gk-hud > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk-hud-round { color: var(--ink); font-weight: 800; flex: none; }
+.gk-hud-phase { flex: 0 1 auto; }
+.gk-hud-progress { margin-left: auto; font-variant-numeric: tabular-nums; flex: 0 1 auto; }
+.gk-hud-timer {
+  flex: none; min-width: 3.4em; text-align: right;
+  color: var(--ink); font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.gk-hud-progress + .gk-hud-timer { margin-left: 0; }
+.gk-hud-phase + .gk-hud-timer { margin-left: auto; }
+.gk-hud-timer.is-urgent { color: var(--melon-deep); }
+
+/* ---- prompt / meta ---- */
+.gk-prompt {
+  margin: 0; font: 800 clamp(24px, 3vw, 30px)/1.2 var(--font-display);
+  color: var(--ink); overflow-wrap: anywhere; text-wrap: balance;
+}
+.gk-sub { margin: 0; font: 600 17px/1.45 var(--font-body); color: var(--ink-dim); overflow-wrap: anywhere; }
+.gk-meta { font: 700 13px/1.4 var(--font-body); color: var(--ink-dim); }
+
+/* ---- buttons ---- */
+.gk-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; min-width: 44px; padding: 10px 18px; max-width: 100%;
+  font: 800 16px/1.2 var(--font-body); color: var(--ink); text-decoration: none;
+  background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--gk-radius, 12px);
+  cursor: pointer; overflow-wrap: anywhere; text-align: center;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.gk-btn.gk-primary { min-height: 48px; padding-inline: 22px; background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.gk-btn.gk-quiet { background: transparent; border-color: transparent; color: var(--ink-dim); text-decoration: underline; text-underline-offset: 3px; }
+@media (hover: hover) {
+  .gk-btn:hover:not(:disabled) { border-color: var(--ink-dim); }
+  .gk-btn.gk-primary:hover:not(:disabled) { filter: brightness(1.06); border-color: var(--accent); }
+  .gk-btn.gk-quiet:hover:not(:disabled) { color: var(--ink); border-color: transparent; }
+}
+.gk-btn:disabled { cursor: default; opacity: 1; background: var(--well); border-color: var(--line); color: var(--ink-dim); }
+.gk-btn:focus-visible, .gk-choice:focus-visible, .gk-input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.gk-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; min-width: 0; }
+.gk-actions.is-center { justify-content: center; }
+
+/* ---- choices ---- */
+.gk-choices {
+  display: grid; gap: 12px; min-width: 0;
+  grid-template-columns: repeat(var(--gk-cols, 2), minmax(0, 1fr)); grid-auto-rows: 1fr;
+}
+.gk-choice {
+  position: relative; display: flex; align-items: center; gap: 12px;
+  min-width: 0; min-height: 56px; padding: 12px 16px; text-align: left;
+  font: 700 17px/1.35 var(--font-body); color: var(--ink);
+  background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--gk-radius, 12px);
+  cursor: pointer; overflow-wrap: anywhere;
+  transition: background-color .15s ease, border-color .15s ease, opacity .15s ease;
+}
+.gk-mark {
+  flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  font: 800 14px/1 var(--font-body); color: var(--ink-dim);
+  background: var(--well); border: 1px solid var(--line);
+}
+.gk-choice-text { flex: 1; min-width: 0; }
+@media (hover: hover) {
+  .gk-choice:hover:not(:disabled) { border-color: var(--accent); }
+}
+.gk-choice:disabled { cursor: default; }
+.gk-choice.is-selected, .gk-choice[aria-pressed="true"] {
+  border-color: var(--accent); background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.gk-choice.is-selected .gk-mark, .gk-choice[aria-pressed="true"] .gk-mark { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.gk-choices.is-locked .gk-choice:not(.is-selected):not([aria-pressed="true"]):not(.is-correct) { opacity: .55; }
+.gk-choices.is-locked .gk-choice:is(.is-selected, [aria-pressed="true"])::after,
+.gk-choice.is-correct::after, .gk-choice.is-wrong::after {
+  flex: none; margin-left: auto; font: 800 18px/1 var(--font-body);
+}
+.gk-choices.is-locked .gk-choice:is(.is-selected, [aria-pressed="true"])::after { content: "✓"; color: var(--accent-deep); }
+.gk-choice.is-correct { border-color: var(--green); background: color-mix(in srgb, var(--green) 14%, var(--card)); box-shadow: inset 0 0 0 1px var(--green); opacity: 1; }
+.gk-choice.is-correct::after { content: "✓"; color: var(--green); }
+.gk-choice.is-wrong { border-color: var(--melon); background: color-mix(in srgb, var(--melon) 14%, var(--card)); box-shadow: inset 0 0 0 1px var(--melon); }
+.gk-choice.is-wrong::after { content: "✕"; color: var(--melon-deep); }
+.gk-choice.is-dim { opacity: .55; }
+
+/* ---- input row ---- */
+.gk-input-row { display: flex; gap: 10px; align-items: stretch; width: 100%; min-width: 0; margin: 0; }
+.gk-input-row .gk-input, input.gk-input {
+  flex: 1 1 auto; min-width: 0; width: 100%; min-height: 48px; margin: 0;
+  padding: 10px 14px; font: 600 17px/1.3 var(--font-body); color: var(--ink);
+  background: var(--input-bg, var(--card)); border: 1px solid var(--line-strong); border-radius: var(--gk-radius, 12px);
+}
+.gk-input-row > .gk-btn { flex: none; min-height: 48px; }
+.gk-input-row .gk-input:focus, input.gk-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+/* ---- waiting line ---- */
+.gk-wait {
+  display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 44px; margin: 0;
+  font: 700 16px/1.4 var(--font-body); color: var(--ink-dim); text-align: center;
+}
+.gk-wait-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  min-height: 220px; padding: 28px 24px; text-align: center;
+}
+.gk-wait-card > * { margin: 0; max-width: 46ch; }
+.gk-wait-title { font: 800 clamp(22px, 2.6vw, 26px)/1.25 var(--font-display); color: var(--ink); overflow-wrap: anywhere; text-wrap: balance; }
+.gk-wait-card .gk-wait { margin-top: 6px; }
+.gk-wait::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.gk-wait.is-done::before { background: var(--green); }
+
+/* ---- round result / final scores ---- */
+.gk-results { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 560px; margin-inline: auto; min-width: 0; }
+.gk-results-title { margin: 0; font: 800 clamp(24px, 3vw, 30px)/1.2 var(--font-display); color: var(--ink); text-align: center; }
+.gk-winner { margin: 0; font: 800 18px/1.4 var(--font-body); color: var(--ink); text-align: center; overflow-wrap: anywhere; }
+.gk-ranks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.gk-rank-row {
+  display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  min-height: 48px; padding: 8px 14px; border: 1px solid var(--line); border-radius: var(--gk-radius, 12px);
+  background: var(--card); color: var(--ink); font: 700 16px/1.35 var(--font-body);
+}
+.gk-rank { font-weight: 800; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.gk-name { min-width: 0; overflow-wrap: anywhere; }
+.gk-name small { font-size: 13px; font-weight: 700; color: var(--ink-dim); }
+.gk-pts { font-weight: 800; font-variant-numeric: tabular-nums; }
+.gk-rank-row.is-top .gk-rank { color: var(--accent-deep); }
+.gk-rank-row.is-you { border-color: var(--accent); background: var(--accent-soft); }
+.gk-rank-row.is-left { opacity: .65; }
+
+/* Shell Final scores (End game on a game without its own final screen). */
+.gk-final { display: flex; flex-direction: column; gap: 14px; padding: clamp(16px, 4vh, 40px) 0 8px; }
+.gk-final > * { margin-block: 0; }
+.gk-final-note { max-width: 560px; margin: 0 auto; font: 600 15px/1.45 var(--font-body); color: var(--ink-dim); text-align: center; overflow-wrap: anywhere; text-wrap: balance; }
+/* Full-screen games: results and the host's choices form one block,
+ * centred in the viewport (clear of the Room launcher at the top). */
+#gbody[data-layout="immersive"]:has(> .gk-final) {
+  min-height: 100dvh; display: flex; flex-direction: column; justify-content: center;
+  padding: 72px 16px 24px; box-sizing: border-box;
+}
+#gbody[data-layout="immersive"] > .gk-final { width: 100%; max-width: 560px; margin: 0 auto; padding: 0; }
+
+@media (max-width: 560px) {
+  .gk-prompt { font-size: clamp(22px, 6vw, 26px); }
+  .gk-choices { grid-template-columns: repeat(var(--gk-cols-phone, 1), minmax(0, 1fr)); gap: 10px; }
+  .gk-choice { font-size: 16px; }
+  .gk-hud { font-size: 13px; gap: 2px 10px; }
+  .gk-sub { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gk-btn, .gk-choice { transition: none; }
+}
+
+/* ==========================================================================
+ * Older shared text-game classes (still used by a few games), flattened.
+ * ========================================================================== */
+#gbody:where([data-layout="standard"]) {
+  --game-paper: var(--card);
+  --game-tint: var(--accent-soft);
+  --game-rule: var(--line-strong);
+}
+
+#gbody:where([data-layout="standard"]) > h3 { margin: 4px 0 12px; line-height: 1.3; }
+#gbody:where([data-layout="standard"]) > .display {
+  padding: 18px 20px; margin: 14px 0;
+  background: var(--well); border: 1px solid var(--line);
+  border-radius: 12px; line-height: 1.3;
+}
+#gbody:where([data-layout="standard"]) > p { max-width: 68ch; }
+#gbody:where([data-layout="standard"]) > .muted { margin: 10px 0; }
+#gbody:where([data-layout="standard"]) > .card { padding: 16px 18px; border-radius: 12px; margin-bottom: 14px; box-shadow: none; border-color: var(--line); }
+#gbody:where([data-layout="standard"]) > .card h4 { margin: 0 0 10px; }
+
+#gbody:where([data-layout="standard"]) .toolbar .swatch { width: 44px; height: 44px; padding: 0; flex: none; }
+#gbody:where([data-layout="standard"]) .typing-correct { background: #1d7a3a; color: #fff; font-weight: 800; border-bottom: 2px solid currentColor; }
+#gbody:where([data-layout="standard"]) .typing-wrong { background: #b3352b; color: #fff; text-decoration: underline wavy; text-underline-offset: 3px; }
+
+#gbody:where([data-layout="standard"]) > .row > input[type="text"],
+#gbody:where([data-layout="standard"]) > .row > input[type="number"] { width: auto; min-width: 0; flex: 1 1 210px; min-height: 48px; border-radius: 12px; }
+#gbody:where([data-layout="standard"]) > .row > .btn { min-height: 48px; }
+#gbody:where([data-layout="standard"]) > .row:has(> label) { align-items: baseline; gap: 6px 12px; margin-bottom: 10px; }
+#gbody:where([data-layout="standard"]) > .row > label { margin: 0; max-width: 100%; overflow-wrap: anywhere; }
+
+#gbody:where([data-layout="standard"]) .scoreboard { align-items: flex-start; gap: 8px; }
+#gbody:where([data-layout="standard"]) .scoreboard .score,
+#gbody:where([data-layout="standard"]) > .card > .score {
+  padding: 7px 12px; border-width: 1px; max-width: 100%;
+  flex-wrap: wrap; overflow-wrap: anywhere; line-height: 1.4;
+}
+#gbody:where([data-layout="standard"]) .bar {
+  min-width: 0; padding: 10px 12px; border: 1px solid var(--game-rule);
+  border-radius: 12px; background: var(--game-paper);
+}
+#gbody:where([data-layout="standard"]) .bar .n { min-width: 0; overflow-wrap: anywhere; }
+#gbody:where([data-layout="standard"]) .bar > span:last-child { max-width: min(40vw, 36ch); overflow-wrap: anywhere; }
+#gbody:where([data-layout="standard"]) .bar:not(:has(.fill)) { grid-template-rows: auto; }
+#gbody:where([data-layout="standard"]) .bar:not(:has(.fill))::before { display: none; }
+#gbody:where([data-layout="standard"]) .bar .fill[style*="width:0%"] { min-width: 0; }
+
+/* Opposing outlines keep both chess armies legible on every board theme. */
+.chess .sq .pb {
+  color: #10141b;
+  -webkit-text-stroke: 0.65px #f4f4f7;
+  text-shadow: -1px 0 #f4f4f7, 1px 0 #f4f4f7, 0 -1px #f4f4f7, 0 1px #f4f4f7;
+}
+
+/* Desktop poll answers share two rows; phones keep one readable column. */
+
+#gbody:where([data-layout="standard"]) .rp-actions { margin-top: 4px; }
+#gbody:where([data-layout="standard"]) .rp-actions .btn { min-height: 48px; }
+
+/* Nine letters stay nine tiles on phones; static tiles are never vote cards. */
+
+#gbody:where([data-layout="standard"]) #rematch { padding-top: 16px; border-top: 1px solid var(--line); gap: 10px; }
+#gbody:where([data-layout="standard"]) #hostWait { flex: 1 1 100%; margin: 3px 0 0; }
+
+@media (max-width: 560px) {
+  #gbody:where([data-layout="standard"]) > .display { padding: 14px 16px; border-radius: 12px; }
+
+}
+
+/* ==========================================================================
+ * Room drawer: host moderation, away from live game input.
+ * ========================================================================== */
+.room-manage{flex-basis:100%;min-width:0;border-top:1px solid var(--line);padding-top:4px}
+.room-manage>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;cursor:pointer;font:800 15px/1.3 var(--font-body);list-style:none}
+.room-manage>summary::-webkit-details-marker{display:none}
+.room-manage>summary::after{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);margin:0 6px 4px 0;color:var(--ink-dim)}
+.room-manage[open]>summary::after{transform:rotate(-135deg);margin-bottom:-4px}
+.room-members:empty{display:none}
+.room-members{width:100%;margin-top:16px;text-align:left}
+.room-members h3{margin:0 0 8px;font:800 16px/1.4 var(--font-body,Nunito,sans-serif)}
+.room-member{padding:8px 0;border-top:1px solid var(--line,#d8d6e2)}
+.room-member-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.room-member-row>span{min-width:0;overflow-wrap:anywhere;font-weight:700}
+.room-member-row small{display:block;font-size:13px;font-weight:600;color:var(--ink-dim,#6d6780)}
+.room-members button{min-width:44px;min-height:44px;padding:8px 12px;border:1px solid var(--line-strong,#d8d6e2);border-radius:10px;background:var(--well,#f3f2f8);color:var(--ink,#262338);font:700 16px/1.3 var(--font-body,Nunito,sans-serif);cursor:pointer}
+.room-members button:disabled{opacity:.5;cursor:default}
+.room-kick-confirm{margin-top:8px;padding:10px;border:1px solid var(--line-strong,#d8d6e2);border-radius:10px}
+.room-kick-confirm p{margin:0 0 8px;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.room-kick-confirm>div{display:flex;gap:8px;flex-wrap:wrap}
+.room-members [data-kick-confirm]{background:var(--accent,#c91d62);border-color:var(--accent,#c91d62);color:var(--accent-ink,#fff)}
+.room-members button:focus-visible,.room-manage>summary:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+.room-removed{max-width:520px;margin:clamp(24px,10vh,100px) auto;padding:24px;font:16px/1.5 var(--font-body,Nunito,sans-serif)}
+.room-removed h1{font:800 28px/1.2 var(--font-body,Nunito,sans-serif)}
+.room-removed .btn{min-height:44px}
+
+/* Immersive games ended by the host: the shell's Final scores sit in the
+ * page, so the footer follows the list instead of floating over a board. */
+#gbody[data-layout="immersive"]:has(> .gk-final) > #rematch {
+  position: static; transform: none; max-width: 560px;
+  width: 100%; margin: 16px auto 0; border: 0; border-top: 1px solid var(--line); border-radius: 0;
+  background: transparent; box-shadow: none; padding: 16px 0 0;
+}
+.gk-wait { text-wrap: balance; }
+#rematch > #hostWait.gk-wait { flex: 0 1 auto; width: fit-content; max-width: 100%; margin-inline: auto; }

@@ -1,0 +1,15 @@
+/* Kalah board art: a flat board, flat bowls, two seed colours. */
+.kl{--bk-aspect:2.333}
+.kl.kl-portrait{--bk-aspect:.833}
+.kl .kl-art{display:block;width:100%;height:auto}
+.kl .kl-frame{fill:#a8774a}
+.kl .kl-pit{fill:#7c5434;stroke:#6a462a;stroke-width:2}
+.kl .kl-num{fill:#fff7e8}
+.kl .kl-bowl.is-legal .kl-pit{stroke:var(--accent);stroke-width:4}
+.kl .kl-bowl.is-legal{cursor:pointer}
+.kl .kl-bowl.is-legal:hover .kl-pit{fill:#8a5f3c}
+.kl .kl-bowl.is-from .kl-pit{stroke:#f6d365;stroke-width:3;stroke-dasharray:8 6}
+.kl .kl-bowl.is-landed .kl-pit{stroke:#f6d365;stroke-width:4}
+.kl .kl-focus{stroke:var(--accent);stroke-width:4;opacity:0}
+.kl [data-pit]:focus{outline:none}
+.kl [data-pit]:focus-visible .kl-focus{opacity:1}

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Castle Clash: two paper forts facing off">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7d774"/>
+      <stop offset="1" stop-color="#f2a3b3"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" rx="18" fill="url(#sky)"/>
+  <rect x="6" y="66" width="84" height="24" rx="6" fill="#3f7d6b"/>
+  <rect x="6" y="66" width="84" height="6" rx="3" fill="#55a086"/>
+  <!-- left fort (teal paper) -->
+  <g stroke="#1f2a33" stroke-width="2" stroke-linejoin="round">
+    <rect x="12" y="44" width="26" height="24" rx="2" fill="#7fd4c1"/>
+    <rect x="12" y="38" width="6" height="8" fill="#7fd4c1"/>
+    <rect x="21" y="38" width="6" height="8" fill="#7fd4c1"/>
+    <rect x="30" y="38" width="6" height="8" fill="#7fd4c1"/>
+    <rect x="20" y="56" width="10" height="12" rx="4" fill="#1f2a33" stroke="none"/>
+  </g>
+  <!-- right fort (melon paper) -->
+  <g stroke="#1f2a33" stroke-width="2" stroke-linejoin="round">
+    <rect x="58" y="44" width="26" height="24" rx="2" fill="#ff8f9e"/>
+    <rect x="58" y="38" width="6" height="8" fill="#ff8f9e"/>
+    <rect x="67" y="38" width="6" height="8" fill="#ff8f9e"/>
+    <rect x="76" y="38" width="6" height="8" fill="#ff8f9e"/>
+    <rect x="66" y="56" width="10" height="12" rx="4" fill="#1f2a33" stroke="none"/>
+  </g>
+  <!-- arcing shot -->
+  <circle cx="48" cy="30" r="4" fill="#1f2a33"/>
+  <path d="M40 44 Q48 22 56 44" fill="none" stroke="#1f2a33" stroke-width="2" stroke-dasharray="4 3"/>
+  <!-- paper fold corners -->
+  <path d="M12 62 l8 6 h-8 z" fill="#1f2a33" opacity="0.18"/>
+  <path d="M84 62 l-8 6 h8 z" fill="#1f2a33" opacity="0.18"/>
+</svg>

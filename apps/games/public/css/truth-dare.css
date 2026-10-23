@@ -1,0 +1,18 @@
+/* Truth or Dare on the game kit: a centred spotlight column. Tokens only. */
+#gbody .party-scene--truth .td-kicker { margin: 0; text-align: center; }
+#gbody .party-scene--truth > .gk-prompt { margin: 0 auto; max-width: 30ch; }
+.party-scene--truth .td-actions { min-height: 48px; }
+.party-scene--truth .td-choices { width: 100%; max-width: 700px; margin-inline: auto; }
+
+.party-scene--truth .party-reveals { margin-top: 0; }
+/* Short panels keep ordinary prompts beside their actions. Longer prompts
+ * wrap and remain reachable with natural scrolling. */
+@media (max-height: 640px) {
+  #gbody .party-scene--truth > .gk-prompt { font-size: 22px; }
+  .party-scene--truth .party-result { padding: 10px 14px; }
+}
+@media (max-height: 500px) {
+  #gbody .party-scene--truth { padding: 0 0 12px; }
+}
+.party-scene--truth .gk-results, .party-scene--truth .party-reveals { text-align: left; }
+.party-scene--truth .gk-winner { text-align: center; }

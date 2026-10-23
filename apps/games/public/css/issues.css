@@ -1,0 +1,93 @@
+.issue-dialog{
+ --issue-surface:#fff;--issue-field:#f7f7fb;--issue-ink:#27243b;--issue-muted:#696579;
+ --issue-line:#d8d5e4;--issue-soft:#fceaf2;--issue-selected:#97214f;--issue-accent:#ce2468;
+ box-sizing:border-box;width:min(552px,calc(100vw - 24px));max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);
+ padding:0;border:1px solid var(--issue-line);border-radius:20px;background:var(--issue-surface);color:var(--issue-ink);
+ box-shadow:0 24px 80px #0c0c2245;overflow:hidden;font-family:var(--font-body,system-ui);color-scheme:light;
+}
+[data-theme="night"] .issue-dialog{
+ --issue-surface:#22222e;--issue-field:#191922;--issue-ink:#f3f1fa;--issue-muted:#b9b5c9;
+ --issue-line:#4a475a;--issue-soft:#3d263a;--issue-selected:#ffb2d0;--issue-accent:#ce2468;color-scheme:dark;
+}
+.issue-dialog::backdrop{background:#111120a3;backdrop-filter:blur(5px)}
+.issue-dialog[open]{animation:issue-open .16s ease-out}
+body:has(.issue-dialog[open]){overflow:hidden}
+.issue-dialog .issue-form{display:flex;flex-direction:column;max-height:calc(100dvh - 26px);margin:0}
+.issue-head{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 24px 16px;flex-shrink:0}
+.issue-heading{display:flex;align-items:center;gap:12px;min-width:0}
+.issue-head h2{font:700 26px/1.2 var(--font-display,system-ui);margin:0;letter-spacing:-.3px}
+.issue-mark{display:flex;align-items:center;justify-content:center;width:40px;height:40px;flex:none;border-radius:12px;background:var(--issue-soft);color:var(--issue-selected)}
+.issue-mark svg,.issue-close svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.issue-dialog button,.issue-dialog select{font:700 15px/1.4 var(--font-body,system-ui);min-height:44px}
+.issue-dialog .issue-close{display:flex;align-items:center;justify-content:center;width:44px;min-width:44px;padding:0;flex:none;border:0;border-radius:10px;color:var(--issue-muted);background:transparent;cursor:pointer}
+.issue-dialog .issue-close:hover{color:var(--issue-ink);background:var(--issue-field)}
+.issue-fields{display:flex;flex-direction:column;gap:18px;min-height:0;padding:0 24px 20px;overflow:auto;overscroll-behavior:contain;scroll-padding-block:12px}
+.issue-fields label{margin:0;display:block;font-size:13px;font-weight:800;line-height:1.4}
+.issue-pair{display:flex;gap:14px}.issue-pair>label{flex:1;min-width:0}
+.issue-fields select,.issue-fields textarea{box-sizing:border-box;display:block;width:100%;margin-top:7px;border:1px solid var(--issue-line);border-radius:10px;padding:12px;color:var(--issue-ink);background:var(--issue-field);font:500 16px/1.5 var(--font-body,system-ui);box-shadow:none}
+/* Safari's native menulist ignores authored padding and height. Keep the
+   native picker and keyboard semantics, but paint a consistent closed field. */
+.issue-fields select{appearance:none;-webkit-appearance:none;min-height:48px;padding:11px 38px 11px 12px;text-overflow:ellipsis;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='none' stroke='%238f899f' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 8 4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center}
+.issue-fields textarea{resize:vertical;min-height:108px;max-height:240px}
+.issue-fields textarea::placeholder{color:var(--issue-muted);opacity:1}
+.issue-fields select:hover,.issue-fields textarea:hover{border-color:var(--issue-muted)}
+.issue-dialog :is(select,textarea):focus{outline:none;border-color:var(--issue-selected);box-shadow:0 0 0 3px var(--issue-soft)}
+.issue-impact{border:0;padding:0;margin:0;display:flex;gap:8px;min-width:0}
+.issue-impact legend{font-weight:800;font-size:13px;line-height:1.4;padding:0;margin-bottom:8px}
+.issue-impact label{position:relative;display:flex;flex:1;min-width:0}
+.issue-impact input{position:absolute;opacity:0;width:1px;height:1px}
+.issue-impact span{display:flex;gap:6px;justify-content:center;align-items:center;min-height:44px;width:100%;padding:9px 6px;border:1px solid var(--issue-line);border-radius:9px;color:var(--issue-muted);background:transparent;font-size:13px;cursor:pointer;text-align:center}
+.issue-impact span::before{content:'';width:11px;height:11px;flex:none;border:1.5px solid currentColor;border-radius:50%}
+.issue-impact input:checked+span{border-color:var(--issue-selected);background:var(--issue-soft);color:var(--issue-selected)}
+.issue-impact input:checked+span::before{border:3px solid var(--issue-selected);background:var(--issue-surface)}
+.issue-impact label:hover span{border-color:var(--issue-muted)}
+.issue-dialog :focus-visible,.issue-impact input:focus-visible+span{outline:2px solid var(--issue-selected);outline-offset:3px}
+.issue-steps summary,.issue-diagnostics summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--issue-muted);font-size:14px;font-weight:700;list-style:none}
+.issue-steps summary::-webkit-details-marker,.issue-diagnostics summary::-webkit-details-marker{display:none}
+.issue-steps summary::before,.issue-diagnostics summary::before{content:'';width:7px;height:7px;flex:none;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);margin-right:3px}
+.issue-steps[open] summary::before,.issue-diagnostics[open] summary::before{transform:rotate(45deg)}
+.issue-steps summary>span{margin-left:auto;font-size:12px;font-weight:500}
+.issue-privacy{font-size:12px;color:var(--issue-muted);line-height:1.5;margin:0;max-width:44ch}
+.issue-error{border-left:3px solid var(--issue-accent);padding:10px 12px;color:var(--issue-ink);background:var(--issue-soft);font-size:14px;line-height:1.5;margin:0}
+.issue-success{font-size:17px;font-weight:700;line-height:1.5;padding:20px 0 28px;text-align:center;color:var(--issue-ink)}
+.issue-success::before{content:'✓';display:flex;align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 16px;border-radius:50%;background:var(--issue-soft);color:var(--issue-selected);font-size:26px}
+.issue-dialog[data-sent] .issue-fields>:not(.issue-success){display:none}
+.issue-actions{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid var(--issue-line);flex-shrink:0;background:var(--issue-surface)}
+.issue-actions button{border:1px solid transparent;border-radius:10px;padding:10px 18px;cursor:pointer;color:var(--issue-muted);background:transparent;transition:background .12s,color .12s}
+.issue-actions .issue-cancel:hover{background:var(--issue-field);color:var(--issue-ink)}
+.issue-actions .issue-send{background:var(--issue-accent);color:#fff;border-color:var(--issue-accent);min-width:144px;box-shadow:0 2px 4px #00000014}
+.issue-actions .issue-send:hover{background:#b61d59;border-color:#b61d59}
+.issue-actions button:disabled{opacity:.65;cursor:wait}
+.issue-dialog [hidden]{display:none!important}
+.issue-link{background:none;border:0;padding:10px;color:var(--ink-dim,#68637b);font:700 15px/24px var(--font-body);min-height:44px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.sitefoot .issue-link,.giggle-strip .issue-link{display:block;margin:8px auto 0}
+@media(max-width:480px){.issue-head{padding:16px 16px 14px}.issue-head h2{font-size:24px}.issue-fields{padding:0 16px 18px;gap:16px}.issue-pair{flex-direction:column;gap:14px}.issue-actions{padding:12px 16px}.issue-impact span{font-size:12px;gap:4px;padding:8px 4px}.issue-impact span::before{display:none}.issue-impact input:checked+span{box-shadow:inset 0 -2px 0 var(--issue-selected)}.issue-dialog{border-radius:16px}}
+@media(max-width:360px){.issue-mark{display:none}.issue-head{gap:8px}.issue-head h2{font-size:23px}}
+@media(max-height:400px){.issue-head{padding:8px 16px}.issue-head h2{font-size:22px}.issue-mark{display:none}.issue-fields{padding:4px 16px 12px}.issue-actions{padding:8px 16px}}
+@media(max-height:240px){.issue-dialog{max-height:calc(100dvh - 12px);border-radius:12px}.issue-dialog .issue-form{max-height:calc(100dvh - 14px)}.issue-head,.issue-actions{padding:2px 12px}.issue-head h2{font-size:18px}}
+@keyframes issue-open{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.issue-dialog[open]{animation:none}.issue-dialog button{transition:none}}
+
+.room-menu-actions [data-report]{grid-column:1/-1;background:transparent}
+.report-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;padding:0;border:1px solid var(--line-strong,#dedce8);border-radius:10px;color:var(--ink,#262338);background:var(--card,#fff);cursor:pointer;touch-action:manipulation;box-shadow:none}.report-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.report-icon:hover{background:var(--well,#f3f2f8)}.report-icon:focus-visible{outline:3px solid var(--accent,#dc256c);outline-offset:3px}
+body.game-playing #roomMenu>summary{width:44px;min-width:44px;padding:0;justify-content:center;gap:0}body.game-playing #roomMenu>summary>span{display:none}
+.game-report-icon{position:fixed;top:max(10px,env(safe-area-inset-top));left:calc(max(12px,env(safe-area-inset-left)) + 52px);z-index:39}
+body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)) .play-toolbar #roomMenu{right:calc(max(clamp(12px,2vw,24px),env(safe-area-inset-right),calc((100vw - 1120px)/2 + 24px)) + 52px)}
+.play-toolbar .game-report-icon{left:auto;right:max(clamp(12px,2vw,24px),env(safe-area-inset-right),calc((100vw - 1120px)/2 + 24px))}
+body.game-immersive:has(.pk,.pke,.bs-game) .game-report-icon{color:#f5f7fb;background:#18202bf5;border-color:#ffffff40}body:has(#roomMenu[open]) .game-report-icon{visibility:hidden}
+.issue-dialog .issue-download{display:block;margin-top:8px;padding:8px 0;border:0;background:none;color:var(--issue-selected);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+
+/* Drawing games own the clock on the right. Keep both room utilities together
+   on the left, within the space reserved by their headers. */
+body.game-playing:has(.sk-doodle.dg,.sk-phone.dp) .play-toolbar #roomMenu{right:auto}
+body.game-playing:has(.sk-doodle.dg,.sk-phone.dp) .game-report-icon{top:max(14px,env(safe-area-inset-top));left:calc(max(14px,env(safe-area-inset-left)) + 52px);right:auto;z-index:91;color:var(--ink);background:var(--card);border-color:var(--line);border-radius:12px}
+@media(orientation:landscape) and (max-height:500px){
+ body.game-playing:has(.sk-phone.dp.dp-draw,.sk-phone.dp.dp-guess) .game-report-icon{top:max(6px,env(safe-area-inset-top));left:calc(max(6px,env(safe-area-inset-left)) + 52px)}
+}
+
+/* Settled standard results retain utilities in a solid toolbar, rather than
+ * floating controls across scrolled names and scores. Live clocks and drawing
+ * games keep their existing chrome. */
+body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar { position:sticky; top:0; z-index:40; background:var(--bg); }
+body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar #roomMenu { position:absolute; top:max(10px,env(safe-area-inset-top)); right:52px; }
+body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar .game-report-icon { position:absolute; top:max(10px,env(safe-area-inset-top)); right:0; }

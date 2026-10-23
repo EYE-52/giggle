@@ -1,0 +1,213 @@
+{
+  "status": "Concrete asset library for root integration/review; art acceptance pending",
+  "output": {
+    "path": "public/assets/karts/combat/arsenal-mounted.glb",
+    "bytes": 325816,
+    "sha256": "97193119e6a2bd1dadd518eff8ee9c6d21bd56279baad53617e31857aedf38fd",
+    "libraryPrimitiveDraws": 17,
+    "libraryTriangles": 8762,
+    "meshopt": {
+      "path": "public/assets/karts/combat/arsenal-mounted.meshopt.glb",
+      "bytes": 174496,
+      "sha256": "5cbc624e4b800b3b895e99f800db1b38bff07cdd5e470632e37ec607ecdd7e1d",
+      "method": "EXT_meshopt_compression without quantization or simplification; exact float attributes, triangle winding retained (encoder may cyclically rotate triangle starting indices)"
+    }
+  },
+  "rocket": {
+    "source": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/blaster-m.glb",
+    "sha256": "ff3f1196f2e9acabbdc44143dc3b93f79f4c5e8176e54514479bd2b788477c80",
+    "author": "Kenney",
+    "license": "CC0-1.0",
+    "sourceTriangles": 440,
+    "sourceScale": 2.096436087234249,
+    "sourceRotationY": 3.141592653589793,
+    "sourceOffset": [
+      0.0,
+      0.3480050265789032,
+      0.44999995827674866
+    ],
+    "sourceBoreCenter": [
+      6.84687833256683e-17,
+      0.07250159978866577,
+      -0.31005001068115234
+    ],
+    "lengthZ": 1.3,
+    "helper": [
+      0,
+      0.5,
+      1.1
+    ],
+    "mount": [
+      -0.95,
+      0.7,
+      0.8
+    ],
+    "preserved": "All original source positions, split normals, UV, triangle topology, palette/atlas and integrated grip; no simplification or stripping"
+  },
+  "mine": {
+    "design": "Original Giggle pressure-disc authored through Blender; shallow moulded shell, machined rim/plate, short bevelled fuze tabs and small armed-lamp slot",
+    "sourceLicense": "Original project authored content; Kenney atlas reused under CC0-1.0",
+    "mountedBranch": "Mine",
+    "deployedBranch": "MineTrap",
+    "lampNames": [
+      "MineLamp",
+      "MineTrapLamp"
+    ],
+    "mount": [
+      0,
+      1.29,
+      -1.35
+    ],
+    "visualRadius": 0.41,
+    "deployedBaseY": 0,
+    "thumbnail": "public/assets/karts/weapon-thumbnails/mine.png"
+  },
+  "atlas": {
+    "path": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/Textures/colormap.png",
+    "sha256": "4d0867c3c3c8c539106f91fbc0987d0e1b7d2811362d1daed593169c7d3b0fdc",
+    "size": [
+      512,
+      512
+    ],
+    "packing": "Original PNG embedded losslessly"
+  },
+  "pipeline": {
+    "dcc": "5.2.2 LTS",
+    "editable": "assets-source/karts/arsenal-mounted-20261007/arsenal-mounted.blend",
+    "optimization": "Pinned glTF Transform4.5.0 dedup/prune --keep-leaves; no lossy conversion/compression or quantization",
+    "compressionVersions": {
+      "@gltf-transform/core": "4.5.1",
+      "@gltf-transform/extensions": "4.5.1",
+      "meshoptimizer": "1.2.0"
+    }
+  },
+  "scope": "Asset presentation only; root owns runtime/config/muzzles/rules and visual/live-fire acceptance.",
+  "projectileNormalsNote": "Original zero-area source triangles retained. Blender may assign fallback normals to their isolated nonrendering corners; all visible source normals/positions/material colors verified by actual loader.",
+  "seeker": {
+    "source": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/blaster-q.glb",
+    "sha256": "e2062bf76cf9ea7690acbb5ae18c9d92be5f7623ec3a2f4b363eb926d1017522",
+    "triangles": 602,
+    "transformGltf": [
+      -1.8300831317901611,
+      0.0,
+      1.5999094671315106e-07,
+      0.0,
+      0.0,
+      1.8300831317901611,
+      0.0,
+      0.46157434582710266,
+      -1.5999094671315106e-07,
+      0.0,
+      -1.8300831317901611,
+      0.45000001788139343,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "surfacePolicy": "Original triangle/UV/split-normal tuples retained under affine rigid/uniform normalization",
+    "sourceBoreCenter": [
+      0.0,
+      0.02099667489528656,
+      -0.35517510771751404
+    ],
+    "helper": [
+      0,
+      0.5,
+      1.1
+    ],
+    "mount": [
+      -0.95,
+      0.7,
+      0.8
+    ]
+  },
+  "projectiles": {
+    "RocketShot": {
+      "parts": [
+        {
+          "path": "assets-source/karts/arsenal-mounted-20261007/sources/kenney-space-kit/Models/GLTF format/rocket_finsA.glb",
+          "sha256": "656c530940f3a50a1ea9107a67452252ea6b00a8a3d24bbe84faed1f9f086e01",
+          "stackY": 0,
+          "sourceHeight": 0.7
+        },
+        {
+          "path": "assets-source/karts/arsenal-mounted-20261007/sources/kenney-space-kit/Models/GLTF format/rocket_sidesA.glb",
+          "sha256": "1cc151d0abffb106c1761dcf2e9c2bab5a6157bd180ed9e5d80f9ee34a2269f4",
+          "stackY": 0.7,
+          "sourceHeight": 1
+        },
+        {
+          "path": "assets-source/karts/arsenal-mounted-20261007/sources/kenney-space-kit/Models/GLTF format/rocket_topA.glb",
+          "sha256": "29cd77e5f86546e46947781cec63dcb29b56b8f4cc66262bf1b52928eecc2c19",
+          "stackY": 1.7,
+          "sourceHeight": 0.8
+        }
+      ],
+      "length": 1.25,
+      "uniformScale": 0.5,
+      "sourceTriangleCount": 464,
+      "materialEncoding": "Original linear diffuse RGBA copied to COLOR_0; identical source metallic1/roughness1 response; no recoloring/simplification"
+    },
+    "SeekerShot": {
+      "parts": [
+        {
+          "path": "assets-source/karts/arsenal-mounted-20261007/sources/kenney-space-kit/Models/GLTF format/rocket_baseB.glb",
+          "sha256": "a83b3c4db4c9ed5a367032e393433c815062b21faf1fc7b0075f73c3f60c6642",
+          "stackY": 0,
+          "sourceHeight": 1.3
+        },
+        {
+          "path": "assets-source/karts/arsenal-mounted-20261007/sources/kenney-space-kit/Models/GLTF format/rocket_fuelB.glb",
+          "sha256": "50fc3cbf21b76235201b368b5b1186633edb8ef0a087fc05195dd446b0754a07",
+          "stackY": 1.3,
+          "sourceHeight": 1
+        },
+        {
+          "path": "assets-source/karts/arsenal-mounted-20261007/sources/kenney-space-kit/Models/GLTF format/rocket_topB.glb",
+          "sha256": "341ef05f146cf0dc0fd8749b63334ebe4cedb8fbb442e816a4a5c5a6f0586169",
+          "stackY": 2.3,
+          "sourceHeight": 1.1
+        }
+      ],
+      "length": 1.15,
+      "uniformScale": 0.338235294117647,
+      "sourceTriangleCount": 496,
+      "materialEncoding": "Original linear diffuse RGBA copied to COLOR_0; identical source metallic1/roughness1 response; no recoloring/simplification"
+    }
+  },
+  "bomb": {
+    "design": "Seven vivid red paper dynamite sticks, two charcoal bands, cream fuse/ends, dark proximity sensor and small red hardware lamp; no orb/radius ring",
+    "sourceLicense": "Original project authored geometry and materials; replaces Kenney grenade-b model",
+    "projectileBranch": "BombShot",
+    "meshNames": [
+      "BombShotBandsAndSensor",
+      "BombShotDynamite",
+      "BombShotFuse",
+      "BombShotLamp"
+    ],
+    "draws": 4,
+    "visualRadius": 0.585,
+    "authorityRadius": 0.6,
+    "fullCenterCorrectionBlender": [
+      0.0,
+      -0.03565153479576111,
+      0.0325000137090683
+    ],
+    "uniformEnclosingScale": 1.0164198905033253,
+    "helper": [
+      0,
+      0.5,
+      1.1
+    ],
+    "mount": [
+      0,
+      0.7,
+      0.8
+    ],
+    "thumbnails": [
+      "public/assets/karts/weapon-thumbnails/bomb.png",
+      "public/assets/karts/weapon-thumbnails/proximity.png"
+    ]
+  }
+}
