@@ -59,7 +59,7 @@
     "test:kart-stylized": "node test/kart-stylized-world.mjs",
     "test:kart-arsenal": "node test/kart-harbor-map.mjs && node test/kart-elevated-arsenal.mjs && node test/kart-pulse-mounted.mjs && node test/kart-arsenal-mounted.mjs && node test/kart-arsenal-secondary.mjs && node test/kart-mounted-combat.mjs && node test/kart-ten-arsenal-transport.js",
     "test:readiness": "node test/game-readiness.js && node test/view-readiness.js && node test/three-readiness.js && node test/game-readiness-shell.js",
-    "test:party-deadlines": "node test/party-deadlines.js && node test/party-privacy.js && node test/party-send-rejection.js && node test/party-final-ties.js && node test/wyr-match-scores.js && node test/trivia-streaks.js && node test/memory-custom-items.js && node test/party-elected-host.js && node test/countdown-scatter-host.js && node test/truth-dare-performance.js && node test/dare-roulette-performance.js && node test/pick-one-compact.js && node test/party-a-rules.js",
+    "test:party-deadlines": "node test/party-deadlines.js && node test/party-privacy.js && node test/party-send-rejection.js && node test/party-final-ties.js && node test/wyr-match-scores.js && node test/trivia-streaks.js && node test/memory-custom-items.js && node test/party-elected-host.js && node test/party-host-projection.js && node test/countdown-scatter-host.js && node test/truth-dare-performance.js && node test/dare-roulette-performance.js && node test/pick-one-compact.js && node test/party-a-rules.js",
     "test:typing": "node test/typing-input.js && node test/skill-races.js",
     "test:party-acceptance": "node test/party-room-acceptance.js",
     "test:ui-audio": "node test/ui-audio.mjs",

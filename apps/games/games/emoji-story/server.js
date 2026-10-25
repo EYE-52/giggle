@@ -257,9 +257,9 @@ function onPlayerGone(state, ctx, pid) {
   if (state.phase === 'guess') maybeReveal(state, ctx);
 }
 
-function view(state, pid) {
+function view(state, pid, ctx) {
   const { deal, order, ptr, turns, ...rest } = state;
-  const out = { ...rest };
+  const out = { ...rest, ...(ctx ? { hostId: hostOf(ctx) } : {}) };
   if (state.phase === 'emoji') {
     out.phrase = pid === state.director ? state.phrase : '';
     out.aliases = [];

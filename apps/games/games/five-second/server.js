@@ -214,9 +214,9 @@ function onPlayerGone(state, ctx, pid) {
   if (state.phase === 'vote') maybeReveal(state, ctx);
 }
 
-function view(state, pid) {
+function view(state, pid, ctx) {
   const { deal, order, ptr, turns, ...rest } = state;
-  const out = { ...rest };
+  const out = { ...rest, ...(ctx ? { hostId: hostOf(ctx) } : {}) };
   if (state.phase === 'answer' && pid !== state.performer) {
     out.answers = null;
   }
