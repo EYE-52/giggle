@@ -25,9 +25,18 @@ function ok(value, label) { assert(value, label); checks++; }
   ok(logs.includes('PartyBox on'), 'local server ready');
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : { channel: 'chromium' }) });
   const context = await browser.newContext({ viewport: { width: 1366, height: 768 }, deviceScaleFactor: 1, reducedMotion: 'reduce' });
-  const errors = [], monitoredPages = [];
+  const errors = [], monitoredPages = [], snapshots = new Map();
+  const observeSockets = () => {
+    const Native = WebSocket;
+    window.__testSockets = [];
+    window.WebSocket = class extends Native { constructor(...args) { super(...args); window.__testSockets.push(this); } };
+  };
   function monitor(page, name) {
     monitoredPages.push(page);
+    snapshots.set(page, { count: 0, state: null });
+    page.on('websocket', ws => ws.on('framereceived', frame => {
+      try { const m = JSON.parse(frame.payload); if (m.t === 'state') { const s = snapshots.get(page); s.count++; s.state = m; } } catch {}
+    }));
     page.on('pageerror', e => errors.push({ client: name, message: e.message }));
     page.on('console', m => { if (m.type() === 'error') errors.push({ client: name, message: m.text() }); });
   }
@@ -47,7 +56,8 @@ function ok(value, label) { assert(value, label); checks++; }
   await page.locator('#bCreate').click();
   await page.waitForURL('**/r/*');
   for (const name of ['Morgan', 'Casey']) {
-    const peer = await browser.newPage();
+    const peer = await browser.newPage({ hasTouch: true, deviceScaleFactor: 1, reducedMotion: 'reduce' });
+    await peer.addInitScript(observeSockets);
     monitor(peer, name);
     await peer.goto(page.url());
     await peer.locator('#nm').fill(name);
@@ -77,6 +87,52 @@ function ok(value, label) { assert(value, label); checks++; }
   }
   console.log(`CATALOG_SHEET_FOCUS_PASS: ${restoredSheets} real sheets;42 games at1280x720 and390x844`);
   await page.setViewportSize({ width: 1280, height: 720 });
+  await page.locator('[data-how="would-you-rather"]').first().click();
+  await page.locator('#howtoGo:not([disabled])').click();
+  const guest = monitoredPages[1];
+  await guest.locator('.wyr-world').waitFor();
+  for (const [width, height] of [[320, 568], [360, 640], [1280, 720]]) {
+    await guest.setViewportSize({ width, height });
+    await guest.evaluate(() => document.fonts.ready);
+    if (width <= 360) {
+      const title = await guest.locator('.play-title h1').evaluate(el => {
+        const r = el.getBoundingClientRect(), text = el.firstChild;
+        const words = [...text.textContent.matchAll(/\S+/g)].map(match => {
+          const range = document.createRange();
+          range.setStart(text, match.index); range.setEnd(text, match.index + match[0].length);
+          return { word: match[0], fragments: range.getClientRects().length };
+        });
+        return { ...r.toJSON(), words };
+      });
+      const zoom = await guest.locator('.play-toolbar .game-zoom').boundingBox();
+      ok(title.words.every(word => word.fragments === 1) && title.height <= 40, `whole-word title remains readable at ${width}: ${JSON.stringify(title)}`);
+      ok(zoom.y >= title.y + title.height, `size controls wrap below the title at ${width}`);
+    }
+    const before = await guest.locator('.game-stage').boundingBox();
+    const previous = snapshots.get(guest).count, instance = snapshots.get(guest).state.instanceId;
+    // Close the ordinary local transport; the real server must resume this seat.
+    await guest.evaluate(() => window.__testSockets.at(-1).close());
+    await guest.locator('#connbar:not([hidden])').waitFor();
+    const after = await guest.locator('.game-stage').boundingBox();
+    ok(Math.abs(after.y - before.y) < 1 && Math.abs(after.x - before.x) < 1 && Math.abs(after.width - before.width) < 1, `disconnect feedback keeps the playfield fixed at ${width}`);
+    ok(await guest.locator('#connbar').getAttribute('role') === 'status', `disconnect status is announced at ${width}`);
+    await guest.locator('#bRetry').tap();
+    for (let n = 0; n < 100 && snapshots.get(guest).count <= previous; n++) await guest.waitForTimeout(50);
+    ok(snapshots.get(guest).count > previous && snapshots.get(guest).state.instanceId === instance, `authoritative same-match rejoin at ${width}`);
+    await guest.locator('#connbar').waitFor({ state: 'hidden' });
+    const resumed = await guest.locator('.game-stage').boundingBox();
+    ok(Math.abs(resumed.y - before.y) < 1, `rejoin feedback keeps the playfield fixed at ${width}`);
+  }
+  const beforeToast = await page.locator('.game-stage').boundingBox();
+  await page.evaluate(() => import('/js/app.js').then(m => m.toast('Local test feedback')));
+  const toast = page.locator('#toast:not([hidden])');
+  ok(await toast.getAttribute('role') === 'status' && await toast.getAttribute('aria-live') === 'polite', 'toast announces feedback without moving keyboard focus');
+  ok(await toast.evaluate(el => getComputedStyle(el).pointerEvents === 'none'), 'toast does not intercept game input');
+  ok(Math.abs((await page.locator('.game-stage').boundingBox()).y - beforeToast.y) < 1, 'toast keeps the playfield fixed');
+  await page.locator('#roomMenu > summary').click();
+  await page.locator('#bLobby').click();
+  await page.locator('#bEndConfirm').click();
+  await page.locator('#bChange').click();
   await page.locator('[data-how="doodle-guess"]').first().click();
   await page.locator('#howtoGo:not([disabled])').click();
   let artist;

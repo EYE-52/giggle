@@ -1562,7 +1562,7 @@ test("notifications distinguish load failure from an empty inbox", () => {
   assert.equal(bell.includes("const [loadError, setLoadError]"), true);
   assert.equal(bell.includes('setLoadError("Couldn\'t load notifications. Check your connection.")'), true);
   assert.equal(bell.includes("items.length === 0 && !loadError"), true);
-  assert.equal(bell.includes("onClick={() => void load()}"), true);
+  assert.equal(bell.includes("onClick={() => { closeRef.current?.focus(); void load(); }}"), true);
 });
 
 test("opening a join request keeps client state consistent with the read-only server update", () => {

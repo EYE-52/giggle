@@ -877,7 +877,7 @@ function connbarHtml() {
     <button class="btn ghost" id="bRetry" style="padding:4px 14px">Rejoin here</button>`
     : `<span>Connection lost — retrying…</span>
     <button class="btn ghost" id="bRetry" style="padding:4px 14px">Retry now</button>`;
-  return `<div class="connbar" id="connbar" ${(connLost || seatTaken) ? '' : 'hidden'}>
+  return `<div class="connbar" id="connbar" role="status" aria-live="polite" ${(connLost || seatTaken) ? '' : 'hidden'}>
     ${connInner}
   </div>`;
 }

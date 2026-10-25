@@ -139,7 +139,8 @@ body.game-immersive .app.fade { animation: none; }
 .room-menu .score { font-size: 14px; padding: 3px 8px; border-width: 1px; box-shadow: none; border-radius: 8px; color: var(--ink); background: var(--well); }
 .room-menu .avatar { width: 24px; height: 24px; font-size: 13px; border-width: 1px; }
 .room-menu .scorelabel { color: #465345; font-size: 13px; }
-body.game-immersive .connbar { position: fixed; z-index: 50; top: 66px; left: 12px; right: 12px; }
+/* Connection feedback must not move a live board or tap target. */
+body.game-playing .connbar { position: fixed; z-index: 50; top: max(66px, env(safe-area-inset-top)); left: 12px; right: 12px; margin: 0; }
 #gbody[data-layout="immersive"] > #rematch { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 28px); z-index: 5; margin: 0; padding: 12px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--card); color: var(--ink); box-shadow: var(--shadow-card); }
 #gbody[data-layout="immersive"] > #rematch button { min-height: 48px; padding: 8px 20px; font: 800 16px var(--font-body); border: 1px solid var(--accent); border-radius: 12px; box-shadow: none; color: var(--accent-ink); background: var(--accent); }
 #gbody[data-layout="immersive"] > #rematch button.ghost { background: var(--card); color: var(--ink); border-color: var(--line-strong); }
@@ -1021,6 +1022,7 @@ dialog.howto-dlg:not([open]) { display: none; }
   border-radius: 999px; padding: 12px 24px;
   box-shadow: var(--shadow-card); z-index: 50;
   max-width: calc(100vw - 40px); text-align: center;
+  pointer-events: none;
 }
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
 .confetti i {
@@ -1661,6 +1663,15 @@ html:has(> body.is-embed) { background: #171922; color-scheme: dark; }
 .game-zoom button:disabled { color: var(--ink-dim); opacity: .45; cursor: default; }
 .game-zoom button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 @media (hover: hover) { .game-zoom button:hover:not(:disabled) { background: var(--well); } }
+/* Keep names readable beside the fixed Room/Report launchers on small
+ * phones. The size control takes a second row instead of squeezing the
+ * title into a column only one or two letters wide. */
+@media (max-width: 400px) {
+  .play-toolbar:has(.game-zoom) { flex-wrap: wrap; row-gap: 6px; }
+  .play-toolbar:has(.game-zoom) .play-title { flex-basis: 100%; }
+  .play-toolbar:has(.game-zoom) .play-title h1 { overflow-wrap: normal; }
+  .play-toolbar .game-zoom { margin-left: 0; }
+}
 @media (max-width: 540px) {
   .play-toolbar .game-zoom .game-zoom-value { min-width: 48px; font-size: 13px; }
   .play-toolbar:has(.game-zoom) .play-title :is(.gthumb, .art-fallback) { display: none; }

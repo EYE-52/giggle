@@ -39,6 +39,7 @@ export async function backendRequest<T>(
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 10000);
 
   let res: Response;
+  let json: ApiEnvelope<T> | null = null;
   try {
     res = await fetch(url, {
       method: options.method || "GET",
@@ -49,18 +50,18 @@ export async function backendRequest<T>(
       body: options.body ? JSON.stringify(options.body) : undefined,
       signal: controller.signal,
     });
+    try {
+      json = (await res.json()) as ApiEnvelope<T>;
+    } catch (e) {
+      // The deadline covers the response body as well as its headers.
+      if (controller.signal.aborted) throw e;
+      // Preserve HTTP handling for a non-JSON response.
+    }
   } catch (e: any) {
-    const timedOut = e?.name === "AbortError";
+    const timedOut = controller.signal.aborted || e?.name === "AbortError";
     throw new ApiError("network_error", timedOut ? "Request timed out. Check your connection." : e?.message || "Network request failed", 0);
   } finally {
     clearTimeout(timeout);
-  }
-
-  let json: ApiEnvelope<T> | null = null;
-  try {
-    json = (await res.json()) as ApiEnvelope<T>;
-  } catch {
-    // non-JSON response
   }
 
   if (!res.ok || (json && json.ok === false)) {

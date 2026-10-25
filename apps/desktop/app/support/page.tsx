@@ -7,11 +7,11 @@ export const metadata: Metadata = {
 };
 
 const sections = [
-  { title: "Account help", body: <a href="mailto:support@gigglemeet.com?subject=Account%20help" style={{ color: "var(--text-body)" }}>Email account support</a> },
-  { title: "Age-verification appeal", body: <a href="mailto:support@gigglemeet.com?subject=Age%20verification%20appeal" style={{ color: "var(--text-body)" }}>Ask for an age-verification review</a> },
-  { title: "Safety report", body: <a href="mailto:support@gigglemeet.com?subject=Safety%20report" style={{ color: "var(--text-body)" }}>Contact the safety team</a> },
-  { title: "Data export", body: <a href="mailto:support@gigglemeet.com?subject=Data%20export" style={{ color: "var(--text-body)" }}>Request a copy of your account data</a> },
-  { title: "Account deletion", body: <a href="mailto:support@gigglemeet.com?subject=Account%20deletion" style={{ color: "var(--text-body)" }}>Request account deletion</a> },
+  { title: "Account help", body: <a href="mailto:support@gigglemeet.com?subject=Account%20help" className="gg-focusable" style={{ minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)" }}>Email account support</a> },
+  { title: "Age-verification appeal", body: <a href="mailto:support@gigglemeet.com?subject=Age%20verification%20appeal" className="gg-focusable" style={{ minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)" }}>Ask for an age-verification review</a> },
+  { title: "Safety report", body: <a href="mailto:support@gigglemeet.com?subject=Safety%20report" className="gg-focusable" style={{ minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)" }}>Contact the safety team</a> },
+  { title: "Data export", body: <a href="mailto:support@gigglemeet.com?subject=Data%20export" className="gg-focusable" style={{ minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)" }}>Request a copy of your account data</a> },
+  { title: "Account deletion", body: <a href="mailto:support@gigglemeet.com?subject=Account%20deletion" className="gg-focusable" style={{ minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)" }}>Request account deletion</a> },
 ];
 
 export default function SupportPage() {
