@@ -66,4 +66,25 @@ test("all appearance skin choices retain a minimum touch target", async ({ page 
     expect(box!.width).toBeGreaterThanOrEqual(44);
     expect(box!.height).toBeGreaterThanOrEqual(44);
   }
+
+  for (const viewport of [{ width: 320, height: 568 }, { width: 360, height: 640 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto("/avatar-playground");
+    const animate = page.getByRole("checkbox", { name: "Animate", exact: true });
+    const label = animate.locator("..");
+    await label.scrollIntoViewIfNeeded();
+    await expect(label).toHaveCSS("min-height", "44px");
+    const box = (await label.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    const stage = page.getByRole("region", { name: "Your character preview", exact: true }).locator(":scope > div").first();
+    const stageBefore = await stage.boundingBox();
+    const initial = await animate.isChecked();
+    await label.click({ position: { x: box.width - 8, y: box.height / 2 } });
+    await expect(animate).toBeChecked({ checked: !initial });
+    await animate.focus();
+    await animate.press("Space");
+    await expect(animate).toBeChecked({ checked: initial });
+    expect(await stage.boundingBox()).toEqual(stageBefore);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  }
 });

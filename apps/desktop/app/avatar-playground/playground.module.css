@@ -61,7 +61,7 @@
 .adjustments { border-top:1px solid var(--line); padding-top:18px; }
 .adjustments summary { cursor:pointer; min-height:44px; font-size:14px; font-weight:700; }
 .sliderGrid { display:grid; grid-template-columns:1fr 1fr; gap:10px 22px; }
-@media(max-width:720px) { .header { position:sticky; top:0; z-index:3; background:var(--bg); padding:8px 0; } .title { font-size:20px; } .stage { aspect-ratio:1.5; margin-bottom:12px; } .stage .character { width:min(235px,72%); margin:0; } .motion { margin:4px 0; min-height:32px; } .presets { margin:4px 0 0; padding-top:10px; } .studio { gap:18px; } .tabs { top:64px; margin-top:-20px; padding-top:16px; } }
+@media(max-width:720px) { .header { position:sticky; top:0; z-index:3; background:var(--bg); padding:8px 0; } .title { font-size:20px; } .stage { aspect-ratio:1.5; margin-bottom:12px; } .stage .character { width:min(235px,72%); margin:0; } .motion { margin:4px 0; min-height:44px; } .presets { margin:4px 0 0; padding-top:10px; } .studio { gap:18px; } .tabs { top:64px; margin-top:-20px; padding-top:16px; } }
 @media(max-width:360px) { .sliderGrid { grid-template-columns:1fr; } .presets { gap:8px; } .presets button svg { width:48px; height:48px; } }
 @media(prefers-reduced-motion:reduce) { .presets button { transition:none; } }
 
