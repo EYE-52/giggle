@@ -8,6 +8,7 @@ test("Home friends outage stays distinct from empty and retries without losing o
   await page.addInitScript(({ user, token }) => {
     localStorage.setItem("giggle.session", JSON.stringify({ user, token }));
     localStorage.setItem("giggle.avatarPrompted", "1");
+    localStorage.setItem("giggle.discovery", "on");
   }, { user, token });
   const data: Record<string, unknown> = {
     "/api/me/profile": user,
@@ -51,6 +52,14 @@ test("Home friends outage stays distinct from empty and retries without losing o
     const friends = page.getByRole("region", { name: "Friends", exact: true });
     const squads = page.getByRole("region", { name: "Squads", exact: true });
     await expect(friends.getByRole("status")).toHaveText("Loading friends…");
+    // Settle mount requests while their responses remain held. Visibility
+    // refreshes must not overlap the active effect's initial request.
+    await page.waitForTimeout(100);
+    const initialLoads = loads;
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await page.waitForTimeout(100);
+    expect(loads).toBe(initialLoads);
+    test.info().annotations.push({ type: "held-initial-visibility", description: `${initialLoads} mount GET(s); visibility added zero GETs` });
     const code = page.getByRole("textbox", { name: "Squad invite code", exact: true });
     await code.fill("ABC-123");
     phase = "fail";

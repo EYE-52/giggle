@@ -151,7 +151,10 @@ export default function HomePage() {
   }, [active?.squadId, active?.memberCount]);
   useEffect(() => {
     let alive = true;
+    let loading = false;
     async function load() {
+      if (!alive || loading) return;
+      loading = true;
       try {
         const data = await api.listFriends();
         if (alive) {
@@ -161,6 +164,7 @@ export default function HomePage() {
       } catch {
         if (alive) setFriendsError("Couldn't load your friends.");
       } finally {
+        loading = false;
         if (alive) friendsRetrying.current = false;
       }
     }
