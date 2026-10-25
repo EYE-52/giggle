@@ -54,7 +54,8 @@ export function connectSocket(squadId?: string): Socket {
   const s = getSocket();
   if (!adultAccessGetter()) return s;
   if (squadId) joinedSquads.add(squadId);
-  if (!s.connected) s.connect();
+  // active includes authentication in flight and automatic reconnects.
+  if (!s.active) s.connect();
   if (squadId && s.connected) s.emit(SOCKET_EMIT.JOIN_SQUAD, squadId);
   return s;
 }
