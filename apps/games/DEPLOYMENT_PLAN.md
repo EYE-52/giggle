@@ -55,6 +55,68 @@ Railway credentials are omitted from the Vercel child process. This helper does
 not create credentials, sign in, or grant access; do not run it until credential
 safety and the production release have been approved.
 
+### Existing CLI session release
+
+The optional `--session` path in `scripts/deploy-frontend.js` uses an existing
+ordinary Vercel login with pinned CLI 65.2.0. Token mode (no arguments, CLI
+39.4.2) remains unchanged. Session mode rejects `VERCEL_TOKEN`, never reads or
+copies the CLI auth file, and forces CI/non-interactive operation so missing
+login cannot open an automatic agent login flow. It uses an explicit existing
+project and scope; project creation, temporary deployments, protection bypass
+and automatic account linking are not enabled.
+
+Only when the owner is ready and ordinary sign-in is authorized on Mini, run:
+
+```sh
+railway login
+npx --yes vercel@65.2.0 login --non-interactive=false
+```
+
+Use the existing accounts, not account creation. These are deliberate login
+commands, not release commands. Do not pre-start them, generate a device URL,
+create API tokens, or populate GitHub secrets merely for this manual route.
+Run Node 24; the installed Railway login help supports the normal browser flow.
+
+After all owner/security, Mongo, backfill and maintenance gates clear, build and
+stamp the reviewed current main as described below. Upload the fresh backend
+first using the existing authorized Railway CLI session, and capture its exact
+upload JSON. Immediately before invocation, capture the fresh provider deployment
+list for the exact reviewed project/service/environment and uncached backend
+config. The adapter consumes that provider snapshot; it does not authenticate or
+refresh Railway status itself. Keep evidence outside the Git checkout. With the
+non-secret target IDs set, the frontend invocation is:
+
+```sh
+export VERCEL_ORG_ID=team_fn5QKDNaysGA4YaEo1hE1NrB
+export VERCEL_PROJECT_ID=prj_Nc4Uf5jRAsBuAMLkbwXbHgplv3jF
+# RELEASE_SOURCE_SHA is the full reviewed current main SHA, already used to stamp.
+# evidence_dir is an absolute directory outside this Git checkout.
+env -u VERCEL_TOKEN node scripts/deploy-frontend.js --session \
+  "$evidence_dir/backend-config.json" \
+  "$evidence_dir/backend-deployments.json" \
+  "$evidence_dir/backend-upload.json"
+```
+
+Run from `apps/games` in the canonical Git checkout, not an extracted archive.
+The adapter verifies the clean whole-repo source and canonical remote, matching
+HEAD/stamp/reviewed SHA, exact backend upload ID with provider SUCCESS, current
+Vercel project/owner and empty component root, a fresh uncached backend response,
+and current remote main immediately before upload. It rechecks local bytes/source,
+deploys from `apps/games`, and requires the frontend's own static release identity
+after success. Failed inspection/auth, changed source/main, mismatched evidence,
+or bad identities fail closed. No backend rollback or retry is automatic.
+
+Authenticated settings readback: both Vercel Root Directory fields are empty.
+Meet uses the repository root and its checked-in Next.js build/output; Games
+uses a component-root upload and `npm ci`/`npm run build`/`public` overrides.
+GitHub currently has no available deployment secrets, so CI release setup is
+optional and requires separately approved credential configuration. Both Railway
+healthchecks are unset and neither service has a Config-as-code filepath. Do not
+assume a new Railway config file applies; use explicit platform settings only
+when authorized. Meet Wait for CI is off, so complete release preflight before
+publishing main. Preserve Games' one Singapore replica, volume, zero overlap,
+Teardown enabled and Draining 0.
+
 After Node 24 installation, tests and build, set `RELEASE_SOURCE_SHA` to the
 reviewed checkout's full commit and run `node scripts/release-identity.js stamp`.
 This requires a clean checkout and creates the generated, uncommitted
