@@ -227,7 +227,8 @@ app.get('/health', (req, res) => {
       api: 'UP',
       database: mongoStatus,
       redis: redisStatus,
-    }
+    },
+    release: require('./utils/releaseIdentity').releaseIdentity(),
   });
 });
 

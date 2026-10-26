@@ -56,6 +56,7 @@ Production configuration is stored in the **Railway service Variables** and **Ve
 | Setting | Location | Current state / purpose |
 | --- | --- | --- |
 | `NEXT_PUBLIC_BACKEND_URL` | Vercel / `vercel.json` | `https://giggle-server-production.up.railway.app` |
+| `NEXT_PUBLIC_GAMES_URL` | Vercel / `vercel.json` | `https://play.gigglemeet.com` |
 | `NEXT_PUBLIC_STRANGER_DISCOVERY_ENABLED` | (retired) | No longer read by the web app, which asks the API (`GET /api/features`); a leftover value in the Vercel dashboard does nothing and can be deleted |
 | `SELF_DECLARED_AGE_ACCESS` | Railway | **`true`**, verified in the production Variables screen |
 | `STRANGER_DISCOVERY_ENABLED` | Railway | `true` (owner decision, 2 October 2026; set by the owner in Railway). The one switch for web matching: the site reads it from `GET /api/features` and shows or hides matching without a rebuild |
@@ -67,9 +68,18 @@ From commit `279d64a`, temporary access is evaluated from the server setting and
 
 ### Deploy the next change
 
-1. Merge reviewed changes into `main` in `EYE-52/giggle` and push. Keep credentials out of commits.
+The hosted Meet build checks dependencies before and after compilation. It requires
+production Git metadata for `main`, healthy API Mongo/Redis, the API's matching
+source/deployment identity, and matching Games backend/frontend fingerprints
+for that same commit. Missing system metadata, stale hosts or protected public
+endpoints fail the build before promotion. The second check rejects dependencies
+that changed during compilation. Local `pnpm build` stays independent
+of production. This HTTP gate supplements the provider SUCCESS checks; it does
+not prove provider status, Mongo transaction support or volume persistence.
+
+1. Complete the security, maintenance-window, provider/topology and rollback preflight before publishing. Merge reviewed changes into `main` in `EYE-52/giggle` and push. This may start both the Railway API and a Vercel Meet build. The hosted dependency check holds frontend promotion until the matched release is ready. Keep credentials out of commits.
 2. For backend changes, check Railway's source branch and `/server` root, then verify that the latest commit is deployed. If deployment does not start automatically, use the service's deployment controls to deploy latest `main`; redeploying an older deployment can reuse its older source.
-3. Check the Vercel **`giggle-meet`** deployment for the same commit and wait for **Ready** with the production domains assigned. Public environment variables are build-time values and need a new frontend build after changes.
+3. Verify API provider SUCCESS and `/health` identity for the new main commit. Release Games backend first and its matched frontend using `apps/games/DEPLOYMENT_PLAN.md`, then retry the Vercel **`giggle-meet`** Git build for that same commit. Wait for **Ready** with the production domains assigned. Public environment variables are build-time values and need a new frontend build after changes. An early dependency-gate failure keeps the existing frontend live; it is not a reason to bypass the gate or change deployment protection. Git-based production builds must expose the existing Vercel system environment variables; no credential is created by this check.
 4. Check `/health` for API `UP`, database `connected`, and Redis `connected`. All testing happens locally: before merging, run the production web build against the local API (`next build` with `NEXT_PUBLIC_BACKEND_URL=http://localhost:3001`, then `next start -p 4000`, with the API from `server/.env.local`) and `pnpm --filter @giggle/desktop test:local-smoke`. This signs in a synthetic account through the development auth exchange, checks home, friends, wallet, profile and the avatar, then creates a squad and leaves it. Run the Playwright suite (`e2e/`) as well, plus `npm --prefix server run verify:deploy-bundle`. That check boots the API from only the files the deploy ships (`server/` minus `.dockerignore`) and fails unless it stays healthy after its delayed startup jobs; it exists because a require into the excluded `scripts/` folder once crashed production 15 seconds after every start. After deploying, check only the public production endpoints, and keep polling `/health` for at least 5 minutes: a crash that happens after startup only shows up once the deploy has already been marked successful. `test:prod-smoke` exists for production, but it needs Railway's `AUTH_EXCHANGE_SECRET` in the gitignored `apps/desktop/.env.prod-smoke` and is not part of the normal process.
 5. For a rollback, use Vercel's previous production deployment and Railway's previous successful backend deployment as appropriate. Check environment variables separately: rolling back code is not a guarantee that variables are restored. Repeat health and sign-in checks after rollback.
 
@@ -123,7 +133,7 @@ Topics can be selected at squad creation and edited in the lobby. Popular topics
 
 1. **Provision Mongo, Redis, Agora, Yoti, auth providers, monitored support/safety mailboxes, and high-entropy secrets.** Configure Railway from `server/.env.example`; use reviewed production URLs and credentials.
 2. **Deploy `server/` to Railway from this repository.** Verify `/health`, Yoti verification session/status, report persistence, block enforcement, identity-only export, and staged account deletion before building clients.
-3. **Deploy the repository root to Vercel.** Use checked-in `vercel.json`, which builds `apps/desktop` and outputs `apps/desktop/.next`. Set `NEXT_PUBLIC_BACKEND_URL`. Web matching follows the API's `STRANGER_DISCOVERY_ENABLED`; there is no web build flag for it.
+3. **Deploy the repository root to Vercel.** Use checked-in `vercel.json`, which pins `NEXT_PUBLIC_BACKEND_URL=https://giggle-server-production.up.railway.app` and `NEXT_PUBLIC_GAMES_URL=https://play.gigglemeet.com`, builds `apps/desktop` and outputs `apps/desktop/.next`. Web matching follows the API's `STRANGER_DISCOVERY_ENABLED`; there is no web build flag for it.
 4. **Build `apps/mobile` with Expo/EAS after server verification.** Set `EXPO_PUBLIC_BACKEND_URL`, `EXPO_PUBLIC_STRANGER_DISCOVERY_ENABLED=false`, and `EXPO_PUBLIC_IOS_DISCOVERY_ENABLED=false` in the selected EAS environment. Rebuild after changing these public build-time values.
 5. **Smoke-test with two verified accounts.** Confirm report acknowledgement, blocking/no rematch, chat rejection, export, deletion staging, and a full match: search, automatic join, call, leave.
 
@@ -159,9 +169,10 @@ Vercel build values:
 
 ```text
 NEXT_PUBLIC_BACKEND_URL
+NEXT_PUBLIC_GAMES_URL
 ```
 
-- **Vercel project `giggle-meet`:** configure `NEXT_PUBLIC_BACKEND_URL` (from `vercel.json`); keep server and OAuth secrets out.
+- **Vercel project `giggle-meet`:** use the pinned public `NEXT_PUBLIC_BACKEND_URL` and `NEXT_PUBLIC_GAMES_URL` from `vercel.json`; keep server and OAuth secrets out.
 
 Expo/EAS build values:
 
