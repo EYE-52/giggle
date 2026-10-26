@@ -29,3 +29,6 @@ env-secrets
 # Inert component examples are source, never real credentials.
 !apps/games/.env.example
 apps/games/evidence/
+
+# Local Redis snapshots are data, never application source.
+**/dump.rdb

@@ -4,9 +4,17 @@ const assert = require('node:assert/strict');
 const { validate } = require('./release-identity');
 const BACKEND = 'wss://giggle-play-production.up.railway.app';
 
+function frontendTarget(env) {
+  if (env.VERCEL_ORG_ID !== 'team_fn5QKDNaysGA4YaEo1hE1NrB' ||
+      env.VERCEL_PROJECT_ID !== 'prj_Nc4Uf5jRAsBuAMLkbwXbHgplv3jF') {
+    throw Error('Games frontend target differs from the reviewed Vercel team/project');
+  }
+}
+
 function credentials(env) {
   const missing = ['RAILWAY_TOKEN', 'VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID'].filter(key => !env[key]?.trim());
   if (missing.length) throw Error('Required deployment credentials missing: ' + missing.join(', '));
+  frontendTarget(env);
 }
 
 function backend(config, manifest, deployments, upload) {
@@ -41,4 +49,4 @@ if (require.main === module) {
     } else throw Error('Unknown release check');
   } catch (error) { console.error(error.message); process.exitCode = 1; }
 }
-module.exports = { credentials, backend };
+module.exports = { credentials, backend, frontendTarget };

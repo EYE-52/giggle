@@ -15,3 +15,4 @@ apps/mobile/dist
 
 # The separately hosted game component has its own Vercel build.
 apps/games/
+**/dump.rdb

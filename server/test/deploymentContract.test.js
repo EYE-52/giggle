@@ -6,6 +6,12 @@ const test = require("node:test");
 const root = path.join(__dirname, "../..");
 const read = (file) => readFileSync(path.join(root, file), "utf8");
 
+test("local Redis snapshots stay out of source and hosting uploads", () => {
+  for (const file of [".gitignore", ".vercelignore", "server/.railwayignore", "server/.dockerignore"]) {
+    assert.match(read(file), /^(?:\*\*\/)?dump\.rdb$/m, file);
+  }
+});
+
 test("unified deployment docs keep verified-adult discovery disabled by default", () => {
   const envPath = path.join(root, "server/.env.example");
   assert.equal(lstatSync(envPath).isSymbolicLink(), false);

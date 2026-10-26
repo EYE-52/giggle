@@ -43,6 +43,9 @@ All four existing deployment credentials must be present before a backend
 restart. Missing credentials fail the workflow. Do not add secrets or create
 persistent access merely to enable automation; that requires specific approval.
 Existing authorized manual CLI release remains possible after the same gates.
+The gate also requires the reviewed Games Vercel team/project IDs before a
+backend restart. The frontend helper checks them again before temporary auth
+storage and always deploys from `apps/games`, regardless of the caller's cwd.
 
 The pinned Vercel 39.4.2 CLI does not read `VERCEL_TOKEN` directly. The workflow's
 frontend helper reads the existing approved CI token into an owner-only temporary

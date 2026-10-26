@@ -23,8 +23,13 @@ const upload = { deploymentId: id, logsUrl: 'https://railway.com/project/test' }
 assert.equal(backend(config, manifest, success, upload), id);
 assert.throws(() => credentials({}), /Required deployment credentials missing/);
 const creds = Object.fromEntries(['RAILWAY_TOKEN', 'VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID'].map(key => [key, 'test-only']));
+creds.VERCEL_ORG_ID = 'team_fn5QKDNaysGA4YaEo1hE1NrB';
+creds.VERCEL_PROJECT_ID = 'prj_Nc4Uf5jRAsBuAMLkbwXbHgplv3jF';
 credentials(creds);
 for (const key of Object.keys(creds)) assert.throws(() => credentials({ ...creds, [key]: '  ' }));
+for (const key of ['VERCEL_ORG_ID', 'VERCEL_PROJECT_ID']) {
+  assert.throws(() => credentials({ ...creds, [key]: 'wrong-target' }), /reviewed Vercel team\/project/);
+}
 for (const status of ['SKIPPED', 'FAILED', 'CRASHED', 'BUILDING', 'DEPLOYING', 'QUEUED', 'NEEDS_APPROVAL', undefined]) {
   assert.throws(() => backend(config, manifest, [{ id, status }], upload));
 }
@@ -41,8 +46,8 @@ assert.throws(() => backend(config, manifest, [], upload));
 assert.throws(() => backend('nonempty stale health', manifest, success, upload));
 
 // Only a fake CLI sees this synthetic credential. No provider call is made.
-const frontendEnv = { VERCEL_TOKEN: 'synthetic-test-only-token', VERCEL_ORG_ID: 'test-org',
-  VERCEL_PROJECT_ID: 'test-project', RAILWAY_TOKEN: 'synthetic-railway', RAILWAY_API_TOKEN: 'synthetic-api' };
+const frontendEnv = { VERCEL_TOKEN: 'synthetic-test-only-token', VERCEL_ORG_ID: creds.VERCEL_ORG_ID,
+  VERCEL_PROJECT_ID: creds.VERCEL_PROJECT_ID, RAILWAY_TOKEN: 'synthetic-railway', RAILWAY_API_TOKEN: 'synthetic-api' };
 let privateConfig;
 function fakeFrontend(command, args, options) {
   assert.equal(command, 'npx');
@@ -51,6 +56,7 @@ function fakeFrontend(command, args, options) {
   for (const key of ['VERCEL_TOKEN', 'RAILWAY_TOKEN', 'RAILWAY_API_TOKEN']) assert.equal(options.env[key], undefined);
   assert.equal(options.env.VERCEL_ORG_ID, frontendEnv.VERCEL_ORG_ID);
   assert.equal(options.env.VERCEL_PROJECT_ID, frontendEnv.VERCEL_PROJECT_ID);
+  assert.equal(options.cwd, path.resolve(__dirname, '..'), 'frontend source root is pinned regardless of caller cwd');
   privateConfig = args[args.indexOf('--global-config') + 1];
   assert(!privateConfig.startsWith(path.resolve(__dirname, '..') + path.sep), 'auth stays outside the checkout');
   const auth = path.join(privateConfig, 'auth.json');
@@ -72,6 +78,13 @@ assert(!fs.existsSync(privateConfig), 'exception removes temporary auth');
 for (const key of ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID']) {
   assert.throws(() => deployFrontend({ ...frontendEnv, [key]: '' }, () => assert.fail('missing credentials must not invoke CLI')), /missing/);
 }
+const mkdir = fs.mkdtempSync;
+try {
+  fs.mkdtempSync = () => assert.fail('must reject before creating temporary auth storage');
+  for (const key of ['VERCEL_ORG_ID', 'VERCEL_PROJECT_ID']) {
+    assert.throws(() => deployFrontend({ ...frontendEnv, [key]: 'wrong-target' }, () => assert.fail('must not invoke CLI')), /reviewed Vercel team\/project/);
+  }
+} finally { fs.mkdtempSync = mkdir; }
 
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'giggle-release-gate-'));
 async function main() {
