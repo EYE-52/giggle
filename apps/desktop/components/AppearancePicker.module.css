@@ -2,7 +2,7 @@
 .group { min-width: 0; }
 .choice { position: relative; min-width: 0; cursor: pointer; font-family: var(--font-nunito), Nunito, sans-serif; color: var(--text); }
 .skin { display: flex; flex-wrap: wrap; column-gap: 18px; row-gap: 2px; }
-.skin > .choice { min-height: 44px; padding: 8px 0; text-align: left; background: transparent; border: 0; border-radius: 0; font-size: 14px; font-weight: 650; color: var(--text-body); }
+.skin > .choice { min-width: 44px; min-height: 44px; padding: 8px 0; text-align: left; background: transparent; border: 0; border-radius: 0; font-size: 14px; font-weight: 650; color: var(--text-body); }
 .skin > .choice:hover { color: var(--text); }
 .skin > .choice[aria-checked="true"] { color: var(--text); font-weight: 800; }
 .skin > .choice[aria-checked="true"]::after { content: ""; position: absolute; left: 0; right: 0; bottom: 4px; height: 3px; border-radius: 2px; background: var(--brand); }

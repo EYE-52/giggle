@@ -1,0 +1,125 @@
+/* Camera-party styles (Pose Party, Show & Go): the controls next to the
+ * real call. The call is the stage; this column only carries the HUD, the
+ * prompt, one action area (Ready, ballot, round result, final scores) and
+ * the match scores. Built on the game kit (public/css/game-ui.css): flat
+ * surfaces, 1px borders, tokens only, one accent. Every selector is scoped
+ * to .camera-party (the toolkit root), so nothing leaks into the shell. */
+
+.camera-party {
+  --cp-gap: 14px;
+  max-width: 760px;
+  min-width: 0;
+  margin-inline: auto;
+  padding-block: 4px 16px;
+  color: var(--ink);
+  font: 600 17px/1.45 var(--font-body);
+}
+.camera-party [hidden] { display: none !important; }
+.camera-party * { box-sizing: border-box; }
+
+/* HUD: the timer slot keeps its width while there is no clock. */
+.camera-party .cp-clock[hidden] { display: inline-block !important; visibility: hidden; }
+.camera-party .cp-phase[hidden] { display: none !important; }
+
+/* Prompt */
+.camera-party .cp-prompt-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.camera-party .cp-prompt:empty { display: none; }
+.camera-party .cp-call { margin: 0; }
+.camera-party .cp-call:empty { display: none; }
+
+/* Perform: one primary action and a calm status line in a fixed slot. */
+.camera-party .cp-ready-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-height: 108px;
+  justify-content: center;
+}
+.camera-party .cp-ready { min-width: min(100%, 260px); }
+.camera-party .cp-ready:disabled { background: var(--well); color: var(--ink-dim); border-color: var(--line); }
+.camera-party .cp-ready-status { margin: 0; }
+
+/* Ballot */
+.camera-party .cp-ballot { display: flex; flex-direction: column; gap: 12px; }
+.camera-party .cp-ballot-top {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 10px;
+}
+.camera-party .cp-prev, .camera-party .cp-nextbtn { padding: 0; font-size: 22px; }
+.camera-party .cp-prev[hidden], .camera-party .cp-nextbtn[hidden] { display: inline-flex !important; visibility: hidden; }
+.camera-party .cp-ballot-mid { grid-column: 2; text-align: center; min-width: 0; }
+.camera-party .cp-ballot-name {
+  font: 800 clamp(22px, 3vw, 26px)/1.2 var(--font-display);
+  overflow-wrap: anywhere;
+}
+.camera-party .cp-votebtns { grid-auto-rows: 1fr; }
+.camera-party .cp-vote { justify-content: center; min-height: 56px; font-size: 18px; }
+.camera-party .cp-vote .gk-choice-text { flex: none; }
+.camera-party .cp-thumb { width: 34px; height: 34px; }
+.camera-party .cp-thumb svg { display: block; width: 20px; height: 20px; }
+.camera-party .cp-yes .cp-thumb { color: var(--green); }
+.camera-party .cp-no .cp-thumb { color: var(--melon-deep, var(--melon)); }
+.camera-party .cp-vote:disabled:not([aria-pressed="true"]) { opacity: .55; }
+.camera-party .cp-votebtns.is-locked .cp-vote[aria-pressed="true"] .cp-thumb { color: var(--accent-ink); }
+.camera-party .cp-ballot-note { margin: 0; text-align: center; }
+
+/* Round result */
+.camera-party .cp-outcome { display: flex; flex-direction: column; gap: 10px; }
+.camera-party .cp-reason { margin: 0; color: var(--ink); font-weight: 700; }
+.camera-party .cp-outcomes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.camera-party .cp-outcome-row {
+  display: grid;
+  grid-template-columns: 4.2em minmax(0, 1fr);
+  grid-template-areas: "badge who" "badge detail";
+  align-items: center;
+  column-gap: 12px;
+  min-height: 48px;
+  padding: 8px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.camera-party .cp-badge {
+  grid-area: badge;
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--well);
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  font: 800 15px/1.4 var(--font-body);
+  font-variant-numeric: tabular-nums;
+}
+.camera-party .cp-outcome-row.won .cp-badge,
+.camera-party .cp-judges .cp-badge {
+  background: color-mix(in srgb, var(--green) 16%, var(--card));
+  border-color: var(--green);
+  color: var(--ink);
+}
+.camera-party .cp-outcome-who { grid-area: who; font-weight: 800; overflow-wrap: anywhere; }
+.camera-party .cp-outcome-detail { grid-area: detail; font: 700 13px/1.4 var(--font-body); color: var(--ink-dim); }
+.camera-party .cp-next-row { min-height: 48px; }
+.camera-party .cp-next-wait { margin: 0; }
+
+/* Final scores and match scores use the kit rows (gk-results / gk-ranks). */
+.camera-party .cp-final { padding-top: 8px; }
+/* Game over: the kit Final scores block (same place as every other game). */
+.camera-party.gk-final { padding-block: clamp(16px, 4vh, 40px) 8px; }
+.camera-party.gk-final .cp-final { padding-top: 0; }
+.camera-party .cp-scores { display: flex; flex-direction: column; gap: 6px; }
+.camera-party .cp-scores-title { margin: 6px 0 0; }
+.camera-party .cp-score-list .gk-rank-row { min-height: 44px; padding-block: 6px; }
+
+@media (max-width: 420px) {
+  .camera-party { font-size: 16px; }
+  .camera-party .cp-ready { width: 100%; }
+  .camera-party .cp-vote { font-size: 17px; padding-inline: 10px; }
+  .camera-party .cp-outcome-row { padding-inline: 12px; column-gap: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .camera-party * { transition: none !important; animation: none !important; }
+}

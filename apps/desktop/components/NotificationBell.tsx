@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "./Icons";
 import { useViewport } from "./useViewport";
@@ -443,6 +443,9 @@ export function NotificationBell() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement | null>(null);
+  const bellRef = useRef<HTMLButtonElement | null>(null);
+  const closeRef = useRef<HTMLButtonElement | null>(null);
+  const panelId = useId();
   const notificationVersion = useRef(0);
   const loadSequence = useRef(0);
   const knownNotificationIds = useRef(new Set<string>());
@@ -497,16 +500,28 @@ export function NotificationBell() {
   // close on outside click / escape
   useEffect(() => {
     if (!open) return;
+    closeRef.current?.focus({ preventScroll: true });
     const onDown = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
     };
+    // This is a non-modal dialog: Tab may leave it, closing the overlay so
+    // keyboard focus never disappears behind its contents.
+    const onFocus = (e: FocusEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape" && !e.isComposing) {
+        e.preventDefault();
+        setOpen(false);
+        bellRef.current?.focus({ preventScroll: true });
+      }
     };
     document.addEventListener("mousedown", onDown);
+    document.addEventListener("focusin", onFocus);
     document.addEventListener("keydown", onKey);
     return () => {
       document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("focusin", onFocus);
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -573,9 +588,11 @@ export function NotificationBell() {
       {/* bell button — chrome lives in globals.css (.gg-icon-btn) so the skin
           system's `icon-btn` hook can restyle it; hover/active move to CSS. */}
       <button
+        ref={bellRef}
         type="button"
         aria-label="Notifications"
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
+        aria-controls={open ? panelId : undefined}
         aria-expanded={open}
         onClick={toggle}
         className={`gg-press gg-focusable gg-icon-btn icon-btn${open ? " is-open" : ""}${unread > 0 ? " has-unread" : ""}`}
@@ -604,6 +621,7 @@ export function NotificationBell() {
       {/* panel */}
       {open && (
         <div
+          id={panelId}
           role="dialog"
           aria-label="Notifications"
           className="gg-reveal"
@@ -642,12 +660,23 @@ export function NotificationBell() {
                   fontWeight: 700,
                   cursor: "pointer",
                   padding: "4px 6px",
+                  minHeight: 44,
                   borderRadius: 8,
                 }}
               >
                 Mark all read
               </button>
             )}
+            <button
+              ref={closeRef}
+              type="button"
+              aria-label="Close notifications"
+              className="gg-focusable gg-icon-btn icon-btn"
+              onClick={() => { setOpen(false); bellRef.current?.focus({ preventScroll: true }); }}
+              style={{ flexShrink: 0, width: 44, height: 44 }}
+            >
+              <Icon.close size={17} />
+            </button>
           </div>
 
           {/* list */}
@@ -660,7 +689,7 @@ export function NotificationBell() {
             {loadError && (
               <div role="alert" style={{ margin: "6px 8px 8px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, color: "var(--coral)", fontSize: 12, fontWeight: 700 }}>
                 <span>{loadError}</span>
-                <button type="button" onClick={() => void load()} className="gg-focusable" style={{ minHeight: 44, padding: "0 12px", borderRadius: 999, border: "1px solid var(--coral)", background: "transparent", color: "var(--coral)", fontWeight: 700, cursor: "pointer" }}>
+                <button type="button" onClick={() => { closeRef.current?.focus(); void load(); }} className="gg-focusable" style={{ minHeight: 44, padding: "0 12px", borderRadius: 999, border: "1px solid var(--coral)", background: "transparent", color: "var(--coral)", fontWeight: 700, cursor: "pointer" }}>
                   Retry
                 </button>
               </div>

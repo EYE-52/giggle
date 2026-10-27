@@ -1,0 +1,112 @@
+{
+  "source": "https://polyhaven.com/a/grass_medium_01",
+  "sourceNode": "grass_medium_01_small_a_LOD0",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://polyhaven.com/license",
+  "authors": {
+    "Rob Tuytel": "Photography",
+    "Rico Cilliers": "Modeling"
+  },
+  "triangles": 833,
+  "meshes": 1,
+  "primitives": 1,
+  "materials": 1,
+  "vertices": 888,
+  "boundsMetres": [
+    0.1848401129245758,
+    0.14042668044567108,
+    0.1623130440711975
+  ],
+  "bounds": {
+    "min": [
+      -0.0924200564622879,
+      0.0,
+      -0.08115652203559875
+    ],
+    "max": [
+      0.0924200564622879,
+      0.14042668044567108,
+      0.08115652203559875
+    ]
+  },
+  "origin": "Horizontal bounding center; ground at y=0; original scale in metres.",
+  "geometryTransform": [
+    -0.012492012232542038,
+    0.0024811276234686375,
+    0.0014254078269004822
+  ],
+  "topologyChanges": null,
+  "atlas": {
+    "width": 512,
+    "height": 512,
+    "format": "PNG RGBA",
+    "colorSpace": "sRGB",
+    "bytes": 340602,
+    "sha256": "cba6b5668a1f11aa86ee203cf9dcd27aca5eb5fb2a4bfd77053a1e8d8d26d1f0"
+  },
+  "alpha": {
+    "mode": "MASK",
+    "cutoff": 0.42,
+    "doubleSided": true
+  },
+  "omittedMaps": [
+    "normal",
+    "arm"
+  ],
+  "roughnessFactor": 0.9,
+  "rgbaGpuBytesWithMipmaps": 1398101,
+  "url": "/assets/karts/terrain/grass-clump.glb",
+  "bytes": 375824,
+  "sha256": "4bdd7d518f9d970afa1c5395fa952f4fc1f815195082c127aab59ae575a0e3ed",
+  "retrievedAt": "2026-10-07T06:31:16.194833+00:00",
+  "downloads": [
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/grass_medium_01/grass_medium_01_1k.gltf",
+      "resolvedUrl": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/1k/grass_medium_01/grass_medium_01_1k.gltf",
+      "providerMd5": "28dd8247f3faa749bf87a0b84be01e7e",
+      "sha256": "3e5e2a314c94e16de54fd7c28e41709731fbd2b1613ab539f1544f622ddb6a85",
+      "bytes": 27110,
+      "path": "originals/grass-clump/grass_medium_01_1k.gltf"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_01/grass_medium_01_nor_gl_1k.jpg",
+      "resolvedUrl": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_01/grass_medium_01_nor_gl_1k.jpg",
+      "providerMd5": "fcf43dd1253f56e4c361079f34155c37",
+      "sha256": "cae298d3d1d7ff7c7e210ad8ac772b96706e356f9315a6b04fde373ce01ccf1e",
+      "bytes": 956166,
+      "path": "originals/grass-clump/textures/grass_medium_01_nor_gl_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_01/grass_medium_01_diff_1k.jpg",
+      "resolvedUrl": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_01/grass_medium_01_diff_1k.jpg",
+      "providerMd5": "6b18ed50d776fd20c1304d9994bd764e",
+      "sha256": "71495bd6a11fddcab0aaff38246fea1a7b802a705483f1c7cbca53955daa8050",
+      "bytes": 395673,
+      "path": "originals/grass-clump/textures/grass_medium_01_diff_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_01/grass_medium_01_arm_1k.jpg",
+      "resolvedUrl": "https://dl.polyhaven.org/file/ph-assets/Models/jpg/1k/grass_medium_01/grass_medium_01_arm_1k.jpg",
+      "providerMd5": "37ed2730a507b681af2e9f9f7ef3ae5e",
+      "sha256": "9a3a30f72bc02f4398967c5b08f2d20cce30bd423a2613b42a727034296fa3ae",
+      "bytes": 679518,
+      "path": "originals/grass-clump/textures/grass_medium_01_arm_1k.jpg"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/grass_medium_01/grass_medium_01.bin",
+      "resolvedUrl": "https://dl.polyhaven.org/file/ph-assets/Models/gltf/8k/grass_medium_01/grass_medium_01.bin",
+      "providerMd5": "e0527a0561c2dae5b7b5c1b478d8c6bf",
+      "sha256": "f4587cabdb96a2e96d8be644923dc954a248edfaaa717a0ff224cacb898bee1f",
+      "bytes": 1006632,
+      "path": "originals/grass-clump/grass_medium_01.bin"
+    },
+    {
+      "url": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/grass_medium_01/grass_medium_01_alpha_1k.png",
+      "resolvedUrl": "https://dl.polyhaven.org/file/ph-assets/Models/png/1k/grass_medium_01/grass_medium_01_alpha_1k.png",
+      "providerMd5": "6b5b251ef1ca9a69ab9f49def66d758a",
+      "sha256": "711a8e49af758d6a6ce1f610db858899a27be19da6d1866bd35c13bc7b8ffeff",
+      "bytes": 648718,
+      "path": "originals/grass-clump/textures/grass_medium_01_alpha_1k.png"
+    }
+  ]
+}

@@ -12,3 +12,7 @@ apps/mobile/ios
 apps/mobile/android
 apps/mobile/dist
 **/.DS_Store
+
+# The separately hosted game component has its own Vercel build.
+apps/games/
+**/dump.rdb

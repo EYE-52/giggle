@@ -1,0 +1,105 @@
+/* Twenty Questions: one question desk and a newest-first history on the
+ * game kit. Tokens only, flat, normal page flow (no viewport-sized panels),
+ * so the shell's game-size zoom works. The answer icons are inline SVG art. */
+.tq { width: 100%; max-width: 760px; margin-inline: auto; min-width: 0; padding: 12px 0 24px; display: flex; flex-direction: column; gap: 14px;
+  font: 17px/1.45 var(--font-body); color: var(--ink); overflow-wrap: anywhere; }
+.tq * { box-sizing: border-box; }
+.tq > * { margin: 0; }
+.tq [hidden] { display: none !important; }
+.tq-top { display: flex; flex-direction: column; gap: 8px; }
+.tq-role { min-width: 0; }
+#gbody .tq .tq-roleline { margin: 0; }
+.tq-wordline { margin-top: 4px; }
+.tq-wordline b { color: var(--ink); background: var(--accent-soft); border-radius: 8px; padding: 2px 8px; }
+.tq-budget { height: 6px; border-radius: 999px; background: var(--well); border: 1px solid var(--line); overflow: hidden; }
+.tq-budget i { display: block; height: 100%; width: 0; background: var(--accent); }
+.tq-cols { display: flex; flex-direction: column; gap: 14px; }
+.tq-desk { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.tq-desk > * { margin: 0; }
+
+/* The current question. */
+.tq-spot { padding: 16px 18px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
+.tq-spot > * { margin: 0; }
+.tq-qmeta { font: 700 13px/1.4 var(--font-body); color: var(--ink-dim); }
+.tq-qtext { font: 800 22px/1.3 var(--font-body); color: var(--ink); overflow-wrap: anywhere; }
+.tq-spot.is-idle .tq-qtext { font-size: 18px; color: var(--ink-dim); }
+.tq-spot.is-idle .tq-qmeta { display: none; }
+.tq-wait.gk-wait { justify-content: flex-start; min-height: 32px; }
+.tq-answers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tq .tq-ans { min-height: 52px; padding-inline: 10px; gap: 6px; overflow-wrap: normal; }
+.tq-icon { display: inline-block; flex: none; vertical-align: middle; overflow: visible; width: 22px; height: 22px; }
+
+/* Ask and guess rows (kit input rows). */
+.tq-askrow { display: flex; gap: 10px; align-items: stretch; }
+.tq-askrow .gk-input { flex: 1 1 auto; min-width: 0; min-height: 48px; padding: 10px 14px; font: 600 17px/1.3 var(--font-body); font-size: 17px;
+  color: var(--ink); background: var(--input-bg, var(--card)); border: 1px solid var(--line-strong); border-radius: 12px; }
+.tq-askrow .gk-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.tq-askrow .gk-input::placeholder { color: var(--ink-dim); opacity: 1; }
+.tq-askrow .gk-btn { flex: none; min-width: 84px; min-height: 48px; }
+.tq-askstate { font-size: 14px; color: var(--ink-dim); }
+.tq-askstate:empty { display: none; }
+
+/* Hints. */
+.tq-hints summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; cursor: pointer; color: var(--ink-dim); font: 700 15px/1.3 var(--font-body); }
+.tq-hint-mask { font: 800 18px/1.4 var(--font-body); letter-spacing: .1em; color: var(--ink); }
+.tq-hint-note { font-size: 14px; color: var(--ink-dim); margin: 6px 0; }
+.tq[data-role="answerer"] .tq-hint-mask { display: none; }
+
+/* Queue and history. */
+.tq-sec { font: 800 15px/1.4 var(--font-body); color: var(--ink-dim); margin: 0 0 6px; }
+.tq-queue { display: flex; flex-direction: column; gap: 8px; }
+.tq-arch { padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
+.tq-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 8px; }
+.tq-filter { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 44px; padding: 6px 14px;
+  border: 1px solid var(--line-strong); border-radius: 999px; background: var(--card); color: var(--ink-dim); font: 700 14px/1.2 var(--font-body); cursor: pointer; }
+.tq-filter[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--ink); }
+.tq-filter .tq-icon { width: 18px; height: 18px; }
+.tq-filter-count { font-variant-numeric: tabular-nums; }
+.tq-hist { display: flex; flex-direction: column; }
+.tq-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.tq-row:last-child { border-bottom: 0; }
+.tq-queue .tq-row { padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.tq-row-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--ink-dim); font-size: 13px; line-height: 1.4; }
+.tq-row-meta b { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tq-num { font-weight: 700; font-variant-numeric: tabular-nums; }
+.tq-q { display: block; margin-top: 4px; font: 700 17px/1.4 var(--font-body); color: var(--ink); overflow-wrap: anywhere; }
+.tq-pill { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--well); color: var(--ink); font: 800 13px/1.4 var(--font-body); }
+.tq-pill.is-yes { border-color: var(--green); background: color-mix(in srgb, var(--green) 14%, var(--card)); }
+.tq-pill.is-no { border-color: var(--melon); background: color-mix(in srgb, var(--melon) 14%, var(--card)); }
+.tq-pill.is-some { border-color: var(--sun); background: color-mix(in srgb, var(--sun) 14%, var(--card)); }
+.tq-pill.is-wait { border-style: dashed; background: var(--card); color: var(--ink-dim); }
+.tq-pill .tq-icon { width: 18px; height: 18px; }
+.tq-qbtns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.tq-empty { padding: 12px 0; color: var(--ink-dim); font-size: 15px; }
+.tq-wrong { font-size: 14px; color: var(--ink-dim); margin-top: 8px; }
+.tq-wrong:empty { display: none; }
+
+/* Reveal and final. */
+#gbody .tq .tq-wordbig { margin: 0; }
+.tq-wordbig b { color: var(--accent-deep); }
+.tq-next { min-height: 48px; }
+
+.tq :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (min-width: 760px) {
+  /* Wide frames: desk and history side by side inside the same centred
+   * 760px column every text game uses. */
+  .tq-cols { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; }
+}
+@media (max-width: 640px) {
+  .tq { padding: 8px 0 20px; gap: 12px; }
+  .tq-qtext { font-size: 19px; }
+  .tq-answers { gap: 8px; }
+  .tq .tq-ans { flex-direction: column; gap: 2px; font-size: 14px; min-height: 60px; padding: 6px 4px; }
+  .tq-askrow .gk-btn { min-width: 72px; padding-inline: 12px; }
+  .tq-arch { padding: 10px 12px; }
+  .tq-pill .tq-icon { display: none; }
+}
+@media (max-height: 640px) {
+  .tq { gap: 10px; padding-top: 4px; }
+  .tq-spot { padding: 10px 14px; gap: 6px; }
+  .tq-qtext { font-size: 18px; }
+  .tq .tq-ans { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tq * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}

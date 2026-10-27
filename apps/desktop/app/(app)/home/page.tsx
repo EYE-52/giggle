@@ -65,6 +65,9 @@ export default function HomePage() {
   const [leaving, setLeaving] = useState<MySquadLite | null>(null);
   const [requested, setRequested] = useState<string[]>([]);
   const [friends, setFriends] = useState<Friend[] | null>(null);
+  const [friendsError, setFriendsError] = useState("");
+  const [friendsReload, setFriendsReload] = useState(0);
+  const friendsRetrying = useRef(false);
   const [invited, setInvited] = useState<string[]>([]);
   const [inviteAfterCreate, setInviteAfterCreate] = useState<Friend | null>(null);
   const active = squads?.[0];
@@ -148,12 +151,21 @@ export default function HomePage() {
   }, [active?.squadId, active?.memberCount]);
   useEffect(() => {
     let alive = true;
+    let loading = false;
     async function load() {
+      if (!alive || loading) return;
+      loading = true;
       try {
         const data = await api.listFriends();
-        if (alive) setFriends(data.friends);
+        if (alive) {
+          setFriends(data.friends);
+          setFriendsError("");
+        }
       } catch {
-        if (alive) setFriends((previous) => previous ?? []);
+        if (alive) setFriendsError("Couldn't load your friends.");
+      } finally {
+        loading = false;
+        if (alive) friendsRetrying.current = false;
       }
     }
     void load();
@@ -162,7 +174,14 @@ export default function HomePage() {
       alive = false;
       stopPolling();
     };
-  }, [reload, WEB_DISCOVERY_ENABLED]);
+  }, [reload, friendsReload, WEB_DISCOVERY_ENABLED]);
+  function retryFriends() {
+    if (friendsRetrying.current) return;
+    friendsRetrying.current = true;
+    setFriendsError("");
+    setFriends(null);
+    setFriendsReload(value => value + 1);
+  }
   async function invite(friend: Friend) {
     if (!ensureAuthed()) return;
     if (!active) {
@@ -284,7 +303,12 @@ export default function HomePage() {
             {people.length > 0 && <span className={`count ${styles.count}`}>{onlineCount} online</span>}
             {people.length > 0 && <Link href="/friends" className={`link ${styles.headLink}`}>Add friends</Link>}
           </header>
-          {friends === null ? (
+          {friendsError ? (
+            <div role="alert" className={styles.empty}>
+              <p>{friendsError}</p>
+              <Button variant="secondary" onClick={retryFriends}>Retry friends</Button>
+            </div>
+          ) : friends === null ? (
             <p role="status" className={styles.quiet}><span className="gg-spinner" /> Loading friends…</p>
           ) : people.length === 0 ? (
             <div className={`${styles.empty} ${styles.friendsEmpty}`}>

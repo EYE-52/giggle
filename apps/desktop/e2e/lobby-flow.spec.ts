@@ -58,15 +58,17 @@ for (const width of [390, 1440]) {
         await devices.getByRole('button', { name: /close/i }).click();
       }
       await leader.getByRole('button', { name: /^Squad settings/ }).click();
-      await leader.getByRole('button', { name: 'Rename squad', exact: true }).click();
-      await leader.getByLabel('Squad name').fill(`${name} renamed`);
-      await leader.getByRole('button', { name: 'Save name', exact: true }).click();
+      await leader.getByRole('button', { name: /^Name / }).click();
+      const rename = leader.getByRole('dialog', { name: 'Rename squad', exact: true });
+      await rename.getByLabel('Squad name').fill(`${name} renamed`);
+      await rename.getByRole('button', { name: 'Save', exact: true }).click();
       await expect(friend.getByRole('heading', { name: `${name} renamed`, exact: true })).toBeVisible();
       await leader.getByRole('button', { name: /^Squad settings/ }).click();
-      await leader.getByRole('button', { name: 'Edit topics', exact: true }).click();
-      await leader.getByRole('button', { name: 'Music', exact: true }).click();
+      await leader.getByRole('button', { name: /^Topics / }).click();
+      const topics = leader.getByRole('dialog', { name: 'Edit topics', exact: true });
+      await topics.getByRole('button', { name: 'Music', exact: true }).click();
       await leader.waitForTimeout(3300); // polling must not overwrite an open editor
-      await leader.getByRole('button', { name: 'Save topics', exact: true }).click();
+      await topics.getByRole('button', { name: 'Save', exact: true }).click();
       await expect(friend.getByText('Music', { exact: true })).toBeVisible();
       await leader.getByRole('button', { name: 'Squad settings', exact: true }).click();
       await leader.getByRole('button', { name: 'Leave squad', exact: true }).click();
@@ -108,8 +110,8 @@ for (const entry of ['invite link', 'home code']) test(`request approval from ${
     await leader.getByRole('button', { name: 'Approve', exact: true }).click();
     await expect(friend).toHaveURL(/\/lobby\?squad=/);
     await expect(friend.getByTestId('lobby-person')).toHaveCount(2);
-    await leader.getByRole('button', { name: 'Remove', exact: true }).click();
-    await leader.getByRole('button', { name: 'Remove member', exact: true }).click();
+    await leader.getByRole('button', { name: /^Remove / }).click();
+    await leader.getByRole('dialog', { name: /^Remove .+\?$/ }).getByRole('button', { name: 'Remove', exact: true }).click();
     await expect(friend).toHaveURL(/\/home$/);
     await leader.getByRole('button', { name: 'Squad settings', exact: true }).click();
     await leader.getByRole('button', { name: 'Leave squad', exact: true }).click();

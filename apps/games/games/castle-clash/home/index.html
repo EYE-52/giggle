@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161326">
+<title>Castle Clash — Game Night by Giggle</title>
+<meta name="description" content="Build a fort, then flatten theirs. Raise Emberhold or Frostgate with your crew on a shared pile of bricks, then besiege the rival fort and shatter its crystal Core. 2–8 players, highest authority wins.">
+<link rel="canonical" href="https://play.gigglemeet.com/games/castle-clash/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Castle Clash — Game Night by Giggle">
+<meta property="og:description" content="Build a fort, then flatten theirs. Raise Emberhold or Frostgate with your crew, then besiege the rival fort and shatter its crystal Core. 2–8 players.">
+<meta property="og:url" content="https://play.gigglemeet.com/games/castle-clash/">
+<link rel="stylesheet" href="home.css">
+<style>
+/* Castle Clash home — twilight valley reskin (game-owned, inline overrides only).
+   Deep twilight slate/plum page, soft-white text, coral/mint accents.
+   Coherent with sunset-valley art direction; beige/parchment removed. */
+:root {
+  --parchment: #161326;
+  --parchment-deep: #221d3d;
+  --card: #26223e;
+  --card-2: #2e2949;
+  --ink: #f8f4ea;
+  --ink-soft: #cfc7e3;
+  --ember: #ff7a59;
+  --ember-deep: #ff9d7f;
+  --ember-wash: #4a2430;
+  --frost: #5eead4;
+  --frost-deep: #8df2e2;
+  --frost-wash: #173f3c;
+  --gold: #fbbf24;
+  --line: #4a4468;
+  --focus: #7dd3fc;
+  --coral: #ff7a59;
+  --mint: #5eead4;
+  --font-display: "Baloo 2", "Baloo", "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+html { background: #161326; }
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background:
+    radial-gradient(1000px 340px at 50% -70px, #3d2d63 0%, transparent 65%),
+    radial-gradient(700px 260px at 12% 0%, rgba(255, 122, 89, .14) 0%, transparent 60%),
+    radial-gradient(700px 260px at 88% 0%, rgba(94, 234, 212, .12) 0%, transparent 60%),
+    linear-gradient(180deg, #241f3d 0%, #1a1630 42%, #141222 100%);
+}
+.topbar .back { color: var(--mint); }
+.topbar .brand { color: var(--ink-soft); }
+.topbar .seats strong { background: var(--coral); color: #2a130b; }
+.masthead h1 {
+  font-family: var(--font-display);
+  color: #fff7ea;
+  letter-spacing: .01em;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .5), 0 8px 26px rgba(255, 122, 89, .28);
+}
+.tagline { color: var(--gold); }
+.standfirst { color: var(--ink); }
+.ember-t { color: #ffa07a; }
+.frost-t { color: #7ef0dd; }
+.hero-actions .play-link { background: var(--coral); color: #2a130b; box-shadow: 0 3px 0 #7c2d12; }
+.hero-actions a[href="#manual"] { color: var(--mint); }
+.diorama svg { box-shadow: 0 10px 30px rgba(0, 0, 0, .5), 0 2px 0 rgba(255, 255, 255, .06); }
+.diorama figcaption { color: var(--ink-soft); }
+.diorama text { font-family: var(--font-body); }
+.sunhalo { animation: halo 5s ease-in-out infinite alternate; }
+@keyframes halo { from { opacity: .55; } to { opacity: .9; } }
+.shimmer { animation: drift 4s linear infinite; }
+@keyframes drift { to { stroke-dashoffset: -28; } }
+.facts { color: var(--ink); }
+.columns > section {
+  background: linear-gradient(180deg, var(--card-2), var(--card));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+}
+h2 { color: #fff7ea; }
+h3 { color: #fff; }
+.phases p, .minor { color: var(--ink); }
+li:nth-child(1) .num { background: #c2412b; color: #fff7ea; }
+li:nth-child(2) .num { background: #0d7a6f; color: #eafffa; }
+.clock { background: #1a1630; border-color: var(--line); color: var(--ink-soft); }
+.minor { background: #1d1936; border-color: var(--line); }
+thead th { color: var(--ink-soft); }
+tbody th, tbody td { border-bottom-color: #3a3556; }
+tbody th { color: var(--ink); }
+.fold {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: .5rem .8rem;
+  margin: .6rem 0;
+  background: #1d1936;
+  min-width: 0;
+}
+.fold summary {
+  cursor: pointer;
+  font-weight: 800;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  color: #fff7ea;
+}
+.fold summary::-webkit-details-marker { color: var(--gold); }
+.fold summary .hint { margin-left: auto; text-align: right; }
+.table-wrap { overflow-x: auto; margin: 0 -.2rem; padding: 0 .2rem; }
+.table-wrap table { min-width: 100%; }
+.muster-card {
+  background: linear-gradient(135deg, #2c2647, #221d3d 60%, #1d2a3a);
+  border: 2px solid #6b628f;
+}
+.muster-card h2 { color: #fff7ea; }
+.muster-card > p { color: var(--ink); }
+.muster-card::before { background: var(--coral); }
+.muster-card::after { background: var(--mint); }
+.muster-card form > * { min-width: 0; }
+.field input {
+  background: #141222;
+  color: #fff;
+  border-color: #6b628f;
+}
+.field input::placeholder { color: #8f87ad; }
+button { background: var(--coral); color: #2a130b; text-shadow: none; border-color: #2a130b; box-shadow: 0 3px 0 #7c2d12; }
+button:active { box-shadow: 0 1px 0 #7c2d12; }
+button.ghost { background: transparent; color: var(--mint); border-color: var(--mint); box-shadow: 0 3px 0 #0b3f3a; }
+.note { color: var(--ink-soft); }
+footer p { color: var(--ink-soft); }
+a { color: var(--mint); }
+a:hover { color: #eafffa; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (max-width: 46rem) {
+  .muster-card form > * { min-width: 0; flex-basis: 100%; }
+  .field input { max-width: none; }
+  .fold summary .hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sunhalo, .shimmer { animation: none !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#muster">Skip to room sign-up</a>
+
+<header class="topbar">
+  <a class="back" href="/" aria-label="Back to all games catalog">‹ All games</a>
+  <p class="brand">Game Night <span aria-hidden="true">·</span> by Giggle</p>
+  <p class="seats"><strong>2–8</strong> players</p>
+</header>
+
+<main>
+  <div class="masthead">
+    <div class="pennants" aria-hidden="true">
+      <svg class="pennant ember" viewBox="0 0 60 84" focusable="false"><path d="M8 4h44v56L30 72 8 60z" fill="#d84e2b"/><path d="M8 4h44v10H8z" fill="#93300f"/><path d="M22 26h16v16H22z" fill="#ffe9bd"/><path d="M22 26h16v5H22zM22 34h16v4H22z" fill="#d84e2b"/></svg>
+      <svg class="pennant frost" viewBox="0 0 60 84" focusable="false"><path d="M8 4h44v56L30 72 8 60z" fill="#0d7a6f"/><path d="M8 4h44v10H8z" fill="#07403c"/><path d="M30 24l10 8-10 8-10-8z" fill="#d8f7f0"/><path d="M30 24v16M20 32h20" stroke="#07403c" stroke-width="2"/></svg>
+    </div>
+    <h1>Castle Clash</h1>
+    <p class="tagline">Build a fort, then flatten theirs.</p>
+    <p class="hero-actions"><a class="play-link" href="#muster">Play with friends <span aria-hidden="true">↗</span></a><a href="#manual">How the siege works</a></p>
+    <p class="standfirst">A duel or two crews, one river valley, three rounds of glorious masonry violence. Raise <strong class="ember-t">Emberhold</strong> or <strong class="frost-t">Frostgate</strong> from a shared pile of bricks, then turn the cannons around and knock the other lot flat.</p>
+  </div>
+
+  <figure class="diorama" role="img" aria-label="Sunset over a pine valley: coral Emberhold and mint Frostgate face each other across a turquoise river, cannons firing over the water toward glowing crystal cores">
+    <svg viewBox="0 0 800 360" focusable="false" aria-hidden="true">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#3d3560"/>
+          <stop offset=".34" stop-color="#7a4f7e"/>
+          <stop offset=".56" stop-color="#d97a7c"/>
+          <stop offset=".76" stop-color="#ffab6b"/>
+          <stop offset="1" stop-color="#ffd9a0"/>
+        </linearGradient>
+        <radialGradient id="sunGlow" cx=".5" cy=".5" r=".5">
+          <stop offset="0" stop-color="#fff3d6" stop-opacity=".95"/>
+          <stop offset=".55" stop-color="#ffcf8f" stop-opacity=".5"/>
+          <stop offset="1" stop-color="#ffcf8f" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="river" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#7ef0dd"/>
+          <stop offset=".5" stop-color="#2dd4bf"/>
+          <stop offset="1" stop-color="#0d7a6f"/>
+        </linearGradient>
+        <linearGradient id="valley" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#2f6b4f"/>
+          <stop offset="1" stop-color="#1e4d3a"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="800" height="252" fill="url(#sky)"/>
+      <g fill="#fff7ea" opacity=".55">
+        <circle cx="60" cy="26" r="1.6"/><circle cx="150" cy="14" r="1.3"/><circle cx="250" cy="34" r="1.6"/>
+        <circle cx="560" cy="20" r="1.6"/><circle cx="660" cy="38" r="1.3"/><circle cx="740" cy="18" r="1.6"/>
+        <circle cx="340" cy="16" r="1.2"/><circle cx="470" cy="30" r="1.2"/>
+      </g>
+      <g fill="#ffc9a3" opacity=".65">
+        <ellipse cx="150" cy="96" rx="70" ry="10"/>
+        <ellipse cx="640" cy="72" rx="80" ry="11"/>
+        <ellipse cx="540" cy="128" rx="56" ry="8"/>
+      </g>
+      <circle class="sunhalo" cx="400" cy="188" r="58" fill="url(#sunGlow)"/>
+      <circle cx="400" cy="188" r="30" fill="#ffe3ac" stroke="#fff7ea" stroke-width="3"/>
+      <g stroke="#4a3f5e" stroke-width="2.5" fill="none" opacity=".8" stroke-linecap="round">
+        <path d="M250 84q8-7 16 0 8-7 16 0"/>
+        <path d="M540 58q8-7 16 0 8-7 16 0"/>
+      </g>
+      <!-- far faceted peaks (plum) -->
+      <path d="M0 244 L110 128 L200 208 L320 104 L430 202 L540 134 L660 210 L740 156 L800 206 L800 258 L0 258z" fill="#6b5a8c"/>
+      <g fill="#574a78">
+        <path d="M110 128l45 80-45 12z"/><path d="M320 104l55 98-55 14z"/>
+        <path d="M540 134l60 76-60 12z"/><path d="M740 156l32 50-32 8z"/>
+      </g>
+      <g fill="#8d7cae">
+        <path d="M110 128l-48 82 48 10z"/><path d="M320 104l-58 100 58 12z"/>
+        <path d="M540 134l-55 80 55 8z"/>
+      </g>
+      <g fill="#f3ead9">
+        <path d="M110 128l18 30-18 8-18-8z"/><path d="M320 104l22 36-22 10-22-10z"/>
+        <path d="M540 134l20 30-20 9-20-9z"/>
+      </g>
+      <!-- mid slate ridge -->
+      <path d="M0 252 L140 172 L260 228 L400 162 L560 230 L700 178 L800 224 L800 262 L0 262z" fill="#46456a"/>
+      <g fill="#35344f">
+        <path d="M140 172l60 58-60 10z"/><path d="M400 162l70 68-70 12z"/><path d="M700 178l52 46-52 8z"/>
+      </g>
+      <g fill="#5b5a86">
+        <path d="M140 172l-58 60 58 8z"/><path d="M400 162l-66 70 66 10z"/><path d="M700 178l-56 48 56 6z"/>
+      </g>
+      <!-- pine-green valley banks -->
+      <path d="M0 252 Q150 236 330 252 L306 360 L0 360z" fill="url(#valley)"/>
+      <path d="M800 252 Q650 236 470 252 L494 360 L800 360z" fill="url(#valley)"/>
+      <path d="M0 330 Q200 318 400 326 Q600 334 800 322 L800 360 L0 360z" fill="#173d2f" opacity=".85"/>
+      <g>
+        <g><rect x="52" y="292" width="6" height="14" fill="#4a2f1c"/><path d="M55 258l20 26H35z" fill="#1e4d3a"/><path d="M55 272l24 30H31z" fill="#2e7d5b"/></g>
+        <g><rect x="122" y="284" width="6" height="14" fill="#4a2f1c"/><path d="M125 250l20 26H105z" fill="#1e4d3a"/><path d="M125 264l24 30h-48z" fill="#2e7d5b"/></g>
+        <g><rect x="252" y="292" width="6" height="14" fill="#4a2f1c"/><path d="M255 258l20 26h-40z" fill="#1e4d3a"/><path d="M255 272l24 30h-48z" fill="#2e7d5b"/></g>
+        <g><rect x="540" y="292" width="6" height="14" fill="#14332a"/><path d="M543 258l20 26h-40z" fill="#14473c"/><path d="M543 272l24 30h-48z" fill="#1f7a5f"/></g>
+        <g><rect x="672" y="284" width="6" height="14" fill="#14332a"/><path d="M675 250l20 26h-40z" fill="#14473c"/><path d="M675 264l24 30h-48z" fill="#1f7a5f"/></g>
+        <g><rect x="738" y="294" width="6" height="14" fill="#14332a"/><path d="M741 260l20 26h-40z" fill="#14473c"/><path d="M741 274l24 30h-48z" fill="#1f7a5f"/></g>
+      </g>
+      <!-- turquoise river -->
+      <path d="M378 250 Q372 292 348 360 L452 360 Q428 292 422 250 Q400 242 378 250z" fill="url(#river)"/>
+      <path d="M378 250 Q372 292 348 360" stroke="#0b3f3a" stroke-width="4" fill="none" opacity=".6"/>
+      <path d="M422 250 Q428 292 452 360" stroke="#0b3f3a" stroke-width="4" fill="none" opacity=".6"/>
+      <g class="shimmer" stroke="#eafffa" stroke-width="3" fill="none" opacity=".8" stroke-linecap="round" stroke-dasharray="14 14">
+        <path d="M388 272q12-6 24 0"/><path d="M384 296q16-7 32 0"/><path d="M380 322q18-7 36 0"/>
+      </g>
+      <!-- bridge -->
+      <g>
+        <rect x="336" y="262" width="128" height="12" rx="3" fill="#8a5a33"/>
+        <rect x="336" y="262" width="128" height="4" rx="2" fill="#c08b4e"/>
+        <g stroke="#5c3a1e" stroke-width="4"><path d="M344 262v-16M392 262v-16M440 262v-16M344 250h104"/></g>
+      </g>
+      <!-- EMBERHOLD (left, coral) -->
+      <g>
+        <rect x="60" y="252" width="150" height="54" fill="#ff6b4a"/>
+        <rect x="60" y="252" width="150" height="10" fill="#ffa07a"/>
+        <g fill="#ff6b4a"><rect x="64" y="238" width="16" height="16"/><rect x="88" y="238" width="16" height="16"/><rect x="112" y="238" width="16" height="16"/><rect x="136" y="238" width="16" height="16"/><rect x="160" y="238" width="16" height="16"/><rect x="184" y="238" width="16" height="16"/></g>
+        <rect x="40" y="216" width="36" height="90" fill="#d84e2b"/>
+        <rect x="40" y="216" width="36" height="9" fill="#ffa07a"/>
+        <g fill="#d84e2b"><rect x="36" y="202" width="12" height="16"/><rect x="52" y="202" width="12" height="16"/><rect x="68" y="202" width="12" height="16"/></g>
+        <rect x="194" y="216" width="36" height="90" fill="#d84e2b"/>
+        <rect x="194" y="216" width="36" height="9" fill="#ffa07a"/>
+        <g fill="#d84e2b"><rect x="190" y="202" width="12" height="16"/><rect x="206" y="202" width="12" height="16"/><rect x="222" y="202" width="12" height="16"/></g>
+        <rect x="50" y="272" width="12" height="34" fill="#5c2c14"/>
+        <rect x="206" y="272" width="12" height="34" fill="#5c2c14"/>
+        <path d="M119 306l16-32 16 32z" fill="#5c2c14"/>
+        <rect x="132" y="190" width="5" height="52" fill="#5c3a1e"/>
+        <path d="M137 190l36 9-36 9z" fill="#ff6b4a"/>
+        <circle cx="135" cy="238" r="20" fill="#ffd166" opacity=".35"/>
+        <g><path d="M135 222l12 12-12 24-12-24z" fill="#ffd166"/><path d="M135 222l12 12h-24z" fill="#fff7ea"/><path d="M135 258l-12-24 12 24 12-24z" fill="#e8a83c"/></g>
+        <g><rect x="216" y="288" width="42" height="12" rx="6" fill="#3a2418" transform="rotate(-18 216 294)"/><circle cx="226" cy="306" r="9" fill="#5c3a1e"/><circle cx="248" cy="306" r="9" fill="#5c3a1e"/></g>
+      </g>
+      <!-- FROSTGATE (right, mint) -->
+      <g>
+        <rect x="590" y="252" width="150" height="54" fill="#14b8a6"/>
+        <rect x="590" y="252" width="150" height="10" fill="#7ef0dd"/>
+        <g fill="#14b8a6"><rect x="594" y="238" width="16" height="16"/><rect x="618" y="238" width="16" height="16"/><rect x="642" y="238" width="16" height="16"/><rect x="666" y="238" width="16" height="16"/><rect x="690" y="238" width="16" height="16"/><rect x="714" y="238" width="16" height="16"/></g>
+        <rect x="570" y="216" width="36" height="90" fill="#0d7a6f"/>
+        <rect x="570" y="216" width="36" height="9" fill="#7ef0dd"/>
+        <g fill="#0d7a6f"><rect x="566" y="202" width="12" height="16"/><rect x="582" y="202" width="12" height="16"/><rect x="598" y="202" width="12" height="16"/></g>
+        <rect x="724" y="216" width="36" height="90" fill="#0d7a6f"/>
+        <rect x="724" y="216" width="36" height="9" fill="#7ef0dd"/>
+        <g fill="#0d7a6f"><rect x="720" y="202" width="12" height="16"/><rect x="736" y="202" width="12" height="16"/><rect x="752" y="202" width="12" height="16"/></g>
+        <rect x="582" y="272" width="12" height="34" fill="#0b2e2b"/>
+        <rect x="736" y="272" width="12" height="34" fill="#0b2e2b"/>
+        <path d="M649 306l16-32 16 32z" fill="#0b2e2b"/>
+        <rect x="663" y="190" width="5" height="52" fill="#0b2e2b"/>
+        <path d="M668 190l-36 9 36 9z" fill="#14b8a6"/>
+        <circle cx="665" cy="238" r="20" fill="#7ef0dd" opacity=".35"/>
+        <g><path d="M665 222l12 12-12 24-12-24z" fill="#7ef0dd"/><path d="M665 222l12 12h-24z" fill="#eafffa"/><path d="M665 258l-12-24 12 24 12-24z" fill="#0d7a6f"/></g>
+        <g><rect x="542" y="282" width="42" height="12" rx="6" fill="#1d3230" transform="rotate(18 584 288)"/><circle cx="552" cy="306" r="9" fill="#0b2e2b"/><circle cx="574" cy="306" r="9" fill="#0b2e2b"/></g>
+      </g>
+      <!-- volleys -->
+      <g class="shot" fill="#fff7ea"><circle cx="330" cy="212" r="7"/><circle cx="470" cy="200" r="7"/></g>
+      <path d="M276 274 Q330 206 392 244" stroke="#fff7ea" stroke-width="2" stroke-dasharray="6 6" fill="none" opacity=".7"/>
+      <path d="M524 274 Q470 196 408 244" stroke="#fff7ea" stroke-width="2" stroke-dasharray="6 6" fill="none" opacity=".7"/>
+      <g font-size="20" font-weight="bold">
+        <text x="86" y="340" fill="#fff7ea" stroke="#2a130b" stroke-width="4" paint-order="stroke">Emberhold</text>
+        <text x="610" y="340" fill="#eafffa" stroke="#0b2e2b" stroke-width="4" paint-order="stroke">Frostgate</text>
+      </g>
+      <rect x="3" y="3" width="794" height="354" fill="none" stroke="#241f3d" stroke-width="6"/>
+    </svg>
+    <figcaption>The river runs between them. The bridge is for builders; the sunset sky is for cannonballs.</figcaption>
+  </figure>
+
+  <section class="muster" id="muster" aria-labelledby="musterH">
+    <div class="muster-card">
+      <h2 id="musterH">Muster your crew</h2>
+      <p>Pick a war name, raise the banner, and send the room link to 1–7 friends. No account, no fuss — the siege waits for no one.</p>
+      <form method="GET" action="/">
+        <input type="hidden" name="game" value="castle-clash">
+        <label class="field">
+          <span>Your war name</span>
+          <input type="text" name="name" required maxlength="16" autocomplete="nickname" placeholder="e.g. Brickbeard" aria-describedby="musterNote">
+        </label>
+        <div class="actions">
+          <button type="submit">Create room</button>
+          <button type="submit" name="wantsetup" value="1" class="ghost">Customize + Create</button>
+        </div>
+      </form>
+      <p class="note" id="musterNote">“Customize” lets the host set build time, siege time, and rounds first.</p>
+    </div>
+  </section>
+
+  <ul class="facts" aria-label="Game facts">
+    <li><strong>2–8</strong> party · split into <strong>2</strong> crews</li>
+    <li><strong>45s</strong> build → <strong>45s</strong> siege, <strong>3</strong> rounds</li>
+    <li>Shared <strong>bricks</strong> · glory measured in <strong>authority</strong></li>
+    <li>Voice chat recommended · spectators welcome</li>
+  </ul>
+
+  <div class="columns">
+    <section aria-labelledby="manual">
+      <h2 id="manual">Field manual</h2>
+      <ol class="phases">
+        <li>
+          <h3><span class="num" aria-hidden="true">I</span> Build the fort <span class="clock">45 seconds</span></h3>
+          <p>Your crew shares one pile of <strong>100 bricks</strong> (200 max). Spend it on walls and towers inside your own half of the 8×8 field — Emberhold digs in on rows 1–3, Frostgate on rows 6–8. Ring your crystal <strong>Core</strong> with masonry: each adjacent structure gives it weighted cover — wall 1, tower 2, cannon 1, keep 3 — cutting damage to the Core by 15% per weight, capped at 80%.</p>
+        </li>
+        <li>
+          <h3><span class="num" aria-hidden="true">II</span> Besiege theirs <span class="clock">45 seconds</span></h3>
+          <p>Pick a weapon, tap an enemy structure — every shot hits the tapped cell. Every point of damage becomes <strong>authority</strong> for your crew. A guarded Core can still be hit directly, but cover shrugs off most of the damage, so clearing its guards first often pays. Fire arrows reload fast but hit light; catapults and trebuchets hit harder but slower. Towers and keeps ward the fort against incoming fire (ward caps at 30%); cannons sharpen your own guns. Destroy an enemy structure and the crew earns <strong>+10 authority</strong>. Removing your own pieces refunds half their brick cost.</p>
+        </li>
+        <li>
+          <h3><span class="num" aria-hidden="true">III</span> Shatter the Core</h3>
+          <p>Each Core holds <strong>100&nbsp;HP</strong>. Crack the enemy crystal for <strong>+60 authority</strong> and the round ends on the spot. If time runs out first, surviving Cores pay their crew <strong>half their remaining HP</strong> in authority. After 3 rounds, highest authority takes the crown (plus a 50-point winner's purse).</p>
+        </li>
+      </ol>
+      <p class="minor">Authority unlocks the good stuff for crews that earn it: <strong>cannons at 120</strong>, the <strong>trebuchet at 300</strong>, and the mighty <strong>keep at 600</strong> — a durable 3-weight guard at 45 bricks. Unlocks persist across rounds, so later rounds can field new gear; not every game reaches them all. Tearing down your own work refunds half its bricks; the Core itself can never be moved, sold, or upgraded.</p>
+    </section>
+
+    <section aria-labelledby="arsenal">
+      <h2 id="arsenal">Arsenal &amp; ledger</h2>
+      <details class="fold" open>
+        <summary>Build menu <span class="hint">shared bricks, own half only</span></summary>
+        <div class="table-wrap">
+          <table>
+            <caption class="visually-hidden">Buildable pieces with brick cost, hit points, and authority needed to unlock</caption>
+            <thead><tr><th scope="col">Piece</th><th scope="col">Bricks</th><th scope="col">HP</th><th scope="col">Unlocks at</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Wall</th><td>10</td><td>30</td><td>Round 1</td></tr>
+              <tr><th scope="row">Tower <span class="hint">wards the fort</span></th><td>25</td><td>60</td><td>Round 1</td></tr>
+              <tr><th scope="row">Cannon <span class="hint">boosts attacks</span></th><td>40</td><td>50</td><td>120 authority</td></tr>
+              <tr><th scope="row">Keep <span class="hint">the big one</span></th><td>45</td><td>120</td><td>600 authority</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <details class="fold" open>
+        <summary>Siege weapons <span class="hint">tap a foe to fire</span></summary>
+        <div class="table-wrap">
+          <table>
+            <caption class="visually-hidden">Siege weapons with damage, reload time, and authority needed to unlock</caption>
+            <thead><tr><th scope="col">Weapon</th><th scope="col">Damage</th><th scope="col">Reload</th><th scope="col">Unlocks at</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Fire arrow</th><td>6</td><td>2s</td><td>Round 1</td></tr>
+              <tr><th scope="row">Catapult</th><td>12</td><td>3s</td><td>Round 1</td></tr>
+              <tr><th scope="row">Trebuchet</th><td>30</td><td>6s</td><td>300 authority</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <details class="fold" open>
+        <summary>House rules <span class="hint">host controls</span></summary>
+        <ul class="ledger">
+          <li>Build 15–120s · siege 15–120s · 1–5 rounds — the host sets all three (defaults 45 / 45 / 3).</li>
+          <li>Structures upgrade to level 2; teardown refunds half.</li>
+          <li>Drag to orbit the battlefield, scroll or pinch to zoom, flip views to scout either fort.</li>
+          <li>Extra friends can watch the siege as spectators.</li>
+        </ul>
+      </details>
+    </section>
+  </div>
+
+
+</main>
+
+<footer>
+  <a href="/">← Back to all games</a>
+  <p>Castle Clash · a Game Night by Giggle siege for 2–8 players</p>
+</footer>
+<script src="home.js" defer></script>
+</body>
+</html>

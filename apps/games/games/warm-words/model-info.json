@@ -1,0 +1,22 @@
+{
+  "model": "Xenova/all-MiniLM-L6-v2",
+  "revision": "751bff37182d3f1213fa05d7196b954e230abad9",
+  "license": "Apache-2.0",
+  "modelUrl": "https://huggingface.co/Xenova/all-MiniLM-L6-v2/tree/751bff37182d3f1213fa05d7196b954e230abad9",
+  "sourceModel": "sentence-transformers/all-MiniLM-L6-v2",
+  "library": "@huggingface/transformers",
+  "libraryVersion": "3.8.1",
+  "dtype": "q8",
+  "pooling": "mean",
+  "normalized": true,
+  "dimensions": 384,
+  "input": "Each vocabulary word alone, in the listed order.",
+  "vocabularyOrigin": "Original curated everyday English vocabulary for Giggle; no third-party dictionary copied.",
+  "wordCount": 1507,
+  "targetCount": 82,
+  "vocabularySha256": "2e79a9d6901ca5bd1c5df5f076bc7ca7617514489fec5f16d5297e31c36aa761",
+  "embeddingsSha256": "15f5a29964b01b84db53c3f07bd6a53e7064eecc4b76249ca75fe9cd0415bc9b",
+  "weightsSha256": "afdb6f1a0e45b715d0bb9b11772f032c399babd23bfc31fed1c170afc848bdb1",
+  "tokenizerSha256": "da0e79933b9ed51798a3ae27893d3c5fa4a201126cef75586296df9b4d2c62a0",
+  "generatedAt": "2026-10-04T20:25:30.406Z"
+}

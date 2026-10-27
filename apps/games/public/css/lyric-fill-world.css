@@ -1,0 +1,12 @@
+/* Lyric Fill: the line is the prompt; the blank and the revealed words are
+ * the only accents. Flat, tokens only (shared parts: compact-answer-games.css). */
+.lf .lf-line { font-style: normal; }
+.lf .lf-blank {
+  display: inline-block; min-width: 4.5ch; border-bottom: 3px solid var(--accent);
+  color: transparent; line-height: 1; transform: translateY(-0.1em);
+}
+.lf .lf-answer { color: var(--accent-deep); }
+.lf .lf-locked {
+  display: flex; align-items: center; min-height: 48px; padding: 10px 14px;
+  font: 700 17px/1.35 var(--font-body); overflow-wrap: anywhere;
+}

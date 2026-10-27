@@ -475,6 +475,7 @@ test("opponent blocking is confirmed and leaves only after both server steps", a
 
   expect(calls.map(call => call.path)).toEqual(["/api/users/block", "/api/encounters/disconnect"]);
   expect(calls[0].body).toEqual({
+    encounterId: "fixture-2v2",
     userIds: [fixtureRosterUserId("theirs", 0), fixtureRosterUserId("theirs", 1)],
   });
 });

@@ -1,0 +1,32 @@
+# PartyBox deploy hygiene: secrets, installs, and QA output stay out of
+# history and deploys. Game code, public assets (incl. licensed vendor
+# builds under public/vendor/), and the inert .env.example ship normally.
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+.DS_Store
+*.pem
+*.key
+secrets/
+tmp/
+qa-output/
+screens/
+screenshots/
+*.tmp
+*.bak
+*.blend1
+*.blend2
+.vercel
+releases/
+sdk/dist/
+.muse/
+*.gghandover
+*.passphrase
+art-review/
+.data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

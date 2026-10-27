@@ -1,0 +1,22 @@
+{
+  "task": "three-3d-games design packet",
+  "date": "2026-10-14",
+  "gate": "G0-planned (design only; no code, no runs, no approvals of own work)",
+  "files_written": ["proposal.md", "qa-cases.json", "tool-capabilities.md", "status.json"],
+  "files_untouched": ["AGENTS.md", "PROMPT.md", "REFERENCES.md", "ROOT_BRIEF.md", "context/", "guidance/", "muse-run.jsonl", "muse-stderr.log"],
+  "qa_cases": { "total": 40, "run": 0, "passed": 0, "planned": 40 },
+  "browser_qa_performed": false,
+  "reference_gaps": [
+    "No gameplay reference was played hands-on; Golf Party, Golf With Your Friends, Bombergrounds, Spaceteam, Smash Karts and Marble Blast stand on their cited pages plus the workspace reference packet.",
+    "Kenney kit pages confirm CC0 and file counts only; per-file formats, dimensions, materials, rigs and byte costs are uninspected.",
+    "Physical devices, live Giggle Meet call, heard audio and thermal behaviour are unverified by design at this stage."
+  ],
+  "unresolved_questions": [
+    "Accept the proposed rest/cup starting numbers as G1 greybox inputs?",
+    "Bomb Garden round-1 arm preview: keep default-on or make it a room setting?",
+    "Rocket Room 5-6 player co-pilot role: accept thin or cut until a second module exists?",
+    "Fetch Kenney packs for per-file inspection now, or defer to G1?",
+    "Reviewer check: simultaneous-golf deadline fairness and bomb-chain ordering under jitter/reconnect fully specified?"
+  ],
+  "next_step": "Parent product/visual decision and independent reviewer challenge before any G1 greybox work."
+}

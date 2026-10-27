@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFF6F8">
+<title>Rapid Polls — Game Night by Giggle</title>
+<meta name="description" content="Ask anything, live results. Pose any question with options. Watch live results roll in.">
+<link rel="canonical" href="https://play.gigglemeet.com/games/rapid-polls/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Rapid Polls — Game Night by Giggle">
+<meta property="og:description" content="Ask anything, live results. Pose any question with options. Watch live results roll in.">
+<meta property="og:url" content="https://play.gigglemeet.com/games/rapid-polls/">
+<link rel="preload" href="/fonts/baloo2-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/game-page.css">
+<script>try{var t=localStorage.getItem('pb_theme');if(t==='night'||t==='dark'||t==='arcade')document.documentElement.dataset.theme='night';}catch(e){}</script>
+</head>
+<body>
+<div class="gp-wrap">
+  <nav class="gp-crumb" aria-label="Breadcrumb">
+    <a href="/">All games</a>
+    <span aria-hidden="true">›</span>
+    <span aria-current="page">Rapid Polls</span>
+  </nav>
+
+  <header class="gp-hero">
+    <img class="gp-art" src="/img/games/rapid-polls.webp" alt="" width="480" height="270" loading="eager">
+    <div class="gp-hero-text">
+      <h1>Rapid Polls</h1>
+      <p class="gp-tag">Ask anything, live results</p>
+      <ul class="gp-pills" aria-label="Game facts">
+        <li>2–20 players</li>
+        <li>Everyone plays</li>
+        <li>Customizable</li>
+      </ul>
+    </div>
+  </header>
+
+  <main>
+    <section class="gp-how" aria-labelledby="gpHow">
+      <h2 id="gpHow">How to play</h2>
+      <p>Pose any question with options.</p>
+      <p>Watch live results roll in.</p>
+      <p class="gp-fact">2–20 players per room.</p>
+    </section>
+
+      <section class="gp-custom" aria-labelledby="gpCustom">
+        <h2 id="gpCustom">Make it yours</h2>
+        <p>The host can adjust these before the game starts.</p>
+        <h3>Room settings</h3>
+        <ul class="gp-list">
+          <li><strong>Rounds</strong> <span>1–12, default 8</span></li>
+          <li><strong>Pace</strong> <span>Options: Relaxed · Normal · Quick. Default: Normal</span></li>
+        </ul>
+      </section>
+
+    <section class="gp-start" aria-labelledby="gpGo">
+      <h2 id="gpGo">Start a room</h2>
+      <form class="gp-cta" method="GET" action="/">
+        <input type="hidden" name="game" value="rapid-polls">
+        <label class="gp-field">
+          <span>Your party name</span>
+          <input type="text" name="name" required maxlength="16" autocomplete="nickname"
+            placeholder="e.g. Pippa" aria-describedby="gpCtaNote">
+        </label>
+        <div class="gp-actions">
+          <button class="gp-btn gp-btn-hot" type="submit">Create room</button>
+          <button class="gp-btn gp-btn-soft" type="submit" name="wantsetup" value="1">Customize + Create</button>
+        </div>
+      </form>
+      <p class="gp-note" id="gpCtaNote">Pick a name, create a room, and invite your friends. No account needed.</p>
+    </section>
+  </main>
+
+  <footer class="gp-foot">
+    <a href="/">← Back to all games</a>
+    <span>Game Night by Giggle</span>
+  </footer>
+</div>
+</body>
+</html>

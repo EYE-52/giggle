@@ -38,8 +38,23 @@ test('roster presence follows first and last socket without polling', async ({ b
     await expect(find).toBeDisabled();
 
     const secondTab = await friendContext.newPage();
+    let replacementConnected = false;
+    let replacementHandshakes = 0;
+    secondTab.on('websocket', socket => {
+      if (!socket.url().includes('/socket.io/')) return;
+      socket.on('framesent', ({ payload }) => {
+        if (typeof payload === 'string' && payload.startsWith('40')) replacementHandshakes++;
+      });
+      socket.on('framereceived', ({ payload }) => {
+        if (typeof payload === 'string' && payload.startsWith('40')) replacementConnected = true;
+      });
+      socket.on('close', () => { replacementConnected = false; });
+    });
     await secondTab.goto(friend.url());
     await expect(secondTab.getByTestId('lobby-page')).toBeVisible();
+    // A rendered lobby alone does not prove its replacement socket is connected.
+    await expect.poll(() => replacementConnected, { timeout: 5_000 }).toBe(true);
+    expect(replacementHandshakes).toBe(1);
     await friend.close();
     // Read the authoritative roster after closing one tab; do not sleep or rely
     // solely on the leader's unchanged cached projection.

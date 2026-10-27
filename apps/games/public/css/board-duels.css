@@ -1,0 +1,136 @@
+/* Board kit: one flat layout for every Game Night board game.
+ * Desktop: the board owns the stage, the side panel sits on the right.
+ * Phone: one steady column (title, players, board, status, actions).
+ * UI chrome uses tokens only; board art lives in each game's own file. */
+.bk-game{--bk-gap:20px;grid-template-rows:minmax(calc(100svh - var(--bk-top) - 20px),auto);--bk-top:64px;--bk-panel:296px;--bk-aspect:1;position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--bk-panel);gap:var(--bk-gap);align-items:start;width:100%;min-height:100svh;margin:0;padding:var(--bk-top) 20px 20px;box-sizing:border-box;background:var(--bg);color:var(--ink);font:16px/1.45 var(--font-body);min-width:0}
+.bk-game *,.bk-game *::before,.bk-game *::after{box-sizing:border-box}
+.bk-game [hidden]{display:none!important}
+.bk-stage{grid-column:1;grid-row:1;justify-self:center;align-self:center;position:relative;width:min(100%,calc((100svh - var(--bk-top) - 20px) * var(--bk-aspect)));min-width:0;line-height:0}
+.bk-stage svg{display:block;width:100%;height:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.bk-stage :focus{outline:none}
+
+/* Side panel */
+.bk-panel{grid-column:2;grid-row:1;align-self:start;display:flex;flex-direction:column;gap:12px;min-width:0;margin-top:calc(16px - var(--bk-top))}
+.bk-head{display:flex;flex-direction:column;gap:2px;min-width:0;padding:0 2px}
+.bk-title{margin:0;font:800 26px/1.2 var(--font-display);color:var(--ink);overflow-wrap:anywhere}
+.bk-meta{margin:0;font-size:13px;line-height:1.4;color:var(--ink-dim)}
+.bk-players{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.bk-player{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;min-height:60px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.bk-player.is-turn{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.bk-player.is-out{opacity:.6}
+.bk-chip{display:grid;place-items:center;width:30px;height:30px;flex:none;line-height:0}
+.bk-chip svg{width:30px;height:30px;display:block}
+.bk-chip .bk-dot{display:block;width:26px;height:26px;border-radius:50%;background:var(--chip,#888);border:1px solid #0003}
+.bk-who{display:flex;flex-direction:column;min-width:0}
+.bk-name{font-size:16px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-side{font-size:13px;line-height:1.35;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-player.is-turn .bk-side{color:var(--accent)}
+.bk-stat{display:flex;flex-direction:column;align-items:flex-end;min-width:2.5ch;text-align:right}
+.bk-stat-value{font:800 22px/1.1 var(--font-display);font-variant-numeric:tabular-nums}
+.bk-stat-label{font-size:12px;line-height:1.3;color:var(--ink-dim)}
+.bk-player.is-low .bk-stat-value{color:var(--melon)}
+.bk-status{margin:0;min-height:4.4em;padding:10px 12px;border-radius:12px;background:var(--well);line-height:1.4;overflow-wrap:anywhere;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.bk-status-text{font-size:16px;font-weight:800}
+.bk-hint{font-size:14px;color:var(--ink-dim)}
+.bk-timer{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 10px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:13px;color:var(--ink-dim)}
+.bk-timer-value{font:800 18px/1.1 var(--font-display);color:var(--ink);font-variant-numeric:tabular-nums}
+.bk-timer-track{grid-column:1/-1;height:6px;border-radius:3px;background:var(--well);overflow:hidden}
+.bk-timer-fill{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .25s linear}
+.bk-timer.is-low .bk-timer-value{color:var(--melon)}.bk-timer.is-low .bk-timer-fill{background:var(--melon)}
+.bk-timer.is-idle .bk-timer-fill{background:var(--line-strong)}
+.bk-extra{min-width:0}
+.bk-actions{min-height:78px}
+.bk-actions[hidden]{display:none}
+.bk-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0}
+.bk-row-note{min-height:44px;font-size:14px;color:var(--ink-dim)}
+.bk-ask{flex:1 1 100%;font-size:14px;font-weight:700;line-height:20px;margin-bottom:-2px}
+.bk-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:1 1 0;min-width:0;min-height:44px;padding:8px 14px;border:1px solid var(--line-strong);border-radius:10px;background:var(--card);color:var(--ink);font:700 15px/1.2 var(--font-body);cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.bk-btn:hover:not(:disabled){border-color:var(--accent)}
+.bk-btn:disabled{opacity:.5;cursor:default}
+.bk-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;flex:none}
+.bk-primary{min-height:48px;background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.bk-primary:hover:not(:disabled){filter:brightness(1.06)}
+.bk-danger{border-color:var(--melon);color:var(--melon)}
+.bk-quiet{flex:0 0 auto}
+.bk-game button:focus-visible,.bk-game summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bk-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start}
+.bk-help{flex:1 1 140px;min-width:0;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.bk-help summary{display:flex;align-items:center;min-height:42px;padding:8px 14px;list-style:none;cursor:pointer;font:700 15px/1.2 var(--font-body)}
+.bk-help summary::-webkit-details-marker{display:none}
+.bk-help summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--ink-dim);border-bottom:2px solid var(--ink-dim);transform:rotate(45deg) translateY(-2px)}
+.bk-help[open] summary::after{transform:rotate(-135deg) translateY(-2px)}
+.bk-help-body{padding:0 14px 10px;font-size:14px;line-height:1.5;color:var(--ink)}
+.bk-help-body p{margin:0 0 8px}
+
+/* Final screen */
+.bk-final{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.bk-final-title{margin:0;font-size:13px;font-weight:800;letter-spacing:.02em;text-transform:uppercase;color:var(--ink-dim)}
+.bk-winner{margin:0;font:800 26px/1.2 var(--font-display);overflow-wrap:anywhere}
+.bk-reason{margin:0;font-size:15px;color:var(--ink-dim)}
+.bk-ranks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.bk-rank-row{display:grid;grid-template-columns:28px minmax(0,1fr) auto auto;align-items:center;gap:8px;min-height:44px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--well)}
+.bk-rank-row.is-you{border-color:var(--accent);background:var(--accent-soft)}
+.bk-rank{font:800 16px/1 var(--font-display);text-align:center;color:var(--ink-dim)}
+.bk-rank-row.is-first .bk-rank{color:var(--accent)}
+.bk-rank-name{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-rank-name small{font-weight:600;color:var(--ink-dim)}
+.bk-rank-note{font-size:13px;color:var(--ink-dim);white-space:nowrap}
+.bk-points{font:800 16px/1 var(--font-display);font-variant-numeric:tabular-nums}
+.bk-final-actions{display:flex;gap:8px;flex-wrap:wrap}
+.bk-final-actions .bk-btn[hidden]{display:none}
+.bk-final-actions:not(:has(.bk-btn:not([hidden]))){display:none}
+.bk-final-actions .bk-btn{min-height:48px}
+.bk-hostwait{margin:0;font-size:13px;color:var(--ink-dim)}
+.bk-panel.is-final .bk-status,.bk-panel.is-final .bk-extra,.bk-panel.is-final .bk-help{display:none}
+.bk-panel.is-final .bk-final{order:2}.bk-panel.is-final .bk-tools{order:3}
+
+/* Shared board hints: legal targets, last move, selection (game art may
+ * add to these). */
+.bk-game{--bk-hint:color-mix(in srgb,var(--accent) 55%,transparent);--bk-last:color-mix(in srgb,var(--sun) 55%,transparent)}
+
+/* Phone: one steady column. The panel's parts take their order around
+ * the board; every part keeps its space between turns. */
+@media (max-width:759px){
+ .bk-game{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:12px 12px 20px;--bk-top:0px}
+ .bk-panel{display:contents}
+ .bk-head{order:0;min-height:44px;padding:0 0 0 104px;justify-content:center}
+ .bk-title{font-size:22px}
+ .bk-meta{font-size:13px}
+ .bk-players{order:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .bk-player{min-height:52px;padding:6px 8px;gap:8px}
+ .bk-name{font-size:15px}
+ .bk-turn-text{display:none}
+ .bk-chip,.bk-chip svg{width:24px;height:24px}
+ .bk-chip .bk-dot{width:22px;height:22px}
+ .bk-stat-value{font-size:19px}
+ .bk-stage{order:2;width:100%;max-width:560px;align-self:center}
+ .bk-status{order:3;min-height:4.4em}
+ .bk-timer{order:4}
+ .bk-extra{order:5}
+ .bk-actions{order:6}
+ .bk-tools{order:7}
+ .bk-final{order:3}
+ .bk-winner{font-size:24px}
+ .bk-final{padding:12px;gap:8px}
+ .bk-final-actions .bk-btn{min-height:48px}
+}
+@media (max-width:359px){.bk-head{padding-left:96px}.bk-title{font-size:20px}.bk-side{font-size:12px}}
+/* Short landscape: keep the board visible and scroll only the sidebar.
+ * Room/Report occupy a separate row above its clipped scrollport, so a
+ * scrolled result, focused action or help heading cannot pass beneath them. */
+@media (orientation:landscape) and (max-height:500px) and (min-width:560px){
+ .bk-game{display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,32vw,280px);grid-template-rows:minmax(0,1fr);height:100svh;padding:12px;--bk-top:12px;gap:12px}
+ .bk-stage{grid-column:1;grid-row:1;width:min(100%,calc((100svh - 24px) * var(--bk-aspect)))}
+ .bk-panel{display:flex;grid-column:2;grid-row:1;margin-top:52px;max-height:calc(100svh - 76px);overflow:auto;overscroll-behavior:contain;scroll-padding-block:8px;gap:8px}
+ .bk-panel>*{flex-shrink:0}
+ .bk-head{padding:0 2px;min-height:0}
+ .bk-players{display:flex;flex-direction:column}
+ .bk-title{font-size:20px}
+ .bk-player{min-height:48px}
+ body.game-playing.game-immersive:has(.bk-game) .room-menu{left:calc(100vw - clamp(220px,32vw,280px) - 12px);right:auto}
+ body.game-playing.game-immersive:has(.bk-game) .room-menu>summary{width:44px;min-width:44px;justify-content:center;padding:0}
+ body.game-playing.game-immersive:has(.bk-game) .room-menu>summary>span{display:none}
+ body.game-playing.game-immersive:has(.bk-game) .game-report-icon{left:calc(100vw - clamp(220px,32vw,280px) + 40px);right:auto}
+}
+@media (prefers-reduced-motion:reduce){.bk-game *{animation:none!important;transition:none!important}}
+#gbody[data-layout=immersive]:has(>.bk-game){min-height:100svh;background:var(--bg)}

@@ -1,0 +1,43 @@
+/* Would You Rather: two flat choice cards on the game kit. Tokens only.
+ * The result row inside each card always keeps its height, so the cards do
+ * not grow between voting and the reveal. */
+.wyr-world { max-width: 760px; padding: 12px 0 24px; }
+.wyr-world [hidden] { display: none !important; }
+#gbody .wyr-world .gk-prompt { margin: 2px 0 0; }
+.wyr-world .wyr-choices { grid-auto-rows: 1fr; }
+.wyr-world .wyr-choice { align-items: flex-start; min-height: 200px; padding: 18px 18px 16px; }
+.wyr-world .wyr-choice .gk-mark { margin-top: 2px; }
+.wyr-body { flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; flex-direction: column; gap: 12px; }
+.wyr-text { display: block; font: 800 clamp(20px, 2.4vw, 24px)/1.3 var(--font-body); color: var(--ink); overflow-wrap: anywhere; text-wrap: balance; }
+.wyr-choice.is-long .wyr-text { font-size: 18px; line-height: 1.4; }
+/* Reserved result row: bar, share and voters. Invisible while voting. */
+.wyr-result { margin-top: auto; display: grid; gap: 6px; min-height: 64px; visibility: hidden; }
+.wyr-choices.is-reveal .wyr-result { visibility: visible; }
+.wyr-bar { height: 8px; border-radius: 999px; background: var(--well); border: 1px solid var(--line); overflow: hidden; }
+.wyr-fill { display: block; height: 100%; width: 0; background: var(--ink-dim); border-radius: inherit; transition: width .25s ease; }
+.wyr-choice.is-majority .wyr-fill { background: var(--accent); }
+.wyr-choice.is-majority { border-color: var(--accent); }
+.wyr-count { color: var(--ink); font-variant-numeric: tabular-nums; }
+.wyr-voters { overflow-wrap: anywhere; }
+/* Reveal: everyone's choice is shown; dimming is only for "locked in". */
+.wyr-choices.is-reveal .gk-choice { opacity: 1; }
+.wyr-status { min-height: 44px; }
+.wyr-actions { min-height: 48px; }
+.wyr-world .party-more { margin: 0; }
+.wyr-world .wyr-choice:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .wyr-world { padding: 8px 0 20px; }
+  .wyr-world .wyr-choice { min-height: 128px; padding: 14px; }
+  .wyr-text { font-size: 19px; }
+}
+@media (max-height: 500px) {
+  .wyr-world .wyr-choice { min-height: 112px; }
+}
+/* Small frames (a 600×500 call panel, zoomed-out games): the question and
+ * both cards fit without scrolling. */
+@media (max-height: 640px) {
+  .wyr-world .wyr-choice { min-height: 120px; padding: 12px 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wyr-world * { transition: none !important; animation: none !important; }
+}

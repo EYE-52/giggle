@@ -1,0 +1,344 @@
+{
+  "sets": [
+    {
+      "best": "stapler",
+      "letters": [
+        "S",
+        "T",
+        "A",
+        "R",
+        "E",
+        "D",
+        "P",
+        "L",
+        "M"
+      ]
+    },
+    {
+      "best": "carnival",
+      "letters": [
+        "C",
+        "A",
+        "R",
+        "N",
+        "I",
+        "V",
+        "A",
+        "L",
+        "S"
+      ]
+    },
+    {
+      "best": "personal",
+      "letters": [
+        "P",
+        "L",
+        "A",
+        "N",
+        "E",
+        "T",
+        "S",
+        "O",
+        "R"
+      ]
+    },
+    {
+      "best": "strange",
+      "letters": [
+        "G",
+        "A",
+        "R",
+        "D",
+        "E",
+        "N",
+        "S",
+        "H",
+        "T"
+      ]
+    },
+    {
+      "best": "mountain",
+      "letters": [
+        "M",
+        "O",
+        "U",
+        "N",
+        "T",
+        "A",
+        "I",
+        "N",
+        "S"
+      ]
+    },
+    {
+      "best": "bridges",
+      "letters": [
+        "B",
+        "R",
+        "I",
+        "D",
+        "G",
+        "E",
+        "S",
+        "T",
+        "O"
+      ]
+    },
+    {
+      "best": "flowers",
+      "letters": [
+        "F",
+        "L",
+        "O",
+        "W",
+        "E",
+        "R",
+        "S",
+        "P",
+        "T"
+      ]
+    },
+    {
+      "best": "chocolate",
+      "letters": [
+        "C",
+        "H",
+        "O",
+        "C",
+        "O",
+        "L",
+        "A",
+        "T",
+        "E"
+      ]
+    },
+    {
+      "best": "windows",
+      "letters": [
+        "W",
+        "I",
+        "N",
+        "D",
+        "O",
+        "W",
+        "S",
+        "L",
+        "L"
+      ]
+    },
+    {
+      "best": "thunder",
+      "letters": [
+        "T",
+        "H",
+        "U",
+        "N",
+        "D",
+        "E",
+        "R",
+        "C",
+        "L"
+      ]
+    },
+    {
+      "best": "spaceship",
+      "letters": [
+        "S",
+        "P",
+        "A",
+        "C",
+        "E",
+        "S",
+        "H",
+        "I",
+        "P"
+      ]
+    },
+    {
+      "best": "pictures",
+      "letters": [
+        "P",
+        "I",
+        "C",
+        "T",
+        "U",
+        "R",
+        "E",
+        "S",
+        "Q"
+      ]
+    },
+    {
+      "best": "musical",
+      "letters": [
+        "M",
+        "U",
+        "S",
+        "I",
+        "C",
+        "A",
+        "L",
+        "N",
+        "O"
+      ]
+    },
+    {
+      "best": "dancers",
+      "letters": [
+        "D",
+        "A",
+        "N",
+        "C",
+        "E",
+        "R",
+        "S",
+        "I",
+        "P"
+      ]
+    },
+    {
+      "best": "friends",
+      "letters": [
+        "F",
+        "R",
+        "I",
+        "E",
+        "N",
+        "D",
+        "S",
+        "H",
+        "P"
+      ]
+    },
+    {
+      "best": "lightbulb",
+      "letters": [
+        "L",
+        "I",
+        "G",
+        "H",
+        "T",
+        "B",
+        "U",
+        "L",
+        "B"
+      ]
+    },
+    {
+      "best": "puzzles",
+      "letters": [
+        "P",
+        "U",
+        "Z",
+        "Z",
+        "L",
+        "E",
+        "R",
+        "S",
+        "A"
+      ]
+    },
+    {
+      "best": "rainbows",
+      "letters": [
+        "R",
+        "A",
+        "I",
+        "N",
+        "B",
+        "O",
+        "W",
+        "S",
+        "T"
+      ]
+    },
+    {
+      "best": "treasure",
+      "letters": [
+        "T",
+        "R",
+        "E",
+        "A",
+        "S",
+        "U",
+        "R",
+        "E",
+        "D"
+      ]
+    },
+    {
+      "best": "keyboards",
+      "letters": [
+        "K",
+        "E",
+        "Y",
+        "B",
+        "O",
+        "A",
+        "R",
+        "D",
+        "S"
+      ]
+    },
+    {
+      "best": "storms",
+      "letters": [
+        "S",
+        "T",
+        "O",
+        "R",
+        "M",
+        "S",
+        "C",
+        "L",
+        "A"
+      ]
+    },
+    {
+      "best": "campfires",
+      "letters": [
+        "C",
+        "A",
+        "M",
+        "P",
+        "F",
+        "I",
+        "R",
+        "E",
+        "S"
+      ]
+    },
+    {
+      "best": "golden",
+      "letters": [
+        "G",
+        "O",
+        "L",
+        "D",
+        "E",
+        "N",
+        "A",
+        "R",
+        "M"
+      ]
+    },
+    {
+      "best": "whistles",
+      "letters": [
+        "W",
+        "H",
+        "I",
+        "S",
+        "T",
+        "L",
+        "E",
+        "R",
+        "S"
+      ]
+    }
+  ],
+  "words": [
+    "cat",
+    "lightbulb"
+  ]
+}

@@ -1,0 +1,5 @@
+Gameplay foley by Kenney, CC0 1.0. Casino Audio, Impact Sounds and Interface Sounds. Source pages, exact source files, processing and hashes are recorded in manifest.json. No author endorsement.
+https://kenney.nl/assets/casino-audio
+https://kenney.nl/assets/impact-sounds
+https://kenney.nl/assets/interface-sounds
+https://creativecommons.org/publicdomain/zero/1.0/

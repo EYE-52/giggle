@@ -1,0 +1,26 @@
+/* Compliment Battle on the game kit (game-ui.css). Tokens only. */
+.cb-scene { padding: 4px 0 24px; }
+
+.cb-mine p { margin: 4px 0 0; font: 700 17px/1.45 var(--font-body); color: var(--ink); overflow-wrap: anywhere; }
+.cb-winner { color: var(--ink); font-weight: 800; }
+.cb-list { list-style: none; margin: 0; padding: 0; }
+.cb-list .gk-choice { cursor: default; }
+.cb-list .gk-choice:not(.is-correct):not(.is-wrong):hover { border-color: var(--line-strong); }
+.cb-list .gk-meta { margin-top: 2px; font-weight: 600; }
+.cb-foot { min-height: 48px; }
+.cb-target, .rt-target { margin-bottom: -6px; }
+
+/* Vote share on reveal cards: flat track, accent fill. */
+.pb-share { display: block; height: 6px; margin-top: 8px; border-radius: 3px; background: var(--well); overflow: hidden; }
+.pb-share > span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.gk-choice.is-correct .pb-share > span { background: var(--green); }
+
+/* Short frames (a small Giggle panel, zoomed text): tighter rhythm so the
+ * question and the main action stay in view. */
+@media (max-height: 560px) {
+  .cb-scene { gap: 10px; padding-bottom: 12px; }
+  .cb-scene .gk-prompt { font-size: 22px; }
+  .cb-scene .gk-sub { font-size: 16px; }
+  .cb-scene .gk-choice { min-height: 48px; padding-block: 8px; }
+  .cb-scene .pb-share { margin-top: 5px; }
+}

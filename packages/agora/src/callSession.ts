@@ -149,8 +149,19 @@ export function createCallSession(deps: {
     if (!ownsCall && !on) return Promise.resolve();
     if (!ownsCall || (!snapshot.joined && on)) {
       const wasConnected = !!record && record.squadId === squadId;
-      return connect(squadId, wasConnected ? record!.encounterId : null, { audio: kind === "audio", video: kind === "video" })
-        .then(() => wasConnected ? setDevice(squadId, kind, on) : undefined);
+      const retryFailedCapture = wasConnected
+        && (snapshot.capture[kind] === "denied" || snapshot.capture[kind] === "unavailable");
+      const connecting = connect(squadId, wasConnected ? record!.encounterId : null, { audio: kind === "audio", video: kind === "video" });
+      // connect may synchronously retire a different squad's call.
+      const connectingEpoch = epoch;
+      return connecting
+        // Another first-device request may have joined this room while this
+        // connect was queued. Enable the still-off requested kind afterwards;
+        // denied/unavailable capture must wait for an explicit user retry.
+        .then(() => {
+          if (connectingEpoch !== epoch) throw new Error("Call cancelled.");
+          return retryFailedCapture || snapshot.capture[kind] === "off" ? setDevice(squadId, kind, on) : undefined;
+        });
     }
     const attempt = epoch;
     update({ pending: true, error: null });

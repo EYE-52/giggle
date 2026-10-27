@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Doodle Guess native QA continuation</title>
+<style>
+body{margin:0;background:#eef0f4;color:#252a31;font:16px/1.4 system-ui}
+header{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;background:#fff;border-bottom:1px solid #d9dce0}
+button,select,a{font:inherit;min-height:44px;padding:8px 10px;box-sizing:border-box}
+a{display:inline-flex;align-items:center;color:#1d4ed8}
+#frames{max-width:1200px;margin:auto}iframe{display:block;width:100%;height:calc(100dvh - 90px);min-height:300px;border:0;background:#fff}iframe[hidden]{display:none}
+#status{font-size:14px;color:#62656c}
+</style>
+<header><label for="role">Player view</label><select id="role"><option value="artist">Artist seat</option><option value="guesser">Guesser seat</option><option value="other">Other player</option><option value="watcher">Watcher seat</option></select><button id="rematch">Fixture rematch</button><button id="reconnect">Reconnect selected seat</button><a id="open" target="_blank">Open selected client</a><span id="status">Connecting to the disposable room…</span></header>
+<main id="frames"></main>
+<script type="module">
+const params=new URLSearchParams(location.search),roles=['artist','guesser','other','watcher'],frames={},selector=document.querySelector('#role'),status=document.querySelector('#status');
+const session=params.get('session')||(await(await fetch('/session')).json()).session;
+let instance=null;
+function show(role){selector.value=role;for(const key of roles)frames[key].hidden=key!==role;document.querySelector('#open').href='/client?session='+encodeURIComponent(session)+'&role='+role+'&scene=1';}
+for(const role of roles){const frame=document.createElement('iframe');frame.title=role+' live Doodle client';frame.src='/client?session='+encodeURIComponent(session)+'&role='+role+'&scene=1';frame.hidden=role!=='artist';document.querySelector('#frames').append(frame);frames[role]=frame;}
+selector.onchange=()=>show(selector.value);
+document.querySelector('#rematch').onclick=()=>frames[selector.value].contentWindow.qa?.command('qa-rematch');
+document.querySelector('#reconnect').onclick=()=>frames[selector.value].contentWindow.qa?.reconnect();
+setInterval(()=>{const state=frames.artist.contentWindow.qa?.state;if(!state)return;status.textContent='Fixture clock is paused · '+state.phase;const next=state.instanceId;if(instance&&next!==instance){const drawing=roles.find(role=>{const s=frames[role].contentWindow.qa?.state;return s?.instanceId===next&&s.me===s.drawer;});if(drawing){show(drawing);instance=next;}}else if(!instance)instance=next;},100);
+show('artist');
+</script>
+</html>

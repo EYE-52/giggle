@@ -1,0 +1,92 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pocket Karts recorded audio — native verification</title>
+<style>
+body{font:16px system-ui;max-width:48rem;margin:3rem auto;padding:0 1rem;color:#17242d;background:#f4f7f8}
+button{font:inherit;background:#173c44;color:white;border:0;border-radius:10px;padding:12px 20px;cursor:pointer}
+button:disabled{opacity:.5} .controls{display:flex;gap:12px;flex-wrap:wrap}
+pre{white-space:pre-wrap;font:14px ui-monospace;background:white;padding:20px;border-radius:12px}
+</style>
+<h1>Recorded kart audio · pack 5</h1>
+<p>Checks the production Web Audio module and every local sample in a real browser. This verifies decoding and scheduling; it does not judge how the mix sounds on headphones or a phone.</p>
+<button id="verify">Verify native audio</button>
+<h2>Hear accelerator response</h2>
+<p>This listening case feeds synthetic drive states into the production audio module: idle, acceleration, full-speed gas, lift at unchanged speed, gas again, reverse braking, and nitro. Listen for the engine load changing directly on release and press. It is not a driving or frame-rate test.</p>
+<div class="controls"><button id="listen">Listen to accelerator</button><button id="stop" disabled>Stop audio</button></div>
+<p role="status" id="status">Ready for a click to unlock audio.</p>
+<pre id="report"></pre>
+<script type="module">
+import { createKartAudio, PACK_VERSION, CUE_NAMES } from '/js/engines/kart-audio.mjs';
+const button=document.getElementById('verify'), status=document.getElementById('status'), report=document.getElementById('report');
+const listen=document.getElementById('listen'),stop=document.getElementById('stop');
+let listening=null,frameId=0;
+function stopListening(){
+  cancelAnimationFrame(frameId);frameId=0;listening?.dispose();listening=null;
+  listen.disabled=false;stop.disabled=true;button.disabled=false;
+}
+stop.onclick=()=>{stopListening();status.textContent='Listening stopped; audio context disposed.';};
+window.addEventListener('pagehide',stopListening);
+listen.onclick=async()=>{
+  listen.disabled=true;button.disabled=true;stop.disabled=false;
+  const audio=createKartAudio();listening=audio;
+  audio.update({active:true,engineActive:false});audio.unlock();
+  status.textContent='Decoding recorded idle and load loops…';
+  try{
+    if(!await audio.ready())throw new Error('Recorded engine loops did not load.');
+    if(listening!==audio)return;
+    const started=performance.now(),phases=[
+      {label:'Idle',ms:1200,throttle:0,speed:()=>0},
+      {label:'Accelerate',ms:2500,throttle:1,speed:t=>26*t},
+      {label:'Steady cruise · keep listening for a stable note',ms:18000,throttle:1,speed:()=>26},
+      {label:'Lift · same road speed',ms:1800,throttle:0,speed:()=>26},
+      {label:'Gas again · same road speed',ms:1800,throttle:1,speed:()=>26},
+      {label:'Lift · coast to rest',ms:1800,throttle:0,speed:t=>26*(1-t)},
+      {label:'Reverse acceleration',ms:1500,throttle:-1,speed:t=>-6*t},
+      {label:'Forward pedal · brake reverse travel',ms:1000,throttle:1,speed:t=>-6*(1-t)},
+      {label:'Nitro acceleration',ms:1800,throttle:1,boost:true,speed:t=>26*t},
+      {label:'Lift · release nitro',ms:1200,throttle:0,speed:()=>26},
+    ];
+    const tick=now=>{
+      if(listening!==audio)return;
+      let elapsed=now-started,phase;
+      for(const candidate of phases){if(elapsed<candidate.ms){phase=candidate;break;}elapsed-=candidate.ms;}
+      if(!phase){stopListening();status.textContent='Listening cycle complete; audio disposed. Audible engine quality requires a listener’s assessment.';return;}
+      const speed=phase.speed(elapsed/phase.ms);
+      audio.update({active:true,engineActive:true,speed,throttle:phase.throttle,drifting:false,boost:phase.boost===true});
+      status.textContent=phase.label+' · '+speed.toFixed(1)+' m/s · accelerator '+(phase.throttle>0?'forward':phase.throttle<0?'reverse':'released');
+      frameId=requestAnimationFrame(tick);
+    };
+    frameId=requestAnimationFrame(tick);
+  }catch(error){if(listening===audio){stopListening();status.textContent='Listening case failed: '+String(error);}}
+};
+button.onclick=async()=>{
+  button.disabled=true;listen.disabled=true; status.textContent='Decoding local recordings…';
+  let context;
+  const audio=createKartAudio({createContext:()=>context=new AudioContext()});
+  const checks=[];
+  try{
+    const unlocked=audio.unlock();
+    audio.update({active:true,engineActive:false});
+    const ready=await audio.ready(), bank=audio.status();
+    checks.push({name:'gesture unlock',pass:unlocked},{name:'all 22 local samples decoded',pass:ready&&bank.loaded.length===22&&bank.failed.length===0});
+    // Quiet, separated cues verify real sources without a loud overlapping burst.
+    for(const name of CUE_NAMES){
+      checks.push({name,pass:audio.cue(name,{gain:.01,pan:.2})});
+      await new Promise(resolve=>setTimeout(resolve,160));
+    }
+    checks.push({name:'soft impact recording',pass:audio.cue('collision',{strength:.2,gain:.01})});
+    audio.setMuted(true);
+    checks.push({name:'muted cue refused',pass:audio.cue('pulse')===false});
+    audio.setMuted(false); audio.update({active:false});
+    checks.push({name:'inactive cue refused',pass:audio.cue('rocket')===false});
+    audio.dispose();
+    await new Promise(resolve=>setTimeout(resolve,100));
+    checks.push({name:'context closed on disposal',pass:context?.state==='closed'});
+    const result={pack:PACK_VERSION,pass:checks.every(check=>check.pass),checks,loaded:bank.loaded,failed:bank.failed,contextState:context?.state,boundary:'Native browser decoding/scheduling only; no subjective listening or physical-device claim.'};
+    status.textContent=result.pass?'PASS · 22 local samples decoded, all cues scheduled, mute and cleanup verified.':'FAIL · see checks below.';
+    report.textContent=JSON.stringify(result,null,2);
+  }catch(error){
+    audio.dispose(); status.textContent='FAIL · native audio verification'; report.textContent=String(error);
+  }finally{button.disabled=false;listen.disabled=false;}
+};
+</script>

@@ -1,0 +1,18 @@
+/* Four in a Row board art: a flat blue rack over token-coloured slots. */
+.fr-duel{--bk-aspect:1.12}
+.fr-duel .fr-slots circle{fill:var(--well)}
+.fr-duel .fr-rack{fill:#2f5fcf}
+html[data-theme=night] .fr-duel .fr-rack,body.is-embed .fr-duel .fr-rack{fill:#3a6be0}
+.fr-duel .fr-counter{pointer-events:none}
+.fr-duel .fr-drop{animation:fr-drop .6s cubic-bezier(.35,.02,.75,.8) both}
+@keyframes fr-drop{0%{transform:translateY(var(--drop))}72%{transform:translateY(0)}84%{transform:translateY(-10px)}94%{transform:translateY(0)}100%{transform:translateY(0)}}
+.fr-duel .fr-preview{opacity:0;pointer-events:none;transition:opacity .12s}
+.fr-duel .fr-preview.is-visible{opacity:1}
+.fr-duel .fr-preview-beam{fill:#ffffff;opacity:.14}
+.fr-duel .fr-win{opacity:0;pointer-events:none}
+.fr-duel .fr-settled .fr-win{opacity:1;transition:opacity .2s}
+.fr-duel .fr-cursor{stroke:var(--accent);stroke-width:3;opacity:0;pointer-events:none}
+.fr-duel [data-column]{outline:none}
+.fr-duel [data-column][aria-disabled=false]{cursor:pointer}
+/* The column cue shows only where you can drop now (never on their turn or after the end). */
+.fr-duel [data-column][aria-disabled=false]:focus-visible .fr-cursor{opacity:1}

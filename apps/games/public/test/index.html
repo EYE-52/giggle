@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Test table · Game Night</title>
+<style>
+/* Test table: play every seat of one room from a single browser window.
+ * Each frame is a normal player (?seat=N keeps its own name, room and
+ * seat token), so this exercises the real multiplayer client and server. */
+@font-face { font-family: "Nunito"; font-weight: 400 800; font-display: swap; src: url("/fonts/nunito-latin.woff2") format("woff2"); }
+:root {
+  --bg: #f4f5f9; --panel: #ffffff; --ink: #1d2030; --dim: #5d6378; --line: #dcdfe8; --accent: #d9246f; --accent-ink: #fff;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #11131a; --panel: #1a1d27; --ink: #eef0f6; --dim: #a3a9ba; --line: #2c3141; --accent: #ff5c9a; --accent-ink: #1a0b12; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 "Nunito", system-ui, sans-serif; display: flex; flex-direction: column; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
+h1 { margin: 0 8px 0 0; font-size: 17px; font-weight: 800; }
+label { display: flex; align-items: center; gap: 6px; color: var(--dim); font-weight: 700; font-size: 13px; }
+select, button { font: 700 14px/1 "Nunito", system-ui, sans-serif; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 0 12px; min-height: 36px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#status { margin-left: auto; color: var(--dim); font-size: 13px; }
+#status b { color: var(--ink); }
+main { flex: 1; min-height: 0; display: grid; gap: 8px; padding: 8px; grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
+.seat { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seat-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); font-size: 13px; font-weight: 800; }
+.seat-head span { color: var(--dim); font-weight: 600; }
+.seat-head button { margin-left: auto; min-height: 28px; font-size: 12px; padding: 0 10px; }
+.seat-body { flex: 1; min-height: 0; display: grid; place-items: center; overflow: auto; background: var(--bg); }
+.seat iframe { border: 0; width: 100%; height: 100%; background: var(--bg); }
+.phone .seat iframe { width: 390px; height: 760px; max-width: 100%; border-inline: 1px solid var(--line); }
+.empty { color: var(--dim); text-align: center; padding: 24px; max-width: 46ch; }
+@media (max-width: 760px) { main { grid-template-columns: 1fr; grid-auto-rows: minmax(520px, 1fr); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Test table</h1>
+  <label for="players">Players
+    <select id="players"><option>2</option><option selected>3</option><option>4</option></select>
+  </label>
+  <label for="game">Game
+    <select id="game"><option value="">Pick in the room</option></select>
+  </label>
+  <label for="look">Look
+    <select id="look"><option value="giggle">Inside Giggle</option><option value="day">Game Night site · Day</option><option value="night">Game Night site · Night</option></select>
+  </label>
+  <label for="size">Screen
+    <select id="size"><option value="desk">Desktop</option><option value="phone">Phone</option></select>
+  </label>
+  <button class="primary" id="start" type="button">Start test room</button>
+  <span id="status" aria-live="polite">Every seat is a real player in the same room.</span>
+</header>
+<main id="table">
+  <p class="empty" style="grid-column: 1 / -1; align-self: center; justify-self: center">Pick how many players, then press <b>Start test room</b>. Player 1 is the host. The other players join the room by themselves.</p>
+</main>
+<script>
+(() => {
+  const table = document.getElementById('table');
+  const status = document.getElementById('status');
+  const MAX = 8;
+  let poll = 0;
+
+  // Seat keys mirror public/js/util.js: seatN: + the normal key.
+  const key = (n, k) => `seat${n}:${k}`;
+  function resetSeat(n, theme) {
+    try {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(`seat${n}:`)) localStorage.removeItem(k);
+      }
+      localStorage.setItem(key(n, 'pb_name'), `Player ${n}`);
+      if (theme === 'night') localStorage.setItem(key(n, 'pb_theme'), 'night');
+    } catch { /* storage blocked: seats fall back to typing a name */ }
+  }
+
+  // The game list comes from the public sitemap of game pages.
+  fetch('/sitemap.xml').then((r) => r.text()).then((xml) => {
+    const ids = [...xml.matchAll(/\/games\/([a-z0-9-]+)\//g)].map((m) => m[1]);
+    const select = document.getElementById('game');
+    for (const id of [...new Set(ids)].sort()) {
+      const o = document.createElement('option');
+      o.value = id;
+      o.textContent = id.split('-').map((w) => w[0].toUpperCase() + w.slice(1)).join(' ');
+      select.append(o);
+    }
+  }).catch(() => {});
+
+  function seatEl(n, src) {
+    const box = document.createElement('section');
+    box.className = 'seat';
+    box.innerHTML = `<div class="seat-head">Player ${n}<span>${n === 1 ? 'host' : ''}</span><button type="button">Reload</button></div><div class="seat-body"></div>`;
+    const frame = document.createElement('iframe');
+    frame.title = `Player ${n}`;
+    frame.allow = 'autoplay; clipboard-write; fullscreen; camera; microphone';
+    frame.src = src;
+    box.querySelector('.seat-body').append(frame);
+    box.querySelector('button').addEventListener('click', () => { frame.src = frame.src; });
+    return box;
+  }
+
+  function start() {
+    clearInterval(poll);
+    const count = Math.min(MAX, Math.max(2, +document.getElementById('players').value || 2));
+    const game = document.getElementById('game').value;
+    const lookValue = document.getElementById('look').value;
+    const look = lookValue === 'giggle' ? '&look=giggle' : '';
+    document.body.classList.toggle('phone', document.getElementById('size').value === 'phone');
+    table.style.setProperty('--cols', String(count === 3 ? 3 : 2));
+    for (let n = 1; n <= MAX; n++) resetSeat(n, lookValue);
+    const first = (game ? `/?seat=1&game=${encodeURIComponent(game)}&name=${encodeURIComponent('Player 1')}` : '/?seat=1') + look;
+    table.replaceChildren(seatEl(1, first));
+    status.textContent = game ? 'Player 1 is making the room…' : 'Player 1: press the create button to make the room.';
+    // When player 1 has a room, everyone else joins it.
+    poll = setInterval(() => {
+      let code = '';
+      try { code = localStorage.getItem(key(1, 'pb_room')) || ''; } catch {}
+      if (!/^\w{4}$/.test(code)) return;
+      clearInterval(poll);
+      for (let n = 2; n <= count; n++) table.append(seatEl(n, `/r/${code}?seat=${n}${look}`));
+      status.innerHTML = `Room <b>${code}</b> · ${count} players. Player 1 starts the game.`;
+    }, 400);
+  }
+  document.getElementById('start').addEventListener('click', start);
+})();
+</script>
+</body>
+</html>

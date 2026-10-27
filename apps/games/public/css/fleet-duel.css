@@ -1,0 +1,53 @@
+/* Fleet Duel board art: a flat sea chart, flat ships and clear shot marks.
+ * Local chart zoom never changes fleet positions, aim or the turn. */
+.fl-game .fl-chart-col{display:flex;flex-direction:column;gap:8px;min-width:0}
+.fl-game .fl-chart-tools{display:flex;gap:8px;line-height:1.2}
+.fl-game .fl-tabs{display:flex;gap:8px;flex:1;min-width:0}
+.fl-game .fl-chart-tools button{flex:1;min-width:0;min-height:44px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--card);color:var(--ink);font:700 14px/1.2 var(--font-body);cursor:pointer}
+.fl-game .fl-chart-tools [data-chart-zoom]{flex:0 0 auto}
+.fl-game .fl-chart-tools [aria-pressed=true]{border-color:var(--accent);background:var(--accent-soft)}
+.fl-game.bk-game{--bk-aspect:.9}
+.fl-game .fl-stage{overflow:auto;min-width:0;border-radius:14px;line-height:0}
+.fl-game .fl-chart{display:block;width:100%;height:auto;aspect-ratio:1;touch-action:manipulation}
+.fl-game .fl-stage.is-zoomed .fl-chart{width:520px;min-width:520px;max-width:none;height:520px}
+.fl-game .fl-frame{fill:#173f57}
+.fl-game .fl-sea{fill:#235b7a}
+.fl-game .fl-chart text{fill:#d6e6f0;font:700 14px var(--font-body)}
+.fl-game .fl-cell{fill:transparent;stroke:#3d7797;stroke-width:1}
+.fl-game .fl-cell.is-preview{fill:#7fd3a866}
+.fl-game .fl-cell.is-invalid{fill:#f2545b66}
+.fl-game .fl-cell.is-aim{fill:#ffffff2e}
+.fl-game .fl-cursor{fill:none;stroke:#ffffff;stroke-width:2;opacity:.5;pointer-events:none}
+.fl-game .fl-crosshair{fill:none;stroke:#ffd166;stroke-width:3;pointer-events:none}
+.fl-game .fl-last{fill:none;stroke:#ffd166;stroke-width:3;pointer-events:none}
+.fl-game .fl-vessel{pointer-events:none}
+.fl-game .fl-hull{fill:#d9e1e8;stroke:#8fa1b0;stroke-width:2}
+.fl-game .fl-deck{fill:#9fb1c0}
+.fl-game .fl-vessel.is-sunk .fl-hull{fill:#e9a3a6;stroke:#b5474e}
+.fl-game .fl-vessel.is-sunk .fl-deck{fill:#c7686e}
+.fl-game .fl-ghost{opacity:.55}
+.fl-game .fl-hit-disc{fill:#e5484d;stroke:#ffffff;stroke-width:2}
+.fl-game .fl-hit-x{stroke:#ffffff;stroke-width:3;stroke-linecap:round}
+.fl-game .fl-miss{fill:#ffffff;opacity:.85}
+.fl-game .fl-impact{animation:fl-hit .45s ease-out both}
+@keyframes fl-hit{0%{opacity:.2;transform:scale(.4)}60%{opacity:1;transform:scale(1.25)}100%{transform:scale(1)}}
+.fl-game .fl-vessel.fl-sinking{animation:fl-sink .68s ease-out both}
+@keyframes fl-sink{0%,30%{opacity:1}65%{opacity:.55}100%{opacity:1}}
+.fl-game .fl-chart [data-square]:focus{outline:none}
+.fl-game .fl-chart [data-square]:focus .fl-cell{stroke:#ffffff;stroke-width:3}
+/* Panel extras: placement and Fire */
+.fl-game .fl-placement{display:flex;flex-direction:column;gap:8px}
+.fl-game .fl-ships{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.fl-game .fl-ships button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:52px;padding:6px 8px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--ink);font:700 13px/1.25 var(--font-body);cursor:pointer}
+.fl-game .fl-ships button.is-selected{border-color:var(--accent);background:var(--accent-soft)}
+.fl-game .fl-ship-icon{width:100%;max-width:96px;height:18px;color:var(--ink-dim)}
+.fl-game .fl-ship-icon path{fill:currentColor;stroke:none}
+.fl-game .bk-player .bk-stat-value{font-size:18px}
+.fl-game .fl-place-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.fl-game .fl-place-actions button,.fl-game .fl-fire{min-height:44px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:10px;background:var(--card);color:var(--ink);font:700 14px/1.2 var(--font-body);cursor:pointer}
+.fl-game .fl-place-actions [data-ready]{grid-column:1/-1;min-height:48px;background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.fl-game .fl-fire{width:100%;min-height:48px;background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:16px}
+.fl-game .fl-place-actions button[aria-disabled=true],.fl-game .fl-fire[aria-disabled=true]{opacity:.45;cursor:default}
+.fl-game button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+@media (max-width:759px){.fl-game .fl-ships{grid-template-columns:repeat(3,minmax(0,1fr))}.fl-game .fl-place-actions{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.fl-game *{animation:none!important;transition:none!important}}

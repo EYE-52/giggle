@@ -1,0 +1,74 @@
+{
+  "url": "/assets/karts/terrain/grass-clumps.glb",
+  "source": "https://polyhaven.com/a/grass_medium_01",
+  "authors": {
+    "Rob Tuytel": "Photography",
+    "Rico Cilliers": "Modeling"
+  },
+  "license": "CC0-1.0",
+  "licenseUrl": "https://polyhaven.com/license",
+  "bytes": 389476,
+  "sha256": "50791a8cb1554a9a01a74161b5d9d9fc10605144065053565a6aae2de09defbf",
+  "nodes": {
+    "GrassClump": {
+      "triangles": 833,
+      "vertices": 888,
+      "min": [
+        -0.0924200564622879,
+        0,
+        -0.08115652203559875
+      ],
+      "max": [
+        0.0924200564622879,
+        0.14042668044567108,
+        0.08115652203559875
+      ]
+    },
+    "GrassClumpLOD": {
+      "triangles": 299,
+      "vertices": 359,
+      "min": [
+        -0.09217868745326996,
+        0.0008011992322281003,
+        -0.08115652203559875
+      ],
+      "max": [
+        0.07602947950363159,
+        0.14042668044567108,
+        0.07390438765287399
+      ]
+    }
+  },
+  "meshes": 2,
+  "materials": 1,
+  "textures": 1,
+  "images": 1,
+  "atlas": {
+    "width": 512,
+    "height": 512,
+    "format": "PNG RGBA",
+    "colorSpace": "sRGB",
+    "bytes": 340602,
+    "sha256": "cba6b5668a1f11aa86ee203cf9dcd27aca5eb5fb2a4bfd77053a1e8d8d26d1f0"
+  },
+  "alpha": {
+    "mode": "MASK",
+    "cutoff": 0.42,
+    "doubleSided": true
+  },
+  "rgbaGpuBytesWithMipmaps": 1398101,
+  "separateSources": {
+    "grass-clump.glb": "4bdd7d518f9d970afa1c5395fa952f4fc1f815195082c127aab59ae575a0e3ed",
+    "grass-clump-lod.glb": "d6943abfc4f4f36b598a9e421e6fe10e62fcb8cfa4b2aad82d21ee3d00503bf1"
+  },
+  "pipeline": [
+    "glTF Transform 4.5.1 merge --merge-scenes",
+    "glTF Transform 4.5.1 dedup"
+  ],
+  "geometryChanged": false,
+  "integration": "Select named node GrassClump for near and GrassClumpLOD for distant. Both nodes share one material and one atlas; template scene contains both, so never add both overlapping nodes as an ordinary scene.",
+  "sceneName": "GrassClumpsLibrary",
+  "sceneLookupUnique": true,
+  "metadataChange": "Scene named GrassClumpsLibrary to avoid shadowing the GrassClump near node; node names and BIN unchanged.",
+  "sourceInputsRetainedAt": "assets-source/karts/terrain-20261007/grass-runtime-inputs/"
+}

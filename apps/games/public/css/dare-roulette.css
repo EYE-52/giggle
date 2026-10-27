@@ -1,0 +1,25 @@
+/* Dare Roulette on the game kit: a centred spotlight column. The wheel's
+ * player colours are game art; everything else uses tokens. */
+#gbody .party-scene--spotlight .dr-kicker { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0; text-align: center; }
+#gbody .party-scene--spotlight > .gk-prompt { margin: 0 auto; max-width: 30ch; }
+.party-scene--spotlight .dr-choices { width: 100%; max-width: 560px; margin-inline: auto; }
+.party-scene--spotlight .dr-choices .gk-choice { justify-content: center; min-height: 64px; font-size: 18px; font-weight: 800; }
+.party-scene--spotlight .party-reveals { margin-top: 0; text-align: left; }
+.party-scene--spotlight .gk-results { text-align: left; }
+.party-scene--spotlight .gk-winner { text-align: center; }
+
+.party-scene--spotlight .dr-actions { min-height: 48px; }
+.party-scene--spotlight .party-spin-desk { margin: 4px auto 8px; }
+.party-scene--spotlight .party-lineup { margin: 0; }
+.party-scene--spotlight .party-more { text-align: left; margin: 0; }
+/* Small frames: a smaller wheel keeps Spin on screen. */
+@media (max-height: 640px) {
+  .party-scene--spotlight .party-spin-desk { width: 180px; }
+  .party-scene--spotlight .party-wheel { width: 180px; height: 180px; margin: 8px auto; }
+  .party-scene--spotlight .party-lineup { display: none; }
+}
+@media (max-height: 500px) {
+  #gbody .dare-live { padding: 0 0 12px; }
+  #gbody .dare-live > .gk-prompt { font-size: 20px; line-height: 1.25; }
+  #gbody .dare-live .dr-choices .gk-choice { min-height: 48px; }
+}

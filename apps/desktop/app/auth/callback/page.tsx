@@ -65,7 +65,7 @@ export default function AuthCallbackPage() {
           <>
             <h1 style={{ fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700, color: "var(--text)", margin: 0 }}>Sign-in failed</h1>
             <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0, lineHeight: 1.5, fontFamily: "var(--font-inter)" }}>{error}</p>
-            <Link href="/signin" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--accent, var(--violet))", fontWeight: 600, fontSize: 14, textDecoration: "none", fontFamily: "var(--font-inter)" }}>← Back to sign in</Link>
+            <Link href="/signin" className="gg-focusable" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", color: "var(--text-body)", fontWeight: 600, fontSize: 14, textDecoration: "underline", textUnderlineOffset: 4, fontFamily: "var(--font-inter)" }}>← Back to sign in</Link>
           </>
         ) : (
           <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0, fontFamily: "var(--font-inter)", display: "inline-flex", alignItems: "center", gap: 8 }}>

@@ -9,7 +9,7 @@ export interface LegalSection {
 
 /**
  * Shared layout for the legal pages (/privacy, /terms). Server-safe — no
- * client hooks. `accent` colors the eyebrow; `links` renders the public
+ * client hooks. `accent` decorates the eyebrow; `links` renders the public
  * policy and help navigation.
  */
 export function LegalPage({
@@ -32,12 +32,12 @@ export function LegalPage({
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, marginBottom: 72 }}>
           <Wordmark size={22} />
-          <Link href="/" style={{ color: "var(--text-body)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
+          <Link href="/" className="gg-focusable" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
             Back home
           </Link>
         </header>
 
-        <p style={{ color: accent, textTransform: "uppercase", letterSpacing: ".16em", fontSize: 12, fontWeight: 700 }}>
+        <p style={{ color: "var(--text-body)", borderLeft: `2px solid ${accent}`, paddingLeft: 10, textTransform: "uppercase", letterSpacing: ".16em", fontSize: 12, fontWeight: 700 }}>
           {eyebrow}
         </p>
         <h1 style={{ fontSize: "clamp(30px, 6vw, 56px)", fontWeight: 700, lineHeight: 1.02, letterSpacing: "-.03em", margin: "12px 0 24px", maxWidth: 760 }}>
@@ -58,7 +58,7 @@ export function LegalPage({
 
         <footer style={{ borderTop: "1px solid var(--border-strong)", marginTop: 56, paddingTop: 24, display: "flex", flexWrap: "wrap", gap: 20 }}>
           {links.map((link) => (
-            <Link key={link.href} href={link.href} style={{ minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
+            <Link key={link.href} href={link.href} className="gg-focusable" style={{ minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", color: "var(--text-body)", textDecoration: "none", fontSize: 14, fontWeight: 600 }}>
               {link.label}
             </Link>
           ))}

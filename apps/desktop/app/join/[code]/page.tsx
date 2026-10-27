@@ -124,14 +124,14 @@ export default function JoinByLinkPage() {
           <>
             <h1 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700 }}>Request sent!</h1>
             <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 14 }}>This squad reviews new members. You will enter automatically if the leader approves.</p>
-            <Link href="/home" style={{ marginTop: 4, padding: "11px 22px", borderRadius: "var(--radius-btn, 999px)", background: "var(--accent, var(--violet))", color: "var(--on-accent, #fff)", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>Back to Home</Link>
+            <Link href="/home" className="gg-press gg-focusable gg-btn btn gg-btn--secondary btn-secondary gg-btn--sm" style={{ marginTop: 4, textDecoration: "none" }}>Back to Home</Link>
           </>
         )}
         {phase === "error" && (
           <>
             <h1 style={{ margin: 0, fontFamily: "var(--font-display, var(--font-space-grotesk))", fontSize: 22, fontWeight: 700 }}>Couldn&apos;t join</h1>
             <p role="alert" style={{ margin: 0, color: "var(--text-muted)", fontSize: 14 }}>{errorMsg}</p>
-            <Link href="/home" style={{ marginTop: 4, padding: "11px 22px", borderRadius: "var(--radius-btn, 999px)", background: "var(--accent, var(--violet))", color: "var(--on-accent, #fff)", fontSize: 14, fontWeight: 600, textDecoration: "none" }}>Back to Home</Link>
+            <Link href="/home" className="gg-press gg-focusable gg-btn btn gg-btn--secondary btn-secondary gg-btn--sm" style={{ marginTop: 4, textDecoration: "none" }}>Back to Home</Link>
           </>
         )}
       </div>

@@ -1,0 +1,817 @@
+{
+  "schemaVersion": 1,
+  "checkedAtUTC": "2026-10-06T22:31:09.053097+00:00",
+  "catalogue": {
+    "root": "/Users/divyansh/Projects/partygames",
+    "count": 43,
+    "metadataSha256": "a336cddb2a47af2b4bf34e81accda5a30e971bc25121fc3ecb7125303dd7501f",
+    "snapshot": "Fresh on-disk registry; release art is still mutable."
+  },
+  "usage": "Visual reference and attribution only. No publisher code, art, character, logo or audio is copied into production.",
+  "acceptedDirection": {
+    "conceptPath": "/Users/divyansh/Projects/partygames/assets-source/art-direction/kart-castle-concept-v2.png",
+    "status": "User accepted this aspirational 3D art direction for all games, as relayed by root.",
+    "application": "Use the family references to translate the accepted direction into each game’s actual playfield and controls.",
+    "scope": "The concept is an art target. Runtime appearance, materials, lighting, assets and interactions require separate implementation and native verification."
+  },
+  "verificationScope": "Official source HTML/presskit/store provenance and live image endpoint status/type verified. No new browser tabs or remote media files downloaded. Image pixels were not independently inspected in this metadata pass; root must inspect the rendered moodboard. Lessons are proposed design interpretations, not claims of feature parity or approved final art.",
+  "references": [
+    {
+      "id": "clubhouse-tabletop",
+      "title": "51 Worldwide Games / Clubhouse Games",
+      "publisher": "Nintendo",
+      "sourcePage": "https://www.nintendo.com/en-gb/Games/Nintendo-Switch-games/51-Worldwide-Games-1748086.html?c=demo",
+      "kind": "official-game-gallery",
+      "images": [
+        {
+          "label": "Checkers gameplay",
+          "imageUrl": "https://www.nintendo.com/eu/media/images/08_content_images/games_6/nintendo_switch_7/nswitch_51worldwidegames/screenshots_8/NSwitch_51WorldwideGames_Screenshot_Checkers.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 71646
+          }
+        },
+        {
+          "label": "Mancala gameplay",
+          "imageUrl": "https://www.nintendo.com/eu/media/images/08_content_images/games_6/nintendo_switch_7/nswitch_51worldwidegames/screenshots_8/NSwitch_51WorldwideGames_Screenshot_Mancala.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 88793
+          }
+        },
+        {
+          "label": "Chess gameplay",
+          "imageUrl": "https://www.nintendo.com/eu/media/images/08_content_images/games_6/nintendo_switch_7/nswitch_51worldwidegames/screenshots_8/NSwitch_51WorldwideGames_Screenshot_Chess.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 69052
+          }
+        },
+        {
+          "label": "Renegade / Reversi gameplay",
+          "imageUrl": "https://www.nintendo.com/eu/media/images/08_content_images/games_6/nintendo_switch_7/nswitch_51worldwidegames/screenshots_8/NSwitch_51WorldwideGames_Screenshot_Renegade.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 60776
+          }
+        },
+        {
+          "label": "Four-in-a-Row gameplay",
+          "imageUrl": "https://www.nintendo.com/eu/media/images/08_content_images/games_6/nintendo_switch_7/nswitch_51worldwidegames/screenshots_8/NSwitch_51WorldwideGames_Screenshot_FourInARow.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 57673
+          }
+        }
+      ],
+      "visualLessons": [
+        "Study board and piece materials together: one coherent light direction, readable silhouettes and a quieter surrounding table.",
+        "Use the actual board as the main identity; reduce equal-weight pill cards and keep turn information compact."
+      ]
+    },
+    {
+      "id": "battleship-classic",
+      "title": "BATTLESHIP",
+      "publisher": "Marmalade Game Studio / Hasbro",
+      "sourcePage": "https://www.marmaladegamestudio.com/games/battleship",
+      "kind": "official-game-gallery",
+      "images": [
+        {
+          "label": "Official screenshot 3",
+          "imageUrl": "https://cdn.marmaladegamestudio.com/screenshot3_4ba094bf3c.webp",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/webp",
+            "contentLength": 56902
+          }
+        }
+      ],
+      "visualLessons": [
+        "Study separation of personal harbor, target chart and firing action.",
+        "Make ships recognizable silhouettes while keeping hit, miss and coordinate marks readable at phone scale."
+      ]
+    },
+    {
+      "id": "drawful-animate",
+      "title": "Drawful Animate",
+      "publisher": "Jackbox Games",
+      "sourcePage": "https://www.jackboxgames.com/games/drawful-animate",
+      "kind": "official-game-gallery",
+      "images": [
+        {
+          "label": "Gameplay gallery screenshot 1",
+          "imageUrl": "https://cms-assets.jackboxgames.com/drawful_animate_grab_01_3f8578b26c.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "GET Range bytes=0-15",
+            "httpStatus": 206,
+            "contentType": "image/jpeg",
+            "headStatus": 400,
+            "jpegSignature": "ffd8ffdb0043000604050605"
+          }
+        }
+      ],
+      "visualLessons": [
+        "Treat the drawing as a framed exhibit and make surrounding character art secondary.",
+        "Use expressive hand-made identity in the frame and tools; keep the canvas surface clean enough to judge strokes."
+      ]
+    },
+    {
+      "id": "codenames-mobile",
+      "title": "Codenames App",
+      "publisher": "Czech Games Edition",
+      "sourcePage": "https://codenamesapp.com/press",
+      "kind": "official-presskit",
+      "images": [
+        {
+          "label": "In-game mobile press screenshot",
+          "imageUrl": "https://codenamesapp.com/press/img/screenshots/cn_ingame_sweet3__mobile.png",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/png",
+            "contentLength": 1352725
+          }
+        }
+      ],
+      "visualLessons": [
+        "Study large word labels and consistent card geometry before adding ornamental texture.",
+        "Use a clear visual relationship between clue, current task and candidate words; give feedback its own stable area."
+      ]
+    },
+    {
+      "id": "quiplash-3",
+      "title": "Quiplash 3",
+      "publisher": "Jackbox Games",
+      "sourcePage": "https://www.jackboxgames.com/games/quiplash-3",
+      "kind": "official-game-gallery",
+      "images": [
+        {
+          "label": "Gameplay gallery screenshot 2",
+          "imageUrl": "https://cms-assets.jackboxgames.com/quip_grab_02_c8b3f66ee9.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "GET Range bytes=0-15",
+            "httpStatus": 206,
+            "contentType": "image/jpeg",
+            "headStatus": 400,
+            "jpegSignature": "ffd8ffdb0043000604050605"
+          }
+        }
+      ],
+      "visualLessons": [
+        "Give the prompt and competing answers the stage; place players and round metadata at the edges.",
+        "Build one distinctive authored frame and character language rather than many interchangeable dashboard cards."
+      ]
+    },
+    {
+      "id": "poll-mine",
+      "title": "The Poll Mine",
+      "publisher": "Jackbox Games",
+      "sourcePage": "https://www.jackboxgames.com/games/poll-mine",
+      "kind": "official-game-gallery",
+      "images": [
+        {
+          "label": "Gameplay gallery screenshot 2",
+          "imageUrl": "https://cms-assets.jackboxgames.com/poll_mine_grab_02_dc0bea541e.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "GET Range bytes=0-15",
+            "httpStatus": 206,
+            "contentType": "image/jpeg",
+            "headStatus": 400,
+            "jpegSignature": "ffd8ffdb0043000604050605"
+          }
+        }
+      ],
+      "visualLessons": [
+        "Study how choices and group results can become a scene with a clear reading order.",
+        "Keep choice labels immediately readable; reveal vote distribution as a separate, deliberate beat."
+      ]
+    },
+    {
+      "id": "warioware",
+      "title": "WarioWare: Get It Together!",
+      "publisher": "Nintendo",
+      "sourcePage": "https://www.nintendo.com/en-gb/Games/Nintendo-Switch-games/WarioWare-Get-It-Together--1987424.html",
+      "kind": "official-game-gallery",
+      "images": [
+        {
+          "label": "Shoo Fly gameplay screenshot",
+          "imageUrl": "https://www.nintendo.com/eu/media/images/06_screenshots/games_5/nintendo_switch_6/nswitch_wariowaregetittogether/NSwitch_WarioWareGetItTogether_ShooFly_04.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 573070
+          }
+        }
+      ],
+      "visualLessons": [
+        "Give each short task a distinct illustrated setup, one imperative and an obvious target.",
+        "Reserve motion and exaggerated scale for the action; keep persistent score and timer decoration small."
+      ]
+    },
+    {
+      "id": "puyo-tetris",
+      "title": "Puyo Puyo Tetris 2",
+      "publisher": "SEGA",
+      "sourcePage": "https://store.steampowered.com/app/1259790/Puyo_Puyo_Tetris_2/",
+      "kind": "publisher-steam-gallery",
+      "images": [
+        {
+          "label": "Publisher gameplay gallery screenshot 1",
+          "imageUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1259790/ss_fbdcbad179eddd5b83d1b4fd5b46d5ab243f441b.1920x1080.jpg?t=1763679729",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 270983
+          }
+        }
+      ],
+      "visualLessons": [
+        "Study strong orb silhouettes, distinct owner colors and a contained playfield.",
+        "Keep a chain readable through successive stages; effects should resolve back to an unambiguous settled state."
+      ]
+    },
+    {
+      "id": "mario-kart-8",
+      "title": "Mario Kart 8 Deluxe",
+      "publisher": "Nintendo",
+      "sourcePage": "https://www.nintendo.com/th/switch/aabp/index.html",
+      "kind": "official-game-gallery",
+      "images": [
+        {
+          "label": "Official gameplay screenshot 1",
+          "imageUrl": "https://www.nintendo.com/th/switch/aabp/img/screenshot01.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 290084
+          }
+        },
+        {
+          "label": "Official gameplay screenshot 4",
+          "imageUrl": "https://www.nintendo.com/th/switch/aabp/img/screenshot04.jpg",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 191029
+          }
+        }
+      ],
+      "visualLessons": [
+        "Judge camera height, horizon and track-edge readability together so the next driving choice is visible.",
+        "Use a recognizable vehicle, pickup and obstacle silhouette language; make speed and item feedback brief and spatial."
+      ]
+    },
+    {
+      "id": "tricky-towers",
+      "title": "Tricky Towers",
+      "publisher": "WeirdBeard",
+      "sourcePage": "https://store.steampowered.com/app/437920/Tricky_Towers/",
+      "kind": "publisher-steam-gallery",
+      "images": [
+        {
+          "label": "Publisher gameplay gallery screenshot 1",
+          "imageUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/437920/ss_c6b902a57834cf3d86ac3298671590e4d6800ead.1920x1080.jpg?t=1764332173",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 299549
+          }
+        }
+      ],
+      "visualLessons": [
+        "Study how separate player towers read as distinct silhouettes against a simple scene.",
+        "Keep block shapes legible at distance and give failure or collapse a short, readable motion sequence."
+      ]
+    },
+    {
+      "id": "besiege",
+      "title": "Besiege",
+      "publisher": "Spiderling Studios",
+      "sourcePage": "https://store.steampowered.com/app/346010/Besiege/",
+      "kind": "publisher-steam-gallery",
+      "images": [
+        {
+          "label": "Publisher gameplay gallery screenshot 1",
+          "imageUrl": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/346010/ss_a48225e9e81c864ab72443ed6ad96a62152783de.1920x1080.jpg?t=1785839167",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/jpeg",
+            "contentLength": 433108
+          }
+        }
+      ],
+      "visualLessons": [
+        "Use as a comparison for medieval construction materials, block edges and a clean silhouette in a 3D environment.",
+        "Let visible construction and impact locations explain destruction; target feedback must remain readable through debris."
+      ]
+    },
+    {
+      "id": "heads-up",
+      "title": "Heads Up!",
+      "publisher": "Warner Bros.",
+      "sourcePage": "https://apps.apple.com/us/app/heads-up/id623592465",
+      "kind": "developer-app-store-gallery",
+      "images": [
+        {
+          "label": "Developer App Store screenshot 2",
+          "imageUrl": "https://is1-ssl.mzstatic.com/image/thumb/PurpleSource221/v4/c9/63/6c/c9636cc1-581f-94e5-78d9-24f48baae941/Screen2.jpg/600x1300bb.webp",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/webp",
+            "contentLength": 56296
+          }
+        }
+      ],
+      "visualLessons": [
+        "Study a performance prompt that reads instantly across a room.",
+        "Give the performer a single clear instruction and a compact phase cue; preserve the social action as the main event."
+      ]
+    },
+    {
+      "id": "zoom-gallery",
+      "title": "Zoom gallery on iPad",
+      "publisher": "Zoom",
+      "sourcePage": "https://www.zoom.com/en/blog/zoom-ipad-pro-updates/?cms_guid=false",
+      "kind": "official-product-ui-analogy",
+      "images": [
+        {
+          "label": "Official participant gallery image",
+          "imageUrl": "https://blog.zoom.us/wp-content/uploads/2021/05/gallery-view-ipad-48.png",
+          "verification": {
+            "sourceHtmlLink": true,
+            "method": "HEAD",
+            "httpStatus": 200,
+            "contentType": "image/png",
+            "contentLength": 488548
+          }
+        }
+      ],
+      "visualLessons": [
+        "Use solely as a video-layout analogy: preserve usable faces and stable participant labels.",
+        "Plan a large current performer or target area and a restrained participant strip before adding prompt and voting overlays."
+      ]
+    }
+  ],
+  "families": [
+    {
+      "id": "board-tabletop",
+      "label": "Board tabletop",
+      "referenceIds": [
+        "clubhouse-tabletop"
+      ],
+      "direction": "A crafted physical board on a quiet table, compact game title and turn rail, restrained secondary controls.",
+      "gameIds": [
+        "checkers",
+        "chess",
+        "four-in-a-row",
+        "kalah",
+        "ludo",
+        "reversi"
+      ]
+    },
+    {
+      "id": "tactical-board",
+      "label": "Tactical chart",
+      "referenceIds": [
+        "battleship-classic"
+      ],
+      "direction": "A readable harbor and target chart with deliberate placement, aiming and firing states.",
+      "gameIds": [
+        "fleet-duel"
+      ]
+    },
+    {
+      "id": "drawing-studio",
+      "label": "Drawing studio",
+      "referenceIds": [
+        "drawful-animate"
+      ],
+      "direction": "A generous clean canvas, authored tools and a gallery-like reveal; art belongs around the drawing.",
+      "gameIds": [
+        "doodle-guess",
+        "draw-phone"
+      ]
+    },
+    {
+      "id": "word-lab",
+      "label": "Semantic and word",
+      "referenceIds": [
+        "codenames-mobile"
+      ],
+      "direction": "Large words or tiles, a stable input area and feedback that can be scanned as a ranked list or sequence.",
+      "gameIds": [
+        "emoji-story",
+        "scattergories",
+        "word-chain",
+        "countdown-word",
+        "lyric-fill",
+        "twenty-questions",
+        "number-hunt",
+        "warm-words"
+      ]
+    },
+    {
+      "id": "social-stage",
+      "label": "Social and voting",
+      "referenceIds": [
+        "quiplash-3",
+        "poll-mine"
+      ],
+      "direction": "One large prompt or answer duel in an illustrated stage, with a distinct private-entry and public-reveal rhythm.",
+      "gameIds": [
+        "would-you-rather",
+        "truth-dare",
+        "never-ever",
+        "most-likely",
+        "hot-takes",
+        "rank-it",
+        "two-truths",
+        "funny-answer",
+        "bluff",
+        "story-builder",
+        "rapid-polls",
+        "dare-roulette",
+        "compliment-battle",
+        "roast-toast"
+      ]
+    },
+    {
+      "id": "speed-arcade",
+      "label": "Speed arcade",
+      "referenceIds": [
+        "warioware"
+      ],
+      "direction": "One clear action per screen, a distinct task illustration, quick feedback and a calm timer/score edge.",
+      "gameIds": [
+        "trivia",
+        "five-second",
+        "pick-one",
+        "memory-tray",
+        "reaction-tap",
+        "typing-race"
+      ]
+    },
+    {
+      "id": "chain-arcade",
+      "label": "Chain arcade",
+      "referenceIds": [
+        "puyo-tetris"
+      ],
+      "direction": "A crisp cell grid with readable orb ownership and bounded bursts that end in a stable board.",
+      "gameIds": [
+        "chain-reaction"
+      ]
+    },
+    {
+      "id": "kart-3d",
+      "label": "Kart 3D",
+      "referenceIds": [
+        "mario-kart-8"
+      ],
+      "direction": "A confident toy-world camera, recognizable vehicles and pickups, readable driving surfaces and minimal obstruction.",
+      "gameIds": [
+        "pocket-karts"
+      ]
+    },
+    {
+      "id": "castle-3d",
+      "label": "Castle 3D",
+      "referenceIds": [
+        "tricky-towers",
+        "besiege"
+      ],
+      "direction": "Distinct island and castle silhouettes, tactile block edges, readable Crown protection and spatial impact feedback.",
+      "gameIds": [
+        "castle-clash"
+      ]
+    },
+    {
+      "id": "video-core",
+      "label": "Live video core",
+      "referenceIds": [
+        "heads-up",
+        "zoom-gallery"
+      ],
+      "direction": "Real participant video is the stage; one prompt, a compact phase timer and unobtrusive readiness/voting controls.",
+      "gameIds": [
+        "charades",
+        "pose-party",
+        "show-and-go"
+      ]
+    }
+  ],
+  "games": [
+    {
+      "id": "would-you-rather",
+      "name": "Would You Rather",
+      "family": "social-stage",
+      "exception": "Two equally legible options; keep the selected vote private until reveal and show majority/streak feedback afterward."
+    },
+    {
+      "id": "doodle-guess",
+      "name": "Doodle Guess",
+      "family": "drawing-studio",
+      "exception": "Artist tools and guesser entry are role-specific; protect the canvas from chat, hints and the phone keyboard."
+    },
+    {
+      "id": "truth-dare",
+      "name": "Truth or Dare",
+      "family": "social-stage",
+      "exception": "Make the selected performer and Truth/Dare prompt the focus; show the room judgment as a later phase."
+    },
+    {
+      "id": "never-ever",
+      "name": "Never Have I Ever",
+      "family": "social-stage",
+      "exception": "Have/Never must be equal, easy targets; response distribution should not replace the statement before voting ends."
+    },
+    {
+      "id": "most-likely",
+      "name": "Most Likely To",
+      "family": "social-stage",
+      "exception": "A person-selection grid needs names and avatars, rather than answer cards; avoid hiding people below a tall prompt."
+    },
+    {
+      "id": "hot-takes",
+      "name": "Hot Takes",
+      "family": "social-stage",
+      "exception": "Distinguish take submission from Agree/Disagree voting; visualize divisiveness rather than suggesting majority approval wins."
+    },
+    {
+      "id": "rank-it",
+      "name": "Rank It",
+      "family": "social-stage",
+      "exception": "Show all five positions and an explicit reorder affordance; submission state must not resemble a single-choice poll."
+    },
+    {
+      "id": "two-truths",
+      "name": "Two Truths & a Lie",
+      "family": "social-stage",
+      "exception": "Keep all three statements comparable and anonymous during guessing; identify the lie only in the reveal."
+    },
+    {
+      "id": "funny-answer",
+      "name": "Punchline",
+      "family": "social-stage",
+      "exception": "Punchline needs a readable anonymous answer comparison and clear chosen-vote state; keep authors concealed until reveal."
+    },
+    {
+      "id": "bluff",
+      "name": "Bluff",
+      "family": "social-stage",
+      "exception": "Separate fake-answer entry from the mixed answer list; never visually privilege the real answer before reveal."
+    },
+    {
+      "id": "story-builder",
+      "name": "Story Builder",
+      "family": "social-stage",
+      "exception": "Use a readable continuous story and obvious current author; avoid turning every sentence into a competing panel."
+    },
+    {
+      "id": "emoji-story",
+      "name": "Emoji Story",
+      "family": "word-lab",
+      "exception": "Let the emoji phrase be large and uncluttered; preserve a stable text guess input and keyboard clearance."
+    },
+    {
+      "id": "trivia",
+      "name": "Trivia Blitz",
+      "family": "speed-arcade",
+      "exception": "Four answer options still need full readable text; speed/streak feedback belongs after a confirmed answer."
+    },
+    {
+      "id": "scattergories",
+      "name": "Scattergories",
+      "family": "word-lab",
+      "exception": "Category rows and the shared starting letter need stronger hierarchy than ornament; phone input must retain row context."
+    },
+    {
+      "id": "word-chain",
+      "name": "Word Chain",
+      "family": "word-lab",
+      "exception": "Keep the previous word, living-player turn and challenge state explicit; rejected spellings remain editable on the same clock."
+    },
+    {
+      "id": "countdown-word",
+      "name": "Word Countdown",
+      "family": "word-lab",
+      "exception": "Nine letter tiles must show duplicate availability; Save, Lock in and Pass need distinct meanings and readable feedback."
+    },
+    {
+      "id": "lyric-fill",
+      "name": "Lyric Fill",
+      "family": "word-lab",
+      "exception": "Show the lyric gap as the focal reading task; an editable answer line should not compete with decorative song imagery."
+    },
+    {
+      "id": "five-second",
+      "name": "5 Second Rule",
+      "family": "speed-arcade",
+      "exception": "Name-three is a spoken social task; use a large category and unmistakable five-second phase, then separate judgment."
+    },
+    {
+      "id": "charades",
+      "name": "Charades",
+      "family": "video-core",
+      "exception": "Keep the secret acting word private to the performer; viewers need the live performer and a usable guess input."
+    },
+    {
+      "id": "twenty-questions",
+      "name": "20 Questions",
+      "family": "word-lab",
+      "exception": "Use a question transcript and remaining-question count; distinguish asking, answering and guessing from optional paid-score hints."
+    },
+    {
+      "id": "pick-one",
+      "name": "Pick One",
+      "family": "speed-arcade",
+      "exception": "Two choices must remain reachable immediately for the five-second window; no elaborate entry transition."
+    },
+    {
+      "id": "memory-tray",
+      "name": "Memory Tray",
+      "family": "speed-arcade",
+      "exception": "Make the item arrangement memorable, then fully conceal it during recall; decoration must not accidentally supply answers."
+    },
+    {
+      "id": "rapid-polls",
+      "name": "Rapid Polls",
+      "family": "social-stage",
+      "exception": "Custom questions and option lengths vary; let live results scale without destabilizing the voting controls."
+    },
+    {
+      "id": "dare-roulette",
+      "name": "Dare Roulette",
+      "family": "social-stage",
+      "exception": "The spinner can be playful, but the landed dare and chicken action must be explicit and reachable."
+    },
+    {
+      "id": "compliment-battle",
+      "name": "Compliment Battle",
+      "family": "social-stage",
+      "exception": "Give the target person a warm identity and the submitted text room to read; stage voting separately from composition."
+    },
+    {
+      "id": "roast-toast",
+      "name": "Roast Toast",
+      "family": "social-stage",
+      "exception": "Use the same target-and-answer clarity as Compliment Battle, with a distinct playful tone and readable gentle-roast prompt."
+    },
+    {
+      "id": "draw-phone",
+      "name": "Draw Phone",
+      "family": "drawing-studio",
+      "exception": "Writing, drawing and guessing need distinct tools; the final chain needs a readable ordered gallery rather than a single canvas."
+    },
+    {
+      "id": "reaction-tap",
+      "name": "Reaction Tap",
+      "family": "speed-arcade",
+      "exception": "Red/wait and green/tap must also differ in text or shape; decoration must not look like the real start signal."
+    },
+    {
+      "id": "typing-race",
+      "name": "Typing Race",
+      "family": "speed-arcade",
+      "exception": "The sentence, caret and correct/error progression are the playfield; allow keyboard space and keep the race meter secondary."
+    },
+    {
+      "id": "number-hunt",
+      "name": "Number Hunt",
+      "family": "word-lab",
+      "exception": "Numeric hotter/colder hints are not word similarity ranks; retain the guessed number and comparison direction in history."
+    },
+    {
+      "id": "castle-clash",
+      "name": "Castle Clash",
+      "family": "castle-3d",
+      "exception": "Giggle has 2–4 individual Crowns and support-based block collapse; expose build/siege phases and own targeting without implying freeform physics or teams."
+    },
+    {
+      "id": "chain-reaction",
+      "name": "Chain Reaction",
+      "family": "chain-arcade",
+      "exception": "This is turn-based 2–6-owner cellular capture, not falling-pair Puyo; show corner/edge/center capacity and gate input until settling finishes."
+    },
+    {
+      "id": "checkers",
+      "name": "Checkers",
+      "family": "board-tabletop",
+      "exception": "English compulsory captures and continued jumps need a legible selected piece/path; distinguish crowned kings from men without relying on color."
+    },
+    {
+      "id": "chess",
+      "name": "Chess",
+      "family": "board-tabletop",
+      "exception": "Piece silhouettes, legal moves, promotion and optional clocks must remain readable; keep secondary room actions away from the board edge."
+    },
+    {
+      "id": "fleet-duel",
+      "name": "Fleet Duel",
+      "family": "tactical-board",
+      "exception": "Keep enemy ships hidden, including for spectators; show five-ship placement, chart coordinates, one-shot turns and the Aim/Fire confirmation distinctly."
+    },
+    {
+      "id": "four-in-a-row",
+      "name": "Four in a Row",
+      "family": "board-tabletop",
+      "exception": "The active target is a column rather than a cell; show gravity/drop direction and the winning four without equal-weight controls around every hole."
+    },
+    {
+      "id": "kalah",
+      "name": "Kalah",
+      "family": "board-tabletop",
+      "exception": "Use the actual six-bowl/four-seed preset, strong own-row/store ownership and clean counts; show sowing, capture and extra-turn feedback without chess-grid styling."
+    },
+    {
+      "id": "ludo",
+      "name": "Ludo",
+      "family": "board-tabletop",
+      "exception": "Four seats need distinct yard/home routes, active pawn choices, safe-square symbols and an obvious die action; preserve the shared Room launcher and short-screen reachability."
+    },
+    {
+      "id": "pocket-karts",
+      "name": "Pocket Karts",
+      "family": "kart-3d",
+      "exception": "Primary genre is free-driving kart combat: weapons, cover, knockouts, protected respawns and timed wins; no laps or finishing order. Use shared kart/weapon/pickup assets across maps. Elevations require real authoritative 3D physics, not decorative ramps."
+    },
+    {
+      "id": "pose-party",
+      "name": "Pose Party",
+      "family": "video-core",
+      "exception": "One performer is the hero; Ready precedes the peer Yes/No phase, and the prompt must not cover their body or face."
+    },
+    {
+      "id": "reversi",
+      "name": "Reversi",
+      "family": "board-tabletop",
+      "exception": "Use strong ivory/charcoal disc contrast, readable legal-placement dots and controlled flip sequencing; show automatic pass as a turn event."
+    },
+    {
+      "id": "show-and-go",
+      "name": "Show & Go",
+      "family": "video-core",
+      "exception": "Everyone may show an object at once; use equitable video tiles and peer-only Yes votes, with readiness separate from voting."
+    },
+    {
+      "id": "warm-words",
+      "name": "Warm Words",
+      "family": "word-lab",
+      "exception": "The key feedback is embedding similarity plus vocabulary rank, with lower rank closer and only rank 1 winning; use explicit rank/history and optional hint cost, not spelling-distance cues."
+    }
+  ],
+  "existingCritique": {
+    "scope": "Earlier Checkers/Kalah captures; root now owns the substantive art revision. This is baseline feedback, not final acceptance.",
+    "screenshots": [
+      "/tmp/giggle-all-mobile-20261007/root/checkers-root-native-390.png",
+      "/tmp/giggle-all-mobile-20261007/root/kalah-root-native-390.png",
+      "/tmp/giggle-board-games-20261007/checkers-1280x800.jpg",
+      "/tmp/giggle-board-games-20261007/kalah-1280x800.jpg",
+      "/tmp/giggle-board-games-20261007/kalah-568x320.jpg"
+    ],
+    "findings": [
+      "Phone captures omit a clear game title; compact title plus active turn should establish identity.",
+      "Muted gray/olive full-screen gradients and repeated outlined cards flatten hierarchy; put coherent material detail on the board and quiet the chrome.",
+      "Charcoal checkers have weak slate-board separation and generic concentric bevel rings; strengthen silhouette/material, king marker and legal/selected cues.",
+      "Kalah count badges protrude below bowl rims and resemble instrumentation; integrate clear counts with the bowl surface and one lighting direction.",
+      "The roughly 190px-wide Kalah board wastes space in the 390px phone capture; increase useful board width and simplify vertical chrome.",
+      "Flip, Resign and Offer draw have the same large emphasis; group secondary actions compactly and make Help discoverable."
+    ],
+    "caveat": "The phone fixture labels Room QA; it is not final shared-shell acceptance. The file named kalah-568x320.jpg is actually 568×419 full-page pixels, so 320px-high control reachability still requires native verification."
+  }
+}

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pocket Karts map capture</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 16px; background: #edf1f5; color: #152332; font: 14px system-ui; }
+  .toolbar { height: 46px; display: flex; align-items: flex-start; gap: 10px; }
+  select, button { font: inherit; padding: 6px 10px; }
+  canvas { display: block; width: 960px; height: 540px; background: #183044; }
+  #message { margin: 10px 0; font-weight: 650; }
+  pre { width: 960px; white-space: pre-wrap; font: 12px ui-monospace, monospace; }
+</style>
+<script type="importmap">{"imports":{"three":"/vendor/three/three.module.js"}}</script>
+<div class="toolbar">
+  <label>Arena <select id="map" disabled></select></label>
+  <label>Palette <select id="palette"><option>Daybreak</option><option>Sunset</option><option>Starlight</option></select></label>
+  <button id="load" disabled>Load</button>
+</div>
+<canvas id="stage" width="960" height="540" aria-label="Actual Pocket Karts arena overview"></canvas>
+<p id="message" role="status">Loading map list…</p>
+<pre id="status" aria-label="Read-only capture status"></pre>
+<script type="module" src="/test/fixtures/kart-map-previews/preview.mjs"></script>
+</html>

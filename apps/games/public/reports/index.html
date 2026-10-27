@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Issue inbox · Giggle Games</title>
+  <link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/report-inbox.css">
+</head>
+<body class="inbox-page">
+  <main class="inbox-main">
+    <header class="inbox-header"><div><a href="/">← Games</a><h1>Issue inbox</h1></div><button id="logout" hidden>Lock inbox</button></header>
+    <form id="login" class="inbox-login"><label for="access">Inbox access key</label><input id="access" type="password" autocomplete="off" required minlength="32"><button>Open inbox</button><p>The key stays in this tab until you lock or reload it.</p></form>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <section id="inbox" hidden>
+      <form id="filters" class="inbox-filters"><label>Status<select id="status"><option value="new">New</option><option value="triaged">Triaged</option><option value="resolved">Resolved</option><option value="all">All</option></select></label><label>Game<select id="game"><option value="all">All games and platform</option><option value="platform">Platform / rooms</option></select></label><button>Refresh</button></form>
+      <div id="items"></div><button id="more" hidden>Load older reports</button>
+    </section>
+  </main>
+  <script type="module" src="/js/report-inbox.js"></script>
+</body>
+</html>

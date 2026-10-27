@@ -1,0 +1,5 @@
+{
+  "name": "Chain Reaction",
+  "tagline": "One tiny orb. A very big BOOM.",
+  "howto": "Add one orb to an empty cell or your own cell. Corners burst at 2, edges at 3, and inner cells at 4. Bursts capture neighboring cells. Everyone gets a first turn before elimination. The last owner wins!"
+}

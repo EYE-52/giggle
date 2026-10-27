@@ -94,19 +94,17 @@ const releaseSquadsFromEncounter = async (
   encounter,
   { squadIds = [encounter.squadAId, encounter.squadBId], emitRealtime = true } = {}
 ) => {
-  await Squad.updateMany(
-    { squadId: { $in: squadIds }, currentEncounterId: encounter.encounterId },
-    { $set: IDLE_ENCOUNTER_STATE }
-  );
-
-  // Sync Redis
+  // Callers hold the matchmaking lock through this Mongo/Redis transition.
   for (const squadId of squadIds) {
-    const squad = await Squad.findOne({ squadId });
-    if (squad) {
-      for (const m of squad.members) {
-        await sessionService.setSessionField(squadId, m.memberId, 'inEncounterVideo', false);
-      }
+    const filter = { squadId, currentEncounterId: encounter.encounterId };
+    const squad = await Squad.findOne(filter);
+    if (!squad) continue;
+    // Redis first: a failure leaves the old encounter pointer retryable.
+    // Never clear a former opponent's flags after it has moved to a new call.
+    for (const m of squad.members) {
+      await sessionService.setSessionField(squadId, m.memberId, 'inEncounterVideo', false);
     }
+    await Squad.updateOne(filter, { $set: IDLE_ENCOUNTER_STATE });
     if (emitRealtime) socketService.emitToSquad(squadId, "SQUAD_UPDATED", {});
   }
 };

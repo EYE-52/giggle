@@ -1,0 +1,43 @@
+# Railway (giggle-play backend): same exclusions as .gitignore. Build needs
+# package.json + lock, server/, public/, games/, locales/, scripts/;
+# none of those are excluded here.
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+.DS_Store
+*.pem
+*.key
+secrets/
+tmp/
+qa-output/
+screens/
+screenshots/
+*.tmp
+*.bak
+
+# Keep local release archives and editable art source off the runtime upload.
+releases/
+assets-source/
+evidence/
+design/
+art-review/
+art-reviews/
+sdk/dist/
+*.gghandover
+*.passphrase
+
+# Local browser playtest pages never ship.
+public/fixtures/
+public/test/
+# Keep contributor-only source out of the runtime upload.
+/test/
+/specs/
+/tools/
+/.github/
+/.git
+/*.md
+.data/
+*.sqlite*

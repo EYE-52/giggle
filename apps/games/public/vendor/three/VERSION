@@ -1,0 +1,2 @@
+three@0.186.1 vendored from node_modules (MIT, Three.js Authors).
+Regenerate: npm run vendor (copies the Three build, GLTFLoader, its utilities and LICENSE).

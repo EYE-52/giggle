@@ -1,0 +1,54 @@
+/* Chess board art: flat squares in three palettes and the authored piece
+ * sprites. Layout and the side panel come from the shared board kit. */
+.ch-tabletop{--ch-light:#eceff3;--ch-dark:#8a96a6;--ch-frame:#3b4452;--ch-coord-light:#5d6878;--ch-coord-dark:#f4f6f9}
+.ch-tabletop.theme-harbor{--ch-light:#e8eef6;--ch-dark:#5f86b3;--ch-frame:#2c4767;--ch-coord-light:#4f6f93;--ch-coord-dark:#f0f5fb}
+.ch-tabletop.theme-fern{--ch-light:#eef1e4;--ch-dark:#6f9a6d;--ch-frame:#355238;--ch-coord-light:#557852;--ch-coord-dark:#f2f6ea}
+.ch-tabletop .chboard-col{position:relative}
+.ch-tabletop .ch-frame{padding:8px;border-radius:12px;background:var(--ch-frame)}
+.ch-tabletop .chboard{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));width:100%;aspect-ratio:1;overflow:visible}
+.ch-tabletop .chboard .sq{position:relative;display:block;width:100%;height:100%;min-width:0;min-height:0;padding:0;margin:0;border:0;border-radius:0;box-shadow:none;font-size:0;line-height:0;overflow:visible;touch-action:manipulation;cursor:default;background:var(--ch-dark);isolation:isolate}
+.ch-tabletop .chboard .sq.light{background:var(--ch-light)}
+.ch-tabletop .chboard .sq.last::before{content:"";position:absolute;inset:0;background:#f6d365;opacity:.5;z-index:0;pointer-events:none}
+.ch-tabletop .chboard .sq.check::before{content:"";position:absolute;inset:0;background:var(--melon);opacity:.55;z-index:0;pointer-events:none}
+.ch-tabletop .chboard .sq.sel{box-shadow:inset 0 0 0 4px var(--accent);z-index:3}
+.ch-tabletop .chboard .sq.src{cursor:pointer}
+.ch-tabletop .chboard .sq.dest,.ch-tabletop .chboard .sq.cap{cursor:pointer}
+.ch-tabletop .chboard .sq.dest::after{content:"";position:absolute;left:36%;top:36%;width:28%;height:28%;border-radius:50%;background:var(--accent);opacity:.75;z-index:4;pointer-events:none}
+.ch-tabletop .chboard .sq.cap::after{content:"";position:absolute;inset:6%;border-radius:50%;border:4px solid var(--accent);opacity:.85;z-index:4;pointer-events:none}
+.ch-tabletop .chboard .sq:focus-visible{outline:3px solid var(--accent);outline-offset:-4px;z-index:5}
+.ch-tabletop .ch-piece-slot{position:absolute;inset:0;display:block;pointer-events:none;transform-origin:center;z-index:2}
+.ch-tabletop .ch-piece-slot .ch-piece{width:108%;height:108%;margin:-4%;display:block;object-fit:contain;user-select:none;-webkit-user-select:none}
+.ch-tabletop .sq small{position:absolute;font:700 11px/1 var(--font-body);color:var(--ch-coord-dark);z-index:6;pointer-events:none}
+.ch-tabletop .sq.light small{color:var(--ch-coord-light)}
+.ch-tabletop .ch-file{right:4px;bottom:3px}.ch-tabletop .ch-rank{left:3px;top:3px}
+.ch-tabletop .ch-moving{animation:ch-confirmed-slide .34s cubic-bezier(.2,.7,.2,1) var(--move-delay,0ms) both;z-index:8}
+.ch-tabletop .chboard .sq:has(>.ch-moving){z-index:9}
+@keyframes ch-confirmed-slide{from{transform:translate(var(--dx),var(--dy))}to{transform:translate(0,0)}}
+.ch-tabletop .ch-capture-away{animation:ch-capture-away .34s ease-out var(--move-delay,0ms) both;z-index:1}
+.ch-tabletop .ch-moving .ch-promotion-before{position:absolute;inset:0;animation:ch-old-pawn .34s steps(1,end) var(--move-delay,0ms) both}
+.ch-tabletop .ch-moving .ch-promoted{animation:ch-new-piece .34s steps(1,end) var(--move-delay,0ms) both}
+@keyframes ch-capture-away{0%,55%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.65)}}
+@keyframes ch-old-pawn{0%,85%{opacity:1}86%,100%{opacity:0}}
+@keyframes ch-new-piece{0%,85%{opacity:0}86%,100%{opacity:1}}
+/* Panel chip and extras */
+.ch-tabletop .ch-chip{display:block;width:30px;height:30px}
+.ch-tabletop .ch-chip .ch-piece{width:100%;height:100%;object-fit:contain}
+/* Captured pieces: read-only info on the same flat well as the status panel (no field look). */
+.ch-tabletop .ch-capture-rail{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;padding:10px 12px;border-radius:12px;background:var(--well)}
+.ch-tabletop .ch-capture-rail>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ch-tabletop .ch-capture-rail small{font-size:13px;font-weight:700;color:var(--ink-dim)}
+.ch-tabletop .ch-captured{min-height:30px;padding:0;border:0;display:flex;align-items:center;flex-wrap:wrap;background:none}
+.ch-tabletop .ch-captured .ch-piece{width:22px;height:28px;object-fit:contain;margin:0 -2px}
+.ch-tabletop .ch-captured>span{font-size:14px;font-weight:700;color:var(--ink-dim)}
+.ch-tabletop .chhist-wrap{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.ch-tabletop .chhist-wrap>summary{display:flex;align-items:center;min-height:42px;padding:8px 14px;list-style:none;cursor:pointer;font:700 15px/1.2 var(--font-body)}
+.ch-tabletop .chhist-wrap>summary::-webkit-details-marker{display:none}
+.ch-tabletop .chhist{max-height:150px;overflow:auto;padding:0 14px 10px;font:600 14px/1.5 var(--font-body)}
+.ch-tabletop .chhist .mv{display:grid;grid-template-columns:28px 1fr 1fr;gap:6px}
+.ch-tabletop .chhist .n,.ch-tabletop .chhist .muted{color:var(--ink-dim)}
+/* Promotion chooser floats over the board (no layout shift). */
+.ch-tabletop .promo{position:absolute;left:6%;right:6%;top:50%;transform:translateY(-50%);z-index:25;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);box-shadow:var(--shadow-card);font-size:16px;line-height:1.3}
+.ch-tabletop .promo>span,.ch-tabletop .promo [data-promo-x]{grid-column:1 / -1;font-weight:800}
+.ch-tabletop .promo .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:44px;padding:4px;border:1px solid var(--line-strong);border-radius:10px;background:var(--well);color:var(--ink);font:700 13px/1.2 var(--font-body);cursor:pointer}
+.ch-tabletop .promo .ch-piece{width:54px;height:54px;object-fit:contain}
+@media (max-width:759px){.ch-tabletop .sq small{font-size:9px}.ch-tabletop .ch-frame{padding:5px}}

@@ -1,0 +1,241 @@
+@font-face {
+  font-family: "Nunito"; font-style: normal; font-weight: 400 800;
+  font-display: swap; src: url("/fonts/nunito-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Nunito"; font-style: normal; font-weight: 400 800;
+  font-display: swap; src: url("/fonts/nunito-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Baloo 2"; font-style: normal; font-weight: 400 800;
+  font-display: swap; src: url("/fonts/baloo2-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* Chain Reaction frame: a flat board in the room's own colours. The frame
+ * mirrors the parent page's tokens (Day, Night, or the Giggle call's navy
+ * palette); the values below are only the fallback when opened alone.
+ * Renderer restyle uses #play-prefixed selectors so it wins over the view's
+ * injected .cr rules regardless of insertion order. */
+
+:root {
+  --bg: #171922; --card: #21242f; --well: #2a2f3d; --ink: #f5f6fa; --ink-dim: #a8b0c5;
+  --line: #363c4d; --line-strong: #586078; --accent: #da216c; --accent-soft: #382337; --accent-ink: #ffffff;
+  --sun: #f5c451; --melon: #ff7a80; --green: #4ade80;
+  --font-display: "Baloo 2", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --lab-bg: var(--bg);
+  --lab-panel: var(--card);
+  --lab-panel-2: var(--well);
+  --lab-line: var(--line);
+  --lab-ink: var(--ink);
+  --lab-muted: var(--ink-dim);
+  --lab-accent: var(--accent);
+  --lab-teal: var(--accent);
+  --lab-honey: var(--sun);
+  --lab-sky: #4aa8ff;
+  --display: var(--font-body);
+}
+:root[data-theme="day"]:not(.is-embed) { color-scheme: light; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--lab-bg);
+  color: var(--lab-ink);
+  font-family: var(--display);
+  font-size: 16px;
+  line-height: 1.45;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Full-bleed arena: the field centers in the viewport and dominates it. The
+ * top-left 44px platform launcher owns its corner; the centered column never
+ * starts beneath it, so no 64px band is wasted above the whole field. Short
+ * landscape reserves a launcher gutter on the left instead (see below). */
+.lab {
+  max-width: 1100px; margin: 0 auto;
+  padding: max(8px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px));
+  min-height: 100dvh;
+  display: flex; flex-direction: column;
+  justify-content: center; justify-content: safe center;
+}
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.lab-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; width: 100%; }
+
+/* Direct-visit panel: honest routing, never a hang. */
+.open-from {
+  background: var(--lab-panel);
+  border: 1px solid var(--lab-line);
+  border-left: 4px solid var(--lab-honey);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.open-from h2 { margin: 0 0 6px; font-size: 19px; font-weight: 900; }
+.open-from p { margin: 0 0 10px; color: var(--lab-muted); }
+.open-links { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
+
+/* Status line carries loading/error only; ready hides it entirely. */
+.status {
+  margin: 0; font-size: 15px; font-weight: 700; color: var(--lab-muted);
+  min-height: 24px; text-align: center;
+}
+.status[data-tone="error"] { color: var(--lab-honey); }
+.status[data-tone="ready"] { display: none; }
+
+/* Final screen: winner (or "It's a tie"), ranked match points, actions. */
+.round-result {
+  flex-basis:100%;width:100%;
+  margin: 0; padding: 0;
+  scroll-margin-top: max(64px, calc(52px + env(safe-area-inset-top, 0px)));
+  color: var(--lab-ink);
+  font: 800 26px/1.2 var(--font-display);
+  overflow-wrap: anywhere; min-width: 0; text-align: left;
+}
+.ranks { flex-basis: 100%; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.rank-row { display: grid; grid-template-columns: 28px minmax(0,1fr) auto; align-items: center; gap: 8px; min-height: 44px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); font-size: 16px; }
+.rank-row.is-you { border-color: var(--accent); background: var(--accent-soft); }
+.rank { font: 800 16px/1 var(--font-display); text-align: center; color: var(--ink-dim); }
+.rank-row.is-first .rank { color: var(--accent); }
+.rank-name { font-weight: 800; min-width: 0; overflow-wrap: anywhere; }
+.rank-points { font: 800 16px/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.round-title { display: flex; align-items: center; justify-content: flex-start; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
+.round-title>span:last-child { min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden; }
+.winner-mark { position: relative; flex: none; width: 26px; height: 26px; }
+.winner-mark .cr-orb { left: 0; top: 0; width: 26px; height: 26px; }
+.round-result small { display: block; font: 600 15px/1.4 var(--font-body); color: var(--lab-muted); margin-top: 4px; }
+.round-result .round-game { margin: 0 0 6px; font-size: 13px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+
+/* Centered responsive board shell; the renderer mounts inside. */
+.board-shell { width: 100%; margin: 0 auto; min-width: 0; }
+.board-shell:empty { display: none; }
+
+/* End menu: one compact centered overlay with Rematch/Change game. It never
+ * traps scroll: compact max-height with its own pan-y overflow. */
+.controls {
+  position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  z-index: 20; width: min(calc(100vw - 32px), 380px); max-width: 380px; max-height: 90dvh; overflow: auto;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 10px; padding: 16px; margin: 0;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: var(--shadow-card, 0 6px 22px #0003);
+  touch-action: pan-y;
+}
+.host-note { flex-basis: 100%; margin: 0; font-size: 14px; color: var(--lab-muted); text-align: center; }
+
+/* Buttons: chunky lab keys, 44px+ targets. */
+.btn {
+  appearance: none; cursor: pointer;
+  min-height: 48px; min-width: 48px; flex: 1 1 0;
+  padding: 10px 16px;
+  font: 700 16px/1.2 var(--font-body);
+  border-radius: 10px; border: 1px solid transparent;
+  text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+  touch-action: manipulation;
+}
+.btn-hot { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn-hot:hover { filter: brightness(1.06); }
+.btn-ghost { background: var(--card); border-color: var(--line-strong); color: var(--ink); }
+.btn-ghost:hover { border-color: var(--accent); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:focus-visible, a:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 2px;
+}
+
+.noscript { padding: 12px 16px; font-weight: 700; }
+
+/* ---- Renderer restyle: reactor bench, vivid atoms, no cards. ---- */
+#play .chain-reaction {
+  color: var(--ink);
+  background: transparent;
+}
+#play .cr-actor { min-width: 0; }
+#play .cr-turn { color: var(--lab-ink); }
+#play .cr-turn-mark { flex: none; }
+#play .cr-clock {
+  --cr-clock-ink: var(--accent);
+  --cr-clock-bg: var(--card);
+  --cr-clock-track: var(--line);
+  box-shadow: none;
+}
+#play .cr-clock.urgent { --cr-clock-ink: var(--melon); }
+#play .cr-replay {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#play .cr-progress { display: none; }
+#play .cr-skip {
+  border-color: var(--line-strong);
+  background: var(--card);
+  color: var(--ink);
+}
+#play .cr-skip:hover { border-color: var(--accent); }
+#play .cr-skip:focus-visible { outline-color: var(--accent); }
+#play .cr-board {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#play .cr-arena { opacity: 1; }
+
+#play .cr-cell {
+  background: transparent;
+  border: 0;
+  color: var(--lab-ink);
+}
+#play .cr-cell[data-playable="yes"]:hover { background: transparent; }
+#play .cr-cell:focus-visible { outline-color: var(--accent); }
+#play .cr-orb { border-color: color-mix(in srgb, var(--orb) 70%, #000); }
+#play .cr-total { background: var(--card); color: var(--ink); }
+#play .cr-cap { color: var(--ink-dim); }
+#play .cr-seat { border-color: var(--line); background: var(--card); }
+#play .cr-seat.current {
+  border-color: var(--accent);
+  background: var(--card);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+#play .cr-seat.out { opacity: 0.6; }
+#play .cr-name { color: var(--lab-ink); font-weight: 800; }
+#play .cr-result { display: none; }
+#play .cr-score { color: var(--lab-muted); }
+#play .cr-rules { border: 0; color: var(--lab-muted); }
+#play .cr-rules summary { color: var(--lab-ink); border-color: var(--lab-line); }
+#play .cr-roster { color: var(--lab-muted); }
+
+/* Narrow phones: everything stacks, nothing scrolls sideways. */
+@media (max-width: 420px) {
+  .lab { padding: max(8px, env(safe-area-inset-top, 0px)) max(10px, env(safe-area-inset-right, 0px)) max(8px, env(safe-area-inset-bottom, 0px)) max(10px, env(safe-area-inset-left, 0px)); }
+  .btn { width: 100%; }
+  .controls .btn { width: auto; min-width:0;flex:1 1 0;font-size:16px;padding:10px 6px;white-space:nowrap; }
+  .open-links .btn { width: 100%; }
+  .round-result { font-size: 22px; }
+}
+@media(min-width:820px){#play .cr-board{max-width:560px}}
+/* Short landscape phones (e.g. 568x320, 844x390): the Standard board shows
+ * transposed (8 visual columns x 6 rows, logical indices unchanged) and the
+ * frame reserves only a left launcher gutter instead of a 64px top band.
+ * Top padding is untouched: the room back control keeps its clearance. */
+@media(min-width:560px) and (max-height:500px){
+  .lab{max-width:none;padding:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) max(8px,env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left,0px))}
+  #play .cr-board{max-width:none}
+  .round-result{font-size:22px}
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+.lab-main[data-phase="done"] #play .cr-head{display:none}
+.lab-main[data-phase="done"] #play .cr-help,
+.lab-main[data-phase="done"] #play .cr-note{display:none}

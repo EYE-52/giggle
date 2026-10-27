@@ -1,0 +1,993 @@
+{
+  "suite": "three-3d-games-acceptance",
+  "date": "2026-10-14",
+  "notice": "Every case is PLANNED. No case has been run: no game code exists in this workspace and no browser QA was performed. Statuses must not be read as results. Corrections review applied; where this suite conflicts with ROOT_BRIEF.md, the corrections win.",
+  "games": [
+    "cloud-links",
+    "rocket-room",
+    "bomb-garden"
+  ],
+  "cases": [
+    {
+      "id": "SH-LIF-01",
+      "game": "shared",
+      "category": "lifecycle",
+      "title": "Two seats complete join, setup, play, results, rematch",
+      "setup": "Fresh room, minimum roster for the game.",
+      "steps": [
+        "Create room and join second seat",
+        "Configure defaults and start",
+        "Play to a natural result",
+        "Rematch from results"
+      ],
+      "expected": "Each transition lands on the correct screen with no stale snapshot content; natural completion returns results; rematch mints a new instanceId and all clients remount.",
+      "evidence": "Playwright snapshot assertions plus screenshots at each screen, desktop and 390px phone (phone captures are layout only).",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-LIF-02",
+      "game": "shared",
+      "category": "lifecycle",
+      "title": "Host change-game and lobby-return mid-session",
+      "setup": "Completed match, both seats connected.",
+      "steps": [
+        "Host returns room to lobby",
+        "Host configures a different game and starts it",
+        "Return to lobby again"
+      ],
+      "expected": "Dispose runs on every teardown; no previous game audio, timers or input handlers survive; rejected lobby requests leave the current screen intact.",
+      "evidence": "Console log shows dispose calls; no post-teardown audio or timer callbacks in a 30s observation.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-LIF-03",
+      "game": "shared",
+      "category": "lifecycle",
+      "title": "Host End returns to lobby; leave and refresh resume by token",
+      "setup": "Active game with two seats.",
+      "steps": [
+        "Host ends the match",
+        "One seat leaves the room",
+        "Remaining seat refreshes within the linger window and resumes by seat token",
+        "A same-name join attempts the occupied seat"
+      ],
+      "expected": "Host End returns to lobby, never to results; disconnect/ordinary leave promises no immediate seat deletion; refresher reclaims the same seat by token under resume/grace/linger behaviour; same-name join gets a suffix instead of taking over.",
+      "evidence": "Authoritative lobby game:null plus native lobby return; seat identity/resume projection and duplicate-name isolation. Do not assume a new reason field in the existing lobby packet.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-LIF-04",
+      "game": "shared",
+      "category": "lifecycle",
+      "title": "Maximum-roster complete lifecycle",
+      "setup": "Full maximum roster for the game (8 golf, 6 rocket, 8 bomb).",
+      "steps": [
+        "Fill every active seat and start",
+        "Play to a natural result",
+        "Rematch from results",
+        "Return to lobby"
+      ],
+      "expected": "Full roster plays, results name every seat, rematch mints a new instanceId cleanly, lobby return disposes everything.",
+      "evidence": "Snapshots plus screenshots at each screen at desktop width.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-LIF-05",
+      "game": "shared",
+      "category": "lifecycle",
+      "title": "Ten consecutive rematches leave no residue",
+      "setup": "Two seats, playable build.",
+      "steps": [
+        "Play and rematch ten times in a row",
+        "Observe timers, audio, input handlers and memory trend"
+      ],
+      "expected": "Every rematch mints a fresh instanceId; no stale timers, audio, handlers or snapshot content survive; no degradation trend across the ten runs.",
+      "evidence": "Instance IDs, active listener/timer/render-loop/audio-node/physics-world counters plus measured heap/GPU resource trend across10rematches. Dispose logs alone do not prove memory/resource behaviour.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-ROS-01",
+      "game": "shared",
+      "category": "roster",
+      "title": "Late joiner spectates until the next start",
+      "setup": "Game already running.",
+      "steps": [
+        "Third browser joins mid-match with a room code",
+        "Current match finishes and host starts again"
+      ],
+      "expected": "Mid-match joiner receives watch-only snapshots and their actions are dropped pre-onAction; active roster stays fixed for the match; they join play only on the next start (new instance) \u2014 for golf this means the next match, not the next hole.",
+      "evidence": "Server log shows dropped actions; client shows spectator chrome, then active controls after restart.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-ROS-02",
+      "game": "shared",
+      "category": "roster",
+      "title": "Host disconnect migrates control without deadlock",
+      "setup": "Three seats, first seat is host, game in lobby.",
+      "steps": [
+        "Host socket drops",
+        "A remaining player configures and starts"
+      ],
+      "expected": "hostId migrates to longest-connected player; if no host connected, any connected player may act so the room never deadlocks.",
+      "evidence": "Room snapshots show new hostId; configure/start accepted from that seat.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-ROS-03",
+      "game": "shared",
+      "category": "roster",
+      "title": "Active-player kick ends non-kart game to lobby",
+      "setup": "Small roster in play (non-kart game).",
+      "steps": [
+        "Host kicks one connected active seat mid-game",
+        "Kicked client attempts to act on the old instanceId",
+        "Kicked client attempts to reclaim the seat with its old token"
+      ],
+      "expected": "Game returns to lobby per current framework behaviour; kicked socket detached with a reason; stale-instance actions dropped; removed token cannot reclaim the kicked seat.",
+      "evidence": "Lobby game:null, removal reason on kicked client, stale-action rejection and failed removed-token reclaim. Do not assume an invented lobby reason field.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-ROS-04",
+      "game": "shared",
+      "category": "roster",
+      "title": "Watcher kick need not end the game",
+      "setup": "Active match plus at least one watcher.",
+      "steps": [
+        "Host kicks a watcher mid-match"
+      ],
+      "expected": "Match continues for the active roster; watcher detached with a reason; no lobby return forced by a watcher kick.",
+      "evidence": "Match snapshots uninterrupted; watcher client shows removal reason.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-ROS-05",
+      "game": "rocket-room",
+      "category": "roster",
+      "title": "Rocket low-roster bounded pause/retry",
+      "setup": "Match in progress; drop connections until fewer than 2 connected players remain.",
+      "steps": [
+        "Disconnect all but one connected player",
+        "Observe the match state",
+        "Reconnect a second player and resume"
+      ],
+      "expected": "Below2connected players pauses repair input and saves remaining mission time. A cumulative20second reunion budget resumes with a fresh authoritative deadline/current versioned roles if met; exhaustion interrupts with Retry. No solo-success or clue leakage. Golf/Bomb have separately specified continuation policies.",
+      "evidence": "Interruption snapshot with reason; resume log.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-INP-01",
+      "game": "shared",
+      "category": "input",
+      "title": "Stale instance and window guards drop old input",
+      "setup": "Game running; capture a valid action payload.",
+      "steps": [
+        "Trigger a rematch (new instanceId)",
+        "Replay the captured payload with the old i/w values"
+      ],
+      "expected": "Room drops the stale payload; no double-apply, no score change, no error visible to other players.",
+      "evidence": "Server-side drop logged; totals unchanged across the replay.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-INP-02",
+      "game": "shared",
+      "category": "input",
+      "title": "Game-owned action sequence applies once, awaited by result",
+      "setup": "Game running with a non-idempotent intent available (shot, plant, toggle).",
+      "steps": [
+        "Send a valid intent with sequence N",
+        "Resend the same sequence N",
+        "Send the next intent with sequence N+1"
+      ],
+      "expected": "First applies exactly once with its result echoed in the player's private projection; resend of N never reapplies; N+1 applies normally; sequences reset with the instance; client awaited the actual sequence/result/state, not a broadcast or sleep. Idempotent operations use the simpler last-write rule.",
+      "evidence": "State diff shows a single application; private projection carries sequence/result.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-INP-03",
+      "game": "shared",
+      "category": "input",
+      "title": "Old timers never fire into a new phase",
+      "setup": "Game with a deadline; force a phase change just before expiry.",
+      "steps": [
+        "Start a short deadline",
+        "End the phase early via host",
+        "Observe past the original expiry"
+      ],
+      "expected": "Generation-guarded timers: the stale fire is a no-op; new phase state untouched.",
+      "evidence": "No phase regression in snapshots after the original expiry passes.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-SIM-01",
+      "game": "shared",
+      "category": "simulation",
+      "title": "Simulated time tracks elapsed time at nominal and late ticks",
+      "setup": "Game with a 50ms tick on def.tickInterval(state); controlled clock.",
+      "steps": [
+        "Run nominal ticks and compare simulated time to elapsed time",
+        "Inject late ticks forcing catch-up up to the 12-step maximum",
+        "Force debt beyond the maximum and observe the interruption policy"
+      ],
+      "expected": "Nominal: simulated time matches elapsed (normally 3 accumulator steps per 50ms tick); late: bounded catch-up to 12 steps with retained debt; beyond-maximum: explicit excessive-lag/interruption reason, never a silent drop-then-snap; 10Hz snapshot projection stays separate throughout.",
+      "evidence": "Sim-time vs elapsed-time logs at nominal and late profiles; interruption reason snapshot.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-FOC-01",
+      "game": "shared",
+      "category": "focus",
+      "title": "Blur, hidden tab and modal release held input",
+      "setup": "Active play with a held control (aim drag, stick, held key).",
+      "steps": [
+        "Blur the window mid-hold",
+        "Hide the document",
+        "Open a modal over the playfield",
+        "Return"
+      ],
+      "expected": "Captures and held keys release on blur/hidden/disposal; no stuck input; modal suspends camera/drag input; return shows a clean idle state.",
+      "evidence": "Manual pass on desktop plus phone rotation; no phantom movement after return.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-FOC-02",
+      "game": "shared",
+      "category": "focus",
+      "title": "Background readiness distinguishes paint, resources, warm-up and suspension",
+      "setup": "Two clients, one tab hidden or backgrounded (release-36 Safari lesson).",
+      "steps": [
+        "Start the game with one tab hidden",
+        "Observe the hidden client's readiness and the visible client's countdown",
+        "Background the tab fully and observe behaviour claims"
+      ],
+      "expected": "Hidden client completes required resources and releases the decorative paint wait; visible client still waits for two-frame paint and first rendered frame before countdown. The run distinguishes skipped decorative paint, loaded critical resources, actual renderer warm-up and a fully suspended browser \u2014 and never claims frozen JavaScript keeps running.",
+      "evidence": "Readiness logs per client with the four states labelled; no match-deadline expiry caused by a hidden tab.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-NET-01",
+      "game": "shared",
+      "category": "network",
+      "title": "150 and 300ms RTT with jitter stay playable",
+      "setup": "Two clients with throttled RTT profiles (150ms, 300ms + jitter).",
+      "steps": [
+        "Play a full round on each profile",
+        "Interrupt snapshot delivery for 3s mid-play",
+        "Disconnect one client for 3s and reconnect"
+      ],
+      "expected": "Play completes; actual transport disconnect shows the shell reconnecting state and resumes by token; 3s drop does not forfeit the seat or corrupt totals. A client merely missing snapshots on an open socket is a presentation gap under the game's stale-state policy \u2014 it never invokes the shell reconnect state by itself.",
+      "evidence": "Throttled-network Playwright runs; snapshot continuity across the gap.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-SCO-01",
+      "game": "shared",
+      "category": "scoring",
+      "title": "Ties and edge-score finals read cleanly",
+      "setup": "Scripted finals per game: golf all hole-in-one (1 each), golf all unplayed deadline/capped (9 each under the cap-8 rule), golf equal totals, bomb equal round totals, rocket dark-ship loss.",
+      "steps": [
+        "Force each scripted final",
+        "Read the results screen"
+      ],
+      "expected": "Tied players share the rank with tie copy; every scripted final shows an honest named result, never an empty or broken board. No results copy claims a zero-stroke golf final means nobody needed a second shot.",
+      "evidence": "Screenshots of each results screen per game.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-DEV-01",
+      "game": "shared",
+      "category": "device",
+      "title": "Five layout states keep the playfield clear",
+      "setup": "One playable build per game.",
+      "steps": [
+        "Render desktop, portrait phone, landscape phone, tablet, compact embed widths",
+        "Open every drawer and disclosure at the narrowest width"
+      ],
+      "expected": "No critical ball/hazard/instrument or active control is obscured. Secondary information collapses on demand, safe-area/keyboard geometry remains usable. Record actual HUD coverage per layout rather than approve by a universal20\u201325percent area rule.",
+      "evidence": "Screenshots at all five widths per game labelled layout-only for 390px desktop captures (resized desktop proves layout, not touch); HUD-coverage estimate recorded.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-DEV-02",
+      "game": "shared",
+      "category": "device",
+      "title": "Touch-capable laptop keeps both input paths",
+      "setup": "Touch-capable laptop browser.",
+      "steps": [
+        "Play using keyboard/mouse only",
+        "Play using touch only"
+      ],
+      "expected": "Both paths work in the same session; touch controls appear by capability, keyboard shortcuts remain active.",
+      "evidence": "Physical-device pass with actual hardware evidence; cannot be proven by desktop resize.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-DEV-03",
+      "game": "shared",
+      "category": "device",
+      "title": "WebGL context loss and asset failure recover without duplication",
+      "setup": "Playable build with critical/optional asset manifest.",
+      "steps": [
+        "Force a WebGL context loss mid-play",
+        "Block an optional asset and reload",
+        "Block a critical asset and reload"
+      ],
+      "expected": "Context loss shows a recovery state and restores with no duplicated input or outcomes; authority may legitimately have advanced/scored while the renderer was unavailable, so unchanged score is not promised. Missing optional asset degrades dressing only; missing critical asset blocks countdown with a named reason, never a frozen frame.",
+      "evidence": "Forced-loss run plus blocked-request runs; countdown gating logged; no duplicate application in state diff.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-MED-01",
+      "game": "shared",
+      "category": "media",
+      "title": "Giggle Meet panel coexists with every layout",
+      "setup": "Embedded room with a live call alongside play.",
+      "steps": [
+        "Play one round with floating tiles (golf/bomb) and adjacent call (repairs)",
+        "Collapse and expand the media panel mid-play"
+      ],
+      "expected": "Call never covers the active control; collapsing the panel never remounts or resets play; game opens no second capture.",
+      "evidence": "Live two-person Meet run with actual call evidence; embedded-mode screenshots; getUserMedia call count stays at the Meet layer only.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-PERF-01",
+      "game": "shared",
+      "category": "performance",
+      "title": "First-play payload, cold start, frame budgets and thermal distribution",
+      "setup": "Production-shaped build on 10Mbps/100ms profile and a declared midrange phone.",
+      "steps": [
+        "Measure compressed first-play bytes",
+        "Time to usable playfield with visible loading",
+        "Record p95 frame intervals on desktop and phone plus a 10-minute thermal run"
+      ],
+      "expected": "Payload <= 4MB; playfield <= 5s; desktop p95 <= 20ms, phone p95 <= 36ms; thermal acceptance is decided by the measured 10-minute frame distribution (p95 drift, sustained throttling), not a vague no-collapse claim; local feedback <= 50ms with server ack timed separately.",
+      "evidence": "Measurement logs per device with the full 10-minute frame distribution; targets are proposed, results recorded as observed.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-PERF-02",
+      "game": "shared",
+      "category": "performance",
+      "title": "Shared physics, network, resource and concurrent-room workload",
+      "setup": "Proposed declared G1 workload: four concurrent rooms, each at the target game maximum roster, defaults and busiest supported slice. Record exact server hardware/runtime, map, seed, duration and client network profile before running.",
+      "steps": [
+        "Load maximum roster in one room and measure physics CPU, snapshot bytes and effect allocations",
+        "Run the declared concurrent-room count and observe cross-room interference"
+      ],
+      "expected": "Record per-room physics/action CPU p50/p95/max, accumulator debt, snapshot cadence/bytes/traffic, entity/effect allocations and cross-room interference over10minutes. No room exceeds its declared catch-up/interruption policy; no unbounded entity/effect growth. Set measured capacity/traffic budgets before G3 approval; no unstated bounds are counted passed.",
+      "evidence": "Per-room workload logs under the shared load profile.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-AUD-01",
+      "game": "shared",
+      "category": "audio",
+      "title": "Event audio is comfortable, ducked and disposed",
+      "setup": "Each game with sound on beside a call.",
+      "steps": [
+        "Trigger each gameplay event sound",
+        "Dispose the view and listen for 15s"
+      ],
+      "expected": "Sounds audible but comfortable, ducked around conversation, fully stopped on disposal; no navigation or homepage sounds exist.",
+      "evidence": "Heard-audio check on a physical device with actual listening evidence; post-dispose silence observed, not assumed.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-MOT-01",
+      "game": "shared",
+      "category": "accessibility",
+      "title": "Reduced motion preserves all game information",
+      "setup": "prefers-reduced-motion enabled, each game mid-play.",
+      "steps": [
+        "Enable reduced motion",
+        "Trigger aim, blast, repair-success and countdown states"
+      ],
+      "expected": "No flashing/shaking; blast danger, aim direction, repair state and deadlines remain fully readable through static cues.",
+      "evidence": "Native short recordings/frame traces for flashing/camera motion plus still screenshots for readability; static screenshots alone do not prove absence of animation.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "SH-AST-01",
+      "game": "shared",
+      "category": "assets",
+      "title": "Selected kit files meet the shipping bar",
+      "setup": "Chosen per-file shortlist from the three Kenney kits plus original meshes.",
+      "steps": [
+        "Record source URL and CC0 license per file",
+        "Check units, pivots, materials and collision proxies",
+        "Measure compressed bytes, decode cost and mobile LOD behaviour"
+      ],
+      "expected": "Every shipped file has a license line; consistent units/pivots; explicit proxies where physics touches; critical vs optional manifests honoured; no runtime primitive model-building during attacks.",
+      "evidence": "Asset ledger with per-file rows; measurement logs.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "CL-RUL-01",
+      "game": "cloud-links",
+      "category": "rules",
+      "title": "Rest needs contact, low velocities and stable drift",
+      "setup": "Balls rolling near rest on flat, uphill and sloped lies; server step logs visible.",
+      "steps": [
+        "Roll balls at just above and just below the tuned envelope",
+        "Rest a ball on a slope and watch for creep",
+        "Attempt a second shot during roll and after rest"
+      ],
+      "expected": "Rest requires supported contact plus low linear velocity, low angular velocity and stable positional drift over the hold window, all relative to final model units and ball radius; a visibly creeping sloped ball never reads as ready. Rolling balls reject with 'ball rolling', never queue; renderer prediction never overrides the server verdict. No fixed velocity number is asserted as release fact before G1 tuning.",
+      "evidence": "Server step logs vs client presentation; sloped-ball creep run; second-shot-during-roll rejected in snapshots.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "CL-RUL-02",
+      "game": "cloud-links",
+      "category": "rules",
+      "title": "Cup capture uses geometry, contact and sweep semantics",
+      "setup": "Balls aimed at the cup across the speed range, including rim-line and high-speed lines.",
+      "steps": [
+        "Putt hot at the cup",
+        "Putt soft at the cup",
+        "Roll a ball across the cup mouth at capture-boundary speed"
+      ],
+      "expected": "Capture follows the stated capture volume, contact arc and per-step sweep (no tunnelling); balls outside the tuned envelope lip out with a visible rim bounce and stay live; soft balls drop. Both outcomes come from the server under a centre-speed predicate plus geometry, never the predicate alone.",
+      "evidence": "Native short recording/frame trace of cup contact, authoritative contact/capture log and selected screenshots; static screenshots alone do not prove bounce timing.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "CL-RUL-03",
+      "game": "cloud-links",
+      "category": "rules",
+      "title": "Eighth putt, deadline grace and early settle end a hole fairly",
+      "setup": "Player at 7 strokes; hole deadline near expiry; ball near the edge; one ball rolling at deadline.",
+      "steps": [
+        "Hole out on the 8th stroke",
+        "Leave another ball unholed after its 8th stroke settles",
+        "Let the deadline expire mid-roll for a third player",
+        "Knock a ball out of bounds",
+        "Settle every roster ball and watch the hole end",
+        "Take stroke7 out of bounds so its penalty consumes the eighth score slot; attempt another shot"
+      ],
+      "expected": "An eighth accepted putt resolves before capping: holed records8, otherwise settled/reset unholed caps9. Penalties consume the same budget: stroke7 plus OB reaches8 unholed, caps9 with no extra shot. Capped score clamps9. Receipt time closes new shots at deadline; prior rolling balls get bounded4second grace, same-step cup capture counts, remaining unholed balls cap9. All-settled early finish names its goal reason.",
+      "evidence": "Recap snapshots show correct strokes and reasons per ball; grace indicator screenshot (single indicator, no second timer).",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "CL-SIM-01",
+      "game": "cloud-links",
+      "category": "behaviour",
+      "title": "Eight simultaneous balls stay readable and independent",
+      "setup": "Full 8-seat room on Banker's Garden.",
+      "steps": [
+        "All players putt within the same second",
+        "One player aims while seven balls roll"
+      ],
+      "expected": "No physical interaction between balls; every ball identifiable by pattern + colour; aiming player sees no crowd occlusion; camera stays stable while aiming.",
+      "evidence": "8-client screenshot during mass putt; aim-drift measurement while others roll.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "CL-SIM-02",
+      "game": "cloud-links",
+      "category": "behaviour",
+      "title": "Early finisher spectates without affecting play",
+      "setup": "One player holes out while others still putt.",
+      "steps": [
+        "Holed player follows a friend's ball",
+        "Holed player attempts shot input",
+        "A new browser joins mid-match"
+      ],
+      "expected": "Follow is view-only; any shot input from a holed player is rejected; remaining players unaffected. The mid-match joiner stays a spectator until the next start (new instance), not the next hole.",
+      "evidence": "Snapshot shows follow target change with no state mutation; joiner client shows spectator chrome.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "CL-INP-01",
+      "game": "cloud-links",
+      "category": "input",
+      "title": "Aim gesture cancels safely by drag-back and Esc",
+      "setup": "Ball at rest, aiming.",
+      "steps": [
+        "Drag out then drag back to the ball and release",
+        "Aim and press Esc",
+        "Release outside the arena"
+      ],
+      "expected": "All three cancel with zero strokes charged and the ball undisturbed; specified cancel semantics, no accidental putts.",
+      "evidence": "Stroke count unchanged across all three cancels on desktop and touch.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "CL-INP-02",
+      "game": "cloud-links",
+      "category": "input",
+      "title": "Shot intent carries the player sequence and awaits its result",
+      "setup": "Ball at rest; capture the shot payload.",
+      "steps": [
+        "Putt with sequence N and read the private projection",
+        "Resend sequence N",
+        "Putt again with N+1 after rest"
+      ],
+      "expected": "First putt applies once with stroke/result echoed for that player; resend of N never re-applies; client awaited the actual sequence/result/state, not a broadcast or sleep.",
+      "evidence": "Stroke diff shows a single application; private projection carries sequence/result.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "CL-FUN-01",
+      "game": "cloud-links",
+      "category": "playfeel",
+      "title": "First-time player putts within 20 seconds and names the bank",
+      "setup": "Greybox Banker's Garden, first-time player, no coaching.",
+      "steps": [
+        "Open the hole",
+        "Observe time to first putt",
+        "Ask what the risky route is after two holes"
+      ],
+      "expected": "First putt inside 20s; player can describe the bank option; misunderstandings recorded verbatim; voluntary rematch or not recorded without pressure.",
+      "evidence": "Human-gate notes: timings, quotes, rematch choice.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "RR-INF-01",
+      "game": "rocket-room",
+      "category": "rules",
+      "title": "Both screens carry useful complementary information with necessary controls",
+      "setup": "Teaching attempt; per-seat views and action logs instrumented.",
+      "steps": [
+        "Play the attempt with each seat's information isolated in turn",
+        "Attempt the attempt from a single seat using both sheets read aloud",
+        "Complete the attempt with full crew communication"
+      ],
+      "expected": "Each seat's private information proves useful and complementary; each role's distinct controls prove necessary (log shows the effect each seat alone cannot produce); reading both sheets aloud is legitimate cooperation and allowed to succeed; success requires observed communication, not a message-per-link rate.",
+      "evidence": "Per-seat view diffs plus action logs; completed-attempt transcript showing the exchange.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "RR-INF-02",
+      "game": "rocket-room",
+      "category": "rules",
+      "title": "Every crew size gives everyone owned work with a first-minute action",
+      "setup": "Crews of 2, 3, 4, 5 and 6 on the timed rescue.",
+      "steps": [
+        "Play the rescue at each crew size",
+        "Ask each player what they owned and what they did first"
+      ],
+      "expected": "2 bundles three atoms each, 3 pairs two each, 4-5 combine useful groups, 6 gives one atom each; every player names a decision only they made and a concrete first-minute action; nobody reports holding scraps of text without a control. Order uses a seed-private startup constraint and necessary target choice, not a known public lights/pumps/engine sequence. Six-player engagement remains a human hypothesis.",
+      "evidence": "Post-mission ownership interviews plus action log per seat at each crew size.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "RR-TXT-01",
+      "game": "rocket-room",
+      "category": "behaviour",
+      "title": "Text and pings alone complete the mission at parity",
+      "setup": "Voice muted for the whole crew.",
+      "steps": [
+        "Complete the teaching attempt using only text and the ping palette",
+        "Time it against a voice crew baseline"
+      ],
+      "expected": "Mission completes; no voice-only information exists; ping palette covers confirm/deny/rhythm/legend requests.",
+      "evidence": "Text-only transcript of a completed mission; parity checklist vs voice run.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "RR-TXT-02",
+      "game": "rocket-room",
+      "category": "behaviour",
+      "title": "Physical keyboard-open phone completes a text-only timed rescue",
+      "setup": "Physical phone with software keyboard open; timed rescue; voice muted.",
+      "steps": [
+        "Play the timed rescue text-only on the phone",
+        "Keep the current clue/control visible and send actions with the keyboard open"
+      ],
+      "expected": "Keyboard-open layout retains the current clue/control and the send action stays reachable; mission completes on text alone.",
+      "evidence": "Physical-device pass with actual hardware evidence; screenshots of the keyboard-open layout mid-mission.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "RR-FAIL-01",
+      "game": "rocket-room",
+      "category": "recovery",
+      "title": "Wrong breakers forgive; expiry loses cleanly with rotation",
+      "setup": "Teaching attempt, then timed rescue.",
+      "steps": [
+        "Throw two wrong breakers",
+        "Let the timed rescue expire with systems dark"
+      ],
+      "expected": "Amber flash + buzz, no score damage, one bounded hint offered; expiry shows 'Ship cold. Retry?' with role rotation offered.",
+      "evidence": "Screenshots of feedback and loss screens; hint text bounded to the mission.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "RR-DIS-01",
+      "game": "rocket-room",
+      "category": "recovery",
+      "title": "Role reassignment is atomic, versioned and bounded",
+      "setup": "Four-player rescue; role versions instrumented.",
+      "steps": [
+        "Disconnect a role owner mid-mission",
+        "Observe reassignment",
+        "Act with the old owner's client and an old version number"
+      ],
+      "expected": "Transfer is atomic with a role version and stays with the new owner until an explicit safe reassignment boundary; old owner/version actions are rejected; with fewer than 2 connected players the mission pauses under the named interruption policy with retry \u2014 no leaked private clues, no solo-finish pretence. Cancel a transferring role's pending candidate before atomic transfer; approvals tied to a link revision are invalidated by changed cable/rhythm/route/feed/bus/target. Old owner/version and old certification cannot authorize changed state.",
+      "evidence": "Per-seat view() diffs proving no leak; rejection log for old-version actions; interruption snapshot.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "RR-DIS-02",
+      "game": "rocket-room",
+      "category": "recovery",
+      "title": "Reconnect reclaims the current role, never a parallel old control",
+      "setup": "Role transferred after a disconnect; owner reconnects by seat token.",
+      "steps": [
+        "Reconnect the original owner by seat token",
+        "Attempt to act on the pre-disconnect control"
+      ],
+      "expected": "Reconnect receives the currently assigned responsibilities; the old control cannot be restored in parallel; pre-transfer actions are rejected by version.",
+      "evidence": "Reconnect snapshot shows current assignment; parallel-control attempt rejected in logs.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "RR-FUN-01",
+      "game": "rocket-room",
+      "category": "playfeel",
+      "title": "First-time text-only crew finishes teaching in 6 minutes",
+      "setup": "Two first-time players, voice muted, no coaching.",
+      "steps": [
+        "Start the teaching attempt",
+        "Record misunderstandings, engagement and completion time"
+      ],
+      "expected": "Completion within 6 minutes; notes record misunderstandings, observed communication, role engagement and whether the crew voluntarily continues; screenshot-sharing or reading sheets aloud is logged as cooperation, never as failure.",
+      "evidence": "Human-gate notes with timings and quotes.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "BG-RUL-01",
+      "game": "bomb-garden",
+      "category": "rules",
+      "title": "Movement, occupancy, order, fuse, blast and capacity behave exactly",
+      "setup": "Scripted arena: wall, cover, two bombs in line; 50ms tick logs visible.",
+      "steps": [
+        "Step into a cell as another character steps into the same cell",
+        "Plant while moving into an occupied cell",
+        "Plant and time the fuse",
+        "Detonate with cover in an arm path",
+        "Plant twice in quick succession"
+      ],
+      "expected": "Proposed200ms cardinal movement commits destination on accepted step; characters overlap and never reserve/block either cell. Walls/cover/bombs block entry; move resolves before plant at committed cell. Proposed2.5second fuse, three-cell arms, one live bomb per player, one-second cooldown. One immutable start-step obstacle snapshot governs the entire recursively expanded due/chain batch; union destruction/deaths commits once.",
+      "evidence": "Tick-level server log matched to rendered frames.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "BG-RUL-02",
+      "game": "bomb-garden",
+      "category": "rules",
+      "title": "Planter re-entry, simultaneous deaths and vulnerable disconnect",
+      "setup": "Arena with planted bombs and scripted final exchanges.",
+      "steps": [
+        "Planter leaves then re-enters their bomb cell",
+        "Kill the last two players in the same commit",
+        "Disconnect a living player mid-round and blast their cell",
+        "Walk two characters through each other"
+      ],
+      "expected": "Bomb-cell re-entry fails after leaving; same-batch final deaths draw. Connected/disconnected characters never body-block. Away players remain vulnerable and fuses continue; reconnect resumes true state. A game-owned10second continuous-away timeout forfeits round eligibility without deleting room/token. Away players cannot take a survivor win; zero-connected10seconds interrupts without a winner, independently of wholly-empty-room cleanup.",
+      "evidence": "Server occupancy and commit logs; draw verdict screenshot; reconnect-state snapshot.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "BG-RUL-03",
+      "game": "bomb-garden",
+      "category": "rules",
+      "title": "Spawns prove a reachable safe destination; sweeps are sample coverage",
+      "setup": "Generator with runtime validation; seed sweep harness.",
+      "steps": [
+        "Generate arenas and inspect validation verdicts",
+        "Run a finite seed sweep",
+        "Attempt to start a rejected layout"
+      ],
+      "expected": "Every accepted spawn proves a reachable safe destination outside the projected blast using actual movement speed, obstacles, turn/plant occupancy and fuse time; unsafe layouts are rejected before play. The finite sweep is reported as sample coverage with its seed count, never as proof over every seed.",
+      "evidence": "Validation log per spawn; sweep report stating seed count and sample status; rejection before play.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "BG-RUL-04",
+      "game": "bomb-garden",
+      "category": "rules",
+      "title": "Three fixed rounds, draws, and deadline blast precedence",
+      "setup": "Match at one round each with the third round scripted: two survivors at deadline plus one bomb due exactly at expiry.",
+      "steps": [
+        "Play three fixed 45s rounds",
+        "Hold two survivors to the deadline with a due detonation pending",
+        "Submit an input after the deadline",
+        "Keep an active lingering flame at the deadline and trigger a due bomb that chains into another; inspect terminal settlement"
+      ],
+      "expected": "Exactly three rounds with45second maximum each; complete chain batch can end a round early. Deadline applies active flame hazards plus every due/recursive detonation before deciding; later input/fuses excluded. Lingering FX after terminal verdict are visual only. Multiple/zero survivors draw; a single eligible connected survivor wins; most round wins takes match and equal totals tie.",
+      "evidence": "Round/match verdict snapshots; commit log showing due-blast resolution order.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "BG-RUL-05",
+      "game": "bomb-garden",
+      "category": "rules",
+      "title": "Chain ordering follows the authoritative bomb sequence",
+      "setup": "Three bombs where one blast catches two others with cover between them.",
+      "steps": [
+        "Plant the scripted chain",
+        "Detonate the first bomb"
+      ],
+      "expected": "A unique server-global bomb ID orders cross-player bombs. Recursively expand all triggered bombs once against the same start-step wall/cover snapshot before any destruction/death commit. Combined destruction/deaths commit once. Traversal/array order does not change outcomes.",
+      "evidence": "Commit log with bomb-sequence ordering; frame-matched blast rendering.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "BG-INP-01",
+      "game": "bomb-garden",
+      "category": "input",
+      "title": "One avatar, bounded prediction, measured corrections",
+      "setup": "300ms RTT client near a live blast; correction logging on.",
+      "steps": [
+        "Move out of a blast line at the last moment",
+        "Plant on an occupied cell",
+        "Multi-touch move plus plant together",
+        "Drop snapshots on the open socket without disconnecting transport"
+      ],
+      "expected": "One readable avatar, no predicted twin; prediction is bounded and visually distinct from confirmed state with consistent presentation time for remote actors/hazards; rejections name their reason with replayable outcomes; correction frequency/distance logged and normal latency causes no misleading deaths. Interpolation states its delay buffer, bounded extrapolation and stale-state policy; open-socket snapshot gaps never invoke the shell reconnect state.",
+      "evidence": "Correction frequency/distance log; side-by-side prediction/confirmed rendering check; plant-reject copy screenshot.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "BG-INP-02",
+      "game": "bomb-garden",
+      "category": "input",
+      "title": "Blocked UI, modal and blur cannot strand or misfire input",
+      "setup": "Round in progress.",
+      "steps": [
+        "Plant with a modal open",
+        "Blur mid-move",
+        "Rotate the phone mid-round"
+      ],
+      "expected": "Blocked/modal input is refused with feedback, never silently applied; blur and rotation cancel gestures; no bomb plants from a cancelled orbit or pinch.",
+      "evidence": "Device pass; input log shows cancels, not ghost plants.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "BG-FUN-01",
+      "game": "bomb-garden",
+      "category": "playfeel",
+      "title": "Deaths read fairly, waiting stays short, rematches are voluntary",
+      "setup": "Four-player greybox arena, first-time players.",
+      "steps": [
+        "Play three rounds",
+        "Ask each eliminated player why they died",
+        "Time eliminated-player waits and count rematches"
+      ],
+      "expected": "Notes collect misunderstandings, disputed deaths, observed fairness/waiting and voluntary rematches; an unexplained replay/UI-authority disagreement blocks advancement while ordinary competitive disappointment is not a defect; unanimous 'my fault' is not required; any misleading rendered escape fails the input-presentation contract.",
+      "evidence": "Human-gate notes: death quotes, wait timings, rematch rate.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    },
+    {
+      "id": "BG-ROS-01",
+      "game": "bomb-garden",
+      "category": "roster",
+      "title": "Away forfeiture cannot obstruct wins or farm solo rounds",
+      "setup": "Three-player match; disconnect two players long enough to trigger game-owned away forfeiture.",
+      "steps": [
+        "Apply10second away forfeiture and inspect survivor counting",
+        "Finish the current round with the remaining eligible survivor",
+        "Keep only one connected roster seat at the next-round boundary",
+        "Reconnect another roster member before the20second wait, then repeat with no rejoin"
+      ],
+      "expected": "Forfeited players are excluded from survivor count and cannot block early win. A new round needs at least2connected roster players. Rejoin inside20seconds starts a real next round; otherwise incomplete match interrupts without extra solo round awards or a completed three-round champion. Room tokens are not revoked by this game policy.",
+      "evidence": "Authoritative eligibility/round state and native waiting/interruption views; no invented per-seat platform grace expiry.",
+      "status": "PLANNED",
+      "actualResult": null,
+      "sourceCommitUnderTest": null,
+      "assetManifestSha256UnderTest": null,
+      "reviewer": null
+    }
+  ],
+  "rootNormalization": "Parent incorporated independent revision2 corrections; DESIGN_SPEC.md is authoritative. All cases remain planned, with no execution evidence."
+}

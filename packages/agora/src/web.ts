@@ -69,10 +69,20 @@ export async function devicesWorthRetrying(
 
 // Web implementation backed by agora-rtc-sdk-ng. The SDK is imported
 // dynamically so it never runs during Next.js SSR.
-// Local end-to-end runs have no Agora project; they inject a stand-in SDK on
-// the page before the app loads. Real sessions always load agora-rtc-sdk-ng.
+// Local end-to-end runs have no Agora project. Opted-in loopback development
+// may inject a stand-in SDK; production and remote previews always use Agora.
+export function localRtcFixtureAllowed(): boolean {
+  return process.env.NODE_ENV === "development"
+    && process.env.NEXT_PUBLIC_GIGGLE_LOCAL_RTC_FIXTURE === "1"
+    && typeof location !== "undefined"
+    && location.protocol === "http:"
+    && ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+}
+
 const loadAgoraSdk = (): Promise<any> => {
-  const stand = (globalThis as { __GIGGLE_TEST_RTC__?: unknown }).__GIGGLE_TEST_RTC__;
+  const stand = localRtcFixtureAllowed()
+    ? (globalThis as { __GIGGLE_TEST_RTC__?: unknown }).__GIGGLE_TEST_RTC__
+    : undefined;
   return stand ? Promise.resolve(stand) : import("agora-rtc-sdk-ng");
 };
 
@@ -99,6 +109,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
   const publishedTracks = new Set<any>();
   const remoteUsers = new Map<string, any>();
   const remoteEpochs = new Map<string, number>();
+  const remoteMediaEpochs = new Map<string, number>();
   const remoteState = new Map<string, RemoteParticipant>();
   const mutedRemoteUids = new Set<string>();
   let localPlayback: { track: any; element: unknown } | null = null;
@@ -141,6 +152,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     localVideoTrack = null;
     remoteUsers.clear();
     remoteEpochs.clear();
+    remoteMediaEpochs.clear();
     remoteState.clear();
     mutedRemoteUids.clear();
     publishedTracks.clear();
@@ -168,6 +180,18 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
     setCapture({ [kind]: "unavailable" });
     // The next "turn on" creates a fresh track from whatever device is present.
     if (wasPublished && owner) { try { await owner.unpublish?.([track]); } catch {} }
+    closeTrack(track);
+  }
+
+  async function acceptPublication(kind: "audio" | "video", track: any, owner: any) {
+    if (currentTrack(kind) === track) {
+      publishedTracks.add(track);
+      setCapture({ [kind]: "active" });
+      return;
+    }
+    // A device can end while publish is pending. Its late completion must
+    // neither revive capture state nor leave the dead track published.
+    try { await owner.unpublish?.([track]); } catch {}
     closeTrack(track);
   }
 
@@ -265,7 +289,7 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         for (const user of remoteUsers.values()) { try { user.audioTrack?.stop(); } catch {} }
         await movingClient.leave();
         assertCurrent();
-        remoteUsers.clear(); remoteEpochs.clear(); remoteState.clear();
+        remoteUsers.clear(); remoteEpochs.clear(); remoteMediaEpochs.clear(); remoteState.clear();
         mutedRemoteUids.clear(); remotePlayback.clear(); publishedTracks.clear();
         emit();
         localUid = token.uid;
@@ -322,8 +346,10 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
           if (joinedGeneration !== generation) return;
           // A UID can rejoin while its previous subscription is still resolving.
           const key = String(user.uid), epoch = remoteEpochs.get(key) ?? 0, room = channelEpoch;
+          const mediaKey = `${key}:${mediaType}`, mediaEpoch = remoteMediaEpochs.get(mediaKey) ?? 0;
           try { await joinedClient.subscribe(user, mediaType); } catch { return; }
           if (joinedGeneration !== generation || room !== channelEpoch || epoch !== (remoteEpochs.get(key) ?? 0)) return;
+          if (mediaEpoch !== (remoteMediaEpochs.get(mediaKey) ?? 0)) return;
           if (mediaType === "video" ? user.hasVideo === false : user.hasAudio === false) return;
           remoteUsers.set(String(user.uid), user);
           const previous = remoteState.get(String(user.uid));
@@ -340,6 +366,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
         });
         client.on("user-unpublished", (user: any, mediaType: "video" | "audio") => {
           if (joinedGeneration !== generation) return;
+          const mediaKey = `${String(user.uid)}:${mediaType}`;
+          remoteMediaEpochs.set(mediaKey, (remoteMediaEpochs.get(mediaKey) ?? 0) + 1);
           if (mediaType === "video") remotePlayback.delete(String(user.uid));
           remoteUsers.set(String(user.uid), user);
           const previous = remoteState.get(String(user.uid));
@@ -412,8 +440,10 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
             adoptTrack("audio", ownedAudio); adoptTrack("video", ownedVideo);
             await joinedClient.publish([ownedAudio, ownedVideo]);
             assertCurrent();
-            publishedTracks.add(ownedAudio); publishedTracks.add(ownedVideo);
-            setCapture({ audio: "active", video: "active" });
+            await acceptPublication("audio", ownedAudio, joinedClient);
+            assertCurrent();
+            await acceptPublication("video", ownedVideo, joinedClient);
+            assertCurrent();
           } catch (error) {
             closeTrack(ownedAudio); closeTrack(ownedVideo);
             assertCurrent();
@@ -428,8 +458,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
             adoptTrack("audio", ownedAudio);
             await joinedClient.publish([ownedAudio]);
             assertCurrent();
-            publishedTracks.add(ownedAudio);
-            setCapture({ audio: "active" });
+            await acceptPublication("audio", ownedAudio, joinedClient);
+            assertCurrent();
           } catch (error) {
             closeTrack(ownedAudio);
             assertCurrent();
@@ -444,8 +474,8 @@ export function createVideoClient(loadSdk = loadAgoraSdk): VideoClient {
             adoptTrack("video", ownedVideo);
             await joinedClient.publish([ownedVideo]);
             assertCurrent();
-            publishedTracks.add(ownedVideo);
-            setCapture({ video: "active" });
+            await acceptPublication("video", ownedVideo, joinedClient);
+            assertCurrent();
           } catch (error) {
             closeTrack(ownedVideo);
             assertCurrent();

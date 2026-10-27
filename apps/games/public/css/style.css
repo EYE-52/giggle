@@ -1,0 +1,1748 @@
+/* Game Night by Giggle — sticker-party arcade.
+ * Raspberry primary, sunshine supporting blocks, ink outlines, small hard
+ * offset shadows, fresh white / pale blush ground. Chunky Baloo 2 display
+ * type + readable Nunito body. Two coherent looks: Day (default) and Night
+ * (near-black + pink/yellow, never purple). Old stored ids (dark/light/
+ * arcade/lounge) migrate to day/night in app.js.
+ * Baloo 2 + Nunito are self-hosted variable woff2 (latin + latin-ext,
+ * SIL OFL — see public/fonts/README.md), so the party look never falls
+ * back to a corporate system font when a CDN is blocked. */
+@font-face {
+  font-family: "Baloo 2"; font-style: normal; font-weight: 400 800;
+  font-display: swap; src: url("/fonts/baloo2-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Baloo 2"; font-style: normal; font-weight: 400 800;
+  font-display: swap; src: url("/fonts/baloo2-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Nunito"; font-style: normal; font-weight: 400 800;
+  font-display: swap; src: url("/fonts/nunito-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Nunito"; font-style: normal; font-weight: 400 800;
+  font-display: swap; src: url("/fonts/nunito-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+:root {
+  --bg: #f8f8fc;
+  --card: #ffffff;
+  --well: #f1f0f8;
+  --chip: #ffffff;
+  --ink: #27243b;
+  --ink-dim: #6b677f;
+  --edge: #dad7e8;
+  --hard: #321829;
+  --line: #e9e6f1;
+  --line-strong: #d4d0e2;
+  --accent: #d92972;
+  --accent-deep: #8f0f42;
+  --accent-soft: #fce7f0;
+  --accent-ink: #ffffff;
+  --sun: #ffbe35;
+  --sun-soft: #ffe9be;
+  --sun-ink: #3d2a00;
+  --melon: #f2545b;
+  --melon-deep: #b92a35;
+  --melon-soft: #ffe3e4;
+  --teal: #0e9b8a;
+  --teal-deep: #0a5f55;
+  --sky: #3e9be0;
+  --green: #1fa971;
+  --signal: #f2545b;
+  --signal-deep: #b92a35;
+  --signal-soft: #ffe3e4;
+  --input-bg: #ffffff;
+  --topbar-bg: #f8f8fc;
+  --shadow-card: 0 6px 22px #3028480b;
+  --shadow-btn: 0 3px 8px #30284812;
+  --shadow-sm: 0 2px 6px #3028480b;
+  --font-display: "Baloo 2", "Nunito", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+[data-theme="night"] {
+  --bg: #150d11;
+  --card: #211419;
+  --well: #2b1b22;
+  --chip: #2b1b22;
+  --ink: #fbeff4;
+  --ink-dim: #c9a9b6;
+  --edge: #493b4b;
+  --hard: #000000;
+  --line: #fbeff422;
+  --line-strong: #fbeff455;
+  --accent: #ff4f8f;
+  --accent-deep: #ffa3c4;
+  --accent-soft: #3a1626;
+  --accent-ink: #1b0a11;
+  --sun: #ffc24d;
+  /* Raspberry-dark highlight: a dark-gold value here reads as brown on the
+   * watcher banner and turn panels. Light text stays readable on this. */
+  --sun-soft: #4a2135;
+  --sun-ink: #1e1400;
+  --melon: #ff7a80;
+  --melon-deep: #ffb3b6;
+  --melon-soft: #3a1518;
+  --teal: #2bd4bd;
+  --teal-deep: #9ef0e4;
+  --sky: #6cb8ee;
+  --green: #4ade80;
+  --signal: #ff7a80;
+  --signal-deep: #ffb3b6;
+  --signal-soft: #3a1518;
+  --input-bg: #150d11;
+  --topbar-bg: #150d11;
+}
+
+* { box-sizing: border-box; }
+/* Robust hidden: no authored display rule may ever reveal a [hidden]
+ * element (connection banner, timers, how-to). The :not() guards below
+ * are belt-and-braces so equal-specificity display rules cannot win by
+ * source order. */
+[hidden] { display: none !important; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.55;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--accent-soft); }
+
+.app { max-width: 1120px; margin: 0 auto; padding: 0 20px 64px; }
+
+/* Game-owned presentation: no platform card, margins or text-game skin.
+ * The native room drawer keeps inviting, sound, host controls and totals
+ * available without permanently occupying the game's playfield. */
+body.game-immersive .app[data-layout="immersive"] { max-width: none; margin: 0; padding: 0; }
+body.game-immersive .app.fade { animation: none; }
+.game-document { display: block; width: 100%; height: 100dvh; border: 0; }
+.room-menu { position: fixed; top: max(10px, env(safe-area-inset-top)); left: max(12px, env(safe-area-inset-left)); z-index: 40; color: var(--ink); font: 700 15px/1.4 var(--font-body); }
+.room-menu > summary { list-style: none; cursor: pointer; display: flex; gap: 12px; align-items: center; min-height: 44px; padding: 0 14px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--card); box-shadow: 0 4px 16px #2033241c; }
+.room-menu > summary::-webkit-details-marker { display: none; }
+.room-menu-panel { width: min(350px, calc(100vw - 48px)); max-height: calc(100dvh - 94px); overflow: auto; margin-top: 8px; padding: 18px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--card); box-shadow: 0 12px 36px #10231733; }
+.room-menu-panel h2 { font-size: 22px; margin: 12px 0 4px; }
+.room-menu-panel a { color: #286655; font-size: 14px; }
+.room-menu-panel p { margin: 8px 0; font-size: 15px; overflow-wrap: anywhere; }
+.room-menu-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.room-menu-actions button { font: inherit; color: var(--ink); background: var(--well); border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 12px; min-height: 44px; cursor: pointer; }
+.room-menu-actions button:disabled { opacity: .5; cursor: default; }
+.room-menu :focus-visible { outline: 3px solid #278871; outline-offset: 3px; }
+.room-menu .scoreboard { gap: 6px; }
+.room-menu .score { font-size: 14px; padding: 3px 8px; border-width: 1px; box-shadow: none; border-radius: 8px; color: var(--ink); background: var(--well); }
+.room-menu .avatar { width: 24px; height: 24px; font-size: 13px; border-width: 1px; }
+.room-menu .scorelabel { color: #465345; font-size: 13px; }
+/* Connection feedback must not move a live board or tap target. */
+body.game-playing .connbar { position: fixed; z-index: 50; top: max(66px, env(safe-area-inset-top)); left: 12px; right: 12px; margin: 0; }
+#gbody[data-layout="immersive"] > #rematch { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 28px); z-index: 5; margin: 0; padding: 12px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--card); color: var(--ink); box-shadow: var(--shadow-card); }
+#gbody[data-layout="immersive"] > #rematch button { min-height: 48px; padding: 8px 20px; font: 800 16px var(--font-body); border: 1px solid var(--accent); border-radius: 12px; box-shadow: none; color: var(--accent-ink); background: var(--accent); }
+#gbody[data-layout="immersive"] > #rematch button.ghost { background: var(--card); color: var(--ink); border-color: var(--line-strong); }
+#gbody[data-layout="immersive"] > #rematch button:disabled { opacity: 1; background: var(--well); color: var(--ink-dim); border-color: var(--line); }
+#gbody[data-layout="immersive"] > #rematch #hostWait { flex: 1 1 100%; margin: 0; text-align: center; font-size: 14px; color: var(--ink-dim); }
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  margin: 0 0 10px;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+}
+h1 { font-size: clamp(38px, 5.2vw, 60px); font-weight: 800; }
+h2 { font-size: 26px; font-weight: 800; }
+h3 { font-size: 19px; font-weight: 800; }
+.muted { color: var(--ink-dim); }
+.small { font-size: 13px; }
+.center { text-align: center; }
+.mt { margin-top: 16px; }
+.only-phone { display: none !important; }
+
+/* ---- nav: a clean branded bar, not a floating capsule ---- */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--line);
+  margin: 0 -20px 8px; padding: 12px 20px;
+}
+.brand {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--font-display); font-weight: 800; font-size: 23px;
+  color: var(--ink); text-decoration: none; letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.brand small {
+  font-family: var(--font-body); font-weight: 700; font-size: 12px;
+  color: var(--ink-dim); letter-spacing: 0; white-space: nowrap;
+}
+.brand .dot { color: var(--accent); }
+.brandmark { flex: none; display: block; transform: rotate(-6deg); }
+/* Compact header utilities: icon + readable label. Icons are inline SVG
+ * in the DOM (JS repaints icon + label on toggle); no pseudo glyphs. */
+.topbar .btn.ghost { min-height: 44px; padding: 7px 14px; font-size: 14px; border-width: 1px; box-shadow: none; }
+.topbar .hbtn { gap: 8px; }
+.topbar .hbtn svg { width: 18px; height: 18px; flex: none; display: block; }
+.topbar .hbtn .hlabel { white-space: nowrap; }
+.topbar #bSound[data-state="off"] { opacity: 0.6; }
+.roomchip {
+  font-family: var(--font-display); font-weight: 800; font-size: 15px;
+  letter-spacing: 3px; text-indent: 3px;
+  background: var(--sun); color: var(--sun-ink);
+  border: 1px solid var(--edge); border-radius: 999px;
+  padding: 4px 14px; box-shadow: var(--shadow-sm);
+}
+.connbar:not([hidden]) {
+  display: flex; gap: 10px; align-items: center; justify-content: center;
+  background: var(--melon-soft); border: 2.5px solid var(--melon);
+  border-radius: 14px; padding: 9px 14px; margin: 12px 0 16px;
+  font-size: 14px; font-weight: 700;
+}
+
+/* ---- surfaces ---- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: none;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+/* Unboxed page band: the page itself is the fun place, not panels
+ * inside panels. */
+.band { padding: 30px 4px; }
+.band + .band { border-top: 1px solid var(--line); }
+
+/* ---- buttons: chunky sticker pills, level and readable ---- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--font-display); font-weight: 800; font-size: 17px;
+  background: var(--accent); color: var(--accent-ink);
+  border: 1px solid var(--edge); border-radius: 14px;
+  padding: 10px 24px; cursor: pointer; min-height: 48px;
+  box-shadow: var(--shadow-btn);
+  transition: box-shadow 0.15s ease, transform 0.08s ease, background 0.15s ease;
+}
+/* Hover lift only where a real hover exists — touch taps must never
+ * leave a stuck hover state. */
+@media (hover: hover) {
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 22px #30284814; }
+  .chip:hover { color: var(--ink); border-color: var(--edge); background: var(--card); box-shadow: 0 2px 6px #3028480d; transform: translateY(-2px); }
+  .chip.sel:hover { background: var(--accent-soft); color: var(--accent-deep); }
+  .howto-btn:hover:not(:disabled) { color: var(--accent-deep); }
+  .dlg-packrow .howto-btn:hover, .preset-btns .howto-btn:hover { border-color: var(--edge); box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+  input[type="text"]:hover, input[type="number"]:hover, select:hover, textarea:hover { border-color: var(--edge); }
+
+}
+.btn:active { transform: translateY(1px); box-shadow: none; }
+/* Quiet inner controls flatten when pressed; cards keep their lift. */
+.chip:active, .dlg-packrow .howto-btn:active, .preset-btns .howto-btn:active { transform: translate(1px, 1px); box-shadow: none; }
+.btn.sun { background: var(--sun); color: var(--sun-ink); }
+.btn.ghost {
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--edge);
+  font-family: var(--font-body); font-weight: 800; font-size: 15px;
+  padding: 8px 20px; min-height: 46px;
+  box-shadow: var(--shadow-sm);
+}
+.btn.big { font-size: 19px; padding: 12px 36px; min-height: 54px; }
+.btn:disabled { opacity: 0.45; cursor: default; transform: none; box-shadow: var(--shadow-btn); }
+.btn:focus-visible, .chip:focus-visible,
+.gamepick:focus-visible, input[type="text"]:focus-visible,
+.howto-btn:focus-visible, .swatch:focus-visible, .card-open:focus-visible,
+.sharefold summary:focus-visible {
+  outline: 3px solid var(--accent-deep); outline-offset: 2px;
+}
+
+/* ---- forms ---- */
+label { display: block; font-weight: 800; font-size: 15px; margin: 14px 0 7px; }
+input[type="text"], input[type="number"], select, textarea {
+  background: var(--input-bg); border: 1px solid var(--line-strong);
+  border-radius: 14px; color: var(--ink);
+  font-size: 16px; padding: 11px 14px; width: 100%;
+  font-family: var(--font-body); font-weight: 600;
+}
+input::placeholder, textarea::placeholder { color: var(--ink-dim); opacity: 0.85; }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--edge); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-sm);
+}
+/* Settings dialogs keep short number fields; game steppers size themselves. */
+.dlg-field input[type="number"] { max-width: 220px; }
+input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ---- home hero: unboxed headline + sticker form + poster wall ---- */
+.hero {
+  display: grid; grid-template-columns: 1.02fr 0.98fr; gap: 40px; align-items: center;
+  padding: 22px 4px 18px;
+}
+.hero-copy { min-width: 0; }
+.hero-eyebrow {
+  display: inline-block;
+  font-size: 12.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--sun-ink); background: var(--sun);
+  border: 1px solid var(--edge); border-radius: 999px;
+  padding: 5px 16px; margin: 0 0 16px;
+  box-shadow: var(--shadow-sm);
+  transform: rotate(-2deg);
+}
+.hero h1 { margin-bottom: 10px; text-wrap: balance; font-size: clamp(34px, 4.4vw, 52px); }
+.hero h1 .pop { color: var(--accent); }
+.hero-sub { font-size: 17px; font-weight: 600; color: var(--ink-dim); margin: 0 0 14px; max-width: 46ch; }
+/* Party ticket: the name/create/join form reads as one admission
+ * ticket — stub header, punched side notches, dashed tear line — with
+ * the same ids and keyboard behavior as before. */
+.ticket {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--edge); border-radius: 22px;
+  box-shadow: var(--shadow-card);
+  padding: 14px 18px 16px;
+}
+.hero-form { display: grid; gap: 8px; max-width: 400px; }
+.hero-form label { margin: 0; font-size: 15px; }
+.ticket-head { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+.ticket-title {
+  font-family: var(--font-display); font-weight: 800; font-size: 19px;
+}
+.ticket-stub {
+  margin-left: auto; flex: none;
+  font-family: var(--font-display); font-weight: 800; font-size: 12px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--accent-ink); background: var(--accent);
+  border: 1px solid var(--edge); border-radius: 999px;
+  padding: 2px 12px; transform: rotate(2deg);
+  box-shadow: 0 2px 6px #3028480d;
+}
+.ticket-or {
+  position: relative; text-align: center; margin: 6px 0 2px;
+  border-top: 2.5px dashed var(--line-strong);
+}
+.ticket-or span {
+  position: relative; top: -13px;
+  font-size: 13px; font-weight: 800; color: var(--ink-dim);
+  background: var(--card); padding: 0 12px;
+}
+.ticket-or::before, .ticket-or::after {
+  content: ""; position: absolute; top: -11px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--bg); border: 1px solid var(--edge);
+}
+.ticket-or::before { left: -34px; clip-path: inset(0 0 0 50%); border-left: none; }
+.ticket-or::after { right: -34px; clip-path: inset(0 50% 0 0); border-right: none; }
+.hero-joinrow { display: flex; gap: 10px; }
+.hero-joinrow input { max-width: 132px; text-transform: uppercase; font-weight: 800; letter-spacing: 2px; }
+.hero-joinrow .btn { flex: 1; white-space: nowrap; }
+.hero-cta { display: flex; }
+.hero-cta .btn { white-space: nowrap; }
+/* Poster wall: tilted white-sticker frames with art, sticker labels, and
+ * original code-native doodles. Decorative only (aria-hidden in markup). */
+.hero-art { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: center; }
+.poster {
+  background: var(--card); border: 1px solid var(--edge); border-radius: 18px;
+  box-shadow: var(--shadow-card); padding: 7px 7px 10px; position: relative;
+}
+.poster img, .poster .art-fallback {
+  width: 100%; border-radius: 10px; border: 2px solid var(--edge);
+  object-fit: cover; aspect-ratio: 16 / 9; display: block;
+}
+.poster .tag {
+  position: absolute; left: 14px; bottom: 16px;
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  background: var(--sun); color: var(--sun-ink);
+  border: 1px solid var(--edge); border-radius: 999px; padding: 1px 12px;
+  box-shadow: 0 2px 6px #3028480d; transform: rotate(-3deg);
+}
+.poster.wide { grid-column: 1 / -1; transform: rotate(1.2deg); }
+.poster.wide img, .poster.wide .art-fallback { aspect-ratio: 16 / 6.6; }
+.poster.tilt-l { transform: rotate(-1.8deg); }
+.poster.tilt-r { transform: rotate(1.6deg); }
+.poster.alt .tag { background: var(--accent); color: var(--accent-ink); }
+svg.doodle { position: absolute; pointer-events: none; z-index: 2; }
+svg.doodle.star-tl { top: -22px; left: -16px; transform: rotate(-12deg); }
+svg.doodle.star-br { bottom: -14px; right: -10px; transform: rotate(10deg); }
+svg.doodle.squig { bottom: -24px; left: 34%; }
+
+/* ---- home picks: art-led poster strip, honest CTAs ---- */
+.sec-head { display: flex; align-items: center; column-gap: 12px; row-gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
+.sec-head h2 { margin: 0; }
+.sec-head .muted { font-size: 14.5px; font-weight: 600; }
+.sec-head .count-pill {
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  background: var(--accent-soft); color: var(--accent-deep);
+  border: 1px solid var(--line-strong); border-radius: 999px; padding: 1px 12px;
+}
+.pick-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top: 16px; align-items: stretch; }
+.pick {
+  background: var(--card); border: 1px solid var(--edge);
+  border-radius: 18px; overflow: hidden; padding-bottom: 14px;
+  box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pick .gart { border-bottom: 1px solid var(--line); }
+/* Poster cards share one text scale (home picks + room cards): compact
+ * constant geometry — instructions open in the shared dialog, never
+ * stretch these cards. */
+.pick .t, .gamepick .t { font-family: var(--font-display); font-weight: 800; font-size: 19px; padding: 12px 16px 0; }
+.pick .d, .gamepick .d { font-size: 15px; font-weight: 600; color: var(--ink-dim); padding: 2px 16px 0; }
+.pick .p, .gamepick .p { font-size: 13.5px; color: var(--melon-deep); font-weight: 800; padding: 6px 16px 0; }
+/* Single-action catalog cards: the whole card is one <button> opening the
+ * shared setup dialog. Text + Play pill are spans, never nested buttons.
+ * Buttons reset UA font/color/alignment/padding; the card classes keep
+ * their chrome. The pill reuses the sticker-button look (accent + edge +
+ * hard shadow) at a smaller size. */
+button.pick, button.gamepick, button.catrow {
+  font-family: var(--font-body); color: var(--ink); text-align: left; cursor: pointer;
+}
+button.pick { padding: 0 0 14px; }
+button.gamepick { padding: 0 0 12px; }
+button.pick, button.gamepick { width: 100%; }
+.pick .t, .pick .d, .pick .p,
+.gamepick .t, .gamepick .d, .gamepick .p { display: block; }
+/* Equal-height rows: overlong titles/taglines clamp to two lines instead
+ * of stretching their row, and the Play row pins to the card bottom. */
+.pick .t, .gamepick .t {
+  line-height: 1.2;
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: hidden;
+}
+.pick .d, .gamepick .d {
+  line-height: 1.35; min-height: calc(2em * 1.35);
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: hidden;
+}
+.play-row { display: block; padding: 10px 16px 2px; margin-top: auto; }
+.play-pill {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; min-width: 104px; padding: 6px 24px;
+  font-family: var(--font-body); font-weight: 800; font-size: 15px;
+  background: var(--accent); color: var(--accent-ink);
+  border: 1px solid var(--edge); border-radius: 999px;
+  box-shadow: var(--shadow-sm);
+}
+.catalog-list {
+  display: grid; gap: 10px; grid-template-columns: 1fr 1fr; margin-top: 16px;
+}
+.catrow {
+  display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 12px;
+  align-items: center; background: var(--card);
+  border: 1px solid var(--edge); border-radius: 14px; padding: 8px 14px 8px 8px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+/* Shelf-row text block: min-width 0 lets long names wrap instead of
+ * squeezing the Play pill off narrow phones. */
+.catrow-text { min-width: 0; }
+.catrow-text > span { display: block; }
+.catrow img, .catrow .art-fallback {
+  width: 76px; height: 52px; object-fit: cover; border-radius: 9px; display: block;
+  border: 2px solid var(--edge);
+}
+.catrow .art-fallback { font-size: 22px; }
+.catrow .t { font-weight: 800; font-size: 17px; line-height: 1.25; }
+.catrow .d {
+  font-size: 14px; font-weight: 600; color: var(--ink-dim); line-height: 1.35;
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: hidden;
+}
+.catrow .p { font-size: 12.5px; color: var(--melon-deep); font-weight: 800; }
+.browse-wrap { display: flex; justify-content: center; margin-top: 18px; }
+.giggle-strip {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  margin-top: 22px; padding: 14px 18px;
+  font-size: 15px; font-weight: 600; color: var(--ink-dim);
+  background: var(--card); border: 2.5px dashed var(--line-strong); border-radius: 16px;
+}
+.giggle-strip a { color: var(--accent-deep); font-weight: 800; }
+
+/* ---- lobby: full-width sunny party strip, catalog below ----
+ * No permanent side column: one horizontal invitation band (code +
+ * copy/share/QR + the real roster) sits above full-width
+ * recommendations and catalog. */
+.lobby { display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; align-content: start; padding-top: 14px; }
+.lobby > section { min-width: 0; }
+.partystrip {
+  display: flex; gap: 14px 30px; align-items: center; flex-wrap: wrap;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: none;
+  padding: 16px 20px;
+}
+.ps-invite { display: flex; gap: 16px 20px; align-items: center; flex-wrap: wrap; }
+.ps-codeblock { line-height: 1; }
+.partystrip .roommeta { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; color: var(--ink-dim); }
+.roomcode {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(30px, 3.4vw, 38px);
+  letter-spacing: 5px; color: var(--accent-deep); line-height: 1.05;
+}
+.partystrip .roomcode { color: var(--accent-deep); }
+/* Embedded squad rooms show a label instead of a shareable code. */
+.roomcode-private { font-size: 26px; letter-spacing: 0; }
+/* Embedded context stays compact (the parent already shows friends and
+ * video): one host/count line plus small name chips, no avatar/points
+ * rail, no share controls. */
+.embedctx { display: flex; gap: 4px 14px; align-items: baseline; flex-wrap: wrap; }
+.embedctx .roomcode-private { font: 800 20px/1.2 var(--font-display); color: var(--ink); }
+.embedctx .ps-status { font-size: 14px; font-weight: 700; color: var(--ink-dim); }
+.embedplayers { margin: 0; gap: 6px; }
+.embedplayers .player { padding: 6px 12px; font-size: 14px; min-height: 32px; }
+.ps-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ps-actions .btn { min-height: 44px; font-size: 15px; padding: 8px 18px; border-radius: 12px; box-shadow: none; }
+.ps-actions .btn.sun { background: var(--card); color: var(--ink); border-color: var(--line-strong); }
+.ps-party { margin-left: auto; min-width: min(340px, 100%); flex: 1 1 340px; }
+.ps-party .players { margin: 8px 0 0; }
+.ps-status { font-size: 15px; font-weight: 800; }
+.partystrip .player { background: var(--well); border-color: var(--line); color: var(--ink); }
+.partystrip .player .pts { color: var(--ink-dim); font-weight: 700; }
+.partystrip .hosttag { background: var(--accent-soft); color: var(--accent-deep); border: 0; }
+.partystrip .avatar { border-width: 1px; }
+/* A match is running while this player is back in the picker (Leave
+ * inside Giggle): one calm line with a Watch action. */
+.lobby-running {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap;
+  padding: 10px 12px 10px 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--well);
+}
+.lobby-running p { margin: 0; font-size: 15px; line-height: 1.45; min-width: 0; overflow-wrap: anywhere; }
+.lobby-running p span { color: var(--ink-dim); font-weight: 600; }
+.lobby-running .btn { min-height: 44px; padding: 8px 18px; font-size: 15px; box-shadow: none; border-radius: 12px; }
+/* QR lives in a disclosure popover, never as an always-visible bar. */
+.qrpop { position: relative; }
+.sharefold summary {
+  cursor: pointer; color: var(--ink); font-weight: 800; font-size: 15px;
+  background: var(--card); border: 1px solid var(--line-strong); border-radius: 12px;
+  padding: 8px 18px; display: inline-flex; align-items: center; box-shadow: none;
+  min-height: 44px; list-style: none;
+}
+.sharefold summary::-webkit-details-marker { display: none; }
+.sharefold summary::before { content: ""; width: 15px; height: 15px; margin-right: 8px; flex: none;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM3 3v2h2V3zM11 3v2h2V3zM3 11v2h2v-2zM9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9zM13 13h2v2h-2z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23000' d='M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM3 3v2h2V3zM11 3v2h2V3zM3 11v2h2v-2zM9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9zM13 13h2v2h-2z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.qrpop-card {
+  position: absolute; top: calc(100% + 10px); left: 0; z-index: 30;
+  background: #fff; border: 1px solid var(--edge); border-radius: 16px;
+  box-shadow: var(--shadow-card); padding: 10px;
+}
+.qrpop-card img { width: 168px; height: 168px; display: block; border-radius: 8px; }
+.waitpill {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 700; color: var(--ink);
+  margin-top: 8px;
+}
+.waitpill::before {
+  content: ""; width: 9px; height: 9px; border-radius: 50%;
+  background: var(--accent); flex: none;
+}
+.partystrip .waitpill { color: var(--ink-dim); margin-top: 6px; }
+
+/* ---- recommendations: art-led strip, or one small inline hint ---- */
+.rec-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.rec-head h2 { margin-bottom: 6px; }
+.feat-strip {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px;
+  align-items: stretch;
+  padding: 8px 8px 12px; margin: 0 -8px;
+}
+@media (max-width: 760px) {
+  /* Phones keep a one-handed snap row instead of the 3-across grid.
+   * Generous padding: a lifted card's translate + deeper hard shadow
+   * must never clip inside the horizontal scroller. */
+  .feat-strip {
+    display: flex; gap: 14px; overflow-x: auto; max-width: 100%; min-width: 0;
+    padding: 10px 10px 14px; margin: 0 -10px;
+    scroll-snap-type: x proximity; scroll-padding: 0 10px;
+  }
+  .feat-strip .gamepick { flex: 0 0 250px; scroll-snap-align: start; }
+}
+/* Featured card: art and text are distinct grid items, so a long title can
+ * never wrap around the artwork. */
+.gstart.feat { display: grid; grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 12px; align-items: center; text-align: left; padding: 10px; }
+.feat img, .feat .art-fallback {
+  width: 96px; height: 68px; object-fit: cover;
+  border-radius: 10px; border: 1px solid var(--edge);
+}
+.feat .ftext { min-width: 0; display: grid; gap: 2px; align-content: center; }
+.feat .ftext > span { display: block; }
+.feat .ftext > .t, .feat .ftext > .d {
+  display: -webkit-box; -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; overflow: hidden;
+}
+.feat .t { font-family: var(--font-display); font-weight: 800; font-size: 16px; line-height: 1.15; }
+.feat .d { font-size: 13px; font-weight: 600; color: var(--ink-dim); line-height: 1.3; }
+.feat .p { font-size: 13px; color: var(--teal-deep); font-weight: 800; }
+/* Featured single-action cards reuse the grid button AND the poster
+ * chrome (the grid button's background:none loses to this). The Play
+ * pill spans the full card width under art + text. */
+button.gamepick.gstart { background: var(--card); border: 1px solid var(--edge); }
+.feat .play-pill { grid-column: 1 / -1; align-self: end; }
+.invite-hint {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--well); border: 1px solid var(--line); border-radius: 14px;
+  padding: 8px 8px 8px 16px; font-size: 15px; font-weight: 700;
+  box-shadow: none; width: fit-content; max-width: 100%;
+}
+.invite-hint .btn { min-height: 44px; font: 800 15px/1.2 var(--font-body); padding: 6px 16px; border-radius: 12px; border-width: 1px; box-shadow: none; }
+
+/* ---- catalog toolbar + poster grid (straight on the page) ---- */
+.catbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 0 0 12px; }
+.catbar input[type="text"] { max-width: 400px; flex: 1 1 180px; border-radius: 14px; height: 48px; }
+.catbar select {
+  width: auto; flex: none; border-radius: 14px; height: 48px;
+  font-size: 14px; font-weight: 800; padding: 9px 38px 9px 14px;
+  max-width: 100%;
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23321829' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 16px 16px;
+}
+[data-theme="night"] .catbar select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='%23fbeff4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.catbar .chip { height: 48px; border-radius: 14px; font-size: 14px; display: inline-flex; align-items: center; }
+.catchips { display: flex; gap: 8px; align-items: center; overflow-x: auto; max-width: 100%; min-width: 0; padding: 4px 2px 8px; margin: 0 0 6px; }
+.chip {
+  flex: none;
+  font-weight: 800; font-size: 13.5px; min-height: 44px;
+  background: transparent; color: var(--ink-dim);
+  border: 1px solid var(--line-strong); border-radius: 999px;
+  padding: 5px 16px; cursor: pointer; box-shadow: none;
+  transition: box-shadow 0.15s ease, transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.chip.sel { background: var(--accent-soft); color: var(--accent-deep); border-color: var(--accent); box-shadow: none; }
+.grid-games {
+  display: grid; gap: 18px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  align-items: stretch;
+}
+.gamepick {
+  position: relative;
+  background: var(--card); border: 1px solid var(--edge);
+  border-radius: 18px; overflow: hidden; padding-bottom: 12px;
+  box-shadow: var(--shadow-card);
+  display: flex; flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+/* Gentle physical lift for cards, picks, and catalog rows: a small
+ * translate plus a deeper hard shadow. Hover only where a real hover
+ * exists (touch never sticks); keyboard focus lifts on any device.
+ * Stage/score controls (.voteopt, .chboard, .pk-*) are untouched. */
+@media (hover: hover) {
+  .pick:hover, .gamepick:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 32px #30284818;
+  }
+  .catrow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px #30284814;
+  }
+}
+.pick:focus-within, .gamepick:focus-within {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px #30284818;
+}
+.catrow:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px #30284814;
+}
+.gstart {
+  display: block; width: 100%; padding: 0 0 4px;
+  background: none; border: none; cursor: pointer; color: var(--ink);
+  font-family: var(--font-body); text-align: left;
+}
+.gstart:disabled { cursor: default; }
+.gart { display: block; width: 100%; height: auto; aspect-ratio: 16 / 8; object-fit: cover; border-bottom: 1px solid var(--line); }
+/* Square SVG thumbnails are framed whole on a calm well instead of being
+ * cropped to the wide poster shape (the img height attribute would
+ * otherwise beat aspect-ratio). */
+img:is(.gart, .catart, .featart, .heroimg)[src$=".svg"] { object-fit: contain; background: var(--well); }
+.played {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  background: var(--sun); color: var(--sun-ink);
+  border: 1px solid var(--edge);
+  font-size: 12px; font-weight: 800;
+  padding: 2px 11px; border-radius: 999px;
+  box-shadow: none;
+}
+/* Quiet text-button style reused by the setup dialog footer (Details
+ * link) and the customizer list buttons. */
+.howto-btn {
+  font-size: 13.5px; font-weight: 800; min-height: 44px;
+  display: inline-flex; align-items: center; white-space: nowrap;
+  background: none; border: none; color: var(--ink-dim); cursor: pointer; padding: 4px 2px;
+  font-family: var(--font-body); text-decoration: underline; text-underline-offset: 3px;
+}
+.howto-btn:disabled { opacity: 0.5; cursor: default; }
+.empty-note {
+  border: 2.5px dashed var(--line-strong); border-radius: 16px;
+  padding: 26px; text-align: center; color: var(--ink-dim); font-weight: 600;
+  background: var(--card);
+}
+
+/* ---- art fallback (scaffolded games without images) ---- */
+.art-fallback {
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display); font-weight: 800; color: #fff;
+  text-shadow: 0 2px 12px #00000055;
+}
+.gart.art-fallback { aspect-ratio: 16 / 8; font-size: 44px; }
+.pick .gart.art-fallback { font-size: 40px; }
+.feat .art-fallback { font-size: 30px; }
+.poster .art-fallback { aspect-ratio: 16 / 10; font-size: 40px; }
+
+/* ---- players & scores ---- */
+.players { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.player {
+  background: var(--card); border: 1px solid var(--line-strong);
+  border-radius: 999px; padding: 4px 14px 4px 5px;
+  display: flex; gap: 9px; align-items: center;
+  font-weight: 800; font-size: 14px; box-shadow: none;
+}
+.player.off { opacity: 0.55; }
+.player .pts { color: var(--melon-deep); font-size: 13px; font-weight: 800; }
+.avatar {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; border-radius: 50%;
+  font-family: var(--font-display); font-weight: 800; font-size: 14px;
+  color: #141414; flex: none; border: 2px solid var(--edge);
+}
+.scoreboard { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.score {
+  background: var(--card); border: 1px solid var(--line-strong);
+  border-radius: 999px; padding: 4px 13px 4px 4px;
+  font-size: 14px; font-weight: 800;
+  display: inline-flex; align-items: center; gap: 8px;
+  box-shadow: none;
+}
+.score b { color: var(--melon-deep); font-variant-numeric: tabular-nums; }
+.score.leader { background: var(--sun-soft); }
+.hosttag {
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+  background: var(--accent); border: 2px solid var(--edge); color: var(--accent-ink);
+  border-radius: 999px; padding: 1px 8px; margin-left: 2px;
+}
+.specbanner {
+  background: var(--sun-soft); border: 1px solid var(--edge);
+  border-radius: 14px; padding: 10px 14px; margin: 12px 0;
+  font-size: 14px; font-weight: 700;
+}
+
+/* ---- game screen: compact chrome, playfield first ---- */
+
+.gamehead { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.gamehead img, .gamehead .art-fallback {
+  width: 46px; height: 46px; object-fit: cover; flex: none;
+  border-radius: 12px; border: 1px solid var(--edge);
+}
+.gamehead .art-fallback { font-size: 22px; }
+
+.gamehead h2 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 22px; }
+.gamehead .sub {
+  font-size: 13px; font-weight: 700; color: var(--ink-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gamehead .btn { min-height: 44px; padding: 6px 18px; font-size: 15px; flex: none; }
+
+.timerbar { height: 6px; background: var(--well); border: 2px solid var(--edge); border-radius: 99px; overflow: hidden; margin: 12px 0 4px; }
+.timerbar > div { height: 100%; background: var(--accent); border-radius: 99px; }
+.timerbar.urgent { border-color: var(--melon); }
+.timerbar.urgent > div { background: var(--melon); }
+.timertext { font-size: 13px; font-weight: 800; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.timerbar.urgent + .timertext { color: var(--melon-deep); }
+@media (prefers-reduced-motion: no-preference) {
+  .timerbar.urgent { animation: none; }
+  @keyframes pulse { 50% { transform: scaleY(1.6); } }
+}
+
+.bar {
+  display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 12px;
+  gap: 5px 12px; margin: 12px 0; align-items: center;
+}
+.bar::before {
+  content: ""; grid-column: 1 / -1; grid-row: 2;
+  background: var(--well); border-radius: 99px; height: 12px;
+}
+.bar .n { grid-column: 1; grid-row: 1; font-weight: 700; font-size: 15px; }
+.bar > span:last-child { grid-column: 2; grid-row: 1; font-size: 13px; color: var(--ink-dim); text-align: right; font-weight: 700; }
+.bar .fill {
+  grid-column: 1 / -1; grid-row: 2; height: 12px; border-radius: 99px;
+  background: var(--accent); min-width: 12px;
+}
+.bar .fill.win { background: var(--teal); }
+
+/* ---- drawing ---- */
+canvas.doodle {
+  /* Preserve the 880×520 drawing coordinates while keeping the input in reach. */
+  width: min(100%, calc(clamp(160px, calc(100dvh - 460px), 520px) * 880 / 520));
+  height: auto; margin-inline: auto; border-radius: 12px; display: block;
+  background: #faf7f0; border: 1px solid var(--edge);
+  touch-action: none; cursor: crosshair;
+}
+.toolbar { display: flex; gap: 8px; align-items: center; margin: 12px 0; flex-wrap: wrap; }
+.swatch {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid var(--edge); cursor: pointer; padding: 0;
+}
+.swatch.sel { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+
+/* ---- customizer dialog: pale sticker sheet ---- */
+.dlg-overlay {
+  position: fixed; inset: 0; z-index: 40;
+  background: #24203670;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: max(16px, 5dvh, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); overflow-y: auto;
+}
+.dlg {
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--edge); border-radius: 22px;
+  box-shadow: 0 24px 80px #23172c33;
+  width: min(680px, 100%); padding: 26px 26px 0;
+  max-height: calc(100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); overflow-y: auto;
+}
+.dlg-head { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; }
+.dlg-head h2 { margin-bottom: 4px; font-size: 28px; }
+.dlg-head .ticket-head { margin-bottom: 2px; flex-wrap: wrap; }
+.dlg-head .ticket-head h2 { margin-bottom: 0; font-size: 26px; }
+.dlg-head .muted { margin: 0; font-weight: 600; }
+.dlg-x { flex: none; }
+.dlg-sec {
+  margin: 22px 0 4px; padding-top: 16px; border-top: 2.5px dashed var(--line-strong);
+  font-size: 16px; font-weight: 800; font-family: var(--font-display); letter-spacing: 0;
+  display: flex; align-items: center; gap: 10px;
+}
+/* Sticker-square bullet: the sections read as party signage, not an
+ * enterprise form. Pure decoration (aria-hidden in markup order is
+ * unaffected — this is a ::before on the heading itself). */
+.dlg-sec::before {
+  content: ""; flex: none; width: 14px; height: 14px; border-radius: 5px;
+  background: var(--sun); border: 1px solid var(--edge);
+  transform: rotate(12deg); box-shadow: 0 2px 6px #3028480d;
+}
+/* List actions are chunky pill buttons with full tap targets. */
+.dlg-packrow .howto-btn, .preset-btns .howto-btn {
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 14px;
+  background: var(--card); box-shadow: none;
+  transition: box-shadow 0.15s ease, transform 0.08s ease, border-color 0.15s ease;
+}
+.dlg-packrow .howto-btn { background: var(--sun-soft); }
+label.howto-btn { cursor: pointer; }
+label.howto-btn[aria-disabled="true"] { opacity: 0.5; cursor: default; }
+.dlg-grid { display: grid; gap: 4px 20px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 560px) { .dlg-grid { grid-template-columns: 1fr; } }
+.dlg-field { margin-bottom: 6px; }
+.dlg-toggle .conflabel { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 16px; cursor: pointer; }
+.dlg-toggle input { flex: none; margin: 0; }
+.dlg textarea { resize: vertical; min-height: 88px; line-height: 1.45; }
+.dlg-packmeta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+.dlg-packrow { margin-top: 2px; }
+.dlg-packrow .howto-btn { margin-left: 0; margin-right: 0; }
+.preset-list { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
+.preset-list li {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  background: var(--well); border: 1px solid var(--line-strong);
+  border-radius: 12px; padding: 8px 8px 8px 14px;
+}
+.preset-name { font-weight: 800; }
+.preset-btns { margin-left: auto; display: flex; gap: 4px; }
+.preset-btns .howto-btn { margin: 0; }
+.dlg-presetrow { margin-top: 8px; }
+.dlg-presetrow input { min-width: min(180px, 100%); }
+.dlg-foot {
+  position: sticky; bottom: 0;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  background: var(--card);
+  border-top: 2.5px solid var(--edge);
+  margin: 20px -26px 0; padding: 14px 26px 18px;
+}
+.conf-err {
+  margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+  background: var(--melon-soft); border: 2.5px solid var(--melon);
+  font-size: 14px; font-weight: 700;
+}
+.conflabel { display: block; font-weight: 800; font-size: 14px; margin: 12px 0 6px; }
+
+/* ---- how-to dialog: one compact playful instruction card ----
+ * Native <dialog>: Escape, backdrop, and focus trapping are built in
+ * (no JS trap, no entrance animation — static under reduced motion too).
+ * Same sticker-party look as the rest: card + edge + sun/raspberry. */
+dialog.howto-dlg {
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--edge); border-radius: 22px;
+  box-shadow: 0 24px 80px #23172c33;
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding: 20px 20px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+dialog.howto-dlg::backdrop { background: #24203670; }
+dialog.howto-dlg:not([open]) { display: none; }
+.howto-head { display: flex; gap: 12px; align-items: flex-start; }
+.howto-art, img.howto-art {
+  width: 64px; height: 64px; object-fit: cover; flex: none;
+  border-radius: 14px; border: 1px solid var(--edge);
+}
+.howto-art.art-fallback { font-size: 28px; }
+.howto-titles { flex: 1; min-width: 0; }
+.howto-titles h2 { margin: 0; font-size: 24px; line-height: 1.15; }
+.howto-tag { margin: 2px 0 0; font-size: 13.5px; font-weight: 600; color: var(--ink-dim); }
+.howto-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+.howto-pill {
+  font-size: 12.5px; font-weight: 800;
+  background: var(--sun-soft); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px;
+}
+.howto-pill:nth-child(2) { background: var(--accent-soft); color: var(--accent-deep); }
+.howto-body { overflow-y: auto; min-height: 0; }
+.howto-body p { margin: 0 0 10px; font-size: 17px; font-weight: 600; line-height: 1.55; }
+.howto-body p:last-child { margin-bottom: 0; }
+.howto-foot {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  border-top: 1px solid var(--line); padding-top: 16px;
+}
+.howto-foot .btn, .howto-foot .howto-btn {
+  min-height: 48px; padding: 10px 16px;
+  font: 800 17px/1.2 var(--font-body); white-space: nowrap;
+}
+.howto-foot .howto-btn { padding-inline: 8px; }
+.howto-foot .btn { flex: 1 1 auto; }
+.howto-name { flex:1 1 100%; display:grid; gap:6px; font-size:14px; font-weight:800; }
+.howto-name input { width:100%; min-height:46px; }
+.howto-note { flex: 1 1 100%; margin: 0; font-size: 13px; font-weight: 600; color: var(--ink-dim); }
+
+/* Kart setup is an arena chooser, with match rules behind it. Its small
+ * images are real world captures; no screenshot carries functional text. */
+.kart-setup { width: min(760px, 100%); padding: 22px 24px 0; }
+.kart-setup .dlg-head { gap: 12px; align-items: center; margin-bottom: 18px; }
+.kart-setup .ticket-head { gap: 12px; }
+.kart-setup .ticket-stub { transform: none; padding: 4px 10px; font-size: 11px; letter-spacing: 0; text-transform: none; box-shadow: none; }
+.kart-setup .dlg-head .ticket-head h2 { font-size: 28px; line-height: 1.2; }
+.kart-setup #dlgNote { font-size: 14px; margin-top: 6px; }
+.kart-setup h3 { margin: 0 0 10px; font: 800 18px/1.3 var(--font-body); }
+.kart-setup .dlg-x { min-height: 48px; font-size: 16px; padding: 10px 16px; }
+.ks-mode { margin-bottom: 18px; }
+.ks-choices { display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: var(--well); }
+.ks-choice { flex: 1; min-width: 0; min-height: 44px; padding: 8px 12px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--ink-dim); font: 800 15px/1.2 var(--font-body); cursor: pointer; }
+.ks-choice[aria-checked="true"] { background: var(--card); border-color: var(--line-strong); color: var(--accent-deep); box-shadow: var(--shadow-sm); }
+.ks-choice:disabled { cursor: default; opacity: .5; }
+.ks-mode-note { margin: 8px 0 0; min-height: 20px; color: var(--ink-dim); font-size: 14px; line-height: 1.4; }
+.ks-section-head { display: flex; gap: 10px; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.ks-section-head h3 { margin: 0; }
+.ks-arena-name { font-weight: 800; font-size: 14px; color: var(--accent-deep); }
+.ks-preview { margin: 0 0 12px; border-radius: 16px; overflow: hidden; background: var(--well); border: 1px solid var(--line); }
+.ks-preview > img { display: block; width: 100%; height: 220px; object-fit: contain; background: var(--well); }
+.ks-preview figcaption { padding: 10px 14px; color: var(--ink-dim); font: 600 14px/1.4 var(--font-body); background: var(--card); }
+.ks-map-nav { display: flex; gap: 8px; align-items: center; }
+.ks-map-arrow { flex: none; width: 44px; min-height: 48px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); border-radius: 10px; font: 600 28px/1 var(--font-body); cursor: pointer; }
+.ks-map-list { display: flex; gap: 10px; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; padding: 3px; scrollbar-width: thin; scroll-snap-type: x proximity; }
+.ks-map { position: relative; flex: 0 0 146px; width: 146px; padding: 0; border: 2px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); cursor: pointer; overflow: hidden; scroll-snap-align: start; }
+.ks-map > img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.ks-map > span { display: flex; align-items: center; justify-content: center; padding: 7px 6px; min-height: 48px; font: 800 13px/1.25 var(--font-body); }
+.ks-map[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-deep); }
+.ks-map[aria-checked="true"]::after { content: '✓'; position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--accent-ink); background: var(--accent); font: 800 14px/1 var(--font-body); }
+.ks-map:disabled { cursor: default; }
+.ks-change-note { margin: 8px 0 0; color: var(--accent-deep); font-size: 13px; line-height: 1.4; }
+.ks-change-note:empty { display: none; }
+.ks-rules { margin-top: 20px; }
+.ks-rule-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.ks-rule { flex: 1 1 200px; min-width: 0; }
+.ks-rule[hidden] { display: none; }
+.ks-rule-wide { flex-basis: 100%; }
+.ks-rule-slot { display: flex; flex: 1 1 200px; min-width: 0; }
+.ks-rule-slot > .ks-rule { flex: 1 1 auto; }
+.ks-rule-slot.ks-off { opacity: .45; }
+.ks-rule-row .ks-choices .ks-choice { white-space: nowrap; }
+.ks-rule > label, .ks-rule-label { display: block; margin: 0 0 8px; color: var(--ink-dim); font: 700 14px/1.3 var(--font-body); }
+.ks-stepper { display: flex; align-items: center; border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; min-height: 52px; background: var(--card); }
+.ks-stepper button { flex: none; width: 48px; min-height: 50px; border: 0; background: var(--well); color: var(--ink); font: 700 24px/1 var(--font-body); cursor: pointer; }
+.ks-stepper input { flex: 1; width: 0; min-width: 0; min-height: 50px; padding: 6px; border: 0; border-radius: 0; box-shadow: none; text-align: center; font: 800 18px/1.2 var(--font-body); appearance: textfield; }
+.ks-stepper input::-webkit-inner-spin-button, .ks-stepper input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.ks-rule-note { margin: 10px 0 0; font-size: 13px; color: var(--ink-dim); }
+.ks-extra { border-top: 1px solid var(--line); margin-top: 16px; }
+.ks-extra > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; font: 800 15px/1.2 var(--font-body); cursor: pointer; list-style: none; }
+.ks-extra > summary::-webkit-details-marker { display: none; }
+.ks-extra > summary::after { content: '+'; font: 500 23px/1 var(--font-body); color: var(--ink-dim); }
+.ks-extra[open] > summary::after { content: '−'; }
+.ks-extra-content { padding: 0 0 12px; }
+.ks-extra-content > .ks-choices { margin-bottom: 14px; }
+.kart-setup .dlg-foot { margin: 12px -24px 0; padding: 14px 24px 18px; border-top: 1px solid var(--line); }
+.kart-setup .dlg-foot .btn { min-height: 48px; padding: 10px 18px; font: 800 16px/1.2 var(--font-body); }
+.kart-setup .dlg-foot #dlgSave { flex: 1; }
+.kart-setup :is(.ks-choice,.ks-map,.ks-map-arrow,.ks-stepper button,summary):focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (hover: hover) {
+  .ks-map:not(:disabled):hover { border-color: var(--accent); }
+  .ks-choice:not(:disabled):hover { color: var(--accent-deep); }
+}
+@media (max-width: 560px) {
+  .dlg-overlay:has(.kart-setup) { padding: max(12px,env(safe-area-inset-top)) 10px max(12px,env(safe-area-inset-bottom)); }
+  .kart-setup { padding: 18px 16px 0; max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); border-radius: 18px; }
+  .kart-setup .dlg-head .ticket-head h2 { font-size: 23px; }
+  .kart-setup .ticket-stub { display: none; }
+  .kart-setup .dlg-x { padding: 8px 12px; }
+  .ks-section-head { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .ks-preview > img { height: auto; aspect-ratio: 16 / 9; }
+  .ks-map { flex-basis: 130px; width: 130px; }
+  .ks-map-arrow { width: 44px; }
+  .ks-rule { flex-basis: 140px; }
+  .ks-rule-row { gap: 12px; }
+  .ks-stepper button { width: 42px; }
+  .ks-choice { padding-inline: 6px; font-size: 14px; }
+  .kart-setup .dlg-foot { margin-inline: -16px; padding-inline: 16px; gap: 8px; }
+  .kart-setup .dlg-foot .btn { padding-inline: 12px; font-size: 15px; }
+}
+@media (max-width: 560px) {
+  /* Bounded bottom sheet on phones: full width, capped height, the
+   * instruction text scrolls inside while the CTA stays visible. */
+  dialog.howto-dlg {
+    margin: auto 0 0; width: 100%; max-width: 100%;
+    border-radius: 20px 20px 0 0; border-bottom: none;
+    max-height: 88dvh; padding-bottom: max(18px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Short landscape and keyboard-sized windows need one scrollable sheet.
+ * Keeping a fixed footer here can collapse the instructions to zero height. */
+@media (max-height: 480px) {
+  dialog.howto-dlg { display: block; overflow-y: auto; }
+  .howto-head, .howto-meta, .howto-body { margin-bottom: 12px; }
+  .howto-body { overflow: visible; }
+  .dlg-foot { position: static; }
+}
+
+/* ---- toast, confetti, transitions ---- */
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  background: var(--ink); color: var(--bg);
+  font-weight: 800; font-size: 15px;
+  border-radius: 999px; padding: 12px 24px;
+  box-shadow: var(--shadow-card); z-index: 50;
+  max-width: calc(100vw - 40px); text-align: center;
+  pointer-events: none;
+}
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.confetti i {
+  position: absolute; top: -16px; width: 9px; height: 13px;
+  animation-name: fall; animation-timing-function: ease-in; animation-fill-mode: forwards;
+}
+@keyframes fall { to { transform: translateY(105vh) rotate(540deg); } }
+
+#app.fade { animation: fadein 0.25s ease; }
+@keyframes fadein { from { opacity: 0; transform: translateY(5px); } }
+
+/* ---- motion design: low-amplitude loops + one-shot feedback ----
+ * Three slow ambient loops (hero doodles), everything else fires once
+ * per user-level event — never per WebSocket repaint:
+ * - catalog/featured stagger runs via Web Animations only on the first
+ *   lobby paint per room (see staggerIn in fx.js), so typing in search
+ *   or a roster repaint never replays it;
+ * - .partystrip.pop + confetti fire once on the home→lobby transition;
+ * - .player.just-joined rings only chips that newly connected;
+ * - #app.fade re-triggers on screen changes only (gated in render()).
+ * Chess squares, the 3D playfield, and call video are never decorative
+ * animation targets. The prefers-reduced-motion block at the end of
+ * this file kills every animation/transition below for a static UI. */
+@media (prefers-reduced-motion: no-preference) {
+  svg.doodle.star-tl { animation: twinkle-a 5.5s ease-in-out infinite; }
+  svg.doodle.star-br { animation: twinkle-b 6.5s ease-in-out -2s infinite; }
+  svg.doodle.squig { animation: sway 7s ease-in-out infinite; }
+  @keyframes twinkle-a {
+    0%, 100% { transform: rotate(-12deg) scale(1); }
+    50% { transform: rotate(-4deg) scale(1.1); }
+  }
+  @keyframes twinkle-b {
+    0%, 100% { transform: rotate(10deg) scale(1); }
+    50% { transform: rotate(2deg) scale(1.14); }
+  }
+  @keyframes sway {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+  }
+  /* Room-created success pop (one shot, class added on transition). */
+  .partystrip.pop { animation: strip-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.25); }
+  @keyframes strip-pop {
+    0% { transform: scale(0.96); }
+    60% { transform: scale(1.01); }
+    100% { transform: none; }
+  }
+  /* New-player spotlight: one expanding ring on the fresh chip. */
+  .player.just-joined { animation: joined-ring 1.8s ease-out 1; }
+  @keyframes joined-ring {
+    0% { box-shadow: 0 0 0 0 var(--accent); }
+    100% { box-shadow: 0 0 0 16px transparent; }
+  }
+  /* Toast slides up each time it appears (text swaps while visible do
+   * not restart it — the node persists). */
+  .toast:not([hidden]) { animation: toast-in 0.25s ease; }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  /* Customizer + QR popover entrances (fresh nodes animate once). */
+  .dlg-overlay { animation: fadein 0.2s ease; }
+  .dlg { animation: dlg-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1); }
+  @keyframes dlg-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to { opacity: 1; transform: none; }
+  }
+  .qrpop[open] .qrpop-card { animation: dlg-in 0.22s ease; }
+}
+/* Hidden pages produce no frames for the ambient loops. */
+.page-hidden svg.doodle { animation-play-state: paused !important; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.sitefoot {
+  text-align: center; font-size: 13px; font-weight: 700; color: var(--ink-dim);
+  margin: 26px 0 8px;
+}
+.sitefoot a { color: var(--accent-deep); font-weight: 800; }
+
+/* Chess: playful but readable. Mono (cool neutral graphite/white) is the
+ * default; Blue/Green stay optional. Raspberry selection indicators.
+ * Desktop: board + useful side column. Phone: board first, controls below. */
+
+.chboard-col { min-width: 0; }
+.chboard {
+  display: grid; grid-template-columns: repeat(8, 1fr);
+  /* Equal row tracks, shared by standalone + embed: auto rows size
+   * piece rows taller than empty ones (Root phone QA: filled cells
+   * 43.5px tall vs 13.5px empty). With aspect-ratio 1:1 this yields 64
+   * equal squares everywhere. */
+  grid-template-rows: repeat(8, 1fr);
+  width: 100%; aspect-ratio: 1;
+  border-radius: 14px; overflow: hidden;
+  border: 1px solid var(--edge);
+  box-shadow: var(--shadow-btn);
+}
+
+.sq {
+  position: relative; border: 0; padding: 0; cursor: pointer;
+  font-size: clamp(22px, 5vw, 38px); line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.sq:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: -3px; z-index: 2; }
+.theme-harbor .sq.light { background: #e9eef6; }
+.theme-harbor .sq.dark { background: #41619e; }
+.theme-fern .sq.light { background: #e9f2e6; }
+.theme-fern .sq.dark { background: #3e7c4f; }
+.theme-mono .sq.light { background: #f4f4f7; }
+.theme-mono .sq.dark { background: #55565e; }
+
+.sq .pb { color: #10141b; text-shadow: 0 1px 0 #ffffff88; }
+.sq.sel { box-shadow: inset 0 0 0 4px var(--accent); }
+.sq.last { box-shadow: inset 0 0 0 4px #ffc531cc; }
+.sq.sel.last { box-shadow: inset 0 0 0 4px var(--accent), inset 0 0 0 8px #ffc531cc; }
+.sq.check { box-shadow: inset 0 0 0 4px var(--melon); }
+.sq.dest::after {
+  content: ""; position: absolute; width: 26%; height: 26%; border-radius: 50%;
+  background: #de1e6a99;
+}
+.sq.cap::after {
+  content: ""; position: absolute; inset: 6%; border-radius: 50%;
+  border: 4px solid #de1e6a99;
+}
+.sq.src { cursor: pointer; }
+
+.clock {
+  font-variant-numeric: tabular-nums; font-weight: 800; font-size: 15px;
+  background: var(--card); border: 2px solid var(--edge); border-radius: 8px; padding: 2px 10px;
+}
+.clock.low { color: var(--melon-deep); }
+.chstatus { font-size: 14px; font-weight: 700; min-height: 20px; }
+
+.promo {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  justify-content: center; background: var(--well); border-radius: 12px;
+  padding: 8px 12px; font-size: 28px;
+}
+.promo > span { font-size: 14px; }
+.promo .btn { font-size: 20px; }
+.chhist {
+  max-height: 220px; overflow-y: auto;
+  background: var(--well); border-radius: 12px; padding: 8px 12px;
+  display: flex; flex-direction: column; gap: 2px; font-size: 14px; font-weight: 600;
+}
+.chhist .mv { display: grid; grid-template-columns: 34px 1fr 1fr; gap: 6px; }
+.chhist .mv .n { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+@media (max-width: 720px) {
+
+  .chhist { max-height: 132px; }
+}
+@media (max-width: 560px) {
+  .sq { font-size: clamp(20px, 9vw, 30px); }
+}
+
+/* Pocket Karts: warm playful world. Raspberry HUD accents, sunshine boost. */
+.pk { position: relative; }
+.pk-stage {
+  position: relative; width: 100%; height: min(62vh, 560px); min-height: 320px;
+  border-radius: 16px; overflow: hidden; background: var(--well);
+  border: 1px solid var(--edge); box-shadow: var(--shadow-btn);
+}
+.pk-stage canvas { display: block; width: 100% !important; height: 100% !important; }
+.pk-loading { padding: 24px; text-align: center; }
+.pk-fbnote { padding: 6px 12px; }
+/* HUD regions flow from their real heights: chips, then standings in normal
+ * flow below them, so wrapped text can never overlap at any width. Only the
+ * centered overlays (countdown, result, GL note) and the corner tip stay
+ * absolutely positioned. */
+.pk-hud {
+  position: absolute; inset: 0; padding: 10px;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
+  pointer-events: none;
+}
+.pk-top {
+  display: flex; gap: 8px; flex-wrap: wrap; align-items: center; max-width: 100%;
+}
+.pk-chip {
+  background: #10141bd9; color: #f4f6fb; border-radius: 999px;
+  padding: 5px 12px; font-size: 13px; font-weight: 800;
+  font-variant-numeric: tabular-nums; border: 2px solid #ffffff33;
+}
+
+.pk-chip.pk-boost { background: #10141bd9; }
+.pk-chip.pk-boost.on { background: #ffc531e6; color: #3d2a00; border-color: #3d2a00; }
+.pk-count {
+  position: absolute; top: 38%; width: 100%; text-align: center;
+  font-family: var(--font-display); font-size: 84px; font-weight: 800;
+  color: #fff; text-shadow: 0 4px 24px #000000aa;
+}
+.pk-stand {
+  background: #10141bb8; color: #f4f6fb; border-radius: 10px;
+  padding: 6px 10px; font-size: 12px; max-width: 100%;
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+.pk-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+.pk-self { font-weight: 800; }
+.pk-tip {
+  position: absolute; right: 10px; bottom: 10px;
+  background: #10141bb8; color: #d6dce8; border-radius: 10px;
+  padding: 6px 10px; font-size: 12px; max-width: 40%; text-align: right;
+}
+.pk-result {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: var(--card); border: 1px solid var(--edge); border-radius: 16px; padding: 14px 18px;
+  box-shadow: var(--shadow-card); pointer-events: auto; min-width: 240px;
+  max-width: calc(100% - 32px); max-height: calc(100% - 32px); overflow: auto;
+}
+.pk-result h3 { margin: 0 0 8px; font-size: 18px; text-align: center; }
+.pk-result .mv { display: grid; grid-template-columns: 30px 1fr auto; gap: 6px; font-size: 14px; font-weight: 600; }
+.pk-result .mv .n { color: var(--ink-dim); }
+.pk-glnote {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: var(--card); border: 1px solid var(--edge); border-radius: 12px; padding: 10px 14px;
+  box-shadow: var(--shadow-card); pointer-events: auto; font-size: 14px; font-weight: 700;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  max-width: calc(100% - 32px);
+}
+.pk-touch { display: none; }
+@media (pointer: coarse), (max-width: 600px) {
+  /* Touch buttons own the bottom edge; standings already flow under the
+   * chips in normal flow, so no absolute docking is needed at any width. */
+  .pk-touch:not([hidden]) { display: flex; }
+  .pk-touch {
+    position: absolute; left: 0; right: 0; bottom: 44px;
+    justify-content: space-between; padding: 0 12px;
+    pointer-events: none;
+  }
+   .pk-tright { display: flex; gap: 10px; pointer-events: auto; }
+  .pk-tbtn {
+    width: 64px; height: 64px; border-radius: 50%; border: 3px solid #ffffff88;
+    background: #10141bb8; color: #fff; font-size: 24px; touch-action: none;
+    user-select: none; -webkit-user-select: none;
+  }
+  .pk-tbtn.pk-gas { background: #de1e6acc; }
+  .pk-tbtn.pk-boostbtn { background: #f2545bcc; }
+  .pk-tip { display: none; }
+}
+
+/* ---- embedded playing: compact chrome (body.is-embed only) ----
+ * The parent already shows brand/close/friends/call controls, so embedded
+ * game screens render without the nested topbar (see renderGame), keep the
+ * title + host-only Change game + a compact sound toggle, and tighten
+ * padding so the playfield fits a phone call layout. Standalone selectors
+ * above never match body.is-embed, so standalone is untouched. */
+body.is-embed .app { padding-bottom: 32px; }
+
+body.is-embed .gamehead { gap: 8px; margin-bottom: 8px; }
+body.is-embed .gamehead h2 { font-size: 19px; }
+body.is-embed .gamehead .sub { font-size: 12px; }
+body.is-embed .gamehead .btn { min-height: 42px; padding: 6px 14px; font-size: 14px; }
+.iconbtn {
+  flex: none; width: 44px; height: 44px; border-radius: 12px;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--edge); box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.iconbtn svg { width: 20px; height: 20px; display: block; }
+.iconbtn[data-state="off"] { opacity: 0.55; }
+.iconbtn:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+/* Compact watcher status: one honest line; the full explanation sits in the
+ * native Why? disclosure (keyboard + screen-reader accessible, no JS). */
+.spec-compact { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; padding: 6px 8px 6px 12px; margin: 8px 0; font-size: 13px; }
+/* Below-board watcher reason (embed compact chrome): nothing above the
+ * playfield, the Why? disclosure rides under it before the scores. */
+.spec-compact.spec-after { margin: 12px 0 2px; }
+.spec-compact > span { flex: 1; min-width: 0; }
+.specwhy { margin-left: auto; flex: none; }
+.specwhy[open] { flex: 1 1 100%; }
+.specwhy summary {
+  cursor: pointer; font-weight: 800; font-size: 12.5px;
+  border: 2px solid var(--edge); border-radius: 999px; padding: 4px 12px;
+  background: var(--card); color: var(--ink); list-style: none;
+  min-height: 32px; display: inline-flex; align-items: center; width: fit-content;
+}
+.specwhy summary::-webkit-details-marker { display: none; }
+.specwhy summary:focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 2px; }
+.specwhy p { margin: 8px 2px 2px; font-size: 13px; font-weight: 600; }
+/* Embedded chess: turn status + both clocks ride in one compact strip above
+ * the board (same ids/classes as standalone, so selectors keep working);
+ * controls + scrollable history sit below. Strip + board fit a 390px-wide
+ * call frame without scrolling the board back and forth. */
+
+/* Row equality comes from the shared .chboard rule above (all variants). */
+
+/* ---- responsive ---- */
+@media (max-width: 900px) {
+  /* The party strip stacks: invite on top, roster below. */
+  .partystrip { align-items: stretch; }
+  .ps-party { margin-left: 0; flex-basis: 100%; }
+}
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; gap: 20px; padding: 22px 4px 20px; }
+  .hero-form { max-width: none; }
+  .hero-cta .btn { flex: 1; }
+  .hero-art { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .poster { padding: 5px 5px 8px; border-radius: 12px; }
+  .poster img, .poster .art-fallback { aspect-ratio: 1 / 1; border-radius: 7px; }
+  .poster.wide { grid-column: auto; }
+  .poster.wide img, .poster.wide .art-fallback { aspect-ratio: 1 / 1; }
+  .poster .tag { display: none; }
+  svg.doodle { display: none; }
+}
+@media (max-width: 640px) {
+  .catalog-list { grid-template-columns: 1fr; }
+  /* Narrow shelf rows keep art + text + Play pill on one row — the
+   * text block wraps so nothing squeezes or overflows at 360/390px. */
+  .catrow { grid-template-columns: 64px minmax(0, 1fr) auto; }
+  .catrow img, .catrow .art-fallback { width: 64px; height: 48px; }
+  /* Narrow toolbar: search full-width, then a two-up grid — every
+   * control keeps its 48px height and nothing overflows 360px. */
+  .catbar { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .catbar input[type="text"] { grid-column: 1 / -1; max-width: none; width: 100%; }
+  .catbar select { width: 100%; min-width: 0; }
+  .catbar .chip { width: 100%; justify-content: center; }
+  .catchips { flex: 1 1 100%; }
+  /* Phone catalog: one-column art rows, comfortably tappable. */
+  .grid-games { grid-template-columns: 1fr; gap: 12px; }
+  .grid-games button.gamepick { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 0 12px; align-items: center; padding: 0; }
+  .grid-games button.gamepick .gart { grid-row: 1 / span 4; border-bottom: none; border-right: 1px solid var(--line); aspect-ratio: auto; height: 100%; min-height: 118px; }
+  .grid-games button.gamepick .t, .grid-games button.gamepick .d,
+  .grid-games button.gamepick .p { padding-left: 0; padding-right: 12px; }
+  .grid-games button.gamepick .t { padding-top: 10px; font-size: 17px; }
+  .grid-games button.gamepick .play-row { padding: 6px 12px 10px 0; }
+  .grid-games button.gamepick .play-pill { min-width: 0; }
+}
+@media (max-width: 560px) {
+  .app { padding: 0 12px 56px; }
+  .topbar { margin: 0 -12px 8px; padding: 10px 12px; }
+  .card { padding: 18px; }
+  .btn { min-height: 50px; }
+  .only-desktop { display: none !important; }
+  .only-phone { display: revert !important; }
+  /* Compact single-row header: brand + code + two small actions.
+   * Icon-only, compact rounded rectangles (not circles): the label text
+   * hides, the SVG icon and the meaningful aria-label stay. */
+  .topbar { gap: 8px; flex-wrap: nowrap; }
+  .topbar .row { gap: 6px; margin-left: auto; flex: none; flex-wrap: nowrap; }
+  .brand { font-size: 19px; overflow: hidden; text-overflow: ellipsis; }
+  .brand small { display: none; }
+  .brandmark { width: 24px; height: 24px; }
+  .roomchip { font-size: 13px; letter-spacing: 2px; text-indent: 2px; padding: 4px 10px; }
+  .topbar .hbtn { padding: 6px 10px; min-height: 44px; min-width: 44px; border-radius: 12px; gap: 0; }
+  .topbar .hbtn .hlabel { display: none; }
+  #bSound[data-state="off"] { opacity: 0.55; }
+  .partystrip { padding: 12px 14px; gap: 12px 16px; }
+  .partystrip .player { font-size: 13px; }
+  .ps-actions .btn { padding: 8px 16px; }
+  /* Keep the QR popover inside the viewport on phones. */
+  .qrpop-card { left: auto; right: 0; }
+  .qrpop-card img { width: 148px; height: 148px; }
+  /* Compact active-game header: small thumb + min-width text so the
+   * playfield keeps the screen on phones. */
+  .gamehead { gap: 10px; }
+  .gamehead img, .gamehead .art-fallback { width: 40px; height: 40px; border-radius: 9px; }
+  .gamehead .art-fallback { font-size: 18px; }
+  .gamehead h2 { font-size: 19px; }
+  .gamehead .sub { font-size: 12px; }
+  .gamehead .btn { min-height: 42px; padding: 6px 14px; font-size: 14px; }
+  .pk-stage { height: 52vh; min-height: 280px; }
+  .pk-count { font-size: 64px; }
+}
+
+/* ---- game-body typography: large clear text-game type ----
+ * Scope is #gbody:where([data-layout="standard"]) only — the game-host layout surface inside .gamecard
+ * (rendered by renderGame, mounted by game-host show() in app.js).
+ * Everything outside it stays untouched: .gamehead compact chrome,
+ * .timerbar/.timertext numerics, shell .scoreboard#scores, .specbanner,
+ * home/lobby/catalog, .dlg customizers, pick/gamepick/catrow card lift,
+ * and the svg.doodle ambient loops + reduced-motion block below.
+ * Protected INSIDE #gbody:where([data-layout="standard"]) via explicit restores after the general
+ * rules: chess .promo piece buttons (20px), kart .pk-glnote retry
+ * (15px ghost) and .pk-result h3 (18px). Chess (.chwrap/.chembed),
+ * kart (.pk-*), and castle (.cc-*) markup contains no p, h4, .voteopt,
+ * .bar, input, or label nodes, so the text rules below cannot reach
+ * their boards, canvases, HUD chips, clocks, logs, or timers.
+ * The two !important flags are the only ones in this section: text
+ * views set central-prompt sizes inline (19-34px), so #gbody:where([data-layout="standard"]) .display
+ * needs one flag per breakpoint to hold the 24-32px band. No rule
+ * here sets a max-height or clips prompt text. */
+#gbody:where([data-layout="standard"]) .display {
+  font-size: 28px !important;
+  line-height: 1.25;
+  font-weight: 800;
+  text-align: center;
+}
+#gbody:where([data-layout="standard"]) p:not(.muted):not(.display):not([class*="gk-"]) {
+  font-size: 18px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+#gbody:where([data-layout="standard"]) p.muted:not([class*="gk-"]) {
+  font-size: 16px;
+  line-height: 1.45;
+}
+#gbody:where([data-layout="standard"]) .row > span { font-size: 18px; line-height: 1.5; }
+#gbody:where([data-layout="standard"]) h3 { font-size: 22px; }
+#gbody:where([data-layout="standard"]) h4 {
+  font-size: 18px; font-family: var(--font-display); font-weight: 800;
+  margin: 0 0 8px;
+}
+
+#gbody:where([data-layout="standard"]) .btn:not(.big) { font-size: 17px; }
+/* Protected restores (same specificity, later source order wins). */
+#gbody:where([data-layout="standard"]) .promo .btn { font-size: 20px; }
+#gbody:where([data-layout="standard"]) .pk-glnote .btn { font-size: 15px; }
+#gbody:where([data-layout="standard"]) .pk-result h3 { font-size: 18px; }
+#gbody:where([data-layout="standard"]) .bar .n { font-size: 18px; line-height: 1.4; }
+#gbody:where([data-layout="standard"]) .bar > span:last-child { font-size: 16px; }
+#gbody:where([data-layout="standard"]) .scoreboard .score { font-size: 16px; }
+#gbody:where([data-layout="standard"]) label { font-size: 17px; }
+#gbody:where([data-layout="standard"]) input[type="text"], #gbody:where([data-layout="standard"]) input[type="number"],
+#gbody:where([data-layout="standard"]) select, #gbody:where([data-layout="standard"]) textarea { font-size: 17px; }
+/* Long prompts wrap; never clipped. */
+#gbody:where([data-layout="standard"]) p, #gbody:where([data-layout="standard"]) .display, #gbody:where([data-layout="standard"]) .bar .n,
+#gbody:where([data-layout="standard"]) h3, #gbody:where([data-layout="standard"]) .row > span {
+  overflow-wrap: anywhere; word-break: break-word;
+}
+/* 390px phones: prompts stay in-band, inputs keep the 16px iOS
+ * no-zoom floor, everything else inherits the rules above. */
+@media (max-width: 560px) {
+  #gbody:where([data-layout="standard"]) .display { font-size: 24px !important; }
+  #gbody:where([data-layout="standard"]) p:not(.muted):not(.display):not([class*="gk-"]) { font-size: 17px; }
+  #gbody:where([data-layout="standard"]) p.muted:not([class*="gk-"]) { font-size: 15px; }
+  #gbody:where([data-layout="standard"]) h3 { font-size: 20px; }
+  #gbody:where([data-layout="standard"]) input[type="text"], #gbody:where([data-layout="standard"]) input[type="number"],
+  #gbody:where([data-layout="standard"]) select, #gbody:where([data-layout="standard"]) textarea { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  /* No lift movement; the deeper shadow + focus outline stay visible. */
+  .pick:hover, .gamepick:hover, .catrow:hover,
+  .pick:focus-within, .gamepick:focus-within, .catrow:focus-within { transform: none; }
+}
+
+/* Narrow call companions keep the actual game title and reachable controls. */
+@media (max-width: 540px) {
+  body.is-embed .gamehead #bVoice { width: 42px; min-width: 42px; padding: 0; }
+  body.is-embed .gamehead .voice-label { display: none; }
+  body.is-embed .gamehead .gthumb, body.is-embed .gamehead .art-fallback { display: none; }
+  body.is-embed .gamehead h2 { white-space: normal; line-height: 1.1; max-height: 42px; font-size: 18px; }
+  body.is-embed .gamehead .sub { display: none; }
+  body.is-embed .gamehead #bLobby { padding: 6px 9px; }
+}
+
+/* Play chrome is a utility, not a second game scene. Game-specific styles
+ * own the prompt, board, live standings, tools and phase presentation. */
+body.game-playing:not(.game-immersive) .app {
+  padding: env(safe-area-inset-top) max(clamp(12px, 2vw, 24px), env(safe-area-inset-right)) max(32px, env(safe-area-inset-bottom)) max(clamp(12px, 2vw, 24px), env(safe-area-inset-left));
+}
+.play-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 8px 108px 8px 0; margin-bottom: 10px; border-bottom: 1px solid var(--line); }
+.play-title { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.play-title h1 { margin: 0; font: 800 19px/1.2 var(--font-body); overflow-wrap: anywhere; }
+.play-status { display: block; margin-top: 2px; font: 800 12px/1.2 var(--font-body); color: var(--accent-deep); }
+.play-title .gthumb, .play-title .art-fallback { width: 30px; height: 30px; object-fit: cover; border-radius: 7px; flex: none; border: 1px solid var(--line-strong); }
+.play-title .art-fallback { font-size: 16px; }
+.game-stage { min-width: 0; padding: 0; border: 0; }
+.game-clock { display: flex; gap: 12px; align-items: center; min-height: 32px; margin: 0 0 8px; }
+/* The row keeps its height between phases (no jump when a deadline starts
+ * or ends); games that draw their own timer give it up. */
+.game-clock.is-idle > * { visibility: hidden; }
+.game-clock.is-owned { display: none; }
+/* Long ballots/manuscripts scroll, while only the clock and Room launcher
+ * stay available. Immersive games keep their own playfield and HUD. */
+body.game-playing:not(.game-immersive) .game-clock { position: sticky; top: max(10px, env(safe-area-inset-top)); z-index: 30; min-height: 32px; padding: 6px 108px 6px 0; background: var(--bg); }
+html:has(body.game-playing:not(.game-immersive)) { scroll-padding-block-start: calc(max(10px, env(safe-area-inset-top)) + 56px); scroll-padding-block-end: max(24px, env(safe-area-inset-bottom)); }
+body.game-playing:not(.game-immersive) #gbody :is(input, textarea, select) { scroll-margin-block: 12px; }
+.game-clock .timerbar { flex: 1; height: 4px; border: 0; margin: 0; background: var(--line); box-shadow: none; }
+.game-clock .timertext { flex: none; max-width: 52%; font-size: 14px; line-height: 1.3; color: var(--ink); }
+.game-clock .timerbar.urgent { animation: none; }
+.game-clock .timerbar.urgent + .timertext { color: var(--melon-deep); }
+.game-stage > .specbanner { margin: 0 0 12px; border-width: 1px; padding: 8px 12px; }
+.game-stage > .spec-after { margin: 12px 0 0; }
+.game-stage .specwhy summary { min-height: 44px; }
+.game-stage > #gbody > #rematch { justify-content: center; gap: 10px; padding: 16px 0 0; margin-top: 16px; border-top: 1px solid var(--line); }
+.game-stage > #gbody > #rematch > .btn:disabled { opacity:1; background:var(--well); color:var(--ink-dim); border-color:var(--line); box-shadow:none; }
+.game-stage #rematch #hostWait { flex: 1 1 100%; margin: 4px 0 0; text-align: center; }
+
+.game-playing .room-menu { color: var(--ink); font: 700 15px/1.4 var(--font-body); }
+.play-toolbar .room-menu { position: fixed; top: max(10px, env(safe-area-inset-top)); left: auto; right: max(clamp(12px, 2vw, 24px), env(safe-area-inset-right), calc((100vw - 1120px) / 2 + 24px)); flex: none; }
+.game-playing .room-menu > summary { width: max-content; min-width: 96px; min-height: 44px; gap: 8px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); color: var(--ink); box-shadow: none; transition: background .15s; touch-action: manipulation; }
+.game-playing .room-menu > summary svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; flex: none; }
+.game-playing .room-menu[open] > summary { background: var(--well); }
+.game-playing .room-menu-panel { position: absolute; left: 0; top: 44px; width: min(350px, calc(100vw - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right)))); max-height: calc(100dvh - 84px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding: 20px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--card); color: var(--ink); box-shadow: 0 12px 40px #0003; overscroll-behavior: contain; }
+.play-toolbar .room-menu-panel { left: auto; right: 0; }
+.game-playing .room-menu-panel h2 { font: 800 24px/1.2 var(--font-display); margin: 12px 0 8px; }
+.game-playing .room-menu-panel p { color: var(--ink-dim); font-size: 15px; }
+.game-playing .room-menu-panel .room-watch { color: var(--ink); padding: 10px; background: var(--well); border-radius: 8px; }
+.game-playing .room-menu-actions { gap: 8px; margin: 16px 0; }
+.game-playing .room-menu-actions button { min-height: 44px; min-width: 44px; color: var(--ink); background: var(--well); border: 1px solid var(--line-strong); border-radius: 9px; padding: 10px 12px; touch-action: manipulation; }
+/* End game (host) and Leave (everyone): the two match-ending choices sit
+ * together under the settings, each behind an inline confirmation. */
+.game-playing .room-menu-exit { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 0 0 12px; }
+.game-playing .room-menu-exit button { min-height: 48px; min-width: 44px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: transparent; color: var(--ink); font: 800 15px/1.3 var(--font-body); cursor: pointer; touch-action: manipulation; }
+.game-playing .room-menu-exit button:disabled { opacity: .45; cursor: default; }
+.game-playing .room-confirm { margin: 0 0 12px; padding: 12px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--well); }
+.game-playing .room-confirm p { margin: 0 0 10px; color: var(--ink); font-size: 15px; line-height: 1.45; }
+.game-playing .room-confirm > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.game-playing .room-confirm button { flex: 1 1 120px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); color: var(--ink); font: 800 15px/1.3 var(--font-body); cursor: pointer; }
+.game-playing .room-confirm button.is-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.game-playing .room-menu-actions button:disabled { opacity: .45; cursor: default; }
+.game-playing .room-menu .scoreboard { margin: 16px 0; border-top: 1px solid var(--line); padding-top: 14px; }
+.game-playing .room-menu .scorelabel { flex: 1 1 100%; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-dim); }
+.game-playing .room-menu .score { max-width: 100%; overflow-wrap: anywhere; color: var(--ink); background: var(--well); border-color: var(--line-strong); border-radius: 8px; box-shadow: none; }
+.game-playing .room-menu .score b { color: var(--melon-deep); margin-left: auto; }
+.game-playing .room-menu .watching-chip { display: inline-flex; align-items: center; min-height: 32px; padding: 4px 10px; color: var(--ink-dim); background: transparent; border: 0; border-radius: 8px; font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.game-playing .room-menu-panel .room-meet { display: flex; align-items: center; min-height: 44px; color: var(--accent-deep); font-size: 14px; font-weight: 800; }
+.game-playing .room-menu :focus-visible { outline: 3px solid var(--accent-deep); outline-offset: 3px; }
+/* 3D arenas (karts, castle) keep a dark launcher over the scene; flat
+ * boards use the page tokens like every other game. */
+body.game-playing.game-immersive:has(.pk, .pke, .bs-game) .room-menu { --card: #18202bf5; --well: #27313c; --ink: #f5f7fb; --ink-dim: #bac9d4; --line: #fff2; --line-strong: #ffffff40; --accent-deep: #ffbbca; --melon-deep: #ffb9a6; }
+body.game-playing.game-immersive .room-menu > summary { min-width: 96px; border-radius: 10px; background: var(--card); color: var(--ink); border-color: var(--line-strong); box-shadow: 0 4px 16px #0002; }
+body.game-playing.game-immersive .room-menu-panel { background: var(--card); color: var(--ink); border-color: var(--line-strong); }
+
+/* A game menu is one quiet overlay. The playfield keeps its own identity;
+ * utility settings and the room roster live here, behind a single launcher. */
+.game-playing .room-menu-scrim { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 0; padding: 0; background: #090b16b8; cursor: default; }
+.game-playing #roomMenu .room-menu-panel { position: fixed; left: 50%; right: auto; top: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100vw - max(24px, env(safe-area-inset-left)) - max(24px, env(safe-area-inset-right)))); max-height: calc(100dvh - max(24px, env(safe-area-inset-top)) - max(24px, env(safe-area-inset-bottom))); margin: 0; padding: 20px; border-radius: 22px; box-shadow: 0 24px 100px #0007; }
+.game-playing .room-menu-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.game-playing .room-menu-kicker { font: 800 12px/1.2 var(--font-body); letter-spacing: .14em; color: var(--ink-dim); }
+.game-playing .room-close { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--well); color: var(--ink); font: 400 30px/1 var(--font-body); cursor: pointer; }
+.game-playing #roomMenu h2 { margin: 4px 0 8px; font-size: 26px; overflow-wrap: anywhere; }
+.game-playing #roomMenu #gContext { margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
+.game-playing .room-resume { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 50px; padding: 12px 16px; border: 0; border-radius: 12px; background: var(--accent); color: var(--accent-ink); font: 800 18px/1.3 var(--font-body); cursor: pointer; }
+.game-playing #roomMenu .room-menu-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0 16px; }
+.game-playing #roomMenu .room-menu-actions button { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; min-height: 48px; border-color: var(--line); border-radius: 10px; font-size: 15px; line-height: 1.3; padding: 10px 8px; }
+.game-playing #roomMenu .room-setting svg { width: 18px; height: 18px; flex: none; }
+.game-playing #roomMenu .scoreboard { gap: 6px; margin: 12px 0; padding-top: 12px; }
+.game-playing #roomMenu .score { flex: 1 1 45%; display: flex; align-items: center; gap: 7px; padding: 6px 8px; min-width: 0; border: 0; border-radius: 8px; font-size: 14px; }
+.game-playing #roomMenu .room-meet { font-size: 13px; }
+@media (max-height: 500px) and (min-width: 560px) {
+  .game-playing #roomMenu .room-menu-panel { width: min(640px, calc(100vw - 48px)); padding: 14px 18px; }
+  .game-playing #roomMenu .room-menu-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .game-playing #roomMenu .score { flex-basis: 22%; }
+}
+@media (max-width:600px) and (orientation:portrait), (pointer:coarse) and (orientation:portrait) {
+  body.game-playing.game-immersive .room-menu > summary { min-width:44px;width:44px;justify-content:center;padding:0; }
+  body.game-playing.game-immersive .room-menu > summary > span { display:none; }
+}
+@media (max-width: 540px) {
+  .play-toolbar { min-height: 60px; gap: 8px; padding: 8px 108px 8px 0; }
+  .play-title { gap: 8px; }
+  .play-title h1 { font-size: 16px; }
+  .play-title .gthumb, .play-title .art-fallback { width: 26px; height: 26px; border-radius: 6px; }
+  .game-playing .room-menu-panel { padding: 16px; }
+  .game-clock { gap: 10px; margin-bottom: 10px; }
+}
+@media (max-height: 500px) {
+  body.is-embed.game-playing:not(.game-immersive) .play-toolbar { min-height: 44px; padding-block: 4px; margin-bottom: 4px; }
+  body.is-embed.game-playing:not(.game-immersive) .play-title h1 { font-size: 16px; }
+  body.is-embed.game-playing:not(.game-immersive) .play-title :is(.gthumb, .art-fallback) { display: none; }
+  body.game-playing:not(.game-immersive) .game-clock { margin-bottom: 6px; }
+}
+
+/* Preparation lives outside the inert playfield, so it is visible while imports
+ * and the other participants finish loading. No countdown competes with it. */
+.game-preparation { position: fixed; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 45; display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100vw - 32px); border: 1px solid var(--line-strong); border-radius: 16px; padding: 14px 20px; background: var(--card); color: var(--ink); box-shadow: 0 8px 32px #24203622; font: 800 16px var(--font-body); }
+.preparation-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.game-load-error { max-width: 480px; margin: 12vh auto; padding: 32px 24px; text-align: center; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 20px; }
+.game-load-error h2 { font-size: 28px; }
+.game-load-error p { color: var(--ink-dim); }
+@media (prefers-reduced-motion: no-preference) {
+  .preparation-dot { animation: ready-breathe 1.2s ease-in-out infinite; }
+  .howto-dlg[open], .dlg { animation: sheet-enter .22s cubic-bezier(.2,.75,.25,1); }
+  .howto-dlg::backdrop { animation: sheet-dim .18s ease; }
+  @keyframes ready-breathe { 50% { opacity: .3; } }
+  @keyframes sheet-enter { from { opacity: 0; transform: translateY(14px) scale(.99); } }
+  @keyframes sheet-dim { from { background: transparent; } }
+}
+
+.howto-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--line); margin: 16px 0; }
+.howto-tabs button { position: relative; font: 800 17px var(--font-body); min-width: 44px; min-height: 48px; padding: 8px 4px 12px; border: 0; background: none; color: var(--ink-dim); cursor: pointer; white-space: nowrap; }
+.howto-tabs [aria-selected="true"] { color: var(--accent-deep); }
+.howto-tabs [aria-selected="true"]::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; border-radius: 3px; background: var(--accent); }
+.howto-tabs button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.howto-intro { color: var(--ink-dim); margin: 18px 0; font-size: 17px; line-height: 1.55; }
+.howto-head .dlg-x { width: 44px; height: 44px; min-height: 44px; padding: 0; border-radius: 12px; }
+
+.boot-view { min-height: 65dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; padding: 32px 20px; }
+.boot-view h1 { font-size: clamp(28px, 4vw, 38px); margin: 0; }
+.boot-view p { color: var(--ink-dim); margin: 0 0 8px; }
+.boot-view a { color: var(--accent-deep); }
+
+/* ---- inside Giggle: the call room's palette ----
+ * The Giggle call room is a quiet navy frame (apps/desktop/app/call-room.css).
+ * Games framed there wear the same palette in either theme, so the panel
+ * reads as one product. Tokens only; every screen picks these up. */
+body.is-embed {
+  --bg: #171922;
+  --card: #21242f;
+  --well: #2a2f3d;
+  --chip: #2a2f3d;
+  --ink: #f5f6fa;
+  --ink-dim: #a8b0c5;
+  --edge: #363c4d;
+  --hard: transparent;
+  --line: #363c4d;
+  --line-strong: #586078;
+  --accent: #da216c;
+  --accent-deep: #ff91bd;
+  --accent-soft: #382337;
+  --accent-ink: #ffffff;
+  --sun: #f5c451;
+  --sun-soft: #3a3322;
+  --sun-ink: #1e1600;
+  --melon: #ff7a86;
+  --melon-deep: #ffb3ba;
+  --melon-soft: #472530;
+  --teal: #4fd1c0;
+  --teal-deep: #9ef0e4;
+  --sky: #74b4ee;
+  --green: #6ee3b4;
+  --signal: #ff7a86;
+  --signal-deep: #ffb3ba;
+  --signal-soft: #472530;
+  --input-bg: #171922;
+  --topbar-bg: #171922;
+  --shadow-card: 0 10px 28px #00000040;
+  --shadow-btn: none;
+  --shadow-sm: none;
+  color-scheme: dark;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* The whole page wears the navy, not only the body's box. */
+html:has(> body.is-embed) { background: #171922; color-scheme: dark; }
+
+/* Game size control ("− 100% +"): quiet, beside the Room launcher in the
+ * play toolbar of standard-layout games (public/js/zoom.js). */
+.game-zoom { display: inline-flex; align-items: stretch; flex: none; margin-left: auto; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--card); overflow: hidden; }
+.game-zoom button { min-width: 44px; min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--ink); font: 800 18px/1 var(--font-body); cursor: pointer; touch-action: manipulation; }
+.game-zoom .game-zoom-value { min-width: 56px; font-size: 14px; font-variant-numeric: tabular-nums; border-inline: 1px solid var(--line); }
+.game-zoom button:disabled { color: var(--ink-dim); opacity: .45; cursor: default; }
+.game-zoom button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+@media (hover: hover) { .game-zoom button:hover:not(:disabled) { background: var(--well); } }
+/* Keep names readable beside the fixed Room/Report launchers on small
+ * phones. The size control takes a second row instead of squeezing the
+ * title into a column only one or two letters wide. */
+@media (max-width: 400px) {
+  .play-toolbar:has(.game-zoom) { flex-wrap: wrap; row-gap: 6px; }
+  .play-toolbar:has(.game-zoom) .play-title { flex-basis: 100%; }
+  .play-toolbar:has(.game-zoom) .play-title h1 { overflow-wrap: normal; }
+  .play-toolbar .game-zoom { margin-left: 0; }
+}
+@media (max-width: 540px) {
+  .play-toolbar .game-zoom .game-zoom-value { min-width: 48px; font-size: 13px; }
+  .play-toolbar:has(.game-zoom) .play-title :is(.gthumb, .art-fallback) { display: none; }
+}
+
+/* Compact discovery: use the CSS viewport, never DPR or browser zoom.
+ * Keep readable type and 44px controls; spend the space on actual games.
+ * The room/game-specific palettes and immersive renderers keep ownership. */
+:root { --discovery-width: 1280px; --discovery-gap: 16px; }
+body:not(.game-playing):not(.is-embed) .app { max-width: var(--discovery-width); padding-bottom: 32px; }
+body:not(.game-playing):not(.is-embed) .topbar { padding-block: 8px; }
+.hero { grid-template-columns: minmax(0, 1fr) minmax(300px, .85fr) minmax(0, .9fr); gap: 28px; padding-block: 24px; }
+.hero h1 { font-size: clamp(32px, 3.3vw, 44px); line-height: 1.08; }
+.hero-eyebrow { background: none; color: var(--ink-dim); padding: 0; border: 0; box-shadow: none; transform: none; font-size: 12px; letter-spacing: .03em; margin-bottom: 12px; }
+.hero-sub { font-size: 16px; line-height: 1.5; }
+.hero-form { width: 100%; max-width: none; }
+.hero-cta .btn { width: 100%; }
+.shelf-link { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 0; color: var(--accent-deep); font-weight: 800; text-underline-offset: 4px; }
+.shelf-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+#games { scroll-margin-top: 80px; }
+.hero-art { gap: 8px; }
+.hero-art .poster { padding: 6px; border-radius: 12px; transform: none; box-shadow: none; }
+.hero-art .poster img { max-height: 154px; object-fit: cover; }
+.hero-art .doodle { display: none; }
+.band { padding: 20px 0; }
+.sec-head { margin-bottom: 12px; }
+.pick-grid { gap: var(--discovery-gap); margin-top: 12px; }
+.pick-grid .gart { aspect-ratio: 2.8; }
+.pick-grid .pick .t { padding-top: 10px; font-size: 18px; }
+.lobby { gap: var(--discovery-gap); padding-top: 8px; }
+.partystrip { gap: 12px 20px; padding: 12px 16px; }
+.partystrip .room-manage:not([open]) { flex: 0 0 auto; border: 0; padding: 0; }
+.partystrip .room-manage > summary { font-size: 14px; }
+.partystrip .roommeta { font-size: 12px; }
+.partystrip .roomcode { font-size: 30px; }
+.grid-games { gap: var(--discovery-gap); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.grid-games .gart { aspect-ratio: 3; }
+.grid-games .gamepick .t { padding-top: 10px; font-size: 18px; }
+/* Short desktop height has its own density budget. Text/targets keep size. */
+@media (min-width: 761px) and (max-height: 800px) {
+  body.game-playing:not(.game-immersive) .play-toolbar { min-height: 56px; margin-bottom: 6px; padding-block: 6px; }
+  .hero { padding-block: 16px; }
+  .band { padding-block: 16px; }
+  .ticket { padding: 12px 16px; }
+  .ticket-head { margin: 0; }
+  .hero-form { gap: 6px; }
+  .lobby { gap: 12px; }
+  .lobby .sec-head { margin-bottom: 10px; }
+}
+@media (min-width: 761px) and (max-width: 1099px) {
+  .hero { grid-template-columns: minmax(0, 1fr) minmax(300px, .9fr); }
+  .hero-art { display: none; }
+}
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; gap: 16px; padding: 18px 0; }
+  .hero h1 { max-width: 18ch; font-size: 34px; }
+  .hero-sub { margin-bottom: 4px; }
+  .hero-art { display: none; }
+  .hero-copy .shelf-link { margin-top: 0; }
+  .pick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .pick-grid .pick .t, .pick-grid .pick .d, .pick-grid .pick .p { padding-inline: 12px; }
+  .pick-grid .play-row { padding-inline: 12px; }
+  .pick-grid .play-pill { min-width: 0; width: 100%; }
+  .pick-grid .gart { aspect-ratio: 1.8; }
+  .partystrip .room-manage:not([open]) { flex-basis: 100%; border-top: 1px solid var(--line); padding-top: 4px; }
+}
+@media (max-width: 640px) {
+  .grid-games .gart { aspect-ratio: auto; }
+}
+@media (max-width: 760px) {
+  /* Keep the ticket's decorative cut-outs inside the phone viewport. */
+  .ticket-or::before { left: -28px; }
+  .ticket-or::after { right: -28px; }
+}

@@ -1,11 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile --filter @giggle/desktop...",
-  "buildCommand": "pnpm --filter @giggle/desktop build",
+  "buildCommand": "node apps/desktop/scripts/verify-release-dependencies.cjs && pnpm --filter @giggle/desktop build && node apps/desktop/scripts/verify-release-dependencies.cjs",
   "outputDirectory": "apps/desktop/.next",
   "framework": "nextjs",
   "env": {
-    "NEXT_PUBLIC_BACKEND_URL": "https://giggle-server-production.up.railway.app"
+    "NEXT_PUBLIC_BACKEND_URL": "https://giggle-server-production.up.railway.app",
+    "NEXT_PUBLIC_GAMES_URL": "https://play.gigglemeet.com"
   },
   "git": {
     "deploymentEnabled": {

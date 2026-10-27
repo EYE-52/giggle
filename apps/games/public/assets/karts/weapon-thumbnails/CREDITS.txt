@@ -1,0 +1,5 @@
+96px transparent UI thumbnails rendered offline from the shipped kart/combat model factories.
+Mounted source meshes: combat/combat.glb, combat/pulse-mounted.glb, combat/arsenal-mounted.glb and combat/arsenal-secondary.glb. Source-backed mounted library assets retain their existing Kenney CC0-1.0 attribution and licenses recorded by scripts/build-kart-*-mounted.py and scripts/build-kart-arsenal-secondary.py.
+Invincibility uses the shipped Giggle kart model. Spikes use the reusable beveled metal blade geometry in kart-combat-art.mjs. No external images or AI-generated artwork are used.
+Bomb and Proximity: Blender Cycles renders of the original Giggle seven-stick dynamite BombShot from arsenal-mounted.glb (scripts/build-kart-arsenal-mounted.py); red sticks, charcoal straps, cream fuse and proximity sensor; no external imagery.
+Mine: Blender Cycles render of the independently grounded MineTrap pressure disc (no stowed rack or enlarged mounted gear) from the same arsenal-mounted source script; actual restrained red hardware lamp retained.

@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const source = fs.readFileSync(new URL('../public/js/toolkit/input.js', import.meta.url), 'utf8');
+const { createInput } = await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64'));
+function host() { const listeners = new Map(); return { addEventListener(type, fn) { if (!listeners.has(type)) listeners.set(type, []); listeners.get(type).push(fn); }, removeEventListener() {}, fire(type, event = {}) { for (const fn of listeners.get(type) || []) fn(event); } }; }
+const win = host(), doc = host(), target = host(), keys = [], pointers = [];
+let modal = false;
+doc.querySelector = selector => selector === 'dialog[open]' && modal ? {} : null;
+const input = createInput(target, { window: win, document: doc, preventKeys: ['Space'], onKey: key => keys.push(key), onPointer: pointer => pointers.push(pointer) });
+win.fire('keydown', { code: 'KeyW' }); assert.equal(input.isDown('KeyW'), true);
+modal = true; doc.fire('game-screenchange'); assert.equal(input.isDown('KeyW'), false);
+assert.equal(keys.at(-1).type, 'up');
+let prevented = false;
+for (const code of ['Space', 'KeyW', 'ArrowLeft']) win.fire('keydown', { code, target: { tagName: 'BUTTON' }, preventDefault() { prevented = true; } });
+target.fire('pointerdown', { pointerId: 1 });
+assert.equal(keys.length, 2, 'report and other native modal keys never move or shoot');
+assert.equal(pointers.length, 0); assert.equal(prevented, false, 'modal buttons keep their native keyboard behavior');
+modal = false; win.fire('keydown', { code: 'KeyW' }); assert.equal(input.isDown('KeyW'), true);
+target.fire('pointerdown', { pointerId: 2 }); assert.equal(pointers.at(-1).type, 'down');
+input.dispose(); assert.equal(input.isDown('KeyW'), false); assert.equal(pointers.at(-1).type, 'cancel');
+console.log('MODAL_GAME_INPUT_PASS: modal opening releases keys; modal key/pointer events cannot activate the game; closing restores controls');

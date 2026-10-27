@@ -1,0 +1,33 @@
+/* Most Likely: nominee cards with real initials, then flat result rows.
+ * Tokens only, on the game kit. */
+.likely-world { max-width: 760px; padding: 12px 0 24px; }
+.likely-world [hidden] { display: none !important; }
+#gbody .likely-world .gk-prompt { margin: 2px 0 0; }
+.likely-status { min-height: 44px; }
+.likely-world .likely-lineup { grid-auto-rows: auto; }
+.likely-world .likely-nominee { min-height: 64px; }
+.likely-initials { width: 36px; height: 36px; font-size: 14px; }
+.likely-name { min-width: 0; font: 700 17px/1.35 var(--font-body); overflow-wrap: anywhere; }
+.likely-results { margin-top: 0; gap: 8px; }
+.likely-world .likely-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; }
+.likely-world .likely-row.is-winner { border-color: var(--accent); background: var(--accent-soft); }
+.likely-world .likely-row.is-winner .likely-initials { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.likely-row-body { flex: 1; min-width: 0; }
+.likely-row-head { display: flex; align-items: baseline; gap: 10px; }
+.likely-row-head .likely-name { flex: 1; font-weight: 800; }
+.likely-votes { flex: none; font: 800 15px/1.3 var(--font-body); font-variant-numeric: tabular-nums; }
+.likely-world .party-meter { margin-top: 8px; height: 8px; }
+.likely-voters { margin: 6px 0 0; overflow-wrap: anywhere; }
+.likely-actions { min-height: 48px; }
+.likely-world .party-more { margin: 0; }
+.likely-world .likely-nominee:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .likely-world { padding: 8px 0 20px; }
+  .likely-world .likely-nominee { min-height: 56px; }
+}
+@media (max-height: 500px) {
+  .likely-world .likely-nominee { min-height: 52px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .likely-world * { transition: none !important; animation: none !important; }
+}

@@ -3,3 +3,4 @@
 *.local
 node_modules
 .git
+dump.rdb

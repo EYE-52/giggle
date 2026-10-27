@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#080f1d">
+<title>Chain Reaction — Reactor Arena</title>
+<meta name="description" content="Chain Reaction reactor arena: place one orb per turn on an empty or owned cell, burst corners at 2, edges at 3, inner cells at 4, and be the last owner standing.">
+<link rel="stylesheet" href="./play.css">
+</head>
+<body>
+<div class="lab">
+  <main class="lab-main">
+    <h1 class="visually-hidden">Chain Reaction</h1>
+    <section id="openFrom" class="open-from" hidden>
+      <h2>Open Chain Reaction from Game Night</h2>
+      <p>This reactor arena lives inside a Game Night room. Create or join a room first, then pick Chain Reaction from the shelf.</p>
+      <p class="open-links">
+        <a class="btn btn-hot" href="/" target="_top">Browse the game catalog</a>
+        <a class="btn btn-ghost" href="/games/chain-reaction/" target="_top">How to play</a>
+      </p>
+    </section>
+
+    <p id="statusLine" class="status" role="status" aria-live="polite">Loading the reactor…</p>
+
+    <div id="controls" class="controls" hidden>
+      <section id="result" class="round-result" role="status" hidden></section>
+      <ol id="ranks" class="ranks" aria-label="Final scores" hidden></ol>
+      <button id="rematchBtn" class="btn btn-hot" type="button" disabled>Rematch</button>
+      <button id="lobbyBtn" class="btn btn-ghost" type="button" disabled>Change game</button>
+      <p id="hostNote" class="host-note">Only the host can start a rematch or change the game.</p>
+    </div>
+
+    <div id="play" class="board-shell" aria-label="Chain Reaction board"></div>
+  </main>
+</div>
+<noscript><p class="noscript">Chain Reaction needs JavaScript. Open it from a Game Night room.</p></noscript>
+<script type="module" src="./play.js"></script>
+</body>
+</html>

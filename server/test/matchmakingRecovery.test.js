@@ -6,6 +6,7 @@ const {
   endEncounterAndRequeue,
   endEncounterAsymmetric,
   getMatchmakingStatus,
+  releaseSquadsFromEncounter,
   retrySearchingSquads,
   stopSearchesWhileDiscoveryDisabled,
   sweepStuckEncounters,
@@ -93,7 +94,7 @@ function squadStore(squads) {
       apply(squad, update);
       return { matchedCount: 1 };
     },
-    findOne: async ({ squadId }) => byId.get(squadId) || null,
+    findOne: async (filter) => [...byId.values()].find((squad) => matches(squad, filter)) || null,
     find: async (filter) => [...byId.values()].filter((squad) => matches(squad, filter)),
   };
 }
@@ -249,6 +250,68 @@ test("the sweeper frees squads stuck on an ended encounter but leaves acked call
     events.filter(({ event }) => event === "SQUAD_UPDATED").map(({ squadId }) => squadId).sort(),
     ["sq_a", "sq_b"]
   );
+});
+
+test("repairing ended E preserves the former opponent's live N video presence", async () => {
+  const store = squadStore([
+    squad("sq_a", USER_A, { status: "matched", currentEncounterId: "enc_E" }),
+    squad("sq_b", USER_B, { status: "in_encounter", currentEncounterId: "enc_N" }),
+  ]);
+  stubSquads(store);
+  stub(Squad, "find", (filter) => ({ select: () => ({ lean: () => store.find(filter) }) }));
+  const ended = { encounterId: "enc_E", status: "ended", squadAId: "sq_a", squadBId: "sq_b" };
+  stub(Encounter, "find", async (filter) => filter.status === "awaiting_ack" ? [] : [ended]);
+  const video = new Map([["sq_a", true], ["sq_b", true]]);
+  const writes = [];
+  stub(sessionService, "setSessionField", async (squadId, memberId, field, value) => {
+    writes.push([squadId, memberId, field, value]);
+    video.set(squadId, value);
+  });
+  const events = stubRealtime();
+  const lock = stubLock();
+
+  await sweepStuckEncounters();
+
+  assert.equal(lock.uses, 1, "repair keeps the existing matchmaking lock");
+  assert.equal(store.byId.get("sq_a").status, "idle");
+  assert.equal(store.byId.get("sq_a").currentEncounterId, null);
+  assert.equal(video.get("sq_a"), false);
+  assert.equal(store.byId.get("sq_b").status, "in_encounter");
+  assert.equal(store.byId.get("sq_b").currentEncounterId, "enc_N");
+  assert.equal(video.get("sq_b"), true, "old E must not clear live N's Redis video flag");
+  assert.deepEqual(writes, [["sq_a", "member_sq_a", "inEncounterVideo", false]]);
+  assert.deepEqual(events.map(({ squadId, event }) => [squadId, event]), [["sq_a", "SQUAD_UPDATED"]]);
+});
+
+test("a failed ended-encounter Redis cleanup leaves only its squad retryable", async () => {
+  const store = squadStore([
+    squad("sq_a", USER_A, { status: "matched", currentEncounterId: "enc_E" }),
+    squad("sq_b", USER_B, { status: "in_encounter", currentEncounterId: "enc_N" }),
+  ]);
+  stubSquads(store);
+  const ended = { encounterId: "enc_E", status: "ended", squadAId: "sq_a", squadBId: "sq_b" };
+  const video = new Map([["sq_a", true], ["sq_b", true]]);
+  let fail = true;
+  stub(sessionService, "setSessionField", async (squadId, _memberId, _field, value) => {
+    if (fail) throw new Error("isolated Redis failure");
+    video.set(squadId, value);
+  });
+  const events = stubRealtime();
+
+  await assert.rejects(releaseSquadsFromEncounter(ended), /isolated Redis failure/);
+  assert.equal(store.byId.get("sq_a").currentEncounterId, "enc_E", "the next sweep must still find failed cleanup");
+  assert.equal(store.byId.get("sq_a").status, "matched");
+  assert.deepEqual(events, []);
+  fail = false;
+  await releaseSquadsFromEncounter(ended);
+
+  assert.equal(store.byId.get("sq_a").status, "idle");
+  assert.equal(store.byId.get("sq_a").currentEncounterId, null);
+  assert.equal(video.get("sq_a"), false);
+  assert.equal(store.byId.get("sq_b").currentEncounterId, "enc_N");
+  assert.equal(store.byId.get("sq_b").status, "in_encounter");
+  assert.equal(video.get("sq_b"), true);
+  assert.deepEqual(events.map(({ squadId, event }) => [squadId, event]), [["sq_a", "SQUAD_UPDATED"]]);
 });
 
 test("turning discovery off stops in-flight searches and clears the queue", async () => {

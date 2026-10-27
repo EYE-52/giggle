@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Pose Party: a sticker camera with a posing figure under a spotlight">
+<rect x="2.5" y="2.5" width="115" height="115" rx="24" fill="#FFB020" stroke="#2B1220" stroke-width="5"/>
+<polygon points="60,8 34,66 86,66" fill="#FFFFFF" opacity="0.35"/>
+<polygon points="60,8 48,66 72,66" fill="#FFFFFF" opacity="0.45"/>
+<g stroke="#2B1220" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+<circle cx="60" cy="34" r="11" fill="#FFFFFF"/>
+<circle cx="56" cy="33" r="1.6" fill="#2B1220" stroke="none"/>
+<circle cx="64" cy="33" r="1.6" fill="#2B1220" stroke="none"/>
+<path d="M55 39 Q60 43 65 39" fill="none" stroke-width="2.5"/>
+<circle cx="52.5" cy="36.5" r="1.8" fill="#DE1E6A" stroke="none"/>
+<circle cx="67.5" cy="36.5" r="1.8" fill="#DE1E6A" stroke="none"/>
+<path d="M46 30 L38 20 M74 30 L82 20" fill="none" stroke-width="5"/>
+<circle cx="37" cy="18.5" r="3.2" fill="#0E9B8A"/>
+<circle cx="83" cy="18.5" r="3.2" fill="#0E9B8A"/>
+<path d="M48 46 Q60 52 72 46 L70 58 Q60 62 50 58 Z" fill="#0E9B8A"/>
+</g>
+<g stroke="#2B1220" stroke-width="4" stroke-linejoin="round">
+<rect x="28" y="62" width="64" height="38" rx="10" fill="#DE1E6A"/>
+<rect x="44" y="56" width="22" height="10" rx="4" fill="#DE1E6A"/>
+<rect x="30" y="68" width="10" height="8" rx="2" fill="#FFB020" stroke-width="3"/>
+<circle cx="66" cy="81" r="13" fill="#FFFFFF"/>
+<circle cx="66" cy="81" r="7.5" fill="#0E9B8A" stroke-width="3"/>
+<circle cx="63.5" cy="78.5" r="2" fill="#FFFFFF" stroke="none"/>
+</g>
+<path d="M98 84 l2 4.2 4.6 0.6 -3.4 3.2 0.9 4.6 -4.1-2.2 -4.1 2.2 0.9-4.6 -3.4-3.2 4.6-0.6z" fill="#FFFFFF" stroke="#2B1220" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="20" cy="92" r="5" fill="#0E9B8A" stroke="#2B1220" stroke-width="3"/>
+<circle cx="100" cy="34" r="4" fill="#DE1E6A" stroke="#2B1220" stroke-width="2.5"/>
+</svg>

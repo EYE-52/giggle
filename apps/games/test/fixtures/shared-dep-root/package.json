@@ -1,0 +1,1 @@
+{ "name": "shared-dep-fixture", "private": true, "dependencies": { "chess.js": "1.4.0" } }

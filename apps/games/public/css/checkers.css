@@ -1,0 +1,15 @@
+/* Checkers board art: flat squares, flat discs, gold crowns. */
+.ck .ck-board{aspect-ratio:1}
+.ck .ck-art{display:block;width:100%;height:100%}
+.ck .ck-frame{fill:#2f4f42}
+.ck .ck-light{fill:#ece3cf}
+.ck .ck-dark{fill:#5a8370}
+.ck .ck-last{fill:#f6d365;opacity:.45}
+.ck .ck-grid{position:absolute;inset:2%;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr)}
+.ck .ck-grid button{position:relative;width:100%;height:100%;min-width:0;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;cursor:default;touch-action:manipulation}
+.ck .ck-grid button.is-source{cursor:pointer}
+.ck .ck-grid button.is-source::after{content:"";position:absolute;inset:8%;border:3px solid #ffffffcc;border-radius:50%;pointer-events:none}
+.ck .ck-grid button.is-selected::after{content:"";position:absolute;inset:5%;border:4px solid var(--accent);border-radius:50%;pointer-events:none}
+.ck .ck-grid button.is-destination{cursor:pointer}
+.ck .ck-grid button.is-destination::after{content:"";position:absolute;width:28%;height:28%;left:36%;top:36%;border-radius:50%;background:#ffffffd9;border:3px solid var(--accent)}
+.ck .ck-grid button:focus-visible{outline:3px solid var(--accent);outline-offset:-4px;z-index:2}

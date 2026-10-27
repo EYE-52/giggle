@@ -1,0 +1,43 @@
+{
+  "task": "three-3d-games design packet",
+  "date": "2026-10-14",
+  "gate": "G0-planned (design only; no code, no runs, no approvals of own work)",
+  "revision": "revision-2 per root + independent reviewer corrections (supersede ROOT_BRIEF.md conflicts); first attempt preserved externally",
+  "files_written": ["proposal.md", "qa-cases.json", "tool-capabilities.md", "status.json"],
+  "files_untouched": ["AGENTS.md", "PROMPT.md", "REFERENCES.md", "ROOT_BRIEF.md", "REVIEW_1.md", "context/", "guidance/", "muse-run.jsonl", "muse-stderr.log", "muse-revision-2.jsonl", "muse-revision-2-stderr.log"],
+  "qa_cases": { "total": 51, "run": 0, "passed": 0, "planned": 51 },
+  "browser_qa_performed": false,
+  "reference_gaps": [
+    "No gameplay reference was played hands-on; Golf Party, Golf With Your Friends, Bombergrounds, Spaceteam, Smash Karts and Marble Blast stand on their cited pages plus the workspace reference packet.",
+    "Kenney kit pages confirm CC0 and file counts only; per-file formats, dimensions, materials, rigs and byte costs are uninspected.",
+    "Physical devices, live Giggle Meet call, heard audio and thermal behaviour are unverified by design at this stage; cases requiring them now demand actual evidence when run.",
+    "Rest/cup numbers, fuse/blast durations and tick tuning are G1 inputs, not release facts."
+  ],
+  "unresolved_questions": [
+    "Accept the proposed rest/cup criteria as G1 greybox inputs, or instrument the greybox to propose numbers first?",
+    "Bomb Garden round-1 arm preview: keep default-on or make it a room setting?",
+    "Rocket Room 4-5 atom bundling: accept the proposed grouping or prefer a different pairing?",
+    "Fetch Kenney packs for per-file inspection now, or defer to G1?",
+    "Reviewer check: receipt-time deadline fairness under jitter and two-phase blast batch under reconnect fully specified?"
+  ],
+  "correctionsApplied": [
+    { "item": 1, "sections": ["proposal.md §1 Simulation boundary"], "cases": ["SH-SIM-01"] },
+    { "item": 2, "sections": ["proposal.md §2 Roster", "proposal.md §5"], "cases": ["SH-ROS-01", "CL-SIM-02"] },
+    { "item": 3, "sections": ["proposal.md §1 Non-idempotent intents", "proposal.md §4 plant sequence"], "cases": ["SH-INP-02", "CL-INP-02"] },
+    { "item": 4, "sections": ["proposal.md §5"], "cases": ["SH-LIF-03", "SH-ROS-03", "SH-ROS-04"] },
+    { "item": 5, "sections": ["proposal.md §2 Scoring"], "cases": ["CL-RUL-03"] },
+    { "item": 6, "sections": ["proposal.md §2 Rest and cup authority", "proposal.md §7 Q1"], "cases": ["SH-SCO-01", "CL-RUL-01", "CL-RUL-02"] },
+    { "item": 7, "sections": ["proposal.md §3 atoms/bundling/seeds", "proposal.md §7 Q3"], "cases": ["RR-INF-02"] },
+    { "item": 8, "sections": ["proposal.md §3 Failure/recovery"], "cases": ["RR-DIS-01", "RR-DIS-02", "SH-ROS-05"] },
+    { "item": 9, "sections": ["proposal.md §3 Risk experiment", "proposal.md §6 ledger"], "cases": ["RR-INF-01", "RR-FUN-01"] },
+    { "item": 10, "sections": ["proposal.md §4 Deterministic rules"], "cases": ["BG-RUL-02"] },
+    { "item": 11, "sections": ["proposal.md §4 Match format"], "cases": ["BG-RUL-04"] },
+    { "item": 12, "sections": ["proposal.md §4 Deterministic rules"], "cases": ["BG-RUL-01", "BG-RUL-02", "BG-RUL-04", "BG-RUL-05"] },
+    { "item": 13, "sections": ["proposal.md §4 Runtime spawn validation"], "cases": ["BG-RUL-03"] },
+    { "item": 14, "sections": ["proposal.md §1 Readiness (four states)", "proposal.md §4 Local vs authoritative input"], "cases": ["SH-NET-01", "BG-INP-01"] },
+    { "item": 15, "sections": ["proposal.md §4 Risk experiment"], "cases": ["BG-FUN-01", "CL-FUN-01", "RR-FUN-01"] },
+    { "item": 16, "sections": ["proposal.md §1 Readiness", "proposal.md §5"], "cases": ["SH-FOC-02", "SH-DEV-03"] },
+    { "item": 17, "sections": ["proposal.md §1 Readiness", "proposal.md §5"], "cases": ["SH-LIF-04", "SH-LIF-05", "SH-ROS-05", "RR-TXT-02", "RR-DIS-02", "SH-PERF-02", "SH-DEV-01", "SH-DEV-02", "SH-MED-01", "SH-AUD-01", "SH-PERF-01"] }
+  ],
+  "next_step": "Parent product/visual decision and independent reviewer challenge before any G1 greybox work."
+}

@@ -1,0 +1,13 @@
+{
+  "strings": {
+    "title": "Checkers", "variant": "English · 8 × 8", "red": "Red", "charcoal": "Charcoal", "king": "king", "man": "piece",
+    "yourTurn": "Your move", "waiting": "Their move", "watching": "Watching", "choose": "Select a piece, then its destination.", "waitingHint": "Plan your next jump while your friend plays.",
+    "capture": "Capture available — you must jump.", "continue": "Keep jumping with the same piece.", "moving": "Making a move…",
+    "win": "wins", "draw": "Draw", "resignReason": "Opponent resigned", "blockedReason": "No legal moves remain",
+    "repetitionReason": "Position repeated three times", "no-progressReason": "40 turns each without progress", "agreementReason": "Draw agreed",
+    "help": "How to play", "flip": "Flip board", "resign": "Resign", "confirmResign": "Confirm resign", "cancel": "Cancel",
+    "offerDraw": "Offer draw", "acceptDraw": "Accept draw", "drawOffered": "Draw offered", "pieces": "pieces", "square": "Square", "empty": "empty", "retry": "No response yet. Try your move again.",
+    "selected": "selected", "legal": "legal destination", "instructions": "Men move and jump diagonally forward. Kings move and jump in both directions, one square or one jump at a time. Captures are compulsory; if there is another jump, use the same piece. Choose any capture branch. Reaching the last row crowns your piece and ends the turn. Win when the other side cannot move. Three repeated positions or 40 turns each without a capture or a man moving draw the game.",
+    "spectatorHelp": "Friends are playing. You can flip the board and watch every move."
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "giggle-game-kit",
+  "version": "0.1.38",
+  "private": true,
+  "description": "Portable local Game Kit: reusable engine factories, browser toolkit helpers, and game scaffolder. Local use only \u2014 do not publish to npm.",
+  "type": "commonjs",
+  "main": "sdk/server.js",
+  "exports": {
+    ".": "./sdk/server.js",
+    "./server": "./sdk/server.js",
+    "./browser": "./sdk/browser.mjs",
+    "./scaffold": "./sdk/scaffold.js",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "game-kit": "sdk/cli.js"
+  },
+  "dependencies": {}
+}

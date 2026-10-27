@@ -1,0 +1,242 @@
+{
+  "status": "Source-backed secondary candidates for root visual/runtime review; not accepted art",
+  "output": {
+    "path": "public/assets/karts/combat/arsenal-secondary.glb",
+    "bytes": 195208,
+    "sha256": "31eec689f549aff807baee697dcd7e33ffc3f16fbeb9c7ea541bf15b40df6389"
+  },
+  "recipes": {
+    "Scatter": {
+      "source": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/blaster-p.glb",
+      "sha256": "2ffc94c6d8f12d45410012b13169988b70929c7e6ae7d4f868a188265210e49a",
+      "triangles": 822,
+      "transformGltf": [
+        -1.6239792108535767,
+        0.0,
+        1.41972776646071e-07,
+        0.0,
+        0.0,
+        1.6239792108535767,
+        0.0,
+        0.4983358085155487,
+        -1.41972776646071e-07,
+        0.0,
+        -1.6239792108535767,
+        0.40000003576278687,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "surfacePolicy": "Original triangle/UV/split-normal tuples retained under affine rigid/uniform normalization",
+      "length": 1.4,
+      "uniformScale": 1.623979198388473,
+      "sourceBoreCenter": [
+        0,
+        0.0010247565805912018,
+        -0.4310399889945984
+      ],
+      "boreDescription": "Lower of two exposed octagonal inner-lip rings",
+      "helper": [
+        -6.119594075926216e-08,
+        0.5,
+        1.100000023841858
+      ],
+      "mount": [
+        0.9500000611959407,
+        0.7,
+        0.799999976158142
+      ]
+    },
+    "Rail": {
+      "source": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/blaster-f.glb",
+      "sha256": "ea389c88b7d90ede2763e1f2b5834b9fbaaaa56b8a51ebdf21f61ec46d716320",
+      "triangles": 504,
+      "transformGltf": [
+        -1.1832062005996704,
+        0.0,
+        1.0343917011823578e-07,
+        0.0,
+        0.0,
+        1.1832062005996704,
+        0.0,
+        0.4378816783428192,
+        -1.0343917011823578e-07,
+        0.0,
+        -1.1832062005996704,
+        0.32499998807907104,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "surfacePolicy": "Original triangle/UV/split-normal tuples retained under affine rigid/uniform normalization",
+      "length": 1.55,
+      "uniformScale": 1.183206158552366,
+      "sourceBoreCenter": [
+        0,
+        0.05250000022351742,
+        -0.629999965429306
+      ],
+      "boreDescription": "Centroid of four oblique rectangular inner-lip vertices",
+      "helper": [
+        -6.516667383493768e-08,
+        0.5,
+        1.0704199075698853
+      ],
+      "mount": [
+        0.9500000651666738,
+        0.7,
+        0.8295800924301147
+      ]
+    },
+    "Grenade": {
+      "source": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/blaster-l.glb",
+      "sha256": "2739ae04bcb1e396b599cbf4af774df73b7708512bde2a054b2918d1161f16df",
+      "triangles": 450,
+      "transformGltf": [
+        -1.907875895500183,
+        0.0,
+        1.6679180703249585e-07,
+        0.0,
+        0.0,
+        1.907875895500183,
+        0.0,
+        0.42569297552108765,
+        -1.6679180703249585e-07,
+        0.0,
+        -1.907875895500183,
+        0.574999988079071,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "surfacePolicy": "Original triangle/UV/split-normal tuples retained under affine rigid/uniform normalization",
+      "length": 1.05,
+      "uniformScale": 1.9078759431170396,
+      "sourceBoreCenter": [
+        -0.07557190954685211,
+        0.038947521398464836,
+        -0.2751751244068146
+      ],
+      "boreDescription": "Centroid of six inner boundary vertices of source left recessed aperture; twin-chamber candidate",
+      "helper": [
+        0.1441817730665207,
+        0.5,
+        1.100000023841858
+      ],
+      "mount": [
+        0.8058182269334793,
+        0.7,
+        0.799999976158142
+      ]
+    },
+    "EMP": {
+      "source": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/blaster-n.glb",
+      "sha256": "e3faa048f8a90fe57fe838a7f86609bd91815358a1ac3a8dd26432f8010590f6",
+      "triangles": 410,
+      "transformGltf": [
+        -1.95281982421875,
+        0.0,
+        1.7072093783099263e-07,
+        0.0,
+        0.0,
+        1.95281982421875,
+        0.0,
+        0.36729493737220764,
+        -1.7072093783099263e-07,
+        0.0,
+        -1.95281982421875,
+        0.4749999940395355,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "surfacePolicy": "Original triangle/UV/split-normal tuples retained under affine rigid/uniform normalization",
+      "length": 1.25,
+      "uniformScale": 1.9528198649122794,
+      "sourceBoreCenter": [
+        0,
+        0.06795560661703348,
+        -0.3200500011444092
+      ],
+      "boreDescription": "Eight inner circular lip vertices between original fork guards",
+      "helper": [
+        -5.463923713477925e-08,
+        0.5,
+        1.100000023841858
+      ],
+      "mount": [
+        0.9500000546392371,
+        0.7,
+        0.799999976158142
+      ]
+    },
+    "ScatterShot": {
+      "source": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/bullet-foam-tip.glb",
+      "sha256": "e3f99099d6ec946f053c23cba0f83f6d5b674f217e4f46325659f4dfa6747d3a",
+      "triangles": 44,
+      "transformGltf": [
+        11.666666030883789,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        8.808087841316592e-07,
+        -11.666666030883789,
+        -2.6424265442415162e-08,
+        0.0,
+        11.666666030883789,
+        8.808087841316592e-07,
+        -0.3499999940395355,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "surfacePolicy": "Original triangle/UV/split-normal tuples retained under affine rigid/uniform normalization",
+      "length": 0.7
+    },
+    "GrenadeShot": {
+      "source": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/grenade-a.glb",
+      "sha256": "8b67f9500005efee816f3fe72eb00bcded0282f7a9916f4436bf923877d8a89f",
+      "triangles": 200,
+      "transformGltf": [
+        1.8306118249893188,
+        0.0,
+        0.0,
+        0.02649785205721855,
+        0.0,
+        1.8306118249893188,
+        0.0,
+        -0.2175755351781845,
+        0.0,
+        0.0,
+        1.8306118249893188,
+        0.01830611377954483,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "surfacePolicy": "Original triangle/UV/split-normal tuples retained under affine rigid/uniform normalization",
+      "radius": 0.27,
+      "uniformScale": 1.8306118017037931
+    }
+  },
+  "license": "Kenney CC0-1.0; original source mesh/bevels/UV/split normals/colors retained",
+  "atlas": {
+    "path": "assets-source/karts/weapon-candidates-20261007/kenney-blaster-2.1/Models/GLB format/Textures/colormap.png",
+    "sha256": "4d0867c3c3c8c539106f91fbc0987d0e1b7d2811362d1daed593169c7d3b0fdc",
+    "packing": "Original512 PNG unchanged, embedded"
+  },
+  "editable": "assets-source/karts/arsenal-secondary-20261007/arsenal-secondary.blend",
+  "scope": "No frozen assets/runtime/simulation/config edits",
+  "limits": [
+    "Grenade uses original twin-chamber blaster-l; not a literal source grenade launcher. Actual source left aperture helper is offsetX; metadata compensates to canonical muzzle. Review role suitability.",
+    "ScatterShot retains original orange/red toy-dart source colors.",
+    "RailShot intentionally omitted: energy streak remains runtime VFX, not invented source geometry."
+  ]
+}

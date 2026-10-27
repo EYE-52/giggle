@@ -1,0 +1,188 @@
+Pocket Karts audio pack v5 — source credits and edits
+=====================================================
+
+CC-BY 3.0 Unported: https://creativecommons.org/licenses/by/3.0/
+License text: https://creativecommons.org/licenses/by/3.0/legalcode
+CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
+
+Kenney notices are preserved in LICENSE-scifi-kenney.txt and LICENSE-impact-kenney.txt. Source/output hashes are in manifest.json. Engine acquisition uses official HQ MP3 previews, not original lossless WAV. No author endorsement. Selected CC-BY alternatives are used where multiple licenses are offered.
+
+engine.wav
+  Author: Hanbaal
+  Work: Freesound: Motorised Go-Kart (6.5HP petrol)
+  Source: https://freesound.org/people/Hanbaal/sounds/178666/
+  Acquired file: hanbaal-go-kart-start-hq.mp3
+  License: CC0-1.0
+  Changes: Phase-aligned average of four combustion cycles from the existing licensed pack-v4 derivative, boundaries [0.7619, 0.8487, 0.9355, 1.0222, 1.1086]s; resampled each to 3826frames; 2ms phase-matched seam blend; DC removal; RMS0.079 with original peak cap; eight identical recorded cycles; PCM16 mono44100Hz. Removes slow recorded RPM/timbre drift; no arbitrary oscillator/noise.
+
+drift.wav
+  Author: audible-edge (Tom Haigh); loop edit by qubodup
+  Work: OpenGameArt: car tire squeal skid loop
+  Source: https://opengameart.org/content/car-tire-squeal-skid-loop
+  Acquired file: qubodup-tires_squal_loop.wav
+  License: CC-BY-3.0
+  Changes: atrim=start=1:duration=1.6,asetpts=PTS-STARTPTS,highpass=f=450,lowpass=f=3600; raised-cosine90ms circular crossfade; DC removal, peak cap0.27, RMS cap0.1; PCM16 mono44100Hz
+
+reverse.wav
+  Author: Kenney
+  Work: Kenney Impact Sounds (1.0)
+  Source: https://kenney.nl/assets/impact-sounds
+  Acquired file: impactBell_heavy_004.ogg
+  License: CC0-1.0
+  Changes: Original curated v1 trim, fades, normalization and mono PCM16 conversion retained byte-for-byte
+
+pulse.wav
+  Author: Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney
+  Work: OpenGameArt: The Free Firearm Sound Library
+  Source: https://opengameart.org/content/the-free-firearm-sound-library
+  Acquired file: Prepared SFX Library/1911/A_34P.wav
+  License: CC0-1.0
+  Changes: atrim=start=1.52:duration=0.46,asetpts=PTS-STARTPTS,pan=mono|c0=0.5*c0+0.5*c1,highpass=f=90,lowpass=f=9500,afade=t=in:d=0.001,afade=t=out:st=0.39:d=0.07,aresample=44100, volume=0.69781222
+
+scatter.wav
+  Author: Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney
+  Work: OpenGameArt: The Free Firearm Sound Library
+  Source: https://opengameart.org/content/the-free-firearm-sound-library
+  Acquired file: Prepared SFX Library/Model 12/K_17P.wav
+  License: CC0-1.0
+  Changes: atrim=start=0.88:duration=0.56,asetpts=PTS-STARTPTS,pan=mono|c0=0.5*c0+0.5*c1,highpass=f=70,lowpass=f=8500,afade=t=in:d=0.001,afade=t=out:st=0.49000000000000005:d=0.07,aresample=44100, volume=0.69939962
+
+mine.wav
+  Author: Kenney
+  Work: Kenney Sci-fi Sounds (1.0)
+  Source: https://kenney.nl/assets/sci-fi-sounds
+  Acquired file: explosionCrunch_000.ogg
+  License: CC0-1.0
+  Changes: Original curated v1 trim, fades, normalization and mono PCM16 conversion retained byte-for-byte
+
+shield.wav
+  Author: Kenney
+  Work: Kenney Sci-fi Sounds (1.0)
+  Source: https://kenney.nl/assets/sci-fi-sounds
+  Acquired file: forceField_001.ogg
+  License: CC0-1.0
+  Changes: Original curated v1 trim, fades, normalization and mono PCM16 conversion retained byte-for-byte
+
+pickup.wav
+  Author: Kenney
+  Work: Kenney Impact Sounds (1.0)
+  Source: https://kenney.nl/assets/impact-sounds
+  Acquired file: impactBell_heavy_002.ogg
+  License: CC0-1.0
+  Changes: Original curated v1 trim, fades, normalization and mono PCM16 conversion retained byte-for-byte
+
+ko.wav
+  Author: Kenney
+  Work: Kenney Sci-fi Sounds (1.0)
+  Source: https://kenney.nl/assets/sci-fi-sounds
+  Acquired file: explosionCrunch_004.ogg
+  License: CC0-1.0
+  Changes: Original curated v1 trim, fades, normalization and mono PCM16 conversion retained byte-for-byte
+
+respawn.wav
+  Author: Kenney
+  Work: Kenney Sci-fi Sounds (1.0)
+  Source: https://kenney.nl/assets/sci-fi-sounds
+  Acquired file: doorOpen_001.ogg
+  License: CC0-1.0
+  Changes: Original curated v1 trim, fades, normalization and mono PCM16 conversion retained byte-for-byte
+
+boost.wav
+  Author: Kenney
+  Work: Kenney Sci-fi Sounds (1.0)
+  Source: https://kenney.nl/assets/sci-fi-sounds
+  Acquired file: thrusterFire_002.ogg
+  License: CC0-1.0
+  Changes: Original curated v1 trim, fades, normalization and mono PCM16 conversion retained byte-for-byte
+
+rocket.wav
+  Author: dklon
+  Work: OpenGameArt: rocket launch pack
+  Source: https://opengameart.org/content/rocket-launch-pack
+  Acquired file: rocket_launch_4.wav
+  License: CC-BY-3.0
+  Changes: attack + whoosh 0-0.9s; 5ms fade-in, 120ms fade-out; DC removed; peak -5dB
+
+rail.wav
+  Author: Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney
+  Work: OpenGameArt: The Free Firearm Sound Library
+  Source: https://opengameart.org/content/the-free-firearm-sound-library
+  Acquired file: Prepared SFX Library/Tikka/W_24P.wav
+  License: CC0-1.0
+  Changes: atrim=start=0.73:duration=0.5,asetpts=PTS-STARTPTS,pan=mono|c0=0.5*c0+0.5*c1,highpass=f=100,lowpass=f=10500,afade=t=in:d=0.001,afade=t=out:st=0.43:d=0.07,aresample=44100, volume=0.72004195
+
+grenade.wav
+  Author: Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney
+  Work: OpenGameArt: The Free Firearm Sound Library
+  Source: https://opengameart.org/content/the-free-firearm-sound-library
+  Acquired file: Prepared SFX Library/AR-15/D_24P.wav
+  License: CC0-1.0
+  Changes: atrim=start=0.52:duration=0.33,asetpts=PTS-STARTPTS,pan=mono|c0=0.5*c0+0.5*c1,highpass=f=70,lowpass=f=1600,afade=t=in:d=0.001,afade=t=out:st=0.26:d=0.07,aresample=44100, volume=0.69962553
+
+emp.wav
+  Author: Hansjorg Malthaner (varkalandar)
+  Work: OpenGameArt: Tesla coil powered death ray sound
+  Source: https://opengameart.org/content/tesla-coil-powered-death-ray-sound
+  Acquired file: hjm-tesla_sound_shot.wav
+  License: CC-BY-3.0
+  Changes: discharge 0.05-0.50s; 5ms fade-in, 60ms fade-out; DC removed; peak -7dB
+
+grenadeBlast.wav
+  Author: Kenney
+  Work: Kenney Sci-fi Sounds (1.0)
+  Source: https://kenney.nl/assets/sci-fi-sounds
+  Acquired file: explosionCrunch_002.ogg
+  License: CC0-1.0
+  Changes: First0.85s, highpass70Hz, lowpass7500Hz, 1ms attack, 130ms fade-out, DC removal, peak0.63, PCM16 mono44100Hz
+
+collision.wav
+  Author: Kenney
+  Work: Kenney Impact Sounds (1.0)
+  Source: https://kenney.nl/assets/impact-sounds
+  Acquired file: impactMetal_medium_002.ogg
+  License: CC0-1.0
+  Changes: atrim=duration=0.4,asetpts=PTS-STARTPTS,highpass=f=60,lowpass=f=4200,afade=t=in:d=0.002,afade=t=out:st=0.31000000000000005:d=0.09; DC removal, peak cap0.4, RMS cap0.09; PCM16 mono44100Hz
+
+engine-load.wav
+  Author: Hanbaal
+  Work: Freesound: Motorised Go-Kart (6.5HP petrol)
+  Source: https://freesound.org/people/Hanbaal/sounds/178662/
+  Acquired file: hanbaal-fill-and-drive-hq.mp3
+  License: CC0-1.0
+  Changes: Phase-aligned average of four combustion cycles from the existing licensed pack-v4 derivative, boundaries [0.0045, 0.0583, 0.1108, 0.1634, 0.2161]s; resampled each to 2322frames; 2ms phase-matched seam blend; DC removal; RMS0.079 with original peak cap; eight identical recorded cycles; PCM16 mono44100Hz. Removes slow recorded RPM/timbre drift; no arbitrary oscillator/noise.
+
+collision-soft.wav
+  Author: Kenney
+  Work: Kenney Impact Sounds (1.0)
+  Source: https://kenney.nl/assets/impact-sounds
+  Acquired file: impactSoft_medium_001.ogg
+  License: CC0-1.0
+  Changes: atrim=duration=0.3,asetpts=PTS-STARTPTS,highpass=f=60,lowpass=f=4200,afade=t=in:d=0.002,afade=t=out:st=0.21:d=0.09; DC removal, peak cap0.32, RMS cap0.09; PCM16 mono44100Hz
+
+landing.wav
+  Author: Kenney
+  Work: Kenney Impact Sounds (1.0)
+  Source: https://kenney.nl/assets/impact-sounds
+  Acquired file: impactSoft_heavy_004.ogg
+  License: CC0-1.0
+  Changes: atrim=duration=0.38,asetpts=PTS-STARTPTS,highpass=f=60,lowpass=f=1800,afade=t=in:d=0.002,afade=t=out:st=0.29000000000000004:d=0.09; DC removal, peak cap0.32, RMS cap0.09; PCM16 mono44100Hz
+
+rocketBlast.wav
+  Author: Kenney
+  Work: Kenney Sci-fi Sounds (1.0)
+  Source: https://kenney.nl/assets/sci-fi-sounds
+  Acquired file: explosionCrunch_001.ogg
+  License: CC0-1.0
+  Changes: atrim=duration=0.82,asetpts=PTS-STARTPTS,highpass=f=60,lowpass=f=4800,afade=t=in:d=0.003,afade=t=out:st=0.6399999999999999:d=0.18; DC removal, peak cap0.5, RMS cap0.11; PCM16 mono44100Hz
+
+bombBlast.wav
+  Author: Kenney
+  Work: Kenney Sci-fi Sounds (1.0)
+  Source: https://kenney.nl/assets/sci-fi-sounds
+  Acquired file: explosionCrunch_003.ogg
+  License: CC0-1.0
+  Changes: atrim=duration=1.0,asetpts=PTS-STARTPTS,highpass=f=60,lowpass=f=4800,afade=t=in:d=0.003,afade=t=out:st=0.8200000000000001:d=0.18; DC removal, peak cap0.5, RMS cap0.11; PCM16 mono44100Hz
+
+Original tire recording: audible-edge (Tom Haigh), CC0, https://freesound.org/people/audible-edge/sounds/71739/; the qubodup loop edit ships under CC-BY 3.0.
+
+Requested Tesla author profile credit: Hansjörg Malthaner (varkalandar), https://opengameart.org/users/varkalandar

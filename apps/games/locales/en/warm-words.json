@@ -1,0 +1,10 @@
+{
+  "targets": ["dog", "cat", "horse", "elephant", "lion", "bear", "rabbit", "frog", "fish", "shark", "butterfly", "owl", "penguin", "monkey", "apple", "banana", "pizza", "chocolate", "coffee", "bread", "cheese", "egg", "carrot", "strawberry", "car", "truck", "bus", "train", "airplane", "bicycle", "motorcycle", "helicopter", "rocket", "guitar", "piano", "drum", "chair", "table", "bed", "lamp", "mirror", "clock", "pillow", "blanket", "shoe", "hat", "jacket", "shirt", "dress", "glasses", "watch", "ring", "heart", "tooth", "mountain", "river", "ocean", "tree", "flower", "sun", "moon", "star", "cloud", "snow", "book", "pencil", "castle", "bridge", "ball", "house", "garden", "key", "door", "window", "baby", "king", "doctor", "teacher", "beach", "island", "museum", "park"],
+  "strings": {
+    "guess_placeholder": "Try a word…",
+    "guess_button": "Feel the heat",
+    "empty_feed": "Start anywhere. Animals, food, places, things…",
+    "hint_button": "Give us a close word",
+    "vocabulary_note": "One everyday English word. Share ideas on your call!"
+  }
+}

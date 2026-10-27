@@ -1,0 +1,22 @@
+/* Scattergories: the round letter and five category fields. Flat, tokens
+ * only (shared parts: compact-answer-games.css, game kit: game-ui.css). */
+.sg .sg-head { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.sg .sg-letter {
+  flex: none; display: grid; place-items: center; width: 56px; height: 56px;
+  border: 1px solid var(--accent); border-radius: var(--gk-radius, 12px);
+  background: var(--accent-soft); color: var(--ink);
+  font: 800 32px/1 var(--font-display);
+}
+.sg .sg-fields { display: grid; gap: 10px; margin: 0; }
+.sg .sg-field { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); align-items: center; gap: 6px 14px; min-width: 0; }
+.sg .sg-field label { margin: 0; font: 700 17px/1.35 var(--font-body); color: var(--ink); overflow-wrap: anywhere; }
+.sg .sg-field .gk-input:disabled { background: var(--well); color: var(--ink); opacity: 1; }
+.sg .sg-cats { display: flex; flex-direction: column; gap: 4px; }
+.sg .sg-cat > summary { color: var(--ink); font-size: 16px; }
+.sg .sg-cat .wg-rows { padding-bottom: 8px; }
+@media (max-width: 560px) {
+  .sg .sg-letter { width: 48px; height: 48px; font-size: 28px; }
+  .sg .sg-field { grid-template-columns: minmax(0, 1fr); }
+  .sg .sg-field label { font-size: 16px; }
+}
+@media (max-height: 560px) { .sg .sg-fields { gap: 6px; } .sg .sg-letter { width: 44px; height: 44px; font-size: 26px; } }

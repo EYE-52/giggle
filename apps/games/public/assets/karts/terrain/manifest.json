@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "resolutionByRole": {
+    "color": 1024,
+    "normal": 512,
+    "roughness": 256
+  },
+  "license": "CC0-1.0",
+  "normalConvention": "OpenGL tangent-space +Y; no green-channel flip",
+  "materials": {
+    "grass": {
+      "id": "Grass001",
+      "provider": "ambientCG",
+      "author": "ambientCG",
+      "page": "https://ambientcg.com/view?id=Grass001",
+      "tileMetres": 1.4,
+      "license": "https://docs.ambientcg.com/license/",
+      "maps": {
+        "color": {
+          "url": "/assets/karts/terrain/grass-color.webp",
+          "bytes": 326902,
+          "sha256": "b0ea762ee054420ea82d44d0629abf1bfdcb4b8892d93c185f97315820b79a85",
+          "sourceMode": "RGB",
+          "width": 1024,
+          "height": 1024,
+          "colorSpace": "sRGB",
+          "encoding": "WebP q88",
+          "encodedDerivedPixelsExact": false,
+          "rms8Bit": [
+            4.537051571212175,
+            3.5758993231407232,
+            6.399943527330154
+          ],
+          "derivation": "Unchanged source RGB8"
+        },
+        "normal": {
+          "url": "/assets/karts/terrain/grass-normal.webp",
+          "bytes": 576276,
+          "sha256": "5714f0481715d6747d94bdb11585ce6de8ca085007bf27b31843bc1d3018c296",
+          "sourceMode": "RGB",
+          "width": 512,
+          "height": 512,
+          "colorSpace": "linear-data",
+          "encoding": "WebP lossless",
+          "encodedDerivedPixelsExact": true,
+          "rms8Bit": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "derivation": "2x2 box mean then tangent-vector renormalization"
+        },
+        "roughness": {
+          "url": "/assets/karts/terrain/grass-roughness.webp",
+          "bytes": 44016,
+          "sha256": "6862be1268895f440c4ca80f21fdfafa114a1b93d71b07e4110e394d014af5d2",
+          "sourceMode": "L",
+          "width": 256,
+          "height": 256,
+          "colorSpace": "linear-data",
+          "encoding": "WebP lossless",
+          "encodedDerivedPixelsExact": true,
+          "rms8Bit": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "derivation": "16-bit scalar normalized to 8-bit where applicable, then 4x4 box mean"
+        }
+      }
+    },
+    "earth": {
+      "id": "brown_mud_dry",
+      "provider": "Poly Haven",
+      "author": "Rob Tuytel",
+      "page": "https://polyhaven.com/a/brown_mud_dry",
+      "tileMetres": 1.3,
+      "license": "https://polyhaven.com/license",
+      "maps": {
+        "color": {
+          "url": "/assets/karts/terrain/earth-color.webp",
+          "bytes": 515240,
+          "sha256": "fc0bb4b4cf8cf8fedbf612186ed6adfb39999b64e9119922df5b08ec1952aef9",
+          "sourceMode": "RGB",
+          "width": 1024,
+          "height": 1024,
+          "colorSpace": "sRGB",
+          "encoding": "WebP q88",
+          "encodedDerivedPixelsExact": false,
+          "rms8Bit": [
+            3.821924162179652,
+            2.6142182316881324,
+            5.6485761992123384
+          ],
+          "derivation": "Unchanged source RGB8"
+        },
+        "normal": {
+          "url": "/assets/karts/terrain/earth-normal.webp",
+          "bytes": 660796,
+          "sha256": "eb9200c824389b4e8d2f0211c2c9d3777c8ea53a880cd7f37c3cec3510efadb5",
+          "sourceMode": "RGB",
+          "width": 512,
+          "height": 512,
+          "colorSpace": "linear-data",
+          "encoding": "WebP lossless",
+          "encodedDerivedPixelsExact": true,
+          "rms8Bit": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "derivation": "2x2 box mean then tangent-vector renormalization"
+        },
+        "roughness": {
+          "url": "/assets/karts/terrain/earth-roughness.webp",
+          "bytes": 39988,
+          "sha256": "9e6db8e9b484ca5a0b657df2bfdf62e9ebb6243c3ab568dc8a484f17d0484809",
+          "sourceMode": "I;16",
+          "width": 256,
+          "height": 256,
+          "colorSpace": "linear-data",
+          "encoding": "WebP lossless",
+          "encodedDerivedPixelsExact": true,
+          "rms8Bit": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "derivation": "16-bit scalar normalized to 8-bit where applicable, then 4x4 box mean"
+        }
+      }
+    },
+    "limestone": {
+      "id": "cobblestone_floor_08",
+      "provider": "Poly Haven",
+      "author": "Rob Tuytel",
+      "page": "https://polyhaven.com/a/cobblestone_floor_08",
+      "tileMetres": 2,
+      "license": "https://polyhaven.com/license",
+      "maps": {
+        "color": {
+          "url": "/assets/karts/terrain/limestone-color.webp",
+          "bytes": 298682,
+          "sha256": "1c1f587613105aa2eafa5d21b23926121fdfd700e7b081b6d0f4d24de2f5f278",
+          "sourceMode": "RGB",
+          "width": 1024,
+          "height": 1024,
+          "colorSpace": "sRGB",
+          "encoding": "WebP q88",
+          "encodedDerivedPixelsExact": false,
+          "rms8Bit": [
+            2.935836970550539,
+            2.5559230231572263,
+            3.3705709146991145
+          ],
+          "derivation": "Unchanged source RGB8"
+        },
+        "normal": {
+          "url": "/assets/karts/terrain/limestone-normal.webp",
+          "bytes": 485208,
+          "sha256": "b5c4a109cfc212c3d21cefae45aa42dbe7f741d3fdcbb16a86164bbc96b6f9a3",
+          "sourceMode": "RGB",
+          "width": 512,
+          "height": 512,
+          "colorSpace": "linear-data",
+          "encoding": "WebP lossless",
+          "encodedDerivedPixelsExact": true,
+          "rms8Bit": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "derivation": "2x2 box mean then tangent-vector renormalization"
+        },
+        "roughness": {
+          "url": "/assets/karts/terrain/limestone-roughness.webp",
+          "bytes": 42430,
+          "sha256": "8cc44a8e874d2491eb15b1e720eeffcd9bbde904287c56b50a79b222a1ca1cd6",
+          "sourceMode": "L",
+          "width": 256,
+          "height": 256,
+          "colorSpace": "linear-data",
+          "encoding": "WebP lossless",
+          "encodedDerivedPixelsExact": true,
+          "rms8Bit": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "derivation": "16-bit scalar normalized to 8-bit where applicable, then 4x4 box mean"
+        }
+      }
+    },
+    "wall": {
+      "id": "white_sandstone_blocks_02",
+      "provider": "Poly Haven",
+      "author": "Rob Tuytel",
+      "page": "https://polyhaven.com/a/white_sandstone_blocks_02",
+      "tileMetres": 2,
+      "license": "https://polyhaven.com/license",
+      "maps": {
+        "color": {
+          "url": "/assets/karts/terrain/wall-color.webp",
+          "bytes": 329140,
+          "sha256": "292200f093ce44e5f5d79ba2491a5d26cf4ab4937e0c6328a025834e47e164b4",
+          "sourceMode": "RGB",
+          "width": 1024,
+          "height": 1024,
+          "colorSpace": "sRGB",
+          "encoding": "WebP q88",
+          "encodedDerivedPixelsExact": false,
+          "rms8Bit": [
+            2.983748924533249,
+            2.789715004041089,
+            3.237489389527361
+          ],
+          "derivation": "Unchanged source RGB8"
+        },
+        "normal": {
+          "url": "/assets/karts/terrain/wall-normal.webp",
+          "bytes": 392722,
+          "sha256": "c8425b1fe0b53832988564dbebe6af83bb3fb0f3a7681eadf0294571b1adb887",
+          "sourceMode": "RGB",
+          "width": 512,
+          "height": 512,
+          "colorSpace": "linear-data",
+          "encoding": "WebP lossless",
+          "encodedDerivedPixelsExact": true,
+          "rms8Bit": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "derivation": "2x2 box mean then tangent-vector renormalization"
+        },
+        "roughness": {
+          "url": "/assets/karts/terrain/wall-roughness.webp",
+          "bytes": 38414,
+          "sha256": "ccf8510307197d8a2c6f0c1a304bd83ada10bc9e5bf66ea5671bd9291f1f0546",
+          "sourceMode": "L",
+          "width": 256,
+          "height": 256,
+          "colorSpace": "linear-data",
+          "encoding": "WebP lossless",
+          "encodedDerivedPixelsExact": true,
+          "rms8Bit": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "derivation": "16-bit scalar normalized to 8-bit where applicable, then 4x4 box mean"
+        }
+      }
+    }
+  },
+  "productionBytes": 3749814,
+  "rgbaGpuBytesWithMipmapsIfAllLoaded": 29360128,
+  "integrationNotes": [
+    "WrapS/WrapT RepeatWrapping. Tile scales are source physical metres per repeat.",
+    "Color sRGB; normal and roughness NoColorSpace. Roughness is scalar, normal is +Y OpenGL.",
+    "WebP reduces network bytes, not decoded GPU memory. Load only active-map materials.",
+    "No displacement/height/AO map ships; this asset set does not change physical terrain.",
+    "Normals are 512px, roughness 256px; their original 1K maps remain in the authoring directory.",
+    "limestone is the runtime path role name; source is weathered cobblestone, geology unspecified."
+  ]
+}

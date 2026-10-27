@@ -1,0 +1,115 @@
+{
+  "creator": "Kenney",
+  "license": "CC0-1.0",
+  "purpose": "Semantic gameplay foley only. Navigation and UI controls are silent.",
+  "processing": "Mono 22050 Hz PCM16; trimmed tails, highpass 70 Hz, lowpass 6500 Hz, 25ms tail fade, DC removal and peak cap 0.55. No synthesized cues. Runtime gain and concurrency are bounded.",
+  "packs": {
+    "casino": {
+      "sourcePage": "https://kenney.nl/assets/casino-audio",
+      "sourceArchiveUrl": "https://kenney.nl/media/pages/assets/casino-audio/2472606a04-1721639069/kenney_casino-audio.zip",
+      "archiveSha256": "f36250766ac5bc378c13708ddf12a23a8e54a3251f8d482c7536e51b5dbafa18"
+    },
+    "impact": {
+      "sourcePage": "https://kenney.nl/assets/impact-sounds",
+      "sourceArchiveUrl": "https://kenney.nl/media/pages/assets/impact-sounds/87b4ddecda-1677589768/kenney_impact-sounds.zip",
+      "archiveSha256": "029d734af1582474edf3a694d1b0cebc97c1c152f2f39fa34d4c2bafc5de77f8"
+    },
+    "interface": {
+      "sourcePage": "https://kenney.nl/assets/interface-sounds",
+      "sourceArchiveUrl": "https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip",
+      "archiveSha256": "f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232"
+    }
+  },
+  "cues": {
+    "piece": {
+      "file": "piece.wav",
+      "pack": "casino",
+      "sourceFile": "Audio/chip-lay-1.ogg",
+      "sourceSha256": "4b2111252ccb64eed67f171e061053849cfbb29873536c03948646f244a3905c",
+      "outputSha256": "866c32df38b763e349049260b259e542e9688df1c7382a4e614788b62c97e107",
+      "bytes": 7524,
+      "durationSeconds": 0.16961451247165532,
+      "peak": 0.5500045777764214
+    },
+    "capture": {
+      "file": "capture.wav",
+      "pack": "casino",
+      "sourceFile": "Audio/chips-collide-1.ogg",
+      "sourceSha256": "f41b3d106360fc68ebc061a211d4265b4cb5fa1fbe86e4d57d3673510e2c3784",
+      "outputSha256": "a2091b5beceab141bf508fe5de7a518be5d75a69aa302e5cb31c172b16c1a5b1",
+      "bytes": 11328,
+      "durationSeconds": 0.25587301587301586,
+      "peak": 0.5500045777764214
+    },
+    "dice": {
+      "file": "dice.wav",
+      "pack": "casino",
+      "sourceFile": "Audio/die-throw-1.ogg",
+      "sourceSha256": "b31d716165be60e442da3c1ca25a3968aad1e0851a7f0859f495aecc02fd9e13",
+      "outputSha256": "78618fb2c85cdf707bc5120a2214600ebf6ee6c290cdc16b9239d85b740fa148",
+      "bytes": 23500,
+      "durationSeconds": 0.5318820861678004,
+      "peak": 0.5500045777764214
+    },
+    "deal": {
+      "file": "deal.wav",
+      "pack": "casino",
+      "sourceFile": "Audio/card-slide-1.ogg",
+      "sourceSha256": "006cf9822d15d7063f8899e56041f41646df30adb6fbd8b974ee5d5420012690",
+      "outputSha256": "e0ed6e159994911f66f41deff1373c9c84d2e8f7ebe1b57fb3efbdaf933c189c",
+      "bytes": 18566,
+      "durationSeconds": 0.42,
+      "peak": 0.5500045777764214
+    },
+    "place": {
+      "file": "place.wav",
+      "pack": "casino",
+      "sourceFile": "Audio/chip-lay-2.ogg",
+      "sourceSha256": "8ca8b2d450741c04ed7b4ba51ed3f73c2400c8b3dbe83b974be4fe4774a76712",
+      "outputSha256": "06f24442ffa03f3f4f83e64b88873c1cc7ab649e86158bcca84829e579cfa5c1",
+      "bytes": 10058,
+      "durationSeconds": 0.22707482993197278,
+      "peak": 0.532425916318247
+    },
+    "burst": {
+      "file": "burst.wav",
+      "pack": "impact",
+      "sourceFile": "Audio/impactGlass_light_002.ogg",
+      "sourceSha256": "710db7451bb7857b9140dfe6afe4621ea2188ad65eda3919c569d1bb285b933d",
+      "outputSha256": "c074c7bc685ae5326c9b1ac4643e9f05d0059f302ee50c8496c631727a3e58c7",
+      "bytes": 9160,
+      "durationSeconds": 0.20671201814058957,
+      "peak": 0.5500045777764214
+    },
+    "reveal": {
+      "file": "reveal.wav",
+      "pack": "casino",
+      "sourceFile": "Audio/card-fan-1.ogg",
+      "sourceSha256": "7a9758ccad8899baef1b9f60b4064e4baa724a548293832fdaea07e6e07e638d",
+      "outputSha256": "21de14d64ffd69a0608de67a7f968f1105af4a1ccb3dd5b60399f1ae42ce647e",
+      "bytes": 19890,
+      "durationSeconds": 0.4500226757369615,
+      "peak": 0.34965056306649983
+    },
+    "correct": {
+      "file": "correct.wav",
+      "pack": "interface",
+      "sourceFile": "Audio/confirmation_001.ogg",
+      "sourceSha256": "063564703b6094d70718a3e787a55cc9141611e4ecd6b6637f8828f79b4a8c3a",
+      "outputSha256": "984e8a27f4a46ee8364a1770ef3083803a4bfd0f871523e2d68970419cd93239",
+      "bytes": 12826,
+      "durationSeconds": 0.28984126984126984,
+      "peak": 0.5500045777764214
+    },
+    "win": {
+      "file": "win.wav",
+      "pack": "interface",
+      "sourceFile": "Audio/confirmation_004.ogg",
+      "sourceSha256": "568967a3d9f8a8f6af54ea01729c4882284308f2a27d78c07ffd7ee0d6951661",
+      "outputSha256": "dd270d15899cb7ac6f2826b99042f7bc78f6236edf8a23ff16afa56633d4de01",
+      "bytes": 21672,
+      "durationSeconds": 0.4904308390022676,
+      "peak": 0.5500045777764214
+    }
+  }
+}

@@ -1,0 +1,21 @@
+/* Memory Tray: a flat grid of object cards (the drawings are game art),
+ * then the recall field. Tokens only (shared parts: compact-answer-games.css). */
+.mt .mt-tray { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.mt .mt-obj {
+  display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 64px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--gk-radius, 12px);
+}
+.mt .mt-obj svg { flex: none; width: 40px; height: 40px; }
+.mt .mt-name { min-width: 0; font: 800 17px/1.25 var(--font-body); color: var(--ink); overflow-wrap: break-word; hyphens: auto; }
+.mt .mt-obj.is-hit { border-color: var(--green); box-shadow: inset 0 0 0 1px var(--green); }
+.mt .mt-form.is-lines { align-items: flex-start; }
+.mt .mt-area { min-height: 96px; resize: vertical; font: 600 17px/1.4 var(--font-body); }
+@media (max-width: 720px) {
+  .mt .mt-tray { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .mt .mt-tray { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .mt .mt-obj { min-height: 56px; padding: 8px 10px; gap: 8px; }
+  .mt .mt-obj svg { width: 34px; height: 34px; }
+  .mt .mt-name { font-size: 16px; }
+}

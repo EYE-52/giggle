@@ -166,7 +166,8 @@ test("Vercel explicitly configures the public backend without an app fallback", 
     "https://giggle-server-production.up.railway.app",
   );
   assert.equal(source().includes("giggle-server-production.up.railway.app"), false);
-  assert.equal(vercelConfig().buildCommand, "pnpm --filter @giggle/desktop build");
+  assert.equal(vercelConfig().env.NEXT_PUBLIC_GAMES_URL, "https://play.gigglemeet.com");
+  assert.equal(vercelConfig().buildCommand, "node apps/desktop/scripts/verify-release-dependencies.cjs && pnpm --filter @giggle/desktop build && node apps/desktop/scripts/verify-release-dependencies.cjs");
   assert.equal(vercelConfig().outputDirectory, "apps/desktop/.next");
 });
 
@@ -1562,7 +1563,7 @@ test("notifications distinguish load failure from an empty inbox", () => {
   assert.equal(bell.includes("const [loadError, setLoadError]"), true);
   assert.equal(bell.includes('setLoadError("Couldn\'t load notifications. Check your connection.")'), true);
   assert.equal(bell.includes("items.length === 0 && !loadError"), true);
-  assert.equal(bell.includes("onClick={() => void load()}"), true);
+  assert.equal(bell.includes("onClick={() => { closeRef.current?.focus(); void load(); }}"), true);
 });
 
 test("opening a join request keeps client state consistent with the read-only server update", () => {

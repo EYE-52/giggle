@@ -6,6 +6,21 @@ const test = require("node:test");
 const root = path.join(__dirname, "../..");
 const read = (file) => readFileSync(path.join(root, file), "utf8");
 
+test("local Redis snapshots stay out of source and hosting uploads", () => {
+  for (const file of [".gitignore", ".vercelignore", "server/.railwayignore", "server/.dockerignore"]) {
+    assert.match(read(file), /^(?:\*\*\/)?dump\.rdb$/m, file);
+  }
+});
+
+test("health exposes only valid provider release identifiers without inventing local identity", () => {
+  const { releaseIdentity } = require('../src/utils/releaseIdentity');
+  const sha = 'a'.repeat(40), id = '11111111-2222-3333-4444-555555555555';
+  assert.deepEqual(releaseIdentity({}), { sourceCommit: null, deploymentId: null });
+  assert.deepEqual(releaseIdentity({ RAILWAY_GIT_COMMIT_SHA: 'invalid', RAILWAY_DEPLOYMENT_ID: 'invalid' }), { sourceCommit: null, deploymentId: null });
+  assert.deepEqual(releaseIdentity({ RAILWAY_GIT_COMMIT_SHA: sha, RAILWAY_DEPLOYMENT_ID: id }), { sourceCommit: sha, deploymentId: id });
+  assert.match(read('server/src/server.js'), /release: require\('\.\/utils\/releaseIdentity'\)\.releaseIdentity\(\)/);
+});
+
 test("unified deployment docs keep verified-adult discovery disabled by default", () => {
   const envPath = path.join(root, "server/.env.example");
   assert.equal(lstatSync(envPath).isSymbolicLink(), false);

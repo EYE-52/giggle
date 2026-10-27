@@ -1,0 +1,43 @@
+# Vercel (play frontend): same exclusions as .gitignore. Build needs
+# package.json + lock, scripts/vendor-three.js, and public/ (output);
+# none of those are excluded here.
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+.DS_Store
+*.pem
+*.key
+secrets/
+tmp/
+qa-output/
+screens/
+screenshots/
+*.tmp
+*.bak
+
+# Source/evidence archives are retained locally, not hosted.
+releases/
+assets-source/
+evidence/
+design/
+art-review/
+art-reviews/
+dist/
+*.gghandover
+*.passphrase
+
+# Local browser playtest pages never ship.
+public/fixtures/
+public/test/
+# Build inputs stay; contributor-only source does not ship.
+/test/
+/specs/
+/tools/
+/.github/
+/.git
+/*.md
+.data/
+*.sqlite*
