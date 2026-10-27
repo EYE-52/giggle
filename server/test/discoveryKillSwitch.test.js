@@ -212,7 +212,7 @@ test("disabled discovery ends awaiting handoff instead of activating it", async 
   process.env.STRANGER_DISCOVERY_ENABLED = "false";
   const originals = {
     endEncounter: Encounter.findOneAndUpdate,
-    updateMany: Squad.updateMany,
+    updateOne: Squad.updateOne,
     findOne: Squad.findOne,
     emit: socketService.emitToSquad,
     close: socketService.closeEncounterRoom,
@@ -220,8 +220,12 @@ test("disabled discovery ends awaiting handoff instead of activating it", async 
   Encounter.findOneAndUpdate = async () => ({});
   const updates = [];
   const events = [];
-  Squad.updateMany = async (_filter, update) => { updates.push(update); };
-  Squad.findOne = async () => null;
+  Squad.updateOne = async (filter, update) => {
+    assert.equal(filter.currentEncounterId, "enc_handoff");
+    updates.push(update);
+    return { matchedCount: 1 };
+  };
+  Squad.findOne = async ({ squadId, currentEncounterId }) => ({ squadId, currentEncounterId, members: [] });
   socketService.emitToSquad = (_squadId, event) => { events.push(event); };
   socketService.closeEncounterRoom = () => { events.push("CLOSE"); };
   const encounter = {
@@ -242,7 +246,7 @@ test("disabled discovery ends awaiting handoff instead of activating it", async 
     assert.equal(updates[0].$set.status, "idle");
     assert.equal(events.includes("ENCOUNTER_ACTIVE"), false);
   } finally {
-    Squad.updateMany = originals.updateMany;
+    Squad.updateOne = originals.updateOne;
     Encounter.findOneAndUpdate = originals.endEncounter;
     Squad.findOne = originals.findOne;
     socketService.emitToSquad = originals.emit;
@@ -254,7 +258,7 @@ test("disabled encounter requeue ends both squads at idle without queueing", asy
   process.env.STRANGER_DISCOVERY_ENABLED = "false";
   const originals = {
     endEncounter: Encounter.findOneAndUpdate,
-    updateMany: Squad.updateMany,
+    updateOne: Squad.updateOne,
     findOne: Squad.findOne,
     add: queueService.addToQueue,
     emit: socketService.emitToSquad,
@@ -263,8 +267,12 @@ test("disabled encounter requeue ends both squads at idle without queueing", asy
   Encounter.findOneAndUpdate = async () => ({});
   const updates = [];
   let queued = 0;
-  Squad.updateMany = async (_filter, update) => { updates.push(update); };
-  Squad.findOne = async () => null;
+  Squad.updateOne = async (filter, update) => {
+    assert.equal(filter.currentEncounterId, "enc_disabled");
+    updates.push(update);
+    return { matchedCount: 1 };
+  };
+  Squad.findOne = async ({ squadId, currentEncounterId }) => ({ squadId, currentEncounterId, members: [] });
   queueService.addToQueue = async () => { queued += 1; };
   socketService.emitToSquad = () => {};
   socketService.closeEncounterRoom = () => {};
@@ -281,7 +289,7 @@ test("disabled encounter requeue ends both squads at idle without queueing", asy
     assert.equal(updates[0].$set.searchQueuedAt, null);
     assert.equal(queued, 0);
   } finally {
-    Squad.updateMany = originals.updateMany;
+    Squad.updateOne = originals.updateOne;
     Encounter.findOneAndUpdate = originals.endEncounter;
     Squad.findOne = originals.findOne;
     queueService.addToQueue = originals.add;
