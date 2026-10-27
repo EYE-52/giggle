@@ -182,7 +182,7 @@ async function startGame(game, viewport) {
       rematch = true;
     }
     if (timerConfigured) assert.equal(await host.evaluate(() => window.__practiceState.roundMs), 60000, 'real server acknowledged the selected1-minute kart timer');
-    let drivingChecked = false;
+    let drivingChecked = false, touchDrivingChecked = false;
     if (timerConfigured) {
       await page.locator('#practiceTab1').click();
       for (const frame of frames) {
@@ -192,16 +192,37 @@ async function startGame(game, viewport) {
       const start = await host.evaluate(() => {
         const s = window.__practiceState, k = s.karts.find(k => k.pid === s.you); return { x: k.x, z: k.z };
       });
-      await host.locator('.pk-stage canvas').click();
-      await page.keyboard.down('ArrowUp');
-      await host.waitForFunction(start => {
-        const s = window.__practiceState, k = s.karts.find(k => k.pid === s.you); return Math.hypot(k.x - start.x, k.z - start.z) > .15;
-      }, start);
-      await page.locator('#practiceTab2').click();
-      await page.keyboard.up('ArrowUp');
-      await host.waitForFunction(() => {
-        const s = window.__practiceState, k = s.karts.find(k => k.pid === s.you); return k.motionIntent?.throttle === 0;
-      });
+      // Touch layouts put the HUD over the canvas centre. Exercise their real
+      // held throttle instead of assuming an arbitrary canvas click is exposed.
+      const touchSession = mobile ? await context.newCDPSession(page) : null;
+      try {
+        if (touchSession) {
+          const throttle = host.getByRole('button', { name: 'Throttle', exact: true });
+          await throttle.scrollIntoViewIfNeeded();
+          const box = await throttle.boundingBox();
+          assert(box && box.width >= 44 && box.height >= 44, 'touch throttle is a usable target');
+          await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2, id: 1, radiusX: 1, radiusY: 1, force: 1 }] });
+          await host.waitForFunction(() => document.getElementById('pk-tg').getAttribute('aria-pressed') === 'true');
+        } else {
+          await host.locator('.pk-stage canvas').click();
+          await page.keyboard.down('ArrowUp');
+        }
+        await host.waitForFunction(start => {
+          const s = window.__practiceState, k = s.karts.find(k => k.pid === s.you); return Math.hypot(k.x - start.x, k.z - start.z) > .15;
+        }, start);
+        await page.locator('#practiceTab2').click();
+        // The seat switch must release held input before the physical key or
+        // touch is released. Interval polling also observes the now-inert frame.
+        await host.waitForFunction(() => {
+          const s = window.__practiceState, k = s.karts.find(k => k.pid === s.you); return k.motionIntent?.throttle === 0;
+        }, null, { polling: 50 });
+        touchDrivingChecked = mobile;
+      } finally {
+        if (touchSession) {
+          await touchSession.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+          await touchSession.detach();
+        } else await page.keyboard.up('ArrowUp');
+      }
       drivingChecked = true;
     }
     const readiness = [];
@@ -245,7 +266,7 @@ async function startGame(game, viewport) {
     assert.deepEqual(preserved, ['Keep normal player', 'Keep legacy seat', 'Keep unrelated state', []]);
     assert(socketTargets.every(target => new URL(target).host === `127.0.0.1:${port}`));
     assert.deepEqual(errors, [], `${game.id}: browser errors`);
-    const result = { game: game.id, viewport, passed: true, realSeats: frames.length, allSeatsReady: true, seatSwitching: true, cleanup: true, naturalCompletion, rematch, timerConfigured, drivingChecked, readiness, errors };
+    const result = { game: game.id, viewport, passed: true, realSeats: frames.length, allSeatsReady: true, seatSwitching: true, cleanup: true, naturalCompletion, rematch, timerConfigured, drivingChecked, touchDrivingChecked, readiness, errors };
     rows.push(result); console.log(JSON.stringify(result));
   } catch (error) {
     await page.screenshot({ path: path.join(artifacts, `FAILED-${game.id}-${viewport.width}.png`), fullPage: true }).catch(() => {});
