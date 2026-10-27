@@ -8,48 +8,48 @@ Five local failure/recovery checks passed: configuration 503/retry, empty catalo
 
 | Game | Players offered | Manual mode | Desktop entry/cleanup | Natural completion in this matrix | Limitation |
 | --- | --- | --- | --- | --- | --- |
-| Would You Rather | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
+| Would You Rather | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
 | Doodle Guess | 3–8 | drawing | Passed | Not run | Switch between artist and guessers to test drawing and answers. Knowing the secret word makes this a controls walkthrough. |
-| Truth or Dare | 3–8 | performance | Passed | Not run | Walk through performer and judging seats using a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
-| Never Have I Ever | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Most Likely To | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Hot Takes | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Rank It | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Two Truths & a Lie | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Punchline | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Bluff | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Story Builder | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Emoji Story | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
+| Truth or Dare | 3–8 | performance | Passed | Not run | Use the performer and other player seats with a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
+| Never Have I Ever | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Most Likely To | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Hot Takes | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Rank It | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Two Truths & a Lie | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Punchline | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Bluff | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Story Builder | 3–8 | turns | Passed | Not run | Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent. |
+| Emoji Story | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
 | Trivia Blitz | 2–8 | timed | Passed | Passed | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
 | Scattergories | 2–8 | timed | Passed | Not run | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
 | Word Chain | 3–8 | timed | Passed | Not run | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
 | Word Countdown | 2–8 | timed | Passed | Not run | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
 | Lyric Fill | 2–8 | timed | Passed | Not run | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
-| 5 Second Rule | 3–8 | performance | Passed | Not run | Walk through performer and judging seats using a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
-| Charades | 3–8 | performance | Passed | Not run | Walk through performer and judging seats using a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
-| 20 Questions | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Pick One | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
+| 5 Second Rule | 3–8 | performance | Passed | Not run | Use the performer and other player seats with a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
+| Charades | 3–8 | performance | Passed | Not run | Use the performer and other player seats with a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
+| 20 Questions | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Pick One | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
 | Memory Tray | 2–8 | timed | Passed | Not run | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
-| Rapid Polls | 2–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Dare Roulette | 3–8 | performance | Passed | Not run | Walk through performer and judging seats using a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
-| Compliment Battle | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Roast Toast | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
-| Draw Phone | 3–8 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
+| Rapid Polls | 2–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Dare Roulette | 3–8 | performance | Passed | Not run | Use the performer and other player seats with a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
+| Compliment Battle | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Roast Toast | 3–8 | hidden | Passed | Not run | Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition. |
+| Draw Phone | 3–8 | drawing | Passed | Not run | Switch seats to draw and caption each step. You can see every private chain, so this is a walkthrough rather than a surprise reveal. |
 | Reaction Tap | 2–8 | timed | Passed | Not run | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
 | Typing Race | 2–8 | timed | Passed | Not run | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
 | Number Hunt | 2–8 | timed | Passed | Not run | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
 | Chain Reaction | 2–6 | turns | Passed | Not run | Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent. |
 | Checkers | 2–2 | turns | Passed | Not run | Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent. |
 | Chess | 2–2 | turns | Passed | Not run | Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent. |
-| Fleet Duel | 2–2 | hidden | Passed | Not run | Enter answers and votes in each seat. You can see both sides of hidden information, so this is a walkthrough rather than a fair competition. |
+| Fleet Duel | 2–2 | hidden | Passed | Not run | Place each fleet, then take both firing turns. Knowing the opposing fleet makes this a controls walkthrough rather than a fair contest. |
 | Four in a Row | 2–2 | turns | Passed | Passed | Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent. |
 | Kalah | 2–2 | turns | Passed | Not run | Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent. |
 | Ludo | 2–4 | turns | Passed | Not run | Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent. |
 | Pocket Karts | 2–8 | driving | Passed | Not run | Drive one kart at a time. Other seats stay parked and can time out; there are no bots. Use Maps & settings to choose a 1–5 minute round. |
-| Pose Party | 2–8 | performance | Passed | Not run | Walk through performer and judging seats using a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
+| Pose Party | 2–8 | performance | Passed | Not run | Use the performer and other player seats with a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
 | Reversi | 2–2 | turns | Passed | Not run | Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent. |
-| Show & Go | 2–8 | performance | Passed | Not run | Walk through performer and judging seats using a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
-| Warm Words | 2–8 | performance | Passed | Not run | Walk through performer and judging seats using a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
+| Show & Go | 2–8 | performance | Passed | Not run | Use the performer and other player seats with a pretend performance. This does not test real cameras, microphones or a group’s reactions. |
+| Warm Words | 2–8 | timed | Passed | Not run | Try a timed attempt, then switch seats to test other inputs. Timers keep running and idle seats do not answer automatically. |
 
 Timer ownership
 

@@ -8,6 +8,10 @@ const require = createRequire(import.meta.url);
 const registry = require('../games/registry');
 const catalog = registry.list();
 assert.equal(catalog.length, 42);
+assert.equal(PRACTICE_MODES['warm-words'], 'timed', 'Warm Words uses timed guesses, not pretend performance');
+assert.equal(PRACTICE_MODES['story-builder'], 'turns');
+assert.equal(PRACTICE_MODES['draw-phone'], 'drawing');
+assert.match(practiceSupport(catalog.find(game => game.id === 'fleet-duel')).note, /fleet.*firing/);
 assert.deepEqual(Object.keys(PRACTICE_MODES).sort(), catalog.map(game => game.id).sort(), 'every owned game needs an explicit practice review');
 for (const game of catalog) {
   const support = practiceSupport(game);
