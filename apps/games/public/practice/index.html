@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>Practice · Game Night</title>
+  <script src="/js/boot-theme.js"></script>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/practice.css">
+  <script defer src="/js/boot-status.js"></script>
+</head>
+<body class="practice-page">
+  <header class="practice-header">
+    <a href="/" class="practice-back">← Game Night</a>
+    <h1>Solo practice</h1>
+    <span id="practiceStatus" role="status" aria-live="polite">Getting the games ready…</span>
+  </header>
+  <section class="practice-setup" aria-label="Practice setup">
+    <form id="practiceSetup">
+      <label for="practiceGame">Game<select id="practiceGame" disabled><option>Loading games…</option></select></label>
+      <label for="practiceCount">Seats<select id="practiceCount" disabled><option>—</option></select></label>
+      <button class="btn" id="practiceStart" disabled>Start practice</button>
+      <button class="btn ghost" id="practiceRetry" type="button" hidden>Retry connection</button>
+    </form>
+    <p id="practiceNote">Play every seat yourself in one page. No bots or friends needed.</p>
+    <details id="practiceGuide">
+      <summary>How practice works</summary>
+      <p id="practicePlayingNote"></p>
+      <p>Player 1 makes an ordinary online room and the other seats join it. Open the game in Player 1, then switch seats to act, answer and vote. The game’s normal rules and timers still apply.</p>
+      <p>This is not an offline or private mode. Anyone you give the room code can join. Seeing each seat’s secrets means the scores are for your walkthrough, not a fair contest. Camera and microphone access are blocked in these practice frames.</p>
+      <p>End practice to leave every seat. Your normal rooms and saved player name stay separate.</p>
+    </details>
+  </section>
+  <nav id="practiceControls" class="practice-controls" aria-label="Practice controls" hidden>
+    <div id="practiceTabs" class="practice-tabs" role="tablist" aria-label="Choose a player"></div>
+    <div class="practice-actions">
+      <button id="practiceAll" type="button" aria-pressed="false">All seats</button>
+      <button id="practiceReload" type="button">Reload this seat</button>
+      <button id="practiceStop" type="button">End practice</button>
+    </div>
+  </nav>
+  <main id="practiceTable" class="practice-table">
+    <section class="practice-empty boot-view" data-app-boot role="status" aria-busy="true">
+      <span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <h2 data-boot-title>Getting the games ready…</h2>
+      <p data-boot-description>Choose a game, then try each player’s view in one window.</p>
+      <a href="/practice/">Reload practice</a>
+    </section>
+  </main>
+  <noscript><p class="practice-note">Practice needs JavaScript. You can still read the <a href="/games/chess/">game guides</a>.</p></noscript>
+  <script type="module" src="/js/practice.js"></script>
+</body>
+</html>

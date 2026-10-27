@@ -1,5 +1,6 @@
 /* Game Night shell: connection, home/lobby/game screens, game view host. */
-import { esc, store, artGradient, artInitial } from './util.js';
+import { esc, store, artGradient, artInitial, practiceContext } from './util.js';
+import { practiceSupport } from './practice-support.mjs';
 import { finalHtml } from './kit.js';
 import { ZOOM_KEY, ZOOM_STEPS, currentZoom, stepZoom, percent, zoomable, zoomControlHtml } from './zoom.js';
 import { sound, avatarColor, confetti, staggerIn } from './fx.js';
@@ -44,7 +45,58 @@ const SEAT_REPLACED_CODE = 4001;
  * stored standalone room/name autojoin, hides promotional chrome, and keeps
  * tickets in memory only. */
 const EMBED = parseEmbedParams(location.search);
-const runLog = createRunLog();
+const PRACTICE = !EMBED.enabled && window.parent !== window ? practiceContext(location.search) : null;
+let lastPracticeReport = '';
+let practiceClosing = false;
+function reportPracticeState() {
+  if (!PRACTICE || practiceClosing) return;
+  const message = { t: 'giggle-practice-state', session: PRACTICE.session, seat: PRACTICE.seat,
+    code: room?.code || '', game: room?.game || '', phase: lastState?.phase || '', finished: !!lastState && matchOver(),
+    connected: ws?.readyState === 1 && !!room, host: !!room && isHost(),
+    players: room?.players?.filter(player => player.connected).length || 0 };
+  const key = JSON.stringify(message);
+  if (key === lastPracticeReport) return;
+  lastPracticeReport = key;
+  window.parent.postMessage(message, location.origin);
+}
+window.addEventListener('message', event => {
+  if (!PRACTICE || event.source !== window.parent || event.origin !== location.origin ||
+      event.data?.session !== PRACTICE.session) return;
+  if (event.data.t === 'giggle-practice-pause-input') {
+    document.dispatchEvent(new Event('game-screenchange'));
+    return;
+  }
+  if (event.data.t !== 'giggle-practice-close' || practiceClosing) return;
+  practiceClosing = true;
+  const socket = ws;
+  let timer, finished = false;
+  const finish = confirmed => {
+    if (finished) return;
+    finished = true;
+    clearTimeout(timer);
+    socket?.removeEventListener('message', left);
+    socket?.removeEventListener('close', disconnected);
+    // Do not reconnect to Home and write a new seat identity after the
+    // parent's cleanup. Ordinary Leave keeps its normal reconnect behavior.
+    store.closePractice();
+    socket?.close();
+    leaveRoom({ reconnectToHome: false });
+    window.parent.postMessage({ t: 'giggle-practice-closed', session: PRACTICE.session,
+      seat: PRACTICE.seat, confirmed }, location.origin);
+  };
+  const left = event => {
+    try { const message = JSON.parse(event.data); if (message.t === 'left' && message.removed) finish(true); } catch { /* unrelated frame */ }
+  };
+  const disconnected = () => finish(false);
+  if (!room || socket?.readyState !== 1) return finish(false);
+  socket.addEventListener('message', left);
+  socket.addEventListener('close', disconnected);
+  timer = setTimeout(() => finish(false), 1500);
+  send({ t: 'leave' });
+});
+const runLog = createRunLog(PRACTICE ? { storage: {
+  getItem: key => store.get(key), setItem: (key, value) => store.set(key, value),
+} } : undefined);
 window.addEventListener('error', event => runLog.event(event.target === window ? 'runtime-error' : 'resource-error'), true);
 window.addEventListener('unhandledrejection', () => runLog.event('promise-error'));
 window.addEventListener('pagehide', () => runLog.save());
@@ -542,6 +594,7 @@ function openSocket() {
 function paintConn() {
   const bar = document.getElementById('connbar');
   if (bar) bar.hidden = !(connLost || seatTaken);
+  reportPracticeState();
 }
 
 function send(o) {
@@ -795,6 +848,7 @@ function onMsg(msg) {
       }
       break;
   }
+  reportPracticeState();
 }
 
 /* Results and accessibility announcements share lifecycle; audio remains
@@ -1073,7 +1127,7 @@ function leaveMatch() {
 }
 
 /* Standalone: give up the seat and go back to the home page. */
-function leaveRoom() {
+function leaveRoom({ reconnectToHome = true } = {}) {
   sound.stop();
   clearRoomAction();
   closeCustomizer({ returnFocus: false });
@@ -1105,7 +1159,7 @@ function leaveRoom() {
   room = null; gameId = null; lastState = null; focusGame = null; instanceId = null; watchInstance = null;
   history.replaceState(null, '', '/' + location.search);
   render();
-  if (reconnect) { announce('You left the room.'); connect(); }
+  if (reconnect && reconnectToHome) { announce('You left the room.'); connect(); }
 }
 
 function heroGames() {
@@ -1244,6 +1298,7 @@ function renderHome() {
       <div class="catchips" role="group" aria-label="Game categories">${catChipsHtml()}</div>
       <div class="catalog-list" id="shelfGames"></div>
       <div class="browse-wrap" id="browseWrap" ${homeFiltered() ? 'hidden' : ''}><button class="btn ghost" id="bBrowse" aria-expanded="${browseAll}">${browseAll ? 'Show fewer' : `Browse all ${total}`}</button></div>
+      ${!PRACTICE ? '<p class="practice-entry">Just you? <a href="/practice/">Practice solo</a> and play every seat yourself.</p>' : ''}
       <p class="giggle-strip">Games need no account. Play here, hang out on
         <a href="https://www.gigglemeet.com" target="_blank" rel="noopener">Giggle Meet</a>
         with your friends.</p>
@@ -1976,6 +2031,8 @@ function howtoFooter(game) {
   // Details lives INSIDE the dialog (never on the shelf); embed renders
   // nothing so no link leaks out of the squad frame.
   const details = gameDetails(game);
+  const practice = !room && !EMBED.enabled && !PRACTICE && practiceSupport(game)
+    ? `<a class="howto-btn practice-link" href="/practice/?game=${encodeURIComponent(game.id)}">Practice solo</a>` : '';
   if (!room) {
     const custom = game.customizable
       ? `<button class="btn ghost" id="howtoCustom">${settingsLabel}</button>` : '';
@@ -1983,7 +2040,7 @@ function howtoFooter(game) {
     return {
       html: `<label class="howto-name" for="howtoName">Your party name
         <input type="text" id="howtoName" maxlength="16" autocomplete="nickname" enterkeyhint="go" placeholder="e.g. Pippa" required value="${esc(name)}"></label>
-        <button class="btn big" id="howtoGo">Create room</button>${custom}${details}
+        <button class="btn big" id="howtoGo">Create room</button>${custom}${details}${practice}
         <p class="howto-note">Share the room link with friends, then press Play.</p>`,
       wire(foot) {
         const create = (wantSetup) => {
@@ -2370,7 +2427,7 @@ function renderGame() {
     const g = gameById(room?.game);
     app.innerHTML = connbarHtml() + `
       <header class="play-toolbar"><div class="play-title">${g ? artImg(g, 'gthumb') : ''}<div><h1>${esc(gameName(room?.game))}</h1></div></div></header>
-      <main class="game-stage" aria-busy="true"><p class="gk-wait" role="status">Loading the game…</p></main>`;
+      <main class="game-stage" aria-busy="true"><p class="gk-wait" role="status"><span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span> Loading the game…</p></main>`;
     return;
   }
   const g = gameById(gameId);

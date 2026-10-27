@@ -171,9 +171,10 @@ export async function createThreeView(mountEl, hooks) {
     }
   });
 
+  let disposed = false, hasDrawn = false;
   let last = performance.now();
-  renderer.setAnimationLoop(() => {
-    if (lost) return;
+  const renderOnce = () => {
+    if (lost || disposed) return;
     const now = performance.now();
     const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
     last = now;
@@ -187,6 +188,7 @@ export async function createThreeView(mountEl, hooks) {
     }
     try {
       renderer.render(scene, camera);
+      hasDrawn = true;
       hooks.diagnostics?.renderFrame(performance.now() - now, renderer.info);
       resolveFrame();
     } catch (e) {
@@ -194,9 +196,16 @@ export async function createThreeView(mountEl, hooks) {
       if (typeof console !== 'undefined') console.error('3d render error', e);
       hooks.diagnostics?.event('render-error');
     }
+  };
+  renderer.setAnimationLoop(() => {
+    // Keep a real first draw/readiness check, but do not keep submitting
+    // invisible players' scenes while one person uses another seat.
+    try {
+      if (hasDrawn && document.defaultView?.frameElement?.closest?.('[hidden], [inert]')) return;
+    } catch { /* Cross-origin embeds retain their normal render loop. */ }
+    renderOnce();
   });
 
-  let disposed = false;
   const dispose = () => {
     if (disposed) return;
     disposed = true;
@@ -222,6 +231,6 @@ export async function createThreeView(mountEl, hooks) {
   if (signal?.aborted) dispose();
 
   return {
-    fallback: false, three: THREE, renderer, canvas, scene, camera, track, firstFrame, disposed: () => disposed, dispose,
+    fallback: false, three: THREE, renderer, canvas, scene, camera, track, firstFrame, renderOnce, disposed: () => disposed, dispose,
   };
 }

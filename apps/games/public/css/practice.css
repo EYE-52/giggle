@@ -1,0 +1,60 @@
+.practice-page { margin: 0; height: 100vh; height: 100dvh; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.practice-header { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 20px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.practice-back { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent-deep); font-weight: 800; text-decoration: none; }
+.practice-header h1 { margin: 0; font-size: 22px; }
+#practiceStatus { margin-left: auto; color: var(--ink-dim); font-size: 13px; line-height: 18px; height: 18px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.practice-setup { flex: none; padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel, var(--bg)); }
+.practice-setup form { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; }
+.practice-setup label { display: grid; gap: 4px; font-size: 13px; font-weight: 800; }
+.practice-setup label:first-child { flex: 1; max-width: 360px; min-width: 160px; }
+.practice-setup select { min-width: 0; width: 100%; height: 44px; font: inherit; padding: 6px 32px 6px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--ink); }
+.practice-setup button, .practice-actions button { min-height: 44px; }
+.practice-page.is-running .practice-setup form, .practice-page.is-running #practiceNote { display: none; }
+.practice-page.is-running #practiceGuide { margin: 0; }
+#practiceNote { margin: 10px 0 0; max-width: 90ch; color: var(--ink-dim); font-size: 14px; }
+#practiceGuide { margin-top: 8px; font-size: 13px; }
+#practiceGuide summary { width: fit-content; min-height: 44px; align-content: center; cursor: pointer; color: var(--accent-deep); font-weight: 800; }
+#practiceGuide p { max-width: 90ch; margin: 8px 0; }
+#practiceGuide[open] { max-height: 28dvh; overflow: auto; }
+.practice-controls { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.practice-controls[hidden] { display: none; }
+.practice-tabs { display: flex; gap: 6px; min-width: 0; overflow: auto; max-width: 100%; }
+.practice-tabs button, .practice-actions button { flex: none; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; font: 800 13px var(--font-body); color: var(--ink); background: var(--bg); cursor: pointer; }
+.practice-tabs [aria-selected="true"] { color: var(--accent-deep); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--bg)); }
+.practice-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.practice-actions [aria-pressed="true"] { border-color: var(--accent); }
+.practice-page button:focus-visible, .practice-page select:focus-visible, .practice-page a:focus-visible, .practice-page summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.practice-table { position: relative; flex: 1; min-height: 0; min-width: 0; }
+.practice-empty { margin: auto; min-height: 100%; max-width: 60ch; padding: 24px; }
+.practice-empty h2 { margin: 0; font: 800 clamp(22px, 4vw, 32px) var(--font-body); }
+.practice-seat { position: absolute; inset: 0; z-index: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg); }
+/* Preserve the inactive frames' real viewport so their resource/readiness
+ * barriers can complete. They cannot receive focus or pointer input. */
+.practice-seat.is-inactive { opacity: 0; z-index: 0; pointer-events: none; }
+.practice-seat iframe { width: 100%; height: 100%; border: 0; background: var(--bg); }
+.practice-seat-status { position: absolute; z-index: 2; left: 12px; bottom: 12px; max-width: calc(100% - 24px); padding: 10px 14px; margin: 0; color: var(--ink); border: 1px solid var(--line); border-radius: 12px; background: var(--bg); box-shadow: 0 3px 12px #0001; pointer-events: none; }
+.practice-seat-status[hidden] { display: none; }
+.practice-table.is-all { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(460px, 1fr); gap: 8px; padding: 8px; overflow: auto; }
+.practice-table.is-all .practice-seat { position: relative; inset: auto; border: 1px solid var(--line); border-radius: 12px; }
+.practice-note { padding: 12px; }
+@media (max-width: 600px) {
+  .practice-header { padding: 8px 12px; gap: 4px 12px; }
+  .practice-header h1 { font-size: 19px; }
+  #practiceStatus { flex-basis: 100%; margin: 0; font-size: 12px; }
+  .practice-setup { padding: 8px 12px; }
+  .practice-setup .btn { padding-inline: 12px; }
+  #practiceNote { font-size: 12px; }
+  .practice-controls { gap: 6px; }
+  .practice-actions { margin-left: 0; }
+  .practice-actions button { font-size: 12px; padding-inline: 10px; }
+  .practice-table.is-all { grid-template-columns: 1fr; }
+}
+/* In a short landscape viewport, retain status and player/exit controls;
+ * return the setup and back link when practice ends. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .practice-page.is-running .practice-header { padding: 4px 12px; }
+  .practice-page.is-running .practice-header h1,
+  .practice-page.is-running .practice-back,
+  .practice-page.is-running .practice-setup { display: none; }
+  .practice-page.is-running #practiceStatus { margin: 0; }
+}

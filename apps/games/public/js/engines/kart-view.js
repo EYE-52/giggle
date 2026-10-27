@@ -1555,7 +1555,9 @@ export function createKartView(viewConfig) {
     async ready() {
       await sceneReady;
       await physicalReady;
-      if (gl) await gl.firstFrame;
+      // Hidden same-origin seats may have throttled RAF. Render the current
+      // prepared scene once, then require the same real GL success promise.
+      if (gl) { gl.renderOnce?.(); await gl.firstFrame; }
       else if (!fbCanvas?.getContext('2d')) throw new Error('No usable kart renderer');
     } };
 

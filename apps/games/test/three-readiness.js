@@ -39,6 +39,21 @@ const deferred = () => { let resolve; const promise = new Promise(fn => { resolv
     first.renderer.loop(); await first.firstFrame; assert.equal(painted, true); assert.equal(global.glFixture.renders, 1);
     first.dispose(); first.dispose(); assert.equal(first.renderer.released, 1, 'GL disposal is idempotent');
 
+    const inactive = await createThreeView(root(), { build: built });
+    let inactivePainted = false; inactive.firstFrame.then(() => { inactivePainted = true; }); await flush();
+    assert.equal(inactivePainted, false, 'an inactive frame cannot claim readiness from construction');
+    const beforeManual = global.glFixture.renders;
+    inactive.renderOnce(); await inactive.firstFrame;
+    assert.equal(global.glFixture.renders, beforeManual + 1, 'an inactive view can validate one actual draw without waiting for RAF');
+    global.document.defaultView = { frameElement: { closest: () => true } };
+    inactive.renderer.loop(); inactive.renderer.loop();
+    assert.equal(global.glFixture.renders, beforeManual + 1, 'inert seats do not continuously consume GL work after readiness');
+    delete global.document.defaultView;
+    inactive.renderer.loop();
+    assert.equal(global.glFixture.renders, beforeManual + 2, 'selecting the seat resumes real scene rendering');
+    inactive.dispose(); inactive.renderOnce();
+    assert.equal(global.glFixture.renders, beforeManual + 2, 'manual draws cannot revive a disposed renderer');
+
     const frameFailure = await createThreeView(root(), { build: () => ({ ...built(), frame() { throw Error('scene failed'); } }) });
     frameFailure.renderer.loop(); await assert.rejects(frameFailure.firstFrame, /scene failed/); frameFailure.dispose();
     const renderFailure = await createThreeView(root(), { build: built });

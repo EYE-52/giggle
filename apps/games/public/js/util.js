@@ -1,4 +1,16 @@
-/* Tiny shared helpers: escaping + localStorage. */
+/* Tiny shared helpers: escaping + isolated browser storage. */
+
+export function practiceContext(search) {
+  try {
+    const params = new URLSearchParams(search || '');
+    if (params.get('embed') === '1') return null;
+    const session = params.get('practice') || '';
+    const rawSeat = params.get('seat') || '';
+    const seat = Number(rawSeat);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(session) || !/^[1-8]$/.test(rawSeat)) return null;
+    return { session, seat, prefix: `practice:${session}:seat${seat}:` };
+  } catch { return null; }
+}
 export function ensureStylesheet(id, href) {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function' || !document.head) return null;
   const existing = document.getElementById?.(id)
@@ -26,15 +38,24 @@ const SEAT_PREFIX = (() => {
   } catch { return ''; }
 })();
 
+const PRACTICE_STORAGE = (() => {
+  try { return practiceContext(location.search); } catch { return null; }
+})();
+const storagePrefix = PRACTICE_STORAGE?.prefix || SEAT_PREFIX;
+const storage = () => PRACTICE_STORAGE ? sessionStorage : localStorage;
+let practiceClosed = false;
+
 export const store = {
   get(k) {
-    try { return localStorage.getItem(SEAT_PREFIX + k) || ''; } catch { return ''; }
+    try { return storage().getItem(storagePrefix + k) || ''; } catch { return ''; }
   },
   set(k, v) {
-    try { localStorage.setItem(SEAT_PREFIX + k, v); } catch { /* private mode */ }
+    if (PRACTICE_STORAGE && practiceClosed) return;
+    try { storage().setItem(storagePrefix + k, v); } catch { /* private mode */ }
   },
+  closePractice() { if (PRACTICE_STORAGE) practiceClosed = true; },
   remove(k) {
-    try { localStorage.removeItem(SEAT_PREFIX + k); } catch { /* private mode */ }
+    try { storage().removeItem(storagePrefix + k); } catch { /* private mode */ }
   },
 };
 

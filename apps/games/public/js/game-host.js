@@ -146,7 +146,7 @@ function paintOpportunity(signal) {
     signal.addEventListener('abort', aborted, { once: true });
     document.addEventListener?.('visibilitychange', visibility);
     if (signal.aborted) aborted();
-    else if (document.visibilityState === 'hidden' || typeof requestAnimationFrame !== 'function') finish();
+    else if (document.visibilityState === 'hidden' || inactiveSameOriginFrame() || typeof requestAnimationFrame !== 'function') finish();
     else {
       // Browsers can throttle offscreen iframes while their document stays
       // visible. IntersectionObserver includes ancestor clipping, even when
@@ -160,6 +160,14 @@ function paintOpportunity(signal) {
       frame = requestAnimationFrame(tick);
     }
   });
+}
+
+function inactiveSameOriginFrame() {
+  try {
+    // Resource/view readiness above still runs in full. Only an onscreen
+    // paint opportunity is unnecessary for a deliberately inactive seat.
+    return !!document.defaultView?.frameElement?.closest?.('[hidden], [inert]');
+  } catch { return false; } // Cross-origin parents keep the normal observer.
 }
 
 async function usableFrame(active, request, api) {

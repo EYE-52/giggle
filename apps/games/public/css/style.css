@@ -1608,7 +1608,29 @@ body.game-playing.game-immersive .room-menu-panel { background: var(--card); col
 .boot-view { min-height: 65dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; padding: 32px 20px; }
 .boot-view h1 { font-size: clamp(28px, 4vw, 38px); margin: 0; }
 .boot-view p { color: var(--ink-dim); margin: 0 0 8px; }
-.boot-view a { color: var(--accent-deep); }
+.boot-view a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px; color: var(--accent-deep); }
+
+/* A small shared loading cue. Only real pending work owns it; readiness is
+ * never delayed for the animation, and error rendering removes the cue. */
+.loading-mark { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none; width: 44px; height: 22px; vertical-align: middle; }
+.loading-mark[hidden] { display: none; }
+.loading-mark i { display: block; width: 9px; height: 9px; border-radius: 4px; background: var(--accent); }
+.loading-mark i:nth-child(2) { background: var(--sun); }
+.loading-mark i:nth-child(3) { background: var(--teal); }
+/* Three little game pieces give initial loading the same tactile character
+ * as the shelf. The in-game cue stays compact and never covers the board. */
+.boot-view .loading-mark { width: 112px; height: 64px; gap: 12px; }
+.boot-view .loading-mark i { width: 24px; height: 24px; border: 2px solid var(--hard); border-radius: 50%; box-shadow: 2px 3px 0 var(--hard); }
+.boot-view .loading-mark i:nth-child(2) { border-radius: 6px; }
+.boot-view .loading-mark i:nth-child(3) { border-radius: 50% 50% 5px 5px; }
+.practice-entry { margin: 20px 0 12px; color: var(--ink-dim); }
+.practice-entry a { font-weight: 800; color: var(--accent-deep); text-underline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .loading-mark i { animation: loading-hop .9s ease-in-out infinite; }
+  .loading-mark i:nth-child(2) { animation-delay: .12s; }
+  .loading-mark i:nth-child(3) { animation-delay: .24s; }
+  @keyframes loading-hop { 0%, 65%, 100% { transform: translateY(0); } 30% { transform: translateY(-5px); } }
+}
 
 /* ---- inside Giggle: the call room's palette ----
  * The Giggle call room is a quiet navy frame (apps/desktop/app/call-room.css).
