@@ -175,3 +175,7 @@
   .boot-view--table .loading-table { transform: scale(.65); height: 198px; margin: -34px 0; transform-origin: 50% 50%; }
   .boot-view--table h1 { max-width: none; font-size: 28px; }
 }
+/* Reload is a recovery action: hide it during a normal load, show it at
+ * once on error and after a few seconds if loading is merely slow. */
+.boot-view--table:not([data-boot-state="error"]) .boot-reload:not(:focus-visible) { opacity: 0; animation: boot-reload-reveal .3s ease 6s forwards; }
+@keyframes boot-reload-reveal { to { opacity: 1; } }

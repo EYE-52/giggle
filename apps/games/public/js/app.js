@@ -1204,6 +1204,16 @@ function pickGames() {
   return found.slice(0, 4);
 }
 
+/* A fanned hand of real game art under the headline: decoration only,
+ * reusing images the picks below already load. */
+function heroHandHtml() {
+  const hand = ['doodle-guess', 'pocket-karts', 'four-in-a-row', 'charades', 'chess']
+    .map((id) => games.find((g) => g.id === id)).filter(Boolean);
+  if (hand.length < 3) return '';
+  return `<div class="hero-hand" aria-hidden="true">${hand.map((g, i) =>
+    `<span class="hand-card" style="--i:${i - (hand.length - 1) / 2};--d:${Math.abs(i - (hand.length - 1) / 2)}">${artImg(g, 'hand-art')}</span>`).join('')}</div>`;
+}
+
 function pickHtml(g) {
   // Single-action card: the whole card is one button opening the shared
   // setup dialog (rules + Customize + Create room). No shelf links — setup
@@ -1266,6 +1276,7 @@ function renderHome() {
         <p class="hero-sub">Make a room, share the code, and play ${catalogLoaded ? `${games.length} party games` : 'party games'}
           with friends on any device. Someone hosts, everyone plays.</p>
         <a class="shelf-link" href="#games">Find your next game</a>
+        ${catalogLoaded ? heroHandHtml() : ''}
       </div>
       <div class="hero-form ticket">
           <div class="ticket-head"><span class="ticket-title">Create or join a room</span></div>
