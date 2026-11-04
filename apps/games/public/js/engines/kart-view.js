@@ -555,7 +555,7 @@ export function createKartView(viewConfig) {
     const battle = isBattle();
 
     if (S.preparing || (!gl && !fbCanvas)) {
-      timer.textContent = 'Getting ready…';
+      timer.textContent = '–:––'; // no running time yet; the shell says why
       count.hidden = true;
       count.textContent = '';
       lastCount = -1;
@@ -740,7 +740,7 @@ export function createKartView(viewConfig) {
     const arenaName = (S.map && (S.map.label || S.map.id)) || '';
     const tipTxt = !S.youDrive
       ? `Watching — ${(S.karts || []).length} driving.`
-      : S.phase === 'countdown' ? (arenaName ? `Get ready… · ${arenaName}` : 'Get ready…')
+      : S.phase === 'countdown' ? arenaName
       : S.phase === 'drive' && meRespawning() ? 'Knocked out — rejoining…'
       : '';
     tip.textContent = tipTxt;
