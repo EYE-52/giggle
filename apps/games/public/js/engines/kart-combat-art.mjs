@@ -381,6 +381,11 @@ function buildPool(THREE, reg) {
   G.rocketFins.name = 'CombatRocketFins';
   G.rocketTail = poolGeo(reg, cone(0.18, 1.1, 10), 'CombatRocketTail');
   G.rocketTail.rotateX(-HALF_PI);
+  // Source-pack missile bodies are already two metres long after profile
+  // scaling. Keep their decorative exhaust compact within the existing
+  // complete-projectile envelope; fallback rockets keep their authored tail.
+  G.missileExhaust=poolGeo(reg,G.rocketTail.clone(),'CombatMissileExhaust');
+  G.missileExhaust.scale(.75,.75,.35);
 
   // Rail shot: slim spike, longest tracer. Nose tip z=+0.9, tail z=-2.05.
   G.railBolt = mergeParts(THREE, reg, [
@@ -789,7 +794,7 @@ export function createKartCombatArt(THREE, opts) {
     const tails = { pulse: o.tailPulse, scatter: o.tailScatter, rocket: o.tailRocket, rail: o.tailRail, seeker:o.tailRocket,nuke:o.tailRocket,sentry:o.tailPulse,proximity:o.lampRed };
     const tail = kind === 'grenade' || kind === 'bomb' || kind==='proximity' ? clone.getObjectByName(tracerName) : overrideOf(clone, tracerName, tails[kind]);
     inner.add(clone);
-    const tip = (cal && cal[kind]) || null;
+    const tip = (cal && cal[kind==='nuke'?'rocket':kind]) || null;
     const fb = SHOT_TIP_FALLBACK[kind];
     c.tipZ = tip ? tip.tipZ : fb[0];
     c.tailZ = tip ? tip.tailZ : fb[1];
@@ -801,8 +806,8 @@ export function createKartCombatArt(THREE, opts) {
       const {G}=ensurePool();
       if(kind==='seeker'&&!o.tailSeeker)o.tailSeeker=glow(reg,THREE,'CombatTailSeeker',COLORS.mintGlow,.9);
       const material=kind==='seeker'?o.tailSeeker:o.tailRocket;material.toneMapped=false;
-      c.tail=lit(G.rocketTail,material,kind==='seeker'?'SeekerExhaust':'RocketExhaust');
-      c.tail.position.z=c.tailZ-.45;inner.add(c.tail);c.tailZ-=1;
+      c.tail=lit(G.missileExhaust,material,kind==='seeker'?'SeekerExhaust':'RocketExhaust');
+      c.tail.position.z=c.tailZ-.14;inner.add(c.tail);c.tailZ-=.3325;
     }
     if(kind==='proximity'||kind==='bomb'){c.armed=false;c.landed=false;}
     return outer;

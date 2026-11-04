@@ -55,10 +55,25 @@ for(const kind of ['pulse','scatter','rail','grenade','emp','rocket','seeker','b
   }
   check(c.inner.children[0].name===(kind==='emp'?'EMP':kind[0].toUpperCase()+kind.slice(1)),kind+' uses the sourced branch');weapon.removeFromParent();
 }
-for(const kind of ['scatter','grenade','rocket','seeker','bomb']){
+for(const kind of ['scatter','grenade','rocket','seeker','bomb','nuke']){
   const shot=art.projectile(kind);check(shot.userData.combat.kind===kind,kind+' is not silently coerced to Pulse');
   const box=new THREE.Box3().setFromObject(shot),size=box.getSize(new THREE.Vector3());
   check(size.toArray().every(n=>Number.isFinite(n)&&n>0)&&size.length()<3,kind+' actual shot has bounded physical art');
+  if(['rocket','seeker','nuke'].includes(kind)){
+    const c=shot.userData.combat,tail=c.tail;check(!!tail&&tail.material.isMeshBasicMaterial,kind+' exhaust is an unlit cosmetic mesh');
+    // Keep the unchanged whole-object size limit above: decorative art still
+    // shares the player's visual/clearance envelope, even without collision.
+    for(const reduced of [false,true])for(let i=0;i<60;i++){
+      art.animate(shot,1/60,i/60,reduced);
+      const frameBox=new THREE.Box3().setFromObject(shot);
+      check(frameBox.getSize(new THREE.Vector3()).length()<3,kind+' complete animated exhaust remains inside the same art budget');
+    }
+    const hull=new THREE.Box3().setFromObject(c.inner.children[0]);
+    check(box.max.z===hull.max.z,kind+' exhaust does not extend the solid forward nose');
+    check(Math.abs(c.tipZ-hull.max.z)<1e-6&&Math.abs(c.tailZ-box.min.z)<1e-6,kind+' calibrated metadata follows its actual solid nose and compact exhaust');
+    if(kind==='nuke')check(c.inner.children[0].name==='RocketShot','Nuke calibration follows its actual reused RocketShot branch');
+    check(box.min.z<hull.min.z&&hull.min.z-box.min.z<.6,kind+' compact exhaust is attached directly behind the source hull');
+  }
   if(kind==='scatter')check(shot.userData.combat.inner.children[0].name==='BoltScatter','Scatter keeps its compact metal slug; foam dart candidate is not used');
   if(kind==='grenade')check(shot.userData.combat.inner.children[0].name==='GrenadeShot','Grenade projectile uses independently sourced canister hardware');
   if(kind==='bomb'){

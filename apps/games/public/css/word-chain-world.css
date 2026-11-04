@@ -22,6 +22,12 @@
 .wc .wc-ribbon .wg-chip { flex: none; }
 .wc .wc-ribbon:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .wc .wc-lives { color: var(--accent-deep); letter-spacing: 1px; }
+/* Lives are capped at three. Keep that column even after a player goes out:
+ * removing a heart must not pull the roster onto a different number of rows. */
+.wc .wc-seats:has(.wc-lives) .wg-chip {
+  display: inline-grid; grid-template-columns: minmax(0, 1fr) calc(3em + 3px);
+}
+.wc .wc-seats .wc-lives { grid-column: 2; }
 .wc #wcOut { margin: 0; min-height: 19px; }
 .wc .wc-archive-list { margin: 4px 0 10px; padding-left: 2.2em; columns: 3 10em; color: var(--ink); font: 600 15px/1.6 var(--font-body); }
 .wc.wg-final .wc-ribbon { justify-content: center; flex-wrap: wrap; overflow: visible; }

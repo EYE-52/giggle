@@ -20,7 +20,7 @@ for(const id of ['chess','word-chain','number-hunt','reaction-tap']){
 }
 // A starter is selected randomly by the engine; freeze only this visual
 // projection so baseline/fixed screenshots show the same word and ribbon.
-scenarios['word-chain']={...scenarios['word-chain'],current:'apple',used:['apple']};
+scenarios['word-chain']={...scenarios['word-chain'],current:'apple',used:['apple'],maxLives:3,lives:{a:3,b:3,c:3},players:[{id:'a',name:'Ada'},{id:'b',name:'W'.repeat(16)},{id:'c',name:'Cam'}]};
 {
  const ctx=new Clock('word-chain'),game=require('../games/word-chain/server'),s=game.create(ctx);
  for(const word of ['@','zzqwxzz']){
@@ -67,19 +67,19 @@ function rect(page,selector){return page.locator(selector).evaluate(e=>{const r=
    const board=['chess','checkers','kalah'].includes(id),selector=board?'.bk-stage':id==='word-chain'?'#wcChallenge':id==='number-hunt'?'.nh-range':'.rt-pad';
    if(!await page.locator(selector).count()){rows.push({id,width,height,unsupportedSelector:selector});continue;}
    const transitions=id==='word-chain'
-    ? wordFeedback.map(feedback=>({label:feedback.code,patch:{myFeedback:feedback}})).concat(['timeout','empty','repeat','challenged','left'].map(reason=>({label:'turn notice '+reason,patch:{myFeedback:null,lastLife:{pid:'b',reason,lives:1},players:[{id:'a',name:'Ada'},{id:'b',name:'W'.repeat(16)},{id:'c',name:'Cam'}]}})),[{label:'other player turn',patch:{myFeedback:null,lastLife:null,turnPid:'b',turnNo:2,players:[{id:'a',name:'Ada'},{id:'b',name:'W'.repeat(16)},{id:'c',name:'Cam'}]}}])
+    ? wordFeedback.map(feedback=>({label:feedback.code,patch:{myFeedback:feedback}})).concat(['timeout','empty','repeat','challenged','left'].map(reason=>({label:'turn notice '+reason,patch:{myFeedback:null,lastLife:{pid:'b',reason,lives:2},lives:{a:3,b:2,c:3}}})),[{label:'other player turn',patch:{myFeedback:null,lastLife:null,turnPid:'b',turnNo:2,lives:{a:2,b:3,c:3}}}])
     : [{label:board?'preparing status':id==='reaction-tap'?'false-start notice':'past-guesses feedback',patch:board?{preparing:true}:id==='reaction-tap'?{fouled:['b']}:{guesses:{a:[12,36,58]}}}];
    for(const transition of transitions){
-    if(id==='word-chain')await page.evaluate(()=>window.qa.paint({myFeedback:null,lastLife:null,turnPid:'a',turnNo:1}));
-    const before=await rect(page,selector),surfaceBefore=await rect(page,id==='word-chain'?'.wc-target':selector);
+    if(id==='word-chain')await page.evaluate(()=>window.qa.paint({myFeedback:null,lastLife:null,turnPid:'a',turnNo:1,lives:{a:3,b:3,c:3}}));
+    const before=await rect(page,selector),surfaceBefore=await rect(page,id==='word-chain'?'.wc-target':selector),bodyBefore=await rect(page,id==='word-chain'?'.wc':selector);
     if(!textSize&&width===320&&id==='word-chain'&&transition.label==='dictionary')await page.screenshot({path:path.join(out,(baseline?'before':'after')+'-word-chain-320-idle.png'),fullPage:true});
     await page.evaluate(patch=>window.qa.paint(patch),transition.patch);
-    const after=await rect(page,selector),surfaceAfter=await rect(page,id==='word-chain'?'.wc-target':selector);const shift={x:after.x-before.x,y:after.y-before.y,width:after.width-before.width,height:after.height-before.height},surfaceShift={x:surfaceAfter.x-surfaceBefore.x,y:surfaceAfter.y-surfaceBefore.y,width:surfaceAfter.width-surfaceBefore.width,height:surfaceAfter.height-surfaceBefore.height};
+    const after=await rect(page,selector),surfaceAfter=await rect(page,id==='word-chain'?'.wc-target':selector),bodyAfter=await rect(page,id==='word-chain'?'.wc':selector);const shift={x:after.x-before.x,y:after.y-before.y,width:after.width-before.width,height:after.height-before.height},surfaceShift={x:surfaceAfter.x-surfaceBefore.x,y:surfaceAfter.y-surfaceBefore.y,width:surfaceAfter.width-surfaceBefore.width,height:surfaceAfter.height-surfaceBefore.height},bodyShift={x:bodyAfter.x-bodyBefore.x,y:bodyAfter.y-bodyBefore.y,width:bodyAfter.width-bodyBefore.width,height:bodyAfter.height-bodyBefore.height};
     const feedback=id==='word-chain'?await page.locator('#wcFeedback').evaluate(e=>({text:e.textContent,visibleHeight:e.clientHeight,contentHeight:e.scrollHeight,lineHeight:getComputedStyle(e).lineHeight,fontSize:getComputedStyle(e).fontSize})):null;
-    const r={id,label:transition.label,viewport:{width,height},textSize:textSize||'shipping',selector,before,after,shift,surfaceBefore,surfaceAfter,surfaceShift,feedback,errors,documentOverflow:await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)};rows.push(r);
+    const r={id,label:transition.label,viewport:{width,height},textSize:textSize||'shipping',selector,before,after,shift,surfaceBefore,surfaceAfter,surfaceShift,bodyBefore,bodyAfter,bodyShift,feedback,errors,documentOverflow:await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)};rows.push(r);
     if(!textSize&&(width===320&&id==='word-chain'&&transition.label==='dictionary'||width===1024&&id==='checkers'))await page.screenshot({path:path.join(out,(baseline?'before':'after')+'-'+id+'-'+width+'.png'),fullPage:true});
     assert.deepEqual(errors,[],id+' browser errors');
-    if(!baseline){assert(Math.abs(shift.x)<1&&Math.abs(shift.y)<1,id+' '+transition.label+' shifted interaction '+JSON.stringify(shift));assert(Object.values(surfaceShift).every(n=>Math.abs(n)<1),id+' '+transition.label+' shifted/resized surface '+JSON.stringify(surfaceShift));assert.equal(r.documentOverflow,0,id+' horizontal overflow');if(feedback)assert(feedback.contentHeight<=feedback.visibleHeight+1,'feedback remains fully readable');}
+    if(!baseline){assert(Math.abs(shift.x)<1&&Math.abs(shift.y)<1,id+' '+transition.label+' shifted interaction '+JSON.stringify(shift));assert(Object.values(surfaceShift).every(n=>Math.abs(n)<1),id+' '+transition.label+' shifted/resized surface '+JSON.stringify(surfaceShift));assert(Object.values(bodyShift).every(n=>Math.abs(n)<1),id+' '+transition.label+' shifted/resized game body '+JSON.stringify(bodyShift));assert.equal(r.documentOverflow,0,id+' horizontal overflow');if(feedback)assert(feedback.contentHeight<=feedback.visibleHeight+1,'feedback remains fully readable');}
    }
   }finally{await context.close();}
  }

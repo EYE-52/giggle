@@ -220,7 +220,7 @@ async function startGame(game, viewport) {
       const nextTurn = await bounds();
       for (const [label, after] of [['dictionary feedback', feedback], ['turn notice', nextTurn]]) {
         for (const selector of Object.keys(before)) for (const key of Object.keys(before[selector])) {
-          assert(Math.abs(after[selector][key] - before[selector][key]) < 1, `full shell ${label} moved ${selector}.${key}`);
+          assert(Math.abs(after[selector][key] - before[selector][key]) < 1, `full shell ${label} moved ${selector}.${key}: ${before[selector][key]} -> ${after[selector][key]}`);
         }
       }
       statusGeometry = { passed: true, before, feedback, nextTurn, authority: 'actual Room actions and snapshots' };
