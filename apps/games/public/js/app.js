@@ -2471,7 +2471,7 @@ function renderGame() {
     </header>
     <main class="game-stage" aria-label="${esc(gameName(gameId))}">
       ${specBefore}
-      <div class="game-clock is-idle">
+      <div class="game-clock is-idle is-owned">
         <div class="timerbar" id="tbar" hidden><div style="width:100%"></div></div>
         <div class="timertext" id="ttime" aria-label="Round time" hidden></div>
       </div>

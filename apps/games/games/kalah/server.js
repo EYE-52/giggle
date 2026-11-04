@@ -8,6 +8,20 @@ const manifest = {
   layout: 'immersive', runtime: { type: 'module', waitForResult: true }, realtime: false,
   players: { min: 2, max: 24 }, seats: 2, art: 'img/games/kalah.svg',
   howto: 'Two players each have six bowls and a score store. Every bowl starts with four seeds. Pick a non-empty bowl on your side to sow its seeds around the board, one at a time. Include your store and skip the other store. Finish in your store for another turn. Finish in an empty bowl on your side to capture that seed and the opposite bowl, if the opposite bowl contains seeds. When either side is empty, the other player adds their remaining seeds to their own store. Most seeds wins; 24 each is a draw. You can resign or offer a draw. With a move timer, running out of time loses the game. This is the six-bowl, four-seed Kalah preset of Mancala.',
+  guide: {
+    goal: 'Collect the most seeds in your store.',
+    controls: [
+      { keys: ['Click'], touch: 'Tap', does: 'Sow the seeds from a bowl' },
+      { keys: ['↑ ↓ ← →', 'Enter'], does: 'Move between bowls and sow' },
+    ],
+    tips: [
+      'Pick a bowl on your side. Its seeds drop one per bowl around the board.',
+      "Seeds go into your store, but skip your opponent's store.",
+      'End in your own store to take another turn.',
+      'End in an empty bowl on your side to take it and the seeds opposite.',
+      'When one side is empty, the other player banks their remaining seeds.',
+    ],
+  },
   settings: [{ ...duel.MOVE_TIMER_SETTING }],
 };
 const storeOf = side => side ? 13 : 6;

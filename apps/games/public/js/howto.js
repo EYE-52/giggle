@@ -26,6 +26,65 @@ export function splitHowto(text) {
   return parts.map((s) => s.trim()).filter(Boolean);
 }
 
+const node = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text !== undefined) n.textContent = text;
+  return n;
+};
+
+/* Goal line plus key/touch chips from the manifest guide, or null. Touch
+ * labels replace keys on touch-preferred devices via CSS. */
+export function guideGlance(game) {
+  const g = game?.guide;
+  if (!g || typeof g.goal !== 'string') return null;
+  const wrap = node('div', 'howto-glance');
+  const goal = node('p', 'howto-goal');
+  goal.append(node('span', 'howto-label', 'Goal'), node('span', '', g.goal));
+  wrap.append(goal);
+  const controls = Array.isArray(g.controls) ? g.controls : [];
+  if (controls.length) {
+    const list = node('ul', 'howto-controls');
+    list.setAttribute('aria-label', 'Controls');
+    for (const c of controls) {
+      const li = node('li', c.touch ? 'has-touch' : '');
+      if (Array.isArray(c.keys) && c.keys.length) {
+        const keys = node('span', 'howto-keys');
+        for (const k of c.keys) keys.append(node('kbd', '', k));
+        li.append(keys);
+      }
+      if (c.touch) li.append(node('span', 'howto-touch', c.touch));
+      li.append(node('span', 'howto-does', c.does));
+      list.append(li);
+    }
+    wrap.append(list);
+  }
+  return wrap;
+}
+
+/* How-to tab: guide tips, then the full catalog rules collapsed. Games
+ * without a guide show their first two sentences and fold the rest. */
+export function renderRules(body, game) {
+  const paras = splitHowto(game?.howto);
+  const tips = Array.isArray(game?.guide?.tips) ? game.guide.tips : [];
+  const all = node('details', 'howto-all');
+  all.append(node('summary', '', tips.length ? 'All rules' : 'More rules'));
+  for (const text of paras) all.append(node('p', '', text));
+  if (tips.length) {
+    const list = node('ul', 'howto-tips');
+    for (const tip of tips) list.append(node('li', '', tip));
+    body.append(list);
+    if (paras.length) body.append(all);
+    return;
+  }
+  const lead = paras.length <= 3 ? paras : paras.slice(0, 2);
+  for (const text of lead) body.append(node('p', '', text));
+  if (paras.length > lead.length) {
+    all.replaceChildren(all.firstChild, ...paras.slice(lead.length).map(text => node('p', '', text)));
+    body.append(all);
+  }
+}
+
 function paintFooter() {
   if (!state || !state.el) return;
   const foot = state.el.querySelector('[data-howto-foot]');
@@ -122,15 +181,16 @@ export function openHowto({ game, opener, meta, buildFooter }) {
     metaEl.appendChild(s);
   }
   const intro = el.querySelector('#howtoPlayPanel');
-  intro.textContent = state.meta.intro ?? (game.customizable ? 'Create a room and invite your friends. Choose your settings before playing.' : '');
+  const introText = state.meta.intro ?? (game.customizable ? 'Create a room and invite your friends. Choose your settings before playing.' : '');
+  const glance = guideGlance(game);
+  if (glance) {
+    // The Play tab is what people see: goal and controls, not a paragraph.
+    // The footer already says how to start; the generic intro would repeat it.
+    intro.append(glance);
+  } else intro.textContent = introText;
   intro.classList.toggle('howto-intro', !!intro.textContent);
   intro.hidden = !intro.textContent;
-  const body = el.querySelector('.howto-body');
-  for (const para of splitHowto(game.howto)) {
-    const p = document.createElement('p');
-    p.textContent = para;
-    body.appendChild(p);
-  }
+  renderRules(el.querySelector('.howto-body'), game);
   document.body.appendChild(el);
   state.el = el;
   paintFooter();

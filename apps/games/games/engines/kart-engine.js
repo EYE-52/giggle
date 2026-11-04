@@ -764,6 +764,7 @@ function createKartGame(config) {
     ],
   };
   if (cfg.art) manifest.art = cfg.art;
+  if (cfg.guide) manifest.guide = cfg.guide;
   if (cfg.communication) manifest.communication = cfg.communication;
 
   function settingsOf(ctx) {

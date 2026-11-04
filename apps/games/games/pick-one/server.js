@@ -7,6 +7,15 @@ const { dealer, tally, allIn, roundsSetting, paceSetting, paced } = require('../
 const id = 'pick-one';
 
 const manifest = {
+  guide: {
+    goal: 'Match the majority pick, round after round.',
+    tips: [
+      'Each round is quick: about 5 seconds to pick A or B.',
+      'Matching the majority scores 100. On a tie, both sides count.',
+      'Each match in a row adds 25 more, up to +100.',
+      'Your pick is final once you tap it.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: 10 }),

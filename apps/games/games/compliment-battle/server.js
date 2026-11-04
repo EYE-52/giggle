@@ -9,6 +9,15 @@ const id = 'compliment-battle';
 
 const manifest = {
   players: { min: 3, max: 20 },
+  guide: {
+    goal: 'Write the compliment the room votes sweetest.',
+    tips: [
+      'Each round names one target. Everyone else writes a kind note.',
+      'Notes are anonymous. Vote for your favorite, but not your own.',
+      'The most-voted writer earns 100 points. Tied winners all score.',
+      'By default, everyone takes one turn as the target.',
+    ],
+  },
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),
     paceSetting(),

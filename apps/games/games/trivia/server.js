@@ -17,6 +17,14 @@ const STREAK_MAX = 50;
 const manifest = {
   players: { min: 2, max: 20 },
   howto: 'Pick the right answer before time runs out. A correct answer earns 100 points, faster answers up to 50 more, and a streak of correct answers up to 50 more.',
+  guide: {
+    goal: 'Answer the most questions right, as fast as you can.',
+    tips: [
+      'Each question has four options. Your first pick is final.',
+      'A correct answer scores 100, plus up to 50 for speed.',
+      'Correct answers in a row add a streak bonus of up to 50.',
+    ],
+  },
   settings: [
     roundsSetting({ def: ROUNDS }),
     paceSetting(),

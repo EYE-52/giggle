@@ -14,6 +14,16 @@ const manifest = {
   name: 'Show & Go',
   tagline: 'Grab it, show it, win the votes',
   howto: 'Everyone hunts the same everyday object and shows it in Giggle Meet, then taps Ready. Peers vote Yes on convincing finds; you never vote for yourself. An approved find is worth 100 points plus up to 50 for being ready early; judges who agree with the room get 25. Turn on your Meet camera so everyone can see your find. Nothing is recorded.',
+  guide: {
+    goal: "Show a convincing find and win the room's approval.",
+    tips: [
+      'Everyone hunts for the same everyday object at once.',
+      'Show it on your Meet camera, then tap Ready.',
+      'Vote Yes or No on each find. You never vote on your own.',
+      'An approved find earns 100, plus up to 50 for being ready early.',
+      'Judges who agree with the room earn 25 each, up to 50 a round.',
+    ],
+  },
   cat: 'social',
   renderer: 'dom',
   realtime: false,

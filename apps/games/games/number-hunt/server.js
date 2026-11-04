@@ -11,6 +11,16 @@ const id = 'number-hunt';
 
 const manifest = {
   players: { min: 2, max: 20 },
+  guide: {
+    goal: 'Find the hidden number from 1 to 100 in the fewest tries.',
+    tips: [
+      'Each guess tells you to go higher or lower.',
+      'From your second guess on, you also hear warmer or colder.',
+      'Everyone sees every guess and hint, so watch the others.',
+      'The first correct guess starts a short overtime for the rest.',
+      'Fewest tries ranks first: 100, 70, 50, 30, then 20 points.',
+    ],
+  },
   settings: [
     roundsSetting({ def: 5 }),
     paceSetting(),

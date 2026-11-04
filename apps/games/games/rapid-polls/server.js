@@ -10,6 +10,15 @@ const id = 'rapid-polls';
 
 const manifest = {
   players: { min: 2, max: 20 },
+  guide: {
+    goal: 'Ask the room quick questions and see what everyone thinks.',
+    tips: [
+      'Anyone can post a question with 2 to 4 options, or pick a starter poll.',
+      'If nobody asks in time, a starter poll appears.',
+      'Everyone votes once and the results update live.',
+      'Asking or voting earns 25 points each round.',
+    ],
+  },
   settings: [
     roundsSetting({ def: 8 }),
     paceSetting(),

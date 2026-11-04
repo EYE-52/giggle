@@ -10,6 +10,15 @@ const id = 'memory-tray';
 const manifest = {
   players: { min: 2, max: 20 },
   howto: 'Memorize the items, then type all you remember. Points grow with every item you recall: the whole tray earns 200, half of it 75.',
+  guide: {
+    goal: 'Remember the most tray items across all rounds.',
+    tips: [
+      'Study the tray of 8 items before it hides.',
+      'Then type every item you remember, separated by commas.',
+      'Spelling counts: each answer must match an item name.',
+      'More items recalled means more points. The whole tray earns 200.',
+    ],
+  },
   settings: [
     roundsSetting({ def: 3 }),
     paceSetting(),

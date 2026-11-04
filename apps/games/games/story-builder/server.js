@@ -11,6 +11,18 @@ const id = 'story-builder';
 
 const manifest = {
   howto: 'Add one sentence on your turn before time runs out, then vote for the funniest line (not your own). Each vote is worth 50 (up to 100) and the funniest line earns 100 more.',
+  guide: {
+    goal: 'Write the line the room votes funniest.',
+    controls: [
+      { keys: ['Enter'], does: 'Add your sentence' },
+    ],
+    tips: [
+      'A starter line opens each story. Players add one sentence in turn.',
+      'Miss your turn and a filler line goes in for you.',
+      'When the story ends, vote for the funniest line that is not yours.',
+      'Each vote is worth 50, up to 100. The funniest line earns 100 more.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: 3 }),

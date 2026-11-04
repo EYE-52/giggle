@@ -7,6 +7,15 @@ const { dealer, allIn, roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'never-ever';
 
 const manifest = {
+  guide: {
+    goal: 'Answer Have or Never honestly for each statement.',
+    tips: [
+      'Answers stay hidden until everyone is in or time runs out.',
+      'Each Never scores 100. Nevers in a row add 25 each, up to +100.',
+      'A Have scores nothing and resets your streak.',
+      'Your answer is final once you tap it.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: 8 }),

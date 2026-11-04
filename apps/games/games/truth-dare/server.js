@@ -13,6 +13,16 @@ const { dealer, shuffle, roundsSetting, paceSetting, paced } = require('../_sdk'
 const id = 'truth-dare';
 
 const manifest = {
+  guide: {
+    goal: "Win the room's yes vote on your truths and dares.",
+    tips: [
+      'The spinner lands on a player, who picks a deck, then Truth or Dare.',
+      'Others vote Juicy or Not juicy on a truth, Done or Failed on a dare.',
+      'A yes majority scores 100, plus 25 per success in a row (up to +100).',
+      'An even split scores 50. Voters on the winning side get 25.',
+      'Take too long to choose and the game picks for you.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),

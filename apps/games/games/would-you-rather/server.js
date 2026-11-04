@@ -7,6 +7,15 @@ const { dealer, tally, allIn, roundsSetting, paceSetting, paced } = require('../
 const id = 'would-you-rather';
 
 const manifest = {
+  guide: {
+    goal: 'Pick the option most of the room picks.',
+    tips: [
+      'Vote A or B in secret before the timer ends.',
+      'Matching the majority scores 100. On a tie, both sides count.',
+      'Each match in a row adds 25 more, up to +100.',
+      'Your vote is final once you tap it.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: 8 }),

@@ -10,6 +10,16 @@ const id = 'roast-toast';
 
 const manifest = {
   howto: 'Write a friendly roast for the target. Vote on anonymous entries except your own. The room favorite earns 100 points; the target’s favorite earns 100 more.',
+  guide: {
+    goal: 'Write the friendly roast that gets the most love.',
+    tips: [
+      'Each round names one target. Everyone else writes one roast line.',
+      'Keep it kind: roast the habit, not the person.',
+      'Vote for the funniest anonymous roast, but not your own.',
+      'The room favorite earns 100. The target picks a favorite for 100 more.',
+      'By default, everyone takes one turn as the target.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),

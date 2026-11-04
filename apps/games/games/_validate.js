@@ -77,6 +77,27 @@ function sharedSettingError(s) {
   return '';
 }
 
+/* Optional at-a-glance guide shown above the full howto: one goal line,
+ * key/touch controls and a few short tips. Limits keep it glanceable. */
+function validateGuide(g) {
+  const text = (v, max) => typeof v === 'string' && v.trim().length > 0 && v.length <= max;
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return 'manifest.guide must be an object.';
+  if (!text(g.goal, 90)) return 'manifest.guide.goal must be a string of at most 90 characters.';
+  if (g.controls !== undefined) {
+    if (!Array.isArray(g.controls) || g.controls.length > 6) return 'manifest.guide.controls must be an array of at most 6 entries.';
+    for (const c of g.controls) {
+      if (!c || typeof c !== 'object' || !text(c.does, 40)) return 'Each manifest.guide.controls entry needs a "does" label of at most 40 characters.';
+      if (c.keys !== undefined && (!Array.isArray(c.keys) || c.keys.length > 4 || !c.keys.every(k => text(k, 10)))) return 'manifest.guide.controls keys must be at most 4 short labels.';
+      if (c.touch !== undefined && !text(c.touch, 16)) return 'manifest.guide.controls touch must be at most 16 characters.';
+      if (!c.keys && !c.touch) return 'Each manifest.guide.controls entry needs keys or touch.';
+    }
+  }
+  if (g.tips !== undefined && (!Array.isArray(g.tips) || g.tips.length > 5 || !g.tips.every(t => text(t, 80)))) {
+    return 'manifest.guide.tips must be at most 5 strings of at most 80 characters.';
+  }
+  return null;
+}
+
 function validateManifest(def) {
   if (!def || typeof def !== 'object') return { ok: false, error: 'Game definition must export an object.' };
   if (!isValidId(def.id)) return { ok: false, error: `Bad game id ${JSON.stringify(def.id)}.` };
@@ -86,6 +107,10 @@ function validateManifest(def) {
   if (m.name !== undefined && typeof m.name !== 'string') return { ok: false, error: 'manifest.name must be a string.' };
   if (m.tagline !== undefined && typeof m.tagline !== 'string') return { ok: false, error: 'manifest.tagline must be a string.' };
   if (m.howto !== undefined && typeof m.howto !== 'string') return { ok: false, error: 'manifest.howto must be a string.' };
+  if (m.guide !== undefined) {
+    const guideError = validateGuide(m.guide);
+    if (guideError) return { ok: false, error: guideError };
+  }
   if (m.cat !== undefined && typeof m.cat !== 'string') return { ok: false, error: 'manifest.cat must be a string.' };
   if (m.renderer !== undefined && (typeof m.renderer !== 'string' || !/^[a-z0-9][a-z0-9-]{0,39}$/.test(m.renderer))) {
     return { ok: false, error: 'manifest.renderer must be a short technology label (e.g. dom, canvas, 3d, webgpu, wasm).' };

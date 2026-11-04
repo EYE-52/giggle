@@ -9,6 +9,16 @@ const manifest = {
   name: 'Warm Words',
   tagline: 'Follow the meaning. Find the word.',
   howto: 'Everyone races to find the same hidden everyday English word. Each guess gets real AI word-embedding cosine similarity and a vocabulary rank: lower ranks are closer, and rank 1 is the exact answer. Share ideas on the call! Only the exact word wins. The first solver earns 100–200 points depending on time remaining. Optional hints reveal a close word and reduce the round prize by 50 points each, at most twice. Three 90-second rounds by default. Similarity measures meaning, not spelling; the model can make surprising associations. Guesses must be in our 1,507-word vocabulary. Custom targets use supported vocabulary words only; unsupported targets are skipped with a notice.',
+  guide: {
+    goal: 'Be the first to find the hidden word.',
+    tips: [
+      'Each guess shows how close it is in meaning, with a rank.',
+      'Lower ranks are closer. Rank 1 is the exact word.',
+      'Only the exact word wins. The first solver earns 100 to 200 points.',
+      'Hints reveal a close word but cost 50 points each, up to twice.',
+      'Similarity is about meaning, not spelling.',
+    ],
+  },
   cat: 'word', players: { min: 2, max: 20 }, communication: 'voice',
   art: 'img/games/warm-words.svg',
   settings: [

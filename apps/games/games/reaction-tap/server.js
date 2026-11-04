@@ -9,6 +9,18 @@ const id = 'reaction-tap';
 const manifest = {
   players: { min: 2, max: 20 },
   howto: 'Wait for green, then tap! Early taps foul. The fastest tap each round earns 100 points, then 75, 50 and 25.',
+  guide: {
+    goal: 'Tap fastest each time the pad turns green.',
+    controls: [
+      { keys: ['Click'], touch: 'Tap', does: 'Hit the pad on green' },
+    ],
+    tips: [
+      'Green comes after a random wait of a few seconds.',
+      'Tapping before green fouls you out of that round.',
+      'The fastest tap earns 100, then 75 and 50. Every other tap earns 25.',
+      'Green only lasts a moment, so stay ready.',
+    ],
+  },
   settings: [
     roundsSetting({ def: 5 }),
     paceSetting(),

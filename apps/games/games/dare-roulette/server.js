@@ -12,6 +12,16 @@ const id = 'dare-roulette';
 
 const manifest = {
   players: { min: 3, max: 20 },
+  guide: {
+    goal: 'Complete dares the room believes and score the most points.',
+    tips: [
+      'Anyone can spin. The wheel picks a player and a dare.',
+      'Perform the dare, then tap Ready for votes.',
+      'Everyone else votes Done or Chicken.',
+      'A Done majority earns 100. Each dare in a row adds 25 more, up to +100.',
+      'A tied vote earns 50.',
+    ],
+  },
   settings: [
     roundsSetting({ def: 8 }),
     paceSetting(),

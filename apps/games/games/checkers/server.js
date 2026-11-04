@@ -8,6 +8,20 @@ const manifest = {
   layout: 'immersive', runtime: { type: 'module', waitForResult: true }, realtime: false,
   players: { min: 2, max: 24 }, seats: 2, art: 'img/games/checkers.svg',
   howto: 'Two players take red and charcoal; friends can watch. English rules: men move and jump diagonally forward; kings move and jump in both directions without flying. Captures are compulsory, and further jumps must use the same piece. Choose any available capture path. Reaching the far edge makes a king and ends the turn. Win when your opponent has no pieces or no legal moves. Repeated positions three times or 40 turns each without a capture or a man moving draw the game. You can also resign or agree to a draw. With a move timer, running out of time loses the game.',
+  guide: {
+    goal: "Take all your opponent's pieces or leave them with no legal move.",
+    controls: [
+      { keys: ['Click'], touch: 'Tap', does: 'Pick a piece, then a square' },
+      { keys: ['↑ ↓ ← →', 'Enter'], does: 'Move the cursor and select' },
+    ],
+    tips: [
+      'Red moves first. Men move diagonally forward; kings move both ways.',
+      'Captures are compulsory. Keep jumping with the same piece.',
+      'Reaching the far edge makes a king and ends your turn.',
+      'You can resign or agree to a draw.',
+      'With a move timer, running out of time loses the game.',
+    ],
+  },
   settings: [{ ...duel.MOVE_TIMER_SETTING }],
 };
 const sideOf = p => p ? (p - 1) % 2 : -1;

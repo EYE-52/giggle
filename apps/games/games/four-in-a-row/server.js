@@ -6,6 +6,19 @@ const id = 'four-in-a-row';
 const manifest = {
   name: 'Four in a Row', tagline: 'Drop a counter. Set a trap.',
   howto: 'Red goes first. Drop a counter into any open column. The first four in a straight line — across, up, or diagonally — wins. A full board without four is a draw. You can resign or offer a draw. With a move timer, running out of time loses the game. Two play; everyone else watches.',
+  guide: {
+    goal: 'Line up four counters across, up or diagonally.',
+    controls: [
+      { keys: ['Click'], touch: 'Tap', does: 'Drop a counter in a column' },
+      { keys: ['← →', 'Enter'], does: 'Choose a column and drop' },
+    ],
+    tips: [
+      'Red goes first. Counters fall to the lowest open space.',
+      'A full board without four in a row is a draw.',
+      'You can resign or offer a draw.',
+      'With a move timer, running out of time loses the game.',
+    ],
+  },
   cat: 'board', renderer: 'svg', layout: 'immersive', runtime: { type: 'module', waitForResult: true },
   realtime: false, players: { min: 2, max: 24 }, seats: 2, art: 'img/games/four-in-a-row.svg',
   settings: [{ ...duel.MOVE_TIMER_SETTING }],

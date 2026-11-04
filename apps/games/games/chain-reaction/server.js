@@ -30,6 +30,20 @@ module.exports = {
   manifest: {
     name: 'Chain Reaction', tagline: 'One tiny orb. A very big BOOM.',
     howto: 'Two to six players take turns adding an orb to an empty cell or a cell they own. Corners burst at 2, edges at 3, and inner cells at 4. Each burst sends an orb to every neighboring cell and captures it, setting off chain reactions. Everyone gets one turn before players with no orbs are eliminated. Be the last owner standing! With a move timer, a missed turn is skipped. A player who leaves drops out; extra friends watch.',
+    guide: {
+      goal: 'Be the last player with orbs on the board.',
+      controls: [
+        { keys: ['Click'], touch: 'Tap', does: 'Add an orb to a cell' },
+        { keys: ['↑ ↓ ← →', 'Enter'], does: 'Move between cells and add' },
+      ],
+      tips: [
+        'Add an orb to an empty cell or a cell you own.',
+        'Corners burst at 2 orbs, edges at 3 and inner cells at 4.',
+        'A burst sends an orb to each neighbor and captures it.',
+        'After everyone has had a turn, players with no orbs are out.',
+        'With a move timer, a missed turn is skipped.',
+      ],
+    },
     cat: 'board', renderer: 'dom', layout: 'immersive', runtime: { type: 'frame', entry: 'index.html', waitForResult: true }, realtime: false, communication: 'any',
     players: { min: 2, max: 24 }, seats: 6, art: 'img/games/chain-reaction.svg',
     settings: [

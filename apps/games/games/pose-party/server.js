@@ -14,6 +14,16 @@ const manifest = {
   name: 'Pose Party',
   tagline: 'Strike a pose live on camera',
   howto: 'One player performs the prompt in Giggle Meet and taps Ready before time runs out. Everyone else watches and votes Yes or No. An approved pose is worth 100 points plus up to 50 for being ready early; judges who agree with the room get 25. Turn on your Meet camera so everyone can see your pose. Nothing is recorded.',
+  guide: {
+    goal: 'Strike poses the room approves to score the most points.',
+    tips: [
+      'Each round, one player performs the prompt on their Meet camera.',
+      'Tap Ready when you are done. Being ready early adds up to 50.',
+      'Everyone else votes Yes or No. An approved pose earns 100.',
+      'Judges who vote with the room earn 25.',
+      'Turn on your camera so everyone can see. Nothing is recorded.',
+    ],
+  },
   cat: 'social',
   renderer: 'dom',
   realtime: false,

@@ -10,6 +10,19 @@ const id = 'bluff';
 
 const manifest = {
   howto: 'Write a fake answer, then pick the truth from the mix. Finding the truth is worth 100; each player your bluff fools is worth 50 (up to 100).',
+  guide: {
+    goal: 'Find the real answer, and fool others with your fake.',
+    controls: [
+      { keys: ['Enter'], does: 'Send your fake answer' },
+    ],
+    tips: [
+      'A fact is shown with a blank. Write a believable fake to fill it.',
+      'Then pick the real answer from all the options (not your own fake).',
+      'Picking the truth scores 100.',
+      'Each player who picks your fake gives you 50, up to 100.',
+      'A fake that matches the real answer is not accepted.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: 6 }),

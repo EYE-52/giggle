@@ -6,6 +6,19 @@ const SAFE = [0, 8, 13, 21, 26, 34, 39, 47];
 const manifest = {
   name: 'Ludo', tagline: 'Race your four pawns home',
   howto: 'Four pawns each. Roll six to enter and roll again after six. Follow your lane and land exactly at home. Landing on an opponent on an unmarked trail square sends every opponent pawn there back to its yard. Starting squares and stars are safe. No blockades or three-sixes penalty. First with all four home wins; the others place by how far their pawns have come. A player who leaves, resigns or runs out of time on the move timer drops out and the others play on. Two to four play; everyone else watches.',
+  guide: {
+    goal: 'Be the first to bring all four pawns home.',
+    controls: [
+      { keys: ['Click'], touch: 'Tap', does: 'Roll, then pick a pawn' },
+    ],
+    tips: [
+      'Roll a six to bring a pawn out. A six also gives you another roll.',
+      'You must land exactly on home.',
+      'Land on a rival on a plain trail square to send it back to its yard.',
+      'Starting squares and stars are safe.',
+      'Two to four play. Everyone else watches.',
+    ],
+  },
   cat: 'board', renderer: 'svg', layout: 'immersive', runtime: { type: 'module', waitForResult: true },
   players: { min: 2, max: 24 }, seats: 4, realtime: false, art: 'img/games/ludo.svg',
   settings: [{ ...duel.MOVE_TIMER_SETTING }],

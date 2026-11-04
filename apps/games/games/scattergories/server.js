@@ -11,6 +11,18 @@ const id = 'scattergories';
 const manifest = {
   players: { min: 2, max: 20 },
   howto: 'Fill every category with a word that starts with the round letter before time runs out. Each answer nobody else wrote earns 40 points (all five: 200).',
+  guide: {
+    goal: 'Write unique answers that start with the round letter.',
+    controls: [
+      { keys: ['Enter'], does: 'Next box (last box saves)' },
+    ],
+    tips: [
+      'Each round has one letter and five categories.',
+      'An answer scores 40 if it starts with the letter and nobody else wrote it.',
+      'Answers that match another player score nothing.',
+      'Lock in when done. The round ends early once everyone locks in.',
+    ],
+  },
   settings: [
     roundsSetting({ def: 3 }),
     paceSetting(),

@@ -20,6 +20,19 @@ const manifest = {
     words: { label: 'Extra accepted words (letters A–Z)', type: 'string[]', minItems: 1, maxItems: 200, maxLen: 24 },
   },
   howto: 'On your turn, say a supported English word related to the last word before time runs out. Unsupported spellings get feedback and you may retry on the same clock. A repeat, a blank or running out of time costs a life; with no lives left you are out. The offline dictionary checks spelling; the room judges the relationship. A majority of the players still in may challenge the previous word, which costs its author a life. Pace scales the turn time. Last player standing earns 300 points; the next places earn 200 and 100.',
+  guide: {
+    goal: 'Be the last player still in the chain.',
+    controls: [
+      { keys: ['Enter'], does: 'Say your word' },
+    ],
+    tips: [
+      'On your turn, say an English word related to the last word.',
+      'A repeat, a blank or running out of time costs a life.',
+      'Unsupported spellings get feedback. Retry before your clock runs out.',
+      'If most players still in challenge a word, its author loses a life.',
+      'Last one standing scores 300; the next places score 200 and 100.',
+    ],
+  },
 };
 const PLACE_PTS = [300, 200, 100];
 const DRAW_PTS = 150;

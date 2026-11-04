@@ -7,6 +7,15 @@ const { dealer, tally, allIn, roundsSetting, paceSetting, paced } = require('../
 const id = 'most-likely';
 
 const manifest = {
+  guide: {
+    goal: 'Vote for the player the room picks most.',
+    tips: [
+      'Read the prompt and vote for another player. You cannot pick yourself.',
+      'Voting with the top pick scores 100. Matches in a row add 25 each.',
+      'The single top pick also gets 50. Extras cap at +100 a round.',
+      'Votes stay hidden until everyone votes or time runs out.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: 8 }),

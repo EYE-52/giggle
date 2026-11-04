@@ -11,6 +11,17 @@ const id = 'lyric-fill';
 const manifest = {
   players: { min: 2, max: 20 },
   howto: 'Fill the missing words before time runs out. Exact answers earn 100 points; close answers earn 50.',
+  guide: {
+    goal: 'Fill in the missing lyric before time runs out.',
+    controls: [
+      { keys: ['Enter'], does: 'Send your answer' },
+    ],
+    tips: [
+      'You get one answer per line. It is final once sent.',
+      'An exact answer scores 100.',
+      'A close answer, like a small typo, scores 50.',
+    ],
+  },
   settings: [
     roundsSetting({ def: 6 }),
     paceSetting(),

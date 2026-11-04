@@ -10,6 +10,18 @@ const id = 'emoji-story';
 
 const manifest = {
   howto: 'Describe your secret phrase in emoji only. Others race to guess it: 100 for a correct guess plus up to 100 for speed. The storyteller earns 50 per solver.',
+  guide: {
+    goal: 'Guess phrases told in emoji, and tell yours so others solve it.',
+    controls: [
+      { keys: ['Enter'], does: 'Send your emoji or a guess' },
+    ],
+    tips: [
+      'Each turn, one player gets a secret phrase and tells it in emoji only.',
+      'Letters are not allowed in the emoji story.',
+      'Guess as often as you like. Correct: 100 plus up to 100 for speed.',
+      'The storyteller earns 50 for each solver, up to 200.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),

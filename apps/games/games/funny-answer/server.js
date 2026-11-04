@@ -17,6 +17,18 @@ const manifest = {
   name: 'Punchline',
   tagline: 'Funniest answer takes the round',
   howto: 'Answer the prompt secretly, then vote for the funniest answer (not your own). Each vote is worth 50 (up to 100) and the funniest answer earns 100 more.',
+  guide: {
+    goal: 'Write the answer the room votes funniest.',
+    controls: [
+      { keys: ['Enter'], does: 'Send your answer' },
+    ],
+    tips: [
+      'Everyone answers the same prompt in secret.',
+      'Answers are shown without names. Vote for any answer but your own.',
+      'Each vote you get is worth 50, up to 100.',
+      'The funniest answer earns 100 more. Tied answers all count.',
+    ],
+  },
   cat: 'bluff',
   renderer: 'dom',
   realtime: false,

@@ -14,6 +14,19 @@ const id = 'twenty-questions';
 
 const manifest = {
   howto: 'Ask yes/no questions or guess the secret word. The host chooses 10–50 questions per round (20 by default). Optional shared letter hints cost 50 points each, up to two per round.',
+  guide: {
+    goal: 'Guess the secret word in as few questions as you can.',
+    controls: [
+      { keys: ['Enter'], does: 'Send a question or guess' },
+    ],
+    tips: [
+      'One player holds the secret word and answers Yes, No or Sometimes.',
+      'Ask yes/no questions, or guess the word at any time.',
+      'A correct guess scores 100, plus up to 100 for using fewer questions.',
+      'If nobody guesses it, the answerer scores 100.',
+      'If hints are on, each letter hint takes 50 off a correct guess.',
+    ],
+  },
   players: { min: 3, max: 12 },
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),

@@ -8,6 +8,18 @@ const { dealer, allIn, roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'rank-it';
 
 const manifest = {
+  guide: {
+    goal: 'Rank five items the way the whole room does.',
+    controls: [
+      { keys: ['↑', '↓'], touch: 'Tap ↑ ↓', does: 'Move an item up or down' },
+    ],
+    tips: [
+      'Lock your ranking before time runs out. You can update it until the reveal.',
+      "The room's order combines everyone's rankings.",
+      'A perfect match scores 100, minus 10 for each place you are off.',
+      'The closest ranking each round gets 50 more.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: 5 }),

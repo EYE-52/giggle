@@ -7,6 +7,19 @@ const DIRECTIONS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
 const manifest = {
   name: 'Reversi', tagline: 'Turn the table, one disc at a time',
   howto: 'Charcoal moves first. Place a disc on a legal dot to trap ivory discs between yours, in any straight line. All trapped discs flip. If you have no move, your turn passes automatically. When neither player can move, the most discs wins. You can resign or offer a draw. With a move timer, running out of time loses the game. Two play; everyone else watches.',
+  guide: {
+    goal: 'Own the most discs when neither player can move.',
+    controls: [
+      { keys: ['Click'], touch: 'Tap', does: 'Place a disc on a dot' },
+      { keys: ['↑ ↓ ← →', 'Enter'], does: 'Move the cursor and place' },
+    ],
+    tips: [
+      'Charcoal moves first. Dots show your legal moves.',
+      'Trap rival discs between yours in any straight line to flip them.',
+      'If you have no move, your turn passes automatically.',
+      'With a move timer, running out of time loses the game.',
+    ],
+  },
   cat: 'board', renderer: 'svg', layout: 'immersive', runtime: { type: 'module', waitForResult: true },
   realtime: false, players: { min: 2, max: 24 }, seats: 2, art: 'img/games/reversi.svg',
   settings: [{ ...duel.MOVE_TIMER_SETTING }],

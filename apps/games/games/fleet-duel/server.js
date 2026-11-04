@@ -6,6 +6,20 @@ const LENGTHS = [5,4,3,3,2];
 const manifest = {
   name: 'Fleet Duel', tagline: 'Find their fleet before they find yours',
   howto: 'Place five ships of lengths 5, 4, 3, 3 and 2 horizontally or vertically on your 10×10 harbor. Ships may touch, but cannot overlap. Confirm each ship, then Ready. Take one shot per turn, even after a hit. Aim at a square, then Fire. Sink every enemy ship to win. You can resign at any time. With a move timer, running out of time on a shot loses the game. Two play; everyone else watches masked charts.',
+  guide: {
+    goal: 'Sink all five enemy ships before they sink yours.',
+    controls: [
+      { keys: ['Click'], touch: 'Tap', does: 'Place ships, then aim shots' },
+      { keys: ['R'], touch: 'Rotate', does: 'Turn a ship while placing' },
+      { keys: ['↑ ↓ ← →', 'Enter'], does: 'Move the cursor, aim or place' },
+    ],
+    tips: [
+      'Place ships of length 5, 4, 3, 3 and 2. They may touch but not overlap.',
+      'Confirm each ship, then tap Ready.',
+      'Take one shot per turn, even after a hit. Aim, then tap Fire.',
+      'With a move timer, running out of time on a shot loses the game.',
+    ],
+  },
   cat: 'board', renderer: 'svg', layout: 'immersive', runtime: { type: 'module', waitForResult: true },
   players: { min: 2, max: 24 }, seats: 2, realtime: false, art: 'img/games/fleet-duel.svg',
   settings: [{ ...duel.MOVE_TIMER_SETTING }],

@@ -58,3 +58,13 @@
   .gp-list li { gap: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .gp-btn { transition: none; } .gp-btn:hover, .gp-btn:active { transform: none; } }
+.gp-goal { display: flex; align-items: baseline; gap: 10px; font-size: 20px; font-weight: 800; }
+.gp-goal span { flex: none; padding: 3px 9px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+.gp-controls, .gp-tips { display: grid; gap: 8px; margin: 14px 0; padding: 0; list-style: none; }
+.gp-controls li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 7%, var(--bg)); font-weight: 700; }
+.gp-controls kbd, .gp-touch { display: inline-grid; place-items: center; min-width: 28px; height: 28px; padding: 0 8px; border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 8px; background: var(--bg); font: 800 13px var(--font-body); }
+.gp-touch { border-bottom-width: 1px; border-radius: 999px; background: var(--ink); color: var(--bg); }
+.gp-tips li { position: relative; padding-left: 24px; font-weight: 600; }
+.gp-tips li::before { content: ""; position: absolute; left: 3px; top: .55em; width: 9px; height: 9px; border-radius: 2px; background: var(--accent); transform: rotate(45deg); }
+.gp-rules summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--accent-deep); font-weight: 800; }
+.gp-rules p { color: var(--ink-dim); }

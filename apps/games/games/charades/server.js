@@ -25,6 +25,18 @@ const manifest = {
   name: 'Charades',
   tagline: 'Act it out, guess fast',
   howto: 'Act out your word in Giggle Meet with your camera on — no talking. Guessers race to name it: a correct guess earns 100 points, more for speed and for being first. The actor earns 50 for each player who gets it.',
+  guide: {
+    goal: 'Guess the acted word fast, and act so others get yours.',
+    controls: [
+      { keys: ['Enter'], does: 'Send a guess' },
+    ],
+    tips: [
+      'Turn your camera on in Giggle Meet. The actor acts without talking.',
+      'Guessers type guesses. Correct scores 100, plus up to 50 for speed.',
+      'The first correct guesser gets 50 more, the second 25.',
+      'The actor earns 50 for each player who gets it, up to 200.',
+    ],
+  },
   cat: 'speed',
   renderer: 'dom',
   realtime: false,

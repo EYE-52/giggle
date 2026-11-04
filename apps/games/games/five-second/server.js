@@ -9,6 +9,17 @@ const id = 'five-second';
 
 const manifest = {
   howto: 'Name 3 things in the category within 5 seconds. The room judges pass or fail: a pass is worth 100, and a streak of passes adds up to 100 more.',
+  guide: {
+    goal: 'Name three things in a category within 5 seconds.',
+    controls: [
+      { keys: ['Enter'], does: 'Send your three answers' },
+    ],
+    tips: [
+      'Players take turns. Type three answers separated by commas.',
+      'Everyone else votes Pass or Fail. A tied vote counts as a pass.',
+      'A pass scores 100, plus 25 for each pass in a row before it (up to +100).',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),

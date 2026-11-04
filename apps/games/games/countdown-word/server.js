@@ -13,6 +13,19 @@ const manifest = {
   ],
   packs: { words: { label: 'Extra accepted words (3–9 letters)', type: 'string[]', minItems: 1, maxItems: 200, maxLen: 9 } },
   howto: 'Build a supported English word with 3–9 letters from the nine tiles before time runs out. Every letter can be used only as many times as it appears. Save to keep editing, lock in to submit, or pass. Unsupported words get feedback while the clock keeps running. A valid word earns 50 points plus 10 per letter (five letters: 100); everyone tied for the longest earns 50 more. Each tray has a valid word. The host may add extra accepted words to the offline dictionary.',
+  guide: {
+    goal: 'Make the longest word you can from nine letters.',
+    controls: [
+      { keys: ['A–Z'], touch: 'Tap tiles', does: 'Spell your word' },
+      { keys: ['Enter'], does: 'Lock in your word' },
+    ],
+    tips: [
+      'Words need 3 to 9 letters. Use each tile only as often as it appears.',
+      'Save to keep editing, Lock in to submit, or Pass.',
+      'A valid word scores 50 plus 10 per letter.',
+      'Everyone tied for the longest word gets 50 more.',
+    ],
+  },
 };
 const MAKE_SECONDS = 30, REVEAL_SECONDS = 8;
 const WORD_PTS = 50, LETTER_PTS = 10, LONGEST_PTS = 50;

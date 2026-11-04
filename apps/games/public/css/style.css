@@ -1768,3 +1768,24 @@ body:not(.game-playing):not(.is-embed) .topbar { padding-block: 8px; }
   .ticket-or::before { left: -28px; }
   .ticket-or::after { right: -28px; }
 }
+
+/* How-to at a glance: goal, controls as keycaps, short tips, rules folded. */
+.howto-glance { display: grid; gap: 14px; margin: 0; }
+#howtoPlayPanel.howto-intro:has(.howto-glance) { margin: 12px 0 4px; }
+.howto-goal { display: flex; align-items: baseline; gap: 10px; margin: 0; font-size: 19px; font-weight: 800; line-height: 1.35; color: var(--ink); }
+.howto-label { flex: none; padding: 3px 9px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; transform: translateY(-2px); }
+.howto-controls { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.howto-controls li { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 12px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 7%, var(--bg)); }
+.howto-keys { display: inline-flex; flex-wrap: wrap; gap: 4px; flex: none; }
+.howto-keys kbd, .howto-touch { display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 9px; background: var(--bg); color: var(--ink); font: 800 13px var(--font-body); white-space: nowrap; }
+.howto-touch { display: none; border-radius: 999px; border-bottom-width: 1px; background: var(--ink); color: var(--bg); }
+.touch-preferred .howto-controls .has-touch .howto-keys { display: none; }
+.touch-preferred .howto-controls .has-touch .howto-touch { display: inline-grid; }
+.howto-does { font-size: 15px; font-weight: 700; line-height: 1.3; }
+.howto-controls li:has(kbd + kbd) { grid-column: 1 / -1; }
+.howto-tips { display: grid; gap: 8px; margin: 0 0 12px; padding: 0; list-style: none; }
+.howto-tips li { position: relative; padding-left: 26px; font-size: 17px; font-weight: 600; line-height: 1.45; }
+.howto-tips li::before { content: ""; position: absolute; left: 4px; top: .5em; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); transform: rotate(45deg); }
+.howto-all { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.howto-all summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--accent-deep); font-weight: 800; }
+.howto-all p { margin: 0 0 10px; color: var(--ink-dim); font-size: 15px !important; font-weight: 500 !important; line-height: 1.5; }

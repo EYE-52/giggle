@@ -36,6 +36,19 @@ const id = 'draw-phone';
 
 const manifest = {
   players: { min: 3, max: 12 },
+  guide: {
+    goal: 'Pass a phrase through a drawing and a caption, and keep the story alive.',
+    controls: [
+      { keys: ['Drag'], touch: 'Finger', does: 'Draw on the canvas' },
+    ],
+    tips: [
+      'Write a phrase. If you skip it, a starter is used.',
+      "Draw the phrase you are handed, then caption someone else's drawing.",
+      'A phrase earns 25, a drawing 50 and a caption 25.',
+      "If a caption keeps half the phrase's words, artist and captioner get 50.",
+      'The stories are shown page by page at the end.',
+    ],
+  },
   settings: [
     paceSetting(),
     { key: 'writeSeconds', label: 'Seconds to write', type: 'int', min: 10, max: 120, def: 30 },

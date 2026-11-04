@@ -33,6 +33,21 @@ const manifest = {
   name: 'Doodle Guess',
   tagline: 'Draw it, friends guess it',
   howto: 'One player draws, everyone else guesses. A correct guess is worth 100 points plus up to 100 for speed; the artist scores when the room gets it.',
+  guide: {
+    goal: 'Guess drawings fast, and draw so others guess yours.',
+    controls: [
+      { keys: ['Drag'], touch: 'Finger', does: 'Draw (when you are the artist)' },
+      { keys: ['Ctrl+Z', '⌘Z'], does: 'Undo your last stroke' },
+      { keys: ['Enter'], does: 'Send a guess' },
+    ],
+    tips: [
+      'The artist picks one of three words, then draws it.',
+      'Guess as often as you like. A correct guess scores 100 plus speed points.',
+      'The first three correct guessers get a small extra.',
+      'The artist scores once anyone guesses, more as more of the room does.',
+      'With hints on, letters of the word appear after half the time.',
+    ],
+  },
   cat: 'draw',
   renderer: 'canvas',
   realtime: true,

@@ -14,6 +14,21 @@ const manifest = {
   name: 'Chess',
   tagline: 'Two seats, full rules, watchers welcome',
   howto: 'The first two players take white and black; everyone else watches. Tap a piece to see its legal moves, then tap a destination. Pawns promote with a chooser. You can resign or offer a draw. With a time control or a move timer, running out of time loses the game.',
+  guide: {
+    goal: "Checkmate your opponent's king.",
+    controls: [
+      { keys: ['Click'], touch: 'Tap', does: 'Pick a piece, then a square' },
+      { keys: ['↑ ↓ ← →', 'Enter'], does: 'Move the cursor and select' },
+      { keys: ['Esc'], does: 'Cancel your selection' },
+    ],
+    tips: [
+      'The first two players take white and black. Everyone else watches.',
+      'Tap a piece to see its legal moves.',
+      'A pawn reaching the last rank lets you choose its promotion.',
+      'You can resign or offer a draw.',
+      'With a time control or move timer, running out of time loses.',
+    ],
+  },
   cat: 'board',
   renderer: 'dom',
   layout: 'immersive',

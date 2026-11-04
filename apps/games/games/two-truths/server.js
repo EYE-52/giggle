@@ -9,6 +9,19 @@ const { dealer, shuffle, roundsSetting, paceSetting, pacedMs } = require('../_sd
 const id = 'two-truths';
 
 const manifest = {
+  guide: {
+    goal: 'Spot the lie, or write a lie nobody spots.',
+    controls: [
+      { keys: ['Enter'], does: 'Next line (last line sends)' },
+    ],
+    tips: [
+      'Each turn, one player writes two truths and a lie and marks the lie.',
+      'Everyone else votes for the line they think is the lie.',
+      'Finding the lie scores 100.',
+      'The writer scores 50 for each player fooled, up to 200.',
+      'If the writer runs out of time, example lines are filled in.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),

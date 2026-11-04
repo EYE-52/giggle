@@ -120,8 +120,17 @@ function renderPage(g, publicDir) {
     ? `<img class="gp-art" src="${esc(src)}" alt="" width="480" height="270" loading="eager">`
     : `<span class="gp-art gp-art-fallback" aria-hidden="true">${esc((g.name || id)[0].toUpperCase())}</span>`;
 
-  const howtoParas = splitHowto(g.howto)
+  const ruleParas = splitHowto(g.howto)
     .map((p) => `      <p>${esc(p)}</p>`).join('\n');
+  // With a guide: goal, controls and tips first; the full rules fold away.
+  const guide = g.guide;
+  const howtoParas = !guide ? ruleParas : [
+    `      <p class="gp-goal"><span>Goal</span> ${esc(guide.goal)}</p>`,
+    (guide.controls || []).length ? `      <ul class="gp-controls" aria-label="Controls">\n${guide.controls.map((c) =>
+      `        <li>${(c.keys || []).map((k) => `<kbd>${esc(k)}</kbd>`).join(' ')}${c.touch ? ` <span class="gp-touch">${esc(c.touch)}</span>` : ''} <span>${esc(c.does)}</span></li>`).join('\n')}\n      </ul>` : '',
+    (guide.tips || []).length ? `      <ul class="gp-tips">\n${guide.tips.map((t) => `        <li>${esc(t)}</li>`).join('\n')}\n      </ul>` : '',
+    `      <details class="gp-rules"><summary>All rules</summary>\n${ruleParas}\n      </details>`,
+  ].filter(Boolean).join('\n');
 
   let customSection;
   if (g.customizable) {

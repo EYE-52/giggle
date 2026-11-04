@@ -11,6 +11,16 @@ const id = 'typing-race';
 const manifest = {
   players: { min: 2, max: 20 },
   howto: 'Type the sentence perfectly. Finishing earns 100 points and the fastest finishers earn up to 100 more; an unfinished sentence earns up to 50.',
+  guide: {
+    goal: 'Type the sentence exactly, faster than everyone else.',
+    tips: [
+      'Everyone types the same sentence at the same time.',
+      'It must match exactly, including capitals and punctuation.',
+      'Progress stops at your first typo. Fix it to keep going.',
+      'Finishing earns 100. The first four finishers get 100, 75, 50 or 25 more.',
+      'If time runs out, you earn up to 50 for what you typed.',
+    ],
+  },
   settings: [
     roundsSetting({ def: 4 }),
     paceSetting(),

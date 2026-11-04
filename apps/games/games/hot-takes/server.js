@@ -13,6 +13,16 @@ const { randomUUID } = require('node:crypto');
 const id = 'hot-takes';
 
 const manifest = {
+  guide: {
+    goal: 'Write the take that splits the room closest to 50/50.',
+    tips: [
+      'Write one take in secret. Takes are shown without their authors.',
+      'Vote Agree or Disagree on every take except your own.',
+      'The most divisive take scores 100; the next most divisive scores 50.',
+      'Every take also earns 5 per vote it drew, up to 100.',
+      'A take with no one on one side cannot win the round.',
+    ],
+  },
   players: { min: 3, max: 20 },
   settings: [
     roundsSetting({ def: 1 }),
