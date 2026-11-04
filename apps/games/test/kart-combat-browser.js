@@ -135,4 +135,4 @@ function createServer() { const clock=setInterval(()=>{if(playing&&live?.state.p
 }catch(e){res.statusCode=500;res.end(String(e.stack));}});server.on('close',()=>clearInterval(clock));return server;}
 module.exports={createServer,reset,project};
 // Kart physics loads asynchronously; initialize before any reset() creates a state.
-if(require.main===module)Promise.resolve(defs['pocket-karts'].initialize?.()).then(()=>createServer().listen(Number(process.env.PORT||8174),'127.0.0.1',()=>console.log('KART_COMBAT_QA http://127.0.0.1:'+(process.env.PORT||8174))));
+if(require.main===module)Promise.resolve(defs['pocket-karts'].initialize?.()).then(()=>createServer().listen(Number(process.env.PORT||8174),'127.0.0.1',()=>console.log('KART_COMBAT_QA http://127.0.0.1:'+(process.env.PORT||8174)))).catch(e=>{console.error('Kart physics failed to initialize:',e);process.exitCode=1;});

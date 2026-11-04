@@ -1204,8 +1204,8 @@ function pickGames() {
   return found.slice(0, 4);
 }
 
-/* A fanned hand of real game art under the headline: decoration only,
- * reusing images the picks below already load. */
+/* A fanned hand of real game art under the headline: decoration only.
+ * Its height is reserved before the catalog arrives, so nothing moves. */
 function heroHandHtml() {
   const hand = ['doodle-guess', 'pocket-karts', 'four-in-a-row', 'charades', 'chess']
     .map((id) => games.find((g) => g.id === id)).filter(Boolean);
@@ -1276,7 +1276,7 @@ function renderHome() {
         <p class="hero-sub">Make a room, share the code, and play ${catalogLoaded ? `${games.length} party games` : 'party games'}
           with friends on any device. Someone hosts, everyone plays.</p>
         <a class="shelf-link" href="#games">Find your next game</a>
-        ${catalogLoaded ? heroHandHtml() : ''}
+        ${catalogLoaded ? heroHandHtml() : '<div class="hero-hand" aria-hidden="true"></div>'}
       </div>
       <div class="hero-form ticket">
           <div class="ticket-head"><span class="ticket-title">Create or join a room</span></div>

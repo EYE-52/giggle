@@ -12,6 +12,7 @@ assert.equal(ok({ goal: 'Win.', controls: [{ keys: ['Space'], touch: 'Tap', does
 assert.equal(ok({}), false, 'goal is required');
 assert.equal(ok({ goal: 'x'.repeat(91) }), false, 'goal is one glanceable line');
 assert.equal(ok({ goal: 'Win.', controls: [{ does: 'Fire' }] }), false, 'a control needs keys or touch');
+assert.equal(ok({ goal: 'Win.', controls: [{ keys: [], does: 'Fire' }] }), false, 'an empty key list is not a control');
 assert.equal(ok({ goal: 'Win.', controls: [{ keys: ['A', 'B', 'C', 'D', 'E'], does: 'Too many' }] }), false);
 assert.equal(ok({ goal: 'Win.', controls: Array(7).fill({ keys: ['A'], does: 'x' }) }), false);
 assert.equal(ok({ goal: 'Win.', tips: Array(6).fill('tip') }), false);

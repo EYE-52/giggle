@@ -120,7 +120,8 @@
   .hand-card { --size: 72px; margin-right: -16px; border-radius: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hand-card { animation: none; }
+  .hand-card { animation: none; transition: none; }
+  .hand-card:hover { transform: translateY(calc(var(--d) * 7px)) rotate(calc(var(--i) * 8deg)); }
   .home-picks .pick { transition: none; }
   .home-picks .pick:hover { transform: none; }
 }

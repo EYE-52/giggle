@@ -45,7 +45,7 @@ const manifest = {
       'Write a phrase. If you skip it, a starter is used.',
       "Draw the phrase you are handed, then caption someone else's drawing.",
       'A phrase earns 25, a drawing 50 and a caption 25.',
-      "If a caption keeps half the phrase's words, artist and captioner get 50.",
+      "If a caption keeps half the phrase's words, artist and captioner get 50 each.",
       'The stories are shown page by page at the end.',
     ],
   },

@@ -177,5 +177,5 @@
 }
 /* Reload is a recovery action: hide it during a normal load, show it at
  * once on error and after a few seconds if loading is merely slow. */
-.boot-view--table:not([data-boot-state="error"]) .boot-reload:not(:focus-visible) { opacity: 0; animation: boot-reload-reveal .3s ease 6s forwards; }
-@keyframes boot-reload-reveal { to { opacity: 1; } }
+.boot-view--table:not([data-boot-state="error"]) .boot-reload:not(:focus-visible) { opacity: 0; pointer-events: none; animation: boot-reload-reveal .3s ease 6s forwards; }
+@keyframes boot-reload-reveal { to { opacity: 1; pointer-events: auto; } }

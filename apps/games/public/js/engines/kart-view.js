@@ -740,7 +740,7 @@ export function createKartView(viewConfig) {
     const arenaName = (S.map && (S.map.label || S.map.id)) || '';
     const tipTxt = !S.youDrive
       ? `Watching — ${(S.karts || []).length} driving.`
-      : S.phase === 'countdown' ? arenaName
+      : S.phase === 'countdown' ? (S.preparing ? '' : arenaName ? `Get ready · ${arenaName}` : 'Get ready…')
       : S.phase === 'drive' && meRespawning() ? 'Knocked out — rejoining…'
       : '';
     tip.textContent = tipTxt;

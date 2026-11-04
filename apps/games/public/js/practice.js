@@ -33,8 +33,10 @@ function empty(title, description, busy = false) {
 function seatLabel(tab, n) {
   if (tab.dataset.seat === String(n)) return;
   tab.dataset.seat = String(n);
-  tab.setAttribute('aria-label', `Player ${n}`);
-  tab.innerHTML = `<span class="seat-long">Player ${n}</span><span class="seat-short" aria-hidden="true">P${n}</span>`;
+  const long = document.createElement('span'), short = document.createElement('span');
+  long.className = 'seat-long'; long.textContent = `Player ${n}`;
+  short.className = 'seat-short'; short.setAttribute('aria-hidden', 'true'); short.textContent = `P${n}`;
+  tab.replaceChildren(long, short);
 }
 function chosen() { return games.find(game => game.id === gameSelect.value); }
 /* Idle table: the chosen game's own art and line, not instructions. */
@@ -253,6 +255,7 @@ window.addEventListener('message', event => {
   seatLabel(seat.tab, n);
   seat.tab.classList.toggle('is-host', seat.host);
   seat.tab.title = seat.host ? `Player ${n} is hosting` : '';
+  seat.tab.setAttribute('aria-label', `Player ${n}${seat.host ? ', hosting' : ''}`);
   if (seat.connected) { clearTimeout(seat.timer); seat.loading.hidden = true; }
   if (n === 1 && seats.size === 1 && seat.connected && /^[A-HJ-NP-Z2-9]{4}$/.test(event.data.code || '')) {
     try {

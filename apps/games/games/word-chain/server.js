@@ -23,7 +23,7 @@ const manifest = {
   guide: {
     goal: 'Be the last player still in the chain.',
     controls: [
-      { keys: ['Enter'], does: 'Say your word' },
+      { keys: ['Enter'], does: 'Send your word' },
     ],
     tips: [
       'On your turn, say an English word related to the last word.',

@@ -87,7 +87,7 @@ function validateGuide(g) {
     if (!Array.isArray(g.controls) || g.controls.length > 6) return 'manifest.guide.controls must be an array of at most 6 entries.';
     for (const c of g.controls) {
       if (!c || typeof c !== 'object' || !text(c.does, 40)) return 'Each manifest.guide.controls entry needs a "does" label of at most 40 characters.';
-      if (c.keys !== undefined && (!Array.isArray(c.keys) || c.keys.length > 4 || !c.keys.every(k => text(k, 10)))) return 'manifest.guide.controls keys must be at most 4 short labels.';
+      if (c.keys !== undefined && (!Array.isArray(c.keys) || c.keys.length === 0 || c.keys.length > 4 || !c.keys.every(k => text(k, 10)))) return 'manifest.guide.controls keys must be 1 to 4 short labels.';
       if (c.touch !== undefined && !text(c.touch, 16)) return 'manifest.guide.controls touch must be at most 16 characters.';
       if (!c.keys && !c.touch) return 'Each manifest.guide.controls entry needs keys or touch.';
     }

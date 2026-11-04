@@ -1691,11 +1691,11 @@ html:has(> body.is-embed) { background: #171922; color-scheme: dark; }
 @media (max-width: 400px) {
   .play-toolbar:has(.game-zoom) { flex-wrap: wrap; row-gap: 6px; }
   /* Share one row when the name fits; long names still take their own. */
-  .play-toolbar:has(.game-zoom) .play-title { flex: 1 0 auto; }
-  .play-toolbar:has(.game-zoom) .play-title h1 { overflow-wrap: normal; white-space: nowrap; }
+  .play-toolbar:has(.game-zoom) .play-title { flex: 1 1 auto; min-width: min(max-content, 100%); }
+  .play-toolbar:has(.game-zoom) .play-title h1 { overflow-wrap: normal; }
   .play-toolbar .game-zoom { margin-left: 0; }
-  .play-toolbar .game-zoom button { min-width: 40px; }
-  .play-toolbar .game-zoom .game-zoom-value { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); border: 0; padding: 0; }
+  .play-toolbar .game-zoom button { min-width: 44px; }
+  .play-toolbar .game-zoom .game-zoom-value { position: absolute; width: 1px; min-width: 0; height: 1px; overflow: hidden; clip: rect(0 0 0 0); border: 0; padding: 0; }
 }
 @media (max-width: 540px) {
   .play-toolbar .game-zoom .game-zoom-value { min-width: 48px; font-size: 13px; }
@@ -1790,5 +1790,8 @@ body:not(.game-playing):not(.is-embed) .topbar { padding-block: 8px; }
 .howto-tips li { position: relative; padding-left: 26px; font-size: 17px; font-weight: 600; line-height: 1.45; }
 .howto-tips li::before { content: ""; position: absolute; left: 4px; top: .5em; width: 10px; height: 10px; border-radius: 3px; background: var(--accent); transform: rotate(45deg); }
 .howto-all { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
-.howto-all summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--accent-deep); font-weight: 800; }
+.howto-all summary { min-height: 44px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--accent-deep); font-weight: 800; list-style: none; }
+.howto-all summary::-webkit-details-marker { display: none; }
+.howto-all summary::after, .gp-rules summary::after { content: ""; width: 8px; height: 8px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-2px); transition: transform .15s; }
+.howto-all[open] summary::after, .gp-rules[open] summary::after { transform: rotate(225deg) translateY(-2px); }
 .howto-all p { margin: 0 0 10px; color: var(--ink-dim); font-size: 15px !important; font-weight: 500 !important; line-height: 1.5; }
