@@ -243,10 +243,46 @@ export function createChainScene(canvas, opts = {}) {
     rafId: 0,
     ro: null,
     onResize: null,
+    onVisibility: null,
+    visibilityObserver: null,
     width: 0,
     height: 0,
     layout: null,
     colorByPid: new Map(),
+  };
+  const ownerDocument = canvas.ownerDocument || (typeof document === 'object' ? document : null);
+  // A practice seat can contain a second, game-owned frame. Only inspect
+  // accessible ancestors; a cross-origin boundary keeps its normal behavior.
+  const visibilityNodes = () => {
+    const nodes = new Set();
+    const add = element => { for (let n = element, i = 0; n && i < 32; n = n.parentElement, i++) nodes.add(n); };
+    add(canvas);
+    try {
+      let view = ownerDocument?.defaultView;
+      for (let depth = 0; view && depth < 8; depth++) {
+        const frame = view.frameElement;
+        if (!frame) break;
+        add(frame);
+        if (view.parent === view) break;
+        view = view.parent;
+      }
+    } catch { /* never inspect an inaccessible parent */ }
+    return nodes;
+  };
+  const observedVisibilityNodes = visibilityNodes();
+  const isHidden = () => {
+    if (ownerDocument?.hidden) return true;
+    for (const node of observedVisibilityNodes) {
+      if (node.matches?.('[hidden], [inert]')) return true;
+    }
+    return false;
+  };
+  const stopAnimation = () => {
+    if (state.rafId) {
+      try { if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(state.rafId); } catch { /* retired frame */ }
+    }
+    state.rafId = 0;
+    state.lastFrame = 0;
   };
 
   /* Well colours follow the page tokens (via --cr-well / --cr-well-line /
@@ -452,7 +488,7 @@ export function createChainScene(canvas, opts = {}) {
   }
 
   const loop = (now) => {
-    if (state.disposed || state.reducedMotion) { state.rafId = 0; return; }
+    if (state.disposed || state.reducedMotion || isHidden()) { stopAnimation(); return; }
     const t = typeof now === 'number' ? now : 0;
     if (state.lastFrame) {
       const dt = Math.min(0.1, Math.max(0, (t - state.lastFrame) / 1000));
@@ -475,9 +511,12 @@ export function createChainScene(canvas, opts = {}) {
 
   const kick = () => {
     if (state.disposed) return;
-    if (state.reducedMotion) {
+    if (state.reducedMotion || isHidden()) {
+      stopAnimation();
       let t = 0;
       try { t = (typeof performance === 'object' && typeof performance.now === 'function') ? performance.now() : Date.now(); } catch { t = 0; }
+      // Keep actual first/state painting even in an inactive seat. Only the
+      // continuous cosmetic loop sleeps; authority and readiness never do.
       draw(t);
       return;
     }
@@ -508,6 +547,14 @@ export function createChainScene(canvas, opts = {}) {
       window.addEventListener('resize', state.onResize);
     }
   } catch { state.onResize = null; }
+  try {
+    state.onVisibility = () => kick();
+    ownerDocument?.addEventListener?.('visibilitychange', state.onVisibility);
+    if (typeof MutationObserver === 'function') {
+      state.visibilityObserver = new MutationObserver(state.onVisibility);
+      for (const node of observedVisibilityNodes) state.visibilityObserver.observe(node, { attributes: true, attributeFilter: ['hidden', 'inert'] });
+    }
+  } catch { /* visibility events still work without ancestor observation */ }
 
   const api = {
     fallback: false,
@@ -670,6 +717,9 @@ export function createChainScene(canvas, opts = {}) {
         try { window.removeEventListener('resize', state.onResize); } catch { /* ignore */ }
       }
       state.onResize = null;
+      if (state.onVisibility) ownerDocument?.removeEventListener?.('visibilitychange', state.onVisibility);
+      state.onVisibility = null;
+      state.visibilityObserver?.disconnect(); state.visibilityObserver = null;
       state.trails.length = 0; state.shocks.length = 0; state.flashes.length = 0;
       try { ctx.clearRect(0, 0, state.width, state.height); } catch { /* ignore */ }
     },

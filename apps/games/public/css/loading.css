@@ -1,0 +1,177 @@
+/* The game-night shuffle. Pure CSS, scoped to initial loading: no renderer,
+ * asset download, invented percentage or minimum display time. Compact
+ * in-game loading cues keep their existing geometry and animation. */
+.boot-view--table {
+  min-height: 76svh;
+  gap: 14px;
+  padding: 34px 20px;
+}
+.boot-view--table .loading-table {
+  /* These are illustrated paper objects, not theme surfaces. Keep the
+   * faces/pips legible in Night while surrounding UI follows its tokens. */
+  --boot-paper: #fff;
+  --boot-outline: #321829;
+  position: relative;
+  display: block;
+  width: 278px;
+  height: 198px;
+  margin: 0 0 8px;
+  isolation: isolate;
+}
+.boot-view--table .loading-table[hidden] { display: none; }
+.boot-view--table .loading-table::before {
+  content: "";
+  position: absolute;
+  inset: 55px 5px 5px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  transform: rotate(-8deg);
+  z-index: -1;
+}
+.boot-view--table .loading-table::after {
+  content: "";
+  position: absolute;
+  width: 156px;
+  height: 12px;
+  bottom: 0;
+  left: 61px;
+  border-radius: 50%;
+  background: var(--boot-outline);
+  opacity: .09;
+  z-index: -1;
+}
+.boot-view--table .loading-table i:nth-child(n) {
+  position: absolute;
+  top: 40px;
+  display: block;
+  width: 84px;
+  height: 116px;
+  border: 3px solid var(--boot-outline);
+  border-radius: 13px;
+  background: var(--boot-paper);
+  box-shadow: 4px 5px 0 var(--boot-outline);
+  animation: none;
+  transform-origin: 50% 90%;
+}
+.boot-view--table .loading-table i::before,
+.boot-view--table .loading-table i::after {
+  content: "";
+  position: absolute;
+  box-sizing: border-box;
+}
+.boot-view--table .loading-table i:nth-child(1) {
+  left: 28px;
+  top: 51px;
+  transform: rotate(-19deg);
+  background: var(--sun);
+}
+/* Five pips make the first card a die without another image or font. */
+.boot-view--table .loading-table i:nth-child(1)::before {
+  width: 9px;
+  height: 9px;
+  left: 34px;
+  top: 48px;
+  border-radius: 50%;
+  background: var(--boot-outline);
+  box-shadow: -15px -19px 0 var(--boot-outline), 15px -19px 0 var(--boot-outline), -15px 19px 0 var(--boot-outline), 15px 19px 0 var(--boot-outline);
+}
+.boot-view--table .loading-table i:nth-child(2) {
+  left: 96px;
+  top: 15px;
+  z-index: 2;
+  transform: rotate(-2deg);
+}
+.boot-view--table .loading-table i:nth-child(2)::before {
+  width: 50px;
+  height: 50px;
+  left: 14px;
+  top: 24px;
+  border: 3px solid var(--boot-outline);
+  border-radius: 3px;
+  background: conic-gradient(var(--boot-outline) 25%, var(--boot-paper) 0 50%, var(--boot-outline) 0 75%, var(--boot-paper) 0) 0 0 / 22px 22px;
+}
+.boot-view--table .loading-table i:nth-child(2)::after {
+  width: 23px;
+  height: 23px;
+  top: 62px;
+  left: 41px;
+  border: 3px solid var(--boot-outline);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 3px 0 var(--boot-outline);
+}
+.boot-view--table .loading-table i:nth-child(3) {
+  left: 164px;
+  top: 47px;
+  transform: rotate(18deg);
+  background: var(--teal);
+}
+.boot-view--table .loading-table i:nth-child(3)::before {
+  width: 23px;
+  height: 23px;
+  left: 27px;
+  top: 24px;
+  border: 3px solid var(--boot-outline);
+  border-radius: 50%;
+  background: var(--boot-paper);
+}
+.boot-view--table .loading-table i:nth-child(3)::after {
+  width: 39px;
+  height: 31px;
+  left: 19px;
+  top: 49px;
+  border: 3px solid var(--boot-outline);
+  border-radius: 48% 48% 5px 5px;
+  background: var(--boot-paper);
+}
+.boot-view--table h1 {
+  max-width: 18ch;
+  font-size: clamp(30px, 4vw, 42px);
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.boot-view--table p { max-width: 35ch; line-height: 1.5; }
+.boot-view--table .boot-reload {
+  min-height: 44px;
+  padding: 9px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  font-weight: 800;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.boot-view--table .boot-reload:focus-visible {
+  outline: 3px solid var(--accent-deep);
+  outline-offset: 4px;
+}
+.boot-view--table[data-boot-state="error"] { min-height: 65svh; }
+@media (prefers-reduced-motion: no-preference) {
+  .boot-view--table .loading-table i:nth-child(1) { animation: boot-deal-left 3.2s ease-in-out infinite; }
+  .boot-view--table .loading-table i:nth-child(2) { animation: boot-deal-centre 3.2s ease-in-out infinite; }
+  .boot-view--table .loading-table i:nth-child(3) { animation: boot-deal-right 3.2s ease-in-out infinite; }
+  @keyframes boot-deal-left {
+    0%, 62%, 100% { transform: rotate(-19deg); }
+    18%, 38% { transform: translate(8px, -9px) rotate(-25deg); }
+  }
+  @keyframes boot-deal-centre {
+    0%, 62%, 100% { transform: rotate(-2deg); }
+    24%, 42% { transform: translateY(-13px) rotate(3deg); }
+  }
+  @keyframes boot-deal-right {
+    0%, 62%, 100% { transform: rotate(18deg); }
+    30%, 46% { transform: translate(-8px, -7px) rotate(24deg); }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .boot-view--table .loading-table i { animation: none !important; }
+}
+@media (max-width: 360px) {
+  .boot-view--table { padding-inline: 16px; }
+  .boot-view--table .loading-table { transform: scale(.86); margin: -12px 0 -4px; }
+}
+@media (max-height: 480px) {
+  .boot-view--table { min-height: 90svh; gap: 8px; padding-block: 16px; }
+  .boot-view--table .loading-table { transform: scale(.65); height: 198px; margin: -34px 0; transform-origin: 50% 50%; }
+  .boot-view--table h1 { max-width: none; font-size: 28px; }
+}

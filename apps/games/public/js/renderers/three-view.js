@@ -23,24 +23,28 @@ function wantsFallback() {
 }
 
 function disposeObject(root) {
-  if (!root) return;
+  if (!root || typeof root.traverse !== 'function') return;
+  // Authored worlds and cloned models deliberately share resources. Dispose
+  // each one once, rather than dispatching hundreds of repeated dispose
+  // events and scanning the same material for every mesh in the scene.
+  const geometries = new Set(), materials = new Set(), textures = new Set();
   root.traverse((obj) => {
-    if (obj.geometry && typeof obj.geometry.dispose === 'function') {
-      try { obj.geometry.dispose(); } catch { /* noop */ }
-    }
+    if (obj.geometry && typeof obj.geometry.dispose === 'function') geometries.add(obj.geometry);
     const mats = Array.isArray(obj.material) ? obj.material : (obj.material ? [obj.material] : []);
     for (const m of mats) {
+      if (!m || materials.has(m)) continue;
+      materials.add(m);
       for (const key of Object.keys(m)) {
         const v = m[key];
-        if (v && v.isTexture && typeof v.dispose === 'function') {
-          try { v.dispose(); } catch { /* noop */ }
-        }
-      }
-      if (typeof m.dispose === 'function') {
-        try { m.dispose(); } catch { /* noop */ }
+        if (v && v.isTexture && typeof v.dispose === 'function') textures.add(v);
       }
     }
   });
+  for (const geometry of geometries) { try { geometry.dispose(); } catch { /* noop */ } }
+  for (const texture of textures) { try { texture.dispose(); } catch { /* noop */ } }
+  for (const material of materials) {
+    if (typeof material.dispose === 'function') { try { material.dispose(); } catch { /* noop */ } }
+  }
 }
 
 /* Mount a Three.js view inside mountEl.
@@ -98,7 +102,8 @@ export async function createThreeView(mountEl, hooks) {
     try { if (renderer) renderer.dispose(); } catch { /* noop */ }
     return { fallback: true, reason: 'webgl-unavailable' };
   }
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+  let pixelRatio = Math.min(window.devicePixelRatio || 1, 1.75);
+  renderer.setPixelRatio(pixelRatio);
   renderer.outputColorSpace = THREE.SRGBColorSpace || renderer.outputColorSpace;
   mountEl.appendChild(canvas);
 
@@ -127,18 +132,28 @@ export async function createThreeView(mountEl, hooks) {
     return { fallback: true, reason: 'retired' };
   }
   if (!built || !built.scene || !built.camera || typeof built.frame !== 'function') {
-    try { renderer.dispose(); } catch { /* noop */ }
-    canvas.remove();
-    untrackAll();
+    try { built?.dispose?.(); } catch { /* release remaining scene resources */ }
+    disposeObject(built?.scene);
+    releaseRenderer();
     return { fallback: true, reason: 'build-shape' };
   }
   const { scene, camera } = built;
 
+  let disposed = false;
+  let lastWidth = 0, lastHeight = 0;
   const doResize = () => {
+    if (disposed) return;
     const w = Math.max(1, mountEl.clientWidth || 320);
     const h = Math.max(1, mountEl.clientHeight || 240);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
-    renderer.setSize(w, h, false);
+    const ratio = Math.min(window.devicePixelRatio || 1, 1.75);
+    const sizeChanged = w !== lastWidth || h !== lastHeight;
+    const ratioChanged = ratio !== pixelRatio;
+    if (!sizeChanged && !ratioChanged) return;
+    // Three's setPixelRatio itself calls setSize. Keep it out of ordinary
+    // resize/observer callbacks and avoid a second resize for a DPR-only change.
+    if (ratioChanged) { renderer.setPixelRatio(ratio); pixelRatio = ratio; }
+    if (sizeChanged) renderer.setSize(w, h, false);
+    lastWidth = w; lastHeight = h;
     if (typeof built.resize === 'function') {
       try { built.resize(w, h); } catch { /* noop */ }
     } else if (camera && camera.isPerspectiveCamera) {
@@ -161,7 +176,7 @@ export async function createThreeView(mountEl, hooks) {
   // unhandled rejection when the context fails or the view leaves early.
   firstFrame.catch(() => {});
   track(canvas, 'webglcontextlost', (e) => {
-    hooks.diagnostics?.event('webgl-lost');
+    try { hooks.diagnostics?.event?.('webgl-lost'); } catch { /* diagnostics must not change view state */ }
     try { if (e && e.preventDefault) e.preventDefault(); } catch { /* noop */ }
     lost = true;
     rejectFrame(new Error('WebGL context lost before a usable frame'));
@@ -171,7 +186,7 @@ export async function createThreeView(mountEl, hooks) {
     }
   });
 
-  let disposed = false, hasDrawn = false;
+  let hasDrawn = false;
   let last = performance.now();
   const renderOnce = () => {
     if (lost || disposed) return;
@@ -181,7 +196,7 @@ export async function createThreeView(mountEl, hooks) {
     try {
       built.frame(dt, now / 1000);
     } catch (e) {
-      hooks.diagnostics?.event('render-error');
+      try { hooks.diagnostics?.event?.('render-error'); } catch { /* keep the original failure */ }
       rejectFrame(e);
       if (typeof console !== 'undefined') console.error('3d frame error', e);
       return;
@@ -189,12 +204,12 @@ export async function createThreeView(mountEl, hooks) {
     try {
       renderer.render(scene, camera);
       hasDrawn = true;
-      hooks.diagnostics?.renderFrame(performance.now() - now, renderer.info);
+      try { hooks.diagnostics?.renderFrame?.(performance.now() - now, renderer.info); } catch { /* measurement is optional */ }
       resolveFrame();
     } catch (e) {
       rejectFrame(e);
       if (typeof console !== 'undefined') console.error('3d render error', e);
-      hooks.diagnostics?.event('render-error');
+      try { hooks.diagnostics?.event?.('render-error'); } catch { /* keep the original failure */ }
     }
   };
   renderer.setAnimationLoop(() => {

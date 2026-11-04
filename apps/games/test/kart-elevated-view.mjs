@@ -87,6 +87,9 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   return{view,el,document,window,roomMenu,api,sent,ready,loads,audios,sticks,timers,node,render,settle,advance,key,flush,host:v=>host=v,renderStats,thumbnails:value=>{thumbnailsReady=value;},allocations:()=>({instances:instanceAllocations,projectiles:projectileAllocations,graphics:graphicsAllocations,prepared}),frame:(dt=1/60)=>loads.at(-1).handle.built.frame(dt,clock/1000),motion:v=>reduced=v};
 }
 {
+  const r=rig();assert.doesNotThrow(()=>r.render({...base(),instanceId:undefined}),'first legacy snapshot without an instance id is accepted safely');r.view.dispose();
+}
+{
   const r=rig({thumbnailsReady:false}),s=base();s.karts[0].weapon='rocket';s.karts[0].ammo=3;
   r.render(s);check('equipped player uses an icon fallback while thumbnail preparation is pending',r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('<svg')&&!r.node('weapon').querySelector('.kart-item-art').innerHTML.includes('<img'));
   await r.settle(0,true);r.node('loading').querySelector('button').dispatch('click');
@@ -198,9 +201,9 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   check('near contact receives strength without forced spatial spread',cues.length===2&&cues[0].name==='collision'&&cues[0].options.strength===.25&&cues[0].options.gain===1&&cues[0].options.pan===0);
   check('distant guided missile explosion attenuates and pans right',cues[1].name==='rocketBlast'&&cues[1].options.gain<.3&&cues[1].options.pan===.85);
   r.render(current);check('duplicate contact history never repeats audible hits',cues.length===2);
-  const turned=base();turned.karts[0].pose.rotation={x:0,y:1,z:0,w:0};turned.events=[event(5,'fire',{x:10,y:.64,z:0},{weapon:'seeker'})];r.render(turned);
+  const turned={...base(),simTick:3,simAt:100};turned.karts[0].pose.rotation={x:0,y:1,z:0,w:0};turned.events=[event(5,'fire',{x:10,y:.64,z:0},{weapon:'seeker'})];r.render(turned);
   check('audio direction follows actual chassis heading',cues.at(-1).name==='seeker'&&cues.at(-1).options.pan===-.85);
-  r.render({...base(),you:'watcher',youDrive:false,inputAck:null,events:[event(6,'blast',{x:8,y:.64,z:0},{weapon:'bomb'})]});
+  r.render({...base(),simTick:4,simAt:150,you:'watcher',youDrive:false,inputAck:null,events:[event(6,'blast',{x:8,y:.64,z:0},{weapon:'bomb'})]});
   check('watchers hear current explosions relative to followed kart',cues.at(-1).name==='bombBlast'&&cues.at(-1).options.gain===1);
   r.view.dispose();
 }
@@ -259,11 +262,55 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   v.update(el,{phase:'live'},{});check('legacy compatibility route retires elevated and restores legacy ownership',calls.slice(-4).join(',')==='elevated:dispose,clear,legacy:mount,legacy:update'&&!v.ownsInputs);
   v.update(el,base(),{});check('legacy→elevated transition retires legacy scene',calls.slice(-4).join(',')==='legacy:dispose,clear,elevated:mount,elevated:update');v.dispose();v.dispose();check('dispatcher disposal is idempotent and resets ownership',calls.at(-1)==='elevated:dispose'&&!v.ownsInputs);
 }
+// Graphics fixtures decode the actual embedded PNG bytes without a browser.
+globalThis.self=globalThis;
+globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arrayBuffer());return {width:bytes.readUInt32BE(16),height:bytes.readUInt32BE(20),close(){}};};
+// Transient presentation must retire by elapsed monotonic time, even when
+// the renderer clamps a long frame for camera/physics stability.
+{
+  const r=rig({graphics:true}),shot={id:'retire-me',weapon:'pulse',position:{x:0,y:1,z:4},velocity:{x:0,y:0,z:110},ttl:.4,radius:.18};
+  r.render({...base(),projectiles:[shot]});const gl=await r.settle();r.frame();
+  const moving=()=>gl.built.scene.children.filter(o=>o.userData.poolKey?.startsWith('shot:')&&o.visible);
+  check('fresh authoritative shot remains visible without invented flight',moving().length===1);
+  r.advance(1000);r.frame(.1);
+  check('stalled snapshot cannot leave an old bullet visible indefinitely',moving().length===0);
+  r.render({...base(),simAt:1050,simTick:21,projectiles:[{...shot,id:'fresh-shot'}]});r.frame();
+  check('fresh current authority can show a genuinely live projectile after a stall',moving().length===1);
+  r.render({...base(),simAt:1050,simTick:21,phase:'done',projectiles:[shot],result:{winners:[]}});r.frame();
+  check('same-tick terminal metadata hides moving ordnance without rejecting the final state',moving().length===0&&r.node('clock').textContent==='0:00');
+  r.render({...base(),simAt:1050,simTick:21,projectiles:[shot]});r.frame();
+  check('late equal-clock live packet cannot resurrect a completed instance',moving().length===0&&r.node('clock').textContent==='0:00');
+  r.view.dispose();
+}
+{
+  const r=rig({graphics:true});r.render();const gl=await r.settle();r.frame();
+  const blast=id=>({id,type:'blast',weapon:'rocket',pid:'a',position:{x:0,y:1,z:4}});
+  r.render({...base(),simAt:100,simTick:2,events:[blast('live-blast')]});r.frame();
+  const pool=gl.built.scene.getObjectByName('KartImpactFX').children;
+  check('new accepted explosion is visible once',pool.some(o=>o.visible));
+  r.advance(2000);r.frame(.1);
+  check('old explosion expires across a long frame instead of replaying clipped time',pool.every(o=>!o.visible));
+  r.render({...base(),simAt:2100,simTick:42,events:[]});r.frame();
+  r.render({...base(),simAt:150,simTick:3,events:[blast('late-old-blast')]});r.frame();
+  check('strictly older same-instance snapshots cannot resurrect historical explosions',pool.every(o=>!o.visible));
+  const same={...base(),simAt:2100,simTick:42};same.karts[0].weapon='rocket';same.karts[0].ammo=3;r.render(same);
+  check('equal-tick inventory metadata remains admissible',r.node('weapon').getAttribute('aria-label').includes('Rockets'));
+  // A new accepted event after a stalled frame must not inherit the stall's
+  // elapsed time. Previous effects expire first; fresh effects get one draw.
+  r.advance(700);
+  const fresh=structuredClone(same);fresh.simAt=2150;fresh.simTick=43;fresh.karts[1].alive=false;
+  fresh.events=[{id:'fresh-after-hitch',type:'ko',pid:'a',other:'b',position:{x:10,y:1,z:0}}];
+  r.render(fresh);r.frame(.1);
+  const sparks=()=>gl.built.scene.children.filter(o=>o.isInstancedMesh&&o.visible);
+  const victim=gl.built.scene.children.filter(o=>o.name==='GiggleKart')[1];
+  check('fresh KO after a700ms frame hitch receives its first wreck and spark draw',victim.visible&&sparks().length>0);
+  r.advance(800);r.frame(.1);
+  check('wreck and generic spark pools retire by real elapsed time after a hitch',!victim.visible&&sparks().length===0);
+  r.view.dispose();
+}
 // Execute production scene/frame code with real Three.js model/asset objects.
 // The renderer is a double: this proves frame allocations/poses, not GPU time.
 {
-  globalThis.self=globalThis;
-  globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arrayBuffer());return {width:bytes.readUInt32BE(16),height:bytes.readUInt32BE(20),close(){}};};
   // Declared unit layouts isolate three real support types. Items still come
   // from authority collection, and real fixed steps own suspension and release.
   // Exercise production packet rounding and sync against loaded shipping GLBs.
@@ -343,12 +390,14 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   check('collision no longer starts the generic radial knockout animation',effectPool.every(o=>!o.visible));
   for(const [type,x,count,id]of [['ko',11,24,102]]){
     r.render({...base(),simAt:1600+(id-101)*50,simTick:id,events:[{...event(id,type),position:{x,y:1,z:3}}]});r.advance(50);r.frame();
-    check(type+' creates a visible positioned effect using an attached prepared buffer',effectPool.some(o=>o.parent===built.scene&&o.visible&&o.count===count&&particlePosition(o).x>x&&particlePosition(o).x<x+1));
+    check(type+' creates a visible effect at its admission point using an attached prepared buffer',effectPool.some(o=>o.parent===built.scene&&o.visible&&o.count===count&&Math.abs(particlePosition(o).x-x)<1e-9));
+    r.advance(50);r.frame(.05);
+    check(type+' positioned particles advance after admission without inheriting the previous frame',effectPool.some(o=>o.parent===built.scene&&o.visible&&o.count===count&&particlePosition(o).x>x&&particlePosition(o).x<x+1));
   }
   check('collision and knockout effects retain the same twelve scene buffers',effectPool.every(o=>o.parent===built.scene)&&r.allocations().instances===allocations.instances);
   const model=built.scene.children.find(o=>o.name==='GiggleKart');
   check('production follow camera remains finite through effect saturation',built.camera.matrixWorld.elements.every(Number.isFinite)&&built.camera.position.toArray().every(Number.isFinite));
-  const sample=base();sample.simAt=2000;sample.simTick=50;sample.karts[0].spikesT=3;sample.karts[0].ramT=3;sample.sentries=[{id:1,position:{x:1,y:0,z:2},direction:{x:Math.SQRT1_2,y:Math.SQRT1_2,z:0}}];r.render(sample);r.frame();
+  const sample=base();sample.simAt=2000;sample.simTick=110;sample.karts[0].spikesT=3;sample.karts[0].ramT=3;sample.sentries=[{id:1,position:{x:1,y:0,z:2},direction:{x:Math.SQRT1_2,y:Math.SQRT1_2,z:0}}];r.render(sample);r.frame();
   check('deployed sentry and active blade orbit are represented',built.scene.getObjectByName('CombatSentry')&&model.getObjectByName('OrbitingSteelBlades'));
   check('activated invincibility uses model emission instead of a shield bubble',!model.userData.kart.shield.visible&&model.userData.kart.paint.every(material=>material.emissiveIntensity===.55));
   const vertices=model.getObjectByName('OrbitingSteelBlades').geometry.attributes.position,chunk=vertices.count/3,centers=[];
@@ -375,20 +424,20 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   let id=0;
   for(const reduced of [false,true])for(const dt of [.09,.1])for(const weapon of ['pulse','scatter','rail','sentry']){
     r.motion(reduced);const event={id:'confirmed-'+(++id),type:'impact',weapon,pid:'b',other:'a',from,position},snapshot={...base(),simTick:id+1,simAt:50+id*50,events:[event]};
-    r.render(snapshot);r.frame(dt);const visible=cues.filter(o=>o.visible);
+    r.render(snapshot);r.advance(dt*1000);r.frame(dt);const visible=cues.filter(o=>o.visible);
     check(`${weapon} absent from snapshots shows exact confirmed endpoints after ${dt*1000}ms with reduced motion ${reduced}`,visible.length===1&&visible[0].userData.confirmedShot===weapon&&endpoints(visible[0])&&!scene.children.some(o=>o.visible&&o.userData.combat?.type==='projectile'));
-    const matrix=visible[0].matrixWorld.clone();r.render(snapshot);r.frame(.04);
+    const matrix=visible[0].matrixWorld.clone();r.render(snapshot);r.advance(40);r.frame(.04);
     check(weapon+' duplicate receipts leave the stationary confirmed segment unchanged',visible[0].visible&&visible[0].matrixWorld.equals(matrix));
-    r.frame(.051);check(weapon+' confirmed feedback expires after its bounded90ms lifetime',cues.every(o=>!o.visible));
+    r.advance(51);r.frame(.051);check(weapon+' confirmed feedback expires after its bounded90ms lifetime',cues.every(o=>!o.visible));
   }
   const pellets=Array.from({length:3},(_,i)=>({id:'pellet-'+i,type:'impact',weapon:'scatter',pid:'a',surfaceId:'wall',from,position:{...position,x:position.x+(i-1)*.4}}));
-  const pelletSnapshot={...base(),simTick:40,simAt:2000,events:pellets};r.render(pelletSnapshot);r.frame(.1);
+  const pelletSnapshot={...base(),simTick:40,simAt:1600,events:pellets};r.render(pelletSnapshot);r.frame(.1);
   check('three same-owner Scatter pellets produce independent confirmed surface strokes',cues.filter(o=>o.visible&&o.userData.confirmedShot==='scatter').length===3&&new Set(cues.filter(o=>o.visible).map(o=>o.position.x)).size===3);
-  r.render(pelletSnapshot);r.frame(.1);check('repeated pellet receipt cannot renew expired strokes',cues.every(o=>!o.visible));
-  r.render({...base(),simTick:40,simAt:2010,events:[{id:'blocked-barrel',type:'impact',weapon:'pulse',pid:'a',surfaceId:'barrel-cover',from:{x:.95,y:1.14,z:0},position:{x:.95,y:1.14,z:1.6}}]});r.frame(.1);
+  r.render(pelletSnapshot);r.advance(100);r.frame(.1);check('repeated pellet receipt cannot renew expired strokes',cues.every(o=>!o.visible));
+  r.render({...base(),simTick:40,simAt:1610,events:[{id:'blocked-barrel',type:'impact',weapon:'pulse',pid:'a',surfaceId:'barrel-cover',from:{x:.95,y:1.14,z:0},position:{x:.95,y:1.14,z:1.6}}]});r.frame(.1);
   const blockedCue=cues.find(o=>o.visible),blockedBounds=blockedCue&&new THREE.Box3().setFromObject(blockedCue);
   check('blocked barrel feedback starts at the supplied corridor origin and stops at cover before the muzzle',blockedBounds&&Math.abs(blockedBounds.min.z)<1e-6&&Math.abs(blockedBounds.max.z-1.6)<1e-6);
-  r.frame(.1);
+  r.advance(100);r.frame(.1);
   // A buffered projectile may be present before a hitch delivers its impact.
   r.render({...base(),simTick:41,simAt:2050,projectiles:[{id:'short',weapon:'pulse',position:from,velocity:{x:0,y:0,z:140}}]});r.frame();
   r.render({...base(),simTick:42,simAt:2100,events:[{id:'retire-short',type:'impact',weapon:'pulse',pid:'a',from,position}]});r.frame(.1);
@@ -421,7 +470,7 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   r.render(fire);r.frame();
   const flash=flashes.find(o=>o.visible);
   check('even a rocket absent between snapshots has a muzzle flash at the actual accepted origin',flash&&flash.position.distanceTo(new THREE.Vector3(4,1,5))<1e-9&&new THREE.Vector3(0,0,1).applyQuaternion(flash.quaternion).distanceTo(new THREE.Vector3(1,0,0))<1e-9);
-  r.frame(.1);check('muzzle flash expires promptly and reuses prepared graphics',flashes.every(o=>!o.visible)&&r.allocations().projectiles===allocation.projectiles&&r.allocations().instances===allocation.instances);
+  r.advance(100);r.frame(.1);check('muzzle flash expires promptly and reuses prepared graphics',flashes.every(o=>!o.visible)&&r.allocations().projectiles===allocation.projectiles&&r.allocations().instances===allocation.instances);
   // three-view caps the elapsed interval before this frame at 100ms. A fire
   // accepted during that interval must reach the subsequent render once;
   // charging that past interval to its new 90ms flash erased it before draw.
@@ -431,15 +480,15 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
     r.render(accepted);r.frame(dt);
     const visible=flashes.filter(o=>o.visible);
     check(`${weapon} accepted flash reaches the draw after ${dt*1000}ms with reduced motion ${reduced}`,visible.length===1&&visible[0].position.distanceTo(new THREE.Vector3(4,1,5))<1e-9&&new THREE.Vector3(0,0,1).applyQuaternion(visible[0].quaternion).distanceTo(new THREE.Vector3(1,0,0))<1e-9);
-    r.render(accepted);r.frame(dt);
+    r.render(accepted);r.advance(dt*1000);r.frame(dt);
     check(`${weapon} hitch flash expires without duplicate event replay or graphics allocation`,flashes.every(o=>!o.visible)&&r.allocations().projectiles===allocation.projectiles&&r.allocations().instances===allocation.instances);
   }
   r.motion(false);
   const ko=structuredClone(fire);ko.simTick=4;ko.simAt=200;ko.karts[0].health=0;ko.karts[0].alive=false;ko.events=[{id:3,type:'ko',pid:'b',other:'a',position:{x:2,y:1,z:3}}];
   r.render(ko);r.frame();
   check('KO hides the scene health bar while the wreck animation remains visible',!bar.visible);
-  check('KO keeps the victim visible on its first impact frame',model.visible&&model.position.x===2&&model.position.z===3&&model.scale.x<1);
-  r.frame(.7);r.frame();check('wreck retires after its bounded collapse animation',!model.visible);
+  check('KO keeps the victim visible on its first impact frame',model.visible&&model.position.x===2&&model.position.z===3&&model.scale.x<=1);
+  r.advance(700);r.frame(.1);check('wreck retires after its bounded collapse animation',!model.visible);
   const respawn=structuredClone(start);respawn.simTick=5;respawn.simAt=1000;respawn.karts[0].spawnSeq=2;respawn.karts[0].pose.position={x:20,y:.64,z:20};
   r.render(respawn);r.frame();
   check('new life restores full health and actual spawn without stale wreck transform',model.visible&&model.scale.x===1&&model.position.x===20&&model.position.z===20&&r.node('health-fill').style.transform==='scaleX(1)');

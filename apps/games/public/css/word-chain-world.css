@@ -10,6 +10,14 @@
 }
 .wc .wc-challenge { justify-content: flex-start; }
 .wc .wc-challenge .gk-meta { margin: 0; }
+/* Feedback and turn notices occupy the same lane while a word is played.
+ * Use the computed line height: the shared text scale can exceed the old
+ * 24px reserve even for one line. Keep the current dictionary message fully
+ * readable without pushing Challenge/Players down when it arrives. */
+.wc #wcFeedback { min-height: 2.9em; min-height: 2lh; }
+@media (max-width: 480px) {
+  .wc #wcFeedback { min-height: 4.35em; min-height: 3lh; }
+}
 .wc .wc-ribbon { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; padding: 2px; scrollbar-width: thin; }
 .wc .wc-ribbon .wg-chip { flex: none; }
 .wc .wc-ribbon:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }

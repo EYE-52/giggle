@@ -127,7 +127,7 @@ messages, same snapshots, richer views. Games never touch transport, rooms,
 or each other.
 
 Pinned vendor builds (`package.json` exact): `chess.js` 1.4.0 (BSD-2-Clause,
-server rules), `three` 0.186.1 (MIT — `public/vendor/three/three.module.js`
+server rules), `three` 0.187.0 (MIT — `public/vendor/three/three.module.js`
 + `three.core.js` via `npm run vendor`, served locally, license alongside),
 `qrcode` 1.5.4 (MIT, server-side QR SVG). `check-game.js` allowlists shared
 dependencies per DEPENDENCY (pinned `chess.js` 1.4.0, usable by any game id);

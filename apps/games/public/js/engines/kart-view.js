@@ -163,6 +163,7 @@ export function createKartView(viewConfig) {
   const hooks = cfg.hooks && typeof cfg.hooks === 'object' ? cfg.hooks : {};
 
   let S = null;
+  let lastSnapshotArrival = null;
   let apiRef = null;
   let rootEl = null;
   let mountGen = 0;
@@ -198,6 +199,7 @@ export function createKartView(viewConfig) {
   let cueText = '';
   let keycapUntil=0;
   let firstEvents = true;
+  let feedbackEpoch = 0;
   let bound = [];
   let fbBound = [];
   let fbCanvas = null;
@@ -402,6 +404,12 @@ export function createKartView(viewConfig) {
       if (typeof performance !== 'undefined' && performance.now) return performance.now();
     } catch { /* noop */ }
     return Date.now();
+  }
+
+  // The same retirement boundary protects WebGL and Canvas fallback. Static
+  // mines are authority objects too: a disconnected/frozen round is not live.
+  function ordnanceFresh() {
+    return S?.phase!=='done'&&nowMs()-(lastSnapshotArrival??-Infinity)<=500&&apiRef?.context?.().connected!==false;
   }
 
   /* Calibrated server time for HUD deadlines (api.now when the shell
@@ -1079,7 +1087,7 @@ export function createKartView(viewConfig) {
       for(const cue of shotCues){cue.object.removeFromParent();cue.object.visible=false;cue.object.position.set(0,0,0);scene.add(cue.object);}
       await impactFX.warmup(renderer,camera);
       if(gen!==mountGen)throw new Error('Retired kart scene');
-      let impactEpoch='',impactSince=0;
+      let impactEpoch=-1,impactSince=nowMs(),lastEffectTime=null;
       const frame = (dt, t) => {
         if (!S) return;
         syncBlocks();
@@ -1090,9 +1098,14 @@ export function createKartView(viewConfig) {
         const poses = framePoses(poseStore, S, intentForPrediction(), dt, nowMs(), { reducedMotion: rm, map: S.map, serverNow: serverNow() });
         const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,nowMs(),serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs());if(pose)poses.set(k.pid,pose);}
         updateAudio();
-        const nextImpactEpoch=`${S.instanceId}:${S.you}:${S.inputAck?.life}:${S.inputAck?.controlEpoch}:${!!S.audioBaseline}`;
-        if(nextImpactEpoch!==impactEpoch){impactFX.reset();impactEpoch=nextImpactEpoch;impactSince=nowMs();}
-        impactFX.update(dt);
+        const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
+        if(feedbackEpoch!==impactEpoch){
+          impactFX.reset();impactEpoch=feedbackEpoch;
+          for(const cue of shotCues)cue.object.visible=false;
+          for(const e of combatEffects.values())returnMarker(e.mesh);
+          combatEffects.clear();popSites.length=0;effectSeen.clear();
+        }
+        impactFX.update(effectDt);
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
         for(const e of acceptedEffects){if(effectSeen.has(e.id))continue;effectSeen.add(e.id);
@@ -1266,7 +1279,7 @@ export function createKartView(viewConfig) {
         // Authoritative velocity at the calibrated clock. No chasing packet
         // positions: easing fast shots made them visibly slow and jerky.
         const liveZ = new Set();
-        for (const z of S.zaps || []) {
+        for (const z of (ordnanceFresh()?S.zaps:[]) || []) {
           liveZ.add(z.id);
           let mesh = zaps.get(z.id);
           if (!mesh) {
@@ -1295,7 +1308,7 @@ export function createKartView(viewConfig) {
           }
         }
         const liveG=new Set();
-        for(const g of S.grenades||[]){liveG.add(g.id);let group=grenades.get(g.id);
+        for(const g of (ordnanceFresh()?S.grenades:[])||[]){liveG.add(g.id);let group=grenades.get(g.id);
           if(!group){group=new THREE.Group();const body=combat.projectile('grenade');group.add(body);group.userData.body=body;
             const ring=takeMarker('grenade');group.userData.ring=ring;scene.add(group);grenades.set(g.id,group);}
           const flight=grenadePose(g,S,serverNow());group.position.set(flight.x,flight.y+(g.physical ? .45 : .38),flight.z);group.rotation.y=flight.angle;group.visible=flight.visible;
@@ -1303,7 +1316,7 @@ export function createKartView(viewConfig) {
         }
         for(const[id,group]of grenades)if(!liveG.has(id)){returnMarker(group.userData.ring);scene.remove(group);grenades.delete(id);}
         const liveM = new Set();
-        for (const m of S.mines || []) {
+        for (const m of (ordnanceFresh()?S.mines:[]) || []) {
           liveM.add(m.id);
           let mesh = mines.get(m.id);
           if (!mesh) {
@@ -1499,17 +1512,17 @@ export function createKartView(viewConfig) {
       ctx.arc(px(c.x), pz(c.z), Math.max(4, 2.4 * scale), 0, Math.PI * 2);
       ctx.stroke();
     }
-    for (const z of S.zaps || []) {
+    for (const z of (ordnanceFresh()?S.zaps:[]) || []) {
       const p=projectilePose(z,S,serverNow());if(!p.visible)continue;
       ctx.strokeStyle=z.kind==='scatter'?'#ffad69':z.kind==='rocket'?'#ffda58':z.kind==='rail'?'#b5afff':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
       ctx.beginPath();ctx.moveTo(px(p.x),pz(p.z));ctx.lineTo(px(p.x-Math.sin(p.angle)*2),pz(p.z-Math.cos(p.angle)*2));ctx.stroke();
     }
-    for (const m of S.mines || []) {
+    for (const m of (ordnanceFresh()?S.mines:[]) || []) {
       ctx.fillStyle = m.armed ? '#ff83b8' : '#91627a'; ctx.beginPath();
       ctx.arc(px(m.x),pz(m.z),Math.max(3,.9*scale),0,Math.PI*2); ctx.fill();
       ctx.fillStyle=m.armed&&Math.sin(now/150)>0?'#ffeaa0':'#402835';ctx.fillRect(px(m.x)-1,pz(m.z)-1,2,2);
     }
-    for(const g of S.grenades||[]){const p=grenadePose(g,S,serverNow());if(!p.visible)continue;
+    for(const g of (ordnanceFresh()?S.grenades:[])||[]){const p=grenadePose(g,S,serverNow());if(!p.visible)continue;
       if(g.warning){ctx.strokeStyle='#e65832';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px(p.x),pz(p.z),4*scale,0,Math.PI*2);ctx.stroke();}
       ctx.fillStyle='#ffd458';ctx.fillRect(px(p.x)-.4*scale,pz(p.z)-.6*scale-p.y*scale,.8*scale,1.2*scale);
       ctx.strokeStyle='#25354b';ctx.lineWidth=1;ctx.strokeRect(px(p.x)-.4*scale,pz(p.z)-.6*scale-p.y*scale,.8*scale,1.2*scale);
@@ -1604,7 +1617,7 @@ export function createKartView(viewConfig) {
     }
     bound = [];
     disposeGl();
-    S = null;
+    S = null;lastSnapshotArrival=null;
     feedback.reset();
     apiRef = null;
     rootEl = null;
@@ -1911,7 +1924,17 @@ export function createKartView(viewConfig) {
   }
 
   function update(el, Snew, api) {
-    if(Snew?.audioBaseline||(S&&Number.isFinite(S.simAt)&&Number.isFinite(Snew?.simAt)&&Snew.simAt-S.simAt>1000))firstEvents=true;
+    if(S?.instanceId!=null&&S.instanceId===Snew?.instanceId&&S.phase==='done'&&Snew.phase!=='done')return;
+    if(S?.instanceId===Snew?.instanceId&&(
+      Number.isFinite(S?.simTick)&&Number.isFinite(Snew?.simTick)&&Snew.simTick<S.simTick||
+      Number.isFinite(S?.simAt)&&Number.isFinite(Snew?.simAt)&&Snew.simAt<S.simAt))return;
+    const advanced=!S||Snew.instanceId!==S.instanceId||(!Number.isFinite(Snew.simTick)&&!Number.isFinite(Snew.simAt))||Snew.simTick!==S.simTick||Snew.simAt!==S.simAt;
+    const life=state=>`${state?.instanceId}:${state?.you}:${state?.inputAck?.life}:${state?.inputAck?.controlEpoch}`;
+    if(Snew?.audioBaseline||!S||Snew.instanceId!==S.instanceId||(Number.isFinite(S.simAt)&&Number.isFinite(Snew?.simAt)&&Snew.simAt-S.simAt>1000)){
+      firstEvents=true;feedback.reset();seenEvents.clear();feedbackEpoch++;
+    }else if(life(Snew)!==life(S)){
+      feedback.clearPresentation();feedbackEpoch++;
+    }
     if (!rootEl || rootEl !== el) {
       // Shell re-mounted the element without mount(): rebuild, then apply
       // this same snapshot (mount clears state, so set it after).
@@ -1922,6 +1945,7 @@ export function createKartView(viewConfig) {
       S = Snew;
       apiRef = api;
     }
+    if(advanced||Snew.audioBaseline)lastSnapshotArrival=nowMs();
     if(S.motionProfile&&!physicalReady){const gen=mountGen;physicalReady=loadClassicPhysics().then(R=>{if(gen!==mountGen)return;physicalPrediction=createClassicPrediction(R);physicalPrediction.ingest(S,nowMs(),serverNow());});}
     if(S.motionProfile&&physicalPrediction&&S.inputAck?.life!==physicalPrediction.life){atomicStop();physicalPrediction.life=S.inputAck?.life;}
     physicalPrediction?.ingest(S,nowMs(),serverNow());

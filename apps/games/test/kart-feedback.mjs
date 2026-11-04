@@ -45,3 +45,11 @@ physical.ingest(state(500,[{id:'rocket-blast',type:'blast',x:1,z:2,position:{x:1
 assert.equal(physical.current(300).find(e=>e.kind==='blast').position.y,7,'Blast presentation retains airborne height');
 physical.ingest(state(600,[],[physicalKart],{phase:'done',physicalEvents:[fresh]}),400);
 assert.equal(physical.current(400).length,0,'Done clears physical contact and blast effects');
+
+const life=createKartFeedback();
+const lifeOld={id:'life-old',type:'blast',pid:'a',weapon:'grenade',x:2,z:3};
+life.ingest(state(100,[]),0);life.ingest(state(200,[lifeOld]),100);
+assert.equal(life.current(100).length,1,'accepted blast precedes normal respawn');
+life.clearPresentation();assert.equal(life.current(100).length,0,'respawn retires old presentation immediately');
+life.ingest(state(300,[lifeOld,{id:'life-fresh',type:'fire',pid:'a',weapon:'pulse',position:{x:1,y:2,z:3}}]),200);
+assert.deepEqual(life.current(200).map(e=>e.kind),['fire'],'normal respawn preserves dedupe while admitting fresh feedback');

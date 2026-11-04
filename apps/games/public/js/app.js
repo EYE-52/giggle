@@ -1260,28 +1260,29 @@ function renderHome() {
   }).filter(Boolean);
   const total = catalogLoaded ? `${games.length} games` : 'Games for everyone';
   app.innerHTML = topbar() + `
-    <div class="hero">
+    <div class="hero home-welcome">
       <div class="hero-copy">
-        <p class="hero-eyebrow">${total} · No accounts · No downloads</p>
         <h1>Bring your people. <span class="pop">Pick a game</span>.</h1>
         <p class="hero-sub">Make a room, share the code, and play ${catalogLoaded ? `${games.length} party games` : 'party games'}
           with friends on any device. Someone hosts, everyone plays.</p>
         <a class="shelf-link" href="#games">Find your next game</a>
       </div>
       <div class="hero-form ticket">
-          <div class="ticket-head"><span class="ticket-title">Your ticket in</span><span class="ticket-stub">Free entry</span></div>
+          <div class="ticket-head"><span class="ticket-title">Create or join a room</span></div>
           <label for="nm">What should we call you?</label>
-          <input id="nm" type="text" maxlength="16" placeholder="e.g. Pippa" value="${esc(myName)}" autocomplete="off">
-          <div class="hero-cta"><button class="btn big" id="bCreate">Start the party</button></div>
-          <div class="ticket-or" aria-hidden="true"><span>or join friends</span></div>
-          <div class="hero-joinrow">
-            <input id="jc" type="text" maxlength="4" placeholder="CODE" value="${esc(roomCode)}" autocomplete="off" aria-label="Room code">
-            <button class="btn sun" id="bJoin">Join in</button>
+          <div class="hero-create-row">
+            <input id="nm" type="text" maxlength="16" placeholder="e.g. Pippa" value="${esc(myName)}" autocomplete="off">
+            <div class="hero-cta"><button class="btn big" id="bCreate">Create room</button></div>
           </div>
+          <label class="ticket-or" for="jc"><span>Have a room code?</span></label>
+          <div class="hero-joinrow">
+            <input id="jc" type="text" maxlength="4" placeholder="ABCD" value="${esc(roomCode)}" autocomplete="off" aria-label="Room code">
+            <button class="btn sun" id="bJoin">Join room</button>
+          </div>
+          <p class="ticket-note">No account or download needed.</p>
       </div>
-      <div class="hero-art" aria-hidden="true">${heroPosters()}</div>
     </div>
-    <div class="band">
+    <div class="band home-picks">
       <div class="sec-head"><h2>Tonight&rsquo;s picks</h2><span class="muted">Four favorites to start the night.</span></div>
       <div class="pick-grid">${pickGames().map(pickHtml).join('')}</div>
     </div>

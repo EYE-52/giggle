@@ -358,6 +358,64 @@ function frameBudgetTests() {
   console.log('ARENA frame budget: empty rests, clusters rotate, preference and disposal stop the loop');
 }
 
+function visibilityFrameBudgetTests() {
+  const previous = { raf: globalThis.requestAnimationFrame, cancel: globalThis.cancelAnimationFrame, observer: globalThis.MutationObserver };
+  const frames = new Map(), listeners = new Map(), observed = [];
+  let id = 0, observer, inactive = false;
+  globalThis.requestAnimationFrame = fn => { frames.set(++id, fn); return id; };
+  globalThis.cancelAnimationFrame = n => frames.delete(n);
+  globalThis.MutationObserver = class {
+    constructor(fn) { this.callback = fn; observer = this; }
+    observe(node) { observed.push(node); }
+    disconnect() { this.disconnected = true; }
+  };
+  const next = time => { const [n, fn] = frames.entries().next().value; frames.delete(n); fn(time); };
+  const frame = { parentElement: null, matches: () => inactive };
+  const innerFrame = { parentElement: null, matches: () => false };
+  const top = { frameElement: null };
+  const doc = { hidden: false, defaultView: { frameElement: innerFrame, parent: { frameElement: frame, parent: top } },
+    addEventListener: (type, fn) => listeners.set(type, fn),
+    removeEventListener: (type, fn) => { if (listeners.get(type) === fn) listeners.delete(type); } };
+  try {
+    const { canvas, calls } = fakeCanvas(264, 352); canvas.ownerDocument = doc;
+    const s = scene.createChainScene(canvas, { cols: 6, rows: 8, order: ['p0'], palette: CANDY });
+    const board = Array.from({ length: 48 }, () => ({ owner: null, orbs: 0 })); board[0] = { owner: 'p0', orbs: 2 };
+    s.setBoard(board); next(16); assert.equal(frames.size, 1);
+    doc.hidden = true; next(32);
+    assert.equal(frames.size, 0, 'hidden document stops continuous canvas frames');
+    const before = calls.length; const latest = board.map(c => ({ ...c })); latest[1] = { owner: 'p0', orbs: 1 };
+    s.setBoard(latest);
+    assert.deepEqual(s.getBoard(), latest, 'hidden state still follows authoritative board');
+    assert(calls.length > before, 'hidden readiness receives a real static draw');
+    assert.equal(frames.size, 0, 'hidden snapshots do not restart continuous animation');
+    doc.hidden = false; listeners.get('visibilitychange')(); assert.equal(frames.size, 1);
+    inactive = true; observer.callback();
+    assert.equal(frames.size, 0, 'an inert same-origin practice ancestor pauses the nested scene');
+    assert(observed.includes(frame), 'frame ancestor visibility is observed for resume');
+    inactive = false; observer.callback(); assert.equal(frames.size, 1);
+    const beforeResume = calls.filter(([name]) => name === 'clearRect').length;
+    next(100000000);
+    assert.equal(calls.filter(([name]) => name === 'clearRect').length, beforeResume + 1, 'resume draws once without a backlog of catch-up frames');
+    s.onBurst(0, 'p0'); s.onFlight(0, [1], 'p0', 160);
+    next(performance.now() + 2000);
+    assert.equal(s.getTrails().length, 0, 'expired trails cannot revive after suspension');
+    assert.equal(s.getShocks().length, 0, 'expired shocks cannot revive after suspension');
+    s.dispose(); assert.equal(frames.size, 0); assert.equal(listeners.size, 0); assert(observer.disconnected);
+    observer.callback(); assert.equal(frames.size, 0, 'retired visibility callbacks cannot revive a disposed scene');
+    const opaque = fakeCanvas();
+    opaque.canvas.ownerDocument = { defaultView: { get frameElement() { throw new Error('cross-origin'); } } };
+    const isolated = scene.createChainScene(opaque.canvas, { cols: 6, rows: 8, board });
+    assert.equal(isolated.fallback, false, 'an inaccessible ancestor does not break the normal scene');
+    assert.equal(frames.size, 1, 'the scene keeps its normal local rendering across a cross-origin boundary');
+    isolated.dispose(); assert.equal(frames.size, 0);
+  } finally {
+    for (const [key, value] of [['requestAnimationFrame', previous.raf], ['cancelAnimationFrame', previous.cancel], ['MutationObserver', previous.observer]]) {
+      if (value === undefined) delete globalThis[key]; else globalThis[key] = value;
+    }
+  }
+  console.log('ARENA visibility: hidden/inert animation pause, static authoritative readiness, resume, effect expiry and cleanup');
+}
+
 geometryTests();
 transposeTests();
 paletteTests();
@@ -367,4 +425,5 @@ flightAlignmentTests();
 cleanupTests();
 realTapeFlowTests();
 frameBudgetTests();
+visibilityFrameBudgetTests();
 console.log('CHAIN_ARENA_PASS');

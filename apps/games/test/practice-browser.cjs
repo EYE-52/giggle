@@ -115,6 +115,10 @@ async function startGame(game, viewport) {
       assert.equal(await page.locator('#practiceStatus').textContent(), before);
     }
     if (game.id === 'trivia') await customize(host, game.id, () => host.locator('#df-trivia-rounds').fill('1'));
+    if (game.id === 'word-chain') await customize(host, game.id, async () => {
+      await host.locator('#df-word-chain-lives').fill('3');
+      await host.locator('#df-word-chain-turnSeconds').fill('60');
+    });
     let timerConfigured = false;
     if (game.id === 'pocket-karts') {
       await customize(host, game.id, async () => {
@@ -150,7 +154,7 @@ async function startGame(game, viewport) {
     await page.locator('#practiceAll').click();
     assert.equal(await page.locator('.practice-seat[inert]').count(), frames.length - 1);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, 'practice chrome does not overflow');
-    let naturalCompletion = false, rematch = false;
+    let naturalCompletion = false, rematch = false, statusGeometry = null;
     if (game.id === 'trivia') {
       // Real actions from both seats reach the same reveal, without knowing
       // the answer or forcing the server into an end state.
@@ -180,6 +184,47 @@ async function startGame(game, viewport) {
       await host.locator('#bRematch:not([disabled])').click();
       for (const frame of frames) await frame.waitForFunction(() => window.__practiceState?.phase === 'play' && window.__practiceState.rev === 0);
       rematch = true;
+    }
+    if (game.id === 'word-chain') {
+      let active = -1;
+      for (let n = 0; n < frames.length; n++) {
+        if (await frames[n].evaluate(() => {
+          const s = window.__practiceState; return s && s.turnPid === (s.me || s.you);
+        })) active = n;
+      }
+      assert(active >= 0, 'a real Word Chain seat owns this turn');
+      const frame = frames[active];
+      await page.locator(`#practiceTab${active + 1}`).click();
+      const bounds = async () => frame.evaluate(() => Object.fromEntries(['#gbody', '.wc-target', '#wcChallenge'].map(selector => {
+        const r = document.querySelector(selector).getBoundingClientRect();
+        return [selector, { x: r.x, y: r.y, width: r.width, height: r.height }];
+      })));
+      const settle = () => frame.evaluate(async () => {
+        await document.fonts.ready; await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      });
+      await settle();
+      const before = await bounds();
+      await frame.locator('#wcWord').fill('zzqwxzz');
+      await frame.locator('#wcGo').click();
+      await frame.waitForFunction(() => window.__practiceState?.myFeedback?.code === 'dictionary');
+      await frame.waitForFunction(() => !!document.getElementById('wcFeedback')?.textContent.trim());
+      await settle();
+      const feedback = await bounds();
+      const turn = await frame.evaluate(() => window.__practiceState.turnNo);
+      // A legal empty-word action costs one of the configured three lives and
+      // advances the actual Room, rather than injecting a view-only status.
+      await frame.locator('#wcWord').fill('');
+      await frame.locator('#wcGo').click();
+      await frame.waitForFunction(turn => window.__practiceState?.turnNo > turn, turn);
+      await settle();
+      const nextTurn = await bounds();
+      for (const [label, after] of [['dictionary feedback', feedback], ['turn notice', nextTurn]]) {
+        for (const selector of Object.keys(before)) for (const key of Object.keys(before[selector])) {
+          assert(Math.abs(after[selector][key] - before[selector][key]) < 1, `full shell ${label} moved ${selector}.${key}`);
+        }
+      }
+      statusGeometry = { passed: true, before, feedback, nextTurn, authority: 'actual Room actions and snapshots' };
+      await page.screenshot({ path: path.join(artifacts, `word-chain-status-${viewport.width}.png`) });
     }
     if (timerConfigured) assert.equal(await host.evaluate(() => window.__practiceState.roundMs), 60000, 'real server acknowledged the selected1-minute kart timer');
     let drivingChecked = false, touchDrivingChecked = false;
@@ -266,7 +311,7 @@ async function startGame(game, viewport) {
     assert.deepEqual(preserved, ['Keep normal player', 'Keep legacy seat', 'Keep unrelated state', []]);
     assert(socketTargets.every(target => new URL(target).host === `127.0.0.1:${port}`));
     assert.deepEqual(errors, [], `${game.id}: browser errors`);
-    const result = { game: game.id, viewport, passed: true, realSeats: frames.length, allSeatsReady: true, seatSwitching: true, cleanup: true, naturalCompletion, rematch, timerConfigured, drivingChecked, touchDrivingChecked, readiness, errors };
+    const result = { game: game.id, viewport, passed: true, realSeats: frames.length, allSeatsReady: true, seatSwitching: true, cleanup: true, naturalCompletion, rematch, statusGeometry, timerConfigured, drivingChecked, touchDrivingChecked, readiness, errors };
     rows.push(result); console.log(JSON.stringify(result));
   } catch (error) {
     await page.screenshot({ path: path.join(artifacts, `FAILED-${game.id}-${viewport.width}.png`), fullPage: true }).catch(() => {});
@@ -329,8 +374,8 @@ async function edgeCases() {
     await page.clock.install();
     await page.route('**/js/app.js', route => route.abort());
     await page.goto(`http://127.0.0.1:${port}/`, { waitUntil: 'domcontentloaded' });
-    const animation = await page.locator('.loading-mark i').first().evaluate(element => getComputedStyle(element).animationName);
-    assert.equal(animation, reducedMotion === 'reduce' ? 'none' : 'loading-hop');
+    const animation = await page.locator('.boot-view--table .loading-mark i').first().evaluate(element => getComputedStyle(element).animationName);
+    assert.equal(animation, reducedMotion === 'reduce' ? 'none' : 'boot-deal-left');
     await page.screenshot({ path: path.join(artifacts, `loader-pending-${reducedMotion}.png`) });
     await page.clock.fastForward(13000);
     await page.getByRole('heading', { name: 'Taking longer than expected' }).waitFor();

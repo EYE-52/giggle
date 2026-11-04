@@ -86,7 +86,7 @@ const context = vm.createContext({document, window, console, Date,
 let src = fs.readFileSync(require.resolve('../public/js/engines/kart-view.js'),'utf8');
 src = src.replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];\s*/g,'')
   .replace('export function createKartView','function createKartView')
-  .replace('return { ownsTimer: true,', 'return { prediction: intentForPrediction, ownsTimer: true,');
+  .replace('return { ownsTimer: true,', 'return { drawCanvasFixture(canvas){fbCanvas=canvas;drawFallback();fbCanvas=null;}, prediction: intentForPrediction, ownsTimer: true,');
 vm.runInContext(src+'\nthis.makeView = createKartView;',context);
 const view = context.makeView({});
 const main = new Node(), sent = [];
@@ -723,6 +723,27 @@ const nitro=main.querySelector('#pk-tn');
   assert.ok(!main.querySelector('.pk-hud').innerHTML.includes('id="pk-cue"'),'Pickup cues do not occupy the center playfield');
   view.update(main,state('drive'),api);
 }
+// Snapshot order is per match; same-tick metadata and fresh respawn cues survive.
+{
+  const audio=audios.at(-1),base={...state('drive'),instanceId:'ordered-match',simTick:10,simAt:500,inputAck:{life:1,controlEpoch:1}};
+  view.update(main,{...base,audioBaseline:true,events:[{id:'retained',type:'fire',pid:'one',weapon:'pulse'}]},api);
+  const start=audio.cues.length;
+  view.update(main,{...base,simTick:9,simAt:450,events:[{id:'late',type:'blast',pid:'one'}]},api);
+  assert.equal(audio.cues.length,start,'strictly older same-instance packet cannot replay unseen explosion audio');
+  view.update(main,{...base,karts:[{...base.karts[0],ammo:7}],events:[]},api);
+  assert.equal(main.querySelector('#pk-boost').querySelector('.kart-item-count').textContent,'×7','same-tick inventory metadata is admitted');
+  view.update(main,{...base,simTick:11,simAt:550,inputAck:{life:2,controlEpoch:2},events:[{id:'retained',type:'fire',pid:'one',weapon:'pulse'},{id:'respawn-fresh',type:'respawn',pid:'one'}]},api);
+  assert.equal(audio.cues.length,start+1,'fresh normal respawn cue plays without replaying retained fire');
+  assert.equal(spoken.at(-1),'Back in! Protection ends when you attack','normal respawn retains accessible feedback');
+  const next={...base,instanceId:'new-ordered-match',simTick:1,simAt:50,events:[{id:'retained',type:'fire',pid:'one',weapon:'pulse'}]};
+  view.update(main,next,api);assert.equal(audio.cues.length,start+1,'new instance clocks and history start quietly');
+  view.update(main,{...next,simTick:2,simAt:100,events:[{id:'respawn-fresh',type:'fire',pid:'one',weapon:'pulse'}]},api);
+  assert.equal(audio.cues.length,start+2,'new instance may reuse event identities');
+  view.update(main,{...next,simTick:2,simAt:100,phase:'done',result:{winners:[],standings:[]}},api);
+  view.update(main,{...next,simTick:2,simAt:100},api);
+  assert(main.querySelector('.pk').classList.contains('pk-done'),'late same-clock live packet cannot reopen a terminal classic instance');
+  view.update(main,state('drive'),api);
+}
 // Results next-arena chooser: preview for all, host-only configure, no
 // active-map mutation, graceful without configure.
 {
@@ -900,6 +921,19 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
     assert.equal(geometries.size,geometryCount,weapon+' first use introduces no unprepared geometry');
     assert.equal(materials.size,materialCount,weapon+' first use introduces no unprepared material');
   }
+  const mineSnapshot={...structuredClone(s),simTick:10,simAt:clock,mines:[{id:'lifecycle-mine',owner:'one',x:0,z:3,armed:true}]};
+  const minesVisible=()=>built.scene.children.filter(o=>o.userData.prop?.userData.combat?.type==='mine').length;
+  live.update(el,mineSnapshot,api);built.frame(1/60,clock/1000);assert.equal(minesVisible(),1,'fresh classic authority mine is rendered');
+  clock+=501;built.frame(.1,clock/1000);assert.equal(minesVisible(),0,'frozen classic snapshot retires stale mine presentation');
+  live.update(el,{...mineSnapshot,simTick:11,simAt:clock},api);built.frame(1/60,clock/1000);assert.equal(minesVisible(),1,'fresh advancing authority restores an actually live mine');
+  live.update(el,{...mineSnapshot,simTick:11,simAt:clock,phase:'done'},api);built.frame(1/60,clock/1000);assert.equal(minesVisible(),0,'same-tick terminal packet retires classic ordnance');
+  let mineFills=0;const canvasContext=new Proxy({fillStyle:''},{get:(o,key)=>key in o?o[key]:(...args)=>{if(key==='fill'&&o.fillStyle==='#ff83b8')mineFills++;}}),canvas={width:320,height:300,getContext:()=>canvasContext};
+  const canvasSnapshot={...mineSnapshot,simTick:12,simAt:clock};
+  live.update(el,canvasSnapshot,api);live.drawCanvasFixture(canvas);assert.equal(mineFills,1,'Canvas fallback draws the same fresh authority mine');
+  clock+=501;live.drawCanvasFixture(canvas);assert.equal(mineFills,1,'Canvas fallback retires the same stalled authority mine');
+  live.update(el,{...canvasSnapshot,simTick:13,simAt:clock,phase:'done'},api);live.drawCanvasFixture(canvas);assert.equal(mineFills,1,'Canvas terminal packet cannot leave old mine pixels');
+  // Resume the graphics fixture at fresh clocks after the explicit stall.
+  s.simAt=clock;s.simTick=14;live.update(el,s,api);
   const bar=built.scene.getObjectByName('KartHealth:one');
   assert(bar&&!bar.visible,'classic full-health player has a prepared hidden scene health bar');
   const wounded=structuredClone(s);wounded.karts[0].health=60;wounded.karts[0].maxHealth=100;

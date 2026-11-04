@@ -7,6 +7,7 @@
   setTimeout(() => {
     if (!boot.isConnected || !boot.hasAttribute('data-app-boot')) return;
     boot.removeAttribute('data-app-boot');
+    boot.setAttribute('data-boot-state', 'error');
     boot.setAttribute('role', 'alert');
     boot.setAttribute('aria-busy', 'false');
     const title = boot.querySelector('[data-boot-title]');

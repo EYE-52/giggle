@@ -45,7 +45,7 @@ const colors=[0xf59539,0x21a9af,0xca49b0,0x5c8ceb,0xec5765,0x7eb643,0xaf7cde,0xf
 export function createElevatedKartView() {
   let root,api,S,sequence=0,epoch='',generation=0,gl,audio,stick,preference='auto',pending=false,gfxReady=false,graphicsFailed=false;
   let analog={x:0,y:0},lastSend=0,lastKey='',timer=0,inputTimer=0,resultsTimer=0,firstEvents=true,itemKey='',standingsKey='',audioDrifting=false,feedbackEpoch=0;
-  let sceneReady;
+  let sceneReady,lastSnapshotArrival=null;
   const timeline=createElevatedTimeline();
   const listeners=[],keys=new Set(),pointers=new Map(),seen=new Set(),newEvents=[],nodes=new Map();
   const on=(target,type,fn,opts)=>{target.addEventListener(type,fn,opts);listeners.push([target,type,fn,opts]);};
@@ -193,7 +193,7 @@ export function createElevatedKartView() {
       // Confirmed final sweeps remain readable when the shot itself never
       // reaches a snapshot. Borrow only existing tracer art, prepared once.
       const confirmedPools=new Map(),confirmedShots=[],shotBounds=new THREE.Box3(),shotCenter=new THREE.Vector3();
-      let confirmedEpoch=feedbackEpoch;
+      let confirmedEpoch=feedbackEpoch,lastEffectTime=null;
       for(const kind of ['pulse','scatter','rail','sentry']){
         const source=pools.get('shot:'+kind)[0],tail=source.userData.combat.tail,pool=[];
         source.updateWorldMatrix(true,true);
@@ -240,14 +240,14 @@ export function createElevatedKartView() {
           const f=flashes.find(f=>!f.mesh.visible)||flashes[0];f.mesh.visible=true;f.age=0;f.mesh.position.copy(e.position);f.mesh.quaternion.setFromUnitVectors(forward,direction.copy(e.direction).normalize());f.mesh.scale.setScalar(e.weapon==='rocket'||e.weapon==='nuke'?1.6:1);return;
         }
         if(e.type==='hit'&&e.other===S.you)$('damage')?.animate?.([{opacity:.6},{opacity:0}],{duration:220});
-        if(e.type==='ko'&&e.other)wrecks.set(e.other,{age:0,position:{...e.position},life:S.karts.find(k=>k.id===e.other)?.spawnSeq});
+        if(e.type==='ko'&&e.other)wrecks.set(e.other,{age:0,at:performance.now()/1000,position:{...e.position},life:S.karts.find(k=>k.id===e.other)?.spawnSeq});
         if(e.type==='blast'||e.type==='impact')return;
         if(!['ko','collision','landing','hit'].includes(e.type))return;
         const strength=e.impulse===undefined?1:Math.max(.12,Math.min(1,e.impulse/1000));
         if((e.pid===S.you||e.other===S.you)&&!helper.reducedMotion())cameraKick=Math.max(cameraKick,(e.type==='collision'?.10:e.type==='ko'?.16:.05)*strength);
         if(e.type==='landing'||e.type==='collision'||helper.reducedMotion())return;
         const small=['impact','collision','hit'].includes(e.type),f=effects.find(f=>!f.mesh.visible)||effects.reduce((a,b)=>a.age>b.age?a:b);
-        f.count=small?8:24;f.mesh.count=f.count;f.mesh.visible=true;f.position.copy(e.position);f.age=0;f.duration=small?.28:.75;
+        f.count=small?8:24;f.mesh.count=f.count;f.mesh.visible=true;f.position.copy(e.position);f.age=0;f.at=performance.now()/1000;f.duration=small?.28:.75;
         normal.copy(e.normal||up);if(normal.lengthSq()<.01)normal.copy(up);normal.normalize();basis.setFromUnitVectors(up,normal);
         for(let j=0;j<f.count;j++){const angle=j*2.39996,speed=(j%3+3)*(.45+.55*strength);f.velocities[j].set(Math.cos(angle)*speed,2+j%4,Math.sin(angle)*speed).applyQuaternion(basis).y+=1.2;f.mesh.setColorAt(j,sparkColor.setHex(small?(j%2?0xffe3a0:0xf5fbff):(j%3?0xff8128:0xffdc68)));}f.mesh.instanceColor.needsUpdate=true;
       }
@@ -259,10 +259,11 @@ export function createElevatedKartView() {
           const sample=playback?.current.karts.get(k.id);
           const current=sample?.spawnSeq===k.spawnSeq&&sample?.controlEpoch===k.controlEpoch&&k.alive&&k.connected!==false?sample:k;
           const p=blendElevatedPose(playback?.previous.karts.get(k.id),current,alpha,model.userData.elevatedPose),wreck=wrecks.get(k.id);
+          if(wreck)wreck.age=Math.max(0,time-wreck.at);
           if(wreck&&(k.alive||wreck.life!==k.spawnSeq||wreck.age>=.65))wrecks.delete(k.id);
           const exploding=wrecks.get(k.id);model.visible=!k.out&&(k.alive||!!exploding);model.scale.setScalar(1);
           model.position.copy(p.position);model.quaternion.set(p.rotation.x,p.rotation.y,p.rotation.z,p.rotation.w);model.userData.kart.inner.position.y=CONFIG.chassis.modelOriginY;
-          if(exploding){exploding.age+=dt;model.position.copy(exploding.position);if(!helper.reducedMotion()){model.position.y+=Math.sin(exploding.age/.65*Math.PI)*.8;model.rotateZ(exploding.age*1.6);model.scale.setScalar(Math.max(.15,1-exploding.age/.65));}}
+          if(exploding){model.position.copy(exploding.position);if(!helper.reducedMotion()){model.position.y+=Math.sin(exploding.age/.65*Math.PI)*.8;model.rotateZ(exploding.age*1.6);model.scale.setScalar(Math.max(.15,1-exploding.age/.65));}}
           healthBars.update(k.id,k,model.position);
           animateKartModel(model,{physicalPose:p,speed:p.speed,steer:k.id===S.you?intent().steer:0,boost:k.nitroActive,shield:k.shield>0&&!(k.ramT>0),invincible:k.ramT>0,dt,reducedMotion:helper.reducedMotion()});
           let orbit=spikes.get(k.id);if(k.spikesT>0&&k.alive){if(!orbit){orbit=art.spikes();model.add(orbit);spikes.set(k.id,orbit);}art.animate(orbit,dt,time,helper.reducedMotion());}else if(orbit){orbit.removeFromParent();spikes.delete(k.id);}
@@ -366,20 +367,33 @@ export function createElevatedKartView() {
         const cycle=S.skyCycle,sky=cycle?Math.max(0,Math.min(1,(now()-cycle.startedAt)/cycle.durationMs)):undefined;
         const playback=timeline.frame(performance.now());
         world.animate(dt,time,sky);scene.fog.color.copy(world.lighting.fogColor);
+        // Camera/physics dt is clipped by the renderer. Presentation lifetime
+        // uses elapsed monotonic time so a stalled/hidden frame cannot stretch
+        // a 90ms tracer or old explosion into several seconds.
+        const effectDt=lastEffectTime===null?dt:Math.max(0,time-lastEffectTime);lastEffectTime=time;
+        if(confirmedEpoch!==feedbackEpoch){
+          for(const f of flashes)f.mesh.visible=false;
+          for(const f of effects)f.mesh.visible=false;
+          for(const cue of confirmedShots)cue.object.visible=false;
+          wrecks.clear();cameraKick=0;impactFX.reset();
+        }
         // dt describes time before this frame. Age existing flashes before
         // accepting new fire, so a 100ms hitch cannot erase a new 90ms flash.
-        for(const f of flashes){if(!f.mesh.visible)continue;f.age+=dt;if(f.age>=.09)f.mesh.visible=false;}
-        for(const cue of confirmedShots){if(confirmedEpoch!==feedbackEpoch)cue.object.visible=false;if(!cue.object.visible)continue;cue.age+=dt;if(cue.age>=.09)cue.object.visible=false;}
-        if(confirmedEpoch!==feedbackEpoch)impactFX.reset();
-        confirmedEpoch=feedbackEpoch;impactFX.update(dt);
+        for(const f of flashes){if(!f.mesh.visible)continue;f.age+=effectDt;if(f.age>=.09-1e-9)f.mesh.visible=false;}
+        for(const cue of confirmedShots){if(!cue.object.visible)continue;cue.age+=effectDt;if(cue.age>=.09-1e-9)cue.object.visible=false;}
+        confirmedEpoch=feedbackEpoch;impactFX.update(effectDt);
         while(newEvents.length)effect(newEvents.shift());
         bodies(dt,time,playback);
         const itemSnapshot=playback?.current.snapshot||S;
-        const itemTick=itemSnapshot.simTick+':'+S.simTick;
-        if(objectTick!==itemTick){objectTick=itemTick;sync(S.crates,'crate:',()=>createCrateModel(THREE,assets));sync((itemSnapshot.projectiles||[]).filter(v=>S.projectiles?.some(latest=>latest.id===v.id)),'shot:',v=>projectile(v.weapon));sync(S.mines,'mine:',v=>art.mine(v.owner===S.you));sync(S.sentries,'sentry:',()=>art.sentry());sync((itemSnapshot.grenades||[]).filter(v=>S.grenades?.some(latest=>latest.id===v.id)),'grenade:',v=>art.projectile(v.weapon||'grenade'));}
+        // Do not keep drawing ordnance from a frozen authority snapshot or a
+        // terminal round. A fresh snapshot may show genuinely current objects
+        // again; no motion, collision or gameplay lifetime is invented here.
+        const itemsFresh=S.phase!=='done'&&performance.now()-(lastSnapshotArrival??-Infinity)<=500&&api?.context?.().connected!==false;
+        const itemTick=itemSnapshot.simTick+':'+S.simTick+':'+itemsFresh;
+        if(objectTick!==itemTick){objectTick=itemTick;sync(S.crates,'crate:',()=>createCrateModel(THREE,assets));sync(itemsFresh?(itemSnapshot.projectiles||[]).filter(v=>S.projectiles?.some(latest=>latest.id===v.id)):[],'shot:',v=>projectile(v.weapon));sync(itemsFresh?S.mines:[],'mine:',v=>art.mine(v.owner===S.you));sync(itemsFresh?S.sentries:[],'sentry:',()=>art.sentry());sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>S.grenades?.some(latest=>latest.id===v.id)):[],'grenade:',v=>art.projectile(v.weapon||'grenade'));}
         const itemAlpha=playback?.alpha??1;movingItems(itemSnapshot.projectiles,'shot:',playback?.previous.snapshot.projectiles,playback?.current.snapshot.projectiles,itemAlpha);movingItems(itemSnapshot.grenades,'grenade:',playback?.previous.snapshot.grenades,playback?.current.snapshot.grenades,itemAlpha);
         for(const object of objects.values())art.animate(object,dt,time,helper.reducedMotion());
-        for(let i=effects.length-1;i>=0;i--){const f=effects[i];f.age+=dt;if(!f.mesh.visible)continue;if(f.age>=f.duration){f.mesh.visible=false;continue;}for(let j=0;j<f.count;j++){const v=f.velocities[j],fade=Math.max(.02,1-f.age/f.duration);dummy.position.set(f.position.x+v.x*f.age,f.position.y+v.y*f.age-f.age*f.age*7,f.position.z+v.z*f.age);dummy.quaternion.setFromUnitVectors(nose.set(0,0,1),direction.copy(v).normalize());dummy.scale.set(fade,fade,fade*2.5);dummy.updateMatrix();f.mesh.setMatrixAt(j,dummy.matrix);}f.mesh.instanceMatrix.needsUpdate=true;}
+        for(let i=effects.length-1;i>=0;i--){const f=effects[i];if(!f.mesh.visible)continue;f.age=Math.max(0,time-f.at);if(f.age>=f.duration){f.mesh.visible=false;continue;}for(let j=0;j<f.count;j++){const v=f.velocities[j],fade=Math.max(.02,1-f.age/f.duration);dummy.position.set(f.position.x+v.x*f.age,f.position.y+v.y*f.age-f.age*f.age*7,f.position.z+v.z*f.age);dummy.quaternion.setFromUnitVectors(nose.set(0,0,1),direction.copy(v).normalize());dummy.scale.set(fade,fade,fade*2.5);dummy.updateMatrix();f.mesh.setMatrixAt(j,dummy.matrix);}f.mesh.instanceMatrix.needsUpdate=true;}
         for(const rig of rigs.values())art.animate(rig.object,dt,time,helper.reducedMotion());
         const followed=self()||S.karts[0];
         const life=`${S.instanceId}:${followed?.id}:${followed?.spawnSeq}:${followed?.controlEpoch}`;if(life!==cameraLife){cameraLife=life;started=false;sideYaw=0;selectedSideYaw=0;recovery=0;sideSettling=false;}
@@ -501,14 +515,25 @@ export function createElevatedKartView() {
   }
   function update(el,snapshot,platform){
     api=platform;if(!root)mount(el,platform);
+    const was=S;
+    // Equal simulation ticks may carry real metadata/ACK/End transitions.
+    // Only strictly older same-instance authority is rejected.
+    if(was?.instanceId!=null&&was.instanceId===snapshot.instanceId&&was.phase==='done'&&snapshot.phase!=='done')return;
+    if(was&&was.instanceId===snapshot.instanceId&&(
+      Number.isFinite(was.simTick)&&Number.isFinite(snapshot.simTick)&&snapshot.simTick<was.simTick||
+      Number.isFinite(was.simAt)&&Number.isFinite(snapshot.simAt)&&snapshot.simAt<was.simAt))return;
+    const arrival=performance.now(),advanced=!was||was.instanceId!==snapshot.instanceId||was.simTick!==snapshot.simTick||was.simAt!==snapshot.simAt;
+    const gap=was&&Number.isFinite(snapshot.simAt)&&Number.isFinite(was.simAt)&&snapshot.simAt-was.simAt>1000;
+    if(advanced||snapshot.audioBaseline)lastSnapshotArrival=arrival;
     const key=`${snapshot.instanceId}:${snapshot.inputAck?.life}:${snapshot.inputAck?.controlEpoch}`;
     if(key!==epoch){stop(false);feedbackEpoch++;newEvents.length=0;epoch=key;sequence=snapshot.inputAck?.receivedSeq||0;timeline.reset();}
-    const was=S;S=snapshot;if(S.audioBaseline){firstEvents=true;newEvents.length=0;timeline.reset();feedbackEpoch++;}timeline.ingest(S,performance.now());sequence=Math.max(sequence,S.inputAck?.receivedSeq||0);updateAudio();
+    S=snapshot;if(S.audioBaseline||gap){firstEvents=true;newEvents.length=0;timeline.reset();feedbackEpoch++;}timeline.ingest(S,arrival);sequence=Math.max(sequence,S.inputAck?.receivedSeq||0);updateAudio();
     if(was?.instanceId!==S.instanceId){seen.clear();newEvents.length=0;firstEvents=true;feedbackEpoch++;}
     for(const e of S.events||[]){
       if(seen.has(e.id))continue;
       seen.add(e.id);
       if(firstEvents||!gfxReady)continue;
+      if(S.phase==='done'&&was?.phase==='done')continue;
       newEvents.push(e);if(newEvents.length>32)newEvents.shift();
       const pose=(self()||S.karts[0])?.pose;
       if(!e.position||!pose)continue;
@@ -528,7 +553,7 @@ export function createElevatedKartView() {
   function dispose(){
     stop(false);generation++;clearInterval(timer);clearTimeout(resultsTimer);timer=resultsTimer=0;stick?.dispose();stick=null;audio?.dispose();audio=null;gl?.dispose();gl=null;
     for(const[target,type,fn,opts]of listeners.splice(0)){if(type==='owned-style'||type==='owned-panel')target.remove();else target.removeEventListener(type,fn,opts);}
-    root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;
+    root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;lastSnapshotArrival=null;
   }
   return {ownsTimer:true,ownsInputs:true,styles:['/css/kart-elevated.css'],mount,update,dispose,
     async ready(){await sceneReady;if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};

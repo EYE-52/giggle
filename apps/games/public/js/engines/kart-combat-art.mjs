@@ -794,6 +794,16 @@ export function createKartCombatArt(THREE, opts) {
     c.tipZ = tip ? tip.tipZ : fb[0];
     c.tailZ = tip ? tip.tailZ : fb[1];
     c.tail = tail || null;
+    // The shipped space-kit missiles contain a solid body but no tracer
+    // node. Add one pooled tapered exhaust behind the authored hull so its
+    // flight direction reads from the chase camera. No hitbox/nose changes.
+    if(!c.tail&&['rocket','seeker','nuke'].includes(kind)){
+      const {G}=ensurePool();
+      if(kind==='seeker'&&!o.tailSeeker)o.tailSeeker=glow(reg,THREE,'CombatTailSeeker',COLORS.mintGlow,.9);
+      const material=kind==='seeker'?o.tailSeeker:o.tailRocket;material.toneMapped=false;
+      c.tail=lit(G.rocketTail,material,kind==='seeker'?'SeekerExhaust':'RocketExhaust');
+      c.tail.position.z=c.tailZ-.45;inner.add(c.tail);c.tailZ-=1;
+    }
     if(kind==='proximity'||kind==='bomb'){c.armed=false;c.landed=false;}
     return outer;
   }

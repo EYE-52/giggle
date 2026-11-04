@@ -603,6 +603,19 @@ try {
   const get=name=>shipping.pulse.getObjectByName(name)||shipping.arsenal.getObjectByName(name)||
     (name!=='ScatterShot'&&shipping.secondary.getObjectByName(name))||shipping.combat.getObjectByName(name);
   assert(get('MineTrap')&&get('GrenadeShot'),'shipping lookup selects authored trap and secondary grenade');
+  const exhaustArt=createKartCombatArt(THREE,{assets:{get}});
+  for(const kind of ['rocket','seeker','nuke']){
+    const shot=exhaustArt.projectile(kind),again=exhaustArt.projectile(kind),c=shot.userData.combat;
+    assert(c.tail?.isMesh,kind+' shipped missile has readable tapered exhaust');
+    assert(c.tail.position.z<0&&c.tail.material.toneMapped===false,kind+' exhaust is behind the unchanged solid nose and reads in arena lighting');
+    assert.equal(c.tail.geometry,again.userData.combat.tail.geometry,kind+' exhaust geometry is pooled');
+    assert.equal(c.tail.material,again.userData.combat.tail.material,kind+' exhaust material is pooled');
+    assert(meshesOf(shot).length<=COMBAT_ART_BUDGETS.projectile,kind+' remains inside projectile mesh budget');
+    const before=poolOf([shot,again]);for(let i=0;i<120;i++)exhaustArt.animate(shot,1/60,i/60,false);
+    assert.deepEqual(poolOf([shot,again]),before,kind+' animation allocates no resources');
+  }
+  assert.notEqual(exhaustArt.projectile('rocket').userData.combat.tail.material.color.getHex(),exhaustArt.projectile('seeker').userData.combat.tail.material.color.getHex(),'rocket and seeker exhaust are visually distinct');
+  exhaustArt.dispose();
   const sourceMineBounds=boundsOf(get('MineTrap')),sourceGrenadeBounds=boundsOf(get('GrenadeShot'));
   const sourceMineVertices=meshesOf(get('MineTrap')).map(o=>Array.from(o.geometry.attributes.position.array));
   for(const [tag,assets]of [['shipping',{get}],['fallback',null]]) {

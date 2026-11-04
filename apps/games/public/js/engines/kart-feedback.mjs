@@ -52,5 +52,8 @@ export function createKartFeedback({radius=2.05}={}) {
   primed=true;
  }
  function current(now){for(let i=live.length-1;i>=0;i--)if(live[i].until<=now)live.splice(i,1);return live;}
- return {ingest,current,reset};
+ // A normal respawn retires the previous life's visuals, but keeps event
+ // identity/priming so fresh respawn/fire feedback in that packet still plays.
+ const clearPresentation=()=>{previous.clear();cooldown.clear();live.length=0;};
+ return {ingest,current,reset,clearPresentation};
 }

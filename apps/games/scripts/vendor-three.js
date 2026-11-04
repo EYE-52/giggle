@@ -1,6 +1,6 @@
 'use strict';
 /* Vendor the pinned Three.js browser build into public/vendor/three/.
- * three@0.186.1's ESM entry (three.module.js) imports its sibling
+ * three@0.187.0's ESM entry (three.module.js) imports its sibling
  * three.core.js by relative path, so BOTH files must be served together —
  * never copy one without the other. Run: npm run vendor
  * (also runs on postinstall so fresh checkouts can play offline).
@@ -11,7 +11,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const WANT = {
-  three: '0.186.1',
+  three: '0.187.0',
   '@dimforge/rapier3d-compat': '0.21.0',
 };
 
