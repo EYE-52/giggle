@@ -102,7 +102,13 @@ export async function createThreeView(mountEl, hooks) {
     try { if (renderer) renderer.dispose(); } catch { /* noop */ }
     return { fallback: true, reason: 'webgl-unavailable' };
   }
-  let pixelRatio = Math.min(window.devicePixelRatio || 1, 1.75);
+  // Adaptive resolution: a struggling device renders fewer pixels instead
+  // of dropping frames, and climbs back once frames are cheap again.
+  const MAX_RATIO = 1.75, MIN_RATIO = 0.75, RATIO_STEP = 0.25;
+  const deviceRatio = () => Math.min(window.devicePixelRatio || 1, MAX_RATIO);
+  let ratioCap = MAX_RATIO;
+  const targetRatio = () => Math.max(Math.min(MIN_RATIO, deviceRatio()), Math.min(deviceRatio(), ratioCap));
+  let pixelRatio = targetRatio();
   renderer.setPixelRatio(pixelRatio);
   renderer.outputColorSpace = THREE.SRGBColorSpace || renderer.outputColorSpace;
   mountEl.appendChild(canvas);
@@ -145,7 +151,7 @@ export async function createThreeView(mountEl, hooks) {
     if (disposed) return;
     const w = Math.max(1, mountEl.clientWidth || 320);
     const h = Math.max(1, mountEl.clientHeight || 240);
-    const ratio = Math.min(window.devicePixelRatio || 1, 1.75);
+    const ratio = targetRatio();
     const sizeChanged = w !== lastWidth || h !== lastHeight;
     const ratioChanged = ratio !== pixelRatio;
     if (!sizeChanged && !ratioChanged) return;
@@ -188,9 +194,32 @@ export async function createThreeView(mountEl, hooks) {
 
   let hasDrawn = false;
   let last = performance.now();
+  const gaps = [];
+  let lastStep = performance.now(), climbs = 0;
+  const adapt = (now, gapMs) => {
+    // Skip hidden tabs and long pauses (tab switches, debugger), which say
+    // nothing about rendering cost.
+    if (document.hidden || gapMs > 250) { gaps.length = 0; return; }
+    gaps.push(gapMs);
+    if (gaps.length > 90) gaps.shift();
+    if (gaps.length < 30 || now - lastStep < 1500) return;
+    const median = gaps.slice().sort((a, b) => a - b)[gaps.length >> 1];
+    const current = targetRatio();
+    let next = current;
+    if (median > 24 && current > MIN_RATIO) next = Math.max(MIN_RATIO, current - RATIO_STEP);
+    // Climb back slowly, and stop trying after a few round trips so a
+    // borderline device settles instead of oscillating.
+    else if (median < 19 && current < deviceRatio() && climbs < 3 && now - lastStep > 10000) { next = Math.min(deviceRatio(), current + RATIO_STEP); climbs++; }
+    if (next === current) return;
+    ratioCap = next;
+    lastStep = now; gaps.length = 0;
+    try { hooks.diagnostics?.event?.('quality-ratio', next); } catch { /* measurement is optional */ }
+    doResize();
+  };
   const renderOnce = () => {
     if (lost || disposed) return;
     const now = performance.now();
+    if (hasDrawn) adapt(now, now - last);
     const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
     last = now;
     try {
