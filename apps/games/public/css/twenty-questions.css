@@ -21,9 +21,9 @@
 .tq-spot { padding: 16px 18px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; display: flex; flex-direction: column; gap: 8px; }
 .tq-spot > * { margin: 0; }
 .tq-qmeta { font: 700 13px/1.4 var(--font-body); color: var(--ink-dim); }
-.tq-qtext { font: 800 22px/1.3 var(--font-body); color: var(--ink); overflow-wrap: anywhere; }
+.tq-qtext { font: 800 22px/1.3 var(--font-body); color: var(--ink); overflow-wrap: anywhere; min-height: 58px; } /* two lines: the desk below does not move as questions arrive */
 .tq-spot.is-idle .tq-qtext { font-size: 18px; color: var(--ink-dim); }
-.tq-spot.is-idle .tq-qmeta { display: none; }
+.tq-spot.is-idle .tq-qmeta { visibility: hidden; }
 .tq-wait.gk-wait { justify-content: flex-start; min-height: 32px; }
 .tq-answers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .tq .tq-ans { min-height: 52px; padding-inline: 10px; gap: 6px; overflow-wrap: normal; }
@@ -97,7 +97,7 @@
 @media (max-height: 640px) {
   .tq { gap: 10px; padding-top: 4px; }
   .tq-spot { padding: 10px 14px; gap: 6px; }
-  .tq-qtext { font-size: 18px; }
+  .tq-qtext { font-size: 18px; min-height: 47px; }
   .tq .tq-ans { min-height: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
