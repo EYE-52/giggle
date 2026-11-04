@@ -1817,7 +1817,8 @@ function renderLobby() {
       </section>
     </div>
     ${meetFooter()}`;
-  if (celebrate && !EMBED.enabled) confetti();
+  // Practice opens a room on every start; confetti there only covers the lobby.
+  if (celebrate && !EMBED.enabled && !PRACTICE) confetti();
   const watch = document.getElementById('bWatch');
   if (watch) watch.onclick = () => { watchInstance = instanceId; render(); };
   renderRoomMembers();

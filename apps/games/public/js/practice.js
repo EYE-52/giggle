@@ -11,7 +11,13 @@ let games = [], session = '', count = 0, selected = 1, all = false, stopping = f
 let catalogAttempt = 0, cancelCatalog = () => {}, finishStop = null;
 let stopTimer = 0;
 
-function status(text) { if ($('practiceStatus').textContent !== text) $('practiceStatus').textContent = text; }
+// Routine progress stays for screen readers; only problems show in the bar.
+const ALERT = /hasn’t|needs|could not|unavailable|no games|reconnecting|unconfirmed/i;
+function status(text) {
+  const el = $('practiceStatus');
+  if (el.textContent !== text) el.textContent = text;
+  el.classList.toggle('is-alert', ALERT.test(text));
+}
 function empty(title, description, busy = false) {
   const section = document.createElement('section');
   section.className = 'practice-empty boot-view';
@@ -20,9 +26,28 @@ function empty(title, description, busy = false) {
   if (busy) section.innerHTML = '<span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span>';
   const heading = document.createElement('h2'); heading.textContent = title;
   const text = document.createElement('p'); text.textContent = description;
-  section.append(heading, text); table.replaceChildren(section);
+  section.append(heading); if (description) section.append(text);
+  table.replaceChildren(section);
 }
 function chosen() { return games.find(game => game.id === gameSelect.value); }
+/* Idle table: the chosen game's own art and line, not instructions. */
+function preview(kicker) {
+  const game = chosen();
+  if (!game || session) return;
+  const section = document.createElement('section');
+  section.className = 'practice-empty practice-preview';
+  section.setAttribute('role', 'status');
+  const img = document.createElement('img');
+  img.className = 'practice-art'; img.alt = ''; img.decoding = 'async';
+  img.src = game.art && /^img\/games\/[a-z0-9-]+\.(svg|png|webp)$/.test(game.art) ? '/' + game.art : `/img/games/${game.id}.png`;
+  img.onerror = () => img.remove();
+  const k = document.createElement('p'); k.className = 'practice-kicker'; k.textContent = kicker;
+  const h = document.createElement('h2'); h.textContent = game.name;
+  const t = document.createElement('p'); t.textContent = game.tagline || '';
+  section.append(img, k, h);
+  if (t.textContent) section.append(t);
+  table.replaceChildren(section);
+}
 function updateSeats() {
   const support = practiceSupport(chosen());
   countSelect.replaceChildren();
@@ -47,7 +72,7 @@ async function loadCatalog() {
   gameSelect.disabled = countSelect.disabled = $('practiceStart').disabled = true;
   $('practiceRetry').hidden = true;
   status('Getting the games ready…');
-  empty('Getting the games ready…', 'The live game list supplies the rules and player minimums.', true);
+  empty('Shuffling the games…', '', true);
   try {
     timer = setTimeout(() => { controller.abort(); socket?.close(); }, 8000);
     const response = await fetch('/config.json', { signal: controller.signal, cache: 'no-store' });
@@ -72,7 +97,7 @@ async function loadCatalog() {
     games = catalog.filter(game => typeof game.id === 'string' && /^[a-z0-9-]{2,40}$/.test(game.id) && typeof game.name === 'string');
     if (!games.length) {
       status('No games available');
-      empty('The game shelf is empty', 'The server connected but is not offering games yet. Retry later.');
+      empty('No games right now', 'Try again in a moment.');
       $('practiceRetry').hidden = false;
       return;
     }
@@ -86,12 +111,11 @@ async function loadCatalog() {
     gameSelect.value = games.some(game => game.id === requested && practiceSupport(game)) ? requested : games.find(game => practiceSupport(game))?.id || '';
     gameSelect.disabled = false; updateSeats();
     status(`${games.length} games · you control every seat`);
-    empty('A whole table, just for you', 'Choose a game and start practice. Player 1 is the first host; no room is created until you start.');
-    table.firstElementChild.setAttribute('role', 'status');
+    preview('You play every seat');
   } catch {
     if (attempt !== catalogAttempt) return;
     status('Games unavailable');
-    empty('Can’t reach the games yet', 'Check your connection, then retry. No practice room was created.');
+    empty('Can’t reach the games', 'Check your connection and retry.');
     $('practiceRetry').hidden = false;
   } finally { clearTimeout(timer); socket?.close(); }
 }
@@ -156,7 +180,7 @@ function start(event) {
     sessionStorage.setItem(`practice:${next}:probe`, '1'); sessionStorage.removeItem(`practice:${next}:probe`);
   } catch {
     status('Practice needs site session storage');
-    empty('Can’t save separate seats', 'Allow session storage for this site, then try again. Your existing storage has not been cleared.'); return;
+    empty('Can’t open separate seats', 'Allow site storage, then try again.'); return;
   }
   session = next; count = requestedCount; selected = 1; all = false;
   document.body.classList.add('is-running');
@@ -168,7 +192,7 @@ function start(event) {
   try { makeSeat(1, `/?practice=${session}&seat=1&game=${encodeURIComponent(game.id)}&name=Player%201`); }
   catch {
     cleanup(false); status('Practice needs site session storage');
-    empty('Can’t save separate seats', 'Your site storage is full or blocked. Your normal saved room and name were not cleared.');
+    empty('Can’t open separate seats', 'Site storage is full or blocked.');
   }
 }
 
@@ -192,8 +216,7 @@ function cleanup(confirmed) {
   } catch { /* Never clear unrelated storage to recover practice. */ }
   gameSelect.disabled = false; updateSeats();
   status(confirmed ? 'Practice ended' : 'Practice ended; unconfirmed seats disconnected');
-  empty('Ready for another try?', 'Choose a game and start a fresh table. Your normal saved room and name were not changed.');
-  table.firstElementChild.setAttribute('role', 'status');
+  preview('Another round?');
   $('practiceStart').focus();
 }
 function stop() {
@@ -220,7 +243,9 @@ window.addEventListener('message', event => {
   seat.host = event.data.host === true;
   seat.game = typeof event.data.game === 'string' ? event.data.game : '';
   seat.finished = event.data.finished === true;
-  seat.tab.textContent = `Player ${n}${seat.host ? ' · host' : ''}`;
+  seat.tab.textContent = `Player ${n}`;
+  seat.tab.classList.toggle('is-host', seat.host);
+  seat.tab.title = seat.host ? `Player ${n} is hosting` : '';
   if (seat.connected) { clearTimeout(seat.timer); seat.loading.hidden = true; }
   if (n === 1 && seats.size === 1 && seat.connected && /^[A-HJ-NP-Z2-9]{4}$/.test(event.data.code || '')) {
     try {
@@ -234,7 +259,7 @@ window.addEventListener('message', event => {
 });
 $('practiceSetup').onsubmit = start;
 $('practiceRetry').onclick = loadCatalog;
-gameSelect.onchange = updateSeats;
+gameSelect.onchange = () => { updateSeats(); preview('You play every seat'); };
 $('practiceStop').onclick = stop;
 $('practiceReload').onclick = () => {
   const seat = seats.get(selected);

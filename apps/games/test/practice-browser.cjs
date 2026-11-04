@@ -334,7 +334,7 @@ async function edgeCases() {
     page.on('websocket', socket => targets.push(socket.url()));
     await page.route('**/config.json', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"ok":false}' }));
     await page.goto(`http://127.0.0.1:${port}/practice/`);
-    await page.getByRole('heading', { name: 'Can’t reach the games yet' }).waitFor();
+    await page.getByRole('heading', { name: 'Can’t reach the games' }).waitFor();
     assert(await page.locator('#practiceStart').isDisabled());
     assert.equal(await page.locator('.loading-mark').count(), 0);
     assert.equal(targets.length, 0, 'failed config never dials a socket');
@@ -351,7 +351,7 @@ async function edgeCases() {
       if (JSON.parse(message).t === 'games') socket.send(JSON.stringify({ t: 'games', games: [] }));
     }));
     await page.goto(`http://127.0.0.1:${port}/practice/`);
-    await page.getByRole('heading', { name: 'The game shelf is empty' }).waitFor();
+    await page.getByRole('heading', { name: 'No games right now' }).waitFor();
     assert(await page.locator('#practiceStart').isDisabled());
     assert.equal(await page.locator('iframe').count(), 0); assert.deepEqual(errors, []);
     edgeResults.push({ case: 'valid empty catalog', passed: true, catalogAdapter: 'isolated test-only WebSocket' }); await context.close();
@@ -363,7 +363,7 @@ async function edgeCases() {
     await page.goto(`http://127.0.0.1:${port}/practice/`);
     await page.waitForFunction(() => !document.getElementById('practiceStart').disabled);
     await page.locator('#practiceStart').click();
-    await page.getByRole('heading', { name: 'Can’t save separate seats' }).waitFor();
+    await page.getByRole('heading', { name: 'Can’t open separate seats' }).waitFor();
     assert.equal(await page.locator('iframe').count(), 0); assert.deepEqual(errors, []);
     edgeResults.push({ case: 'blocked session storage', passed: true, storageAdapter: 'isolated test-only browser context' }); await context.close();
   }

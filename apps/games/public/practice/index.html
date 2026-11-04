@@ -12,40 +12,38 @@
   <script defer src="/js/boot-status.js"></script>
 </head>
 <body class="practice-page">
-  <header class="practice-header">
-    <a href="/" class="practice-back">← Game Night</a>
-    <h1>Solo practice</h1>
-    <span id="practiceStatus" role="status" aria-live="polite">Getting the games ready…</span>
-  </header>
-  <section class="practice-setup" aria-label="Practice setup">
-    <form id="practiceSetup">
-      <label for="practiceGame">Game<select id="practiceGame" disabled><option>Loading games…</option></select></label>
-      <label for="practiceCount">Seats<select id="practiceCount" disabled><option>—</option></select></label>
-      <button class="btn" id="practiceStart" disabled>Start practice</button>
-      <button class="btn ghost" id="practiceRetry" type="button" hidden>Retry connection</button>
+  <header class="practice-bar">
+    <a href="/" class="practice-back" aria-label="Back to Game Night" title="Back to Game Night"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <h1 class="practice-title">Practice</h1>
+    <form id="practiceSetup" class="practice-setup" aria-label="Practice setup">
+      <select id="practiceGame" aria-label="Game" disabled><option>Loading…</option></select>
+      <select id="practiceCount" aria-label="Players" disabled><option>—</option></select>
+      <button class="btn" id="practiceStart" disabled>Play</button>
+      <button class="btn ghost" id="practiceRetry" type="button" hidden>Retry</button>
     </form>
-    <p id="practiceNote">Play every seat yourself in one page. No bots or friends needed.</p>
-    <details id="practiceGuide">
-      <summary>How practice works</summary>
-      <p id="practicePlayingNote"></p>
-      <p>Player 1 makes an ordinary online room and the other seats join it. Open the game in Player 1, then switch seats to act, answer and vote. The game’s normal rules and timers still apply.</p>
-      <p>This is not an offline or private mode. Anyone you give the room code can join. Seeing each seat’s secrets means the scores are for your walkthrough, not a fair contest. Camera and microphone access are blocked in these practice frames.</p>
-      <p>End practice to leave every seat. Your normal rooms and saved player name stay separate.</p>
+    <nav id="practiceControls" class="practice-controls" aria-label="Practice controls" hidden>
+      <div id="practiceTabs" class="practice-tabs" role="tablist" aria-label="Choose a player"></div>
+      <div class="practice-actions">
+        <button id="practiceAll" type="button" aria-pressed="false" aria-label="Show all seats" title="Show all seats"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></button>
+        <button id="practiceReload" type="button" aria-label="Reload this seat" title="Reload this seat"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="practiceStop" type="button" class="practice-stop">End</button>
+      </div>
+    </nav>
+    <details id="practiceGuide" class="practice-info">
+      <summary aria-label="About practice" title="About practice">?</summary>
+      <div class="practice-info-card">
+        <p id="practiceNote">Play every seat yourself, in one window.</p>
+        <p id="practicePlayingNote" hidden></p>
+        <p>It’s a normal online room: anyone with the code can join. Camera and mic are off here.</p>
+      </div>
     </details>
-  </section>
-  <nav id="practiceControls" class="practice-controls" aria-label="Practice controls" hidden>
-    <div id="practiceTabs" class="practice-tabs" role="tablist" aria-label="Choose a player"></div>
-    <div class="practice-actions">
-      <button id="practiceAll" type="button" aria-pressed="false">All seats</button>
-      <button id="practiceReload" type="button">Reload this seat</button>
-      <button id="practiceStop" type="button">End practice</button>
-    </div>
-  </nav>
+    <span id="practiceStatus" class="practice-status" role="status" aria-live="polite">Getting the games ready…</span>
+  </header>
   <main id="practiceTable" class="practice-table">
     <section class="practice-empty boot-view" data-app-boot role="status" aria-busy="true">
       <span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span>
-      <h2 data-boot-title>Getting the games ready…</h2>
-      <p data-boot-description>Choose a game, then try each player’s view in one window.</p>
+      <h2 data-boot-title>Shuffling the games…</h2>
+      <p data-boot-description></p>
       <a href="/practice/">Reload practice</a>
     </section>
   </main>
