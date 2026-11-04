@@ -1690,9 +1690,12 @@ html:has(> body.is-embed) { background: #171922; color-scheme: dark; }
  * title into a column only one or two letters wide. */
 @media (max-width: 400px) {
   .play-toolbar:has(.game-zoom) { flex-wrap: wrap; row-gap: 6px; }
-  .play-toolbar:has(.game-zoom) .play-title { flex-basis: 100%; }
-  .play-toolbar:has(.game-zoom) .play-title h1 { overflow-wrap: normal; }
+  /* Share one row when the name fits; long names still take their own. */
+  .play-toolbar:has(.game-zoom) .play-title { flex: 1 0 auto; }
+  .play-toolbar:has(.game-zoom) .play-title h1 { overflow-wrap: normal; white-space: nowrap; }
   .play-toolbar .game-zoom { margin-left: 0; }
+  .play-toolbar .game-zoom button { min-width: 40px; }
+  .play-toolbar .game-zoom .game-zoom-value { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); border: 0; padding: 0; }
 }
 @media (max-width: 540px) {
   .play-toolbar .game-zoom .game-zoom-value { min-width: 48px; font-size: 13px; }

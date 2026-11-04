@@ -29,6 +29,13 @@ function empty(title, description, busy = false) {
   section.append(heading); if (description) section.append(text);
   table.replaceChildren(section);
 }
+// Seat chips read "Player 2" with room to spare and "P2" on narrow phones.
+function seatLabel(tab, n) {
+  if (tab.dataset.seat === String(n)) return;
+  tab.dataset.seat = String(n);
+  tab.setAttribute('aria-label', `Player ${n}`);
+  tab.innerHTML = `<span class="seat-long">Player ${n}</span><span class="seat-short" aria-hidden="true">P${n}</span>`;
+}
 function chosen() { return games.find(game => game.id === gameSelect.value); }
 /* Idle table: the chosen game's own art and line, not instructions. */
 function preview(kicker) {
@@ -161,7 +168,7 @@ function makeSeat(n, src) {
   frame.src = src;
   const tab = document.createElement('button');
   tab.id = `practiceTab${n}`; tab.type = 'button'; tab.setAttribute('role', 'tab');
-  tab.setAttribute('aria-controls', panel.id); tab.textContent = `Player ${n}`;
+  tab.setAttribute('aria-controls', panel.id); seatLabel(tab, n);
   tab.onclick = () => selectSeat(n);
   panel.append(frame, loading); $('practiceTabs').append(tab); table.append(panel);
   const seat = { frame, panel, tab, loading, connected: false, closed: false, host: false, timer: 0 };
@@ -243,7 +250,7 @@ window.addEventListener('message', event => {
   seat.host = event.data.host === true;
   seat.game = typeof event.data.game === 'string' ? event.data.game : '';
   seat.finished = event.data.finished === true;
-  seat.tab.textContent = `Player ${n}`;
+  seatLabel(seat.tab, n);
   seat.tab.classList.toggle('is-host', seat.host);
   seat.tab.title = seat.host ? `Player ${n} is hosting` : '';
   if (seat.connected) { clearTimeout(seat.timer); seat.loading.hidden = true; }

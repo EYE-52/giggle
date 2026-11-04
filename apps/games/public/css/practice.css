@@ -68,3 +68,11 @@
 @keyframes practice-bob { 50% { transform: translateY(-6px) rotate(-1.5deg); } }
 @media (prefers-reduced-motion: reduce) { .practice-art { animation: none; } }
 @media (max-width: 600px) { #practiceCount { width: 58px; padding-right: 24px; } #practiceGame { font-size: 14px; } }
+.practice-tabs .seat-short { display: none; }
+@media (max-width: 600px) {
+  .practice-tabs .seat-long { display: none; }
+  .practice-tabs .seat-short { display: inline; }
+  .practice-tabs button { min-width: 44px; padding: 0 10px; }
+  /* End already leaves practice; give the seats the room instead. */
+  .practice-page.is-running .practice-back { display: none; }
+}
