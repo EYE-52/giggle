@@ -87,7 +87,7 @@ async function main() {
 
   // Geometries and non-paint materials stay shared with the template.
   const meshes1 = [];
-  k1.userData.kart.inner.traverse((o) => { if (o.isMesh && o.name !== 'BoostFlame' && o.name !== 'RespawnShield' && o.name !== 'InvincibilityTrail') meshes1.push(o); });
+  k1.userData.kart.inner.traverse((o) => { if (o.isMesh && o.name !== 'BoostFlame' && o.name !== 'RespawnShield' && o.name !== 'InvincibilityTrail' && o.name !== 'KartContactShadow') meshes1.push(o); });
   assert.ok(meshes1.length > 0);
   for (const m of meshes1) assert.equal(m.geometry, a.geo, 'geometry shared');
   const trimMesh = meshes1.find((m) => Array.isArray(m.material));

@@ -2,9 +2,9 @@
  * line and an action slot that keep their places through every phase.
  * Contracts: {pick: 0-3}, {next: true} (host, reveal). */
 import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
-import { hudHtml, roundLabel, progressText, choicesHtml, waitingHtml, resultsHtml } from '../kit.js';
+import { hudHtml, roundLabel, progressText, choicesHtml, waitingHtml, resultsHtml, paintLiveStrip, timerSlotState } from '../kit.js';
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css']];
+const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css']];
 const LETTERS = 'ABCD';
 
 let feedback = null;
@@ -27,6 +27,15 @@ function paintClock(el, S, api) {
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
   slot.classList?.toggle('is-urgent', left !== null && left <= 5);
+  timerSlotState(slot, left === null ? 0 : S.endsAt, typeof api?.now === 'function' ? api.now() : Date.now(), S.answerMs);
+}
+/* The live strip: who answered (never what), then points won. */
+function strip(el, S) {
+  if (S.phase === 'done') return;
+  const results = S.last?.results || {};
+  paintLiveStrip(el.querySelector?.('.wg'), S, S.phase === 'reveal'
+    ? { waiting: false, acted: Object.keys(results).filter((pid) => results[pid].ok), verb: 'Correct', gains: Object.fromEntries(Object.entries(results).map(([pid, r]) => [pid, r.pts || 0])) }
+    : { acted: S.answered || [], verb: 'Answered', waiting: 'Thinking' });
 }
 function runClock(el, S, api) {
   if (clock !== null) clearInterval(clock);
@@ -43,7 +52,7 @@ function hud(S, phase, progress) {
 }
 
 export default {
-  styles: ['/css/compact-answer-games.css'],
+  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css'],
   ownsTimer: true,
   dispose() {
     if (clock !== null) clearInterval(clock);
@@ -78,6 +87,7 @@ export default {
         if (progress) progress.textContent = progressText((S.answered || []).length, total);
         const wait = el.querySelector('#tWait');
         if (wait) wait.outerHTML = waitLine(S, watch, total);
+        strip(el, S);
         return;
       }
       visualKey = key;
@@ -109,18 +119,18 @@ export default {
       const myLine = watch ? 'You are watching.'
         : !mine ? 'You did not answer in time.'
           : mine.ok ? `Correct! +${mine.pts} points${mine.streak > 1 ? ` · ${mine.streak} in a row` : ''}`
-            : `Not this time: the answer is ${LETTERS[S.last.correct]}.`;
+            : `Not this time: the answer was ${LETTERS[S.last.correct]}, ${S.question?.options?.[S.last.correct] || ''}.`;
       const isHost = !watch && S.me === S.hostId;
       el.innerHTML = `<section class="wg gk-col gk-stack" data-game="trivia" data-phase="reveal" aria-label="Trivia answer">`
-        + hud(S, 'Answer', `${good.length} of ${total} correct`)
+        + hud(S, 'Reveal', `${good.length} of ${total} players correct`)
         + `<h2 class="gk-prompt">${esc(S.question?.q || '')}</h2>`
         + choicesHtml(options, { cols: 2, phoneCols: 1, disabled: true, name: 'Answers' })
         + `<p class="wg-status${mine?.ok ? ' is-good' : ''}" role="status">${esc(myLine)}</p>`
         + `<div class="wg-slot">${isHost ? '<button class="gk-btn gk-primary" id="tNext" type="button">Next</button>' : waitingHtml(S.round >= S.rounds ? 'Final scores are next' : 'Next question soon')}</div>`
-        + `<p class="gk-meta">Correct: ${good.map((pid) => esc(nameOf(S, pid))).join(', ') || 'nobody this round'}</p>`
         + `</section>`;
       const nx = el.querySelector('#tNext');
       if (nx) { nx.disabled = !!S.preparing; nx.onclick = () => sendAction({ next: true }); }
+      strip(el, S);
       return;
     }
 
@@ -139,6 +149,7 @@ export default {
       + `<details class="wg-more"><summary>Scoring</summary><p>A correct answer earns 100 points, faster answers up to 50 more, and a streak of correct answers up to 50 more.</p></details>`
       + `</section>`;
     runClock(el, S, api);
+    strip(el, S);
     if (!watch && !locked) {
       el.querySelectorAll('[data-p]').forEach((b) => {
         b.onclick = () => sendAction({ pick: Number(b.dataset.p) });

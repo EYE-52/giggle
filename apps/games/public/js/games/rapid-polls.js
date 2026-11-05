@@ -3,7 +3,7 @@
  * (public/css/game-ui.css): HUD row, prompt, choices, waiting line, Next,
  * final scores. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 function plural(n, one, many = one + 's') { return `${n} ${n === 1 ? one : many}`; }
 
@@ -108,7 +108,7 @@ function paint(el, S, api) {
       const patchTallies = () => {
         el.querySelectorAll('[data-v]').forEach(b => {
           const i = Number(b.dataset.v), n = S.counts?.[i] || 0;
-          b.querySelector('.party-choice-tally').innerHTML = `${n}<small>votes</small>`;
+          b.querySelector('.party-choice-tally').innerHTML = `${n}<small>${n === 1 ? 'vote' : 'votes'}</small>`;
           b.querySelector('.party-poll-fill').style.width = `${total ? n / total * 100 : 0}%`;
         });
         const st = el.querySelector('#rpStatus');
@@ -124,15 +124,15 @@ function paint(el, S, api) {
       voteKey = key;
       const btns = S.poll.options.map((opt, i) =>
         `<button class="party-choice${picked === i ? ' is-picked' : ''}" data-v="${i}" aria-pressed="${picked === i}" ${(locked || watch) ? 'disabled' : ''}>`
-        + `<span class="party-poll-fill" aria-hidden="true" style="width:${total ? (S.counts?.[i] || 0) / total * 100 : 0}%"></span><span class="gk-mark" aria-hidden="true">${'ABCD'[i]}</span><span>${esc(opt)}</span><span class="party-choice-tally">${S.counts?.[i] || 0}<small>votes</small></span></button>`
+        + `<span class="party-poll-fill" aria-hidden="true" style="width:${total ? (S.counts?.[i] || 0) / total * 100 : 0}%"></span><span class="gk-mark" aria-hidden="true">${'ABCD'[i]}</span><span>${esc(opt)}</span><span class="party-choice-tally">${S.counts?.[i] || 0}<small>${(S.counts?.[i] || 0) === 1 ? 'vote' : 'votes'}</small></span></button>`
       ).join('');
       const waiting = Math.max(0, (S.players || []).length - total);
       el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--poll" aria-label="Rapid poll vote">`
         + `${hud(S)}`
         + `<h3 class="gk-prompt party-prompt">${esc(S.poll.q)}</h3>`
         + `<p class="gk-wait" role="status" id="rpStatus">${esc(watch ? 'Watching · the room is voting live below.'
-          : locked ? `Locked in: ${S.poll.options[picked]} · waiting for ${plural(waiting, 'player')}` : 'Choose an answer. Everyone who votes gets 25 points.')}</p>`
-        + (watch ? '' : `<div class="party-choices">${btns}</div>`)
+          : locked ? `Locked in: ${S.poll.options[picked]} · waiting for ${plural(waiting, 'player')}` : 'Pick an answer. Every vote scores 25.')}</p>`
+        + (watch ? '' : `<div class="party-choices${locked ? ' is-locked' : ''}">${btns}</div>`)
         + (watch ? `<div class="party-reveals" aria-label="Live tally">${liveBars(S.poll, S.counts, total)}</div>` : '')
         + `</section>`;
       if (!watch) {
@@ -226,6 +226,10 @@ export default {
   ownsTimer: true,
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') {
+      paintLiveStrip(el.querySelector?.('.party-scene'), S, S.phase === 'vote' ? { acted: S.voted || [], verb: 'Voted', waiting: 'Voting' }
+        : S.phase === 'reveal' && S.last ? { waiting: false, gains: S.last.pts || {} } : { waiting: false });
+    }
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },

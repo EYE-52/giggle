@@ -2,7 +2,7 @@
  * a deck + truth/dare, and the room judges. The spin always lands on the
  * server-chosen target — never a fake pick. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer, waitCardHtml } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, waitCardHtml, paintLiveStrip } from '../kit.js';
 
 let visualKey = '', liveApi = null, liveEl = null, liveState = null, liveActionKey = '';
 
@@ -282,6 +282,15 @@ export default {
   ownsTimer: true,
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') {
+      const target = S.phase === 'reveal' ? S.last?.target : S.target;
+      const roles = target && S.phase !== 'spin' ? { [target]: 'Spotlight' } : {};
+      const gains = S.phase === 'reveal' && S.last ? { ...(S.last.voterPts || {}), ...(target && S.last.targetPts ? { [target]: S.last.targetPts } : {}) } : {};
+      paintLiveStrip(el.querySelector?.('.party-scene'), S, {
+        roles, actors: (S.players || []).filter((p) => !p.left && p.id !== target).map((p) => p.id),
+        acted: S.phase === 'vote' ? S.voted || [] : [], verb: 'Judged', waiting: S.phase === 'vote' ? 'Judging' : false, gains,
+      });
+    }
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },

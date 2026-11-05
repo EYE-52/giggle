@@ -119,3 +119,47 @@
   .practice-stepper output { min-width: 70px; font-size: 14px; }
 }
 @media (prefers-reduced-motion: reduce) { .practice-tile { transition: none; } .practice-tile:hover { transform: none; } }
+
+/* ---- Wave 1: sticker tiles, category chips, seats you'll play ---------- */
+.practice-page { --stk: var(--hard, #321829); --ease-pop: cubic-bezier(0.22, 1, 0.36, 1); }
+:root[data-theme="night"] .practice-page { --stk: #000; }
+.practice-featured { border: 3px solid var(--stk); box-shadow: 5px 6px 0 var(--stk); }
+.practice-featured .practice-art { object-fit: cover; border: 3px solid var(--stk); background: var(--card); }
+.practice-seats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 40px; margin-top: 16px; }
+.practice-seats i { display: grid; place-items: center; width: 40px; height: 40px; border: 3px solid var(--stk); border-radius: 50%; box-shadow: 0 3px 0 var(--stk); color: #321829; font: 800 13px/1 var(--font-display, var(--font-body)); font-style: normal; }
+.practice-seats b { font: 800 15px var(--font-body); color: var(--ink-dim); }
+@media (prefers-reduced-motion: no-preference) {
+  .practice-seats i:last-of-type { animation: seat-in .35s var(--ease-pop); }
+  @keyframes seat-in { from { transform: scale(.4); opacity: 0; } }
+}
+.practice-cats { display: flex; flex-wrap: wrap; gap: 8px; max-width: 980px; margin: 0 auto 16px; }
+.practice-cats button { min-height: 44px; padding: 0 16px; border: 2px solid color-mix(in srgb, var(--cat) 40%, var(--line)); border-radius: 999px; background: var(--bg); color: var(--ink); font: 800 14px var(--font-body); cursor: pointer; }
+.practice-cats button[data-cat=""] { --cat: var(--ink); }
+.practice-cats button[aria-pressed="true"] { border-color: var(--stk); background: var(--cat); color: #fff; box-shadow: 0 3px 0 var(--stk); }
+.practice-cats button[data-cat=""][aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.practice-cats button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.practice-tile { position: relative; border: 2px solid color-mix(in srgb, var(--cat) 25%, transparent); }
+.practice-tile[hidden] { display: none; }
+.practice-tile:active { transform: scale(.96); }
+.practice-tile[aria-checked="true"] { border: 2px solid var(--stk); box-shadow: 3px 4px 0 var(--stk); }
+.practice-tile[aria-checked="true"]::after { content: "✓"; position: absolute; top: -10px; right: -10px; display: grid; place-items: center; width: 28px; height: 28px; border: 3px solid var(--stk); border-radius: 50%; background: var(--cat); color: #fff; font: 800 15px/1 var(--font-body); }
+.practice-page #practiceRetry:not([hidden]) { border: 3px solid var(--stk); background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--stk); }
+.practice-page #practiceStart:not(:disabled) { border: 3px solid var(--stk); box-shadow: 0 3px 0 var(--stk); }
+.practice-page #practiceStart:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--stk); }
+/* Loader: the three pieces hop in turn. Failure: one tipped-over card. */
+@media (prefers-reduced-motion: no-preference) {
+  .practice-empty[aria-busy="true"] .loading-mark i { animation: piece-hop 1.2s var(--ease-pop) infinite; }
+  .practice-empty[aria-busy="true"] .loading-mark i:nth-child(2) { animation-delay: .15s; }
+  .practice-empty[aria-busy="true"] .loading-mark i:nth-child(3) { animation-delay: .3s; }
+  @keyframes piece-hop { 0%, 60%, 100% { transform: none; } 25% { transform: translateY(-12px) rotate(-8deg); } }
+}
+.practice-empty[role="alert"]::before { content: "?"; display: grid; place-items: center; width: 72px; height: 100px; margin-bottom: 8px; border: 3px solid #321829; border-radius: 12px; background: var(--sun); box-shadow: 4px 5px 0 #321829; color: #321829; font: 800 48px/1 var(--font-display, var(--font-body)); transform: rotate(-12deg); }
+@media (max-width: 600px) {
+  .practice-featured .practice-art { width: 132px; }
+  .practice-seats { justify-content: center; gap: 6px; }
+  .practice-seats i { width: 36px; height: 36px; }
+  .practice-cats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -12px; padding: 4px 12px 8px; }
+  .practice-cats::-webkit-scrollbar { display: none; }
+  .practice-cats button { flex: none; }
+}
+@media (prefers-reduced-motion: reduce) { .practice-tile:active { transform: none; } }

@@ -3,12 +3,12 @@
  * moment, so there is no false-green timing. Built on the game kit.
  * Contracts: {tap}, {next:true} (host, results). */
 import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
-import { hudHtml, roundLabel, waitingHtml, resultsHtml } from '../kit.js';
+import { hudHtml, roundLabel, waitingHtml, resultsHtml, paintLiveStrip, timerSlotState } from '../kit.js';
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css']];
+const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css']];
 let lastKey = '', lastEl = null, currentApi = null, currentState = null, clock = null;
 
-function ensureCss() { ensureStylesheet(CSS[0][0], CSS[0][1]); }
+function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
 
 function paintClock(el, S, api) {
   const slot = el.querySelector?.('.gk-hud-timer');
@@ -16,6 +16,7 @@ function paintClock(el, S, api) {
   const left = S.endsAt > 0 && !S.preparing && S.phase === 'roundEnd' ? countdown(S.endsAt, api?.now) : null;
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
+  timerSlotState(slot, left === null ? 0 : S.endsAt, typeof api?.now === 'function' ? api.now() : Date.now());
 }
 function runClock(el, S, api) {
   if (clock !== null) clearInterval(clock);
@@ -27,8 +28,8 @@ function runClock(el, S, api) {
   }
 }
 
-export default {
-  styles: ['/css/compact-answer-games.css'],
+const view = {
+  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css'],
   ownsTimer: true,
   dispose() {
     if (clock !== null) clearInterval(clock);
@@ -90,9 +91,9 @@ export default {
     const tappedN = S.taps ? Object.keys(S.taps).length : 0;
     if (hudProgress) hudProgress.textContent = go ? `${tappedN} tapped` : '\u00a0';
     const instruction = el.querySelector('#rInstruction');
-    instruction.textContent = fouled ? 'You fouled this round. Get ready for the next one.' : go ? 'Tap the pad now!' : (t.wait_sub || 'Tap too early and you foul out of the round.');
+    instruction.textContent = fouled ? '\u00a0' : go ? 'Tap the pad now!' : (t.wait_sub || 'Tap too early and you foul out of the round.');
     const tip = el.querySelector('#rTip');
-    tip.textContent = S.tip ? `${t.tip_label || 'Tip'}: ${S.tip}` : '';
+    tip.textContent = S.tip ? (fouled ? '\u00a0' : `${t.tip_label || 'Tip'}: ${S.tip}`) : '';
     el.querySelector('#rStatus').innerHTML = [go && tappedN ? `${tappedN} tapped in` : '', fouledLine(S, t)].filter(Boolean).join(' · ');
   },
 };
@@ -123,7 +124,10 @@ function wireTap(pad) {
 
 function fouledLine(S, t) {
   if (!(S.fouled || []).length) return '';
-  return `${esc(t.fouled_list || 'Fouled')}: ${(S.fouled || []).map((pid) => esc(nameOf(S, pid))).join(', ')}`;
+  // Seat order, so the list never reshuffles between rounds.
+  const seats = (S.players || []).map((p) => p.id);
+  const fouled = [...(S.fouled || [])].sort((a, b) => (seats.indexOf(a) + 1 || 1e9) - (seats.indexOf(b) + 1 || 1e9));
+  return `${esc(t.fouled_list || 'Fouled')}: ${fouled.map((pid) => esc(nameOf(S, pid))).join(', ')}`;
 }
 
 function renderResults(el, S, t) {
@@ -162,3 +166,21 @@ function renderDone(el, S) {
     + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.me })
     + `</section>`;
 }
+
+function liveOpts(S) {
+  if (S.phase === 'roundEnd' && S.last) {
+    const fouled = new Set(S.last.fouled || []);
+    return { waiting: false, acted: (S.last.order || []).map((t) => t.pid), verb: 'Tapped', roles: Object.fromEntries([...fouled].map((pid) => [pid, { text: 'Fouled', tone: 'bad' }])),
+      gains: Object.fromEntries((S.last.order || []).map((t) => [t.pid, t.pts || 0])) };
+  }
+  const fouled = S.fouled || [];
+  return { acted: Object.keys(S.taps || {}), verb: 'Tapped', waiting: 'Ready', roles: Object.fromEntries(fouled.map((pid) => [pid, { text: 'Fouled', tone: 'bad' }])) };
+}
+
+/* Every screen ends with the live strip (who has acted, scores, rounds). */
+const paintScreen = view.render;
+view.render = function render(el, S, api) {
+  paintScreen.call(this, el, S, api);
+  if (S.phase !== 'done') paintLiveStrip(el.querySelector?.('.wg'), S, { family: 'arcade', ...liveOpts(S) });
+};
+export default view;

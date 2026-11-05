@@ -80,14 +80,6 @@ const NITRO_RECHARGE = 0.15; // empty to full ~= 6.7 s of normal driving
 const NITRO_REARM = 0.3; // empty tank refuses until 30% refills
 const NITRO_SPEED = 1.5;
 const NITRO_PUNCH = 1.75;
-// EMP slow (battle only; Star Rush karts omit empT): while empT > 0 the
-// resolved top speed, acceleration, and turn rate scale down AFTER
-// tuning and nitro. Nitro still helps relatively but can never bypass
-// the slowed cap; steering/throttle stay live, movement stays playable.
-// kart-pose.mjs mirrors these three factors bit-for-bit (parity-tested).
-const EMP_TOP_SCALE = 0.62;
-const EMP_ACCEL_SCALE = 0.6;
-const EMP_TURN_SCALE = 0.75;
 // Contact: glance along faces, deterministic kart separation.
 const SLIDE_KEEP = 0.9; // tangent velocity kept through a wall/block glance
 const CONTACT_KEEP = 0.4; // relative normal motion kept through kart contact
@@ -425,17 +417,12 @@ function stepKartOnce(kart, dt, opts) {
   const turboing = kart.turbo > 0;
   const nitroing = kart.nitroActive === true;
   const tune = tuningFor(kart);
-  // EMP slow reads the battle-owned empT timer (this step never ticks it:
-  // rules.tick owns the countdown after motion, exactly like shield).
-  // NaN/missing/negative read clean; only finite > 0 slows.
-  const slowed = Number(kart.empT) > 0;
   // Boost, pad/mini turbo, and nitro never stack multiplicatively: the
   // strongest cap wins, so the top speed stays bounded at 1.6x either
-  // way (times the garage top multiplier when it applies). The EMP scale
-  // applies last, so nitro cannot bypass the slowed cap.
-  const top = MAX_SPEED * tune.top * Math.max(boosting ? BOOST_SPEED : 1, turboing ? TURBO_SPEED : 1, nitroing ? NITRO_SPEED : 1) * (slowed ? EMP_TOP_SCALE : 1);
+  // way (times the garage top multiplier when it applies).
+  const top = MAX_SPEED * tune.top * Math.max(boosting ? BOOST_SPEED : 1, turboing ? TURBO_SPEED : 1, nitroing ? NITRO_SPEED : 1);
   const punch = boosting ? 2 : nitroing ? NITRO_PUNCH : turboing ? 1.5 : 1;
-  const accel = ACCEL * tune.accel * (slowed ? EMP_ACCEL_SCALE : 1);
+  const accel = ACCEL * tune.accel;
   if (throttle > 0) kart.speed = Math.min(top, kart.speed + accel * punch * throttle * dt);
   else if (throttle < 0) {
     kart.speed = kart.speed > 0.5
@@ -490,10 +477,8 @@ function stepKartOnce(kart, dt, opts) {
   /* CORRECTED SIGN: +steer (right key) turns toward screen right. At
    * angle 0 (facing +z, camera behind at -z) screen right is -x, so a
    * right turn must decrease the angle (x velocity = sin(a)*speed). In
-   * reverse the car-like inversion is preserved via the speed factor.
-   * The EMP turn factor sits in the identical chain position as the
-   * pose mirror's, so slowed yaw agrees bit-for-bit. */
-  kart.angle = wrapAngle(kart.angle - steer * TURN_RATE * tune.turn * (slowed ? EMP_TURN_SCALE : 1) * gripSpeed * surfTurn * driftTurn * dt * (kart.speed < -0.5 ? -1 : 1));
+   * reverse the car-like inversion is preserved via the speed factor. */
+  kart.angle = wrapAngle(kart.angle - steer * TURN_RATE * tune.turn * gripSpeed * surfTurn * driftTurn * dt * (kart.speed < -0.5 ? -1 : 1));
   const f = forwardOf(kart.angle);
   const r = screenRightOf(kart.angle);
   kart.x += (f.x * kart.speed + r.x * kart.slip) * dt;
@@ -668,7 +653,6 @@ function finish(state, ctx, rules, endReason) {
   for (const k of state.karts) {
     k.nitroActive = false;
     k.machineHeld = false;
-    k.spikesT=0; k.spikesUntil=0;
     k.pendingFire = false;
     k.input = { steer: 0, throttle: 0, boost: false };
   }
@@ -996,7 +980,6 @@ function createKartGame(config) {
     kart.nitroActive = false;
     kart.pendingFire = false;
     kart.machineHeld = false;
-    kart.spikesT=0; kart.spikesUntil=0;
     motions.get(state)?.disconnect(pid);
   }
 
@@ -1293,7 +1276,6 @@ module.exports = {
     SLIP_RECOVER, SLIP_MAX, DRIFT_CHARGE_NEED, MINI_TURBO_TIME,
     TURBO_TIME, TURBO_SPEED, PAD_COOLDOWN, PAD_MIN_SPEED,
     NITRO_DRAIN, NITRO_RECHARGE, NITRO_REARM, NITRO_SPEED, NITRO_PUNCH,
-    EMP_TOP_SCALE, EMP_ACCEL_SCALE, EMP_TURN_SCALE,
     SLIDE_KEEP, CONTACT_KEEP,
     GARAGE_CATS, GARAGE_MAX, GARAGE_PRICES, GARAGE_NONCE_CAP,
     GARAGE_WALLET_CAP, COIN_PARTICIPATION, COIN_WIN,

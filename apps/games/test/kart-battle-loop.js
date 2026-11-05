@@ -2,7 +2,7 @@
 'use strict';
 /* Kart battle-loop regression: the real timed FFA knockout loop on the
  * shared engine — random validated crate layout/recycling, one item slot,
- * all four weapons, KO/respawn/protection, disconnect freeze, same-tick
+ * the item weapons on 3-heart karts, KO/respawn/protection + guard, disconnect freeze, same-tick
  * single-KO resolution, large-arena bounds + prediction parity, win-rule
  * and shared-sunset metadata, and rematch lifecycle resets.
  * Run: node test/kart-battle-loop.js */
@@ -277,7 +277,7 @@ async function main() {
     console.log('BATTLE ok: mines (arm, trigger, owner immunity, expiry, cap)');
   }
 
-  // --- 9. shield: defensive activation extends, never cancels ---
+  // --- 9. shield: activation arms a one-hit guard, never touches spawn protection ---
   {
     const [st, ctx] = racing({ mode: 'Zap Battle', map: 'Rookie Ring' });
     const a = st.karts[0];
@@ -285,12 +285,13 @@ async function main() {
     a.weapon = 'shield'; a.ammo = 1; a.shield = 1.0; a.fireCd = 0; a.prevAction = false;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx, st);
-    assert.strictEqual(a.shield, 4, 'activation extends protection to 4 s');
+    assert.strictEqual(a.guard, true, 'activation arms the guard');
+    assert(Math.abs(a.shield - 0.9) < 1e-9, 'spawn protection keeps ticking, neither extended nor cancelled');
     assert.strictEqual(a.weapon, null, 'activation spends the item');
     const ev = st.events[st.events.length - 1];
     assert.strictEqual(ev.type, 'shield', 'shield event recorded');
     assert.strictEqual(ev.pid, 'p0', 'shield event credits the driver');
-    console.log('BATTLE ok: shield (4 s defense, event)');
+    console.log('BATTLE ok: shield (guard armed, event)');
   }
 
   // --- 10. KO freeze: no drive, collect, fire, or duplicate KO ---
@@ -559,7 +560,7 @@ async function main() {
     });
     dirty.events.push({ id: 'e9', type: 'ko', pid: 'p0', other: 'p1' });
     dirty.karts[0].hits = 7;
-    dirty.karts[0].empT = 1.6;
+    dirty.karts[0].guard = true; dirty.karts[0].health = 1;
     const fresh = karts.create(ctx);
     assert.deepStrictEqual(fresh.zaps, [], 'zaps clear');
     assert.deepStrictEqual(fresh.mines, [], 'mines clear');
@@ -567,7 +568,7 @@ async function main() {
     assert.deepStrictEqual(fresh.events, [], 'events clear');
     assert(fresh.karts.every((k) => k.hits === 0 && k.deaths === 0 && k.spawnSeq === 0), 'tallies reset');
     assert(fresh.karts.every((k) => k.weapon === null && k.ammo === 0 && k.shield === 2.5), 'slots reset');
-    assert(fresh.karts.every((k) => k.empT === 0), 'slows reset');
+    assert(fresh.karts.every((k) => k.guard === false && k.health === 3 && k.maxHealth === 3), 'guard and hearts reset');
     assert.strictEqual(fresh.crateSeq, fresh.crates.length, 'crate ids restart');
     // Events stay bounded to the last twelve semantic records (fire +
     // KO + pickups retained for sound; was six before fire events).
@@ -637,7 +638,7 @@ async function main() {
     }
     // Other guns remain tap-only, even past cooldown and held keepalive.
     {
-      const [st, ctx, a] = armedOnRing();a.weapon='rail';
+      const [st, ctx, a] = armedOnRing();a.weapon='rocket';
       press(st, ctx, 'p0'); tick(ctx, st);
       assert.strictEqual(st.zaps.length, 1, 'first press fires');
       for (let i = 0; i < 6; i++) tick(ctx, st); // cooldown clears, button held

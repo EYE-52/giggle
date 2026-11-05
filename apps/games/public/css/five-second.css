@@ -23,3 +23,20 @@
   .fs-scene .gk-choice { min-height: 48px; padding-block: 8px; }
   .fs-scene .pb-share { margin-top: 5px; }
 }
+/* Toy box stage: the category card and a big five-second clock. */
+#gbody .fs-scene.pl-fill > .gk-prompt {
+  padding: var(--space-24); text-align: center; background: var(--fam-soft);
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
+  font: 800 clamp(28px, 3.6vw, 40px)/1.15 var(--font-display);
+}
+#gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 120px; height: 48px; font-size: 28px; }
+#gbody .pl-fill .fs-answers { padding: var(--space-8) var(--space-16); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); }
+#gbody .pl-fill .fs-answers li { font: 800 22px/1.3 var(--font-display); }
+#gbody .pl-fill .fs-answers .gk-mark { background: var(--fam); color: var(--on-fam); border: var(--outline-w) solid var(--outline); }
+#gbody .fs-scene.pl-fill .fs-verdict { min-height: 72px; font: 800 24px/1.2 var(--font-display); }
+#gbody .fs-scene.pl-fill .gk-choices > .fs-verdict:first-child { --side: var(--success); --on-side: var(--on-success); }
+#gbody .fs-scene.pl-fill .gk-choices > .fs-verdict:last-child { --side: var(--danger); --on-side: var(--on-danger); }
+@media (max-width: 560px) {
+  #gbody .fs-scene.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 26px; border-radius: var(--radius-lg); }
+  #gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 96px; height: 44px; font-size: 24px; }
+}

@@ -24,3 +24,32 @@
 }
 @media (prefers-reduced-motion: reduce) { .nh .nh-window { transition: none; } }
 .nh .gk-input-row .gk-input { flex: 1 1 auto; width: 100%; max-width: none; }
+/* Toy box stage: a ruler with the live search window as an outlined
+ * bracket (not a "done" progress bar), a big reading, chunky hint rows. */
+#gbody .nh.pl-fill .nh-range { padding: var(--space-24); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); background: var(--card); }
+#gbody .nh.pl-fill .nh-bounds > span:not(.nh-between) { font: 800 28px/1 var(--font-display); color: var(--fam-deep); }
+#gbody .nh.pl-fill .nh-between { font: var(--text-body); color: var(--ink); }
+#gbody .nh.pl-fill .nh-track {
+  height: 28px; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  background: repeating-linear-gradient(90deg, var(--well) 0 calc(10% - 2px), var(--line-strong) calc(10% - 2px) 10%);
+}
+#gbody .nh.pl-fill .nh-window { background: color-mix(in srgb, var(--fam) 30%, transparent); border: var(--outline-w) solid var(--fam-deep); border-radius: var(--radius-pill); box-sizing: border-box; }
+#gbody .nh.pl-fill .nh-reading b { font-size: 34px; color: var(--fam-deep); }
+#gbody .nh.pl-fill .nh-reading strong { font: var(--text-title); }
+#gbody .nh.pl-fill .nh-hint { border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-md); }
+#gbody .nh.pl-fill .nh-hint.is-you { border-color: var(--outline); background: var(--fam-soft); }
+#gbody .nh .gk-input[type="number"] { -moz-appearance: textfield; appearance: textfield; font: 800 22px/1 var(--font-display); }
+#gbody .nh .gk-input[type="number"]::-webkit-inner-spin-button, #gbody .nh .gk-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+#gbody .nh.pl-fill .wg-feed { max-height: 180px; }
+@media (max-width: 560px) {
+  #gbody .nh.pl-fill .nh-range { padding: var(--space-16); border-radius: var(--radius-lg); }
+  #gbody .nh.pl-fill .nh-bounds > span:not(.nh-between) { font-size: 22px; }
+}
+/* No hints yet: the feed and its title wait off screen instead of
+ * printing an empty box. */
+#gbody .nh.pl-fill .nh-feed-title:has(+ .wg-feed > .wg-feed-empty:only-child),
+#gbody .nh.pl-fill .wg-feed:has(> .wg-feed-empty:only-child) { display: none; }
+#gbody .nh.pl-fill .nh-reading strong { padding: 0 var(--space-8); border-radius: var(--radius-sm); background: var(--fam-soft); }
+#gbody .nh.pl-fill .nh-reading { min-height: 0; }
+#gbody .nh.pl-fill .nh-between { min-height: 0; }
+#gbody .nh.pl-fill .nh-range { gap: var(--space-12); }

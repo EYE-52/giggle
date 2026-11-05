@@ -2,7 +2,7 @@
 'use strict';
 /* Regression tests execute the real reusable kart engine and accepted fire
  * actions. Fixtures set valid poses so exact collision paths are repeatable.
- * All battle modes run pulse 110 / scatter 95 / rocket 85 / rail 160.
+ * All battle modes run pulse 110 / scatter 95 / rocket 85 / seeker 60.
  * Hits KO instead of tagging; fixtures verify time-ordered sweeps. */
 const assert = require('node:assert/strict');
 const game = require('./fixtures/kart-planar-variant.cjs');
@@ -22,7 +22,7 @@ function setup(n = 2, map = 'Rookie Ring') {
     kart.x = 0; kart.z = 0; kart.angle = 0; kart.speed = 0;
     kart.input = { steer: 0, throttle: 0, boost: false };
     kart.shield = 0; // fixtures test hits, not spawn protection
-    kart.health = 1; // Wounded sweep/KO contract; default100 health is tested in kart-health.
+    kart.health = 1; // Wounded sweep/KO contract; default 3 hearts are tested in kart-health / kart-hearts-weapons.
   }
   state.karts[0].weapon = 'pulse';
   state.karts[0].ammo = 3;

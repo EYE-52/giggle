@@ -398,8 +398,7 @@ async function main() {
     for (const key of ['DRIFT_MIN_SPEED', 'DRIFT_STEER_MIN', 'DRIFT_TURN', 'DRIFT_SLIP',
       'DRIFT_BLEND', 'SLIP_RECOVER', 'SLIP_MAX', 'DRIFT_CHARGE_NEED', 'MINI_TURBO_TIME',
       'TURBO_TIME', 'TURBO_SPEED', 'PAD_COOLDOWN', 'PAD_MIN_SPEED', 'SLIDE_KEEP',
-      'NITRO_DRAIN', 'NITRO_RECHARGE', 'NITRO_REARM', 'NITRO_SPEED', 'NITRO_PUNCH',
-      'EMP_TOP_SCALE', 'EMP_ACCEL_SCALE', 'EMP_TURN_SCALE']) {
+      'NITRO_DRAIN', 'NITRO_RECHARGE', 'NITRO_REARM', 'NITRO_SPEED', 'NITRO_PUNCH']) {
       assert.strictEqual(pose[key], c[key], `pose/engine ${key} agree`);
     }
     // One rollout exercising everything: drift charge + release, a pad

@@ -54,6 +54,8 @@ let latestApi = null;
 let pendingMove = false, pendingTimer = 0, moveRetry = false, settledEffect = null;
 
 function reduced() { return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; }
+// Warm all twelve sprites once, so a slow phone never shows an empty board while pieces load.
+const spriteCache = typeof Image === 'function' ? [...'wb'].flatMap(c => [...'pnbrqk'].map(t => { const img = new Image(); img.src = `/assets/boards/chess/${c}${t}.webp`; img.decode?.().catch(() => {}); return img; })) : [];
 function sprite(side, type, extra = '') { return `<img class="ch-piece ${extra}" src="/assets/boards/chess/${side}${type}.webp" width="256" height="256" alt="" draggable="false" aria-hidden="true">`; }
 function captureTray(S, side) {
   const remaining = {p:8,n:2,b:2,r:2,q:1,k:1};

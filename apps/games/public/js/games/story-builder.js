@@ -2,7 +2,7 @@
  * room votes the funniest line (never their own). Built on the game kit
  * (public/css/game-ui.css, public/js/kit.js). */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer } from '../kit.js';
+import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 let liveTimerEl = null;
 
@@ -108,18 +108,27 @@ function inputRow({ id, label, placeholder, max, btnId, button }) {
     + `<button class="gk-btn gk-primary" type="submit" id="${btnId}">${esc(button)}</button></form>`;
 }
 
+function liveOpts(S) {
+  if (S.phase === 'reveal' && S.last) return { waiting: false, gains: S.last.points || {} };
+  if (S.phase === 'vote') return { acted: S.voted || [], verb: 'Voted', waiting: 'Voting' };
+  const wrote = [...new Set((S.lines || []).map((l) => l.pid).filter(Boolean))];
+  return { acted: wrote.filter((pid) => pid !== S.turn), roles: S.turn ? { [S.turn]: 'Writing' } : {}, verb: 'Wrote', waiting: false };
+}
+
 export default {
-  styles: [CSS],
+  styles: ['/css/party-scenes.css', CSS],
   ownsTimer: true,
   dispose() { stopHudTimer(liveTimerEl); liveTimerEl = null; screenKey = ''; liveApi = null; liveEl = null; liveState = null; liveActionKey = ''; },
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') paintLiveStrip(el.querySelector?.('[data-scene="story-builder"]'), S, liveOpts(S));
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },
 };
 
 function paint(el, S, api) {
+    ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
     ensureStylesheet('story-builder-css', CSS);
     liveApi = api;
     liveEl = el;

@@ -14,9 +14,9 @@ const legacy = createKartGame({
   id: 'pocket-karts',
   name: 'Pocket Karts',
   tagline: 'Kart battles with weapons and nitro',
-  howto: 'Drive with WASD/arrows or the thumb stick; Space or the item button fires, and N/Nitro boosts. Battles start with 100 health: hits deal damage and a knockout at zero health scores. Direct rockets and guided missiles knock out; nearby blasts deal 40. A direct Nuke knocks out, with less damage farther from its explosion. Pulse has 12 rounds and takes 10 hits; Scatter has 5 shells and takes 4 fully connected fans; Rail has 5 rounds and takes 4 hits. Sentry fires up to 10 rounds and takes 8 hits. Grab mystery crates; your weapon and remaining rounds appear beside the speedometer. Press once to fire the full clip: Pulse fires 12 rounds, Rocket fires three missiles, and Mine lays three traps in sequence. Bomb and Proximity Bomb are thrown dynamite charges: they arm after landing, explode when a rival approaches, and disappear after 12 seconds if unused. Invincibility protects you for four seconds and knocks out rivals on contact; Spikes spin knives for five seconds, dealing 30 damage with at least half a second between hits on each rival; EMP slows them. A knockout returns you after two seconds with full health and brief defensive protection; attacking ends protection. Most knockouts wins. Choose elevated arenas in Maps & settings for climbs, bridges and jumps, plus Seeker, Bomb, Proximity Bomb, Spikes, Sentry and a rare Nuke; Shift brakes there. Elevated arenas play Zap Battle with Garage off. Classic arenas use Shift to drift and also offer Star Rush and Garage Battle. Rounds last 1 to 5 minutes; with a score target the first to reach it ends the match early. Places earn 300, 200 and 100 points, and tied drivers share a place. A driver who leaves or is away for a minute drops out and the others play on. Up to 8 drive; extra friends watch.',
+  howto: 'Grab a box, fire with Space, and knock out rivals by taking all 3 of their hearts; most knockouts wins. Drive with WASD/arrows or the thumb stick; Space or the item button fires the whole clip, and N/Nitro boosts. Pulse, Scatter, Mine and Seeker take 1 heart; Rocket and Proximity Bomb take 2; a Nuke knocks out every rival in its blast. Shield blocks the next hit. Each pickup hurts a rival once, however many of its shots land, and every Mine is its own trap. Pulse, Scatter and Mine are common, Rocket, Seeker, Proximity Bomb and Shield are uncommon, and the Nuke is rare. A knockout returns you after two seconds with full hearts and brief spawn protection; attacking ends that protection. Choose elevated arenas in Maps & settings for climbs, bridges and jumps; Shift brakes there. Elevated arenas play Zap Battle with Garage off. Classic arenas use Shift to drift and also offer Star Rush and Garage Battle. Rounds last 1 to 5 minutes; with a score target the first to reach it ends the match early. Places earn 300, 200 and 100 points, and tied drivers share a place. A driver who leaves or is away for a minute drops out and the others play on. Up to 8 drive; extra friends watch.',
   guide: {
-    goal: 'Score the most knockouts before time runs out.',
+    goal: 'Grab a box, fire with Space, take all 3 hearts. Most knockouts wins.',
     controls: [
       { keys: ['WASD', '↑ ↓ ← →'], touch: 'Stick', does: 'Drive and steer' },
       { keys: ['Space'], touch: 'Item button', does: 'Fire your weapon' },
@@ -24,11 +24,11 @@ const legacy = createKartGame({
       { keys: ['Shift'], touch: 'Drift', does: 'Drift (brake on elevated maps)' },
     ],
     tips: [
-      'Drive through mystery crates to grab a weapon.',
-      'One press fires the whole clip.',
-      'Everyone has 100 health. Knocked-out karts return after 2 seconds.',
-      'Bombs arm after landing and blow up when a rival gets close.',
-      'Invincibility and Spikes turn bumping into an attack.',
+      'Pulse, Scatter, Mine, Seeker: 1 heart each.',
+      'Rocket and Proximity Bomb: 2 hearts. Nuke: knocks out everyone nearby.',
+      'Shield blocks the next hit.',
+      'Each pickup hurts a rival once, however many of its shots land.',
+      'Knocked out? You are back in 2 seconds with all 3 hearts.',
     ],
   },
   art: 'img/games/pocket-karts.svg',

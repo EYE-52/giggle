@@ -12,16 +12,16 @@
   <button id="touch" aria-pressed="false">Touch review: off</button><button id="auto">Use detected controls</button>
 </div>
 <div class="toolbar" aria-label="Weapon state"><button data-state="ready" aria-pressed="true">Ready</button><button data-state="firing" aria-pressed="false">Firing / deploying</button><button data-state="empty" aria-pressed="false">Empty</button><button id="matrix">Check all viewports and states</button></div>
-<p id="status" role="status">Decoding all 14 weapon images…</p><small id="hardware"></small>
+<p id="status" role="status">Decoding all 8 weapon images…</p><small id="hardware"></small>
 <div class="preview"><iframe id="preview" title="Actual kart weapon HUD on neutral backdrop" width="1280" height="800" src="/frame?renderer=classic"></iframe></div>
-<div class="gallery" id="gallery" aria-label="Choose one of 14 decoded weapons"></div>
-<div class="break"></div><p>Geometry checks inspect the actual rendered elements. Hidden touch controls are marked not applicable. The full matrix checks both renderers, three viewports, keyboard/touch preferences, all 14 weapons and three inventory states.</p>
+<div class="gallery" id="gallery" aria-label="Choose one of 8 decoded weapons"></div>
+<div class="break"></div><p>Geometry checks inspect the actual rendered elements. Hidden touch controls are marked not applicable. The full matrix checks both renderers, three viewports, keyboard/touch preferences, all 8 weapons and three inventory states.</p>
 <pre id="report" aria-live="polite">Waiting for the HUD frame.</pre>
 <script type="module">
 import {loadKartWeaponThumbnails,weaponThumbnailArt} from '/js/engines/kart-assets.mjs';
 import {kartWeaponDisplay} from '/js/engines/kart-weapon-hud.mjs';
 const frame=document.querySelector('#preview'),status=document.querySelector('#status'),report=document.querySelector('#report');
-let kind='bomb',state='ready',preference='keyboard',renderer='classic';
+let kind='proximity',state='ready',preference='keyboard',renderer='classic';
 const kinds=Object.keys(await (await fetch('/inventory.json')).json());
 await loadKartWeaponThumbnails();
 for(const value of kinds){
@@ -43,7 +43,7 @@ async function update(){
   document.querySelectorAll('[data-kind]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.kind===kind)));
   document.querySelectorAll('[data-state]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.state===state)));
   const touch=document.querySelector('#touch');touch.setAttribute('aria-pressed',String(value.touch));touch.textContent='Touch review: '+(value.touch?'on':'off');
-  status.textContent='14 / 14 images decoded · '+renderer+' · '+state+' · '+(value.pass?'geometry passes':'geometry findings below');
+  status.textContent='8 / 8 images decoded · '+renderer+' · '+state+' · '+(value.pass?'geometry passes':'geometry findings below');
   return value;
 }
 function viewport(width,height){frame.width=width;frame.height=height;document.querySelectorAll('[data-size]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.size===width+','+height)));}

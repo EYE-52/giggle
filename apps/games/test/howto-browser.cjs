@@ -64,6 +64,33 @@ for (const theme of ['day','night']) {
   }
 }
 await host.page.setViewportSize({width:390,height:844});await host.page.locator('#bTheme').click();eq(await host.page.evaluate(()=>document.documentElement.dataset.theme||'day'),'day','ordinary controls restore Day');
+// Rules list fade: only while more sits below, never over the last line or
+// the footer divider. GLM review saw the 4th tip cut by an always-on mask.
+report.rulesFade=[];let overflowed=0;
+for (const viewport of [{width:390,height:844},{width:390,height:600}]) {
+  await host.page.setViewportSize(viewport);
+  for (const game of ['fleet-duel','bluff','chess','pocket-karts','two-truths']) {
+    await open(host,game);await host.page.locator('#howtoRulesTab').click();await pause(50);
+    const read=()=>host.page.evaluate(()=>{const b=document.querySelector('.howto-body'),f=document.querySelector('.howto-foot'),last=b.lastElementChild,br=b.getBoundingClientRect();
+      return {more:b.classList.contains('has-more'),mask:getComputedStyle(b).maskImage||getComputedStyle(b).webkitMaskImage,overflow:b.scrollHeight-b.clientHeight,bodyBottom:br.bottom,footTop:f.getBoundingClientRect().top,lastBottom:last.getBoundingClientRect().bottom};});
+    const top=await read();
+    eq(top.more,top.overflow>4,game+' '+viewport.height+' fades only when the rules overflow');
+    if (!top.more) eq(top.mask,'none',game+' '+viewport.height+' short rules carry no mask');
+    eq(top.footTop>=top.bodyBottom-0.5,true,game+' '+viewport.height+' footer divider sits below the rules');
+    if (top.more) {
+      overflowed++;
+      await host.page.locator('.howto-body').evaluate(b=>{b.scrollTop=b.scrollHeight;});await pause(50);
+      const end=await read();
+      eq(end.more,false,game+' '+viewport.height+' fade clears at the end of the list');
+      eq(end.mask,'none',game+' '+viewport.height+' last line unmasked at the end');
+      eq(end.lastBottom<=end.bodyBottom-8,true,game+' '+viewport.height+' last line clears the bottom edge');
+    }
+    report.rulesFade.push({game,viewport,top});
+    await close(host);
+  }
+}
+eq(overflowed>0,true,'at least one sheet exercised the overflow fade');
+await host.page.setViewportSize({width:390,height:844});
 eq(catalog.length,42,'real catalogue still has42 games');report.catalogue=[];for(const g of catalog){await open(host,g.id);const info=await host.page.evaluate(()=>({intro:document.querySelector('#howtoPlayPanel').textContent,introHidden:document.querySelector('#howtoPlayPanel').hidden,height:document.querySelector('#howtoPlayPanel').getBoundingClientRect().height,custom:!!document.querySelector('#howtoCustom'),tabs:[...document.querySelectorAll('.howto-tabs [role="tab"]')].map(t=>t.textContent)}));eq(info.custom,!!g.customizable,g.id+' options match real metadata');eq(info.tabs,['Play','How to play'],g.id+' keeps the two real tabs');eq(info.intro.startsWith('Goal')&&info.height>0,true,g.id+' Play tab shows its goal and controls');report.catalogue.push({id:g.id,customizable:!!g.customizable,...info});await close(host);}
 await open(host,'chain-reaction');d=await scene('customizable-chain',host);eq(d.intro.startsWith('Goal'),true,'customizable host retains its guide');await host.page.locator('#howtoCustom').click();await host.page.locator('#df-chain-reaction-moveTimer').selectOption('60 seconds');await host.page.locator('#dlgSave').click();await host.page.locator('#dlgSave').waitFor({state:'detached'});await open(host,'chain-reaction');eq(await host.page.locator('.howto-meta').innerText().then(t=>t.includes('60 seconds')),true,'real settings ACK appears in sheet');await scene('saved-chain',host);await close(host);
 await open(host,'ludo');await host.page.locator('#howtoCustom').click();

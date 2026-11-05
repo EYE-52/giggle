@@ -18,8 +18,11 @@ function point(pit) {
   return p;
 }
 const SEED = { 0: ['#27a99b', '#16766c'], 1: ['#f0b23a', '#b47d16'] };
-function seed(x, y, size, side) {
-  return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${size * .8}" fill="${SEED[side][0]}" stroke="${SEED[side][1]}" stroke-width="1.5"/>`;
+// Seeds belong to nobody, so they use pebble tones rather than the players' colours.
+const STONE = [['#f6ecd4', '#b39d72'], ['#e9d2a2', '#a6864c'], ['#dbe6ec', '#8a9fab']];
+function seed(x, y, size, tone) {
+  const [fill, edge] = STONE[tone % STONE.length];
+  return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${size * .8}" fill="${fill}" stroke="${edge}" stroke-width="1.5"/>`;
 }
 function chip(side) { return `<svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="12" fill="${SEED[side][0]}" stroke="${SEED[side][1]}" stroke-width="2"/></svg>`; }
 function stones(i, count) {
@@ -29,7 +32,7 @@ function stones(i, count) {
     const a = n * 2.39996 + i * .73, radius = Math.sqrt((n + .6) / total);
     const dx = Math.cos(a) * radius * (store ? (portrait ? 104 : 26) : 32);
     const dy = Math.sin(a) * radius * (store ? (portrait ? 10 : 84) : portrait ? 12 : 21);
-    html += seed(p.x + dx, p.y + dy, store ? 13 : 12, (n + i) % 3 === 0 ? 1 : 0);
+    html += seed(p.x + dx, p.y + dy, store ? 13 : 12, n + i);
   }
   return html;
 }
@@ -43,7 +46,7 @@ function boardSvg(pits) {
     const label = text(own ? 'amber' : 'jade') + ' ' + (store ? text('store') : text('bowl') + ' ' + (i < 6 ? i + 1 : i - 6)) + ', ' + pits[i] + ' ' + text(pits[i] === 1 ? 'seed' : 'seeds');
     const mark = i === from ? ' is-from' : i === landed ? ' is-landed' : '';
     html += `<g ${store ? `aria-label="${esc(label)}"` : `data-pit="${i}" data-watchok role="button" tabindex="${cursor === i ? 0 : -1}"${cursor === i ? ' data-game-focus' : ''} aria-disabled="${!active}" aria-label="${esc(label)}"`} class="kl-bowl ${active ? 'is-legal' : ''}${mark}">
-      <ellipse class="kl-pit" cx="${p.x}" cy="${p.y}" rx="${rx}" ry="${ry}"/>
+      <ellipse class="kl-pit" cx="${p.x}" cy="${p.y}" rx="${rx}" ry="${ry}"${store ? ` style="stroke:${SEED[own ? 1 : 0][0]};stroke-width:6"` : ''}/>
       ${stones(i, pits[i])}
       <text class="kl-num" x="${portrait && !store ? p.x+(p.x<200?-73:73) : p.x}" y="${p.y + (portrait && !store ? 10 : store ? 12 : 83)}" text-anchor="middle" font-size="${store ? 34 : 28}" font-weight="800">${pits[i]}</text>
       ${store ? '' : `<rect class="kl-hit" x="${p.x - (portrait ? 75 : 49)}" y="${p.y - (portrait ? 29 : 68)}" width="${portrait ? 150 : 98}" height="${portrait ? 58 : 136}" rx="30" fill="transparent"/><ellipse class="kl-focus" cx="${p.x}" cy="${p.y}" rx="${rx + 6}" ry="${ry + 6}" fill="none"/>`}

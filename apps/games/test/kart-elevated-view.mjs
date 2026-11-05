@@ -31,6 +31,7 @@ const results=[];const check=(name,value)=>{assert.ok(value,name);results.push(n
 class Node {
   constructor(tag,doc,attrs={}){this.tagName=tag.toUpperCase();this.doc=doc;this.attrs={...attrs};this.children=[];this.parentNode=null;this.events=new Map();this.dataset={};this.style={setProperty:(k,v)=>{this.style[k]=String(v);}};this.classList={contains:x=>(this.className||'').split(/\s+/).includes(x),add:(...xs)=>{this.className=[...new Set([...(this.className||'').split(/\s+/).filter(Boolean),...xs])].join(' ')},toggle:(x,v)=>{const on=v??!this.classList.contains(x);this.className=(this.className||'').split(/\s+/).filter(c=>c&&c!==x).concat(on?[x]:[]).join(' ');return on;}};}
   get firstElementChild(){return this.children[0]||null;}
+  get childElementCount(){return this.children.length;}
   get attributes(){return Object.entries(this.attrs).map(([name,value])=>({name,value}));}
   get className(){return this.attrs.class||'';}set className(v){this.attrs.class=v;}
   get hidden(){return 'hidden'in this.attrs;}set hidden(v){if(v)this.attrs.hidden='';else delete this.attrs.hidden;}
@@ -75,7 +76,9 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
     createMobileStick:(node,opts)=>{const stick={node,opts,resets:0,disposed:0,reset(){this.resets++},dispose(){this.disposed++}};sticks.push(stick);return stick;},
     createKartAudio:()=>{const a={disposed:0,cues:[],frames:[],muted:false,active:true,unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
     createThreeView:(stage,options)=>new Promise(resolve=>loads.push({stage,options,resolve,settled:false})),
+    matchMedia:()=>({matches:reduced}),
   });
+  for(const file of ['kart-hearts','kart-skids','kart-threats'])vm.runInContext(fs.readFileSync(repo+'/public/js/engines/'+file+'.mjs','utf8').replace(/^export /gm,''),context);
   const file=repo+'/public/js/engines/kart-elevated-view.js';vm.runInContext(fs.readFileSync(file,'utf8').replace(/^import .*;\n/gm,'').replace("const {GLTFLoader}=await import('../../vendor/three/loaders/GLTFLoader.js');",'const GLTFLoader=LocalLoader;').replace("const {mergeGeometries}=await import('../../vendor/three/utils/BufferGeometryUtils.js');",'const mergeGeometries=()=>null;').replace('cramped=clearCamera(cameraPosition,cameraTarget)||cramped;', 'const preClearEye=cameraPosition.toArray();cramped=clearCamera(cameraPosition,cameraTarget)||cramped;').replace('camera.lookAt(target);','camera.userData.cameraTrace={preClearEye,sideSettling,sideMode,sideYaw};camera.lookAt(target);').replace('export function createElevatedKartView','function createElevatedKartView')+'\nglobalThis.view=createElevatedKartView();',context,{filename:file});
   const view=context.view;view.mount(el,api);
   const node=name=>el.querySelector('[data-'+name+']')||roomMenu?.querySelector('[data-'+name+']');
@@ -146,12 +149,12 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   r.node('brake').dispatch('pointercancel',{pointerId:9});check('pointer cancel retires touch brake',r.sent.at(-1).brake===0);
   r.node('nitro').dispatch('keydown',{code:'Enter',repeat:false});check('keyboard activation of focused touch Nitro sends held intent',r.sent.at(-1).nitro);
   r.node('nitro').dispatch('blur');check('button blur releases keyboard-held Nitro',!r.sent.at(-1).nitro);
-  const armed=structuredClone(epoch);armed.karts[0].weapon='rocket';armed.karts[0].ammo=1;r.render(armed);check('Use touch icon and accessible label identify actual weapon',r.node('use').getAttribute('aria-label')==='Activate Rockets, full payload'&&r.node('use-icon').innerHTML===r.node('weapon').querySelector('.kart-item-art').innerHTML&&r.node('use-ammo').textContent==='1'&&!r.node('use').disabled);
-  check('equipped HUD presents the authoritative remaining payload and full activation label',r.node('weapon').querySelector('.kart-item-count').textContent==='×1'&&r.node('weapon').getAttribute('aria-label')==='Rockets, Ready, ×1');
+  const armed=structuredClone(epoch);armed.karts[0].weapon='rocket';armed.karts[0].ammo=1;r.render(armed);check('Use touch icon and accessible label identify actual weapon',r.node('use').getAttribute('aria-label')==='Activate Rocket, full payload'&&r.node('use-icon').innerHTML===r.node('weapon').querySelector('.kart-item-art').innerHTML&&r.node('use-ammo').textContent==='1'&&!r.node('use').disabled);
+  check('equipped HUD presents the authoritative remaining payload and full activation label',r.node('weapon').querySelector('.kart-item-count').textContent==='×1'&&r.node('weapon').getAttribute('aria-label')==='Rocket, Ready, ×1');
   armed.karts[0].firing=true;r.render(armed);
-  check('accepted firing sequence remains visible and blocks a second activation',r.node('weapon').dataset.state==='firing'&&r.node('weapon').querySelector('.kart-item-count').textContent==='×1'&&r.node('weapon').getAttribute('aria-label')==='Rockets, Firing, ×1'&&r.node('use').disabled&&r.node('use').getAttribute('aria-label')==='Weapon firing');
+  check('accepted firing sequence remains visible and blocks a second activation',r.node('weapon').dataset.state==='firing'&&r.node('weapon').querySelector('.kart-item-count').textContent==='×1'&&r.node('weapon').getAttribute('aria-label')==='Rocket, Firing, ×1'&&r.node('use').disabled&&r.node('use').getAttribute('aria-label')==='Weapon firing');
   armed.karts[0].weapon='mine';armed.karts[0].ammo=2;r.render(armed);
-  check('sequential mine deployment announces its remaining trail',r.node('weapon').getAttribute('aria-label')==='Mine trail, Deploying, ×2'&&r.node('use-ammo').textContent==='2'&&r.node('use').disabled);
+  check('sequential mine deployment announces its remaining trail',r.node('weapon').getAttribute('aria-label')==='Mine, Deploying, ×2'&&r.node('use-ammo').textContent==='2'&&r.node('use').disabled);
   const n=r.sent.length;r.sticks[0].opts.onChange({x:0,y:-1});for(let i=0;i<100;i++)r.sticks[0].opts.onChange({x:i/100,y:-1});check('continuous analog updates coalesce instead of emitting pointer-rate packets',r.sent.length-n===1);
   r.sticks[0].opts.onChange({x:0,y:0});check('stick release immediately sends zero axes',r.sent.at(-1).steer===0&&r.sent.at(-1).throttle===0);
   const retiring=r.sent.length;r.view.dispose();check('dispose emits no frame wrapped in another instance token',r.sent.length===retiring);
@@ -196,14 +199,14 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   r.api.context=()=>({isHost:true,sound:true});
   const initial={...base(),events:[event(1,'collision',{x:1,y:.64,z:0},{impulse:900})]};
   r.render(initial);await r.settle();check('reconnecting event history is quiet',r.audios[0].cues.length===0);
-  const current={...base(),simTick:2,events:[...initial.events,event(2,'collision',{x:1,y:.64,z:0},{impulse:250}),event(3,'blast',{x:30,y:.64,z:0},{weapon:'seeker'}),event(4,'blast',{x:60,y:.64,z:0},{weapon:'bomb'})]};
+  const current={...base(),simTick:2,events:[...initial.events,event(2,'collision',{x:1,y:.64,z:0},{impulse:250}),event(3,'blast',{x:30,y:.64,z:0},{weapon:'seeker'}),event(4,'blast',{x:60,y:.64,z:0},{weapon:'proximity'})]};
   r.render(current);const cues=r.audios[0].cues;
   check('near contact receives strength without forced spatial spread',cues.length===2&&cues[0].name==='collision'&&cues[0].options.strength===.25&&cues[0].options.gain===1&&cues[0].options.pan===0);
   check('distant guided missile explosion attenuates and pans right',cues[1].name==='rocketBlast'&&cues[1].options.gain<.3&&cues[1].options.pan===.85);
   r.render(current);check('duplicate contact history never repeats audible hits',cues.length===2);
   const turned={...base(),simTick:3,simAt:100};turned.karts[0].pose.rotation={x:0,y:1,z:0,w:0};turned.events=[event(5,'fire',{x:10,y:.64,z:0},{weapon:'seeker'})];r.render(turned);
   check('audio direction follows actual chassis heading',cues.at(-1).name==='seeker'&&cues.at(-1).options.pan===-.85);
-  r.render({...base(),simTick:4,simAt:150,you:'watcher',youDrive:false,inputAck:null,events:[event(6,'blast',{x:8,y:.64,z:0},{weapon:'bomb'})]});
+  r.render({...base(),simTick:4,simAt:150,you:'watcher',youDrive:false,inputAck:null,events:[event(6,'blast',{x:8,y:.64,z:0},{weapon:'proximity'})]});
   check('watchers hear current explosions relative to followed kart',cues.at(-1).name==='bombBlast'&&cues.at(-1).options.gain===1);
   r.view.dispose();
 }
@@ -244,10 +247,10 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
 }
 {
   const r=rig();r.api.context=()=>({isHost:true,sound:true});r.render();await r.settle();
-  const aliases={spikes:'shield',sentry:'pulse',proximity:'mine',nuke:'bomb'},weapons=Object.keys(COMBAT.arsenal.weights);
-  check('cue coverage uses all fourteen actual authority weapons',weapons.length===14);
+  const weapons=Object.keys(COMBAT.arsenal.weights);
+  check('cue coverage uses all eight actual authority weapons',weapons.length===8);
   for(const weapon of weapons){
-    const name=aliases[weapon]||weapon;
+    const name=weapon;
     r.render({...base(),events:[{id:'fire-'+weapon,type:weapon==='mine'?'mine':weapon==='shield'?'shield':'fire',weapon,pid:'a',position:{x:0,y:1,z:2}}]});
     check(weapon+' authoritative use maps to an existing recorded cue',r.audios[0].cues.at(-1)?.name===name&&CUE_NAMES.includes(name)&&typeof ASSET_MAP[name]==='string');
   }
@@ -294,14 +297,14 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
   r.render({...base(),simAt:150,simTick:3,events:[blast('late-old-blast')]});r.frame();
   check('strictly older same-instance snapshots cannot resurrect historical explosions',pool.every(o=>!o.visible));
   const same={...base(),simAt:2100,simTick:42};same.karts[0].weapon='rocket';same.karts[0].ammo=3;r.render(same);
-  check('equal-tick inventory metadata remains admissible',r.node('weapon').getAttribute('aria-label').includes('Rockets'));
+  check('equal-tick inventory metadata remains admissible',r.node('weapon').getAttribute('aria-label').includes('Rocket'));
   // A new accepted event after a stalled frame must not inherit the stall's
   // elapsed time. Previous effects expire first; fresh effects get one draw.
   r.advance(700);
   const fresh=structuredClone(same);fresh.simAt=2150;fresh.simTick=43;fresh.karts[1].alive=false;
   fresh.events=[{id:'fresh-after-hitch',type:'ko',pid:'a',other:'b',position:{x:10,y:1,z:0}}];
   r.render(fresh);r.frame(.1);
-  const sparks=()=>gl.built.scene.children.filter(o=>o.isInstancedMesh&&o.visible);
+  const sparks=()=>gl.built.scene.children.filter(o=>o.isInstancedMesh&&o.visible&&o.name!=='KartSkidMarks');
   const victim=gl.built.scene.children.filter(o=>o.name==='GiggleKart')[1];
   check('fresh KO after a700ms frame hitch receives its first wreck and spark draw',victim.visible&&sparks().length>0);
   r.advance(800);r.frame(.1);
@@ -358,7 +361,7 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
   }
   const r=rig({graphics:true});r.render();await r.settle();r.frame();
   check('all combat variants compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===2&&r.renderStats.warmFrames===2);
-  const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.isInstancedMesh);
+  const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.isInstancedMesh&&o.name!=='KartSkidMarks');
   check('all twelve prepared particle buffers remain attached after warming',effectPool.length===12&&effectPool.every(o=>o.parent===built.scene&&!o.visible));
   const projectilePool=built.scene.children.filter(o=>o.userData.combat?.type==='projectile');
   for(const [kind,radius]of Object.entries(COMBAT.staticSweepRadii)){
@@ -397,15 +400,12 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
   check('collision and knockout effects retain the same twelve scene buffers',effectPool.every(o=>o.parent===built.scene)&&r.allocations().instances===allocations.instances);
   const model=built.scene.children.find(o=>o.name==='GiggleKart');
   check('production follow camera remains finite through effect saturation',built.camera.matrixWorld.elements.every(Number.isFinite)&&built.camera.position.toArray().every(Number.isFinite));
-  const sample=base();sample.simAt=2000;sample.simTick=110;sample.karts[0].spikesT=3;sample.karts[0].ramT=3;sample.sentries=[{id:1,position:{x:1,y:0,z:2},direction:{x:Math.SQRT1_2,y:Math.SQRT1_2,z:0}}];r.render(sample);r.frame();
-  check('deployed sentry and active blade orbit are represented',built.scene.getObjectByName('CombatSentry')&&model.getObjectByName('OrbitingSteelBlades'));
-  check('activated invincibility uses model emission instead of a shield bubble',!model.userData.kart.shield.visible&&model.userData.kart.paint.every(material=>material.emissiveIntensity===.55));
-  const vertices=model.getObjectByName('OrbitingSteelBlades').geometry.attributes.position,chunk=vertices.count/3,centers=[];
-  for(let part=0;part<3;part++){const center=new THREE.Vector3();for(let v=part*chunk;v<(part+1)*chunk;v++)center.add(new THREE.Vector3().fromBufferAttribute(vertices,v));centers.push(center.divideScalar(chunk));}
-  check('actual blade orbit has three distinct radial blades',centers.every((center,i)=>center.distanceTo(centers[(i+1)%3])>3));
-  const sentry=built.scene.getObjectByName('CombatSentry');
-  check('sentry aims its turret upward while the tripod root remains planted',sentry.quaternion.equals(new THREE.Quaternion())&&new THREE.Vector3(0,0,1).applyQuaternion(sentry.userData.combat.turret.quaternion).distanceTo(new THREE.Vector3(Math.SQRT1_2,Math.SQRT1_2,0))<1e-6);
-  r.motion(true);r.frame();check('reduced motion suppresses chassis cosmetic lean and spike spin',model.userData.kart.body.rotation.x===0&&model.getObjectByName('CombatOrbitSpikesInner').rotation.y===0);
+  const sample=base();sample.simAt=2000;sample.simTick=110;sample.karts[0].guard=true;r.render(sample);r.frame();
+  check('a ready Shield guard shows the shield bubble with the stock paint emission',model.userData.kart.shield.visible&&model.userData.kart.paint.every(material=>material.emissiveIntensity!==.55)&&model.userData.kart.invincibilityTrails.every(trail=>!trail.visible));
+  check('retired sentry and blade orbit art never appears',!built.scene.getObjectByName('CombatSentry')&&!model.getObjectByName('OrbitingSteelBlades'));
+  const spent=structuredClone(sample);spent.simTick=111;spent.simAt=2050;spent.karts[0].guard=false;r.render(spent);r.frame();
+  check('a consumed guard drops the shield bubble',!model.userData.kart.shield.visible);
+  r.motion(true);r.frame();check('reduced motion suppresses chassis cosmetic lean',model.userData.kart.body.rotation.x===0);
   r.view.dispose();
 }
 // Actual prepared GLB tracer geometry shows only the confirmed authority
@@ -413,16 +413,16 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
 {
   const r=rig({graphics:true});r.render();const gl=await r.settle();r.frame();
   const scene=gl.built.scene,cues=scene.children.filter(o=>o.name==='CombatConfirmedShot'),allocation=r.allocations();
-  check('confirmed shot pool is prepared and bounded to twelve tracers per straight weapon',cues.length===48&&cues.every(o=>!o.visible&&o.children.length===1&&o.children[0].isMesh));
-  for(const kind of ['pulse','scatter','rail','sentry']){
+  check('confirmed shot pool is prepared and bounded to twelve tracers per straight weapon',cues.length===24&&cues.every(o=>!o.visible&&o.children.length===1&&o.children[0].isMesh));
+  for(const kind of ['pulse','scatter']){
     const source=scene.children.find(o=>o.userData.combat?.type==='projectile'&&o.userData.combat.kind===kind).userData.combat.tail;
     check(kind+' feedback borrows prepared projectile tracer geometry and material',cues.filter(o=>o.userData.confirmedShot===kind).every(o=>o.children[0].geometry===source.geometry&&o.children[0].material===source.material));
   }
-  check('Pulse white, Scatter amber and Rail cyan feedback retain the existing art colors',cues.find(o=>o.userData.confirmedShot==='pulse').children[0].material.color.getHex()===0xffffff&&cues.find(o=>o.userData.confirmedShot==='scatter').children[0].material.color.getHex()===0xffb020&&cues.find(o=>o.userData.confirmedShot==='rail').children[0].material.color.getHex()===0x6af0ff);
+  check('Pulse white and Scatter amber feedback retain the existing art colors',cues.find(o=>o.userData.confirmedShot==='pulse').children[0].material.color.getHex()===0xffffff&&cues.find(o=>o.userData.confirmedShot==='scatter').children[0].material.color.getHex()===0xffb020);
   const from={x:.95,y:1.14,z:2.1},position={x:1.6,y:1.5,z:3.1},start=new THREE.Vector3().copy(from),axis=new THREE.Vector3().subVectors(position,from),length=axis.length();axis.normalize();
   const endpoints=cue=>{cue.updateMatrixWorld(true);const mesh=cue.children[0],v=new THREE.Vector3(),vertices=mesh.geometry.attributes.position;let min=Infinity,max=-Infinity;for(let i=0;i<vertices.count;i++){v.fromBufferAttribute(vertices,i).applyMatrix4(mesh.matrixWorld).sub(start);const d=v.dot(axis);min=Math.min(min,d);max=Math.max(max,d);}return Math.abs(min)<1e-6&&Math.abs(max-length)<1e-6;};
   let id=0;
-  for(const reduced of [false,true])for(const dt of [.09,.1])for(const weapon of ['pulse','scatter','rail','sentry']){
+  for(const reduced of [false,true])for(const dt of [.09,.1])for(const weapon of ['pulse','scatter']){
     r.motion(reduced);const event={id:'confirmed-'+(++id),type:'impact',weapon,pid:'b',other:'a',from,position},snapshot={...base(),simTick:id+1,simAt:50+id*50,events:[event]};
     r.render(snapshot);r.advance(dt*1000);r.frame(dt);const visible=cues.filter(o=>o.visible);
     check(`${weapon} absent from snapshots shows exact confirmed endpoints after ${dt*1000}ms with reduced motion ${reduced}`,visible.length===1&&visible[0].userData.confirmedShot===weapon&&endpoints(visible[0])&&!scene.children.some(o=>o.visible&&o.userData.combat?.type==='projectile'));
@@ -431,7 +431,8 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
     r.advance(51);r.frame(.051);check(weapon+' confirmed feedback expires after its bounded90ms lifetime',cues.every(o=>!o.visible));
   }
   const pellets=Array.from({length:3},(_,i)=>({id:'pellet-'+i,type:'impact',weapon:'scatter',pid:'a',surfaceId:'wall',from,position:{...position,x:position.x+(i-1)*.4}}));
-  const pelletSnapshot={...base(),simTick:40,simAt:1600,events:pellets};r.render(pelletSnapshot);r.frame(.1);
+  // Stay under the 1s authority gap that would reseed event history.
+  const pelletSnapshot={...base(),simTick:40,simAt:1000,events:pellets};r.render(pelletSnapshot);r.frame(.1);
   check('three same-owner Scatter pellets produce independent confirmed surface strokes',cues.filter(o=>o.visible&&o.userData.confirmedShot==='scatter').length===3&&new Set(cues.filter(o=>o.visible).map(o=>o.position.x)).size===3);
   r.render(pelletSnapshot);r.advance(100);r.frame(.1);check('repeated pellet receipt cannot renew expired strokes',cues.every(o=>!o.visible));
   r.render({...base(),simTick:40,simAt:1610,events:[{id:'blocked-barrel',type:'impact',weapon:'pulse',pid:'a',surfaceId:'barrel-cover',from:{x:.95,y:1.14,z:0},position:{x:.95,y:1.14,z:1.6}}]});r.frame(.1);
@@ -451,30 +452,38 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
 }
 // Current health and accepted weapon/KO events must agree in the actual scene.
 {
-  const r=rig({graphics:true}),start=base();for(const k of start.karts){k.health=100;k.maxHealth=100;}
+  const r=rig({graphics:true}),start=base();for(const k of start.karts){k.health=3;k.maxHealth=3;}
   r.render(start);await r.settle();r.frame();
   const scene=r.loads.at(-1).handle.built.scene,model=scene.children.filter(o=>o.name==='GiggleKart')[0];
   const flashes=scene.children.filter(o=>o.name==='CombatMuzzleFlash'),allocation=r.allocations();
   const bar=scene.getObjectByName('KartHealth:a'),otherBar=scene.getObjectByName('KartHealth:b');
   check('elevated full-health players prepare hidden scene bars before live play',bar&&!bar.visible&&otherBar&&!otherBar.visible);
   check('all twelve muzzle flashes and each active kart are prepared before gameplay',flashes.length===12&&scene.children.filter(o=>o.name==='GiggleKart').length===start.karts.length);
-  const hit=structuredClone(start);hit.simTick=2;hit.simAt=100;hit.karts[0].health=60;hit.events=[{id:1,type:'hit',pid:'b',other:'a',position:{x:0,y:1,z:3}}];
+  const hearts=()=>r.node('health').children;
+  check('elevated HUD starts with three full hearts',hearts().length===3&&hearts().every(h=>h.dataset.full==='true')&&r.node('health').getAttribute('aria-label')==='3 of 3 hearts');
+  const hit=structuredClone(start);hit.simTick=2;hit.simAt=100;hit.karts[0].health=2;hit.events=[{id:1,type:'hit',pid:'b',other:'a',damage:1,health:2,maxHealth:3,weapon:'pulse',position:{x:0,y:1,z:3}}];
   r.render(hit);r.frame();
-  check('nonlethal accepted hit reduces the visible health bar without hiding the kart',r.node('health').getAttribute('aria-label')==='Health 60 of 100'&&r.node('health-fill').style.transform==='scaleX(0.6)'&&model.visible);
-  check('elevated scene bar uses authoritative60 of100 above the world chassis',bar.visible&&Math.abs(bar.userData.fill.scale.x-1.08)<1e-9&&Math.abs(bar.position.y-model.position.y-3)<1e-9);
+  check('nonlethal accepted hit empties one HUD heart without hiding the kart',r.node('health').getAttribute('aria-label')==='2 of 3 hearts'&&hearts().map(h=>h.dataset.full).join()==='true,true,false'&&model.visible);
+  check('only the heart just lost pops',hearts().map(h=>h.getAttribute('data-pop')!==null).join()==='false,false,true');
+  const [fullHeart,,emptyHeart]=bar.children;
+  check('elevated scene hearts show authoritative 2 of 3 above the world chassis',bar.visible&&bar.children.length===3&&bar.children[1].material===fullHeart.material&&emptyHeart.material!==fullHeart.material&&Math.abs(bar.position.y-model.position.y-3)<1e-9);
   check('elevated billboard faces the final chase camera and remains depth occluded',bar.quaternion.equals(r.loads.at(-1).handle.built.camera.quaternion)&&bar.children.every(o=>o.material.depthTest&&!o.material.depthWrite&&!o.material.map));
   check('first elevated damage adds no graphics resources',JSON.stringify(r.allocations())===JSON.stringify(allocation));
-  check('self hit produces one short damage cue' ,r.node('damage').animations.length===1&&r.node('damage').animations[0].options.duration===220);
-  r.render(hit);r.frame();check('repeated authoritative hit does not replay damage',r.node('damage').animations.length===1);
+  const flash=r.el.querySelector('.kart-hitfx-flash');
+  check('self hit flashes the screen edge once',flash.getAttribute('data-on')==='');
+  flash.removeAttribute('data-on');r.render(hit);r.frame();check('repeated authoritative hit does not replay damage',flash.getAttribute('data-on')===null);
+  const landed=structuredClone(hit);landed.simTick=2;landed.events=[...hit.events,{id:'landed',type:'hit',pid:'a',other:'b',damage:2,health:1,maxHealth:3,weapon:'rocket',position:{x:10,y:1,z:0}}];
+  r.render(landed);r.frame();
+  check('own landed hit shows the hit marker and heart count toast',r.el.querySelector('.kart-hitfx-marker').getAttribute('data-on')===''&&r.el.querySelector('.kart-hitfx-toast').textContent==='+2');
   const fire=structuredClone(hit);fire.simTick=3;fire.simAt=150;fire.events=[{id:2,type:'fire',weapon:'rocket',pid:'a',position:{x:4,y:1,z:5},direction:{x:1,y:0,z:0}}];
   r.render(fire);r.frame();
-  const flash=flashes.find(o=>o.visible);
-  check('even a rocket absent between snapshots has a muzzle flash at the actual accepted origin',flash&&flash.position.distanceTo(new THREE.Vector3(4,1,5))<1e-9&&new THREE.Vector3(0,0,1).applyQuaternion(flash.quaternion).distanceTo(new THREE.Vector3(1,0,0))<1e-9);
+  const muzzle=flashes.find(o=>o.visible);
+  check('even a rocket absent between snapshots has a muzzle flash at the actual accepted origin',muzzle&&muzzle.position.distanceTo(new THREE.Vector3(4,1,5))<1e-9&&new THREE.Vector3(0,0,1).applyQuaternion(muzzle.quaternion).distanceTo(new THREE.Vector3(1,0,0))<1e-9);
   r.advance(100);r.frame(.1);check('muzzle flash expires promptly and reuses prepared graphics',flashes.every(o=>!o.visible)&&r.allocations().projectiles===allocation.projectiles&&r.allocations().instances===allocation.instances);
   // three-view caps the elapsed interval before this frame at 100ms. A fire
   // accepted during that interval must reach the subsequent render once;
   // charging that past interval to its new 90ms flash erased it before draw.
-  for(const reduced of [false,true])for(const dt of [.09,.1])for(const weapon of ['pulse','scatter','rocket','rail','seeker','sentry','nuke']){
+  for(const reduced of [false,true])for(const dt of [.09,.1])for(const weapon of ['pulse','scatter','rocket','seeker','nuke']){
     r.motion(reduced);
     const accepted=structuredClone(fire);accepted.events=[{id:`hitch-${reduced}-${dt}-${weapon}`,type:'fire',weapon,pid:'a',position:{x:4,y:1,z:5},direction:{x:1,y:0,z:0}}];
     r.render(accepted);r.frame(dt);
@@ -491,10 +500,10 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
   r.advance(700);r.frame(.1);check('wreck retires after its bounded collapse animation',!model.visible);
   const respawn=structuredClone(start);respawn.simTick=5;respawn.simAt=1000;respawn.karts[0].spawnSeq=2;respawn.karts[0].pose.position={x:20,y:.64,z:20};
   r.render(respawn);r.frame();
-  check('new life restores full health and actual spawn without stale wreck transform',model.visible&&model.scale.x===1&&model.position.x===20&&model.position.z===20&&r.node('health-fill').style.transform==='scaleX(1)');
+  check('new life restores three full hearts and actual spawn without stale wreck transform',model.visible&&model.scale.x===1&&model.position.x===20&&model.position.z===20&&hearts().every(h=>h.dataset.full==='true')&&r.node('health').dataset.life==='2');
   check('elevated full-health respawn hides its overhead bar',!bar.visible);
-  const watch=structuredClone(respawn);watch.simTick=6;watch.simAt=1050;watch.you='watcher';watch.youDrive=false;watch.karts[1].health=25;watch.karts[1].pose.position.y=7;r.render(watch);r.frame();check('watcher has no invented personal health bar',r.node('health').hidden);
-  check('watcher sees remote wounded player at its elevated world height',otherBar.visible&&Math.abs(otherBar.position.y-scene.children.filter(o=>o.name==='GiggleKart')[1].position.y-3)<1e-9&&Math.abs(otherBar.userData.fill.scale.x-.45)<1e-9);
+  const watch=structuredClone(respawn);watch.simTick=6;watch.simAt=1050;watch.you='watcher';watch.youDrive=false;watch.karts[1].health=1;watch.karts[1].pose.position.y=7;r.render(watch);r.frame();check('watcher has no invented personal health bar',r.node('health').hidden);
+  check('watcher sees remote wounded player at its elevated world height',otherBar.visible&&Math.abs(otherBar.position.y-scene.children.filter(o=>o.name==='GiggleKart')[1].position.y-3)<1e-9&&otherBar.children.filter(h=>h.material===fullHeart.material).length===1);
   const offline=structuredClone(watch);offline.simTick=7;offline.simAt=1100;offline.karts[1].connected=false;r.render(offline);r.frame();check('disconnected elevated player hides its overhead bar',!otherBar.visible);
   r.view.dispose();check('elevated disposal detaches every scene health bar',bar.parent===null&&otherBar.parent===null);
 }
@@ -630,7 +639,7 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
 // Invisible shield/flame and mounted combat props are not base kart bounds.
 function baseKartBounds(model,box){
   box.makeEmpty();const meshBox=new THREE.Box3();
-  model.userData.kart.inner.traverse(mesh=>{if(!mesh.isMesh||mesh.name==='BoostFlame'||mesh.name==='RespawnShield'||mesh.name==='InvincibilityTrail')return;for(let p=mesh.parent;p&&p!==model.userData.kart.inner;p=p.parent)if(p.userData.combat)return;mesh.geometry.computeBoundingBox();box.union(meshBox.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld));});return box;
+  model.userData.kart.inner.traverse(mesh=>{if(!mesh.isMesh||mesh.name==='BoostFlame'||mesh.name==='RespawnShield'||mesh.name==='InvincibilityTrail'||mesh.name==='KartContactShadow')return;for(let p=mesh.parent;p&&p!==model.userData.kart.inner;p=p.parent)if(p.userData.combat)return;mesh.geometry.computeBoundingBox();box.union(meshBox.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld));});return box;
 }
 // Public authority pose captured during native Harbor ramp-side reverse contact.
 // Real model bounds must remain on screen when world clearance shortens the eye.
@@ -718,7 +727,7 @@ for(const aspect of [1,390/844,844/390,568/320,1024/768])for(const frameMs of [1
   for(let elapsed=0;elapsed<=packets.at(-1).elapsedMs;elapsed+=frameMs){
     while(next<packets.length&&packets[next].elapsedMs<=elapsed){snapshot.simAt=packets[next].simAt;snapshot.simTick++;snapshot.karts[0].pose=packets[next++].pose;r.render(snapshot);}
     r.frame(frameMs/1000);r.advance(frameMs);camera.updateMatrixWorld();model.updateMatrixWorld(true);baseKartBounds(model,box);
-    model.userData.kart.inner.traverse(mesh=>{if(!mesh.isMesh||mesh.name==='BoostFlame'||mesh.name==='RespawnShield'||mesh.name==='InvincibilityTrail')return;for(let p=mesh.parent;p&&p!==model.userData.kart.inner;p=p.parent)if(p.userData.combat)return;mesh.geometry.computeBoundingBox();const box=mesh.geometry.boundingBox;for(let b=0;b<8;b++){corner.set(b&1?box.max.x:box.min.x,b&2?box.max.y:box.min.y,b&4?box.max.z:box.min.z).applyMatrix4(mesh.matrixWorld).project(camera);const inside=Math.abs(corner.x)<1&&Math.abs(corner.y)<1&&corner.z>-1&&corner.z<1;{if(!inside&&!firstFailure)firstFailure={elapsed,name:mesh.name,position:model.position.toArray(),eye:camera.position.toArray(),ndc:corner.toArray(),trace:camera.userData.cameraTrace};framed&&=inside;}}});
+    model.userData.kart.inner.traverse(mesh=>{if(!mesh.isMesh||mesh.name==='BoostFlame'||mesh.name==='RespawnShield'||mesh.name==='InvincibilityTrail'||mesh.name==='KartContactShadow')return;for(let p=mesh.parent;p&&p!==model.userData.kart.inner;p=p.parent)if(p.userData.combat)return;mesh.geometry.computeBoundingBox();const box=mesh.geometry.boundingBox;for(let b=0;b<8;b++){corner.set(b&1?box.max.x:box.min.x,b&2?box.max.y:box.min.y,b&4?box.max.z:box.min.z).applyMatrix4(mesh.matrixWorld).project(camera);const inside=Math.abs(corner.x)<1&&Math.abs(corner.y)<1&&corner.z>-1&&corner.z<1;{if(!inside&&!firstFailure)firstFailure={elapsed,name:mesh.name,position:model.position.toArray(),eye:camera.position.toArray(),ndc:corner.toArray(),trace:camera.userData.cameraTrace};framed&&=inside;}}});
     for(const sample of samples){point.copy(sample.local).applyMatrix4(sample.mesh.matrixWorld);point.y=Math.max(.03,point.y);direction.subVectors(point,camera.position);ray.far=Math.max(0,direction.length()-.03);ray.set(camera.position,direction.normalize());const clear=ray.intersectObjects(solids,false).length===0;if(!clear&&!firstHidden)firstHidden={elapsed,name:sample.mesh.name};coreClear&&=clear;}
     const trace=camera.userData.cameraTrace,pre=new THREE.Vector3().fromArray(trace.preClearEye);
     if(previousEye){const step=camera.position.distanceTo(previousEye);if(step>maxStep){maxStep=step;peak={elapsed,position:model.position.toArray(),before:previousEye.toArray(),after:camera.position.toArray(),sideSettling:trace.sideSettling,sideYaw:trace.sideYaw};}if(trace.sideSettling&&step>sideMaxStep){sideMaxStep=step;sidePeak={elapsed,position:model.position.toArray(),sideYaw:trace.sideYaw};}if(trace.sideSettling){const old=previousEye.clone().sub(previousModel),offset=pre.clone().sub(model.position),angular=Math.abs(Math.atan2(Math.sin(Math.atan2(offset.z,offset.x)-Math.atan2(old.z,old.x)),Math.cos(Math.atan2(offset.z,offset.x)-Math.atan2(old.z,old.x)))),radial=Math.abs(Math.hypot(offset.x,offset.z)-Math.hypot(old.x,old.z));maxAngular=Math.max(maxAngular,angular);maxRadial=Math.max(maxRadial,radial);orbitSafe&&=angular<=Math.PI/2*frameMs/1000+1e-6&&radial<=8.5*Math.PI/2*frameMs/1000+1e-6;}}

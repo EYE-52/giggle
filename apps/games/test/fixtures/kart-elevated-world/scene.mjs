@@ -76,7 +76,7 @@ function updateSnapshot(snapshot){
   current=snapshot;seq=Math.max(seq,current.you?.receivedSeq||0);arrival=performance.now();
   for(const event of snapshot.events)if(!seen.has(event.id)){seen.add(event.id);eventLog.push(event);if(eventLog.length>100)eventLog.shift();}
   syncObjects(snapshot.crates,'crate:',()=>createCrateModel(THREE,assets));
-  syncObjects(snapshot.projectiles,'shot:',value=>art.projectile(value.weapon));syncObjects(snapshot.mines,'mine:',value=>art.mine(value.owner===seat));syncObjects(snapshot.grenades,'grenade:',v=>art.projectile(v.weapon||'grenade'));
+  syncObjects(snapshot.projectiles,'shot:',value=>art.projectile(value.weapon));syncObjects(snapshot.mines,'mine:',value=>art.mine(value.owner===seat));syncObjects(snapshot.grenades,'grenade:',v=>art.projectile(v.weapon));
   if(snapshot.phase==='done'&&!$('results').children.length){
     const title=document.createElement('h2');title.textContent='Round complete';$('results').append(title);
     for(const kart of snapshot.karts){const row=document.createElement('p'),name=document.createElement('span'),score=document.createElement('strong');name.textContent=kart.name;score.textContent=kart.hits+' KOs';row.append(name,score);$('results').append(row);}

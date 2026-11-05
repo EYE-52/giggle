@@ -16,7 +16,7 @@ function sendAction(el, origin, phase, action) {
   return live.api.send(action);
 }
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['word-chain-world-css', '/css/word-chain-world.css']];
+const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['word-chain-world-css', '/css/word-chain-world.css'], ['create-kit-css', '/css/create-kit.css']];
 function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
 function removeCss() {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
@@ -45,7 +45,7 @@ function turnName(S) { return S.turnPid === S.me ? 'Your turn' : `${nameOf(S, S.
 function stillIn(S) { return `${(S.alive || []).length} of ${(S.players || []).length} still in`; }
 
 export default {
-  styles: ['/css/compact-answer-games.css', '/css/word-chain-world.css'],
+  styles: ['/css/compact-answer-games.css', '/css/word-chain-world.css', '/css/create-kit.css'],
   ownsTimer: true,
   dispose(el) {
     if (clock !== null) clearInterval(clock);
@@ -69,7 +69,7 @@ export default {
       const survivors = S.winners && S.winners.length ? S.winners : (S.winner ? [S.winner] : []);
       const note = survivors.length === 1 ? `${nameOf(S, survivors[0])} is the last player standing.`
         : survivors.length > 1 ? `Still in at the end: ${survivors.map((pid) => nameOf(S, pid)).join(', ')}.` : 'No survivors.';
-      el.innerHTML = `<section class="gk-final wg wg-final wc gk-col gk-stack" data-game="word-chain" data-phase="done" aria-label="Word Chain final scores">`
+      el.innerHTML = `<section class="gk-final wg wg-final wc ck gk-col gk-stack" data-family="create" data-game="word-chain" data-phase="done" aria-label="Word Chain final scores">`
         + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.me })
         + `<p class="gk-final-note wg-final-note">${esc(note)}</p>`
         + `<ol class="wg-chips wc-ribbon" role="log" aria-label="Final word chain" tabindex="0">${ribbon(S)}</ol>`
@@ -89,9 +89,12 @@ export default {
       if (progress) progress.textContent = stillIn(S);
       const feedback = el.querySelector('#wcFeedback');
       if (feedback) {
-        const text = S.myFeedback?.message || eventLine(S);
-        feedback.textContent = text;
+        const said = S.myFeedback?.message || eventLine(S);
+        // With nothing to report, the reserved lines carry the linking rule.
+        const text = said || (S.used?.length ? 'Link by meaning. No repeats.' : 'Any word linked by meaning starts the chain.');
+        if (feedback.textContent !== text) feedback.textContent = text;
         feedback.classList?.toggle('is-error', S.myFeedback?.ok === false);
+        feedback.classList?.toggle('is-hint', !said);
       }
       const challenge = el.querySelector('#wcChallenge');
       if (challenge) {
@@ -120,6 +123,10 @@ export default {
       if (seats) seats.innerHTML = playerSeats(S);
       const out = el.querySelector('#wcOut');
       if (out) out.textContent = elimination(S);
+      const count = el.querySelector('.wc-count');
+      if (count) count.textContent = linkCount(S.used || []);
+      const aliveLine = el.querySelector('.wc-alive');
+      if (aliveLine) aliveLine.textContent = stillIn(S);
       const archiveTitle = el.querySelector('.wc-archive>summary');
       if (archiveTitle) archiveTitle.textContent = linksLabel(S.used || []);
     };
@@ -137,15 +144,17 @@ export default {
       ? `<form class="gk-input-row" id="wcForm" autocomplete="off"><input class="gk-input" type="text" id="wcWord" aria-label="Your next word in the chain" maxlength="24" value="${esc(draft)}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" inputmode="text" placeholder="A related word…" />`
         + `<button class="gk-btn gk-primary" id="wcGo" type="submit">Say it</button></form>`
       : `<p class="wc-waiting gk-wait${alive || S.spectator ? '' : ' is-out'}" role="status">${esc(S.spectator || alive ? `${nameOf(S, S.turnPid)} is linking a word` : 'You are out. Watch the others play on.')}</p>`;
-    el.innerHTML = `<section class="wg wc gk-col gk-stack${alive || S.spectator ? '' : ' is-out'}" data-game="word-chain" data-phase="play" aria-label="Word Chain">`
+    el.innerHTML = `<section class="wg wc ck gk-col gk-stack${alive || S.spectator ? '' : ' is-out'}" data-family="create" data-game="word-chain" data-phase="play" aria-label="Word Chain">`
       + hudHtml({ round: `Link ${(S.used || []).length}`, phase: S.spectator ? 'Watching' : turnName(S), progress: stillIn(S), timer: '' })
-      + `<div class="wc-target"><p class="gk-meta">Link a word to</p><h2 class="gk-prompt wc-word">${esc(S.current)}</h2></div>`
+      + `<div class="wc-target ck-card is-tint"><span class="ck-label">${myTurn && !S.spectator ? 'Your turn: link a word to' : 'Next link to'}</span><h2 class="gk-prompt wc-word">${esc(S.current)}</h2>`
+      + `<p class="wg-status" id="wcFeedback" role="status" aria-live="polite"></p></div>`
       + field
-      + `<p class="wg-status" id="wcFeedback" role="status" aria-live="polite"></p>`
       + `<div class="wg-slot wc-challenge" id="wcChallenge"></div>`
-      + `<ol class="wg-chips wc-ribbon" role="log" aria-label="Recent links" tabindex="0">${ribbon(S)}</ol>`
+      + `<div class="wc-chain ck-card"><div class="ck-head"><h3>The chain</h3><span class="gk-meta wc-count">${linkCount(S.used || [])}</span></div>`
+      + `<ol class="wg-chips wc-ribbon" role="log" aria-label="Recent links" tabindex="0">${ribbon(S)}</ol></div>`
+      + `<div class="wc-players ck-card"><div class="ck-head"><h3>Players</h3><span class="gk-meta wc-alive">${esc(stillIn(S))}</span></div>`
       + `<ul class="wg-chips wc-seats" aria-label="Players">${playerSeats(S)}</ul>`
-      + `<p class="gk-meta" id="wcOut" role="status"></p>`
+      + `<p class="gk-meta" id="wcOut" role="status"></p></div>`
       + `<details class="wg-more wc-archive" ${archiveOpen ? 'open' : ''}><summary>${linksLabel(S.used || [])}</summary><div id="wcArchive"></div></details>`
       + `<details class="wg-more wc-help" ${helpOpen ? 'open' : ''}><summary>Rules</summary>`
       + `<p>${esc(S.rules)}</p>`
@@ -172,6 +181,10 @@ export default {
   },
 };
 
+function linkCount(used) {
+  return `${used.length} ${used.length === 1 ? 'link' : 'links'}`;
+}
+
 function linksLabel(used) {
   return used.length === 1 ? 'The first link' : `All ${used.length} links`;
 }
@@ -179,7 +192,7 @@ function linksLabel(used) {
 function ribbon(S) {
   const used = S.used || [];
   return used.slice(-12).map((w, i, tail) =>
-    `<li class="wg-chip wc-link${i === tail.length - 1 ? ' is-on' : ''}">${esc(w)}</li>`).join('');
+    `<li class="wg-chip wc-link${i === tail.length - 1 ? ' is-on' : ''}">${esc(w)}</li>`).join('<li class="wc-arrow" aria-hidden="true">→</li>');
 }
 
 function paintArchive(el, words) {

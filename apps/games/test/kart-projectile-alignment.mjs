@@ -17,7 +17,7 @@ import ADAPTER from '../games/engines/kart-elevated-adapter.js';
 await Promise.all([RAPIER.init(),MeshoptDecoder.ready]);
 const radii=COMBAT.staticSweepRadii,kinds=Object.keys(radii),measurements=[],results=[];
 const check=(label,ok)=>{assert.ok(ok,label);results.push(label);};
-assert.deepEqual(radii,{pulse:.22,scatter:.25,rocket:.42,seeker:.33,rail:.18,sentry:.18});
+assert.deepEqual(radii,{pulse:.22,scatter:.25,rocket:.42,seeker:.33});
 assert(Object.isFrozen(radii));
 assert.strictEqual(radii,SHARED.config.staticSweepRadii);
 // Embedded image dimensions stand in for the decoder; this is geometry QA.
@@ -114,7 +114,6 @@ for(const kind of kinds){let match,adapter,state;
  for(let seed=0;seed<256;seed++){const candidate=COMBAT.createElevatedCombat(RAPIER,CONFIG,map,[{id:'a'},{id:'b'}],{instance:'radius-'+kind,seed,startAt:0,countdownMs:0,roundMs:20000,crates:1});step(candidate);if(candidate.snapshot().karts[0].weapon===kind){match=candidate;break;}candidate.dispose();}
  assert(match,'bounded real '+kind+' crate acquisition');
  try{for(let i=0;i<160;i++)step(match);send(match,true);send(match,false);step(match);
-  // Deployed sentries retain their .4s first-fire delay.
   for(let i=0;i<60&&!match.snapshot().projectiles.some(p=>p.weapon===kind);i++)step(match);
   const raw=match.snapshot(),shot=raw.projectiles.find(p=>p.weapon===kind);assert(shot,kind+' live legitimate launch');assert.equal(shot.radius,radii[kind]);
   adapter=ADAPTER.createElevatedKartAdapter({RAPIER,config:CONFIG,maps:{...maps,garden:map},defaults:{mode:'Zap Battle',winRule:'Time limit',garage:false,map:map.name,roundSeconds:20},createMatch:()=>match});
@@ -123,9 +122,9 @@ for(const kind of kinds){let match,adapter,state;
   assert.deepEqual(publicView.projectileRadii,radii);assert(Object.isFrozen(publicView.projectileRadii));
   let impact;for(let i=0;i<120&&!impact;i++){step(match);impact=match.snapshot().events.find(e=>e.type==='impact'&&e.weapon===kind&&e.other==='b');}
   assert(impact,kind+' legitimate first-hull impact');const victim=match.snapshot().karts.find(k=>k.id==='b');
-  const health={pulse:90,scatter:91,rocket:0,seeker:0,rail:75,sentry:87};
-  check(kind+' larger static envelope retains established target damage',victim.health===health[kind]);
-  if(['pulse','scatter','rail','sentry'].includes(kind))check(kind+' confirmed event retains exact sweep endpoints',impact.from&&Object.values(impact.from).every(Number.isFinite)&&Object.values(impact.position).every(Number.isFinite));
+  const health={pulse:2,scatter:2,rocket:1,seeker:2};
+  check(kind+' larger static envelope retains established target hearts',victim.health===health[kind]);
+  if(['pulse','scatter'].includes(kind))check(kind+' confirmed event retains exact sweep endpoints',impact.from&&Object.values(impact.from).every(Number.isFinite)&&Object.values(impact.position).every(Number.isFinite));
  }finally{if(adapter&&state)adapter.dispose(state);else match.dispose();}
 }
 console.log(JSON.stringify({pass:true,checks:results.length,measurements,scope:'Exact production movingItems and shipping/fallback meshes, real Rapier solids in all four maps, legal authority collection/fire and exact adapter radii. No GPU/phone/FPS claim.'}));

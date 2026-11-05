@@ -91,3 +91,10 @@ body.game-playing:has(.sk-doodle.dg,.sk-phone.dp) .game-report-icon{top:max(14px
 body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar { position:sticky; top:0; z-index:40; background:var(--bg); }
 body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar #roomMenu { position:absolute; top:max(10px,env(safe-area-inset-top)); right:52px; }
 body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar .game-report-icon { position:absolute; top:max(10px,env(safe-area-inset-top)); right:0; }
+
+/* Board games on phones scroll a tall board under the header. Let the room
+ * utilities scroll away with the header instead of floating over squares. */
+@media (max-width:759px){
+ body.game-playing:has(.bk-game) #roomMenu,
+ body.game-playing:has(.bk-game) .game-report-icon{position:absolute}
+}

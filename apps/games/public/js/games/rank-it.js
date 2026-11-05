@@ -2,7 +2,7 @@
  * points. Built on the game kit (public/css/game-ui.css): HUD row, prompt,
  * ladder rows, waiting line, round results, Next, final scores. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 function plural(n, one, many = one + 's') { return `${n} ${n === 1 ? one : many}`; }
 
@@ -62,6 +62,13 @@ function move(order, pos, dir) {
   return copy;
 }
 
+function strip(el, S) {
+  if (!S || S.phase === 'done') return;
+  paintLiveStrip(el.querySelector?.('.party-scene'), S, S.phase === 'rank'
+    ? { acted: S.ranked || [], verb: 'Locked in', waiting: 'Ranking' }
+    : { waiting: false, gains: S.last?.pts || {} });
+}
+
 function buildRank(el, S, api, focusPos) {
   const items = S.set.items;
   const activeKey = rankKey;
@@ -81,6 +88,8 @@ function buildRank(el, S, api, focusPos) {
     : dirty
       ? 'Changes ready. Update your ranking to save them.'
       : 'Locked in. You can still change it until the reveal.';
+  const clock = el.querySelector?.('.gk-hud-timer');
+  const clockText = clock?.textContent || '', clockClass = clock?.className || '', clockStyle = clock?.getAttribute?.('style') || '';
   el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--rank" aria-label="Rank the items">
     ${hud(S)}
     <p class="gk-prompt party-prompt">${esc(S.set.topic)}</p>
@@ -113,6 +122,10 @@ function buildRank(el, S, api, focusPos) {
       relayout(Number(item.dataset.pos), e.key === 'ArrowUp' ? -1 : 1);
     };
   }
+  // A local reorder rebuilds the ladder; the running clock keeps its face.
+  const freshClock = el.querySelector?.('.gk-hud-timer');
+  if (freshClock && clockText) { freshClock.textContent = clockText; freshClock.className = clockClass; if (clockStyle) freshClock.setAttribute('style', clockStyle); }
+  strip(el, rankState || S);
   const lock = el.querySelector('#rLock');
   lock.onclick = () => { if (activeKey === rankKey && rankState && !rankState.preparing && !watching(rankState) && rankState.phase === 'rank' && el.querySelector('#rLock') === lock) rankApi?.send({ order: rankOrder }); };
   if (focusPos !== null && focusPos !== undefined) {
@@ -218,6 +231,7 @@ export default {
   ownsTimer: true,
   render(el, S, api) {
     paint(el, S, api);
+    strip(el, S);
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },

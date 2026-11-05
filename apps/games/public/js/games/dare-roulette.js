@@ -2,7 +2,7 @@
  * the room votes done/chicken. The server picks the victim after Spin —
  * this view never animates a fake landing. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip, faceHtml } from '../kit.js';
 
 let visualKey = '', liveApi = null, liveEl = null, liveState = null, liveActionKey = '';
 
@@ -35,8 +35,10 @@ function isWatching(S) {
   return S.me != null && ps.length > 0 && !ps.some((p) => p.id === S.me);
 }
 
+/* Same initials as the live strip: "Ann" -> "A", "Player 2" -> "P2". */
 function initial(name) {
-  return (String(name || '?').trim().charAt(0) || '?').toUpperCase();
+  const words = String(name || '?').trim().split(/\s+/).filter(Boolean);
+  return ((words[0] || '?').charAt(0) + (words[1] ? words[1].charAt(0) : '')).toUpperCase();
 }
 
 
@@ -51,7 +53,8 @@ function person(S, pid, cls, note) {
 
 function wheel(S, landed = false) {
   const players = S.players || [];
-  const colors = ['#ffd25c', '#90d6c1', '#e7a2c1', '#bfa7e5'];
+  // The live strip's seat colours, so a slice and its player's seat match.
+  const colors = ['var(--fam-party)', 'var(--fam-board)', 'var(--fam-create)', 'var(--fam-arcade)', 'var(--sun)'];
   const count = Math.max(1, players.length);
   const segments = players.map((p, i) => `${colors[i % colors.length]} ${i / count * 360}deg ${(i + 1) / count * 360}deg`).join(', ');
   const picked = players.findIndex(p => p.id === S.victim);
@@ -64,16 +67,16 @@ function meter(S, label, pids, win) {
   const voters = pids.voters;
   const pct = total ? Math.round((voters.length / total) * 100) : 0;
   const n = voters.length;
-  return `<div class="party-result${win ? ' party-result--winner' : ''}">`
+  return `<div class="party-result dr-meter dr-meter--${label === 'Done' ? 'done' : 'chicken'}${win ? ' party-result--winner' : ''}">`
     + `<span class="party-label">${esc(label)}</span>`
     + `<div class="party-meter" role="img" aria-label="${esc(label)}: ${n} of ${total} votes"><span style="width:${pct}%"></span></div>`
     + `<span class="party-meta">${n} vote${n === 1 ? '' : 's'}`
-    + (voters.length ? ` · ${voters.map((pid) => esc(nameOf(S, pid))).join(', ')}` : '') + '</span></div>';
+    + '</span>' + (voters.length ? `<span class="pl-faces">${voters.map((pid) => faceHtml(S, pid, { name: true })).join('')}</span>` : '') + '</div>';
 }
 
 function lastRecap(S, L) {
   const verdict = L.skipped ? 'Skipped (left the game)' : L.done + L.chicken === 0 ? 'No verdict' : L.success ? 'Completed' : L.split ? 'Even split' : 'Not completed';
-  return `Last dare · ${nameOf(S, L.victim)}: ${L.dare} · ${verdict} (${L.done} done, ${L.chicken} chicken)`;
+  return `Last dare · ${nameOf(S, L.victim)}: ${L.dare} · ${verdict} (${L.done} Done, ${L.chicken} Chicken votes)`;
 }
 
 function paint(el, S, api) {
@@ -149,9 +152,7 @@ function paint(el, S, api) {
         + `<p class="gk-meta dr-kicker"><span class="gk-mark" aria-hidden="true">${esc(initial(nameOf(S, S.victim)))}</span>${esc(nameOf(S, S.victim))} takes the dare</p>`
         + `<h2 class="gk-prompt party-prompt">${esc(S.dare)}</h2>`
         + action
-        + `<details class="party-more"><summary>Jurors</summary><p class="party-meta">`
-        + jurors.map((p) => `${esc(p.name)}${votedSet.has(p.id) ? ' (voted)' : ''}`).join(', ')
-        + `</p></details></section>`;
+        + `</section>`;
       const ready = el.querySelector('#drReady');
       if (ready) ready.onclick = () => sendAction({ ready: true });
       el.querySelectorAll('[data-v]').forEach((b) => {
@@ -160,15 +161,12 @@ function paint(el, S, api) {
       return;
     }
 
-    const lineup = `<div class="party-lineup" aria-label="Players on the wheel">`
-      + (S.players || []).map((p) => person(S, p.id, '')).join('') + `</div>`;
     el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--spotlight" aria-label="Spin the wheel">`
       + `${hud(S)}`
       + `<h2 class="gk-prompt party-prompt">Who takes the dare?</h2>`
       + `<p class="gk-wait" role="status">${watch ? 'Watching · someone is about to spin the wheel.' : 'Anyone can spin. Whoever it lands on takes the dare.'}</p>`
       + `<div class="party-spin-desk">${wheel(S)}${watch ? '' : `<button type="button" class="gk-btn gk-primary" id="drSpin">Spin the wheel</button>`}</div>`
-      + lineup
-      + (S.last ? lastRecap(S, S.last) : '')
+      + (S.last ? `<p class="gk-meta dr-recap">${esc(lastRecap(S, S.last))}</p>` : '')
       + `</section>`;
     const spin = el.querySelector('#drSpin');
     if (spin) spin.onclick = () => {
@@ -188,6 +186,18 @@ export default {
   ownsTimer: true,
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') {
+      const victim = S.phase === 'reveal' ? S.last?.victim : S.victim;
+      const roles = victim ? { [victim]: S.phase === 'reveal' ? 'Took the dare' : 'On the dare' } : {};
+      const jurors = (S.players || []).filter((p) => !p.left && p.id !== victim).map((p) => p.id);
+      const live = ['perform', 'verdict'].includes(S.phase);
+      paintLiveStrip(el.querySelector?.('.party-scene'), S, {
+        roles, actors: jurors,
+        acted: S.phase === 'verdict' ? S.voted || [] : [], verb: 'Voted',
+        waiting: S.phase === 'verdict' ? 'Judging' : S.phase === 'perform' ? 'Watching' : false,
+        gains: S.phase === 'reveal' && S.last?.points && victim ? { [victim]: S.last.points } : {},
+      });
+    }
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },

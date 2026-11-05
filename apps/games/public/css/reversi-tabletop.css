@@ -5,7 +5,7 @@
 .rv-duel .rv-star{fill:#1d5f40}
 .rv-duel .rv-hit{fill:transparent}
 .rv-duel .rv-lastsq{fill:#ffffff;opacity:.14;pointer-events:none}
-.rv-duel .rv-legal{fill:#ffffff;opacity:.55;pointer-events:none}
+.rv-duel .rv-legal{fill:#ffffff;stroke:#0d3b24;stroke-width:3;opacity:.8;pointer-events:none}
 .rv-duel [data-cell][aria-disabled=false]{cursor:pointer}
 .rv-duel [data-cell][aria-disabled=false]:hover .rv-hit{fill:#ffffff1f}
 .rv-duel [data-cell][aria-disabled=false]:hover .rv-legal{opacity:.9}

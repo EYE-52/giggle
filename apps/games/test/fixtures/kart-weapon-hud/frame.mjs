@@ -16,7 +16,7 @@ const ready=Promise.all([cssReady,loadKartWeaponThumbnails()]).then(()=>document
 const bounds=element=>{const r=element.getBoundingClientRect();return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height};};
 const visible=element=>!element.hidden&&element.getClientRects().length>0;
 const overlaps=(a,b)=>Math.min(a.right,b.right)-Math.max(a.left,b.left)>.5&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>.5;
-let current={kind:'bomb',state:'ready',preference:'keyboard'};
+let current={kind:'proximity',state:'ready',preference:'keyboard'};
 function report(){
   const width=innerWidth,height=innerHeight,itemBounds=bounds(item),panelBounds=bounds(item.closest('.pk-readout,.pke-bottom')),shown=visible(touch),actionBounds=shown?bounds(action):null;
   const drivers=shown?[...root.querySelectorAll('.pk-stick,.pke-stick,.pk-tright button:not(#pk-tb),.pke-actions button:not([data-use])')]:[];

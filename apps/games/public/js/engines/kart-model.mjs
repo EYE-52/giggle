@@ -52,8 +52,40 @@ function cosmetics(THREE) {
   });
   const invincibilityTrailGeo=new THREE.BoxGeometry(.06,.07,1);
   const invincibilityTrailMats=[0xffd36a,0x6cf3ff].map(color=>new THREE.MeshBasicMaterial({color,transparent:true,opacity:.75,depthWrite:false}));
-  sharedCosmetics = { THREE, flameGeo, flameMat, shieldGeo, shieldMat, invincibilityTrailGeo, invincibilityTrailMats };
+  // Soft contact shadow: one radial alpha texture (no DOM) under every kart,
+  // so the kart sits on the ground instead of floating over flat grass.
+  const size = 64, blob = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const dx = (x + .5) / size * 2 - 1, dy = (y + .5) / size * 2 - 1, d = Math.min(1, Math.hypot(dx, dy));
+    const i = (y * size + x) * 4; blob[i] = blob[i + 1] = blob[i + 2] = 0; blob[i + 3] = Math.round(255 * Math.pow(1 - d, 1.6) * .78);
+  }
+  const blobTex = new THREE.DataTexture(blob, size, size, THREE.RGBAFormat);
+  blobTex.needsUpdate = true; blobTex.magFilter = THREE.LinearFilter; blobTex.minFilter = THREE.LinearFilter;
+  const blobGeo = new THREE.PlaneGeometry(2.5, 3.6); blobGeo.rotateX(-Math.PI / 2);
+  const blobMat = new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, color: 0x000000,
+    polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
+  sharedCosmetics = { THREE, flameGeo, flameMat, shieldGeo, shieldMat, invincibilityTrailGeo, invincibilityTrailMats, blobGeo, blobMat, blobTex };
   return sharedCosmetics;
+}
+
+/* Fresnel rim light: a bright edge on every kart and driver material so the
+ * silhouette separates from grass and asphalt at chase distance. Applied once
+ * per material (template materials are shared by every kart). */
+const rimmed = new WeakSet();
+export const KART_RIM = Object.freeze({ color: [1, .97, .9], strength: .55, power: 2.6 });
+function addRim(material) {
+  if (!material || rimmed.has(material) || !(material.isMeshStandardMaterial || material.isMeshPhongMaterial || material.isMeshLambertMaterial)) return;
+  rimmed.add(material);
+  const previous = material.onBeforeCompile;
+  material.onBeforeCompile = (shader, renderer) => {
+    previous?.call(material, shader, renderer);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+  float kartRim = pow(1.0 - clamp(abs(dot(normalize(normal), normalize(vViewPosition))), 0.0, 1.0), ${KART_RIM.power.toFixed(2)});
+  totalEmissiveRadiance += vec3(${KART_RIM.color.map(v => v.toFixed(2)).join(',')}) * kartRim * ${KART_RIM.strength.toFixed(2)};`);
+  };
+  const key = material.customProgramCacheKey?.bind(material);
+  material.customProgramCacheKey = () => (key ? key() : '') + '|kart-rim-v1';
+  material.needsUpdate = true;
 }
 
 function clamp(v, lo, hi) {
@@ -81,7 +113,12 @@ function prepareKartClone(inner, color) {
       let clone = paintClones.get(mat);
       if (!clone) {
         clone = mat.clone();
-        if (color !== undefined && color !== null) clone.color.set(color);
+        if (color !== undefined && color !== null) {
+          // Slightly richer player colours read against the arena.
+          clone.color.set(color);
+          const hsl = {}; clone.color.getHSL(hsl);
+          clone.color.setHSL(hsl.h, Math.min(1, hsl.s * 1.15 + .05), Math.min(.62, hsl.l));
+        }
         paintClones.set(mat, clone);
         owned.push(clone);
         paint.push(clone);
@@ -89,6 +126,7 @@ function prepareKartClone(inner, color) {
       return clone;
     });
     obj.material = Array.isArray(obj.material) ? remapped : remapped[0];
+    for (const mat of remapped) if (!mat?.transparent) addRim(mat);
     obj.castShadow = !transparent;
     obj.receiveShadow = !transparent;
   });
@@ -154,12 +192,18 @@ export function createKartModel(THREE, { assets, color, number = 1 } = {}) {
   shield.frustumCulled = false;
   inner.add(shield);
 
+  const contactShadow = new THREE.Mesh(shared.blobGeo, shared.blobMat);
+  contactShadow.name = 'KartContactShadow';
+  contactShadow.position.set(0, .03, .05);
+  contactShadow.castShadow = false; contactShadow.receiveShadow = false; contactShadow.renderOrder = 1;
+  inner.add(contactShadow);
+
   const invincibilityTrails=shared.invincibilityTrailMats.map((material,index)=>{
     const trail=new THREE.Mesh(shared.invincibilityTrailGeo,material);trail.name='InvincibilityTrail';trail.position.set(index===0?-.75:.75,.35,-1.3);trail.visible=false;trail.castShadow=false;inner.add(trail);return trail;
   });
 
   rootGroup.userData.kart = {
-    inner, body, wheels, steers, flame, shield, invincibilityTrails,
+    inner, body, wheels, steers, flame, shield, invincibilityTrails, contactShadow,
     paint, ownedMaterials: owned,
     paintEmission: paint.map(material=>({material,color:material.emissive?.clone(),intensity:material.emissiveIntensity})),
     number, color: color === undefined ? null : color,

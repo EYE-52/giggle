@@ -3,7 +3,7 @@ await MeshoptDecoder.ready;
 /* Contract + GLB validation for public/js/engines/kart-combat-art.mjs.
  *
  * - combat.glb loads in Node via GLTFLoader (ArrayBuffer, no DOM: the GLB
- *   carries no textures/images) and exposes the 10 documented model groups
+ *   carries no textures/images) and exposes the documented model groups
  *   with joined-by-material meshes, verified bounds/pivots/muzzle tips.
  * - every creator returns a Group of genuine meshes (no sprites/textures,
  *   no sphere "orbs") with a documented userData.combat block, on BOTH the
@@ -11,7 +11,8 @@ await MeshoptDecoder.ready;
  *   procedural fallback path (no assets / missing model).
  * - silhouettes via bounding boxes: pickup fits 2.4, projectile hull <= .45
  *   lateral and elongated along +Z, mine <= 1.0, weapons carry a forward
- *   muzzle; rocket/rail rigs and shots are distinct fourth/fifth variants.
+ *   muzzle; rocket rigs and shots are a distinct fourth variant. Retired
+ *   kinds (rail/grenade/emp/bomb/sentry/spikes) are gone from the factory.
  * - mesh budgets: pickup <= 8, projectile <= 4, weapon <= 6, mine <= 4, and
  *   a typical full match stays under 180 extra draw calls.
  * - GLB clones share root-owned geometries/materials; tracers and mine
@@ -30,7 +31,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createKartCombatArt, COMBAT_ART_BUDGETS, COMBAT_GLB_MODELS, COMBAT_GLB_URL } from '../public/js/engines/kart-combat-art.mjs';
 
 assert.deepEqual(COMBAT_GLB_MODELS, ['Pickup', 'Pulse', 'Scatter', 'Mine', 'Shield',
-  'Rocket', 'Rail', 'Bolt', 'RocketShot', 'RailShot', 'Grenade', 'EMP', 'GrenadeShot']);
+  'Rocket', 'Bolt', 'RocketShot']);
 assert.equal(COMBAT_GLB_URL, '/assets/karts/combat/combat.glb'); // Legacy direct-loader URL remains compatible.
 
 const glbBytes = await readFile(new URL('../public/assets/karts/combat/combat.meshopt.glb', import.meta.url));
@@ -49,7 +50,10 @@ function meshesOf(root) {
 
 function boundsOf(root) {
   root.updateMatrixWorld(true);
-  return new THREE.Box3().setFromObject(root);
+  // Solid art only: the shot's additive glow sprite is not part of its hull.
+  const glow = root.getObjectByName('ShotGlow'), parent = glow?.parent;
+  glow?.removeFromParent();
+  try { return new THREE.Box3().setFromObject(root); } finally { if (glow) parent.add(glow); }
 }
 
 function sizeOf(root) {
@@ -83,7 +87,8 @@ function assertGroup(root, type, kind) {
 
 function assertNoOrbsOrTextures(root, tag) {
   root.traverse((o) => {
-    assert.ok(!o.isSprite, `${tag} uses meshes, no sprites`);
+    // The only sprite is the shot's additive glow, one per projectile.
+    assert.ok(!o.isSprite || (o.name === 'ShotGlow' && o.parent === root && root.userData.combat?.type === 'projectile' && o.material.blending === 2), `${tag} uses meshes, no sprites`);
     if (o.isMesh) {
       assert.notEqual(o.geometry.type, 'SphereGeometry', `${tag} has no sphere orbs`);
       const mats = Array.isArray(o.material) ? o.material : [o.material];
@@ -100,7 +105,7 @@ function approx(actual, want, eps, msg) {
   assert.ok(Math.abs(actual - want) <= eps, `${msg}: saw ${actual}, want ${want} ± ${eps}`);
 }
 
-/* ---- GLB structure: 10 models, joined meshes, pivots, muzzles ---- */
+/* ---- GLB structure: documented models, joined meshes, pivots, muzzles ---- */
 const libModels = {};
 for (const name of COMBAT_GLB_MODELS) {
   libModels[name] = library.getObjectByName(name);
@@ -110,7 +115,7 @@ assertNoOrbsOrTextures(library, 'combat.glb library');
 assert.equal(meshesOf(libModels.Pickup).length, 6, 'Pickup joins to 6 meshes');
 assert.equal(meshesOf(libModels.Mine).length, 4, 'Mine joins to 4 meshes');
 assert.equal(meshesOf(libModels.Bolt).length, 6, 'Bolt holds two 3-mesh variants');
-for (const m of ['Pulse', 'Scatter', 'Shield', 'Rocket', 'Rail', 'RocketShot', 'RailShot']) {
+for (const m of ['Pulse', 'Scatter', 'Shield', 'Rocket', 'RocketShot']) {
   assert.ok(meshesOf(libModels[m]).length <= 3, `${m} joins to <= 3 meshes`);
 }
 {
@@ -131,7 +136,7 @@ for (const m of ['Pulse', 'Scatter', 'Shield', 'Rocket', 'Rail', 'RocketShot', '
   for (const n of mats) assert.ok(n.startsWith('Combat'), `GLB material ${n} namespaced`);
   assert.ok(mats.has('CombatMetal') && mats.has('CombatAmber'), 'shared stocks present');
 }
-for (const m of ['Pulse', 'Scatter', 'Mine', 'Shield', 'Rocket', 'Rail']) {
+for (const m of ['Pulse', 'Scatter', 'Mine', 'Shield', 'Rocket']) {
   const tip = libModels[m].getObjectByName(`${m}MuzzleTip`);
   assert.ok(tip, `${m} carries ${m}MuzzleTip`);
   assert.ok(tip.position.z >= -1e-6, `${m} muzzle faces +Z`);
@@ -140,14 +145,14 @@ for (const m of ['Pulse', 'Scatter', 'Mine', 'Shield', 'Rocket', 'Rail']) {
   // Pivots: pickup/mine sit on y=0, rigs sit on the mount plane, shots centered.
   approx(boundsOf(libModels.Pickup).min.y, 0, 0.02, 'Pickup base y=0');
   approx(boundsOf(libModels.Mine).min.y, 0, 0.02, 'Mine base y=0');
-  for (const m of ['Pulse', 'Scatter', 'Shield', 'Rocket', 'Rail']) {
+  for (const m of ['Pulse', 'Scatter', 'Shield', 'Rocket']) {
     approx(boundsOf(libModels[m]).min.y, 0, 0.02, `${m} rig sits on mount plane`);
   }
 }
 
 /* ---- shared contract, exercised on both paths ---- */
-const SHOT_KINDS = ['pulse', 'scatter', 'rocket', 'rail'];
-const RIG_KINDS = ['pulse', 'scatter', 'mine', 'shield', 'rocket', 'rail'];
+const SHOT_KINDS = ['pulse', 'scatter', 'rocket'];
+const RIG_KINDS = ['pulse', 'scatter', 'mine', 'shield', 'rocket'];
 
 function checkContract(art, tag, glbNames) {
   const pickup = art.pickup();
@@ -179,11 +184,23 @@ function checkContract(art, tag, glbNames) {
   assert.equal(rigs.pulse.userData.combat.barrels, 1, 'pulse single-barrel');
   assert.equal(rigs.scatter.userData.combat.barrels, 3, 'scatter triple-barrel');
   assert.equal(rigs.rocket.userData.combat.barrels, 1, 'rocket single-tube');
-  assert.equal(rigs.rail.userData.combat.barrels, 1, 'rail single-beam');
   assert.equal(rigs.mine.userData.combat.barrels, 0, 'mine layer has no barrel');
   assert.equal(rigs.shield.userData.combat.barrels, 0, 'shield has no barrel');
   assert.equal(art.projectile('bogus').userData.combat.kind, 'pulse', 'unknown bolt falls back');
   assert.equal(art.weapon('bogus').userData.combat.kind, 'pulse', 'unknown rig falls back');
+  assert.equal(art.sentry, undefined, `${tag} sentry() retired`);
+  assert.equal(art.spikes, undefined, `${tag} spikes() retired`);
+  for (const kind of ['rail', 'grenade', 'emp', 'bomb', 'sentry', 'spikes']) {
+    assert.equal(art.weapon(kind).userData.combat.kind, 'pulse', `${tag} retired rig ${kind} normalizes`);
+    assert.equal(art.projectile(kind).userData.combat.kind, 'pulse', `${tag} retired shot ${kind} normalizes`);
+  }
+  // Every kept kind returns exactly the requested kind (no aliasing).
+  for (const kind of ['pulse', 'scatter', 'mine', 'rocket', 'seeker', 'proximity', 'shield', 'nuke']) {
+    assert.equal(art.weapon(kind).userData.combat.kind, kind, `${tag} weapon(${kind}) kind`);
+  }
+  for (const kind of ['pulse', 'scatter', 'rocket', 'seeker', 'proximity', 'nuke']) {
+    assert.equal(art.projectile(kind).userData.combat.kind, kind, `${tag} projectile(${kind}) kind`);
+  }
 
   assert.deepEqual(COMBAT_ART_BUDGETS, { pickup: 8, projectile: 4, weapon: 6, mine: 4 });
   assert.ok(meshesOf(pickup).length <= 8, `${tag} pickup budget`);
@@ -220,9 +237,7 @@ function checkSilhouettes(bundle, tag) {
     const cy = (b.min.y + b.max.y) / 2;
     assert.ok(Math.abs(cx) < 0.05 && Math.abs(cy) < 0.05, `${tag} ${kind} centered`);
     assert.ok(s.x / 2 <= 0.45 && s.y / 2 <= 0.45, `${tag} ${kind} hull <= .45`);
-    if (kind === 'rail') {
-      assert.ok(s.z > 25 * Math.max(s.x, s.y), `${tag} rail remains an energy streak`);
-    } else {
+    {
       const body = meshesOf(shots[kind]).find(m => m.name.endsWith('Body'));
       const bodySize = sizeOf(body);
       const range = { pulse: [1.25, 1.6], scatter: [.9, 1.2], rocket: [1.6, 2.1] }[kind];
@@ -238,10 +253,6 @@ function checkSilhouettes(bundle, tag) {
   assert.ok(sizes.pulse.z > sizes.scatter.z + 0.2, `${tag} pulse longer than scatter`);
   assert.ok(Math.max(sizes.pulse.x, sizes.pulse.y) < Math.max(sizes.scatter.x, sizes.scatter.y),
     `${tag} pulse slimmer than scatter`);
-  assert.ok(sizes.rail.z > sizes.pulse.z, `${tag} rail is the longest shot`);
-  assert.ok(Math.max(sizes.rail.x, sizes.rail.y) < Math.max(sizes.pulse.x, sizes.pulse.y),
-    `${tag} rail is slimmer than pulse`);
-  assert.ok(Math.max(sizes.rail.x, sizes.rail.y) / 2 <= 0.25, `${tag} rail lateral radius <= .25`);
   assert.ok(sizes.rocket.z > sizes.scatter.z, `${tag} rocket longer than scatter`);
   {
     const b = boundsOf(ownMine);
@@ -348,9 +359,9 @@ function checkFullMatch(bundle, tag) {
   const { pickup, shots, ownMine, rigs } = bundle;
   const rigMesh = RIG_KINDS.map((k) => meshesOf(rigs[k]).length);
   const load = rigMesh[0] * 2 + rigMesh[1] * 2 + rigMesh[2] + rigMesh[3] +
-    rigMesh[4] + rigMesh[5] +
+    rigMesh[4] * 2 +
     meshesOf(shots.pulse).length * 4 + meshesOf(shots.scatter).length * 4 +
-    meshesOf(shots.rocket).length * 4 + meshesOf(shots.rail).length * 4 +
+    meshesOf(shots.rocket).length * 8 +
     meshesOf(ownMine).length * 8 + meshesOf(pickup).length * 6;
   assert.ok(load < 180, `${tag} typical full match under 180, saw ${load}`);
 }
@@ -364,7 +375,7 @@ const artObj = createKartCombatArt(THREE, { assets: assetsObj });
 
 for (const [label, art] of [['root', artRoot], ['map', artMap], ['obj', artObj]]) {
   assert.equal(meshesOf(art.pickup()).length, 6, `assets ${label}: pickup meshes`);
-  assert.equal(meshesOf(art.projectile('rail')).length, 3, `assets ${label}: rail shot meshes`);
+  assert.equal(meshesOf(art.projectile('scatter')).length, 3, `assets ${label}: scatter shot meshes`);
   assert.equal(meshesOf(art.weapon('rocket')).length, 3, `assets ${label}: rocket rig meshes`);
   assert.ok(art.weapon('rocket').getObjectByName('RocketMuzzle'), `assets ${label}: GLB names`);
 }
@@ -405,15 +416,12 @@ checkFullMatch(glb, 'glb');
   assert.ok(glb.shots.pulse.getObjectByName('BoltPulseTracer'), 'pulse tracer present');
   assert.ok(glb.shots.scatter.getObjectByName('BoltScatterBody'), 'scatter uses BoltScatter variant');
   assert.ok(glb.shots.rocket.getObjectByName('RocketShotFins'), 'rocket shot finned');
-  assert.ok(glb.shots.rail.getObjectByName('RailShotFins'), 'rail shot finned');
   assert.ok(glb.shots.pulse.getObjectByName('BoltPulse'), 'pulse keeps its branch');
   assert.ok(!glb.shots.pulse.getObjectByName('BoltScatter'), 'pulse drops the scatter branch');
   assert.ok(glb.shots.scatter.getObjectByName('BoltScatter'), 'scatter keeps its branch');
   assert.ok(!glb.shots.scatter.getObjectByName('BoltPulse'), 'scatter drops the pulse branch');
   assert.ok(!glb.shots.rocket.getObjectByName('BoltPulse') &&
     !glb.shots.rocket.getObjectByName('BoltScatter'), 'rocket is its own model');
-  assert.ok(!glb.shots.rail.getObjectByName('BoltPulse') &&
-    !glb.shots.rail.getObjectByName('BoltScatter'), 'rail is its own model');
   assert.equal(meshesOf(glb.shots.pulse).length, 3, 'pulse variant is 3 meshes, not the whole Bolt');
   assert.ok(glb.ownMine.getObjectByName('MineGlow'), 'mine prop keeps its glow');
   assert.ok(!glb.ownMine.getObjectByName('MineRack'), 'mine prop drops the rig rack');
@@ -423,7 +431,6 @@ checkFullMatch(glb, 'glb');
   assert.ok(glb.rigs.scatter.getObjectByName('ScatterMuzzles'), 'scatter triple muzzles');
   assert.ok(glb.rigs.shield.getObjectByName('ShieldCore'), 'shield emitter core');
   assert.ok(glb.rigs.rocket.getObjectByName('RocketTrim'), 'rocket launcher trim');
-  assert.ok(glb.rigs.rail.getObjectByName('RailCoil'), 'rail cannon coils');
   for (const kind of RIG_KINDS) {
     let tips = 0;
     glb.rigs[kind].traverse((o) => { if (o.name.endsWith('MuzzleTip')) tips += 1; });
@@ -432,7 +439,7 @@ checkFullMatch(glb, 'glb');
   // Muzzles calibrated from the GLB tips (float32 tolerance).
   const wantMuzzle = {
     pulse: [0, 0.3, 1.1], scatter: [0, 0.42, 0.9], mine: [0, 0.5, 0],
-    shield: [0, 0.48, 0], rocket: [0, 0.65, 0.98], rail: [0, 0.35, 1.2],
+    shield: [0, 0.48, 0], rocket: [0, 0.65, 0.98],
   };
   for (const kind of RIG_KINDS) {
     const got = glb.rigs[kind].userData.combat.muzzle;
@@ -463,8 +470,8 @@ checkFullMatch(glb, 'glb');
   const before = poolOf(kinds);
   const extra = [];
   for (let i = 0; i < 60; i++) {
-    extra.push(artRoot.pickup(), artRoot.projectile(SHOT_KINDS[i % 4]),
-      artRoot.mine(i % 2 === 0), artRoot.weapon(RIG_KINDS[i % 6]));
+    extra.push(artRoot.pickup(), artRoot.projectile(SHOT_KINDS[i % SHOT_KINDS.length]),
+      artRoot.mine(i % 2 === 0), artRoot.weapon(RIG_KINDS[i % RIG_KINDS.length]));
   }
   const after = poolOf([...kinds, ...extra]);
   assert.deepEqual(after.geos, before.geos, 'GLB churn adds no geometries');
@@ -480,7 +487,7 @@ checkFullMatch(glb, 'glb');
   assert.ok(onlyPickup.pickup().getObjectByName('PickupBadge'), 'present model uses GLB');
   assert.ok(onlyPickup.projectile('pulse').getObjectByName('PulseBody'), 'missing shot falls back');
   const noOpts = createKartCombatArt(THREE);
-  assert.ok(noOpts.weapon('rail').getObjectByName('RailCannon'), 'no opts falls back');
+  assert.ok(noOpts.weapon('rocket').getObjectByName('RocketLauncher'), 'no opts falls back');
 }
 
 /* ---- fallback path: full contract without assets ---- */
@@ -495,13 +502,11 @@ checkFullMatch(fbb, 'fallback');
     assert.ok(fbb.pickup.getObjectByName(n), `fallback pickup part ${n}`);
   }
   assert.ok(fbb.rigs.rocket.getObjectByName('RocketLauncher'), 'fallback rocket rig');
-  assert.ok(fbb.rigs.rail.getObjectByName('RailCannon'), 'fallback rail rig');
   assert.ok(fbb.shots.rocket.getObjectByName('RocketFins'), 'fallback rocket fins');
-  assert.ok(fbb.shots.rail.getObjectByName('RailFins'), 'fallback rail fins');
   const a = [fb.pickup(), fb.projectile('pulse'), fb.projectile('rocket'), fb.mine(true),
-    fb.weapon('rail'), fb.weapon('rocket')];
+    fb.weapon('shield'), fb.weapon('rocket')];
   const bb = [fb.pickup(), fb.projectile('pulse'), fb.projectile('rocket'), fb.mine(true),
-    fb.weapon('rail'), fb.weapon('rocket')];
+    fb.weapon('shield'), fb.weapon('rocket')];
   assert.deepEqual(poolOf(bb).geos, poolOf(a).geos, 'fallback geometries shared');
   assert.deepEqual(poolOf(bb).mats, poolOf(a).mats, 'fallback materials shared');
   assert.equal(a[0].getObjectByName('PickupCorners').material,
@@ -512,9 +517,9 @@ checkFullMatch(fbb, 'fallback');
 {
   const swarm = [];
   for (let i = 0; i < 500; i++) {
-    swarm.push(artRoot.pickup(), artRoot.projectile(SHOT_KINDS[i % 4]),
-      artRoot.mine(i % 2 === 0), artRoot.weapon(RIG_KINDS[i % 6]));
-    swarm.push(fb.pickup(), fb.projectile(SHOT_KINDS[(i + 1) % 4]));
+    swarm.push(artRoot.pickup(), artRoot.projectile(SHOT_KINDS[i % SHOT_KINDS.length]),
+      artRoot.mine(i % 2 === 0), artRoot.weapon(RIG_KINDS[i % RIG_KINDS.length]));
+    swarm.push(fb.pickup(), fb.projectile(SHOT_KINDS[(i + 1) % SHOT_KINDS.length]));
   }
   assert.equal(swarm.length, 3000, '3000 props churned');
   const pooled = poolOf(swarm);
@@ -525,7 +530,7 @@ checkFullMatch(fbb, 'fallback');
 /* ---- dispose(): factory-owned exactly once, GLB library untouched ---- */
 {
   const art = createKartCombatArt(THREE, { assets: library });
-  const props = [art.pickup(), art.projectile('pulse'), art.projectile('rail'),
+  const props = [art.pickup(), art.projectile('pulse'), art.projectile('scatter'),
     art.mine(true), art.mine(false), art.weapon('rocket'), art.weapon('mine')];
   const { geos, mats } = poolOf(props);
   const libPool = poolOf([library]);
@@ -553,8 +558,8 @@ checkFullMatch(fbb, 'fallback');
 }
 {
   const art = createKartCombatArt(THREE);
-  const all = [art.pickup(), art.projectile('pulse'), art.projectile('rail'),
-    art.mine(true), art.weapon('rocket'), art.weapon('rail')];
+  const all = [art.pickup(), art.projectile('pulse'), art.projectile('scatter'),
+    art.mine(true), art.weapon('rocket'), art.weapon('shield')];
   const { geos, mats } = poolOf(all);
   assert.ok(geos.size > 10 && mats.size > 10, 'fallback pool covers every prop kind');
   const counts = new Map();
@@ -567,7 +572,7 @@ checkFullMatch(fbb, 'fallback');
   for (const [r, n] of counts) assert.equal(n, 1, `${r.name || r.type} disposed once`);
   art.dispose();
   for (const [r, n] of counts) assert.equal(n, 1, 'second dispose is a no-op');
-  const fresh = art.projectile('rail');
+  const fresh = art.projectile('scatter');
   assert.ok(Number.isFinite(sizeOf(fresh).z), 'fallback rebuilds after dispose');
   art.dispose();
 }
@@ -576,7 +581,7 @@ checkFullMatch(fbb, 'fallback');
 // mounted muzzle must agree with that authority at every heading.
 for (const assets of [library, null]) {
   const art=createKartCombatArt(THREE,{assets});
-  for(const kind of ['pulse','scatter','rocket','rail']) {
+  for(const kind of ['pulse','scatter','rocket','seeker','proximity','nuke']) {
     const kart=new THREE.Group(),rig=art.weapon(kind);kart.add(rig);art.placeWeapon(rig,{x:0,y:.8,z:2});
     for(const yaw of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
       kart.position.set(11,0,-5);kart.rotation.y=yaw;kart.updateMatrixWorld(true);
@@ -587,7 +592,7 @@ for (const assets of [library, null]) {
   art.dispose();
 }
 // Exercise the exact shipping lookup. Individual legacy combat.glb tests
-// missed the secondary pack's smaller centered canister and y=0 MineTrap.
+// missed the y=0 MineTrap and the arsenal pack's dynamite BombShot.
 const oldSelf=globalThis.self,oldImageBitmap=globalThis.createImageBitmap;
 globalThis.self=globalThis;
 globalThis.createImageBitmap=async blob=>{
@@ -602,7 +607,7 @@ try {
   }
   const get=name=>shipping.pulse.getObjectByName(name)||shipping.arsenal.getObjectByName(name)||
     (name!=='ScatterShot'&&shipping.secondary.getObjectByName(name))||shipping.combat.getObjectByName(name);
-  assert(get('MineTrap')&&get('GrenadeShot'),'shipping lookup selects authored trap and secondary grenade');
+  assert(get('MineTrap')&&get('BombShot'),'shipping lookup selects authored trap and dynamite charge');
   const exhaustArt=createKartCombatArt(THREE,{assets:{get}});
   for(const kind of ['rocket','seeker','nuke']){
     const shot=exhaustArt.projectile(kind),again=exhaustArt.projectile(kind),c=shot.userData.combat;
@@ -616,34 +621,32 @@ try {
   }
   assert.notEqual(exhaustArt.projectile('rocket').userData.combat.tail.material.color.getHex(),exhaustArt.projectile('seeker').userData.combat.tail.material.color.getHex(),'rocket and seeker exhaust are visually distinct');
   exhaustArt.dispose();
-  const sourceMineBounds=boundsOf(get('MineTrap')),sourceGrenadeBounds=boundsOf(get('GrenadeShot'));
+  const sourceMineBounds=boundsOf(get('MineTrap')),sourceChargeBounds=boundsOf(get('BombShot'));
   const sourceMineVertices=meshesOf(get('MineTrap')).map(o=>Array.from(o.geometry.attributes.position.array));
   for(const [tag,assets]of [['shipping',{get}],['fallback',null]]) {
-    const art=createKartCombatArt(THREE,{assets}),grenade=art.projectile('grenade'),second=art.projectile('grenade');
+    const art=createKartCombatArt(THREE,{assets}),charge=art.projectile('proximity'),second=art.projectile('proximity');
     const mine=art.mine(true),foe=art.mine(false);
     for(const prop of [mine,foe]) {
       const box=boundsOf(prop);approx(box.min.y,0,1e-6,tag+' deployed mine has actual ground baseline');
       assert(box.max.y>.1,tag+' mine remains visible above its support');
     }
-    const box=boundsOf(grenade),c=grenade.userData.combat;
-    approx(box.min.y,-.45,1e-6,tag+' canister bottom matches physical sphere');
-    approx(box.max.y,.45,1e-6,tag+' canister height represents .45m radius');
-    approx(box.max.z,c.tipZ,1e-6,tag+' scaled tip metadata follows actual geometry');
-    approx(box.min.z,c.tailZ,1e-6,tag+' scaled tail metadata follows actual geometry');
-    assert.deepEqual(boundsOf(second),box,tag+' cached calibration matches every pooled instance');
-    const buffers=meshesOf(grenade).map(o=>o.geometry.attributes.position.array);
-    for(const reduced of [false,true])for(let i=0;i<180;i++) {
-      art.animate(grenade,1/60,i/60,reduced);art.animate(mine,1/60,i/60,reduced);
-      const g=boundsOf(grenade),m=boundsOf(mine);
-      // Root adds .45 to accepted g.y, on flat or raised support. The
-      // physical bottom must therefore remain the animated visual bottom.
-      for(const ground of [0,.79,3.4,5.8])approx(g.min.y+ground+.45,ground,1e-6,tag+' animated canister never floats/buries');
-      approx(m.min.y,0,1e-6,tag+' animated mine baseline stays on support');
+    const box=boundsOf(charge),c=charge.userData.combat;
+    if(assets) {
+      assert(charge.getObjectByName('BombShotDynamite'),'shipping proximity is the dynamite BombShot');
+      assert.equal(c.tail?.name,'BombShotLamp','shipping proximity tail is the authored lamp');
+      approx(box.max.z,c.tipZ,1e-6,tag+' charge tip metadata follows actual geometry');
+      approx(box.min.z,c.tailZ,1e-6,tag+' charge tail metadata follows actual geometry');
     }
-    const after=meshesOf(grenade);for(let i=0;i<after.length;i++)assert.strictEqual(after[i].geometry.attributes.position.array,buffers[i],tag+' animation retains source buffer');
+    assert.deepEqual(boundsOf(second),box,tag+' every pooled charge matches');
+    const buffers=meshesOf(charge).map(o=>o.geometry.attributes.position.array);
+    for(const reduced of [false,true])for(let i=0;i<180;i++) {
+      art.animate(charge,1/60,i/60,reduced);art.animate(mine,1/60,i/60,reduced);
+      approx(boundsOf(mine).min.y,0,1e-6,tag+' animated mine baseline stays on support');
+    }
+    const after=meshesOf(charge);for(let i=0;i<after.length;i++)assert.strictEqual(after[i].geometry.attributes.position.array,buffers[i],tag+' animation retains source buffer');
     if(assets) {
       assert.deepEqual(boundsOf(get('MineTrap')),sourceMineBounds,'factory never shifts source MineTrap');
-      assert.deepEqual(boundsOf(get('GrenadeShot')),sourceGrenadeBounds,'factory never scales source GrenadeShot');
+      assert.deepEqual(boundsOf(get('BombShot')),sourceChargeBounds,'factory never scales source BombShot');
       assert.deepEqual(meshesOf(get('MineTrap')).map(o=>Array.from(o.geometry.attributes.position.array)),sourceMineVertices,'source trap vertices retained');
     }
     art.dispose();

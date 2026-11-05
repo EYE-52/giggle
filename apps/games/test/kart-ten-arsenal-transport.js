@@ -23,13 +23,13 @@ async function pickupSeeds(){
       if(!w.snapshot().crates.some(c=>c.position.x===-64&&c.position.z===-50))continue;
       for(let n=0;n<480;n++){
         const s=w.snapshot('p0'),k=s.karts[0];
-        if(k.weapon){if(['seeker','bomb'].includes(k.weapon)&&result[k.weapon]===undefined)result[k.weapon]=seed;break;}
+        if(k.weapon){if(['seeker','proximity'].includes(k.weapon)&&result[k.weapon]===undefined)result[k.weapon]=seed;break;}
         if(n%6===0)assert.ok(w.input('p0',{instance:s.instance,seq:s.you.receivedSeq+1,life:s.you.life,controlEpoch:s.you.controlEpoch,brake:0,nitro:false,use:false,...toward(k.pose,{x:-64,z:-49})},s.serverAt).ok);
         w.advance(s.serverAt+config.fixedDt*1000);
       }
     }finally{w.dispose();}
   }
-  ok(result.seeker!==undefined&&result.bomb!==undefined,'bounded seeds use actual authored-spawn crate collection for both new items');
+  ok(result.seeker!==undefined&&result.proximity!==undefined,'bounded seeds use actual authored-spawn crate collection for both new items');
   return result;
 }
 
@@ -40,7 +40,7 @@ const physicsFactory=P.createKartPhysics,references=new Map();let lastWorld;
 require.cache[require.resolve(${JSON.stringify(path.join(ROOT,'games/engines/kart-physics.js'))})].exports={...P,createKartPhysics:function(...args){const world=physicsFactory.apply(this,args),entry={world,config:args[1],disposed:false};lastWorld=entry;return Object.freeze({...world,dispose(){entry.disposed=true;return world.dispose();}});}};
 const C=require(${JSON.stringify(path.join(ROOT,'games/engines/kart-elevated-combat.js'))});
 const inspectSeeker=${inspectSeeker.toString()};
-const original=C.createElevatedCombat,records=[],fixed=${JSON.stringify([seeds.seeker,seeds.bomb,seeds.bomb])};
+const original=C.createElevatedCombat,records=[],fixed=${JSON.stringify([seeds.seeker,seeds.proximity,seeds.proximity])};
 function capture(record,view){record.phase=view.phase;record.snapshots.push({simTick:view.simTick,simAt:view.simAt,karts:view.karts,phase:view.phase,projectiles:view.projectiles,grenades:view.grenades,events:view.events});if(record.snapshots.length>120)record.snapshots.shift();}
 C.createElevatedCombat=(R,config,map,seats,options)=>{
   const index=records.length,match=original(R,config,map,seats,{...options,seed:fixed[index]??fixed[0]});
@@ -136,10 +136,10 @@ async function compare(server,client,frame,kind){
   const item=frame[kind][0],original=raw[kind].find(s=>s.id===item.id);
   eq(item.weapon,original.weapon,'weapon id survives authority→adapter→Room→WS');eq(item.position,rounded(original.position),'physical item position survives compact projection');eq(item.velocity,rounded(original.velocity),'physical item velocity survives compact projection');
   if(kind==='grenades'){
-    eq(item.warning,original.landed&&original.arm<=1e-8,'Bomb warning follows landed arming');
+    eq(item.warning,original.landed&&original.arm<=1e-8,'Proximity Bomb warning follows landed arming');
     eq(item.radius,+original.radius.toFixed(3),'dynamite body radius survives compact projection');
     eq(item.landed,original.landed,'real landing state survives compact projection');eq(item.armed,original.armed,'armed state survives compact projection');
-    eq(item.ttl,+original.ttl.toFixed(3),'quiet Bomb lifetime survives compact projection');eq(item.fuse,0,'proximity charges have no timed detonation fuse');
+    eq(item.ttl,+original.ttl.toFixed(3),'quiet Proximity Bomb lifetime survives compact projection');eq(item.fuse,0,'proximity charges have no timed detonation fuse');
   }
   ok(finite(item),'item wire payload is finite');
   return original;
@@ -196,15 +196,15 @@ async function main(){
     ok(second.instanceId!==first.instanceId,'host rematch creates a new instance');eq(second.inputAck.receivedSeq,0,'rematch starts neutral sequence');eq(second.totals,total1,'rematch does not replay previous Room awards');eq(second.mapId,'harbor','host rematch retains normal Harbor settings');
     action(a,{throttle:1,use:true},{i:first.instanceId,w:done1.w});await sleep(150);eq(a.state.inputAck.receivedSeq,0,'previous instance Use cannot spend in a fresh round');
     let records=await evidence(server),retired=records.find(r=>r.instance===first.instanceId);eq(retired.disposals,1,'Room rematch consumes one authority disposal');ok(retired.stats.physics.disposed&&retired.stats.physics.karts===0&&retired.stats.physics.statics===0,'retired world releases actual Rapier resources');
-    await until(()=>clients.every(c=>c.state.phase==='live'),'second production countdown',4500);await collect(a,'bomb');eq(kart(a).weapon,'bomb','Bomb inventory id survives normal transport');
-    action(a,{use:true,brake:1});action(a,{use:false,brake:1});await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='bomb')),'actual Bomb wire body');
-    const bombFrame=frames(a).find(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='bomb'));await compare(server,a,bombFrame,'grenades');eq(bombFrame.grenades[0].warning,false,'Bomb initially has no premature warning');
-    await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='bomb'&&g.warning)),'real Bomb landed arming warning',3000);
-    const warning=frames(a).find(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='bomb'&&g.warning));await compare(server,a,warning,'grenades');ok(warning.grenades[0].landed&&warning.grenades[0].armed,'public warning requires real landing and completed arming');
-    await until(()=>frames(watcher).some(f=>f.instanceId===warning.instanceId&&f.simTick===warning.simTick),'watcher Bomb warning tick');eq(frames(watcher).find(f=>f.instanceId===warning.instanceId&&f.simTick===warning.simTick).grenades,warning.grenades,'watcher receives identical public Bomb warning/body');
-    await until(()=>a.state.grenades.length===0,'unused Bomb quietly reaches its bounded lifetime',13000);
-    eq(new Set(frames(a).flatMap(f=>f.instanceId===second.instanceId?f.events.filter(e=>e.type==='blast'&&e.weapon==='bomb').map(e=>e.id):[])).size,0,'unused proximity charge never fabricates a timed blast');
-    metrics.bomb={instance:second.instanceId,initialTick:bombFrame.simTick,armedTick:warning.simTick,armedTtl:warning.grenades[0].ttl,expiredQuietly:true};
+    await until(()=>clients.every(c=>c.state.phase==='live'),'second production countdown',4500);await collect(a,'proximity');eq(kart(a).weapon,'proximity','Proximity Bomb inventory id survives normal transport');
+    action(a,{use:true,brake:1});action(a,{use:false,brake:1});await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='proximity')),'actual Proximity Bomb wire body');
+    const chargeFrame=frames(a).find(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='proximity'));await compare(server,a,chargeFrame,'grenades');eq(chargeFrame.grenades[0].warning,false,'Proximity Bomb initially has no premature warning');
+    await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='proximity'&&g.warning)),'real Proximity Bomb landed arming warning',3000);
+    const warning=frames(a).find(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='proximity'&&g.warning));await compare(server,a,warning,'grenades');ok(warning.grenades[0].landed&&warning.grenades[0].armed,'public warning requires real landing and completed arming');
+    await until(()=>frames(watcher).some(f=>f.instanceId===warning.instanceId&&f.simTick===warning.simTick),'watcher Proximity Bomb warning tick');eq(frames(watcher).find(f=>f.instanceId===warning.instanceId&&f.simTick===warning.simTick).grenades,warning.grenades,'watcher receives identical public Proximity Bomb warning/body');
+    await until(()=>a.state.grenades.length===0,'unused Proximity Bomb quietly reaches its bounded lifetime',13000);
+    eq(new Set(frames(a).flatMap(f=>f.instanceId===second.instanceId?f.events.filter(e=>e.type==='blast'&&e.weapon==='proximity').map(e=>e.id):[])).size,0,'unused proximity charge never fabricates a timed blast');
+    metrics.proximity={instance:second.instanceId,initialTick:chargeFrame.simTick,armedTick:warning.simTick,armedTtl:warning.grenades[0].ttl,expiredQuietly:true};
     await until(()=>clients.every(c=>c.state.phase==='done'),'full second production 60 s deadline',64000);eq(a.state.result.endedAt,second.deadline,'second result remains clock anchored');const total2={...a.state.totals};await sleep(150);eq(a.state.totals,total2,'second terminal result consumes awards once');
     await start(clients);eq(a.state.totals,total2,'second rematch cannot replay totals');send(a,{t:'lobby'});
     await until(async()=>{const r=await evidence(server);return r.length===3&&r.every(v=>v.disposals===1);},'explicit lobby retires third authority exactly once');

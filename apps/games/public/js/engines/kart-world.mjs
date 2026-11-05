@@ -290,6 +290,75 @@ function speckle(ctx, w, h, rnd, n, colors, alpha, smin, smax) {
   ctx.globalAlpha = 1;
 }
 
+// Offsets that redraw a shape across a tile edge so the tile wraps.
+function wrapOffsets(x, y, r, w, h) {
+  const out = [[0, 0]];
+  const xs = x < r ? [w] : x > w - r ? [-w] : [], ys = y < r ? [h] : y > h - r ? [-h] : [];
+  for (const ox of xs) out.push([ox, 0]);
+  for (const oy of ys) out.push([0, oy]);
+  for (const ox of xs) for (const oy of ys) out.push([ox, oy]);
+  return out;
+}
+
+// Short tapered grass blades leaning a little either way.
+function bladeStrokes(ctx, w, h, rnd, n, colors, alpha, lmin, lmax) {
+  ctx.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const x = rnd() * w, y = rnd() * h, l = lmin + rnd() * (lmax - lmin), lean = (rnd() - .5) * l * .7;
+    ctx.globalAlpha = alpha * (.45 + rnd() * .55);
+    ctx.strokeStyle = colors[(rnd() * colors.length) | 0];
+    ctx.lineWidth = .8 + rnd() * 1.1;
+    for (const [ox, oy] of wrapOffsets(x, y, l, w, h)) {
+      ctx.beginPath(); ctx.moveTo(x + ox, y + oy); ctx.lineTo(x + ox + lean, y + oy - l); ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+// One seamless lawn tile: blade layers, soil flecks, clover, rare flowers.
+function lawnTile(ctx, w, h, rnd, base) {
+  const c = new Array(3), r = (base >> 16) & 255, g = (base >> 8) & 255, b = base & 255;
+  const shade = (k, dg = 0) => `rgb(${Math.min(255, r * k) | 0},${Math.min(255, (g + dg) * k) | 0},${Math.min(255, b * k) | 0})`;
+  ctx.fillStyle = shade(1); ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 26; i++) { // soft patches of lighter and darker turf
+    const x = rnd() * w, y = rnd() * h, rad = 30 + rnd() * 70;
+    for (const [ox, oy] of wrapOffsets(x, y, rad, w, h)) {
+      ctx.fillStyle = rnd() > .5 ? 'rgba(255,255,190,0.045)' : 'rgba(0,30,10,0.06)';
+      ctx.beginPath(); ctx.arc(x + ox, y + oy, rad, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  speckle(ctx, w, h, rnd, 900, ['#4a3a22', '#2f2818'], .18, 1, 2.2);
+  bladeStrokes(ctx, w, h, rnd, 3400, [shade(.72), shade(.86), shade(1.12, 12), shade(1.25, 18)], .55, 4, 11);
+  for (let i = 0; i < 18; i++) { // clover clumps: three round leaves
+    const x = rnd() * w, y = rnd() * h, s = 2.4 + rnd() * 1.8;
+    ctx.fillStyle = shade(1.18, 22);
+    for (const [ox, oy] of wrapOffsets(x, y, s * 3, w, h)) for (let k = 0; k < 3; k++) {
+      const a = k * 2.094 + rnd() * .3;
+      ctx.beginPath(); ctx.arc(x + ox + Math.cos(a) * s, y + oy + Math.sin(a) * s, s, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  speckle(ctx, w, h, rnd, 70, ['#ffffff', '#fff3a8', '#f4c4ff'], .9, 1.6, 2.6);
+  bladeStrokes(ctx, w, h, rnd, 900, [shade(1.35, 24), shade(.65)], .5, 3, 7);
+  void c;
+}
+
+// Mown stripes and broad colour drift from world position: two multiplies
+// per pixel, no extra textures, so it stays cheap on phones.
+function lawnShader(material) {
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vLawn;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvLawn = (modelMatrix * vec4(transformed, 1.0)).xz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec2 vLawn;')
+      .replace('#include <map_fragment>', `#include <map_fragment>
+  float lawnStripe = smoothstep(.4, .6, abs(fract(vLawn.x / 7.0) * 2.0 - 1.0));
+  float lawnDrift = sin(vLawn.x * .043 + 1.3) * cos(vLawn.y * .051 - .4) + .5 * sin((vLawn.x + vLawn.y) * .11);
+  diffuseColor.rgb *= mix(.8, 1.12, lawnStripe) * (1.0 + .09 * lawnDrift);`);
+  };
+  material.customProgramCacheKey = () => 'kart-lawn-v1';
+}
+
 /* ---- procedural fallback props (used only when a GLB template is absent) ---
  * Simple shaded originals sharing the module's fallback materials. Root QA
  * runs with the real Kenney templates; these keep Node checks meaningful. */
@@ -506,6 +575,7 @@ export function createKartWorld(THREE, options) {
   const fallbackFor = (key) => () => buildFallback(THREE, key, fallbackMats);
 
   /* ---- painted ground: verge + circuit plaza (paint only) ---- */
+  const lawnTheme = theme !== 'frost' && theme !== 'neon';
   const grassTex = canvasTexture(THREE, 512, 512, (ctx, w, h) => {
     ctx.fillStyle = hexCss(S.verge);
     ctx.fillRect(0, 0, w, h);
@@ -530,16 +600,17 @@ export function createKartWorld(THREE, options) {
       }
       speckle(ctx, w, h, trnd, 1400, ['#7fd4ff', '#0a1424', '#3a5a7a'], 0.08, 1, 2);
     } else {
-      // Mown stripes + speckle: a kept park lawn, not flat color.
-      // Grove keeps the original stream; garden draws from its own.
-      const R = theme === 'grove' ? rnd : trnd;
-      for (let i = 0; i < 8; i++) {
-        ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.05)' : 'rgba(0,40,10,0.06)';
-        ctx.fillRect(0, (i * h) / 8, w, h / 8);
-      }
-      speckle(ctx, w, h, R, 2200, ['#ffffff', '#0a3a1a', '#d8f3c8'], 0.07, 1, 3);
+      // A ~6 m tile of lawn: blade strokes in several greens, soil flecks,
+      // clover clumps and a few tiny flowers. Mown stripes and broad colour
+      // drift come from world position in the shader (lawnShader below), so
+      // the tile can repeat without reading as wallpaper.
+      lawnTile(ctx, w, h, theme === 'grove' ? rnd : trnd, S.verge);
     }
-  });
+  }, lawnTheme ? { repeat: [1, 1] } : undefined);
+  const grassBump = lawnTheme ? canvasTexture(THREE, 256, 256, (ctx, w, h) => {
+    ctx.fillStyle = '#7a7a7a'; ctx.fillRect(0, 0, w, h);
+    bladeStrokes(ctx, w, h, mulberry32(7711), 2600, ['#b8b8b8', '#3c3c3c', '#9c9c9c'], .55, 3, 7);
+  }, { repeat: [1, 1] }) : null;
   // One authored set of paths drives road paint and sharp geometry dashes.
   // Thin lane marks cannot resolve on a whole-map 117-metre texture atlas.
   const roadRoutes=[];
@@ -602,9 +673,15 @@ export function createKartWorld(THREE, options) {
     for(const point of route.points)point.multiplyScalar(routeScale);
     route.width*=routeScale;
   }
-  const asphaltTex = terrain?canvasTexture(THREE,128,128,(ctx,w,h)=>{
+  const asphaltTex = terrain?canvasTexture(THREE,256,256,(ctx,w,h)=>{
     ctx.fillStyle=hexCss(S.track);ctx.fillRect(0,0,w,h);
-    speckle(ctx,w,h,mulberry32(6105),2800,[hexCss(S.trackDark),'#7a8989','#abb4ac'],.12,.5,1.2);
+    // Worn asphalt: soft darker rubbered patches and pale aggregate, wrapped
+    // so the 3 m tile repeats seamlessly along the ribbons.
+    const R=mulberry32(6105);
+    for(let i=0;i<14;i++){const x=R()*w,y=R()*h,rx=18+R()*46,ry=8+R()*22,a=R()*Math.PI;
+      for(const [ox,oy]of wrapOffsets(x,y,Math.max(rx,ry),w,h)){ctx.fillStyle=`rgba(10,12,16,${.05+R()*.06})`;ctx.beginPath();ctx.ellipse(x+ox,y+oy,rx,ry,a,0,Math.PI*2);ctx.fill();}}
+    speckle(ctx,w,h,R,5200,[hexCss(S.trackDark),'#7a8989','#abb4ac'],.14,.6,1.6);
+    speckle(ctx,w,h,R,260,['#d9dfd6'],.22,1,2);
   },{repeat:[1,1]}):canvasTexture(THREE, 1024, 1024, (ctx, w, h) => {
     ctx.fillStyle = hexCss(theme === 'garden' ? S.verge : S.track);
     ctx.fillRect(0, 0, w, h);
@@ -826,6 +903,14 @@ export function createKartWorld(THREE, options) {
   const grassMat = std(0xffffff, { roughness: 1 });
   if (grassTex) grassMat.map = grassTex;
   else grassMat.color.set(S.verge);
+  if (lawnTheme) {
+    // The driving ground's UVs span the whole arena; the lawn tile repeats
+    // every ~6 m, with a matching blade bump and world-space stripes.
+    const tiles = Math.max(6, Math.round(half * 2 / 6));
+    if (grassTex) grassTex.repeat.set(tiles, tiles);
+    if (grassBump) { grassBump.colorSpace = THREE.NoColorSpace; grassBump.repeat.set(tiles, tiles); grassMat.bumpMap = grassBump; grassMat.bumpScale = .6; }
+    lawnShader(grassMat);
+  }
   const asphaltMat = std(0xffffff, { roughness: 0.94 });
   if (asphaltTex) asphaltMat.map = asphaltTex;
   else asphaltMat.color.set(S.track);
@@ -901,7 +986,7 @@ export function createKartWorld(THREE, options) {
   if(terrain){
     const layers=buildTerrainRoads(terrain,roadRoutes,{
       curbColors:[new THREE.Color(S.kerbA).toArray(),new THREE.Color(S.kerbB).toArray()],
-      markingColor:new THREE.Color(S.line).toArray(),
+      markingColor:new THREE.Color(S.line).toArray(),fieldBound:half*.8,
       shoulderColor:new THREE.Color(theme==='frost'?0xaac7db:quarry?0xa69d87:theme==='neon'?0x526170:0x7f8864).toArray(),
     });
     for(const [key,data]of Object.entries(layers)){

@@ -2,10 +2,10 @@
  * and a flat progress lane per racer. Built on the game kit.
  * Contracts: {typed}, {next:true} (host, results). */
 import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
-import { hudHtml, roundLabel, waitingHtml, resultsHtml } from '../kit.js';
+import { hudHtml, roundLabel, waitingHtml, resultsHtml, paintLiveStrip, timerSlotState } from '../kit.js';
 import { readInputCapabilities } from '../toolkit/input-capabilities.mjs';
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css']];
+const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css']];
 
 let lastKey = '';
 let current = null;
@@ -20,6 +20,7 @@ function paintClock(el, S, api) {
   const left = S.endsAt > 0 && !S.preparing && S.phase !== 'done' ? countdown(S.endsAt, api?.now) : null;
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
+  timerSlotState(slot, left === null ? 0 : S.endsAt, typeof api?.now === 'function' ? api.now() : Date.now());
   slot.classList?.toggle('is-urgent', left !== null && left <= 5 && S.phase === 'race');
 }
 function runClock(el, S, api) {
@@ -39,8 +40,8 @@ function laneColor(pid) {
   return ['#d82f73', '#26a37e', '#d99a1e', '#8f7bd0'][h % 4];
 }
 
-export default {
-  styles: ['/css/compact-answer-games.css'],
+const view = {
+  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css'],
   ownsTimer: true,
   dispose() {
     if (clock !== null) clearInterval(clock);
@@ -243,3 +244,17 @@ function paintLanes(el, S) {
     if (meta) meta.textContent = finish ? `${(finish.ms / 1000).toFixed(2)}s` : `${Math.round(pct * 100)}%`;
   }
 }
+
+function liveOpts(S) {
+  const done = S.phase === 'roundEnd' ? S.last?.finished || [] : S.finished || [];
+  return { acted: done.map((f) => f.pid), verb: 'Finished', waiting: S.phase === 'race' ? 'Typing' : false,
+    gains: S.phase === 'roundEnd' ? Object.fromEntries(done.map((f) => [f.pid, f.pts || 0])) : {} };
+}
+
+/* Every screen ends with the live strip (who has acted, scores, rounds). */
+const paintScreen = view.render;
+view.render = function render(el, S, api) {
+  paintScreen.call(this, el, S, api);
+  if (S.phase !== 'done') paintLiveStrip(el.querySelector?.('.wg'), S, { family: 'arcade', ...liveOpts(S) });
+};
+export default view;

@@ -2,7 +2,7 @@
  * picks the truth from the mix. Built on the game kit
  * (public/css/game-ui.css, public/js/kit.js). */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer } from '../kit.js';
+import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 let liveTimerEl = null;
 
@@ -123,18 +123,26 @@ function bluffHtml(S, watch) {
   return scene(S, 'Write a bluff', `<h2 class="gk-prompt">${esc(S.fact?.prompt || '')}</h2>${body}`);
 }
 
+function liveOpts(S) {
+  if (S.phase === 'reveal' && S.last) return { waiting: false, gains: S.last.points || {} };
+  if (S.phase === 'pick') return { acted: S.picked || [], verb: 'Picked', waiting: 'Picking' };
+  return { acted: S.submitted || [], verb: 'Bluffed', waiting: 'Writing' };
+}
+
 export default {
-  styles: [CSS],
+  styles: ['/css/party-scenes.css', CSS],
   ownsTimer: true,
   dispose() { stopHudTimer(liveTimerEl); liveTimerEl = null; feedback = null; screenKey = ''; liveApi = null; liveEl = null; liveState = null; liveActionKey = ''; },
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') paintLiveStrip(el.querySelector?.('[data-scene="bluff"]'), S, liveOpts(S));
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },
 };
 
 function paint(el, S, api) {
+    ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
     ensureStylesheet('bluff-css', CSS);
     const feedbackKey = `${S.instanceId || ''}:${S.me}:${S.round}`;
     if (S.instanceId && !S.audioBaseline && !S.preparing && !S.spectator && feedback?.key === feedbackKey && feedback?.phase === 'pick' && S.phase === 'reveal' && S.last?.picks?.[S.me] && S.last.picks[S.me] === S.last.truthOid) {

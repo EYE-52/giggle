@@ -12,7 +12,7 @@
  * the shell owns the shared timer.
  */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { roundLabel, paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { roundLabel, paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 let feedback = null;
 
@@ -48,6 +48,7 @@ export function answerIcon(answer) {
 }
 
 function ensureCss() {
+  ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
   ensureStylesheet(CSS_ID, CSS_HREF);
 }
 
@@ -373,6 +374,14 @@ function tqHud(S, phase, label, badgeId) {
 
 function update(el, S, api) {
   paint(el, S, api);
+  if (S.phase === 'play' || S.phase === 'reveal') {
+    const asked = [...new Set((S.questions || []).map((q) => q.pid).filter((pid) => pid && pid !== S.answerer))];
+    const winner = S.phase === 'reveal' ? S.last?.winner : null;
+    paintLiveStrip(el.querySelector?.('.tq'), S, {
+      roles: { ...(S.answerer ? { [S.answerer]: 'Holds the word' } : {}), ...(winner ? { [winner]: 'Guessed it' } : {}) },
+      acted: S.phase === 'play' ? asked : [], verb: 'Asked', waiting: false,
+    });
+  }
   syncHudTimer(el, S, api);
 }
 function paint(el, S, api) {
@@ -400,7 +409,7 @@ function paint(el, S, api) {
 }
 
 export default {
-  styles: ['/css/twenty-questions.css'],
+  styles: ['/css/party-scenes.css', '/css/twenty-questions.css'],
   ownsTimer: true,
   mount() {
     feedback = null;
