@@ -258,7 +258,10 @@ function wire(el, api) {
     // even desk margin and sits centred; a frame cut to the paper's shape
     // (phones) is filled edge to edge.
     const banded = Math.abs(r.width / r.height - 880 / 520) > 0.04;
-    const margin = zoom > 1 || !banded ? 0 : Math.min(16, r.width * 0.03, r.height * 0.04);
+    // When height limits the paper, the side bands already frame it: spend no
+    // height on a margin there, so the drawing surface stays as large as it can.
+    const heightBound = r.width / r.height > 880 / 520;
+    const margin = zoom > 1 || !banded || heightBound ? 0 : Math.min(16, r.width * 0.03, r.height * 0.04);
     const scale = Math.min((r.width - 2 * margin) / 880, (r.height - 2 * margin) / 520) * zoom;
     const width = 880 * scale, height = 520 * scale;
     panX = Math.max(-Math.max(0, (width - r.width) / 2), Math.min(Math.max(0, (width - r.width) / 2), panX));

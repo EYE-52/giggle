@@ -20,7 +20,7 @@
  * readable without pushing Challenge/Players down when it arrives. */
 .wc #wcFeedback { min-height: 2.9em; min-height: 2lh; }
 @media (max-width: 480px) {
-  .wc #wcFeedback { min-height: 4.35em; min-height: 3lh; }
+  .wc #wcFeedback { min-height: 5.8em; min-height: 4lh; }
 }
 .wc .wc-ribbon { flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain; padding: 2px; scrollbar-width: thin; }
 .wc .wc-ribbon .wg-chip { flex: none; }
@@ -55,8 +55,7 @@
 .wc.ck .wc-target #wcFeedback.is-error { color: var(--danger); }
 .wc.ck .wc-target #wcFeedback.is-hint { color: var(--ink-dim); }
 .wc.ck .wc-waiting { justify-content: center; }
-/* The card, not the feedback line, reserves room for a two-line notice:
- * content sits centred, and a longer notice never moves the field below. */
-.wc.ck .wc-target { justify-content: center; min-height: calc(2 * var(--space-24) + 28px + 1.2em * 1 + 3em + 2 * var(--space-8) + 6px); }
+/* The card and the feedback line both reserve room for a two-line notice,
+ * and content sits from the top, so a notice never moves the word or field. */
+.wc.ck .wc-target { justify-content: flex-start; min-height: calc(2 * var(--space-24) + 28px + 1.2em * 1 + 3em + 2 * var(--space-8) + 6px); }
 .wc.ck .wc-target .wc-word { font-size: clamp(34px, 5vw, 48px); line-height: 1.2; }
-.wc.ck .wc-target #wcFeedback { min-height: 0; }

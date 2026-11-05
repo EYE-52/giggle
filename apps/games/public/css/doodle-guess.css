@@ -280,11 +280,11 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
  * data-family="create": sky family colour, sticker easel and chat, a dotted
  * desk around the paper, letter tiles for the hidden word, tool trays.
  * ========================================================================== */
-.sk-doodle.dg.ck { padding-bottom: calc(var(--space-24) + env(safe-area-inset-bottom, 0px)); }
+.sk-doodle.dg.ck { padding-bottom: calc(var(--space-8) + env(safe-area-inset-bottom, 0px)); }
 .dg.ck .dg-hud .gk-hud-timer { font: var(--text-button-sm); font-variant-numeric: tabular-nums; }
 .dg.ck .dg-word.sk-hintline b { color: var(--fam-deep); }
 .dg.ck .dg-tiles { justify-content: flex-start; gap: var(--space-4); }
-.dg.ck .dg-tiles .ck-tile { width: 32px; height: 38px; font-size: 20px; border-radius: var(--radius-sm); }
+.dg.ck .dg-tiles .ck-tile { width: 28px; height: 32px; font-size: 18px; border-radius: var(--radius-sm); }
 .dg.ck .dg-tiles .ck-tile.is-gap { width: var(--space-12); }
 @media (max-width: 700px) {
   .dg.ck .dg-tiles .ck-tile { width: 26px; height: 32px; font-size: 17px; }
@@ -294,7 +294,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 /* Easel and chat: stickers. */
 .dg.ck .dg-easel, .dg.ck .dg-chat { border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker-lg); }
 .dg.ck .dg-easel { overflow: visible; }
-.dg.ck .dg-frame { padding: var(--space-12); }
+.dg.ck .dg-frame { padding: var(--space-8); }
 /* The desk: a dotted family tint around the paper, never a grey band. */
 .dg.ck .sk-canvaswrap {
   border-radius: var(--radius-md);
@@ -310,7 +310,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 }
 
 /* View pill: Pan, zoom and Fit in one group with 44px targets. */
-.dg.ck .dg-zoom { justify-content: flex-end; padding: 0 var(--space-12) var(--space-12); }
+.dg.ck .dg-zoom { justify-content: flex-end; padding: 0 var(--space-12) var(--space-4); }
 .dg.ck .dg-zoom > * { flex: none; }
 .dg.ck .dg-zoom button { border-radius: var(--radius-pill); font: var(--text-button-sm); }
 .dg.ck .dg-zoom #dZoomIn, .dg.ck .dg-zoom #dZoomOut { font-size: 22px; }

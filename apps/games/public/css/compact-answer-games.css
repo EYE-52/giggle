@@ -176,7 +176,8 @@
   font: 800 clamp(26px, 3.2vw, 34px)/1.2 var(--font-display);
 }
 #gbody .wg.pl-fill .wg-status { min-height: 24px; text-align: center; color: var(--ink); font: 700 17px/1.4 var(--font-body); }
-#gbody .wg.pl-fill .wg-status:empty { display: none; }
+#gbody .wg.pl-fill .wg-status:empty { visibility: hidden; }
+#gbody .wg.pl-fill.rt #rStatus { min-height: 1.6em; }
 #gbody .wg.pl-fill .wg-status.is-good { color: var(--ink); }
 #gbody .wg.pl-fill .wg-row { border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-md); }
 #gbody .wg.pl-fill .wg-row.is-you { border-color: var(--outline); background: var(--fam-soft); }
