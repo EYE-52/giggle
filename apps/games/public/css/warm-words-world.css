@@ -36,3 +36,5 @@
 .ww.ck .ww-feed { padding: 2px 2px var(--space-8); }
 .ww.ck .ww-rules { margin-bottom: var(--space-16); }
 .ww.ck .wg-feed-empty { padding: var(--space-16); text-align: center; border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-lg); }
+.ww.ck .ww-fill { background: var(--fam); }
+.ww.ck .ww-best.is-empty { color: var(--ink-dim); }

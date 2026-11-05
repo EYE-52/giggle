@@ -57,3 +57,27 @@
 .sg.ck .sg-dots li.is-done { background: var(--fam-deep); border-color: var(--outline); }
 .sg.ck .sg-dots li.is-now { background: var(--fam); border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft); }
 .sg.ck .sg-dots li:not(.is-done):not(.is-now) { background: var(--card); border-color: var(--ink-dim); }
+/* A focused field scrolls clear of the sticky action bar. */
+.sg.ck .sg-entry .gk-input { scroll-margin-bottom: 112px; }
+/* The bar reads as a tray the list scrolls under: an ink top edge and a
+ * soft fade above it, never a strip that slices a field mid-way. */
+@media (max-width: 700px) {
+  .sg.ck .sg-actions { border-top: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--card); padding-top: var(--space-12); }
+  .sg.ck .sg-actions::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--space-24); background: linear-gradient(to top, var(--bg), transparent); pointer-events: none; }
+  .sg.ck .sg-actions .gk-actions { justify-content: stretch; }
+  .sg.ck .sg-actions .gk-btn { flex: 1 1 0; min-width: 0; white-space: nowrap; }
+  .sg.ck .sg-actions .wg-status { flex: 1 1 100%; }
+  .sg.ck .sg-actions .wg-status:empty { display: none; }
+}
+/* Final layout: no sticky bar over the list. On phones each category sits
+ * beside its field, so all five rows and Lock in fit on the first screen. */
+.sg.ck .sg-actions { position: static; margin-inline: 0; padding: 0; background: none; border: 0; border-radius: 0; }
+.sg.ck .sg-actions::before { content: none; }
+@media (max-width: 560px) {
+  .sg.ck .sg-fields { gap: var(--space-8); padding: var(--space-12); }
+  .sg.ck .sg-field { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--space-8); }
+  .sg.ck .sg-field label { font: var(--text-caption); font-weight: 800; color: var(--ink); gap: var(--space-4); }
+  .sg.ck .sg-n { width: 22px; height: 22px; }
+  .sg.ck .sg-entry .gk-input { min-height: var(--control-h-sm); padding-right: 3.6em; }
+  .sg.ck .sg-check { right: var(--space-8); }
+}

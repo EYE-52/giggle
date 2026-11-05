@@ -132,7 +132,7 @@ export default {
         + `<span class="sg-entry"><input class="gk-input" type="text" id="sc${i}" maxlength="40" value="${esc((S.mine || [])[i] || '')}" ${dis} placeholder="${esc(letter)}…" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="${i === arr.length - 1 ? 'done' : 'next'}" aria-describedby="scCheck${i}" />`
         + `<span class="sg-check" id="scCheck${i}" aria-live="polite"></span></span></div>`
       )).join('')}</div>`
-      + `<div class="sg-actions"><div class="gk-actions"><button class="gk-btn gk-primary" id="scLock" type="button" ${dis}>Lock in</button><button class="gk-btn" id="scSave" type="button" ${dis}>Save</button>`
+      + `<div class="sg-actions"><div class="gk-actions"><button class="gk-btn gk-primary" id="scLock" type="button" ${dis}>Lock in</button><button class="gk-btn" id="scSave" type="button" ${dis}>Save draft</button>`
       + `<p class="wg-status" id="scSaved" role="status"></p></div></div>`
       + `<div class="sg-table ck-card"><div class="ck-head"><h3>The table</h3>${roundDots(S)}</div>`
       + `<ul class="wg-chips" id="scTable" aria-label="Who is locked in">${tableChips(S)}</ul>`

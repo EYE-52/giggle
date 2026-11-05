@@ -49,7 +49,7 @@ function playerChips(S) {
     const mine = (S.history || []).filter((h) => h.pid === p.id && !h.hint);
     const best = mine.reduce((b, h) => (!b || h.rank < b.rank ? h : b), null);
     return `<li class="wg-chip${best && best.rank <= 10 ? ' is-done' : ''}">${esc(p.name)}${p.id === S.me ? ' (you)' : ''}`
-      + `<small>${mine.length ? `${mine.length} · best #${best.rank}` : 'No guesses yet'}</small></li>`;
+      + `<small>${mine.length ? `${mine.length} ${mine.length === 1 ? 'guess' : 'guesses'} · best #${best.rank}` : 'No guesses yet'}</small></li>`;
   }).join('');
 }
 
@@ -61,7 +61,7 @@ function paint(S) {
   if (bestBox && currentEl._wwBestKey !== bestKey) {
     const improving = !!currentEl._wwBestKey;
     currentEl._wwBestKey = bestKey;
-    bestBox.innerHTML = `<div class="gk-meta">Closest word so far</div><div class="ww-best">${esc(best?.word || 'Start anywhere')}</div>`
+    bestBox.innerHTML = `<div class="gk-meta">Closest word so far</div><div class="ww-best${best ? '' : ' is-empty'}">${esc(best?.word || 'No guesses yet')}</div>`
       + `<div class="ww-meta">${best ? `<span class="wg-tag ${heat.cls}">Rank #${best.rank}</span><span>${best.similarity.toFixed(2)}% similar · ${esc(heat.label)}</span>` : '<span>Try a word and see how close its meaning is.</span>'}</div>`;
     if (improving && !S.audioBaseline && !(typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)) bestBox.animate?.([{ opacity: 0.5 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' });
   }
