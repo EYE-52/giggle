@@ -1332,7 +1332,7 @@ module.exports = {
         const vx = physical?z.vx:Math.sin(z.angle) * speed;
         const vz = physical?z.vz:Math.cos(z.angle) * speed;
         return {
-          id: z.id, kind: z.kind || 'pulse',
+          id: z.id, owner: z.owner, kind: z.kind || 'pulse',
           x: +z.x.toFixed(physical?3:2), z: +z.z.toFixed(physical?3:2), angle: +z.angle.toFixed(3),
           speed,
           ttl: +Math.max(0, Number(z.ttl) || 0).toFixed(2),

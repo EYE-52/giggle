@@ -94,7 +94,7 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
  function emit(e){
   if(disposed||!e)return false;
   const type=e.type||e.kind,p=e.position;
-  if(!['impact','blast','collision'].includes(type)||!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)||!Number.isFinite(p.z))return false;
+  if(!['impact','blast','collision','ko'].includes(type)||!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)||!Number.isFinite(p.z))return false;
   if(e.id!=null){if(ids.includes(e.id))return false;ids[idHead]=e.id;idHead=(idHead+1)%ids.length;}
   if(type==='collision'){
    // Bumper contact is not an explosion: a small scuff at the solver's
@@ -120,12 +120,14 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
    if(strength>.25)particle(smoke,p.x,p.y,p.z,nx*.3,.45,nz*.3,.35,.20,.5+strength*.4,.9);
    dirty();return true;
   }
-  const explosion=type==='blast'||['rocket','seeker','nuke','proximity','mine'].includes(e.weapon);
-  // A Nuke blast reads at arena scale; the particle lifetimes stay the same.
-  const big=type==='blast'&&e.weapon==='nuke'?3.2:1;
+  const ko=type==='ko';
+  const explosion=ko||type==='blast'||['rocket','seeker','nuke','proximity','mine'].includes(e.weapon);
+  // A Nuke blast reads at arena scale and a knockout bursts big and bright;
+  // particle lifetimes stay the same, so nothing lingers.
+  const big=type==='blast'&&e.weapon==='nuke'?3.2:ko?1.7:1;
   if(explosion){
    for(const prior of pairs){
-    if(prior.paired||prior.type===type||time-prior.at>.12||(prior.pid!=null&&e.pid!=null&&prior.pid!==e.pid)||(prior.weapon!=null&&e.weapon!=null&&prior.weapon!==e.weapon)||(prior.tick!=null&&e.tick!=null&&prior.tick!==e.tick))continue;
+    if((prior.paired&&!ko)||prior.type===type||time-prior.at>.12||(prior.pid!=null&&e.pid!=null&&prior.pid!==e.pid)||(prior.weapon!=null&&e.weapon!=null&&prior.weapon!==e.weapon)||(prior.tick!=null&&e.tick!=null&&prior.tick!==e.tick))continue;
     if(Math.abs(prior.x-p.x)+Math.abs(prior.y-p.y)+Math.abs(prior.z-p.z)>.04)continue;
     prior.paired=true;return false; // opposite impact/blast representation of the same contact
    }
@@ -151,10 +153,10 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
    if(!Number.isFinite(length)||length<1e-6){nx=0;ny=1;nz=0;length=1;}nx/=length;ny/=length;nz/=length;
    let bx=Math.abs(ny)>.9?1:-nz,by=0,bz=Math.abs(ny)>.9?0:nx;length=Math.hypot(bx,by,bz);bx/=length;bz/=length;
    const cx=ny*bz,cy=nz*bx-nx*bz,cz=-ny*bx;
-   for(let i=0;i<(explosion?12:6);i++){
-    const a=i*2.399963,speed=explosion?4+(i%3):3+(i%3),side=explosion?1:.4;
+   for(let i=0;i<(ko?40:explosion?12:6);i++){
+    const a=i*2.399963,speed=ko?6+(i%5)*1.4:explosion?4+(i%3):3+(i%3),side=explosion?1:.4;
     const dx=nx+side*(Math.cos(a)*bx+Math.sin(a)*cx),dy=ny+side*(Math.cos(a)*by+Math.sin(a)*cy),dz=nz+side*(Math.cos(a)*bz+Math.sin(a)*cz);
-    particle(embers,p.x,p.y,p.z,dx*speed,dy*speed,dz*speed,explosion?.38:.2,explosion?.11:.075,.02,i*.51);
+    particle(embers,p.x,p.y,p.z,dx*speed,dy*speed+(ko?2.5:0),dz*speed,ko?.6:explosion?.38:.2,ko?.2:explosion?.11:.075,.02,i*.51);
    }
   }
   dirty();return true;

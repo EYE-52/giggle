@@ -12,7 +12,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { createKartAudio, CUE_NAMES, ASSET_MAP, LOOP_MAP, COLLISION_VARIANTS, ASSET_BASE, PACK_VERSION } from '../public/js/engines/kart-audio.mjs';
+import { createKartAudio, CUE_NAMES, ASSET_MAP, LOOP_MAP, COLLISION_VARIANTS, ASSET_BASE, PACK_VERSION, WEAPON_POP } from '../public/js/engines/kart-audio.mjs';
 
 let passed = 0;
 function ok(cond, msg) {
@@ -336,7 +336,7 @@ for(const opts of [{noPan:true},{panThrows:true}])await withGlobals({document:ma
   ok(!/^\s*import\s/m.test(src), 'contract: no imports (no new dependencies)');
   ok(!/getUserMedia|getDisplayMedia|MediaStream/.test(src), 'contract: audio-only, never microphone capture');
   ok(!/setInterval|setTimeout|requestAnimationFrame/.test(src), 'contract: no timers (frame-driven only)');
-  ok(!/createOscillator/.test(src), 'contract: no oscillators in normal playback (sample-based)');
+  ok((src.match(/createOscillator\(\)/g)||[]).length === 3, 'contract: oscillators only in the engine voice, weapon pops and the warning beep');
   const V1_CUES = ['boost', 'ko', 'mine', 'pickup', 'pulse', 'respawn', 'rocket', 'scatter', 'shield'];
   ok(V1_CUES.every((n) => CUE_NAMES.includes(n)),
     'contract: original cue names preserved (rail retired)');
@@ -388,7 +388,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok(audio.unlock() === true, 'unlock: graph builds');
   ok(ctx.state === 'running' && stats.resumes === 1, 'unlock: resumes suspended ctx');
   ok(stats.comp === 1, 'unlock: safety compressor in chain');
-  ok(stats.osc === 0, 'unlock: zero oscillators (sample-based graph)');
+  ok(stats.osc === 3, 'unlock: three-oscillator synthesized engine voice');
   ok(loader.calls.length === FILE_COUNT, `unlock: one request per sample (got ${loader.calls.length})`);
   for (const f of [...Object.values(LOOP_MAP), ...Object.values(ASSET_MAP)]) {
     const want = `assets/karts/audio/${f}?v=${PACK_VERSION}`;
@@ -460,14 +460,19 @@ await withGlobals({ document: makeEmitter() }, async () => {
 
   ok(audio.update({ speed: 0, throttle: 0, active: true }) === true, 'sampled: idle update applies');
   const idleBus = g.engineBus.value;
-  ok(g.idleG.value>.49&&g.loadG.value<.001,'sampled: idle uses its own recorded putter');
+  ok(g.idleG.value>.19&&g.loadG.value<.001,'sampled: idle uses its own recorded putter under the synth voice');
   const idleRate = engine.playbackRate.value;
   const filt = nodes.find((n) => n.kind === 'filter').frequency;
   ok(filt.value >= 1200, 'sampled: idle filter preserves recorded engine midrange');
   ok(idleBus > 0.15, `sampled: idle bed audible (bus ${idleBus.toFixed(2)})`);
   ok(idleRate >= 0.8 && idleRate <= 1.0, `sampled: idle rate near unity (${idleRate.toFixed(2)}x)`);
 
+  const synthOsc = nodes.filter((n) => n.kind === 'osc'), synthHz = synthOsc[0].frequency.value;
+  ok(synthOsc.length === 3 && synthOsc.every((o) => o.starts.length === 1), 'synth: three engine oscillators started once');
+  ok(synthHz >= 55 && synthHz <= 75, `synth: idle fires near 62 Hz (${synthHz.toFixed(0)})`);
   ok(audio.update({ speed: 12, throttle: 1, active: true }) === true, 'sampled: drive update applies');
+  ok(synthOsc[0].frequency.value > synthHz * 1.8, `synth: pitch climbs with speed (${synthOsc[0].frequency.value.toFixed(0)} Hz)`);
+  ok(Math.abs(synthOsc[1].frequency.value / synthOsc[0].frequency.value - 2.012) < 1e-6, 'synth: detuned octave square rides with the saw');
   const hotRate = engine.playbackRate.value;
   ok(hotRate > idleRate + 0.08, `sampled: rate rises with speed (${idleRate.toFixed(2)}->${hotRate.toFixed(2)}x)`);
   ok(hotRate <= 1.5, `sampled: lower-RPM idle recording stays inside tuned span (${hotRate.toFixed(2)}x <= 1.5x)`);
@@ -492,13 +497,13 @@ await withGlobals({ document: makeEmitter() }, async () => {
     ok(g.loadG.value===coast.load&&engine.playbackRate.value===coast.rate&&g.engineBus.value===coast.bus,
       `opposing pedal: braking at speed ${speed} does not rev the loaded engine`);
     audio.update({speed,throttle:Math.sign(speed),active:true});
-    ok(g.loadG.value>coast.load+.3&&engine.playbackRate.value>coast.rate+.05,
+    ok(g.loadG.value>coast.load+.12&&engine.playbackRate.value>coast.rate+.05,
       `travel pedal: acceleration at speed ${speed} restores engine load`);
   }
   audio.update({speed:0,throttle:-1,active:true});
-  ok(g.loadG.value>.4,'opposing pedal: reverse acceleration from rest still loads the engine');
+  ok(g.loadG.value>.15,'opposing pedal: reverse acceleration from rest still loads the engine');
   audio.update({speed:.2,throttle:-1,active:true});
-  ok(g.loadG.value>.4,'opposing pedal: near-rest threshold matches authority engine-force gate');
+  ok(g.loadG.value>.15,'opposing pedal: near-rest threshold matches authority engine-force gate');
   audio.update({speed:18,throttle:1,active:true});
   ok(g.loadG.value>pressed.load*.95&&engine.playbackRate.value>coastRate+.05,'accelerator: load/revs return at unchanged road speed');
   for(let i=0;i<120;i++)audio.update({speed:18,throttle:i%3-1,active:true});
@@ -512,6 +517,13 @@ await withGlobals({ document: makeEmitter() }, async () => {
   audio.update({ speed: 8, throttle: 1, boost: 2, active: true });
   ok(filt.value > plainFilter, 'sampled: boost opens the filter');
   ok(engine.playbackRate.value > plainRate, 'sampled: boost lifts playback rate');
+  ctx.currentTime += 2; audio.update({ speed: 8, throttle: 1, boost: 0, active: true });
+  const beforeBlip = synthOsc[0].frequency.value;
+  audio.update({ speed: 8, throttle: 1, boost: true, active: true });
+  const blipped = synthOsc[0].frequency.value;
+  ok(blipped > beforeBlip * 1.25, 'synth: a fresh boost blips the revs');
+  ctx.currentTime += 1; audio.update({ speed: 8, throttle: 1, boost: true, active: true });
+  ok(synthOsc[0].frequency.value < blipped * .85, 'synth: the blip settles while boost is held');
 
   // Drift/skid: looped bed gain rides slide speed only.
   ok(audio.update({ speed: 8, throttle: 1, drifting: true, active: true }) === true, 'drift: update applies');
@@ -559,7 +571,7 @@ await withGlobals({document:makeEmitter()},async()=>{
   const brakeRate=load.playbackRate.value;
   ok(g.loadG.value===0,'temporal: opposing pedal plus stale boost stays unloaded while braking');
   frame(23.2,-1,{speed:-6});
-  ok(g.loadG.value>.5&&load.playbackRate.value>brakeRate-.25,'temporal: reverse travel restores recorded engine load');
+  ok(g.loadG.value>.2&&load.playbackRate.value>brakeRate-.25,'temporal: reverse travel restores recorded engine load');
   frame(23.4,1);const plainRate=load.playbackRate.value;
   frame(23.5,1,{boost:true});
   ok(load.playbackRate.value>plainRate+.07,'temporal: nitro has a distinct but bounded rev lift');
@@ -599,17 +611,18 @@ await withGlobals({ document: makeEmitter() }, async () => {
     const fresh = nodes.slice(from);
     const voices = fresh.filter((n) => n.kind === 'buf');
     const oscs = fresh.filter((n) => n.kind === 'osc');
-    ok(oscs.length === 0, `cue: ${name} uses zero oscillators`);
+    ok(oscs.length === (WEAPON_POP[name] ? 1 : 0), `cue: ${name} adds ${WEAPON_POP[name] ? 'one bounded pop' : 'no'} oscillator`);
+    if (oscs.length) ok(oscs[0].starts.length === 1 && oscs[0].stops.length === 1, `cue: ${name} pop has a bounded start/stop`);
     ok(voices.length === 1, `cue: ${name} schedules one sample voice`);
     ok(voices[0].buffer && voices[0].buffer.duration > 0, `cue: ${name} carries a decoded buffer`);
     ok(voices[0].loop === false, `cue: ${name} one-shot, not looped`);
-    const peak = fresh.filter((n) => n.gain).map((n) => n.gain.max);
+    const peak = fresh.filter((n) => n.gain).map((n) => n.gain.max).slice(oscs.length);
     ok(peak.length === 1 && peak[0] >= 0.14 && peak[0] <= 0.4 + 1e-9,
       `cue: ${name} modest peak (${peak[0].toFixed(2)}, audible not clipping)`);
     ok(voices[0].starts.length === 1 && voices[0].stops.length === 1,
       `cue: ${name} voice bounded start/stop`);
   }
-  ok(stats.osc === 0, 'cue: whole session used zero oscillators');
+  ok(stats.osc === 3 + CUE_NAMES.filter((n) => WEAPON_POP[n]).length, 'cue: engine voice plus one pop per weapon cue');
   audio.dispose();
 });
 
@@ -855,9 +868,9 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok((await audio.ready()) === false, 'fail: ready reports the outage');
   ok(audio.status().failed.length === FILE_COUNT, 'fail: every sample marked failed');
   ok(audio.update({ speed: 10, active: true }) === true, 'fail: update runs silent');
-  ok(loopSourcesOf(nodes).length === 0 && stats.starts === 0,
-    'fail: silent beds, no fallback buzz (zero sources started)');
-  ok(stats.osc === 0, 'fail: outage never falls back to oscillators');
+  ok(loopSourcesOf(nodes).length === 0 && stats.starts === stats.osc,
+    'fail: no sample beds start; only the synthesized engine voice runs');
+  ok(stats.osc === 3, 'fail: an outage adds no oscillators beyond the engine voice');
   ok(audio.cue('ko') === false, 'fail: cue drops quietly');
   const callsAfterFail = loader.calls.length;
   for (let i = 0; i < 60; i++) {
@@ -986,7 +999,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok((await audio.ready()) === false, 'abort: ready stays false after dispose');
   ok(loopSourcesOf(nodes).length === 0, 'abort: late decodes start zero beds');
   ok(cueVoicesOf(nodes).length === 0, 'abort: late decodes schedule zero cues');
-  ok(stats.starts === 0, 'abort: zero sources ever started');
+  ok(stats.starts === stats.osc && bufSourcesOf(nodes).every((n) => n.starts.length === 0), 'abort: no sample source ever started (only the engine voice)');
   ok(audio.cue('ko') === false, 'abort: cue stays inert');
 });
 
@@ -1007,7 +1020,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok((await audio.ready()) === true, 'degraded: samples still decode');
   ok(audio.update({ speed: 9, drifting: true, active: true }) === true, 'degraded: update runs silent');
   ok(audio.cue('ko') === false, 'degraded: cue refuses without buffer sources');
-  ok(thin.stats.osc === 0, 'degraded: no oscillator fallback');
+  ok(thin.stats.osc <= 3, 'degraded: no oscillators beyond the engine voice');
   audio.dispose();
 
   // Sound preference from the root (api.context().sound / pb_sound).

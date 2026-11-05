@@ -6,6 +6,7 @@
 
 const HEART = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 28 4.6 16.6C-1.4 10.2 6.4 1.4 16 9.2c9.6-7.8 17.4 1 11.4 7.4Z"/></svg>';
 export const SHAKE_MS = 260;
+export const BANNER_MS = 1600;
 
 function restart(element, name) {
   element.removeAttribute(name);
@@ -42,9 +43,13 @@ export function createKartHitFeedback(host, { reducedMotion = () => false } = {}
   const layer = document.createElement('div');
   layer.className = 'kart-hitfx';
   layer.setAttribute('aria-hidden', 'true');
-  layer.innerHTML = '<i class="kart-hitfx-flash"></i><i class="kart-hitfx-marker"></i><b class="kart-hitfx-toast"></b>';
+  layer.innerHTML = '<i class="kart-hitfx-flash"></i><i class="kart-hitfx-marker"></i><b class="kart-hitfx-toast"></b><b class="kart-hitfx-banner"></b>';
   host.append(layer);
-  const [flash, marker, toast] = layer.children;
+  const [flash, marker, toast, banner] = layer.children;
+  // The knockout banner styles itself (the HUD stylesheets stay untouched)
+  // and fades on a fixed Web Animations timer.
+  banner.style.cssText = 'position:absolute;left:50%;top:26%;transform:translateX(-50%);padding:10px 22px;border-radius:14px;background:rgba(20,16,32,.82);color:#fff;font:900 clamp(18px,4.2vw,30px)/1.1 system-ui,sans-serif;letter-spacing:.01em;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis;box-shadow:0 0 0 3px #ffd34a,0 8px 24px rgba(0,0,0,.35);opacity:0';
+  let bannerRun = null;
   let shakeAt = -Infinity;
   const offset = { x: 0, y: 0 };
   return {
@@ -57,6 +62,15 @@ export function createKartHitFeedback(host, { reducedMotion = () => false } = {}
       toast.textContent = text;
       restart(toast, 'data-on');
     },
+    knockout(name) {
+      banner.textContent = `Knocked out ${name}!`;
+      bannerRun?.cancel();
+      const frames = reducedMotion() ? [{ opacity: 1 }, { opacity: 1, offset: .8 }, { opacity: 0 }]
+        : [{ opacity: 0, transform: 'translateX(-50%) scale(.6)' }, { opacity: 1, transform: 'translateX(-50%) scale(1.08)', offset: .12 },
+          { opacity: 1, transform: 'translateX(-50%) scale(1)', offset: .25 }, { opacity: 1, offset: .8 }, { opacity: 0, transform: 'translateX(-50%) scale(1)' }];
+      bannerRun = banner.animate ? banner.animate(frames, { duration: BANNER_MS, easing: 'ease-out', fill: 'forwards' }) : null;
+      return banner.textContent;
+    },
     // Decaying camera offset in world units; zero once SHAKE_MS has passed.
     shake(now = performance.now()) {
       const t = (now - shakeAt) / SHAKE_MS;
@@ -66,7 +80,7 @@ export function createKartHitFeedback(host, { reducedMotion = () => false } = {}
       offset.y = Math.cos(t * 39) * amp * .7;
       return offset;
     },
-    dispose() { layer.remove(); },
+    dispose() { bannerRun?.cancel(); bannerRun = null; layer.remove(); },
   };
 }
 

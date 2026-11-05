@@ -35,6 +35,8 @@ import { createKartAudio } from './kart-audio.mjs';
 import { createKartCombatArt, projectileContactInset } from './kart-combat-art.mjs';
 import { createKartHealthBars } from './kart-health-bars.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
+import {createKartSkids,kartSliding} from './kart-skids.mjs';
+import {createKartThreats} from './kart-threats.mjs';
 import {createKartFeedback} from './kart-feedback.mjs';
 import { projectilePose, grenadePose } from './kart-flight.mjs';
 import {createGroundMarker,placeGroundMarker,placeGroundProp} from './kart-ground-markers.mjs';
@@ -1000,7 +1002,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let impactFX;
+    let impactFX,skids,threats;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1030,6 +1032,8 @@ export function createKartView(viewConfig) {
       disposeCombat=combat.dispose;
       healthBars=createKartHealthBars(THREE,scene);
       impactFX=createKartImpactFX(THREE,scene,{reducedMotion:()=>rm});
+      skids=createKartSkids(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});
+      threats=createKartThreats(THREE,scene,rootEl.querySelector('.pk'),{reducedMotion:()=>rm,beep:level=>audio?.beep?.(level)});
       const zoneGeo = new THREE.RingGeometry(2.22, 2.4, 36);
       const zoneMat = new THREE.MeshBasicMaterial({color:0xffd961,transparent:true,opacity:0.16,depthWrite:false,side:THREE.DoubleSide});
       const crateZoneMat = new THREE.MeshBasicMaterial({color:0x72e8f0,transparent:true,opacity:0.16,depthWrite:false,side:THREE.DoubleSide});
@@ -1120,12 +1124,12 @@ export function createKartView(viewConfig) {
         updateAudio();
         const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
         if(feedbackEpoch!==impactEpoch){
-          impactFX.reset();impactEpoch=feedbackEpoch;
+          impactFX.reset();skids.reset();threats.clear();impactEpoch=feedbackEpoch;
           for(const cue of shotCues)cue.object.visible=false;
           for(const e of combatEffects.values())returnMarker(e.mesh);
           combatEffects.clear();popSites.length=0;effectSeen.clear();
         }
-        impactFX.update(effectDt);
+        impactFX.update(effectDt);skids.update(effectDt);
         if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
@@ -1195,6 +1199,7 @@ export function createKartView(viewConfig) {
             if(inner)inner.position.y=physicsConfig.chassis.modelOriginY;
             mesh.quaternion.set(physical.rotation.x,physical.rotation.y,physical.rotation.z,physical.rotation.w);
           }else{if(inner)inner.position.y=0;mesh.rotation.y=pose.angle;}
+          skids.track(k.pid,mesh.position.x,mesh.position.z,pose.angle,kartSliding(k,pose,k.pid===S.you&&intentForPrediction().throttle<0));
           healthBars.update(k.pid,k,mesh.position,(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
           const equipped=k.ammo>0?k.weapon:null;
           if(mesh.userData.equipped!==equipped) {
@@ -1238,7 +1243,7 @@ export function createKartView(viewConfig) {
           if (!live.has(pid)) {
             scene.remove(mesh);
             karts.delete(pid);
-            healthBars.remove(pid);
+            healthBars.remove(pid);skids.forget(pid);
           }
         }
         // Stars: sync set, spin unless reduced motion.
@@ -1380,17 +1385,19 @@ export function createKartView(viewConfig) {
         }
         const shake=hitFx?.shake(nowMs());
         if(shake&&(shake.x||shake.y)){shakeOffset.set(shake.x,shake.y,0).applyQuaternion(camera.quaternion);camera.position.add(shakeOffset);}
+        const ownKart=me&&S.youDrive&&!(me.respawn>0)?karts.get(me.pid):null;
+        threats.update(ordnanceFresh()&&S.phase==='drive'?S:null,S.you,ownKart?.position,camera,nowMs());
         healthBars.face(camera);
         if (typeof hooks.sceneExtra === 'function') {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();} };
+      return { scene, camera, frame, dispose: () => {disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();skids.dispose();threats.dispose();} };
     } catch (error) {
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
       healthBars?.dispose();
-      impactFX?.dispose();
+      impactFX?.dispose();skids?.dispose();threats?.dispose();
       helper.disposeObject(scene);
       throw error;
     }
@@ -2006,6 +2013,7 @@ export function createKartView(viewConfig) {
       const mineEvent = event.pid === S.you;
       if(event.other===S.you&&event.type==='hit')hitFx?.hurt(nowMs());
       if(mineEvent&&event.other&&event.other!==S.you&&['hit','ko','block'].includes(event.type))hitFx?.landed(landedText(event));
+      if(mineEvent&&event.type==='ko'&&event.other&&event.other!==S.you)hitFx?.knockout(nameOf(event.other));
       if (event.type === 'pickup' && mineEvent) {
         const label = ITEMS[event.weapon]?.label || 'Item';
         if (!tutorialSeen()) {

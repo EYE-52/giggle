@@ -80,7 +80,7 @@ function project(raw, map, settings) {
         grounded: k.pose.grounded, speed: number(k.pose.speed), epoch: k.pose.epoch,
         wheels: k.pose.wheels.map(w => ({ length: number(w.length, 4), rotation: number(w.rotation, 4), steering: number(w.steering, 4) })) } })),
     crates: raw.crates.map(c => ({ id: c.id, position: vector(c.position), available: c.available })),
-    projectiles: raw.projectiles.map(p => ({ id: p.id, owner: p.owner, weapon: p.weapon,
+    projectiles: raw.projectiles.map(p => ({ id: p.id, owner: p.owner, weapon: p.weapon, ...(p.targetId ? { targetId: p.targetId } : {}),
       position: vector(p.position), velocity: vector(p.velocity), radius: number(p.radius), ttl: number(p.ttl) })),
     mines: raw.mines.map(m => ({ id: m.id, owner: m.owner, position: vector(m.position), normal: vector(m.normal),
       radius:number(m.radius), arm: number(m.arm), ttl: number(m.ttl), armed: m.armed })),

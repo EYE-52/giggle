@@ -78,7 +78,7 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
     createThreeView:(stage,options)=>new Promise(resolve=>loads.push({stage,options,resolve,settled:false})),
     matchMedia:()=>({matches:reduced}),
   });
-  vm.runInContext(fs.readFileSync(repo+'/public/js/engines/kart-hearts.mjs','utf8').replace(/^export /gm,''),context);
+  for(const file of ['kart-hearts','kart-skids','kart-threats'])vm.runInContext(fs.readFileSync(repo+'/public/js/engines/'+file+'.mjs','utf8').replace(/^export /gm,''),context);
   const file=repo+'/public/js/engines/kart-elevated-view.js';vm.runInContext(fs.readFileSync(file,'utf8').replace(/^import .*;\n/gm,'').replace("const {GLTFLoader}=await import('../../vendor/three/loaders/GLTFLoader.js');",'const GLTFLoader=LocalLoader;').replace("const {mergeGeometries}=await import('../../vendor/three/utils/BufferGeometryUtils.js');",'const mergeGeometries=()=>null;').replace('cramped=clearCamera(cameraPosition,cameraTarget)||cramped;', 'const preClearEye=cameraPosition.toArray();cramped=clearCamera(cameraPosition,cameraTarget)||cramped;').replace('camera.lookAt(target);','camera.userData.cameraTrace={preClearEye,sideSettling,sideMode,sideYaw};camera.lookAt(target);').replace('export function createElevatedKartView','function createElevatedKartView')+'\nglobalThis.view=createElevatedKartView();',context,{filename:file});
   const view=context.view;view.mount(el,api);
   const node=name=>el.querySelector('[data-'+name+']')||roomMenu?.querySelector('[data-'+name+']');
@@ -304,7 +304,7 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
   const fresh=structuredClone(same);fresh.simAt=2150;fresh.simTick=43;fresh.karts[1].alive=false;
   fresh.events=[{id:'fresh-after-hitch',type:'ko',pid:'a',other:'b',position:{x:10,y:1,z:0}}];
   r.render(fresh);r.frame(.1);
-  const sparks=()=>gl.built.scene.children.filter(o=>o.isInstancedMesh&&o.visible);
+  const sparks=()=>gl.built.scene.children.filter(o=>o.isInstancedMesh&&o.visible&&o.name!=='KartSkidMarks');
   const victim=gl.built.scene.children.filter(o=>o.name==='GiggleKart')[1];
   check('fresh KO after a700ms frame hitch receives its first wreck and spark draw',victim.visible&&sparks().length>0);
   r.advance(800);r.frame(.1);
@@ -361,7 +361,7 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
   }
   const r=rig({graphics:true});r.render();await r.settle();r.frame();
   check('all combat variants compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===2&&r.renderStats.warmFrames===2);
-  const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.isInstancedMesh);
+  const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.isInstancedMesh&&o.name!=='KartSkidMarks');
   check('all twelve prepared particle buffers remain attached after warming',effectPool.length===12&&effectPool.every(o=>o.parent===built.scene&&!o.visible));
   const projectilePool=built.scene.children.filter(o=>o.userData.combat?.type==='projectile');
   for(const [kind,radius]of Object.entries(COMBAT.staticSweepRadii)){
@@ -639,7 +639,7 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
 // Invisible shield/flame and mounted combat props are not base kart bounds.
 function baseKartBounds(model,box){
   box.makeEmpty();const meshBox=new THREE.Box3();
-  model.userData.kart.inner.traverse(mesh=>{if(!mesh.isMesh||mesh.name==='BoostFlame'||mesh.name==='RespawnShield'||mesh.name==='InvincibilityTrail')return;for(let p=mesh.parent;p&&p!==model.userData.kart.inner;p=p.parent)if(p.userData.combat)return;mesh.geometry.computeBoundingBox();box.union(meshBox.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld));});return box;
+  model.userData.kart.inner.traverse(mesh=>{if(!mesh.isMesh||mesh.name==='BoostFlame'||mesh.name==='RespawnShield'||mesh.name==='InvincibilityTrail'||mesh.name==='KartContactShadow')return;for(let p=mesh.parent;p&&p!==model.userData.kart.inner;p=p.parent)if(p.userData.combat)return;mesh.geometry.computeBoundingBox();box.union(meshBox.copy(mesh.geometry.boundingBox).applyMatrix4(mesh.matrixWorld));});return box;
 }
 // Public authority pose captured during native Harbor ramp-side reverse contact.
 // Real model bounds must remain on screen when world clearance shortens the eye.
@@ -727,7 +727,7 @@ for(const aspect of [1,390/844,844/390,568/320,1024/768])for(const frameMs of [1
   for(let elapsed=0;elapsed<=packets.at(-1).elapsedMs;elapsed+=frameMs){
     while(next<packets.length&&packets[next].elapsedMs<=elapsed){snapshot.simAt=packets[next].simAt;snapshot.simTick++;snapshot.karts[0].pose=packets[next++].pose;r.render(snapshot);}
     r.frame(frameMs/1000);r.advance(frameMs);camera.updateMatrixWorld();model.updateMatrixWorld(true);baseKartBounds(model,box);
-    model.userData.kart.inner.traverse(mesh=>{if(!mesh.isMesh||mesh.name==='BoostFlame'||mesh.name==='RespawnShield'||mesh.name==='InvincibilityTrail')return;for(let p=mesh.parent;p&&p!==model.userData.kart.inner;p=p.parent)if(p.userData.combat)return;mesh.geometry.computeBoundingBox();const box=mesh.geometry.boundingBox;for(let b=0;b<8;b++){corner.set(b&1?box.max.x:box.min.x,b&2?box.max.y:box.min.y,b&4?box.max.z:box.min.z).applyMatrix4(mesh.matrixWorld).project(camera);const inside=Math.abs(corner.x)<1&&Math.abs(corner.y)<1&&corner.z>-1&&corner.z<1;{if(!inside&&!firstFailure)firstFailure={elapsed,name:mesh.name,position:model.position.toArray(),eye:camera.position.toArray(),ndc:corner.toArray(),trace:camera.userData.cameraTrace};framed&&=inside;}}});
+    model.userData.kart.inner.traverse(mesh=>{if(!mesh.isMesh||mesh.name==='BoostFlame'||mesh.name==='RespawnShield'||mesh.name==='InvincibilityTrail'||mesh.name==='KartContactShadow')return;for(let p=mesh.parent;p&&p!==model.userData.kart.inner;p=p.parent)if(p.userData.combat)return;mesh.geometry.computeBoundingBox();const box=mesh.geometry.boundingBox;for(let b=0;b<8;b++){corner.set(b&1?box.max.x:box.min.x,b&2?box.max.y:box.min.y,b&4?box.max.z:box.min.z).applyMatrix4(mesh.matrixWorld).project(camera);const inside=Math.abs(corner.x)<1&&Math.abs(corner.y)<1&&corner.z>-1&&corner.z<1;{if(!inside&&!firstFailure)firstFailure={elapsed,name:mesh.name,position:model.position.toArray(),eye:camera.position.toArray(),ndc:corner.toArray(),trace:camera.userData.cameraTrace};framed&&=inside;}}});
     for(const sample of samples){point.copy(sample.local).applyMatrix4(sample.mesh.matrixWorld);point.y=Math.max(.03,point.y);direction.subVectors(point,camera.position);ray.far=Math.max(0,direction.length()-.03);ray.set(camera.position,direction.normalize());const clear=ray.intersectObjects(solids,false).length===0;if(!clear&&!firstHidden)firstHidden={elapsed,name:sample.mesh.name};coreClear&&=clear;}
     const trace=camera.userData.cameraTrace,pre=new THREE.Vector3().fromArray(trace.preClearEye);
     if(previousEye){const step=camera.position.distanceTo(previousEye);if(step>maxStep){maxStep=step;peak={elapsed,position:model.position.toArray(),before:previousEye.toArray(),after:camera.position.toArray(),sideSettling:trace.sideSettling,sideYaw:trace.sideYaw};}if(trace.sideSettling&&step>sideMaxStep){sideMaxStep=step;sidePeak={elapsed,position:model.position.toArray(),sideYaw:trace.sideYaw};}if(trace.sideSettling){const old=previousEye.clone().sub(previousModel),offset=pre.clone().sub(model.position),angular=Math.abs(Math.atan2(Math.sin(Math.atan2(offset.z,offset.x)-Math.atan2(old.z,old.x)),Math.cos(Math.atan2(offset.z,offset.x)-Math.atan2(old.z,old.x)))),radial=Math.abs(Math.hypot(offset.x,offset.z)-Math.hypot(old.x,old.z));maxAngular=Math.max(maxAngular,angular);maxRadial=Math.max(maxRadial,radial);orbitSafe&&=angular<=Math.PI/2*frameMs/1000+1e-6&&radial<=8.5*Math.PI/2*frameMs/1000+1e-6;}}

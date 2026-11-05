@@ -57,7 +57,8 @@ for(const kind of ['pulse','scatter','rocket','seeker','proximity','nuke']){
 }
 for(const kind of ['scatter','rocket','seeker','proximity','nuke']){
   const shot=art.projectile(kind);check(shot.userData.combat.kind===kind,kind+' is not silently coerced to Pulse');
-  const box=new THREE.Box3().setFromObject(shot),size=box.getSize(new THREE.Vector3());
+  const glow=shot.getObjectByName('ShotGlow');check(glow?.isSprite&&glow.material.depthWrite===false,kind+' shot carries one additive glow');shot.remove(glow);
+  const box=new THREE.Box3().setFromObject(shot),size=box.getSize(new THREE.Vector3());shot.add(glow);
   check(size.toArray().every(n=>Number.isFinite(n)&&n>0)&&size.length()<3,kind+' actual shot has bounded physical art');
   if(['rocket','seeker','nuke'].includes(kind)){
     const c=shot.userData.combat,tail=c.tail;check(!!tail&&tail.material.isMeshBasicMaterial,kind+' exhaust is an unlit cosmetic mesh');
@@ -65,7 +66,7 @@ for(const kind of ['scatter','rocket','seeker','proximity','nuke']){
     // shares the player's visual/clearance envelope, even without collision.
     for(const reduced of [false,true])for(let i=0;i<60;i++){
       art.animate(shot,1/60,i/60,reduced);
-      const frameBox=new THREE.Box3().setFromObject(shot);
+      shot.remove(glow);const frameBox=new THREE.Box3().setFromObject(shot);shot.add(glow);
       check(frameBox.getSize(new THREE.Vector3()).length()<3,kind+' complete animated exhaust remains inside the same art budget');
     }
     const hull=new THREE.Box3().setFromObject(c.inner.children[0]);
