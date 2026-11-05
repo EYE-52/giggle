@@ -296,6 +296,17 @@
   .pk .pk-speed b { font-size:20px; }
   .pk #pk-map,.pk #pk-handling { display:none; }
   .pk .pk-helpbody { left:0; right:auto; bottom:calc(100% + 8px); width:min(280px,calc(100vw - 24px)); max-height:min(260px,calc(100dvh - 240px)); overflow:auto; }
+  /* Phone Safari's short viewport frames your kart low: a slim card keeps
+   * it in view. Nitro charge rides on the bolt button's ring and drifting
+   * tints this card's border, so the meters and subtitle stand down. */
+  .pk.pk-touch-enabled .pk-readout { width:128px; padding:6px 8px; gap:4px; }
+  .pk.pk-touch-enabled .pk-tech { display:none; }
+  .pk.pk-touch-enabled .pk-instruments { justify-content:space-between; gap:6px; }
+  .pk.pk-touch-enabled .kart-item { min-height:0; gap:6px; padding:0 0 4px; }
+  .pk.pk-touch-enabled .kart-item-art { width:36px; height:32px; }
+  .pk.pk-touch-enabled .kart-item-art .kart-weapon-thumbnail,.pk.pk-touch-enabled .kart-item-art svg { width:34px; height:30px; }
+  .pk.pk-touch-enabled .kart-item-copy small { display:none; }
+  .pk.pk-touch-enabled .kart-item-copy strong { font-size:13px; }
 }
 /* Typical portrait phones fit the folded console on the same top edge. */
 @media (min-width:380px) and (max-width:480px) and (orientation:portrait) {
