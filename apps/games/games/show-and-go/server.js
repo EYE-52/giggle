@@ -18,7 +18,7 @@ const manifest = {
     goal: "Show a convincing find and win the room's approval.",
     tips: [
       'Everyone hunts for the same everyday object at once.',
-      'Show it on your Meet camera, then tap Ready.',
+      'Show it on your Meet camera, then tap I found it.',
       'Vote Yes or No on each find. You never vote on your own.',
       'An approved find earns 100, plus up to 50 for being ready early.',
       'Judges who agree with the room earn 25 each, up to 50 a round.',
