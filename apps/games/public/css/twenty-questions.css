@@ -126,3 +126,9 @@
 @media (max-width: 560px) {
   #gbody .tq.pl-fill .tq-spot, #gbody .tq.pl-fill .tq-arch { padding: var(--space-12) var(--space-16); border-radius: var(--radius-lg); }
 }
+/* Nothing to answer: the answer buttons wait off screen, the idle card is
+ * one line, and a long history scrolls inside its card. */
+#gbody .tq.pl-fill .tq-spot.is-idle .tq-answers { display: none; }
+#gbody .tq.pl-fill .tq-spot.is-idle .tq-qtext { min-height: 0; }
+#gbody .tq.pl-fill .tq-hist { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
+#gbody .tq.pl-fill .tq-ans:not(:disabled) { background: var(--card); color: var(--ink); }

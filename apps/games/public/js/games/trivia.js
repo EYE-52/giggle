@@ -122,7 +122,7 @@ export default {
             : `Not this time: the answer was ${LETTERS[S.last.correct]}, ${S.question?.options?.[S.last.correct] || ''}.`;
       const isHost = !watch && S.me === S.hostId;
       el.innerHTML = `<section class="wg gk-col gk-stack" data-game="trivia" data-phase="reveal" aria-label="Trivia answer">`
-        + hud(S, 'Results', `${good.length} of ${total} players correct`)
+        + hud(S, 'Reveal', `${good.length} of ${total} players correct`)
         + `<h2 class="gk-prompt">${esc(S.question?.q || '')}</h2>`
         + choicesHtml(options, { cols: 2, phoneCols: 1, disabled: true, name: 'Answers' })
         + `<p class="wg-status${mine?.ok ? ' is-good' : ''}" role="status">${esc(myLine)}</p>`

@@ -188,7 +188,7 @@ export default {
     paint(el, S, api);
     if (S.phase !== 'done') {
       const victim = S.phase === 'reveal' ? S.last?.victim : S.victim;
-      const roles = victim ? { [victim]: S.phase === 'reveal' ? 'Took the dare' : 'Taking the dare' } : {};
+      const roles = victim ? { [victim]: S.phase === 'reveal' ? 'Took the dare' : 'On the dare' } : {};
       const jurors = (S.players || []).filter((p) => !p.left && p.id !== victim).map((p) => p.id);
       const live = ['perform', 'verdict'].includes(S.phase);
       paintLiveStrip(el.querySelector?.('.party-scene'), S, {

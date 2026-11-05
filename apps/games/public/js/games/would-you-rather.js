@@ -75,7 +75,7 @@ function paint(el, S, api) {
   const waitingFor = Math.max(0, total - voted);
   status.textContent = !S.prompt ? 'Shuffling choices…'
     : reveal && !votes ? 'Nobody voted in this round.'
-    : reveal ? (watch ? 'Here is how the room voted.' : picked ? 'Your choice is marked.' : 'You sat this one out.')
+    : reveal ? (watch ? 'Here is how the room voted.' : picked ? `You picked ${picked.toUpperCase()}: ${S.prompt?.[picked] || ''}` : 'You sat this one out.')
     : watch ? `Watching · waiting for ${waitingFor} player${waitingFor === 1 ? '' : 's'}`
     : picked ? (S.myVote ? `Locked in · waiting for ${waitingFor} player${waitingFor === 1 ? '' : 's'}` : 'Locking in your choice…')
     : 'Pick the one you would rather do.';

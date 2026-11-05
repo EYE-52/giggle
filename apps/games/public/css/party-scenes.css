@@ -257,11 +257,9 @@
   min-height: calc((100dvh - var(--pl-chrome, 120px)) / var(--pl-zoom, 1));
   padding-block: var(--space-8) var(--space-16);
 }
-#gbody .pl-fill > * { margin-block: 0; }
+#gbody .pl-fill > * { margin-block: 0; flex: 0 0 auto; }
 /* The round's own content sits in the middle of the free space. */
-@media (min-width: 561px) {
-  #gbody .pl-fill > .gk-hud + *, #gbody .pl-fill > .party-hud + * { margin-top: auto; }
-}
+#gbody .pl-fill > .gk-hud + *, #gbody .pl-fill > .party-hud + * { margin-top: auto; }
 #gbody .pl-fill > .pl-live { margin-top: auto; }
 @media (max-width: 560px) {
   #gbody .pl-fill { gap: var(--space-12); --pl-chrome: 108px; }
@@ -473,7 +471,7 @@
 }
 #gbody .pl-fill .gk-btn.gk-primary:not(:disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
 /* Disabled stays legible: ink on card with a dashed rim, flat. */
-#gbody .pl-fill .gk-btn.gk-primary:disabled { background: var(--card); color: var(--ink); border-style: dashed; border-color: var(--line-strong); box-shadow: none; }
+#gbody .pl-fill .gk-btn.gk-primary:disabled { background: var(--fam-soft); color: var(--fam-deep); border-color: var(--outline); box-shadow: none; cursor: not-allowed; }
 @media (hover: hover) {
   #gbody .pl-fill .gk-btn.gk-primary:not(:disabled):hover { transform: translateY(-2px); filter: none; border-color: var(--outline); }
 }
@@ -666,3 +664,12 @@
   .pl-seat .pl-state { display: block; min-height: 0; font-size: 12px; line-height: 1.3; }
   #gbody .pl-live :is(.party-more, .wg-more) > summary { padding: 0 var(--space-8); font-size: 13px; }
 }
+/* Progress text sits flush right when there is no clock. */
+#gbody .pl-fill .gk-hud-timer:empty { display: none; }
+
+/* Phones: seats share the row (wrapping for big rooms), never scroll sideways. */
+@media (max-width: 560px) {
+  .pl-seats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); overflow: visible; }
+  .pl-seat { max-width: none; min-width: 0; }
+}
+#gbody .pl-fill.party-scene--hot .hot-room-split { max-width: none; }

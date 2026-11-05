@@ -207,3 +207,10 @@
   #gbody .tr.pl-fill .tr-target { padding: var(--space-12) var(--space-16); border-radius: var(--radius-lg); }
 }
 #gbody .rt.pl-fill .rt-pad.is-fouled, #gbody .rt.pl-fill .rt-pad.is-tapped, #gbody .rt.pl-fill .rt-pad.is-wait { color: var(--ink); }
+#gbody .tr.pl-fill .tr-input { min-height: var(--control-h-lg); }
+/* Trivia answers are short: two columns on phones keep the question, all
+ * four answers and the strip on one screen. */
+@media (max-width: 560px) {
+  #gbody .wg.pl-fill[data-game="trivia"] .gk-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
+  #gbody .wg.pl-fill[data-game="trivia"] .gk-choice { padding: var(--space-8) var(--space-12); gap: var(--space-8); }
+}

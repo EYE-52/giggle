@@ -88,6 +88,8 @@ function buildRank(el, S, api, focusPos) {
     : dirty
       ? 'Changes ready. Update your ranking to save them.'
       : 'Locked in. You can still change it until the reveal.';
+  const clock = el.querySelector?.('.gk-hud-timer');
+  const clockText = clock?.textContent || '', clockClass = clock?.className || '', clockStyle = clock?.getAttribute?.('style') || '';
   el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--rank" aria-label="Rank the items">
     ${hud(S)}
     <p class="gk-prompt party-prompt">${esc(S.set.topic)}</p>
@@ -120,6 +122,9 @@ function buildRank(el, S, api, focusPos) {
       relayout(Number(item.dataset.pos), e.key === 'ArrowUp' ? -1 : 1);
     };
   }
+  // A local reorder rebuilds the ladder; the running clock keeps its face.
+  const freshClock = el.querySelector?.('.gk-hud-timer');
+  if (freshClock && clockText) { freshClock.textContent = clockText; freshClock.className = clockClass; if (clockStyle) freshClock.setAttribute('style', clockStyle); }
   strip(el, rankState || S);
   const lock = el.querySelector('#rLock');
   lock.onclick = () => { if (activeKey === rankKey && rankState && !rankState.preparing && !watching(rankState) && rankState.phase === 'rank' && el.querySelector('#rLock') === lock) rankApi?.send({ order: rankOrder }); };

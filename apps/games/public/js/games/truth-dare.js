@@ -284,7 +284,7 @@ export default {
     paint(el, S, api);
     if (S.phase !== 'done') {
       const target = S.phase === 'reveal' ? S.last?.target : S.target;
-      const roles = target && S.phase !== 'spin' ? { [target]: 'In the spotlight' } : {};
+      const roles = target && S.phase !== 'spin' ? { [target]: 'Spotlight' } : {};
       const gains = S.phase === 'reveal' && S.last ? { ...(S.last.voterPts || {}), ...(target && S.last.targetPts ? { [target]: S.last.targetPts } : {}) } : {};
       paintLiveStrip(el.querySelector?.('.party-scene'), S, {
         roles, actors: (S.players || []).filter((p) => !p.left && p.id !== target).map((p) => p.id),

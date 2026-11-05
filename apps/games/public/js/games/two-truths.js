@@ -108,7 +108,7 @@ function writerHtml(S) {
     + `<input id="tS${i}" class="gk-input" type="text" aria-label="Statement ${i + 1}" maxlength="140" placeholder="Statement ${i + 1}" autocomplete="off" enterkeyhint="${i < 2 ? 'next' : 'send'}">`
     + `<label class="tt-lie"><input type="radio" name="tLie" value="${i}"${i === 2 ? ' checked' : ''} aria-label="Statement ${i + 1} is the lie"><span>Lie</span></label>`
     + `</div>`).join('');
-  return scene(S, 'Write your statements', `<h2 class="gk-prompt">Two truths and a lie</h2>`
+  return scene(S, 'Write your statements', `<h2 class="gk-prompt">Write two truths and one lie</h2>`
     + `<p class="gk-sub">Write three things about you. Mark the one that is a lie.</p>`
     + `<div class="tt-editor">${rows}</div>`
     + `<div class="gk-actions tt-foot"><button type="button" class="gk-btn gk-primary" id="tSend">Lock in</button>`
