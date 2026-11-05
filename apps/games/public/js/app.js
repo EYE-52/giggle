@@ -1209,14 +1209,15 @@ function pickGames() {
   return found.slice(0, 4);
 }
 
-/* A fanned hand of real game art under the headline: decoration only.
- * Its height is reserved before the catalog arrives, so nothing moves. */
+/* A fanned hand of real game art under the headline. Each card opens its
+ * game, like the picks below. Its height is reserved before the catalog
+ * arrives, so nothing moves. */
 function heroHandHtml() {
   const hand = ['doodle-guess', 'pocket-karts', 'four-in-a-row', 'charades', 'chess']
     .map((id) => games.find((g) => g.id === id)).filter(Boolean);
   if (hand.length < 3) return '';
-  return `<div class="hero-hand" aria-hidden="true">${hand.map((g, i) =>
-    `<span class="hand-card" style="--i:${i - (hand.length - 1) / 2};--d:${Math.abs(i - (hand.length - 1) / 2)}">${artImg(g, 'hand-art')}</span>`).join('')}</div>`;
+  return `<div class="hero-hand" role="group" aria-label="Quick picks">${hand.map((g, i) =>
+    `<button type="button" class="hand-card card-open" data-how="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.name)}" title="${esc(g.name)}" style="--i:${i - (hand.length - 1) / 2};--d:${Math.abs(i - (hand.length - 1) / 2)}">${artImg(g, 'hand-art')}</button>`).join('')}</div>`;
 }
 
 function pickHtml(g) {
@@ -1224,7 +1225,7 @@ function pickHtml(g) {
   // setup dialog (rules + Customize + Create room). No shelf links — setup
   // belongs inside. Fixed geometry: the dialog never stretches these cards.
   return `
-    <button type="button" class="pick card-open" data-how="${g.id}" aria-haspopup="dialog">
+    <button type="button" class="pick card-open" data-how="${g.id}" data-cat="${esc(g.cat || '')}" aria-haspopup="dialog">
       ${artImg(g, 'gart')}
       <span class="t">${esc(g.name)}</span>
       <span class="d">${esc(g.tagline)}</span>
@@ -1237,7 +1238,7 @@ function catalogRowHtml(g) {
   // Single-action shelf row: art + text + one Play pill, all opening the
   // shared setup dialog. Exactly one button — no nested controls.
   return `
-    <button type="button" class="catrow card-open" data-how="${g.id}" aria-haspopup="dialog">
+    <button type="button" class="catrow card-open" data-how="${g.id}" data-cat="${esc(g.cat || '')}" aria-haspopup="dialog">
       ${artImg(g, 'catart')}
       <span class="catrow-text"><span class="t">${esc(g.name)}</span><span class="d">${esc(g.tagline)}</span><span class="p">${seatsLine(g)}</span></span>
       <span class="play-pill">Play</span>

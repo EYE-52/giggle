@@ -45,7 +45,8 @@ function ok(value, label) { assert(value, label); checks++; }
   await page.goto(`http://127.0.0.1:${port}`);
   await page.locator('#bBrowse').waitFor();
   await page.evaluate(() => document.fonts.ready);
-  ok((await page.locator('.hero').boundingBox()).height <= 400, 'desktop discovery hero gives room to games');
+  // The hero carries the card hand now; what matters is that games start in the first screen.
+  ok(await page.evaluate(() => { const h = document.querySelector('.home-picks h2, .home-picks .sec-head'); return !!h && h.getBoundingClientRect().bottom <= innerHeight - 40; }), 'desktop discovery hero gives room to games');
   for (const [width, height] of [[320, 568], [390, 844], [760, 600], [1280, 720], [1440, 900], [1920, 1080]]) {
     await page.setViewportSize({ width, height });
     ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `home fits ${width}`);

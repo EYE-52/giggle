@@ -279,7 +279,9 @@ async function usableFrame(active, request, api) {
 
 async function drive(active) {
   const signal = active.controller.signal;
-  const timeout = setTimeout(() => active.controller.abort(new Error('Game preparation timed out')), 10000);
+  // 3D arenas get longer on slow devices, just inside the server's window.
+  const limitMs = active.latest?.meta?.renderer === '3d' ? 28000 : 10000;
+  const timeout = setTimeout(() => active.controller.abort(new Error('Game preparation timed out')), limitMs);
   try {
     if (!active.view) {
       const meta = active.latest.meta;

@@ -1824,3 +1824,28 @@ body:not(.game-playing):not(.is-embed) .topbar { padding-block: 8px; }
 /* Rematch: the last frame stays on screen, inert, until the next round paints. */
 #gbody.is-retiring { position: relative; }
 #gbody > .game-retiring { position: absolute; inset: 0; z-index: 5; overflow: hidden; pointer-events: none; background: var(--bg); }
+
+/* ---- Room panel: the code is a bright ticket, actions are compact pills -- */
+.partystrip:not(:has(.embedctx)) { background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, var(--card)), var(--card) 55%); }
+.partystrip .ps-codeblock { position: relative; padding: 10px 18px 12px; border-radius: 16px; color: #fff;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, #f59e0b));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 28%, transparent); }
+.partystrip .ps-codeblock::before, .partystrip .ps-codeblock::after { content: ""; position: absolute; top: 50%; width: 14px; height: 14px; margin-top: -7px; border-radius: 50%; background: var(--bg); }
+.partystrip .ps-codeblock::before { left: -7px; } .partystrip .ps-codeblock::after { right: -7px; }
+.partystrip .ps-codeblock .roommeta { color: color-mix(in srgb, #fff 82%, transparent); }
+.partystrip .ps-codeblock .roomcode { color: #fff; text-shadow: 0 2px 0 color-mix(in srgb, #000 18%, transparent); }
+.partystrip .ps-actions .btn, .partystrip .ps-actions summary { min-height: 44px; border-radius: 999px; padding-inline: 16px; font-size: 15px; }
+.partystrip .player { border-radius: 999px; box-shadow: 0 2px 0 color-mix(in srgb, var(--ink) 8%, transparent); }
+.partystrip .player .avatar { width: 34px; height: 34px; }
+.partystrip .ps-codeblock::before, .partystrip .ps-codeblock::after { background: color-mix(in srgb, var(--accent) 6%, var(--card)); }
+@media (max-width: 640px) {
+  .partystrip .ps-invite { width: 100%; }
+  .partystrip .ps-codeblock { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .partystrip .ps-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+  .partystrip .ps-actions > * { min-width: 0; }
+  .partystrip .ps-actions .btn, .partystrip .ps-actions summary { width: 100%; padding-inline: 8px; font-size: 14px; justify-content: center; white-space: nowrap; }
+}
+@media (max-width: 640px) {
+  .partystrip .ps-codeblock { width: 100%; box-sizing: border-box; }
+  .partystrip .ps-actions .btn, .partystrip .ps-actions summary { font-size: 13.5px; letter-spacing: -0.01em; }
+}

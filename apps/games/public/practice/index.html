@@ -16,8 +16,14 @@
     <a href="/" class="practice-back" aria-label="Back to Game Night" title="Back to Game Night"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
     <h1 class="practice-title">Practice</h1>
     <form id="practiceSetup" class="practice-setup" aria-label="Practice setup">
-      <select id="practiceGame" aria-label="Game" disabled><option>Loading…</option></select>
-      <select id="practiceCount" aria-label="Players" disabled><option>—</option></select>
+      <!-- The art picker and stepper drive these; they stay as the form's values. -->
+      <select id="practiceGame" class="practice-native" aria-hidden="true" tabindex="-1" disabled><option>Loading…</option></select>
+      <select id="practiceCount" class="practice-native" aria-hidden="true" tabindex="-1" disabled><option>—</option></select>
+      <div class="practice-stepper" role="group" aria-label="Players">
+        <button type="button" id="practiceLess" aria-label="Fewer players" disabled>−</button>
+        <output id="practiceCountLabel" aria-live="polite">–</output>
+        <button type="button" id="practiceMore" aria-label="More players" disabled>+</button>
+      </div>
       <button class="btn" id="practiceStart" disabled>Play</button>
       <button class="btn ghost" id="practiceRetry" type="button" hidden>Retry</button>
     </form>

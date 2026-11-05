@@ -125,3 +125,86 @@
   .home-picks .pick { transition: none; }
   .home-picks .pick:hover { transform: none; }
 }
+
+/* ---- Art-led home: big game art, a colour per category ---------------- */
+[data-cat] { --cat: var(--accent); }
+[data-cat="vote"] { --cat: #8b5cf6; }
+[data-cat="draw"] { --cat: #f97316; }
+[data-cat="social"] { --cat: #ec4899; }
+[data-cat="bluff"] { --cat: #0ea5e9; }
+[data-cat="word"] { --cat: #10b981; }
+[data-cat="speed"] { --cat: #f59e0b; }
+[data-cat="board"] { --cat: #6366f1; }
+[data-cat="3d"] { --cat: #ef4444; }
+
+/* Tonight's picks: four art cards, the picture first. */
+.home-picks .pick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.home-picks .pick {
+  display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+  min-height: 0; padding: 12px 12px 14px; text-align: left;
+  border: 1px solid color-mix(in srgb, var(--cat) 26%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cat) 14%, var(--card)) 0%, var(--card) 62%);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.home-picks .pick .gart, .home-picks .pick .art-fallback {
+  width: 100%; height: auto; aspect-ratio: 1; margin: 0 0 8px; border-radius: 14px; object-fit: cover;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--cat) 22%, transparent);
+  transition: transform .25s ease;
+}
+.home-picks .pick .t { margin-top: 2px; font-size: 19px; }
+.home-picks .pick .d { min-height: 2.8em; }
+.home-picks .pick .p { margin-top: auto; color: color-mix(in srgb, var(--cat) 70%, var(--ink)); }
+.home-picks .pick .play-row { margin-top: 10px; align-self: stretch; }
+.home-picks .pick .play-pill { width: 100%; background: var(--cat) !important; }
+.home-picks .pick:hover { transform: translateY(-4px); box-shadow: 0 14px 30px color-mix(in srgb, var(--cat) 24%, transparent); }
+.home-picks .pick:hover .gart { transform: rotate(-2deg) scale(1.03); }
+
+/* The whole shelf: a tile grid of art instead of identical rows. */
+#games .catalog-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+#games .catrow {
+  display: flex; flex-direction: column; align-items: stretch; gap: 4px; height: 100%;
+  padding: 10px 10px 12px; text-align: left; border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--cat) 22%, var(--line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cat) 12%, var(--card)) 0%, var(--card) 58%);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+#games .catrow img, #games .catrow .art-fallback {
+  width: 100%; height: auto; aspect-ratio: 1; margin: 0 0 6px; border-radius: 12px; object-fit: cover;
+  transition: transform .25s ease;
+}
+#games .catrow .catrow-text { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+#games .catrow .t { font-size: 16px; }
+#games .catrow .d { font-size: 13px; -webkit-line-clamp: 2; }
+#games .catrow .p { margin-top: auto; padding-top: 4px; color: color-mix(in srgb, var(--cat) 70%, var(--ink)); }
+#games .catrow .play-pill { align-self: stretch; margin-top: 8px; min-height: 38px; text-align: center; background: var(--cat); color: #fff; border: 0; }
+#games .catrow:hover { transform: translateY(-3px); box-shadow: 0 12px 26px color-mix(in srgb, var(--cat) 22%, transparent); }
+#games .catrow:hover img { transform: rotate(-2deg) scale(1.03); }
+
+/* The hand of cards is playable: hover fans it out, a tap opens the game. */
+.hand-card { padding: 0; cursor: pointer; font: inherit; }
+.hero-hand:hover .hand-card { transform: translateY(calc(var(--d) * 4px)) translateX(calc(var(--i) * 10px)) rotate(calc(var(--i) * 10deg)); }
+.hero-hand .hand-card:hover { transform: translateY(-16px) translateX(calc(var(--i) * 10px)) rotate(calc(var(--i) * 4deg)) scale(1.1); z-index: 2; }
+.hand-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+@media (max-width: 900px) {
+  .home-picks .pick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #games .catalog-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 641px) {
+  .home-welcome .hand-card { --size: 112px; margin-right: -24px; border-radius: 24px; }
+  .home-welcome .hero-hand { height: 136px; }
+}
+@media (max-width: 640px) {
+  .home-picks .pick-grid { gap: 10px; }
+  .home-picks .pick { padding: 8px 8px 10px; }
+  .home-picks .pick .t { font-size: 16px; }
+  .home-picks .pick .d { font-size: 13px; }
+  #games .catalog-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  #games .catrow { padding: 8px 8px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-picks .pick, .home-picks .pick .gart, #games .catrow, #games .catrow img { transition: none; }
+  .home-picks .pick:hover, #games .catrow:hover { transform: none; }
+  .home-picks .pick:hover .gart, #games .catrow:hover img { transform: none; }
+  .hero-hand:hover .hand-card, .hero-hand .hand-card:hover { transform: translateY(calc(var(--d) * 7px)) rotate(calc(var(--i) * 8deg)); }
+}

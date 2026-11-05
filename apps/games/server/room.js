@@ -533,11 +533,14 @@ class Room {
       clearTimeout(timer.handle);
       timer.handle = null;
     }
-    game.readyDeadline = Date.now() + this.prepareTimeoutMs;
+    // 3D arenas download and compile far more than 2D games; slower phones
+    // need longer before the round gives up on them.
+    const prepareMs = this.prepareTimeoutMs * (game.def?.manifest?.renderer === '3d' ? 2.5 : 1);
+    game.readyDeadline = Date.now() + prepareMs;
     game.prepareTimer = setTimeout(() => {
       if (this.game !== game || !game.preparing) return;
       this._abortPreparation('The round could not load for everyone in time. Try starting it again.');
-    }, this.prepareTimeoutMs);
+    }, prepareMs);
     game.prepareTimer.unref?.();
   }
 

@@ -39,23 +39,77 @@ function seatLabel(tab, n) {
   tab.replaceChildren(long, short);
 }
 function chosen() { return games.find(game => game.id === gameSelect.value); }
-/* Idle table: the chosen game's own art and line, not instructions. */
+const artSrc = game => game.art && /^img\/games\/[a-z0-9-]+\.(svg|png|webp)$/.test(game.art) ? '/' + game.art : `/img/games/${game.id}.png`;
+function artImage(game, className) {
+  const img = document.createElement('img');
+  img.className = className; img.alt = ''; img.decoding = 'async'; img.src = artSrc(game);
+  img.onerror = () => img.remove();
+  return img;
+}
+/* Idle table: the chosen game featured, and every practice-ready game as
+ * an art tile to pick from (a radio group: arrows move, Space/Enter pick). */
 function preview(kicker) {
   const game = chosen();
   if (!game || session) return;
-  const section = document.createElement('section');
-  section.className = 'practice-empty practice-preview';
-  section.setAttribute('role', 'status');
-  const img = document.createElement('img');
-  img.className = 'practice-art'; img.alt = ''; img.decoding = 'async';
-  img.src = game.art && /^img\/games\/[a-z0-9-]+\.(svg|png|webp)$/.test(game.art) ? '/' + game.art : `/img/games/${game.id}.png`;
-  img.onerror = () => img.remove();
+  let section = table.querySelector(':scope > .practice-preview');
+  if (!section) {
+    section = document.createElement('section');
+    section.className = 'practice-preview';
+    const featured = document.createElement('div');
+    featured.className = 'practice-featured'; featured.setAttribute('role', 'status');
+    const label = document.createElement('h2'); label.className = 'practice-pick-label'; label.id = 'practicePickLabel'; label.textContent = 'Pick a game';
+    const grid = document.createElement('div');
+    grid.className = 'practice-games'; grid.setAttribute('role', 'radiogroup'); grid.setAttribute('aria-labelledby', 'practicePickLabel');
+    for (const g of games) {
+      if (!practiceSupport(g)) continue;
+      const tile = document.createElement('button');
+      tile.type = 'button'; tile.className = 'practice-tile'; tile.dataset.game = g.id; tile.dataset.cat = g.cat || '';
+      tile.setAttribute('role', 'radio');
+      const name = document.createElement('span'); name.textContent = g.name;
+      tile.append(artImage(g, 'practice-tile-art'), name);
+      tile.onclick = () => choose(g.id, true);
+      tile.onkeydown = event => {
+        const tiles = [...grid.querySelectorAll('.practice-tile')], i = tiles.indexOf(tile);
+        const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+        if (!step) return;
+        event.preventDefault();
+        const next = tiles[(i + step + tiles.length) % tiles.length];
+        choose(next.dataset.game, true); next.focus();
+      };
+      grid.append(tile);
+    }
+    section.append(featured, label, grid);
+    table.replaceChildren(section);
+  }
+  const featured = section.querySelector('.practice-featured');
+  featured.dataset.cat = game.cat || '';
   const k = document.createElement('p'); k.className = 'practice-kicker'; k.textContent = kicker;
   const h = document.createElement('h2'); h.textContent = game.name;
   const t = document.createElement('p'); t.textContent = game.tagline || '';
-  section.append(img, k, h);
-  if (t.textContent) section.append(t);
-  table.replaceChildren(section);
+  const text = document.createElement('div'); text.className = 'practice-featured-text';
+  text.append(k, h); if (t.textContent) text.append(t);
+  featured.replaceChildren(artImage(game, 'practice-art'), text);
+  for (const tile of section.querySelectorAll('.practice-tile')) {
+    const on = tile.dataset.game === game.id;
+    tile.setAttribute('aria-checked', String(on)); tile.tabIndex = on ? 0 : -1;
+  }
+}
+function choose(id, fromTile) {
+  if (session || gameSelect.disabled || gameSelect.value === id) return;
+  gameSelect.value = id; updateSeats(); preview('You play every seat');
+  if (fromTile) history.replaceState(null, '', `/practice/?game=${encodeURIComponent(id)}`);
+}
+// The stepper writes the hidden count select, which the form submits.
+function syncCount() {
+  const options = [...countSelect.options].map(o => Number(o.value)).filter(Number.isFinite);
+  const n = Number(countSelect.value);
+  $('practiceCountLabel').textContent = Number.isFinite(n) && options.length ? `${n} player${n === 1 ? '' : 's'}` : '–';
+  $('practiceLess').disabled = countSelect.disabled || !options.length || n <= Math.min(...options);
+  $('practiceMore').disabled = countSelect.disabled || !options.length || n >= Math.max(...options);
+}
+function stepCount(delta) {
+  const n = Number(countSelect.value) + delta;
+  if ([...countSelect.options].some(o => Number(o.value) === n)) { countSelect.value = String(n); syncCount(); }
 }
 function updateSeats() {
   const support = practiceSupport(chosen());
@@ -69,6 +123,7 @@ function updateSeats() {
   countSelect.disabled = false; $('practiceStart').disabled = false;
   $('practiceNote').textContent = support.note;
   $('practicePlayingNote').textContent = support.note;
+  syncCount();
 }
 
 async function loadCatalog() {
@@ -78,7 +133,7 @@ async function loadCatalog() {
   const controller = new AbortController();
   let socket, timer;
   cancelCatalog = () => { controller.abort(); clearTimeout(timer); socket?.close(); };
-  gameSelect.disabled = countSelect.disabled = $('practiceStart').disabled = true;
+  gameSelect.disabled = countSelect.disabled = $('practiceStart').disabled = true; syncCount();
   $('practiceRetry').hidden = true;
   status('Getting the games ready…');
   empty('Shuffling the games…', '', true);
@@ -194,7 +249,7 @@ function start(event) {
   session = next; count = requestedCount; selected = 1; all = false;
   document.body.classList.add('is-running');
   $('practiceGuide').open = false;
-  gameSelect.disabled = countSelect.disabled = $('practiceStart').disabled = true;
+  gameSelect.disabled = countSelect.disabled = $('practiceStart').disabled = true; syncCount();
   $('practiceControls').hidden = false; $('practiceAll').setAttribute('aria-pressed', 'false');
   table.classList.remove('is-all'); table.replaceChildren();
   status('Player 1 is making the room…');
@@ -270,6 +325,9 @@ window.addEventListener('message', event => {
 $('practiceSetup').onsubmit = start;
 $('practiceRetry').onclick = loadCatalog;
 gameSelect.onchange = () => { updateSeats(); preview('You play every seat'); };
+countSelect.onchange = syncCount;
+$('practiceLess').onclick = () => stepCount(-1);
+$('practiceMore').onclick = () => stepCount(1);
 $('practiceStop').onclick = stop;
 $('practiceReload').onclick = () => {
   const seat = seats.get(selected);

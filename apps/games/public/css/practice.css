@@ -78,8 +78,44 @@
 }
 /* Very narrow phones: the setup takes its own row so the game name stays readable. */
 @media (max-width: 400px) {
-  .practice-page:not(.is-running) .practice-bar { flex-wrap: wrap; }
-  .practice-page:not(.is-running) .practice-setup { order: 3; flex: 1 1 100%; }
-  #practiceGame { min-width: 0; max-width: none; }
-  .practice-page:not(.is-running) .practice-info { margin-left: auto; }
+  .practice-setup { gap: 6px; }
+  .practice-stepper output { min-width: 64px; }
 }
+
+/* ---- Art game picker and player stepper (replaces the native selects) --- */
+.practice-native { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); opacity: 0; pointer-events: none; }
+.practice-setup { flex: 0 1 auto; margin-left: auto; }
+.practice-stepper { display: inline-flex; align-items: center; height: 44px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); overflow: hidden; }
+.practice-stepper button { width: 44px; height: 44px; border: 0; background: transparent; color: var(--ink); font: 800 20px var(--font-body); cursor: pointer; }
+.practice-stepper button:disabled { color: var(--ink-dim); opacity: .4; cursor: default; }
+.practice-stepper button:not(:disabled):hover { background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+.practice-stepper output { min-width: 84px; text-align: center; font: 800 15px var(--font-body); font-variant-numeric: tabular-nums; }
+
+[data-cat] { --cat: var(--accent); }
+[data-cat="vote"] { --cat: #8b5cf6; } [data-cat="draw"] { --cat: #f97316; } [data-cat="social"] { --cat: #ec4899; }
+[data-cat="bluff"] { --cat: #0ea5e9; } [data-cat="word"] { --cat: #10b981; } [data-cat="speed"] { --cat: #f59e0b; }
+[data-cat="board"] { --cat: #6366f1; } [data-cat="3d"] { --cat: #ef4444; }
+
+.practice-preview { height: 100%; overflow: auto; padding: 20px clamp(12px, 3vw, 32px) 32px; }
+.practice-featured { display: flex; align-items: center; gap: clamp(16px, 3vw, 32px); max-width: 980px; margin: 0 auto 26px; padding: 18px; border-radius: 24px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--cat) 18%, var(--bg)), color-mix(in srgb, var(--cat) 4%, var(--bg)));
+  border: 1px solid color-mix(in srgb, var(--cat) 28%, var(--line)); }
+.practice-featured .practice-art { flex: none; width: clamp(120px, 22vw, 200px); margin: 0; }
+.practice-featured-text { min-width: 0; }
+.practice-featured-text h2 { margin: 4px 0 6px; font: 800 clamp(26px, 4vw, 40px)/1.05 var(--font-display, var(--font-body)); letter-spacing: -.02em; }
+.practice-featured-text p:last-child { margin: 0; color: var(--ink-dim); font-size: 17px; }
+.practice-featured .practice-kicker { margin: 0; color: color-mix(in srgb, var(--cat) 70%, var(--ink)) !important; }
+.practice-pick-label { max-width: 980px; margin: 0 auto 12px; font: 800 18px var(--font-body); }
+.practice-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 12px; max-width: 980px; margin: 0 auto; }
+.practice-tile { display: grid; gap: 6px; padding: 8px 8px 10px; border: 2px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--cat) 8%, var(--bg)); color: var(--ink); font: 700 13px/1.25 var(--font-body); text-align: center; cursor: pointer; transition: transform .15s ease, border-color .15s ease; }
+.practice-tile-art { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
+.practice-tile:hover { transform: translateY(-3px); }
+.practice-tile[aria-checked="true"] { border-color: var(--cat); background: color-mix(in srgb, var(--cat) 18%, var(--bg)); box-shadow: 0 8px 20px color-mix(in srgb, var(--cat) 24%, transparent); }
+.practice-tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .practice-featured { flex-direction: column; text-align: center; padding: 16px; }
+  .practice-games { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .practice-tile { font-size: 12px; padding: 6px 6px 8px; }
+  .practice-stepper output { min-width: 70px; font-size: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .practice-tile { transition: none; } .practice-tile:hover { transform: none; } }
