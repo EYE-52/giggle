@@ -130,15 +130,17 @@ export function staggerIn(box, sel) {
   });
 }
 
-/* Confetti burst from the top. Honors reduced motion. */
-export function confetti() {
+/* Confetti burst from the top. Honors reduced motion. With a host it falls
+ * inside that element only, as a layer behind its content. */
+export function confetti(host, count = 70) {
   if (reducedMotion()) return;
   const layer = document.createElement('div');
-  layer.className = 'confetti';
+  layer.className = host ? 'confetti confetti--in' : 'confetti';
+  layer.setAttribute('aria-hidden', 'true');
   const colors = ['#de1e6a', '#ffb020', '#f2545b', '#0e9b8a', '#3e9be0', '#ff7aa8'];
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < count; i++) {
     const p = document.createElement('i');
-    p.style.left = Math.random() * 100 + '%';
+    p.style.left = (host ? 4 + Math.random() * 92 : Math.random() * 100) + '%';
     p.style.background = colors[i % colors.length];
     p.style.animationDelay = (Math.random() * 0.5) + 's';
     p.style.animationDuration = (1.6 + Math.random() * 1.4) + 's';
@@ -146,6 +148,6 @@ export function confetti() {
     if (i % 3 === 0) p.style.borderRadius = '50%';
     layer.appendChild(p);
   }
-  document.body.appendChild(layer);
+  if (host) host.prepend(layer); else document.body.appendChild(layer);
   setTimeout(() => layer.remove(), 3600);
 }

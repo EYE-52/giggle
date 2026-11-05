@@ -58,6 +58,22 @@ function preview(kicker) {
     const featured = document.createElement('div');
     featured.className = 'practice-featured'; featured.setAttribute('role', 'status');
     const label = document.createElement('h2'); label.className = 'practice-pick-label'; label.id = 'practicePickLabel'; label.textContent = 'Pick a game';
+    // Category chips narrow the tiles; the chosen game stays chosen.
+    const ready = games.filter(g => practiceSupport(g));
+    const cats = [...new Set(ready.map(g => g.cat).filter(Boolean))];
+    const chips = document.createElement('div');
+    chips.className = 'practice-cats'; chips.setAttribute('role', 'group'); chips.setAttribute('aria-label', 'Game categories');
+    for (const cat of cats.length > 1 ? ['all', ...cats] : []) {
+      const chip = document.createElement('button');
+      chip.type = 'button'; chip.dataset.cat = cat === 'all' ? '' : cat;
+      chip.textContent = cat === 'all' ? 'All' : CAT_LABELS[cat] || cat[0].toUpperCase() + cat.slice(1);
+      chip.setAttribute('aria-pressed', String(cat === 'all'));
+      chip.onclick = () => {
+        for (const c of chips.children) c.setAttribute('aria-pressed', String(c === chip));
+        for (const tile of grid.children) tile.hidden = cat !== 'all' && tile.dataset.cat !== cat;
+      };
+      chips.append(chip);
+    }
     const grid = document.createElement('div');
     grid.className = 'practice-games'; grid.setAttribute('role', 'radiogroup'); grid.setAttribute('aria-labelledby', 'practicePickLabel');
     for (const g of games) {
@@ -78,7 +94,7 @@ function preview(kicker) {
       };
       grid.append(tile);
     }
-    section.append(featured, label, grid);
+    section.append(featured, label, chips, grid);
     table.replaceChildren(section);
   }
   const featured = section.querySelector('.practice-featured');
@@ -88,7 +104,10 @@ function preview(kicker) {
   const t = document.createElement('p'); t.textContent = game.tagline || '';
   const text = document.createElement('div'); text.className = 'practice-featured-text';
   text.append(k, h); if (t.textContent) text.append(t);
+  const seatRow = document.createElement('div'); seatRow.className = 'practice-seats'; seatRow.setAttribute('aria-hidden', 'true');
+  text.append(seatRow);
   featured.replaceChildren(artImage(game, 'practice-art'), text);
+  paintSeats();
   for (const tile of section.querySelectorAll('.practice-tile')) {
     const on = tile.dataset.game === game.id;
     tile.setAttribute('aria-checked', String(on)); tile.tabIndex = on ? 0 : -1;
@@ -99,6 +118,22 @@ function choose(id, fromTile) {
   gameSelect.value = id; updateSeats(); preview('You play every seat');
   if (fromTile) history.replaceState(null, '', `/practice/?game=${encodeURIComponent(id)}`);
 }
+const CAT_LABELS = { vote: 'Vote', bluff: 'Bluff', word: 'Word', speed: 'Speed', draw: 'Draw', social: 'Social', board: 'Board', '3d': '3D' };
+const SEAT_COLORS = ['#ff8fab', '#7cc6fe', '#ffd166', '#8ce99a', '#c3a6ff', '#ffa94d'];
+// One seat per player you will control, so the stepper has something to
+// show. Past eight the row says how many more.
+function paintSeats() {
+  const row = table.querySelector('.practice-seats');
+  const n = Number(countSelect.value);
+  if (!row || !Number.isFinite(n) || countSelect.disabled) { row?.replaceChildren(); return; }
+  const shown = Math.min(n, 8);
+  row.replaceChildren(...Array.from({ length: shown }, (_, i) => {
+    const seat = document.createElement('i');
+    seat.textContent = `P${i + 1}`; seat.style.background = SEAT_COLORS[i % SEAT_COLORS.length];
+    return seat;
+  }));
+  if (n > shown) { const more = document.createElement('b'); more.textContent = `+${n - shown}`; row.append(more); }
+}
 // The stepper writes the hidden count select, which the form submits.
 function syncCount() {
   const options = [...countSelect.options].map(o => Number(o.value)).filter(Number.isFinite);
@@ -106,6 +141,7 @@ function syncCount() {
   $('practiceCountLabel').textContent = Number.isFinite(n) && options.length ? `${n} player${n === 1 ? '' : 's'}` : '–';
   $('practiceLess').disabled = countSelect.disabled || !options.length || n <= Math.min(...options);
   $('practiceMore').disabled = countSelect.disabled || !options.length || n >= Math.max(...options);
+  paintSeats();
 }
 function stepCount(delta) {
   const n = Number(countSelect.value) + delta;

@@ -179,3 +179,66 @@
  * once on error and after a few seconds if loading is merely slow. */
 .boot-view--table:not([data-boot-state="error"]) .boot-reload:not(:focus-visible) { opacity: 0; pointer-events: none; animation: boot-reload-reveal .3s ease 6s forwards; }
 @keyframes boot-reload-reveal { to { opacity: 1; pointer-events: auto; } }
+
+/* ---- Wave 1: tips while the shelf opens, a friendlier failure ---------- */
+/* Three real tips share one grid cell, so the line never resizes. Under
+ * reduced motion only the first shows; on failure they go away. */
+.boot-view--table .boot-tips { display: grid; max-width: 36ch; margin: 0; padding: 8px 16px; border-radius: 16px; background: var(--well); color: var(--ink-dim); font-size: 14px; font-weight: 700; }
+.boot-view--table .boot-tips span { grid-area: 1 / 1; }
+.boot-view--table .boot-tips span:not(:first-child) { opacity: 0; }
+.boot-view--table[data-boot-state="error"] .boot-tips { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .boot-view--table .boot-tips span { opacity: 0; animation: boot-tip 12s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+  .boot-view--table .boot-tips span:nth-child(2) { animation-delay: 4s; }
+  .boot-view--table .boot-tips span:nth-child(3) { animation-delay: 8s; }
+  .boot-view--table .boot-tips span:first-child { animation-fill-mode: backwards; opacity: 1; }
+  @keyframes boot-tip { 0% { opacity: 0; transform: translateY(6px); } 4%, 30% { opacity: 1; transform: none; } 34%, 100% { opacity: 0; transform: translateY(-6px); } }
+}
+/* Failure: one tipped-over card in place of the deal, and Reload as the
+ * clear primary button. */
+.boot-view--table[data-boot-state="error"]::before {
+  content: "?"; display: grid; place-items: center; width: 84px; height: 116px; margin-bottom: 8px;
+  border: 3px solid #321829; border-radius: 13px; background: var(--sun); box-shadow: 4px 5px 0 #321829;
+  color: #321829; font: 800 56px/1 var(--font-display); transform: rotate(-12deg);
+}
+.boot-view--table[data-boot-state="error"] .boot-reload {
+  min-height: 48px; padding: 12px 24px; border: 3px solid var(--hard, #321829); border-radius: 16px;
+  background: var(--accent); color: #fff; text-decoration: none; box-shadow: 0 4px 0 var(--hard, #321829);
+}
+.boot-view--table[data-boot-state="error"] .boot-reload:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--hard, #321829); }
+@media (max-height: 480px) { .boot-view--table .boot-tips { display: none; } }
+
+/* First load of a game: its art bobs over the empty table while tips turn
+ * over. Every tip shares one cell, so the card keeps its size. */
+.game-preparation.is-first {
+  top: 50%; bottom: auto; transform: translate(-50%, -50%);
+  display: grid; justify-items: center; gap: 12px; width: min(360px, calc(100vw - 32px)); padding: 24px;
+  border: 3px solid var(--hard, #321829); border-radius: 24px; box-shadow: 5px 6px 0 var(--hard, #321829); text-align: center;
+}
+.game-preparation.is-first .preparation-art { width: 160px; height: 160px; object-fit: cover; border-radius: 20px; border: 3px solid var(--hard, #321829); }
+.game-preparation.is-first .preparation-dots i { width: 12px; height: 12px; }
+.game-preparation.is-first .preparation-text { justify-items: center; gap: 8px; font: 800 20px/1.2 var(--font-display); }
+.preparation-tips { display: grid; }
+.preparation-tips small { grid-area: 1 / 1; opacity: 0; transition: opacity .4s ease, transform .4s cubic-bezier(0.22, 1, 0.36, 1); transform: translateY(6px); }
+.preparation-tips small.is-on { opacity: 1; transform: none; }
+.game-preparation.is-first .preparation-tips small { max-width: 34ch; font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) {
+  .game-preparation.is-first .preparation-art { animation: prep-bob 2.8s ease-in-out infinite; }
+  @keyframes prep-bob { 50% { transform: translateY(-6px) rotate(-2deg); } }
+}
+@media (prefers-reduced-motion: reduce) { .preparation-tips small { transition: none; transform: none; } }
+@media (max-height: 520px) { .game-preparation.is-first .preparation-art { width: 88px; height: 88px; } .game-preparation.is-first { padding: 16px; gap: 8px; } }
+
+/* The plain pre-snapshot loader gets the same sticker art. */
+.game-loading .game-loading-art { border: 3px solid var(--hard, #321829); box-shadow: 5px 6px 0 var(--hard, #321829); }
+
+/* A game that failed to load: its own art, tipped over, and one big retry. */
+.game-load-error { display: grid; justify-items: center; gap: 12px; max-width: 440px; padding: 32px 24px;
+  border: 3px solid var(--hard, #321829); border-radius: 24px; box-shadow: 5px 6px 0 var(--hard, #321829); }
+.game-load-error h2 { margin: 0; font: 800 clamp(24px, 4vw, 28px)/1.15 var(--font-display); }
+.game-load-error p { max-width: 34ch; margin: 0; line-height: 1.5; }
+.load-error-art { position: relative; display: block; width: 120px; height: 120px; margin-bottom: 8px; transform: rotate(-12deg); }
+.load-error-art img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; border: 3px solid var(--hard, #321829); filter: grayscale(.7); opacity: .85; }
+.load-error-art::after { content: "!"; position: absolute; right: -12px; top: -12px; display: grid; place-items: center; width: 36px; height: 36px; border: 3px solid var(--hard, #321829); border-radius: 50%; background: var(--sun); color: #321829; font: 800 20px/1 var(--font-display); transform: rotate(12deg); }
+.game-load-error #retryGameView { min-height: 48px; padding-inline: 32px; margin-top: 4px; }
+@media (max-width: 480px) { .game-load-error { margin-inline: 16px; } }
