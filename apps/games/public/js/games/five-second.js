@@ -2,7 +2,7 @@
  * votes pass or fail. Built on the game kit (public/css/game-ui.css,
  * public/js/kit.js). */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer } from '../kit.js';
+import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 let liveTimerEl = null;
 
@@ -66,17 +66,27 @@ function lockControls(el, S) {
 }
 
 export default {
-  styles: [CSS],
+  styles: ['/css/party-scenes.css', CSS],
   ownsTimer: true,
   dispose() { stopHudTimer(liveTimerEl); liveTimerEl = null; screenKey = ''; current = null; },
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') {
+      const performer = S.phase === 'reveal' ? S.last?.performer || S.performer : S.performer;
+      const others = (S.players || []).filter((p) => !p.left && p.id !== performer).map((p) => p.id);
+      paintLiveStrip(el.querySelector?.('[data-scene="five-second"]'), S, {
+        roles: performer ? { [performer]: S.phase === 'answer' ? 'On the clock' : 'Answered' } : {}, actors: others,
+        acted: S.phase === 'vote' ? S.voted || [] : [], verb: 'Judged', waiting: S.phase === 'vote' ? 'Judging' : false,
+        gains: S.phase === 'reveal' ? S.last?.points || {} : {},
+      });
+    }
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },
 };
 
 function paint(el, S, api) {
+    ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
     ensureStylesheet('five-second-css', CSS);
     const prior = current;
     current = { el, S, api };

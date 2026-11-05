@@ -162,3 +162,47 @@
 .tr .tr-meta { font: 700 14px/1.3 var(--font-body); color: var(--ink-dim); text-align: right; font-variant-numeric: tabular-nums; }
 .tr .tr-lane.is-finished .tr-meta { color: var(--ink); }
 @media (prefers-reduced-motion: reduce) { .tr .tr-fill { transition: none; } }
+
+/* ==========================================================================
+ * Toy box stage for the answer and arcade games that draw the live strip
+ * (Trivia, Memory Tray, Reaction Tap, Typing Race, Number Hunt). kit.js
+ * paintLiveStrip adds .pl-fill; party-scenes.css owns the stage, the strip,
+ * the HUD timer bar and the choice stickers. Only those screens change; the
+ * word games that share .wg stay as they were.
+ * ========================================================================== */
+#gbody .wg.pl-fill > .gk-prompt {
+  padding: var(--space-24); text-align: center; background: var(--fam-soft);
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
+  font: 800 clamp(26px, 3.2vw, 34px)/1.2 var(--font-display);
+}
+#gbody .wg.pl-fill .wg-status { min-height: 24px; text-align: center; color: var(--ink); font: 700 17px/1.4 var(--font-body); }
+#gbody .wg.pl-fill .wg-status:empty { display: none; }
+#gbody .wg.pl-fill .wg-status.is-good { color: var(--ink); }
+#gbody .wg.pl-fill .wg-row { border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-md); }
+#gbody .wg.pl-fill .wg-row.is-you { border-color: var(--outline); background: var(--fam-soft); }
+#gbody .wg.pl-fill .wg-panel { border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); }
+/* Trivia: four answers as coloured stickers in two columns. */
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice { min-height: 72px; font: 800 20px/1.25 var(--font-display); }
+/* Memory Tray: object tiles on a tray mat. */
+#gbody .mt.pl-fill .mt-tray { padding: var(--space-16); gap: var(--space-12); background: var(--fam-soft); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); }
+#gbody .mt.pl-fill .mt-obj { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md); box-shadow: var(--shadow-sticker-sm); }
+#gbody .mt.pl-fill .mt-obj.is-hit { background: var(--success-soft); box-shadow: var(--shadow-sticker-sm), inset 0 0 0 2px var(--success); }
+#gbody .mt.pl-fill .mt-name { font: 800 17px/1.2 var(--font-display); }
+/* Reaction Tap: the pad is a big sticker button. */
+#gbody .rt.pl-fill .rt-pad { min-height: clamp(200px, 36vh, 340px); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker-lg); }
+#gbody .rt.pl-fill .rt-pad.is-go { background: var(--success); color: var(--on-success); border-color: var(--outline); }
+#gbody .rt.pl-fill .rt-pad.is-tapped { background: var(--fam-soft); border-color: var(--outline); }
+#gbody .rt.pl-fill .rt-pad.is-fouled { background: var(--danger-soft); border-color: var(--outline); }
+#gbody .rt.pl-fill .rt-pad:not(:disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
+/* Typing Race: the sentence card and one chunky lane per racer. */
+#gbody .tr.pl-fill .tr-target { padding: var(--space-16) var(--space-24); background: var(--card); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); }
+#gbody .tr.pl-fill .tr-lanes { gap: var(--space-12); }
+#gbody .tr.pl-fill .tr-track { height: 20px; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); background: var(--well); }
+#gbody .tr.pl-fill .tr-fill { border-radius: inherit; }
+#gbody .tr.pl-fill .tr-name { font: 800 16px/1.3 var(--font-display); }
+@media (max-width: 560px) {
+  #gbody .wg.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 24px; border-radius: var(--radius-lg); }
+  #gbody .wg.pl-fill[data-game="trivia"] .gk-choice { min-height: 60px; font-size: 18px; }
+  #gbody .mt.pl-fill .mt-tray { padding: var(--space-12); gap: var(--space-8); border-radius: var(--radius-lg); }
+  #gbody .tr.pl-fill .tr-target { padding: var(--space-12) var(--space-16); border-radius: var(--radius-lg); }
+}

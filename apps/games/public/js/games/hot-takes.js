@@ -3,7 +3,7 @@
  * (public/css/game-ui.css): HUD row, prompt, choices, waiting line, round
  * results, Next, final scores. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip, faceHtml } from '../kit.js';
 
 let visualKey = '', liveApi = null, liveEl = null, liveState = null, liveActionKey = '';
 
@@ -240,13 +240,19 @@ function paint(el, S, api) {
       + `${hud(S)}`
       + `<h3 class="gk-prompt party-prompt">“${esc(S.current ? S.current.text : '')}”</h3>`
       + `<p class="gk-wait" role="status">${esc(watch ? 'Watching · the players are judging this take.'
-        : mine ? 'This one is yours, so you sit this vote out.'
+        : mine ? 'Waiting for the room to vote on your take.'
         : picked ? `Locked in · waiting for ${plural(waiting, 'player')}` : 'Agree or disagree? The author stays hidden until the reveal.')}</p>`
-      + `<div class="gk-choices hot-choices${picked ? ' is-locked' : ''}" role="group" aria-label="Your vote" style="--gk-cols:2;--gk-cols-phone:2">`
-      + [['agree', agreeLabel], ['disagree', disLabel]].map(([v, label], i) =>
-        `<button type="button" class="gk-choice hot-choice${picked === v ? ' is-selected is-picked' : ''}${mine ? ' is-dim' : ''}" data-v="${v}" aria-pressed="${picked === v}"${picked || mine || watch ? ' disabled' : ''}>`
-        + `<span class="gk-mark" aria-hidden="true">${i ? 'B' : 'A'}</span><span class="gk-choice-text">${esc(label)}</span></button>`).join('')
-      + `</div>`
+      + (mine
+        ? `<div class="hot-mine" role="status"><p class="hot-mine-kicker">${faceHtml(S, S.me)}Your take is on the table</p>`
+          + `<p class="hot-mine-count"><b>${inCount}</b> of ${voters} voted</p>`
+          + `<p class="gk-sub">The room votes ${esc(agreeLabel)} or ${esc(disLabel)} without knowing it is yours. A close split scores the most.</p></div>`
+        : `<div class="gk-choices pl-ab is-duo hot-choices${picked ? ' is-locked' : ''}" role="group" aria-label="Your vote" style="--gk-cols:2;--gk-cols-phone:2">`
+          + [['agree', agreeLabel], ['disagree', disLabel]].map(([v, label], i) =>
+            `<button type="button" class="gk-choice hot-choice${picked === v ? ' is-selected is-picked' : ''}" data-v="${v}" aria-pressed="${picked === v}"${picked || watch ? ' disabled' : ''}>`
+            + `<span class="gk-mark" aria-hidden="true">${i ? '✕' : '✓'}</span><span class="gk-choice-text">${esc(label)}</span>`
+            + (picked === v && !watch ? `<span class="pl-pick">${faceHtml(S, S.me)}Your vote · locked</span>` : '')
+            + `</button>`).join('')
+          + `</div>`)
       + `</section>`;
     if (!watch) {
       el.querySelectorAll('[data-v]').forEach((b) => {
@@ -264,6 +270,13 @@ export default {
   ownsTimer: true,
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') {
+      // Voting stays anonymous: no "voted" marks that could point at the author.
+      const opts = S.phase === 'submit' ? { acted: S.submitted || [], verb: 'Take in', waiting: 'Writing' }
+        : S.phase === 'standings' ? { waiting: false, gains: S.roundPts || {} }
+        : { waiting: false };
+      paintLiveStrip(el.querySelector?.('.party-scene'), S, opts);
+    }
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },

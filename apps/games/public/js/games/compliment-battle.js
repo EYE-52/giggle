@@ -2,7 +2,7 @@
  * anonymous ballot, then the reveal. Built on the game kit
  * (public/css/game-ui.css, public/js/kit.js). */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer } from '../kit.js';
+import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 let liveTimerEl = null;
 
@@ -128,18 +128,28 @@ function writeHtml(S, watch) {
   return scene(S, 'Write a compliment', `<p class="gk-meta cb-target">For ${esc(who)}</p><h2 class="gk-prompt">${esc(S.prompt || '')}</h2>${body}`);
 }
 
+function liveOpts(S) {
+  const roles = S.target ? { [S.target]: 'Celebrated' } : {};
+  const others = (S.players || []).filter((p) => !p.left && p.id !== S.target).map((p) => p.id);
+  if (S.phase === 'reveal' && S.last) return { roles: { [S.last.target]: 'Celebrated' }, waiting: false, gains: S.last.points || {} };
+  if (S.phase === 'vote') return { acted: S.voted || [], verb: 'Voted', waiting: 'Voting' };
+  return { acted: S.submitted || [], actors: others, roles, verb: 'Wrote', waiting: 'Writing' };
+}
+
 export default {
-  styles: [CSS],
+  styles: ['/css/party-scenes.css', CSS],
   ownsTimer: true,
   dispose() { stopHudTimer(liveTimerEl); liveTimerEl = null; screenKey = ''; liveApi = null; liveEl = null; liveState = null; liveActionKey = ''; },
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') paintLiveStrip(el.querySelector?.('[data-scene="compliment-battle"]'), S, liveOpts(S));
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },
 };
 
 function paint(el, S, api) {
+    ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
     ensureStylesheet('compliment-battle-css', CSS);
     liveApi = api;
     liveEl = el;

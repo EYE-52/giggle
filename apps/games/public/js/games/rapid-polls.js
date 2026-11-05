@@ -3,7 +3,7 @@
  * (public/css/game-ui.css): HUD row, prompt, choices, waiting line, Next,
  * final scores. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 function plural(n, one, many = one + 's') { return `${n} ${n === 1 ? one : many}`; }
 
@@ -131,8 +131,8 @@ function paint(el, S, api) {
         + `${hud(S)}`
         + `<h3 class="gk-prompt party-prompt">${esc(S.poll.q)}</h3>`
         + `<p class="gk-wait" role="status" id="rpStatus">${esc(watch ? 'Watching · the room is voting live below.'
-          : locked ? `Locked in: ${S.poll.options[picked]} · waiting for ${plural(waiting, 'player')}` : 'Choose an answer. Everyone who votes gets 25 points.')}</p>`
-        + (watch ? '' : `<div class="party-choices">${btns}</div>`)
+          : locked ? `Locked in: ${S.poll.options[picked]} · waiting for ${plural(waiting, 'player')}` : 'Pick an answer. Every vote scores 25.')}</p>`
+        + (watch ? '' : `<div class="party-choices${locked ? ' is-locked' : ''}">${btns}</div>`)
         + (watch ? `<div class="party-reveals" aria-label="Live tally">${liveBars(S.poll, S.counts, total)}</div>` : '')
         + `</section>`;
       if (!watch) {
@@ -226,6 +226,10 @@ export default {
   ownsTimer: true,
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') {
+      paintLiveStrip(el.querySelector?.('.party-scene'), S, S.phase === 'vote' ? { acted: S.voted || [], verb: 'Voted', waiting: 'Voting' }
+        : S.phase === 'reveal' && S.last ? { waiting: false, gains: S.last.pts || {} } : { waiting: false });
+    }
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },

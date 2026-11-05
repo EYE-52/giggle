@@ -1,37 +1,22 @@
-/* Pick One: two flat choice cards with a reserved result row, on the game
- * kit. Tokens only. */
-.pick-world { max-width: 760px; padding: 12px 0 24px; }
+/* Pick One: two quick A/B stickers that stay side by side on phones too
+ * (party-scenes.css .pl-ab.is-duo). Cards size to their label. */
+.pick-world { max-width: 880px; }
 .pick-world [hidden] { display: none !important; }
-#gbody .pick-world .gk-prompt { margin: 2px 0 0; }
-.pick-world .pick-choice { align-items: flex-start; min-height: 150px; padding: 16px; }
-.pick-body { flex: 1 1 auto; min-width: 0; align-self: stretch; display: flex; flex-direction: column; gap: 10px; }
-.pick-text { display: block; font: 800 clamp(20px, 2.4vw, 24px)/1.3 var(--font-body); color: var(--ink); overflow-wrap: anywhere; text-wrap: balance; }
-.pick-result { margin-top: auto; display: grid; gap: 6px; min-height: 56px; visibility: hidden; }
-.pick-choices.is-reveal .pick-result { visibility: visible; }
-.pick-choices.is-reveal .gk-choice { opacity: 1; }
-.pick-bar { height: 8px; border-radius: 999px; background: var(--well); border: 1px solid var(--line); overflow: hidden; }
-.pick-fill { display: block; height: 100%; background: var(--ink-dim); border-radius: inherit; }
-.pick-choice.is-majority { border-color: var(--accent); }
-.pick-choice.is-majority .pick-fill { background: var(--accent); }
-.pick-count { color: var(--ink); font-variant-numeric: tabular-nums; }
-.pick-voters { overflow-wrap: anywhere; }
-.pick-status { min-height: 44px; }
-.pick-actions { min-height: 48px; }
-.pick-world .party-more { margin: 0; }
-@media (max-width: 640px) {
-  .pick-world { padding: 8px 0 20px; }
-  .pick-world .pick-choice { min-height: 132px; padding: 12px; gap: 8px; flex-direction: column; align-items: stretch; }
-  .pick-text { font-size: 18px; }
-}
-/* Keep both labels visible in short, narrow game windows. */
-@media (max-height: 500px) {
-  .pick-world { padding-top: 4px; }
-  .pick-world .pick-choice { min-height: 96px; }
-}
-/* Small frames (a 600×500 call panel, zoomed-out games): the question and
- * both cards fit without scrolling. */
-@media (max-height: 640px) {
-  .pick-world .pick-choice { min-height: 104px; padding: 12px; }
+.pick-body { flex: 1 1 auto; width: 100%; min-width: 0; display: flex; flex-direction: column; gap: var(--space-12); }
+#gbody .pick-world .pick-text { display: block; font: 800 clamp(26px, 3.2vw, 36px)/1.15 var(--font-display); color: var(--ink); overflow-wrap: anywhere; text-wrap: balance; }
+.pick-world .pl-pick { align-self: flex-start; }
+.pick-result { display: grid; gap: var(--space-8); }
+.pick-choices:not(.is-reveal) .pick-result { display: none; }
+.pick-bar { height: 12px; border-radius: var(--radius-pill); background: var(--card); border: var(--outline-w) solid var(--outline); overflow: hidden; }
+.pick-fill { display: block; height: 100%; background: var(--side, var(--fam)); border-radius: inherit; }
+.pick-choice.is-majority { box-shadow: var(--shadow-sticker-lg), inset 0 0 0 3px var(--side); }
+#gbody .pick-world .pick-count { color: var(--ink); font: var(--text-caption); font-weight: 800; font-variant-numeric: tabular-nums; }
+.pick-status { min-height: var(--control-h-sm); }
+.pick-actions:not(:has(> :not([hidden]))) { display: none; }
+@media (max-width: 560px) {
+  #gbody .pl-fill .pick-world .pl-ab.is-duo, #gbody .pick-world.pl-fill .pl-ab.is-duo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
+  #gbody .pick-world.pl-fill .pl-ab.is-duo > .gk-choice { flex-direction: column; align-items: flex-start; padding: var(--space-12); }
+  #gbody .pick-world .pick-text { font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .pick-world * { transition: none !important; animation: none !important; }

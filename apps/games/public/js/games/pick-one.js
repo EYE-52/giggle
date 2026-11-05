@@ -2,7 +2,7 @@
  * (public/css/game-ui.css): HUD row, prompt, two choice cards that keep
  * their place from voting to reveal, waiting line, Next, final scores. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip, faceHtml } from '../kit.js';
 
 let mountKey = '', liveApi = null, liveEl = null, liveState = null, liveActionKey = '';
 
@@ -22,7 +22,7 @@ function plural(n, one, many = one + 's') { return `${n} ${n === 1 ? one : many}
 function choiceCards(S, picked, watch, reveal) {
   const ballots = reveal ? S.last.votes || {} : {};
   const n = Object.keys(ballots).length;
-  return `<div class="gk-choices pick-choices${picked && !reveal ? ' is-locked' : ''}${reveal ? ' is-reveal' : ''}" role="group" aria-label="Choices" style="--gk-cols:2;--gk-cols-phone:2">`
+  return `<div class="gk-choices pl-ab is-duo pick-choices${picked && !reveal ? ' is-locked' : ''}${reveal ? ' is-reveal' : ''}" role="group" aria-label="Choices" style="--gk-cols:2;--gk-cols-phone:2">`
     + ['a', 'b'].map((side) => {
       const voters = Object.keys(ballots).filter((pid) => ballots[pid] === side);
       const pct = n ? Math.round(voters.length / n * 100) : 0;
@@ -31,9 +31,10 @@ function choiceCards(S, picked, watch, reveal) {
       return `<button type="button" class="gk-choice pick-choice${sel ? ' is-selected is-picked' : ''}${win ? ' is-majority' : ''}" data-v="${side}" aria-pressed="${sel}"${picked || watch || reveal ? ' disabled' : ''}>`
         + `<span class="gk-mark" aria-hidden="true">${side.toUpperCase()}</span>`
         + `<span class="pick-body"><span class="pick-text">${esc(S.prompt?.[side] || '')}</span>`
+        + (sel && !watch && !reveal ? `<span class="pl-pick">${faceHtml(S, S.me)}Your pick</span>` : '')
         + `<span class="pick-result"><span class="pick-bar"><span class="pick-fill" style="width:${reveal ? pct : 0}%"></span></span>`
         + `<span class="gk-meta pick-count">${reveal ? `${plural(voters.length, 'vote')}${win ? ' · Majority' : ''}` : ''}</span>`
-        + `<span class="gk-meta pick-voters">${reveal ? voters.map((pid) => esc(nameOf(S, pid))).join(', ') : ''}</span></span></span>`
+        + `<span class="pl-faces pick-voters">${reveal ? voters.map((pid) => faceHtml(S, pid, { name: true })).join('') : ''}</span></span></span>`
         + `</button>`;
     }).join('')
     + `</div>`;
@@ -67,7 +68,7 @@ function paint(el, S, api) {
         + `<span class="gk-hud-phase party-phase">${done ? 'Final scores' : reveal ? 'Results' : 'Vote'}</span>`
         + (watch ? `<span class="party-spectator">Watching</span>` : '')
         + `<span class="gk-hud-progress party-progress" id="pProgress"></span><span class="gk-hud-timer" aria-hidden="true"></span></div>`
-        + `<h3 class="gk-prompt party-prompt">${done ? 'Final scores' : 'Pick one'}</h3>`
+        + `<h3 class="gk-prompt party-prompt">${done ? 'Final scores' : 'Which side are you on?'}</h3>`
         + choiceCards(S, picked, watch, reveal)
         + (done ? '' : `<p class="gk-wait pick-status${reveal ? ' is-done' : ''}" id="pStatus" role="status"></p>`)
         + (done ? '' : `<div class="gk-actions is-center pick-actions"><button type="button" class="gk-btn gk-primary" id="pNext" hidden>Next</button></div>`)
@@ -84,12 +85,15 @@ function paint(el, S, api) {
       status.textContent = reveal ? (watch ? 'Here is how the room picked.' : picked ? `You picked ${label}.` : 'You sat this one out.')
         : watch ? `Watching · waiting for ${plural(waiting, 'player')}`
         : picked ? `Locked in · waiting for ${plural(waiting, 'player')}`
-        : 'Quick: tap your side.';
+        : 'Tap A or B before the clock runs out.';
     }
     for (const b of el.querySelectorAll('[data-v]')) {
       b.disabled = !!picked || watch || S.phase !== 'vote' || !!S.preparing;
       b.onclick = () => sendAction({ vote: b.dataset.v });
     }
+    paintLiveStrip(el.querySelector('.pick-world'), S, reveal
+      ? { acted: Object.keys(S.last.votes || {}), verb: 'Picked', waiting: false }
+      : { acted: S.voted || [], verb: 'Picked', waiting: 'Choosing' });
     const next = el.querySelector('#pNext');
     if (next) {
       next.hidden = !reveal || watch || S.me !== S.hostId;
@@ -108,6 +112,6 @@ export default {
   render(el, S, api) {
     paint(el, S, api);
     liveTimerEl = el;
-    syncHudTimer(el, S, api);
+    syncHudTimer(el, S, api, { totalMs: S.voteMs });
   },
 };

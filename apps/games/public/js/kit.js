@@ -5,7 +5,7 @@
  *   import { hudHtml, choicesHtml, inputRowHtml, waitingHtml,
  *            rankRows, winnerLine, resultsHtml } from '../kit.js';
  */
-import { esc } from './util.js';
+import { esc, nameOf } from './util.js';
 
 export { esc };
 
@@ -185,7 +185,11 @@ export function stopHudTimer(root) {
   if (id !== undefined && id !== null) clearInterval(id);
   if (root) hudClocks.delete(root);
 }
-export function syncHudTimer(root, S, now, { show = hudTimerShown(S), endsAt = S?.endsAt } = {}) {
+/* Each root remembers the length of its current deadline (first sight of a
+ * new endsAt, or totalMs when the view knows it) so the slot can carry how
+ * much of the window is left as --gk-timer-left (0–1) for timer bars. */
+const hudSpans = new WeakMap();
+export function syncHudTimer(root, S, now, { show = hudTimerShown(S), endsAt = S?.endsAt, totalMs = 0 } = {}) {
   stopHudTimer(root);
   if (!root) return;
   const clock = () => {
@@ -196,6 +200,11 @@ export function syncHudTimer(root, S, now, { show = hudTimerShown(S), endsAt = S
     return Date.now();
   };
   const live = !!show && Number(endsAt) > 0;
+  let span = root && hudSpans.get(root);
+  if (live && (!span || span.endsAt !== endsAt)) {
+    span = { endsAt, total: Math.max(1, Number(totalMs) || endsAt - clock()) };
+    hudSpans.set(root, span);
+  }
   const paint = () => {
     const slot = root.querySelector?.('.gk-hud-timer');
     if (!slot) return;
@@ -203,6 +212,9 @@ export function syncHudTimer(root, S, now, { show = hudTimerShown(S), endsAt = S
     const text = left === null ? '' : `${left}s`;
     if (slot.textContent !== text) slot.textContent = text;
     slot.classList?.toggle('is-urgent', left !== null && left <= 5);
+    slot.classList?.toggle('is-warn', left !== null && left > 5 && left <= 10);
+    const frac = left === null || !span ? 0 : Math.max(0, Math.min(1, (endsAt - clock()) / span.total));
+    slot.style?.setProperty?.('--gk-timer-left', frac.toFixed(3));
     if (left === 0) stopHudTimer(root);
   };
   paint();
@@ -211,4 +223,113 @@ export function syncHudTimer(root, S, now, { show = hudTimerShown(S), endsAt = S
     id?.unref?.();
     hudClocks.set(root, id);
   }
+}
+
+/* ---- Party live strip ----
+ * The bottom band of the party and answer games (party-scenes.css): one
+ * seat per player with an avatar, a mark for "already acted this phase"
+ * and their score, plus one dot per round. It has no controls, so watchers
+ * have nothing to tap. paintLiveStrip(scene, S, opts) keeps one
+ * <aside class="pl-live"> as the scene's last child, rewrites its parts
+ * only when their text changes, moves the scene's rules disclosure into its
+ * header, and marks the scene .pl-fill so it stretches to the viewport with
+ * the strip at the bottom.
+ *   acted    pids that acted this phase (check mark + verb)
+ *   actors   pids expected to act (default: every player still here)
+ *   roles    { pid: 'Target' } a tag that replaces the acted state
+ *   verb     'Voted'; waiting: 'Voting' (shown to actors still to act)
+ *   gains    { pid: points } won this round, shown as +N
+ *   scores   defaults to S.scores; score: false hides the points line
+ *   family   'party' (default) or 'arcade' */
+function liveDotsHtml(S) {
+  const round = Math.max(0, Math.min(Number(S?.round) || 0, Number(S?.rounds) || Infinity));
+  const rounds = Number(S?.rounds) || 0;
+  if (rounds > 0 && rounds <= 20) {
+    return `<ol class="pl-dots" aria-label="${esc(roundLabel(round || 1, rounds))}">${Array.from({ length: rounds }, (_, i) => `<li class="${i + 1 < round ? 'is-done' : i + 1 === round ? 'is-now' : ''}"></li>`).join('')}</ol>`;
+  }
+  return rounds ? `<span class="pl-round">${esc(roundLabel(round || 1, rounds))}</span>` : '';
+}
+export function liveSeatsHtml(S, opts = {}) {
+  const players = S?.players || [];
+  const scores = opts.scores || S?.scores || {};
+  const acted = new Set(opts.acted || []);
+  const actors = new Set(opts.actors || players.filter((p) => !p.left).map((p) => p.id));
+  const roles = opts.roles || {};
+  const gains = opts.gains || {};
+  const verb = opts.verb || 'Done';
+  const waiting = opts.waiting || 'Thinking';
+  return players.map((p, i) => {
+    const role = roles[p.id];
+    const did = acted.has(p.id);
+    const waits = !did && !role && !p.left && actors.has(p.id) && opts.waiting !== false;
+    const state = p.left ? 'Left' : role || (did ? verb : waits ? waiting : '');
+    const cls = ['pl-seat', `pl-c${i % 5}`, did && 'is-acted', waits && 'is-waiting', role && 'is-role', p.id === S?.me && 'is-you', p.left && 'is-left'].filter(Boolean).join(' ');
+    const gain = Number(gains[p.id]) || 0;
+    const name = nameOf(S, p.id);
+    return `<li class="${cls}"><span class="pl-avatar" aria-hidden="true">${esc(initials(name))}<i class="pl-badge"></i></span>`
+      + `<span class="pl-name">${esc(name)}${p.id === S?.me ? '<small> (you)</small>' : ''}</span>`
+      + `<span class="pl-state">${esc(state)}</span>`
+      + (opts.score === false ? '' : `<span class="pl-points"><b>${Number(scores[p.id]) || 0}</b><small class="pl-gain${gain ? '' : ' is-empty'}">${gain ? `+${gain}` : '+0'}</small></span>`)
+      + `</li>`;
+  }).join('');
+}
+export function paintLiveStrip(scene, S, opts = {}) {
+  if (!scene || typeof document === 'undefined') return null;
+  scene.classList?.add('pl-fill');
+  if (!scene.getAttribute?.('data-family')) scene.setAttribute?.('data-family', opts.family || 'party');
+  let strip = scene.querySelector?.('.pl-live');
+  if (!strip) {
+    strip = document.createElement('aside');
+    strip.className = 'pl-live';
+    strip.setAttribute('aria-label', opts.label || 'Players');
+    strip.innerHTML = `<div class="pl-head"><span class="pl-label">${esc(opts.label || 'Players')}</span><span class="pl-slot"></span><span class="pl-dotsbox"></span></div><ul class="pl-seats"></ul>`;
+    scene.appendChild(strip);
+  } else if (scene.lastElementChild && scene.lastElementChild !== strip) {
+    scene.appendChild(strip);
+  }
+  // The scene's rules disclosure rides in the strip's header as a chip.
+  const slot = strip.querySelector('.pl-slot');
+  for (const child of Array.from(scene.children || [])) {
+    if (child !== strip && (child.classList?.contains('party-more') || child.classList?.contains('wg-more'))) slot?.appendChild(child);
+  }
+  const dots = liveDotsHtml(S);
+  const box = strip.querySelector('.pl-dotsbox');
+  if (box && box.plHtml !== dots) { box.innerHTML = dots; box.plHtml = dots; }
+  const seats = liveSeatsHtml(S, opts);
+  const list = strip.querySelector('.pl-seats');
+  if (list && list.plHtml !== seats) { list.innerHTML = seats; list.plHtml = seats; }
+  return strip;
+}
+/* A player's avatar disc in the strip's seat colour, for "your pick" tags
+ * and voter rows on choice cards. */
+export function faceHtml(S, pid, { name: withName = false } = {}) {
+  const i = Math.max(0, (S?.players || []).findIndex((p) => p.id === pid));
+  const name = nameOf(S, pid);
+  const face = `<span class="pl-face pl-c${i % 5}" aria-hidden="true">${esc(initials(name))}</span>`;
+  return withName ? `<span class="pl-voter">${face}${esc(name)}</span>` : face;
+}
+/* "Ann" -> "A", "Player 2" -> "P2", "Mary Jo" -> "MJ". */
+function initials(name) {
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return '?';
+  return (words[0].charAt(0) + (words[1] ? words[1].charAt(0) : '')).toUpperCase();
+}
+/* For views that run their own clock: marks a .gk-hud-timer slot amber in
+ * the last ten seconds and sets --gk-timer-left (0–1) for the timer bar.
+ * The window's length is totalMs, or how long was left when this endsAt
+ * was first seen. */
+const spans = new Map();
+export function timerSlotState(slot, endsAt, nowMs, totalMs = 0) {
+  if (!slot) return;
+  const live = Number(endsAt) > 0;
+  const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+  if (live && !spans.has(endsAt)) {
+    if (spans.size > 32) spans.clear();
+    spans.set(endsAt, Math.max(1, endsAt - now));
+  }
+  const left = live ? Math.max(0, endsAt - now) : 0;
+  const total = Number(totalMs) || (live ? spans.get(endsAt) : 1);
+  const secs = Math.ceil(left / 1000);
+  slot.classList?.toggle('is-warn', live && secs > 5 && secs <= 10);
+  slot.style?.setProperty?.('--gk-timer-left', live ? Math.max(0, Math.min(1, left / total)).toFixed(3) : '0');
 }

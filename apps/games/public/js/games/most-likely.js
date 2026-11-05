@@ -2,7 +2,7 @@
  * room's tally. Built on the game kit (public/css/game-ui.css): HUD row,
  * prompt, nominee cards, waiting line, result rows, Next, final scores. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip, faceHtml } from '../kit.js';
 
 let mountKey = '', liveApi = null, liveEl = null, liveState = null, liveActionKey = '';
 
@@ -28,6 +28,7 @@ function initials(name) {
   const second = parts.length > 1 ? [...parts[parts.length - 1]][0] : '';
   return (first + second).toUpperCase();
 }
+function seat(S, pid) { return Math.max(0, (S.players || []).findIndex((p) => p.id === pid)) % 5; }
 function plural(n, one, many = one + 's') { return `${n} ${n === 1 ? one : many}`; }
 
 
@@ -46,10 +47,10 @@ function revealRows(S) {
       const win = n > 0 && S.last.winners.includes(p.id);
       const pct = ballots ? Math.round(n / ballots * 100) : 0;
       return `<div class="party-result likely-row${win ? ' party-result--winner is-winner' : ''}">`
-        + `<span class="gk-mark likely-initials" aria-hidden="true">${esc(initials(p.name))}</span>`
+        + `<span class="gk-mark likely-initials pl-c${seat(S, p.id)}" aria-hidden="true">${esc(initials(p.name))}</span>`
         + `<div class="likely-row-body"><div class="likely-row-head"><span class="likely-name">${esc(p.name)}</span><b class="likely-votes">${plural(n, 'vote')}</b></div>`
         + `<div class="party-meter" role="img" aria-label="${n} votes"><span style="width:${pct}%"></span></div>`
-        + `<p class="gk-meta likely-voters">${voters.length ? `Picked by ${voters.map((v) => esc(nameOf(S, v))).join(', ')}` : 'No picks'}</p></div></div>`;
+        + `<p class="pl-faces likely-voters">${voters.length ? voters.map((v) => faceHtml(S, v, { name: true })).join('') : '<span class="gk-meta">No picks</span>'}</p></div></div>`;
     }).join('');
 }
 
@@ -82,7 +83,8 @@ function paint(el, S, api) {
         const list = watch ? (S.players || []) : others;
         body = `<div class="gk-choices likely-lineup${picked ? ' is-locked' : ''}" role="group" aria-label="Nominees" style="--gk-cols:2;--gk-cols-phone:1">`
           + list.map((p) => `<button type="button" class="gk-choice likely-nominee${picked === p.id ? ' is-selected is-picked' : ''}" data-v="${esc(p.id)}" aria-pressed="${picked === p.id}"${picked || watch ? ' disabled' : ''}>`
-            + `<span class="gk-mark likely-initials" aria-hidden="true">${esc(initials(p.name))}</span><span class="gk-choice-text likely-name">${esc(p.name)}</span></button>`).join('')
+            + `<span class="gk-mark likely-initials pl-c${seat(S, p.id)}" aria-hidden="true">${esc(initials(p.name))}</span><span class="gk-choice-text likely-name">${esc(p.name)}</span>`
+            + (picked === p.id && !watch ? `<span class="pl-pick">${faceHtml(S, S.me)}Your vote</span>` : '') + `</button>`).join('')
           + `</div>`;
       }
       el.innerHTML = `<section class="party-scene gk-col gk-stack likely-world" aria-label="Most Likely">`
@@ -117,6 +119,9 @@ function paint(el, S, api) {
       b.disabled = !!picked || watch || S.phase !== 'vote' || !!S.preparing;
       b.onclick = () => sendAction({ vote: b.dataset.v });
     }
+    paintLiveStrip(el.querySelector('.likely-world'), S, reveal
+      ? { acted: Object.keys(S.last.votes || {}), verb: 'Voted', waiting: false, gains: S.last.pts || {} }
+      : { acted: S.voted || [], verb: 'Voted', waiting: 'Choosing' });
     const next = el.querySelector('#mNext');
     if (next) {
       next.hidden = !reveal || watch || S.me !== S.hostId;

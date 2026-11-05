@@ -3,7 +3,7 @@
  * (public/css/game-ui.css): HUD row, prompt, two choice cards that keep
  * their place from voting to reveal, waiting line, Next, final scores. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip, faceHtml } from '../kit.js';
 
 let mountKey = '', liveApi = null, liveEl = null, liveState = null, liveActionKey = '';
 
@@ -49,10 +49,10 @@ function paint(el, S, api) {
       el.innerHTML = `<section class="party-scene gk-col gk-stack never-world" aria-label="Never Ever">`
         + `<div class="gk-hud party-hud"><span class="gk-hud-round party-round" id="nRound"></span><span class="gk-hud-phase party-phase" id="nPhase"></span><span class="party-spectator" id="nWatch" hidden>Watching</span><span class="gk-hud-progress party-progress" id="nProgress"></span><span class="gk-hud-timer" aria-hidden="true"></span></div>`
         + `<div class="never-card"><p class="gk-meta never-lead" id="nLead">Never have I ever…</p><h3 class="gk-prompt party-prompt" id="nPrompt"></h3></div>`
-        + `<div class="gk-choices never-choices" role="group" aria-label="Your answer" style="--gk-cols:2;--gk-cols-phone:2">`
+        + `<div class="gk-choices pl-ab is-duo never-choices" role="group" aria-label="Your answer" style="--gk-cols:2;--gk-cols-phone:2">`
         + ['have', 'not'].map((v) => `<button type="button" class="gk-choice never-choice" data-v="${v}" aria-pressed="false">`
-          + `<span class="never-choice-top"><span class="gk-mark" aria-hidden="true">${v === 'have' ? 'H' : 'N'}</span><span class="never-choice-label"></span></span>`
-          + `<span class="never-result"><span class="never-bar"><span class="never-fill"></span></span><span class="never-count gk-meta"></span><span class="never-voters gk-meta"></span></span>`
+          + `<span class="never-choice-top"><span class="gk-mark" aria-hidden="true">${v === 'have' ? 'H' : 'N'}</span><span class="never-choice-label"></span></span><span class="pl-pick never-pick" hidden></span>`
+          + `<span class="never-result"><span class="never-bar"><span class="never-fill"></span></span><span class="never-count gk-meta"></span><span class="pl-faces never-voters"></span></span>`
           + `</button>`).join('')
         + `</div>`
         + `<p class="gk-wait never-status" id="nStatus" role="status"></p>`
@@ -92,7 +92,13 @@ function paint(el, S, api) {
       b.classList.toggle('is-picked', picked === v);
       b.querySelector('.never-fill').style.width = `${reveal ? pct : 0}%`;
       b.querySelector('.never-count').textContent = reveal ? `${pct}% · ${plural(voters.length, 'vote')}` : '';
-      b.querySelector('.never-voters').textContent = reveal ? (voters.map((pid) => nameOf(S, pid)).join(', ') || 'Nobody') : '';
+      const faces = reveal ? (voters.map((pid) => faceHtml(S, pid, { name: true })).join('') || '<span class="gk-meta">Nobody</span>') : '';
+      const facesEl = b.querySelector('.never-voters');
+      if (facesEl.innerHTML !== faces) facesEl.innerHTML = faces;
+      const pick = b.querySelector('.never-pick');
+      pick.hidden = picked !== v || watch || reveal;
+      const pickHtml = pick.hidden ? '' : `${faceHtml(S, S.me)}Your answer · locked`;
+      if (pick.innerHTML !== pickHtml) pick.innerHTML = pickHtml;
       b.onclick = () => sendAction({ vote: v });
     }
 
@@ -107,6 +113,9 @@ function paint(el, S, api) {
       : picked ? `Locked in: ${picked === 'have' ? haveLabel : notLabel} · waiting for ${plural(waiting, 'player')}`
       : 'Have you ever? Answer honestly.';
 
+    paintLiveStrip(scene, S, reveal
+      ? { acted: Object.keys(ballots), verb: 'Answered', waiting: false, gains: S.last.pts || {} }
+      : { acted: S.voted || [], verb: 'Answered', waiting: 'Thinking' });
     const next = el.querySelector('#nNext');
     next.hidden = !reveal || watch || S.me !== S.hostId;
     next.disabled = next.hidden || !!S.preparing;

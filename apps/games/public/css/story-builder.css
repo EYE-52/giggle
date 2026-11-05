@@ -42,3 +42,18 @@
   .sb-scene .gk-choice { min-height: 48px; padding-block: 8px; }
   .sb-scene .pb-share { margin-top: 5px; }
 }
+/* Toy box stage: the story as a notebook card, the seed as its title. */
+#gbody .sb-scene.pl-fill > .gk-prompt {
+  padding: var(--space-24); text-align: center; background: var(--fam-soft);
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
+  font: 800 clamp(24px, 3vw, 32px)/1.2 var(--font-display);
+}
+#gbody .pl-fill .sb-story { padding: var(--space-8) var(--space-24); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); }
+#gbody .pl-fill .sb-line .gk-mark { background: var(--fam); color: var(--on-fam); border: var(--outline-w) solid var(--outline); }
+#gbody .pl-fill .sb-text { font: 700 19px/1.45 var(--font-body); }
+#gbody .pl-fill .pb-share { height: 12px; }
+@media (max-width: 560px) {
+  #gbody .sb-scene.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 22px; border-radius: var(--radius-lg); }
+  #gbody .pl-fill .sb-story { padding: var(--space-4) var(--space-16); border-radius: var(--radius-lg); }
+  #gbody .pl-fill .sb-text { font-size: 17px; }
+}

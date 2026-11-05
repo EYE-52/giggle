@@ -1,7 +1,7 @@
 /* Punchline (funny-answer) view: secret answers, anonymous vote, reveal.
  * Built on the game kit (public/css/game-ui.css, public/js/kit.js). */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer } from '../kit.js';
+import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 let liveTimerEl = null;
 
@@ -124,18 +124,26 @@ function answerHtml(S, watch) {
   return scene(S, 'Write your answer', `<h2 class="gk-prompt">${esc(S.prompt)}</h2>${body}`);
 }
 
+function liveOpts(S) {
+  if (S.phase === 'reveal' && S.last) return { waiting: false, gains: S.last.points || {} };
+  if (S.phase === 'vote') return { acted: S.voted || [], verb: 'Voted', waiting: 'Voting' };
+  return { acted: S.submitted || [], verb: 'Answered', waiting: 'Writing' };
+}
+
 export default {
-  styles: [CSS],
+  styles: ['/css/party-scenes.css', CSS],
   ownsTimer: true,
   dispose() { stopHudTimer(liveTimerEl); liveTimerEl = null; screenKey = ''; liveApi = null; liveEl = null; liveState = null; liveActionKey = ''; },
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') paintLiveStrip(el.querySelector?.('[data-scene="funny-answer"]'), S, liveOpts(S));
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },
 };
 
 function paint(el, S, api) {
+    ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
     ensureStylesheet('funny-answer-css', CSS);
     liveApi = api;
     liveEl = el;

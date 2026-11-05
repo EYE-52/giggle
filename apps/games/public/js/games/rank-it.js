@@ -2,7 +2,7 @@
  * points. Built on the game kit (public/css/game-ui.css): HUD row, prompt,
  * ladder rows, waiting line, round results, Next, final scores. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
 
 function plural(n, one, many = one + 's') { return `${n} ${n === 1 ? one : many}`; }
 
@@ -62,6 +62,13 @@ function move(order, pos, dir) {
   return copy;
 }
 
+function strip(el, S) {
+  if (!S || S.phase === 'done') return;
+  paintLiveStrip(el.querySelector?.('.party-scene'), S, S.phase === 'rank'
+    ? { acted: S.ranked || [], verb: 'Locked in', waiting: 'Ranking' }
+    : { waiting: false, gains: S.last?.pts || {} });
+}
+
 function buildRank(el, S, api, focusPos) {
   const items = S.set.items;
   const activeKey = rankKey;
@@ -113,6 +120,7 @@ function buildRank(el, S, api, focusPos) {
       relayout(Number(item.dataset.pos), e.key === 'ArrowUp' ? -1 : 1);
     };
   }
+  strip(el, rankState || S);
   const lock = el.querySelector('#rLock');
   lock.onclick = () => { if (activeKey === rankKey && rankState && !rankState.preparing && !watching(rankState) && rankState.phase === 'rank' && el.querySelector('#rLock') === lock) rankApi?.send({ order: rankOrder }); };
   if (focusPos !== null && focusPos !== undefined) {
@@ -218,6 +226,7 @@ export default {
   ownsTimer: true,
   render(el, S, api) {
     paint(el, S, api);
+    strip(el, S);
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },

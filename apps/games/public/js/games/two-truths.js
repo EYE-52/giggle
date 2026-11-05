@@ -2,7 +2,7 @@
  * the lie; everyone else votes for the lie. Built on the game kit
  * (public/css/game-ui.css, public/js/kit.js). */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer, waitCardHtml } from '../kit.js';
+import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer, waitCardHtml, paintLiveStrip } from '../kit.js';
 
 let liveTimerEl = null;
 
@@ -115,18 +115,29 @@ function writerHtml(S) {
     + `<details class="tt-idea truths-idea"><summary>Need an idea?</summary><p class="gk-meta">${esc(S.idea || '')}</p></details></div>`, ' truths-writer');
 }
 
+function liveOpts(S) {
+  const subject = S.phase === 'reveal' && S.last ? S.last.subject : S.subject;
+  const roles = subject ? { [subject]: S.phase === 'write' ? 'Writing' : 'Storyteller' } : {};
+  const others = (S.players || []).filter((p) => !p.left && p.id !== subject).map((p) => p.id);
+  if (S.phase === 'reveal' && S.last) return { roles, waiting: false, gains: S.last.points || {} };
+  if (S.phase === 'vote') return { acted: S.voted || [], actors: others, roles, verb: 'Guessed', waiting: 'Guessing' };
+  return { roles, waiting: false };
+}
+
 export default {
-  styles: [CSS],
+  styles: ['/css/party-scenes.css', CSS],
   ownsTimer: true,
   dispose() { stopHudTimer(liveTimerEl); liveTimerEl = null; feedback = null; screenKey = ''; liveApi = null; liveEl = null; liveState = null; liveActionKey = ''; },
   render(el, S, api) {
     paint(el, S, api);
+    if (S.phase !== 'done') paintLiveStrip(el.querySelector?.('[data-scene="two-truths"]'), S, liveOpts(S));
     liveTimerEl = el;
     syncHudTimer(el, S, api);
   },
 };
 
 function paint(el, S, api) {
+    ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
     ensureStylesheet('two-truths-css', CSS);
     const feedbackKey = `${S.instanceId || ''}:${S.me}:${S.round}`;
     if (S.instanceId && !S.audioBaseline && !S.preparing && !S.spectator && feedback?.key === feedbackKey && feedback?.phase === 'vote' && S.phase === 'reveal' && S.last?.votes?.[S.me] != null && S.last.votes[S.me] === S.last.lie) {

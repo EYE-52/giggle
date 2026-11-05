@@ -2,9 +2,9 @@
  * hints, your last reading, one number field and the public hint feed.
  * Built on the game kit. Contracts: {guess}, {next:true} (host, results). */
 import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
-import { hudHtml, roundLabel, waitingHtml, resultsHtml } from '../kit.js';
+import { hudHtml, roundLabel, waitingHtml, resultsHtml, paintLiveStrip, timerSlotState } from '../kit.js';
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['number-hunt-world-css', '/css/number-hunt-world.css']];
+const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css'], ['number-hunt-world-css', '/css/number-hunt-world.css']];
 let current = null, clock = null;
 
 function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
@@ -19,6 +19,7 @@ function paintClock(el, S, api) {
   const left = S.endsAt > 0 && !S.preparing && S.phase !== 'done' ? countdown(S.endsAt, api?.now) : null;
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
+  timerSlotState(slot, left === null ? 0 : S.endsAt, typeof api?.now === 'function' ? api.now() : Date.now());
   slot.classList?.toggle('is-urgent', left !== null && left <= 5 && S.phase !== 'roundEnd');
 }
 function runClock(el, S, api) {
@@ -53,8 +54,8 @@ function foundCount(S) {
   return `${n} found it`;
 }
 
-export default {
-  styles: ['/css/compact-answer-games.css', '/css/number-hunt-world.css'],
+const view = {
+  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css', '/css/number-hunt-world.css'],
   ownsTimer: true,
   dispose(el) {
     if (clock !== null) clearInterval(clock);
@@ -124,7 +125,7 @@ export default {
         + `<div class="nh-range wg-panel" role="group" aria-label="Possible range">`
         + `<div class="nh-bounds"><span id="nLo">1</span><span class="nh-between" id="nBetween" role="status"></span><span id="nHi">100</span></div>`
         + `<div class="nh-track"><div class="nh-window" id="nWin"></div></div>`
-        + `<p class="nh-reading"><span>Your last guess</span> <b id="nCurrent">?</b> <strong id="nDirection">Try a number</strong> <small id="nHeat"></small></p>`
+        + `<p class="nh-reading"><span id="nLastLabel">No guess yet</span> <b id="nCurrent"></b> <strong id="nDirection">Try a number</strong> <small id="nHeat"></small></p>`
         + `</div>`
         + `<form class="gk-input-row" id="nForm" autocomplete="off"><input class="gk-input" id="nGuess" aria-label="Your number guess, from 1 to 100" type="number" min="1" max="100" inputmode="numeric" enterkeyhint="go" autocomplete="off"`
         + ` placeholder="${esc(t.guess_placeholder || 'Your guess (1–100)')}" ${found || S.spectator ? 'disabled' : ''}>`
@@ -132,7 +133,6 @@ export default {
         + `<p class="wg-status" id="nMine" role="status"></p>`
         + `<h3 class="nh-feed-title">${esc(t.feed_title || 'Public hints')}</h3>`
         + `<div class="wg-feed" id="nFeed" role="log" aria-label="Public guess hints" tabindex="0"></div>`
-        + `<details class="wg-more nh-players"><summary>Players and tries</summary><ul class="wg-chips" id="nTries"></ul></details>`
         + `</section>`;
       const inp = el.querySelector('#nGuess');
       const send = () => {
@@ -160,7 +160,8 @@ export default {
     if (progress) progress.textContent = foundCount(S);
     // Read only public history. Nothing here derives distance from a secret.
     const recent = [...(S.history || [])].reverse().find((h) => h.pid === S.me);
-    const number = el.querySelector('#nCurrent'); if (number) number.textContent = recent ? String(recent.guess) : '?';
+    const number = el.querySelector('#nCurrent'); if (number) number.textContent = recent ? String(recent.guess) : '';
+    const lastLabel = el.querySelector('#nLastLabel'); if (lastLabel) lastLabel.textContent = recent ? 'Your last guess' : 'No guess yet';
     const direction = el.querySelector('#nDirection'); if (direction) direction.textContent = recent?.result === 'correct' ? 'Found it!' : recent?.dir === 'higher' ? 'Go higher' : recent?.dir === 'lower' ? 'Go lower' : 'Try a number';
     const heat = el.querySelector('#nHeat'); if (heat) heat.textContent = recent ? ({ hotter: 'warmer than before', colder: 'colder than before', same: 'just as close as before', first: 'your first clue', correct: '' }[recent.result] || '') : '';
     const { lo, hi } = bounds(S.history);
@@ -219,3 +220,21 @@ export default {
     }
   },
 };
+
+function liveOpts(S) {
+  const done = S.phase === 'roundEnd' ? S.last?.finished || [] : S.finished || [];
+  const tries = (pid) => ((S.guesses && S.guesses[pid]) || []).length;
+  const found = new Set(done.map((f) => f.pid));
+  const roles = Object.fromEntries((S.players || []).filter((p) => !found.has(p.id) && tries(p.id))
+    .map((p) => [p.id, `${tries(p.id)} ${tries(p.id) === 1 ? 'try' : 'tries'}`]));
+  return { acted: [...found], verb: 'Found it', waiting: S.phase === 'hunt' ? 'Hunting' : false, roles,
+    gains: S.phase === 'roundEnd' ? Object.fromEntries(done.map((f) => [f.pid, f.pts || 0])) : {} };
+}
+
+/* Every screen ends with the live strip (who has acted, scores, rounds). */
+const paintScreen = view.render;
+view.render = function render(el, S, api) {
+  paintScreen.call(this, el, S, api);
+  if (S.phase !== 'done') paintLiveStrip(el.querySelector?.('.wg'), S, { family: 'arcade', ...liveOpts(S) });
+};
+export default view;

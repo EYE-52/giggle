@@ -3,12 +3,12 @@
  * real game art. Contracts: {recall}, {next:true} (host, reveal). Tray
  * items stay hidden during recall (server-enforced). */
 import { esc, countdown, ensureStylesheet } from '../util.js';
-import { hudHtml, roundLabel, progressText, waitingHtml, resultsHtml } from '../kit.js';
+import { hudHtml, roundLabel, progressText, waitingHtml, resultsHtml, paintLiveStrip, timerSlotState } from '../kit.js';
 
 let feedback = null;
 let lastKey = '', current = null, clock = null;
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['memory-tray-css', '/css/memory-tray.css']];
+const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css'], ['memory-tray-css', '/css/memory-tray.css']];
 function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
 function removeCss() {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
@@ -21,6 +21,7 @@ function paintClock(el, S, api) {
   const left = S.endsAt > 0 && !S.preparing && S.phase !== 'done' ? countdown(S.endsAt, api?.now) : null;
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
+  timerSlotState(slot, left === null ? 0 : S.endsAt, typeof api?.now === 'function' ? api.now() : Date.now());
   slot.classList?.toggle('is-urgent', left !== null && left <= 5 && S.phase !== 'reveal');
 }
 function runClock(el, S, api) {
@@ -142,8 +143,8 @@ function trayHtml(items, hits) {
 function activeCount(S) { return (S.players || []).filter((p) => !p.left).length; }
 function isPlayer(S) { return (S.players || []).some((p) => p.id === S.me); }
 
-export default {
-  styles: ['/css/compact-answer-games.css', '/css/memory-tray.css'],
+const view = {
+  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css', '/css/memory-tray.css'],
   ownsTimer: true,
   dispose() {
     if (clock !== null) clearInterval(clock);
@@ -271,3 +272,20 @@ export default {
     }
   },
 };
+
+function liveOpts(S) {
+  if (S.phase === 'reveal' && S.last) {
+    const res = S.last.results || {};
+    return { waiting: false, gains: Object.fromEntries(Object.entries(res).map(([pid, r]) => [pid, r.pts || 0])) };
+  }
+  if (S.phase === 'recall') return { acted: S.submitted || [], verb: 'Saved a list', waiting: 'Recalling' };
+  return { waiting: S.phase === 'memorize' ? 'Studying' : false };
+}
+
+/* Every screen ends with the live strip (who has acted, scores, rounds). */
+const paintScreen = view.render;
+view.render = function render(el, S, api) {
+  paintScreen.call(this, el, S, api);
+  if (S.phase !== 'done') paintLiveStrip(el.querySelector?.('.wg'), S, { family: 'board', ...liveOpts(S) });
+};
+export default view;

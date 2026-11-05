@@ -3,7 +3,7 @@
  * cards, waiting line, Next, final scores. The kit HUD shows the clock; the
  * authority owns ballots and scoring. */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { paintFinal, syncHudTimer, stopHudTimer } from '../kit.js';
+import { paintFinal, syncHudTimer, stopHudTimer, paintLiveStrip, faceHtml } from '../kit.js';
 
 const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['would-you-rather-css', '/css/would-you-rather.css']];
 let mountedKey = '';
@@ -18,7 +18,7 @@ function watching(S) {
 }
 function update(el, S, api) {
   paint(el, S, api);
-  syncHudTimer(el, S, api);
+  syncHudTimer(el, S, api, { totalMs: S.voteMs });
 }
 function paint(el, S, api) {
   current = { el, S, api };
@@ -35,10 +35,10 @@ function paint(el, S, api) {
     el.innerHTML = `<section class="party-scene gk-col gk-stack wyr-world" aria-label="Would You Rather">
       <div class="gk-hud party-hud"><span class="gk-hud-round party-round" id="wyrRound"></span><span class="gk-hud-phase party-phase" id="wyrPhase"></span><span class="party-spectator" id="wyrWatch" hidden>Watching</span><span class="gk-hud-progress party-progress" id="wyrProgress"></span><span class="gk-hud-timer" aria-hidden="true"></span></div>
       <h3 class="gk-prompt party-prompt" id="wyrTitle">Would you rather…</h3>
-      <div class="gk-choices wyr-choices" role="group" aria-label="Choices" style="--gk-cols:2;--gk-cols-phone:1">${['a', 'b'].map(side => `<button type="button" class="gk-choice wyr-choice" data-v="${side}">
+      <div class="gk-choices pl-ab wyr-choices" role="group" aria-label="Choices" style="--gk-cols:2;--gk-cols-phone:1">${['a', 'b'].map(side => `<button type="button" class="gk-choice wyr-choice" data-v="${side}">
         <span class="gk-mark" aria-hidden="true">${side.toUpperCase()}</span>
-        <span class="wyr-body"><span class="wyr-text"></span>
-        <span class="wyr-result"><span class="wyr-bar"><span class="wyr-fill"></span></span><span class="wyr-count gk-meta"></span><span class="wyr-voters gk-meta"></span></span></span>
+        <span class="wyr-body"><span class="wyr-text"></span><span class="pl-pick wyr-pick" hidden></span>
+        <span class="wyr-result"><span class="wyr-bar"><span class="wyr-fill"></span></span><span class="wyr-count gk-meta"></span><span class="pl-faces wyr-faces"></span><span class="wyr-voters gk-meta" hidden></span></span></span>
       </button>`).join('')}</div>
       <p class="gk-wait wyr-status" id="wyrStatus" role="status"></p>
       <div class="gk-actions is-center wyr-actions"><button type="button" class="gk-btn gk-primary" id="wNext" hidden>Next</button></div>
@@ -77,7 +77,7 @@ function paint(el, S, api) {
     : reveal && !votes ? 'Nobody voted in this round.'
     : reveal ? (watch ? 'Here is how the room voted.' : picked ? 'Your choice is marked.' : 'You sat this one out.')
     : watch ? `Watching · waiting for ${waitingFor} player${waitingFor === 1 ? '' : 's'}`
-    : picked ? (S.myVote ? `Choice locked in · waiting for ${waitingFor} player${waitingFor === 1 ? '' : 's'}` : 'Sending your choice…')
+    : picked ? (S.myVote ? `Locked in · waiting for ${waitingFor} player${waitingFor === 1 ? '' : 's'}` : 'Locking in your choice…')
     : 'Pick the one you would rather do.';
   status.classList.toggle('is-done', reveal);
   status.hidden = done;
@@ -101,7 +101,18 @@ function paint(el, S, api) {
     button.querySelector('.wyr-fill').style.width = `${reveal ? share : 0}%`;
     button.querySelector('.wyr-count').textContent = reveal ? `${share}% · ${voters.length} vote${voters.length === 1 ? '' : 's'}${majority ? ' · Majority' : ''}` : '';
     button.querySelector('.wyr-voters').textContent = reveal ? voters.map(pid => nameOf(S, pid)).join(', ') : '';
+    const faces = reveal ? voters.map(pid => faceHtml(S, pid, { name: true })).join('') : '';
+    const facesEl = button.querySelector('.wyr-faces');
+    if (facesEl.innerHTML !== faces) facesEl.innerHTML = faces;
+    const pick = button.querySelector('.wyr-pick');
+    const showPick = picked === side && !watch && !reveal;
+    pick.hidden = !showPick;
+    const pickHtml = showPick ? `${faceHtml(S, S.me)}${S.myVote ? 'Your pick · locked' : 'Your pick'}` : '';
+    if (pick.innerHTML !== pickHtml) pick.innerHTML = pickHtml;
   });
+  paintLiveStrip(scene, S, reveal
+    ? { acted: Object.keys(ballots), verb: 'Voted', waiting: false }
+    : { acted: S.voted || [], verb: 'Voted', waiting: 'Choosing' });
   const next = el.querySelector('#wNext');
   next.hidden = S.phase !== 'reveal' || S.me !== S.hostId || watch;
   next.disabled = next.hidden || !!S.preparing;

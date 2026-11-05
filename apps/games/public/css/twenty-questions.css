@@ -107,3 +107,22 @@
 /* With nothing to answer the buttons are disabled: look it, so they never
  * read as tappable beside "No questions waiting". */
 .tq .tq-ans:disabled { background: var(--well); border-color: var(--line); color: var(--ink-dim); opacity: .6; cursor: default; }
+
+/* Toy box stage (kit.js paintLiveStrip adds .pl-fill): wider desk, sticker
+ * cards for the question spot and the answered list, the question budget as
+ * a chunky meter. */
+#gbody .tq.pl-fill { max-width: 1040px; padding-top: var(--space-8); }
+#gbody .tq.pl-fill .tq-spot, #gbody .tq.pl-fill .tq-arch {
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); padding: var(--space-16) var(--space-24);
+}
+#gbody .tq.pl-fill .tq-spot { background: var(--fam-soft); }
+#gbody .tq.pl-fill .tq-qtext { font: 800 24px/1.25 var(--font-display); }
+#gbody .tq.pl-fill .tq-budget { height: 14px; border: var(--outline-w) solid var(--outline); background: var(--card); }
+#gbody .tq.pl-fill .tq-budget i { background: var(--fam); }
+#gbody .tq.pl-fill .tq-askrow .gk-input { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); min-height: var(--control-h-lg); }
+#gbody .tq.pl-fill .tq-askrow .gk-btn { min-height: var(--control-h-lg); }
+#gbody .tq.pl-fill .tq-ans { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); font: 800 17px/1.2 var(--font-display); }
+#gbody .tq.pl-fill .tq-sec { font: var(--text-title); color: var(--ink); }
+@media (max-width: 560px) {
+  #gbody .tq.pl-fill .tq-spot, #gbody .tq.pl-fill .tq-arch { padding: var(--space-12) var(--space-16); border-radius: var(--radius-lg); }
+}
