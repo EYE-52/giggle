@@ -21,7 +21,7 @@ function removeCss(id) {
 }
 
 export default {
-  styles: [CSS_HREF],
+  styles: [CSS_HREF, '/css/create-kit.css'],
   ownsTimer: true,
   render(el, S, api) {
     ensureCss(CSS_ID, CSS_HREF);

@@ -4,10 +4,50 @@
 import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
 import { hudHtml, roundLabel, waitingHtml, resultsHtml } from '../kit.js';
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['charades-css', '/css/charades.css']];
+const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['charades-css', '/css/charades.css'], ['create-kit-css', '/css/create-kit.css']];
 let lastKey = '', current = null, clock = null;
 
 function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
+
+/* Stage pieces in the create kit markup (create-kit.css; the camera games
+ * build the same parts in toolkit/create-stage.js). Kept local so the view
+ * stays one module for the test loaders. */
+const RING_LEN = 125.66;
+function ringHtml() {
+  return `<div class="ck-ring ch-ring" role="timer" aria-live="off"><svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">`
+    + `<circle class="ck-ring-track" cx="24" cy="24" r="20"/><circle class="ck-ring-bar" cx="24" cy="24" r="20" stroke-dasharray="${RING_LEN}" stroke-dashoffset="0"/></svg>`
+    + `<span class="ck-ring-num"></span></div>`;
+}
+function paintRing(ring, left, key) {
+  if (!ring) return;
+  if (ring._ckKey !== key) { ring._ckKey = key; ring._ckTotal = 0; }
+  const on = left !== null && Number.isFinite(left);
+  ring.classList?.toggle('is-off', !on);
+  ring._ckTotal = on ? Math.max(ring._ckTotal || 0, left, 1) : ring._ckTotal;
+  const num = ring.querySelector?.('.ck-ring-num');
+  const text = on ? String(left) : '';
+  if (num && num.textContent !== text) num.textContent = text;
+  ring.querySelector?.('.ck-ring-bar')?.setAttribute?.('stroke-dashoffset', String(on ? Math.round(RING_LEN * (1 - left / ring._ckTotal) * 100) / 100 : RING_LEN));
+  ring.classList?.toggle('is-urgent', on && left <= 10 && left > 0);
+  ring.setAttribute?.('aria-label', on ? `${left} seconds left` : 'No timer');
+}
+function initialOf(name) {
+  const words = String(name || '?').trim().split(/\s+/);
+  const tail = words.length > 1 && /^\d{1,2}$/.test(words[words.length - 1]) ? words[words.length - 1] : '';
+  return (Array.from(words[0] || '?')[0] || '?').toLocaleUpperCase() + tail;
+}
+function paintRoster(box, S, statusOf) {
+  if (!box) return;
+  const html = `<ul class="ck-roster" aria-label="Players">` + (S.players || []).filter((p) => p && !p.left).map((p, i) => {
+    const st = statusOf(p), name = nameOf(S, p.id);
+    return `<li class="ck-player ${st.cls}${p.id === S.me ? ' is-you' : ''}" style="--ck-hue:${(i * 67) % 360}">`
+      + `<span class="ck-ava" aria-hidden="true">${esc(initialOf(name))}</span>`
+      + `<span class="ck-pname">${esc(name)}${p.id === S.me ? ' <small>(you)</small>' : ''}</span><span class="ck-pstate">${esc(st.text)}</span></li>`;
+  }).join('') + `</ul>`;
+  if (box._ckRoster === html) return;
+  box._ckRoster = html;
+  box.innerHTML = html;
+}
 function removeCss() {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
   document.getElementById('charades-css')?.remove();
@@ -20,6 +60,7 @@ function paintClock(el, S, api) {
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
   slot.classList?.toggle('is-urgent', left !== null && left <= 10 && S.phase === 'act');
+  paintRing(el.querySelector?.('.ch-ring'), S.phase === 'act' ? left : null, `${S.instanceId}:${S.round}`);
 }
 function runClock(el, S, api) {
   if (clock !== null) clearInterval(clock);
@@ -31,8 +72,19 @@ function runClock(el, S, api) {
   }
 }
 
-function spaced(masked) {
-  return Array.from(String(masked || '')).join(' ');
+/* The hidden word as toy tiles: a blank tile per letter, a gap per space,
+ * other marks (hyphens, apostrophes) shown on their own tile. */
+function tilesHtml(masked) {
+  return `<span class="ck-sr">${esc(Array.from(String(masked || '')).join(' '))}</span>` + Array.from(String(masked || '')).map((c) => c === '_' ? '<span class="ck-tile is-blank" aria-hidden="true">_</span>'
+    : c === ' ' ? '<span class="ck-tile is-gap" aria-hidden="true"></span>'
+      : `<span class="ck-tile is-mark" aria-hidden="true">${esc(c)}</span>`).join('');
+}
+
+/* Who acts, who already got it (+points), who is still guessing. */
+function rosterStatus(S) {
+  return (p) => p.id === S.actor ? { cls: 'is-on', text: 'Acting' }
+    : S.guessed?.[p.id] ? { cls: 'is-ready', text: `Got it +${S.guessed[p.id]}` }
+      : { cls: '', text: S.phase === 'reveal' ? 'Missed it' : 'Guessing' };
 }
 
 function guessers(S) { return (S.players || []).filter((p) => p.id !== S.actor && !p.left); }
@@ -47,7 +99,7 @@ function foundHtml(S) {
 }
 
 export default {
-  styles: ['/css/compact-answer-games.css', '/css/charades.css'],
+  styles: ['/css/compact-answer-games.css', '/css/charades.css', '/css/create-kit.css'],
   ownsTimer: true,
   dispose() {
     if (clock !== null) clearInterval(clock);
@@ -65,7 +117,7 @@ export default {
     if (S.phase === 'done') {
       current = null;
       lastKey = `done:${S.instanceId || ''}`;
-      el.innerHTML = `<section class="gk-final wg wg-final ch gk-col gk-stack" data-game="charades" data-phase="done" aria-label="Charades final scores">`
+      el.innerHTML = `<section class="gk-final wg wg-final ch ck gk-col gk-stack" data-family="create" data-game="charades" data-phase="done" aria-label="Charades final scores">`
         + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.me })
         + `</section>`;
       return;
@@ -81,19 +133,21 @@ export default {
       if (S.phase === 'act') {
         const who = S.spectator ? 'Watching' : isActor ? 'You act' : `${nameOf(S, S.actor)} acts`;
         const stage = isActor
-          ? `<p class="gk-meta">Act this out — no talking</p><h2 class="gk-prompt ch-secret">${esc(S.wordShown || '')}</h2>`
-          : `<p class="gk-meta">${esc(nameOf(S, S.actor))} is acting · ${String(S.masked || '').replace(/[^_]/g, '').length} letters</p>`
-            + `<h2 class="gk-prompt ch-mask" aria-label="Hidden word, ${String(S.masked || '').length} characters">${esc(spaced(S.masked))}</h2>`;
+          ? `<span class="ck-label">Act this out, no talking</span><h2 class="gk-prompt ch-secret">${esc(S.wordShown || '')}</h2>`
+          : `<span class="ck-label">${esc(nameOf(S, S.actor))} is acting · ${String(S.masked || '').replace(/[^_]/g, '').length} letters</span>`
+            + `<h2 class="gk-prompt ch-mask ck-tiles" aria-label="Hidden word, ${String(S.masked || '').length} characters">${tilesHtml(S.masked)}</h2>`;
         const field = !isActor && !S.spectator
           ? `<form class="gk-input-row" id="cForm" autocomplete="off"><input class="gk-input" id="cGuess" type="text" aria-label="Guess the word being acted out" placeholder="Your guess…" maxlength="60" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text">`
             + `<button class="gk-btn gk-primary" id="cSend" type="submit">Guess</button></form>`
-          : `<p class="wg-placeholder" role="status">${isActor ? 'Every guess shows up below.' : 'You are watching the actor.'}</p>`;
-        el.innerHTML = `<section class="wg ch gk-col gk-stack${!isActor ? ' is-guesser' : ''}" data-game="charades" data-phase="act" aria-label="Charades">`
+          : isActor ? '' : `<p class="wg-placeholder" role="status">You are watching the actor.</p>`;
+        el.innerHTML = `<section class="wg ch ck gk-col gk-stack${!isActor ? ' is-guesser' : ''}" data-family="create" data-game="charades" data-phase="act" aria-label="Charades">`
           + hudHtml({ round: turn, phase: who, progress: guessedLine(S), timer: '' })
-          + `<div class="ch-stage">${stage}</div>`
+          + `<div class="ch-stage ck-card is-tint"><div class="ch-stage-text">${stage}</div>${ringHtml()}</div>`
           + field
           + `<ul class="wg-chips ch-found" id="cFound" aria-label="Guessed it"></ul>`
-          + `<div class="wg-feed ch-feed" id="cFeed" role="log" aria-label="Guesses; scroll for more" tabindex="0"></div>`
+          + `<div class="ch-board ck-card"><div class="ck-head"><h3>${isActor ? 'Guesses coming in' : S.spectator ? 'Guesses' : 'Your tries'}</h3><span class="gk-meta ch-count"></span></div>`
+          + `<div class="wg-feed ch-feed" id="cFeed" role="log" aria-label="Guesses; scroll for more" tabindex="0"></div></div>`
+          + `<div class="ch-players ck-card"><div class="ck-head"><h3>Players</h3></div><div class="ch-roster"></div></div>`
           + `</section>`;
         const send = () => {
           const live = current;
@@ -119,13 +173,15 @@ export default {
         const word = S.word || S.wordShown || '';
         const canNext = !S.spectator && (isActor || S.me === S.hostId);
         const found = foundHtml(S);
-        el.innerHTML = `<section class="wg ch gk-col gk-stack" data-game="charades" data-phase="reveal" aria-label="Charades answer">`
+        el.innerHTML = `<section class="wg ch ck gk-col gk-stack" data-family="create" data-game="charades" data-phase="reveal" aria-label="Charades answer">`
           + hudHtml({ round: turn, phase: 'The word', progress: guessedLine(S), timer: '' })
-          + `<div class="ch-stage"><p class="gk-meta">${esc(nameOf(S, S.actor))} acted</p><h2 class="gk-prompt ch-secret">${esc(word)}</h2></div>`
+          + `<div class="ch-stage ck-card is-tint"><div class="ch-stage-text"><span class="ck-label">${esc(nameOf(S, S.actor))} acted</span><h2 class="gk-prompt ch-secret">${esc(word)}</h2></div></div>`
           + `<p class="wg-status" role="status">${esc(S.endReason || '')}${S.guessed?.[S.me] ? ` · you got it: +${S.guessed[S.me]}` : ''}</p>`
           + `<div class="wg-slot">${canNext ? `<button class="gk-btn gk-primary" id="cNext" type="button">Next</button>` : waitingHtml(S.round >= S.rounds ? 'Final scores are next' : 'Next actor soon')}</div>`
           + (found ? `<ul class="wg-chips ch-found" aria-label="Guessed it">${found}</ul>` : '<p class="gk-meta">Nobody got it this time.</p>')
+          + `<div class="ch-players ck-card"><div class="ck-head"><h3>Players</h3></div><div class="ch-roster"></div></div>`
           + `</section>`;
+        paintRoster(el.querySelector('.ch-roster'), S, rosterStatus(S));
         const nx = el.querySelector('#cNext');
         if (nx) {
           nx.disabled = !!S.preparing; nx.onclick = () => {
@@ -157,26 +213,33 @@ export default {
         feed._feedKey = feedKey;
         const scrollTop = feed.scrollTop;
         const list = (S.guesses || []).slice(-200).reverse();
+        const empty = (art, title, line) => `<div class="ck-empty ch-empty"><span class="ck-empty-art" aria-hidden="true">${art}</span>`
+          + `<p class="ck-empty-title">${title}</p><p>${line}</p></div>`;
+        const mine = list.filter((g) => g.pid === S.me);
         feed.innerHTML = isActor
-          ? list.map((g) => `<div class="ch-guess"><span class="ch-who">${esc(nameOf(S, g.pid))}</span>`
+          ? list.map((g) => `<div class="ch-guess ck-row"><span class="ch-who">${esc(nameOf(S, g.pid))}</span>`
             + `<span class="ch-txt">${esc(g.text)}</span></div>`).join('')
-            || '<p class="wg-feed-empty">Waiting for guesses…</p>'
-          : S.spectator ? '<p class="wg-feed-empty">You are watching the actor.</p>'
+            || empty('?!', 'Waiting for guesses…', 'Every guess the room makes lands here as they type.')
+          : S.spectator ? empty('👀', 'You are watching the actor.', 'Guesses stay private to the actor.')
             : (S.guessed && S.guessed[S.me]
               ? `<p class="wg-feed-empty">You got it! +${S.guessed[S.me]} points — watch the stage.</p>`
-              : (list.length
-                ? `<p class="wg-feed-empty">Your tries: ${list.map((g) => esc(g.text)).join(' · ')}</p>`
-                : '<p class="wg-feed-empty">First guess is yours to make.</p>'));
+              : (mine.length
+                ? mine.map((g) => `<div class="ch-guess ck-row is-miss"><span class="ch-txt">${esc(g.text)}</span><span class="wg-tag is-bad">Not it</span></div>`).join('')
+                : empty('?', 'First guess is yours to make.', `Watch ${esc(nameOf(S, S.actor))} on the call and type what you see. Faster guesses score more.`)));
+        const count = el.querySelector('.ch-count');
+        if (count) count.textContent = isActor ? `${list.length} ${list.length === 1 ? 'guess' : 'guesses'}` : (!S.spectator && !S.guessed?.[S.me] ? `${mine.length} ${mine.length === 1 ? 'try' : 'tries'}` : '');
         feed.scrollTop = scrollTop;
       }
+      paintRoster(el.querySelector('.ch-roster'), S, rosterStatus(S));
       const lock = el.querySelector('#cGuess');
       const locked = !!S.guessed?.[S.me];
       if (lock) { lock.disabled = !!(locked || S.spectator || S.preparing); if (locked) lock.placeholder = 'You got it!'; }
       const send = el.querySelector('#cSend');
       if (send) send.disabled = !!(locked || S.spectator || S.preparing);
       const mask = el.querySelector('.ch-mask');
-      if (mask && S.masked) {
-        mask.textContent = spaced(S.masked);
+      if (mask && S.masked && mask._ckMask !== S.masked) {
+        mask._ckMask = S.masked;
+        mask.innerHTML = tilesHtml(S.masked);
         mask.setAttribute('aria-label', `Hidden word, ${String(S.masked).length} characters`);
       }
     }

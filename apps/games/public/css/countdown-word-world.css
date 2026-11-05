@@ -25,3 +25,38 @@
   .cw .cw-tools .gk-btn { flex: 1 1 0; padding-inline: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .cw .cw-tile { transition: none; } }
+
+/* ---- toy box layer (create-kit.css): toy letter tiles, the table ---- */
+.cw.ck .cw-tiles { gap: var(--space-8); }
+.cw.ck .cw-tile {
+  height: 64px; background: var(--ck-tile); color: var(--ink);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sticker); font: 800 clamp(24px, 3.4vw, 32px)/1 var(--font-display);
+  transition: transform var(--dur-quick) var(--ease);
+}
+@media (hover: hover) { .cw.ck button.cw-tile:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--outline); } }
+.cw.ck button.cw-tile:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
+/* Used: the tile is pressed into the tray, flat and quiet. */
+.cw.ck .cw-tile.is-used { transform: translateY(var(--lift)); box-shadow: none; background: var(--well); color: var(--ink-dim); border-color: var(--line-strong); }
+.cw.ck span.cw-tile { background: var(--ck-tile); }
+.cw.ck .cw-input { font: var(--text-title); letter-spacing: .14em; text-transform: uppercase; }
+.cw.ck .gk-prompt .cw-word { color: var(--fam-deep); }
+.cw.ck .cw-board { display: flex; flex-direction: column; gap: var(--space-12); }
+.cw.ck .cw-saved { margin: 0; font: var(--text-body); color: var(--ink-dim); }
+.cw.ck .cw-saved.is-set { color: var(--ink); font-weight: 800; }
+.cw.ck .cw-table .wg-chip small { margin-left: var(--space-4); font: var(--text-caption); color: var(--ink-dim); }
+.cw.ck .cw-state { margin: 0; }
+.cw.ck .cw-dots { display: flex; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.cw.ck .cw-dots li { width: 12px; height: 12px; border-radius: 50%; background: var(--well); border: var(--outline-w) solid var(--line-strong); }
+.cw.ck .cw-dots li.is-done { background: var(--fam-soft); border-color: var(--fam); }
+.cw.ck .cw-dots li.is-now { background: var(--fam); border-color: var(--outline); }
+.cw.ck .cw-tools .gk-quiet { margin-left: auto; }
+@media (max-width: 560px) {
+  .cw.ck .cw-tiles { gap: var(--space-4); }
+  .cw.ck .cw-tile { height: 50px; font-size: 22px; border-radius: var(--radius-sm); box-shadow: var(--shadow-sticker-sm); }
+  .cw.ck .cw-tools .gk-btn { min-height: var(--control-h-sm); }
+}
+.cw.ck .cw-dots li { width: 14px; height: 14px; }
+.cw.ck .cw-dots li.is-done { background: var(--fam-deep); border-color: var(--outline); }
+.cw.ck .cw-dots li.is-now { background: var(--fam); border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft); }
+.cw.ck .cw-dots li:not(.is-done):not(.is-now) { background: var(--card); border-color: var(--ink-dim); }
