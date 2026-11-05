@@ -739,6 +739,9 @@ export function createKartCombatArt(THREE, opts) {
   function pickupFromLib(branch) {
     const { outer, inner, c } = base('pickup', null, 'CombatPickup');
     const clone = cloneLib(branch, null);
+    // Inset, trim and question mark sit inside the body's silhouette: their
+    // shadows are hidden by the body's, so skip those shadow-pass draws.
+    clone.traverse(o => { if (o.isMesh && /^Crate(Inset|Trim|Question)/.test(o.name)) o.castShadow = false; });
     inner.add(clone);
     c.pad = clone.getObjectByName('PickupPad') || null;
     return outer;

@@ -1,3 +1,4 @@
+import { instanceRepeats } from './kart-instancing.mjs';
 import {createRoadTerrain} from './kart-road-terrain.mjs';
 import {buildTerrainRoads} from './kart-road-mesh.mjs';
 /* Giggle Grove Circuit — kart arena art module (Three.js, no simulation).
@@ -2178,6 +2179,8 @@ export function createKartWorld(THREE, options) {
     const key = id + '|' + incomingHalf.toFixed(1) + '|' + keyRects(blocks) + '|' + keyRects(pads) + '|' + keyRects(surfs);
     if (key === mapKey) return;
     mapKey = key;
+    // Instance buffers belong to the previous map; shared geometry stays.
+    for (const child of obstacleGroup.children) if (child.isInstancedMesh) child.dispose();
     obstacleGroup.clear();
     padGroup.clear();
     surfGroup.clear();
@@ -2201,6 +2204,7 @@ export function createKartWorld(THREE, options) {
     blocks.forEach((b, i) => dressBlock(b, i, centralIdx));
     surfs.forEach(dressSurface);
     pads.forEach(dressPad);
+    instanceRepeats(THREE, obstacleGroup);
   }
 
   /* ---- gradual sunset: stable palette + in-place sky blend ---- */
@@ -2407,6 +2411,10 @@ export function createKartWorld(THREE, options) {
     });
     return out;
   }
+
+  // Repeated static scenery draws once per shared geometry/material. Moving
+  // (clouds, balloon, stars) and map-rebuilt groups keep their own meshes.
+  instanceRepeats(THREE, root, { skip: new Set([obstacleGroup, padGroup, surfGroup, balloon, stars, ...clouds.map(c => c.mesh)]) });
 
   layout.theme = theme;
   layout.half = half;
