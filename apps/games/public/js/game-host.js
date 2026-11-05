@@ -23,6 +23,9 @@ export function isLoaded(gameId) {
  * games are skipped: their clones would show blank or reload. */
 // App-wide stylesheets present before any game; anything later is a game's.
 const baseStyles = typeof document === 'undefined' ? new Set() : new Set(document.querySelectorAll?.('link[rel="stylesheet"]') || []);
+// True from capture until clearing, even if a view's first paint already
+// replaced the copy, so duplicated stylesheets are always removed.
+let snapshotLive = false;
 
 function holdSnapshot(el) {
   if (!el || !['standard', 'immersive'].includes(el.dataset?.layout) || !el.firstElementChild || el.querySelector?.('canvas, iframe, video')) return;
@@ -36,11 +39,16 @@ function holdSnapshot(el) {
   ghost.setAttribute('aria-hidden', 'true');
   ghost.inert = true;
   for (const node of el.childNodes) ghost.appendChild(node.cloneNode(true));
-  // Views remove their own stylesheets on dispose; the copy keeps cached
-  // duplicates so it still lays out, and drops them when it is cleared.
-  for (const link of document.querySelectorAll?.('link[rel="stylesheet"]') || []) {
-    if (!baseStyles.has(link)) ghost.appendChild(link.cloneNode());
+  // Views remove their own stylesheets on dispose. Add duplicates beside
+  // them first, so the styles never drop for a frame; clearing the copy
+  // removes the duplicates.
+  for (const link of document.querySelectorAll?.('link[rel="stylesheet"]:not([data-retiring])') || []) {
+    if (baseStyles.has(link)) continue;
+    const copy = link.cloneNode();
+    copy.setAttribute('data-retiring', '');
+    link.after(copy);
   }
+  snapshotLive = true;
   el._ghost = ghost;
   el._ghostHeight = el.offsetHeight;
 }
@@ -58,6 +66,9 @@ function clearSnapshot(el) {
   if (el.classList?.contains('is-retiring') && el.style) el.style.minHeight = '';
   el.classList?.remove('is-retiring');
   for (const ghost of el.querySelectorAll?.(':scope > .game-retiring') || []) ghost.remove();
+  if (!snapshotLive) return;
+  snapshotLive = false;
+  for (const link of document.querySelectorAll?.('link[data-retiring]') || []) link.remove();
 }
 
 /* The shell disposes the view and rebuilds the play screen for a new
