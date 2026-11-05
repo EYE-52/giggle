@@ -113,7 +113,7 @@ for(const loaded of [false,true]) {
  const nuke=factory.projectile('nuke');
  for(let i=0;i<60;i++)factory.animate(nuke,1/60,i/60,false);
  check(label+' rigid nuke has no arbitrary body spin',nuke.userData.combat.inner.rotation.toArray().slice(0,3).every(v=>v===0));
- const owned=new Set();for(const object of [charge,nuke])object.traverse(o=>{if(o.geometry&&!borrowed.has(o.geometry))owned.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m&&!borrowed.has(m))owned.add(m);});
+ const owned=new Set();for(const object of [charge,nuke])object.traverse(o=>{if(o.geometry&&!o.isSprite&&!borrowed.has(o.geometry))owned.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m&&!borrowed.has(m))owned.add(m);});
  const disposals=new Map();for(const r of owned)r.addEventListener('dispose',()=>disposals.set(r,(disposals.get(r)||0)+1));
  factory.dispose();factory.dispose();check(label+' factory resources dispose once',owned.size>0&&[...owned].every(r=>disposals.get(r)===1));
 }

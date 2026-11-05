@@ -93,6 +93,8 @@ const context = vm.createContext({document, window, console, Date,
   intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView});
 // The hearts HUD runs against this fake DOM, so it loads into the same context.
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
+vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-skids.mjs'),'utf8').replace(/^export /gm,''),context);
+vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-threats.mjs'),'utf8').replace(/^export /gm,''),context);
 let src = fs.readFileSync(require.resolve('../public/js/engines/kart-view.js'),'utf8');
 src = src.replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];\s*/g,'')
   .replace('export function createKartView','function createKartView')

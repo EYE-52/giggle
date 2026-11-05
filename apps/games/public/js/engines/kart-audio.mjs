@@ -1,4 +1,5 @@
-/* Pocket Karts audio: sample-based kart engine + arcade cues (WebAudio).
+/* Pocket Karts audio: synthesized kart engine over a recorded bed, plus
+ * sampled arcade cues with synthesized weapon pops (WebAudio).
  *
  * Local pack under ../../assets/karts/audio/ as WAV PCM16 mono 44100 Hz:
  * separate petrol idle/load, drift and quiet reverse beds,17 one-shot samples
@@ -36,7 +37,8 @@
  * - update() only moves ramps on the persistent graph — never allocates
  *   nodes per frame and never fetches per frame (loads are bounded: one
  *   attempt per file plus bounded gesture/event retries, cooldown-gated).
- * - Failed loads fall back to safe silence (never procedural buzz); partial
+ * - The engine voice (three oscillators) is synthesized and needs no files;
+ *   failed sample loads add no other sound (no fallback buzz); partial
  *   packs keep every decoded cue playable.
  * - Transient voices are bounded (oldest stolen past the cap), disconnected
  *   onended, and killed on silence/dispose. decodeAudioData works with both
@@ -107,6 +109,9 @@ const MAX_LOAD_PASSES = 3;
 const LOAD_RETRY_COOLDOWN_MS = 2000;
 /* Idle's combustion is ~11.5 Hz; the load recording is ~19 Hz.
  * Tune each recording to its own native RPM instead of pitching both alike. */
+// Synth engine: firing frequency at idle and at full road speed (Hz).
+export const ENGINE_IDLE_HZ = 62;
+export const ENGINE_TOP_HZ = 238;
 const ENG_RATE_IDLE = 0.9;
 const ENG_RATE_TOP = 1.5;
 const FLOOR = 0.0001;
@@ -118,6 +123,12 @@ const CUE_GAIN = {
   proximity: .32, nuke: .32, rocketBlast: .30, bombBlast: .32, nukeBlast: .4,
   collision: 0.25, landing: .18, hurt: .36, hitConfirm: .26, block: .3,
 };
+
+// Weapon pop: [start Hz, end Hz, seconds] layered on each weapon cue.
+export const WEAPON_POP = Object.freeze({
+  pulse: [1500, 420, .045], scatter: [900, 160, .07], mine: [420, 90, .09], rocket: [520, 70, .12],
+  seeker: [760, 200, .1], proximity: [380, 110, .09], nuke: [300, 40, .2],
+});
 
 const ALL_FILES = [...new Set([...Object.values(LOOP_MAP), ...CUE_NAMES.map((n) => ASSET_MAP[n]),...Object.values(COLLISION_VARIANTS)])];
 
@@ -270,6 +281,7 @@ export function createKartAudio(opts) {
   let engineActive = true; // latched from update(); false = KO/respawn
   let lastResumeAttemptMs = -Infinity;
   let lastFrame = { speed: 0, throttle: 0, drifting: false, boost: false };
+  let boostWas = false, blipAt = -Infinity, nextBeepAt = 0;
   const live = new Set(); // transient cue voices (bounded, see MAX_LIVE_VOICES)
   const lastCollision={at:-Infinity};
   const tracked = []; // event listeners, removed on dispose
@@ -365,9 +377,29 @@ export function createKartAudio(opts) {
     const loadG=c.createGain();loadG.gain.value=FLOOR;
     connect(loadFilter,loadG);connect(loadG,engineBus);
 
+    // Synthesized kart engine: a high, buzzy single-cylinder voice (saw +
+    // detuned square an octave up + a quiet sub) through a resonant lowpass.
+    // Pitch and brightness follow speed and throttle in applyDrive; the
+    // recorded bed underneath keeps some real combustion texture.
+    let synth = null;
+    try {
+      if (typeof c.createOscillator === 'function') {
+        const synthF = c.createBiquadFilter();synthF.type = 'lowpass';synthF.frequency.value = 900;if (synthF.Q) synthF.Q.value = 4.5;
+        const synthG = c.createGain();synthG.gain.value = FLOOR;
+        connect(synthF, synthG);connect(synthG, engineBus);
+        const voices = [['sawtooth', 1, .55], ['square', 2.012, .22], ['sawtooth', .5, .18]].map(([type, ratio, level]) => {
+          const osc = c.createOscillator();osc.type = type;osc.frequency.value = ENGINE_IDLE_HZ * ratio;
+          const g = c.createGain();g.gain.value = level;connect(osc, g);connect(g, synthF);
+          try { osc.start(); } catch { /* inert backend */ }
+          return { osc, g, ratio };
+        });
+        synth = { synthF, synthG, voices };
+      }
+    } catch { synth = null; }
+
     return {
       master, comp: head === master ? null : head, engineBus, cueBus,
-      engFilter, engG, driftF, driftG, revG, loadFilter, loadG,
+      engFilter, engG, driftF, driftG, revG, loadFilter, loadG, synth,
     };
   };
 
@@ -545,6 +577,44 @@ export function createKartAudio(opts) {
     }
   };
 
+  /* A synthesized pitch sweep (from -> to over len) into the cue bus. */
+  const blipNodes = (from, to, len, level, type, t0) => {
+    if (typeof ctx.createOscillator !== 'function') return null;
+    const osc = ctx.createOscillator();osc.type = type;
+    const amp = ctx.createGain();
+    at(osc.frequency, from, t0);
+    osc.frequency.exponentialRampToValueAtTime?.(Math.max(20, to), t0 + len);
+    at(amp.gain, FLOOR, t0);
+    amp.gain.linearRampToValueAtTime?.(Math.min(.3, Math.max(FLOOR, level)), t0 + .004);
+    amp.gain.exponentialRampToValueAtTime?.(FLOOR, t0 + len);
+    connect(osc, amp);connect(amp, graph.cueBus);
+    startSrc(osc, t0);stopSrc(osc, t0 + len + .03);
+    return { osc, amp };
+  };
+  /* One bounded synthesized transient voice of its own. */
+  const synthBlip = (from, to, len, level, type, t0, pan = 0) => {
+    if (typeof ctx.createOscillator !== 'function') return false;
+    try {
+      stealIfFull(1);
+      const osc = ctx.createOscillator();osc.type = type;
+      const amp = ctx.createGain();
+      at(osc.frequency, from, t0);
+      if (typeof osc.frequency.exponentialRampToValueAtTime === 'function') osc.frequency.exponentialRampToValueAtTime(Math.max(20, to), t0 + len);
+      at(amp.gain, FLOOR, t0);
+      if (typeof amp.gain.linearRampToValueAtTime === 'function') {
+        amp.gain.linearRampToValueAtTime(Math.min(.3, Math.max(FLOOR, level)), t0 + .004);
+        amp.gain.exponentialRampToValueAtTime?.(FLOOR, t0 + len);
+      }
+      connect(osc, amp);
+      let panner = null;
+      if (pan && typeof ctx.createStereoPanner === 'function') try { panner = ctx.createStereoPanner(); at(panner.pan, pan, t0); } catch { panner = null; }
+      if (panner) { connect(amp, panner); connect(panner, graph.cueBus); } else connect(amp, graph.cueBus);
+      track([osc], [osc, amp, ...(panner ? [panner] : [])], amp.gain);
+      startSrc(osc, t0);stopSrc(osc, t0 + len + .03);
+      return true;
+    } catch { return false; }
+  };
+
   /* ---------------- continuous beds ---------------- */
 
   const silenceContinuous = () => {
@@ -556,6 +626,7 @@ export function createKartAudio(opts) {
     ramp(graph.engG.gain, .5, t, 0.015);
     ramp(graph.driftG.gain, FLOOR, t, 0.015);
     ramp(graph.revG.gain, FLOOR, t, 0.015);
+    if (graph.synth) ramp(graph.synth.synthG.gain, FLOOR, t, 0.015);
   };
 
   const applyDrive = (frame, t) => {
@@ -591,9 +662,22 @@ export function createKartAudio(opts) {
     ramp(graph.loadFilter.frequency, 1600 + n * 1800 + pedal * 700 + lift * 200, t, .06);
     ramp(graph.engFilter.frequency, 1200 + n * 1000 + pedal * 300 + lift * 100, t, .08);
     ramp(graph.engineBus.gain, .24 + rpm * .12 + pedal * .14 + lift * .035, t, pedal > .05 ? .04 : .08);
+    // The recorded bed sits underneath; the synth voice carries the pitch.
+    ramp(graph.engG.gain, .2 * Math.cos(load * Math.PI / 2), t, loadTime);
+    ramp(graph.loadG.gain, .24 * Math.sin(load * Math.PI / 2), t, loadTime);
+    if (graph.synth) {
+      if (boost && !boostWas) blipAt = t; // rev blip on each new boost
+      boostWas = boost;
+      const blip = 1 + .38 * Math.exp(-Math.max(0, t - blipAt) / .13);
+      // A little extra pitch under load, as a kart engine climbs the band.
+      const hz = (ENGINE_IDLE_HZ + (ENGINE_TOP_HZ - ENGINE_IDLE_HZ) * Math.pow(n, .8) + pedal * 22 + lift * 18) * blip;
+      for (const v of graph.synth.voices) ramp(v.osc.frequency, hz * v.ratio, t, pedal > .05 ? .05 : .12);
+      ramp(graph.synth.synthF.frequency, 700 + n * 2400 + pedal * 1300 + (blip - 1) * 2000, t, .06);
+      ramp(graph.synth.synthG.gain, .2 + pedal * .16 + n * .08, t, pedal > .05 ? .03 : .09);
+    }
     // Drift/skid needs real slide speed; parked wiggle stays silent.
     const skid = drifting && n > 0.15 ? Math.min(1, 0.4 + 0.6 * n) : 0;
-    ramp(graph.driftG.gain, skid > 0 ? 0.04 + skid * 0.12 : FLOOR, t, 0.08);
+    ramp(graph.driftG.gain, skid > 0 ? 0.07 + skid * 0.2 : FLOOR, t, 0.06);
     ramp(graph.driftF.frequency, 650 + n * 550, t, 0.12);
     if (loops.drift && loops.drift.playbackRate) {
       ramp(loops.drift.playbackRate, 0.97 + n * 0.08, t, 0.12);
@@ -776,6 +860,14 @@ export function createKartAudio(opts) {
       return true;
     },
 
+    /* Short warning beep for incoming fire; `level` 0..1 raises pitch.
+     * Rate limiting belongs to the caller; a floor of 80 ms stops stacking. */
+    beep(level = .5) {
+      if (disposed || muted || !unlocked || !ctx || !graph || !active || docHidden()) return false;
+      const t0 = now();if (t0 < nextBeepAt) return false;nextBeepAt = t0 + .08;
+      return synthBlip(880 + clamp01(level) * 700, 880 + clamp01(level) * 760, .075, .11, 'sine', t0);
+    },
+
     /* Schedule a named cue with optional strength, attenuation and stereo pan.
      * Returns true when scheduled, false when
      * locked, muted, inactive, hidden, disposed, unknown, backend-less, or
@@ -801,6 +893,8 @@ export function createKartAudio(opts) {
       if(name==='collision')lastCollision.at=t0;
       try {
         stealIfFull(1);
+        // Every weapon gets a crisp synthesized pop, owned by the same voice.
+        const pop = WEAPON_POP[name] ? blipNodes(...WEAPON_POP[name], .13 * gain, 'square', t0) : null;
         const src = ctx.createBufferSource();
         src.buffer = buf;
         src.loop = false;
@@ -818,7 +912,7 @@ export function createKartAudio(opts) {
         let panner=null;
         if(typeof ctx.createStereoPanner==='function')try{panner=ctx.createStereoPanner();at(panner.pan,pan,t0);}catch{panner=null;}
         if(panner){connect(amp,panner);connect(panner,graph.cueBus);}else connect(amp,graph.cueBus);
-        track([src], [src, amp,...(panner?[panner]:[])], amp.gain);
+        track(pop ? [src, pop.osc] : [src], [src, amp,...(panner?[panner]:[]),...(pop?[pop.osc,pop.amp]:[])], amp.gain);
         startSrc(src, t0);
         const dur = num(buf.duration, 0.5);
         stopSrc(src, t0 + Math.min(3, Math.max(0.05, dur)) + 0.05);
@@ -876,6 +970,8 @@ export function createKartAudio(opts) {
         disconnect(loops[k]);
         loops[k] = null;
       }
+      if (graph?.synth) for (const v of graph.synth.voices) { try { v.osc.stop(); } catch { /* noop */ } disconnect(v.osc); disconnect(v.g); }
+      if (graph?.synth) { disconnect(graph.synth.synthF); disconnect(graph.synth.synthG); }
       if (graph) {
         const nodes = [graph.engFilter, graph.engG,graph.loadFilter,graph.loadG,
           graph.driftF, graph.driftG, graph.revG,

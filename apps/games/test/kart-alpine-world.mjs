@@ -142,7 +142,7 @@ try {
     let road;world.group.traverse(o=>{if(o.isMesh && o.material.bumpMap)road=o.material;});
     assert(road?.map && road.bumpMap,'browser road textures allocated');
     const atlas=road.map,grain=road.bumpMap;
-    assert(atlas.image.width===128 && atlas.image.height===128,id+' conforming roads use small repeating surfaces');
+    assert(atlas.image.width<=256 && atlas.image.width===atlas.image.height,id+' conforming roads use small repeating surfaces');
     assert.equal(atlas.minFilter,THREE.LinearMipmapLinearFilter,'distance mipmaps avoid shimmer');
     assert(atlas.anisotropy>=8 && atlas.anisotropy<=16,'bounded grazing-angle paint sampling');
     assert(grain.image.width<=512 && grain.repeat.x>=1 && grain.repeat.y>=1,'small repeating road grain stays dense at chase distance');

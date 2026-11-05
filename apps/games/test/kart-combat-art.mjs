@@ -50,7 +50,10 @@ function meshesOf(root) {
 
 function boundsOf(root) {
   root.updateMatrixWorld(true);
-  return new THREE.Box3().setFromObject(root);
+  // Solid art only: the shot's additive glow sprite is not part of its hull.
+  const glow = root.getObjectByName('ShotGlow'), parent = glow?.parent;
+  glow?.removeFromParent();
+  try { return new THREE.Box3().setFromObject(root); } finally { if (glow) parent.add(glow); }
 }
 
 function sizeOf(root) {
@@ -84,7 +87,8 @@ function assertGroup(root, type, kind) {
 
 function assertNoOrbsOrTextures(root, tag) {
   root.traverse((o) => {
-    assert.ok(!o.isSprite, `${tag} uses meshes, no sprites`);
+    // The only sprite is the shot's additive glow, one per projectile.
+    assert.ok(!o.isSprite || (o.name === 'ShotGlow' && o.parent === root && root.userData.combat?.type === 'projectile' && o.material.blending === 2), `${tag} uses meshes, no sprites`);
     if (o.isMesh) {
       assert.notEqual(o.geometry.type, 'SphereGeometry', `${tag} has no sphere orbs`);
       const mats = Array.isArray(o.material) ? o.material : [o.material];

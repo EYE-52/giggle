@@ -11,7 +11,7 @@ const ok=(value,message)=>{assertions++;assert.ok(value,message);};
 const eq=(actual,expected,message)=>{assertions++;assert.deepEqual(actual,expected,message);};
 
 class Element {
-  constructor(){this.children=[];this.dataset={};this.attrs=new Map();this.textContent='';this.parent=null;this.pops=0;}
+  constructor(){this.style={};this.children=[];this.dataset={};this.attrs=new Map();this.textContent='';this.parent=null;this.pops=0;}
   get childElementCount(){return this.children.length;}
   get offsetWidth(){return 0;}
   // Only the classed elements kart-hearts writes become children; nested svg is art.

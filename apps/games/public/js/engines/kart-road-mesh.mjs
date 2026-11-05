@@ -3,7 +3,7 @@
 export function buildTerrainRoads(terrain,routes,options={}){
   const layers={road:[],shoulder:[],curbs:[],curbSides:[],markings:[]};
   const {vertices,segments,half,heightAt}=terrain,stride=segments+1,step=half*2/segments;
-  function stamp(quad,layer,lift,color){
+  function stamp(quad,layer,lift,color,flatOnly=false){
     const area=quad.reduce((sum,a,i)=>{const b=quad[(i+1)%quad.length];return sum+a[0]*b[1]-b[0]*a[1];},0);
     const sign=area>0?1:-1;
     const xs=quad.map(p=>p[0]),zs=quad.map(p=>p[1]);
@@ -16,6 +16,7 @@ export function buildTerrainRoads(terrain,routes,options={}){
       for(let i=1;i+1<ordered.length;i++)for(const [x,z]of [ordered[0],ordered[i],ordered[i+1]])layers[layer].push(x,lift,z,...color);
       return;
     }
+    if(flatOnly)return;
     for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){
       const a=z*stride+x,b=a+1,c=a+stride,d=c+1;
       for(const ids of [[a,c,b],[b,c,d]]){
@@ -40,8 +41,13 @@ export function buildTerrainRoads(terrain,routes,options={}){
     }
   }
   const white=options.markingColor||[.88,.91,.88],road=[1,1,1],shoulder=options.shoulderColor||[.48,.53,.42];
+  const field=(options.fieldBound||half)-1.5;
   const curbColors=options.curbColors||[[.8,.055,.085],[.88,.91,.88]];
-  for(const {points,width,curb}of routes){
+  // Edge lines break where another road crosses, so junctions stay clean.
+  const crossesOther=(own,x,z)=>routes.some(r=>r!==own&&r.points.some((p,i)=>{const q=r.points[i+1];if(!q)return false;
+    const dx=q.x-p.x,dz=q.y-p.y,l2=dx*dx+dz*dz||1,t=Math.max(0,Math.min(1,((x-p.x)*dx+(z-p.y)*dz)/l2));
+    return Math.hypot(x-p.x-dx*t,z-p.y-dz*t)<r.width/2+.6;}));
+  for(const route of routes){const {points,width,curb}=route;
     // Shared miter endpoints close bends without square slabs or gaps.
     const offsets=points.map((p,i)=>{
       const closed=points[0].distanceTo(points.at(-1))<1e-6;
@@ -58,6 +64,10 @@ export function buildTerrainRoads(terrain,routes,options={}){
       stamp(band(-width/2-.65,-width/2),'shoulder',.018,shoulder);
       stamp(band(width/2,width/2+.65),'shoulder',.018,shoulder);
       stamp(band(-width/2,width/2),'road',.03,road);
+      // Solid edge lines a little inside each side read the lane at speed.
+      // Flat stretches only (two triangles each), inside the legal field.
+      if(width>=5&&!curb)for(const side of [-1,1]){const q=band(side*(width/2-.42),side*(width/2-.26));
+        if(q.every(([x,z])=>Math.abs(x)<field&&Math.abs(z)<field)&&!q.some(([x,z])=>crossesOther(route,x,z)))stamp(q,'markings',.038,white,true);}
       if(curb)for(const side of [-1,1]){
         // Low coloured shoulders follow the grade, rather than a giant
         // road atlas. Their five-centimetre lip keeps crossings traversable.

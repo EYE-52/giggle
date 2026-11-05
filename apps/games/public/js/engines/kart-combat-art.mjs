@@ -207,9 +207,29 @@ function glow(reg, THREE, name, color, opacity) {
 
 function tracer(reg, THREE, name, color) {
   return trackMat(reg, new THREE.MeshBasicMaterial({
-    color, transparent: true, opacity: .72, depthWrite: false,
+    color, transparent: true, opacity: .9, depthWrite: false,
     blending: THREE.NormalBlending, toneMapped: false,
   }), name);
+}
+
+// Saturated glow per shot kind, drawn as camera-facing additive sprites so a
+// shot reads from across the arena. Sprites are not meshes: they never count
+// toward mesh budgets or the authoritative contact skin.
+export const SHOT_GLOW = Object.freeze({
+  pulse: { color: 0x7ff6ff, size: 1.1 }, scatter: { color: 0xffb347, size: .95 },
+  rocket: { color: 0xff6a2a, size: 1.9 }, seeker: { color: 0x9cff5a, size: 1.9 },
+  proximity: { color: 0xff3a3a, size: 1.5 }, nuke: { color: 0xffe14a, size: 3.2 },
+});
+function glowTexture(THREE) {
+  const size = 64, data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const d = Math.min(1, Math.hypot((x + .5) / size * 2 - 1, (y + .5) / size * 2 - 1)), i = (y * size + x) * 4;
+    const core = Math.max(0, 1 - d * 2.6), halo = Math.pow(1 - d, 2.2);
+    data[i] = data[i + 1] = data[i + 2] = 255; data[i + 3] = Math.round(255 * Math.min(1, core + halo * .7));
+  }
+  const texture = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  texture.needsUpdate = true; texture.magFilter = texture.minFilter = THREE.LinearFilter;
+  return texture;
 }
 
 function lamp(reg, THREE, name, color) {
@@ -542,6 +562,7 @@ export function createKartCombatArt(THREE, opts) {
   }
 
   const reg = { geometries: new Set(), materials: new Set() };
+  let glowTex = null; const glowMats = new Map();
   let pool = null;
   let ovr = null;
   let cal = null;
@@ -803,6 +824,18 @@ export function createKartCombatArt(THREE, opts) {
     c.inner.scale.set(profile.radius, profile.radius, profile.length);
     c.tipZ *= profile.length;
     c.tailZ *= profile.length;
+    const spec2 = SHOT_GLOW[k];
+    if (spec2) {
+      if (!glowTex) glowTex = glowTexture(THREE);
+      let material = glowMats.get(k);
+      if (!material) {
+        material = new THREE.SpriteMaterial({ map: glowTex, color: spec2.color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+        material.name = 'CombatShotGlow:' + k; glowMats.set(k, material); reg.materials.add(material);
+      }
+      const halo = new THREE.Sprite(material);
+      halo.name = 'ShotGlow'; halo.scale.setScalar(spec2.size); halo.position.z = c.tipZ * .35;
+      halo.renderOrder = 6; shot.add(halo); c.halo = halo; c.haloSize = spec2.size;
+    }
     return shot;
   }
 
@@ -1027,6 +1060,7 @@ export function createKartCombatArt(THREE, opts) {
         const f = 1 + 0.12 * Math.sin(t * 30 + seed);
         c.tail.scale.set(f, f, 1 + 0.08 * Math.sin(t * 24 + seed * 1.7));
       }
+      if (c.halo) c.halo.scale.setScalar(c.haloSize * (reducedMotion ? 1 : 1 + .14 * Math.sin(t * 22 + seed)));
     } else if (c.type === 'mine') {
       // A deployed mine is planted hardware; only its status lamp blinks.
       inner.rotation.y = 0;
@@ -1073,6 +1107,7 @@ export function createKartCombatArt(THREE, opts) {
     }
     reg.geometries.clear();
     reg.materials.clear();
+    glowTex?.dispose(); glowTex = null; glowMats.clear();
     pool = null;
     ovr = null;
     readableHousing = new WeakMap();

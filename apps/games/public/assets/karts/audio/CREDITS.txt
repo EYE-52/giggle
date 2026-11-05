@@ -5,6 +5,8 @@ CC-BY 3.0 Unported: https://creativecommons.org/licenses/by/3.0/
 License text: https://creativecommons.org/licenses/by/3.0/legalcode
 CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
 
+The high, buzzy kart engine voice, rev blips, weapon pops and the incoming-fire beep are synthesized live in public/js/engines/kart-audio.mjs (WebAudio oscillators); they use no samples or third-party sounds.
+
 Kenney notices are preserved in LICENSE-scifi-kenney.txt and LICENSE-impact-kenney.txt. Source/output hashes are in manifest.json. Engine acquisition uses official HQ MP3 previews, not original lossless WAV. No author endorsement. Selected CC-BY alternatives are used where multiple licenses are offered.
 
 engine.wav
