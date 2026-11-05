@@ -74,7 +74,7 @@ function phaseName(S) {
 function progressLabel(S) {
   if (S.phase !== 'draw') return '';
   const guessers = (S.players || []).filter(p => p.id !== S.drawer && !p.left && !(S.gone || []).includes(p.id)).length;
-  return `${Object.keys(S.guessed || {}).length} of ${guessers} guessed`;
+  return `${Object.keys(S.guessed || {}).length}/${guessers} guessed`;
 }
 function dgHudHtml(S) {
   return `<div class="gk-hud dg-hud"><span class="gk-hud-round">Round ${esc(S.round)} of ${esc(S.rounds)}</span>`

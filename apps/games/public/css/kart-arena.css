@@ -424,3 +424,5 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
 .pk .kart-item[data-state="ready"] .kart-item-art { border-color:var(--pk-hi,#ffd23f); }
 .pk .kart-item[data-state="empty"] .kart-item-art, .pk .kart-item[data-state="away"] .kart-item-art { opacity:.45; }
 .pk .kart-item-key { left:auto; right:-6px; bottom:-4px; }
+/* The drift meter only appears while a drift is charging. */
+.pk .pk-readout:not(.pk-drifting):not(.pk-charged) .pk-driftmeter { display:none; }
