@@ -399,3 +399,28 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
 @keyframes kart-hitfx-toast{0%{opacity:0;transform:translate(-50%,8px) scale(.8)}15%{opacity:1;transform:translate(-50%,0) scale(1.1)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-14px)}}
 @media(prefers-reduced-motion:reduce){.kart-heart[data-pop],.kart-hitfx-marker[data-on],.kart-hitfx-toast[data-on]{animation-name:kart-hitfx-fade}.kart-hitfx-flash[data-on]{animation-duration:.25s}}
 @keyframes kart-hitfx-fade{0%{opacity:1}100%{opacity:0}}
+
+/* Bare game HUD: no cards over the arena. Clock, score and hearts float as
+ * outlined text and icons; the weapon is one round icon with its ammo badge;
+ * speed and map name step aside so the track stays the picture. */
+.pk { --pk-float-shadow: 0 2px 0 #000a, 0 0 8px #0008; }
+.pk .pk-clock, .pk .pk-status, .pk .pk-health, .pk .pk-readout { background:none; border:0; box-shadow:none; }
+.pk #pk-timer { font-size:30px; color:#fff; text-shadow:var(--pk-float-shadow); }
+.pk .pk-lead, .pk .pk-leadscore small, .pk .pk-leadrank { color:#fff; text-shadow:var(--pk-float-shadow); }
+.pk .pk-health { padding:0; filter:drop-shadow(0 2px 0 #000a); }
+.pk .pk-readout { width:auto; padding:0; gap:6px; align-items:flex-start; }
+.pk .pk-speed, .pk #pk-map, .pk #pk-handling { display:none; }
+.pk .pk-instruments { gap:8px; }
+.pk .pk-tech { min-width:96px; }
+.pk .pk-nitrometer, .pk .pk-driftmeter { box-shadow:0 0 0 2px #0006; }
+.pk #pk-nitrolabel { color:#fff; text-shadow:var(--pk-float-shadow); }
+.pk .pk-help > summary { background:#0000004d !important; border:2px solid #ffffffaa !important; border-radius:50% !important; color:#fff; }
+.pk .kart-item { min-height:0; width:auto; padding:0; border:0; }
+.pk .kart-item-art { width:68px; height:68px; border-radius:50%; background:#ffffffe6; border:3px solid #fff; box-shadow:0 3px 0 #0008, 0 0 0 2px #0004; }
+.pk .kart-item-art .kart-weapon-thumbnail, .pk .kart-item-art svg { width:52px; height:52px; }
+.pk .kart-item-copy { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.pk .kart-item-count { position:absolute; left:50px; top:-6px; min-width:26px; padding:0 6px; border-radius:999px; background:var(--pk-hi,#ffd23f); color:#2b1a00; font:800 15px/24px var(--font-display); text-align:center; box-shadow:0 2px 0 #0008; }
+.pk .kart-item-count:empty { display:none; }
+.pk .kart-item[data-state="ready"] .kart-item-art { border-color:var(--pk-hi,#ffd23f); }
+.pk .kart-item[data-state="empty"] .kart-item-art, .pk .kart-item[data-state="away"] .kart-item-art { opacity:.45; }
+.pk .kart-item-key { left:auto; right:-6px; bottom:-4px; }
