@@ -1519,12 +1519,12 @@ function vibeFor(g) {
 }
 
 /* Seat-capped games (chess): the catalog names the active seats, never the
- * room size — "2 play · watchers welcome" instead of "2–24 players". */
+ * room size — "2 players · watchers welcome" instead of "2–24 players". */
 function seatsLine(g) {
   if (Number.isInteger(g.seats) && g.seats >= 1) {
     const min = countFor(g).min;
     const active = min < g.seats ? `${min}–${g.seats}` : `${g.seats}`;
-    return `${active} play · watchers welcome`;
+    return `${active} players · watchers welcome`;
   }
   return `${esc(g.players)} players`;
 }

@@ -242,11 +242,11 @@
   clip-path: polygon(50% 0, 61% 39%, 100% 50%, 61% 61%, 50% 100%, 39% 61%, 0 50%, 39% 39%);
   animation: hand-twinkle 2.4s ease-in-out infinite; }
 .hand-spark:nth-child(1) { left: -6px; top: 4px; }
-.hand-spark:nth-child(2) { left: calc(var(--hand-w, 420px) - 24px); top: -6px; width: 16px; height: 16px; background: var(--accent); animation-delay: 1.2s; }
+.hand-spark:nth-child(2) { left: calc(var(--hand-w, 420px) - 24px); top: -6px; width: 16px; height: 16px; background: var(--teal); animation-delay: 1.2s; }
 .hero-hand { --hand-w: 432px; }
 @keyframes hand-deal { from { opacity: 0; translate: 0 48px; scale: .6; } }
 @keyframes hand-wiggle { 30% { rotate: -6deg; } 60% { rotate: 4deg; } }
-@keyframes hand-twinkle { 0%, 100% { opacity: .35; transform: scale(.6) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+@keyframes hand-twinkle { 0%, 100% { opacity: .35; transform: scale(.6) rotate(0deg); } 50% { opacity: 1; transform: scale(1) rotate(20deg); } }
 
 /* Create a room is the page's one big action: a sticker card, a fat button. */
 .home-welcome .hero-form { border: 3px solid var(--stk); border-radius: 24px; box-shadow: 6px 8px 0 var(--stk); background: var(--card); }
