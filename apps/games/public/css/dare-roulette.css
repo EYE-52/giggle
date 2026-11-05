@@ -43,3 +43,4 @@
 @media (max-width: 560px) {
   #gbody .party-scene--spotlight.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 24px; border-radius: var(--radius-lg); }
 }
+#gbody .party-scene--spotlight .dr-recap { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }

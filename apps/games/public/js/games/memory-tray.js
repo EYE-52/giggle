@@ -278,7 +278,7 @@ function liveOpts(S) {
     const res = S.last.results || {};
     return { waiting: false, gains: Object.fromEntries(Object.entries(res).map(([pid, r]) => [pid, r.pts || 0])) };
   }
-  if (S.phase === 'recall') return { acted: S.submitted || [], verb: 'Saved a list', waiting: 'Recalling' };
+  if (S.phase === 'recall') return { acted: S.submitted || [], verb: 'Saved', waiting: 'Recalling' };
   return { waiting: S.phase === 'memorize' ? 'Studying' : false };
 }
 

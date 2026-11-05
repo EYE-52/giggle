@@ -112,7 +112,7 @@ function liveOpts(S) {
   if (S.phase === 'reveal' && S.last) return { waiting: false, gains: S.last.points || {} };
   if (S.phase === 'vote') return { acted: S.voted || [], verb: 'Voted', waiting: 'Voting' };
   const wrote = [...new Set((S.lines || []).map((l) => l.pid).filter(Boolean))];
-  return { acted: wrote.filter((pid) => pid !== S.turn), roles: S.turn ? { [S.turn]: 'Writing now' } : {}, verb: 'Wrote a line', waiting: false };
+  return { acted: wrote.filter((pid) => pid !== S.turn), roles: S.turn ? { [S.turn]: 'Writing' } : {}, verb: 'Wrote', waiting: false };
 }
 
 export default {

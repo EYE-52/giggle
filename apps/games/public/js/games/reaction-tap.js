@@ -124,7 +124,10 @@ function wireTap(pad) {
 
 function fouledLine(S, t) {
   if (!(S.fouled || []).length) return '';
-  return `${esc(t.fouled_list || 'Fouled')}: ${(S.fouled || []).map((pid) => esc(nameOf(S, pid))).join(', ')}`;
+  // Seat order, so the list never reshuffles between rounds.
+  const seats = (S.players || []).map((p) => p.id);
+  const fouled = [...(S.fouled || [])].sort((a, b) => (seats.indexOf(a) + 1 || 1e9) - (seats.indexOf(b) + 1 || 1e9));
+  return `${esc(t.fouled_list || 'Fouled')}: ${fouled.map((pid) => esc(nameOf(S, pid))).join(', ')}`;
 }
 
 function renderResults(el, S, t) {

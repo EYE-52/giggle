@@ -129,9 +129,9 @@ function writeHtml(S, watch) {
 }
 
 function liveOpts(S) {
-  const roles = S.target ? { [S.target]: 'Celebrated' } : {};
+  const roles = S.target ? { [S.target]: 'Star' } : {};
   const others = (S.players || []).filter((p) => !p.left && p.id !== S.target).map((p) => p.id);
-  if (S.phase === 'reveal' && S.last) return { roles: { [S.last.target]: 'Celebrated' }, waiting: false, gains: S.last.points || {} };
+  if (S.phase === 'reveal' && S.last) return { roles: { [S.last.target]: 'Star' }, waiting: false, gains: S.last.points || {} };
   if (S.phase === 'vote') return { acted: S.voted || [], verb: 'Voted', waiting: 'Voting' };
   return { acted: S.submitted || [], actors: others, roles, verb: 'Wrote', waiting: 'Writing' };
 }

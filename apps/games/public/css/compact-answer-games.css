@@ -225,3 +225,4 @@
   #gbody .mt.pl-fill .mt-obj { min-height: 44px; padding: var(--space-4) var(--space-8); }
   #gbody .mt.pl-fill .mt-obj svg { width: 28px; height: 28px; }
 }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choices { align-items: stretch; grid-auto-rows: 1fr; }
