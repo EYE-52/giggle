@@ -91,7 +91,7 @@ export default {
       if (feedback) {
         const said = S.myFeedback?.message || eventLine(S);
         // With nothing to report, the reserved lines carry the linking rule.
-        const text = said || (S.used?.length ? `Link to “${S.current}” by meaning. No repeats.` : 'Start the chain with any word linked by meaning.');
+        const text = said || (S.used?.length ? 'Link by meaning. No repeats.' : 'Any word linked by meaning starts the chain.');
         if (feedback.textContent !== text) feedback.textContent = text;
         feedback.classList?.toggle('is-error', S.myFeedback?.ok === false);
         feedback.classList?.toggle('is-hint', !said);
@@ -124,7 +124,7 @@ export default {
       const out = el.querySelector('#wcOut');
       if (out) out.textContent = elimination(S);
       const count = el.querySelector('.wc-count');
-      if (count) count.textContent = `${(S.used || []).length} links`;
+      if (count) count.textContent = linkCount(S.used || []);
       const aliveLine = el.querySelector('.wc-alive');
       if (aliveLine) aliveLine.textContent = stillIn(S);
       const archiveTitle = el.querySelector('.wc-archive>summary');
@@ -150,7 +150,7 @@ export default {
       + `<p class="wg-status" id="wcFeedback" role="status" aria-live="polite"></p></div>`
       + field
       + `<div class="wg-slot wc-challenge" id="wcChallenge"></div>`
-      + `<div class="wc-chain ck-card"><div class="ck-head"><h3>The chain</h3><span class="gk-meta wc-count">${(S.used || []).length} links</span></div>`
+      + `<div class="wc-chain ck-card"><div class="ck-head"><h3>The chain</h3><span class="gk-meta wc-count">${linkCount(S.used || [])}</span></div>`
       + `<ol class="wg-chips wc-ribbon" role="log" aria-label="Recent links" tabindex="0">${ribbon(S)}</ol></div>`
       + `<div class="wc-players ck-card"><div class="ck-head"><h3>Players</h3><span class="gk-meta wc-alive">${esc(stillIn(S))}</span></div>`
       + `<ul class="wg-chips wc-seats" aria-label="Players">${playerSeats(S)}</ul>`
@@ -180,6 +180,10 @@ export default {
     runClock(el, S, api);
   },
 };
+
+function linkCount(used) {
+  return `${used.length} ${used.length === 1 ? 'link' : 'links'}`;
+}
 
 function linksLabel(used) {
   return used.length === 1 ? 'The first link' : `All ${used.length} links`;

@@ -53,3 +53,7 @@
 @media (max-width: 560px) {
   .sg.ck .sg-letter { width: 56px; height: 56px; font-size: 34px; }
 }
+.sg.ck .sg-dots li { width: 14px; height: 14px; }
+.sg.ck .sg-dots li.is-done { background: var(--fam-deep); border-color: var(--outline); }
+.sg.ck .sg-dots li.is-now { background: var(--fam); border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft); }
+.sg.ck .sg-dots li:not(.is-done):not(.is-now) { background: var(--card); border-color: var(--ink-dim); }

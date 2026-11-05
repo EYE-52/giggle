@@ -144,8 +144,8 @@
  * its height either way so nothing below moves. */
 .camera-party .cp-ready-row { min-height: 96px; gap: var(--space-8); }
 .camera-party .cp-ready { min-width: min(100%, 280px); }
-.camera-party .cp-ready-status.tb-badge { min-height: var(--control-h); padding-inline: var(--space-16); font: var(--text-button-sm); white-space: normal; text-align: center; text-wrap: balance; }
-.camera-party .cp-ready-status.tb-badge::before { content: "✓"; width: auto; height: auto; border-radius: 0; background: none; color: var(--success); font-weight: 800; }
+.camera-party .cp-ready-status.tb-badge { display: inline-block; min-height: var(--control-h); padding: var(--space-12) var(--space-16); font: var(--text-button-sm); white-space: normal; text-align: center; text-wrap: balance; }
+.camera-party .cp-ready-status.tb-badge::before { content: "✓ "; display: inline; width: auto; height: auto; border-radius: 0; background: none; color: var(--success); font-weight: 800; }
 
 /* Stage: a chip for everyone in the round. */
 .camera-party .cp-stage { display: flex; flex-direction: column; gap: var(--space-12); }
@@ -165,3 +165,4 @@
   .camera-party .cp-prompt { font-size: 24px; }
   .camera-party .cp-ready-row { min-height: 80px; }
 }
+.camera-party .cp-ready-status.gk-meta { font: var(--text-body); color: var(--ink-dim); text-align: center; }

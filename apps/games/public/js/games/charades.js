@@ -139,7 +139,7 @@ export default {
         const field = !isActor && !S.spectator
           ? `<form class="gk-input-row" id="cForm" autocomplete="off"><input class="gk-input" id="cGuess" type="text" aria-label="Guess the word being acted out" placeholder="Your guess…" maxlength="60" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text">`
             + `<button class="gk-btn gk-primary" id="cSend" type="submit">Guess</button></form>`
-          : `<p class="wg-placeholder" role="status">${isActor ? 'Every guess shows up below.' : 'You are watching the actor.'}</p>`;
+          : isActor ? '' : `<p class="wg-placeholder" role="status">You are watching the actor.</p>`;
         el.innerHTML = `<section class="wg ch ck gk-col gk-stack${!isActor ? ' is-guesser' : ''}" data-family="create" data-game="charades" data-phase="act" aria-label="Charades">`
           + hudHtml({ round: turn, phase: who, progress: guessedLine(S), timer: '' })
           + `<div class="ch-stage ck-card is-tint"><div class="ch-stage-text">${stage}</div>${ringHtml()}</div>`

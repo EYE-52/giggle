@@ -56,3 +56,7 @@
   .cw.ck .cw-tile { height: 50px; font-size: 22px; border-radius: var(--radius-sm); box-shadow: var(--shadow-sticker-sm); }
   .cw.ck .cw-tools .gk-btn { min-height: var(--control-h-sm); }
 }
+.cw.ck .cw-dots li { width: 14px; height: 14px; }
+.cw.ck .cw-dots li.is-done { background: var(--fam-deep); border-color: var(--outline); }
+.cw.ck .cw-dots li.is-now { background: var(--fam); border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft); }
+.cw.ck .cw-dots li:not(.is-done):not(.is-now) { background: var(--card); border-color: var(--ink-dim); }

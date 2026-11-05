@@ -43,3 +43,18 @@
   .es-scene.ck .es-emoji { padding: var(--space-16) var(--space-12); }
   .es-scene.ck .es-teaser { font-size: 26px; }
 }
+/* Waiting: five empty story slots that pulse while the teller types. */
+.es-scene.ck .es-slots { display: flex; justify-content: center; gap: var(--space-12); padding: var(--space-8) 0; }
+.es-scene.ck .es-slot { width: 64px; height: 64px; border: var(--outline-w-lg) dashed var(--fam); border-radius: var(--radius-lg); background: var(--card); animation: es-wait 1.2s var(--ease) infinite alternate; }
+.es-scene.ck .es-slot:nth-child(2) { animation-delay: .15s; } .es-scene.ck .es-slot:nth-child(3) { animation-delay: .3s; }
+.es-scene.ck .es-slot:nth-child(4) { animation-delay: .45s; } .es-scene.ck .es-slot:nth-child(5) { animation-delay: .6s; }
+@keyframes es-wait { from { opacity: .45; transform: translateY(0); } to { opacity: 1; transform: translateY(-4px); } }
+@media (max-width: 560px) { .es-scene.ck .es-slot { width: 48px; height: 48px; } .es-scene.ck .es-slots { gap: var(--space-8); } }
+@media (prefers-reduced-motion: reduce) { .es-scene.ck .es-slot { animation: none; } }
+.es-scene.ck .es-wait .gk-wait-card :is(p, .gk-wait) { color: var(--ink); }
+.es-scene.ck .es-table .wg-chip small { white-space: nowrap; }
+.es-scene.ck .es-slots-note { margin: calc(-1 * var(--space-8)) 0 0; text-align: center; }
+.es-scene.ck .es-slot { border-width: var(--outline-w-lg); }
+.es-scene.ck .es-preview { display: flex; flex-direction: column; gap: var(--space-12); }
+.es-scene.ck .es-preview-text { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-12); min-height: 112px; align-items: center; }
+.es-scene.ck .es-preview-text .es-slot { animation: none; opacity: .6; }

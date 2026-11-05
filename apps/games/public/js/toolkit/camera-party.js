@@ -557,7 +557,7 @@ export function renderCameraParty(el, S, api) {
   const spotlight = S.mode === 'spotlight';
   if (S.phase === 'perform') {
     sub = spotlight
-      ? (S.actor === you && !S.spectator ? 'You are on. Perform it on camera, then tap Done, judge me.' : `${nameOf(S, S.actor)} is performing. Watch the call.`)
+      ? (S.actor === you && !S.spectator ? 'You are on. Perform it on camera, then tap “Done, judge me”.' : `${nameOf(S, S.actor)} is performing. Watch the call.`)
       : S.spectator ? 'Everyone is hunting for it. Watch the call.' : 'Find it, hold it up to your camera, then tap I found it.';
   } else if (S.phase === 'vote') {
     const others = cands.filter((c) => c !== you).length;
@@ -597,7 +597,7 @@ export function renderCameraParty(el, S, api) {
       status = mine ? 'Shown. Voting opens when time is up.' : `${readyCount} of ${roster.length} found it`;
     }
     R.readyStatus.textContent = status;
-    R.readyStatus.className = 'cp-ready-status ' + ((mine || (spotlight && ready[S.actor])) ? 'tb-badge is-live is-done-ready' : 'gk-wait');
+    R.readyStatus.className = 'cp-ready-status ' + ((mine || (spotlight && ready[S.actor])) ? 'tb-badge is-live' : 'gk-meta');
   }
 
   // The stage: who is on, who is ready, who judges. The call shows the

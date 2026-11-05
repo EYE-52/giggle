@@ -365,3 +365,4 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
   /* One column that never grows past the screen for a long HUD line. */
   .dg-live.ck .dg-drawing { grid-template-columns: minmax(0, 1fr); }
 }
+.dg.ck .dg-swatch span { box-shadow: inset 0 0 0 2px rgb(0 0 0 / .2), 0 0 0 2px color-mix(in srgb, var(--ink) 22%, transparent); }

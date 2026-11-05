@@ -54,6 +54,7 @@
   .ck[data-family] .gk-hud-round { min-height: 28px; padding: 2px var(--space-8); font: var(--text-caption); font-weight: 800; }
   .ck[data-family] .gk-hud-timer { min-width: 3.6em; min-height: 28px; padding: 2px var(--space-4); }
 }
+.ck[data-family] .gk-hud-timer { box-shadow: var(--shadow-sticker-sm); }
 .ck[data-family] .gk-hud-timer.is-urgent { background: var(--warning); color: var(--on-warning); }
 
 /* ---- prompt ---- */
@@ -160,7 +161,7 @@
 
 /* ---- player chips with state ---- */
 .ck[data-family] .ck-roster {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-8);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-8);
   margin: 0; padding: 0; list-style: none; min-width: 0;
 }
 .ck[data-family] .ck-player {
@@ -184,7 +185,7 @@
 .ck[data-family] .ck-player.is-out { border-style: dashed; background: var(--well); }
 .ck[data-family] .ck-player.is-out .ck-pname { color: var(--ink-dim); text-decoration: line-through; }
 @media (max-width: 560px) {
-  .ck[data-family] .ck-roster { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+  .ck[data-family] .ck-roster { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
 }
 
 /* ---- countdown ring ---- */
@@ -207,3 +208,14 @@
 @media (prefers-reduced-motion: reduce) {
   .ck[data-family] *, .ck[data-family] *::before, .ck[data-family] *::after { animation: none !important; transition: none !important; }
 }
+
+/* Player chips on a table card are scoreboard rows: one per player, name
+ * and state on the left, the score in a pill on the right. */
+.ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) { display: grid; grid-template-columns: minmax(0, 1fr); }
+.ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip { min-width: 0; min-height: var(--control-h-sm); border-radius: var(--radius-lg); }
+.ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip b {
+  margin-left: auto !important; padding: 2px var(--space-12) !important; border: 0 !important; border-radius: var(--radius-pill);
+  background: var(--well); color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip.is-on b { background: var(--card); }

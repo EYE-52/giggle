@@ -177,7 +177,7 @@ export default {
 
 function waitText(S, isWatch, filled, total) {
   if (isWatch) return `${filled} of ${total} answered`;
-  if (!S.mine) return 'Type the missing words';
+  if (!S.mine) return 'Answers show when everyone locks in or time runs out';
   const waiting = Math.max(0, total - filled);
   return waiting ? `Waiting for ${waiting} ${waiting === 1 ? 'player' : 'players'}` : 'Everyone is in';
 }

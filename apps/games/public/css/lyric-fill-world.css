@@ -28,3 +28,10 @@
 .lf.ck .lf-dots li { width: 12px; height: 12px; border-radius: 50%; background: var(--well); border: var(--outline-w) solid var(--line-strong); }
 .lf.ck .lf-dots li.is-done { background: var(--fam-soft); border-color: var(--fam); }
 .lf.ck .lf-dots li.is-now { background: var(--fam); border-color: var(--outline); }
+/* A balanced wrap leaves a hole after the blank; wrap naturally. */
+.lf.ck .lf-line { text-wrap: pretty; }
+.lf.ck .lf-dots li { width: 14px; height: 14px; }
+.lf.ck .lf-dots li.is-done { background: var(--fam-deep); border-color: var(--outline); }
+.lf.ck .lf-dots li.is-now { background: var(--fam); border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft); }
+.lf.ck .lf-dots li:not(.is-done):not(.is-now) { background: var(--card); border-color: var(--ink-dim); }
+.lf.ck .lf-blank { height: 0.8em; vertical-align: baseline; transform: none; }

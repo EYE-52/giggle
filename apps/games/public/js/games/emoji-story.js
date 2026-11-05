@@ -39,7 +39,7 @@ function tableChips(S) {
   }).join('');
 }
 function tableHtml(S) {
-  return `<div class="es-table ck-card"><div class="ck-head"><h3>The table</h3><span class="gk-meta">${esc(roundLabel(Math.min(S.round || 1, S.rounds || S.round || 1), S.rounds))}</span></div>`
+  return `<div class="es-table ck-card"><div class="ck-head"><h3>The table</h3><span class="gk-meta">Points</span></div>`
     + `<ul class="wg-chips" data-live="table" aria-label="Players">${tableChips(S)}</ul></div>`;
 }
 
@@ -192,7 +192,9 @@ function paint(el, S, api) {
       el.innerHTML = scene(S, 'Tell the story in emoji', `<h2 class="gk-prompt">Your phrase: ${esc(S.phrase)}</h2>`
         + `<p class="gk-sub">Tell it with emoji only. No letters.</p>`
         + inputRow({ id: 'eEmoji', label: 'Tell the secret phrase in emoji', placeholder: '🌊🐠🍕…', max: 200, btnId: 'eSend2', button: 'Send', describedBy: 'eEmojiError' })
-        + `<p id="eEmojiError" class="gk-meta es-error" role="status"></p>`);
+        + `<p id="eEmojiError" class="gk-meta es-error" role="status"></p>`
+        + `<div class="es-preview ck-card is-tint"><span class="ck-label">What the table will see</span>`
+        + `<p class="es-emoji es-preview-text" aria-live="off">${'<span class="es-slot"></span>'.repeat(5)}</p></div>`);
       const inp = el.querySelector('#eEmoji');
       const error = el.querySelector('#eEmojiError');
       const send = () => {
@@ -209,6 +211,16 @@ function paint(el, S, api) {
           error.textContent = 'Could not send. Your emoji are kept. Try again when connected.';
         }
       };
+      // Letters lock Send at once, and the line under the field says why.
+      const sendBtn = el.querySelector('#eSend2');
+      const preview = el.querySelector('.es-preview-text');
+      inp.oninput = () => {
+        const letters = /\p{L}/u.test(inp.value);
+        if (preview) { if (inp.value.trim()) preview.textContent = inp.value; else preview.innerHTML = '<span class="es-slot"></span>'.repeat(5); }
+        if (sendBtn) sendBtn.disabled = letters;
+        if (letters) { error.textContent = 'Use emoji only. Remove the letters to send.'; inp.setAttribute('aria-invalid', 'true'); }
+        else if (inp.getAttribute('aria-invalid')) { error.textContent = ''; inp.removeAttribute('aria-invalid'); }
+      };
       const form = el.querySelector('[data-gk-input]');
       if (form) form.onsubmit = (e) => { e?.preventDefault?.(); send(); };
       el.querySelector('#eSend2').onclick = (e) => { e?.preventDefault?.(); send(); };
@@ -220,7 +232,7 @@ function paint(el, S, api) {
       inp.focus();
       return;
     }
-    el.innerHTML = scene(S, 'Waiting for the story', `<div class="es-wait"><p class="es-emoji es-teaser" aria-hidden="true">💭 ✏️ ❓</p>` + waitCardHtml({
+    el.innerHTML = scene(S, 'Waiting for the story', `<div class="es-wait"><div class="es-slots" aria-hidden="true">${'<span class="es-slot"></span>'.repeat(5)}</div><p class="gk-meta es-slots-note">${esc(teller)}'s emoji land here. Then you guess the phrase.</p>` + waitCardHtml({
       kicker: watch ? 'You are watching' : '',
       title: `${teller} is the storyteller`,
       text: 'They are turning a secret phrase into emoji. Then everyone races to guess it.',
