@@ -264,7 +264,7 @@ await withGlobals({document:makeEmitter()},async()=>{
   ok(audio.cue('collision',{strength:1}),'contact: later real impact plays');
   ok(cueVoicesOf(nodes).at(-1).buffer!==soft.buffer,'contact: stronger body contact uses distinct metal recording');
   ok(gainsOf(nodes).at(-1).gain.max>softPeak,'contact: measured strength scales bounded loudness');
-  ok(audio.cue('landing')&&audio.cue('rocketBlast')&&audio.cue('bombBlast'),'contact: landing and distinct detonation keys are ready');
+  ok(audio.cue('landing')&&audio.cue('rocketBlast')&&audio.cue('bombBlast')&&audio.cue('nukeBlast'),'contact: landing and distinct detonation keys are ready');
   audio.dispose();
 });
 
@@ -275,16 +275,24 @@ await withGlobals({document:makeEmitter()},async()=>{
   const {ctx,nodes}=makeFakeAudio(),loader=makeLoader();
   const audio=createKartAudio({createContext:()=>ctx,loader});
   audio.unlock();await audio.ready();audio.update({active:true});
-  for(const [alias,original] of [['seeker','rocket'],['bomb','grenade']]){
+  for(const [alias,original] of [['seeker','rocket'],['nuke','proximity'],['block','shield']]){
     ok(audio.cue(original),`alias: ${original} plays`);
     const canonical=cueVoicesOf(nodes).at(-1),peak=gainsOf(nodes).at(-1).gain.max;
     ok(audio.cue(alias),`alias: ${alias} does not drop as an unknown cue`);
     ok(cueVoicesOf(nodes).at(-1).buffer===canonical.buffer,`alias: ${alias} shares cached launch buffer`);
     ok(gainsOf(nodes).at(-1).gain.max===peak,`alias: ${alias} preserves launch gain`);
   }
-  ok(loader.calls.length===22,'alias: exactly22 unique sample requests');
+  // Hit feedback reuses recordings at its own level.
+  for(const [alias,original] of [['hurt','collision'],['hitConfirm','pickup']]){
+    ctx.currentTime+=.2;
+    ok(audio.cue(original),`alias: ${original} plays`);
+    const canonical=cueVoicesOf(nodes).at(-1);
+    ok(audio.cue(alias),`alias: ${alias} does not drop as an unknown cue`);
+    ok(cueVoicesOf(nodes).at(-1).buffer===canonical.buffer,`alias: ${alias} shares the cached ${original} buffer`);
+  }
+  ok(loader.calls.length===20,'alias: exactly20 unique sample requests');
   audio.setMuted(true);
-  ok(!audio.cue('seeker')&&!audio.cue('bomb'),'alias: mute also blocks new arsenal names');
+  ok(!audio.cue('seeker')&&!audio.cue('nuke')&&!audio.cue('hurt'),'alias: mute also blocks new arsenal names');
   audio.dispose();
   ok(nodes.every(n=>n.disconnects===1),'alias: every owned node disconnects once');
 });
@@ -315,7 +323,7 @@ await withGlobals({document:makeEmitter()},async()=>{
 for(const opts of [{noPan:true},{panThrows:true}])await withGlobals({document:makeEmitter()},async()=>{
   const {ctx,nodes}=makeFakeAudio(opts),audio=createKartAudio({createContext:()=>ctx,loader:makeLoader()});
   audio.unlock();await audio.ready();audio.update({active:true});
-  ok(audio.cue('bomb',{gain:.5,pan:-.8}),'mix fallback: no usable StereoPanner still schedules');
+  ok(audio.cue('proximity',{gain:.5,pan:-.8}),'mix fallback: no usable StereoPanner still schedules');
   ok(gainsOf(nodes).at(-1).gain.max===.16,'mix fallback: attenuation retained without pan backend');
   ok(!nodes.some(n=>n.kind==='panner'),'mix fallback: unsupported pan has no extra owned node');
   audio.dispose();
@@ -329,18 +337,23 @@ for(const opts of [{noPan:true},{panThrows:true}])await withGlobals({document:ma
   ok(!/getUserMedia|getDisplayMedia|MediaStream/.test(src), 'contract: audio-only, never microphone capture');
   ok(!/setInterval|setTimeout|requestAnimationFrame/.test(src), 'contract: no timers (frame-driven only)');
   ok(!/createOscillator/.test(src), 'contract: no oscillators in normal playback (sample-based)');
-  const V1_CUES = ['boost', 'ko', 'mine', 'pickup', 'pulse', 'rail', 'respawn', 'rocket', 'scatter', 'shield'];
+  const V1_CUES = ['boost', 'ko', 'mine', 'pickup', 'pulse', 'respawn', 'rocket', 'scatter', 'shield'];
   ok(V1_CUES.every((n) => CUE_NAMES.includes(n)),
-    'contract: original 10 cue names preserved');
-  ok(CUE_NAMES.length === 19 && ['landing','rocketBlast','bombBlast','seeker','bomb'].every((n) => CUE_NAMES.includes(n)),
-    'contract: landing/blasts and both arsenal aliases present (19 cues)');
+    'contract: original cue names preserved (rail retired)');
+  ok(CUE_NAMES.length === 20 && ['landing','rocketBlast','bombBlast','nukeBlast','seeker','proximity','nuke','hurt','hitConfirm','block'].every((n) => CUE_NAMES.includes(n)),
+    'contract: landing/blasts, arsenal and hit-feedback cues present (20 cues)');
+  ok(['rail','emp','grenade','bomb','grenadeBlast','sentry','spikes'].every((n) => !CUE_NAMES.includes(n) && !(n in ASSET_MAP)),
+    'contract: retired weapon cues are gone');
+  ok(!Object.values(ASSET_MAP).some((f) => f === 'rail.wav' || f === 'emp.wav'), 'contract: deleted rail/emp samples are never requested');
   ok(JSON.stringify(Object.keys(ASSET_MAP).sort()) === JSON.stringify([...CUE_NAMES].sort()),
     'contract: ASSET_MAP covers every cue');
   ok(Object.values(ASSET_MAP).every((f) => typeof f === 'string' && f.endsWith('.wav')),
     'contract: every cue maps to a local WAV file');
-  ok(new Set(Object.values(ASSET_MAP)).size === CUE_NAMES.length-2, 'contract: only two arsenal aliases share samples');
-  ok(ASSET_MAP.seeker === ASSET_MAP.rocket && ASSET_MAP.bomb === ASSET_MAP.grenade,
-    'contract: seeker reuses rocket launch, bomb reuses canister throw');
+  ok(new Set(Object.values(ASSET_MAP)).size === CUE_NAMES.length-5, 'contract: only the five documented aliases share samples');
+  ok(ASSET_MAP.seeker === ASSET_MAP.rocket && ASSET_MAP.proximity === 'grenade.wav' && ASSET_MAP.nuke === 'grenade.wav' && ASSET_MAP.nukeBlast === 'grenadeBlast.wav',
+    'contract: seeker reuses rocket launch, proximity/nuke reuse canister throw and blast');
+  ok(ASSET_MAP.hurt === ASSET_MAP.collision && ASSET_MAP.hitConfirm === ASSET_MAP.pickup && ASSET_MAP.block === ASSET_MAP.shield,
+    'contract: hurt, hit confirm and block reuse collision, pickup and shield');
   ok(JSON.stringify(Object.keys(LOOP_MAP).sort()) === JSON.stringify(['drift', 'engine', 'engineLoad', 'reverse']),
     'contract: 4 loop beds exported');
   ok(ASSET_BASE === '../../assets/karts/audio/', 'contract: versioned relative local asset base');
@@ -609,7 +622,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
   audio.unlock();
   ok((await audio.ready()) === true, 'weapons: pack ready');
   audio.update({ speed: 6, active: true });
-  const addedCues = ['grenade','emp','grenadeBlast','collision'];
+  const addedCues = ['proximity','nuke','nukeBlast','collision','hurt','hitConfirm','block'];
   for (const cue of addedCues) ok(audio.cue(cue) === true, `weapons: ${cue} schedules`);
   const voices = cueVoicesOf(nodes);
   ok(voices.length === addedCues.length, 'weapons: one voice per new cue');

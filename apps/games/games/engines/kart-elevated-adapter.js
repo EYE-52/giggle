@@ -73,8 +73,8 @@ function project(raw, map, settings) {
         ...(raw.phase === 'done' ? { endedAt: raw.result?.endedAt ?? raw.deadline } : {}) } : null,
     karts: raw.karts.map(k => ({ id: k.id, connected: k.connected, ...(k.out ? { out: true } : {}), alive: k.alive, health:k.health, maxHealth:k.maxHealth,
       hits: k.hits, deaths: k.deaths, spawnSeq: k.spawnSeq, controlEpoch: k.controlEpoch,
-      weapon: k.weapon, ammo: k.ammo, firing:k.firing===true, shield: number(k.shield), ramT: number(k.ramT), spikesT: number(k.spikesT), respawn: number(k.respawn),
-      empT: number(k.empT), nitro: number(k.nitro), nitroActive: k.nitroActive,
+      weapon: k.weapon, ammo: k.ammo, firing:k.firing===true, shield: number(k.shield), guard: k.guard === true, respawn: number(k.respawn),
+      nitro: number(k.nitro), nitroActive: k.nitroActive,
       pose: { position: vector(k.pose.position), rotation: rotation(k.pose.rotation),
         linearVelocity: vector(k.pose.linearVelocity), angularVelocity: vector(k.pose.angularVelocity),
         grounded: k.pose.grounded, speed: number(k.pose.speed), epoch: k.pose.epoch,
@@ -82,11 +82,10 @@ function project(raw, map, settings) {
     crates: raw.crates.map(c => ({ id: c.id, position: vector(c.position), available: c.available })),
     projectiles: raw.projectiles.map(p => ({ id: p.id, owner: p.owner, weapon: p.weapon,
       position: vector(p.position), velocity: vector(p.velocity), radius: number(p.radius), ttl: number(p.ttl) })),
-    sentries: (raw.sentries||[]).map(t=>({id:t.id,owner:t.owner,position:vector(t.position),direction:vector(t.direction),ttl:number(t.ttl)})),
     mines: raw.mines.map(m => ({ id: m.id, owner: m.owner, position: vector(m.position), normal: vector(m.normal),
       radius:number(m.radius), arm: number(m.arm), ttl: number(m.ttl), armed: m.armed })),
     grenades: raw.grenades.map(g => ({ id: g.id, owner: g.owner, position: vector(g.position), velocity: vector(g.velocity),
-      weapon:g.weapon||'grenade', radius:number(g.radius), arm:number(g.arm||0), fuse: number(g.fuse||0),
+      weapon:g.weapon, radius:number(g.radius), arm:number(g.arm||0), fuse: number(g.fuse||0),
       ttl:number(g.ttl||0),landed:g.landed===true,armed:g.armed===true,warning: g.warning })),
     events: raw.events.map(e => {
       const event = { id: e.id, tick: e.tick, type: e.type, pid: e.pid };
@@ -151,7 +150,7 @@ function createElevatedKartAdapter({ RAPIER, config, maps, defaults, createMatch
     record.view = freeze({ ...record.view, phase: 'done', endsAt: 0, waitForResult: false,
       error: 'The arena stopped. Start a new round.',
       result: { standings: [], winners: [], winner: null, endReason: 'simulation-failure' },
-      projectiles: [], mines: [], grenades: [], sentries: [] });
+      projectiles: [], mines: [], grenades: [] });
   }
   function awardOnce(record, ctx) {
     if (record.disposed || !record.view.result || record.awarded) return;

@@ -210,7 +210,7 @@ async function main() {
         assert.strictEqual(typeof b[name], 'function', `browser exports ${name}()`);
       }
       assert.deepStrictEqual(b.forwardOf(0), { x: 0, z: 1 }, 'packed pose math');
-      for (const name of ['NITRO_DRAIN', 'NITRO_RECHARGE', 'NITRO_REARM', 'NITRO_SPEED', 'NITRO_PUNCH', 'EMP_TOP_SCALE', 'EMP_ACCEL_SCALE', 'EMP_TURN_SCALE']) {
+      for (const name of ['NITRO_DRAIN', 'NITRO_RECHARGE', 'NITRO_REARM', 'NITRO_SPEED', 'NITRO_PUNCH']) {
         assert.strictEqual(b[name], srv.kart.constants[name], `packed movement/server parity ${name}`);
       }
       assert.strictEqual(b.zoneCells({ x0: 0, y0: 0, x1: 1, y1: 0 }).length, 2, 'packed view math');
@@ -244,9 +244,9 @@ async function main() {
       const probe = path.join(consumer, 'check-browser.mjs');
       fs.writeFileSync(probe, [
         "import assert from 'node:assert';",
-        "import { KIT_VERSION, createSessionToolkit, createGameScreen, createMobileStick, normalizeStickVector, forwardOf, zoneCells, NITRO_DRAIN, NITRO_RECHARGE, NITRO_REARM, NITRO_SPEED, NITRO_PUNCH, EMP_TOP_SCALE, EMP_ACCEL_SCALE, EMP_TURN_SCALE } from 'giggle-game-kit/browser';",
+        "import { KIT_VERSION, createSessionToolkit, createGameScreen, createMobileStick, normalizeStickVector, forwardOf, zoneCells, NITRO_DRAIN, NITRO_RECHARGE, NITRO_REARM, NITRO_SPEED, NITRO_PUNCH } from 'giggle-game-kit/browser';",
         "import server from 'giggle-game-kit/server';",
-        'for (const [key,value] of Object.entries({ NITRO_DRAIN, NITRO_RECHARGE, NITRO_REARM, NITRO_SPEED, NITRO_PUNCH, EMP_TOP_SCALE, EMP_ACCEL_SCALE, EMP_TURN_SCALE })) assert.strictEqual(value,server.kart.constants[key], "installed movement/server parity "+key);',
+        'for (const [key,value] of Object.entries({ NITRO_DRAIN, NITRO_RECHARGE, NITRO_REARM, NITRO_SPEED, NITRO_PUNCH })) assert.strictEqual(value,server.kart.constants[key], "installed movement/server parity "+key);',
         'assert.strictEqual(typeof createGameScreen, "function", "installed screen helper");',
         'assert.strictEqual(typeof createMobileStick, "function", "installed analog input helper");',
         'assert.deepStrictEqual(normalizeStickVector(60,0,60), {x:1,y:0}, "installed analog vector math");',

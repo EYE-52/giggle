@@ -17,10 +17,9 @@
  * - Tuning: engine +5% top+accel/level, handling +4% turn/level, reload
  *   -6% fire-cd/level; mirrored as kart tuning + public levels.
  * - Projectiles (garage pace): pulse 110/1.6, scatter 95/1.2, rocket 85
- *   (splash 3, LOS only, max 1 KO, TTL fizzles), rail 160/1.2 (first
- *   hit stops); sweeping, wall-first, and exactly-once hold; both battle modes
- *   use the complete, faster eight-weapon arsenal (grenade canisters +
- *   EMP discharge join the pool with no garage gate).
+ *   (splash 3, LOS only, 2 hearts, TTL fizzles), seeker; sweeping,
+ *   wall-first, and exactly-once hold; both battle modes use the same
+ *   eight-weapon arsenal (seeker, proximity bomb + nuke, no garage gate).
  * Run: node test/kart-garage.js */
 
 const assert = require('assert');
@@ -130,18 +129,10 @@ function main() {
       }
       return seen;
     };
-    const classic = sample(false, 200);
-    for (const w of classic) {
-      assert(['pulse', 'scatter', 'mine', 'shield', 'rocket', 'rail', 'grenade', 'emp'].includes(w), 'classic rolls full arsenal, saw ' + w);
-    }
-    assert(classic.has('rocket') && classic.has('rail'), 'new weapons available without garage');
-    assert(classic.has('grenade') && classic.has('emp'), 'grenade + emp available without garage');
-    const garage = sample(true, 200);
-    assert(garage.has('rocket'), 'garage rolls rockets');
-    assert(garage.has('rail'), 'garage rolls rails');
-    assert(garage.has('grenade') && garage.has('emp'), 'garage rolls grenades + emps');
-    for (const w of garage) {
-      assert(['pulse', 'scatter', 'mine', 'shield', 'rocket', 'rail', 'grenade', 'emp'].includes(w), 'garage rolls eight, saw ' + w);
+    const EIGHT = ['pulse', 'scatter', 'mine', 'rocket', 'seeker', 'proximity', 'shield', 'nuke'];
+    for (const [label, seen] of [['classic', sample(false, 200)], ['garage', sample(true, 200)]]) {
+      for (const w of seen) assert(EIGHT.includes(w), label + ' rolls only the eight, saw ' + w);
+      for (const w of EIGHT) assert(seen.has(w), label + ' reaches ' + w);
     }
     console.log('GARAGE ok: both modes deal eight weapons');
   }
@@ -404,7 +395,7 @@ function main() {
     console.log('GARAGE ok: wallet persists away/back, sessions game-scoped + bounded');
   }
 
-  // --- 9. garage ballistics: fast swept pulse/rail wall + hull, no tunnel ---
+  // --- 9. garage ballistics: fast swept pulse wall + hull, first stop, no tunnel ---
   {
     const [st, ctx] = racing({ mode: 'Zap Battle', map: 'Bumper Blocks', garage: true }, 2, 8800000, {});
     st.karts.forEach(k=>k.health=1); // Wounded sweep/KO contract.
@@ -423,32 +414,32 @@ function main() {
     assert.strictEqual(a.hits, 1, 'hitch pulse sweeps the hull');
     assert.strictEqual(st.zaps.length, 0, 'impact consumes');
     assert.strictEqual(b.deaths, 1, 'hitch KO recorded');
-    // Rail 160 stops at the first hull (tight slug, not piercing).
+    // Pulse 110 stops at the first hull (never pierces to a second).
     const [st3, ctx3] = racing({ mode: 'Zap Battle', map: 'Rookie Ring', garage: true }, 3, 8810000, {});
     st3.karts.forEach(k=>k.health=1); // Wounded sweep/KO contract.
     const [r0, r1, r2] = st3.karts;
     for (const c of st3.crates) { c.x = 24; c.z = 24; }
     r0.x = 0; r0.z = -14; r0.angle = 0; r0.speed = 0; r0.shield = 0;
-    r0.weapon = 'rail'; r0.ammo = 1; r0.fireCd = 0; r0.prevAction = false;
+    r0.weapon = 'pulse'; r0.ammo = 1; r0.fireCd = 0; r0.prevAction = false;
     r1.x = 0; r1.z = 0; r1.speed = 0; r1.shield = 0;
     r2.x = 0; r2.z = 6; r2.speed = 0; r2.shield = 0;
     karts.onAction(st3, ctx3, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx3, st3);
-    const rail = st3.zaps[0] || null;
-    if (rail) assert.strictEqual(karts.view(st3, 'p0').zaps[0].speed, 160, 'rail pace 160');
+    const slug = st3.zaps[0] || null;
+    if (slug) assert.strictEqual(karts.view(st3, 'p0').zaps[0].speed, 110, 'pulse pace 110');
     for (let i = 0; i < 3 && r1.respawn <= 0; i++) tick(ctx3, st3);
-    assert(r1.respawn > 0, 'rail stops the first hull');
-    assert.strictEqual(r2.respawn, 0, 'rail never pierces to the second');
-    assert.strictEqual(r0.hits, 1, 'rail scores once');
-    // Rail vs cover: the block swallows the 160 slug (swept, no tunnel).
+    assert(r1.respawn > 0, 'pulse stops the first hull');
+    assert.strictEqual(r2.respawn, 0, 'pulse never pierces to the second');
+    assert.strictEqual(r0.hits, 1, 'pulse scores once');
+    // Pulse vs cover: the block swallows the 110 shot (swept, no tunnel).
     a.x = 16; a.z = 5; a.angle = 0; a.speed = 0;
     b.x = 16; b.z = 20; b.speed = 0; b.shield = 0; b.respawn = 0;
     a.respawn = 0;
-    fireAs('rail');
+    fireAs('pulse');
     tick(ctx, st, 250);
-    assert.strictEqual(st.zaps.length, 0, 'block swallows rail');
+    assert.strictEqual(st.zaps.length, 0, 'block swallows pulse');
     assert.strictEqual(b.respawn, 0, 'cover protects the far hull');
-    console.log('GARAGE ok: fast swept pulse/rail (hull, first-stop, wall, no tunnel)');
+    console.log('GARAGE ok: fast swept pulse (hull, first-stop, wall, no tunnel)');
   }
 
   // --- 10. wounded rocket KO/splash/cover contracts and full-health area damage ---
@@ -497,11 +488,11 @@ function main() {
       assert.strictEqual(a.hits, 0, 'blocked blast scores nothing');
       assert.strictEqual(st.zaps.length, 0, 'rocket consumed on the block');
     }
-    // One area damage per full-health victim, including the direct target.
+    // Two hearts once per full-health victim, including the direct target.
     {
       const [st, ctx] = mk(8930000);
       const [a, b, c] = st.karts;
-      b.health=c.health=100;
+      b.health=c.health=3;
       for (const k of st.crates) { k.x = -24; k.z = 24; }
       a.weapon = 'rocket'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
       a.x = 0; a.z = -8; a.angle = 0; a.speed = 0;
@@ -510,9 +501,10 @@ function main() {
       karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
       tick(ctx, st);
       const down = [b, c].filter((k) => k.respawn > 0).length;
-      assert.strictEqual(down, 1, 'one rocket knocks out its direct full-health rival');
-      assert.strictEqual(a.hits, 1, 'direct Rocket KO scores once');
-      const hits=st.events.filter(e=>e.type==='hit');assert(hits.length===2&&hits.filter(e=>e.damage===100&&e.health===0).length===1&&hits.filter(e=>e.damage===40&&e.health===60).length===1,'one direct100-health KO and one indirect40-damage wound');
+      assert.strictEqual(down, 0, 'one rocket never knocks out a full-health rival');
+      assert.strictEqual(a.hits, 0, 'wounds score nothing');
+      assert(b.health === 1 && c.health === 1, 'direct and splash rivals each lose two hearts');
+      const hits=st.events.filter(e=>e.type==='hit');assert(hits.length===2&&hits.every(e=>e.damage===2&&e.health===1&&e.maxHealth===3&&e.weapon==='rocket'),'two 2-heart rocket hits');
       assert.strictEqual(new Set(hits.map(e=>e.other)).size,hits.length,'direct and splash cannot double-count a victim');
     }
     // Owner immune to own blast; TTL fizzle blasts nothing.
@@ -550,7 +542,7 @@ function main() {
       tick(ctx, st);
       return st.events.slice(n);
     };
-    for (const kind of ['pulse', 'scatter', 'rocket', 'rail']) {
+    for (const kind of ['pulse', 'scatter', 'rocket', 'seeker', 'nuke']) {
       const evs = fireKind(kind);
       assert.strictEqual(evs.filter((e) => e.type === 'fire').length, 1, `${kind} emits one fire`);
       assert.strictEqual(evs.find((e) => e.type === 'fire').weapon, kind, `${kind} fire carries weapon`);
@@ -559,6 +551,10 @@ function main() {
     const mineEvs = fireKind('mine');
     assert.strictEqual(mineEvs.filter((e) => e.type === 'mine').length, 1, 'mine emits one mine event');
     assert.strictEqual(mineEvs.find((e) => e.type === 'mine').weapon, 'mine', 'mine carries weapon');
+    const pxEvs = fireKind('proximity');
+    assert.strictEqual(pxEvs.filter((e) => e.type === 'fire').length, 1, 'proximity emits one fire');
+    assert.strictEqual(pxEvs.find((e) => e.type === 'fire').weapon, 'proximity', 'proximity fire carries weapon');
+    assert.strictEqual(st.mines.filter((m) => m.kind === 'proximity').length, 1, 'proximity drops as a trap');
     const shEvs = fireKind('shield');
     assert.strictEqual(shEvs.filter((e) => e.type === 'shield').length, 1, 'shield emits once');
     assert.strictEqual(shEvs.find((e) => e.type === 'shield').weapon, 'shield', 'shield carries weapon');
@@ -572,10 +568,10 @@ function main() {
     assert.strictEqual(a.weapon, 'pulse', 'capped fire keeps the item');
     // Zap view carries velocity data for rendering.
     st.zaps.length = 0;
-    fireKind('rail');
+    fireKind('seeker');
     const zv = karts.view(st, 'p0').zaps[0];
-    assert.strictEqual(zv.kind, 'rail', 'zap kind projected');
-    assert.strictEqual(zv.speed, 160, 'zap speed projected');
+    assert.strictEqual(zv.kind, 'seeker', 'zap kind projected');
+    assert.strictEqual(zv.speed, 60, 'zap speed projected');
     assert(Number.isFinite(zv.ttl) && zv.ttl > 0, 'zap ttl projected');
     assert(Number.isFinite(zv.vx) && Number.isFinite(zv.vz), 'zap velocity projected');
     assert.strictEqual(typeof zv.angle, 'number', 'zap angle projected');

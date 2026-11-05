@@ -24,31 +24,43 @@
  *   - a Map of model name -> THREE.Object3D (Map.prototype.get).
  *   - a plain object map of model name -> THREE.Object3D.
  *
- * combat.glb model groups (exact names, see COMBAT_GLB_MODELS):
- *   Pickup, Pulse, Scatter, Mine, Shield, Rocket, Rail,
- *   Bolt, RocketShot, RailShot
- * under a CombatLibrary root. Bolt holds two authored variants, BoltPulse
- * and BoltScatter. Mine holds the prop meshes (MineDisk/MineCap/MineGlow)
- * plus the rig rack (MineRack); mine() and weapon('mine') each clone the
- * subset they need. Every weapon model carries a *MuzzleTip empty
- * (PulseMuzzleTip, ...) whose local position calibrates userData muzzle.
+ * Pocket Karts arsenal (8 kinds): pulse, scatter, mine, rocket, seeker,
+ * proximity (Proximity Bomb), shield, nuke. Unknown kinds normalize to
+ * 'pulse'. Retired kinds (rail/grenade/emp/bomb/sentry/spikes) are not
+ * part of this factory; the shipped GLBs may still carry their nodes, which
+ * are simply never read.
+ *
+ * Model groups read (exact names; the combat.glb subset is
+ * COMBAT_GLB_MODELS, the rest come from the overlaid packs):
+ *   combat.glb:  Pickup, Pulse, Scatter, Mine, Shield, Rocket, Bolt,
+ *                RocketShot
+ *   overlays:    Seeker, SeekerShot, Bomb, BombShot, MineTrap (and the
+ *                pack versions of Pulse/Scatter/Rocket/RocketShot)
+ * Bolt holds two authored variants, BoltPulse and BoltScatter. Mine holds
+ * the prop meshes (MineDisk/MineCap/MineGlow) plus the rig rack (MineRack);
+ * mine() and weapon('mine') each clone the subset they need. Every weapon
+ * model carries a *MuzzleTip empty (PulseMuzzleTip, ...) whose local
+ * position calibrates userData muzzle.
  *
  * Factory mapping (GLB path):
- *   pickup()             <- Pickup (6 meshes, pad = PickupPad)
- *   mine(own)            <- Mine minus MineRack (collar tints own/foe, the
- *                           recessed status lamp is always red; no ground disc)
- *   weapon('pulse')      <- Pulse (black-steel MG + brass PulseAmmo,
- *                           trim = PulseMuzzle)
- *   weapon('scatter')    <- Scatter (brass muzzles + dark ScatterBores,
- *                           trim = ScatterMuzzles)
- *   weapon('mine')       <- Mine minus MineGlow (trim = MineCap, amber)
- *   weapon('shield')     <- Shield (trim = ShieldCore, spins)
- *   weapon('rocket')     <- Rocket (trim = RocketMuzzle)
- *   weapon('rail')       <- Rail (trim = RailMuzzle)
- *   projectile('pulse')   <- Bolt/BoltPulse (steel slug, white tracer)
- *   projectile('scatter') <- Bolt/BoltScatter (steel slug, amber tracer)
- *   projectile('rocket')  <- RocketShot (tail = RocketShotTracer, ember)
- *   projectile('rail')    <- RailShot (tail = RailShotTracer)
+ *   pickup()                <- Pickup (pad = PickupPad), or opts.pickupAsset
+ *   mine(own)               <- MineTrap, else Mine minus MineRack (collar
+ *                              tints own/foe, red status lamp)
+ *   weapon('pulse')         <- Pulse (trim = PulseMuzzle)
+ *   weapon('scatter')       <- Scatter (trim = ScatterMuzzles)
+ *   weapon('mine')          <- Mine minus MineGlow (trim = MineCap, amber)
+ *   weapon('shield')        <- Shield (trim = ShieldCore, spins)
+ *   weapon('rocket')        <- Rocket (trim = RocketMuzzle)
+ *   weapon('seeker')        <- Seeker (trim = SeekerMuzzle)
+ *   weapon('proximity')     <- Bomb dynamite launcher (trim = BombMuzzle)
+ *   weapon('nuke')          <- Rocket rig, renamed NukeLauncher
+ *   projectile('pulse')     <- Bolt/BoltPulse (steel slug, white tracer)
+ *   projectile('scatter')   <- Bolt/BoltScatter (steel slug, amber tracer)
+ *   projectile('rocket')    <- RocketShot (tail = RocketShotTracer, ember)
+ *   projectile('seeker')    <- SeekerShot (tail = SeekerShotTracer, mint)
+ *   projectile('proximity') <- BombShot (tail = BombShotLamp; armed/landed/
+ *                              rollRate drive the settle + lamp animation)
+ *   projectile('nuke')      <- RocketShot at warhead scale (ember tail)
  *
  * Slugs keep their authored metallic materials on both paths; tracers, the
  * mine collar tints and the red lamp are the only factory-owned overrides
@@ -64,14 +76,16 @@
  *
  * Factory: createKartCombatArt(THREE, opts?) -> art, opts = { assets? }
  *   art.pickup()            Mystery supply crate. Base y=0, fits 2.4.
- *   art.projectile(kind)    'pulse' | 'scatter' | 'rocket' | 'rail'.
+ *   art.projectile(kind)    'pulse' | 'scatter' | 'rocket' | 'seeker' |
+ *                           'proximity' | 'nuke'.
  *                           Origin at bolt center, nose +Z: aim with
  *                           group.rotation.y = Math.atan2(vx, vz). Hull
  *                           <= 0.45 lateral. Unknown kinds -> 'pulse'.
  *   art.mine(own)           Toothed disk mine. Base y=0, radius <= 1.
  *                           own tints cap/glow mint, else red.
  *   art.weapon(kind)        'pulse' | 'scatter' | 'mine' | 'shield' |
- *                           'rocket' | 'rail'. Origin at mount, barrel +Z
+ *                           'rocket' | 'seeker' | 'proximity' | 'nuke'.
+ *                           Origin at mount, barrel +Z
  *                           (see userData.combat.mount). Unknown -> 'pulse'.
  *   art.animate(obj, dt, time, reducedMotion=false)
  *                           Inner-group cosmetics only (root owns the outer
@@ -87,17 +101,18 @@
  * userData.combat on every returned Group:
  *   { type, kind, inner, seed, spin, ... }
  *   - type: 'pickup' | 'projectile' | 'mine' | 'weapon'.
- *   - kind: 'pulse' | 'scatter' | 'mine' | 'shield' | 'rocket' | 'rail'
- *     (pickup kind is null; mine type always has kind 'mine').
+ *   - kind: the requested kept kind (pickup kind is null; mine type
+ *     always has kind 'mine').
  *   - inner: animated child Group; root must NOT touch it.
  *   - seed: deterministic per-instance phase (no Math.random).
  *   - projectile: tipZ/tailZ (nose/tail extent, calibrated from the GLB
- *     branch or the fallback dims), tail (tracer mesh).
+ *     branch or the fallback dims), tail (tracer mesh). proximity also
+ *     carries armed/landed (root-writable) and reads rollRate.
  *   - mine: own, armed (root-writable; false shrinks the cap and hides
  *     the glow), cap/glow meshes.
  *   - weapon: mount [x,y,z], muzzle [x,y,z] (calibrated from the GLB
  *     *MuzzleTip or the fallback dims), barrels (3 scatter, 1
- *     pulse/rocket/rail, 0 mine/shield), trim (animated mesh).
+ *     pulse/rocket/seeker/proximity/nuke, 0 mine/shield), trim (animated mesh).
  *   - pickup: pad (glow disc mesh).
  *
  * Mesh budgets (each mesh = 1 draw call): pickup <= 8, projectile <= 4,
@@ -129,25 +144,21 @@ export function projectileContactInset(THREE,object,radius){
 
 export const COMBAT_ART_BUDGETS = { pickup: 8, projectile: 4, weapon: 6, mine: 4 };
 
-// Compact solid bullets keep their short pencil-thin tracers. Only the rail
-// stretches into an energy streak. Authored GLB and failure fallback agree.
+// Compact solid bullets keep their short pencil-thin tracers. Authored GLB
+// and failure fallback agree.
 export const SHOT_PROFILES = {
   pulse: { radius: 1.2, length: 1.15 },
   scatter: { radius: 1, length: 1.15 },
   rocket: { radius: 1.3, length: 1.6 },
-  rail: { radius: 0.6, length: 4.0 },
-  grenade: { radius: 1, length: 1 },
   seeker: { radius: 1, length: 1 },
-  bomb: { radius: 1, length: 1 },
   nuke: { radius: 1.65, length: 1.6 },
   proximity: { radius: 1, length: 1 },
-  sentry: { radius: .72, length: .72 },
 };
 
 export const COMBAT_GLB_URL = '/assets/karts/combat/combat.glb';
 
 export const COMBAT_GLB_MODELS = ['Pickup', 'Pulse', 'Scatter', 'Mine', 'Shield',
-  'Rocket', 'Rail', 'Bolt', 'RocketShot', 'RailShot', 'Grenade', 'EMP', 'GrenadeShot'];
+  'Rocket', 'Bolt', 'RocketShot'];
 
 const TAU = Math.PI * 2;
 const HALF_PI = Math.PI / 2;
@@ -159,9 +170,7 @@ const COLORS = {
   mintGlow: 0x83ffe0,
   mintDeep: 0x0e9b8a,
   cyan: 0x35d5ff,
-  cyanDeep: 0x1a9fd4,
   cyanPale: 0x6af0ff,
-  iceWhite: 0xd8fbff,
   ember: 0xff8a3c,
   emberDeep: 0xd4541e,
   cream: 0xfff6e8,
@@ -291,11 +300,6 @@ function buildPool(THREE, reg) {
       color: COLORS.steel, metalness:.55, roughness:.26,
     }),
     tailRocket: glow(reg, THREE, 'CombatTailRocket', COLORS.ember, 0.85),
-    boltRail: std(reg, THREE, 'CombatBoltRail', {
-      color: COLORS.cyanPale, emissive: COLORS.cyanDeep, emissiveIntensity: 0.9,
-    }),
-    tailRail: glow(reg, THREE, 'CombatTailRail', COLORS.cyanPale, 0.85),
-    muzzlePulse: lamp(reg, THREE, 'CombatMuzzlePulse', COLORS.iceWhite),
     muzzleScatter: lamp(reg, THREE, 'CombatMuzzleScatter', COLORS.sand),
     capOwn: std(reg, THREE, 'CombatCapOwn', {color:COLORS.mintDeep,metalness:.7,roughness:.4}),
     capFoe: std(reg, THREE, 'CombatCapFoe', {color:COLORS.metal,metalness:.7,roughness:.4}),
@@ -386,20 +390,6 @@ function buildPool(THREE, reg) {
   // complete-projectile envelope; fallback rockets keep their authored tail.
   G.missileExhaust=poolGeo(reg,G.rocketTail.clone(),'CombatMissileExhaust');
   G.missileExhaust.scale(.75,.75,.35);
-
-  // Rail shot: slim spike, longest tracer. Nose tip z=+0.9, tail z=-2.05.
-  G.railBolt = mergeParts(THREE, reg, [
-    { g: cone(0.08, 0.9, 8), x: 0, y: 0, z: 0.45, rx: HALF_PI },
-    { g: cyl(0.08, 0.1, 0.6, 8), x: 0, y: 0, z: -0.3, rx: HALF_PI },
-  ]);
-  G.railBolt.name = 'CombatRailBolt';
-  G.railFins = mergeParts(THREE, reg, [
-    { g: box(0.05, 0.4, 0.3), x: 0, y: 0, z: -0.5 },
-    { g: box(0.4, 0.05, 0.3), x: 0, y: 0, z: -0.5 },
-  ]);
-  G.railFins.name = 'CombatRailFins';
-  G.railTail = poolGeo(reg, cone(0.1, 1.5, 8), 'CombatRailTail');
-  G.railTail.rotateX(-HALF_PI);
 
   const teeth = [{ g: cyl(0.8, 0.86, 0.28, 18), x: 0, y: 0.14, z: 0 }];
   for (let i = 0; i < 10; i++) {
@@ -516,46 +506,6 @@ function buildPool(THREE, reg) {
   ]);
   G.rigRocketMuzzle.name = 'CombatRigRocketMuzzle';
 
-  // Rail rig: long angular cannon. Muzzle tip z=+1.20.
-  G.rigRailBody = mergeParts(THREE, reg, [
-    { g: box(0.22, 0.3, 1.6), x: 0, y: 0.35, z: 0.2 },
-    { g: box(0.1, 0.4, 0.8), x: -0.16, y: 0.35, z: 0.4 },
-    { g: box(0.1, 0.4, 0.8), x: 0.16, y: 0.35, z: 0.4 },
-    { g: box(0.3, 0.4, 0.4), x: 0, y: 0.35, z: -0.6 },
-    { g: box(0.2, 0.35, 0.2), x: 0, y: 0.175, z: 0 },
-  ]);
-  G.rigRailBody.name = 'CombatRigRailBody';
-  G.rigRailCoil = mergeParts(THREE, reg, [0, 0.4, 0.8].map((dz) => ({
-    g: box(0.3, 0.38, 0.08), x: 0, y: 0.35, z: dz,
-  })));
-  G.rigRailCoil.name = 'CombatRigRailCoil';
-  G.rigRailMuzzle = mergeParts(THREE, reg, [
-    { g: cyl(0.05, 0.12, 0.3, 10), x: 0, y: 0, z: 0, rx: HALF_PI },
-  ]);
-  G.rigRailMuzzle.name = 'CombatRigRailMuzzle';
-
-  G.grenadeBody = poolGeo(reg,cyl(.38,.38,.76,12),'CombatGrenadeCanister');
-  G.grenadeBands = mergeParts(THREE,reg,[
-    {g:cyl(.4,.4,.12,12),y:-.3},{g:cyl(.4,.4,.12,12),y:.3},
-    {g:box(.15,.18,.26),y:.46},
-    {g:box(.12,.08,.5),y:.57,z:.15},{g:box(.12,.34,.08),y:.4,z:.35},
-    ...[[-.34,0],[.34,0],[0,-.34],[0,.34]].map(([x,z])=>({g:box(.1,.45,.1),x,z})),
-    // Throwing handle + pivot pin along one flank (fragmentation lever).
-    {g:box(.08,.5,.12),x:.4,y:.05},
-    {g:cyl(.03,.03,.18,8),x:.4,y:.42,rz:HALF_PI},
-  ]);
-  G.grenadeFuse = poolGeo(reg,box(.12,.09,.1),'CombatGrenadeFuse');
-  G.rigGrenadeBody = mergeParts(THREE,reg,[
-    {g:box(.56,.28,.65),y:.14,z:-.15},{g:cyl(.25,.28,1.05,12),y:.5,z:.3,rx:HALF_PI},
-  ]);
-  G.rigGrenadeMuzzle = mergeParts(THREE,reg,[{g:cyl(.31,.31,.17,12),y:.5,z:.85,rx:HALF_PI}]);
-  G.rigGrenadeLatch = mergeParts(THREE,reg,[{g:box(.38,.13,.18),y:.56,z:-.25}]);
-  G.rigEMPBody = mergeParts(THREE,reg,[{g:box(.72,.48,.55),y:.24,z:-.08},
-    ...[-.43,.43].map(x=>({g:box(.15,.17,1.15),x,y:.4,z:.3})),
-  ]);
-  G.rigEMPCore = mergeParts(THREE,reg,[...[-.43,.43].map(x=>({g:cyl(.13,.13,.1,10),x,y:.4,z:.9,rx:HALF_PI})),
-    {g:box(.48,.12,.1),y:.52,z:.13},
-  ]);
   return { M, G };
 }
 
@@ -595,7 +545,6 @@ export function createKartCombatArt(THREE, opts) {
   let pool = null;
   let ovr = null;
   let cal = null;
-  let grenadeCalibration = null;
   let seq = 0;
   let readableHousing = new WeakMap();
 
@@ -612,7 +561,6 @@ export function createKartCombatArt(THREE, opts) {
       tailPulse: tracer(reg, THREE, 'CombatTailPulse', COLORS.tracerWhite),
       tailScatter: tracer(reg, THREE, 'CombatTailScatter', COLORS.amber),
       tailRocket: glow(reg, THREE, 'CombatTailRocket', COLORS.ember, 0.85),
-      tailRail: glow(reg, THREE, 'CombatTailRail', COLORS.cyanPale, 0.85),
       capOwn: std(reg, THREE, 'CombatCapOwn', {color:COLORS.mintDeep,metalness:.7,roughness:.4}),
       capFoe: std(reg, THREE, 'CombatCapFoe', {color:COLORS.metal,metalness:.7,roughness:.4}),
       lampRed: glow(reg, THREE, 'CombatLampRed', COLORS.lampRed, 0.9),
@@ -643,10 +591,7 @@ export function createKartCombatArt(THREE, opts) {
       ['scatter', 'Bolt', 'BoltScatter'],
       ['rocket', 'RocketShot', null],
       ['seeker', 'SeekerShot', null],
-      ['bomb', 'BombShot', null],
       ['proximity', 'BombShot', null],
-      ['rail', 'RailShot', null],
-      ['grenade', 'GrenadeShot', null],
     ];
     for (let i = 0; i < shots.length; i++) {
       const branch = libBranch(shots[i][1], shots[i][2]);
@@ -655,7 +600,7 @@ export function createKartCombatArt(THREE, opts) {
       if (box.isEmpty()) continue;
       cal[shots[i][0]] = { tipZ: box.max.z, tailZ: box.min.z };
     }
-    const rigs = ['Pulse', 'Scatter', 'Mine', 'Shield', 'Rocket', 'Rail', 'Grenade', 'EMP', 'Seeker', 'Bomb'];
+    const rigs = ['Pulse', 'Scatter', 'Mine', 'Shield', 'Rocket', 'Seeker', 'Bomb'];
     for (let i = 0; i < rigs.length; i++) {
       const root = libBranch(rigs[i], null);
       if (!root || typeof root.getObjectByName !== 'function') continue;
@@ -727,12 +672,13 @@ export function createKartCombatArt(THREE, opts) {
   }
 
   function normShot(kind) {
-    return kind === 'scatter' || kind === 'rocket' || kind === 'rail' || kind === 'grenade' || kind === 'seeker' || kind === 'bomb' || kind==='nuke' || kind==='proximity' || kind==='sentry' ? kind : 'pulse';
+    return kind === 'scatter' || kind === 'rocket' || kind === 'seeker' ||
+      kind === 'nuke' || kind === 'proximity' ? kind : 'pulse';
   }
 
   function normRig(kind) {
     return kind === 'scatter' || kind === 'mine' || kind === 'shield' ||
-      kind === 'rocket' || kind === 'rail' || kind === 'grenade' || kind === 'emp' || kind === 'seeker' || kind === 'bomb' ? kind : 'pulse';
+      kind === 'rocket' || kind === 'seeker' || kind === 'proximity' ? kind : 'pulse';
   }
 
   /* ---------------- pickup ---------------- */
@@ -775,27 +721,25 @@ export function createKartCombatArt(THREE, opts) {
     pulse: ['Bolt', 'BoltPulse', 'BoltPulseTracer'],
     scatter: ['Bolt', 'BoltScatter', 'BoltScatterTracer'],
     rocket: ['RocketShot', null, 'RocketShotTracer'],
-    rail: ['RailShot', null, 'RailShotTracer'],
-    grenade: ['GrenadeShot', null, 'GrenadeFuse'],
     seeker: ['SeekerShot', null, 'SeekerShotTracer'],
-    bomb: ['BombShot', null, 'BombShotLamp'],
     nuke: ['RocketShot',null,'RocketShotTracer'],
     proximity: ['BombShot',null,'BombShotLamp'],
-    sentry: ['Bolt','BoltPulse','BoltPulseTracer'],
   };
   const SHOT_TIP_FALLBACK = {
     pulse: [0.75, -1.15], scatter: [0.55, -.9],
-    rocket: [0.6, -1.55], rail: [0.9, -2.05], grenade: [.4,-.4], seeker: [.6,-.6], bomb: [.32,-.32], nuke:[.6,-1.55], proximity:[.4,-.4], sentry:[.75,-1.15],
+    rocket: [0.6, -1.55], seeker: [.6,-.6], nuke:[.6,-1.55], proximity:[.4,-.4],
   };
+
+  const SHOT_NAMES = { pulse: 'PulseBolt', scatter: 'ScatterBolt', rocket: 'RocketBolt', seeker: 'SeekerMissile', nuke: 'NuclearWarhead', proximity: 'ProximityCharge' };
 
   function projectileFromLib(kind, branch, tracerName) {
     ensureCal();
-    const names = { pulse: 'PulseBolt', scatter: 'ScatterBolt', rocket: 'RocketBolt', rail: 'RailBolt', grenade: 'GrenadeCanister', seeker: 'SeekerMissile', bomb: 'HeavyBomb', nuke:'NuclearWarhead',proximity:'ProximityCharge',sentry:'SentryBullet' };
-    const { outer, inner, c } = base('projectile', kind, names[kind]);
+    const { outer, inner, c } = base('projectile', kind, SHOT_NAMES[kind]);
     const clone = cloneLib(branch, null);
     const o = ensureOverrides();
-    const tails = { pulse: o.tailPulse, scatter: o.tailScatter, rocket: o.tailRocket, rail: o.tailRail, seeker:o.tailRocket,nuke:o.tailRocket,sentry:o.tailPulse,proximity:o.lampRed };
-    const tail = kind === 'grenade' || kind === 'bomb' || kind==='proximity' ? clone.getObjectByName(tracerName) : overrideOf(clone, tracerName, tails[kind]);
+    const tails = { pulse: o.tailPulse, scatter: o.tailScatter, rocket: o.tailRocket, seeker:o.tailRocket, nuke:o.tailRocket };
+    // The dynamite's authored lamp keeps its own material.
+    const tail = kind==='proximity' ? clone.getObjectByName(tracerName) : overrideOf(clone, tracerName, tails[kind]);
     inner.add(clone);
     const tip = (cal && cal[kind==='nuke'?'rocket':kind]) || null;
     const fb = SHOT_TIP_FALLBACK[kind];
@@ -812,22 +756,17 @@ export function createKartCombatArt(THREE, opts) {
       c.tail=lit(G.missileExhaust,material,kind==='seeker'?'SeekerExhaust':'RocketExhaust');
       c.tail.position.z=c.tailZ-.14;inner.add(c.tail);c.tailZ-=.3325;
     }
-    if(kind==='proximity'||kind==='bomb'){c.armed=false;c.landed=false;}
+    if(kind==='proximity'){c.armed=false;c.landed=false;}
     return outer;
   }
 
   function projectileFallback(kind) {
-    const names = { pulse: 'PulseBolt', scatter: 'ScatterBolt', rocket: 'RocketBolt', rail: 'RailBolt', grenade: 'GrenadeCanister', seeker: 'SeekerMissile', bomb: 'HeavyBomb', nuke:'NuclearWarhead',proximity:'ProximityCharge',sentry:'SentryBullet' };
-    const { outer, inner, c } = base('projectile', kind, names[kind]);
+    const { outer, inner, c } = base('projectile', kind, SHOT_NAMES[kind]);
     const { M, G } = ensurePool();
     let tail;
     if(kind==='proximity') {
       inner.add(solid(G.mineDisk,M.metal,'ProximityBody'));
       tail=lit(G.mineCap,M.lampRed,'ProximityLamp');tail.position.y=.3;
-    } else if (kind === 'grenade' || kind === 'bomb') {
-      inner.add(solid(G.grenadeBody,M.crate,'GrenadeCanister'));
-      inner.add(solid(G.grenadeBands,M.metal,'GrenadeBands'));
-      tail=lit(G.grenadeFuse,M.capFoe,'GrenadeFuse');tail.position.set(0,.48,.14);
     } else if (kind === 'scatter') {
       inner.add(solid(G.scatterBolt, M.boltScatter, 'ScatterBody'));
       inner.add(solid(G.scatterFins, M.brass, 'ScatterFins'));
@@ -838,11 +777,6 @@ export function createKartCombatArt(THREE, opts) {
       inner.add(solid(G.rocketFins, M.metal, 'RocketFins'));
       tail = lit(G.rocketTail, M.tailRocket, 'RocketTracer');
       tail.position.z = -1.0;
-    } else if (kind === 'rail') {
-      inner.add(solid(G.railBolt, M.boltRail, 'RailBody'));
-      inner.add(solid(G.railFins, M.metal, 'RailFins'));
-      tail = lit(G.railTail, M.tailRail, 'RailTracer');
-      tail.position.z = -1.3;
     } else {
       inner.add(solid(G.pulseBolt, M.boltPulse, 'PulseBody'));
       inner.add(solid(G.pulseFins, M.brass, 'PulseFins'));
@@ -854,7 +788,7 @@ export function createKartCombatArt(THREE, opts) {
     c.tipZ = fb[0];
     c.tailZ = fb[1];
     c.tail = tail;
-    if(kind==='proximity'||kind==='bomb'){c.armed=false;c.landed=false;}
+    if(kind==='proximity'){c.armed=false;c.landed=false;}
     return outer;
   }
 
@@ -869,18 +803,6 @@ export function createKartCombatArt(THREE, opts) {
     c.inner.scale.set(profile.radius, profile.radius, profile.length);
     c.tipZ *= profile.length;
     c.tailZ *= profile.length;
-    if(k==='grenade') {
-      // Classic packets carry the sphere bottom; the view adds its .45m
-      // radius. Keep the upright canister's visual bottom at that same
-      // support, including the smaller shipped secondary GLB and fallback.
-      if(!grenadeCalibration) {
-        const box=new THREE.Box3().setFromObject(shot);
-        grenadeCalibration={scale:.9/(box.max.y-box.min.y),centerY:(box.min.y+box.max.y)/2};
-      }
-      const {scale,centerY}=grenadeCalibration;
-      c.inner.scale.multiplyScalar(scale);c.inner.position.y=-centerY*scale;
-      c.tipZ*=scale;c.tailZ*=scale;
-    }
     return shot;
   }
 
@@ -927,16 +849,16 @@ export function createKartCombatArt(THREE, opts) {
   /* ---------------- weapons ---------------- */
   const RIG_MODEL = {
     pulse: 'Pulse', scatter: 'Scatter', mine: 'Mine',
-    shield: 'Shield', rocket: 'Rocket', rail: 'Rail', grenade: 'Grenade', emp: 'EMP', seeker:'Seeker', bomb:'Bomb',
+    shield: 'Shield', rocket: 'Rocket', seeker: 'Seeker', proximity: 'Bomb',
   };
   const RIG_TRIM = {
     pulse: 'PulseMuzzle', scatter: 'ScatterMuzzles', mine: 'MineCap',
-    shield: 'ShieldCore', rocket: 'RocketMuzzle', rail: 'RailMuzzle', grenade:'GrenadeMuzzle',emp:'EMPCore',seeker:'SeekerMuzzle',bomb:'BombMuzzle',
+    shield: 'ShieldCore', rocket: 'RocketMuzzle', seeker: 'SeekerMuzzle', proximity: 'BombMuzzle',
   };
-  const RIG_BARRELS = { pulse: 1, scatter: 3, mine: 0, shield: 0, rocket: 1, rail: 1, grenade:1, emp:2, seeker:1, bomb:1 };
+  const RIG_BARRELS = { pulse: 1, scatter: 3, mine: 0, shield: 0, rocket: 1, seeker: 1, proximity: 1 };
   const RIG_MUZZLE_FALLBACK = {
     pulse: [0, 0.3, 1.1], scatter: [0, 0.42, 0.9], mine: [0, 0.4, 0],
-    shield: [0, 0.48, 0], rocket: [0, 0.65, 0.98], rail: [0, 0.35, 1.2],grenade:[0,.5,.95],emp:[0,.4,.96],seeker:[0,.5,1.1],bomb:[0,.5,1.1],
+    shield: [0, 0.48, 0], rocket: [0, 0.65, 0.98], seeker: [0, .5, 1.1], proximity: [0, .5, 1.1],
   };
 
   function weaponFromLib(kind, branch) {
@@ -972,7 +894,7 @@ export function createKartCombatArt(THREE, opts) {
       node.geometry = geometry;
     });
     inner.add(clone);
-    const mz = (cal && cal[`muzzle:${kind}`]) || RIG_MUZZLE_FALLBACK[kind];
+    const mz = (cal && cal[`muzzle:${RIG_MODEL[kind].toLowerCase()}`]) || RIG_MUZZLE_FALLBACK[kind];
     c.muzzle = [mz[0], mz[1], mz[2]];
     c.barrels = RIG_BARRELS[kind];
     c.trim = trim;
@@ -983,13 +905,7 @@ export function createKartCombatArt(THREE, opts) {
     const { outer, inner, c } = base('weapon', kind, 'CombatRig');
     const { M, G } = ensurePool();
     c.mount = [0, 1.35, -1.2];
-    if (kind === 'grenade' || kind === 'bomb') {
-      inner.add(solid(G.rigGrenadeBody,M.metal,'GrenadeBody'));
-      c.trim=solid(G.rigGrenadeMuzzle,M.crate,'GrenadeMuzzle');inner.add(c.trim,solid(G.rigGrenadeLatch,M.lid,'GrenadeLatch'));
-    } else if (kind === 'emp') {
-      inner.add(solid(G.rigEMPBody,M.metal,'EMPBody'));
-      c.trim=lit(G.rigEMPCore,M.shieldCore,'EMPCore');inner.add(c.trim);
-    } else if (kind === 'scatter') {
+    if (kind === 'scatter') {
       inner.add(solid(G.rigScatterBody, M.metal, 'ScatterCannon'));
       const muzzles = solid(G.rigScatterMuzzles, M.brass, 'ScatterMuzzles');
       muzzles.position.set(0, 0.3, 0.82);
@@ -1009,18 +925,13 @@ export function createKartCombatArt(THREE, opts) {
       core.position.y = 0.48;
       inner.add(core);
       c.trim = core;
-    } else if (kind === 'rocket' || kind === 'seeker') {
+    } else if (kind === 'rocket' || kind === 'seeker' || kind === 'proximity') {
+      // Failed-load launchers share the rocket tube; the GLB path gives
+      // proximity its own dynamite launcher.
       inner.add(solid(G.rigRocketBody, M.metal, 'RocketLauncher'));
       inner.add(solid(G.rigRocketTrim, M.lid, 'RocketTrim'));
       const muzzle = lit(G.rigRocketMuzzle, M.muzzleScatter, 'RocketMuzzle');
       muzzle.position.set(0, 0.65, 0.92);
-      inner.add(muzzle);
-      c.trim = muzzle;
-    } else if (kind === 'rail') {
-      inner.add(solid(G.rigRailBody, M.metal, 'RailCannon'));
-      inner.add(solid(G.rigRailCoil, M.boltPulse, 'RailCoil'));
-      const muzzle = lit(G.rigRailMuzzle, M.muzzlePulse, 'RailMuzzle');
-      muzzle.position.set(0, 0.35, 1.05);
       inner.add(muzzle);
       c.trim = muzzle;
     } else {
@@ -1031,55 +942,21 @@ export function createKartCombatArt(THREE, opts) {
       inner.add(muzzle);
       c.trim = muzzle;
     }
-    c.muzzle = RIG_MUZZLE_FALLBACK[kind].slice();
+    c.muzzle = RIG_MUZZLE_FALLBACK[kind === 'proximity' ? 'rocket' : kind].slice();
     c.barrels = RIG_BARRELS[kind];
     return outer;
   }
 
-  // Deployed hardware uses the same loaded gun assets and shared pooled
-  // geometry as mounted props. Three solid outriggers make the turret read
-  // as planted equipment rather than a floating weapon.
-  function sentry() {
-    const {outer,inner,c}=base('sentry','sentry','CombatSentry');
-    const {G,M}=ensurePool();
-    if(!G.sentryLegs) G.sentryLegs=mergeParts(THREE,reg,[0,1,2].map(i=>({g:new THREE.BoxGeometry(.16,.65,1.05),y:.15,ry:i*TAU/3,rx:.45})));
-    inner.add(solid(G.sentryLegs,M.metal,'SentryTripod'));
-    const turret=new THREE.Group();turret.name='SentryTurret';turret.position.y=.65;inner.add(turret);
-    const gun=weapon('pulse'),muzzle=gun.userData.combat.muzzle;gun.position.set(0,-muzzle[1]*.65,.6-muzzle[2]*.65);gun.scale.setScalar(.65);turret.add(gun);c.gun=gun;c.turret=turret;c.muzzle=[0,.65,.6];
-    return outer;
-  }
-  function spikes() {
-    const {outer,inner}=base('spikes','spikes','CombatOrbitSpikes');
-    const {M,G}=ensurePool();
-    if(!G.orbitSpikes) {
-      const blade=new THREE.Shape();
-      blade.moveTo(-.16,-.35);blade.lineTo(.16,-.35);blade.lineTo(.29,.12);
-      blade.lineTo(.12,.55);blade.lineTo(0,.92);blade.lineTo(-.12,.55);blade.lineTo(-.29,.12);blade.closePath();
-      const geometry=new THREE.ExtrudeGeometry(blade,{depth:.08,bevelEnabled:true,bevelThickness:.035,bevelSize:.035,bevelSegments:1,steps:1});
-      geometry.rotateX(HALF_PI);
-      G.orbitSpikes=mergeParts(THREE,reg,[0,1,2].map(i=>{
-        const a=i*TAU/3;
-        return {g:geometry.clone(),x:Math.sin(a)*2.3,y:.45,z:Math.cos(a)*2.3,ry:a};
-      }));
-      geometry.dispose();
-    }
-    if(!M.blade)M.blade=std(reg,THREE,'CombatBladeSteel',{color:0xb8d4df,metalness:.8,roughness:.28});
-    inner.add(solid(G.orbitSpikes,M.blade,'OrbitingSteelBlades'));
-    return outer;
-  }
   function weapon(kind) {
-    if(kind==='spikes'||kind==='sentry') {
-      const object=kind==='spikes'?spikes():sentry(),c=object.userData.combat;
-      c.type='weapon';c.mount=kind==='spikes'?[0,1.1,-.6]:[0,1.4,-1];c.muzzle=[0,.5,1];c.barrels=kind==='sentry'?1:0;return object;
-    }
-    if(kind==='nuke'||kind==='proximity') {
-      const object=weapon(kind==='nuke'?'rocket':'bomb');object.userData.combat.kind=kind;object.name=kind==='nuke'?'NukeLauncher':'ProximityLayer';
+    if(kind==='nuke') {
+      const object=weapon('rocket');object.userData.combat.kind='nuke';object.name='NukeLauncher';
       return object;
     }
     const k = normRig(kind);
     const branch = libBranch(RIG_MODEL[k], null);
-    if (branch) return weaponFromLib(k, branch);
-    return weaponFallback(k);
+    const object = branch ? weaponFromLib(k, branch) : weaponFallback(k);
+    if (k === 'proximity') object.name = 'ProximityLayer';
+    return object;
   }
 
   /* Cosmetic motion only: inner-group transforms, no material writes, no
@@ -1097,7 +974,7 @@ export function createKartCombatArt(THREE, opts) {
       for(const part of c.recoilParts||[])part.node.position.z=part.z+offset;
     }
 
-    if((c.kind==='proximity'||c.kind==='bomb')&&c.type==='projectile') {
+    if(c.kind==='proximity'&&c.type==='projectile') {
       // A thrown charge settles with its body, then breathes gently through
       // a tiny red status lamp. The collider and the complete bundle stay
       // fixed in size; no flashing radius or warning-scale animation.
@@ -1110,8 +987,6 @@ export function createKartCombatArt(THREE, opts) {
       }
       return;
     }
-    if(c.kind==='spikes') {inner.rotation.y=reducedMotion?0:t*4;return;}
-    if(c.type==='sentry')return;
     if (reducedMotion) {
       if (c.type === 'pickup') {
         inner.position.y = 0;
@@ -1120,7 +995,6 @@ export function createKartCombatArt(THREE, opts) {
       } else if (c.type === 'projectile') {
         inner.rotation.z = 0;
         inner.rotation.x = 0;
-        if(c.kind==='grenade')inner.rotation.y=0;
         if (c.tail) c.tail.scale.set(1, 1, 1);
       } else if (c.type === 'mine') {
         inner.rotation.y = 0;
@@ -1146,11 +1020,9 @@ export function createKartCombatArt(THREE, opts) {
         c.pad.scale.set(s, 1, s);
       }
     } else if (c.type === 'projectile') {
-      const rates = { pulse: 14, scatter: 9, rocket: 7, rail: 16, grenade:5, seeker:3, bomb:2, nuke:0, sentry:14 };
-      c.spin += step * (c.kind==='bomb'?Math.max(0,c.rollRate||0):(rates[c.kind]??14));
-      if(c.kind==='bomb')inner.rotation.x=c.spin;
-      else if(c.kind==='grenade')inner.rotation.y=c.spin; // keep its support baseline through cosmetic motion
-      else inner.rotation.z = c.spin;
+      const rates = { pulse: 14, scatter: 9, rocket: 7, seeker:3, nuke:0 };
+      c.spin += step * (rates[c.kind]??14);
+      inner.rotation.z = c.spin;
       if (c.tail) {
         const f = 1 + 0.12 * Math.sin(t * 30 + seed);
         c.tail.scale.set(f, f, 1 + 0.08 * Math.sin(t * 24 + seed * 1.7));
@@ -1175,9 +1047,6 @@ export function createKartCombatArt(THREE, opts) {
         if (c.kind === 'shield') {
           c.trim.rotation.y = t * 1.2 + seed;
           const s = 1 + 0.08 * Math.sin(t * 5 + seed);
-          c.trim.scale.set(s, s, s);
-        } else if (c.kind === 'rail' || c.kind === 'emp') {
-          const s = 1 + 0.1 * Math.sin(t * 6 + seed);
           c.trim.scale.set(s, s, s);
         } else {
           // Bores, brass muzzle rims and mine collars are rigid parts.
@@ -1220,5 +1089,5 @@ export function createKartCombatArt(THREE, opts) {
     if (muzzle && c?.muzzle) object.position.set(muzzle.x-c.muzzle[0],muzzle.y-c.muzzle[1],muzzle.z-c.muzzle[2]);
     else object.position.fromArray(c.mount);
   }
-  return { pickup, projectile, mine, weapon, sentry, spikes, placeWeapon, recoil, animate, dispose };
+  return { pickup, projectile, mine, weapon, placeWeapon, recoil, animate, dispose };
 }

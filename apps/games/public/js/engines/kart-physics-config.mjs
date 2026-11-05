@@ -46,9 +46,6 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
     rocketMuzzle: Object.freeze({ x: -0.95, y: 0.50, z: 1.90 }),
     seekerMuzzle: Object.freeze({ x: -0.95, y: 0.50, z: 1.90 }),
     scatterMuzzle: Object.freeze({ x: 0.95, y: 0.50, z: 1.90 }),
-    railMuzzle: Object.freeze({ x: 0.95, y: 0.50, z: 1.90 }),
-    grenadeMuzzle: Object.freeze({ x: 0.95, y: 0.50, z: 1.90 }),
-    empMuzzle: Object.freeze({ x: 0.95, y: 0.50, z: 1.90 }),
   }),
   wheels: Object.freeze([
     Object.freeze({ x: -1.05, y: -0.015, z: 1.02, radius: 0.385, front: 1 }),

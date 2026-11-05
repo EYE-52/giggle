@@ -4,7 +4,7 @@ import {kartWeaponDisplay} from '../../../public/js/engines/kart-weapon-hud.mjs'
 import rules from '../../../games/engines/kart-combat-config.js';
 const origin='http://127.0.0.1:8801';
 const inventory=await (await fetch(origin+'/inventory.json')).json();
-assert.equal(Object.keys(inventory).length,14);
+assert.equal(Object.keys(inventory).length,8);
 for(const [kind,ammo] of Object.entries(inventory)){
   const ready=kartWeaponDisplay({weapon:kind,ammo});
   assert.equal(ready.kind,kind);assert.equal(ready.state,'ready');assert.equal(ready.count,'×'+ammo);
@@ -28,4 +28,4 @@ for(const css of ['kart-arena','kart-elevated']){
 assert.equal((await fetch(origin+'/missing')).status,404);
 assert.equal((await fetch(origin+'/',{method:'HEAD'})).status,200);
 assert.equal((await fetch(origin+'/',{method:'POST'})).status,405);
-console.log('HUD_FIXTURE_PASS: 14 actual96px images, authority ammo, ready/firing/empty semantics, shipping CSS/module bytes and read-only routes; native geometry review remains separate.');
+console.log('HUD_FIXTURE_PASS: 8 actual96px images, authority ammo, ready/firing/empty semantics, shipping CSS/module bytes and read-only routes; native geometry review remains separate.');

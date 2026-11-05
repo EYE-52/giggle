@@ -102,30 +102,34 @@ const attrPath = path.join(AUDIO_DIR, 'CREDITS.txt');
 ok(fs.existsSync(attrPath), 'pack: CREDITS.txt shipped');
 {
   const text = fs.readFileSync(attrPath, 'utf8');
-  for (const who of ['qubodup','dklon','Malthaner','varkalandar','audible-edge','Ben Jaszczak','Brian Nelson','Kevin Heras','Matthew Nanney','Kenney']) {
+  for (const who of ['qubodup','dklon','audible-edge','Ben Jaszczak','Brian Nelson','Kevin Heras','Matthew Nanney','Kenney']) {
     ok(text.includes(who), `pack: attribution names ${who}`);
   }
   ok(text.includes('opengameart.org') && /CC-BY 3\.0/.test(text),
     'pack: attribution cites OGA source pages + CC-BY 3.0');
+  ok(!/^(rail|emp)\.wav$/m.test(text), 'pack: deleted rail/emp samples have no credit section');
+}
+for (const file of ['rail.wav', 'emp.wav']) {
+  ok(!fs.existsSync(path.join(AUDIO_DIR, file)) && !(file in manifest.files), `pack: retired ${file} is deleted and unlisted`);
 }
 
 /* ---------- every mapped file shipped, valid, hashed ---------- */
 
-const V1_CUES = ['boost', 'ko', 'mine', 'pickup', 'pulse', 'rail', 'respawn', 'rocket', 'scatter', 'shield'];
-ok(V1_CUES.every((n) => CUE_NAMES.includes(n)), 'pack: original 10 cues preserved');
-ok(['grenade','emp','grenadeBlast','collision'].every((n)=>CUE_NAMES.includes(n)), 'pack: new grenade/EMP/blast/collision cues present');
+const V1_CUES = ['boost', 'ko', 'mine', 'pickup', 'pulse', 'respawn', 'rocket', 'scatter', 'shield'];
+ok(V1_CUES.every((n) => CUE_NAMES.includes(n)), 'pack: original cues preserved (rail retired)');
+ok(['proximity','nuke','nukeBlast','collision','hurt','hitConfirm','block'].every((n)=>CUE_NAMES.includes(n)), 'pack: arsenal/blast/collision/hit-feedback cues present');
 const seenFiles=new Set();
 const entries=Object.fromEntries(Object.entries({...LOOP_MAP,...ASSET_MAP,collisionSoft:COLLISION_VARIANTS.soft}).filter(([,file])=>{
   if(seenFiles.has(file))return false;
   seenFiles.add(file);return true;
 }));
 const mapped=Object.values(entries);
-ok(mapped.length === 22 && new Set(mapped).size === mapped.length,
-  'pack: 22 distinct files, with seeker/bomb aliases requiring no extra transfer');
-ok(ASSET_MAP.seeker===ASSET_MAP.rocket && ASSET_MAP.bomb===ASSET_MAP.grenade,
-  'pack: both arsenal aliases retain existing licensed samples');
-ok(manifest.cueCount===CUE_NAMES.length && manifest.cueAliases.seeker==='rocket' && manifest.cueAliases.bomb==='grenade',
-  'pack: manifest documents19 names and two aliases');
+ok(mapped.length === 20 && new Set(mapped).size === mapped.length,
+  'pack: 20 distinct files, with seeker/proximity/nuke and hit-feedback aliases requiring no extra transfer');
+ok(ASSET_MAP.seeker===ASSET_MAP.rocket && ASSET_MAP.proximity==='grenade.wav' && ASSET_MAP.nuke==='grenade.wav' && ASSET_MAP.nukeBlast==='grenadeBlast.wav',
+  'pack: arsenal aliases retain existing licensed samples');
+ok(ASSET_MAP.hurt===ASSET_MAP.collision && ASSET_MAP.hitConfirm===ASSET_MAP.pickup && ASSET_MAP.block===ASSET_MAP.shield,
+  'pack: hit-feedback aliases retain existing licensed samples');
 
 let totalBytes = 0;
 const hashes = new Set();
@@ -143,7 +147,7 @@ for (const [name,file] of Object.entries(entries)) {
   durations[name] = wav.durationSec;
   ok(wav.peak > 0.01 && wav.peak <= 0.82, `pack: ${file} non-silent with PCM headroom (${wav.peak.toFixed(3)})`);
   ok(wav.rms > 0.001, `pack: ${file} sustained measurable signal`);
-  if(['pulse','scatter','rail','grenade','collision','grenadeBlast'].includes(name))
+  if(['pulse','scatter','proximity','collision','nukeBlast'].includes(name))
     ok(wav.onset>=0 && wav.onset<0.04, `pack: ${file} attack within40ms (${wav.onset.toFixed(3)}s)`);
   if(name.startsWith('engine')) ok(wav.highRatio>0.01, 'pack: recorded petrol motor retains measurable harmonics');
   if(name.startsWith('engine') || name==='drift')
@@ -187,8 +191,7 @@ for (const [name,file] of Object.entries(entries)) {
 ok(hashes.size === mapped.length, 'pack: every shipped file byte-distinct (no cue reused everywhere)');
 ok(durations.engine >= .1 && durations.engine <= 4.1, `pack: compact recorded engine cycle loop (${durations.engine.toFixed(2)}s)`);
 ok(durations.ko >= 1.0, `pack: ko is the big explosion (${durations.ko.toFixed(2)}s)`);
-ok(durations.pulse < 0.5 && durations.scatter <= 0.6 && durations.rail <= 0.5 &&
-  durations.grenade < 0.6 && durations.emp < 0.5,
+ok(durations.pulse < 0.5 && durations.scatter <= 0.6 && durations.proximity < 0.6,
   'pack: weapon attacks are short transients');
 ok(durations.rocket <= 1.0, `pack: rocket is a compact whoosh (${durations.rocket.toFixed(2)}s)`);
 for(const file of ['engine.wav','engine-load.wav']) {
@@ -209,11 +212,19 @@ ok(loadWav.rmsSpreadDb<2,'pack: steady load has no prerecorded rev/lift volume c
 ok(loadWav.seamStep<.015,'pack: steady load seam has no additional impulse');
 ok(manifest.files['engine-load.wav'].derivedFromOutputSha256==='ab8bceadc3fbf209712c64cf6b3068ab46bf1fcd1778d71a4b3b9f9d9e1f9b91',
   'pack: phase-coherent load provenance identifies the edited pack-v4 recording');
-for(const cue of ['pulse','scatter','rail','grenade'])
+for(const cue of ['pulse','scatter','grenade'])
   ok(manifest.files[cue+'.wav'].license==='CC0-1.0' && manifest.files[cue+'.wav'].sourceArchive==='Prepared SFX Library.7z',
     `pack: ${cue} uses the clean original CC0 firearm library`);
 ok(totalBytes === manifest.totalAudioBytes, 'pack: manifest total matches all mapped WAV bytes');
 ok(totalBytes <= MAX_TOTAL_BYTES,
   `pack: lean shipping total (${(totalBytes / 1024).toFixed(0)}KB <= 2048KB)`);
+
+// The manifest documents every cue name and each cue that reuses another's sample.
+const sharedCues=CUE_NAMES.filter((n)=>CUE_NAMES.some((m)=>m!==n&&ASSET_MAP[m]===ASSET_MAP[n]));
+ok(manifest.cueCount===CUE_NAMES.length, `pack: manifest cueCount matches ${CUE_NAMES.length} cue names`);
+ok(Object.entries(manifest.cueAliases||{}).every(([alias,original])=>CUE_NAMES.includes(alias)&&CUE_NAMES.includes(original)&&ASSET_MAP[alias]===ASSET_MAP[original]),
+  'pack: every manifest alias names two live cues sharing one sample');
+ok(sharedCues.every((n)=>n in (manifest.cueAliases||{})||Object.values(manifest.cueAliases||{}).includes(n)),
+  'pack: manifest aliases cover every shared-sample cue');
 
 console.log(`KART_AUDIO_SAMPLES_PASS: ${passed} assertions (${mapped.length} files, ${(totalBytes / 1024).toFixed(0)}KB audio)`);

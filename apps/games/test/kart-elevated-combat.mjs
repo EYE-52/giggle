@@ -17,7 +17,7 @@ const recordedPhysics={
   suspension:{restLength:.30,maxTravel:.24,stiffness:65,compression:7,relaxation:9,maxForce:10000,frictionSlip:2.2,sideStiffness:1},
   handling:{engineForce:460,maxForward:14,maxReverse:5,steering:.43,highSpeedSteer:.035,brake:22,coastBrake:.45},
   combat:{pulseMuzzle:{x:.95,y:.50,z:1.90},rocketMuzzle:{x:-.95,y:.50,z:1.90},seekerMuzzle:{x:-.95,y:.50,z:1.90},
-    scatterMuzzle:{x:.95,y:.50,z:1.90},railMuzzle:{x:.95,y:.50,z:1.90},grenadeMuzzle:{x:.95,y:.50,z:1.90},empMuzzle:{x:.95,y:.50,z:1.90}},
+    scatterMuzzle:{x:.95,y:.50,z:1.90}},
   wheels:[{x:-1.05,y:-.015,z:1.02,radius:.385,front:1},{x:1.05,y:-.015,z:1.02,radius:.385,front:1},
     {x:-1.05,y:.065,z:-.92,radius:.465,front:0},{x:1.05,y:.065,z:-.92,radius:.465,front:0}],
 };
@@ -80,8 +80,8 @@ for(const [id,surface,x,z,toZ,height]of [
   const w=armed('rocket',map,{},[{id:'a'},{id:'b'},{id:'c'}]);
   try{
     fire(w);step(w,35);
-    check(id+' '+(upper?'upper':'underpass')+' direct Rocket kills a full-health rival once',kart(w,'b').health===0&&!kart(w,'b').alive&&kart(w).hits===1&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b').length===1);
-    check(id+' finite shipped deck blocks cross-height Rocket damage',kart(w,'c').health===100&&kart(w,'c').alive&&!w.snapshot().events.some(e=>e.type==='hit'&&e.other==='c'));
+    check(id+' '+(upper?'upper':'underpass')+' direct Rocket clip takes two of a full rival\'s hearts once',kart(w,'b').health===1&&kart(w,'b').alive&&kart(w).hits===0&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b'&&e.damage===2).length===1&&w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b').length===1);
+    check(id+' finite shipped deck blocks cross-height Rocket damage',kart(w,'c').health===3&&kart(w,'c').alive&&!w.snapshot().events.some(e=>e.type==='hit'&&e.other==='c'));
   }finally{w.dispose();}
 }
 
@@ -91,12 +91,12 @@ for(const [id,surface,x,z,toZ,height]of [
   const w=armed('pulse',fixture([],[point('a',0,0,0),point('b',0,0,4.5,Math.PI)]));
   try {
     fire(w);const s=w.snapshot(),impact=s.events.find(e=>e.type==='impact'),accepted=s.events.find(e=>e.type==='fire');
-    check('same-tick Pulse hit has no live projectile but carries its exact sweep start',s.projectiles.length===0&&impact?.other==='b'&&impact.from&&gap(impact.from,accepted.position)<1e-9&&kart(w,'b').health===90);
+    check('same-tick Pulse hit has no live projectile but carries its exact sweep start',s.projectiles.length===0&&impact?.other==='b'&&impact.from&&gap(impact.from,accepted.position)<1e-9&&kart(w,'b').health===2);
     const victim=kart(w,'b').pose.position;
     check('confirmed victim endpoint is the hull intersection, not chassis position',Math.abs(gap(impact.position,{...victim,y:victim.y+.35})-1.7)<.002&&gap(impact.position,victim)>1);
   }finally{w.dispose();}
 }
-for(const weapon of ['pulse','scatter','rail','sentry']){
+for(const weapon of ['pulse','scatter']){
   const w=armed(weapon);
   try {
     fire(w);let checked=false;
@@ -202,9 +202,9 @@ for(const weapon of ['pulse','scatter','rail','sentry']){
   }finally{free.dispose();}
 }
 
-for(const weapon of ['pulse','scatter','rocket','rail']) {
-  // Wounded constructor isolates single-impact sweep/KO cleanup. Default100
-  // health, repeated missile damage and full-health scoring are in kart-health.
+for(const weapon of ['pulse','scatter','rocket','seeker']) {
+  // Wounded constructor isolates single-impact sweep/KO cleanup. Default three
+  // hearts, volley caps and full-health scoring are in kart-health.
   const awards=[],w=armed(weapon,fixture(),{initialHealth:1,onAward:(...v)=>awards.push(v)});
   try {
     check(weapon+' is acquired from actual shared weighted crate pool',kart(w).weapon===weapon);
@@ -219,24 +219,24 @@ for(const weapon of ['pulse','scatter','rocket','rail']) {
 }
 
 {
-  // At the actual Rail speed each 60Hz step travels 2.67u. Both sampled
+  // At the actual Pulse speed each 60Hz step travels 2.33u. Both sampled
   // endpoints of this grazing chord miss the 1.7u combat hull; only the
-  // swept path can confirm the hit. Use a real collected Rail and poses.
-  const w=armed('rail',fixture([],[point('a',0,0,0),point('b',2.57,0,5.9,Math.PI)]),{initialHealth:1});
+  // swept path can confirm the hit. Use a real collected Pulse and poses.
+  const w=armed('pulse',fixture([],[point('a',0,0,0),point('b',2.57,0,5.9,Math.PI)]),{initialHealth:1});
   try {
     fire(w);const before=w.snapshot(),shot=before.projectiles[0],target=kart(w,'b').pose;
     assert.ok(shot&&kart(w,'b').alive);
     const h={x:target.position.x,y:target.position.y+.35,z:target.position.z},end={x:shot.position.x+shot.velocity.x*CONFIG.fixedDt,y:shot.position.y+shot.velocity.y*CONFIG.fixedDt,z:shot.position.z+shot.velocity.z*CONFIG.fixedDt};
-    check('fast Rail grazing endpoints both lie outside the real combat hull',Math.hypot(shot.position.x-h.x,shot.position.y-h.y,shot.position.z-h.z)>1.7&&Math.hypot(end.x-h.x,end.y-h.y,end.z-h.z)>1.7);
+    check('fast Pulse grazing endpoints both lie outside the real combat hull',Math.hypot(shot.position.x-h.x,shot.position.y-h.y,shot.position.z-h.z)>1.7&&Math.hypot(end.x-h.x,end.y-h.y,end.z-h.z)>1.7);
     step(w);
-    check('fast Rail swept grazing chord KOs once despite both endpoints missing',kart(w).hits===1&&kart(w,'b').deaths===1&&!kart(w,'b').alive&&w.snapshot().projectiles.length===0);
+    check('fast Pulse swept grazing chord KOs once despite both endpoints missing',kart(w).hits===1&&kart(w,'b').deaths===1&&!kart(w,'b').alive&&!w.snapshot().projectiles.some(p=>p.id===shot.id));
     step(w,10);check('grazing fast projectile cannot re-award a consumed impact',kart(w).hits===1&&kart(w,'b').deaths===1);
   }finally{w.dispose();}
   const wall={id:'thin-cover',shape:'box',half:{x:6,y:2,z:.01},position:{x:0,y:2,z:5.9}};
-  const cover=armed('rail',fixture([wall],[point('a',0,0,0),point('b',0,0,10)]));
+  const cover=armed('pulse',fixture([wall],[point('a',0,0,0),point('b',0,0,10)]));
   try {
     fire(cover);step(cover,3);
-    check('fast Rail stops at 2cm actual static cover before a farther hull',kart(cover,'b').alive&&kart(cover).hits===0&&cover.snapshot().projectiles.length===0&&cover.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='thin-cover'));
+    check('fast Pulse stops at 2cm actual static cover before a farther hull',kart(cover,'b').alive&&kart(cover,'b').health===3&&kart(cover).hits===0&&cover.snapshot().projectiles.length===0&&cover.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='thin-cover'));
   }finally{cover.dispose();}
 }
 
@@ -278,27 +278,25 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 }
 
 {
-  const w=armed('shield');try {fire(w);check('Shield activates four second protection without cancelling itself',kart(w).shield>3.9&&w.snapshot().events.some(e=>e.type==='shield'));step(w,60);check('Shield duration advances once per fixed step',kart(w).shield>2.8&&kart(w).shield<3.1);}finally{w.dispose();}
-  const emp=armed('emp');try{fire(emp);check('EMP applies directed slow without a KO',kart(emp,'b').empT>1.5&&kart(emp).hits===0&&kart(emp,'b').alive);step(emp,100);check('EMP duration refresh expires without stacked slow',kart(emp,'b').empT===0);}finally{emp.dispose();}
+  const w=armed('shield');try {fire(w);check('Shield raises a guard without restoring the spawn-protection timer',kart(w).guard===true&&kart(w).shield===0&&w.snapshot().events.some(e=>e.type==='shield'));step(w,300);check('Shield guard has no timer and waits for the next hit',kart(w).guard===true&&kart(w).shield===0);}finally{w.dispose();}
 }
 
 {
-  // Two separated rivals inside the right-pod thrower's actual blast radius.
+  // Two separated full-heart rivals inside the Nuke's actual blast radius.
   const spawns=[point('a',0,0,0),point('b',0,0,22),point('c',3,0,21)];
   const map=fixture([],spawns), seats=[{id:'a'},{id:'b'},{id:'c'}];
-  // Find an actual grenade pickup seed with this three-seat constructor.
+  // Find an actual Nuke pickup seed with this three-seat constructor.
   let w;
-  // Low-health victims isolate multi-victim final KO and respawn settlement.
-  for(let seed=0;seed<256;seed++) {const candidate=create(map,{seed,initialHealth:1},seats);step(candidate);if(kart(candidate).weapon==='grenade'){w=candidate;break;}candidate.dispose();}
+  for(let seed=0;seed<512;seed++) {const candidate=create(map,{seed},seats);step(candidate);if(kart(candidate).weapon==='nuke'){w=candidate;break;}candidate.dispose();}
   assert.ok(w);step(w,160);
   try {
     fire(w);const launch=w.snapshot().grenades[0];let peak=launch.position.y,bounces=0;
-    step(w,83,()=>{const g=w.snapshot().grenades[0];if(g){peak=Math.max(peak,g.position.y);bounces=Math.max(bounces,g.bounces);}});
-    const blast=w.snapshot().events.find(e=>e.type==='blast'&&e.weapon==='grenade');
-    measurements.grenade={peakY:peak,bounces,blast:blast?.position};
-    check('Grenade actually launches a 3D arc and bounces on physical floor',peak>2&&bounces>0);
-    check('Grenade fuse produces one blast and multiple confirmed KOs',!!blast&&kart(w).hits===2&&!kart(w,'b').alive&&!kart(w,'c').alive&&w.snapshot().grenades.length===0);
-    step(w,125);check('Grenade victims safely respawn without duplicate splash awards',kart(w,'b').alive&&kart(w,'c').alive&&kart(w).hits===2);
+    step(w,215,()=>{const g=w.snapshot().grenades[0];if(g){peak=Math.max(peak,g.position.y);bounces=Math.max(bounces,g.bounces);}});
+    const blast=w.snapshot().events.find(e=>e.type==='blast'&&e.weapon==='nuke');
+    measurements.nuke={peakY:peak,bounces,blast:blast?.position};
+    check('Nuke actually launches a 3D arc and settles on the physical floor without bouncing',peak>launch.position.y+.3&&bounces===0);
+    check('Nuke fuse produces one blast that empties every full set of hearts in range',!!blast&&kart(w).hits===2&&!kart(w,'b').alive&&!kart(w,'c').alive&&w.snapshot().events.filter(e=>e.type==='hit'&&e.damage===3).length===2&&w.snapshot().grenades.length===0);
+    step(w,125);check('Nuke victims safely respawn with full hearts without duplicate splash awards',kart(w,'b').alive&&kart(w,'c').alive&&kart(w,'b').health===3&&kart(w).hits===2);
   }finally{w.dispose();}
 }
 
@@ -317,23 +315,23 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 
 {
   const wall={id:'cover',shape:'box',half:{x:6,y:2,z:0.5},position:{x:0,y:2,z:5}};
-  for(const weapon of ['pulse','scatter','rocket','rail','emp']) {
+  for(const weapon of ['pulse','scatter','rocket','seeker']) {
     const w=armed(weapon,fixture([wall]));try {
       fire(w);step(w,110);
-      check(weapon+' respects actual finite solid cover',kart(w,'b').alive&&kart(w).hits===0&&kart(w,'b').empT===0);
-      if(weapon!=='emp')check(weapon+' stops at first cover without late expiry blast',w.snapshot().projectiles.length===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='cover'));
+      check(weapon+' respects actual finite solid cover',kart(w,'b').alive&&kart(w,'b').health===3&&kart(w).hits===0);
+      check(weapon+' stops at first cover without late expiry blast',w.snapshot().projectiles.length===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.surfaceId==='cover'));
     }finally{w.dispose();}
   }
   const low={id:'low-cover',shape:'box',half:{x:6,y:0.2,z:0.5},position:{x:0,y:0.2,z:5}};
-  const over=armed('rail',fixture([low]));try{fire(over);step(over,8);check('finite low cover permits a genuine25-damage wound above it',kart(over,'b').health===75&&kart(over).hits===0);}finally{over.dispose();}
+  const over=armed('pulse',fixture([low]));try{fire(over);step(over,8);check('finite low cover permits a genuine one-heart Pulse wound above it',kart(over,'b').health===2&&kart(over).hits===0);step(over,90);check('the rest of the Pulse clip cannot take a second heart from the same pickup',kart(over,'b').health===2&&!kart(over).firing);}finally{over.dispose();}
 }
 
 {
   const roof={id:'upper-deck',shape:'deck',half:{x:8,y:0.3,z:15},position:{x:0,y:3.7,z:7}};
   const upper=[point('a',0,4,0,0,'upper-deck'),point('b',0,0,10)];
   const sockets=[point('s0',-0.7,4,0,0,'upper-deck'),point('s1',0.7,4,0,0,'upper-deck')];
-  for(const weapon of ['pulse','scatter','rocket','rail','emp']) {
-    const w=armed(weapon,fixture([roof],upper,sockets));try{fire(w);step(w,110);check(weapon+' cannot hit a separate underpass layer at shared x/z',kart(w,'b').alive&&kart(w).hits===0&&kart(w,'b').empT===0);}finally{w.dispose();}
+  for(const weapon of ['pulse','scatter','rocket','seeker']) {
+    const w=armed(weapon,fixture([roof],upper,sockets));try{fire(w);step(w,110);check(weapon+' cannot hit a separate underpass layer at shared x/z',kart(w,'b').alive&&kart(w,'b').health===3&&kart(w).hits===0);}finally{w.dispose();}
   }
   const lowerCrates=create(fixture([roof],upper,[point('s0',-0.7,0,0),point('s1',0.7,0,0)]));
   try{step(lowerCrates,180);check('upper kart cannot collect an overlapping lower-layer crate',kart(lowerCrates).weapon===null);}finally{lowerCrates.dispose();}
@@ -368,10 +366,10 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 {
   const ramp={id:'ascent',shape:'wedge',half:{x:5,y:2,z:8},position:{x:0,y:2,z:0}};
   // A longer diagnostic plateau permits braking after the real ramp jump,
-  // then a sustained full-health fight under the faster current handling.
+  // then a Pulse clip against a last-heart rival under the faster current handling.
   const bridge={id:'battle-deck',shape:'deck',half:{x:5,y:0.35,z:20},position:{x:0,y:3.65,z:28}};
   const map=fixture([ramp,bridge],[point('a',0,0,-20),point('b',0,4,40,Math.PI,'battle-deck')],[point('s0',-0.7,4,10,0,'battle-deck'),point('s1',0.7,4,10,0,'battle-deck')]);
-  const seed=seedCache.get(JSON.stringify(fixture())+'-pulse'),ends=[],w=create(map,{seed,roundMs:10000,onResult:r=>ends.push(r)});
+  const seed=seedCache.get(JSON.stringify(fixture())+'-pulse'),ends=[],w=create(map,{seed,roundMs:10000,initialHealth:1,onResult:r=>ends.push(r)});
   try {
     step(w);let peak=0,picked=false;
     for(let i=0;i<480&&!picked;i++) {if(i%8===0)send(w,'a',{throttle:.35});step(w);peak=Math.max(peak,kart(w).pose.position.y);picked=kart(w).weapon!==null;}
@@ -380,8 +378,8 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
     const aimed=p=>p.grounded&&Math.abs(p.speed)<.1&&Math.hypot(...Object.values(p.angularVelocity))<.05&&Math.abs(2*(p.rotation.y*p.rotation.z-p.rotation.w*p.rotation.x))<.01;
     for(let i=0;i<150;i++){if(i%8===0)send(w,'a',{brake:1});step(w);if(aimed(kart(w).pose))break;}
     check('physical approach brakes on the deck before its rival',kart(w).pose.grounded&&Math.abs(kart(w).pose.speed)<.4&&kart(w).pose.position.z<kart(w,'b').pose.position.z-3.5);
-    for(let shot=0;shot<10;shot++){fire(w);step(w,9);send(w,'a',{brake:1});}
-    check('elevated deck collection produces ten real same-layer hits and a full-health KO',kart(w).hits===1&&!kart(w,'b').alive&&kart(w,'b').health===0);
+    for(let shot=0;shot<10&&kart(w,'b').alive;shot++){fire(w);step(w,9);send(w,'a',{brake:1});}
+    check('elevated deck collection produces one real same-layer hit and a last-heart KO',kart(w).hits===1&&!kart(w,'b').alive&&kart(w,'b').health===0&&kart(w,'b').deaths===1);
     step(w,125);check('elevated KO respawns on a legal supported clear pose',kart(w,'b').alive&&kart(w,'b').shield>2&&kart(w,'b').spawnSeq===1);
     step(w,400);check('complete elevated deadline has a unique confirmed winner once',w.snapshot().phase==='done'&&w.result().winners.join()==='a'&&ends.length===1);
     const next=w.rematch({instance:'elevated-rematch',seed:seed+1,startAt:w.snapshot().serverAt});
@@ -406,23 +404,23 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 }
 
 {
-  const roof={id:'grenade-roof',shape:'deck',half:{x:6,y:0.3,z:16},position:{x:0,y:2.05,z:8}};
-  const map=fixture([roof],[point('a',0,0,0),point('b',0,2.35,6,0,'grenade-roof')]);
-  const w=armed('grenade',map);try{
-    fire(w);let peak=0;step(w,84,()=>{const g=w.snapshot().grenades[0];if(g)peak=Math.max(peak,g.position.y);});
-    const blast=w.snapshot().events.find(e=>e.type==='blast'&&e.weapon==='grenade'),victim=kart(w,'b').pose.position;
-    measurements.roofGrenade={peakY:peak,blast:blast?.position,target: victim};
-    check('Grenade ceiling sweep uses actual roof normal and bounds arc',peak<1.36&&!!blast);
-    check('nearby roof blocks Grenade splash across layers',Math.hypot(victim.x-blast.position.x,victim.y+0.35-blast.position.y,victim.z-blast.position.z)<4&&kart(w,'b').alive&&kart(w).hits===0);
+  const roof={id:'nuke-roof',shape:'deck',half:{x:6,y:0.3,z:16},position:{x:0,y:2.05,z:8}};
+  const map=fixture([roof],[point('a',0,0,0),point('b',0,2.35,6,0,'nuke-roof')]);
+  const w=armed('nuke',map);try{
+    fire(w);let peak=0;step(w,215,()=>{const g=w.snapshot().grenades[0];if(g)peak=Math.max(peak,g.position.y);});
+    const blast=w.snapshot().events.find(e=>e.type==='blast'&&e.weapon==='nuke'),victim=kart(w,'b').pose.position;
+    measurements.roofNuke={peakY:peak,blast:blast?.position,target: victim};
+    check('Nuke ceiling sweep uses actual roof normal and bounds arc',peak<1.36&&!!blast);
+    check('nearby roof blocks Nuke splash across layers',Math.hypot(victim.x-blast.position.x,victim.y+0.35-blast.position.y,victim.z-blast.position.z)<COMBAT.arsenal.nuke.splashRadius&&kart(w,'b').alive&&kart(w,'b').health===3&&kart(w).hits===0);
   }finally{w.dispose();}
   const rmap=fixture([],[point('a',0,0,0),point('b',0,0,10),point('c',-2.6,0,8.5)]),rocket=armed('rocket',rmap,{},[{id:'a'},{id:'b'},{id:'c'}]);
-  try{fire(rocket);step(rocket,8);const direct=rocket.snapshot().events.find(e=>e.type==='impact'&&e.weapon==='rocket')?.other;check('Rocket kills first swept hull and wounds indirect rival exactly once',['b','c'].includes(direct)&&kart(rocket).hits===1&&kart(rocket,direct).health===0&&kart(rocket,direct==='b'?'c':'b').health===60&&rocket.snapshot().events.filter(e=>e.type==='hit').length===2);}finally{rocket.dispose();}
+  try{fire(rocket);step(rocket,8);const direct=rocket.snapshot().events.find(e=>e.type==='impact'&&e.weapon==='rocket')?.other;check('Rocket takes two hearts from the first swept hull and the splashed rival exactly once',['b','c'].includes(direct)&&kart(rocket).hits===0&&kart(rocket,direct).health===1&&kart(rocket,direct==='b'?'c':'b').health===1&&rocket.snapshot().events.filter(e=>e.type==='hit').length===2);}finally{rocket.dispose();}
 }
 
 {
   // The ordinary spawn shield is tested against a genuine offensive shot.
   const w=create(fixture(),{seed:seedCache.get(JSON.stringify(fixture())+'-pulse')});
-  try{step(w);fire(w);step(w,8);check('spawn Shield absorbs real first-hull projectiles without KO',kart(w,'b').alive&&kart(w,'b').shield>2&&kart(w).hits===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.other==='b'));check('offensive spend drops shooter spawn protection immediately',kart(w).shield===0);}finally{w.dispose();}
+  try{step(w);fire(w);step(w,8);check('spawn Shield absorbs real first-hull projectiles without KO',kart(w,'b').alive&&kart(w,'b').health===3&&kart(w,'b').shield>2&&kart(w).hits===0&&w.snapshot().events.some(e=>e.type==='impact'&&e.other==='b'));check('offensive spend drops shooter spawn protection immediately',kart(w).shield===0);}finally{w.dispose();}
   const distant=armed('rocket',fixture([],[point('a',0,0,0),point('b',25,0,-25)]));
   try{fire(distant);step(distant,180);check('entire Rocket payload expires after its final missile TTL without an invented blast',distant.snapshot().projectiles.length===0&&!distant.snapshot().events.some(e=>e.type==='blast'));}finally{distant.dispose();}
   const mine=armed('mine',fixture([],[point('a',0,0,0),point('b',25,0,-25)]));
@@ -441,7 +439,7 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 }
 
 {
-  const w=armed('pulse');try {
+  const w=armed('pulse',fixture(),{initialHealth:1});try {
     for(let shot=0;shot<10;shot++){fire(w);step(w,9);}
     const remaining=kart(w,'b').respawn,seq=w.snapshot('b').you;
     w.setConnected('b',false);step(w,180);
@@ -450,13 +448,6 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
     check('reconnected KO resumes safe respawn with fresh control life',kart(w,'b').alive&&kart(w,'b').spawnSeq>seq.life&&w.snapshot('b').you.controlEpoch>seq.controlEpoch);
     const protection=kart(w,'b').shield;w.setConnected('b',false);step(w,60);check('offline protection timer freezes rather than expiring',kart(w,'b').shield===protection);
   }finally{w.dispose();}
-  const empMap=fixture([],[point('a',0,0,0),point('b',0,0,7)]),emp=armed('emp',empMap),ordinary=armed('emp',empMap);
-  try{
-    fire(emp);step(ordinary);
-    for(const w of [emp,ordinary])step(w,70,i=>{if(i%20===0)send(w,'b',{throttle:1,nitro:true});});
-    const slowed=kart(emp,'b'),normal=kart(ordinary,'b');measurements.empNitroSpeed=slowed.pose.speed;measurements.ordinaryNitroSpeed=normal.pose.speed;
-    check('EMP applies after Nitro to real physical speed',slowed.empT>0&&slowed.pose.speed<normal.pose.speed*.85&&slowed.pose.speed>3&&slowed.nitroActive&&normal.nitroActive);
-  }finally{emp.dispose();ordinary.dispose();}
 }
 
 {
@@ -610,7 +601,7 @@ for(const id of elevatedMapIds) {
 {
   // Score target (GAME_RULES_STANDARD): the knockout that reaches it ends the
   // match early with reason 'target', well before the round deadline.
-  const w=armed('rail',fixture(),{initialHealth:1,targetHits:1});
+  const w=armed('pulse',fixture(),{initialHealth:1,targetHits:1});
   try {
     const deadline=w.snapshot().deadline;fire(w);step(w,8);
     check('score target ends the elevated match at the reaching knockout',w.snapshot().phase==='done'&&w.result().reason==='target');

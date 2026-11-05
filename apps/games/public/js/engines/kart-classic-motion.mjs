@@ -53,8 +53,8 @@ export function classicControls(k,dt,map,battle){
   // Grip recovers from measured slip and opposite steering, rather than
   // rotating the chassis or granting velocity during a slide.
   const recovery=steer*(k.physicalPose?.angularVelocity.y||0)>.2?1:clamp((Math.abs(k.slip||0)-1.4)/1.5,0,1);
-  const boost=Math.max(k.boost>0?1.6:1,k.turbo>0?1.35:1,k.nitroActive?1.6:1),slow=k.empT>0;
-  return {intent:{throttle,steer,brake:0},tuning:{top:engine*boost*(slow?.62:1),engine:Math.min(2,engine*(boost>1?1.6:1)*(slow?.6:1)),steering:handling*(active?1.05:1)*(slow?.75:1),traction:1,rearTraction:active?.25+.75*recovery:(k.physicalPose?.grounded&&Math.abs(steer)>.55&&k.speed>12?.82:1),rearStiffness:active?.7+.3*recovery:1}};
+  const boost=Math.max(k.boost>0?1.6:1,k.turbo>0?1.35:1,k.nitroActive?1.6:1);
+  return {intent:{throttle,steer,brake:0},tuning:{top:engine*boost,engine:Math.min(2,engine*(boost>1?1.6:1)),steering:handling*(active?1.05:1),traction:1,rearTraction:active?.25+.75*recovery:(k.physicalPose?.grounded&&Math.abs(steer)>.55&&k.speed>12?.82:1),rearStiffness:active?.7+.3*recovery:1}};
 }
 
 export function createClassicMotion(RAPIER,baseConfig,state){

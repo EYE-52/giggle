@@ -2,10 +2,10 @@
  *
  * Local pack under ../../assets/karts/audio/ as WAV PCM16 mono 44100 Hz:
  * separate petrol idle/load, drift and quiet reverse beds,17 one-shot samples
- * and19 cue names (seeker/bomb reuse existing launch/throw samples).
- * Honest description: engine/drift/pulse/scatter/rail/grenade are edited
+ * and 20 cue names (several weapons and hit cues reuse shipped samples).
+ * Honest description: engine/drift/pulse/scatter/grenade are edited
  * real-world recordings (6.5HP petrol kart idle/load, tire squeal, firearms);
- * rocket/emp and the Kenney UI/power cues are pre-produced sound effects.
+ * rocket and the Kenney UI/power/impact cues are pre-produced sound effects.
  * Provenance: manifest.json + LICENSE-*.txt + CREDITS.txt.
  *
  * Mount (root owns gestures + lifecycle):
@@ -50,7 +50,7 @@
  */
 
 /* Cue names the frame may feed (authoritative, deduped, nearby only). */
-export const CUE_NAMES = ['pulse', 'scatter', 'mine', 'shield', 'pickup', 'ko', 'respawn', 'boost', 'rocket', 'rail', 'grenade', 'emp', 'grenadeBlast', 'collision', 'landing', 'rocketBlast', 'bombBlast', 'seeker', 'bomb'];
+export const CUE_NAMES = ['pulse', 'scatter', 'mine', 'shield', 'pickup', 'ko', 'respawn', 'boost', 'rocket', 'seeker', 'proximity', 'nuke', 'rocketBlast', 'bombBlast', 'nukeBlast', 'collision', 'landing', 'hurt', 'hitConfirm', 'block'];
 
 /* Shipped cue file per name (WAV PCM16 mono 44100, under ASSET_BASE). */
 export const ASSET_MAP = {
@@ -63,18 +63,22 @@ export const ASSET_MAP = {
   respawn: 'respawn.wav',
   boost: 'boost.wav',
   rocket: 'rocket.wav',
-  rail: 'rail.wav',
-  grenade: 'grenade.wav',
-  emp: 'emp.wav',
-  grenadeBlast: 'grenadeBlast.wav',
+  // Guided missiles share the launch recording; the proximity charge and
+  // the Nuke share the restrained canister throw. Detonations have their
+  // own cue files.
+  seeker: 'rocket.wav',
+  proximity: 'grenade.wav',
+  nuke: 'grenade.wav',
+  rocketBlast: 'rocketBlast.wav',
+  bombBlast: 'bombBlast.wav',
+  nukeBlast: 'grenadeBlast.wav',
   collision: 'collision.wav',
-  landing:'landing.wav',
-  rocketBlast:'rocketBlast.wav',
-  bombBlast:'bombBlast.wav',
-  // Guided rockets share the launch recording; a timed bomb shares the
-  // restrained canister throw. Their detonations have separate cue files.
-  seeker:'rocket.wav',
-  bomb:'grenade.wav',
+  landing: 'landing.wav',
+  // Taking a hit is a metal impact; landing one is a short bell; a Shield
+  // soaking a hit replays the force-field cue.
+  hurt: 'collision.wav',
+  hitConfirm: 'pickup.wav',
+  block: 'shield.wav',
 };
 
 /* Continuous-bed loop files (same folder). */
@@ -110,11 +114,9 @@ const FLOOR = 0.0001;
 /* Modest per-cue voice peaks (master 0.8 + compressor keep headroom). */
 const CUE_GAIN = {
   pulse: 0.32, scatter: 0.3, mine: 0.34, shield: 0.3, pickup: 0.3,
-  ko: 0.38, respawn: 0.3, boost: 0.34, rocket: 0.34, rail: 0.32,
-  grenade: 0.32, emp: 0.3,
-  grenadeBlast: 0.36, collision: 0.25,
-  landing:.18,rocketBlast:.30,bombBlast:.32,
-  seeker:.34,bomb:.32,
+  ko: 0.38, respawn: 0.3, boost: 0.34, rocket: 0.34, seeker: .34,
+  proximity: .32, nuke: .32, rocketBlast: .30, bombBlast: .32, nukeBlast: .4,
+  collision: 0.25, landing: .18, hurt: .36, hitConfirm: .26, block: .3,
 };
 
 const ALL_FILES = [...new Set([...Object.values(LOOP_MAP), ...CUE_NAMES.map((n) => ASSET_MAP[n]),...Object.values(COLLISION_VARIANTS)])];

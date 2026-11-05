@@ -5,7 +5,7 @@
  *   to screenRightOf() forwards AND reverse, across server physics,
  *   client prediction, mesh yaw, and the 2D nose mapping.
  * - Engine/pose constant agreement (no silent drift between the mirrors).
- * - Battle vertical slice: crate -> ammo -> edge fire -> hit -> shield,
+ * - Battle vertical slice: crate -> ammo -> edge fire -> heart hit -> shield,
  *   obstacle collision, zap blocking, goal/timer/tie finishes.
  * - Authority in battle: input-only, TTL, disconnect freeze, spectators.
  * - Variant proof: two INDEPENDENT thin games generated in-process into
@@ -192,7 +192,7 @@ async function main() {
     karts.onAction(st, ctx, 'pa', { input: { steer: 0, throttle: 0 } });
     ctx._now += 100;
     karts.onTick(st, ctx);
-    assert(['pulse', 'scatter', 'mine', 'shield', 'rocket', 'rail', 'grenade', 'emp'].includes(a.weapon), 'crate grants an item, saw ' + a.weapon);
+    assert(['pulse', 'scatter', 'mine', 'rocket', 'seeker', 'proximity', 'shield', 'nuke'].includes(a.weapon), 'crate grants an item, saw ' + a.weapon);
     assert(a.ammo > 0, 'item has uses');
     assert.strictEqual(st.crates.length, 6, 'crate count stays constant');
     assert(!st.crates.some((c) => c.id === firstId), 'consumed crate relocates with a new id');
@@ -200,7 +200,7 @@ async function main() {
     a.weapon = 'pulse'; a.ammo = 3; a.shield = 0; a.fireCd = 0; a.prevAction = false;
     a.x = 0; a.z = -10; a.angle = 0; a.speed = 0;
     // This wound isolates rising-edge fire, KO cleanup and score-target contracts.
-    // Default100-health damage and repeated accepted shots live in kart-health.mjs.
+    // Full 3-heart damage and repeated accepted shots live in kart-health.mjs / kart-hearts-weapons.js.
     b.x = 0; b.z = 5; b.angle = 0; b.speed = 0; b.shield = 0; b.health = 1;
     karts.onAction(st, ctx, 'pa', { input: { steer: 0, throttle: 0, boost: true } });
     ctx._now += 100;
@@ -226,7 +226,7 @@ async function main() {
     assert.strictEqual(b.respawn, 0, 'victim rejoins');
     assert(b.shield > 0, 'rejoin carries spawn protection');
     b.x = 5; b.z = 5;
-    a.x = 5; a.z = 0; a.angle = 0; a.weapon = 'pulse'; a.ammo = 3; a.fireCd = 0; a.prevAction = false;
+    a.x = 5; a.z = 0; a.angle = 0; a.weapon = 'pulse'; a.ammo = 3; a.fireCd = 0; a.prevAction = false; a.volley = 'vshield'; // fresh pickup
     karts.onAction(st, ctx, 'pa', { input: { steer: 0, throttle: 0, boost: true } });
     for (let i = 0; i < 8; i++) {
       ctx._now += 100;
@@ -235,7 +235,7 @@ async function main() {
     assert.strictEqual(a.hits, 1, 'shielded victim grants no second KO');
     // Second KO lands the Score-target goal immediately.
     b.shield = 0; b.x = 0; b.z = 5; b.health = 1;
-    a.x = 0; a.z = 0; a.angle = 0; a.weapon = 'pulse'; a.ammo = 3; a.fireCd = 0; a.prevAction = false;
+    a.x = 0; a.z = 0; a.angle = 0; a.weapon = 'pulse'; a.ammo = 3; a.fireCd = 0; a.prevAction = false; a.volley = 'vgoal'; // fresh pickup: one volley hurts a rival once
     karts.onAction(st, ctx, 'pa', { input: { steer: 0, throttle: 0, boost: true } });
     for (let i = 0; i < 6 && st.phase !== 'done'; i++) {
       ctx._now += 100;
