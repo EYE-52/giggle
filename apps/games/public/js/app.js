@@ -2440,7 +2440,7 @@ function renderGame() {
     const g = gameById(room?.game);
     app.innerHTML = connbarHtml() + `
       <header class="play-toolbar"><div class="play-title">${g ? artImg(g, 'gthumb') : ''}<div><h1>${esc(gameName(room?.game))}</h1></div></div></header>
-      <main class="game-stage" aria-busy="true"><p class="gk-wait" role="status"><span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span> Loading the game…</p></main>`;
+      <main class="game-stage" aria-busy="true"><div class="game-loading">${g ? artImg(g, 'game-loading-art') : ''}<p class="gk-wait" role="status"><span class="loading-mark" aria-hidden="true"><i></i><i></i><i></i></span> Loading the game…</p></div></main>`;
     return;
   }
   const g = gameById(gameId);
@@ -2487,6 +2487,7 @@ function renderGame() {
         <div class="timertext" id="ttime" aria-label="Round time" hidden></div>
       </div>
       <div id="gbody" data-layout="standard"></div>
+      <div class="game-loading game-loading-slot" aria-hidden="true">${g ? artImg(g, 'game-loading-art') : ''}</div>
       ${specAfter}
     </main>`;
   wireGameRoom();

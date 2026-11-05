@@ -1805,3 +1805,15 @@ body:not(.game-playing):not(.is-embed) .topbar { padding-block: 8px; }
 .howto-all summary::after, .gp-rules summary::after { content: ""; width: 8px; height: 8px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-2px); transition: transform .15s; }
 .howto-all[open] summary::after, .gp-rules[open] summary::after { transform: rotate(225deg) translateY(-2px); }
 .howto-all p { margin: 0 0 10px; color: var(--ink-dim); font-size: 15px !important; font-weight: 500 !important; line-height: 1.5; }
+
+/* While a game's code loads: its own art, gently bobbing, above the status. */
+/* Shown only while the playfield is still empty and busy; the game's first
+ * paint replaces it, so it never sits beside real content. */
+.game-loading.game-loading-slot { display: none; }
+#gbody:empty[aria-busy="true"] + .game-loading.game-loading-slot { display: grid; }
+.game-loading { display: grid; justify-items: center; gap: 14px; padding: clamp(32px, 10vh, 96px) 16px; }
+.game-loading-art { width: min(180px, 46vw); height: auto; aspect-ratio: 1; object-fit: cover; border-radius: 26px; box-shadow: 0 14px 34px color-mix(in srgb, var(--accent) 18%, transparent); }
+@media (prefers-reduced-motion: no-preference) {
+  .game-loading-art { animation: game-loading-bob 2.8s ease-in-out infinite; }
+  @keyframes game-loading-bob { 50% { transform: translateY(-6px) rotate(-1.5deg); } }
+}
