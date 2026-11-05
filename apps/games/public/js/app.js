@@ -1225,14 +1225,6 @@ function heroHandHtml() {
     `<button type="button" class="hand-card card-open" data-how="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.name)}" style="--i:${i - (hand.length - 1) / 2};--d:${Math.abs(i - (hand.length - 1) / 2)};--n:${i}">${artImg(g, 'hand-art')}<span class="hand-tag" aria-hidden="true">${esc(g.name)}</span></button>`).join('')}</div>`;
 }
 
-/* The fifth bento cell: solo practice, for anyone without their people yet. */
-const PRACTICE_TILE = `<a class="pick-practice" href="/practice/">
-      <span class="pp-seats" aria-hidden="true"><i></i><i></i><i></i></span>
-      <span class="t">Just you?</span>
-      <span class="d">Practice solo and play every seat yourself.</span>
-      <span class="play-row"><span class="play-pill">Practice</span></span>
-    </a>`;
-
 function pickHtml(g, i) {
   // Single-action card: the whole card is one button opening the shared
   // setup dialog (rules + Customize + Create room). No shelf links — setup
@@ -1402,6 +1394,14 @@ function renderHome() {
   staggerIn(app.querySelector('.pick-grid'), '.pick');
   staggerIn(app.querySelector('.catalog-list'), '.catrow');
 }
+
+/* The fifth bento cell: solo practice, for anyone without their people yet. */
+const PRACTICE_TILE = `<a class="pick-practice" href="/practice/">
+      <span class="pp-seats" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="t">Just you?</span>
+      <span class="d">Practice solo and play every seat yourself.</span>
+      <span class="play-row"><span class="play-pill">Practice</span></span>
+    </a>`;
 
 /* Shared invite-link copy for the rail button, the Invite-N-more actions,
  * and the single-player hint. Standalone only — embedded rooms never render
