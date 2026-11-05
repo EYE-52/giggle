@@ -103,3 +103,7 @@
 @media (prefers-reduced-motion: reduce) {
   .tq * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* With nothing to answer the buttons are disabled: look it, so they never
+ * read as tappable beside "No questions waiting". */
+.tq .tq-ans:disabled { background: var(--well); border-color: var(--line); color: var(--ink-dim); opacity: .6; cursor: default; }

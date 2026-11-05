@@ -2554,12 +2554,16 @@ function paintGamePreparation() {
     status.id = 'gamePreparation';
     status.className = 'game-preparation';
     status.setAttribute('role', 'status');
-    // While everyone loads, pass the time with one of the game's own tips.
-    const tips = gameById(gameId)?.guide?.tips || [];
+    status.hidden = true;
+    app.appendChild(status);
+  }
+  if (status && preparing && status.hidden) {
+    // On the first load the playfield is empty: pass the time with one of
+    // the game's own tips. Between rounds a short line covers less of it.
+    const tips = el.childElementCount ? [] : gameById(gameId)?.guide?.tips || [];
     const tip = tips.length ? tips[Math.floor(Math.random() * tips.length)] : '';
     status.innerHTML = '<span class="preparation-dots" aria-hidden="true"><i></i><i></i><i></i></span>' +
       `<span class="preparation-text"><span>Getting everyone ready…</span>${tip ? `<small>Tip: ${esc(tip)}</small>` : ''}</span>`;
-    app.appendChild(status);
   }
   if (status) status.hidden = !preparing;
 }

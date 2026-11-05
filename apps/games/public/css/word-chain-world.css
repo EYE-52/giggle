@@ -9,6 +9,10 @@
   border: 1px dashed var(--line-strong); border-radius: var(--gk-radius, 12px);
 }
 .wc .wc-challenge { justify-content: flex-start; }
+/* Out for the rest of the game: one quiet line, no input-shaped box and no
+ * lanes reserved for a word this player can no longer play. */
+.wc .wc-waiting.is-out { border: 0; padding: 0; min-height: 0; }
+.wc.is-out .wg-status:empty, .wc.is-out .wc-challenge:empty { display: none; }
 .wc .wc-challenge .gk-meta { margin: 0; }
 /* Feedback and turn notices occupy the same lane while a word is played.
  * Use the computed line height: the shared text scale can exceed the old

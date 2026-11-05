@@ -90,7 +90,7 @@ export default {
     const tappedN = S.taps ? Object.keys(S.taps).length : 0;
     if (hudProgress) hudProgress.textContent = go ? `${tappedN} tapped` : '\u00a0';
     const instruction = el.querySelector('#rInstruction');
-    instruction.textContent = go ? 'Tap the pad now!' : (t.wait_sub || 'Tap too early and you foul out of the round.');
+    instruction.textContent = fouled ? 'You fouled this round. Get ready for the next one.' : go ? 'Tap the pad now!' : (t.wait_sub || 'Tap too early and you foul out of the round.');
     const tip = el.querySelector('#rTip');
     tip.textContent = S.tip ? `${t.tip_label || 'Tip'}: ${S.tip}` : '';
     el.querySelector('#rStatus').innerHTML = [go && tappedN ? `${tappedN} tapped in` : '', fouledLine(S, t)].filter(Boolean).join(' · ');

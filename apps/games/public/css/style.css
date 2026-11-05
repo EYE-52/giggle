@@ -898,7 +898,9 @@ dialog.howto-dlg:not([open]) { display: none; }
   border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px;
 }
 .howto-pill:nth-child(2) { background: var(--accent-soft); color: var(--accent-deep); }
-.howto-body { overflow-y: auto; min-height: 0; }
+/* Fade the scrolling edge so a long list reads as continuing, not cut off;
+ * the padding lets the last line clear the fade at the end of the scroll. */
+.howto-body { overflow-y: auto; min-height: 0; padding-bottom: 28px; -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent); }
 .howto-body p { margin: 0 0 10px; font-size: 17px; font-weight: 600; line-height: 1.55; }
 .howto-body p:last-child { margin-bottom: 0; }
 .howto-foot {
@@ -1583,6 +1585,7 @@ body.game-playing.game-immersive .room-menu-panel { background: var(--card); col
 
 /* Preparation lives outside the inert playfield, so it is visible while imports
  * and the other participants finish loading. No countdown competes with it. */
+#gbody[aria-busy="true"]:not(:empty) { opacity: .5; transition: opacity .2s ease .35s; }
 .game-preparation { position: fixed; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 45; display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100vw - 32px); border: 1px solid var(--line-strong); border-radius: 16px; padding: 14px 20px; background: var(--card); color: var(--ink); box-shadow: 0 8px 32px #24203622; font: 800 16px var(--font-body); }
 /* Full-screen games are inert while preparing: centre the card over the
  * arena instead of covering its bottom HUD. */

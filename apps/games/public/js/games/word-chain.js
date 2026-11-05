@@ -99,7 +99,7 @@ export default {
         challenge.innerHTML = canChallenge
           ? `<button class="gk-btn" id="wcCh" type="button">Challenge “${esc(S.current)}” · ${votes} vote${votes === 1 ? '' : 's'}</button>`
           : S.challenged ? '<p class="gk-wait is-done" role="status">Challenge vote counted</p>'
-            : `<p class="gk-meta">${esc(alive || S.spectator ? challengeHint(S) : 'You are out. Watch the others play on.')}</p>`;
+            : alive || S.spectator ? `<p class="gk-meta">${esc(challengeHint(S))}</p>` : '';
         const button = challenge.querySelector('#wcCh');
         if (button) { button.disabled = !!S.preparing; button.onclick = () => sendAction(el, S, 'play', { challenge: true }); }
       }
@@ -136,8 +136,8 @@ export default {
     const field = myTurn && !S.spectator
       ? `<form class="gk-input-row" id="wcForm" autocomplete="off"><input class="gk-input" type="text" id="wcWord" aria-label="Your next word in the chain" maxlength="24" value="${esc(draft)}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" inputmode="text" placeholder="A related word…" />`
         + `<button class="gk-btn gk-primary" id="wcGo" type="submit">Say it</button></form>`
-      : `<p class="wc-waiting gk-wait" role="status">${esc(S.spectator ? `${nameOf(S, S.turnPid)} is linking a word` : alive ? `${nameOf(S, S.turnPid)} is linking a word` : 'You are out')}</p>`;
-    el.innerHTML = `<section class="wg wc gk-col gk-stack" data-game="word-chain" data-phase="play" aria-label="Word Chain">`
+      : `<p class="wc-waiting gk-wait${alive || S.spectator ? '' : ' is-out'}" role="status">${esc(S.spectator || alive ? `${nameOf(S, S.turnPid)} is linking a word` : 'You are out. Watch the others play on.')}</p>`;
+    el.innerHTML = `<section class="wg wc gk-col gk-stack${alive || S.spectator ? '' : ' is-out'}" data-game="word-chain" data-phase="play" aria-label="Word Chain">`
       + hudHtml({ round: `Link ${(S.used || []).length}`, phase: S.spectator ? 'Watching' : turnName(S), progress: stillIn(S), timer: '' })
       + `<div class="wc-target"><p class="gk-meta">Link a word to</p><h2 class="gk-prompt wc-word">${esc(S.current)}</h2></div>`
       + field

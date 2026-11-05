@@ -244,7 +244,7 @@ function paint(el, S, api) {
         : picked ? `Locked in · waiting for ${plural(waiting, 'player')}` : 'Agree or disagree? The author stays hidden until the reveal.')}</p>`
       + `<div class="gk-choices hot-choices${picked ? ' is-locked' : ''}" role="group" aria-label="Your vote" style="--gk-cols:2;--gk-cols-phone:2">`
       + [['agree', agreeLabel], ['disagree', disLabel]].map(([v, label], i) =>
-        `<button type="button" class="gk-choice hot-choice${picked === v ? ' is-selected is-picked' : ''}" data-v="${v}" aria-pressed="${picked === v}"${picked || mine || watch ? ' disabled' : ''}>`
+        `<button type="button" class="gk-choice hot-choice${picked === v ? ' is-selected is-picked' : ''}${mine ? ' is-dim' : ''}" data-v="${v}" aria-pressed="${picked === v}"${picked || mine || watch ? ' disabled' : ''}>`
         + `<span class="gk-mark" aria-hidden="true">${i ? 'B' : 'A'}</span><span class="gk-choice-text">${esc(label)}</span></button>`).join('')
       + `</div>`
       + `</section>`;
