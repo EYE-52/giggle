@@ -1,5 +1,5 @@
 // Planar-mutating unit fixtures use an explicit generic variant, not physical Pocket.
-// Health acceptance uses default100HP, actual elevated crate acquisition,
+// Hearts acceptance uses the default three hearts, actual elevated crate acquisition,
 // physical driving and accepted inputs. Legacy declared poses isolate its
 // existing planar sweep/LOS contracts; no elevated post-start mutation hooks.
 import assert from 'node:assert/strict';
@@ -26,48 +26,48 @@ function armed(weapon,m=map(),opts={}) {
  }
  throw Error('bounded real pickup search failed '+weapon);
 }
-for(const [weapon,ammo,killShots,perShot] of [['pulse',12,10,10],['scatter',5,4,27],['rail',5,4,25]]) {
+// One acquired clip is one volley: however many rounds connect, the rival
+// loses one heart, and the clip never scores a KO from full hearts.
+for(const [weapon,ammo] of [['pulse',12],['scatter',5]]) {
  const w=armed(weapon,weapon==='scatter'?map([point('a',0,0),point('b',0,5.2)]):map());try {
   const initialAmmo=kart(w).ammo;
-  fire(w);const seen=new Set();let connectedRounds=0;
-  for(let i=0;i<180;i++){
-   const fresh=w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b'&&!seen.has(e.id));for(const e of fresh)seen.add(e.id);
-   if(fresh.length){connectedRounds++;eq(kart(w,'b').health,Math.max(0,100-connectedRounds*perShot),weapon+' connected round '+connectedRounds+' preserves the approved damage boundary');if(connectedRounds<killShots)eq(kart(w).hits,0,weapon+' no score before lethal boundary');}
-   if(!kart(w,'b').alive)break;step(w);
-  }
-  eq(connectedRounds,killShots,weapon+' full automatic payload reaches the same lethal round');eq(kart(w,'b').health,0,weapon+' approved fraction of one acquired clip kills');eq(kart(w).hits,1,weapon+' one acquired clip scores one KO');
-  const remainingAtKo=kart(w).ammo;eq(initialAmmo,ammo,weapon+' actual crate supplies the shared clip');eq(remainingAtKo,ammo-killShots,weapon+' remaining automatic rounds stay visible until the accepted clip finishes');
-  step(w,26);eq(kart(w,'b').deaths,1,weapon+' remaining automatic shots cannot double hit a dead life');
-  measurements[weapon+'Clip']={initialAmmo,killShots,remainingAmmoAtKo:remainingAtKo,hits:kart(w).hits};
+  fire(w);const seen=new Map();
+  for(let i=0;i<180;i++){for(const e of w.snapshot().events)if(e.type==='hit'&&e.other==='b')seen.set(e.id,e);if(seen.size)eq(kart(w,'b').health,2,weapon+' connected clip holds the rival at two hearts');step(w);}
+  eq(initialAmmo,ammo,weapon+' actual crate supplies the shared clip');eq(kart(w).firing,false,weapon+' accepted clip finishes');
+  eq([...seen.values()].map(e=>[e.damage,e.health,e.maxHealth,e.weapon]),[[1,2,3,weapon]],weapon+' whole clip takes exactly one heart once');
+  eq(kart(w).hits,0,weapon+' one clip cannot score from full hearts');eq(kart(w,'b').deaths,0,weapon+' rival survives one clip');
+  measurements[weapon+'Clip']={initialAmmo,hits:seen.size,health:kart(w,'b').health};
  }finally{w.dispose();}
 }
-eq(SHARED.config.maxHealth,100,'shared health capacity100');
-eq(['rocket','seeker','pulse','sentry','scatter','rail','grenade','bomb','proximity','mine','spikes'].map(id=>SHARED.damageAt(id)),[40,40,10,13,9,25,65,80,70,50,30],'approved damage table');
-eq([0,7,14].map(d=>SHARED.damageAt('nuke',d)),[100,60,20],'nuke radial curve reaches100 center and20 edge');
+eq(SHARED.config.maxHealth,3,'shared capacity is three hearts');
+eq(['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke'].map(id=>SHARED.damageAt(id)),[1,1,1,2,1,2,0,3],'approved whole-heart damage table');
+eq(['rail','grenade','emp','bomb','sentry','spikes'].map(id=>SHARED.damageAt(id)),[0,0,0,0,0,0],'retired weapons deal no damage');
+eq([0,7,14].map(d=>SHARED.damageAt('nuke',d)),[3,3,3],'Nuke takes every heart with no distance falloff');
+eq(Object.values(SHARED.config.weapons).filter(w=>'directDamage' in w||'edgeDamage' in w).length,0,'no direct or edge damage tiers remain');
 ok(Object.isFrozen(SHARED.config)&&Object.isFrozen(SHARED.config.weapons.rocket),'shared authority description cannot drift through mutation');
 
-for(const weapon of ['pulse','rocket','seeker','rail','scatter']) {
+for(const weapon of ['pulse','rocket','seeker','scatter']) {
  const w=armed(weapon,weapon==='scatter'?map([point('a',0,0),point('b',0,5.2)]):map());try {
-  eq(w.snapshot().karts.map(k=>[k.health,k.maxHealth]),[[100,100],[100,100]],weapon+' fresh default health');
+  eq(w.snapshot().karts.map(k=>[k.health,k.maxHealth]),[[3,3],[3,3]],weapon+' fresh default hearts');
   if(weapon==='rocket')eq(kart(w).ammo,3,'rocket crate supplies three missiles');
-  fire(w);for(let i=0;i<20&&!w.snapshot().events.some(e=>e.type==='hit'&&e.other==='b');i++)step(w);
-  const hits=w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b'),damage=hits.reduce((sum,e)=>sum+e.damage,0);
-  eq(damage,weapon==='scatter'?27:['rocket','seeker'].includes(weapon)?100:SHARED.damageAt(weapon),weapon+' accepted shot deals approved damage once');
-  eq(kart(w,'b').health,100-damage,weapon+' hit updates authoritative health');
-  if(['rocket','seeker'].includes(weapon))ok(!kart(w,'b').alive&&kart(w).hits===1&&kart(w,'b').deaths===1,weapon+' one direct hit knocks out once');
-  else ok(kart(w,'b').alive&&kart(w).hits===0&&kart(w,'b').deaths===0,weapon+' one hit wounds without a score');
-  ok(hits.every(e=>e.health>=0&&e.maxHealth===100&&Object.values(e.position).every(Number.isFinite)),weapon+' bounded semantic hit data');
+  fire(w);const seen=new Map();step(w,60,()=>{for(const e of w.snapshot().events)if(e.type==='hit'&&e.other==='b')seen.set(e.id,e);});
+  const hits=[...seen.values()],damage=hits.reduce((sum,e)=>sum+e.damage,0);
+  eq(damage,SHARED.damageAt(weapon),weapon+' accepted pickup deals its whole-heart damage once');eq(hits.length,1,weapon+' one hit event per pickup');
+  eq(kart(w,'b').health,3-damage,weapon+' hit updates authoritative hearts');
+  ok(kart(w,'b').alive&&kart(w).hits===0&&kart(w,'b').deaths===0,weapon+' one pickup wounds a full rival without a score');
+  ok(hits.every(e=>e.health>=0&&e.maxHealth===3&&Object.values(e.position).every(Number.isFinite)),weapon+' bounded semantic hit data');
  }finally{w.dispose();}
 }
 {
- const awards=[],w=armed('rocket',map(),{onAward:(...v)=>awards.push(v)});try {
+ // Two-heart diagnostic start: the Rocket clip's two hearts are lethal.
+ const awards=[],w=armed('rocket',map(),{initialHealth:2,onAward:(...v)=>awards.push(v)});try {
   const old=w.snapshot('b').you;
-  fire(w);step(w,26);eq(kart(w,'b').health,0,'one actual direct Rocket applies100 damage without splash double-count');eq(kart(w).hits,1,'direct Rocket scores at zero health');
-  fire(w);step(w,26);eq(kart(w,'b').deaths,1,'second Rocket cannot duplicate damage/KO for the dead life');
-  const hits=w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b');eq(hits.map(e=>e.damage),[100],'direct lethal damage is applied exactly once');
+  fire(w);step(w,26);eq(kart(w,'b').health,0,'one actual direct Rocket takes two hearts without splash double-count');eq(kart(w).hits,1,'direct Rocket scores at zero hearts');
+  fire(w);step(w,26);eq(kart(w,'b').deaths,1,'remaining Rockets cannot duplicate damage/KO for the dead life');
+  const hits=w.snapshot().events.filter(e=>e.type==='hit'&&e.other==='b');eq(hits.map(e=>e.damage),[2],'direct lethal damage is applied exactly once');
   eq(w.snapshot().events.filter(e=>e.type==='ko').length,1,'one KO event');eq(awards.filter(v=>v[1]===10).length,1,'one KO coin award');
   ok(!send(w,'b').ok&&!kart(w,'b').alive,'dead kart cannot drive');
-  step(w,130);eq(kart(w,'b').health,100,'safe respawn restores100 health');ok(kart(w,'b').alive&&kart(w,'b').shield>0&&kart(w,'b').spawnSeq===old.life+1,'respawn has fresh protected life');
+  step(w,130);eq(kart(w,'b').health,3,'safe respawn restores all three hearts');ok(kart(w,'b').alive&&kart(w,'b').shield>0&&kart(w,'b').spawnSeq===old.life+1,'respawn has fresh protected life');
   ok(!w.input('b',{instance:w.snapshot().instance,life:old.life,controlEpoch:old.controlEpoch,seq:1,steer:0,throttle:1,brake:0,nitro:false,use:false},w.snapshot().serverAt).ok,'old-life input cannot control healthy respawn');
   const before=JSON.stringify(w.snapshot().karts.map(k=>[k.health,k.hits]));w.advance(w.snapshot().deadline);const done=JSON.stringify(w.snapshot().karts.map(k=>[k.health,k.hits]));w.advance(w.snapshot().deadline+10000);eq(JSON.stringify(w.snapshot().karts.map(k=>[k.health,k.hits])),done,'late pumps cannot damage or rescore finished round');ok(before===done,'deadline clean-up does not fabricate healing or damage');
  }finally{w.dispose();}
@@ -77,25 +77,26 @@ for(const gate of ['cover','offline']) {
  const w=armed('rocket',map(undefined,gate==='cover'?[cover]:[]));
  try {
   if(gate==='offline')w.setConnected('b',false);
-  fire(w);step(w,35);eq(kart(w,'b').health,100,gate+' blocks physical rocket damage');eq(kart(w).hits,0,gate+' blocks scoring');eq(kart(w).health,100,'owner immune to its blast');
+  fire(w);step(w,35);eq(kart(w,'b').health,3,gate+' blocks physical rocket damage');eq(kart(w).hits,0,gate+' blocks scoring');eq(kart(w).health,3,'owner immune to its blast');
  }finally{w.dispose();}
 }
 {
  let w;for(let seed=0;seed<512;seed++){const m=map(),v=AUTHORITY.createElevatedCombat(RAPIER,CONFIG,m,m.spawns.map(p=>({id:p.id})),{instance:'protected-'+(++serial),seed,countdownMs:0,roundMs:10000,crates:1});step(v);if(kart(v).weapon==='rocket'){w=v;break;}v.dispose();}
- try{fire(w);step(w,20);eq(kart(w,'b').health,100,'real spawn shield absorbs rocket');ok(w.snapshot().events.some(e=>e.type==='impact'&&e.other==='b')&&!w.snapshot().events.some(e=>e.type==='hit'),'protected physical impact stays distinct from health hit');}finally{w.dispose();}
+ try{fire(w);step(w,20);eq(kart(w,'b').health,3,'real spawn shield absorbs rocket');ok(w.snapshot().events.some(e=>e.type==='impact'&&e.other==='b')&&!w.snapshot().events.some(e=>e.type==='hit'||e.type==='block'),'protected physical impact stays distinct from a heart hit or Shield block');}finally{w.dispose();}
 }
-for(const weapon of ['grenade','bomb']) {
- const w=armed(weapon,map(weapon==='bomb'?[point('a',0,0),point('b',0,12),point('c',3,12)]:[point('a',0,0),point('b',0,22),point('c',3,21)]));try {
-  fire(w);step(w,weapon==='grenade'?90:140);
-  eq(['b','c'].map(id=>kart(w,id).health),[100-SHARED.damageAt(weapon),100-SHARED.damageAt(weapon)],weapon+' one blast damages every visible victim');
-  eq(w.snapshot().events.filter(e=>e.type==='hit').length,2,weapon+' one hit per victim');eq(kart(w).hits,0,weapon+' wounds do not score');eq(kart(w).health,100,weapon+' owner immune');
+{
+ const w=armed('proximity',map([point('a',0,0),point('b',0,12),point('c',3,12)]));try {
+  fire(w);step(w,140);
+  eq(['b','c'].map(id=>kart(w,id).health),[1,1],'proximity one blast takes two hearts from every visible victim');
+  eq(w.snapshot().events.filter(e=>e.type==='hit').length,2,'proximity one hit per victim');eq(kart(w).hits,0,'proximity wounds do not score');eq(kart(w).health,3,'proximity owner immune');
  }finally{w.dispose();}
 }
 {
  const w=armed('nuke',map([point('a',0,0),point('b',-3,16),point('c',10,16)]));try {
   fire(w);step(w,215);const blast=w.snapshot().events.find(e=>e.type==='blast'),hits=w.snapshot().events.filter(e=>e.type==='hit');
-  ok(blast&&hits.length===2,'actual delayed Nuke damages multiple physical rivals');ok(kart(w,'b').health<kart(w,'c').health&&kart(w,'c').health<100,'actual Nuke damage falls with radius');
-  for(const h of hits){const p=kart(w,h.other).pose.position,d=Math.hypot(p.x-blast.position.x,p.y+.35-blast.position.y,p.z-blast.position.z);eq(h.damage,SHARED.damageAt('nuke',d),'actual Nuke uses shared radial falloff');}
+  ok(blast&&hits.length===2,'actual delayed Nuke reaches multiple physical rivals');
+  eq(hits.map(h=>[h.damage,h.health]),[[3,0],[3,0]],'Nuke takes every heart at any distance inside its radius');
+  ok(!kart(w,'b').alive&&!kart(w,'c').alive&&kart(w).hits===2,'Nuke knocks out every rival in range');
   measurements.nuke={blast:blast.position,hits};
  }finally{w.dispose();}
 }
@@ -115,10 +116,11 @@ for(const weapon of ['grenade','bomb']) {
     sweep={fraction:t,targetMovement:Math.hypot(hb.x-ha.x,hb.y-ha.y,hb.z-ha.z),radius:Math.hypot(impact.position.x-target.x,impact.position.y-target.y,impact.position.z-target.z),position:impact.position};
    }
   }
-  eq(kart(w,'b').health,0,'one acquired Nuke direct hit kills a physically moving full-health hull');eq(kart(w).hits,1,'direct Nuke awards exactly one KO');
-  eq([...seen.values()].filter(e=>e.type==='hit'&&e.other==='b').map(e=>e.damage),[100],'direct Nuke target is excluded from duplicate splash');eq([...seen.values()].filter(e=>e.type==='blast'&&e.weapon==='nuke').length,1,'direct Nuke detonates exactly once before its fuse');eq(w.snapshot().grenades.length,0,'direct Nuke canister is consumed');
+  eq(kart(w,'b').health,0,'one acquired Nuke direct hit empties a physically moving full-heart hull');
+  eq([...seen.values()].filter(e=>e.type==='hit'&&e.other==='b').map(e=>e.damage),[3],'direct Nuke target is excluded from duplicate splash');eq([...seen.values()].filter(e=>e.type==='blast'&&e.weapon==='nuke').length,1,'direct Nuke detonates exactly once before its fuse');eq(w.snapshot().grenades.length,0,'direct Nuke canister is consumed');
   ok(sweep&&sweep.fraction>=0&&sweep.fraction<=1&&sweep.targetMovement>.05&&Math.abs(sweep.radius-1.7)<1e-6,'direct Nuke contact interpolates moving hull at unchanged swept radius');
-  const secondary=[...seen.values()].find(e=>e.type==='hit'&&e.other==='c');ok(secondary&&secondary.damage>0&&secondary.damage<100,'nearby indirect Nuke victim keeps radial falloff');eq(kart(w).health,100,'direct Nuke owner remains immune');measurements.nukeDirect=sweep;
+  eq([...seen.values()].filter(e=>e.type==='hit'&&e.other==='c').map(e=>e.damage),[3],'nearby indirect Nuke victim also loses every heart once');
+  eq(kart(w).hits,2,'direct Nuke awards exactly one KO per victim');eq(kart(w).health,3,'direct Nuke owner remains immune');measurements.nukeDirect=sweep;
  }finally{w.dispose();}
 }
 for(const gate of ['cover','offline','shield']) {
@@ -129,75 +131,79 @@ for(const gate of ['cover','offline','shield']) {
  }else w=armed('nuke',m);
  try {
   if(gate==='offline')w.setConnected('b',false);fire(w);const seen=new Map();step(w,gate==='shield'?60:230,()=>{for(const e of w.snapshot().events)seen.set(e.id,e);});
-  eq(kart(w,'b').health,100,gate+' prevents Nuke health damage');eq(kart(w).hits,0,gate+' prevents Nuke score');eq(kart(w).health,100,gate+' preserves Nuke self immunity');
-  if(gate==='shield')ok([...seen.values()].some(e=>e.type==='impact'&&e.weapon==='nuke'&&e.other==='b'),'protected Nuke hull contact remains a real impact without a health hit');
+  eq(kart(w,'b').health,3,gate+' prevents Nuke heart damage');eq(kart(w).hits,0,gate+' prevents Nuke score');eq(kart(w).health,3,gate+' preserves Nuke self immunity');
+  if(gate==='shield')ok([...seen.values()].some(e=>e.type==='impact'&&e.weapon==='nuke'&&e.other==='b'),'protected Nuke hull contact remains a real impact without a heart hit');
   if(gate==='cover')ok([...seen.values()].some(e=>e.type==='blast'&&e.weapon==='nuke'&&e.position.z<5),'solid cover blocks direct Nuke travel before its fuse blast');
  }finally{w.dispose();}
 }
-for(const kind of ['shield','spikes']) {
- const w=armed(kind,map([point('a',0,0),point('b',0,8)]));try {
-  fire(w);const near=[],seen=new Map();
-  step(w,145,i=>{if(i%8===0&&kart(w).alive){send(w,'a',{throttle:.45});send(w,'b',{brake:1});}const s=w.snapshot(),a=kart(w).pose.position,b=kart(w,'b').pose.position;if(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<3.3)near.push(s.simTick);for(const e of s.events)if(e.type==='hit'&&e.weapon===kind)seen.set(e.id,e);});
-  const hits=[...seen.values()];ok(hits.length>0,kind+' real driving creates contact health feedback');
-  if(kind==='shield'){eq(hits[0].damage,100,'activated invincible ram shield keeps contact KO');eq(kart(w).hits,1,'activated Shield scores exactly one contact KO');}
-  else {ok(hits.every(e=>e.damage<=30),'Spikes contact caps each strike at30');ok(hits.slice(1).every((e,i)=>e.tick-hits[i].tick>=30),'per-victim Spikes cooldown is at least500ms');ok(near.length>1,'contact sample covers multiple60Hz proximity frames');ok(hits[0].health===70,'first Spikes contact wounds instead of instant KO');}
-  measurements[kind]={nearFrames:near.length,hits};
+{
+ // A Shield pickup is a guard, not a ram: driving into a rival never hurts.
+ const w=armed('shield',map([point('a',0,0),point('b',0,8)]));try {
+  fire(w);ok(kart(w).guard===true&&w.snapshot().events.some(e=>e.type==='shield'&&e.pid==='a'),'Shield pickup raises a guard');const near=[],seen=new Map();
+  step(w,145,i=>{if(i%8===0&&kart(w).alive){send(w,'a',{throttle:.45});send(w,'b',{brake:1});}const s=w.snapshot(),a=kart(w).pose.position,b=kart(w,'b').pose.position;if(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<3.3)near.push(s.simTick);for(const e of s.events)if(e.type==='hit'||e.type==='block')seen.set(e.id,e);});
+  ok(near.length>0,'guarded kart physically reaches its rival');eq(seen.size,0,'guarded contact creates no hit or block');eq([kart(w,'b').health,kart(w).hits,kart(w).guard],[3,0,true],'contact neither damages nor spends the guard');
+  measurements.shieldContact={nearFrames:near.length};
  }finally{w.dispose();}
 }
 {
- const w=armed('sentry',map([point('a',0,0),point('b',0,10),point('c',14,10)])),seen=new Map();try {
-  fire(w);const deployed=w.snapshot().events.find(e=>e.type==='fire'&&e.weapon==='sentry').id;eq(w.snapshot().sentries[0]?.ammo,10,'one deployed Sentry has ten finite rounds');
-  step(w,600,()=>{for(const e of w.snapshot().events)seen.set(e.id,e);});
-  for(const e of w.snapshot().events)seen.set(e.id,e);
-  const fires=[...seen.values()].filter(e=>e.type==='fire'&&e.weapon==='sentry'&&e.id!==deployed),hits=[...seen.values()].filter(e=>e.type==='hit'&&e.weapon==='sentry'&&e.other==='b');
-  eq(fires.length,10,'long Sentry deployment fires no more than its ten-round magazine');eq(hits.map(e=>e.damage),[13,13,13,13,13,13,13,9],'eight actual Sentry hits kill and lethal damage is clipped to remaining health');eq(kart(w).hits,1,'long Sentry deployment awards one KO');eq(kart(w,'b').deaths,1,'returning life is not a duplicate Sentry victim');eq(w.snapshot().sentries.length,0,'spent Sentry retires');measurements.sentry={fires:fires.length,hits:hits.map(e=>e.damage)};
+ // Real crates arm A with a Rocket clip and B with a Shield. The guard soaks
+ // the clip's one hit (block event, no heart lost) and then breaks.
+ const m=map([point('a',0,0),point('b',0,10)]);m.sockets.push(point('s2',-.7,10),point('s3',.7,10));let w;
+ for(let seed=0;seed<2048;seed++){const v=AUTHORITY.createElevatedCombat(RAPIER,CONFIG,m,m.spawns.map(p=>({id:p.id})),{instance:'guard-'+(++serial),seed,countdownMs:0,roundMs:20000,crates:2});step(v);if(kart(v).weapon==='rocket'&&kart(v,'b').weapon==='shield'){w=v;measurements.guardSeed=seed;break;}v.dispose();}
+ ok(w,'guard scenario acquires Rocket and Shield through real crates');
+ try {
+  step(w,160);fire(w,'b');eq(kart(w,'b').guard,true,'Shield guard is up');
+  fire(w);const seen=new Map();step(w,60,()=>{for(const e of w.snapshot().events)if(e.other==='b'&&(e.type==='hit'||e.type==='block'))seen.set(e.id,e);});
+  eq([...seen.values()].map(e=>[e.type,e.pid,e.weapon]),[['block','a','rocket']],'guard blocks the Rocket clip with one block event and no hit');
+  eq([kart(w,'b').health,kart(w,'b').guard,kart(w).hits],[3,false,0],'blocked hit keeps every heart and breaks the guard');
  }finally{w.dispose();}
 }
 {
  const w=armed('pulse'),seen=new Map();try {
   for(let i=0;i<240;i++){if(i%6===0)send(w,'a',{use:true});step(w);for(const e of w.snapshot().events)seen.set(e.id,e);}
-  eq([...seen.values()].filter(e=>e.type==='fire'&&e.weapon==='pulse').length,12,'held Pulse consumes one finite twelve-round clip');eq([...seen.values()].filter(e=>e.type==='hit').length,10,'held Pulse stops health hits at its lethal tenth connection');eq(kart(w).hits,1,'held Pulse awards one KO without replay on protected respawn');ok(kart(w,'b').alive&&kart(w,'b').health===100&&kart(w,'b').shield>0,'long Pulse burst preserves fresh-life full health and shield');
+  eq([...seen.values()].filter(e=>e.type==='fire'&&e.weapon==='pulse').length,12,'held Pulse consumes one finite twelve-round clip');eq([...seen.values()].filter(e=>e.type==='hit').length,1,'held Pulse clip lands exactly one heart');eq(kart(w).hits,0,'held Pulse clip cannot score from full hearts');ok(kart(w,'b').alive&&kart(w,'b').health===2,'long Pulse burst leaves the rival on two hearts');
  }finally{w.dispose();}
 }
 {
  const w=armed('mine',map([point('a',0,0),point('b',0,-10)]));try {
   fire(w);step(w,45);
-  for(let i=0;i<140&&kart(w,'b').health===100;i++){if(i%8===0)send(w,'b',{throttle:.45});step(w);}
+  for(let i=0;i<140&&kart(w,'b').health===3;i++){if(i%8===0)send(w,'b',{throttle:.45});step(w);}
   const hit=w.snapshot().events.find(e=>e.type==='hit'&&e.weapon==='mine');
   ok(hit&&kart(w,'b').alive,'actual physical crossing reaches an armed trap and remains alive');
-  eq(kart(w,'b').health,50,'one armed Mine deals50 at default100 health');
+  eq(kart(w,'b').health,2,'one armed Mine takes one heart');
   eq(w.snapshot().mines.length,2,'only the triggered trap is consumed');eq(kart(w).hits,0,'one Mine wound awards no KO');
   measurements.mine={hit,position:kart(w,'b').pose.position};
  }finally{w.dispose();}
 }
 
-function legacy(n=2){let now=1000000;const players=Array.from({length:n},(_,i)=>({id:'p'+i,name:'P'+i})),ctx={now:()=>now,settings:()=>({mode:'Zap Battle',map:'Rookie Ring',winRule:'Time limit'}),players:()=>players.filter(p=>!ctx.offline?.has(p.id)),allPlayers:()=>players,broadcast(){},award(){},later:()=>()=>{}};const s=GAME.create(ctx);now+=3000;GAME.onTick(s,ctx);s.blocks=[];s.crates=[];s.karts.forEach((k,i)=>{k.x=0;k.z=i*10;k.angle=0;k.shield=0;k.speed=0;});return {s,ctx,step(ms=100){now+=ms;GAME.onTick(s,ctx)},fire(weapon,ammo=1){const a=s.karts[0];a.weapon=weapon;a.ammo=ammo;a.fireCd=0;a.prevAction=false;GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:true}});GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:false}});}};}
+function legacy(n=2){let now=1000000,volleys=0;const players=Array.from({length:n},(_,i)=>({id:'p'+i,name:'P'+i})),ctx={now:()=>now,settings:()=>({mode:'Zap Battle',map:'Rookie Ring',winRule:'Time limit'}),players:()=>players.filter(p=>!ctx.offline?.has(p.id)),allPlayers:()=>players,broadcast(){},award(){},later:()=>()=>{}};const s=GAME.create(ctx);now+=3000;GAME.onTick(s,ctx);s.blocks=[];s.crates=[];s.karts.forEach((k,i)=>{k.x=0;k.z=i*10;k.angle=0;k.shield=0;k.speed=0;});return {s,ctx,step(ms=100){now+=ms;GAME.onTick(s,ctx)},fire(weapon,ammo=1){const a=s.karts[0];a.weapon=weapon;a.ammo=ammo;a.fireCd=0;a.prevAction=false;a.volley='t'+(++volleys);GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:true}});GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:false}});}};}
 // Controlled classic placement isolates actual crate acquisition and planar
 // authority; never a shipping Room actor or hidden-state acceptance claim.
-for(const [weapon,ammo,killShots,perShot] of [['pulse',12,10,10],['scatter',5,4,27],['rail',5,4,25]]) {
+for(const [weapon,ammo] of [['pulse',12],['scatter',5]]) {
  let r;
  for(let seed=0;seed<512;seed++) {const v=legacy();v.s.rngState=seed;v.s.crates=[{id:'pickup',x:0,z:0}];v.step(100);if(v.s.karts[0].weapon===weapon){r=v;break;}}
  ok(r,weapon+' bounded classic pickup fixture reaches weapon');const [a,b]=r.s.karts;if(weapon==='scatter')b.z=5.2;
  const initialAmmo=a.ammo;r.s.crates=[];
- for(let i=1;i<=killShots;i++) {a.fireCd=0;a.prevAction=false;GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:true}});r.step(100);GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:false}});for(let t=0;t<4;t++)r.step(100);eq(b.health,Math.max(0,100-i*perShot),'classic '+weapon+' acquired clip connection '+i);eq(a.hits,i===killShots?1:0,'classic '+weapon+' score only at lethal boundary');}
- eq(initialAmmo,ammo,'classic '+weapon+' actual pickup supplies same clip as elevated');eq(a.ammo,ammo-killShots,'classic '+weapon+' lethal boundary leaves expected clip remainder');measurements['classic'+weapon+'Clip']={initialAmmo,killShots,remainingAmmo:a.ammo,hits:a.hits};
+ for(let i=0;i<ammo&&a.weapon;i++) {a.fireCd=0;a.prevAction=false;GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:true}});r.step(100);GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:false}});for(let t=0;t<4;t++)r.step(100);eq(b.health,2,'classic '+weapon+' acquired clip connection '+(i+1)+' stays at one heart');eq(a.hits,0,'classic '+weapon+' one clip cannot score from full hearts');}
+ eq(initialAmmo,ammo,'classic '+weapon+' actual pickup supplies same clip as elevated');eq(r.s.events.filter(e=>e.type==='hit').map(e=>e.damage),[1],'classic '+weapon+' whole clip lands one heart once');measurements['classic'+weapon+'Clip']={initialAmmo,remainingAmmo:a.ammo,hits:a.hits};
 }
 {
- const r=legacy(),[a,b]=r.s.karts;eq([a.health,b.health],[100,100],'legacy engine starts100 health');eq(GAME.view(r.s,r.ctx,'p0').combat,SHARED.config,'legacy projects shared damage/range description');
- r.fire('rocket');r.step(100);eq(b.health,0,'legacy direct Rocket kills from100 health');eq(a.hits,1,'legacy direct Rocket awards one KO');r.fire('rocket');r.step(100);eq(b.deaths,1,'legacy dead life cannot be hit twice');
- eq(r.s.events.filter(e=>e.type==='hit').map(e=>e.damage),[100],'legacy direct rocket cannot count splash twice');for(let i=0;i<21;i++)r.step(100);eq(b.health,100,'legacy respawn restores100');ok(b.shield>0,'legacy respawn protected');
+ const r=legacy(),[a,b]=r.s.karts;eq([a.health,b.health],[3,3],'legacy engine starts with three hearts');eq(GAME.view(r.s,r.ctx,'p0').combat,SHARED.config,'legacy projects shared damage/range description');
+ r.fire('rocket');r.step(100);eq(b.health,1,'legacy direct Rocket takes two hearts');eq(a.hits,0,'legacy wounding Rocket awards no KO');
+ r.fire('rocket');r.step(100);eq(b.health,0,'a second Rocket pickup takes the last heart');eq(a.hits,1,'legacy lethal Rocket awards one KO');r.fire('rocket');r.step(100);eq(b.deaths,1,'legacy dead life cannot be hit twice');
+ eq(r.s.events.filter(e=>e.type==='hit').map(e=>e.damage),[2,1],'legacy direct rockets never count splash twice and clip to the hearts left');for(let i=0;i<21;i++)r.step(100);eq(b.health,3,'legacy respawn restores three hearts');ok(b.shield>0,'legacy respawn protected');
 }
-for(const weapon of ['pulse','scatter','rail','grenade','mine']){
+for(const weapon of ['pulse','scatter','nuke','mine','proximity']){
  const r=legacy(),b=r.s.karts[1];
  if(weapon==='scatter')b.z=5.2;
- if(weapon==='grenade')r.s.grenades=[{id:'g',owner:'p0',x:0,z:10,y:0,vx:0,vz:0,vy:0,angle:0,fuse:.01,bounces:2}];
- else if(weapon==='mine')r.s.mines=[{id:'m',owner:'p0',x:0,z:10,armed:true,armT:0,ttl:5}];
+ if(weapon==='nuke')r.s.grenades=[{id:'g',owner:'p0',kind:'nuke',x:0,z:10,y:0,vx:0,vz:0,vy:0,angle:0,fuse:.01,bounces:2}];
+ else if(weapon==='mine'||weapon==='proximity')r.s.mines=[{id:'m',owner:'p0',x:0,z:10,armed:true,armT:0,ttl:5,...(weapon==='proximity'?{kind:'proximity'}:{})}];
  else r.fire(weapon);
- r.step(100);const damage=r.s.events.filter(e=>e.type==='hit').reduce((sum,e)=>sum+e.damage,0);eq(damage,weapon==='scatter'?27:SHARED.damageAt(weapon),'legacy '+weapon+' full-health damage');eq(b.health,100-damage,'legacy '+weapon+' updates health');eq(r.s.karts[0].hits,0,'legacy '+weapon+' wound grants no KO');
+ r.step(100);const damage=r.s.events.filter(e=>e.type==='hit').reduce((sum,e)=>sum+e.damage,0);eq(damage,SHARED.damageAt(weapon),'legacy '+weapon+' full-heart damage');eq(b.health,3-damage,'legacy '+weapon+' updates hearts');eq(r.s.karts[0].hits,weapon==='nuke'?1:0,'legacy '+weapon+' scores only when it empties the hearts');
 }
 {
  const r=legacy(3);r.s.karts[1].x=-2.2;r.s.karts[2].x=2.2;r.s.karts[1].z=r.s.karts[2].z=10;
- r.s.grenades=[{id:'g',owner:'p0',x:0,z:10,y:0,vx:0,vz:0,vy:0,angle:0,fuse:.01,bounces:2}];r.step(100);eq(r.s.karts.map(k=>k.health),[100,35,35],'legacy grenade damages both visible rivals once');
+ r.s.mines=[{id:'m',owner:'p0',kind:'proximity',x:0,z:9,armed:true,armT:0,ttl:5}];r.step(100);eq(r.s.karts.map(k=>k.health),[3,1,1],'legacy Proximity Bomb takes two hearts from both visible rivals once');
 }
 {
  const r=legacy(3),[a,b,c]=r.s.karts;c.x=-2.2;c.z=6.4; // Generic central muzzle: separate hulls, nearby splash, no direct corridor hit
@@ -208,8 +214,8 @@ for(const weapon of ['pulse','scatter','rail','grenade','mine']){
  r.fire('rocket');r.step(100);
  const blast=r.s.events.find(e=>e.type==='blast');ok(blast&&Math.abs(blast.x)<1e-9&&Math.abs(blast.z-expectedImpactZ)<1e-9,'actual generic rocket blast occurs at the earliest central hull sweep contact');
  ok(Math.hypot(c.x-blast.x,c.z-blast.z)<splashRadius,'actual accepted generic blast contains the splash rival');
- eq([a.health,b.health,c.health],[100,0,60],'legacy direct Rocket kills while nearby splash victim takes40 once');
- eq(r.s.events.filter(e=>e.type==='hit').map(e=>[e.other,e.damage]).sort(),[['p1',100],['p2',40]],'legacy Rocket reports both visible victims without direct double-count');eq(a.hits,1,'legacy multi-victim Rocket awards only its direct KO');
+ eq([a.health,b.health,c.health],[3,1,1],'legacy Rocket takes two hearts from the direct and the nearby splash victim once each');
+ eq(r.s.events.filter(e=>e.type==='hit').map(e=>[e.other,e.damage]).sort(),[['p1',2],['p2',2]],'legacy Rocket reports both visible victims without direct double-count');eq(a.hits,0,'legacy two-heart Rocket wounds without a KO');
 }
 for(const gate of ['shield','offline','cover','dead']){
  const r=legacy(),b=r.s.karts[1];if(gate==='shield')b.shield=2;if(gate==='offline')r.ctx.offline=new Set(['p1']);if(gate==='cover')r.s.blocks=[{x:0,z:5,hw:8,hd:.02}];if(gate==='dead'){b.health=0;b.respawn=1;}
@@ -217,18 +223,18 @@ for(const gate of ['shield','offline','cover','dead']){
 }
 for(const activated of [false,true]){
  const r=legacy(),[a,b]=r.s.karts; b.z=7;
- if(activated)r.fire('shield');else a.shield=2.5;
+ if(activated){r.fire('shield');r.step(100);eq([a.guard,a.weapon],[true,null],'legacy Shield pickup raises a guard and is spent');}else a.shield=2.5;
  let touches=0;
  for(let i=0;i<30&&b.respawn===0;i++){
   GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:.5,boost:false}});r.step(100);
   if(Math.hypot(a.x-b.x,a.z-b.z)<=CLASSIC.constants.KART_R*2+.01)touches++;
  }
- if(activated){eq(b.health,0,'legacy activated ram Shield KOs a full-health physical contact');eq(a.hits,1,'legacy ram Shield awards exactly one KO');}
- else {ok(touches>0,'legacy spawn protection test physically reaches its rival');eq(b.health,100,'legacy defensive spawn Shield never deals contact damage');eq(a.hits,0,'legacy spawn Shield grants no ram KO');}
+ ok(touches>0,'legacy '+(activated?'guard':'spawn protection')+' test physically reaches its rival');eq(b.health,3,'legacy '+(activated?'Shield guard':'defensive spawn Shield')+' never deals contact damage');eq(a.hits,0,'legacy contact grants no ram KO');
+ if(activated)eq(a.guard,true,'contact does not spend the guard');
  measurements['legacyShield'+(activated?'Active':'Spawn')]={touches,health:b.health,hits:a.hits};
 }
-// Physical-only classic knife rules: declared authority poses, actual Rapier
-// cover queries and seeded actual crate rolls. Separate from Room acceptance.
+// Physical classic pickups: declared authority poses and seeded actual crate
+// rolls. Separate from Room acceptance.
 {
  const battle=CLASSIC.RULES.battle;
  function fixture(distance=3,height=.75){
@@ -236,43 +242,15 @@ for(const activated of [false,true]){
   const s={karts:[a,b],bound:30,blocks:[],spots:[[20,20],[-20,-20]],rngState:1,scores:{ka:0,kb:0},lastTick:1000000};battle.createExtra(s);s.crates=[];
   const physics=PHYSICS.createKartPhysics(RAPIER,CONFIG),geometry={sweepStatic:(from,to)=>physics.sweepStatic(from,to)},connected=new Set(['ka','kb']);
   physics.addStatic({id:'floor',shape:'box',position:{x:0,y:-1,z:0},half:{x:40,y:1,z:40}});
-  return {s,a,b,physics,geometry,connected,tick(ms=50,old){const before=old||new Map(s.karts.map(k=>[k.pid,structuredClone(k)]));s.lastTick+=ms;battle.tick(s,connected,ms/1000,before,null,new Map(),geometry);},arm(kind='spikes'){a.weapon=kind;a.ammo=1;a.fireCd=0;a.pendingFire=true;}};
+  return {s,a,b,physics,geometry,connected,tick(ms=50,old){const before=old||new Map(s.karts.map(k=>[k.pid,structuredClone(k)]));s.lastTick+=ms;battle.tick(s,connected,ms/1000,before,null,new Map(),geometry);}};
  }
- // Bounded seeds prove actual pickup availability; generic rolls never add it.
- const observed=new Set();let spikesSeed;
+ // Bounded seeds prove actual pickup availability of the rare Nuke.
+ let nukeSeed;
  for(let seed=0;seed<512;seed++) {
-  const f=fixture(10);try {f.s.rngState=seed;f.s.crates=[{id:'seed-crate',x:0,z:0}];f.tick(0);observed.add(f.a.weapon);if(f.a.weapon==='spikes'){spikesSeed=seed;eq(f.a.ammo,1,'physical Spikes pickup has one finite activation');eq(f.s.events.filter(e=>e.type==='pickup').length,1,'physical seed rolls through actual pickup authority');break;}}finally{f.physics.dispose();}
+  const f=fixture(10);try {f.s.rngState=seed;f.s.crates=[{id:'seed-crate',x:0,z:0}];f.tick(0);if(f.a.weapon==='nuke'){nukeSeed=seed;eq(f.a.ammo,1,'physical Nuke pickup has one finite activation');eq(f.s.events.filter(e=>e.type==='pickup').length,1,'physical seed rolls through actual pickup authority');break;}}finally{f.physics.dispose();}
  }
- ok(Number.isInteger(spikesSeed),'Spikes available through bounded seeded actual physical pickup');
+ ok(Number.isInteger(nukeSeed),'Nuke available through bounded seeded actual physical pickup');
  const generic=new Set();for(let seed=0;seed<512;seed++) {const f=fixture(10);try {f.s.rngState=seed;f.s.crates=[{id:'generic-crate',x:0,z:0}];battle.tick(f.s,f.connected,0,new Map(f.s.karts.map(k=>[k.pid,structuredClone(k)])),null,new Map());generic.add(f.a.weapon);}finally{f.physics.dispose();}}
- eq([...generic].sort(),battle.constants.WEAPON_ORDER.slice().sort(),'generic variants retain exactly their original eight items');
- {
-  const f=fixture();try {f.arm();f.tick(0);eq(f.a.spikesT,5,'accepted knives activate for five seconds');eq([f.a.weapon,f.a.ammo],[null,0],'activation consumes one item');eq(f.b.health,70,'first actual xyz contact deals30');for(let i=0;i<9;i++)f.tick(50);eq(f.b.health,70,'same victim cannot take another hit before500ms');f.tick(50);eq(f.b.health,40,'same victim takes30 at500ms');for(let i=0;i<10;i++)f.tick(50);eq(f.b.health,10,'third contact at1s retains positive health');for(let i=0;i<10;i++)f.tick(50);eq(f.b.health,0,'four bounded contacts knock out');eq(f.a.hits,1,'one contact KO');const count=f.s.events.filter(e=>e.type==='ko').length;for(let i=0;i<5;i++)f.tick(50);eq(f.a.hits,1,'dead target cannot duplicate knife score');ok(f.s.spikeHits.size<=2,'pair cooldown map remains roster bounded');eq(count,1,'single KO event at natural lethal boundary');}finally{f.physics.dispose();}
- }
- for(const guard of ['cover','vertical','invincible','offline','dead','teleport']) {
-  const f=fixture(guard==='vertical'?0:3,guard==='vertical'?4.2:.75);try {
-   if(guard==='cover')f.physics.addStatic({id:'knife-cover',shape:'box',position:{x:1.5,y:2,z:0},half:{x:.05,y:2,z:2}});
-   if(guard==='invincible'){f.b.weapon='shield';f.b.ammo=1;f.b.pendingFire=true;}
-   if(guard==='offline')f.connected.delete('kb');if(guard==='dead'){f.b.health=0;f.b.respawn=1;}
-   const old=new Map(f.s.karts.map(k=>[k.pid,structuredClone(k)]));if(guard==='teleport')f.b.physicalPose.epoch++;
-   f.arm();f.tick(0,old);eq(f.b.health,guard==='dead'?0:100,guard+' prevents knife damage');eq(f.a.hits,0,guard+' no knife KO');
-   if(guard==='invincible'){eq(f.b.ramT,4,'shield protocol retains activated Invincibility contact effect');eq(f.b.shield,4,'Invincibility remains immune after activation');}
-  }finally{f.physics.dispose();}
- }
- {
-  const f=fixture(5);try {f.arm();f.tick(0);const old=new Map(f.s.karts.map(k=>[k.pid,structuredClone(k)]));f.b.x=-5;f.b.physicalPose.position.x=-5;f.tick(50,old);eq(f.b.health,70,'relative xyz sweep catches a moving hull passing through knife reach');}finally{f.physics.dispose();}
- }
- {
-  const f=fixture(10);try {f.arm();f.tick(0);f.tick(4999);ok(f.a.spikesT>0,'effect remains before real authority5s expiry');f.tick(1);eq(f.a.spikesT,0,'effect ends at5s even after scheduler-sized timestamp gap');eq(battle.kartViewExtra(f.a).spikesT,0,'public projection removes expired knives');ok(!('spikesUntil' in battle.kartViewExtra(f.a)),'public projection keeps private knife deadline hidden');}finally{f.physics.dispose();}
- }
- {
-  const f=fixture(10);try {f.arm();f.tick(0);f.connected.delete('ka');f.tick(50);eq(f.a.spikesT,0,'offline cancels knives immediately');f.connected.add('ka');f.tick(50);eq(f.a.spikesT,0,'reconnect does not revive knives');}finally{f.physics.dispose();}
- }
- {
-  const f=fixture();try {f.arm();f.tick(0);f.b.weapon='shield';f.b.ammo=1;f.b.pendingFire=true;const old=new Map(f.s.karts.map(k=>[k.pid,structuredClone(k)]));battle.tick(f.s,f.connected,0,old,null,new Map([['contact',[f.b,f.a]]]),f.geometry);eq(f.a.health,0,'activated Invincibility contact knocks out once');eq(f.b.health,70,'activated Invincibility is immune to enemy knives');eq(f.a.spikesT,0,'KO cancels active knives');f.tick(2100);eq(f.a.spikesT,0,'fresh respawn clears knives');eq(f.a.health,100,'fresh protected life restores100');}finally{f.physics.dispose();}
- }
- {
-  const f=fixture(10);try {f.arm();f.tick(0);const s=f.s,ctx={now:()=>s.lastTick,settings:()=>({}),players:()=>s.karts.map(k=>({id:k.pid})),award(){},broadcast(){},allPlayers:()=>[]};GAME.onConnection(s,ctx,'ka',false);eq(f.a.spikesT,0,'actual engine disconnect immediately clears knife projection');}finally{f.physics.dispose();}
- }
+ eq([...generic].sort(),battle.constants.WEAPON_ORDER.slice().sort(),'classic pickups roll exactly the eight kept weapons');
 }
-console.log('KART_HEALTH_PASS: '+checks+' default-health authority assertions; '+JSON.stringify(measurements));
+console.log('KART_HEALTH_PASS: '+checks+' default-hearts authority assertions; '+JSON.stringify(measurements));

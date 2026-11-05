@@ -20,3 +20,64 @@
   .sg .sg-field label { font-size: 16px; }
 }
 @media (max-height: 560px) { .sg .sg-fields { gap: 6px; } .sg .sg-letter { width: 44px; height: 44px; font-size: 26px; } }
+
+/* ---- toy box layer (create-kit.css): the letter as a toy die, numbered
+ * category rows on one card, a sticky action bar clear of the home bar ---- */
+.sg.ck .sg-letter {
+  width: 72px; height: 72px; background: var(--ck-tile); color: var(--ink);
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker);
+  font: 800 44px/1 var(--font-display);
+}
+.sg.ck .sg-fields { gap: var(--space-12); }
+.sg.ck .sg-field label { display: flex; align-items: center; gap: var(--space-8); font: var(--text-button-sm); }
+.sg.ck .sg-n { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; background: var(--fam-soft); color: var(--fam-deep); border: var(--outline-w) solid var(--outline); font: var(--text-caption); font-weight: 800; }
+.sg.ck .sg-entry { position: relative; display: block; min-width: 0; }
+.sg.ck .sg-entry .gk-input { width: 100%; padding-right: 5.5em; }
+.sg.ck .sg-check { position: absolute; right: var(--space-12); top: 50%; transform: translateY(-50%); font: var(--text-caption); font-weight: 800; pointer-events: none; }
+.sg.ck .sg-check.is-good { color: var(--success); font-size: 18px; }
+.sg.ck .sg-check.is-bad { color: var(--danger); }
+/* The actions stay under the thumb while the list scrolls. */
+.sg.ck .sg-actions {
+  position: sticky; bottom: 0; z-index: 2; margin-inline: calc(-1 * var(--space-8)); padding: var(--space-8) var(--space-8) calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+  background: var(--bg);
+}
+.sg.ck .sg-actions .gk-actions { flex-wrap: wrap; }
+.sg.ck .sg-actions .wg-status { flex: 1 1 14em; min-height: 0; }
+.sg.ck .sg-table { display: flex; flex-direction: column; gap: var(--space-12); }
+.sg.ck .sg-table .wg-chip small { margin-left: var(--space-4); font: var(--text-caption); color: var(--ink-dim); }
+.sg.ck .sg-dots { display: flex; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.sg.ck .sg-dots li { width: 12px; height: 12px; border-radius: 50%; background: var(--well); border: var(--outline-w) solid var(--line-strong); }
+.sg.ck .sg-dots li.is-done { background: var(--fam-soft); border-color: var(--fam); }
+.sg.ck .sg-dots li.is-now { background: var(--fam); border-color: var(--outline); }
+.sg.ck .sg-cat > summary { font: var(--text-button-sm); }
+@media (max-width: 560px) {
+  .sg.ck .sg-letter { width: 56px; height: 56px; font-size: 34px; }
+}
+.sg.ck .sg-dots li { width: 14px; height: 14px; }
+.sg.ck .sg-dots li.is-done { background: var(--fam-deep); border-color: var(--outline); }
+.sg.ck .sg-dots li.is-now { background: var(--fam); border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft); }
+.sg.ck .sg-dots li:not(.is-done):not(.is-now) { background: var(--card); border-color: var(--ink-dim); }
+/* A focused field scrolls clear of the sticky action bar. */
+.sg.ck .sg-entry .gk-input { scroll-margin-bottom: 112px; }
+/* The bar reads as a tray the list scrolls under: an ink top edge and a
+ * soft fade above it, never a strip that slices a field mid-way. */
+@media (max-width: 700px) {
+  .sg.ck .sg-actions { border-top: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg) var(--radius-lg) 0 0; background: var(--card); padding-top: var(--space-12); }
+  .sg.ck .sg-actions::before { content: ""; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--space-24); background: linear-gradient(to top, var(--bg), transparent); pointer-events: none; }
+  .sg.ck .sg-actions .gk-actions { justify-content: stretch; }
+  .sg.ck .sg-actions .gk-btn { flex: 1 1 0; min-width: 0; white-space: nowrap; }
+  .sg.ck .sg-actions .wg-status { flex: 1 1 100%; }
+  .sg.ck .sg-actions .wg-status:empty { display: none; }
+}
+/* Final layout: no sticky bar over the list. On phones each category sits
+ * beside its field, so all five rows and Lock in fit on the first screen. */
+.sg.ck .sg-actions { position: static; margin-inline: 0; padding: 0; background: none; border: 0; border-radius: 0; }
+.sg.ck .sg-actions::before { content: none; }
+@media (max-width: 560px) {
+  .sg.ck .sg-fields { gap: var(--space-8); padding: var(--space-12); }
+  .sg.ck .sg-field { grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: var(--space-8); }
+  .sg.ck .sg-field label { font: var(--text-caption); font-weight: 800; color: var(--ink); gap: var(--space-4); }
+  .sg.ck .sg-n { width: 22px; height: 22px; }
+  .sg.ck .sg-entry .gk-input { min-height: var(--control-h-sm); padding-right: 3.6em; }
+  .sg.ck .sg-check { right: var(--space-8); }
+}

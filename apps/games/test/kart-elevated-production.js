@@ -141,7 +141,7 @@ async function main() {
       }
       send(r, clients[23], action);
       now += 50; r.onTick(); eq(latest(clients[0].ws).inputAck.receivedSeq, 1, 'coordinates malformed values stale life and watcher intents do not enter queue');
-      eq(latest(clients[0].ws).karts.map(k => [k.health, k.maxHealth]), Array.from({ length: 8 }, () => [100, 100]), 'health fields in client inputs cannot mutate production authority');
+      eq(latest(clients[0].ws).karts.map(k => [k.health, k.maxHealth]), Array.from({ length: 8 }, () => [3, 3]), 'health fields in client inputs cannot mutate production authority');
       now = after.liveAt; r.onTick();
       eq(r.game.state.phase, 'live'); eq(r.game.state.endsAt, after.deadline, 'live deadline is stable from start');
       eq(actionWindow(r.game.state), '{"phase":"live"}');
@@ -265,6 +265,8 @@ async function main() {
 
   // Actual pickup -> Pulse -> KO -> respawn -> Room result on a diagnostic
   // flat numeric map. No item grants, teleports, hit or score mutation hooks.
+  // One Pulse pickup takes one heart, so the diagnostic constructor starts
+  // karts on their last heart (production Room rejects this setting above).
   const diagnostic = Object.fromEntries(['garden', 'frost', 'neon', 'harbor'].map(id => [id, diagnosticMap(id)]));
   let seed = 0;
   for (; seed < 256; seed++) {
@@ -275,7 +277,7 @@ async function main() {
   ok(seed < 256, 'bounded real pickup selects a Pulse seed');
   const legal = freshDef();
   await legal.initialize(async () => ({ ...base, maps: diagnostic,
-    createMatch: (R, C, M, seats, opts) => createElevatedCombat(R, C, M, seats, { ...opts, seed, crates: 1 }) }));
+    createMatch: (R, C, M, seats, opts) => createElevatedCombat(R, C, M, seats, { ...opts, seed, crates: 1, initialHealth: 1 }) }));
   const battle = room(legal), b = battle.r;
   now = 2000000; Date.now = () => now;
   try {
@@ -286,24 +288,24 @@ async function main() {
     eq(latest(battle.clients[0].ws).coins, 1); eq(latest(battle.clients[1].ws).coins, 0, 'pickup wallet stays private');
     ok(Object.values(b.totals).every(v => v === 0), 'pickup coins do not become Room points');
     pump(55);
-    eq(COMBAT.weapons.pulse.damage,10);eq(COMBAT.weapons.pulse.ammo,12);
-    ok(10<=Math.ceil(COMBAT.weapons.pulse.ammo*.8),'ten-hit KO stays inside rounded80%-clip budget');
+    eq(COMBAT.weapons.pulse.damage,1);eq(COMBAT.weapons.pulse.ammo,12);eq(COMBAT.maxHealth,3);
+    eq(latest(battle.clients[0].ws).karts[1].health,1);eq(latest(battle.clients[0].ws).karts[1].maxHealth,3);
     const ready=latest(battle.clients[0].ws);send(b,battle.clients[0],input(ready,1,{use:true}));send(b,battle.clients[0],input(ready,2,{use:false}));
     const connectedHits=new Map();
     for(let tick=0;tick<60&&latest(battle.clients[0].ws).karts[1].alive;tick++){
       pump(1);const current=latest(battle.clients[0].ws);
       for(const event of current.events)if(event.type==='hit'&&event.weapon==='pulse')connectedHits.set(event.id,event);
-      eq(current.karts[1].health,100-connectedHits.size*10,'one activation projects every preceding10-damage wound');eq(current.karts[1].maxHealth,100);
-      if(current.karts[1].alive)eq(current.karts[0].hits,0,'automatic rounds cannot award before the lethal health boundary');
+      eq(current.karts[1].health,1-connectedHits.size,'one activation projects its single one-heart wound');eq(current.karts[1].maxHealth,3);
+      if(current.karts[1].alive)eq(current.karts[0].hits,0,'automatic rounds cannot award before the lethal heart');
     }
-    eq(connectedHits.size,10,'one tap/release delivers the ten real connected rounds required for KO');
-    ok([...connectedHits.values()].every((hit,i)=>hit.damage===10&&hit.health===90-i*10),'transport preserves every automatic wound and exact lethal boundary');
+    eq(connectedHits.size,1,'one tap/release delivers the one connected Pulse heart that knocks out a last-heart rival');
+    ok([...connectedHits.values()].every(hit=>hit.damage===1&&hit.health===0),'transport preserves the whole-heart wound and exact lethal boundary');
     const ko = latest(battle.clients[0].ws);
     eq(ko.karts[0].hits, 1); eq(ko.karts[1].deaths, 1); eq(ko.karts[1].alive, false);eq(ko.karts[1].health,0);
-    const hit=ko.events.filter(e=>e.type==='hit').at(-1);eq(hit.damage,10);eq(hit.health,0);eq(hit.maxHealth,100);ok(hit.position&&Object.values(hit.position).every(Number.isFinite),'Room projects bounded health hit position');
+    const hit=ko.events.filter(e=>e.type==='hit').at(-1);eq(hit.damage,1);eq(hit.health,0);eq(hit.maxHealth,3);ok(hit.position&&Object.values(hit.position).every(Number.isFinite),'Room projects bounded health hit position');
     const impact=ko.events.filter(e=>e.type==='impact'&&e.weapon==='pulse').at(-1);ok(impact.from&&Object.values(impact.from).every(Number.isFinite)&&impact.position.z>impact.from.z,'Room projects the authoritative final Pulse sweep for confirmed feedback');
     eq(ko.coins, 11); ok(Object.values(b.totals).every(v => v === 0), 'KO coins remain distinct from deferred Room score');
-    pump(45); ok(latest(battle.clients[0].ws).karts[1].alive, 'real safe respawn completes');
+    pump(45); ok(latest(battle.clients[0].ws).karts[1].alive, 'real safe respawn completes'); eq(latest(battle.clients[0].ws).karts[1].health, 3, 'respawn restores all three hearts');
     now = initial.deadline; b.onTick(); const done = latest(battle.clients[0].ws);
     eq(done.result.winner, battle.clients[0].p.id); eq(done.result.winners, [battle.clients[0].p.id]);
     eq(b.totals[battle.clients[0].p.id], 300); eq(b.totals[battle.clients[1].p.id], 200, 'Room awards place points (300 / 200) exactly once');

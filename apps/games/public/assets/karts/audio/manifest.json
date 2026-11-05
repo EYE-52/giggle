@@ -199,24 +199,6 @@
       "durationSec": 0.9,
       "format": "WAV PCM16 mono 44100Hz"
     },
-    "rail.wav": {
-      "sourceSha256": "dceb44954c7308e86b15f5f52608643ca66adb977937794a860a6037de303bb4",
-      "sourceArchiveSha256": "cc1ab5a99a0a365105c7c5dd783f4b0b1fe90938114d3ceec53856bfe005f7d6",
-      "author": "Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney",
-      "sourcePage": "https://opengameart.org/content/the-free-firearm-sound-library",
-      "license": "CC0-1.0",
-      "processing": "atrim=start=0.73:duration=0.5,asetpts=PTS-STARTPTS,pan=mono|c0=0.5*c0+0.5*c1,highpass=f=100,lowpass=f=10500,afade=t=in:d=0.001,afade=t=out:st=0.43:d=0.07,aresample=44100, volume=0.72004195",
-      "startSec": 0.73,
-      "durationSec": 0.5,
-      "pack": "OpenGameArt: The Free Firearm Sound Library",
-      "sourceFile": "Prepared SFX Library/Tikka/W_24P.wav",
-      "sourceArchive": "Prepared SFX Library.7z",
-      "sourceUrl": "https://opengameart.org/sites/default/files/Prepared%20SFX%20Library.7z",
-      "sourceKind": "recorded firearm",
-      "outputSha256": "dda822221e0f63bba45703ad5044500d04ecb772a08cc3c0efe05203a8883f1d",
-      "bytes": 44294,
-      "format": "WAV PCM16 mono 44100Hz"
-    },
     "grenade.wav": {
       "sourceSha256": "4c6a54ca0583150bbb32b7f658bc64da9ad9ba42fd3aca769c6120b44af8d3f0",
       "sourceArchiveSha256": "cc1ab5a99a0a365105c7c5dd783f4b0b1fe90938114d3ceec53856bfe005f7d6",
@@ -233,19 +215,6 @@
       "sourceKind": "recorded firearm; filtered launcher effect",
       "outputSha256": "160e1f88bc60922de3a7f6c48352257c194b1d31f2b7c1aaad33d64f6366375d",
       "bytes": 29328,
-      "format": "WAV PCM16 mono 44100Hz"
-    },
-    "emp.wav": {
-      "author": "Hansjorg Malthaner (varkalandar)",
-      "pack": "OpenGameArt: Tesla coil powered death ray sound",
-      "license": "CC-BY-3.0",
-      "sourcePage": "https://opengameart.org/content/tesla-coil-powered-death-ray-sound",
-      "sourceFile": "hjm-tesla_sound_shot.wav",
-      "sourceSha256": "d22f7ca3758f5714546753469c6098cf798c92358bcbce9bccb82a216f050c5f",
-      "processing": "discharge 0.05-0.50s; 5ms fade-in, 60ms fade-out; DC removed; peak -7dB",
-      "outputSha256": "2112ad1bb5056e2895cce9aea3b29ba9a4904d226e831ef4f53f3bc97812244e",
-      "bytes": 39734,
-      "durationSec": 0.45,
       "format": "WAV PCM16 mono 44100Hz"
     },
     "grenadeBlast.wav": {
@@ -372,15 +341,18 @@
       "rms": 0.10124428399972009
     }
   },
-  "cueCount": 19,
+  "cueCount": 20,
   "loopCount": 4,
-  "totalAudioBytes": 1223356,
+  "totalAudioBytes": 1139328,
   "collisionVariants": [
     "collision-soft.wav",
     "collision.wav"
   ],
   "cueAliases": {
     "seeker": "rocket",
-    "bomb": "grenade"
+    "nuke": "proximity",
+    "hurt": "collision",
+    "hitConfirm": "pickup",
+    "block": "shield"
   }
 }

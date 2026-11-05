@@ -37,7 +37,7 @@ function board(S, c, animate) {
     return `<g id="rv-cell-${cell}" data-cell="${cell}" role="button" tabindex="${c.cursor === cell ? 0 : -1}"${c.cursor === cell ? ' data-game-focus' : ''} aria-label="${desc}" aria-disabled="${!can}">
       <rect class="rv-hit" x="${x}" y="${y}" width="69" height="69"/>
       ${last ? `<rect class="rv-lastsq" x="${x + 1.5}" y="${y + 1.5}" width="66" height="66"/>` : ''}
-      ${can ? `<circle class="rv-legal" cx="${cx}" cy="${cy}" r="9"/>` : ''}
+      ${can ? `<circle class="rv-legal" cx="${cx}" cy="${cy}" r="13"/>` : ''}
       ${side ? `<g class="rv-disc ${flipping ? 'rv-flip' : placed ? 'rv-place' : ''}" style="--flip-delay:${flipping ? Math.min(120, [...flips].indexOf(cell) * 18) : 0}ms">
         <circle cx="${cx}" cy="${cy}" r="26" fill="${DISC[side][0]}" stroke="${DISC[side][1]}" stroke-width="2"/>
         ${flipping ? `<circle class="rv-old-face" cx="${cx}" cy="${cy}" r="26" fill="${DISC[3 - side][0]}" stroke="${DISC[3 - side][1]}" stroke-width="2"/>` : ''}

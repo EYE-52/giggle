@@ -9,7 +9,7 @@ const preparationCode = source.slice(source.indexOf('function paintGamePreparati
 const packets = [], clicks = [], ticks = [];
 const fill = { style: {} }, text = { hidden: true, textContent: '' };
 const bar = { hidden: true, firstElementChild: fill, classList: { toggle() {} } };
-const body = { inert: false, setAttribute() {} }, preparation = { hidden: true };
+const body = { inert: false, setAttribute() {} }, preparation = { hidden: true, classList: { toggle() {} } };
 const pageBody = {};
 const noop = () => {};
 const ctx = {
@@ -20,7 +20,7 @@ const ctx = {
   runLog: { snapshot: noop, event: noop, finish: noop, pause: noop, save: noop, latest: () => null },
   voiceClient: { getStatus: noop }, resultPresentation: { ready: noop }, toast: noop,
   createCanvasView: noop, createInput: noop, createMobileStick: noop, createSoundBank: noop, createThreeView: noop, createSessionToolkit: noop, announce: noop,
-  preparationFocus: null,
+  preparationFocus: null, artImg: () => '',
   document: { body: pageBody, activeElement: pageBody, querySelector: selector => selector === '#tbar' ? bar : selector === '#ttime' ? text : null, getElementById: id => id === 'gbody' ? body : preparation },
   gameById: () => ({ runtime: { type: 'module' } }),
   timerRaf: 0, requestAnimationFrame: () => 1, cancelAnimationFrame: noop,

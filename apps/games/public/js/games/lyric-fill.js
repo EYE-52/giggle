@@ -4,7 +4,7 @@
 import { esc, countdown, ensureStylesheet } from '../util.js';
 import { hudHtml, roundLabel, progressText, waitingHtml, resultsHtml } from '../kit.js';
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['lyric-fill-world-css', '/css/lyric-fill-world.css']];
+const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['lyric-fill-world-css', '/css/lyric-fill-world.css'], ['create-kit-css', '/css/create-kit.css']];
 let lastKey = '', currentEl = null, current = null, clock = null;
 
 function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
@@ -49,8 +49,17 @@ function lineHtml(line, answer) {
     ? '<span class="lf-blank" aria-label="missing words">____</span>'
     : `<b class="lf-answer">${esc(answer)}</b>`;
   const words = [line.before ? esc(line.before) : '', blank, line.after ? esc(line.after) : ''].filter(Boolean).join(' ');
-  return `<h2 class="gk-prompt lf-line">“${words}”</h2>`
-    + `<p class="gk-sub wg-prompt-sub">${esc(line.song)} — ${esc(line.artist)}</p>`;
+  return `<div class="lf-card ck-card is-tint"><span class="ck-label"><span aria-hidden="true">♪</span> ${esc(line.song)} — ${esc(line.artist)}</span>`
+    + `<h2 class="gk-prompt lf-line">“${words}”</h2></div>`;
+}
+/* Round dots and who has answered this line. */
+function tableHtml(S) {
+  const filled = new Set(S.filled || []);
+  const dots = `<ol class="lf-dots" aria-label="${esc(roundLabel(S.round, S.rounds))}">${Array.from({ length: Math.max(1, S.rounds || 1) }, (_, i) =>
+    `<li class="${i + 1 < S.round ? 'is-done' : i + 1 === S.round ? 'is-now' : ''}"></li>`).join('')}</ol>`;
+  const chips = (S.players || []).filter((p) => !p.left).map((p) => `<li class="wg-chip${filled.has(p.id) ? ' is-done' : ''}">${esc(p.name)}${p.id === S.me ? ' (you)' : ''}`
+    + `<small>${filled.has(p.id) ? 'Answered' : 'Thinking'}</small><b>${Math.max(0, Number(S.scores?.[p.id]) || 0)}</b></li>`).join('');
+  return { dots, chips };
 }
 
 function myVerdict(S) {
@@ -62,7 +71,7 @@ function myVerdict(S) {
 }
 
 export default {
-  styles: ['/css/compact-answer-games.css', '/css/lyric-fill-world.css'],
+  styles: ['/css/compact-answer-games.css', '/css/lyric-fill-world.css', '/css/create-kit.css'],
   ownsTimer: true,
   dispose() {
     if (clock !== null) clearInterval(clock);
@@ -87,7 +96,7 @@ export default {
       lastKey = resultKey;
     }
     if (S.phase === 'done') {
-      el.innerHTML = `<section class="gk-final wg wg-final lf gk-col gk-stack" data-game="lyric-fill" data-phase="done" aria-label="Lyric Fill final scores">`
+      el.innerHTML = `<section class="gk-final wg wg-final lf ck gk-col gk-stack" data-family="create" data-game="lyric-fill" data-phase="done" aria-label="Lyric Fill final scores">`
         + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.me })
         + (isWatch ? '<p class="gk-final-note">You watched this game.</p>' : '')
         + `</section>`;
@@ -107,7 +116,7 @@ export default {
           + `<span class="wg-pts${v.pts ? '' : ' is-zero'}">+${v.pts}</span></li>`;
       }).join('');
       const isHost = S.me === S.hostId && !isWatch;
-      el.innerHTML = `<section class="wg lf gk-col gk-stack" data-game="lyric-fill" data-phase="reveal" aria-label="Lyric Fill answer">`
+      el.innerHTML = `<section class="wg lf ck gk-col gk-stack" data-family="create" data-game="lyric-fill" data-phase="reveal" aria-label="Lyric Fill answer">`
         + hudHtml({ round: roundLabel(S.round, S.rounds), phase: 'The true line', progress: `${good} of ${total} scored`, timer: '' })
         + lineHtml(L.line, L.line.answer)
         + `<p class="wg-status" role="status">${esc(myVerdict(S))}</p>`
@@ -128,6 +137,9 @@ export default {
       if (c) c.textContent = progressText(filled, total);
       const wait = el.querySelector('#lfWait');
       if (wait) wait.textContent = waitText(S, isWatch, filled, total);
+      const table = el.querySelector('#lfTable');
+      const { chips } = tableHtml(S);
+      if (table && table._lfChips !== chips) { table._lfChips = chips; table.innerHTML = chips; }
       for (const control of el.querySelectorAll?.('input,button') || []) control.disabled = !!S.preparing;
       return;
     }
@@ -137,13 +149,16 @@ export default {
         + `<input class="gk-input" type="text" id="lfText" maxlength="60" aria-label="Missing words" placeholder="Fill the blank…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send">`
         + `<button class="gk-btn gk-primary" id="lfGo" type="submit">Lock in</button></form>`;
     const status = isWatch ? 'You are watching — the table is filling the blank.'
-      : S.mine ? `Locked in: “${S.mine}”` : '';
-    el.innerHTML = `<section class="wg lf gk-col gk-stack" data-game="lyric-fill" data-phase="fill" data-state="${isWatch ? 'watch' : S.mine ? 'locked' : 'open'}" aria-label="Fill the lyric">`
-      + hudHtml({ round: roundLabel(S.round, S.rounds), phase: isWatch ? 'Watching' : S.mine ? 'Locked in' : 'Fill the blank', progress: progressText(filled, total), timer: '' })
+      : S.mine ? `Your answer: “${S.mine}”` : '';
+    const table = tableHtml(S);
+    el.innerHTML = `<section class="wg lf ck gk-col gk-stack" data-family="create" data-game="lyric-fill" data-phase="fill" data-state="${isWatch ? 'watch' : S.mine ? 'locked' : 'open'}" aria-label="Fill the lyric">`
+      + hudHtml({ round: roundLabel(S.round, S.rounds), phase: isWatch ? 'Watching' : 'Fill the blank', progress: progressText(filled, total), timer: '' })
       + lineHtml(S.line || { before: '', after: '', song: '', artist: '' })
-      + (field || `<div class="lf-locked gk-card" role="status">${esc(status)}</div>`)
+      + (field || `<div class="lf-locked gk-card${S.mine ? ' is-mine' : ''}" role="status">${esc(status)}</div>`)
       + `<p class="wg-status" role="status">${field ? 'Exact: 100 points · Close: 50' : ''}</p>`
-      + `<div class="wg-slot"><p class="gk-wait" id="lfWait" role="status">${esc(waitText(S, isWatch, filled, total))}</p></div>`
+      + `<div class="lf-table ck-card"><div class="ck-head"><h3>The table</h3>${table.dots}</div>`
+      + `<ul class="wg-chips" id="lfTable" aria-label="Who has answered">${table.chips}</ul>`
+      + `<p class="gk-meta" id="lfWait" role="status">${esc(waitText(S, isWatch, filled, total))}</p></div>`
       + `</section>`;
     runClock(el, S, api);
     const form = el.querySelector('#lfForm');
@@ -162,7 +177,7 @@ export default {
 
 function waitText(S, isWatch, filled, total) {
   if (isWatch) return `${filled} of ${total} answered`;
-  if (!S.mine) return 'Type the missing words';
+  if (!S.mine) return 'Answers show when everyone locks in or time runs out';
   const waiting = Math.max(0, total - filled);
   return waiting ? `Waiting for ${waiting} ${waiting === 1 ? 'player' : 'players'}` : 'Everyone is in';
 }

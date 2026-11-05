@@ -220,3 +220,120 @@ html body.game-playing:has(.sk-phone.dp) .game-report-icon{color:var(--ink);back
 @media(max-width:700px){.sk-phone.dp.dp-reveal .sk-canvaswrap{height:auto}}
 /* The compact roster strip under the paper lists everyone in one row. */
 @media(max-width:700px),(orientation:landscape) and (max-height:500px){.dp-draw .dp-roster ul,.dp-guess .dp-roster ul{flex-direction:row}}
+
+/* ==========================================================================
+ * Toy box layer (create-kit.css, DESIGN_TOKENS.md). The root carries .ck and
+ * data-family="create": sky family colour, sticker outlines, a drawing desk
+ * around the paper, tools in four trays, and room for the home indicator.
+ * ========================================================================== */
+.sk-phone.dp.ck { padding-bottom: calc(var(--space-24) + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 700px) {
+  .sk-phone.dp.ck, .sk-phone.dp.ck.dp-draw { padding-bottom: calc(var(--space-16) + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* Steps: numbered stickers; the current page wears the family colour. */
+.sk-phone.dp.ck .sk-step-n { border: var(--outline-w) solid var(--line-strong); font-weight: 800; }
+.sk-phone.dp.ck .is-now .sk-step-n { background: var(--fam); color: var(--on-fam); border-color: var(--outline); box-shadow: var(--shadow-sticker-sm); }
+.sk-phone.dp.ck .sk-steps .is-now { color: var(--fam-deep); }
+.sk-phone.dp.ck .sk-steps .is-done { color: var(--success); }
+.sk-phone.dp.ck .sk-steps .is-done .sk-step-n { background: var(--success-soft); border-color: var(--success); }
+.dp.ck .dp-clock { font: var(--text-button); font-variant-numeric: tabular-nums; }
+.dp.ck .dp-clock.is-urgent { color: var(--danger); }
+
+/* The prompt card and the book are stickers. */
+.dp.ck .dp-prompt { background: var(--fam-soft); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); }
+.dp.ck .dp-prompt-label { font: var(--text-caption); font-weight: 800; color: var(--fam-deep); }
+.sk-phone.dp.ck .sk-phrase, #gbody .sk-phone.dp.ck .sk-phrase { font: var(--text-title); font-size: 24px; }
+.dp.ck .dp-book { border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker-lg); padding: var(--space-12); overflow: visible; }
+@media (max-width: 700px) { .dp.ck .dp-book { padding: var(--space-8); border-radius: var(--radius-lg); } }
+
+/* The desk: a dotted family tint around the paper, so the space beside a
+ * wide or tall frame reads as the table, never as a grey band. The paper
+ * is centred with an even margin (syncView) and sits on it as a sheet. */
+.sk-phone.dp.ck .sk-canvaswrap {
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--fam) 30%, transparent) 1.5px, transparent 2px) 0 0 / 18px 18px,
+    var(--fam-soft);
+}
+@media (max-width: 700px) { .sk-phone.dp.ck .sk-canvaswrap { border-radius: var(--radius-sm); } }
+.sk-phone.dp.ck .doodle { border-radius: var(--radius-sm); box-shadow: 0 0 0 var(--outline-w) var(--outline), 0 var(--lift) 0 var(--outline-w) var(--outline); }
+
+/* View controls: one pill group, 44px targets, the zoom value always shown. */
+.dp.ck .dp-zoom {
+  align-self: flex-end; display: inline-flex; align-items: center; gap: var(--space-4); margin-top: var(--space-8); padding: var(--space-4);
+  background: var(--well); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+}
+.dp.ck .dp-zoom button { min-width: var(--control-h-sm); min-height: 36px; height: 36px; padding: 0 var(--space-12); border-radius: var(--radius-pill); font: var(--text-button-sm); color: var(--ink); }
+.dp.ck .dp-zoom #pZoomOut, .dp.ck .dp-zoom #pZoomIn { font-size: 22px; }
+.dp.ck .dp-zoom button:disabled { opacity: .4; }
+.dp.ck .dp-zoom button[aria-pressed=true] { background: var(--fam); color: var(--on-fam); }
+.dp.ck .dp-zoom span { min-width: 3.4em; font: var(--text-caption); font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dp-draw.ck .dp-zoom, .dp-guess.ck .dp-zoom { min-height: 0; padding-top: var(--space-4); }
+.dp-draw.ck .dp-zoom button, .dp-guess.ck .dp-zoom button { height: 36px; }
+@media (hover: hover) { .dp.ck .dp-zoom button:hover:not(:disabled) { background: var(--card); } }
+.dp.ck .dp-view-controls button { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md); box-shadow: var(--shadow-sticker-sm); }
+.dp.ck .dp-view-controls button:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+
+/* Tools: four trays (ink, pen/eraser, size, edit), one selection each. */
+.sk-phone.dp.ck .dp-tools {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--space-8);
+  padding: var(--space-8); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
+}
+.dp.ck .dp-group { display: inline-flex; align-items: center; gap: var(--space-4); padding: var(--space-4); background: var(--well); border-radius: var(--radius-lg); }
+.dp.ck .dp-tools button { border-radius: var(--radius-md); border: var(--outline-w) solid transparent; }
+.sk-phone.dp.ck .dp-tools .sel, .sk-phone.dp.ck .dp-tools .swatch.sel {
+  background: var(--card); border-color: var(--outline); box-shadow: var(--shadow-sticker-sm);
+}
+.dp.ck .dp-tools button:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.dp.ck .dp-tools button:disabled { opacity: .35; }
+.dp.ck .dp-tools .dp-puck span { box-shadow: inset 0 0 0 2px rgb(0 0 0 / .2), 0 0 0 2px color-mix(in srgb, var(--ink) 22%, transparent); }
+/* Brush dots: drawn bigger than the stroke so even Fine is easy to see. */
+.dp.ck .dp-brush[data-size="3"] span { width: 6px; height: 6px; }
+.dp.ck .dp-brush[data-size="7"] span { width: 12px; height: 12px; }
+.dp.ck .dp-brush[data-size="16"] span { width: 20px; height: 20px; }
+@media (max-width: 700px) {
+  .sk-phone.dp.ck.dp-draw .dp-tools, .sk-phone.dp.ck .dp-tools { display: flex; gap: var(--space-4) var(--space-8); padding: var(--space-4); border-radius: var(--radius-lg); }
+  .dp.ck .dp-group { gap: 2px; padding: 2px; border-radius: var(--radius-md); }
+  .dp.ck .dp-tools button { border-radius: var(--radius-sm); }
+}
+@media (max-width: 380px) {
+  .dp.ck .dp-tools button { width: 40px; min-width: 40px; }
+}
+
+/* Done: the primary; its reason line says why it is locked. */
+.dp.ck .dp-done-row .gk-btn.gk-primary { min-width: 140px; }
+.dp.ck .dp-done-row .dp-status { color: var(--ink-dim); }
+
+/* Roster: avatar stickers; a saved player gets a check badge. */
+.dp.ck .dp-player-mark { background: hsl(var(--ck-hue, 200) 70% 82%); color: #1d1420; border: var(--outline-w) solid var(--outline); font: 800 12px/1 var(--font-display); }
+.dp.ck .dp-roster li.is-saved .dp-player-name { font-weight: 800; }
+.dp.ck .dp-player-check { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--success); color: var(--on-success); font-size: 13px; font-weight: 800; }
+.dp.ck .dp-roster-label { font: var(--text-caption); font-weight: 800; }
+
+/* Writing, caption and story pages: stickers on the same tokens. */
+.dp.ck .dp-entry input { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); }
+.dp.ck .dp-save { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--fam); color: var(--on-fam); box-shadow: var(--shadow-sticker); font: var(--text-button); }
+.dp.ck .dp-save:active { transform: translateY(var(--lift)); box-shadow: none; }
+.dp.ck .dp-page-back { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); }
+.dp.ck .dp-suggestion { border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-lg); background: var(--card); }
+@media (hover: hover) { .dp.ck .dp-suggestion:hover { border-color: var(--outline); transform: translateY(-2px); } }
+.dp.ck .dp-story-caption { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); }
+.dp.ck .dp-saved, .dp.ck .dp-kept { color: var(--success); }
+/* Drawing: the view pill rides in the Done row, so the paper keeps the
+ * book's full height. The reason line takes its own line under both. */
+.dp-draw.ck .dp-done-row { flex-wrap: wrap; gap: var(--space-8) var(--space-12); }
+.dp-draw.ck .dp-done-row .dp-zoom { order: 2; margin: 0 0 0 auto; padding: var(--space-4); }
+.dp-draw.ck .dp-done-row .dp-status { order: 1; flex: 1 1 12em; min-width: 0; }
+@media (max-width: 700px) {
+  .dp-draw.ck .dp-done-row .dp-status { order: 3; flex-basis: 100%; }
+  .dp-draw.ck .dp-done-row .gk-btn.gk-primary { min-width: 112px; }
+  .dp.ck .dp-zoom button { padding: 0 var(--space-8); }
+}
+/* Short landscape: Done sits under the palette in a 148px column; the
+ * pill folds into two rows there (zoom, then Pan and Fit). */
+@media (orientation: landscape) and (max-height: 500px) {
+  .dp-draw.ck .dp-done-row .dp-zoom { flex-wrap: wrap; justify-content: center; width: 100%; margin: 0; border-radius: var(--radius-lg); }
+  .dp-draw.ck .dp-done-row .dp-zoom button { min-width: 40px; padding: 0 var(--space-4); }
+  .dp-draw.ck .dp-done-row .dp-zoom #pPan { order: 2; } .dp-draw.ck .dp-done-row .dp-zoom #pFit { order: 2; }
+}

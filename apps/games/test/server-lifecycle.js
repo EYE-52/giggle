@@ -188,7 +188,7 @@ async function authorities() {
         if (fuse !== undefined) s.grenades = [{ id: 'cutoff-grenade', owner: 'a', x: target.x, z: target.z, y: target.y,
           vx: 0, vz: 0, vy: 0, angle: 0, fuse, bounces: 0 }];
         if (fireAt !== null) {
-          a.weapon = 'rail'; a.ammo = 1; time = deadline + fireAt;
+          a.weapon = 'pulse'; a.ammo = 1; time = deadline + fireAt;
           const ack = kartGame.view(s, 'a').inputAck;
           kartGame.onAction(s, ctx, 'a', { seq: ack.receivedSeq + 1, life: ack.life, controlEpoch: ack.controlEpoch,
             input: { steer: 0, throttle: 0, boost: true } });
@@ -209,7 +209,7 @@ async function authorities() {
       assert.equal(delayed.scores.a, fuse < .01 ? 1 : 0, 'only a blast within the remaining slice earns a knockout');
     }
     const before = kartCase({ fireAt: -1, lateMs: 100 });
-    assert(before.events.includes('fire'), 'pre-deadline rail intent survives the final slice');
+    assert(before.events.includes('fire'), 'pre-deadline Pulse intent survives the final slice');
     for (const fireAt of [0, 1, 100]) {
       const late = kartCase({ fireAt, lateMs: 100 });
       assert.equal(late.scores.a, 0); assert(!late.events.includes('fire'), 'post-deadline fire never launches');

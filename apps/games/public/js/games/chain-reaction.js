@@ -41,6 +41,9 @@ const CSS = `
 .cr-fly{position:absolute;width:16px;height:16px;margin:-8px 0 0 -8px;transition-property:transform;transition-timing-function:linear;will-change:transform;z-index:6}
 .cr-cell{position:relative;min-width:44px;min-height:44px;aspect-ratio:1;border:0;border-radius:50%;background:transparent;padding:0;display:grid;place-items:center;cursor:default;touch-action:manipulation;color:var(--ink,#f0f3fa);font:inherit;box-sizing:border-box}
 .cr-cell[data-playable="yes"]{cursor:pointer}.cr-cell[data-playable="yes"]:hover{background:transparent}
+.cr-cell[data-playable="yes"]:not(.last)::after{content:'';position:absolute;inset:20%;border:2px dashed var(--cr-focus);border-radius:50%;opacity:.4;pointer-events:none;animation:cr-invite 2.4s cubic-bezier(.22,1,.36,1) infinite}
+@keyframes cr-invite{0%,100%{transform:scale(.92);opacity:.25}50%{transform:scale(1);opacity:.55}}
+@media(prefers-reduced-motion:reduce){.cr-cell[data-playable="yes"]::after{animation:none}}
 .cr-cell[data-playable="yes"]:hover::after{content:'';position:absolute;inset:14%;border:2px solid var(--accent,#da216c);border-radius:50%;pointer-events:none}
 .cr-cell:focus-visible{outline:3px solid var(--accent,#da216c);outline-offset:-4px;border-radius:50%;z-index:3}
 .cr-cell.critical::before{content:'';position:absolute;inset:14%;border:1px solid var(--orb);border-radius:50%;opacity:.55;pointer-events:none}

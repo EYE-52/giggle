@@ -52,6 +52,11 @@ async function visit(viewport,night,before=false){
    if(viewport.width===1280&&!night){
     await page.locator('#bCreate').click();
     await page.waitForFunction(()=>/^\/r\/[A-Z0-9]{4}$/.test(location.pathname));
+    // The room celebration stays inside the room card, behind its content.
+    await page.locator('.partystrip').waitFor();
+    assert.deepEqual(await page.evaluate(()=>{const strip=document.querySelector('.partystrip'),layer=strip.querySelector(':scope > .confetti');
+     return {pageLayer:document.querySelectorAll('body > .confetti').length,inStrip:!!layer,clips:layer&&getComputedStyle(strip).overflow==='hidden',behind:layer&&Number(getComputedStyle(layer).zIndex)<Number(getComputedStyle(strip.querySelector('.ps-invite')).zIndex),inert:layer&&getComputedStyle(layer).pointerEvents==='none'}}),
+     {pageLayer:0,inStrip:true,clips:true,behind:true,inert:true},'confetti is a clipped background layer of the room card');
     const code=new URL(page.url()).pathname.split('/').pop();
     const peer=await browser.newContext({viewport,permissions:[]});const guest=await peer.newPage();const peerMessages=[];
     guest.on('websocket',socket=>socket.on('framesent',frame=>{try{peerMessages.push(JSON.parse(frame.payload).t)}catch{}}));

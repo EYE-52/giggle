@@ -60,13 +60,6 @@ export const NITRO_RECHARGE = 0.15;
 export const NITRO_REARM = 0.3;
 export const NITRO_SPEED = 1.5;
 export const NITRO_PUNCH = 1.75;
-// EMP slow factors: must equal the kart-engine.js values bit-for-bit
-// (parity-tested). stepSelf reads the snapshot-adopted p.empT and never
-// ticks it — the server owns the countdown after motion, exactly like
-// shield — so holding it constant across a rollout matches the server.
-export const EMP_TOP_SCALE = 0.62;
-export const EMP_ACCEL_SCALE = 0.6;
-export const EMP_TURN_SCALE = 0.75;
 export const SLIDE_KEEP = 0.9;
 
 export const SELF_BLEND = 0.35; // per-snapshot pull of predicted self -> server
@@ -287,16 +280,15 @@ function stepSelfOnce(p, intent, dt, opts) {
   const boosting = p.boost > 0;
   const turboing = p.turbo > 0;
   const nitroing = p.nitroActive === true;
-  const slowed = Number(p.empT) > 0;
   // Multipliers are projected by authority; classic snapshots carry 1.0.
   // Keep prediction identical to upgraded server physics after rematches.
   const tune = p.tuning || {};
   const topScale = clamp(Number(tune.top) || 1, 1, 1.15);
   const accelScale = clamp(Number(tune.accel) || 1, 1, 1.15);
   const turnScale = clamp(Number(tune.turn) || 1, 1, 1.12);
-  const top = MAX_SPEED * topScale * Math.max(boosting ? BOOST_SPEED : 1, turboing ? TURBO_SPEED : 1, nitroing ? NITRO_SPEED : 1) * (slowed ? EMP_TOP_SCALE : 1);
+  const top = MAX_SPEED * topScale * Math.max(boosting ? BOOST_SPEED : 1, turboing ? TURBO_SPEED : 1, nitroing ? NITRO_SPEED : 1);
   const punch = boosting ? 2 : nitroing ? NITRO_PUNCH : turboing ? 1.5 : 1;
-  const accel = ACCEL * accelScale * (slowed ? EMP_ACCEL_SCALE : 1);
+  const accel = ACCEL * accelScale;
   if (throttle > 0) p.speed = Math.min(top, p.speed + accel * punch * throttle * dt);
   else if (throttle < 0) {
     p.speed = p.speed > 0.5
@@ -337,10 +329,8 @@ function stepSelfOnce(p, intent, dt, opts) {
   const gripSpeed = clamp(Math.abs(p.speed) / 8, 0.35, 1);
   const surfTurn = 0.65 + 0.35 * clamp(grip, 0, 1);
   const driftTurn = active ? DRIFT_TURN : 1;
-  /* CORRECTED SIGN: +steer turns toward screen right (see header).
-   * The EMP turn factor sits in the identical chain position as the
-   * server's, so slowed yaw agrees bit-for-bit. */
-  let a = p.angle - steer * TURN_RATE * turnScale * (slowed ? EMP_TURN_SCALE : 1) * gripSpeed * surfTurn * driftTurn * dt * (p.speed < -0.5 ? -1 : 1);
+  /* CORRECTED SIGN: +steer turns toward screen right (see header). */
+  let a = p.angle - steer * TURN_RATE * turnScale * gripSpeed * surfTurn * driftTurn * dt * (p.speed < -0.5 ? -1 : 1);
   while (a > Math.PI) a -= Math.PI * 2;
   while (a < -Math.PI) a += Math.PI * 2;
   p.angle = a;
@@ -443,7 +433,6 @@ export function ingestSnapshot(store, S, selfPid, now) {
         nitro: me.nitro === undefined ? 1 : clamp(Number(me.nitro) || 0, 0, 1),
         nitroActive: me.nitroActive === true,
         nitroLocked: me.nitroLocked === true,
-        empT: clamp(Number(me.empT) || 0, 0, 99),
         grip: me.grip || 1,
         spawnSeq: me.spawnSeq,
         ox: 0, oz: 0, oa: 0,
@@ -494,7 +483,6 @@ export function ingestSnapshot(store, S, selfPid, now) {
       p.nitro = me.nitro === undefined ? 1 : clamp(Number(me.nitro) || 0, 0, 1);
       p.nitroActive = me.nitroActive === true;
       p.nitroLocked = me.nitroLocked === true;
-      p.empT = clamp(Number(me.empT) || 0, 0, 99);
       p.tSnap = now; // receipt time: the self freeze cutoff counts from here
     }
   } else if (store.self) {

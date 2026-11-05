@@ -1,4 +1,5 @@
 import {paintKartWeapon} from './kart-weapon-hud.mjs';
+import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {kartResultView} from './kart-results.mjs';
 import physicsConfig from './kart-physics-config.mjs';
 /* Shared kart-arena view factory. createKartView(config) builds a complete
@@ -34,6 +35,8 @@ import { createKartAudio } from './kart-audio.mjs';
 import { createKartCombatArt, projectileContactInset } from './kart-combat-art.mjs';
 import { createKartHealthBars } from './kart-health-bars.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
+import {createKartSkids,kartSliding} from './kart-skids.mjs';
+import {createKartThreats} from './kart-threats.mjs';
 import {createKartFeedback} from './kart-feedback.mjs';
 import { projectilePose, grenadePose } from './kart-flight.mjs';
 import {createGroundMarker,placeGroundMarker,placeGroundProp} from './kart-ground-markers.mjs';
@@ -81,8 +84,8 @@ const ANALOG_SEND_MS = 1000 / 30;
 /* Distinct vector artwork per weapon (DOM SVG, no dependency). Each of the
  * eight silhouettes echoes the 3D rig at 22px: black-steel machine gun with a
  * brass drum, triple barrels with three bores, toothed mine disc with a red
- * status lamp, hex shield, side rocket, twin rails, handled grenade, pronged
- * EMP. Colors stay fixed so the slot reads identically across palettes and
+ * status lamp, side rocket, finned seeker, sensor charge, hex shield and the
+ * warhead. Colors stay fixed so the slot reads identically across palettes and
  * night theme. The Fire button reuses these SVGs with an ammo badge; the
  * empty state is a crosshair, never a sentence. */
 const WEAPON_ART = {
@@ -91,9 +94,9 @@ const WEAPON_ART = {
   mine: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="#5a6b84"><rect x="11" y="2.6" width="2" height="3.4" rx="1"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(45 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(90 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(135 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(180 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(225 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(270 12 13)"/><rect x="11" y="2.6" width="2" height="3.4" rx="1" transform="rotate(315 12 13)"/><circle cx="12" cy="13" r="6.2"/></g><circle cx="12" cy="13" r="4" fill="#1b2433"/><circle cx="12" cy="13" r="2.2" fill="#ff2a35"/></svg>',
   shield: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 19 6v6.2c0 4.4-3 7.4-7 9.3-4-1.9-7-4.9-7-9.3V6z" fill="none" stroke="#83e4cc" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 6.5v9M8.5 9.5l7 4M15.5 9.5l-7 4" stroke="#83e4cc" stroke-width="1.4" stroke-linecap="round" opacity=".8"/></svg>',
   rocket: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2c3.4 2 4.6 5.6 3.6 9.4l2.6 3.2-3.3.4-1.4 3.1-2.5-2.2c-3.5-.6-6-3.3-6.6-6.9z" fill="#ffd458"/><circle cx="12.4" cy="8.6" r="1.6" fill="#25354b"/><path d="M6 14.5 3 21l2.4-.6L4.4 17zM9 17.5l-2 4.5 2.4-.6-.5-3.4z" fill="#ed526d"/></svg>',
-  rail: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v18M17 3v18" stroke="#9fc4e8" stroke-width="2.6" stroke-linecap="round"/><path d="M7 8h10M7 16h10" stroke="#e8f4ff" stroke-width="1.6"/><path d="M12 4.5 10.4 9.5h3.2L12 14.5l3.4 5h-2.6l-3.2-5H12z" fill="#e8f4ff"/></svg>',
-  grenade:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="9" width="10" height="11" rx="3" fill="#5a6b84"/><path d="M7 12.5h10M7 16h10" stroke="#1b2433" stroke-width="1.4"/><rect x="6" y="8" width="2.4" height="9" rx="1.2" fill="#9fb2c8"/><rect x="10" y="5.5" width="4" height="4" rx="1" fill="#e8b73a"/><circle cx="15.4" cy="4.6" r="1.8" fill="none" stroke="#9fb2c8" stroke-width="1.6"/></svg>',
-  emp:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m16 14V5M4 19h16" fill="none" stroke="#8dd6ff" stroke-width="3"/><path d="m13 3-5 8h5l-2 8 6-10h-5z" fill="#ffd458"/></svg>',
+  seeker:'<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke-width="2"><path d="M16 3c-5 4-7 10-7 17h14c0-7-2-13-7-17Z" fill="#91d451"/><path d="m9 18-5 8 7-3m12-5 5 8-7-3" fill="#e5f0f5"/><circle cx="16" cy="11" r="3" fill="#1c3539"/></svg>',
+  proximity:'<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke-width="2"><ellipse cx="16" cy="21" rx="11" ry="6" fill="#829299"/><path d="M7 10c5-6 13-6 18 0m-15 4c3-3 8-3 11 0" stroke="#ff6154"/><circle cx="16" cy="21" r="3" fill="#ff6154"/></svg>',
+  nuke:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 2 6 8v15H10V10Z" fill="#e5d35b"/><circle cx="16" cy="17" r="5" fill="#393e41"/></svg>',
   crate: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="2" fill="none" stroke="#9ad2d7" stroke-width="2"/><path d="M4 10.5h16M12 7v13" stroke="#9ad2d7" stroke-width="1.4" opacity=".7"/><circle cx="12" cy="13.5" r="2.4" fill="#9ad2d7"/></svg>',
 };
 function weaponArt(kind) {
@@ -110,15 +113,17 @@ const BOOST_ART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-7 
  * dash offset so the glyph is never rebuilt by text updates. */
 const NITRO_RING = '<svg class="pk-nitro-ring" viewBox="0 0 24 24" aria-hidden="true"><circle class="pk-arc-track" cx="12" cy="12" r="10" fill="none" stroke="#f5f8ff" stroke-opacity=".25" stroke-width="2"/><circle class="pk-nitro-arc" cx="12" cy="12" r="10" fill="none" stroke="#22d7ef" stroke-width="2" stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="0" transform="rotate(-90 12 12)"/></svg>';
 const NITRO_ARC_LEN = 62.8;
+// Ground blast ring size per weapon (the ring geometry is a 4u radius).
+const BLAST_SCALE = { proximity: 1.4, nuke: 3.5 };
 const ITEMS = {
   pulse: {label:'Pulse', action:'Fire pulse', short:'FIRE'},
   scatter: {label:'Scatter', action:'Fire scatter', short:'FAN'},
   mine: {label:'Mine', action:'Drop mine', short:'DROP'},
-  shield: {label:'Invincibility', action:'Activate invincibility', short:'INVINCIBLE'},
+  shield: {label:'Shield', action:'Raise shield', short:'SHIELD'},
   rocket: {label:'Rocket', action:'Launch rocket', short:'LAUNCH'},
-  rail: {label:'Rail', action:'Fire rail', short:'RAIL'},
-  grenade:{label:'Grenade',action:'Lob grenade',short:'LOB'},
-  emp:{label:'EMP',action:'Discharge EMP',short:'EMP'},
+  seeker: {label:'Seeker', action:'Launch seeker', short:'SEEK'},
+  proximity: {label:'Proximity Bomb', action:'Drop proximity bomb', short:'DROP'},
+  nuke: {label:'Nuke', action:'Lob the nuke', short:'NUKE'},
 };
 /* Classic arenas for the game-owned Results chooser. Use the same captured
  * map overviews as setup; profile keys keep these distinct from elevated maps.
@@ -166,6 +171,7 @@ export function createKartView(viewConfig) {
   let lastSnapshotArrival = null;
   let apiRef = null;
   let rootEl = null;
+  let hitFx = null; // screen-edge flash, hit marker, toast and camera shake
   let mountGen = 0;
   let gl = null; // three-view handle (null in fallback)
   let sceneState = null;
@@ -527,7 +533,7 @@ export function createKartView(viewConfig) {
       <details class="pk-board" id="pk-board">
       <summary class="pk-lead" id="pk-lead" aria-label="Leaderboard standings, expand for full timing"></summary>
       <div class="pk-standpanel"><span class="pk-goal" id="pk-goal">–</span><div class="pk-stand" id="pk-stand" aria-label="Standings"></div></div>
-      </details><span id="pk-health" class="pk-health" role="img" aria-label="Health 100 of 100"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 27 5 16C-2 8 9 1 16 9c7-8 18-1 11 7Z" fill="#ff6375"/></svg><span><i id="pk-healthfill"></i></span></span></div>
+      </details><span id="pk-health" class="pk-health kart-hearts" role="img" aria-label="3 of 3 hearts"></span></div>
     </div>
     <div class="pk-count" id="pk-count" hidden></div>
     <div class="pk-tip" id="pk-tip" role="status" hidden></div>
@@ -608,8 +614,8 @@ export function createKartView(viewConfig) {
     if (cue) { cue.hidden = !cueText || nowMs() > cueUntil || S.phase !== 'drive'; cue.textContent = cueText; }
 
     const me = myKart();
-    const health=rootEl.querySelector('#pk-health'),healthFill=rootEl.querySelector('#pk-healthfill');
-    if(health){health.hidden=!battle||!me;const maximum=me?.maxHealth||100,hp=Math.max(0,Math.min(maximum,me?.health??100));health.setAttribute('aria-label',`Health ${hp} of ${maximum}`);health.dataset.low=String(hp<=maximum*.3);if(healthFill)healthFill.style.transform=`scaleX(${hp/maximum})`;}
+    const health=rootEl.querySelector('#pk-health');
+    if(health){health.hidden=!battle||!me;if(me)paintKartHearts(health,me);}
     const mapLabel = rootEl.querySelector('#pk-map');
     const handling = rootEl.querySelector('#pk-handling');
     const speedDigits = rootEl.querySelector('#pk-speed');
@@ -631,8 +637,8 @@ export function createKartView(viewConfig) {
         : (me.boost > 0 || me.turbo > 0 || nitroActive) ? (nitroActive && !(me.boost > 0 || me.turbo > 0) ? 'Nitro!' : 'Turbo!')
         : me.grip < 0.8 ? 'Ice · ease into turns'
         : me.respawn > 0 ? 'Rejoining…'
-        : (me.shield > 0 && battle) ? `Shielded ${Math.ceil(me.shield)}s`
-        : me.empT > 0 ? `EMP slow · ${Math.ceil(me.empT)}s`
+        : (me.shield > 0 && battle) ? `Protected ${Math.ceil(me.shield)}s`
+        : (me.guard && battle) ? 'Shield ready'
         : nitroLocked ? 'Nitro charging…'
         : me.speed < -1 ? 'Reversing'
         : '';
@@ -996,7 +1002,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let impactFX;
+    let impactFX,skids,threats;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1026,16 +1032,14 @@ export function createKartView(viewConfig) {
       disposeCombat=combat.dispose;
       healthBars=createKartHealthBars(THREE,scene);
       impactFX=createKartImpactFX(THREE,scene,{reducedMotion:()=>rm});
+      skids=createKartSkids(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});
+      threats=createKartThreats(THREE,scene,rootEl.querySelector('.pk'),{reducedMotion:()=>rm,beep:level=>audio?.beep?.(level)});
       const zoneGeo = new THREE.RingGeometry(2.22, 2.4, 36);
       const zoneMat = new THREE.MeshBasicMaterial({color:0xffd961,transparent:true,opacity:0.16,depthWrite:false,side:THREE.DoubleSide});
       const crateZoneMat = new THREE.MeshBasicMaterial({color:0x72e8f0,transparent:true,opacity:0.16,depthWrite:false,side:THREE.DoubleSide});
-      const grenadeRingGeo=new THREE.RingGeometry(3.8,4,32);
-      const grenadeRingMat=new THREE.MeshBasicMaterial({color:0xe65832,transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide});
-      const coneVertices=[];
-      for(let i=0;i<16;i++){const a=-.55+i/16*1.1,b=-.55+(i+1)/16*1.1;coneVertices.push(Math.sin(a)*12,.12,Math.cos(a)*12,Math.sin(b)*12,.12,Math.cos(b)*12);}
-      for(const a of [-.55,0,.55])coneVertices.push(0,.12,0,Math.sin(a)*12,.12,Math.cos(a)*12);
-      const empGeo=new THREE.BufferGeometry();empGeo.setAttribute('position',new THREE.Float32BufferAttribute(coneVertices,3));
-      const empMat=new THREE.LineBasicMaterial({color:0x2585ff,transparent:true,opacity:.95});
+      // The Nuke's warning ring marks its whole 14u knockout radius.
+      const nukeRingGeo=new THREE.RingGeometry(13.4,14,64);
+      const nukeRingMat=new THREE.MeshBasicMaterial({color:0xe65832,transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide});
       const blastGeo=new THREE.RingGeometry(3.3,4,32);
       const blastMat=new THREE.MeshBasicMaterial({color:0xff973d,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide});
       const driftSparks = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.11),
@@ -1050,9 +1054,9 @@ export function createKartView(viewConfig) {
       // Reserve shared effect resources in the hidden library so disposal also
       // handles a frame with zero live pickups/projectiles.
       const reserve = new THREE.Group(); reserve.visible = false; scene.add(reserve);
-      reserve.add(new THREE.Mesh(zoneGeo,zoneMat),new THREE.Mesh(zoneGeo,crateZoneMat),new THREE.Mesh(grenadeRingGeo,grenadeRingMat),new THREE.LineSegments(empGeo,empMat),new THREE.Mesh(blastGeo,blastMat));
-      const markerTypes={star:[zoneGeo,zoneMat,true,false],crate:[zoneGeo,crateZoneMat,true,false],grenade:[grenadeRingGeo,grenadeRingMat,true,false],blast:[blastGeo,blastMat,true,false],emp:[empGeo,empMat,false,true]};
-      const markerPools=new Map(Object.entries(markerTypes).map(([kind,args])=>[kind,Array.from({length:Math.max(kind==='blast'||kind==='emp'?24:12,S[kind==='star'?'stars':'crates']?.length||0)},()=>{
+      reserve.add(new THREE.Mesh(zoneGeo,zoneMat),new THREE.Mesh(zoneGeo,crateZoneMat),new THREE.Mesh(nukeRingGeo,nukeRingMat),new THREE.Mesh(blastGeo,blastMat));
+      const markerTypes={star:[zoneGeo,zoneMat,true,false],crate:[zoneGeo,crateZoneMat,true,false],nuke:[nukeRingGeo,nukeRingMat,true,false],blast:[blastGeo,blastMat,true,false]};
+      const markerPools=new Map(Object.entries(markerTypes).map(([kind,args])=>[kind,Array.from({length:Math.max(kind==='blast'?24:12,S[kind==='star'?'stars':'crates']?.length||0)},()=>{
         const marker=createGroundMarker(THREE,...args);marker.userData.markerPool=kind;reserve.add(marker);return marker;
       })]));
       const groundAt=world.groundAt||(()=>0);
@@ -1062,15 +1066,15 @@ export function createKartView(viewConfig) {
       world.group.traverse((mesh) => { if (mesh.isMesh) mesh.receiveShadow = true; });
       const rm = reducedMotion();
       const syncBlocks = () => world.syncMap((S && S.map) || {id:'ring',blocks:[]});
-      const tmpV = new THREE.Vector3();
+      const tmpV = new THREE.Vector3(), shakeOffset = new THREE.Vector3();
       let cameraEpoch = null;
       // Warm every combat variant before readiness. The hidden source library
       // alone is never rendered: first fire used to upload these buffers and
-      // compile tracer/EMP/instanced-effect programs in a live driving frame.
+      // compile tracer/instanced-effect programs in a live driving frame.
       const warm=new THREE.Group();scene.add(warm);
       for(const pool of markerPools.values())for(const marker of pool)warm.add(marker);
       for(const k of S.karts||[]) {const bar=healthBars.add(k.pid);bar.visible=true;bar.position.y=-100;}
-      for(const kind of ['pulse','scatter','mine','shield','rocket','rail','grenade','emp'])warm.add(combat.weapon(kind));
+      for(const kind of ['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke'])warm.add(combat.weapon(kind));
       const shotPools=new Map(),shotCues=[],shotContactInsets=new Map();
       function prepareShotContact(object,kind,radius){
         const c=object.userData.combat,key=kind+':'+radius;
@@ -1078,7 +1082,7 @@ export function createKartView(viewConfig) {
         c.contactRadius=radius;c.contactInset=radius>0?shotContactInsets.get(key):0;
       }
       const cueBounds=new THREE.Box3(),cueCenter=new THREE.Vector3();
-      for(const kind of ['pulse','scatter','rocket','rail','grenade']) {
+      for(const kind of ['pulse','scatter','rocket','seeker','nuke']) {
         const pool=[];
         for(let i=0;i<12;i++){const object=combat.projectile(kind);prepareShotContact(object,kind,S.combat?.staticSweepRadii?.[kind]||0);object.visible=false;scene.add(object);pool.push(object);}
         shotPools.set(kind,pool);pool[0].visible=true;warm.add(pool[0]);
@@ -1096,6 +1100,7 @@ export function createKartView(viewConfig) {
         placeGroundProp(THREE,model,0,0,0,groundAt,world.propGroundAt||groundAt);
         warm.add(model);
       }
+      {const charge=combat.projectile('proximity');charge.userData.combat.landed=true;warm.add(charge);}
       warm.position.y=-100;warm.traverse(object=>{object.frustumCulled=false;});
       reserve.visible=true;reserve.position.y=-100;reserve.traverse(object=>{object.frustumCulled=false;});
       await renderer.compileAsync(scene,camera);renderer.render(scene,camera);
@@ -1119,12 +1124,12 @@ export function createKartView(viewConfig) {
         updateAudio();
         const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
         if(feedbackEpoch!==impactEpoch){
-          impactFX.reset();impactEpoch=feedbackEpoch;
+          impactFX.reset();skids.reset();threats.clear();impactEpoch=feedbackEpoch;
           for(const cue of shotCues)cue.object.visible=false;
           for(const e of combatEffects.values())returnMarker(e.mesh);
           combatEffects.clear();popSites.length=0;effectSeen.clear();
         }
-        impactFX.update(effectDt);
+        impactFX.update(effectDt);skids.update(effectDt);
         if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
@@ -1148,19 +1153,18 @@ export function createKartView(viewConfig) {
           }
           if(e.kind==='ko'||(e.kind==='blast'&&!e.position)){
             if(!rm){if(popSites.length>=8)popSites.shift();popSites.push({x:e.position?.x??e.x,y:e.position?.y??((world.groundAt?.(e.x,e.z)||0)+.6),z:e.position?.z??e.z,t,kind:e.kind});}
-            if(e.kind==='ko'&&e.inferred&&e.pid===S.you&&e.weapon!=='grenade')audio?.cue('ko');
+            if(e.kind==='ko'&&e.inferred&&e.pid===S.you&&e.weapon!=='nuke')audio?.cue('ko');
           }
           if((e.kind==='collision'||e.kind==='landing')&&e.pid===S.you)
             audio?.cue(e.kind,{strength:Math.min(1,(e.impulse||100)/1000)});
-          if(e.kind==='emp'||(e.kind==='blast'&&!e.position)||e.kind==='ko'){
-            const mesh=takeMarker(e.kind==='emp'?'emp':'blast');
-            if(e.kind==='emp')mesh.rotation.y=e.angle;
+          if((e.kind==='blast'&&!e.position)||e.kind==='ko'){
+            const mesh=takeMarker('blast');
             placeGroundMarker(mesh,e.x,e.z,groundAt);
-            scene.add(mesh);combatEffects.set(e.id,{mesh,until:e.kind==='ko'?e.at+500:e.until,at:e.at,kind:e.kind});
+            scene.add(mesh);combatEffects.set(e.id,{mesh,until:e.kind==='ko'?e.at+500:e.until,at:e.at,kind:e.kind,size:e.kind==='blast'?BLAST_SCALE[e.weapon]||1:1});
           }
         }
         while(effectSeen.size>48)effectSeen.delete(effectSeen.values().next().value);
-        for(const [id,e]of combatEffects){if(nowMs()>=e.until){returnMarker(e.mesh);combatEffects.delete(id);}else if(e.kind!=='emp'&&!rm){const progress=(nowMs()-e.at)/(e.until-e.at);e.mesh.scale.setScalar(.2+progress*.8);placeGroundMarker(e.mesh,e.mesh.position.x,e.mesh.position.z,groundAt);}}
+        for(const [id,e]of combatEffects){if(nowMs()>=e.until){returnMarker(e.mesh);combatEffects.delete(id);}else if(!rm){const progress=(nowMs()-e.at)/(e.until-e.at);e.mesh.scale.setScalar((.2+progress*.8)*e.size);placeGroundMarker(e.mesh,e.mesh.position.x,e.mesh.position.z,groundAt);}}
         const live = new Set();
         let sparkCount = 0;
         for (const k of S.karts || []) {
@@ -1195,6 +1199,7 @@ export function createKartView(viewConfig) {
             if(inner)inner.position.y=physicsConfig.chassis.modelOriginY;
             mesh.quaternion.set(physical.rotation.x,physical.rotation.y,physical.rotation.z,physical.rotation.w);
           }else{if(inner)inner.position.y=0;mesh.rotation.y=pose.angle;}
+          skids.track(k.pid,mesh.position.x,mesh.position.z,pose.angle,kartSliding(k,pose,k.pid===S.you&&intentForPrediction().throttle<0));
           healthBars.update(k.pid,k,mesh.position,(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
           const equipped=k.ammo>0?k.weapon:null;
           if(mesh.userData.equipped!==equipped) {
@@ -1206,7 +1211,7 @@ export function createKartView(viewConfig) {
           if(mesh.userData.rig)combat.animate(mesh.userData.rig,dt,t,rm);
           if (mesh.userData.giggleKart) animateKartModel(mesh, {physicalPose: k.respawn>0 ? null : pose.physicalPose || k.physicalPose,
             speed:pose.speed ?? k.speed ?? 0, steer:k.pid === S.you ? intentFromState().steer : 0,
-            boost:Math.max(k.boost || 0,k.turbo || 0,k.nitroActive===true?1:0),shield:k.shield>0&&!(k.ramT>0),invincible:k.ramT>0,dt,reducedMotion:rm});
+            boost:Math.max(k.boost || 0,k.turbo || 0,k.nitroActive===true?1:0),shield:k.shield>0||k.guard===true,invincible:false,dt,reducedMotion:rm});
           if (mesh.userData.flame) mesh.userData.flame.visible = k.boost > 0 || k.turbo > 0 || k.nitroActive === true;
           if (mesh.userData.shield) mesh.userData.shield.visible = (k.shield || 0) > 0;
           if (mesh.visible && !rm && S.phase === 'drive' && k.drifting) {
@@ -1238,7 +1243,7 @@ export function createKartView(viewConfig) {
           if (!live.has(pid)) {
             scene.remove(mesh);
             karts.delete(pid);
-            healthBars.remove(pid);
+            healthBars.remove(pid);skids.forget(pid);
           }
         }
         // Stars: sync set, spin unless reduced motion.
@@ -1329,8 +1334,8 @@ export function createKartView(viewConfig) {
         }
         const liveG=new Set();
         for(const g of (ordnanceFresh()?S.grenades:[])||[]){liveG.add(g.id);let group=grenades.get(g.id);
-          if(!group){group=new THREE.Group();const body=combat.projectile('grenade');group.add(body);group.userData.body=body;
-            const ring=takeMarker('grenade');group.userData.ring=ring;scene.add(group);grenades.set(g.id,group);}
+          if(!group){group=new THREE.Group();const body=combat.projectile('nuke');group.add(body);group.userData.body=body;
+            const ring=takeMarker('nuke');group.userData.ring=ring;scene.add(group);grenades.set(g.id,group);}
           const flight=grenadePose(g,S,serverNow());group.position.set(flight.x,flight.y+(g.physical ? .45 : .38),flight.z);group.rotation.y=flight.angle;group.visible=flight.visible;
           combat.animate(group.userData.body,dt,t,rm);placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;
         }
@@ -1341,7 +1346,8 @@ export function createKartView(viewConfig) {
           let mesh = mines.get(m.id);
           if (!mesh) {
             mesh = new THREE.Group();
-            const puck = combat.mine(m.owner===S.you); mesh.userData.prop=puck;mesh.add(puck);
+            const puck = m.kind==='proximity'?combat.projectile('proximity'):combat.mine(m.owner===S.you); mesh.userData.prop=puck;mesh.add(puck);
+            if(m.kind==='proximity')puck.userData.combat.landed=true;
             mesh.position.set(m.x,m.y??world.groundAt?.(m.x,m.z)??0,m.z); scene.add(mesh); mines.set(m.id,mesh);
           }
           mesh.userData.prop.userData.combat.armed=m.armed;
@@ -1355,6 +1361,7 @@ export function createKartView(viewConfig) {
         // directly behind the motion direction, never fighting the input.
         const me = myKart();
         const selfPose = me ? poses.get(me.pid) : null;
+        camera.position.sub(shakeOffset);shakeOffset.set(0,0,0);
         if (me && S.youDrive && selfPose) {
           const pose = selfPose;
           const f = forwardOf(pose.angle);
@@ -1376,17 +1383,21 @@ export function createKartView(viewConfig) {
           else camera.position.lerp(tmpV, Math.min(1, dt * 2));
           camera.lookAt(0, 0, 0);
         }
+        const shake=hitFx?.shake(nowMs());
+        if(shake&&(shake.x||shake.y)){shakeOffset.set(shake.x,shake.y,0).applyQuaternion(camera.quaternion);camera.position.add(shakeOffset);}
+        const ownKart=me&&S.youDrive&&!(me.respawn>0)?karts.get(me.pid):null;
+        threats.update(ordnanceFresh()&&S.phase==='drive'?S:null,S.you,ownKart?.position,camera,nowMs());
         healthBars.face(camera);
         if (typeof hooks.sceneExtra === 'function') {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();} };
+      return { scene, camera, frame, dispose: () => {disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();skids.dispose();threats.dispose();} };
     } catch (error) {
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
       healthBars?.dispose();
-      impactFX?.dispose();
+      impactFX?.dispose();skids?.dispose();threats?.dispose();
       helper.disposeObject(scene);
       throw error;
     }
@@ -1534,22 +1545,22 @@ export function createKartView(viewConfig) {
     }
     for (const z of (ordnanceFresh()?S.zaps:[]) || []) {
       const p=projectilePose(z,S,serverNow());if(!p.visible)continue;
-      ctx.strokeStyle=z.kind==='scatter'?'#ffad69':z.kind==='rocket'?'#ffda58':z.kind==='rail'?'#b5afff':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
+      ctx.strokeStyle=z.kind==='scatter'?'#ffad69':z.kind==='rocket'?'#ffda58':z.kind==='seeker'?'#91d451':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
       ctx.beginPath();ctx.moveTo(px(p.x),pz(p.z));ctx.lineTo(px(p.x-Math.sin(p.angle)*2),pz(p.z-Math.cos(p.angle)*2));ctx.stroke();
     }
     for (const m of (ordnanceFresh()?S.mines:[]) || []) {
       ctx.fillStyle = m.armed ? '#ff83b8' : '#91627a'; ctx.beginPath();
-      ctx.arc(px(m.x),pz(m.z),Math.max(3,.9*scale),0,Math.PI*2); ctx.fill();
+      ctx.arc(px(m.x),pz(m.z),Math.max(3,(m.kind==='proximity'?1.3:.9)*scale),0,Math.PI*2); ctx.fill();
       ctx.fillStyle=m.armed&&Math.sin(now/150)>0?'#ffeaa0':'#402835';ctx.fillRect(px(m.x)-1,pz(m.z)-1,2,2);
     }
     for(const g of (ordnanceFresh()?S.grenades:[])||[]){const p=grenadePose(g,S,serverNow());if(!p.visible)continue;
-      if(g.warning){ctx.strokeStyle='#e65832';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px(p.x),pz(p.z),4*scale,0,Math.PI*2);ctx.stroke();}
+      if(g.warning){ctx.strokeStyle='#e65832';ctx.lineWidth=2;ctx.beginPath();ctx.arc(px(p.x),pz(p.z),14*scale,0,Math.PI*2);ctx.stroke();}
       ctx.fillStyle='#ffd458';ctx.fillRect(px(p.x)-.4*scale,pz(p.z)-.6*scale-p.y*scale,.8*scale,1.2*scale);
       ctx.strokeStyle='#25354b';ctx.lineWidth=1;ctx.strokeRect(px(p.x)-.4*scale,pz(p.z)-.6*scale-p.y*scale,.8*scale,1.2*scale);
     }
     const acceptedEffects=feedback.current(now);
-    for(const e of acceptedEffects){const age=Math.max(0,(now-e.at)/1000);ctx.strokeStyle=e.kind==='emp'?'#2585ff':e.kind==='collision'?'#ffe3a1':'#ff963d';ctx.lineWidth=2;
-      ctx.beginPath();if(e.kind==='emp'){ctx.moveTo(px(e.x),pz(e.z));ctx.arc(px(e.x),pz(e.z),12*scale,Math.PI/2-e.angle-.55,Math.PI/2-e.angle+.55);ctx.closePath();}else ctx.arc(px(e.x),pz(e.z),Math.max(1,(e.kind==='blast'?4:1+age*5))*scale,0,Math.PI*2);ctx.stroke();
+    for(const e of acceptedEffects){const age=Math.max(0,(now-e.at)/1000);ctx.strokeStyle=e.kind==='collision'?'#ffe3a1':'#ff963d';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(px(e.x),pz(e.z),Math.max(1,(e.kind==='blast'?4*(BLAST_SCALE[e.weapon]||1):1+age*5))*scale,0,Math.PI*2);ctx.stroke();
     }
     for (const k of S.karts || []) {
       const wreck=acceptedEffects.find(e=>e.kind==='ko'&&e.pid===k.pid);
@@ -1637,6 +1648,7 @@ export function createKartView(viewConfig) {
     }
     bound = [];
     disposeGl();
+    hitFx?.dispose();hitFx=null;
     S = null;lastSnapshotArrival=null;
     feedback.reset();
     apiRef = null;
@@ -1690,6 +1702,7 @@ export function createKartView(viewConfig) {
         </div>
       </div>`;
     buildHud();
+    hitFx=createKartHitFeedback(rootEl.querySelector('.pk'),{reducedMotion});
     try { const pref=localStorage.getItem('pk-controls-v1'); controlsPreference=['auto','keyboard','touch'].includes(pref)?pref:'auto'; } catch { controlsPreference='auto'; }
     paintControls();
     on(rootEl.querySelector('#pk-resume'),'click',()=>{const help=rootEl.querySelector('#pk-help');if(help)help.open=false;rootEl.querySelector('.pk')?.focus?.({preventScroll:true});});
@@ -1995,9 +2008,12 @@ export function createKartView(viewConfig) {
       const nearby=!S.youDrive||event.pid===S.you||event.other===S.you||
         (me&&source&&Math.hypot(me.x-source.x,me.z-source.z)<24);
       const echoed=event.type==='fire'&&event.pid===S.you&&claimLocalFire(event);
-      if(nearby&&!echoed&&event.type!=='emp'&&!(event.type==='ko'&&event.weapon==='grenade'))audio?.cue(event.type==='blast'?'grenadeBlast':event.type==='fire'?event.weapon:event.type);
+      if(nearby&&!echoed&&!(event.type==='ko'&&event.weapon==='nuke')){const cue=kartEventCue(event,S.you);if(cue)audio?.cue(cue);}
       if (event.pid !== S.you && event.other !== S.you) continue;
       const mineEvent = event.pid === S.you;
+      if(event.other===S.you&&event.type==='hit')hitFx?.hurt(nowMs());
+      if(mineEvent&&event.other&&event.other!==S.you&&['hit','ko','block'].includes(event.type))hitFx?.landed(landedText(event));
+      if(mineEvent&&event.type==='ko'&&event.other&&event.other!==S.you)hitFx?.knockout(nameOf(event.other));
       if (event.type === 'pickup' && mineEvent) {
         const label = ITEMS[event.weapon]?.label || 'Item';
         if (!tutorialSeen()) {
@@ -2007,9 +2023,11 @@ export function createKartView(viewConfig) {
         } else {
           cueText = `${label} ready`;
         }
-      } else cueText = event.type==='emp' ? (mineEvent?'EMP landed!':'EMP hit · slowed briefly') : event.type === 'ko' ? (mineEvent ? `Knockout! ${nameOf(event.other)}` : `${nameOf(event.pid)} got you · back in a moment`)
-        : event.type === 'respawn' ? 'Back in! Protection ends when you attack'
-        : event.type === 'shield' ? 'Invincibility active' : '';
+      } else cueText = event.type === 'ko' ? (mineEvent ? `Knockout! ${nameOf(event.other)}` : `${nameOf(event.pid)} got you · back in a moment`)
+        : event.type === 'hit' && !mineEvent ? `${nameOf(event.pid)} hit you · −${event.damage||1} ♥`
+        : event.type === 'block' && !mineEvent ? 'Shield blocked a hit'
+        : event.type === 'respawn' ? 'Back in with full hearts'
+        : event.type === 'shield' ? 'Shield ready · blocks the next hit' : '';
       if (cueText) { cueUntil = nowMs()+2400; api.announce(cueText); }
     }
     firstEvents = false;
