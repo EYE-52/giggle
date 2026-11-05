@@ -29,3 +29,5 @@
 @media (prefers-reduced-motion: reduce) {
   .never-world * { transition: none !important; animation: none !important; }
 }
+.never-choices.is-reveal .never-result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.never-choices.is-reveal .never-bar { flex: 1 0 100%; }

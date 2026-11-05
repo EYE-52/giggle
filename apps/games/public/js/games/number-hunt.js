@@ -179,7 +179,7 @@ const view = {
         ? (S.finished?.length || S.history?.some((h) => h.result === 'correct'))
           ? `Someone found it: ${lo}. ${S.phase === 'overtime' ? 'Seconds left to finish!' : ''}`
           : `Only ${lo} remains.`
-        : `It hides between ${lo} and ${hi} (${hi - lo + 1} left)`;
+        : `It hides between ${lo} and ${hi} · ${hi - lo + 1} numbers left`;
     }
     const sub = el.querySelector('#nSub');
     if (sub) {

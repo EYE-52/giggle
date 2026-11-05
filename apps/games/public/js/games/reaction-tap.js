@@ -91,9 +91,9 @@ const view = {
     const tappedN = S.taps ? Object.keys(S.taps).length : 0;
     if (hudProgress) hudProgress.textContent = go ? `${tappedN} tapped` : '\u00a0';
     const instruction = el.querySelector('#rInstruction');
-    instruction.textContent = fouled ? 'You fouled this round. Get ready for the next one.' : go ? 'Tap the pad now!' : (t.wait_sub || 'Tap too early and you foul out of the round.');
+    instruction.textContent = fouled ? 'Out for this round. The next one starts soon.' : go ? 'Tap the pad now!' : (t.wait_sub || 'Tap too early and you foul out of the round.');
     const tip = el.querySelector('#rTip');
-    tip.textContent = S.tip ? `${t.tip_label || 'Tip'}: ${S.tip}` : '';
+    tip.textContent = S.tip && !fouled ? `${t.tip_label || 'Tip'}: ${S.tip}` : '';
     el.querySelector('#rStatus').innerHTML = [go && tappedN ? `${tappedN} tapped in` : '', fouledLine(S, t)].filter(Boolean).join(' · ');
   },
 };
@@ -167,11 +167,11 @@ function renderDone(el, S) {
 function liveOpts(S) {
   if (S.phase === 'roundEnd' && S.last) {
     const fouled = new Set(S.last.fouled || []);
-    return { waiting: false, acted: (S.last.order || []).map((t) => t.pid), verb: 'Tapped', roles: Object.fromEntries([...fouled].map((pid) => [pid, 'Fouled'])),
+    return { waiting: false, acted: (S.last.order || []).map((t) => t.pid), verb: 'Tapped', roles: Object.fromEntries([...fouled].map((pid) => [pid, { text: 'Fouled', tone: 'bad' }])),
       gains: Object.fromEntries((S.last.order || []).map((t) => [t.pid, t.pts || 0])) };
   }
   const fouled = S.fouled || [];
-  return { acted: Object.keys(S.taps || {}), verb: 'Tapped', waiting: 'Ready', roles: Object.fromEntries(fouled.map((pid) => [pid, 'Fouled'])) };
+  return { acted: Object.keys(S.taps || {}), verb: 'Tapped', waiting: 'Ready', roles: Object.fromEntries(fouled.map((pid) => [pid, { text: 'Fouled', tone: 'bad' }])) };
 }
 
 /* Every screen ends with the live strip (who has acted, scores, rounds). */

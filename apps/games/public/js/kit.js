@@ -236,7 +236,8 @@ export function syncHudTimer(root, S, now, { show = hudTimerShown(S), endsAt = S
  * the strip at the bottom.
  *   acted    pids that acted this phase (check mark + verb)
  *   actors   pids expected to act (default: every player still here)
- *   roles    { pid: 'Target' } a tag that replaces the acted state
+ *   roles    { pid: 'Target' } a tag that replaces the acted state;
+ *            { pid: { text: 'Fouled', tone: 'bad' } } marks it with a cross
  *   verb     'Voted'; waiting: 'Voting' (shown to actors still to act)
  *   gains    { pid: points } won this round, shown as +N
  *   scores   defaults to S.scores; score: false hides the points line
@@ -259,17 +260,18 @@ export function liveSeatsHtml(S, opts = {}) {
   const verb = opts.verb || 'Done';
   const waiting = opts.waiting || 'Thinking';
   return players.map((p, i) => {
-    const role = roles[p.id];
+    const role = typeof roles[p.id] === 'object' && roles[p.id] ? roles[p.id].text : roles[p.id];
+    const bad = typeof roles[p.id] === 'object' && roles[p.id]?.tone === 'bad';
     const did = acted.has(p.id);
     const waits = !did && !role && !p.left && actors.has(p.id) && opts.waiting !== false;
     const state = p.left ? 'Left' : role || (did ? verb : waits ? waiting : '');
-    const cls = ['pl-seat', `pl-c${i % 5}`, did && 'is-acted', waits && 'is-waiting', role && 'is-role', p.id === S?.me && 'is-you', p.left && 'is-left'].filter(Boolean).join(' ');
+    const cls = ['pl-seat', `pl-c${i % 5}`, did && 'is-acted', waits && 'is-waiting', role && 'is-role', bad && 'is-bad', p.id === S?.me && 'is-you', p.left && 'is-left'].filter(Boolean).join(' ');
     const gain = Number(gains[p.id]) || 0;
     const name = nameOf(S, p.id);
     return `<li class="${cls}"><span class="pl-avatar" aria-hidden="true">${esc(initials(name))}<i class="pl-badge"></i></span>`
       + `<span class="pl-name">${esc(name)}${p.id === S?.me ? '<small> (you)</small>' : ''}</span>`
       + `<span class="pl-state">${esc(state)}</span>`
-      + (opts.score === false ? '' : `<span class="pl-points"><b>${Number(scores[p.id]) || 0}</b><small class="pl-gain${gain ? '' : ' is-empty'}">${gain ? `+${gain}` : '+0'}</small></span>`)
+      + (opts.score === false ? '' : `<span class="pl-points"><b>${Number(scores[p.id]) || 0}</b><small class="pl-unit">pts</small><small class="pl-gain${gain ? '' : ' is-empty'}">${gain ? `+${gain}` : '+0'}</small></span>`)
       + `</li>`;
   }).join('');
 }
@@ -277,12 +279,19 @@ export function paintLiveStrip(scene, S, opts = {}) {
   if (!scene || typeof document === 'undefined') return null;
   scene.classList?.add('pl-fill');
   if (!scene.getAttribute?.('data-family')) scene.setAttribute?.('data-family', opts.family || 'party');
+  // The shell's game zoom (CSS zoom on #gbody) also scales viewport units:
+  // the stage divides by it so it still fills the screen.
+  const zoom = parseFloat(scene.closest?.('#gbody')?.style?.zoom) || 1;
+  scene.style?.setProperty?.('--pl-zoom', String(zoom));
   let strip = scene.querySelector?.('.pl-live');
   if (!strip) {
-    strip = document.createElement('aside');
+    strip = document.createElement?.('aside');
+    // Minimal DOMs (tests, headless hosts) without real elements get no strip.
+    if (!strip || typeof strip.setAttribute !== 'function') return null;
     strip.className = 'pl-live';
     strip.setAttribute('aria-label', opts.label || 'Players');
     strip.innerHTML = `<div class="pl-head"><span class="pl-label">${esc(opts.label || 'Players')}</span><span class="pl-slot"></span><span class="pl-dotsbox"></span></div><ul class="pl-seats"></ul>`;
+    if (typeof strip.querySelector !== 'function' || typeof scene.appendChild !== 'function') return null;
     scene.appendChild(strip);
   } else if (scene.lastElementChild && scene.lastElementChild !== strip) {
     scene.appendChild(strip);

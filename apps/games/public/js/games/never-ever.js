@@ -111,7 +111,7 @@ function paint(el, S, api) {
       : reveal ? (watch ? 'Here is how the room answered.' : picked ? `You said ${picked === 'have' ? haveLabel : notLabel}${myPts ? ` · +${myPts} points` : ''}.` : 'You sat this one out.')
       : watch ? `Watching · waiting for ${plural(waiting, 'player')}`
       : picked ? `Locked in: ${picked === 'have' ? haveLabel : notLabel} · waiting for ${plural(waiting, 'player')}`
-      : 'Have you ever? Answer honestly.';
+      : 'Tap Have or Never. Answers stay secret until the reveal.';
 
     paintLiveStrip(scene, S, reveal
       ? { acted: Object.keys(ballots), verb: 'Answered', waiting: false, gains: S.last.pts || {} }

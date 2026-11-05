@@ -35,8 +35,10 @@ function isWatching(S) {
   return S.me != null && ps.length > 0 && !ps.some((p) => p.id === S.me);
 }
 
+/* Same initials as the live strip: "Ann" -> "A", "Player 2" -> "P2". */
 function initial(name) {
-  return (String(name || '?').trim().charAt(0) || '?').toUpperCase();
+  const words = String(name || '?').trim().split(/\s+/).filter(Boolean);
+  return ((words[0] || '?').charAt(0) + (words[1] ? words[1].charAt(0) : '')).toUpperCase();
 }
 
 
@@ -51,7 +53,8 @@ function person(S, pid, cls, note) {
 
 function wheel(S, landed = false) {
   const players = S.players || [];
-  const colors = ['#ffd25c', '#90d6c1', '#e7a2c1', '#bfa7e5'];
+  // The live strip's seat colours, so a slice and its player's seat match.
+  const colors = ['var(--fam-party)', 'var(--fam-board)', 'var(--fam-create)', 'var(--fam-arcade)', 'var(--sun)'];
   const count = Math.max(1, players.length);
   const segments = players.map((p, i) => `${colors[i % colors.length]} ${i / count * 360}deg ${(i + 1) / count * 360}deg`).join(', ');
   const picked = players.findIndex(p => p.id === S.victim);
@@ -73,7 +76,7 @@ function meter(S, label, pids, win) {
 
 function lastRecap(S, L) {
   const verdict = L.skipped ? 'Skipped (left the game)' : L.done + L.chicken === 0 ? 'No verdict' : L.success ? 'Completed' : L.split ? 'Even split' : 'Not completed';
-  return `Last dare · ${nameOf(S, L.victim)}: ${L.dare} · ${verdict} (${L.done} done, ${L.chicken} chicken)`;
+  return `Last dare · ${nameOf(S, L.victim)}: ${L.dare} · ${verdict} (${L.done} Done, ${L.chicken} Chicken votes)`;
 }
 
 function paint(el, S, api) {
@@ -189,7 +192,7 @@ export default {
       const jurors = (S.players || []).filter((p) => !p.left && p.id !== victim).map((p) => p.id);
       const live = ['perform', 'verdict'].includes(S.phase);
       paintLiveStrip(el.querySelector?.('.party-scene'), S, {
-        label: live ? 'Jurors' : 'Players', roles, actors: jurors,
+        roles, actors: jurors,
         acted: S.phase === 'verdict' ? S.voted || [] : [], verb: 'Voted',
         waiting: S.phase === 'verdict' ? 'Judging' : S.phase === 'perform' ? 'Watching' : false,
         gains: S.phase === 'reveal' && S.last?.points && victim ? { [victim]: S.last.points } : {},

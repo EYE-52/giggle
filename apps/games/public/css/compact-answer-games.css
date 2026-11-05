@@ -206,3 +206,4 @@
   #gbody .mt.pl-fill .mt-tray { padding: var(--space-12); gap: var(--space-8); border-radius: var(--radius-lg); }
   #gbody .tr.pl-fill .tr-target { padding: var(--space-12) var(--space-16); border-radius: var(--radius-lg); }
 }
+#gbody .rt.pl-fill .rt-pad.is-fouled, #gbody .rt.pl-fill .rt-pad.is-tapped, #gbody .rt.pl-fill .rt-pad.is-wait { color: var(--ink); }

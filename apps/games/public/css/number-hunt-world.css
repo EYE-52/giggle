@@ -33,7 +33,7 @@
   height: 28px; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
   background: repeating-linear-gradient(90deg, var(--well) 0 calc(10% - 2px), var(--line-strong) calc(10% - 2px) 10%);
 }
-#gbody .nh.pl-fill .nh-window { background: var(--fam-soft); border: var(--outline-w) solid var(--fam); border-radius: var(--radius-pill); box-sizing: border-box; }
+#gbody .nh.pl-fill .nh-window { background: color-mix(in srgb, var(--fam) 30%, transparent); border: var(--outline-w) solid var(--fam-deep); border-radius: var(--radius-pill); box-sizing: border-box; }
 #gbody .nh.pl-fill .nh-reading b { font-size: 34px; color: var(--fam-deep); }
 #gbody .nh.pl-fill .nh-reading strong { font: var(--text-title); }
 #gbody .nh.pl-fill .nh-hint { border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-md); }
@@ -45,3 +45,8 @@
   #gbody .nh.pl-fill .nh-range { padding: var(--space-16); border-radius: var(--radius-lg); }
   #gbody .nh.pl-fill .nh-bounds > span:not(.nh-between) { font-size: 22px; }
 }
+/* No hints yet: the feed and its title wait off screen instead of
+ * printing an empty box. */
+#gbody .nh.pl-fill .nh-feed-title:has(+ .wg-feed > .wg-feed-empty:only-child),
+#gbody .nh.pl-fill .wg-feed:has(> .wg-feed-empty:only-child) { display: none; }
+#gbody .nh.pl-fill .nh-reading strong { padding: 0 var(--space-8); border-radius: var(--radius-sm); background: var(--fam-soft); }

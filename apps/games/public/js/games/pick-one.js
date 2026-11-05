@@ -68,7 +68,7 @@ function paint(el, S, api) {
         + `<span class="gk-hud-phase party-phase">${done ? 'Final scores' : reveal ? 'Results' : 'Vote'}</span>`
         + (watch ? `<span class="party-spectator">Watching</span>` : '')
         + `<span class="gk-hud-progress party-progress" id="pProgress"></span><span class="gk-hud-timer" aria-hidden="true"></span></div>`
-        + `<h3 class="gk-prompt party-prompt">${done ? 'Final scores' : 'Which side are you on?'}</h3>`
+        + `<h3 class="gk-prompt party-prompt">${done ? 'Final scores' : reveal ? 'How the room picked' : 'Which side are you on?'}</h3>`
         + choiceCards(S, picked, watch, reveal)
         + (done ? '' : `<p class="gk-wait pick-status${reveal ? ' is-done' : ''}" id="pStatus" role="status"></p>`)
         + (done ? '' : `<div class="gk-actions is-center pick-actions"><button type="button" class="gk-btn gk-primary" id="pNext" hidden>Next</button></div>`)
@@ -85,7 +85,7 @@ function paint(el, S, api) {
       status.textContent = reveal ? (watch ? 'Here is how the room picked.' : picked ? `You picked ${label}.` : 'You sat this one out.')
         : watch ? `Watching · waiting for ${plural(waiting, 'player')}`
         : picked ? `Locked in · waiting for ${plural(waiting, 'player')}`
-        : 'Tap A or B before the clock runs out.';
+        : 'Pick A or B before the clock runs out.';
     }
     for (const b of el.querySelectorAll('[data-v]')) {
       b.disabled = !!picked || watch || S.phase !== 'vote' || !!S.preparing;

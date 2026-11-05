@@ -8,9 +8,12 @@ function auditTextContrast(root) {
   const styles = new Map(), backgrounds = new Map(), errors = [];
   let checked = 0, minimum = Infinity;
   const css = n => { if (!styles.has(n)) styles.set(n, win.getComputedStyle(n)); return styles.get(n); };
+  // color-mix() computes to color(srgb r g b / a) with 0–1 channels.
   const rgba = value => {
     const numbers = value?.match(/[\d.]+/g)?.map(Number);
-    return numbers?.length >= 3 ? [...numbers.slice(0, 3), numbers[3] ?? 1] : [0, 0, 0, 0];
+    if (!(numbers?.length >= 3)) return [0, 0, 0, 0];
+    const scale = /^color\(srgb\b/.test(value || '') ? 255 : 1;
+    return [...numbers.slice(0, 3).map(n => n * scale), numbers[3] ?? 1];
   };
   const over = (fg, bg) => fg.slice(0, 3).map((c, i) => c * fg[3] + bg[i] * (1 - fg[3]));
   const painted = n => {

@@ -254,15 +254,17 @@
  * ========================================================================== */
 #gbody .pl-fill {
   display: flex; flex-direction: column; gap: var(--space-16);
-  min-height: calc(100dvh - var(--pl-chrome, 120px));
+  min-height: calc((100dvh - var(--pl-chrome, 120px)) / var(--pl-zoom, 1));
   padding-block: var(--space-8) var(--space-16);
 }
 #gbody .pl-fill > * { margin-block: 0; }
 /* The round's own content sits in the middle of the free space. */
-#gbody .pl-fill > .gk-hud + *, #gbody .pl-fill > .party-hud + * { margin-top: auto; }
+@media (min-width: 561px) {
+  #gbody .pl-fill > .gk-hud + *, #gbody .pl-fill > .party-hud + * { margin-top: auto; }
+}
 #gbody .pl-fill > .pl-live { margin-top: auto; }
 @media (max-width: 560px) {
-  #gbody .pl-fill { gap: var(--space-12); --pl-chrome: 112px; }
+  #gbody .pl-fill { gap: var(--space-12); --pl-chrome: 108px; }
 }
 
 /* ---- HUD: phase chip, progress, timer bar ---- */
@@ -273,7 +275,7 @@
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-round, .party-round) { font: var(--text-button-sm); color: var(--ink); }
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-phase, .party-phase):not(:empty) {
   display: inline-flex; align-items: center; min-height: 28px; padding: 0 var(--space-12);
-  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  border: 0; border-radius: var(--radius-sm);
   background: var(--fam-soft); color: var(--fam-deep); font: var(--text-caption); font-weight: 800;
 }
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-progress, .party-progress) {
@@ -288,16 +290,18 @@
   background: var(--card); box-shadow: var(--shadow-sticker-sm);
   font: 800 20px/1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; text-align: center;
 }
+#gbody .pl-fill .gk-hud-timer { padding-bottom: 6px; }
 #gbody .pl-fill .gk-hud-timer::before {
-  content: ""; position: absolute; z-index: -1; inset: 0; background: var(--fam-soft);
+  content: ""; position: absolute; z-index: -1; left: 8px; right: 8px; bottom: 4px; height: 5px;
+  border-radius: var(--radius-pill); background: var(--fam);
   transform-origin: left center; transform: scaleX(var(--gk-timer-left, 1));
   transition: transform 250ms var(--ease);
 }
 /* Digits stay ink on every fill, so they read over both halves of the bar. */
-#gbody .pl-fill .gk-hud-timer.is-warn { border-color: var(--outline); }
+#gbody .pl-fill .gk-hud-timer.is-warn { background: var(--warning-soft); }
 #gbody .pl-fill .gk-hud-timer.is-warn::before { background: var(--warning); }
 #gbody .pl-fill .gk-hud-timer.is-urgent { background: var(--danger-soft); border-color: var(--danger); }
-#gbody .pl-fill .gk-hud-timer.is-urgent::before { background: color-mix(in srgb, var(--danger) 45%, var(--danger-soft)); }
+#gbody .pl-fill .gk-hud-timer.is-urgent::before { background: var(--danger); }
 #gbody .pl-fill .gk-hud-timer:empty { visibility: hidden; }
 
 /* ---- the live strip ---- */
@@ -326,7 +330,10 @@
 .pl-dots { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
 .pl-dots > li { width: 12px; height: 12px; border: var(--outline-w) solid var(--outline); border-radius: 50%; background: var(--well); }
 .pl-dots > li.is-done { background: var(--fam); }
-.pl-dots > li.is-now { width: 24px; border-radius: var(--radius-pill); background: var(--warning); }
+.pl-dots > li.is-now { background: var(--card); box-shadow: 0 0 0 3px var(--fam); }
+.pl-dotsbox { display: inline-flex; align-items: center; gap: var(--space-8); }
+.pl-dotsbox::before { content: "Rounds"; font: var(--text-caption); font-weight: 800; color: var(--ink-dim); }
+.pl-dotsbox:empty::before { content: none; }
 .pl-seats {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: var(--space-8);
   margin: 0; padding: 0; list-style: none;
@@ -366,6 +373,7 @@
 .pl-seat.is-role .pl-state { color: var(--ink); font-weight: 800; }
 .pl-points { grid-area: pts; display: flex; align-items: baseline; gap: var(--space-4); min-width: 0; font-variant-numeric: tabular-nums; }
 .pl-points b { font: 800 17px/1.2 var(--font-display); color: var(--ink); }
+.pl-unit { font: var(--text-caption); color: var(--ink-dim); }
 .pl-gain { padding: 0 var(--space-4); border-radius: var(--radius-sm); background: var(--success-soft); color: var(--ink); font: var(--text-caption); font-weight: 800; }
 .pl-gain.is-empty { visibility: hidden; }
 @media (max-width: 560px) {
@@ -416,7 +424,7 @@
 }
 #gbody .pl-fill :is(.gk-choice, .party-choice):is(.is-selected, .is-picked, [aria-pressed="true"]) .gk-mark { background: var(--side); color: var(--on-side); border-color: var(--outline); }
 #gbody .pl-fill :is(.gk-choices, .party-choices).is-locked > :not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct) {
-  opacity: 1; background: var(--well); box-shadow: none; border-color: var(--line-strong);
+  opacity: 1; background: var(--card); box-shadow: none; border-color: var(--line-strong);
 }
 #gbody .pl-fill :is(.gk-choices, .party-choices).is-locked > :not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct) .gk-mark { background: var(--card); color: var(--ink-dim); border-color: var(--line-strong); }
 #gbody .pl-fill .gk-choices.is-locked .gk-choice:is(.is-selected, [aria-pressed="true"])::after { content: none; }
@@ -464,7 +472,8 @@
   background: var(--fam); color: var(--on-fam); box-shadow: var(--shadow-sticker); font: var(--text-button); font-size: 19px;
 }
 #gbody .pl-fill .gk-btn.gk-primary:not(:disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
-#gbody .pl-fill .gk-btn.gk-primary:disabled { background: var(--well); color: var(--ink-dim); border-color: var(--line-strong); box-shadow: none; }
+/* Disabled stays legible: ink on card with a dashed rim, flat. */
+#gbody .pl-fill .gk-btn.gk-primary:disabled { background: var(--card); color: var(--ink); border-style: dashed; border-color: var(--line-strong); box-shadow: none; }
 @media (hover: hover) {
   #gbody .pl-fill .gk-btn.gk-primary:not(:disabled):hover { transform: translateY(-2px); filter: none; border-color: var(--outline); }
 }
@@ -588,7 +597,7 @@
   padding: var(--space-16) var(--space-24); text-align: center; background: var(--fam-soft);
   border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
 }
-#gbody .pl-fill .party-rank-item { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sticker-sm); font: 800 18px/1.3 var(--font-display); }
+#gbody .pl-fill .party-rank-item { min-height: var(--control-h); padding-block: var(--space-4); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sticker-sm); font: 800 18px/1.3 var(--font-display); }
 #gbody .pl-fill .party-rank-item .gk-mark { width: 36px; height: 36px; background: var(--fam); color: var(--on-fam); border: var(--outline-w) solid var(--outline); font: 800 17px/1 var(--font-display); }
 #gbody .pl-fill .party-rank-item.is-moved { background: var(--fam-soft); }
 #gbody .pl-fill .party-rank-item .party-actions { gap: var(--space-8); }
@@ -601,3 +610,59 @@
 /* An odd last card in a two-column answer grid spans the row, never sits
  * alone in half of it. */
 #gbody .pl-fill .gk-choices:not(.pl-ab) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+.pl-seat.is-role.is-bad .pl-badge { background: var(--danger); color: var(--on-danger); }
+.pl-seat.is-role.is-bad .pl-badge::before { content: "✕"; }
+
+/* Secondary text on tinted stickers uses full ink: the dim grey only
+ * reaches 4.5:1 on plain card and well surfaces. */
+#gbody .pl-fill :is(.gk-choice, .party-choice):is(.is-selected, .is-picked, [aria-pressed="true"], .is-correct, .is-wrong, .is-majority),
+#gbody .pl-fill :is(.party-result--winner, .gk-wait-card, .hot-mine, .never-card, .likely-row.is-winner, .tq-spot, .mt-tray, .party-choice),
+#gbody .pl-fill > :is(.gk-prompt, .party-prompt),
+#gbody .pl-fill .pl-seat.is-you,
+#gbody .pl-fill .pl-ab > :is(.gk-choice, .party-choice) { --ink-dim: var(--ink); }
+
+/* Wider stage on desktop so the round is not a thin column in a wide window. */
+#gbody .pl-fill.gk-col, #gbody .pl-fill.party-scene { max-width: 960px; }
+.party-wheel-name > span { font-size: 13px; }
+/* Phones: the strip is one compact row of seats so it stays on the first
+ * screen under the round. */
+@media (max-width: 560px) {
+  .pl-live { padding: var(--space-8) var(--space-12) var(--space-12); gap: var(--space-8); }
+  .pl-seat {
+    flex: 1 0 104px; max-width: 180px; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "av name" "av pts";
+    justify-items: start; text-align: left; column-gap: var(--space-8); row-gap: 0; padding: var(--space-4) var(--space-8);
+  }
+  .pl-seat .pl-state { display: none; }
+  .pl-avatar { width: 32px; height: 32px; font-size: 14px; margin: 0; }
+  .pl-badge { width: 16px; height: 16px; right: -4px; bottom: -4px; font-size: 10px; }
+  .pl-points b { font-size: 15px; }
+  .pl-dotsbox::before { content: none; }
+  #gbody .pl-fill { padding-bottom: var(--space-8); }
+}
+#gbody .tq.pl-fill .tq-spot .gk-wait { align-self: flex-start; margin-inline: 0; }
+/* Locked lists (Roast, Compliment, Punchline, Bluff, Two Truths, Trivia,
+ * Polls) mark the viewer's pick with the same tab as the A/B cards. */
+#gbody .pl-fill:not(.party-scene--poll) :is(.gk-choices, .party-choices).is-locked:not(.pl-ab) > :is(.is-selected, .is-picked, [aria-pressed="true"])::before {
+  content: "Your pick"; position: absolute; z-index: 2; top: -12px; right: var(--space-16);
+  padding: 0 var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--card); color: var(--ink); font: var(--text-caption); font-weight: 800; line-height: 20px;
+}
+#gbody .pl-fill .gk-wait { text-wrap: balance; }
+.pl-live { text-align: left; }
+.pl-points { white-space: nowrap; }
+@media (max-width: 560px) {
+  .pl-seat .pl-gain.is-empty { display: none; }
+  .pl-seat { flex-basis: 96px; }
+}
+
+/* Rules chip: an info button at the right end of the strip header. */
+#gbody .pl-live .pl-head :is(.party-more, .wg-more) { order: 3; }
+#gbody .pl-live :is(.party-more, .wg-more) > summary::before {
+  content: "i"; display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: var(--space-8);
+  border-radius: 50%; background: var(--ink); color: var(--card); font: 800 12px/1 var(--font-display); font-style: italic;
+}
+@media (max-width: 560px) {
+  .pl-seat { grid-template-areas: "av name" "av state" "av pts"; }
+  .pl-seat .pl-state { display: block; min-height: 0; font-size: 12px; line-height: 1.3; }
+  #gbody .pl-live :is(.party-more, .wg-more) > summary { padding: 0 var(--space-8); font-size: 13px; }
+}

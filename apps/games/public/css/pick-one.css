@@ -21,3 +21,5 @@
 @media (prefers-reduced-motion: reduce) {
   .pick-world * { transition: none !important; animation: none !important; }
 }
+.pick-choices.is-reveal .pick-result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.pick-choices.is-reveal .pick-bar { flex: 1 0 100%; }

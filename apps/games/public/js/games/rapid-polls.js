@@ -108,7 +108,7 @@ function paint(el, S, api) {
       const patchTallies = () => {
         el.querySelectorAll('[data-v]').forEach(b => {
           const i = Number(b.dataset.v), n = S.counts?.[i] || 0;
-          b.querySelector('.party-choice-tally').innerHTML = `${n}<small>votes</small>`;
+          b.querySelector('.party-choice-tally').innerHTML = `${n}<small>${n === 1 ? 'vote' : 'votes'}</small>`;
           b.querySelector('.party-poll-fill').style.width = `${total ? n / total * 100 : 0}%`;
         });
         const st = el.querySelector('#rpStatus');
@@ -124,7 +124,7 @@ function paint(el, S, api) {
       voteKey = key;
       const btns = S.poll.options.map((opt, i) =>
         `<button class="party-choice${picked === i ? ' is-picked' : ''}" data-v="${i}" aria-pressed="${picked === i}" ${(locked || watch) ? 'disabled' : ''}>`
-        + `<span class="party-poll-fill" aria-hidden="true" style="width:${total ? (S.counts?.[i] || 0) / total * 100 : 0}%"></span><span class="gk-mark" aria-hidden="true">${'ABCD'[i]}</span><span>${esc(opt)}</span><span class="party-choice-tally">${S.counts?.[i] || 0}<small>votes</small></span></button>`
+        + `<span class="party-poll-fill" aria-hidden="true" style="width:${total ? (S.counts?.[i] || 0) / total * 100 : 0}%"></span><span class="gk-mark" aria-hidden="true">${'ABCD'[i]}</span><span>${esc(opt)}</span><span class="party-choice-tally">${S.counts?.[i] || 0}<small>${(S.counts?.[i] || 0) === 1 ? 'vote' : 'votes'}</small></span></button>`
       ).join('');
       const waiting = Math.max(0, (S.players || []).length - total);
       el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--poll" aria-label="Rapid poll vote">`

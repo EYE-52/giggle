@@ -93,7 +93,7 @@ function splitRows(S, r, agreeLabel, disLabel) {
   const all = r.agree.length + r.disagree.length;
   const pct = all ? r.agree.length / all * 100 : 0;
   const side = (label, voters) => `<div class="hot-split-side"><b>${esc(label)} ${voters.length}</b><p class="party-meta">${voters.map(pid => esc(nameOf(S, pid))).join(', ') || 'No votes'}</p></div>`;
-  return `<div class="hot-room-split"><div class="hot-split-track" role="img" aria-label="${r.agree.length} agree, ${r.disagree.length} disagree"><span style="width:${pct}%"></span><span style="width:${all ? 100 - pct : 0}%"></span></div><div class="hot-split-labels">${side(agreeLabel, r.agree)}${side(disLabel, r.disagree)}</div><p class="party-meta">${Math.min(r.agree.length, r.disagree.length)} on the smaller side · a closer split makes a hotter take.</p></div>`;
+  return `<div class="hot-room-split"><div class="hot-split-track" role="img" aria-label="${r.agree.length} agree, ${r.disagree.length} disagree"><span style="width:${pct}%"></span><span style="width:${all ? 100 - pct : 0}%"></span></div><div class="hot-split-labels">${side(agreeLabel, r.agree)}${side(disLabel, r.disagree)}</div><p class="party-meta">${plural(Math.min(r.agree.length, r.disagree.length), 'player')} on the smaller side. Closer splits score more.</p></div>`;
 }
 
 function paint(el, S, api) {
@@ -221,7 +221,7 @@ function paint(el, S, api) {
       el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--hot" aria-label="Hot take reveal">`
         + `${hud(S)}`
         + `<h3 class="gk-prompt party-prompt">“${esc(S.current.text)}”</h3>`
-        + `<p class="gk-wait is-done" role="status">by ${S.current.author ? esc(nameOf(S, S.current.author)) : 'the house'}</p>`
+        + `<p class="gk-wait is-done" role="status">${S.current.author ? `Take by ${esc(nameOf(S, S.current.author))}` : 'A starter take'}</p>`
         + `${splitRows(S, r, agreeLabel, disLabel)}`
         + `<div class="gk-actions is-center hot-actions">${!isWatch(S) && S.me === S.hostId ? '<button type="button" class="gk-btn gk-primary" id="hNext">Next</button>' : ''}</div>`
         + `</section>`;

@@ -23,3 +23,6 @@
 @media (prefers-reduced-motion: reduce) {
   .wyr-world * { transition: none !important; animation: none !important; }
 }
+/* Reveal: share and voter chips share one row under the bar. */
+.wyr-choices.is-reveal .wyr-result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.wyr-choices.is-reveal .wyr-bar { flex: 1 0 100%; }
