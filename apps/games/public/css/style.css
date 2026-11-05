@@ -1585,11 +1585,24 @@ body.game-playing.game-immersive .room-menu-panel { background: var(--card); col
  * and the other participants finish loading. No countdown competes with it. */
 .game-preparation { position: fixed; bottom: max(24px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 45; display: flex; align-items: center; gap: 10px; width: max-content; max-width: calc(100vw - 32px); border: 1px solid var(--line-strong); border-radius: 16px; padding: 14px 20px; background: var(--card); color: var(--ink); box-shadow: 0 8px 32px #24203622; font: 800 16px var(--font-body); }
 .preparation-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+/* Full-screen games are inert while preparing: centre the card over the
+ * arena instead of covering its bottom HUD. */
+body.game-immersive .game-preparation { top: 50%; bottom: auto; transform: translate(-50%, -50%); }
+.preparation-dots { flex: none; display: inline-flex; gap: 4px; }
+.preparation-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.preparation-dots i:nth-child(2) { background: var(--gold, #f5b82e); }
+.preparation-dots i:nth-child(3) { background: var(--green, #2bb673); }
+.preparation-text { display: grid; gap: 2px; min-width: 0; }
+.preparation-text small { max-width: 46ch; color: var(--ink-dim); font: 600 13px/1.35 var(--font-body); }
 .game-load-error { max-width: 480px; margin: 12vh auto; padding: 32px 24px; text-align: center; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 20px; }
 .game-load-error h2 { font-size: 28px; }
 .game-load-error p { color: var(--ink-dim); }
 @media (prefers-reduced-motion: no-preference) {
   .preparation-dot { animation: ready-breathe 1.2s ease-in-out infinite; }
+  .preparation-dots i { animation: ready-hop .9s ease-in-out infinite; }
+  .preparation-dots i:nth-child(2) { animation-delay: .15s; }
+  .preparation-dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes ready-hop { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
   .howto-dlg[open], .dlg { animation: sheet-enter .22s cubic-bezier(.2,.75,.25,1); }
   .howto-dlg::backdrop { animation: sheet-dim .18s ease; }
   @keyframes ready-breathe { 50% { opacity: .3; } }
