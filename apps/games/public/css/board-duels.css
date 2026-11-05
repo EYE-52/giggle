@@ -5,7 +5,7 @@
 .bk-game{--bk-gap:20px;grid-template-rows:minmax(calc(100svh - var(--bk-top) - 20px),auto);--bk-top:64px;--bk-panel:296px;--bk-aspect:1;position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--bk-panel);gap:var(--bk-gap);align-items:start;width:100%;min-height:100svh;margin:0;padding:var(--bk-top) 20px 20px;box-sizing:border-box;background:var(--bg);color:var(--ink);font:16px/1.45 var(--font-body);min-width:0}
 .bk-game *,.bk-game *::before,.bk-game *::after{box-sizing:border-box}
 .bk-game [hidden]{display:none!important}
-.bk-stage{grid-column:1;grid-row:1;justify-self:center;align-self:center;position:relative;width:min(100%,calc((100svh - var(--bk-top) - 20px) * var(--bk-aspect)));min-width:0;line-height:0}
+.bk-stage{grid-column:1;grid-row:1;justify-self:center;align-self:start;margin-top:max(0px,calc((100svh - var(--bk-top) - 20px - 100% / var(--bk-aspect)) / 2));position:relative;width:min(100%,calc((100svh - var(--bk-top) - 20px) * var(--bk-aspect)));min-width:0;line-height:0}
 .bk-stage svg{display:block;width:100%;height:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 .bk-stage :focus{outline:none}
 
@@ -103,7 +103,7 @@
  .bk-chip,.bk-chip svg{width:24px;height:24px}
  .bk-chip .bk-dot{width:22px;height:22px}
  .bk-stat-value{font-size:19px}
- .bk-stage{order:2;width:100%;max-width:560px;align-self:center}
+ .bk-stage{order:2;width:100%;max-width:560px;align-self:center;margin-top:0}
  .bk-status{order:3;min-height:4.4em}
  .bk-timer{order:4}
  .bk-extra{order:5}
@@ -120,7 +120,7 @@
  * scrolled result, focused action or help heading cannot pass beneath them. */
 @media (orientation:landscape) and (max-height:500px) and (min-width:560px){
  .bk-game{display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,32vw,280px);grid-template-rows:minmax(0,1fr);height:100svh;padding:12px;--bk-top:12px;gap:12px}
- .bk-stage{grid-column:1;grid-row:1;width:min(100%,calc((100svh - 24px) * var(--bk-aspect)))}
+ .bk-stage{grid-column:1;grid-row:1;width:min(100%,calc((100svh - 24px) * var(--bk-aspect)));align-self:center;margin-top:0}
  .bk-panel{display:flex;grid-column:2;grid-row:1;margin-top:52px;max-height:calc(100svh - 76px);overflow:auto;overscroll-behavior:contain;scroll-padding-block:8px;gap:8px}
  .bk-panel>*{flex-shrink:0}
  .bk-head{padding:0 2px;min-height:0}

@@ -183,6 +183,25 @@ export function createKartView(viewConfig) {
   const clearHolds = new Set();
   let boostEdge = false;
   let predictBoost = false; // local visual pop; cleared on every snapshot
+  /* Shots answer the press at once: the sound and recoil play locally and
+   * the server's matching fire event is skipped, so a 150ms round trip no
+   * longer delays the feel of a hit. One local cue absorbs one echo. */
+  let localFires = [], localRecoil = false, localRecoilAt = -1e9;
+  function localFireCue() {
+    const me = myKart();
+    if (!isBattle() || S?.phase !== 'drive' || !me || me.respawn || !(me.ammo > 0) || !ITEMS[me.weapon]) return;
+    audio?.cue(me.weapon);
+    localFires.push({ weapon: me.weapon, at: nowMs() });
+    localRecoil = true;
+  }
+  function claimLocalFire(event) {
+    const now = nowMs();
+    localFires = localFires.filter(f => now - f.at < 800);
+    const i = localFires.findIndex(f => f.weapon === event.weapon);
+    if (i < 0) return false;
+    localFires.splice(i, 1);
+    return true;
+  }
   let fbLastT = 0;
   let lastSent = '';
   let sendTimer = 0;
@@ -1106,11 +1125,12 @@ export function createKartView(viewConfig) {
           combatEffects.clear();popSites.length=0;effectSeen.clear();
         }
         impactFX.update(effectDt);
+        if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
         for(const e of acceptedEffects){if(effectSeen.has(e.id))continue;effectSeen.add(e.id);
           if(e.at>=impactSince&&e.position)impactFX.emit(e);
-          if(e.kind==='fire')combat.recoil(karts.get(e.pid)?.userData.rig);
+          if(e.kind==='fire'&&!(e.pid===S.you&&nowMs()-localRecoilAt<800))combat.recoil(karts.get(e.pid)?.userData.rig);
           if((e.kind==='fire'||e.kind==='impact')&&e.position){
             let cue=null;
             for(const candidate of shotCues)if(candidate.kind===e.weapon&&(!cue||!candidate.object.visible||candidate.until<cue.until)){cue=candidate;if(!candidate.object.visible)break;}
@@ -1708,6 +1728,7 @@ export function createKartView(viewConfig) {
           latchPulseHold();
           boostEdge = true;
           predictBoost = true; // instant local pop; snapshot confirms
+          localFireCue();
           sendInput(false);
         }
         return;
@@ -1848,6 +1869,7 @@ export function createKartView(viewConfig) {
         latchPulseHold();
         boostEdge = true;
         predictBoost = true;
+        localFireCue();
         sendInput(false);
       };
       on(tb, 'pointerdown', (e) => {
@@ -1972,7 +1994,8 @@ export function createKartView(viewConfig) {
       const me=myKart(),source=S.karts?.find(k=>k.pid===event.pid);
       const nearby=!S.youDrive||event.pid===S.you||event.other===S.you||
         (me&&source&&Math.hypot(me.x-source.x,me.z-source.z)<24);
-      if(nearby&&event.type!=='emp'&&!(event.type==='ko'&&event.weapon==='grenade'))audio?.cue(event.type==='blast'?'grenadeBlast':event.type==='fire'?event.weapon:event.type);
+      const echoed=event.type==='fire'&&event.pid===S.you&&claimLocalFire(event);
+      if(nearby&&!echoed&&event.type!=='emp'&&!(event.type==='ko'&&event.weapon==='grenade'))audio?.cue(event.type==='blast'?'grenadeBlast':event.type==='fire'?event.weapon:event.type);
       if (event.pid !== S.you && event.other !== S.you) continue;
       const mineEvent = event.pid === S.you;
       if (event.type === 'pickup' && mineEvent) {
