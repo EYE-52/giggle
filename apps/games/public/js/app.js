@@ -976,15 +976,20 @@ function avatar(pid, name) {
   return `<span class="avatar" style="background:${avatarColor(pid)}">${esc(initial)}</span>`;
 }
 
-/* `spot` (a Set of player ids) rings exactly the chips that connected
- * since the last snapshot — one brief spotlight, never a full repaint. */
-function playerChips(list, totals, spot) {
-  return `<div class="players">` + list.map((p) =>
-    `<div class="player ${p.connected === false ? 'off' : ''}${spot && spot.has(p.id) ? ' just-joined' : ''}">
-      ${avatar(p.id, p.name)}${esc(p.name)}
-      ${room && p.id === room.hostId ? '<span class="hosttag">host</span>' : ''}
-      <span class="pts">${totals && totals[p.id] ? totals[p.id] : 0} pts</span>
-    </div>`).join('') + `</div>`;
+/* Lobby seats: one big avatar per player, name underneath. `spot` (a Set
+ * of player ids) rings exactly the seats that connected since the last
+ * snapshot — one brief spotlight, never a full repaint. The host wears
+ * the crown; points show only once someone has scored, as a badge that sits
+ * on the avatar so it never shifts the row. */
+function lobbySeats(list, totals, spot) {
+  return `<div class="players lobby-seats">` + list.map((p) => {
+    const pts = totals && totals[p.id] ? totals[p.id] : 0;
+    const host = room && p.id === room.hostId;
+    return `<div class="player seat${p.connected === false ? ' off' : ''}${host ? ' is-host' : ''}${spot && spot.has(p.id) ? ' just-joined' : ''}">
+      <span class="seat-av">${avatar(p.id, p.name)}${host ? '<span class="seat-crown" aria-hidden="true"></span>' : ''}${pts ? `<span class="seat-pts">${pts} pts</span>` : ''}</span>
+      <span class="seat-name">${esc(p.name)}</span>${host ? '<span class="hosttag">host</span>' : ''}
+    </div>`;
+  }).join('') + `</div>`;
 }
 
 /* Embedded squad chips: names + host tag only (no avatars/points rail —
@@ -1216,17 +1221,17 @@ function heroHandHtml() {
   const hand = ['doodle-guess', 'pocket-karts', 'four-in-a-row', 'charades', 'chess']
     .map((id) => games.find((g) => g.id === id)).filter(Boolean);
   if (hand.length < 3) return '';
-  return `<div class="hero-hand" role="group" aria-label="Quick picks">${hand.map((g, i) =>
-    `<button type="button" class="hand-card card-open" data-how="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.name)}" title="${esc(g.name)}" style="--i:${i - (hand.length - 1) / 2};--d:${Math.abs(i - (hand.length - 1) / 2)}">${artImg(g, 'hand-art')}</button>`).join('')}</div>`;
+  return `<div class="hero-hand" role="group" aria-label="Quick picks"><i class="hand-spark" aria-hidden="true"></i><i class="hand-spark" aria-hidden="true"></i>${hand.map((g, i) =>
+    `<button type="button" class="hand-card card-open" data-how="${g.id}" aria-haspopup="dialog" aria-label="${esc(g.name)}" style="--i:${i - (hand.length - 1) / 2};--d:${Math.abs(i - (hand.length - 1) / 2)};--n:${i}">${artImg(g, 'hand-art')}<span class="hand-tag" aria-hidden="true">${esc(g.name)}</span></button>`).join('')}</div>`;
 }
 
-function pickHtml(g) {
+function pickHtml(g, i) {
   // Single-action card: the whole card is one button opening the shared
   // setup dialog (rules + Customize + Create room). No shelf links — setup
   // belongs inside. Fixed geometry: the dialog never stretches these cards.
   return `
-    <button type="button" class="pick card-open" data-how="${g.id}" data-cat="${esc(g.cat || '')}" aria-haspopup="dialog">
-      ${artImg(g, 'gart')}
+    <button type="button" class="pick card-open${i === 0 ? ' pick--lead' : ''}" data-how="${g.id}" data-cat="${esc(g.cat || '')}" aria-haspopup="dialog">
+      ${artImg(g, 'gart')}${g.cat ? `<span class="cat-tag">${esc(catLabel(g.cat))}</span>` : ''}
       <span class="t">${esc(g.name)}</span>
       <span class="d">${esc(g.tagline)}</span>
       <span class="p">${seatsLine(g)}</span>
@@ -1239,7 +1244,7 @@ function catalogRowHtml(g) {
   // shared setup dialog. Exactly one button — no nested controls.
   return `
     <button type="button" class="catrow card-open" data-how="${g.id}" data-cat="${esc(g.cat || '')}" aria-haspopup="dialog">
-      ${artImg(g, 'catart')}
+      ${artImg(g, 'catart')}${g.cat ? `<span class="cat-tag">${esc(catLabel(g.cat))}</span>` : ''}
       <span class="catrow-text"><span class="t">${esc(g.name)}</span><span class="d">${esc(g.tagline)}</span><span class="p">${seatsLine(g)}</span></span>
       <span class="play-pill">Play</span>
     </button>`;
@@ -1289,7 +1294,7 @@ function renderHome() {
           <label for="nm">What should we call you?</label>
           <div class="hero-create-row">
             <input id="nm" type="text" maxlength="16" placeholder="e.g. Pippa" value="${esc(myName)}" autocomplete="off">
-            <div class="hero-cta"><button class="btn big" id="bCreate">Create room</button></div>
+            <div class="hero-cta"><button class="btn big hero-create" id="bCreate">Create room</button></div>
           </div>
           <label class="ticket-or" for="jc"><span>Have a room code?</span></label>
           <div class="hero-joinrow">
@@ -1301,7 +1306,7 @@ function renderHome() {
     </div>
     <div class="band home-picks">
       <div class="sec-head"><h2>Tonight&rsquo;s picks</h2><span class="muted">Four favorites to start the night.</span></div>
-      <div class="pick-grid">${pickGames().map(pickHtml).join('')}</div>
+      <div class="pick-grid">${pickGames().map((g, i) => pickHtml(g, i)).join('')}${!PRACTICE ? PRACTICE_TILE : ''}</div>
     </div>
     <div class="band" id="games">
       <div class="sec-head"><h2>The whole shelf</h2><span class="count-pill" id="shelfCount">${catalogLoaded ? total : 'Loading games…'}</span><span class="muted">Create a room to play any of them.</span></div>
@@ -1316,7 +1321,6 @@ function renderHome() {
       <div class="catchips" role="group" aria-label="Game categories">${catChipsHtml()}</div>
       <div class="catalog-list" id="shelfGames"></div>
       <div class="browse-wrap" id="browseWrap" ${homeFiltered() ? 'hidden' : ''}><button class="btn ghost" id="bBrowse" aria-expanded="${browseAll}">${browseAll ? 'Show fewer' : `Browse all ${total}`}</button></div>
-      ${!PRACTICE ? '<p class="practice-entry">Just you? <a href="/practice/">Practice solo</a> and play every seat yourself.</p>' : ''}
       <p class="giggle-strip">Games need no account. Play here, hang out on
         <a href="https://www.gigglemeet.com" target="_blank" rel="noopener">Giggle Meet</a>
         with your friends.</p>
@@ -1390,6 +1394,14 @@ function renderHome() {
   staggerIn(app.querySelector('.pick-grid'), '.pick');
   staggerIn(app.querySelector('.catalog-list'), '.catrow');
 }
+
+/* The fifth bento cell: solo practice, for anyone without their people yet. */
+const PRACTICE_TILE = `<a class="pick-practice" href="/practice/">
+      <span class="pp-seats" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="t">Just you?</span>
+      <span class="d">Practice solo and play every seat yourself.</span>
+      <span class="play-row"><span class="play-pill">Practice</span></span>
+    </a>`;
 
 /* Shared invite-link copy for the rail button, the Invite-N-more actions,
  * and the single-player hint. Standalone only — embedded rooms never render
@@ -1790,12 +1802,14 @@ function renderLobby() {
       <div class="ps-invite embedctx"><span class="roomcode roomcode-private">Squad night</span><span class="ps-status">Host ${esc(hostName)} · ${n} playing</span></div>
       <div class="ps-party">${embedPlayerChips(room.players, spot)}${wait}</div>` : `
       <div class="ps-invite">
-        <div class="ps-codeblock">
-          <div class="roommeta">Room code</div>
-          <div class="roomcode">${esc(room.code)}</div>
+        <div class="ps-ticket">
+          <div class="ps-codeblock">
+            <div class="roommeta">Room code</div>
+            <div class="roomcode">${esc(room.code)}</div>
+          </div>
+          <button class="btn sun bCopy">Copy invite link</button>
         </div>
         <div class="ps-actions">
-          <button class="btn sun bCopy">Copy invite link</button>
           ${canShare ? '<button class="btn ghost bShare">Share</button>' : ''}
           <details class="sharefold qrpop">
             <summary>QR code</summary>
@@ -1806,7 +1820,7 @@ function renderLobby() {
       </div>
       <div class="ps-party">
         <div class="ps-status">${esc(status)}</div>
-        ${playerChips(room.players, room.totals, spot)}
+        ${lobbySeats(room.players, room.totals, spot)}
         ${wait}
       </div>`;
   const running = room.game ? `<section class="lobby-running" role="status">
@@ -1835,7 +1849,7 @@ function renderLobby() {
     </div>
     ${meetFooter()}`;
   // Practice opens a room on every start; confetti there only covers the lobby.
-  if (celebrate && !EMBED.enabled && !PRACTICE) confetti();
+  if (celebrate && !EMBED.enabled && !PRACTICE) confetti(app.querySelector('.partystrip'), 24);
   const watch = document.getElementById('bWatch');
   if (watch) watch.onclick = () => { watchInstance = instanceId; render(); };
   renderRoomMembers();
@@ -2569,15 +2583,37 @@ function paintGamePreparation() {
     app.appendChild(status);
   }
   if (status && preparing && status.hidden) {
-    // On the first load the playfield is empty: pass the time with one of
-    // the game's own tips. Between rounds a short line covers less of it.
-    const tips = el.childElementCount ? [] : gameById(gameId)?.guide?.tips || [];
-    const tip = tips.length ? tips[Math.floor(Math.random() * tips.length)] : '';
-    status.innerHTML = '<span class="preparation-dots" aria-hidden="true"><i></i><i></i><i></i></span>' +
-      `<span class="preparation-text"><span>Getting everyone ready…</span>${tip ? `<small>Tip: ${esc(tip)}</small>` : ''}</span>`;
+    // On the first load the playfield is empty: show the game's art and
+    // pass the time with its own tips, one after another. Between rounds a
+    // short line covers less of it.
+    const first = !el.childElementCount;
+    const g = gameById(gameId);
+    const tips = first ? g?.guide?.tips || [] : [];
+    const at = Math.floor(Math.random() * tips.length);
+    const order = tips.map((_, i) => tips[(at + i) % tips.length]);
+    status.classList.toggle('is-first', first);
+    // Every tip shares one grid cell, so the card is as tall as the longest
+    // and never resizes as they change. Only the first is read out.
+    status.innerHTML = (first && g ? artImg(g, 'preparation-art') : '') +
+      '<span class="preparation-dots" aria-hidden="true"><i></i><i></i><i></i></span>' +
+      `<span class="preparation-text"><span>Getting everyone ready…</span>${order.length ? `<span class="preparation-tips">${order.map((t, i) =>
+        `<small${i ? ' aria-hidden="true"' : ' class="is-on"'}>Tip: ${esc(t)}</small>`).join('')}</span>` : ''}</span>`;
+    if (preparationTipTimer) clearInterval(preparationTipTimer);
+    if (order.length > 1) {
+      let on = 0;
+      preparationTipTimer = setInterval(() => {
+        const smalls = status.querySelectorAll('.preparation-tips small');
+        if (!status.isConnected || status.hidden || !smalls.length) { clearInterval(preparationTipTimer); return; }
+        smalls[on].classList.remove('is-on');
+        on = (on + 1) % smalls.length;
+        smalls[on].classList.add('is-on');
+      }, 4500);
+    }
   }
   if (status) status.hidden = !preparing;
+  if (!preparing && preparationTipTimer) { clearInterval(preparationTipTimer); preparationTipTimer = 0; }
 }
+let preparationTipTimer = 0;
 
 function rememberPreparationFocus(next, prev) {
   if (preparationFocus && (preparationFocus.instance !== next.instanceId || preparationFocus.window !== next.w)) preparationFocus = null;
@@ -2607,7 +2643,8 @@ function paintGameLoadError({ gameId: failedGame, instanceId: failedInstance, wi
   el.setAttribute('aria-busy', 'false');
   const status = document.getElementById('gamePreparation');
   if (status) status.hidden = true;
-  el.innerHTML = '<section class="game-load-error" role="alert"><h2>This game couldn’t load</h2><p>Try again, or use Room to return to the lobby.</p><button type="button" class="btn" id="retryGameView">Retry</button></section>';
+  const g = gameById(gameId);
+  el.innerHTML = `<section class="game-load-error" role="alert">${g ? `<span class="load-error-art" aria-hidden="true">${artImg(g, 'load-error-img')}</span>` : ''}<h2>This game couldn’t load</h2><p>Your room is still here. Check your connection and try again, or use Room to go back to the lobby.</p><button type="button" class="btn big" id="retryGameView">Try again</button></section>`;
   el.querySelector('#retryGameView').onclick = () => {
     resetView();
     paintGamePreparation();
