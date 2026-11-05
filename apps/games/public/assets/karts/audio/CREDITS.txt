@@ -103,14 +103,6 @@ rocket.wav
   License: CC-BY-3.0
   Changes: attack + whoosh 0-0.9s; 5ms fade-in, 120ms fade-out; DC removed; peak -5dB
 
-rail.wav
-  Author: Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney
-  Work: OpenGameArt: The Free Firearm Sound Library
-  Source: https://opengameart.org/content/the-free-firearm-sound-library
-  Acquired file: Prepared SFX Library/Tikka/W_24P.wav
-  License: CC0-1.0
-  Changes: atrim=start=0.73:duration=0.5,asetpts=PTS-STARTPTS,pan=mono|c0=0.5*c0+0.5*c1,highpass=f=100,lowpass=f=10500,afade=t=in:d=0.001,afade=t=out:st=0.43:d=0.07,aresample=44100, volume=0.72004195
-
 grenade.wav
   Author: Ben Jaszczak, Brian Nelson, Kevin Heras, Matthew Nanney
   Work: OpenGameArt: The Free Firearm Sound Library
@@ -118,14 +110,6 @@ grenade.wav
   Acquired file: Prepared SFX Library/AR-15/D_24P.wav
   License: CC0-1.0
   Changes: atrim=start=0.52:duration=0.33,asetpts=PTS-STARTPTS,pan=mono|c0=0.5*c0+0.5*c1,highpass=f=70,lowpass=f=1600,afade=t=in:d=0.001,afade=t=out:st=0.26:d=0.07,aresample=44100, volume=0.69962553
-
-emp.wav
-  Author: Hansjorg Malthaner (varkalandar)
-  Work: OpenGameArt: Tesla coil powered death ray sound
-  Source: https://opengameart.org/content/tesla-coil-powered-death-ray-sound
-  Acquired file: hjm-tesla_sound_shot.wav
-  License: CC-BY-3.0
-  Changes: discharge 0.05-0.50s; 5ms fade-in, 60ms fade-out; DC removed; peak -7dB
 
 grenadeBlast.wav
   Author: Kenney
@@ -185,4 +169,3 @@ bombBlast.wav
 
 Original tire recording: audible-edge (Tom Haigh), CC0, https://freesound.org/people/audible-edge/sounds/71739/; the qubodup loop edit ships under CC-BY 3.0.
 
-Requested Tesla author profile credit: Hansjörg Malthaner (varkalandar), https://opengameart.org/users/varkalandar

@@ -19,7 +19,7 @@ function armed(weapon,m=map(),options={}){
  }throw Error('No real pickup seed for '+weapon);
 }
 function tap(w){assert(send(w,'a',{use:true}).ok);assert(send(w).ok);step(w);}
-for(const [weapon,count] of [['pulse',12],['rocket',3],['scatter',5],['rail',5]]){
+for(const [weapon,count] of [['pulse',12],['rocket',3],['scatter',5]]){
  const w=armed(weapon);try{
   tap(w);const fires=new Map(w.snapshot().events.filter(e=>e.type==='fire').map(e=>[e.id,e]));
   check(kart(w).firing===true&&kart(w).weapon===weapon&&kart(w).ammo===count-1,weapon+' publishes the in-progress inventory after one tap');
@@ -55,12 +55,12 @@ for(const [weapon,count] of [['pulse',12],['rocket',3],['scatter',5],['rail',5]]
  const duelMap=map([],[point('a',0,0),{...point('b',0,12),angle:Math.PI}]);duelMap.sockets=[point('s0',-.7,0),point('s1',.7,0),point('s2',-.7,12),point('s3',.7,12)];let duel;
  for(let seed=0;seed<2048;seed++){
   const candidate=COMBAT.createElevatedCombat(R,CONFIG,duelMap,[{id:'a'},{id:'b'}],{instance:'payload-ko-'+(++instance),seed,startAt:0,countdownMs:0,roundMs:30000,crates:2,initialHealth:1});step(candidate);
-  if(kart(candidate).weapon==='pulse'&&kart(candidate,'b').weapon==='rail'){duel=candidate;break;}candidate.dispose();
+  if(kart(candidate).weapon==='pulse'&&['pulse','scatter'].includes(kart(candidate,'b').weapon)){duel=candidate;break;}candidate.dispose();
  }
  check(!!duel,'KO lifecycle fixture acquires both opposing weapons through real crates');
  try{
   step(duel,160);tap(duel);assert(send(duel,'b',{use:true}).ok);assert(send(duel,'b').ok);step(duel,10);
-  check(kart(duel).deaths===1&&!kart(duel).firing,'real enemy Rail impact cancels the accepted Pulse sequence on KO');
+  check(kart(duel).deaths===1&&!kart(duel).firing,'real enemy shot impact cancels the accepted Pulse sequence on KO');
   const emitted=new Set(duel.snapshot().events.filter(e=>e.type==='fire'&&e.pid==='a').map(e=>e.id));
   step(duel,200,s=>{for(const e of s.events)if(e.type==='fire'&&e.pid==='a')emitted.add(e.id);});
   check(kart(duel).alive&&kart(duel).spawnSeq===1&&emitted.size===1&&!kart(duel).firing,'respawn life cannot inherit or resume the cancelled payload');
@@ -85,7 +85,7 @@ for(const moving of [false,true]){
   metrics.push({weapon:'mine',moving,dropTicks:events.map(e=>e.tick),positions:mines.map(m=>m.position)});
  }finally{w.dispose();}
 }
-for(const weapon of ['bomb','proximity']){
+for(const weapon of ['proximity']){
  const w=armed(weapon);try{
   tap(w);const first=w.snapshot().grenades[0];check(first?.weapon===weapon&&first.radius===.6&&first.velocity.z>11&&first.velocity.y>5&&!first.landed&&!first.armed,weapon+' is a visible forward lob with its .60m swept body');
   let landedTick=null,armedTick=null,peak=first.position.y,settled=false,previousSpeed=Infinity,slowed=false;
@@ -97,8 +97,8 @@ for(const weapon of ['bomb','proximity']){
  }finally{w.dispose();}
  const trigger=armed(weapon,map([],[point('a',0,0),point('b',0,10)]));try{
   tap(trigger);let blast=null;step(trigger,180,s=>{blast??=s.events.find(e=>e.type==='blast'&&e.weapon===weapon);});
-  check(!!blast&&kart(trigger,'b').health===(weapon==='bomb'?20:30),weapon+' one landed enemy-proximity activation retains its distinct damage');
-  check(kart(trigger).health===100&&kart(trigger).deaths===0,weapon+' owner remains immune');
+  check(!!blast&&kart(trigger,'b').health===1,weapon+' one landed enemy-proximity activation takes two hearts');
+  check(kart(trigger).health===3&&kart(trigger).deaths===0,weapon+' owner remains immune');
   check(trigger.snapshot().events.filter(e=>e.type==='blast'&&e.weapon===weapon).length===1,weapon+' accepted proximity charge detonates once');
  }finally{trigger.dispose();}
  const lowRoof={id:'charge-launch-roof',shape:'box',half:{x:5,y:.1,z:5},position:{x:0,y:1.75,z:0}};
@@ -108,12 +108,12 @@ for(const weapon of ['bomb','proximity']){
  }finally{obstructed.dispose();}
  const wall={id:'charge-wall',shape:'box',half:{x:8,y:3,z:.1},position:{x:0,y:3,z:4}};
  const cover=armed(weapon,map([wall],[point('a',0,0),point('b',0,7)]));try{
-  tap(cover);step(cover,180);check(cover.snapshot().grenades[0]?.position.z<3.31&&kart(cover,'b').health===100&&!cover.snapshot().events.some(e=>e.type==='blast'),weapon+' swept wall blocks movement and proximity LOS');
+  tap(cover);step(cover,180);check(cover.snapshot().grenades[0]?.position.z<3.31&&kart(cover,'b').health===3&&!cover.snapshot().events.some(e=>e.type==='blast'),weapon+' swept wall blocks movement and proximity LOS');
  }finally{cover.dispose();}
  const deck={id:'charge-deck',shape:'deck',half:{x:8,y:.15,z:10},position:{x:0,y:1.65,z:12}};
  const layered=armed(weapon,map([deck],[point('a',0,0),point('b',0,3,1.8,'charge-deck')]));try{
   tap(layered);step(layered,200);const charge=layered.snapshot().grenades[0],target=kart(layered,'b').pose.position;
-  check(charge?.landed&&Math.hypot(target.x-charge.position.x,target.y+.35-charge.position.y,target.z-charge.position.z)<3&&kart(layered,'b').health===100&&!layered.snapshot().events.some(e=>e.type==='blast'),weapon+' solid deck denies an otherwise in-radius enemy on another level');
+  check(charge?.landed&&Math.hypot(target.x-charge.position.x,target.y+.35-charge.position.y,target.z-charge.position.z)<3&&kart(layered,'b').health===3&&!layered.snapshot().events.some(e=>e.type==='blast'),weapon+' solid deck denies an otherwise in-radius enemy on another level');
  }finally{layered.dispose();}
 }
 console.log(JSON.stringify({pass:true,checks,metrics,scope:'Real Rapier authority, legal crate pickup and input; no native visual/audio claim'}));

@@ -48,14 +48,13 @@ function armed(kind,m=map(),opts={}) {
   check('one held burst cannot fire a newly collected item',full.snapshot().events.filter(e=>e.type==='fire').length===12);
  }finally{full.dispose();}
 }
-for(const kind of ['shield','spikes']) {
- const w=armed(kind,map([point('a',0,0),point('b',0,8)]));try {
-  fire(w);check(kind+' activation has its own offensive lifetime',kart(w)[kind==='shield'?'ramT':'spikesT']>3.9);
+{
+ const w=armed('shield',map([point('a',0,0),point('b',0,8)]));try {
+  fire(w);check('Shield activation raises an untimed guard, not a ram',kart(w).guard===true&&!('ramT'in kart(w))&&!('spikesT'in kart(w)));
   step(w,70,i=>{if(i%8===0&&kart(w).alive)send(w,'a',{throttle:1});});
-  if(kind==='shield')check(kind+' physical approach confirms one contact knockout',kart(w).hits===1&&kart(w,'b').deaths===1&&w.snapshot().events.some(e=>e.type==='ko'&&e.weapon===kind));
-  else check('Spikes physical approach confirms30-damage wounds without an immediate knockout',kart(w).hits===0&&kart(w,'b').alive&&kart(w,'b').health<100&&w.snapshot().events.filter(e=>e.type==='hit'&&e.weapon==='spikes').every(e=>e.damage===30));
-  check(kind+' owner remains alive',kart(w).alive);send(w,'a',{brake:1});step(w,260);
-  check(kind+' offensive lifetime expires',kart(w)[kind==='shield'?'ramT':'spikesT']===0);
+  check('Shield physical approach deals no contact damage',kart(w).hits===0&&kart(w,'b').alive&&kart(w,'b').health===3&&!w.snapshot().events.some(e=>e.type==='hit'||e.type==='ko'));
+  check('Shield owner remains alive',kart(w).alive);send(w,'a',{brake:1});step(w,260);
+  check('Shield guard waits for the next hit instead of expiring',kart(w).guard===true);
  }finally{w.dispose();}
 }
 {
@@ -70,29 +69,21 @@ for(const kind of ['shield','spikes']) {
   fire(w);check('proximity charge begins as an unarmed forward lob',w.snapshot().grenades[0].arm>.65&&!w.snapshot().grenades[0].warning&&!w.snapshot().grenades[0].landed&&w.snapshot().grenades[0].velocity.z>11&&w.snapshot().grenades[0].velocity.y>5);
   step(w,80);check('proximity charge displays armed warning only after landing plus delay',w.snapshot().grenades[0].landed&&w.snapshot().grenades[0].armed&&w.snapshot().grenades[0].warning);
   step(w,65,i=>{if(i%8===0&&kart(w,'b').alive)send(w,'b',{throttle:1});});
-  check('approaching kart triggers one70-damage proximity blast before expiry',kart(w).hits===0&&kart(w,'b').health===30&&w.snapshot().grenades.length===0&&w.snapshot().events.filter(e=>e.type==='blast'&&e.weapon==='proximity').length===1);
+  check('approaching kart triggers one two-heart proximity blast before expiry',kart(w).hits===0&&kart(w,'b').health===1&&w.snapshot().grenades.length===0&&w.snapshot().events.filter(e=>e.type==='blast'&&e.weapon==='proximity').length===1);
  }finally{w.dispose();}
-}
-{
- const w=armed('sentry');try {
-  fire(w);check('sentry deploys on ground with bounded lifetime',w.snapshot().sentries.length===1&&w.snapshot().sentries[0].ttl<9);
-  step(w,60);check('sentry auto-aim fires physical13-damage projectiles and wounds the rival',kart(w).hits===0&&kart(w,'b').health<100&&kart(w,'b').alive&&w.snapshot().events.some(e=>e.type==='fire'&&e.weapon==='sentry')&&w.snapshot().events.some(e=>e.type==='hit'&&e.weapon==='sentry'&&e.damage===13));
-  step(w,500);check('deployed sentry expires',w.snapshot().sentries.length===0);
- }finally{w.dispose();}
- const wall={id:'cover',shape:'box',position:{x:0,y:2,z:5},half:{x:8,y:2,z:.5}},covered=armed('sentry',map(undefined,[wall]));try{fire(covered);step(covered,160);check('sentry cannot auto-aim or score through cover',kart(covered).hits===0&&!covered.snapshot().events.some(e=>e.type==='ko'));}finally{covered.dispose();}
 }
 {
  const w=armed('nuke',map([point('a',0,0),point('b',-6,16),point('c',6,16)]));try {
   fire(w);check('nuke has delayed larger physical warhead',w.snapshot().grenades[0].weapon==='nuke'&&w.snapshot().grenades[0].radius===.5&&w.snapshot().grenades[0].fuse>3.4);
   step(w,110);check('nuke cannot detonate early',kart(w).hits===0&&w.snapshot().grenades.length===1);
-  step(w,105);check('nuke creates one larger multi-kart radial damage blast',kart(w).hits===0&&['b','c'].every(id=>kart(w,id).health<100&&kart(w,id).health>0)&&w.snapshot().events.filter(e=>e.type==='blast'&&e.weapon==='nuke').length===1&&kart(w).alive);
+  step(w,105);check('nuke creates one large blast that takes every heart from each kart in range',kart(w).hits===2&&['b','c'].every(id=>kart(w,id).health===0&&!kart(w,id).alive)&&w.snapshot().events.filter(e=>e.type==='hit'&&e.weapon==='nuke').every(e=>e.damage===3)&&w.snapshot().events.filter(e=>e.type==='blast'&&e.weapon==='nuke').length===1&&kart(w).alive);
  }finally{w.dispose();}
 }
 const art=createKartCombatArt(THREE);
 try {
  for(const kind of Object.keys(COMBAT.arsenal.weights)) {const rig=art.weapon(kind);check(kind+' rig keeps semantic identity and valid mount',rig.userData.combat.kind===kind&&rig.userData.combat.mount.every(Number.isFinite));}
- for(const kind of ['nuke','proximity','sentry']){const p=art.projectile(kind);check(kind+' shot keeps semantic identity and finite silhouette',p.userData.combat.kind===kind&&new THREE.Box3().setFromObject(p).getSize(new THREE.Vector3()).length()>0);}
- const spikes=art.spikes();art.animate(spikes,.016,2);check('orbiting steel spikes rotate without resource allocation',spikes.userData.combat.inner.rotation.y===8);
+ for(const kind of ['nuke','proximity']){const p=art.projectile(kind);check(kind+' shot keeps semantic identity and finite silhouette',p.userData.combat.kind===kind&&new THREE.Box3().setFromObject(p).getSize(new THREE.Vector3()).length()>0);}
+ check('retired deployables have no art factories',!('sentry'in art)&&!('spikes'in art));
 } finally {art.dispose();}
 // The regression runs real factory animation, including loaded source props.
 // Only the image decode is stubbed because Node has no browser image bitmap.
@@ -119,16 +110,10 @@ for(const loaded of [false,true]) {
  factory.animate(charge,1/60,2,true);check(label+' reduced-motion lamp remains steady and body remains fixed',c.tail.visible&&c.tail.scale.x===1&&c.inner.rotation.toArray().slice(0,3).every(v=>v===0));
  c.armed=false;factory.animate(charge,1/60,3,true);check(label+' disarmed recycled charge hides its lamp',!c.tail.visible);
  for(const [m,saved] of materialSnapshot)check(label+' animation never mutates shared materials',materialState(m)===saved);
- const deployed=factory.sentry(),nuke=factory.projectile('nuke'),ring=factory.spikes();
- const sentryBody=deployed.userData.combat.inner.children[0],beforeBody=new THREE.Matrix4().copy(sentryBody.matrix);
- const aim=new THREE.Vector3(1,.7,1).normalize(),turret=deployed.userData.combat.turret;turret.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),aim);deployed.updateMatrixWorld(true);
- const muzzlePoint=deployed.userData.combat.gun.localToWorld(new THREE.Vector3(...deployed.userData.combat.gun.userData.combat.muzzle)),expectedMuzzle=aim.clone().multiplyScalar(.6).add(new THREE.Vector3(0,.65,0));
- check(label+' turret tracks height without tilting tripod and matches authoritative muzzle',muzzlePoint.distanceTo(expectedMuzzle)<1e-8&&sentryBody.matrix.equals(beforeBody)&&deployed.quaternion.equals(new THREE.Quaternion()));
- for(let i=0;i<60;i++){factory.animate(deployed,1/60,i/60,false);factory.animate(nuke,1/60,i/60,false);factory.animate(ring,1/60,i/60,false);}
- check(label+' planted sentry and rigid nuke have no arbitrary body spin',deployed.userData.combat.inner.rotation.toArray().slice(0,3).every(v=>v===0)&&nuke.userData.combat.inner.rotation.toArray().slice(0,3).every(v=>v===0));
- check(label+' orbit assembly rotates at its declared rate',Math.abs(ring.userData.combat.inner.rotation.y-59/60*4)<1e-10);
- factory.animate(ring,1/60,2,true);check(label+' reduced motion freezes the orbit assembly',ring.userData.combat.inner.rotation.y===0);
- const owned=new Set();for(const object of [charge,deployed,nuke,ring])object.traverse(o=>{if(o.geometry&&!borrowed.has(o.geometry))owned.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m&&!borrowed.has(m))owned.add(m);});
+ const nuke=factory.projectile('nuke');
+ for(let i=0;i<60;i++)factory.animate(nuke,1/60,i/60,false);
+ check(label+' rigid nuke has no arbitrary body spin',nuke.userData.combat.inner.rotation.toArray().slice(0,3).every(v=>v===0));
+ const owned=new Set();for(const object of [charge,nuke])object.traverse(o=>{if(o.geometry&&!borrowed.has(o.geometry))owned.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])if(m&&!borrowed.has(m))owned.add(m);});
  const disposals=new Map();for(const r of owned)r.addEventListener('dispose',()=>disposals.set(r,(disposals.get(r)||0)+1));
  factory.dispose();factory.dispose();check(label+' factory resources dispose once',owned.size>0&&[...owned].every(r=>disposals.get(r)===1));
 }

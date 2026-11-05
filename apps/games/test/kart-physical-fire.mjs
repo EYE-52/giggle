@@ -15,7 +15,7 @@ function kart(pid, position, rotation={x:0,y:0,z:0,w:1}) {
 }
 function state(karts) {
   return {karts,scores:Object.fromEntries(karts.map(k=>[k.pid,0])),bound:100,blocks:[],crates:[],zaps:[],zapSeq:0,events:[],eventSeq:0,
-    mines:[],mineSeq:0,grenades:[],grenadeSeq:0,scatterHits:new Map(),targetHits:99};
+    mines:[],mineSeq:0,grenades:[],grenadeSeq:0,volleyHits:new Map(),targetHits:99};
 }
 function tick(s,dt,physics,before=new Map(s.karts.map(k=>[k.pid,structuredClone(k)]))) {
   return battle.tick(s,new Set(s.karts.map(k=>k.pid)),dt,before,null,new Map(),
@@ -66,7 +66,7 @@ for (const moving of [false,true]) {
     const before=new Map(s.karts.map(k=>[k.pid,structuredClone(k)]));
     if(moving){target.x=-1;target.physicalPose.position={x:-1,y:.85,z:7};}
     tick(s,.1,physics,before);
-    check(target.health<100,'Full segment sweep hits '+(moving?'moving':'stationary')+' vulnerable hull');
+    check(target.health<3,'Full segment sweep hits '+(moving?'moving':'stationary')+' vulnerable hull');
     check(s.zaps.length===0&&s.events.filter(e=>e.type==='impact').length===1,'Hit retires one projectile and emits one impact');
     const health=target.health;tick(s,.1,physics);check(target.health===health,'Retired projectile never awards damage twice');
   } finally {physics.dispose();}
@@ -77,7 +77,7 @@ for (const moving of [false,true]) {
   try {
     physics.addStatic({id:'cover',shape:'box',position:{x:0,y:2,z:4},half:{x:5,y:2,z:.2}});
     arm(s);tick(s,0,physics);tick(s,.1,physics);
-    check(s.karts[1].health===100&&s.zaps.length===0,'Real static cover consumes shot before hull');
+    check(s.karts[1].health===3&&s.zaps.length===0,'Real static cover consumes shot before hull');
     const impact=s.events.find(e=>e.type==='impact');
     check(impact&&Math.abs(impact.position.z-(3.8-battle.viewExtra(s).combat.staticSweepRadii.pulse))<1e-5&&impact.position.y>1,'Impact xyz records accepted sphere centre before actual cover surface');
     const projected=battle.viewExtra(s);
@@ -104,9 +104,9 @@ for(const tire of [false,true]){
     physics.addStatic({id:'wall',shape:'box',position:{x:0,y:.75,z:4},half:{x:5,y:.75,z:.2}});
     if(tire)physics.addStatic({id:'tire-style-prop',shape:'box',position:{x:-2.1,y:.75,z:3.6},half:{x:.4,y:.75,z:.3}});
     arm(s,'rocket');tick(s,0,physics);tick(s,.2,physics);
-    check(s.karts[1].health===(tire?100:60),'Physical splash '+(tire?'is blocked by real prop collider':'damages visible same-side target by40'));
-    check(s.karts[2].health===100,'Impact-face nudge never leaks splash through wall');
-    check(s.karts[3].health===100,'Planar-near target at another elevation is outside 3D splash radius');
+    check(s.karts[1].health===(tire?3:1),'Physical splash '+(tire?'is blocked by real prop collider':'takes two hearts from a visible same-side target'));
+    check(s.karts[2].health===3,'Impact-face nudge never leaks splash through wall');
+    check(s.karts[3].health===3,'Planar-near target at another elevation is outside 3D splash radius');
     check(s.events.filter(e=>e.type==='blast').length===1,'Cover-vetoed splash still emits one explosion');
   }finally{physics.dispose();}
 }
@@ -132,7 +132,7 @@ for(const tire of [false,true]){
   check(after.zaps.length===1,'Projectile away from corpse and fresh spawn survives the respawn tick');
   check(!after.events.some(e=>e.type==='impact'&&e.other==='rb'),'No phantom impact along corpse-to-spawn teleport');
   check(after.events.filter(e=>e.type==='respawn'&&e.pid==='rb').length===1,'Fresh life emits one respawn event');
-  check(fresh.health===100&&fresh.shield>0&&fresh.spawnSeq===oldLife+1,'Fresh life restores full protected health');
+  check(fresh.health===3&&fresh.maxHealth===3&&fresh.shield>0&&fresh.spawnSeq===oldLife+1,'Fresh life restores full protected health');
   check(fresh.physicalPose.epoch>corpse.epoch&&fresh.physicalPose.position.x===spawn.x&&fresh.physicalPose.position.z===spawn.z,'Actual Rapier reset projects the fresh pose before collision sweeps');
   check(JSON.stringify(before)===beforeBytes,'Fresh reset does not mutate prior public pose projection');
   const ack=POCKET.view(s,'rb').inputAck;
@@ -201,8 +201,8 @@ for(const stop of ['release','ttl','disconnect','ko','life','epoch','done','disp
   if(stop==='release')f.press(false);
   if(stop==='ttl')f.tick(1600);
   if(stop==='disconnect')f.disconnect();
-  if(stop==='ko') {const p=a.physicalPose.position;a.health=10;
-   s.zaps=[{id:'stop-hit',owner:'hold-b',kind:'rail',physical:true,x:p.x,y:p.y+.35,z:p.z-3,vx:0,vy:0,vz:110,angle:0,ttl:1}];f.tick(50);
+  if(stop==='ko') {const p=a.physicalPose.position;a.health=1;
+   s.zaps=[{id:'stop-hit',owner:'hold-b',kind:'pulse',physical:true,x:p.x,y:p.y+.35,z:p.z-3,vx:0,vy:0,vz:110,angle:0,ttl:1}];f.tick(50);
    check(a.health===0,'actual physical projectile KOs held shooter');}
   if(stop==='done')f.done();
   if(stop==='life'){battle.respawnKart(s,a);f.tick(50);}

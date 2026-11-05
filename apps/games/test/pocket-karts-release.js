@@ -80,7 +80,7 @@ async function part1() {
     // Zap Battle goal (explicit Score target).
     [st, ctx] = racing({ mode: 'Zap Battle', map: 'Rookie Ring', winRule: 'Score target', targetHits: 1 });
     st.karts[0].hits = 0;
-    // Wounded target isolates score-goal settlement; default100 health has its own acceptance.
+    // Wounded target isolates score-goal settlement; default 3 hearts have their own acceptance.
     st.karts[1].health=1;
     // Direct determinism: park the goal one KO away, then land it.
     st.karts[0].x = 0; st.karts[0].z = 0; st.karts[0].angle = 0;

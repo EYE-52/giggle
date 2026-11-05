@@ -7,16 +7,22 @@ globalThis.Image=class {
 const thumbnails=await import('../public/js/engines/kart-assets.mjs?thumbnail-readiness');
 let completed=false;
 const ready=thumbnails.loadKartWeaponThumbnails().then(()=>{completed=true;});
-assert.equal(requests.length,14,'Every selectable weapon has a decoded thumbnail barrier');
+assert.equal(requests.length,8,'Every selectable weapon has a decoded thumbnail barrier');
+const KEPT=['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke'];
+assert.deepEqual(requests.map(r=>r.url.match(/\/(\w+)\.png$/)[1]).sort(),[...KEPT].sort(),'Exactly the eight kept weapons have thumbnails');
 assert.equal(thumbnails.weaponThumbnailArt('pulse','fallback'),'fallback','Legacy direct render retains fallback before decode');
 for(const request of requests.slice(0,-1))request.resolve();
 await Promise.resolve();await Promise.resolve();
-assert.equal(completed,false,'Thirteen images cannot release the fourteen-image barrier');
+assert.equal(completed,false,'Seven images cannot release the eight-image barrier');
 requests.at(-1).resolve();await ready;
 assert.equal(completed,true,'The final image releases the barrier');
 assert.ok(thumbnails.weaponThumbnailArt('pulse').includes('/pulse.png'),'Decoded actual weapon image replaces fallback');
 assert.equal(thumbnails.weaponThumbnailArt('not-a-weapon','fallback'),'fallback','Unknown identifiers cannot construct asset URLs');
-await thumbnails.loadKartWeaponThumbnails();assert.equal(requests.length,14,'Repeated loads reuse decoded local assets');
+for(const retired of ['rail','grenade','emp','bomb','sentry','spikes']){
+  assert.equal(thumbnails.weaponThumbnailArt(retired,'fallback'),'fallback',`Retired ${retired} never points at a deleted image`);
+  assert.equal(fs.existsSync(new URL(`../public/assets/karts/weapon-thumbnails/${retired}.png`,import.meta.url)),false,`Retired ${retired}.png is not shipped`);
+}
+await thumbnails.loadKartWeaponThumbnails();assert.equal(requests.length,8,'Repeated loads reuse decoded local assets');
 for(const request of requests){
   const bytes=fs.readFileSync(new URL('../public'+request.url,import.meta.url));
   assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a','Asset is a PNG, not a renamed screenshot');
@@ -25,11 +31,11 @@ for(const request of requests){
 const retry=await import('../public/js/engines/kart-assets.mjs?thumbnail-retry');
 const failed=retry.loadKartWeaponThumbnails();
 const failedResult=assert.rejects(failed,/decode failed/);
-requests[14].reject(new Error('decode failed'));
-for(const request of requests.slice(15))request.resolve();
+requests[8].reject(new Error('decode failed'));
+for(const request of requests.slice(9))request.resolve();
 await failedResult;
-const next=retry.loadKartWeaponThumbnails();assert.equal(requests.length,42,'Failed image load allows a real retry');
-for(const request of requests.slice(28))request.resolve();await next;
+const next=retry.loadKartWeaponThumbnails();assert.equal(requests.length,24,'Failed image load allows a real retry');
+for(const request of requests.slice(16))request.resolve();await next;
 assert.ok(retry.weaponThumbnailArt('shield').includes('/shield.png'),'Protocol-compatible shield identifier retains its actual image');
 delete globalThis.Image;
 console.log('KART_WEAPON_THUMBNAILS_PASS: all-image decode barrier, fallback, local PNG identity, cached success and real error retry');

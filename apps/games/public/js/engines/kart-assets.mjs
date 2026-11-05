@@ -17,7 +17,7 @@ export const KART_ASSETS = {
   secondary: 'combat/arsenal-secondary.meshopt',
 };
 
-const WEAPON_THUMBNAILS=['pulse','scatter','mine','shield','rocket','rail','grenade','emp','seeker','bomb','proximity','spikes','sentry','nuke'];
+const WEAPON_THUMBNAILS=['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke'];
 const loadedThumbnails=new Set();
 let thumbnailLoad;
 export function loadKartWeaponThumbnails(){

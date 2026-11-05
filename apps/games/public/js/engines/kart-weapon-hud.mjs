@@ -1,6 +1,12 @@
 import {weaponThumbnailArt} from './kart-assets.mjs';
 
-const NAMES={pulse:'Machine gun',scatter:'Scatter gun',rocket:'Rockets',seeker:'Homing missile',rail:'Railgun',grenade:'Grenade',bomb:'Dynamite',proximity:'Proximity bomb',mine:'Mine trail',shield:'Invincibility',emp:'EMP',spikes:'Spinning blades',sentry:'Sentry',nuke:'Nuke'};
+// One name and heart cost per weapon; the how-to and HUD read the same list.
+export const KART_WEAPON_INFO=Object.freeze({
+  pulse:{name:'Pulse',hearts:1},scatter:{name:'Scatter',hearts:1},mine:{name:'Mine',hearts:1},
+  rocket:{name:'Rocket',hearts:2},seeker:{name:'Seeker',hearts:1},proximity:{name:'Proximity Bomb',hearts:2},
+  shield:{name:'Shield',hearts:0},nuke:{name:'Nuke',hearts:3},
+});
+const NAMES=Object.fromEntries(Object.entries(KART_WEAPON_INFO).map(([id,v])=>[id,v.name]));
 
 // Both kart renderers present the authority's inventory, never a predicted
 // pickup or a reusable clip. Remaining rounds describe an accepted sequence.
@@ -8,10 +14,10 @@ export function kartWeaponDisplay(kart){
   if(!kart||kart.alive===false||kart.respawn>0)return {kind:'crate',label:'No weapon',detail:'',count:'',state:'away'};
   const kind=kart.weapon,ammo=Math.max(0,Math.floor(kart.ammo||0));
   if(NAMES[kind]&&ammo>0){
-    const deploying=['mine','sentry','bomb','proximity'].includes(kind);
+    const deploying=['mine','proximity'].includes(kind);
     return {kind,label:NAMES[kind],detail:kart.firing?(deploying?'Deploying':'Firing'):'Ready',count:`×${ammo}`,state:kart.firing?'firing':'ready'};
   }
-  if(kart.ramT>0)return {kind:'shield',label:'Invincibility',detail:'Active',count:`${Math.ceil(kart.ramT)}s`,state:'active'};
+  if(kart.guard)return {kind:'shield',label:'Shield',detail:'Blocks next hit',count:'',state:'active'};
   if(kart.shield>0)return {kind:'shield',label:'Spawn protection',detail:'Active',count:`${Math.ceil(kart.shield)}s`,state:'protected'};
   return {kind:'crate',label:'No weapon',detail:'Find a pickup',count:'',state:'empty'};
 }

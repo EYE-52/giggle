@@ -120,7 +120,9 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
    if(strength>.25)particle(smoke,p.x,p.y,p.z,nx*.3,.45,nz*.3,.35,.20,.5+strength*.4,.9);
    dirty();return true;
   }
-  const explosion=type==='blast'||['rocket','seeker','grenade','bomb','nuke','proximity','mine'].includes(e.weapon);
+  const explosion=type==='blast'||['rocket','seeker','nuke','proximity','mine'].includes(e.weapon);
+  // A Nuke blast reads at arena scale; the particle lifetimes stay the same.
+  const big=type==='blast'&&e.weapon==='nuke'?3.2:1;
   if(explosion){
    for(const prior of pairs){
     if(prior.paired||prior.type===type||time-prior.at>.12||(prior.pid!=null&&e.pid!=null&&prior.pid!==e.pid)||(prior.weapon!=null&&e.weapon!=null&&prior.weapon!==e.weapon)||(prior.tick!=null&&e.tick!=null&&prior.tick!==e.tick))continue;
@@ -131,16 +133,16 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
    prior.at=time;prior.type=type;prior.pid=e.pid??null;prior.weapon=e.weapon??null;prior.tick=e.tick??null;prior.x=p.x;prior.y=p.y;prior.z=p.z;prior.paired=false;
   }
   const reduce=typeof reducedMotion==='function'?reducedMotion():reducedMotion;
-  particle(fire,p.x,p.y,p.z,0,0,0,reduce?.12:.11,reduce?.7:explosion?1.8:.55,reduce?.7:explosion?2.4:.2,0,reduce?2:1);
+  particle(fire,p.x,p.y,p.z,0,0,0,reduce?.12:.11,(reduce?.7:explosion?1.8:.55)*big,(reduce?.7:explosion?2.4:.2)*big,0,reduce?2:1);
   if(!reduce){
    if(explosion){
     for(let i=0;i<12;i++){
      const a=i*2.399963,up=(i%4-1.5)*.22,r=.18+(i%3)*.17;
-     particle(fire,p.x+Math.cos(a)*r,p.y+up,p.z+Math.sin(a)*r,Math.cos(a)*1.1,1.2+i%3*.35,Math.sin(a)*1.1,.25+(i%4)*.033,.35+(i%3)*.08,1.8+(i%3)*.25,i*.71);
+     particle(fire,p.x+Math.cos(a)*r*big,p.y+up,p.z+Math.sin(a)*r*big,Math.cos(a)*1.1*big,1.2+i%3*.35,Math.sin(a)*1.1*big,.25+(i%4)*.033,(.35+(i%3)*.08)*big,(1.8+(i%3)*.25)*big,i*.71);
     }
     for(let i=0;i<7;i++){
      const a=i*2.399963;
-     particle(smoke,p.x+Math.cos(a)*.3,p.y+(i%3)*.18,p.z+Math.sin(a)*.3,Math.cos(a)*.7,1.2+i%3*.2,Math.sin(a)*.7,.95,.65,2.5+i%3*.3,i*.93);
+     particle(smoke,p.x+Math.cos(a)*.3*big,p.y+(i%3)*.18,p.z+Math.sin(a)*.3*big,Math.cos(a)*.7*big,1.2+i%3*.2,Math.sin(a)*.7*big,.95,.65*big,(2.5+i%3*.3)*big,i*.93);
     }
    }
    // Bullet ricochets point away from the accepted incoming segment/normal.

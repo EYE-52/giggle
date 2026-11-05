@@ -43,19 +43,19 @@ check(recoiling.getObjectByName('PulseHousing').position.z === 0, 'Reduced motio
 art.animate(recoiling, .1, 0, false);
 check(Math.abs(recoiling.getObjectByName('PulseHousing').position.z) < 1e-8, 'Recoil naturally returns to the authored muzzle');
 const model=createKartModel(THREE,{assets:{kart},color:0xf59539});model.userData.kart.inner.position.y=CONFIG.chassis.modelOriginY;
-for(const kind of ['pulse','scatter','rail','grenade','emp','rocket','seeker','bomb']){
+for(const kind of ['pulse','scatter','rocket','seeker','proximity','nuke']){
   const weapon=art.weapon(kind),c=weapon.userData.combat;
   model.userData.kart.inner.add(weapon);weapon.position.set(...c.mount);
-  const local=CONFIG.combat[kind+'Muzzle']||{x:0,y:.5,z:1.9};
+  const local=CONFIG.combat[(kind==='nuke'?'rocket':kind)+'Muzzle']||{x:0,y:.5,z:1.9};
   for(const heading of [0,Math.PI/2,Math.PI,-Math.PI/2]){
     model.position.set(12,.64,-8);model.rotation.set(0,heading,0);model.updateMatrixWorld(true);
     const actual=weapon.localToWorld(new THREE.Vector3(...c.muzzle));
     const expected=model.localToWorld(new THREE.Vector3(local.x,local.y,local.z));
     check(actual.distanceTo(expected)<1e-5,kind+' production factory muzzle matches authority at heading '+heading);
   }
-  check(c.inner.children[0].name===(kind==='emp'?'EMP':kind[0].toUpperCase()+kind.slice(1)),kind+' uses the sourced branch');weapon.removeFromParent();
+  check(c.inner.children[0].name===({proximity:'Bomb',nuke:'Rocket'}[kind]||kind[0].toUpperCase()+kind.slice(1)),kind+' uses the sourced branch');weapon.removeFromParent();
 }
-for(const kind of ['scatter','grenade','rocket','seeker','bomb','nuke']){
+for(const kind of ['scatter','rocket','seeker','proximity','nuke']){
   const shot=art.projectile(kind);check(shot.userData.combat.kind===kind,kind+' is not silently coerced to Pulse');
   const box=new THREE.Box3().setFromObject(shot),size=box.getSize(new THREE.Vector3());
   check(size.toArray().every(n=>Number.isFinite(n)&&n>0)&&size.length()<3,kind+' actual shot has bounded physical art');
@@ -75,10 +75,9 @@ for(const kind of ['scatter','grenade','rocket','seeker','bomb','nuke']){
     check(box.min.z<hull.min.z&&hull.min.z-box.min.z<.6,kind+' compact exhaust is attached directly behind the source hull');
   }
   if(kind==='scatter')check(shot.userData.combat.inner.children[0].name==='BoltScatter','Scatter keeps its compact metal slug; foam dart candidate is not used');
-  if(kind==='grenade')check(shot.userData.combat.inner.children[0].name==='GrenadeShot','Grenade projectile uses independently sourced canister hardware');
-  if(kind==='bomb'){
+  if(kind==='proximity'){
     shot.userData.combat.rollRate=12/.32;art.animate(shot,.02,1,false);
-    check(Math.abs(shot.userData.combat.inner.rotation.x-.75)<1e-8,'Rolling bomb turns with actual ground speed');
+    check(Math.abs(shot.userData.combat.inner.rotation.x-.75)<1e-8,'Rolling Proximity Bomb turns with actual ground speed');
     shot.userData.combat.rollRate=0;art.animate(shot,.02,1.02,false);check(Math.abs(shot.userData.combat.inner.rotation.x-.75)<1e-8,'Stopped canister does not keep spinning');
     art.animate(shot,.02,1.04,true);check(shot.userData.combat.inner.rotation.x===0,'Reduced motion suppresses canister roll');
   }
@@ -94,15 +93,7 @@ for(const own of [true,false])for(const angle of [0,.25]){
   check(trap.userData.combat.inner.children[0].name==='MineTrap','Ground hardware uses independently authored trap');
   trap.userData.combat.armed=false;art.animate(trap,.02,1,false);check(!trap.userData.combat.glow.visible,'Unarmed trap status lamp stays off');
 }
-const orbit=art.spikes(),blades=orbit.getObjectByName('OrbitingSteelBlades');
-check(!!blades&&blades.geometry.attributes.normal.count>0,'Orbit uses three solid shaded metal blades');
-const vertices=blades.geometry.attributes.position,chunk=vertices.count/3,centers=[];
-for(let part=0;part<3;part++){const center=new THREE.Vector3();for(let v=part*chunk;v<(part+1)*chunk;v++)center.add(new THREE.Vector3().fromBufferAttribute(vertices,v));centers.push(center.divideScalar(chunk));}
-check(centers.every((center,i)=>center.distanceTo(centers[(i+1)%3])>3),'Three blades occupy distinct radial positions, never a shared mutated geometry');
-
-check(new THREE.Box3().setFromObject(orbit).getSize(new THREE.Vector3()).length()<8,'Blade orbit remains bounded around kart');
-art.animate(orbit,.02,1,false);check(orbit.userData.combat.inner.rotation.y===4,'Blade orbit animates without geometry creation');
-art.animate(orbit,.02,1,true);check(orbit.userData.combat.inner.rotation.y===0,'Reduced motion keeps blade identity without spinning');
+check(!('spikes'in art)&&!('sentry'in art),'retired Spikes and Sentry have no art factories');
 art.dispose();art.dispose();check(borrowedDisposals===0,'Factory retirement never destroys borrowed GLB resources');
 disposeKartModel(model);
 for(const resource of borrowed)resource.dispose();

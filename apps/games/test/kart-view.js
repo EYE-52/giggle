@@ -48,6 +48,14 @@ class Node {
   }
   get textContent() { return this.text || ''; }
   set textContent(value) { this.text = String(value); this.html = this.text; }
+  // Element children the hearts HUD and hit-feedback layer write as markup.
+  get children() {
+    if (this.kidsFor !== this.html) { this.kidsFor = this.html; this.kids = (this.html?.match(/<(i|b)\b[^>]*class="kart-[^"]*"/g) || []).map(() => new Node()); }
+    return this.kids;
+  }
+  get childElementCount() { return this.children.length; }
+  get offsetWidth() { return 0; }
+  append(child) { (this.appended ||= []).push(child); }
   querySelector(s) { if (!this.nodes.has(s)) this.nodes.set(s, new Node()); return this.nodes.get(s); }
   querySelectorAll() { return []; }
   addEventListener(type, fn) { const list=this.events.get(type)||[]; list.push(fn); this.events.set(type,list); }
@@ -83,6 +91,8 @@ const context = vm.createContext({document, window, console, Date,
   createPoseStore: () => ({}), resetPoseStore() {}, ingestSnapshot() {}, framePoses: () => new Map(),
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
   intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView});
+// The hearts HUD runs against this fake DOM, so it loads into the same context.
+vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
 let src = fs.readFileSync(require.resolve('../public/js/engines/kart-view.js'),'utf8');
 src = src.replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];\s*/g,'')
   .replace('export function createKartView','function createKartView')
@@ -102,7 +112,7 @@ assert.equal(main.querySelector('#pk-touch').hidden,false);
 assert.equal(main.querySelector('#pk-mine').textContent,'You · 1 KO');
 assert.equal(main.querySelector('#pk-boost').querySelector('.kart-item-count').textContent,'×1');
 assert(main.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('<svg'),'equip slot renders vector artwork');
-assert.equal(main.querySelector('#pk-boost').getAttribute('aria-label'),'Machine gun, Ready, ×1','weapon name remains accessible while inventory shows the exact ammo');
+assert.equal(main.querySelector('#pk-boost').getAttribute('aria-label'),'Pulse, Ready, ×1','weapon name remains accessible while inventory shows the exact ammo');
 assert.equal(main.querySelector('#pk-tb').disabled,false);
 assert.equal(main.querySelector('#pk-tip').hidden,true,'normal driving shows no verbose paragraph');
 assert.equal(main.querySelector('#pk-handling').textContent,'','ordinary driving does not need running commentary');
@@ -122,13 +132,24 @@ assert.equal(main.querySelector('#pk-handling').hidden,true,'quiet driving keeps
   view.update(main,state('drive'),api);
 }
 {
+  const hearts=main.querySelector('#pk-health'),hurt=state('drive');
+  Object.assign(hurt.karts[0],{health:3,maxHealth:3,spawnSeq:1});view.update(main,hurt,api);
+  assert.equal(hearts.hidden,false,'battle driver sees the hearts HUD');
+  assert.equal(hearts.children.length,3,'classic HUD paints one heart per authority heart');
+  hurt.karts[0].health=2;hurt.karts[0].guard=true;view.update(main,hurt,api);
+  assert.deepEqual(hearts.children.map(h=>h.dataset.full),['true','true','false'],'classic HUD empties the lost heart');
+  assert.equal(hearts.getAttribute('aria-label'),'2 of 3 hearts, shield ready','classic hearts are named with the guard state');
+  assert.equal(hearts.dataset.guard,'true');
+  view.update(main,state('drive'),api);
+}
+{
   const slot = main.querySelector('#pk-boost');
   const writes = slot.htmlWrites;
   view.update(main,state('drive'),api);
   view.update(main,state('drive'),api);
   assert.equal(slot.htmlWrites,writes,'unchanged live HUD ticks retain the equipped SVG');
 }
-for (const [weapon,label] of [['pulse','Machine gun'],['scatter','Scatter gun'],['mine','Mine trail'],['shield','Invincibility'],['rocket','Rockets'],['rail','Railgun'],['grenade','Grenade'],['emp','EMP']]) {
+for (const [weapon,label] of [['pulse','Pulse'],['scatter','Scatter'],['mine','Mine'],['shield','Shield'],['rocket','Rocket'],['seeker','Seeker'],['proximity','Proximity Bomb'],['nuke','Nuke']]) {
   const w=state('drive'); w.karts[0].weapon=weapon; w.karts[0].ammo=2; w.karts[0].speed=10;
   view.update(main,w,api);
   const slot=main.querySelector('#pk-boost');
@@ -144,7 +165,7 @@ for (const [weapon,label] of [['pulse','Machine gun'],['scatter','Scatter gun'],
   assert.equal(main.querySelector('#pk-speed').textContent,'36','telemetry shows exact speed');
 }
 {
-  for (const [weapon,label,detail] of [['pulse','Machine gun','Firing'],['mine','Mine trail','Deploying']]) {
+  for (const [weapon,label,detail] of [['pulse','Pulse','Firing'],['mine','Mine','Deploying'],['proximity','Proximity Bomb','Deploying']]) {
     const busy=state('drive');Object.assign(busy.karts[0],{weapon,ammo:2,firing:true});view.update(main,busy,api);
     const slot=main.querySelector('#pk-boost');
     assert.equal(slot.dataset.state,'firing','committed payload retains the equipped item presentation');
@@ -175,7 +196,7 @@ for (const [weapon,label] of [['pulse','Machine gun'],['scatter','Scatter gun'],
 }
 {
   const arts=new Set();
-  for (const weapon of ['pulse','scatter','mine','shield','rocket','rail','grenade','emp']) {
+  for (const weapon of ['pulse','scatter','mine','shield','rocket','seeker','proximity','nuke']) {
     const w=state('drive'); w.karts[0].weapon=weapon; w.karts[0].ammo=1;
     view.update(main,w,api);
     arts.add(main.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.match(/<svg[\s\S]*?<\/svg>/)[0]);
@@ -734,7 +755,7 @@ const nitro=main.querySelector('#pk-tn');
   assert.equal(main.querySelector('#pk-boost').querySelector('.kart-item-count').textContent,'×7','same-tick inventory metadata is admitted');
   view.update(main,{...base,simTick:11,simAt:550,inputAck:{life:2,controlEpoch:2},events:[{id:'retained',type:'fire',pid:'one',weapon:'pulse'},{id:'respawn-fresh',type:'respawn',pid:'one'}]},api);
   assert.equal(audio.cues.length,start+1,'fresh normal respawn cue plays without replaying retained fire');
-  assert.equal(spoken.at(-1),'Back in! Protection ends when you attack','normal respawn retains accessible feedback');
+  assert.equal(spoken.at(-1),'Back in with full hearts','normal respawn retains accessible feedback');
   const next={...base,instanceId:'new-ordered-match',simTick:1,simAt:50,events:[{id:'retained',type:'fire',pid:'one',weapon:'pulse'}]};
   view.update(main,next,api);assert.equal(audio.cues.length,start+1,'new instance clocks and history start quietly');
   view.update(main,{...next,simTick:2,simAt:100,events:[{id:'respawn-fresh',type:'fire',pid:'one',weapon:'pulse'}]},api);
@@ -911,12 +932,13 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   assert.equal(warmFrames,2,'compatibility combat geometry/effect buffers render before readiness');
   built.frame(1/60,clock/1000);encounter(built.scene);
   const geometryCount=geometries.size,materialCount=materials.size;
-  for(const weapon of ['pulse','scatter','mine','shield','rocket','rail','grenade','emp']){
+  for(const weapon of ['pulse','scatter','mine','shield','rocket','seeker','proximity','nuke']){
     const next=structuredClone(s);next.karts[0].weapon=weapon;next.karts[0].ammo=1;
-    if(['pulse','scatter','rocket','rail'].includes(weapon))next.zaps=[{id:weapon,kind:weapon,x:0,z:3,angle:0,ttl:1}];
+    if(['pulse','scatter','rocket','seeker'].includes(weapon))next.zaps=[{id:weapon,kind:weapon,x:0,z:3,angle:0,ttl:1}];
     if(weapon==='mine')next.mines=[{id:'mine',owner:'one',x:0,z:-3,armed:true}];
-    if(weapon==='grenade')next.grenades=[{id:'grenade',x:0,z:3,y:1,angle:0,vx:0,vz:0,vy:0,fuse:1,warning:true}];
-    if(weapon==='emp')next.events=[{id:'emp',type:'emp',pid:'one',x:0,z:3,angle:0}];
+    if(weapon==='proximity')next.mines=[{id:'proximity',kind:'proximity',owner:'one',x:0,z:-3,armed:true}];
+    if(weapon==='nuke')next.grenades=[{id:'nuke',kind:'nuke',x:0,z:3,y:1,angle:0,vx:0,vz:0,vy:0,fuse:1,warning:true}];
+    if(weapon==='shield')next.karts[0].guard=true;
     live.update(el,next,api);built.frame(1/60,clock/1000);encounter(built.scene);
     assert.equal(geometries.size,geometryCount,weapon+' first use introduces no unprepared geometry');
     assert.equal(materials.size,materialCount,weapon+' first use introduces no unprepared material');
@@ -936,15 +958,16 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   s.simAt=clock;s.simTick=14;live.update(el,s,api);
   const bar=built.scene.getObjectByName('KartHealth:one');
   assert(bar&&!bar.visible,'classic full-health player has a prepared hidden scene health bar');
-  const wounded=structuredClone(s);wounded.karts[0].health=60;wounded.karts[0].maxHealth=100;
+  const wounded=structuredClone(s);wounded.karts[0].health=1;wounded.karts[0].maxHealth=3;
   live.update(el,wounded,api);built.frame(1/60,clock/1000);
-  const fill=bar.userData.fill;
-  assert(bar.visible&&Math.abs(fill.scale.x-1.08)<1e-9&&Math.abs(fill.position.x+.36)<1e-9,'classic damaged bar shows actual60 of100, anchored left');
+  const [full,...lost]=bar.children;
+  assert(bar.visible&&bar.children.length===3&&lost.every(h=>h.material!==full.material)&&lost[0].material===lost[1].material,'classic damaged kart shows one full and two empty hearts of three');
+  assert(Math.abs(bar.children[0].position.x+bar.children[2].position.x)<1e-9&&bar.children[1].position.x===0,'classic heart pips sit centred over the kart');
   assert.equal(bar.position.y,3,'classic bar stays above the player, independent of chassis yaw');
   assert(bar.quaternion.equals(built.camera.quaternion),'classic bar faces the current chase camera');
   assert(bar.children.every(o=>o.material.depthTest&&!o.material.depthWrite&&!o.material.map),'classic scene bars are occluded meshes without per-frame texture work');
   encounter(built.scene);assert.equal(geometries.size,geometryCount,'first damage uses prepared bar geometry');assert.equal(materials.size,materialCount,'first damage uses prepared bar materials');
-  for(const patch of [{health:100},{health:0,respawn:2},{health:60,connected:false}]) {const next=structuredClone(wounded);Object.assign(next.karts[0],patch);live.update(el,next,api);built.frame(1/60,clock/1000);assert(!bar.visible,'classic hides full, KO and disconnected scene health');}
+  for(const patch of [{health:3},{health:0,respawn:2},{health:1,connected:false}]) {const next=structuredClone(wounded);Object.assign(next.karts[0],patch);live.update(el,next,api);built.frame(1/60,clock/1000);assert(!bar.visible,'classic hides full, KO and disconnected scene health');}
   const offline=structuredClone(wounded);offline.players=[{id:'one',connected:false}];live.update(el,offline,api);built.frame(1/60,clock/1000);assert(!bar.visible,'actual classic Room roster disconnection hides the bar');
   const watcher=structuredClone(wounded);watcher.you='watcher';watcher.youDrive=false;live.update(el,watcher,api);built.frame(1/60,clock/1000);assert(bar.visible,'classic spectator sees wounded players without a personal HUD');
   live.update(el,{...watcher,karts:[]},api);built.frame(1/60,clock/1000);assert.equal(bar.parent,null,'retired classic player detaches its bar');
