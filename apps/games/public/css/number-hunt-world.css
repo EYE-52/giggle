@@ -50,3 +50,6 @@
 #gbody .nh.pl-fill .nh-feed-title:has(+ .wg-feed > .wg-feed-empty:only-child),
 #gbody .nh.pl-fill .wg-feed:has(> .wg-feed-empty:only-child) { display: none; }
 #gbody .nh.pl-fill .nh-reading strong { padding: 0 var(--space-8); border-radius: var(--radius-sm); background: var(--fam-soft); }
+#gbody .nh.pl-fill .nh-reading { min-height: 0; }
+#gbody .nh.pl-fill .nh-between { min-height: 0; }
+#gbody .nh.pl-fill .nh-range { gap: var(--space-12); }

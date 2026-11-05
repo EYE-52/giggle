@@ -132,3 +132,4 @@
 #gbody .tq.pl-fill .tq-spot.is-idle .tq-qtext { min-height: 0; }
 #gbody .tq.pl-fill .tq-hist { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
 #gbody .tq.pl-fill .tq-ans:not(:disabled) { background: var(--card); color: var(--ink); }
+#gbody .tq.pl-fill .tq-hist { max-height: 360px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; padding-right: var(--space-4); }

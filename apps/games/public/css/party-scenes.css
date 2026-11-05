@@ -673,3 +673,18 @@
   .pl-seat { max-width: none; min-width: 0; }
 }
 #gbody .pl-fill.party-scene--hot .hot-room-split { max-width: none; }
+/* The strip header wraps (label, round dots, rules chip) instead of
+ * pushing the page sideways on narrow phones. */
+.pl-head { flex-wrap: wrap; row-gap: var(--space-4); }
+.pl-dotsbox { min-width: 0; flex: 0 1 auto; }
+.pl-dots { min-width: 0; }
+#gbody .pl-fill :is(input, textarea)::placeholder { color: var(--ink-dim); opacity: 1; }
+@media (max-width: 560px) {
+  #gbody .pl-fill.party-scene--poll .party-choice { min-height: var(--control-h); padding-block: var(--space-8); font-size: 18px; }
+  #gbody .pl-fill.party-scene--poll .party-choices { gap: var(--space-8); }
+}
+.pl-points { min-width: 0; max-width: 100%; overflow: hidden; }
+.pl-seat > * { max-width: 100%; }
+@media (max-width: 560px) {
+  .pl-seat .pl-unit { display: none; }
+}

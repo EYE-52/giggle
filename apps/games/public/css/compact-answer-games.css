@@ -214,3 +214,14 @@
   #gbody .wg.pl-fill[data-game="trivia"] .gk-choices { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
   #gbody .wg.pl-fill[data-game="trivia"] .gk-choice { padding: var(--space-8) var(--space-12); gap: var(--space-8); }
 }
+/* Typing Race: the next characters read as ink on a soft tint with the
+ * squiggle clear of the glyphs; nothing pokes outside the card. */
+#gbody .tr.pl-fill .tr-target { line-height: 1.8; }
+#gbody .tr.pl-fill .tr-target .typing-wrong { background: var(--danger-soft); color: var(--ink); text-decoration: underline wavy var(--danger); text-underline-offset: 4px; text-decoration-thickness: 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+#gbody .tr.pl-fill .tr-target .typing-correct { background: var(--success-soft); color: var(--ink); }
+#gbody .tr.pl-fill .tr-target .typing-next { outline: 2px solid var(--fam-deep); outline-offset: 1px; }
+/* Memory Tray on phones: shorter tiles keep the tray and the strip on one screen. */
+@media (max-width: 560px) {
+  #gbody .mt.pl-fill .mt-obj { min-height: 44px; padding: var(--space-4) var(--space-8); }
+  #gbody .mt.pl-fill .mt-obj svg { width: 28px; height: 28px; }
+}
