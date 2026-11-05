@@ -36,6 +36,86 @@ function ensureCss() {
   document.head.appendChild(l);
 }
 
+/* The create kit (/css/create-kit.css): toy box stickers, player chips and
+ * the countdown ring, shared with the drawing and word games. Every rule
+ * is scoped to .ck[data-family], so it is never removed. */
+function ensureKit() {
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function' || !document.head) return;
+  if (document.getElementById('create-kit-css')) return;
+  const l = document.createElement('link');
+  l.id = 'create-kit-css';
+  l.rel = 'stylesheet';
+  l.href = '/css/create-kit.css';
+  document.head.appendChild(l);
+}
+
+/* ---- stage pieces in the create kit markup ---- */
+/* "Ann" -> "A", "Player 2" -> "P2": seats with a number keep it. */
+function initialOf(name) {
+  const words = String(name || '?').trim().split(/\s+/);
+  const first = (Array.from(words[0] || '?')[0] || '?').toLocaleUpperCase();
+  const tail = words.length > 1 && /^\d{1,2}$/.test(words[words.length - 1]) ? words[words.length - 1] : '';
+  return first + tail;
+}
+
+/* statusOf(player) -> { cls: 'is-ready' | 'is-on' | 'is-out' | '', text } */
+function rosterHtml(S, statusOf = () => ({ cls: '', text: '' }), { label = 'Players', max = 12 } = {}) {
+  const me = S?.you ?? S?.me;
+  const players = (Array.isArray(S?.players) ? S.players : []).filter((p) => p && !p.left).slice(0, max);
+  return `<ul class="ck-roster" aria-label="${esc(label)}">` + players.map((p, i) => {
+    const st = statusOf(p) || {};
+    const name = p.name || nameOf(S, p.id);
+    return `<li class="ck-player ${st.cls || ''}${p.id === me ? ' is-you' : ''}" data-pid="${esc(p.id)}" style="--ck-hue:${(i * 67) % 360}">`
+      + `<span class="ck-ava" aria-hidden="true">${esc(initialOf(name))}</span>`
+      + `<span class="ck-pname">${esc(name)}${p.id === me ? ' <small>(you)</small>' : ''}</span>`
+      + `<span class="ck-pstate">${esc(st.text || '')}</span></li>`;
+  }).join('') + `</ul>`;
+}
+
+/* Patch a roster in place: rebuilds only when the text changes. */
+function paintRoster(box, S, statusOf, opts) {
+  if (!box) return;
+  const html = rosterHtml(S, statusOf, opts);
+  if (box._ckRoster === html) return;
+  box._ckRoster = html;
+  box.innerHTML = html;
+}
+
+const RING_LEN = 125.66; // 2πr for r = 20
+
+function ringHtml(cls = '') {
+  return `<div class="ck-ring ${cls}" role="timer" aria-live="off">`
+    + `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">`
+    + `<circle class="ck-ring-track" cx="24" cy="24" r="20"/>`
+    + `<circle class="ck-ring-bar" cx="24" cy="24" r="20" stroke-dasharray="${RING_LEN}" stroke-dashoffset="0"/></svg>`
+    + `<span class="ck-ring-num"></span></div>`;
+}
+
+/* left: seconds left, or null when the clock is off. key: resets the full
+ * length (a new round or phase), so the ring drains from the first second
+ * this client saw. */
+function paintRing(ring, left, key = '', { urgentAt = 10 } = {}) {
+  if (!ring) return;
+  if (ring._ckKey !== key) { ring._ckKey = key; ring._ckTotal = 0; }
+  const on = Number.isFinite(left) && left !== null;
+  ring.classList?.toggle('is-off', !on);
+  const num = ring.querySelector?.('.ck-ring-num');
+  const bar = ring.querySelector?.('.ck-ring-bar');
+  if (!on) {
+    if (num && num.textContent !== '') num.textContent = '';
+    bar?.setAttribute?.('stroke-dashoffset', String(RING_LEN));
+    ring.setAttribute?.('aria-label', 'No timer');
+    return;
+  }
+  ring._ckTotal = Math.max(ring._ckTotal || 0, left, 1);
+  const p = Math.max(0, Math.min(1, left / ring._ckTotal));
+  if (num && num.textContent !== String(left)) num.textContent = String(left);
+  bar?.setAttribute?.('stroke-dashoffset', String(Math.round(RING_LEN * (1 - p) * 100) / 100));
+  ring.classList?.toggle('is-urgent', left <= urgentAt && left > 0);
+  ring.setAttribute?.('aria-label', `${left} seconds left`);
+}
+
+
 function isEmbedded() {
   try {
     return !!(typeof document !== 'undefined' &&
@@ -81,8 +161,9 @@ function paintClock(d) {
   const clock = d.refs.clock;
   const ticking = !S.preparing && (S.phase === 'perform' || S.phase === 'vote' || S.phase === 'reveal');
   clock.hidden = !ticking;
-  if (!ticking) { clock.textContent = ''; return; }
+  if (!ticking) { clock.textContent = ''; paintRing(d.refs.ring, null); return; }
   const left = countdown(S.endsAt, () => serverNow(d.api));
+  paintRing(d.refs.ring, left, `${S.instanceId}:${S.phase}:${S.round}`, { urgentAt: 5 });
   clock.textContent = left + 's';
   clock.classList.toggle('is-urgent', left <= 5 && left > 0);
   clock.setAttribute('aria-label', `${left} seconds left`);
@@ -99,22 +180,23 @@ function unvotedIndex(S, you) {
 
 /* Layout (one centred column, game kit classes; specs/GAME_UI_STANDARD.md):
  *   HUD row (round, phase, progress, timer)
- *   prompt + one line under it
+ *   prompt card: the prompt, one line under it and the countdown ring
  *   one action area: Ready / ballot / round result / final scores
+ *   the stage: a chip per player with their state (perform and vote)
  *   match scores (reveal only)
  * Every part keeps its place between phases, so nothing jumps. */
 function build(el, api) {
   el.innerHTML =
-    `<section class="camera-party gk-col gk-stack" aria-label="Camera party controls">` +
+    `<section class="camera-party ck gk-col gk-stack" data-family="create" aria-label="Camera party controls">` +
     `<div class="cp-head gk-hud">` +
     `<span class="cp-round gk-hud-round" role="status" aria-live="polite"></span>` +
     `<span class="cp-phase gk-hud-phase"></span>` +
     `<span class="cp-progress gk-hud-progress"></span>` +
     `<span class="cp-clock gk-hud-timer" aria-live="off"></span></div>` +
-    `<div class="cp-prompt-card"><p class="cp-prompt gk-prompt"></p><p class="cp-sub gk-sub"></p></div>` +
-    `<p class="cp-call gk-meta"></p>` +
+    `<div class="cp-prompt-card ck-card is-tint"><div class="cp-prompt-text"><span class="cp-kicker ck-label"></span>` +
+    `<p class="cp-prompt gk-prompt"></p><p class="cp-sub gk-sub"></p></div>${ringHtml('cp-ring')}</div>` +
     `<div class="cp-ready-row"><button type="button" class="gk-btn gk-primary cp-ready"></button>` +
-    `<p class="cp-ready-status gk-wait"></p></div>` +
+    `<p class="cp-ready-status"></p></div>` +
     `<div class="cp-ballot gk-card">` +
     `<div class="cp-ballot-top"><button type="button" class="gk-btn cp-prev" data-watchok="1" aria-label="Previous performance">‹</button>` +
     `<div class="cp-ballot-mid"><div class="cp-ballot-name"></div>` +
@@ -132,6 +214,9 @@ function build(el, api) {
     `<p class="cp-winner gk-winner"></p><ol class="cp-standings gk-ranks"></ol></section>` +
     `<div class="cp-scores"><h3 class="cp-scores-title gk-meta">Scores</h3>` +
     `<ol class="cp-score-list gk-ranks"></ol></div>` +
+    `<div class="cp-stage ck-card"><div class="ck-head"><h3 class="cp-stage-title"></h3><span class="cp-stage-count gk-meta"></span></div>` +
+    `<div class="cp-roster"></div></div>` +
+    `<p class="cp-call gk-meta"></p>` +
     `</section>`;
   const q = (sel) => el.querySelector(sel);
   const d = {
@@ -140,7 +225,8 @@ function build(el, api) {
     state: null,
     refs: {
       head: q('.cp-head'), round: q('.cp-round'), phase: q('.cp-phase'), progress: q('.cp-progress'), clock: q('.cp-clock'),
-      prompt: q('.cp-prompt'), sub: q('.cp-sub'), call: q('.cp-call'),
+      prompt: q('.cp-prompt'), sub: q('.cp-sub'), call: q('.cp-call'), kicker: q('.cp-kicker'), ring: q('.cp-ring'),
+      stage: q('.cp-stage'), stageTitle: q('.cp-stage-title'), stageCount: q('.cp-stage-count'), roster: q('.cp-roster'),
       readyRow: q('.cp-ready-row'), ready: q('.cp-ready'),
       readyStatus: q('.cp-ready-status'),
       ballot: q('.cp-ballot'), prev: q('.cp-prev'), nextBtn: q('.cp-nextbtn'),
@@ -417,6 +503,7 @@ function patchFinal(d) {
 
 export function renderCameraParty(el, S, api) {
   ensureCss();
+  ensureKit();
   let d = instances.get(el);
   if (!d) d = build(el, api);
   d.api = api;
@@ -482,6 +569,10 @@ export function renderCameraParty(el, S, api) {
   }
   R.sub.textContent = sub;
 
+  R.kicker.textContent = S.phase === 'reveal' ? 'The prompt was'
+    : spotlight ? (S.actor === you && !S.spectator ? 'Your prompt' : `${nameOf(S, S.actor)}'s prompt`)
+    : 'Everyone hunts for';
+
   R.call.hidden = isEmbedded() || S.phase === 'done';
   R.call.textContent = isEmbedded() ? '' : STANDALONE_CALL_HINT;
 
@@ -489,7 +580,9 @@ export function renderCameraParty(el, S, api) {
   if (S.phase === 'perform') {
     const mine = !!ready[you];
     const canReady = !S.spectator && (S.mode !== 'spotlight' || S.actor === you);
-    R.ready.hidden = !canReady; // watchers see the status, never the button
+    // Watchers see the status, never the button; once you are ready the
+    // button gives its place to a done badge in the same reserved row.
+    R.ready.hidden = !canReady || mine;
     const label = S.mode === 'spotlight'
       ? (mine ? 'Ready' : 'Done, judge me')
       : (mine ? 'Shown' : 'I found it');
@@ -504,7 +597,31 @@ export function renderCameraParty(el, S, api) {
       status = mine ? 'Shown. Voting opens when time is up.' : `${readyCount} of ${roster.length} found it`;
     }
     R.readyStatus.textContent = status;
-    R.readyStatus.classList.toggle('is-done', mine || !!ready[S.actor]);
+    R.readyStatus.className = 'cp-ready-status ' + ((mine || (spotlight && ready[S.actor])) ? 'tb-badge is-live is-done-ready' : 'gk-wait');
+  }
+
+  // The stage: who is on, who is ready, who judges. The call shows the
+  // video; this only names the people in it.
+  const staged = S.phase === 'perform' || S.phase === 'vote';
+  R.stage.hidden = !staged;
+  if (staged) {
+    const judgedBy = (S.ballots && typeof S.ballots === 'object') ? S.ballots : {};
+    R.stageTitle.textContent = S.phase === 'vote' ? 'Judging' : spotlight ? 'On stage' : 'The hunt';
+    R.stageCount.textContent = S.phase === 'perform' && !spotlight ? `${readyCount} of ${roster.length} found it`
+      : S.phase === 'vote' ? `${cands.length} to judge` : '';
+    paintRoster(R.roster, S, (p) => {
+      if (p.left) return { cls: 'is-out', text: 'Left' };
+      if (S.phase === 'vote') {
+        if (!cands.includes(p.id)) return { cls: '', text: 'Judging' };
+        const n = Number(judgedBy[p.id]) || 0;
+        return { cls: 'is-on', text: `${n} ${n === 1 ? 'vote' : 'votes'} in` };
+      }
+      if (spotlight) {
+        if (p.id !== S.actor) return { cls: '', text: 'Watching' };
+        return ready[p.id] ? { cls: 'is-ready', text: 'Ready' } : { cls: 'is-on', text: 'Performing' };
+      }
+      return ready[p.id] ? { cls: 'is-ready', text: 'Found it' } : { cls: '', text: 'Hunting' };
+    }, { label: S.phase === 'vote' ? 'Players being judged' : 'Players' });
   }
 
   R.ballot.hidden = S.phase !== 'vote';

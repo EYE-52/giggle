@@ -1,20 +1,35 @@
 /* Charades: the actor's camera in the call is the stage; the game carries
- * the secret word (actor), the letter mask (guessers), guesses and scores.
- * Flat, tokens only (shared parts: compact-answer-games.css). */
+ * the secret word (actor), the letter tiles (guessers), the guess board,
+ * the players and scores. Toy box stickers from create-kit.css (the root
+ * carries .ck and data-family="create"); shared parts in
+ * compact-answer-games.css. Tokens only. */
+.ch.ck { gap: var(--space-16); }
+/* One timer: the ring on the stage card. The HUD slot stays for screen
+ * readers and keeps its place, but is not drawn twice. */
+.ch.ck[data-phase="act"] .gk-hud-timer { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 .ch .ch-stage {
-  display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center;
-  padding: 16px 18px; background: var(--card); border: 1px solid var(--line); border-radius: var(--gk-radius, 12px);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-16);
+  min-height: 152px;
 }
-.ch .ch-stage .gk-meta { margin: 0; }
-.ch .ch-secret { font-size: clamp(28px, 5vw, 44px); color: var(--accent-deep); }
-.ch .ch-mask { font-size: clamp(26px, 5vw, 40px); letter-spacing: .08em; white-space: pre-wrap; }
-.ch .ch-found:empty { display: none; }
+.ch .ch-stage-text { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-12); min-width: 0; }
+.ch .ch-secret { font: var(--text-heading); font-size: clamp(32px, 5vw, 44px); color: var(--fam-deep); }
+.ch .ch-mask { justify-content: flex-start; margin: 0; letter-spacing: 0; }
+.ch .ch-found { display: none; }
+.ch[data-phase="reveal"] .ch-found { display: flex; }
+.ch .ch-board, .ch .ch-players { display: flex; flex-direction: column; gap: var(--space-12); }
+.ch .ch-feed { max-height: 260px; }
+.ch .ch-count { font-variant-numeric: tabular-nums; }
 .ch .ch-guess {
-  display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px;
-  border: 1px solid var(--line); border-radius: 10px; background: var(--card); font: 600 16px/1.4 var(--font-body);
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4) var(--space-12);
+  min-height: 44px; padding: var(--space-8) var(--space-12); font: var(--text-body);
 }
+.ch .ch-guess:not(.is-miss) { justify-content: flex-start; }
 .ch .ch-who { font-weight: 800; }
 .ch .ch-txt { min-width: 0; overflow-wrap: anywhere; }
+.ch .ch-empty { min-height: 140px; }
+@media (max-width: 560px) {
+  .ch .ch-stage { min-height: 0; gap: var(--space-12); }
+}
 @media (max-height: 520px) {
-  .ch .ch-stage { padding: 10px 14px; }
+  .ch .ch-stage { min-height: 0; }
 }

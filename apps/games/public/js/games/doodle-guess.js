@@ -6,7 +6,7 @@
 import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
 import { resultsHtml, waitCardHtml } from '../kit.js';
 
-const CSS = [['doodle-guess-css', '/css/doodle-guess.css']];
+const CSS = [['doodle-guess-css', '/css/doodle-guess.css'], ['create-kit-css', '/css/create-kit.css']];
 const COLORS = ['#111111', '#e4572e', '#1d7a3a', '#1d4ed8', '#f2b134'];
 const COLOR_NAMES = ['Black', 'Orange', 'Green', 'Blue', 'Yellow'];
 const SIZES = [3, 7, 16];
@@ -43,13 +43,24 @@ function unbindAll() {
   clock = null;
 }
 function spacedMask(masked) { return Array.from(String(masked || '')).join(' '); }
+/* The hidden word as toy tiles (create-kit.css): a blank tile per letter. */
+function maskTiles(masked) {
+  return `<span class="ck-sr">${esc(spacedMask(masked))}</span><span class="ck-tiles dg-tiles" aria-hidden="true">${Array.from(String(masked || '')).map(c => c === '_' ? '<span class="ck-tile is-blank">_</span>'
+    : c === ' ' ? '<span class="ck-tile is-gap"></span>' : `<span class="ck-tile is-mark">${esc(c)}</span>`).join('')}</span>`;
+}
 function isArtist(S) { return S?.phase === 'draw' && S.me === S.drawer && !S.spectator; }
 function outcomesHtml(S) {
   const ids = Object.keys(S.guessed || {});
   return ids.length ? ids.map(pid => `<span class="dg-found">${esc(nameOf(S, pid))} <b>+${S.guessed[pid]}</b></span>`).join('') : '';
 }
+/* "Ann" -> "A", "Player 2" -> "P2". */
+function markOf(name) {
+  const words = String(name || '?').trim().split(/\s+/);
+  const tail = words.length > 1 && /^\d{1,2}$/.test(words[words.length - 1]) ? words[words.length - 1] : '';
+  return (Array.from(words[0] || '?')[0] || '?').toLocaleUpperCase() + tail;
+}
 function rosterHtml(S) {
-  return (S.players || []).map((p, i) => `<li><i style="--player-ink:${COLORS[i % COLORS.length]}" aria-hidden="true"></i><span>${esc(p.name)}${p.id === S.drawer ? ' <small>drawing</small>' : ''}</span><b>${S.scores?.[p.id] || 0}</b></li>`).join('');
+  return (S.players || []).map((p, i) => `<li class="${p.id === S.drawer ? 'is-drawer' : S.guessed?.[p.id] ? 'is-solved' : ''}"><i style="--player-ink:${COLORS[i % COLORS.length]};--ck-hue:${(i * 67) % 360}" aria-hidden="true">${esc(markOf(p.name))}</i><span>${esc(p.name)}${p.id === S.drawer ? ' <small>drawing</small>' : S.guessed?.[p.id] ? ' <small>got it</small>' : ''}</span><b>${S.scores?.[p.id] || 0}</b></li>`).join('');
 }
 function toolArt(kind) {
   return kind === 'pen'
@@ -87,7 +98,7 @@ function roundResultHtml(S) {
 function headerHtml(S) {
   const artist = S.me === S.drawer && !S.spectator;
   const word = S.phase === 'draw'
-    ? (artist ? `Draw <b>${esc(S.wordShown || '')}</b>` : esc(spacedMask(S.masked)))
+    ? (artist ? `Draw <b>${esc(S.wordShown || '')}</b>` : maskTiles(S.masked))
     : S.phase === 'reveal' ? `The word was <b>${esc(S.word || '')}</b>` : (artist ? 'Pick a word to draw' : 'Get ready to guess');
   return `<header class="dg-header sk-deskcue">${dgHudHtml(S)}
     <div class="dg-word sk-hintline" ${!artist && S.phase === 'draw' ? `aria-label="Hidden word, ${Array.from(S.masked || '').length} characters"` : ''}>${word}</div>
@@ -121,7 +132,7 @@ function refresh(el, S, api) {
   if (progress) progress.textContent = progressLabel(S);
   const hint = el.querySelector('.sk-hintline');
   if (hint && S.phase === 'draw' && S.me !== S.drawer) {
-    hint.textContent = spacedMask(S.masked);
+    if (hint._dgMask !== S.masked) { hint._dgMask = S.masked; hint.innerHTML = maskTiles(S.masked); }
     hint.setAttribute('aria-label', `Hidden word, ${Array.from(S.masked || '').length} characters`);
   }
   const feed = el.querySelector('#dFeed');
@@ -183,14 +194,14 @@ export default {
     gestureId = Math.max(gestureId, S.lastGestureId || 0);
     if ((S.inkRevision || 0) === revision) visibleStrokes = S.strokes || [];
     if (S.phase === 'done') {
-      el.innerHTML = `<div class="sk sk-doodle dg dg-done gk-final gk-col" role="status">${resultsHtml({ scores: S.scores || {}, players: S.players || [], you: S.spectator ? null : S.me })}${S.spectator ? '<p class="gk-final-note">You watched this game.</p>' : ''}</div>`;
+      el.innerHTML = `<div class="sk sk-doodle dg ck dg-done gk-final gk-col" data-family="create" role="status">${resultsHtml({ scores: S.scores || {}, players: S.players || [], you: S.spectator ? null : S.me })}${S.spectator ? '<p class="gk-final-note">You watched this game.</p>' : ''}</div>`;
       return;
     }
     if (rebuild) {
       const artist = isArtist(S);
       if (S.phase === 'pick') {
         const choosing = S.me === S.drawer && !S.spectator;
-        el.innerHTML = `<div class="sk sk-doodle dg dg-pick gk-col gk-stack">${headerHtml(S)}${choosing
+        el.innerHTML = `<div class="sk sk-doodle dg ck dg-pick gk-col gk-stack" data-family="create">${headerHtml(S)}${choosing
           ? `<div class="gk-choices sk-pick" role="group" aria-label="Words to draw" style="--gk-cols:3;--gk-cols-phone:1">${(S.choices || []).map((w, i) => `<button type="button" class="gk-choice" data-w="${esc(w)}"><span class="gk-mark" aria-hidden="true">${'ABC'[i] || ''}</span><span class="gk-choice-text">${esc(w)}</span></button>`).join('')}</div><p class="gk-meta dg-pick-note">Only you can see these words.</p>`
           : waitCardHtml({ kicker: S.spectator ? 'You are watching' : '', title: `${nameOf(S, S.drawer)} is picking a word`, text: 'Then they draw it and everyone guesses the word. Faster guesses score more.', waiting: `Waiting for ${nameOf(S, S.drawer)}`, attrs: 'data-dg-wait' })}</div>`;
         el.querySelectorAll?.('[data-w]').forEach(button => on(button, 'click', () => {
@@ -200,7 +211,7 @@ export default {
         }));
       } else {
         const guesser = S.phase === 'draw' && !artist && !S.spectator;
-        el.innerHTML = `<div class="sk sk-doodle dg dg-live">
+        el.innerHTML = `<div class="sk sk-doodle dg ck dg-live" data-family="create">
           <div class="dg-stage"><section class="dg-drawing" aria-label="Shared drawing">${headerHtml(S)}
           <div class="dg-view-controls"><div class="dg-artist gk-meta">${S.spectator ? '<span class="dg-watching">Watching</span> · ' : ''}${artist ? 'You are drawing' : `${esc(nameOf(S, S.drawer))} ${S.phase === 'draw' ? 'is drawing' : 'drew this'}`}</div><div class="dg-view-actions"><button type="button" class="gk-btn" id="dGuesses" data-watchok aria-expanded="true" aria-controls="dChat">Guesses</button><button type="button" class="gk-btn" id="dFocus" data-watchok aria-pressed="false" aria-label="Focus canvas">Focus</button>${artist ? '<button type="button" class="gk-btn" id="dTools" aria-expanded="true" aria-controls="dToolsRail" hidden>Tools</button>' : ''}</div></div>
             <div class="dg-easel"><span class="dg-easel-cap" aria-hidden="true"></span><div class="dg-frame"><div class="sk-canvaswrap"><canvas class="doodle" id="dCanvas" data-drawable="${artist}" width="880" height="520" tabindex="0" aria-label="${artist ? 'Your drawing canvas' : 'Drawing to guess'}"></canvas></div></div>
@@ -243,7 +254,12 @@ function wire(el, api) {
     if (!cv || !viewport) return;
     const r = viewport.getBoundingClientRect();
     if (!r.width || !r.height) return;
-    const scale = Math.min(r.width / 880, r.height / 520) * zoom;
+    // When the frame is wider or taller than the paper, the paper keeps an
+    // even desk margin and sits centred; a frame cut to the paper's shape
+    // (phones) is filled edge to edge.
+    const banded = Math.abs(r.width / r.height - 880 / 520) > 0.04;
+    const margin = zoom > 1 || !banded ? 0 : Math.min(16, r.width * 0.03, r.height * 0.04);
+    const scale = Math.min((r.width - 2 * margin) / 880, (r.height - 2 * margin) / 520) * zoom;
     const width = 880 * scale, height = 520 * scale;
     panX = Math.max(-Math.max(0, (width - r.width) / 2), Math.min(Math.max(0, (width - r.width) / 2), panX));
     panY = Math.max(-Math.max(0, (height - r.height) / 2), Math.min(Math.max(0, (height - r.height) / 2), panY));

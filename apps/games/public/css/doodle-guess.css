@@ -274,3 +274,94 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
   .dg-live .dg-view-controls { grid-column: 2; grid-row: 1; flex-direction: column; align-items: flex-end; justify-content: center; gap: 2px; width: auto; margin-bottom: 8px; }
   .dg-live .dg-easel { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* ==========================================================================
+ * Toy box layer (create-kit.css, DESIGN_TOKENS.md). The root carries .ck and
+ * data-family="create": sky family colour, sticker easel and chat, a dotted
+ * desk around the paper, letter tiles for the hidden word, tool trays.
+ * ========================================================================== */
+.sk-doodle.dg.ck { padding-bottom: calc(var(--space-24) + env(safe-area-inset-bottom, 0px)); }
+.dg.ck .dg-hud .gk-hud-timer { font: var(--text-button-sm); font-variant-numeric: tabular-nums; }
+.dg.ck .dg-word.sk-hintline b { color: var(--fam-deep); }
+.dg.ck .dg-tiles { justify-content: flex-start; gap: var(--space-4); }
+.dg.ck .dg-tiles .ck-tile { width: 32px; height: 38px; font-size: 20px; border-radius: var(--radius-sm); }
+.dg.ck .dg-tiles .ck-tile.is-gap { width: var(--space-12); }
+@media (max-width: 700px) {
+  .dg.ck .dg-tiles .ck-tile { width: 26px; height: 32px; font-size: 17px; }
+  .dg.ck .dg-tiles .ck-tile.is-gap { width: var(--space-8); }
+}
+
+/* Easel and chat: stickers. */
+.dg.ck .dg-easel, .dg.ck .dg-chat { border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker-lg); }
+.dg.ck .dg-easel { overflow: visible; }
+.dg.ck .dg-frame { padding: var(--space-12); }
+/* The desk: a dotted family tint around the paper, never a grey band. */
+.dg.ck .sk-canvaswrap {
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--fam) 30%, transparent) 1.5px, transparent 2px) 0 0 / 18px 18px,
+    var(--fam-soft);
+}
+.sk-doodle.dg.ck canvas.doodle { border-radius: var(--radius-sm); box-shadow: 0 0 0 var(--outline-w) var(--outline); }
+@media (max-width: 700px) {
+  .dg.ck .dg-easel, .dg.ck .dg-chat { border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker); }
+  .dg.ck .dg-frame { padding: var(--space-8); }
+  .dg.ck .sk-canvaswrap { border-radius: var(--radius-sm); }
+}
+
+/* View pill: Pan, zoom and Fit in one group with 44px targets. */
+.dg.ck .dg-zoom { justify-content: flex-end; padding: 0 var(--space-12) var(--space-12); }
+.dg.ck .dg-zoom > * { flex: none; }
+.dg.ck .dg-zoom button { border-radius: var(--radius-pill); font: var(--text-button-sm); }
+.dg.ck .dg-zoom #dZoomIn, .dg.ck .dg-zoom #dZoomOut { font-size: 22px; }
+.dg.ck .dg-zoom button[aria-pressed="true"] { background: var(--fam); color: var(--on-fam); }
+.dg.ck .dg-zoom #dZoomValue { min-width: 3.4em; text-align: center; font: var(--text-caption); font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dg.ck .dg-zoom { background: none; }
+.dg.ck .dg-zoom:has(button) { gap: var(--space-4); }
+
+/* Tools: trays, one sticker selection per tray. */
+.dg.ck .dg-tools.sk-toolrail { gap: var(--space-8); }
+.dg.ck .dg-colors, .dg.ck .dg-brushes, .dg.ck .dg-edits { padding: var(--space-4); gap: var(--space-4); background: var(--well); border-radius: var(--radius-lg); }
+.dg.ck .dg-tools button { border: var(--outline-w) solid transparent; border-radius: var(--radius-md); }
+.dg.ck .dg-tools button.sel { background: var(--card); border-color: var(--outline); box-shadow: var(--shadow-sticker-sm); }
+.dg.ck .dg-tools button:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.dg.ck .dg-brush[data-size="3"] i { width: 6px; height: 6px; }
+.dg.ck .dg-brush[data-size="7"] i { width: 12px; height: 12px; }
+.dg.ck .dg-brush[data-size="16"] i { width: 20px; height: 20px; }
+
+/* View buttons above the easel are chips. */
+.dg.ck .dg-view-actions .gk-btn { border-radius: var(--radius-pill); box-shadow: none; }
+.dg.ck .dg-view-actions .gk-btn[aria-pressed="true"], .dg.ck .dg-view-actions .gk-btn[aria-expanded="true"] { background: var(--fam-soft); color: var(--fam-deep); }
+
+/* Roster: avatar stickers with scores; the artist and solvers stand out. */
+.dg.ck .dg-roster { border-bottom: var(--outline-w) dashed var(--line-strong); max-height: none; }
+.dg.ck .dg-roster li { gap: var(--space-8); min-height: 40px; padding: var(--space-4) 0; font: var(--text-button-sm); }
+.dg.ck .dg-roster i {
+  display: grid; place-items: center; width: 30px; height: 30px; flex: none; border-radius: 50%; font-style: normal;
+  background: hsl(var(--ck-hue, 200) 70% 82%); color: #1d1420; border: var(--outline-w) solid var(--outline); box-shadow: none;
+  font: 800 12px/1 var(--font-display);
+}
+.dg.ck .dg-roster li.is-drawer small { padding: 2px var(--space-8); border-radius: var(--radius-pill); background: var(--fam); color: var(--on-fam); font-weight: 800; }
+.dg.ck .dg-roster li.is-solved small { color: var(--success); font-weight: 800; }
+.dg.ck .dg-roster b { font: var(--text-button-sm); font-variant-numeric: tabular-nums; min-width: 2.5em; text-align: right; }
+
+/* Guesses: rows on the chat card; the empty feed says what to do. */
+.dg.ck .dg-chat-head { font: var(--text-title); font-size: 18px; }
+.dg.ck .dg-feed li { padding: var(--space-8) 0; border-bottom: var(--outline-w) dashed var(--line); }
+.dg.ck .dg-feed li.dg-correct span { color: var(--success); }
+.dg.ck .dg-feed-empty { display: grid !important; place-items: center; min-height: 96px; padding: var(--space-16); border: var(--outline-w) dashed var(--line-strong) !important; border-radius: var(--radius-lg); text-align: center; font: var(--text-body); }
+.dg.ck .dg-found { padding: 2px var(--space-8); border-radius: var(--radius-pill); background: var(--success-soft); border: var(--outline-w) solid var(--success); font: var(--text-caption); color: var(--ink); }
+.dg.ck .dg-label { font: var(--text-button-sm); }
+.dg.ck .dg-result { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); }
+
+/* Pick: the word choices are big toy cards. */
+.dg.ck.dg-pick .gk-choice { min-height: 72px; font: var(--text-title); }
+/* Phone HUD beside Room and Report: the round sticker stays compact so
+ * the row never pushes the desk wider than the screen. */
+@media (max-width: 700px) {
+  .dg.ck .dg-hud .gk-hud-round { min-height: 28px; padding: 2px var(--space-8); font: var(--text-caption); font-weight: 800; }
+  .dg.ck .dg-hud .gk-hud-timer { min-width: 3.6em; min-height: 28px; padding: 2px var(--space-4); }
+  .dg.ck .dg-hud .gk-hud-progress { min-width: 0; }
+  /* One column that never grows past the screen for a long HUD line. */
+  .dg-live.ck .dg-drawing { grid-template-columns: minmax(0, 1fr); }
+}

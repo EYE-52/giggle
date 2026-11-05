@@ -7,6 +7,7 @@ import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer
 let liveTimerEl = null;
 
 const CSS = '/css/emoji-story.css';
+const KIT_CSS = '/css/create-kit.css';
 
 let feedback = null;
 let screenKey = '', liveState = null, liveApi = null, liveEl = null, liveActionKey = '';
@@ -28,8 +29,22 @@ function hud(S) {
     .replace('<div class="gk-hud"', `<div class="gk-hud" data-phase="${esc(S.phase)}"`);
 }
 
+/* Everyone at the table: the storyteller, who solved it, who is guessing,
+ * and the match score. Patched in place on heartbeats. */
+function tableChips(S) {
+  const solved = new Set(S.solvers || []);
+  return (S.players || []).filter((p) => !p.left).map((p) => {
+    const role = p.id === S.director ? ['is-on', 'Storyteller'] : solved.has(p.id) ? ['is-done', 'Solved it'] : ['', S.phase === 'guess' ? 'Guessing' : 'Ready to guess'];
+    return `<li class="wg-chip ${role[0]}">${esc(p.name)}${p.id === S.me ? ' (you)' : ''}<small>${role[1]}</small><b>${Math.max(0, Number(S.scores?.[p.id]) || 0)}</b></li>`;
+  }).join('');
+}
+function tableHtml(S) {
+  return `<div class="es-table ck-card"><div class="ck-head"><h3>The table</h3><span class="gk-meta">${esc(roundLabel(Math.min(S.round || 1, S.rounds || S.round || 1), S.rounds))}</span></div>`
+    + `<ul class="wg-chips" data-live="table" aria-label="Players">${tableChips(S)}</ul></div>`;
+}
+
 function scene(S, label, inner) {
-  return `<section class="gk-col gk-stack es-scene" data-scene="emoji-story" data-phase="${esc(S.phase)}" aria-label="${esc(label)}">${hud(S)}${inner}</section>`;
+  return `<section class="gk-col gk-stack es-scene ck" data-family="party" data-scene="emoji-story" data-phase="${esc(S.phase)}" aria-label="${esc(label)}">${hud(S)}${inner}${S.phase === 'done' ? '' : tableHtml(S)}</section>`;
 }
 
 function solversLine(S) {
@@ -70,7 +85,7 @@ function revealHtml(S, watch) {
 }
 
 export default {
-  styles: [CSS],
+  styles: [CSS, KIT_CSS],
   ownsTimer: true,
   dispose() { stopHudTimer(liveTimerEl); liveTimerEl = null; feedback = null; screenKey = ''; liveState = null; liveApi = null; liveEl = null; liveActionKey = ''; },
   render(el, S, api) {
@@ -82,6 +97,7 @@ export default {
 
 function paint(el, S, api) {
     ensureStylesheet('emoji-story-css', CSS);
+    ensureStylesheet('create-kit-css', KIT_CSS);
     liveState = S; liveApi = api; liveEl = el;
     const actionKey = JSON.stringify([S.instanceId, S.me, S.phase, S.round, S.endsAt, S.director, !!S.mySolved, !!S.spectator, S.hostId]);
     liveActionKey = actionKey;
@@ -105,6 +121,9 @@ function paint(el, S, api) {
       if (h) h.outerHTML = hud(S);
       const w = el.querySelector('[data-live="wait"]');
       if (w && S.phase === 'guess') w.innerHTML = solversLine(S);
+      const t = el.querySelector('[data-live="table"]');
+      const chips = tableChips(S);
+      if (t && t._esChips !== chips) { t._esChips = chips; t.innerHTML = chips; }
       return;
     }
     screenKey = key;
@@ -201,10 +220,10 @@ function paint(el, S, api) {
       inp.focus();
       return;
     }
-    el.innerHTML = scene(S, 'Waiting for the story', waitCardHtml({
+    el.innerHTML = scene(S, 'Waiting for the story', `<div class="es-wait"><p class="es-emoji es-teaser" aria-hidden="true">💭 ✏️ ❓</p>` + waitCardHtml({
       kicker: watch ? 'You are watching' : '',
       title: `${teller} is the storyteller`,
-      text: `${teller} is turning a secret phrase into emoji. Then everyone guesses it.`,
-      waiting: `Waiting for ${teller}`,
-    }));
+      text: 'They are turning a secret phrase into emoji. Then everyone races to guess it.',
+      waiting: 'The story is on its way',
+    }) + `</div>`);
 }

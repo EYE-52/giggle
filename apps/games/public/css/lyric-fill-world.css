@@ -10,3 +10,21 @@
   display: flex; align-items: center; min-height: 48px; padding: 10px 14px;
   font: 700 17px/1.35 var(--font-body); overflow-wrap: anywhere;
 }
+
+/* ---- toy box layer (create-kit.css): the line on a tinted lyric card,
+ * the blank as a dashed slot, the table with who answered ---- */
+.lf.ck .lf-card { display: flex; flex-direction: column; gap: var(--space-12); }
+.lf.ck .lf-line { font: var(--text-heading); }
+.lf.ck .lf-blank { min-width: 5ch; height: 1em; border: var(--outline-w) dashed var(--outline); border-radius: var(--radius-sm); background: var(--card); transform: translateY(0.1em); }
+.lf.ck .lf-answer { padding: 0 var(--space-4); border-radius: var(--radius-sm); background: var(--card); color: var(--fam-deep); box-shadow: inset 0 -4px 0 var(--fam-soft); }
+.lf.ck .lf-locked { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); padding: var(--space-12) var(--space-16); }
+.lf.ck .lf-locked.is-mine { background: var(--success-soft); }
+.lf.ck .lf-locked.is-mine::after { content: "✓ locked in"; margin-left: auto; padding-left: var(--space-12); color: var(--success); font: var(--text-caption); font-weight: 800; white-space: nowrap; }
+.lf.ck .lf-table { display: flex; flex-direction: column; gap: var(--space-12); }
+.lf.ck .lf-table .wg-chip small { margin-left: var(--space-4); font: var(--text-caption); color: var(--ink-dim); }
+.lf.ck .lf-table .wg-chip b { margin-left: var(--space-8); padding-left: var(--space-8); border-left: var(--outline-w) solid var(--line-strong); font-variant-numeric: tabular-nums; }
+.lf.ck #lfWait { margin: 0; }
+.lf.ck .lf-dots { display: flex; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
+.lf.ck .lf-dots li { width: 12px; height: 12px; border-radius: 50%; background: var(--well); border: var(--outline-w) solid var(--line-strong); }
+.lf.ck .lf-dots li.is-done { background: var(--fam-soft); border-color: var(--fam); }
+.lf.ck .lf-dots li.is-now { background: var(--fam); border-color: var(--outline); }

@@ -17,7 +17,7 @@ function sendAction(el, origin, phase, action) {
   return live.api.send(action);
 }
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['scattergories-world-css', '/css/scattergories-world.css']];
+const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['scattergories-world-css', '/css/scattergories-world.css'], ['create-kit-css', '/css/create-kit.css']];
 function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
 function removeCss() {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
@@ -45,7 +45,7 @@ function runClock(el, S, api) {
 function activeCount(S) { return (S.players || []).filter((p) => !p.left).length; }
 
 export default {
-  styles: ['/css/compact-answer-games.css', '/css/scattergories-world.css'],
+  styles: ['/css/compact-answer-games.css', '/css/scattergories-world.css', '/css/create-kit.css'],
   ownsTimer: true,
   dispose(el) {
     if (clock !== null) clearInterval(clock);
@@ -62,7 +62,7 @@ export default {
     if (S.phase === 'done') {
       const resultKey = JSON.stringify(['done', S.instanceId, S.rounds, S.players, S.scores, S.me]);
       if (el._key === resultKey) return;
-      el.innerHTML = `<section class="gk-final wg wg-final sg gk-col gk-stack" data-game="scattergories" data-phase="done" aria-label="Scattergories final scores">`
+      el.innerHTML = `<section class="gk-final wg wg-final sg ck gk-col gk-stack" data-family="create" data-game="scattergories" data-phase="done" aria-label="Scattergories final scores">`
         + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.me })
         + `</section>`;
       el._key = resultKey;
@@ -90,7 +90,7 @@ export default {
       const mine = S.last.points?.[S.me];
       const watch = S.spectator || !(S.players || []).some((p) => p.id === S.me);
       const isHost = S.me === S.hostId && !watch;
-      el.innerHTML = `<section class="wg sg gk-col gk-stack" data-game="scattergories" data-phase="reveal" aria-label="Scattergories answers">`
+      el.innerHTML = `<section class="wg sg ck gk-col gk-stack" data-family="create" data-game="scattergories" data-phase="reveal" aria-label="Scattergories answers">`
         + hudHtml({ round: roundLabel(S.round, S.rounds), phase: 'Answers', progress: `Letter ${letter}`, timer: '' })
         + `<div class="sg-head"><span class="sg-letter" aria-hidden="true">${esc(letter)}</span><h2 class="gk-prompt">Unique answers score</h2></div>`
         + `<p class="wg-status${mine ? ' is-good' : ''}" role="status">${watch ? 'You are watching.' : mine ? `You scored +${mine} this round.` : 'No unique answers for you this round.'}</p>`
@@ -111,6 +111,9 @@ export default {
       const wait = el.querySelector('#scState');
       if (wait) wait.textContent = waitText(S);
       paintSaved(el, S);
+      const table = el.querySelector('#scTable');
+      const chips = tableChips(S);
+      if (table && table._scChips !== chips) { table._scChips = chips; table.innerHTML = chips; }
       for (const control of el.querySelectorAll?.('input') || []) control.disabled = !!(S.myLocked || S.spectator || S.preparing);
       for (const id of ['scSave', 'scLock']) { const control = el.querySelector(`#${id}`); if (control) control.disabled = !!(S.myLocked || S.spectator || S.preparing); }
       const finish = el.querySelector('#scFin');
@@ -121,16 +124,19 @@ export default {
     el._key = key;
     const dis = (S.myLocked || S.spectator || S.preparing) ? 'disabled' : '';
     const letter = String(S.letter || '');
-    el.innerHTML = `<section class="wg sg gk-col gk-stack" data-game="scattergories" data-phase="write" aria-label="Scattergories">`
+    el.innerHTML = `<section class="wg sg ck gk-col gk-stack" data-family="create" data-game="scattergories" data-phase="write" aria-label="Scattergories">`
       + hudHtml({ round: roundLabel(S.round, S.rounds), phase: S.spectator ? 'Watching' : S.myLocked ? 'Locked in' : 'Write', progress: lockLine(S), timer: '' })
       + `<div class="sg-head"><span class="sg-letter" aria-hidden="true">${esc(letter)}</span><h2 class="gk-prompt">Words that start with ${esc(letter)}</h2></div>`
-      + `<div class="sg-fields" role="group" aria-label="Five category answers">${(S.categories || []).map((c, i, arr) => (
-        `<div class="sg-field"><label for="sc${i}">${esc(c)}</label>`
-        + `<input class="gk-input" type="text" id="sc${i}" maxlength="40" value="${esc((S.mine || [])[i] || '')}" ${dis} placeholder="${esc(letter)}…" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="${i === arr.length - 1 ? 'done' : 'next'}" /></div>`
+      + `<div class="sg-fields ck-card" role="group" aria-label="Five category answers">${(S.categories || []).map((c, i, arr) => (
+        `<div class="sg-field"><label for="sc${i}"><span class="sg-n" aria-hidden="true">${i + 1}</span>${esc(c)}</label>`
+        + `<span class="sg-entry"><input class="gk-input" type="text" id="sc${i}" maxlength="40" value="${esc((S.mine || [])[i] || '')}" ${dis} placeholder="${esc(letter)}…" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="${i === arr.length - 1 ? 'done' : 'next'}" aria-describedby="scCheck${i}" />`
+        + `<span class="sg-check" id="scCheck${i}" aria-live="polite"></span></span></div>`
       )).join('')}</div>`
-      + `<div class="gk-actions"><button class="gk-btn gk-primary" id="scLock" type="button" ${dis}>Lock in</button><button class="gk-btn" id="scSave" type="button" ${dis}>Save</button></div>`
-      + `<p class="wg-status" id="scSaved" role="status"></p>`
-      + `<div class="wg-slot"><p class="gk-wait" id="scState" role="status">${esc(waitText(S))}</p></div>`
+      + `<div class="sg-actions"><div class="gk-actions"><button class="gk-btn gk-primary" id="scLock" type="button" ${dis}>Lock in</button><button class="gk-btn" id="scSave" type="button" ${dis}>Save</button>`
+      + `<p class="wg-status" id="scSaved" role="status"></p></div></div>`
+      + `<div class="sg-table ck-card"><div class="ck-head"><h3>The table</h3>${roundDots(S)}</div>`
+      + `<ul class="wg-chips" id="scTable" aria-label="Who is locked in">${tableChips(S)}</ul>`
+      + `<p class="gk-meta" id="scState" role="status">${esc(waitText(S))}</p></div>`
       + `<details class="wg-more sc-rules"><summary>Rules</summary>`
       + `<p>Each answer that starts with ${esc(letter)} and that nobody else wrote earns 40 points. Save keeps editing; Lock in submits.</p>`
       + (S.me === S.hostId && !S.spectator ? '<button class="gk-btn" id="scFin" type="button">Finish now</button>' : '')
@@ -148,7 +154,7 @@ export default {
     (S.categories || []).forEach((_, i, arr) => {
       const inp = el.querySelector(`#sc${i}`);
       if (!inp) return;
-      inp.oninput = () => paintSaved(el, current?.S || S);
+      inp.oninput = () => { paintSaved(el, current?.S || S); paintChecks(el, current?.S || S); };
       inp.onkeydown = (e) => {
         if (e.key !== 'Enter' || e.repeat || e.isComposing || e.keyCode === 229 || inp.disabled) return;
         e.preventDefault();
@@ -158,9 +164,37 @@ export default {
       };
     });
     paintSaved(el, S);
+    paintChecks(el, S);
     runClock(el, S, api);
   },
 };
+
+/* Round dots: done, now, to come. */
+function roundDots(S) {
+  return `<ol class="sg-dots" aria-label="${esc(roundLabel(S.round, S.rounds))}">${Array.from({ length: Math.max(1, S.rounds || 1) }, (_, i) =>
+    `<li class="${i + 1 < S.round ? 'is-done' : i + 1 === S.round ? 'is-now' : ''}"></li>`).join('')}</ol>`;
+}
+
+function tableChips(S) {
+  const locked = new Set(S.locked || []);
+  return (S.players || []).filter((p) => !p.left).map((p) => `<li class="wg-chip${locked.has(p.id) ? ' is-done' : ''}">${esc(p.name)}${p.id === S.me ? ' (you)' : ''}`
+    + `<small>${locked.has(p.id) ? 'Locked in' : 'Writing'}</small></li>`).join('');
+}
+
+/* A quiet check per field: does the answer start with the round letter?
+ * Only a hint for the player; the server still scores every answer. */
+function paintChecks(el, S) {
+  const letter = String(S.letter || '').toLowerCase();
+  (S.categories || []).forEach((_, i) => {
+    const box = el.querySelector(`#scCheck${i}`);
+    const value = (el.querySelector(`#sc${i}`)?.value || '').trim();
+    if (!box) return;
+    const state = !value ? '' : value.toLowerCase().startsWith(letter) ? 'is-good' : 'is-bad';
+    const text = !value ? '' : state === 'is-good' ? '✓' : `Not ${String(S.letter || '').toUpperCase()}`;
+    if (box.textContent !== text) box.textContent = text;
+    box.className = `sg-check ${state}`;
+  });
+}
 
 function lockLine(S) {
   return progressText(S.locked ? S.locked.length : 0, activeCount(S));

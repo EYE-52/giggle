@@ -7,7 +7,7 @@ import { hudHtml, roundLabel, waitingHtml, resultsHtml } from '../kit.js';
 let key = '', timer = null, current = null, currentApi = null, currentEl = null;
 let order = 'closest';
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['warm-words-world-css', '/css/warm-words-world.css']];
+const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['warm-words-world-css', '/css/warm-words-world.css'], ['create-kit-css', '/css/create-kit.css']];
 function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
 function removeCss() {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
@@ -43,6 +43,16 @@ function feed(S) {
   }).join('') || `<p class="wg-feed-empty">${esc(S.strings?.empty_feed || 'Start anywhere. Animals, food, places, things…')}</p>`;
 }
 
+/* Each player's guesses and their closest rank this round. */
+function playerChips(S) {
+  return (S.players || []).filter((p) => !p.left).map((p) => {
+    const mine = (S.history || []).filter((h) => h.pid === p.id && !h.hint);
+    const best = mine.reduce((b, h) => (!b || h.rank < b.rank ? h : b), null);
+    return `<li class="wg-chip${best && best.rank <= 10 ? ' is-done' : ''}">${esc(p.name)}${p.id === S.me ? ' (you)' : ''}`
+      + `<small>${mine.length ? `${mine.length} · best #${best.rank}` : 'No guesses yet'}</small></li>`;
+  }).join('');
+}
+
 function paint(S) {
   const best = S.best;
   const heat = temperature(best);
@@ -67,6 +77,9 @@ function paint(S) {
     box.innerHTML = feed(S);
     box.scrollTop = scrollTop;
   }
+  const chips = currentEl.querySelector('[data-ww-players]');
+  const chipsHtml = playerChips(S);
+  if (chips && chips._wwChips !== chipsHtml) { chips._wwChips = chipsHtml; chips.innerHTML = chipsHtml; }
   const hint = currentEl.querySelector('[data-ww-hint]');
   if (hint) {
     hint.disabled = S.spectator || S.preparing || S.hintsUsed >= 2;
@@ -84,7 +97,7 @@ function paint(S) {
 function clearClock() { if (timer !== null) clearInterval(timer); timer = null; }
 
 export default {
-  styles: ['/css/compact-answer-games.css', '/css/warm-words-world.css'],
+  styles: ['/css/compact-answer-games.css', '/css/warm-words-world.css', '/css/create-kit.css'],
   ownsTimer: true,
   dispose() { clearClock(); key = ''; if (currentEl) { delete currentEl._wwBestKey; delete currentEl._wwFeedKey; delete currentEl._wwResultKey; } current = null; currentApi = null; currentEl = null; order = 'closest'; removeCss(); },
   render(el, S, api) {
@@ -107,7 +120,7 @@ export default {
     if (S.phase === 'done') {
       clearClock();
       const found = (S.results || []).filter((r) => r.winner).length;
-      el.innerHTML = `<section class="gk-final wg wg-final ww gk-col gk-stack" data-game="warm-words" data-phase="done" aria-label="Warm Words final scores">`
+      el.innerHTML = `<section class="gk-final wg wg-final ww ck gk-col gk-stack" data-family="create" data-game="warm-words" data-phase="done" aria-label="Warm Words final scores">`
         + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.me })
         + `<p class="gk-final-note wg-final-note">${found} of ${S.rounds} word${S.rounds === 1 ? '' : 's'} found. The words: ${(S.results || []).map((r) => esc(r.target)).join(' · ')}</p>`
         + `</section>`;
@@ -117,7 +130,7 @@ export default {
       const result = S.last;
       const finalRound = S.round >= S.rounds;
       const isHost = S.me === S.hostId && !S.spectator;
-      el.innerHTML = `<section class="wg ww gk-col gk-stack" data-game="warm-words" data-phase="reveal" aria-label="Warm Words answer">`
+      el.innerHTML = `<section class="wg ww ck gk-col gk-stack" data-family="create" data-game="warm-words" data-phase="reveal" aria-label="Warm Words answer">`
         + hudHtml({ round: roundLabel(S.round, S.rounds), phase: result?.winner ? 'Found' : 'Time is up', progress: `${(S.history || []).length} guesses`, timer: '' })
         + `<div class="ww-result wg-panel"><div class="gk-meta">The hidden word</div><div class="ww-best">${esc(result?.target)}</div></div>`
         + `<p class="wg-status${result?.winner ? ' is-good' : ''}" role="status">${result?.winner ? `${esc(nameOf(S, result.winner))} found it: +${result.points} points.` : finalRound ? 'Nobody found it. Final scores are next.' : 'Nobody found it. Keep those ideas for the next word!'}</p>`
@@ -138,12 +151,14 @@ export default {
       return;
     }
     if (rebuild) {
-      el.innerHTML = `<section class="wg ww gk-col gk-stack" data-game="warm-words" data-phase="guess" aria-label="Warm Words">`
+      el.innerHTML = `<section class="wg ww ck gk-col gk-stack" data-family="create" data-game="warm-words" data-phase="guess" aria-label="Warm Words">`
         + hudHtml({ round: roundLabel(S.round, S.rounds), phase: S.spectator ? 'Watching' : 'Find the word', progress: '0 guesses', timer: '' })
-        + `<div class="ww-stage wg-panel"><div data-ww-best></div><div class="ww-meter" aria-hidden="true"><div class="ww-fill" data-ww-mercury></div></div></div>`
+        + `<div class="ww-stage wg-panel is-tint"><div data-ww-best></div><div class="ww-meter" aria-hidden="true"><div class="ww-fill" data-ww-mercury></div></div>`
+        + `<div class="ww-scale" aria-hidden="true"><span>Cold</span><span>Warm</span><span>Found</span></div></div>`
         + `<form class="gk-input-row" data-ww-form autocomplete="off"><input class="gk-input ww-input" data-ww-input type="text" maxlength="24" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" inputmode="text" placeholder="${esc(S.strings?.guess_placeholder || 'Try a word…')}" aria-label="Your word guess" ${S.spectator ? 'disabled' : ''}><button class="gk-btn gk-primary" type="submit" ${S.spectator ? 'disabled' : ''}>Guess</button></form>`
         + `<p class="wg-status ww-error" data-ww-error role="status" aria-live="polite"></p>`
         + (S.hintsEnabled ? '<div class="gk-actions ww-hint"><button class="gk-btn" type="button" data-ww-hint></button><span class="gk-meta" data-ww-hint-cost></span></div>' : '')
+        + `<div class="ww-players ck-card is-compact"><div class="ck-head"><h3>Players</h3></div><ul class="wg-chips" data-ww-players aria-label="Guesses per player"></ul></div>`
         + `<div class="ww-feed-head"><h3>Shared guesses</h3><button class="gk-btn gk-quiet" data-ww-sort data-watchok type="button">${order === 'closest' ? 'Closest first' : 'Newest first'}</button></div>`
         + `<div class="wg-feed ww-feed" data-ww-feed tabindex="0" aria-label="Shared guesses"></div>`
         + `<details class="wg-more ww-rules"><summary>Rules</summary><p>${esc(S.strings?.vocabulary_note || 'One everyday English word. Share ideas on your call!')} Higher percentages mean closer meaning; rank #1 is the answer. Only the exact word wins: 100 points plus up to 100 for speed. ${S.vocabularySize.toLocaleString()} supported words.${S.hintsEnabled ? ` Two room hints cost ${S.hintCost} points each from the round prize.` : ''}</p>${S.contentNote ? `<p>${esc(S.contentNote)}</p>` : ''}</details>`

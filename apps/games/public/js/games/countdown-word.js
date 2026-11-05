@@ -17,7 +17,7 @@ function sendAction(el, origin, phase, action) {
   return live.api.send(action);
 }
 
-const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['countdown-word-world-css', '/css/countdown-word-world.css']];
+const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['countdown-word-world-css', '/css/countdown-word-world.css'], ['create-kit-css', '/css/create-kit.css']];
 function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
 function removeCss() {
   if (typeof document === 'undefined' || typeof document.createElement !== 'function') return;
@@ -52,6 +52,18 @@ function waitText(S) {
   return waiting ? `Waiting for ${waiting} ${waiting === 1 ? 'player' : 'players'}` : 'Everyone is in';
 }
 
+/* Round dots: done, now, to come. */
+function roundDots(S) {
+  return `<ol class="cw-dots" aria-label="${esc(roundLabel(S.round, S.rounds))}">${Array.from({ length: Math.max(1, S.rounds || 1) }, (_, i) =>
+    `<li class="${i + 1 < S.round ? 'is-done' : i + 1 === S.round ? 'is-now' : ''}"></li>`).join('')}</ol>`;
+}
+/* Who is locked in, who is still building. */
+function tableChips(S) {
+  const locked = new Set(S.locked || []);
+  return (S.players || []).filter((p) => !p.left).map((p) => `<li class="wg-chip${locked.has(p.id) ? ' is-done' : ''}">${esc(p.name)}${p.id === S.me ? ' (you)' : ''}`
+    + `<small>${locked.has(p.id) ? 'Locked in' : 'Building'}</small></li>`).join('');
+}
+
 function tilesHtml(letters, { interactive, disabled }) {
   return `<div class="cw-tiles" role="group" aria-label="Available letters">${(letters || []).map((L, i) => (interactive
     ? `<button type="button" class="cw-tile" data-tile="${i}" data-letter="${esc(L)}" ${disabled ? 'disabled' : ''} aria-label="Use letter ${esc(L)}">${esc(L)}</button>`
@@ -59,7 +71,7 @@ function tilesHtml(letters, { interactive, disabled }) {
 }
 
 export default {
-  styles: ['/css/compact-answer-games.css', '/css/countdown-word-world.css'],
+  styles: ['/css/compact-answer-games.css', '/css/countdown-word-world.css', '/css/create-kit.css'],
   ownsTimer: true,
   dispose(el) {
     if (clock !== null) clearInterval(clock);
@@ -80,7 +92,7 @@ export default {
     if (S.phase === 'done') {
       const resultKey = JSON.stringify(['done', S.instanceId, S.players, S.rounds, S.scores, S.me]);
       if (el._key === resultKey) return;
-      el.innerHTML = `<section class="gk-final wg wg-final cw gk-col gk-stack" data-game="countdown-word" data-phase="done" aria-label="Word Countdown final scores">`
+      el.innerHTML = `<section class="gk-final wg wg-final cw ck gk-col gk-stack" data-family="create" data-game="countdown-word" data-phase="done" aria-label="Word Countdown final scores">`
         + resultsHtml({ title: 'Final scores', scores: S.scores || {}, players: S.players || [], you: S.me })
         + `</section>`;
       el._key = resultKey;
@@ -103,7 +115,7 @@ export default {
       const watch = S.spectator || !(S.players || []).some((p) => p.id === S.me);
       const isHost = S.me === S.hostId && !watch;
       const mine = S.last.points?.[S.me] || 0;
-      el.innerHTML = `<section class="wg cw gk-col gk-stack" data-game="countdown-word" data-phase="reveal" aria-label="Word Countdown answers">`
+      el.innerHTML = `<section class="wg cw ck gk-col gk-stack" data-family="create" data-game="countdown-word" data-phase="reveal" aria-label="Word Countdown answers">`
         + hudHtml({ round: roundLabel(S.round, S.rounds), phase: 'Answers', progress: S.last.longest ? `Longest: ${S.last.longest} letters` : 'No valid words', timer: '' })
         + `<h2 class="gk-prompt">One we spotted: <b class="cw-word">${esc(S.last.best || '')}</b></h2>`
         + tilesHtml(S.last.letters, { interactive: false })
@@ -123,6 +135,15 @@ export default {
       if (progress) progress.textContent = lockLine(S);
       const state = el.querySelector('#cwState');
       if (state) state.textContent = waitText(S);
+      const table = el.querySelector('#cwTable');
+      const chips = tableChips(S);
+      if (table && table._cwChips !== chips) { table._cwChips = chips; table.innerHTML = chips; }
+      const saved = el.querySelector('#cwSaved');
+      if (saved) {
+        const text = S.spectator ? 'You are watching this tray.' : S.mine ? `Your saved word: ${S.mine.toUpperCase()} · ${S.mine.length} letters` : 'No word saved yet. Save keeps your best so far.';
+        if (saved.textContent !== text) saved.textContent = text;
+        saved.classList?.toggle('is-set', !!S.mine);
+      }
       const feedback = el.querySelector('#cwFeedback');
       if (feedback) {
         feedback.textContent = S.myFeedback?.message || '';
@@ -145,7 +166,7 @@ export default {
     el._key = key;
     const off = !!(S.myLocked || S.spectator);
     const dis = off ? 'disabled' : '';
-    el.innerHTML = `<section class="wg cw gk-col gk-stack" data-game="countdown-word" data-phase="make" aria-label="Word Countdown">`
+    el.innerHTML = `<section class="wg cw ck gk-col gk-stack" data-family="create" data-game="countdown-word" data-phase="make" aria-label="Word Countdown">`
       + hudHtml({ round: roundLabel(S.round, S.rounds), phase: S.spectator ? 'Watching' : S.myLocked ? 'Locked in' : 'Build a word', progress: lockLine(S), timer: '' })
       + `<h2 class="gk-prompt">Make the longest word</h2>`
       + tilesHtml(S.letters, { interactive: true, disabled: off })
@@ -156,7 +177,10 @@ export default {
       + `<button class="gk-btn" id="cwClear" type="button" ${dis}>Clear</button>`
       + `<button class="gk-btn gk-quiet" id="cwPass" type="button" ${dis} aria-label="Pass this round without a word">Pass</button></div>`
       + `<p class="wg-status" id="cwFeedback" role="status" aria-live="polite"></p>`
-      + `<div class="wg-slot"><p class="gk-wait" id="cwState" role="status">${esc(waitText(S))}</p></div>`
+      + `<div class="cw-board ck-card"><div class="ck-head"><h3>The table</h3>${roundDots(S)}</div>`
+      + `<p class="cw-saved" id="cwSaved"></p>`
+      + `<ul class="wg-chips cw-table" id="cwTable" aria-label="Who is locked in">${tableChips(S)}</ul>`
+      + `<p class="gk-meta cw-state" id="cwState" role="status">${esc(waitText(S))}</p></div>`
       + `<details class="wg-more cw-rules"><summary>Rules</summary>`
       + `<p>Use 3–9 of the letters, each as often as it appears. A valid word earns 50 points plus 10 per letter; the longest earns 50 more. Save keeps editing, Lock in submits, Pass skips.</p>`
       + (S.contentNote ? `<p>${esc(S.contentNote)}</p>` : '')

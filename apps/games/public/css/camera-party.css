@@ -2,8 +2,9 @@
  * real call. The call is the stage; this column only carries the HUD, the
  * prompt, one action area (Ready, ballot, round result, final scores) and
  * the match scores. Built on the game kit (public/css/game-ui.css): flat
- * surfaces, 1px borders, tokens only, one accent. Every selector is scoped
- * to .camera-party (the toolkit root), so nothing leaks into the shell. */
+ * toy box stickers from create-kit.css (the root carries .ck and
+ * data-family="create"), tokens only. Every selector is scoped to
+ * .camera-party (the toolkit root), so nothing leaks into the shell. */
 
 .camera-party {
   --cp-gap: 14px;
@@ -122,4 +123,45 @@
 
 @media (prefers-reduced-motion: reduce) {
   .camera-party * { transition: none !important; animation: none !important; }
+}
+
+/* ---- toy box stage (create-kit.css) ---- */
+.camera-party { --cp-gap: var(--space-16); gap: var(--space-16); padding-block: var(--space-4) var(--space-32); }
+/* One timer: the ring on the prompt card. The HUD slot stays for screen
+ * readers and keeps its width, but is not drawn twice. */
+.camera-party .cp-head .cp-clock { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.camera-party .cp-prompt-card {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: var(--space-16);
+  min-height: 168px;
+}
+.camera-party .cp-prompt-text { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
+.camera-party .cp-kicker:empty { display: none; }
+.camera-party .cp-prompt { font: var(--text-heading); }
+.camera-party .cp-sub { color: var(--ink); }
+.camera-party .cp-ring { align-self: center; }
+
+/* Ready row: the primary, or the done badge in its place; the row keeps
+ * its height either way so nothing below moves. */
+.camera-party .cp-ready-row { min-height: 96px; gap: var(--space-8); }
+.camera-party .cp-ready { min-width: min(100%, 280px); }
+.camera-party .cp-ready-status.tb-badge { min-height: var(--control-h); padding-inline: var(--space-16); font: var(--text-button-sm); white-space: normal; text-align: center; text-wrap: balance; }
+.camera-party .cp-ready-status.tb-badge::before { content: "✓"; width: auto; height: auto; border-radius: 0; background: none; color: var(--success); font-weight: 800; }
+
+/* Stage: a chip for everyone in the round. */
+.camera-party .cp-stage { display: flex; flex-direction: column; gap: var(--space-12); }
+.camera-party .cp-stage-count { font-variant-numeric: tabular-nums; }
+.camera-party .cp-call { text-align: center; }
+
+/* Ballot, outcomes and scores on stickers. */
+.camera-party .cp-ballot-name { font: var(--text-heading); }
+.camera-party .cp-outcome-row { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); }
+.camera-party .cp-badge { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); text-align: center; min-width: 3.4em; }
+.camera-party .cp-outcome-row.won .cp-badge, .camera-party .cp-judges .cp-badge { background: var(--success-soft); border-color: var(--outline); }
+.camera-party .cp-yes .cp-thumb { color: var(--success); }
+.camera-party .cp-no .cp-thumb { color: var(--danger); }
+
+@media (max-width: 560px) {
+  .camera-party .cp-prompt-card { min-height: 0; gap: var(--space-12); }
+  .camera-party .cp-prompt { font-size: 24px; }
+  .camera-party .cp-ready-row { min-height: 80px; }
 }

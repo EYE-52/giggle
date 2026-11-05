@@ -1,0 +1,209 @@
+/* Create kit: the toy box layer for the drawing, camera and word games
+ * (DESIGN_TOKENS.md). A game root opts in with class="ck" plus
+ * data-family="create" (or "party" for Emoji Story); every rule is scoped
+ * to .ck[data-family], so this file can stay loaded after the game leaves.
+ * It turns the flat game kit (.gk-*, .wg-*) into stickers: an ink outline,
+ * a hard shadow straight down, the family colour on the one primary, and
+ * toy letter tiles. Tokens only. Per-game files add the game art. */
+
+/* ---- family colour: the kit's accent becomes the family colour ---- */
+.ck[data-family] {
+  --accent: var(--fam);
+  --accent-deep: var(--fam-deep);
+  --accent-soft: var(--fam-soft);
+  --accent-ink: var(--on-fam);
+  --gk-radius: var(--radius-lg);
+  --ck-tile: color-mix(in srgb, var(--warning) 14%, var(--card));
+  padding-bottom: calc(var(--space-32) + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---- sticker surfaces ---- */
+.ck[data-family] :is(.gk-card, .wg-panel, .ck-card) {
+  background: var(--card);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sticker-lg);
+  padding: var(--space-24);
+}
+.ck[data-family] .ck-card.is-tint, .ck[data-family] .wg-panel.is-tint { background: var(--fam-soft); }
+.ck[data-family] .wg-well {
+  background: var(--well); border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-lg);
+}
+@media (max-width: 560px) {
+  .ck[data-family] :is(.gk-card, .wg-panel, .ck-card) { padding: var(--space-16); }
+}
+
+/* ---- HUD row: round and progress as stickers, the timer as a fixed pill ---- */
+.ck[data-family] .gk-hud { min-height: var(--control-h-sm); gap: var(--space-8) var(--space-12); font: var(--text-caption); }
+.ck[data-family] .gk-hud-round {
+  display: inline-flex; align-items: center; min-height: 32px; padding: var(--space-4) var(--space-12);
+  background: var(--fam); color: var(--on-fam); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm);
+}
+.ck[data-family] .gk-hud-phase { color: var(--ink); font-weight: 800; }
+.ck[data-family] .gk-hud-progress { font-variant-numeric: tabular-nums; }
+.ck[data-family] .gk-hud-timer {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 4.2em; min-height: 32px;
+  padding: var(--space-4) var(--space-8); text-align: center;
+  background: var(--card); color: var(--ink); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  font: var(--text-button-sm); font-variant-numeric: tabular-nums;
+}
+.ck[data-family] .gk-hud-timer:empty { visibility: hidden; }
+@media (max-width: 560px) {
+  .ck[data-family] .gk-hud { gap: var(--space-4) var(--space-8); }
+  .ck[data-family] .gk-hud-round { min-height: 28px; padding: 2px var(--space-8); font: var(--text-caption); font-weight: 800; }
+  .ck[data-family] .gk-hud-timer { min-width: 3.6em; min-height: 28px; padding: 2px var(--space-4); }
+}
+.ck[data-family] .gk-hud-timer.is-urgent { background: var(--warning); color: var(--on-warning); }
+
+/* ---- prompt ---- */
+.ck[data-family] .gk-prompt { font: var(--text-heading); letter-spacing: -0.01em; text-wrap: balance; }
+.ck[data-family] .gk-sub { text-wrap: pretty; }
+
+/* ---- buttons: sticker, sinks onto its shadow ---- */
+.ck[data-family] .gk-btn:not(.gk-quiet) {
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm);
+  transition: transform var(--dur-quick) var(--ease);
+}
+.ck[data-family] .gk-btn.gk-primary {
+  background: var(--fam); color: var(--on-fam); border-color: var(--outline);
+  box-shadow: var(--shadow-sticker); font: var(--text-button);
+}
+@media (hover: hover) {
+  .ck[data-family] .gk-btn:not(.gk-quiet):hover:not(:disabled) { transform: translateY(-2px); border-color: var(--outline); filter: none; }
+}
+.ck[data-family] .gk-btn:not(.gk-quiet):active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.ck[data-family] .gk-btn.gk-primary:active:not(:disabled) { transform: translateY(var(--lift)); }
+.ck[data-family] .gk-btn:disabled {
+  background: var(--well); color: var(--ink-dim); border-color: var(--line-strong); box-shadow: none; transform: none;
+}
+.ck[data-family] .gk-btn.gk-quiet { min-height: var(--control-h-sm); font: var(--text-button-sm); }
+
+/* ---- inputs ---- */
+.ck[data-family] :is(.gk-input-row .gk-input, input.gk-input, textarea.gk-input) {
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--input-bg, var(--card));
+}
+.ck[data-family] :is(.gk-input-row .gk-input, input.gk-input):focus { border-color: var(--fam); box-shadow: 0 0 0 3px var(--fam-soft); }
+.ck[data-family] :is(.gk-input-row .gk-input, input.gk-input):disabled { background: var(--well); border-color: var(--line-strong); }
+
+/* ---- choices ---- */
+.ck[data-family] .gk-choice {
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm);
+}
+.ck[data-family] .gk-choice:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.ck[data-family] .gk-choice:is(.is-selected, [aria-pressed="true"]) { background: var(--fam-soft); border-color: var(--outline); box-shadow: inset 0 0 0 2px var(--fam), var(--shadow-sticker-sm); }
+.ck[data-family] .gk-choice:disabled { box-shadow: none; }
+
+/* ---- chips, tags and rows ---- */
+.ck[data-family] .wg-chips { display: flex; flex-wrap: wrap; gap: var(--space-8); margin: 0; padding: 0; list-style: none; min-width: 0; }
+.ck[data-family] .wg-chip {
+  display: inline-flex; align-items: center; gap: var(--space-4); max-width: 100%; background: var(--card); color: var(--ink); overflow-wrap: anywhere;
+  min-height: 32px; padding: var(--space-4) var(--space-12);
+  border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-pill); font: var(--text-button-sm);
+}
+.ck[data-family] .wg-chip.is-on { background: var(--fam); color: var(--on-fam); border-color: var(--outline); box-shadow: var(--shadow-sticker-sm); }
+.ck[data-family] .wg-chip.is-done { background: var(--success-soft); border-color: var(--success); }
+.ck[data-family] .wg-chip.is-done::before { content: "✓"; color: var(--success); font-weight: 800; }
+.ck[data-family] .wg-chip.is-out { background: var(--well); border-style: dashed; }
+.ck[data-family] .wg-tag { border-width: var(--outline-w); font: var(--text-caption); font-weight: 800; }
+.ck[data-family] :is(.wg-row, .ck-row) {
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm); background: var(--card);
+}
+.ck[data-family] :is(.wg-row, .ck-row).is-you { background: var(--fam-soft); }
+.ck[data-family] .wg-placeholder { border-width: var(--outline-w); border-radius: var(--radius-lg); }
+.ck[data-family] .wg-status { min-height: 1.5em; }
+
+/* Rules and long lists: a 48px tap row that clears the home indicator. */
+.ck[data-family] .wg-more { border-top: var(--outline-w) dashed var(--line-strong); padding-top: var(--space-4); }
+.ck[data-family] .wg-more > summary { min-height: var(--control-h); font: var(--text-button-sm); color: var(--ink); }
+
+/* ---- waiting line and empty states ---- */
+.ck[data-family] .gk-wait::before { background: var(--fam); }
+.ck[data-family] .ck-empty {
+  display: grid; justify-items: center; align-content: center; gap: var(--space-8); min-height: 120px;
+  padding: var(--space-24); text-align: center; color: var(--ink-dim);
+  background: var(--card); border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-xl);
+}
+.ck[data-family] .ck-empty > * { margin: 0; max-width: 40ch; }
+.ck[data-family] .ck-empty-title { font: var(--text-title); color: var(--ink); text-wrap: balance; }
+.ck[data-family] .ck-empty-art { font: 800 32px/1 var(--font-display); color: var(--fam); }
+
+/* ---- section label: a small sticker tab on a card ---- */
+.ck[data-family] .ck-label {
+  display: inline-flex; align-items: center; gap: var(--space-4); align-self: flex-start; min-height: 28px;
+  padding: var(--space-4) var(--space-12); margin: 0;
+  background: var(--fam-soft); color: var(--fam-deep); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  font: var(--text-caption); font-weight: 800; transform: rotate(-1.5deg);
+}
+.ck[data-family] .ck-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); min-width: 0; }
+.ck[data-family] .ck-head > h3 { margin: 0; font: var(--text-title); color: var(--ink); }
+
+/* ---- toy letter tiles ---- */
+.ck[data-family] .ck-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ck[data-family] .ck-tiles { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-8); margin: 0; padding: 0; list-style: none; }
+.ck[data-family] .ck-tile {
+  display: inline-grid; place-items: center; width: 44px; height: 52px; flex: none;
+  background: var(--ck-tile); color: var(--ink);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sticker-sm);
+  font: 800 26px/1 var(--font-display); text-transform: uppercase;
+}
+.ck[data-family] .ck-tile.is-blank { color: transparent; background: var(--card); box-shadow: inset 0 -4px 0 var(--fam-soft), var(--shadow-sticker-sm); }
+.ck[data-family] .ck-tile.is-gap { width: var(--space-16); border: 0; background: none; box-shadow: none; }
+.ck[data-family] .ck-tile.is-mark { background: var(--well); color: var(--ink-dim); }
+@media (max-width: 560px) {
+  .ck[data-family] .ck-tiles { gap: var(--space-4); }
+  .ck[data-family] .ck-tile { width: 34px; height: 42px; font-size: 21px; border-radius: var(--radius-sm); }
+  .ck[data-family] .ck-tile.is-gap { width: var(--space-8); }
+}
+
+/* ---- player chips with state ---- */
+.ck[data-family] .ck-roster {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--space-8);
+  margin: 0; padding: 0; list-style: none; min-width: 0;
+}
+.ck[data-family] .ck-player {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: var(--space-8);
+  align-items: center; min-height: 56px; padding: var(--space-8) var(--space-12);
+  background: var(--card); border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-lg);
+}
+.ck[data-family] .ck-ava {
+  grid-row: 1 / 3; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: hsl(var(--ck-hue, 200) 70% 82%); color: #1d1420; border: var(--outline-w) solid var(--outline);
+  font: 800 15px/1 var(--font-display);
+}
+.ck[data-family] .ck-pname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--text-button-sm); color: var(--ink); }
+.ck[data-family] .ck-pname small { font: var(--text-caption); color: var(--ink-dim); }
+.ck[data-family] .ck-pstate { min-height: 1.4em; font: var(--text-caption); color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ck[data-family] .ck-player.is-ready { border-color: var(--outline); background: var(--success-soft); box-shadow: var(--shadow-sticker-sm); }
+.ck[data-family] .ck-player.is-ready .ck-pstate { color: var(--ink); font-weight: 800; }
+.ck[data-family] .ck-player.is-ready .ck-pstate::before { content: "✓ "; color: var(--success); }
+.ck[data-family] .ck-player.is-on { border-color: var(--outline); background: var(--fam-soft); box-shadow: var(--shadow-sticker-sm); }
+.ck[data-family] .ck-player.is-on .ck-pstate { color: var(--fam-deep); font-weight: 800; }
+.ck[data-family] .ck-player.is-out { border-style: dashed; background: var(--well); }
+.ck[data-family] .ck-player.is-out .ck-pname { color: var(--ink-dim); text-decoration: line-through; }
+@media (max-width: 560px) {
+  .ck[data-family] .ck-roster { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+}
+
+/* ---- countdown ring ---- */
+.ck[data-family] .ck-ring { position: relative; display: grid; place-items: center; width: 88px; height: 88px; flex: none; }
+.ck[data-family] .ck-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.ck[data-family] .ck-ring-track { fill: var(--card); stroke: var(--outline); stroke-width: 8; }
+.ck[data-family] .ck-ring-bar { fill: none; stroke: var(--fam); stroke-width: 5; stroke-linecap: round; }
+.ck[data-family] .ck-ring-num { position: relative; font: 800 28px/1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.ck[data-family] .ck-ring.is-urgent .ck-ring-bar { stroke: var(--warning); }
+.ck[data-family] .ck-ring.is-urgent .ck-ring-num { color: var(--ink); }
+.ck[data-family] .ck-ring.is-off { visibility: hidden; }
+@media (max-width: 560px) {
+  .ck[data-family] .ck-ring { width: 64px; height: 64px; }
+  .ck[data-family] .ck-ring-num { font-size: 22px; }
+}
+
+/* ---- motion: a new item pops in once ---- */
+@keyframes ck-pop { from { transform: scale(0.96); opacity: .6; } to { transform: none; opacity: 1; } }
+.ck[data-family] .ck-pop { animation: ck-pop var(--dur-base) var(--ease); }
+@media (prefers-reduced-motion: reduce) {
+  .ck[data-family] *, .ck[data-family] *::before, .ck[data-family] *::after { animation: none !important; transition: none !important; }
+}

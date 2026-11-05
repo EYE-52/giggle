@@ -32,6 +32,7 @@ let bound = []; // [target, type, fn, opts] — removed by dispose()
 
 function ensureCss() {
   ensureStylesheet(OWN_CSS_ID, '/css/draw-phone.css');
+  ensureStylesheet('create-kit-css', '/css/create-kit.css');
 }
 
 function removeCss() {
@@ -88,13 +89,19 @@ function dpProgressText(S) {
 function header(S) {
   return `<header class="dp-header gk-hud"><h2 class="dp-identity">Draw Phone</h2>${stepsHtml(S.phase)}<span class="gk-hud-progress dp-progress" id="pProgress">${esc(dpProgressText(S))}</span></header>`;
 }
+/* "Ann" -> "A", "Player 2" -> "P2". */
+function markOf(name) {
+  const words = String(name || '?').trim().split(/\s+/);
+  const tail = words.length > 1 && /^\d{1,2}$/.test(words[words.length - 1]) ? words[words.length - 1] : '';
+  return (Array.from(words[0] || '?')[0] || '?').toLocaleUpperCase() + tail;
+}
 function roster(S) {
   const active = S.phase === 'write' ? S.submitted : S.phase === 'draw' ? S.finished : S.guessed;
   return `<aside class="dp-roster" aria-label="Players"><span class="dp-roster-label">At the table</span><ul>${(S.players || []).map((p, i) =>
-    `<li><span class="dp-player-mark dp-player-${i % 4}" aria-hidden="true">${esc((p.name || '?').slice(0, 1))}</span><span class="dp-player-name">${esc(p.name)}</span>${(active || []).includes(p.id) ? '<span class="dp-player-check" aria-label="Saved">✓</span>' : ''}</li>`).join('')}</ul></aside>`;
+    `<li class="${(active || []).includes(p.id) ? 'is-saved' : ''}"><span class="dp-player-mark dp-player-${i % 4}" style="--ck-hue:${(i * 67) % 360}" aria-hidden="true">${esc(markOf(p.name))}</span><span class="dp-player-name">${esc(p.name)}</span>${(active || []).includes(p.id) ? '<span class="dp-player-check" aria-label="Saved">✓</span>' : ''}</li>`).join('')}</ul></aside>`;
 }
 function desk(S, content) {
-  return `<div class="sk sk-phone dp dp-${S.phase}">${header(S)}<span class="gk-hud-timer dp-clock" role="timer" aria-live="off"></span><div class="dp-layout">${roster(S)}<section class="dp-main">${content}</section></div></div>`;
+  return `<div class="sk sk-phone dp ck dp-${S.phase}" data-family="create">${header(S)}<span class="gk-hud-timer dp-clock" role="timer" aria-live="off"></span><div class="dp-layout">${roster(S)}<section class="dp-main">${content}</section></div></div>`;
 }
 function updateRoster(el, S) {
   const old = el.querySelector('.dp-roster');
@@ -120,7 +127,10 @@ function syncView(cv) {
   if (!viewport) return;
   const r = viewport.getBoundingClientRect();
   if (!r.width || !r.height) return;
-  const scale = Math.min(r.width / 880, r.height / 520) * zoom;
+  // At Fit the paper keeps an even desk margin on every side, so it always
+  // sits centred like a sheet on the desk (no one-sided bands).
+  const margin = zoom > 1 ? 0 : Math.min(16, r.width * 0.03, r.height * 0.04);
+  const scale = Math.min((r.width - 2 * margin) / 880, (r.height - 2 * margin) / 520) * zoom;
   const width = 880 * scale, height = 520 * scale;
   panX = Math.max(-Math.max(0, (width - r.width) / 2), Math.min(Math.max(0, (width - r.width) / 2), panX));
   panY = Math.max(-Math.max(0, (height - r.height) / 2), Math.min(Math.max(0, (height - r.height) / 2), panY));
@@ -134,19 +144,21 @@ function syncView(cv) {
   if (plus) plus.disabled = zoom >= 3;
   pan?.setAttribute('aria-pressed', String(hand));
 }
+/* Four trays, so one selection per tray reads clearly: ink colour, pen or
+ * eraser, brush size, then clear and undo. */
 function tools() {
   return `<div class="toolbar sk-toolrail dp-tools" role="toolbar" aria-label="Drawing tools">
-    ${COLORS.slice(0, 5).map((c, i) => `<button type="button" class="swatch dp-puck ${c === color ? 'sel' : ''}" data-c="${c}" style="--swatch:${c}" aria-label="${COLOR_NAMES[i]} ink" aria-pressed="${c === color}"><span aria-hidden="true"></span></button>`).join('')}
-    <button type="button" id="pPen" class="dp-tool ${color !== '#ffffff' ? 'sel' : ''}" aria-label="Ink pen" aria-pressed="${color !== '#ffffff'}">${PEN_ICON}</button>
-    ${[3, 7, 16].map(n => `<button type="button" class="dp-brush ${size === n ? 'sel' : ''}" data-size="${n}" aria-label="${n === 3 ? 'Fine' : n === 7 ? 'Medium' : 'Bold'} brush, ${n} pixels" aria-pressed="${size === n}"><span style="--dot:${n}px" aria-hidden="true"></span></button>`).join('')}
-    <button type="button" class="dp-tool ${color === '#ffffff' ? 'sel' : ''}" data-c="#ffffff" id="pEraser" aria-label="White eraser" aria-pressed="${color === '#ffffff'}">${ERASER_ICON}</button>
-    <button type="button" class="dp-tool" id="pClear" aria-label="Clear drawing">${CLEAR_ICON}</button>
-    <button type="button" class="dp-tool" id="pUndo" aria-label="Undo last gesture" disabled>${UNDO_ICON}</button><p class="dp-ink-feedback" id="pInkFeedback" role="status"></p>
+    <span class="dp-group dp-group-ink" role="group" aria-label="Ink colour">${COLORS.slice(0, 5).map((c, i) => `<button type="button" class="swatch dp-puck ${c === color ? 'sel' : ''}" data-c="${c}" style="--swatch:${c}" aria-label="${COLOR_NAMES[i]} ink" aria-pressed="${c === color}"><span aria-hidden="true"></span></button>`).join('')}</span>
+    <span class="dp-group dp-group-tool" role="group" aria-label="Pen or eraser"><button type="button" id="pPen" class="dp-tool ${color !== '#ffffff' ? 'sel' : ''}" aria-label="Ink pen" aria-pressed="${color !== '#ffffff'}">${PEN_ICON}</button>
+    <button type="button" class="dp-tool ${color === '#ffffff' ? 'sel' : ''}" data-c="#ffffff" id="pEraser" aria-label="White eraser" aria-pressed="${color === '#ffffff'}">${ERASER_ICON}</button></span>
+    <span class="dp-group dp-group-size" role="group" aria-label="Brush size">${[3, 7, 16].map(n => `<button type="button" class="dp-brush ${size === n ? 'sel' : ''}" data-size="${n}" aria-label="${n === 3 ? 'Fine' : n === 7 ? 'Medium' : 'Bold'} brush, ${n} pixels" aria-pressed="${size === n}"><span style="--dot:${n}px" aria-hidden="true"></span></button>`).join('')}</span>
+    <span class="dp-group dp-group-edit" role="group" aria-label="Edit"><button type="button" class="dp-tool" id="pClear" aria-label="Clear drawing">${CLEAR_ICON}</button>
+    <button type="button" class="dp-tool" id="pUndo" aria-label="Undo last gesture" disabled>${UNDO_ICON}</button></span><p class="dp-ink-feedback" id="pInkFeedback" role="status"></p>
   </div>`;
 }
 
 export default {
-  styles: ['/css/draw-phone.css'],
+  styles: ['/css/draw-phone.css', '/css/create-kit.css'],
   ownsTimer: true,
   dispose() {
     stopHudTimer(lastEl); lastEl = null;
@@ -224,7 +236,7 @@ function renderDraw(el, S, api) {
   const key = `draw:${S.instanceId || ''}:${S.me || ''}:${!!S.spectator}`;
   if (key !== lastKey) {
     lastKey = key;
-    el.innerHTML = desk(S, `<div class="dp-draw-heading">${prompt(S.spectator ? 'Private sketchbooks are open' : (S.myPrompt || '…'), S.spectator ? 'Watching' : 'Your private prompt')}${S.spectator ? '' : '<div class="dp-view-controls"><button type="button" id="pFocus" aria-label="Focus canvas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="dp-focus-label">Focus canvas</span></button><button type="button" id="pTools" aria-expanded="true">Tools</button></div>'}<div class="dp-done-row">${S.spectator ? '' : `<button type="button" id="pDone" class="gk-btn gk-primary" aria-pressed="${!!S.myDone}">${S.myDone ? 'Keep drawing' : 'Done'}</button>`}<p class="dp-status sk-byline gk-meta">${doneText(S)}</p></div></div><div class="sk-drawdesk">${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" data-drawable="${!S.spectator}" width="880" height="520" tabindex="0" aria-label="${S.spectator ? 'Private drawings are hidden until reveal' : 'Your drawing canvas'}"></canvas></div>${S.spectator ? '' : zoomHtml()}`)}${S.spectator ? '<p class="dp-watching">The drawings stay private until the stories are read.</p>' : tools()}</div>`);
+    el.innerHTML = desk(S, `<div class="dp-draw-heading">${prompt(S.spectator ? 'Private sketchbooks are open' : (S.myPrompt || '…'), S.spectator ? 'Watching' : 'Your private prompt')}${S.spectator ? '' : '<div class="dp-view-controls"><button type="button" id="pFocus" aria-label="Focus canvas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="dp-focus-label">Focus canvas</span></button><button type="button" id="pTools" aria-expanded="true">Tools</button></div>'}<div class="dp-done-row">${S.spectator ? '' : `<button type="button" id="pDone" class="gk-btn gk-primary" aria-pressed="${!!S.myDone}">${S.myDone ? 'Keep drawing' : 'Done'}</button>${zoomHtml()}`}<p class="dp-status sk-byline gk-meta">${doneText(S)}</p></div></div><div class="sk-drawdesk">${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" data-drawable="${!S.spectator}" width="880" height="520" tabindex="0" aria-label="${S.spectator ? 'Private drawings are hidden until reveal' : 'Your drawing canvas'}"></canvas></div>`)}${S.spectator ? '<p class="dp-watching">The drawings stay private until the stories are read.</p>' : tools()}</div>`);
     wireDraw(el, api, S.spectator);
     wireFocus(el);
     const done = el.querySelector('#pDone');
@@ -234,7 +246,8 @@ function renderDraw(el, S, api) {
       api.send({ done: !snapshot.myDone });
     };
   } else {
-    el.querySelector('.sk-byline').textContent = doneText(S); updateRoster(el, S);
+    if (S.spectator) el.querySelector('.sk-byline').textContent = doneText(S);
+    updateRoster(el, S);
   }
   const done = el.querySelector('#pDone');
   if (done) {
@@ -243,6 +256,9 @@ function renderDraw(el, S, api) {
     done.className = S.myDone ? 'gk-btn' : 'gk-btn gk-primary';
     done.setAttribute('aria-pressed', String(!!S.myDone));
     done.disabled = !S.myDone && !visibleStrokes.length && !pending.length;
+    const why = el.querySelector('.dp-done-row .sk-byline');
+    const text = doneText(S, !done.disabled);
+    if (why && why.textContent !== text) why.textContent = text;
   }
   paintStrokes(el.querySelector('#pCanvas'), visibleStrokes, true);
   refreshInk(el);
@@ -351,9 +367,10 @@ function renderReveal(el, S, api) {
   paintStrokes(el.querySelector('#pCanvas'), c.strokes || []);
 }
 
-function doneText(S) {
+function doneText(S, inked = true) {
   if (S.spectator) return statusText(S, 'drawn');
-  return S.myDone ? 'Done. Waiting for the others; you can keep drawing until then.' : 'Press Done when your drawing is finished.';
+  return S.myDone ? 'Done. Waiting for the others; you can keep drawing until then.'
+    : inked ? 'Press Done when your drawing is finished.' : 'Draw your prompt first. Done unlocks after your first line.';
 }
 
 function refreshInk(el) {
