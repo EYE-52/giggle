@@ -85,6 +85,14 @@ export function renderRules(body, game) {
   }
 }
 
+/* The rules list fades at its bottom edge only while more of it sits
+ * below: a long list reads as continuing, a short or fully scrolled one
+ * shows every line at full strength. */
+function syncRulesFade(body) {
+  const more = body.scrollHeight - body.scrollTop - body.clientHeight > 4;
+  body.classList.toggle('has-more', more);
+}
+
 function paintFooter() {
   if (!state || !state.el) return;
   const foot = state.el.querySelector('[data-howto-foot]');
@@ -203,7 +211,13 @@ export function openHowto({ game, opener, meta, buildFooter }) {
       const panel = el.querySelector('#' + tab.getAttribute('aria-controls'));
       panel.hidden = !active || (panel === intro && !intro.textContent);
     }
+    syncRulesFade(rules);
   };
+  const rules = el.querySelector('.howto-body');
+  const fade = () => syncRulesFade(rules);
+  rules.addEventListener('scroll', fade, { passive: true });
+  rules.addEventListener('toggle', fade, true); // "All rules" opening or folding
+  if (typeof ResizeObserver === 'function') new ResizeObserver(fade).observe(rules);
   for (const tab of tabs) {
     tab.onclick = () => selectTab(tab);
     tab.onkeydown = (event) => {
