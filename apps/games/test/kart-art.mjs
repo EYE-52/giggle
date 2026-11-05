@@ -157,14 +157,23 @@ function assertSceneryOutside(layout,half,tag) {
 function assertSolidsInside(world,blocks,tag) {
   const obs=world.group.getObjectByName('obstacles');
   const box=new THREE.Box3();
+  // Instanced scenery is checked per instance: each copy must fit a block.
+  const boxes=child=>{
+    if(!child.isInstancedMesh)return [box.setFromObject(child).clone()];
+    child.geometry.computeBoundingBox();child.updateMatrixWorld(true);
+    const m=new THREE.Matrix4(),out=[];
+    for(let i=0;i<child.count;i++){child.getMatrixAt(i,m);out.push(child.geometry.boundingBox.clone().applyMatrix4(m.premultiply(child.matrixWorld)));}
+    return out;
+  };
   for(const child of obs.children) {
     if(child.isMesh&&child.geometry&&child.geometry.type==='PlaneGeometry')continue; // paint ring
-    box.setFromObject(child);
-    if(box.isEmpty())continue;
+    for(const bb of boxes(child)){
+    if(bb.isEmpty())continue;
     const ok=blocks.some(b=>
-      box.min.x>=b.x-b.hw-0.12&&box.max.x<=b.x+b.hw+0.12&&
-      box.min.z>=b.z-b.hd-0.12&&box.max.z<=b.z+b.hd+0.12);
+      bb.min.x>=b.x-b.hw-0.12&&bb.max.x<=b.x+b.hw+0.12&&
+      bb.min.z>=b.z-b.hd-0.12&&bb.max.z<=b.z+b.hd+0.12);
     assert(ok,`${tag} solid stays inside its block footprint`);
+    }
   }
 }
 const hexChan=(h,s)=>(h>>s)&255;

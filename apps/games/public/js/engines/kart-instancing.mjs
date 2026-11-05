@@ -1,8 +1,8 @@
 /* Draw repeated static scenery as one InstancedMesh per geometry/material
  * pair. Cloned props (flags, tyres, posts) share both, so N copies cost one
  * draw (plus one shadow draw) instead of N. Skipped subtrees, transparent or
- * multi-material meshes, skinned/morphed meshes and anything with a render
- * hook keep their own draws. Originals stay in the tree, hidden, so lookups
+ * multi-material meshes, skinned/morphed or mirrored meshes and anything
+ * with a render hook keep their own draws. Originals stay in the tree, hidden, so lookups
  * by name and scene disposal behave as before. */
 export function instanceRepeats(THREE, root, { skip = new Set(), minCount = 3 } = {}) {
   root.updateMatrixWorld(true);
@@ -12,7 +12,9 @@ export function instanceRepeats(THREE, root, { skip = new Set(), minCount = 3 } 
     const off = hidden || !obj.visible;
     if (obj.isMesh && !off && !obj.isInstancedMesh && !obj.isSkinnedMesh && !Array.isArray(obj.material) &&
         obj.material && !obj.material.transparent && !obj.morphTargetInfluences && !obj.userData.dynamic &&
-        obj.onBeforeRender === THREE.Mesh.prototype.onBeforeRender) {
+        obj.onBeforeRender === THREE.Mesh.prototype.onBeforeRender &&
+        // Mirrored copies flip winding per object, which instances cannot do.
+        obj.matrixWorld.determinant() > 0) {
       const key = obj.geometry.uuid + '|' + obj.material.uuid + '|' + obj.castShadow + '|' + obj.receiveShadow + '|' + obj.renderOrder;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(obj);

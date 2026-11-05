@@ -19,11 +19,13 @@ for (let i = 0; i < 3; i++) root.add(new THREE.Mesh(geo, glass));
 const moving = new THREE.Group(); root.add(moving);
 for (let i = 0; i < 3; i++) moving.add(new THREE.Mesh(geo, mat));
 root.add(new THREE.Mesh(new THREE.SphereGeometry(), mat), new THREE.Mesh(new THREE.SphereGeometry(), mat));
+const mirrorGeo = new THREE.ConeGeometry();
+for (let i = 0; i < 3; i++) { const m = new THREE.Mesh(mirrorGeo, mat); m.scale.x = -1; root.add(m); }
 
 root.updateMatrixWorld(true);
 const before = flags.map(f => f.matrixWorld.clone());
 const made = instanceRepeats(THREE, root, { skip: new Set([moving]) });
-assert.equal(made.length, 1, 'only the opaque, unskipped repeat set is instanced');
+assert.equal(made.length, 1, 'only the opaque, unskipped, unmirrored repeat set is instanced');
 const inst = made[0].mesh;
 assert.equal(inst.count, 4);
 assert.equal(inst.castShadow, true, 'shadow casting carries over');
