@@ -16,7 +16,71 @@ export function isLoaded(gameId) {
 }
 
 /* Tear down the current view. Safe to call when nothing is mounted. */
-export function reset() {
+/* A rematch remounts the same game in the same playfield. Disposing clears
+ * it a network round trip before the next round paints, so the board
+ * blinks out. Keep an inert snapshot of the last frame on top until the
+ * new view's first paint (or failure) clears it. Canvas, frame and video
+ * games are skipped: their clones would show blank or reload. */
+// App-wide stylesheets present before any game; anything later is a game's.
+const baseStyles = typeof document === 'undefined' ? new Set() : new Set(document.querySelectorAll?.('link[rel="stylesheet"]') || []);
+
+function holdSnapshot(el) {
+  if (!el || !['standard', 'immersive'].includes(el.dataset?.layout) || !el.firstElementChild || el.querySelector?.('canvas, iframe, video')) return;
+  if (el.querySelector?.(':scope > .game-retiring') || !el.childNodes || typeof document === 'undefined') return;
+  const ghost = document.createElement('div');
+  // Carry the body's own classes, data attributes and inline custom
+  // properties: views size boards from them, so the copy lays out the same.
+  ghost.className = `${el.className || ''} game-retiring`.trim();
+  for (const attr of el.attributes || []) if (attr.name.startsWith('data-')) ghost.setAttribute(attr.name, attr.value);
+  if (el.style?.cssText) ghost.style.cssText = el.style.cssText;
+  ghost.setAttribute('aria-hidden', 'true');
+  ghost.inert = true;
+  for (const node of el.childNodes) ghost.appendChild(node.cloneNode(true));
+  // Views remove their own stylesheets on dispose; the copy keeps cached
+  // duplicates so it still lays out, and drops them when it is cleared.
+  for (const link of document.querySelectorAll?.('link[rel="stylesheet"]') || []) {
+    if (!baseStyles.has(link)) ghost.appendChild(link.cloneNode());
+  }
+  el._ghost = ghost;
+  el._ghostHeight = el.offsetHeight;
+}
+function placeSnapshot(el) {
+  const ghost = el?._ghost;
+  if (!ghost) return;
+  el._ghost = null;
+  el.classList?.add('is-retiring');
+  if (el._ghostHeight && el.style) el.style.minHeight = el._ghostHeight + 'px';
+  el.appendChild(ghost);
+}
+function clearSnapshot(el) {
+  if (!el) return;
+  el._ghost = null;
+  if (el.classList?.contains('is-retiring') && el.style) el.style.minHeight = '';
+  el.classList?.remove('is-retiring');
+  for (const ghost of el.querySelectorAll?.(':scope > .game-retiring') || []) ghost.remove();
+}
+
+/* The shell disposes the view and rebuilds the play screen for a new
+ * round, replacing the body element itself. Capture the last frame first,
+ * then place it in the new body so the swap never blanks. */
+export function captureSnapshot(el) {
+  holdSnapshot(el);
+  const ghost = el?._ghost;
+  if (!ghost) return null;
+  el._ghost = null;
+  return { ghost, height: el._ghostHeight };
+}
+export function placeCapturedSnapshot(el, snap) {
+  if (!el || !snap) return;
+  el._ghost = snap.ghost;
+  el._ghostHeight = snap.height;
+  placeSnapshot(el);
+}
+
+// Stylesheets kept across a same-game rematch, adopted by the next round.
+let carriedStyles = null;
+
+export function reset(opts = {}) {
   const previous = cur;
   cur = null; // Detach before user cleanup: dispose may itself reset the host.
   if (previous) {
@@ -25,6 +89,8 @@ export function reset() {
     previous.waiters.length = 0;
     previous.untrack?.();
   }
+  if (opts.rematch && previous) holdSnapshot(previous.el);
+  else if (previous) clearSnapshot(previous.el);
   if (previous && previous.view && typeof previous.view.dispose === 'function') {
     try {
       previous.view.dispose(previous.el);
@@ -32,7 +98,13 @@ export function reset() {
       console.error('view dispose error', e);
     }
   }
-  for (const link of previous?.ownedStyles || []) link.remove();
+  if (opts.rematch && previous) placeSnapshot(previous.el);
+  for (const link of carriedStyles?.links || []) link.remove();
+  carriedStyles = null;
+  // A rematch snapshot still needs the game's own styles; the next round of
+  // the same game adopts them (and removes them when it is reset).
+  if (previous?.ownedStyles?.size && (opts.rematch || opts.keepStyles)) carriedStyles = { id: previous.id, links: previous.ownedStyles };
+  else for (const link of previous?.ownedStyles || []) link.remove();
 }
 
 /* Run fn while keeping keyboard focus (and text selection) stable when
@@ -222,6 +294,7 @@ async function drive(active) {
         await waitFor(withFocus(active.el, () => method.call(active.view, active.el, request.S, api)), paintController.signal);
         active.painted = request.version;
         active.paintedWindow = request.S.w;
+        clearSnapshot(active.el);
         if (cur !== active) return;
         if (active.painted !== active.version) continue;
         if (!active.usable || (request.S.preparing && active.readyWindow !== request.S.w)) {
@@ -273,9 +346,12 @@ async function drive(active) {
 export function show(el, gameId, S, api, meta) {
   if (!el) return Promise.resolve(null);
   if (!cur || cur.id !== gameId || cur.el !== el || cur.instanceId !== S.instanceId) {
-    reset();
+    if (cur) reset({ rematch: cur.id === gameId && cur.el === el && cur.instanceId !== S.instanceId });
     const active = cur = { id: gameId, instanceId: S.instanceId, el, view: null, controller: new AbortController(),
       version: 0, painted: 0, usable: false, running: false, waiters: [], ownedStyles: new Set(), requiredStyles: new Set(), initialStyles: new Set(styles()) };
+    if (carriedStyles?.id === gameId) for (const link of carriedStyles.links) active.ownedStyles.add(link);
+    else for (const link of carriedStyles?.links || []) link.remove();
+    carriedStyles = null;
     const tracked = event => {
       if (event.target?.tagName === 'LINK' && event.target.rel === 'stylesheet') styleStates.set(event.target, event.type);
     };

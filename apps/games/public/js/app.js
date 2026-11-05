@@ -4,7 +4,7 @@ import { practiceSupport } from './practice-support.mjs';
 import { finalHtml } from './kit.js';
 import { ZOOM_KEY, ZOOM_STEPS, currentZoom, stepZoom, percent, zoomable, zoomControlHtml } from './zoom.js';
 import { sound, avatarColor, confetti, staggerIn } from './fx.js';
-import { show as showView, reset as resetView } from './game-host.js';
+import { show as showView, reset as resetView, captureSnapshot, placeCapturedSnapshot } from './game-host.js';
 import {
   openCustomizer, closeCustomizer, isCustomizerOpen, customizerGame,
   refreshCustomizer, customizerError, customizerResult,
@@ -46,6 +46,8 @@ const SEAT_REPLACED_CODE = 4001;
  * tickets in memory only. */
 const EMBED = parseEmbedParams(location.search);
 const PRACTICE = !EMBED.enabled && window.parent !== window ? practiceContext(location.search) : null;
+// Last frame of a finished round, shown until its rematch paints.
+let rematchSnapshot = null;
 let lastPracticeReport = '';
 let practiceClosing = false;
 function reportPracticeState() {
@@ -790,6 +792,9 @@ function onMsg(msg) {
       // A new instanceId means rematch/restart: EVERY client disposes and
       // remounts, even when the game id is unchanged.
       if (msg.game !== gameId || (msg.instanceId && msg.instanceId !== instanceId)) {
+        // Same game, new instance (rematch): capture the board before disposal.
+        const body = document.getElementById('gbody');
+        rematchSnapshot = msg.game === gameId && body?.dataset.game === gameId ? { game: gameId, snap: captureSnapshot(body) } : null;
         sound.stop();
         gameId = msg.game;
         instanceId = msg.instanceId || null;
@@ -797,7 +802,7 @@ function onMsg(msg) {
         focusGame = null;
         closeCustomizer({ returnFocus: false });
         closeHowto({ returnFocus: false });
-        resetView();
+        resetView({ keepStyles: !!rematchSnapshot });
         render();
         // Game (or rematch instance) changed: the hint may too. Per-tick
         // states below never re-report, so the parent sees one update per
@@ -2458,8 +2463,10 @@ function renderGame() {
     // The game owns the viewport. The platform provides a quiet, optional
     // room drawer instead of imposing its title card/HUD on every game.
     app.innerHTML = connbarHtml() + gameRoomMenu(g, context, true) + `
-      <main id="gbody" data-layout="immersive" aria-label="${esc(gameName(gameId))}"></main>
+      <main id="gbody" data-layout="immersive" data-game="${esc(gameId)}" aria-label="${esc(gameName(gameId))}"></main>
       <div class="timerbar" id="tbar" hidden><div></div></div><div id="ttime" hidden></div>`;
+    if (rematchSnapshot?.game === gameId) placeCapturedSnapshot(document.getElementById('gbody'), rematchSnapshot.snap);
+    rematchSnapshot = null;
     wireGameRoom();
     paintGamePreparation();
     mountGameBody();
@@ -2486,10 +2493,13 @@ function renderGame() {
         <div class="timerbar" id="tbar" hidden><div style="width:100%"></div></div>
         <div class="timertext" id="ttime" aria-label="Round time" hidden></div>
       </div>
-      <div id="gbody" data-layout="standard"></div>
+      <div id="gbody" data-layout="standard" data-game="${esc(gameId)}"></div>
       <div class="game-loading game-loading-slot" aria-hidden="true">${g ? artImg(g, 'game-loading-art') : ''}</div>
       ${specAfter}
     </main>`;
+  // A rematch keeps its last frame on screen until the next round paints.
+  if (rematchSnapshot?.game === gameId) placeCapturedSnapshot(document.getElementById('gbody'), rematchSnapshot.snap);
+  rematchSnapshot = null;
   wireGameRoom();
   paintGamePreparation();
   mountGameBody();

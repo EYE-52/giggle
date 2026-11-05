@@ -1820,3 +1820,7 @@ body:not(.game-playing):not(.is-embed) .topbar { padding-block: 8px; }
   .game-loading-art { animation: game-loading-bob 2.8s ease-in-out infinite; }
   @keyframes game-loading-bob { 50% { transform: translateY(-6px) rotate(-1.5deg); } }
 }
+
+/* Rematch: the last frame stays on screen, inert, until the next round paints. */
+#gbody.is-retiring { position: relative; }
+#gbody > .game-retiring { position: absolute; inset: 0; z-index: 5; overflow: hidden; pointer-events: none; background: var(--bg); }
