@@ -56,7 +56,7 @@
 .fl-game .fl-place-actions .tb-btn,.fl-game .fl-fire{width:100%}
 .fl-game .bk-player .bk-stat-value{font-size:18px}
 @media (max-width:759px){
- .fl-game .fl-ships{display:flex;overflow-x:auto;padding:var(--space-8) var(--space-4);scroll-snap-type:x mandatory}
+ .fl-game .fl-ships{display:flex;overflow-x:auto;padding:var(--space-8) var(--space-4);scroll-snap-type:x mandatory;scroll-padding-inline:var(--space-4)}
  .fl-game .fl-ships button{flex:0 0 auto;width:128px;scroll-snap-align:start}
  .fl-game .fl-tray-ship{width:100%!important}
 }
