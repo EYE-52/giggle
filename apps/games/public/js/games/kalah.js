@@ -47,6 +47,7 @@ function boardSvg(pits) {
     const mark = i === from ? ' is-from' : i === landed ? ' is-landed' : '';
     html += `<g ${store ? `aria-label="${esc(label)}"` : `data-pit="${i}" data-watchok role="button" tabindex="${cursor === i ? 0 : -1}"${cursor === i ? ' data-game-focus' : ''} aria-disabled="${!active}" aria-label="${esc(label)}"`} class="kl-bowl ${active ? 'is-legal' : ''}${mark}">
       <ellipse class="kl-pit" cx="${p.x}" cy="${p.y}" rx="${rx}" ry="${ry}"${store ? ` style="stroke:${SEED[own ? 1 : 0][0]};stroke-width:6"` : ''}/>
+      <ellipse class="kl-floor" cx="${p.x}" cy="${p.y + 4}" rx="${rx - 4}" ry="${ry - 6}"/>
       ${stones(i, pits[i])}
       <text class="kl-num" x="${portrait && !store ? p.x+(p.x<200?-73:73) : p.x}" y="${p.y + (portrait && !store ? 10 : store ? 12 : 83)}" text-anchor="middle" font-size="${store ? 34 : 28}" font-weight="800">${pits[i]}</text>
       ${store ? '' : `<rect class="kl-hit" x="${p.x - (portrait ? 75 : 49)}" y="${p.y - (portrait ? 29 : 68)}" width="${portrait ? 150 : 98}" height="${portrait ? 58 : 136}" rx="30" fill="transparent"/><ellipse class="kl-focus" cx="${p.x}" cy="${p.y}" rx="${rx + 6}" ry="${ry + 6}" fill="none"/>`}

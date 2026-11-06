@@ -19,3 +19,31 @@
   .mt .mt-obj svg { width: 34px; height: 34px; }
   .mt .mt-name { font-size: 16px; }
 }
+/* Objects on a tray, not buttons: square flat tiles with the drawing in the
+ * middle and its name underneath, centred on the family-tinted tray mat. No
+ * sticker shadow, so nothing looks tappable while you study. In the reveal,
+ * a remembered object gets a green tile and a check mark. */
+#gbody .mt .mt-tray { grid-template-columns: repeat(auto-fit, 104px); justify-content: center; }
+#gbody .mt.pl-fill .mt-tray .mt-obj {
+  position: relative; flex-direction: column; justify-content: center; gap: var(--space-4);
+  aspect-ratio: 1; min-height: 0; padding: var(--space-8);
+  border: 0; border-radius: var(--radius-md); background: var(--card); box-shadow: none; text-align: center;
+}
+#gbody .mt.pl-fill .mt-tray .mt-obj svg { width: 56px; height: 56px; }
+#gbody .mt.pl-fill .mt-tray .mt-name { font: var(--text-caption); font-size: 15px; font-weight: 800; color: var(--ink); }
+#gbody .mt.pl-fill .mt-tray .mt-obj.is-hit { background: var(--success-soft); box-shadow: inset 0 0 0 var(--outline-w) var(--success); }
+#gbody .mt.pl-fill .mt-tray .mt-obj.is-hit::after {
+  content: "✓"; position: absolute; top: var(--space-4); right: var(--space-4); display: grid; place-items: center;
+  width: 24px; height: 24px; border: var(--outline-w) solid var(--outline); border-radius: 50%;
+  background: var(--success); color: var(--on-success, #fff); font: 800 13px/1 var(--font-body);
+}
+/* The strip's seats and the waiting line in the same kit as the cards. */
+#gbody .mt.pl-fill .pl-seat { border-color: var(--outline); background: var(--card); }
+#gbody .mt.pl-fill .pl-seat.is-you { background: var(--fam-soft); }
+#gbody .mt.pl-fill .wg-slot .gk-wait { border-color: transparent; background: none; color: var(--ink-dim); }
+@media (max-width: 560px) {
+  #gbody .mt .mt-tray { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  #gbody .mt.pl-fill .mt-tray .mt-obj { padding: var(--space-4); }
+  #gbody .mt.pl-fill .mt-tray .mt-obj svg { width: 36px; height: 36px; }
+  #gbody .mt.pl-fill .mt-tray .mt-name { font-size: 13px; }
+}

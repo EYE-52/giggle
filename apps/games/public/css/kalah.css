@@ -5,11 +5,27 @@
 .kl .kl-frame{fill:#a8774a}
 .kl .kl-pit{fill:#7c5434;stroke:#6a462a;stroke-width:2}
 .kl .kl-num{fill:#fff7e8}
-.kl .kl-bowl.is-legal .kl-pit{stroke:var(--accent);stroke-width:4}
+.kl .kl-bowl.is-legal .kl-pit{stroke:var(--fam);stroke-width:6}
 .kl .kl-bowl.is-legal{cursor:pointer}
-.kl .kl-bowl.is-legal:hover .kl-pit{fill:#8a5f3c}
-.kl .kl-bowl.is-from .kl-pit{stroke:#f6d365;stroke-width:3;stroke-dasharray:8 6}
-.kl .kl-bowl.is-landed .kl-pit{stroke:#f6d365;stroke-width:4}
-.kl .kl-focus{stroke:var(--accent);stroke-width:4;opacity:0}
+.kl .kl-bowl.is-legal:hover .kl-floor{fill:#8a5f3c}
+.kl .kl-bowl.is-from .kl-pit{stroke:#f6d365;stroke-width:4;stroke-dasharray:8 6}
+.kl .kl-bowl.is-landed .kl-pit{stroke:#f6d365;stroke-width:5}
+.kl .kl-focus{stroke:var(--sun,#f6d365);stroke-width:4;opacity:0}
+/* Toy board: carved wood in an ink rim with a hard shadow; every bowl is a
+ * hollow (a dark lip above a lighter floor); playable bowls wear the family
+ * ring and lift a little under the pointer. */
+.kl .kl-art{filter:drop-shadow(0 6px 0 var(--outline))}
+.kl .kl-frame{fill:#b98352;stroke:var(--outline);stroke-width:6}
+.kl .kl-pit{fill:#4f3119;stroke:#5c3b20}
+.kl .kl-floor{fill:#7c5434;pointer-events:none}
+.kl .kl-bowl{transition:transform var(--dur-quick) var(--ease)}
+@media (hover:hover){.kl .kl-bowl.is-legal:hover{transform:translateY(-3px)}}
+.kl .kl-bowl.is-legal:active{transform:translateY(1px)}
 .kl [data-pit]:focus{outline:none}
 .kl [data-pit]:focus-visible .kl-focus{opacity:1}
+/* Phones: the turn banner sits above the tall board so the prompt and the
+ * bowls share the first screen; the board never outgrows the viewport. */
+@media (max-width:759px){
+ .kl .bk-status{order:1}
+ .kl.kl-portrait .bk-stage{width:min(100%,560px,calc((100svh - 300px) * var(--bk-aspect)))}
+}

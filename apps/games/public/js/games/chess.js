@@ -344,7 +344,7 @@ export default {
       final,
     });
     const turnCls = S.phase === 'play' ? (S.turn === 'w' ? 'tomove-w' : 'tomove-b') : '';
-    const boardHtml = `<div class="bk-stage chboard-col ${turnCls}"><div class="ch-frame"><div class="chboard" role="group" aria-label="Chess board">${squares}</div></div>${promoHtml}</div>`;
+    const boardHtml = `<div class="bk-stage chboard-col ${turnCls}"${final?.headline ? ` data-bk-result="${esc(final.headline)}"` : ''}><div class="ch-frame"><div class="chboard" role="group" aria-label="Chess board">${squares}</div></div>${promoHtml}</div>`;
     for (const cls of ['theme-mono', 'theme-harbor', 'theme-fern']) root.classList.toggle(cls, cls === themeCls);
     root.innerHTML = boardHtml + panelHtml;
 
