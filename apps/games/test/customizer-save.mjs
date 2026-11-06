@@ -35,7 +35,7 @@ function rig({detached=false,connected=true}={}){
  root.contains=node=>!!node?.dialog&&node.connected;
  document.querySelectorAll=selector=>root.querySelectorAll(selector.replace('#dlg-root ',''));
  root.querySelector=selector=>selector.includes('.dlg input')?[...nodes.values()].find(n=>n.dialog&&n.tagName==='INPUT'&&!n.disabled):null;
- const context={document,Date,esc:String,store:{get:()=>null,set(){}},kartSetupHtml:setup.kartSetupHtml,wireKartSetup(){},syncKartSetup:(...args)=>sync.push(args),
+ const context={document,Date,esc:String,store:{get:()=>null,set(){}},kartSetupHtml:setup.kartSetupHtml,wireKartSetup(){},syncKartSetup:(...args)=>sync.push(args),segPickerHtml:()=>"",stepperHtml:(id,input)=>input,wirePickers(){},syncPickers(){},
   setTimeout:fn=>{const id=++sequence;timers.set(id,fn);return id;},clearTimeout:id=>timers.delete(id)};
  vm.createContext(context);vm.runInContext(source+'\nglobalThis.qa={openCustomizer,closeCustomizer,customizerResult,refreshCustomizer,isCustomizerOpen};',context);
  context.qa.openCustomizer({game:g,config:{},host:true,opener,toast:m=>toasts.push(m),onSave:(game,settings,pack,requestId)=>{requests.push({game,settings,pack,requestId});return connected;},onReset:(game,requestId)=>{requests.push({game,requestId});return connected;},onClearPack(){}});

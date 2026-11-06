@@ -2272,3 +2272,51 @@ input[type="text"], input[type="number"], select, textarea { border-width: 2px; 
 /* The game screen's zoom pill: one soft rim, a soft lip, no inner rules. */
 .game-zoom { border: 2px solid var(--outline); border-radius: var(--radius-md); box-shadow: 0 var(--lift-sm) 0 var(--outline); }
 .game-zoom .game-zoom-value { border-inline: 0; }
+
+/* ---- Pickers (js/pickers.js): friendly controls over native fields ----
+ * Enum settings are a segmented track (or wrapping chips), numbers a big
+ * − value + stepper with a slider for wide ranges, and on/off settings a
+ * switch. The native select stays for forms and tests, visually hidden. */
+.picker-native { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.picker-seg.tb-seg { display: flex; width: 100%; }
+.picker-seg.is-chips { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.picker-seg.is-chips > button {
+  min-height: var(--control-h-sm); padding: var(--space-8) var(--space-16); border-radius: var(--radius-pill);
+  font: var(--text-button-sm); color: var(--ink); background: var(--card);
+  border: var(--outline-w) solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline);
+  cursor: pointer; transition: transform var(--dur-quick) var(--ease);
+}
+.picker-seg.is-chips > button[aria-checked="true"] { color: var(--on-fam); background: var(--fam); border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+.picker-seg.is-chips > button:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.picker-seg > button:disabled { cursor: not-allowed; opacity: .55; }
+.picker-seg > button:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.picker-step { display: inline-flex; align-items: stretch; gap: var(--space-8); }
+.dlg-field .picker-step input[type="number"] {
+  width: 5.5ch; max-width: none; min-height: var(--control-h); padding: 0 var(--space-8); text-align: center;
+  font: 800 22px/1 var(--font-ui, var(--font-display)); font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+}
+.picker-step input::-webkit-outer-spin-button, .picker-step input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.picker-btn {
+  width: var(--control-h); min-height: var(--control-h); border-radius: var(--radius-md);
+  font: 800 24px/1 var(--font-ui, var(--font-display)); color: var(--fam-deep); background: var(--fam-soft);
+  border: var(--outline-w) solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline); cursor: pointer;
+  transition: transform var(--dur-quick) var(--ease);
+}
+.picker-btn:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.picker-btn:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
+.picker-btn:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.picker-range { display: block; width: 100%; max-width: 320px; margin-top: var(--space-12); accent-color: var(--fam); }
+/* On/off settings: a switch, not a tick box. */
+.dlg-toggle input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 52px; height: 32px; margin: 0;
+  border-radius: var(--radius-pill); background: var(--well); border: var(--outline-w) solid var(--outline); cursor: pointer;
+}
+.dlg-toggle input[type="checkbox"]::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--card); box-shadow: 0 2px 0 var(--outline); transition: transform var(--dur-quick) var(--ease);
+}
+.dlg-toggle input[type="checkbox"]:checked { background: var(--fam); border-color: var(--fam-lip); }
+.dlg-toggle input[type="checkbox"]:checked::after { transform: translateX(20px); }
+.dlg-toggle input[type="checkbox"]:disabled { opacity: .55; cursor: not-allowed; }
+.dlg-toggle input[type="checkbox"]:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+@media (prefers-reduced-motion: reduce) { .dlg-toggle input[type="checkbox"]::after, .picker-btn, .picker-seg > button { transition: none; } }
