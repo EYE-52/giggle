@@ -152,3 +152,33 @@ body[data-game="number-hunt"].game-playing {
 #gbody .nh.pl-fill .nh-window { background: color-mix(in srgb, var(--fam) 22%, var(--card)); box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--fam) 35%, transparent); }
 [data-theme="night"] #gbody .nh.pl-fill .nh-window { box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--fam) 35%, transparent), 0 0 16px color-mix(in srgb, var(--fam) 35%, transparent); }
 #gbody .nh.pl-fill .nh-pins { z-index: 2; }
+
+/* QC: the ruler is the hero. The question above it is a quiet heading, the
+ * ruler is taller, and the live range is a filled band in the game colour
+ * with a grip at each end so it reads as "the number is in here". At night
+ * the field is a card-coloured well (not a black hole) and the ruler card
+ * sits on a violet lip. */
+#gbody .wg.pl-fill.nh > .gk-prompt {
+  padding: var(--space-8) var(--space-16); background: none; border: 0; box-shadow: none;
+  font: var(--text-title); font-size: 22px; color: var(--ink);
+}
+#gbody .nh.pl-fill .nh-track { height: 52px; }
+#gbody .nh.pl-fill .nh-window {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fam) 42%, var(--card)), color-mix(in srgb, var(--fam) 26%, var(--card)));
+  border-width: 2px;
+}
+#gbody .nh.pl-fill .nh-window::before, #gbody .nh.pl-fill .nh-window::after {
+  content: ""; position: absolute; top: 50%; width: 6px; height: 60%; margin-top: -1px; transform: translateY(-50%);
+  border-radius: var(--radius-pill); background: var(--fam-deep);
+}
+#gbody .nh.pl-fill .nh-window::before { left: 4px; }
+#gbody .nh.pl-fill .nh-window::after { right: 4px; }
+[data-theme="night"] #gbody .nh.pl-fill .nh-window { background: linear-gradient(180deg, color-mix(in srgb, var(--fam) 48%, var(--card)), color-mix(in srgb, var(--fam) 30%, var(--card))); }
+[data-theme="night"] #gbody .nh.pl-fill .nh-window::before, [data-theme="night"] #gbody .nh.pl-fill .nh-window::after { background: var(--fam-deep); }
+[data-theme="night"] #gbody .nh.pl-fill .nh-range { border-color: color-mix(in srgb, var(--fam) 30%, var(--card)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--fam) 28%, #0b0a14); }
+[data-theme="night"] #gbody .nh.pl-fill .gk-input-row .gk-input { background: var(--well); border-color: color-mix(in srgb, var(--fam) 25%, var(--well)); color: var(--ink); }
+[data-theme="night"] #gbody .nh.pl-fill .gk-input-row .gk-input:disabled { background: var(--card); }
+@media (max-width: 480px) {
+  #gbody .nh.pl-fill .nh-track { height: 44px; }
+  #gbody .wg.pl-fill.nh > .gk-prompt { font-size: 19px; padding: var(--space-4) var(--space-8); }
+}

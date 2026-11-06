@@ -226,3 +226,12 @@
 }
 .chboard-col[data-bk-result]::after{animation:none}
 .fl-game .bk-stage[data-bk-result]::after{top:calc(var(--control-h-sm) + var(--space-24))}
+/* QC: the status banner is a compact row, not a tall box. Games whose
+ * status never carries a hint line keep only one line of space; Kalah and
+ * Checkers (status + hint) keep room for exactly two lines. */
+.bk-game:is(.kl,.ck) .bk-hint{font-size:14px;line-height:1.45}
+@media (max-width:759px){
+ .bk-status{min-height:0;padding:var(--space-8) var(--space-16)}
+ .bk-status-text{font-size:17px}
+ .bk-game:is(.kl,.ck) .bk-status{min-height:calc(2 * var(--space-8) + 2 * var(--outline-w,2px) + 1.25 * 17px + 1.45 * 14px)}
+}

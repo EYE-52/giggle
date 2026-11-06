@@ -117,3 +117,22 @@
 @media (prefers-reduced-motion: reduce) {
   #gbody .tr.pl-fill .tr-fill, #gbody .tr.pl-fill .tr-rail { transition: none; }
 }
+
+/* QC: focus is a soft ring in the game colour drawn inside the column (no
+ * ink outline spilling past the cards); a mistake swaps it to a red ring.
+ * The wrong stretch of the sentence is a tinted mark with a solid red
+ * underline, not a wavy squiggle. */
+#gbody .tr.pl-fill .tr-input:focus-visible {
+  outline: none; border-color: var(--fam);
+  box-shadow: 0 var(--lift-sm) 0 var(--outline), 0 0 0 3px color-mix(in srgb, var(--fam) 40%, transparent);
+}
+#gbody .tr.pl-fill .tr-input.is-error:focus-visible {
+  border-color: var(--danger);
+  box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--danger) 60%, transparent), 0 0 0 3px color-mix(in srgb, var(--danger) 30%, transparent);
+}
+[data-theme="night"] #gbody .tr.pl-fill .tr-input:focus-visible { box-shadow: 0 var(--lift-sm) 0 var(--outline), 0 0 0 2px color-mix(in srgb, var(--fam) 45%, transparent); }
+[data-theme="night"] #gbody .tr.pl-fill .tr-input.is-error:focus-visible { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--danger) 45%, transparent), 0 0 0 2px color-mix(in srgb, var(--danger) 35%, transparent); }
+#gbody .tr.pl-fill .tr-target span.typing-wrong {
+  background: color-mix(in srgb, var(--danger) 16%, transparent); border-radius: 0; box-shadow: none;
+  text-decoration: underline solid var(--danger); text-decoration-thickness: 2px; text-underline-offset: 4px;
+}

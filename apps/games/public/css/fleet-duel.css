@@ -88,3 +88,13 @@
  .fl-game .fl-place-tools .tb-btn{flex:1 1 0;min-width:0;padding-inline:var(--space-8)}
 }
 @media(prefers-reduced-motion:reduce){.fl-game *{animation:none!important;transition:none!important}}
+/* QC: the sea runs past the bottom of the page (no flat page-colour band),
+ * and on phones the five-ship tray fills its rows: three on top, the last
+ * two sharing the second row, so no empty slot is left. */
+body[data-game="fleet-duel"]{background:#cfe4f2}
+[data-theme="night"] body[data-game="fleet-duel"]{background:#0b1424}
+@media (max-width:759px){
+ .fl-game .fl-ships{grid-template-columns:repeat(6,minmax(0,1fr))}
+ .fl-game .fl-ships>button{grid-column:span 2}
+ .fl-game .fl-ships>button:nth-child(4):nth-last-child(2),.fl-game .fl-ships>button:nth-child(5):last-child{grid-column:span 3}
+}

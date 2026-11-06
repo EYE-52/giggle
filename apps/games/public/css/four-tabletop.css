@@ -24,3 +24,12 @@ html[data-theme=night] .fr-duel{--fr-plastic:#2d5ccc;--fr-rim:#1e43a0;--fr-lip:#
 .fr-duel [data-column][aria-disabled=false]{cursor:pointer}
 /* The column cue shows only where you can drop now (never on their turn or after the end). */
 .fr-duel [data-column][aria-disabled=false]:focus-visible .fr-cursor{opacity:1}
+/* QC: the rack stands on a floor (a soft contact shadow under its feet),
+ * and at night the plastic is a deeper, calmer blue so it does not glare
+ * on the dark room. */
+.fr-duel .fr-stage>svg{position:relative;z-index:1}
+.fr-duel .fr-stage::before{content:"";position:absolute;left:2%;right:2%;bottom:-14px;height:32px;border-radius:50%;
+ background:radial-gradient(closest-side,color-mix(in srgb,var(--ink) 18%,transparent),transparent);pointer-events:none}
+html[data-theme=night] .fr-duel{--fr-plastic:#2a4c9e;--fr-rim:#1d3a80;--fr-lip:#0a173c}
+html[data-theme=night] .fr-duel .fr-gloss{opacity:.6}
+html[data-theme=night] .fr-duel .fr-stage::before{background:radial-gradient(closest-side,#00000080,transparent)}
