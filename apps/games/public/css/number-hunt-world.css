@@ -127,3 +127,28 @@
   #gbody .nh.pl-fill .nh-track { height: 32px; }
   #gbody .nh.pl-fill .nh-pin { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
 }
+
+/* ==========================================================================
+ * Skin (2026-11): a hunt on graph paper with a real ruler. The page is a
+ * faint squared grid in the game colour; the track is a ruler with tick
+ * marks every 1, 5 and 10 that stay visible over the live window, so the
+ * window reads as a bracket on the scale. Night: a blueprint sheet.
+ * ========================================================================== */
+body[data-game="number-hunt"].game-playing {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(0deg, color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px) 0 0 / 24px 24px,
+    var(--bg);
+}
+#gbody .nh.pl-fill { --nh-tick: color-mix(in srgb, var(--ink) 55%, transparent); }
+#gbody .nh.pl-fill .nh-track { position: relative; }
+#gbody .nh.pl-fill .nh-track::after {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    repeating-linear-gradient(90deg, var(--nh-tick) 0 2px, transparent 2px 10%) 0 0 / 100% 14px no-repeat,
+    repeating-linear-gradient(90deg, var(--nh-tick) 0 1px, transparent 1px 5%) 0 0 / 100% 10px no-repeat,
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--nh-tick) 60%, transparent) 0 1px, transparent 1px 1%) 0 0 / 100% 6px no-repeat;
+}
+#gbody .nh.pl-fill .nh-window { background: color-mix(in srgb, var(--fam) 22%, var(--card)); box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--fam) 35%, transparent); }
+[data-theme="night"] #gbody .nh.pl-fill .nh-window { box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--fam) 35%, transparent), 0 0 16px color-mix(in srgb, var(--fam) 35%, transparent); }
+#gbody .nh.pl-fill .nh-pins { z-index: 2; }

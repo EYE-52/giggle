@@ -54,25 +54,47 @@
 .ch-tabletop .promo .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:44px;padding:4px;border:1px solid var(--line-strong);border-radius:10px;background:var(--well);color:var(--ink);font:700 13px/1.2 var(--font-body);cursor:pointer}
 .ch-tabletop .promo .ch-piece{width:54px;height:54px;object-fit:contain}
 @media (max-width:759px){.ch-tabletop .sq small{font-size:9px}.ch-tabletop .ch-frame{padding:5px}}
-/* Toy board: a teal board-family set in a sticker frame. White pieces get an
- * ink rim so they read on light squares; coordinates are captions tucked
- * into the corners; selection and moves use sun and ink, not the party pink. */
-.ch-tabletop{--ch-light:#eef5ef;--ch-dark:#5fa596;--ch-frame:#1f6f62;--ch-coord-light:#2f7f71;--ch-coord-dark:#f2fbf7}
-.ch-tabletop .ch-frame{padding:var(--space-8);border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);background:var(--ch-frame);box-shadow:var(--shadow-sticker-lg)}
-.ch-tabletop .chboard{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-sm);overflow:hidden}
-.ch-tabletop .chboard .ch-piece[src*="chess/w"]{filter:drop-shadow(0 1px 0 var(--outline)) drop-shadow(0 -1px 0 var(--outline)) drop-shadow(1px 0 0 var(--outline)) drop-shadow(-1px 0 0 var(--outline))}
+/* Wooden board on a table (2026-11 skin). Maple and walnut squares in a
+ * wood frame that sits on its own darker wood lip; the page is a warm table
+ * top by day and a dark walnut table at night. No ink rims: white pieces get
+ * a soft brown edge so they read on maple. Blue and Green board themes keep
+ * their squares inside the same wood frame. */
+.ch-tabletop{--ch-light:#efd7b0;--ch-dark:#b07a4b;--ch-coord-light:#8a5a32;--ch-coord-dark:#fbecd3;
+ --ch-wood:#9a6538;--ch-wood-2:#8a5830;--ch-wood-lip:#5e3a1d;--ch-grain:#5e3a1d1f;--ch-hl:#f6d365;
+ --ch-table:#f6e9d6;--ch-table-2:#ead3b4;--ch-plank:#a0703d17}
+.ch-tabletop.theme-mono{--ch-light:#efd7b0;--ch-dark:#b07a4b;--ch-coord-light:#8a5a32;--ch-coord-dark:#fbecd3}
+[data-theme="night"] .ch-tabletop{--ch-wood:#6e4526;--ch-wood-2:#613c20;--ch-wood-lip:#24150b;--ch-grain:#00000033;
+ --ch-table:#2a1d15;--ch-table-2:#1d140e;--ch-plank:#00000040;--card:#2c221c;--well:#372b23;--line:#4a3a2f;--line-strong:#5a483b}
+[data-theme="night"] .ch-tabletop:not(.theme-harbor):not(.theme-fern){--ch-light:#d9bd93;--ch-dark:#8f5f39;--ch-coord-light:#6e4526;--ch-coord-dark:#f3e2c6}
+.bk-game.ch-tabletop{background:
+ repeating-linear-gradient(90deg,transparent 0 calc(25% - 1px),var(--ch-plank) calc(25% - 1px) 25%),
+ radial-gradient(120% 80% at 50% 20%,var(--ch-table),var(--ch-table-2))}
+.ch-tabletop .ch-frame{padding:var(--space-12);border:0;border-radius:var(--radius-xl);
+ background:
+  linear-gradient(180deg,#ffffff26,transparent 30%,#00000014),
+  repeating-linear-gradient(97deg,transparent 0 5px,var(--ch-grain) 5px 7px,transparent 7px 13px),
+  linear-gradient(90deg,var(--ch-wood),var(--ch-wood-2) 50%,var(--ch-wood));
+ box-shadow:inset 0 2px 0 #ffffff33,0 var(--lift-lg) 0 var(--ch-wood-lip),0 18px 28px -14px #2a170a66}
+.ch-tabletop .chboard{border:0;border-radius:var(--radius-sm);overflow:hidden;box-shadow:0 0 0 2px var(--ch-wood-lip)}
+.ch-tabletop .chboard .sq{background:repeating-linear-gradient(100deg,transparent 0 6px,#5e3a1d14 6px 8px),var(--ch-dark)}
+.ch-tabletop .chboard .sq.light{background:repeating-linear-gradient(100deg,transparent 0 7px,#8a5a3210 7px 9px),var(--ch-light)}
+.ch-tabletop.theme-harbor .chboard .sq,.ch-tabletop.theme-fern .chboard .sq{background:var(--ch-dark)}
+.ch-tabletop.theme-harbor .chboard .sq.light,.ch-tabletop.theme-fern .chboard .sq.light{background:var(--ch-light)}
+.ch-tabletop .chboard .ch-piece[src*="chess/w"]{filter:drop-shadow(0 0 1px #4a2c14) drop-shadow(0 2px 1px #4a2c1440)}
+.ch-tabletop .chboard .ch-piece[src*="chess/b"]{filter:drop-shadow(0 2px 1px #00000040)}
 .ch-tabletop .sq small{font:var(--text-caption);font-size:12px;line-height:1}
 .ch-tabletop .ch-file{right:var(--space-4);bottom:var(--space-4)}.ch-tabletop .ch-rank{left:var(--space-4);top:var(--space-4)}
-.ch-tabletop .chboard .sq.last::before{background:var(--sun,#f6d365);opacity:.55}
-.ch-tabletop .chboard .sq.sel{box-shadow:inset 0 0 0 4px var(--outline)}
-.ch-tabletop .chboard .sq.sel::before{content:"";position:absolute;inset:0;background:var(--sun,#f6d365);opacity:.7;z-index:0;pointer-events:none}
-.ch-tabletop .chboard .sq.dest::after{background:var(--outline);opacity:.38}
-.ch-tabletop .chboard .sq.cap::after{border-color:var(--outline);opacity:.45}
+.ch-tabletop .chboard .sq.last::before{background:var(--ch-hl);opacity:.5}
+.ch-tabletop .chboard .sq.sel{box-shadow:inset 0 0 0 4px var(--fam)}
+.ch-tabletop .chboard .sq.sel::before{content:"";position:absolute;inset:0;background:var(--ch-hl);opacity:.65;z-index:0;pointer-events:none}
+.ch-tabletop .chboard .sq.dest::after{background:#3b2414;opacity:.35}
+.ch-tabletop .chboard .sq.cap::after{border-color:#3b2414;opacity:.45}
+.ch-tabletop .chboard .sq.check::before{background:var(--danger);opacity:.55}
 .ch-tabletop .chboard .sq:focus-visible{outline:var(--focus-ring);outline-offset:-4px}
-/* Captures: a quiet sticker row inside the panel. */
+/* Captures: a quiet card row inside the panel. */
 .bk-game.ch-tabletop .ch-capture-rail{padding:var(--space-8) var(--space-12);border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);background:var(--card);box-shadow:var(--shadow-sticker-sm)}
 .ch-tabletop .ch-capture-rail small{font:var(--text-caption)}
 .ch-tabletop .ch-captured>span{font:var(--text-caption);color:var(--ink-dim)}
-.ch-tabletop .promo{border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);box-shadow:var(--shadow-sticker-lg)}
-.ch-tabletop .promo .btn{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-md);background:var(--card);font:var(--text-caption);color:var(--ink)}
-@media (max-width:759px){.ch-tabletop .ch-frame{padding:var(--space-4);border-radius:var(--radius-lg)}.ch-tabletop .sq small{font-size:10px}}
+.ch-tabletop .promo{border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);box-shadow:var(--shadow-sticker-lg),var(--shadow-card)}
+.ch-tabletop .promo .btn{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-md);background:var(--card);font:var(--text-caption);color:var(--ink);box-shadow:var(--shadow-sticker-sm)}
+@media (max-width:759px){.ch-tabletop .ch-frame{padding:var(--space-8);border-radius:var(--radius-lg)}.ch-tabletop .sq small{font-size:10px}}

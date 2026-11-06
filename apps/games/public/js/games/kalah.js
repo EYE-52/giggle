@@ -39,7 +39,11 @@ function stones(i, count) {
 function boardSvg(pits) {
   const width = portrait ? 400 : 840, height = portrait ? 480 : 360;
   const from = !moving && state.lastMove ? state.lastMove.pit : null, landed = !moving && state.lastMove ? state.lastMove.steps.at(-1) : null;
-  let html = `<rect class="kl-frame" x="4" y="4" width="${width - 8}" height="${height - 8}" rx="40"/>`;
+  // Carved wood: the plank and its grain are the stage's CSS background
+  // (painted once, not on every sowing frame); bowl floors catch the light
+  // at the back, like hollows cut into the plank.
+  let html = `<defs><radialGradient id="kl-hollow" cx=".5" cy=".7" r=".65"><stop class="kl-hollow-a" offset="0"/><stop class="kl-hollow-b" offset="1"/></radialGradient></defs>
+  <rect class="kl-frame" x="4" y="4" width="${width - 8}" height="${height - 8}" rx="40"/>`;
   for (let i = 0; i < 14; i++) {
     const p = point(i), store = i === 6 || i === 13, own = owner(i), active = myTurn() && !moving && pending === null && state.legal.includes(i);
     const rx = store ? (portrait ? 138 : 45) : portrait ? 54 : 43, ry = store ? (portrait ? 24 : 111) : portrait ? 24 : 53;

@@ -25,6 +25,32 @@
   font: 800 clamp(48px, 9vh, 80px)/1 var(--font-display);
   transition: transform var(--dur-quick) var(--ease);
 }
+/* Signature: a start-light gantry above the button (2026-11 skin). Red and
+ * amber burn while you wait, only green burns on GO, green stays on once
+ * you are locked in, and red flashes alone on a foul. The housing is game
+ * art, so it stays dark in both themes. */
+#gbody .rt.pl-fill .rt-pad {
+  grid-template-rows: auto auto auto;
+  --rt-off: #4a4450; --rt-red: var(--rt-off); --rt-amber: var(--rt-off); --rt-green: var(--rt-off);
+}
+#gbody .rt.pl-fill .rt-pad.is-wait { --rt-red: #ff5a4f; --rt-amber: #ffb020; }
+#gbody .rt.pl-fill .rt-pad.is-go, #gbody .rt.pl-fill .rt-pad.is-tapped { --rt-red: var(--rt-off); --rt-amber: var(--rt-off); --rt-green: #3ddc84; }
+#gbody .rt.pl-fill .rt-pad.is-fouled { --rt-red: #ff5a4f; --rt-amber: var(--rt-off); --rt-green: var(--rt-off); }
+#gbody .rt.pl-fill .rt-pad::before { grid-row: 2; }
+#gbody .rt.pl-fill .rt-pad::after {
+  content: ""; grid-row: 1; box-sizing: border-box; width: 152px; height: 52px; border-radius: var(--radius-pill);
+  background:
+    radial-gradient(circle at 26px 50%, var(--rt-red) 0 14px, transparent 15px),
+    radial-gradient(circle at 76px 50%, var(--rt-amber) 0 14px, transparent 15px),
+    radial-gradient(circle at 126px 50%, var(--rt-green) 0 14px, transparent 15px),
+    linear-gradient(180deg, #34303a, #231f28);
+  box-shadow: inset 0 2px 0 #ffffff1a, 0 var(--lift) 0 #15121a;
+}
+[data-theme="night"] #gbody .rt.pl-fill .rt-pad.is-go:not(.is-fouled):not(.is-tapped)::before { box-shadow: 0 0 0 6px color-mix(in srgb, var(--success) 30%, transparent), 0 0 40px color-mix(in srgb, var(--success) 45%, transparent), var(--shadow-sticker-lg); }
+/* Light: the cabinet sits on a soft green lip; the page is the game tint. */
+#gbody .rt.pl-fill .rt-pad { border-color: var(--outline); box-shadow: var(--shadow-sticker-lg); }
+#gbody .rt.pl-fill .rt-pad.is-go:not(.is-fouled):not(.is-tapped) { border-color: color-mix(in srgb, var(--success) 60%, var(--outline)); }
+
 /* GO: the whole cabinet lights up; the button is the target. */
 #gbody .rt.pl-fill .rt-pad.is-go { background: var(--success-soft); color: var(--ink); }
 #gbody .rt.pl-fill .rt-pad.is-go::before { content: "GO"; background: var(--success); color: var(--on-success); }
@@ -66,6 +92,12 @@
 
 @media (max-width: 560px) {
   #gbody .rt.pl-fill .rt-pad { min-height: clamp(220px, 38vh, 320px); padding: var(--space-16); gap: var(--space-12); }
+  #gbody .rt.pl-fill .rt-pad::after { width: 120px; height: 40px;
+    background:
+      radial-gradient(circle at 20px 50%, var(--rt-red) 0 11px, transparent 12px),
+      radial-gradient(circle at 60px 50%, var(--rt-amber) 0 11px, transparent 12px),
+      radial-gradient(circle at 100px 50%, var(--rt-green) 0 11px, transparent 12px),
+      linear-gradient(180deg, #34303a, #231f28); }
 }
 @media (prefers-reduced-motion: reduce) {
   #gbody .rt.pl-fill .rt-pad, #gbody .rt.pl-fill .rt-pad::before { transition: none; }

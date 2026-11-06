@@ -1,8 +1,23 @@
-/* Reversi board art: a flat green board with charcoal and ivory discs. */
-.rv-duel .rv-frame{fill:#1f6b48}
-.rv-duel .rv-felt{fill:#2e8a5e}
-.rv-duel .rv-grid{stroke:#1d5f40;stroke-width:2}
-.rv-duel .rv-star{fill:#1d5f40}
+/* Reversi: green baize felt (a fine nap and a lamp-lit centre) in a dark
+ * wood rim, on a card-room table. Discs are raised (a darker edge under the
+ * face). The rim sits on its own darker wood lip; no ink rims. Night dims
+ * the room and the felt, never the discs. */
+.rv-duel{--rv-felt:#2f8f5f;--rv-line:#1f6f48;--rv-wood-a:#6b4326;--rv-wood-b:#55331b;--rv-lip:#2e1b0c;
+ --rv-lamp-a:#ffffff1f;--rv-lamp-b:#00000026;--rv-room:#eef3ee;--rv-room-2:#d9e6dc}
+[data-theme="night"] .rv-duel{--rv-felt:#236e49;--rv-line:#185437;--rv-wood-a:#4d2f1a;--rv-wood-b:#3b2312;--rv-lip:#110a05;
+ --rv-lamp-a:#ffffff14;--rv-lamp-b:#0000004d;--rv-room:#17221c;--rv-room-2:#0e1511}
+.bk-game.rv-duel{background:radial-gradient(110% 75% at 50% 25%,var(--rv-room),var(--rv-room-2))}
+.rv-duel .rv-stage{border-radius:4.2%;background:var(--rv-wood-b);box-shadow:0 var(--lift-lg) 0 var(--rv-lip),0 18px 28px -14px #0a1f1466}
+.rv-duel .rv-frame{fill:url(#rv-wood);stroke:none}
+.rv-duel .rv-wood-a{stop-color:var(--rv-wood-a)}
+.rv-duel .rv-wood-b{stop-color:var(--rv-wood-b)}
+.rv-duel .rv-felt{fill:var(--rv-felt);stroke:var(--rv-lip);stroke-width:3}
+.rv-duel .rv-nap{fill:#000;pointer-events:none}
+.rv-duel .rv-lamp{fill:url(#rv-lamp);pointer-events:none}
+.rv-duel .rv-lamp-a{stop-color:var(--rv-lamp-a)}
+.rv-duel .rv-lamp-b{stop-color:var(--rv-lamp-b)}
+.rv-duel .rv-grid{stroke:var(--rv-line);stroke-width:2}
+.rv-duel .rv-star{fill:var(--rv-line)}
 .rv-duel .rv-hit{fill:transparent}
 .rv-duel .rv-lastsq{fill:#ffffff;opacity:.14;pointer-events:none}
 .rv-duel .rv-legal{fill:#ffffff;stroke:#0d3b24;stroke-width:3;opacity:.8;pointer-events:none}
@@ -10,18 +25,12 @@
 .rv-duel [data-cell][aria-disabled=false]:hover .rv-hit{fill:#ffffff1f}
 .rv-duel [data-cell][aria-disabled=false]:hover .rv-legal{opacity:.9}
 .rv-duel .rv-cursor{stroke:var(--sun,#f6d365);stroke-width:4;opacity:0;pointer-events:none}
-/* Toy board: an ink rim and a hard shadow round the frame (the stage's
- * rounded corners match the frame's), with the felt sunk into it. */
-.rv-duel .rv-stage{border-radius:4.2%;box-shadow:var(--shadow-sticker-lg)}
-.rv-duel .rv-frame{fill:#17573a;stroke:var(--outline);stroke-width:6}
-.rv-duel .rv-felt{fill:#2f9463;stroke:#0f3f29;stroke-width:4}
-.rv-duel .rv-grid{stroke:#20704b}
 .rv-duel [data-cell]:focus{outline:none}
 .rv-duel [data-cell]:focus-visible .rv-cursor{opacity:1}
 .rv-duel .rv-disc{transform-box:fill-box;transform-origin:center;pointer-events:none}
-.rv-duel .rv-flip{animation:rv-flip .4s cubic-bezier(.2,.65,.3,1) var(--flip-delay) both}
+.rv-duel .rv-flip{animation:rv-flip .4s var(--ease) var(--flip-delay) both}
 .rv-duel .rv-old-face{animation:rv-face .4s steps(1,end) var(--flip-delay) both}
-.rv-duel .rv-place{animation:rv-place .22s ease-out both}
+.rv-duel .rv-place{animation:rv-place .22s var(--ease) both}
 @keyframes rv-flip{0%{transform:scaleX(1)}45%{transform:scaleX(.04)}100%{transform:scaleX(1)}}
 @keyframes rv-face{0%,44%{opacity:1}45%,100%{opacity:0}}
 @keyframes rv-place{0%{transform:scale(.85);opacity:.5}100%{transform:scale(1);opacity:1}}
