@@ -23,3 +23,39 @@
   .bl-scene .gk-choice { min-height: 48px; padding-block: 8px; }
   .bl-scene .pb-share { margin-top: 5px; }
 }
+
+/* ==========================================================================
+ * Poker-face skin (2026-11). The page is a card table: soft felt with a
+ * faint diamond weave and a lamp over the middle. The prompt is a playing
+ * card with suit pips in two corners. Night: the late game, lamp brighter.
+ * ========================================================================== */
+body.game-playing[data-game="bluff"] {
+  background-image:
+    radial-gradient(ellipse 60% 55% at 50% 30%, color-mix(in srgb, var(--fam) 14%, transparent), transparent 75%),
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--fam) 7%, transparent) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--fam) 7%, transparent) 0 1px, transparent 1px 22px);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="bluff"] {
+  background-image:
+    radial-gradient(ellipse 60% 55% at 50% 30%, color-mix(in srgb, var(--fam) 20%, transparent), transparent 75%),
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--fam) 5%, transparent) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--fam) 5%, transparent) 0 1px, transparent 1px 22px);
+}
+#gbody .bl-scene.pl-fill > .gk-prompt {
+  position: relative; padding-inline: var(--space-64); background: var(--card);
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--outline)); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+#gbody .bl-scene.pl-fill > .gk-prompt::before,
+#gbody .bl-scene.pl-fill > .gk-prompt::after {
+  position: absolute; color: var(--fam); font: 800 26px/1 var(--font-display); pointer-events: none;
+}
+#gbody .bl-scene.pl-fill > .gk-prompt::before { content: "\2660"; left: var(--space-16); top: var(--space-12); }
+#gbody .bl-scene.pl-fill > .gk-prompt::after { content: "\2666"; right: var(--space-16); bottom: var(--space-12); transform: rotate(180deg); }
+[data-theme="night"] #gbody .bl-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 18%, transparent); }
+@media (max-width: 560px) {
+  #gbody .bl-scene.pl-fill > .gk-prompt { padding-inline: var(--space-40); }
+  #gbody .bl-scene.pl-fill > .gk-prompt::before, #gbody .bl-scene.pl-fill > .gk-prompt::after { font-size: 20px; }
+  #gbody .bl-scene.pl-fill > .gk-prompt::before { left: var(--space-12); top: var(--space-8); }
+  #gbody .bl-scene.pl-fill > .gk-prompt::after { right: var(--space-12); bottom: var(--space-8); }
+}

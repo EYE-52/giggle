@@ -105,3 +105,37 @@
   #gbody .tt-scene.pl-fill .tt-row .gk-input { font-size: 17px; }
   #gbody .tt-scene.pl-fill .tt-lie { min-width: 64px; }
 }
+
+/* ==========================================================================
+ * Lie-detector skin (2026-11). The page is faint polygraph paper; the
+ * statement card carries a needle trace along its foot; a marked lie gets a
+ * red stamp rim. Night: a dim green monitor grid.
+ * ========================================================================== */
+body.game-playing[data-game="two-truths"] {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px; background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="two-truths"] {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fam) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fam) 7%, transparent) 1px, transparent 1px);
+}
+#gbody .tt-scene.pl-fill > .gk-prompt {
+  position: relative; padding-bottom: var(--space-48); background: var(--card);
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--outline)); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+#gbody .tt-scene.pl-fill > .gk-prompt::after {
+  content: ""; position: absolute; left: var(--space-24); right: var(--space-24); bottom: var(--space-12); height: 24px;
+  background: var(--fam); opacity: .7; pointer-events: none;
+  -webkit-mask: var(--tt-trace) 0 50% / 240px 24px repeat-x; mask: var(--tt-trace) 0 50% / 240px 24px repeat-x;
+  --tt-trace: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 24'%3E%3Cpath d='M0 12H36l6-7 8 14 7-11 5 4h44l6-10 8 20 7-14 5 4h44l5-6 6 12 6-6h47' fill='none' stroke='%23000' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+[data-theme="night"] #gbody .tt-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
+#gbody .tt-scene.pl-fill .tt-lie:has(input:checked) { border-color: var(--danger); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--danger) 55%, transparent); }
+#gbody .tt-scene.pl-fill .tt-row:has(.tt-lie input:checked) { border-color: color-mix(in srgb, var(--danger) 35%, var(--outline)); }
+@media (max-width: 560px) {
+  #gbody .tt-scene.pl-fill > .gk-prompt { padding-bottom: var(--space-40); }
+  #gbody .tt-scene.pl-fill > .gk-prompt::after { left: var(--space-16); right: var(--space-16); bottom: var(--space-8); }
+}
