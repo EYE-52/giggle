@@ -210,3 +210,42 @@
 }
 /* Show and Go: the HUD carries the found count; the stage card does not repeat it. */
 .camera-party[data-game="show-and-go"] .cp-stage-count { display: none; }
+
+/* ==========================================================================
+ * Skin (round 2). Pose Party is a photo shoot: two soft spotlight beams
+ * cross the page from the top corners and the prompt card is a backdrop
+ * with film-strip sprockets along its top. Show & Go is a scavenger hunt:
+ * a dotted map page and the prompt card is a clue card with a dashed cut
+ * line. Night: the beams warm up and a ready camera card glows. Every
+ * selector starts at the toolkit root; the page scene is a fixed layer
+ * behind the column (the root's ::before), so nothing leaks into the shell.
+ * ========================================================================== */
+.camera-party.ck[data-family] { position: relative; }
+.camera-party.ck[data-family]::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+}
+.camera-party.ck:is(body[data-game="pose-party"] *)::before {
+  --cp-beam: color-mix(in srgb, var(--fam) 8%, transparent);
+  background:
+    conic-gradient(from 148deg at 6% -4%, transparent 0deg, var(--cp-beam) 6deg, transparent 22deg),
+    conic-gradient(from 190deg at 94% -4%, transparent 0deg, var(--cp-beam) 16deg, transparent 22deg);
+}
+.camera-party.ck:is([data-theme="night"] body[data-game="pose-party"] *)::before { --cp-beam: color-mix(in srgb, #ffd9a8 6%, transparent); }
+.camera-party.ck:is(body[data-game="show-and-go"] *)::before {
+  background: radial-gradient(circle, color-mix(in srgb, var(--fam) 22%, transparent) 0 1.6px, transparent 2px) 0 0 / 26px 26px;
+}
+.camera-party.ck:is([data-theme="night"] body[data-game="show-and-go"] *)::before {
+  background: radial-gradient(circle, color-mix(in srgb, var(--fam) 18%, transparent) 0 1.6px, transparent 2px) 0 0 / 26px 26px;
+}
+
+/* The prompt card: film-strip sprockets (Pose Party), a clue card (Show & Go). */
+.camera-party.ck[data-family] .cp-prompt-card { position: relative; }
+.camera-party.ck:is(body[data-game="pose-party"] *) .cp-prompt-card::before {
+  content: ""; position: absolute; left: var(--space-24); right: var(--space-24); top: 6px; height: 8px; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--fam) 30%, transparent) 0 2.5px, transparent 3px) 0 0 / 16px 8px space no-repeat;
+}
+.camera-party.ck:is(body[data-game="show-and-go"] *) .cp-prompt-card {
+  outline: 2px dashed color-mix(in srgb, var(--fam) 40%, transparent); outline-offset: -10px;
+}
+/* Night: a ready camera card glows a little. */
+.camera-party.ck:is([data-theme="night"] *) .cp-stage .ck-player.is-ready { box-shadow: 0 var(--lift-sm) 0 var(--outline), 0 0 18px color-mix(in srgb, var(--success) 26%, transparent); }

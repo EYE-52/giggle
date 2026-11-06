@@ -225,3 +225,16 @@
 .ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip.is-on b { background: var(--card); }
 .ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip b { font: var(--text-title); }
 .ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip.is-done { border-color: var(--outline); }
+
+/* ---- soft arcade base (round 2): coloured controls sit on a darker lip of
+ * their own colour; neutral stickers keep the soft rim. Night lets the one
+ * thing that is yours (the primary, the active player) glow a little. ---- */
+.ck[data-family] .gk-btn.gk-primary {
+  border-color: var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+.ck[data-family] .gk-btn.gk-primary:disabled { border-color: var(--line-strong); box-shadow: none; }
+.ck[data-family] .wg-chip.is-on { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+.ck[data-family] .ck-ring-track { stroke: var(--well); }
+[data-theme="night"] .ck[data-family] .gk-btn.gk-primary:not(:disabled) { box-shadow: 0 var(--lift) 0 var(--fam-lip), 0 6px 22px color-mix(in srgb, var(--fam) 28%, transparent); }
+[data-theme="night"] .ck[data-family] .ck-player.is-on { box-shadow: 0 var(--lift-sm) 0 var(--outline), 0 0 18px color-mix(in srgb, var(--fam) 30%, transparent); }
+[data-theme="night"] .ck[data-family] .gk-hud-timer.is-urgent { box-shadow: 0 0 14px color-mix(in srgb, var(--warning) 45%, transparent); }

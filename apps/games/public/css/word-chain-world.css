@@ -86,3 +86,35 @@
 @media (max-width: 480px) {
   .wc.ck .wc-target #wcFeedback { min-height: 2lh; }
 }
+
+/* ==========================================================================
+ * Skin (round 2): a chain. The page carries a faint pattern of interlocked
+ * links; the played words are tiles joined by real chain links instead of
+ * arrows. Night: steel links with a soft glow on the newest word.
+ * ========================================================================== */
+body.game-playing[data-game="word-chain"] {
+  --wc-link: color-mix(in srgb, var(--fam) 7%, transparent);
+  background-image:
+    radial-gradient(ellipse 11px 7px at 50% 50%, transparent 0 58%, var(--wc-link) 62% 88%, transparent 94%),
+    radial-gradient(ellipse 11px 7px at 50% 50%, transparent 0 58%, var(--wc-link) 62% 88%, transparent 94%);
+  background-size: 112px 84px, 112px 84px;
+  background-position: 0 0, 14px 0;
+  background-attachment: fixed, fixed;
+}
+[data-theme="night"] body.game-playing[data-game="word-chain"] { --wc-link: color-mix(in srgb, var(--fam) 7%, transparent); }
+
+/* Chain links between the played words (the arrow glyph stays for the
+ * reader's order; it is drawn as a link). */
+.wc.ck .wc-ribbon .wc-arrow {
+  position: relative; width: 28px; height: 14px; color: transparent; overflow: hidden; font-size: 0;
+}
+.wc.ck .wc-ribbon .wc-arrow::before, .wc.ck .wc-ribbon .wc-arrow::after {
+  content: ""; position: absolute; top: 2px; width: 16px; height: 10px; border-radius: 6px;
+  border: 3px solid color-mix(in srgb, var(--ink) 40%, var(--card));
+}
+.wc.ck .wc-ribbon .wc-arrow::before { left: 0; }
+.wc.ck .wc-ribbon .wc-arrow::after { right: 0; border-color: color-mix(in srgb, var(--fam) 70%, var(--card)); }
+/* Played words: tiles on a soft lip; the newest one on the family lip. */
+.wc.ck .wc-ribbon .wg-chip { min-height: 40px; padding: var(--space-4) var(--space-16); border-radius: var(--radius-md); font: var(--text-button-sm); }
+.wc.ck .wc-ribbon .wg-chip.is-on { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+[data-theme="night"] .wc.ck .wc-ribbon .wg-chip.is-on { box-shadow: 0 var(--lift-sm) 0 var(--fam-lip), 0 0 16px color-mix(in srgb, var(--fam) 40%, transparent); }

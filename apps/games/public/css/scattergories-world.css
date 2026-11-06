@@ -119,3 +119,49 @@
   .sg.ck .sg-actions .wg-status:empty { display: none; }
   .sg.ck .sg-actions #scLock { min-width: 0; width: 100%; }
 }
+
+/* ==========================================================================
+ * Skin (round 2): a notepad on a clipboard. The page is ruled paper with a
+ * red margin line; the round letter is a chunky die on its own green lip;
+ * each category row is a strip of the pad. Night: a dark pad with chalky
+ * rules, the letter die glowing softly.
+ * ========================================================================== */
+body.game-playing[data-game="scattergories"] {
+  --sg-rule: color-mix(in srgb, var(--fam) 13%, transparent);
+  --sg-margin: color-mix(in srgb, #e0475f 34%, transparent);
+  background-image:
+    linear-gradient(90deg, transparent 0 63px, var(--sg-margin) 63px 65px, transparent 65px),
+    repeating-linear-gradient(180deg, transparent 0 35px, var(--sg-rule) 35px 36px);
+  background-attachment: fixed, fixed;
+}
+[data-theme="night"] body.game-playing[data-game="scattergories"] {
+  --sg-rule: color-mix(in srgb, var(--fam) 10%, transparent);
+  --sg-margin: color-mix(in srgb, #e0475f 26%, transparent);
+}
+@media (max-width: 700px) {
+  body.game-playing[data-game="scattergories"] { background-image: repeating-linear-gradient(180deg, transparent 0 35px, var(--sg-rule) 35px 36px); background-attachment: fixed; }
+}
+/* The letter die: family fill on its own darker lip, two pips in the corners. */
+.sg.ck .sg-letter {
+  position: relative; border-color: var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+  background:
+    radial-gradient(circle at 15px 15px, color-mix(in srgb, var(--on-fam) 55%, transparent) 0 3px, transparent 3.5px),
+    radial-gradient(circle at calc(100% - 15px) calc(100% - 15px), color-mix(in srgb, var(--on-fam) 55%, transparent) 0 3px, transparent 3.5px),
+    var(--fam);
+}
+[data-theme="night"] .sg.ck .sg-letter { box-shadow: 0 var(--lift) 0 var(--fam-lip), 0 0 24px color-mix(in srgb, var(--fam) 40%, transparent); }
+@media (max-width: 560px) {
+  .sg.ck .sg-letter {
+    background:
+      radial-gradient(circle at 10px 10px, color-mix(in srgb, var(--on-fam) 55%, transparent) 0 2.5px, transparent 3px),
+      radial-gradient(circle at calc(100% - 10px) calc(100% - 10px), color-mix(in srgb, var(--on-fam) 55%, transparent) 0 2.5px, transparent 3px),
+      var(--fam);
+  }
+}
+/* Category strips: a torn-off pad edge (perforation dots) on the left. */
+.sg.ck .sg-field { position: relative; padding-left: calc(var(--space-16) + 6px); }
+.sg.ck .sg-field::before {
+  content: ""; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 4px; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--fam) 40%, transparent) 0 1.6px, transparent 2px) 0 0 / 4px 8px repeat-y;
+}
+@media (max-width: 560px) { .sg.ck .sg-field { padding-left: calc(var(--space-8) + 8px); } .sg.ck .sg-field::before { left: 4px; } }

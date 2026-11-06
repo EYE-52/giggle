@@ -15,6 +15,17 @@ let drawing = false, cur = [], pending = [], activeInk = null;
 let gestureId = 0, chunk = 0, sample = 0, previewAt = 0;
 let lastKey = '', revision = 0, visibleStrokes = [], snapshot = null, cueBaseline = null;
 let capturedPointer = null, bound = [], clock = null, feedKey = '', resizeObserver = null;
+/* Night turns the sheet into a chalkboard (doodle-guess.css): the same ink
+ * is drawn in chalk tones there, so black reads white and yellow stays bright.
+ * Only the local rendering changes; strokes still carry the palette colour. */
+const CHALK = { '#111111': '#f3efe6', '#e4572e': '#ff8f6b', '#1d7a3a': '#74d896', '#1d4ed8': '#86b4ff', '#f2b134': '#ffd66e' };
+function isNight() { return typeof document !== 'undefined' && document.documentElement?.dataset?.theme === 'night'; }
+let themeWatch = null;
+function watchTheme() {
+  if (themeWatch || typeof MutationObserver !== 'function' || typeof document === 'undefined') return;
+  themeWatch = new MutationObserver(() => { const el = document.querySelector('.sk-doodle.dg'); if (el) paint(el); });
+  themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
 function reduced() { return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches; }
 
 function ensureCss() {
@@ -464,6 +475,7 @@ function wire(el, api) {
 function paint(el) {
   const cv = el.querySelector('#dCanvas'), ctx = cv?.getContext('2d');
   if (!ctx) return;
+  watchTheme();
   ctx.clearRect(0, 0, cv.width, cv.height);
   const emptyHint = el.querySelector('.dg-canvas-empty');
   if (emptyHint) emptyHint.hidden = !!(visibleStrokes.length || snapshot?.preview);
@@ -479,8 +491,11 @@ function paint(el) {
 }
 function paintStroke(ctx, cv, pts, ink) {
   if (!ctx || !pts?.length || !ink) return;
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.strokeStyle = ink.tool === 'eraser' ? '#ffffff' : ink.color;
+  // The eraser still travels as white ink, but it lifts ink off the sheet
+  // locally, so the paper's own grid (or the night chalkboard) shows again.
+  const erase = ink.tool === 'eraser' || ink.color === '#ffffff';
+  ctx.globalCompositeOperation = erase ? 'destination-out' : 'source-over';
+  ctx.strokeStyle = erase ? '#ffffff' : isNight() ? CHALK[ink.color] || ink.color : ink.color;
   ctx.fillStyle = ctx.strokeStyle;
   ctx.lineWidth = ink.size * cv.width / 880; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   if (pts.length === 1 || pts.every(p => p[0] === pts[0][0] && p[1] === pts[0][1])) {
