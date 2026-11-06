@@ -216,9 +216,9 @@ function tracer(reg, THREE, name, color) {
 // shot reads from across the arena. Sprites are not meshes: they never count
 // toward mesh budgets or the authoritative contact skin.
 export const SHOT_GLOW = Object.freeze({
-  pulse: { color: 0x7ff6ff, size: 1.1 }, scatter: { color: 0xffb347, size: .95 },
-  rocket: { color: 0xff6a2a, size: 1.9 }, seeker: { color: 0x9cff5a, size: 1.9 },
-  proximity: { color: 0xff3a3a, size: 1.5 }, nuke: { color: 0xffe14a, size: 3.2 },
+  pulse: { color: 0x7ff6ff, size: 1.9 }, scatter: { color: 0xffb347, size: 1.6 },
+  rocket: { color: 0xff6a2a, size: 3.1 }, seeker: { color: 0x9cff5a, size: 3.1 },
+  proximity: { color: 0xff3a3a, size: 2.5 }, nuke: { color: 0xffe14a, size: 5 },
 });
 function glowTexture(THREE) {
   const size = 64, data = new Uint8Array(size * size * 4);
