@@ -166,6 +166,10 @@ body { --fam: var(--fam-party); --fam-deep: var(--fam-party-deep); --on-fam: var
  * games add their own skin on top in skins.css. */
 :root { --outline: #e4dfec; --hard: #e4dfec; --outline-w-lg: 2px; }
 [data-theme="night"] { --outline: #07050a; --hard: #07050a; }
+/* Night rims and lips are a darker tint of the surface they sit on, never
+ * black ink. Declared on body (and any [data-family] root) so each game's
+ * skin, which sets --card on body[data-game], tints its own rims. */
+[data-theme="night"] body, [data-theme="night"] [data-family] { --outline: color-mix(in srgb, var(--card) 45%, #000); --hard: var(--outline); }
 body, [data-family] { --fam-lip: color-mix(in srgb, var(--fam) 74%, #000); }
 .tb-primary { --tb-rim: var(--fam-lip); }
 .tb-danger { --tb-rim: color-mix(in srgb, var(--danger) 74%, #000); }
@@ -2105,3 +2109,166 @@ body:has(#gamePreparation.is-first:not([hidden])) .game-loading.game-loading-slo
   .partystrip .ps-codeblock { width: 100%; box-sizing: border-box; }
   .partystrip .ps-actions .btn, .partystrip .ps-actions summary { font-size: 13.5px; letter-spacing: -0.01em; }
 }
+
+/* ==========================================================================
+ * Shared screens, soft arcade (2026-11): lobby, setup and customize
+ * dialogs, room menu, toasts, final scores and the rematch bar, home shelf.
+ * Rims are soft and go all the way round; cards sit on a soft straight-down
+ * lip; coloured buttons sit on a darker lip of their own colour and sink
+ * onto it when pressed. Floating layers (dialogs, menus, toasts) keep one
+ * soft blurred shadow. Only transform and opacity animate.
+ * ========================================================================== */
+body {
+  --accent-lip: color-mix(in srgb, var(--accent) 74%, #000);
+  --sun-lip: color-mix(in srgb, var(--sun) 70%, #000);
+  --danger-lip: color-mix(in srgb, var(--danger) 74%, #000);
+}
+
+/* ---- buttons: secondary on a soft lip, sun on its own lip ---- */
+body .btn.ghost { border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+body .btn.ghost:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+body .btn.sun { border: 2px solid var(--sun-lip); box-shadow: 0 var(--lift) 0 var(--sun-lip); }
+body .btn.sun:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
+body .btn:disabled { opacity: 1; background: var(--well); color: var(--ink-dim); border: 2px solid var(--outline); box-shadow: none; }
+@media (hover: hover) {
+  body .btn.ghost:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 calc(var(--lift-sm) + 2px) 0 var(--outline); }
+  body .btn.sun:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 calc(var(--lift) + 2px) 0 var(--sun-lip); }
+}
+.topbar .btn.ghost { border-width: 2px; }
+.chip { border-width: 2px; border-color: var(--outline); background: var(--card); }
+.chip.sel { border-color: var(--accent); }
+@media (hover: hover) { .chip:hover { box-shadow: none; } }
+.chip:active { transform: scale(0.96); }
+.sharefold summary { border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+.qrpop-card { border: 2px solid var(--outline); border-radius: var(--radius-lg); }
+.sec-head .count-pill { border: 0; }
+input[type="text"], input[type="number"], select, textarea { border-width: 2px; border-color: var(--outline); }
+[data-theme="night"] :is(input[type="text"], input[type="number"], select, textarea) { border-color: var(--line-strong); }
+
+/* ---- game cards (lobby shelf, recommendations): soft rim, soft lip ---- */
+.gamepick, .pick, .catrow { border: 2px solid var(--outline); box-shadow: 0 var(--lift) 0 var(--outline); transition: transform var(--dur-quick) var(--ease); }
+@media (hover: hover) {
+  .pick:hover, .gamepick:hover, .catrow:hover { box-shadow: 0 var(--lift) 0 var(--outline); }
+}
+.pick:focus-within, .gamepick:focus-within, .catrow:focus-within { box-shadow: 0 var(--lift) 0 var(--outline); }
+.gamepick:active, .catrow:active { transform: translateY(var(--lift)); box-shadow: none; }
+.pick .gart, .gart { border-bottom: 0; }
+.play-pill { border: 2px solid var(--accent-lip); box-shadow: 0 var(--lift-sm) 0 var(--accent-lip); }
+
+/* ---- lobby ---- */
+.partystrip .player:not(.seat) { border: 2px solid var(--outline); box-shadow: none; }
+.partystrip .ps-actions .btn.ghost { box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+.lobby-running { border: 2px solid var(--outline); }
+.avatar { border: 0; box-shadow: inset 0 -3px 0 #00000024; }
+.hosttag { border: 0; }
+.player { border: 2px solid var(--outline); }
+.specbanner { border: 2px solid var(--sun-lip); }
+.room-manage { border-top: 0; }
+.room-members button { border: 2px solid var(--outline); background: var(--card); box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+.room-members button:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.room-members [data-kick-confirm] { border-color: var(--danger-lip); background: var(--danger); color: var(--on-danger); box-shadow: 0 var(--lift-sm) 0 var(--danger-lip); }
+.room-kick-confirm { border: 2px solid var(--outline); border-radius: var(--radius-md); background: var(--well); }
+
+/* ---- empty, loading and failed shelves: a friendly sticker, then the words ---- */
+.empty-note { grid-column: 1 / -1; display: grid; justify-items: center; gap: var(--space-8); border: 2px dashed var(--line-strong); border-radius: var(--radius-xl); padding: var(--space-32) var(--space-24); }
+.empty-note::before {
+  content: "?"; display: grid; place-items: center; width: 56px; height: 72px; margin-bottom: var(--space-8);
+  border: 2px solid var(--sun-lip); border-radius: var(--radius-md); background: var(--sun); box-shadow: 0 var(--lift) 0 var(--sun-lip);
+  color: var(--sun-ink); font: 800 36px/1 var(--font-display); transform: rotate(-8deg);
+}
+.empty-note[role="alert"]::before { content: "!"; border-color: var(--danger-lip); background: var(--danger); box-shadow: 0 var(--lift) 0 var(--danger-lip); color: var(--on-danger); }
+.empty-note[role="status"]::before {
+  content: ""; width: 72px; height: 28px; border: 0; border-radius: 0; box-shadow: none; transform: none;
+  background: radial-gradient(circle at 12px 50%, var(--accent) 9px, transparent 10px), radial-gradient(circle at 36px 50%, var(--sun) 9px, transparent 10px), radial-gradient(circle at 60px 50%, var(--teal) 9px, transparent 10px);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .empty-note[role="status"]::before { animation: tb-pulse 900ms var(--ease) infinite alternate; }
+}
+.empty-note .row.mt { margin-top: var(--space-8); }
+.giggle-strip { justify-content: center; border: 0; background: var(--well); border-radius: var(--radius-lg); }
+.boot-view .loading-mark i { border: 0; box-shadow: inset 0 -4px 0 #00000029; }
+
+/* ---- dialogs: setup, how to play, customize ---- */
+.dlg, dialog.howto-dlg { border: 2px solid var(--outline); border-radius: var(--radius-xl); }
+.dlg-overlay, dialog.howto-dlg::backdrop { background: color-mix(in srgb, var(--ink) 38%, transparent); }
+[data-theme="night"] .dlg-overlay, [data-theme="night"] dialog.howto-dlg::backdrop { background: #000000a6; }
+.howto-art, img.howto-art { border: 0; box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+.howto-pill { border: 0; }
+.dlg-sec { border-top: 2px solid var(--line); }
+.dlg-sec::before { border: 2px solid var(--sun-lip); box-shadow: none; }
+.dlg-foot { border-top: 2px solid var(--line); }
+.dlg-packrow .howto-btn, .preset-btns .howto-btn { border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+.preset-list li { border: 2px solid var(--outline); }
+.conf-err { border: 2px solid var(--danger); background: var(--danger-soft); }
+.howto-foot { border-top: 2px solid var(--line); }
+
+/* ---- toast: a floating sticker with a colour dot ---- */
+.toast {
+  display: flex; align-items: center; gap: var(--space-12); min-height: var(--control-h);
+  padding: var(--space-12) var(--space-24) var(--space-12) var(--space-16);
+  background: var(--card); color: var(--ink); border: 2px solid var(--outline); border-radius: var(--radius-lg);
+  box-shadow: 0 var(--lift) 0 var(--outline), var(--shadow-card); font: 800 15px/1.35 var(--font-body); text-align: left;
+  bottom: max(28px, calc(env(safe-area-inset-bottom) + 16px));
+}
+.toast[hidden] { display: none; }
+.toast::before { content: ""; flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--accent); }
+[data-theme="night"] .toast { box-shadow: 0 var(--lift) 0 var(--outline), 0 12px 32px #0008; }
+@media (prefers-reduced-motion: no-preference) {
+  .toast:not([hidden]) { animation: toast-in var(--dur-base) var(--ease); }
+}
+
+/* ---- room menu ---- */
+.game-playing .room-menu > summary, body.game-playing.game-immersive .room-menu > summary {
+  border: 2px solid var(--outline); border-radius: var(--radius-md); box-shadow: 0 var(--lift-sm) 0 var(--outline);
+}
+.game-playing .room-menu > summary:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.game-playing .room-menu-panel, .game-playing #roomMenu .room-menu-panel { border: 2px solid var(--outline); border-radius: var(--radius-xl); }
+[data-theme="night"] .game-playing .room-menu-scrim { background: #000000b0; }
+.game-playing .room-close { border: 2px solid var(--outline); background: var(--card); box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+.game-playing .room-close:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.game-playing .room-resume {
+  min-height: var(--control-h-lg); margin-bottom: var(--lift); border: 2px solid var(--accent-lip); border-radius: var(--radius-lg);
+  box-shadow: 0 var(--lift) 0 var(--accent-lip); font: var(--text-button); font-size: 19px; transition: transform var(--dur-quick) var(--ease);
+}
+.game-playing .room-resume:active { transform: translateY(var(--lift)); box-shadow: none; }
+@media (hover: hover) { .game-playing .room-resume:hover { transform: translateY(-2px); box-shadow: 0 calc(var(--lift) + 2px) 0 var(--accent-lip); } }
+.game-playing #roomMenu .room-menu-actions button, .game-playing .room-menu-actions button,
+.game-playing .room-menu-exit button, .game-playing .room-confirm button {
+  border: 2px solid var(--outline); border-radius: var(--radius-md); background: var(--card); color: var(--ink);
+  box-shadow: 0 var(--lift-sm) 0 var(--outline); transition: transform var(--dur-quick) var(--ease);
+}
+.game-playing :is(.room-menu-actions, .room-menu-exit, .room-confirm) button:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+@media (hover: hover) { .game-playing :is(.room-menu-actions, .room-menu-exit, .room-confirm) button:hover:not(:disabled) { transform: translateY(-2px); } }
+.game-playing #roomMenu .room-menu-actions [data-report] { background: transparent; box-shadow: none; border-style: dashed; border-color: var(--line-strong); }
+.game-playing .room-menu-exit button { margin-bottom: var(--lift-sm); }
+.game-playing .room-menu-exit #bLeave { color: var(--danger); }
+.game-playing .room-confirm { border: 2px solid var(--outline); border-radius: var(--radius-lg); }
+.game-playing .room-confirm button.is-primary { background: var(--danger); color: var(--on-danger); border-color: var(--danger-lip); box-shadow: 0 var(--lift-sm) 0 var(--danger-lip); }
+.game-playing .room-menu .scoreboard, .game-playing #roomMenu .scoreboard { border-top: 0; }
+.room-menu-panel a, .game-playing .room-menu-panel .room-meet { color: var(--accent-deep); }
+.room-menu .scorelabel { color: var(--ink-dim); }
+.room-menu :focus-visible, .game-playing .room-menu :focus-visible { outline: var(--focus-ring); outline-offset: 3px; }
+
+/* ---- final scores and the rematch bar ---- */
+.game-stage > #gbody > #rematch, #gbody:where([data-layout="standard"]) #rematch { border-top: 0; padding-top: var(--space-24); }
+#gbody #rematch #bRematch:not(:disabled), #gbody[data-layout="immersive"] > #rematch #bRematch:not(:disabled) {
+  min-height: var(--control-h-lg); padding-inline: var(--space-32); border: 2px solid var(--accent-lip); border-radius: var(--radius-lg);
+  background: var(--accent); color: var(--accent-ink); font: var(--text-button); font-size: 19px;
+  box-shadow: 0 var(--lift) 0 var(--accent-lip); transition: transform var(--dur-quick) var(--ease);
+}
+#gbody #rematch #bChange:not(:disabled), #gbody[data-layout="immersive"] > #rematch #bChange:not(:disabled) {
+  min-height: var(--control-h); border: 2px solid var(--outline); border-radius: var(--radius-lg);
+  background: var(--card); color: var(--ink); font: var(--text-button);
+  box-shadow: 0 var(--lift-sm) 0 var(--outline); transition: transform var(--dur-quick) var(--ease);
+}
+#gbody #rematch #bRematch:not(:disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
+#gbody #rematch #bChange:not(:disabled):active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+@media (hover: hover) {
+  #gbody #rematch :is(#bRematch, #bChange):not(:disabled):hover { transform: translateY(-2px); filter: none; }
+}
+#gbody[data-layout="immersive"] > #rematch { border: 2px solid var(--outline); border-radius: var(--radius-xl); padding: var(--space-16); }
+#gbody[data-layout="immersive"]:has(> .gk-final) > #rematch { border: 0; border-radius: 0; padding: var(--space-24) 0 0; }
+
+/* The game screen's zoom pill: one soft rim, a soft lip, no inner rules. */
+.game-zoom { border: 2px solid var(--outline); border-radius: var(--radius-md); box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+.game-zoom .game-zoom-value { border-inline: 0; }

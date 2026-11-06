@@ -10,7 +10,10 @@
   /* These are illustrated paper objects, not theme surfaces. Keep the
    * faces/pips legible in Night while surrounding UI follows its tokens. */
   --boot-paper: #fff;
-  --boot-outline: #321829;
+  /* Pips and checks are printed ink; rims and lips are soft, and each
+   * coloured card sits on a darker lip of its own colour. */
+  --boot-outline: #3d2f4a;
+  --boot-rim: var(--outline);
   position: relative;
   display: block;
   width: 278px;
@@ -46,10 +49,11 @@
   display: block;
   width: 84px;
   height: 116px;
-  border: 3px solid var(--boot-outline);
+  --boot-lip: var(--boot-rim);
+  border: 2px solid var(--boot-lip);
   border-radius: 13px;
   background: var(--boot-paper);
-  box-shadow: 0 5px 0 var(--boot-outline);
+  box-shadow: 0 5px 0 var(--boot-lip);
   animation: none;
   transform-origin: 50% 90%;
 }
@@ -64,6 +68,7 @@
   top: 51px;
   transform: rotate(-19deg);
   background: var(--sun);
+  --boot-lip: color-mix(in srgb, var(--sun) 70%, #000);
 }
 /* Five pips make the first card a die without another image or font. */
 .boot-view--table .loading-table i:nth-child(1)::before {
@@ -86,8 +91,8 @@
   height: 50px;
   left: 14px;
   top: 24px;
-  border: 3px solid var(--boot-outline);
-  border-radius: 3px;
+  border: 0;
+  border-radius: 4px;
   background: conic-gradient(var(--boot-outline) 25%, var(--boot-paper) 0 50%, var(--boot-outline) 0 75%, var(--boot-paper) 0) 0 0 / 22px 22px;
 }
 .boot-view--table .loading-table i:nth-child(2)::after {
@@ -95,23 +100,24 @@
   height: 23px;
   top: 62px;
   left: 41px;
-  border: 3px solid var(--boot-outline);
+  border: 0;
   border-radius: 50%;
   background: var(--accent);
-  box-shadow: 0 3px 0 var(--boot-outline);
+  box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--accent) 70%, #000);
 }
 .boot-view--table .loading-table i:nth-child(3) {
   left: 164px;
   top: 47px;
   transform: rotate(18deg);
   background: var(--teal);
+  --boot-lip: color-mix(in srgb, var(--teal) 70%, #000);
 }
 .boot-view--table .loading-table i:nth-child(3)::before {
   width: 23px;
   height: 23px;
   left: 27px;
   top: 24px;
-  border: 3px solid var(--boot-outline);
+  border: 0;
   border-radius: 50%;
   background: var(--boot-paper);
 }
@@ -120,7 +126,7 @@
   height: 31px;
   left: 19px;
   top: 49px;
-  border: 3px solid var(--boot-outline);
+  border: 0;
   border-radius: 48% 48% 5px 5px;
   background: var(--boot-paper);
 }
@@ -134,9 +140,10 @@
 .boot-view--table .boot-reload {
   min-height: 44px;
   padding: 9px 18px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 2px solid var(--outline);
+  border-radius: 16px;
   background: var(--card);
+  box-shadow: 0 var(--lift-sm) 0 var(--outline);
   font-weight: 800;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
@@ -198,14 +205,15 @@
  * clear primary button. */
 .boot-view--table[data-boot-state="error"]::before {
   content: "?"; display: grid; place-items: center; width: 84px; height: 116px; margin-bottom: 8px;
-  border: 3px solid #321829; border-radius: 13px; background: var(--sun); box-shadow: 4px 5px 0 #321829;
-  color: #321829; font: 800 56px/1 var(--font-display); transform: rotate(-12deg);
+  border: 2px solid color-mix(in srgb, var(--sun) 70%, #000); border-radius: 13px; background: var(--sun); box-shadow: 0 5px 0 color-mix(in srgb, var(--sun) 70%, #000);
+  color: var(--sun-ink); font: 800 56px/1 var(--font-display); transform: rotate(-12deg);
 }
 .boot-view--table[data-boot-state="error"] .boot-reload {
-  min-height: 48px; padding: 12px 24px; border: 3px solid var(--hard, #321829); border-radius: 16px;
-  background: var(--accent); color: #fff; text-decoration: none; box-shadow: 0 4px 0 var(--hard, #321829);
+  --boot-btn-lip: color-mix(in srgb, var(--accent) 74%, #000);
+  min-height: 48px; padding: 12px 24px; border: 2px solid var(--boot-btn-lip); border-radius: 16px;
+  background: var(--accent); color: var(--accent-ink); text-decoration: none; box-shadow: 0 4px 0 var(--boot-btn-lip);
 }
-.boot-view--table[data-boot-state="error"] .boot-reload:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--hard, #321829); }
+.boot-view--table[data-boot-state="error"] .boot-reload:active { transform: translateY(4px); box-shadow: none; }
 @media (max-height: 480px) { .boot-view--table .boot-tips { display: none; } }
 
 /* First load of a game: its art bobs over the empty table while tips turn
@@ -213,9 +221,9 @@
 .game-preparation.is-first {
   top: 50%; bottom: auto; transform: translate(-50%, -50%);
   display: grid; justify-items: center; gap: 12px; width: min(360px, calc(100vw - 32px)); padding: 24px;
-  border: 3px solid var(--hard, #321829); border-radius: 24px; box-shadow: 0 6px 0 var(--hard, #321829); text-align: center;
+  border: 2px solid var(--outline); border-radius: 24px; box-shadow: 0 6px 0 var(--outline); text-align: center;
 }
-.game-preparation.is-first .preparation-art { width: 160px; height: 160px; object-fit: cover; border-radius: 20px; border: 3px solid var(--hard, #321829); }
+.game-preparation.is-first .preparation-art { width: 160px; height: 160px; object-fit: cover; border-radius: 20px; border: 0; }
 .game-preparation.is-first .preparation-dots i { width: 12px; height: 12px; }
 .game-preparation.is-first .preparation-text { justify-items: center; gap: 8px; font: 800 20px/1.2 var(--font-display); }
 .preparation-tips { display: grid; }
@@ -230,16 +238,16 @@
 @media (max-height: 520px) { .game-preparation.is-first .preparation-art { width: 88px; height: 88px; } .game-preparation.is-first { padding: 16px; gap: 8px; } }
 
 /* The plain pre-snapshot loader gets the same sticker art. */
-.game-loading .game-loading-art { border: 3px solid var(--hard, #321829); box-shadow: 0 6px 0 var(--hard, #321829); }
+.game-loading .game-loading-art { border: 2px solid var(--outline); box-shadow: 0 6px 0 var(--outline); }
 
 /* A game that failed to load: its own art, tipped over, and one big retry. */
 .game-load-error { display: grid; justify-items: center; gap: 12px; max-width: 440px; padding: 32px 24px;
-  border: 3px solid var(--hard, #321829); border-radius: 24px; box-shadow: 0 6px 0 var(--hard, #321829); }
+  border: 2px solid var(--outline); border-radius: 24px; box-shadow: 0 6px 0 var(--outline); }
 .game-load-error h2 { margin: 0; font: 800 clamp(24px, 4vw, 28px)/1.15 var(--font-display); }
 .game-load-error p { max-width: 34ch; margin: 0; line-height: 1.5; }
 .load-error-art { position: relative; display: block; width: 120px; height: 120px; margin-bottom: 8px; transform: rotate(-12deg); }
-.load-error-art img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; border: 3px solid var(--hard, #321829); filter: grayscale(.7); opacity: .85; }
-.load-error-art::after { content: "!"; position: absolute; right: -12px; top: -12px; display: grid; place-items: center; width: 36px; height: 36px; border: 3px solid var(--hard, #321829); border-radius: 50%; background: var(--sun); color: #321829; font: 800 20px/1 var(--font-display); transform: rotate(12deg); }
+.load-error-art img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; border: 0; filter: grayscale(.7); opacity: .85; }
+.load-error-art::after { content: "!"; position: absolute; right: -12px; top: -12px; display: grid; place-items: center; width: 36px; height: 36px; border: 2px solid color-mix(in srgb, var(--sun) 70%, #000); border-radius: 50%; background: var(--sun); color: var(--sun-ink); font: 800 20px/1 var(--font-display); transform: rotate(12deg); }
 .game-load-error #retryGameView { min-height: 48px; padding-inline: 32px; margin-top: 4px; }
 @media (max-width: 480px) { .game-load-error { margin-inline: 16px; } }
 
@@ -247,8 +255,8 @@
  * while four confetti bits float around it; the headline turns over in one
  * shared cell so the card never resizes. */
 .preparation-stage { position: relative; display: grid; place-items: center; padding-bottom: 14px; }
-.preparation-stage::after { content: ""; position: absolute; bottom: 0; width: 120px; height: 12px; border-radius: 50%; background: color-mix(in srgb, var(--hard, #321829) 22%, transparent); }
-.preparation-stage i { position: absolute; width: 10px; height: 10px; border-radius: 3px; border: 2px solid var(--hard, #321829); }
+.preparation-stage::after { content: ""; position: absolute; bottom: 0; width: 120px; height: 12px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.preparation-stage i { position: absolute; width: 10px; height: 10px; border-radius: 3px; }
 .preparation-stage i:nth-of-type(1) { left: -18px; top: 12px; background: var(--accent); transform: rotate(18deg); }
 .preparation-stage i:nth-of-type(2) { right: -20px; top: 30px; background: var(--gold, #f5b82e); border-radius: 50%; }
 .preparation-stage i:nth-of-type(3) { left: -8px; bottom: 34px; background: var(--green, #2bb673); border-radius: 50%; }
