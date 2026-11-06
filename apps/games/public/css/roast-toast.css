@@ -24,3 +24,30 @@
   .rt-scene .gk-choice { min-height: 48px; padding-block: 8px; }
   .rt-scene .pb-share { margin-top: 5px; }
 }
+
+/* The roast target: a tilted family sticker with the target's avatar,
+ * tucked onto the top edge of the starter card (decorative tilt). */
+#gbody .rt-scene .rt-target {
+  position: relative; z-index: 1; align-self: center; display: inline-flex; align-items: center; gap: var(--space-8);
+  margin: 0 0 calc(-1 * var(--space-24)); padding: var(--space-4) var(--space-16) var(--space-4) var(--space-4);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--fam); color: var(--on-fam); box-shadow: var(--shadow-sticker-sm);
+  font: var(--text-title); transform: rotate(-2deg);
+}
+#gbody .rt-scene .rt-target .pl-face { width: 36px; height: 36px; font-size: 15px; }
+#gbody .rt-scene.pl-fill > .rt-target + .gk-prompt { padding-top: var(--space-32); }
+
+/* Reveal: two summary chips, then the roasts, then Next. */
+#gbody .rt-scene .rt-winner { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-8); margin: 0; }
+#gbody .rt-scene .rt-chip {
+  display: inline-flex; align-items: center; gap: var(--space-8); min-height: 36px; padding: 0 var(--space-12);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--fam-soft); color: var(--ink); font: var(--text-button-sm);
+}
+#gbody .rt-scene .rt-chip.is-crown { background: var(--sun-soft); }
+#gbody .rt-scene .rt-chip b { font-size: 17px; line-height: 1; }
+#gbody .rt-scene.pl-fill .rt-foot #rtNext { min-width: 200px; }
+@media (max-width: 560px) {
+  #gbody .rt-scene .rt-target { font-size: 17px; }
+  #gbody .rt-scene.pl-fill .rt-foot, #gbody .rt-scene.pl-fill .rt-foot #rtNext { width: 100%; }
+}

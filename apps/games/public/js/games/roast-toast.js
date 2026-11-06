@@ -2,7 +2,7 @@
  * ballot for the room favorite, the target's crown, then the reveal. Built on the game kit
  * (public/css/game-ui.css, public/js/kit.js). */
 import { esc, nameOf, ensureStylesheet } from '../util.js';
-import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer, paintLiveStrip } from '../kit.js';
+import { roundLabel, progressText, hudHtml, waitingHtml, finalHtml, syncHudTimer, stopHudTimer, paintLiveStrip, faceHtml } from '../kit.js';
 
 let liveTimerEl = null;
 
@@ -73,8 +73,9 @@ function revealHtml(S, watch) {
   const faves = L.roomFave || [];
   const names = faves.map((pid) => nameOf(S, pid));
   const target = nameOf(S, L.target);
-  const line = (!faves.length ? 'No room votes' : names.length > 1 ? `Room favorite: it's a tie: ${joinNames(names)}` : `Room favorite: ${names[0]}`)
-    + (L.pick ? ` · ${target}'s crown: ${nameOf(S, L.pick)}` : '');
+  // Two short chips instead of one run-on sentence.
+  const chips = `<span class="rt-chip"><b aria-hidden="true">🏆</b>${esc(!faves.length ? 'No room votes' : `Room favorite${names.length > 1 ? 's' : ''}: ${joinNames(names)}`)}</span>`
+    + (L.pick ? `<span class="rt-chip is-crown"><b aria-hidden="true">👑</b>${esc(`${target}'s crown: ${nameOf(S, L.pick)}`)}</span>` : '');
   const authors = Object.keys(L.entries || {}).sort((a, b) => (pts[b] || 0) - (pts[a] || 0) || (counts[b] || 0) - (counts[a] || 0));
   const total = Object.keys(L.votes || {}).length;
   const cards = authors.map((author, i) => {
@@ -87,12 +88,13 @@ function revealHtml(S, watch) {
   }).join('');
   const canNext = !watch && (S.me === S.hostId || S.me === L.target);
   return scene(S, 'Roast reveal', `<h2 class="gk-prompt">Roasts for ${esc(target)}</h2>`
-    + `<p class="gk-sub rt-winner">${esc(line)}</p>`
+    + `<p class="rt-winner">${chips}</p>`
+    // Results first, then the one action that moves on.
+    + `<ol class="gk-choices rt-list" style="--gk-cols:1;--gk-cols-phone:1">${cards}</ol>`
     + `<div class="gk-actions is-center rt-foot">`
     + (canNext ? `<button type="button" class="gk-btn gk-primary" id="rtNext">Next</button>`
       : waitingHtml(S.round >= S.rounds ? 'Final scores are next' : 'Next round starts soon', { done: true }))
-    + `</div>`
-    + `<ol class="gk-choices rt-list" style="--gk-cols:1;--gk-cols-phone:1">${cards}</ol>`);
+    + `</div>`);
 }
 
 function voteHtml(S, watch) {
@@ -135,7 +137,10 @@ function writeHtml(S, watch) {
       + inputRow({ id: 'rtEntry', label: `Your roast of ${who}`, placeholder: 'Keep it friendly…', max: 140, btnId: 'rtSend', button: 'Send' })
       + `<div class="rt-foot" data-live="wait"></div>`;
   }
-  return scene(S, 'Write a roast', `<p class="gk-meta rt-target">Roasting ${esc(who)}</p><h2 class="gk-prompt">${esc(S.starter || '')}</h2>${body}`);
+  // The target is the key fact of the round: a tilted name sticker with
+  // their seat avatar, on top of the starter card.
+  const tag = watch || S.me !== S.target ? `Roast ${who}` : 'You are being roasted';
+  return scene(S, 'Write a roast', `<p class="rt-target">${faceHtml(S, S.target)}<span>${esc(tag)}</span></p><h2 class="gk-prompt">${esc(S.starter || '')}</h2>${body}`);
 }
 
 function liveOpts(S) {

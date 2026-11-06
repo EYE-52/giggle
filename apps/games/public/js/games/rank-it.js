@@ -43,6 +43,7 @@ let rankOrder = [0, 1, 2, 3, 4];
 
 function ensureCss() {
   ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
+  ensureStylesheet('rank-it-css', '/css/rank-it.css');
 }
 
 function watching(S) {
@@ -75,10 +76,10 @@ function buildRank(el, S, api, focusPos) {
   const submitted = !!S.myRank;
   const dirty = submitted && !sameOrder(rankOrder, S.myRank);
   const rows = rankOrder.map((itemIdx, pos) => `
-    <li class="party-rank-item${pos === focusPos ? ' is-moved' : ''}" data-pos="${pos}">
+    <li class="party-rank-item rank-p${pos + 1}${pos === focusPos ? ' is-moved' : ''}" data-pos="${pos}">
       <span class="gk-mark" aria-hidden="true">${pos + 1}</span>
       <span class="party-rank-name">${esc(items[itemIdx])}</span>
-      <span class="party-actions">
+      <span class="party-actions rank-seg" role="group" aria-label="Move ${esc(items[itemIdx])}">
         <button type="button" class="btn ghost" data-up="${pos}" aria-label="${pos === 0 ? `${esc(items[itemIdx])} is already first` : `Move ${esc(items[itemIdx])} up to rank ${pos}`}" ${pos === 0 ? 'disabled' : ''}>↑</button>
         <button type="button" class="btn ghost" data-dn="${pos}" aria-label="${pos === rankOrder.length - 1 ? `${esc(items[itemIdx])} is already last` : `Move ${esc(items[itemIdx])} down to rank ${pos + 2}`}" ${pos === rankOrder.length - 1 ? 'disabled' : ''}>↓</button>
       </span>
@@ -164,7 +165,7 @@ function paint(el, S, api) {
         place[pos] = pos && S.last.borda[itemIdx] === S.last.borda[S.last.consensus[pos - 1]] ? place[pos - 1] : pos + 1;
       });
       const con = S.last.consensus.map((itemIdx, pos) =>
-        `<li class="party-rank-item"><span class="gk-mark" aria-hidden="true">${place[pos]}</span><span class="party-rank-name">${esc(S.last.items[itemIdx])}</span><span class="gk-meta">${plural(S.last.borda[itemIdx], 'pt')}</span></li>`).join('');
+        `<li class="party-rank-item rank-p${place[pos]}"><span class="gk-mark" aria-hidden="true">${place[pos]}</span><span class="party-rank-name">${esc(S.last.items[itemIdx])}</span><span class="gk-meta">${plural(S.last.borda[itemIdx], 'pt')}</span></li>`).join('');
       const rankers = (S.players || []).filter((p) => S.last.pts && S.last.pts[p.id] !== undefined);
       const rows = rankRows(S.last.pts, rankers, watching(S) ? null : S.me);
       const closest = new Set(S.last.closest || []);
@@ -225,7 +226,7 @@ function paint(el, S, api) {
 let liveTimerEl = null;
 
 export default {
-  styles: ['/css/party-scenes.css'],
+  styles: ['/css/party-scenes.css', '/css/rank-it.css'],
   dispose() {
     stopHudTimer(liveTimerEl); liveTimerEl = null; rankApi = null; rankKey = ''; rankState = null; rankOrder = [0, 1, 2, 3, 4]; },
   ownsTimer: true,

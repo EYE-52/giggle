@@ -4,7 +4,7 @@
 import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
 import { hudHtml, roundLabel, progressText, choicesHtml, waitingHtml, resultsHtml, paintLiveStrip, timerSlotState } from '../kit.js';
 
-const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css']];
+const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css'], ['trivia-css', '/css/trivia.css']];
 const LETTERS = 'ABCD';
 
 let feedback = null;
@@ -52,7 +52,7 @@ function hud(S, phase, progress) {
 }
 
 export default {
-  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css'],
+  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css', '/css/trivia.css'],
   ownsTimer: true,
   dispose() {
     if (clock !== null) clearInterval(clock);
@@ -139,7 +139,7 @@ export default {
     const locked = picked !== null && picked !== undefined;
     const options = (S.question?.options || []).map((label, i) => ({ value: i, label, selected: picked === i }));
     el.innerHTML = `<section class="wg gk-col gk-stack" data-game="trivia" data-phase="answer" aria-label="Trivia question">`
-      + hud(S, watch ? 'Watching' : locked ? 'Locked in' : 'Choose an answer', progressText((S.answered || []).length, total))
+      + hud(S, watch ? 'Watching' : locked ? 'Locked in' : 'Answer', progressText((S.answered || []).length, total))
       + `<h2 class="gk-prompt">${esc(S.question?.q || '')}</h2>`
       // data-p: the answer index the click handler (and older QA tools) read.
       + choicesHtml(options, { cols: 2, phoneCols: 1, locked, disabled: watch || !!S.preparing, name: 'Answers' })

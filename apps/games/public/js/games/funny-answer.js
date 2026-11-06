@@ -104,7 +104,7 @@ function voteHtml(S, watch) {
         : 'Vote for the funniest answer. Not your own.';
   return scene(S, 'Vote the funniest', `<h2 class="gk-prompt">${esc(S.prompt)}</h2>`
     + `<p class="gk-sub">${esc(sub)}</p>`
-    + `<div class="gk-choices${voted ? ' is-locked' : ''}" role="group" aria-label="Anonymous answers" style="--gk-cols:2;--gk-cols-phone:1">${cards}</div>`
+    + `<div class="gk-choices${voted ? ' is-locked' : ''}" role="group" aria-label="Anonymous answers" style="--gk-cols:1;--gk-cols-phone:1">${cards}</div>`
     + `<div class="fa-foot" data-live="wait">${voted || watch || onlyMine ? waitLine(S) : ''}</div>`);
 }
 

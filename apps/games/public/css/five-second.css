@@ -40,3 +40,33 @@
   #gbody .fs-scene.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 26px; border-radius: var(--radius-lg); }
   #gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 96px; height: 44px; font-size: 24px; }
 }
+
+/* Verdict: points line as a family chip, judges as pass/fail chips, and
+ * Next as the one big primary at the bottom of the panel. */
+#gbody .fs-scene.pl-fill .fs-verdict-line {
+  align-self: center; margin: 0; padding: var(--space-4) var(--space-16); border-radius: var(--radius-pill);
+  background: var(--fam-soft); color: var(--fam-deep); font: var(--text-button-sm);
+  border: var(--outline-w) solid var(--outline);
+}
+#gbody .fs-scene .fs-votes { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-8); margin: 0; }
+#gbody .fs-scene .fs-vote {
+  display: inline-flex; align-items: center; gap: var(--space-8); min-height: 36px; padding: 0 var(--space-12);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  font: var(--text-button-sm); color: var(--ink); background: var(--card);
+}
+#gbody .fs-scene .fs-vote b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font: 800 13px/1 var(--font-body); }
+#gbody .fs-scene .fs-vote.is-pass { background: var(--success-soft); }
+#gbody .fs-scene .fs-vote.is-pass b { background: var(--success); color: var(--on-success); }
+#gbody .fs-scene .fs-vote.is-fail { background: var(--danger-soft); }
+#gbody .fs-scene .fs-vote.is-fail b { background: var(--danger); color: var(--on-danger); }
+#gbody .fs-scene.pl-fill #fNext { min-height: var(--control-h-lg); min-width: 200px; font-size: 19px; }
+@media (max-width: 560px) {
+  #gbody .fs-scene.pl-fill .fs-foot { width: 100%; }
+  #gbody .fs-scene.pl-fill #fNext { width: 100%; }
+}
+
+/* The between-rounds "Getting everyone ready" pill sits at the bottom of
+ * the screen in this game, never over the round row and phase pill. */
+body:not(.game-immersive):has(#gbody .fs-scene) .game-preparation:not(.is-first) {
+  top: auto; bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
+}

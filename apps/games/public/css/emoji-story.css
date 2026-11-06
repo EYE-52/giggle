@@ -58,3 +58,25 @@
 .es-scene.ck .es-preview { display: flex; flex-direction: column; gap: var(--space-12); }
 .es-scene.ck .es-preview-text { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-12); min-height: 112px; align-items: center; }
 .es-scene.ck .es-preview-text .es-slot { animation: none; opacity: .6; }
+
+/* Waiting tray: the emoji row is the hero. Solid skeleton tiles (no
+ * dashed outlines that break at the corners) on a tinted sticker tray,
+ * and the note at body size; the wait card below stays compact. */
+.es-scene.ck .es-tray { display: grid; justify-items: center; gap: var(--space-12); }
+.es-scene.ck .es-tray .es-slots { padding: 0; }
+.es-scene.ck .es-slot {
+  width: 88px; height: 88px; border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-lg);
+  background: var(--well);
+}
+.es-scene.ck .es-tray .es-slot { animation-name: es-pulse; animation-duration: 1.4s; }
+@keyframes es-pulse { from { opacity: .5; } to { opacity: 1; } }
+.es-scene.ck .es-tray .es-slots-note { margin: 0; font: var(--text-body); color: var(--ink); text-align: center; text-wrap: pretty; }
+.es-scene.ck .es-wait .gk-wait-card { padding: var(--space-16) var(--space-24); gap: var(--space-8); }
+.es-scene.ck .es-wait .gk-wait-card .gk-wait-title { font: var(--text-title); }
+.es-scene.ck .es-preview-text .es-slot { width: 64px; height: 64px; }
+@media (max-width: 560px) {
+  .es-scene.ck .es-slot { width: 52px; height: 52px; border-radius: var(--radius-md); }
+  .es-scene.ck .es-preview-text .es-slot { width: 48px; height: 48px; }
+  .es-scene.ck .es-wait .gk-wait-card { padding: var(--space-12) var(--space-16); }
+}
+@media (prefers-reduced-motion: reduce) { .es-scene.ck .es-tray .es-slot { animation: none; } }
