@@ -189,7 +189,7 @@ export default {
     lastPhase = '';
     lastCheck = false;
     clockInfo = null;
-    el.innerHTML = '<div class="bk-game ch-tabletop chess" id="chess-root" role="region" aria-label="Chess game"></div>';
+    el.innerHTML = '<div class="bk-game ch-tabletop chess" data-family="board" id="chess-root" role="region" aria-label="Chess game"></div>';
     clockTimer = setInterval(paintClocks, 250);
   },
 

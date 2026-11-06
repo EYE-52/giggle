@@ -132,7 +132,7 @@ export default {
     if (!c || c.instance !== S.instanceId) {
       this.dispose(el); css();
       c = el._reversi = { id: ++sceneId, instance: S.instanceId, S, baseline: S, api, cursor: S.legal?.[0] ?? 19, rev: -1, phase: null, timer: 0, pendingTimer: 0, bound: [], armed: false, pending: false, retry: false, settling: false };
-      el.innerHTML = `<section class="bk-game rv-duel" aria-label="Reversi game"><div class="rv-stage bk-stage"></div>${bkPanelHTML({ title: 'Reversi', help: ['Place a disc on a dot to trap your opponent’s discs between yours. Every trapped line flips. No move? Your turn passes. Most discs wins when neither player can move.', 'Keyboard: arrow keys, then Enter or Space. Charcoal starts.'] })}</section>`;
+      el.innerHTML = `<section class="bk-game rv-duel" data-family="board" aria-label="Reversi game"><div class="rv-stage bk-stage"></div>${bkPanelHTML({ title: 'Reversi', help: ['Place a disc on a dot to trap your opponent’s discs between yours. Every trapped line flips. No move? Your turn passes. Most discs wins when neither player can move.', 'Keyboard: arrow keys, then Enter or Space. Charcoal starts.'] })}</section>`;
       bind(el, c);
     }
     if (S.rev < c.rev) return;

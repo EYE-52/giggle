@@ -134,3 +134,35 @@
 }
 @media (prefers-reduced-motion:reduce){.bk-game *{animation:none!important;transition:none!important}}
 #gbody[data-layout=immersive]:has(>.bk-game){min-height:100svh;background:var(--bg)}
+
+/* Toy-box side panel: sticker cards in the board family's teal. The player
+ * to move gets a tinted card with a thick rim, the status is a banner, and
+ * every control is a chip that sinks when pressed. The tools sit above the
+ * actions so the space kept for a draw offer stays at the bottom. */
+.bk-game{--bk-fam:var(--fam,var(--accent));--bk-fam-deep:var(--fam-deep,var(--accent-deep));--bk-fam-soft:color-mix(in srgb,var(--bk-fam) 16%,var(--card))}
+.bk-title{font:var(--text-heading,800 30px/1.15 var(--font-display));text-wrap:balance}
+.bk-player{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm);background:var(--card)}
+.bk-player.is-turn{border:var(--outline-w-lg) solid var(--bk-fam);background:var(--bk-fam-soft);box-shadow:var(--shadow-sticker)}
+.bk-player.is-turn .bk-side{color:var(--bk-fam-deep);font-weight:800}
+.bk-name{font:var(--text-title,800 18px/1.25 var(--font-display));font-size:18px}
+.bk-stat-value{font-size:24px}
+.bk-status{border:var(--outline-w) solid var(--bk-fam);border-radius:var(--radius-lg);background:var(--bk-fam-soft);color:var(--bk-fam-deep);min-height:64px;padding:12px 16px}
+.bk-status-text{font:800 19px/1.25 var(--font-display)}
+.bk-hint{color:var(--ink)}
+.bk-timer,.bk-final{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm)}
+.bk-btn,.bk-help{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm);font:var(--text-button-sm,800 15px/1.2 var(--font-body))}
+.bk-help summary{font:inherit}
+.bk-btn:active:not(:disabled){transform:translateY(var(--lift-sm,2px));box-shadow:none}
+.bk-btn:disabled{box-shadow:none;cursor:not-allowed}
+.bk-primary{background:var(--bk-fam);border-color:var(--outline);color:var(--on-fam,#fff);box-shadow:var(--shadow-sticker)}
+.bk-danger{border-color:var(--outline);color:var(--danger,var(--melon))}
+@media (hover:hover){.bk-btn:hover:not(:disabled){border-color:var(--outline);transform:translateY(-2px)}.bk-help:hover{transform:translateY(-2px)}}
+.bk-btn,.bk-help{transition:transform var(--dur-quick,.2s) var(--ease,cubic-bezier(.22,1,.36,1))}
+.bk-tools{order:1}.bk-actions{order:2}
+.bk-panel.is-final .bk-final{order:0}
+.bk-rank-row{border:var(--outline-w) solid var(--line-strong);border-radius:var(--radius-md)}
+.bk-rank-row.is-you{border-color:var(--bk-fam);background:var(--bk-fam-soft)}
+/* Chess extras in the same sticker set. */
+.bk-game.ch-tabletop .ch-capture-rail{border:var(--outline-w) solid var(--line-strong);border-radius:var(--radius-lg);background:var(--card)}
+.bk-game.ch-tabletop .chhist-wrap{margin-top:0;border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm)}
+@media (max-width:759px){.bk-tools{order:7}.bk-actions{order:6}.bk-status{min-height:4.4em}.bk-name{font-size:16px}}

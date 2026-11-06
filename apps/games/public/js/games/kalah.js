@@ -149,7 +149,7 @@ export default {
     bkEnsureCss();
     if (!document.getElementById('kalah-css')) { const css = document.createElement('link'); css.id = 'kalah-css'; css.rel = 'stylesheet'; css.href = '/css/kalah.css'; document.head.appendChild(css); }
     portrait = window.matchMedia('(orientation: portrait)').matches;
-    el.innerHTML = `<section class="bk-game kl" aria-label="Kalah"><div class="bk-stage kl-board"><svg class="kl-art" viewBox="0 0 840 360" role="group" aria-label="Kalah board"></svg></div>${bkPanelHTML({ title: 'Kalah', flip: true, help: [] })}</section>`;
+    el.innerHTML = `<section class="bk-game kl" data-family="board" aria-label="Kalah"><div class="bk-stage kl-board"><svg class="kl-art" viewBox="0 0 840 360" role="group" aria-label="Kalah board"></svg></div>${bkPanelHTML({ title: 'Kalah', flip: true, help: [] })}</section>`;
     root = el.querySelector('.kl'); art = root.querySelector('.kl-art');
     const sendFlag = action => { if (state?.youAre !== null && !state?.spectator) send(action); };
     const finalAction = name => { if (state?.phase === 'done' && !moving && api.context?.().isHost === true && !api.context?.().roomActionPending) api[name]?.(); };
