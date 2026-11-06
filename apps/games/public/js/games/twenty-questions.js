@@ -367,7 +367,7 @@ function updateReveal(S) {
 function tqHud(S, phase, label, badgeId) {
   return `<div class="gk-hud" data-phase="${phase}"><span class="gk-hud-round">${roundLabel(Math.max(1, Math.min(S.round || 1, S.rounds || 1)), S.rounds || 1)}</span>`
     + `<span class="gk-hud-phase">${esc(label)}</span><span class="gk-hud-progress tq-badge" id="${badgeId}" role="status"></span>`
-    + `<span class="gk-hud-timer" aria-hidden="true"></span></div>`;
+    + `<span class="gk-hud-timer" data-tq-clock aria-hidden="true"></span></div>`;
 }
 
 /* ---------------- lifecycle ---------------- */
@@ -395,7 +395,7 @@ function fmtClock(slot) {
   slot.textContent = `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
 }
 function minuteClock(el) {
-  const slot = el.querySelector?.('.gk-hud-timer');
+  const slot = el.querySelector?.('[data-tq-clock]');
   if (slot === clockSlot) return;
   clockObserver?.disconnect();
   clockObserver = null; clockSlot = slot || null;
