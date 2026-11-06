@@ -13,7 +13,9 @@
 
 .practice-controls { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
 .practice-controls[hidden] { display: none; }
-.practice-tabs { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+/* The row scrolls sideways, which clips anything outside it: pad it (and pull
+ * it back with a matching negative margin) so the focus ring and host dot fit. */
+.practice-tabs { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 7px; margin: -7px; }
 .practice-tabs::-webkit-scrollbar { display: none; }
 .practice-tabs button { position: relative; flex: none; height: 44px; padding: 0 14px; border: 1px solid var(--line); border-radius: 999px; font: 800 14px var(--font-body); color: var(--ink-dim); background: var(--bg); cursor: pointer; }
 .practice-tabs [aria-selected="true"] { color: #fff; border-color: var(--accent); background: var(--accent); }
