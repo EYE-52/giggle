@@ -242,3 +242,30 @@
 .load-error-art::after { content: "!"; position: absolute; right: -12px; top: -12px; display: grid; place-items: center; width: 36px; height: 36px; border: 3px solid var(--hard, #321829); border-radius: 50%; background: var(--sun); color: #321829; font: 800 20px/1 var(--font-display); transform: rotate(12deg); }
 .game-load-error #retryGameView { min-height: 48px; padding-inline: 32px; margin-top: 4px; }
 @media (max-width: 480px) { .game-load-error { margin-inline: 16px; } }
+
+/* First-load stage: the art hops with a little squash over its own shadow
+ * while four confetti bits float around it; the headline turns over in one
+ * shared cell so the card never resizes. */
+.preparation-stage { position: relative; display: grid; place-items: center; padding-bottom: 14px; }
+.preparation-stage::after { content: ""; position: absolute; bottom: 0; width: 120px; height: 12px; border-radius: 50%; background: color-mix(in srgb, var(--hard, #321829) 22%, transparent); }
+.preparation-stage i { position: absolute; width: 10px; height: 10px; border-radius: 3px; border: 2px solid var(--hard, #321829); }
+.preparation-stage i:nth-of-type(1) { left: -18px; top: 12px; background: var(--accent); transform: rotate(18deg); }
+.preparation-stage i:nth-of-type(2) { right: -20px; top: 30px; background: var(--gold, #f5b82e); border-radius: 50%; }
+.preparation-stage i:nth-of-type(3) { left: -8px; bottom: 34px; background: var(--green, #2bb673); border-radius: 50%; }
+.preparation-stage i:nth-of-type(4) { right: -10px; bottom: 50px; background: #5aa9ff; transform: rotate(-24deg); }
+.preparation-lines { display: grid; }
+.preparation-lines > span { grid-area: 1 / 1; opacity: 0; transform: translateY(8px) scale(.96); transition: opacity .3s ease, transform .35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.preparation-lines > span.is-on { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .game-preparation.is-first .preparation-art { animation: prep-hop 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; transform-origin: 50% 100%; }
+  .preparation-stage::after { animation: prep-shadow 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+  .preparation-stage i { animation: prep-float 3.2s ease-in-out infinite; }
+  .preparation-stage i:nth-of-type(2) { animation-delay: -.8s; }
+  .preparation-stage i:nth-of-type(3) { animation-delay: -1.6s; }
+  .preparation-stage i:nth-of-type(4) { animation-delay: -2.4s; }
+  @keyframes prep-hop { 0%, 100% { transform: translateY(0) scale(1.04, .96); } 12% { transform: translateY(0) scale(1); } 45% { transform: translateY(-16px) rotate(-3deg); } 80% { transform: translateY(0) scale(1); } }
+  @keyframes prep-shadow { 0%, 100% { transform: scaleX(1); opacity: 1; } 45% { transform: scaleX(.7); opacity: .55; } }
+  @keyframes prep-float { 50% { translate: 0 -8px; rotate: 40deg; } }
+}
+@media (prefers-reduced-motion: reduce) { .preparation-lines > span { transition: none; transform: none; } }
+@media (max-height: 520px) { .preparation-stage::after { width: 70px; } .preparation-stage i { display: none; } }

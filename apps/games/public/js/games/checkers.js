@@ -125,7 +125,7 @@ export default {
     this.dispose(); api = suppliedApi;
     bkEnsureCss();
     if (!document.getElementById('checkers-css')) { const css = document.createElement('link'); css.id = 'checkers-css'; css.rel = 'stylesheet'; css.href = '/css/checkers.css'; document.head.appendChild(css); }
-    el.innerHTML = `<section class="bk-game ck" aria-label="Checkers"><div class="bk-stage ck-board"><svg class="ck-art" viewBox="0 0 800 800" aria-hidden="true"></svg><div class="ck-grid" role="group" aria-label="Checkers board">${Array.from({ length: 64 }, (_, i) => `<button type="button" data-square="${i}" data-watchok tabindex="-1"></button>`).join('')}</div></div>${bkPanelHTML({ title: 'Checkers', flip: true, help: [] })}</section>`;
+    el.innerHTML = `<section class="bk-game ck" data-family="board" aria-label="Checkers"><div class="bk-stage ck-board"><svg class="ck-art" viewBox="0 0 800 800" aria-hidden="true"></svg><div class="ck-grid" role="group" aria-label="Checkers board">${Array.from({ length: 64 }, (_, i) => `<button type="button" data-square="${i}" data-watchok tabindex="-1"></button>`).join('')}</div></div>${bkPanelHTML({ title: 'Checkers', flip: true, help: [] })}</section>`;
     root = el.querySelector('.ck'); boardEl = root.querySelector('.ck-grid'); svgEl = root.querySelector('.ck-art');
     const sendFlag = action => { if (state?.youAre !== null && !state?.spectator) send(action); };
     const finalAction = name => { if (state?.phase === 'done' && !moving && api.context?.().isHost === true && !api.context?.().roomActionPending) api[name]?.(); };

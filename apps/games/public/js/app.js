@@ -2601,20 +2601,30 @@ function paintGamePreparation() {
     }
     // Every tip shares one grid cell, so the card is as tall as the longest
     // and never resizes as they change. Only the first is read out.
-    status.innerHTML = (first && g ? artImg(g, 'preparation-art') : '') +
+    // First load: the art hops on a little stage of confetti and the
+    // headline cycles through cheeky lines, all stacked in one cell.
+    const fun = ['Shuffling the pieces…', 'Warming up the buzzers…', 'Sharpening the pencils…', 'Polishing the scoreboard…',
+      'Counting the confetti…', 'Fluffing the cushions…', 'Tuning the kazoos…', 'Hiding the answers…', 'Stretching our thumbs…'];
+    const lines = ['Getting everyone ready…', ...(first ? fun.sort(() => Math.random() - .5).slice(0, 4) : [])];
+    status.innerHTML = (first && g ? `<span class="preparation-stage" aria-hidden="true">${artImg(g, 'preparation-art')}<i></i><i></i><i></i><i></i></span>` : '') +
       '<span class="preparation-dots" aria-hidden="true"><i></i><i></i><i></i></span>' +
-      `<span class="preparation-text"><span>Getting everyone ready…</span>${order.length ? `<span class="preparation-tips">${order.map((t, i) =>
+      `<span class="preparation-text"><span class="preparation-lines">${lines.map((t, i) =>
+        `<span${i ? ' aria-hidden="true"' : ' class="is-on"'}>${t}</span>`).join('')}</span>${order.length ? `<span class="preparation-tips">${order.map((t, i) =>
         `<small${i ? ' aria-hidden="true"' : ' class="is-on"'}>Tip: ${esc(t)}</small>`).join('')}</span>` : ''}</span>`;
     if (preparationTipTimer) clearInterval(preparationTipTimer);
-    if (order.length > 1) {
-      let on = 0;
+    if (order.length > 1 || lines.length > 1) {
+      let tick = 0;
+      const turn = (sel, on) => {
+        const items = status.querySelectorAll(sel);
+        if (!items.length) return;
+        items.forEach((x, i) => x.classList.toggle('is-on', i === on % items.length));
+      };
       preparationTipTimer = setInterval(() => {
-        const smalls = status.querySelectorAll('.preparation-tips small');
-        if (!status.isConnected || status.hidden || !smalls.length) { clearInterval(preparationTipTimer); return; }
-        smalls[on].classList.remove('is-on');
-        on = (on + 1) % smalls.length;
-        smalls[on].classList.add('is-on');
-      }, 4500);
+        if (!status.isConnected || status.hidden) { clearInterval(preparationTipTimer); return; }
+        tick++;
+        turn('.preparation-lines > span', tick);
+        if (tick % 2 === 0) turn('.preparation-tips small', tick / 2);
+      }, 2400);
     }
   }
   if (status) status.hidden = !preparing;

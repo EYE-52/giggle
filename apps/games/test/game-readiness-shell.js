@@ -23,7 +23,7 @@ const ctx = {
   preparationFocus: null, artImg: () => '',
   document: { body: pageBody, activeElement: pageBody, querySelector: selector => selector === '#tbar' ? bar : selector === '#ttime' ? text : null, getElementById: id => id === 'gbody' ? body : preparation },
   gameById: () => ({ runtime: { type: 'module' } }),
-  timerRaf: 0, requestAnimationFrame: () => 1, cancelAnimationFrame: noop,
+  timerRaf: 0, requestAnimationFrame: () => 1, cancelAnimationFrame: noop, setInterval: () => 1, clearInterval: noop,
 };
 vm.createContext(ctx);
 vm.runInContext(apiCode + '\n' + timerCode + '\n' + preparationCode + '\nglobalThis.qa = { api, startTimer, paintGamePreparation, rememberPreparationFocus, restorePreparationFocus };', ctx);

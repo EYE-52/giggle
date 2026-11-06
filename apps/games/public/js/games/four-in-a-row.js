@@ -129,7 +129,7 @@ export default {
     if (!c || c.instance !== S.instanceId) {
       this.dispose(el); css();
       c = el._four = { id: ++sceneId, instance: S.instanceId, S, baseline: S, api, cursor: 3, rev: -1, phase: null, timer: 0, pendingTimer: 0, bound: [], armed: false, pending: false, retry: false, settling: false, readyPending: false, boardBefore: null };
-      el.innerHTML = `<section class="bk-game fr-duel" aria-label="Four in a Row game"><div class="fr-stage bk-stage"></div>${bkPanelHTML({ title: 'Four in a Row', help: ['Drop a counter into any open column. Connect four across, up, or diagonally before your opponent does. Red starts.', 'Keyboard: Left and Right choose a column, then Enter or Space.'] })}</section>`;
+      el.innerHTML = `<section class="bk-game fr-duel" data-family="board" aria-label="Four in a Row game"><div class="fr-stage bk-stage"></div>${bkPanelHTML({ title: 'Four in a Row', help: ['Drop a counter into any open column. Connect four across, up, or diagonally before your opponent does. Red starts.', 'Keyboard: Left and Right choose a column, then Enter or Space.'] })}</section>`;
       bind(el, c);
     }
     if (S.rev < c.rev) return;
