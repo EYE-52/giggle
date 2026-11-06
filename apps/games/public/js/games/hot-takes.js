@@ -72,7 +72,7 @@ function takeRows(S) {
     return `<div class="party-result hot-take-row${win ? ' party-result--winner' : ''}">`
       + (tag ? `<div class="gk-meta hot-tag">${esc(tag)}</div>` : '')
       + `<div class="party-result-body">${esc(r.text)}</div>`
-      + `<div class="hot-split-track" role="img" aria-label="${r.agree.length} agree, ${r.disagree.length} disagree"><span style="width:${pct}%"></span><span style="width:${total ? 100 - pct : 0}%"></span></div>`
+      + `<div class="hot-split-track" role="img" aria-label="${r.agree.length} agree, ${r.disagree.length} disagree"><span style="width:${pct}%">${r.agree.length || ''}</span><span style="width:${total ? 100 - pct : 0}%">${r.disagree.length || ''}</span></div>`
       + `<p class="party-meta">by ${r.author ? esc(nameOf(S, r.author)) : 'the house'} · ${r.agree.length} agree, ${r.disagree.length} disagree · ${div} on the smaller side</p></div>`;
   }).join('');
 }
@@ -81,6 +81,7 @@ let submitKey = null; // stable composer key for the current submit window
 
 function ensureCss() {
   ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
+  ensureStylesheet('hot-takes-css', '/css/hot-takes.css');
 }
 
 function isWatch(S) {
@@ -93,7 +94,7 @@ function splitRows(S, r, agreeLabel, disLabel) {
   const all = r.agree.length + r.disagree.length;
   const pct = all ? r.agree.length / all * 100 : 0;
   const side = (label, voters) => `<div class="hot-split-side"><b>${esc(label)} ${voters.length}</b><p class="party-meta">${voters.map(pid => esc(nameOf(S, pid))).join(', ') || 'No votes'}</p></div>`;
-  return `<div class="hot-room-split"><div class="hot-split-track" role="img" aria-label="${r.agree.length} agree, ${r.disagree.length} disagree"><span style="width:${pct}%"></span><span style="width:${all ? 100 - pct : 0}%"></span></div><div class="hot-split-labels">${side(agreeLabel, r.agree)}${side(disLabel, r.disagree)}</div><p class="party-meta">${plural(Math.min(r.agree.length, r.disagree.length), 'player')} on the smaller side. Closer splits score more.</p></div>`;
+  return `<div class="hot-room-split"><div class="hot-split-track" role="img" aria-label="${r.agree.length} agree, ${r.disagree.length} disagree"><span style="width:${pct}%">${r.agree.length || ''}</span><span style="width:${all ? 100 - pct : 0}%">${r.disagree.length || ''}</span></div><div class="hot-split-labels">${side(agreeLabel, r.agree)}${side(disLabel, r.disagree)}</div><p class="party-meta">${plural(Math.min(r.agree.length, r.disagree.length), 'player')} on the smaller side. Closer splits score more.</p></div>`;
 }
 
 function paint(el, S, api) {
@@ -199,9 +200,10 @@ function paint(el, S, api) {
         + (S.myTake ? `<p class="party-lock">“${esc(S.myTake)}”</p>` : '')
         + `<div class="party-compose"><div class="party-field">`
         + `<label for="hTake">Your take</label>`
-        + `<div class="gk-input-row"><input id="hTake" class="gk-input" type="text" placeholder="Your spiciest (friendly) opinion…" maxlength="140" autocomplete="off" enterkeyhint="send" value="${esc(shown)}">`
+        + `<div class="gk-input-row"><input id="hTake" class="gk-input" type="text" placeholder="Your hot take…" maxlength="140" autocomplete="off" enterkeyhint="send" value="${esc(shown)}">`
         + `<button type="button" class="gk-btn gk-primary" id="hSend">${S.myTake ? 'Update' : 'Send'}</button></div></div>`
-        + (starter ? `<p class="party-meta hot-starter">Need an idea? ${esc(starter)}</p>` : '')
+        // The idea is a chip: tap it to drop the starter into the field.
+        + (starter ? `<button type="button" class="hot-starter" id="hIdea"><span aria-hidden="true">💡</span> Need an idea? <b>${esc(starter)}</b></button>` : '')
         + `</div>`
         + `</section>`;
       const sendTake = () => {
@@ -211,6 +213,13 @@ function paint(el, S, api) {
       };
       el.querySelector('#hSend').onclick = sendTake;
       el.querySelector('#hTake').onkeydown = (e) => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) sendTake(); };
+      const idea = el.querySelector('#hIdea');
+      if (idea) idea.onclick = () => {
+        const inp = el.querySelector('#hTake');
+        if (!inp) return;
+        inp.value = starter;
+        inp.focus();
+      };
       return;
     }
 
@@ -264,7 +273,7 @@ function paint(el, S, api) {
 let liveTimerEl = null;
 
 export default {
-  styles: ['/css/party-scenes.css'],
+  styles: ['/css/party-scenes.css', '/css/hot-takes.css'],
   dispose() {
     stopHudTimer(liveTimerEl); liveTimerEl = null; visualKey = ''; liveApi = null; liveEl = null; liveState = null; liveActionKey = ''; submitKey = null; },
   ownsTimer: true,

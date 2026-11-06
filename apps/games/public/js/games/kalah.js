@@ -39,14 +39,19 @@ function stones(i, count) {
 function boardSvg(pits) {
   const width = portrait ? 400 : 840, height = portrait ? 480 : 360;
   const from = !moving && state.lastMove ? state.lastMove.pit : null, landed = !moving && state.lastMove ? state.lastMove.steps.at(-1) : null;
-  let html = `<rect class="kl-frame" x="4" y="4" width="${width - 8}" height="${height - 8}" rx="40"/>`;
+  // Carved wood: the plank and its grain are the stage's CSS background
+  // (painted once, not on every sowing frame); bowl floors catch the light
+  // at the back, like hollows cut into the plank.
+  let html = `<defs><radialGradient id="kl-hollow" cx=".5" cy=".7" r=".65"><stop class="kl-hollow-a" offset="0"/><stop class="kl-hollow-b" offset="1"/></radialGradient></defs>
+  <rect class="kl-frame" x="4" y="4" width="${width - 8}" height="${height - 8}" rx="40"/>`;
   for (let i = 0; i < 14; i++) {
     const p = point(i), store = i === 6 || i === 13, own = owner(i), active = myTurn() && !moving && pending === null && state.legal.includes(i);
     const rx = store ? (portrait ? 138 : 45) : portrait ? 54 : 43, ry = store ? (portrait ? 24 : 111) : portrait ? 24 : 53;
     const label = text(own ? 'amber' : 'jade') + ' ' + (store ? text('store') : text('bowl') + ' ' + (i < 6 ? i + 1 : i - 6)) + ', ' + pits[i] + ' ' + text(pits[i] === 1 ? 'seed' : 'seeds');
     const mark = i === from ? ' is-from' : i === landed ? ' is-landed' : '';
-    html += `<g ${store ? `aria-label="${esc(label)}"` : `data-pit="${i}" data-watchok role="button" tabindex="${cursor === i ? 0 : -1}"${cursor === i ? ' data-game-focus' : ''} aria-disabled="${!active}" aria-label="${esc(label)}"`} class="kl-bowl ${active ? 'is-legal' : ''}${mark}">
+    html += `<g ${store ? `aria-label="${esc(label)}"` : `data-pit="${i}" data-watchok role="button" tabindex="${cursor === i ? 0 : -1}"${cursor === i ? ' data-game-focus' : ''} aria-disabled="${!active}" aria-label="${esc(label)}"`} class="kl-bowl ${active ? 'is-legal' : ''}${mark}" style="--kl-own:${SEED[own ? 1 : 0][0]}">
       <ellipse class="kl-pit" cx="${p.x}" cy="${p.y}" rx="${rx}" ry="${ry}"${store ? ` style="stroke:${SEED[own ? 1 : 0][0]};stroke-width:6"` : ''}/>
+      <ellipse class="kl-floor" cx="${p.x}" cy="${p.y + 4}" rx="${rx - 4}" ry="${ry - 6}"/>
       ${stones(i, pits[i])}
       <text class="kl-num" x="${portrait && !store ? p.x+(p.x<200?-73:73) : p.x}" y="${p.y + (portrait && !store ? 10 : store ? 12 : 83)}" text-anchor="middle" font-size="${store ? 34 : 28}" font-weight="800">${pits[i]}</text>
       ${store ? '' : `<rect class="kl-hit" x="${p.x - (portrait ? 75 : 49)}" y="${p.y - (portrait ? 29 : 68)}" width="${portrait ? 150 : 98}" height="${portrait ? 58 : 136}" rx="30" fill="transparent"/><ellipse class="kl-focus" cx="${p.x}" cy="${p.y}" rx="${rx + 6}" ry="${ry + 6}" fill="none"/>`}

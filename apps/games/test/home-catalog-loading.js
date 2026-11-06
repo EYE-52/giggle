@@ -13,8 +13,8 @@ ctx.query='missing';ctx.paintHomeCatalog();assert(nodes.get('shelfGames').innerH
 console.log('HOME_CATALOG_LOADING_PASS: delayed, failure, retry, settled and true empty results');
 // Mount the real home renderer: delayed catalogue repaint must retain drafts,
 // focus/caret even when search was previously focused.
-Object.assign(ctx,{EMBED:{enabled:false},PRACTICE:null,myName:'',roomCode:'',queryFocus:true,topbar:()=>'',pickGames:()=>[{id:'fixture'}],pickHtml:()=>'<img data-art="unchanged">',heroHandHtml:()=>'',HOME_GROUPS:[],sortOptions:()=>'',catChipsHtml:()=>'',staggerIn(){},customOnly:false,sortMode:'shelf',catFilter:'all',homeGroup:'any'});
-function input(id,value=''){return {id,value,selectionStart:0,selectionEnd:0,addEventListener(){},focus(){ctx.document.activeElement=this},setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b}}}
+Object.assign(ctx,{EMBED:{enabled:false},PRACTICE:null,myName:'',roomCode:'',queryFocus:true,topbar:()=>'',pickGames:()=>[{id:'fixture'}],pickHtml:()=>'<img data-art="unchanged">',heroHandHtml:()=>'',HOME_GROUPS:[],sortOptions:()=>'',sortChips:()=>[],wireCodeTiles(){},wirePickers(){},syncPickers(){},chipSelectHtml:id=>`<select id="${id}"></select>`,catChipsHtml:()=>'',staggerIn(){},customOnly:false,sortMode:'shelf',catFilter:'all',homeGroup:'any'});
+function input(id,value=''){return {id,value,selectionStart:0,selectionEnd:0,closest:()=>null,addEventListener(){},focus(){ctx.document.activeElement=this},setSelectionRange(a,b){this.selectionStart=a;this.selectionEnd=b}}}
 ctx.app={querySelectorAll:()=>[],querySelector:()=>null};Object.defineProperty(ctx.app,'innerHTML',{set(html){this.html=html;for(const m of html.matchAll(/id="([^"]+)"/g))nodes.set(m[1],input(m[1]));nodes.get('shelfGames').setAttribute=function(k,v){this[k]=v};}});
 vm.runInContext(source.slice(source.indexOf('function renderHome()'),source.indexOf('/* Shared invite-link copy')),ctx);
 nodes.set('nm',input('nm','Draft Host'));nodes.set('jc',input('jc','ABCD'));ctx.document.activeElement=nodes.get('nm');nodes.get('nm').setSelectionRange(4,7);ctx.catalogLoaded=true;ctx.renderHome();

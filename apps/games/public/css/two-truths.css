@@ -44,3 +44,107 @@
   .tt-scene .gk-choice { min-height: 48px; padding-block: 8px; }
   .tt-scene .pb-share { margin-top: 5px; }
 }
+
+/* ---- Toy box writer: each statement is its own compact sticker card ---- */
+#gbody .tt-scene.pl-fill .tt-editor { gap: var(--space-12); }
+#gbody .tt-scene.pl-fill .tt-row {
+  gap: var(--space-12); padding: var(--space-8) var(--space-8) var(--space-8) var(--space-12);
+  background: var(--card); border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm);
+}
+#gbody .tt-scene.pl-fill .tt-row .gk-mark {
+  width: 32px; height: 32px; background: var(--fam); color: var(--on-fam);
+  border: var(--outline-w) solid var(--outline); font: 800 15px/1 var(--font-display);
+}
+/* The field sits flush inside the card; the card is the outline. */
+#gbody .tt-scene.pl-fill .tt-row .gk-input {
+  min-height: var(--control-h-sm); border: 0; background: transparent; box-shadow: none;
+  font: 800 18px/1.3 var(--font-display); padding-inline: var(--space-4);
+}
+#gbody .tt-scene.pl-fill .tt-row .gk-input:focus { outline: none; box-shadow: none; }
+#gbody .tt-scene.pl-fill .tt-row:focus-within { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+/* The marked row reads as "the lie": a soft danger tint on the card. */
+#gbody .tt-scene.pl-fill .tt-row:has(.tt-lie input:checked) { background: var(--danger-soft); }
+
+/* Lie toggle: a quiet dashed chip; when marked, a tilted LIE stamp
+ * (danger soft, ink outline). The family fill stays for Lock in only. */
+#gbody .tt-scene.pl-fill .tt-lie {
+  min-width: 72px; min-height: var(--control-h-sm); padding: 0 var(--space-12);
+  border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-pill);
+  background: var(--well); color: var(--ink-dim); font: var(--text-button-sm);
+}
+#gbody .tt-scene.pl-fill .tt-lie > span::after { content: "?"; }
+#gbody .tt-scene.pl-fill .tt-lie:has(input:checked) {
+  border: var(--outline-w) solid var(--outline); background: var(--danger-soft); color: var(--danger);
+  font: 800 17px/1 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase;
+  transform: rotate(-2deg); box-shadow: var(--shadow-sticker-sm);
+}
+#gbody .tt-scene.pl-fill .tt-lie:has(input:checked) > span::after { content: ""; }
+@media (hover: hover) {
+  #gbody .tt-scene.pl-fill .tt-lie:not(:has(input:checked)):hover { border-color: var(--outline); color: var(--ink); }
+}
+#gbody .tt-scene.pl-fill .tt-lie:has(input:focus-visible) { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+
+/* Action row: Lock in, then the idea as a ghost chip with a bulb. */
+#gbody .tt-scene.pl-fill .tt-foot { align-items: flex-start; gap: var(--space-12); margin-bottom: var(--space-24); }
+#gbody .tt-scene.pl-fill .tt-idea summary {
+  gap: var(--space-8); padding: 0 var(--space-16); list-style: none;
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--card); color: var(--ink); font: var(--text-button-sm);
+}
+#gbody .tt-scene.pl-fill .tt-idea summary::before { content: "\1F4A1"; font-size: 17px; line-height: 1; }
+#gbody .tt-scene.pl-fill .tt-idea summary::-webkit-details-marker { display: none; }
+@media (hover: hover) {
+  #gbody .tt-scene.pl-fill .tt-idea summary:hover { background: var(--fam-soft); color: var(--fam-deep); }
+}
+#gbody .tt-scene.pl-fill .tt-idea summary:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+#gbody .tt-scene.pl-fill .tt-idea[open] summary { background: var(--fam-soft); color: var(--fam-deep); }
+#gbody .tt-scene.pl-fill .tt-idea p { margin-top: var(--space-8); font: var(--text-body); color: var(--ink); }
+@media (max-width: 560px) {
+  #gbody .tt-scene.pl-fill .tt-row { gap: var(--space-8); padding-left: var(--space-8); }
+  #gbody .tt-scene.pl-fill .tt-row .gk-input { font-size: 17px; }
+  #gbody .tt-scene.pl-fill .tt-lie { min-width: 64px; }
+}
+
+/* ==========================================================================
+ * Lie-detector skin (2026-11). The page is faint polygraph paper; the
+ * statement card carries a needle trace along its foot; a marked lie gets a
+ * red stamp rim. Night: a dim green monitor grid.
+ * ========================================================================== */
+body.game-playing[data-game="two-truths"] {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px);
+  background-size: 24px 24px; background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="two-truths"] {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fam) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fam) 7%, transparent) 1px, transparent 1px);
+}
+#gbody .tt-scene.pl-fill > .gk-prompt {
+  position: relative; padding-bottom: var(--space-48); background: var(--card);
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--outline)); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+#gbody .tt-scene.pl-fill > .gk-prompt::after {
+  content: ""; position: absolute; left: var(--space-24); right: var(--space-24); bottom: var(--space-12); height: 24px;
+  background: var(--fam); opacity: .7; pointer-events: none;
+  -webkit-mask: var(--tt-trace) 0 50% / 240px 24px repeat-x; mask: var(--tt-trace) 0 50% / 240px 24px repeat-x;
+  --tt-trace: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 24'%3E%3Cpath d='M0 12H36l6-7 8 14 7-11 5 4h44l6-10 8 20 7-14 5 4h44l5-6 6 12 6-6h47' fill='none' stroke='%23000' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+[data-theme="night"] #gbody .tt-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
+#gbody .tt-scene.pl-fill .tt-lie:has(input:checked) { border-color: var(--danger); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--danger) 55%, transparent); }
+#gbody .tt-scene.pl-fill .tt-row:has(.tt-lie input:checked) { border-color: color-mix(in srgb, var(--danger) 35%, var(--outline)); }
+@media (max-width: 560px) {
+  #gbody .tt-scene.pl-fill > .gk-prompt { padding-bottom: var(--space-40); }
+  #gbody .tt-scene.pl-fill > .gk-prompt::after { left: var(--space-16); right: var(--space-16); bottom: var(--space-8); }
+}
+
+/* ==== QC ==== */
+/* The row you are typing in gets a family ring inside its own edge, so it
+ * never spills past the column or reads as a heavy ink outline. */
+#gbody .tt-scene.pl-fill .tt-row:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--fam) 70%, var(--card)); outline-offset: -3px;
+}
+/* Night: the players panel shares the lie-detector green tone. */
+[data-theme="night"] #gbody .tt-scene.pl-fill .pl-live { background: color-mix(in srgb, var(--fam) 7%, var(--card)); }

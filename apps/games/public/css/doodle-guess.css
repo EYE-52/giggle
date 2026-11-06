@@ -366,3 +366,164 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
   .dg-live.ck .dg-drawing { grid-template-columns: minmax(0, 1fr); }
 }
 .dg.ck .dg-swatch span { box-shadow: inset 0 0 0 2px rgb(0 0 0 / .2), 0 0 0 2px color-mix(in srgb, var(--ink) 22%, transparent); }
+
+/* ---- polish: pick screen is one centred group with big word cards ---- */
+.sk-doodle.dg.ck.dg-pick {
+  min-height: 70vh; display: grid; align-content: center; justify-items: center; gap: var(--space-24);
+}
+.dg.ck.dg-pick > *, .dg.ck.dg-pick > .dg-header.sk-deskcue { width: 100%; max-width: 760px; margin-inline: auto; margin-bottom: 0; }
+.dg.ck.dg-pick .dg-header.sk-deskcue { min-height: 0; gap: var(--space-16); }
+.dg.ck.dg-pick .dg-word.sk-hintline { text-align: center; font: var(--text-heading); letter-spacing: 0; }
+.dg.ck.dg-pick .sk-pick { gap: var(--space-16); }
+.dg.ck.dg-pick .sk-pick .gk-choice {
+  min-height: 120px; flex-direction: column; justify-content: center; gap: var(--space-8);
+  background: var(--card); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); font: var(--text-title); font-size: 24px;
+  transition: transform var(--dur-quick) var(--ease);
+}
+.dg.ck.dg-pick .sk-pick .gk-mark {
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--fam-soft); color: var(--fam-deep); border: var(--outline-w) solid var(--outline); font: var(--text-caption); font-weight: 800;
+}
+@media (hover: hover) { .dg.ck.dg-pick .sk-pick .gk-choice:hover:not(:disabled) { transform: translateY(-3px); } }
+.dg.ck.dg-pick .sk-pick .gk-choice:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
+.dg.ck.dg-pick .dg-pick-note { font: var(--text-caption); }
+@media (max-width: 700px) {
+  .sk-doodle.dg.ck.dg-pick { min-height: 0; align-content: start; }
+  .dg.ck.dg-pick .sk-pick .gk-choice { min-height: 72px; flex-direction: row; justify-content: flex-start; }
+}
+
+/* ---- view toggle: Guesses / Focus as one segmented track ---- */
+.dg.ck .dg-view-actions {
+  gap: var(--space-4); padding: var(--space-4); background: var(--well);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
+}
+.dg.ck .dg-view-actions .gk-btn,
+.dg.ck .dg-view-actions .gk-btn:not(.gk-quiet) {
+  min-height: 40px; padding: var(--space-4) var(--space-12); border: 0; border-radius: var(--radius-md);
+  background: transparent; color: var(--ink); box-shadow: none; font: var(--text-button-sm);
+}
+.dg.ck .dg-view-actions .gk-btn[aria-pressed="true"],
+.dg.ck .dg-view-actions .gk-btn[aria-expanded="true"] { background: var(--fam); color: var(--on-fam); }
+.dg.ck .dg-view-actions .gk-btn:active:not(:disabled) { transform: scale(.97); }
+
+/* ---- Pan / zoom / Fit: a small tool tray with real button shapes ---- */
+.dg.ck .dg-zoom { padding: var(--space-8) var(--space-12); }
+.dg.ck .dg-zoom:has(button) {
+  justify-self: end; align-self: center; width: max-content; margin: 0 var(--space-12) var(--space-8) auto; padding: var(--space-4);
+  background: var(--well); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
+}
+.dg.ck .dg-zoom button { border-radius: var(--radius-md); color: var(--ink); }
+.dg.ck .dg-zoom button:active:not(:disabled) { transform: scale(.96); }
+@media (hover: hover) { .dg.ck .dg-zoom button:hover:not(:disabled) { background: var(--card); } }
+
+/* ---- the paper's empty state for guessers ---- */
+.dg.ck .dg-canvas-empty {
+  position: absolute; inset: 0; z-index: 1; display: grid; place-content: center; justify-items: center; gap: var(--space-4);
+  margin: 0; padding: var(--space-16); text-align: center; pointer-events: none; line-height: 1.4;
+}
+.dg.ck .dg-canvas-empty b { font: var(--text-title); color: var(--ink); }
+.dg.ck .dg-canvas-empty span { font: var(--text-caption); color: var(--ink-dim); }
+
+/* ---- the guesses column hugs its content instead of an empty tall card ---- */
+@media (min-width: 701px) and (min-height: 600px) {
+
+  .dg-live.ck .dg-chat { align-self: start; max-height: 100%; }
+  .dg-live.ck .dg-feed { flex: 0 1 auto; }
+}
+.dg.ck .dg-zoom button { padding: 0 var(--space-8); }
+@media (max-width: 700px) {
+  .dg.ck .dg-zoom:has(button) { margin: 0 var(--space-8) var(--space-8) auto; padding: 2px; }
+  .dg.ck .dg-zoom #dZoomValue { min-width: 3em; }
+}
+
+/* ==========================================================================
+ * Skin (round 2): a sketchbook on the desk. Day: warm paper with a dotted
+ * grid and a pink margin line, spiral rings along the top of the easel.
+ * Night: the sheet is a green-slate chalkboard in a wooden frame and the
+ * ink is drawn in chalk tones (doodle-guess.js); the swatches show the
+ * chalk too, so what you pick is what you see. The eraser lifts ink off
+ * the sheet, so the grid comes back under it in both themes.
+ * ========================================================================== */
+.sk-doodle.dg.ck {
+  --dg-paper: #fffdf7; --dg-dot: #cfd8e8; --dg-margin: #f3a2b8; --dg-frame: var(--outline);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--fam) 14%, transparent) 1.2px, transparent 1.8px) 0 0 / 22px 22px,
+    var(--bg);
+}
+[data-theme="night"] .sk-doodle.dg.ck {
+  --dg-paper: #1f2b28; --dg-dot: #34433f; --dg-margin: #8f5868; --dg-frame: #8a5c38;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--fam) 12%, transparent) 1.2px, transparent 1.8px) 0 0 / 22px 22px,
+    var(--bg);
+}
+.sk-doodle.dg.ck canvas.doodle {
+  background:
+    linear-gradient(90deg, transparent 0 44px, var(--dg-margin) 44px 46px, transparent 46px),
+    radial-gradient(circle at 12px 12px, var(--dg-dot) 1.3px, transparent 1.9px) 0 0 / 24px 24px,
+    var(--dg-paper);
+  box-shadow: 0 0 0 var(--outline-w) var(--dg-frame), 0 var(--lift) 0 var(--outline-w) var(--dg-frame);
+}
+/* Night: chalk dust on the board and a wooden frame with a lighter bevel. */
+[data-theme="night"] .sk-doodle.dg.ck canvas.doodle {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgb(255 255 255 / .05), transparent 60%),
+    linear-gradient(90deg, transparent 0 44px, var(--dg-margin) 44px 46px, transparent 46px),
+    radial-gradient(circle at 12px 12px, var(--dg-dot) 1.3px, transparent 1.9px) 0 0 / 24px 24px,
+    var(--dg-paper);
+  box-shadow: 0 0 0 5px var(--dg-frame), 0 0 0 7px #5b3a22, 0 var(--lift) 0 7px #07050a;
+}
+[data-theme="night"] .dg.ck .dg-swatch[data-c="#111111"] span { background: #f3efe6; }
+[data-theme="night"] .dg.ck .dg-swatch[data-c="#e4572e"] span { background: #ff8f6b; }
+[data-theme="night"] .dg.ck .dg-swatch[data-c="#1d7a3a"] span { background: #74d896; }
+[data-theme="night"] .dg.ck .dg-swatch[data-c="#1d4ed8"] span { background: #86b4ff; }
+[data-theme="night"] .dg.ck .dg-swatch[data-c="#f2b134"] span { background: #ffd66e; }
+/* The desk around the sheet: a quiet tint of the page, not a second pattern. */
+.dg.ck .sk-canvaswrap { background: color-mix(in srgb, var(--fam) 7%, var(--well)); }
+[data-theme="night"] .dg.ck .sk-canvaswrap { background: color-mix(in srgb, #000 22%, var(--well)); }
+[data-theme="night"] .dg.ck .dg-frame { padding: var(--space-12); }
+
+/* Spiral rings: the easel is a sketchbook bound along its top edge. */
+.dg.ck .dg-easel-cap {
+  display: block; position: absolute; z-index: 3; top: -9px; left: var(--space-32); right: var(--space-32); height: 18px;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, var(--card) 0 3px, color-mix(in srgb, var(--ink) 38%, var(--card)) 3.5px 6px, transparent 6.5px) 0 0 / 26px 18px space no-repeat;
+}
+[data-theme="night"] .dg.ck .dg-easel-cap { display: none; }
+@media (max-width: 700px) { .dg.ck .dg-easel-cap { left: var(--space-16); right: var(--space-16); top: -8px; } }
+
+/* The hidden word: blank tiles sit on a soft family lip. */
+.dg.ck .dg-tiles .ck-tile.is-blank { box-shadow: inset 0 -4px 0 var(--fam-soft), 0 var(--lift-sm) 0 var(--outline); }
+/* Night: the drawer's badge glows a little, so whose turn it is reads first. */
+[data-theme="night"] .dg.ck .dg-roster li.is-drawer small { box-shadow: 0 0 12px color-mix(in srgb, var(--fam) 45%, transparent); }
+/* Phones: the board fills its well edge to edge, so the frame is drawn on
+ * the well (over the outer 5px of the sheet) instead of around the canvas. */
+@media (max-width: 700px) {
+  [data-theme="night"] .dg-live.ck:not(.is-canvas-focused) .sk-canvaswrap::after {
+    content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    border-radius: inherit; box-shadow: inset 0 0 0 5px var(--dg-frame), inset 0 0 0 7px #5b3a22;
+  }
+}
+
+/* QC: Guesses and Focus are two independent toggles (both can be off, e.g.
+ * the artist's phone view hides guesses), so they are two real buttons,
+ * not a segmented track that can show no selection. Off: a white sticker
+ * on a soft rim; on: the family colour on its own lip. */
+.dg.ck .dg-view-actions { gap: var(--space-8); padding: 0; background: none; border: 0; }
+.dg.ck .dg-view-actions .gk-btn,
+.dg.ck .dg-view-actions .gk-btn:not(.gk-quiet) {
+  background: var(--card); color: var(--ink); border: var(--outline-w) solid var(--outline);
+  box-shadow: 0 var(--lift-sm) 0 var(--outline); border-radius: var(--radius-pill);
+}
+.dg.ck .dg-view-actions .gk-btn[aria-pressed="true"],
+.dg.ck .dg-view-actions .gk-btn[aria-expanded="true"] {
+  background: var(--fam); color: var(--on-fam); border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip);
+}
+.dg.ck .dg-view-actions .gk-btn:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+/* QC (night): the hidden-word blanks are lit chalk-blue slots, not dark
+ * squares that vanish into the navy page. */
+[data-theme="night"] .dg.ck .dg-tiles .ck-tile.is-blank {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card));
+  border-color: color-mix(in srgb, var(--fam) 38%, var(--card));
+  box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--fam) 45%, var(--card)), 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 22%, var(--bg));
+}
+[data-theme="night"] .dg.ck .dg-tiles .ck-tile.is-mark { background: color-mix(in srgb, var(--fam) 26%, var(--card)); color: var(--ink); }

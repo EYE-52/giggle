@@ -1,0 +1,123 @@
+/* Rank It: a ladder, not a form. Medal stickers for the top three, a
+ * tinted first place, one compact move pill per row, and a list capped
+ * to a readable width. Tokens only; medal colours are game art. */
+
+#gbody .pl-fill.party-scene--rank .party-rank-list {
+  width: 100%; max-width: 560px; margin-inline: auto; gap: var(--space-8);
+}
+#gbody .pl-fill.party-scene--rank .rank-reveal .party-rank-list { max-width: none; }
+
+/* Rows: neutral number discs for 4th and below, medals for 1–3. */
+#gbody .pl-fill.party-scene--rank .party-rank-item {
+  gap: var(--space-12); padding: var(--space-4) var(--space-8) var(--space-4) var(--space-12);
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item .gk-mark {
+  flex: none; background: var(--well); color: var(--ink);
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p1 .gk-mark { --medal: var(--sun); --on-medal: var(--sun-ink); }
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p2 .gk-mark { --medal: var(--line-strong); --on-medal: var(--ink); }
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p3 .gk-mark { --medal: var(--fam-arcade); --on-medal: var(--on-fam-arcade); }
+#gbody .pl-fill.party-scene--rank .party-rank-item:is(.rank-p1, .rank-p2, .rank-p3) .gk-mark {
+  position: relative; width: 40px; height: 40px; background: var(--medal); color: var(--on-medal);
+  box-shadow: var(--shadow-sticker-sm);
+}
+/* First place is the headline: tinted and a little taller, permanently. */
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p1 {
+  min-height: var(--control-h-lg); background: var(--fam-soft); font-size: 20px;
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item.is-moved { background: var(--fam-soft); }
+@media (prefers-reduced-motion: no-preference) {
+  #gbody .pl-fill.party-scene--rank .party-rank-item.is-moved { animation: rank-pop var(--dur-base) var(--ease) both; }
+}
+@keyframes rank-pop { from { transform: scale(0.96); } to { transform: scale(1); } }
+
+/* Move controls: one small segmented pill per row, not two loose squares. */
+#gbody .pl-fill.party-scene--rank .party-rank-item .rank-seg {
+  display: inline-flex; gap: 0; padding: 0; flex: none;
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--well); overflow: hidden;
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item .rank-seg .btn {
+  min-width: 44px; min-height: 40px; height: 40px; padding: 0 var(--space-8); margin: 0;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--ink);
+  font: 800 18px/1 var(--font-display);
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item .rank-seg .btn + .btn { border-left: var(--outline-w) solid var(--outline); }
+#gbody .pl-fill.party-scene--rank .party-rank-item .rank-seg .btn:disabled {
+  background: transparent; color: var(--ink); opacity: 0.3; cursor: not-allowed;
+}
+@media (hover: hover) {
+  #gbody .pl-fill.party-scene--rank .party-rank-item .rank-seg .btn:not(:disabled):hover { background: var(--fam-soft); color: var(--fam-deep); }
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item .rank-seg .btn:not(:disabled):active { transform: scale(0.96); }
+#gbody .pl-fill.party-scene--rank .party-rank-item .rank-seg .btn:focus-visible { outline: var(--focus-ring); outline-offset: calc(-1 * var(--outline-w-lg)); }
+/* Desktop pointers: the pill is quiet until its row is hovered or focused. */
+@media (hover: hover) and (pointer: fine) {
+  #gbody .pl-fill.party-scene--rank .party-rank-item .rank-seg { opacity: 0.55; transition: opacity var(--dur-quick) var(--ease); }
+  #gbody .pl-fill.party-scene--rank .party-rank-item:is(:hover, :focus-within, .is-moved) .rank-seg { opacity: 1; }
+}
+
+/* Reveal: round points rows match the ladder's sticker rows. */
+#gbody .pl-fill.party-scene--rank .rank-reveal .gk-ranks { display: grid; gap: var(--space-8); margin: 0; }
+#gbody .pl-fill.party-scene--rank .rank-reveal .gk-rank-row {
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
+  background: var(--card); box-shadow: var(--shadow-sticker-sm);
+}
+#gbody .pl-fill.party-scene--rank .rank-reveal .gk-rank-row.is-top { background: var(--fam-soft); }
+#gbody .pl-fill.party-scene--rank .rank-reveal .gk-rank-row .gk-pts { font: var(--text-title); color: var(--ink); font-variant-numeric: tabular-nums; }
+#gbody .pl-fill.party-scene--rank .rank-reveal .party-label { margin: 0 0 var(--space-8); font: var(--text-caption); color: var(--ink-dim); }
+/* Reveal: round point totals read as numbers, not captions. */
+#gbody .pl-fill.party-scene--rank .rank-reveal .party-rank-item .gk-meta { margin-left: auto; font: var(--text-button-sm); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 560px) {
+  #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p1 { font-size: 18px; }
+  #gbody .pl-fill.party-scene--rank .party-rank-item:is(.rank-p1, .rank-p2, .rank-p3) .gk-mark { width: 36px; height: 36px; }
+}
+
+/* ==== Skin: the gold-star chart ====
+ * Scene: a faint wallpaper of gold stars under a soft gold glow, like a
+ * classroom star chart. Signature: real gold, silver and bronze medals,
+ * each on a lip of its own metal, and first place on a gold lip. */
+body.game-playing[data-game="rank-it"] {
+  background-image:
+    radial-gradient(70vw 40vh at 50% -6%, color-mix(in srgb, var(--fam) 14%, transparent), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'%3E%3Cpath d='M22 8l3.5 7.6 8.3.9-6.2 5.6 1.8 8.2L22 26.1l-7.4 4.2 1.8-8.2-6.2-5.6 8.3-.9z' fill='%23d9a400' fill-opacity='.16'/%3E%3Cpath d='M66 52l2.3 5 5.5.6-4.1 3.7 1.2 5.4L66 64l-4.9 2.7 1.2-5.4-4.1-3.7 5.5-.6z' fill='%23d9a400' fill-opacity='.12'/%3E%3C/svg%3E");
+  background-size: auto, 88px 88px;
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="rank-it"] {
+  background-image:
+    radial-gradient(70vw 40vh at 50% -6%, color-mix(in srgb, var(--fam) 10%, transparent), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'%3E%3Cpath d='M22 8l3.5 7.6 8.3.9-6.2 5.6 1.8 8.2L22 26.1l-7.4 4.2 1.8-8.2-6.2-5.6 8.3-.9z' fill='%23f0c63c' fill-opacity='.10'/%3E%3Cpath d='M66 52l2.3 5 5.5.6-4.1 3.7 1.2 5.4L66 64l-4.9 2.7 1.2-5.4-4.1-3.7 5.5-.6z' fill='%23f0c63c' fill-opacity='.08'/%3E%3C/svg%3E");
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p2 .gk-mark { --medal: #c9cdd8; --on-medal: #2b2f3a; }
+[data-theme="night"] #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p2 .gk-mark { --medal: #b8bfcc; --on-medal: #15171c; }
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p3 .gk-mark { --medal: #d08a4e; --on-medal: #ffffff; }
+[data-theme="night"] #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p3 .gk-mark { --medal: #e3a06a; --on-medal: #1f1206; }
+#gbody .pl-fill.party-scene--rank .party-rank-item:is(.rank-p1, .rank-p2, .rank-p3) .gk-mark {
+  border-color: color-mix(in srgb, var(--medal) 70%, #000); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--medal) 70%, #000);
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p1 {
+  border-color: var(--tint-lip); box-shadow: 0 var(--lift) 0 var(--tint-lip);
+}
+[data-theme="night"] #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p1 .gk-mark { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--medal) 70%, #000), 0 0 16px -2px var(--medal); }
+
+/* QC: the just-moved row stays on the ladder's column (the row never
+ * scales, only its number pops) and is marked by a family ring on a plain
+ * card, so the cream fill belongs to first place alone. */
+#gbody .pl-fill.party-scene--rank .party-rank-item.is-moved { animation: none; }
+#gbody .pl-fill.party-scene--rank .party-rank-item.is-moved:not(.rank-p1) {
+  background: var(--card);
+  box-shadow: var(--shadow-sticker-sm), inset 0 0 0 2px color-mix(in srgb, var(--fam) 60%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  #gbody .pl-fill.party-scene--rank .party-rank-item.is-moved .gk-mark { animation: rank-mark-pop var(--dur-base) var(--ease) both; }
+}
+@keyframes rank-mark-pop { from { transform: scale(0.8); } to { transform: scale(1); } }
+/* Night: a deep ink-violet page so stars and medals read as gold rather
+ * than olive on brown; tinted cards mix gold into the card, not khaki. */
+[data-theme="night"] body.game-playing[data-game="rank-it"] { --bg: #1b1924; --card: #252231; --well: #2f2b3d; }
+[data-theme="night"] #gbody .pl-fill.party-scene--rank {
+  --fam-soft: color-mix(in srgb, var(--fam) 10%, var(--card));
+  --tint-lip: color-mix(in srgb, var(--fam) 30%, #15131c);
+}

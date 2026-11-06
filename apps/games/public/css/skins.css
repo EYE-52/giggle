@@ -1,0 +1,284 @@
+/* Game skins (2026-11 redesign). One shared base (style.css, "Soft arcade
+ * base") plus a small skin per game: its own colour, a soft page tint and a
+ * matching Night palette, so every game feels made for itself while buttons,
+ * cards and layout stay the same everywhere. app.js sets body[data-game]
+ * while a game plays. The skin also beats a nested [data-family] root, so a
+ * board game's own panel follows its game colour. Generated values; tune a
+ * game by editing its blocks. */
+
+/* Coloured controls sit on a darker lip of their own colour. */
+body #gbody .gk-btn.gk-primary:not(:disabled), body #gbody .bk-primary:not(:disabled) {
+  background: var(--fam); color: var(--on-fam); border-color: var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+body #gbody .gk-btn.gk-primary:not(:disabled):active, body #gbody .bk-primary:not(:disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
+body.game-playing { background: var(--bg); }
+/* Display faces. Each game below sets --font-display to its own face
+ * (@font-face rules in game-fonts.css) for its title, prompt and big
+ * numbers; body text stays Nunito. The text-style tokens are resolved
+ * again here so `font: var(--text-heading)` follows the game face. The
+ * shared frame (header, buttons, menus, avatars) keeps Baloo 2 through
+ * --font-ui, so it reads the same in every game. */
+body[data-game] {
+  --font-ui: "Baloo 2", "Nunito", system-ui, sans-serif;
+  --text-heading: 800 clamp(26px, 3.2vw, 34px)/1.15 var(--font-display);
+  --text-title: 800 20px/1.25 var(--font-display);
+  --text-button: 800 17px/1.2 var(--font-ui);
+}
+body[data-game] :is(.topbar, .btn, .avatar, .roomchip, .pl-seat, .pl-face, .ck-ava, .dg-roster i, .dp-player-mark, dialog, .room-menu-panel) { --font-display: var(--font-ui); }
+/* The game's name in the play bar is its title: set it in the game face. */
+body[data-game] .play-title h1 { font-family: var(--font-display); letter-spacing: 0; }
+/* Bungee has capitals only, so a "20s" clock would read "20S": clocks in
+ * the Bungee games stay in the frame face. */
+body:is([data-game="hot-takes"], [data-game="countdown-word"], [data-game="dare-roulette"], [data-game="number-hunt"], [data-game="pocket-karts"]) .gk-hud-timer { font-family: var(--font-ui); }
+/* would-you-rather: Two doors, one choice: raspberry */
+body[data-game="would-you-rather"], body[data-game="would-you-rather"] [data-family] { --fam: #e0457b; --fam-deep: #822847; --on-fam: #ffffff; --accent: #e0457b; --accent-deep: #822847; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="would-you-rather"] { --bg: #f8eff5; --font-display: "Lilita One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="would-you-rather"], [data-theme="night"] body[data-game="would-you-rather"] [data-family] { --fam: #e979a0; --fam-deep: #f3b8cd; --on-fam: #121016; --accent: #e979a0; --accent-deep: #f3b8cd; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="would-you-rather"] { --bg: #22141e; --card: #281c27; --well: #332332; }
+
+/* doodle-guess: Sketchbook blue */
+body[data-game="doodle-guess"], body[data-game="doodle-guess"] [data-family] { --fam: #2f80ed; --fam-deep: #1b4a89; --on-fam: #ffffff; --accent: #2f80ed; --accent-deep: #1b4a89; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="doodle-guess"] { --bg: #eef3fc; --font-display: "Gochi Hand", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="doodle-guess"], [data-theme="night"] body[data-game="doodle-guess"] [data-family] { --fam: #69a4f2; --fam-deep: #b0cff8; --on-fam: #121016; --accent: #69a4f2; --accent-deep: #b0cff8; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="doodle-guess"] { --bg: #141927; --card: #1d1f2e; --well: #25283b; }
+
+/* truth-dare: Campfire orange */
+body[data-game="truth-dare"], body[data-game="truth-dare"] [data-family] { --fam: #e8572e; --fam-deep: #87321b; --on-fam: #ffffff; --accent: #e8572e; --accent-deep: #87321b; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="truth-dare"] { --bg: #f9f0f1; --font-display: "Lilita One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="truth-dare"], [data-theme="night"] body[data-game="truth-dare"] [data-family] { --fam: #ee8669; --fam-deep: #f6bfb0; --on-fam: #121016; --accent: #ee8669; --accent-deep: #f6bfb0; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="truth-dare"] { --bg: #231618; --card: #281d23; --well: #34242c; }
+
+/* never-ever: Confession violet */
+body[data-game="never-ever"], body[data-game="never-ever"] [data-family] { --fam: #9b51e0; --fam-deep: #5a2f82; --on-fam: #ffffff; --accent: #9b51e0; --accent-deep: #5a2f82; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="never-ever"] { --bg: #f4f0fb; --font-display: "Fredoka", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="never-ever"], [data-theme="night"] body[data-game="never-ever"] [data-family] { --fam: #b782e9; --fam-deep: #d9bdf3; --on-fam: #121016; --accent: #b782e9; --accent-deep: #d9bdf3; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="never-ever"] { --bg: #1d1526; --card: #241c2d; --well: #2e243a; }
+
+/* most-likely: Pointing-finger orange */
+body[data-game="most-likely"], body[data-game="most-likely"] [data-family] { --fam: #f2994a; --fam-deep: #8c592b; --on-fam: #241806; --accent: #f2994a; --accent-deep: #8c592b; --accent-ink: #241806; --accent-soft: var(--fam-soft); }
+body[data-game="most-likely"] { --bg: #faf4f2; --font-display: "Lilita One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="most-likely"], [data-theme="night"] body[data-game="most-likely"] [data-family] { --fam: #f6b67d; --fam-deep: #fad8ba; --on-fam: #121016; --accent: #f6b67d; --accent-deep: #fad8ba; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="most-likely"] { --bg: #241b1a; --card: #292124; --well: #342a2e; }
+
+/* hot-takes: Chilli red */
+body[data-game="hot-takes"], body[data-game="hot-takes"] [data-family] { --fam: #e84545; --fam-deep: #872828; --on-fam: #ffffff; --accent: #e84545; --accent-deep: #872828; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="hot-takes"] { --bg: #f9eff2; --font-display: "Bungee", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="hot-takes"], [data-theme="night"] body[data-game="hot-takes"] [data-family] { --fam: #ee7979; --fam-deep: #f6b8b8; --on-fam: #121016; --accent: #ee7979; --accent-deep: #f6b8b8; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="hot-takes"] { --bg: #23141a; --card: #281c24; --well: #34232e; }
+
+/* rank-it: Podium gold */
+body[data-game="rank-it"], body[data-game="rank-it"] [data-family] { --fam: #d9a400; --fam-deep: #7e5f00; --on-fam: #241806; --accent: #d9a400; --accent-deep: #7e5f00; --accent-ink: #241806; --accent-soft: var(--fam-soft); }
+body[data-game="rank-it"] { --bg: #f8f5ee; --font-display: "Righteous", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="rank-it"], [data-theme="night"] body[data-game="rank-it"] [data-family] { --fam: #e4bd47; --fam-deep: #f1dc9e; --on-fam: #121016; --accent: #e4bd47; --accent-deep: #f1dc9e; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="rank-it"] { --bg: #221c14; --card: #272120; --well: #322b28; }
+
+/* two-truths: Lie-detector green */
+body[data-game="two-truths"], body[data-game="two-truths"] [data-family] { --fam: #27ae60; --fam-deep: #176538; --on-fam: #241806; --accent: #27ae60; --accent-deep: #176538; --accent-ink: #241806; --accent-soft: var(--fam-soft); }
+body[data-game="two-truths"] { --bg: #edf5f4; --font-display: "Fredoka", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="two-truths"], [data-theme="night"] body[data-game="two-truths"] [data-family] { --fam: #63c58d; --fam-deep: #ade0c3; --on-fam: #121016; --accent: #63c58d; --accent-deep: #ade0c3; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="two-truths"] { --bg: #141d1c; --card: #1d2226; --well: #242b30; }
+
+/* funny-answer: Punchline coral */
+body[data-game="funny-answer"], body[data-game="funny-answer"] [data-family] { --fam: #f2784b; --fam-deep: #8c462c; --on-fam: #241806; --accent: #f2784b; --accent-deep: #8c462c; --accent-ink: #241806; --accent-soft: var(--fam-soft); }
+body[data-game="funny-answer"] { --bg: #faf2f2; --font-display: "Lilita One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="funny-answer"], [data-theme="night"] body[data-game="funny-answer"] [data-family] { --fam: #f69e7d; --fam-deep: #faccbb; --on-fam: #121016; --accent: #f69e7d; --accent-deep: #faccbb; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="funny-answer"] { --bg: #24181a; --card: #291f24; --well: #34272e; }
+
+/* bluff: Poker-face indigo */
+body[data-game="bluff"], body[data-game="bluff"] [data-family] { --fam: #6c5ce7; --fam-deep: #3f3586; --on-fam: #ffffff; --accent: #6c5ce7; --accent-deep: #3f3586; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="bluff"] { --bg: #f1f1fc; --font-display: "Fraunces", Georgia, serif, "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="bluff"], [data-theme="night"] body[data-game="bluff"] [data-family] { --fam: #958aee; --fam-deep: #c7c1f6; --on-fam: #121016; --accent: #958aee; --accent-deep: #c7c1f6; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="bluff"] { --bg: #191627; --card: #211d2e; --well: #2a253b; }
+
+/* story-builder: Storybook teal */
+body[data-game="story-builder"], body[data-game="story-builder"] [data-family] { --fam: #00a3a3; --fam-deep: #005f5f; --on-fam: #ffffff; --accent: #00a3a3; --accent-deep: #005f5f; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="story-builder"] { --bg: #ebf5f8; --font-display: "Fraunces", Georgia, serif, "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="story-builder"], [data-theme="night"] body[data-game="story-builder"] [data-family] { --fam: #47bdbd; --fam-deep: #9edcdc; --on-fam: #121016; --accent: #47bdbd; --accent-deep: #9edcdc; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="story-builder"] { --bg: #111c21; --card: #1a212a; --well: #212a36; }
+
+/* emoji-story: Sunny emoji yellow */
+body[data-game="emoji-story"], body[data-game="emoji-story"] [data-family] { --fam: #f5a623; --fam-deep: #8e6014; --on-fam: #241806; --accent: #f5a623; --accent-deep: #8e6014; --accent-ink: #241806; --accent-soft: var(--fam-soft); }
+body[data-game="emoji-story"] { --bg: #faf5f0; --font-display: "Fredoka", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="emoji-story"], [data-theme="night"] body[data-game="emoji-story"] [data-family] { --fam: #f8bf61; --fam-deep: #fbddab; --on-fam: #121016; --accent: #f8bf61; --accent-deep: #fbddab; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="emoji-story"] { --bg: #241c17; --card: #292122; --well: #352b2b; }
+
+/* trivia: Quiz-show purple */
+body[data-game="trivia"], body[data-game="trivia"] [data-family] { --fam: #7c4dff; --fam-deep: #482d94; --on-fam: #ffffff; --accent: #7c4dff; --accent-deep: #482d94; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="trivia"] { --bg: #f2f0fd; --font-display: "Fredoka", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="trivia"], [data-theme="night"] body[data-game="trivia"] [data-family] { --fam: #a17fff; --fam-deep: #cdbbff; --on-fam: #121016; --accent: #a17fff; --accent-deep: #cdbbff; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="trivia"] { --bg: #1a1529; --card: #221c2f; --well: #2b243d; }
+
+/* scattergories: Clipboard green */
+body[data-game="scattergories"], body[data-game="scattergories"] [data-family] { --fam: #16a085; --fam-deep: #0d5d4d; --on-fam: #ffffff; --accent: #16a085; --accent-deep: #0d5d4d; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="scattergories"] { --bg: #ecf5f6; --font-display: "Patrick Hand", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="scattergories"], [data-theme="night"] body[data-game="scattergories"] [data-family] { --fam: #57bba7; --fam-deep: #a6dbd1; --on-fam: #121016; --accent: #57bba7; --accent-deep: #a6dbd1; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="scattergories"] { --bg: #121c1f; --card: #1c2128; --well: #232a33; }
+
+/* word-chain: Linked-chain blue */
+body[data-game="word-chain"], body[data-game="word-chain"] [data-family] { --fam: #3d7edb; --fam-deep: #23497f; --on-fam: #ffffff; --accent: #3d7edb; --accent-deep: #23497f; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="word-chain"] { --bg: #eff3fb; --font-display: "Righteous", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="word-chain"], [data-theme="night"] body[data-game="word-chain"] [data-family] { --fam: #73a2e5; --fam-deep: #b5cef1; --on-fam: #121016; --accent: #73a2e5; --accent-deep: #b5cef1; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="word-chain"] { --bg: #151926; --card: #1e1f2d; --well: #26283a; }
+
+/* countdown-word: Letter-tile orange */
+body[data-game="countdown-word"], body[data-game="countdown-word"] [data-family] { --fam: #d35400; --fam-deep: #7a3100; --on-fam: #ffffff; --accent: #d35400; --accent-deep: #7a3100; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="countdown-word"] { --bg: #f8f0ee; --font-display: "Bungee", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="countdown-word"], [data-theme="night"] body[data-game="countdown-word"] [data-family] { --fam: #df8447; --fam-deep: #eebe9e; --on-fam: #121016; --accent: #df8447; --accent-deep: #eebe9e; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="countdown-word"] { --bg: #211514; --card: #271d20; --well: #322428; }
+
+/* lyric-fill: Karaoke magenta */
+body[data-game="lyric-fill"], body[data-game="lyric-fill"] [data-family] { --fam: #c2185b; --fam-deep: #710e35; --on-fam: #ffffff; --accent: #c2185b; --accent-deep: #710e35; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="lyric-fill"] { --bg: #f7ecf3; --font-display: "Righteous", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="lyric-fill"], [data-theme="night"] body[data-game="lyric-fill"] [data-family] { --fam: #d35989; --fam-deep: #e8a7c1; --on-fam: #121016; --accent: #d35989; --accent-deep: #e8a7c1; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="lyric-fill"] { --bg: #20111c; --card: #261925; --well: #311f30; }
+
+/* five-second: Stopwatch red-orange */
+body[data-game="five-second"], body[data-game="five-second"] [data-family] { --fam: #ff5a36; --fam-deep: #94341f; --on-fam: #ffffff; --accent: #ff5a36; --accent-deep: #94341f; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="five-second"] { --bg: #faf0f1; --font-display: "Russo One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="five-second"], [data-theme="night"] body[data-game="five-second"] [data-family] { --fam: #ff886e; --fam-deep: #ffc0b3; --on-fam: #121016; --accent: #ff886e; --accent-deep: #ffc0b3; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="five-second"] { --bg: #251619; --card: #2a1d23; --well: #36252d; }
+
+/* charades: Stage-curtain plum */
+body[data-game="charades"], body[data-game="charades"] [data-family] { --fam: #8e44ad; --fam-deep: #522764; --on-fam: #ffffff; --accent: #8e44ad; --accent-deep: #522764; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="charades"] { --bg: #f4eff8; --font-display: "Lilita One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="charades"], [data-theme="night"] body[data-game="charades"] [data-family] { --fam: #ae78c4; --fam-deep: #d4b8e0; --on-fam: #121016; --accent: #ae78c4; --accent-deep: #d4b8e0; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="charades"] { --bg: #1c1422; --card: #231c2a; --well: #2c2336; }
+
+/* twenty-questions: Mystery sky */
+body[data-game="twenty-questions"], body[data-game="twenty-questions"] [data-family] { --fam: #2d9cdb; --fam-deep: #1a5a7f; --on-fam: #ffffff; --accent: #2d9cdb; --accent-deep: #1a5a7f; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="twenty-questions"] { --bg: #eef4fb; --font-display: "Patrick Hand", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="twenty-questions"], [data-theme="night"] body[data-game="twenty-questions"] [data-family] { --fam: #68b8e5; --fam-deep: #afd9f1; --on-fam: #121016; --accent: #68b8e5; --accent-deep: #afd9f1; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="twenty-questions"] { --bg: #141b26; --card: #1d212d; --well: #252a3a; }
+
+/* pick-one: Hot pink */
+body[data-game="pick-one"], body[data-game="pick-one"] [data-family] { --fam: #e91e63; --fam-deep: #871139; --on-fam: #ffffff; --accent: #e91e63; --accent-deep: #871139; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="pick-one"] { --bg: #f9edf4; --font-display: "Lilita One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="pick-one"], [data-theme="night"] body[data-game="pick-one"] [data-family] { --fam: #ef5d8f; --fam-deep: #f7aac4; --on-fam: #121016; --accent: #ef5d8f; --accent-deep: #f7aac4; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="pick-one"] { --bg: #23111c; --card: #281926; --well: #342030; }
+
+/* memory-tray: Wooden-tray amber */
+body[data-game="memory-tray"], body[data-game="memory-tray"] [data-family] { --fam: #b7791f; --fam-deep: #6a4612; --on-fam: #ffffff; --accent: #b7791f; --accent-deep: #6a4612; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="memory-tray"] { --bg: #f6f2f0; --font-display: "Fredoka", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="memory-tray"], [data-theme="night"] body[data-game="memory-tray"] [data-family] { --fam: #cb9f5e; --fam-deep: #e4ccaa; --on-fam: #121016; --accent: #cb9f5e; --accent-deep: #e4ccaa; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="memory-tray"] { --bg: #1f1817; --card: #251f22; --well: #30272b; }
+
+/* rapid-polls: Ballot mint */
+body[data-game="rapid-polls"], body[data-game="rapid-polls"] [data-family] { --fam: #00b894; --fam-deep: #006b56; --on-fam: #241806; --accent: #00b894; --accent-deep: #006b56; --accent-ink: #241806; --accent-soft: var(--fam-soft); }
+body[data-game="rapid-polls"] { --bg: #ebf6f7; --font-display: "Righteous", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="rapid-polls"], [data-theme="night"] body[data-game="rapid-polls"] [data-family] { --fam: #47ccb2; --fam-deep: #9ee4d6; --on-fam: #121016; --accent: #47ccb2; --accent-deep: #9ee4d6; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="rapid-polls"] { --bg: #111d20; --card: #1a2329; --well: #212c34; }
+
+/* dare-roulette: Roulette red */
+body[data-game="dare-roulette"], body[data-game="dare-roulette"] [data-family] { --fam: #d63031; --fam-deep: #7c1c1c; --on-fam: #ffffff; --accent: #d63031; --accent-deep: #7c1c1c; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="dare-roulette"] { --bg: #f8eef1; --font-display: "Bungee", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="dare-roulette"], [data-theme="night"] body[data-game="dare-roulette"] [data-family] { --fam: #e16a6b; --fam-deep: #efb0b1; --on-fam: #121016; --accent: #e16a6b; --accent-deep: #efb0b1; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="dare-roulette"] { --bg: #221318; --card: #271a23; --well: #32212c; }
+
+/* compliment-battle: Valentine pink */
+body[data-game="compliment-battle"], body[data-game="compliment-battle"] [data-family] { --fam: #e0569a; --fam-deep: #823259; --on-fam: #ffffff; --accent: #e0569a; --accent-deep: #823259; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="compliment-battle"] { --bg: #f8f0f7; --font-display: "Fredoka", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="compliment-battle"], [data-theme="night"] body[data-game="compliment-battle"] [data-family] { --fam: #e985b6; --fam-deep: #f3bfd9; --on-fam: #121016; --accent: #e985b6; --accent-deep: #f3bfd9; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="compliment-battle"] { --bg: #221621; --card: #281d29; --well: #332435; }
+
+/* roast-toast: Toasted terracotta */
+body[data-game="roast-toast"], body[data-game="roast-toast"] [data-family] { --fam: #e17055; --fam-deep: #834131; --on-fam: #ffffff; --accent: #e17055; --accent-deep: #834131; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="roast-toast"] { --bg: #f8f2f3; --font-display: "Lilita One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="roast-toast"], [data-theme="night"] body[data-game="roast-toast"] [data-family] { --fam: #e99885; --fam-deep: #f4c9be; --on-fam: #121016; --accent: #e99885; --accent-deep: #f4c9be; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="roast-toast"] { --bg: #23181b; --card: #281e25; --well: #33262f; }
+
+/* draw-phone: Telephone blue */
+body[data-game="draw-phone"], body[data-game="draw-phone"] [data-family] { --fam: #0984e3; --fam-deep: #054d84; --on-fam: #ffffff; --accent: #0984e3; --accent-deep: #054d84; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="draw-phone"] { --bg: #ecf3fb; --font-display: "Gochi Hand", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="draw-phone"], [data-theme="night"] body[data-game="draw-phone"] [data-family] { --fam: #4ea6eb; --fam-deep: #a2d0f4; --on-fam: #121016; --accent: #4ea6eb; --accent-deep: #a2d0f4; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="draw-phone"] { --bg: #111926; --card: #1b1f2e; --well: #22283b; }
+
+/* reaction-tap: Go-light green */
+body[data-game="reaction-tap"], body[data-game="reaction-tap"] [data-family] { --fam: #1fa855; --fam-deep: #126131; --on-fam: #ffffff; --accent: #1fa855; --accent-deep: #126131; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="reaction-tap"] { --bg: #edf5f3; --font-display: "Russo One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="reaction-tap"], [data-theme="night"] body[data-game="reaction-tap"] [data-family] { --fam: #5ec085; --fam-deep: #aadebe; --on-fam: #121016; --accent: #5ec085; --accent-deep: #aadebe; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="reaction-tap"] { --bg: #131c1b; --card: #1c2225; --well: #242b2f; }
+
+/* typing-race: Racetrack orange */
+body[data-game="typing-race"], body[data-game="typing-race"] [data-family] { --fam: #ff8a00; --fam-deep: #945000; --on-fam: #241806; --accent: #ff8a00; --accent-deep: #945000; --accent-ink: #241806; --accent-soft: var(--fam-soft); }
+body[data-game="typing-race"] { --bg: #faf3ee; --font-display: "Russo One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="typing-race"], [data-theme="night"] body[data-game="typing-race"] [data-family] { --fam: #ffab47; --fam-deep: #ffd39e; --on-fam: #121016; --accent: #ffab47; --accent-deep: #ffd39e; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="typing-race"] { --bg: #251a14; --card: #2a2020; --well: #362828; }
+
+/* number-hunt: Number-line violet */
+body[data-game="number-hunt"], body[data-game="number-hunt"] [data-family] { --fam: #6c63ff; --fam-deep: #3f3994; --on-fam: #ffffff; --accent: #6c63ff; --accent-deep: #3f3994; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="number-hunt"] { --bg: #f1f1fd; --font-display: "Bungee", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="number-hunt"], [data-theme="night"] body[data-game="number-hunt"] [data-family] { --fam: #958fff; --fam-deep: #c7c4ff; --on-fam: #121016; --accent: #958fff; --accent-deep: #c7c4ff; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="number-hunt"] { --bg: #191729; --card: #211d2f; --well: #2a253d; }
+
+/* chain-reaction: Fuse orange */
+body[data-game="chain-reaction"], body[data-game="chain-reaction"] [data-family] { --fam: #ff6d00; --fam-deep: #943f00; --on-fam: #241806; --accent: #ff6d00; --accent-deep: #943f00; --accent-ink: #241806; --accent-soft: var(--fam-soft); }
+body[data-game="chain-reaction"] { --bg: #faf2ee; --font-display: "Russo One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="chain-reaction"], [data-theme="night"] body[data-game="chain-reaction"] [data-family] { --fam: #ff9647; --fam-deep: #ffc89e; --on-fam: #121016; --accent: #ff9647; --accent-deep: #ffc89e; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="chain-reaction"] { --bg: #251714; --card: #2a1e20; --well: #362628; }
+
+/* checkers: Checker red */
+body[data-game="checkers"], body[data-game="checkers"] [data-family] { --fam: #c0392b; --fam-deep: #6f2119; --on-fam: #ffffff; --accent: #c0392b; --accent-deep: #6f2119; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="checkers"] { --bg: #f7eef0; --font-display: "Fraunces", Georgia, serif, "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="checkers"], [data-theme="night"] body[data-game="checkers"] [data-family] { --fam: #d27066; --fam-deep: #e7b4ae; --on-fam: #121016; --accent: #d27066; --accent-deep: #e7b4ae; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="checkers"] { --bg: #201318; --card: #261b23; --well: #30222c; }
+
+/* chess: Tournament green */
+body[data-game="chess"], body[data-game="chess"] [data-family] { --fam: #1f8a5b; --fam-deep: #125035; --on-fam: #ffffff; --accent: #1f8a5b; --accent-deep: #125035; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="chess"] { --bg: #edf3f3; --font-display: "Fraunces", Georgia, serif, "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="chess"], [data-theme="night"] body[data-game="chess"] [data-family] { --fam: #5eab89; --fam-deep: #aad3c1; --on-fam: #121016; --accent: #5eab89; --accent-deep: #aad3c1; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="chess"] { --bg: #131a1c; --card: #1c2025; --well: #242830; }
+
+/* fleet-duel: Navy sea */
+body[data-game="fleet-duel"], body[data-game="fleet-duel"] [data-family] { --fam: #1565c0; --fam-deep: #0c3b6f; --on-fam: #ffffff; --accent: #1565c0; --accent-deep: #0c3b6f; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="fleet-duel"] { --bg: #ecf1f9; --font-display: "Russo One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="fleet-duel"], [data-theme="night"] body[data-game="fleet-duel"] [data-family] { --fam: #5790d2; --fam-deep: #a6c4e7; --on-fam: #121016; --accent: #5790d2; --accent-deep: #a6c4e7; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="fleet-duel"] { --bg: #121724; --card: #1c1e2b; --well: #232638; }
+
+/* four-in-a-row: Counter yellow */
+body[data-game="four-in-a-row"], body[data-game="four-in-a-row"] [data-family] { --fam: #e0a100; --fam-deep: #825d00; --on-fam: #241806; --accent: #e0a100; --accent-deep: #825d00; --accent-ink: #241806; --accent-soft: var(--fam-soft); }
+body[data-game="four-in-a-row"] { --bg: #f8f5ee; --font-display: "Lilita One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="four-in-a-row"], [data-theme="night"] body[data-game="four-in-a-row"] [data-family] { --fam: #e9bb47; --fam-deep: #f3db9e; --on-fam: #121016; --accent: #e9bb47; --accent-deep: #f3db9e; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="four-in-a-row"] { --bg: #221c14; --card: #282120; --well: #332a28; }
+
+/* kalah: Carved-wood brown */
+body[data-game="kalah"], body[data-game="kalah"] [data-family] { --fam: #8d6e63; --fam-deep: #524039; --on-fam: #ffffff; --accent: #8d6e63; --accent-deep: #524039; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="kalah"] { --bg: #f3f2f4; --font-display: "Fraunces", Georgia, serif, "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="kalah"], [data-theme="night"] body[data-game="kalah"] [data-family] { --fam: #ad978f; --fam-deep: #d4c8c4; --on-fam: #121016; --accent: #ad978f; --accent-deep: #d4c8c4; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="kalah"] { --bg: #1c181c; --card: #231e26; --well: #2c2630; }
+
+/* ludo: Ludo red */
+body[data-game="ludo"], body[data-game="ludo"] [data-family] { --fam: #e53935; --fam-deep: #85211f; --on-fam: #ffffff; --accent: #e53935; --accent-deep: #85211f; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="ludo"] { --bg: #f9eef1; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="ludo"], [data-theme="night"] body[data-game="ludo"] [data-family] { --fam: #ec706e; --fam-deep: #f5b4b2; --on-fam: #121016; --accent: #ec706e; --accent-deep: #f5b4b2; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="ludo"] { --bg: #231318; --card: #281b23; --well: #33222d; }
+
+/* pocket-karts: Kart orange */
+body[data-game="pocket-karts"], body[data-game="pocket-karts"] [data-family] { --fam: #ff5722; --fam-deep: #943214; --on-fam: #ffffff; --accent: #ff5722; --accent-deep: #943214; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="pocket-karts"] { --bg: #faf0f0; --font-display: "Bungee", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="pocket-karts"], [data-theme="night"] body[data-game="pocket-karts"] [data-family] { --fam: #ff8660; --fam-deep: #ffbfab; --on-fam: #121016; --accent: #ff8660; --accent-deep: #ffbfab; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="pocket-karts"] { --bg: #251617; --card: #2a1d22; --well: #36242b; }
+
+/* pose-party: Spotlight pink */
+body[data-game="pose-party"], body[data-game="pose-party"] [data-family] { --fam: #e84393; --fam-deep: #872755; --on-fam: #ffffff; --accent: #e84393; --accent-deep: #872755; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="pose-party"] { --bg: #f9eff7; --font-display: "Fredoka", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="pose-party"], [data-theme="night"] body[data-game="pose-party"] [data-family] { --fam: #ee78b1; --fam-deep: #f6b8d6; --on-fam: #121016; --accent: #ee78b1; --accent-deep: #f6b8d6; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="pose-party"] { --bg: #231420; --card: #281c29; --well: #342334; }
+
+/* reversi: Felt green */
+body[data-game="reversi"], body[data-game="reversi"] [data-family] { --fam: #2e7d32; --fam-deep: #1b491d; --on-fam: #ffffff; --accent: #2e7d32; --accent-deep: #1b491d; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="reversi"] { --bg: #eef2f1; --font-display: "Fraunces", Georgia, serif, "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="reversi"], [data-theme="night"] body[data-game="reversi"] [data-family] { --fam: #69a16b; --fam-deep: #b0ceb1; --on-fam: #121016; --accent: #69a16b; --accent-deep: #b0ceb1; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="reversi"] { --bg: #141918; --card: #1d1f23; --well: #25272c; }
+
+/* show-and-go: Scavenger teal */
+body[data-game="show-and-go"], body[data-game="show-and-go"] [data-family] { --fam: #00897b; --fam-deep: #004f47; --on-fam: #ffffff; --accent: #00897b; --accent-deep: #004f47; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="show-and-go"] { --bg: #ebf3f5; --font-display: "Fredoka", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="show-and-go"], [data-theme="night"] body[data-game="show-and-go"] [data-family] { --fam: #47aaa0; --fam-deep: #9ed2cd; --on-fam: #121016; --accent: #47aaa0; --accent-deep: #9ed2cd; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="show-and-go"] { --bg: #111a1e; --card: #1a2027; --well: #212832; }
+
+/* warm-words: Hot-cold ember */
+body[data-game="warm-words"], body[data-game="warm-words"] [data-family] { --fam: #e65100; --fam-deep: #852f00; --on-fam: #ffffff; --accent: #e65100; --accent-deep: #852f00; --accent-ink: #ffffff; --accent-soft: var(--fam-soft); }
+body[data-game="warm-words"] { --bg: #f9f0ee; --font-display: "Lilita One", "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="warm-words"], [data-theme="night"] body[data-game="warm-words"] [data-family] { --fam: #ed8247; --fam-deep: #f6bd9e; --on-fam: #121016; --accent: #ed8247; --accent-deep: #f6bd9e; --accent-ink: #121016; }
+[data-theme="night"] body[data-game="warm-words"] { --bg: #231514; --card: #281c20; --well: #342428; }
+

@@ -166,3 +166,72 @@
 .bk-game.ch-tabletop .ch-capture-rail{border:var(--outline-w) solid var(--line-strong);border-radius:var(--radius-lg);background:var(--card)}
 .bk-game.ch-tabletop .chhist-wrap{margin-top:0;border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm)}
 @media (max-width:759px){.bk-tools{order:7}.bk-actions{order:6}.bk-status{min-height:4.4em}.bk-name{font-size:16px}}
+
+/* Calm controls, a centred stage and a result sticker on the board.
+ * - Desktop: the board column is only as wide as the board, and the board
+ *   and panel sit together in the middle of the page (no dead gutter).
+ * - Tools and game actions are small chips: Resign and Offer draw never
+ *   outweigh the board. The only filled buttons are the ones the player is
+ *   asked to answer (Resign? / Draw offered) and Rematch.
+ * - How to play and Moves are plain disclosure rows, not buttons.
+ * - Hints, rings and ranks read the board family colour, never the party
+ *   accent. */
+@media (min-width:760px) and (min-height:501px){
+ .bk-game{grid-template-columns:minmax(0,calc((100svh - var(--bk-top) - 20px) * var(--bk-aspect))) var(--bk-panel);justify-content:center;column-gap:var(--space-32)}
+}
+.bk-game{--bk-hint:color-mix(in srgb,var(--bk-fam) 60%,transparent)}
+.bk-timer-fill{background:var(--bk-fam)}
+.bk-game button:focus-visible,.bk-game summary:focus-visible{outline:var(--focus-ring,3px solid var(--accent-deep));outline-offset:var(--focus-offset,2px)}
+/* Chips: Flip board, Resign, Offer draw. */
+.bk-row-play,.bk-tools{gap:var(--space-8)}
+.bk-row-play .bk-btn,.bk-tools .bk-btn{flex:0 0 auto;min-height:var(--control-h-sm);padding:0 var(--space-16);border:var(--outline-w) solid var(--line-strong);border-radius:var(--radius-pill);background:var(--card);box-shadow:none;color:var(--ink);font:var(--text-button-sm)}
+.bk-row-play [data-resign]{color:var(--danger)}
+.bk-row-play .bk-btn:disabled,.bk-tools .bk-btn:disabled{background:var(--well);color:var(--ink-dim);opacity:1}
+@media (hover:hover){.bk-row-play .bk-btn:hover:not(:disabled),.bk-tools .bk-btn:hover:not(:disabled){border-color:var(--outline);transform:translateY(-2px)}}
+.bk-row-play .bk-btn:active:not(:disabled),.bk-tools .bk-btn:active:not(:disabled){transform:scale(.97);box-shadow:none}
+/* Questions the player must answer: a filled choice and a quiet one. */
+.bk-row-confirm .bk-btn,.bk-row-offer .bk-btn{flex:1 1 0;min-height:var(--control-h)}
+.bk-row-confirm .bk-danger{background:var(--danger);border-color:var(--outline);color:var(--on-danger,#fff);box-shadow:var(--shadow-sticker-sm)}
+.bk-ask{font:var(--text-caption);color:var(--ink)}
+/* The turn card's thicker rim is drawn inside, so a turn change never
+ * resizes the cards (and never nudges the board under them on phones). */
+.bk-player.is-turn{border-width:var(--outline-w);box-shadow:inset 0 0 0 1px var(--bk-fam),var(--shadow-sticker)}
+/* Only a game with draw offers can have its row swapped without a tap, so
+ * only those keep space reserved for the two-button answer row. */
+.bk-actions:not(:has([data-offer-draw])){min-height:0}
+/* Disclosures: How to play (and Chess's Moves) read as rows, not buttons. */
+.bk-help,.bk-game.ch-tabletop .chhist-wrap{flex:1 1 auto;border:0;border-radius:var(--radius-md);background:none;box-shadow:none}
+.bk-help[open]{flex-basis:100%}
+.bk-help summary,.bk-game.ch-tabletop .chhist-wrap>summary{gap:var(--space-8);min-height:var(--control-h-sm);padding:0 var(--space-8);color:var(--ink-dim);font:var(--text-button-sm);border-radius:var(--radius-md)}
+.bk-help summary::after,.bk-game.ch-tabletop .chhist-wrap>summary::after{margin-left:0}
+.bk-game.ch-tabletop .chhist-wrap>summary{justify-content:flex-start}
+.bk-help-body,.bk-game.ch-tabletop .chhist{padding:var(--space-4) var(--space-8) var(--space-8);font:var(--text-body);font-size:15px}
+@media (hover:hover){.bk-help:hover{transform:none}.bk-help summary:hover,.bk-game.ch-tabletop .chhist-wrap>summary:hover{background:var(--well);color:var(--ink)}}
+/* Final card: ranks in the family colour, every row the same sticker rim. */
+.bk-final{border-width:var(--outline-w-lg);border-radius:var(--radius-xl);box-shadow:var(--shadow-sticker);padding:var(--space-16)}
+.bk-final-title{font:var(--text-caption);text-transform:none;letter-spacing:0;color:var(--ink-dim)}
+.bk-winner{font:var(--text-heading);text-wrap:balance}
+.bk-reason{font:var(--text-body);font-size:15px;color:var(--ink-dim)}
+.bk-rank-row{border-color:var(--outline);background:var(--card)}
+.bk-rank-row.is-you{border-color:var(--outline);background:var(--bk-fam-soft)}
+.bk-rank,.bk-rank-row.is-first .bk-rank{color:var(--bk-fam-deep)}
+.bk-final-actions .bk-btn{flex:1 1 0}
+.bk-final-actions [data-lobby]{box-shadow:none}
+/* Result sticker: the board itself says the game is over. */
+.bk-stage[data-bk-result]::after{content:attr(data-bk-result);position:absolute;left:50%;top:var(--space-16);z-index:30;max-width:calc(100% - var(--space-32));padding:var(--space-8) var(--space-24);border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);background:var(--bk-fam);color:var(--on-fam,#fff);box-shadow:var(--shadow-sticker-lg);font:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;transform:translateX(-50%);animation:bk-result-pop var(--dur-slow,.5s) var(--ease,cubic-bezier(.22,1,.36,1)) both}
+@keyframes bk-result-pop{from{opacity:0;transform:translateX(-50%) scale(.9)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+@media (max-width:759px){
+ .bk-stage[data-bk-result]::after{top:var(--space-8);padding:var(--space-4) var(--space-16);font:var(--text-title)}
+ .bk-row-play,.bk-tools{justify-content:flex-start}
+}
+.chboard-col[data-bk-result]::after{animation:none}
+.fl-game .bk-stage[data-bk-result]::after{top:calc(var(--control-h-sm) + var(--space-24))}
+/* QC: the status banner is a compact row, not a tall box. Games whose
+ * status never carries a hint line keep only one line of space; Kalah and
+ * Checkers (status + hint) keep room for exactly two lines. */
+.bk-game:is(.kl,.ck) .bk-hint{font-size:14px;line-height:1.45}
+@media (max-width:759px){
+ .bk-status{min-height:0;padding:var(--space-8) var(--space-16)}
+ .bk-status-text{font-size:17px}
+ .bk-game:is(.kl,.ck) .bk-status{min-height:calc(2 * var(--space-8) + 2 * var(--outline-w,2px) + 1.25 * 17px + 1.45 * 14px)}
+}

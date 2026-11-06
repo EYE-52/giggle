@@ -9,6 +9,7 @@ import {
   openCustomizer, closeCustomizer, isCustomizerOpen, customizerGame,
   refreshCustomizer, customizerError, customizerResult,
 } from './customize.js';
+import { segPickerHtml, wirePickers, syncPickers } from './pickers.js';
 import { openHowto, closeHowto, refreshHowto, isHowtoOpen } from './howto.js';
 import { decideCustomizeIntent, setPendingCustomize, takePendingCustomize } from './pending-customize.js';
 import {
@@ -915,14 +916,21 @@ function soundIcon(on) {
  * room-drawer plain controls keep text only. */
 function paintThemeButton(btn, id) {
   const label = themeName(id);
-  if (btn.classList.contains('hbtn') || btn.classList.contains('room-setting')) btn.innerHTML = `${themeIcon(id)}<span class="hlabel">${label}</span>`;
+  if (btn.classList.contains('room-setting')) { btn.innerHTML = roomSwitchHtml(themeIcon(id), 'Night'); btn.setAttribute('aria-checked', String(id === 'night')); }
+  else if (btn.classList.contains('hbtn')) btn.innerHTML = `${themeIcon(id)}<span class="hlabel">${label}</span>`;
   else btn.textContent = label;
+}
+
+/* Room-menu toggles read as switches: fixed label, state on the knob. */
+function roomSwitchHtml(icon, label) {
+  return `${icon}<span class="hlabel">${label}</span><span class="room-switch" aria-hidden="true"></span>`;
 }
 
 function paintSoundButton(btn, on) {
   btn.dataset.state = on ? 'on' : 'off';
   if (btn.classList.contains('iconbtn')) btn.innerHTML = soundIcon(on);
-  else if (btn.classList.contains('hbtn') || btn.classList.contains('room-setting')) btn.innerHTML = `${soundIcon(on)}<span class="hlabel">${on ? 'Sound on' : 'Muted'}</span>`;
+  else if (btn.classList.contains('room-setting')) { btn.innerHTML = roomSwitchHtml(soundIcon(on), 'Sound'); btn.setAttribute('aria-checked', String(on)); return; }
+  else if (btn.classList.contains('hbtn')) btn.innerHTML = `${soundIcon(on)}<span class="hlabel">${on ? 'Sound on' : 'Muted'}</span>`;
   else btn.textContent = on ? 'Sound on' : 'Muted';
   btn.setAttribute('aria-label', on ? 'Mute sound' : 'Unmute sound');
 }
@@ -1042,7 +1050,7 @@ function setTheme(next) {
   const t = document.getElementById('bTheme');
   if (t) {
     paintThemeButton(t, id);
-    t.setAttribute('aria-label', 'Switch theme, current ' + themeName(id));
+    if (!t.classList.contains('room-setting')) t.setAttribute('aria-label', 'Switch theme, current ' + themeName(id));
   }
   if (room?.game && lastState && gameById(gameId)?.runtime) paintGameBody();
 }
@@ -1079,6 +1087,7 @@ function render() {
     if (gameScreen) { gameScreen.dispose(); gameScreen = null; }
     app.dataset.layout = 'standard';
     document.body.classList.remove('game-playing', 'game-immersive');
+    delete document.body.dataset.game;
     app.innerHTML = `<section class="room-removed" role="status"><h1>Removed from room</h1><p>The host removed you from this game room.</p>${EMBED.enabled ? '<p>Your call continues. Close Games to return to it.</p>' : '<button type="button" class="btn" id="bRemovedHome">Browse games</button>'}</section>`;
     const home = document.getElementById('bRemovedHome');
     if (home) home.onclick = () => { seatRemoved = false; render(); connect(); };
@@ -1090,6 +1099,9 @@ function render() {
   app.dataset.layout = immersive ? 'immersive' : 'standard';
   document.body.classList.toggle('game-playing', screen === 'game');
   document.body.classList.toggle('game-immersive', immersive);
+  // The game's own skin (skins.css) colours the whole page while it plays.
+  if (screen === 'game' && gameId) document.body.dataset.game = gameId;
+  else delete document.body.dataset.game;
   // Screen-change fade only: roster/config snapshots repaint the same
   // screen constantly, and must never flash the whole view or forms.
   if (screen !== lastScreen) {
@@ -1258,11 +1270,47 @@ function heroPosters() {
     DOODLE_STAR('star-tl', 46, '#FFB020') + DOODLE_STAR('star-br', 34, '#DE1E6A') + DOODLE_SQUIG;
 }
 
-/* Sort menu: honest shelf order first; rooms add the live-group sort. */
+/* Room code as four letter tiles over the real input (it keeps focus,
+ * paste and autofill); letters only, uppercased, active tile marked. */
+function wireCodeTiles(input) {
+  const tiles = input.parentElement.querySelectorAll('.code-tile');
+  const paint = () => {
+    const v = input.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+    if (v !== input.value) input.value = v;
+    const at = document.activeElement === input ? Math.min(v.length, 3) : -1;
+    tiles.forEach((t, i) => {
+      t.textContent = v[i] || '';
+      t.classList.toggle('on', i === at);
+      t.classList.toggle('filled', !!v[i]);
+    });
+    input.parentElement.classList.toggle('full', v.length === 4);
+  };
+  input.addEventListener('input', paint);
+  input.addEventListener('focus', paint);
+  input.addEventListener('blur', paint);
+  paint();
+}
+
+/* Sort menu: honest shelf order first; rooms add the live-group sort.
+ * Long names stay on the hidden select; chips carry the short ones. */
+const SORTS = [
+  ['shelf', 'Shelf order', 'Shelf'], ['name', 'Name A–Z', 'A–Z'],
+  ['fewest', 'Fewest players', 'Fewest'], ['fits', 'Fits our group first', 'Fits us'],
+];
+const sortList = (inRoom) => SORTS.filter(([v]) => v !== 'fits' || inRoom);
 function sortOptions(inRoom) {
-  const opts = [['shelf', 'Shelf order'], ['name', 'Name A–Z'], ['fewest', 'Fewest players']];
-  if (inRoom) opts.push(['fits', 'Fits our group first']);
-  return opts.map(([v, l]) => `<option value="${v}"${sortMode === v ? ' selected' : ''}>${l}</option>`).join('');
+  return sortList(inRoom).map(([v, l]) => `<option value="${v}"${sortMode === v ? ' selected' : ''}>${l}</option>`).join('');
+}
+function sortChips(inRoom) {
+  return sortList(inRoom).map(([v, , s]) => [v, s]);
+}
+
+/* A lobby filter as a chip row over its hidden native <select> (the select
+ * keeps the value and the change handler; pickers.js keeps them in step). */
+function chipSelectHtml(id, label, optionsHtml, chips, value) {
+  return `<div class="catpick"><span class="sr-only" id="${id}-l">${label}</span>`
+    + `<select id="${id}" class="picker-native" tabindex="-1" aria-hidden="true">${optionsHtml}</select>`
+    + segPickerHtml(id, chips, value, `${id}-l`) + '</div>';
 }
 
 function catChipsHtml() {
@@ -1298,7 +1346,7 @@ function renderHome() {
           </div>
           <label class="ticket-or" for="jc"><span>Have a room code?</span></label>
           <div class="hero-joinrow">
-            <input id="jc" type="text" maxlength="4" placeholder="ABCD" value="${esc(roomCode)}" autocomplete="off" aria-label="Room code">
+            <div class="code-tiles"><input id="jc" type="text" maxlength="4" placeholder="ABCD" value="${esc(roomCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" aria-label="Room code, 4 letters">${'<span class="code-tile" aria-hidden="true"></span>'.repeat(4)}</div>
             <button class="btn sun" id="bJoin">Join room</button>
           </div>
           <p class="ticket-note">No account or download needed.</p>
@@ -1312,10 +1360,10 @@ function renderHome() {
       <div class="sec-head"><h2>The whole shelf</h2><span class="count-pill" id="shelfCount">${catalogLoaded ? total : 'Loading games…'}</span><span class="muted">Create a room to play any of them.</span></div>
       <div class="catbar">
         <input id="hq" type="text" placeholder="Search games…" value="${esc(query)}" autocomplete="off" aria-label="Search games">
-        <select id="grpSel" aria-label="Filter by group size — games whose player range overlaps your group" title="Games whose player range overlaps your group">
-          ${HOME_GROUPS.map(([v, l]) => `<option value="${v}"${homeGroup === v ? ' selected' : ''}>${l}</option>`).join('')}
-        </select>
-        <select id="hsortSel" aria-label="Sort games">${sortOptions(false)}</select>
+        ${chipSelectHtml('grpSel', 'Group size: games whose player range overlaps your group',
+          HOME_GROUPS.map(([v, l]) => `<option value="${v}"${homeGroup === v ? ' selected' : ''}>${l}</option>`).join(''),
+          HOME_GROUPS.map(([v, , s]) => [v, s]), homeGroup)}
+        ${chipSelectHtml('hsortSel', 'Sort games', sortOptions(false), sortChips(false), sortMode)}
         <button class="chip ${customOnly ? 'sel' : ''}" id="hcustTog" aria-pressed="${customOnly}">Customizable</button>
       </div>
       <div class="catchips" role="group" aria-label="Game categories">${catChipsHtml()}</div>
@@ -1342,6 +1390,7 @@ function renderHome() {
   };
   document.getElementById('bJoin').onclick = join;
   document.getElementById('jc').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
+  wireCodeTiles(document.getElementById('jc'));
   document.getElementById('nm').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('bCreate').click();
   });
@@ -1376,6 +1425,7 @@ function renderHome() {
     sortMode = e.target.value;
     paintHomeCatalog();
   };
+  wirePickers(document.getElementById('hsortSel').closest('.catbar'));
   document.getElementById('hcustTog').onclick = (e) => {
     customOnly = !customOnly;
     e.currentTarget.classList.toggle('sel', customOnly);
@@ -1463,8 +1513,8 @@ function fitKind(g, n) {
 /* Home has no room, so the desired size is explicit: a game matches when
  * its player range OVERLAPS the picked range (intersection semantics). */
 const HOME_GROUPS = [
-  ['any', 'Any size'], ['2', '2 players'], ['3-4', '3–4 players'],
-  ['5-8', '5–8 players'], ['9+', '9+ players'],
+  ['any', 'Any size', '👥 Any'], ['2', '2 players', '2'], ['3-4', '3–4 players', '3–4'],
+  ['5-8', '5–8 players', '5–8'], ['9+', '9+ players', '9+'],
 ];
 
 function homeGroupRange() {
@@ -1619,7 +1669,7 @@ function syncLobbyControls() {
   document.querySelectorAll('[data-cat]').forEach((x) =>
     x.classList.toggle('sel', x.dataset.cat === catFilter));
   const sel = document.getElementById('sortSel');
-  if (sel) sel.value = sortMode;
+  if (sel) { sel.value = sortMode; syncPickers(sel.closest('.catbar')); }
   for (const [id, on] of [['fitsTog', fitsOnly], ['custTog', customOnly]]) {
     const b = document.getElementById(id);
     if (b) {
@@ -1691,7 +1741,7 @@ function syncHomeControls() {
   const grp = document.getElementById('grpSel');
   if (grp) grp.value = homeGroup;
   const sel = document.getElementById('hsortSel');
-  if (sel) sel.value = sortMode;
+  if (sel) { sel.value = sortMode; syncPickers(sel.closest('.catbar')); }
   const b = document.getElementById('hcustTog');
   if (b) {
     b.classList.toggle('sel', customOnly);
@@ -1839,7 +1889,7 @@ function renderLobby() {
         <div class="sec-head"><h2>All games</h2><span class="count-pill" id="catCount">${games.length} games</span></div>
         <div class="catbar">
           <input id="q" type="text" placeholder="Search games…" value="${esc(query)}" autocomplete="off" aria-label="Search games">
-          <select id="sortSel" aria-label="Sort games">${sortOptions(true)}</select>
+          ${chipSelectHtml('sortSel', 'Sort games', sortOptions(true), sortChips(true), sortMode)}
           <button class="chip ${fitsOnly ? 'sel' : ''}" id="fitsTog" aria-pressed="${fitsOnly}" title="Only games your group can start right now">Fits our ${n}</button>
           <button class="chip ${customOnly ? 'sel' : ''}" id="custTog" aria-pressed="${customOnly}">Customizable</button>
         </div>
@@ -1873,6 +1923,7 @@ function renderLobby() {
     sortMode = e.target.value;
     paintCatalog();
   };
+  wirePickers(document.getElementById('sortSel').closest('.catbar'));
   document.getElementById('fitsTog').onclick = (e) => {
     fitsOnly = !fitsOnly;
     e.currentTarget.classList.toggle('sel', fitsOnly);
@@ -2304,8 +2355,8 @@ function gameRoomMenu(g, context, floating = false) {
       ${lastState.spectator ? `<p class="room-watch" role="status">${esc(spectatorBanner(seatCap(g)))}</p>` : ''}
       <button type="button" class="room-resume" id="bRoomResume">${lastState.spectator ? 'Back to watching' : 'Back to game'}<span aria-hidden="true">▶</span></button>
       <div class="room-menu-actions">
-        <button type="button" class="room-setting" id="bSound" aria-label="${sound.enabled ? 'Mute sound' : 'Unmute sound'}">${soundIcon(sound.enabled)}<span class="hlabel">${sound.enabled ? 'Sound on' : 'Muted'}</span></button>
-        <button type="button" class="room-setting" id="bTheme" aria-label="Switch theme, current ${themeName(theme())}">${themeIcon(theme())}<span class="hlabel">${themeName(theme())}</span></button>
+        <button type="button" class="room-setting is-switch" id="bSound" role="switch" aria-checked="${sound.enabled}">${roomSwitchHtml(soundIcon(sound.enabled), 'Sound')}</button>
+        <button type="button" class="room-setting is-switch" id="bTheme" role="switch" aria-checked="${theme() === 'night'}">${roomSwitchHtml(themeIcon(theme()), 'Night')}</button>
         <button type="button" class="room-setting" id="bGameScreen">Full screen</button>
         ${!EMBED.enabled ? '<button type="button" class="room-setting" id="bGameInvite">Invite friends</button>' : ''}
         ${EMBED.enabled && embedTrusted ? '<button type="button" class="room-setting" id="bVoice">🎙️ Talk together</button>' : ''}
@@ -2594,7 +2645,7 @@ function paintGamePreparation() {
     status.classList.toggle('is-first', first);
     if (!first) {
       // Sit just under the title bar so the pill never covers the game's
-      // name or its zoom and menu buttons.
+      // name, its zoom and menu buttons, or the results' primary action.
       const bar = document.querySelector('.play-toolbar');
       const below = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
       status.style.setProperty('--prep-top', `${Math.round(below)}px`);

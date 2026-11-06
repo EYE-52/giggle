@@ -59,3 +59,79 @@
  * and content sits from the top, so a notice never moves the word or field. */
 .wc.ck .wc-target { justify-content: flex-start; min-height: calc(2 * var(--space-24) + 28px + 1.2em * 1 + 3em + 2 * var(--space-8) + 6px); }
 .wc.ck .wc-target .wc-word { font-size: clamp(34px, 5vw, 48px); line-height: 1.2; }
+
+/* ---- polish: the word card hugs its content (two caption lines are
+ * enough for any notice), the chain wraps without slicing its stickers,
+ * players are roster tiles, and being out is a clear banner ---- */
+.wc.ck .wc-target { min-height: 0; }
+.wc.ck .wc-target #wcFeedback { min-height: 2lh; margin: 0; font: var(--text-caption); font-size: 15px; }
+.wc.ck .wc-ribbon {
+  flex-wrap: wrap; overflow: visible; row-gap: var(--space-12); column-gap: var(--space-4);
+  padding: var(--space-4) 0 var(--space-8);
+}
+.wc.ck .wc-seats.ck-roster { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.wc.ck .wc-seats .ck-pstate { display: flex; align-items: center; gap: var(--space-8); }
+.wc.ck .wc-seats .wc-lives { letter-spacing: 1px; }
+.wc.ck .wc-seats .ck-player.is-out .wc-state {
+  padding: 0 var(--space-8); border-radius: var(--radius-pill); background: var(--card); color: var(--ink); font-weight: 800;
+}
+.wc.ck .wc-waiting.is-out {
+  justify-content: flex-start; min-height: var(--control-h); padding: var(--space-12) var(--space-16);
+  background: var(--fam-soft); color: var(--ink); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker-sm); font: var(--text-title);
+}
+.wc.ck .wc-waiting.is-out::before { display: none; }
+/* The challenge count sits right under the waiting line, as one group. */
+.wc.ck .wc-challenge { justify-content: flex-start; margin-top: calc(var(--space-8) * -1); }
+@media (max-width: 480px) {
+  .wc.ck .wc-target #wcFeedback { min-height: 2lh; }
+}
+
+/* ==========================================================================
+ * Skin (round 2): a chain. The page carries a faint pattern of interlocked
+ * links; the played words are tiles joined by real chain links instead of
+ * arrows. Night: steel links with a soft glow on the newest word.
+ * ========================================================================== */
+body.game-playing[data-game="word-chain"] {
+  --wc-link: color-mix(in srgb, var(--fam) 7%, transparent);
+  background-image:
+    radial-gradient(ellipse 11px 7px at 50% 50%, transparent 0 58%, var(--wc-link) 62% 88%, transparent 94%),
+    radial-gradient(ellipse 11px 7px at 50% 50%, transparent 0 58%, var(--wc-link) 62% 88%, transparent 94%);
+  background-size: 112px 84px, 112px 84px;
+  background-position: 0 0, 14px 0;
+  background-attachment: fixed, fixed;
+}
+[data-theme="night"] body.game-playing[data-game="word-chain"] { --wc-link: color-mix(in srgb, var(--fam) 7%, transparent); }
+
+/* Chain links between the played words (the arrow glyph stays for the
+ * reader's order; it is drawn as a link). */
+.wc.ck .wc-ribbon .wc-arrow {
+  position: relative; width: 28px; height: 14px; color: transparent; overflow: hidden; font-size: 0;
+}
+.wc.ck .wc-ribbon .wc-arrow::before, .wc.ck .wc-ribbon .wc-arrow::after {
+  content: ""; position: absolute; top: 2px; width: 16px; height: 10px; border-radius: 6px;
+  border: 3px solid color-mix(in srgb, var(--ink) 40%, var(--card));
+}
+.wc.ck .wc-ribbon .wc-arrow::before { left: 0; }
+.wc.ck .wc-ribbon .wc-arrow::after { right: 0; border-color: color-mix(in srgb, var(--fam) 70%, var(--card)); }
+/* Played words: tiles on a soft lip; the newest one on the family lip. */
+.wc.ck .wc-ribbon .wg-chip { min-height: 40px; padding: var(--space-4) var(--space-16); border-radius: var(--radius-md); font: var(--text-button-sm); }
+.wc.ck .wc-ribbon .wg-chip.is-on { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+[data-theme="night"] .wc.ck .wc-ribbon .wg-chip.is-on { box-shadow: 0 var(--lift-sm) 0 var(--fam-lip), 0 0 16px color-mix(in srgb, var(--fam) 40%, transparent); }
+
+/* QC: in night the played-word tiles are a step of the game's slate blue,
+ * not the warm toy-tile cream gone muddy brown. */
+[data-theme="night"] .wc.ck .wc-ribbon .wg-chip:not(.is-on) {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card)); color: var(--ink);
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
+}
+/* QC: the backdrop links read as a pattern, not as glyphs clipped by the
+ * cards: the page is calmer on phones (smaller, fainter links on a grid
+ * that starts at the left edge). */
+@media (max-width: 480px) {
+  body.game-playing[data-game="word-chain"] {
+    --wc-link: color-mix(in srgb, var(--fam) 4.5%, transparent);
+    background-size: 84px 64px, 84px 64px;
+    background-position: -20px 0, -6px 0;
+  }
+}

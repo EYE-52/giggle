@@ -46,9 +46,11 @@ function revealRows(S) {
       const voters = Object.keys(S.last.votes).filter((v) => S.last.votes[v] === p.id);
       const win = n > 0 && S.last.winners.includes(p.id);
       const pct = ballots ? Math.round(n / ballots * 100) : 0;
-      return `<div class="party-result likely-row${win ? ' party-result--winner is-winner' : ''}">`
+      const mine = S.me != null && S.last.votes?.[S.me] === p.id;
+      const tags = (win ? '<span class="likely-tag is-top">Most votes</span>' : '') + (mine ? '<span class="likely-tag is-mine">Your pick</span>' : '');
+      return `<div class="party-result likely-row${win ? ' party-result--winner is-winner' : ''}${mine ? ' is-mine' : ''}">`
         + `<span class="gk-mark likely-initials pl-c${seat(S, p.id)}" aria-hidden="true">${esc(initials(p.name))}</span>`
-        + `<div class="likely-row-body"><div class="likely-row-head"><span class="likely-name">${esc(p.name)}</span><b class="likely-votes">${plural(n, 'vote')}</b></div>`
+        + `<div class="likely-row-body"><div class="likely-row-head"><span class="likely-name">${esc(p.name)}</span>${tags}<b class="likely-votes">${plural(n, 'vote')}</b></div>`
         + `<div class="party-meter" role="img" aria-label="${n} votes"><span style="width:${pct}%"></span></div>`
         + `<p class="pl-faces likely-voters">${voters.length ? voters.map((v) => faceHtml(S, v, { name: true })).join('') : '<span class="gk-meta">No picks</span>'}</p></div></div>`;
     }).join('');

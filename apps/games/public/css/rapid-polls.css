@@ -1,0 +1,160 @@
+/* Rapid Polls: the Ask phase is a poll card you type into, not a form,
+ * and the results are one-line sticker rows with the bar as the row's fill.
+ * Tokens only. */
+
+/* ---- Composer: a poll card ---- */
+#gbody .pl-fill.party-scene--poll .rp-builder {
+  gap: var(--space-16); padding: 0; overflow: hidden; background: var(--card);
+}
+#gbody .pl-fill.party-scene--poll .rp-builder > :not(.rp-q) { margin-inline: var(--space-24); }
+#gbody .pl-fill.party-scene--poll .rp-builder > .rp-ask-row { margin-bottom: var(--space-24); }
+/* The question sits on the card's tinted header, at title size. */
+#gbody .pl-fill.party-scene--poll .rp-q {
+  display: grid; gap: var(--space-8); padding: var(--space-16) var(--space-24);
+  background: var(--fam-soft); border-bottom: var(--outline-w) solid var(--outline);
+}
+#gbody .pl-fill.party-scene--poll .rp-q label { margin: 0; font: var(--text-caption); color: var(--fam-deep); }
+#gbody .pl-fill.party-scene--poll .rp-q input[type="text"] {
+  min-height: var(--control-h-lg); font: var(--text-title); background: var(--card);
+}
+/* Answers: lettered option stickers, the same shape as the vote cards. */
+#gbody .pl-fill.party-scene--poll .rp-opts { gap: var(--space-12); }
+#gbody .pl-fill.party-scene--poll .rp-opt {
+  display: flex; align-items: center; gap: var(--space-8); min-width: 0;
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-12);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
+  background: var(--card); box-shadow: var(--shadow-sticker-sm);
+}
+#gbody .pl-fill.party-scene--poll .rp-opt .gk-mark {
+  flex: none; width: 32px; height: 32px; border: var(--outline-w) solid var(--outline);
+  background: var(--fam); color: var(--on-fam); font: 800 15px/1 var(--font-display);
+}
+#gbody .pl-fill.party-scene--poll .rp-opt input[type="text"] {
+  flex: 1; min-width: 0; min-height: var(--control-h-sm); padding: 0 var(--space-8);
+  border: 0; border-radius: var(--radius-md); background: transparent; box-shadow: none;
+  font: 800 18px/1.25 var(--font-display); color: var(--ink);
+}
+#gbody .pl-fill.party-scene--poll .rp-opt:focus-within { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+#gbody .pl-fill.party-scene--poll .rp-opt input[type="text"]:focus { box-shadow: none; outline: none; }
+/* "Add answers": a dashed add tile, not an underlined link. */
+#gbody .pl-fill.party-scene--poll .rp-extra { display: grid; gap: var(--space-12); }
+#gbody .pl-fill.party-scene--poll .rp-extra > summary {
+  display: flex; align-items: center; justify-content: center; gap: var(--space-8);
+  min-height: var(--control-h-sm); padding: 0 var(--space-16); list-style: none;
+  border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-lg);
+  background: var(--well); color: var(--ink); text-decoration: none; font: var(--text-button-sm); cursor: pointer;
+}
+#gbody .pl-fill.party-scene--poll .rp-extra > summary::-webkit-details-marker { display: none; }
+#gbody .pl-fill.party-scene--poll .rp-extra[open] > summary { border-color: var(--outline); }
+#gbody .pl-fill.party-scene--poll .rp-extra[open] .rp-plus { transform: rotate(45deg); }
+#gbody .pl-fill.party-scene--poll .rp-plus { display: inline-block; font: 800 20px/1 var(--font-display); color: var(--fam-deep); }
+@media (hover: hover) {
+  #gbody .pl-fill.party-scene--poll .rp-extra > summary:hover { border-color: var(--outline); background: var(--fam-soft); }
+}
+#gbody .pl-fill.party-scene--poll #rpError:empty { display: none; }
+#gbody .pl-fill.party-scene--poll #rpError { margin: 0; font: var(--text-caption); color: var(--danger); }
+/* One primary; the starter is a chip beside it. */
+#gbody .pl-fill.party-scene--poll .rp-ask-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12); margin-top: 0; }
+#gbody .pl-fill.party-scene--poll .rp-ask-row #rpAsk { min-height: var(--control-h-lg); padding-inline: var(--space-32); }
+#gbody .pl-fill.party-scene--poll .rp-starter {
+  min-height: var(--control-h-sm); padding: 0 var(--space-16); border-radius: var(--radius-pill);
+  border: var(--outline-w) solid var(--outline); background: var(--card); box-shadow: none; font: var(--text-button-sm);
+}
+@media (hover: hover) {
+  #gbody .pl-fill.party-scene--poll .rp-starter:hover { background: var(--fam-soft); color: var(--fam-deep); }
+}
+
+/* ---- Results: one line per answer, the bar is the row's fill ---- */
+#gbody .pl-fill.party-scene--poll .rp-row {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-12);
+  min-height: var(--control-h-lg); padding: var(--space-8) var(--space-16) var(--space-8) var(--space-12);
+  background: var(--card);
+}
+#gbody .pl-fill.party-scene--poll .rp-row .party-meter {
+  position: absolute; z-index: -1; inset: 0; height: auto; margin: 0; border: 0; border-radius: 0; background: transparent;
+}
+#gbody .pl-fill.party-scene--poll .rp-row .party-meter > span { border-radius: 0; background: var(--fam-soft); }
+#gbody .pl-fill.party-scene--poll .rp-row.is-top .party-meter > span { background: color-mix(in srgb, var(--fam) 32%, var(--card)); }
+#gbody .pl-fill.party-scene--poll .rp-row .party-result-body { font: 800 18px/1.25 var(--font-display); }
+#gbody .pl-fill.party-scene--poll .rp-row .party-result-body .gk-mark {
+  flex: none; width: 32px; height: 32px; border: var(--outline-w) solid var(--outline);
+  background: var(--card); color: var(--ink); font: 800 15px/1 var(--font-display);
+}
+#gbody .pl-fill.party-scene--poll .rp-row.is-top .party-result-body .gk-mark { background: var(--fam); color: var(--on-fam); }
+#gbody .pl-fill.party-scene--poll .rp-row .party-meta {
+  margin: 0; max-width: 24ch; text-align: right; font: var(--text-caption); color: var(--ink); font-variant-numeric: tabular-nums;
+}
+#gbody .pl-fill.party-scene--poll .rp-row.is-top { box-shadow: var(--shadow-sticker); }
+
+/* "Last poll" under the composer: its own card with a caption and title. */
+#gbody .pl-fill.party-scene--poll .rp-last {
+  display: grid; gap: var(--space-12); padding: var(--space-16);
+  background: var(--card); border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
+}
+#gbody .pl-fill.party-scene--poll .rp-last-cap { margin: 0; }
+#gbody .pl-fill.party-scene--poll .rp-last-q { margin: 0; font: var(--text-title); color: var(--ink); text-wrap: balance; }
+#gbody .pl-fill.party-scene--poll .rp-last .rp-row { min-height: var(--control-h); }
+
+@media (max-width: 560px) {
+  /* Phone: the card header is the heading, so the prompt line steps back. */
+  #gbody .pl-fill.party-scene--poll[aria-label="Rapid poll question"] > .party-prompt.party-prompt { padding: var(--space-12) var(--space-16); font-size: 22px; }
+  #gbody .pl-fill.party-scene--poll .rp-builder { gap: var(--space-12); padding: 0; }
+  #gbody .pl-fill.party-scene--poll .rp-builder > :not(.rp-q) { margin-inline: var(--space-16); }
+  #gbody .pl-fill.party-scene--poll .rp-builder > .rp-ask-row { margin-bottom: var(--space-16); }
+  #gbody .pl-fill.party-scene--poll .rp-q { padding: var(--space-12) var(--space-16); }
+  #gbody .pl-fill.party-scene--poll .rp-opts { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+  #gbody .pl-fill.party-scene--poll .rp-ask-row #rpAsk { flex: 1 1 100%; }
+  #gbody .pl-fill.party-scene--poll .rp-starter { order: -1; margin-inline: auto; }
+  #gbody .pl-fill.party-scene--poll .rp-row { min-height: var(--control-h); padding-block: var(--space-4); }
+  #gbody .pl-fill.party-scene--poll .rp-row .party-meta { max-width: 14ch; }
+}
+
+/* Vote: one family colour for every option (no player-like rainbow), and
+ * once locked the other options keep their sticker outline. */
+#gbody .pl-fill.party-scene--poll .party-choices > .party-choice { --side: var(--fam); --on-side: var(--on-fam); }
+#gbody .pl-fill.party-scene--poll .party-choice .gk-mark { background: var(--card); color: var(--ink); border-color: var(--outline); }
+#gbody .pl-fill.party-scene--poll .party-choice:is(.is-picked, [aria-pressed="true"]) .gk-mark { background: var(--fam); color: var(--on-fam); }
+#gbody .pl-fill.party-scene--poll .party-choices.is-locked > .party-choice:not(.is-picked):not([aria-pressed="true"]) {
+  border-color: var(--outline); box-shadow: var(--shadow-sticker-sm);
+}
+#gbody .pl-fill.party-scene--poll .party-choices.is-locked > .party-choice:not(.is-picked):not([aria-pressed="true"]) .gk-mark { color: var(--ink); border-color: var(--outline); }
+
+/* ==== Skin: the ballot ====
+ * Scene: mint graph paper, the page the results get drawn on. Signature:
+ * each option's letter is a ballot box (a rounded square, not a dot), and
+ * your pick is ticked in mint on a mint lip. */
+body.game-playing[data-game="rapid-polls"] {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="rapid-polls"] {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fam) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fam) 8%, transparent) 1px, transparent 1px);
+}
+#gbody .pl-fill.party-scene--poll .party-choice .gk-mark { border-radius: var(--radius-sm); border-width: 2px; }
+#gbody .pl-fill.party-scene--poll .party-choice:is(.is-picked, [aria-pressed="true"]) .gk-mark {
+  border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip);
+}
+
+/* ==== QC ==== */
+/* Ballot boxes are mint-tinted with a mint rim in both themes (never a
+ * black box on a dark card); your ticked box is deep mint with white. */
+#gbody .pl-fill.party-scene--poll .party-choices > .party-choice:not(.is-picked):not([aria-pressed="true"]) .gk-mark,
+#gbody .pl-fill.party-scene--poll .party-choices.is-locked > .party-choice:not(.is-picked):not([aria-pressed="true"]) .gk-mark,
+#gbody .pl-fill.party-scene--poll .rp-row:not(.is-top) .party-result-body .gk-mark {
+  background: color-mix(in srgb, var(--fam) 14%, var(--card)); color: var(--fam-deep);
+  border-color: color-mix(in srgb, var(--fam) 40%, var(--card));
+}
+#gbody .pl-fill.party-scene--poll .party-choice:is(.is-picked, [aria-pressed="true"]) .gk-mark { background: var(--fam-deep); color: #ffffff; }
+[data-theme="night"] #gbody .pl-fill.party-scene--poll .party-choice:is(.is-picked, [aria-pressed="true"]) .gk-mark { background: var(--fam); color: var(--on-fam); }
+/* The live tally reads "0 votes" on one line at the right of the row. */
+#gbody .pl-fill.party-scene--poll .party-choice-tally {
+  display: inline-flex; align-items: baseline; gap: var(--space-4); margin-left: auto; white-space: nowrap;
+}
+#gbody .pl-fill.party-scene--poll .party-choice-tally small { font: var(--text-caption); font-weight: 800; }

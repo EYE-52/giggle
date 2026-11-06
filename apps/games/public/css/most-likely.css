@@ -36,3 +36,70 @@
 @media (prefers-reduced-motion: reduce) {
   .likely-world * { transition: none !important; animation: none !important; }
 }
+
+
+/* Reveal hierarchy: every row is a white card; only the top-voted row is
+ * tinted and tagged, and the viewer's own pick carries a small tag. */
+#gbody .likely-world .likely-row.is-winner { box-shadow: var(--shadow-sticker); }
+.likely-row-head { flex-wrap: wrap; align-items: center; }
+.likely-tag {
+  flex: none; display: inline-flex; align-items: center; min-height: 24px; padding: 0 var(--space-8);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  font: var(--text-caption); font-weight: 800; color: var(--ink); background: var(--card);
+}
+.likely-tag.is-top { background: var(--sun); color: var(--sun-ink); }
+.likely-tag.is-top::before { content: "\2605"; margin-right: var(--space-4); }
+.likely-row-head .likely-name { flex: 0 1 auto; }
+.likely-row-head .likely-votes { margin-left: auto; }
+@media (max-width: 560px) {
+  /* Compact rows so every nominee and Next fit on the first screen. */
+  #gbody .likely-world .likely-row { gap: var(--space-8); padding: var(--space-8) var(--space-12); }
+  #gbody .likely-world .likely-row .likely-initials { width: 40px; height: 40px; font-size: 16px; }
+  .likely-row-body { grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4) var(--space-8); align-items: center; }
+  .likely-row-body > .likely-row-head { grid-column: 1 / -1; }
+  #gbody .likely-world .likely-row .likely-name { font-size: 18px; }
+  /* Name and count share the first line; tags drop under them. */
+  .likely-row-head .likely-votes { order: 1; }
+  .likely-row-head .likely-tag { order: 2; }
+  .likely-row-head:has(.likely-tag)::after { content: ""; order: 1; flex-basis: 100%; height: 0; }
+  #gbody .likely-world .likely-voters .pl-voter { padding-right: 0; border-radius: 50%; font-size: 0; gap: 0; }
+  #gbody .likely-world .likely-voters .pl-voter > .pl-face { margin: -2px; }
+  #gbody .likely-world .likely-voters .gk-meta { font: var(--text-caption); }
+}
+
+/* ==== Skin: award night ====
+ * Scene: two soft stage spotlights sweep down from the top corners onto
+ * the nominees. Signature: the winner's face wears a gold spotlight ring
+ * and the winning row sits on an orange lip. */
+body.game-playing[data-game="most-likely"] {
+  background-image:
+    conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 12%, transparent) 14deg, transparent 30deg),
+    conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 14%, transparent) 16deg, transparent 32deg);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="most-likely"] {
+  background-image:
+    conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 13%, transparent) 14deg, transparent 30deg),
+    conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 11%, transparent) 16deg, transparent 32deg);
+}
+#gbody .likely-world .likely-row.is-winner {
+  border-color: var(--tint-lip); box-shadow: 0 var(--lift) 0 var(--tint-lip), inset 0 0 0 2px var(--fam);
+}
+#gbody .likely-world .likely-row.is-winner .likely-initials { box-shadow: 0 0 0 3px var(--card), 0 0 0 6px var(--sun); }
+[data-theme="night"] #gbody .likely-world .likely-row.is-winner .likely-initials { box-shadow: 0 0 0 3px var(--card), 0 0 0 6px var(--sun), 0 0 22px 2px color-mix(in srgb, var(--sun) 45%, transparent); }
+#gbody .likely-world .likely-row.is-winner .likely-row-body { padding-left: var(--space-4); }
+
+/* QC: by day the beams are a faint top-corner light that fades out down
+ * the page, never beige streaks behind the nominees and the edges. */
+body.game-playing[data-game="most-likely"] {
+  background-image:
+    linear-gradient(to bottom, transparent 0, var(--bg) 55vh),
+    conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 8%, transparent) 14deg, transparent 30deg),
+    conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 9%, transparent) 16deg, transparent 32deg);
+}
+[data-theme="night"] body.game-playing[data-game="most-likely"] {
+  background-image:
+    linear-gradient(to bottom, transparent 0, var(--bg) 70vh),
+    conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 13%, transparent) 14deg, transparent 30deg),
+    conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 11%, transparent) 16deg, transparent 32deg);
+}

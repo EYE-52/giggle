@@ -36,6 +36,36 @@
   --lab-honey: var(--sun);
   --lab-sky: #4aa8ff;
   --display: var(--font-body);
+  /* Toy box tokens (style.css). Sizes are fixed; colours below are the
+   * standalone fallback and play.js mirrors the room's values over them. */
+  --space-4: 4px; --space-8: 8px; --space-12: 12px; --space-16: 16px;
+  --space-24: 24px; --space-32: 32px; --space-40: 40px; --space-48: 48px; --space-64: 64px;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px; --radius-pill: 999px;
+  --outline-w: 2px; --outline-w-lg: 3px;
+  --lift-sm: 2px; --lift: 4px; --lift-lg: 6px;
+  --control-h-sm: 44px; --control-h: 48px; --control-h-lg: 56px;
+  --text-heading: 800 clamp(26px, 3.2vw, 34px)/1.15 var(--font-display);
+  --text-title: 800 20px/1.25 var(--font-display);
+  --text-body: 600 17px/1.5 var(--font-body);
+  --text-button: 800 17px/1.2 var(--font-display);
+  --text-button-sm: 800 15px/1.2 var(--font-body);
+  --text-caption: 700 13px/1.4 var(--font-body);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-quick: 200ms; --dur-base: 300ms; --dur-slow: 500ms;
+  --outline: #0b0c11; --accent-deep: #ff8ab8;
+  --success: #6ee3b4; --success-soft: #1d3a31; --on-success: #07170f;
+  --danger: #ff7a86; --danger-soft: #472530; --on-danger: #1e0b0f;
+  --fam-arcade: #f5a442; --fam-arcade-deep: #ffd9a3; --on-fam-arcade: #2b1700;
+}
+/* Chain Reaction is an arcade game: orange family, sticker shadows. */
+[data-family="arcade"] {
+  --fam: var(--fam-arcade); --fam-deep: var(--fam-arcade-deep); --on-fam: var(--on-fam-arcade);
+  --fam-soft: color-mix(in srgb, var(--fam) 16%, var(--card));
+  --shadow-sticker-sm: 0 var(--lift-sm) 0 var(--outline);
+  --shadow-sticker: 0 var(--lift) 0 var(--outline);
+  --shadow-sticker-lg: 0 var(--lift-lg) 0 var(--outline);
+  --focus-ring: 3px solid var(--accent-deep);
+  --focus-offset: 2px;
 }
 :root[data-theme="day"]:not(.is-embed) { color-scheme: light; }
 
@@ -154,21 +184,23 @@ body {
 
 .noscript { padding: 12px 16px; font-weight: 700; }
 
-/* ---- Renderer restyle: reactor bench, vivid atoms, no cards. ---- */
+/* ---- Renderer restyle: an arcade sticker board, card wells, sticker
+ * seats. The view's injected rules carry the shapes; these #play rules only
+ * keep the frame's own colours in step with them. ---- */
 #play .chain-reaction {
   color: var(--ink);
   background: transparent;
 }
 #play .cr-actor { min-width: 0; }
-#play .cr-turn { color: var(--lab-ink); }
+#play .cr-turn { color: inherit; }
 #play .cr-turn-mark { flex: none; }
 #play .cr-clock {
-  --cr-clock-ink: var(--accent);
+  --cr-clock-ink: var(--fam-deep);
   --cr-clock-bg: var(--card);
-  --cr-clock-track: var(--line);
+  --cr-clock-track: var(--line-strong);
   box-shadow: none;
 }
-#play .cr-clock.urgent { --cr-clock-ink: var(--melon); }
+#play .cr-clock.urgent { --cr-clock-ink: var(--danger); }
 #play .cr-replay {
   border: 0;
   background: transparent;
@@ -176,18 +208,15 @@ body {
 }
 #play .cr-progress { display: none; }
 #play .cr-skip {
-  border-color: var(--line-strong);
+  border-color: var(--outline);
   background: var(--card);
   color: var(--ink);
 }
-#play .cr-skip:hover { border-color: var(--accent); }
-#play .cr-skip:focus-visible { outline-color: var(--accent); }
-#play .cr-board {
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
+#play .cr-skip:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 #play .cr-arena { opacity: 1; }
+/* On dark grounds the ink outline is black; playable wells ring in the
+ * family's light tone instead so they still read as tappable. */
+:root[data-theme="night"] #play .chain-reaction, :root.is-embed #play .chain-reaction { --cr-well-play: var(--fam-deep); }
 
 #play .cr-cell {
   background: transparent;
@@ -195,22 +224,17 @@ body {
   color: var(--lab-ink);
 }
 #play .cr-cell[data-playable="yes"]:hover { background: transparent; }
-#play .cr-cell:focus-visible { outline-color: var(--accent); }
+#play .cr-cell:focus-visible { outline: var(--focus-ring); outline-offset: -4px; }
 #play .cr-orb { border-color: color-mix(in srgb, var(--orb) 70%, #000); }
 #play .cr-total { background: var(--card); color: var(--ink); }
 #play .cr-cap { color: var(--ink-dim); }
-#play .cr-seat { border-color: var(--line); background: var(--card); }
-#play .cr-seat.current {
-  border-color: var(--accent);
-  background: var(--card);
-  box-shadow: inset 3px 0 0 var(--accent);
-}
 #play .cr-seat.out { opacity: 0.6; }
 #play .cr-name { color: var(--lab-ink); font-weight: 800; }
 #play .cr-result { display: none; }
 #play .cr-score { color: var(--lab-muted); }
-#play .cr-rules { border: 0; color: var(--lab-muted); }
-#play .cr-rules summary { color: var(--lab-ink); border-color: var(--lab-line); }
+#play .cr-seat.current .cr-score { color: var(--ink); }
+#play .cr-rules { color: var(--lab-muted); }
+#play .cr-rules summary { color: var(--lab-ink); }
 #play .cr-roster { color: var(--lab-muted); }
 
 /* Narrow phones: everything stacks, nothing scrolls sideways. */
@@ -221,7 +245,7 @@ body {
   .open-links .btn { width: 100%; }
   .round-result { font-size: 22px; }
 }
-@media(min-width:820px){#play .cr-board{max-width:560px}}
+@media(min-width:820px){#play .cr-board{max-width:640px}}
 /* Short landscape phones (e.g. 568x320, 844x390): the Standard board shows
  * transposed (8 visual columns x 6 rows, logical indices unchanged) and the
  * frame reserves only a left launcher gutter instead of a 64px top band.
@@ -234,6 +258,30 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* QC: orange things sit on their own darker orange lip (no ink ring), and at
+ * night the board, the seats and the open rules card use a warm tinted rim
+ * and lip instead of black. */
+#play .cr-actor.is-mine { border-color: transparent; box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 62%, #3a1a00); }
+#play .cr-rules summary::before { border-color: transparent; box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 62%, #3a1a00); }
+:root[data-theme="night"] #play .cr-board {
+  border-color: color-mix(in srgb, var(--fam) 28%, var(--card));
+  box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--fam) 22%, #140b06);
+}
+:root[data-theme="night"] #play .cr-seat,
+:root[data-theme="night"] #play .cr-skip,
+:root[data-theme="night"] #play .cr-rules summary,
+:root[data-theme="night"] #play .cr-rules[open] { border-color: color-mix(in srgb, var(--fam) 18%, var(--card)); }
+:root[data-theme="night"] #play .cr-seat { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 14%, #140b06); }
+:root[data-theme="night"] #play .cr-seat.current { border-color: color-mix(in srgb, var(--fam) 45%, var(--card)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--fam) 26%, #140b06); }
+:root[data-theme="night"] #play .cr-actor.is-mine,
+:root[data-theme="night"] #play .cr-rules summary::before { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 45%, #1a0c02); }
+/* Phones: the whole Help chip is the orange disc, so the lip goes on it. */
+@media (max-width: 759px) and (min-height: 501px), (max-width: 559px) {
+  #play .cr-rules:not([open]) summary { border-color: transparent; box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 62%, #3a1a00); }
+  :root[data-theme="night"] #play .cr-rules:not([open]) summary { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 45%, #1a0c02); }
+  #play .cr-rules summary::before, :root[data-theme="night"] #play .cr-rules summary::before { box-shadow: none; }
 }
 
 .lab-main[data-phase="done"] #play .cr-head{display:none}

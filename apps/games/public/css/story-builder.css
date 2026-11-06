@@ -57,3 +57,81 @@
   #gbody .pl-fill .sb-story { padding: var(--space-4) var(--space-16); border-radius: var(--radius-lg); }
   #gbody .pl-fill .sb-text { font-size: 17px; }
 }
+
+/* Empty story: no big blank sticker. Two dashed placeholder line strips
+ * show where the lines will land, with the hint at body size. */
+#gbody .pl-fill .sb-story.is-empty {
+  display: grid; gap: var(--space-8); padding: 0; border: 0; box-shadow: none; background: transparent;
+}
+#gbody .pl-fill .sb-story.is-empty .sb-line {
+  align-items: center; min-height: var(--control-h); padding: var(--space-8) var(--space-16);
+  border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-lg); background: var(--well);
+}
+#gbody .pl-fill .sb-story.is-empty .sb-line + .sb-line { border-top: var(--outline-w) dashed var(--line-strong); }
+#gbody .pl-fill .sb-story.is-empty .sb-ghost-line { opacity: 0.6; }
+#gbody .pl-fill .sb-ghost {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  border: var(--outline-w) dashed var(--line-strong); color: var(--ink-dim); font: 800 13px/1 var(--font-display);
+}
+#gbody .pl-fill .sb-empty-text { font: var(--text-body); color: var(--ink-dim); }
+
+/* ==========================================================================
+ * Storybook skin (2026-11). The page is a reading-nook dot pattern; the
+ * seed sentence is a book cover with a cloth spine and a ribbon bookmark;
+ * the story so far is a page of paper with a margin line. Night: the same
+ * book read by lamplight.
+ * ========================================================================== */
+body.game-playing[data-game="story-builder"] {
+  background-image: radial-gradient(color-mix(in srgb, var(--fam) 16%, transparent) 1.5px, transparent 2px);
+  background-size: 28px 28px; background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="story-builder"] {
+  background-image: radial-gradient(color-mix(in srgb, var(--fam) 12%, transparent) 1.5px, transparent 2px);
+}
+#gbody .sb-scene.pl-fill > .gk-prompt {
+  position: relative; padding-left: calc(var(--space-24) + 16px); padding-right: var(--space-48);
+  background: var(--card); border-color: color-mix(in srgb, var(--fam) 30%, var(--outline));
+  box-shadow: inset 16px 0 0 var(--fam), 0 var(--lift) 0 var(--fam-lip);
+}
+/* Ribbon bookmark hanging from the top edge. */
+#gbody .sb-scene.pl-fill > .gk-prompt::after {
+  content: ""; position: absolute; top: calc(-1 * var(--outline-w-lg)); right: var(--space-24); width: 20px; height: 40px;
+  background: var(--danger); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 76%, 0 100%); pointer-events: none;
+}
+#gbody .pl-fill .sb-story:not(.is-empty) {
+  background-color: color-mix(in srgb, #fff6dc 55%, var(--card));
+  background-image: linear-gradient(90deg, transparent 60px, color-mix(in srgb, var(--danger) 30%, transparent) 60px 62px, transparent 62px);
+  border-color: color-mix(in srgb, var(--fam) 24%, var(--outline));
+}
+[data-theme="night"] #gbody .sb-scene.pl-fill > .gk-prompt { box-shadow: inset 16px 0 0 var(--fam), 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 14%, transparent); }
+[data-theme="night"] #gbody .pl-fill .sb-story:not(.is-empty) {
+  background-color: color-mix(in srgb, #3a3020 30%, var(--card));
+  background-image: linear-gradient(90deg, transparent 60px, color-mix(in srgb, var(--danger) 26%, transparent) 60px 62px, transparent 62px);
+}
+@media (max-width: 560px) {
+  #gbody .sb-scene.pl-fill > .gk-prompt { padding-left: calc(var(--space-16) + 12px); padding-right: var(--space-40); box-shadow: inset 12px 0 0 var(--fam), 0 var(--lift) 0 var(--fam-lip); }
+  #gbody .sb-scene.pl-fill > .gk-prompt::after { right: var(--space-12); width: 16px; height: 32px; }
+  #gbody .pl-fill .sb-story:not(.is-empty) { background-image: linear-gradient(90deg, transparent 50px, color-mix(in srgb, var(--danger) 30%, transparent) 50px 52px, transparent 52px); }
+}
+
+/* ==== QC ==== */
+/* "Locked in: line 3" is a teal chip under the cover, not loose body text. */
+#gbody .sb-scene.pl-fill > .gk-sub.sb-locked {
+  justify-self: center; align-self: center; width: fit-content; margin: 0 auto; padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-pill); background: color-mix(in srgb, var(--fam) 14%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fam) 36%, transparent);
+  color: var(--fam-deep); font: var(--text-button-sm);
+}
+/* Ballot lines you cannot pick stay white pages with a teal rim, never a
+ * lavender off-family fill; your pick keeps the teal sticker. */
+#gbody .sb-scene.pl-fill .gk-choices > .gk-choice:not(.is-selected):not([aria-pressed="true"]):not(.is-correct):not(.is-wrong) {
+  background: var(--card); color: var(--ink);
+  border-color: color-mix(in srgb, var(--fam) 22%, var(--card));
+  box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 22%, var(--card));
+}
+#gbody .sb-scene.pl-fill .gk-choices > .gk-choice.is-dim { opacity: .8; }
+/* Night: the story page shares the cover's slate-teal tone. */
+[data-theme="night"] #gbody .pl-fill .sb-story:not(.is-empty) { background-color: color-mix(in srgb, var(--fam) 7%, var(--card)); }
+[data-theme="night"] #gbody .sb-scene.pl-fill .gk-choices > .gk-choice:not(.is-selected):not([aria-pressed="true"]):not(.is-correct):not(.is-wrong) {
+  background: color-mix(in srgb, var(--fam) 6%, var(--card));
+}

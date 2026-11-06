@@ -35,3 +35,84 @@
 .lf.ck .lf-dots li.is-now { background: var(--fam); border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft); }
 .lf.ck .lf-dots li:not(.is-done):not(.is-now) { background: var(--card); border-color: var(--ink-dim); }
 .lf.ck .lf-blank { height: 0.8em; vertical-align: baseline; transform: none; }
+
+/* ---- polish: the line uses the card's full width; the blank stays with
+ * the word before it; one even gap down the column ---- */
+.lf.ck .lf-line { max-width: none; width: 100%; text-wrap: pretty; }
+.lf.ck .lf-keep { white-space: nowrap; }
+.lf.ck .wg-status:empty { display: none; }
+.lf.ck > .wg-status { margin: calc(var(--space-8) * -1) 0 0; font: var(--text-caption); color: var(--ink-dim); }
+
+/* ==========================================================================
+ * Skin (round 2): karaoke night. Faint music staves run across the page;
+ * the lyric card is the karaoke screen, lit from below, with a bouncing
+ * ball parked over the missing word and the blank drawn as a glowing slot.
+ * Night: the screen goes dark and the slot and ball glow.
+ * ========================================================================== */
+body.game-playing[data-game="lyric-fill"] {
+  --lf-staff: color-mix(in srgb, var(--fam) 11%, transparent);
+  background-image: repeating-linear-gradient(180deg,
+    transparent 0 40px,
+    var(--lf-staff) 40px 41px, transparent 41px 50px,
+    var(--lf-staff) 50px 51px, transparent 51px 60px,
+    var(--lf-staff) 60px 61px, transparent 61px 70px,
+    var(--lf-staff) 70px 71px, transparent 71px 80px,
+    var(--lf-staff) 80px 81px, transparent 81px 160px);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="lyric-fill"] { --lf-staff: color-mix(in srgb, var(--fam) 9%, transparent); }
+
+/* The karaoke screen: a soft stage glow rising from the bottom edge. */
+.lf.ck[data-family] .lf-card.ck-card.is-tint {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 115%, color-mix(in srgb, var(--fam) 22%, transparent), transparent 70%),
+    var(--fam-soft);
+}
+[data-theme="night"] .lf.ck[data-family] .lf-card.ck-card.is-tint {
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 115%, color-mix(in srgb, var(--fam) 30%, transparent), transparent 70%),
+    color-mix(in srgb, #000 30%, var(--card));
+}
+/* The blank: a slot in the line with a ball bouncing above it. */
+.lf.ck .lf-blank {
+  position: relative; border: 0; border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--fam) 16%, var(--card));
+  box-shadow: inset 0 -4px 0 var(--fam);
+}
+.lf.ck .lf-blank::after {
+  content: ""; position: absolute; left: 50%; top: -14px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%;
+  background: var(--fam); animation: lf-bounce 900ms var(--ease) infinite alternate;
+}
+@keyframes lf-bounce { from { transform: translateY(-4px); } to { transform: translateY(2px); } }
+[data-theme="night"] .lf.ck .lf-blank { box-shadow: inset 0 -4px 0 var(--fam), 0 0 18px color-mix(in srgb, var(--fam) 40%, transparent); }
+[data-theme="night"] .lf.ck .lf-blank::after { box-shadow: 0 0 10px var(--fam); }
+@media (prefers-reduced-motion: reduce) { .lf.ck .lf-blank::after { animation: none; } }
+/* The song tag is a little music note sticker. */
+.lf.ck .lf-card .ck-label { border-color: var(--fam-lip); }
+
+/* QC: the bouncing ball bounces inside its slot, so on a wrapped line it
+ * never lands on a word of the line above. */
+.lf.ck .lf-blank { vertical-align: -0.08em; height: 0.9em; }
+.lf.ck .lf-blank::after { top: calc(50% - 7px); width: 8px; height: 8px; margin-left: -4px; }
+@keyframes lf-bounce { from { transform: translateY(-3px); } to { transform: translateY(1px); } }
+/* QC: the staves are scenery at the edges of the page. The title band is
+ * solid page colour edge to edge, and on wide screens the staves fade out
+ * behind the play column so they never run between the cards. */
+body.game-playing[data-game="lyric-fill"] .play-toolbar {
+  position: relative; z-index: 1; background: var(--bg);
+  box-shadow: 0 0 0 100vmax var(--bg); clip-path: inset(0 -100vmax);
+}
+@media (min-width: 900px) {
+  body.game-playing[data-game="lyric-fill"] {
+    background-image:
+      linear-gradient(90deg, transparent 0 calc(50% - 560px), var(--bg) calc(50% - 470px) calc(50% + 470px), transparent calc(50% + 560px)),
+      repeating-linear-gradient(180deg,
+        transparent 0 40px,
+        var(--lf-staff) 40px 41px, transparent 41px 50px,
+        var(--lf-staff) 50px 51px, transparent 51px 60px,
+        var(--lf-staff) 60px 61px, transparent 61px 70px,
+        var(--lf-staff) 70px 71px, transparent 71px 80px,
+        var(--lf-staff) 80px 81px, transparent 81px 160px);
+    background-attachment: fixed, fixed;
+  }
+}

@@ -44,3 +44,95 @@
   #gbody .party-scene--spotlight.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 24px; border-radius: var(--radius-lg); }
 }
 #gbody .party-scene--spotlight .dr-recap { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---- The wheel as a sticker: ink rim, hard shadow, ink hub and pointer ---- */
+#gbody .party-scene--spotlight .party-wheel {
+  border: var(--outline-w-lg) solid var(--outline); box-shadow: var(--shadow-sticker-lg);
+  background: var(--card);
+}
+#gbody .party-scene--spotlight .party-wheel-disc::after {
+  inset: 36%; border: var(--outline-w-lg) solid var(--outline); background: var(--card);
+  box-shadow: var(--shadow-sticker-sm);
+}
+#gbody .party-scene--spotlight .party-wheel-name > span {
+  border: var(--outline-w) solid var(--outline); font: 800 15px/1 var(--font-display);
+}
+/* Pointer: an ink-outlined card tab, not a family-coloured arrow. */
+#gbody .party-scene--spotlight .party-wheel-pin {
+  top: calc(-1 * var(--space-16)); left: calc(50% - 14px); width: 28px; height: 28px;
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-sm) 0 var(--radius-sm) 0;
+  background: var(--card); transform: rotate(45deg);
+}
+#gbody .party-scene--spotlight .party-wheel.is-landed .party-wheel-pin { top: calc(-1 * var(--space-12)); width: 22px; height: 22px; left: calc(50% - 11px); }
+#gbody .party-scene--spotlight .party-wheel.is-spinning .party-wheel-disc { animation-timing-function: var(--ease); }
+/* Spin: one line on every phone, full width of the wheel desk. */
+#gbody .party-scene--spotlight .party-spin-desk { width: min(100%, 320px); }
+#gbody .party-scene--spotlight .party-spin-desk .party-wheel { width: 240px; height: 240px; }
+#gbody .party-spin-desk > #drSpin { min-height: var(--control-h-lg); white-space: nowrap; margin-top: var(--space-8); }
+@media (max-height: 640px) {
+  #gbody .party-scene--spotlight .party-spin-desk .party-wheel { width: 180px; height: 180px; }
+}
+#gbody .party-scene--spotlight .dr-recap { font: var(--text-caption); color: var(--ink-dim); max-width: 60ch; margin-inline: auto; }
+
+
+/* ---- Spotlight banner for the player on the dare ---- */
+.party-scene--spotlight .dr-banner {
+  display: flex; align-items: center; gap: var(--space-16); width: 100%; max-width: 700px; margin-inline: auto;
+  padding: var(--space-16) var(--space-24); background: var(--fam-soft); color: var(--ink);
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
+}
+.party-scene--spotlight .dr-banner-icon {
+  flex: none; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%;
+  background: var(--fam); border: var(--outline-w) solid var(--outline); font-size: 28px; line-height: 1;
+}
+.party-scene--spotlight .dr-banner-text { display: grid; gap: var(--space-4); text-align: left; }
+.party-scene--spotlight .dr-banner-text b { font: var(--text-title); color: var(--fam-deep); }
+.party-scene--spotlight .dr-banner-text span { font: var(--text-body); text-wrap: pretty; }
+@media (max-width: 560px) {
+  .party-scene--spotlight .dr-banner { padding: var(--space-12) var(--space-16); gap: var(--space-12); border-radius: var(--radius-lg); }
+  .party-scene--spotlight .dr-banner-icon { width: 44px; height: 44px; font-size: 22px; }
+}
+
+/* ==== Skin: the carnival wheel ====
+ * Scene: soft red and gold carnival rays fan out from behind the wheel.
+ * Signature: the wheel wears a rim of marquee bulbs and a gold pointer on
+ * its own lip; the banner icon sits on a red lip. */
+body.game-playing[data-game="dare-roulette"] {
+  background-image:
+    radial-gradient(46vmax 46vmax at 50% 34%, color-mix(in srgb, var(--sun) 14%, transparent), transparent 70%),
+    repeating-conic-gradient(from 0deg at 50% 34%, color-mix(in srgb, var(--fam) 6%, transparent) 0deg 9deg, transparent 9deg 18deg);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="dare-roulette"] {
+  background-image:
+    radial-gradient(46vmax 46vmax at 50% 34%, color-mix(in srgb, var(--sun) 10%, transparent), transparent 70%),
+    repeating-conic-gradient(from 0deg at 50% 34%, color-mix(in srgb, var(--fam) 7%, transparent) 0deg 9deg, transparent 9deg 18deg);
+}
+#gbody .party-scene--spotlight .party-wheel { isolation: isolate; border-color: var(--fam-lip); box-shadow: 0 var(--lift-lg) 0 var(--fam-lip); }
+/* Marquee bulbs: a red ring just outside the wheel with gold lamps on it. */
+#gbody .party-scene--spotlight .party-wheel::before {
+  content: ""; position: absolute; z-index: -1; inset: -16px; border-radius: 50%;
+  background: repeating-conic-gradient(from -3deg, var(--sun) 0deg 6deg, var(--fam) 6deg 20deg);
+  -webkit-mask: radial-gradient(circle closest-side, transparent calc(100% - 14px), #000 calc(100% - 13px));
+  mask: radial-gradient(circle closest-side, transparent calc(100% - 14px), #000 calc(100% - 13px));
+  pointer-events: none;
+}
+[data-theme="night"] #gbody .party-scene--spotlight .party-wheel::before { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--sun) 60%, transparent)); }
+#gbody .party-scene--spotlight .party-wheel.is-landed::before { inset: -10px; }
+#gbody .party-scene--spotlight .party-wheel-pin {
+  z-index: 3; top: calc(-1 * var(--space-24)); background: var(--sun);
+  border-color: color-mix(in srgb, var(--sun) 70%, #000); box-shadow: 2px 2px 0 color-mix(in srgb, var(--sun) 70%, #000);
+}
+#gbody .party-scene--spotlight .party-wheel.is-landed .party-wheel-pin { top: calc(-1 * var(--space-16)); }
+#gbody .party-scene--spotlight .party-spin-desk .party-wheel { margin-top: var(--space-24); }
+#gbody .party-scene--spotlight .dr-banner-icon { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+
+/* ==== QC ==== */
+/* Night wheel: the hub and the seat chips are tinted discs with a family
+ * rim (no ink), and the slices part on thin card-coloured gaps. */
+[data-theme="night"] #gbody .party-scene--spotlight .party-wheel-disc::after,
+[data-theme="night"] #gbody .party-scene--spotlight .party-wheel-name > span {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card));
+  border-color: color-mix(in srgb, var(--fam) 45%, var(--card));
+}
+[data-theme="night"] #gbody .party-scene--spotlight .party-wheel-name > span { color: var(--ink); }

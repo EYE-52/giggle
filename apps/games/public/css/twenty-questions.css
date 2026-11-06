@@ -133,3 +133,114 @@
 #gbody .tq.pl-fill .tq-hist { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
 #gbody .tq.pl-fill .tq-ans:not(:disabled) { background: var(--card); color: var(--ink); }
 #gbody .tq.pl-fill .tq-hist { max-height: 360px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; padding-right: var(--space-4); }
+
+/* Answer buttons wear their status: Yes success, No danger, Sometimes
+ * warning, each a sticker with the ink outline. */
+#gbody .tq.pl-fill #tqYes:not(:disabled) { background: var(--success-soft); }
+#gbody .tq.pl-fill #tqNo:not(:disabled) { background: var(--danger-soft); }
+#gbody .tq.pl-fill #tqSome:not(:disabled) { background: var(--warning-soft); }
+#gbody .tq.pl-fill .tq-ans:not(:disabled) { color: var(--ink); }
+@media (hover: hover) {
+  #gbody .tq.pl-fill .tq-ans:not(:disabled):hover { transform: translateY(-2px); }
+}
+#gbody .tq.pl-fill .tq-ans:not(:disabled):active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+
+/* History filters: one compact segmented control that never wraps. */
+#gbody .tq.pl-fill .tq-filters {
+  display: flex; flex-wrap: nowrap; gap: 0; width: max-content; max-width: 100%; overflow-x: auto; margin: 0 0 var(--space-8);
+  padding: var(--space-4); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--well);
+  scrollbar-width: none;
+}
+#gbody .tq.pl-fill .tq-filter {
+  flex: none; gap: var(--space-4); min-height: 36px; min-width: 0; padding: 0 var(--space-8);
+  border: 0; border-radius: var(--radius-md); background: transparent; color: var(--ink); font: var(--text-button-sm);
+}
+#gbody .tq.pl-fill .tq-filter .tq-icon { display: none; }
+#gbody .tq.pl-fill .tq-filter[aria-pressed="true"] { background: var(--fam); color: var(--on-fam); }
+#gbody .tq.pl-fill .tq-filter-count { font: var(--text-caption); font-weight: 800; color: inherit; opacity: 0.8; }
+@media (hover: hover) {
+  #gbody .tq.pl-fill .tq-filter:not([aria-pressed="true"]):hover { background: var(--card); }
+}
+
+/* Two columns end close together: the history scrolls sooner. */
+@media (min-width: 760px) {
+  #gbody .tq.pl-fill .tq-hist { max-height: 260px; }
+}
+
+/* Ask and Guess: equal-width buttons so the two fields line up; Guess is
+ * the secondary (card fill, ink outline). */
+#gbody .tq.pl-fill .tq-askrow .gk-btn { min-width: 112px; }
+#gbody .tq.pl-fill #tGSend { background: var(--card); color: var(--ink); border: var(--outline-w) solid var(--outline); box-shadow: var(--shadow-sticker-sm); }
+#gbody .tq.pl-fill .gk-hud-timer { font-variant-numeric: tabular-nums; }
+
+/* ==========================================================================
+ * Mystery-sky skin (2026-11). A scatter of small stars over the page; the
+ * question budget is a row of twenty lamps; the current question sits on a
+ * card with a big question mark watermark. Night: a real night sky.
+ * ========================================================================== */
+body.game-playing[data-game="twenty-questions"] {
+  background-image:
+    radial-gradient(color-mix(in srgb, var(--fam) 20%, transparent) 1px, transparent 1.5px),
+    radial-gradient(color-mix(in srgb, var(--fam) 13%, transparent) 1.5px, transparent 2px);
+  background-size: 90px 90px, 150px 150px; background-position: 0 0, 40px 60px; background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="twenty-questions"] {
+  background-image:
+    radial-gradient(color-mix(in srgb, #ffffff 40%, transparent) 1px, transparent 1.5px),
+    radial-gradient(color-mix(in srgb, var(--fam) 40%, transparent) 1.5px, transparent 2px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--fam) 8%, transparent), transparent 50%);
+  background-size: 90px 90px, 150px 150px, 100% 100%; background-position: 0 0, 40px 60px, 0 0;
+}
+/* Twenty lamps: the budget meter is cut into 20 cells. */
+#gbody .tq.pl-fill .tq-budget {
+  position: relative; height: 16px;
+  background: repeating-linear-gradient(90deg, var(--well) 0 calc(5% - 3px), var(--card) calc(5% - 3px) 5%);
+}
+#gbody .tq.pl-fill .tq-budget::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(5% - 3px), var(--card) calc(5% - 3px) 5%);
+}
+#gbody .tq.pl-fill .tq-spot { position: relative; isolation: isolate; overflow: hidden; }
+#gbody .tq.pl-fill .tq-spot::after {
+  content: "?"; position: absolute; z-index: -1; right: var(--space-24); top: var(--space-4); transform: rotate(12deg);
+  color: color-mix(in srgb, var(--fam) 18%, transparent); font: 800 96px/1 var(--font-display); pointer-events: none;
+}
+[data-theme="night"] #gbody .tq.pl-fill .tq-spot { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 14%, transparent); }
+@media (max-width: 560px) {
+  #gbody .tq.pl-fill .tq-spot::after { font-size: 72px; right: var(--space-12); }
+}
+
+/* ==== QC ==== */
+/* Fainter stars by day, so a dot never sits in a gap between words and
+ * reads as stray punctuation; on phones fainter still. */
+body.game-playing[data-game="twenty-questions"] {
+  background-image:
+    radial-gradient(color-mix(in srgb, var(--fam) 12%, transparent) 1px, transparent 1.5px),
+    radial-gradient(color-mix(in srgb, var(--fam) 8%, transparent) 1.5px, transparent 2px);
+}
+@media (max-width: 600px) {
+  body.game-playing[data-game="twenty-questions"] {
+    background-image:
+      radial-gradient(color-mix(in srgb, var(--fam) 8%, transparent) 1px, transparent 1.5px),
+      radial-gradient(color-mix(in srgb, var(--fam) 6%, transparent) 1.5px, transparent 2px);
+  }
+  [data-theme="night"] body.game-playing[data-game="twenty-questions"] {
+    background-image:
+      radial-gradient(color-mix(in srgb, #ffffff 18%, transparent) 1px, transparent 1.5px),
+      radial-gradient(color-mix(in srgb, var(--fam) 22%, transparent) 1.5px, transparent 2px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--fam) 8%, transparent), transparent 50%);
+  }
+}
+/* Two columns: the desk stretches to the Answered list's height and its
+ * question card fills it, so there is no empty hole under a short card. */
+@media (min-width: 760px) {
+  #gbody .tq.pl-fill .tq-cols { align-items: stretch; }
+  #gbody .tq.pl-fill .tq-cols > .tq-arch { align-self: start; }
+  #gbody .tq.pl-fill .tq-desk { display: flex; flex-direction: column; gap: var(--space-12); }
+  #gbody .tq.pl-fill .tq-desk > .tq-spot { flex: 1 0 auto; }
+}
+/* Night: the fields and cards take the sky's slate-blue, not plum-black. */
+[data-theme="night"] #gbody .tq.pl-fill .tq-askrow .gk-input {
+  background: color-mix(in srgb, var(--fam) 8%, var(--card));
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
+}

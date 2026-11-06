@@ -166,3 +166,125 @@
   .camera-party .cp-ready-row { min-height: 80px; }
 }
 .camera-party .cp-ready-status.gk-meta { font: var(--text-body); color: var(--ink-dim); text-align: center; }
+
+/* ==========================================================================
+ * Polish: the round reads as a show. "On stage" is a lit stage of camera
+ * cards (one per player, avatar large), the column widens on desktop with
+ * the stage beside the prompt, and the call line is a balanced caption.
+ * ========================================================================== */
+.camera-party.ck[data-family] .cp-stage {
+  background:
+    radial-gradient(ellipse 60% 70% at 50% 0%, color-mix(in srgb, var(--warning) 26%, transparent), transparent 70%),
+    var(--fam-soft);
+}
+.camera-party.ck .cp-stage .ck-head h3 { margin: 0; font: var(--text-title); color: var(--ink); }
+.camera-party.ck .cp-stage .ck-roster { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: var(--space-12); }
+.camera-party.ck .cp-stage .ck-player {
+  position: relative; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; justify-items: center;
+  row-gap: var(--space-4); min-height: 136px; padding: var(--space-16) var(--space-8) var(--space-12); text-align: center;
+  border-radius: var(--radius-lg);
+}
+.camera-party.ck .cp-stage .ck-ava { grid-row: auto; width: 56px; height: 56px; font-size: 20px; }
+.camera-party.ck .cp-stage .ck-pname { max-width: 100%; }
+.camera-party.ck .cp-stage .ck-player.is-ready::after,
+.camera-party.ck .cp-stage .ck-player.is-on::after {
+  position: absolute; top: calc(var(--space-8) * -1); right: var(--space-8); padding: 2px var(--space-8);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); box-shadow: var(--shadow-sticker-sm);
+  font: var(--text-caption); font-weight: 800; transform: rotate(3deg);
+}
+.camera-party.ck .cp-stage .ck-player.is-on::after { content: "LIVE"; background: var(--danger); color: var(--on-danger); }
+.camera-party.ck .cp-stage .ck-player.is-ready::after { content: "✓"; background: var(--success); color: var(--on-success); }
+.camera-party.ck .cp-call { font: var(--text-caption); color: var(--ink-dim); text-wrap: balance; max-width: 48ch; margin-inline: auto; }
+
+@media (min-width: 1024px) {
+  .camera-party:not(.gk-final) {
+    display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; align-content: start;
+    column-gap: var(--space-24); row-gap: var(--space-16); max-width: 1040px;
+  }
+  .camera-party:not(.gk-final) > * { grid-column: 1; min-width: 0; margin: 0; }
+  .camera-party:not(.gk-final) > .cp-head { grid-column: 1 / -1; }
+  .camera-party:not(.gk-final) > .cp-stage { grid-column: 2; grid-row: 2 / span 4; }
+  .camera-party:not(.gk-final) > .cp-scores { grid-column: 2; }
+  .camera-party:not(.gk-final) > .cp-call { grid-column: 1 / -1; margin-inline: auto; }
+  .camera-party.ck .cp-stage .ck-roster { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Show and Go: the HUD carries the found count; the stage card does not repeat it. */
+.camera-party[data-game="show-and-go"] .cp-stage-count { display: none; }
+
+/* ==========================================================================
+ * Skin (round 2). Pose Party is a photo shoot: two soft spotlight beams
+ * cross the page from the top corners and the prompt card is a backdrop
+ * with film-strip sprockets along its top. Show & Go is a scavenger hunt:
+ * a dotted map page and the prompt card is a clue card with a dashed cut
+ * line. Night: the beams warm up and a ready camera card glows. Every
+ * selector starts at the toolkit root; the page scene is a fixed layer
+ * behind the column (the root's ::before), so nothing leaks into the shell.
+ * ========================================================================== */
+.camera-party.ck[data-family] { position: relative; }
+.camera-party.ck[data-family]::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+}
+.camera-party.ck:is(body[data-game="pose-party"] *)::before {
+  --cp-beam: color-mix(in srgb, var(--fam) 8%, transparent);
+  background:
+    conic-gradient(from 148deg at 6% -4%, transparent 0deg, var(--cp-beam) 6deg, transparent 22deg),
+    conic-gradient(from 190deg at 94% -4%, transparent 0deg, var(--cp-beam) 16deg, transparent 22deg);
+}
+.camera-party.ck:is([data-theme="night"] body[data-game="pose-party"] *)::before { --cp-beam: color-mix(in srgb, #ffd9a8 6%, transparent); }
+.camera-party.ck:is(body[data-game="show-and-go"] *)::before {
+  background: radial-gradient(circle, color-mix(in srgb, var(--fam) 22%, transparent) 0 1.6px, transparent 2px) 0 0 / 26px 26px;
+}
+.camera-party.ck:is([data-theme="night"] body[data-game="show-and-go"] *)::before {
+  background: radial-gradient(circle, color-mix(in srgb, var(--fam) 18%, transparent) 0 1.6px, transparent 2px) 0 0 / 26px 26px;
+}
+
+/* The prompt card: film-strip sprockets (Pose Party), a clue card (Show & Go). */
+.camera-party.ck[data-family] .cp-prompt-card { position: relative; }
+.camera-party.ck:is(body[data-game="pose-party"] *) .cp-prompt-card::before {
+  content: ""; position: absolute; left: var(--space-24); right: var(--space-24); top: 6px; height: 8px; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--fam) 30%, transparent) 0 2.5px, transparent 3px) 0 0 / 16px 8px space no-repeat;
+}
+.camera-party.ck:is(body[data-game="show-and-go"] *) .cp-prompt-card {
+  outline: 2px dashed color-mix(in srgb, var(--fam) 40%, transparent); outline-offset: -10px;
+}
+/* Night: a ready camera card glows a little. */
+.camera-party.ck:is([data-theme="night"] *) .cp-stage .ck-player.is-ready { box-shadow: 0 var(--lift-sm) 0 var(--outline), 0 0 18px color-mix(in srgb, var(--success) 26%, transparent); }
+
+/* QC (night): "ready" is a green tint of this game's own card, not the
+ * shared forest-green surface, so the stage keeps one hue family. */
+.camera-party.ck:is([data-theme="night"] *) {
+  --cp-ok: color-mix(in srgb, var(--success) 16%, var(--card));
+}
+.camera-party.ck:is([data-theme="night"] *) .cp-stage .ck-player.is-ready,
+.camera-party.ck:is([data-theme="night"] *) .cp-ready-status.tb-badge.is-live {
+  background: var(--cp-ok); border-color: color-mix(in srgb, var(--success) 30%, var(--card));
+}
+.camera-party.ck:is([data-theme="night"] *) .cp-stage .ck-ava { border-color: color-mix(in srgb, var(--fam) 30%, var(--card)); }
+/* QC: the stage light is the game's own colour at low strength, not a
+ * yellow wash that turns to a muddy stain on the slate (Show & Go). */
+.camera-party.ck[data-family] .cp-stage {
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 0%, color-mix(in srgb, var(--fam) 16%, transparent), transparent 70%),
+    var(--fam-soft);
+  border-color: var(--ck-tint-rim); box-shadow: 0 var(--lift) 0 var(--ck-tint-lip);
+}
+/* Pose Party: the stage stands on a wooden floor. */
+.camera-party.ck:is(body[data-game="pose-party"] *) .cp-stage {
+  padding-bottom: calc(var(--space-24) + 14px);
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 0%, color-mix(in srgb, var(--fam) 16%, transparent), transparent 70%),
+    linear-gradient(0deg, color-mix(in srgb, var(--fam) 34%, var(--card)) 0 4px, color-mix(in srgb, var(--fam) 20%, var(--card)) 4px 14px, transparent 14px),
+    var(--fam-soft);
+}
+@media (max-width: 560px) {
+  .camera-party.ck:is(body[data-game="pose-party"] *) .cp-stage { padding-bottom: calc(var(--space-16) + 14px); }
+}
+/* QC (phones): the timer ring tucks into the prompt card's corner, so the
+ * prompt gets the card's full width instead of 60% of it. */
+@media (max-width: 480px) {
+  .camera-party.ck .cp-prompt-card { grid-template-columns: minmax(0, 1fr); }
+  .camera-party.ck .cp-prompt-card .cp-ring { position: absolute; top: var(--space-12); right: var(--space-12); width: 56px; height: 56px; }
+  .camera-party.ck .cp-prompt-card .cp-ring .ck-ring-num { font-size: 18px; }
+  .camera-party.ck .cp-prompt-text > :first-child { margin-right: 64px; }
+  .camera-party.ck .cp-prompt-text > .cp-kicker:empty + * { margin-right: 64px; }
+}

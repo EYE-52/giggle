@@ -23,3 +23,57 @@
   .fa-scene .gk-choice { min-height: 48px; padding-block: 8px; }
   .fa-scene .pb-share { margin-top: 5px; }
 }
+
+/* Anonymous vote: letter badges never wear a player colour (that would
+ * hint at the author). Every card uses the family colour, in one column
+ * of real cards at title size. */
+#gbody .fa-scene.pl-fill :is(.gk-choices, .party-choices) > * { --side: var(--fam); --on-side: var(--on-fam); }
+#gbody .fa-scene.pl-fill .gk-choice .gk-mark { background: var(--card); color: var(--ink); border-color: var(--outline); }
+#gbody .fa-scene.pl-fill .gk-choice:is(.is-selected, [aria-pressed="true"]) .gk-mark { background: var(--fam); color: var(--on-fam); }
+#gbody .fa-scene.pl-fill .gk-choices:not(.fa-list) { max-width: 720px; width: 100%; margin-inline: auto; }
+#gbody .fa-scene.pl-fill .gk-choices:not(.fa-list) .gk-choice { min-height: 72px; font: var(--text-title); }
+/* Locked: the other cards keep their sticker outline; only the pick is filled. */
+#gbody .fa-scene.pl-fill .gk-choices.is-locked > .gk-choice:not(.is-selected):not([aria-pressed="true"]):not(.is-dim) {
+  border-color: var(--outline); box-shadow: var(--shadow-sticker-sm);
+}
+#gbody .fa-scene.pl-fill .gk-choices.is-locked > .gk-choice:not(.is-selected):not([aria-pressed="true"]) .gk-mark { color: var(--ink); border-color: var(--outline); }
+#gbody .fa-scene.pl-fill .gk-choice .gk-meta { font: var(--text-caption); }
+
+/* ==========================================================================
+ * Comedy-club skin (2026-11). A brick back wall under a warm spotlight; the
+ * prompt is a speech bubble from the mic. Night: the club after dark, the
+ * spotlight a little stronger.
+ * ========================================================================== */
+body.game-playing[data-game="funny-answer"] {
+  background-image:
+    radial-gradient(ellipse 44% 50% at 50% 0%, color-mix(in srgb, var(--fam) 22%, transparent), transparent 74%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='36'%3E%3Cpath d='M0 .5h72M0 18.5h72M.5 0v18M36.5 18v18' stroke='%23b04a2a' stroke-opacity='.1' fill='none'/%3E%3C/svg%3E");
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="funny-answer"] {
+  background-image:
+    radial-gradient(ellipse 44% 54% at 50% 0%, color-mix(in srgb, var(--fam) 26%, transparent), transparent 74%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='36'%3E%3Cpath d='M0 .5h72M0 18.5h72M.5 0v18M36.5 18v18' stroke='%23ffb59a' stroke-opacity='.06' fill='none'/%3E%3C/svg%3E");
+}
+#gbody .fa-scene.pl-fill > .gk-prompt {
+  position: relative; margin-bottom: var(--space-12); background: var(--card);
+  border-color: color-mix(in srgb, var(--fam) 34%, var(--outline)); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+/* The bubble's tail, on the same lip as the card. */
+#gbody .fa-scene.pl-fill > .gk-prompt::after {
+  content: ""; position: absolute; left: 18%; bottom: -14px; width: 26px; height: 26px; pointer-events: none;
+  background: var(--card); border: solid color-mix(in srgb, var(--fam) 34%, var(--outline)); border-width: 0 var(--outline-w-lg) var(--outline-w-lg) 0;
+  box-shadow: var(--lift-sm) var(--lift-sm) 0 var(--fam-lip);
+  transform: rotate(45deg); border-bottom-right-radius: var(--radius-sm);
+}
+[data-theme="night"] #gbody .fa-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
+[data-theme="night"] #gbody .fa-scene.pl-fill > .gk-prompt::after { box-shadow: var(--lift-sm) var(--lift-sm) 0 var(--outline); }
+@media (max-width: 560px) { #gbody .fa-scene.pl-fill > .gk-prompt::after { width: 20px; height: 20px; bottom: -11px; } }
+
+/* QC: unpicked letter discs are peach-tinted chips with a family rim in
+ * both themes, never a dark disc in an ink ring on a dark card. */
+#gbody .fa-scene.pl-fill .gk-choices > .gk-choice:not(.is-selected):not([aria-pressed="true"]) .gk-mark,
+#gbody .fa-scene.pl-fill .gk-choices.is-locked > .gk-choice:not(.is-selected):not([aria-pressed="true"]) .gk-mark {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card)); color: var(--ink);
+  border-color: color-mix(in srgb, var(--fam) 42%, var(--card));
+}

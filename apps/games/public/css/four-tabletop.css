@@ -1,18 +1,35 @@
-/* Four in a Row board art: a flat blue rack over token-coloured slots. */
-.fr-duel{--bk-aspect:1.12}
-.fr-duel .fr-slots circle{fill:var(--well)}
-.fr-duel .fr-rack{fill:#2f5fcf}
-html[data-theme=night] .fr-duel .fr-rack,body.is-embed .fr-duel .fr-rack{fill:#3a6be0}
+/* Four in a Row: a real blue plastic rack standing on two feet. Glossy
+ * plastic (a highlight across the top), darker moulded rims round every
+ * hole and the rack sits on its own darker blue lip; the holes show the
+ * playroom behind. No ink rims. Night dims the room, not the counters. */
+.fr-duel{--bk-aspect:1.016;--fr-plastic:#2f62d6;--fr-rim:#2149ad;--fr-lip:#16348a;--fr-hole:#e9e3d6;--fr-room:#fbf6ea;--fr-room-2:#efe5cf}
+html[data-theme=night] .fr-duel{--fr-plastic:#2d5ccc;--fr-rim:#1e43a0;--fr-lip:#0b1a45;--fr-hole:#1a1712;--fr-room:#28211a;--fr-room-2:#17130e}
+.bk-game.fr-duel{background:radial-gradient(110% 75% at 50% 30%,var(--fr-room),var(--fr-room-2))}
+.fr-duel .fr-slots circle{fill:var(--fr-hole)}
+.fr-duel .fr-rack{fill:var(--fr-plastic);stroke:none}
+.fr-duel .fr-gloss{pointer-events:none}
+.fr-duel .fr-frame{filter:drop-shadow(0 6px 0 var(--fr-lip))}
+.fr-duel .fr-foot{fill:var(--fr-rim);stroke:none}
+.fr-duel .fr-rims circle{fill:none;stroke:var(--fr-rim);stroke-width:5;pointer-events:none}
 .fr-duel .fr-counter{pointer-events:none}
 .fr-duel .fr-drop{animation:fr-drop .6s cubic-bezier(.35,.02,.75,.8) both}
 @keyframes fr-drop{0%{transform:translateY(var(--drop))}72%{transform:translateY(0)}84%{transform:translateY(-10px)}94%{transform:translateY(0)}100%{transform:translateY(0)}}
-.fr-duel .fr-preview{opacity:0;pointer-events:none;transition:opacity .12s}
+.fr-duel .fr-preview{opacity:0;pointer-events:none;transition:opacity var(--dur-quick) var(--ease)}
 .fr-duel .fr-preview.is-visible{opacity:1}
 .fr-duel .fr-preview-beam{fill:#ffffff;opacity:.14}
 .fr-duel .fr-win{opacity:0;pointer-events:none}
-.fr-duel .fr-settled .fr-win{opacity:1;transition:opacity .2s}
-.fr-duel .fr-cursor{stroke:var(--accent);stroke-width:3;opacity:0;pointer-events:none}
+.fr-duel .fr-settled .fr-win{opacity:1;transition:opacity var(--dur-quick) var(--ease)}
+.fr-duel .fr-cursor{stroke:var(--sun,#f6d365);stroke-width:4;opacity:0;pointer-events:none}
 .fr-duel [data-column]{outline:none}
 .fr-duel [data-column][aria-disabled=false]{cursor:pointer}
 /* The column cue shows only where you can drop now (never on their turn or after the end). */
 .fr-duel [data-column][aria-disabled=false]:focus-visible .fr-cursor{opacity:1}
+/* QC: the rack stands on a floor (a soft contact shadow under its feet),
+ * and at night the plastic is a deeper, calmer blue so it does not glare
+ * on the dark room. */
+.fr-duel .fr-stage>svg{position:relative;z-index:1}
+.fr-duel .fr-stage::before{content:"";position:absolute;left:2%;right:2%;bottom:-14px;height:32px;border-radius:50%;
+ background:radial-gradient(closest-side,color-mix(in srgb,var(--ink) 18%,transparent),transparent);pointer-events:none}
+html[data-theme=night] .fr-duel{--fr-plastic:#2a4c9e;--fr-rim:#1d3a80;--fr-lip:#0a173c}
+html[data-theme=night] .fr-duel .fr-gloss{opacity:.6}
+html[data-theme=night] .fr-duel .fr-stage::before{background:radial-gradient(closest-side,#00000080,transparent)}

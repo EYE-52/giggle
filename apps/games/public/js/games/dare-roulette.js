@@ -51,12 +51,23 @@ function person(S, pid, cls, note) {
 }
 
 
+/* The spotlight player's banner: what to do now, in one look. */
+function banner(icon, title, text) {
+  return `<div class="dr-banner" role="status"><span class="dr-banner-icon" aria-hidden="true">${icon}</span>`
+    + `<span class="dr-banner-text"><b>${esc(title)}</b><span>${esc(text)}</span></span></div>`;
+}
+
 function wheel(S, landed = false) {
   const players = S.players || [];
   // The live strip's seat colours, so a slice and its player's seat match.
   const colors = ['var(--fam-party)', 'var(--fam-board)', 'var(--fam-create)', 'var(--fam-arcade)', 'var(--sun)'];
   const count = Math.max(1, players.length);
-  const segments = players.map((p, i) => `${colors[i % colors.length]} ${i / count * 360}deg ${(i + 1) / count * 360}deg`).join(', ');
+  // Each slice ends in a thin card-coloured gap, never an ink line.
+  const edge = count > 1 ? 1.4 : 0;
+  const segments = players.map((p, i) => {
+    const a = i / count * 360, b = (i + 1) / count * 360, c = colors[i % colors.length];
+    return edge ? `${c} ${a}deg ${b - edge}deg, var(--wheel-edge, var(--card)) ${b - edge}deg ${b}deg` : `${c} ${a}deg ${b}deg`;
+  }).join(', ');
   const picked = players.findIndex(p => p.id === S.victim);
   const angle = landed && picked >= 0 ? -(picked + .5) / count * 360 : 0;
   return `<div class="party-wheel${landed ? ' is-landed' : ''}" style="--wheel-angle:${angle}deg" aria-label="${landed ? 'Wheel landed on ' + esc(nameOf(S, S.victim)) : 'Wheel with ' + players.length + ' players'}" role="img"><div class="party-wheel-disc" style="background:conic-gradient(${segments || '#ffd25c'})">${players.map((p, i) => `<span class="party-wheel-name" style="--seat-angle:${(i + .5) / count * 360}deg"><span>${esc(initial(p.name))}</span></span>`).join('')}</div><span class="party-wheel-pin" aria-hidden="true"></span></div>`;
@@ -133,12 +144,12 @@ function paint(el, S, api) {
       const waiting = Math.max(0, jurors.length - votedSet.size);
       if (S.phase === 'perform') {
         action = !watch && isVictim
-          ? `<p class="gk-wait" role="status">Perform your dare, then open the vote.</p><div class="gk-actions is-center"><button type="button" class="gk-btn gk-primary" id="drReady">Ready for votes</button></div>`
+          ? banner('🎬', 'Do the dare now', 'Tap Ready for votes when you are done.') + `<div class="gk-actions is-center"><button type="button" class="gk-btn gk-primary" id="drReady">Ready for votes</button></div>`
           : `<p class="gk-wait" role="status">${esc(nameOf(S, S.victim))} is performing. Voting opens after the performance.</p>`;
       } else if (watch) {
         action = `<p class="gk-wait" role="status">Watching · the room is judging ${esc(nameOf(S, S.victim))}'s dare.</p>`;
       } else if (isVictim) {
-        action = `<p class="gk-wait" role="status">The other players are judging your dare · waiting for ${plural(waiting, 'player')}</p>`;
+        action = banner('🎤', 'The room is judging your dare', `Done or Chicken? Waiting for ${plural(waiting, 'player')}.`);
       } else if (S.myVote) {
         action = `<p class="gk-wait" role="status">Locked in: ${S.myVote === 'done' ? 'Done' : 'Chicken'} · waiting for ${plural(waiting, 'player')}</p>`;
       } else {

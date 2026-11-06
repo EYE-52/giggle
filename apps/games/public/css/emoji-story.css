@@ -58,3 +58,78 @@
 .es-scene.ck .es-preview { display: flex; flex-direction: column; gap: var(--space-12); }
 .es-scene.ck .es-preview-text { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-12); min-height: 112px; align-items: center; }
 .es-scene.ck .es-preview-text .es-slot { animation: none; opacity: .6; }
+
+/* Waiting tray: the emoji row is the hero. Solid skeleton tiles (no
+ * dashed outlines that break at the corners) on a tinted sticker tray,
+ * and the note at body size; the wait card below stays compact. */
+.es-scene.ck .es-tray { display: grid; justify-items: center; gap: var(--space-12); }
+.es-scene.ck .es-tray .es-slots { padding: 0; }
+.es-scene.ck .es-slot {
+  width: 88px; height: 88px; border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-lg);
+  background: var(--well);
+}
+.es-scene.ck .es-tray .es-slot { animation-name: es-pulse; animation-duration: 1.4s; }
+@keyframes es-pulse { from { opacity: .5; } to { opacity: 1; } }
+.es-scene.ck .es-tray .es-slots-note { margin: 0; font: var(--text-body); color: var(--ink); text-align: center; text-wrap: pretty; }
+.es-scene.ck .es-wait .gk-wait-card { padding: var(--space-16) var(--space-24); gap: var(--space-8); }
+.es-scene.ck .es-wait .gk-wait-card .gk-wait-title { font: var(--text-title); }
+.es-scene.ck .es-preview-text .es-slot { width: 64px; height: 64px; }
+@media (max-width: 560px) {
+  .es-scene.ck .es-slot { width: 52px; height: 52px; border-radius: var(--radius-md); }
+  .es-scene.ck .es-preview-text .es-slot { width: 48px; height: 48px; }
+  .es-scene.ck .es-wait .gk-wait-card { padding: var(--space-12) var(--space-16); }
+}
+@media (prefers-reduced-motion: reduce) { .es-scene.ck .es-tray .es-slot { animation: none; } }
+
+/* ==========================================================================
+ * Sunny-chat skin (2026-11). Soft sun rays fan out from the top of the
+ * page; the emoji story (and the waiting tray) is a chat bubble with a tail.
+ * Night: the rays fade to a warm glow.
+ * ========================================================================== */
+body.game-playing[data-game="emoji-story"] {
+  background-image:
+    radial-gradient(ellipse 70% 80% at 50% 0%, transparent 20%, var(--bg) 78%),
+    repeating-conic-gradient(from 0deg at 50% 0%, color-mix(in srgb, var(--fam) 16%, transparent) 0 5deg, transparent 5deg 12deg);
+  background-repeat: no-repeat; background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="emoji-story"] {
+  background-image:
+    radial-gradient(ellipse 70% 80% at 50% 0%, transparent 15%, var(--bg) 75%),
+    repeating-conic-gradient(from 0deg at 50% 0%, color-mix(in srgb, var(--fam) 9%, transparent) 0 5deg, transparent 5deg 12deg);
+}
+.es-scene.ck :is(.es-emoji, .es-tray) { position: relative; }
+.es-scene.ck .es-emoji { border-color: color-mix(in srgb, var(--fam) 40%, var(--outline)); box-shadow: 0 var(--lift-lg) 0 var(--fam-lip); }
+.es-scene.ck .es-emoji::after {
+  content: ""; position: absolute; left: var(--space-48); bottom: -14px; width: 26px; height: 26px; pointer-events: none;
+  background: var(--card); border: solid color-mix(in srgb, var(--fam) 40%, var(--outline)); border-width: 0 var(--outline-w-lg) var(--outline-w-lg) 0;
+  box-shadow: var(--lift-sm) var(--lift-sm) 0 var(--fam-lip); transform: rotate(45deg); border-bottom-right-radius: var(--radius-sm);
+}
+[data-theme="night"] .es-scene.ck .es-emoji { box-shadow: 0 var(--lift-lg) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
+[data-theme="night"] .es-scene.ck .es-emoji::after { box-shadow: var(--lift-sm) var(--lift-sm) 0 var(--outline); }
+.es-scene.ck .es-emoji + * { margin-top: var(--space-8); }
+@media (max-width: 560px) { .es-scene.ck .es-emoji::after { left: var(--space-24); width: 20px; height: 20px; bottom: -11px; } }
+
+/* ==== QC ==== */
+/* The tail carries the bubble's full lip (straight down, as thick as the
+ * bubble's), so the lip runs on round the tail instead of breaking. */
+.es-scene.ck .es-emoji::after {
+  box-shadow: calc(var(--lift-lg) * .7071) calc(var(--lift-lg) * .7071) 0 var(--fam-lip);
+}
+/* Night: the bubble keeps a family lip and only a faint warm halo. */
+[data-theme="night"] .es-scene.ck .es-emoji { box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--fam) 30%, #0c0a10); }
+[data-theme="night"] .es-scene.ck .es-preview.ck-card.is-tint {
+  background: color-mix(in srgb, var(--fam) 9%, var(--card));
+  box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--fam) 26%, #0c0a10);
+}
+[data-theme="night"] .es-scene.ck .es-emoji::after { box-shadow: calc(var(--lift-lg) * .7071) calc(var(--lift-lg) * .7071) 0 color-mix(in srgb, var(--fam) 30%, #0c0a10); }
+/* The rays stay off the header and the text column: fainter by day, and
+ * at Night only a warm glow from the top (dim stripes read as dirt). */
+body.game-playing[data-game="emoji-story"] {
+  background-image:
+    linear-gradient(to bottom, var(--bg) 0, transparent 260px),
+    radial-gradient(ellipse 70% 80% at 50% 0%, transparent 20%, var(--bg) 78%),
+    repeating-conic-gradient(from 0deg at 50% 0%, color-mix(in srgb, var(--fam) 9%, transparent) 0 5deg, transparent 5deg 12deg);
+}
+[data-theme="night"] body.game-playing[data-game="emoji-story"] {
+  background-image: radial-gradient(ellipse 80% 50% at 50% 0%, color-mix(in srgb, var(--fam) 12%, transparent), transparent 75%);
+}

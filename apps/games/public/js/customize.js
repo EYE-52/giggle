@@ -3,6 +3,7 @@
  * re-renders never eat drafts. Guests see the same panel read-only with
  * safe summaries (pack contents never leave the server). */
 import { esc, store } from './util.js';
+import { segPickerHtml, stepperHtml, wirePickers, syncPickers } from './pickers.js';
 import { kartSetupHtml, wireKartSetup, syncKartSetup } from './kart-setup.js';
 
 let saveSequence = 0;
@@ -87,6 +88,7 @@ function syncHostControls() {
     el.disabled = !dlg.host || !!dlg.pending;
   });
   syncKartSetup(dlg.game);
+  syncPickers(document.getElementById('dlg-root'));
 }
 
 /* Update counts + host state without touching typed drafts. */
@@ -190,15 +192,18 @@ function settingField(g, s, current, host) {
   if (s.type === 'enum') {
     const opts = (s.options || []).map((o) =>
       `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('');
-    return `<div class="dlg-field"><label class="conflabel" for="${id}">${esc(s.label || s.key)}</label>
-      <select id="${id}" data-hostonly ${dis}>${opts}</select></div>`;
+    // The native select stays (forms, presets and tests read it); people
+    // pick from the segmented track or chips beside it.
+    return `<div class="dlg-field"><label class="conflabel" id="${id}-l" for="${id}">${esc(s.label || s.key)}</label>
+      <select id="${id}" class="picker-native" data-hostonly ${dis} tabindex="-1" aria-hidden="true">${opts}</select>
+      ${segPickerHtml(id, s.options || [], val, `${id}-l`, !host)}</div>`;
   }
   const auto = s.def === null || s.def === undefined;
   return `<div class="dlg-field"><label class="conflabel" for="${id}">${esc(s.label || s.key)}
       <span class="muted small">(${s.min}–${s.max}${auto ? ', blank = ' + esc(s.autoLabel || 'auto') : ''})</span></label>
-    <input id="${id}" data-hostonly type="number" min="${s.min}" max="${s.max}"
+    ${stepperHtml(id, `<input id="${id}" data-hostonly type="number" inputmode="numeric" min="${s.min}" max="${s.max}"
       value="${val === null || val === undefined ? '' : val}"
-      placeholder="${auto ? esc(s.autoLabel || 'Auto') : ''}" ${dis}></div>`;
+      placeholder="${auto ? esc(s.autoLabel || 'Auto') : ''}" ${dis}>`, { min: Number(s.min), max: Number(s.max), label: s.label || s.key, disabled: !host })}</div>`;
 }
 
 function packField(g, p, meta, host) {
@@ -270,6 +275,7 @@ function fillDialog(g, settings, pack) {
     else if (s.type === 'enum') el.value = settings[s.key];
     else el.value = settings[s.key] === null ? '' : settings[s.key];
   }
+  syncPickers(document.getElementById('dlg-root'));
   for (const p of (g.schema.packs || [])) {
     const el = document.getElementById(`dp-${g.id}-${p.key}`);
     if (!el || !pack || !pack[p.key]) continue;
@@ -317,6 +323,7 @@ export function openCustomizer({ game, config, host, opener, initialField, onSav
     </div>
   </div>`;
   const say = (m) => { if (toast) toast(m); };
+  if (!kart) wirePickers(root);
 
   document.getElementById('dlgClose').onclick = () => { closeCustomizer(); };
   document.getElementById('dlgOverlay').addEventListener('mousedown', (e) => {
@@ -352,6 +359,7 @@ export function openCustomizer({ game, config, host, opener, initialField, onSav
         else el.value = s.def === null || s.def === undefined ? '' : s.def;
       }
     }
+    syncPickers(root);
     for (const p of (schema.packs || [])) {
       const el = document.getElementById(`dp-${g.id}-${p.key}`);
       if (el) {

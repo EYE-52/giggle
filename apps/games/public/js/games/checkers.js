@@ -8,16 +8,20 @@ const text = key => state?.strings?.[key] || key;
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function listen(node, type, fn) { node.addEventListener(type, fn); bound.push([node, type, fn]); }
 function coord(i) { let r = Math.floor(i / 8), c = i % 8; if (flipped) { r = 7 - r; c = 7 - c; } return { x: 64 + c * 96, y: 64 + r * 96 }; }
-const PIECE = { 0: ['#d9434e', '#a52a35', '#f08a91'], 1: ['#363a43', '#1b1d22', '#6b707b'] };
+/* Classic checkers: [face, edge, groove, rim]. The edge is the disc's
+ * thickness under it; dark discs get a pewter rim so they read on the dark
+ * playing squares. */
+const PIECE = { 0: ['#d9434e', '#8f2430', '#f08a91', '#a52a35'], 1: ['#41444d', '#141518', '#7d828d', '#9aa0ab'] };
 function token(piece, x, y, opacity = 1) {
-  const [fill, edge, ring] = PIECE[sideOf(piece)], crowned = piece > 2;
+  const [fill, edge, ring, rim] = PIECE[sideOf(piece)], crowned = piece > 2;
   return `<g transform="translate(${x} ${y})" opacity="${opacity}">
-    <circle r="36" fill="${fill}" stroke="${edge}" stroke-width="3"/>
+    <circle cy="6" r="36" fill="${edge}"/>
+    <circle r="36" fill="${fill}" stroke="${rim}" stroke-width="3"/>
     <circle r="25" fill="none" stroke="${ring}" stroke-width="3" opacity=".7"/>
     ${crowned ? '<path d="M-17 8L-20 -11L-9 -2L0 -16L9 -2L20 -11L17 8Z" fill="#f6c445" stroke="#b7861b" stroke-width="2" stroke-linejoin="round"/>' : ''}
   </g>`;
 }
-function chip(side) { return `<svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="13" fill="${PIECE[side][0]}" stroke="${PIECE[side][1]}" stroke-width="2"/><circle cx="15" cy="15" r="8" fill="none" stroke="${PIECE[side][2]}" stroke-width="1.5"/></svg>`; }
+function chip(side) { return `<svg viewBox="0 0 30 30"><circle cx="15" cy="15" r="13" fill="${PIECE[side][0]}" stroke="${PIECE[side][3]}" stroke-width="2"/><circle cx="15" cy="15" r="8" fill="none" stroke="${PIECE[side][2]}" stroke-width="1.5"/></svg>`; }
 function svg(board, floating) {
   let squares = '', pieces = '';
   const last = state?.lastMove && !moving ? new Set([state.lastMove.from, state.lastMove.to]) : new Set();

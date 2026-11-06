@@ -1,0 +1,126 @@
+/* Reaction Tap: the pad is an arcade cabinet with one big round button.
+ * The button is grey while you wait, green on GO (the copy says "wait for
+ * green"), orange with a check once you are locked in, and red with a cross
+ * on a foul. The pad grows to fill the stage so no blank bands remain.
+ * Tokens only; shared .wg parts live in compact-answer-games.css. */
+
+/* Stage: the pad takes the free height instead of auto margins. */
+#gbody .rt.pl-fill[data-phase="play"] > .gk-hud + * { margin-top: 0; }
+#gbody .rt.pl-fill[data-phase="play"] > .pl-live { margin-top: 0; }
+#gbody .rt.pl-fill .rt-pad {
+  flex: 1 1 auto;
+  display: grid; grid-template-rows: auto auto; align-content: center; justify-items: center; gap: var(--space-16);
+  min-height: clamp(240px, 40vh, 360px); max-height: 50vh;
+  padding: var(--space-24);
+  background: var(--card); color: var(--ink);
+  font: var(--text-heading); text-wrap: balance;
+  transition: transform var(--dur-quick) var(--ease);
+}
+#gbody .rt.pl-fill .rt-pad::before {
+  content: "\2022\2022\2022"; display: grid; place-items: center; box-sizing: border-box; color: var(--ink-dim);
+  width: clamp(120px, 22vh, 200px); aspect-ratio: 1;
+  border: 4px solid var(--outline); border-radius: 50%;
+  background: var(--well);
+  box-shadow: inset 0 calc(-1 * var(--space-12)) 0 color-mix(in srgb, var(--outline) 14%, transparent), var(--shadow-sticker-lg);
+  font: 800 clamp(48px, 9vh, 80px)/1 var(--font-display);
+  transition: transform var(--dur-quick) var(--ease);
+}
+/* Signature: a start-light gantry above the button (2026-11 skin). Red and
+ * amber burn while you wait, only green burns on GO, green stays on once
+ * you are locked in, and red flashes alone on a foul. The housing is game
+ * art, so it stays dark in both themes. */
+#gbody .rt.pl-fill .rt-pad {
+  grid-template-rows: auto auto auto;
+  --rt-off: #4a4450; --rt-red: var(--rt-off); --rt-amber: var(--rt-off); --rt-green: var(--rt-off);
+}
+#gbody .rt.pl-fill .rt-pad.is-wait { --rt-red: #ff5a4f; --rt-amber: #ffb020; }
+#gbody .rt.pl-fill .rt-pad.is-go, #gbody .rt.pl-fill .rt-pad.is-tapped { --rt-red: var(--rt-off); --rt-amber: var(--rt-off); --rt-green: #3ddc84; }
+#gbody .rt.pl-fill .rt-pad.is-fouled { --rt-red: #ff5a4f; --rt-amber: var(--rt-off); --rt-green: var(--rt-off); }
+#gbody .rt.pl-fill .rt-pad::before { grid-row: 2; }
+#gbody .rt.pl-fill .rt-pad::after {
+  content: ""; grid-row: 1; box-sizing: border-box; width: 152px; height: 52px; border-radius: var(--radius-pill);
+  background:
+    radial-gradient(circle at 26px 50%, var(--rt-red) 0 14px, transparent 15px),
+    radial-gradient(circle at 76px 50%, var(--rt-amber) 0 14px, transparent 15px),
+    radial-gradient(circle at 126px 50%, var(--rt-green) 0 14px, transparent 15px),
+    linear-gradient(180deg, #34303a, #231f28);
+  box-shadow: inset 0 2px 0 #ffffff1a, 0 var(--lift) 0 #15121a;
+}
+[data-theme="night"] #gbody .rt.pl-fill .rt-pad.is-go:not(.is-fouled):not(.is-tapped)::before { box-shadow: 0 0 0 6px color-mix(in srgb, var(--success) 30%, transparent), 0 0 40px color-mix(in srgb, var(--success) 45%, transparent), var(--shadow-sticker-lg); }
+/* Light: the cabinet sits on a soft green lip; the page is the game tint. */
+#gbody .rt.pl-fill .rt-pad { border-color: var(--outline); box-shadow: var(--shadow-sticker-lg); }
+#gbody .rt.pl-fill .rt-pad.is-go:not(.is-fouled):not(.is-tapped) { border-color: color-mix(in srgb, var(--success) 60%, var(--outline)); }
+
+/* GO: the whole cabinet lights up; the button is the target. */
+#gbody .rt.pl-fill .rt-pad.is-go { background: var(--success-soft); color: var(--ink); }
+#gbody .rt.pl-fill .rt-pad.is-go::before { content: "GO"; background: var(--success); color: var(--on-success); }
+#gbody .rt.pl-fill .rt-pad.is-tapped { background: var(--fam-soft); color: var(--ink); }
+#gbody .rt.pl-fill .rt-pad.is-tapped::before { content: "\2713"; background: var(--fam); color: var(--on-fam); }
+#gbody .rt.pl-fill .rt-pad.is-fouled { background: var(--card); color: var(--ink); }
+#gbody .rt.pl-fill .rt-pad.is-fouled::before { content: "\2715"; background: var(--danger-soft); color: var(--danger); }
+/* Press: the button sinks onto its shadow; the cabinet stays put. */
+#gbody .rt.pl-fill .rt-pad:not(:disabled):active { transform: none; box-shadow: var(--shadow-sticker-lg); }
+#gbody .rt.pl-fill .rt-pad:not(:disabled):active::before {
+  transform: translateY(var(--lift-lg));
+  box-shadow: inset 0 calc(-1 * var(--space-12)) 0 color-mix(in srgb, var(--outline) 14%, transparent);
+}
+@media (hover: hover) {
+  #gbody .rt.pl-fill .rt-pad:not(:disabled):hover::before { transform: translateY(-2px); }
+}
+#gbody .rt.pl-fill .rt-pad:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+#gbody .rt.pl-fill .rt-pad:disabled { cursor: default; }
+#gbody .rt.pl-fill #rInstruction { font: var(--text-body); color: var(--ink); }
+#gbody .rt.pl-fill #rStatus { font: var(--text-body); color: var(--ink-dim); }
+#gbody .rt.pl-fill #rTip { font: var(--text-caption); color: var(--ink-dim); text-align: center; }
+
+/* Results: every row is the same outlined sticker; the tag sits next to
+ * the name, and the list is no wider than it needs to be. */
+#gbody .rt.pl-fill .wg-rows { width: 100%; max-width: 560px; margin-inline: auto; gap: var(--space-8); }
+#gbody .rt.pl-fill .wg-row {
+  grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-4) var(--space-8);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md);
+  background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-body);
+}
+#gbody .rt.pl-fill .wg-row.is-you { background: var(--fam-soft); }
+#gbody .rt.pl-fill .wg-tag.is-bad { border-color: var(--danger); background: var(--danger-soft); color: var(--ink); }
+#gbody .rt.pl-fill .wg-tag.is-good { border-color: var(--success); background: var(--success-soft); color: var(--ink); }
+#gbody .rt.pl-fill .wg-pts { font: var(--text-title); }
+
+/* Player tiles: one sticker style for everyone; "you" is a tint only. */
+#gbody .rt.pl-fill .pl-seat { border-color: var(--outline); background: var(--card); }
+#gbody .rt.pl-fill .pl-seat.is-you { background: var(--fam-soft); }
+
+@media (max-width: 560px) {
+  #gbody .rt.pl-fill .rt-pad { min-height: clamp(220px, 38vh, 320px); padding: var(--space-16); gap: var(--space-12); }
+  #gbody .rt.pl-fill .rt-pad::after { width: 120px; height: 40px;
+    background:
+      radial-gradient(circle at 20px 50%, var(--rt-red) 0 11px, transparent 12px),
+      radial-gradient(circle at 60px 50%, var(--rt-amber) 0 11px, transparent 12px),
+      radial-gradient(circle at 100px 50%, var(--rt-green) 0 11px, transparent 12px),
+      linear-gradient(180deg, #34303a, #231f28); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #gbody .rt.pl-fill .rt-pad, #gbody .rt.pl-fill .rt-pad::before { transition: none; }
+}
+
+/* QC: a foul is red all the way down. The cabinet sits on a red lip (not
+ * the game's green), the button gets a red rim and lip of its own instead
+ * of an ink ring, and the HUD chip reads as a failure. */
+#gbody .rt.pl-fill .rt-pad.is-fouled,
+#gbody .rt.pl-fill .rt-pad.is-fouled:not(:disabled):active {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--outline));
+  box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--danger) 70%, #3a0d12);
+}
+#gbody .rt.pl-fill .rt-pad.is-fouled::before {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--danger-soft));
+  box-shadow: inset 0 calc(-1 * var(--space-12)) 0 color-mix(in srgb, var(--danger) 12%, transparent), 0 var(--lift-lg) 0 color-mix(in srgb, var(--danger) 45%, var(--danger-soft));
+}
+[data-theme="night"] #gbody .rt.pl-fill .rt-pad.is-fouled,
+[data-theme="night"] #gbody .rt.pl-fill .rt-pad.is-fouled:not(:disabled):active { box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--danger) 38%, #12060a); }
+[data-theme="night"] #gbody .rt.pl-fill .rt-pad.is-fouled::before {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--danger-soft));
+  box-shadow: inset 0 calc(-1 * var(--space-12)) 0 #00000026, 0 var(--lift-lg) 0 color-mix(in srgb, var(--danger) 30%, #120608);
+}
+#gbody .rt.pl-fill .gk-hud .gk-hud-phase.is-foul:not(:empty) { background: var(--danger-soft); color: var(--danger); }
+/* The x badge sits off the avatar's corner so it never covers "P1". */
+#gbody .rt.pl-fill .pl-badge { width: 16px; height: 16px; right: -8px; bottom: -8px; font-size: 10px; }

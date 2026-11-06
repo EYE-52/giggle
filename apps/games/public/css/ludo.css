@@ -1,4 +1,13 @@
-/* Ludo board art: flat yards, a white trail, flat pawns and a flat die. */
+/* Ludo board art: flat yards, a white trail, flat pawns and a flat die.
+ * Scene (2026-11 skin): a classic printed board with a varnished wood edge,
+ * sitting on its own darker wood lip on a family games table (a warm cloth
+ * by day, a dark wood table at night). No ink rims. */
+.ld-game{--ld-card:#fbf8f0;--ld-edge:#b98a52;--ld-lip:#7a5530;--ld-table:#fbefee;--ld-table-2:#f0dcd9}
+[data-theme="night"] .ld-game{--ld-card:#efeadd;--ld-edge:#8a6034;--ld-lip:#1e1209;--ld-table:#2a181c;--ld-table-2:#190e11}
+.bk-game.ld-game{background:
+ repeating-linear-gradient(45deg,#e5393508 0 12px,transparent 12px 24px),
+ repeating-linear-gradient(-45deg,#e5393508 0 12px,transparent 12px 24px),
+ radial-gradient(110% 75% at 50% 30%,var(--ld-table),var(--ld-table-2))}
 .ld-game .ld-base{fill:#f4f2ec;stroke:#dcd9cf;stroke-width:2}
 html[data-theme=night] .ld-game .ld-base,body.is-embed .ld-game .ld-base{fill:#eceae2}
 .ld-game .ld-board{display:block;width:100%;height:auto;touch-action:manipulation}
@@ -32,3 +41,43 @@ html[data-theme=night] .ld-game .ld-base,body.is-embed .ld-game .ld-base{fill:#e
 /* Phones: the die sits right under the board and the board leaves room for it,
  * so Roll is on screen without scrolling. */
 @media (max-width:759px) and (orientation:portrait){.ld-game .bk-extra{order:3}.ld-game .bk-status{order:4;min-height:0}.ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100svh - 300px));min-width:min(100%,280px)}}
+/* Toy board and a die tray that explains itself.
+ * - The board sits in an ink rim with a hard shadow.
+ * - Pawn buttons are real disabled buttons until a move is possible, and a
+ *   caption under them says why; legal pawns wear the family tint.
+ * - The die keeps its ink rim while waiting; only Roll is filled.
+ * - Phones: the turn banner sits between the players and the board, so the
+ *   prompt comes before the board and the die, never below the fold. */
+.ld-game .ld-stage{border-radius:3.8%;box-shadow:0 var(--lift-lg) 0 var(--ld-lip),0 18px 28px -14px #2a170a59}
+.ld-game .ld-base{fill:var(--ld-card);stroke:var(--ld-edge);stroke-width:6}
+.ld-game .ld-glow{stroke:var(--fam);stroke-width:5;fill-opacity:.85}
+.ld-game .ld-last{stroke:#3a2a1a}
+.ld-game .ld-dock{gap:var(--space-8) var(--space-12)}
+.ld-game .ld-dice{border-color:var(--outline);font:var(--text-button-sm)}
+.ld-game .ld-dice:disabled,.ld-game .ld-dice[aria-disabled=true]{cursor:not-allowed}
+.ld-game .ld-dice.is-ready{cursor:pointer}
+.ld-game .ld-die-face{stroke:#d9d3c4}
+.ld-game .ld-choices{gap:var(--space-8)}
+.ld-game .ld-choices button{gap:var(--space-8);padding:var(--space-4) var(--space-8);border:var(--outline-w) solid var(--outline);border-radius:var(--radius-md);background:var(--card);font:var(--text-button-sm);box-shadow:var(--shadow-sticker-sm);transition:transform var(--dur-quick) var(--ease)}
+.ld-game .ld-choices button[aria-disabled=true]{opacity:1;border-color:var(--line-strong);background:var(--well);color:var(--ink-dim);box-shadow:none;cursor:not-allowed}
+.ld-game .ld-choices button[aria-disabled=true] svg{opacity:.55;filter:grayscale(.6)}
+.ld-game .ld-choices button.is-legal{border-color:var(--outline);background:var(--fam-soft);color:var(--ink)}
+@media (hover:hover){.ld-game .ld-choices button.is-legal:hover{transform:translateY(-2px)}}
+.ld-game .ld-choices button.is-legal:active{transform:translateY(var(--lift-sm));box-shadow:none}
+.ld-game .ld-dice:focus-visible,.ld-game .ld-choices button:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
+.ld-game .ld-reason{grid-column:1/-1;min-height:1.4em;margin:0;font:var(--text-caption);color:var(--ink-dim)}
+@media (max-width:759px) and (orientation:portrait){
+ .ld-game .bk-status{order:1;min-height:0;padding:var(--space-8) var(--space-16)}
+ .ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100svh - 372px))}
+}
+/* QC: Ludo's family colour is red, so the turn banner reads as a neutral
+ * card with a red edge (not the error look). At night the pawn buttons
+ * keep their pawns readable, the printed trail is a warm cream instead of
+ * a white slab, and the table runs past the bottom of the page. */
+.ld-game .bk-status{border-color:var(--outline);background:var(--card);color:var(--ink);box-shadow:inset 4px 0 0 var(--fam),var(--shadow-sticker-sm)}
+[data-theme="night"] .ld-game .ld-choices button[aria-disabled=true] svg{opacity:.9}
+[data-theme="night"] .ld-game .ld-choices svg,[data-theme="night"] .ld-game .ld-choices button[aria-disabled=true] svg{filter:drop-shadow(0 0 1.5px #ffffffb3)}
+[data-theme="night"] .ld-game .ld-board rect[fill="#ffffff"]{fill:#ebe3d3}
+[data-theme="night"] .ld-game .ld-well{fill:#f3ede1}
+body[data-game="ludo"]{background:#f0dcd9}
+[data-theme="night"] body[data-game="ludo"]{background:#190e11}

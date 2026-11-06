@@ -40,3 +40,75 @@
   #gbody .fs-scene.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 26px; border-radius: var(--radius-lg); }
   #gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 96px; height: 44px; font-size: 24px; }
 }
+
+/* Verdict: points line as a family chip, judges as pass/fail chips, and
+ * Next as the one big primary at the bottom of the panel. */
+#gbody .fs-scene.pl-fill .fs-verdict-line {
+  align-self: center; margin: 0; padding: var(--space-4) var(--space-16); border-radius: var(--radius-pill);
+  background: var(--fam-soft); color: var(--fam-deep); font: var(--text-button-sm);
+  border: var(--outline-w) solid var(--outline);
+}
+#gbody .fs-scene .fs-votes { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-8); margin: 0; }
+#gbody .fs-scene .fs-vote {
+  display: inline-flex; align-items: center; gap: var(--space-8); min-height: 36px; padding: 0 var(--space-12);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  font: var(--text-button-sm); color: var(--ink); background: var(--card);
+}
+#gbody .fs-scene .fs-vote b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font: 800 13px/1 var(--font-body); }
+#gbody .fs-scene .fs-vote.is-pass { background: var(--success-soft); }
+#gbody .fs-scene .fs-vote.is-pass b { background: var(--success); color: var(--on-success); }
+#gbody .fs-scene .fs-vote.is-fail { background: var(--danger-soft); }
+#gbody .fs-scene .fs-vote.is-fail b { background: var(--danger); color: var(--on-danger); }
+#gbody .fs-scene.pl-fill #fNext { min-height: var(--control-h-lg); min-width: 200px; font-size: 19px; }
+@media (max-width: 560px) {
+  #gbody .fs-scene.pl-fill .fs-foot { width: 100%; }
+  #gbody .fs-scene.pl-fill #fNext { width: 100%; }
+}
+
+/* ==========================================================================
+ * Stopwatch skin (2026-11). Speed stripes rush across the page; the
+ * category card wears a stopwatch on its top edge. Night: the stripes dim,
+ * the card glows a little.
+ * ========================================================================== */
+body.game-playing[data-game="five-second"] {
+  background-image:
+    linear-gradient(to bottom, transparent, var(--bg) 70%),
+    repeating-linear-gradient(-24deg, color-mix(in srgb, var(--fam) 9%, transparent) 0 14px, transparent 14px 44px);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="five-second"] {
+  background-image:
+    linear-gradient(to bottom, transparent, var(--bg) 70%),
+    repeating-linear-gradient(-24deg, color-mix(in srgb, var(--fam) 6%, transparent) 0 14px, transparent 14px 44px);
+}
+#gbody .fs-scene.pl-fill > .gk-prompt {
+  position: relative; margin-top: var(--space-16); padding-top: var(--space-40); background: var(--card);
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--outline)); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+#gbody .fs-scene.pl-fill > .gk-prompt::before {
+  content: ""; position: absolute; left: 50%; top: -24px; width: 48px; height: 48px; transform: translateX(-50%);
+  border-radius: 50%; background: var(--card); box-shadow: 0 0 0 var(--outline-w-lg) color-mix(in srgb, var(--fam) 30%, var(--outline)); pointer-events: none;
+}
+#gbody .fs-scene.pl-fill > .gk-prompt::after {
+  content: ""; position: absolute; left: 50%; top: -20px; width: 40px; height: 40px; transform: translateX(-50%);
+  background: var(--fam); pointer-events: none;
+  -webkit-mask: var(--fs-watch) center / contain no-repeat; mask: var(--fs-watch) center / contain no-repeat;
+  --fs-watch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='18' r='10.5' fill='none' stroke='%23000' stroke-width='3'/%3E%3Cpath d='M12.5 3.5h7M16 3.5v4M16 18l4.5-4.5M25 8.5l2-2' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+[data-theme="night"] #gbody .fs-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
+@media (max-width: 560px) {
+  #gbody .fs-scene.pl-fill > .gk-prompt { padding-top: var(--space-32); }
+  #gbody .fs-scene.pl-fill > .gk-prompt::before { width: 40px; height: 40px; top: -20px; }
+  #gbody .fs-scene.pl-fill > .gk-prompt::after { width: 32px; height: 32px; top: -16px; }
+}
+
+/* ==== QC ==== */
+/* The line under the centred prompt card is centred too, and your vote
+ * reads as a chip ("Locked in: Fail"), not loose text at the left edge. */
+#gbody .fs-scene.pl-fill > .gk-sub { text-align: center; text-wrap: balance; margin-inline: auto; max-width: 46ch; }
+#gbody .fs-scene.pl-fill > .gk-sub.fs-locked {
+  width: fit-content; padding: var(--space-4) var(--space-12); border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--fam) 14%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fam) 36%, transparent);
+  color: var(--fam-deep); font: var(--text-button-sm);
+}

@@ -1,0 +1,138 @@
+/* Typing Race: a racetrack. Each racer gets an asphalt lane with a white
+ * dashed centre line, a badge that slides with progress, a tinted trail and
+ * a real checkered finish; your lane has kerbs in the game colour. The
+ * field is a soft-rimmed field that turns red on a mistake. Track art keeps
+ * its asphalt colours in both themes (darker at night). Shared .wg parts
+ * live in compact-answer-games.css. */
+
+#gbody .tr.pl-fill {
+  --tr-asphalt: #4b4855; --tr-asphalt-you: #554c55; --tr-dash: #ffffffb3;
+  --tr-check-a: #1d1a22; --tr-check-b: #ffffff;
+}
+[data-theme="night"] #gbody .tr.pl-fill { --tr-asphalt: #2c2933; --tr-asphalt-you: #3a3133; --tr-dash: #ffffff80; --tr-check-b: #e9e4ef; }
+
+/* Stage: sections sit at an even gap; the track card takes the free height. */
+#gbody .tr.pl-fill { gap: var(--space-16); }
+#gbody .tr.pl-fill[data-phase="race"] > .gk-hud + * { margin-top: 0; }
+#gbody .tr.pl-fill[data-phase="race"] > .pl-live { margin-top: 0; }
+
+/* The field: a soft rim; a mistake turns it red. */
+#gbody .tr.pl-fill .tr-input {
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
+  background: var(--card); color: var(--ink); font: var(--text-body); padding-inline: var(--space-16);
+  box-shadow: 0 var(--lift-sm) 0 var(--outline);
+}
+#gbody .tr.pl-fill .tr-input::placeholder { font: var(--text-body); color: var(--ink-dim); }
+#gbody .tr.pl-fill .tr-input:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); border-color: var(--fam); }
+#gbody .tr.pl-fill .tr-input.is-error { border-color: var(--danger); background: var(--danger-soft); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--danger) 60%, transparent); }
+#gbody .tr.pl-fill .tr-input:disabled { background: var(--well); border-color: var(--line-strong); box-shadow: none; cursor: not-allowed; }
+#gbody .tr.pl-fill #tTypingStatus { min-height: 1.5em; margin: 0; font: var(--text-body); }
+#gbody .tr.pl-fill #tTypingStatus.is-error { color: var(--danger); font-weight: 800; }
+#gbody .tr.pl-fill #tTypingStatus.is-error::before {
+  content: "\2715"; display: inline-grid; place-items: center; width: 22px; height: 22px; margin-right: var(--space-8);
+  border-radius: 50%; background: var(--danger); color: var(--on-danger); font: var(--text-caption); vertical-align: 2px;
+}
+#gbody .tr.pl-fill .tr-target .typing-wrong { box-shadow: inset 0 -3px 0 var(--danger); text-decoration: none; }
+
+/* The track card. One grid for every lane, so all roads start and finish
+ * at the same x and the name column is only as wide as the longest name. */
+#gbody .tr.pl-fill .tr-lanes {
+  flex: 1 1 auto; display: grid; grid-template-columns: fit-content(12em) minmax(0, 1fr) auto;
+  align-content: center; align-items: center; gap: var(--space-12);
+  padding: var(--space-16); background: var(--card);
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
+}
+#gbody .tr.pl-fill .tr-lane { display: contents; }
+#gbody .tr.pl-fill .tr-name { font: var(--text-button); line-height: 1.5; }
+#gbody .tr.pl-fill .tr-meta { min-width: 4ch; font: var(--text-button-sm); color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+#gbody .tr.pl-fill .tr-lane.is-you .tr-name { color: var(--fam-deep); }
+#gbody .tr.pl-fill .tr-lane.is-finished .tr-meta { color: var(--ink); }
+
+/* A lane: asphalt, a white dashed centre line and the checkered finish. */
+#gbody .tr.pl-fill .tr-track {
+  --racer-size: 36px; --finish-w: var(--space-16);
+  position: relative; height: calc(var(--racer-size) + 2 * var(--space-8)); overflow: hidden;
+  border: 0; border-radius: var(--radius-md);
+  background:
+    repeating-linear-gradient(90deg, var(--tr-dash) 0 var(--space-12), transparent var(--space-12) var(--space-24)) center / 100% 2px no-repeat,
+    var(--tr-asphalt);
+}
+/* Your lane: kerbs top and bottom in the game colour. */
+#gbody .tr.pl-fill .tr-lane.is-you .tr-track {
+  background:
+    repeating-linear-gradient(90deg, var(--fam) 0 var(--space-12), var(--tr-check-b) var(--space-12) var(--space-24)) top / 100% var(--space-4) no-repeat,
+    repeating-linear-gradient(90deg, var(--fam) 0 var(--space-12), var(--tr-check-b) var(--space-12) var(--space-24)) bottom / 100% var(--space-4) no-repeat,
+    repeating-linear-gradient(90deg, var(--tr-dash) 0 var(--space-12), transparent var(--space-12) var(--space-24)) center / 100% 2px no-repeat,
+    var(--tr-asphalt-you);
+}
+#gbody .tr.pl-fill .tr-track::after {
+  content: ""; position: absolute; top: 0; bottom: 0; right: 0; width: var(--finish-w);
+  background: repeating-conic-gradient(var(--tr-check-a) 0 25%, var(--tr-check-b) 0 50%) 0 0 / var(--space-8) var(--space-8);
+}
+/* The trail: a wash of the racer's colour, scaled from the start line. */
+#gbody .tr.pl-fill .tr-fill {
+  position: absolute; left: 0; top: 0; bottom: 0; width: calc(100% - var(--finish-w)); height: auto;
+  border-radius: 0; opacity: 0.4; transform-origin: left center; transform: scaleX(0);
+  transition: transform var(--dur-base) var(--ease);
+}
+/* The racer: a rail as wide as the road, slid by its own width percentage. */
+#gbody .tr.pl-fill .tr-rail {
+  position: absolute; left: var(--space-4); top: var(--space-8); width: calc(100% - var(--racer-size) - var(--finish-w) - var(--space-8));
+  height: var(--racer-size); pointer-events: none; transform: translateX(0);
+  transition: transform var(--dur-base) var(--ease);
+}
+#gbody .tr.pl-fill .tr-racer {
+  display: grid; place-items: center; box-sizing: border-box; width: var(--racer-size); height: var(--racer-size);
+  border: 2px solid #ffffff; border-radius: 50%;
+  background: var(--pl-c, var(--racer)); color: var(--pl-on, var(--on-fam)); box-shadow: 0 3px 0 #00000059;
+  font: var(--text-button-sm);
+}
+#gbody .tr.pl-fill .tr-lane.is-finished .tr-racer { background: var(--success); color: var(--on-success); }
+[data-theme="night"] #gbody .tr.pl-fill .tr-lane.is-you .tr-racer { box-shadow: 0 3px 0 #00000080, 0 0 0 4px color-mix(in srgb, var(--fam) 35%, transparent); }
+
+/* Results rows: one soft sticker style for everyone. */
+#gbody .tr.pl-fill .wg-rows { width: 100%; max-width: 560px; margin-inline: auto; gap: var(--space-8); }
+#gbody .tr.pl-fill .wg-row {
+  grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-4) var(--space-8);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md);
+  background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-body);
+}
+#gbody .tr.pl-fill .wg-row.is-you { background: var(--fam-soft); border-color: color-mix(in srgb, var(--fam) 45%, var(--outline)); }
+#gbody .tr.pl-fill .wg-pts { font: var(--text-title); }
+
+/* Player tiles: one sticker style for everyone; "you" is a tint only. */
+#gbody .tr.pl-fill .pl-seat { border-color: var(--outline); background: var(--card); }
+#gbody .tr.pl-fill .pl-seat.is-you { background: var(--fam-soft); }
+
+/* Phones: the name rides above its lane so the road gets the full width.
+ * Lanes stretch: the desktop grid's centring made each lane shrink to its
+ * name and left a narrow road in the middle of the card. */
+@media (max-width: 480px) {
+  #gbody .tr.pl-fill .tr-lanes { display: flex; flex-direction: column; justify-content: center; align-items: stretch; padding: var(--space-12); border-radius: var(--radius-lg); }
+  #gbody .tr.pl-fill .tr-lane { display: grid; width: 100%; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name meta" "track track"; gap: var(--space-4) var(--space-12); }
+  #gbody .tr.pl-fill .tr-name { grid-area: name; }
+  #gbody .tr.pl-fill .tr-meta { grid-area: meta; text-align: right; }
+  #gbody .tr.pl-fill .tr-track { grid-area: track; --racer-size: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #gbody .tr.pl-fill .tr-fill, #gbody .tr.pl-fill .tr-rail { transition: none; }
+}
+
+/* QC: focus is a soft ring in the game colour drawn inside the column (no
+ * ink outline spilling past the cards); a mistake swaps it to a red ring.
+ * The wrong stretch of the sentence is a tinted mark with a solid red
+ * underline, not a wavy squiggle. */
+#gbody .tr.pl-fill .tr-input:focus-visible {
+  outline: none; border-color: var(--fam);
+  box-shadow: 0 var(--lift-sm) 0 var(--outline), 0 0 0 3px color-mix(in srgb, var(--fam) 40%, transparent);
+}
+#gbody .tr.pl-fill .tr-input.is-error:focus-visible {
+  border-color: var(--danger);
+  box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--danger) 60%, transparent), 0 0 0 3px color-mix(in srgb, var(--danger) 30%, transparent);
+}
+[data-theme="night"] #gbody .tr.pl-fill .tr-input:focus-visible { box-shadow: 0 var(--lift-sm) 0 var(--outline), 0 0 0 2px color-mix(in srgb, var(--fam) 45%, transparent); }
+[data-theme="night"] #gbody .tr.pl-fill .tr-input.is-error:focus-visible { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--danger) 45%, transparent), 0 0 0 2px color-mix(in srgb, var(--danger) 35%, transparent); }
+#gbody .tr.pl-fill .tr-target span.typing-wrong {
+  background: color-mix(in srgb, var(--danger) 16%, transparent); border-radius: 0; box-shadow: none;
+  text-decoration: underline solid var(--danger); text-decoration-thickness: 2px; text-underline-offset: 4px;
+}

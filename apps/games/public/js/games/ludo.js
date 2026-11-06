@@ -41,7 +41,7 @@ function board(S,c,animate){
     const legal=!S.preparing&&side===S.youAre&&!S.spectator&&!c.pending&&!c.settling&&S.legal.includes(i);
     return `<g transform="translate(${px} ${py})" id="ld-pawn-${side}-${i}" class="ld-piece ${legal?'is-legal':''} ${S.resigned.includes(side)?'is-resigned':''}" data-pawn="${i}" data-side="${side}" role="button" tabindex="-1" aria-label="${NAMES[lane]} pawn ${i+1}${pos===56?', home':pos<0?', in yard':''}${legal?', legal move':''}"><g>${motion}${legal?`<g transform="scale(${scale})" pointer-events="none"><circle r="25" class="ld-glow"/></g>`:''}${pawn(lane,i,scale)}</g></g>`;
   }).join('')).join('');
-  return `<svg class="ld-board" viewBox="-12 -12 654 654" role="img" aria-label="Ludo board, four coloured yards around a shared trail"><rect x="-10" y="-10" width="650" height="650" rx="22" class="ld-base"/>${homes}${trail}<rect x="252" y="252" width="126" height="126" rx="6" fill="#ffffff"/>${lanes}<path d="M315 285L345 315L315 345L285 315Z" fill="#e6e8ec"/>${lastMark}${pieces}</svg>`;
+  return `<svg class="ld-board" viewBox="-12 -12 654 654" role="img" aria-label="Ludo board, four coloured yards around a shared trail"><rect x="-9" y="-9" width="648" height="648" rx="22" class="ld-base"/>${homes}${trail}<rect x="252" y="252" width="126" height="126" rx="6" fill="#ffffff"/>${lanes}<path d="M315 285L345 315L315 345L285 315Z" fill="#e6e8ec"/>${lastMark}${pieces}</svg>`;
 
 }
 function outLabel(S,side){return {timeout:'Out of time',forfeit:'Left',resign:'Resigned'}[S.outReason?.[side]]||'Out';}
@@ -59,6 +59,7 @@ function paint(el,c){
   paintDie(el,c);
   const choices=el.querySelector('.ld-choices');choices.hidden=!my;if(my&&c.choiceSide!==S.youAre){c.choiceSide=S.youAre;choices.innerHTML=S.pawns[S.youAre].map((pos,i)=>`<button type="button" id="ld-choice-${i}" data-choice="${i}" aria-label="Move pawn ${i+1}"><svg viewBox="-25 -25 50 50" aria-hidden="true">${pawn(S.lanes[S.youAre],i,.9)}</svg><span></span></button>`).join('');}
   if(my)for(const b of choices.querySelectorAll('[data-choice]')){const i=Number(b.dataset.choice);b.classList.toggle('is-legal',acting&&S.legal.includes(i));b.setAttribute('aria-disabled',String(!acting||!S.legal.includes(i)));b.querySelector('span').textContent=`${i+1}${S.pawns[S.youAre][i]===56?' · Home':''}`;}
+  const reason=el.querySelector('.ld-reason');if(reason){const text=!my||out||S.phase==='done'||S.preparing||c.pending||c.settling?'':S.turn!==S.youAre?`Your pawns wait while ${nameOf(S,S.seats[S.turn])} plays.`:S.phase==='roll'?'Roll first, then move a pawn.':S.legal.length?'Tap a glowing pawn to move it.':'No pawn can move with this roll.';if(reason.textContent!==text)reason.textContent=text;}
   el.querySelector('.ld-dock').hidden=S.phase==='done'&&!c.settling;
   bkPaint(el,{
     meta:bkMeta(S,`${S.seats.length} players`),
@@ -75,7 +76,7 @@ export default {
   render(el,S,api){
     css();let c=el._ludo;if(c?.instance===S.instanceId&&S.rev<c.rev)return;
     if(!c||c.instance!==S.instanceId){this.dispose(el);css();c=el._ludo={instance:S.instanceId,S,baseline:S,api,rev:-1,phase:null,timer:0,pendingTimer:0,pending:false,retry:false,settling:false,settleKind:null,rolling:false,dieShown:S.die||S.lastMove?.die||1,armed:false,cursor:0,choiceSide:null,ready:false};
-      el.innerHTML=`<section class="bk-game ld-game" data-family="board"><div class="ld-stage bk-stage"></div>${bkPanelHTML({title:'Ludo',draw:false,extra:`<div class="ld-dock"><button type="button" class="ld-dice" data-roll aria-label="Roll the die"></button><div class="ld-choices" aria-label="Choose a pawn"></div></div>`,help:['A six brings a pawn out and gives another roll. Move exactly into home. Stars and starting squares are safe; landing on other squares sends every opponent pawn there back to its yard. No blockades or three-sixes penalty.','Choose one of your four pawns, then it moves. First with all four home wins; the others place by how far they came.']})}</section>`;
+      el.innerHTML=`<section class="bk-game ld-game" data-family="board"><div class="ld-stage bk-stage"></div>${bkPanelHTML({title:'Ludo',draw:false,extra:`<div class="ld-dock"><button type="button" class="ld-dice" data-roll aria-label="Roll the die"></button><div class="ld-choices" aria-label="Choose a pawn"></div><p class="ld-reason tb-reason" aria-live="polite"></p></div>`,help:['A six brings a pawn out and gives another roll. Move exactly into home. Stars and starting squares are safe; landing on other squares sends every opponent pawn there back to its yard. No blockades or three-sixes penalty.','Choose one of your four pawns, then it moves. First with all four home wins; the others place by how far they came.']})}</section>`;
       c.click=e=>{const t=c.S;let action=null;
         const finalAction=name=>{if(t.phase==='done'&&!c.settling&&c.api.context?.()?.isHost===true&&!c.api.context?.()?.roomActionPending)c.api[name]?.();};
         if(bkClick(e,{arm:()=>{c.armed=!c.armed;paint(el,c);},keep:()=>{c.armed=false;paint(el,c);},resign:()=>{if(c.armed)action={resign:true};},rematch:()=>finalAction('rematch'),lobby:()=>finalAction('lobby')})&&!action)return;

@@ -25,7 +25,11 @@ export default {
   ownsTimer: true,
   render(el, S, api) {
     ensureCss(CSS_ID, CSS_HREF);
-    return renderCameraParty(el, S, api);
+    const out = renderCameraParty(el, S, api);
+    // Lets camera-party.css drop the stage's repeat of the HUD's found count.
+    const root = el?.querySelector?.('.camera-party');
+    if (root && root.getAttribute?.('data-game') !== 'show-and-go') root.setAttribute?.('data-game', 'show-and-go');
+    return out;
   },
   dispose(el) {
     removeCss(CSS_ID);

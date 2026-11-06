@@ -99,7 +99,10 @@ function paint(el, S, api) {
     button.classList.toggle('is-long', label.length > 70);
     button.querySelector('.wyr-text').textContent = label;
     button.querySelector('.wyr-fill').style.width = `${reveal ? share : 0}%`;
-    button.querySelector('.wyr-count').textContent = reveal ? `${share}% · ${voters.length} vote${voters.length === 1 ? '' : 's'}${majority ? ' · Majority' : ''}` : '';
+    // The share is the payoff: a big number, then the vote count and tag.
+    const count = reveal ? `<b class="wyr-pct">${share}%</b><span class="wyr-votes">${voters.length} vote${voters.length === 1 ? '' : 's'}</span>${majority ? '<span class="wyr-major">Majority</span>' : ''}` : '';
+    const countEl = button.querySelector('.wyr-count');
+    if (countEl.innerHTML !== count) countEl.innerHTML = count;
     button.querySelector('.wyr-voters').textContent = reveal ? voters.map(pid => nameOf(S, pid)).join(', ') : '';
     const faces = reveal ? voters.map(pid => faceHtml(S, pid, { name: true })).join('') : '';
     const facesEl = button.querySelector('.wyr-faces');

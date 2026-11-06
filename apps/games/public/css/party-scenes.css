@@ -164,7 +164,7 @@
 /* Spinner (Dare Roulette): flat disc, player colours come from the game. */
 .party-spin-desk { position: relative; width: 240px; margin: 18px auto 24px; }
 .party-wheel { position: relative; width: 240px; height: 240px; margin: 18px auto; border: 6px solid var(--card); border-radius: 50%; box-shadow: 0 0 0 1px var(--line-strong); }
-.party-wheel-disc { position: absolute; inset: 0; border-radius: 50%; transform: rotate(var(--wheel-angle, 0deg)); transition: transform .5s cubic-bezier(.2, .8, .2, 1); }
+.party-wheel-disc { position: absolute; inset: 0; border-radius: 50%; transform: rotate(var(--wheel-angle, 0deg)); transition: transform var(--dur-slow) var(--ease); }
 .party-wheel-disc::after { content: ''; position: absolute; inset: 38%; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--card); }
 .party-wheel-name { position: absolute; inset: 0; transform: rotate(var(--seat-angle)); }
 .party-wheel-name > span { position: absolute; top: 10px; left: calc(50% - 16px); width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--card); color: var(--ink); font-size: 15px; font-weight: 800; transform: rotate(calc(0deg - var(--seat-angle))); }
@@ -172,7 +172,7 @@
 #gbody .party-spin-desk > #drSpin { position: relative; margin-top: 0; min-height: 48px; width: 100%; }
 .party-wheel.is-landed { width: 140px; height: 140px; border-width: 4px; }
 .party-wheel.is-landed .party-wheel-name { display: none; }
-.party-wheel.is-spinning .party-wheel-disc { animation: party-spin .6s ease-out; }
+.party-wheel.is-spinning .party-wheel-disc { animation: party-spin .6s var(--ease); }
 @keyframes party-spin { to { transform: rotate(360deg); } }
 
 /* Polls (Rapid Polls). */
@@ -248,21 +248,19 @@
 
 /* ==========================================================================
  * Toy box stage (wave 2). kit.js paintLiveStrip marks a scene .pl-fill and
- * appends the live strip. The scene fills the viewport under the play
- * toolbar: HUD on top, the round in the middle, the strip at the bottom,
- * so a short round never leaves half the screen blank.
+ * appends the live strip. One stack from the HUD down, on token gaps: the
+ * round follows the HUD and the strip follows the round, so nothing floats
+ * in a vertically centred box with empty bands above and below it.
  * ========================================================================== */
 #gbody .pl-fill {
-  display: flex; flex-direction: column; gap: var(--space-16);
-  min-height: calc((100dvh - var(--pl-chrome, 120px)) / var(--pl-zoom, 1));
-  padding-block: var(--space-8) var(--space-16);
+  display: flex; flex-direction: column; gap: var(--space-24);
+  padding-block: var(--space-8) var(--space-24);
 }
 #gbody .pl-fill > * { margin-block: 0; flex: 0 0 auto; }
-/* The round's own content sits in the middle of the free space. */
-#gbody .pl-fill > .gk-hud + *, #gbody .pl-fill > .party-hud + * { margin-top: auto; }
-#gbody .pl-fill > .pl-live { margin-top: auto; }
+/* The players strip is its own section: a little more air above it. */
+#gbody .pl-fill > .pl-live { margin-top: var(--space-8); }
 @media (max-width: 560px) {
-  #gbody .pl-fill { gap: var(--space-12); --pl-chrome: 108px; }
+  #gbody .pl-fill { gap: var(--space-16); }
 }
 
 /* ---- HUD: phase chip, progress, timer bar ---- */
@@ -279,8 +277,7 @@
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-progress, .party-progress) {
   margin-left: auto; font: var(--text-caption); font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums;
 }
-/* The timer: a bar that drains from full, family colour, amber in the last
- * ten seconds, red in the last five. Empty keeps its width. */
+/* The timer pill; its draining ring lives in game-ui.css. Empty keeps its width. */
 #gbody .pl-fill .gk-hud-timer {
   position: relative; isolation: isolate; overflow: hidden; flex: none;
   display: inline-grid; place-items: center; min-width: 88px; height: 36px; padding: 0 var(--space-12);
@@ -288,18 +285,9 @@
   background: var(--card); box-shadow: var(--shadow-sticker-sm);
   font: 800 20px/1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; text-align: center;
 }
-#gbody .pl-fill .gk-hud-timer { padding-bottom: 6px; }
-#gbody .pl-fill .gk-hud-timer::before {
-  content: ""; position: absolute; z-index: -1; left: 8px; right: 8px; bottom: 4px; height: 5px;
-  border-radius: var(--radius-pill); background: var(--fam);
-  transform-origin: left center; transform: scaleX(var(--gk-timer-left, 1));
-  transition: transform 250ms var(--ease);
-}
 /* Digits stay ink on every fill, so they read over both halves of the bar. */
 #gbody .pl-fill .gk-hud-timer.is-warn { background: var(--warning-soft); }
-#gbody .pl-fill .gk-hud-timer.is-warn::before { background: var(--warning); }
 #gbody .pl-fill .gk-hud-timer.is-urgent { background: var(--danger-soft); border-color: var(--danger); }
-#gbody .pl-fill .gk-hud-timer.is-urgent::before { background: var(--danger); }
 #gbody .pl-fill .gk-hud-timer:empty { visibility: hidden; }
 
 /* ---- the live strip ---- */
@@ -323,7 +311,7 @@
   border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-card);
   font: var(--text-body);
 }
-.pl-label { font: var(--text-caption); font-weight: 800; color: var(--ink-dim); letter-spacing: .02em; }
+.pl-label { font: var(--text-button-sm); color: var(--ink); }
 .pl-round { font: var(--text-caption); font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
 .pl-dots { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
 .pl-dots > li { width: 12px; height: 12px; border: var(--outline-w) solid var(--outline); border-radius: 50%; background: var(--well); }
@@ -339,10 +327,11 @@
 .pl-seat {
   display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "av name" "av state" "av pts";
   align-items: center; column-gap: var(--space-8); min-width: 0; padding: var(--space-8);
-  border: var(--outline-w) solid var(--line-strong); border-radius: calc(var(--radius-xl) - var(--space-12));
-  background: var(--well);
+  border: var(--outline-w) solid var(--outline); border-radius: calc(var(--radius-xl) - var(--space-16));
+  background: var(--card); box-shadow: var(--shadow-sticker-sm);
 }
-.pl-seat.is-you { border-color: var(--outline); background: var(--fam-soft); }
+/* You: a family tint and a family ring inside the ink outline, all the way round. */
+.pl-seat.is-you { background: var(--fam-soft); box-shadow: var(--shadow-sticker-sm), inset 0 0 0 2px var(--fam); }
 .pl-seat.is-left { opacity: .6; }
 .pl-avatar {
   grid-area: av; position: relative; display: grid; place-items: center; width: 44px; height: 44px;
@@ -364,7 +353,7 @@
 .pl-seat.is-role .pl-badge { display: grid; background: var(--warning); color: var(--on-warning); }
 .pl-seat.is-role .pl-badge::before { content: "★"; }
 .pl-seat.is-waiting .pl-avatar { outline: var(--outline-w) dashed var(--ink-dim); outline-offset: 2px; }
-.pl-name { grid-area: name; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 15px/1.25 var(--font-body); }
+.pl-name { grid-area: name; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--text-button-sm); }
 .pl-name small { font: var(--text-caption); color: var(--ink-dim); }
 .pl-state { grid-area: state; min-height: 18px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--text-caption); color: var(--ink-dim); }
 .pl-seat.is-acted .pl-state { color: var(--ink); }
@@ -379,7 +368,7 @@
   .pl-seats { display: flex; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding-bottom: 2px; }
   .pl-seat {
     flex: 1 0 96px; max-width: 160px; grid-template-columns: minmax(0, 1fr); grid-template-areas: "av" "name" "state" "pts";
-    justify-items: center; text-align: center; row-gap: 2px; border-radius: calc(var(--radius-lg) - var(--space-4));
+    justify-items: center; text-align: center; row-gap: 2px; border-radius: calc(var(--radius-lg) - var(--space-12));
   }
   .pl-avatar { width: 36px; height: 36px; font-size: 17px; margin-bottom: var(--space-4); }
   .pl-name { max-width: 100%; font-size: 14px; }
@@ -401,9 +390,8 @@
   font: 700 18px/1.35 var(--font-body);
   transition: transform var(--dur-quick) var(--ease), opacity var(--dur-quick) var(--ease);
 }
-#gbody .pl-fill :is(.gk-choices, .party-choices) > :nth-child(4n+2) { --side: var(--fam-create); --on-side: var(--on-fam-create); }
-#gbody .pl-fill :is(.gk-choices, .party-choices) > :nth-child(4n+3) { --side: var(--fam-board); --on-side: var(--on-fam-board); }
-#gbody .pl-fill :is(.gk-choices, .party-choices) > :nth-child(4n+4) { --side: var(--fam-arcade); --on-side: var(--on-fam-arcade); }
+/* Every option letter wears the family colour: options differ by letter,
+ * never by a hue that matches a player's avatar or another family. */
 #gbody .pl-fill :is(.gk-choice, .party-choice) .gk-mark {
   width: 36px; height: 36px; border: var(--outline-w) solid var(--outline); border-radius: 50%;
   background: var(--side); color: var(--on-side); font: 800 17px/1 var(--font-display);
@@ -422,9 +410,9 @@
 }
 #gbody .pl-fill :is(.gk-choice, .party-choice):is(.is-selected, .is-picked, [aria-pressed="true"]) .gk-mark { background: var(--side); color: var(--on-side); border-color: var(--outline); }
 #gbody .pl-fill :is(.gk-choices, .party-choices).is-locked > :not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct) {
-  opacity: 1; background: var(--card); box-shadow: none; border-color: var(--line-strong);
+  opacity: 1; background: var(--well); box-shadow: none; border-color: var(--outline);
 }
-#gbody .pl-fill :is(.gk-choices, .party-choices).is-locked > :not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct) .gk-mark { background: var(--card); color: var(--ink-dim); border-color: var(--line-strong); }
+#gbody .pl-fill :is(.gk-choices, .party-choices).is-locked > :not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct) .gk-mark { background: var(--card); color: var(--ink); border-color: var(--outline); }
 #gbody .pl-fill .gk-choices.is-locked .gk-choice:is(.is-selected, [aria-pressed="true"])::after { content: none; }
 #gbody .pl-fill .gk-choice.is-correct { background: var(--success-soft); border-color: var(--outline); box-shadow: var(--shadow-sticker), inset 0 0 0 2px var(--success); }
 #gbody .pl-fill .gk-choice.is-correct .gk-mark { background: var(--success); color: var(--on-success); }
@@ -432,7 +420,9 @@
 #gbody .pl-fill .gk-choice.is-wrong { background: var(--danger-soft); border-color: var(--outline); box-shadow: var(--shadow-sticker), inset 0 0 0 2px var(--danger); text-decoration: none; }
 #gbody .pl-fill .gk-choice.is-wrong .gk-mark { background: var(--danger); color: var(--on-danger); }
 #gbody .pl-fill .gk-choice.is-wrong::after { content: "✕"; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--danger); color: var(--on-danger); font-size: 16px; }
-#gbody .pl-fill .gk-choice.is-dim { opacity: 1; background: var(--well); box-shadow: none; border-style: dashed; border-color: var(--line-strong); }
+/* Your own entry (not votable): flat on the well, same full outline. */
+#gbody .pl-fill .gk-choice.is-dim { opacity: 1; background: var(--well); box-shadow: none; border-color: var(--outline); }
+#gbody .pl-fill .gk-choice.is-dim .gk-mark { background: var(--card); color: var(--ink); }
 
 /* "Your pick" tag with the viewer's avatar, and voter avatars on reveal. */
 .pl-pick { display: inline-flex; align-items: center; gap: var(--space-8); min-height: 28px; padding: 2px var(--space-8) 2px 2px; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); background: var(--card); color: var(--ink); font: var(--text-caption); font-weight: 800; }
@@ -451,7 +441,8 @@
   background: color-mix(in srgb, var(--side) 8%, var(--card));
   font: 800 clamp(22px, 2.6vw, 28px)/1.2 var(--font-display); text-wrap: balance;
 }
-#gbody .pl-fill .pl-ab > :nth-child(2) { --side: var(--fam-create); --on-side: var(--on-fam-create); }
+/* The second side of a duel is ink on card, so A and B never read as players. */
+#gbody .pl-fill .pl-ab > :nth-child(2) { --side: var(--ink); --on-side: var(--card); }
 #gbody .pl-fill .pl-ab .gk-mark { width: 48px; height: 48px; font-size: 24px; }
 #gbody .pl-fill .pl-ab > :is(.is-selected, .is-picked, [aria-pressed="true"]) { background: color-mix(in srgb, var(--side) 22%, var(--card)); }
 @media (max-width: 560px) {
@@ -472,6 +463,12 @@
 #gbody .pl-fill .gk-btn.gk-primary:not(:disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
 /* Disabled stays legible: ink on card with a dashed rim, flat. */
 #gbody .pl-fill .gk-btn.gk-primary:disabled { background: var(--fam-soft); color: var(--fam-deep); border-color: var(--outline); box-shadow: none; cursor: not-allowed; }
+/* Between rounds the whole stage is busy for a moment: the primary keeps its
+ * look (it is about to work), dimmed, instead of turning into a pale chip. */
+#gbody[aria-busy="true"] .pl-fill .gk-btn.gk-primary:disabled { background: var(--fam); color: var(--on-fam); box-shadow: var(--shadow-sticker); opacity: .7; cursor: wait; }
+@media (max-width: 560px) {
+  #gbody .pl-fill .gk-actions.is-center > .gk-btn.gk-primary { flex: 1 1 100%; }
+}
 @media (hover: hover) {
   #gbody .pl-fill .gk-btn.gk-primary:not(:disabled):hover { transform: translateY(-2px); filter: none; border-color: var(--outline); }
 }
@@ -480,11 +477,14 @@
 /* ---- status line: a sticker pill, never a stray dot ---- */
 /* The waiting line is a status chip: the dot lives inside its border, so
  * it never floats away from wrapped text. */
+/* Block-level flex with fit-content width, so it centres inside any wrapper
+ * (a plain foot div, a flex row or the stage column). */
 #gbody .pl-fill .gk-wait {
-  display: inline-flex; align-self: center; justify-content: flex-start; gap: var(--space-8);
+  display: flex; align-items: center; align-self: center; justify-content: center; gap: var(--space-8);
   width: fit-content; max-width: 100%; min-height: var(--control-h-sm); margin-inline: auto; padding: var(--space-8) var(--space-16);
-  border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-lg); background: var(--card);
-  color: var(--ink); font: 700 16px/1.4 var(--font-body); text-align: left; text-wrap: pretty;
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); background: var(--card);
+  box-shadow: var(--shadow-sticker-sm);
+  color: var(--ink); font: var(--text-button-sm); text-align: center; text-wrap: pretty;
 }
 #gbody .pl-fill .gk-wait::before { width: 10px; height: 10px; border: var(--outline-w) solid var(--outline); background: var(--warning); }
 #gbody .pl-fill .gk-wait:empty { visibility: hidden; }
@@ -492,12 +492,20 @@
 #gbody .pl-fill .gk-wait.is-done::before { background: var(--success); }
 #gbody .pl-fill .gk-sub { color: var(--ink); }
 #gbody .pl-fill .gk-input-row .gk-input { border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); min-height: var(--control-h-lg); font-size: 18px; }
+/* Every text field on the stage matches the sticker button beside it:
+ * full ink outline, the primary's height, a family focus rim. */
+#gbody .pl-fill :is(input.gk-input, input[type="text"], textarea) {
+  min-height: var(--control-h-lg); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
+  background: var(--input-bg, var(--card)); color: var(--ink);
+}
+#gbody .pl-fill :is(input.gk-input, input[type="text"], textarea):focus { outline: none; border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft), inset 0 0 0 1px var(--fam); }
+#gbody .pl-fill :is(input.gk-input, input[type="text"], textarea):focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 #gbody .pl-fill .gk-input-row > .gk-btn { min-height: var(--control-h-lg); }
 /* Rules disclosure: a chip, not a stray underlined link. */
 #gbody .pl-fill .party-more > summary, #gbody .pl-fill .wg-more > summary {
   display: inline-flex; width: max-content; min-height: var(--control-h-sm); padding: 0 var(--space-16);
-  border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-pill); background: var(--card);
-  color: var(--ink); text-decoration: none; font: var(--text-button-sm); list-style: none;
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); background: var(--card);
+  box-shadow: var(--shadow-sticker-sm); color: var(--ink); text-decoration: none; font: var(--text-button-sm); list-style: none;
 }
 #gbody .pl-fill .party-more > summary::-webkit-details-marker { display: none; }
 #gbody .pl-fill .wg-more { border-top: 0; padding-top: 0; }
@@ -552,10 +560,25 @@
 @media (hover: hover) {
   #gbody .pl-fill :is(.rt-list, .cb-list, .fa-list, .bl-list, .tt-list) .gk-choice:hover { transform: none; }
 }
+/* "Locked in": the viewer's own answer is the title, centred in a sticker
+ * sized to it, under a success check. */
 #gbody .pl-fill :is(.rt-mine, .cb-mine, .fa-mine, .bl-mine) {
-  padding: var(--space-16) var(--space-24); background: var(--card);
-  border: var(--outline-w-lg) dashed var(--outline); border-radius: var(--radius-xl);
+  display: grid; justify-items: center; gap: var(--space-4);
+  align-self: center; width: fit-content; min-width: min(100%, 280px); max-width: 100%; margin-inline: auto;
+  padding: var(--space-16) var(--space-24); text-align: center; background: var(--success-soft); color: var(--ink);
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
 }
+#gbody .pl-fill :is(.rt-mine, .cb-mine, .fa-mine, .bl-mine) > .gk-meta {
+  display: inline-flex; align-items: center; gap: var(--space-8); margin: 0;
+  font: var(--text-button-sm); color: var(--ink);
+}
+#gbody .pl-fill :is(.rt-mine, .cb-mine, .fa-mine, .bl-mine) > .gk-meta::before {
+  content: "\2713"; display: inline-grid; place-items: center; width: 24px; height: 24px; flex: none;
+  border: var(--outline-w) solid var(--outline); border-radius: 50%;
+  background: var(--success); color: var(--on-success); font: 800 14px/1 var(--font-body);
+}
+#gbody .pl-fill :is(.rt-mine, .cb-mine, .fa-mine, .bl-mine) > p { margin: 0; font: var(--text-title); color: var(--ink); overflow-wrap: anywhere; text-wrap: balance; }
+#gbody .pl-fill :is(.rt-foot, .cb-foot, .fa-foot, .bl-foot, .tt-foot)[data-live] { display: flex; flex-direction: column; align-items: center; }
 #gbody .pl-fill :is(.rt-foot, .cb-foot, .fa-foot, .bl-foot, .tt-foot):empty { display: none; }
 #gbody .pl-fill .gk-wait-card {
   min-height: 0; padding: var(--space-32) var(--space-24);
@@ -661,7 +684,7 @@
 }
 @media (max-width: 560px) {
   .pl-seat { grid-template-areas: "av name" "av state" "av pts"; }
-  .pl-seat .pl-state { display: block; min-height: 0; font-size: 12px; line-height: 1.3; }
+  .pl-seat .pl-state { display: block; min-height: 0; font: var(--text-caption); }
   #gbody .pl-live :is(.party-more, .wg-more) > summary { padding: 0 var(--space-8); font-size: 13px; }
 }
 /* Progress text sits flush right when there is no clock. */
@@ -685,6 +708,90 @@
 }
 .pl-points { min-width: 0; max-width: 100%; overflow: hidden; }
 .pl-seat > * { max-width: 100%; }
+
+/* ==== Soft arcade skin for the party kit (2026-11 redesign) ====
+ * No ink outlines: tinted cards sit on a lip of their own colour, picked
+ * cards sink onto a lip of their side's colour, the second side of a duel
+ * is a violet of its own (never ink, never a player colour), and Night lets
+ * the things that are yours glow a little. Each game adds its scene in its
+ * own sheet (body[data-game="<id>"]). */
+#gbody .pl-fill { --duel-b: #6a55d8; --on-duel-b: #ffffff; --tint-lip: color-mix(in srgb, var(--fam) 32%, var(--outline)); }
+[data-theme="night"] #gbody .pl-fill { --duel-b: #a796ff; --on-duel-b: #150f26; --tint-lip: color-mix(in srgb, var(--fam) 26%, var(--outline)); }
+#gbody .pl-fill .pl-ab > :nth-child(2) { --side: var(--duel-b); --on-side: var(--on-duel-b); }
+
+/* Tinted cards (the question, the wait card, banners) sit on a family lip. */
+body #gbody :is(.party-scene--truth, .party-scene--spotlight, .rt-scene, .cb-scene).pl-fill > .gk-prompt,
+body #gbody .pl-fill:is(.party-scene--hot, .party-scene--poll, .party-scene--rank, .likely-world) .party-prompt.party-prompt,
+body #gbody .pl-fill :is(.never-card, .gk-wait-card, .td-banner, .dr-banner) {
+  border-color: var(--tint-lip); box-shadow: 0 var(--lift) 0 var(--tint-lip);
+}
+#gbody :is(.fa-scene, .bl-scene, .tt-scene).pl-fill > .gk-prompt { border-color: var(--tint-lip); box-shadow: 0 var(--lift) 0 var(--tint-lip); }
+
+/* Picked / correct / wrong cards: rim and lip in their own colour. */
+body #gbody .pl-fill :is(.gk-choice, .party-choice):is(.is-selected, .is-picked, [aria-pressed="true"]),
+body #gbody .pl-fill :is(.wyr-choice, .pick-choice).is-majority {
+  --pick-lip: color-mix(in srgb, var(--side) 62%, var(--outline));
+  border-color: var(--pick-lip); box-shadow: 0 var(--lift-lg) 0 var(--pick-lip), inset 0 0 0 2px var(--side);
+}
+body #gbody .pl-fill .gk-choice.is-correct { border-color: color-mix(in srgb, var(--success) 62%, var(--outline)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--success) 62%, var(--outline)), inset 0 0 0 2px var(--success); }
+body #gbody .pl-fill .gk-choice.is-wrong { border-color: color-mix(in srgb, var(--danger) 62%, var(--outline)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--danger) 62%, var(--outline)), inset 0 0 0 2px var(--danger); }
+body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):active { box-shadow: none; }
+
+/* The primary keeps its own-colour lip on hover (skins.css sets it). */
+@media (hover: hover) {
+  body #gbody .pl-fill .gk-btn.gk-primary:not(:disabled):hover { border-color: var(--fam-lip); }
+}
+/* Rules chip: the "i" wears the game colour, not an ink disc. */
+#gbody .pl-live :is(.party-more, .wg-more) > summary::before { background: var(--fam); color: var(--on-fam); }
+/* Your seat: the family ring; at Night it glows a little. */
+[data-theme="night"] .pl-seat.is-you { box-shadow: var(--shadow-sticker-sm), inset 0 0 0 2px var(--fam), 0 0 20px -6px var(--fam); }
+[data-theme="night"] #gbody .pl-fill .gk-hud-timer.is-urgent { box-shadow: var(--shadow-sticker-sm), 0 0 16px -4px var(--danger); }
+/* Pre-kit wheel: a soft lip, not a hairline ring. */
+.party-wheel { box-shadow: 0 var(--lift) 0 var(--outline); }
+/* A wrapped status line keeps its dot beside the words, not at the far edge. */
 @media (max-width: 560px) {
-  .pl-seat .pl-unit { display: none; }
+  #gbody .pl-fill .gk-wait { text-align: left; }
+}
+
+/* ==== QC wave (2026-11) ==== */
+/* The phase chip keeps a soft family rim, so it still reads as a chip on
+ * pages tinted the same colour as its fill (Pick One, Memory Tray). */
+#gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-phase, .party-phase):not(:empty) {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fam) 34%, transparent);
+}
+/* Seats: the badge sits off the avatar's corner so it never hides the
+ * initials, and every seat keeps the soft card radius on phones too. */
+.pl-badge { right: -8px; bottom: -6px; }
+.pl-seat { border-radius: var(--radius-md); }
+@media (max-width: 560px) {
+  .pl-seat { border-radius: var(--radius-md); }
+  .pl-avatar { font-size: 13px; }
+  .pl-badge { width: 16px; height: 16px; right: -7px; bottom: -6px; font-size: 10px; }
+  /* The role word ("Answering", "On the spot") gets the seat's full width
+   * on its own line under the avatar, so it is never clipped to "Answeri…". */
+  .pl-seat { grid-template-areas: "av name" "av pts" "state state"; row-gap: 2px; }
+  .pl-seat .pl-state { margin-top: var(--space-4); font-size: 12px; line-height: 1.25; }
+  /* A wrapped status pill fills its lines instead of balancing them into a
+   * half-width column that leaves the right of the pill empty. */
+  #gbody .pl-fill .gk-wait { text-wrap: wrap; }
+}
+/* Night text fields are a raised, game-tinted well, a step above the page,
+ * never a near-black hole next to a bright button. */
+[data-theme="night"] #gbody .pl-fill :is(input.gk-input, input[type="text"], textarea) {
+  background: color-mix(in srgb, var(--fam) 8%, var(--card));
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
+}
+/* Between rounds on phones, the "Getting everyone ready" pill sits at the
+ * bottom of the screen, never over the round row under the title bar. */
+@media (max-width: 600px) {
+  body.game-playing:not(.game-immersive):is([data-game="would-you-rather"], [data-game="truth-dare"], [data-game="never-ever"],
+    [data-game="most-likely"], [data-game="hot-takes"], [data-game="rank-it"], [data-game="rapid-polls"], [data-game="dare-roulette"],
+    [data-game="pick-one"], [data-game="compliment-battle"], [data-game="roast-toast"], [data-game="trivia"], [data-game="two-truths"],
+    [data-game="funny-answer"], [data-game="bluff"], [data-game="story-builder"], [data-game="emoji-story"],
+    [data-game="twenty-questions"], [data-game="five-second"], [data-game="memory-tray"]) .game-preparation:not(.is-first) {
+    top: auto; bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  /* Room under the pill so the last card (Players) can scroll clear of it. */
+  body.game-playing:not(.game-immersive):has(.game-preparation:not(.is-first):not([hidden])) #gbody { padding-bottom: 84px; }
 }

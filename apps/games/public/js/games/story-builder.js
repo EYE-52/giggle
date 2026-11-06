@@ -53,7 +53,9 @@ function waitLine(S) {
 function storyHtml(S, lines, withAuthors) {
   const rows = lines.map((l, i) => `<li class="sb-line"><span class="gk-mark" aria-hidden="true">${i + 1}</span>`
     + `<span class="sb-text">${esc(l.text)}${withAuthors && l.pid ? ` <small class="gk-meta">${esc(nameOf(S, l.pid))}</small>` : ''}</span></li>`).join('');
-  return `<ol class="sb-story" aria-label="Story so far">${rows || '<li class="sb-line sb-empty"><span class="gk-meta">No lines yet. The first one is being written.</span></li>'}</ol>`;
+  // Empty: placeholder line strips that say where the story will appear.
+  return `<ol class="sb-story${rows ? '' : ' is-empty'}" aria-label="Story so far">${rows || '<li class="sb-line sb-empty"><span class="sb-ghost" aria-hidden="true">1</span><span class="sb-empty-text">No lines yet. The first one is being written.</span></li>'
+    + '<li class="sb-line sb-empty sb-ghost-line" aria-hidden="true"><span class="sb-ghost">2</span></li>'}</ol>`;
 }
 
 function revealHtml(S, watch) {
@@ -97,7 +99,7 @@ function voteHtml(S, watch) {
       : onlyMine ? 'Every line is yours. The others are voting.'
         : 'Vote for the funniest line. Not your own.';
   return scene(S, 'Vote the funniest line', `<h2 class="gk-prompt">${esc(S.seed)}</h2>`
-    + `<p class="gk-sub">${esc(sub)}</p>`
+    + `<p class="gk-sub${voted && !watch ? ' sb-locked' : ''}">${esc(sub)}</p>`
     + `<div class="gk-choices${voted ? ' is-locked' : ''}" role="group" aria-label="Funniest line ballot" style="--gk-cols:1;--gk-cols-phone:1">${cards}</div>`
     + `<div class="sb-foot" data-live="wait">${voted || watch || onlyMine ? waitLine(S) : ''}</div>`);
 }

@@ -1,9 +1,9 @@
 ---
 name: giggle-design
-description: "The Giggle Games \"toy box\" visual system: chunky sticker cards and buttons, colour per game family, springy motion on one curve, named text styles, a fixed spacing scale, the full interactive state set, one primary action per panel, phone rules, and an anti-slop review checklist. Use it whenever you build, restyle, review or screenshot-check any screen in apps/games (home, lobby, practice, a game's HUD, board, results, dialogs), even for a one-line CSS change, and before choosing any colour, size, spacing, radius, shadow, transition or button style there."
+description: "The Giggle Games \"soft arcade\" visual system: one clean playful base (soft rims, candy buttons on their own-colour lip) plus a hand-crafted skin per game in light and dark, colour per game, springy motion on one curve, named text styles, a fixed spacing scale, the full interactive state set, one primary action per panel, phone rules, and an anti-slop review checklist. Use it whenever you build, restyle, review or screenshot-check any screen in apps/games (home, lobby, practice, a game's HUD, board, results, dialogs), even for a one-line CSS change, and before choosing any colour, size, spacing, radius, shadow, transition or button style there."
 ---
 
-# Giggle design: the toy box
+# Giggle design: soft arcade, skinned per game
 
 Giggle is a party-game site. A screen should feel like a box of good toys:
 bright, solid, a little bouncy, and obvious to use the first time. It should
@@ -26,12 +26,24 @@ user's prompt conflicts with a rule, the user wins.
 
 ## 1. The look in one paragraph
 
-Flat, saturated surfaces; one thick ink outline (`--outline`, 2–3px) around
-the things you can touch or read as a unit; a hard offset shadow straight
-down (`--shadow-sticker*`) so they sit on the page like stickers; rounded but
-not pill-shaped panels; Baloo 2 for anything loud, Nunito for anything you
-read. Colour comes from the game's family, not from decoration. Gradients
-are allowed on game art and hero art, not on controls or text panels.
+One clean, playful base everywhere (think Duolingo), and a hand-crafted skin
+per game on top. No black ink outlines: rims are soft (`--outline` is a pale
+tint in Day and a near-black lip in Night), and cards and buttons sit on a
+straight-down "lip" (`0 4–6px 0`) instead of a black offset shadow. Coloured
+controls sit on a darker lip of their own colour (`--fam-lip`) and sink onto
+it when pressed, like candy buttons. Rounded but not pill-shaped panels;
+Baloo 2 for anything loud, Nunito for anything you read. Colour comes from
+the game (its skin), not from decoration. Gradients and patterns are allowed
+on game art, scenes and backdrops, not on controls or text panels. Every
+screen works in Day and Night; Night follows the device until the player
+picks.
+
+**Skins.** `public/css/skins.css` gives every game its own `--fam`/`--accent`
+colours and page tint (`--bg`), with a Night version, keyed on
+`body[data-game="<id>"]` (set by app.js while a game plays). A game's own
+CSS adds its scene and signature piece (racetrack lanes, quiz-show stage,
+wooden chess board, sketchbook paper), also keyed on `body[data-game]`, with
+a `[data-theme="night"]` variant. Shared controls never change per game.
 
 ## 2. Colour
 
@@ -64,16 +76,18 @@ component; use a token so all three resolve.
 
 ## 3. Sticker shapes
 
-- **Card** (`.tb-card`): `--card` fill, `--outline-w-lg` (3px) outline,
-  `--radius-xl` (24px), `--shadow-sticker-lg` (6px straight down),
+- **Card** (`.tb-card`): `--card` fill, a soft 2px rim (`--outline`),
+  `--radius-xl` (24px), a straight-down lip (`--shadow-sticker-lg`),
   `--space-24` padding (`.is-compact`: 16px). `.is-tint` uses `--fam-soft`.
-  A clickable card lifts 3px on hover and sinks onto its shadow on press.
-- **Button** (`.tb-btn`): 2px outline, `--radius-lg` (16px), a 2px (secondary)
-  or 4px (primary) shadow it sinks into on press.
+  A clickable card lifts 2–3px on hover and sinks onto its lip on press.
+- **Button** (`.tb-btn`): soft 2px rim, `--radius-lg` (16px), a 2px
+  (secondary) or 4px (primary) lip it sinks into on press. Coloured buttons
+  use `--fam-lip` (a darker shade of their own fill) for rim and lip.
 - **Borders go all the way round or not at all.** No one-sided card borders.
-- **Shadows go straight down** in `--outline`. No blurry grey glows on
-  controls. Soft shadows (`--shadow-card`) are only for floating layers:
-  dialogs, toasts, popovers.
+- **Lips go straight down.** Never a diagonal offset shadow, never black ink
+  around a control. Soft blurred shadows (`--shadow-card`) are only for
+  floating layers: dialogs, toasts, popovers. In Night a subtle glow may mark
+  the one thing that matters (your progress, the active player, an error).
 - **Nested radius.** When a shape sits inside another and the gap is under
   32px: `inner = outer − gap`. Only apply when the result is above 2px;
   otherwise square the inner corner. Example: a 16px segmented track with

@@ -236,7 +236,7 @@ function renderDraw(el, S, api) {
   const key = `draw:${S.instanceId || ''}:${S.me || ''}:${!!S.spectator}`;
   if (key !== lastKey) {
     lastKey = key;
-    el.innerHTML = desk(S, `<div class="dp-draw-heading">${prompt(S.spectator ? 'Private sketchbooks are open' : (S.myPrompt || '…'), S.spectator ? 'Watching' : 'Your private prompt')}${S.spectator ? '' : '<div class="dp-view-controls"><button type="button" id="pFocus" aria-label="Focus canvas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="dp-focus-label">Focus canvas</span></button><button type="button" id="pTools" aria-expanded="true">Tools</button></div>'}<div class="dp-done-row">${S.spectator ? '' : `<button type="button" id="pDone" class="gk-btn gk-primary" aria-pressed="${!!S.myDone}">${S.myDone ? 'Keep drawing' : 'Done'}</button>${zoomHtml()}`}<p class="dp-status sk-byline gk-meta">${doneText(S)}</p></div></div><div class="sk-drawdesk">${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" data-drawable="${!S.spectator}" width="880" height="520" tabindex="0" aria-label="${S.spectator ? 'Private drawings are hidden until reveal' : 'Your drawing canvas'}"></canvas></div>`)}${S.spectator ? '<p class="dp-watching">The drawings stay private until the stories are read.</p>' : tools()}</div>`);
+    el.innerHTML = desk(S, `<div class="dp-draw-heading">${prompt(S.spectator ? 'Private sketchbooks are open' : (S.myPrompt || '…'), S.spectator ? 'Watching' : 'Your private prompt')}${S.spectator ? '' : '<div class="dp-view-controls"><button type="button" id="pFocus" aria-label="Focus canvas" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span class="dp-focus-label">Focus canvas</span></button><button type="button" id="pTools" aria-expanded="true">Tools</button></div>'}${S.spectator ? '' : `<div class="dp-zoom-row">${zoomHtml()}</div>`}</div><div class="sk-drawdesk">${book(`<div class="sk-canvaswrap"><canvas class="doodle" id="pCanvas" data-drawable="${!S.spectator}" width="880" height="520" tabindex="0" aria-label="${S.spectator ? 'Private drawings are hidden until reveal' : 'Your drawing canvas'}"></canvas></div>`)}${S.spectator ? '<p class="dp-watching">The drawings stay private until the stories are read.</p>' : tools()}<div class="dp-done-row">${S.spectator ? '' : `<button type="button" id="pDone" class="gk-btn gk-primary" aria-pressed="${!!S.myDone}">${S.myDone ? 'Keep drawing' : 'Done'}</button>`}<p class="dp-status sk-byline gk-meta">${doneText(S)}</p></div></div>`);
     wireDraw(el, api, S.spectator);
     wireFocus(el);
     const done = el.querySelector('#pDone');
@@ -487,8 +487,21 @@ function wireDraw(el, api, spectator) {
   }
 }
 
+/* Night turns the sheet into a chalkboard (draw-phone.css): the same ink is
+ * drawn in chalk tones there, so black reads white and yellow stays bright.
+ * Only the local rendering changes; strokes still carry the palette colour. */
+const CHALK = { '#111111': '#f3efe6', '#e4572e': '#ff8f6b', '#1d7a3a': '#74d896', '#1d4ed8': '#86b4ff', '#f2b134': '#ffd66e' };
+function isNight() { return typeof document !== 'undefined' && document.documentElement?.dataset?.theme === 'night'; }
+let themeWatch = null, lastPaint = null;
+function watchTheme() {
+  if (themeWatch || typeof MutationObserver !== 'function' || typeof document === 'undefined') return;
+  themeWatch = new MutationObserver(() => { if (lastPaint?.[0]?.isConnected) paintStrokes(...lastPaint); });
+  themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+}
+
 function paintStrokes(cv, strokes, local = false) {
   if (!cv) return;
+  lastPaint = [cv, strokes, local]; watchTheme();
   const ctx = cv.getContext('2d');
   if (!ctx) return;
   ctx.clearRect(0, 0, cv.width, cv.height);
@@ -503,9 +516,11 @@ function paintStrokes(cv, strokes, local = false) {
 
 function paintStroke(ctx, cv, pts, strokeColor, strokeSize) {
   if (!ctx || !pts?.length) return;
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.strokeStyle = strokeColor;
-  ctx.fillStyle = strokeColor;
+  // White ink is the eraser: it lifts ink off the sheet locally, so the
+  // paper's own grid (or the night chalkboard) shows through again.
+  ctx.globalCompositeOperation = strokeColor === '#ffffff' ? 'destination-out' : 'source-over';
+  ctx.strokeStyle = isNight() ? CHALK[strokeColor] || strokeColor : strokeColor;
+  ctx.fillStyle = ctx.strokeStyle;
   ctx.lineWidth = strokeSize * (cv.width / 880);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';

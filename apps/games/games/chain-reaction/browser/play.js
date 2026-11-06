@@ -23,7 +23,9 @@ const els = {
  * board matches every other game. Same-origin only; best effort. */
 const THEME_TOKENS = ['--bg', '--card', '--well', '--chip', '--ink', '--ink-dim', '--line', '--line-strong',
   '--accent', '--accent-soft', '--accent-ink', '--green', '--melon', '--sun', '--sun-ink',
-  '--font-display', '--font-body', '--shadow-card'];
+  '--font-display', '--font-body', '--shadow-card', '--outline', '--accent-deep',
+  '--success', '--success-soft', '--on-success', '--danger', '--danger-soft', '--on-danger',
+  '--fam-arcade', '--fam-arcade-deep', '--on-fam-arcade'];
 function mirrorTheme() {
   let parentDoc = null;
   try { parentDoc = window.parent && window.parent !== window ? window.parent.document : null; } catch { parentDoc = null; }

@@ -1,22 +1,45 @@
-/* Reversi board art: a flat green board with charcoal and ivory discs. */
-.rv-duel .rv-frame{fill:#1f6b48}
-.rv-duel .rv-felt{fill:#2e8a5e}
-.rv-duel .rv-grid{stroke:#1d5f40;stroke-width:2}
-.rv-duel .rv-star{fill:#1d5f40}
+/* Reversi: green baize felt (a fine nap and a lamp-lit centre) in a dark
+ * wood rim, on a card-room table. Discs are raised (a darker edge under the
+ * face). The rim sits on its own darker wood lip; no ink rims. Night dims
+ * the room and the felt, never the discs. */
+.rv-duel{--rv-felt:#2f8f5f;--rv-line:#1f6f48;--rv-wood-a:#6b4326;--rv-wood-b:#55331b;--rv-lip:#2e1b0c;
+ --rv-lamp-a:#ffffff1f;--rv-lamp-b:#00000026;--rv-room:#eef3ee;--rv-room-2:#d9e6dc}
+[data-theme="night"] .rv-duel{--rv-felt:#236e49;--rv-line:#185437;--rv-wood-a:#4d2f1a;--rv-wood-b:#3b2312;--rv-lip:#110a05;
+ --rv-lamp-a:#ffffff14;--rv-lamp-b:#0000004d;--rv-room:#17221c;--rv-room-2:#0e1511}
+.bk-game.rv-duel{background:radial-gradient(110% 75% at 50% 25%,var(--rv-room),var(--rv-room-2))}
+.rv-duel .rv-stage{border-radius:4.2%;background:var(--rv-wood-b);box-shadow:0 var(--lift-lg) 0 var(--rv-lip),0 18px 28px -14px #0a1f1466}
+.rv-duel .rv-frame{fill:url(#rv-wood);stroke:none}
+.rv-duel .rv-wood-a{stop-color:var(--rv-wood-a)}
+.rv-duel .rv-wood-b{stop-color:var(--rv-wood-b)}
+.rv-duel .rv-felt{fill:var(--rv-felt);stroke:var(--rv-lip);stroke-width:3}
+.rv-duel .rv-nap{fill:#000;pointer-events:none}
+.rv-duel .rv-lamp{fill:url(#rv-lamp);pointer-events:none}
+.rv-duel .rv-lamp-a{stop-color:var(--rv-lamp-a)}
+.rv-duel .rv-lamp-b{stop-color:var(--rv-lamp-b)}
+.rv-duel .rv-grid{stroke:var(--rv-line);stroke-width:2}
+.rv-duel .rv-star{fill:var(--rv-line)}
 .rv-duel .rv-hit{fill:transparent}
 .rv-duel .rv-lastsq{fill:#ffffff;opacity:.14;pointer-events:none}
 .rv-duel .rv-legal{fill:#ffffff;stroke:#0d3b24;stroke-width:3;opacity:.8;pointer-events:none}
 .rv-duel [data-cell][aria-disabled=false]{cursor:pointer}
 .rv-duel [data-cell][aria-disabled=false]:hover .rv-hit{fill:#ffffff1f}
 .rv-duel [data-cell][aria-disabled=false]:hover .rv-legal{opacity:.9}
-.rv-duel .rv-cursor{stroke:var(--accent);stroke-width:3;opacity:0;pointer-events:none}
+.rv-duel .rv-cursor{stroke:var(--sun,#f6d365);stroke-width:4;opacity:0;pointer-events:none}
 .rv-duel [data-cell]:focus{outline:none}
 .rv-duel [data-cell]:focus-visible .rv-cursor{opacity:1}
 .rv-duel .rv-disc{transform-box:fill-box;transform-origin:center;pointer-events:none}
-.rv-duel .rv-flip{animation:rv-flip .4s cubic-bezier(.2,.65,.3,1) var(--flip-delay) both}
+.rv-duel .rv-flip{animation:rv-flip .4s var(--ease) var(--flip-delay) both}
 .rv-duel .rv-old-face{animation:rv-face .4s steps(1,end) var(--flip-delay) both}
-.rv-duel .rv-place{animation:rv-place .22s ease-out both}
+.rv-duel .rv-place{animation:rv-place .22s var(--ease) both}
 @keyframes rv-flip{0%{transform:scaleX(1)}45%{transform:scaleX(.04)}100%{transform:scaleX(1)}}
 @keyframes rv-face{0%,44%{opacity:1}45%,100%{opacity:0}}
 @keyframes rv-place{0%{transform:scale(.85);opacity:.5}100%{transform:scale(1);opacity:1}}
 @media(prefers-reduced-motion:reduce){.rv-duel .rv-old-face{opacity:0}}
+/* QC: legal moves are soft see-through dots (never mistaken for discs), the
+ * night result banner is a solid deep-felt sticker with light text, and the
+ * Charcoal chip gets a faint light ring so it shows on a dark card. */
+.rv-duel .rv-legal{fill:#ffffff;stroke:none;opacity:.3;r:9px}
+.rv-duel [data-cell][aria-disabled=false]:hover .rv-legal{opacity:.5}
+[data-theme="night"] .rv-duel .rv-felt{stroke:#0f3a25}
+[data-theme="night"] .rv-duel .bk-stage[data-bk-result]::after{background:#1f6b3f;border-color:#2f8f5f;color:#f4fbf6;box-shadow:0 4px 0 #0c2c1a}
+[data-theme="night"] .rv-duel .bk-chip svg{border-radius:50%;box-shadow:0 0 0 2px #ffffff47}

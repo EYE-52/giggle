@@ -1,0 +1,173 @@
+/* Trivia: on phones the HUD is two tidy rows (question + timer, then phase
+ * + locked-in count) so the timer never drops onto a line of its own and
+ * push the question card down. Tokens only. */
+@media (max-width: 560px) {
+  #gbody [data-game="trivia"] .gk-hud {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "round timer" "phase progress";
+    align-items: center; gap: var(--space-8) var(--space-12);
+  }
+  #gbody [data-game="trivia"] .gk-hud .gk-hud-round { grid-area: round; }
+  #gbody [data-game="trivia"] .gk-hud .gk-hud-timer { grid-area: timer; margin: 0; }
+  #gbody [data-game="trivia"] .gk-hud .gk-hud-phase { grid-area: phase; justify-self: start; }
+  #gbody [data-game="trivia"] .gk-hud .gk-hud-progress { grid-area: progress; justify-self: end; margin: 0; }
+}
+
+/* ==========================================================================
+ * Quiz-show stage (2026-11 skin). A spotlight falls on the question card,
+ * which carries a row of marquee bulbs; the four answers are big coloured
+ * buttons, each on a darker lip of its own colour (A raspberry, B blue,
+ * C amber, D teal: the letter always shows, so colour is never the only cue).
+ * Reveal keeps the colours: the right answer gets a green ring and a check,
+ * your wrong pick a cross, the rest step back.
+ * ========================================================================== */
+body.game-playing[data-game="trivia"] {
+  background-image:
+    radial-gradient(ellipse 46% 52% at 50% 0%, color-mix(in srgb, var(--fam) 20%, transparent), transparent 72%),
+    linear-gradient(to top, color-mix(in srgb, var(--fam) 9%, transparent), transparent 28%);
+  background-repeat: no-repeat; background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="trivia"] {
+  background-image:
+    radial-gradient(ellipse 46% 56% at 50% 0%, color-mix(in srgb, var(--fam) 30%, transparent), transparent 72%),
+    linear-gradient(to top, color-mix(in srgb, var(--fam) 12%, transparent), transparent 30%);
+}
+
+#gbody .wg[data-game="trivia"] {
+  --qa-a: #d63c72; --qa-b: #2f74d8; --qa-c: #f2a516; --qa-d: #0f8a8a;
+  --qa-on: #ffffff; --qa-on-c: #2b1a00;
+  --qa-lip-mix: 72%;
+  position: relative; isolation: isolate;
+}
+[data-theme="night"] #gbody .wg[data-game="trivia"] {
+  --qa-a: #e0558a; --qa-b: #4a8cf0; --qa-c: #f6b52e; --qa-d: #179c9c;
+  --qa-lip-mix: 48%;
+}
+
+/* The spotlight cone behind the question card. */
+#gbody .wg.pl-fill[data-game="trivia"]::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  left: 50%; top: calc(-1 * var(--space-48)); width: min(860px, 120%); height: 420px; transform: translateX(-50%);
+  background: radial-gradient(ellipse 50% 60% at 50% 40%, color-mix(in srgb, #ffffff 70%, var(--fam-soft)), transparent 70%);
+}
+[data-theme="night"] #gbody .wg.pl-fill[data-game="trivia"]::before {
+  background: radial-gradient(ellipse 50% 60% at 50% 40%, color-mix(in srgb, var(--fam) 26%, transparent), transparent 72%);
+}
+
+/* The question card: a lit screen with marquee bulbs along the top. */
+#gbody .wg.pl-fill[data-game="trivia"] > .gk-prompt {
+  position: relative; padding: var(--space-40) var(--space-32) var(--space-32);
+  background: var(--card); color: var(--ink);
+  border: var(--outline-w) solid color-mix(in srgb, var(--fam) 28%, var(--outline));
+  box-shadow: 0 var(--lift-lg) 0 var(--fam-lip);
+  text-wrap: balance;
+}
+#gbody .wg.pl-fill[data-game="trivia"] > .gk-prompt::before {
+  content: ""; position: absolute; left: var(--space-24); right: var(--space-24); top: var(--space-12); height: 12px;
+  background: radial-gradient(circle at 6px 6px, var(--qa-c) 0 4px, transparent 5px) 0 0 / 24px 12px repeat-x;
+  opacity: .9; pointer-events: none;
+}
+[data-theme="night"] #gbody .wg.pl-fill[data-game="trivia"] > .gk-prompt {
+  border-color: color-mix(in srgb, var(--fam) 40%, var(--card));
+  box-shadow: 0 var(--lift-lg) 0 var(--outline), 0 0 48px color-mix(in srgb, var(--fam) 22%, transparent);
+}
+
+/* Answer buttons: each a colour of its own, on its own lip. */
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choices { gap: var(--space-16); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:nth-child(1) { --qa: var(--qa-a); --qa-ink: var(--qa-on); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:nth-child(2) { --qa: var(--qa-b); --qa-ink: var(--qa-on); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:nth-child(3) { --qa: var(--qa-c); --qa-ink: var(--qa-on-c); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:nth-child(4) { --qa: var(--qa-d); --qa-ink: var(--qa-on); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice {
+  --qa-lip: color-mix(in srgb, var(--qa) var(--qa-lip-mix), #000);
+  position: relative; min-height: 80px; padding: var(--space-12) var(--space-16);
+  background: var(--qa); color: var(--qa-ink);
+  border: var(--outline-w) solid var(--qa-lip); border-radius: var(--radius-lg);
+  box-shadow: 0 var(--lift-lg) 0 var(--qa-lip);
+  font: 800 22px/1.2 var(--font-display); text-align: left;
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice .gk-mark {
+  width: 40px; height: 40px; border: 0; border-radius: var(--radius-md);
+  background: #ffffff; color: var(--qa-lip); font: 800 20px/1 var(--font-display);
+}
+@media (hover: hover) {
+  #gbody .wg.pl-fill[data-game="trivia"] button.gk-choice:not(:disabled):hover { transform: translateY(-2px); border-color: var(--qa-lip); }
+}
+#gbody .wg.pl-fill[data-game="trivia"] button.gk-choice:not(:disabled):active { transform: translateY(var(--lift-lg)); box-shadow: 0 0 0 var(--qa-lip); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+
+/* Locked in: your pick stays lit with a white ring and a check; the other
+ * three step back but keep their colour so the board still reads A-D. */
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:is(.is-selected, [aria-pressed="true"]) {
+  background: var(--qa); border-color: var(--qa-lip);
+  box-shadow: 0 var(--lift-lg) 0 var(--qa-lip), inset 0 0 0 3px #ffffff;
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:is(.is-selected, [aria-pressed="true"]) .gk-mark { background: #ffffff; color: var(--qa-lip); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choices.is-locked .gk-choice:is(.is-selected, [aria-pressed="true"])::after {
+  content: "✓"; display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%;
+  background: #ffffff; color: var(--qa-lip); font: 800 18px/1 var(--font-body);
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choices.is-locked > .gk-choice:not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct) {
+  opacity: .45; background: var(--qa); border-color: var(--qa-lip); box-shadow: 0 var(--lift-sm) 0 var(--qa-lip);
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choices.is-locked > .gk-choice:not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct) .gk-mark { background: #ffffff; color: var(--qa-lip); }
+
+/* Reveal. */
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-correct {
+  background: var(--qa); color: var(--qa-ink); border-color: var(--qa-lip); opacity: 1;
+  box-shadow: 0 var(--lift-lg) 0 var(--qa-lip), 0 0 0 4px var(--success);
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-correct .gk-mark { background: #ffffff; color: var(--qa-lip); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-correct::after {
+  content: "✓"; display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--success); color: var(--on-success); box-shadow: 0 0 0 3px #ffffff; font: 800 18px/1 var(--font-body);
+  animation: qa-pop var(--dur-base) var(--ease) both;
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-wrong {
+  background: var(--qa); color: var(--qa-ink); border-color: var(--qa-lip); opacity: .8;
+  box-shadow: 0 var(--lift-sm) 0 var(--qa-lip), 0 0 0 4px var(--danger);
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-wrong .gk-mark { background: #ffffff; color: var(--qa-lip); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-wrong::after {
+  content: "✕"; display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--danger); color: var(--on-danger); box-shadow: 0 0 0 3px #ffffff; font: 800 18px/1 var(--font-body);
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-dim {
+  opacity: .45; background: var(--qa); border-color: var(--qa-lip); box-shadow: 0 var(--lift-sm) 0 var(--qa-lip);
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-dim .gk-mark { background: #ffffff; color: var(--qa-lip); }
+@keyframes qa-pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* The status line under the board reads as a host's caption. */
+#gbody .wg.pl-fill[data-game="trivia"] .wg-status { font: 800 19px/1.3 var(--font-display); }
+#gbody .wg.pl-fill[data-game="trivia"] .wg-status.is-good { color: var(--success); }
+[data-theme="night"] #gbody .wg.pl-fill[data-game="trivia"] .wg-status.is-good { color: var(--success); }
+
+@media (max-width: 560px) {
+  #gbody .wg.pl-fill[data-game="trivia"]::before { height: 300px; top: calc(-1 * var(--space-24)); }
+  #gbody .wg.pl-fill[data-game="trivia"] > .gk-prompt { padding: var(--space-32) var(--space-16) var(--space-16); }
+  #gbody .wg.pl-fill[data-game="trivia"] > .gk-prompt::before { left: var(--space-16); right: var(--space-16); top: var(--space-8); height: 10px; background-size: 20px 10px; background-image: radial-gradient(circle at 5px 5px, var(--qa-c) 0 3px, transparent 4px); }
+  #gbody .wg.pl-fill[data-game="trivia"] .gk-choices { gap: var(--space-12); }
+  #gbody .wg.pl-fill[data-game="trivia"] .gk-choice { min-height: 64px; padding: var(--space-8) var(--space-12); gap: var(--space-8); font-size: 18px; box-shadow: 0 var(--lift) 0 var(--qa-lip); }
+  #gbody .wg.pl-fill[data-game="trivia"] .gk-choice .gk-mark { width: 32px; height: 32px; font-size: 17px; border-radius: var(--radius-sm); }
+  #gbody .wg.pl-fill[data-game="trivia"] :is(.gk-choice.is-correct, .gk-choice.is-wrong, .gk-choices.is-locked .gk-choice[aria-pressed="true"])::after { width: 26px; height: 26px; font-size: 15px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-correct::after { animation: none; }
+}
+
+/* QC: the reveal rings sit inside the tile, so the board keeps its column
+ * edges. Answers that step back become a plain card with their colour on
+ * the rim and the letter, never a half-transparent tile (which turns muddy
+ * on the night stage and pastel-on-white by day). */
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-correct { box-shadow: 0 var(--lift) 0 var(--qa-lip), inset 0 0 0 4px var(--success); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-wrong { opacity: 1; box-shadow: 0 var(--lift-sm) 0 var(--qa-lip), inset 0 0 0 4px var(--danger); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-dim,
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choices.is-locked > .gk-choice:not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct):not(.is-wrong) {
+  opacity: 1; background: var(--card); color: var(--ink);
+  border-color: color-mix(in srgb, var(--qa) 45%, var(--card));
+  box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--qa) 45%, var(--card));
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-dim .gk-mark,
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choices.is-locked > .gk-choice:not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct):not(.is-wrong) .gk-mark {
+  background: var(--qa); color: var(--qa-ink);
+}

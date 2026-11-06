@@ -39,6 +39,7 @@ function board(S, c, animate) {
       ${last ? `<rect class="rv-lastsq" x="${x + 1.5}" y="${y + 1.5}" width="66" height="66"/>` : ''}
       ${can ? `<circle class="rv-legal" cx="${cx}" cy="${cy}" r="13"/>` : ''}
       ${side ? `<g class="rv-disc ${flipping ? 'rv-flip' : placed ? 'rv-place' : ''}" style="--flip-delay:${flipping ? Math.min(120, [...flips].indexOf(cell) * 18) : 0}ms">
+        <circle class="rv-edge" cx="${cx}" cy="${cy + 3}" r="26" fill="${DISC[side][1]}"/>
         <circle cx="${cx}" cy="${cy}" r="26" fill="${DISC[side][0]}" stroke="${DISC[side][1]}" stroke-width="2"/>
         ${flipping ? `<circle class="rv-old-face" cx="${cx}" cy="${cy}" r="26" fill="${DISC[3 - side][0]}" stroke="${DISC[3 - side][1]}" stroke-width="2"/>` : ''}
         ${last ? `<circle class="rv-last" cx="${cx}" cy="${cy}" r="5" fill="${side === 1 ? '#f3eee0' : '#2b2f38'}"/>` : ''}
@@ -47,8 +48,15 @@ function board(S, c, animate) {
     </g>`;
   }).join('');
   return `<svg viewBox="0 0 600 600" class="rv-board" role="grid" aria-label="Reversi board, eight rows and eight columns">
-    <rect class="rv-frame" x="2" y="2" width="596" height="596" rx="16"/>
+    <defs>
+      <linearGradient id="rv-wood" x1="0" y1="0" x2="1" y2="1"><stop class="rv-wood-a" offset="0"/><stop class="rv-wood-b" offset=".5"/><stop class="rv-wood-a" offset="1"/></linearGradient>
+      <radialGradient id="rv-lamp" cx=".5" cy=".42" r=".7"><stop class="rv-lamp-a" offset="0"/><stop class="rv-lamp-b" offset="1"/></radialGradient>
+      <filter id="rv-nap" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  .5 0 0 0 -.12"/></filter>
+    </defs>
+    <rect class="rv-frame" x="3" y="3" width="594" height="594" rx="22"/>
     <rect class="rv-felt" x="24" y="24" width="552" height="552"/>
+    <rect class="rv-nap" x="24" y="24" width="552" height="552" filter="url(#rv-nap)"/>
+    <rect class="rv-lamp" x="24" y="24" width="552" height="552"/>
     <g class="rv-grid">${grid}</g>
     ${[[162, 162], [438, 162], [162, 438], [438, 438]].map(([x, y]) => `<circle class="rv-star" cx="${x}" cy="${y}" r="4"/>`).join('')}
     ${cells}

@@ -24,3 +24,60 @@
   .rt-scene .gk-choice { min-height: 48px; padding-block: 8px; }
   .rt-scene .pb-share { margin-top: 5px; }
 }
+
+/* The roast target: a tilted family sticker with the target's avatar,
+ * tucked onto the top edge of the starter card (decorative tilt). */
+#gbody .rt-scene .rt-target {
+  position: relative; z-index: 1; align-self: center; display: inline-flex; align-items: center; gap: var(--space-8);
+  margin: 0 0 calc(-1 * var(--space-24)); padding: var(--space-4) var(--space-16) var(--space-4) var(--space-4);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--fam); color: var(--on-fam); box-shadow: var(--shadow-sticker-sm);
+  font: var(--text-title); transform: rotate(-2deg);
+}
+#gbody .rt-scene .rt-target .pl-face { width: 36px; height: 36px; font-size: 15px; }
+#gbody .rt-scene.pl-fill > .rt-target + .gk-prompt { padding-top: var(--space-32); }
+
+/* Reveal: two summary chips, then the roasts, then Next. */
+#gbody .rt-scene .rt-winner { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-8); margin: 0; }
+#gbody .rt-scene .rt-chip {
+  display: inline-flex; align-items: center; gap: var(--space-8); min-height: 36px; padding: 0 var(--space-12);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--fam-soft); color: var(--ink); font: var(--text-button-sm);
+}
+#gbody .rt-scene .rt-chip.is-crown { background: var(--sun-soft); }
+#gbody .rt-scene .rt-chip b { font-size: 17px; line-height: 1; }
+#gbody .rt-scene.pl-fill .rt-foot #rtNext { min-width: 200px; }
+@media (max-width: 560px) {
+  #gbody .rt-scene .rt-target { font-size: 17px; }
+  #gbody .rt-scene.pl-fill .rt-foot, #gbody .rt-scene.pl-fill .rt-foot #rtNext { width: 100%; }
+}
+
+/* ==== Skin: the toast ====
+ * Scene: a banquet wall of soft gold sparkles, raised glasses for a toast.
+ * Signature: the prompt is a slice of toast, golden inside a toasted crust
+ * with the classic domed top, and the roasted player's sticker sits on it. */
+body.game-playing[data-game="roast-toast"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cpath d='M20 10l2.5 7.5L30 20l-7.5 2.5L20 30l-2.5-7.5L10 20l7.5-2.5z' fill='%23e8a317' fill-opacity='.14'/%3E%3Cpath d='M70 58l1.6 4.4L76 64l-4.4 1.6L70 70l-1.6-4.4L64 64l4.4-1.6z' fill='%23e17055' fill-opacity='.12'/%3E%3Ccircle cx='76' cy='18' r='2' fill='%23e8a317' fill-opacity='.18'/%3E%3Ccircle cx='28' cy='76' r='1.5' fill='%23e17055' fill-opacity='.16'/%3E%3C/svg%3E");
+  background-size: 96px 96px;
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="roast-toast"] {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cpath d='M20 10l2.5 7.5L30 20l-7.5 2.5L20 30l-2.5-7.5L10 20l7.5-2.5z' fill='%23ffc94d' fill-opacity='.16'/%3E%3Cpath d='M70 58l1.6 4.4L76 64l-4.4 1.6L70 70l-1.6-4.4L64 64l4.4-1.6z' fill='%23f2a08a' fill-opacity='.14'/%3E%3Ccircle cx='76' cy='18' r='2' fill='%23ffc94d' fill-opacity='.14'/%3E%3Ccircle cx='28' cy='76' r='1.5' fill='%23f2a08a' fill-opacity='.12'/%3E%3C/svg%3E");
+}
+body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt {
+  --crust: color-mix(in srgb, var(--fam) 60%, #7a3b16);
+  background: color-mix(in srgb, var(--sun) 16%, var(--card));
+  border-color: var(--crust); border-width: var(--outline-w-lg);
+  border-radius: 46% 46% var(--radius-xl) var(--radius-xl) / 56px 56px var(--radius-xl) var(--radius-xl);
+  box-shadow: inset 0 0 0 6px color-mix(in srgb, var(--crust) 55%, var(--card)), 0 var(--lift) 0 var(--crust);
+  padding-top: var(--space-40);
+}
+[data-theme="night"] body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt {
+  --crust: color-mix(in srgb, var(--fam) 70%, #3a1a0a);
+  background: color-mix(in srgb, var(--sun) 9%, var(--card));
+}
+#gbody .rt-scene .rt-target { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+#gbody .rt-scene .rt-list .gk-choice:not(.is-correct):not(.is-wrong):hover { border-color: var(--outline); }
+@media (max-width: 560px) {
+  body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt { border-radius: 40% 40% var(--radius-lg) var(--radius-lg) / 48px 48px var(--radius-lg) var(--radius-lg); padding-top: var(--space-32); }
+}
