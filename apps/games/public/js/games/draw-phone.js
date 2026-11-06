@@ -152,7 +152,7 @@ function tools() {
     <span class="dp-group dp-group-tool" role="group" aria-label="Pen or eraser"><button type="button" id="pPen" class="dp-tool ${color !== '#ffffff' ? 'sel' : ''}" aria-label="Ink pen" aria-pressed="${color !== '#ffffff'}">${PEN_ICON}</button>
     <button type="button" class="dp-tool ${color === '#ffffff' ? 'sel' : ''}" data-c="#ffffff" id="pEraser" aria-label="White eraser" aria-pressed="${color === '#ffffff'}">${ERASER_ICON}</button></span>
     <span class="dp-group dp-group-size" role="group" aria-label="Brush size">${[3, 7, 16].map(n => `<button type="button" class="dp-brush ${size === n ? 'sel' : ''}" data-size="${n}" aria-label="${n === 3 ? 'Fine' : n === 7 ? 'Medium' : 'Bold'} brush, ${n} pixels" aria-pressed="${size === n}"><span style="--dot:${n}px" aria-hidden="true"></span></button>`).join('')}</span>
-    <span class="dp-group dp-group-edit" role="group" aria-label="Edit"><button type="button" class="dp-tool" id="pClear" aria-label="Clear drawing">${CLEAR_ICON}</button>
+    <span class="dp-group dp-group-edit" role="group" aria-label="Edit"><button type="button" class="dp-tool" id="pClear" aria-label="Clear drawing" disabled>${CLEAR_ICON}</button>
     <button type="button" class="dp-tool" id="pUndo" aria-label="Undo last gesture" disabled>${UNDO_ICON}</button></span><p class="dp-ink-feedback" id="pInkFeedback" role="status"></p>
   </div>`;
 }
@@ -374,8 +374,11 @@ function doneText(S, inked = true) {
 }
 
 function refreshInk(el) {
+  const empty = !drawing && !pending.length && !visibleStrokes.length;
   const undo = el.querySelector('#pUndo');
-  if (undo) undo.disabled = !drawing && !pending.length && !visibleStrokes.length;
+  if (undo) undo.disabled = empty;
+  const clear = el.querySelector('#pClear');
+  if (clear) clear.disabled = empty;
   const feedback = el.querySelector('#pInkFeedback');
   if (feedback) feedback.textContent = snapshot?.myInkFeedback || '';
 }

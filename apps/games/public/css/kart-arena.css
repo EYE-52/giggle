@@ -426,3 +426,14 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
 .pk .kart-item-key { left:auto; right:-6px; bottom:-4px; }
 /* The drift meter only appears while a drift is charging. */
 .pk .pk-readout:not(.pk-drifting):not(.pk-charged) .pk-driftmeter { display:none; }
+/* Desk and TV screens sit further away: the bare HUD grows with the arena. */
+@media (min-width:1024px) and (min-height:640px) and (pointer:fine) {
+  .pk #pk-timer { font-size:38px; }
+  .pk .pk-tech { min-width:150px; }
+  .pk .pk-nitrometer { height:26px; border-radius:13px; }
+  .pk .pk-nitrometer span { font-size:16px; }
+  .pk .kart-item-art { width:84px; height:84px; }
+  .pk .kart-item-art .kart-weapon-thumbnail, .pk .kart-item-art svg { width:64px; height:64px; }
+  .pk .kart-item-count { left:64px; }
+  .pk .pk-health .kart-heart { width:30px; height:30px; }
+}
