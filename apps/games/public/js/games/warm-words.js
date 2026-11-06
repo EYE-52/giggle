@@ -158,9 +158,9 @@ export default {
         + `<form class="gk-input-row" data-ww-form autocomplete="off"><input class="gk-input ww-input" data-ww-input type="text" maxlength="24" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" inputmode="text" placeholder="${esc(S.strings?.guess_placeholder || 'Try a word…')}" aria-label="Your word guess" ${S.spectator ? 'disabled' : ''}><button class="gk-btn gk-primary" type="submit" ${S.spectator ? 'disabled' : ''}>Guess</button></form>`
         + `<p class="wg-status ww-error" data-ww-error role="status" aria-live="polite"></p>`
         + (S.hintsEnabled ? '<div class="gk-actions ww-hint"><button class="gk-btn" type="button" data-ww-hint></button><span class="gk-meta" data-ww-hint-cost></span></div>' : '')
-        + `<div class="ww-players ck-card is-compact"><div class="ck-head"><h3>Players</h3></div><ul class="wg-chips" data-ww-players aria-label="Guesses per player"></ul></div>`
         + `<div class="ww-feed-head"><h3>Shared guesses</h3><button class="gk-btn gk-quiet" data-ww-sort data-watchok type="button">${order === 'closest' ? 'Closest first' : 'Newest first'}</button></div>`
         + `<div class="wg-feed ww-feed" data-ww-feed tabindex="0" aria-label="Shared guesses"></div>`
+        + `<div class="ww-players ck-card is-compact"><div class="ck-head"><h3>Players</h3></div><ul class="wg-chips" data-ww-players aria-label="Guesses per player"></ul></div>`
         + `<details class="wg-more ww-rules"><summary>Rules</summary><p>${esc(S.strings?.vocabulary_note || 'One everyday English word. Share ideas on your call!')} Higher percentages mean closer meaning; rank #1 is the answer. Only the exact word wins: 100 points plus up to 100 for speed. ${S.vocabularySize.toLocaleString()} supported words.${S.hintsEnabled ? ` Two room hints cost ${S.hintCost} points each from the round prize.` : ''}</p>${S.contentNote ? `<p>${esc(S.contentNote)}</p>` : ''}</details>`
         + `</section>`;
       const input = el.querySelector('[data-ww-input]');

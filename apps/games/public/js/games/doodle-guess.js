@@ -214,7 +214,7 @@ export default {
         el.innerHTML = `<div class="sk sk-doodle dg ck dg-live" data-family="create">
           <div class="dg-stage"><section class="dg-drawing" aria-label="Shared drawing">${headerHtml(S)}
           <div class="dg-view-controls"><div class="dg-artist gk-meta">${S.spectator ? '<span class="dg-watching">Watching</span> · ' : ''}${artist ? 'You are drawing' : `${esc(nameOf(S, S.drawer))} ${S.phase === 'draw' ? 'is drawing' : 'drew this'}`}</div><div class="dg-view-actions"><button type="button" class="gk-btn" id="dGuesses" data-watchok aria-expanded="true" aria-controls="dChat">Guesses</button><button type="button" class="gk-btn" id="dFocus" data-watchok aria-pressed="false" aria-label="Focus canvas">Focus</button>${artist ? '<button type="button" class="gk-btn" id="dTools" aria-expanded="true" aria-controls="dToolsRail" hidden>Tools</button>' : ''}</div></div>
-            <div class="dg-easel"><span class="dg-easel-cap" aria-hidden="true"></span><div class="dg-frame"><div class="sk-canvaswrap"><canvas class="doodle" id="dCanvas" data-drawable="${artist}" width="880" height="520" tabindex="0" aria-label="${artist ? 'Your drawing canvas' : 'Drawing to guess'}"></canvas></div></div>
+            <div class="dg-easel"><span class="dg-easel-cap" aria-hidden="true"></span><div class="dg-frame"><div class="sk-canvaswrap"><canvas class="doodle" id="dCanvas" data-drawable="${artist}" width="880" height="520" tabindex="0" aria-label="${artist ? 'Your drawing canvas' : 'Drawing to guess'}"></canvas>${S.phase === 'draw' && !artist ? `<p class="dg-canvas-empty" aria-hidden="true"><b>${esc(nameOf(S, S.drawer))} is drawing…</b><span>Lines appear here</span></p>` : ''}</div></div>
             <div class="dg-zoom" aria-label="Canvas view"><button type="button" id="dPan" data-watchok aria-pressed="false">Pan</button><button type="button" id="dZoomOut" data-watchok aria-label="Zoom out">−</button><span id="dZoomValue">100%</span><button type="button" id="dZoomIn" data-watchok aria-label="Zoom in">+</button><button type="button" id="dFit" data-watchok>Fit</button></div>${artist ? toolsHtml() : '<div class="dg-shelf" aria-hidden="true"></div>'}</div>
           </section><aside class="dg-chat" id="dChat" aria-label="Room guesses"><ol class="dg-roster" aria-label="Players and scores">${rosterHtml(S)}</ol><div class="dg-chat-head"><b>Guesses</b><span class="sk-outcomes" aria-label="Correct guesses">${outcomesHtml(S)}</span></div>
             <ol id="dFeed" class="dg-feed" role="log" aria-live="polite" aria-relevant="additions">${feedHtml(S)}</ol>
@@ -261,7 +261,8 @@ function wire(el, api) {
     // When height limits the paper, the side bands already frame it: spend no
     // height on a margin there, so the drawing surface stays as large as it can.
     const heightBound = r.width / r.height > 880 / 520;
-    const margin = zoom > 1 || !banded || heightBound ? 0 : Math.min(16, r.width * 0.03, r.height * 0.04);
+    // A thin even margin keeps the paper's outline visible on all four sides.
+    const margin = zoom > 1 || !banded ? 0 : heightBound ? Math.min(8, r.height * 0.03) : Math.min(16, r.width * 0.03, r.height * 0.04);
     const scale = Math.min((r.width - 2 * margin) / 880, (r.height - 2 * margin) / 520) * zoom;
     const width = 880 * scale, height = 520 * scale;
     panX = Math.max(-Math.max(0, (width - r.width) / 2), Math.min(Math.max(0, (width - r.width) / 2), panX));
@@ -464,6 +465,8 @@ function paint(el) {
   const cv = el.querySelector('#dCanvas'), ctx = cv?.getContext('2d');
   if (!ctx) return;
   ctx.clearRect(0, 0, cv.width, cv.height);
+  const emptyHint = el.querySelector('.dg-canvas-empty');
+  if (emptyHint) emptyHint.hidden = !!(visibleStrokes.length || snapshot?.preview);
   for (const stroke of visibleStrokes) paintStroke(ctx, cv, stroke.pts, stroke);
   const sameRevision = (snapshot?.inkRevision || 0) === revision;
   if (isArtist(snapshot)) {

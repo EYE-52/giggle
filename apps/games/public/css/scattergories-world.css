@@ -81,3 +81,41 @@
   .sg.ck .sg-entry .gk-input { min-height: var(--control-h-sm); padding-right: 3.6em; }
   .sg.ck .sg-check { right: var(--space-8); }
 }
+
+/* ---- polish: the letter is a die, each category its own sticker row,
+ * Lock in the one big action on the right ---- */
+.sg.ck .sg-head { gap: var(--space-16); }
+.sg.ck .sg-letter {
+  width: 80px; height: 80px; background: var(--fam); color: var(--on-fam);
+  border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker);
+  font: 800 48px/1 var(--font-display); transform: rotate(-2deg);
+}
+.sg.ck .sg-fields.ck-card { background: none; border: 0; box-shadow: none; padding: 0; gap: var(--space-12); }
+.sg.ck .sg-field {
+  padding: var(--space-8) var(--space-8) var(--space-8) var(--space-16); background: var(--fam-soft);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-sticker-sm);
+}
+.sg.ck .sg-field:has(.sg-check.is-good) { background: var(--success-soft); }
+.sg.ck .sg-field label { color: var(--ink); text-wrap: balance; }
+.sg.ck .sg-n { background: var(--fam); color: var(--on-fam); }
+.sg.ck .sg-field:has(.sg-check.is-good) .sg-n { background: var(--success); color: var(--on-success); }
+.sg.ck .sg-entry .gk-input { background: var(--card); border-radius: var(--radius-md); }
+.sg.ck .sg-actions .gk-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-12); }
+.sg.ck .sg-actions .wg-status { order: 0; flex: 1 1 12em; margin: 0; font: var(--text-caption); }
+.sg.ck .sg-actions #scSave {
+  order: 1; min-height: var(--control-h-sm); padding: 0 var(--space-16); border-radius: var(--radius-pill);
+  box-shadow: none; font: var(--text-button-sm);
+}
+.sg.ck .sg-actions #scLock { order: 2; min-width: 200px; min-height: var(--control-h-lg); font: var(--text-button); font-size: 19px; }
+@media (max-width: 560px) {
+  .sg.ck .sg-letter { width: 52px; height: 52px; font-size: 32px; }
+  .sg.ck .sg-fields { padding: 0; gap: var(--space-8); }
+  .sg.ck .sg-field { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); padding: var(--space-4) var(--space-8) var(--space-8); box-shadow: var(--shadow-sticker-sm); }
+  .sg.ck .sg-field label { padding-left: var(--space-4); }
+  .sg.ck .sg-head { gap: var(--space-12); }
+  .sg.ck .sg-field label { font: var(--text-caption); font-weight: 800; }
+  .sg.ck .sg-actions .gk-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .sg.ck .sg-actions .wg-status { grid-column: 1 / -1; order: 3; }
+  .sg.ck .sg-actions .wg-status:empty { display: none; }
+  .sg.ck .sg-actions #scLock { min-width: 0; width: 100%; }
+}

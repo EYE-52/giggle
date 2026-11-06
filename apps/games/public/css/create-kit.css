@@ -37,8 +37,8 @@
 .ck[data-family] .gk-hud { min-height: var(--control-h-sm); gap: var(--space-8) var(--space-12); font: var(--text-caption); }
 .ck[data-family] .gk-hud-round {
   display: inline-flex; align-items: center; min-height: 32px; padding: var(--space-4) var(--space-12);
-  background: var(--fam); color: var(--on-fam); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm);
+  background: var(--fam-soft); color: var(--fam-deep); border: 0; border-radius: var(--radius-pill);
+  font: var(--text-button-sm);
 }
 .ck[data-family] .gk-hud-phase { color: var(--ink); font-weight: 800; }
 .ck[data-family] .gk-hud-progress { font-variant-numeric: tabular-nums; }
@@ -135,7 +135,7 @@
   display: inline-flex; align-items: center; gap: var(--space-4); align-self: flex-start; min-height: 28px;
   padding: var(--space-4) var(--space-12); margin: 0;
   background: var(--fam-soft); color: var(--fam-deep); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
-  font: var(--text-caption); font-weight: 800; transform: rotate(-1.5deg);
+  font: var(--text-caption); font-weight: 800;
 }
 .ck[data-family] .ck-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); min-width: 0; }
 .ck[data-family] .ck-head > h3 { margin: 0; font: var(--text-title); color: var(--ink); }
@@ -167,7 +167,8 @@
 .ck[data-family] .ck-player {
   display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: var(--space-8);
   align-items: center; min-height: 56px; padding: var(--space-8) var(--space-12);
-  background: var(--card); border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-lg);
+  background: var(--card); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker-sm);
 }
 .ck[data-family] .ck-ava {
   grid-row: 1 / 3; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
@@ -177,13 +178,13 @@
 .ck[data-family] .ck-pname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--text-button-sm); color: var(--ink); }
 .ck[data-family] .ck-pname small { font: var(--text-caption); color: var(--ink-dim); }
 .ck[data-family] .ck-pstate { min-height: 1.4em; font: var(--text-caption); color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ck[data-family] .ck-player.is-ready { border-color: var(--outline); background: var(--success-soft); box-shadow: var(--shadow-sticker-sm); }
+.ck[data-family] .ck-player.is-ready { background: var(--success-soft); }
 .ck[data-family] .ck-player.is-ready .ck-pstate { color: var(--ink); font-weight: 800; }
 .ck[data-family] .ck-player.is-ready .ck-pstate::before { content: "✓ "; color: var(--success); }
-.ck[data-family] .ck-player.is-on { border-color: var(--outline); background: var(--fam-soft); box-shadow: var(--shadow-sticker-sm); }
+.ck[data-family] .ck-player.is-on { background: var(--fam-soft); }
 .ck[data-family] .ck-player.is-on .ck-pstate { color: var(--fam-deep); font-weight: 800; }
-.ck[data-family] .ck-player.is-out { border-style: dashed; background: var(--well); }
-.ck[data-family] .ck-player.is-out .ck-pname { color: var(--ink-dim); text-decoration: line-through; }
+.ck[data-family] .ck-player.is-out { background: var(--well); box-shadow: none; opacity: .6; }
+.ck[data-family] .ck-player.is-out .ck-pname { color: var(--ink-dim); }
 @media (max-width: 560px) {
   .ck[data-family] .ck-roster { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
 }
@@ -212,10 +213,15 @@
 /* Player chips on a table card are scoreboard rows: one per player, name
  * and state on the left, the score in a pill on the right. */
 .ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) { display: grid; grid-template-columns: minmax(0, 1fr); }
-.ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip { min-width: 0; min-height: var(--control-h-sm); border-radius: var(--radius-lg); }
+.ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip {
+  min-width: 0; min-height: var(--control-h-sm); padding: var(--space-8) var(--space-12); border-radius: var(--radius-lg);
+  border-color: var(--outline); box-shadow: var(--shadow-sticker-sm);
+}
 .ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip b {
   margin-left: auto !important; padding: 2px var(--space-12) !important; border: 0 !important; border-radius: var(--radius-pill);
   background: var(--well); color: var(--ink); font-variant-numeric: tabular-nums;
 }
 .ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip.is-on b { background: var(--card); }
+.ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip b { font: var(--text-title); }
+.ck[data-family] .ck-card > .wg-chips:not(.wc-ribbon) > .wg-chip.is-done { border-color: var(--outline); }

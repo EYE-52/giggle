@@ -48,7 +48,11 @@ function lineHtml(line, answer) {
   const blank = answer === undefined
     ? '<span class="lf-blank" aria-label="missing words">____</span>'
     : `<b class="lf-answer">${esc(answer)}</b>`;
-  const words = [line.before ? esc(line.before) : '', blank, line.after ? esc(line.after) : ''].filter(Boolean).join(' ');
+  // The word before the blank travels with it, so the blank never sits
+  // alone at the start of a line.
+  const before = String(line.before || '').trim().split(/\s+/).filter(Boolean);
+  const lead = before.length ? `${esc(before.pop())} ` : '';
+  const words = [before.length ? esc(before.join(' ')) : '', `<span class="lf-keep">${lead}${blank}</span>`, line.after ? esc(line.after) : ''].filter(Boolean).join(' ');
   return `<div class="lf-card ck-card is-tint"><span class="ck-label"><span aria-hidden="true">♪</span> ${esc(line.song)} — ${esc(line.artist)}</span>`
     + `<h2 class="gk-prompt lf-line">“${words}”</h2></div>`;
 }
