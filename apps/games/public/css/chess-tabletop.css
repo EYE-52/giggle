@@ -43,6 +43,8 @@
 .ch-tabletop .chhist-wrap{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
 .ch-tabletop .chhist-wrap>summary{display:flex;align-items:center;min-height:42px;padding:8px 14px;list-style:none;cursor:pointer;font:700 15px/1.2 var(--font-body)}
 .ch-tabletop .chhist-wrap>summary::-webkit-details-marker{display:none}
+.ch-tabletop .chhist-wrap>summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--ink-dim);border-bottom:2px solid var(--ink-dim);transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.ch-tabletop .chhist-wrap[open]>summary::after{transform:rotate(225deg) translateY(-2px)}
 .ch-tabletop .chhist{max-height:150px;overflow:auto;padding:0 14px 10px;font:600 14px/1.5 var(--font-body)}
 .ch-tabletop .chhist .mv{display:grid;grid-template-columns:28px 1fr 1fr;gap:6px}
 .ch-tabletop .chhist .n,.ch-tabletop .chhist .muted{color:var(--ink-dim)}

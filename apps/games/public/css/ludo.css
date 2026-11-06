@@ -29,3 +29,6 @@ html[data-theme=night] .ld-game .ld-base,body.is-embed .ld-game .ld-base{fill:#e
 .ld-game .ld-dice:focus-visible,.ld-game .ld-choices button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 @media (max-width:759px){.ld-game .bk-players{grid-template-columns:repeat(2,minmax(0,1fr))}.ld-game .ld-dock{grid-template-columns:88px minmax(0,1fr)}.ld-game .ld-dice{width:88px;min-height:92px}}
 @media(prefers-reduced-motion:reduce){.ld-game .ld-dice.is-rolling .ld-face,.ld-game .ld-dice.is-ready{animation:none}}
+/* Phones: the die sits right under the board and the board leaves room for it,
+ * so Roll is on screen without scrolling. */
+@media (max-width:759px) and (orientation:portrait){.ld-game .bk-extra{order:3}.ld-game .bk-status{order:4;min-height:0}.ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100svh - 300px));min-width:min(100%,280px)}}
