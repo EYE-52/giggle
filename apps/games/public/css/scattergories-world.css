@@ -165,3 +165,9 @@ body.game-playing[data-game="scattergories"] {
   background: radial-gradient(circle, color-mix(in srgb, var(--fam) 40%, transparent) 0 1.6px, transparent 2px) 0 0 / 4px 8px repeat-y;
 }
 @media (max-width: 560px) { .sg.ck .sg-field { padding-left: calc(var(--space-8) + 8px); } .sg.ck .sg-field::before { left: 4px; } }
+
+/* QC: each mint strip sits on a lip of its own colour, and in night the
+ * answer field is a lifted step of the strip, not a dark hole in it. */
+.sg.ck .sg-field { border-color: var(--ck-tint-rim); box-shadow: 0 var(--lift-sm) 0 var(--ck-tint-lip); }
+.sg.ck .sg-field:has(.sg-check.is-good) { border-color: color-mix(in srgb, var(--success) 30%, var(--card)); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--success) 42%, var(--card)); }
+[data-theme="night"] .sg.ck .sg-entry .gk-input { background: color-mix(in srgb, var(--fam) 6%, var(--well)); border-color: color-mix(in srgb, var(--fam) 26%, var(--card)); }

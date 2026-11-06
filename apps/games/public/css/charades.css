@@ -110,3 +110,31 @@ body.game-playing[data-game="charades"] {
 [data-theme="night"] .ch.ck .ch-mask .ck-tile.is-blank { box-shadow: inset 0 -8px 0 var(--fam-soft), 0 var(--lift-sm) 0 var(--outline), 0 0 14px color-mix(in srgb, #ffe2a0 14%, transparent); }
 /* The guess box is the one thing to do: it sits on the family lip. */
 .ch.ck .gk-input-row .gk-input:focus { border-color: var(--fam); }
+
+/* QC (phones): a long word stays on one row. Tiles shrink to fit the
+ * longest word (--ch-len, set by the game) across the card. */
+@media (max-width: 560px) {
+  .ch.ck .ch-mask { --ch-tile: clamp(20px, calc((100vw - 76px) / var(--ch-len, 8) - 4px), 36px); }
+  .ch.ck .ch-mask .ck-tile:not(.is-gap) { width: var(--ch-tile); height: calc(var(--ch-tile) * 1.22); font-size: calc(var(--ch-tile) * .6); }
+}
+/* QC (phones and narrow frames): the valance hangs along the top of the
+ * stage card instead of the page top, where it ran behind the title bar's
+ * buttons. */
+@media (max-width: 1000px) {
+  body.game-playing[data-game="charades"] { background-image: none; }
+  .ch.ck[data-family] .ch-stage.ck-card.is-tint {
+    padding-top: calc(var(--space-16) + 14px);
+    background:
+      radial-gradient(circle at 50% 0, var(--ch-velvet, #9d4fb8) 0 11px, var(--ch-velvet-deep, #6f2f88) 12px 13px, transparent 14px) 0 0 / 28px 14px round no-repeat,
+      radial-gradient(ellipse 46% 85% at 50% -8%, var(--ch-spot, rgb(255 246 214 / .85)), transparent 72%),
+      linear-gradient(0deg, var(--ch-floor-deep, #b98d5e) 0 4px, var(--ch-floor, #d9b48a) 4px 14px, transparent 14px),
+      var(--fam-soft);
+  }
+}
+/* QC (night): the blanks are lit velvet slots on the stage, not dark
+ * squares with ink rims. */
+[data-theme="night"] .ch.ck .ch-mask .ck-tile.is-blank {
+  background: color-mix(in srgb, var(--fam) 18%, var(--card));
+  border-color: color-mix(in srgb, var(--fam) 40%, var(--card));
+  box-shadow: inset 0 -6px 0 color-mix(in srgb, var(--fam) 30%, var(--card)), 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 24%, var(--bg)), 0 0 14px color-mix(in srgb, #ffe2a0 10%, transparent);
+}

@@ -79,6 +79,11 @@ function tilesHtml(masked) {
     : c === ' ' ? '<span class="ck-tile is-gap" aria-hidden="true"></span>'
       : `<span class="ck-tile is-mark" aria-hidden="true">${esc(c)}</span>`).join('');
 }
+/* The longest word's tile count: phones size the tiles so a word never
+ * breaks across two rows. */
+function longestWord(masked) {
+  return Math.max(1, ...String(masked || '').split(' ').map((w) => Array.from(w).length));
+}
 
 /* Who acts, who already got it (+points), who is still guessing. */
 function rosterStatus(S) {
@@ -135,7 +140,7 @@ export default {
         const stage = isActor
           ? `<span class="ck-label">Act this out, no talking</span><h2 class="gk-prompt ch-secret">${esc(S.wordShown || '')}</h2>`
           : `<span class="ck-label">${esc(nameOf(S, S.actor))} is acting · ${String(S.masked || '').replace(/[^_]/g, '').length} letters</span>`
-            + `<h2 class="gk-prompt ch-mask ck-tiles" aria-label="Hidden word, ${String(S.masked || '').length} characters">${tilesHtml(S.masked)}</h2>`;
+            + `<h2 class="gk-prompt ch-mask ck-tiles" style="--ch-len:${longestWord(S.masked)}" aria-label="Hidden word, ${String(S.masked || '').length} characters">${tilesHtml(S.masked)}</h2>`;
         const field = !isActor && !S.spectator
           ? `<form class="gk-input-row" id="cForm" autocomplete="off"><input class="gk-input" id="cGuess" type="text" aria-label="Guess the word being acted out" placeholder="Your guess…" maxlength="60" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text">`
             + `<button class="gk-btn gk-primary" id="cSend" type="submit">Guess</button></form>`
@@ -240,6 +245,7 @@ export default {
       if (mask && S.masked && mask._ckMask !== S.masked) {
         mask._ckMask = S.masked;
         mask.innerHTML = tilesHtml(S.masked);
+        mask.setAttribute('style', `--ch-len:${longestWord(S.masked)}`);
         mask.setAttribute('aria-label', `Hidden word, ${String(S.masked).length} characters`);
       }
     }

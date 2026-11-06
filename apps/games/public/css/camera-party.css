@@ -249,3 +249,42 @@
 }
 /* Night: a ready camera card glows a little. */
 .camera-party.ck:is([data-theme="night"] *) .cp-stage .ck-player.is-ready { box-shadow: 0 var(--lift-sm) 0 var(--outline), 0 0 18px color-mix(in srgb, var(--success) 26%, transparent); }
+
+/* QC (night): "ready" is a green tint of this game's own card, not the
+ * shared forest-green surface, so the stage keeps one hue family. */
+.camera-party.ck:is([data-theme="night"] *) {
+  --cp-ok: color-mix(in srgb, var(--success) 16%, var(--card));
+}
+.camera-party.ck:is([data-theme="night"] *) .cp-stage .ck-player.is-ready,
+.camera-party.ck:is([data-theme="night"] *) .cp-ready-status.tb-badge.is-live {
+  background: var(--cp-ok); border-color: color-mix(in srgb, var(--success) 30%, var(--card));
+}
+.camera-party.ck:is([data-theme="night"] *) .cp-stage .ck-ava { border-color: color-mix(in srgb, var(--fam) 30%, var(--card)); }
+/* QC: the stage light is the game's own colour at low strength, not a
+ * yellow wash that turns to a muddy stain on the slate (Show & Go). */
+.camera-party.ck[data-family] .cp-stage {
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 0%, color-mix(in srgb, var(--fam) 16%, transparent), transparent 70%),
+    var(--fam-soft);
+  border-color: var(--ck-tint-rim); box-shadow: 0 var(--lift) 0 var(--ck-tint-lip);
+}
+/* Pose Party: the stage stands on a wooden floor. */
+.camera-party.ck:is(body[data-game="pose-party"] *) .cp-stage {
+  padding-bottom: calc(var(--space-24) + 14px);
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 0%, color-mix(in srgb, var(--fam) 16%, transparent), transparent 70%),
+    linear-gradient(0deg, color-mix(in srgb, var(--fam) 34%, var(--card)) 0 4px, color-mix(in srgb, var(--fam) 20%, var(--card)) 4px 14px, transparent 14px),
+    var(--fam-soft);
+}
+@media (max-width: 560px) {
+  .camera-party.ck:is(body[data-game="pose-party"] *) .cp-stage { padding-bottom: calc(var(--space-16) + 14px); }
+}
+/* QC (phones): the timer ring tucks into the prompt card's corner, so the
+ * prompt gets the card's full width instead of 60% of it. */
+@media (max-width: 480px) {
+  .camera-party.ck .cp-prompt-card { grid-template-columns: minmax(0, 1fr); }
+  .camera-party.ck .cp-prompt-card .cp-ring { position: absolute; top: var(--space-12); right: var(--space-12); width: 56px; height: 56px; }
+  .camera-party.ck .cp-prompt-card .cp-ring .ck-ring-num { font-size: 18px; }
+  .camera-party.ck .cp-prompt-text > :first-child { margin-right: 64px; }
+  .camera-party.ck .cp-prompt-text > .cp-kicker:empty + * { margin-right: 64px; }
+}

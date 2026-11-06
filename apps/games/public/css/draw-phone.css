@@ -494,3 +494,33 @@ html body.game-playing:has(.sk-phone.dp) .game-report-icon{color:var(--ink);back
 }
 /* Night: the current step glows a little, so where the book is reads first. */
 [data-theme="night"] .sk-phone.dp.ck .is-now .sk-step-n { box-shadow: 0 0 12px color-mix(in srgb, var(--fam) 50%, transparent); }
+
+/* QC: a locked Done is a solid, quiet button (no page dots showing through
+ * it), and the chosen ink wears a ring in the family colour. */
+.dp.ck .dp-done-row .gk-btn:disabled {
+  background: var(--well); color: var(--ink-dim); border-color: var(--line-strong); box-shadow: 0 var(--lift-sm) 0 var(--line-strong); opacity: 1;
+}
+.sk-phone.dp.ck .dp-tools .swatch.sel span { outline: 3px solid var(--fam); outline-offset: 3px; }
+/* QC (night, phones): the board keeps its one wooden frame; the second
+ * frame drawn round the well made it look framed twice. */
+@media (max-width: 700px) {
+  [data-theme="night"] .sk-phone.dp.ck:not(.dp-focus) .sk-canvaswrap::after { content: none; }
+}
+/* QC (wide screens): Done sits beside the tool tray, so the sketchbook
+ * gets that row's height and the paper grows to fill more of the mat. */
+@media (min-width: 1000px) and (min-height: 501px) {
+  .sk-phone.dp.dp-draw.ck .sk-drawdesk {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(0, 1fr) auto;
+    column-gap: var(--space-16); row-gap: var(--space-12); align-items: center;
+  }
+  .sk-phone.dp.dp-draw.ck .sk-drawdesk > .dp-book { grid-column: 1 / -1; grid-row: 1; height: 100%; }
+  .sk-phone.dp.dp-draw.ck .sk-drawdesk > .dp-tools,
+  .sk-phone.dp.dp-draw.ck .sk-drawdesk > .dp-watching { grid-column: 1; grid-row: 2; max-width: none; }
+  .sk-phone.dp.dp-draw.ck .sk-drawdesk > .dp-done-row {
+    grid-column: 2; grid-row: 2; width: auto; flex-direction: column; align-items: stretch; gap: var(--space-4);
+  }
+  .sk-phone.dp.dp-draw.ck .sk-drawdesk > .dp-done-row:not(:has(.gk-btn)) { display: none; }
+  .sk-phone.dp.dp-draw.ck .sk-drawdesk:not(:has(.dp-done-row .gk-btn)) > :is(.dp-tools, .dp-watching) { grid-column: 1 / -1; }
+  .dp-draw.ck .sk-drawdesk > .dp-done-row .gk-btn { min-width: 220px; }
+  .dp-draw.ck .sk-drawdesk > .dp-done-row .dp-status { max-width: 220px; text-align: center; font: var(--text-caption); }
+}
