@@ -35,3 +35,10 @@
 .lf.ck .lf-dots li.is-now { background: var(--fam); border-color: var(--outline); box-shadow: 0 0 0 3px var(--fam-soft); }
 .lf.ck .lf-dots li:not(.is-done):not(.is-now) { background: var(--card); border-color: var(--ink-dim); }
 .lf.ck .lf-blank { height: 0.8em; vertical-align: baseline; transform: none; }
+
+/* ---- polish: the line uses the card's full width; the blank stays with
+ * the word before it; one even gap down the column ---- */
+.lf.ck .lf-line { max-width: none; width: 100%; text-wrap: pretty; }
+.lf.ck .lf-keep { white-space: nowrap; }
+.lf.ck .wg-status:empty { display: none; }
+.lf.ck > .wg-status { margin: calc(var(--space-8) * -1) 0 0; font: var(--text-caption); color: var(--ink-dim); }

@@ -153,7 +153,7 @@ export default {
       + `<div class="wc-chain ck-card"><div class="ck-head"><h3>The chain</h3><span class="gk-meta wc-count">${linkCount(S.used || [])}</span></div>`
       + `<ol class="wg-chips wc-ribbon" role="log" aria-label="Recent links" tabindex="0">${ribbon(S)}</ol></div>`
       + `<div class="wc-players ck-card"><div class="ck-head"><h3>Players</h3><span class="gk-meta wc-alive">${esc(stillIn(S))}</span></div>`
-      + `<ul class="wg-chips wc-seats" aria-label="Players">${playerSeats(S)}</ul>`
+      + `<ul class="ck-roster wc-seats" aria-label="Players">${playerSeats(S)}</ul>`
       + `<p class="gk-meta" id="wcOut" role="status"></p></div>`
       + `<details class="wg-more wc-archive" ${archiveOpen ? 'open' : ''}><summary>${linksLabel(S.used || [])}</summary><div id="wcArchive"></div></details>`
       + `<details class="wg-more wc-help" ${helpOpen ? 'open' : ''}><summary>Rules</summary>`
@@ -211,12 +211,22 @@ function paintArchive(el, words) {
 
 function playerSeats(S) {
   const alive = S.alive || [];
-  return (S.players || []).map((p) => {
+  return (S.players || []).map((p, i) => {
     const inGame = alive.includes(p.id);
     const lives = S.maxLives > 1 && inGame ? ` <span class="wc-lives" aria-label="${S.lives?.[p.id] ?? 0} lives">${'♥'.repeat(Math.max(0, S.lives?.[p.id] ?? 0))}</span>` : '';
-    const cls = p.id === S.turnPid ? ' is-on' : inGame ? '' : ' is-out';
-    return `<li class="wg-chip${cls}">${esc(p.name)}${p.id === S.me ? ' (you)' : ''}${lives}</li>`;
+    const on = p.id === S.turnPid && inGame;
+    const cls = on ? ' is-on' : inGame ? '' : ' is-out';
+    const state = on ? 'Linking' : inGame ? 'In' : 'Out';
+    return `<li class="ck-player${cls}${p.id === S.me ? ' is-you' : ''}" style="--ck-hue:${(i * 67) % 360}">`
+      + `<span class="ck-ava" aria-hidden="true">${esc(initialOf(p.name))}</span>`
+      + `<span class="ck-pname">${esc(p.name)}${p.id === S.me ? ' <small>(you)</small>' : ''}</span>`
+      + `<span class="ck-pstate"><span class="wc-state">${state}</span>${lives}</span></li>`;
   }).join('');
+}
+function initialOf(name) {
+  const words = String(name || '?').trim().split(/\s+/);
+  const tail = words.length > 1 && /^\d{1,2}$/.test(words[words.length - 1]) ? words[words.length - 1] : '';
+  return (Array.from(words[0] || '?')[0] || '?').toLocaleUpperCase() + tail;
 }
 
 function challengeHint(S) {

@@ -38,3 +38,38 @@
 .ww.ck .wg-feed-empty { padding: var(--space-16); text-align: center; border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-lg); }
 .ww.ck .ww-fill { background: var(--fam); }
 .ww.ck .ww-best.is-empty { color: var(--ink-dim); }
+
+/* ---- polish: the meter is a heat strip (game art), cold to found, with
+ * the unreached part frosted and a sticker marker at the closest word ---- */
+.ww.ck .ww-meter {
+  position: relative; height: 22px; overflow: hidden;
+  background: linear-gradient(90deg, var(--fam) 0%, var(--warning) 62%, var(--danger) 100%);
+}
+.ww.ck .ww-fill { position: relative; height: 100%; background: transparent; border-radius: 0; }
+.ww.ck .ww-fill::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 100%; width: 100vw;
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+}
+.ww.ck .ww-fill::after {
+  content: ""; position: absolute; top: 0; bottom: 0; right: -4px; width: 8px;
+  background: var(--card); border-inline: var(--outline-w) solid var(--outline);
+}
+.ww.ck .ww-scale span { font-weight: 800; }
+.ww.ck .ww-scale span:first-child { color: var(--fam-deep); }
+.ww.ck .ww-scale span:last-child { color: var(--danger); }
+
+/* The error slot takes no room until there is something to say. */
+.ww.ck .ww-error:empty { display: none; }
+.ww.ck .ww-error.is-error {
+  margin-top: calc(var(--space-8) * -1); padding: var(--space-8) var(--space-12);
+  background: var(--danger-soft); color: var(--ink); border-radius: var(--radius-md); font: var(--text-caption); font-size: 15px;
+}
+
+/* Sort is a chip, not an underlined link. */
+.ww.ck .ww-feed-head [data-ww-sort] {
+  min-height: var(--control-h-sm); padding: 0 var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  background: var(--card); color: var(--ink); text-decoration: none; box-shadow: none; font: var(--text-button-sm);
+}
+.ww.ck .ww-feed-head [data-ww-sort]::before { content: "⇅ "; color: var(--fam-deep); }
+.ww.ck .ww-feed-head [data-ww-sort]:active { transform: scale(.97); }
+.ww.ck .ww-feed { display: flex; flex-direction: column; gap: var(--space-8); }

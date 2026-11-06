@@ -58,10 +58,17 @@ function roundDots(S) {
     `<li class="${i + 1 < S.round ? 'is-done' : i + 1 === S.round ? 'is-now' : ''}"></li>`).join('')}</ol>`;
 }
 /* Who is locked in, who is still building. */
+function initialOf(name) {
+  const words = String(name || '?').trim().split(/\s+/);
+  const tail = words.length > 1 && /^\d{1,2}$/.test(words[words.length - 1]) ? words[words.length - 1] : '';
+  return (Array.from(words[0] || '?')[0] || '?').toLocaleUpperCase() + tail;
+}
 function tableChips(S) {
   const locked = new Set(S.locked || []);
-  return (S.players || []).filter((p) => !p.left).map((p) => `<li class="wg-chip${locked.has(p.id) ? ' is-done' : ''}">${esc(p.name)}${p.id === S.me ? ' (you)' : ''}`
-    + `<small>${locked.has(p.id) ? 'Locked in' : 'Building'}</small></li>`).join('');
+  return (S.players || []).filter((p) => !p.left).map((p, i) => `<li class="ck-player${locked.has(p.id) ? ' is-ready' : ''}${p.id === S.me ? ' is-you' : ''}" style="--ck-hue:${(i * 67) % 360}">`
+    + `<span class="ck-ava" aria-hidden="true">${esc(initialOf(p.name))}</span>`
+    + `<span class="ck-pname">${esc(p.name)}${p.id === S.me ? ' <small>(you)</small>' : ''}</span>`
+    + `<span class="ck-pstate">${locked.has(p.id) ? 'Locked in' : 'Building'}</span></li>`).join('');
 }
 
 function tilesHtml(letters, { interactive, disabled }) {
@@ -140,8 +147,9 @@ export default {
       if (table && table._cwChips !== chips) { table._cwChips = chips; table.innerHTML = chips; }
       const saved = el.querySelector('#cwSaved');
       if (saved) {
-        const text = S.spectator ? 'You are watching this tray.' : S.mine ? `Your saved word: ${S.mine.toUpperCase()} · ${S.mine.length} letters` : 'No word saved yet. Save keeps your best so far.';
+        const text = S.spectator ? 'You are watching this tray.' : S.mine ? `Your saved word: ${S.mine.toUpperCase()} · ${S.mine.length} letters` : '';
         if (saved.textContent !== text) saved.textContent = text;
+        saved.hidden = !text;
         saved.classList?.toggle('is-set', !!S.mine);
       }
       const feedback = el.querySelector('#cwFeedback');
@@ -172,15 +180,15 @@ export default {
       + tilesHtml(S.letters, { interactive: true, disabled: off })
       + `<form class="gk-input-row" id="cwForm" autocomplete="off"><input class="gk-input cw-input" id="cwWord" type="text" aria-label="Your word from the available letters" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="go" inputmode="text" maxlength="9" value="${esc(prior || S.mine || '')}" ${dis} placeholder="Tap tiles or type…" />`
       + `<button class="gk-btn gk-primary" id="cwLock" type="submit" ${dis} aria-label="Lock in your word">Lock in</button></form>`
-      + `<div class="gk-actions cw-tools"><button class="gk-btn" id="cwSave" type="button" ${dis} aria-label="Save word and keep editing">Save</button>`
-      + `<button class="gk-btn" id="cwBack" type="button" ${dis} aria-label="Delete last letter">⌫</button>`
-      + `<button class="gk-btn" id="cwClear" type="button" ${dis}>Clear</button>`
-      + `<button class="gk-btn gk-quiet" id="cwPass" type="button" ${dis} aria-label="Pass this round without a word">Pass</button></div>`
+      + `<div class="cw-tools"><button class="gk-btn cw-save" id="cwSave" type="button" ${dis} aria-label="Save word and keep editing">Save</button>`
+      + `<button class="gk-btn cw-icon" id="cwBack" type="button" ${dis} aria-label="Delete last letter">⌫</button>`
+      + `<button class="gk-btn cw-chip" id="cwClear" type="button" ${dis}>Clear</button>`
+      + `<button class="gk-btn cw-chip" id="cwPass" type="button" ${dis} aria-label="Pass this round without a word">Pass</button></div>`
+      + `<p class="gk-meta cw-state" id="cwState" role="status">${esc(waitText(S))}</p>`
       + `<p class="wg-status" id="cwFeedback" role="status" aria-live="polite"></p>`
       + `<div class="cw-board ck-card"><div class="ck-head"><h3>The table</h3>${roundDots(S)}</div>`
-      + `<p class="cw-saved" id="cwSaved"></p>`
-      + `<ul class="wg-chips cw-table" id="cwTable" aria-label="Who is locked in">${tableChips(S)}</ul>`
-      + `<p class="gk-meta cw-state" id="cwState" role="status">${esc(waitText(S))}</p></div>`
+      + `<p class="cw-saved" id="cwSaved" hidden></p>`
+      + `<ul class="ck-roster cw-table" id="cwTable" aria-label="Who is locked in">${tableChips(S)}</ul></div>`
       + `<details class="wg-more cw-rules"><summary>Rules</summary>`
       + `<p>Use 3–9 of the letters, each as often as it appears. A valid word earns 50 points plus 10 per letter; the longest earns 50 more. Save keeps editing, Lock in submits, Pass skips.</p>`
       + (S.contentNote ? `<p>${esc(S.contentNote)}</p>` : '')
