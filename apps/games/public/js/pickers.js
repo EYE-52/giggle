@@ -8,11 +8,14 @@
 
 const CHIP_LIMIT = 5; // more options than this wrap as chips, not one track
 
-/* A segmented track (or wrapping chips) for an enum <select id>. */
+/* A segmented track (or wrapping chips) for an enum <select id>. Options
+ * are strings, or [value, label] pairs when the chip text differs from
+ * the stored value (short chip labels over long option names). */
 export function segPickerHtml(id, options, value, labelId, disabled) {
-  const chips = options.length > CHIP_LIMIT || options.some(o => String(o).length > 14);
-  return `<div class="picker-seg ${chips ? 'is-chips' : 'tb-seg'}" role="radiogroup" aria-labelledby="${labelId}" data-picker-for="${id}">${options.map(o =>
-    `<button type="button" role="radio" aria-checked="${String(o) === String(value)}" data-value="${escAttr(o)}" data-hostonly ${disabled ? 'disabled' : ''}>${escAttr(o)}</button>`).join('')}</div>`;
+  const pairs = options.map(o => (Array.isArray(o) ? o : [o, o]));
+  const chips = pairs.length > CHIP_LIMIT || pairs.some(([, l]) => String(l).length > 14);
+  return `<div class="picker-seg ${chips ? 'is-chips' : 'tb-seg'}" role="radiogroup" aria-labelledby="${labelId}" data-picker-for="${id}">${pairs.map(([v, l]) =>
+    `<button type="button" role="radio" aria-checked="${String(v) === String(value)}" data-value="${escAttr(v)}" data-hostonly ${disabled ? 'disabled' : ''}>${escAttr(l)}</button>`).join('')}</div>`;
 }
 
 /* − value + stepper around a number <input>, plus a slider for wide ranges. */

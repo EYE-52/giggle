@@ -2329,3 +2329,12 @@ input[type="text"], input[type="number"], select, textarea { border-width: 2px; 
 .room-setting[aria-checked="true"] .room-switch { background: var(--fam, var(--accent)); }
 .room-setting[aria-checked="true"] .room-switch::after { transform: translateX(16px); }
 @media (prefers-reduced-motion: reduce) { .room-switch, .room-switch::after { transition: none; } }
+
+/* Lobby filters as chip rows (size, sort) and toggle chips that show on. */
+.catbar .catpick { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.catbar select.picker-native { height: 1px; padding: 0; }
+.catbar .catpick .picker-seg.tb-seg { width: auto; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.catbar .catpick .picker-seg.tb-seg > button { flex: none; white-space: nowrap; }
+.catbar .chip[aria-pressed="true"] { color: var(--on-fam, #fff); background: var(--fam, var(--accent)); border-color: var(--fam-lip, transparent); }
+.catbar .chip[aria-pressed="true"]::before { content: "✓"; margin-right: 6px; font-weight: 900; }
+@media (max-width: 600px) { .catbar .catpick { flex-basis: 100%; } }

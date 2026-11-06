@@ -9,6 +9,7 @@ import {
   openCustomizer, closeCustomizer, isCustomizerOpen, customizerGame,
   refreshCustomizer, customizerError, customizerResult,
 } from './customize.js';
+import { segPickerHtml, wirePickers, syncPickers } from './pickers.js';
 import { openHowto, closeHowto, refreshHowto, isHowtoOpen } from './howto.js';
 import { decideCustomizeIntent, setPendingCustomize, takePendingCustomize } from './pending-customize.js';
 import {
@@ -1290,11 +1291,26 @@ function wireCodeTiles(input) {
   paint();
 }
 
-/* Sort menu: honest shelf order first; rooms add the live-group sort. */
+/* Sort menu: honest shelf order first; rooms add the live-group sort.
+ * Long names stay on the hidden select; chips carry the short ones. */
+const SORTS = [
+  ['shelf', 'Shelf order', 'Shelf'], ['name', 'Name A–Z', 'A–Z'],
+  ['fewest', 'Fewest players', 'Fewest'], ['fits', 'Fits our group first', 'Fits us'],
+];
+const sortList = (inRoom) => SORTS.filter(([v]) => v !== 'fits' || inRoom);
 function sortOptions(inRoom) {
-  const opts = [['shelf', 'Shelf order'], ['name', 'Name A–Z'], ['fewest', 'Fewest players']];
-  if (inRoom) opts.push(['fits', 'Fits our group first']);
-  return opts.map(([v, l]) => `<option value="${v}"${sortMode === v ? ' selected' : ''}>${l}</option>`).join('');
+  return sortList(inRoom).map(([v, l]) => `<option value="${v}"${sortMode === v ? ' selected' : ''}>${l}</option>`).join('');
+}
+function sortChips(inRoom) {
+  return sortList(inRoom).map(([v, , s]) => [v, s]);
+}
+
+/* A lobby filter as a chip row over its hidden native <select> (the select
+ * keeps the value and the change handler; pickers.js keeps them in step). */
+function chipSelectHtml(id, label, optionsHtml, chips, value) {
+  return `<div class="catpick"><span class="sr-only" id="${id}-l">${label}</span>`
+    + `<select id="${id}" class="picker-native" tabindex="-1" aria-hidden="true">${optionsHtml}</select>`
+    + segPickerHtml(id, chips, value, `${id}-l`) + '</div>';
 }
 
 function catChipsHtml() {
@@ -1344,10 +1360,10 @@ function renderHome() {
       <div class="sec-head"><h2>The whole shelf</h2><span class="count-pill" id="shelfCount">${catalogLoaded ? total : 'Loading games…'}</span><span class="muted">Create a room to play any of them.</span></div>
       <div class="catbar">
         <input id="hq" type="text" placeholder="Search games…" value="${esc(query)}" autocomplete="off" aria-label="Search games">
-        <select id="grpSel" aria-label="Filter by group size — games whose player range overlaps your group" title="Games whose player range overlaps your group">
-          ${HOME_GROUPS.map(([v, l]) => `<option value="${v}"${homeGroup === v ? ' selected' : ''}>${l}</option>`).join('')}
-        </select>
-        <select id="hsortSel" aria-label="Sort games">${sortOptions(false)}</select>
+        ${chipSelectHtml('grpSel', 'Group size: games whose player range overlaps your group',
+          HOME_GROUPS.map(([v, l]) => `<option value="${v}"${homeGroup === v ? ' selected' : ''}>${l}</option>`).join(''),
+          HOME_GROUPS.map(([v, , s]) => [v, s]), homeGroup)}
+        ${chipSelectHtml('hsortSel', 'Sort games', sortOptions(false), sortChips(false), sortMode)}
         <button class="chip ${customOnly ? 'sel' : ''}" id="hcustTog" aria-pressed="${customOnly}">Customizable</button>
       </div>
       <div class="catchips" role="group" aria-label="Game categories">${catChipsHtml()}</div>
@@ -1409,6 +1425,7 @@ function renderHome() {
     sortMode = e.target.value;
     paintHomeCatalog();
   };
+  wirePickers(document.getElementById('hsortSel').closest('.catbar'));
   document.getElementById('hcustTog').onclick = (e) => {
     customOnly = !customOnly;
     e.currentTarget.classList.toggle('sel', customOnly);
@@ -1496,8 +1513,8 @@ function fitKind(g, n) {
 /* Home has no room, so the desired size is explicit: a game matches when
  * its player range OVERLAPS the picked range (intersection semantics). */
 const HOME_GROUPS = [
-  ['any', 'Any size'], ['2', '2 players'], ['3-4', '3–4 players'],
-  ['5-8', '5–8 players'], ['9+', '9+ players'],
+  ['any', 'Any size', '👥 Any'], ['2', '2 players', '2'], ['3-4', '3–4 players', '3–4'],
+  ['5-8', '5–8 players', '5–8'], ['9+', '9+ players', '9+'],
 ];
 
 function homeGroupRange() {
@@ -1652,7 +1669,7 @@ function syncLobbyControls() {
   document.querySelectorAll('[data-cat]').forEach((x) =>
     x.classList.toggle('sel', x.dataset.cat === catFilter));
   const sel = document.getElementById('sortSel');
-  if (sel) sel.value = sortMode;
+  if (sel) { sel.value = sortMode; syncPickers(sel.closest('.catbar')); }
   for (const [id, on] of [['fitsTog', fitsOnly], ['custTog', customOnly]]) {
     const b = document.getElementById(id);
     if (b) {
@@ -1724,7 +1741,7 @@ function syncHomeControls() {
   const grp = document.getElementById('grpSel');
   if (grp) grp.value = homeGroup;
   const sel = document.getElementById('hsortSel');
-  if (sel) sel.value = sortMode;
+  if (sel) { sel.value = sortMode; syncPickers(sel.closest('.catbar')); }
   const b = document.getElementById('hcustTog');
   if (b) {
     b.classList.toggle('sel', customOnly);
@@ -1872,7 +1889,7 @@ function renderLobby() {
         <div class="sec-head"><h2>All games</h2><span class="count-pill" id="catCount">${games.length} games</span></div>
         <div class="catbar">
           <input id="q" type="text" placeholder="Search games…" value="${esc(query)}" autocomplete="off" aria-label="Search games">
-          <select id="sortSel" aria-label="Sort games">${sortOptions(true)}</select>
+          ${chipSelectHtml('sortSel', 'Sort games', sortOptions(true), sortChips(true), sortMode)}
           <button class="chip ${fitsOnly ? 'sel' : ''}" id="fitsTog" aria-pressed="${fitsOnly}" title="Only games your group can start right now">Fits our ${n}</button>
           <button class="chip ${customOnly ? 'sel' : ''}" id="custTog" aria-pressed="${customOnly}">Customizable</button>
         </div>
@@ -1906,6 +1923,7 @@ function renderLobby() {
     sortMode = e.target.value;
     paintCatalog();
   };
+  wirePickers(document.getElementById('sortSel').closest('.catbar'));
   document.getElementById('fitsTog').onclick = (e) => {
     fitsOnly = !fitsOnly;
     e.currentTarget.classList.toggle('sel', fitsOnly);

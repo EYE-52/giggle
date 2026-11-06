@@ -792,4 +792,6 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
     [data-game="twenty-questions"], [data-game="five-second"], [data-game="memory-tray"]) .game-preparation:not(.is-first) {
     top: auto; bottom: max(16px, env(safe-area-inset-bottom));
   }
+  /* Room under the pill so the last card (Players) can scroll clear of it. */
+  body.game-playing:not(.game-immersive):has(.game-preparation:not(.is-first):not([hidden])) #gbody { padding-bottom: 84px; }
 }
