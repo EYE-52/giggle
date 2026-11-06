@@ -82,3 +82,8 @@ body[data-game="memory-tray"] #gbody .mt.pl-fill .mt-tray .mt-obj.is-hit { box-s
 @media (max-width: 560px) {
   body[data-game="memory-tray"] #gbody .mt.pl-fill .mt-tray { padding: var(--space-16); }
 }
+
+/* Tray icons draw their outlines in currentColor: dark ink by day, warm
+ * cream by night so lanterns and wheels don't vanish on dark tiles. */
+.mt-ico { color: #2b2620; }
+[data-theme="night"] .mt-ico { color: #f3e6d0; }
