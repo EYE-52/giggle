@@ -69,3 +69,11 @@ body.game-playing[data-game="funny-answer"] {
 [data-theme="night"] #gbody .fa-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
 [data-theme="night"] #gbody .fa-scene.pl-fill > .gk-prompt::after { box-shadow: var(--lift-sm) var(--lift-sm) 0 var(--outline); }
 @media (max-width: 560px) { #gbody .fa-scene.pl-fill > .gk-prompt::after { width: 20px; height: 20px; bottom: -11px; } }
+
+/* QC: unpicked letter discs are peach-tinted chips with a family rim in
+ * both themes, never a dark disc in an ink ring on a dark card. */
+#gbody .fa-scene.pl-fill .gk-choices > .gk-choice:not(.is-selected):not([aria-pressed="true"]) .gk-mark,
+#gbody .fa-scene.pl-fill .gk-choices.is-locked > .gk-choice:not(.is-selected):not([aria-pressed="true"]) .gk-mark {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card)); color: var(--ink);
+  border-color: color-mix(in srgb, var(--fam) 42%, var(--card));
+}

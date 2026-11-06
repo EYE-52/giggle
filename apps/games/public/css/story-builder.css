@@ -113,3 +113,25 @@ body.game-playing[data-game="story-builder"] {
   #gbody .sb-scene.pl-fill > .gk-prompt::after { right: var(--space-12); width: 16px; height: 32px; }
   #gbody .pl-fill .sb-story:not(.is-empty) { background-image: linear-gradient(90deg, transparent 50px, color-mix(in srgb, var(--danger) 30%, transparent) 50px 52px, transparent 52px); }
 }
+
+/* ==== QC ==== */
+/* "Locked in: line 3" is a teal chip under the cover, not loose body text. */
+#gbody .sb-scene.pl-fill > .gk-sub.sb-locked {
+  justify-self: center; align-self: center; width: fit-content; margin: 0 auto; padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-pill); background: color-mix(in srgb, var(--fam) 14%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fam) 36%, transparent);
+  color: var(--fam-deep); font: var(--text-button-sm);
+}
+/* Ballot lines you cannot pick stay white pages with a teal rim, never a
+ * lavender off-family fill; your pick keeps the teal sticker. */
+#gbody .sb-scene.pl-fill .gk-choices > .gk-choice:not(.is-selected):not([aria-pressed="true"]):not(.is-correct):not(.is-wrong) {
+  background: var(--card); color: var(--ink);
+  border-color: color-mix(in srgb, var(--fam) 22%, var(--card));
+  box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 22%, var(--card));
+}
+#gbody .sb-scene.pl-fill .gk-choices > .gk-choice.is-dim { opacity: .8; }
+/* Night: the story page shares the cover's slate-teal tone. */
+[data-theme="night"] #gbody .pl-fill .sb-story:not(.is-empty) { background-color: color-mix(in srgb, var(--fam) 7%, var(--card)); }
+[data-theme="night"] #gbody .sb-scene.pl-fill .gk-choices > .gk-choice:not(.is-selected):not([aria-pressed="true"]):not(.is-correct):not(.is-wrong) {
+  background: color-mix(in srgb, var(--fam) 6%, var(--card));
+}

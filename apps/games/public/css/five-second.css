@@ -101,3 +101,14 @@ body.game-playing[data-game="five-second"] {
   #gbody .fs-scene.pl-fill > .gk-prompt::before { width: 40px; height: 40px; top: -20px; }
   #gbody .fs-scene.pl-fill > .gk-prompt::after { width: 32px; height: 32px; top: -16px; }
 }
+
+/* ==== QC ==== */
+/* The line under the centred prompt card is centred too, and your vote
+ * reads as a chip ("Locked in: Fail"), not loose text at the left edge. */
+#gbody .fs-scene.pl-fill > .gk-sub { text-align: center; text-wrap: balance; margin-inline: auto; max-width: 46ch; }
+#gbody .fs-scene.pl-fill > .gk-sub.fs-locked {
+  width: fit-content; padding: var(--space-4) var(--space-12); border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--fam) 14%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fam) 36%, transparent);
+  color: var(--fam-deep); font: var(--text-button-sm);
+}

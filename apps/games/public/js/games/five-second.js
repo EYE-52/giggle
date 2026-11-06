@@ -156,7 +156,7 @@ function paint(el, S, api) {
           : mine ? `Locked in: ${mine === 'pass' ? 'Pass' : 'Fail'}`
             : `Did ${who} name three that fit?`;
       el.innerHTML = scene(S, 'Judge the answers', `<h2 class="gk-prompt">Name 3: ${esc(S.category)}</h2>`
-        + `<p class="gk-sub">${esc(sub)}</p>`
+        + `<p class="gk-sub${mine && !watch && !isStar ? ' fs-locked' : ''}">${esc(sub)}</p>`
         + answersHtml(S) + action
         + `<div class="fs-foot" data-live="wait">${mine || watch || isStar ? waitLine(S) : ''}</div>`);
       el.querySelectorAll('[data-v]').forEach((b) => {

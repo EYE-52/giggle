@@ -62,11 +62,11 @@ function wheel(S, landed = false) {
   // The live strip's seat colours, so a slice and its player's seat match.
   const colors = ['var(--fam-party)', 'var(--fam-board)', 'var(--fam-create)', 'var(--fam-arcade)', 'var(--sun)'];
   const count = Math.max(1, players.length);
-  // Each slice ends in a thin ink divider, like the sticker outlines around it.
+  // Each slice ends in a thin card-coloured gap, never an ink line.
   const edge = count > 1 ? 1.4 : 0;
   const segments = players.map((p, i) => {
     const a = i / count * 360, b = (i + 1) / count * 360, c = colors[i % colors.length];
-    return edge ? `${c} ${a}deg ${b - edge}deg, var(--outline) ${b - edge}deg ${b}deg` : `${c} ${a}deg ${b}deg`;
+    return edge ? `${c} ${a}deg ${b - edge}deg, var(--wheel-edge, var(--card)) ${b - edge}deg ${b}deg` : `${c} ${a}deg ${b}deg`;
   }).join(', ');
   const picked = players.findIndex(p => p.id === S.victim);
   const angle = landed && picked >= 0 ? -(picked + .5) / count * 360 : 0;

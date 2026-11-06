@@ -88,3 +88,18 @@ body.game-playing[data-game="most-likely"] {
 #gbody .likely-world .likely-row.is-winner .likely-initials { box-shadow: 0 0 0 3px var(--card), 0 0 0 6px var(--sun); }
 [data-theme="night"] #gbody .likely-world .likely-row.is-winner .likely-initials { box-shadow: 0 0 0 3px var(--card), 0 0 0 6px var(--sun), 0 0 22px 2px color-mix(in srgb, var(--sun) 45%, transparent); }
 #gbody .likely-world .likely-row.is-winner .likely-row-body { padding-left: var(--space-4); }
+
+/* QC: by day the beams are a faint top-corner light that fades out down
+ * the page, never beige streaks behind the nominees and the edges. */
+body.game-playing[data-game="most-likely"] {
+  background-image:
+    linear-gradient(to bottom, transparent 0, var(--bg) 55vh),
+    conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 8%, transparent) 14deg, transparent 30deg),
+    conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 9%, transparent) 16deg, transparent 32deg);
+}
+[data-theme="night"] body.game-playing[data-game="most-likely"] {
+  background-image:
+    linear-gradient(to bottom, transparent 0, var(--bg) 70vh),
+    conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 13%, transparent) 14deg, transparent 30deg),
+    conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 11%, transparent) 16deg, transparent 32deg);
+}

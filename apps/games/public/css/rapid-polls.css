@@ -141,3 +141,20 @@ body.game-playing[data-game="rapid-polls"] {
 #gbody .pl-fill.party-scene--poll .party-choice:is(.is-picked, [aria-pressed="true"]) .gk-mark {
   border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip);
 }
+
+/* ==== QC ==== */
+/* Ballot boxes are mint-tinted with a mint rim in both themes (never a
+ * black box on a dark card); your ticked box is deep mint with white. */
+#gbody .pl-fill.party-scene--poll .party-choices > .party-choice:not(.is-picked):not([aria-pressed="true"]) .gk-mark,
+#gbody .pl-fill.party-scene--poll .party-choices.is-locked > .party-choice:not(.is-picked):not([aria-pressed="true"]) .gk-mark,
+#gbody .pl-fill.party-scene--poll .rp-row:not(.is-top) .party-result-body .gk-mark {
+  background: color-mix(in srgb, var(--fam) 14%, var(--card)); color: var(--fam-deep);
+  border-color: color-mix(in srgb, var(--fam) 40%, var(--card));
+}
+#gbody .pl-fill.party-scene--poll .party-choice:is(.is-picked, [aria-pressed="true"]) .gk-mark { background: var(--fam-deep); color: #ffffff; }
+[data-theme="night"] #gbody .pl-fill.party-scene--poll .party-choice:is(.is-picked, [aria-pressed="true"]) .gk-mark { background: var(--fam); color: var(--on-fam); }
+/* The live tally reads "0 votes" on one line at the right of the row. */
+#gbody .pl-fill.party-scene--poll .party-choice-tally {
+  display: inline-flex; align-items: baseline; gap: var(--space-4); margin-left: auto; white-space: nowrap;
+}
+#gbody .pl-fill.party-scene--poll .party-choice-tally small { font: var(--text-caption); font-weight: 800; }

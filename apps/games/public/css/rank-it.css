@@ -101,3 +101,23 @@ body.game-playing[data-game="rank-it"] {
   border-color: var(--tint-lip); box-shadow: 0 var(--lift) 0 var(--tint-lip);
 }
 [data-theme="night"] #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p1 .gk-mark { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--medal) 70%, #000), 0 0 16px -2px var(--medal); }
+
+/* QC: the just-moved row stays on the ladder's column (the row never
+ * scales, only its number pops) and is marked by a family ring on a plain
+ * card, so the cream fill belongs to first place alone. */
+#gbody .pl-fill.party-scene--rank .party-rank-item.is-moved { animation: none; }
+#gbody .pl-fill.party-scene--rank .party-rank-item.is-moved:not(.rank-p1) {
+  background: var(--card);
+  box-shadow: var(--shadow-sticker-sm), inset 0 0 0 2px color-mix(in srgb, var(--fam) 60%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  #gbody .pl-fill.party-scene--rank .party-rank-item.is-moved .gk-mark { animation: rank-mark-pop var(--dur-base) var(--ease) both; }
+}
+@keyframes rank-mark-pop { from { transform: scale(0.8); } to { transform: scale(1); } }
+/* Night: a deep ink-violet page so stars and medals read as gold rather
+ * than olive on brown; tinted cards mix gold into the card, not khaki. */
+[data-theme="night"] body.game-playing[data-game="rank-it"] { --bg: #1b1924; --card: #252231; --well: #2f2b3d; }
+[data-theme="night"] #gbody .pl-fill.party-scene--rank {
+  --fam-soft: color-mix(in srgb, var(--fam) 10%, var(--card));
+  --tint-lip: color-mix(in srgb, var(--fam) 30%, #15131c);
+}

@@ -154,3 +154,20 @@ body.game-playing[data-game="trivia"] {
 @media (prefers-reduced-motion: reduce) {
   #gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-correct::after { animation: none; }
 }
+
+/* QC: the reveal rings sit inside the tile, so the board keeps its column
+ * edges. Answers that step back become a plain card with their colour on
+ * the rim and the letter, never a half-transparent tile (which turns muddy
+ * on the night stage and pastel-on-white by day). */
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-correct { box-shadow: 0 var(--lift) 0 var(--qa-lip), inset 0 0 0 4px var(--success); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-wrong { opacity: 1; box-shadow: 0 var(--lift-sm) 0 var(--qa-lip), inset 0 0 0 4px var(--danger); }
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-dim,
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choices.is-locked > .gk-choice:not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct):not(.is-wrong) {
+  opacity: 1; background: var(--card); color: var(--ink);
+  border-color: color-mix(in srgb, var(--qa) 45%, var(--card));
+  box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--qa) 45%, var(--card));
+}
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice.is-dim .gk-mark,
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choices.is-locked > .gk-choice:not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct):not(.is-wrong) .gk-mark {
+  background: var(--qa); color: var(--qa-ink);
+}

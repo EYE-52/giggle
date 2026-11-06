@@ -48,3 +48,21 @@ body.game-playing[data-game="compliment-battle"] {
 #gbody .cb-scene.pl-fill > .cb-target + .gk-prompt::before { content: none; }
 #gbody .cb-scene .cb-list .gk-choice:not(.is-correct):not(.is-wrong):hover { border-color: var(--outline); }
 [data-theme="night"] #gbody .cb-scene .gk-choice.is-correct { box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--success) 62%, var(--outline)), inset 0 0 0 2px var(--success), 0 0 22px -6px var(--fam); }
+
+/* ==== QC ==== */
+/* The crowned card: a soft success tint on its own lip, no outer glow. */
+[data-theme="night"] body #gbody .cb-scene.pl-fill .gk-choice.is-correct {
+  background: color-mix(in srgb, var(--success) 18%, var(--card));
+  border-color: color-mix(in srgb, var(--success) 50%, var(--card));
+  box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--success) 45%, #0c0a10), inset 0 0 0 2px color-mix(in srgb, var(--success) 70%, var(--card));
+}
+/* Phones: fewer, fainter hearts so the wallpaper never sits on the text. */
+@media (max-width: 600px) {
+  body.game-playing[data-game="compliment-battle"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cpath d='M18 26c-3-5-11-4-11 2 0 5 6 8 11 13 5-5 11-8 11-13 0-6-8-7-11-2z' fill='%23e0569a' fill-opacity='.06'/%3E%3Cpath d='M54 58c-2-3-7-2.5-7 1.5 0 3 4 5 7 8 3-3 7-5 7-8 0-4-5-4.5-7-1.5z' fill='%23e0569a' fill-opacity='.05'/%3E%3C/svg%3E");
+    background-size: 120px 120px;
+  }
+  [data-theme="night"] body.game-playing[data-game="compliment-battle"] {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cpath d='M18 26c-3-5-11-4-11 2 0 5 6 8 11 13 5-5 11-8 11-13 0-6-8-7-11-2z' fill='%23f08cc0' fill-opacity='.05'/%3E%3Cpath d='M54 58c-2-3-7-2.5-7 1.5 0 3 4 5 7 8 3-3 7-5 7-8 0-4-5-4.5-7-1.5z' fill='%23f08cc0' fill-opacity='.04'/%3E%3C/svg%3E");
+  }
+}

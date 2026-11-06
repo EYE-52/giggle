@@ -762,3 +762,44 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
 @media (max-width: 560px) {
   #gbody .pl-fill .gk-wait { text-align: left; }
 }
+
+/* ==== QC wave (2026-11) ==== */
+/* The phase chip keeps a soft family rim, so it still reads as a chip on
+ * pages tinted the same colour as its fill (Pick One, Memory Tray). */
+#gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-phase, .party-phase):not(:empty) {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fam) 34%, transparent);
+}
+/* Seats: the badge sits off the avatar's corner so it never hides the
+ * initials, and every seat keeps the soft card radius on phones too. */
+.pl-badge { right: -8px; bottom: -6px; }
+.pl-seat { border-radius: var(--radius-md); }
+@media (max-width: 560px) {
+  .pl-seat { border-radius: var(--radius-md); }
+  .pl-avatar { font-size: 13px; }
+  .pl-badge { width: 16px; height: 16px; right: -7px; bottom: -6px; font-size: 10px; }
+  /* The role word ("Answering", "On the spot") gets the seat's full width
+   * on its own line under the avatar, so it is never clipped to "Answeri…". */
+  .pl-seat { grid-template-areas: "av name" "av pts" "state state"; row-gap: 2px; }
+  .pl-seat .pl-state { margin-top: var(--space-4); font-size: 12px; line-height: 1.25; }
+  /* A wrapped status pill fills its lines instead of balancing them into a
+   * half-width column that leaves the right of the pill empty. */
+  #gbody .pl-fill .gk-wait { text-wrap: wrap; }
+}
+/* Night text fields are a raised, game-tinted well, a step above the page,
+ * never a near-black hole next to a bright button. */
+[data-theme="night"] #gbody .pl-fill :is(input.gk-input, input[type="text"], textarea) {
+  background: color-mix(in srgb, var(--fam) 8%, var(--card));
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
+}
+/* Between rounds on phones, the "Getting everyone ready" pill sits at the
+ * bottom of the screen, never over the round row under the title bar. */
+@media (max-width: 600px) {
+  body.game-playing:not(.game-immersive):is([data-game="would-you-rather"], [data-game="truth-dare"], [data-game="never-ever"],
+    [data-game="most-likely"], [data-game="hot-takes"], [data-game="rank-it"], [data-game="rapid-polls"], [data-game="dare-roulette"],
+    [data-game="pick-one"], [data-game="compliment-battle"], [data-game="roast-toast"], [data-game="trivia"], [data-game="two-truths"],
+    [data-game="funny-answer"], [data-game="bluff"], [data-game="story-builder"], [data-game="emoji-story"],
+    [data-game="twenty-questions"], [data-game="five-second"], [data-game="memory-tray"]) .game-preparation:not(.is-first) {
+    top: auto; bottom: max(16px, env(safe-area-inset-bottom));
+  }
+}
