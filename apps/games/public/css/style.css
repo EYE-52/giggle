@@ -1247,8 +1247,11 @@ dialog.howto-dlg:not([open]) { display: none; }
 }
 @keyframes fall { to { transform: translateY(105vh) rotate(540deg); } }
 
-#app.fade { animation: fadein 0.25s ease; }
-@keyframes fadein { from { opacity: 0; transform: translateY(5px); } }
+/* Opacity only: a transform on #app would re-anchor the game header's fixed
+ * room menu and report button to #app for the length of the fade, so they
+ * slid over the zoom control on the first frames of every game. */
+#app.fade { animation: fadein var(--dur-base) var(--ease); }
+@keyframes fadein { from { opacity: 0; } }
 
 /* ---- motion design: low-amplitude loops + one-shot feedback ----
  * Three slow ambient loops (hero doodles), everything else fires once
@@ -1804,10 +1807,14 @@ body.game-playing.game-immersive .room-menu-panel { background: var(--card); col
 /* Full-screen games are inert while preparing: centre the card over the
  * arena instead of covering its bottom HUD. */
 body.game-immersive .game-preparation { top: 50%; bottom: auto; transform: translate(-50%, -50%); }
-/* Between rounds the last results stay on screen, with their primary action
- * near the bottom: the short line rides just under the title bar as a slim
- * pill (app.js sets --prep-top). */
-body:not(.game-immersive) .game-preparation:not(.is-first) { top: max(12px, calc(var(--prep-top, 0px) + 8px), env(safe-area-inset-top)); bottom: auto; padding: 8px 16px; border-radius: 999px; }
+/* Between rounds the last results stay on screen (inert while preparing):
+ * the short line is a slim sticker pill docked at the bottom, never over the
+ * round/phase HUD row at the top of the stage. */
+body:not(.game-immersive) .game-preparation:not(.is-first) {
+  top: auto; bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
+  padding: var(--space-8) var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm);
+}
 .preparation-dots { flex: none; display: inline-flex; gap: 4px; }
 .preparation-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .preparation-dots i:nth-child(2) { background: var(--gold, #f5b82e); }
