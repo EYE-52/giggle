@@ -70,3 +70,40 @@
 body:not(.game-immersive):has(#gbody .fs-scene) .game-preparation:not(.is-first) {
   top: auto; bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
 }
+
+/* ==========================================================================
+ * Stopwatch skin (2026-11). Speed stripes rush across the page; the
+ * category card wears a stopwatch on its top edge. Night: the stripes dim,
+ * the card glows a little.
+ * ========================================================================== */
+body.game-playing[data-game="five-second"] {
+  background-image:
+    linear-gradient(to bottom, transparent, var(--bg) 70%),
+    repeating-linear-gradient(-24deg, color-mix(in srgb, var(--fam) 9%, transparent) 0 14px, transparent 14px 44px);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="five-second"] {
+  background-image:
+    linear-gradient(to bottom, transparent, var(--bg) 70%),
+    repeating-linear-gradient(-24deg, color-mix(in srgb, var(--fam) 6%, transparent) 0 14px, transparent 14px 44px);
+}
+#gbody .fs-scene.pl-fill > .gk-prompt {
+  position: relative; margin-top: var(--space-16); padding-top: var(--space-40); background: var(--card);
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--outline)); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+#gbody .fs-scene.pl-fill > .gk-prompt::before {
+  content: ""; position: absolute; left: 50%; top: -24px; width: 48px; height: 48px; transform: translateX(-50%);
+  border-radius: 50%; background: var(--card); box-shadow: 0 0 0 var(--outline-w-lg) color-mix(in srgb, var(--fam) 30%, var(--outline)); pointer-events: none;
+}
+#gbody .fs-scene.pl-fill > .gk-prompt::after {
+  content: ""; position: absolute; left: 50%; top: -20px; width: 40px; height: 40px; transform: translateX(-50%);
+  background: var(--fam); pointer-events: none;
+  -webkit-mask: var(--fs-watch) center / contain no-repeat; mask: var(--fs-watch) center / contain no-repeat;
+  --fs-watch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='18' r='10.5' fill='none' stroke='%23000' stroke-width='3'/%3E%3Cpath d='M12.5 3.5h7M16 3.5v4M16 18l4.5-4.5M25 8.5l2-2' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+[data-theme="night"] #gbody .fs-scene.pl-fill > .gk-prompt { box-shadow: 0 var(--lift) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
+@media (max-width: 560px) {
+  #gbody .fs-scene.pl-fill > .gk-prompt { padding-top: var(--space-32); }
+  #gbody .fs-scene.pl-fill > .gk-prompt::before { width: 40px; height: 40px; top: -20px; }
+  #gbody .fs-scene.pl-fill > .gk-prompt::after { width: 32px; height: 32px; top: -16px; }
+}

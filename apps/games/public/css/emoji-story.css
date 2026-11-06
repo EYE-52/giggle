@@ -80,3 +80,31 @@
   .es-scene.ck .es-wait .gk-wait-card { padding: var(--space-12) var(--space-16); }
 }
 @media (prefers-reduced-motion: reduce) { .es-scene.ck .es-tray .es-slot { animation: none; } }
+
+/* ==========================================================================
+ * Sunny-chat skin (2026-11). Soft sun rays fan out from the top of the
+ * page; the emoji story (and the waiting tray) is a chat bubble with a tail.
+ * Night: the rays fade to a warm glow.
+ * ========================================================================== */
+body.game-playing[data-game="emoji-story"] {
+  background-image:
+    radial-gradient(ellipse 70% 80% at 50% 0%, transparent 20%, var(--bg) 78%),
+    repeating-conic-gradient(from 0deg at 50% 0%, color-mix(in srgb, var(--fam) 16%, transparent) 0 5deg, transparent 5deg 12deg);
+  background-repeat: no-repeat; background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="emoji-story"] {
+  background-image:
+    radial-gradient(ellipse 70% 80% at 50% 0%, transparent 15%, var(--bg) 75%),
+    repeating-conic-gradient(from 0deg at 50% 0%, color-mix(in srgb, var(--fam) 9%, transparent) 0 5deg, transparent 5deg 12deg);
+}
+.es-scene.ck :is(.es-emoji, .es-tray) { position: relative; }
+.es-scene.ck .es-emoji { border-color: color-mix(in srgb, var(--fam) 40%, var(--outline)); box-shadow: 0 var(--lift-lg) 0 var(--fam-lip); }
+.es-scene.ck .es-emoji::after {
+  content: ""; position: absolute; left: var(--space-48); bottom: -14px; width: 26px; height: 26px; pointer-events: none;
+  background: var(--card); border: solid color-mix(in srgb, var(--fam) 40%, var(--outline)); border-width: 0 var(--outline-w-lg) var(--outline-w-lg) 0;
+  box-shadow: var(--lift-sm) var(--lift-sm) 0 var(--fam-lip); transform: rotate(45deg); border-bottom-right-radius: var(--radius-sm);
+}
+[data-theme="night"] .es-scene.ck .es-emoji { box-shadow: 0 var(--lift-lg) 0 var(--outline), 0 0 40px color-mix(in srgb, var(--fam) 16%, transparent); }
+[data-theme="night"] .es-scene.ck .es-emoji::after { box-shadow: var(--lift-sm) var(--lift-sm) 0 var(--outline); }
+.es-scene.ck .es-emoji + * { margin-top: var(--space-8); }
+@media (max-width: 560px) { .es-scene.ck .es-emoji::after { left: var(--space-24); width: 20px; height: 20px; bottom: -11px; } }
