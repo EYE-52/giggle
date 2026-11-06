@@ -38,10 +38,10 @@ function board(S, c, animate) {
   // starts right under the player cards there (no empty band).
   const touch = typeof matchMedia === 'function' && matchMedia('(hover: none) and (max-width: 759px)').matches === true;
   return `<svg viewBox="${touch ? '20 48 520 464' : '20 0 520 512'}" class="fr-board ${animate ? '' : 'fr-settled'}" role="grid" aria-label="Four in a Row, seven columns, six rows">
-    <defs><mask id="${p}-holes"><rect x="20" y="56" width="520" height="438" fill="white"/><g fill="black">${holes}</g></mask></defs>
+    <defs><mask id="${p}-holes"><rect x="20" y="56" width="520" height="438" fill="white"/><g fill="black">${holes}</g></mask><linearGradient id="${p}-gloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".3" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".12"/></linearGradient></defs>
     <g class="fr-slots">${holes}</g>
     ${discs}
-    <g class="fr-frame"><path class="fr-foot" d="M44 470H102L114 504H32Z"/><path class="fr-foot" d="M458 470H516L528 504H446Z"/><rect class="fr-rack" x="30" y="66" width="500" height="418" rx="22" mask="url(#${p}-holes)"/></g>
+    <g class="fr-frame"><path class="fr-foot" d="M44 470H102L114 504H32Z"/><path class="fr-foot" d="M458 470H516L528 504H446Z"/><rect class="fr-rack" x="30" y="66" width="500" height="418" rx="22" mask="url(#${p}-holes)"/><rect class="fr-gloss" x="30" y="66" width="500" height="418" rx="22" fill="url(#${p}-gloss)" mask="url(#${p}-holes)"/></g>
     <g class="fr-rims">${holes}</g>
     <g>${rings}</g>
     <g class="fr-preview" aria-hidden="true"><rect class="fr-preview-beam" x="${53 + c.cursor * 66}" y="70" width="58" height="402" rx="26"/><circle cx="${82 + c.cursor * 66}" cy="34" r="24" fill="${COUNTER[S.youAre || 1][0]}" stroke="${COUNTER[S.youAre || 1][1]}" stroke-width="2"/></g>

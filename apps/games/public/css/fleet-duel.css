@@ -8,11 +8,22 @@
 .fl-game .fl-tabs button{flex:1;min-width:0}
 .fl-game .fl-chart-tools [data-chart-zoom]{flex:0 0 auto}
 .fl-game.bk-game{--bk-aspect:.92}
-.fl-game .fl-stage{overflow:auto;min-width:0;border-radius:var(--radius-xl);line-height:0;box-shadow:var(--shadow-sticker-lg)}
+/* Scene (2026-11 skin): the charts float on open sea. By day a bright
+ * coastal blue with soft swell lines; at night a moonlit navy with a pale
+ * glow up top. The chart's harbour wall sits on its own darker lip. */
+.fl-game{--fl-rim:#134a6e;--fl-lip:#0b2f48;--fl-shallow:#2a95bf;--fl-deep:#17668f;--fl-sky:#e7f2fa;--fl-sea-bg:#cfe4f2;--fl-swell:#1565c014}
+[data-theme="night"] .fl-game{--fl-rim:#0f3550;--fl-lip:#040c14;--fl-shallow:#1d6f96;--fl-deep:#0d3f5e;--fl-sky:#16233a;--fl-sea-bg:#0b1424;--fl-swell:#5790d212}
+.bk-game.fl-game{background:
+ radial-gradient(60% 40% at 80% 0%,#ffffff24,transparent 70%),
+ repeating-radial-gradient(120% 60% at 50% 120%,transparent 0 22px,var(--fl-swell) 22px 24px),
+ linear-gradient(180deg,var(--fl-sky),var(--fl-sea-bg))}
+.fl-game .fl-stage{overflow:auto;min-width:0;border-radius:var(--radius-xl);line-height:0;box-shadow:0 var(--lift-lg) 0 var(--fl-lip),0 18px 28px -14px #06223966}
 .fl-game .fl-chart{display:block;width:100%;height:auto;aspect-ratio:1;touch-action:manipulation}
 .fl-game .fl-stage.is-zoomed .fl-chart{width:520px;min-width:520px;max-width:none;height:520px}
-.fl-game .fl-frame{fill:#123a55;stroke:var(--outline);stroke-width:3}
-.fl-game .fl-sea{fill:#1f7fa8}
+.fl-game .fl-frame{fill:var(--fl-rim);stroke:none}
+.fl-game .fl-sea{fill:url(#fl-depth)}
+.fl-game .fl-shallow{stop-color:var(--fl-shallow)}
+.fl-game .fl-deep{stop-color:var(--fl-deep)}
 .fl-game .fl-wave{fill:none;stroke:#7fd0ee;stroke-width:2;stroke-linecap:round;opacity:.35}
 .fl-game .fl-sea-waves{pointer-events:none}
 .fl-game .fl-buoy{fill:#ffcf4a;stroke:#9a5b00;stroke-width:2}
@@ -25,9 +36,9 @@
 .fl-game .fl-crosshair{fill:none;stroke:#ffd23f;stroke-width:3.5;pointer-events:none}
 .fl-game .fl-last{fill:none;stroke:#ffd23f;stroke-width:3;pointer-events:none}
 .fl-game .fl-vessel{pointer-events:none}
-.fl-game .fl-hull{fill:var(--hull);stroke:#14202b;stroke-width:2.5;stroke-linejoin:round}
+.fl-game .fl-hull{fill:var(--hull);stroke:#0f2433b3;stroke-width:2.5;stroke-linejoin:round}
 .fl-game .fl-stripe{stroke:#ffffff;stroke-opacity:.5;stroke-width:3;stroke-linecap:round}
-.fl-game .fl-deck{fill:#fff6dd;stroke:#14202b;stroke-width:2}
+.fl-game .fl-deck{fill:#fff6dd;stroke:#0f2433b3;stroke-width:2}
 .fl-game .fl-port{fill:#14202b;opacity:.55}
 .fl-game .fl-vessel.is-sunk .fl-hull{fill:#6b7480}
 .fl-game .fl-vessel.is-sunk .fl-deck{fill:#a7aeb6}

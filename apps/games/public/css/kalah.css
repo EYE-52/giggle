@@ -1,26 +1,45 @@
-/* Kalah board art: a flat board, flat bowls, two seed colours. */
-.kl{--bk-aspect:2.333}
+/* Kalah: a mancala board carved from one plank. A warm wood gradient with
+ * streaky grain, bowls cut into it (a dark rim above a floor that catches
+ * the light) and two long stores ringed in the players' colours. The plank
+ * sits on its own darker wood lip, on a linen cloth by day and a dark
+ * walnut table at night. No ink rims. */
+.kl{--bk-aspect:2.333;--kl-wood-a:#c99462;--kl-wood-b:#a8743f;--kl-lip:#6b4321;--kl-pit:#5a3719;--kl-hollow-a:#946033;--kl-hollow-b:#5e3a1b;
+ --kl-num:#fff4e0;--kl-cloth:#f6f1ec;--kl-cloth-2:#e9e0d6}
 .kl.kl-portrait{--bk-aspect:.833}
+[data-theme="night"] .kl{--kl-wood-a:#8e6038;--kl-wood-b:#6f4725;--kl-lip:#1d1007;--kl-pit:#2e1a0b;--kl-hollow-a:#64401f;--kl-hollow-b:#2f1b0c;
+ --kl-cloth:#241c18;--kl-cloth-2:#16110e}
+.bk-game.kl{background:
+ repeating-linear-gradient(0deg,#8d6e6309 0 2px,transparent 2px 6px),
+ repeating-linear-gradient(90deg,#8d6e6309 0 2px,transparent 2px 6px),
+ radial-gradient(110% 75% at 50% 30%,var(--kl-cloth),var(--kl-cloth-2))}
+.kl .kl-board{border-radius:4.76% / 11.1%;
+ background:
+  linear-gradient(180deg,#ffffff2e,transparent 25%,transparent 80%,#0000001f),
+  repeating-linear-gradient(178deg,transparent 0 9px,#5a37190f 9px 11px,transparent 11px 23px,#5a371917 23px 24px),
+  repeating-linear-gradient(181deg,transparent 0 31px,#ffffff12 31px 34px),
+  linear-gradient(180deg,var(--kl-wood-a),var(--kl-wood-b));
+ box-shadow:inset 0 2px 0 #ffffff40,0 var(--lift-lg) 0 var(--kl-lip),0 18px 28px -14px #2a170a59}
+.kl.kl-portrait .kl-board{border-radius:10% / 8.33%;
+ background:
+  linear-gradient(90deg,#ffffff24,transparent 25%,transparent 80%,#0000001a),
+  repeating-linear-gradient(88deg,transparent 0 9px,#5a37190f 9px 11px,transparent 11px 23px,#5a371917 23px 24px),
+  repeating-linear-gradient(91deg,transparent 0 31px,#ffffff12 31px 34px),
+  linear-gradient(90deg,var(--kl-wood-a),var(--kl-wood-b))}
 .kl .kl-art{display:block;width:100%;height:auto}
-.kl .kl-frame{fill:#a8774a}
-.kl .kl-pit{fill:#7c5434;stroke:#6a462a;stroke-width:2}
-.kl .kl-num{fill:#fff7e8}
-.kl .kl-bowl.is-legal .kl-pit{stroke:var(--fam);stroke-width:6}
+.kl .kl-frame{fill:none;stroke:none}
+.kl .kl-pit{fill:var(--kl-pit);stroke:var(--kl-pit);stroke-width:2}
+.kl .kl-floor{fill:url(#kl-hollow);pointer-events:none}
+.kl .kl-hollow-a{stop-color:var(--kl-hollow-a)}
+.kl .kl-hollow-b{stop-color:var(--kl-hollow-b)}
+.kl .kl-num{fill:var(--kl-num)}
+.kl .kl-bowl{transition:transform var(--dur-quick) var(--ease)}
 .kl .kl-bowl.is-legal{cursor:pointer}
-.kl .kl-bowl.is-legal:hover .kl-floor{fill:#8a5f3c}
+.kl .kl-bowl.is-legal .kl-pit{stroke:var(--fam);stroke-width:6}
+@media (hover:hover){.kl .kl-bowl.is-legal:hover{transform:translateY(-3px)}}
+.kl .kl-bowl.is-legal:active{transform:translateY(1px)}
 .kl .kl-bowl.is-from .kl-pit{stroke:#f6d365;stroke-width:4;stroke-dasharray:8 6}
 .kl .kl-bowl.is-landed .kl-pit{stroke:#f6d365;stroke-width:5}
 .kl .kl-focus{stroke:var(--sun,#f6d365);stroke-width:4;opacity:0}
-/* Toy board: carved wood in an ink rim with a hard shadow; every bowl is a
- * hollow (a dark lip above a lighter floor); playable bowls wear the family
- * ring and lift a little under the pointer. */
-.kl .kl-art{filter:drop-shadow(0 6px 0 var(--outline))}
-.kl .kl-frame{fill:#b98352;stroke:var(--outline);stroke-width:6}
-.kl .kl-pit{fill:#4f3119;stroke:#5c3b20}
-.kl .kl-floor{fill:#7c5434;pointer-events:none}
-.kl .kl-bowl{transition:transform var(--dur-quick) var(--ease)}
-@media (hover:hover){.kl .kl-bowl.is-legal:hover{transform:translateY(-3px)}}
-.kl .kl-bowl.is-legal:active{transform:translateY(1px)}
 .kl [data-pit]:focus{outline:none}
 .kl [data-pit]:focus-visible .kl-focus{opacity:1}
 /* Phones: the turn banner sits above the tall board so the prompt and the

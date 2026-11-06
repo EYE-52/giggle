@@ -192,6 +192,12 @@ const CSS = `
 .cr-score{font:var(--text-title)}
 .cr-rules summary{width:auto;align-self:flex-start}
 }
+/* Skin (2026-11): a reactor tray. The board is a warm lit tray on a soft
+ * orange lip with a faint cooling grid; at night it is a dark reactor core
+ * glowing orange from the middle, wells sunk into it. No ink rims. */
+.cr-board{background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--fam) 10%,transparent) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,color-mix(in srgb,var(--fam) 10%,transparent) 0 1px,transparent 1px 24px),radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--fam) 10%,var(--card)),color-mix(in srgb,var(--fam) 24%,var(--card)));border-color:color-mix(in srgb,var(--fam) 35%,var(--outline));box-shadow:0 var(--lift-lg) 0 color-mix(in srgb,var(--fam) 45%,var(--outline))}
+:root[data-theme="night"] .chain-reaction{--cr-well:#120c0a;--cr-well-line:color-mix(in srgb,var(--fam) 45%,transparent)}
+:root[data-theme="night"] .cr-board{background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--fam) 8%,transparent) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,color-mix(in srgb,var(--fam) 8%,transparent) 0 1px,transparent 1px 24px),radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--fam) 26%,#1d1412),#140d0b 75%);border-color:#000;box-shadow:0 var(--lift-lg) 0 #000,0 0 32px color-mix(in srgb,var(--fam) 18%,transparent)}
 @media(prefers-reduced-motion:reduce){.chain-reaction *,.chain-reaction *::before,.chain-reaction *::after{animation:none!important;transition:none!important}}
 `;
 
