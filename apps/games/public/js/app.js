@@ -1079,6 +1079,7 @@ function render() {
     if (gameScreen) { gameScreen.dispose(); gameScreen = null; }
     app.dataset.layout = 'standard';
     document.body.classList.remove('game-playing', 'game-immersive');
+    delete document.body.dataset.game;
     app.innerHTML = `<section class="room-removed" role="status"><h1>Removed from room</h1><p>The host removed you from this game room.</p>${EMBED.enabled ? '<p>Your call continues. Close Games to return to it.</p>' : '<button type="button" class="btn" id="bRemovedHome">Browse games</button>'}</section>`;
     const home = document.getElementById('bRemovedHome');
     if (home) home.onclick = () => { seatRemoved = false; render(); connect(); };
@@ -1090,6 +1091,9 @@ function render() {
   app.dataset.layout = immersive ? 'immersive' : 'standard';
   document.body.classList.toggle('game-playing', screen === 'game');
   document.body.classList.toggle('game-immersive', immersive);
+  // The game's own skin (skins.css) colours the whole page while it plays.
+  if (screen === 'game' && gameId) document.body.dataset.game = gameId;
+  else delete document.body.dataset.game;
   // Screen-change fade only: roster/config snapshots repaint the same
   // screen constantly, and must never flash the whole view or forms.
   if (screen !== lastScreen) {

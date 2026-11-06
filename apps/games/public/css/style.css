@@ -158,6 +158,19 @@ body { --fam: var(--fam-party); --fam-deep: var(--fam-party-deep); --on-fam: var
 [data-family="create"] { --fam: var(--fam-create); --fam-deep: var(--fam-create-deep); --on-fam: var(--on-fam-create); }
 [data-family="arcade"] { --fam: var(--fam-arcade); --fam-deep: var(--fam-arcade-deep); --on-fam: var(--on-fam-arcade); }
 
+/* ---- Soft arcade base (2026-11 redesign) ----
+ * No black ink outlines. Every rim and every lip under a card or button is
+ * a soft tint of the ground, so the page reads calm and only colour carries
+ * meaning. Coloured controls sit on a darker lip of their own colour
+ * (--fam-lip), like a pressable candy button. Day and Night both define it;
+ * games add their own skin on top in skins.css. */
+:root { --outline: #e4dfec; --hard: #e4dfec; --outline-w-lg: 2px; }
+[data-theme="night"] { --outline: #07050a; --hard: #07050a; }
+body, [data-family] { --fam-lip: color-mix(in srgb, var(--fam) 74%, #000); }
+.tb-primary { --tb-rim: var(--fam-lip); }
+.tb-danger { --tb-rim: color-mix(in srgb, var(--danger) 74%, #000); }
+.tb-seg > button:is([aria-checked="true"], [aria-pressed="true"], .is-selected) { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+
 * { box-sizing: border-box; }
 /* Robust hidden: no authored display rule may ever reveal a [hidden]
  * element (connection banner, timers, how-to). The :not() guards below
