@@ -32,3 +32,32 @@ html[data-theme=night] .ld-game .ld-base,body.is-embed .ld-game .ld-base{fill:#e
 /* Phones: the die sits right under the board and the board leaves room for it,
  * so Roll is on screen without scrolling. */
 @media (max-width:759px) and (orientation:portrait){.ld-game .bk-extra{order:3}.ld-game .bk-status{order:4;min-height:0}.ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100svh - 300px));min-width:min(100%,280px)}}
+/* Toy board and a die tray that explains itself.
+ * - The board sits in an ink rim with a hard shadow.
+ * - Pawn buttons are real disabled buttons until a move is possible, and a
+ *   caption under them says why; legal pawns wear the family tint.
+ * - The die keeps its ink rim while waiting; only Roll is filled.
+ * - Phones: the turn banner sits between the players and the board, so the
+ *   prompt comes before the board and the die, never below the fold. */
+.ld-game .ld-stage{border-radius:3.8%;box-shadow:var(--shadow-sticker-lg)}
+.ld-game .ld-base{stroke:var(--outline);stroke-width:6}
+.ld-game .ld-glow{stroke:var(--fam);stroke-width:5;fill-opacity:.85}
+.ld-game .ld-last{stroke:var(--outline)}
+.ld-game .ld-dock{gap:var(--space-8) var(--space-12)}
+.ld-game .ld-dice{border-color:var(--outline);font:var(--text-button-sm)}
+.ld-game .ld-dice:disabled,.ld-game .ld-dice[aria-disabled=true]{cursor:not-allowed}
+.ld-game .ld-dice.is-ready{cursor:pointer}
+.ld-game .ld-die-face{stroke:var(--outline)}
+.ld-game .ld-choices{gap:var(--space-8)}
+.ld-game .ld-choices button{gap:var(--space-8);padding:var(--space-4) var(--space-8);border:var(--outline-w) solid var(--outline);border-radius:var(--radius-md);background:var(--card);font:var(--text-button-sm);box-shadow:var(--shadow-sticker-sm);transition:transform var(--dur-quick) var(--ease)}
+.ld-game .ld-choices button[aria-disabled=true]{opacity:1;border-color:var(--line-strong);background:var(--well);color:var(--ink-dim);box-shadow:none;cursor:not-allowed}
+.ld-game .ld-choices button[aria-disabled=true] svg{opacity:.55;filter:grayscale(.6)}
+.ld-game .ld-choices button.is-legal{border-color:var(--outline);background:var(--fam-soft);color:var(--ink)}
+@media (hover:hover){.ld-game .ld-choices button.is-legal:hover{transform:translateY(-2px)}}
+.ld-game .ld-choices button.is-legal:active{transform:translateY(var(--lift-sm));box-shadow:none}
+.ld-game .ld-dice:focus-visible,.ld-game .ld-choices button:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
+.ld-game .ld-reason{grid-column:1/-1;min-height:1.4em;margin:0;font:var(--text-caption);color:var(--ink-dim)}
+@media (max-width:759px) and (orientation:portrait){
+ .ld-game .bk-status{order:1;min-height:0;padding:var(--space-8) var(--space-16)}
+ .ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100svh - 372px))}
+}

@@ -195,6 +195,12 @@ export function bkPaint(root, m) {
     for (const b of final.querySelectorAll('[data-rematch],[data-lobby]')) { b.disabled = !f.isHost || !!f.roomPending; b.hidden = !f.isHost; }
     final.querySelector('.bk-hostwait').hidden = !!f.isHost;
   }
+  // The board wears the result as a sticker (CSS reads the attribute).
+  const stage = root.querySelector('.bk-stage');
+  const result = m.final?.headline || '';
+  if (typeof stage?.getAttribute === 'function' && stage.getAttribute('data-bk-result') !== (result || null)) {
+    if (result) stage.setAttribute('data-bk-result', result); else stage.removeAttribute('data-bk-result');
+  }
 }
 
 function bkHas(node, name) { return node.getAttribute(name) !== null; }

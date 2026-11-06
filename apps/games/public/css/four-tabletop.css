@@ -11,7 +11,15 @@ html[data-theme=night] .fr-duel .fr-rack,body.is-embed .fr-duel .fr-rack{fill:#3
 .fr-duel .fr-preview-beam{fill:#ffffff;opacity:.14}
 .fr-duel .fr-win{opacity:0;pointer-events:none}
 .fr-duel .fr-settled .fr-win{opacity:1;transition:opacity .2s}
-.fr-duel .fr-cursor{stroke:var(--accent);stroke-width:3;opacity:0;pointer-events:none}
+.fr-duel .fr-cursor{stroke:var(--sun,#f6d365);stroke-width:4;opacity:0;pointer-events:none}
+/* Toy rack: an ink rim, a hard shadow straight down (which also shades the
+ * top of every hole), darker rims round the holes and two little feet. */
+.fr-duel{--bk-aspect:1.016;--fr-rim:#1f45a8}
+.fr-duel .fr-frame{filter:drop-shadow(0 6px 0 var(--outline))}
+.fr-duel .fr-rack,.fr-duel .fr-foot{stroke:var(--outline);stroke-width:6;stroke-linejoin:round}
+.fr-duel .fr-foot{fill:var(--fr-rim)}
+.fr-duel .fr-rims circle{fill:none;stroke:var(--fr-rim);stroke-width:4;pointer-events:none}
+.fr-duel .fr-slots circle{fill:color-mix(in srgb,var(--well) 80%,var(--fr-rim))}
 .fr-duel [data-column]{outline:none}
 .fr-duel [data-column][aria-disabled=false]{cursor:pointer}
 /* The column cue shows only where you can drop now (never on their turn or after the end). */

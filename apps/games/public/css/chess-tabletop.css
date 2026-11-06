@@ -54,3 +54,25 @@
 .ch-tabletop .promo .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:44px;padding:4px;border:1px solid var(--line-strong);border-radius:10px;background:var(--well);color:var(--ink);font:700 13px/1.2 var(--font-body);cursor:pointer}
 .ch-tabletop .promo .ch-piece{width:54px;height:54px;object-fit:contain}
 @media (max-width:759px){.ch-tabletop .sq small{font-size:9px}.ch-tabletop .ch-frame{padding:5px}}
+/* Toy board: a teal board-family set in a sticker frame. White pieces get an
+ * ink rim so they read on light squares; coordinates are captions tucked
+ * into the corners; selection and moves use sun and ink, not the party pink. */
+.ch-tabletop{--ch-light:#eef5ef;--ch-dark:#5fa596;--ch-frame:#1f6f62;--ch-coord-light:#2f7f71;--ch-coord-dark:#f2fbf7}
+.ch-tabletop .ch-frame{padding:var(--space-8);border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);background:var(--ch-frame);box-shadow:var(--shadow-sticker-lg)}
+.ch-tabletop .chboard{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-sm);overflow:hidden}
+.ch-tabletop .chboard .ch-piece[src*="chess/w"]{filter:drop-shadow(0 1px 0 var(--outline)) drop-shadow(0 -1px 0 var(--outline)) drop-shadow(1px 0 0 var(--outline)) drop-shadow(-1px 0 0 var(--outline))}
+.ch-tabletop .sq small{font:var(--text-caption);font-size:12px;line-height:1}
+.ch-tabletop .ch-file{right:var(--space-4);bottom:var(--space-4)}.ch-tabletop .ch-rank{left:var(--space-4);top:var(--space-4)}
+.ch-tabletop .chboard .sq.last::before{background:var(--sun,#f6d365);opacity:.55}
+.ch-tabletop .chboard .sq.sel{box-shadow:inset 0 0 0 4px var(--outline)}
+.ch-tabletop .chboard .sq.sel::before{content:"";position:absolute;inset:0;background:var(--sun,#f6d365);opacity:.7;z-index:0;pointer-events:none}
+.ch-tabletop .chboard .sq.dest::after{background:var(--outline);opacity:.38}
+.ch-tabletop .chboard .sq.cap::after{border-color:var(--outline);opacity:.45}
+.ch-tabletop .chboard .sq:focus-visible{outline:var(--focus-ring);outline-offset:-4px}
+/* Captures: a quiet sticker row inside the panel. */
+.bk-game.ch-tabletop .ch-capture-rail{padding:var(--space-8) var(--space-12);border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);background:var(--card);box-shadow:var(--shadow-sticker-sm)}
+.ch-tabletop .ch-capture-rail small{font:var(--text-caption)}
+.ch-tabletop .ch-captured>span{font:var(--text-caption);color:var(--ink-dim)}
+.ch-tabletop .promo{border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);box-shadow:var(--shadow-sticker-lg)}
+.ch-tabletop .promo .btn{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-md);background:var(--card);font:var(--text-caption);color:var(--ink)}
+@media (max-width:759px){.ch-tabletop .ch-frame{padding:var(--space-4);border-radius:var(--radius-lg)}.ch-tabletop .sq small{font-size:10px}}

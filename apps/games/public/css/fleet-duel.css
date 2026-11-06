@@ -55,9 +55,25 @@
 .fl-game .fl-place-actions{display:flex;flex-direction:column}
 .fl-game .fl-place-actions .tb-btn,.fl-game .fl-fire{width:100%}
 .fl-game .bk-player .bk-stat-value{font-size:18px}
+/* Chips that sit beside the segmented toggle and the tray share its ink rim;
+ * the one primary (Confirm / Ready / Fire) has its reason under it. */
+.fl-game .fl-chart-tools [data-chart-zoom],.fl-game .fl-place-tools .tb-chip{border-color:var(--outline);padding-inline:var(--space-12)}
+.fl-game .fl-place-tools .tb-chip[aria-disabled=true]{border-color:var(--line-strong)}
+.fl-game .fl-reason{min-height:1.4em;margin:calc(var(--space-4) - var(--space-12)) 0 0;font:var(--text-caption);color:var(--ink-dim);text-align:center}
+.fl-game .fl-reason:empty{visibility:hidden}
+.fl-game .fl-ships button:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
+@media (hover:hover){.fl-game .fl-ships button:hover{transform:translateY(-2px)}}
+@media (min-width:760px){
+ .fl-game .fl-ships button{min-height:var(--control-h-sm);padding:var(--space-4) var(--space-12);gap:0}
+ .fl-game .fl-tray-ship{height:16px}
+}
+/* Phones: the whole tray is visible as a three-column grid of compact
+ * cards (no sideways scroller that clips the first ship). */
 @media (max-width:759px){
- .fl-game .fl-ships{display:flex;overflow-x:auto;padding:var(--space-8) var(--space-4);scroll-snap-type:x mandatory;scroll-padding-inline:var(--space-4)}
- .fl-game .fl-ships button{flex:0 0 auto;width:128px;scroll-snap-align:start}
- .fl-game .fl-tray-ship{width:100%!important}
+ .fl-game .fl-ships{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .fl-game .fl-ships button{min-height:var(--control-h-sm);padding:var(--space-8)}
+ .fl-game .fl-tray-name{font:var(--text-caption);color:var(--ink);font-weight:800}
+ .fl-game .fl-tray-ship{height:16px}
+ .fl-game .fl-place-tools .tb-btn{flex:1 1 0;min-width:0;padding-inline:var(--space-8)}
 }
 @media(prefers-reduced-motion:reduce){.fl-game *{animation:none!important;transition:none!important}}

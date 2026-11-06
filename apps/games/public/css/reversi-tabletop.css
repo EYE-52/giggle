@@ -9,7 +9,13 @@
 .rv-duel [data-cell][aria-disabled=false]{cursor:pointer}
 .rv-duel [data-cell][aria-disabled=false]:hover .rv-hit{fill:#ffffff1f}
 .rv-duel [data-cell][aria-disabled=false]:hover .rv-legal{opacity:.9}
-.rv-duel .rv-cursor{stroke:var(--accent);stroke-width:3;opacity:0;pointer-events:none}
+.rv-duel .rv-cursor{stroke:var(--sun,#f6d365);stroke-width:4;opacity:0;pointer-events:none}
+/* Toy board: an ink rim and a hard shadow round the frame (the stage's
+ * rounded corners match the frame's), with the felt sunk into it. */
+.rv-duel .rv-stage{border-radius:4.2%;box-shadow:var(--shadow-sticker-lg)}
+.rv-duel .rv-frame{fill:#17573a;stroke:var(--outline);stroke-width:6}
+.rv-duel .rv-felt{fill:#2f9463;stroke:#0f3f29;stroke-width:4}
+.rv-duel .rv-grid{stroke:#20704b}
 .rv-duel [data-cell]:focus{outline:none}
 .rv-duel [data-cell]:focus-visible .rv-cursor{opacity:1}
 .rv-duel .rv-disc{transform-box:fill-box;transform-origin:center;pointer-events:none}

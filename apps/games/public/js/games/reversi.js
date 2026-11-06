@@ -47,7 +47,7 @@ function board(S, c, animate) {
     </g>`;
   }).join('');
   return `<svg viewBox="0 0 600 600" class="rv-board" role="grid" aria-label="Reversi board, eight rows and eight columns">
-    <rect class="rv-frame" x="2" y="2" width="596" height="596" rx="16"/>
+    <rect class="rv-frame" x="3" y="3" width="594" height="594" rx="22"/>
     <rect class="rv-felt" x="24" y="24" width="552" height="552"/>
     <g class="rv-grid">${grid}</g>
     ${[[162, 162], [438, 162], [162, 438], [438, 438]].map(([x, y]) => `<circle class="rv-star" cx="${x}" cy="${y}" r="4"/>`).join('')}
