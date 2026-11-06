@@ -359,6 +359,38 @@ function lawnShader(material) {
   material.customProgramCacheKey = () => 'kart-lawn-v1';
 }
 
+// Cover bases share one unit box scaled per wall, so their own UVs stretch
+// the brick along the wall and squash it vertically. Sample the brick from
+// world position instead (top faces from XZ, sides from their own plane),
+// keeping courses a true size on any wall.
+function worldBrickShader(material, tileMeters = 2) {
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vBrickP;\nvarying vec3 vBrickN;')
+      .replace('#include <project_vertex>', `#include <project_vertex>
+  vec4 brickP = vec4(transformed, 1.0);
+  vec3 brickN = objectNormal;
+  #ifdef USE_BATCHING
+    brickP = batchingMatrix * brickP;
+    brickN = mat3(batchingMatrix) * brickN;
+  #endif
+  #ifdef USE_INSTANCING
+    brickP = instanceMatrix * brickP;
+    brickN = mat3(instanceMatrix) * brickN;
+  #endif
+  vBrickP = (modelMatrix * brickP).xyz;
+  vBrickN = mat3(modelMatrix) * brickN;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vBrickP;\nvarying vec3 vBrickN;')
+      .replace('#include <map_fragment>', `#ifdef USE_MAP
+  vec3 brickA = abs(normalize(vBrickN));
+  vec2 brickUv = brickA.y > .5 ? vBrickP.xz : (brickA.x > brickA.z ? vBrickP.zy : vBrickP.xy);
+  diffuseColor *= texture2D(map, brickUv / ${tileMeters.toFixed(1)});
+#endif`);
+  };
+  material.customProgramCacheKey = () => `kart-world-brick-${tileMeters}`;
+}
+
 /* ---- procedural fallback props (used only when a GLB template is absent) ---
  * Simple shaded originals sharing the module's fallback materials. Root QA
  * runs with the real Kenney templates; these keep Node checks meaningful. */
@@ -1948,9 +1980,10 @@ export function createKartWorld(THREE, options) {
       });
       if (soilTex) soilMat.map = soilTex;
       else soilMat.color.set(0x4a3220);
+      const brickMat = () => { const m = std(stoneTex ? 0xffffff : 0xaaa99c, stoneExtra); if (stoneTex) worldBrickShader(m); return m; };
       themeRes = {
         padMat: soilMat,
-        baseMat: std(stoneTex ? 0xffffff : 0xaaa99c, stoneExtra),
+        baseMat: brickMat(),
         capMat: flatOr(0x557c4b, bloomTex),
       };
     } else if (theme === 'frost') {
