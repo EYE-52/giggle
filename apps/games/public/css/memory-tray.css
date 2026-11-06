@@ -40,7 +40,7 @@
 /* The strip's seats and the waiting line in the same kit as the cards. */
 #gbody .mt.pl-fill .pl-seat { border-color: var(--outline); background: var(--card); }
 #gbody .mt.pl-fill .pl-seat.is-you { background: var(--fam-soft); }
-#gbody .mt.pl-fill .wg-slot .gk-wait { border-color: transparent; background: none; color: var(--ink-dim); }
+#gbody .mt.pl-fill .wg-slot .gk-wait { border-color: transparent; background: none; box-shadow: none; color: var(--ink-dim); }
 @media (max-width: 560px) {
   #gbody .mt .mt-tray { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   #gbody .mt.pl-fill .mt-tray .mt-obj { padding: var(--space-4); }

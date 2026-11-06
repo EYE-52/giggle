@@ -209,3 +209,38 @@ body.game-playing[data-game="twenty-questions"] {
 @media (max-width: 560px) {
   #gbody .tq.pl-fill .tq-spot::after { font-size: 72px; right: var(--space-12); }
 }
+
+/* ==== QC ==== */
+/* Fainter stars by day, so a dot never sits in a gap between words and
+ * reads as stray punctuation; on phones fainter still. */
+body.game-playing[data-game="twenty-questions"] {
+  background-image:
+    radial-gradient(color-mix(in srgb, var(--fam) 12%, transparent) 1px, transparent 1.5px),
+    radial-gradient(color-mix(in srgb, var(--fam) 8%, transparent) 1.5px, transparent 2px);
+}
+@media (max-width: 600px) {
+  body.game-playing[data-game="twenty-questions"] {
+    background-image:
+      radial-gradient(color-mix(in srgb, var(--fam) 8%, transparent) 1px, transparent 1.5px),
+      radial-gradient(color-mix(in srgb, var(--fam) 6%, transparent) 1.5px, transparent 2px);
+  }
+  [data-theme="night"] body.game-playing[data-game="twenty-questions"] {
+    background-image:
+      radial-gradient(color-mix(in srgb, #ffffff 18%, transparent) 1px, transparent 1.5px),
+      radial-gradient(color-mix(in srgb, var(--fam) 22%, transparent) 1.5px, transparent 2px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--fam) 8%, transparent), transparent 50%);
+  }
+}
+/* Two columns: the desk stretches to the Answered list's height and its
+ * question card fills it, so there is no empty hole under a short card. */
+@media (min-width: 760px) {
+  #gbody .tq.pl-fill .tq-cols { align-items: stretch; }
+  #gbody .tq.pl-fill .tq-cols > .tq-arch { align-self: start; }
+  #gbody .tq.pl-fill .tq-desk { display: flex; flex-direction: column; gap: var(--space-12); }
+  #gbody .tq.pl-fill .tq-desk > .tq-spot { flex: 1 0 auto; }
+}
+/* Night: the fields and cards take the sky's slate-blue, not plum-black. */
+[data-theme="night"] #gbody .tq.pl-fill .tq-askrow .gk-input {
+  background: color-mix(in srgb, var(--fam) 8%, var(--card));
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
+}

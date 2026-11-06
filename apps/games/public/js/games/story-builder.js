@@ -99,7 +99,7 @@ function voteHtml(S, watch) {
       : onlyMine ? 'Every line is yours. The others are voting.'
         : 'Vote for the funniest line. Not your own.';
   return scene(S, 'Vote the funniest line', `<h2 class="gk-prompt">${esc(S.seed)}</h2>`
-    + `<p class="gk-sub">${esc(sub)}</p>`
+    + `<p class="gk-sub${voted && !watch ? ' sb-locked' : ''}">${esc(sub)}</p>`
     + `<div class="gk-choices${voted ? ' is-locked' : ''}" role="group" aria-label="Funniest line ballot" style="--gk-cols:1;--gk-cols-phone:1">${cards}</div>`
     + `<div class="sb-foot" data-live="wait">${voted || watch || onlyMine ? waitLine(S) : ''}</div>`);
 }

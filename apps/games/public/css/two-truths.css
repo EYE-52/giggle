@@ -139,3 +139,12 @@ body.game-playing[data-game="two-truths"] {
   #gbody .tt-scene.pl-fill > .gk-prompt { padding-bottom: var(--space-40); }
   #gbody .tt-scene.pl-fill > .gk-prompt::after { left: var(--space-16); right: var(--space-16); bottom: var(--space-8); }
 }
+
+/* ==== QC ==== */
+/* The row you are typing in gets a family ring inside its own edge, so it
+ * never spills past the column or reads as a heavy ink outline. */
+#gbody .tt-scene.pl-fill .tt-row:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--fam) 70%, var(--card)); outline-offset: -3px;
+}
+/* Night: the players panel shares the lie-detector green tone. */
+[data-theme="night"] #gbody .tt-scene.pl-fill .pl-live { background: color-mix(in srgb, var(--fam) 7%, var(--card)); }

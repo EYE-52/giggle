@@ -66,3 +66,9 @@ body.game-playing[data-game="hot-takes"] {
 @media (max-width: 560px) {
   #gbody .pl-fill.party-scene--hot .party-prompt.party-prompt::before { left: var(--space-12); height: 28px; font-size: 14px; }
 }
+/* QC: on phones the "Your vote" tab drops the face and shrinks, so it
+ * stays in the card's top-right corner, clear of the check/cross disc. */
+@media (max-width: 560px) {
+  #gbody .pl-fill.party-scene--hot .hot-choices .gk-choice .pl-pick { right: var(--space-8); min-height: 24px; padding: 0 var(--space-8); font-size: 12px; }
+  #gbody .pl-fill.party-scene--hot .hot-choices .pl-pick .pl-face { display: none; }
+}

@@ -92,3 +92,11 @@ body.game-playing[data-game="would-you-rather"] {
   #gbody .wyr-world .wyr-body { align-items: flex-start; }
   #gbody .wyr-world .wyr-choices.is-reveal .wyr-result { justify-content: flex-start; }
 }
+/* QC: the knob belongs to the arched doors of the vote. Once the doors are
+ * stacked rows (phones) or results (the reveal), a lone dot at the edge
+ * reads as a glitch, so it goes. */
+#gbody .wyr-world .wyr-choices.is-reveal > .wyr-choice::after { content: none; }
+@media (max-width: 560px) {
+  #gbody .wyr-world .wyr-choices > .wyr-choice::after { content: none; }
+  #gbody .wyr-world .wyr-choices > .wyr-choice { padding-right: var(--space-16); }
+}

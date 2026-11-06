@@ -162,3 +162,24 @@ body.game-playing[data-game="truth-dare"] {
 /* Three decks share one row; the odd-card-spans rule is for answers only. */
 #gbody .pl-fill.party-scene--truth .td-decks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 #gbody .pl-fill.party-scene--truth .td-decks.gk-choices > :last-child:nth-child(odd) { grid-column: auto; }
+
+/* ==== QC ==== */
+/* The stage glow is a soft wash, not a stain at the bottom of the page. */
+body.game-playing[data-game="truth-dare"] {
+  background-image: radial-gradient(90vw 40vh at 50% 112%, color-mix(in srgb, var(--fam) 9%, transparent), transparent 75%);
+}
+[data-theme="night"] body.game-playing[data-game="truth-dare"] {
+  background-image: radial-gradient(90vw 40vh at 50% 112%, color-mix(in srgb, var(--fam) 10%, transparent), transparent 75%);
+}
+/* The prompt is the headline card; the "answer out loud" note under it is
+ * a quiet dashed instruction, not a second card of the same weight. */
+body #gbody .pl-fill.party-scene--truth .td-banner {
+  background: transparent; box-shadow: none;
+  border: 2px dashed color-mix(in srgb, var(--fam) 38%, transparent);
+}
+/* Night wheel: card-coloured spokes and tinted discs, no ink. */
+[data-theme="night"] #gbody .party-scene--truth .td-wheel > i { background: color-mix(in srgb, var(--card) 85%, transparent); }
+[data-theme="night"] #gbody .party-scene--truth :is(.td-wheel-face, .td-hub) {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card));
+  border-color: color-mix(in srgb, var(--fam) 45%, var(--card));
+}
