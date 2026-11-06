@@ -37,12 +37,6 @@
   .likely-world * { transition: none !important; animation: none !important; }
 }
 
-/* The between-rounds "Getting everyone ready" pill sits at the bottom of
- * the screen in this game, never over the round row and phase pill. */
-body:not(.game-immersive):has(#gbody .likely-world) .game-preparation:not(.is-first) {
-  top: auto; bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
-}
-
 /* Reveal hierarchy: every row is a white card; only the top-voted row is
  * tinted and tagged, and the viewer's own pick carries a small tag. */
 #gbody .likely-world .likely-row.is-winner { box-shadow: var(--shadow-sticker); }

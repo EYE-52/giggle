@@ -74,12 +74,6 @@
 }
 #gbody .party-scene--spotlight .dr-recap { font: var(--text-caption); color: var(--ink-dim); max-width: 60ch; margin-inline: auto; }
 
-/* The between-rounds "Getting everyone ready" pill sits at the bottom of
- * the screen during Dare Roulette, never over the round row and phase pill. */
-body:not(.game-immersive):has(#gbody .party-scene--spotlight) .game-preparation:not(.is-first) {
-  top: auto; bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
-}
-
 /* ---- Spotlight banner for the player on the dare ---- */
 .party-scene--spotlight .dr-banner {
   display: flex; align-items: center; gap: var(--space-16); width: 100%; max-width: 700px; margin-inline: auto;

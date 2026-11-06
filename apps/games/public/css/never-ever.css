@@ -32,8 +32,3 @@
 .never-choices.is-reveal .never-result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
 .never-choices.is-reveal .never-bar { flex: 1 0 100%; }
 
-/* The between-rounds "Getting everyone ready" pill sits at the bottom of
- * the screen in this game, never over the round row and phase pill. */
-body:not(.game-immersive):has(#gbody .never-world) .game-preparation:not(.is-first) {
-  top: auto; bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
-}
