@@ -26,3 +26,20 @@
 /* Reveal: share and voter chips share one row under the bar. */
 .wyr-choices.is-reveal .wyr-result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
 .wyr-choices.is-reveal .wyr-bar { flex: 1 0 100%; }
+/* The share reads at title size; the count and Majority tag sit beside it. */
+#gbody .wyr-world .wyr-count:not(:empty) { display: inline-flex; align-items: baseline; gap: var(--space-8); margin-right: var(--space-4); }
+#gbody .wyr-world .wyr-pct { font: var(--text-title); line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+#gbody .wyr-world .wyr-votes { font: var(--text-button-sm); color: var(--ink); }
+#gbody .wyr-world .wyr-major {
+  align-self: center; padding: var(--space-4) var(--space-8); border-radius: var(--radius-pill);
+  border: var(--outline-w) solid var(--outline); background: var(--sun); color: var(--sun-ink); font: var(--text-caption); font-weight: 800;
+}
+/* Voter chips at button-sm with bigger faces. */
+#gbody .wyr-world .wyr-faces .pl-voter { min-height: 32px; font: var(--text-button-sm); padding-right: var(--space-12); }
+#gbody .wyr-world .wyr-faces .pl-voter > .pl-face { width: 28px; height: 28px; font-size: 13px; }
+
+/* The between-rounds "Getting everyone ready" pill sits at the bottom of
+ * the screen in this game, never over the round row and phase pill. */
+body:not(.game-immersive):has(#gbody .wyr-world) .game-preparation:not(.is-first) {
+  top: auto; bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
+}

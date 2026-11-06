@@ -170,12 +170,14 @@ function paint(el, S, api) {
       const canNext = !watch && (S.me === S.performer || S.me === S.hostId);
       el.innerHTML = scene(S, 'Round verdict', `<h2 class="gk-prompt">${S.last.passed ? `${esc(who)} passed` : `${esc(who)} failed`}</h2>`
         + `<p class="gk-sub fs-verdict-line">${S.last.passed ? `+${pts || 0} for ${esc(who)}` : 'No points this round'} · Name 3: ${esc(S.category)}</p>`
+        // The answers come first, then who judged what, then the one action.
+        + answersHtml(S)
+        + `<p class="fs-votes"><span class="fs-vote is-pass"><b aria-hidden="true">✓</b>Pass: ${pass.length ? esc(pass.join(', ')) : 'nobody'}</span>`
+        + `<span class="fs-vote is-fail"><b aria-hidden="true">✕</b>Fail: ${fail.length ? esc(fail.join(', ')) : 'nobody'}</span></p>`
         + `<div class="gk-actions is-center fs-foot">`
         + (canNext ? `<button type="button" class="gk-btn gk-primary" id="fNext">Next</button>`
           : waitingHtml(S.round >= S.rounds ? 'Final scores are next' : 'Next round starts soon', { done: true }))
-        + `</div>`
-        + answersHtml(S)
-        + `<p class="gk-meta">Pass: ${pass.length ? esc(pass.join(', ')) : 'nobody'} · Fail: ${fail.length ? esc(fail.join(', ')) : 'nobody'}</p>`);
+        + `</div>`);
       const nx = el.querySelector('#fNext');
       if (nx) nx.onclick = () => sendAction(el, S, 'reveal', { next: true });
     }

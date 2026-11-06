@@ -1,0 +1,13 @@
+/* Trivia: on phones the HUD is two tidy rows (question + timer, then phase
+ * + locked-in count) so the timer never drops onto a line of its own and
+ * push the question card down. Tokens only. */
+@media (max-width: 560px) {
+  #gbody [data-game="trivia"] .gk-hud {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "round timer" "phase progress";
+    align-items: center; gap: var(--space-8) var(--space-12);
+  }
+  #gbody [data-game="trivia"] .gk-hud .gk-hud-round { grid-area: round; }
+  #gbody [data-game="trivia"] .gk-hud .gk-hud-timer { grid-area: timer; margin: 0; }
+  #gbody [data-game="trivia"] .gk-hud .gk-hud-phase { grid-area: phase; justify-self: start; }
+  #gbody [data-game="trivia"] .gk-hud .gk-hud-progress { grid-area: progress; justify-self: end; margin: 0; }
+}

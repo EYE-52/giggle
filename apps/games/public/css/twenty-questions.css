@@ -133,3 +133,42 @@
 #gbody .tq.pl-fill .tq-hist { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
 #gbody .tq.pl-fill .tq-ans:not(:disabled) { background: var(--card); color: var(--ink); }
 #gbody .tq.pl-fill .tq-hist { max-height: 360px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; padding-right: var(--space-4); }
+
+/* Answer buttons wear their status: Yes success, No danger, Sometimes
+ * warning, each a sticker with the ink outline. */
+#gbody .tq.pl-fill #tqYes:not(:disabled) { background: var(--success-soft); }
+#gbody .tq.pl-fill #tqNo:not(:disabled) { background: var(--danger-soft); }
+#gbody .tq.pl-fill #tqSome:not(:disabled) { background: var(--warning-soft); }
+#gbody .tq.pl-fill .tq-ans:not(:disabled) { color: var(--ink); }
+@media (hover: hover) {
+  #gbody .tq.pl-fill .tq-ans:not(:disabled):hover { transform: translateY(-2px); }
+}
+#gbody .tq.pl-fill .tq-ans:not(:disabled):active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+
+/* History filters: one compact segmented control that never wraps. */
+#gbody .tq.pl-fill .tq-filters {
+  display: flex; flex-wrap: nowrap; gap: 0; width: max-content; max-width: 100%; overflow-x: auto; margin: 0 0 var(--space-8);
+  padding: var(--space-4); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--well);
+  scrollbar-width: none;
+}
+#gbody .tq.pl-fill .tq-filter {
+  flex: none; gap: var(--space-4); min-height: 36px; min-width: 0; padding: 0 var(--space-8);
+  border: 0; border-radius: var(--radius-md); background: transparent; color: var(--ink); font: var(--text-button-sm);
+}
+#gbody .tq.pl-fill .tq-filter .tq-icon { display: none; }
+#gbody .tq.pl-fill .tq-filter[aria-pressed="true"] { background: var(--fam); color: var(--on-fam); }
+#gbody .tq.pl-fill .tq-filter-count { font: var(--text-caption); font-weight: 800; color: inherit; opacity: 0.8; }
+@media (hover: hover) {
+  #gbody .tq.pl-fill .tq-filter:not([aria-pressed="true"]):hover { background: var(--card); }
+}
+
+/* Two columns end close together: the history scrolls sooner. */
+@media (min-width: 760px) {
+  #gbody .tq.pl-fill .tq-hist { max-height: 260px; }
+}
+
+/* Ask and Guess: equal-width buttons so the two fields line up; Guess is
+ * the secondary (card fill, ink outline). */
+#gbody .tq.pl-fill .tq-askrow .gk-btn { min-width: 112px; }
+#gbody .tq.pl-fill #tGSend { background: var(--card); color: var(--ink); border: var(--outline-w) solid var(--outline); box-shadow: var(--shadow-sticker-sm); }
+#gbody .tq.pl-fill .gk-hud-timer { font-variant-numeric: tabular-nums; }

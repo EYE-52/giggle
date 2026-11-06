@@ -23,3 +23,18 @@
   .fa-scene .gk-choice { min-height: 48px; padding-block: 8px; }
   .fa-scene .pb-share { margin-top: 5px; }
 }
+
+/* Anonymous vote: letter badges never wear a player colour (that would
+ * hint at the author). Every card uses the family colour, in one column
+ * of real cards at title size. */
+#gbody .fa-scene.pl-fill :is(.gk-choices, .party-choices) > * { --side: var(--fam); --on-side: var(--on-fam); }
+#gbody .fa-scene.pl-fill .gk-choice .gk-mark { background: var(--card); color: var(--ink); border-color: var(--outline); }
+#gbody .fa-scene.pl-fill .gk-choice:is(.is-selected, [aria-pressed="true"]) .gk-mark { background: var(--fam); color: var(--on-fam); }
+#gbody .fa-scene.pl-fill .gk-choices:not(.fa-list) { max-width: 720px; width: 100%; margin-inline: auto; }
+#gbody .fa-scene.pl-fill .gk-choices:not(.fa-list) .gk-choice { min-height: 72px; font: var(--text-title); }
+/* Locked: the other cards keep their sticker outline; only the pick is filled. */
+#gbody .fa-scene.pl-fill .gk-choices.is-locked > .gk-choice:not(.is-selected):not([aria-pressed="true"]):not(.is-dim) {
+  border-color: var(--outline); box-shadow: var(--shadow-sticker-sm);
+}
+#gbody .fa-scene.pl-fill .gk-choices.is-locked > .gk-choice:not(.is-selected):not([aria-pressed="true"]) .gk-mark { color: var(--ink); border-color: var(--outline); }
+#gbody .fa-scene.pl-fill .gk-choice .gk-meta { font: var(--text-caption); }

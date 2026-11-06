@@ -29,6 +29,7 @@ let poseKey = null; // stable composer key for the current pose window
 
 function ensureCss() {
   ensureStylesheet('party-scenes-css', '/css/party-scenes.css');
+  ensureStylesheet('rapid-polls-css', '/css/rapid-polls.css');
 }
 
 function isWatch(S) {
@@ -39,15 +40,24 @@ function isWatch(S) {
 
 /* Reveal bars with true voter names. */
 function bars(poll, votes, S) {
+  const counts = poll.options.map((_, i) => Object.keys(votes).filter((pid) => votes[pid] === i).length);
+  const top = Math.max(0, ...counts);
   return poll.options.map((opt, i) => {
     const voters = Object.keys(votes).filter((pid) => votes[pid] === i);
     const ballots = Object.keys(votes).length;
     const pct = ballots ? Math.round(voters.length / ballots * 100) : 0;
-    return `<div class="party-result">`
+    return `<div class="party-result rp-row${top && voters.length === top ? ' is-top' : ''}" style="--rp-pct:${pct}%">`
       + `<div class="party-result-body"><span class="gk-mark" aria-hidden="true">${'ABCD'[i]}</span><span>${esc(opt)}</span></div>`
       + `<div class="party-meter" role="img" aria-label="${voters.length} votes"><span style="width:${pct}%"></span></div>`
       + `<p class="party-meta">${plural(voters.length, 'vote')}${voters.length ? ' · ' + voters.map((pid) => esc(nameOf(S, pid))).join(', ') : ''}</p></div>`;
   }).join('');
+}
+
+/* One answer field in the composer, dressed as a lettered option card. */
+function optField(i, hint) {
+  const L = 'ABCD'[i];
+  return `<div class="party-field rp-opt"><span class="gk-mark" aria-hidden="true">${L}</span>`
+    + `<input type="text" id="rpO${i}" aria-label="Answer ${L}" maxlength="60" placeholder="Answer ${L}" autocomplete="off" enterkeyhint="${hint}"></div>`;
 }
 
 /* Live anonymous tally bars during the vote. */
@@ -148,9 +158,9 @@ function paint(el, S, api) {
      * IME composition, the answers disclosure and error feedback are
      * never disturbed. A new round/player/role rebuilds it empty. */
     const last = S.last
-      ? `<p class="party-label">Last poll</p>`
-        + `<p class="party-status"><b>${esc(S.last.poll.q)}</b></p>`
-        + `<div class="party-reveals">${bars(S.last.poll, S.last.votes, S)}</div>`
+      ? `<div class="rp-last"><p class="t-caption rp-last-cap">Last poll</p>`
+        + `<p class="rp-last-q">${esc(S.last.poll.q)}</p>`
+        + `<div class="party-reveals">${bars(S.last.poll, S.last.votes, S)}</div></div>`
       : '';
     if (watch) {
       clearPose();
@@ -201,17 +211,16 @@ function paint(el, S, api) {
       + `${hud(S)}`
       + `<h3 class="gk-prompt party-prompt">Ask the room anything</h3>`
       + `<p class="gk-sub">Anyone can ask: a question plus 2 to 4 answers, or a starter poll.</p>`
-      + `<div class="party-compose"><div class="party-field"><label for="rpQ">Question</label>`
-      + `<input type="text" id="rpQ" maxlength="140" placeholder="Ask anything..." autocomplete="off" enterkeyhint="next"></div>`
-      + `<div class="party-poll-options">` + [0, 1].map((i) =>
-        `<div class="party-field"><label for="rpO${i}">Answer ${'ABCD'[i]}${i > 1 ? ' (optional)' : ''}</label>`
-        + `<input type="text" id="rpO${i}" maxlength="60" placeholder="Option ${'ABCD'[i]}" autocomplete="off" enterkeyhint="${i === 1 ? 'send' : 'next'}"></div>`).join('')
-      + `</div><details id="rpExtra"><summary>More answers (optional)</summary><div class="party-poll-options">`
-      + [2, 3].map((i) => `<div class="party-field"><label for="rpO${i}">Answer ${'ABCD'[i]}</label>`
-        + `<input type="text" id="rpO${i}" maxlength="60" placeholder="Option ${'ABCD'[i]}" autocomplete="off" enterkeyhint="${i === 3 ? 'send' : 'next'}"></div>`).join('')
+      // A poll card you type straight into: the question on a tinted
+      // header, the answers as lettered option stickers like the vote.
+      + `<div class="party-compose rp-builder"><div class="party-field rp-q"><label for="rpQ">Your question</label>`
+      + `<input type="text" id="rpQ" maxlength="140" placeholder="Pizza or tacos tonight?" autocomplete="off" enterkeyhint="next"></div>`
+      + `<div class="party-poll-options rp-opts">` + [0, 1].map((i) => optField(i, i === 1 ? 'send' : 'next')).join('')
+      + `</div><details id="rpExtra" class="rp-extra"><summary><span class="rp-plus" aria-hidden="true">+</span>Add answers C and D</summary><div class="party-poll-options rp-opts">`
+      + [2, 3].map((i) => optField(i, i === 3 ? 'send' : 'next')).join('')
       + `</div></details><p class="party-meta" id="rpError" role="status"></p>`
-      + `<div class="gk-actions"><button type="button" class="gk-btn gk-primary" id="rpAsk">Ask the room</button>`
-      + `<button type="button" class="gk-btn" id="rpStarter">Use a starter</button></div></div>`
+      + `<div class="gk-actions rp-ask-row"><button type="button" class="gk-btn gk-primary" id="rpAsk">Ask the room</button>`
+      + `<button type="button" class="gk-btn rp-starter" id="rpStarter"><span aria-hidden="true">🎲</span> Use a starter</button></div></div>`
       + last
       + `</section>`;
     bindPose();
@@ -220,7 +229,7 @@ function paint(el, S, api) {
 let liveTimerEl = null;
 
 export default {
-  styles: ['/css/party-scenes.css'],
+  styles: ['/css/party-scenes.css', '/css/rapid-polls.css'],
   dispose() {
     stopHudTimer(liveTimerEl); liveTimerEl = null; poseKey = null; voteKey = ''; liveApi = null; liveEl = null; liveState = null; liveActionKey = ''; },
   ownsTimer: true,

@@ -7,6 +7,11 @@ import { paintFinal, syncHudTimer, stopHudTimer, waitCardHtml, paintLiveStrip } 
 let visualKey = '', liveApi = null, liveEl = null, liveState = null, liveActionKey = '';
 
 function plural(n, one, many = one + 's') { return `${n} ${n === 1 ? one : many}`; }
+/* "Ann" -> "A", "Player 2" -> "P2": the same initials as the strip. */
+function initialsOf(name) {
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+  return words.length ? (words[0].charAt(0) + (words[1] ? words[1].charAt(0) : '')).toUpperCase() : '?';
+}
 
 function hud(S) {
   const n = (S.players || []).length;
@@ -142,7 +147,11 @@ function paint(el, S, api) {
         + hud(S)
         + `<p class="gk-meta td-kicker">${esc(nameOf(S, S.target))} · ${esc(L.decks[S.deck] || S.deck)} ${esc(S.kind === 'truth' ? L.truth : L.dare)}</p>`
         + `<h2 class="gk-prompt party-prompt">${esc(S.prompt)}</h2>`
-        + `<p class="gk-wait" role="status">${actor ? S.kind === 'truth' ? 'Answer aloud when you are ready.' : 'Perform the dare when you are ready.' : `${watch ? 'Watching · ' : ''}Give ${esc(nameOf(S, S.target))} time. Judging opens after they finish.`}</p>`
+        + (actor
+          ? `<div class="td-banner" role="status"><span class="td-banner-icon" aria-hidden="true">${S.kind === 'truth' ? '🎤' : '🎬'}</span>`
+            + `<span class="td-banner-text"><b>${S.kind === 'truth' ? 'Answer out loud now' : 'Do the dare now'}</b>`
+            + `<span>Tap Ready for votes when you are done.</span></span></div>`
+          : `<p class="gk-wait" role="status">${watch ? 'Watching · ' : ''}Give ${esc(nameOf(S, S.target))} time. Judging opens after they finish.</p>`)
         + (actor ? '<div class="gk-actions is-center"><button type="button" class="gk-btn gk-primary" id="tReady">Ready for votes</button></div>' : '')
         + '</section>';
       const ready = el.querySelector('#tReady');
@@ -163,7 +172,9 @@ function paint(el, S, api) {
         el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--truth" aria-label="Room judging">` + head
           + (watch
             ? `<p class="gk-wait" role="status">You are watching — ${esc(nameOf(S, S.target))} is on the spot.</p>`
-            : `<p class="gk-wait" role="status">You are up. The room is judging…</p>`)
+            : `<div class="td-banner" role="status"><span class="td-banner-icon" aria-hidden="true">🎤</span>`
+              + `<span class="td-banner-text"><b>You are in the spotlight</b>`
+              + `<span>The room votes ${esc(yesLabel)} or ${esc(noLabel)}. Stay put until the votes are in.</span></span></div>`)
           + `</section>`;
         return;
       }
@@ -231,20 +242,38 @@ function paint(el, S, api) {
     stopSpin();
     lastKey = k;
     pendingDeck = 'classic';
+    const players = S.players || [];
+    const slice = 360 / Math.max(1, players.length);
+    const at = Math.max(0, players.findIndex((p) => p.id === S.target));
+    // Each slice wears its player's strip colour (pl-c0..4), so the wheel
+    // lands on "their" colour. Four full turns, then the target's slice
+    // sits under the pointer: always the server's pick.
+    const stops = players.map((p, i) => `var(--td-c${i % 5}) ${(i * slice).toFixed(2)}deg ${((i + 1) * slice).toFixed(2)}deg`).join(', ');
+    const faces = players.map((p, i) => `<span class="td-wheel-face" style="--td-a:${((i + 0.5) * slice).toFixed(2)}deg">${esc(initialsOf(nameOf(S, p.id)))}</span>`).join('');
+    const spokes = players.length > 1 ? players.map((p, i) => `<i style="--td-a:${(i * slice).toFixed(2)}deg"></i>`).join('') : '';
+    const land = -(1440 + (at + 0.5) * slice);
     el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--truth" aria-label="Spinning for a target">`
       + `${hud(S)}`
       + `<div class="gk-card gk-wait-card td-spin" role="status">`
       + `<p class="gk-meta">${watch ? 'You are watching · ' : ''}Who is in the spotlight?</p>`
+      + `<div class="td-wheel-box" aria-hidden="true"><span class="td-pointer"></span>`
+      + `<div class="td-wheel" style="background:conic-gradient(${stops});--td-land:${land.toFixed(2)}deg;--td-up:${((at + 0.5) * slice).toFixed(2)}deg">${spokes}${faces}</div>`
+      + `<span class="td-hub">T<small>or</small>D</span></div>`
       + `<p class="gk-wait-title" id="tSpin">…</p>`
       + `<p class="gk-sub">They pick a deck and truth or dare next.</p></div>`
       + `</section>`;
     const node = document.getElementById('tSpin');
-    const names = (S.players || []).map((p) => p.name);
+    const wheel = el.querySelector?.('.td-wheel');
+    const names = players.map((p) => p.name);
     if (!names.length || !node) return;
     if (reducedMotion()) {
+      wheel?.classList.add('is-landed');
       node.textContent = nameOf(S, S.target);
       return;
     }
+    // Two frames so the wheel paints at 0 first and the turn runs once.
+    if (wheel && typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(() => wheel.classList.add('is-landed')));
+    else wheel?.classList.add('is-landed');
     let ticks = 0;
     spinTimer = setInterval(() => {
       ticks += 1;

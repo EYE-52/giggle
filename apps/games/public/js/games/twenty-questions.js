@@ -382,7 +382,26 @@ function update(el, S, api) {
       acted: S.phase === 'play' ? asked : [], verb: 'Asked', waiting: false,
     });
   }
+  minuteClock(el);
   syncHudTimer(el, S, api);
+}
+/* The round clock runs past a minute: show "3:01", not "181s". The kit
+ * writes whole seconds; an observer reformats before the frame paints. */
+let clockObserver = null, clockSlot = null;
+function fmtClock(slot) {
+  const m = /^(\d+)s$/.exec(slot.textContent || '');
+  if (!m || Number(m[1]) < 60) return;
+  const n = Number(m[1]);
+  slot.textContent = `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
+}
+function minuteClock(el) {
+  const slot = el.querySelector?.('.gk-hud-timer');
+  if (slot === clockSlot) return;
+  clockObserver?.disconnect();
+  clockObserver = null; clockSlot = slot || null;
+  if (!slot || typeof MutationObserver === 'undefined') return;
+  clockObserver = new MutationObserver(() => fmtClock(slot));
+  clockObserver.observe(slot, { childList: true, characterData: true, subtree: true });
 }
 function paint(el, S, api) {
   ensureCss();
@@ -426,6 +445,7 @@ export default {
     update(el, S, api);
   },
   dispose() {
+    clockObserver?.disconnect(); clockObserver = null; clockSlot = null;
     stopHudTimer(liveEl);
     feedback = null;
     phaseKey = '';

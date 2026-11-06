@@ -232,10 +232,15 @@ function paint(el, S, api) {
       inp.focus();
       return;
     }
-    el.innerHTML = scene(S, 'Waiting for the story', `<div class="es-wait"><div class="es-slots" aria-hidden="true">${'<span class="es-slot"></span>'.repeat(5)}</div><p class="gk-meta es-slots-note">${esc(teller)}'s emoji land here. Then you guess the phrase.</p>` + waitCardHtml({
-      kicker: watch ? 'You are watching' : '',
-      title: `${teller} is the storyteller`,
-      text: 'They are turning a secret phrase into emoji. Then everyone races to guess it.',
-      waiting: 'The story is on its way',
-    }) + `</div>`);
+    // The emoji tray is the game: big slots on a tinted sticker tray, then a
+    // compact line saying who is typing and what happens next.
+    el.innerHTML = scene(S, 'Waiting for the story', `<div class="es-wait"><div class="es-tray ck-card is-tint">`
+      + `<div class="es-slots" aria-hidden="true">${'<span class="es-slot"></span>'.repeat(5)}</div>`
+      + `<p class="es-slots-note">${esc(teller)}'s emoji land here. Then you race to guess the phrase.</p></div>`
+      + waitCardHtml({
+        kicker: watch ? 'You are watching' : '',
+        title: `${teller} is picking emoji`,
+        text: 'A secret phrase, told only in emoji.',
+        waiting: `Waiting for ${teller}`,
+      }) + `</div>`);
 }
