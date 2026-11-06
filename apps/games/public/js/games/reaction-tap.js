@@ -5,7 +5,7 @@
 import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
 import { hudHtml, roundLabel, waitingHtml, resultsHtml, paintLiveStrip, timerSlotState } from '../kit.js';
 
-const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css']];
+const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css'], ['reaction-tap-css', '/css/reaction-tap.css']];
 let lastKey = '', lastEl = null, currentApi = null, currentState = null, clock = null;
 
 function ensureCss() { for (const [id, href] of CSS) ensureStylesheet(id, href); }
@@ -29,7 +29,7 @@ function runClock(el, S, api) {
 }
 
 const view = {
-  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css'],
+  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css', '/css/reaction-tap.css'],
   ownsTimer: true,
   dispose() {
     if (clock !== null) clearInterval(clock);
@@ -91,7 +91,7 @@ const view = {
     const tappedN = S.taps ? Object.keys(S.taps).length : 0;
     if (hudProgress) hudProgress.textContent = go ? `${tappedN} tapped` : '\u00a0';
     const instruction = el.querySelector('#rInstruction');
-    instruction.textContent = fouled ? '\u00a0' : go ? 'Tap the pad now!' : (t.wait_sub || 'Tap too early and you foul out of the round.');
+    instruction.textContent = fouled ? 'Out for this round: watch the others finish.' : go ? 'Tap the pad now!' : (t.wait_sub || 'Tap too early and you foul out of the round.');
     const tip = el.querySelector('#rTip');
     tip.textContent = S.tip ? (fouled ? '\u00a0' : `${t.tip_label || 'Tip'}: ${S.tip}`) : '';
     el.querySelector('#rStatus').innerHTML = [go && tappedN ? `${tappedN} tapped in` : '', fouledLine(S, t)].filter(Boolean).join(' · ');
@@ -139,15 +139,19 @@ function renderResults(el, S, t) {
     + `<span class="wg-pts">+${r.pts ?? 0}</span></li>`).join('')
     + fouled.map((pid) => `<li class="wg-row${pid === S.me ? ' is-you' : ''}"><span class="wg-who">${esc(nameOf(S, pid))}</span><span class="wg-ans"><span class="wg-tag is-bad">${esc(t.fouled_list || 'Fouled')}</span></span><span class="wg-pts is-zero">+0</span></li>`).join('');
   const top = order.filter((r) => (r.rank || 0) === 1);
+  // Everyone fouled: nobody was late, they all jumped before GO.
+  const seated = (S.players || []).filter((p) => !p.left).length;
+  const allFouled = !order.length && fouled.length > 0 && fouled.length >= seated;
   const headline = top.length > 1 ? `It's a tie: ${top.map((r) => nameOf(S, r.pid)).join(' and ')} · ${top[0].ms} ms`
-    : top.length ? `Fastest: ${nameOf(S, top[0].pid)} · ${top[0].ms} ms` : (t.no_taps || 'Nobody tapped in time.');
+    : top.length ? `Fastest: ${nameOf(S, top[0].pid)} · ${top[0].ms} ms`
+      : allFouled ? (t.all_fouled || 'Everyone jumped the gun') : (t.no_taps || 'Nobody tapped in time.');
   const mine = order.find((r) => r.pid === S.me);
   const watch = S.spectator || !(S.players || []).some((p) => p.id === S.me);
   const isHost = S.me === S.hostId && !watch;
   el.innerHTML = `<section class="wg rt gk-col gk-stack" data-game="reaction-tap" data-phase="roundEnd" aria-label="Reaction Tap results">`
     + hudHtml({ round: roundLabel(S.round, S.rounds), phase: 'Results', progress: `${order.length} tapped`, timer: '' })
     + `<h2 class="gk-prompt">${esc(headline)}</h2>`
-    + `<p class="wg-status${mine ? ' is-good' : ''}" role="status">${watch ? 'You are watching.' : mine ? `Your time: ${mine.ms} ms · +${mine.pts ?? 0}` : (S.last?.fouled || []).includes(S.me) ? 'You tapped too soon.' : 'You did not tap in time.'}</p>`
+    + `<p class="wg-status${mine ? ' is-good' : ''}" role="status">${watch ? 'You are watching.' : mine ? `Your time: ${mine.ms} ms · +${mine.pts ?? 0}` : (S.last?.fouled || []).includes(S.me) ? 'You tapped before GO: +0' : 'You did not tap in time.'}</p>`
     + `<div class="wg-slot">${isHost ? '<button class="gk-btn gk-primary" id="rNext" type="button">Next</button>' : waitingHtml(S.round >= S.rounds ? 'Final scores are next' : (t.next_round || 'Next round soon'))}</div>`
     + (rows ? `<ol class="wg-rows" aria-label="Round times">${rows}</ol>` : '')
     + `</section>`;

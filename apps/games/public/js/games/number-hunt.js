@@ -124,8 +124,9 @@ const view = {
         + `<h2 class="gk-prompt" id="nSub"></h2>`
         + `<div class="nh-range wg-panel" role="group" aria-label="Possible range">`
         + `<div class="nh-bounds"><span id="nLo">1</span><span class="nh-between" id="nBetween" role="status"></span><span id="nHi">100</span></div>`
-        + `<div class="nh-track"><div class="nh-window" id="nWin"></div></div>`
-        + `<p class="nh-reading"><span id="nLastLabel">No guess yet</span> <b id="nCurrent"></b> <strong id="nDirection">Try a number</strong> <small id="nHeat"></small></p>`
+        + `<div class="nh-line"><div class="nh-track"><div class="nh-window" id="nWin"></div><div class="nh-pins" id="nPins" aria-hidden="true"></div></div>`
+        + `<ol class="nh-scale" aria-hidden="true">${[1, 25, 50, 75, 100].map((n) => `<li style="left:${n - 0.5}%">${n}</li>`).join('')}</ol></div>`
+        + `<p class="nh-reading"><span id="nLastLabel">No guess yet</span> <b id="nCurrent"></b> <strong id="nDirection" data-dir="none">Try a number</strong> <small id="nHeat"></small></p>`
         + `</div>`
         + `<form class="gk-input-row" id="nForm" autocomplete="off"><input class="gk-input" id="nGuess" aria-label="Your number guess, from 1 to 100" type="number" min="1" max="100" inputmode="numeric" enterkeyhint="go" autocomplete="off"`
         + ` placeholder="${esc(t.guess_placeholder || 'Your guess (1–100)')}" ${found || S.spectator ? 'disabled' : ''}>`
@@ -162,7 +163,12 @@ const view = {
     const recent = [...(S.history || [])].reverse().find((h) => h.pid === S.me);
     const number = el.querySelector('#nCurrent'); if (number) number.textContent = recent ? String(recent.guess) : '';
     const lastLabel = el.querySelector('#nLastLabel'); if (lastLabel) lastLabel.textContent = recent ? 'Your last guess' : 'No guess yet';
-    const direction = el.querySelector('#nDirection'); if (direction) direction.textContent = recent?.result === 'correct' ? 'Found it!' : recent?.dir === 'higher' ? 'Go higher' : recent?.dir === 'lower' ? 'Go lower' : 'Try a number';
+    const direction = el.querySelector('#nDirection');
+    if (direction) {
+      const dir = recent?.result === 'correct' ? 'found' : recent?.dir === 'higher' ? 'higher' : recent?.dir === 'lower' ? 'lower' : 'none';
+      direction.textContent = { found: 'Found it!', higher: 'Go higher', lower: 'Go lower', none: 'Try a number' }[dir];
+      if (direction.dataset) direction.dataset.dir = dir;
+    }
     const heat = el.querySelector('#nHeat'); if (heat) heat.textContent = recent ? ({ hotter: 'warmer than before', colder: 'colder than before', same: 'just as close as before', first: 'your first clue', correct: '' }[recent.result] || '') : '';
     const { lo, hi } = bounds(S.history);
     const loEl = el.querySelector('#nLo'); if (loEl) loEl.textContent = lo;
@@ -173,13 +179,27 @@ const view = {
       win.style.left = `${(lo - 1)}%`;
       win.style.width = `${Math.max(1, hi - lo + 1)}%`;
     }
+    // Pins on the number line: every public guess, one per number, with
+    // the way it pointed. Yours are in the arcade colour.
+    const pins = el.querySelector('#nPins');
+    if (pins) {
+      const last = new Map();
+      for (const h of S.history || []) last.set(h.guess, h);
+      const marks = [...last.values()].slice(-30);
+      const pinKey = JSON.stringify(marks.map((h) => [h.guess, h.pid === S.me, h.result, h.dir]));
+      if (pins._key !== pinKey) {
+        pins._key = pinKey;
+        pins.innerHTML = marks.map((h) => `<span class="nh-pin${h.pid === S.me ? ' is-you' : ''}${h.result === 'correct' ? ' is-hit' : ''}" style="left:${h.guess - 0.5}%">`
+          + `${h.result === 'correct' ? '\u2713' : h.dir === 'higher' ? '\u2191' : '\u2193'}</span>`).join('');
+      }
+    }
     const between = el.querySelector('#nBetween');
     if (between) {
       between.textContent = lo === hi
         ? (S.finished?.length || S.history?.some((h) => h.result === 'correct'))
           ? `Someone found it: ${lo}. ${S.phase === 'overtime' ? 'Seconds left to finish!' : ''}`
           : `Only ${lo} remains.`
-        : `It hides between ${lo} and ${hi} · ${hi - lo + 1} numbers left`;
+        : `It hides between ${lo} and ${hi} · ${hi - lo + 1} left`;
     }
     const sub = el.querySelector('#nSub');
     if (sub) {
