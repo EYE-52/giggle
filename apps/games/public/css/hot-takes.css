@@ -8,7 +8,7 @@
 }
 #gbody .party-scene--hot .hot-split-track > span {
   display: grid; place-items: center; overflow: hidden; min-width: 0;
-  background: var(--fam); color: var(--on-fam); font: 800 13px/1 var(--font-display); font-variant-numeric: tabular-nums;
+  background: var(--fam); color: var(--on-fam); font: 800 14px/1 var(--font-ui); font-variant-numeric: tabular-nums;
 }
 #gbody .party-scene--hot .hot-split-track > span + span { background: var(--duel-b); color: var(--on-duel-b); }
 #gbody .party-scene--hot .hot-split-track > span:first-child:not([style*="width:0%"]) + span:not([style*="width:0%"]) { border-left: var(--outline-w) solid var(--outline); }

@@ -140,7 +140,7 @@ body.game-playing[data-game="countdown-word"] {
  * 40% opacity over the dark page (which turns muddy brown). */
 [data-theme="night"] .cw.ck .cw-tile.is-used {
   opacity: 1; background: color-mix(in srgb, var(--cw-wood) 20%, var(--card));
-  color: color-mix(in srgb, var(--cw-wood) 50%, var(--card));
+  color: color-mix(in srgb, var(--cw-wood) 78%, var(--card));
   border-color: color-mix(in srgb, var(--cw-wood-deep) 35%, var(--card));
   box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--cw-wood-deep) 30%, var(--card));
 }
