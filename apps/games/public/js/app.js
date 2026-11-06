@@ -2592,6 +2592,13 @@ function paintGamePreparation() {
     const at = Math.floor(Math.random() * tips.length);
     const order = tips.map((_, i) => tips[(at + i) % tips.length]);
     status.classList.toggle('is-first', first);
+    if (!first) {
+      // Sit just under the title bar so the pill never covers the game's
+      // name or its zoom and menu buttons.
+      const bar = document.querySelector('.play-toolbar');
+      const below = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
+      status.style.setProperty('--prep-top', `${Math.round(below)}px`);
+    }
     // Every tip shares one grid cell, so the card is as tall as the longest
     // and never resizes as they change. Only the first is read out.
     status.innerHTML = (first && g ? artImg(g, 'preparation-art') : '') +

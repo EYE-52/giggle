@@ -1805,8 +1805,9 @@ body.game-playing.game-immersive .room-menu-panel { background: var(--card); col
  * arena instead of covering its bottom HUD. */
 body.game-immersive .game-preparation { top: 50%; bottom: auto; transform: translate(-50%, -50%); }
 /* Between rounds the last results stay on screen, with their primary action
- * near the bottom: the short line rides at the top edge as a slim pill. */
-body:not(.game-immersive) .game-preparation:not(.is-first) { top: max(12px, env(safe-area-inset-top)); bottom: auto; padding: 8px 16px; border-radius: 999px; }
+ * near the bottom: the short line rides just under the title bar as a slim
+ * pill (app.js sets --prep-top). */
+body:not(.game-immersive) .game-preparation:not(.is-first) { top: max(12px, calc(var(--prep-top, 0px) + 8px), env(safe-area-inset-top)); bottom: auto; padding: 8px 16px; border-radius: 999px; }
 .preparation-dots { flex: none; display: inline-flex; gap: 4px; }
 .preparation-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .preparation-dots i:nth-child(2) { background: var(--gold, #f5b82e); }

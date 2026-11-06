@@ -75,7 +75,7 @@ export default {
       const performer = S.phase === 'reveal' ? S.last?.performer || S.performer : S.performer;
       const others = (S.players || []).filter((p) => !p.left && p.id !== performer).map((p) => p.id);
       paintLiveStrip(el.querySelector?.('[data-scene="five-second"]'), S, {
-        roles: performer ? { [performer]: S.phase === 'answer' ? 'On the clock' : 'Answered' } : {}, actors: others,
+        roles: performer ? { [performer]: S.phase === 'answer' ? 'Answering' : 'Answered' } : {}, actors: others,
         acted: S.phase === 'vote' ? S.voted || [] : [], verb: 'Judged', waiting: S.phase === 'vote' ? 'Judging' : false,
         gains: S.phase === 'reveal' ? S.last?.points || {} : {},
       });
