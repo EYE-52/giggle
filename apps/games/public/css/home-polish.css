@@ -47,7 +47,7 @@
 .home-welcome .ticket-or span { top: -13px; padding-inline: 10px; font-size: 13px; font-weight: 600; }
 .home-welcome .ticket-or::before,
 .home-welcome .ticket-or::after { display: none; }
-.home-welcome .hero-joinrow { display: grid; grid-template-columns: minmax(80px, .8fr) minmax(0, 1.2fr); gap: 10px; }
+.home-welcome .hero-joinrow { display: grid; grid-template-columns: minmax(184px, 1.15fr) minmax(0, .85fr); gap: 10px; }
 .home-welcome .hero-joinrow input { max-width: none; width: 100%; letter-spacing: .12em; }
 .home-welcome .hero-joinrow .btn { min-width: 0; min-height: 48px; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--well); color: var(--ink); box-shadow: none; }
 .home-welcome .ticket-note { margin: 2px 0 0; color: var(--ink-dim); font-size: 12px; line-height: 1.5; text-align: center; }
@@ -428,3 +428,13 @@
   .home-picks .pick:active, #games .catrow:active, .hand-card:active { transform: scale(.96, .93); transition: transform .08s ease-out; }
   .home-picks .pick:active .gart { transform: rotate(3deg) scale(1.06); }
 }
+
+/* Room code tiles: the real input sits on top, transparent, over 4 tiles. */
+.hero-joinrow .code-tiles { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; min-width: 0; }
+.hero-joinrow .code-tiles input { position: absolute; inset: 0; width: 100%; max-width: none; height: 100%; opacity: 0; z-index: 1; font-size: 16px; caret-color: transparent; cursor: text; }
+.hero-joinrow .code-tile { display: grid; place-items: center; min-height: 48px; border-radius: 11px; background: var(--well); border: 2px solid var(--outline); font: 800 22px/1 var(--font-ui, inherit); color: var(--ink); transition: border-color .15s, transform .18s cubic-bezier(.34,1.56,.64,1); }
+.hero-joinrow .code-tile:empty::before { content: ''; width: 10px; height: 3px; border-radius: 2px; background: var(--line-strong, currentColor); opacity: .45; }
+.hero-joinrow .code-tile.filled { transform: translateY(-1px); }
+.hero-joinrow .code-tile.on { border-color: var(--fam); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fam) 22%, transparent); }
+.hero-joinrow .code-tiles.full .code-tile { border-color: color-mix(in srgb, var(--fam) 60%, var(--outline)); }
+@media (prefers-reduced-motion: reduce) { .hero-joinrow .code-tile { transition: none; } }

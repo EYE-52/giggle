@@ -915,14 +915,21 @@ function soundIcon(on) {
  * room-drawer plain controls keep text only. */
 function paintThemeButton(btn, id) {
   const label = themeName(id);
-  if (btn.classList.contains('hbtn') || btn.classList.contains('room-setting')) btn.innerHTML = `${themeIcon(id)}<span class="hlabel">${label}</span>`;
+  if (btn.classList.contains('room-setting')) { btn.innerHTML = roomSwitchHtml(themeIcon(id), 'Night'); btn.setAttribute('aria-checked', String(id === 'night')); }
+  else if (btn.classList.contains('hbtn')) btn.innerHTML = `${themeIcon(id)}<span class="hlabel">${label}</span>`;
   else btn.textContent = label;
+}
+
+/* Room-menu toggles read as switches: fixed label, state on the knob. */
+function roomSwitchHtml(icon, label) {
+  return `${icon}<span class="hlabel">${label}</span><span class="room-switch" aria-hidden="true"></span>`;
 }
 
 function paintSoundButton(btn, on) {
   btn.dataset.state = on ? 'on' : 'off';
   if (btn.classList.contains('iconbtn')) btn.innerHTML = soundIcon(on);
-  else if (btn.classList.contains('hbtn') || btn.classList.contains('room-setting')) btn.innerHTML = `${soundIcon(on)}<span class="hlabel">${on ? 'Sound on' : 'Muted'}</span>`;
+  else if (btn.classList.contains('room-setting')) { btn.innerHTML = roomSwitchHtml(soundIcon(on), 'Sound'); btn.setAttribute('aria-checked', String(on)); return; }
+  else if (btn.classList.contains('hbtn')) btn.innerHTML = `${soundIcon(on)}<span class="hlabel">${on ? 'Sound on' : 'Muted'}</span>`;
   else btn.textContent = on ? 'Sound on' : 'Muted';
   btn.setAttribute('aria-label', on ? 'Mute sound' : 'Unmute sound');
 }
@@ -1042,7 +1049,7 @@ function setTheme(next) {
   const t = document.getElementById('bTheme');
   if (t) {
     paintThemeButton(t, id);
-    t.setAttribute('aria-label', 'Switch theme, current ' + themeName(id));
+    if (!t.classList.contains('room-setting')) t.setAttribute('aria-label', 'Switch theme, current ' + themeName(id));
   }
   if (room?.game && lastState && gameById(gameId)?.runtime) paintGameBody();
 }
@@ -1262,6 +1269,27 @@ function heroPosters() {
     DOODLE_STAR('star-tl', 46, '#FFB020') + DOODLE_STAR('star-br', 34, '#DE1E6A') + DOODLE_SQUIG;
 }
 
+/* Room code as four letter tiles over the real input (it keeps focus,
+ * paste and autofill); letters only, uppercased, active tile marked. */
+function wireCodeTiles(input) {
+  const tiles = input.parentElement.querySelectorAll('.code-tile');
+  const paint = () => {
+    const v = input.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+    if (v !== input.value) input.value = v;
+    const at = document.activeElement === input ? Math.min(v.length, 3) : -1;
+    tiles.forEach((t, i) => {
+      t.textContent = v[i] || '';
+      t.classList.toggle('on', i === at);
+      t.classList.toggle('filled', !!v[i]);
+    });
+    input.parentElement.classList.toggle('full', v.length === 4);
+  };
+  input.addEventListener('input', paint);
+  input.addEventListener('focus', paint);
+  input.addEventListener('blur', paint);
+  paint();
+}
+
 /* Sort menu: honest shelf order first; rooms add the live-group sort. */
 function sortOptions(inRoom) {
   const opts = [['shelf', 'Shelf order'], ['name', 'Name A–Z'], ['fewest', 'Fewest players']];
@@ -1302,7 +1330,7 @@ function renderHome() {
           </div>
           <label class="ticket-or" for="jc"><span>Have a room code?</span></label>
           <div class="hero-joinrow">
-            <input id="jc" type="text" maxlength="4" placeholder="ABCD" value="${esc(roomCode)}" autocomplete="off" aria-label="Room code">
+            <div class="code-tiles"><input id="jc" type="text" maxlength="4" placeholder="ABCD" value="${esc(roomCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" aria-label="Room code, 4 letters">${'<span class="code-tile" aria-hidden="true"></span>'.repeat(4)}</div>
             <button class="btn sun" id="bJoin">Join room</button>
           </div>
           <p class="ticket-note">No account or download needed.</p>
@@ -1346,6 +1374,7 @@ function renderHome() {
   };
   document.getElementById('bJoin').onclick = join;
   document.getElementById('jc').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
+  wireCodeTiles(document.getElementById('jc'));
   document.getElementById('nm').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('bCreate').click();
   });
@@ -2308,8 +2337,8 @@ function gameRoomMenu(g, context, floating = false) {
       ${lastState.spectator ? `<p class="room-watch" role="status">${esc(spectatorBanner(seatCap(g)))}</p>` : ''}
       <button type="button" class="room-resume" id="bRoomResume">${lastState.spectator ? 'Back to watching' : 'Back to game'}<span aria-hidden="true">▶</span></button>
       <div class="room-menu-actions">
-        <button type="button" class="room-setting" id="bSound" aria-label="${sound.enabled ? 'Mute sound' : 'Unmute sound'}">${soundIcon(sound.enabled)}<span class="hlabel">${sound.enabled ? 'Sound on' : 'Muted'}</span></button>
-        <button type="button" class="room-setting" id="bTheme" aria-label="Switch theme, current ${themeName(theme())}">${themeIcon(theme())}<span class="hlabel">${themeName(theme())}</span></button>
+        <button type="button" class="room-setting is-switch" id="bSound" role="switch" aria-checked="${sound.enabled}">${roomSwitchHtml(soundIcon(sound.enabled), 'Sound')}</button>
+        <button type="button" class="room-setting is-switch" id="bTheme" role="switch" aria-checked="${theme() === 'night'}">${roomSwitchHtml(themeIcon(theme()), 'Night')}</button>
         <button type="button" class="room-setting" id="bGameScreen">Full screen</button>
         ${!EMBED.enabled ? '<button type="button" class="room-setting" id="bGameInvite">Invite friends</button>' : ''}
         ${EMBED.enabled && embedTrusted ? '<button type="button" class="room-setting" id="bVoice">🎙️ Talk together</button>' : ''}

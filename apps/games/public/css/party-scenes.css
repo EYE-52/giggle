@@ -277,8 +277,7 @@
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-progress, .party-progress) {
   margin-left: auto; font: var(--text-caption); font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums;
 }
-/* The timer: a bar that drains from full, family colour, amber in the last
- * ten seconds, red in the last five. Empty keeps its width. */
+/* The timer pill; its draining ring lives in game-ui.css. Empty keeps its width. */
 #gbody .pl-fill .gk-hud-timer {
   position: relative; isolation: isolate; overflow: hidden; flex: none;
   display: inline-grid; place-items: center; min-width: 88px; height: 36px; padding: 0 var(--space-12);
@@ -286,18 +285,9 @@
   background: var(--card); box-shadow: var(--shadow-sticker-sm);
   font: 800 20px/1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; text-align: center;
 }
-#gbody .pl-fill .gk-hud-timer { padding-bottom: 6px; }
-#gbody .pl-fill .gk-hud-timer::before {
-  content: ""; position: absolute; z-index: -1; left: 8px; right: 8px; bottom: 4px; height: 5px;
-  border-radius: var(--radius-pill); background: var(--fam);
-  transform-origin: left center; transform: scaleX(var(--gk-timer-left, 1));
-  transition: transform 250ms var(--ease);
-}
 /* Digits stay ink on every fill, so they read over both halves of the bar. */
 #gbody .pl-fill .gk-hud-timer.is-warn { background: var(--warning-soft); }
-#gbody .pl-fill .gk-hud-timer.is-warn::before { background: var(--warning); }
 #gbody .pl-fill .gk-hud-timer.is-urgent { background: var(--danger-soft); border-color: var(--danger); }
-#gbody .pl-fill .gk-hud-timer.is-urgent::before { background: var(--danger); }
 #gbody .pl-fill .gk-hud-timer:empty { visibility: hidden; }
 
 /* ---- the live strip ---- */
