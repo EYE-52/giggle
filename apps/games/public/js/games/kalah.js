@@ -49,7 +49,7 @@ function boardSvg(pits) {
     const rx = store ? (portrait ? 138 : 45) : portrait ? 54 : 43, ry = store ? (portrait ? 24 : 111) : portrait ? 24 : 53;
     const label = text(own ? 'amber' : 'jade') + ' ' + (store ? text('store') : text('bowl') + ' ' + (i < 6 ? i + 1 : i - 6)) + ', ' + pits[i] + ' ' + text(pits[i] === 1 ? 'seed' : 'seeds');
     const mark = i === from ? ' is-from' : i === landed ? ' is-landed' : '';
-    html += `<g ${store ? `aria-label="${esc(label)}"` : `data-pit="${i}" data-watchok role="button" tabindex="${cursor === i ? 0 : -1}"${cursor === i ? ' data-game-focus' : ''} aria-disabled="${!active}" aria-label="${esc(label)}"`} class="kl-bowl ${active ? 'is-legal' : ''}${mark}">
+    html += `<g ${store ? `aria-label="${esc(label)}"` : `data-pit="${i}" data-watchok role="button" tabindex="${cursor === i ? 0 : -1}"${cursor === i ? ' data-game-focus' : ''} aria-disabled="${!active}" aria-label="${esc(label)}"`} class="kl-bowl ${active ? 'is-legal' : ''}${mark}" style="--kl-own:${SEED[own ? 1 : 0][0]}">
       <ellipse class="kl-pit" cx="${p.x}" cy="${p.y}" rx="${rx}" ry="${ry}"${store ? ` style="stroke:${SEED[own ? 1 : 0][0]};stroke-width:6"` : ''}/>
       <ellipse class="kl-floor" cx="${p.x}" cy="${p.y + 4}" rx="${rx - 4}" ry="${ry - 6}"/>
       ${stones(i, pits[i])}

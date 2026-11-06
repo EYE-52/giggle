@@ -35,3 +35,11 @@
 @keyframes rv-face{0%,44%{opacity:1}45%,100%{opacity:0}}
 @keyframes rv-place{0%{transform:scale(.85);opacity:.5}100%{transform:scale(1);opacity:1}}
 @media(prefers-reduced-motion:reduce){.rv-duel .rv-old-face{opacity:0}}
+/* QC: legal moves are soft see-through dots (never mistaken for discs), the
+ * night result banner is a solid deep-felt sticker with light text, and the
+ * Charcoal chip gets a faint light ring so it shows on a dark card. */
+.rv-duel .rv-legal{fill:#ffffff;stroke:none;opacity:.3;r:9px}
+.rv-duel [data-cell][aria-disabled=false]:hover .rv-legal{opacity:.5}
+[data-theme="night"] .rv-duel .rv-felt{stroke:#0f3a25}
+[data-theme="night"] .rv-duel .bk-stage[data-bk-result]::after{background:#1f6b3f;border-color:#2f8f5f;color:#f4fbf6;box-shadow:0 4px 0 #0c2c1a}
+[data-theme="night"] .rv-duel .bk-chip svg{border-radius:50%;box-shadow:0 0 0 2px #ffffff47}

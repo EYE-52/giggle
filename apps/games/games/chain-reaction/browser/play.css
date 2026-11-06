@@ -260,6 +260,30 @@ body {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
+/* QC: orange things sit on their own darker orange lip (no ink ring), and at
+ * night the board, the seats and the open rules card use a warm tinted rim
+ * and lip instead of black. */
+#play .cr-actor.is-mine { border-color: transparent; box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 62%, #3a1a00); }
+#play .cr-rules summary::before { border-color: transparent; box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 62%, #3a1a00); }
+:root[data-theme="night"] #play .cr-board {
+  border-color: color-mix(in srgb, var(--fam) 28%, var(--card));
+  box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--fam) 22%, #140b06);
+}
+:root[data-theme="night"] #play .cr-seat,
+:root[data-theme="night"] #play .cr-skip,
+:root[data-theme="night"] #play .cr-rules summary,
+:root[data-theme="night"] #play .cr-rules[open] { border-color: color-mix(in srgb, var(--fam) 18%, var(--card)); }
+:root[data-theme="night"] #play .cr-seat { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 14%, #140b06); }
+:root[data-theme="night"] #play .cr-seat.current { border-color: color-mix(in srgb, var(--fam) 45%, var(--card)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--fam) 26%, #140b06); }
+:root[data-theme="night"] #play .cr-actor.is-mine,
+:root[data-theme="night"] #play .cr-rules summary::before { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 45%, #1a0c02); }
+/* Phones: the whole Help chip is the orange disc, so the lip goes on it. */
+@media (max-width: 759px) and (min-height: 501px), (max-width: 559px) {
+  #play .cr-rules:not([open]) summary { border-color: transparent; box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 62%, #3a1a00); }
+  :root[data-theme="night"] #play .cr-rules:not([open]) summary { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 45%, #1a0c02); }
+  #play .cr-rules summary::before, :root[data-theme="night"] #play .cr-rules summary::before { box-shadow: none; }
+}
+
 .lab-main[data-phase="done"] #play .cr-head{display:none}
 .lab-main[data-phase="done"] #play .cr-help,
 .lab-main[data-phase="done"] #play .cr-note{display:none}

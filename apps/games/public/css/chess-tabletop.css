@@ -98,3 +98,12 @@
 .ch-tabletop .promo{border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);box-shadow:var(--shadow-sticker-lg),var(--shadow-card)}
 .ch-tabletop .promo .btn{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-md);background:var(--card);font:var(--text-caption);color:var(--ink);box-shadow:var(--shadow-sticker-sm)}
 @media (max-width:759px){.ch-tabletop .ch-frame{padding:var(--space-8);border-radius:var(--radius-lg)}.ch-tabletop .sq small{font-size:10px}}
+/* QC: the white pawn chip in the panel gets the same brown edge as white
+ * pieces on the board, and on phones the pieces sit a little smaller with
+ * the coordinates tucked into the corners, so letters never touch a base. */
+.ch-tabletop .ch-chip .ch-piece[src*="chess/w"]{filter:drop-shadow(0 0 1px #4a2c14) drop-shadow(0 1px 1px #4a2c1466)}
+@media (max-width:759px){
+ .ch-tabletop .ch-piece-slot .ch-piece{width:86%;height:86%;margin:7% 7% 0}
+ .ch-tabletop .sq small{font-size:9px;opacity:.85}
+ .ch-tabletop .ch-file{right:2px;bottom:1px}.ch-tabletop .ch-rank{left:2px;top:2px}
+}

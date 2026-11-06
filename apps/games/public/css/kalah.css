@@ -44,6 +44,9 @@
 .kl [data-pit]:focus-visible .kl-focus{opacity:1}
 /* Phones: the turn banner sits above the tall board so the prompt and the
  * bowls share the first screen; the board never outgrows the viewport. */
+/* QC: at night a playable bowl rings in its owner's seed colour (jade or
+ * amber, like the stores), not a pale neutral ring. */
+[data-theme="night"] .kl .kl-bowl.is-legal .kl-pit{stroke:color-mix(in srgb,var(--kl-own,var(--fam)) 80%,transparent);stroke-width:5}
 @media (max-width:759px){
  .kl .bk-status{order:1}
  .kl.kl-portrait .bk-stage{width:min(100%,560px,calc((100svh - 300px) * var(--bk-aspect)))}

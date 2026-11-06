@@ -102,3 +102,25 @@
 @media (prefers-reduced-motion: reduce) {
   #gbody .rt.pl-fill .rt-pad, #gbody .rt.pl-fill .rt-pad::before { transition: none; }
 }
+
+/* QC: a foul is red all the way down. The cabinet sits on a red lip (not
+ * the game's green), the button gets a red rim and lip of its own instead
+ * of an ink ring, and the HUD chip reads as a failure. */
+#gbody .rt.pl-fill .rt-pad.is-fouled,
+#gbody .rt.pl-fill .rt-pad.is-fouled:not(:disabled):active {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--outline));
+  box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--danger) 70%, #3a0d12);
+}
+#gbody .rt.pl-fill .rt-pad.is-fouled::before {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--danger-soft));
+  box-shadow: inset 0 calc(-1 * var(--space-12)) 0 color-mix(in srgb, var(--danger) 12%, transparent), 0 var(--lift-lg) 0 color-mix(in srgb, var(--danger) 45%, var(--danger-soft));
+}
+[data-theme="night"] #gbody .rt.pl-fill .rt-pad.is-fouled,
+[data-theme="night"] #gbody .rt.pl-fill .rt-pad.is-fouled:not(:disabled):active { box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--danger) 38%, #12060a); }
+[data-theme="night"] #gbody .rt.pl-fill .rt-pad.is-fouled::before {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--danger-soft));
+  box-shadow: inset 0 calc(-1 * var(--space-12)) 0 #00000026, 0 var(--lift-lg) 0 color-mix(in srgb, var(--danger) 30%, #120608);
+}
+#gbody .rt.pl-fill .gk-hud .gk-hud-phase.is-foul:not(:empty) { background: var(--danger-soft); color: var(--danger); }
+/* The x badge sits off the avatar's corner so it never covers "P1". */
+#gbody .rt.pl-fill .pl-badge { width: 16px; height: 16px; right: -8px; bottom: -8px; font-size: 10px; }

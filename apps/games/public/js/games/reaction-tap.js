@@ -86,7 +86,7 @@ const view = {
     pad.setAttribute('aria-label', tapped ? `Locked in at ${S.taps[S.me]} milliseconds` : label);
     pad.disabled = !!(tapped || fouled || S.spectator || S.preparing);
     const hudPhase = el.querySelector('.gk-hud-phase');
-    if (hudPhase) hudPhase.textContent = phase;
+    if (hudPhase) { hudPhase.textContent = phase; hudPhase.classList.toggle('is-foul', !!fouled && !tapped && !S.preparing); }
     const hudProgress = el.querySelector('.gk-hud-progress');
     const tappedN = S.taps ? Object.keys(S.taps).length : 0;
     if (hudProgress) hudProgress.textContent = go ? `${tappedN} tapped` : '\u00a0';

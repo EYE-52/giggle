@@ -70,3 +70,14 @@ html[data-theme=night] .ld-game .ld-base,body.is-embed .ld-game .ld-base{fill:#e
  .ld-game .bk-status{order:1;min-height:0;padding:var(--space-8) var(--space-16)}
  .ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100svh - 372px))}
 }
+/* QC: Ludo's family colour is red, so the turn banner reads as a neutral
+ * card with a red edge (not the error look). At night the pawn buttons
+ * keep their pawns readable, the printed trail is a warm cream instead of
+ * a white slab, and the table runs past the bottom of the page. */
+.ld-game .bk-status{border-color:var(--outline);background:var(--card);color:var(--ink);box-shadow:inset 4px 0 0 var(--fam),var(--shadow-sticker-sm)}
+[data-theme="night"] .ld-game .ld-choices button[aria-disabled=true] svg{opacity:.9}
+[data-theme="night"] .ld-game .ld-choices svg,[data-theme="night"] .ld-game .ld-choices button[aria-disabled=true] svg{filter:drop-shadow(0 0 1.5px #ffffffb3)}
+[data-theme="night"] .ld-game .ld-board rect[fill="#ffffff"]{fill:#ebe3d3}
+[data-theme="night"] .ld-game .ld-well{fill:#f3ede1}
+body[data-game="ludo"]{background:#f0dcd9}
+[data-theme="night"] body[data-game="ludo"]{background:#190e11}
