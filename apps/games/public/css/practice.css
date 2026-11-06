@@ -125,7 +125,7 @@
 /* ---- Wave 1: sticker tiles, category chips, seats you'll play ---------- */
 .practice-page { --stk: var(--hard, #321829); --ease-pop: cubic-bezier(0.22, 1, 0.36, 1); }
 :root[data-theme="night"] .practice-page { --stk: #000; }
-.practice-featured { border: 3px solid var(--stk); box-shadow: 5px 6px 0 var(--stk); }
+.practice-featured { border: 3px solid var(--stk); box-shadow: 0 6px 0 var(--stk); }
 .practice-featured .practice-art { object-fit: cover; border: 3px solid var(--stk); background: var(--card); }
 .practice-seats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 40px; margin-top: 16px; }
 .practice-seats i { display: grid; place-items: center; width: 40px; height: 40px; border: 3px solid var(--stk); border-radius: 50%; box-shadow: 0 3px 0 var(--stk); color: #321829; font: 800 13px/1 var(--font-display, var(--font-body)); font-style: normal; }
@@ -143,7 +143,7 @@
 .practice-tile { position: relative; border: 2px solid color-mix(in srgb, var(--cat) 25%, transparent); }
 .practice-tile[hidden] { display: none; }
 .practice-tile:active { transform: scale(.96); }
-.practice-tile[aria-checked="true"] { border: 2px solid var(--stk); box-shadow: 3px 4px 0 var(--stk); }
+.practice-tile[aria-checked="true"] { border: 2px solid var(--stk); box-shadow: 0 4px 0 var(--stk); }
 .practice-tile[aria-checked="true"]::after { content: "✓"; position: absolute; top: -10px; right: -10px; display: grid; place-items: center; width: 28px; height: 28px; border: 3px solid var(--stk); border-radius: 50%; background: var(--cat); color: #fff; font: 800 15px/1 var(--font-body); }
 .practice-page #practiceRetry:not([hidden]) { border: 3px solid var(--stk); background: var(--accent); color: #fff; box-shadow: 0 3px 0 var(--stk); }
 .practice-page #practiceStart:not(:disabled) { border: 3px solid var(--stk); box-shadow: 0 3px 0 var(--stk); }

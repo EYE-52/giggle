@@ -170,6 +170,13 @@ body, [data-family] { --fam-lip: color-mix(in srgb, var(--fam) 74%, #000); }
 .tb-primary { --tb-rim: var(--fam-lip); }
 .tb-danger { --tb-rim: color-mix(in srgb, var(--danger) 74%, #000); }
 .tb-seg > button:is([aria-checked="true"], [aria-pressed="true"], .is-selected) { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+/* The site's own filled buttons (Create room, Start, Play) are candy
+ * buttons too: a darker lip of the accent, pressed down onto it. */
+body .btn:not(.ghost, .sun, :disabled), body .home-welcome .hero-cta .btn.hero-create {
+  border-color: color-mix(in srgb, var(--accent) 74%, #000); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--accent) 74%, #000);
+}
+body .btn:not(.ghost, .sun, :disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
+@media (hover: hover) { body .btn:not(.ghost, .sun, :disabled):hover { transform: translateY(-2px); box-shadow: 0 calc(var(--lift) + 2px) 0 color-mix(in srgb, var(--accent) 74%, #000); } }
 
 * { box-sizing: border-box; }
 /* Robust hidden: no authored display rule may ever reveal a [hidden]
@@ -1871,7 +1878,7 @@ body:not(.game-immersive) .game-preparation:not(.is-first) {
 /* Three little game pieces give initial loading the same tactile character
  * as the shelf. The in-game cue stays compact and never covers the board. */
 .boot-view .loading-mark { width: 112px; height: 64px; gap: 12px; }
-.boot-view .loading-mark i { width: 24px; height: 24px; border: 2px solid var(--hard); border-radius: 50%; box-shadow: 2px 3px 0 var(--hard); }
+.boot-view .loading-mark i { width: 24px; height: 24px; border: 2px solid var(--hard); border-radius: 50%; box-shadow: 0 3px 0 var(--hard); }
 .boot-view .loading-mark i:nth-child(2) { border-radius: 6px; }
 .boot-view .loading-mark i:nth-child(3) { border-radius: 50% 50% 5px 5px; }
 .practice-entry { margin: 20px 0 12px; color: var(--ink-dim); }
