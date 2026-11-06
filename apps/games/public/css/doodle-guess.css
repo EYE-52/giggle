@@ -503,3 +503,27 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
     border-radius: inherit; box-shadow: inset 0 0 0 5px var(--dg-frame), inset 0 0 0 7px #5b3a22;
   }
 }
+
+/* QC: Guesses and Focus are two independent toggles (both can be off, e.g.
+ * the artist's phone view hides guesses), so they are two real buttons,
+ * not a segmented track that can show no selection. Off: a white sticker
+ * on a soft rim; on: the family colour on its own lip. */
+.dg.ck .dg-view-actions { gap: var(--space-8); padding: 0; background: none; border: 0; }
+.dg.ck .dg-view-actions .gk-btn,
+.dg.ck .dg-view-actions .gk-btn:not(.gk-quiet) {
+  background: var(--card); color: var(--ink); border: var(--outline-w) solid var(--outline);
+  box-shadow: 0 var(--lift-sm) 0 var(--outline); border-radius: var(--radius-pill);
+}
+.dg.ck .dg-view-actions .gk-btn[aria-pressed="true"],
+.dg.ck .dg-view-actions .gk-btn[aria-expanded="true"] {
+  background: var(--fam); color: var(--on-fam); border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip);
+}
+.dg.ck .dg-view-actions .gk-btn:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+/* QC (night): the hidden-word blanks are lit chalk-blue slots, not dark
+ * squares that vanish into the navy page. */
+[data-theme="night"] .dg.ck .dg-tiles .ck-tile.is-blank {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card));
+  border-color: color-mix(in srgb, var(--fam) 38%, var(--card));
+  box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--fam) 45%, var(--card)), 0 var(--lift-sm) 0 color-mix(in srgb, var(--fam) 22%, var(--bg));
+}
+[data-theme="night"] .dg.ck .dg-tiles .ck-tile.is-mark { background: color-mix(in srgb, var(--fam) 26%, var(--card)); color: var(--ink); }

@@ -128,3 +128,24 @@ body.game-playing[data-game="countdown-word"] {
   .cw.ck .cw-tiles { padding: 0 var(--space-4) calc(var(--lift-sm) + 12px); }
   .cw.ck .cw-tile, .cw.ck span.cw-tile { box-shadow: 0 var(--lift-sm) 0 var(--cw-wood-deep); }
 }
+
+/* QC: the clock face is a whole clock centred behind the play column (it
+ * frames the cards), not half a dial cut off by the right edge. */
+body.game-playing[data-game="countdown-word"] {
+  background-size: min(760px, 92vw) min(760px, 92vw);
+  background-position: 50% calc(50% + 40px);
+}
+@media (max-width: 700px) { body.game-playing[data-game="countdown-word"] { background-image: none; } }
+/* QC: a used tile in night is a dim wooden ghost on the card, not wood at
+ * 40% opacity over the dark page (which turns muddy brown). */
+[data-theme="night"] .cw.ck .cw-tile.is-used {
+  opacity: 1; background: color-mix(in srgb, var(--cw-wood) 20%, var(--card));
+  color: color-mix(in srgb, var(--cw-wood) 50%, var(--card));
+  border-color: color-mix(in srgb, var(--cw-wood-deep) 35%, var(--card));
+  box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--cw-wood-deep) 30%, var(--card));
+}
+@media (max-width: 560px) {
+  [data-theme="night"] .cw.ck .cw-tile.is-used { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--cw-wood-deep) 30%, var(--card)); }
+}
+/* The clock is scenery: its ticks stay faint behind the cards. */
+body.game-playing[data-game="countdown-word"] { --cw-tick: color-mix(in srgb, var(--fam) 11%, var(--bg)); --cw-face: color-mix(in srgb, var(--fam) 4%, var(--bg)); }

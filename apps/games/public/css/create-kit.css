@@ -238,3 +238,21 @@
 [data-theme="night"] .ck[data-family] .gk-btn.gk-primary:not(:disabled) { box-shadow: 0 var(--lift) 0 var(--fam-lip), 0 6px 22px color-mix(in srgb, var(--fam) 28%, transparent); }
 [data-theme="night"] .ck[data-family] .ck-player.is-on { box-shadow: 0 var(--lift-sm) 0 var(--outline), 0 0 18px color-mix(in srgb, var(--fam) 30%, transparent); }
 [data-theme="night"] .ck[data-family] .gk-hud-timer.is-urgent { box-shadow: 0 0 14px color-mix(in srgb, var(--warning) 45%, transparent); }
+
+/* QC: a tinted surface sits on a lip of its own colour, not the neutral
+ * rim (a mint card on a lavender lip reads as two unrelated pieces). The
+ * mix uses --card, so night gets a dark, slightly tinted lip for free. */
+.ck[data-family] {
+  --ck-tint-rim: color-mix(in srgb, var(--fam) 24%, var(--card));
+  --ck-tint-lip: color-mix(in srgb, var(--fam) 34%, var(--card));
+}
+.ck[data-family] :is(.ck-card.is-tint, .wg-panel.is-tint) { border-color: var(--ck-tint-rim); box-shadow: 0 var(--lift) 0 var(--ck-tint-lip); }
+.ck[data-family] :is(.wg-row, .ck-row).is-you { border-color: var(--ck-tint-rim); box-shadow: 0 var(--lift-sm) 0 var(--ck-tint-lip); }
+/* Night: "ready" / "done" is a green tint of the game's own card rather
+ * than the shared forest-green surface, so a screen keeps one hue family. */
+[data-theme="night"] .ck[data-family] :is(.ck-player.is-ready, .wg-chip.is-done) {
+  background: color-mix(in srgb, var(--success) 15%, var(--card));
+}
+/* Night: text fields are a lifted step of the game's own surface, not the
+ * shared plum-black that reads as a hole in a tinted card. */
+[data-theme="night"] .ck[data-family] { --input-bg: color-mix(in srgb, var(--fam) 5%, var(--well)); }

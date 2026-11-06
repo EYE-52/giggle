@@ -118,3 +118,20 @@ body.game-playing[data-game="word-chain"] {
 .wc.ck .wc-ribbon .wg-chip { min-height: 40px; padding: var(--space-4) var(--space-16); border-radius: var(--radius-md); font: var(--text-button-sm); }
 .wc.ck .wc-ribbon .wg-chip.is-on { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
 [data-theme="night"] .wc.ck .wc-ribbon .wg-chip.is-on { box-shadow: 0 var(--lift-sm) 0 var(--fam-lip), 0 0 16px color-mix(in srgb, var(--fam) 40%, transparent); }
+
+/* QC: in night the played-word tiles are a step of the game's slate blue,
+ * not the warm toy-tile cream gone muddy brown. */
+[data-theme="night"] .wc.ck .wc-ribbon .wg-chip:not(.is-on) {
+  background: color-mix(in srgb, var(--fam) 16%, var(--card)); color: var(--ink);
+  border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
+}
+/* QC: the backdrop links read as a pattern, not as glyphs clipped by the
+ * cards: the page is calmer on phones (smaller, fainter links on a grid
+ * that starts at the left edge). */
+@media (max-width: 480px) {
+  body.game-playing[data-game="word-chain"] {
+    --wc-link: color-mix(in srgb, var(--fam) 4.5%, transparent);
+    background-size: 84px 64px, 84px 64px;
+    background-position: -20px 0, -6px 0;
+  }
+}
