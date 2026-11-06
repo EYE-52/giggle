@@ -32,3 +32,30 @@
 .never-choices.is-reveal .never-result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
 .never-choices.is-reveal .never-bar { flex: 1 0 100%; }
 
+
+/* ==== Skin: confession booth ====
+ * Scene: a faint violet lattice, like the screen of a confession booth.
+ * Signature: the statement card wears a tilted "shh" sticker, and the second
+ * answer is a warm amber so it never matches the violet game colour. */
+body.game-playing[data-game="never-ever"] {
+  background-image:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--fam) 7%, transparent) 0 2px, transparent 2px 30px),
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--fam) 7%, transparent) 0 2px, transparent 2px 30px);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="never-ever"] {
+  background-image:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--fam) 9%, transparent) 0 2px, transparent 2px 30px),
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--fam) 9%, transparent) 0 2px, transparent 2px 30px);
+}
+#gbody .never-world.pl-fill { --duel-b: #d97a1e; --on-duel-b: #ffffff; }
+[data-theme="night"] #gbody .never-world.pl-fill { --duel-b: #ffb067; --on-duel-b: #241406; }
+#gbody .never-world .never-card::after {
+  content: "shh" / ""; position: absolute; top: calc(-1 * var(--space-12)); right: var(--space-24);
+  display: grid; place-items: center; min-width: 52px; height: 32px; padding: 0 var(--space-12); border-radius: var(--radius-pill);
+  background: var(--fam); color: var(--on-fam); border: var(--outline-w) solid var(--fam-lip);
+  box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); font: 800 16px/1 var(--font-display); transform: rotate(6deg); pointer-events: none;
+}
+@media (max-width: 560px) {
+  #gbody .never-world .never-card::after { right: var(--space-12); height: 28px; min-width: 44px; font-size: 14px; }
+}

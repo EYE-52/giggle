@@ -73,3 +73,31 @@
   #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p1 { font-size: 18px; }
   #gbody .pl-fill.party-scene--rank .party-rank-item:is(.rank-p1, .rank-p2, .rank-p3) .gk-mark { width: 36px; height: 36px; }
 }
+
+/* ==== Skin: the gold-star chart ====
+ * Scene: a faint wallpaper of gold stars under a soft gold glow, like a
+ * classroom star chart. Signature: real gold, silver and bronze medals,
+ * each on a lip of its own metal, and first place on a gold lip. */
+body.game-playing[data-game="rank-it"] {
+  background-image:
+    radial-gradient(70vw 40vh at 50% -6%, color-mix(in srgb, var(--fam) 14%, transparent), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'%3E%3Cpath d='M22 8l3.5 7.6 8.3.9-6.2 5.6 1.8 8.2L22 26.1l-7.4 4.2 1.8-8.2-6.2-5.6 8.3-.9z' fill='%23d9a400' fill-opacity='.16'/%3E%3Cpath d='M66 52l2.3 5 5.5.6-4.1 3.7 1.2 5.4L66 64l-4.9 2.7 1.2-5.4-4.1-3.7 5.5-.6z' fill='%23d9a400' fill-opacity='.12'/%3E%3C/svg%3E");
+  background-size: auto, 88px 88px;
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="rank-it"] {
+  background-image:
+    radial-gradient(70vw 40vh at 50% -6%, color-mix(in srgb, var(--fam) 10%, transparent), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'%3E%3Cpath d='M22 8l3.5 7.6 8.3.9-6.2 5.6 1.8 8.2L22 26.1l-7.4 4.2 1.8-8.2-6.2-5.6 8.3-.9z' fill='%23f0c63c' fill-opacity='.10'/%3E%3Cpath d='M66 52l2.3 5 5.5.6-4.1 3.7 1.2 5.4L66 64l-4.9 2.7 1.2-5.4-4.1-3.7 5.5-.6z' fill='%23f0c63c' fill-opacity='.08'/%3E%3C/svg%3E");
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p2 .gk-mark { --medal: #c9cdd8; --on-medal: #2b2f3a; }
+[data-theme="night"] #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p2 .gk-mark { --medal: #b8bfcc; --on-medal: #15171c; }
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p3 .gk-mark { --medal: #d08a4e; --on-medal: #ffffff; }
+[data-theme="night"] #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p3 .gk-mark { --medal: #e3a06a; --on-medal: #1f1206; }
+#gbody .pl-fill.party-scene--rank .party-rank-item:is(.rank-p1, .rank-p2, .rank-p3) .gk-mark {
+  border-color: color-mix(in srgb, var(--medal) 70%, #000); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--medal) 70%, #000);
+}
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p1 {
+  border-color: var(--tint-lip); box-shadow: 0 var(--lift) 0 var(--tint-lip);
+}
+[data-theme="night"] #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p1 .gk-mark { box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--medal) 70%, #000), 0 0 16px -2px var(--medal); }

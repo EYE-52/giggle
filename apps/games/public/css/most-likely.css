@@ -37,6 +37,7 @@
   .likely-world * { transition: none !important; animation: none !important; }
 }
 
+
 /* Reveal hierarchy: every row is a white card; only the top-voted row is
  * tinted and tagged, and the viewer's own pick carries a small tag. */
 #gbody .likely-world .likely-row.is-winner { box-shadow: var(--shadow-sticker); }
@@ -65,3 +66,25 @@
   #gbody .likely-world .likely-voters .pl-voter > .pl-face { margin: -2px; }
   #gbody .likely-world .likely-voters .gk-meta { font: var(--text-caption); }
 }
+
+/* ==== Skin: award night ====
+ * Scene: two soft stage spotlights sweep down from the top corners onto
+ * the nominees. Signature: the winner's face wears a gold spotlight ring
+ * and the winning row sits on an orange lip. */
+body.game-playing[data-game="most-likely"] {
+  background-image:
+    conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 12%, transparent) 14deg, transparent 30deg),
+    conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 14%, transparent) 16deg, transparent 32deg);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="most-likely"] {
+  background-image:
+    conic-gradient(from 150deg at 8% -6%, transparent 0deg, color-mix(in srgb, var(--fam) 13%, transparent) 14deg, transparent 30deg),
+    conic-gradient(from 180deg at 92% -6%, transparent 0deg, color-mix(in srgb, var(--sun) 11%, transparent) 16deg, transparent 32deg);
+}
+#gbody .likely-world .likely-row.is-winner {
+  border-color: var(--tint-lip); box-shadow: 0 var(--lift) 0 var(--tint-lip), inset 0 0 0 2px var(--fam);
+}
+#gbody .likely-world .likely-row.is-winner .likely-initials { box-shadow: 0 0 0 3px var(--card), 0 0 0 6px var(--sun); }
+[data-theme="night"] #gbody .likely-world .likely-row.is-winner .likely-initials { box-shadow: 0 0 0 3px var(--card), 0 0 0 6px var(--sun), 0 0 22px 2px color-mix(in srgb, var(--sun) 45%, transparent); }
+#gbody .likely-world .likely-row.is-winner .likely-row-body { padding-left: var(--space-4); }

@@ -164,7 +164,7 @@
 /* Spinner (Dare Roulette): flat disc, player colours come from the game. */
 .party-spin-desk { position: relative; width: 240px; margin: 18px auto 24px; }
 .party-wheel { position: relative; width: 240px; height: 240px; margin: 18px auto; border: 6px solid var(--card); border-radius: 50%; box-shadow: 0 0 0 1px var(--line-strong); }
-.party-wheel-disc { position: absolute; inset: 0; border-radius: 50%; transform: rotate(var(--wheel-angle, 0deg)); transition: transform .5s cubic-bezier(.2, .8, .2, 1); }
+.party-wheel-disc { position: absolute; inset: 0; border-radius: 50%; transform: rotate(var(--wheel-angle, 0deg)); transition: transform var(--dur-slow) var(--ease); }
 .party-wheel-disc::after { content: ''; position: absolute; inset: 38%; border: 1px solid var(--line-strong); border-radius: 50%; background: var(--card); }
 .party-wheel-name { position: absolute; inset: 0; transform: rotate(var(--seat-angle)); }
 .party-wheel-name > span { position: absolute; top: 10px; left: calc(50% - 16px); width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--card); color: var(--ink); font-size: 15px; font-weight: 800; transform: rotate(calc(0deg - var(--seat-angle))); }
@@ -172,7 +172,7 @@
 #gbody .party-spin-desk > #drSpin { position: relative; margin-top: 0; min-height: 48px; width: 100%; }
 .party-wheel.is-landed { width: 140px; height: 140px; border-width: 4px; }
 .party-wheel.is-landed .party-wheel-name { display: none; }
-.party-wheel.is-spinning .party-wheel-disc { animation: party-spin .6s ease-out; }
+.party-wheel.is-spinning .party-wheel-disc { animation: party-spin .6s var(--ease); }
 @keyframes party-spin { to { transform: rotate(360deg); } }
 
 /* Polls (Rapid Polls). */
@@ -718,3 +718,47 @@
 }
 .pl-points { min-width: 0; max-width: 100%; overflow: hidden; }
 .pl-seat > * { max-width: 100%; }
+
+/* ==== Soft arcade skin for the party kit (2026-11 redesign) ====
+ * No ink outlines: tinted cards sit on a lip of their own colour, picked
+ * cards sink onto a lip of their side's colour, the second side of a duel
+ * is a violet of its own (never ink, never a player colour), and Night lets
+ * the things that are yours glow a little. Each game adds its scene in its
+ * own sheet (body[data-game="<id>"]). */
+#gbody .pl-fill { --duel-b: #6a55d8; --on-duel-b: #ffffff; --tint-lip: color-mix(in srgb, var(--fam) 32%, var(--outline)); }
+[data-theme="night"] #gbody .pl-fill { --duel-b: #a796ff; --on-duel-b: #150f26; --tint-lip: color-mix(in srgb, var(--fam) 26%, var(--outline)); }
+#gbody .pl-fill .pl-ab > :nth-child(2) { --side: var(--duel-b); --on-side: var(--on-duel-b); }
+
+/* Tinted cards (the question, the wait card, banners) sit on a family lip. */
+body #gbody :is(.party-scene--truth, .party-scene--spotlight, .rt-scene, .cb-scene).pl-fill > .gk-prompt,
+body #gbody .pl-fill:is(.party-scene--hot, .party-scene--poll, .party-scene--rank, .likely-world) .party-prompt.party-prompt,
+body #gbody .pl-fill :is(.never-card, .gk-wait-card, .td-banner, .dr-banner) {
+  border-color: var(--tint-lip); box-shadow: 0 var(--lift) 0 var(--tint-lip);
+}
+#gbody :is(.fa-scene, .bl-scene, .tt-scene).pl-fill > .gk-prompt { border-color: var(--tint-lip); box-shadow: 0 var(--lift) 0 var(--tint-lip); }
+
+/* Picked / correct / wrong cards: rim and lip in their own colour. */
+body #gbody .pl-fill :is(.gk-choice, .party-choice):is(.is-selected, .is-picked, [aria-pressed="true"]),
+body #gbody .pl-fill :is(.wyr-choice, .pick-choice).is-majority {
+  --pick-lip: color-mix(in srgb, var(--side) 62%, var(--outline));
+  border-color: var(--pick-lip); box-shadow: 0 var(--lift-lg) 0 var(--pick-lip), inset 0 0 0 2px var(--side);
+}
+body #gbody .pl-fill .gk-choice.is-correct { border-color: color-mix(in srgb, var(--success) 62%, var(--outline)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--success) 62%, var(--outline)), inset 0 0 0 2px var(--success); }
+body #gbody .pl-fill .gk-choice.is-wrong { border-color: color-mix(in srgb, var(--danger) 62%, var(--outline)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--danger) 62%, var(--outline)), inset 0 0 0 2px var(--danger); }
+body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):active { box-shadow: none; }
+
+/* The primary keeps its own-colour lip on hover (skins.css sets it). */
+@media (hover: hover) {
+  body #gbody .pl-fill .gk-btn.gk-primary:not(:disabled):hover { border-color: var(--fam-lip); }
+}
+/* Rules chip: the "i" wears the game colour, not an ink disc. */
+#gbody .pl-live :is(.party-more, .wg-more) > summary::before { background: var(--fam); color: var(--on-fam); }
+/* Your seat: the family ring; at Night it glows a little. */
+[data-theme="night"] .pl-seat.is-you { box-shadow: var(--shadow-sticker-sm), inset 0 0 0 2px var(--fam), 0 0 20px -6px var(--fam); }
+[data-theme="night"] #gbody .pl-fill .gk-hud-timer.is-urgent { box-shadow: var(--shadow-sticker-sm), 0 0 16px -4px var(--danger); }
+/* Pre-kit wheel: a soft lip, not a hairline ring. */
+.party-wheel { box-shadow: 0 var(--lift) 0 var(--outline); }
+/* A wrapped status line keeps its dot beside the words, not at the far edge. */
+@media (max-width: 560px) {
+  #gbody .pl-fill .gk-wait { text-align: left; }
+}

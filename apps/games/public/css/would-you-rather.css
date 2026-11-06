@@ -38,3 +38,57 @@
 #gbody .wyr-world .wyr-faces .pl-voter { min-height: 32px; font: var(--text-button-sm); padding-right: var(--space-12); }
 #gbody .wyr-world .wyr-faces .pl-voter > .pl-face { width: 28px; height: 28px; font-size: 13px; }
 
+
+/* ==== Skin: two doors, one choice ====
+ * Scene: the page glows raspberry on the left and violet on the right, the
+ * colours of the two doors. Signature: each option is an arched door with a
+ * knob, and an "or" sticker hangs between them. */
+body.game-playing[data-game="would-you-rather"] {
+  background-image:
+    radial-gradient(60vw 70vh at 0% 35%, color-mix(in srgb, var(--fam) 13%, transparent), transparent 70%),
+    radial-gradient(60vw 70vh at 100% 35%, color-mix(in srgb, #6a55d8 12%, transparent), transparent 70%);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="would-you-rather"] {
+  background-image:
+    radial-gradient(60vw 70vh at 0% 35%, color-mix(in srgb, var(--fam) 16%, transparent), transparent 70%),
+    radial-gradient(60vw 70vh at 100% 35%, color-mix(in srgb, #a796ff 14%, transparent), transparent 70%);
+}
+#gbody .wyr-world .wyr-choices { position: relative; }
+#gbody .wyr-world .wyr-choices > .wyr-choice {
+  align-items: center; text-align: center; padding: var(--space-32) var(--space-32) var(--space-24);
+  border-radius: 140px 140px var(--radius-xl) var(--radius-xl);
+}
+#gbody .wyr-world .wyr-body { align-items: center; }
+#gbody .wyr-world .wyr-choices.is-reveal .wyr-result { justify-content: center; width: 100%; }
+#gbody .wyr-world .wyr-pick { align-self: center; }
+/* The knob: a small disc in the door's colour, inside the side padding. */
+#gbody .wyr-world .wyr-choices > .wyr-choice::after {
+  content: ""; position: absolute; right: var(--space-12); top: 55%; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--side); box-shadow: 0 2px 0 color-mix(in srgb, var(--side) 60%, var(--outline)); pointer-events: none;
+}
+#gbody .wyr-world .wyr-choices > .wyr-choice:nth-child(2)::after { right: auto; left: var(--space-12); }
+#gbody .wyr-world .wyr-choices:not(.is-reveal)::after {
+  content: "or"; position: absolute; z-index: 2; left: 50%; top: 50%;
+  display: grid; place-items: center; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%;
+  border: var(--outline-w) solid color-mix(in srgb, var(--sun) 70%, #000); background: var(--sun); color: var(--sun-ink);
+  box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--sun) 70%, #000); font: 800 20px/1 var(--font-display);
+  transform: rotate(-6deg); pointer-events: none;
+}
+@media (max-width: 560px) {
+  /* Phones: doors stack as rows, so they keep a plain sticker shape. */
+  #gbody .wyr-world .wyr-choices > .wyr-choice { text-align: left; align-items: center; padding: var(--space-16) var(--space-32) var(--space-16) var(--space-16); border-radius: var(--radius-lg); }
+  #gbody .wyr-world .wyr-choices > .wyr-choice:nth-child(2)::after { left: auto; right: var(--space-12); }
+  #gbody .wyr-world .wyr-choices:not(.is-reveal)::after { width: 40px; height: 40px; margin: -20px 0 0 -20px; font-size: 16px; }
+  #gbody .wyr-world .wyr-pick { align-self: flex-start; }
+}
+/* "Your pick" hangs from the top of the arch, centred. */
+#gbody .wyr-world .wyr-choice .pl-pick.wyr-pick { left: 50%; right: auto; transform: translateX(-50%); }
+@media (max-width: 560px) {
+  #gbody .wyr-world .wyr-choices:not(.is-reveal)::after { content: none; }
+  #gbody .wyr-world .wyr-choice .pl-pick.wyr-pick { left: auto; right: var(--space-16); transform: none; }
+}
+@media (max-width: 560px) {
+  #gbody .wyr-world .wyr-body { align-items: flex-start; }
+  #gbody .wyr-world .wyr-choices.is-reveal .wyr-result { justify-content: flex-start; }
+}
