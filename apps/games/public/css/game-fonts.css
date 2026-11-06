@@ -1,0 +1,114 @@
+/* Per-game display faces (2026-11). Each game's skin in skins.css sets
+ * --font-display to one of these; body text stays Nunito everywhere.
+ * Self-hosted from /fonts (SIL OFL 1.1, see fonts/README.md): one file per
+ * subset, no CDN, no preload. A browser only downloads a face once text in
+ * a playing game actually uses it, so the first paint of home and lobby is
+ * unchanged and a game costs one small file (7-24 KB).
+ *
+ * Each face ships a single weight, declared across 400-900 so the 800
+ * headings use the real drawing instead of a faux-bold smear.
+ * size-adjust evens out x-heights against Baloo 2 so a swap never
+ * reflows a heading into a second line or out of its box. */
+
+/* Fredoka 600: round and friendly (quiz show, party). */
+@font-face {
+  font-family: "Fredoka"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/fredoka-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Fredoka"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/fredoka-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Lilita One: chunky poster (big party prompts). */
+@font-face {
+  font-family: "Lilita One"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/lilita-one-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Lilita One"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/lilita-one-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Bungee: signage caps (game show wheels, letter tiles, karts).
+ * Very wide, so it is drawn smaller than the others. */
+@font-face {
+  font-family: "Bungee"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/bungee-latin.woff2") format("woff2");
+  size-adjust: 78%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Bungee"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/bungee-latin-ext.woff2") format("woff2");
+  size-adjust: 78%;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Russo One: speed and racing (typing, reaction, timers, fleet). */
+@font-face {
+  font-family: "Russo One"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/russo-one-latin.woff2") format("woff2");
+  size-adjust: 90%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Russo One"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/russo-one-latin-ext.woff2") format("woff2");
+  size-adjust: 90%;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Righteous: retro marquee (karaoke, polls, podium, word chain). */
+@font-face {
+  font-family: "Righteous"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/righteous-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Righteous"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/righteous-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Fraunces 700: soft old-style serif (classic boards, storybook, poker).
+ * Wide at heading sizes, so drawn a little smaller. */
+@font-face {
+  font-family: "Fraunces"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/fraunces-latin.woff2") format("woff2");
+  size-adjust: 92%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Fraunces"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/fraunces-latin-ext.woff2") format("woff2");
+  size-adjust: 92%;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Gochi Hand: felt-tip marker (doodle and draw games). Latin only;
+ * other letters fall back to Baloo 2. Small x-height, drawn larger. */
+@font-face {
+  font-family: "Gochi Hand"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/gochi-hand-latin.woff2") format("woff2");
+  size-adjust: 112%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Patrick Hand: neat pencil handwriting (clipboard and notebook games). */
+@font-face {
+  font-family: "Patrick Hand"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/patrick-hand-latin.woff2") format("woff2");
+  size-adjust: 112%;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Patrick Hand"; font-style: normal; font-weight: 400 900;
+  font-display: swap; src: url("/fonts/patrick-hand-latin-ext.woff2") format("woff2");
+  size-adjust: 112%;
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
