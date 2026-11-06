@@ -25,6 +25,23 @@ function isSubset(word, letters) {
   return true;
 }
 
+/* Name the exact letters that are missing or used too often. */
+function trayMessage(word, letters) {
+  const counts = Object.create(null);
+  for (const letter of letters) {
+    const key = String(letter).toLowerCase();
+    counts[key] = (counts[key] || 0) + 1;
+  }
+  const missing = [], extra = [];
+  for (const letter of new Set(word)) {
+    const need = word.split(letter).length - 1;
+    if (!counts[letter]) missing.push(letter.toUpperCase());
+    else if (need > counts[letter]) extra.push(letter.toUpperCase());
+  }
+  if (missing.length) return `Not on the tray: ${missing.join(', ')}.`;
+  return `Too many ${extra.join(', ')}. Each tile counts once.`;
+}
+
 function createWordValidator(customWords = []) {
   const custom = new Set(customWords.map(word => normalizeWord(word)).filter(Boolean));
   return {
@@ -34,7 +51,7 @@ function createWordValidator(customWords = []) {
       if (!word) return { ok: false, code: 'format', message: `Use one word with letters A–Z only (at most ${maxLength} letters).` };
       if (word.length < minLength) return { ok: false, code: 'short', message: `Use at least ${minLength} letters.` };
       if (!this.has(word)) return { ok: false, code: 'dictionary', message: 'That word is not in our offline English dictionary or the host’s extra words. Try another word.' };
-      if (letters && !isSubset(word, letters)) return { ok: false, code: 'letters', message: 'Use only the letters on the tray, no more times than each appears.' };
+      if (letters && !isSubset(word, letters)) return { ok: false, code: 'letters', message: trayMessage(word, letters) };
       return { ok: true, word };
     },
   };
