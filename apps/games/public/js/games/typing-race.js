@@ -5,7 +5,7 @@ import { esc, nameOf, countdown, ensureStylesheet } from '../util.js';
 import { hudHtml, roundLabel, waitingHtml, resultsHtml, paintLiveStrip, timerSlotState } from '../kit.js';
 import { readInputCapabilities } from '../toolkit/input-capabilities.mjs';
 
-const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css']];
+const CSS = [['party-scenes-css', '/css/party-scenes.css'], ['word-games-css', '/css/compact-answer-games.css'], ['typing-race-css', '/css/typing-race.css']];
 
 let lastKey = '';
 let current = null;
@@ -39,9 +39,15 @@ function laneColor(pid) {
   for (const ch of String(pid)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return ['#d82f73', '#26a37e', '#d99a1e', '#8f7bd0'][h % 4];
 }
+/* "Ann" -> "A", "Player 2" -> "P2": the racer's badge on the track. */
+function racerInitials(name) {
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return '?';
+  return (words[0].charAt(0) + (words[1] ? words[1].charAt(0) : '')).toUpperCase();
+}
 
 const view = {
-  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css'],
+  styles: ['/css/party-scenes.css', '/css/compact-answer-games.css', '/css/typing-race.css'],
   ownsTimer: true,
   dispose() {
     if (clock !== null) clearInterval(clock);
@@ -197,9 +203,13 @@ function paintTarget(el, S, follow = false) {
     grid.textContent = S.spectator ? `${(S.finished || []).length} finished`
       : fin ? 'Finished' : `${mine} of ${target.length} typed`;
   }
+  const wrong = !S.spectator && !fin && typedLen > mine;
+  if (inp) {
+    inp.classList?.toggle('is-error', wrong);
+    if (wrong) inp.setAttribute?.('aria-invalid', 'true'); else inp.removeAttribute?.('aria-invalid');
+  }
   const status = el.querySelector('#tTypingStatus');
   if (status) {
-    const wrong = !S.spectator && !fin && typedLen > mine;
     status.textContent = wrong
       ? `Fix character ${mine + 1}: ` +
         (mine < target.length ? `expected “${expected === ' ' ? 'space' : expected}”` : 'remove the extra text')
@@ -218,9 +228,11 @@ function paintLanes(el, S) {
   // Stable lanes let the same racer's bar grow between snapshots.
   if (box.dataset?.roster !== roster) {
     if (box.dataset) box.dataset.roster = roster;
-    box.innerHTML = players.map((p) => `<div class="tr-lane" data-racer="${esc(p.id)}">`
+    // pl-c<seat> matches each racer to their avatar colour in the live strip.
+    box.innerHTML = players.map((p, i) => `<div class="tr-lane pl-c${i % 5}" data-racer="${esc(p.id)}" style="--racer:${laneColor(p.id)}">`
       + `<span class="tr-name">${esc(p.name)}${p.id === S.me ? ' (you)' : ''}</span>`
-      + `<div class="tr-track" role="img"><span class="tr-fill" style="background:${laneColor(p.id)}"></span></div>`
+      + `<div class="tr-track" role="img"><span class="tr-fill" style="background:var(--pl-c, ${laneColor(p.id)})"></span>`
+      + `<span class="tr-rail"><span class="tr-racer" aria-hidden="true">${esc(racerInitials(p.name))}</span></span></div>`
       + `<span class="tr-meta"></span></div>`).join('');
   }
   const len = Math.max(1, (S.target || '').length);
@@ -236,10 +248,16 @@ function paintLanes(el, S) {
     const meta = lane.querySelector('.tr-meta');
     const player = players.find((p) => p.id === pid);
     if (track) track.setAttribute('aria-label', `${player?.name || nameOf(S, pid)} at ${Math.round(pct * 100)} percent${finish ? ', finished' : ''}`);
+    // Progress moves by transform only: the trail scales, the racer slides.
     if (fill) {
       fill.style.transition = S.audioBaseline ? 'none' : '';
       fill.dataset.pct = pct.toFixed(4);
-      fill.style.width = `${(pct * 100).toFixed(2)}%`;
+      fill.style.transform = `scaleX(${pct.toFixed(4)})`;
+    }
+    const rail = lane.querySelector('.tr-rail');
+    if (rail) {
+      rail.style.transition = S.audioBaseline ? 'none' : '';
+      rail.style.transform = `translateX(${(pct * 100).toFixed(2)}%)`;
     }
     if (meta) meta.textContent = finish ? `${(finish.ms / 1000).toFixed(2)}s` : `${Math.round(pct * 100)}%`;
   }

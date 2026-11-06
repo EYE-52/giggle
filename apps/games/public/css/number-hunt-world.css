@@ -49,7 +49,81 @@
  * printing an empty box. */
 #gbody .nh.pl-fill .nh-feed-title:has(+ .wg-feed > .wg-feed-empty:only-child),
 #gbody .nh.pl-fill .wg-feed:has(> .wg-feed-empty:only-child) { display: none; }
-#gbody .nh.pl-fill .nh-reading strong { padding: 0 var(--space-8); border-radius: var(--radius-sm); background: var(--fam-soft); }
 #gbody .nh.pl-fill .nh-reading { min-height: 0; }
 #gbody .nh.pl-fill .nh-between { min-height: 0; }
-#gbody .nh.pl-fill .nh-range { gap: var(--space-12); }
+
+/* ==========================================================================
+ * Number line: the live range sits on a ruler. Eliminated numbers are
+ * hatched, each public guess is a pin with the way it pointed (yours in the
+ * arcade colour), and 1/25/50/75/100 mark the scale. The bounds sit over the
+ * ends and the caption gets its own row, so nothing is squeezed on a phone.
+ * ========================================================================== */
+#gbody .nh.pl-fill .nh-range {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: end;
+  grid-template-areas: "lo . hi" "bar bar bar" "cap cap cap" "read read read";
+  gap: var(--space-8) var(--space-12);
+}
+#gbody .nh.pl-fill .nh-bounds { display: contents; }
+#gbody .nh.pl-fill #nLo { grid-area: lo; }
+#gbody .nh.pl-fill #nHi { grid-area: hi; text-align: right; }
+#gbody .nh.pl-fill .nh-between { grid-area: cap; display: block; font: var(--text-body); color: var(--ink); text-align: center; text-wrap: balance; }
+#gbody .nh.pl-fill .nh-line { grid-area: bar; position: relative; padding-bottom: var(--space-24); }
+#gbody .nh.pl-fill .nh-reading { grid-area: read; padding-top: var(--space-12); border-top: var(--outline-w) dashed var(--line-strong); align-items: center; }
+#gbody .nh.pl-fill .nh-track {
+  height: 36px; overflow: hidden;
+  background: repeating-linear-gradient(135deg, var(--well) 0 6px, var(--line) 6px 8px);
+}
+/* The live window: what can still be the number. It snaps, never slides. */
+#gbody .nh.pl-fill .nh-window { transition: none; background: color-mix(in srgb, var(--fam) 26%, var(--card)); border-color: var(--fam-deep); }
+#gbody .nh.pl-fill .nh-pins { position: absolute; inset: 0; pointer-events: none; }
+#gbody .nh.pl-fill .nh-pin {
+  position: absolute; top: 50%; display: grid; place-items: center; box-sizing: border-box;
+  width: 24px; height: 24px; margin: -12px 0 0 -12px;
+  border: var(--outline-w) solid var(--outline); border-radius: 50%;
+  background: var(--card); color: var(--ink-dim); font: var(--text-caption); font-weight: 800; line-height: 1;
+}
+#gbody .nh.pl-fill .nh-pin.is-you { background: var(--fam); color: var(--on-fam); z-index: 1; }
+#gbody .nh.pl-fill .nh-pin.is-hit { background: var(--success); color: var(--on-success); z-index: 2; }
+#gbody .nh.pl-fill .nh-scale { position: absolute; left: 0; right: 0; bottom: 0; height: var(--space-16); margin: 0; padding: 0; list-style: none; }
+#gbody .nh.pl-fill .nh-scale li {
+  position: absolute; bottom: 0; transform: translateX(-50%); white-space: nowrap;
+  font: var(--text-caption); color: var(--ink-dim); font-variant-numeric: tabular-nums;
+}
+#gbody .nh.pl-fill .nh-scale li:first-child { transform: none; }
+#gbody .nh.pl-fill .nh-scale li:last-child { transform: translateX(-100%); }
+
+/* The reading: a state mark, not a button-like chip. */
+#gbody .nh.pl-fill .nh-reading strong {
+  display: inline-flex; align-items: center; gap: var(--space-8);
+  padding: 0; background: none; font: var(--text-title); color: var(--ink);
+}
+#gbody .nh.pl-fill .nh-reading strong::before {
+  content: "?"; display: grid; place-items: center; flex: none; width: 28px; height: 28px; box-sizing: border-box;
+  border: var(--outline-w) solid var(--outline); border-radius: 50%;
+  background: var(--well); color: var(--ink-dim); font: var(--text-button-sm);
+}
+#gbody .nh.pl-fill .nh-reading strong[data-dir="higher"]::before { content: "\2191"; background: var(--fam); color: var(--on-fam); }
+#gbody .nh.pl-fill .nh-reading strong[data-dir="lower"]::before { content: "\2193"; background: var(--fam); color: var(--on-fam); }
+#gbody .nh.pl-fill .nh-reading strong[data-dir="found"]::before { content: "\2713"; background: var(--success); color: var(--on-success); }
+#gbody .nh.pl-fill .nh-reading > span { font: var(--text-body); color: var(--ink-dim); }
+#gbody .nh.pl-fill .nh-reading small { font: var(--text-caption); }
+
+/* The field: an empty field reads as empty, not as a typed value. */
+#gbody .nh .gk-input[type="number"]::placeholder { font: var(--text-body); color: var(--ink-dim); opacity: 1; }
+#gbody .nh.pl-fill .gk-input-row .gk-input { border: var(--outline-w) solid var(--outline); }
+#gbody .nh.pl-fill .gk-input-row .gk-input:disabled { background: var(--well); border-color: var(--line-strong); }
+
+/* Results rows and player tiles: one outlined sticker style for everyone. */
+#gbody .nh.pl-fill .wg-rows { width: 100%; max-width: 560px; margin-inline: auto; gap: var(--space-8); }
+#gbody .nh.pl-fill .wg-row {
+  grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-4) var(--space-8);
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md);
+  background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-body);
+}
+#gbody .nh.pl-fill .wg-row.is-you { background: var(--fam-soft); }
+#gbody .nh.pl-fill .pl-seat { border-color: var(--outline); background: var(--card); }
+#gbody .nh.pl-fill .pl-seat.is-you { background: var(--fam-soft); }
+@media (max-width: 480px) {
+  #gbody .nh.pl-fill .nh-track { height: 32px; }
+  #gbody .nh.pl-fill .nh-pin { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
+}

@@ -137,7 +137,62 @@ const CSS = `
 .cr-replay{position:static;height:auto;margin:0}
 }
 @keyframes cr-pop{40%{transform:scale(.86)}70%{transform:scale(1.05)}}@keyframes cr-flash{0%{box-shadow:0 0 0 0 var(--orb)}100%{box-shadow:0 0 0 10px transparent}}@keyframes cr-land{0%{transform:scale(1.12)}100%{transform:scale(1)}}
-@media(prefers-reduced-motion:reduce){.chain-reaction *,.chain-reaction *::after{animation:none!important;transition:none!important}}
+/* Toy box: an arcade-orange sticker board with card wells, sticker seat
+ * cards, a turn badge and a Help chip. The canvas and the flight layer sit
+ * inside the board padding so wells stay aligned with the touch cells. */
+.chain-reaction{--cr-pad:var(--space-16);--cr-frame:calc(2*var(--cr-pad) + 2*var(--outline-w-lg));--cr-well:var(--card);--cr-well-line:var(--line-strong);--cr-well-play:var(--outline);--cr-focus:var(--fam-deep)}
+.cr-board{padding:var(--cr-pad);background:var(--fam-soft);border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);box-shadow:var(--shadow-sticker-lg);min-width:calc(44px*var(--cr-cols,6) + var(--cr-frame));margin-bottom:var(--lift-lg)}
+.cr-arena{inset:auto;left:var(--cr-pad);top:var(--cr-pad);width:calc(100% - 2*var(--cr-pad));height:calc(100% - 2*var(--cr-pad))}
+.cr-flight{inset:var(--cr-pad)}
+.cr-cell[data-playable="yes"]:not(.last)::after{border-color:var(--fam);animation-name:cr-invite-arcade}
+@keyframes cr-invite-arcade{0%,100%{transform:scale(.92);opacity:.6}50%{transform:scale(1);opacity:1}}
+.cr-cell[data-playable="yes"]:hover::after{border-color:var(--fam-deep)}
+.cr-cell:focus-visible{outline:var(--focus-ring)}
+.cr-turn{font-family:var(--font-display)}
+.cr-actor{border-radius:var(--radius-pill)}
+.cr-actor.is-mine{padding:var(--space-4) var(--space-12);background:var(--fam);color:var(--on-fam);border:var(--outline-w) solid var(--outline);box-shadow:var(--shadow-sticker-sm)}
+.cr-clock{--cr-clock-ink:var(--fam-deep);--cr-clock-track:var(--line-strong)}.cr-clock.urgent{--cr-clock-ink:var(--danger)}
+.cr-seat{padding:var(--space-8) var(--space-12);border:var(--outline-w) solid var(--outline);border-radius:var(--radius-md);background:var(--card);box-shadow:var(--shadow-sticker-sm)}
+.cr-seat.current{background:var(--fam-soft);border-color:var(--outline);box-shadow:var(--shadow-sticker)}
+.cr-seat.current .cr-score{color:var(--ink)}
+.cr-name{font-family:var(--font-display)}
+.cr-skip{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm);font:var(--text-button-sm)}
+.cr-skip:hover{border-color:var(--outline)}.cr-skip:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
+.cr-result{border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);background:var(--fam-soft);box-shadow:var(--shadow-sticker);padding:var(--space-16) var(--space-24);font:var(--text-title)}
+.cr-rules summary{gap:var(--space-8);min-height:var(--control-h-sm);padding:0 var(--space-16) 0 var(--space-8);border:var(--outline-w) solid var(--outline);border-radius:var(--radius-pill);background:var(--card);color:var(--ink);font:var(--text-button-sm);transition:transform var(--dur-quick) var(--ease)}
+.cr-rules summary::before{content:"?";display:grid;place-items:center;flex:none;width:28px;height:28px;border:var(--outline-w) solid var(--outline);border-radius:50%;background:var(--fam);color:var(--on-fam);font:var(--text-button-sm)}
+.cr-rules[open] summary::before{content:"\\2715"}
+.cr-rules summary:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
+.cr-rules summary:active{transform:scale(.96)}
+@media(hover:hover){.cr-rules summary:hover{transform:translateY(-2px)}}
+.cr-rules[open]{border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);padding:var(--space-16)}
+@media(max-width:420px){.cr-seat{padding:var(--space-4) var(--space-8)}}
+/* Phones: Help is a round chip in the turn row, so nothing hangs under the board. */
+@media(max-width:759px) and (min-height:501px),(max-width:559px){
+.chain-reaction{gap:var(--space-12)}
+.cr-head{padding-right:52px}
+.cr-rules:not([open]){position:absolute;top:0;right:0}
+.cr-rules summary{width:var(--control-h-sm);padding:0;font-size:0;justify-content:center}
+.cr-board{width:min(100%,calc((100dvh - 168px - var(--cr-frame))*var(--cr-cols,6)/var(--cr-rows,8) + var(--cr-frame)))}
+.cr-rules summary{gap:0;background:var(--fam);color:var(--on-fam)}
+.cr-rules summary::before{border:0;background:none;color:inherit}
+}
+/* Wide frames: the board column grows; the side panel is a stack of stickers. */
+@media(min-width:760px) and (min-height:501px){
+.chain-reaction{column-gap:var(--space-32)}
+.cr-board{justify-self:center;width:min(100%,calc((100dvh - 40px - var(--cr-frame))*var(--cr-cols,6)/var(--cr-rows,8) + var(--cr-frame)))}
+.cr-kicker::before{font:var(--text-heading)}
+.cr-head-main{gap:var(--space-12)}
+.cr-actor{min-height:0;padding:var(--space-12) var(--space-16);background:var(--card);border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker)}
+.cr-actor.is-mine{padding:var(--space-12) var(--space-16);border-width:var(--outline-w-lg);box-shadow:var(--shadow-sticker)}
+.cr-turn{font:var(--text-title)}
+.cr-side{gap:var(--space-12)}
+.cr-seats{gap:var(--space-12)!important}
+.cr-name{font:var(--text-title)}
+.cr-score{font:var(--text-title)}
+.cr-rules summary{width:auto;align-self:flex-start}
+}
+@media(prefers-reduced-motion:reduce){.chain-reaction *,.chain-reaction *::before,.chain-reaction *::after{animation:none!important;transition:none!important}}
 `;
 
 function now(d) {
@@ -409,6 +464,7 @@ function updateTexts(d) {
   if (heading.textContent !== title) heading.textContent = title;
   heading.setAttribute('title', title === 'Your turn' ? title + ' · ' + current : title);
   heading.setAttribute('aria-label', title === 'Your turn' ? title + ', ' + current : title);
+  heading.parentElement?.classList?.toggle?.('is-mine', title === 'Your turn');
   const markPid = d.replaying ? d.replayCtx.pid : S.phase === 'done' ? (S.result ? S.result.winner : null) : S.turnPid;
   paintActorMark(d, markPid);
   const result = el.querySelector('.cr-result'); result.hidden = d.replaying || S.phase !== 'done';
@@ -774,7 +830,7 @@ const view = {
     if (active) this.dispose(active.el);
     const style = document.createElement('style');
     style.textContent = CSS; document.head.appendChild(style);
-    el.innerHTML = `<section class="chain-reaction">
+    el.innerHTML = `<section class="chain-reaction" data-family="arcade">
       <div class="cr-head"><div class="cr-head-main"><div class="cr-kicker">Chain Reaction · <span class="cr-round"></span></div><div class="cr-actor"><span class="cr-turn-mark" aria-hidden="true"></span><h2 class="cr-turn" role="status" aria-live="polite"></h2></div></div><div class="cr-clock"></div></div>
       <div class="cr-result" role="status" hidden></div>
       <div class="cr-layout"><div class="cr-board"><canvas class="cr-arena" aria-hidden="true"></canvas><div class="cr-grid" role="group" aria-label="Chain Reaction board"></div><div class="cr-flight" aria-hidden="true"></div></div>
@@ -788,6 +844,8 @@ const view = {
     const listen = (target, event, fn) => {
       target.addEventListener(event, fn); d.listeners.push([target, event, fn]);
     };
+    // A Day/Night switch in the room repaints the canvas wells in the new tokens.
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') listen(document, 'chain-theme', () => syncScene(d));
     const grid = el.querySelector('.cr-grid');
     listen(grid, 'click', (e) => {
       const cell = e.target.closest('[data-cell]');
