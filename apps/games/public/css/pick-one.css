@@ -24,11 +24,6 @@
 .pick-choices.is-reveal .pick-result { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
 .pick-choices.is-reveal .pick-bar { flex: 1 0 100%; }
 
-/* The between-rounds "Getting everyone ready" pill sits at the bottom of
- * the screen in this game, never over the round row and phase pill. */
-body:not(.game-immersive):has(#gbody .pick-world) .game-preparation:not(.is-first) {
-  top: auto; bottom: calc(var(--space-16) + env(safe-area-inset-bottom));
-}
 
 /* Toy box duel: each option is a centred sticker (letter badge above the
  * word) and a tilted VS sticker sits between them. */
@@ -56,4 +51,31 @@ body:not(.game-immersive):has(#gbody .pick-world) .game-preparation:not(.is-firs
   #gbody .pick-world .pick-text { font: 800 22px/1.2 var(--font-display); }
   #gbody .pick-world .pick-choice .gk-mark { width: 36px; height: 36px; font-size: 17px; }
   #gbody .pick-world .pick-choices::after { width: 44px; height: 44px; margin: -22px 0 0 -22px; font-size: 16px; }
+}
+
+/* ==== Skin: face-off ====
+ * Scene: the page is split on a slant, hot pink on the A side and violet on
+ * the B side. Signature: the options are trading cards with an inner frame,
+ * and the VS sticker sits on a lip of its own colour. */
+body.game-playing[data-game="pick-one"] {
+  background-image: linear-gradient(104deg,
+    color-mix(in srgb, var(--fam) 8%, transparent) 50%,
+    color-mix(in srgb, #6a55d8 8%, transparent) 50%);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="pick-one"] {
+  background-image: linear-gradient(104deg,
+    color-mix(in srgb, var(--fam) 10%, transparent) 50%,
+    color-mix(in srgb, #a796ff 9%, transparent) 50%);
+}
+#gbody .pick-world .pick-choices > .pick-choice::before {
+  content: ""; position: absolute; inset: var(--space-8); border-radius: calc(var(--radius-xl) - var(--space-8));
+  border: 2px solid color-mix(in srgb, var(--side) 22%, transparent); pointer-events: none;
+}
+#gbody .pick-world .pick-choices::after {
+  border-color: color-mix(in srgb, var(--sun) 70%, #000);
+  box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--sun) 70%, #000);
+}
+@media (max-width: 560px) {
+  #gbody .pick-world .pick-choices > .pick-choice::before { inset: var(--space-4); border-radius: calc(var(--radius-lg) - var(--space-4)); }
 }

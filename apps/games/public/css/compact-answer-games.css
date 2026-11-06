@@ -137,7 +137,7 @@
   font: 800 clamp(26px, 4.4vw, 40px)/1.2 var(--font-display); text-align: center; cursor: pointer;
   touch-action: manipulation; user-select: none; -webkit-user-select: none;
 }
-.rt .rt-pad.is-go { background: var(--green); border-color: var(--green); color: #0d2b1f; }
+.rt .rt-pad.is-go { background: var(--green); border-color: var(--green); color: var(--on-success); }
 .rt .rt-pad.is-tapped { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); }
 .rt .rt-pad.is-fouled { background: color-mix(in srgb, var(--melon) 16%, var(--card)); border-color: var(--melon); color: var(--ink); }
 .rt .rt-pad:disabled { cursor: default; }
@@ -227,3 +227,13 @@
   #gbody .mt.pl-fill .mt-obj svg { width: 28px; height: 28px; }
 }
 #gbody .wg.pl-fill[data-game="trivia"] .gk-choices { align-items: stretch; grid-auto-rows: 1fr; }
+
+/* Soft arcade base (2026-11): tinted cards sit on a lip of the game colour,
+ * coloured pads on a lip of their own colour, never a hard ink line. */
+#gbody .wg.pl-fill > .gk-prompt, #gbody .mt.pl-fill .mt-tray {
+  border-color: color-mix(in srgb, var(--fam) 32%, var(--outline)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--fam) 32%, var(--outline));
+}
+#gbody .rt.pl-fill .rt-pad.is-go { border-color: color-mix(in srgb, var(--success) 70%, #000); box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--success) 70%, #000); }
+#gbody .rt.pl-fill .rt-pad.is-fouled { border-color: color-mix(in srgb, var(--danger) 40%, var(--outline)); }
+#gbody .mt.pl-fill .mt-obj.is-hit { border-color: color-mix(in srgb, var(--success) 50%, var(--outline)); }
+#gbody .rt.pl-fill .rt-pad:not(:disabled):active { box-shadow: none; }

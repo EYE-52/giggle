@@ -120,3 +120,24 @@
   border-color: var(--outline); box-shadow: var(--shadow-sticker-sm);
 }
 #gbody .pl-fill.party-scene--poll .party-choices.is-locked > .party-choice:not(.is-picked):not([aria-pressed="true"]) .gk-mark { color: var(--ink); border-color: var(--outline); }
+
+/* ==== Skin: the ballot ====
+ * Scene: mint graph paper, the page the results get drawn on. Signature:
+ * each option's letter is a ballot box (a rounded square, not a dot), and
+ * your pick is ticked in mint on a mint lip. */
+body.game-playing[data-game="rapid-polls"] {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fam) 9%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="rapid-polls"] {
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--fam) 8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--fam) 8%, transparent) 1px, transparent 1px);
+}
+#gbody .pl-fill.party-scene--poll .party-choice .gk-mark { border-radius: var(--radius-sm); border-width: 2px; }
+#gbody .pl-fill.party-scene--poll .party-choice:is(.is-picked, [aria-pressed="true"]) .gk-mark {
+  border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip);
+}

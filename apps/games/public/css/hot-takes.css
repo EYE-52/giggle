@@ -1,5 +1,5 @@
 /* Hot Takes: the agree/disagree split is a sticker bar in the vote cards'
- * own colours (family for Agree, sky for Disagree), never success/danger,
+ * own colours (family red for Agree, cool violet for Disagree), never success/danger,
  * because neither side is "right". Tokens only. */
 
 #gbody .party-scene--hot .hot-split-track {
@@ -10,12 +10,12 @@
   display: grid; place-items: center; overflow: hidden; min-width: 0;
   background: var(--fam); color: var(--on-fam); font: 800 13px/1 var(--font-display); font-variant-numeric: tabular-nums;
 }
-#gbody .party-scene--hot .hot-split-track > span + span { background: var(--fam-create); color: var(--on-fam-create); }
+#gbody .party-scene--hot .hot-split-track > span + span { background: var(--duel-b); color: var(--on-duel-b); }
 #gbody .party-scene--hot .hot-split-track > span:first-child:not([style*="width:0%"]) + span:not([style*="width:0%"]) { border-left: var(--outline-w) solid var(--outline); }
 #gbody .party-scene--hot .hot-take-row .hot-split-track { height: 20px; margin-top: var(--space-8); }
 #gbody .party-scene--hot .hot-split-side > b { font: var(--text-title); }
 #gbody .party-scene--hot .hot-split-side:first-child > b { color: var(--fam-deep); }
-#gbody .party-scene--hot .hot-split-side:last-child > b { color: var(--fam-create-deep); }
+#gbody .party-scene--hot .hot-split-side:last-child > b { color: color-mix(in srgb, var(--duel-b) 80%, var(--ink)); }
 
 /* Compose: the take card matches the prompt card's width. */
 #gbody .pl-fill.party-scene--hot .party-compose { width: 100%; max-width: none; margin-inline: 0; }
@@ -36,3 +36,33 @@
 
 /* Results: Next gets room above the Players panel. */
 #gbody .pl-fill.party-scene--hot .hot-actions { margin-block: var(--space-8) var(--space-24); }
+
+/* ==== Skin: fire and ice ====
+ * Scene: heat rises from the bottom of the page in chilli red and orange,
+ * with a cool violet haze at the top. Signature: the topic card wears a
+ * tilted "hot take" sticker, and the split bar runs from warm to cool. */
+body.game-playing[data-game="hot-takes"] {
+  background-image:
+    radial-gradient(90vw 46vh at 50% 108%, color-mix(in srgb, var(--fam) 20%, transparent), transparent 72%),
+    radial-gradient(50vw 30vh at 18% 104%, color-mix(in srgb, var(--fam-arcade) 16%, transparent), transparent 70%),
+    radial-gradient(80vw 30vh at 50% -8%, color-mix(in srgb, #6a55d8 8%, transparent), transparent 70%);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="hot-takes"] {
+  background-image:
+    radial-gradient(90vw 46vh at 50% 108%, color-mix(in srgb, var(--fam) 22%, transparent), transparent 72%),
+    radial-gradient(50vw 30vh at 18% 104%, color-mix(in srgb, var(--fam-arcade) 14%, transparent), transparent 70%),
+    radial-gradient(80vw 30vh at 50% -8%, color-mix(in srgb, #a796ff 9%, transparent), transparent 70%);
+}
+#gbody .pl-fill.party-scene--hot .party-prompt.party-prompt { position: relative; }
+#gbody .pl-fill.party-scene--hot .party-prompt.party-prompt::before {
+  content: "Hot take" / ""; position: absolute; top: calc(-1 * var(--space-16)); left: var(--space-24);
+  display: grid; place-items: center; height: 32px; padding: 0 var(--space-12); border-radius: var(--radius-pill);
+  background: var(--fam); color: var(--on-fam); border: var(--outline-w) solid var(--fam-lip);
+  box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); font: 800 15px/1 var(--font-display); transform: rotate(-5deg); pointer-events: none;
+}
+#gbody .party-scene--hot .hot-split-track > span:first-child { background: linear-gradient(90deg, var(--fam-arcade), var(--fam)); }
+#gbody .party-scene--hot .hot-split-track > span + span { background: linear-gradient(90deg, var(--duel-b), color-mix(in srgb, var(--duel-b) 70%, var(--card))); }
+@media (max-width: 560px) {
+  #gbody .pl-fill.party-scene--hot .party-prompt.party-prompt::before { left: var(--space-12); height: 28px; font-size: 14px; }
+}

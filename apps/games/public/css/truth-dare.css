@@ -116,3 +116,49 @@
   #gbody .party-scene--truth .gk-hud-timer.is-urgent { animation: td-pulse 1s var(--ease) infinite; }
 }
 @keyframes td-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+/* ==== Skin: campfire ====
+ * Scene: a campfire glow, red and gold, rises from the foot of the page. Signature: Truth and Dare are
+ * two tall cards, cool violet and campfire orange, each on its own lip;
+ * the judge's two answers wear status colours. */
+body.game-playing[data-game="truth-dare"] {
+  background-image:
+    radial-gradient(80vw 46vh at 50% 110%, color-mix(in srgb, var(--fam) 22%, transparent), transparent 72%),
+    radial-gradient(40vw 26vh at 50% 104%, color-mix(in srgb, var(--sun) 20%, transparent), transparent 70%);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.game-playing[data-game="truth-dare"] {
+  background-image:
+    radial-gradient(80vw 46vh at 50% 110%, color-mix(in srgb, var(--fam) 24%, transparent), transparent 72%),
+    radial-gradient(40vw 26vh at 50% 104%, color-mix(in srgb, var(--sun) 16%, transparent), transparent 70%);
+}
+#gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] { --duel-b: var(--fam); }
+#gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind="truth"] { --side: #6a55d8; --on-side: #ffffff; }
+[data-theme="night"] #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind="truth"] { --side: #a796ff; --on-side: #150f26; }
+#gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind] {
+  flex-direction: column; min-height: 168px; gap: var(--space-12); border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--side) 10%, var(--card));
+  border-color: color-mix(in srgb, var(--side) 40%, var(--outline));
+  box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--side) 40%, var(--outline));
+}
+#gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind] .gk-mark {
+  width: 56px; height: 56px; font-size: 26px; background: var(--side); color: var(--on-side);
+  border-color: color-mix(in srgb, var(--side) 70%, #000); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--side) 70%, #000);
+}
+#gbody .party-scene--truth .td-choices[aria-label^="Judge"] > [data-v="yes"] { --side: var(--success); --on-side: var(--on-success); }
+#gbody .party-scene--truth .td-choices[aria-label^="Judge"] > [data-v="no"] { --side: var(--danger); --on-side: var(--on-danger); }
+#gbody .party-scene--truth .td-choices[aria-label^="Judge"] .gk-mark { background: var(--side); color: var(--on-side); }
+#gbody .party-scene--truth .td-wheel { border-color: var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
+#gbody .party-scene--truth .td-pointer { background: var(--sun); border-color: color-mix(in srgb, var(--sun) 70%, #000); }
+#gbody .party-scene--truth .td-banner-icon { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+@media (max-width: 560px) {
+  #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind] { min-height: 132px; border-radius: var(--radius-lg); }
+  #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind] .gk-mark { width: 44px; height: 44px; font-size: 20px; }
+}
+@media (hover: hover) {
+  #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind]:hover { border-color: color-mix(in srgb, var(--side) 40%, var(--outline)); }
+}
+#gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind]:active { box-shadow: none; }
+/* Three decks share one row; the odd-card-spans rule is for answers only. */
+#gbody .pl-fill.party-scene--truth .td-decks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#gbody .pl-fill.party-scene--truth .td-decks.gk-choices > :last-child:nth-child(odd) { grid-column: auto; }
