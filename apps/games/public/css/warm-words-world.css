@@ -73,3 +73,24 @@
 .ww.ck .ww-feed-head [data-ww-sort]::before { content: "⇅ "; color: var(--fam-deep); }
 .ww.ck .ww-feed-head [data-ww-sort]:active { transform: scale(.97); }
 .ww.ck .ww-feed { display: flex; flex-direction: column; gap: var(--space-8); }
+
+/* ==========================================================================
+ * Skin (round 2): a thermometer. The page warms from a cool corner to a hot
+ * one; the meter is a glass tube with a round bulb at the cold end.
+ * Night: the glass is dark and the bulb glows.
+ * ========================================================================== */
+body.game-playing[data-game="warm-words"] {
+  background-image:
+    radial-gradient(ellipse 60% 50% at 0% 0%, color-mix(in srgb, #4aa3df 12%, transparent), transparent 70%),
+    radial-gradient(ellipse 60% 55% at 100% 100%, color-mix(in srgb, var(--fam) 14%, transparent), transparent 70%);
+  background-attachment: fixed, fixed;
+}
+.ww.ck .ww-thermo { display: flex; align-items: center; min-width: 0; }
+.ww.ck .ww-thermo .ww-meter { flex: 1; min-width: 0; margin-left: -6px; border-radius: 0 var(--radius-pill) var(--radius-pill) 0; }
+.ww.ck .ww-bulb {
+  position: relative; z-index: 1; flex: none; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--fam); border: var(--outline-w) solid var(--fam-lip);
+  box-shadow: inset 0 -4px 0 var(--fam-lip), inset 4px 4px 0 color-mix(in srgb, #fff 32%, transparent);
+}
+.ww.ck .ww-scale { padding-left: 28px; }
+[data-theme="night"] .ww.ck .ww-bulb { box-shadow: inset 0 -4px 0 var(--fam-lip), 0 0 16px color-mix(in srgb, var(--fam) 55%, transparent); }

@@ -61,3 +61,52 @@
   .ch.ck:not(.gk-final) > .ch-players { grid-column: 2; grid-row: 2 / span 6; }
   .ch.ck .ch-players .ck-roster { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ==========================================================================
+ * Skin (round 2): a theatre. Velvet curtains hang down both sides of the
+ * page with a scalloped valance along the top; the stage card is lit by a
+ * spotlight from above and stands on a wooden stage floor. Night dims the
+ * house: deeper velvet, a warmer spotlight, the tiles glowing softly.
+ * ========================================================================== */
+body.game-playing[data-game="charades"] {
+  --ch-velvet: #9d4fb8; --ch-velvet-deep: #6f2f88; --ch-velvet-hi: #c07fd6;
+  --ch-floor: #d9b48a; --ch-floor-deep: #b98d5e; --ch-spot: rgb(255 246 214 / .85);
+  background-image:
+    radial-gradient(circle at 50% 0, var(--ch-velvet) 0 15px, var(--ch-velvet-deep) 16px 17px, transparent 18px),
+    repeating-linear-gradient(90deg, var(--ch-velvet-deep) 0, var(--ch-velvet) 9px, var(--ch-velvet-hi) 13px, var(--ch-velvet) 17px, var(--ch-velvet-deep) 26px),
+    repeating-linear-gradient(90deg, var(--ch-velvet-deep) 0, var(--ch-velvet) 9px, var(--ch-velvet-hi) 13px, var(--ch-velvet) 17px, var(--ch-velvet-deep) 26px);
+  background-size: 36px 18px, 78px 100%, 78px 100%;
+  background-position: 0 0, left top, right top;
+  background-repeat: repeat-x, no-repeat, no-repeat;
+  background-attachment: fixed, fixed, fixed;
+}
+[data-theme="night"] body.game-playing[data-game="charades"] {
+  --ch-velvet: #4d2160; --ch-velvet-deep: #2e1139; --ch-velvet-hi: #6b3384;
+  --ch-floor: #6a4a33; --ch-floor-deep: #4a3222; --ch-spot: rgb(255 226 160 / .2);
+}
+/* Phones and narrow frames: no room beside the column, keep the valance. */
+@media (max-width: 1000px) {
+  body.game-playing[data-game="charades"] { background-size: 36px 18px, 0 0, 0 0; }
+}
+
+/* The stage: a spotlight pool from above and a wooden floor along the
+ * bottom edge. The tiles and the ring stand in the light. */
+.ch.ck[data-family] .ch-stage.ck-card.is-tint {
+  position: relative; overflow: hidden;
+  padding-bottom: calc(var(--space-24) + 14px);
+  background:
+    radial-gradient(ellipse 46% 85% at 50% -8%, var(--ch-spot, rgb(255 246 214 / .85)), transparent 72%),
+    linear-gradient(0deg, var(--ch-floor-deep, #b98d5e) 0 4px, var(--ch-floor, #d9b48a) 4px 14px, transparent 14px),
+    var(--fam-soft);
+}
+/* Floorboards: faint seams in the stage floor. */
+.ch.ck[data-family] .ch-stage.ck-card::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 4px; height: 10px; pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 58px, rgb(0 0 0 / .14) 58px 60px);
+}
+/* The secret word (actor) is the star of the show. */
+.ch.ck .ch-secret { text-shadow: 0 2px 0 color-mix(in srgb, var(--fam) 22%, transparent); }
+[data-theme="night"] .ch.ck .ch-secret { color: var(--fam-deep); text-shadow: 0 0 22px color-mix(in srgb, var(--fam) 45%, transparent); }
+[data-theme="night"] .ch.ck .ch-mask .ck-tile.is-blank { box-shadow: inset 0 -8px 0 var(--fam-soft), 0 var(--lift-sm) 0 var(--outline), 0 0 14px color-mix(in srgb, #ffe2a0 14%, transparent); }
+/* The guess box is the one thing to do: it sits on the family lip. */
+.ch.ck .gk-input-row .gk-input:focus { border-color: var(--fam); }

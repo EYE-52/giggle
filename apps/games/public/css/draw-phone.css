@@ -426,3 +426,71 @@ html body.game-playing:has(.sk-phone.dp) .game-report-icon{color:var(--ink);back
   .dp-draw.ck .dp-zoom-row .dp-zoom button { min-width: 36px; padding: 0 var(--space-4); }
   .dp-draw.ck .dp-zoom-row .dp-zoom span { display: none; }
 }
+
+
+/* ==========================================================================
+ * Skin (round 2): a sketchbook passed round the table. Day: warm paper with
+ * a dotted grid and a pink margin line, spiral rings along the top of every
+ * page. Night: the sheet is a green-slate chalkboard in a wooden frame and
+ * the ink is drawn in chalk tones (draw-phone.js); the swatches show the
+ * chalk too. The eraser lifts ink off the sheet, so the grid comes back.
+ * ========================================================================== */
+.sk-phone.dp.ck {
+  --dp-paper: #fffdf7; --dp-dot: #cfd8e8; --dp-margin: #f3a2b8; --dp-frame: var(--outline);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--fam) 14%, transparent) 1.2px, transparent 1.8px) 0 0 / 22px 22px,
+    var(--bg);
+}
+[data-theme="night"] .sk-phone.dp.ck {
+  --dp-paper: #1f2b28; --dp-dot: #34433f; --dp-margin: #8f5868; --dp-frame: #8a5c38;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--fam) 12%, transparent) 1.2px, transparent 1.8px) 0 0 / 22px 22px,
+    var(--bg);
+}
+.sk-phone.dp.ck .doodle {
+  background:
+    linear-gradient(90deg, transparent 0 44px, var(--dp-margin) 44px 46px, transparent 46px),
+    radial-gradient(circle at 12px 12px, var(--dp-dot) 1.3px, transparent 1.9px) 0 0 / 24px 24px,
+    var(--dp-paper);
+}
+[data-theme="night"] .sk-phone.dp.ck .doodle {
+  background:
+    radial-gradient(ellipse at 30% 20%, rgb(255 255 255 / .05), transparent 60%),
+    linear-gradient(90deg, transparent 0 44px, var(--dp-margin) 44px 46px, transparent 46px),
+    radial-gradient(circle at 12px 12px, var(--dp-dot) 1.3px, transparent 1.9px) 0 0 / 24px 24px,
+    var(--dp-paper);
+  box-shadow: 0 0 0 5px var(--dp-frame), 0 0 0 7px #5b3a22, 0 var(--lift) 0 7px #07050a;
+}
+.sk-phone.dp.ck .sk-canvaswrap { background: color-mix(in srgb, var(--fam) 7%, var(--well)); }
+[data-theme="night"] .sk-phone.dp.ck .sk-canvaswrap { background: color-mix(in srgb, #000 22%, var(--well)); }
+[data-theme="night"] .dp.ck .dp-puck[data-c="#111111"] span { background: #f3efe6; }
+[data-theme="night"] .dp.ck .dp-puck[data-c="#e4572e"] span { background: #ff8f6b; }
+[data-theme="night"] .dp.ck .dp-puck[data-c="#1d7a3a"] span { background: #74d896; }
+[data-theme="night"] .dp.ck .dp-puck[data-c="#1d4ed8"] span { background: #86b4ff; }
+[data-theme="night"] .dp.ck .dp-puck[data-c="#f2b134"] span { background: #ffd66e; }
+/* Phones: when the board fills its well, the frame is drawn on the well. */
+@media (max-width: 700px) {
+  [data-theme="night"] .sk-phone.dp.ck:not(.dp-focus) .sk-canvaswrap::after {
+    content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    border-radius: inherit; box-shadow: inset 0 0 0 5px var(--dp-frame), inset 0 0 0 7px #5b3a22;
+  }
+}
+
+/* Spiral rings along the top of every page of the book. */
+.dp.ck .dp-book::before {
+  content: ""; position: absolute; z-index: 3; top: -9px; left: var(--space-32); right: var(--space-32); height: 18px;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, var(--card) 0 3px, color-mix(in srgb, var(--ink) 38%, var(--card)) 3.5px 6px, transparent 6.5px) 0 0 / 26px 18px space no-repeat;
+}
+@media (max-width: 700px) { .dp.ck .dp-book::before { left: var(--space-16); right: var(--space-16); top: -8px; } }
+/* The writing page: a pink margin line down the left of the sheet. */
+.dp.ck .dp-writing { position: relative; padding-left: calc(var(--space-48) + var(--space-8)); }
+.dp.ck .dp-writing::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: var(--space-32); width: 2px; background: var(--dp-margin); opacity: .8;
+}
+@media (max-width: 700px) {
+  .dp.ck .dp-writing { padding-left: calc(var(--space-24) + var(--space-8)); }
+  .dp.ck .dp-writing::before { left: var(--space-16); }
+}
+/* Night: the current step glows a little, so where the book is reads first. */
+[data-theme="night"] .sk-phone.dp.ck .is-now .sk-step-n { box-shadow: 0 0 12px color-mix(in srgb, var(--fam) 50%, transparent); }
