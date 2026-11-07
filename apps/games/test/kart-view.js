@@ -101,6 +101,7 @@ const context = vm.createContext({WEAPON_IDS:require('../public/js/engines/kart-
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
   kartGarageHtml,createKartGarageUI,garagePreviewKey,createGarageThumbnail,intentFromKeys,createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d,createKartWeaponRoulette});
 // The hearts HUD runs against this fake DOM, so it loads into the same context.
+vm.runInContext(fs.readFileSync(require.resolve('../public/js/pickers.js'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-skids.mjs'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-threats.mjs'),'utf8').replace(/^export /gm,''),context);

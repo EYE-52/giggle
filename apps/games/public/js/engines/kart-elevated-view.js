@@ -1,3 +1,4 @@
+import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
 import {WEAPON_IDS} from './kart-weapon-contract.mjs';
 import {paintKartWeapon,createKartWeaponRoulette} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
@@ -92,7 +93,7 @@ export function createElevatedKartView() {
       active:gfxReady&&!S?.preparing&&S?.phase==='live'&&!document.hidden&&context?.connected!==false&&!context?.roomActionPending,
       engineActive:!!S?.youDrive&&!!k?.alive&&!!k?.connected&&!blocked()});
   }
-  function touch(){const show=touchControlsFor(preference,readInputCapabilities())&&S?.youDrive&&S.phase!=='done';$('touch').hidden=!show;root.classList.toggle('pke-touch-mode',show);}
+  function touch(){$('controls').value=preference;syncPickers($('controls').parentNode);const show=touchControlsFor(preference,readInputCapabilities())&&S?.youDrive&&S.phase!=='done';$('touch').hidden=!show;root.classList.toggle('pke-touch-mode',show);}
   function paint(){
     if(!S||!root)return;
     const me=self(),watch=!S.youDrive;
@@ -114,7 +115,7 @@ export function createElevatedKartView() {
     $('health').hidden=!me;if(me)paintKartHearts($('health'),me);
     $('use').disabled=!me?.weapon||me?.firing||!active()||S.phase!=='live';
     $('nitro').disabled=!active()||me?.nitro<.15;
-    $('controls').value=preference;
+    $('controls').value=preference;syncPickers($('controls').parentNode);
     $('notice').textContent=me&&!me.connected?'Reconnecting…':me&&!me.alive?'Respawning…':watch?'Watching the battle':'';
     $('notice').hidden=!$('notice').textContent;
     $('arena').textContent=S.map?.label||'Pocket Karts';
@@ -542,7 +543,7 @@ export function createElevatedKartView() {
     dispose();root=document.createElement('section');root.className='pke';root.setAttribute('aria-label','Pocket Karts');el.append(root);api=platform;
     const style=document.createElement('link');style.rel='stylesheet';style.href='/css/kart-elevated.css';style.dataset.elevatedKart='';document.head.append(style);listeners.push([style,'owned-style',null]);
     root.innerHTML=`<div data-stage class="pke-stage"></div><div data-loading class="pke-loading" role="status">Loading arena…</div>
-      <div class="pke-top"><details data-menu class="pke-menu"><summary aria-label="Game menu">☰</summary><div class="pke-panel"><h2 data-arena></h2><p data-goal>Most knockouts wins.</p><label>Controls <select data-controls aria-label="Controls"><option value="auto">Auto</option><option value="keyboard">Keyboard</option><option value="touch">Touch</option></select></label><p>WASD / arrows · drive<br>Space · weapon &nbsp; N · Nitro<br>Shift · brake</p><button data-resume>Resume</button></div></details><span class="pke-score" data-score>0 KOs</span><time data-clock>Loading</time><span data-protection class="pke-protection" title="Spawn protection">${svg(ICONS.shield)}</span></div>
+      <div class="pke-top"><details data-menu class="pke-menu"><summary aria-label="Game menu">☰</summary><div class="pke-panel"><h2 data-arena></h2><p data-goal>Most knockouts wins.</p>${controlsPickerHtml('pke-controls',preference,'data-controls')}<p>WASD / arrows · drive<br>Space · weapon &nbsp; N · Nitro<br>Shift · brake</p><button data-resume>Resume</button></div></details><span class="pke-score" data-score>0 KOs</span><time data-clock>Loading</time><span data-protection class="pke-protection" title="Spawn protection">${svg(ICONS.shield)}</span></div>
       <div data-health class="pke-health kart-hearts" role="img" aria-label="3 of 3 hearts"></div>
       <p data-notice class="pke-notice" role="status" hidden></p><div class="pke-bottom"><div data-weapon class="kart-item" role="group" aria-label="Weapon"></div><div class="pke-instruments"><span class="pke-speed"><b data-speed>0</b><small>km/h</small><i data-gear class="kart-gear" role="img" aria-label="Gear 1">1</i></span><span data-charge class="pke-charge" role="img" aria-label="Nitro charge">${NITRO}</span></div></div>
       <div data-touch class="pke-touch" hidden><div data-stick class="pke-stick" role="group" aria-label="Drive stick"><span></span></div><div class="pke-actions"><button data-gas aria-label="Hold to accelerate">${svg('<path d="m10 21 6-11 6 11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-reverse aria-label="Hold to reverse">${svg('<path d="m10 11 6 11 6-11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-brake aria-label="Hold to brake">${svg('<path d="M8 7h5v18H8zm11 0h5v18h-5z" fill="#e5f5ff"/>')}</button><button data-nitro aria-label="Hold for Nitro">${NITRO}</button><button data-use aria-label="Use weapon"><span data-use-icon>${TARGET}</span><b data-use-ammo hidden></b></button></div></div>
@@ -553,6 +554,7 @@ export function createElevatedKartView() {
     // that drawer instead of drawing a second menu on top of it.
     const roomMenu=document.getElementById('roomMenu'),roomPanel=roomMenu?.querySelector('.room-menu-panel');
     if(roomPanel){const panel=$('menu').querySelector('.pke-panel');panel.classList.add('pke-room-settings');roomPanel.append(panel);listeners.push([panel,'owned-panel',null]);$('menu').hidden=true;$('resume').hidden=true;root.classList.add('pke-has-room');on(roomMenu,'toggle',()=>{stop();paint();if(!roomMenu.open&&active()&&roomMenu.contains(document.activeElement))gl?.canvas.focus({preventScroll:true});});}
+    wirePickers($('controls').parentNode);
     try{preference=localStorage.getItem('pk-controls-v1')||'auto';}catch{preference='auto';}if(!['auto','keyboard','touch'].includes(preference))preference='auto';
     audio=createKartAudio({muted:api.context?.().sound===false});
     on(root,'pointerdown',()=>audio?.unlock());on(window,'keydown',()=>{if(root.contains(document.activeElement))audio?.unlock();});

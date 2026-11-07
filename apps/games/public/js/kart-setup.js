@@ -78,7 +78,7 @@ export function kartSetupHtml(g, current, host) {
     const s = field(key);
     return `<div class="ks-rule" data-kart-rule="${key}"><label for="df-${g.id}-${key}">${label}</label><div class="ks-stepper">
       <button type="button" data-kart-step="${key}" data-delta="-${step}" aria-label="Decrease ${label.toLowerCase()}" data-hostonly ${dis}>−</button>
-      <input id="df-${g.id}-${key}" type="number" min="${s.min}" max="${s.max}" value="${settings[key]}" data-hostonly ${dis}>
+      <input id="df-${g.id}-${key}" class="picker-value" type="number" min="${s.min}" max="${s.max}" value="${settings[key]}" data-hostonly ${dis}>
       <button type="button" data-kart-step="${key}" data-delta="${step}" aria-label="Increase ${label.toLowerCase()}" data-hostonly ${dis}>+</button></div></div>`;
   };
   return `<section class="ks-mode"><h3>How are we playing?</h3>

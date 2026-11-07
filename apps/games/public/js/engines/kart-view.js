@@ -1,3 +1,4 @@
+import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
 import {WEAPON_IDS} from './kart-weapon-contract.mjs';
 import {paintKartWeapon,createKartWeaponRoulette} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
@@ -265,6 +266,7 @@ export function createKartView(viewConfig) {
     rootEl.querySelector('.pk')?.classList.toggle('pk-touch-enabled',touchControlsFor(controlsPreference,caps));
     const picker=rootEl.querySelector('#pk-controls');
     if(picker)picker.value=controlsPreference;
+    syncPickers(rootEl);
   }
   let arenaPending = null;
   let arenaNotice = '';
@@ -583,7 +585,7 @@ export function createKartView(viewConfig) {
       <div class="pk-driftmeter" role="progressbar" aria-label="Drift charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="pk-driftfill"></i></div>
       <div class="pk-nitrometer" role="progressbar" aria-label="Nitro charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="pk-nitrofill"></i><span id="pk-nitrolabel">Nitro</span></div></div>
       <details class="pk-help" id="pk-help"><summary aria-label="Driving controls help">?</summary>
-      <div class="pk-helpbody"><button type="button" id="pk-resume" class="pk-resume">Resume</button><label class="pk-controls-label">Controls<select id="pk-controls" aria-label="Controls"><option value="auto">Auto</option><option value="keyboard">Keyboard</option><option value="touch">Touch</option></select></label><button type="button" id="pk-auto" class="pk-auto" aria-pressed="false" hidden>Auto gas · off</button><p class="pk-helpkeys"><b>Drive</b> WASD / arrows or left stick: up for gas, down to brake / reverse · <b>Drift</b> hold Shift / tyre button in a turn, release blue, orange or purple sparks for a growing turbo · <b>Nitro</b> hold N / bottle button with gas for a rechargeable boost · <b>Item</b> Space / action button · Ice is slippery, mint strips boost.</p><a href="/assets/karts/audio/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a></div></details></div></div>
+      <div class="pk-helpbody"><button type="button" id="pk-resume" class="pk-resume">Resume</button>${controlsPickerHtml('pk-controls',controlsPreference)}<button type="button" id="pk-auto" class="pk-auto" aria-pressed="false" hidden>Auto gas · off</button><p class="pk-helpkeys"><b>Drive</b> WASD / arrows or left stick: up for gas, down to brake / reverse · <b>Drift</b> hold Shift / tyre button in a turn, release blue, orange or purple sparks for a growing turbo · <b>Nitro</b> hold N / bottle button with gas for a rechargeable boost · <b>Item</b> Space / action button · Ice is slippery, mint strips boost.</p><a href="/assets/karts/audio/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a></div></details></div></div>
     <canvas id="pk-radar" class="pk-radar" width="240" height="240" role="img" aria-label="Arena map: players, cover and glowing pickups"></canvas>
     <div class="pk-respawn" id="pk-respawn" hidden></div>
     <div class="pk-result" id="pk-result" hidden></div>
@@ -1820,6 +1822,7 @@ export function createKartView(viewConfig) {
     buildHud();
     hitFx=createKartHitFeedback(rootEl.querySelector('.pk'),{reducedMotion});
     try { const pref=localStorage.getItem('pk-controls-v1'); controlsPreference=['auto','keyboard','touch'].includes(pref)?pref:'auto'; } catch { controlsPreference='auto'; }
+    wirePickers(rootEl);
     paintControls();
     on(rootEl.querySelector('#pk-resume'),'click',()=>{const help=rootEl.querySelector('#pk-help');if(help)help.open=false;rootEl.querySelector('.pk')?.focus?.({preventScroll:true});});
     on(rootEl.querySelector('#pk-help'),'toggle',event=>{if(event.target?.open===true)atomicStop();if(event.target?.open===false)rootEl.querySelector('.pk')?.focus?.({preventScroll:true});});

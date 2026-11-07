@@ -1336,7 +1336,7 @@ function sortChips(inRoom) {
  * keeps the value and the change handler; pickers.js keeps them in step). */
 function chipSelectHtml(id, label, optionsHtml, chips, value) {
   return `<div class="catpick"><span class="sr-only" id="${id}-l">${label}</span>`
-    + `<select id="${id}" class="picker-native" tabindex="-1" aria-hidden="true">${optionsHtml}</select>`
+    + `<select hidden id="${id}" class="picker-native" tabindex="-1" aria-hidden="true">${optionsHtml}</select>`
     + segPickerHtml(id, chips, value, `${id}-l`) + '</div>';
 }
 
