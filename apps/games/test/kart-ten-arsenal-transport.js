@@ -23,13 +23,13 @@ async function pickupSeeds(){
       if(!w.snapshot().crates.some(c=>c.position.x===-64&&c.position.z===-50))continue;
       for(let n=0;n<480;n++){
         const s=w.snapshot('p0'),k=s.karts[0];
-        if(k.weapon){if(['seeker','proximity'].includes(k.weapon)&&result[k.weapon]===undefined)result[k.weapon]=seed;break;}
+        if(k.weapon){if(['missile','oil'].includes(k.weapon)&&result[k.weapon]===undefined)result[k.weapon]=seed;break;}
         if(n%6===0)assert.ok(w.input('p0',{instance:s.instance,seq:s.you.receivedSeq+1,life:s.you.life,controlEpoch:s.you.controlEpoch,brake:0,nitro:false,use:false,...toward(k.pose,{x:-64,z:-49})},s.serverAt).ok);
         w.advance(s.serverAt+config.fixedDt*1000);
       }
     }finally{w.dispose();}
   }
-  ok(result.seeker!==undefined&&result.proximity!==undefined,'bounded seeds use actual authored-spawn crate collection for both new items');
+  ok(result.missile!==undefined&&result.oil!==undefined,'bounded seeds use actual authored-spawn crate collection for both new items');
   return result;
 }
 
@@ -40,8 +40,8 @@ const physicsFactory=P.createKartPhysics,references=new Map();let lastWorld;
 require.cache[require.resolve(${JSON.stringify(path.join(ROOT,'games/engines/kart-physics.js'))})].exports={...P,createKartPhysics:function(...args){const world=physicsFactory.apply(this,args),entry={world,config:args[1],disposed:false};lastWorld=entry;return Object.freeze({...world,dispose(){entry.disposed=true;return world.dispose();}});}};
 const C=require(${JSON.stringify(path.join(ROOT,'games/engines/kart-elevated-combat.js'))});
 const inspectSeeker=${inspectSeeker.toString()};
-const original=C.createElevatedCombat,records=[],fixed=${JSON.stringify([seeds.seeker,seeds.proximity,seeds.proximity])};
-function capture(record,view){record.phase=view.phase;record.snapshots.push({simTick:view.simTick,simAt:view.simAt,karts:view.karts,phase:view.phase,projectiles:view.projectiles,grenades:view.grenades,events:view.events});if(record.snapshots.length>120)record.snapshots.shift();}
+const original=C.createElevatedCombat,records=[],fixed=${JSON.stringify([seeds.missile,seeds.oil,seeds.oil])};
+function capture(record,view){record.phase=view.phase;record.snapshots.push({simTick:view.simTick,simAt:view.simAt,karts:view.karts,phase:view.phase,projectiles:view.projectiles,grenades:view.grenades,mines:view.mines,events:view.events});if(record.snapshots.length>120)record.snapshots.shift();}
 C.createElevatedCombat=(R,config,map,seats,options)=>{
   const index=records.length,match=original(R,config,map,seats,{...options,seed:fixed[index]??fixed[0]});
   references.set(options.instance,{match,entry:lastWorld});
@@ -53,7 +53,7 @@ http.createServer=function(...args){const at=args.findLastIndex(v=>typeof v==='f
   const instance=url.searchParams.get('instance'),owner=url.searchParams.get('owner'),ref=references.get(instance);
   if(!ref||ref.entry.disposed){res.writeHead(410,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'unknown or disposed instance'}));return;}
   const view=ref.match.snapshot();if(view.phase!=='live'||!view.karts.some(k=>k.id===owner)){res.writeHead(409,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'not a live owner',phase:view.phase,tick:view.simTick}));return;}
-  res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(inspectSeeker(ref.entry.world,ref.entry.config,view,owner,C.arsenal.seeker)));return;
+  res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(inspectSeeker(ref.entry.world,ref.entry.config,view,owner,C.arsenal.missile)));return;
 }if(req.url==='/__kart_transport_evidence'){res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(records));return;}return handler(req,res);};return create.apply(this,args);};
 `;
 }
@@ -86,14 +86,15 @@ async function start(clients,settings){
 function inspectSeeker(world,config,view,owner,rule){
   const add=(a,b)=>({x:a.x+b.x,y:a.y+b.y,z:a.z+b.z}),sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z}),mul=(a,n)=>({x:a.x*n,y:a.y*n,z:a.z*n}),length=a=>Math.hypot(a.x,a.y,a.z),dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
   const rotate=(v,q)=>{const t={x:2*(q.y*v.z-q.z*v.y),y:2*(q.z*v.x-q.x*v.z),z:2*(q.x*v.y-q.y*v.x)};return{x:v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:v.z+q.w*t.z+q.x*t.y-q.y*t.x};};
-    const shooter=view.karts.find(k=>k.id===owner),q=shooter.pose.rotation,muzzle=add(shooter.pose.position,rotate(config.combat.seekerMuzzle||{x:0,y:.5,z:1.9},q)),forward=rotate({x:0,y:0,z:1},q);
+    const shooter=view.karts.find(k=>k.id===owner),q=shooter.pose.rotation,muzzle=add(shooter.pose.position,rotate(config.combat.missileMuzzle||{x:0,y:.5,z:1.9},q)),forward=rotate({x:0,y:0,z:1},q);
     const candidates=view.karts.filter(k=>k.id!==owner).map(k=>{
       const point=add(k.pose.position,rotate({x:0,y:.35,z:0},k.pose.rotation)),delta=sub(point,muzzle),distance=length(delta),projection=dot(delta,forward);
       const start=distance<.001?muzzle:add(muzzle,mul(delta,Math.min(.01/distance,.01))),hit=distance<.001?null:world.sweepStatic(start,point);
       const clear=!hit||hit.fraction>=1-1e-6;
       return{id:k.id,pose:k.pose,life:k.spawnSeq,alive:k.alive,connected:k.connected,shield:k.shield,distance,projection,clear,hit:hit?{surfaceId:hit.surfaceId,fraction:hit.fraction}:null,eligible:k.alive&&k.connected&&k.shield<=0&&distance<=rule.range&&projection>=distance*Math.cos(rule.halfAngle)&&clear};
     }).sort((a,b)=>a.distance-b.distance);
-    return{instance:view.instance,tick:view.simTick,simAt:view.simAt,phase:view.phase,ownerPose:shooter.pose,muzzle,forward,candidates,closest:candidates.find(k=>k.eligible)?.id??null};
+    const launchClear=!world.sweepStatic(muzzle,add(muzzle,mul(forward,rule.speed*.18)),.42);
+    return{launchClear,instance:view.instance,tick:view.simTick,simAt:view.simAt,phase:view.phase,ownerPose:shooter.pose,muzzle,forward,candidates,closest:candidates.find(k=>k.eligible)?.id??null};
 }
 const observeSeeker=(server,instance,owner)=>fetch(server.http+'/__kart_transport_eligibility?instance='+encodeURIComponent(instance)+'&owner='+encodeURIComponent(owner)).then(async r=>{const value=await r.json();if(!r.ok)throw Error('Seeker observer '+r.status+' '+JSON.stringify(value));return value;});
 async function establishSeeker(server,a,target){
@@ -102,14 +103,14 @@ async function establishSeeker(server,a,target){
   while(Date.now()<end){
     last=await observeSeeker(server,a.state.instanceId,a.hello.you);
     const rival=last.candidates.find(k=>k.id===target.hello.you),applied=target.state.inputAck.appliedInputSeq>=targetSeq;
-    const safe=rival.eligible&&rival.distance<=43&&rival.projection>=rival.distance*Math.cos(33*Math.PI/180);
+    const safe=last.launchClear&&rival.eligible&&rival.distance<=43&&rival.projection>=rival.distance*Math.cos(33*Math.PI/180);
     const ready=last.closest===target.hello.you&&safe&&applied&&Math.abs(rival.pose.speed)>.1&&Math.abs(last.ownerPose.speed)<.4;
     if(last.tick!==lastTick){stable=ready?stable+1:0;lastTick=last.tick;
       records.push({tick:last.tick,simAt:last.simAt,ownerPosition:last.ownerPose.position,ownerSpeed:last.ownerPose.speed,
         target:rival,closest:last.closest,targetSeq,applied,ready});if(records.length>16)records.shift();}
-    if(stable>=2){console.log('SEEKER_PREFIRE_CONDITIONS',JSON.stringify(records));return last;}
+    if(stable>=2){console.log('MISSILE_PREFIRE',JSON.stringify({tick:last.tick,closest:last.closest,launchClear:last.launchClear,distance:rival.distance,ownerSpeed:last.ownerPose.speed}));return last;}
     if(safe)action(a,{brake:1});else action(a,toward(kart(a).pose,rival.pose.position));
-    targetSeq=action(target,{throttle:-1});await sleep(95);
+    targetSeq=action(target,{throttle:rival.pose.position.x< -78?1:-1});await sleep(95);
   }
   throw Error('Seeker actual preconditions not established '+JSON.stringify(records));
 }
@@ -134,12 +135,10 @@ async function compare(server,client,frame,kind){
   const ledger=await evidence(server),record=ledger.find(r=>r.instance===frame.instanceId),raw=record?.snapshots.find(s=>s.simTick===frame.simTick);
   ok(raw,'projected physical frame has a matching independently observed authority tick');
   const item=frame[kind][0],original=raw[kind].find(s=>s.id===item.id);
-  eq(item.weapon,original.weapon,'weapon id survives authority→adapter→Room→WS');eq(item.position,rounded(original.position),'physical item position survives compact projection');eq(item.velocity,rounded(original.velocity),'physical item velocity survives compact projection');
-  if(kind==='grenades'){
-    eq(item.warning,original.landed&&original.arm<=1e-8,'Proximity Bomb warning follows landed arming');
-    eq(item.radius,+original.radius.toFixed(3),'dynamite body radius survives compact projection');
-    eq(item.landed,original.landed,'real landing state survives compact projection');eq(item.armed,original.armed,'armed state survives compact projection');
-    eq(item.ttl,+original.ttl.toFixed(3),'quiet Proximity Bomb lifetime survives compact projection');eq(item.fuse,0,'proximity charges have no timed detonation fuse');
+  eq(item.weapon,original.weapon,'weapon id survives authority→adapter→Room→WS');eq(item.position,rounded(original.position),'physical item position survives compact projection');if(original.velocity)eq(item.velocity,rounded(original.velocity),'physical item velocity survives compact projection');
+  if(kind==='mines'){
+    eq(item.armed,original.armed,'armed trap status survives projection');eq(item.radius,+original.radius.toFixed(3),'trap radius survives projection');
+    eq(item.ttl,+original.ttl.toFixed(3),'bounded trap lifetime survives projection');
   }
   ok(finite(item),'item wire payload is finite');
   return original;
@@ -159,12 +158,12 @@ async function main(){
     await until(()=>clients.every(c=>c.state.phase==='live'),'countdown→live on the production wall clock',4500);
     const before=a.state.inputAck.receivedSeq;action(watcher,{throttle:1,use:true});action(a,{throttle:1},{i:'old-instance'});await sleep(180);
     eq(a.state.inputAck.receivedSeq,before,'watcher and wrong outer token cannot drive or spend');eq(watcher.state.coins,0,'watcher has no private pickup wallet');
-    await collect(a,'seeker');eq(kart(a).weapon,'seeker','new weapon inventory survives Room projection');
+    await collect(a,'missile');eq(kart(a).weapon,'missile','new weapon inventory survives Room projection');
     const prefire=await establishSeeker(server,a,target);
     metrics.seekerPrefire={tick:prefire.tick,closest:prefire.closest,target:target.hello.you};
     action(a,{use:true,brake:1});action(a,{use:false,brake:1});
-    await until(()=>frames(a).some(f=>f.instanceId===first.instanceId&&f.projectiles.some(p=>p.weapon==='seeker')),'actual Seeker projectile transport');
-    const firstShot=frames(a).find(f=>f.instanceId===first.instanceId&&f.projectiles.some(p=>p.weapon==='seeker'));
+    await until(()=>frames(a).some(f=>f.instanceId===first.instanceId&&f.projectiles.some(p=>p.weapon==='missile'&&p.targetId)),'actual Seeker projectile transport');
+    const firstShot=frames(a).find(f=>f.instanceId===first.instanceId&&f.projectiles.some(p=>p.weapon==='missile'&&p.targetId));
     const rawShot=await compare(server,a,firstShot,'projectiles');
     eq(rawShot.targetId,target.hello.you,'real moving in-cone rival was acquired without a target injection');
     await until(()=>frames(watcher).some(f=>f.simTick===firstShot.simTick&&f.instanceId===firstShot.instanceId),'watcher sees same Seeker world tick');
@@ -178,9 +177,9 @@ async function main(){
 
     // Drive into authored warehouse cover; actual Rapier contact events must
     // keep their impulse, surface and normal through the normal Room packet.
-    let contactFrame;
-    for(let n=0;n<75&&!contactFrame;n++){
-      action(a,toward(kart(a).pose,{x:-36,z:-35}));await sleep(90);
+    let contactFrame;const boundaryTarget={x:-90,z:kart(a).pose.position.z};
+    for(let n=0;n<125&&!contactFrame;n++){
+      action(a,toward(kart(a).pose,boundaryTarget));await sleep(90);
       contactFrame=frames(a).find(f=>f.instanceId===first.instanceId&&f.events.some(e=>['collision','landing'].includes(e.type)&&e.pid===a.hello.you&&e.surfaceId&&e.impulse>0));
     }
     ok(contactFrame,'normal driving produces a real positive-impulse static contact');
@@ -196,15 +195,15 @@ async function main(){
     ok(second.instanceId!==first.instanceId,'host rematch creates a new instance');eq(second.inputAck.receivedSeq,0,'rematch starts neutral sequence');eq(second.totals,total1,'rematch does not replay previous Room awards');eq(second.mapId,'harbor','host rematch retains normal Harbor settings');
     action(a,{throttle:1,use:true},{i:first.instanceId,w:done1.w});await sleep(150);eq(a.state.inputAck.receivedSeq,0,'previous instance Use cannot spend in a fresh round');
     let records=await evidence(server),retired=records.find(r=>r.instance===first.instanceId);eq(retired.disposals,1,'Room rematch consumes one authority disposal');ok(retired.stats.physics.disposed&&retired.stats.physics.karts===0&&retired.stats.physics.statics===0,'retired world releases actual Rapier resources');
-    await until(()=>clients.every(c=>c.state.phase==='live'),'second production countdown',4500);await collect(a,'proximity');eq(kart(a).weapon,'proximity','Proximity Bomb inventory id survives normal transport');
-    action(a,{use:true,brake:1});action(a,{use:false,brake:1});await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='proximity')),'actual Proximity Bomb wire body');
-    const chargeFrame=frames(a).find(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='proximity'));await compare(server,a,chargeFrame,'grenades');eq(chargeFrame.grenades[0].warning,false,'Proximity Bomb initially has no premature warning');
-    await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='proximity'&&g.warning)),'real Proximity Bomb landed arming warning',3000);
-    const warning=frames(a).find(f=>f.instanceId===second.instanceId&&f.grenades.some(g=>g.weapon==='proximity'&&g.warning));await compare(server,a,warning,'grenades');ok(warning.grenades[0].landed&&warning.grenades[0].armed,'public warning requires real landing and completed arming');
-    await until(()=>frames(watcher).some(f=>f.instanceId===warning.instanceId&&f.simTick===warning.simTick),'watcher Proximity Bomb warning tick');eq(frames(watcher).find(f=>f.instanceId===warning.instanceId&&f.simTick===warning.simTick).grenades,warning.grenades,'watcher receives identical public Proximity Bomb warning/body');
-    await until(()=>a.state.grenades.length===0,'unused Proximity Bomb quietly reaches its bounded lifetime',13000);
-    eq(new Set(frames(a).flatMap(f=>f.instanceId===second.instanceId?f.events.filter(e=>e.type==='blast'&&e.weapon==='proximity').map(e=>e.id):[])).size,0,'unused proximity charge never fabricates a timed blast');
-    metrics.proximity={instance:second.instanceId,initialTick:chargeFrame.simTick,armedTick:warning.simTick,armedTtl:warning.grenades[0].ttl,expiredQuietly:true};
+    await until(()=>clients.every(c=>c.state.phase==='live'),'second production countdown',4500);await collect(a,'oil');eq(kart(a).weapon,'oil','Oil Slick inventory survives normal transport');
+    action(a,{use:true,brake:1});action(a,{use:false,brake:1});await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.mines.some(m=>m.weapon==='oil')),'real oil trap wire body');
+    const trapFrame=frames(a).find(f=>f.instanceId===second.instanceId&&f.mines.some(m=>m.weapon==='oil'));await compare(server,a,trapFrame,'mines');
+    await until(()=>frames(a).some(f=>f.instanceId===second.instanceId&&f.mines.some(m=>m.weapon==='oil'&&m.armed)),'real oil trap completes arming',3000);
+    const armed=frames(a).find(f=>f.instanceId===second.instanceId&&f.mines.some(m=>m.weapon==='oil'&&m.armed));await compare(server,a,armed,'mines');
+    await until(()=>frames(watcher).some(f=>f.instanceId===armed.instanceId&&f.simTick===armed.simTick),'watcher armed oil tick');eq(frames(watcher).find(f=>f.instanceId===armed.instanceId&&f.simTick===armed.simTick).mines,armed.mines,'watcher receives identical public oil bodies');
+    await until(()=>a.state.mines.length===0,'unused oil expires within bounded lifetime',13000);
+    eq(new Set(frames(a).flatMap(f=>f.instanceId===second.instanceId?f.events.filter(e=>e.type==='blast'&&e.weapon==='oil').map(e=>e.id):[])).size,0,'unused oil never fabricates a blast');
+    metrics.oil={instance:second.instanceId,initialTick:trapFrame.simTick,armedTick:armed.simTick,expiredQuietly:true};
     await until(()=>clients.every(c=>c.state.phase==='done'),'full second production 60 s deadline',64000);eq(a.state.result.endedAt,second.deadline,'second result remains clock anchored');const total2={...a.state.totals};await sleep(150);eq(a.state.totals,total2,'second terminal result consumes awards once');
     await start(clients);eq(a.state.totals,total2,'second rematch cannot replay totals');send(a,{t:'lobby'});
     await until(async()=>{const r=await evidence(server);return r.length===3&&r.every(v=>v.disposals===1);},'explicit lobby retires third authority exactly once');

@@ -19,7 +19,7 @@ function armed(weapon,m=map(),options={}){
  }throw Error('No real pickup seed for '+weapon);
 }
 function tap(w){assert(send(w,'a',{use:true}).ok);assert(send(w).ok);step(w);}
-for(const [weapon,count] of [['pulse',12],['rocket',3],['scatter',5]]){
+for(const [weapon,count] of [['machinegun',24],['trishot',3]]){
  const w=armed(weapon);try{
   tap(w);const fires=new Map(w.snapshot().events.filter(e=>e.type==='fire').map(e=>[e.id,e]));
   check(kart(w).firing===true&&kart(w).weapon===weapon&&kart(w).ammo===count-1,weapon+' publishes the in-progress inventory after one tap');
@@ -32,30 +32,30 @@ for(const [weapon,count] of [['pulse',12],['rocket',3],['scatter',5]]){
  }finally{w.dispose();}
 }
 {
- const w=armed('pulse');try{
+ const w=armed('machinegun');try{
   assert(send(w,'a',{use:true}).ok);step(w);const fires=new Map();
   step(w,220,s=>{for(const e of s.events)if(e.type==='fire')fires.set(e.id,e);if(s.simTick%6===0)send(w,'a',{use:true});});
-  check(fires.size===12,'held Use spends exactly one full Pulse pickup');
+  check(fires.size===24,'held Use spends exactly one full Pulse pickup');
   check(kart(w).weapon!==null&&!kart(w).firing,'recycled actual crate stays unused while Use remains held');
   check(w.snapshot().karts.every(k=>typeof k.firing==='boolean'&&!('sequence'in k)&&!('itemSeq'in k)),'public karts expose only firing, not private sequence identity/timers');
  }finally{w.dispose();}
- const staleHeld=armed('pulse');try{
+ const staleHeld=armed('machinegun');try{
   assert(send(staleHeld,'a',{use:true}).ok);step(staleHeld);const fires=new Set();
   step(staleHeld,230,s=>{for(const e of s.events)if(e.type==='fire')fires.add(e.id);if(kart(staleHeld).firing&&s.simTick%6===0){send(staleHeld,'a',{use:false});send(staleHeld,'a',{use:true});}});
-  check(fires.size===12&&kart(staleHeld).weapon!==null&&!kart(staleHeld).firing,'repeated presses during a sequence cannot queue reuse of the next real pickup');
+  check(fires.size===24&&kart(staleHeld).weapon!==null&&!kart(staleHeld).firing,'repeated presses during a sequence cannot queue reuse of the next real pickup');
   assert(send(staleHeld,'a',{use:true}).ok);step(staleHeld,30,s=>{for(const e of s.events)if(e.type==='fire')fires.add(e.id);});
-  check(fires.size===12&&!kart(staleHeld).firing,'input TTL cannot manufacture a new activation edge from still-held Use');
+  check(fires.size===24&&!kart(staleHeld).firing,'input TTL cannot manufacture a new activation edge from still-held Use');
   const nextAmmo=kart(staleHeld).ammo;assert(send(staleHeld).ok);assert(send(staleHeld,'a',{use:true}).ok);step(staleHeld);
   check(kart(staleHeld).ammo<nextAmmo||kart(staleHeld).weapon===null,'explicit neutral release followed by a new press can activate the next actual pickup');
  }finally{staleHeld.dispose();}
- const disconnected=armed('pulse');try{
+ const disconnected=armed('machinegun');try{
   tap(disconnected);const fired=disconnected.snapshot().events.filter(e=>e.type==='fire').length;disconnected.setConnected('a',false);step(disconnected,90);disconnected.setConnected('a',true);step(disconnected,90);
   check(disconnected.snapshot().events.filter(e=>e.type==='fire').length===fired&&!kart(disconnected).firing,'disconnect/epoch change retires accepted remaining rounds across reconnect');
  }finally{disconnected.dispose();}
  const duelMap=map([],[point('a',0,0),{...point('b',0,12),angle:Math.PI}]);duelMap.sockets=[point('s0',-.7,0),point('s1',.7,0),point('s2',-.7,12),point('s3',.7,12)];let duel;
  for(let seed=0;seed<2048;seed++){
   const candidate=COMBAT.createElevatedCombat(R,CONFIG,duelMap,[{id:'a'},{id:'b'}],{instance:'payload-ko-'+(++instance),seed,startAt:0,countdownMs:0,roundMs:30000,crates:2,initialHealth:1});step(candidate);
-  if(kart(candidate).weapon==='pulse'&&['pulse','scatter'].includes(kart(candidate,'b').weapon)){duel=candidate;break;}candidate.dispose();
+  if(kart(candidate).weapon==='machinegun'&&['machinegun','trishot'].includes(kart(candidate,'b').weapon)){duel=candidate;break;}candidate.dispose();
  }
  check(!!duel,'KO lifecycle fixture acquires both opposing weapons through real crates');
  try{
@@ -65,7 +65,7 @@ for(const [weapon,count] of [['pulse',12],['rocket',3],['scatter',5]]){
   step(duel,200,s=>{for(const e of s.events)if(e.type==='fire'&&e.pid==='a')emitted.add(e.id);});
   check(kart(duel).alive&&kart(duel).spawnSeq===1&&emitted.size===1&&!kart(duel).firing,'respawn life cannot inherit or resume the cancelled payload');
  }finally{duel.dispose();}
- const ends=[],deadline=armed('pulse',map(),{roundMs:3000,onResult:r=>ends.push(r)});try{
+ const ends=[],deadline=armed('machinegun',map(),{roundMs:3000,onResult:r=>ends.push(r)});try{
   tap(deadline);step(deadline,60);check(deadline.snapshot().phase==='done'&&ends.length===1&&!kart(deadline).firing&&deadline.snapshot().projectiles.length===0,'results discard unfinished accepted payload and all flight entities');
   const next=deadline.rematch({instance:'payload-rematch',seed:1,startAt:10000});try{check(next.snapshot().karts.every(k=>!k.firing&&k.weapon===null),'rematch has no inherited firing sequence');}finally{next.dispose();}
  }finally{deadline.dispose();}
@@ -84,36 +84,5 @@ for(const moving of [false,true]){
   step(w,750);check(w.snapshot().mines.length===0&&!w.snapshot().events.some(e=>e.type==='blast'||e.type==='hit'),'unused owner-immune Mine trail expires quietly after12seconds');
   metrics.push({weapon:'mine',moving,dropTicks:events.map(e=>e.tick),positions:mines.map(m=>m.position)});
  }finally{w.dispose();}
-}
-for(const weapon of ['proximity']){
- const w=armed(weapon);try{
-  tap(w);const first=w.snapshot().grenades[0];check(first?.weapon===weapon&&first.radius===.6&&first.velocity.z>11&&first.velocity.y>5&&!first.landed&&!first.armed,weapon+' is a visible forward lob with its .60m swept body');
-  let landedTick=null,armedTick=null,peak=first.position.y,settled=false,previousSpeed=Infinity,slowed=false;
-  step(w,240,s=>{const g=s.grenades[0];if(!g)return;peak=Math.max(peak,g.position.y);if(g.landed)landedTick??=s.simTick;if(g.armed)armedTick??=s.simTick;check(!g.armed||g.landed,weapon+' cannot arm in flight');const speed=Math.hypot(g.velocity.x,g.velocity.z);if(g.landed&&speed<previousSpeed-.01)slowed=true;previousSpeed=speed;settled ||= g.landed&&speed<.05;check(Number.isFinite(g.position.y)&&g.position.y>=.6,weapon+' physical body never sinks through its support');});
-  check(landedTick!==null&&armedTick!==null&&(armedTick-landedTick)*CONFIG.fixedDt>=.7-1e-8,weapon+' arms only after .7seconds on real landing support');
-  check(peak>first.position.y+.3&&settled&&slowed,weapon+' lob has a real arc then frictional settling');
-  step(w,500);check(w.snapshot().grenades.length===0&&!w.snapshot().events.some(e=>e.type==='blast'),weapon+' expires quietly at12seconds without a timed detonation');
-  metrics.push({weapon,landedTick,armedTick,peak});
- }finally{w.dispose();}
- const trigger=armed(weapon,map([],[point('a',0,0),point('b',0,10)]));try{
-  tap(trigger);let blast=null;step(trigger,180,s=>{blast??=s.events.find(e=>e.type==='blast'&&e.weapon===weapon);});
-  check(!!blast&&kart(trigger,'b').health===1,weapon+' one landed enemy-proximity activation takes two hearts');
-  check(kart(trigger).health===3&&kart(trigger).deaths===0,weapon+' owner remains immune');
-  check(trigger.snapshot().events.filter(e=>e.type==='blast'&&e.weapon===weapon).length===1,weapon+' accepted proximity charge detonates once');
- }finally{trigger.dispose();}
- const lowRoof={id:'charge-launch-roof',shape:'box',half:{x:5,y:.1,z:5},position:{x:0,y:1.75,z:0}};
- const obstructed=armed(weapon,map([lowRoof]));try{
-  tap(obstructed);check(kart(obstructed).firing&&obstructed.snapshot().grenades.length===0,weapon+' cannot create a body inside a roof overlapping its launch volume');
-  step(obstructed,500);check(!kart(obstructed).firing&&obstructed.snapshot().grenades.length===0&&!obstructed.snapshot().events.some(e=>e.type==='blast'),weapon+' impossible launch retries remain bounded and expire without fabricated blast');
- }finally{obstructed.dispose();}
- const wall={id:'charge-wall',shape:'box',half:{x:8,y:3,z:.1},position:{x:0,y:3,z:4}};
- const cover=armed(weapon,map([wall],[point('a',0,0),point('b',0,7)]));try{
-  tap(cover);step(cover,180);check(cover.snapshot().grenades[0]?.position.z<3.31&&kart(cover,'b').health===3&&!cover.snapshot().events.some(e=>e.type==='blast'),weapon+' swept wall blocks movement and proximity LOS');
- }finally{cover.dispose();}
- const deck={id:'charge-deck',shape:'deck',half:{x:8,y:.15,z:10},position:{x:0,y:1.65,z:12}};
- const layered=armed(weapon,map([deck],[point('a',0,0),point('b',0,3,1.8,'charge-deck')]));try{
-  tap(layered);step(layered,200);const charge=layered.snapshot().grenades[0],target=kart(layered,'b').pose.position;
-  check(charge?.landed&&Math.hypot(target.x-charge.position.x,target.y+.35-charge.position.y,target.z-charge.position.z)<3&&kart(layered,'b').health===3&&!layered.snapshot().events.some(e=>e.type==='blast'),weapon+' solid deck denies an otherwise in-radius enemy on another level');
- }finally{layered.dispose();}
 }
 console.log(JSON.stringify({pass:true,checks,metrics,scope:'Real Rapier authority, legal crate pickup and input; no native visual/audio claim'}));

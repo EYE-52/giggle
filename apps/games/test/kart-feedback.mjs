@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';import{createKartFeedback}from'../public
 const f=createKartFeedback();const a={pid:'a',x:0,z:0,speed:14,spawnSeq:0,respawn:0,connected:true,angle:0},b={pid:'b',x:8,z:0,speed:0,spawnSeq:0,respawn:0,connected:true,angle:0};
 const state=(n,events=[],karts=[a,b],extra={})=>({instanceId:'match1',phase:'drive',simAt:n,map:{bound:28,blocks:[{x:0,z:4,hw:2,hd:2}]},karts,events,...extra});
 f.ingest(state(100,[{id:'old',type:'ko',pid:'a',other:'b'}]),0);assert.equal(f.current(0).length,0,'late watcher/reconnect does not replay historical KO');
-f.ingest(state(200,[{id:'new',type:'ko',pid:'a',other:'b',weapon:'pulse'}],[a,{...b,respawn:2}]),100);assert.equal(f.current(100).filter(e=>e.kind==='ko').length,1);
+f.ingest(state(200,[{id:'new',type:'ko',pid:'a',other:'b',weapon:'machinegun'}],[a,{...b,respawn:2}]),100);assert.equal(f.current(100).filter(e=>e.kind==='ko').length,1);
 f.ingest(state(200,[{id:'new',type:'ko',pid:'a',other:'b'}]),110);assert.equal(f.current(110).filter(e=>e.kind==='ko').length,1,'duplicate authoritative KO is exact once');
 f.ingest(state(300,[],[{...a,z:-.05,speed:0},b]),200);assert.equal(f.current(200).filter(e=>e.kind==='collision').length,1,'accepted speed loss at real cover emits a contact burst');
 f.ingest(state(400,[],[{...a,z:-.05,speed:14},b]),250);f.ingest(state(500,[],[{...a,z:-.05,speed:0},b]),300);assert.equal(f.current(300).filter(e=>e.kind==='collision').length,1,'contact feedback is rate bounded');
@@ -16,7 +16,7 @@ f.ingest(state(2000,[],[a,b],{instanceId:'match3'}),1600);f.ingest(state(6000,[{
 f.ingest(state(6100,[{id:'fresh',type:'ko',pid:'a',other:'b'}],[a,{...b,respawn:2}],{instanceId:'match3'}),5700);assert.equal(f.current(5700).filter(e=>e.kind==='ko').length,1,'fresh effects resume after reconnect');
 f.ingest(state(100,[],[a,b],{instanceId:'crowded'}),6000);f.ingest(state(200,[],[a,{...b,respawn:2}],{instanceId:'crowded'}),6100);assert.equal(f.current(6100).filter(e=>e.kind==='ko'&&e.pid==='b').length,1,'accepted KO transition survives event-buffer churn');
 f.ingest(state(300,[],[a,{...b,respawn:1.9}],{instanceId:'crowded'}),6200);assert.equal(f.current(6200).filter(e=>e.kind==='ko'&&e.pid==='b').length,1,'missing-record fallback is exact once');
-f.ingest(state(350,[{id:'missed',type:'blast',pid:'a',weapon:'rocket',x:2,z:3}],[a,b],{instanceId:'crowded',audioBaseline:true}),6250);assert.equal(f.current(6250).length,0,'short same-instance reconnect baseline clears old effects and seeds missed events');
+f.ingest(state(350,[{id:'missed',type:'blast',pid:'a',weapon:'missile',x:2,z:3}],[a,b],{instanceId:'crowded',audioBaseline:true}),6250);assert.equal(f.current(6250).length,0,'short same-instance reconnect baseline clears old effects and seeds missed events');
 f.ingest(state(400,[{id:'missed',type:'blast',pid:'a',x:2,z:3},{id:'fresh-after-baseline',type:'blast',pid:'a',x:4,z:5}],[a,b],{instanceId:'crowded'}),6300);assert.deepEqual(f.current(6300).map(e=>[e.kind,e.x,e.z]),[['blast',4,5]],'only new events resume after the baseline');
 console.log('KART_FEEDBACK_PASS: authority-only KO/blast records, nuke KO inference, historical/duplicate suppression, collision gating and bounded lifecycle');
 
@@ -51,12 +51,12 @@ const lifeOld={id:'life-old',type:'blast',pid:'a',weapon:'proximity',x:2,z:3};
 life.ingest(state(100,[]),0);life.ingest(state(200,[lifeOld]),100);
 assert.equal(life.current(100).length,1,'accepted blast precedes normal respawn');
 life.clearPresentation();assert.equal(life.current(100).length,0,'respawn retires old presentation immediately');
-life.ingest(state(300,[lifeOld,{id:'life-fresh',type:'fire',pid:'a',weapon:'pulse',position:{x:1,y:2,z:3}}]),200);
+life.ingest(state(300,[lifeOld,{id:'life-fresh',type:'fire',pid:'a',weapon:'machinegun',position:{x:1,y:2,z:3}}]),200);
 assert.deepEqual(life.current(200).map(e=>e.kind),['fire'],'normal respawn preserves dedupe while admitting fresh feedback');
 
 // A KO inferred from a respawn transition is credited to a nuke only when a
 // nuke blast landed within its 14u splash; other blasts leave it untagged.
-for(const [weapon,x,expected] of [['nuke',-4,'nuke'],['nuke',-7,undefined],['rocket',6,undefined],['proximity',6,undefined]]){
+for(const [weapon,x,expected] of [['nuke',-4,'nuke'],['nuke',-7,undefined],['missile',6,undefined],['proximity',6,undefined]]){
   const inferred=createKartFeedback();
   inferred.ingest(state(100,[]),0);
   inferred.ingest(state(200,[{id:'boom',type:'blast',pid:'a',weapon,x,z:0}]),100);

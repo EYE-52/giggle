@@ -42,7 +42,7 @@ for(const id of maps.mapIds())for(const mode of ['battle','starrush']){
         dx=socket.x-from.x,dz=socket.z-from.z,len=Math.hypot(dx,dz),
         mid={x:(socket.x+from.x)/2,y:(terrain.heightAt(socket.x,socket.z)+.75+from.y)/2,z:(socket.z+from.z)/2},
         perp={x:-dz/len,z:dx/len};
-      state.zaps=[{id:'teleport-crossing',owner:'rival',kind:'pulse',physical:true,
+      state.zaps=[{id:'teleport-crossing',owner:'rival',kind:'machinegun',physical:true,
         x:mid.x-perp.x*2.75,y:mid.y,z:mid.z-perp.z*2.75,vx:perp.x*110,vy:0,vz:perp.z*110,ttl:1,angle:Math.atan2(perp.x,perp.z)}];
     }
     f.input({throttle:1,steer:.7,drift:true,nitro:true,boost:true});

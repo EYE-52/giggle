@@ -1,3 +1,4 @@
+import {CURATED_MUZZLE} from './kart-weapon-contract.mjs';
 // Shared numeric configuration for the elevated kart authority and renderer.
 // Muzzle coordinates are chassis-local. +Y up, nose +Z.
 export const KART_PHYSICS_CONFIG = Object.freeze({
@@ -42,6 +43,7 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
     coastBrake: 0.45,
   }),
   combat: Object.freeze({
+    machinegunMuzzle: CURATED_MUZZLE, trishotMuzzle: CURATED_MUZZLE, missileMuzzle: CURATED_MUZZLE, cannonMuzzle: CURATED_MUZZLE,
     pulseMuzzle: Object.freeze({ x: 0.95, y: 0.50, z: 1.90 }),
     rocketMuzzle: Object.freeze({ x: -0.95, y: 0.50, z: 1.90 }),
     seekerMuzzle: Object.freeze({ x: -0.95, y: 0.50, z: 1.90 }),

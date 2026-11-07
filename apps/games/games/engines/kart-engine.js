@@ -1055,6 +1055,7 @@ function createKartGame(config) {
     kart.connected=connected;
     if(connected)return;
     battle.cancelPayload(kart);
+    kart.bladesT=0;kart.supernovaT=0;kart.bladesAge=0;kart.bladesVolley=null;kart.supernovaVolley=null;
     battle.resetFireInput(kart);
     kart.input = { steer: 0, throttle: 0, boost: false };
     kart.speed = 0;
@@ -1233,7 +1234,7 @@ function createKartGame(config) {
       ? new Set(state.karts.filter(k => connected.has(k.pid) &&
         Math.abs(k.physicalPose.position.y - motion.groundAt(k.x,k.z)) < 2.4).map(k => k.pid))
       : connected;
-    const goalMet = rules.tick(state, pickupDrivers, dt, previousKarts, econ, contacts,motion?{sweepStatic:motion.sweepStatic,supportAt:motion.supportAt,groundAt:motion.groundAt,syncRespawn:()=>motion.sync(connected)}:undefined);
+    const goalMet = rules.tick(state, pickupDrivers, dt, previousKarts, econ, contacts,motion?{sweepStatic:motion.sweepStatic,kickKart:motion.kickKart,supportAt:motion.supportAt,groundAt:motion.groundAt,syncRespawn:()=>motion.sync(connected)}:undefined);
     motion?.sync(connected);
     for (const kart of state.karts) if (!(kart.respawn > 0)) kart._fell = false;
     if (battleMode && econStore) {

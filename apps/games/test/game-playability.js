@@ -1243,8 +1243,8 @@ function kartWrap(a) {
 }
 function driveKarts(def, state, ctx, control, maxTicks) {
   // control(view, kart) -> {steer, throttle, boost}; ticks at 10 Hz.
-  // Mounted physical shots (the sixteen-weapon arsenal adds laser, bouncer and boomerang).
-  const MOUNTED_SHOTS = ['pulse', 'scatter', 'rail', 'rocket', 'seeker', 'laser', 'bouncer', 'boomerang'];
+  // Every current mounted projectile is counted from authority events.
+  const MOUNTED_SHOTS=['machinegun','trishot','missile','cannon','boomerang'];
   const seen = { fires: 0, impacts: 0, damage: 0 };
   const observedEvents = new Set();
   const sequences = new Map();
@@ -1321,9 +1321,10 @@ driver('pocket-karts', () => {
   must(state.result && state.result.standings.length === 3, 'full standings recorded');
   // --- Zap Battle: chase, rising-edge fire, hits score.
   const ctx2 = new FakeCtx(roster(2), settingsFor(def, {
-    // Lower bumper friction changes the pursuit route. Allow two minutes
-    // for legal chasing bots to collect, aim and finish a real knockout.
-    mode: battleMode, map: ring, palette: 'Daybreak', roundSeconds: 120, targetHits: 1,
+    // Curated weapons include traps and self buffs, and lower bumper friction
+    // changes the pursuit route: two minutes give the chasing bots time to
+    // roll, land mounted shots and finish a knockout.
+    mode: battleMode, map: enumOpt(def,'map','bumper'), palette: 'Daybreak', roundSeconds: 120, targetHits: 1,
   }));
   const st2 = def.create(ctx2);
   ownedStates.push(st2);
@@ -1333,6 +1334,9 @@ driver('pocket-karts', () => {
   const lastBoost = {};
   const escape = new Map();
   const seen = driveKarts(def, st2, ctx2, (v, k) => {
+    // One driver holds a defensive position using ordinary braking intent;
+    // the other must collect, aim, spend and earn a real three-heart KO.
+    if(k.pid==='p2')return {steer:0,throttle:Math.abs(k.speed)>.4?-Math.sign(k.speed):0,boost:false};
     const foe = v.karts.find((o) => o.pid !== k.pid);
     let tgt = { x: foe.x, z: foe.z };
     let seekingFoe = true;
@@ -1353,27 +1357,26 @@ driver('pocket-karts', () => {
     const progress = recovery.previous ? Math.hypot(k.x-recovery.previous.x,k.z-recovery.previous.z) : 1;
     recovery.stalled = progress < .025 && Math.abs(k.speed) < .4 ? recovery.stalled+1 : 0;
     recovery.previous = {x:k.x,z:k.z};
-    if ((clearance < 2 && outward) || recovery.stalled >= 4) recovery.reversing = true;
+    if(!recovery.reversing&&((clearance<2&&outward)||recovery.stalled>=4)){recovery.reversing=true;recovery.until=(v.simAt||0)+900;}
     // Once the real body faces inward, forward driving can clear this wall.
     // Requiring clearance first leaves reverse pinned against the wall.
-    if (recovery.reversing && (clearance >= 3 || !outward) && Math.abs(err) < .8) recovery.reversing = false;
+    if (recovery.reversing && (v.simAt||0)>=(recovery.until||0) && (clearance >= 3 || !outward) && Math.abs(err) < .8) recovery.reversing = false;
     escape.set(k.pid, recovery);
     if (recovery.reversing) {
       return { steer: Math.max(-1, Math.min(1, err * 2)), throttle: -1, boost: false };
     }
-    // Two armed bots chasing each other can circle forever with the rival
-    // off to one side. A three-point turn (reverse with opposite lock)
-    // swings the nose round instead of widening the circle.
+    // A nearby rival off to one side needs a three-point turn: reverse
+    // with opposite lock so the fixed barrel can face the rival.
     // Bumper to bumper (or piled up after a Turbo Ram) nothing can aim:
     // back straight off to open a firing distance first.
-    if (seekingFoe && k.ammo > 0 && k.weapon !== 'ram' && dist < 4.5) {
+    if (seekingFoe && k.ammo > 0 && !['ram','blades','supernova'].includes(k.weapon) && dist < 4.5) {
       return { steer: 0, throttle: -1, boost: false };
     }
-    if (seekingFoe && k.ammo > 0 && Math.abs(err) > 1.6 && dist < 30) {
+    if (seekingFoe && k.ammo > 0 && Math.abs(err) > .65 && dist < 15) {
       return { steer: Math.max(-1, Math.min(1, err * 2)), throttle: -0.7, boost: false };
     }
-    const aligned = seekingFoe && k.ammo > 0 && (k.weapon === 'shield' || (k.weapon === 'mine' ? dist < 10 : dist < 40 && Math.abs(err) < 0.25));
-    const boost = aligned && (k.weapon === 'pulse' || lastBoost[k.pid] !== true);
+    const aligned = seekingFoe && k.ammo > 0 && (['supernova','blades'].includes(k.weapon)?dist<9:(['mine','oil'].includes(k.weapon)?dist<10:k.weapon==='ram'?dist<12&&Math.abs(err)<.65:dist<20&&Math.abs(err)<.12));
+    const boost = aligned && (k.weapon === 'machinegun' || lastBoost[k.pid] !== true);
     lastBoost[k.pid] = boost;
     // Use measured public speed to approach at an aiming pace. Full throttle
     // overshoots the rival and can pitch the real barrel into the sky after

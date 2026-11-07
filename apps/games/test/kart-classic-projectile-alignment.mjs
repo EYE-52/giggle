@@ -31,7 +31,7 @@ const placement=source.slice(source.indexOf('const liveZ = new Set();'),source.i
 const freshness=source.slice(source.indexOf('function ordnanceFresh()'),source.indexOf('/* Calibrated server time'));
 assert(freshness.includes('lastSnapshotArrival')&&freshness.includes('connected'));
 assert(preparation.includes('projectileContactInset')&&placement.includes('radius-(c.tipZ||0)-c.contactInset'));
-const radii=combatConfig.config.staticSweepRadii,kinds=['pulse','scatter','rocket','seeker'],point=new THREE.Vector3(),results=[],measurements=[];
+const radii=combatConfig.config.staticSweepRadii,kinds=['machinegun','trishot','missile','cannon','boomerang'],point=new THREE.Vector3(),results=[],measurements=[];
 const check=(ok,label)=>{assert.ok(ok,label);results.push(label);};
 function packet(raw){return battle.viewExtra({zaps:[raw],crates:[],mines:[],grenades:[],events:[]}).zaps[0];}
 function vertices(object,visit){object.updateWorldMatrix(true,true);object.traverse(o=>{if(!o.isMesh)return;const p=o.geometry.attributes.position;for(let i=0;i<p.count;i++)visit(point.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld),o);});}
@@ -45,7 +45,7 @@ for(const[tag,assets]of[['shipping',{get}],['fallback',null]]){
   try{for(const kind of kinds){
    const shot=art.projectile(kind),radius=radii[kind],buffers=[];shot.traverse(o=>{if(o.isMesh)buffers.push(o.geometry.attributes.position.array);});
    let calibrations=0;
-   const context=vm.createContext({THREE,lastSnapshotArrival:1000,nowMs:()=>1000,apiRef:{context:()=>({connected:true})},shotContactInsets:new Map(),projectileContactInset:(...args)=>{calibrations++;return projectileContactInset(...args);},zaps:new Map([['a',shot]]),shotPools:new Map(),combat:art,scene:new THREE.Scene(),projectilePose,serverNow:()=>1000,shotDirection:new THREE.Vector3(),shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:1/60,t:0,rm:false});
+   const context=vm.createContext({THREE,lastSnapshotArrival:1000,nowMs:()=>1000,apiRef:{context:()=>({connected:true})},shotContactInsets:new Map(),projectileContactInset:(...args)=>{calibrations++;return projectileContactInset(...args);},zaps:new Map([['a',shot]]),shotPools:new Map(),combat:art,scene:new THREE.Scene(),shotPlayback:{sample:projectilePose},impactFX:{trail(){}},projectilePose,serverNow:()=>1000,shotDirection:new THREE.Vector3(),shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:1/60,t:0,rm:false});
    vm.runInContext(freshness+preparation+';globalThis.prepare=prepareShotContact;globalThis.render=function(){'+placement+'};',context);
    context.prepare(shot,kind,radius);assert.equal(calibrations,1);
    const face=map.half+.05,[x,z]=sites[mapId],height=terrain.heightAt(x,z);
@@ -75,7 +75,7 @@ for(const[tag,assets]of[['shipping',{get}],['fallback',null]]){
  }}finally{art.dispose();}
 }
 // Keep the old failure as a regression witness, using actual body geometry.
-const art=createKartCombatArt(THREE,{assets:{get}}),rocket=art.projectile('rocket'),map={id:'ring',...maps.mapDef('ring')},physics=createKartPhysics(RAPIER,CONFIG);
+const art=createKartCombatArt(THREE,{assets:{get}}),rocket=art.projectile('missile'),map={id:'ring',...maps.mapDef('ring')},physics=createKartPhysics(RAPIER,CONFIG);
 for(const d of classicStatics(map))physics.addStatic(d);
 try{const face=map.half+.05,tip=new THREE.Vector3(face-.005,1.2,-5),direction=new THREE.Vector3(Math.sin(.12),0,Math.cos(.12));rocket.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),direction);rocket.position.copy(tip).addScaledVector(direction,-rocket.userData.combat.tipZ);
  assert.equal(physics.sweepStatic(tip.clone().addScaledVector(direction,-.5),tip),null);let penetration=-Infinity;vertices(rocket,(p,o)=>{if(o!==rocket.userData.combat.tail&&physics.overlapsStatic(p,{x:0,y:0,z:0,w:1},{x:.00001,y:.00001,z:.00001}))penetration=Math.max(penetration,p.x-face);});check(penetration>.13,'original point-sweep failure remains independently reproduced by actual Rocket body');

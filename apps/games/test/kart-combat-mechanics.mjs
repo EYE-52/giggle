@@ -27,49 +27,32 @@ function armed(kind,m=map(),opts={}) {
  throw Error('real pickup search failed: '+kind);
 }
 {
- const w=armed('pulse',map([point('a',0,0),point('b',30,30)]));try {
-  check('machine gun crate grants twelve rounds',kart(w).ammo===12);
+ const w=armed('machinegun',map([point('a',0,0),point('b',30,30)]));try {
+  check('machine gun crate grants twelve rounds',kart(w).ammo===24);
   send(w,'a',{use:true});step(w);const shot=w.snapshot().projectiles[0];
-  check('machine gun fires fast visible swept bullet',Math.abs(Math.hypot(...Object.values(shot.velocity))-140)<.01);
-  check('machine gun static sweep encloses its visible body',shot.radius===.22&&shot.radius===COMBAT.staticSweepRadii.pulse);
+  check('machine gun fires fast visible swept bullet',Math.abs(Math.hypot(shot.velocity.x-kart(w).pose.linearVelocity.x,shot.velocity.y-kart(w).pose.linearVelocity.y,shot.velocity.z-kart(w).pose.linearVelocity.z)-140)<.01);
+  check('machine gun static sweep encloses its visible body',shot.radius===.22&&shot.radius===COMBAT.staticSweepRadii.machinegun);
   step(w,30,i=>{if(i%8===0)send(w,'a',{use:true});});
-  const spent=12-kart(w).ammo;check('held machine gun fires at bounded eight rounds per second',spent>=4&&spent<=6);
-  send(w);step(w,100);check('release lets the accepted full twelve-round payload finish',w.snapshot().events.filter(e=>e.type==='fire'&&e.weapon==='pulse').length===12&&!kart(w).firing);
+  const spent=24-kart(w).ammo;check('held machine gun fires at bounded eight rounds per second',spent>=6&&spent<=8);
+  send(w);step(w,130);check('release lets the accepted full twelve-round payload finish',w.snapshot().events.filter(e=>e.type==='fire'&&e.weapon==='machinegun').length===24&&!kart(w).firing);
   check('a new actual pickup is not auto-activated after release',kart(w).weapon!==null&&kart(w).ammo>0);const nextItem={weapon:kart(w).weapon,ammo:kart(w).ammo};step(w,60);
   check('completed activation cannot reuse its input for the next pickup',kart(w).weapon===nextItem.weapon&&kart(w).ammo===nextItem.ammo&&!kart(w).firing);
  }finally{w.dispose();}
- const cut=armed('pulse',map([point('a',0,0),point('b',30,30)]));try {
-  fire(cut);step(cut,5);check('disconnect fixture has an accepted incomplete payload',kart(cut).firing&&kart(cut).ammo===11);cut.setConnected('a',false);step(cut,60);
+ const cut=armed('machinegun',map([point('a',0,0),point('b',30,30)]));try {
+  fire(cut);step(cut,5);check('disconnect fixture has an accepted incomplete payload',kart(cut).firing&&kart(cut).ammo===22);cut.setConnected('a',false);step(cut,60);
   check('disconnect discards committed remaining rounds',!kart(cut).firing&&kart(cut).ammo===0&&kart(cut).weapon===null);cut.setConnected('a',true);step(cut,30);
-  check('reconnect never resumes the cancelled sequence',!kart(cut).firing&&cut.snapshot().events.filter(e=>e.type==='fire').length===1);
+  check('reconnect never resumes the cancelled sequence',!kart(cut).firing&&cut.snapshot().events.filter(e=>e.type==='fire').length===2);
  }finally{cut.dispose();}
- const full=armed('pulse',map([point('a',0,0),point('b',30,30)]));try {
+ const full=armed('machinegun',map([point('a',0,0),point('b',30,30)]));try {
   send(full,'a',{use:true});step(full,185,i=>{if(i%8===0)send(full,'a',{use:true});});
-  check('one held burst cannot fire a newly collected item',full.snapshot().events.filter(e=>e.type==='fire').length===12);
+  check('one held burst cannot fire a newly collected item',full.snapshot().events.filter(e=>e.type==='fire').length===24);
  }finally{full.dispose();}
-}
-{
- const w=armed('shield',map([point('a',0,0),point('b',0,8)]));try {
-  fire(w);check('Shield activation raises an untimed guard, not a ram',kart(w).guard===true&&!('ramT'in kart(w))&&!('spikesT'in kart(w)));
-  step(w,70,i=>{if(i%8===0&&kart(w).alive)send(w,'a',{throttle:1});});
-  check('Shield physical approach deals no contact damage',kart(w).hits===0&&kart(w,'b').alive&&kart(w,'b').health===3&&!w.snapshot().events.some(e=>e.type==='hit'||e.type==='ko'));
-  check('Shield owner remains alive',kart(w).alive);send(w,'a',{brake:1});step(w,260);
-  check('Shield guard waits for the next hit instead of expiring',kart(w).guard===true);
- }finally{w.dispose();}
 }
 {
  const w=armed('mine',map([point('a',0,0),point('b',0,-10)]));try {
   fire(w);check('Mine activation starts with one drop and two committed remaining',w.snapshot().mines.length===1&&kart(w).ammo===2&&kart(w).firing);step(w,32);const mines=w.snapshot().mines;check('mine layer sequentially drops three supported traps per pickup',mines.length===3&&mines.every(m=>m.surfaceId==='floor'&&!m.armed)&&new Set(mines.map(m=>m.id)).size===3);
   check('stationary Mine trail uses three separated rear positions',Math.max(...mines.map(m=>m.position.z))-Math.min(...mines.map(m=>m.position.z))>2.3&&mines.every(m=>m.position.z<kart(w).pose.position.z)&&Math.max(...mines.map(m=>m.position.x))-Math.min(...mines.map(m=>m.position.x))<.01);
   step(w,760);check('all untriggered mines expire within bounded lifetime',w.snapshot().mines.length===0);
- }finally{w.dispose();}
-}
-{
- const w=armed('proximity',map([point('a',0,0),point('b',0,20,Math.PI)]));try {
-  fire(w);check('proximity charge begins as an unarmed forward lob',w.snapshot().grenades[0].arm>.65&&!w.snapshot().grenades[0].warning&&!w.snapshot().grenades[0].landed&&w.snapshot().grenades[0].velocity.z>11&&w.snapshot().grenades[0].velocity.y>5);
-  step(w,80);check('proximity charge displays armed warning only after landing plus delay',w.snapshot().grenades[0].landed&&w.snapshot().grenades[0].armed&&w.snapshot().grenades[0].warning);
-  step(w,65,i=>{if(i%8===0&&kart(w,'b').alive)send(w,'b',{throttle:1});});
-  check('approaching kart triggers one two-heart proximity blast before expiry',kart(w).hits===0&&kart(w,'b').health===1&&w.snapshot().grenades.length===0&&w.snapshot().events.filter(e=>e.type==='blast'&&e.weapon==='proximity').length===1);
  }finally{w.dispose();}
 }
 {
