@@ -1455,19 +1455,30 @@ export function createKartWorld(THREE, options) {
   const firMat = std(0xffffff,{vertexColors:true,roughness:1,side:THREE.DoubleSide});
   const trunkGeo = new THREE.CylinderGeometry(.037,.070,.67,7); trunkGeo.translate(0,.335,0);
   const trunkMat = std(0x6b5543,{roughness:1});
-  const rockSource = new THREE.IcosahedronGeometry(1,1);
-  const rockGeo = rockSource.index ? rockSource.toNonIndexed() : rockSource;
+  // Bumper Blocks uses soft toy blocks, including when GLB rocks are
+  // available. Rounded corners, blue faces and yellow caps share one draw.
+  const rockSource = quarry?new THREE.BoxGeometry(2,1.28,2,3,3,3):new THREE.IcosahedronGeometry(1,1);
+  const rockGeo = rockSource.index && !quarry ? rockSource.toNonIndexed() : rockSource;
   const rockPos = rockGeo.attributes.position, rockCols = new Float32Array(rockPos.count*3), rockColor = new THREE.Color();
+  const roundNormal=new THREE.Vector3();
   for (let i=0;i<rockPos.count;i++) {
     const x=rockPos.getX(i),y=rockPos.getY(i),z=rockPos.getZ(i);
-    const noise=1+.12*Math.sin(x*8+z*5)*Math.sin(y*7+1);
-    rockPos.setXYZ(i,x*noise,y*.64*noise+.64,z*noise);
-    rockColor.setHex(theme==='frost'&&y>.15?0xeaf1f5:quarry?0xbdb7a5:0xaaa999);
-    rockColor.multiplyScalar(.83+.14*((Math.floor(i/3)*7)%11)/10);
+    if(quarry){
+      const cx=Math.max(-.74,Math.min(.74,x)),cy=Math.max(-.38,Math.min(.38,y)),cz=Math.max(-.74,Math.min(.74,z));
+      roundNormal.set(x-cx,y-cy,z-cz).normalize();
+      rockPos.setXYZ(i,cx+roundNormal.x*.26,cy+roundNormal.y*.26+.64,cz+roundNormal.z*.26);
+      rockGeo.attributes.normal.setXYZ(i,roundNormal.x,roundNormal.y,roundNormal.z);
+      rockColor.setHex(y>.4?0xffd65c:y<-.4?0x236b91:0x39c7d6);
+    }else{
+      const noise=1+.12*Math.sin(x*8+z*5)*Math.sin(y*7+1);
+      rockPos.setXYZ(i,x*noise,y*.64*noise+.64,z*noise);
+      rockColor.setHex(theme==='frost'&&y>.15?0xeaf1f5:0xaaa999);
+      rockColor.multiplyScalar(.83+.14*((Math.floor(i/3)*7)%11)/10);
+    }
     rockCols.set([rockColor.r,rockColor.g,rockColor.b],i*3);
   }
-  rockGeo.setAttribute('color',new THREE.BufferAttribute(rockCols,3));rockGeo.computeVertexNormals();
-  const rockMat=std(0xffffff,{vertexColors:true,roughness:1,flatShading:true});
+  rockGeo.setAttribute('color',new THREE.BufferAttribute(rockCols,3));if(!quarry)rockGeo.computeVertexNormals();
+  const rockMat=std(0xffffff,{vertexColors:true,roughness:quarry?.65:1,flatShading:!quarry});
   const forest=[],outcrops=[];
   layout.clusters=[];layout.ridgePines=[];
   const safe = (x,z,pad=0) => Math.max(Math.abs(x),Math.abs(z)) >= sceneryMin + pad;
@@ -1555,7 +1566,8 @@ export function createKartWorld(THREE, options) {
     instanceNature(firGeo,firMat,forest,'alpine-fir-canopies','fir');
     instanceNature(trunkGeo,trunkMat,forest,'alpine-fir-trunks','fir');
   }
-  if(!assetNature('rock_largeA',outcrops,'trackside-glb-rocks'))
+  if(quarry)instanceNature(rockGeo,rockMat,outcrops,'quarry-toy-bumpers','rock');
+  else if(!assetNature('rock_largeA',outcrops,'trackside-glb-rocks'))
     instanceNature(rockGeo,rockMat,outcrops,'alpine-limestone-outcrops','rock');
 
   // Small soft meadow plants cluster between the Garden roads. Their

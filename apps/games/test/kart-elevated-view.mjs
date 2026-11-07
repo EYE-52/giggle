@@ -22,7 +22,7 @@ import {createKartHealthBars} from '../public/js/engines/kart-health-bars.mjs';
 import {loadKartWeaponThumbnails,weaponThumbnailArt,loadKartDrivers,buildKartDriverVariants} from '../public/js/engines/kart-assets.mjs';
 globalThis.Image=class{async decode(){const data=fs.readFileSync(new URL('../public'+this.src,import.meta.url));if(this.src.endsWith('.svg'))assert.match(data.toString(),/<svg/);else assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');}};
 import {elevatedSolidGeometry} from '../public/js/engines/kart-elevated-world.mjs';
-import {elevatedMap} from '../public/js/engines/kart-elevated-maps.mjs';
+import {elevatedMap,elevatedMapIds} from '../public/js/engines/kart-elevated-maps.mjs';
 import {initializePhysics,RAPIER,ADAPTER as PHYSICS} from './kart-elevation-physics.mjs';
 import CONFIG from '../public/js/engines/kart-physics-config.mjs';
 import {fileURLToPath} from 'node:url';
@@ -94,6 +94,25 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   function advance(ms){const until=clock+ms;while(true){let next=[...timers].filter(([,t])=>t.at<=until).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;const[id,t]=next;clock=t.at;if(t.repeat)t.at+=t.ms;else timers.delete(id);t.fn();}clock=until;}
   function key(code,type='keydown',target=loads.at(-1)?.handle?.canvas){return window.dispatch(type,{code,target});}
   return{view,el,document,window,roomMenu,api,assetRequests,sent,ready,loads,audios,sticks,timers,node,render,settle,advance,key,flush,host:v=>host=v,renderStats,thumbnails:value=>{thumbnailsReady=value;},allocations:()=>({instances:instanceAllocations,projectiles:projectileAllocations,graphics:graphicsAllocations,prepared}),frame:(dt=1/60)=>loads.at(-1).handle.built.frame(dt,clock/1000),motion:v=>reduced=v};
+}
+// All maps use the same HUD; check room/practice and touch/keyboard paths.
+// This exercises DOM/state, not CSS pixels (a native browser is separate).
+for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch of [true,false]){
+  const r=rig({room,touch}),s=base();s.mapId=mapId;s.map={label:elevatedMap(mapId).label};
+  s.karts[0].pose.speed=12;s.karts[0].nitro=.6;
+  const shown=node=>{for(let p=node;p;p=p.parentNode)if(p.hidden)return false;return true;};
+  for(const phase of ['countdown','live']){
+    r.render({...s,phase});
+    check(mapId+' '+phase+' speed/nitro stay present for '+(room?'room':'practice')+'/'+(touch?'touch':'keys'),shown(r.node('speed'))&&shown(r.node('charge'))&&!r.el.firstElementChild.classList.contains('pke-done'));
+    check(mapId+' speed and nitro use authoritative values',r.node('speed').textContent==='43'&&r.node('charge').style['--charge']==='0.6');
+  }
+  r.render({...s,karts:s.karts.map(k=>({...k,alive:false}))});
+  check(mapId+' respawn keeps driving instruments visible',shown(r.node('speed'))&&shown(r.node('charge'))&&!r.el.firstElementChild.classList.contains('pke-done'));
+  r.render({...s,phase:'done',result:{winners:['a']}});
+  check(mapId+' only results intentionally hide the driving HUD',r.el.firstElementChild.classList.contains('pke-done'));
+  r.render({...s,instanceId:'rematch'});
+  check(mapId+' rematch restores the driving HUD',!r.el.firstElementChild.classList.contains('pke-done')&&shown(r.node('speed'))&&shown(r.node('charge')));
+  r.view.dispose();
 }
 {
   const r=rig();assert.doesNotThrow(()=>r.render({...base(),instanceId:undefined}),'first legacy snapshot without an instance id is accepted safely');r.view.dispose();

@@ -56,7 +56,7 @@ for(const id of ['ring','blocks','garden','frost','neon']) {
     assert.deepEqual(world.layout.blocks,map.blocks,id+' exact server blocks');
     assert.deepEqual(world.layout.pads,map.pads,id+' exact server pads');
     assert.deepEqual(world.layout.surfaces,map.surfaces,id+' exact server grip');
-    for(const name of ['alpine-fir-canopies','alpine-fir-trunks','alpine-limestone-outcrops','ridge-near','ridge-far','ridge-summit','arena-landmark-'+id,'neon-city','neon-city-roofs']) {
+    for(const name of ['alpine-fir-canopies','alpine-fir-trunks','alpine-limestone-outcrops','quarry-toy-bumpers','ridge-near','ridge-far','ridge-summit','arena-landmark-'+id,'neon-city','neon-city-roofs']) {
       const root=world.group.getObjectByName(name);if(root)verifyOutside(root,map.half+2,id+'/'+palette+'/'+name);
     }
     const fir=world.group.getObjectByName('alpine-fir-canopies');
@@ -112,7 +112,7 @@ for(const key of ['tree_detailed','tree_pineTallA','rock_largeA']) {
 }
 for(const id of ['ring','blocks','garden','frost']) {
   const map={id,...maps.mapDef(id)},world=createKartWorld(THREE,{scene:new THREE.Scene(),map,assets});world.syncMap(map);world.group.updateMatrixWorld(true);
-  for(const name of ['trackside-glb-forest','trackside-glb-rocks']) {
+  for(const name of id==='blocks'?['trackside-glb-forest']:['trackside-glb-forest','trackside-glb-rocks']) {
     const group=world.group.getObjectByName(name);assert(group?.isGroup,id+' uses shipped GLB '+name);
     assert(group.children.length<=3,id+' GLB primitives remain batched');
     verifyOutside(group,map.half+2,id+'/'+name);
@@ -123,6 +123,22 @@ for(const id of ['ring','blocks','garden','frost']) {
     // union has y=0 at the source baseline, so trunks/rocks sit on ground.
     const box=new THREE.Box3();for(const batch of group.children){batch.geometry.computeBoundingBox();box.union(batch.geometry.boundingBox);}
     assert(Math.abs(box.min.y)<1e-6,id+' GLB root baseline is grounded');
+  }
+  if(id==='blocks'){
+    const bumpers=world.group.getObjectByName('quarry-toy-bumpers');
+    assert(bumpers?.isInstancedMesh&&bumpers.count===world.layout.rocks.length,'Every former Blocks boulder is a batched toy bumper, even with real GLBs');
+    assert(!world.group.getObjectByName('trackside-glb-rocks')&&!world.group.getObjectByName('alpine-limestone-outcrops'),'No brown rock asset or faceted fallback remains in Blocks');
+    assert(!bumpers.material.flatShading&&bumpers.material.vertexColors,'Toy faces are smooth with contrasting caps');
+    const geometry=bumpers.geometry,colors=geometry.attributes.color,normals=geometry.attributes.normal;
+    const unique=new Set();let rounded=0;
+    for(let i=0;i<colors.count;i++){
+      unique.add([colors.getX(i),colors.getY(i),colors.getZ(i)].join(','));
+      if([normals.getX(i),normals.getY(i),normals.getZ(i)].filter(n=>Math.abs(n)>.1).length>1)rounded++;
+    }
+    assert.equal(unique.size,3,'Blue base, cyan faces and yellow cap stay in one material');
+    assert(rounded>24,'Rounded edge normals replace flat rock facets');
+    geometry.computeBoundingBox();assert(Math.abs(geometry.boundingBox.min.y)<1e-6,'Bumpers sit on their ground baseline');
+    verifyOutside(bumpers,map.half+2,'blocks/toy-bumpers');
   }
   assert(world.stats().triangles<90000,id+' shipped GLB world stays bounded');
 }

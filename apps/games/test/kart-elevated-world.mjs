@@ -49,6 +49,24 @@ for(const id of elevatedMapIds){
   const input=elevatedMap(id),before=structuredClone(input),scene=new THREE.Scene();
   const world=createKartElevatedWorld(THREE,{scene,map:input});
   check(world.lighting.phase===0,id+' Daybreak starts in daylight rather than a forced sunset');
+  const sky=world.group.getObjectByName('procedural-sky'),skyMaterial=sky?.material;
+  check(skyMaterial?.isShaderMaterial&&!skyMaterial.toneMapped&&!skyMaterial.fog&&!skyMaterial.depthWrite,id+' shared unlit gradient sky never inherits brown fog or interior lighting');
+  check(skyMaterial.uniforms.uTop.value.getHex()===0x0877e7&&skyMaterial.uniforms.uMid.value.getHex()===0x2da6ef,id+' daylight uses the classic blue sky palette');
+  check(skyMaterial.uniforms.uHorizon.value.equals(world.lighting.fogColor)&&world.lighting.fogColor.getHex()===0xb7def2,id+' painted horizon blends into the same blue fog');
+  check(!skyMaterial.uniforms.uTop.value.equals(skyMaterial.uniforms.uHorizon.value),id+' sky has height variation instead of a flat band');
+  world.group.updateMatrixWorld(true);
+  // An open, high driving level sees the dome above the painting all the
+  // way to the top corners. Test actual mesh coverage without a GPU.
+  const high=Math.max(...input.spawns.map(s=>s.position?.y??s.y??0));
+  for(const aspect of [16/9,9/16]){
+    const camera=new THREE.PerspectiveCamera(52,aspect,.1,650);
+    camera.position.set(0,high+5,0);camera.lookAt(0,high+2,12);camera.updateMatrixWorld(true);
+    for(const x of [-1,0,1]){
+      const ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2(x,1),camera);
+      check(ray.intersectObject(sky).length>0,id+' dome covers the top of the chase view at aspect '+aspect);
+    }
+  }
+
   assert.deepEqual(input,before);checks++;
   check(world.colliderMeshes.size===input.colliders.length,id+' all exact colliders');
   check(world.layout.spawns.length===(input.maxPlayers||8)&&world.layout.sockets.length===input.sockets.length,id+' spawn/socket identity');
@@ -115,6 +133,7 @@ for(const id of elevatedMapIds){
   for(let i=0;i<360;i++)world.animate(1/60,i/60,i/359);
   assert.deepEqual(world.stats(),stats);checks++;
   check(resources(world).size===owned.size&&world.group.children.length===count,id+' animation allocates no scene resources');
+  check(skyMaterial.uniforms.uTop.value.getHex()===0x030612&&skyMaterial.uniforms.uHorizon.value.equals(world.lighting.fogColor),id+' night keeps its shared gradient and horizon');
   world.animate(1/60,12,.65);const color=world.lighting.fogColor.clone(),sun=world.lighting.sun.position.clone();
   world.animate(.5,0,.65);check(color.equals(world.lighting.fogColor)&&sun.equals(world.lighting.sun.position),id+' explicit sunset phase independent of local elapsed time');
   world.animate(0,0,99);check(world.lighting.phase===1,id+' phase bounded');

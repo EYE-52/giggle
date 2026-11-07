@@ -10,7 +10,7 @@ import {createKartComplexWorld} from './kart-complex-world.mjs';
  */
 import { createStylizedAlpineLandscape } from './kart-stylized-landscape.mjs';
 import { elevatedMap } from './kart-elevated-maps.mjs';
-import { createKartBackdrop, createKartClouds } from './kart-backdrop.mjs';
+import { createKartBackdrop, createKartClouds, createKartSky } from './kart-backdrop.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -549,22 +549,17 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   if(sphereClouds)paintedClouds=createKartClouds(THREE,{parent:soft,radius:backdrop.radius*2,peakHeight:backdrop.height-6,
     color:sphereClouds.material.color,fallback:[sphereClouds],...skyResources});
 
-  const skyMat=mat(new THREE.ShaderMaterial({uniforms:{uTop:{value:new THREE.Color()},uMid:{value:new THREE.Color()},uHorizon:{value:new THREE.Color()}},vertexShader:'varying vec3 vPos;void main(){vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'varying vec3 vPos;uniform vec3 uTop;uniform vec3 uMid;uniform vec3 uHorizon;void main(){float h=normalize(vPos).y;vec3 c=mix(uHorizon,uMid,smoothstep(-.07,.23,h));c=mix(c,uTop,smoothstep(.18,.82,h));gl_FragColor=vec4(c,1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}',side:THREE.BackSide,depthWrite:false,fog:false}));
-  const sky=part(soft,geo(new THREE.SphereGeometry(410,32,18)),skyMat,[0,0,0],[1,1,1],[0,0,0],'procedural-sky');sky.castShadow=sky.receiveShadow=false;sky.renderOrder=-10;
+  const sky=createKartSky(THREE,{parent:soft,radius:410,geometry:geo,material:mat});
   const sunDisc=part(soft,geo(new THREE.SphereGeometry(5.5,20,12)),basic(0xffedce),[145,95,210],[1,1,1],[0,0,0],'sun-disc');sunDisc.castShadow=sunDisc.receiveShadow=false;
   const sun=new THREE.DirectionalLight(0xffdfae,2.0),hemi=new THREE.HemisphereLight(0xb6d4ff,0x284b73,.65);sun.name='elevated-sun';hemi.name='elevated-ambient';sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-half-10,right:half+10,top:half+10,bottom:-half-10,near:5,far:245});sun.shadow.bias=-.0004;sun.shadow.normalBias=.06;sun.shadow.radius=2;sun.target.position.set(0,0,0);if(lighting)group.add(sun,hemi,sun.target);
   const fixed=palette==='Starlight'?1:palette==='Sunset'?.65:0;
   const lightingState={phase:fixed,sun,hemisphere:hemi,fogColor:new THREE.Color(),fogNear:185,fogFar:430,exposure:1.05};
-  const channels=['top','mid','horizon'],uniformNames={top:'uTop',mid:'uMid',horizon:'uHorizon'};
-  const C={top:new THREE.Color(),mid:new THREE.Color(),horizon:new THREE.Color()};
-  const colorSet=(top,mid,horizon)=>({top:new THREE.Color(top),mid:new THREE.Color(mid),horizon:new THREE.Color(horizon)});
-  const daylight=colorSet(0x1575d5,0x55a9e7,0xa6d7ef),sunset=colorSet(0x435485,0xd78b8b,0xfcc183),night=colorSet(0x12233e,0x24485f,0x66818b);
   function animate(dt,time,skyPhase){
-    if(disposed)return;const p=Number.isFinite(skyPhase)?clamp(skyPhase,0,1):fixed,a=p<=.65?daylight:sunset,b=p<=.65?sunset:night,t=p<=.65?p/.65:(p-.65)/.35;
-    for(const k of channels){C[k].copy(a[k]).lerp(b[k],t);skyMat.uniforms[uniformNames[k]].value.copy(C[k]);}
-    backdrop.tint(C.horizon,p<=.65?0:(p-.65)/.35);
+    if(disposed)return;const p=Number.isFinite(skyPhase)?clamp(skyPhase,0,1):fixed;
+    sky.setPhase(p);
+    backdrop.tint(sky.horizon,p<=.65?0:(p-.65)/.35);
     paintedClouds?.animate(dt);
-    lightingState.phase=p;lightingState.fogColor.copy(C.horizon);sun.color.set(p<.7?0xffe5c4:0xc2dcff);
+    lightingState.phase=p;lightingState.fogColor.copy(sky.horizon);sun.color.set(p<.7?0xffe5c4:0xc2dcff);
     applyRaisedLighting(sun,hemi,p,{neon:data.id==='neon'});
     sun.position.set(stylized?-55:106,84-p*54,stylized?-45:48);sunDisc.position.copy(sun.position).multiplyScalar(2.1);sunDisc.material.color.set(p<.7?0xffe5b8:0xd8e8ff);
     grassTime.value=Number.isFinite(time)?time:0;
