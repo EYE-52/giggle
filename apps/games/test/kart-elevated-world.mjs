@@ -51,7 +51,7 @@ for(const id of elevatedMapIds){
   check(world.lighting.phase===0,id+' Daybreak starts in daylight rather than a forced sunset');
   assert.deepEqual(input,before);checks++;
   check(world.colliderMeshes.size===input.colliders.length,id+' all exact colliders');
-  check(world.layout.spawns.length===8&&world.layout.sockets.length===input.sockets.length,id+' spawn/socket identity');
+  check(world.layout.spawns.length===(input.maxPlayers||8)&&world.layout.sockets.length===input.sockets.length,id+' spawn/socket identity');
   if(id==='garden'){
     const floor=world.colliderMeshes.get('floor').body.material,composition=floor.userData.floorComposition;
     check(composition?.meadow&&composition.raised===false,'Garden meadow is only a floor material, no new solid');
@@ -110,7 +110,7 @@ for(const id of elevatedMapIds){
   check(stats.triangles<=80000,id+' <=80k world triangles');
   check(stats.textureBytes<=12*1024*1024,id+' <=12MiB original textures with mipmaps');
   const owned=resources(world),disposals=new Map();
-  for(const resource of owned){disposals.set(resource,0);resource.addEventListener('dispose',()=>disposals.set(resource,disposals.get(resource)+1));if(resource.isTexture){check(resource.image.width<=512&&resource.wrapS===THREE.RepeatWrapping&&resource.wrapT===THREE.RepeatWrapping,id+' physical repeat UV and bounded atlas');}}
+  for(const resource of owned){disposals.set(resource,0);resource.addEventListener('dispose',()=>disposals.set(resource,disposals.get(resource)+1));if(resource.isTexture){check(resource.image.width<=512&&(resource.name.startsWith('obstacle-')||resource.name==='complex-wayfinding'||resource.wrapS===THREE.RepeatWrapping&&resource.wrapT===THREE.RepeatWrapping),id+' physical repeat UV or bounded sign atlas');}}
   const count=world.group.children.length;
   for(let i=0;i<360;i++)world.animate(1/60,i/60,i/359);
   assert.deepEqual(world.stats(),stats);checks++;

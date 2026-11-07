@@ -1,4 +1,5 @@
 'use strict';
+const {applyElevatedBelts,elevatedFallZone}=require('../../public/js/engines/kart-elevated-surfaces.mjs');
 
 // Elevated combat authority used by the opt-in Room profile.
 // Caller initializes Rapier once, injects the shared numeric config and authored
@@ -76,7 +77,7 @@ function guidedVelocity(velocity,delta,maxTurn) {
 }
 
 function createElevatedCombat(RAPIER,config,map,seats,options={}) {
-  if (!Array.isArray(seats) || seats.length < 2 || seats.length > 8 || seats.some(s => !validId(s?.id)) || new Set(seats.map(s=>s.id)).size !== seats.length) throw new TypeError('2..8 unique seats required');
+  if (!Array.isArray(seats) || seats.length < 2 || seats.length > Math.min(config.maxKarts, map.maxPlayers || 8) || seats.some(s => !validId(s?.id)) || new Set(seats.map(s=>s.id)).size !== seats.length) throw new TypeError('2..map capacity unique seats required');
   const instance = options.instance;
   if (!validId(instance) || !Number.isInteger(options.seed) || options.seed < 0 || options.seed > 0xffffffff) throw new TypeError('server instance and uint32 seed required');
   const startAt = options.startAt ?? 0, countdownMs = options.countdownMs ?? H.COUNTDOWN_MS, roundMs = options.roundMs ?? 90000;
@@ -124,8 +125,8 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     });
   }
   let spawns,sockets;
-  function pickSocket(exclude) {
-    let pool=sockets.filter(s=>s.id!==exclude && !crates.some(c=>c.socketId===s.id));
+  function pickSocket(exclude, level) {
+    let pool=sockets.filter(s=>s.id!==exclude && (level===undefined || Math.abs(s.y-level)<.25) && !crates.some(c=>c.socketId===s.id));
     if(!pool.length) return null;
     const positions=[...karts.values()].filter(k=>k.alive).map(k=>physics.pose(k.id).position);
     const far=pool.filter(s=>positions.every(p=>distance(p,{x:s.x,y:s.y+0.6,z:s.z})>=5));
@@ -149,9 +150,10 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     }
     physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15);
     for(const k of karts.values()) physics.freezeKart(k.id,true);
-    const count=options.crates ?? Math.min(6,sockets.length-1);
+    const crateLevels=(M.complex||M.balancedLoot)?[...new Set(sockets.map(s=>Math.round(s.y)))].sort((a,b)=>a-b):null;
+    const count=options.crates ?? Math.min(M.complex ? (seats.length>8?12:9) : 6,sockets.length-1);
     if(!Number.isInteger(count) || count<1 || count>=sockets.length || count>12) throw new RangeError('invalid crate subset size');
-    for(let i=0;i<count;i++) { const s=pickSocket(); if(s) crates.push(crateAt(s)); }
+    for(let i=0;i<count;i++) { const s=pickSocket(undefined,crateLevels?.[i%crateLevels.length]); if(s) crates.push(crateAt(s)); }
   } catch(error) { physics.dispose(); throw error; }
 
   function input(pid,p,receiptAt) {
@@ -601,6 +603,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         engine:clamp(Math.max(k.nitroActive?H.NITRO_PUNCH:1,ram?1.6:1)*(frost<1?.7:1),.1,2),steering:1,traction:1,rearTraction:spun?.12:1,rearStiffness:spun?.2:1});
       if(k.spinKick){physics.spinKart(k.id,k.spinKick);k.spinKick=0;}
       physics.applyIntent(k.id,k.input);
+      if(M.belts?.length)applyElevatedBelts(physics,k.id,before.get(k.id),M,dt);
     }
     physics.step();
     const after=new Map([...karts.keys()].map(id=>[id,physics.pose(id)]));
@@ -619,13 +622,13 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     for(const k of karts.values()) {
       if(!k.connected || !k.alive) continue;
       const p=physics.pose(k.id);
-      if(p.position.y < -12 || Math.abs(p.position.x)>M.half+8 || Math.abs(p.position.z)>M.half+8) { k.alive=false;k.health=0;k.respawn=B.RESPAWN_TIME;k.weapon=null;k.ammo=0;k.shield=0;k.guard=false;clean(k);k.controlEpoch++;physics.freezeKart(k.id,true);physics.setKartEnabled(k.id,false);emit('recovery',k.id);continue; }
+      if(elevatedFallZone(M,p.position) || p.position.y < -12 || Math.abs(p.position.x)>M.half+8 || Math.abs(p.position.z)>M.half+8) { k.alive=false;k.health=0;k.respawn=B.RESPAWN_TIME;k.weapon=null;k.ammo=0;k.shield=0;k.guard=false;clean(k);k.controlEpoch++;physics.freezeKart(k.id,true);physics.setKartEnabled(k.id,false);emit('recovery',k.id);continue; }
       if(recoverStuck(k,p)) continue;
       if(k.weapon || k.sequence || !p.grounded) continue;
       for(const c of crates) {
         if(at<c.availableAt || distance(p.position,c.position)>Math.sqrt(B.PICKUP_R2) || !p.wheels.some(w=>w.contact&&w.surfaceId===c.surfaceId) || !los(c.position,p.position)) continue;
         k.itemSeq++;k.weapon=rollWeapon();k.ammo=k.weapon==='machinegun'?ARSENAL.machinegun.ammo:(COMBAT.weapons[k.weapon]?.ammo||1);award(k,B.COIN_PICKUP,'pickup-'+c.id);emit('pickup',k.id,{weapon:k.weapon,crateId:c.id,position:c.position});
-        const s=pickSocket(c.socketId);
+        const s=pickSocket(c.socketId,(M.complex||M.balancedLoot)?c.position.y-.6:undefined);
         if(s) Object.assign(c,crateAt(s),{availableAt:at+2000});
         break;
       }

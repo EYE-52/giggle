@@ -1,4 +1,7 @@
-/* Development-only elevated COMBAT layouts. These are shared numeric
+import {applyRaisedStarts} from './kart-raised-spawns.mjs';
+import {improveRaisedLayout} from './kart-raised-layouts.mjs';
+import {complexMaps} from './kart-complex-maps.mjs';
+/* Shared elevated COMBAT layouts. These are shared numeric
  * surfaces, not background images or racing courses. The production flat
  * engine does not import this module. A renderer and the physics adapter
  * consume the same colliders; decoration may never change their shape.
@@ -26,6 +29,7 @@ const groundSpawns = coordinates => coordinates.map(([x, z], i) => point(`spawn-
 const sockets = entries => entries.map(([surface, x, y, z], i) => point(`crate-${i}`, surface, x, y, z, 0));
 
 const MAPS = {
+  ...complexMaps,
   garden: {
     id: 'garden', revision: 'combat-elevation-1', name: 'Alpine Courtyard',
     environment: 'alpine', half: 60,
@@ -176,6 +180,8 @@ const MAPS = {
     ],
   },
 };
+
+for(const map of Object.values(MAPS)){improveRaisedLayout(map);applyRaisedStarts(map);}
 
 export const elevatedMapIds = Object.freeze(Object.keys(MAPS));
 export function elevatedMap(id) {

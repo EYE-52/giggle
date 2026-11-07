@@ -1,3 +1,5 @@
+import {createRaisedReadability,applyRaisedLighting} from './kart-raised-readability.mjs';
+import {createKartComplexWorld} from './kart-complex-world.mjs';
 /* Elevated combat art adapter. No simulation or racing route.
  * The shared map descriptors are the only solids in the legal drive field.
  * Texture/shape details stay inside those envelopes; scenery is outside half+2.
@@ -53,6 +55,7 @@ function beveledBox(THREE,h,b){
 export function createKartElevatedWorld(THREE,{scene,map,palette,lighting=true,terrain,assets={}}={}){
   const data=typeof map==='string'?elevatedMap(map):structuredClone(map||elevatedMap('garden'));
   if(!Array.isArray(data.colliders)||!Number.isFinite(data.half))throw new TypeError('An authored elevated map is required');
+  if(data.complex)return createKartComplexWorld(THREE,{scene,map:data,palette,lighting,solidGeometry:elevatedSolidGeometry});
   const harbor=data.environment==='harbor',frost=data.environment==='frost',half=data.half;
   const group=new THREE.Group();group.name='elevated-combat-'+data.id;scene?.add(group);
   const solids=new THREE.Group(),scenery=new THREE.Group(),soft=new THREE.Group();
@@ -249,7 +252,8 @@ transformed.x+=max(0.0,position.y)*.08*sin(alpineGrassTime*1.7+grassWorld.x*.65+
     if(assets.grassLOD)grassBatches.push(...assetBatch(soft,'meadow-authored-grass-far',assets.grassLOD,plants,{grass:true}).map(b=>({...b,near:false})));
     for(const b of grassBatches)b.mesh.count=0;
   }
-  const materialFor=d=>d.id==='floor'?M.floor:d.material==='ice'?M.ice:d.material==='steel'?M.steel:d.material==='barrier'?(harbor?M.steel:frost?M.slate:M.stone):d.material==='hedge'?M.leaf:d.material==='cargo-teal'?M.cargoTeal:d.material==='cargo-orange'?M.cargoOrange:d.material==='slate'?M.slate:M.stone;
+  const pitMaterial=standard(frost?0x263f65:0x297f9b,{emissive:frost?0x142c47:0x124d72,emissiveIntensity:.4,roughness:.35});
+  const materialFor=d=>d.material==='asphalt'?M.floor:d.material==='pit'?pitMaterial:d.material==='ice'?M.ice:d.material==='steel'?M.steel:d.material==='barrier'?(harbor?M.steel:frost?M.slate:M.stone):d.material==='hedge'?M.leaf:d.material==='cargo-teal'?M.cargoTeal:d.material==='cargo-orange'?M.cargoOrange:d.material==='slate'?M.slate:M.stone;
   for(const d of data.colliders){
     const root=new THREE.Group();root.name=d.id;root.position.copy(d.position);if(d.rotation)root.quaternion.set(d.rotation.x,d.rotation.y,d.rotation.z,d.rotation.w).normalize();
     root.userData.collider=structuredClone(d);solids.add(root);const material=materialFor(d);
@@ -537,8 +541,9 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
     }
   }
 
+  const readability=createRaisedReadability(THREE,{parent:soft,map:data,geometry:geo,material:mat,texture:t=>(textures.add(t),t)});
   const skyResources={isAlive:()=>!disposed,geometry:geo,material:mat,texture:t=>(textures.add(t),t)};
-  const backdrop=createKartBackdrop(THREE,{parent:soft,theme:data.id,radius:half+195,ridges:farRidges,...skyResources});
+  const backdrop=createKartBackdrop(THREE,{parent:soft,theme:data.backdrop||data.id,radius:half+195,ridges:farRidges,...skyResources});
   // The elevated chase lens sees less sky: move clouds farther out so their
   // lower edges stay in frame while remaining above the painted peaks.
   if(sphereClouds)paintedClouds=createKartClouds(THREE,{parent:soft,radius:backdrop.radius*2,peakHeight:backdrop.height-6,
@@ -547,27 +552,20 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   const skyMat=mat(new THREE.ShaderMaterial({uniforms:{uTop:{value:new THREE.Color()},uMid:{value:new THREE.Color()},uHorizon:{value:new THREE.Color()}},vertexShader:'varying vec3 vPos;void main(){vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'varying vec3 vPos;uniform vec3 uTop;uniform vec3 uMid;uniform vec3 uHorizon;void main(){float h=normalize(vPos).y;vec3 c=mix(uHorizon,uMid,smoothstep(-.07,.23,h));c=mix(c,uTop,smoothstep(.18,.82,h));gl_FragColor=vec4(c,1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}',side:THREE.BackSide,depthWrite:false,fog:false}));
   const sky=part(soft,geo(new THREE.SphereGeometry(410,32,18)),skyMat,[0,0,0],[1,1,1],[0,0,0],'procedural-sky');sky.castShadow=sky.receiveShadow=false;sky.renderOrder=-10;
   const sunDisc=part(soft,geo(new THREE.SphereGeometry(5.5,20,12)),basic(0xffedce),[145,95,210],[1,1,1],[0,0,0],'sun-disc');sunDisc.castShadow=sunDisc.receiveShadow=false;
-  const sun=new THREE.DirectionalLight(0xffdfae,2.0),hemi=new THREE.HemisphereLight(0xb6d4ff,0x284b73,.65);sun.name='elevated-sun';hemi.name='elevated-ambient';sun.castShadow=true;sun.shadow.mapSize.set(1536,1536);Object.assign(sun.shadow.camera,{left:-80,right:80,top:80,bottom:-80,near:5,far:245});sun.shadow.bias=-.0004;sun.shadow.normalBias=.06;sun.shadow.radius=2;sun.target.position.set(0,0,0);if(lighting)group.add(sun,hemi,sun.target);
+  const sun=new THREE.DirectionalLight(0xffdfae,2.0),hemi=new THREE.HemisphereLight(0xb6d4ff,0x284b73,.65);sun.name='elevated-sun';hemi.name='elevated-ambient';sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-half-10,right:half+10,top:half+10,bottom:-half-10,near:5,far:245});sun.shadow.bias=-.0004;sun.shadow.normalBias=.06;sun.shadow.radius=2;sun.target.position.set(0,0,0);if(lighting)group.add(sun,hemi,sun.target);
   const fixed=palette==='Starlight'?1:palette==='Sunset'?.65:0;
   const lightingState={phase:fixed,sun,hemisphere:hemi,fogColor:new THREE.Color(),fogNear:185,fogFar:430,exposure:1.05};
   const channels=['top','mid','horizon'],uniformNames={top:'uTop',mid:'uMid',horizon:'uHorizon'};
   const C={top:new THREE.Color(),mid:new THREE.Color(),horizon:new THREE.Color()};
   const colorSet=(top,mid,horizon)=>({top:new THREE.Color(top),mid:new THREE.Color(mid),horizon:new THREE.Color(horizon)});
   const daylight=colorSet(0x1575d5,0x55a9e7,0xa6d7ef),sunset=colorSet(0x435485,0xd78b8b,0xfcc183),night=colorSet(0x12233e,0x24485f,0x66818b);
-  const paintedSkyFill=new THREE.Color(0xf0f8ff),paintedGroundFill=new THREE.Color(0x91bb97);
   function animate(dt,time,skyPhase){
     if(disposed)return;const p=Number.isFinite(skyPhase)?clamp(skyPhase,0,1):fixed,a=p<=.65?daylight:sunset,b=p<=.65?sunset:night,t=p<=.65?p/.65:(p-.65)/.35;
     for(const k of channels){C[k].copy(a[k]).lerp(b[k],t);skyMat.uniforms[uniformNames[k]].value.copy(C[k]);}
     backdrop.tint(C.horizon,p<=.65?0:(p-.65)/.35);
     paintedClouds?.animate(dt);
     lightingState.phase=p;lightingState.fogColor.copy(C.horizon);sun.color.set(p<.7?0xffe5c4:0xc2dcff);
-    // The painted kit needs sky and ground fill on its vertical brick and
-    // foliage faces. Strong direct sun with dark olive fill hid those colours.
-    const paintedDay=stylized?1-Math.min(1,p/.65):0;
-    sun.intensity=(stylized?2.1:realTerrain?1.9:2.4)-p*(stylized?1.35:realTerrain?1.1:1.5)-paintedDay*.35;
-    hemi.intensity=(stylized?1.05:realTerrain?1.25:harbor?.95:.65)+p*.2+paintedDay*.6;
-    hemi.color.set(p<.7?0xcde3f5:0x9cc1ed).lerp(paintedSkyFill,paintedDay);
-    hemi.groundColor.set(stylized?0x6d845b:realTerrain?0x8b9b79:0x284b73).lerp(paintedGroundFill,paintedDay);
+    applyRaisedLighting(sun,hemi,p,{neon:data.id==='neon'});
     sun.position.set(stylized?-55:106,84-p*54,stylized?-45:48);sunDisc.position.copy(sun.position).multiplyScalar(2.1);sunDisc.material.color.set(p<.7?0xffe5b8:0xd8e8ff);
     grassTime.value=Number.isFinite(time)?time:0;
     fountainTime.value=Number.isFinite(time)?time:0;
@@ -606,7 +604,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
     group.traverse(o=>{if(o.isSprite){out.drawCalls++;out.triangles+=2;out.meshes++;return;}if(!o.isMesh||o.userData.cameraCollider)return;out.drawCalls+=Array.isArray(o.material)?o.geometry.groups.length:1;const n=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3;out.triangles+=n*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
     for(const t of allTextures)out.textureBytes+=Math.round(t.image.width*t.image.height*4*4/3);return out;
   }
-  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();for(const b of batches.values())b.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();terrain?.dispose();sun.dispose();hemi.dispose();group.clear();colliderMeshes.clear();batches.clear();}
+  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();readability.dispose();for(const b of batches.values())b.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();terrain?.dispose();sun.dispose();hemi.dispose();group.clear();colliderMeshes.clear();batches.clear();}
   animate(0,0,null);
   return{group,solids,scenery,colliderMeshes,layout:data,lighting:lightingState,animate,updateDetail,stats,dispose,get disposed(){return disposed;}};
 }

@@ -2372,3 +2372,11 @@ body.game-fullscreen.game-immersive #gbody > .bk-game {
 .catbar .chip[aria-pressed="true"] { color: var(--on-fam, #fff); background: var(--fam, var(--accent)); border-color: var(--fam-lip, transparent); }
 .catbar .chip[aria-pressed="true"]::before { content: "✓"; margin-right: 6px; font-weight: 900; }
 @media (max-width: 600px) { .catbar .catpick { flex-basis: 100%; } }
+
+/* All Pocket Karts arenas stay visible, including the multi-floor complexes. */
+.ks-arena .ks-map-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; overflow: visible; }
+.ks-arena .ks-map { width: 100%; min-width: 0; }
+.ks-arena .ks-map-arrow { display: none; }
+.ks-arena .ks-map > span { min-height: 32px; padding-bottom: 2px; }
+.ks-arena .ks-map > small { display: block; padding: 0 5px 9px; font: 600 11px/1.35 var(--font-body); }
+@media (max-width: 560px) { .ks-arena .ks-map-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

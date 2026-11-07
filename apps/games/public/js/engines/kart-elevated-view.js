@@ -16,7 +16,8 @@ import {batchKartBody} from './kart-batching.mjs';
 import {createKartCombatArt,projectileContactInset} from './kart-combat-art.mjs';
 import {createKartHealthBars} from './kart-health-bars.mjs';
 import {createKartElevatedWorld} from './kart-elevated-world.mjs';
-import {MeshoptDecoder,closeKartAssetBitmaps,loadKartWeaponThumbnails,weaponThumbnailArt} from './kart-assets.mjs';
+import {MeshoptDecoder,closeKartAssetBitmaps,loadKartWeaponThumbnails,weaponThumbnailArt,loadKartDrivers,buildKartDriverVariants} from './kart-assets.mjs';
+import {cleanKartLook,kartPaintHex} from './kart-looks.mjs';
 import {elevatedMap} from './kart-elevated-maps.mjs';
 import CONFIG from './kart-physics-config.mjs';
 import {createKartAudio} from './kart-audio.mjs';
@@ -158,13 +159,15 @@ export function createElevatedKartView() {
       const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),assets={};library=new THREE.Group();library.visible=false;scene.add(library);
       const files=[['kart','giggle-kart.meshopt','kart-20261007'],['crate','giggle-crate.meshopt','question-20261007'],['combat','combat/combat.meshopt','combat-20261007'],['pulse','combat/pulse-mounted.meshopt','bfaaaf39'],['arsenal','combat/arsenal-mounted.meshopt','8bd555ac'],['secondary','combat/arsenal-secondary.meshopt','31eec689']];
       if(map.environment==='alpine')files.push(['stylized','environment/stylized-alpine','9426a0ed'],['fountain','environment/alpine-fountain','7a687cd3']);
-      const loaded=await Promise.allSettled([...files.map(async([key,file,version])=>{const gltf=await loader.loadAsync(`/assets/karts/${file}.glb?v=${version}`);assets[key]=gltf.scene;library.add(gltf.scene);}),loadKartWeaponThumbnails()]);
+      const drivers=loadKartDrivers(loader).then(values=>{assets.drivers=values;for(const driver of values)if(driver)library.add(driver);});
+      const loaded=await Promise.allSettled([...files.map(async([key,file,version])=>{const gltf=await loader.loadAsync(`/assets/karts/${file}.glb?v=${version}`);assets[key]=gltf.scene;library.add(gltf.scene);}),loadKartWeaponThumbnails(),drivers]);
       if(loaded.some((r,i)=>r.status==='rejected'&&files[i]?.[0]!=='fountain'))throw Error('Combat assets did not load');
       if(gen!==generation)throw Error('Retired arena');
       if(assets.stylized)for(const name of ['PineA','PineB','TreeA','GrassA','FlowersA','RockA','RockB','CottageA'])if(!assets.stylized.getObjectByName(name))throw new Error('The stylized Alpine library is incomplete');
       world=createKartElevatedWorld(THREE,{scene,map,palette:S.palette,assets});
       scene.fog=new THREE.Fog(world.lighting.fogColor,world.lighting.fogNear,world.lighting.fogFar);
       renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.toneMapping=THREE.NeutralToneMapping;renderer.toneMappingExposure=world.lighting.exposure;
+      assets.kartVariants=buildKartDriverVariants(THREE,assets.kart,assets.drivers,mergeGeometries,library);
       batchKartBody(THREE,assets.kart,mergeGeometries);
       // The source pack's foam dart is an inspection candidate. Combat keeps
       // the compact metal Scatter slug; mounted source rigs are independent.
@@ -332,7 +335,11 @@ export function createElevatedKartView() {
           if(!mesh.isMesh||mesh.name==='BoostFlame'||mesh.name==='RespawnShield'||mesh.name==='InvincibilityTrail'||mesh.name==='KartContactShadow')return;
           for(let parent=mesh.parent;parent&&parent!==model.userData.kart.inner;parent=parent.parent)if(parent.userData.combat)return;
           mesh.geometry.computeBoundingBox();data.meshes.push(mesh);
-          if(!/^(Chassis|DriverHelmet|DriverVisor|DriverTorso|FrontBumper|RearBumper|SidePod|WheelMesh)/.test(mesh.name))return;
+          // The source parts remain under OriginalKartBody after batching.
+          // Probe those exact surfaces, including the animal, so a merged
+          // material name cannot hide the driver from the clearance test.
+          let animal=false;for(let parent=mesh;parent;parent=parent.parent)if(parent.name==='KartDriver'){animal=true;break;}
+          if(!animal&&!/^(Chassis|DriverHelmet|DriverVisor|DriverTorso|FrontBumper|RearBumper|SidePod|WheelMesh)/.test(mesh.name))return;
           const positions=mesh.geometry.attributes.position,indices=new Set();
           for(let axis=0;axis<3;axis++){
             let min=0,max=0;for(let i=1;i<positions.count;i++){if(positions.getComponent(i,axis)<positions.getComponent(min,axis))min=i;if(positions.getComponent(i,axis)>positions.getComponent(max,axis))max=i;}
@@ -528,8 +535,9 @@ export function createElevatedKartView() {
     if(gen!==generation){if(!handle.fallback)handle.dispose();return;}
     pending=false;if(handle.fallback){graphicsFailure();return;}gl=handle;handle.canvas.setAttribute('data-game-focus','');gfxReady=true;itemKey='';$('loading').hidden=true;paint();clock();if(S.youDrive&&!blocked())handle.canvas.focus({preventScroll:true});
   }
-  // A player's chosen paint (elevated karts keep the helmet racer); the old seat colours otherwise.
-  function kartLookFor(pid,index){let look=null;try{const looks=api?.context?.()?.looks;look=looks&&Object.hasOwn(looks,pid)?looks[pid]:null;}catch{}return{driver:look?.driver??pid,color:Number.isInteger(look?.color)?look.color:pid===S.you?colors[0]:colors[(index+1)%colors.length]};}
+  // Same scene-owned, batched animals and garage paint as the classic view.
+  // The host sends resolved colours; raw saved looks are also accepted.
+  function kartLookFor(pid,index){let look=null;try{const looks=api?.context?.()?.looks;look=looks&&Object.hasOwn(looks,pid)?looks[pid]:null;}catch{}const clean=cleanKartLook(look);return{driver:clean?.driver??pid,color:Number.isInteger(look?.color)&&look.color>=0&&look.color<=0xffffff?look.color:kartPaintHex(clean?.paint)??(pid===S.you?colors[0]:colors[(index+1)%colors.length])};}
   function mount(el,platform){
     dispose();root=document.createElement('section');root.className='pke';root.setAttribute('aria-label','Pocket Karts');el.append(root);api=platform;
     const style=document.createElement('link');style.rel='stylesheet';style.href='/css/kart-elevated.css';style.dataset.elevatedKart='';document.head.append(style);listeners.push([style,'owned-style',null]);

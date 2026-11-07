@@ -6,6 +6,7 @@ import RAPIER from '@dimforge/rapier3d-compat';
 import CONFIG from '../public/js/engines/kart-physics-config.mjs';
 import COMBAT from '../games/engines/kart-elevated-combat.js';
 import { elevatedMapIds,elevatedMap } from '../public/js/engines/kart-elevated-maps.mjs';
+import recordedGarden from './fixtures/kart-garden-recovery-map.json' with {type:'json'};
 await RAPIER.init();
 const {createElevatedCombat}=COMBAT, results=[], measurements={};
 // Freeze the vehicle parameters of the original legal recovery recordings.
@@ -72,7 +73,8 @@ const gap=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 for(const [id,surface,x,z,toZ,height]of [
   ['garden','courtyard',18,1,12,7],
   ['frost','quarry-shelf',-27,2,18,8],
-  ['neon','loading-deck',22,4,20,6],
+  // The centre now has real cargo cover; use its clear east aisle.
+  ['neon','loading-deck',28,4,20,6],
   ['harbor','upper-dock',0,8,24,7],
 ])for(const upper of [false,true]){
   const map=elevatedMap(id),y=upper?height:0,on=upper?surface:'floor',otherY=upper?0:height,otherSurface=upper?'floor':surface;
@@ -475,9 +477,9 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 {
   // Exact legal intent stream from the read-only Garden reproduction. No body
   // reset, grant, rotation, impulse or hit hook is used to create the stuck kart.
-  // Preserve the full recorded physics: different chassis/contact tuning
-  // need not produce this historical seed's specific sideways collision.
-  const map=elevatedMap('garden'),seats=Array.from({length:8},(_,i)=>({id:'p'+i})),awards=[];
+  // Preserve the recorded layout, starts and loot as well as its physics.
+  // Today's extra cover and upper starts change this old collision trace.
+  const map=structuredClone(recordedGarden),seats=Array.from({length:8},(_,i)=>({id:'p'+i})),awards=[];
   const w=create(map,{seed:3,roundMs:90000,crates:6,onAward:(...v)=>awards.push(v)},seats,recordedPhysics,recordedRapier);
   let rng=3*2654435761>>>0,intents=[],event=null,before=null,after=null,previousSeconds=0,coinsBefore=0,coinsAfter=0,awardCount=0,queued=false;
   const random=()=>{rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;return(rng>>>0)/4294967296;};
@@ -534,7 +536,7 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 {
   // Replay with historical physics: two legal floor spawns are initially four units apart. The rival drives
   // between them and brakes, physically blocking both recovery footprints.
-  const map=elevatedMap('garden'),original=map.spawns[7];
+  const map=structuredClone(recordedGarden),original=map.spawns[7];
   map.spawns=[original,{...original,id:'blocker',x:-6,z:-52}];
   const w=create(map,{seed:3,roundMs:90000,crates:6},[{id:'p7'},{id:'b'}],recordedPhysics,recordedRapier);
   let rng=3*2654435761>>>0,intent=null,parked=false,retries=[],retryAt=0;

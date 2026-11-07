@@ -19,7 +19,7 @@ for(const id of elevatedMapIds) {
   const map = elevatedMap(id), world = ADAPTER.createKartPhysics(RAPIER,CONFIG);
   try {
     map.colliders.forEach(d=>world.addStatic(d));
-    check(`${id}: eight legal driver support points`,map.spawns.length===8);
+    check(`${id}: authored legal driver support points`,map.spawns.length===(map.maxPlayers||8));
     check(`${id}: randomized crate pool has more than 20 candidate sockets`,map.sockets.length>=24);
     check(`${id}: unique collider, spawn and crate IDs`,[map.colliders,map.spawns,map.sockets].every(a=>new Set(a.map(p=>p.id)).size===a.length));
     check(`${id}: no laps, finish order, checkpoints or baked content`, !['laps','checkpoints','finishLine','promptImage'].some(k=>k in map));
@@ -39,7 +39,7 @@ for(const id of elevatedMapIds) {
     }
     step(world,150);
     const poses=world.poses();
-    check(`${id}: eight spawns settle with grounded finite bodies`,poses.every(p=>p.grounded && Object.values(p.position).every(Number.isFinite) && p.position.y>0.5 && p.position.y<1));
+    check(`${id}: all spawns settle with grounded finite bodies`,poses.every((p,i)=>p.grounded && Object.values(p.position).every(Number.isFinite) && p.position.y-map.spawns[i].y>0.5 && p.position.y-map.spawns[i].y<1));
     check(`${id}: no spawn forced sideways out of a solid`,poses.every((p,i)=>Math.hypot(p.position.x-map.spawns[i].x,p.position.z-map.spawns[i].z)<0.2));
     const copy=elevatedMap(id); copy.colliders[0].half.x=0;
     check(`${id}: a private instance cannot corrupt map geometry`,elevatedMap(id).colliders[0].half.x===map.half);
@@ -91,7 +91,7 @@ for(const id of elevatedMapIds) {
       const r=map.colliders.find(d=>d.id===route.via);
       const angle=2*Math.atan2(r.rotation.y,r.rotation.w);
       const fx=Math.sin(angle),fz=Math.cos(angle);
-      const origin={x:r.position.x-fx*(r.half.z+3),y:1,z:r.position.z-fz*(r.half.z+3)};
+      const origin={x:r.position.x-fx*(r.half.z+3),y:r.position.y-r.half.y+1,z:r.position.z-fz*(r.half.z+3)};
       physics.addKart('driver',{position:origin,rotation:r.rotation});
       step(physics,120); physics.applyIntent('driver',{throttle:1,steer:0});
       let onRamp=false,onDeck=false,maxY=0;
@@ -103,7 +103,7 @@ for(const id of elevatedMapIds) {
       }
       check(`${id}/${route.id}: actual driven ramp contact`,onRamp);
       check(`${id}/${route.id}: reaches the actual destination deck`,onDeck);
-      check(`${id}/${route.id}: authoritative height exceeds the ramp rise`,maxY>r.half.y*2+0.35);
+      check(`${id}/${route.id}: authoritative height exceeds the ramp rise`,maxY>r.position.y+r.half.y+0.35);
       measurements.push({map:id,route:route.id,maxChassisY:Number(maxY.toFixed(3))});
       // Touching the deck during flight is not proof of a usable connection.
       // Start beyond the top seam and drive the same authored route downward.
@@ -122,14 +122,21 @@ for(const id of elevatedMapIds) {
         const along=(p.position.x-r.position.x)*fx+(p.position.z-r.position.z)*fz;
         returned=descendingRamp&&along< -r.half.z-2&&p.grounded&&p.wheels.every(w=>w.contact&&w.surfaceId===route.from);
       }
-      check(`${id}/${route.id}: ordinary descent returns all wheels to ground`,returned);
+      check(`${id}/${route.id}: ordinary descent returns all wheels to the source level`,returned);
     } finally { physics.dispose(); }
   }
   const bridge=map.colliders.find(d=>d.shape==='deck');
   const layered=ADAPTER.createKartPhysics(RAPIER,CONFIG);
   try {
     map.colliders.forEach(d=>layered.addStatic(d));
-    const x=bridge.position.x,z=bridge.position.z;
+    // A deck can contain authored cover. Choose an actual clear lane on
+    // both levels instead of assuming its geometric centre is empty.
+    const lane=[[0,0],[-5,0],[5,0],[0,-5],[0,5]].map(([dx,dz])=>({x:bridge.position.x+dx,z:bridge.position.z+dz})).find(p=>{
+      const y=bridge.position.y+bridge.half.y;
+      return layered.supportAt({...p,y:y+.4},.8)?.surfaceId===bridge.id&&!layered.overlapsStatic({...p,y:y+1}, {x:0,y:0,z:0,w:1})&&!layered.overlapsStatic({...p,y:1},{x:0,y:0,z:0,w:1});
+    });
+    check(`${id}: upper deck and underpass share a clear driving lane`,!!lane);
+    const {x,z}=lane;
     const upper=layered.supportAt({x,y:bridge.position.y+bridge.half.y+1,z},2);
     const lower=layered.supportAt({x,y:2,z},3);
     check(`${id}: deck and road underneath are different physical surfaces`,upper?.surfaceId===bridge.id && lower?.surfaceId==='floor' && upper.point.y-lower.point.y>5);

@@ -98,7 +98,10 @@ function inspectSeeker(world,config,view,owner,rule){
 }
 const observeSeeker=(server,instance,owner)=>fetch(server.http+'/__kart_transport_eligibility?instance='+encodeURIComponent(instance)+'&owner='+encodeURIComponent(owner)).then(async r=>{const value=await r.json();if(!r.ok)throw Error('Seeker observer '+r.status+' '+JSON.stringify(value));return value;});
 async function establishSeeker(server,a,target){
-  let targetSeq=action(target,{throttle:-1}),lastTick=-1,stable=0,last;
+  // Keep the rival at its legal authored start until the shooter has a clear
+  // stopped aim. Then drive forward into the spawn's swept open lane. Reverse
+  // depended on the old heading and could pin the target against a bridge kerb.
+  let targetSeq=action(target,{brake:1}),lastTick=-1,stable=0,last,moving=false;
   const records=[],end=Date.now()+Math.min(7000,Math.max(0,a.state.deadline-(a.state.gameNow??a.state.serverNow)-500));
   while(Date.now()<end){
     last=await observeSeeker(server,a.state.instanceId,a.hello.you);
@@ -110,7 +113,8 @@ async function establishSeeker(server,a,target){
         target:rival,closest:last.closest,targetSeq,applied,ready});if(records.length>16)records.shift();}
     if(stable>=2){console.log('MISSILE_PREFIRE',JSON.stringify({tick:last.tick,closest:last.closest,launchClear:last.launchClear,distance:rival.distance,ownerSpeed:last.ownerPose.speed}));return last;}
     if(safe)action(a,{brake:1});else action(a,toward(kart(a).pose,rival.pose.position));
-    targetSeq=action(target,{throttle:rival.pose.position.x< -78?1:-1});await sleep(95);
+    if(safe&&Math.abs(last.ownerPose.speed)<.4)moving=true;
+    targetSeq=action(target,moving?{throttle:.35}:{brake:1});await sleep(95);
   }
   throw Error('Seeker actual preconditions not established '+JSON.stringify(records));
 }

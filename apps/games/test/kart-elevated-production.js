@@ -60,7 +60,7 @@ async function main() {
   const base = await loadElevatedDependencies();
   eq(base.RAPIER.version(), '0.21.0', 'pinned Rapier initializes before synchronous create');
   const labels = def.manifest.settings.find(s => s.key === 'map');
-  eq(labels.options, ['Rookie Ring', 'Bumper Blocks', 'Garden Circuit', 'Frosty Pass', 'Neon Yard', 'Alpine Courtyard', 'Frost Quarry', 'Neon Harbor', 'Harbor Heights']);
+  eq(labels.options, ['Rookie Ring', 'Bumper Blocks', 'Garden Circuit', 'Frosty Pass', 'Neon Yard', 'Skyport', 'Foundry', 'Alpine Courtyard', 'Frost Quarry', 'Neon Harbor', 'Harbor Heights']);
   eq(labels.def, 'Garden Circuit', 'classic default unchanged');
   const mode = def.manifest.settings.find(s => s.key === 'mode');
   eq(mode.options, ['Star Rush', 'Zap Battle', 'Garage Battle']);
@@ -108,12 +108,12 @@ async function main() {
       ok(r.game.state && typeof r.game.state.then !== 'function', 'create returns state, not a Promise');
       eq(s.map.label, label); eq(s.map.half, label==='Harbor Heights'?86:60, 'injected map remains immutable');
       eq(s.profile, 'elevated-combat-v1'); eq(s.waitForResult, true);
-      eq(s.configVersion, 1); eq(s.physicsVersion, 2); eq(s.mapRevision, 'combat-elevation-1');
+      eq(s.configVersion, 1); eq(s.physicsVersion, 2); eq(s.mapRevision, 'combat-elevation-2');
       eq(s.karts.length, 8); eq(s.players.length, 8); eq(s.spectators.length, 16);
       eq(typeof s.you, 'string', 'outer you remains player ID');
       ok(s.inputAck && !('coins' in s.inputAck) && !('you' in def.view(r.game.state, s.you)), 'ACK cannot overwrite envelope');
       ok(s.karts.every(k => !('name' in k) && !('coins' in k) && !('contact' in k.pose.wheels[0]) && !('surfaceId' in k.pose.wheels[0])), 'compact poses strip duplicated names and diagnostics');
-      ok(s.karts.every(k => k.pose.position.y > 0.5 && k.pose.position.y < 0.9 && k.pose.rotation.w !== undefined && k.pose.linearVelocity.y !== undefined), 'full supported pose survives projection');
+      ok(s.karts.every((k,index) => k.pose.position.y-base.maps[s.mapId].spawns[index].y > 0.5 && k.pose.position.y-base.maps[s.mapId].spawns[index].y < 0.9 && k.pose.rotation.w !== undefined && k.pose.linearVelocity.y !== undefined), 'full supported pose survives projection');
       eq(latest(clients[23].ws).inputAck, null, 'seat-cap watcher has no ACK');
       eq(latest(clients[23].ws).coins, 0, 'watcher has no wallet');
       eq(ctx.instanceId, i); assert.throws(() => { ctx.instanceId = 'forged'; }); checks++;
@@ -268,7 +268,7 @@ async function main() {
   // flat numeric map. No item grants, teleports, hit or score mutation hooks.
   // One Pulse pickup takes one heart, so the diagnostic constructor starts
   // karts on their last heart (production Room rejects this setting above).
-  const diagnostic = Object.fromEntries(['garden', 'frost', 'neon', 'harbor'].map(id => [id, diagnosticMap(id)]));
+  const diagnostic = Object.fromEntries(['skyport', 'foundry', 'garden', 'frost', 'neon', 'harbor'].map(id => [id, diagnosticMap(id)]));
   let seed = 0;
   for (; seed < 256; seed++) {
     const m = createElevatedCombat(base.RAPIER, base.config, diagnostic.garden, [{ id: 'a' }, { id: 'b' }],
@@ -313,6 +313,6 @@ async function main() {
     pump(5); b.broadcastState(); eq(b.totals[battle.clients[0].p.id], 300);
   } finally { Date.now = originalNow; b.destroy(); }
   console.log(JSON.stringify({ pass: true, checks, node: process.version, rapier: base.RAPIER.version(),
-    scope: 'Production facade/Room with real Rapier, authored three-map starts, 8 drivers/16 watchers, controlled server clock, legal combat on an explicitly diagnostic map; no browser claim.' }, null, 2));
+    scope: 'Production facade/Room with real Rapier, authored four-map starts, 8 drivers/16 watchers, controlled server clock, legal combat on an explicitly diagnostic map; no browser claim.' }, null, 2));
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

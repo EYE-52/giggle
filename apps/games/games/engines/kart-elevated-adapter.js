@@ -6,6 +6,8 @@ const { rankStandings } = require('./kart-standings');
 
 const PROFILE = 'elevated-combat-v1';
 const MAP_LABELS = Object.freeze({
+  'Skyport': 'skyport',
+  'Foundry': 'foundry',
   'Alpine Courtyard': 'garden',
   'Frost Quarry': 'frost',
   'Neon Harbor': 'neon',

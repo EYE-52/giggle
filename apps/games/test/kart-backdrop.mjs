@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import classic from '../games/engines/kart-maps.js';
 import adapter from '../games/engines/kart-elevated-adapter.js';
-import {elevatedMapIds} from '../public/js/engines/kart-elevated-maps.mjs';
+import {elevatedMapIds,elevatedMap} from '../public/js/engines/kart-elevated-maps.mjs';
 import {createKartWorld,resolveMapTheme,WORLD_THEMES} from '../public/js/engines/kart-world.mjs';
 import {createKartElevatedWorld} from '../public/js/engines/kart-elevated-world.mjs';
 import {BACKDROP_THEMES,CLOUD_FILES,createKartBackdrop,createKartClouds} from '../public/js/engines/kart-backdrop.mjs';
 
 const themes=new Set(['quarry',...WORLD_THEMES,...classic.mapIds().map(id=>resolveMapTheme(classic.mapDef(id))),
-  ...elevatedMapIds,...Object.values(adapter.MAP_LABELS)]);
+  ...elevatedMapIds.map(id=>elevatedMap(id).backdrop||id),...Object.values(adapter.MAP_LABELS).map(id=>elevatedMap(id).backdrop||id)]);
 assert.deepEqual(Object.keys(BACKDROP_THEMES).sort(),[...themes].sort(),'Every rendered classic and elevated theme has a panorama');
 for(const entry of Object.values(BACKDROP_THEMES))assert(entry.file.endsWith('.webp')&&entry.aspect>0&&entry.aspect<1);
 
@@ -63,6 +63,19 @@ try{
   createKartBackdrop(testThree,{parent,theme:'frost',radius:255,ridges:[ridge]});
   requests.shift().onError(new Error('missing panorama'));
   assert(ridge.visible&&!parent.getObjectByName('mountain-backdrop'),'A missing panorama keeps the ridges');
+  {
+    const quarryParent=new THREE.Group(),fallbackRidge=new THREE.Group();scene.add(quarryParent);quarryParent.add(fallbackRidge);
+    createKartBackdrop(testThree,{parent:quarryParent,theme:'quarry',radius:350,ridges:[fallbackRidge]});
+    const primary=requests.shift();assert(primary.url.endsWith('/quarry.webp'));primary.onError(new Error('quarry absent'));
+    assert(fallbackRidge.visible&&!quarryParent.getObjectByName('mountain-backdrop'),'Missing quarry keeps procedural scenery');
+    assert.equal(requests.length,0,'Quarry uses its own painting directly');quarryParent.removeFromParent();
+    let alive=true,disposed=0;const retiredParent=new THREE.Group();scene.add(retiredParent);
+    createKartBackdrop(testThree,{parent:retiredParent,theme:'quarry',radius:350,isAlive:()=>alive});
+    const pending=requests.shift();alive=false;const tex=freshTexture();tex.addEventListener('dispose',()=>disposed++);pending.onLoad(tex);
+    assert(disposed===1&&!retiredParent.getObjectByName('mountain-backdrop'),'A late quarry image releases its texture after retirement');retiredParent.removeFromParent();
+    createKartBackdrop(testThree,{parent:retiredParent,theme:'quarry',radius:350,isAlive:()=>alive});requests.shift().onError();
+    assert.equal(requests.length,0,'A retired world never requests another image');
+  }
   createKartClouds(testThree,{parent,radius:255,peakHeight:90,color:new THREE.Color(),fallback:[sphere]});
   const partial=succeed(requests.shift());let released=0;partial.addEventListener('dispose',()=>released++);
   requests.shift().onError(new Error('missing cloud'));
@@ -118,7 +131,7 @@ try{
       const world=createKartElevatedWorld(testThree,{scene:new THREE.Scene(),map:id,assets:stylized?{stylized:new THREE.Group()}:{}});
       const mountains=world.scenery.children.filter(o=>/ridge|foothill|summit|stylized-(snow-peak|valley-hill)/.test(o.name));
       const pending=requests.splice(0),backdropRequest=pending.find(r=>r.url.includes('/backdrops/'));
-      assert.equal(backdropRequest.url,'/assets/karts/backdrops/'+BACKDROP_THEMES[id].file,'Elevated map id selects the painting, including both harbor variants');
+      assert.equal(backdropRequest.url,'/assets/karts/backdrops/'+BACKDROP_THEMES[elevatedMap(id).backdrop||id].file,'Elevated map id selects the painting, including both harbor variants');
       const resources=pending.map(succeed),disposals=new Map(resources.map(t=>[t,0]));
       for(const resource of resources)resource.addEventListener('dispose',()=>disposals.set(resource,disposals.get(resource)+1));
       assert(mountains.every(m=>!m.visible),'Loaded elevated panorama hides both mountain styles');
