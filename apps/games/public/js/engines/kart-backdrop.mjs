@@ -3,6 +3,7 @@
 export const BACKDROP_THEMES = Object.freeze({
   garden: Object.freeze({file:'mountains-day.webp',aspect:324/2172}),
   grove: Object.freeze({file:'mountains-day.webp',aspect:324/2172}),
+  quarry: Object.freeze({file:'quarry.webp',aspect:344/2172}),
   frost: Object.freeze({file:'frost.webp',aspect:344/2172}),
   neon: Object.freeze({file:'neon.webp',aspect:344/2172}),
   harbor: Object.freeze({file:'harbor.webp',aspect:344/2172}),

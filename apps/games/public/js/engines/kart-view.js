@@ -1273,9 +1273,10 @@ export function createKartView(viewConfig) {
             if(inner)inner.position.y=physicsConfig.chassis.modelOriginY;
             mesh.quaternion.set(physical.rotation.x,physical.rotation.y,physical.rotation.z,physical.rotation.w);
           }else{if(inner)inner.position.y=0;mesh.rotation.y=pose.angle;}
-          arena.dressKart(k,mesh);
+          arena.dressKart(k,mesh,pose.flight);
           skids.track(k.pid,mesh.position.x,mesh.position.z,pose.angle,kartSliding(k,pose,k.pid===S.you&&intentForPrediction().throttle<0));
           healthBars.update(k.pid,k,mesh.position,(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
+          if(!mesh.visible)healthBars.add(k.pid).visible=false;
           const equipped=k.ammo>0?k.weapon:null;
           if(mesh.userData.equipped!==equipped) {
             if(mesh.userData.rig)mesh.userData.rig.removeFromParent();

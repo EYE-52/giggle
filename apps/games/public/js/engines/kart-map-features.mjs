@@ -5,7 +5,7 @@
  * Map data (kart-maps.js `features`):
  *   cannons: [{ x, z, angle, land: { x, z, angle }, flight?, apex? }]
  *     The cannon points along `angle` (forward = (sin a, cos a)). Driving
- *     into its footprint from any side fires the kart along a scripted
+ *     into its rear mouth fires the kart along a scripted
  *     ballistic arc to `land`, where it touches down facing land.angle.
  *   portals: [[{ x, z, angle }, { x, z, angle }]]
  *     Each ring faces `angle`; a kart leaving a ring drives out along it.
@@ -21,8 +21,8 @@ export const CANNON_FLIGHT = 1.4;      // seconds airborne (allowed 1.2..1.6)
 export const CANNON_APEX = 8;          // metres above the straight chord
 export const CANNON_COOLDOWN = 2.5;    // seconds after landing before re-arm
 export const CANNON_LAND_SPEED = 14;   // m/s along the landing heading
-export const CANNON_HALF_WIDTH = 1.9;  // trigger footprint, cannon frame
-export const CANNON_HALF_LENGTH = 2.9;
+export const CANNON_HALF_WIDTH = .55; // centred in the open rear mouth
+export const CANNON_HALF_LENGTH = 1.2;
 export const PORTAL_HALF_WIDTH = 2.3;  // trigger box across the ring plane
 export const PORTAL_HALF_DEPTH = 1.1;  // and through it
 export const PORTAL_EXIT = 3.6;        // exit point ahead of the partner ring
@@ -43,7 +43,7 @@ function localUV(f, x, z) {
 
 export function inCannon(c, x, z) {
   const p = localUV(c, x, z);
-  return Math.abs(p.u) <= CANNON_HALF_LENGTH && Math.abs(p.v) <= CANNON_HALF_WIDTH;
+  return p.u>=-CANNON_HALF_LENGTH-1e-6&&p.u<=1e-6&&Math.abs(p.v)<=CANNON_HALF_WIDTH;
 }
 
 export function inPortal(p, x, z) {

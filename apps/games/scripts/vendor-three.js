@@ -40,6 +40,8 @@ function main() {
   const entry = fs.readFileSync(path.join(src, 'three.module.js'), 'utf8');
   if (!entry.includes('./three.core.js')) fail('three.module.js no longer imports ./three.core.js — update this script');
   fs.mkdirSync(dest, { recursive: true });
+  // The browser files are ES modules; keep headless Node imports the same.
+  fs.writeFileSync(path.join(dest, 'package.json'), '{"type":"module"}\n');
   for (const f of files) fs.copyFileSync(path.join(src, f), path.join(dest, f));
   // GLB assets use Three's own loader and utilities, from the same pinned build.
   const addons = ['loaders/GLTFLoader.js', 'utils/BufferGeometryUtils.js', 'utils/SkeletonUtils.js', 'libs/meshopt_decoder.module.js'];

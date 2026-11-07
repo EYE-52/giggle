@@ -50,6 +50,7 @@ function manifest() {
     ['public/css/kart-arena.css', 'public/css/kart-arena.css'],
     ['public/vendor/three/three.module.js', 'public/vendor/three/three.module.js'],
     ['public/vendor/three/three.core.js', 'public/vendor/three/three.core.js'],
+    ['public/vendor/three/package.json', 'public/vendor/three/package.json'],
     ['public/vendor/three/LICENSE', 'public/vendor/three/LICENSE'],
     ['public/vendor/three/VERSION', 'public/vendor/three/VERSION'],
     ['public/vendor/rapier/rapier.mjs','public/vendor/rapier/rapier.mjs'],

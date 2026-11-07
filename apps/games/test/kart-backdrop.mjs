@@ -7,7 +7,7 @@ import {createKartWorld,resolveMapTheme,WORLD_THEMES} from '../public/js/engines
 import {createKartElevatedWorld} from '../public/js/engines/kart-elevated-world.mjs';
 import {BACKDROP_THEMES,CLOUD_FILES,createKartBackdrop,createKartClouds} from '../public/js/engines/kart-backdrop.mjs';
 
-const themes=new Set([...WORLD_THEMES,...classic.mapIds().map(id=>resolveMapTheme(classic.mapDef(id))),
+const themes=new Set(['quarry',...WORLD_THEMES,...classic.mapIds().map(id=>resolveMapTheme(classic.mapDef(id))),
   ...elevatedMapIds,...Object.values(adapter.MAP_LABELS)]);
 assert.deepEqual(Object.keys(BACKDROP_THEMES).sort(),[...themes].sort(),'Every rendered classic and elevated theme has a panorama');
 for(const entry of Object.values(BACKDROP_THEMES))assert(entry.file.endsWith('.webp')&&entry.aspect>0&&entry.aspect<1);
@@ -96,11 +96,20 @@ try{
     world.animate(0,0,null);assert(panorama.material.color.equals(dayTint),'Returning to a fixed palette resets panorama tint');
     releaseClassic(world);
   }
-  // Quarry exception and the classic city's existing cloud visibility remain intact.
-  for(const id of ['blocks','neon']){
-    const world=createKartWorld(testThree,{scene:new THREE.Scene(),map:{id,...classic.mapDef(id)}}),pending=requests.splice(0);
-    assert.equal(pending.some(r=>r.url.includes('/backdrops/')),id!=='blocks');
+  // Every classic map selects its painting, including the dry quarry.
+  for(const id of classic.mapIds())for(const palette of ['Daybreak','Sunset','Starlight']){
+    const world=createKartWorld(testThree,{scene:new THREE.Scene(),map:{id,...classic.mapDef(id)},palette}),pending=requests.splice(0);
+    const theme=id==='blocks'?'quarry':resolveMapTheme(classic.mapDef(id));
+    const request=pending.find(r=>r.url.includes('/backdrops/'));
+    assert.equal(request.url,'/assets/karts/backdrops/'+BACKDROP_THEMES[theme].file,id+' painted horizon');
+    const ridges=world.group.children.filter(o=>/^ridge-(near|far|summit)$/.test(o.name));
+    assert(ridges.every(r=>r.visible),'Keep ridges while loading');
     for(const request of pending)succeed(request);
+    assert(world.group.getObjectByName('mountain-backdrop')&&ridges.every(r=>!r.visible),id+' painting replaces every procedural ridge');
+    if(id==='blocks'){
+      const g=world.group.getObjectByName('mountain-backdrop').geometry.parameters;
+      assert.equal(g.height,2*Math.PI*g.radiusTop/4*BACKDROP_THEMES.quarry.aspect*1.6);
+    }
     if(id==='neon')assert(!world.group.getObjectByName('painted-clouds').visible);
     releaseClassic(world);
   }
