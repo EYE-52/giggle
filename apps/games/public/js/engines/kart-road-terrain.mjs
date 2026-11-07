@@ -19,7 +19,7 @@ export function createRoadTerrain(map){
   // Include an entire grid-cell diagonal outside each flat footprint so
   // triangles crossing its short margin also remain exactly at zero.
   const margin=(profile.half===30?1:2)+spacing*Math.SQRT2;
-  const flats=[{x:0,z:0,hw:profile.plaza*scale,hd:profile.plaza*scale},...(map.blocks||[]),...(map.pads||[]),...(map.surfaces||[])];
+  const flats=[{x:0,z:0,hw:profile.plaza*scale,hd:profile.plaza*scale},...(map.blocks||[]),...(map.pads||[]),...(map.surfaces||[]),...(map.barriers||[]),...(map.ramps||[]).map(r=>({x:r.x,z:r.z,hw:Math.abs(Math.cos(r.angle))*r.hw+Math.abs(Math.sin(r.angle))*r.hl,hd:Math.abs(Math.sin(r.angle))*r.hw+Math.abs(Math.cos(r.angle))*r.hl}))];
   function authoredHeight(x,z){
     let height=0;
     for(const [cx,cz,rx,rz,h]of profile.hills){

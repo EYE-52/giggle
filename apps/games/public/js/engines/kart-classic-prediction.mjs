@@ -53,7 +53,7 @@ export function createClassicPrediction(R){
   function ingest(snapshot,now,serverAt=now){
     if(retired)return;
     const next=snapshot.instanceId+':'+snapshot.map.id;
-    if(next!==identity){world?.dispose();identity=next;state={map:snapshot.map.id,half:snapshot.map.half,blocks:snapshot.map.blocks,pads:snapshot.map.pads,surfaces:snapshot.map.surfaces,features:snapshot.map.features,mode:snapshot.mode,karts:snapshot.karts.map(k=>({...structuredClone(k),input:neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage})),physicalEvents:[],physicalEventSeq:0};world=createClassicMotion(R,config,state);history=[];lastSeq=0;elapsed=0;lastDraw=null;correction=null;remotes.clear();advancedAt=null;peerWeights.clear();}
+    if(next!==identity){world?.dispose();identity=next;state={map:snapshot.map.id,half:snapshot.map.half,blocks:snapshot.map.blocks,pads:snapshot.map.pads,surfaces:snapshot.map.surfaces,features:snapshot.map.features,roads:snapshot.map.roads,offroad:snapshot.map.offroad,barriers:snapshot.map.barriers,ramps:snapshot.map.ramps,mode:snapshot.mode,karts:snapshot.karts.map(k=>({...structuredClone(k),input:neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage})),physicalEvents:[],physicalEventSeq:0};world=createClassicMotion(R,config,state);history=[];lastSeq=0;elapsed=0;lastDraw=null;correction=null;remotes.clear();advancedAt=null;peerWeights.clear();}
     const previous=lastDraw;
     selfId=snapshot.you;const self=state.karts.find(k=>k.pid===snapshot.you);
     const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt:serverAt;

@@ -39,6 +39,7 @@ import { createKartCombatArt, projectileContactInset } from './kart-combat-art.m
 import { createKartHealthBars } from './kart-health-bars.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
 import {createArsenalFX} from './kart-arsenal-fx.mjs';
+import {createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d} from './kart-arena-structure-art.mjs';
 import {createKartArenaFeatures,drawArenaFeatures2d} from './kart-arena-features-art.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
 import {createKartThreats} from './kart-threats.mjs';
@@ -1041,7 +1042,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let world,impactFX,skids,threats,arsenalFX,arena;
+    let world,impactFX,skids,threats,arsenalFX,arena,structures;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1074,6 +1075,7 @@ export function createKartView(viewConfig) {
       arsenalFX=createArsenalFX(THREE,scene,{reducedMotion:()=>rm,groundAt:(x,z)=>world.groundAt?.(x,z)||0});
       arena=createKartArenaFeatures(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0,reducedMotion:()=>reducedMotion()});
       arena.sync(S?.map);
+      structures=createKartArenaStructures(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});structures.sync(S?.map);
       skids=createKartSkids(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});
       threats=createKartThreats(THREE,scene,rootEl.querySelector('.pk'),{reducedMotion:()=>rm,beep:level=>audio?.beep?.(level)});
       const zoneGeo = new THREE.RingGeometry(2.22, 2.4, 36);
@@ -1183,6 +1185,7 @@ export function createKartView(viewConfig) {
         while(arsenalEvents.length)arsenalFX.event(arsenalEvents.shift());
         impactFX.update(effectDt);skids.update(effectDt);arsenalFX.update(effectDt);
         // Arena features: cannons, portals, fall zones (map.features + arenaEvents).
+        structures.sync(S.map);structures.animate();
         arena.sync(S.map);arena.ingest(S.arenaEvents,S.karts);arena.animate(effectDt,t,S,poses);
         if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
         const acceptedEffects=feedback.current(nowMs());
@@ -1452,13 +1455,13 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();skids.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();threats.dispose();} };
     } catch (error) {
       world?.dispose();
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
       healthBars?.dispose();
-      impactFX?.dispose();skids?.dispose();threats?.dispose();
+      impactFX?.dispose();structures?.dispose();skids?.dispose();threats?.dispose();
       helper.disposeObject(scene);
       throw error;
     }
@@ -1553,8 +1556,8 @@ export function createKartView(viewConfig) {
     ctx.fillStyle = css(pal.floor);
     ctx.fillRect(px(-arena), pz(-arena), arena * 2 * scale, arena * 2 * scale);
     // Exact playable boundary; painted patches carry gameplay surface grip.
-    ctx.fillStyle = css(pal.track);
-    ctx.fillRect(px(-arena), pz(-arena), arena * 2 * scale, arena * 2 * scale);
+    if(S.map?.roads)drawArenaRoads2d(ctx,S.map,px,pz,scale);
+    else{ctx.fillStyle = css(pal.track);ctx.fillRect(px(-arena), pz(-arena), arena * 2 * scale, arena * 2 * scale);}
     for (const patch of (S.map?.surfaces || [])) {
       ctx.fillStyle = '#b8f2ff';
       ctx.fillRect(px(patch.x-patch.hw), pz(patch.z-patch.hd), patch.hw*2*scale, patch.hd*2*scale);
@@ -1562,6 +1565,7 @@ export function createKartView(viewConfig) {
       ctx.strokeRect(px(patch.x-patch.hw), pz(patch.z-patch.hd), patch.hw*2*scale, patch.hd*2*scale);
     }
     drawArenaFeatures2d(ctx,S.map,px,pz,scale);
+    drawArenaStructures2d(ctx,S.map,px,pz,scale);
     for (const pad of (S.map?.pads || [])) {
       ctx.fillStyle = '#61e9bf';
       ctx.fillRect(px(pad.x-pad.hw), pz(pad.z-pad.hd), pad.hw*2*scale, pad.hd*2*scale);

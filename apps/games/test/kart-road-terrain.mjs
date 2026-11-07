@@ -66,14 +66,18 @@ try{
 }finally{world.dispose();world.dispose();}
 assert.throws(()=>world.supportAt({x:0,y:1,z:0}));assert.throws(()=>world.sweepStatic({x:0,y:1,z:0},{x:0,y:0,z:0}));
 
+// Motion fixtures carry the same network and structures as snapshot.map.
 const driving=[];
 for(const target of [-38,38,-46,46]){
   const k={pid:'driver',x:target,z:-52,angle:0,input:{steer:0,throttle:1},spawnSeq:0,nitro:1};
-  const state={map:'garden',mode:'battle',half:60,blocks:map.blocks,pads:map.pads,surfaces:map.surfaces,karts:[k],physicalEvents:[],physicalEventSeq:0};
+  const state={map:'garden',mode:'battle',half:60,blocks:map.blocks,pads:map.pads,surfaces:map.surfaces,roads:map.roads,offroad:map.offroad,barriers:map.barriers,ramps:map.ramps,karts:[k],physicalEvents:[],physicalEventSeq:0};
   const motion=createClassicMotion(RAPIER,config,state),online=new Set(['driver']);
   let minClearance=Infinity,maxRoadHeight=0,maxYStep=0,previousY=k.physicalPose.position.y,grounded=0,steps=0,descended=false;
   try{
-    for(let i=0;i<900&&k.z<50;i++){
+    // The new inner hedges deliberately block a straight drive through
+    // the southern infield boundary. Finish after the hill descent;
+    // the arena-layout test checks the authored exits through that hedge.
+    for(let i=0;i<900&&k.z<30;i++){
       // Legal steering keeps the straight line despite gravity across its
       // camber. Y and quaternion are always owned by the controller.
       k.input={throttle:1,steer:Math.max(-1,Math.min(1,(k.x-target)*.45+k.angle*1.8))};
@@ -83,7 +87,7 @@ for(const target of [-38,38,-46,46]){
       maxYStep=Math.max(maxYStep,Math.abs(p.position.y-previousY));previousY=p.position.y;
       grounded+=p.grounded;steps++;descended ||= maxRoadHeight>2&&k.z>0&&h<.1&&p.grounded;
     }
-    assert.ok(k.z>50&&maxRoadHeight>2&&descended,'ordinary driving climbs and descends both flank routes');
+    assert.ok(k.z>30&&maxRoadHeight>2&&descended,'ordinary driving climbs and descends both flank routes '+JSON.stringify({target,x:k.x,z:k.z,maxRoadHeight,descended}));
     assert.ok(minClearance>.45&&maxYStep<.25&&grounded/steps>.7,'suspension crosses triangles without sinking or steps');
     k.x=38;k.z=-37;k.angle=0;k.spawnSeq++;
     motion.sync(online);assert.ok(Math.abs(k.physicalPose.position.y-(terrain.heightAt(38,-37)+.75))<.000001,'respawn uses terrain elevation');
@@ -92,7 +96,7 @@ for(const target of [-38,38,-46,46]){
   }finally{motion.dispose();}
 }
 const driver={pid:'driver',x:38,z:-52,angle:0,speed:0,input:{steer:0,throttle:1},spawnSeq:0,nitro:1,connected:true};
-const state={map:'garden',mode:'battle',half:60,blocks:map.blocks,pads:map.pads,surfaces:map.surfaces,karts:[driver],physicalEvents:[],physicalEventSeq:0};
+const state={map:'garden',mode:'battle',half:60,blocks:map.blocks,pads:map.pads,surfaces:map.surfaces,roads:map.roads,offroad:map.offroad,barriers:map.barriers,ramps:map.ramps,karts:[driver],physicalEvents:[],physicalEventSeq:0};
 const authority=createClassicMotion(RAPIER,config,state),prediction=createClassicPrediction(RAPIER),online=new Set(['driver']);
 let seq=0,maxPredictionError=0,maxPredictedHeight=0;
 const snapshot=()=>({instanceId:'terrain-prediction',phase:'drive',you:'driver',youDrive:true,mode:'battle',map,karts:[structuredClone(driver)],inputAck:{appliedInputSeq:seq}});

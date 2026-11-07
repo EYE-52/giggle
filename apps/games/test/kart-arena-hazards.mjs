@@ -107,11 +107,12 @@ function predictedRun(kind){
  const side=kind==='cannon'?target.angle-Math.PI/2:target.angle;
  const k={pid:'a',x:target.x+Math.sin(side)*12,z:target.z+Math.cos(side)*12,angle:side+Math.PI,speed:0,boost:0,boostCd:0,turbo:0,padCd:0,nitro:1,
   input:{throttle:1,steer:0},spawnSeq:0,connected:true,flight:null,cannonCd:0,portalCd:0};
- const state={map:id,mode:'battle',half:m.half,blocks:m.blocks,pads:m.pads,surfaces:m.surfaces,features:f,karts:[k],physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};
+ // The correction pair must share the new roads, grip and structures too.
+ const state={map:id,mode:'battle',half:m.half,blocks:m.blocks,pads:m.pads,surfaces:m.surfaces,roads:m.roads,offroad:m.offroad,barriers:m.barriers,ramps:m.ramps,features:f,karts:[k],physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};
  const authority=createClassicMotion(RAPIER,config,state),client=createClassicPrediction(RAPIER),online=new Set(['a']);
  const epoch=1800000000000;let t=0,seq=1,packets=[],previous,steps=[],maxError=0,jumps=0;
  const snap=()=>({instanceId:'predict-'+kind,phase:'drive',you:'a',youDrive:true,mode:'battle',simAt:epoch+t,
-  map:{id,half:m.half,blocks:m.blocks,pads:m.pads,surfaces:m.surfaces,features:f},karts:[structuredClone(k)],inputAck:{appliedInputSeq:k._appliedSeq||0,controlEpoch:0}});
+  map:{id,half:m.half,blocks:m.blocks,pads:m.pads,surfaces:m.surfaces,roads:m.roads,offroad:m.offroad,barriers:m.barriers,ramps:m.ramps,features:f},karts:[structuredClone(k)],inputAck:{appliedInputSeq:k._appliedSeq||0,controlEpoch:0}});
  k._receivedSeq=seq;client.ingest(snap(),0,epoch);client.sent(seq);
  for(let frame=1;frame<=60*5;frame++){
   t=frame*1000/60;

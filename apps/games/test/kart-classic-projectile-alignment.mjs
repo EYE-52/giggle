@@ -35,7 +35,8 @@ const radii=combatConfig.config.staticSweepRadii,kinds=['pulse','scatter','rocke
 const check=(ok,label)=>{assert.ok(ok,label);results.push(label);};
 function packet(raw){return battle.viewExtra({zaps:[raw],crates:[],mines:[],grenades:[],events:[]}).zaps[0];}
 function vertices(object,visit){object.updateWorldMatrix(true,true);object.traverse(o=>{if(!o.isMesh)return;const p=o.geometry.attributes.position;for(let i=0;i<p.count;i++)visit(point.fromBufferAttribute(p,i).applyMatrix4(o.matrixWorld),o);});}
-const sites={ring:[-17.5,-20.5],blocks:[-5.5,-20.5],garden:[-52,-52],frost:[-50.5,-52],neon:[-47.5,-52]};
+// The old Blocks probe is now inside a pocket wall; use its open west hill.
+const sites={ring:[-17.5,-20.5],blocks:[-21.5,-5.5],garden:[-52,-52],frost:[-50.5,-52],neon:[-47.5,-52]};
 for(const[tag,assets]of[['shipping',{get}],['fallback',null]]){
  const art=createKartCombatArt(THREE,{assets});
  try{for(const mapId of maps.mapIds()){

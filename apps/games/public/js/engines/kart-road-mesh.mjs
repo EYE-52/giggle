@@ -43,13 +43,21 @@ export function buildTerrainRoads(terrain,routes,options={}){
   const white=options.markingColor||[.88,.91,.88],road=[1,1,1],shoulder=options.shoulderColor||[.48,.53,.42];
   const field=(options.fieldBound||half)-1.5;
   const curbColors=options.curbColors||[[.8,.055,.085],[.88,.91,.88]];
-  // Edge lines break where another road crosses, so junctions stay clean.
+  // Edge paint, shoulders and kerbs all break at another route's asphalt.
   const crossesOther=(own,x,z)=>routes.some(r=>r!==own&&r.points.some((p,i)=>{const q=r.points[i+1];if(!q)return false;
     const dx=q.x-p.x,dz=q.y-p.y,l2=dx*dx+dz*dz||1,t=Math.max(0,Math.min(1,((x-p.x)*dx+(z-p.y)*dz)/l2));
     return Math.hypot(x-p.x-dx*t,z-p.y-dz*t)<r.width/2+.6;}));
   for(const route of routes){const {points,width,curb}=route;
+    // Asphalt has no junction gaps. Keep its original long quads so the
+    // two-metre border samples do not multiply terrain-clipped triangles.
+    if(route.ribbon){const p=route.ribbon.points,o=route.ribbon.offsets;
+      for(let i=1;i<p.length;i++)stamp([[p[i-1].x-o[i-1][0]*width/2,p[i-1].y-o[i-1][1]*width/2],
+        [p[i].x-o[i][0]*width/2,p[i].y-o[i][1]*width/2],
+        [p[i].x+o[i][0]*width/2,p[i].y+o[i][1]*width/2],
+        [p[i-1].x+o[i-1][0]*width/2,p[i-1].y+o[i-1][1]*width/2]],'road',.03,road);
+    }
     // Shared miter endpoints close bends without square slabs or gaps.
-    const offsets=points.map((p,i)=>{
+    const offsets=route.offsets||points.map((p,i)=>{
       const closed=points[0].distanceTo(points.at(-1))<1e-6;
       const a=points[i?i-1:closed?points.length-2:0],b=points[i+1<points.length?i+1:closed?1:i];
       const dx=b.x-a.x,dz=b.y-a.y,length=Math.hypot(dx,dz)||1;
@@ -61,9 +69,12 @@ export function buildTerrainRoads(terrain,routes,options={}){
       if(length<1e-6)continue;
       const band=(lo,hi)=>[[a.x+oa[0]*lo,a.y+oa[1]*lo],[b.x+ob[0]*lo,b.y+ob[1]*lo],
         [b.x+ob[0]*hi,b.y+ob[1]*hi],[a.x+oa[0]*hi,a.y+oa[1]*hi]];
-      stamp(band(-width/2-.65,-width/2),'shoulder',.018,shoulder);
-      stamp(band(width/2,width/2+.65),'shoulder',.018,shoulder);
-      stamp(band(-width/2,width/2),'road',.03,road);
+      const bandCrossesOther=q=>crossesOther(route,(q[0][0]+q[1][0]+q[2][0]+q[3][0])/4,(q[0][1]+q[1][1]+q[2][1]+q[3][1])/4);
+      for(const side of [-1,1]){
+        const q=band(side*width/2,side*(width/2+.65));
+        if(!bandCrossesOther(q))stamp(q,'shoulder',.018,shoulder);
+      }
+      if(!route.ribbon)stamp(band(-width/2,width/2),'road',.03,road);
       // Solid edge lines a little inside each side read the lane at speed.
       // Flat stretches only (two triangles each), inside the legal field.
       if(width>=5&&!curb)for(const side of [-1,1]){const q=band(side*(width/2-.42),side*(width/2-.26));
@@ -71,7 +82,8 @@ export function buildTerrainRoads(terrain,routes,options={}){
       if(curb)for(const side of [-1,1]){
         // Low coloured shoulders follow the grade, rather than a giant
         // road atlas. Their five-centimetre lip keeps crossings traversable.
-        stamp(band(side*(width/2+.05),side*(width/2+.52)),'curbs',.055,curbColors[Math.floor(travelled/2)%2]);
+        const q=band(side*(width/2+.05),side*(width/2+.52));
+        if(!bandCrossesOther(q))stamp(q,'curbs',.055,curbColors[Math.floor(travelled/2)%2]);
       }
       const tx=(b.x-a.x)/length,tz=(b.y-a.y)/length;
       let offset=0;

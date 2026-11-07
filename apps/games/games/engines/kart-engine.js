@@ -737,13 +737,16 @@ function retargetFeatureJumps(state, previousKarts) {
   }
 }
 
-function checkFalls(state, connected, battleMode) {
+function checkFalls(state, connected, battleMode, groundAt) {
   const starFalls = new Set();
   if (!state.features?.falls?.length) return starFalls;
   for (const kart of state.karts) {
     if (!connected.has(kart.pid) || kart.respawn > 0 || kart.flight || !kart.physicalPose) continue;
     const zone = fallAt(state.features, kart.x, kart.z, 0.15);
     if (!zone) continue;
+    // Jump lips can clear water/pits. Only a kart down at the local floor
+    // falls in; cannon flight already has its own explicit grace above.
+    if (kart.physicalPose.position.y > (groundAt?.(kart.x,kart.z)||0) + .95) continue;
     const at = { x: +kart.x.toFixed(3), y: +kart.physicalPose.position.y.toFixed(3), z: +kart.z.toFixed(3) };
     if (battleMode) {
       if (!battle.fallOut(state, kart)) continue;
@@ -905,6 +908,7 @@ function createKartGame(config) {
       // Arena features (cannons, portals, fall zones) and their bounded
       // presentation events; physics-backed arenas only (the planar
       // fixture engine has no motion to run them).
+      ...(cfg.createMotion ? Object.fromEntries(['roads','offroad','barriers','ramps'].filter(key=>mapD[key]).map(key=>[key,structuredClone(mapD[key])])) : {}),
       features: cfg.createMotion ? (mapD.features || null) : null,
       featureEvents: [],
       featureEventSeq: 0,
@@ -1171,7 +1175,7 @@ function createKartGame(config) {
       // physical; recovery is a new life, never a KO or a position clamp.
       const recovered = new Set();
       retargetFeatureJumps(state, previousKarts);
-      const starFalls = checkFalls(state, connected, battleMode);
+      const starFalls = checkFalls(state, connected, battleMode, motion.groundAt);
       for (const kart of state.karts) {
         if (!connected.has(kart.pid) || kart.respawn > 0 || !kart.physicalPose) continue;
         if (!motion.isOutOfBounds?.(kart.physicalPose) && !starFalls.has(kart.pid)) continue;
@@ -1284,6 +1288,7 @@ function createKartGame(config) {
         blocks: state.blocks,
         pads: state.pads,
         surfaces: state.surfaces,
+        ...Object.fromEntries(['roads','offroad','barriers','ramps'].filter(key=>state[key]).map(key=>[key,state[key]])),
         ...(state.features ? { features: state.features } : {}),
       },
       ...(state.features ? { arenaEvents: (state.featureEvents || []).map((e) => ({ ...e })) } : {}),

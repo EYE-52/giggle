@@ -69,12 +69,13 @@ async function main() {
 
   // --- 1. map contract: shape, labels, themes, geometry sanity ---
   {
+    // Arena redesign adds racing-line turbo strips; tall cover is unchanged.
     const want = {
-      ring: ['Rookie Ring', 'ring', 30, 0, 0, 0],
-      blocks: ['Bumper Blocks', 'blocks', 30, 4, 0, 0],
-      garden: ['Garden Circuit', 'garden', 60, 6, 2, 0],
-      frost: ['Frosty Pass', 'frost', 60, 6, 2, 5],
-      neon: ['Neon Yard', 'neon', 60, 6, 3, 0],
+      ring: ['Rookie Ring', 'ring', 30, 0, 2, 0],
+      blocks: ['Bumper Blocks', 'blocks', 30, 4, 2, 0],
+      garden: ['Garden Circuit', 'garden', 60, 6, 4, 0],
+      frost: ['Frosty Pass', 'frost', 60, 6, 4, 5],
+      neon: ['Neon Yard', 'neon', 60, 6, 5, 0],
     };
     assert.deepStrictEqual(maps.mapIds(), ['ring', 'blocks', 'garden', 'frost', 'neon'], 'map roster');
     for (const [id, [label, theme, half, nb, np, ns]] of Object.entries(want)) {

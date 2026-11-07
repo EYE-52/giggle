@@ -200,7 +200,12 @@ for(const id of maps.mapIds()){
         // pickup canary is introduced only after the private Rapier body is
         // airborne; no cached pose, velocity or physics body is replaced.
         const yaw=id==='frost'?Math.PI*1.5:Math.PI,offset=['ring','blocks'].includes(id)?0:16;
-        f.place(f.a,hill.x-Math.sin(yaw)*offset,hill.z-Math.cos(yaw)*offset,yaw);f.place(f.b,0,0);
+        // Blocks' new pocket walls contain the old hill transect. Use
+        // its actual cannon approach for this high-air pickup canary;
+        // kart-arena-layout checks every new ramp with actual driving.
+        if(id==='blocks')f.place(f.a,-24,-17,Math.PI);
+        else f.place(f.a,hill.x-Math.sin(yaw)*offset,hill.z-Math.cos(yaw)*offset,yaw);
+        f.place(f.b,0,0);
         let flight;
         for(let i=0;i<180&&!flight;i++){
           if(i%3===0)f.input(f.a,{throttle:1,nitro:true});f.tick(25);
