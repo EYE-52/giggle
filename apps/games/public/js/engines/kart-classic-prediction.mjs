@@ -117,7 +117,7 @@ export function createClassicPrediction(R){
           if(!changed)break;
         }
       }
-      return {x:p.position.x,z:p.position.z,y:p.position.y,angle:Math.atan2(2*(p.rotation.x*p.rotation.z+p.rotation.w*p.rotation.y),1-2*(p.rotation.x*p.rotation.x+p.rotation.y*p.rotation.y)),speed:self.speed,drifting:self.drifting===true,slip:self.slip,grounded:p.grounded,physicalPose:p};
+      return {x:p.position.x,z:p.position.z,y:p.position.y,angle:Math.atan2(2*(p.rotation.x*p.rotation.z+p.rotation.w*p.rotation.y),1-2*(p.rotation.x*p.rotation.x+p.rotation.y*p.rotation.y)),speed:self.speed,drifting:self.drifting===true,slip:self.slip,grounded:p.grounded,physicalPose:p,flight:self.flight};
     },
     remote(pid,now,serverAt=now){
       let pose=remoteSample(pid,serverAt);if(!pose)return null;
@@ -127,7 +127,7 @@ export function createClassicPrediction(R){
         const weight=peerWeights.get(pid)||0;
         if(weight>0){const position=mix(pose.position,predicted.position,weight),rotation=slerp(pose.rotation,predicted.rotation,weight);pose=world.overlapsStatic(position,rotation)?predicted:{...predicted,position,rotation};}
       }
-      return {x:pose.position.x,y:pose.position.y,z:pose.position.z,angle:Math.atan2(2*(pose.rotation.x*pose.rotation.z+pose.rotation.w*pose.rotation.y),1-2*(pose.rotation.x*pose.rotation.x+pose.rotation.y*pose.rotation.y)),speed:pose.speed,physicalPose:pose};
+      return {x:pose.position.x,y:pose.position.y,z:pose.position.z,angle:Math.atan2(2*(pose.rotation.x*pose.rotation.z+pose.rotation.w*pose.rotation.y),1-2*(pose.rotation.x*pose.rotation.x+pose.rotation.y*pose.rotation.y)),speed:pose.speed,physicalPose:pose,flight:peer?.flight};
     },
     // Simulated (unblended) own pose, for diagnostics and tests.
     selfPose(){return state?.karts.find(k=>k.pid===selfId)?.physicalPose||null;},

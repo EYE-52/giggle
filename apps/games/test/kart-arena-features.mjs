@@ -64,7 +64,7 @@ const metrics=[];
 // ---- cannons: launch on entry, readable arc, land in the zone facing the
 // landing heading at a sensible speed, steering ignored, cooldown holds ----
 for(const id of MAP_IDS)maps.mapDef(id).features.cannons.forEach((c,index)=>{
- const start=approach(id,c.x,c.z,c.angle,7),k=kart('a',start.x,start.z,start.angle),s=room(id,[k]),w=createClassicMotion(RAPIER,config,s),online=new Set(['a']);
+ const start={x:c.x-Math.sin(c.angle)*3,z:c.z-Math.cos(c.angle)*3,angle:c.angle},k=kart('a',start.x,start.z,start.angle),s=room(id,[k]),w=createClassicMotion(RAPIER,config,s),online=new Set(['a']);
  let launchedAt=null,landedAt=null,peak=-Infinity,time=0,afterLand=null,groundedSoon=null;
  for(let i=0;i<60*9&&!(afterLand!==null&&time-afterLand>3);i++){
   // Wild steering in flight must change nothing.
@@ -95,7 +95,7 @@ for(const id of MAP_IDS)maps.mapDef(id).features.cannons.forEach((c,index)=>{
 // re-fires; after the cooldown a fresh entry fires again.
 {
  const c=maps.mapDef('garden').features.cannons[0];
- const k=kart('a',c.x,c.z,c.angle,{steer:0,throttle:0}),s=room('garden',[k]),w=createClassicMotion(RAPIER,config,s),online=new Set(['a']);
+ const k=kart('a',c.x-Math.sin(c.angle),c.z-Math.cos(c.angle),c.angle,{steer:0,throttle:0}),s=room('garden',[k]),w=createClassicMotion(RAPIER,config,s),online=new Set(['a']);
  for(let i=0;i<60;i++)w.advance(1/60,online);
  ok(!s.featureEvents.length&&!k.flight,'a parked kart in the mouth never launches');
  k.cannonCd=.3;k.input={steer:0,throttle:1};

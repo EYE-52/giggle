@@ -55,6 +55,7 @@ import {buildTerrainRoads} from './kart-road-mesh.mjs';
 
 import {KART_R} from './kart-pose.mjs';
 import {createKartBackdrop,createKartClouds} from './kart-backdrop.mjs';
+import {obstacleStyle,createObstaclePanelTexture,createObstacleContactTexture} from './kart-obstacle-style.mjs';
 
 export const WORLD_ID = 'giggle-grove-circuit';
 export const WORLD_BOUNDS = 30; // legacy playable half-extent; walls align here
@@ -219,21 +220,21 @@ const THEME_SURF = {
   },
   neon: {
     Daybreak: {
-      ground: 0x1e3a46, verge: 0x24465a, track: 0x202033, trackDark: 0x10101e,
+      ground: 0x294f61, verge: 0x294f61, track: 0x3b5667, trackDark: 0x2b4354,
       line: '#7fd4ff', kerbA: '#ff2fb3', kerbB: '#d8f6ff', rail: 0x18c8d8,
       path: 0x2a3a4a, dirt: '#141c2a',
       ridgeNear: 0x1d3a4e, ridgeFar: 0x4a5a7a,
       cloud: 0xd8ecf8, glow: 0.15, glowTrack: 0x18c8d8, glowGrass: 0x0e4a5a, glowGrassI: 0.5,
     },
     Sunset: {
-      ground: 0x24344a, verge: 0x2a3e5a, track: 0x242035, trackDark: 0x171226,
+      ground: 0x2d4c60, verge: 0x2d4c60, track: 0x3e5369, trackDark: 0x2d4056,
       line: '#ffb3dd', kerbA: '#ff2fb3', kerbB: '#ffe8f8', rail: 0x18c8d8,
       path: 0x302e48, dirt: '#181826',
       ridgeNear: 0x24344e, ridgeFar: 0x6a5a8a,
       cloud: 0xe8c8e0, glow: 0.15, glowTrack: 0x18c8d8, glowGrass: 0x0e4a5a, glowGrassI: 0.5,
     },
     Starlight: {
-      ground: 0x0e1e30, verge: 0x14304a, track: 0x151221, trackDark: 0x10101b,
+      ground: 0x254658, verge: 0x254658, track: 0x344e62, trackDark: 0x263e52,
       line: '#8fe8ff', kerbA: '#ff2fb3', kerbB: '#d8f6ff', rail: 0x18c8d8,
       path: 0x1a2a40, dirt: '#0a1424',
       ridgeNear: 0x12283e, ridgeFar: 0x2a3f66,
@@ -451,9 +452,9 @@ export function createKartWorld(THREE, options) {
   // City lighting follows the approved violet/charcoal world, including
   // the same authoritative sunset progress; it never inherits park skies.
   const citySky={
-    Daybreak:{sky:0x181a32,skyMid:0x49345f,horizon:0x715275,sunIntensity:1.2,hemiSky:0xaab2d2,hemiGround:0x25243a,hemiIntensity:.8,exposure:.88},
-    Sunset:{sky:0x1d1736,skyMid:0x593653,horizon:0x85576c,sunIntensity:1.15,hemiSky:0xcaa0be,hemiGround:0x27203a,hemiIntensity:.8,exposure:.9},
-    Starlight:{sky:0x080917,skyMid:0x19142d,horizon:0x392c55,hemiSky:0xabb6df,hemiGround:0x242038,hemiIntensity:.9,exposure:1.02},
+    Daybreak:{sky:0x181a32,skyMid:0x49345f,horizon:0x715275,sunIntensity:1.35,hemiSky:0xc1ddec,hemiGround:0x436b7b,hemiIntensity:1.65,exposure:1.04},
+    Sunset:{sky:0x1d1736,skyMid:0x593653,horizon:0x85576c,sunIntensity:1.25,hemiSky:0xcacfe9,hemiGround:0x436477,hemiIntensity:1.6,exposure:1.04},
+    Starlight:{sky:0x080917,skyMid:0x19142d,horizon:0x392c55,hemiSky:0xb6d8ed,hemiGround:0x3e657b,hemiIntensity:1.65,exposure:1.08},
   };
   const skyPalette=n=>theme==='neon'?Object.assign({},PALETTES[n],citySky[n]):PALETTES[n];
   const P = skyPalette(name);
@@ -611,7 +612,7 @@ export function createKartWorld(THREE, options) {
 
   /* ---- painted ground: verge + circuit plaza (paint only) ---- */
   const offroadKind = map.offroad?.kind;
-  const offroadColor = ({ gravel: name === 'Starlight' ? 0x0b0c0f : 0x191a1d, sand: 0xcdb384, snow: 0xf1f5fa })[offroadKind] ?? S.verge;
+  const offroadColor = theme==='neon' ? S.verge : ({ gravel: name === 'Starlight' ? 0x0b0c0f : 0x191a1d, sand: 0xcdb384, snow: 0xf1f5fa })[offroadKind] ?? S.verge;
   const lawnTheme = offroadKind ? offroadKind === 'grass' : theme !== 'frost' && theme !== 'neon';
   const grassTex = canvasTexture(THREE, 512, 512, (ctx, w, h) => {
     ctx.fillStyle = hexCss(offroadColor);
@@ -620,7 +621,7 @@ export function createKartWorld(THREE, options) {
       // Neutral coarse gravel and warm sand contrast with smooth asphalt.
       // Reuse the ground's existing texture/material: no extra geometry.
       const gravel = offroadKind === 'gravel';
-      speckle(ctx, w, h, trnd, 6500, gravel ? ['#090a0c', '#3d3d40', '#686762'] : ['#a48b5e', '#e8d6af', '#b49a6e'], .35, 1, 4);
+      speckle(ctx, w, h, trnd, 6500, theme==='neon' ? ['#1d3648','#456578','#698696'] : gravel ? ['#090a0c', '#3d3d40', '#686762'] : ['#a48b5e', '#e8d6af', '#b49a6e'], .35, 1, 4);
     } else if (offroadKind === 'snow' || theme === 'frost') {
       // Snow verge: soft drift blobs + sparkle, no mow stripes.
       for (let i = 0; i < 16; i++) {
@@ -980,6 +981,7 @@ export function createKartWorld(THREE, options) {
     lawnShader(grassMat);
   }
   const asphaltMat = std(0xffffff, { roughness: 0.94 });
+  if(theme==='neon'){asphaltMat.roughness=.38;asphaltMat.metalness=.16;asphaltMat.envMapIntensity=.65;}
   if (asphaltTex) asphaltMat.map = asphaltTex;
   else asphaltMat.color.set(S.track);
   const roadBump=canvasTexture(THREE,512,512,(ctx,w,h)=>{
@@ -994,8 +996,8 @@ export function createKartWorld(THREE, options) {
   // night glow in without rebuilding materials.
   asphaltMat.emissive = new THREE.Color(nightSurf.glowTrack);
   asphaltMat.emissiveIntensity = S.glow;
-  // Gravel stays neutral under the yard lights, including the sunset fade.
-  grassMat.emissive = new THREE.Color(offroadKind === 'gravel' ? 0x000000 : nightSurf.glowGrass);
+  // The yard keeps a restrained blue floor fill; other gravel stays neutral.
+  grassMat.emissive = new THREE.Color(theme==='neon' ? 0x183749 : offroadKind === 'gravel' ? 0x000000 : nightSurf.glowGrass);
   grassMat.emissiveIntensity = S.glow > 0 ? S.glowGrassI : 0;
   const dirtMat = terrain ? null : std(0xffffff, {
     roughness: 1, transparent: true,
@@ -1633,10 +1635,10 @@ export function createKartWorld(THREE, options) {
   // arena on an inward cylinder (the painting tiles seamlessly), and
   // replaces the procedural ridges once it has loaded. Headless builds
   // and load failures keep the ridges.
-  // Bumper Blocks keeps its dry quarry horizon rather than alpine snow.
+  // Quarry has its own dry painted horizon; retain ridges until it loads.
   let skyAlive=true;
   const skyIsAlive=()=>skyAlive&&!!root.parent;
-  const backdrop=createKartBackdrop(THREE,{parent:root,theme,radius:hillMin+150,ridges:farRidges,enabled:!quarry,isAlive:skyIsAlive});
+  const backdrop=createKartBackdrop(THREE,{parent:root,theme:quarry?'quarry':theme,radius:hillMin+150,ridges:farRidges,isAlive:skyIsAlive});
   const tintBackdrop=backdrop.tint;
   tintBackdrop(P.horizon,P.stars?1:0);
 
@@ -1953,6 +1955,14 @@ export function createKartWorld(THREE, options) {
   root.add(surfGroup);
   const unitBox = new THREE.BoxGeometry(1, 1, 1);
   const unitPad = new THREE.PlaneGeometry(1, 1);
+  let contactMat;
+  function getContactMat(){
+    if(!contactMat)contactMat=new THREE.MeshBasicMaterial({map:createObstacleContactTexture(THREE),transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2});
+    return contactMat;
+  }
+  function panelMaterial(style){
+    return std(0xffffff,{map:createObstaclePanelTexture(THREE,style),roughness:.78});
+  }
   let obstacleRes = null;
   function getObstacleRes() {
     if (obstacleRes) return obstacleRes;
@@ -1968,32 +1978,11 @@ export function createKartWorld(THREE, options) {
     const hazardMat = std(0xffffff, { roughness: 0.6 });
     if (hazardTex) hazardMat.map = hazardTex;
     else hazardMat.color.set(0xffd23e);
-    const padTex = canvasTexture(THREE, 128, 128, (ctx, w, h) => {
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = P.dirt;
-      ctx.globalAlpha = 0.9;
-      const m = 10;
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(m, m, w - 2 * m, h - 2 * m, 22);
-      else ctx.rect(m, m, w - 2 * m, h - 2 * m);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = P.line;
-      ctx.lineWidth = 5;
-      ctx.stroke();
-      speckle(ctx, w, h, rnd, 350, ['#5a3a22', '#ffffff'], 0.08, 1, 3);
-    });
-    const padMat = std(0xffffff, {
-      roughness: 1, transparent: true,
-      polygonOffset: true, polygonOffsetFactor: -2,
-    });
-    if (padTex) padMat.map = padTex;
-    else padMat.color.set(P.dirt);
     obstacleRes = {
       tireGeo: new THREE.TorusGeometry(0.62, 0.22, 10, 20),
-      baseMat: std(0x1f7a8c, { roughness: 0.75 }),
+      baseMat: panelMaterial(obstacleStyle(quarry?'quarry':'ring')),
       hazardMat,
-      padMat,
+      padMat:getContactMat(),
       tireMat: std(0x23202e, { roughness: 0.95 }),
     };
     return obstacleRes;
@@ -2007,32 +1996,14 @@ export function createKartWorld(THREE, options) {
     if (tex) { m.map = tex; m.color.set(0xffffff); }
     return m;
   }
-  function soilPadTexture(fill, border, grain) {
-    return canvasTexture(THREE, 128, 128, (ctx, w, h) => {
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = fill;
-      ctx.globalAlpha = 0.92;
-      const m = 10;
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(m, m, w - 2 * m, h - 2 * m, 22);
-      else ctx.rect(m, m, w - 2 * m, h - 2 * m);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = border;
-      ctx.lineWidth = 5;
-      ctx.stroke();
-      speckle(ctx, w, h, trnd, 350, grain, 0.08, 1, 3);
-    });
-  }
   function getThemeRes() {
     if (theme === 'grove') return null;
     if (themeRes) return themeRes;
     if (theme === 'garden') {
-      const soilTex = soilPadTexture('#4a3220', '#7a5230', ['#2e1c10', '#8a6a44']);
       const bloomTex = canvasTexture(THREE, 128, 128, (ctx, w, h) => {
-        ctx.fillStyle = '#557c4b';
+        ctx.fillStyle = '#b4cf79';
         ctx.fillRect(0, 0, w, h);
-        speckle(ctx,w,h,trnd,700,['#365a3d','#829766','#bdd68c'],.3,1,3);
+        speckle(ctx,w,h,trnd,700,['#72965c','#c9df9c','#deedbb'],.3,1,3);
         const blooms = ['#ddc15c', '#f1ece1', '#c3a3dc'];
         for (let i = 0; i < 14; i++) {
           ctx.fillStyle = blooms[(trnd() * blooms.length) | 0];
@@ -2040,74 +2011,45 @@ export function createKartWorld(THREE, options) {
           ctx.arc(8 + trnd() * (w - 16), 8 + trnd() * (h - 16), 1.5 + trnd(), 0, Math.PI * 2);
           ctx.fill();
         }
+        ctx.strokeStyle='#e1edb7';ctx.lineWidth=5;ctx.strokeRect(3,3,w-6,h-6);
       });
-      const soilMat = std(0xffffff, {
-        roughness: 1, transparent: true,
-        polygonOffset: true, polygonOffsetFactor: -2,
-      });
-      if (soilTex) soilMat.map = soilTex;
-      else soilMat.color.set(0x4a3220);
-      const brickMat = () => { const m = std(stoneTex ? 0xffffff : 0xaaa99c, stoneExtra); if (stoneTex) worldBrickShader(m); return m; };
       themeRes = {
-        padMat: soilMat,
-        baseMat: brickMat(),
-        capMat: flatOr(0x557c4b, bloomTex),
+        padMat:getContactMat(),
+        baseMat:panelMaterial(obstacleStyle('garden')),
+        capMat:flatOr(0xb4cf79,bloomTex),
       };
     } else if (theme === 'frost') {
-      const frostPadTex = soilPadTexture('#cfe4f4', '#ffffff', ['#ffffff', '#9fc4e4']);
-      const iceTex = canvasTexture(THREE, 128, 128, (ctx, w, h) => {
-        ctx.fillStyle = '#7fb8dd';
-        ctx.fillRect(0, 0, w, h);
-        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-        for (let i = 0; i < 9; i++) {
-          ctx.lineWidth = 2 + trnd() * 4;
-          ctx.beginPath();
-          const sx = trnd() * w, sy = trnd() * h;
-          ctx.moveTo(sx, sy);
-          ctx.lineTo(sx + 30 + trnd() * 60, sy + 10 + trnd() * 30);
-          ctx.stroke();
-        }
-        speckle(ctx, w, h, trnd, 300, ['#ffffff', '#4a8ec4'], 0.12, 1, 3);
-      });
-      const frostPadMat = std(0xffffff, {
-        roughness: 1, transparent: true,
-        polygonOffset: true, polygonOffsetFactor: -2,
-      });
-      if (frostPadTex) frostPadMat.map = frostPadTex;
-      else frostPadMat.color.set(0xcfe4f4);
       themeRes = {
-        padMat: frostPadMat,
-        baseMat: flatOr(0x7fb8dd, iceTex),
+        padMat:getContactMat(),
+        baseMat:panelMaterial(obstacleStyle('frost')),
         capMat: std(0xf4f9ff, { roughness: 0.9 }), // snow cap
       };
     } else { // neon: cargo cover stacks with emissive trim caps
-      const darkPadTex = soilPadTexture('#101828', '#18e0f0', ['#0a1424', '#3a5a7a']);
       const tarpTex = canvasTexture(THREE, 128, 128, (ctx, w, h) => {
-        ctx.fillStyle = '#ffffff';
+        const shade=ctx.createLinearGradient(0,0,w,h);shade.addColorStop(0,'#e1edf5');shade.addColorStop(.42,'#a4b8c6');shade.addColorStop(1,'#52697b');
+        ctx.fillStyle = shade;
         ctx.fillRect(0, 0, w, h);
-        ctx.fillStyle = 'rgba(0,0,0,0.16)';
-        for (let i = 0; i < 6; i++) ctx.fillRect(0, 8 + i * 21, w, 7);
-        ctx.fillStyle = 'rgba(255,255,255,0.25)';
-        for (let i = 0; i < 6; i++) ctx.fillRect(0, 15 + i * 21, w, 3);
+        for(let x=12;x<w;x+=26){ctx.fillStyle='rgba(9,23,34,.45)';ctx.fillRect(x,7,3,h-14);ctx.fillStyle='rgba(229,245,255,.3)';ctx.fillRect(x+3,7,2,h-14);}
+        ctx.strokeStyle='#42586c';ctx.lineWidth=4;ctx.strokeRect(4,4,w-8,h-8);
+        ctx.fillStyle='#d7e7eb';for(const x of [8,w-10])for(const y of [8,h-10])ctx.fillRect(x,y,2,2);
+      });
+      const edgeTex=canvasTexture(THREE,128,128,(ctx,w,h)=>{
+        ctx.fillStyle='#000000';ctx.fillRect(0,0,w,h);ctx.strokeStyle='#ffffff';ctx.lineWidth=3;ctx.strokeRect(3,3,w-6,h-6);
       });
       const cargoFor = (color) => {
-        const m = std(color, { roughness: 0.8 });
+        const m = std(color, { roughness:.48,metalness:.22,envMapIntensity:.65 });
         if (tarpTex) { m.map = tarpTex; }
         return m;
       };
-      const darkPadMat = std(0xffffff, {
-        roughness: 1, transparent: true,
-        polygonOffset: true, polygonOffsetFactor: -2,
-      });
-      if (darkPadTex) darkPadMat.map = darkPadTex;
-      else darkPadMat.color.set(0x101828);
+      const edgeFor=(color)=>{
+        const m=std(0x547b91,{roughness:.4,metalness:.25,emissive:color,emissiveIntensity:.85});
+        if(tarpTex)m.map=tarpTex;if(edgeTex)m.emissiveMap=edgeTex;
+        return m;
+      };
       themeRes = {
-        padMat: darkPadMat,
-        baseMats: [cargoFor(0x1f7a8c), cargoFor(0x8e2a6a)],
-        capMats: [
-          std(0x0a2a34, { roughness: 0.4, emissive: 0x18e0f0, emissiveIntensity: 1.2 }),
-          std(0x2a0a22, { roughness: 0.4, emissive: 0xff2fb3, emissiveIntensity: 1.2 }),
-        ],
+        padMat:getContactMat(),
+        baseMats: [cargoFor(0x37899c), cargoFor(0x965481)],
+        capMats: [edgeFor(0x40dbea),edgeFor(0xf26ec9)],
       };
     }
     return themeRes;
@@ -2423,6 +2365,8 @@ export function createKartWorld(THREE, options) {
     ground: S.ground, track: S.track,
     stars: P.stars, cloudsVisible: !P.stars,
   };
+  // Only the city gets a second, unshadowed soft light and strip reflections.
+  if(theme==='neon')Object.assign(livePalette,{fillColor:0xb4d9ef,fillIntensity:.95,environmentIntensity:.85});
   let lastPhase = undefined;
 
   function applySkyPhase(phase) {

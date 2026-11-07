@@ -140,7 +140,7 @@ for(const id of ['garden','neon'])for(const mode of ['Zap Battle','Star Rush']){
 }
 const scene=new THREE.Scene(),art=createKartArenaStructures(THREE,scene),resources=new Set();
 for(const id of maps.mapIds()){
- const m={id,...maps.mapDef(id)};art.sync(m);const st=art.stats();ok(st.drawCalls===4&&st.barriers===m.barriers.length&&st.ramps===m.ramps.length,id+' four structure draws');
+ const m={id,...maps.mapDef(id)};art.sync(m);const st=art.stats();ok(st.drawCalls===5&&st.barriers===m.barriers.length&&st.ramps===m.ramps.length,id+' five structure draws including contact shadows');
  const meshes=[];art.root.traverse(o=>{if(o.isMesh){ok(o.isInstancedMesh,id+' instanced structures');meshes.push(o);resources.add(o.geometry);resources.add(o.material);}});
  const buffers=meshes.map(o=>o.instanceMatrix.array);for(let i=0;i<180;i++){art.sync(m);art.animate();}meshes.forEach((o,i)=>assert.strictEqual(o.instanceMatrix.array,buffers[i]));
  const wedgeGeometry=art.root.getObjectByName('arena-ramp-wedges').geometry;

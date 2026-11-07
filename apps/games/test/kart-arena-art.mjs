@@ -87,3 +87,5 @@ for(const [style,templates] of [['GLB',assets],['fallback',{}]])for(const id of 
   if(style==='GLB')reports.push({id,draws,peakDraws,ceiling:ceilings[id],sources});
 }
 console.log(JSON.stringify({pass:true,classicDrawBudget:reports}));
+await import('./kart-arena-look.mjs');
+await import('./kart-obstacle-readability.mjs');

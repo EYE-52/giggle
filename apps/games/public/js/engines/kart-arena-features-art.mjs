@@ -6,9 +6,9 @@
  * effects use one fixed instanced pool, so frames never allocate.
  *
  * createKartArenaFeatures(THREE, scene, { groundAt, reducedMotion }) -> {
- *   sync(map), ingest(events, karts), animate(dt, t, now, S, poses),
- *   dressKart(k, mesh, now) -> bool, dispose() } */
-import {flightPose, portalExit} from './kart-map-features.mjs';
+ *   sync(map), ingest(events, karts), animate(dt, t, S, poses),
+ *   dressKart(k, mesh, predictedFlight = k.flight) -> bool, dispose() } */
+import {flightPose, portalExit, cannonFlightTime, RIDE_HEIGHT} from './kart-map-features.mjs';
 import {mergeStaticMeshes} from './kart-instancing.mjs';
 
 const PORTAL_COLORS = [[0xff8a2a, 0x39b8ff], [0xb46cff, 0x6dffb0]];
@@ -20,7 +20,9 @@ const FALL_STYLE = {
 };
 const CANNON_BODY = { ring: 0xe2453b, blocks: 0x3b7be2, garden: 0xe2453b, frost: 0x3d6fd6, neon: 0xff4fd0 };
 const MAX_PARTICLES = 160;
-const MAX_TRAIL_DOTS = 14;
+export const CANNON_ENTRY_TIME = .11;
+export const CANNON_REVEAL_TIME = .18;
+export const CANNON_MOUTH_HEIGHT = 1.5;
 
 export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, reducedMotion = () => false } = {}) {
   const root = new THREE.Group(); root.name = 'arena-features'; scene.add(root);
@@ -29,12 +31,11 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
   const G = {
     base: new THREE.CylinderGeometry(2.1, 2.35, .32, 20),
     wheel: new THREE.CylinderGeometry(1.05, 1.05, .34, 18).rotateZ(Math.PI / 2),
-    hub: new THREE.CylinderGeometry(.32, .32, .42, 10).rotateZ(Math.PI / 2),
-    barrel: new THREE.CylinderGeometry(1.0, 1.28, 4.4, 20, 1, true).rotateX(Math.PI / 2),
-    band: new THREE.TorusGeometry(1.12, .17, 8, 24),
-    mouth: new THREE.CircleGeometry(1.0, 20),
-    ramp: new THREE.BoxGeometry(2.5, .16, 2.6),
-    chevron: new THREE.PlaneGeometry(.7, 1.6).rotateX(-Math.PI / 2),
+    barrel: new THREE.CylinderGeometry(2.5,2.55,1,32,1,true).rotateX(Math.PI/2),
+    band: new THREE.TorusGeometry(2.53,.07,6,32),
+    lip: new THREE.RingGeometry(.94,1,32),
+    ramp: new THREE.BufferGeometry(),
+    chevron: new THREE.BufferGeometry(),
     target: new THREE.RingGeometry(2.0, 2.6, 36).rotateX(-Math.PI / 2),
     targetDot: new THREE.CircleGeometry(.7, 18).rotateX(-Math.PI / 2),
     ring: new THREE.TorusGeometry(2.15, .3, 12, 40),
@@ -46,19 +47,30 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     ripple: new THREE.RingGeometry(.86, 1, 28).rotateX(-Math.PI / 2),
     pad: new THREE.CircleGeometry(.55, 10).rotateX(-Math.PI / 2),
     particle: new THREE.IcosahedronGeometry(.32, 0),
-    dot: new THREE.SphereGeometry(.16, 6, 4),
   };
+  G.inner=G.barrel.clone().scale(.96,.96,1);
+  for(const [geometry,inside]of [[G.barrel,false],[G.inner,true]]){
+    const pos=geometry.attributes.position,normals=geometry.attributes.normal,colors=new Float32Array(pos.count*3);
+    for(let i=0;i<pos.count;i++){
+      const shade=inside?(.85-.4*(pos.getZ(i)+.5))*(.75+.25*Math.abs(normals.getY(i))):.35+.55*(normals.getY(i)+1)/2;
+      colors.set([shade,shade,shade],i*3);
+    }
+    geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  }
+  G.ramp.setAttribute('position',new THREE.Float32BufferAttribute([-2.1,.03,-3.3,2.1,.03,-3.3,-1.65,.12,.3,1.65,.12,.3],3));
+  G.ramp.setIndex([0,2,1,1,2,3]);G.ramp.computeVertexNormals();
+  G.chevron.setAttribute('position',new THREE.Float32BufferAttribute([-.7,0,-.3,-.5,0,-.5,0,0,.1,.5,0,-.5,.7,0,-.3,0,0,.4],3));
+  G.chevron.setIndex([0,2,1,2,4,3,0,5,2,2,5,4]);G.chevron.computeVertexNormals();
   const basic = (color, extra = {}) => new THREE.MeshBasicMaterial({ color, ...extra });
   const lit = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: .55, metalness: .1, ...extra });
   const M = {
-    wood: lit(0x7a4b2a), metal: lit(0x3a3f4a, { metalness: .4, roughness: .4 }), gold: lit(0xf2c14e, { metalness: .5, roughness: .35 }),
-    mouth: basic(0x140d10), ramp: lit(0xf2c14e), chevron: basic(0xfff3b0),
+    metal: lit(0x40586a, { metalness: .4, roughness: .4 }), gold: lit(0xe5cf83, { metalness: .5, roughness: .35 }),
+    inner:lit(0x31495e,{side:THREE.BackSide,roughness:.65,vertexColors:true,envMapIntensity:.35}),ramp:lit(0x40586a,{metalness:.3,roughness:.5}),chevron: basic(0xfff3b0,{side:THREE.DoubleSide}),
     target: basic(0xfff1a8, { side: THREE.DoubleSide }),
     foot: lit(0x2b2f3a), lily: basic(0x5cbf4a), particle: basic(0xffffff, { transparent: true, opacity: .9, depthWrite: false }),
-    dot: basic(0xfff3b0, { transparent: true, opacity: .55, depthWrite: false }),
   };
   const bodyMats = new Map(), portalMats = new Map(), fallMats = new Map();
-  const bodyMat = (theme) => { const c = CANNON_BODY[theme] || CANNON_BODY.garden; if (!bodyMats.has(c)) bodyMats.set(c, lit(c, { roughness: .45 })); return bodyMats.get(c); };
+  const bodyMat = (theme) => { const c = CANNON_BODY[theme] || CANNON_BODY.garden; if (!bodyMats.has(c)) bodyMats.set(c, lit(c, { roughness:.38,metalness:.25,vertexColors:true,envMapIntensity:.55 })); return bodyMats.get(c); };
   const portalMat = (color) => {
     if (!portalMats.has(color)) portalMats.set(color, {
       ring: basic(color), membrane: basic(color, { transparent: true, opacity: .32, side: THREE.DoubleSide, depthWrite: false }),
@@ -94,36 +106,36 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     particles.setColorAt(i, color.setHex(hex));
     particles.instanceColor.needsUpdate = true;
   }
-  // Trail dots preview each cannon's arc (shared instanced mesh).
-  const trail = new THREE.InstancedMesh(G.dot, M.dot, MAX_TRAIL_DOTS * 2);
-  trail.name = 'arena-cannon-arcs'; trail.frustumCulled = false; trail.count = 0; root.add(trail);
-
   let key = '', cannons = [], portals = [], falls = [], features = null, batches = [];
-  const seen = new Set(), falling = new Map(), lastPuff = new Map();
+  const seen = new Set(), falling = new Map(),pendingLaunches=new Map();
   let clock = 0;
 
   function clear() {
     for (const list of [cannons, portals, falls]) for (const item of list) { root.remove(item.group); item.land && root.remove(item.land); }
     for (const {mesh} of batches) { root.remove(mesh); mesh.geometry.dispose(); }
-    cannons = []; portals = []; falls = []; batches = []; trail.count = 0;
+    cannons = []; portals = []; falls = []; batches = [];pendingLaunches.clear();
   }
   function buildCannon(c, theme, index) {
     const group = new THREE.Group(); group.name = 'arena-cannon-' + index;
     const y0 = groundAt(c.x, c.z);
     group.position.set(c.x, y0, c.z); group.rotation.y = c.angle;
     const add = (geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; m.castShadow = true; group.add(m); return m; };
-    add(G.base, M.metal, 0, .16, 0);
-    for (const side of [-1, 1]) { add(G.wheel, M.wood, side * 1.75, 1.05, -.3); add(G.hub, M.gold, side * 1.95, 1.05, -.3); }
-    // Barrel tilts up toward the launch direction; its open rear mouth sits
-    // low over the entry ramp, its muzzle high toward the landing zone.
-    const tilt = -.42;
-    const barrel = new THREE.Group(); barrel.position.set(0, 1.55, .2); barrel.rotation.x = tilt; group.add(barrel);
-    const body = new THREE.Mesh(G.barrel, bodyMat(theme)); body.castShadow = true; barrel.add(body);
-    for (const z of [-2.1, .2, 2.1]) { const band = new THREE.Mesh(G.band, M.gold); band.position.z = z; band.scale.setScalar(z > 0 ? .92 : z < -1 ? 1.14 : 1.04); barrel.add(band); }
-    const muzzle = new THREE.Mesh(G.mouth, M.mouth); muzzle.position.z = 2.15; barrel.add(muzzle);
-    const mouth = new THREE.Mesh(G.mouth, M.mouth); mouth.position.z = -2.15; mouth.rotation.y = Math.PI; mouth.scale.setScalar(1.22); barrel.add(mouth);
-    add(G.ramp, M.ramp, 0, .35, -2.9, .28);
-    for (let i = 0; i < 3; i++) { const ch = add(G.chevron, M.chevron, 0, .03, -4.6 - i * 1.25); ch.rotation.y = 0; ch.scale.set(1, 1, .45); ch.castShadow = false; }
+    add(G.base, M.metal, 0,.16,2.8);
+    for(const side of [-1,1])add(G.wheel,M.metal,side*2.4,.8,2.8);
+    // Both ends are genuinely hollow. The nominal muzzle lies on the
+    // existing ballistic arc; only the first 180ms are dressed inside it.
+    const nominal=flightPose(c,{x:c.x,y:y0+RIDE_HEIGHT,z:c.z,a:c.angle,ly:groundAt(c.land.x,c.land.z)+RIDE_HEIGHT},CANNON_REVEAL_TIME);
+    const dx=nominal.position.x-c.x,dz=nominal.position.z-c.z,s=Math.sin(c.angle),co=Math.cos(c.angle);
+    const forward=dx*s+dz*co,rise=nominal.position.y-y0-CANNON_MOUTH_HEIGHT,length=Math.hypot(forward,rise),pitch=Math.atan2(rise,forward);
+    const barrel=new THREE.Group();barrel.name='cannon-open-tube';barrel.position.set(0,CANNON_MOUTH_HEIGHT+rise/2,forward/2);barrel.rotation.x=-pitch;barrel.scale.z=length;group.add(barrel);
+    const body=new THREE.Mesh(G.barrel,bodyMat(theme));body.name='cannon-outer-shell';body.castShadow=true;barrel.add(body);
+    const inner=new THREE.Mesh(G.inner,M.inner);inner.name='cannon-inner-lining';barrel.add(inner);
+    for(const [z,radius]of [[-.5,2.55],[.5,2.5]]){
+      const lip=new THREE.Mesh(G.lip,M.gold);lip.name=z<0?'cannon-open-rear-rim':'cannon-open-muzzle-rim';lip.position.z=z;lip.scale.set(radius,radius,1);if(z<0)lip.rotation.y=Math.PI;barrel.add(lip);
+    }
+    const collar=new THREE.Mesh(G.band,M.gold);collar.scale.z=1/length;barrel.add(collar);
+    add(G.ramp,M.ramp,0,0,0).name='cannon-entry-apron';
+    for(let i=0;i<3;i++){const ch=add(G.chevron,M.chevron,0,.07+i*.025,-2.8+i);ch.name='cannon-entry-chevron';ch.castShadow=false;}
     root.add(group);
     // Landing target on the ground.
     const land = new THREE.Group(); land.name = 'arena-landing-' + index;
@@ -132,7 +144,7 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     for (let i = 0; i < 2; i++) { const ch = new THREE.Mesh(G.chevron, M.chevron); ch.position.set(0, .02, 3.3 + i * 1.1); ch.scale.set(1, 1, .4); land.add(ch); }
     land.rotation.y = c.land.angle;
     group.userData.land = land; root.add(land);
-    return { group, barrel, land, c, index, y0 };
+    return {group,barrel,land,c,index,y0,pitch,slope:rise/forward,muzzle:nominal.position};
   }
   function buildPortal(p, pair, side) {
     const group = new THREE.Group(); group.name = 'arena-portal-' + pair + '-' + side;
@@ -189,19 +201,9 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     // Static parts (bases, wheels, ramps, chevrons, targets, rims, feet)
     // share one draw per material/shadow setting, including different target
     // geometries. Animated parts and transparent surfaces keep their own.
-    const skip = new Set([particles, trail, ...portals.flatMap(p => [p.ring, p.membrane, ...p.swirls]),
+    const skip = new Set([particles, ...portals.flatMap(p => [p.ring, p.membrane, ...p.swirls]),
       ...falls.flatMap(f => [f.surface, ...f.ripples])]);
     batches = mergeStaticMeshes(THREE, root, {skip});
-    // Static arc preview dots (cheap readability: where the cannon sends you).
-    let n = 0;
-    for (const item of cannons.slice(0, 2)) {
-      const c = item.c, y = groundAt(c.x, c.z) + 2.4, ly = groundAt(c.land.x, c.land.z) + .9;
-      for (let i = 1; i <= MAX_TRAIL_DOTS; i++) {
-        const pose = flightPose(c, { x: c.x, y, z: c.z, a: c.angle, ly }, (i / (MAX_TRAIL_DOTS + 1)) * (c.flight || 1.4));
-        matrix.makeTranslation(pose.position.x, pose.position.y, pose.position.z); trail.setMatrixAt(n++, matrix);
-      }
-    }
-    trail.count = n; trail.instanceMatrix.needsUpdate = true;
   }
 
   function burst(kind, x, y, z, extra = {}) {
@@ -211,8 +213,8 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
       const n = quiet ? 4 : 16;
       for (let i = 0; i < n; i++) {
         const s = i * 2.399, spread = .35 + (i % 4) * .18;
-        spawn(x + fx * 2.6, y + 2.4, z + fz * 2.6, fx * (6 + i % 5) + Math.cos(s) * spread * 3, 2.5 + (i % 3) * 1.2, fz * (6 + i % 5) + Math.sin(s) * spread * 3,
-          .55 + (i % 4) * .1, .9 + (i % 3) * .3, i < 4 ? 0xffb547 : i % 2 ? 0xeeeeee : 0xbcbcbc, -1.5);
+        spawn(x+fx*.3,y,z+fz*.3,fx*(6+i%5)+Math.cos(s)*spread*3,2.5+(i%3)*1.2,fz*(6+i%5)+Math.sin(s)*spread*3,
+          .45+(i%4)*.1,.55+(i%3)*.15,i%2?0xe8f7ff:0xa9c2d4,-1.5);
       }
     } else if (kind === 'land') {
       const n = quiet ? 4 : 14;
@@ -223,8 +225,6 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     } else if (kind === 'fell') {
       const style = FALL_STYLE[extra.kind] || FALL_STYLE.water, n = quiet ? 5 : 20;
       for (let i = 0; i < n; i++) { const a = i * 2.399, r = .3 + (i % 4) * .25; spawn(x + Math.cos(a) * r, y + .2, z + Math.sin(a) * r, Math.cos(a) * (1.5 + i % 3), 5 + (i % 5) * 1.3, Math.sin(a) * (1.5 + i % 3), .8, .5 + (i % 3) * .2, style.splash[i % 2], 14); }
-    } else if (kind === 'trail') {
-      spawn(x, y, z, 0, .4, 0, .45, .55, 0xf3f0ea, -.5);
     }
   }
 
@@ -236,9 +236,10 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
       if (seen.has(e.id)) continue; seen.add(e.id);
       if (!primed) continue;
       if (e.type === 'launch') {
-        const item = cannons[e.cannon];
-        if (item) burst('launch', item.c.x, item.y0, item.c.z, { angle: item.c.angle });
+        const k=karts?.find(k=>k.pid===e.pid);
+        if(cannons[e.cannon])pendingLaunches.set(e.pid,{cannon:e.cannon,life:k?.spawnSeq,at:clock});
       } else if (e.type === 'land') {
+        pendingLaunches.delete(e.pid);
         const c = features?.cannons?.[e.cannon]; if (c) burst('land', c.land.x, groundAt(c.land.x, c.land.z), c.land.z);
       } else if (e.type === 'warp') {
         for (const item of portals) if (Math.hypot(item.p.x - e.from?.x, item.p.z - e.from?.z) < .01 || Math.hypot(item.p.x - e.to?.x, item.p.z - e.to?.z) < .01) burst('warp', item.p.x, groundAt(item.p.x, item.p.z), item.p.z, { color: item.color });
@@ -251,10 +252,12 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     while (seen.size > 64) seen.delete(seen.values().next().value);
     primed = true;
   }
-  function resetHistory() { primed = false; seen.clear(); falling.clear(); }
+  function resetHistory() { primed = false; seen.clear(); falling.clear();pendingLaunches.clear(); }
+  function retireLaunch(pending,pid){if(clock-pending.at>2)pendingLaunches.delete(pid);}
 
   function animate(dt, t, S, poses) {
     clock = t;
+    pendingLaunches.forEach(retireLaunch);
     const quiet = reduce();
     for (const item of portals) {
       if (quiet) continue;
@@ -264,13 +267,6 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     for (const item of falls) {
       if (quiet) continue;
       for (let i = 0; i < item.ripples.length; i++) { const phase = (t * .45 + i * .5) % 1, s = .4 + phase * Math.min(item.f.hw, item.f.hd) * 1.2; item.ripples[i].scale.set(s, 1, s); item.ripples[i].material.opacity = .45 * (1 - phase); }
-    }
-    // Flight trails: a puff behind every airborne kart, rate limited.
-    if (S?.karts && !quiet) for (const k of S.karts) {
-      if (!k.flight) continue;
-      const pose = poses?.get?.(k.pid), p = pose?.physicalPose?.position || k.physicalPose?.position;
-      if (!p || t - (lastPuff.get(k.pid) ?? -9) < .05) continue;
-      lastPuff.set(k.pid, t); burst('trail', p.x, p.y - .2, p.z);
     }
     // Step the pool.
     let live = 0;
@@ -294,7 +290,30 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
 
   /* The faller sinks into the hazard for a moment, then hides until the
    * normal respawn. Returns true when it set the mesh. */
-  function dressKart(k, mesh) {
+  function dressKart(k, mesh, flight=k.flight) {
+    const f=flight,item=f&&cannons[f.c];
+    if(item&&!(k.respawn>0)&&!k.out){
+      const c=item.c,dx=c.land.x-f.x,dz=c.land.z-f.z;
+      // The already interpolated/predicted physical pose supplies the clock,
+      // so hiding/revealing stays smooth between network snapshots.
+      const time=Math.max(0,((mesh.position.x-f.x)*dx+(mesh.position.z-f.z)*dz)/(dx*dx+dz*dz||1))*cannonFlightTime(c);
+      if(time<CANNON_REVEAL_TIME){
+        mesh.visible=time<CANNON_ENTRY_TIME;
+        if(mesh.visible){
+          const progress=Math.min(1,time/CANNON_ENTRY_TIME),s=Math.sin(c.angle),co=Math.cos(c.angle);
+          const u0=(f.x-c.x)*s+(f.z-c.z)*co,v0=(f.x-c.x)*co-(f.z-c.z)*s,u=u0+(1.9-u0)*progress,v=v0*(1-progress);
+          mesh.position.set(c.x+s*u+co*v,f.y+(item.y0+CANNON_MOUTH_HEIGHT+item.slope*1.9-f.y)*progress,c.z+co*u-s*v);
+          mesh.rotation.set(-item.pitch*progress,c.angle,0,'YXZ');
+        }
+        return true;
+      }
+      mesh.visible=true;
+      const pending=pendingLaunches.get(k.pid);
+      if(pending&&pending.cannon===f.c&&(pending.life===undefined||pending.life===(k.spawnSeq||0))){
+        burst('launch',item.muzzle.x,item.muzzle.y,item.muzzle.z,{angle:c.angle});pendingLaunches.delete(k.pid);
+      }
+      return false;
+    }
     if (!(k.fell && k.respawn > 0)) return false;
     const fall = falling.get(k.pid);
     const age = fall ? clock - fall.at : 9;
@@ -308,7 +327,7 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
   }
 
   function dispose() {
-    clear(); root.removeFromParent(); particles.dispose(); trail.dispose();
+    clear(); root.removeFromParent(); particles.dispose();
     for (const g of Object.values(G)) g.dispose();
     for (const m of Object.values(M)) m.dispose();
     for (const m of bodyMats.values()) m.dispose();
