@@ -69,7 +69,8 @@ function paintRail(el, c) {
   const shown = c.settling && c.boardBefore ? c.boardBefore : S.board;
   bkPaint(el, {
     meta: bkMeta(S),
-    players: [1, 2].map(side => ({ name: nameOf(S, S.seats[side - 1]), side: sideName(side), chip: chip(side), stat: shown.filter(x => x === side).length, statLabel: 'counters', turn: S.phase === 'play' && !c.settling && S.turn === side, you: S.youAre === side && !S.spectator })),
+    players: [1, 2].map(side => ({ name: nameOf(S, S.seats[side - 1]), side: sideName(side), chip: chip(side), color: COUNTER[side][0], stat: shown.filter(x => x === side).length, statLabel: 'counters', turn: S.phase === 'play' && !c.settling && S.turn === side, you: S.youAre === side && !S.spectator })),
+    statusColor: S.phase === 'done' ? null : COUNTER[S.turn][0],
     status: S.preparing ? 'Getting the table ready…' : c.pending ? 'Sending your move…' : c.settling ? 'Counter dropping…' : c.retry ? 'Move not confirmed. Try again.' : status(S),
     timer: bkTimer(S, c.api), done: S.phase === 'done', player: !!me, busy: c.pending || c.settling || !!S.preparing,
     armed: c.armed, drawOffer: bkDrawState(S, me), drawBlocked: S.drawBlocked === me,

@@ -95,6 +95,7 @@ function buildRank(el, S, api, focusPos) {
     ${hud(S)}
     <p class="gk-prompt party-prompt">${esc(S.set.topic)}</p>
     <p class="gk-wait${submitted && !dirty ? ' is-done' : ''} js-feedback" role="status">${esc(feedback)}</p>
+    <p class="party-label rank-list-label">Your ranking</p>
     <ol class="party-rank-list" aria-label="Your ranking, best to worst">${rows}</ol>
     <div class="gk-actions is-center"><button type="button" class="gk-btn gk-primary" id="rLock">${submitted ? 'Update ranking' : 'Lock ranking'}</button></div>
   </section>`;
@@ -146,7 +147,9 @@ function watchRank(S) {
     ${hud(S)}
     <p class="gk-prompt party-prompt">${esc(S.set.topic)}</p>
     <p class="gk-wait" role="status">Watching · waiting for ${plural(waiting, 'player')}. Every ladder stays secret until the reveal.</p>
+    <p class="party-label rank-list-label">Items to rank</p>
     <ol class="party-rank-list" aria-label="Items to rank">${rows}</ol>
+    <div class="gk-actions is-center"></div>
   </section>`;
 }
 
@@ -179,11 +182,9 @@ function paint(el, S, api) {
         ${hud(S)}
         <p class="gk-prompt party-prompt">${esc(S.last.topic)}</p>
         <p class="gk-wait is-done" role="status">${esc(mine)}</p>
-        <div class="rank-reveal">
-          <div><p class="party-label">${esc((S.labels && S.labels.consensus) || 'The room\'s ranking')}</p>
-          <ol class="party-rank-list" aria-label="Room ranking">${con}</ol></div>
-          <div><p class="party-label">Round points</p>${board}</div>
-        </div>
+        <p class="party-label rank-list-label">${esc((S.labels && S.labels.consensus) || 'The room\'s ranking')}</p>
+        <ol class="party-rank-list" aria-label="Room ranking">${con}</ol>
+        <details class="party-more rank-points"><summary>Round points</summary><div>${board}</div></details>
         <div class="gk-actions is-center rank-actions">${!watching(S) && S.me === S.hostId ? `<button type="button" class="gk-btn gk-primary" id="rNext">Next</button>` : ''}</div>
       </section>`;
       const nx = el.querySelector('#rNext');

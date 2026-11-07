@@ -22,6 +22,30 @@ Use the shared helpers in `games/_sdk.js` (`roundsSetting`, `paceSetting`, `pace
 - **Pocket Karts**: round length 1–5 minutes, default 3 minutes; a score target can end a match early on every map.
 - **Turn-based duels** (board games): an optional **Move timer**: Off (default), 30 seconds or 60 seconds per move. When it runs out the turn is skipped in Chain Reaction and lost as a timeout loss in the others.
 
+## Truth or Dare (2–20 players)
+
+The host chooses **Prompt style**: **Random card** deals one card from the
+target's deck; **Room pool vote** deals 3 choices (4 with 5 or more players);
+**Ask your own** lets everyone except the target write one prompt of 2–180
+characters, then pick from the anonymous prompts; **Mixed** randomly chooses
+one of these styles each round. The target picks Truth, Dare, or **Spin for me**
+(random Truth or Dare). The target never writes or votes on their own turn.
+With two people, the other player's prompt or single pick decides.
+
+Prompt votes award no points. Most votes wins; ties, including no votes, are
+broken randomly. One written prompt is used directly; no writing falls back
+to a random card. Writing lasts 40 seconds; prompt picking lasts 25 seconds.
+The existing choose (20), perform (60), judge (25), and reveal (8) timers,
+plus the 4-second spin, all follow Pace. Late input cannot change a closed step.
+
+Judging stays the same in all styles: a yes majority gives the target 100,
+plus 25 per extra consecutive success (up to 100 extra); a split gives 50;
+no votes or a no majority gives zero. A split, no, or no-vote round resets
+the target's streak. Judges on the winning side of a clear verdict get 25.
+With two people, the only judge decides yes or no; there is no split.
+Auto rounds give each player one turn. Rematch keeps the room settings and
+starts with fresh turns, prompts, scores, and streaks.
+
 ## Ending and leaving
 
 - **End game** (host, any time, every game): ends the match, shows the final scores with points so far, then the room returns to picking a game. One name everywhere: "End game". After the final scores the host's buttons are "Rematch" and "Change game".

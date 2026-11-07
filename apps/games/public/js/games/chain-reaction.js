@@ -199,6 +199,10 @@ const CSS = `
 :root[data-theme="night"] .chain-reaction{--cr-well:#120c0a;--cr-well-line:color-mix(in srgb,var(--fam) 45%,transparent)}
 :root[data-theme="night"] .cr-board{background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--fam) 8%,transparent) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,color-mix(in srgb,var(--fam) 8%,transparent) 0 1px,transparent 1px 24px),radial-gradient(circle at 50% 45%,color-mix(in srgb,var(--fam) 26%,#1d1412),#140d0b 75%);border-color:#000;box-shadow:0 var(--lift-lg) 0 #000,0 0 32px color-mix(in srgb,var(--fam) 18%,transparent)}
 @media(prefers-reduced-motion:reduce){.chain-reaction *,.chain-reaction *::before,.chain-reaction *::after{animation:none!important;transition:none!important}}
+/* The game and turn remain visible on phones too. */
+@media(max-width:759px) and (min-height:501px),(max-width:559px){
+ .cr-kicker{position:static;width:auto;height:auto;clip:auto;overflow:visible;white-space:normal;margin:0 0 var(--space-4);font:var(--text-caption);color:var(--ink-dim)}
+}
 `;
 
 function now(d) {

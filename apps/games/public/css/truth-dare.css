@@ -4,6 +4,51 @@
 .party-scene--truth .td-actions { min-height: 48px; }
 .party-scene--truth .td-choices { width: 100%; max-width: 700px; margin-inline: auto; }
 
+/* Prompt picking keeps every card and the status line in place after a
+ * vote. Writing keeps the same field mounted across room updates. */
+#gbody .pl-fill.party-scene--truth { min-height: var(--pl-stage-height,calc(var(--control-h-lg) * 11)); }
+#gbody .pl-fill.party-scene--truth > .pl-live { margin-top: auto; }
+.party-scene--truth .td-compose,
+.party-scene--truth .td-prompt-wait,
+.party-scene--truth .td-prompt-options { width: 100%; min-width: 0; }
+.party-scene--truth .td-compose {
+  display: grid; gap: var(--space-8); text-align: left;
+}
+.party-scene--truth .td-compose textarea {
+  width: 100%; min-height: calc(var(--control-h-lg) * 2); resize: none;
+  padding: var(--space-12); font: var(--text-body); color: var(--ink);
+  background: var(--card); border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+}
+.party-scene--truth .td-compose-meta { display: flex; justify-content: space-between; gap: var(--space-8); }
+.party-scene--truth .td-compose-meta > :last-child { flex: none; font-variant-numeric: tabular-nums; }
+.party-scene--truth .td-entry-error { min-height: 1.4em; margin: 0; color: var(--danger); }
+.party-scene--truth .td-compose .tb-primary { width: 100%; }
+.party-scene--truth .td-prompt-status { min-height: 2.8em; margin: 0; text-align: center; }
+.party-scene--truth .td-prompt-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); }
+.party-scene--truth .td-prompt-option {
+  display: flex; align-items: center; gap: var(--space-12); min-width: 0;
+  min-height: calc(var(--control-h-lg) * 2); color: var(--ink); text-align: left;
+  font: var(--text-body); overflow-wrap: anywhere;
+}
+.party-scene--truth .td-option-number {
+  flex: none; display: grid; place-items: center; width: var(--space-32); height: var(--space-32);
+  border-radius: var(--radius-sm); background: var(--fam-soft); color: var(--fam-deep); font: var(--text-button-sm);
+}
+.party-scene--truth .td-prompt-option.is-selected { background: var(--fam-soft); }
+.party-scene--truth .td-prompt-option:disabled { opacity: 1; cursor: default; transform: none; }
+.party-scene--truth .td-prompt-option:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .party-scene--truth button.td-prompt-option:not(:disabled):hover { transform: translateY(-2px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .party-scene--truth button.td-prompt-option:not(:disabled):active { transform: translateY(var(--lift)); box-shadow: none; }
+}
+@media (max-width: 560px) {
+  .party-scene--truth .td-prompt-options { grid-template-columns: minmax(0, 1fr); gap: var(--space-8); }
+  .party-scene--truth .td-prompt-option { min-height: var(--control-h-lg); padding: var(--space-12); }
+}
+
 .party-scene--truth .party-reveals { margin-top: 0; }
 /* Short panels keep ordinary prompts beside their actions. Longer prompts
  * wrap and remain reachable with natural scrolling. */
@@ -183,3 +228,7 @@ body #gbody .pl-fill.party-scene--truth .td-banner {
   background: color-mix(in srgb, var(--fam) 16%, var(--card));
   border-color: color-mix(in srgb, var(--fam) 45%, var(--card));
 }
+
+/* Both prompt-vote messages occupy two caption lines, including after a
+ * pick locks. The generic paragraph style must not change their line box. */
+#gbody .party-scene--truth .td-prompt-status { font:var(--text-caption); min-height:2lh; }

@@ -588,7 +588,7 @@ export function createKartView(viewConfig) {
       <div class="pk-nitrometer" role="progressbar" aria-label="Nitro charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="pk-nitrofill"></i><span id="pk-nitrolabel">Nitro</span></div></div>
       <details class="pk-help" id="pk-help"><summary aria-label="Driving controls help">?</summary>
       <div class="pk-helpbody"><button type="button" id="pk-resume" class="pk-resume">Resume</button><label class="pk-controls-label">Controls<select id="pk-controls" aria-label="Controls"><option value="auto">Auto</option><option value="keyboard">Keyboard</option><option value="touch">Touch</option></select></label><button type="button" id="pk-auto" class="pk-auto" aria-pressed="false" hidden>Auto gas · off</button><p class="pk-helpkeys"><b>Drive</b> WASD / arrows or left stick: up for gas, down to brake / reverse · <b>Drift</b> hold Shift / tyre button in a turn, release blue, orange or purple sparks for a growing turbo · <b>Nitro</b> hold N / bottle button with gas for a rechargeable boost · <b>Item</b> Space / action button · Ice is slippery, mint strips boost.</p><a href="/assets/karts/audio/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a></div></details></div></div>
-    <canvas id="pk-radar" class="pk-radar" width="120" height="120" role="img" aria-label="Arena map: players, cover and glowing pickups"></canvas>
+    <canvas id="pk-radar" class="pk-radar" width="240" height="240" role="img" aria-label="Arena map: players, cover and glowing pickups"></canvas>
     <div class="pk-respawn" id="pk-respawn" hidden></div>
     <div class="pk-result" id="pk-result" hidden></div>
     <div class="pk-glnote" id="pk-glnote" hidden></div>`;
@@ -952,24 +952,25 @@ export function createKartView(viewConfig) {
     if (!canvas?.getContext) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const size = 120, half = S.map?.half || 30, scale = 108 / (half * 2);
-    const xy = n => 60 + n * scale;
+    const size = 240, half = S.map?.half || 30, scale = 216 / (half * 2);
+    const xy = n => 120 + n * scale;
     ctx.clearRect(0,0,size,size);
-    ctx.fillStyle = '#192d3be8'; ctx.fillRect(0,0,size,size);
-    ctx.strokeStyle = '#9ad2d755'; ctx.lineWidth = 1; ctx.strokeRect(6,6,108,108);
-    ctx.fillStyle = '#849aa58a';
+    ctx.fillStyle = '#294b60'; ctx.fillRect(0,0,size,size);
+    ctx.strokeStyle = '#b4d8e4'; ctx.lineWidth = 2; ctx.strokeRect(12,12,216,216);
+    ctx.fillStyle = '#9bb8c7';
     for (const b of S.map?.blocks || []) ctx.fillRect(xy(b.x-b.hw),xy(b.z-b.hd),b.hw*2*scale,b.hd*2*scale);
     ctx.fillStyle = '#89f5d9';
-    for (const c of S.crates || S.stars || []) { ctx.beginPath(); ctx.arc(xy(c.x),xy(c.z),2.3,0,Math.PI*2); ctx.fill(); }
+    for (const c of S.crates || S.stars || []) { ctx.beginPath(); ctx.arc(xy(c.x),xy(c.z),5,0,Math.PI*2); ctx.fill(); }
     for (const k of S.karts || []) {
       if (k.respawn > 0 || k.connected === false || k.out) continue;
       const self = k.pid === S.you;
       ctx.save(); ctx.translate(xy(k.x),xy(k.z)); ctx.rotate(canvasNoseRotation(k.angle));
       ctx.fillStyle = self ? '#fff9df' : '#' + colorFor(k.pid).toString(16).padStart(6,'0');
-      ctx.beginPath(); ctx.moveTo(0,-(self?5:3.5)); ctx.lineTo(-3,3); ctx.lineTo(3,3); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(0,-(self?14:11)); ctx.lineTo(-9,9); ctx.lineTo(9,9); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#102b3e'; ctx.lineWidth = 3; ctx.stroke();
       ctx.restore();
     }
-    ctx.fillStyle = '#c4dddd'; ctx.font = '9px sans-serif'; ctx.fillText('N',56,12);
+    ctx.fillStyle = '#183044'; ctx.fillRect(103,0,34,36);
+    ctx.fillStyle = '#f4fbff'; ctx.font = '800 30px Nunito, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('N',120,29);
   }
 
   function showGlNote(html) {

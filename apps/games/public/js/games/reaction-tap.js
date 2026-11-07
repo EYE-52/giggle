@@ -66,7 +66,7 @@ const view = {
       el.innerHTML = `<section class="wg rt gk-col gk-stack" data-game="reaction-tap" data-phase="play" aria-label="Reaction Tap">`
         + hudHtml({ round: roundLabel(S.round, S.rounds), phase: 'Wait', progress: '\u00a0', timer: '' })
         + `<p class="wg-status" id="rInstruction" role="status"></p>`
-        + `<button id="rPad" class="rt-pad is-wait" type="button"></button>`
+        + `<button id="rPad" class="rt-pad is-wait" type="button"><span class="rt-pad-label"></span></button>`
         + `<p class="wg-status" id="rStatus" role="status"></p>`
         + `<p class="gk-meta" id="rTip"></p>`
         + `</section>`;
@@ -82,7 +82,7 @@ const view = {
     const phase = S.preparing ? 'Getting ready' : tapped ? 'Locked in' : fouled ? 'Fouled out' : S.spectator ? 'Watching' : go ? 'Go!' : 'Wait';
     const pad = el.querySelector('#rPad');
     pad.className = `rt-pad ${go ? 'is-go' : 'is-wait'}${tapped ? ' is-tapped' : ''}${fouled ? ' is-fouled' : ''}`;
-    pad.textContent = label;
+    pad.querySelector('.rt-pad-label').textContent = label;
     pad.setAttribute('aria-label', tapped ? `Locked in at ${S.taps[S.me]} milliseconds` : label);
     pad.disabled = !!(tapped || fouled || S.spectator || S.preparing);
     const hudPhase = el.querySelector('.gk-hud-phase');

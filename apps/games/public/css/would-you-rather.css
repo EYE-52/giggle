@@ -9,7 +9,6 @@
 .wyr-pick { align-self: flex-start; }
 /* Reserved result row: bar, share and voters. Invisible while voting. */
 .wyr-result { display: grid; gap: var(--space-8); visibility: hidden; }
-.wyr-choices:not(.is-reveal) .wyr-result { display: none; }
 .wyr-choices.is-reveal .wyr-result { visibility: visible; }
 .wyr-bar { height: 12px; border-radius: var(--radius-pill); background: var(--card); border: var(--outline-w) solid var(--outline); overflow: hidden; }
 .wyr-fill { display: block; height: 100%; width: 0; background: var(--side, var(--fam)); border-radius: inherit; transition: transform var(--dur-base) var(--ease); }
@@ -19,7 +18,6 @@
 .wyr-choices.is-reveal .gk-choice { opacity: 1; }
 .wyr-status { min-height: var(--control-h-sm); }
 .wyr-actions { min-height: var(--control-h-lg); }
-.wyr-actions:not(:has(> :not([hidden]))) { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .wyr-world * { transition: none !important; animation: none !important; }
 }
@@ -99,4 +97,29 @@ body.game-playing[data-game="would-you-rather"] {
 @media (max-width: 560px) {
   #gbody .wyr-world .wyr-choices > .wyr-choice::after { content: none; }
   #gbody .wyr-world .wyr-choices > .wyr-choice { padding-right: var(--space-16); }
+}
+
+/* A compact two-line choice well owns the reveal's single stat rail too.
+ * Voting centres the copy over that rail with a transform; revealing the
+ * result never changes the card, body or its neighbours' geometry. Longer
+ * custom choices grow naturally, with the same size in both phases. */
+#gbody .wyr-world .wyr-choices > .wyr-choice { display:grid; grid-template-columns:var(--space-40) minmax(0,1fr); align-items:center; align-content:center; gap:var(--space-12); padding:var(--space-16); border-radius:var(--radius-xl); text-align:left; }
+#gbody .wyr-world .wyr-choices > .wyr-choice::after { content:none; }
+#gbody .wyr-world .wyr-choices:not(.is-reveal)::after { top:0; width:var(--space-32); height:var(--space-32); margin:calc(-1 * var(--space-16)) 0 0 calc(-1 * var(--space-16)); font:var(--text-caption); }
+#gbody .wyr-world .wyr-choices > .wyr-choice > .gk-mark { grid-column:1; grid-row:1; justify-self:center; }
+#gbody .wyr-world .wyr-body { grid-column:2; grid-row:1; display:grid; grid-template-columns:minmax(0,1fr); grid-template-rows:minmax(2lh,auto) var(--space-40); align-items:stretch; gap:var(--space-8); width:100%; font:var(--text-title); }
+#gbody .wyr-world .wyr-text, #gbody .wyr-world .wyr-choice.is-long .wyr-text { display:grid; align-content:center; min-height:2lh; font:var(--text-title); transform:translateY(var(--space-24)); transition:transform var(--dur-base) var(--ease); }
+#gbody .wyr-world .wyr-choices.is-reveal .wyr-text { transform:translateY(0); }
+#gbody .wyr-world .wyr-result, #gbody .wyr-world .wyr-choices.is-reveal .wyr-result { position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:var(--space-32); align-items:center; gap:var(--space-8); width:100%; padding-bottom:var(--space-8); }
+#gbody .wyr-world .wyr-bar { position:absolute; inset:auto 0 0; height:var(--space-8); }
+#gbody .wyr-world .wyr-count { min-width:0; min-height:var(--space-32); display:flex; flex-wrap:nowrap; align-items:center; justify-content:flex-start; margin:0; white-space:nowrap; overflow:auto; }
+#gbody .wyr-world .wyr-count > * { flex-shrink:0; }
+#gbody .wyr-world .wyr-major { padding:0 var(--space-4); }
+#gbody .wyr-world .wyr-faces { flex-wrap:nowrap; gap:var(--space-4); max-width:var(--space-64); height:var(--space-32); overflow:auto; }
+#gbody .wyr-world .wyr-faces .pl-voter { min-height:var(--space-24); padding:0; border:0; background:transparent; }
+#gbody .wyr-world .wyr-faces .pl-face { width:var(--space-24); height:var(--space-24); margin:0; font:var(--text-caption); }
+#gbody .wyr-world .wyr-faces > * { flex-shrink:0; }
+#gbody .wyr-world #wyrStatus { width:100%; height:var(--space-64); min-height:var(--space-64); overflow:auto; }
+@media (max-width:560px) {
+ #gbody .wyr-world .wyr-choices > .wyr-choice { border-radius:var(--radius-lg); }
 }

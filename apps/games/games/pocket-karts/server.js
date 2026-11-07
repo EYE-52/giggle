@@ -32,7 +32,7 @@ const legacy = createKartGame({
       'Raised: cannons climb; portals cross levels. Release drift sparks for turbo.',
     ],
   },
-  art: 'img/games/pocket-karts.svg',
+  art: 'img/games/pocket-karts.png',
   seats: 32,
   players: { min: 2, max: 32 },
   layout: 'immersive',

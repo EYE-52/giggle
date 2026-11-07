@@ -584,3 +584,8 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
 .kart-hearts[data-shake]{animation:kart-hearts-shake .28s ease-out;}
 @keyframes kart-hearts-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px) rotate(-4deg)}65%{transform:translateX(4px) rotate(3deg)}}
 @media(prefers-reduced-motion:reduce){.kart-hearts[data-shake]{animation:none}}
+
+/* The north label and player arrows remain readable at phone scale. */
+.pk .pk-radar { width:calc(2 * var(--space-64)); height:calc(2 * var(--space-64)); }
+@media(orientation:portrait){ .pk.pk-touch-enabled .pk-radar { width:calc(var(--space-64) + var(--space-32)); height:calc(var(--space-64) + var(--space-32)); right:var(--space-8); } }
+.pk #pk-tn.pk-empty { border-style:solid; }

@@ -229,7 +229,9 @@ for (const [id, vote] of [['would-you-rather', 'a'], ['pick-one', 'a'], ['never-
   ctx.leave(def, state, voters[1]);
   assert.equal(state.phase, 'reveal', 'remaining voters done: reveal');
   assert.equal(state.last.verdict, 'yes');
-  for (let r = 0; r < 6 && state.phase !== 'done'; r++) {
+  // Two-player rounds remain playable after a departure; allow each
+  // remaining round its spin, choice, performance, vote and reveal.
+  for (let r = 0; r < state.rounds * 6 && state.phase !== 'done'; r++) {
     if (state.phase === 'reveal') { def.onAction(state, ctx, 'p1', { next: true }); continue; }
     if (state.phase === 'spin') { ctx.fireLast(); continue; }
     if (state.phase === 'choose') { def.onAction(state, ctx, state.target, { deck: 'classic', kind: 'truth' }); continue; }

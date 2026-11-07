@@ -524,3 +524,20 @@ html body.game-playing:has(.sk-phone.dp) .game-report-icon{color:var(--ink);back
   .dp-draw.ck .sk-drawdesk > .dp-done-row .gk-btn { min-width: 220px; }
   .dp-draw.ck .sk-drawdesk > .dp-done-row .dp-status { max-width: 220px; text-align: center; font: var(--text-caption); }
 }
+
+/* The clock owns the top-right toolbar slot in every phase. Shared HUD
+ * styles must not turn this fixed badge into a full-width flex row. */
+.dp.ck .dp-clock.gk-hud-timer { position:fixed; top:max(var(--space-12),env(safe-area-inset-top)); right:max(var(--space-12),env(safe-area-inset-right)); width:calc(var(--space-64) + var(--space-24)); min-width:0; height:var(--control-h-sm); justify-content:center; margin:0; }
+body.game-playing[data-game="draw-phone"] .game-zoom { display:none; }
+@media(max-width:700px){
+ .dp.ck .dp-header,.dp.ck.dp-draw .dp-header { display:flex; flex-wrap:nowrap; height:var(--control-h-sm); min-height:var(--control-h-sm); padding:0 calc(var(--space-64) + var(--space-32)) 0 calc(var(--space-64) + var(--space-32)); margin-bottom:var(--space-12); }
+ .dp.ck .dp-header .dp-identity { display:block; font:var(--text-button-sm)!important; }
+ .dp.ck .dp-header .sk-steps { display:none; }
+ .dp.ck .dp-draw-heading { min-height:calc(var(--space-64) + var(--space-24)); }
+}
+@media(max-width:700px){
+ .dp.ck.dp-draw .dp-prompt { max-height:none; min-height:calc(var(--space-64) + var(--space-32)); padding:var(--space-8); }
+ #gbody .sk-phone.dp.ck.dp-draw .sk-phrase { font:var(--text-title); }
+}
+.dp.ck .dp-zoom button { min-height:var(--control-h-sm); height:var(--control-h-sm); }
+.sk-phone.dp.ck .sk-steps .is-now { color:var(--ink); }
