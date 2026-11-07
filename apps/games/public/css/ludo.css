@@ -71,10 +71,9 @@ html[data-theme=night] .ld-game .ld-base,body.is-embed .ld-game .ld-base{fill:#e
  .ld-game .ld-stage.bk-stage{width:min(100%,560px,calc(100svh - 372px))}
 }
 /* QC: Ludo's family colour is red, so the turn banner reads as a neutral
- * card with a red edge (not the error look). At night the pawn buttons
+ * card. At night the pawn buttons
  * keep their pawns readable, the printed trail is a warm cream instead of
  * a white slab, and the table runs past the bottom of the page. */
-.ld-game .bk-status{border-color:var(--outline);background:var(--card);color:var(--ink);box-shadow:inset 4px 0 0 var(--fam),var(--shadow-sticker-sm)}
 [data-theme="night"] .ld-game .ld-choices button[aria-disabled=true] svg{opacity:.9}
 [data-theme="night"] .ld-game .ld-choices svg,[data-theme="night"] .ld-game .ld-choices button[aria-disabled=true] svg{filter:drop-shadow(0 0 1.5px #ffffffb3)}
 [data-theme="night"] .ld-game .ld-board rect[fill="#ffffff"]{fill:#ebe3d3}
@@ -88,25 +87,17 @@ body[data-game="ludo"]{background:#f0dcd9}
 .ld-game .bk-status-text { flex-shrink:0; }
 .ld-game .ld-dock[hidden] { display:grid!important; visibility:hidden; }
 
-/* A compact roster leaves the same room for play with two or four racers. */
-.ld-game .bk-players { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
-.ld-game .bk-player { grid-template-columns:var(--space-24) minmax(0,1fr); grid-template-rows:auto auto; gap:0 var(--space-4); padding:var(--space-4); }
-.ld-game .bk-who { grid-column:1/-1; grid-row:1; }
-.ld-game .bk-name { font:var(--text-button-sm); }
-.ld-game .bk-chip { grid-column:1; grid-row:2; }
-.ld-game .bk-stat { grid-column:2; grid-row:2; }
-.ld-game :is(.bk-side,.bk-stat-label) { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
-
+/* Keep the shared, centred player row. Four racers use two readable
+ * rows on phones; that space depends on seat count, never on turn/score. */
 /* Portrait play owns the actual game viewport, including the screen bar's
  * deduction. The board gets the free grid row, rather than a svh estimate
  * that pushes Roll below the frame and makes native focus scroll the page. */
 @media (max-width:759px) and (orientation:portrait) {
- .bk-game.ld-game { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:var(--space-48) var(--space-64) calc(var(--space-64) + var(--space-24)) auto minmax(0,1fr) auto var(--control-h-sm); gap:var(--space-8); height:var(--game-viewport-height,100dvh); min-height:0; padding:var(--space-12) var(--space-12) max(var(--space-12),env(safe-area-inset-bottom)); }
+ .bk-game.ld-game { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:var(--space-48) var(--ld-roster-h,var(--space-64)) calc(var(--space-64) + var(--space-24)) auto minmax(0,1fr) auto var(--control-h-sm); gap:var(--space-8); height:var(--game-viewport-height,100dvh); min-height:0; padding:var(--space-12) var(--space-12) max(var(--space-12),env(safe-area-inset-bottom)); }
  .ld-game .bk-head { grid-column:1/-1; grid-row:1; min-height:0; }
  .ld-game .bk-title { font:var(--text-title); }
- .ld-game .bk-players { grid-column:1/-1; grid-row:2; height:var(--space-64); }
- .ld-game .bk-players:has(.bk-player:nth-child(3)) { grid-template-columns:repeat(3,minmax(0,1fr)); }
- .ld-game .bk-players:has(.bk-player:nth-child(4)) { grid-template-columns:repeat(4,minmax(0,1fr)); }
+ .ld-game .bk-players { grid-column:1/-1; grid-row:2; height:var(--ld-roster-h,var(--space-64)); }
+ .ld-game:has(.bk-player:nth-child(3)) { --ld-roster-h:calc(2 * var(--space-64) + var(--space-8)); }
  #gbody .ld-game .bk-status { grid-column:1/-1; grid-row:3; height:calc(var(--space-64) + var(--space-24)); min-height:calc(var(--space-64) + var(--space-24)); }
  .ld-game .ld-reason { height:auto; min-height:0; flex-shrink:0; }
  .ld-game .bk-timer { grid-column:1/-1; grid-row:4; }

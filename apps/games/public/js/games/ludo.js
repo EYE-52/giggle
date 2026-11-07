@@ -22,9 +22,8 @@ function face(n){return `<svg viewBox="-24 -24 48 48" aria-hidden="true"><rect x
 function paintDie(el,c){const button=el.querySelector('[data-roll]');if(!button.querySelector('.ld-face'))button.innerHTML=`<span class="ld-face"></span><span class="ld-roll-label">Roll</span>`;const n=c.dieShown||0,f=button.querySelector('.ld-face');if(f.getAttribute('data-n')!==String(n)){f.setAttribute('data-n',String(n));f.innerHTML=face(n);}button.classList.toggle('is-rolling',c.rolling);const canRoll=!c.S.preparing&&c.S.phase==='roll'&&c.S.youAre===c.S.turn&&!c.S.spectator;button.classList.toggle('is-ready',canRoll&&!c.pending&&!c.settling);button.querySelector('.ld-roll-label').textContent=c.rolling?'Rolling…':canRoll?'Roll':c.S.phase==='move'?'Move':c.S.phase==='done'?'Finished':c.S.youAre===null||c.S.spectator?'Watching':'Their turn';button.setAttribute('aria-label',c.rolling?'Rolling the die':canRoll?'Roll the die':`${c.dieShown?`Die shows ${c.dieShown}. `:''}${c.S.phase==='move'?'Choose a legal pawn.':'Wait for your turn.'}`);}
 function status(S){
   if(S.phase==='done')return `${nameOf(S,S.result.winnerPid)} ${S.result.reason==='home'?'brings all four pawns home!':'wins the race.'}`;
-  const skipped=S.lastMove?.kind==='roll'&&S.lastMove.skipped?`${nameOf(S,S.seats[S.lastMove.side])} rolled ${S.lastMove.die}, with no legal move. `:'';
-  if(S.youAre===S.turn&&!S.spectator)return skipped+(S.phase==='roll'?'Your turn. Roll the die.':`You rolled ${S.die}. Choose a glowing pawn.`);
-  return `${skipped}${S.spectator||S.youAre===null?'Watching · ':''}${nameOf(S,S.seats[S.turn])}${S.phase==='move'?` rolled ${S.die}.`:' to roll.'}`;
+  if(S.youAre===S.turn&&!S.spectator)return S.phase==='roll'?'Your turn. Roll the die.':`You rolled ${S.die}. Choose a glowing pawn.`;
+  return `${S.spectator||S.youAre===null?'Watching · ':''}${nameOf(S,S.seats[S.turn])}${S.phase==='move'?` rolled ${S.die}.`:' to roll.'}`;
 }
 function board(S,c,animate){
   const k=42, offset=21, safe=new Set(S.safe),homes=YARDS.map(([x,y],side)=>`<rect x="${x*k+3}" y="${y*k+3}" width="246" height="246" rx="16" fill="${COLORS[side]}"/>${[0,1,2,3].map(i=>{const [px,py]=xy(side,i,-1);return `<circle cx="${px*k+offset}" cy="${py*k+offset}" r="32" class="ld-well"/>`;}).join('')}`).join('');
@@ -59,11 +58,12 @@ function paint(el,c){
   paintDie(el,c);
   const choices=el.querySelector('.ld-choices');choices.hidden=!my;if(my&&c.choiceSide!==S.youAre){c.choiceSide=S.youAre;choices.innerHTML=S.pawns[S.youAre].map((pos,i)=>`<button type="button" id="ld-choice-${i}" data-choice="${i}" aria-label="Move pawn ${i+1}"><svg viewBox="-25 -25 50 50" aria-hidden="true">${pawn(S.lanes[S.youAre],i,.9)}</svg><span></span></button>`).join('');}
   if(my)for(const b of choices.querySelectorAll('[data-choice]')){const i=Number(b.dataset.choice);b.classList.toggle('is-legal',acting&&S.legal.includes(i));b.setAttribute('aria-disabled',String(!acting||!S.legal.includes(i)));b.querySelector('span').textContent=`${i+1}${S.pawns[S.youAre][i]===56?' · Home':''}`;}
-  const reason=el.querySelector('.ld-reason');if(reason){const text=!my||out||S.phase==='done'||S.preparing||c.pending||c.settling?'':S.turn!==S.youAre?`Your pawns wait while ${nameOf(S,S.seats[S.turn])} plays.`:S.phase==='roll'?'Roll first, then move a pawn.':S.legal.length?'Tap a glowing pawn to move it.':'No pawn can move with this roll.';if(reason.textContent!==text)reason.textContent=text;}
+  const reason=el.querySelector('.ld-reason');if(reason){const skipped=S.lastMove?.kind==='roll'&&S.lastMove.skipped;const text=S.phase==='done'||S.preparing||c.pending||c.settling?'':skipped?`${nameOf(S,S.seats[S.lastMove.side])} rolled ${S.lastMove.die} · no legal move.`:!my||out?'':S.turn!==S.youAre?`Your pawns wait while ${nameOf(S,S.seats[S.turn])} plays.`:S.phase==='roll'?'Roll first, then move a pawn.':S.legal.length?'Tap a glowing pawn to move it.':'No pawn can move with this roll.';if(reason.textContent!==text)reason.textContent=text;}
   el.querySelector('.ld-dock').hidden=S.phase==='done'&&!c.settling;
   bkPaint(el,{
     meta:bkMeta(S,`${S.seats.length} players`),
-    players:S.seats.map((pid,side)=>({name:nameOf(S,pid),side:NAMES[S.lanes[side]],chip:chip(S.lanes[side]),stat:`${S.pawns[side].filter(p=>p===56).length}/4`,statLabel:'home',turn:S.phase!=='done'&&side===S.turn&&!S.resigned.includes(side),you:side===S.youAre&&!S.spectator,out:S.resigned.includes(side),outLabel:outLabel(S,side)})),
+    players:S.seats.map((pid,side)=>({name:nameOf(S,pid),side:NAMES[S.lanes[side]],chip:chip(S.lanes[side]),color:COLORS[S.lanes[side]],stat:`${S.pawns[side].filter(p=>p===56).length}/4`,statLabel:'home',turn:S.phase!=='done'&&side===S.turn&&!S.resigned.includes(side),you:side===S.youAre&&!S.spectator,out:S.resigned.includes(side),outLabel:outLabel(S,side)})),
+    statusColor:S.phase==='done'?null:COLORS[S.lanes[S.turn]],
     status:S.preparing?'Getting the table ready…':c.pending?'Sending your turn…':c.settling?(c.settleKind==='roll'?'Rolling…':'Hop, hop…'):c.retry?'Turn not confirmed. Try again.':status(S),
     timer:bkTimer(S,c.api),done:S.phase==='done',player:my&&!out,busy:c.pending||c.settling||!!S.preparing,armed:c.armed,draw:false,
     watchNote:out?'You are out of this race. Watch the others finish.':undefined,
@@ -79,7 +79,7 @@ export default {
       el.innerHTML=`<section class="bk-game ld-game" data-family="board"><div class="ld-stage bk-stage"></div>${bkPanelHTML({title:'Ludo',draw:false,extra:`<div class="ld-dock"><button type="button" class="ld-dice" data-roll aria-label="Roll the die"></button><div class="ld-choices" aria-label="Choose a pawn"></div><p class="ld-reason tb-reason" aria-live="polite"></p></div>`,help:['A six brings a pawn out and gives another roll. Move exactly into home. Stars and starting squares are safe; landing on other squares sends every opponent pawn there back to its yard. No blockades or three-sixes penalty.','Choose one of your four pawns, then it moves. First with all four home wins; the others place by how far they came.']})}</section>`;
       // The turn banner already owns a fixed text well. Keep the pawn hint
       // there too, so the die tray fits below the board without page scrolling.
-      el.querySelector('.bk-status').append(el.querySelector('.ld-reason'));
+      el.querySelector('.bk-status-copy').append(el.querySelector('.ld-reason'));
       c.click=e=>{const t=c.S;let action=null;
         const finalAction=name=>{if(t.phase==='done'&&!c.settling&&c.api.context?.()?.isHost===true&&!c.api.context?.()?.roomActionPending)c.api[name]?.();};
         if(bkClick(e,{arm:()=>{c.armed=!c.armed;paint(el,c);},keep:()=>{c.armed=false;paint(el,c);},resign:()=>{if(c.armed)action={resign:true};},rematch:()=>finalAction('rematch'),lobby:()=>finalAction('lobby')})&&!action)return;

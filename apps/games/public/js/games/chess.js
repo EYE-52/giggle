@@ -332,12 +332,13 @@ export default {
     }, {
       meta: bkMeta(S, S.timeControl && S.timeControl !== 'Off' && S.timeControl !== 'Untimed' ? `${S.timeControl} each` : 'No time control'),
       players: ['b', 'w'].map(side => ({
-        name: nameOf(S, side === 'w' ? S.white : S.black), side: side === 'w' ? 'White' : 'Black',
+        name: nameOf(S, side === 'w' ? S.white : S.black), side: side === 'w' ? 'White' : 'Black', color: side === 'w' ? '#bdb49b' : '#41444d',
         chip: `<span class="ch-chip">${sprite(side, 'p')}</span>`,
         stat: capturedCount(shownForCaptures, side === 'w' ? 'b' : 'w'), statLabel: 'captures',
         clock: S.clocks ? fmtClock(S.clocks[side]) : null, statId: S.clocks ? `ch-clock-${side}` : null,
         turn: S.phase === 'play' && S.turn === side && !moveMotion, you: S.youAre === side && !S.spectator,
       })),
+      statusColor: done ? null : S.turn === 'w' ? '#bdb49b' : '#41444d',
       status: statusLine(S), timer: moveTimerInfo, done: S.phase === 'done', player: !!me,
       busy: !!S.preparing || !!moveMotion || pendingMove, armed: armedResign,
       drawOffer: bkDrawState(S, me), drawBlocked: S.drawBlocked === me, flipBusy: !!moveMotion,

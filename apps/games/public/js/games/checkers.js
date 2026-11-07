@@ -90,8 +90,9 @@ function paint() {
     meta: bkMeta(state, text('variant')),
     players: [0, 1].map(side => {
       const count = (moving?.before || state.board).filter(p => p && sideOf(p) === side).length;
-      return { name: nameOf(state, state.seats[side]), side: text(side ? 'charcoal' : 'red'), chip: chip(side), stat: count, statLabel: text(count === 1 ? 'man' : 'pieces'), turn: !done && !moving && !state.preparing && state.phase === 'play' && state.turn === side, you: state.youAre === side && !state.spectator };
+      return { name: nameOf(state, state.seats[side]), side: text(side ? 'charcoal' : 'red'), chip: chip(side), color: PIECE[side][0], stat: count, statLabel: text(count === 1 ? 'man' : 'pieces'), turn: !done && !moving && !state.preparing && state.phase === 'play' && state.turn === side, you: state.youAre === side && !state.spectator };
     }),
+    statusColor: done ? null : PIECE[state.turn][0],
     status: moving ? text('moving') : done ? resultLabel() : state.preparing ? '' : state.youAre === null ? text('watching') + ' · ' + nameOf(state, state.seats[state.turn]) : myTurn() ? text('yourTurn') : text('waiting'),
     hint: done ? reasonText(state.result) : moving || state.preparing ? '' : state.youAre === null ? text('spectatorHelp') : myTurn() && state.forced !== null ? text('continue') : myTurn() && mandatory ? text('capture') : myTurn() ? text('choose') : text('waitingHint'),
     timer: bkTimer(state, api), done: state.phase === 'done', player: !!me, busy: !!moving || pending !== null || state.preparing === true,
