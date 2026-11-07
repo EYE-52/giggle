@@ -56,3 +56,9 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
 });
 
 export default KART_PHYSICS_CONFIG;
+
+// Shipped classic arenas opt into the arcade bumper response. The elevated
+// development profile keeps its established deck/landing contact envelopes.
+export const CLASSIC_CONTACT_TUNING=Object.freeze({
+  friction:.16,restitution:.20,wallFriction:.06,separationSpeed:.8,maxSpin:3,
+});

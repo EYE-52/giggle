@@ -1321,9 +1321,9 @@ driver('pocket-karts', () => {
   must(state.result && state.result.standings.length === 3, 'full standings recorded');
   // --- Zap Battle: chase, rising-edge fire, hits score.
   const ctx2 = new FakeCtx(roster(2), settingsFor(def, {
-    // Sixteen weapons include traps and self buffs; ninety seconds give the
-    // chasing bots time to roll, land mounted shots and finish a knockout.
-    mode: battleMode, map: ring, palette: 'Daybreak', roundSeconds: 90, targetHits: 1,
+    // Lower bumper friction changes the pursuit route. Allow two minutes
+    // for legal chasing bots to collect, aim and finish a real knockout.
+    mode: battleMode, map: ring, palette: 'Daybreak', roundSeconds: 120, targetHits: 1,
   }));
   const st2 = def.create(ctx2);
   ownedStates.push(st2);
@@ -1379,7 +1379,7 @@ driver('pocket-karts', () => {
     // overshoots the rival and can pitch the real barrel into the sky after
     // a bumper/hill contact; yaw alignment alone cannot make that shot hit.
     return { steer: Math.max(-1, Math.min(1, -err * 2.5)), throttle: Math.abs(err) > 1.0 ? 0.25 : k.speed > 6 ? 0 : 0.5, boost };
-  }, 1000);
+  }, 1300);
   must(st2.phase === 'done', 'battle finishes');
   must(seen.fires > 0, 'rising-edge input produced accepted physical mounted fire');
   must(seen.impacts > 0, 'real physical projectile produced an authoritative impact');

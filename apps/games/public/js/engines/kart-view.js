@@ -44,6 +44,9 @@ import {createArsenalFX} from './kart-arsenal-fx.mjs';
 import {createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d} from './kart-arena-structure-art.mjs';
 import {createKartArenaFeatures,drawArenaFeatures2d} from './kart-arena-features-art.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
+import {createKartDrivingFX} from './kart-driving-fx.mjs';
+import {createSurfaceIndex,surfaceTuning} from './kart-surface.mjs';
+import {driftTier,DRIFT_TIERS} from './kart-drift.mjs';
 import {createKartThreats} from './kart-threats.mjs';
 import {createKartFeedback} from './kart-feedback.mjs';
 import { projectilePose, grenadePose } from './kart-flight.mjs';
@@ -273,6 +276,14 @@ export function createKartView(viewConfig) {
   let arenaPending = null;
   let arenaNotice = '';
 
+  let drivingInstance=null,drivingMapId=null,drivingSurfaceIndex=null;
+  function drivingSurfaceAt(x,z){
+    if(S?.instanceId!==drivingInstance||S?.map?.id!==drivingMapId||!drivingSurfaceIndex){
+      drivingInstance=S?.instanceId;drivingMapId=S?.map?.id;drivingSurfaceIndex=createSurfaceIndex(S?.map||{});
+    }
+    return surfaceTuning(drivingSurfaceIndex,x||0,z||0);
+  }
+
   function updateAudio() {
     if (!audio) return;
     const me=myKart(), predicted=S?.motionProfile?physicalLocalPose:poseStore.self;
@@ -280,10 +291,11 @@ export function createKartView(viewConfig) {
     const speed=predicted?.speed ?? me?.speed ?? 0,gear=me?gearbox.update(speed):gearbox.update(0);
     paintGear(rootEl?.querySelector('#pk-gear'),gear);
     audio.update({speed,throttle:intentFromState().throttle,gear:gear.gear,rpm:gear.rpm,shift:gear.shift,
-      drifting:predicted?.drifting ?? me?.drifting,boost:me?.boost>0||me?.turbo>0||me?.nitroActive===true,
+      surface:drivingSurfaceAt(predicted?.x??me?.x,predicted?.z??me?.z).kind,grounded:predicted?.physicalPose?.grounded??me?.physicalPose?.grounded??true,
+      drifting:predicted?.drifting ?? me?.drifting,boost:me?.boost>0||(predicted?.turbo??me?.turbo)>0||me?.nitroActive===true,
       active:S?.phase==='drive' && !S?.preparing && !document.hidden && apiRef?.context?.().connected!==false && !apiRef?.context?.().roomActionPending,
       engineActive:!!S?.youDrive && !!me && !(me.respawn>0)});
-    const turbo=me?.boost>0||me?.turbo>0||me?.nitroActive===true;
+    const turbo=me?.boost>0||(predicted?.turbo??me?.turbo)>0||me?.nitroActive===true;
     if(turbo&&!wasTurbo)audio.cue('boost');
     wasTurbo=turbo;
   }
@@ -577,7 +589,7 @@ export function createKartView(viewConfig) {
       <div class="pk-driftmeter" role="progressbar" aria-label="Drift charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="pk-driftfill"></i></div>
       <div class="pk-nitrometer" role="progressbar" aria-label="Nitro charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="pk-nitrofill"></i><span id="pk-nitrolabel">Nitro</span></div></div>
       <details class="pk-help" id="pk-help"><summary aria-label="Driving controls help">?</summary>
-      <div class="pk-helpbody"><button type="button" id="pk-resume" class="pk-resume">Resume</button><label class="pk-controls-label">Controls<select id="pk-controls" aria-label="Controls"><option value="auto">Auto</option><option value="keyboard">Keyboard</option><option value="touch">Touch</option></select></label><button type="button" id="pk-auto" class="pk-auto" aria-pressed="false" hidden>Auto gas · off</button><p class="pk-helpkeys"><b>Drive</b> WASD / arrows or left stick: up for gas, down to brake / reverse · <b>Drift</b> hold Shift / tyre button in a turn, release a full meter for turbo · <b>Nitro</b> hold N / bottle button with gas for a rechargeable boost · <b>Item</b> Space / action button · Ice is slippery, mint strips boost.</p><a href="/assets/karts/audio/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a></div></details></div></div>
+      <div class="pk-helpbody"><button type="button" id="pk-resume" class="pk-resume">Resume</button><label class="pk-controls-label">Controls<select id="pk-controls" aria-label="Controls"><option value="auto">Auto</option><option value="keyboard">Keyboard</option><option value="touch">Touch</option></select></label><button type="button" id="pk-auto" class="pk-auto" aria-pressed="false" hidden>Auto gas · off</button><p class="pk-helpkeys"><b>Drive</b> WASD / arrows or left stick: up for gas, down to brake / reverse · <b>Drift</b> hold Shift / tyre button in a turn, release blue, orange or purple sparks for a growing turbo · <b>Nitro</b> hold N / bottle button with gas for a rechargeable boost · <b>Item</b> Space / action button · Ice is slippery, mint strips boost.</p><a href="/assets/karts/audio/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a></div></details></div></div>
     <canvas id="pk-radar" class="pk-radar" width="120" height="120" role="img" aria-label="Arena map: players, cover and glowing pickups"></canvas>
     <div class="pk-respawn" id="pk-respawn" hidden></div>
     <div class="pk-result" id="pk-result" hidden></div>
@@ -656,7 +668,8 @@ export function createKartView(viewConfig) {
     const nitroFill = rootEl.querySelector('#pk-nitrofill');
     const nitroMeter = rootEl.querySelector('.pk-nitrometer');
     const nitroLabel = rootEl.querySelector('#pk-nitrolabel');
-    const charge = Math.min(1, Math.max(0, Number(me && me.driftCharge) || 0));
+    const charge = Math.min(1, Math.max(0, Number(physicalLocalPose?.driftCharge??me?.driftCharge) || 0));
+    const tier=driftTier(charge);
     const nitro = me && me.nitro !== undefined ? Math.min(1, Math.max(0, Number(me.nitro) || 0)) : 1;
     const nitroLocked = me?.nitroLocked === true;
     const nitroActive = me?.nitroActive === true;
@@ -665,9 +678,9 @@ export function createKartView(viewConfig) {
     if (speedDigits) speedDigits.textContent = me ? String(kmh) : '–';
     if (handling) {
       const feel = !me ? 'Watching the arena'
-        : me.drifting ? (charge >= 1 ? 'Release for turbo!' : 'Charging drift')
+        : me.drifting ? (tier ? DRIFT_TIERS[tier-1].label+' · release for turbo!' : 'Charging drift')
         : (me.boost > 0 || me.turbo > 0 || nitroActive) ? (nitroActive && !(me.boost > 0 || me.turbo > 0) ? 'Nitro!' : 'Turbo!')
-        : me.grip < 0.8 ? 'Ice · ease into turns'
+        : me.surface==='ice' ? 'Ice · ease into turns'
         : me.respawn > 0 ? 'Rejoining…'
         : (me.shield > 0 && battle) ? `Protected ${Math.ceil(me.shield)}s`
         : (me.guard && battle) ? 'Shield ready'
@@ -677,10 +690,11 @@ export function createKartView(viewConfig) {
       handling.textContent = feel;
       handling.hidden = !feel;
     }
-    if (driftFill) driftFill.style.transform = `scaleX(${charge})`;
+    if (driftFill) {driftFill.style.transform = `scaleX(${charge})`;driftFill.style.background=tier?DRIFT_TIERS[tier-1].css:'#6d829c';}
     if (driftMeter) {
       driftMeter.hidden = !me;
       driftMeter.setAttribute('aria-valuenow', String(Math.round(charge * 100)));
+      driftMeter.setAttribute('aria-valuetext',tier?DRIFT_TIERS[tier-1].label+' turbo ready':'Charging drift');
     }
     if (nitroFill) nitroFill.style.transform = `scaleX(${nitro})`;
     if (nitroMeter) {
@@ -1052,7 +1066,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let world,impactFX,skids,threats,arsenalFX,arena,structures,garageThumbnail;
+    let world,impactFX,skids,drivingFX,threats,arsenalFX,arena,structures,garageThumbnail;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1096,9 +1110,7 @@ export function createKartView(viewConfig) {
       const nukeRingMat=new THREE.MeshBasicMaterial({color:0xe65832,transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide});
       const blastGeo=new THREE.RingGeometry(3.3,4,32);
       const blastMat=new THREE.MeshBasicMaterial({color:0xff973d,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide});
-      const driftSparks = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.11),
-        new THREE.MeshBasicMaterial({color:0x83ffe0}), 48);
-      driftSparks.count = 0; driftSparks.frustumCulled = false; scene.add(driftSparks);
+      drivingFX=createKartDrivingFX(THREE,scene,camera,{groundAt:(x,z)=>world.groundAt?.(x,z)||0,reducedMotion:reducedMotion()});
       // Big matches draw distant karts as one instanced proxy batch.
       const kartLod = createKartLod(THREE); scene.add(kartLod.object);
       let lodProxied = new Set();
@@ -1124,7 +1136,7 @@ export function createKartView(viewConfig) {
       const rm = reducedMotion();
       const syncBlocks = () => world.syncMap((S && S.map) || {id:'ring',blocks:[]});
       const tmpV = new THREE.Vector3(), shakeOffset = new THREE.Vector3();
-      let cameraEpoch = null;
+      let cameraEpoch = null,driftSwing=0;
       // Warm every combat variant before readiness. The hidden source library
       // alone is never rendered: first fire used to upload these buffers and
       // compile tracer/instanced-effect programs in a live driving frame.
@@ -1194,13 +1206,13 @@ export function createKartView(viewConfig) {
         updateAudio();
         const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
         if(feedbackEpoch!==impactEpoch){
-          impactFX.reset();skids.reset();threats.clear();arsenalFX.reset();arsenalEvents.length=0;arena.resetHistory();impactEpoch=feedbackEpoch;
+          impactFX.reset();skids.reset();drivingFX.reset();threats.clear();arsenalFX.reset();arsenalEvents.length=0;arena.resetHistory();impactEpoch=feedbackEpoch;
           for(const cue of shotCues)cue.object.visible=false;
           for(const e of combatEffects.values())returnMarker(e.mesh);
           combatEffects.clear();popSites.length=0;effectSeen.clear();
         }
         while(arsenalEvents.length)arsenalFX.event(arsenalEvents.shift());
-        impactFX.update(effectDt);skids.update(effectDt);arsenalFX.update(effectDt);
+        impactFX.update(effectDt);skids.update(effectDt);drivingFX.update(effectDt,S.phase==='drive'&&S.youDrive?(physicalLocalPose?.speed??myKart()?.speed??0):0,S.phase==='drive'&&S.youDrive&&((physicalLocalPose?.turbo??myKart()?.turbo)>0||myKart()?.boost>0||myKart()?.nitroActive===true));arsenalFX.update(effectDt);
         // Arena features: cannons, portals, fall zones (map.features + arenaEvents).
         structures.sync(S.map);structures.animate();
         arena.sync(S.map);arena.ingest(S.arenaEvents,S.karts);arena.animate(effectDt,t,S,poses);
@@ -1240,7 +1252,6 @@ export function createKartView(viewConfig) {
         while(effectSeen.size>48)effectSeen.delete(effectSeen.values().next().value);
         for(const [id,e]of combatEffects){if(nowMs()>=e.until){returnMarker(e.mesh);combatEffects.delete(id);}else if(!rm){const progress=(nowMs()-e.at)/(e.until-e.at);e.mesh.scale.setScalar((.2+progress*.8)*e.size);placeGroundMarker(e.mesh,e.mesh.position.x,e.mesh.position.z,groundAt);}}
         const live = new Set();
-        let sparkCount = 0;
         for (const k of S.karts || []) {
           live.add(k.pid);
           const pose = poses.get(k.pid) || { x: k.x, z: k.z, angle: k.angle };
@@ -1274,7 +1285,9 @@ export function createKartView(viewConfig) {
             mesh.quaternion.set(physical.rotation.x,physical.rotation.y,physical.rotation.z,physical.rotation.w);
           }else{if(inner)inner.position.y=0;mesh.rotation.y=pose.angle;}
           arena.dressKart(k,mesh,pose.flight);
-          skids.track(k.pid,mesh.position.x,mesh.position.z,pose.angle,kartSliding(k,pose,k.pid===S.you&&intentForPrediction().throttle<0));
+          const surface=drivingSurfaceAt(mesh.position.x,mesh.position.z),sliding=kartSliding(k,pose,k.pid===S.you&&intentForPrediction().throttle<0);
+          skids.track(k.pid,mesh.position.x,mesh.position.z,pose.angle,sliding,surface);
+          if(mesh.visible&&S.phase==='drive')drivingFX.track(k.pid,mesh.position.x,mesh.position.y,mesh.position.z,pose.angle,pose.speed??k.speed,sliding,pose.driftCharge??k.driftCharge,surface,(pose.physicalPose||k.physicalPose)?.grounded!==false);
           healthBars.update(k.pid,k,mesh.position,(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
           if(!mesh.visible)healthBars.add(k.pid).visible=false;
           const equipped=k.ammo>0?k.weapon:null;
@@ -1286,20 +1299,12 @@ export function createKartView(viewConfig) {
           }
           if(mesh.userData.rig)combat.animate(mesh.userData.rig,dt,t,rm);
           if (mesh.userData.giggleKart && !lodProxied.has(mesh)) animateKartModel(mesh, {physicalPose: k.respawn>0 ? null : pose.physicalPose || k.physicalPose,
-            speed:pose.speed ?? k.speed ?? 0, steer:k.pid === S.you ? intentFromState().steer : 0,
-            boost:Math.max(k.boost || 0,k.turbo || 0,k.nitroActive===true?1:0),shield:k.shield>0||k.guard===true,invincible:false,dt,reducedMotion:rm});
+            speed:pose.speed ?? k.speed ?? 0, steer:k.pid === S.you ? intentFromState().steer : 0,driftHop:pose.driftHop??k.driftHop??0,drivingJuice:true,
+            boost:Math.max(k.boost || 0,(pose.turbo??k.turbo) || 0,k.nitroActive===true?1:0),shield:k.shield>0||k.guard===true,invincible:false,dt,reducedMotion:rm});
           arsenalFX.status(mesh,k,{time:t,groundRoot:!(k.physicalPose&&!(k.respawn>0))});
-          if (mesh.userData.flame) mesh.userData.flame.visible = k.boost > 0 || k.turbo > 0 || k.nitroActive === true || k.rammingT > 0;
+          if (mesh.userData.flame) mesh.userData.flame.visible = k.boost > 0 || (pose.turbo??k.turbo) > 0 || k.nitroActive === true || k.rammingT > 0;
           if (mesh.userData.shield) mesh.userData.shield.visible = (k.shield || 0) > 0;
-          if (mesh.visible && !rm && S.phase === 'drive' && k.drifting) {
-            const f = forwardOf(pose.angle);
-            for (let i=0; i<6 && sparkCount<48; i++) {
-              const age=(t*3+i/6)%1, side=i%2 ? 0.92 : -0.92;
-              const x=pose.x-f.x*(1.2+age*2)+f.z*side,z=pose.z-f.z*(1.2+age*2)-f.x*side;
-              sparkMatrix.makeTranslation(x,(world.groundAt?.(x,z)||0)+.12+Math.sin(age*Math.PI)*.4,z);
-              driftSparks.setMatrixAt(sparkCount++,sparkMatrix);
-            }
-          }
+
         }
         lodProxied = kartLod.update(camera, [...karts].filter(([pid]) => live.has(pid)).map(([pid, mesh]) => ({ mesh, color: colorFor(pid), visible: mesh.visible })));
         let popCount=0;
@@ -1315,13 +1320,11 @@ export function createKartView(viewConfig) {
           }
         }
         pops.count=popCount; if(popCount) pops.instanceMatrix.needsUpdate=true;
-        driftSparks.count = sparkCount;
-        if (sparkCount) driftSparks.instanceMatrix.needsUpdate = true;
         for (const [pid, mesh] of karts) {
           if (!live.has(pid)) {
             scene.remove(mesh);
             karts.delete(pid);
-            healthBars.remove(pid);skids.forget(pid);
+            healthBars.remove(pid);skids.forget(pid);drivingFX.forget(pid);
           }
         }
         // Stars: sync set, spin unless reduced motion.
@@ -1448,7 +1451,10 @@ export function createKartView(viewConfig) {
           const back = portrait ? 10 : 8.8;
           const up = portrait ? 4.2 : 3.2;
           const chassisY=pose.physicalPose?.position.y??me.physicalPose?.position.y??((world.groundAt?.(pose.x,pose.z)||0)+.75);
-          const cameraX=pose.x-f.x*back,cameraZ=pose.z-f.z*back;
+          const slide=pose.slip??me.slip??0;
+          const swing=rm?0:Math.max(-1.15,Math.min(1.15,-slide*.13));
+          driftSwing+=(swing-driftSwing)*(1-Math.exp(-dt*5));
+          const cameraX=pose.x-f.x*back+f.z*driftSwing,cameraZ=pose.z-f.z*back-f.x*driftSwing;
           tmpV.set(cameraX,Math.max(chassisY+up-.75,(world.groundAt?.(cameraX,cameraZ)||0)+1.2),cameraZ);
           // A portal jump is a pose-epoch change: cut, never sweep across the map.
           const camLife=me.spawnSeq+':'+(pose.physicalPose?.epoch??'');
@@ -1464,6 +1470,10 @@ export function createKartView(viewConfig) {
           else camera.position.lerp(tmpV, Math.min(1, dt * 2));
           camera.lookAt(0, 0, 0);
         }
+        const boosting=(selfPose?.turbo??me?.turbo)>0||me?.boost>0||me?.nitroActive===true;
+        const targetFov=rm||!S.youDrive||S.phase!=='drive'?60:60+Math.min(5,Math.max(0,(Math.abs(selfPose?.speed??me?.speed??0)-14)*.4))+(boosting?4:0);
+        const nextFov=rm?60:camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*5));
+        if(Math.abs(nextFov-camera.fov)>.005){camera.fov=nextFov;camera.updateProjectionMatrix();}
         const shake=hitFx?.shake(nowMs());
         if(shake&&(shake.x||shake.y)){shakeOffset.set(shake.x,shake.y,0).applyQuaternion(camera.quaternion);camera.position.add(shakeOffset);}
         const ownKart=me&&S.youDrive&&!(me.respawn>0)?karts.get(me.pid):null;
@@ -1473,14 +1483,14 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {garageThumbnail?.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {garageThumbnail?.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();drivingFX.dispose();threats.dispose();} };
     } catch (error) {
       garageThumbnail?.dispose();
       world?.dispose();
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
       healthBars?.dispose();
-      impactFX?.dispose();structures?.dispose();skids?.dispose();threats?.dispose();
+      impactFX?.dispose();structures?.dispose();skids?.dispose();drivingFX?.dispose();threats?.dispose();
       helper.disposeObject(scene);
       throw error;
     }

@@ -85,7 +85,9 @@ const window = new Node();
 window.matchMedia = () => ({matches:false}); window.devicePixelRatio=1;
 window.screen = {orientation: new Node()};
 const audios=[];
-const context = vm.createContext({document, window, console, Date,
+const {createSurfaceIndex,surfaceTuning}=require('../public/js/engines/kart-surface.mjs');
+const {driftTier,DRIFT_TIERS}=require('../public/js/engines/kart-drift.mjs');
+const context = vm.createContext({document, window, console, Date,createSurfaceIndex,surfaceTuning,driftTier,DRIFT_TIERS,
   performance: {now: () => clock},
   setTimeout: fn => { const id=++seq; analogTimeouts.set(id,fn); return id; },
   clearTimeout: id => analogTimeouts.delete(id),
@@ -928,6 +930,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   const THREE=await import('three'),{GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
   const {MeshoptDecoder}=await import('../public/vendor/three/libs/meshopt_decoder.mjs');await MeshoptDecoder.ready;
   const {createKartImpactFX}=await import('../public/js/engines/kart-impact-fx.mjs');
+  const {createKartDrivingFX}=await import('../public/js/engines/kart-driving-fx.mjs');
   const {createKartHealthBars}=await import('../public/js/engines/kart-health-bars.mjs');
   const models=await import('../public/js/engines/kart-model.mjs'),{createKartCombatArt}=await import('../public/js/engines/kart-combat-art.mjs'),flight=await import('../public/js/engines/kart-flight.mjs');
   const assets={};
@@ -937,7 +940,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0;
   const encounter=root=>{if(!root.visible)return;if(root.isMesh||root.isLine){if(root.geometry)geometries.add(root.geometry);for(const m of Array.isArray(root.material)?root.material:[root.material])if(m)materials.add(m);}for(const child of root.children)encounter(child);};
   const renderer={async compileAsync(scene){compiles++;encounter(scene);},render(scene){warmFrames++;encounter(scene);}};
-  Object.assign(context,models,flight,groundMarkers,{createKartCombatArt,createKartHealthBars,createKartImpactFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
+  Object.assign(context,models,flight,groundMarkers,{createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
     createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){},dispose(){worldRetired++;}}),createKartLighting:()=>()=>{},
     createThreeView:(el,hooks)=>{build=hooks.build;return new Promise(()=>{});}});
   const live=context.makeView({}),el=new Node(),s={...state('drive'),simAt:clock,events:[],zaps:[],grenades:[],mines:[],crates:[],stars:[]};

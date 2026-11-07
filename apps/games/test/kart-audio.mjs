@@ -275,6 +275,19 @@ await withGlobals({document:makeEmitter()},async()=>{
   audio.dispose();
 });
 
+// The same running tyre nodes change texture between surfaces; no new voices.
+await withGlobals({document:makeEmitter()},async()=>{
+  const {ctx,nodes}=makeFakeAudio(),audio=createKartAudio({createContext:()=>ctx,loader:makeLoader()});
+  audio.unlock();await audio.ready();const initial=nodes.length;
+  const sample=surface=>{audio.update({speed:18,throttle:1,drifting:true,surface,grounded:true,active:true});return nodes.filter(n=>n.kind==='filter').map(n=>n.frequency.value);};
+  const road=sample('road'),sand=sample('sand'),ice=sample('ice');
+  ok(sand.some((hz,i)=>Math.abs(hz-road[i])>300),'sand changes the continuous tyre texture');
+  ok(ice.some((hz,i)=>hz>road[i]+1000),'ice has a distinct glassy high squeal');
+  ok(nodes.length===initial,'surface changes reuse continuous nodes');
+  audio.update({speed:18,drifting:true,surface:'ice',grounded:false,active:true});
+  audio.dispose();ok(nodes.every(n=>n.disconnects===1),'surface texture nodes dispose once');
+});
+
 /* ---------- 0. static contract ---------- */
 
 /* Arsenal aliases share decoded buffers and keep launch levels/lifecycle. */
@@ -340,7 +353,7 @@ for(const opts of [{noPan:true},{panThrows:true}])await withGlobals({document:ma
 {
   const src = fs.readFileSync(
     fileURLToPath(new URL('../public/js/engines/kart-audio.mjs', import.meta.url)), 'utf8');
-  ok(!/^\s*import\s/m.test(src), 'contract: no imports (no new dependencies)');
+  assert.deepEqual([...src.matchAll(/^import.*from ['"]([^'"]+)['"]/gm)].map(m=>m[1]),['./kart-surface.mjs'],'audio imports only the pure shared surface profiles; no new package dependency');
   ok(!/getUserMedia|getDisplayMedia|MediaStream/.test(src), 'contract: audio-only, never microphone capture');
   ok(!/setInterval|setTimeout|requestAnimationFrame/.test(src), 'contract: no timers (frame-driven only)');
   const synthAt = src.indexOf('export function createSynthCues'), sampled = synthAt < 0 ? src : src.slice(0, synthAt);

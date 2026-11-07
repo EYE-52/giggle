@@ -1060,7 +1060,7 @@ function createKartGame(config) {
     kart.speed = 0;
     kart.slip = 0;
     kart.drifting = false;
-    kart.driftCharge = 0;
+    kart.driftCharge = 0; kart._driftHeld = false; kart.driftDirection = 0; kart.driftTier = 0; kart.driftHop = 0;
     kart.nitroActive = false;
     kart.pendingFire = false;
     kart.machineHeld = false;
@@ -1146,7 +1146,7 @@ function createKartGame(config) {
       if (now - (kart.lastInputAt === undefined ? now : kart.lastInputAt) > INPUT_TTL_MS) {
         kart.input = { steer: 0, throttle: 0, boost: false };
         kart.drifting = false;
-        kart.driftCharge = 0;
+        kart.driftCharge = 0; kart._driftHeld = false; kart.driftDirection = 0; kart.driftTier = 0; kart.driftHop = 0;
         kart.nitroActive = false;
         if (battleMode) {kart.pendingFire = false;kart.machineHeld=false;} // TTL clears only an unaccepted edge; committed payloads continue.
       }
@@ -1321,7 +1321,11 @@ function createKartGame(config) {
           vz: +v.vz.toFixed(3),
           slip: +(Number(k.slip) || 0).toFixed(3),
           drifting: k.drifting === true,
-          driftCharge: +clamp(Number(k.driftCharge) || 0, 0, 1).toFixed(2),
+          driftTier: k.driftTier || 0,
+          driftDirection: k.driftDirection || 0,
+          driftHop: +(k.driftHop || 0).toFixed(3),
+          surface: k.surface || 'road',
+          driftCharge: +clamp(Number(k.driftCharge) || 0, 0, 1).toFixed(motion?4:2),
           turbo: +(Math.max(0, Number(k.turbo) || 0)).toFixed(2),
           padCd: +(Math.max(0, Number(k.padCd) || 0)).toFixed(2),
           grip: +(Number.isFinite(Number(k.grip)) ? Number(k.grip) : 1).toFixed(2),
