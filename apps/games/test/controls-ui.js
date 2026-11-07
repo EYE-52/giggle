@@ -61,5 +61,7 @@ press({ target: { closest: () => ({}) } }); press({ ctrlKey: true }); press({ re
 assert.equal(clicks, 1, 'shortcut ignores text input, modified keys, repeats and composition');
 assert(app.includes('id="bControls"')); assert(app.includes('!isHowtoOpen() && !menu.contains(e.target)'));
 assert.match(css, /overflow-y:\s*auto;\s*overscroll-behavior:\s*contain/);
-assert.match(css, /#howtoPlayPanel, \.howto-body\)\s*\{[^}]*overflow:\s*visible/s);
+assert.match(css, /#howtoPlayPanel, \.howto-body\)\s*\{[^}]*overflow:\s*visible/s, 'individual tab panels do not create nested scroll boxes');
+assert.match(css, /\.howto-dlg\.controls-dlg\s*\{\s*overflow-y:\s*auto/, 'in-game Controls has its own single scroller');
+assert.match(css, /\.howto-dlg \.howto-controls\s*\{[^}]*repeat\(2, minmax\(0, 1fr\)\)/s, 'start menu and Controls share the two-column tiles');
 console.log('CONTROLS_UI_PASS: manifest sheet, fullscreen, focus and dismissals, shortcut and single scroll');

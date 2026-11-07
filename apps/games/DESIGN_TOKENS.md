@@ -35,6 +35,14 @@ and margin.
 `--control-h-sm` 44px (floor for any tap target), `--control-h` 48px,
 `--control-h-lg` 56px (primary).
 
+Start-menu layout: `--howto-dialog-w` 920px and `--howto-dialog-h` 600px
+bound the desktop dialog; `--howto-seat-w` 304px reserves the setup column.
+`--howto-controls-w` 536px bounds the in-game Controls sheet. Viewport and
+safe-area limits take priority over these preferred sizes.
+
+`--home-card-art` 96px is the square art tile shared by home picks and
+catalogue cards. Each card pairs it with one compact text/action stack.
+
 ### Text styles
 Use as `font: var(--text-title)` or the class.
 

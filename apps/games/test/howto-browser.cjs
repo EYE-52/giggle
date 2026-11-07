@@ -11,8 +11,63 @@ function save(name,value){if(out)fs.writeFileSync(path.join(out,name),JSON.strin
 function append(name,value){if(out)fs.appendFileSync(path.join(out,name),JSON.stringify(value)+'\n');}
 function eq(a,b,label){assert.deepEqual(a,b,label);checks++;}
 async function scene(label,c){await c.page.locator('.howto-dlg').evaluate(async el=>{await Promise.all(el.getAnimations({subtree:true}).map(a=>a.finished.catch(()=>{})));});const dom=await c.page.evaluate(()=>({viewport:[innerWidth,innerHeight],text:document.querySelector('.howto-dlg')?.innerText,intro:document.querySelector('#howtoPlayPanel')?.textContent,introHidden:document.querySelector('#howtoPlayPanel')?.hidden,introHeight:document.querySelector('#howtoPlayPanel')?.getBoundingClientRect().height,note:document.querySelector('.howto-note')?.textContent,custom:!!document.querySelector('#howtoCustom'),ctaDisabled:document.querySelector('#howtoGo')?.disabled,dialog:document.querySelector('.howto-dlg')?.getBoundingClientRect().toJSON()}));save(label+'.json',dom);if(out)await c.page.screenshot({path:path.join(out,label+'.png')});return dom;}
-async function open(c,id){await c.page.locator('[data-how="'+id+'"]').first().click();await c.page.locator('.howto-dlg[open]').waitFor();}
+async function open(c,id){await c.page.locator('[data-how="'+id+'"]:not(.hand-card)').first().click();await c.page.locator('.howto-dlg[open]').waitFor();}
 async function close(c){await c.page.locator('#howtoClose').click();}
+async function layoutChecks(c) {
+  report.startLayouts = [];
+  for (const theme of ['day', 'night']) {
+    if (await c.page.evaluate(() => document.documentElement.dataset.theme || 'day') !== theme) await c.page.locator('#bTheme').click();
+    for (const viewport of [{width:1280,height:720},{width:1440,height:800},{width:1280,height:800},{width:860,height:720},{width:390,height:844},{width:320,height:720},{width:568,height:320}]) {
+      await c.page.setViewportSize(viewport);
+      for (const game of ['pocket-karts', 'chess', 'doodle-guess', 'ludo', 'trivia']) {
+        await open(c, game);
+        await c.page.evaluate(async () => { await document.fonts.ready; });
+        await scene('start-'+theme+'-'+game+'-'+viewport.width+'x'+viewport.height,c);
+        const metrics = await c.page.evaluate(() => {
+          const d = document.querySelector('.howto-dlg'), main = d.querySelector('.howto-main'), scroll = d.querySelector('.howto-seat-scroll'), panels = d.querySelector('.howto-panels'), go = d.querySelector('#howtoGo'), actions = d.querySelector('.howto-actions');
+          const size = el => ({client:el.clientHeight, scroll:el.scrollHeight, width:el.clientWidth, scrollWidth:el.scrollWidth});
+          const rect = go.getBoundingClientRect(), frame = d.getBoundingClientRect();
+          return {twoColumn:d.classList.contains('howto-two-column'), sheet:d.classList.contains('howto-sheet'), columns:getComputedStyle(d.querySelector('.howto-layout')).gridTemplateColumns, dialog:size(d), main:size(main), scroll:size(scroll), panels:size(panels), sticky:getComputedStyle(actions).position, primary:{top:rect.top,bottom:rect.bottom,width:rect.width,height:rect.height}, frame:{top:frame.top,bottom:frame.bottom}, mainInScroll:scroll.contains(main), nestedScroll:getComputedStyle(panels).overflowY, controls:[...d.querySelectorAll('.howto-controls li')].map(el=>({width:el.clientWidth,scrollWidth:el.scrollWidth})), targets:[...d.querySelectorAll('button,input,a')].filter(el=>el.getClientRects().length).map(el=>({id:el.id||el.textContent,width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height}))};
+        });
+        report.startLayouts.push({theme,game,viewport,...metrics});
+        const label = theme+' '+game+' '+viewport.width+'x'+viewport.height;
+        eq(metrics.dialog.scroll <= metrics.dialog.client + 1,true,label+' dialog never scrolls');
+        eq(metrics.dialog.scrollWidth <= metrics.dialog.width + 1,true,label+' no sideways dialog scroll');
+        eq(metrics.primary.top >= metrics.frame.top && metrics.primary.bottom <= metrics.frame.bottom,true,label+' primary is visible on opening');
+        for (const target of metrics.targets) eq(target.width>=44&&target.height>=44,true,label+' '+target.id+' target >=44px');
+        for (const control of metrics.controls) eq(control.scrollWidth<=control.width+1,true,label+' control tile fits');
+        if (viewport.width >= 860) {
+          eq(metrics.twoColumn,true,label+' desktop two-column class');
+          eq(metrics.columns.split(' ').length,2,label+' two actual grid columns');
+          eq(metrics.mainInScroll,false,label+' separate guide and seat');
+          for (const name of ['main','scroll','panels']) eq(metrics[name].scroll<=metrics[name].client+1,true,label+' '+name+' needs no scrolling on Play');
+        } else {
+          eq(metrics.sheet,true,label+' phone sheet class');
+          eq(metrics.mainInScroll,true,label+' one content scroller');
+          eq(metrics.nestedScroll,'visible',label+' no nested panel scrolling');
+          eq(metrics.sticky,'sticky',label+' sticky action bar');
+          await c.page.locator('.howto-seat-scroll').evaluate(el=>{el.scrollTop=el.scrollHeight;});
+          const bottom = await c.page.locator('#howtoGo').evaluate(el=>el.getBoundingClientRect().bottom);
+          eq(Math.abs(bottom-metrics.primary.bottom)<1,true,label+' primary stays put after scrolling');
+        }
+        if (game === 'pocket-karts') {
+          await c.page.locator('#howtoRulesTab').click();
+          await c.page.locator('.howto-all summary').click();
+          const long = await c.page.evaluate(() => {
+            const d=document.querySelector('.howto-dlg'), p=d.querySelector('.howto-panels'), s=d.querySelector('.howto-seat-scroll'), go=d.querySelector('#howtoGo').getBoundingClientRect();
+            return {dialogFits:d.scrollHeight<=d.clientHeight+1,panelsScroll:p.scrollHeight>p.clientHeight,seatScroll:s.scrollHeight>s.clientHeight,goBottom:go.bottom};
+          });
+          eq(long.dialogFits,true,label+' long rules do not scroll the dialog');
+          eq(viewport.width>=860 ? long.panelsScroll : long.seatScroll,true,label+' long rules use the correct scroller');
+          eq(Math.abs(long.goBottom-metrics.primary.bottom)<1,true,label+' long rules keep primary visible');
+        }
+        await close(c);
+      }
+    }
+  }
+  if (await c.page.evaluate(() => document.documentElement.dataset.theme || 'day') !== 'day') await c.page.locator('#bTheme').click();
+  await c.page.setViewportSize({width:390,height:844});
+}
 async function liveLudoTimer(previousInstance) {
   const ready=c=>c.state?.game==='ludo'&&c.state.instanceId!==previousInstance&&c.state.preparing===false&&c.state.phase==='roll'&&c.state.endsAt>c.state.gameNow;
   for(let n=0;n<100&&!clients.every(ready);n++)await pause(50);
@@ -29,7 +84,7 @@ async function liveLudoTimer(previousInstance) {
 (async()=>{if(out)fs.mkdirSync(out,{recursive:true});const scratch=fs.mkdtempSync(path.join(os.tmpdir(),'howto-browser-'));const probe=net.createServer();await new Promise(r=>probe.listen(0,'127.0.0.1',r));const port=probe.address().port;await new Promise(r=>probe.close(r));const url='http://127.0.0.1:'+port;
 server=spawn(process.execPath,['server/server.js'],{cwd:root,env:{...process.env,HOST:'127.0.0.1',PORT:String(port),GAME_REPORT_DB:path.join(scratch,'reports.sqlite')},stdio:['ignore','pipe','pipe']});let logs='';for(const stream of [server.stdout,server.stderr])stream.on('data',b=>{logs+=b;append('server-log.ndjson',{text:String(b)});});for(let n=0;n<200;n++){try{const response=await fetch(url+'/');if(response.ok)break;}catch{}await pause(50);if(n===199)throw Error('Server did not become ready: '+logs);}browser=await chromium.launch({headless:true,channel:'chromium'});report.browser=browser.version();
 async function client(name){const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),c={name,page,context,state:null};clients.push(c);page.on('pageerror',e=>{errors.push(name+': '+e.message);append('pageerrors.ndjson',{name,error:e.message});});page.on('console',m=>{if(m.type()==='error')errors.push(name+': '+m.text()+' '+m.location().url);});page.on('response',async r=>{if(r.status()===200&&/\.(js|mjs|css)(\?|$)/.test(r.url()))try{append('response-hashes.ndjson',{name,url:r.url(),sha256:crypto.createHash('sha256').update(await r.body()).digest('hex')});}catch{}});page.on('websocket',ws=>{ws.on('framereceived',f=>{try{const m=JSON.parse(f.payload);append('public-projections.ndjson',{name,at:Date.now(),m:clean(m)});if(m.t==='games')catalog=m.games;if(m.t==='state')c.state=m;}catch{}});ws.on('framesent',f=>{try{append('inputs.ndjson',{name,at:Date.now(),m:clean(JSON.parse(f.payload))});}catch{}});});await page.goto(url);await page.locator('#bBrowse').waitFor();await page.locator('#bBrowse').click();await page.locator('[data-how="ludo"]').first().waitFor();return c;}
-const host=await client('Host');await open(host,'ludo');let d=await scene('home-ludo',host);eq(d.intro.startsWith('GoalBe the first to bring all four pawns home.'),true,'Ludo home sheet leads with its goal and controls');eq(d.introHeight>0,true,'Ludo settings guidance is visible');eq(d.custom,true,'Ludo offers its Move timer settings');eq(catalog.find(g=>g.id==='ludo').schema.settings.find(s=>s.key==='moveTimer').options,['Off','30 seconds','60 seconds'],'catalogue declares actual Ludo Move timer choices');await close(host);await host.page.locator('#nm').fill('Sheet Host');await host.page.locator('#bCreate').click();await host.page.waitForURL('**/r/*');const code=host.page.url().split('/').pop();report.room=code;await open(host,'ludo');d=await scene('solo-ludo',host);eq(d.note,'Invite 1 more friend to play Ludo','one precise shortage footer');eq(d.ctaDisabled,true,'solo Play keeps preflight');eq(d.intro.startsWith('Goal'),true,'solo host can configure Ludo before inviting');eq((d.text.match(/Invite 1 more friend/g)||[]).length,1,'one shortage instruction');
+const host=await client('Host');await layoutChecks(host);await open(host,'ludo');let d=await scene('home-ludo',host);eq(d.intro.startsWith('GoalBe the first to bring all four pawns home.'),true,'Ludo home sheet leads with its goal and controls');eq(d.introHeight>0,true,'Ludo settings guidance is visible');eq(d.custom,true,'Ludo offers its Move timer settings');eq(catalog.find(g=>g.id==='ludo').schema.settings.find(s=>s.key==='moveTimer').options,['Off','30 seconds','60 seconds'],'catalogue declares actual Ludo Move timer choices');await close(host);await host.page.locator('#nm').fill('Sheet Host');await host.page.locator('#bCreate').click();await host.page.waitForURL('**/r/*');const code=host.page.url().split('/').pop();report.room=code;await open(host,'ludo');d=await scene('solo-ludo',host);eq(d.note,'Invite 1 more friend to play Ludo','one precise shortage footer');eq(d.ctaDisabled,true,'solo Play keeps preflight');eq(d.intro.startsWith('Goal'),true,'solo host can configure Ludo before inviting');eq((d.text.match(/Invite 1 more friend/g)||[]).length,1,'one shortage instruction');
 await host.page.locator('#howtoPlayTab').focus();await host.page.keyboard.press('ArrowRight');eq(await host.page.locator('#howtoRulesTab').getAttribute('aria-selected'),'true','keyboard selects actual rules tab');eq(await host.page.locator('#howtoRulesPanel').isVisible(),true,'rules remain available');await host.page.keyboard.press('Home');eq(await host.page.locator('#howtoPlayTab').getAttribute('aria-selected'),'true','Home restores Play tab');eq(await host.page.locator('#howtoPlayPanel').isVisible(),true,'returning to Play restores real Ludo settings guidance');await host.page.locator('#howtoPlayTab').focus();
 const peer=await client('Peer');await peer.page.goto(url+'/r/'+code);await peer.page.locator('#nm').fill('Sheet Peer');await peer.page.locator('#bJoin').click();await peer.page.locator('[data-how="ludo"]').first().waitFor();await host.page.locator('#howtoGo:not([disabled])').waitFor();eq(await host.page.evaluate(()=>document.activeElement?.id),'howtoPlayTab','roster refresh preserves keyboard tab focus');d=await scene('ready-ludo',host);eq(d.note,'Fits your group of 2','footer responds to actual roster');eq(d.intro.startsWith('Goal'),true,'ready Ludo host retains its guide');await close(host);
 // Read rendered colors and hit rectangles after ordinary theme controls. No
@@ -64,7 +119,8 @@ for (const theme of ['day','night']) {
   }
 }
 await host.page.setViewportSize({width:390,height:844});await host.page.locator('#bTheme').click();eq(await host.page.evaluate(()=>document.documentElement.dataset.theme||'day'),'day','ordinary controls restore Day');
-// The entire sheet scrolls; neither Play nor rules is a clipped inner panel.
+// Panels never clip their own text: desktop scroll belongs to the guide
+// wrapper, while phones share one content scroller above the action bar.
 for (const theme of ['day', 'night']) {
   if (await host.page.evaluate(()=>document.documentElement.dataset.theme||'day') !== theme) await host.page.locator('#bTheme').click();
   for (const viewport of [{width:1280,height:720},{width:1440,height:800},{width:390,height:844}]) {
@@ -83,7 +139,7 @@ for (const theme of ['day', 'night']) {
     }
     await host.page.locator('#howtoRulesTab').click();
     const rules=await host.page.locator('.howto-body').evaluate(el=>({overflow:getComputedStyle(el).overflowY,mask:getComputedStyle(el).maskImage}));
-    eq(rules.overflow,'visible','rules share the dialog scroll');
+    eq(rules.overflow,'visible','rules delegate scrolling to the layout wrapper');
     eq(rules.mask,'none','rules have no clipping fade');
     await close(host);
   }

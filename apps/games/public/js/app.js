@@ -10,7 +10,7 @@ import {
   refreshCustomizer, customizerError, customizerResult,
 } from './customize.js';
 import { segPickerHtml, wirePickers, syncPickers } from './pickers.js';
-import { openHowto, openControls, closeHowto, refreshHowto, isHowtoOpen } from './howto.js';
+import { openHowto, openControls, closeHowto, refreshHowto, isHowtoOpen, controlFamily } from './howto.js';
 import { decideCustomizeIntent, setPendingCustomize, takePendingCustomize } from './pending-customize.js';
 import {
   parseEmbedParams, createChildBridge, validThemeId, isTrustedParentOrigin, isValidNonce,
@@ -1267,12 +1267,14 @@ function pickHtml(g, i) {
   // setup dialog (rules + Customize + Create room). No shelf links — setup
   // belongs inside. Fixed geometry: the dialog never stretches these cards.
   return `
-    <button type="button" class="pick card-open${i === 0 ? ' pick--lead' : ''}" data-how="${g.id}" data-cat="${esc(g.cat || '')}" aria-haspopup="dialog">
-      ${artImg(g, 'gart')}${g.cat ? `<span class="cat-tag">${esc(catLabel(g.cat))}</span>` : ''}
+    <button type="button" class="pick home-game-card card-open${i === 0 ? ' pick--lead' : ''}" data-how="${g.id}" data-cat="${esc(g.cat || '')}" data-family="${controlFamily(g)}" aria-haspopup="dialog">
+      <span class="home-card-art">${artImg(g, 'gart')}${g.cat ? `<span class="cat-tag">${esc(catLabel(g.cat))}</span>` : ''}</span>
+      <span class="home-card-copy">
       <span class="t">${esc(g.name)}</span>
       <span class="d">${esc(g.tagline)}</span>
       <span class="p">${seatsLine(g)}</span>
       <span class="play-row"><span class="play-pill">Play</span></span>
+      </span>
     </button>`;
 }
 
@@ -1280,10 +1282,10 @@ function catalogRowHtml(g) {
   // Single-action shelf row: art + text + one Play pill, all opening the
   // shared setup dialog. Exactly one button — no nested controls.
   return `
-    <button type="button" class="catrow card-open" data-how="${g.id}" data-cat="${esc(g.cat || '')}" aria-haspopup="dialog">
-      ${artImg(g, 'catart')}${g.cat ? `<span class="cat-tag">${esc(catLabel(g.cat))}</span>` : ''}
-      <span class="catrow-text"><span class="t">${esc(g.name)}</span><span class="d">${esc(g.tagline)}</span><span class="p">${seatsLine(g)}</span></span>
-      <span class="play-pill">Play</span>
+    <button type="button" class="catrow home-game-card card-open" data-how="${g.id}" data-cat="${esc(g.cat || '')}" data-family="${controlFamily(g)}" aria-haspopup="dialog">
+      <span class="home-card-art">${artImg(g, 'catart')}${g.cat ? `<span class="cat-tag">${esc(catLabel(g.cat))}</span>` : ''}</span>
+      <span class="catrow-text home-card-copy"><span class="t">${esc(g.name)}</span><span class="d">${esc(g.tagline)}</span><span class="p">${seatsLine(g)}</span>
+      <span class="play-row"><span class="play-pill">Play</span></span></span>
     </button>`;
 }
 
@@ -1470,12 +1472,14 @@ function renderHome() {
   staggerIn(app.querySelector('.catalog-list'), '.catrow');
 }
 
-/* The fifth bento cell: solo practice, for anyone without their people yet. */
-const PRACTICE_TILE = `<a class="pick-practice" href="/practice/">
-      <span class="pp-seats" aria-hidden="true"><i></i><i></i><i></i></span>
+/* Solo practice uses the same art/text rhythm as the game cards. */
+const PRACTICE_TILE = `<a class="pick-practice home-game-card" href="/practice/">
+      <span class="home-card-art"><span class="pp-seats" aria-hidden="true"><i></i><i></i><i></i></span></span>
+      <span class="home-card-copy">
       <span class="t">Just you?</span>
       <span class="d">Practice solo and play every seat yourself.</span>
       <span class="play-row"><span class="play-pill">Practice</span></span>
+      </span>
     </a>`;
 
 /* Shared invite-link copy for the rail button, the Invite-N-more actions,
