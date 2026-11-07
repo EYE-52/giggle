@@ -14,7 +14,7 @@ const legacy = createKartGame({
   id: 'pocket-karts',
   name: 'Pocket Karts',
   tagline: 'Kart battles with weapons and nitro',
-  howto: 'Grab a box, fire with Space, and knock out rivals by taking all 3 of their hearts; most knockouts wins. Drive with WASD/arrows or the thumb stick; Space or the item button fires the whole clip, and N/Nitro boosts. Pulse, Scatter, Mine and Seeker take 1 heart; Rocket and Proximity Bomb take 2; a Nuke knocks out every rival in its blast. Shield blocks the next hit. Each pickup hurts a rival once, however many of its shots land, and every Mine is its own trap. Pulse, Scatter and Mine are common, Rocket, Seeker, Proximity Bomb and Shield are uncommon, and the Nuke is rare. A knockout returns you after two seconds with full hearts and brief spawn protection; attacking ends that protection. Choose elevated arenas in Maps & settings for climbs, bridges and jumps; Shift brakes there. Elevated arenas play Zap Battle with Garage off. Classic arenas use Shift to drift and also offer Star Rush and Garage Battle. Rounds last 1 to 5 minutes; with a score target the first to reach it ends the match early. Places earn 300, 200 and 100 points, and tied drivers share a place. A driver who leaves or is away for a minute drops out and the others play on. Up to 8 drive; extra friends watch.',
+  howto: 'Grab a box, fire with Space, and knock out rivals by taking all 3 of their hearts; most knockouts wins. Drive with WASD/arrows or the thumb stick; Space or the item button fires the whole clip, and N/Nitro boosts. Pulse, Scatter, Mine and Seeker take 1 heart; Rocket and Proximity Bomb take 2; a Nuke knocks out every rival in its blast. Shield blocks the next hit. Each pickup hurts a rival once, however many of its shots land, and every Mine is its own trap. Pulse, Scatter and Mine are common, Rocket, Seeker, Proximity Bomb and Shield are uncommon, and the Nuke is rare. A knockout returns you after two seconds with full hearts and brief spawn protection; attacking ends that protection. Choose elevated arenas in Maps & settings for climbs, bridges and jumps; Shift brakes there. Elevated arenas play Zap Battle with Garage off. Classic arenas use Shift to drift and also offer Star Rush and Garage Battle. Classic arenas also have launch cannons that fling you across the map, paired portal rings that link two spots, and water or pits: falling in costs you one point. Rounds last 1 to 5 minutes; with a score target the first to reach it ends the match early. Places earn 300, 200 and 100 points, and tied drivers share a place. A driver who leaves or is away for a minute drops out and the others play on. Up to 8 drive; extra friends watch.',
   guide: {
     goal: 'Grab a box, fire with Space, take all 3 hearts. Most knockouts wins.',
     controls: [
@@ -28,7 +28,7 @@ const legacy = createKartGame({
       'Rocket and Proximity Bomb: 2 hearts. Nuke: knocks out everyone nearby.',
       'Shield blocks the next hit.',
       'Each pickup hurts a rival once, however many of its shots land.',
-      'Knocked out? You are back in 2 seconds with all 3 hearts.',
+      'Cannons fling you across, portals link two rings, falling in costs 1 point.',
     ],
   },
   art: 'img/games/pocket-karts.svg',

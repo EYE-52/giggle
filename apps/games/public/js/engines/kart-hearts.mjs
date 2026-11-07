@@ -71,6 +71,12 @@ export function createKartHitFeedback(host, { reducedMotion = () => false } = {}
       bannerRun = banner.animate ? banner.animate(frames, { duration: BANNER_MS, easing: 'ease-out', fill: 'forwards' }) : null;
       return banner.textContent;
     },
+    // The same banner for a one-off line such as an arena fall ("Fell!").
+    notice(text) {
+      this.knockout('');
+      banner.textContent = String(text);
+      return banner.textContent;
+    },
     // Decaying camera offset in world units; zero once SHAKE_MS has passed.
     shake(now = performance.now()) {
       const t = (now - shakeAt) / SHAKE_MS;
