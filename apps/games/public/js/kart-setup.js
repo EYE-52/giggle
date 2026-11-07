@@ -1,11 +1,13 @@
 import { esc } from './util.js';
 
-// Menu previews are small captures of the shipped worlds, keyed by profile
+// Menu previews are small views of the shipped worlds, keyed by profile
 // as well as map ID: the classic and elevated gardens are different arenas.
 export const KART_ARENAS = [
+  { label: 'Skyport', key: 'elevated-skyport', elevated: true, complex: true, description: 'Three floors, a spiral car park, roof jumps and sky bridges.' },
+  { label: 'Foundry', key: 'elevated-foundry', elevated: true, complex: true, description: 'Three floors, furnace tunnels, moving belts and a high gantry.' },
   { label: 'Alpine Courtyard', key: 'elevated-garden', elevated: true, description: 'Two climbs, a raised courtyard and an underpass.' },
-  { label: 'Frost Quarry', key: 'elevated-frost', elevated: true, description: 'Ice shortcuts, a high bridge and quarry ramps.' },
-  { label: 'Neon Harbor', key: 'elevated-neon', elevated: true, description: 'Cargo cover, a loading deck and two climbs.' },
+  { label: 'Frost Quarry', key: 'elevated-frost', elevated: true, description: 'Ice shortcuts, a high bridge and a marked quarry shaft.' },
+  { label: 'Neon Harbor', key: 'elevated-neon', elevated: true, description: 'Cargo cover, two climbs and a marked dock basin.' },
   { label: 'Harbor Heights', key: 'elevated-harbor', elevated: true, description: 'A larger arena with bridges, balconies and four climbs.' },
   { label: 'Rookie Ring', key: 'legacy-ring', description: 'A small, open arena for close battles.' },
   { label: 'Bumper Blocks', key: 'legacy-blocks', description: 'A small arena with four solid cover blocks.' },
@@ -86,8 +88,8 @@ export function kartSetupHtml(g, current, host) {
       <figure class="ks-preview"><img id="kartArenaPreview" src="/assets/karts/previews/${arena.key}.webp" width="480" height="270" alt="${esc(arena.label)} arena overview"><figcaption id="kartArenaDescription">${esc(arena.description)}</figcaption></figure>
       <input type="hidden" id="df-${g.id}-map" value="${esc(settings.map)}">
       <div class="ks-map-nav"><button type="button" class="ks-map-arrow" data-kart-scroll="-1" aria-label="Previous arenas">‹</button>
-        <div class="ks-map-list" role="radiogroup" aria-label="Arena">${arenas.map(a => `<button type="button" class="ks-map" role="radio" aria-label="${esc(a.label)}" aria-checked="${a.label === settings.map}" tabindex="${a.label === settings.map ? 0 : -1}" data-kart-key="map" data-kart-value="${esc(a.label)}" data-hostonly ${dis}>
-          <img src="/assets/karts/previews/${a.key}.webp" width="480" height="270" alt=""><span>${esc(a.label)}</span></button>`).join('')}</div>
+        <div class="ks-map-list" role="radiogroup" aria-label="Arena">${arenas.map(a => `<button type="button" class="ks-map" role="radio" aria-label="${esc(a.label + (a.complex ? ", three levels" : a.elevated ? ", elevated" : ", classic") + ": " + a.description)}" aria-checked="${a.label === settings.map}" tabindex="${a.label === settings.map ? 0 : -1}" data-kart-key="map" data-kart-value="${esc(a.label)}" data-hostonly ${dis}>
+          <img src="/assets/karts/previews/${a.key}.webp" width="480" height="270" alt=""><span>${esc(a.label)}</span><small>${a.complex ? '3 levels · 2–32 players' : a.elevated ? 'Elevated · 2–8 players' : 'Classic · 2–32 players'}</small></button>`).join('')}</div>
         <button type="button" class="ks-map-arrow" data-kart-scroll="1" aria-label="More arenas">›</button></div>
       <p class="ks-change-note" id="kartSetupNotice" role="status"></p></section>
     <section class="ks-rules"><h3>Match rules</h3><div class="ks-rule-row">
@@ -163,7 +165,7 @@ export function wireKartSetup(g) {
       const i = choices.indexOf(b);
       const n = e.key === 'Home' ? 0 : e.key === 'End' ? choices.length - 1
         : (i + (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 1) + choices.length) % choices.length;
-      choices[n].click(); choices[n].focus({ preventScroll: true });
+      choices[n].click(); choices[n].focus();
     };
   }
   for (const b of root.querySelectorAll('[data-kart-step]')) b.onclick = () => {

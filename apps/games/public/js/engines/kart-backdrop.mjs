@@ -6,6 +6,7 @@ export const BACKDROP_THEMES = Object.freeze({
   frost: Object.freeze({file:'frost.webp',aspect:344/2172}),
   neon: Object.freeze({file:'neon.webp',aspect:344/2172}),
   harbor: Object.freeze({file:'harbor.webp',aspect:344/2172}),
+  quarry: Object.freeze({file:'quarry.webp',fallback:'mountains-day.webp',aspect:344/2172}),
 });
 export const CLOUD_FILES = Object.freeze(['cloud-1.webp','cloud-2.webp','cloud-3.webp']);
 
@@ -28,14 +29,17 @@ export function createKartBackdrop(THREE,{parent,theme,radius,ridges=[],enabled=
     color.copy(white).lerp(horizonColor,.25+.25*night).multiplyScalar(1-.62*night);
     if(panorama)panorama.material.color.copy(color);
   }
-  if(entry&&enabled&&canLoad(THREE))load(THREE,'/assets/karts/backdrops/'+entry.file,tex=>{
+  function loaded(tex){
     if(!isAlive()){tex.dispose();return;}
     tex.colorSpace=THREE.SRGBColorSpace;tex.wrapS=THREE.RepeatWrapping;tex.repeat.set(repeats,1);tex.anisotropy=4;
     const mat=material(new THREE.MeshBasicMaterial({map:texture(tex),color,transparent:true,depthWrite:false,side:THREE.BackSide,fog:true}));
     panorama=new THREE.Mesh(geometry(new THREE.CylinderGeometry(radius,radius,height,96,1,true)),mat);
     panorama.name='mountain-backdrop';panorama.position.y=height/2-6;panorama.renderOrder=-1;parent.add(panorama);
     for(const ridge of ridges)ridge.visible=false;
-  },()=>{});
+  }
+  if(entry&&enabled&&canLoad(THREE))load(THREE,'/assets/karts/backdrops/'+entry.file,loaded,()=>{
+    if(entry.fallback&&isAlive())load(THREE,'/assets/karts/backdrops/'+entry.fallback,loaded,()=>{});
+  });
   return{radius,height,tint};
 }
 

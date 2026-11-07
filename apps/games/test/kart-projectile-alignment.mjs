@@ -61,11 +61,12 @@ for(const [tag,assets]of [['shipping',{get}],['fallback',null]]){
   for(const mapId of elevatedMapIds){const map=elevatedMap(mapId),physics=createKartPhysics(RAPIER,CONFIG);for(const d of map.colliders)physics.addStatic(d);
    try{const wall=map.colliders.find(d=>d.id==='north-boundary'),face=wall.position.z-wall.half.z;
     for(const [kind,object]of shots){const radius=radii[kind],x=-map.half+6,z=-map.half+6;
+     const ground=physics.supportAt({x,y:1,z},2);assert(ground&&Math.abs(ground.point.y)<.01,'corner test lane has real ground');
      const paths=[{name:'wall',surface:'north-boundary',from:{x:0,y:2,z:face-3},to:{x:0,y:2,z:face+1},axis:new THREE.Vector3(0,0,1),beforeVelocity:{x:15,y:0,z:60},velocity:{x:-15,y:0,z:60}},
-      {name:'downward-floor',surface:'floor',from:{x,y:3,z},to:{x,y:-1,z},axis:new THREE.Vector3(0,-1,0),beforeVelocity:{x:15,y:-60,z:0},velocity:{x:-15,y:-60,z:0}},
-      {name:'horizontal-floor',surface:'floor',from:{x,y:3,z},to:{x,y:-1,z},axis:new THREE.Vector3(0,-1,0),beforeVelocity:{x:15,y:0,z:60},velocity:{x:-15,y:0,z:60}},
+      {name:'downward-floor',surface:ground.surfaceId,from:{x,y:3,z},to:{x,y:-1,z},axis:new THREE.Vector3(0,-1,0),beforeVelocity:{x:15,y:-60,z:0},velocity:{x:-15,y:-60,z:0}},
+      {name:'horizontal-floor',surface:ground.surfaceId,from:{x,y:3,z},to:{x,y:-1,z},axis:new THREE.Vector3(0,-1,0),beforeVelocity:{x:15,y:0,z:60},velocity:{x:-15,y:0,z:60}},
       {name:'grazing-wall',surface:'north-boundary',from:{x:0,y:2,z:face-3},to:{x:0,y:2,z:face+1},axis:new THREE.Vector3(0,0,1),beforeVelocity:{x:60,y:5,z:5},velocity:{x:60,y:-5,z:5}},
-      {name:'grazing-floor',surface:'floor',from:{x,y:3,z},to:{x,y:-1,z},axis:new THREE.Vector3(0,-1,0),beforeVelocity:{x:60,y:-5,z:5},velocity:{x:60,y:-5,z:-5}}];
+      {name:'grazing-floor',surface:ground.surfaceId,from:{x,y:3,z},to:{x,y:-1,z},axis:new THREE.Vector3(0,-1,0),beforeVelocity:{x:60,y:-5,z:5},velocity:{x:60,y:-5,z:-5}}];
      for(const path of paths){const hit=physics.sweepStatic(path.from,path.to,radius);assert(hit);assert.equal(hit.surfaceId,path.surface);
       const beforePosition=new THREE.Vector3().copy(hit.point).addScaledVector(path.axis,-.2),position=new THREE.Vector3().copy(hit.point).addScaledVector(path.axis,-.005);
       const before={id:'a',weapon:kind,position:beforePosition,velocity:path.beforeVelocity,radius},current={id:'a',weapon:kind,position,velocity:path.velocity,radius};

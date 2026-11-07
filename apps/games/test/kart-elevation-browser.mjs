@@ -29,7 +29,7 @@ export function createElevationServer() {
       if (u.pathname === '/') file = path.join(FIXTURE, 'index.html');
       else if (u.pathname === '/scene') file = path.join(FIXTURE, 'scene.html');
       else if (u.pathname === '/rapier.mjs') file = RAP;
-      else if (u.pathname === '/test/kart-elevation-physics.mjs' || u.pathname.startsWith('/test/fixtures/kart-elevation/') || u.pathname.startsWith('/public/vendor/three/') || u.pathname.startsWith('/public/assets/karts/') || ['/public/js/engines/kart-physics-config.mjs', '/public/js/engines/kart-elevated-maps.mjs'].includes(u.pathname)) file = path.resolve(ROOT, '.' + u.pathname);
+      else if (u.pathname === '/test/kart-elevation-physics.mjs' || u.pathname.startsWith('/test/fixtures/kart-elevation/') || u.pathname.startsWith('/public/vendor/three/') || u.pathname.startsWith('/public/assets/karts/') || ['/public/js/engines/kart-physics-config.mjs', '/public/js/engines/kart-elevated-maps.mjs', '/public/js/engines/kart-complex-maps.mjs', '/public/js/engines/kart-raised-layouts.mjs', '/public/js/engines/kart-raised-spawns.mjs'].includes(u.pathname)) file = path.resolve(ROOT, '.' + u.pathname);
       if (!file || !file.startsWith(ROOT + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.statusCode = 404; return res.end('Not found'); }
       res.setHeader('Content-Type', mime[path.extname(file)] || 'application/octet-stream'); res.end(fs.readFileSync(file));
     } catch (e) { res.statusCode = 500; res.end(String(e.message)); }

@@ -1,0 +1,567 @@
+{
+  "id": "garden",
+  "revision": "combat-elevation-1",
+  "name": "Alpine Courtyard",
+  "environment": "alpine",
+  "half": 60,
+  "colliders": [
+    {
+      "id": "floor",
+      "shape": "box",
+      "position": {
+        "x": 0,
+        "y": -1,
+        "z": 0
+      },
+      "half": {
+        "x": 60,
+        "y": 1,
+        "z": 60
+      },
+      "material": "asphalt",
+      "grip": 1
+    },
+    {
+      "id": "north-boundary",
+      "shape": "box",
+      "position": {
+        "x": 0,
+        "y": 2,
+        "z": 60
+      },
+      "half": {
+        "x": 60,
+        "y": 2,
+        "z": 0.5
+      },
+      "material": "barrier",
+      "grip": 1
+    },
+    {
+      "id": "south-boundary",
+      "shape": "box",
+      "position": {
+        "x": 0,
+        "y": 2,
+        "z": -60
+      },
+      "half": {
+        "x": 60,
+        "y": 2,
+        "z": 0.5
+      },
+      "material": "barrier",
+      "grip": 1
+    },
+    {
+      "id": "east-boundary",
+      "shape": "box",
+      "position": {
+        "x": 60,
+        "y": 2,
+        "z": 0
+      },
+      "half": {
+        "x": 0.5,
+        "y": 2,
+        "z": 60
+      },
+      "material": "barrier",
+      "grip": 1
+    },
+    {
+      "id": "west-boundary",
+      "shape": "box",
+      "position": {
+        "x": -60,
+        "y": 2,
+        "z": 0
+      },
+      "half": {
+        "x": 0.5,
+        "y": 2,
+        "z": 60
+      },
+      "material": "barrier",
+      "grip": 1
+    },
+    {
+      "id": "courtyard",
+      "shape": "deck",
+      "position": {
+        "x": 24,
+        "y": 6.6,
+        "z": 8
+      },
+      "half": {
+        "x": 14,
+        "y": 0.4,
+        "z": 12
+      },
+      "material": "stone",
+      "grip": 1
+    },
+    {
+      "id": "south-ramp",
+      "shape": "wedge",
+      "position": {
+        "x": 16,
+        "y": 3.5,
+        "z": -18
+      },
+      "half": {
+        "x": 5,
+        "y": 3.5,
+        "z": 14
+      },
+      "rotation": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "w": 1
+      },
+      "material": "stone",
+      "grip": 1
+    },
+    {
+      "id": "north-ramp",
+      "shape": "wedge",
+      "position": {
+        "x": 32,
+        "y": 3.5,
+        "z": 34
+      },
+      "half": {
+        "x": 5,
+        "y": 3.5,
+        "z": 14
+      },
+      "rotation": {
+        "x": 0,
+        "y": 1,
+        "z": 0,
+        "w": 6.123233995736766e-17
+      },
+      "material": "stone",
+      "grip": 1
+    },
+    {
+      "id": "courtyard-pier-0",
+      "shape": "box",
+      "position": {
+        "x": 12,
+        "y": 3.1,
+        "z": -2
+      },
+      "half": {
+        "x": 0.8,
+        "y": 3.1,
+        "z": 0.8
+      },
+      "material": "stone",
+      "grip": 1
+    },
+    {
+      "id": "courtyard-pier-1",
+      "shape": "box",
+      "position": {
+        "x": 36,
+        "y": 3.1,
+        "z": -2
+      },
+      "half": {
+        "x": 0.8,
+        "y": 3.1,
+        "z": 0.8
+      },
+      "material": "stone",
+      "grip": 1
+    },
+    {
+      "id": "courtyard-pier-2",
+      "shape": "box",
+      "position": {
+        "x": 12,
+        "y": 3.1,
+        "z": 18
+      },
+      "half": {
+        "x": 0.8,
+        "y": 3.1,
+        "z": 0.8
+      },
+      "material": "stone",
+      "grip": 1
+    },
+    {
+      "id": "courtyard-pier-3",
+      "shape": "box",
+      "position": {
+        "x": 36,
+        "y": 3.1,
+        "z": 18
+      },
+      "half": {
+        "x": 0.8,
+        "y": 3.1,
+        "z": 0.8
+      },
+      "material": "stone",
+      "grip": 1
+    },
+    {
+      "id": "fountain-base",
+      "shape": "box",
+      "position": {
+        "x": -12,
+        "y": 1.2,
+        "z": -4
+      },
+      "half": {
+        "x": 4,
+        "y": 1.2,
+        "z": 4
+      },
+      "material": "fountain",
+      "grip": 1
+    },
+    {
+      "id": "garden-west",
+      "shape": "box",
+      "position": {
+        "x": -32,
+        "y": 1.1,
+        "z": 18
+      },
+      "half": {
+        "x": 6,
+        "y": 1.1,
+        "z": 3
+      },
+      "material": "hedge",
+      "grip": 1
+    },
+    {
+      "id": "garden-south",
+      "shape": "box",
+      "position": {
+        "x": -14,
+        "y": 1.1,
+        "z": -32
+      },
+      "half": {
+        "x": 7,
+        "y": 1.1,
+        "z": 3
+      },
+      "material": "hedge",
+      "grip": 1
+    },
+    {
+      "id": "garden-north",
+      "shape": "box",
+      "position": {
+        "x": -5,
+        "y": 1.1,
+        "z": 34
+      },
+      "half": {
+        "x": 4,
+        "y": 1.1,
+        "z": 6
+      },
+      "material": "hedge",
+      "grip": 1
+    },
+    {
+      "id": "arcade-cover",
+      "shape": "box",
+      "position": {
+        "x": 42,
+        "y": 2.5,
+        "z": -24
+      },
+      "half": {
+        "x": 4,
+        "y": 2.5,
+        "z": 5
+      },
+      "material": "stone",
+      "grip": 1
+    }
+  ],
+  "spawns": [
+    {
+      "id": "spawn-0",
+      "surface": "floor",
+      "x": -44,
+      "y": 0,
+      "z": -40,
+      "angle": 0.8329812666744317
+    },
+    {
+      "id": "spawn-1",
+      "surface": "floor",
+      "x": 42,
+      "y": 0,
+      "z": 46,
+      "angle": -2.401617769613922
+    },
+    {
+      "id": "spawn-2",
+      "surface": "floor",
+      "x": -44,
+      "y": 0,
+      "z": 40,
+      "angle": 2.3086113869153615
+    },
+    {
+      "id": "spawn-3",
+      "surface": "floor",
+      "x": 44,
+      "y": 0,
+      "z": -42,
+      "angle": -0.8086497862079113
+    },
+    {
+      "id": "spawn-4",
+      "surface": "floor",
+      "x": -34,
+      "y": 0,
+      "z": -12,
+      "angle": 1.231503712340852
+    },
+    {
+      "id": "spawn-5",
+      "surface": "floor",
+      "x": -22,
+      "y": 0,
+      "z": 46,
+      "angle": 2.6954871046463897
+    },
+    {
+      "id": "spawn-6",
+      "surface": "floor",
+      "x": 48,
+      "y": 0,
+      "z": 8,
+      "angle": -1.7359450042095235
+    },
+    {
+      "id": "spawn-7",
+      "surface": "floor",
+      "x": -6,
+      "y": 0,
+      "z": -48,
+      "angle": 0.12435499454676144
+    }
+  ],
+  "sockets": [
+    {
+      "id": "crate-0",
+      "surface": "floor",
+      "x": -44,
+      "y": 0,
+      "z": -28,
+      "angle": 0
+    },
+    {
+      "id": "crate-1",
+      "surface": "floor",
+      "x": -28,
+      "y": 0,
+      "z": -42,
+      "angle": 0
+    },
+    {
+      "id": "crate-2",
+      "surface": "floor",
+      "x": 4,
+      "y": 0,
+      "z": -34,
+      "angle": 0
+    },
+    {
+      "id": "crate-3",
+      "surface": "floor",
+      "x": 46,
+      "y": 0,
+      "z": -8,
+      "angle": 0
+    },
+    {
+      "id": "crate-4",
+      "surface": "floor",
+      "x": 48,
+      "y": 0,
+      "z": 32,
+      "angle": 0
+    },
+    {
+      "id": "crate-5",
+      "surface": "floor",
+      "x": -44,
+      "y": 0,
+      "z": 26,
+      "angle": 0
+    },
+    {
+      "id": "crate-6",
+      "surface": "floor",
+      "x": -16,
+      "y": 0,
+      "z": 18,
+      "angle": 0
+    },
+    {
+      "id": "crate-7",
+      "surface": "floor",
+      "x": -28,
+      "y": 0,
+      "z": 38,
+      "angle": 0
+    },
+    {
+      "id": "crate-8",
+      "surface": "floor",
+      "x": -2,
+      "y": 0,
+      "z": 0,
+      "angle": 0
+    },
+    {
+      "id": "crate-9",
+      "surface": "floor",
+      "x": 24,
+      "y": 0,
+      "z": 8,
+      "angle": 0
+    },
+    {
+      "id": "crate-10",
+      "surface": "courtyard",
+      "x": 18,
+      "y": 7,
+      "z": 4,
+      "angle": 0
+    },
+    {
+      "id": "crate-11",
+      "surface": "courtyard",
+      "x": 32,
+      "y": 7,
+      "z": 12,
+      "angle": 0
+    },
+    {
+      "id": "crate-12",
+      "surface": "floor",
+      "x": -44,
+      "y": 0,
+      "z": -8,
+      "angle": 0
+    },
+    {
+      "id": "crate-13",
+      "surface": "floor",
+      "x": -46,
+      "y": 0,
+      "z": 46,
+      "angle": 0
+    },
+    {
+      "id": "crate-14",
+      "surface": "floor",
+      "x": -22,
+      "y": 0,
+      "z": 0,
+      "angle": 0
+    },
+    {
+      "id": "crate-15",
+      "surface": "floor",
+      "x": -20,
+      "y": 0,
+      "z": -20,
+      "angle": 0
+    },
+    {
+      "id": "crate-16",
+      "surface": "floor",
+      "x": 10,
+      "y": 0,
+      "z": -48,
+      "angle": 0
+    },
+    {
+      "id": "crate-17",
+      "surface": "floor",
+      "x": 34,
+      "y": 0,
+      "z": -46,
+      "angle": 0
+    },
+    {
+      "id": "crate-18",
+      "surface": "floor",
+      "x": 4,
+      "y": 0,
+      "z": 44,
+      "angle": 0
+    },
+    {
+      "id": "crate-19",
+      "surface": "floor",
+      "x": -18,
+      "y": 0,
+      "z": 46,
+      "angle": 0
+    },
+    {
+      "id": "crate-20",
+      "surface": "floor",
+      "x": 46,
+      "y": 0,
+      "z": 48,
+      "angle": 0
+    },
+    {
+      "id": "crate-21",
+      "surface": "floor",
+      "x": 0,
+      "y": 0,
+      "z": 24,
+      "angle": 0
+    },
+    {
+      "id": "crate-22",
+      "surface": "courtyard",
+      "x": 14,
+      "y": 7,
+      "z": 16,
+      "angle": 0
+    },
+    {
+      "id": "crate-23",
+      "surface": "courtyard",
+      "x": 34,
+      "y": 7,
+      "z": 0,
+      "angle": 0
+    }
+  ],
+  "routes": [
+    {
+      "id": "courtyard-south",
+      "from": "floor",
+      "via": "south-ramp",
+      "to": "courtyard"
+    },
+    {
+      "id": "courtyard-north",
+      "from": "floor",
+      "via": "north-ramp",
+      "to": "courtyard"
+    }
+  ]
+}
