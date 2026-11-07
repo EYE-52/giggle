@@ -73,9 +73,19 @@ function cosmetics(THREE) {
  * per material (template materials are shared by every kart). */
 const rimmed = new WeakSet();
 export const KART_RIM = Object.freeze({ color: [1, .97, .9], strength: .55, power: 2.6 });
+// Toy finish: near-black trim and tyres read as holes from the chase camera,
+// so lift them to soft charcoal and let the paint carry a little more gloss.
+export const KART_TOY_TONE = Object.freeze({ DarkTrim: { color: 0x2b3140, roughness: .5 }, TireDark: { color: 0x1d2028, roughness: .72 }, VisorDark: { color: 0x1a2236 } });
+function toyTone(material) {
+  const tone = KART_TOY_TONE[material.name];
+  if (!tone) return;
+  if (tone.color !== undefined) material.color?.setHex(tone.color);
+  if (tone.roughness !== undefined) material.roughness = tone.roughness;
+}
 function addRim(material) {
   if (!material || rimmed.has(material) || !(material.isMeshStandardMaterial || material.isMeshPhongMaterial || material.isMeshLambertMaterial)) return;
   rimmed.add(material);
+  toyTone(material);
   const previous = material.onBeforeCompile;
   material.onBeforeCompile = (shader, renderer) => {
     previous?.call(material, shader, renderer);
@@ -136,10 +146,20 @@ function prepareKartClone(inner, color) {
 /* Per-driver kart instance. assets.kart is root's loaded glTF scene
  * template (never mutated). Returns a Group the scene yaws/moves; the
  * clone lives one level down so animate() can lean children freely. */
-export function createKartModel(THREE, { assets, color, number = 1 } = {}) {
+// Stable driver choice for a player key (pid), so a player keeps the same
+// character for the whole match on every screen.
+export function kartDriverIndex(key, count) {
+  if (!(count > 1) || key == null) return 0;
+  let h = 2166136261;
+  for (const ch of String(key)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return (h >>> 0) % count;
+}
+
+export function createKartModel(THREE, { assets, color, number = 1, driver } = {}) {
   const rootGroup = new THREE.Group();
   rootGroup.name = 'GiggleKart';
-  const template = assets && assets.kart;
+  const variants = assets && assets.kartVariants;
+  const template = variants?.length ? variants[kartDriverIndex(driver, variants.length)] : assets && assets.kart;
   if (!template) {
     rootGroup.userData.missing = 'kart';
     return rootGroup;

@@ -212,7 +212,7 @@ export function createElevatedKartView() {
       const flashMaterial=new THREE.MeshBasicMaterial({color:0xffe6a1,transparent:true,opacity:.9,depthWrite:false});
       for(let i=0;i<12;i++){const mesh=new THREE.Mesh(flashGeometry,flashMaterial);mesh.name='CombatMuzzleFlash';mesh.visible=false;scene.add(mesh);flashes.push({mesh,age:0});}
       // Every kart body is prepared before the first live frame too.
-      for(let index=0;index<S.karts.length;index++){const k=S.karts[index],model=createKartModel(THREE,{assets,color:k.id===S.you?colors[0]:colors[(index+1)%colors.length]});model.userData.elevatedPose={position:{},rotation:{}};models.set(k.id,model);scene.add(model);warm.push(model);}
+      for(let index=0;index<S.karts.length;index++){const k=S.karts[index],model=createKartModel(THREE,{assets,driver:k.id,color:k.id===S.you?colors[0]:colors[(index+1)%colors.length]});model.userData.elevatedPose={position:{},rotation:{}};models.set(k.id,model);scene.add(model);warm.push(model);}
       for(const k of S.karts)warm.push(healthBars.add(k.id));
       warm.push(...flashes.map(f=>f.mesh));
       warm.push(...effects.map(f=>f.mesh));camera.position.set(0,5,-9);camera.lookAt(0,0,0);
@@ -254,7 +254,7 @@ export function createElevatedKartView() {
         const alpha=playback?.alpha??1;
         for(let index=0;index<S.karts.length;index++){
           const k=S.karts[index];let model=models.get(k.id);
-          if(!model){model=createKartModel(THREE,{assets,color:k.id===S.you?colors[0]:colors[(index+1)%colors.length]});model.userData.elevatedPose={position:{},rotation:{}};models.set(k.id,model);scene.add(model);}
+          if(!model){model=createKartModel(THREE,{assets,driver:k.id,color:k.id===S.you?colors[0]:colors[(index+1)%colors.length]});model.userData.elevatedPose={position:{},rotation:{}};models.set(k.id,model);scene.add(model);}
           const sample=playback?.current.karts.get(k.id);
           const current=sample?.spawnSeq===k.spawnSeq&&sample?.controlEpoch===k.controlEpoch&&k.alive&&k.connected!==false?sample:k;
           const p=blendElevatedPose(playback?.previous.karts.get(k.id),current,alpha,model.userData.elevatedPose),wreck=wrecks.get(k.id);

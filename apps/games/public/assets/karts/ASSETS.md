@@ -23,3 +23,7 @@ Selected environment models by Kenney:
 - Nature Kit: https://kenney.nl/assets/nature-kit
 
 Both packs are Creative Commons Zero (CC0). Original license files are retained here. Models ship locally as GLB; gameplay does not request assets from an external CDN. The Smash Karts reference was inspected for composition and readability; none of its models, textures, characters, UI or code are shipped.
+
+Backdrop: `backdrops/mountains-day.webp` is an original painted alpine panorama generated for this project with GPT Image in ChatGPT (2026-11-07), prompted to tile horizontally. The flat white sky was cut to alpha by a flood fill from the top edge (snow on enclosed peaks stays opaque) and saved as WebP (79 KB). `kart-world.mjs` wraps it four times around the classic arenas on an inward cylinder and hides the procedural ridges once it loads; headless builds keep the ridges.
+
+Drivers: `drivers/fox.glb`, `bunny.glb`, `panda.glb` and `raccoon.glb` are original animal racers generated for this project with Meshy text-to-3D (2026-11-07). Each was cut at the seat in Blender to remove the small kart Meshy added, cleaned of loose fragments, normalised to 1 m tall with feet at y=0, decimated to about 2,300 triangles and saved with a 512 px WebP texture and unquantized positions (159–208 KB) so it can join the kart's static batching. `seatKartDriver` replaces the helmet racer's arms, torso, helmet, visor and steering wheel; each driver gets its own batched kart variant and players get a stable driver from their id. If none load, the original helmet racer stays.
