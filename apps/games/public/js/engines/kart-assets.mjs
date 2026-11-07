@@ -38,19 +38,19 @@ export function seatKartDriver(kart, driver) {
   return true;
 }
 
-const WEAPON_THUMBNAILS=['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke',
-  'laser','thunder','boomerang','oil','frost','cluster','bouncer','ram'];
+export const WEAPON_THUMBNAILS=['machinegun','trishot','missile','cannon','blades','supernova','mine','oil','frost','thunder','boomerang','ram','nuke'];
+const thumbnailExtension=kind=>['machinegun','trishot','missile','cannon','blades','supernova'].includes(kind)?'svg':'png';
 const loadedThumbnails=new Set();
 let thumbnailLoad;
 export function loadKartWeaponThumbnails(){
   if(!thumbnailLoad)thumbnailLoad=Promise.all(WEAPON_THUMBNAILS.map(async kind=>{
-    const image=new Image();image.src=`/assets/karts/weapon-thumbnails/${kind}.png`;
+    const image=new Image();image.src=`/assets/karts/weapon-thumbnails/${kind}.${thumbnailExtension(kind)}`;
     await image.decode();loadedThumbnails.add(kind);
   })).catch(error=>{thumbnailLoad=null;throw error;});
   return thumbnailLoad;
 }
 export function weaponThumbnailArt(kind,fallback=''){
-  return loadedThumbnails.has(kind)?`<img class="kart-weapon-thumbnail" src="/assets/karts/weapon-thumbnails/${kind}.png" width="96" height="96" alt="" aria-hidden="true">`:fallback;
+  return loadedThumbnails.has(kind)?`<img class="kart-weapon-thumbnail" src="/assets/karts/weapon-thumbnails/${kind}.${thumbnailExtension(kind)}" width="96" height="96" alt="" aria-hidden="true">`:fallback;
 }
 
 // GLTFLoader owns decoded ImageBitmaps as well as GPU textures. Call only

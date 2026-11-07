@@ -86,7 +86,7 @@ async function part1() {
     // Direct determinism: park the goal one KO away, then land it.
     st.karts[0].x = 0; st.karts[0].z = 0; st.karts[0].angle = 0;
     st.karts[1].x = 0; st.karts[1].z = 4; st.karts[1].shield = 0;
-    st.karts[0].weapon = 'pulse'; st.karts[0].ammo = 3; st.karts[0].shield = 0;
+    st.karts[0].weapon = 'machinegun'; st.karts[0].ammo = 3; st.karts[0].shield = 0;
     st.karts[0].fireCd = 0; st.karts[0].prevAction = false;
     karts.onAction(st, ctx, 'pa', { input: { steer: 0, throttle: 0, boost: true } });
     for (let i = 0; i < 6 && st.phase !== 'done'; i++) {

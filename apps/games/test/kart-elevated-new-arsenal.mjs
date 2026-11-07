@@ -45,25 +45,9 @@ function clean(w, label) {
 }
 const hold = (w, id, intent) => i => { if (i % 6 === 0) send(w, id, intent); };
 
-// laser
-{
-  const w = armed('laser', fixture());
-  try {
-    fire(w);
-    const shot = w.snapshot().projectiles[0];
-    check('laser: a thin bolt at laser speed', shot?.weapon === 'laser' && Math.abs(Math.hypot(shot.velocity.x, shot.velocity.y, shot.velocity.z) - W.laser.speed) < 1e-6 && shot.radius === COMBAT.staticSweepRadii.laser);
-    step(w, 20);
-    check('laser: 30 m away, one heart within a third of a second', kart(w, 'b').health === 2);
-    step(w, 40);
-    // One press spends the whole loaded clip (both bolts) on elevated maps.
-    check('laser: one press fires both bolts, and the second cannot hurt again', kart(w, 'b').health === 2 &&
-      seen(w).filter(e => e.type === 'fire' && e.weapon === 'laser').length === 2 && kart(w).weapon !== 'laser');
-    clean(w, 'laser');
-  } finally { w.dispose(); }
-}
 // thunder
 {
-  const w = armed('thunder', fixture([], [point('a', 0, 0), point('b', 8, 20), point('c', 0, -9)]));
+  const w = armed('thunder', fixture([], [point('a', 0, 0), point('b', 4, 20), point('c', 0, -9)]));
   try {
     fire(w);
     const blast = seen(w).find(e => e.type === 'blast' && e.weapon === 'thunder');
@@ -123,31 +107,6 @@ const hold = (w, id, intent) => i => { if (i % 6 === 0) send(w, id, intent); };
     let top = 0; step(w, 40, i => { hold(w, 'b', { throttle: 1 })(i); top = Math.max(top, Math.abs(kart(w, 'b').pose.speed)); });
     check('frost: chilled kart stays slow (' + top.toFixed(1) + ' m/s)', top < CONFIG.handling.maxForward * .55 + 1);
     step(w, 120); clean(w, 'frost');
-  } finally { w.dispose(); }
-}
-// cluster
-{
-  const w = armed('cluster', fixture([], [point('a', 0, 0), point('b', 0, 11)]));
-  try {
-    fire(w);
-    step(w, 150);
-    const pops = seen(w).filter(e => e.type === 'blast' && e.weapon === 'cluster');
-    check('cluster: bursts once', seen(w).filter(e => e.type === 'burst' && e.weapon === 'cluster').length === 1);
-    check('cluster: bomblets pop one after another', pops.length === W.cluster.bomblets && new Set(pops.map(e => e.tick)).size >= 3);
-    check('cluster: one heart per rival however many bomblets land', kart(w, 'b').health === 2);
-    clean(w, 'cluster');
-  } finally { w.dispose(); }
-}
-// bouncer
-{
-  const wall = { id: 'bounce-wall', shape: 'box', position: { x: 0, y: 2, z: 9 }, half: { x: 12, y: 2, z: .5 } };
-  const w = armed('bouncer', fixture([wall], [point('a', 0, 0), point('b', 0, -9)]));
-  try {
-    fire(w); step(w, 60);
-    check('bouncer: boings off the wall', seen(w).some(e => e.type === 'bounce' && e.weapon === 'bouncer'));
-    check('bouncer: the ricochet hits the rival behind', kart(w, 'b').health === 2);
-    step(w, 240);
-    clean(w, 'bouncer');
   } finally { w.dispose(); }
 }
 // ram

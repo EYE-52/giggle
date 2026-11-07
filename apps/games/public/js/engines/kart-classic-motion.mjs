@@ -112,6 +112,7 @@ export function createClassicMotion(RAPIER,baseConfig,state){
     alpha:()=>Math.max(0,Math.min(1,accumulator/config.fixedDt)),
     restore(k,p){k._prevPose=null;features.resumeLanded(k);if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
     sweepStatic:(from,to,radius)=>physics.sweepStatic(from,to,radius),
+    kickKart:(id,delta)=>physics.kickKart(id,delta),
     supportAt:(origin,maxDistance)=>physics.supportAt(origin,maxDistance),
     groundAt:(x,z)=>terrain?.heightAt(x,z)||0,
     overlapsStatic:(position,rotation)=>physics.overlapsStatic(position,rotation),

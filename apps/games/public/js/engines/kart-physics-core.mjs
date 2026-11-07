@@ -268,6 +268,12 @@ function createKartPhysics(RAPIER, config) {
     kart.body.setAngvel({ x: a.x, y: clamp(yawRate, -12, 12), z: a.z }, true);
     return true;
   }
+  // Bounded combat knockback, expressed as a velocity change (m/s).
+  function kickKart(id,delta){
+    const k=kartFor(id);if(!k.enabled||k.frozen)return false;
+    const d=vector(delta,'combat kick'),v=k.body.linvel();
+    k.body.setLinvel({x:clamp(v.x+d.x,-60,60),y:clamp(v.y+d.y,-20,20),z:clamp(v.z+d.z,-60,60)},true);return true;
+  }
   function tuneKart(id, tuning) {
     const kart = kartFor(id);
     if (!tuning || Object.keys(tuning).some(k => !Object.hasOwn(kart.tuning, k))) throw new TypeError('invalid tuning');
@@ -329,7 +335,7 @@ function createKartPhysics(RAPIER, config) {
     contactQueue.free(); world.free(); karts.clear(); statics.clear(); surfaces.clear(); kartColliders.clear(); impacts.length=0; disposed = true;
   }
   return Object.freeze({ apiVersion: 2, addStatic, addKart, resetKart, restoreKart, kartContacts, applyIntent, step, pose, poses, supportAt,
-    sweepStatic, overlapsStatic, setKartEnabled, freezeKart, tuneKart, spinKart, drainImpacts, stats, dispose });
+    sweepStatic, overlapsStatic, setKartEnabled, freezeKart, tuneKart, kickKart, spinKart, drainImpacts, stats, dispose });
 }
 
 export { createKartPhysics, wedgeVertices };

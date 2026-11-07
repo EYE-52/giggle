@@ -21,7 +21,7 @@ const { createMobileStick } = await import('../public/js/toolkit/mobile-stick.mj
 const {createKartFeedback}=await import('../public/js/engines/kart-feedback.mjs');
 const groundMarkers=await import('../public/js/engines/kart-ground-markers.mjs');
 const {weaponThumbnailArt}=await import('../public/js/engines/kart-assets.mjs');
-const {paintKartWeapon}=await import('../public/js/engines/kart-weapon-hud.mjs');
+const {paintKartWeapon,createKartWeaponRoulette}=await import('../public/js/engines/kart-weapon-hud.mjs');
 const {kartResultView}=await import('../public/js/engines/kart-results.mjs');
 const {readInputCapabilities,touchControlsFor}=await import('../public/js/toolkit/input-capabilities.mjs');
 const {createGearbox,paintGear}=await import('../public/js/engines/kart-gearbox.mjs');
@@ -83,7 +83,7 @@ const window = new Node();
 window.matchMedia = () => ({matches:false}); window.devicePixelRatio=1;
 window.screen = {orientation: new Node()};
 const audios=[];
-const context = vm.createContext({document, window, console, Date,
+const context = vm.createContext({WEAPON_IDS:require('../public/js/engines/kart-weapon-contract.mjs').WEAPON_IDS,document, window, console, Date,
   performance: {now: () => clock},
   setTimeout: fn => { const id=++seq; analogTimeouts.set(id,fn); return id; },
   clearTimeout: id => analogTimeouts.delete(id),
@@ -95,12 +95,13 @@ const context = vm.createContext({document, window, console, Date,
   createKartAudio: () => {const audio={cues:[],active:true,muted:false,unlock(){},setMuted(value){this.muted=value},update(frame){this.active=frame.active},cue(name){if(this.active&&!this.muted)this.cues.push(name)},dispose(){}};audios.push(audio);return audio;},
   createPoseStore: () => ({}), resetPoseStore() {}, ingestSnapshot() {}, framePoses: () => new Map(),
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
-  intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d});
+  intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,createKartWeaponRoulette,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d});
 // The hearts HUD runs against this fake DOM, so it loads into the same context.
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-skids.mjs'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-threats.mjs'),'utf8').replace(/^export /gm,''),context);
-vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-arsenal-fx.mjs'),'utf8').replace(/^export /gm,''),context);
+context.WEAPON_FEEL=(await import('../public/js/engines/kart-weapon-contract.mjs')).WEAPON_FEEL;
+vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-arsenal-fx.mjs'),'utf8').replace(/^import .*;\n/gm,'').replace(/^export /gm,''),context);
 let src = fs.readFileSync(require.resolve('../public/js/engines/kart-view.js'),'utf8');
 src = src.replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];\s*/g,'')
   .replace('export function createKartView','function createKartView')
@@ -112,7 +113,7 @@ const spoken=[];
 const api = {send: a => sent.push(a), announce:message=>spoken.push(message), now: () => 1000};
 const state = phase => ({phase, you:'one', youDrive:true, endsAt:phase==='done'?0:31000,
   mode:'battle', palette:'Daybreak', targetHits:3, targetStars:8, map:{id:'ring',blocks:[]},
-  players:[{id:'one',name:'A'}], karts:[{pid:'one',hits:1,ammo:1,weapon:'pulse',respawn:0}],
+  players:[{id:'one',name:'A'}], karts:[{pid:'one',hits:1,ammo:1,weapon:'machinegun',respawn:0}],
   result:phase==='done'?{winner:'one',winners:['one'],standings:[{pid:'one',score:1}],endReason:'timeout'}:null});
 view.mount(main,api); view.update(main,state('drive'),api);
 assert(!main.querySelector('.pk').classList.contains('pk-done'));
@@ -120,7 +121,7 @@ assert.equal(main.querySelector('#pk-touch').hidden,false);
 assert.equal(main.querySelector('#pk-mine').textContent,'You · 1 KO');
 assert.equal(main.querySelector('#pk-boost').querySelector('.kart-item-count').textContent,'×1');
 assert(main.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('<svg'),'equip slot renders vector artwork');
-assert.equal(main.querySelector('#pk-boost').getAttribute('aria-label'),'Pulse, Ready, ×1','weapon name remains accessible while inventory shows the exact ammo');
+assert.equal(main.querySelector('#pk-boost').getAttribute('aria-label'),'Machine Gun, Ready, ×1','weapon name remains accessible while inventory shows the exact ammo');
 assert.equal(main.querySelector('#pk-tb').disabled,false);
 assert.equal(main.querySelector('#pk-tip').hidden,true,'normal driving shows no verbose paragraph');
 assert.equal(main.querySelector('#pk-handling').textContent,'','ordinary driving does not need running commentary');
@@ -157,7 +158,7 @@ assert.equal(main.querySelector('#pk-handling').hidden,true,'quiet driving keeps
   view.update(main,state('drive'),api);
   assert.equal(slot.htmlWrites,writes,'unchanged live HUD ticks retain the equipped SVG');
 }
-for (const [weapon,label] of [['pulse','Pulse'],['scatter','Scatter'],['mine','Mine'],['shield','Shield'],['rocket','Rocket'],['seeker','Seeker'],['proximity','Proximity Bomb'],['nuke','Nuke']]) {
+for (const [weapon,label] of [['machinegun','Machine Gun'],['trishot','Tri-Shot'],['mine','Mine'],['supernova','Supernova'],['cannon','Cannon'],['missile','Homing Missile'],['blades','Spinning Blades'],['nuke','Nuke']]) {
   const w=state('drive'); w.karts[0].weapon=weapon; w.karts[0].ammo=2; w.karts[0].speed=10;
   view.update(main,w,api);
   const slot=main.querySelector('#pk-boost');
@@ -173,7 +174,7 @@ for (const [weapon,label] of [['pulse','Pulse'],['scatter','Scatter'],['mine','M
   assert.equal(main.querySelector('#pk-speed').textContent,'36','telemetry shows exact speed');
 }
 {
-  for (const [weapon,label,detail] of [['pulse','Pulse','Firing'],['mine','Mine','Deploying'],['proximity','Proximity Bomb','Deploying']]) {
+  for (const [weapon,label,detail] of [['machinegun','Machine Gun','Firing'],['mine','Mine','Deploying'],['oil','Oil Slick','Deploying']]) {
     const busy=state('drive');Object.assign(busy.karts[0],{weapon,ammo:2,firing:true});view.update(main,busy,api);
     const slot=main.querySelector('#pk-boost');
     assert.equal(slot.dataset.state,'firing','committed payload retains the equipped item presentation');
@@ -204,7 +205,7 @@ for (const [weapon,label] of [['pulse','Pulse'],['scatter','Scatter'],['mine','M
 }
 {
   const arts=new Set();
-  for (const weapon of ['pulse','scatter','mine','shield','rocket','seeker','proximity','nuke']) {
+  for (const weapon of ['machinegun','trishot','mine','supernova','missile','cannon','blades','nuke']) {
     const w=state('drive'); w.karts[0].weapon=weapon; w.karts[0].ammo=1;
     view.update(main,w,api);
     arts.add(main.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.match(/<svg[\s\S]*?<\/svg>/)[0]);
@@ -725,15 +726,15 @@ const nitro=main.querySelector('#pk-tn');
 // Shoot tutorial once: first pickup teaches Space, later pickups stay short.
 {
   const audio=audios.at(-1),start=audio.cues.length,base=state('drive');
-  view.update(main,{...base,audioBaseline:true,karts:[{...base.karts[0],boost:1}],events:[{id:'missed-baseline',type:'pickup',pid:'one',weapon:'pulse'}]},api);
+  view.update(main,{...base,audioBaseline:true,karts:[{...base.karts[0],boost:1}],events:[{id:'missed-baseline',type:'pickup',pid:'one',weapon:'machinegun'}]},api);
   assert.equal(audio.cues.length,start,'legacy reconnect seeds historical pickup and ongoing boost quietly');
   assert.ok(!main.querySelector('.pk-hud').innerHTML.includes('id="pk-cue"'),'legacy reconnect never recreates center pickup instructions');
-  view.update(main,{...base,events:[{id:'missed-baseline',type:'pickup',pid:'one',weapon:'pulse'},{id:'fresh-baseline',type:'fire',pid:'one',weapon:'pulse'}]},api);
+  view.update(main,{...base,events:[{id:'missed-baseline',type:'pickup',pid:'one',weapon:'machinegun'},{id:'fresh-baseline',type:'fire',pid:'one',weapon:'machinegun'}]},api);
   assert.equal(audio.cues.length,start+1,'legacy fresh event resumes once after reconnect');
   const context=api.context;api.context=()=>({sound:false});
-  view.update(main,{...base,events:[{id:'muted-live',type:'fire',pid:'one',weapon:'pulse'}]},api);
+  view.update(main,{...base,events:[{id:'muted-live',type:'fire',pid:'one',weapon:'machinegun'}]},api);
   assert.equal(audio.cues.length,start+1,'legacy mute is synchronized before snapshot events');
-  api.context=()=>({sound:true,connected:false});view.update(main,{...base,events:[{id:'offline-live',type:'fire',pid:'one',weapon:'pulse'}]},api);
+  api.context=()=>({sound:true,connected:false});view.update(main,{...base,events:[{id:'offline-live',type:'fire',pid:'one',weapon:'machinegun'}]},api);
   assert.equal(audio.cues.length,start+1,'legacy closed connection drops live event audio');
   api.context=context;view.update(main,{...base,audioBaseline:true,events:[]},api);
 }
@@ -741,13 +742,18 @@ const nitro=main.querySelector('#pk-tn');
   const picker=main.querySelector('#pk-controls');picker.value='keyboard';picker.fire('change');
   const base=state('drive');
   view.update(main,{...base,events:[]},api);
-  view.update(main,{...base,events:[{id:'e900',type:'pickup',pid:'one',weapon:'pulse'}]},api);
+  view.update(main,{...base,events:[{id:'e900',type:'pickup',pid:'one',weapon:'machinegun'}]},api);
   assert.ok(!main.querySelector('#pk-boost').querySelector('kbd').hidden,'First keyboard pickup gets a small equipped-slot keycap');
-  assert.equal(spoken.at(-1),'Pulse ready','Pickup remains concise and accessible');
+  assert.equal(spoken.at(-1),'Machine Gun ready','Pickup remains concise and accessible');
+  assert.equal(main.querySelector('#pk-boost').dataset.state,'roulette','Accepted pickup starts the short reveal');
+  window.fire('keydown',{code:'Space',preventDefault(){}});
+  assert.notEqual(main.querySelector('#pk-boost').dataset.state,'roulette','Fire skips the reveal in the production view');
+  assert(sent.at(-1).input.boost,'Skipping sends the real firing intent immediately');
+  window.fire('keyup',{code:'Space',preventDefault(){}});
   clock+=4100;view.update(main,{...base,events:[]},api);
   assert.ok(!!main.querySelector('#pk-boost').querySelector('kbd').hidden,'The edge keycap expires');
-  view.update(main,{...base,events:[{id:'e901',type:'pickup',pid:'one',weapon:'scatter'}]},api);
-  assert.equal(spoken.at(-1),'Scatter ready','Later pickups retain accessible weapon identity');
+  view.update(main,{...base,events:[{id:'e901',type:'pickup',pid:'one',weapon:'trishot'}]},api);
+  assert.equal(spoken.at(-1),'Tri-Shot ready','Later pickups retain accessible weapon identity');
   assert.ok(!!main.querySelector('#pk-boost').querySelector('kbd').hidden,'The tutorial does not repeat on later pickups');
   assert.ok(!main.querySelector('.pk-hud').innerHTML.includes('id="pk-cue"'),'Pickup cues do not occupy the center playfield');
   view.update(main,state('drive'),api);
@@ -755,18 +761,18 @@ const nitro=main.querySelector('#pk-tn');
 // Snapshot order is per match; same-tick metadata and fresh respawn cues survive.
 {
   const audio=audios.at(-1),base={...state('drive'),instanceId:'ordered-match',simTick:10,simAt:500,inputAck:{life:1,controlEpoch:1}};
-  view.update(main,{...base,audioBaseline:true,events:[{id:'retained',type:'fire',pid:'one',weapon:'pulse'}]},api);
+  view.update(main,{...base,audioBaseline:true,events:[{id:'retained',type:'fire',pid:'one',weapon:'machinegun'}]},api);
   const start=audio.cues.length;
   view.update(main,{...base,simTick:9,simAt:450,events:[{id:'late',type:'blast',pid:'one'}]},api);
   assert.equal(audio.cues.length,start,'strictly older same-instance packet cannot replay unseen explosion audio');
   view.update(main,{...base,karts:[{...base.karts[0],ammo:7}],events:[]},api);
   assert.equal(main.querySelector('#pk-boost').querySelector('.kart-item-count').textContent,'×7','same-tick inventory metadata is admitted');
-  view.update(main,{...base,simTick:11,simAt:550,inputAck:{life:2,controlEpoch:2},events:[{id:'retained',type:'fire',pid:'one',weapon:'pulse'},{id:'respawn-fresh',type:'respawn',pid:'one'}]},api);
+  view.update(main,{...base,simTick:11,simAt:550,inputAck:{life:2,controlEpoch:2},events:[{id:'retained',type:'fire',pid:'one',weapon:'machinegun'},{id:'respawn-fresh',type:'respawn',pid:'one'}]},api);
   assert.equal(audio.cues.length,start+1,'fresh normal respawn cue plays without replaying retained fire');
   assert.equal(spoken.at(-1),'Back in with full hearts','normal respawn retains accessible feedback');
-  const next={...base,instanceId:'new-ordered-match',simTick:1,simAt:50,events:[{id:'retained',type:'fire',pid:'one',weapon:'pulse'}]};
+  const next={...base,instanceId:'new-ordered-match',simTick:1,simAt:50,events:[{id:'retained',type:'fire',pid:'one',weapon:'machinegun'}]};
   view.update(main,next,api);assert.equal(audio.cues.length,start+1,'new instance clocks and history start quietly');
-  view.update(main,{...next,simTick:2,simAt:100,events:[{id:'respawn-fresh',type:'fire',pid:'one',weapon:'pulse'}]},api);
+  view.update(main,{...next,simTick:2,simAt:100,events:[{id:'respawn-fresh',type:'fire',pid:'one',weapon:'machinegun'}]},api);
   assert.equal(audio.cues.length,start+2,'new instance may reuse event identities');
   view.update(main,{...next,simTick:2,simAt:100,phase:'done',result:{winners:[],standings:[]}},api);
   view.update(main,{...next,simTick:2,simAt:100},api);
@@ -890,7 +896,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
 // Pulse holds are born from an actual press, not an inventory snapshot.
 {
   const s=state('drive');s.instanceId='pulse-hold';
-  Object.assign(s.karts[0],{weapon:'pulse',ammo:12,spawnSeq:3,controlEpoch:7});
+  Object.assign(s.karts[0],{weapon:'machinegun',ammo:12,spawnSeq:3,controlEpoch:7});
   view.update(main,s,api);
   window.fire('keydown',keyEvent('Space'));
   clock+=200;timers.fn();assert.equal(sent.at(-1).input.boost,true,'Pulse keyboard hold survives the initial consumed edge');
@@ -901,10 +907,10 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   fire.fire('pointerup',touchEvent(121));clock+=200;timers.fn();
   assert.equal(sent.at(-1).input.boost,true,'A remaining owned keyboard contact retains Pulse hold');
   fire.fire('keyup',keyEvent('Enter'));assert.equal(sent.at(-1).input.boost,false,'Last contact releases Pulse hold');
-  s.karts[0].weapon='rocket';view.update(main,s,api);
+  s.karts[0].weapon='missile';view.update(main,s,api);
   window.fire('keydown',keyEvent('Space'));clock+=200;timers.fn();
   assert.equal(sent.at(-1).input.boost,false,'Rocket remains a discrete edge');
-  s.karts[0].weapon='pulse';view.update(main,s,api);clock+=200;timers.fn();
+  s.karts[0].weapon='machinegun';view.update(main,s,api);clock+=200;timers.fn();
   assert.equal(sent.at(-1).input.boost,false,'Held non-Pulse never fires a newly acquired Pulse');
   window.fire('keyup',keyEvent('Space'));window.fire('keydown',keyEvent('Space'));
   s.karts[0].spawnSeq++;view.update(main,s,api);clock+=200;timers.fn();
@@ -940,19 +946,19 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   assert.equal(warmFrames,2,'compatibility combat geometry/effect buffers render before readiness');
   built.frame(1/60,clock/1000);encounter(built.scene);
   const geometryCount=geometries.size,materialCount=materials.size;
-  for(const weapon of ['pulse','scatter','mine','shield','rocket','seeker','proximity','nuke']){
+  for(const weapon of ['machinegun','trishot','mine','supernova','missile','cannon','blades','nuke']){
     const next=structuredClone(s);next.karts[0].weapon=weapon;next.karts[0].ammo=1;
-    if(['pulse','scatter','rocket','seeker'].includes(weapon))next.zaps=[{id:weapon,kind:weapon,x:0,z:3,angle:0,ttl:1}];
+    if(['machinegun','trishot','missile','missile'].includes(weapon))next.zaps=[{id:weapon,kind:weapon,x:0,z:3,angle:0,ttl:1}];
     if(weapon==='mine')next.mines=[{id:'mine',owner:'one',x:0,z:-3,armed:true}];
     if(weapon==='proximity')next.mines=[{id:'proximity',kind:'proximity',owner:'one',x:0,z:-3,armed:true}];
     if(weapon==='nuke')next.grenades=[{id:'nuke',kind:'nuke',x:0,z:3,y:1,angle:0,vx:0,vz:0,vy:0,fuse:1,warning:true}];
-    if(weapon==='shield')next.karts[0].guard=true;
+    if(weapon==='supernova')next.karts[0].guard=true;
     live.update(el,next,api);built.frame(1/60,clock/1000);encounter(built.scene);
     assert.equal(geometries.size,geometryCount,weapon+' first use introduces no unprepared geometry');
     assert.equal(materials.size,materialCount,weapon+' first use introduces no unprepared material');
   }
   const mineSnapshot={...structuredClone(s),simTick:10,simAt:clock,mines:[{id:'lifecycle-mine',owner:'one',x:0,z:3,armed:true}]};
-  const minesVisible=()=>built.scene.children.filter(o=>o.userData.prop?.userData.combat?.type==='mine').length;
+  const minesVisible=()=>built.scene.children.filter(o=>o.visible&&o.userData.prop?.userData.combat?.type==='mine').length;
   live.update(el,mineSnapshot,api);built.frame(1/60,clock/1000);assert.equal(minesVisible(),1,'fresh classic authority mine is rendered');
   clock+=501;built.frame(.1,clock/1000);assert.equal(minesVisible(),0,'frozen classic snapshot retires stale mine presentation');
   live.update(el,{...mineSnapshot,simTick:11,simAt:clock},api);built.frame(1/60,clock/1000);assert.equal(minesVisible(),1,'fresh advancing authority restores an actually live mine');
@@ -998,13 +1004,13 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   timers.fn();
   assert.equal(el.querySelector('#pk-timer').textContent,'–:––','timer repaint cannot bypass delayed graphics');
   assert(el.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('<svg'),'equipped player retains the loading fallback before thumbnails decode');
-  globalThis.Image=class{async decode(){const data=fs.readFileSync(require.resolve('../public'+this.src));assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');}};
+  globalThis.Image=class{async decode(){const data=fs.readFileSync(require.resolve('../public'+this.src));if(this.src.endsWith('.svg'))assert.match(data.toString(),/<svg/);else assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');}};
   const {loadKartWeaponThumbnails}=await import('../public/js/engines/kart-assets.mjs');
   await loadKartWeaponThumbnails();
   resolveGraphics({fallback:false,firstFrame:Promise.resolve(),dispose(){}});
   await delayed.ready();
-  assert(el.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('/weapon-thumbnails/pulse.png'),'graphics-ready repaints already-equipped item without weapon/ammo change');
-  assert(el.querySelector('#pk-tb').innerHTML.includes('/weapon-thumbnails/pulse.png'),'graphics-ready also repaints the touch action icon');
+  assert(el.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('/weapon-thumbnails/machinegun.svg'),'graphics-ready repaints already-equipped item without weapon/ammo change');
+  assert(el.querySelector('#pk-tb').innerHTML.includes('/weapon-thumbnails/machinegun.svg'),'graphics-ready also repaints the touch action icon');
   delayed.update(el,{...state('countdown'),preparing:true},delayedApi);
   timers.fn();
   assert.equal(el.querySelector('#pk-count').hidden,true,'ready graphics do not bypass Room preparation');

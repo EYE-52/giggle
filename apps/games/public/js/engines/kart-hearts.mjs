@@ -17,6 +17,7 @@ function restart(element, name) {
 // Paint whole hearts into `element`; returns how many were lost since the
 // previous paint of the same life (0 after a respawn refill).
 export function paintKartHearts(element, kart) {
+  element.classList?.add('kart-hearts');
   const max = Math.max(1, Math.min(6, Math.round(Number(kart?.maxHealth) || 3)));
   const hearts = Math.max(0, Math.min(max, Math.round(Number(kart?.health ?? max))));
   if (element.childElementCount !== max) {
@@ -30,6 +31,7 @@ export function paintKartHearts(element, kart) {
     heart.dataset.full = String(i < hearts);
     if (lost && i >= hearts && i < before) restart(heart, 'data-pop');
   });
+  if(lost)restart(element,'data-shake');
   element.dataset.hearts = String(hearts);
   element.dataset.life = life;
   element.dataset.low = String(hearts <= 1);
@@ -57,6 +59,7 @@ export function createKartHitFeedback(host, { reducedMotion = () => false } = {}
       restart(flash, 'data-on');
       if (!reducedMotion()) shakeAt = now;
     },
+    rumble(now=performance.now()){if(!reducedMotion())shakeAt=now;},
     landed(text = '+1') {
       restart(marker, 'data-on');
       toast.textContent = text;
@@ -98,14 +101,14 @@ export function landedText(event) {
 }
 
 // Blasts of the second eight weapons each have their own synthesized cue.
-const BLAST_CUES = { nuke: 'nukeBlast', proximity: 'bombBlast', thunder: 'thunderClap', frost: 'frostShatter', cluster: 'clusterPop' };
+const BLAST_CUES = {cannon:'cannonBoom',missile:'missileBlast',supernova:'novaBlast', nuke: 'nukeBlast', proximity: 'bombBlast', thunder: 'thunderClap', frost: 'frostShatter', cluster: 'clusterPop' };
 // One authoritative event to one audio cue (null when it has none).
 export function kartEventCue(event, you) {
   if (event.type === 'blast') return BLAST_CUES[event.weapon] || 'rocketBlast';
   if (event.type === 'fire') return event.weapon;
   // A Turbo Ram strike clangs for everyone nearby, rammer and victim alike.
   if (event.type === 'hit' && event.weapon === 'ram') return 'ramClang';
-  if (event.type === 'hit') return event.other === you ? 'hurt' : event.pid === you ? 'hitConfirm' : null;
+  if (event.type === 'hit') return event.other === you ? 'hurt' : event.pid === you ? 'hitDing' : null;
   if (event.type === 'bounce') return 'boing';
   if (event.type === 'burst') return 'clusterPop';
   if (event.type === 'splat') return 'oilSkid';

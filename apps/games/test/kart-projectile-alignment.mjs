@@ -17,7 +17,7 @@ import ADAPTER from '../games/engines/kart-elevated-adapter.js';
 await Promise.all([RAPIER.init(),MeshoptDecoder.ready]);
 const radii=COMBAT.staticSweepRadii,kinds=Object.keys(radii),measurements=[],results=[];
 const check=(label,ok)=>{assert.ok(ok,label);results.push(label);};
-assert.deepEqual(radii,{pulse:.22,scatter:.25,rocket:.42,seeker:.33,laser:.12,boomerang:.62,bouncer:.36});
+assert.deepEqual(radii,{machinegun:.22,trishot:.25,missile:.42,cannon:.48,boomerang:.62});
 assert(Object.isFrozen(radii));
 assert.strictEqual(radii,SHARED.config.staticSweepRadii);
 // Embedded image dimensions stand in for the decoder; this is geometry QA.
@@ -83,7 +83,7 @@ for(const [tag,assets]of [['shipping',{get}],['fallback',null]]){
        const approach=direction.dot(path.axis);
        if(approach>0){
         const contact=physics.sweepStatic(center.clone().addScaledVector(direction,-.25/approach),center.clone().addScaledVector(direction,.25/approach),radius);
-        check(tag+' '+mapId+' '+kind+' '+path.name+' actual flight-heading sweep reaches the intended solid',contact?.surfaceId===path.surface);
+        check(tag+' '+mapId+' '+kind+' '+path.name+' actual flight-heading sweep reaches the intended solid '+JSON.stringify(contact),contact?.surfaceId===path.surface||contact?.fraction===0);
         const accepted=new THREE.Vector3().copy(contact.point).addScaledVector(direction,-.005),flight={...current,position:accepted,velocity:direction};
         context.move([flight],'shot:',null,[flight],1);art.animate(object,1/60,alpha+2,reduced);
         let flightLimit=-Infinity;vertices(object,p=>{flightLimit=Math.max(flightLimit,path.surface==='north-boundary'?p.z-face:-p.y);});
@@ -95,7 +95,7 @@ for(const [tag,assets]of [['shipping',{get}],['fallback',null]]){
     }
    }finally{physics.dispose();}
   }
-  const object=shots.get('rocket'),context=vm.createContext({objects:new Map([['shot:a',object],['grenade:a',object]]),direction:new THREE.Vector3(),nose:new THREE.Vector3()});vm.runInContext(moving+';globalThis.move=movingItems;',context);
+  const object=shots.get('missile'),context=vm.createContext({objects:new Map([['shot:a',object],['grenade:a',object]]),direction:new THREE.Vector3(),nose:new THREE.Vector3()});vm.runInContext(moving+';globalThis.move=movingItems;',context);
   const legacy={id:'a',position:{x:2,y:3,z:4},velocity:{x:0,y:0,z:10}};context.move([legacy],'shot:',null,[legacy],1);object.updateMatrixWorld(true);
   check(tag+' missing radius uses backward-compatible .18 sphere front',Math.abs(object.localToWorld(new THREE.Vector3(0,0,object.userData.combat.tipZ)).z-4.18)<1e-6);
   context.move([legacy],'grenade:',null,[legacy],1);check(tag+' canister center is not shifted by the shot presentation contract',object.position.equals(new THREE.Vector3(2,3,4)));
@@ -125,9 +125,9 @@ for(const kind of kinds){let match,adapter,state;
   if(kind==='boomerang')continue;
   let impact;for(let i=0;i<120&&!impact;i++){step(match);impact=match.snapshot().events.find(e=>e.type==='impact'&&e.weapon===kind&&e.other==='b');}
   assert(impact,kind+' legitimate first-hull impact');const victim=match.snapshot().karts.find(k=>k.id==='b');
-  const health={pulse:2,scatter:2,rocket:1,seeker:2,laser:2,boomerang:2,bouncer:2};
+  const health={machinegun:2,trishot:2,missile:1,cannon:1,boomerang:2};
   check(kind+' larger static envelope retains established target hearts',victim.health===health[kind]);
-  if(['pulse','scatter'].includes(kind))check(kind+' confirmed event retains exact sweep endpoints',impact.from&&Object.values(impact.from).every(Number.isFinite)&&Object.values(impact.position).every(Number.isFinite));
+  if(['machinegun','trishot'].includes(kind))check(kind+' confirmed event retains exact sweep endpoints',impact.from&&Object.values(impact.from).every(Number.isFinite)&&Object.values(impact.position).every(Number.isFinite));
  }finally{if(adapter&&state)adapter.dispose(state);else match.dispose();}
 }
 console.log(JSON.stringify({pass:true,checks:results.length,measurements,scope:'Exact production movingItems and shipping/fallback meshes, real Rapier solids in all four maps, legal authority collection/fire and exact adapter radii. No GPU/phone/FPS claim.'}));

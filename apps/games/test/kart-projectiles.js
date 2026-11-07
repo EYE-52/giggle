@@ -24,7 +24,7 @@ function setup(n = 2, map = 'Rookie Ring') {
     kart.shield = 0; // fixtures test hits, not spawn protection
     kart.health = 1; // Wounded sweep/KO contract; default 3 hearts are tested in kart-health / kart-hearts-weapons.
   }
-  state.karts[0].weapon = 'pulse';
+  state.karts[0].weapon = 'machinegun';
   state.karts[0].ammo = 3;
   const fire = () => game.onAction(state, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
   return { state, ctx, step, fire };
@@ -51,7 +51,7 @@ function run() {
     game.onAction(state, ctx, 'p1', { input: { steer: 0, throttle: 1 } });
     fire(); step(30);
     assert.equal(shooter.hits, 0);
-    assert(Math.abs(state.zaps[0].z - (-1.35)) < 1e-9);
+    assert(Math.abs(state.zaps[0].z - (-6.65+2+140*.03)) < 1e-9);
     const accel=require('../games/engines/kart-engine').constants.ACCEL;
     assert(Math.abs(target.z - (4-(14+accel*.03)*.03)) < 1e-9,'moving target advances with current acceleration');
     // Next sampled positions miss, but the paths cross during this tick.
@@ -79,7 +79,7 @@ function run() {
     victim.z = 3;
     victim.slip = 3; victim.turbo = 1; victim.boost = 1;
     victim.drifting = true; victim.driftCharge = 1;
-    victim.weapon = 'pulse'; victim.ammo = 2;
+    victim.weapon = 'machinegun'; victim.ammo = 2;
     fire(); step(100); expectHit(state);
     for (const key of ['speed', 'slip', 'turbo', 'boost', 'driftCharge', 'ammo']) {
       assert.equal(victim[key], 0, 'KO clears ' + key);
@@ -148,10 +148,10 @@ function run() {
 
   for (const [ttl, expected] of [[0.05, 0], [0.2, 1]]) {
     const { state, step } = setup();
-    state.karts[0].z = 0; state.karts[1].z = 10;
+    state.karts[0].z = 0; state.karts[1].z = 12;
     // At speed110 the hull is reached at .057s. A .05s fuse expires
     // first; a .2s fuse survives. The same ordering applies on hitches.
-    state.zaps.push({ id: 'fixture', owner: 'p0', kind: 'pulse', x: 0, z: 2, angle: 0, ttl });
+    state.zaps.push({ id: 'fixture', owner: 'p0', kind: 'machinegun', x: 0, z: 2, angle: 0, ttl });
     step(250);
     assert.equal(state.karts[0].hits, expected, 'expiry and hull impacts follow time order');
     assert.equal(state.zaps.length, 0);

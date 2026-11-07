@@ -129,15 +129,15 @@ globalThis.document={createElement:()=>new Element()};
 
   const you='a';
   eq(kartEventCue({type:'hit',pid:'b',other:'a'},you),'hurt','being hit plays hurt');
-  eq(kartEventCue({type:'hit',pid:'a',other:'b'},you),'hitConfirm','landing a hit plays hit confirm');
+  eq(kartEventCue({type:'hit',pid:'a',other:'b'},you),'hitDing','landing a hit plays hit confirm');
   eq(kartEventCue({type:'hit',pid:'b',other:'c'},you),null,'other drivers trading hits stays quiet');
   eq(kartEventCue({type:'ko',pid:'a',other:'b'},you),'ko');
   eq(kartEventCue({type:'block',pid:'a',other:'b'},you),'block');
   eq(kartEventCue({type:'blast',weapon:'nuke'},you),'nukeBlast');
   eq(kartEventCue({type:'blast',weapon:'proximity'},you),'bombBlast');
-  eq(kartEventCue({type:'blast',weapon:'rocket'},you),'rocketBlast');
-  eq(kartEventCue({type:'blast',weapon:'seeker'},you),'rocketBlast');
-  for(const weapon of ['pulse','scatter','rocket','seeker','proximity','nuke'])eq(kartEventCue({type:'fire',weapon,pid:'b'},you),weapon,`${weapon} fire uses its own cue`);
+  eq(kartEventCue({type:'blast',weapon:'missile'},you),'missileBlast');
+  eq(kartEventCue({type:'blast',weapon:'missile'},you),'missileBlast');
+  for(const weapon of ['machinegun','trishot','missile','missile','proximity','nuke'])eq(kartEventCue({type:'fire',weapon,pid:'b'},you),weapon,`${weapon} fire uses its own cue`);
   eq(kartEventCue({type:'pickup',pid:'a'},you),'pickup');
 }
 

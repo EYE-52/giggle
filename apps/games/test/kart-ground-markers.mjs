@@ -224,7 +224,7 @@ for(const [id,x,z] of [['neon',18,18],['frost',maps.mapDef('frost').surfaces[0].
   }finally{POCKET.dispose(state);}
 }
 // Tilted/yawed physical projectile tip receives the accepted flight position.
-const shot=art.projectile('rocket'),nose=new THREE.Vector3(0,0,shot.userData.combat.tipZ),forward=new THREE.Vector3(0,0,1);
+const shot=art.projectile('missile'),nose=new THREE.Vector3(0,0,shot.userData.combat.tipZ),forward=new THREE.Vector3(0,0,1);
 shot.updateWorldMatrix(true,true);
 assert.ok(Math.abs(new THREE.Box3().setFromObject(shot).max.z-shot.userData.combat.tipZ)<1e-6,'actual assembled RocketShot nose bound matches tip calibration');
 for(const direction of [new THREE.Vector3(.3,.4,.866).normalize(),new THREE.Vector3(-.6,-.5,.624).normalize()]){

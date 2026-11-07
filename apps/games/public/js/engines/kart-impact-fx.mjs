@@ -1,3 +1,4 @@
+import {WEAPONS} from './kart-weapon-contract.mjs';
 /* Accepted-contact presentation only. No physics, radius overlays or camera
  * motion. Three fixed billboard pools use procedural alpha, no textures.
  * Call warmup(renderer,camera) before Ready; reset(epoch) on instance/life or
@@ -5,6 +6,8 @@
  * impact+blast pairs may arrive in either order. Existing history guards
  * remain the renderer's responsibility. */
 export const IMPACT_FX_LIMITS=Object.freeze({fire:156,smoke:84,embers:144,history:96,pairs:24});
+export const BLAST_FX_BUDGETS=Object.freeze({fire:.34,smoke:1,embers:.45,total:1});
+export function blastSize(weapon){const w=WEAPONS[weapon];if(!w?.splashRadius)return .65;return Math.max(.65,w.splashRadius*.45*((w.splashDamage??w.damage)===1?.7:1));}
 const VERTEX=`
 attribute vec3 fxOrigin;
 attribute vec3 fxVelocity;
@@ -56,8 +59,8 @@ void main(){
   alpha=soft*(1.0-vAge)*(vFlash>0.5?1.0:0.8);
   if(vFlash>1.5)alpha*=0.35;
  }else if(fxLayer<1.5){
-  color=mix(vec3(0.075,0.07,0.075),vec3(0.20,0.19,0.18),soft);
-  alpha=soft*0.48*smoothstep(0.0,0.15,vAge)*(1.0-smoothstep(0.7,1.0,vAge));
+  color=mix(vec3(0.52,0.49,0.45),vec3(0.72,0.68,0.62),soft);
+  alpha=soft*0.25*smoothstep(0.0,0.08,vAge)*(1.0-smoothstep(0.35,1.0,vAge));
  }else{
   color=mix(vec3(1.0,0.9,0.53),vec3(1.0,0.28,0.025),vAge);
   alpha=soft*(1.0-vAge);
@@ -94,8 +97,15 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
  function emit(e){
   if(disposed||!e)return false;
   const type=e.type||e.kind,p=e.position;
-  if(!['impact','blast','collision','ko'].includes(type)||!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)||!Number.isFinite(p.z))return false;
+  if(!['fire','mine','hit','impact','blast','collision','ko'].includes(type)||!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)||!Number.isFinite(p.z))return false;
   if(e.id!=null){if(ids.includes(e.id))return false;ids[idHead]=e.id;idHead=(idHead+1)%ids.length;}
+  if(type==='fire'||type==='mine'){
+   const d=e.direction||{x:0,y:0,z:1},heavy=e.weapon==='cannon';
+   particle(fire,p.x,p.y,p.z,d.x*2,d.y*2,d.z*2,.065,heavy?1.2:.5,.06,0,1);
+   const reduce=typeof reducedMotion==='function'?reducedMotion():reducedMotion;
+   if(!reduce&&(e.weapon==='machinegun'||e.weapon==='trishot'))particle(embers,p.x,p.y,p.z,d.z*2,2.5,-d.x*2,.35,.07,.03,.8);
+   dirty();return true;
+  }
   if(type==='collision'){
    // Bumper contact is not an explosion: a small scuff at the solver's
    // contact point, with streaks leaving along its actual normal. Pools
@@ -121,11 +131,11 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
    dirty();return true;
   }
   const ko=type==='ko';
-  const explosion=ko||type==='blast'||['rocket','seeker','nuke','proximity','mine'].includes(e.weapon);
+  const explosion=!ko&&type!=='hit'&&(type==='blast'||['missile','cannon','supernova','rocket','seeker','nuke','proximity','mine'].includes(e.weapon));
   // A Nuke blast reads at arena scale and a knockout bursts big and bright;
   // particle lifetimes stay the same, so nothing lingers.
-  const big=type==='blast'&&e.weapon==='nuke'?3.2:ko?1.7:1;
-  if(explosion){
+  const big=explosion?blastSize(e.weapon):ko?.7:.35;
+  if(explosion||ko){
    for(const prior of pairs){
     if((prior.paired&&!ko)||prior.type===type||time-prior.at>.12||(prior.pid!=null&&e.pid!=null&&prior.pid!==e.pid)||(prior.weapon!=null&&e.weapon!=null&&prior.weapon!==e.weapon)||(prior.tick!=null&&e.tick!=null&&prior.tick!==e.tick))continue;
     if(Math.abs(prior.x-p.x)+Math.abs(prior.y-p.y)+Math.abs(prior.z-p.z)>.04)continue;
@@ -135,16 +145,17 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
    prior.at=time;prior.type=type;prior.pid=e.pid??null;prior.weapon=e.weapon??null;prior.tick=e.tick??null;prior.x=p.x;prior.y=p.y;prior.z=p.z;prior.paired=false;
   }
   const reduce=typeof reducedMotion==='function'?reducedMotion():reducedMotion;
-  particle(fire,p.x,p.y,p.z,0,0,0,reduce?.12:.11,(reduce?.7:explosion?1.8:.55)*big,(reduce?.7:explosion?2.4:.2)*big,0,reduce?2:1);
+  particle(fire,p.x,p.y,p.z,0,0,0,reduce?.12:.11,(reduce?.7:explosion?1:.55)*big,(reduce?.7:explosion?1.3:.2)*big,0,reduce?2:1);
   if(!reduce){
+   if(e.weapon==='nuke'&&type==='blast')particle(fire,p.x,p.y,p.z,0,6,0,.3,big*.5,big*1.1,1,1);
    if(explosion){
     for(let i=0;i<12;i++){
      const a=i*2.399963,up=(i%4-1.5)*.22,r=.18+(i%3)*.17;
-     particle(fire,p.x+Math.cos(a)*r*big,p.y+up,p.z+Math.sin(a)*r*big,Math.cos(a)*1.1*big,1.2+i%3*.35,Math.sin(a)*1.1*big,.25+(i%4)*.033,(.35+(i%3)*.08)*big,(1.8+(i%3)*.25)*big,i*.71);
+     particle(fire,p.x+Math.cos(a)*r*big,p.y+up,p.z+Math.sin(a)*r*big,Math.cos(a)*1.1*big,1.2+i%3*.35,Math.sin(a)*1.1*big,.20+(i%4)*.04,(.25+(i%3)*.04)*big,(.7+(i%3)*.15)*big,i*.71);
     }
     for(let i=0;i<7;i++){
      const a=i*2.399963;
-     particle(smoke,p.x+Math.cos(a)*.3*big,p.y+(i%3)*.18,p.z+Math.sin(a)*.3*big,Math.cos(a)*.7*big,1.2+i%3*.2,Math.sin(a)*.7*big,.95,.65*big,(2.5+i%3*.3)*big,i*.93);
+     particle(smoke,p.x+Math.cos(a)*.3*big,p.y+(i%3)*.18,p.z+Math.sin(a)*.3*big,Math.cos(a)*.7*big,1.2+i%3*.2,Math.sin(a)*.7*big,.7+(i%3)*.12,.3*big,(.7+i%3*.12)*big,i*.93);
     }
    }
    // Bullet ricochets point away from the accepted incoming segment/normal.
@@ -156,10 +167,19 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
    for(let i=0;i<(ko?40:explosion?12:6);i++){
     const a=i*2.399963,speed=ko?6+(i%5)*1.4:explosion?4+(i%3):3+(i%3),side=explosion?1:.4;
     const dx=nx+side*(Math.cos(a)*bx+Math.sin(a)*cx),dy=ny+side*(Math.cos(a)*by+Math.sin(a)*cy),dz=nz+side*(Math.cos(a)*bz+Math.sin(a)*cz);
-    particle(embers,p.x,p.y,p.z,dx*speed,dy*speed+(ko?2.5:0),dz*speed,ko?.6:explosion?.38:.2,ko?.2:explosion?.11:.075,.02,i*.51);
+    particle(embers,p.x,p.y,p.z,dx*speed,dy*speed+(ko?2.5:0),dz*speed,ko?.45:explosion?.3:.2,ko?.13:explosion?.09:.075,.02,i*.51);
    }
   }
   dirty();return true;
+ }
+ // Called with pooled projectile objects; smoke is distance gated, bounded and
+ // expires in .35 seconds. No path arrays, geometry or materials are created.
+ function trail(object,dt){
+  const c=object.userData.combat;if(!c||c.kind!=='missile'||!object.visible)return;
+  c.trailClock=(c.trailClock||0)+dt;if(c.trailClock<.045)return;
+  const p=object.position;if(Math.abs(p.x-(c.trailX??Infinity))+Math.abs(p.y-(c.trailY??Infinity))+Math.abs(p.z-(c.trailZ??Infinity))<.3)return;
+  c.trailClock=0;c.trailX=p.x;c.trailY=p.y;c.trailZ=p.z;
+  particle(smoke,p.x,p.y,p.z,0,.45,0,.35,.2,.75,1);dirty();
  }
  function update(dt){
   if(disposed)return;if(Number.isFinite(dt)&&dt>=0)time+=dt;
@@ -175,5 +195,5 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
   try{await renderer.compileAsync(scene,camera);if(disposed)throw Error('Retired kart impact FX');renderer.render(scene,camera);}finally{update(0);}
  }
  function dispose(){if(disposed)return;reset();disposed=true;root.removeFromParent();for(const p of pools){p.geometry.dispose();p.material.dispose();}}
- return Object.freeze({emit,update,warmup,reset,dispose});
+ return Object.freeze({emit,trail,update,warmup,reset,dispose});
 }

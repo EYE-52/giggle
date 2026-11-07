@@ -22,9 +22,9 @@ function push(x, y, z, level, kind) {
 }
 function shot(kind, owner, target, x, y, z, vx, vy, vz) {
   const me = scan.me;
-  if (owner === scan.you || (kind !== 'rocket' && kind !== 'seeker')) return;
+  if (owner === scan.you || !['missile','cannon','rocket','seeker'].includes(kind)) return;
   const dx = me.x - x, dy = me.y - y, dz = me.z - z, d = Math.hypot(dx, dy, dz);
-  if (kind === 'seeker' && target === scan.you) { push(x, y, z, 1 - Math.min(1, d / 45) * .7, kind); return; }
+  if ((kind === 'missile'||kind === 'seeker') && target === scan.you) { push(x, y, z, 1 - Math.min(1, d / 45) * .7, kind); return; }
   const v2 = vx * vx + vy * vy + vz * vz;
   if (v2 < 1e-6) return;
   const t = (dx * vx + dy * vy + dz * vz) / v2;

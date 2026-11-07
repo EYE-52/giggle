@@ -188,7 +188,7 @@ async function authorities() {
         if (fuse !== undefined) s.grenades = [{ id: 'cutoff-grenade', owner: 'a', x: target.x, z: target.z, y: target.y,
           vx: 0, vz: 0, vy: 0, angle: 0, fuse, bounces: 0 }];
         if (fireAt !== null) {
-          a.weapon = 'pulse'; a.ammo = 1; time = deadline + fireAt;
+          a.weapon = 'machinegun'; a.ammo = 1; time = deadline + fireAt;
           const ack = kartGame.view(s, 'a').inputAck;
           kartGame.onAction(s, ctx, 'a', { seq: ack.receivedSeq + 1, life: ack.life, controlEpoch: ack.controlEpoch,
             input: { steer: 0, throttle: 0, boost: true } });

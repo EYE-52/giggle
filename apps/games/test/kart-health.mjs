@@ -28,8 +28,8 @@ function armed(weapon,m=map(),opts={}) {
 }
 // One acquired clip is one volley: however many rounds connect, the rival
 // loses one heart, and the clip never scores a KO from full hearts.
-for(const [weapon,ammo] of [['pulse',12],['scatter',5]]) {
- const w=armed(weapon,weapon==='scatter'?map([point('a',0,0),point('b',0,5.2)]):map());try {
+for(const [weapon,ammo] of [['machinegun',24],['trishot',3]]) {
+ const w=armed(weapon,weapon==='trishot'?map([point('a',0,0),point('b',0,5.2)]):map());try {
   const initialAmmo=kart(w).ammo;
   fire(w);const seen=new Map();
   for(let i=0;i<180;i++){for(const e of w.snapshot().events)if(e.type==='hit'&&e.other==='b')seen.set(e.id,e);if(seen.size)eq(kart(w,'b').health,2,weapon+' connected clip holds the rival at two hearts');step(w);}
@@ -40,16 +40,16 @@ for(const [weapon,ammo] of [['pulse',12],['scatter',5]]) {
  }finally{w.dispose();}
 }
 eq(SHARED.config.maxHealth,3,'shared capacity is three hearts');
-eq(['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke'].map(id=>SHARED.damageAt(id)),[1,1,1,2,1,2,0,3],'approved whole-heart damage table');
+eq(['machinegun','trishot','mine','missile','missile','proximity','shield','nuke'].map(id=>SHARED.damageAt(id)),[1,1,1,2,2,1,2,3],'approved whole-heart damage table');
 eq(['rail','grenade','emp','bomb','sentry','spikes'].map(id=>SHARED.damageAt(id)),[0,0,0,0,0,0],'retired weapons deal no damage');
 eq([0,7,14].map(d=>SHARED.damageAt('nuke',d)),[3,3,3],'Nuke takes every heart with no distance falloff');
 eq(Object.values(SHARED.config.weapons).filter(w=>'directDamage' in w||'edgeDamage' in w).length,0,'no direct or edge damage tiers remain');
-ok(Object.isFrozen(SHARED.config)&&Object.isFrozen(SHARED.config.weapons.rocket),'shared authority description cannot drift through mutation');
+ok(Object.isFrozen(SHARED.config)&&Object.isFrozen(SHARED.config.weapons.missile),'shared authority description cannot drift through mutation');
 
-for(const weapon of ['pulse','rocket','seeker','scatter']) {
- const w=armed(weapon,weapon==='scatter'?map([point('a',0,0),point('b',0,5.2)]):map());try {
+for(const weapon of ['machinegun','missile','cannon','trishot']) {
+ const w=armed(weapon,weapon==='trishot'?map([point('a',0,0),point('b',0,5.2)]):map());try {
   eq(w.snapshot().karts.map(k=>[k.health,k.maxHealth]),[[3,3],[3,3]],weapon+' fresh default hearts');
-  if(weapon==='rocket')eq(kart(w).ammo,3,'rocket crate supplies three missiles');
+  if(weapon==='missile')eq(kart(w).ammo,1,'missile crate supplies one missile');
   fire(w);const seen=new Map();step(w,60,()=>{for(const e of w.snapshot().events)if(e.type==='hit'&&e.other==='b')seen.set(e.id,e);});
   const hits=[...seen.values()],damage=hits.reduce((sum,e)=>sum+e.damage,0);
   eq(damage,SHARED.damageAt(weapon),weapon+' accepted pickup deals its whole-heart damage once');eq(hits.length,1,weapon+' one hit event per pickup');
@@ -60,7 +60,7 @@ for(const weapon of ['pulse','rocket','seeker','scatter']) {
 }
 {
  // Two-heart diagnostic start: the Rocket clip's two hearts are lethal.
- const awards=[],w=armed('rocket',map(),{initialHealth:2,onAward:(...v)=>awards.push(v)});try {
+ const awards=[],w=armed('missile',map(),{initialHealth:2,onAward:(...v)=>awards.push(v)});try {
   const old=w.snapshot('b').you;
   fire(w);step(w,26);eq(kart(w,'b').health,0,'one actual direct Rocket takes two hearts without splash double-count');eq(kart(w).hits,1,'direct Rocket scores at zero hearts');
   fire(w);step(w,26);eq(kart(w,'b').deaths,1,'remaining Rockets cannot duplicate damage/KO for the dead life');
@@ -74,22 +74,15 @@ for(const weapon of ['pulse','rocket','seeker','scatter']) {
 }
 for(const gate of ['cover','offline']) {
  const cover={id:'cover',shape:'box',position:{x:0,y:2,z:5},half:{x:8,y:2,z:.02}};
- const w=armed('rocket',map(undefined,gate==='cover'?[cover]:[]));
+ const w=armed('missile',map(undefined,gate==='cover'?[cover]:[]));
  try {
   if(gate==='offline')w.setConnected('b',false);
   fire(w);step(w,35);eq(kart(w,'b').health,3,gate+' blocks physical rocket damage');eq(kart(w).hits,0,gate+' blocks scoring');eq(kart(w).health,3,'owner immune to its blast');
  }finally{w.dispose();}
 }
 {
- let w;for(let seed=0;seed<512;seed++){const m=map(),v=AUTHORITY.createElevatedCombat(RAPIER,CONFIG,m,m.spawns.map(p=>({id:p.id})),{instance:'protected-'+(++serial),seed,countdownMs:0,roundMs:10000,crates:1});step(v);if(kart(v).weapon==='rocket'){w=v;break;}v.dispose();}
+ let w;for(let seed=0;seed<512;seed++){const m=map(),v=AUTHORITY.createElevatedCombat(RAPIER,CONFIG,m,m.spawns.map(p=>({id:p.id})),{instance:'protected-'+(++serial),seed,countdownMs:0,roundMs:10000,crates:1});step(v);if(kart(v).weapon==='missile'){w=v;break;}v.dispose();}
  try{fire(w);step(w,20);eq(kart(w,'b').health,3,'real spawn shield absorbs rocket');ok(w.snapshot().events.some(e=>e.type==='impact'&&e.other==='b')&&!w.snapshot().events.some(e=>e.type==='hit'||e.type==='block'),'protected physical impact stays distinct from a heart hit or Shield block');}finally{w.dispose();}
-}
-{
- const w=armed('proximity',map([point('a',0,0),point('b',0,12),point('c',3,12)]));try {
-  fire(w);step(w,140);
-  eq(['b','c'].map(id=>kart(w,id).health),[1,1],'proximity one blast takes two hearts from every visible victim');
-  eq(w.snapshot().events.filter(e=>e.type==='hit').length,2,'proximity one hit per victim');eq(kart(w).hits,0,'proximity wounds do not score');eq(kart(w).health,3,'proximity owner immune');
- }finally{w.dispose();}
 }
 {
  const w=armed('nuke',map([point('a',0,0),point('b',-3,16),point('c',10,16)]));try {
@@ -137,31 +130,9 @@ for(const gate of ['cover','offline','shield']) {
  }finally{w.dispose();}
 }
 {
- // A Shield pickup is a guard, not a ram: driving into a rival never hurts.
- const w=armed('shield',map([point('a',0,0),point('b',0,8)]));try {
-  fire(w);ok(kart(w).guard===true&&w.snapshot().events.some(e=>e.type==='shield'&&e.pid==='a'),'Shield pickup raises a guard');const near=[],seen=new Map();
-  step(w,145,i=>{if(i%8===0&&kart(w).alive){send(w,'a',{throttle:.45});send(w,'b',{brake:1});}const s=w.snapshot(),a=kart(w).pose.position,b=kart(w,'b').pose.position;if(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<3.3)near.push(s.simTick);for(const e of s.events)if(e.type==='hit'||e.type==='block')seen.set(e.id,e);});
-  ok(near.length>0,'guarded kart physically reaches its rival');eq(seen.size,0,'guarded contact creates no hit or block');eq([kart(w,'b').health,kart(w).hits,kart(w).guard],[3,0,true],'contact neither damages nor spends the guard');
-  measurements.shieldContact={nearFrames:near.length};
- }finally{w.dispose();}
-}
-{
- // Real crates arm A with a Rocket clip and B with a Shield. The guard soaks
- // the clip's one hit (block event, no heart lost) and then breaks.
- const m=map([point('a',0,0),point('b',0,10)]);m.sockets.push(point('s2',-.7,10),point('s3',.7,10));let w;
- for(let seed=0;seed<2048;seed++){const v=AUTHORITY.createElevatedCombat(RAPIER,CONFIG,m,m.spawns.map(p=>({id:p.id})),{instance:'guard-'+(++serial),seed,countdownMs:0,roundMs:20000,crates:2});step(v);if(kart(v).weapon==='rocket'&&kart(v,'b').weapon==='shield'){w=v;measurements.guardSeed=seed;break;}v.dispose();}
- ok(w,'guard scenario acquires Rocket and Shield through real crates');
- try {
-  step(w,160);fire(w,'b');eq(kart(w,'b').guard,true,'Shield guard is up');
-  fire(w);const seen=new Map();step(w,60,()=>{for(const e of w.snapshot().events)if(e.other==='b'&&(e.type==='hit'||e.type==='block'))seen.set(e.id,e);});
-  eq([...seen.values()].map(e=>[e.type,e.pid,e.weapon]),[['block','a','rocket']],'guard blocks the Rocket clip with one block event and no hit');
-  eq([kart(w,'b').health,kart(w,'b').guard,kart(w).hits],[3,false,0],'blocked hit keeps every heart and breaks the guard');
- }finally{w.dispose();}
-}
-{
- const w=armed('pulse'),seen=new Map();try {
+ const w=armed('machinegun'),seen=new Map();try {
   for(let i=0;i<240;i++){if(i%6===0)send(w,'a',{use:true});step(w);for(const e of w.snapshot().events)seen.set(e.id,e);}
-  eq([...seen.values()].filter(e=>e.type==='fire'&&e.weapon==='pulse').length,12,'held Pulse consumes one finite twelve-round clip');eq([...seen.values()].filter(e=>e.type==='hit').length,1,'held Pulse clip lands exactly one heart');eq(kart(w).hits,0,'held Pulse clip cannot score from full hearts');ok(kart(w,'b').alive&&kart(w,'b').health===2,'long Pulse burst leaves the rival on two hearts');
+  eq([...seen.values()].filter(e=>e.type==='fire'&&e.weapon==='machinegun').length,24,'held Pulse consumes one finite twelve-round clip');eq([...seen.values()].filter(e=>e.type==='hit').length,1,'held Pulse clip lands exactly one heart');eq(kart(w).hits,0,'held Pulse clip cannot score from full hearts');ok(kart(w,'b').alive&&kart(w,'b').health===2,'long Pulse burst leaves the rival on two hearts');
  }finally{w.dispose();}
 }
 {
@@ -176,42 +147,39 @@ for(const gate of ['cover','offline','shield']) {
  }finally{w.dispose();}
 }
 
-function legacy(n=2){let now=1000000,volleys=0;const players=Array.from({length:n},(_,i)=>({id:'p'+i,name:'P'+i})),ctx={now:()=>now,settings:()=>({mode:'Zap Battle',map:'Rookie Ring',winRule:'Time limit'}),players:()=>players.filter(p=>!ctx.offline?.has(p.id)),allPlayers:()=>players,broadcast(){},award(){},later:()=>()=>{}};const s=GAME.create(ctx);now+=3000;GAME.onTick(s,ctx);s.blocks=[];s.crates=[];s.karts.forEach((k,i)=>{k.x=0;k.z=i*10;k.angle=0;k.shield=0;k.speed=0;});return {s,ctx,step(ms=100){now+=ms;GAME.onTick(s,ctx)},fire(weapon,ammo=1){const a=s.karts[0];a.weapon=weapon;a.ammo=ammo;a.fireCd=0;a.prevAction=false;a.volley='t'+(++volleys);GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:true}});GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:false}});}};}
+function legacy(n=2){let now=1000000,volleys=0;const players=Array.from({length:n},(_,i)=>({id:'p'+i,name:'P'+i})),ctx={now:()=>now,settings:()=>({mode:'Zap Battle',map:'Rookie Ring',winRule:'Time limit'}),players:()=>players.filter(p=>!ctx.offline?.has(p.id)),allPlayers:()=>players,broadcast(){},award(){},later:()=>()=>{}};const history=new Map();const s=GAME.create(ctx);now+=3000;GAME.onTick(s,ctx);s.blocks=[];s.crates=[];s.karts.forEach((k,i)=>{k.x=0;k.z=i*10;k.angle=0;k.shield=0;k.speed=0;});return {s,ctx,history,step(ms=100){now+=ms;GAME.onTick(s,ctx);for(const e of s.events)history.set(e.id,e)},fire(weapon,ammo=1){const a=s.karts[0];a.weapon=weapon;a.ammo=ammo;a.fireCd=0;a.prevAction=false;a.volley='t'+(++volleys);GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:true}});GAME.onAction(s,ctx,a.pid,{input:{steer:0,throttle:0,boost:false}});}};}
 // Controlled classic placement isolates actual crate acquisition and planar
 // authority; never a shipping Room actor or hidden-state acceptance claim.
-for(const [weapon,ammo] of [['pulse',12],['scatter',5]]) {
+for(const [weapon,ammo] of [['machinegun',24],['trishot',3]]) {
  let r;
  for(let seed=0;seed<512;seed++) {const v=legacy();v.s.rngState=seed;v.s.crates=[{id:'pickup',x:0,z:0}];v.step(100);if(v.s.karts[0].weapon===weapon){r=v;break;}}
- ok(r,weapon+' bounded classic pickup fixture reaches weapon');const [a,b]=r.s.karts;if(weapon==='scatter')b.z=5.2;
+ ok(r,weapon+' bounded classic pickup fixture reaches weapon');const [a,b]=r.s.karts;if(weapon==='trishot')b.z=5.2;
  const initialAmmo=a.ammo;r.s.crates=[];
  for(let i=0;i<ammo&&a.weapon;i++) {a.fireCd=0;a.prevAction=false;GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:true}});r.step(100);GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:0,boost:false}});for(let t=0;t<4;t++)r.step(100);eq(b.health,2,'classic '+weapon+' acquired clip connection '+(i+1)+' stays at one heart');eq(a.hits,0,'classic '+weapon+' one clip cannot score from full hearts');}
- eq(initialAmmo,ammo,'classic '+weapon+' actual pickup supplies same clip as elevated');eq(r.s.events.filter(e=>e.type==='hit').map(e=>e.damage),[1],'classic '+weapon+' whole clip lands one heart once');measurements['classic'+weapon+'Clip']={initialAmmo,remainingAmmo:a.ammo,hits:a.hits};
+ eq(initialAmmo,ammo,'classic '+weapon+' actual pickup supplies same clip as elevated');eq([...r.history.values()].filter(e=>e.type==='hit').map(e=>e.damage),[1],'classic '+weapon+' whole clip lands one heart once');measurements['classic'+weapon+'Clip']={initialAmmo,remainingAmmo:a.ammo,hits:a.hits};
 }
 {
  const r=legacy(),[a,b]=r.s.karts;eq([a.health,b.health],[3,3],'legacy engine starts with three hearts');eq(GAME.view(r.s,r.ctx,'p0').combat,SHARED.config,'legacy projects shared damage/range description');
- r.fire('rocket');r.step(100);eq(b.health,1,'legacy direct Rocket takes two hearts');eq(a.hits,0,'legacy wounding Rocket awards no KO');
- r.fire('rocket');r.step(100);eq(b.health,0,'a second Rocket pickup takes the last heart');eq(a.hits,1,'legacy lethal Rocket awards one KO');r.fire('rocket');r.step(100);eq(b.deaths,1,'legacy dead life cannot be hit twice');
+ r.fire('missile');r.step(150);eq(b.health,1,'legacy direct Rocket takes two hearts');eq(a.hits,0,'legacy wounding Rocket awards no KO');
+ r.fire('missile');r.step(150);eq(b.health,0,'a second Rocket pickup takes the last heart');eq(a.hits,1,'legacy lethal Rocket awards one KO');r.fire('missile');r.step(150);eq(b.deaths,1,'legacy dead life cannot be hit twice');
  eq(r.s.events.filter(e=>e.type==='hit').map(e=>e.damage),[2,1],'legacy direct rockets never count splash twice and clip to the hearts left');for(let i=0;i<21;i++)r.step(100);eq(b.health,3,'legacy respawn restores three hearts');ok(b.shield>0,'legacy respawn protected');
 }
-for(const weapon of ['pulse','scatter','nuke','mine','proximity']){
+for(const weapon of ['machinegun','trishot','nuke','mine']){
  const r=legacy(),b=r.s.karts[1];
- if(weapon==='scatter')b.z=5.2;
+ if(weapon==='trishot')b.z=5.2;
  if(weapon==='nuke')r.s.grenades=[{id:'g',owner:'p0',kind:'nuke',x:0,z:10,y:0,vx:0,vz:0,vy:0,angle:0,fuse:.01,bounces:2}];
  else if(weapon==='mine'||weapon==='proximity')r.s.mines=[{id:'m',owner:'p0',x:0,z:10,armed:true,armT:0,ttl:5,...(weapon==='proximity'?{kind:'proximity'}:{})}];
  else r.fire(weapon);
  r.step(100);const damage=r.s.events.filter(e=>e.type==='hit').reduce((sum,e)=>sum+e.damage,0);eq(damage,SHARED.damageAt(weapon),'legacy '+weapon+' full-heart damage');eq(b.health,3-damage,'legacy '+weapon+' updates hearts');eq(r.s.karts[0].hits,weapon==='nuke'?1:0,'legacy '+weapon+' scores only when it empties the hearts');
 }
-{
- const r=legacy(3);r.s.karts[1].x=-2.2;r.s.karts[2].x=2.2;r.s.karts[1].z=r.s.karts[2].z=10;
- r.s.mines=[{id:'m',owner:'p0',kind:'proximity',x:0,z:9,armed:true,armT:0,ttl:5}];r.step(100);eq(r.s.karts.map(k=>k.health),[3,1,1],'legacy Proximity Bomb takes two hearts from both visible rivals once');
-}
+
 {
  const r=legacy(3),[a,b,c]=r.s.karts;c.x=-2.2;c.z=6.4; // Generic central muzzle: separate hulls, nearby splash, no direct corridor hit
- const sweepRadius=Math.sqrt(CLASSIC.RULES.battle.constants.ZAP_HIT_R2),splashRadius=CLASSIC.RULES.battle.constants.ROCKET_SPLASH_R,expectedImpactZ=b.z-sweepRadius;
+ const sweepRadius=Math.sqrt(CLASSIC.RULES.battle.constants.ZAP_HIT_R2),splashRadius=SHARED.config.weapons.missile.splashRadius,expectedImpactZ=b.z-sweepRadius;
  ok(Math.abs(c.x)>sweepRadius,'generic splash rival stays outside the actual central projectile hull corridor');
  ok(Math.hypot(c.x-b.x,c.z-expectedImpactZ)<splashRadius,'generic splash rival is inside actual central-impact splash radius');
  ok(Math.hypot(b.x-c.x,b.z-c.z)>CLASSIC.constants.KART_R*2,'legacy multi-victim Rocket starts with two physically separated hulls');
- r.fire('rocket');r.step(100);
+ r.fire('missile');r.step(150);
  const blast=r.s.events.find(e=>e.type==='blast');ok(blast&&Math.abs(blast.x)<1e-9&&Math.abs(blast.z-expectedImpactZ)<1e-9,'actual generic rocket blast occurs at the earliest central hull sweep contact');
  ok(Math.hypot(c.x-blast.x,c.z-blast.z)<splashRadius,'actual accepted generic blast contains the splash rival');
  eq([a.health,b.health,c.health],[3,1,1],'legacy Rocket takes two hearts from the direct and the nearby splash victim once each');
@@ -219,19 +187,7 @@ for(const weapon of ['pulse','scatter','nuke','mine','proximity']){
 }
 for(const gate of ['shield','offline','cover','dead']){
  const r=legacy(),b=r.s.karts[1];if(gate==='shield')b.shield=2;if(gate==='offline')r.ctx.offline=new Set(['p1']);if(gate==='cover')r.s.blocks=[{x:0,z:5,hw:8,hd:.02}];if(gate==='dead'){b.health=0;b.respawn=1;}
- const before=b.health;r.fire('rocket');r.step(100);eq(b.health,before,'legacy '+gate+' immune to rocket damage');eq(r.s.karts[0].hits,0,'legacy '+gate+' cannot score');
-}
-for(const activated of [false,true]){
- const r=legacy(),[a,b]=r.s.karts; b.z=7;
- if(activated){r.fire('shield');r.step(100);eq([a.guard,a.weapon],[true,null],'legacy Shield pickup raises a guard and is spent');}else a.shield=2.5;
- let touches=0;
- for(let i=0;i<30&&b.respawn===0;i++){
-  GAME.onAction(r.s,r.ctx,'p0',{input:{steer:0,throttle:.5,boost:false}});r.step(100);
-  if(Math.hypot(a.x-b.x,a.z-b.z)<=CLASSIC.constants.KART_R*2+.01)touches++;
- }
- ok(touches>0,'legacy '+(activated?'guard':'spawn protection')+' test physically reaches its rival');eq(b.health,3,'legacy '+(activated?'Shield guard':'defensive spawn Shield')+' never deals contact damage');eq(a.hits,0,'legacy contact grants no ram KO');
- if(activated)eq(a.guard,true,'contact does not spend the guard');
- measurements['legacyShield'+(activated?'Active':'Spawn')]={touches,health:b.health,hits:a.hits};
+ const before=b.health;r.fire('missile');r.step(150);eq(b.health,before,'legacy '+gate+' immune to rocket damage');eq(r.s.karts[0].hits,0,'legacy '+gate+' cannot score');
 }
 // Physical classic pickups: declared authority poses and seeded actual crate
 // rolls. Separate from Room acceptance.

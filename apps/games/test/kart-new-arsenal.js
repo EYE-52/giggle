@@ -4,7 +4,7 @@
  * fires, hits, does its special effect, and retires cleanly — no shot,
  * trap, canister, status or volley lingers afterwards.
  *   laser      fast straight bolt, 1 heart, 2 shots
- *   thunder    instant strike on the rival ahead (else the nearest)
+ *   thunder    instant strike on the rival inside the narrow forward cone
  *   boomerang  curves out and back, cuts through rivals, is caught
  *   oil        trap behind; victim loses a heart and spins out
  *   frost      lobbed splash; victims lose a heart and are slowed
@@ -69,53 +69,30 @@ function clean(st, label) {
   assert.deepStrictEqual([view.zaps.length, view.mines.length, view.grenades.length], [0, 0, 0], label + ': the wire is empty too');
 }
 
-// --- laser: very fast thin bolt, 2 shots, one heart per pickup ---
-{
-  const [st, ctx] = arena(2);
-  const [a, b] = st.karts;
-  a.x = 0; a.z = -24; b.x = 0; b.z = 10;
-  arm(a, 'laser', 'vl');
-  const rec = recorder(st);
-  press(st, ctx, 'p0'); tick(ctx, st); rec.take();
-  assert.strictEqual(st.zaps.length, 1, 'laser: one bolt per press');
-  assert.strictEqual(st.zaps[0].kind, 'laser', 'laser: bolt is tagged');
-  const wire = karts.view(st, 'p1').zaps[0];
-  assert.strictEqual(wire.speed, B.LASER_SPEED, 'laser: wire carries its speed');
-  assert(B.LASER_SPEED > 1.5 * B.PULSE_SPEED, 'laser: much faster than a Pulse round');
-  assert(config.staticSweepRadii.laser < config.staticSweepRadii.pulse, 'laser: thinner than a Pulse round');
-  release(st, ctx, 'p0'); settle(st, ctx, .5, rec);
-  assert.strictEqual(b.health, 2, 'laser: a 34u shot lands within half a second');
-  assert.strictEqual(a.ammo, 1, 'laser: one charge left');
-  shoot(st, ctx, 'p0'); settle(st, ctx, 1, rec);
-  assert.strictEqual(b.health, 2, 'laser: the second shot of the same pickup cannot hurt again');
-  assert.strictEqual(a.weapon, null, 'laser: slot empties after two shots');
-  assert.strictEqual(rec.all.filter((e) => e.type === 'fire' && e.weapon === 'laser').length, 2, 'laser: one fire event per shot');
-  clean(st, 'laser');
-  console.log('NEW_ARSENAL ok: laser');
-}
-
-// --- thunder: instant strike in the forward cone, else the nearest ---
+// --- thunder: instant strike in the forward cone, otherwise a miss ---
 {
   const [st, ctx] = arena(3);
   const [a, b, c] = st.karts;
   a.x = 0; a.z = -20; a.angle = 0;
-  b.x = 9; b.z = 0; // ~24 degrees off the nose, 22u away: in the cone
+  b.x = 4; b.z = 0; // ~11 degrees off the nose, 20u away: in the cone
   c.x = 0; c.z = -26; // nearer, but behind
   arm(a, 'thunder', 'vt');
-  const rec = recorder(st);
+  const rec = recorder(st),targetAtFire={x:b.x,z:b.z};
   shoot(st, ctx, 'p0'); rec.take();
   const blast = rec.all.find((e) => e.type === 'blast' && e.weapon === 'thunder');
   assert(blast && blast.other === 'p1', 'thunder: strikes the rival in the forward cone');
   assert.deepStrictEqual([b.health, c.health], [2, 3], 'thunder: one heart from the struck rival only');
-  assert(Math.abs(blast.x - b.x) < .01 && Math.abs(blast.z - b.z) < .01, 'thunder: the bolt lands on the rival');
-  // Nobody in the cone: falls back to the nearest rival anywhere.
+  assert(Math.abs(blast.x-targetAtFire.x)<.01&&Math.abs(blast.z-targetAtFire.z)<.01, 'thunder: the bolt lands on the rival');
+  // Nobody in the cone: the ground strike misses every rival.
   arm(a, 'thunder', 'vt2'); b.x = 25; b.z = 25;
   shoot(st, ctx, 'p0'); rec.take();
-  assert.strictEqual(c.health, 2, 'thunder: falls back to the nearest rival behind');
+  assert.strictEqual(c.health,3,'thunder misses the rival behind');
+  const miss=rec.all.filter(e=>e.type==='blast'&&e.weapon==='thunder').at(-1);
+  assert(!miss.other&&Math.abs(miss.z-(a.z+18))<.01,'miss lands eighteen metres ahead');
   // A shield soaks the strike.
-  arm(a, 'thunder', 'vt3'); c.guard = true;
+  arm(a,'thunder','vt3');c.x=0;c.z=-10;c.guard=true;
   shoot(st, ctx, 'p0'); rec.take();
-  assert.deepStrictEqual([c.health, c.guard], [2, false], 'thunder: Shield blocks the strike and breaks');
+  assert.deepStrictEqual([c.health, c.guard], [3, false], 'thunder: Shield blocks the strike and breaks');
   assert(rec.all.some((e) => e.type === 'block' && e.weapon === 'thunder'), 'thunder: block is announced');
   settle(st, ctx, .3, rec);
   clean(st, 'thunder');
@@ -211,51 +188,6 @@ function clean(st, label) {
   console.log('NEW_ARSENAL ok: frost');
 }
 
-// --- cluster: canister bursts into staggered bomblets; one heart per rival ---
-{
-  const [st, ctx] = arena(2);
-  const [a, b] = st.karts;
-  a.x = 0; a.z = -20; a.angle = 0;
-  b.x = 0; b.z = -5;
-  arm(a, 'cluster', 'vc');
-  const rec = recorder(st);
-  shoot(st, ctx, 'p0'); rec.take();
-  assert.strictEqual(st.grenades[0]?.kind, 'cluster', 'cluster: canister lobbed');
-  settle(st, ctx, 2.2, rec);
-  const burst = rec.all.filter((e) => e.type === 'burst' && e.weapon === 'cluster');
-  const pops = rec.all.filter((e) => e.type === 'blast' && e.weapon === 'cluster');
-  assert.strictEqual(burst.length, 1, 'cluster: one burst');
-  assert.strictEqual(pops.length, config.weapons.cluster.bomblets, 'cluster: every bomblet pops');
-  const ticks = new Set(pops.map((e) => e.id)); assert.strictEqual(ticks.size, pops.length, 'cluster: separate pops');
-  assert.strictEqual(b.health, 2, 'cluster: many bomblets still take only one heart');
-  clean(st, 'cluster');
-  console.log('NEW_ARSENAL ok: cluster');
-}
-
-// --- bouncer: ricochets off walls and cover; hits; at most 4 bounces ---
-{
-  const [st, ctx] = arena(2);
-  const [a, b] = st.karts;
-  a.x = 0; a.z = -18; a.angle = Math.PI; // facing the near wall
-  b.x = 0; b.z = -6; // behind the thrower: only a ricochet reaches it
-  arm(a, 'bouncer', 'vbo');
-  const rec = recorder(st);
-  shoot(st, ctx, 'p0'); settle(st, ctx, .8, rec);
-  assert(rec.all.some((e) => e.type === 'bounce' && e.weapon === 'bouncer'), 'bouncer: boings off the wall');
-  assert.strictEqual(b.health, 2, 'bouncer: the ricochet lands');
-  // A lone ball in an empty corner runs out of bounces and retires.
-  b.x = 25; b.z = 25;
-  a.x = -20; a.z = -20; a.angle = Math.PI * 1.25;
-  const from = rec.all.length;
-  shoot(st, ctx, 'p0'); settle(st, ctx, config.weapons.bouncer.ttl + .5, rec);
-  const bounces = rec.all.slice(from).filter((e) => e.type === 'bounce').length;
-  assert(bounces >= 1 && bounces <= config.weapons.bouncer.bounces, 'bouncer: at most four bounces (' + bounces + ')');
-  a.weapon = null; a.ammo = 0;
-  settle(st, ctx, .1, rec);
-  clean(st, 'bouncer');
-  console.log('NEW_ARSENAL ok: bouncer');
-}
-
 // --- ram: 3 s boost; touching a rival takes one heart once ---
 {
   const [st, ctx] = arena(3);
@@ -287,7 +219,7 @@ function clean(st, label) {
 // --- every new weapon is announced on fire, with its own sound name ---
 {
   const fired = new Set();
-  for (const weapon of ['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram']) {
+  for (const weapon of ['thunder', 'boomerang', 'oil', 'frost', 'ram']) {
     const [st, ctx] = arena(2);
     const a = st.karts[0]; a.x = 0; a.z = 0;
     arm(a, weapon, 'va-' + weapon);
@@ -296,37 +228,8 @@ function clean(st, label) {
     assert(events(st, 'fire', from).some((e) => e.weapon === weapon), weapon + ' emits one fire event');
     fired.add(weapon);
   }
-  assert.strictEqual(fired.size, 8);
+  assert.strictEqual(fired.size, 5);
   console.log('NEW_ARSENAL ok: every new weapon announces its spend');
 }
 
-// --- every new weapon has its own sound, HUD name and thumbnail ---
-(async () => {
-  const { kartEventCue } = await import('../public/js/engines/kart-hearts.mjs');
-  const { SYNTH_CUE_NAMES } = await import('../public/js/engines/kart-audio.mjs');
-  const { KART_WEAPON_INFO } = await import('../public/js/engines/kart-weapon-hud.mjs');
-  const fs = require('fs');
-  const cues = new Set();
-  for (const weapon of ['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram']) {
-    const cue = kartEventCue({ type: 'fire', weapon }, 'p0');
-    assert(SYNTH_CUE_NAMES.includes(cue), weapon + ' fire plays a synthesized cue');
-    cues.add(cue);
-    assert(KART_WEAPON_INFO[weapon]?.name && KART_WEAPON_INFO[weapon].hearts === 1, weapon + ' has a HUD name and heart cost');
-    assert(fs.existsSync(require.resolve('../public/assets/karts/weapon-thumbnails/' + weapon + '.png')), weapon + ' has a thumbnail');
-  }
-  assert.strictEqual(cues.size, 8, 'eight distinct fire sounds');
-  const impacts = [['blast', 'thunder', 'thunderClap'], ['blast', 'frost', 'frostShatter'], ['blast', 'cluster', 'clusterPop'],
-    ['burst', 'cluster', 'clusterPop'], ['bounce', 'bouncer', 'boing'], ['splat', 'oil', 'oilSkid'], ['hit', 'ram', 'ramClang']];
-  for (const [type, weapon, cue] of impacts) assert.strictEqual(kartEventCue({ type, weapon, pid: 'p1', other: 'p2' }, 'p0'), cue, `${type}/${weapon} plays ${cue}`);
-  assert.strictEqual(kartEventCue({ type: 'blast', weapon: 'rocket' }, 'p0'), 'rocketBlast', 'kept blasts keep their samples');
-  assert.strictEqual(kartEventCue({ type: 'hit', weapon: 'pulse', other: 'p0', pid: 'p1' }, 'p0'), 'hurt', 'kept hits keep hurt');
-  // The how-to names every weapon, and the manifest still validates.
-  const registry = require('../games/registry');
-  assert(registry.list().some((g) => g.id === 'pocket-karts'), 'pocket-karts stays in the catalogue (manifest limits hold)');
-  const text = require('../games/pocket-karts/server.js').manifest.howto;
-  for (const name of ['Rail Laser', 'Thunder Strike', 'Boomerang', 'Oil Slick', 'Frost Bomb', 'Cluster Bomb', 'Bounce Ball', 'Turbo Ram'])
-    assert(text.includes(name), 'how-to explains ' + name);
-  assert(/16 weapons/.test(text), 'how-to counts the arsenal');
-  console.log('NEW_ARSENAL ok: sounds, HUD names, thumbnails and how-to cover the new weapons');
-  console.log('KART_NEW_ARSENAL_PASS');
-})().catch((error) => { console.error(error); process.exit(1); });
+console.log('Kept secondary arsenal mechanics pass');

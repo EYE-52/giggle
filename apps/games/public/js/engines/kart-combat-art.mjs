@@ -1,126 +1,12 @@
-/* Giggle Karts combat prop art: GLB-backed factory + procedural fallback.
- *
- * Primary path: loaded source-asset packs plus Blender-authored combat.glb.
- * The elevated view overlays pulse-mounted, arsenal-mounted and
- * arsenal-secondary; the classic view can continue using combat.glb alone.
- * (scripts/build-kart-combat-assets.py -> public/assets/karts/combat/combat.glb,
- * source assets-source/karts/giggle-combat.blend). Root loads the GLB once
- * into a hidden resource library (mirroring kart-assets.mjs) and hands the
- * models to this factory; every creator then clones Blender-authored meshes,
- * so instances share root-owned GPU resources and removal is a plain
- * scene-remove with no disposal call.
- *
- *   import { createKartCombatArt } from './kart-combat-art.mjs';
- *   import { GLTFLoader } from '../../vendor/three/loaders/GLTFLoader.js';
- *   const gltf = await new GLTFLoader().loadAsync('/assets/karts/combat/combat.glb');
- *   const library = new THREE.Group();
- *   library.name = 'CombatAssetLibrary'; library.visible = false; scene.add(library);
- *   library.add(gltf.scene);
- *   const combat = createKartCombatArt(THREE, { assets: gltf.scene });
- *
- * `assets` accepts three shapes (all documented, all tested):
- *   - a THREE.Object3D library root (gltf.scene or the hidden library
- *     Group): models are found with getObjectByName, like kart-assets.
- *   - a Map of model name -> THREE.Object3D (Map.prototype.get).
- *   - a plain object map of model name -> THREE.Object3D.
- *
- * Pocket Karts arsenal (16 kinds): pulse, scatter, mine, rocket, seeker,
- * proximity (Proximity Bomb), shield, nuke, plus laser, thunder, boomerang,
- * oil, frost, cluster, bouncer and ram, whose procedural props live in
- * kart-arsenal-art.mjs (same userData contract and budgets; the cluster's
- * bomblets are projectile('bomblet') and the Oil Slick is mine(own,'oil')).
- * Unknown kinds normalize to 'pulse'. Retired kinds (rail/grenade/emp/bomb/sentry/spikes) are not
- * part of this factory; the shipped GLBs may still carry their nodes, which
- * are simply never read.
- *
- * Model groups read (exact names; the combat.glb subset is
- * COMBAT_GLB_MODELS, the rest come from the overlaid packs):
- *   combat.glb:  Pickup, Pulse, Scatter, Mine, Shield, Rocket, Bolt,
- *                RocketShot
- *   overlays:    Seeker, SeekerShot, Bomb, BombShot, MineTrap (and the
- *                pack versions of Pulse/Scatter/Rocket/RocketShot)
- * Bolt holds two authored variants, BoltPulse and BoltScatter. Mine holds
- * the prop meshes (MineDisk/MineCap/MineGlow) plus the rig rack (MineRack);
- * mine() and weapon('mine') each clone the subset they need. Every weapon
- * model carries a *MuzzleTip empty (PulseMuzzleTip, ...) whose local
- * position calibrates userData muzzle.
- *
- * Factory mapping (GLB path):
- *   pickup()                <- Pickup (pad = PickupPad), or opts.pickupAsset
- *   mine(own)               <- MineTrap, else Mine minus MineRack (collar
- *                              tints own/foe, red status lamp)
- *   weapon('pulse')         <- Pulse (trim = PulseMuzzle)
- *   weapon('scatter')       <- Scatter (trim = ScatterMuzzles)
- *   weapon('mine')          <- Mine minus MineGlow (trim = MineCap, amber)
- *   weapon('shield')        <- Shield (trim = ShieldCore, spins)
- *   weapon('rocket')        <- Rocket (trim = RocketMuzzle)
- *   weapon('seeker')        <- Seeker (trim = SeekerMuzzle)
- *   weapon('proximity')     <- Bomb dynamite launcher (trim = BombMuzzle)
- *   weapon('nuke')          <- Rocket rig, renamed NukeLauncher
- *   projectile('pulse')     <- Bolt/BoltPulse (steel slug, white tracer)
- *   projectile('scatter')   <- Bolt/BoltScatter (steel slug, amber tracer)
- *   projectile('rocket')    <- RocketShot (tail = RocketShotTracer, ember)
- *   projectile('seeker')    <- SeekerShot (tail = SeekerShotTracer, mint)
- *   projectile('proximity') <- BombShot (tail = BombShotLamp; armed/landed/
- *                              rollRate drive the settle + lamp animation)
- *   projectile('nuke')      <- RocketShot at warhead scale (ember tail)
- *
- * Slugs keep their authored metallic materials on both paths; tracers, the
- * mine collar tints and the red lamp are the only factory-owned overrides
- * (pooled additive / basic materials shared across instances so the GLB
- * look survives with no per-instance cost). Helper empties (*MuzzleTip)
- * are pruned from clones.
- *
- * Fallback path: when assets are absent (or a single model is missing) the
- * matching creator builds the original procedural low-poly prop instead --
- * same contract, same userData.combat shape, same budgets. The fallback is
- * strictly for failed GLB loads, never the default; root browser QA covers
- * the GLB path.
- *
- * Factory: createKartCombatArt(THREE, opts?) -> art, opts = { assets? }
- *   art.pickup()            Mystery supply crate. Base y=0, fits 2.4.
- *   art.projectile(kind)    'pulse' | 'scatter' | 'rocket' | 'seeker' |
- *                           'proximity' | 'nuke'.
- *                           Origin at bolt center, nose +Z: aim with
- *                           group.rotation.y = Math.atan2(vx, vz). Hull
- *                           <= 0.45 lateral. Unknown kinds -> 'pulse'.
- *   art.mine(own)           Toothed disk mine. Base y=0, radius <= 1.
- *                           own tints cap/glow mint, else red.
- *   art.weapon(kind)        'pulse' | 'scatter' | 'mine' | 'shield' |
- *                           'rocket' | 'seeker' | 'proximity' | 'nuke'.
- *                           Origin at mount, barrel +Z
- *                           (see userData.combat.mount). Unknown -> 'pulse'.
- *   art.animate(obj, dt, time, reducedMotion=false)
- *                           Inner-group cosmetics only (root owns the outer
- *                           transform), no material writes, no allocation.
- *                           reducedMotion snaps to the base pose. No-op on
- *                           foreign objects.
- *   art.dispose()           Disposes factory-owned resources (procedural
- *                           pool + override materials) exactly once;
- *                           idempotent. Root-owned GLB library resources
- *                           are NEVER disposed here: root frees its hidden
- *                           library itself. The factory stays usable.
- *
- * userData.combat on every returned Group:
- *   { type, kind, inner, seed, spin, ... }
- *   - type: 'pickup' | 'projectile' | 'mine' | 'weapon'.
- *   - kind: the requested kept kind (pickup kind is null; mine type
- *     always has kind 'mine').
- *   - inner: animated child Group; root must NOT touch it.
- *   - seed: deterministic per-instance phase (no Math.random).
- *   - projectile: tipZ/tailZ (nose/tail extent, calibrated from the GLB
- *     branch or the fallback dims), tail (tracer mesh). proximity also
- *     carries armed/landed (root-writable) and reads rollRate.
- *   - mine: own, armed (root-writable; false shrinks the cap and hides
- *     the glow), cap/glow meshes.
- *   - weapon: mount [x,y,z], muzzle [x,y,z] (calibrated from the GLB
- *     *MuzzleTip or the fallback dims), barrels (3 scatter, 1
- *     pulse/rocket/seeker/proximity/nuke, 0 mine/shield), trim (animated mesh).
- *   - pickup: pad (glow disc mesh).
- *
- * Mesh budgets (each mesh = 1 draw call): pickup <= 8, projectile <= 4,
- * weapon <= 6, mine <= 4 (see COMBAT_ART_BUDGETS). Typical full match
- * (8 rigs + 16 shots + 8 mines + 6 crates) stays under 180 extra calls.
+import {createCuratedArt,CURATED_KINDS} from './kart-curated-art.mjs';
+/* Shared combat factory. New canonical rigs/projectiles are authored in
+ * kart-curated-art.mjs; kept secondary props use kart-arsenal-art.mjs.
+ * The GLB/fallback factories below also retain historical names for source
+ * asset verification and older packets. New pickups use canonical IDs only.
+ * Creators share GPU resources. Views reserve instances and compile/upload
+ * every material before Ready; animate changes transforms, never materials.
+ * Each projectile points along local +Z; the outer quaternion belongs to the
+ * accepted flight path. Disposal releases only factory-owned resources.
  */
 
 // Calibrate the forward skin against the authority sphere before loading ends.
@@ -546,6 +432,7 @@ function isLitName(name) {
 }
 
 export function createKartCombatArt(THREE, opts) {
+  const curated=createCuratedArt(THREE);
   if (!THREE || !THREE.Group) {
     throw new Error('createKartCombatArt: a THREE namespace is required');
   }
@@ -820,6 +707,7 @@ export function createKartCombatArt(THREE, opts) {
   }
 
   function projectile(kind) {
+    if(CURATED_KINDS.includes(kind))return curated.projectile(kind);
     if (ARSENAL_SHOT_KINDS.includes(kind)) {
       const shot = arsenal.projectile(kind), c = shot.userData.combat, spec = ARSENAL_SHOT_GLOW[kind];
       if (!glowTex) glowTex = glowTexture(THREE);
@@ -1001,6 +889,7 @@ export function createKartCombatArt(THREE, opts) {
   }
 
   function weapon(kind) {
+    if(CURATED_KINDS.includes(kind))return curated.weapon(kind);
     if(kind==='nuke') {
       const object=weapon('rocket');object.userData.combat.kind='nuke';object.name='NukeLauncher';
       return object;
@@ -1018,6 +907,7 @@ export function createKartCombatArt(THREE, opts) {
   function animate(object, dt, time, reducedMotion) {
     const c = object && object.userData && object.userData.combat;
     if (!c || !c.inner) return;
+    if(c.curated){curated.animate(object,dt,time,reducedMotion);return;}
     if (c.arsenal) { arsenal.animate(object, dt, time, reducedMotion); return; }
     const t = Number(time) || 0;
     const step = Math.min(0.1, Math.max(0, Number(dt) || 0));
@@ -1130,7 +1020,7 @@ export function createKartCombatArt(THREE, opts) {
     reg.geometries.clear();
     reg.materials.clear();
     glowTex?.dispose(); glowTex = null; glowMats.clear();
-    arsenal.dispose();
+    arsenal.dispose();curated.dispose();
     pool = null;
     ovr = null;
     readableHousing = new WeakMap();

@@ -44,7 +44,7 @@ async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while
     const code = host.hello.code;
     for (let i = 2; i < DRIVERS; i++) await bot('Bot ' + i, { t: 'join', name: 'Bot ' + i, code, kartEvents: 'delta-v1', realtime: 'rt1' });
 
-    browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+    browser = await chromium.launch({ executablePath:process.env.KART32_BROWSER||undefined, headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
     const page = await (await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2 })).newPage();
     // Count WebGL draw calls per rendered frame (renderer cost, GPU-independent).
     await page.addInitScript(() => {
