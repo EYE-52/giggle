@@ -88,7 +88,8 @@ ok(typeof battle.fallOut==='function','battle exports the fall rule');
 // ---- engine view: launch and landing events plus flight state on the wire ----
 {
  const g=start({map:'Garden Circuit',mode:'Zap Battle'}),{st}=g,[a]=st.karts,c=maps.mapDef('garden').features.cannons[0];
- place(a,c.x+Math.cos(c.angle)*6,c.z-Math.sin(c.angle)*6,c.angle-Math.PI/2);
+ // Enter the open rear; the old perpendicular route drove through the shell.
+ place(a,c.x-Math.sin(c.angle)*3,c.z-Math.cos(c.angle)*3,c.angle);
  a.input={steer:0,throttle:1,boost:false};
  let flying=null;
  for(let i=0;i<80;i++){g.tick();const me=pocket.view(st,a.pid).karts.find(k=>k.pid===a.pid);if(me.flight&&!flying)flying=me;}
@@ -103,9 +104,9 @@ ok(typeof battle.fallOut==='function','battle exports the fall rule');
 function predictedRun(kind){
  const id='garden',m=maps.mapDef(id),f=m.features;
  const target=kind==='cannon'?f.cannons[0]:f.portals[0][0];
- // Approach from a clear side at 12 m, facing the feature.
- const side=kind==='cannon'?target.angle-Math.PI/2:target.angle;
- const k={pid:'a',x:target.x+Math.sin(side)*12,z:target.z+Math.cos(side)*12,angle:side+Math.PI,speed:0,boost:0,boostCd:0,turbo:0,padCd:0,nitro:1,
+ // Approach the cannon's open rear, or the portal's open centre.
+ const side=kind==='cannon'?target.angle+Math.PI:target.angle,distance=kind==='cannon'?6:12;
+ const k={pid:'a',x:target.x+Math.sin(side)*distance,z:target.z+Math.cos(side)*distance,angle:side+Math.PI,speed:0,boost:0,boostCd:0,turbo:0,padCd:0,nitro:1,
   input:{throttle:1,steer:0},spawnSeq:0,connected:true,flight:null,cannonCd:0,portalCd:0};
  // The correction pair must share the new roads, grip and structures too.
  const state={map:id,mode:'battle',half:m.half,blocks:m.blocks,pads:m.pads,surfaces:m.surfaces,roads:m.roads,offroad:m.offroad,barriers:m.barriers,ramps:m.ramps,features:f,karts:[k],physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};

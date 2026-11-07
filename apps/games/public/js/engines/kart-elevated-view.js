@@ -6,6 +6,7 @@ import {createArsenalFX} from './kart-arsenal-fx.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
 import {createKartThreats} from './kart-threats.mjs';
 import {createKartWarmupLibrary,warmKartRenderer} from './kart-render-warmup.mjs';
+import {createKartCameraCollision} from './kart-camera-collision.mjs';
 /* Elevated combat presentation for real Room snapshots. No gameplay or
  * client coordinates are sent: only sequenced, life-scoped intent. */
 import {createThreeView} from '../renderers/three-view.js';
@@ -150,7 +151,7 @@ export function createElevatedKartView() {
   }
   async function scene(THREE,helper,gen){
     const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(52,1,.1,650),renderer=helper.renderer();
-    let world,art,library,healthBars,impactFX,skids,threats,arsenalFX;const slidePose={angle:0,physicalPose:{linearVelocity:null,grounded:true}};const models=new Map(),rigs=new Map(),objects=new Map(),effects=[];
+    let world,art,library,healthBars,impactFX,skids,threats,arsenalFX,cameraCollision;const slidePose={angle:0,physicalPose:{linearVelocity:null,grounded:true}};const models=new Map(),rigs=new Map(),objects=new Map(),effects=[];
     try{
       const map=elevatedMap(S.mapId);if(map.revision!==S.mapRevision)throw Error('Arena revision mismatch');
       if(gen!==generation)throw Error('Retired arena');
@@ -185,6 +186,7 @@ export function createElevatedKartView() {
       const cameraTarget=new THREE.Vector3(),cameraPosition=new THREE.Vector3(),forward=new THREE.Vector3(0,0,1),up=new THREE.Vector3(0,1,0),hits=[];
       const target=new THREE.Vector3(),desired=new THREE.Vector3(),nose=new THREE.Vector3(),direction=new THREE.Vector3(),ray=new THREE.Raycaster();
       const collisionMeshes=[...world.colliderMeshes.values()].map(value=>value.cameraBody||value.body);
+      cameraCollision=createKartCameraCollision(THREE,collisionMeshes);
       function clearCamera(position,focus){
         direction.subVectors(position,focus);const distance=direction.length();if(distance<.001)return;
         ray.set(focus,direction.normalize());ray.far=distance;hits.length=0;ray.intersectObjects(collisionMeshes,false,hits);
@@ -507,6 +509,7 @@ export function createElevatedKartView() {
           // ceilings where none of the bounded camera candidates is valid.
           cramped=clearCamera(cameraPosition,cameraTarget)||cramped;
           cramped=clearCamera(cameraPosition,cameraAnchor)||cramped;
+          cramped=cameraCollision.constrain(cameraPosition,model.position)||cramped;
           camera.position.copy(cameraPosition);
           const shake=hitFx?.shake();if(shake&&(shake.x||shake.y)){camera.position.x+=shake.x;camera.position.y+=shake.y;cramped=clearCamera(camera.position,cameraTarget)||cramped;}
           if(cameraKick>0&&!helper.reducedMotion()){
@@ -514,9 +517,13 @@ export function createElevatedKartView() {
             cameraKick=Math.max(0,cameraKick-dt*.55);cramped=clearCamera(camera.position,cameraTarget)||cramped;
             cramped=clearCamera(camera.position,cameraAnchor)||cramped;
           }
+          // A ray protects only the eye's centre. Sweep the near-plane volume
+          // too, after all easing, recovery or shake, from the clear chassis.
+          cramped=cameraCollision.constrain(camera.position,model.position)||cramped;
           const finalRear=-direction.subVectors(camera.position,model.position).dot(nose);
           const lookAhead=cramped&&!sideMode?Math.max(0,Math.min(1,(finalRear-CONFIG.chassis.half.z)/(8.5-CONFIG.chassis.half.z))):1;
           target.copy(cameraTarget).lerp(cameraAnchor,1-lookAhead);clearCamera(camera.position,target);clearCamera(camera.position,cameraAnchor);
+          cameraCollision.constrain(camera.position,model.position);
           camera.lookAt(target);healthBars.face(camera);
         }
         {const own=self(),ownModel=own?.alive&&S.youDrive?models.get(own.id):null;threats.update(itemsFresh&&S.phase==='live'?S:null,S.you,ownModel?.position,camera);}
@@ -525,8 +532,8 @@ export function createElevatedKartView() {
         const k=self();
         const lateral=model&&k?.pose.linearVelocity?Math.abs(direction.copy(k.pose.linearVelocity).dot(nose.set(1,0,0).applyQuaternion(model.quaternion))):0;
         updateAudio(!!k?.pose.grounded&&Math.abs(k.pose.speed)>4&&lateral>1.4);clock();
-      },dispose(){world.dispose();art.dispose();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();skids.dispose();threats.dispose();for(const f of effects)f.mesh.dispose();for(const cue of confirmedShots){cue.object.visible=false;cue.object.removeFromParent();}confirmedShots.length=0;confirmedPools.clear();closeKartAssetBitmaps(library);models.clear();objects.clear();rigs.clear();}};
-    }catch(error){world?.dispose();art?.dispose();healthBars?.dispose();impactFX?.dispose();arsenalFX?.dispose();skids?.dispose();threats?.dispose();helper.disposeObject(scene);closeKartAssetBitmaps(library);throw error;}
+      },dispose(){cameraCollision.dispose();world.dispose();art.dispose();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();skids.dispose();threats.dispose();for(const f of effects)f.mesh.dispose();for(const cue of confirmedShots){cue.object.visible=false;cue.object.removeFromParent();}confirmedShots.length=0;confirmedPools.clear();closeKartAssetBitmaps(library);models.clear();objects.clear();rigs.clear();}};
+    }catch(error){cameraCollision?.dispose();world?.dispose();art?.dispose();healthBars?.dispose();impactFX?.dispose();arsenalFX?.dispose();skids?.dispose();threats?.dispose();helper.disposeObject(scene);closeKartAssetBitmaps(library);throw error;}
   }
   function graphicsFailure(){
     graphicsFailed=true;gfxReady=false;stop();clock();newEvents.length=0;$('loading').hidden=false;$('loading').replaceChildren();const text=document.createElement('p');text.textContent='The 3D arena could not load. Retry or return to the room.';const retry=document.createElement('button');retry.textContent='Retry 3D';retry.setAttribute('data-watchok','');retry.onclick=()=>{if(pending)return;retry.disabled=true;gl?.dispose();gl=null;graphicsFailed=false;loadScene();};$('loading').append(text,retry);

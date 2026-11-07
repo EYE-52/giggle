@@ -47,6 +47,8 @@ import {createKartArenaFeatures,drawArenaFeatures2d} from './kart-arena-features
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
 import {createKartDrivingFX} from './kart-driving-fx.mjs';
 import {createKartWarmupLibrary,warmKartRenderer} from './kart-render-warmup.mjs';
+import {classicStatics} from './kart-classic-motion.mjs';
+import {createKartCameraCollision} from './kart-camera-collision.mjs';
 import {createSurfaceIndex,surfaceTuning} from './kart-surface.mjs';
 import {driftTier,DRIFT_TIERS} from './kart-drift.mjs';
 import {createKartThreats} from './kart-threats.mjs';
@@ -1061,7 +1063,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let world,impactFX,skids,drivingFX,threats,arsenalFX,arena,structures,garageThumbnail;
+    let world,impactFX,skids,drivingFX,threats,arsenalFX,arena,structures,garageThumbnail,cameraCollision;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1097,6 +1099,7 @@ export function createKartView(viewConfig) {
       arena=createKartArenaFeatures(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0,reducedMotion:()=>reducedMotion()});
       arena.sync(S?.map);
       structures=createKartArenaStructures(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});structures.sync(S?.map);
+      cameraCollision=createKartCameraCollision(THREE,classicStatics({...S.map,half:S.map?.half||30}));
       skids=createKartSkids(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});
       threats=createKartThreats(THREE,scene,rootEl.querySelector('.pk'),{reducedMotion:()=>rm,beep:level=>audio?.beep?.(level)});
       const zoneGeo = new THREE.RingGeometry(2.22, 2.4, 36);
@@ -1132,7 +1135,8 @@ export function createKartView(viewConfig) {
       world.group.traverse((mesh) => { if (mesh.isMesh) mesh.receiveShadow = true; });
       const rm = reducedMotion();
       const syncBlocks = () => world.syncMap((S && S.map) || {id:'ring',blocks:[]});
-      const tmpV = new THREE.Vector3(), shakeOffset = new THREE.Vector3();
+      const tmpV=new THREE.Vector3(),shakeOffset=new THREE.Vector3(),cameraFocus=new THREE.Vector3(),cameraLook=new THREE.Vector3(),beforeShake=new THREE.Vector3(),cameraCandidate=new THREE.Vector3();
+      const cameraAngles=[Math.PI/4,-Math.PI/4,Math.PI*.42,-Math.PI*.42,Math.PI/2,-Math.PI/2,Math.PI*.75,-Math.PI*.75,Math.PI];let cameraSide=0;
       let cameraEpoch = null,driftSwing=0;
       // Warm every combat variant before readiness. The hidden source library
       // alone is never rendered: first fire used to upload these buffers and
@@ -1482,13 +1486,41 @@ export function createKartView(viewConfig) {
           driftSwing+=(swing-driftSwing)*(1-Math.exp(-dt*5));
           const cameraX=pose.x-f.x*back+f.z*driftSwing,cameraZ=pose.z-f.z*back-f.x*driftSwing;
           tmpV.set(cameraX,Math.max(chassisY+up-.75,(world.groundAt?.(cameraX,cameraZ)||0)+1.2),cameraZ);
+          // Use the chassis as the clear anchor, including the dressed path
+          // through a cannon mouth. A look-ahead point can be beyond a wall.
+          const model=karts.get(me.pid);
+          if(model)cameraFocus.copy(model.position);else cameraFocus.set(pose.x,chassisY,pose.z);
+          let cramped=cameraCollision.constrain(tmpV,cameraFocus);
+          // At a rear wall a simple pull-in can put the eye inside the kart.
+          // Prefer a clear side of the same chase orbit, retaining that side
+          // until the rear is clear so contact does not flicker left/right.
+          // At a cannon muzzle only the forward half of the orbit may clear
+          // the lip; use it briefly rather than pulling inside the kart.
+          if(cramped&&tmpV.distanceToSquared(cameraFocus)<25){
+            let chosen=0;
+            for(let pass=0;pass<(cameraSide?2:1)&&!chosen;pass++)for(const angle of cameraAngles){
+              if(cameraSide&&(pass===0?Math.sign(angle)!==cameraSide:Math.sign(angle)===cameraSide))continue;
+              const sin=Math.sin(angle),cos=Math.cos(angle),x=-f.x*back,z=-f.z*back;
+              cameraCandidate.set(cameraFocus.x+x*cos+z*sin,Math.max(chassisY+up-.75,cameraFocus.y+2),cameraFocus.z+z*cos-x*sin);
+              cameraCollision.constrain(cameraCandidate,cameraFocus);
+              if(cameraCandidate.distanceToSquared(cameraFocus)>36){tmpV.copy(cameraCandidate);chosen=angle;break;}
+            }
+            cameraSide=chosen?Math.sign(chosen):0;
+          }else cameraSide=0;
           // A portal jump is a pose-epoch change: cut, never sweep across the map.
           const camLife=me.spawnSeq+':'+(pose.physicalPose?.epoch??'');
           if (rm || cameraEpoch !== camLife) camera.position.copy(tmpV);
           else camera.position.lerp(tmpV, 1-Math.exp(-dt*12));
+          cramped=cameraCollision.constrain(camera.position,cameraFocus)||cramped;
+          // A straight blend between opposite clear orbits may cut through
+          // the tube. Switch to the clear orbit before the eye enters the kart.
+          if(cameraSide&&camera.position.distanceToSquared(cameraFocus)<25&&tmpV.distanceToSquared(cameraFocus)>36)camera.position.copy(tmpV);
           cameraEpoch = camLife;
           const lookX=pose.x+f.x*5,lookZ=pose.z+f.z*5;
-          camera.lookAt(lookX,Math.max(chassisY+.85,(world.groundAt?.(lookX,lookZ)||0)+.8),lookZ);
+          cameraLook.set(lookX,Math.max(chassisY+.85,(world.groundAt?.(lookX,lookZ)||0)+.8),lookZ);
+          if(cameraSide){cameraLook.copy(cameraFocus);cameraLook.y+=.6;}
+          else if(cramped)cameraLook.lerp(cameraFocus,Math.max(0,1-camera.position.distanceTo(cameraFocus)/5));
+          camera.lookAt(cameraLook);
         } else {
           const half = S.map?.half || 30;
           tmpV.set(0, half*1.4, half*.9);
@@ -1501,7 +1533,11 @@ export function createKartView(viewConfig) {
         const nextFov=rm?60:camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*5));
         if(Math.abs(nextFov-camera.fov)>.005){camera.fov=nextFov;camera.updateProjectionMatrix();}
         const shake=hitFx?.shake(nowMs());
-        if(shake&&(shake.x||shake.y)){shakeOffset.set(shake.x,shake.y,0).applyQuaternion(camera.quaternion);camera.position.add(shakeOffset);}
+        if(shake&&(shake.x||shake.y)){
+          beforeShake.copy(camera.position);shakeOffset.set(shake.x,shake.y,0).applyQuaternion(camera.quaternion);camera.position.add(shakeOffset);
+          if(me&&S.youDrive&&selfPose)cameraCollision.constrain(camera.position,cameraFocus);
+          shakeOffset.copy(camera.position).sub(beforeShake);
+        }
         const ownKart=me&&S.youDrive&&!(me.respawn>0)?karts.get(me.pid):null;
         threats.update(ordnanceFresh()&&S.phase==='drive'?S:null,S.you,ownKart?.position,camera,nowMs());
         healthBars.face(camera);
@@ -1509,8 +1545,9 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {garageThumbnail?.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();drivingFX.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {cameraCollision.dispose();garageThumbnail?.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();drivingFX.dispose();threats.dispose();} };
     } catch (error) {
+      cameraCollision?.dispose();
       garageThumbnail?.dispose();
       world?.dispose();
       if (disposeLighting) disposeLighting();
