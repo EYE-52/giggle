@@ -1,5 +1,6 @@
 import {createKartPhysics} from './kart-physics-core.mjs';
 import {createRoadTerrain} from './kart-road-terrain.mjs';
+import {createFeatureRunner} from './kart-map-features.mjs';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const yaw=q=>Math.atan2(2*(q.x*q.z+q.w*q.y),1-2*(q.x*q.x+q.y*q.y));
@@ -67,6 +68,8 @@ export function createClassicMotion(RAPIER,baseConfig,state){
   const physics=createKartPhysics(RAPIER,config),life=new Map(),enabled=new Map();let accumulator=0,disposed=false;
   const map={id:state.map,half:state.half,blocks:state.blocks,pads:state.pads,surfaces:state.surfaces};
   const terrain=createRoadTerrain(map);
+  // Arena features (cannons, portals) step after physics; see kart-map-features.mjs.
+  const features=createFeatureRunner({physics,state,features:state.features,enabled,project:k=>project(k),groundAt:(x,z)=>terrain?.heightAt(x,z)||0});
   for(const item of classicStatics(map,terrain))physics.addStatic(item);
   for(const k of state.karts){physics.addKart(k.pid,spawn(k,terrain));life.set(k.pid,k.spawnSeq||0);enabled.set(k.pid,true);}
   // Settle before readiness, not on the first playable frame.
@@ -76,7 +79,7 @@ export function createClassicMotion(RAPIER,baseConfig,state){
   function sync(connected){for(const k of state.karts){
     const current=k.spawnSeq||0;
     if(life.get(k.pid)!==current){physics.resetKart(k.pid,spawn(k,terrain));life.set(k.pid,current);project(k);}
-    const live=connected.has(k.pid)&&!(k.respawn>0);
+    const live=connected.has(k.pid)&&!(k.respawn>0)&&!features.reconcile(k);
     if(enabled.get(k.pid)!==live){physics.setKartEnabled(k.pid,live);enabled.set(k.pid,live);project(k);}
   }}
   return {
@@ -84,6 +87,7 @@ export function createClassicMotion(RAPIER,baseConfig,state){
       while(accumulator>=config.fixedDt-1e-9){
         for(const k of state.karts)if(enabled.get(k.pid)){const control=classicControls(k,config.fixedDt,map,state.mode==='battle');physics.tuneKart(k.pid,control.tuning);physics.applyIntent(k.pid,control.intent);k._appliedSeq=k._receivedSeq||0;}
         physics.step();for(const k of state.karts)project(k);accumulator-=config.fixedDt;
+        features.step(config.fixedDt,connected);
         for(const ids of physics.kartContacts())contacts.set(ids.join('|'),ids.map(id=>state.karts.find(k=>k.pid===id)));
         for(const impact of physics.drainImpacts()){
           state.physicalEvents.push({...impact,id:'physical-'+physics.stats().tick+'-'+state.physicalEventSeq++,kind:'contact'});while(state.physicalEvents.length>24)state.physicalEvents.shift();
@@ -93,7 +97,7 @@ export function createClassicMotion(RAPIER,baseConfig,state){
     },
     sync,disconnect(pid){physics.setKartEnabled(pid,false);enabled.set(pid,false);const k=state.karts.find(k=>k.pid===pid);if(k)project(k);},
     beginCorrection(){accumulator=0;},
-    restore(k,p){if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
+    restore(k,p){features.resumeLanded(k);if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
     sweepStatic:(from,to,radius)=>physics.sweepStatic(from,to,radius),
     supportAt:(origin,maxDistance)=>physics.supportAt(origin,maxDistance),
     groundAt:(x,z)=>terrain?.heightAt(x,z)||0,
