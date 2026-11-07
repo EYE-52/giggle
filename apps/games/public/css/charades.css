@@ -17,7 +17,9 @@
 .ch .ch-found { display: none; }
 .ch[data-phase="reveal"] .ch-found { display: flex; }
 .ch .ch-board, .ch .ch-players { display: flex; flex-direction: column; gap: var(--space-12); }
-.ch .ch-feed { max-height: 260px; }
+/* Fixed height: each new guess fills reserved space and scrolls, instead
+ * of growing the card and pushing the players list down on every guess. */
+.ch .ch-feed { height: 212px; max-height: none; }
 .ch .ch-count { font-variant-numeric: tabular-nums; }
 .ch .ch-guess {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4) var(--space-12);
