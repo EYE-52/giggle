@@ -27,8 +27,8 @@ const manifest = {
   settings: [
     roundsSetting({ def: 1 }),
     paceSetting(),
-    { key: 'submitSeconds', label: 'Seconds to write', type: 'int', min: 15, max: 120, def: 45 },
-    { key: 'voteSeconds', label: 'Seconds to vote', type: 'int', min: 5, max: 60, def: 20 },
+    { key: 'submitSeconds', label: 'Seconds to write', type: 'int', min: 15, max: 300, def: 45 },
+    { key: 'voteSeconds', label: 'Seconds to vote', type: 'int', min: 5, max: 180, def: 20 },
   ],
   packs: {
     seeds: { label: 'Backup takes', type: 'string[]', minItems: 3 },

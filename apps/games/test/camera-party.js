@@ -81,8 +81,8 @@ function testFactory() {
     }
   }
   assert.deepEqual(BOUNDS.rounds, { min: 1, max: 12, def: 4 });
-  assert.deepEqual(BOUNDS.performSeconds, { min: 10, max: 90, def: 30 });
-  assert.deepEqual(BOUNDS.voteSeconds, { min: 8, max: 30, def: 15 });
+  assert.deepEqual(BOUNDS.performSeconds, { min: 10, max: 300, def: 30 });
+  assert.deepEqual(BOUNDS.voteSeconds, { min: 8, max: 180, def: 15 });
   console.log('CAMERA-PARTY factory: id/mode validation, {create,onAction,view} shape');
 }
 
@@ -94,7 +94,7 @@ function testSettings() {
     { rounds: 2, performSeconds: 45, voteSeconds: 10 });
   // Integers clamp; anything else falls back to the default.
   assert.deepEqual(normalizeSettings({ rounds: 99, performSeconds: 999, voteSeconds: 1 }),
-    { rounds: 12, performSeconds: 90, voteSeconds: 8 });
+    { rounds: 12, performSeconds: 300, voteSeconds: 8 });
   assert.deepEqual(normalizeSettings({ rounds: 0, performSeconds: '30', voteSeconds: NaN }),
     { rounds: 1, performSeconds: 30, voteSeconds: 15 });
   assert.deepEqual(normalizeSettings({ rounds: 2.5, performSeconds: null, voteSeconds: [] }),
@@ -108,7 +108,7 @@ function testSettings() {
   assert.equal(s.endsAt - ctx.now(), 45000, 'perform window is exactly the setting');
   spotlight.dispose(s);
   const clamped = spotlight.create(new Clock(4, { performSeconds: 999, voteSeconds: 1 }));
-  assert.equal(clamped.performMs, 90000);
+  assert.equal(clamped.performMs, 300000);
   assert.equal(clamped.voteMs, 8000);
   spotlight.dispose(clamped);
   console.log('CAMERA-PARTY settings: defaults, honored host values, bounds clamping');

@@ -39,7 +39,7 @@ const COUNTDOWN_MS = 3000;
 // Round length: 1 to 5 minutes, 3 by default (GAME_RULES_STANDARD.md).
 // Stored in seconds so existing settings and presets keep their key.
 const ROUND_MIN_S = 60;
-const ROUND_MAX_S = 300;
+const ROUND_MAX_S = 900;
 const ROUND_DEFAULT_S = 180;
 // A driver who leaves, or stays gone this long, drops out (room-owned).
 const GONE_AFTER_MS = 60000;
@@ -420,7 +420,14 @@ function stepKartOnce(kart, dt, opts) {
   // Boost, pad/mini turbo, and nitro never stack multiplicatively: the
   // strongest cap wins, so the top speed stays bounded at 1.6x either
   // way (times the garage top multiplier when it applies).
-  const top = MAX_SPEED * tune.top * Math.max(boosting ? BOOST_SPEED : 1, turboing ? TURBO_SPEED : 1, nitroing ? NITRO_SPEED : 1);
+  // Weapon status: a Turbo Ram boosts, Frost caps the top speed.
+  const top = MAX_SPEED * tune.top * Math.max(boosting ? BOOST_SPEED : 1, turboing ? TURBO_SPEED : 1, nitroing ? NITRO_SPEED : 1, kart.rammingT > 0 ? 1.5 : 1)
+    * (kart.frostT > 0 ? .55 : 1);
+  // An Oil Slick spins the kart out: the nose swings and speed bleeds off.
+  if (kart.spinT > 0) {
+    kart.angle = wrapAngle(kart.angle + Math.sign(kart.spinKick || 1) * 6 * dt * Math.min(1, kart.spinT));
+    kart.speed *= Math.max(0, 1 - 1.2 * dt);
+  }
   const punch = boosting ? 2 : nitroing ? NITRO_PUNCH : turboing ? 1.5 : 1;
   const accel = ACCEL * tune.accel;
   if (throttle > 0) kart.speed = Math.min(top, kart.speed + accel * punch * throttle * dt);
@@ -687,6 +694,70 @@ function finish(state, ctx, rules, endReason) {
   }
 }
 
+/* ---- Arena features: fall-off zones and teleport bookkeeping ----
+ * Cannons and portals run inside the shared Rapier motion (prediction
+ * mirrors them). Falls are authority-only: battle counts a self-knockout
+ * that costs one KO (never below zero, nobody credited); Star Rush drops
+ * one star and recovers the kart at once. */
+// Same rule as fallAt in public/js/engines/kart-map-features.mjs; kept
+// local because engines/* must stay self-contained (game kit, variants).
+function fallAt(features, x, z, margin = 0) {
+  for (const f of (features && features.falls) || []) {
+    if (Math.abs(x - f.x) <= f.hw - margin && Math.abs(z - f.z) <= f.hd - margin) return f;
+  }
+  return null;
+}
+
+function featureKartView(k) {
+  const f = k.flight;
+  return {
+    flight: f ? { c: f.c, t: f.t, x: f.x, y: f.y, z: f.z, a: f.a, ly: f.ly, life: f.life } : null,
+    cannonCd: +(Math.max(0, Number(k.cannonCd) || 0)).toFixed(3),
+    portalCd: +(Math.max(0, Number(k.portalCd) || 0)).toFixed(3),
+    fell: k._fell === true && (Number(k.respawn) || 0) > 0,
+  };
+}
+
+function pushFeatureEvent(state, e) {
+  if (!Array.isArray(state.featureEvents)) return;
+  state.featureEventSeq = (state.featureEventSeq || 0) + 1;
+  state.featureEvents.push({ id: 'f' + state.featureEventSeq, ...e });
+  while (state.featureEvents.length > 16) state.featureEvents.shift();
+}
+
+// A portal jump bumps the pose epoch within one life: projectiles and
+// mines must not sweep the entry-to-exit line, exactly like a respawn.
+function retargetFeatureJumps(state, previousKarts) {
+  if (!previousKarts || !state.features) return;
+  for (const kart of state.karts) {
+    const before = previousKarts.get(kart.pid), pose = kart.physicalPose;
+    if (!before?.physicalPose || !pose || before.spawnSeq !== (kart.spawnSeq || 0) || before.physicalPose.epoch === pose.epoch) continue;
+    previousKarts.set(kart.pid, { x: kart.x, z: kart.z, physicalPose: structuredClone(pose), angle: kart.angle, spawnSeq: kart.spawnSeq || 0 });
+  }
+}
+
+function checkFalls(state, connected, battleMode) {
+  const starFalls = new Set();
+  if (!state.features?.falls?.length) return starFalls;
+  for (const kart of state.karts) {
+    if (!connected.has(kart.pid) || kart.respawn > 0 || kart.flight || !kart.physicalPose) continue;
+    const zone = fallAt(state.features, kart.x, kart.z, 0.15);
+    if (!zone) continue;
+    const at = { x: +kart.x.toFixed(3), y: +kart.physicalPose.position.y.toFixed(3), z: +kart.z.toFixed(3) };
+    if (battleMode) {
+      if (!battle.fallOut(state, kart)) continue;
+      kart._fell = true;
+      pushFeatureEvent(state, { type: 'fell', pid: kart.pid, kind: zone.kind || 'water', ...at, angle: +kart.angle.toFixed(4), score: kart.hits });
+    } else {
+      kart.stars = Math.max(0, (Number(kart.stars) || 0) - 1);
+      state.scores[kart.pid] = kart.stars;
+      starFalls.add(kart.pid);
+      pushFeatureEvent(state, { type: 'fell', pid: kart.pid, kind: zone.kind || 'water', ...at, angle: +kart.angle.toFixed(4), score: kart.stars });
+    }
+  }
+  return starFalls;
+}
+
 /* Config: {
  *   id, name, tagline, howto, art?,
  *   seats?, players?, communication?,
@@ -795,6 +866,7 @@ function createKartGame(config) {
         boost: 0, boostCd: 0,
         slip: 0, turbo: 0, padCd: 0, drifting: false, driftCharge: 0, grip: 1,
         nitro: 1, nitroActive: false, nitroLocked: false,
+        flight: null, cannonCd: 0, portalCd: 0,
         input: { steer: 0, throttle: 0, boost: false },
         lastInputAt: t0,
         ...rules.blankKart(),
@@ -828,6 +900,12 @@ function createKartGame(config) {
       blocks: mapD.blocks,
       pads: mapD.pads || [],
       surfaces: mapD.surfaces || [],
+      // Arena features (cannons, portals, fall zones) and their bounded
+      // presentation events; physics-backed arenas only (the planar
+      // fixture engine has no motion to run them).
+      features: cfg.createMotion ? (mapD.features || null) : null,
+      featureEvents: [],
+      featureEventSeq: 0,
       spots: mapD.spots,
       spawns: spawnPool ? spawnPool.map((s) => ({ x: s.x, z: s.z, angle: s.angle })) : [],
       half,
@@ -1090,9 +1168,11 @@ function createKartGame(config) {
       // or fallen below the floor. High jumps over playable terrain remain
       // physical; recovery is a new life, never a KO or a position clamp.
       const recovered = new Set();
+      retargetFeatureJumps(state, previousKarts);
+      const starFalls = checkFalls(state, connected, battleMode);
       for (const kart of state.karts) {
         if (!connected.has(kart.pid) || kart.respawn > 0 || !kart.physicalPose) continue;
-        if (!motion.isOutOfBounds?.(kart.physicalPose)) continue;
+        if (!motion.isOutOfBounds?.(kart.physicalPose) && !starFalls.has(kart.pid)) continue;
         if (battleMode) battle.respawnKart(state,kart);
         else {
           Object.assign(kart,battle.respawnPose(state,kart));
@@ -1149,6 +1229,7 @@ function createKartGame(config) {
       : connected;
     const goalMet = rules.tick(state, pickupDrivers, dt, previousKarts, econ, contacts,motion?{sweepStatic:motion.sweepStatic,supportAt:motion.supportAt,groundAt:motion.groundAt,syncRespawn:()=>motion.sync(connected)}:undefined);
     motion?.sync(connected);
+    for (const kart of state.karts) if (!(kart.respawn > 0)) kart._fell = false;
     if (battleMode && econStore) {
       try { syncGarageState(state, econStore); } catch { /* views keep last projection */ }
     }
@@ -1201,7 +1282,9 @@ function createKartGame(config) {
         blocks: state.blocks,
         pads: state.pads,
         surfaces: state.surfaces,
+        ...(state.features ? { features: state.features } : {}),
       },
+      ...(state.features ? { arenaEvents: (state.featureEvents || []).map((e) => ({ ...e })) } : {}),
       roundMs: state.roundMs,
       targetStars: state.targetStars,
       targetHits: state.targetHits,
@@ -1238,6 +1321,7 @@ function createKartGame(config) {
           nitro: +clamp(Number(k.nitro) === undefined ? 1 : Number(k.nitro) || 0, 0, 1).toFixed(2),
           nitroActive: k.nitroActive === true,
           nitroLocked: k.nitroLocked === true,
+          ...(state.features ? featureKartView(k) : {}),
           ...rules.kartViewExtra(k),
         };
       }),

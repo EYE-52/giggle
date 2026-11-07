@@ -22,8 +22,8 @@
  * Settings (validated host values with defaults):
  *   rounds         default 4 (gallery) / one turn each (spotlight)  (1..12)
  *   pace           Relaxed / Normal / Quick: scales the reveal
- *   performSeconds default 30             (10..90)
- *   voteSeconds    default 15             (8..30)
+ *   performSeconds default 30             (10..300)
+ *   voteSeconds    default 15             (8..180)
  *
  * Points (specs/GAME_RULES_STANDARD.md), awarded at each reveal: an
  * approved performance is 100, plus a ready bonus of up to 50 for being
@@ -47,8 +47,8 @@ const CAPTION_MAX = 120;
 
 const BOUNDS = {
   rounds: { min: 1, max: 12, def: 4 },
-  performSeconds: { min: 10, max: 90, def: 30 },
-  voteSeconds: { min: 8, max: 30, def: 15 },
+  performSeconds: { min: 10, max: 300, def: 30 },
+  voteSeconds: { min: 8, max: 180, def: 15 },
 };
 
 function isInt(n) {

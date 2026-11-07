@@ -12,7 +12,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { createKartAudio, CUE_NAMES, ASSET_MAP, LOOP_MAP, COLLISION_VARIANTS, ASSET_BASE, PACK_VERSION, WEAPON_POP } from '../public/js/engines/kart-audio.mjs';
+import { createKartAudio, CUE_NAMES, ASSET_MAP, LOOP_MAP, COLLISION_VARIANTS, ASSET_BASE, PACK_VERSION, WEAPON_POP, SYNTH_CUE_NAMES, SYNTH_CUE_SPEC } from '../public/js/engines/kart-audio.mjs';
 
 let passed = 0;
 function ok(cond, msg) {
@@ -118,6 +118,10 @@ function makeFakeAudio(opts = {}) {
       return source(Object.assign(base('osc'), {
         type: 'sine', frequency: makeParam(), detune: makeParam(),
       }));
+    },
+    createBuffer(channels, length, rate) {
+      const data = new Float32Array(length);
+      return { duration: length / rate, sampleRate: rate, numberOfChannels: channels, getChannelData: () => data };
     },
     createBiquadFilter() {
       stats.filter += 1;
@@ -250,7 +254,10 @@ function graphGains(nodes) {
     driftG: g[4].gain, revG: g[5].gain,
   };
 }
-const loopSourcesOf = (nodes) => bufSourcesOf(nodes).filter((n) => n.loop === true);
+// Recorded loop beds play decoded sample buffers (fakeBuffer carries bytes);
+// the engine's generated noise texture loop (createBuffer) is not a bed.
+const loopSourcesOf = (nodes) => bufSourcesOf(nodes).filter((n) => n.loop === true && n.buffer && 'bytes' in n.buffer);
+const noiseLoopsOf = (nodes) => bufSourcesOf(nodes).filter((n) => n.loop === true && n.buffer && !('bytes' in n.buffer));
 const cueVoicesOf = (nodes) => bufSourcesOf(nodes).filter((n) => n.loop === false);
 
 /* Contact loudness/material selection does not allocate chatter voices. */
@@ -336,7 +343,9 @@ for(const opts of [{noPan:true},{panThrows:true}])await withGlobals({document:ma
   ok(!/^\s*import\s/m.test(src), 'contract: no imports (no new dependencies)');
   ok(!/getUserMedia|getDisplayMedia|MediaStream/.test(src), 'contract: audio-only, never microphone capture');
   ok(!/setInterval|setTimeout|requestAnimationFrame/.test(src), 'contract: no timers (frame-driven only)');
-  ok((src.match(/createOscillator\(\)/g)||[]).length === 3, 'contract: oscillators only in the engine voice, weapon pops and the warning beep');
+  const synthAt = src.indexOf('export function createSynthCues'), sampled = synthAt < 0 ? src : src.slice(0, synthAt);
+  ok((sampled.match(/createOscillator\(\)/g)||[]).length === 3, 'contract: outside the synthesized weapon cues, oscillators only in the engine voice, weapon pops and the warning beep');
+  ok(synthAt > 0 && !/fetch|decodeAudioData|\.wav/.test(src.slice(synthAt)), 'contract: the second-eight weapon cues are synthesized, never loaded from files');
   const V1_CUES = ['boost', 'ko', 'mine', 'pickup', 'pulse', 'respawn', 'rocket', 'scatter', 'shield'];
   ok(V1_CUES.every((n) => CUE_NAMES.includes(n)),
     'contract: original cue names preserved (rail retired)');
@@ -586,7 +595,7 @@ await withGlobals({document:makeEmitter()},async()=>{
   ok(!audio.cue('pulse'),'temporal lifecycle: non-drive phase rejects cues');
   frame(24,0);
   ok(g.loadG.sampleAt(24.2)<.001,'temporal lifecycle: return to live drive uses the current released pedal');
-  ok(loader.calls.length===initialLoads&&loopSourcesOf(nodes).length===4&&stats.bufSrc===6,
+  ok(loader.calls.length===initialLoads&&loopSourcesOf(nodes).length===4&&noiseLoopsOf(nodes).length===1&&stats.bufSrc===7,
     'temporal lifecycle: ramps reuse four loop sources and only two real cues');
   ok(nodes.length===initialNodes+6,'temporal lifecycle: no per-frame allocation across pedal/lifecycle transitions');
   audio.dispose();
@@ -624,6 +633,51 @@ await withGlobals({ document: makeEmitter() }, async () => {
   }
   ok(stats.osc === 3 + CUE_NAMES.filter((n) => WEAPON_POP[n]).length, 'cue: engine voice plus one pop per weapon cue');
   audio.dispose();
+});
+
+/* ---------- 4a. second-eight weapon cues are synthesized and distinct ---------- */
+
+await withGlobals({ document: makeEmitter() }, async () => {
+  const { ctx, nodes, stats } = makeFakeAudio();
+  const loader = makeLoader();
+  const audio = createKartAudio({ createContext: () => ctx, loader });
+  ok(audio.cue('laser') === false, 'synth: locked audio stays silent');
+  audio.unlock();
+  ok((await audio.ready()) === true, 'synth: pack ready');
+  audio.update({ speed: 6, active: true });
+  const fetched = loader.calls.length;
+  ok(SYNTH_CUE_NAMES.length === 14 && new Set(SYNTH_CUE_NAMES).size === 14, 'synth: fourteen named cues');
+  for (const weapon of ['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram'])
+    ok(SYNTH_CUE_NAMES.includes(weapon), `synth: ${weapon} has its own fire cue`);
+  ok(['thunderClap', 'oilSkid', 'frostShatter', 'clusterPop', 'boing', 'ramClang'].every((n) => SYNTH_CUE_NAMES.includes(n)), 'synth: clap, skid, shatter, pop, boing and clang cues');
+  ok(SYNTH_CUE_NAMES.every((n) => !CUE_NAMES.includes(n) && !(n in ASSET_MAP)), 'synth: no sample file backs a synthesized cue');
+  ok(JSON.stringify(audio.synthCues()) === JSON.stringify(SYNTH_CUE_NAMES) && audio.cues().length === CUE_NAMES.length, 'synth: separate cue list, sampled list unchanged');
+  const signatures = new Map();
+  for (const name of SYNTH_CUE_NAMES) {
+    const from = nodes.length;
+    ok(audio.cue(name, { gain: 1, pan: .3 }) === true, `synth: ${name} schedules`);
+    const fresh = nodes.slice(from), sources = fresh.filter((n) => n.kind === 'osc' || n.kind === 'buf');
+    ok(fresh.some((n) => n.kind === 'osc'), `synth: ${name} is built from oscillators`);
+    ok(sources.every((n) => n.starts.length === 1 && n.stops.length === 1), `synth: ${name} every layer has one bounded start/stop`);
+    ok(new Set(sources.map((n) => n.stops[0])).size === 1, `synth: ${name} layers end together (no clipped tails)`);
+    ok(sources[0].stops[0] - sources[0].starts[0] <= SYNTH_CUE_SPEC[name][1] + .05 && sources[0].stops[0] - sources[0].starts[0] <= 1.4, `synth: ${name} is short`);
+    ok(sources.filter((n) => n.kind === 'buf').every((n) => n.loop === true && n.buffer && !n.buffer.bytes), `synth: ${name} noise is generated, not a decoded file`);
+    const amp = fresh.find((n) => n.kind === 'gain');
+    ok(amp && amp.gain.max > .1 && amp.gain.max <= .4 + 1e-9, `synth: ${name} modest peak (${amp?.gain.max.toFixed(2)})`);
+    ok(fresh.some((n) => n.kind === 'panner'), `synth: ${name} pans with the event`);
+    signatures.set(name, JSON.stringify(fresh.map((n) => [n.kind, n.type || '', n.frequency ? Math.round(n.frequency.value) : 0])));
+  }
+  ok(new Set(signatures.values()).size === SYNTH_CUE_NAMES.length, 'synth: every cue has its own distinct voice');
+  ok(loader.calls.length === fetched, 'synth: no extra requests for synthesized cues');
+  audio.setMuted(true);
+  ok(audio.cue('boing') === false, 'synth: muted refuses');
+  audio.setMuted(false);
+  ok(audio.cue('ramClang', { gain: 0 }) === false, 'synth: zero gain refuses');
+  for (let i = 0; i < 40; i++) audio.cue(SYNTH_CUE_NAMES[i % SYNTH_CUE_NAMES.length]);
+  const before = stats.stops;
+  audio.dispose();
+  ok(stats.stops > before, 'synth: dispose stops live synthesized voices');
+  ok(audio.cue('laser') === false, 'synth: disposed refuses');
 });
 
 /* ---------- 4b. new weapon/impact voices respect mute + dispose ---------- */
@@ -868,8 +922,8 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok((await audio.ready()) === false, 'fail: ready reports the outage');
   ok(audio.status().failed.length === FILE_COUNT, 'fail: every sample marked failed');
   ok(audio.update({ speed: 10, active: true }) === true, 'fail: update runs silent');
-  ok(loopSourcesOf(nodes).length === 0 && stats.starts === stats.osc,
-    'fail: no sample beds start; only the synthesized engine voice runs');
+  ok(loopSourcesOf(nodes).length === 0 && stats.starts === stats.osc + noiseLoopsOf(nodes).length,
+    'fail: no sample beds start; only the synthesized engine voice (oscillators + noise texture) runs');
   ok(stats.osc === 3, 'fail: an outage adds no oscillators beyond the engine voice');
   ok(audio.cue('ko') === false, 'fail: cue drops quietly');
   const callsAfterFail = loader.calls.length;
@@ -969,7 +1023,7 @@ await withGlobals({ document: makeEmitter(), window: makeEmitter() }, async () =
   ok(doc.total() === 0 && win.total() === 0, 'dispose: every listener removed');
   ok(stats.closes === 1, 'dispose: backend closed once');
   const stoppedNow = bufSourcesOf(nodes).filter((v) => v.stops.length >= 1).length;
-  ok(stoppedNow === loopsBefore + 1, 'dispose: beds + cue sources stopped');
+  ok(stoppedNow === loopsBefore + 1 + noiseLoopsOf(nodes).length, 'dispose: beds, the engine noise loop and cue sources stopped');
   ok(nodes.every((n) => n.disconnects >= 1), 'dispose: every node disconnected');
   audio.dispose();
   ok(stats.closes === 1, 'dispose: idempotent');
@@ -999,7 +1053,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok((await audio.ready()) === false, 'abort: ready stays false after dispose');
   ok(loopSourcesOf(nodes).length === 0, 'abort: late decodes start zero beds');
   ok(cueVoicesOf(nodes).length === 0, 'abort: late decodes schedule zero cues');
-  ok(stats.starts === stats.osc && bufSourcesOf(nodes).every((n) => n.starts.length === 0), 'abort: no sample source ever started (only the engine voice)');
+  ok(stats.starts === stats.osc + noiseLoopsOf(nodes).length && bufSourcesOf(nodes).every((n) => n.starts.length === 0 || noiseLoopsOf(nodes).includes(n)), 'abort: no sample source ever started (only the engine voice and its noise texture)');
   ok(audio.cue('ko') === false, 'abort: cue stays inert');
 });
 

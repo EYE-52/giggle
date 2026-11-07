@@ -11,14 +11,26 @@ const ZERO = Object.freeze({ x: 0, y: 0, z: 0 });
 const IDENTITY = Object.freeze({ x: 0, y: 0, z: 0, w: 1 });
 const LIMIT = Object.freeze({ queue: 32, seq: 0x7fffffff, seqJump: 4096, events: 32, steps: 15, activationMs:8000 });
 const RECOVERY = Object.freeze({ up: 0.35, linear: 0.5, angular: 0.5, progress: 0.3, seconds: 2, retryMs: 500, cooldownMs: 5000 });
-// Elevated arsenal: the same eight weapons and tier odds as the flat arenas.
+// Elevated arsenal: the same sixteen weapons and tier odds as the flat arenas.
+const W = COMBAT.weapons;
 const ARSENAL = Object.freeze({
   weights:Object.freeze(Object.fromEntries(COMBAT.weaponOrder.map(id=>[id,COMBAT.pickupWeights[id]*100]))),
   pulse:Object.freeze({ammo:COMBAT.weapons.pulse.ammo,cooldown:COMBAT.weapons.pulse.cooldown,speed:140}),
   nuke:Object.freeze({speed:16,launchY:5,fuse:3.5,radius:.5,friction:2,splashRadius:COMBAT.weapons.nuke.splashRadius,warning:1.2}),
   proximity:Object.freeze({speed:12,launchY:6,radius:COMBAT.weapons.proximity.bodyRadius,friction:4,splashRadius:COMBAT.weapons.proximity.splashRadius}),
   seeker:Object.freeze({speed:60,ttl:2.4,range:45,halfAngle:35*Math.PI/180,turnRate:2.6,splashRadius:COMBAT.weapons.seeker.splashRadius}),
+  laser:Object.freeze({speed:W.laser.speed,ttl:W.laser.ttl}),
+  boomerang:Object.freeze({speed:W.boomerang.speed,ttl:W.boomerang.ttl}),
+  bouncer:Object.freeze({speed:W.bouncer.speed,ttl:W.bouncer.ttl,bounces:W.bouncer.bounces}),
+  thunder:Object.freeze({range:W.thunder.range,halfAngle:W.thunder.halfAngle*Math.PI/180}),
+  frost:Object.freeze({speed:16,launchY:5,fuse:1,radius:.45,friction:2,splashRadius:W.frost.splashRadius}),
+  cluster:Object.freeze({speed:16,launchY:5,fuse:.85,radius:.45,friction:2}),
+  bomblet:Object.freeze({speed:7.5,launchY:5,fuse:B.BOMBLET_FUSE,stagger:B.BOMBLET_STAGGER,radius:.22,friction:3,splashRadius:W.cluster.splashRadius}),
 });
+// Lobbed canisters that detonate on a fuse (or a direct hull hit).
+const LOBBED = new Set(['nuke','frost','cluster','bomblet']);
+const blastWeapon = weapon => weapon==='bomblet'?'cluster':weapon;
+const muzzleOf = weapon => COMBAT.muzzleKind[weapon] || weapon;
 const finite = Number.isFinite;
 const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
 const add = (a,b) => ({x:a.x+b.x,y:a.y+b.y,z:a.z+b.z});
@@ -89,7 +101,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     // One call per confirmed authority transition; failure never replays award.
     if(typeof options.onAward==='function') { try { options.onAward(k.id,amount,instance+'-'+key); } catch {} }
   }
-  function clean(k) { if(k.sequence){k.weapon=null;k.ammo=0;}k.input=neutral(); k.queue.length=0; k.pendingFire=false; k.pendingFireAt=null; k.useDown=false; k.lastInputAt=null; k.nitroActive=false; k.sequence=null; k.stuck=null; }
+  function clean(k) { if(k.sequence){k.weapon=null;k.ammo=0;}k.frostT=0;k.spinT=0;k.rammingT=0;k.ramVolley=null;k.spinKick=0;k.input=neutral(); k.queue.length=0; k.pendingFire=false; k.pendingFireAt=null; k.useDown=false; k.lastInputAt=null; k.nitroActive=false; k.sequence=null; k.stuck=null; }
   function supported(point) {
     if(!point || !validId(point.id) || !validId(point.surface) || ![point.x,point.y,point.z,point.angle].every(finite) || Math.abs(point.x)>M.half-2 || Math.abs(point.z)>M.half-2 || Math.abs(point.angle)>2*Math.PI) return false;
     const s=physics.supportAt({x:point.x,y:point.y+0.4,z:point.z},0.8);
@@ -128,7 +140,8 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     for(let i=0;i<seats.length;i++) {
       const s=seats[i], k={id:s.id,name:String(s.name||s.id).slice(0,48),connected:true,alive:true,spawnSeq:0,controlEpoch:0,
         input:neutral(),queue:[],receivedSeq:0,appliedSeq:0,lastReceipt:startAt,lastInputAt:null,pendingFire:false,useDown:false,
-        hits:0,deaths:0,coins:0,health:initialHealth,maxHealth:COMBAT.maxHealth,weapon:null,ammo:0,itemSeq:0,sequence:null,shield:B.SPAWN_SHIELD,guard:false,respawn:0,fireCd:0,nitro:1,nitroLocked:false,nitroActive:false,stuck:null,recoverAfter:0};
+        hits:0,deaths:0,coins:0,health:initialHealth,maxHealth:COMBAT.maxHealth,weapon:null,ammo:0,itemSeq:0,sequence:null,shield:B.SPAWN_SHIELD,guard:false,respawn:0,fireCd:0,nitro:1,nitroLocked:false,nitroActive:false,stuck:null,recoverAfter:0,
+        frostT:0,spinT:0,rammingT:0,ramVolley:null,spinKick:0};
       karts.set(k.id,k); physics.addKart(k.id,spawnPose(spawns[i]));
     }
     physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15); physics.step(15);
@@ -202,6 +215,9 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     const taken=Math.min(k.health,amount);k.health=Math.max(0,k.health-taken);
     emit('hit',owner,{other:k.id,weapon,damage:taken,health:k.health,maxHealth:k.maxHealth,position:physics.pose(k.id).position});
     if(k.health===0)knockOut(k,owner,weapon);
+    // Status effects ride on a landed (not blocked) hit.
+    else if(weapon==='oil'){k.spinT=B.SPIN_TIME;k.spinKick=(eventSeq%2?1:-1)*B.SPIN_KICK;}
+    else if(weapon==='frost')k.frostT=B.FROST_TIME;
     return true;
   }
   function splash(origin,owner,radius,weapon,direct=null,volley=null) {
@@ -242,15 +258,15 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   }
   function spend(k,p) {
     if(!k.weapon || k.fireCd>0) return;
-    const weapon=k.weapon, offset=C.combat[(weapon==='nuke'?'rocket':weapon)+'Muzzle']||{x:0,y:0.5,z:1.9};
+    const weapon=k.weapon, offset=C.combat[muzzleOf(weapon)+'Muzzle']||{x:0,y:0.5,z:1.9};
     const origin=add(p.position,rotate({x:offset.x,y:offset.y,z:0},p.rotation)), muzzle=add(p.position,rotate(offset,p.rotation));
     const forward=rotate({x:0,y:0,z:1},p.rotation);
     // One pickup is one volley: its hearts land at most once per rival.
     const volley=k.id+':'+k.itemSeq;
-    let deployed=null;
-    if(weapon==='mine') {
+    let deployed=null,announced=false;
+    if(weapon==='mine'||weapon==='oil') {
       if(!p.grounded || mines.length>=B.MAX_MINES) return;
-      const radius=COMBAT.weapons.mine.bodyRadius;
+      const radius=COMBAT.weapons[weapon].bodyRadius;
       // Moving karts leave a trail at their current pose; a stationary kart
       // extends that trail backwards instead of stacking three identical discs.
       for(let slot=0;slot<8;slot++) {
@@ -260,39 +276,56 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         const position=add(s.point,mul(s.normal,radius+.015));
         if(!los(add(p.position,{x:0,y:.3,z:0}),position) || sphereBlocked(position,radius) ||
           mines.some(m=>distance(m.position,position)<radius*2+.2))continue;
-        mines.push({id:entity('m'),owner:k.id,position,radius,surfaceId:s.surfaceId,normal:s.normal,arm:COMBAT.weapons.mine.armTime,ttl:COMBAT.weapons.mine.lifetime});
+        mines.push({id:entity('m'),owner:k.id,...(weapon==='oil'?{weapon}:{}),position,radius,surfaceId:s.surfaceId,normal:s.normal,arm:COMBAT.weapons[weapon].armTime,ttl:COMBAT.weapons[weapon].lifetime});
         deployed=position;break;
       }
       if(!deployed)return;
     } else if(weapon==='shield') k.guard=true;
-    else if(weapon==='proximity' || weapon==='nuke') {
-      if(grenades.length>=B.MAX_GRENADES) return;
+    else if(weapon==='ram') {k.rammingT=B.RAM_TIME;k.ramVolley=volley;}
+    else if(weapon==='thunder') {
+      // Lightning from the sky: the nearest rival ahead, else the nearest.
+      const candidates=[...karts.values()].filter(v=>v.id!==k.id&&vulnerable(v)).map(v=>({kart:v,delta:sub(hull(physics.pose(v.id)),p.position)}));
+      const ahead=candidates.filter(v=>length(v.delta)<=ARSENAL.thunder.range&&dot(v.delta,forward)>=length(v.delta)*Math.cos(ARSENAL.thunder.halfAngle));
+      const target=(ahead.length?ahead:candidates).sort((a,b)=>length(a.delta)-length(b.delta))[0]?.kart||null;
+      const point=target?hull(physics.pose(target.id)):add(p.position,mul(forward,18));
+      emit('fire',k.id,{weapon,position:muzzle,direction:forward});announced=true;
+      emit('blast',k.id,{weapon,position:point,...(target?{other:target.id}:{})});
+      if(target)damage(target,k.id,weapon,volley);
+    }
+    else if(weapon==='proximity' || LOBBED.has(weapon)) {
+      if(grenades.length+(weapon==='cluster'?1+W.cluster.bomblets:1)>B.MAX_GRENADES) return;
       const heavy=ARSENAL[weapon],radius=heavy.radius;
       if(proximityCharge(weapon)&&sphereBlocked(origin,radius))return;
       const blocked=physics.sweepStatic(origin,muzzle,radius);
       grenades.push({id:entity('g'),owner:k.id,weapon,radius,position:blocked?add(blocked.point,mul(blocked.normal,0.02)):muzzle,velocity:add(mul(forward,heavy.speed),{x:0,y:heavy.launchY,z:0}),
-        ...(proximityCharge(weapon)?{ttl:COMBAT.weapons[weapon].lifetime,arm:COMBAT.weapons[weapon].armTime,landed:false}:{fuse:heavy.fuse}),bounces:0});
+        ...(proximityCharge(weapon)?{ttl:COMBAT.weapons[weapon].lifetime,arm:COMBAT.weapons[weapon].armTime,landed:false}:{fuse:heavy.fuse}),bounces:0,...(weapon==='nuke'||proximityCharge(weapon)?{}:{volley})});
     } else {
       const angles=weapon==='scatter'?B.SCATTER_FAN:[0];
       if(shots.length+angles.length>B.MAX_ZAPS) return;
-      const speed=weapon==='pulse'?ARSENAL.pulse.speed:weapon==='scatter'?B.SCATTER_SPEED:weapon==='rocket'?B.ROCKET_SPEED:ARSENAL.seeker.speed;
-      const ttl=weapon==='pulse'?B.PULSE_TTL:weapon==='scatter'?B.SCATTER_TTL:weapon==='rocket'?B.ROCKET_TTL:ARSENAL.seeker.ttl;
+      const speed=weapon==='pulse'?ARSENAL.pulse.speed:weapon==='scatter'?B.SCATTER_SPEED:weapon==='rocket'?B.ROCKET_SPEED:ARSENAL[weapon]?.speed??ARSENAL.seeker.speed;
+      const ttl=weapon==='pulse'?B.PULSE_TTL:weapon==='scatter'?B.SCATTER_TTL:weapon==='rocket'?B.ROCKET_TTL:ARSENAL[weapon]?.ttl??ARSENAL.seeker.ttl;
+      // Boomerangs and rubber balls travel level, whatever the chassis pitch.
+      const level=weapon==='boomerang'||weapon==='bouncer';
       const lock=weapon==='seeker'?[...karts.values()].filter(v=>v.id!==k.id&&vulnerable(v))
         .map(v=>({kart:v,delta:sub(hull(physics.pose(v.id)),muzzle)}))
         .filter(v=>length(v.delta)<=ARSENAL.seeker.range && dot(v.delta,forward)>=length(v.delta)*Math.cos(ARSENAL.seeker.halfAngle) && los(muzzle,add(muzzle,v.delta)))
         .sort((a,b)=>length(a.delta)-length(b.delta))[0]?.kart:null;
       const radius=COMBAT.staticSweepRadii[weapon],blocked=physics.sweepStatic(origin,muzzle,radius);
       for(const angle of angles) {
-        const shot={id:entity('p'),owner:k.id,weapon,position:muzzle,velocity:mul(rotate({x:Math.sin(angle),y:0,z:Math.cos(angle)},p.rotation),speed),ttl,radius,volley};
+        let heading=rotate({x:Math.sin(angle),y:0,z:Math.cos(angle)},p.rotation);
+        if(level){const n=Math.hypot(heading.x,heading.z)||1;heading={x:heading.x/n,y:0,z:heading.z/n};}
+        const shot={id:entity('p'),owner:k.id,weapon,position:muzzle,velocity:mul(heading,speed),ttl,radius,volley};
         if(weapon==='seeker') {shot.targetId=lock?.id??null;shot.targetLife=lock?.spawnSeq??null;}
+        if(weapon==='boomerang') {shot.age=0;shot.curve=k.ammo%2?1:-1;}
+        if(weapon==='bouncer') shot.bounces=0;
         if(blocked) { if(weapon==='rocket'||weapon==='seeker') splash(add(blocked.point,mul(blocked.normal,0.02)),k.id,weapon==='seeker'?ARSENAL.seeker.splashRadius:B.ROCKET_SPLASH_R,weapon,null,volley); emit('impact',k.id,{weapon,position:blocked.point,surfaceId:blocked.surfaceId,...(['pulse','scatter'].includes(weapon)?{from:origin}:{})}); }
         else shots.push(shot);
       }
     }
     if(weapon!=='shield') k.shield=0;
-    k.fireCd=weapon==='pulse'?ARSENAL.pulse.cooldown:weapon==='mine'?COMBAT.weapons.mine.dropInterval:B.FIRE_CD;
+    k.fireCd=weapon==='pulse'?ARSENAL.pulse.cooldown:weapon==='mine'||weapon==='oil'?COMBAT.weapons[weapon].dropInterval:B.FIRE_CD;
     k.ammo--; if(k.ammo<=0) { k.weapon=null; k.ammo=0; }
-    emit(weapon==='mine'?'mine':weapon==='shield'?'shield':'fire',k.id,{weapon,position:deployed||muzzle,direction:forward});
+    if(!announced)emit(weapon==='mine'?'mine':weapon==='shield'?'shield':'fire',k.id,{weapon,position:deployed||muzzle,direction:forward});
     return true;
   }
   function updateShots(before,after) {
@@ -303,27 +336,79 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         if(!target?.alive || !target.connected || target.spawnSeq!==s.targetLife) {s.targetId=null;s.targetLife=null;}
         else s.velocity=guidedVelocity(s.velocity,sub(hull(after.get(target.id)),s.position),ARSENAL.seeker.turnRate*h);
       }
+      if(s.weapon==='boomerang') steerBoomerang(s,after,h);
       const end=add(s.position,mul(s.velocity,h));
       const solid=physics.sweepStatic(s.position,end,s.radius); let hit=null, t=solid?.fraction??Infinity;
+      const pierced=[];
       for(const k of karts.values()) {
         if(k.id===s.owner || !k.alive || !k.connected) continue;
         const a=before.get(k.id),b=after.get(k.id);
         // A respawn is a teleport epoch, never a swept target across the arena.
         const start=a.epoch===b.epoch?hull(a):hull(b), finish=lerp(start,hull(b),h/dt);
         const fraction=hullImpact(s.position,end,start,finish,Math.sqrt(B.ZAP_HIT_R2));
+        // A Boomerang blade cuts through every rival on its path.
+        if(s.weapon==="boomerang"){if(fraction!==null&&fraction<t-1e-7&&los(lerp(s.position,end,fraction),lerp(start,finish,fraction)))pierced.push({k,point:lerp(s.position,end,fraction)});continue;}
         if(fraction!==null && fraction<t-1e-7 && los(lerp(s.position,end,fraction),lerp(start,finish,fraction))) { t=fraction; hit=k; }
+      }
+      // A fresh cut (not a rival this pickup already hurt) sparks once.
+      for(const {k,point} of pierced)if(damage(k,s.owner,s.weapon,s.volley))emit("impact",s.owner,{weapon:s.weapon,position:point,other:k.id});
+      if(s.weapon==='bouncer'&&!hit&&solid&&t<=1&&s.bounces<ARSENAL.bouncer.bounces){
+        const point=lerp(s.position,end,t),n=solid.normal,vn=dot(s.velocity,n),speed=length(s.velocity);
+        if(n.y>.55)s.velocity=sub(s.velocity,mul(n,vn)); // rolling up a slope is not a bounce
+        else {s.velocity=sub(s.velocity,mul(n,2*vn));s.velocity.y=Math.max(-2,s.velocity.y)*.5;s.bounces++;emit('bounce',s.owner,{weapon:'bouncer',position:point});}
+        const kept=length(s.velocity)||1;s.velocity=mul(s.velocity,speed/kept);
+        s.position=add(point,mul(n,.06));s.ttl-=h;if(s.ttl<=1e-8)shots.splice(i,1);
+        continue;
       }
       if(t<=1) {
         const point=lerp(s.position,end,t), normal=hit?ZERO:solid.normal;
         if(s.weapon==='rocket'||s.weapon==='seeker') { splash(add(point,mul(normal,0.02)),s.owner,s.weapon==='seeker'?ARSENAL.seeker.splashRadius:B.ROCKET_SPLASH_R,s.weapon,hit,s.volley); emit('blast',s.owner,{weapon:s.weapon,position:point}); }
         else if(hit) damage(hit,s.owner,s.weapon,s.volley);
         emit('impact',s.owner,{weapon:s.weapon,position:point,...(!hit?{surfaceId:solid.surfaceId}:{other:hit.id}),...(['pulse','scatter'].includes(s.weapon)?{from:s.position}:{})}); shots.splice(i,1);
-      } else { s.position=end; s.ttl-=h; if(s.ttl<=1e-8) shots.splice(i,1); }
+      } else {
+        s.position=end; s.ttl-=h;
+        if(s.ttl<=1e-8 || (s.weapon==='boomerang'&&caught(s,after))) shots.splice(i,1);
+      }
     }
     // A volley stays open while its shots fly or its clip is still loaded.
     const liveVolleys=new Set(shots.map(s=>s.volley).filter(Boolean));
     for(const k of karts.values())if(k.weapon)liveVolleys.add(k.id+':'+k.itemSeq);
+    for(const k of karts.values())if(k.rammingT>0&&k.ramVolley)liveVolleys.add(k.ramVolley);
+    for(const g of grenades)if(g.volley)liveVolleys.add(g.volley);
     for(const id of volleyHits.keys())if(!liveVolleys.has(id))volleyHits.delete(id);
+  }
+  // Boomerang: curve out to one side, then home on the thrower's hull.
+  function steerBoomerang(s,after,h) {
+    const R=W.boomerang;s.age+=h;
+    const speed=Math.hypot(s.velocity.x,s.velocity.z)||R.speed,heading=Math.atan2(s.velocity.x,s.velocity.z);
+    let turn=s.curve*R.curveRate*h,vy=0;
+    const owner=karts.get(s.owner);
+    if(s.age>R.outTime){
+      if(owner?.alive&&owner.connected){
+        const to=hull(after.get(owner.id)),want=Math.atan2(to.x-s.position.x,to.z-s.position.z);
+        turn=clamp(Math.atan2(Math.sin(want-heading),Math.cos(want-heading)),-R.returnTurn*h,R.returnTurn*h);
+        vy=clamp((to.y-s.position.y)*3,-6,6);
+      } else turn=s.curve*R.returnTurn*.5*h;
+    }
+    const next=heading+turn;s.velocity={x:Math.sin(next)*speed,y:vy,z:Math.cos(next)*speed};
+  }
+  function caught(s,after) {
+    const owner=karts.get(s.owner);
+    return s.age>W.boomerang.outTime&&!!owner?.alive&&owner.connected&&distance(hull(after.get(owner.id)),s.position)<W.boomerang.catchRadius;
+  }
+  // Turbo Ram: touching a rival while it runs takes one heart, once per pickup.
+  function updateRams(after) {
+    for(const k of karts.values()){
+      if(!(k.rammingT>0)||!k.alive||!k.connected)continue;
+      k.rammingT=Math.max(0,k.rammingT-dt);
+      const me=hull(after.get(k.id));
+      for(const v of karts.values()){
+        if(v.id===k.id||!vulnerable(v))continue;
+        const o=hull(after.get(v.id));
+        if(Math.hypot(o.x-me.x,o.z-me.z)<B.RAM_REACH&&Math.abs(o.y-me.y)<1.6)damage(v,k.id,'ram',k.ramVolley);
+      }
+      if(k.rammingT<=0)k.ramVolley=null;
+    }
   }
   function updateMines(before,after) {
     for(let i=mines.length-1;i>=0;i--) {
@@ -336,10 +421,14 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
           const a=before.get(k.id),b=after.get(k.id);
           if(a.epoch!==b.epoch) continue;
           const start=lerp(a.position,b.position,startFraction),end=lerp(a.position,b.position,endFraction);
-          const t=hullImpact(m.position,m.position,start,end,Math.sqrt(B.MINE_R2));
+          const t=hullImpact(m.position,m.position,start,end,Math.sqrt(m.weapon==='oil'?B.OIL_R2:B.MINE_R2));
           if(t!==null && t<bestT && los(m.position,lerp(start,end,t))) {bestT=t;best=k;}
         }
-        if(best) {damage(best,m.owner,'mine');mines.splice(i,1);continue;}
+        if(best) {
+          damage(best,m.owner,m.weapon==='oil'?'oil':'mine');
+          if(m.weapon==='oil')emit('splat',m.owner,{weapon:'oil',other:best.id,position:m.position});
+          mines.splice(i,1);continue;
+        }
       }
       if(m.ttl<=0) mines.splice(i,1);
     }
@@ -356,7 +445,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       let remaining=h,direct=null;
       for(let impacts=0;impacts<3 && remaining>1e-6;impacts++) {
         const end=add(g.position,mul(g.velocity,remaining)), hit=physics.sweepStatic(g.position,end,g.radius);
-        if(g.weapon==='nuke') {
+        if(LOBBED.has(g.weapon)&&g.weapon!=='bomblet') { // bomblets pop on their staggered fuses only
           // Match projectile hull sweeps, including target motion during each
           // bounded segment after a bounce. Static cover wins equal contacts.
           let fraction=hit?.fraction??Infinity;
@@ -392,10 +481,21 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         continue;
       }
       g.fuse-=h;
-      if(direct || g.fuse<=1e-8) {
-        splash(g.position,g.owner,heavy.splashRadius,g.weapon,direct);
-        if(direct)emit('impact',g.owner,{weapon:g.weapon,position:g.position,other:direct.id});
-        emit('blast',g.owner,{weapon:g.weapon,position:g.position});grenades.splice(i,1);
+      if((direct || g.fuse<=1e-8) && g.weapon==='cluster') {
+        // The canister pops into staggered bomblets that share its volley.
+        emit('burst',g.owner,{weapon:'cluster',position:g.position});grenades.splice(i,1);
+        const bomb=ARSENAL.bomblet,count=Math.min(W.cluster.bomblets,B.MAX_GRENADES-grenades.length),spin=Math.atan2(g.velocity.x,g.velocity.z);
+        for(let n=0;n<count;n++){
+          const a=spin+n*Math.PI*2/count+.35;
+          grenades.push({id:entity('g'),owner:g.owner,weapon:'bomblet',radius:bomb.radius,position:{...g.position},
+            velocity:{x:Math.sin(a)*bomb.speed+g.velocity.x*.3,y:bomb.launchY,z:Math.cos(a)*bomb.speed+g.velocity.z*.3},
+            fuse:bomb.fuse+bomb.stagger*n,bounces:0,...(g.volley?{volley:g.volley}:{})});
+        }
+      } else if(direct || g.fuse<=1e-8) {
+        const weapon=blastWeapon(g.weapon);
+        splash(g.position,g.owner,heavy.splashRadius,weapon,direct,g.volley||null);
+        if(direct)emit('impact',g.owner,{weapon,position:g.position,other:direct.id});
+        emit('blast',g.owner,{weapon,position:g.position});grenades.splice(i,1);
       }
     }
   }
@@ -431,6 +531,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       }
       if(k.lastInputAt===null || at-k.lastInputAt>H.INPUT_TTL_MS) { k.input=neutral();k.pendingFire=false;k.nitroActive=false; }
       k.shield=Math.max(0,k.shield-dt);k.fireCd=Math.max(0,k.fireCd-dt);
+      k.frostT=Math.max(0,k.frostT-dt);k.spinT=Math.max(0,k.spinT-dt);
       if(k.nitroLocked) {k.nitroActive=false;k.nitro=Math.min(1,k.nitro+H.NITRO_RECHARGE*dt);if(k.nitro>=H.NITRO_REARM)k.nitroLocked=false;}
       else if(k.input.nitro&&k.input.throttle>0&&k.nitro>0) {k.nitroActive=true;k.nitro=Math.max(0,k.nitro-H.NITRO_DRAIN*dt);if(k.nitro<=0)k.nitroLocked=true;}
       else {k.nitroActive=false;k.nitro=Math.min(1,k.nitro+H.NITRO_RECHARGE*dt);}
@@ -448,7 +549,11 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       }
     }
     for(const k of karts.values()) if(k.connected&&k.alive) {
-      physics.tuneKart(k.id,{top:k.nitroActive?H.NITRO_SPEED:1,engine:k.nitroActive?H.NITRO_PUNCH:1,steering:1,traction:1});
+      // Weapon status: a Turbo Ram boosts, Frost slows, an Oil Slick spins.
+      const ram=k.rammingT>0,frost=k.frostT>0?W.frost.slowFactor:1,spun=k.spinT>0;
+      physics.tuneKart(k.id,{top:clamp(Math.max(k.nitroActive?H.NITRO_SPEED:1,ram?W.ram.speedFactor:1)*frost,.1,2),
+        engine:clamp(Math.max(k.nitroActive?H.NITRO_PUNCH:1,ram?1.6:1)*(frost<1?.7:1),.1,2),steering:1,traction:1,rearTraction:spun?.12:1,rearStiffness:spun?.2:1});
+      if(k.spinKick){physics.spinKart(k.id,k.spinKick);k.spinKick=0;}
       physics.applyIntent(k.id,k.input);
     }
     physics.step();
@@ -461,7 +566,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       collisionAt.set(key,at);
       emit(Math.abs(contact.normal.y)>.7?'landing':'collision',ids[0],{...contact,other:ids[1]||null});
     }
-    updateShots(before,after);updateMines(before,after);updateGrenades(before,after);
+    updateShots(before,after);updateMines(before,after);updateGrenades(before,after);updateRams(after);
     if(targetReached) {finish('target');return;}
     for(const k of karts.values()) {
       if(!k.connected || !k.alive) continue;
@@ -501,9 +606,9 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   function snapshot(viewer=null) {
     alive();
     return structuredClone({instance,profile:'internal-elevated-combat-v2',combat:COMBAT,projectileRadii:COMBAT.staticSweepRadii,physicsVersion:physics.apiVersion,configVersion:C.version,mapId:M.id,mapRevision:M.revision,phase,simTick,simAt,serverAt:wallAt,liveAt,deadline,droppedMs,
-      karts:[...karts.values()].map(k=>({id:k.id,name:k.name,connected:k.connected,...(k.out?{out:true}:{}),alive:k.alive,health:k.health,maxHealth:k.maxHealth,hits:k.hits,deaths:k.deaths,spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,weapon:k.weapon,ammo:k.ammo,firing:!!k.sequence,shield:k.shield,guard:k.guard,respawn:k.respawn,nitro:k.nitro,nitroActive:k.nitroActive,pose:physics.pose(k.id)})),
+      karts:[...karts.values()].map(k=>({id:k.id,name:k.name,connected:k.connected,...(k.out?{out:true}:{}),alive:k.alive,health:k.health,maxHealth:k.maxHealth,hits:k.hits,deaths:k.deaths,spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,weapon:k.weapon,ammo:k.ammo,firing:!!k.sequence,shield:k.shield,guard:k.guard,respawn:k.respawn,nitro:k.nitro,nitroActive:k.nitroActive,frostT:k.frostT,spinT:k.spinT,rammingT:k.rammingT,pose:physics.pose(k.id)})),
       crates:crates.map(c=>({id:c.id,position:c.position,surfaceId:c.surfaceId,available:c.availableAt<=simAt})),
-      projectiles:shots,mines:mines.map(m=>({...m,armed:m.arm<=0})),grenades:grenades.map(g=>({...g,...(proximityCharge(g.weapon)?{armed:g.landed&&g.arm<=1e-8,warning:g.landed&&g.arm<=1e-8}:{warning:g.fuse<=(ARSENAL[g.weapon]?.warning??B.GRENADE_WARN)})})),events,
+      projectiles:shots,mines:mines.map(m=>({...m,armed:m.arm<=0})),grenades:grenades.map(g=>({...g,...(proximityCharge(g.weapon)?{armed:g.landed&&g.arm<=1e-8,warning:g.landed&&g.arm<=1e-8}:{warning:g.weapon==="nuke"&&g.fuse<=(ARSENAL[g.weapon]?.warning??B.GRENADE_WARN)})})),events,
       you:privateStatus(viewer),result:resultData});
   }
   function result() {alive();return resultData?structuredClone(resultData):null;}

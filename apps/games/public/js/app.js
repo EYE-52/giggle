@@ -19,7 +19,7 @@ import {
 } from './embed.js';
 import { wsTargetFromConfig } from './netconfig.js';
 import { createServerClock } from './server-clock.js';
-import { createGameScreen } from './toolkit/game-screen.mjs';
+import { createGameScreen, createGameScreenPrompt } from './toolkit/game-screen.mjs';
 import { readInputCapabilities } from './toolkit/input-capabilities.mjs';
 import { createResultPresentation } from './toolkit/result-presentation.mjs';
 import { createGameCuePlayer } from './toolkit/game-cues.mjs';
@@ -1080,6 +1080,13 @@ function wireTopbar() {
 
 let lastScreen = '';
 let gameScreen = null;
+const gameScreenPrompt = createGameScreenPrompt();
+
+// Apply the chrome change before measuring the canvas. Some browsers do not
+// emit resize when document fullscreen changes without changing screen size.
+document.addEventListener('game-screenchange', () => {
+  requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+});
 
 function render() {
   if (!room) { clearKickRequest(); lastKickRequestId = null; kickConfirmation = null; }
@@ -2372,7 +2379,7 @@ function gameRoomMenu(g, context, floating = false) {
       <div id="roomMembers" class="room-members"></div>
       ${!EMBED.enabled ? '<a class="room-meet" href="https://gigglemeet.com" target="_blank" rel="noopener">Hang out on Giggle Meet ↗</a>' : ''}
     </div>
-  </details>${reportButton('game-report-icon')}`;
+  </details><button type="button" id="bGameScreenToggle" class="tb-btn tb-icon tb-chip game-screen-toggle" aria-label="Full screen" title="Full screen" aria-pressed="false" hidden></button>${reportButton('game-report-icon')}`;
 }
 
 /* Inline confirmations for the two match-ending choices in the drawer. */
@@ -2434,10 +2441,20 @@ function wireGameRoom() {
     if (menu.open) menu.querySelector('#bRoomResume')?.focus({ preventScroll: true });
     else if (menuConfirm) { menuConfirm = null; paintMenuConfirm(); }
   });
-  const screenButton = document.getElementById('bGameScreen');
-  if (screenButton) screenButton.onclick = () => {
-    if (menu) menu.open = false;
-    void gameScreen.toggle();
+  for (const id of ['bGameScreen', 'bGameScreenToggle', 'bGameScreenPrompt']) {
+    const screenButton = document.getElementById(id);
+    if (screenButton) screenButton.onclick = () => {
+      gameScreenPrompt.dismiss();
+      if (menu) menu.open = false;
+      void gameScreen.toggle();
+    };
+  }
+  const dismissScreenPrompt = document.getElementById('bGameScreenDismiss');
+  if (dismissScreenPrompt) dismissScreenPrompt.onclick = () => {
+    gameScreenPrompt.dismiss();
+    document.getElementById('bGameScreenToggle')?.focus({ preventScroll: true });
+    paintGameScreen(gameScreen.state());
+    document.dispatchEvent(new Event('game-screenchange'));
   };
   paintGameScreen(gameScreen.state());
   const invite = document.getElementById('bGameInvite');
@@ -2500,9 +2517,25 @@ document.addEventListener('click', (e) => {
 // Without a saved choice the default follows the frame size.
 window.addEventListener('resize', () => { if (!store.get(ZOOM_KEY)) applyGameZoom(); });
 
-function paintGameScreen({ busy, fullscreen }) {
-  const button = document.getElementById('bGameScreen');
-  if (button) { button.textContent = fullscreen ? 'Exit full screen' : readInputCapabilities().preferred.touch ? 'Play landscape' : 'Full screen'; button.disabled = busy; }
+function paintGameScreen({ busy, fullscreen, available }) {
+  const touch = readInputCapabilities().preferred.touch;
+  const label = fullscreen ? 'Exit full screen' : touch ? 'Play full screen' : 'Full screen';
+  const path = fullscreen ? 'M4 9h5V4m6 0v5h5M4 15h5v5m6 0v-5h5' : 'M9 4H4v5m11-5h5v5M4 15v5h5m6 0h5v-5';
+  for (const id of ['bGameScreen', 'bGameScreenToggle']) {
+    const button = document.getElementById(id);
+    if (!button) continue;
+    button.hidden = !available;
+    button.disabled = busy;
+    button.title = label;
+    button.setAttribute('aria-label', label);
+    button.setAttribute('aria-pressed', String(fullscreen));
+    button.setAttribute('aria-busy', String(busy));
+    if (id === 'bGameScreenToggle') button.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${path}"/></svg>`;
+    else button.textContent = label;
+  }
+  document.body.classList.toggle('game-fullscreen', fullscreen);
+  const prompt = document.getElementById('gameScreenPrompt');
+  if (prompt) prompt.hidden = !gameScreenPrompt.shouldShow({ touch, immersive: gameById(gameId)?.layout === 'immersive', fullscreen, available });
 }
 
 function renderGame() {
@@ -2529,6 +2562,10 @@ function renderGame() {
     // The game owns the viewport. The platform provides a quiet, optional
     // room drawer instead of imposing its title card/HUD on every game.
     app.innerHTML = connbarHtml() + gameRoomMenu(g, context, true) + `
+      <div id="gameScreenPrompt" class="game-screen-prompt" role="group" aria-label="Play with more space" hidden>
+        <button type="button" id="bGameScreenPrompt" class="tb-btn tb-chip">Play full screen</button>
+        <button type="button" id="bGameScreenDismiss" class="tb-btn tb-icon tb-chip" aria-label="Dismiss full-screen tip" title="Dismiss full-screen tip">×</button>
+      </div>
       <main id="gbody" data-layout="immersive" data-game="${esc(gameId)}" aria-label="${esc(gameName(gameId))}"></main>
       <div class="timerbar" id="tbar" hidden><div></div></div><div id="ttime" hidden></div>`;
     if (rematchSnapshot?.game === gameId) placeCapturedSnapshot(document.getElementById('gbody'), rematchSnapshot.snap);

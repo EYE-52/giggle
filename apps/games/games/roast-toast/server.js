@@ -24,7 +24,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),
     paceSetting(),
-    { key: 'writeSeconds', label: 'Seconds to write', type: 'int', min: 15, max: 180, def: 60 },
+    { key: 'writeSeconds', label: 'Seconds to write', type: 'int', min: 15, max: 600, def: 60 },
   ],
   packs: {
     starters: { label: 'Custom starters', type: 'string[]', minItems: 3 },

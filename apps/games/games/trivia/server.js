@@ -28,7 +28,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: ROUNDS }),
     paceSetting(),
-    { key: 'answerSeconds', label: 'Seconds to answer', type: 'int', min: 5, max: 60, def: ANSWER_SECONDS },
+    { key: 'answerSeconds', label: 'Seconds to answer', type: 'int', min: 5, max: 180, def: ANSWER_SECONDS },
   ],
 };
 

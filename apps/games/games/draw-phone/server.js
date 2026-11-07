@@ -51,9 +51,9 @@ const manifest = {
   },
   settings: [
     paceSetting(),
-    { key: 'writeSeconds', label: 'Seconds to write', type: 'int', min: 10, max: 120, def: 30 },
-    { key: 'drawSeconds', label: 'Seconds to draw', type: 'int', min: 30, max: 300, def: 90 },
-    { key: 'guessSeconds', label: 'Seconds to guess', type: 'int', min: 10, max: 120, def: 30 },
+    { key: 'writeSeconds', label: 'Seconds to write', type: 'int', min: 10, max: 300, def: 30 },
+    { key: 'drawSeconds', label: 'Seconds to draw', type: 'int', min: 30, max: 600, def: 90 },
+    { key: 'guessSeconds', label: 'Seconds to guess', type: 'int', min: 10, max: 300, def: 30 },
   ],
   packs: {
     starters: { label: 'Custom starters', type: 'string[]', minItems: 3 },

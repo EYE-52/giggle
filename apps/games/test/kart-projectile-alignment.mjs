@@ -17,7 +17,7 @@ import ADAPTER from '../games/engines/kart-elevated-adapter.js';
 await Promise.all([RAPIER.init(),MeshoptDecoder.ready]);
 const radii=COMBAT.staticSweepRadii,kinds=Object.keys(radii),measurements=[],results=[];
 const check=(label,ok)=>{assert.ok(ok,label);results.push(label);};
-assert.deepEqual(radii,{pulse:.22,scatter:.25,rocket:.42,seeker:.33});
+assert.deepEqual(radii,{pulse:.22,scatter:.25,rocket:.42,seeker:.33,laser:.12,boomerang:.62,bouncer:.36});
 assert(Object.isFrozen(radii));
 assert.strictEqual(radii,SHARED.config.staticSweepRadii);
 // Embedded image dimensions stand in for the decoder; this is geometry QA.
@@ -120,9 +120,12 @@ for(const kind of kinds){let match,adapter,state;
   state=adapter.create({settings:()=>({}),instanceId:raw.instance,now:()=>raw.serverAt,allPlayers:()=>[{id:'a'},{id:'b'}]});
   const publicView=adapter.viewForTransport(state,'a'),packet=publicView.projectiles.find(p=>p.id===shot.id);check(kind+' public packet preserves exact authoritative static radius',packet.radius===shot.radius&&packet.radius===radii[kind]);assert(Object.isFrozen(packet));
   assert.deepEqual(publicView.projectileRadii,radii);assert(Object.isFrozen(publicView.projectileRadii));
+  // A Boomerang curves off the straight line by design; its hull hits are
+  // proven in kart-elevated-new-arsenal.mjs. Its packet radius is checked above.
+  if(kind==='boomerang')continue;
   let impact;for(let i=0;i<120&&!impact;i++){step(match);impact=match.snapshot().events.find(e=>e.type==='impact'&&e.weapon===kind&&e.other==='b');}
   assert(impact,kind+' legitimate first-hull impact');const victim=match.snapshot().karts.find(k=>k.id==='b');
-  const health={pulse:2,scatter:2,rocket:1,seeker:2};
+  const health={pulse:2,scatter:2,rocket:1,seeker:2,laser:2,boomerang:2,bouncer:2};
   check(kind+' larger static envelope retains established target hearts',victim.health===health[kind]);
   if(['pulse','scatter'].includes(kind))check(kind+' confirmed event retains exact sweep endpoints',impact.from&&Object.values(impact.from).every(Number.isFinite)&&Object.values(impact.position).every(Number.isFinite));
  }finally{if(adapter&&state)adapter.dispose(state);else match.dispose();}

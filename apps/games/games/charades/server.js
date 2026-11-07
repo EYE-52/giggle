@@ -45,7 +45,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),
     paceSetting(),
-    { key: 'roundSeconds', label: 'Seconds per turn', type: 'int', min: 10, max: 180, def: 60 },
+    { key: 'roundSeconds', label: 'Seconds per turn', type: 'int', min: 10, max: 600, def: 60 },
   ],
   packs: {
     words: { label: 'Custom words', type: 'string[]', minItems: 10, maxItems: 200, maxLen: 60 },

@@ -25,6 +25,7 @@ const {paintKartWeapon}=await import('../public/js/engines/kart-weapon-hud.mjs')
 const {kartResultView}=await import('../public/js/engines/kart-results.mjs');
 const {readInputCapabilities,touchControlsFor}=await import('../public/js/toolkit/input-capabilities.mjs');
 const {createGearbox,paintGear}=await import('../public/js/engines/kart-gearbox.mjs');
+const {createKartArenaFeatures,drawArenaFeatures2d}=await import('../public/js/engines/kart-arena-features-art.mjs');
 const {CLASSIC_MAX_FORWARD}=await import('../public/js/engines/kart-classic-motion.mjs');
 let clock = 1000;
 class Node {
@@ -92,11 +93,12 @@ const context = vm.createContext({document, window, console, Date,
   createKartAudio: () => {const audio={cues:[],active:true,muted:false,unlock(){},setMuted(value){this.muted=value},update(frame){this.active=frame.active},cue(name){if(this.active&&!this.muted)this.cues.push(name)},dispose(){}};audios.push(audio);return audio;},
   createPoseStore: () => ({}), resetPoseStore() {}, ingestSnapshot() {}, framePoses: () => new Map(),
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
-  intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD});
+  intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d});
 // The hearts HUD runs against this fake DOM, so it loads into the same context.
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-skids.mjs'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-threats.mjs'),'utf8').replace(/^export /gm,''),context);
+vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-arsenal-fx.mjs'),'utf8').replace(/^export /gm,''),context);
 let src = fs.readFileSync(require.resolve('../public/js/engines/kart-view.js'),'utf8');
 src = src.replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];\s*/g,'')
   .replace('export function createKartView','function createKartView')
@@ -922,11 +924,11 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   for(const [key,file]of [['kart','giggle-kart.meshopt'],['star','giggle-star'],['crate','giggle-crate.meshopt'],['combat','combat/combat.meshopt']]){
     const b=fs.readFileSync(require.resolve('../public/assets/karts/'+file+'.glb'));assets[key]=(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene;
   }
-  let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0;
+  let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0;
   const encounter=root=>{if(!root.visible)return;if(root.isMesh||root.isLine){if(root.geometry)geometries.add(root.geometry);for(const m of Array.isArray(root.material)?root.material:[root.material])if(m)materials.add(m);}for(const child of root.children)encounter(child);};
   const renderer={async compileAsync(scene){compiles++;encounter(scene);},render(scene){warmFrames++;encounter(scene);}};
   Object.assign(context,models,flight,groundMarkers,{createKartCombatArt,createKartHealthBars,createKartImpactFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
-    createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){}}),createKartLighting:()=>()=>{},
+    createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){},dispose(){worldRetired++;}}),createKartLighting:()=>()=>{},
     createThreeView:(el,hooks)=>{build=hooks.build;return new Promise(()=>{});}});
   const live=context.makeView({}),el=new Node(),s={...state('drive'),simAt:clock,events:[],zaps:[],grenades:[],mines:[],crates:[],stars:[]};
   Object.assign(s.karts[0],{x:0,z:0,angle:0,speed:0,weapon:null,ammo:0});
@@ -976,6 +978,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   const watcher=structuredClone(wounded);watcher.you='watcher';watcher.youDrive=false;live.update(el,watcher,api);built.frame(1/60,clock/1000);assert(bar.visible,'classic spectator sees wounded players without a personal HUD');
   live.update(el,{...watcher,karts:[]},api);built.frame(1/60,clock/1000);assert.equal(bar.parent,null,'retired classic player detaches its bar');
   live.dispose();built.dispose();assert.equal(built.scene.getObjectByName('KartHealth:one'),undefined,'classic scene disposal removes health bars');
+  assert.equal(worldRetired,1,'classic scene disposal retires pending world image loads');
 }
 // Delayed renderer initialization must not expose countdown/GO or running time.
 {

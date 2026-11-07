@@ -24,7 +24,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 4 }),
     paceSetting(),
-    { key: 'raceSeconds', label: 'Seconds per race', type: 'int', min: 15, max: 120, def: 45 },
+    { key: 'raceSeconds', label: 'Seconds per race', type: 'int', min: 15, max: 300, def: 45 },
   ],
   packs: {
     sentences: { label: 'Custom sentences', type: 'string[]', minItems: 4 },

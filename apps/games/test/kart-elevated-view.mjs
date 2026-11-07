@@ -1,6 +1,7 @@
 import {paintKartWeapon} from '../public/js/engines/kart-weapon-hud.mjs';
 import {kartResultView} from '../public/js/engines/kart-results.mjs';
 import {createKartImpactFX} from '../public/js/engines/kart-impact-fx.mjs';
+import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
 import {MeshoptDecoder} from '../public/vendor/three/libs/meshopt_decoder.mjs';
 await MeshoptDecoder.ready;
 // Execute actual production view/dispatcher source with a finite DOM/timer and
@@ -25,7 +26,7 @@ import {blendElevatedPose,nextElevatedInput,createElevatedTimeline} from '../pub
 import {touchControlsFor} from '../public/js/toolkit/input-capabilities.mjs';
 import COMBAT from '../games/engines/kart-elevated-combat.js';
 import ELEVATED_ADAPTER from '../games/engines/kart-elevated-adapter.js';
-import {CUE_NAMES,ASSET_MAP} from '../public/js/engines/kart-audio.mjs';
+import {CUE_NAMES,ASSET_MAP,SYNTH_CUE_NAMES} from '../public/js/engines/kart-audio.mjs';
 import {createGearbox,paintGear} from '../public/js/engines/kart-gearbox.mjs';
 const repo=fileURLToPath(new URL('..',import.meta.url));
 const results=[];const check=(name,value)=>{assert.ok(value,name);results.push(name);};
@@ -71,7 +72,7 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   for(const name of ['Group','Mesh','Vector3','Quaternion','Box3','BoxGeometry','ConeGeometry','MeshBasicMaterial'])ThreeTest[name]=class extends THREE[name]{constructor(...args){super(...args);graphicsAllocations++;}};
   class LocalLoader{setMeshoptDecoder(){return this;}async loadAsync(url){const b=fs.readFileSync(repo+'/public'+url.split('?')[0]);return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'').catch(error=>{console.error('GLB fixture failed',url,error.message);throw error;});}}
   const context=vm.createContext({document,window,LocalLoader,MeshoptDecoder,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
-    createKartHealthBars,createKartImpactFX,paintKartWeapon,kartResultView,batchKartBody(){},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:()=>({revision:'combat-elevation-1'}),
+    createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,kartResultView,batchKartBody(){},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:()=>({revision:'combat-elevation-1'}),
     createKartElevatedWorld:()=>{const meshes=new Map();for(const d of colliders){const body=new THREE.Mesh(elevatedSolidGeometry(THREE,d),new THREE.MeshBasicMaterial());body.position.copy(d.position);if(d.rotation)body.quaternion.copy(d.rotation);body.updateMatrixWorld();meshes.set(d.id,{body,descriptor:d});}return {colliderMeshes:meshes,lighting:{fogColor:new THREE.Color(0xaaaaaa),fogNear:100,fogFar:500,exposure:1},animate(){},updateDetail(){},dispose(){for(const {body}of meshes.values()){body.geometry.dispose();body.material.dispose();}}};},
     createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;return projectile(...a);};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
     createMobileStick:(node,opts)=>{const stick={node,opts,resets:0,disposed:0,reset(){this.resets++},dispose(){this.disposed++}};sticks.push(stick);return stick;},
@@ -249,11 +250,11 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
 {
   const r=rig();r.api.context=()=>({isHost:true,sound:true});r.render();await r.settle();
   const weapons=Object.keys(COMBAT.arsenal.weights);
-  check('cue coverage uses all eight actual authority weapons',weapons.length===8);
+  check('cue coverage uses all sixteen actual authority weapons',weapons.length===16);
   for(const weapon of weapons){
     const name=weapon;
     r.render({...base(),events:[{id:'fire-'+weapon,type:weapon==='mine'?'mine':weapon==='shield'?'shield':'fire',weapon,pid:'a',position:{x:0,y:1,z:2}}]});
-    check(weapon+' authoritative use maps to an existing recorded cue',r.audios[0].cues.at(-1)?.name===name&&CUE_NAMES.includes(name)&&typeof ASSET_MAP[name]==='string');
+    check(weapon+' authoritative use maps to an existing recorded or synthesized cue',r.audios[0].cues.at(-1)?.name===name&&(CUE_NAMES.includes(name)&&typeof ASSET_MAP[name]==='string'||SYNTH_CUE_NAMES.includes(name)));
   }
   r.render({...base(),audioBaseline:true,events:[{id:'historical-nuke',type:'fire',weapon:'nuke',pid:'a',position:{x:0,y:1,z:2}}]});
   check('new aliases also stay quiet on reconnect',r.audios[0].cues.length===weapons.length);
