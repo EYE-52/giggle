@@ -96,7 +96,7 @@ const context = vm.createContext({WEAPON_IDS:require('../public/js/engines/kart-
   requestAnimationFrame: () => 1, cancelAnimationFrame() {},
   esc: s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'),
   createThreeView: () => new Promise(() => {}),
-  createKartAudio: () => {const audio={cues:[],active:true,muted:false,unlock(){},setMuted(value){this.muted=value},update(frame){this.active=frame.active},cue(name){if(this.active&&!this.muted)this.cues.push(name)},dispose(){}};audios.push(audio);return audio;},
+  createKartAudio: () => {const audio={cues:[],active:true,muted:false,preps:0,prep(){this.preps++},ready(){return this.readyWait||Promise.resolve(true)},unlock(){},setMuted(value){this.muted=value},update(frame){this.active=frame.active},cue(name){if(this.active&&!this.muted)this.cues.push(name)},dispose(){}};audios.push(audio);return audio;},
   createPoseStore: () => ({}), resetPoseStore() {}, ingestSnapshot() {}, framePoses: () => new Map(),
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
   kartGarageHtml,createKartGarageUI,garagePreviewKey,createGarageThumbnail,intentFromKeys,createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d,createKartWeaponRoulette});
@@ -937,6 +937,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   const {MeshoptDecoder}=await import('../public/vendor/three/libs/meshopt_decoder.mjs');await MeshoptDecoder.ready;
   const {createKartImpactFX}=await import('../public/js/engines/kart-impact-fx.mjs');
   const {createKartDrivingFX}=await import('../public/js/engines/kart-driving-fx.mjs');
+  const {createKartWarmupLibrary,warmKartRenderer}=await import('../public/js/engines/kart-render-warmup.mjs');
   const {createKartHealthBars}=await import('../public/js/engines/kart-health-bars.mjs');
   const models=await import('../public/js/engines/kart-model.mjs'),{createKartCombatArt}=await import('../public/js/engines/kart-combat-art.mjs'),flight=await import('../public/js/engines/kart-flight.mjs');
   const assets={};
@@ -946,15 +947,15 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0;
   const encounter=root=>{if(!root.visible)return;if(root.isMesh||root.isLine){if(root.geometry)geometries.add(root.geometry);for(const m of Array.isArray(root.material)?root.material:[root.material])if(m)materials.add(m);}for(const child of root.children)encounter(child);};
   const renderer={async compileAsync(scene){compiles++;encounter(scene);},render(scene){warmFrames++;encounter(scene);}};
-  Object.assign(context,models,flight,groundMarkers,{createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
+  Object.assign(context,models,flight,groundMarkers,{createKartWarmupLibrary,warmKartRenderer,createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
     createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){},dispose(){worldRetired++;}}),createKartLighting:()=>()=>{},
     createThreeView:(el,hooks)=>{build=hooks.build;return new Promise(()=>{});}});
   const live=context.makeView({}),el=new Node(),s={...state('drive'),simAt:clock,events:[],zaps:[],grenades:[],mines:[],crates:[],stars:[]};
   Object.assign(s.karts[0],{x:0,z:0,angle:0,speed:0,weapon:null,ammo:0});
   live.mount(el,api);live.update(el,s,api);
   const built=await build(THREE,{renderer:()=>renderer,disposeObject(){}});
-  assert.equal(compiles,2,'compatibility combat shaders compile while the arena is preparing');
-  assert.equal(warmFrames,2,'compatibility combat geometry/effect buffers render before readiness');
+  assert.equal(compiles,1,'compatibility combat shaders compile while the arena is preparing');
+  assert.equal(warmFrames,1,'compatibility combat geometry/effect buffers render before readiness');
   built.frame(1/60,clock/1000);encounter(built.scene);
   const geometryCount=geometries.size,materialCount=materials.size;
   for(const weapon of ['machinegun','trishot','mine','supernova','missile','cannon','blades','nuke']){
@@ -1007,6 +1008,7 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   const delayed=context.makeView({}),el=new Node(),announcements=[];
   const delayedApi={...api,announce:message=>announcements.push(message)};
   delayed.mount(el,delayedApi);
+  const preparedAudio=audios.at(-1);assert.equal(preparedAudio.preps,1,'audio prepares before classic graphics/readiness');
   delayed.update(el,state('countdown'),delayedApi);
   assert.equal(el.querySelector('#pk-count').hidden,true,'graphics pending suppresses countdown');
   assert.equal(el.querySelector('#pk-count').textContent,'','graphics pending has no stale GO');
@@ -1019,7 +1021,12 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   const {loadKartWeaponThumbnails}=await import('../public/js/engines/kart-assets.mjs');
   await loadKartWeaponThumbnails();
   resolveGraphics({fallback:false,firstFrame:Promise.resolve(),dispose(){}});
-  await delayed.ready();
+  let resolveAudio,audioReady=false;
+  preparedAudio.readyWait=new Promise(resolve=>{resolveAudio=resolve;});
+  const pendingReady=delayed.ready().then(()=>{audioReady=true;});
+  await Promise.resolve();await Promise.resolve();
+  assert.equal(audioReady,false,'classic loading waits for audio preparation');
+  resolveAudio(true);await pendingReady;
   assert(el.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('/weapon-thumbnails/machinegun.svg'),'graphics-ready repaints already-equipped item without weapon/ammo change');
   assert(el.querySelector('#pk-tb').innerHTML.includes('/weapon-thumbnails/machinegun.svg'),'graphics-ready also repaints the touch action icon');
   delayed.update(el,{...state('countdown'),preparing:true},delayedApi);

@@ -5,6 +5,7 @@ import {createKartImpactFX} from './kart-impact-fx.mjs';
 import {createArsenalFX} from './kart-arsenal-fx.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
 import {createKartThreats} from './kart-threats.mjs';
+import {createKartWarmupLibrary,warmKartRenderer} from './kart-render-warmup.mjs';
 /* Elevated combat presentation for real Room snapshots. No gameplay or
  * client coordinates are sent: only sequenced, life-scoped intent. */
 import {createThreeView} from '../renderers/three-view.js';
@@ -246,10 +247,12 @@ export function createElevatedKartView() {
       warm.push(...flashes.map(f=>f.mesh));
       warm.push(...effects.map(f=>f.mesh));camera.position.set(0,5,-9);camera.lookAt(0,0,0);
       for(const object of warm){object.visible=true;object.position.set(0,-100,0);object.traverse(o=>{o.frustumCulled=false;});}
-      await renderer.compileAsync(scene,camera);renderer.render(scene,camera);
+      const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,art);
+      await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===generation,
+        roots:[...warm,warmLibrary,scene.getObjectByName('KartSkidMarks'),
+          scene.getObjectByName('KartThreatRing'),scene.getObjectByName('KartImpactFX')]});
       for(const object of warm){object.visible=false;object.position.set(0,0,0);const combat=object.userData.combat;if(combat&&combat.type!=='projectile')object.removeFromParent();}
       statusDummy.removeFromParent();arsenalFX.reset();
-      await impactFX.warmup(renderer,camera);
       if(gen!==generation)throw Error('Retired arena');
       function effect(e){
         if(!e.position)return;
@@ -555,6 +558,7 @@ export function createElevatedKartView() {
     if(roomPanel){const panel=$('menu').querySelector('.pke-panel');panel.classList.add('pke-room-settings');roomPanel.append(panel);listeners.push([panel,'owned-panel',null]);$('menu').hidden=true;$('resume').hidden=true;root.classList.add('pke-has-room');on(roomMenu,'toggle',()=>{stop();paint();if(!roomMenu.open&&active()&&roomMenu.contains(document.activeElement))gl?.canvas.focus({preventScroll:true});});}
     try{preference=localStorage.getItem('pk-controls-v1')||'auto';}catch{preference='auto';}if(!['auto','keyboard','touch'].includes(preference))preference='auto';
     audio=createKartAudio({muted:api.context?.().sound===false});
+    audio.prep?.();
     on(root,'pointerdown',()=>audio?.unlock());on(window,'keydown',()=>{if(root.contains(document.activeElement))audio?.unlock();});
     on($('resume'),'click',()=>{$('menu').open=false;if(roomMenu)roomMenu.open=false;gl?.canvas.focus({preventScroll:true});});on($('menu'),'toggle',()=>{stop();paint();});
     on($('controls'),'change',event=>{stop();preference=event.target.value;try{localStorage.setItem('pk-controls-v1',preference);}catch{}touch();});
@@ -615,5 +619,5 @@ export function createElevatedKartView() {
     hitFx?.dispose();hitFx=null;root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;lastSnapshotArrival=null;
   }
   return {ownsTimer:true,ownsInputs:true,styles:['/css/kart-elevated.css'],mount,update,dispose,
-    async ready(){await sceneReady;if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};
+    async ready(){await sceneReady;await audio?.ready?.();if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};
 }

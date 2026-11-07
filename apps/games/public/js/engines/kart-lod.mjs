@@ -11,6 +11,9 @@ export function createKartLod(THREE, { fullDetail = 8, far = 42, keepNear = 10, 
   const proxies = new THREE.InstancedMesh(body, material, capacity);
   proxies.name = 'kart-lod-proxies';
   proxies.count = 0;
+  // Allocate the colour buffer/instancing shader variant during loading,
+  // before the first distant driver calls setColorAt().
+  proxies.setColorAt(0,new THREE.Color(0xffffff));
   proxies.frustumCulled = false;
   proxies.castShadow = false;
   proxies.receiveShadow = false;

@@ -46,12 +46,13 @@ import {createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d} from '
 import {createKartArenaFeatures,drawArenaFeatures2d} from './kart-arena-features-art.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
 import {createKartDrivingFX} from './kart-driving-fx.mjs';
+import {createKartWarmupLibrary,warmKartRenderer} from './kart-render-warmup.mjs';
 import {createSurfaceIndex,surfaceTuning} from './kart-surface.mjs';
 import {driftTier,DRIFT_TIERS} from './kart-drift.mjs';
 import {createKartThreats} from './kart-threats.mjs';
 import {createKartFeedback} from './kart-feedback.mjs';
 import { createProjectilePlayback, projectilePose, grenadePose } from './kart-flight.mjs';
-import {createGroundMarker,placeGroundMarker,placeGroundProp} from './kart-ground-markers.mjs';
+import {createGroundMarker,placeGroundMarker,prepareGroundProp,placeGroundProp} from './kart-ground-markers.mjs';
 import {
   createPoseStore, resetPoseStore, ingestSnapshot, framePoses,
   forwardOf, canvasNoseRotation,
@@ -1151,7 +1152,10 @@ export function createKartView(viewConfig) {
       const minePools=new Map(),grenadePools=new Map();
       for(const kind of ['mine','oil'])for(const own of [true,false]){
         const key=kind+':'+own,pool=[];
-        for(let i=0;i<16;i++){const group=new THREE.Group(),prop=combat.mine(own,kind==='oil'?'oil':undefined);group.add(prop);group.userData.prop=prop;group.userData.poolKey=key;placeGroundProp(THREE,group,0,0,0,groundAt,world.propGroundAt||groundAt);group.visible=false;scene.add(group);pool.push(group);}
+        // Prepare shared footprints and per-trap scratch vectors now. Spare
+        // traps have no ground position yet; fitting all of them to (0,0)
+        // repeats thousands of road-height queries with no visible result.
+        for(let i=0;i<16;i++){const group=new THREE.Group(),prop=combat.mine(own,kind==='oil'?'oil':undefined);group.add(prop);group.userData.prop=prop;group.userData.poolKey=key;prepareGroundProp(THREE,group);group.visible=false;scene.add(group);pool.push(group);}
         minePools.set(key,pool);warm.add(pool[0]);pool[0].visible=true;
       }
       for(const kind of ['nuke','frost']){
@@ -1186,7 +1190,12 @@ export function createKartView(viewConfig) {
       {const charge=combat.projectile('proximity');charge.userData.combat.landed=true;warm.add(charge);}
       warm.position.y=-100;warm.traverse(object=>{object.frustumCulled=false;});
       reserve.visible=true;reserve.position.y=-100;reserve.traverse(object=>{object.frustumCulled=false;});
-      await renderer.compileAsync(scene,camera);renderer.render(scene,camera);
+      const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,combat);
+      await disposeLighting.ready;
+      await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===mountGen,
+        roots:[warm,reserve,warmLibrary,pops,kartLod.object,drivingFX.particles,drivingFX.speedLines,
+          scene.getObjectByName('KartSkidMarks'),scene.getObjectByName('KartThreatRing'),
+          scene.getObjectByName('arena-feature-fx'),scene.getObjectByName('KartImpactFX')]});
       arsenalFX.reset();
       for(const pool of minePools.values())for(const object of pool){object.removeFromParent();object.visible=false;scene.add(object);}
       for(const pool of grenadePools.values())for(const object of pool){object.removeFromParent();object.visible=false;scene.add(object);}
@@ -1197,7 +1206,6 @@ export function createKartView(viewConfig) {
       for(const k of S.karts||[])healthBars.add(k.pid).visible=false;
       for(const pool of shotPools.values())for(const object of pool){object.removeFromParent();object.visible=false;object.position.set(0,0,0);scene.add(object);}
       for(const cue of shotCues){cue.object.removeFromParent();cue.object.visible=false;cue.object.position.set(0,0,0);scene.add(cue.object);}
-      await impactFX.warmup(renderer,camera);
       if(gen!==mountGen)throw new Error('Retired kart scene');
       let impactEpoch=-1,impactSince=nowMs(),lastEffectTime=null;
       const frame = (dt, t) => {
@@ -1713,6 +1721,7 @@ export function createKartView(viewConfig) {
     async ready() {
       await sceneReady;
       await physicalReady;
+      await audio?.ready?.();
       // Hidden same-origin seats may have throttled RAF. Render the current
       // prepared scene once, then require the same real GL success promise.
       if (gl) { gl.renderOnce?.(); await gl.firstFrame; }
@@ -1796,6 +1805,7 @@ export function createKartView(viewConfig) {
     apiRef = api;
     rootEl = el;
     audio=createKartAudio({muted:api.context?.().sound===false});
+    audio.prep?.();
     on(window,'pointerdown',()=>audio?.unlock(),{capture:true});
     on(window,'keydown',()=>audio?.unlock(),{capture:true});
     el.innerHTML = `

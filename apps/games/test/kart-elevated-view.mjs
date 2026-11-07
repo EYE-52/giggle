@@ -4,6 +4,7 @@ import {paintKartWeapon,createKartWeaponRoulette} from '../public/js/engines/kar
 import {kartResultView} from '../public/js/engines/kart-results.mjs';
 import {createKartImpactFX} from '../public/js/engines/kart-impact-fx.mjs';
 import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
+import {createKartWarmupLibrary,warmKartRenderer} from '../public/js/engines/kart-render-warmup.mjs';
 import {MeshoptDecoder} from '../public/vendor/three/libs/meshopt_decoder.mjs';
 await MeshoptDecoder.ready;
 // Execute actual production view/dispatcher source with a finite DOM/timer and
@@ -76,11 +77,11 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   for(const name of ['Group','Mesh','Vector3','Quaternion','Box3','BoxGeometry','ConeGeometry','MeshBasicMaterial'])ThreeTest[name]=class extends THREE[name]{constructor(...args){super(...args);graphicsAllocations++;}};
   class LocalLoader{setMeshoptDecoder(){return this;}async loadAsync(url){assetRequests.push(url);if(missingDrivers.some(id=>url.endsWith('/drivers/'+id+'.glb')))throw Error('optional driver unavailable');const b=fs.readFileSync(repo+'/public'+url.split('?')[0]);return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'').catch(error=>{console.error('GLB fixture failed',url,error.message);throw error;});}}
   const context=vm.createContext({WEAPON_IDS:combatWeaponIds,document,window,LocalLoader,MeshoptDecoder,cleanKartLook,kartPaintHex,loadKartDrivers,buildKartDriverVariants,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
-    mergeFixtureGeometries,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:()=>({revision:'combat-elevation-2'}),
+    mergeFixtureGeometries,createKartWarmupLibrary,warmKartRenderer,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:()=>({revision:'combat-elevation-2'}),
     createKartElevatedWorld:()=>{const meshes=new Map();for(const d of colliders){const body=new THREE.Mesh(elevatedSolidGeometry(THREE,d),new THREE.MeshBasicMaterial());body.position.copy(d.position);if(d.rotation)body.quaternion.copy(d.rotation);body.updateMatrixWorld();meshes.set(d.id,{body,descriptor:d});}return {colliderMeshes:meshes,lighting:{fogColor:new THREE.Color(0xaaaaaa),fogNear:100,fogFar:500,exposure:1},animate(){},updateDetail(){},dispose(){for(const {body}of meshes.values()){body.geometry.dispose();body.material.dispose();}}};},
     createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;return projectile(...a);};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
     createMobileStick:(node,opts)=>{const stick={node,opts,resets:0,disposed:0,reset(){this.resets++},dispose(){this.disposed++}};sticks.push(stick);return stick;},
-    createKartAudio:()=>{const a={disposed:0,cues:[],frames:[],muted:false,active:true,unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
+    createKartAudio:()=>{const a={disposed:0,cues:[],frames:[],muted:false,active:true,preps:0,prep(){this.preps++},ready(){return this.readyWait||Promise.resolve(true)},unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
     createThreeView:(stage,options)=>new Promise(resolve=>loads.push({stage,options,resolve,settled:false})),
     matchMedia:()=>({matches:reduced}),
   });
@@ -113,6 +114,10 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   r.render();check('duplicate snapshots share one pending graphics load',r.loads.length===1);
   const gl=await r.settle();check('successful load hides loader and focuses driver canvas',r.node('loading').hidden&&r.document.activeElement===gl.canvas);
   check('real canvas declares the driving focus target before preparation releases',gl.canvas.getAttribute('data-game-focus')==='');
+  check('elevated audio graph prepares during loading',r.audios[0].preps===1);
+  let resolveAudio,audioReady=false;r.audios[0].readyWait=new Promise(resolve=>{resolveAudio=resolve;});
+  const pendingReady=r.view.ready().then(()=>{audioReady=true;});await r.flush();
+  check('elevated loading waits for audio preparation',!audioReady);resolveAudio(true);await pendingReady;
   const shortcut=r.window.dispatch('keydown',{code:'KeyW',metaKey:true,target:gl.canvas});check('Command browser shortcut stays usable without sending kart input',!shortcut.prevented&&r.sent.length===0);
   r.key('KeyW');check('W sends full forward intent scoped to private life/epoch',r.sent.at(-1).throttle===1&&r.sent.at(-1).life===1&&r.sent.at(-1).controlEpoch===1);
   r.key('KeyD');check('D is positive driver-right steer',r.sent.at(-1).steer===1);
@@ -415,7 +420,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     }finally{view?.view.dispose();probe.dispose();if(adapter&&state)adapter.dispose(state);else match.dispose();}
   }
   const r=rig({graphics:true});r.render();await r.settle();r.frame();
-  check('all combat variants compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===2&&r.renderStats.warmFrames===2);
+  check('all combat variants compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===1&&r.renderStats.warmFrames===1);
   const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.isInstancedMesh&&o.name!=='KartSkidMarks');
   check('all twelve prepared particle buffers remain attached after warming',effectPool.length===12&&effectPool.every(o=>o.parent===built.scene&&!o.visible));
   const projectilePool=built.scene.children.filter(o=>o.userData.combat?.type==='projectile');

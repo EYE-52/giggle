@@ -42,7 +42,7 @@ export function disposeGroundMarker(marker) {marker?.geometry?.dispose();}
 // Match the supporting slope and keep the whole base above curved ground.
 // Grounded traps cache their footprint and never allocate in animate().
 const trapFootprints=new WeakMap();
-export function placeGroundProp(THREE,mesh,x,y,z,groundAt,visualSupportAt=groundAt) {
+export function prepareGroundProp(THREE,mesh) {
   let data=mesh.userData.groundProp;
   if(!data) {
     let source;mesh.traverse(child=>{if(!source&&child.isMesh)source=child.geometry;});
@@ -82,6 +82,11 @@ export function placeGroundProp(THREE,mesh,x,y,z,groundAt,visualSupportAt=ground
     }
     data=mesh.userData.groundProp={feet,up:new THREE.Vector3(0,1,0),normal:new THREE.Vector3(),point:new THREE.Vector3()};
   }
+  return data;
+}
+
+export function placeGroundProp(THREE,mesh,x,y,z,groundAt,visualSupportAt=groundAt) {
+  const data=prepareGroundProp(THREE,mesh);
   if(data.x===x&&data.y===y&&data.z===z)return;data.x=x;data.y=y;data.z=z;
   const d=.25;
   data.normal.set(-(groundAt(x+d,z)-groundAt(x-d,z))/(2*d),1,-(groundAt(x,z+d)-groundAt(x,z-d))/(2*d)).normalize();
