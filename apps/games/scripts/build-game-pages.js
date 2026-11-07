@@ -226,7 +226,7 @@ ${customSection}
             placeholder="e.g. Pippa" aria-describedby="gpCtaNote">
         </label>
         <div class="gp-actions">
-          <button class="gp-btn gp-btn-hot" type="submit">Create room</button>${customizeBtn}
+          <button class="gp-btn gp-btn-hot" type="submit">Create room</button>${g.sameRoom ? `<a class="gp-btn" href="/same-room/?game=${esc(id)}">Play on one device</a>` : ''}${customizeBtn}
         </div>
       </form>
       <p class="gp-note" id="gpCtaNote">Pick a name, create a room, and invite your friends. No account needed.</p>

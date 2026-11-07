@@ -9,6 +9,7 @@ const { dealer, shuffle, allIn, roundsSetting, paceSetting, paced } = require('.
 const id = 'scattergories';
 
 const manifest = {
+  sameRoom: false,
   players: { min: 2, max: 20 },
   howto: 'Fill every category with a word that starts with the round letter before time runs out. Each answer nobody else wrote earns 40 points (all five: 200).',
   guide: {

@@ -13,6 +13,7 @@ const { dealer, shuffle, roundsSetting, paceSetting, paced } = require('../_sdk'
 const id = 'truth-dare';
 
 const manifest = {
+  sameRoom: 'handoff',
   howto: 'Play with 2–20 people. The spinner picks a player, who chooses a deck and Truth or Dare, or Spin for me. Prompt style sets how the prompt is picked: Random card deals one, Room pool vote offers 3 cards (4 with 5 or more players), Ask your own lets the others write, and Mixed picks a style each round. Only the other players pick the prompt and judge the result. Prompt votes give no points. Tied prompt votes are settled randomly; no prompt votes means a random option. A single written prompt is used directly; no writing means a random card. A yes majority earns 100 plus a streak bonus of 25 per extra success, up to 100 extra. An even judging split earns 50; no votes earns zero. Voters on the winning side earn 25. With two people, the other player alone decides. All steps have timers.',
   guide: {
     goal: "Win the room's yes vote on your truths and dares.",

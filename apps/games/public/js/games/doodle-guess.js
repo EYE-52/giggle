@@ -109,7 +109,7 @@ function roundResultHtml(S) {
 function headerHtml(S) {
   const artist = S.me === S.drawer && !S.spectator;
   const word = S.phase === 'draw'
-    ? (artist ? `Draw <b>${esc(S.wordShown || '')}</b>` : maskTiles(S.masked))
+    ? (artist ? S.sameRoom ? 'Draw your secret word' : `Draw <b>${esc(S.wordShown || '')}</b>` : maskTiles(S.masked))
     : S.phase === 'reveal' ? `The word was <b>${esc(S.word || '')}</b>` : (artist ? 'Pick a word to draw' : 'Get ready to guess');
   return `<header class="dg-header sk-deskcue">${dgHudHtml(S)}
     <div class="dg-word sk-hintline" ${!artist && S.phase === 'draw' ? `aria-label="Hidden word, ${Array.from(S.masked || '').length} characters"` : ''}>${word}</div>

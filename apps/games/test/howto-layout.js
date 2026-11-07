@@ -56,7 +56,7 @@ const opener = new Element('button'); document.body.append(opener);
 let clicks = 0;
 const game = require('../games/registry').list().find(g => g.id === 'pocket-karts');
 context.api.openHowto({ game, opener, meta: { seats: '2–32 players', vibe: 'Arcade' }, buildFooter: () => ({
-  html: '<label class="howto-name"><input id="howtoName" value="Old name"></label><button id="howtoGo">Create room</button><button id="bKartGarage">Your kart</button><input id="roomCode"><button id="joinRoom">Join room</button><p class="howto-note">Invite friends.</p>',
+  html: '<label class="howto-name"><input id="howtoName" value="Old name"></label><button id="howtoGo">Create room</button><a id="howtoOneDevice" class="same-room-link" href="/same-room/?game=truth-dare">Play on one device</a><button id="bKartGarage">Your kart</button><input id="roomCode"><button id="joinRoom">Join room</button><p class="howto-note">Invite friends.</p>',
   wire(foot) { foot.querySelector('#howtoGo').onclick = () => { clicks++; }; foot.querySelector('#joinRoom').onclick = () => { clicks++; }; },
 }) });
 const dialog = document.querySelector('.howto-dlg');
@@ -68,6 +68,7 @@ assert(dialog.classList.contains('howto-two-column'), 'desktop gets the two-colu
 assert.equal(main.parent, dialog.querySelector('.howto-layout'), 'desktop guide is beside the seat');
 assert.equal(foot.contains(actions), true, 'CTA stays inside the footer contract');
 assert.equal(actions.querySelector('#howtoGo').textContent, 'Create room');
+assert.equal(actions.querySelector('#howtoOneDevice').textContent, 'Play on one device', 'one-device choice stays beside the pinned create action');
 assert.equal(scroll.contains(actions), false, 'primary action is outside the content scroller');
 assert.equal(dialog.querySelectorAll('.howto-controls').length, 1);
 assert.equal(dialog.getAttribute('data-family'), 'arcade', 'menu uses the game family');

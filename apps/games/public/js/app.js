@@ -1360,7 +1360,7 @@ function renderHome() {
       <div class="hero-copy">
         <h1>Bring your people. <span class="pop">Pick a game</span>.</h1>
         <p class="hero-sub">Make a room, share the code, and play ${catalogLoaded ? `${games.length} party games` : 'party games'}
-          with friends on any device. Someone hosts, everyone plays.</p>
+          with friends. Use your own devices, or pass one phone around the room.</p>
         <a class="shelf-link" href="#games">Find your next game</a>
         ${catalogLoaded ? heroHandHtml() : '<div class="hero-hand" aria-hidden="true"></div>'}
       </div>
@@ -1371,6 +1371,7 @@ function renderHome() {
             <input id="nm" type="text" maxlength="16" placeholder="e.g. Pippa" value="${esc(myName)}" autocomplete="off">
             <div class="hero-cta"><button class="btn big hero-create" id="bCreate">Create room</button></div>
           </div>
+          <a class="btn ghost hero-local" href="/same-room/">Play on one device</a>
           <label class="ticket-or" for="jc"><span>Have a room code?</span></label>
           <div class="hero-joinrow">
             <div class="code-tiles"><input id="jc" type="text" maxlength="4" placeholder="ABCD" value="${esc(roomCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" aria-label="Room code, 4 letters">${'<span class="code-tile" aria-hidden="true"></span>'.repeat(4)}</div>
@@ -2157,7 +2158,7 @@ function howtoFooter(game) {
     return {
       html: `<label class="howto-name" for="howtoName">Your party name
         <input type="text" id="howtoName" maxlength="16" autocomplete="nickname" enterkeyhint="go" placeholder="e.g. Pippa" required value="${esc(name)}"></label>
-        <button class="btn big" id="howtoGo">Create room</button>${custom}${details}${practice}
+        <button class="btn big" id="howtoGo">Create room</button>${game.sameRoom ? `<a class="howto-btn same-room-link" id="howtoOneDevice" href="/same-room/?game=${encodeURIComponent(game.id)}">Play on one device</a>` : ''}${custom}${details}${practice}
         <p class="howto-note">Share the room link with friends, then press Play.</p>`,
       wire(foot) {
         const create = (wantSetup) => {

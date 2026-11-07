@@ -4,6 +4,7 @@
 const duel = require('../engines/board-duel');
 const id = 'checkers';
 const manifest = {
+  sameRoom: true,
   name: 'Checkers', tagline: 'Set a trap. Make a king.', cat: 'board', renderer: 'svg',
   layout: 'immersive', runtime: { type: 'module', waitForResult: true }, realtime: false,
   players: { min: 2, max: 24 }, seats: 2, art: 'img/games/checkers.svg',

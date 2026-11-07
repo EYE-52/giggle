@@ -7,6 +7,7 @@ const { dealer, allIn, roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'never-ever';
 
 const manifest = {
+  sameRoom: 'handoff',
   guide: {
     goal: 'Answer Have or Never honestly for each statement.',
     tips: [

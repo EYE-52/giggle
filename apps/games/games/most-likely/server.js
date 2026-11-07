@@ -7,6 +7,7 @@ const { dealer, tally, allIn, roundsSetting, paceSetting, paced } = require('../
 const id = 'most-likely';
 
 const manifest = {
+  sameRoom: 'handoff',
   guide: {
     goal: 'Vote for the player the room picks most.',
     tips: [
