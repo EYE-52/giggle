@@ -165,6 +165,21 @@ async function main() {
   animateKartModel(k1, { speed: 10, steer: 1, boost: true, dt: 1 / 60, reducedMotion: true });
   assert.equal(k1.userData.flame.scale.x, fs.x, 'flame static under reduced motion');
 
+  // Driving effects also run on real physical poses, only on the body child.
+  const body=k1.userData.kart.body,baseY=body.position.y;
+  const physical={grounded:false,linearVelocity:{y:-7},angularVelocity:{y:-1.4}};
+  animateKartModel(k1,{speed:18,physicalPose:physical,drivingJuice:true,driftHop:.12,dt:1/60});
+  assert.ok(body.position.y>baseY+.15,'drift entry gives a visible body hop');
+  physical.grounded=true;physical.linearVelocity.y=0;
+  animateKartModel(k1,{speed:18,physicalPose:physical,drivingJuice:true,dt:1/60});
+  assert.ok(body.scale.y<k1.userData.kart.bodyScaleY,'landing compresses the body');
+  assert.ok(body.rotation.z>.05,'physical turns show body roll');
+  assert.equal(k1.rotation.z,0,'body effects leave authoritative root pose alone');
+  for(let i=0;i<40;i++)animateKartModel(k1,{physicalPose:physical,drivingJuice:true,dt:1/60});
+  assert.equal(body.scale.y,k1.userData.kart.bodyScaleY,'landing squash expires');
+  animateKartModel(k1,{speed:18,physicalPose:physical,drivingJuice:true,driftHop:.12,reducedMotion:true});
+  assert.equal(body.position.y,baseY);assert.equal(body.rotation.z,0);assert.equal(body.scale.y,k1.userData.kart.bodyScaleY);
+
   // Missing template degrades to an empty group (root owns async fallback).
   const empty = createKartModel(THREE, { assets: {} });
   assert.equal(empty.userData.missing, 'kart');

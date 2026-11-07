@@ -65,7 +65,7 @@ export function createClassicPrediction(R){
     for(const k of state.karts){const source=snapshot.karts.find(s=>s.pid===k.pid);if(!source?.physicalPose)continue;const renewed=k.spawnSeq!==source.spawnSeq||k.physicalPose?.epoch!==source.physicalPose.epoch;
       // A stale far kart (rtAge > 0) keeps simulating from its local pose; it is restored again when its next record arrives.
       if(source.rtAge>0&&!renewed&&k.physicalPose){Object.assign(k,{...structuredClone(source),physicalPose:k.physicalPose,x:k.x,z:k.z,angle:k.angle,speed:k.speed},{input:fresh?remoteIntent(source,snapshot.phase):neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage});continue;}
-      Object.assign(k,structuredClone(source),{input:k.pid===snapshot.you||renewed||!fresh?neutralIntent():remoteIntent(source,snapshot.phase),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage});world.restore(k,source.physicalPose);}
+      Object.assign(k,structuredClone(source),{_driftHeld:!!source.driftDirection&&source.drifting===true,input:k.pid===snapshot.you||renewed||!fresh?neutralIntent():remoteIntent(source,snapshot.phase),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage});world.restore(k,source.physicalPose);}
     const reset=self?.spawnSeq!==lastLife||snapshot.inputAck?.controlEpoch!==lastControlEpoch||now-lastAt>250;
     if(reset){history=[];lastDraw=null;correction=null;lastLife=self?.spawnSeq;lastControlEpoch=snapshot.inputAck?.controlEpoch;}
     // ACK is an intent receipt, not the end of the time simulated with it.
@@ -117,7 +117,7 @@ export function createClassicPrediction(R){
           if(!changed)break;
         }
       }
-      return {x:p.position.x,z:p.position.z,y:p.position.y,angle:Math.atan2(2*(p.rotation.x*p.rotation.z+p.rotation.w*p.rotation.y),1-2*(p.rotation.x*p.rotation.x+p.rotation.y*p.rotation.y)),speed:self.speed,drifting:self.drifting===true,slip:self.slip,grounded:p.grounded,physicalPose:p};
+      return {x:p.position.x,z:p.position.z,y:p.position.y,angle:Math.atan2(2*(p.rotation.x*p.rotation.z+p.rotation.w*p.rotation.y),1-2*(p.rotation.x*p.rotation.x+p.rotation.y*p.rotation.y)),speed:self.speed,drifting:self.drifting===true,driftCharge:self.driftCharge,driftTier:self.driftTier,driftHop:self.driftHop,surface:self.surface,turbo:self.turbo,slip:self.slip,grounded:p.grounded,physicalPose:p};
     },
     remote(pid,now,serverAt=now){
       let pose=remoteSample(pid,serverAt);if(!pose)return null;

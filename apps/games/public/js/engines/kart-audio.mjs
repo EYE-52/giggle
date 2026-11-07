@@ -1,3 +1,4 @@
+import {surfaceProfile} from './kart-surface.mjs';
 /* Pocket Karts audio: synthesized kart engine over a recorded bed, plus
  * sampled arcade cues with synthesized weapon pops (WebAudio).
  *
@@ -728,8 +729,9 @@ export function createKartAudio(opts) {
       if (tx) {
         ramp(tx.raspF.frequency, Math.min(5200, hz * 4.5 + pedal * 600), t, .05);
         ramp(tx.raspG.gain, (.05 + pedal * .16 + rev * .06) * cut, t, cut < 1 ? .01 : .05);
-        ramp(tx.roadF.frequency, 160 + n * 620, t, .12);
-        ramp(tx.roadG.gain, n > .02 ? .03 + n * .16 : FLOOR, t, .12);
+        const tyre=surfaceProfile(frame.surface);
+        ramp(tx.roadF.frequency, tyre.tyreHz*(.7+n*1.4), t, .12);
+        ramp(tx.roadG.gain, frame.grounded&&n > .02 ? .02 + n * tyre.tyreGain : FLOOR, t, .12);
         ramp(tx.windG.gain, n > .25 ? n * n * .085 : FLOOR, t, .2);
         // Exhaust crackle: a pop on the shift and a smaller echo after it.
         if (geared && frame.shift && (pedal > .05 || frame.shift > 0)) {
@@ -747,9 +749,10 @@ export function createKartAudio(opts) {
       }
     }
     // Drift/skid needs real slide speed; parked wiggle stays silent.
-    const skid = drifting && n > 0.15 ? Math.min(1, 0.4 + 0.6 * n) : 0;
-    ramp(graph.driftG.gain, skid > 0 ? 0.07 + skid * 0.2 : FLOOR, t, 0.06);
-    ramp(graph.driftF.frequency, 650 + n * 550, t, 0.12);
+    const tyre=surfaceProfile(frame.surface);
+    const skid = frame.grounded && drifting && n > 0.15 ? Math.min(1, 0.4 + 0.6 * n) : 0;
+    ramp(graph.driftG.gain, skid > 0 ? (0.07 + skid * 0.2)*tyre.squeal : FLOOR, t, 0.06);
+    ramp(graph.driftF.frequency, (tyre.kind==='ice'?2300:650) + n * 550, t, 0.12);
     if (loops.drift && loops.drift.playbackRate) {
       ramp(loops.drift.playbackRate, 0.97 + n * 0.08, t, 0.12);
     }
@@ -923,6 +926,8 @@ export function createKartAudio(opts) {
         speed: num(f.speed, 0),
         throttle: num(f.throttle, 0),
         drifting: f.drifting === true,
+        surface: surfaceProfile(f.surface).kind,
+        grounded: f.grounded !== false,
         boost: f.boost === true || num(f.boost, 0) > 0,
         // Optional gearbox state from kart-gearbox.mjs (views compute it).
         gear: Number.isInteger(f.gear) ? f.gear : null,
