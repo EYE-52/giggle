@@ -37,7 +37,7 @@ export function createClassicPrediction(R){
   function ingest(snapshot,now,serverAt=now){
     if(retired)return;
     const next=snapshot.instanceId+':'+snapshot.map.id;
-    if(next!==identity){world?.dispose();identity=next;state={map:snapshot.map.id,half:snapshot.map.half,blocks:snapshot.map.blocks,pads:snapshot.map.pads,surfaces:snapshot.map.surfaces,mode:snapshot.mode,karts:snapshot.karts.map(k=>({...structuredClone(k),input:neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage})),physicalEvents:[],physicalEventSeq:0};world=createClassicMotion(R,config,state);history=[];lastSeq=0;elapsed=0;lastDraw=null;correction=null;remotes.clear();peerWeights.clear();}
+    if(next!==identity){world?.dispose();identity=next;state={map:snapshot.map.id,half:snapshot.map.half,blocks:snapshot.map.blocks,pads:snapshot.map.pads,surfaces:snapshot.map.surfaces,features:snapshot.map.features,mode:snapshot.mode,karts:snapshot.karts.map(k=>({...structuredClone(k),input:neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage})),physicalEvents:[],physicalEventSeq:0};world=createClassicMotion(R,config,state);history=[];lastSeq=0;elapsed=0;lastDraw=null;correction=null;remotes.clear();peerWeights.clear();}
     const previous=lastDraw;
     for(const k of snapshot.karts){if(k.pid===snapshot.you||!k.physicalPose)continue;let list=remotes.get(k.pid)||[];if(list.at(-1)?.life!==k.spawnSeq||list.at(-1)?.pose.epoch!==k.physicalPose.epoch)list=[];list.push({at:now,life:k.spawnSeq,pose:structuredClone(k.physicalPose)});while(list.length>8)list.shift();remotes.set(k.pid,list);}
     const self=state.karts.find(k=>k.pid===snapshot.you);

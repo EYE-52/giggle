@@ -17,6 +17,9 @@ function fixture(id,mode='battle'){
     settings:()=>({map:id,mode,roundSeconds:180,winRule:'Time limit'}),broadcast(){},award(){},later:()=>()=>{}};
   const state=game.create(ctx);now+=3000;game.onTick(state,ctx);now+=50;game.onTick(state,ctx);
   state.crates=[];state.stars=[];state.events=[];
+  // Boundary recovery only: fall-off zones (a scored self-KO) are covered
+  // by kart-arena-hazards.mjs, so these routes keep scores untouched.
+  if(state.features)state.features={...state.features,falls:[]};
   const driver=state.karts[0],terrain=createRoadTerrain({id,...maps.mapDef(id)});
   if(mode==='battle')driver.hits=2;else driver.stars=3;
   state.scores[driver.pid]=mode==='battle'?2:3;

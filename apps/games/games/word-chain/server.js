@@ -13,7 +13,7 @@ const manifest = {
   settings: [
     paceSetting(),
     { key: 'lives', label: 'Lives', type: 'int', min: 1, max: 3, def: 1 },
-    { key: 'turnSeconds', label: 'Seconds per turn', type: 'int', min: 5, max: 60, def: 10 },
+    { key: 'turnSeconds', label: 'Seconds per turn', type: 'int', min: 5, max: 180, def: 10 },
   ],
   packs: {
     starters: { label: 'Custom starter words', type: 'string[]', minItems: 3, maxLen: 24 },

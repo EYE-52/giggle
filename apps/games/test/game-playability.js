@@ -1243,6 +1243,8 @@ function kartWrap(a) {
 }
 function driveKarts(def, state, ctx, control, maxTicks) {
   // control(view, kart) -> {steer, throttle, boost}; ticks at 10 Hz.
+  // Mounted physical shots (the sixteen-weapon arsenal adds laser, bouncer and boomerang).
+  const MOUNTED_SHOTS = ['pulse', 'scatter', 'rail', 'rocket', 'seeker', 'laser', 'bouncer', 'boomerang'];
   const seen = { fires: 0, impacts: 0, damage: 0 };
   const observedEvents = new Set();
   const sequences = new Map();
@@ -1268,9 +1270,9 @@ function driveKarts(def, state, ctx, control, maxTicks) {
       observedEvents.add(event.id);
       const physical = event.position && ['x', 'y', 'z'].every(axis => Number.isFinite(event.position[axis]));
       if (!physical) continue;
-      if (event.type === 'fire' && ['pulse', 'scatter', 'rail', 'rocket'].includes(event.weapon)) seen.fires += 1;
-      if (event.type === 'impact' && ['pulse', 'scatter', 'rail', 'rocket'].includes(event.weapon)) seen.impacts += 1;
-      if (event.type === 'hit' && ['pulse', 'scatter', 'rail', 'rocket'].includes(event.weapon) && event.damage > 0) seen.damage += event.damage;
+      if (event.type === 'fire' && MOUNTED_SHOTS.includes(event.weapon)) seen.fires += 1;
+      if (event.type === 'impact' && MOUNTED_SHOTS.includes(event.weapon)) seen.impacts += 1;
+      if (event.type === 'hit' && MOUNTED_SHOTS.includes(event.weapon) && event.damage > 0) seen.damage += event.damage;
     }
   }
   return seen;
@@ -1319,7 +1321,9 @@ driver('pocket-karts', () => {
   must(state.result && state.result.standings.length === 3, 'full standings recorded');
   // --- Zap Battle: chase, rising-edge fire, hits score.
   const ctx2 = new FakeCtx(roster(2), settingsFor(def, {
-    mode: battleMode, map: ring, palette: 'Daybreak', roundSeconds: 30, targetHits: 1,
+    // Sixteen weapons include traps and self buffs; ninety seconds give the
+    // chasing bots time to roll, land mounted shots and finish a knockout.
+    mode: battleMode, map: ring, palette: 'Daybreak', roundSeconds: 90, targetHits: 1,
   }));
   const st2 = def.create(ctx2);
   ownedStates.push(st2);
@@ -1357,14 +1361,25 @@ driver('pocket-karts', () => {
     if (recovery.reversing) {
       return { steer: Math.max(-1, Math.min(1, err * 2)), throttle: -1, boost: false };
     }
-    const aligned = seekingFoe && k.ammo > 0 && (k.weapon === 'shield' || (k.weapon === 'mine' ? dist < 10 : dist < 40 && Math.abs(err) < 0.2));
+    // Two armed bots chasing each other can circle forever with the rival
+    // off to one side. A three-point turn (reverse with opposite lock)
+    // swings the nose round instead of widening the circle.
+    // Bumper to bumper (or piled up after a Turbo Ram) nothing can aim:
+    // back straight off to open a firing distance first.
+    if (seekingFoe && k.ammo > 0 && k.weapon !== 'ram' && dist < 4.5) {
+      return { steer: 0, throttle: -1, boost: false };
+    }
+    if (seekingFoe && k.ammo > 0 && Math.abs(err) > 1.6 && dist < 30) {
+      return { steer: Math.max(-1, Math.min(1, err * 2)), throttle: -0.7, boost: false };
+    }
+    const aligned = seekingFoe && k.ammo > 0 && (k.weapon === 'shield' || (k.weapon === 'mine' ? dist < 10 : dist < 40 && Math.abs(err) < 0.25));
     const boost = aligned && (k.weapon === 'pulse' || lastBoost[k.pid] !== true);
     lastBoost[k.pid] = boost;
     // Use measured public speed to approach at an aiming pace. Full throttle
     // overshoots the rival and can pitch the real barrel into the sky after
     // a bumper/hill contact; yaw alignment alone cannot make that shot hit.
     return { steer: Math.max(-1, Math.min(1, -err * 2.5)), throttle: Math.abs(err) > 1.0 ? 0.25 : k.speed > 6 ? 0 : 0.5, boost };
-  }, 700);
+  }, 1000);
   must(st2.phase === 'done', 'battle finishes');
   must(seen.fires > 0, 'rising-edge input produced accepted physical mounted fire');
   must(seen.impacts > 0, 'real physical projectile produced an authoritative impact');

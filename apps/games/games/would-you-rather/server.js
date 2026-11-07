@@ -20,7 +20,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 8 }),
     paceSetting(),
-    { key: 'voteSeconds', label: 'Seconds to vote', type: 'int', min: 5, max: 60, def: 20 },
+    { key: 'voteSeconds', label: 'Seconds to vote', type: 'int', min: 5, max: 180, def: 20 },
   ],
 };
 const REVEAL_SECONDS = 6;

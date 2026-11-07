@@ -27,8 +27,8 @@ const finite=v=>typeof v==='number'?Number.isFinite(v):v&&typeof v==='object'?Ob
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const length=v=>Math.hypot(v.x,v.y,v.z);
 const angle=(a,b)=>Math.acos(Math.max(-1,Math.min(1,dot(a,b)/(length(a)*length(b)))));
-check('elevated pool has the eight kept weapons with weights summing to 100',Object.keys(COMBAT.arsenal.weights).length===8&&Math.abs(Object.values(COMBAT.arsenal.weights).reduce((a,b)=>a+b,0)-100)<1e-9);
-check('flat and elevated arenas share one eight-weapon order',JSON.stringify(LEGACY.constants.WEAPON_ORDER)===JSON.stringify(Object.keys(COMBAT.arsenal.weights))&&['rail','grenade','emp','bomb','sentry','spikes'].every(id=>!(id in COMBAT.arsenal.weights)));
+check('elevated pool has the sixteen kept weapons with weights summing to 100',Object.keys(COMBAT.arsenal.weights).length===16&&Math.abs(Object.values(COMBAT.arsenal.weights).reduce((a,b)=>a+b,0)-100)<1e-9);
+check('flat and elevated arenas share one sixteen-weapon order',JSON.stringify(LEGACY.constants.WEAPON_ORDER)===JSON.stringify(Object.keys(COMBAT.arsenal.weights))&&['rail','grenade','emp','bomb','sentry','spikes'].every(id=>!(id in COMBAT.arsenal.weights)));
 
 // Authored apertures are measured in chassis-local space. Rotation must apply
 // to the lateral mount as well as forward distance on both equipment pods.

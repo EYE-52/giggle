@@ -25,7 +25,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 8 }),
     paceSetting(),
-    { key: 'dareSeconds', label: 'Seconds to perform', type: 'int', min: 10, max: 180, def: 60 },
+    { key: 'dareSeconds', label: 'Seconds to perform', type: 'int', min: 10, max: 600, def: 60 },
   ],
   packs: {
     dares: { label: 'Custom dares', type: 'string[]', minItems: 5 },

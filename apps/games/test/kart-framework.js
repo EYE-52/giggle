@@ -192,7 +192,7 @@ async function main() {
     karts.onAction(st, ctx, 'pa', { input: { steer: 0, throttle: 0 } });
     ctx._now += 100;
     karts.onTick(st, ctx);
-    assert(['pulse', 'scatter', 'mine', 'rocket', 'seeker', 'proximity', 'shield', 'nuke'].includes(a.weapon), 'crate grants an item, saw ' + a.weapon);
+    assert(require('../games/engines/kart-combat-config').config.weaponOrder.includes(a.weapon), 'crate grants an item from the sixteen, saw ' + a.weapon);
     assert(a.ammo > 0, 'item has uses');
     assert.strictEqual(st.crates.length, 6, 'crate count stays constant');
     assert(!st.crates.some((c) => c.id === firstId), 'consumed crate relocates with a new id');

@@ -89,20 +89,20 @@ body:has(.issue-dialog[open]) { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .issue-dialog[open] { animation: none; } .issue-dialog *, .issue-dialog *::after { transition: none; } .issue-dialog button:hover, .issue-dialog button:active, .issue-impact label:active span { transform: none; } }
 
 .room-menu-actions [data-report]{grid-column:1/-1;background:transparent}
-.report-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;padding:0;border:2px solid var(--outline);border-radius:12px;color:var(--ink);background:var(--card);cursor:pointer;touch-action:manipulation;box-shadow:0 2px 0 var(--outline);transition:transform var(--dur-quick) var(--ease)}.report-icon:active{transform:translateY(2px);box-shadow:none}.report-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.report-icon:hover{background:var(--well)}.report-icon:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.report-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;padding:0;border:2px solid var(--outline,#e4dfec);border-radius:12px;color:var(--ink,#262338);background:var(--card,#fff);cursor:pointer;touch-action:manipulation;box-shadow:0 2px 0 var(--outline,#e4dfec);transition:transform var(--dur-quick,.2s) var(--ease,ease)}.report-icon:active{transform:translateY(2px);box-shadow:none}.report-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.report-icon:hover{background:var(--well,#f3f2f8)}.report-icon:focus-visible{outline:3px solid var(--accent,#dc256c);outline-offset:3px}
 body.game-playing #roomMenu>summary{width:44px;min-width:44px;padding:0;justify-content:center;gap:0}body.game-playing #roomMenu>summary>span{display:none}
-.game-report-icon{position:fixed;top:max(10px,env(safe-area-inset-top));left:calc(max(12px,env(safe-area-inset-left)) + 52px);z-index:39}
+:is(.game-report-icon, .game-screen-toggle){position:fixed;top:max(10px,env(safe-area-inset-top));left:calc(max(12px,env(safe-area-inset-left)) + 52px);z-index:39}
 body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)) .play-toolbar #roomMenu{right:calc(max(clamp(12px,2vw,24px),env(safe-area-inset-right),calc((100vw - 1120px)/2 + 24px)) + 52px)}
-.play-toolbar .game-report-icon{left:auto;right:max(clamp(12px,2vw,24px),env(safe-area-inset-right),calc((100vw - 1120px)/2 + 24px))}
-body.game-immersive:has(.pk,.pke,.bs-game) .game-report-icon{color:var(--ink);background:var(--card);border-color:var(--outline)}body:has(#roomMenu[open]) .game-report-icon{visibility:hidden}
+.play-toolbar :is(.game-report-icon, .game-screen-toggle){left:auto;right:max(clamp(12px,2vw,24px),env(safe-area-inset-right),calc((100vw - 1120px)/2 + 24px))}
+body.game-immersive:has(.pk,.pke,.bs-game) :is(.game-report-icon, .game-screen-toggle){color:#f5f7fb;background:#18202bf5;border-color:#ffffff40}body:has(#roomMenu[open]) :is(.game-report-icon, .game-screen-toggle){visibility:hidden}
 .issue-dialog .issue-download{display:block;margin-top:8px;padding:8px 0;border:0;background:none;color:var(--fam-deep);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 
 /* Drawing games own the clock on the right. Keep both room utilities together
    on the left, within the space reserved by their headers. */
 body.game-playing:has(.sk-doodle.dg,.sk-phone.dp) .play-toolbar #roomMenu{right:auto}
-body.game-playing:has(.sk-doodle.dg,.sk-phone.dp) .game-report-icon{top:max(14px,env(safe-area-inset-top));left:calc(max(14px,env(safe-area-inset-left)) + 52px);right:auto;z-index:91;color:var(--ink);background:var(--card);border-color:var(--line);border-radius:12px}
+body.game-playing:has(.sk-doodle.dg,.sk-phone.dp) :is(.game-report-icon, .game-screen-toggle){top:max(14px,env(safe-area-inset-top));left:calc(max(14px,env(safe-area-inset-left)) + 52px);right:auto;z-index:91;color:var(--ink);background:var(--card);border-color:var(--line);border-radius:12px}
 @media(orientation:landscape) and (max-height:500px){
- body.game-playing:has(.sk-phone.dp.dp-draw,.sk-phone.dp.dp-guess) .game-report-icon{top:max(6px,env(safe-area-inset-top));left:calc(max(6px,env(safe-area-inset-left)) + 52px)}
+ body.game-playing:has(.sk-phone.dp.dp-draw,.sk-phone.dp.dp-guess) :is(.game-report-icon, .game-screen-toggle){top:max(6px,env(safe-area-inset-top));left:calc(max(6px,env(safe-area-inset-left)) + 52px)}
 }
 
 /* Settled standard results retain utilities in a solid toolbar, rather than
@@ -110,11 +110,15 @@ body.game-playing:has(.sk-doodle.dg,.sk-phone.dp) .game-report-icon{top:max(14px
  * games keep their existing chrome. */
 body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar { position:sticky; top:0; z-index:40; background:var(--bg); }
 body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar #roomMenu { position:absolute; top:max(10px,env(safe-area-inset-top)); right:52px; }
-body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar .game-report-icon { position:absolute; top:max(10px,env(safe-area-inset-top)); right:0; }
+body.game-playing:not(.game-immersive):not(:has(.sk-doodle.dg,.sk-phone.dp)):has(.game-stage > #gbody > #rematch:not([hidden])) .play-toolbar :is(.game-report-icon, .game-screen-toggle) { position:absolute; top:max(10px,env(safe-area-inset-top)); right:0; }
 
 /* Board games on phones scroll a tall board under the header. Let the room
  * utilities scroll away with the header instead of floating over squares. */
 @media (max-width:759px){
  body.game-playing:has(.bk-game) #roomMenu,
- body.game-playing:has(.bk-game) .game-report-icon{position:absolute}
+ body.game-playing:has(.bk-game) :is(.game-report-icon, .game-screen-toggle){position:absolute}
 }
+/* The full-screen toggle shares the report icon's anchoring rules above and
+ * sits one 52px slot further along, away from the anchored edge. */
+.game-screen-toggle{translate:52px 0}
+.play-toolbar .game-screen-toggle{translate:-52px 0}

@@ -19,7 +19,7 @@
  * - Projectiles (garage pace): pulse 110/1.6, scatter 95/1.2, rocket 85
  *   (splash 3, LOS only, 2 hearts, TTL fizzles), seeker; sweeping,
  *   wall-first, and exactly-once hold; both battle modes use the same
- *   eight-weapon arsenal (seeker, proximity bomb + nuke, no garage gate).
+ *   sixteen-weapon arsenal (seeker, proximity bomb + nuke, no garage gate).
  * Run: node test/kart-garage.js */
 
 const assert = require('assert');
@@ -129,12 +129,13 @@ function main() {
       }
       return seen;
     };
-    const EIGHT = ['pulse', 'scatter', 'mine', 'rocket', 'seeker', 'proximity', 'shield', 'nuke'];
-    for (const [label, seen] of [['classic', sample(false, 200)], ['garage', sample(true, 200)]]) {
-      for (const w of seen) assert(EIGHT.includes(w), label + ' rolls only the eight, saw ' + w);
-      for (const w of EIGHT) assert(seen.has(w), label + ' reaches ' + w);
+    const ARSENAL = ['pulse', 'scatter', 'mine', 'rocket', 'seeker', 'proximity', 'shield', 'nuke',
+      'laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram'];
+    for (const [label, seen] of [['classic', sample(false, 600)], ['garage', sample(true, 600)]]) {
+      for (const w of seen) assert(ARSENAL.includes(w), label + ' rolls only the sixteen, saw ' + w);
+      for (const w of ARSENAL) assert(seen.has(w), label + ' reaches ' + w);
     }
-    console.log('GARAGE ok: both modes deal eight weapons');
+    console.log('GARAGE ok: both modes deal the same sixteen weapons');
   }
 
   // --- 3. KO +10 and pickup +1 exactly once (scatter fan, contested crate) ---

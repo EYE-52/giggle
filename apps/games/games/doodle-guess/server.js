@@ -55,7 +55,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (two per player)' }),
     paceSetting(),
-    { key: 'roundSeconds', label: 'Seconds to draw', type: 'int', min: 10, max: 180, def: 80 },
+    { key: 'roundSeconds', label: 'Seconds to draw', type: 'int', min: 10, max: 600, def: 80 },
     { key: 'hints', label: 'Timed letter hints (up to three)', type: 'bool', def: true },
   ],
   packs: {

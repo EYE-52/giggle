@@ -2,12 +2,18 @@
  * full screen first, then landscape when supported. No CSS-rotated canvas
  * or forced orientation; unsupported phones retain normal manual rotation.
  * An owner leaving a game releases only the screen state it acquired. */
-export function createGameScreen({ doc = document, orientation = globalThis.screen?.orientation,
+export function createGameScreen({ doc = document, navigator: nav = globalThis.navigator, orientation = globalThis.screen?.orientation,
   beforeChange = () => {}, notify = () => {}, paint = () => {}, isPortrait = () =>
     globalThis.matchMedia?.('(orientation: portrait)').matches, shouldRotate = () => true } = {}) {
   let alive = true, busy = false, ownsFullscreen = false, ownsLock = false;
   const root = doc.documentElement;
-  const state = () => ({ busy, fullscreen: ownsFullscreen && doc.fullscreenElement === root });
+  // iPad Safari can identify itself as a Mac. Keep its manual-rotation hint,
+  // but respect an iframe's fullscreen permissions even on iOS.
+  const ios = /iPad|iPhone|iPod/.test(nav?.userAgent || '') || (nav?.platform === 'MacIntel' && nav?.maxTouchPoints > 1);
+  const safari = /WebKit/.test(nav?.userAgent || '') && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(nav?.userAgent || '');
+  const hint = ios && safari && (!doc.defaultView || doc.defaultView.parent === doc.defaultView);
+  const state = () => ({ busy, fullscreen: ownsFullscreen && doc.fullscreenElement === root,
+    available: (doc.fullscreenEnabled !== false && typeof root.requestFullscreen === 'function') || hint });
   function unlock() {
     if (!ownsLock) return;
     ownsLock = false;
@@ -62,8 +68,24 @@ export function createGameScreen({ doc = document, orientation = globalThis.scre
     if (!alive) return;
     alive = false;
     doc.removeEventListener('fullscreenchange', changed);
+    paint({ ...state(), busy: false, fullscreen: false });
     // Late successful requests are also unwound by toggle's alive checks.
     void leave();
   }
   return { toggle, state, dispose };
+}
+
+/* One invitation per browser, also remembered for this session when storage
+ * is blocked. Reading localStorage itself can throw in private/iframe modes. */
+export function createGameScreenPrompt({ storage = () => globalThis.localStorage } = {}) {
+  const key = 'giggle:game-screen-prompt-dismissed';
+  let dismissed = false;
+  try { dismissed = storage()?.getItem(key) === '1'; } catch { /* storage unavailable */ }
+  return {
+    shouldShow: ({ touch, immersive, fullscreen, available }) => !dismissed && touch && immersive && !fullscreen && available,
+    dismiss() {
+      dismissed = true;
+      try { storage()?.setItem(key, '1'); } catch { /* session memory still works */ }
+    },
+  };
 }

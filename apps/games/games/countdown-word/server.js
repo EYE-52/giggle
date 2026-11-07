@@ -9,7 +9,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 4 }),
     paceSetting(),
-    { key: 'makeSeconds', label: 'Seconds to build', type: 'int', min: 15, max: 90, def: 30 },
+    { key: 'makeSeconds', label: 'Seconds to build', type: 'int', min: 15, max: 300, def: 30 },
   ],
   packs: { words: { label: 'Extra accepted words (3–9 letters)', type: 'string[]', minItems: 1, maxItems: 200, maxLen: 9 } },
   howto: 'Build a supported English word with 3–9 letters from the nine tiles before time runs out. Every letter can be used only as many times as it appears. Save to keep editing, lock in to submit, or pass. Unsupported words get feedback while the clock keeps running. A valid word earns 50 points plus 10 per letter (five letters: 100); everyone tied for the longest earns 50 more. Each tray has a valid word. The host may add extra accepted words to the offline dictionary.',

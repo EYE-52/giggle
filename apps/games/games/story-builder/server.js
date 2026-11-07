@@ -27,7 +27,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 3 }),
     paceSetting(),
-    { key: 'turnSeconds', label: 'Seconds per turn', type: 'int', min: 10, max: 120, def: 30 },
+    { key: 'turnSeconds', label: 'Seconds per turn', type: 'int', min: 10, max: 300, def: 30 },
   ],
   packs: {
     seeds: { label: 'Custom story seeds', type: 'string[]', minItems: 3 },

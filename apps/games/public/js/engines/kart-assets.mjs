@@ -38,7 +38,8 @@ export function seatKartDriver(kart, driver) {
   return true;
 }
 
-const WEAPON_THUMBNAILS=['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke'];
+const WEAPON_THUMBNAILS=['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke',
+  'laser','thunder','boomerang','oil','frost','cluster','bouncer','ram'];
 const loadedThumbnails=new Set();
 let thumbnailLoad;
 export function loadKartWeaponThumbnails(){

@@ -1,12 +1,14 @@
 'use strict';
-/* Hearts and the eight-weapon arsenal on the real reusable engine (room ctx
+/* Hearts and the sixteen-weapon arsenal on the real reusable engine (room ctx
  * stub only — full create/onAction/onTick/view) plus the shared config and
  * the elevated arsenal table:
  * - 3 hearts per kart; whole-heart damage per weapon (Pulse, Scatter, Mine,
  *   Seeker 1; Rocket, Proximity Bomb 2; Nuke takes every heart in 14u).
  * - One pickup hurts a rival at most once; each Mine is its own trap.
  * - Shield blocks the next hit, then breaks; respawn refills the hearts.
- * - Pickups roll 60/33/7 by tier and the retired weapons never spawn.
+ * - Pickups roll 52/43/5 by tier and the retired weapons never spawn.
+ * - The second eight (laser, thunder, boomerang, oil, frost, cluster,
+ *   bouncer, ram) are covered in depth by test/kart-new-arsenal.js.
  * Run: node test/kart-hearts-weapons.js */
 
 const assert = require('assert');
@@ -15,7 +17,8 @@ const battle = require('../games/engines/kart-rules-battle');
 const { config, damageAt, weaponForRoll } = require('../games/engines/kart-combat-config');
 const elevated = require('../games/engines/kart-elevated-combat');
 
-const KEPT = ['pulse', 'scatter', 'mine', 'rocket', 'seeker', 'proximity', 'shield', 'nuke'];
+const KEPT = ['pulse', 'scatter', 'mine', 'rocket', 'seeker', 'proximity', 'shield', 'nuke',
+  'laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram'];
 const RETIRED = ['rail', 'sentry', 'spikes', 'emp', 'bomb', 'grenade'];
 
 function stubCtx(players, now = 9500000) {
@@ -56,21 +59,24 @@ const events = (st, type, from = 0) => st.events.slice(from).filter((e) => e.typ
 // --- 1. shared config: hearts, damage table, tiers ---
 {
   assert.strictEqual(config.maxHealth, 3, 'three hearts per kart');
-  assert.deepStrictEqual(config.weaponOrder.slice().sort(), KEPT.slice().sort(), 'exactly the eight kept weapons');
+  assert.deepStrictEqual(config.weaponOrder.slice().sort(), KEPT.slice().sort(), 'exactly the sixteen kept weapons');
   for (const id of RETIRED) {
     assert.strictEqual(config.weapons[id], undefined, id + ' is retired from the config');
     assert.strictEqual(damageAt(id), 0, id + ' deals nothing');
   }
-  assert.deepStrictEqual(KEPT.map(damageAt), [1, 1, 1, 2, 1, 2, 0, 3], 'whole-heart damage table');
+  assert.deepStrictEqual(KEPT.map(damageAt), [1, 1, 1, 2, 1, 2, 0, 3, 1, 1, 1, 1, 1, 1, 1, 1], 'whole-heart damage table');
   for (const id of KEPT) assert(Number.isInteger(damageAt(id)), id + ' damage is a whole number of hearts');
   const byTier = { common: 0, uncommon: 0, rare: 0 };
   for (const id of KEPT) byTier[config.weapons[id].tier] += config.pickupWeights[id];
-  assert(Math.abs(byTier.common - .60) < 1e-9 && Math.abs(byTier.uncommon - .33) < 1e-9 && Math.abs(byTier.rare - .07) < 1e-9, 'tier odds 60/33/7');
-  assert.deepStrictEqual(KEPT.filter((id) => config.weapons[id].tier === 'common'), ['pulse', 'scatter', 'mine'], 'common tier');
-  assert.deepStrictEqual(KEPT.filter((id) => config.weapons[id].tier === 'uncommon'), ['rocket', 'seeker', 'proximity', 'shield'], 'uncommon tier');
+  assert(Math.abs(byTier.common - .52) < 1e-9 && Math.abs(byTier.uncommon - .43) < 1e-9 && Math.abs(byTier.rare - .05) < 1e-9, 'tier odds 52/43/5');
+  assert.deepStrictEqual(KEPT.filter((id) => config.weapons[id].tier === 'common'), ['pulse', 'scatter', 'mine', 'laser', 'boomerang', 'oil', 'bouncer'], 'common tier');
+  assert.deepStrictEqual(KEPT.filter((id) => config.weapons[id].tier === 'uncommon'), ['rocket', 'seeker', 'proximity', 'shield', 'thunder', 'frost', 'cluster', 'ram'], 'uncommon tier');
+  // Every weapon shows up often enough to learn, and the Nuke stays the rarest.
+  for (const id of KEPT) assert(config.pickupWeights[id] >= .05, id + ' rolls at least 5% of pickups');
+  for (const id of KEPT.filter((w) => w !== 'nuke')) assert(config.pickupWeights[id] > config.pickupWeights.nuke, id + ' is commoner than the Nuke');
   assert.deepStrictEqual(KEPT.filter((id) => config.weapons[id].tier === 'rare'), ['nuke'], 'rare tier');
   assert(Object.isFrozen(config) && Object.isFrozen(config.weapons.nuke), 'shared table cannot drift');
-  console.log('HEARTS ok: 3 hearts, whole-heart damage, 60/33/7 tiers');
+  console.log('HEARTS ok: 3 hearts, whole-heart damage, 52/43/5 tiers');
 }
 
 // --- 2. retired weapons can never spawn (classic, garage and elevated) ---
@@ -78,11 +84,11 @@ const events = (st, type, from = 0) => st.events.slice(from).filter((e) => e.typ
   const counts = {};
   for (let i = 0; i < 20000; i++) { const w = weaponForRoll(i / 20000); counts[w] = (counts[w] || 0) + 1; }
   assert.deepStrictEqual(Object.keys(counts).sort(), KEPT.slice().sort(), 'a full sweep of rolls lands only on kept weapons');
-  assert(Math.abs(counts.nuke / 20000 - .07) < .001, 'nuke share is 7%');
+  assert(Math.abs(counts.nuke / 20000 - .05) < .001, 'nuke share is 5%');
   assert.strictEqual(weaponForRoll(.9999999), 'nuke', 'top of the range stays inside the pool');
   const [st, ctx] = arena(2);
   const a = st.karts[0], seen = new Set();
-  for (let i = 0; i < 400; i++) {
+  for (let i = 0; i < 900; i++) {
     a.weapon = null; a.ammo = 0;
     const crate = st.crates[0]; a.x = crate.x; a.z = crate.z;
     tick(ctx, st, 50);
@@ -91,11 +97,11 @@ const events = (st, type, from = 0) => st.events.slice(from).filter((e) => e.typ
     assert(a.weapon === null || /^v\d+$/.test(a.volley), 'each pickup opens a fresh volley');
   }
   for (const id of KEPT) assert(seen.has(id), 'real crate pickups reach ' + id);
-  assert.deepStrictEqual(Object.keys(elevated.arsenal.weights).sort(), KEPT.slice().sort(), 'elevated pool holds the same eight');
+  assert.deepStrictEqual(Object.keys(elevated.arsenal.weights).sort(), KEPT.slice().sort(), 'elevated pool holds the same sixteen');
   const total = Object.values(elevated.arsenal.weights).reduce((s, v) => s + v, 0);
-  assert(Math.abs(total - 100) < 1e-9 && Math.abs(elevated.arsenal.weights.nuke - 7) < 1e-9, 'elevated tier odds match');
+  assert(Math.abs(total - 100) < 1e-9 && Math.abs(elevated.arsenal.weights.nuke - 5) < 1e-9, 'elevated tier odds match');
   for (const id of RETIRED) assert.strictEqual(elevated.arsenal[id], undefined, id + ' has no elevated tuning');
-  console.log('HEARTS ok: only the eight weapons spawn from crates (classic + elevated)');
+  console.log('HEARTS ok: only the sixteen weapons spawn from crates (classic + elevated)');
 }
 
 // --- 3. damage per weapon: 1 heart for Pulse/Scatter/Seeker, 2 for Rocket ---

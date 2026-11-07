@@ -71,6 +71,12 @@ export function createKartHitFeedback(host, { reducedMotion = () => false } = {}
       bannerRun = banner.animate ? banner.animate(frames, { duration: BANNER_MS, easing: 'ease-out', fill: 'forwards' }) : null;
       return banner.textContent;
     },
+    // The same banner for a one-off line such as an arena fall ("Fell!").
+    notice(text) {
+      this.knockout('');
+      banner.textContent = String(text);
+      return banner.textContent;
+    },
     // Decaying camera offset in world units; zero once SHAKE_MS has passed.
     shake(now = performance.now()) {
       const t = (now - shakeAt) / SHAKE_MS;
@@ -91,10 +97,17 @@ export function landedText(event) {
   return `+${Math.max(1, Math.round(event.damage || 1))}`;
 }
 
+// Blasts of the second eight weapons each have their own synthesized cue.
+const BLAST_CUES = { nuke: 'nukeBlast', proximity: 'bombBlast', thunder: 'thunderClap', frost: 'frostShatter', cluster: 'clusterPop' };
 // One authoritative event to one audio cue (null when it has none).
 export function kartEventCue(event, you) {
-  if (event.type === 'blast') return event.weapon === 'nuke' ? 'nukeBlast' : event.weapon === 'proximity' ? 'bombBlast' : 'rocketBlast';
+  if (event.type === 'blast') return BLAST_CUES[event.weapon] || 'rocketBlast';
   if (event.type === 'fire') return event.weapon;
+  // A Turbo Ram strike clangs for everyone nearby, rammer and victim alike.
+  if (event.type === 'hit' && event.weapon === 'ram') return 'ramClang';
   if (event.type === 'hit') return event.other === you ? 'hurt' : event.pid === you ? 'hitConfirm' : null;
+  if (event.type === 'bounce') return 'boing';
+  if (event.type === 'burst') return 'clusterPop';
+  if (event.type === 'splat') return 'oilSkid';
   return event.type;
 }

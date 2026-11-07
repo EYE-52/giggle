@@ -14,7 +14,7 @@ const legacy = createKartGame({
   id: 'pocket-karts',
   name: 'Pocket Karts',
   tagline: 'Kart battles with weapons and nitro',
-  howto: 'Grab a box, fire with Space, and knock out rivals by taking all 3 of their hearts; most knockouts wins. Drive with WASD/arrows or the thumb stick; Space or the item button fires the whole clip, and N/Nitro boosts. Pulse, Scatter, Mine and Seeker take 1 heart; Rocket and Proximity Bomb take 2; a Nuke knocks out every rival in its blast. Shield blocks the next hit. Each pickup hurts a rival once, however many of its shots land, and every Mine is its own trap. Pulse, Scatter and Mine are common, Rocket, Seeker, Proximity Bomb and Shield are uncommon, and the Nuke is rare. A knockout returns you after two seconds with full hearts and brief spawn protection; attacking ends that protection. Choose elevated arenas in Maps & settings for climbs, bridges and jumps; Shift brakes there. Elevated arenas play Zap Battle with Garage off. Classic arenas use Shift to drift and also offer Star Rush and Garage Battle. Rounds last 1 to 5 minutes; with a score target the first to reach it ends the match early. Places earn 300, 200 and 100 points, and tied drivers share a place. A driver who leaves or is away for a minute drops out and the others play on. Up to 8 drive; extra friends watch.',
+  howto: 'Grab a box, fire with Space, and knock out rivals by taking all 3 of their hearts; most knockouts wins. Drive with WASD/arrows or the thumb stick; Space or the item button fires the whole clip, and N/Nitro boosts. There are 16 weapons. Pulse, Scatter, Mine, Seeker, Rail Laser, Thunder Strike, Boomerang, Oil Slick, Frost Bomb, Cluster Bomb, Bounce Ball and Turbo Ram take 1 heart; Rocket and Proximity Bomb take 2; a Nuke knocks out every rival in its blast. Rail Laser fires two very fast bolts. Thunder Strike hits the nearest rival ahead (or the nearest anywhere) at once. A Boomerang curves out and back and can hit going and coming. An Oil Slick spins out whoever drives over it. A Frost Bomb slows everyone in its splash for 2 seconds. A Cluster Bomb bursts into bomblets. A Bounce Ball ricochets off walls up to 4 times. Turbo Ram gives you 3 seconds of speed, and touching a rival takes a heart. Shield blocks the next hit. Each pickup hurts a rival once, however many of its shots land, and every Mine and Oil Slick is its own trap. Pulse, Scatter, Mine, Rail Laser, Boomerang, Oil Slick and Bounce Ball are common; Rocket, Seeker, Proximity Bomb, Shield, Thunder Strike, Frost Bomb, Cluster Bomb and Turbo Ram are uncommon; the Nuke is rare. A knockout returns you after two seconds with full hearts and brief spawn protection; attacking ends that protection. Choose elevated arenas in Maps & settings for climbs, bridges and jumps; Shift brakes there. Elevated arenas play Zap Battle with Garage off. Classic arenas use Shift to drift and also offer Star Rush and Garage Battle. Rounds last 1 to 15 minutes; with a score target the first to reach it ends the match early. Places earn 300, 200 and 100 points, and tied drivers share a place. A driver who leaves or is away for a minute drops out and the others play on. Up to 8 drive; extra friends watch. Classic arenas also have launch cannons that fling you across the map, paired portal rings that link two spots, and water or pits: falling in costs you one point.',
   guide: {
     goal: 'Grab a box, fire with Space, take all 3 hearts. Most knockouts wins.',
     controls: [
@@ -24,11 +24,11 @@ const legacy = createKartGame({
       { keys: ['Shift'], touch: 'Drift', does: 'Drift (brake on elevated maps)' },
     ],
     tips: [
-      'Pulse, Scatter, Mine, Seeker: 1 heart each.',
-      'Rocket and Proximity Bomb: 2 hearts. Nuke: knocks out everyone nearby.',
-      'Shield blocks the next hit.',
-      'Each pickup hurts a rival once, however many of its shots land.',
-      'Knocked out? You are back in 2 seconds with all 3 hearts.',
+      'Most weapons take 1 heart. Rocket and Proximity Bomb take 2.',
+      'A Nuke knocks out everyone nearby. Shield blocks the next hit.',
+      'Thunder hits the rival ahead, Boomerangs come back, Oil spins, Frost slows.',
+      'Turbo Ram: 3 seconds of speed, and ramming a rival takes a heart.',
+      'Cannons fling you across, portals link two rings, falling in costs 1 point.',
     ],
   },
   art: 'img/games/pocket-karts.svg',
