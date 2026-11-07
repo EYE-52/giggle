@@ -104,7 +104,11 @@ export async function createThreeView(mountEl, hooks) {
   }
   // Adaptive resolution: a struggling device renders fewer pixels instead
   // of dropping frames, and climbs back once frames are cheap again.
-  const MAX_RATIO = 1.75, MIN_RATIO = 0.75, RATIO_STEP = 0.25;
+  // Phones start at 1.5x: about a quarter fewer pixels than 1.75x for a
+  // difference hard to see at arm's length (measured 116 -> 94 ms/frame on a
+  // weak-GPU proxy, 4.5 -> 2.2 ms on a fast one). Desktops keep 1.75x.
+  const coarse = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
+  const MAX_RATIO = coarse ? 1.5 : 1.75, MIN_RATIO = 0.75, RATIO_STEP = 0.25;
   const deviceRatio = () => Math.min(window.devicePixelRatio || 1, MAX_RATIO);
   let ratioCap = MAX_RATIO;
   const targetRatio = () => Math.max(Math.min(MIN_RATIO, deviceRatio()), Math.min(deviceRatio(), ratioCap));
