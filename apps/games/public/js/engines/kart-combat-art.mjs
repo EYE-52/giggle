@@ -24,9 +24,12 @@
  *   - a Map of model name -> THREE.Object3D (Map.prototype.get).
  *   - a plain object map of model name -> THREE.Object3D.
  *
- * Pocket Karts arsenal (8 kinds): pulse, scatter, mine, rocket, seeker,
- * proximity (Proximity Bomb), shield, nuke. Unknown kinds normalize to
- * 'pulse'. Retired kinds (rail/grenade/emp/bomb/sentry/spikes) are not
+ * Pocket Karts arsenal (16 kinds): pulse, scatter, mine, rocket, seeker,
+ * proximity (Proximity Bomb), shield, nuke, plus laser, thunder, boomerang,
+ * oil, frost, cluster, bouncer and ram, whose procedural props live in
+ * kart-arsenal-art.mjs (same userData contract and budgets; the cluster's
+ * bomblets are projectile('bomblet') and the Oil Slick is mine(own,'oil')).
+ * Unknown kinds normalize to 'pulse'. Retired kinds (rail/grenade/emp/bomb/sentry/spikes) are not
  * part of this factory; the shipped GLBs may still carry their nodes, which
  * are simply never read.
  *
@@ -123,6 +126,8 @@
 // Calibrate the forward skin against the authority sphere before loading ends.
 // Axial roll preserves radial distance. The tracer's full animated scale is
 // included; long trailing art can remain behind the sphere without shrinking.
+import {createArsenalArt,ARSENAL_SHOT_KINDS,ARSENAL_RIG_KINDS,ARSENAL_SHOT_GLOW} from './kart-arsenal-art.mjs';
+
 export function projectileContactInset(THREE,object,radius){
   const combat=object.userData.combat,tail=combat.tail,scale=tail?.scale.clone();
   if(tail)tail.scale.set(1.12,1.12,1.08);
@@ -568,6 +573,7 @@ export function createKartCombatArt(THREE, opts) {
   let cal = null;
   let seq = 0;
   let readableHousing = new WeakMap();
+  const arsenal = createArsenalArt(THREE);
 
   function ensurePool() {
     if (!pool) pool = buildPool(THREE, reg);
@@ -814,6 +820,19 @@ export function createKartCombatArt(THREE, opts) {
   }
 
   function projectile(kind) {
+    if (ARSENAL_SHOT_KINDS.includes(kind)) {
+      const shot = arsenal.projectile(kind), c = shot.userData.combat, spec = ARSENAL_SHOT_GLOW[kind];
+      if (!glowTex) glowTex = glowTexture(THREE);
+      let material = glowMats.get(kind);
+      if (!material) {
+        material = new THREE.SpriteMaterial({ map: glowTex, color: spec.color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+        material.name = 'CombatShotGlow:' + kind; glowMats.set(kind, material); reg.materials.add(material);
+      }
+      const halo = new THREE.Sprite(material);
+      halo.name = 'ShotGlow'; halo.scale.setScalar(spec.size); halo.position.z = c.tipZ * .35;
+      halo.renderOrder = 6; shot.add(halo); c.halo = halo; c.haloSize = spec.size;
+      return shot;
+    }
     const k = normShot(kind);
     const spec = SHOT_BRANCH[k];
     const branch = libBranch(spec[0], spec[1]);
@@ -872,7 +891,8 @@ export function createKartCombatArt(THREE, opts) {
     return outer;
   }
 
-  function mine(own) {
+  function mine(own, kind) {
+    if (kind === 'oil') return arsenal.trap('oil', own);
     const isOwn = own !== false;
     const branch = libBranch('MineTrap', null)||libBranch('Mine', null);
     if (branch) return mineFromLib(isOwn, branch);
@@ -985,6 +1005,7 @@ export function createKartCombatArt(THREE, opts) {
       const object=weapon('rocket');object.userData.combat.kind='nuke';object.name='NukeLauncher';
       return object;
     }
+    if (ARSENAL_RIG_KINDS.includes(kind)) return arsenal.weapon(kind);
     const k = normRig(kind);
     const branch = libBranch(RIG_MODEL[k], null);
     const object = branch ? weaponFromLib(k, branch) : weaponFallback(k);
@@ -997,6 +1018,7 @@ export function createKartCombatArt(THREE, opts) {
   function animate(object, dt, time, reducedMotion) {
     const c = object && object.userData && object.userData.combat;
     if (!c || !c.inner) return;
+    if (c.arsenal) { arsenal.animate(object, dt, time, reducedMotion); return; }
     const t = Number(time) || 0;
     const step = Math.min(0.1, Math.max(0, Number(dt) || 0));
     const inner = c.inner;
@@ -1108,6 +1130,7 @@ export function createKartCombatArt(THREE, opts) {
     reg.geometries.clear();
     reg.materials.clear();
     glowTex?.dispose(); glowTex = null; glowMats.clear();
+    arsenal.dispose();
     pool = null;
     ovr = null;
     readableHousing = new WeakMap();

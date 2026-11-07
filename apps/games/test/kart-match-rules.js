@@ -1,6 +1,6 @@
 'use strict';
 /* Pocket Karts match rules from specs/GAME_RULES_STANDARD.md:
- * - round length 1 to 5 minutes, 3 by default;
+ * - round length 1 to 15 minutes, 3 by default;
  * - a score target can end a match early on every map (classic + elevated);
  * - places pay 300 / 200 / 100 / 0 at match end, ties share rank and
  *   points, a full draw pays 150 each;
@@ -44,15 +44,15 @@ function racing(settings, ids) {
 }
 const park = (st) => st.karts.forEach((k, i) => { k.x = -20 + i * 20; k.z = 20; });
 
-// ---- round length: 1..5 minutes, default 3 ----
+// ---- round length: 1..15 minutes, default 3 ----
 {
   const setting = product.manifest.settings.find((s) => s.key === 'roundSeconds');
-  eq([setting.min, setting.max, setting.def], [60, 300, 180], 'Pocket Karts offers 1 to 5 minutes, 3 by default');
+  eq([setting.min, setting.max, setting.def], [60, 900, 180], 'Pocket Karts offers 1 to 15 minutes, 3 by default');
   eq(karts.manifest.settings.find((s) => s.key === 'roundSeconds').def, 180, 'engine default is 3 minutes');
   const roundMs = (s) => karts.create(stubCtx(s)).roundMs;
   eq(roundMs({}), 180000, 'no setting plays 3 minutes');
   eq(roundMs({ roundSeconds: 30 }), 60000, 'too short clamps to 1 minute');
-  eq(roundMs({ roundSeconds: 900 }), 300000, 'too long clamps to 5 minutes');
+  eq(roundMs({ roundSeconds: 1200 }), 900000, 'too long clamps to 15 minutes');
   eq(roundMs({ roundSeconds: 240 }), 240000, '4 minutes is honoured');
   eq(createKartGame({ id: 'x', name: 'X' }).manifest.settings.find((s) => s.key === 'roundSeconds').def, 180, 'thin variants default to 3 minutes too');
 }

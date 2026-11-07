@@ -247,8 +247,8 @@ function createBlockSiege(config) {
   }
   function create(ctx) {
     const settings = ctx.settings?.() || {}, roster = ctx.allPlayers().slice(0, 4), positions = castlePositions(roster.length);
-    const s = { phase: 'build', round: 1, rounds: clamp(Number.isInteger(settings.rounds) ? settings.rounds : cfg.rounds, 1, 5),
-      buildMs: clamp(Number.isInteger(settings.buildSeconds) ? settings.buildSeconds * 1000 : cfg.buildMs, 15000, 120000), siegeMs: clamp(Number.isInteger(settings.siegeSeconds) ? settings.siegeSeconds * 1000 : cfg.siegeMs, 15000, 120000),
+    const s = { phase: 'build', round: 1, rounds: clamp(Number.isInteger(settings.rounds) ? settings.rounds : cfg.rounds, 1, 10),
+      buildMs: clamp(Number.isInteger(settings.buildSeconds) ? settings.buildSeconds * 1000 : cfg.buildMs, 15000, 300000), siegeMs: clamp(Number.isInteger(settings.siegeSeconds) ? settings.siegeSeconds * 1000 : cfg.siegeMs, 15000, 300000),
       castles: roster.map((p, i) => ({ pid: p.id, name: p.name, seat: i, position: positions[i], wins: 0, totalHealth: 0, totalDamage: 0 })),
       events: [], eventSeq: 0, pieceSeq: 0, shotSeq: 0, timerToken: 0, feedbackSeq: 0, feedback: {}, nonces: {}, pending: [], result: null, awarded: false, disposed: false };
     startRound(s, ctx); schedule(s, ctx); return s;

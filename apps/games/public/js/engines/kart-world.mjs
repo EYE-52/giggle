@@ -54,11 +54,10 @@ import {buildTerrainRoads} from './kart-road-mesh.mjs';
  */
 
 import {KART_R} from './kart-pose.mjs';
+import {createKartBackdrop,createKartClouds} from './kart-backdrop.mjs';
 
 export const WORLD_ID = 'giggle-grove-circuit';
 export const WORLD_BOUNDS = 30; // legacy playable half-extent; walls align here
-// Height/width of the shipped panorama tile (assets/karts/backdrops).
-const BACKDROP_ASPECT = 324 / 2172;
 export const WORLD_HALF_DEFAULT = 30; // ring/blocks legacy
 export const WORLD_HALF_LARGE = 60; // garden/frost/neon (120x120, 4x area)
 export const SCENERY_MIN = 32; // legacy: nothing but paint stands inside this radius
@@ -1598,26 +1597,11 @@ export function createKartWorld(THREE, options) {
   // arena on an inward cylinder (the painting tiles seamlessly), and
   // replaces the procedural ridges once it has loaded. Headless builds
   // and load failures keep the ridges.
-  const backdropMat=basic(0xffffff,{transparent:true,depthWrite:false,side:THREE.BackSide,fog:true});
-  const backdropFile=theme==='garden'||theme==='grove'?'mountains-day.webp':null;
-  if(backdropFile&&!quarry&&typeof THREE.TextureLoader==='function'&&typeof globalThis.document?.createElementNS==='function') {
-    const radius=hillMin+150,repeats=4,width=2*Math.PI*radius/repeats,height=width*BACKDROP_ASPECT*1.6;
-    new THREE.TextureLoader().load('/assets/karts/backdrops/'+backdropFile,tex=>{
-      if(!root.parent){tex.dispose();return;}
-      tex.colorSpace=THREE.SRGBColorSpace;tex.wrapS=THREE.RepeatWrapping;tex.repeat.set(repeats,1);tex.anisotropy=4;
-      backdropMat.map=tex;backdropMat.needsUpdate=true;
-      const geo=new THREE.CylinderGeometry(radius,radius,height,96,1,true);
-      const panorama=new THREE.Mesh(geo,backdropMat);panorama.name='mountain-backdrop';
-      // Foothills sit just below the far grass so the painting meets land.
-      panorama.position.y=height/2-6;panorama.renderOrder=-1;root.add(panorama);
-      for(const ridge of farRidges)ridge.visible=false;
-    },undefined,()=>{});
-  }
-  // Day cycle: warm toward the horizon colour and dim with the night.
-  const backdropWhite=new THREE.Color(0xffffff),backdropTint=new THREE.Color();
-  function tintBackdrop(horizonHex,night){
-    backdropTint.setHex(horizonHex);backdropMat.color.copy(backdropWhite).lerp(backdropTint,.25+.25*night).multiplyScalar(1-.62*night);
-  }
+  // Bumper Blocks keeps its dry quarry horizon rather than alpine snow.
+  let skyAlive=true;
+  const skyIsAlive=()=>skyAlive&&!!root.parent;
+  const backdrop=createKartBackdrop(THREE,{parent:root,theme,radius:hillMin+150,ridges:farRidges,enabled:!quarry,isAlive:skyIsAlive});
+  const tintBackdrop=backdrop.tint;
   tintBackdrop(P.horizon,P.stars?1:0);
 
   /* ---- original motorsport landmarks and physical set dressing ---- */
@@ -1849,6 +1833,8 @@ export function createKartWorld(THREE, options) {
     root.add(grp);
     clouds.push({ mesh: grp, speed: 1.5 + rnd() * 2, baseX: cx });
   }
+  const paintedClouds=createKartClouds(THREE,{parent:root,radius:backdrop.radius,peakHeight:backdrop.height-6,
+    color:cloudMat.color,fallback:clouds.flatMap(c=>c.mesh.children),visible:()=>theme!=='neon'&&clouds[0].mesh.visible,isAlive:skyIsAlive});
   let stars = null;
   {
     const n = 150;
@@ -2412,6 +2398,7 @@ export function createKartWorld(THREE, options) {
       stars.material.opacity = 0.95;
       for (let ci = 0; ci < clouds.length; ci++) clouds[ci].mesh.visible = theme!=='neon'&&!P.stars;
       cloudMat.color.setHex(baseCloudHex);
+      tintBackdrop(P.horizon,P.stars?1:0);
       asphaltMat.emissiveIntensity = S.glow;
       grassMat.emissiveIntensity = baseGrassI;
       railMat.emissiveIntensity = railBaseI;
@@ -2518,6 +2505,7 @@ export function createKartWorld(THREE, options) {
       if (x > cloudWrapX) x = -cloudWrapX;
       cl.mesh.position.x = x;
     }
+    paintedClouds.animate(step);
     // Boost strips breathe warm mint/yellow while chevrons march along the
     // strip direction. Shared material/texture only — bounded, no rebuilds.
     if (fxRes) {
@@ -2552,6 +2540,8 @@ export function createKartWorld(THREE, options) {
           const tris = g.index ? g.index.count / 3 : g.attributes.position.count / 3;
           out.triangles += Math.round(tris);
         }
+      } else if (obj.isSprite) {
+        out.meshes += 1;out.drawCalls += 1;out.triangles += 2;
       } else if (obj.isLineSegments || obj.isLine) {
         out.lines += 1;
         out.drawCalls += 1;
@@ -2571,6 +2561,8 @@ export function createKartWorld(THREE, options) {
   layout.half = half;
   layout.bound = bound;
   return {
+    // The view disposes scene resources; retire pending image callbacks first.
+    dispose(){skyAlive=false;},
     syncMap,
     animate,
     stats,
