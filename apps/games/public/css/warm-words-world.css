@@ -37,7 +37,7 @@
 .ww.ck .ww-rules { margin-bottom: var(--space-16); }
 .ww.ck .wg-feed-empty { padding: var(--space-16); text-align: center; border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-lg); }
 .ww.ck .ww-fill { background: var(--fam); }
-.ww.ck .ww-best.is-empty { color: var(--ink-dim); }
+.ww.ck .ww-best.is-empty { color: var(--ink); }
 
 /* ---- polish: the meter is a heat strip (game art), cold to found, with
  * the unreached part frosted and a sticker marker at the closest word ---- */
@@ -107,3 +107,7 @@ body.game-playing[data-game="warm-words"] {
 .ww.ck .wg-tag.is-bad { --heat: color-mix(in srgb, #6f8aa6 55%, var(--card)); color: var(--ink-dim); }
 .ww.ck .ww-row.is-you { border-color: var(--ck-tint-rim); box-shadow: 0 var(--lift-sm) 0 var(--ck-tint-lip); }
 .ww.ck .ww-meter { border-color: var(--ck-tint-rim); }
+
+/* The closest word and its similarity are the main game feedback. */
+.ww.ck .ww-stage :is(.ww-meta,.ck-label,.ww-scale,.gk-sub) { color:var(--ink); }
+.ww.ck .wg-tag.is-good { background:var(--fam-soft); color:var(--ink); border-color:var(--fam); }

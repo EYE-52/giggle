@@ -166,7 +166,7 @@ function refresh(el, S, api) {
   const input = el.querySelector('#dGuess');
   if (input) input.placeholder = guessed ? 'You got it!' : 'Your guess…';
   const feedback = el.querySelector('#dFeedback');
-  if (feedback) feedback.textContent = guessed ? `You got it! +${S.guessed[S.me]} points.` : S.myFeedback?.message || '';
+  if (feedback) { feedback.textContent = guessed ? `You got it! +${S.guessed[S.me]} points.` : S.myFeedback?.message || ''; feedback.classList.toggle('is-error', !guessed && !!S.myFeedback?.message); }
   const inkFeedback = el.querySelector('#dInkFeedback');
   if (inkFeedback) inkFeedback.textContent = S.myInkFeedback || '';
   const undo = el.querySelector('#dUndo');

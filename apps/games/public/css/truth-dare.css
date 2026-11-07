@@ -6,7 +6,7 @@
 
 /* Prompt picking keeps every card and the status line in place after a
  * vote. Writing keeps the same field mounted across room updates. */
-#gbody .pl-fill.party-scene--truth { min-height: calc(var(--control-h-lg) * 11); }
+#gbody .pl-fill.party-scene--truth { min-height: var(--pl-stage-height,calc(var(--control-h-lg) * 11)); }
 #gbody .pl-fill.party-scene--truth > .pl-live { margin-top: auto; }
 .party-scene--truth .td-compose,
 .party-scene--truth .td-prompt-wait,
@@ -228,3 +228,7 @@ body #gbody .pl-fill.party-scene--truth .td-banner {
   background: color-mix(in srgb, var(--fam) 16%, var(--card));
   border-color: color-mix(in srgb, var(--fam) 45%, var(--card));
 }
+
+/* Both prompt-vote messages occupy two caption lines, including after a
+ * pick locks. The generic paragraph style must not change their line box. */
+#gbody .party-scene--truth .td-prompt-status { font:var(--text-caption); min-height:2lh; }

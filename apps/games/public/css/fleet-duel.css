@@ -110,3 +110,11 @@ body[data-game="fleet-duel"]{background:#cfe4f2}
 .fl-game .fl-place-actions > button { grid-area:1 / 1; }
 .fl-game .fl-place-actions > button[hidden] { display:flex!important; visibility:hidden; }
 .fl-game .fl-reason { min-height:2.8em; }
+
+/* On phones the selected ship's named Confirm action comes first in the
+ * dock, directly below the chart/status. Battle's Fire uses the same slot.
+ * The full tray remains mounted, so readiness never moves the chart. */
+@media(max-width:759px){
+ .fl-game .fl-placement .fl-place-actions { order:-1; }
+ .fl-game .fl-fire { align-self:start; }
+}

@@ -156,8 +156,8 @@
   border: 0; border-radius: var(--radius-md); background: transparent; color: var(--ink); font: var(--text-button-sm);
 }
 #gbody .tq.pl-fill .tq-filter .tq-icon { display: none; }
-#gbody .tq.pl-fill .tq-filter[aria-pressed="true"] { background: var(--fam); color: var(--on-fam); }
-#gbody .tq.pl-fill .tq-filter-count { font: var(--text-caption); font-weight: 800; color: inherit; opacity: 0.8; }
+#gbody .tq.pl-fill .tq-filter[aria-pressed="true"] { background: var(--fam-soft); color: var(--ink); }
+#gbody .tq.pl-fill .tq-filter-count { font: var(--text-caption); font-weight: 800; color: inherit; opacity: 1; }
 @media (hover: hover) {
   #gbody .tq.pl-fill .tq-filter:not([aria-pressed="true"]):hover { background: var(--card); }
 }

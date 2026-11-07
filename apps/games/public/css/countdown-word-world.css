@@ -149,3 +149,8 @@ body.game-playing[data-game="countdown-word"] {
 }
 /* The clock is scenery: its ticks stay faint behind the cards. */
 body.game-playing[data-game="countdown-word"] { --cw-tick: color-mix(in srgb, var(--fam) 11%, var(--bg)); --cw-face: color-mix(in srgb, var(--fam) 4%, var(--bg)); }
+
+/* Used letters stay readable; the lowered tile and quiet fill show usage. */
+.cw.ck .cw-tile.is-used { opacity:1; background:var(--well); color:var(--ink); box-shadow:none; transform:translateY(var(--lift-sm)); }
+
+[data-theme="night"] .cw.ck .cw-tile.is-used { color:var(--ink); }

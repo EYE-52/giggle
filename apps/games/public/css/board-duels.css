@@ -213,7 +213,7 @@
 .bk-final-actions [data-lobby]{box-shadow:none}
 /* Result sticker: the board itself says the game is over. */
 .bk-stage[data-bk-result]::after{content:attr(data-bk-result);position:absolute;left:50%;top:var(--space-16);z-index:30;max-width:calc(100% - var(--space-32));padding:var(--space-8) var(--space-24);border:var(--outline-w-lg) solid var(--outline);border-radius:var(--radius-xl);background:var(--bk-fam);color:var(--on-fam,#fff);box-shadow:var(--shadow-sticker-lg);font:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;transform:translateX(-50%);animation:bk-result-pop var(--dur-slow,.5s) var(--ease,cubic-bezier(.22,1,.36,1)) both}
-@keyframes bk-result-pop{from{opacity:0;transform:translateX(-50%) scale(.9)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+@keyframes bk-result-pop{from{transform:translateX(-50%) scale(.96)}to{transform:translateX(-50%) scale(1)}}
 @media (max-width:759px){
  .bk-stage[data-bk-result]::after{top:var(--space-8);padding:var(--space-4) var(--space-16);font:var(--text-title)}
  .bk-row-play,.bk-tools{justify-content:flex-start}
@@ -251,4 +251,23 @@
  .bk-player:not(.has-stat) .bk-stat { visibility:hidden; }
  .bk-player .bk-stat-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
  .bk-game.ch-tabletop .ch-chip { width:var(--space-24); height:var(--space-24); }
+}
+
+/* Phone replies share one 44px action slot. The question opens over its
+ * own status/action well; it never inserts another row before the board. */
+@media(max-width:759px){
+ .bk-game { gap:var(--space-8); }
+ .bk-actions { position:relative; height:var(--control-h-sm); min-height:var(--control-h-sm); }
+ .bk-row-confirm,.bk-row-offer { position:absolute; z-index:40; bottom:0; left:0; width:100%; padding:var(--space-12); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-lg); background:var(--card); box-shadow:var(--shadow-card); }
+}
+
+/* Replies remain clearly readable, including while an acknowledgement is
+ * pending. A tint distinguishes the offer action without pale gold text. */
+.bk-row-offer .bk-primary { background:var(--bk-fam-soft); color:var(--ink); border-color:var(--bk-fam-deep); }
+.bk-row-offer .bk-btn { opacity:1; color:var(--ink); }
+.bk-row-offer .bk-btn:disabled { background:var(--well); color:var(--ink-dim); opacity:1; }
+@media(max-width:759px){
+ .bk-game:not(.ld-game) :is(.bk-row-confirm,.bk-row-offer) { padding:0; border:0; border-radius:0; box-shadow:none; background:transparent; }
+ .bk-game:not(.ld-game) :is(.bk-row-confirm,.bk-row-offer) .bk-btn { min-height:var(--control-h-sm); height:var(--control-h-sm); }
+ .bk-game:not(.ld-game) :is(.bk-row-confirm,.bk-row-offer) .bk-ask { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 }

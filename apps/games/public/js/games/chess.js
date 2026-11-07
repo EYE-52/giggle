@@ -316,8 +316,8 @@ export default {
     const host = bkHost(api);
     const histOpen = root.querySelector('.chhist-wrap')?.open === true;
     const helpOpen = root.querySelector('.bk-help')?.open === true;
-    const histHtml = `<details class="chhist-wrap"${histOpen ? ' open' : ''}><summary>Moves${hist.length ? ` · ${Math.ceil(hist.length / 2)}` : ''}</summary><div class="chhist" id="ch-hist" aria-label="Move history" tabindex="0">${movesHtml || '<span class="muted">No moves yet.</span>'}</div></details>`;
-    const extra = `<div class="ch-capture-rail"><div><small>Taken from Black</small>${captureTray(shownForCaptures,'b')}</div><div><small>Taken from White</small>${captureTray(shownForCaptures,'w')}</div></div>${histHtml}`;
+    const histHtml = `<details class="chhist-wrap"${histOpen ? ' open' : ''}><summary>Moves & captures${hist.length ? ` · ${Math.ceil(hist.length / 2)}` : ''}</summary><div class="ch-capture-rail"><div><small>Taken from Black</small>${captureTray(shownForCaptures,'b')}</div><div><small>Taken from White</small>${captureTray(shownForCaptures,'w')}</div></div><div class="chhist" id="ch-hist" aria-label="Move history" tabindex="0">${movesHtml || '<span class="muted">No moves yet.</span>'}</div></details>`;
+    const extra = histHtml;
     moveTimerInfo = bkTimer(S, api);
     const final = done ? {
       headline: bkHeadline(S.result?.winnerPid ? [nameOf(S, S.result.winnerPid)] : [S.white, S.black].filter(Boolean).map(pid => nameOf(S, pid))),

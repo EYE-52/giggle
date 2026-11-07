@@ -38,7 +38,7 @@
   background: var(--well); overflow: hidden;
 }
 #gbody .pl-fill.party-scene--rank .party-rank-item .rank-seg .btn {
-  min-width: 44px; min-height: 40px; height: 40px; padding: 0 var(--space-8); margin: 0;
+  min-width: 44px; min-height: var(--control-h-sm); height: var(--control-h-sm); padding: 0 var(--space-8); margin: 0;
   border: 0; border-radius: 0; background: transparent; box-shadow: none; color: var(--ink);
   font: 800 18px/1 var(--font-display);
 }
@@ -92,7 +92,7 @@ body.game-playing[data-game="rank-it"] {
 }
 #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p2 .gk-mark { --medal: #c9cdd8; --on-medal: #2b2f3a; }
 [data-theme="night"] #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p2 .gk-mark { --medal: #b8bfcc; --on-medal: #15171c; }
-#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p3 .gk-mark { --medal: #d08a4e; --on-medal: #ffffff; }
+#gbody .pl-fill.party-scene--rank .party-rank-item.rank-p3 .gk-mark { --medal: #d08a4e; --on-medal: var(--sun-ink); }
 [data-theme="night"] #gbody .pl-fill.party-scene--rank .party-rank-item.rank-p3 .gk-mark { --medal: #e3a06a; --on-medal: #1f1206; }
 #gbody .pl-fill.party-scene--rank .party-rank-item:is(.rank-p1, .rank-p2, .rank-p3) .gk-mark {
   border-color: color-mix(in srgb, var(--medal) 70%, #000); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--medal) 70%, #000);

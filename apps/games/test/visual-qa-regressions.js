@@ -1,0 +1,27 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const read=f=>fs.readFileSync(path.join(__dirname,'../public',f),'utf8');
+(async()=>{
+ const url=s=>'data:text/javascript;base64,'+Buffer.from(s).toString('base64');
+ const kit=await import(require('./_kit-url')(url(read('js/util.js'))));
+ const props={};let top=80,scrollY=0;
+ global.document={defaultView:{innerHeight:844,get scrollY(){return scrollY}},createElement:()=>null};
+ const scene={classList:{add(){}},getAttribute:()=> 'party',style:{setProperty:(k,v)=>props[k]=v},closest:()=>({style:{zoom:'1'},getBoundingClientRect:()=>({top})}),querySelector:()=>null};
+ kit.paintLiveStrip(scene,{});assert.equal(props['--pl-stage-height'],'732px');
+ top=-120;scrollY=200;kit.paintLiveStrip(scene,{});assert.equal(props['--pl-stage-height'],'732px','scrolling cannot grow the stage on repaint');
+ scene.closest=()=>({style:{zoom:'1.25'},getBoundingClientRect:()=>({top:80})});scrollY=0;kit.paintLiveStrip(scene,{});assert.equal(props['--pl-stage-height'],'585.6px','zoom respects the available height');
+ delete global.document;
+ const timer=read('css/game-ui.css').split('/* The draining timer')[1]||read('css/game-ui.css').slice(read('css/game-ui.css').indexOf(':is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer'));
+ assert.match(timer,/overflow:hidden/);assert.match(timer,/position:absolute/);assert.match(timer,/scaleX\(var\(--gk-timer-left/);assert.doesNotMatch(timer,/conic-gradient|mask-composite/);
+ assert.match(read('css/style.css'),/\.game-preparation:not\(\.is-first\)\s*\{\s*top:auto; bottom:/,'between-round ready toast lives outside the header');
+ assert.match(read('css/draw-phone.css'),/\.dp\.ck \.dp-clock\.gk-hud-timer\s*\{[^}]*position:fixed;[^}]*width:calc/,'draw clock keeps a bounded fixed slot');
+ assert.match(read('css/five-second.css'),/\.fs-scene\.pl-fill \.gk-hud-timer\s*\{ min-width: 0/,'five-second clock fits the shared grid track');
+ assert.match(read('css/charades.css'),/scroll-snap-type:y proximity/,'guess history is an accessible scroll area');
+ assert.match(read('css/board-duels.css'),/\.bk-row-offer \.bk-btn\s*\{ opacity:1; color:var\(--ink\)/,'draw replies stay readable');
+ const vm=require('node:vm'),src=read('js/games/charades.js');
+ const ringCode=src.slice(src.indexOf('const RING_LEN'),src.indexOf('function initialOf'));
+ const attributes={};const ring={classList:{toggle(){}},querySelector:sel=>sel==='.ck-ring-num'?{}:{setAttribute:(k,v)=>attributes[k]=v},setAttribute(){}};
+ const context={ring};vm.runInNewContext(ringCode+';paintRing(ring,35,"round-1",60);',context);
+ assert.equal(Number(attributes['stroke-dashoffset']),52.36,'joining at 35s shows 35/60 of the ring, not a full ring');
+ console.log('VISUAL_QA_REGRESSIONS_PASS: stage height, scroll/zoom invariance, bounded timers, history and draw replies');
+})().catch(e=>{console.error(e);process.exitCode=1;});

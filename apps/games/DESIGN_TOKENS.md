@@ -52,6 +52,7 @@ Use as `font: var(--text-title)` or the class.
 | `--text-title` | `.t-title` | Baloo 2 800, 20px / 1.25 |
 | `--text-body` | `.t-body` | Nunito 600, 17px / 1.5 |
 | `--text-button` | `.t-button` | Baloo 2 800, 17px / 1.2 |
+| `--text-primary` | | Baloo 2 800, 19px / 1.2 (primary actions) |
 | `--text-button-sm` | | Nunito 800, 15px / 1.2 (chips, segments) |
 | `--text-caption` | `.t-caption` | Nunito 700, 13px / 1.4, `--ink-dim` |
 

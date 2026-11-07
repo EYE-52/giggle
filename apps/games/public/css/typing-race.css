@@ -136,3 +136,17 @@
   background: color-mix(in srgb, var(--danger) 16%, transparent); border-radius: 0; box-shadow: none;
   text-decoration: underline solid var(--danger); text-decoration-thickness: 2px; text-underline-offset: 4px;
 }
+
+/* Curbs and finish line are part of the road, not loose blocks beside it. */
+#gbody .tr.pl-fill .tr-track { border:0; overflow:hidden; border-radius:var(--radius-md); }
+#gbody .tr.pl-fill .tr-track::after { top:var(--space-4); bottom:var(--space-4); right:var(--space-4); width:var(--space-16); border-radius:var(--space-4); background-size:var(--space-8) var(--space-8); }
+
+#gbody .tr.pl-fill .tr-lane.is-you .tr-track {
+ background:
+ repeating-linear-gradient(90deg,var(--fam) 0 var(--space-12),var(--tr-check-b) var(--space-12) var(--space-24)) var(--space-4) var(--space-4) / calc(100% - var(--space-8)) var(--space-4) no-repeat,
+ repeating-linear-gradient(90deg,var(--fam) 0 var(--space-12),var(--tr-check-b) var(--space-12) var(--space-24)) left var(--space-4) bottom var(--space-4) / calc(100% - var(--space-8)) var(--space-4) no-repeat,
+ repeating-linear-gradient(90deg,var(--tr-dash) 0 var(--space-12),transparent var(--space-12) var(--space-24)) center / 100% 2px no-repeat,var(--tr-asphalt);
+}
+
+/* The next letter stays readable; its underline does not cover the glyph. */
+#gbody .tr.pl-fill .tr-target .typing-next { outline:0; border-radius:0; text-decoration:underline var(--fam-deep); text-decoration-thickness:var(--space-4); text-underline-offset:var(--space-4); }

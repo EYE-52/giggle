@@ -373,27 +373,23 @@
 .gk-wait { text-wrap: balance; }
 #rematch > #hostWait.gk-wait { flex: 0 1 auto; width: fit-content; max-width: 100%; margin-inline: auto; }
 
-/* Ring timer: a family-colour ring drains around the timer pill as
- * --gk-timer-left (0–1, set by syncHudTimer / timerSlotState) falls;
- * amber in the last ten seconds, red and breathing in the last five.
- * Views that run no clock leave the ring full. */
-@property --gk-timer-left { syntax: '<number>'; inherits: true; initial-value: 1; }
-:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer {
-  position: relative; isolation: isolate; --ring: var(--fam);
-  transition: --gk-timer-left 260ms linear;
-}
+/* Timer progress stays inside the pill. A small rail gives every remaining
+ * fraction a clean end, without masked conic-gradient caps outside the rim. */
+:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer { --ring:var(--fam); overflow:hidden; }
+:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer:not(.dp-clock) { position:relative; isolation:isolate; }
 :is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer::before {
-  content: ""; position: absolute; inset: 0; z-index: -1; padding: 3px; border-radius: inherit;
-  background: conic-gradient(var(--ring) calc(var(--gk-timer-left, 1) * 1turn), color-mix(in srgb, var(--ink) 9%, transparent) 0);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
+  content:""; position:absolute; inset:auto var(--space-8) 0; height:var(--space-4);
+  border-radius:var(--radius-pill); background:var(--ring); pointer-events:none;
+  transform:scaleX(var(--gk-timer-left,1)); transform-origin:left center;
+  transition:transform var(--dur-base) var(--ease);
 }
-:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer:empty::before { display: none; }
-:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer.is-warn { --ring: var(--warning); }
-:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer.is-urgent { --ring: var(--danger); animation: gk-timer-breathe 1s ease-in-out infinite; }
-@keyframes gk-timer-breathe { 50% { transform: scale(1.06); } }
-@media (prefers-reduced-motion: reduce) {
-  :is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer { transition: none; animation: none; }
+:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer:empty::before { display:none; }
+:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer.is-warn { --ring:var(--warning); }
+:is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer.is-urgent { --ring:var(--danger); animation:gk-timer-breathe 1s var(--ease) infinite; }
+@keyframes gk-timer-breathe { 50% { transform:scale(1.06); } }
+@media(prefers-reduced-motion:reduce){
+ :is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer { animation:none; }
+ :is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer::before { transition:none; }
 }
 
 /* HUD tracks belong to slots, never to the current label's text width. */
