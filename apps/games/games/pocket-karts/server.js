@@ -8,13 +8,14 @@ const { defaultSettings } = require('../_validate');
 const { MAP_LABELS, preflightElevated, loadElevatedDependencies, createElevatedKartAdapter } = require('../engines/kart-elevated-adapter');
 
 let classicDependencies;
+const { KART_STREAM } = require('../engines/kart-realtime');
 const {createClassicMotion}=require('../../public/js/engines/kart-classic-motion.mjs');
 const legacy = createKartGame({
   createMotion(state){if(!classicDependencies)throw Error('Kart physics is not initialized');return createClassicMotion(classicDependencies.RAPIER,classicDependencies.config,state);},
   id: 'pocket-karts',
   name: 'Pocket Karts',
   tagline: 'Kart battles with weapons and nitro',
-  howto: 'Grab a box, fire with Space, and knock out rivals by taking all 3 of their hearts; most knockouts wins. Drive with WASD/arrows or the thumb stick; Space or the item button fires the whole clip, and N/Nitro boosts. There are 16 weapons. Pulse, Scatter, Mine, Seeker, Rail Laser, Thunder Strike, Boomerang, Oil Slick, Frost Bomb, Cluster Bomb, Bounce Ball and Turbo Ram take 1 heart; Rocket and Proximity Bomb take 2; a Nuke knocks out every rival in its blast. Rail Laser fires two very fast bolts. Thunder Strike hits the nearest rival ahead (or the nearest anywhere) at once. A Boomerang curves out and back and can hit going and coming. An Oil Slick spins out whoever drives over it. A Frost Bomb slows everyone in its splash for 2 seconds. A Cluster Bomb bursts into bomblets. A Bounce Ball ricochets off walls up to 4 times. Turbo Ram gives you 3 seconds of speed, and touching a rival takes a heart. Shield blocks the next hit. Each pickup hurts a rival once, however many of its shots land, and every Mine and Oil Slick is its own trap. Pulse, Scatter, Mine, Rail Laser, Boomerang, Oil Slick and Bounce Ball are common; Rocket, Seeker, Proximity Bomb, Shield, Thunder Strike, Frost Bomb, Cluster Bomb and Turbo Ram are uncommon; the Nuke is rare. A knockout returns you after two seconds with full hearts and brief spawn protection; attacking ends that protection. Choose elevated arenas in Maps & settings for climbs, bridges and jumps; Shift brakes there. Elevated arenas play Zap Battle with Garage off. Classic arenas use Shift to drift and also offer Star Rush and Garage Battle. Rounds last 1 to 15 minutes; with a score target the first to reach it ends the match early. Places earn 300, 200 and 100 points, and tied drivers share a place. A driver who leaves or is away for a minute drops out and the others play on. Up to 8 drive; extra friends watch. Classic arenas also have launch cannons that fling you across the map, paired portal rings that link two spots, and water or pits: falling in costs you one point.',
+  howto: 'Grab a box, fire with Space, and knock out rivals by taking all 3 of their hearts; most knockouts wins. Drive with WASD/arrows or the thumb stick; Space or the item button fires the whole clip, and N/Nitro boosts. There are 16 weapons. Pulse, Scatter, Mine, Seeker, Rail Laser, Thunder Strike, Boomerang, Oil Slick, Frost Bomb, Cluster Bomb, Bounce Ball and Turbo Ram take 1 heart; Rocket and Proximity Bomb take 2; a Nuke knocks out every rival in its blast. Rail Laser fires two very fast bolts. Thunder Strike hits the nearest rival ahead (or the nearest anywhere) at once. A Boomerang curves out and back and can hit going and coming. An Oil Slick spins out whoever drives over it. A Frost Bomb slows everyone in its splash for 2 seconds. A Cluster Bomb bursts into bomblets. A Bounce Ball ricochets off walls up to 4 times. Turbo Ram gives you 3 seconds of speed, and touching a rival takes a heart. Shield blocks the next hit. Each pickup hurts a rival once, however many of its shots land, and every Mine and Oil Slick is its own trap. Pulse, Scatter, Mine, Rail Laser, Boomerang, Oil Slick and Bounce Ball are common; Rocket, Seeker, Proximity Bomb, Shield, Thunder Strike, Frost Bomb, Cluster Bomb and Turbo Ram are uncommon; the Nuke is rare. A knockout returns you after two seconds with full hearts and brief spawn protection; attacking ends that protection. Choose elevated arenas in Maps & settings for climbs, bridges and jumps; Shift brakes there. Elevated arenas play Zap Battle with Garage off. Classic arenas use Shift to drift and also offer Star Rush and Garage Battle. Rounds last 1 to 15 minutes; with a score target the first to reach it ends the match early. Places earn 300, 200 and 100 points, and tied drivers share a place. A driver who leaves or is away for a minute drops out and the others play on. Up to 32 drive on classic arenas and 8 on elevated arenas; extra friends watch. Classic arenas also have launch cannons that fling you across the map, paired portal rings that link two spots, and water or pits: falling in costs you one point.',
   guide: {
     goal: 'Grab a box, fire with Space, take all 3 hearts. Most knockouts wins.',
     controls: [
@@ -32,8 +33,8 @@ const legacy = createKartGame({
     ],
   },
   art: 'img/games/pocket-karts.svg',
-  seats: 8,
-  players: { min: 2, max: 24 },
+  seats: 32,
+  players: { min: 2, max: 32 },
   layout: 'immersive',
   modes: ['starrush', 'battle'],
   maps: ['ring', 'blocks', 'garden', 'frost', 'neon'],
@@ -54,6 +55,7 @@ const legacy = createKartGame({
 // Original labels preserve their authored layouts and rules; elevated labels select their separate map authority.
 const defaults = Object.freeze(defaultSettings(legacy));
 let elevated = null, initialization = null;
+const ELEVATED_SEATS = 8;
 const opted = settings => Object.hasOwn(MAP_LABELS, settings.map);
 const owns = state => elevated && elevated.owns(state);
 const def = {
@@ -68,6 +70,8 @@ const def = {
     });
     return initialization;
   },
+  // Elevated arenas keep their authored eight seats; classic arenas take 32.
+  seatsFor: settings => opted({ ...defaults, ...settings }) ? ELEVATED_SEATS : 32,
   preflight(settings) {
     const resolved = { ...defaults, ...settings };
     if (!classicDependencies) return { error: 'Kart arenas are unavailable right now. Try another game.' };
@@ -90,7 +94,19 @@ const def = {
   onConnection: (state, ctx, pid, connected) => owns(state) ? elevated.onConnection(state, ctx, pid, connected) : legacy.onConnection(state, ctx, pid, connected),
   onPlayerGone: (state, ctx, pid) => owns(state) ? elevated.onPlayerGone(state, ctx, pid) : legacy.onPlayerGone(state, ctx, pid),
   requiresActionTokens: state => !!owns(state) || !!state.motionProfile || !!classicDependencies,
+  // Classic arenas: adaptive 30 Hz (the room's governor slows a busy room to
+  // 25, 20 or 15 Hz). Elevated arenas keep their fixed 20 Hz JSON cadence.
+  tickRate: state => owns(state) ? null : CLASSIC_RATE,
   tickInterval: () => 50,
+  realtime: state => owns(state) ? null : CLASSIC_REALTIME,
 };
+
+const CLASSIC_RATE = Object.freeze({ target: 33, max: 66 });
+// Classic arenas: karts stream as binary records, the rest is a JSON delta.
+const CLASSIC_REALTIME = Object.freeze({
+  streams: [KART_STREAM],
+  publicView: state => legacy.publicView(state),
+  privateView: (state, pid) => legacy.privateView(state, pid),
+});
 
 module.exports = def;

@@ -141,8 +141,10 @@ await pocket.initialize();
  const realNow=Date.now;let now=4000000;Date.now=()=>now;
  const room=new rooms.Room('PAYL',{}),peers=[];
  try{
-  for(let i=0;i<9;i++){const socket={readyState:1,bufferedAmount:0,raw:[],send(text){this.raw.push(text);},close(){}},player=room.addPlayer('Payload '+i,socket).player;peers.push({socket,player});}
+  const join=i=>{const socket={readyState:1,bufferedAmount:0,raw:[],send(text){this.raw.push(text);},close(){}},player=room.addPlayer('Payload '+i,socket).player;peers.push({socket,player});};
+  for(let i=0;i<8;i++)join(i);
   equal(room.startGame(pocket,{ready:true,settings:{map:'Rookie Ring',mode:'Zap Battle',roundSeconds:60,winRule:'Time limit'}},room.hostId),{ok:true},'actual Room starts physical Pocket preparation');
+  join(8); // classic arenas seat 32, so the watcher is a late joiner
   const frame=p=>JSON.parse(p.socket.raw.at(-1)),host=peers[0],watcher=peers[8],s=room.game.state,a=s.karts.find(k=>k.pid===host.player.id);
   s.crates=[];a.weapon='scatter';a.ammo=5;a.shield=0;a.fireCd=0;
   const send=(peer,seq,boost,extra={},tokens=frame(peer))=>room.onAction(peer.socket,{seq,life:tokens.inputAck?.life,controlEpoch:tokens.inputAck?.controlEpoch,input:{steer:0,throttle:0,boost,...extra}},{i:tokens.instanceId,w:tokens.w});

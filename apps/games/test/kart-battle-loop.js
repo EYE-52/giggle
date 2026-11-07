@@ -355,7 +355,8 @@ async function main() {
       tick(ctx, st);
     }
     assert.strictEqual(b.respawn, 0, 'victim rejoins after 2 s');
-    assert.deepStrictEqual([b.x, b.z], [-42, 28], 'respawn takes the farthest legal pose');
+    // The northwest spawn moved two metres to clear the inner hedge.
+    assert.deepStrictEqual([b.x, b.z], [-44, 28], 'respawn takes the farthest legal pose');
     assert(Math.hypot(b.x - a.x, b.z - a.z) >= 2.5, 'no live-kart overlap');
     assert.strictEqual(b.shield, 2.5, 'fresh spawn shield');
     assert.strictEqual(b.spawnSeq, 1, 'epoch bumps on respawn');

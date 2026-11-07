@@ -138,7 +138,10 @@ function paintSeats() {
 function syncCount() {
   const options = [...countSelect.options].map(o => Number(o.value)).filter(Number.isFinite);
   const n = Number(countSelect.value);
-  $('practiceCountLabel').textContent = Number.isFinite(n) && options.length ? `${n} player${n === 1 ? '' : 's'}` : '–';
+  const number = document.createElement('span'), unit = document.createElement('span');
+  number.className = 'practice-count-number'; number.textContent = Number.isFinite(n) && options.length ? String(n) : '–';
+  unit.className = 'practice-count-unit'; unit.textContent = Number.isFinite(n) && options.length ? ` player${n === 1 ? '' : 's'}` : '';
+  $('practiceCountLabel').replaceChildren(number, unit);
   $('practiceLess').disabled = countSelect.disabled || !options.length || n <= Math.min(...options);
   $('practiceMore').disabled = countSelect.disabled || !options.length || n >= Math.max(...options);
   paintSeats();

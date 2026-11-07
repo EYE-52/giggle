@@ -31,6 +31,7 @@ import { createKartLighting } from './kart-lighting.mjs';
 import { loadKartAssets, weaponThumbnailArt } from './kart-assets.mjs';
 import { createKartWorld } from './kart-world.mjs';
 import { createKartModel, animateKartModel, createStarModel } from './kart-model.mjs';
+import { createKartLod, crowdColor } from './kart-lod.mjs';
 import { createKartAudio } from './kart-audio.mjs';
 import { createGearbox, paintGear } from './kart-gearbox.mjs';
 import { CLASSIC_MAX_FORWARD } from './kart-classic-motion.mjs';
@@ -38,6 +39,7 @@ import { createKartCombatArt, projectileContactInset } from './kart-combat-art.m
 import { createKartHealthBars } from './kart-health-bars.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
 import {createArsenalFX} from './kart-arsenal-fx.mjs';
+import {createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d} from './kart-arena-structure-art.mjs';
 import {createKartArenaFeatures,drawArenaFeatures2d} from './kart-arena-features-art.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
 import {createKartThreats} from './kart-threats.mjs';
@@ -314,9 +316,11 @@ export function createKartView(viewConfig) {
   }
 
   function colorFor(pid) {
+    const chosen = lookOf(pid)?.color;
+    if (Number.isInteger(chosen)) return chosen;
     const ids = (S && S.karts ? S.karts : []).map((k) => k.pid);
     const i = ids.indexOf(pid);
-    return KART_COLORS[(i < 0 ? 0 : i) % KART_COLORS.length];
+    return crowdColor(i < 0 ? 0 : i, KART_COLORS);
   }
 
   function nameOf(pid) {
@@ -721,12 +725,17 @@ export function createKartView(viewConfig) {
     // runs on every 10 Hz snapshot plus the 500 ms timer, so an unchanged
     // innerHTML churn would cost layout on every tick while driving.
     // Equal scores share a rank; drivers who dropped out sit last.
-    const rows = [...(S.karts || [])].sort((a, b) => (a.out === true) - (b.out === true) || scoreOf(b) - scoreOf(a)).slice(0, 8);
-    const ranks = [];
-    rows.forEach((k, i) => { ranks[i] = i && !k.out && !rows[i - 1].out && scoreOf(k) === scoreOf(rows[i - 1]) ? ranks[i - 1] : i + 1; });
+    // Big matches list the top seven plus your own row with its real rank.
+    const sorted = [...(S.karts || [])].sort((a, b) => (a.out === true) - (b.out === true) || scoreOf(b) - scoreOf(a));
+    const allRanks = [];
+    sorted.forEach((k, i) => { allRanks[i] = i && !k.out && !sorted[i - 1].out && scoreOf(k) === scoreOf(sorted[i - 1]) ? allRanks[i - 1] : i + 1; });
+    const selfAt = S.you ? sorted.findIndex((k) => k.pid === S.you) : -1;
+    const shown = selfAt >= 8 ? [...sorted.keys()].slice(0, 7).concat(selfAt) : [...sorted.keys()].slice(0, 8);
+    const rows = shown.map((i) => sorted[i]), ranks = shown.map((i) => allRanks[i]);
+    const hiddenCount = sorted.length - rows.length;
     const myIndex = S.you ? rows.findIndex((k) => k.pid === S.you) : -1;
     const myRank = myIndex >= 0 ? ranks[myIndex] : 0;
-    const standKey = (battle ? 'b' : 'r') + '|' + (S.you || '') + '|' +
+    const standKey = (battle ? 'b' : 'r') + '|' + (S.you || '') + '|' + hiddenCount + '|' +
       rows.map((k) => k.pid + ':' + scoreOf(k) + (k.out ? ':out' : '')).join(',');
     if (standKey !== lastStandKey) {
       lastStandKey = standKey;
@@ -755,7 +764,7 @@ export function createKartView(viewConfig) {
         `<span class="pk-dot" style="background:#${colorFor(k.pid).toString(16).padStart(6, '0')}"></span>` +
         `<span class="pk-name">${esc(nameOf(k.pid))}${k.out ? ' <small>Left</small>' : ''}</span>` +
         `<span class="pk-score">${battle ? `${countLabel(scoreOf(k), 'KO')}` : `★ ${scoreOf(k)}`}</span></div>`
-      ).join('');
+      ).join('') + (hiddenCount > 0 ? `<div class="pk-row pk-more"><span class="pk-rank"></span><span class="pk-name"><small>+${hiddenCount} more</small></span></div>` : '');
     }
 
     if (S.phase === 'done' && S.result) {
@@ -843,6 +852,12 @@ export function createKartView(viewConfig) {
 
   function hostContext() {
     try { return apiRef?.context?.() || {}; } catch { return {}; }
+  }
+
+  // A player's garage pick ({ driver, color }) from the host, if any.
+  function lookOf(pid) {
+    const looks = hostContext().looks;
+    return looks && Object.hasOwn(looks, pid) ? looks[pid] : null;
   }
 
   function nextMapSetting() {
@@ -974,7 +989,7 @@ export function createKartView(viewConfig) {
         }
       } catch { /* fall through to the stock kart */ }
     }
-    const model = createKartModel(THREE, { assets, color, driver: pid });
+    const model = createKartModel(THREE, { assets, color, driver: lookOf(pid)?.driver ?? pid });
     model.userData.giggleKart = true;
     return model;
   }
@@ -1027,7 +1042,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let world,impactFX,skids,threats,arsenalFX,arena;
+    let world,impactFX,skids,threats,arsenalFX,arena,structures;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1060,6 +1075,7 @@ export function createKartView(viewConfig) {
       arsenalFX=createArsenalFX(THREE,scene,{reducedMotion:()=>rm,groundAt:(x,z)=>world.groundAt?.(x,z)||0});
       arena=createKartArenaFeatures(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0,reducedMotion:()=>reducedMotion()});
       arena.sync(S?.map);
+      structures=createKartArenaStructures(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});structures.sync(S?.map);
       skids=createKartSkids(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});
       threats=createKartThreats(THREE,scene,rootEl.querySelector('.pk'),{reducedMotion:()=>rm,beep:level=>audio?.beep?.(level)});
       const zoneGeo = new THREE.RingGeometry(2.22, 2.4, 36);
@@ -1073,6 +1089,9 @@ export function createKartView(viewConfig) {
       const driftSparks = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.11),
         new THREE.MeshBasicMaterial({color:0x83ffe0}), 48);
       driftSparks.count = 0; driftSparks.frustumCulled = false; scene.add(driftSparks);
+      // Big matches draw distant karts as one instanced proxy batch.
+      const kartLod = createKartLod(THREE); scene.add(kartLod.object);
+      let lodProxied = new Set();
       const sparkMatrix = new THREE.Matrix4();
       const pops = new THREE.InstancedMesh(new THREE.BoxGeometry(.32,.16,.5),new THREE.MeshBasicMaterial({color:0xffcf80}),64);
       pops.count=0; pops.frustumCulled=false; scene.add(pops);
@@ -1154,7 +1173,7 @@ export function createKartView(viewConfig) {
         // Karts: shared visual poses (predicted self, eased remotes) — the
         // SAME helper the 2D fallback draws, so both renderers agree.
         const poses = framePoses(poseStore, S, intentForPrediction(), dt, nowMs(), { reducedMotion: rm, map: S.map, serverNow: serverNow() });
-        const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,nowMs(),serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs());if(pose)poses.set(k.pid,pose);}
+        const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,nowMs(),serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs(),serverNow());if(pose)poses.set(k.pid,pose);}
         updateAudio();
         const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
         if(feedbackEpoch!==impactEpoch){
@@ -1166,6 +1185,7 @@ export function createKartView(viewConfig) {
         while(arsenalEvents.length)arsenalFX.event(arsenalEvents.shift());
         impactFX.update(effectDt);skids.update(effectDt);arsenalFX.update(effectDt);
         // Arena features: cannons, portals, fall zones (map.features + arenaEvents).
+        structures.sync(S.map);structures.animate();
         arena.sync(S.map);arena.ingest(S.arenaEvents,S.karts);arena.animate(effectDt,t,S,poses);
         if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
         const acceptedEffects=feedback.current(nowMs());
@@ -1247,7 +1267,7 @@ export function createKartView(viewConfig) {
             if(mesh.userData.rig) {const rig=mesh.userData.rig;combat.placeWeapon(rig);(mesh.userData.kart?.inner||mesh).add(rig);}
           }
           if(mesh.userData.rig)combat.animate(mesh.userData.rig,dt,t,rm);
-          if (mesh.userData.giggleKart) animateKartModel(mesh, {physicalPose: k.respawn>0 ? null : pose.physicalPose || k.physicalPose,
+          if (mesh.userData.giggleKart && !lodProxied.has(mesh)) animateKartModel(mesh, {physicalPose: k.respawn>0 ? null : pose.physicalPose || k.physicalPose,
             speed:pose.speed ?? k.speed ?? 0, steer:k.pid === S.you ? intentFromState().steer : 0,
             boost:Math.max(k.boost || 0,k.turbo || 0,k.nitroActive===true?1:0),shield:k.shield>0||k.guard===true,invincible:false,dt,reducedMotion:rm});
           arsenalFX.status(mesh,k,{time:t,groundRoot:!(k.physicalPose&&!(k.respawn>0))});
@@ -1263,6 +1283,7 @@ export function createKartView(viewConfig) {
             }
           }
         }
+        lodProxied = kartLod.update(camera, [...karts].filter(([pid]) => live.has(pid)).map(([pid, mesh]) => ({ mesh, color: colorFor(pid), visible: mesh.visible })));
         let popCount=0;
         for (let i=popSites.length-1;i>=0;i--) if (t-popSites[i].t> .65) popSites.splice(i,1);
         for (const site of popSites) {
@@ -1434,13 +1455,13 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();skids.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();threats.dispose();} };
     } catch (error) {
       world?.dispose();
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
       healthBars?.dispose();
-      impactFX?.dispose();skids?.dispose();threats?.dispose();
+      impactFX?.dispose();structures?.dispose();skids?.dispose();threats?.dispose();
       helper.disposeObject(scene);
       throw error;
     }
@@ -1508,7 +1529,7 @@ export function createKartView(viewConfig) {
     const dt = fbLastT ? (now - fbLastT) / 1000 : 0.016;
     fbLastT = now;
     const poses = framePoses(poseStore, S, intentForPrediction(), dt, now, { reducedMotion: reducedMotion(), map: S.map, serverNow: serverNow() });
-    const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,now,serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs());if(pose)poses.set(k.pid,pose);}
+    const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,now,serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs(),serverNow());if(pose)poses.set(k.pid,pose);}
     updateAudio();
     const poseOf = (k) => poses.get(k.pid) || { x: k.x, z: k.z, angle: k.angle };
     const W = fbCanvas.width;
@@ -1535,8 +1556,8 @@ export function createKartView(viewConfig) {
     ctx.fillStyle = css(pal.floor);
     ctx.fillRect(px(-arena), pz(-arena), arena * 2 * scale, arena * 2 * scale);
     // Exact playable boundary; painted patches carry gameplay surface grip.
-    ctx.fillStyle = css(pal.track);
-    ctx.fillRect(px(-arena), pz(-arena), arena * 2 * scale, arena * 2 * scale);
+    if(S.map?.roads)drawArenaRoads2d(ctx,S.map,px,pz,scale);
+    else{ctx.fillStyle = css(pal.track);ctx.fillRect(px(-arena), pz(-arena), arena * 2 * scale, arena * 2 * scale);}
     for (const patch of (S.map?.surfaces || [])) {
       ctx.fillStyle = '#b8f2ff';
       ctx.fillRect(px(patch.x-patch.hw), pz(patch.z-patch.hd), patch.hw*2*scale, patch.hd*2*scale);
@@ -1544,6 +1565,7 @@ export function createKartView(viewConfig) {
       ctx.strokeRect(px(patch.x-patch.hw), pz(patch.z-patch.hd), patch.hw*2*scale, patch.hd*2*scale);
     }
     drawArenaFeatures2d(ctx,S.map,px,pz,scale);
+    drawArenaStructures2d(ctx,S.map,px,pz,scale);
     for (const pad of (S.map?.pads || [])) {
       ctx.fillStyle = '#61e9bf';
       ctx.fillRect(px(pad.x-pad.hw), pz(pad.z-pad.hd), pad.hw*2*scale, pad.hd*2*scale);

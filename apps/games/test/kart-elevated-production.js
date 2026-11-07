@@ -211,9 +211,10 @@ async function main() {
       now = origin + n * 25 - (n % 2 === 0 ? 1 : 0);
       elevatedCadence.r.onTick(now); classicCadence.r.onTick(now);
     }
-    eq(counts.elevated, 20, 'jitter does not drift 50ms cadence'); eq(counts.classic, 20, 'jitter does not drift original-map 50ms cadence');
+    eq(counts.elevated, 20, 'jitter does not drift 50ms cadence'); ok(counts.classic >= 24 && counts.classic <= 31, 'original maps tick at the adaptive ~30 Hz target on a 25 ms pump: ' + counts.classic);
+    const classicBefore = counts.classic;
     now += 10000; elevatedCadence.r.onTick(now); classicCadence.r.onTick(now);
-    eq(counts.elevated, 21); eq(counts.classic, 21, 'stall advances once instead of retrying disposed/catch-up slots');
+    eq(counts.elevated, 21); eq(counts.classic, classicBefore + 1, 'stall advances once instead of retrying disposed/catch-up slots');
     elevatedCadence.r.destroy(); classicCadence.r.destroy();
 
     const verified = room(def, 2, true); verified.start(settings('Alpine Courtyard'));

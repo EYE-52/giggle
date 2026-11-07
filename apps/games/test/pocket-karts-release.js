@@ -11,6 +11,7 @@ const assert = require('assert');
 const path = require('path');
 const { spawn } = require('child_process');
 const WebSocket = require('ws');
+const net = require('node:net');
 
 const ROOT = path.join(__dirname, '..');
 const fs = require('fs');
@@ -332,7 +333,12 @@ const realSetTimeout = setTimeout;
 const sleep = (ms) => new Promise((res) => realSetTimeout(res, ms));
 
 async function part2() {
-  const WS_PORT = 18241;
+  // Concurrent worktrees also run this long socket fixture. Ask the OS
+  // for a free port instead of competing for the old fixed port 18241.
+  const probe = net.createServer();
+  await new Promise((resolve,reject)=>{probe.once('error',reject);probe.listen(0,'127.0.0.1',resolve);});
+  const WS_PORT = probe.address().port;
+  await new Promise(resolve=>probe.close(resolve));
   const srv = spawn(process.execPath, ['server/server.js','--noenv'], {
     cwd: ROOT,
     env: { ...process.env, PORT: String(WS_PORT), HOST: '127.0.0.1' },
@@ -484,7 +490,7 @@ async function part2() {
     if (driveSnaps < 8) console.log(`RELEASE note: low snapshot rate (${driveSnaps}/2 s) — investigate tick loop`);
   }
 
-  // --- R2: 8 drivers + 2 watchers over real sockets ---
+  // --- R2: 10 drivers + 1 late watcher over real sockets (classic cap is 32) ---
   {
     const ws = [];
     for (let i = 0; i < 10; i++) ws.push(await mk());
@@ -499,18 +505,21 @@ async function part2() {
     });
     assert.strictEqual(s.mode, 'battle', 'wire battle mode');
     assert.strictEqual(s.map.id, 'blocks', 'wire blocks map');
-    assert.strictEqual(s.karts.length, 8, '8 karts over WS');
+    assert.strictEqual(s.karts.length, 10, '10 karts over WS');
     s = await waitPhase(ws[0], 'drive', 8000);
-    const sw = last(ws[9], 'state');
-    assert.strictEqual(sw.spectator, true, '10th seat spectates');
-    assert(!sw.karts.some((k) => k.pid === hellos[9].you), 'watcher has no kart');
+    ws.push(await mk());
+    hellos.push(await helloOf(ws[10], { t: 'join', name: 'Late', code: h0.code }));
+    await sleep(200);
+    const sw = last(ws[10], 'state');
+    assert.strictEqual(sw.spectator, true, 'late seat spectates');
+    assert(!sw.karts.some((k) => k.pid === hellos[10].you), 'watcher has no kart');
     assert.strictEqual(last(ws[0], 'state').spectator, false, 'driver is not a spectator');
     // Watcher fire is ignored; drivers move.
-    send(ws[9], { t: 'action', a: { input: { steer: 1, throttle: 1, boost: true } },
+    send(ws[10], { t: 'action', a: { input: { steer: 1, throttle: 1, boost: true } },
       i: sw.instanceId, w: sw.w });
     const p0 = new Map(s.karts.map((k) => [k.pid, [k.x, k.z].join(',')]));
     for (let round = 0; round < 4; round++) {
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 10; i++) {
         const state=last(ws[i],'state');
         send(ws[i],{t:'action',a:{input:{steer:0,throttle:1},seq:ws[i].physicalInputSeq=(ws[i].physicalInputSeq||0)+1,life:state.inputAck.life,controlEpoch:state.inputAck.controlEpoch},i:state.instanceId,w:state.w});
       }
@@ -521,10 +530,10 @@ async function part2() {
     for (const k of s.karts) {
       if ([k.x, k.z].join(',') !== p0.get(k.pid)) moved += 1;
     }
-    assert(moved === 8, `all 8 drivers moved over WS (saw ${moved})`);
-    assert(!s.karts.some((k) => k.pid === hellos[9].you), 'watcher fire granted no kart');
+    assert(moved === 10, `all 10 drivers moved over WS (saw ${moved})`);
+    assert(!s.karts.some((k) => k.pid === hellos[10].you), 'watcher fire granted no kart');
     for (const w of ws) w.close();
-    console.log('RELEASE ok: WS 8 drivers + 2 watchers (battle on blocks, all moved)');
+    console.log('RELEASE ok: WS 10 drivers + 1 watcher (battle on blocks, all moved)');
   }
 
   // --- R3: disconnect freezes, seat-token resume drives again ---

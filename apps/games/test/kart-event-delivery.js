@@ -18,12 +18,12 @@ function capabilityAdvertisement() {
   const source = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
   const definition = source.match(/function send\(o\) \{[\s\S]*?\n\}/)?.[0];
   assert(definition, 'extract the shipping app.send function'); checks++;
-  const packets = [], context = vm.createContext({ ws: { readyState: 1, send: raw => packets.push(JSON.parse(raw)) } });
+  const packets = [], context = vm.createContext({ REALTIME: 'rt1', ws: { readyState: 1, send: raw => packets.push(JSON.parse(raw)) } });
   vm.runInContext(definition + '\nglobalThis.dispatch = send;', context);
   for (const t of ['create', 'join', 'giggleJoin', 'giggleRenew']) {
     const input = Object.freeze({ t, name: 'Local test', n: 'test-nonce', kartEvents: false });
     context.dispatch(input);
-    eq(packets.at(-1), { ...input, kartEvents: 'delta-v1' }, t + ' advertises the exact supported capability and preserves fields');
+    eq(packets.at(-1), { ...input, kartEvents: 'delta-v1', realtime: 'rt1' }, t + ' advertises the exact supported capabilities and preserves fields');
     eq(input.kartEvents, false, t + ' leaves the caller payload unchanged');
   }
   for (const t of ['clock', 'games', 'start', 'game-ready', 'action', 'lobby', 'configure', 'kick', 'leave']) {

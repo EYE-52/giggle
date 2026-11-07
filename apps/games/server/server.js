@@ -491,6 +491,7 @@ function handleGiggleJoin(ws, msg) {
     if (existing && existing.giggleSub !== sub) room.disconnect(ws);
   }
   ws.kartEventDeltas = msg.kartEvents === 'delta-v1';
+  ws.realtime = msg.realtime === 'rt1' ? 'rt1' : undefined;
   const r = room.addGigglePlayer(sub, displayName, ws, { team, teamName });
   if (r.error) {
     sendError(ws, r.error, r.code || 'ROOM_FULL');
@@ -543,6 +544,7 @@ function handle(ws, msg) {
       // leaves its old room (host migrates, old room prunes when empty).
       detach(ws);
       ws.kartEventDeltas = msg.kartEvents === 'delta-v1';
+      ws.realtime = msg.realtime === 'rt1' ? 'rt1' : undefined;
       const r = room.addPlayer(msg.name, ws, msg.seatToken);
       if (r.error) {
         ws.send(JSON.stringify({ t: 'error', msg: r.error }));
@@ -576,6 +578,7 @@ function handle(ws, msg) {
         return;
       }
       ws.kartEventDeltas = msg.kartEvents === 'delta-v1';
+      ws.realtime = msg.realtime === 'rt1' ? 'rt1' : undefined;
       // Same-room rejoin without a token is idempotent: reuse the attached
       // seat instead of minting a duplicate.
       if (wsRoom.get(ws) === room && !msg.seatToken) {
@@ -658,6 +661,11 @@ function handle(ws, msg) {
       if (room) room.onAction(ws, msg.a, { i: msg.i, w: msg.w });
       break;
     }
+    case 'rt-key': {
+      const room = wsRoom.get(ws);
+      if (room) room.realtimeResync(ws);
+      break;
+    }
     case 'game-ready': {
       if (!leaseAllows(ws)) return;
       const room = wsRoom.get(ws);
@@ -713,6 +721,16 @@ function handle(ws, msg) {
       }
       break;
     }
+    case 'kart': {
+      // Any seated player sets their own kart look; it rides the roster.
+      if (!leaseAllows(ws)) return;
+      const room = wsRoom.get(ws);
+      if (!room) return;
+      const r = room.setKartLook(ws, msg.look);
+      if (r.error) ws.send(JSON.stringify({ t: 'error', msg: r.error }));
+      else if (r.changed) room.broadcastLobby();
+      break;
+    }
     case 'games': {
       ws.send(JSON.stringify({ t: 'games', games: registry.list() }));
       break;
@@ -740,7 +758,7 @@ async function startServer() {
   setInterval(() => {
     const now = Date.now();
     for (const room of rooms.rooms.values()) room.onTick(now);
-  }, 25);
+  }, 5); // fine pump: 30 Hz rooms keep an even cadence (each room gates itself)
   server.listen(PORT, HOST, () => {
     console.log(`PartyBox on http://${HOST}:${PORT} (${registry.list().length} games)`);
   });

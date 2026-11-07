@@ -610,11 +610,18 @@ export function createKartWorld(THREE, options) {
   const fallbackFor = (key) => () => buildFallback(THREE, key, fallbackMats);
 
   /* ---- painted ground: verge + circuit plaza (paint only) ---- */
-  const lawnTheme = theme !== 'frost' && theme !== 'neon';
+  const offroadKind = map.offroad?.kind;
+  const offroadColor = ({ gravel: name === 'Starlight' ? 0x0b0c0f : 0x191a1d, sand: 0xcdb384, snow: 0xf1f5fa })[offroadKind] ?? S.verge;
+  const lawnTheme = offroadKind ? offroadKind === 'grass' : theme !== 'frost' && theme !== 'neon';
   const grassTex = canvasTexture(THREE, 512, 512, (ctx, w, h) => {
-    ctx.fillStyle = hexCss(S.verge);
+    ctx.fillStyle = hexCss(offroadColor);
     ctx.fillRect(0, 0, w, h);
-    if (theme === 'frost') {
+    if (offroadKind === 'gravel' || offroadKind === 'sand') {
+      // Neutral coarse gravel and warm sand contrast with smooth asphalt.
+      // Reuse the ground's existing texture/material: no extra geometry.
+      const gravel = offroadKind === 'gravel';
+      speckle(ctx, w, h, trnd, 6500, gravel ? ['#090a0c', '#3d3d40', '#686762'] : ['#a48b5e', '#e8d6af', '#b49a6e'], .35, 1, 4);
+    } else if (offroadKind === 'snow' || theme === 'frost') {
       // Snow verge: soft drift blobs + sparkle, no mow stripes.
       for (let i = 0; i < 16; i++) {
         ctx.fillStyle = 'rgba(255,255,255,0.14)';
@@ -665,7 +672,32 @@ export function createKartWorld(THREE, options) {
     for(const point of coords.slice(1))p.lineTo(...point);
     roadRoutes.push({points:sampleRoute(p),width});
   }
-  if(identity==='ring') {
+  if(map.roads) {
+    for(const road of map.roads) {
+      // Keep each authored corner, with <=2 m spans so junction clipping
+      // removes only the crossing bands, rather than an entire straight.
+      const corners=road.points.map(p=>new THREE.Vector2(...p));
+      if(road.closed&&corners[0].distanceTo(corners.at(-1))>1e-6)corners.push(corners[0].clone());
+      const closed=corners[0].distanceTo(corners.at(-1))<1e-6;
+      const cornerOffsets=corners.map((p,i)=>{
+        const a=corners[i?i-1:closed?corners.length-2:0],b=corners[i+1<corners.length?i+1:closed?1:i];
+        const dx=b.x-a.x,dz=b.y-a.y,length=Math.hypot(dx,dz)||1;
+        return [-dz/length,dx/length];
+      });
+      const points=[corners[0]],offsets=[cornerOffsets[0]];
+      for(let i=1;i<corners.length;i++){
+        const a=corners[i-1].toArray(),b=corners[i].toArray(),oa=cornerOffsets[i-1],ob=cornerOffsets[i];
+        const steps=Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/2);
+        for(let j=1;j<=steps;j++){
+          points.push(new THREE.Vector2(a[0]+(b[0]-a[0])*j/steps,a[1]+(b[1]-a[1])*j/steps));
+          // Interpolate the authored ribbon edges too. Recomputing normals
+          // on short spans folds wide ribbons back inside sharp corners.
+          offsets.push([oa[0]+(ob[0]-oa[0])*j/steps,oa[1]+(ob[1]-oa[1])*j/steps]);
+        }
+      }
+      roadRoutes.push({points,offsets,ribbon:{points:corners,offsets:cornerOffsets},width:road.width,curb:true});
+    }
+  } else if(identity==='ring') {
     roundedLoop(21,11,7);
     lane([[-21,0],[21,0]],5.5);lane([[0,-21],[0,21]],5.5);
   } else if(identity==='blocks') {
@@ -686,7 +718,7 @@ export function createKartWorld(THREE, options) {
     lane([[0,-48],[0,-28],[12,-8],[4,16],[-6,38],[0,48]],7);
     lane([[-48,4],[-12,4],[16,-4],[48,-4]],6);
   }
-  if(theme==='garden') {
+  if(theme==='garden'&&!map.roads) {
     const perimeter=new THREE.Path();
     perimeter.moveTo(-32,-46);perimeter.lineTo(32,-46);perimeter.quadraticCurveTo(46,-46,46,-32);
     perimeter.lineTo(46,32);perimeter.quadraticCurveTo(46,46,32,46);
@@ -704,7 +736,7 @@ export function createKartWorld(THREE, options) {
   // Paths are authored in the original map dimensions, then scaled with
   // the authoritative arena extent. Custom half sizes retain safe setbacks.
   const routeScale=half/(isLarge?60:30);
-  if(routeScale!==1)for(const route of roadRoutes){
+  if(!map.roads&&routeScale!==1)for(const route of roadRoutes){
     for(const point of route.points)point.multiplyScalar(routeScale);
     route.width*=routeScale;
   }
@@ -937,7 +969,8 @@ export function createKartWorld(THREE, options) {
 
   const grassMat = std(0xffffff, { roughness: 1 });
   if (grassTex) grassMat.map = grassTex;
-  else grassMat.color.set(S.verge);
+  else grassMat.color.set(offroadColor);
+  if (grassTex && (offroadKind === 'gravel' || offroadKind === 'sand')) grassTex.repeat.set(half * 2 / 5, half * 2 / 5);
   if (lawnTheme) {
     // The driving ground's UVs span the whole arena; the lawn tile repeats
     // every ~6 m, with a matching blade bump and world-space stripes.
@@ -961,7 +994,8 @@ export function createKartWorld(THREE, options) {
   // night glow in without rebuilding materials.
   asphaltMat.emissive = new THREE.Color(nightSurf.glowTrack);
   asphaltMat.emissiveIntensity = S.glow;
-  grassMat.emissive = new THREE.Color(nightSurf.glowGrass);
+  // Gravel stays neutral under the yard lights, including the sunset fade.
+  grassMat.emissive = new THREE.Color(offroadKind === 'gravel' ? 0x000000 : nightSurf.glowGrass);
   grassMat.emissiveIntensity = S.glow > 0 ? S.glowGrassI : 0;
   const dirtMat = terrain ? null : std(0xffffff, {
     roughness: 1, transparent: true,
@@ -2284,7 +2318,8 @@ export function createKartWorld(THREE, options) {
     for (let i = 0; i < n; i++) {
       const tile = new THREE.Mesh(unitPad, F.chevMat);
       tile.rotation.set(-Math.PI / 2, 0, rz);
-      tile.scale.set(short, tileLong, 1);
+      // Instance matrices round to Float32; a tiny overlap closes tile seams.
+      tile.scale.set(short, tileLong + .0001, 1);
       const off = -long / 2 + (i + 0.5) * tileLong;
       tile.position.set(alongX ? p.x + off : p.x, 0.065, alongX ? p.z : p.z + off);
       padGroup.add(tile);
@@ -2316,7 +2351,7 @@ export function createKartWorld(THREE, options) {
     if (key === mapKey) return;
     mapKey = key;
     // Instance buffers belong to the previous map; shared geometry stays.
-    for (const child of obstacleGroup.children) if (child.isInstancedMesh) child.dispose();
+    for (const group of [obstacleGroup,padGroup])for (const child of group.children) if (child.isInstancedMesh) child.dispose();
     obstacleGroup.clear();
     padGroup.clear();
     surfGroup.clear();
@@ -2341,6 +2376,10 @@ export function createKartWorld(THREE, options) {
     surfs.forEach(dressSurface);
     pads.forEach(dressPad);
     instanceRepeats(THREE, obstacleGroup);
+    // Four racing-line strips share two batches, including their chevrons.
+    instanceRepeats(THREE, padGroup);
+    // Pads have no named child lookups; retain only the actual draw batches.
+    for(let i=padGroup.children.length-1;i>=0;i--)if(!padGroup.children[i].visible)padGroup.remove(padGroup.children[i]);
   }
 
   /* ---- gradual sunset: stable palette + in-place sky blend ---- */

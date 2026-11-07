@@ -1,168 +1,135 @@
 .practice-page { margin: 0; height: 100vh; height: 100dvh; min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-/* One slim bar: back, game + players + Play before; seats + icons during. */
-.practice-bar { position: relative; z-index: 3; flex: none; display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 12px; background: var(--card); box-shadow: 0 2px 0 var(--outline); }
-.practice-back { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: var(--accent-deep); text-decoration: none; }
-.practice-back:hover { background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
-.practice-title { flex: none; margin: 0 6px 0 0; font: 800 20px var(--font-display, var(--font-body)); letter-spacing: -.01em; }
-.practice-setup { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
-.practice-setup select { min-width: 0; height: 44px; font: 700 15px var(--font-body); padding: 6px 32px 6px 14px; border: 2px solid var(--outline); border-radius: 14px; background: var(--card); color: var(--ink); }
-#practiceGame { flex: 1; max-width: 300px; }
-#practiceCount { flex: none; width: 76px; }
-.practice-setup .btn { min-height: 44px; padding-inline: 22px; }
+/* One primary and a tactile counter; the setup gives way to seats during play. */
+.practice-bar { position: relative; z-index: 3; flex: none; display: flex; align-items: center; gap: var(--space-12); min-height: var(--space-64); padding: var(--space-12) max(var(--space-16), env(safe-area-inset-right)) var(--space-12) max(var(--space-16), env(safe-area-inset-left)); background: var(--card); box-shadow: var(--shadow-sticker-sm); }
+.practice-back { flex: none; display: grid; place-items: center; width: var(--control-h-sm); height: var(--control-h-sm); border: var(--outline-w) solid transparent; border-radius: var(--radius-pill); color: var(--fam-deep); text-decoration: none; transition: transform var(--dur-quick) var(--ease); }
+.practice-title { flex: none; margin: 0 var(--space-8) 0 0; font: var(--text-title); }
+.practice-setup { display: flex; align-items: center; gap: var(--space-12); min-width: 0; flex: 0 1 auto; margin-left: auto; }
+.practice-native { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); opacity: 0; pointer-events: none; }
+.practice-stepper { display: inline-flex; align-items: center; flex: none; gap: var(--space-8); padding: var(--space-4); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl); background: var(--well); box-shadow: var(--shadow-sticker-sm); }
+.practice-stepper button { display: grid; place-items: center; flex: none; width: var(--control-h-sm); min-height: var(--control-h-sm); padding: 0; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); color: var(--ink); background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-title); cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
+.practice-stepper button:disabled { color: var(--ink-dim); background: var(--well); border-color: transparent; box-shadow: none; cursor: not-allowed; }
+.practice-stepper button:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.practice-stepper output { display: grid; place-content: center; min-width: var(--space-64); min-height: var(--control-h-lg); color: var(--ink); font: var(--text-title); font-variant-numeric: tabular-nums; text-align: center; }
+.practice-count-number { font: var(--text-heading); line-height: 1; }
+.practice-count-unit { color: var(--ink-dim); font: var(--text-caption); }
+.practice-setup #practiceStart { min-height: var(--control-h-lg); padding: var(--space-12) var(--space-24); border: var(--outline-w) solid var(--fam-lip); border-radius: var(--radius-lg); color: var(--on-fam); background: var(--fam); box-shadow: 0 var(--lift) 0 var(--fam-lip); font: var(--text-button); }
+.practice-setup #practiceStart:disabled { border-color: var(--line-strong); background: var(--well); color: var(--ink-dim); box-shadow: none; opacity: 1; cursor: not-allowed; }
+.practice-setup #practiceStart:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
+.practice-setup #practiceRetry { min-height: var(--control-h-sm); padding: var(--space-8) var(--space-12); border-color: var(--line-strong); color: var(--fam-deep); background: var(--card); box-shadow: none; font: var(--text-button-sm); }
 .practice-page.is-running .practice-setup, .practice-page.is-running .practice-title { display: none; }
-
-.practice-controls { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.practice-controls { flex: 1; display: flex; align-items: center; gap: var(--space-12); min-width: 0; }
 .practice-controls[hidden] { display: none; }
-/* The row scrolls sideways, which clips anything outside it: pad it (and pull
- * it back with a matching negative margin) so the focus ring and host dot fit. */
-.practice-tabs { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 7px; margin: -7px; }
+.practice-tabs { display: flex; gap: var(--space-8); min-width: 0; overflow-x: auto; scrollbar-width: none; padding: var(--space-8); margin: calc(-1 * var(--space-8)); }
 .practice-tabs::-webkit-scrollbar { display: none; }
-.practice-tabs button { position: relative; flex: none; height: 44px; padding: 0 14px; border: 2px solid var(--outline); border-radius: 999px; font: 800 14px var(--font-body); color: var(--ink-dim); background: var(--card); cursor: pointer; }
-.practice-tabs [aria-selected="true"] { color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 74%, #000); background: var(--accent); }
-.practice-tabs .is-host::after { content: ""; position: absolute; top: -3px; right: -2px; width: 10px; height: 10px; border-radius: 50%; background: var(--gold, #f5b82e); box-shadow: 0 0 0 2px var(--card); }
-.practice-actions { display: flex; gap: 6px; margin-left: auto; flex: none; }
-.practice-actions button { display: grid; place-items: center; min-width: 44px; height: 44px; padding: 0 12px; border: 2px solid var(--outline); border-radius: 14px; font: 800 14px var(--font-body); color: var(--ink); background: var(--card); box-shadow: 0 2px 0 var(--outline); cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
-.practice-actions button:active { transform: translateY(2px); box-shadow: none; }
-.practice-actions [aria-pressed="true"] { color: var(--accent-deep); border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 2px 0 var(--accent); }
+.practice-tabs button { position: relative; flex: none; min-height: var(--control-h-sm); padding: 0 var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); color: var(--ink-dim); background: var(--card); font: var(--text-button-sm); cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
+.practice-tabs [aria-selected="true"] { color: var(--on-fam); border-color: var(--fam-lip); background: var(--fam); }
+.practice-tabs .is-host::after { content: ''; position: absolute; top: calc(-1 * var(--space-4)); right: 0; width: var(--space-8); height: var(--space-8); border-radius: var(--radius-pill); background: var(--ink); box-shadow: 0 0 0 var(--outline-w) var(--card); }
+.practice-actions { display: flex; gap: var(--space-8); margin-left: auto; flex: none; }
+.practice-actions button { display: grid; place-items: center; min-width: var(--control-h-sm); min-height: var(--control-h-sm); padding: 0 var(--space-12); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md); color: var(--ink); background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm); cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
+.practice-actions button:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.practice-actions [aria-pressed="true"] { color: var(--fam-deep); border-color: var(--fam); background: var(--fam-soft); }
 .practice-actions .practice-stop { color: var(--danger); }
-
 .practice-info { flex: none; position: relative; }
-.practice-info summary { list-style: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--outline); background: var(--card); box-shadow: 0 2px 0 var(--outline); font: 800 15px var(--font-body); color: var(--ink-dim); cursor: pointer; }
+.practice-info summary { list-style: none; display: grid; place-items: center; width: var(--control-h-sm); height: var(--control-h-sm); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); color: var(--ink-dim); background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm); cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
 .practice-info summary::-webkit-details-marker { display: none; }
-.practice-info[open] summary { color: var(--accent-deep); border-color: var(--accent); }
-.practice-info-card { position: absolute; right: 0; top: calc(100% + 8px); width: min(300px, calc(100vw - 24px)); padding: 16px; border: 2px solid var(--outline); border-radius: 16px; background: var(--card); box-shadow: var(--shadow-card); font-size: 14px; line-height: 1.45; }
+.practice-info[open] summary { color: var(--fam-deep); border-color: var(--fam); background: var(--fam-soft); }
+.practice-info summary:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.practice-info-card { position: absolute; right: 0; top: calc(100% + var(--space-8)); width: min(300px, calc(100vw - var(--space-24))); padding: var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-card); font: var(--text-body); }
 .practice-info-card p { margin: 0; }
-.practice-info-card p + p { margin-top: 8px; color: var(--ink-dim); font-size: 13px; }
-/* Routine progress is announced only; problems appear as a pill. */
-.practice-status:not(.is-alert) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.practice-status.is-alert { position: absolute; left: 50%; top: calc(100% + 10px); transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); padding: 8px 16px; border: 2px solid var(--danger); border-radius: 16px; background: var(--danger-soft); color: var(--ink); font: 700 13px/1.35 var(--font-body); text-align: center; box-shadow: var(--shadow-card); pointer-events: none; }
-
-.practice-page button:focus-visible, .practice-page select:focus-visible, .practice-page a:focus-visible, .practice-page summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.practice-info-card p + p { margin-top: var(--space-8); color: var(--ink-dim); font: var(--text-caption); }
+/* Routine progress is announced only; errors keep their existing visible pill. */
+.practice-status:not(.is-alert) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.practice-status.is-alert { position: absolute; left: 50%; top: calc(100% + var(--space-12)); transform: translateX(-50%); width: max-content; max-width: calc(100% - var(--space-24)); padding: var(--space-8) var(--space-16); border: var(--outline-w) solid var(--danger); border-radius: var(--radius-lg); background: var(--danger-soft); color: var(--ink); font: var(--text-caption); text-align: center; box-shadow: var(--shadow-card); pointer-events: none; }
+.practice-page :is(button, select, a, summary):focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .practice-table { position: relative; flex: 1; min-height: 0; min-width: 0; }
-.practice-empty { display: grid; place-content: safe center; justify-items: center; gap: 10px; min-height: 100%; padding: 24px; text-align: center; }
-.practice-empty h2 { margin: 0; font: 800 clamp(24px, 4vw, 36px) var(--font-display, var(--font-body)); letter-spacing: -.02em; }
-.practice-empty p { margin: 0; max-width: 34ch; color: var(--ink-dim); font-size: 16px; }
+.practice-empty { display: grid; place-content: safe center; justify-items: center; gap: var(--space-12); min-height: 100%; padding: var(--space-24); text-align: center; }
+.practice-empty h2 { margin: 0; font: var(--text-heading); }
+.practice-empty p { max-width: 34ch; margin: 0; color: var(--ink-dim); font: var(--text-body); }
 .practice-seat { position: absolute; inset: 0; z-index: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg); }
-/* Preserve the inactive frames' real viewport so their resource/readiness
- * barriers can complete. They cannot receive focus or pointer input. */
+/* Inactive frames keep their real viewport for resource readiness. */
 .practice-seat.is-inactive { opacity: 0; z-index: 0; pointer-events: none; }
 .practice-seat iframe { width: 100%; height: 100%; border: 0; background: var(--bg); }
-.practice-seat-status { position: absolute; z-index: 2; left: 50%; top: 40%; transform: translateX(-50%); max-width: calc(100% - 24px); text-align: center; margin: 0; padding: 10px 16px; color: var(--ink-dim); font-weight: 700; border: 2px solid var(--outline); border-radius: 999px; background: var(--card); box-shadow: 0 2px 0 var(--outline); pointer-events: none; }
+.practice-seat-status { position: absolute; z-index: 2; left: 50%; top: 40%; transform: translateX(-50%); max-width: calc(100% - var(--space-24)); margin: 0; padding: var(--space-12) var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); background: var(--card); color: var(--ink-dim); box-shadow: var(--shadow-sticker-sm); font: var(--text-caption); text-align: center; pointer-events: none; }
 .practice-seat-status[hidden] { display: none; }
-.practice-table.is-all { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(460px, 1fr); gap: 8px; padding: 8px; overflow: auto; }
-.practice-table.is-all .practice-seat { position: relative; inset: auto; border: 2px solid var(--outline); border-radius: 16px; }
-.practice-note { padding: 12px; }
-@media (max-width: 600px) {
-  .practice-bar { gap: 6px; padding: 6px 8px; min-height: 56px; }
-  /* The heading stays for screen readers. */
-  .practice-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .practice-setup .btn { padding-inline: 16px; }
-  .practice-tabs button { padding: 0 12px; font-size: 13px; }
-  .practice-actions { gap: 4px; }
-  .practice-table.is-all { grid-template-columns: 1fr; }
-}
-@media (max-height: 500px) and (orientation: landscape) {
-  .practice-page.is-running .practice-bar { min-height: 48px; padding-block: 2px; }
-  .practice-page.is-running .practice-back { display: none; }
-}
-.practice-preview { gap: 6px; }
-.practice-art { width: min(220px, 52vw); aspect-ratio: 1; object-fit: contain; margin-bottom: 10px; border-radius: 28px; background: color-mix(in srgb, var(--accent) 8%, var(--bg)); box-shadow: 0 14px 36px color-mix(in srgb, var(--accent) 18%, transparent); animation: practice-bob 3.2s ease-in-out infinite; }
-.practice-kicker { color: var(--accent-deep) !important; font: 800 13px var(--font-body) !important; letter-spacing: .08em; text-transform: uppercase; }
-@keyframes practice-bob { 50% { transform: translateY(-6px) rotate(-1.5deg); } }
-@media (prefers-reduced-motion: reduce) { .practice-art { animation: none; } }
-@media (max-width: 600px) { #practiceCount { width: 58px; padding-right: 24px; } #practiceGame { font-size: 14px; } }
+.practice-table.is-all { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(460px, 1fr); gap: var(--space-8); padding: var(--space-8); overflow: auto; }
+.practice-table.is-all .practice-seat { position: relative; inset: auto; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); }
+.practice-note { padding: var(--space-12); }
 .practice-tabs .seat-short { display: none; }
-@media (max-width: 600px) {
-  .practice-tabs .seat-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .practice-tabs .seat-short { display: inline; }
-  .practice-tabs button { min-width: 44px; padding: 0 10px; }
-  /* End already leaves practice; give the seats the room instead. */
-  .practice-page.is-running .practice-back { display: none; }
-}
-/* Very narrow phones: the setup takes its own row so the game name stays readable. */
-@media (max-width: 400px) {
-  .practice-setup { gap: 6px; }
-  .practice-stepper output { min-width: 64px; }
-}
-
-/* ---- Art game picker and player stepper (replaces the native selects) --- */
-.practice-native { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); opacity: 0; pointer-events: none; }
-.practice-setup { flex: 0 1 auto; margin-left: auto; }
-.practice-stepper { display: inline-flex; align-items: center; height: 44px; border: 2px solid var(--outline); border-radius: 999px; background: var(--card); overflow: hidden; }
-.practice-stepper button { width: 44px; height: 44px; border: 0; background: transparent; color: var(--ink); font: 800 20px var(--font-body); cursor: pointer; }
-.practice-stepper button:disabled { color: var(--ink-dim); opacity: .4; cursor: default; }
-.practice-stepper button:not(:disabled):hover { background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
-.practice-stepper output { min-width: 84px; text-align: center; font: 800 15px var(--font-body); font-variant-numeric: tabular-nums; }
-
+/* Keep the existing art shelf, featured game and category filters. */
 [data-cat] { --cat: var(--accent); }
-[data-cat="vote"] { --cat: #8b5cf6; } [data-cat="draw"] { --cat: #f97316; } [data-cat="social"] { --cat: #ec4899; }
-[data-cat="bluff"] { --cat: #0ea5e9; } [data-cat="word"] { --cat: #10b981; } [data-cat="speed"] { --cat: #f59e0b; }
-[data-cat="board"] { --cat: #6366f1; } [data-cat="3d"] { --cat: #ef4444; }
-
-.practice-preview { height: 100%; overflow: auto; padding: 20px clamp(12px, 3vw, 32px) 32px; }
-.practice-featured { display: flex; align-items: center; gap: clamp(16px, 3vw, 32px); max-width: 980px; margin: 0 auto 26px; padding: 18px; border-radius: 24px;
-  background: linear-gradient(120deg, color-mix(in srgb, var(--cat) 18%, var(--card)), color-mix(in srgb, var(--cat) 4%, var(--card))); }
-.practice-featured .practice-art { flex: none; width: clamp(120px, 22vw, 200px); margin: 0; }
+[data-cat="vote"], [data-cat="social"] { --cat: var(--fam-party); }
+[data-cat="draw"], [data-cat="word"] { --cat: var(--fam-create); }
+[data-cat="bluff"], [data-cat="board"] { --cat: var(--fam-board); }
+[data-cat="speed"], [data-cat="3d"] { --cat: var(--fam-arcade); }
+.practice-preview { height: 100%; overflow: auto; padding: var(--space-24) var(--space-32) max(var(--space-32), env(safe-area-inset-bottom)); }
+.practice-featured { display: flex; align-items: center; gap: var(--space-32); max-width: 980px; margin: 0 auto var(--space-32); padding: var(--space-24); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl); background: linear-gradient(120deg, color-mix(in srgb, var(--cat) 18%, var(--card)), color-mix(in srgb, var(--cat) 4%, var(--card))); box-shadow: var(--shadow-sticker-lg); }
+.practice-art { flex: none; width: clamp(120px, 22vw, 200px); aspect-ratio: 1; object-fit: cover; margin: 0; border-radius: var(--radius-lg); background: var(--card); box-shadow: var(--shadow-sticker); }
 .practice-featured-text { min-width: 0; }
-.practice-featured-text h2 { margin: 4px 0 6px; font: 800 clamp(26px, 4vw, 40px)/1.05 var(--font-display, var(--font-body)); letter-spacing: -.02em; }
-.practice-featured-text p:last-child { margin: 0; color: var(--ink-dim); font-size: 17px; }
-.practice-featured .practice-kicker { margin: 0; color: color-mix(in srgb, var(--cat) 70%, var(--ink)) !important; }
-.practice-pick-label { max-width: 980px; margin: 0 auto 12px; font: 800 18px var(--font-body); }
-.practice-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 12px; max-width: 980px; margin: 0 auto; }
-.practice-tile { display: grid; gap: 6px; padding: 8px 8px 10px; border: 2px solid transparent; border-radius: 18px; background: color-mix(in srgb, var(--cat) 8%, var(--card)); color: var(--ink); font: 700 13px/1.25 var(--font-body); text-align: center; cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
-.practice-tile-art { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 12px; }
-.practice-tile:hover { transform: translateY(-3px); }
-.practice-tile[aria-checked="true"] { background: color-mix(in srgb, var(--cat) 18%, var(--card)); }
-.practice-tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-@media (max-width: 600px) {
-  .practice-featured { flex-direction: column; text-align: center; padding: 16px; }
-  .practice-games { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .practice-tile { font-size: 12px; padding: 6px 6px 8px; }
-  .practice-stepper output { min-width: 70px; font-size: 14px; }
-}
-@media (prefers-reduced-motion: reduce) { .practice-tile { transition: none; } .practice-tile:hover { transform: none; } }
-
-/* ---- Wave 1: sticker tiles, category chips, seats you'll play ---------- */
-.practice-page { --stk: var(--outline); --ease-pop: cubic-bezier(0.22, 1, 0.36, 1); }
-:root[data-theme="night"] .practice-page { --stk: var(--outline); }
-.practice-featured { border: var(--outline-w-lg) solid color-mix(in srgb, var(--cat) 22%, var(--outline)); box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--cat) 22%, var(--outline)); }
-.practice-featured .practice-art { object-fit: cover; border: 0; background: var(--card); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--cat) 22%, var(--outline)); }
-.practice-seats { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 40px; margin-top: 16px; }
-.practice-seats i { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; box-shadow: inset 0 -4px 0 #00000029; color: #1d1424; font: 800 13px/1 var(--font-display, var(--font-body)); font-style: normal; }
-.practice-seats b { font: 800 15px var(--font-body); color: var(--ink-dim); }
-@media (prefers-reduced-motion: no-preference) {
-  .practice-seats i:last-of-type { animation: seat-in .35s var(--ease-pop); }
-  @keyframes seat-in { from { transform: scale(.4); opacity: 0; } }
-}
-.practice-cats { display: flex; flex-wrap: wrap; gap: 8px; max-width: 980px; margin: 0 auto 16px; }
-.practice-cats button { min-height: 44px; padding: 0 16px; border: 2px solid color-mix(in srgb, var(--cat) 35%, var(--outline)); border-radius: 999px; background: var(--card); color: var(--ink); font: 800 14px var(--font-body); cursor: pointer; }
-.practice-cats button[data-cat=""] { --cat: var(--ink); }
-.practice-cats button[aria-pressed="true"] { border-color: color-mix(in srgb, var(--cat) 72%, #000); background: var(--cat); color: #fff; box-shadow: 0 3px 0 color-mix(in srgb, var(--cat) 72%, #000); }
-.practice-cats button[data-cat=""][aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); box-shadow: 0 3px 0 color-mix(in srgb, var(--ink) 60%, var(--bg)); }
-.practice-cats button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-.practice-tile { position: relative; border: 2px solid color-mix(in srgb, var(--cat) 20%, var(--outline)); box-shadow: 0 3px 0 color-mix(in srgb, var(--cat) 20%, var(--outline)); }
+.practice-featured-text h2 { margin: var(--space-4) 0 var(--space-8); font: var(--text-heading); text-wrap: balance; }
+.practice-featured-text p:last-child { margin: 0; color: var(--ink-dim); font: var(--text-body); }
+.practice-kicker { margin: 0; color: var(--ink-dim); font: var(--text-caption); }
+.practice-pick-label { max-width: 980px; margin: 0 auto var(--space-12); font: var(--text-title); }
+.practice-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: var(--space-12); max-width: 980px; margin: 0 auto; }
+.practice-tile { position: relative; display: grid; gap: var(--space-8); min-height: var(--control-h-sm); min-width: 0; padding: var(--space-8); border: var(--outline-w) solid color-mix(in srgb, var(--cat) 20%, var(--outline)); border-radius: var(--radius-lg); color: var(--ink); background: color-mix(in srgb, var(--cat) 8%, var(--card)); box-shadow: var(--shadow-sticker-sm); font: var(--text-caption); text-align: center; cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
+.practice-tile-art { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-sm); }
 .practice-tile[hidden] { display: none; }
 .practice-tile:active { transform: scale(.96); }
-.practice-tile[aria-checked="true"] { border: 2px solid var(--cat); box-shadow: 0 4px 0 color-mix(in srgb, var(--cat) 72%, #000); }
-.practice-tile[aria-checked="true"]::after { content: "✓"; position: absolute; top: -10px; right: -10px; display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid color-mix(in srgb, var(--cat) 72%, #000); border-radius: 50%; background: var(--cat); color: #fff; font: 800 15px/1 var(--font-body); }
-/* Play and Retry are candy buttons on a darker lip of their own colour. */
-.practice-page :is(#practiceStart:not(:disabled), #practiceRetry:not([hidden])) { --pl-lip: color-mix(in srgb, var(--accent) 74%, #000); border: 2px solid var(--pl-lip); background: var(--accent); color: var(--accent-ink); box-shadow: 0 var(--lift) 0 var(--pl-lip); }
-.practice-page :is(#practiceStart:not(:disabled), #practiceRetry:not([hidden])):active { transform: translateY(var(--lift)); box-shadow: none; }
-.practice-page #practiceStart:disabled { border: 2px solid var(--outline); background: var(--well); color: var(--ink-dim); box-shadow: none; opacity: 1; }
-/* Loader: the three pieces hop in turn. Failure: one tipped-over card. */
-@media (prefers-reduced-motion: no-preference) {
-  .practice-empty[aria-busy="true"] .loading-mark i { animation: piece-hop 1.2s var(--ease-pop) infinite; }
-  .practice-empty[aria-busy="true"] .loading-mark i:nth-child(2) { animation-delay: .15s; }
-  .practice-empty[aria-busy="true"] .loading-mark i:nth-child(3) { animation-delay: .3s; }
-  @keyframes piece-hop { 0%, 60%, 100% { transform: none; } 25% { transform: translateY(-12px) rotate(-8deg); } }
+.practice-tile[aria-checked="true"] { border-color: var(--cat); background: color-mix(in srgb, var(--cat) 18%, var(--card)); box-shadow: var(--shadow-sticker); }
+.practice-tile[aria-checked="true"]::after { content: '✓'; position: absolute; top: calc(-1 * var(--space-8)); right: calc(-1 * var(--space-8)); display: grid; place-items: center; width: var(--space-32); height: var(--space-32); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); background: var(--card); color: var(--ink); font: var(--text-button-sm); }
+.practice-seats { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); min-height: var(--space-40); margin-top: var(--space-16); }
+.practice-seats i { display: grid; place-items: center; width: var(--space-40); height: var(--space-40); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); color: var(--ink); box-shadow: var(--shadow-sticker-sm); font: var(--text-caption); font-style: normal; }
+.practice-seats b { color: var(--ink-dim); font: var(--text-button-sm); }
+.practice-cats { display: flex; flex-wrap: wrap; gap: var(--space-8); max-width: 980px; margin: 0 auto var(--space-16); }
+.practice-cats button { min-height: var(--control-h-sm); padding: var(--space-8) var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill); color: var(--ink); background: var(--card); font: var(--text-button-sm); cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
+.practice-cats button[aria-pressed="true"] { border-color: var(--fam); background: var(--fam-soft); color: var(--fam-deep); }
+.practice-cats button:active, .practice-tabs button:active, .practice-back:active { transform: scale(.97); }
+.practice-empty[role="alert"]::before { content: '?'; display: grid; place-items: center; width: var(--space-64); height: calc(var(--space-64) + var(--space-32)); margin-bottom: var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md); background: var(--well); box-shadow: var(--shadow-sticker); color: var(--ink); font: var(--text-heading); transform: rotate(-2deg); }
+[data-theme="night"] .practice-stepper { background: var(--bg); }
+@media (hover: hover) {
+  .practice-back:hover { background: var(--fam-soft); }
+  .practice-stepper button:hover:not(:disabled), .practice-actions button:hover, .practice-info summary:hover, .practice-cats button:hover, .practice-tabs button:hover { border-color: var(--fam); }
+  .practice-tile:hover { transform: translateY(calc(-1 * var(--lift-sm))); }
 }
-.practice-empty[role="alert"]::before { content: "?"; display: grid; place-items: center; width: 72px; height: 100px; margin-bottom: 8px; border: 2px solid color-mix(in srgb, var(--sun) 70%, #000); border-radius: 12px; background: var(--sun); box-shadow: 0 5px 0 color-mix(in srgb, var(--sun) 70%, #000); color: var(--sun-ink); font: 800 48px/1 var(--font-display, var(--font-body)); transform: rotate(-12deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .practice-seats i:last-of-type { animation: seat-in var(--dur-base) var(--ease); }
+  @keyframes seat-in { from { transform: scale(.96); opacity: 0; } }
+}
 @media (max-width: 600px) {
-  .practice-featured .practice-art { width: 132px; }
-  .practice-seats { justify-content: center; gap: 6px; }
-  .practice-seats i { width: 36px; height: 36px; }
-  .practice-cats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -12px; padding: 4px 12px 8px; }
+  .practice-bar { gap: var(--space-8); padding: var(--space-8) max(var(--space-8), env(safe-area-inset-right)) var(--space-8) max(var(--space-8), env(safe-area-inset-left)); }
+  .practice-title, .practice-tabs .seat-long { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .practice-setup { gap: var(--space-8); }
+  .practice-setup #practiceStart { padding-inline: var(--space-16); }
+  .practice-stepper { gap: var(--space-4); border-radius: var(--radius-lg); }
+  .practice-stepper button { border-radius: var(--radius-sm); }
+  .practice-stepper output { min-width: var(--control-h-lg); }
+  .practice-controls { gap: var(--space-8); }
+  .practice-tabs button { min-width: var(--control-h-sm); padding: 0 var(--space-12); font: var(--text-caption); }
+  .practice-tabs .seat-short { display: inline; }
+  .practice-actions { gap: var(--space-8); }
+  .practice-actions button { padding-inline: var(--space-8); }
+  .practice-page.is-running .practice-back { display: none; }
+  .practice-table.is-all { grid-template-columns: 1fr; }
+  .practice-preview { padding: var(--space-24) var(--space-12) max(var(--space-32), env(safe-area-inset-bottom)); }
+  .practice-featured { flex-direction: column; gap: var(--space-16); padding: var(--space-16); text-align: center; }
+  .practice-featured .practice-art { width: calc(var(--space-64) * 2); }
+  .practice-games { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-8); }
+  .practice-seats { justify-content: center; }
+  .practice-seats i { width: var(--space-32); height: var(--space-32); }
+  .practice-cats { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: calc(-1 * var(--space-12)); padding: var(--space-4) var(--space-12) var(--space-8); }
   .practice-cats::-webkit-scrollbar { display: none; }
   .practice-cats button { flex: none; }
 }
-@media (prefers-reduced-motion: reduce) { .practice-tile:active { transform: none; } }
+@media (max-width: 360px) {
+  .practice-page:not(.is-running) .practice-bar { flex-wrap: wrap; }
+  .practice-page:not(.is-running) .practice-title { position: static; width: auto; height: auto; overflow: visible; clip-path: none; flex: 1; }
+  .practice-page:not(.is-running) .practice-info { order: 1; }
+  .practice-page:not(.is-running) .practice-setup { order: 2; flex: 1 1 100%; justify-content: space-between; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .practice-page.is-running .practice-bar { min-height: var(--control-h); padding-block: var(--space-4); }
+  .practice-page.is-running .practice-back { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .practice-page *, .practice-page *::after { transition: none; animation: none; }
+  .practice-page button:hover, .practice-page button:active, .practice-back:active, .practice-info summary:active { transform: none; }
+}

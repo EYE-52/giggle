@@ -123,8 +123,8 @@ async function main() {
     const duration = Date.now() - measuredAt, elevatedFrames = stateCount(first) - elevatedCount, legacyFrames = stateCount(legacy[0]) - legacyCount;
     metrics.cadence = { durationMs: duration, elevatedFrames, legacyFrames, elevatedHz: elevatedFrames * 1000 / duration, legacyHz: legacyFrames * 1000 / duration };
     ok(elevatedFrames >= 16 && elevatedFrames <= 24, 'new profile receives approximately 20 Hz');
-    ok(legacyFrames >= 16 && legacyFrames <= 24, 'physical original map receives approximately 20 Hz');
-    ok(Math.abs(elevatedFrames - legacyFrames) <= 3, 'both independent physical instances retain 20 Hz cadence');
+    // Original maps run the adaptive 30 Hz real-time cadence; elevated stays 20 Hz.
+    ok(legacyFrames >= 26 && legacyFrames <= 36, 'physical original map receives approximately 30 Hz');
     await until(() => clients.every(c => c.state.phase === 'live'), 'live transition', 4500);
     eq(first.state.endsAt, initial.deadline, 'deadline remains anchored through countdown/live');
     await settle(first, () => action(first, intent(first.state, 2, { use: true }), { w: initial.w }), 'previous phase token tick');

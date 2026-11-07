@@ -159,7 +159,10 @@ export function createKartModel(THREE, { assets, color, number = 1, driver } = {
   const rootGroup = new THREE.Group();
   rootGroup.name = 'GiggleKart';
   const variants = assets && assets.kartVariants;
-  const template = variants?.length ? variants[kartDriverIndex(driver, variants.length)] : assets && assets.kart;
+  // A chosen driver id ('fox') picks its own variant; anything else (a pid)
+  // hashes to a stable one.
+  const chosen = variants?.find(v => v.userData.driver != null && v.userData.driver === driver);
+  const template = chosen || (variants?.length ? variants[kartDriverIndex(driver, variants.length)] : assets && assets.kart);
   if (!template) {
     rootGroup.userData.missing = 'kart';
     return rootGroup;

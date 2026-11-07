@@ -10,7 +10,7 @@ import maps from '../games/engines/kart-maps.js';
 await RAPIER.init();
 const metrics=[];
 const kart=(x,z,angle=0)=>({pid:'driver',x,z,angle,input:{throttle:0,steer:0},nitro:1,spawnSeq:0,connected:true});
-const stateFor=(map,karts)=>({map:map.id,mode:'battle',half:map.half,blocks:map.blocks,pads:map.pads,surfaces:map.surfaces,karts,physicalEvents:[],physicalEventSeq:0});
+const stateFor=(map,karts)=>({map:map.id,mode:'battle',half:map.half,blocks:map.blocks,pads:map.pads,surfaces:map.surfaces,roads:map.roads,offroad:map.offroad,barriers:map.barriers,ramps:map.ramps,karts,physicalEvents:[],physicalEventSeq:0});
 const online=new Set(['driver']);
 for(const id of maps.mapIds()){
   const map={id,...maps.mapDef(id)},terrain=createRoadTerrain(map),v=terrain.vertices;
@@ -65,7 +65,9 @@ for(const id of maps.mapIds()){
       assert.ok(hit.normal.x*s+hit.normal.z*c<-.99,id+' inward-facing physical boundary contact');
     }
     for(const [i,b]of map.blocks.entries()){
-      const hit=supportWorld.sweepStatic({x:b.x-b.hw-2,y:.75,z:b.z},{x:b.x+b.hw+2,y:.75,z:b.z},.25);
+      // Probe the cover face from the clear metre next to it; the pond
+      // ramp now occupies the old two-metre approach on Garden.
+      const hit=supportWorld.sweepStatic({x:b.x-b.hw-1,y:.75,z:b.z},{x:b.x+b.hw+1,y:.75,z:b.z},.25);
       assert.equal(hit?.surfaceId,'cover-'+i,id+' fast sphere collides with original cover footprint');
     }
     supportWorld.addKart('driver',{position:{x:0,y:.75,z:0}});
@@ -135,20 +137,27 @@ for(const id of maps.mapIds()){
   const submerged=chassisHull.contactShape({x:0,y:.1,z:0},identity,terrainHull,origin,identity,1);
   assert.ok(submerged&&submerged.distance<-.1,id+' terrain clearance oracle rejects a genuinely submerged chassis');
   for(const direction of [1,-1]){
-    const target=id==='garden'?38:id==='neon'?40:0;
+    // The old centre transect now crosses authored jump lips/pockets.
+    // Follow open flank transects while retaining real hills and full data.
+    // The new Garden/Neon dividers bound the old inner transects. Their
+    // outer racing lines retain a complete north/south hill traverse.
+    const target=id==='ring'?14:id==='blocks'?21:id==='garden'?46:id==='frost'?4:id==='neon'?-44:0;
     const limit=map.half-3,driver=kart(target,-limit*direction,direction===1?0:Math.PI),state=stateFor(map,[driver]);
     const motion=createClassicMotion(RAPIER,config,state),prediction=createClassicPrediction(RAPIER);
     let maxRoadHeight=0,minCenterClearance=Infinity,minHullClearance=Infinity,worstHullSample,maxYStep=0,grounded=0,steps=0,descended=false,previousY=driver.physicalPose.position.y,maxPredictionError=0,sequence=0;
     const snapshot=()=>({instanceId:id+'-'+direction,phase:'drive',you:'driver',youDrive:true,mode:'battle',map,karts:[structuredClone(driver)],inputAck:{appliedInputSeq:sequence}});
     prediction.ingest(snapshot(),0);
     try{
-      for(let i=0;i<1200&&driver.z*direction<limit;i++){
+      // On the yard's outer crown, the suspension can land just after
+      // crossing the finish coordinate. Let that real descent complete.
+      for(let i=0;i<1200&&(driver.z*direction<limit||!descended);i++){
         const error=Math.atan2(Math.sin(driver.angle-(direction===1?0:Math.PI)),Math.cos(driver.angle-(direction===1?0:Math.PI)));
         driver.input={throttle:1,steer:Math.max(-1,Math.min(1,(driver.x-target)*.45*direction+error*1.8))};
         if(i%3===0){sequence++;driver._receivedSeq=sequence;prediction.sent(sequence);}
         motion.advance(1/60,online);
         if(i%3===0)prediction.ingest(snapshot(),i*1000/60);
-        const draw=prediction.frame(snapshot(),driver.input,1/60,i*1000/60).physicalPose;
+        // Simulated pose: drawn frames blend between fixed steps by design.
+        prediction.frame(snapshot(),driver.input,1/60,i*1000/60);const draw=prediction.selfPose();
         const p=driver.physicalPose,h=terrain.heightAt(driver.x,driver.z);
         maxPredictionError=Math.max(maxPredictionError,Math.hypot(draw.position.x-p.position.x,draw.position.y-p.position.y,draw.position.z-p.position.z));
         minCenterClearance=Math.min(minCenterClearance,p.position.y-h);maxRoadHeight=Math.max(maxRoadHeight,h);

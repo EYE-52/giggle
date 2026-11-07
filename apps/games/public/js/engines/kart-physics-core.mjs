@@ -53,7 +53,7 @@ function createKartPhysics(RAPIER, config) {
   const C = structuredClone(config);
   if (!finite(C.fixedDt) || C.fixedDt <= 0 || C.fixedDt > 0.04) throw new RangeError('invalid fixed step');
   const numeric = value => typeof value === 'object' && value !== null ? Object.values(value).every(numeric) : finite(value);
-  if (!numeric(C) || !Number.isInteger(C.maxKarts) || C.maxKarts < 1 || C.maxKarts > 8 || !Number.isInteger(C.maxStatics) || C.maxStatics < 1 || C.maxStatics > 128 || C.chassis.mass <= 0 || Object.values(C.chassis.half).some(v => v <= 0) || C.wheels.some(w => w.radius <= 0)) throw new RangeError('invalid numeric vehicle config');
+  if (!numeric(C) || !Number.isInteger(C.maxKarts) || C.maxKarts < 1 || C.maxKarts > 32 || !Number.isInteger(C.maxStatics) || C.maxStatics < 1 || C.maxStatics > 128 || C.chassis.mass <= 0 || Object.values(C.chassis.half).some(v => v <= 0) || C.wheels.some(w => w.radius <= 0)) throw new RangeError('invalid numeric vehicle config');
   const world = new RAPIER.World(vector(C.gravity, 'gravity'));
   world.timestep = C.fixedDt;
   // The rebound/inertia tuning needs two more contact iterations on ice;

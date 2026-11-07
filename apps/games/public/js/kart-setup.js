@@ -57,10 +57,13 @@ export function resolveKartSetup(settings, changedKey) {
   return next;
 }
 
-function choices(g, key, values, selected, host, labels = {}) {
+const MODE_ICONS = { 'Zap Battle': '⚡', 'Garage Battle': '🔧', 'Star Rush': '⭐' };
+function choices(g, key, values, selected, host, labels = {}, cards = false) {
   return `<input type="hidden" id="df-${g.id}-${key}" value="${esc(selected)}" data-hostonly ${host ? '' : 'disabled'}>
-    <div class="ks-choices" role="radiogroup" aria-label="${esc({ winRule: 'Win rule', mode: 'Mode', palette: 'Lighting', roundSeconds: 'Round length' }[key] || 'Light cycle')}">
-    ${values.map(value => `<button type="button" class="ks-choice" role="radio" aria-checked="${value === selected}" tabindex="${value === selected ? 0 : -1}" data-kart-key="${key}" data-kart-value="${esc(value)}" data-hostonly ${host ? '' : 'disabled'}>${esc(labels[value] || value)}</button>`).join('')}</div>`;
+    <div class="ks-choices${cards ? ' ks-cards' : ''}" role="radiogroup" aria-label="${esc({ winRule: 'Win rule', mode: 'Mode', palette: 'Lighting', roundSeconds: 'Round length' }[key] || 'Light cycle')}">
+    ${values.map(value => `<button type="button" class="ks-choice" role="radio" aria-checked="${value === selected}" tabindex="${value === selected ? 0 : -1}" data-kart-key="${key}" data-kart-value="${esc(value)}" data-hostonly ${host ? '' : 'disabled'}>${cards
+      ? `<span class="ks-card-ico" aria-hidden="true">${MODE_ICONS[value] || '🏁'}</span><b>${esc(labels[value] || value)}</b><span class="ks-card-note">${esc(MODES[value]?.[1] || '')}</span>`
+      : esc(labels[value] || value)}</button>`).join('')}</div>`;
 }
 
 export function kartSetupHtml(g, current, host) {
@@ -77,7 +80,7 @@ export function kartSetupHtml(g, current, host) {
       <button type="button" data-kart-step="${key}" data-delta="${step}" aria-label="Increase ${label.toLowerCase()}" data-hostonly ${dis}>+</button></div></div>`;
   };
   return `<section class="ks-mode"><h3>How are we playing?</h3>
-    ${choices(g, 'mode', field('mode').options, settings.mode, host, Object.fromEntries(Object.entries(MODES).map(([k,v]) => [k,v[0]])))}
+    ${choices(g, 'mode', field('mode').options, settings.mode, host, Object.fromEntries(Object.entries(MODES).map(([k,v]) => [k,v[0]])), true)}
     <p class="ks-mode-note" id="kartModeNote">${esc(MODES[settings.mode]?.[1] || '')}</p></section>
     <section class="ks-arena"><div class="ks-section-head"><h3>Choose your arena</h3><span class="ks-arena-name" id="kartArenaName">${esc(arena.label)}</span></div>
       <figure class="ks-preview"><img id="kartArenaPreview" src="/assets/karts/previews/${arena.key}.webp" width="480" height="270" alt="${esc(arena.label)} arena overview"><figcaption id="kartArenaDescription">${esc(arena.description)}</figcaption></figure>

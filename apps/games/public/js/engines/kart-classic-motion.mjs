@@ -1,5 +1,6 @@
 import {createKartPhysics} from './kart-physics-core.mjs';
 import {createRoadTerrain} from './kart-road-terrain.mjs';
+import {createSurfaceIndex,surfaceTuning} from './kart-surface.mjs';
 import {createFeatureRunner} from './kart-map-features.mjs';
 
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -28,6 +29,8 @@ export function classicStatics(map,terrain=createRoadTerrain(map)){
       out.push({id:'cover-top-'+i,shape:'box',half:{x:foot/2,y:height/2,z:foot/2},position:{x:b.x,y:1.5+height/2,z:b.z}});
     }
   }
+  for(const [i,b]of(map.barriers||[]).entries())out.push({id:'barrier-'+i,shape:'box',half:{x:b.hw,y:.45,z:b.hd},position:{x:b.x,y:.45,z:b.z}});
+  for(const [i,r]of(map.ramps||[]).entries())out.push({id:'ramp-'+i,shape:'wedge',half:{x:r.hw,y:r.h/2,z:r.hl},position:{x:r.x,y:r.h/2,z:r.z},rotation:{x:0,y:Math.sin(r.angle/2),z:0,w:Math.cos(r.angle/2)}});
   for(const sign of[-1,1]){
     out.push({id:'wall-x-'+(sign+1),shape:'box',half:{x:wallHalf,y:wallHeightHalf,z:half+wallOffset+wallHalf},position:{x:sign*(half+wallOffset),y:wallHeightHalf,z:0}});
     out.push({id:'wall-z-'+(sign+1),shape:'box',half:{x:half+wallOffset+wallHalf,y:wallHeightHalf,z:wallHalf},position:{x:0,y:wallHeightHalf,z:sign*(half+wallOffset)}});
@@ -36,7 +39,7 @@ export function classicStatics(map,terrain=createRoadTerrain(map)){
 }
 
 // Mode meters remain the existing rules: no physics-derived score or award.
-export function classicControls(k,dt,map,battle){
+export function classicControls(k,dt,map,battle,surfaceIndex){
   const input=k.input||{},throttle=input.throttle||0,steer=input.steer||0;
   if(!battle&&input.boost&&k.boostCd<=0&&k.boost<=0){k.boost=1.2;k.boostCd=6;}
   for(const key of['boost','boostCd','turbo','padCd'])k[key]=Math.max(0,(k[key]||0)-dt);
@@ -57,8 +60,10 @@ export function classicControls(k,dt,map,battle){
   const boost=Math.max(k.boost>0?1.6:1,k.turbo>0?1.35:1,k.nitroActive?1.6:1,k.rammingT>0?1.5:1);
   // Weapon status: Frost caps top speed, an Oil Slick strips rear grip.
   const frost=k.frostT>0?.55:1,spun=k.spinT>0;
+  const surface=surfaceIndex&&k.physicalPose?.grounded?surfaceTuning(surfaceIndex,k.x,k.z):null;
+  const top=surface?.top??1,grip=surface?.traction??1;
   const tune=n=>clamp(n,.1,2);
-  return {intent:{throttle,steer,brake:0},tuning:{top:tune(engine*boost*frost),engine:tune(Math.min(2,engine*(boost>1?1.6:1))*(frost<1?.7:1)),steering:handling*(active?1.05:1),traction:1,rearTraction:spun?.12:active?.25+.75*recovery:(k.physicalPose?.grounded&&Math.abs(steer)>.55&&k.speed>12?.82:1),rearStiffness:spun?.2:active?.7+.3*recovery:1}};
+  return {intent:{throttle,steer,brake:0},tuning:{top:tune(engine*boost*frost*top),engine:tune(Math.min(2,engine*(boost>1?1.6:1))*(frost<1?.7:1)*(.75+.25*top)),steering:handling*(active?1.05:1),traction:grip,rearTraction:tune(grip*(spun?.12:active?.25+.75*recovery:(k.physicalPose?.grounded&&Math.abs(steer)>.55&&k.speed>12?.82:1))),rearStiffness:spun?.2:active?.7+.3*recovery:1}};
 }
 
 // Classic arenas' unboosted top speed (m/s); the gear readout shares it.
@@ -69,7 +74,8 @@ export function createClassicMotion(RAPIER,baseConfig,state){
   // Keep a released/respawned kart parked on real slopes using wheel brakes.
   config.handling.coastBrake=4;
   const physics=createKartPhysics(RAPIER,config),life=new Map(),enabled=new Map();let accumulator=0,disposed=false;
-  const map={id:state.map,half:state.half,blocks:state.blocks,pads:state.pads,surfaces:state.surfaces};
+  const map={id:state.map,half:state.half,blocks:state.blocks,pads:state.pads,surfaces:state.surfaces,roads:state.roads,offroad:state.offroad,barriers:state.barriers,ramps:state.ramps};
+  const surfaceIndex=createSurfaceIndex(map);
   const terrain=createRoadTerrain(map);
   // Arena features (cannons, portals) step after physics; see kart-map-features.mjs.
   const features=createFeatureRunner({physics,state,features:state.features,enabled,project:k=>project(k),groundAt:(x,z)=>terrain?.heightAt(x,z)||0});
@@ -88,7 +94,8 @@ export function createClassicMotion(RAPIER,baseConfig,state){
   return {
     advance(dt,connected){if(disposed)throw Error('classic world disposed');sync(connected);accumulator=Math.min(.25,accumulator+dt);const contacts=new Map();
       while(accumulator>=config.fixedDt-1e-9){
-        for(const k of state.karts)if(enabled.get(k.pid)){if(k.spinKick){physics.spinKart?.(k.pid,k.spinKick);k.spinKick=0;}const control=classicControls(k,config.fixedDt,map,state.mode==='battle');physics.tuneKart(k.pid,control.tuning);physics.applyIntent(k.pid,control.intent);k._appliedSeq=k._receivedSeq||0;}
+        for(const k of state.karts)if(enabled.get(k.pid)){if(k.spinKick){physics.spinKart?.(k.pid,k.spinKick);k.spinKick=0;}const control=classicControls(k,config.fixedDt,map,state.mode==='battle',surfaceIndex);physics.tuneKart(k.pid,control.tuning);physics.applyIntent(k.pid,control.intent);k._appliedSeq=k._receivedSeq||0;}
+        for(const k of state.karts)k._prevPose=k.physicalPose;
         physics.step();for(const k of state.karts)project(k);accumulator-=config.fixedDt;
         features.step(config.fixedDt,connected);
         for(const ids of physics.kartContacts())contacts.set(ids.join('|'),ids.map(id=>state.karts.find(k=>k.pid===id)));
@@ -100,7 +107,10 @@ export function createClassicMotion(RAPIER,baseConfig,state){
     },
     sync,disconnect(pid){physics.setKartEnabled(pid,false);enabled.set(pid,false);const k=state.karts.find(k=>k.pid===pid);if(k)project(k);},
     beginCorrection(){accumulator=0;},
-    restore(k,p){features.resumeLanded(k);if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
+    // Unsimulated fraction of the next fixed step: renderers blend
+    // _prevPose -> physicalPose by it so motion is even at any frame rate.
+    alpha:()=>Math.max(0,Math.min(1,accumulator/config.fixedDt)),
+    restore(k,p){k._prevPose=null;features.resumeLanded(k);if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
     sweepStatic:(from,to,radius)=>physics.sweepStatic(from,to,radius),
     supportAt:(origin,maxDistance)=>physics.supportAt(origin,maxDistance),
     groundAt:(x,z)=>terrain?.heightAt(x,z)||0,

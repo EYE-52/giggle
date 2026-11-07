@@ -180,27 +180,41 @@ function updatePackCount(g, p) {
   typed.textContent = n ? `${n} lines typed${range}` : `Nothing typed yet${range}`;
 }
 
+/* A small picture per setting so the sheet reads like a game menu. */
+const SETTING_ICONS = [
+  [/second|time|timer|clock|minute|duration/i, '⏱️'], [/round|turn/i, '🔁'], [/pace|speed/i, '⚡'],
+  [/target|score|point|goal|win/i, '🎯'], [/live|heart/i, '❤️'], [/difficult|level|hard/i, '🌶️'],
+  [/hint|clue/i, '💡'], [/team|player|seat/i, '👥'], [/board|size|grid/i, '🧩'], [/word|letter|categor/i, '🔤'],
+];
+function settingIcon(s) {
+  const key = `${s.key} ${s.label || ''}`;
+  return (SETTING_ICONS.find(([re]) => re.test(key)) || [null, '✨'])[1];
+}
+
 function settingField(g, s, current, host) {
   const id = `df-${g.id}-${s.key}`;
   const val = current[s.key] !== undefined ? current[s.key] : s.def;
   const dis = host ? '' : 'disabled';
+  const icon = `<span class="gm-ico" aria-hidden="true">${settingIcon(s)}</span>`;
   if (s.type === 'bool') {
-    return `<div class="dlg-field dlg-toggle"><label class="conflabel" for="${id}">
-      <input id="${id}" data-hostonly type="checkbox" ${val ? 'checked' : ''} ${dis}>
-      <span>${esc(s.label || s.key)}</span></label></div>`;
+    // The real checkbox is the switch: visually hidden, still focusable.
+    return `<div class="dlg-field dlg-toggle gm-tile gm-bool"><label class="conflabel" for="${id}">${icon}
+      <span class="gm-label">${esc(s.label || s.key)}</span>
+      <input id="${id}" class="gm-switch-input" data-hostonly type="checkbox" role="switch" ${val ? 'checked' : ''} ${dis}>
+      <span class="gm-switch" aria-hidden="true"><span></span></span></label></div>`;
   }
   if (s.type === 'enum') {
     const opts = (s.options || []).map((o) =>
       `<option value="${esc(o)}" ${o === val ? 'selected' : ''}>${esc(o)}</option>`).join('');
     // The native select stays (forms, presets and tests read it); people
     // pick from the segmented track or chips beside it.
-    return `<div class="dlg-field"><label class="conflabel" id="${id}-l" for="${id}">${esc(s.label || s.key)}</label>
+    return `<div class="dlg-field gm-tile gm-enum"><div class="gm-tile-head">${icon}<label class="conflabel gm-label" id="${id}-l" for="${id}">${esc(s.label || s.key)}</label></div>
       <select id="${id}" class="picker-native" data-hostonly ${dis} tabindex="-1" aria-hidden="true">${opts}</select>
       ${segPickerHtml(id, s.options || [], val, `${id}-l`, !host)}</div>`;
   }
   const auto = s.def === null || s.def === undefined;
-  return `<div class="dlg-field"><label class="conflabel" for="${id}">${esc(s.label || s.key)}
-      <span class="muted small">(${s.min}–${s.max}${auto ? ', blank = ' + esc(s.autoLabel || 'auto') : ''})</span></label>
+  return `<div class="dlg-field gm-tile gm-num"><div class="gm-tile-head">${icon}<label class="conflabel gm-label" for="${id}">${esc(s.label || s.key)}</label>
+      <span class="gm-range">${s.min}–${s.max}${auto ? ' · blank = ' + esc(s.autoLabel || 'auto') : ''}</span></div>
     ${stepperHtml(id, `<input id="${id}" data-hostonly type="number" inputmode="numeric" min="${s.min}" max="${s.max}"
       value="${val === null || val === undefined ? '' : val}"
       placeholder="${auto ? esc(s.autoLabel || 'Auto') : ''}" ${dis}>`, { min: Number(s.min), max: Number(s.max), label: s.label || s.key, disabled: !host })}</div>`;
@@ -210,8 +224,8 @@ function packField(g, p, meta, host) {
   const id = `dp-${g.id}-${p.key}`;
   const n = meta && meta.packs ? (meta.packs[p.key] || 0) : 0;
   const dis = host ? '' : 'disabled';
-  return `<div class="dlg-field"><label class="conflabel" for="${id}">${esc(p.label || p.key)}
-      <span class="muted small">(one per line${p.minItems ? `, ${p.minItems}–${p.maxItems || '∞'}` : ''})</span></label>
+  return `<div class="dlg-field gm-tile gm-pack"><div class="gm-tile-head"><span class="gm-ico" aria-hidden="true">📝</span><label class="conflabel gm-label" for="${id}">${esc(p.label || p.key)}</label>
+      <span class="gm-range">one per line${p.minItems ? ` · ${p.minItems}–${p.maxItems || '∞'}` : ''}</span></div>
     <textarea id="${id}" data-hostonly rows="4" placeholder="One per line — leave blank to keep the built-in list." ${dis}></textarea>
     <div class="dlg-packmeta"><span class="muted small" id="dpm-${g.id}-${p.key}">${esc(packCountText(p, n))}</span>
       <span class="muted small" id="dpt-${g.id}-${p.key}"></span></div>
@@ -285,7 +299,24 @@ function fillDialog(g, settings, pack) {
   syncKartSetup(g, { repair: dlg.host, announce: true });
 }
 
-export function openCustomizer({ game, config, host, opener, initialField, onSave, onReset, onClearPack, toast }) {
+/* Family colour per game (giggle-design skill, section 2). */
+const FAMILIES = {
+  board: ['chess', 'checkers', 'reversi', 'four-in-a-row', 'kalah', 'ludo', 'fleet-duel', 'memory-tray', 'castle-clash'],
+  create: ['doodle-guess', 'draw-phone', 'charades', 'pose-party', 'show-and-go', 'word-chain', 'warm-words', 'countdown-word', 'scattergories', 'lyric-fill'],
+  arcade: ['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction'],
+};
+export function familyOf(id) {
+  return Object.keys(FAMILIES).find((f) => FAMILIES[f].includes(id)) || 'party';
+}
+
+/* The game's own art as a sticker in the sheet's header. */
+function artHtml(g) {
+  const src = g.art && /^img\/games\/[a-z0-9-]+\.(svg|png|webp)$/.test(g.art) ? '/' + g.art : `/img/games/${g.id}.png`;
+  return `<img class="gm-art" src="${esc(src)}" alt="" width="64" height="64" onerror="this.remove()">`;
+}
+
+/* extra: optional { html, wire(root) } shown above the rules (the kart garage). */
+export function openCustomizer({ game, config, host, opener, initialField, onSave, onReset, onClearPack, toast, extra = {} }) {
   closeCustomizer({ returnFocus: false });
   dlg = { game: game, opener: opener || null, onSave, onReset, onClearPack, host, toast };
   const g = game;
@@ -296,34 +327,38 @@ export function openCustomizer({ game, config, host, opener, initialField, onSav
   const root = document.getElementById('dlg-root');
   root.innerHTML = `
   <div class="dlg-overlay" id="dlgOverlay">
-    <div class="dlg ${kart ? 'kart-setup' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
-      <div class="dlg-head">
-        <div><div class="ticket-head"><h2 id="dlgTitle">${kart ? 'Pocket Karts setup' : `Customize ${esc(g.name)}`}</h2><span class="ticket-stub" id="dlgTag">${esc(hostTag(host))}</span></div>
+    <div class="dlg gm-setup ${kart ? 'kart-setup' : ''}" data-family="${familyOf(g.id)}" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+      <div class="dlg-head gm-head">
+        ${artHtml(g)}
+        <div class="gm-titles"><span class="ticket-stub gm-kicker" id="dlgTag">${esc(hostTag(host))}</span><h2 id="dlgTitle">${kart ? 'Pocket Karts setup' : `${esc(g.name)} setup`}</h2>
         <p class="muted small" id="dlgNote">${esc(kart ? host ? 'Choose the arena and rules for your next match.' : 'The host chooses the arena and rules.' : hostNote(host))}</p></div>
-        <button class="btn ghost dlg-x" id="dlgClose">Close</button>
+        <button class="btn ghost dlg-x gm-x" id="dlgClose" aria-label="Close setup"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></button>
       </div>
       <div class="conf-err" id="dlgErr" role="alert" hidden></div>
-      ${kart ? kartSetupHtml(g, current, host) : schema.settings.length ? `<h3 class="dlg-sec">Rounds &amp; timing</h3>
-        <div class="dlg-grid">${schema.settings.map((s) => settingField(g, s, current, host)).join('')}</div>` : ''}
-      ${schema.packs.length ? `<h3 class="dlg-sec">Word &amp; prompt lists</h3>
+      ${extra.html || ''}
+      ${kart ? kartSetupHtml(g, current, host) : schema.settings.length ? `<h3 class="dlg-sec">Rules</h3>
+        <div class="dlg-grid gm-tiles">${schema.settings.map((s) => settingField(g, s, current, host)).join('')}</div>` : ''}
+      ${schema.packs.length ? `<h3 class="dlg-sec">Your own lists</h3>
         ${schema.packs.map((p) => packField(g, p, meta, host)).join('')}` : ''}
-      ${kart ? '<details class="ks-extra"><summary>Saved presets</summary><div class="ks-extra-content">' : '<h3 class="dlg-sec">Presets <span class="muted small">· Saved on this device</span></h3>'}
+      <details class="ks-extra gm-fold"><summary>Saved setups <span class="gm-range">on this device</span></summary><div class="ks-extra-content">
       <div id="dlgPresets">${presetListHtml(g, host)}</div>
       <div class="row dlg-presetrow">
         <input id="dlgPresetName" type="text" maxlength="40" placeholder="Preset name — e.g. Quick rounds"
           style="flex:1" data-hostonly ${host ? '' : 'disabled'}>
         <button class="btn ghost" id="dlgPresetSave" data-hostonly ${host ? '' : 'disabled'}>Save preset</button>
       </div>
-      ${kart ? '</div></details>' : ''}
+      </div></details>
       <p class="muted small" id="dlgStatus" role="status" hidden></p>
-      <div class="row mt dlg-foot">
-        <button class="btn" id="dlgSave" data-hostonly ${host ? '' : 'disabled'}>Save settings</button>
-        <button class="btn ghost" id="dlgReset" data-hostonly ${host ? '' : 'disabled'}>Reset to defaults</button>
+      <div class="row mt dlg-foot gm-foot">
+        <button class="btn big gm-save" id="dlgSave" data-hostonly ${host ? '' : 'disabled'}>Save settings</button>
+        <button class="btn ghost gm-reset" id="dlgReset" data-hostonly ${host ? '' : 'disabled'}>Reset to defaults</button>
+        ${host ? '' : '<p class="tb-reason gm-reason">Only the host can change the setup.</p>'}
       </div>
     </div>
   </div>`;
   const say = (m) => { if (toast) toast(m); };
   if (!kart) wirePickers(root);
+  extra.wire?.(root);
 
   document.getElementById('dlgClose').onclick = () => { closeCustomizer(); };
   document.getElementById('dlgOverlay').addEventListener('mousedown', (e) => {

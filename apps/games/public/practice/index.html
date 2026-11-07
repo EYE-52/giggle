@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/css/practice.css">
   <script defer src="/js/boot-status.js"></script>
 </head>
-<body class="practice-page">
+<body class="practice-page" data-family="party">
   <header class="practice-bar">
     <a href="/" class="practice-back" aria-label="Back to Game Night" title="Back to Game Night"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
     <h1 class="practice-title">Practice</h1>
@@ -21,11 +21,11 @@
       <select id="practiceCount" class="practice-native" aria-hidden="true" tabindex="-1" disabled><option>—</option></select>
       <div class="practice-stepper" role="group" aria-label="Players">
         <button type="button" id="practiceLess" aria-label="Fewer players" disabled>−</button>
-        <output id="practiceCountLabel" aria-live="polite">–</output>
+        <output id="practiceCountLabel" aria-live="polite"><span class="practice-count-number">–</span><span class="practice-count-unit"></span></output>
         <button type="button" id="practiceMore" aria-label="More players" disabled>+</button>
       </div>
-      <button class="btn" id="practiceStart" disabled>Play</button>
-      <button class="btn ghost" id="practiceRetry" type="button" hidden>Retry</button>
+      <button class="btn tb-btn tb-primary" id="practiceStart" disabled>Play</button>
+      <button class="btn ghost tb-btn tb-chip" id="practiceRetry" type="button" hidden>Retry</button>
     </form>
     <nav id="practiceControls" class="practice-controls" aria-label="Practice controls" hidden>
       <div id="practiceTabs" class="practice-tabs" role="tablist" aria-label="Choose a player"></div>

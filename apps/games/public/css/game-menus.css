@@ -1,0 +1,350 @@
+/* Game-style menus: the setup sheet (customize.js, kart-setup.js), the
+ * Pocket Karts garage (kart-garage.js) and the roster's kart badges.
+ * Soft arcade rules from .claude/skills/giggle-design: tokens only, one
+ * primary per panel, transform/opacity motion on --ease, Day and Night. */
+
+/* ---- Setup sheet ---- */
+.dlg.gm-setup {
+  width: min(720px, 100%); padding: var(--space-24) var(--space-24) 0;
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-card), 0 var(--lift-lg) 0 var(--outline);
+}
+.gm-head { display: grid; grid-template-columns: auto 1fr auto; gap: var(--space-16); align-items: center; }
+.gm-art {
+  width: 64px; height: 64px; border-radius: var(--radius-lg); object-fit: cover; background: var(--fam-soft);
+  border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline); transform: rotate(-3deg);
+}
+.gm-titles { min-width: 0; }
+.gm-titles h2 { margin: var(--space-4) 0; font: var(--text-heading); font-size: clamp(24px, 4vw, 30px); text-wrap: balance; }
+.gm-titles .muted { font: var(--text-caption); color: var(--ink-dim); text-wrap: pretty; }
+.dlg-head .gm-kicker, .gm-kicker {
+  display: inline-flex; align-items: center; min-height: 24px; padding: 0 var(--space-12); margin: 0;
+  border-radius: var(--radius-pill); background: var(--fam); color: var(--on-fam); border: 0;
+  font: var(--text-caption); text-transform: uppercase; letter-spacing: .06em; transform: none; box-shadow: 0 2px 0 var(--fam-lip);
+}
+.gm-x, .garage-x {
+  width: var(--control-h); height: var(--control-h); padding: 0; display: grid; place-items: center; align-self: start;
+  border-radius: var(--radius-pill); color: var(--ink); background: var(--card); cursor: pointer;
+  border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline);
+  transition: transform var(--dur-quick) var(--ease);
+}
+.gm-x:active, .garage-x:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.gm-x:focus-visible, .garage-x:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+
+.gm-setup .dlg-sec {
+  margin: var(--space-24) 0 var(--space-12); padding: 0; border: 0;
+  font: var(--text-title); color: var(--ink);
+}
+.gm-setup .dlg-sec::before { display: none; }
+
+/* Each rule is a tile: picture, name, and a big control. */
+.gm-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-12); }
+.gm-tile {
+  margin: 0; padding: var(--space-16); border-radius: var(--radius-lg);
+  background: var(--well); border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline);
+  display: flex; flex-direction: column; gap: var(--space-12); min-width: 0;
+}
+.gm-tile.gm-enum, .gm-tile.gm-pack { grid-column: 1 / -1; }
+.gm-tile-head { display: flex; align-items: center; gap: var(--space-8); min-width: 0; }
+.gm-ico {
+  flex: none; width: 36px; height: 36px; display: grid; place-items: center; font-size: 20px; line-height: 1;
+  border-radius: var(--radius-md); background: var(--card); border: 2px solid var(--outline);
+}
+.gm-setup .gm-label, .gm-setup .conflabel.gm-label { margin: 0; font: var(--text-button); color: var(--ink); flex: 1; min-width: 0; }
+.gm-range { margin-left: auto; font: var(--text-caption); color: var(--ink-dim); white-space: nowrap; }
+
+/* Numbers: − big readout + candy buttons, then a chunky slider. */
+.gm-num .picker-step { display: grid; grid-template-columns: var(--control-h-lg) 1fr var(--control-h-lg); gap: var(--space-8); align-items: center; }
+.gm-setup .gm-num .picker-step input[type="number"] {
+  width: 100%; min-height: var(--control-h-lg); padding: 0; border: 0; background: transparent; box-shadow: none;
+  font: 800 40px/1 var(--font-display); color: var(--ink); text-align: center; font-variant-numeric: tabular-nums;
+}
+.gm-setup .gm-num .picker-step input[type="number"]:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); border-radius: var(--radius-md); }
+.gm-num .picker-btn {
+  width: var(--control-h-lg); height: var(--control-h-lg); min-height: 0; border-radius: var(--radius-pill);
+  font: 800 28px/1 var(--font-display); color: var(--on-fam); background: var(--fam);
+  border: 2px solid var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+.gm-num .picker-btn:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
+.gm-num .picker-btn:disabled { color: var(--ink-dim); background: var(--line); border-color: var(--outline); box-shadow: none; }
+.gm-setup .picker-range {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 24px; margin: 0; background: transparent; cursor: pointer;
+}
+.gm-setup .picker-range::-webkit-slider-runnable-track { height: 12px; border-radius: var(--radius-pill); background: var(--line-strong); }
+.gm-setup .picker-range::-moz-range-track { height: 12px; border-radius: var(--radius-pill); background: var(--line-strong); }
+.gm-setup .picker-range::-moz-range-progress { height: 12px; border-radius: var(--radius-pill); background: var(--fam); }
+.gm-setup .picker-range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 28px; height: 28px; margin-top: -8px; border-radius: 50%;
+  background: var(--card); border: 4px solid var(--fam); box-shadow: 0 2px 0 var(--fam-lip);
+}
+.gm-setup .picker-range::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--card); border: 4px solid var(--fam); }
+.gm-setup .picker-range:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); border-radius: var(--radius-pill); }
+.gm-setup .picker-range:disabled { cursor: not-allowed; opacity: .55; }
+
+/* Choices: a segmented track on the card fill. */
+.gm-setup .gm-enum .tb-seg { background: var(--card); }
+.gm-setup .gm-enum .tb-seg > button { min-height: var(--control-h); font: var(--text-button-sm); }
+
+/* On/off: the whole tile row is the switch's label. */
+.gm-bool { justify-content: center; }
+.gm-setup .gm-bool .conflabel { display: flex; align-items: center; gap: var(--space-8); margin: 0; min-height: var(--control-h); cursor: pointer; }
+.gm-switch-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.gm-switch {
+  flex: none; position: relative; width: 60px; height: 36px; border-radius: var(--radius-pill);
+  background: var(--line-strong); border: 2px solid var(--outline);
+}
+.gm-switch > span {
+  position: absolute; top: 2px; left: 2px; width: 28px; height: 28px; border-radius: 50%;
+  background: var(--card); box-shadow: 0 2px 0 var(--outline); transition: transform var(--dur-quick) var(--ease);
+}
+.gm-switch-input:checked + .gm-switch { background: var(--fam); border-color: var(--fam-lip); }
+.gm-switch-input:checked + .gm-switch > span { transform: translateX(24px); }
+.gm-switch-input:focus-visible + .gm-switch { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.gm-switch-input:disabled + .gm-switch { opacity: .55; cursor: not-allowed; }
+
+/* Lists: a soft well to type into, actions as chips. */
+.gm-pack textarea { background: var(--card); border: 2px solid var(--outline); border-radius: var(--radius-md); }
+.gm-pack .dlg-packrow { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.gm-setup .dlg-packrow .howto-btn, .gm-setup .preset-btns .howto-btn {
+  min-height: var(--control-h-sm); display: inline-flex; align-items: center; padding: 0 var(--space-16);
+  font: var(--text-button-sm); background: var(--card);
+}
+
+/* Saved setups fold away; they are a power tool. */
+.gm-setup .gm-fold { margin-top: var(--space-24); }
+.gm-setup .gm-fold > summary { font: var(--text-button); display: flex; align-items: center; gap: var(--space-8); }
+.gm-setup .gm-fold > summary .gm-range { margin-left: 0; }
+.gm-setup .dlg-presetrow { display: flex; gap: var(--space-8); flex-wrap: wrap; }
+.gm-setup .dlg-presetrow input { min-height: var(--control-h); border-radius: var(--radius-md); }
+
+/* One primary at the thumb; reset is a quiet chip beside it. */
+.gm-setup .gm-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12);
+  margin: var(--space-24) calc(-1 * var(--space-24)) 0; padding: var(--space-16) var(--space-24) max(var(--space-16), env(safe-area-inset-bottom));
+}
+.gm-setup .gm-save { flex: 1 1 240px; min-height: var(--control-h-lg); font: var(--text-button); font-size: 19px; }
+.gm-setup .gm-reset {
+  min-height: var(--control-h-sm); padding: 0 var(--space-16); border-radius: var(--radius-pill);
+  font: var(--text-button-sm); background: transparent; border-color: transparent; box-shadow: none; color: var(--ink-dim);
+}
+@media (hover: hover) { .gm-setup .gm-reset:hover:not(:disabled) { color: var(--ink); background: var(--well); } }
+.gm-reason { flex-basis: 100%; margin: 0; font: var(--text-caption); color: var(--ink-dim); }
+
+@media (max-width: 560px) {
+  .dlg.gm-setup { padding: var(--space-16) var(--space-16) 0; }
+  .gm-head { gap: var(--space-12); }
+  .gm-art { width: 48px; height: 48px; }
+  .gm-tiles { grid-template-columns: 1fr; }
+  .gm-setup .gm-foot { margin-inline: calc(-1 * var(--space-16)); padding-inline: var(--space-16); }
+  .gm-setup .gm-reset { flex: 1 1 100%; }
+}
+
+/* ---- Pocket Karts setup: mode as illustrated cards ---- */
+.kart-setup .ks-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-8); background: none; padding: 0; }
+.kart-setup .ks-cards .ks-choice {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); text-align: left;
+  min-height: 112px; padding: var(--space-12); border-radius: var(--radius-lg);
+  background: var(--well); color: var(--ink); border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline);
+  transition: transform var(--dur-quick) var(--ease);
+}
+.kart-setup .ks-cards .ks-choice b { font: var(--text-button); }
+.ks-card-ico { font-size: 26px; line-height: 1; }
+.ks-card-note { font: var(--text-caption); color: var(--ink-dim); }
+.kart-setup .ks-cards .ks-choice[aria-checked="true"] { background: var(--fam-soft); border-color: var(--fam); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+.kart-setup .ks-cards .ks-choice[aria-checked="true"] .ks-card-note { color: var(--ink); }
+.kart-setup .ks-cards .ks-choice:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.kart-setup .ks-cards + .ks-mode-note { display: none; }
+@media (hover: hover) { .kart-setup .ks-cards .ks-choice:hover:not(:disabled, [aria-checked="true"]) { transform: translateY(-2px); } }
+.kart-setup .garage-card { margin-top: var(--space-16); }
+@media (max-width: 560px) {
+  .kart-setup .ks-cards .ks-choice { min-height: 96px; padding: var(--space-8); }
+  .ks-card-note { display: none; }
+}
+
+/* ---- "Your kart" card (start menu, kart setup) ---- */
+.garage-card {
+  --kart-paint: var(--fam-arcade);
+  display: flex; align-items: center; gap: var(--space-12); width: 100%; margin: 0 0 var(--space-16);
+  padding: var(--space-12) var(--space-16); text-align: left; cursor: pointer; color: var(--ink);
+  border-radius: var(--radius-lg); background: color-mix(in srgb, var(--kart-paint) 14%, var(--card));
+  border: 2px solid color-mix(in srgb, var(--kart-paint) 60%, var(--outline));
+  box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--kart-paint) 60%, #000);
+  transition: transform var(--dur-quick) var(--ease);
+}
+.garage-card-face {
+  flex: none; width: 52px; height: 52px; display: grid; place-items: center; font-size: 30px; line-height: 1;
+  border-radius: 50%; background: var(--kart-paint); box-shadow: inset 0 -4px 0 color-mix(in srgb, var(--kart-paint) 70%, #000);
+}
+.garage-card-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.garage-card-text b { font: var(--text-title); }
+.garage-card-text span { font: var(--text-caption); color: var(--ink-dim); }
+.garage-card-go { font: 800 28px/1 var(--font-display); color: var(--ink-dim); }
+.garage-card:active { transform: translateY(var(--lift)); box-shadow: none; }
+.garage-card:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+@media (hover: hover) { .garage-card:hover { transform: translateY(-2px); } }
+
+/* ---- Roster badge: paint dot with the driver's face ---- */
+.kart-badge {
+  display: inline-grid; place-items: center; width: 28px; height: 28px; margin-left: var(--space-4);
+  border-radius: 50%; font-size: 16px; line-height: 1; vertical-align: middle;
+  background: var(--kart-paint); border: 2px solid var(--card); box-shadow: 0 2px 0 var(--outline);
+}
+
+/* ---- Garage dialog ---- */
+dialog.garage-dlg {
+  --fam: var(--fam-arcade); --fam-lip: color-mix(in srgb, var(--fam-arcade) 74%, #000); --on-fam: var(--on-fam-arcade);
+  --kart-paint: var(--fam-arcade);
+  width: min(560px, calc(100vw - var(--space-32))); max-height: calc(100dvh - var(--space-32));
+  padding: var(--space-24); overflow-y: auto; color: var(--ink); background: var(--card);
+  border: 2px solid var(--outline); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card), 0 var(--lift-lg) 0 var(--outline);
+}
+dialog.garage-dlg::backdrop { background: color-mix(in srgb, var(--ink) 45%, transparent); }
+[data-theme="night"] dialog.garage-dlg::backdrop { background: #000000b3; }
+dialog.garage-dlg[open] { animation: garage-in var(--dur-base) var(--ease); }
+@keyframes garage-in { from { opacity: 0; transform: translateY(var(--space-16)) scale(.98); } }
+.garage-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-12); }
+.garage-kicker { margin: 0; font: var(--text-caption); text-transform: uppercase; letter-spacing: .06em; color: var(--fam-arcade-deep); }
+[data-theme="night"] .garage-kicker { color: var(--fam-arcade); }
+.garage-head h2 { margin: 0; font: var(--text-heading); }
+
+/* The stage: a paint-tinted spotlight, the turntable, a name plate. */
+.garage-stage {
+  position: relative; margin: var(--space-16) 0 var(--space-8); aspect-ratio: 2 / 1; overflow: hidden;
+  border-radius: var(--radius-lg); border: 2px solid var(--outline);
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 62%, color-mix(in srgb, var(--kart-paint) 38%, var(--card)) 0%, transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--kart-paint) 12%, var(--well)) 0%, var(--well) 100%);
+}
+.garage-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; opacity: 0; transition: opacity var(--dur-base) var(--ease); }
+.garage-dlg.is-live .garage-stage canvas { opacity: 1; }
+.garage-flat { position: absolute; inset: 0; display: grid; place-items: center; }
+.garage-flat span {
+  width: 112px; height: 112px; display: grid; place-items: center; font-size: 64px; line-height: 1; border-radius: 50%;
+  background: var(--kart-paint); box-shadow: inset 0 -8px 0 color-mix(in srgb, var(--kart-paint) 70%, #000), 0 var(--lift) 0 var(--outline);
+}
+.garage-dlg.is-live .garage-flat { display: none; }
+.garage-dlg:not(.is-live, .is-flat) .garage-flat span { animation: garage-wait 1.2s var(--ease) infinite alternate; }
+@keyframes garage-wait { to { transform: scale(.94); opacity: .7; } }
+.garage-stage.is-swap canvas, .garage-stage.is-swap .garage-flat span { animation: garage-pop var(--dur-base) var(--ease); }
+@keyframes garage-pop { from { transform: scale(.94); } }
+.garage-plate {
+  position: absolute; left: var(--space-12); bottom: var(--space-12); margin: 0; max-width: calc(100% - var(--space-24));
+  display: flex; flex-direction: column; padding: var(--space-8) var(--space-12); border-radius: var(--radius-md);
+  background: var(--card); border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline);
+}
+.garage-plate b { font: var(--text-button); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.garage-plate span { font: var(--text-caption); color: var(--ink-dim); }
+.garage-stamp {
+  position: absolute; top: 40%; left: 50%; margin: 0; padding: var(--space-4) var(--space-24);
+  font: 800 44px/1.1 var(--font-display); color: var(--on-fam); background: var(--fam);
+  border: 3px solid var(--fam-lip); border-radius: var(--radius-lg); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+  opacity: 0; transform: translate(-50%, -50%) rotate(-8deg) scale(1.6); pointer-events: none;
+}
+.garage-dlg.is-ready .garage-stamp { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(1); transition: transform var(--dur-base) var(--ease), opacity var(--dur-quick) var(--ease); }
+
+.garage-sec { margin-top: var(--space-16); }
+.garage-sec h3 { margin: 0 0 var(--space-8); font: var(--text-title); }
+
+/* Driver cards: portrait, name, one-line flavour. */
+.garage-drivers { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-8); }
+.garage-driver {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding: var(--space-8) var(--space-4) var(--space-12);
+  min-width: 0; cursor: pointer; color: var(--ink); text-align: center;
+  background: var(--well); border: 2px solid var(--outline); border-radius: var(--radius-lg); box-shadow: 0 var(--lift-sm) 0 var(--outline);
+  transition: transform var(--dur-quick) var(--ease);
+}
+.garage-portrait {
+  position: relative; width: 100%; aspect-ratio: 4 / 3; display: grid; place-items: center; overflow: hidden;
+  border-radius: var(--radius-md); background: color-mix(in srgb, var(--kart-paint) 22%, var(--card));
+}
+.garage-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.garage-emoji { font-size: 40px; line-height: 1; }
+.garage-driver.has-portrait .garage-emoji { display: none; }
+.garage-driver b { font: var(--text-button-sm); }
+.garage-blurb { font: var(--text-caption); color: var(--ink-dim); line-height: 1.25; }
+.garage-driver[aria-checked="true"] { background: var(--fam-soft); border-color: var(--fam); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+.garage-driver[aria-checked="true"] .garage-portrait::after {
+  content: "✓"; position: absolute; top: var(--space-4); right: var(--space-4); width: 24px; height: 24px; display: grid; place-items: center;
+  border-radius: 50%; font: 800 14px/1 var(--font-body); color: var(--on-fam); background: var(--fam);
+}
+.garage-driver:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+@media (hover: hover) { .garage-driver:hover:not([aria-checked="true"]) { transform: translateY(-2px); } }
+
+/* Paint: big round swatches, ringed when chosen. */
+.garage-paints { display: grid; grid-template-columns: repeat(8, 1fr); gap: var(--space-8); }
+.garage-paint {
+  aspect-ratio: 1; min-width: 44px; padding: 0; border-radius: 50%; cursor: pointer;
+  background: var(--kart-paint); border: 3px solid var(--card);
+  box-shadow: 0 0 0 2px var(--outline), inset 0 -6px 0 color-mix(in srgb, var(--kart-paint) 70%, #000);
+  transition: transform var(--dur-quick) var(--ease);
+}
+.garage-paint[aria-checked="true"] { box-shadow: 0 0 0 4px var(--ink), inset 0 -6px 0 color-mix(in srgb, var(--kart-paint) 70%, #000); transform: scale(1.06); }
+.garage-paint:active { transform: scale(.94); }
+@media (hover: hover) { .garage-paint:hover:not([aria-checked="true"]) { transform: translateY(-2px); } }
+:is(.garage-driver, .garage-paint):focus-visible { outline: var(--focus-ring); outline-offset: 4px; }
+
+.garage-note:empty { display: none; }
+.garage-note { margin: 0 0 var(--space-8); font: var(--text-caption); color: var(--ink-dim); text-align: center; }
+.garage-foot { position: sticky; bottom: calc(-1 * var(--space-24)); margin: var(--space-8) calc(-1 * var(--space-24)) calc(-1 * var(--space-24)); padding: var(--space-12) var(--space-24) var(--space-24); background: var(--card); }
+body .garage-dlg .btn.garage-ready {
+  width: 100%; min-height: var(--control-h-lg); font: var(--text-button); font-size: 22px;
+  color: var(--on-fam); background: var(--fam); border-color: var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+.garage-dlg.is-ready .garage-ready { transform: translateY(var(--lift)); box-shadow: none; }
+
+@media (max-width: 560px) {
+  dialog.garage-dlg { width: calc(100vw - var(--space-16)); max-height: calc(100dvh - var(--space-16)); padding: var(--space-16); }
+  .garage-foot { bottom: calc(-1 * var(--space-16)); margin: var(--space-8) calc(-1 * var(--space-16)) calc(-1 * var(--space-16)); padding: var(--space-12) var(--space-16) max(var(--space-16), env(safe-area-inset-bottom)); }
+  .garage-stage { aspect-ratio: 4 / 3; }
+  .garage-paints { grid-template-columns: repeat(4, 1fr); }
+  .garage-blurb { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.garage-dlg[open], .garage-stage.is-swap canvas, .garage-stage.is-swap .garage-flat span { animation: none; }
+  .garage-dlg.is-ready .garage-stamp { transition: opacity var(--dur-quick) var(--ease); transform: translate(-50%, -50%) rotate(-8deg); }
+}
+
+/* ---- Lobby catalogue bar: search, a sort track, and toggle pills ---- */
+.catbar .chip#fitsTog, .catbar .chip#custTog { border-radius: var(--radius-pill); padding: 0 var(--space-16); box-shadow: 0 var(--lift-sm) 0 var(--outline); }
+.catbar .chip[aria-pressed="true"]#fitsTog, .catbar .chip[aria-pressed="true"]#custTog { box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+.catbar .chip#fitsTog:not([aria-pressed="true"])::before, .catbar .chip#custTog:not([aria-pressed="true"])::before { content: "+"; margin-right: var(--space-8); font-weight: 800; color: var(--ink-dim); }
+@media (max-width: 760px) {
+  .catbar { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+  .catbar input[type="text"] { flex: 1 1 100%; max-width: none; }
+  .catbar .catpick { flex: 1 1 100%; }
+  .catbar .catpick .picker-seg.tb-seg { width: 100%; }
+  .catbar .catpick .picker-seg.tb-seg > button { flex: 1 0 auto; }
+  .catbar .chip#fitsTog, .catbar .chip#custTog { width: auto; flex: 0 0 auto; height: var(--control-h-sm); }
+}
+
+/* ---- Pocket Karts setup: rules as tiles ---- */
+.kart-setup .ks-rules .ks-rule-row { gap: var(--space-12); }
+.kart-setup .ks-rule-slot .ks-rule {
+  padding: var(--space-12); border-radius: var(--radius-lg); background: var(--well);
+  border: 2px solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline);
+}
+.kart-setup .ks-stepper { display: grid; grid-template-columns: var(--control-h) 1fr var(--control-h); gap: var(--space-8); align-items: center; border: 0; background: none; }
+.kart-setup .ks-stepper input[type="number"] {
+  border: 0; background: transparent; box-shadow: none; text-align: center; min-height: var(--control-h);
+  font: 800 32px/1 var(--font-display); color: var(--ink); font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+}
+.kart-setup .ks-stepper input::-webkit-inner-spin-button, .kart-setup .ks-stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.kart-setup .ks-stepper button {
+  width: var(--control-h); height: var(--control-h); border-radius: var(--radius-pill); cursor: pointer;
+  font: 800 24px/1 var(--font-display); color: var(--on-fam); background: var(--fam);
+  border: 2px solid var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip);
+}
+.kart-setup .ks-stepper button:active:not(:disabled) { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.kart-setup .ks-stepper button:disabled { color: var(--ink-dim); background: var(--line); border-color: var(--outline); box-shadow: none; cursor: not-allowed; }
+.kart-setup .ks-off .ks-stepper input { color: var(--ink-dim); }
+.gm-setup .gm-fold > summary .gm-range { margin-right: auto; }
+body .gm-setup .btn.gm-reset { border-color: transparent; box-shadow: none; background: transparent; }
+.gm-tiles { grid-auto-flow: dense; }
+.kart-setup .ks-stepper input[type="number"] { width: 100%; padding: 0; -webkit-text-fill-color: currentColor; opacity: 1; }
+.gm-setup .gm-enum .tb-seg > button { padding-inline: var(--space-8); text-overflow: clip; }
+@media (max-width: 560px) {
+  .kart-setup .ks-rule-row > .ks-rule, .kart-setup .ks-rule-row > .ks-rule-slot { flex: 1 1 100%; }
+  .kart-setup .ks-rule-row .ks-choices .ks-choice { padding-inline: var(--space-4); }
+}
+.seat-av { position: relative; }
+.seat-av .kart-badge { position: absolute; right: -6px; bottom: -4px; margin: 0; }

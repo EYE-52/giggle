@@ -4,7 +4,7 @@
  * scripts/check-game.js cannot drift. No dependencies, no I/O. */
 
 const LIMITS = {
-  ROOM_CAP: 24, // max seats (connected + disconnected) per room
+  ROOM_CAP: 32, // max seats (connected + disconnected) per room
   ROOM_GRACE_MS: 120000, // keep an emptied room briefly so a refresh can resume
   MAX_SETTINGS_KEYS: 16,
   MAX_PACK_KEYS: 4,
