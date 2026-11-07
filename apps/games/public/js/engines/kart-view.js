@@ -1,4 +1,4 @@
-import {WEAPON_IDS} from './kart-weapon-contract.mjs';
+import {WEAPON_IDS,CURATED_MUZZLE,weaponForward,normalizeWeapon} from './kart-weapon-contract.mjs';
 import {paintKartWeapon,createKartWeaponRoulette} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {kartResultView} from './kart-results.mjs';
@@ -198,7 +198,13 @@ export function createKartView(viewConfig) {
   let sceneState = null;
   const feedback = createKartFeedback();
   let poseStore = createPoseStore();
-  let physicalPrediction,physicalReady,physicalSeq=0,physicalLocalPose;
+  let physicalPrediction,physicalReady,physicalSeq=0,physicalLocalPose,physicalPending,localFlash;
+  const shotPlayback=createProjectilePlayback();
+  function flushPhysical(){
+    if(!physicalPending||!physicalPrediction)return;
+    const pending=physicalPending;physicalPending=null;
+    physicalPrediction.ingest(pending.snapshot,pending.now,pending.serverAt);
+  }
   let keys = new Set();
   let touch = { gas: false, brake: false, drift: false, nitro: false };
   let autoGas = false;
@@ -220,6 +226,11 @@ export function createKartView(viewConfig) {
     audio?.cue(me.weapon);
     localFires.push({ weapon: me.weapon, at: nowMs() });
     localRecoil = true;
+    const kind=normalizeWeapon(me.weapon),pose=physicalLocalPose?.physicalPose||me.physicalPose;
+    if(['machinegun','trishot'].includes(kind)&&pose){
+      const q=pose.rotation,v={x:CURATED_MUZZLE.x,y:CURATED_MUZZLE.y,z:CURATED_MUZZLE.z},t={x:2*(q.y*v.z-q.z*v.y),y:2*(q.z*v.x-q.x*v.z),z:2*(q.x*v.y-q.y*v.x)};
+      localFlash={kind,at:nowMs(),position:{x:pose.position.x+v.x+q.w*t.x+q.y*t.z-q.z*t.y,y:pose.position.y+v.y+q.w*t.y+q.z*t.x-q.x*t.z,z:pose.position.z+v.z+q.w*t.z+q.x*t.y-q.y*t.x},direction:weaponForward(q)};
+    }
   }
   function claimLocalFire(event) {
     const now = nowMs();
@@ -470,8 +481,8 @@ export function createKartView(viewConfig) {
 
   // The same retirement boundary protects WebGL and Canvas fallback. Static
   // mines are authority objects too: a disconnected/frozen round is not live.
-  function ordnanceFresh() {
-    return S?.phase!=='done'&&nowMs()-(lastSnapshotArrival??-Infinity)<=500&&apiRef?.context?.().connected!==false;
+  function ordnanceFresh(maxAge=500) {
+    return S?.phase!=='done'&&nowMs()-(lastSnapshotArrival??-Infinity)<=maxAge&&apiRef?.context?.().connected!==false;
   }
 
   /* Calibrated server time for HUD deadlines (api.now when the shell
@@ -1080,7 +1091,6 @@ export function createKartView(viewConfig) {
       const stars = new Map(); // id -> group (gem + pickup-zone ring)
       const crates = new Map(); // id -> group (box + pickup-zone ring)
       const statusOptions={time:0,elapsed:0,groundRoot:false};
-      const shotPlayback=createProjectilePlayback();
       const shotDirection=new THREE.Vector3(),shotForward=new THREE.Vector3(0,0,1);
       const zaps = new Map(); // id -> mesh (eased toward snapshots)
       const mines = new Map();
@@ -1202,6 +1212,7 @@ export function createKartView(viewConfig) {
       let impactEpoch=-1,impactSince=nowMs(),lastEffectTime=null;
       const frame = (dt, t) => {
         if (!S) return;
+        flushPhysical();
         if(S.phase==='done' && isBattle() && S.youDrive && S.garagePrices) {
           const spec=garagePreviewSpec();
           garageUI.preview(rootEl,garagePreviewKey(spec),()=>{
@@ -1230,11 +1241,15 @@ export function createKartView(viewConfig) {
         // Arena features: cannons, portals, fall zones (map.features + arenaEvents).
         structures.sync(S.map);structures.animate();
         arena.sync(S.map);arena.ingest(S.arenaEvents,S.karts);arena.animate(effectDt,t,S,poses);
+        if(localFlash){
+          if(nowMs()-localFlash.at<150){const e={type:'fire',weapon:localFlash.kind,position:localFlash.position,direction:localFlash.direction};impactFX.emit(e);arsenalFX.event(e);}
+          localFlash=null;
+        }
         if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
         for(const e of acceptedEffects){if(effectSeen.has(e.id))continue;effectSeen.add(e.id);
-          if(e.at>=impactSince&&e.position){impactFX.emit(e);if(e.kind==='blast'&&e.weapon==='nuke'){const own=S.karts.find(k=>k.pid===S.you),p=own?.physicalPose?.position;if(own&&Math.hypot((p?.x??own.x)-e.position.x,(p?.y??0)-e.position.y,(p?.z??own.z)-e.position.z)<14)hitFx?.rumble?.();}}
+          if(e.at>=impactSince&&e.position&&!(e.kind==='fire'&&e.pid===S.you&&['machinegun','trishot'].includes(e.weapon)&&nowMs()-localRecoilAt<800)){impactFX.emit(e);if(e.kind==='blast'&&e.weapon==='nuke'){const own=S.karts.find(k=>k.pid===S.you),p=own?.physicalPose?.position;if(own&&Math.hypot((p?.x??own.x)-e.position.x,(p?.y??0)-e.position.y,(p?.z??own.z)-e.position.z)<14)hitFx?.rumble?.();}}
           if(e.kind==='fire'&&!(e.pid===S.you&&nowMs()-localRecoilAt<800))combat.recoil(karts.get(e.pid)?.userData.rig);
           if((e.kind==='fire'||e.kind==='impact')&&e.position){
             let cue=null;
@@ -1398,9 +1413,9 @@ export function createKartView(viewConfig) {
         }
         // Authoritative velocity at the calibrated clock. No chasing packet
         // positions: easing fast shots made them visibly slow and jerky.
-        shotPlayback.ingest(S.zaps,S.simAt);
+        shotPlayback.setDelay(physicalPrediction?.remoteDelay()??100);
         const liveZ = new Set();
-        const currentZ=(ordnanceFresh()?S.zaps:[])||[];
+        const currentZ=(ordnanceFresh(1000)?S.zaps:[])||[];
         for(const z of currentZ)liveZ.add(z.id);
         for(const [id,mesh]of zaps)if(!liveZ.has(id)){mesh.visible=false;shotPools.get(mesh.userData.combat.kind)?.push(mesh);zaps.delete(id);}
         for (const z of currentZ) {
@@ -1568,6 +1583,8 @@ export function createKartView(viewConfig) {
 
   function drawFallback() {
     if (!fbCanvas || !S) return;
+    flushPhysical();
+    shotPlayback.setDelay(physicalPrediction?.remoteDelay()??100);
     const ctx = fbCanvas.getContext('2d');
     if (!ctx) return;
     // SAME shared poses as WebGL (predicted self, eased remotes) — one
@@ -1656,11 +1673,14 @@ export function createKartView(viewConfig) {
       ctx.arc(px(c.x), pz(c.z), Math.max(4, 2.4 * scale), 0, Math.PI * 2);
       ctx.stroke();
     }
-    for (const z of (ordnanceFresh()?S.zaps:[]) || []) {
-      const p=projectilePose(z,S,serverNow());if(!p.visible)continue;
+    for (const z of (ordnanceFresh(1000)?S.zaps:[]) || []) {
+      const p=shotPlayback.sample(z,S,serverNow(),{direction:{}});if(!p.visible)continue;
       ctx.strokeStyle=z.kind==='trishot'?'#ffad69':z.kind==='cannon'?'#ffda58':z.kind==='missile'?'#91d451':z.kind==='boomerang'?'#ff8a3c':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
       const angle=Number.isFinite(z.vx)&&Number.isFinite(z.vz)?Math.atan2(z.vx,z.vz):p.angle;
       ctx.beginPath();ctx.moveTo(px(p.x),pz(p.z));ctx.lineTo(px(p.x-Math.sin(angle)*2),pz(p.z-Math.cos(angle)*2));ctx.stroke();
+    }
+    if(localFlash){
+      if(nowMs()-localFlash.at<100){ctx.fillStyle='#fff3a0';ctx.beginPath();ctx.arc(px(localFlash.position.x),pz(localFlash.position.z),Math.max(3,scale*.6),0,Math.PI*2);ctx.fill();}else localFlash=null;
     }
     for (const m of (ordnanceFresh()?S.mines:[]) || []) {
       ctx.fillStyle = m.armed ? '#ff83b8' : '#91627a'; ctx.beginPath();
@@ -1731,7 +1751,7 @@ export function createKartView(viewConfig) {
   }
 
   function disposeAll() {
-    physicalPrediction?.dispose();physicalPrediction=null;physicalReady=null;physicalSeq=0;physicalLocalPose=null;
+    physicalPrediction?.dispose();physicalPrediction=null;physicalReady=null;physicalSeq=0;physicalLocalPose=null;physicalPending=null;localFlash=null;shotPlayback.reset();
     mountGen += 1;
     // Tell the server zero BEFORE api/S are nulled when currently active.
     // Silent stick reset first (no onChange during teardown), then one zero
@@ -2100,12 +2120,13 @@ export function createKartView(viewConfig) {
     if(S?.instanceId===Snew?.instanceId&&(
       Number.isFinite(S?.simTick)&&Number.isFinite(Snew?.simTick)&&Snew.simTick<S.simTick||
       Number.isFinite(S?.simAt)&&Number.isFinite(Snew?.simAt)&&Snew.simAt<S.simAt))return;
+    if(S?.instanceId!==Snew.instanceId||S?.map?.id!==Snew.map?.id){shotPlayback.reset();localFlash=null;physicalPending=null;}
     const advanced=!S||Snew.instanceId!==S.instanceId||(!Number.isFinite(Snew.simTick)&&!Number.isFinite(Snew.simAt))||Snew.simTick!==S.simTick||Snew.simAt!==S.simAt;
     const life=state=>`${state?.instanceId}:${state?.you}:${state?.inputAck?.life}:${state?.inputAck?.controlEpoch}`;
     if(Snew?.audioBaseline||!S||Snew.instanceId!==S.instanceId||(Number.isFinite(S.simAt)&&Number.isFinite(Snew?.simAt)&&Snew.simAt-S.simAt>1000)){
       firstEvents=true;feedback.reset();seenEvents.clear();feedbackEpoch++;
     }else if(life(Snew)!==life(S)){
-      feedback.clearPresentation();feedbackEpoch++;
+      feedback.clearPresentation();feedbackEpoch++;localFlash=null;
     }
     if (!rootEl || rootEl !== el) {
       // Shell re-mounted the element without mount(): rebuild, then apply
@@ -2121,7 +2142,10 @@ export function createKartView(viewConfig) {
     if(advanced||Snew.audioBaseline)lastSnapshotArrival=nowMs();
     if(S.motionProfile&&!physicalReady){const gen=mountGen;physicalReady=loadClassicPhysics().then(R=>{if(gen!==mountGen)return;physicalPrediction=createClassicPrediction(R);physicalPrediction.ingest(S,nowMs(),serverNow());});}
     if(S.motionProfile&&physicalPrediction&&S.inputAck?.life!==physicalPrediction.life){atomicStop();physicalPrediction.life=S.inputAck?.life;}
-    physicalPrediction?.ingest(S,nowMs(),serverNow());
+    const receivedAt=nowMs(),receivedServerAt=serverNow();
+    physicalPrediction?.observe(S,receivedAt,receivedServerAt);
+    if(physicalPrediction)physicalPending={snapshot:S,now:receivedAt,serverAt:receivedServerAt};
+    shotPlayback.ingest(S.zaps,S.simAt);
     // Authoritative snapshot: reconcile prediction (self) and retarget
     // remotes. Clears the local boost carry — the snapshot's boost state
     // (adopted above) now drives visuals. Bounded: one flag, one tick.

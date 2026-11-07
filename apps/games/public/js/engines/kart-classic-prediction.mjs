@@ -32,9 +32,38 @@ function remoteIntent(k,phase){
 }
 export function createClassicPrediction(R){
   const hull=new R.Cuboid(config.chassis.half.x,config.chassis.half.y,config.chassis.half.z);
-  let selfId,world,state,identity,lastAt=0,lastSeq=0,history=[],elapsed=0,retired=false,lastLife,lastControlEpoch,lastDraw,correction,nearField=false,peerWeights=new Map(),advancedAt=null;
+  let selfId,world,state,identity,lastAt=0,lastSeq=0,history=[],elapsed=0,retired=false,lastLife,lastControlEpoch,lastPoseEpoch,lastDraw,correction,observed,observedIdentity,driving,nearField=false,peerWeights=new Map(),advancedAt=null;
   // Remotes play back on SERVER time with an adaptive delay (toolkit buffer).
-  const remotes=createInterpolationBuffer();
+  const remotes=createInterpolationBuffer({maxDelay:250}),remoteVisual=new Map(),remoteStamps=new Map();
+  const counters={corrections:0,snaps:0,maxErrorM:0,starvedMs:0,lastAgeMs:0};
+  const yaw=q=>Math.atan2(2*(q.x*q.z+q.w*q.y),1-2*(q.x*q.x+q.y*q.y));
+  const sameIntent=(a,b)=>a.steer===b.steer&&a.throttle===b.throttle&&!!a.drift===!!b.drift&&!!a.nitro===!!b.nitro&&!!a.boost===!!b.boost;
+  function visualError(before,p,now){
+    const inv={x:-p.rotation.x,y:-p.rotation.y,z:-p.rotation.z,w:p.rotation.w};
+    return {offset:{x:before.position.x-p.position.x,y:before.position.y-p.position.y,z:before.position.z-p.position.z},rotation:multiply(before.rotation,inv),at:now};
+  }
+  function corrected(p,c,now,speed,tau){
+    const dt=Math.max(0,now-c.at),size=Math.hypot(c.offset.x,c.offset.y,c.offset.z);
+    const consumed=Math.min(1-Math.exp(-dt/tau),size>0?speed*dt/1000/size:1),remaining=1-consumed;
+    c.offset={x:c.offset.x*remaining,y:c.offset.y*remaining,z:c.offset.z*remaining};
+    c.rotation=slerp(c.rotation,identityRotation,Math.min(1-Math.exp(-dt/tau),1));c.at=Math.max(c.at,now);
+    return {...p,position:{x:p.position.x+c.offset.x,y:p.position.y+c.offset.y,z:p.position.z+c.offset.z},rotation:multiply(c.rotation,p.rotation)};
+  }
+  function observe(snapshot,now,serverAt=now){
+    if(retired||observed===snapshot)return;
+    observed=snapshot;const next=snapshot.instanceId+':'+snapshot.map.id;
+    if(next!==observedIdentity){observedIdentity=next;remotes.clear();remoteVisual.clear();remoteStamps.clear();advancedAt=null;}
+    const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt:serverAt;
+    remotes.observe(simAt,serverAt);
+    const live=new Set();
+    for(const k of snapshot.karts){if(k.pid===snapshot.you||!k.physicalPose)continue;live.add(k.pid);
+      const at=simAt-(k.rtAge||0),life=k.spawnSeq+':'+k.physicalPose.epoch,previous=remoteStamps.get(k.pid);
+      remotes.push(k.pid,at,k.connected===false||k.respawn>0?{...k.physicalPose,linearVelocity:{x:0,y:0,z:0}}:k.physicalPose,{life});
+      if(!previous||previous.life!==life){remoteVisual.delete(k.pid);remoteStamps.set(k.pid,{at,life});}
+      else if(at>previous.at)remoteStamps.set(k.pid,{at,life});
+    }
+    for(const id of remoteStamps.keys())if(!live.has(id)){remoteStamps.delete(id);remoteVisual.delete(id);remotes.remove(id);}
+  }
   // Big matches simulate only karts near the local driver; distant ones are
   // drawn from the interpolation buffer and cannot touch the local kart.
   const NEAR_SIM=45;
@@ -52,55 +81,61 @@ export function createClassicPrediction(R){
   function remoteSample(pid,serverAt){advanceRemotes(serverAt);return remotes.sample(pid,serverAt,blendPose);}
   function ingest(snapshot,now,serverAt=now){
     if(retired)return;
-    const next=snapshot.instanceId+':'+snapshot.map.id;
-    if(next!==identity){world?.dispose();identity=next;state={map:snapshot.map.id,half:snapshot.map.half,blocks:snapshot.map.blocks,pads:snapshot.map.pads,surfaces:snapshot.map.surfaces,features:snapshot.map.features,roads:snapshot.map.roads,offroad:snapshot.map.offroad,barriers:snapshot.map.barriers,ramps:snapshot.map.ramps,mode:snapshot.mode,karts:snapshot.karts.map(k=>({...structuredClone(k),input:neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage})),physicalEvents:[],physicalEventSeq:0};world=createClassicMotion(R,config,state);history=[];lastSeq=0;elapsed=0;lastDraw=null;correction=null;remotes.clear();advancedAt=null;peerWeights.clear();}
-    const previous=lastDraw;
+    observe(snapshot,now,serverAt);
+    const next=snapshot.instanceId+':'+snapshot.map.id,changed=next!==identity;
+    const oldSelf=state?.karts.find(k=>k.pid===selfId),before=oldSelf?.physicalPose?stepBlend(oldSelf):null;
+    const previous=before&&correction?{...before,position:{x:before.position.x+correction.offset.x,y:before.position.y+correction.offset.y,z:before.position.z+correction.offset.z},rotation:multiply(correction.rotation,before.rotation)}:before;
+    if(changed){world?.dispose();identity=next;state={map:snapshot.map.id,half:snapshot.map.half,blocks:snapshot.map.blocks,pads:snapshot.map.pads,surfaces:snapshot.map.surfaces,features:snapshot.map.features,roads:snapshot.map.roads,offroad:snapshot.map.offroad,barriers:snapshot.map.barriers,ramps:snapshot.map.ramps,mode:snapshot.mode,karts:snapshot.karts.map(k=>({...structuredClone(k),input:neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage})),physicalEvents:[],physicalEventSeq:0};world=createClassicMotion(R,config,state);history=[];lastSeq=0;elapsed=0;lastDraw=null;correction=null;peerWeights.clear();}
     selfId=snapshot.you;const self=state.karts.find(k=>k.pid===snapshot.you);
     const simAt=Number.isFinite(snapshot.simAt)?snapshot.simAt:serverAt;
-    remotes.observe(simAt,serverAt);
-    // rtAge: interest-managed karts not updated this frame keep their older pose time.
-    for(const k of snapshot.karts){if(k.pid===snapshot.you||!k.physicalPose)continue;remotes.push(k.pid,simAt-(k.rtAge||0),k.physicalPose,{life:k.spawnSeq+':'+k.physicalPose.epoch});}
     const fresh=serverAt-simAt<=250&&simAt<=serverAt+5;
     world.beginCorrection();
     for(const k of state.karts){const source=snapshot.karts.find(s=>s.pid===k.pid);if(!source?.physicalPose)continue;const renewed=k.spawnSeq!==source.spawnSeq||k.physicalPose?.epoch!==source.physicalPose.epoch;
       // A stale far kart (rtAge > 0) keeps simulating from its local pose; it is restored again when its next record arrives.
       if(source.rtAge>0&&!renewed&&k.physicalPose){Object.assign(k,{...structuredClone(source),physicalPose:k.physicalPose,x:k.x,z:k.z,angle:k.angle,speed:k.speed},{input:fresh?remoteIntent(source,snapshot.phase):neutralIntent(),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage});continue;}
       Object.assign(k,structuredClone(source),{_driftHeld:!!source.driftDirection&&source.drifting===true,input:k.pid===snapshot.you||renewed||!fresh?neutralIntent():remoteIntent(source,snapshot.phase),upgrades:snapshot.upgrades?.[k.pid],garage:snapshot.garage});world.restore(k,source.physicalPose);}
-    const reset=self?.spawnSeq!==lastLife||snapshot.inputAck?.controlEpoch!==lastControlEpoch||now-lastAt>250;
-    if(reset){history=[];lastDraw=null;correction=null;lastLife=self?.spawnSeq;lastControlEpoch=snapshot.inputAck?.controlEpoch;}
+    const reset=changed||self?.spawnSeq!==lastLife||self?.physicalPose?.epoch!==lastPoseEpoch||snapshot.inputAck?.controlEpoch!==lastControlEpoch;
+    if(reset){history=[];lastDraw=null;correction=null;lastLife=self?.spawnSeq;lastControlEpoch=snapshot.inputAck?.controlEpoch;lastPoseEpoch=self?.physicalPose?.epoch;if(previous)counters.snaps++;}
     // ACK is an intent receipt, not the end of the time simulated with it.
     // Replay only the local intent intervals after this authoritative pose's
     // calibrated server timestamp, including intervals using the ACKed intent.
-    history=history.filter(h=>h.end>simAt&&now-h.at<=250).slice(-30);
-    if(serverAt-simAt>250||simAt>serverAt+5)history=[];
-    if(self&&snapshot.phase==='drive'&&!(self.respawn>0))for(const h of history){const dt=Math.max(0,Math.min(h.end,serverAt)-Math.max(h.start,simAt))/1000;if(dt>0){self.input=h.intent;world.advance(dt,online());}}
+    history=history.filter(h=>h.end>Math.max(simAt,serverAt-1500)&&now-h.at<=1500);
+    if(history.length)history[0].start=Math.max(history[0].start,serverAt-1500);
+    if(self&&snapshot.phase==='drive'&&snapshot.youDrive&&self.connected!==false&&!(self.respawn>0))for(const h of history){let dt=Math.max(0,Math.min(h.end,serverAt)-Math.max(h.start,simAt))/1000;const fixed=Math.round(dt/config.fixedDt)*config.fixedDt;if(Math.abs(fixed-dt)<1e-6)dt=fixed;self.input=h.intent;while(dt>1e-9){const step=Math.min(dt,.05);world.advance(step,online());dt-=step;}}
     else history=[];
     if(!reset&&previous&&self?.physicalPose){
-      const p=stepBlend(self),offset={x:previous.position.x-p.position.x,y:previous.position.y-p.position.y,z:previous.position.z-p.position.z};
-      const inv={x:-p.rotation.x,y:-p.rotation.y,z:-p.rotation.z,w:p.rotation.w},delta=multiply(previous.rotation,inv);
-      // Small network corrections blend only visually. Large/contact corrections snap
-      // to authority; the simulation is always restored immediately.
-      correction=Math.hypot(offset.x,offset.y,offset.z)<=.75&&Math.abs(delta.w)>=Math.cos(Math.PI/12)?{offset,rotation:delta,at:now}:null;
+      const p=stepBlend(self),c=visualError(previous,p,now),error=Math.hypot(c.offset.x,c.offset.y,c.offset.z),angle=Math.abs(Math.atan2(Math.sin(yaw(previous.rotation)-yaw(p.rotation)),Math.cos(yaw(previous.rotation)-yaw(p.rotation))));
+      counters.corrections++;counters.maxErrorM=Math.max(counters.maxErrorM,error);
+      if(error>8||angle>Math.PI/3){correction=null;counters.snaps++;}else correction=c;
     }
-    state.physicalEvents.length=0;lastAt=now;
+    state.physicalEvents.length=0;lastAt=now;counters.lastAgeMs=Math.max(0,serverAt-simAt);
   }
   return {
-    ingest,
+    observe,ingest,
+    stats:()=>({...counters}),
     sent(seq){lastSeq=seq;},
     frame(snapshot,intent,dt,now,serverAt=now){
+      if(driving!==snapshot.youDrive){remoteVisual.clear();driving=snapshot.youDrive;}
       if(world)advanceRemotes(serverAt);
       const self=state?.karts.find(k=>k.pid===snapshot.you);if(!world||!self)return null;
       nearField=snapshot.phase==='drive'&&snapshot.youDrive&&self.connected!==false&&!(self.respawn>0)&&now-lastAt<=250;
-      if(now-lastAt>250){history=[];correction=null;lastDraw=null;}
-      if(snapshot.phase==='drive'&&snapshot.youDrive&&!(self.respawn>0)&&now-lastAt<=250){
-        const step=Math.max(0,Math.min(dt,.05));self.input={...intent};world.advance(step,online());elapsed+=step;
-        if(step>0)history.push({seq:lastSeq,intent:{...intent},start:serverAt-step*1000,end:serverAt,at:now});while(history.length>30)history.shift();state.physicalEvents.length=0;
+      counters.starvedMs=Math.max(0,now-lastAt-1500);
+      history=history.filter(h=>now-h.at<=1500&&h.end>serverAt-1500);
+      if(history.length)history[0].start=Math.max(history[0].start,serverAt-1500);
+      if(snapshot.phase==='drive'&&snapshot.youDrive&&self.connected!==false&&!(self.respawn>0)&&now-lastAt<=1500){
+        const step=Math.max(0,Math.min(dt,.25));self.input={...intent};let left=step;
+        do{const sub=Math.min(left,.05);world.advance(sub,online());left-=sub;}while(left>1e-9);elapsed+=step;
+        if(step>0){const previous=history.at(-1),start=serverAt-step*1000;
+          if(previous&&Math.abs(previous.end-start)<1&&sameIntent(previous.intent,intent)){previous.end=serverAt;previous.at=now;previous.start=Math.max(previous.start,serverAt-1500);}
+          else history.push({seq:lastSeq,intent:{...intent},start,end:serverAt,at:now});
+        }state.physicalEvents.length=0;
       }
       let p=stepBlend(self);
-      if(correction){
-        const remaining=Math.max(0,1-(now-correction.at)/120),position={x:p.position.x+correction.offset.x*remaining,y:p.position.y+correction.offset.y*remaining,z:p.position.z+correction.offset.z*remaining},rotation=multiply(slerp(identityRotation,correction.rotation,remaining),p.rotation);
+      if(now-lastAt>1500&&lastDraw)p=lastDraw;
+      else if(correction){
+        const size=Math.hypot(correction.offset.x,correction.offset.y,correction.offset.z),visual=corrected(p,correction,now,12,Math.max(60,Math.min(140,90-size*10))),{position,rotation}=visual;
         const overlapsPeer=state.karts.some(k=>{if(k===self||k.connected===false||k.respawn>0)return false;const peer=k.physicalPose,contact=hull.contactShape(position,rotation,hull,peer.position,peer.rotation,.02);return contact&&contact.distance<-.02;});
-        if(remaining>0&&!world.overlapsStatic(position,rotation)&&!overlapsPeer)p={...p,position,rotation};else correction=null;
+        if(!world.overlapsStatic(position,rotation)&&!overlapsPeer)p=visual;else correction=null;
       }
       lastDraw=structuredClone(p);
       peerWeights.clear();
@@ -121,18 +156,28 @@ export function createClassicPrediction(R){
     },
     remote(pid,now,serverAt=now){
       let pose=remoteSample(pid,serverAt);if(!pose)return null;
-      const peer=state?.karts.find(k=>k.pid===pid),predicted=peer?.physicalPose;
-      if(nearField&&lastDraw&&predicted&&peer.connected!==false&&!(peer.respawn>0)&&now-lastAt<=250&&predicted.epoch===pose.epoch){
-        // Nearby rendered bodies use the same time as their collision proxies.
-        const weight=peerWeights.get(pid)||0;
-        if(weight>0){const position=mix(pose.position,predicted.position,weight),rotation=slerp(pose.rotation,predicted.rotation,weight);pose=world.overlapsStatic(position,rotation)?predicted:{...predicted,position,rotation};}
+      const stamp=remoteStamps.get(pid),visual=remoteVisual.get(pid),peer=state?.karts.find(k=>k.pid===pid),predicted=peer?.physicalPose;
+      const near=nearField&&lastDraw&&predicted&&peer.connected!==false&&!(peer.respawn>0)&&now-lastAt<=250&&predicted.epoch===pose.epoch&&(peerWeights.get(pid)||0)>0;
+      if(near){
+        const weight=peerWeights.get(pid),position=mix(pose.position,predicted.position,weight),rotation=slerp(pose.rotation,predicted.rotation,weight);
+        pose=world.overlapsStatic(position,rotation)?predicted:{...predicted,position,rotation};
       }
+      let residual=visual?.correction;
+      if(visual?.now===now&&visual.serverAt===serverAt&&!!visual.near===!!near)pose=visual.pose;
+      else if(visual&&visual.serverAt<=serverAt){
+        if(stamp?.at!==visual.stamp&&visual.ahead||!!visual.near!==!!near)residual=visualError(visual.pose,pose,now);
+        if(residual){
+          const draw=corrected(pose,residual,now,10,120),overlapsPeer=state?.karts.some(k=>{if(k.pid===pid||k.connected===false||k.respawn>0)return false;const other=k.pid===selfId&&lastDraw?lastDraw:k.physicalPose;if(!other)return false;const contact=hull.contactShape(draw.position,draw.rotation,hull,other.position,other.rotation,.02);return contact&&contact.distance<-.02;});
+          if(world?.overlapsStatic(draw.position,draw.rotation)||overlapsPeer)residual=null;else pose=draw;
+        }
+      }
+      remoteVisual.set(pid,{pose,now,serverAt,near:!!near,stamp:stamp?.at,ahead:serverAt-remotes.stats().delay>(stamp?.at??serverAt),correction:residual});
       return {x:pose.position.x,y:pose.position.y,z:pose.position.z,angle:Math.atan2(2*(pose.rotation.x*pose.rotation.z+pose.rotation.w*pose.rotation.y),1-2*(pose.rotation.x*pose.rotation.x+pose.rotation.y*pose.rotation.y)),speed:pose.speed,physicalPose:pose,flight:peer?.flight};
     },
     // Simulated (unblended) own pose, for diagnostics and tests.
     selfPose(){return state?.karts.find(k=>k.pid===selfId)?.physicalPose||null;},
     // Current remote playback delay (ms behind server time).
     remoteDelay:()=>remotes.stats().delay,
-    dispose(){retired=true;world?.dispose();world=null;state=null;history=[];},
+    dispose(){retired=true;world?.dispose();world=null;state=null;history=[];remotes.clear();remoteVisual.clear();remoteStamps.clear();observed=null;},
   };
 }

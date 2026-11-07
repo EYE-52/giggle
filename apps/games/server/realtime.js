@@ -147,6 +147,19 @@ function createTickGovernor({ levels = [33, 40, 50, 66], busyHigh = 0.55, busyLo
   };
 }
 
+// Opt-in room timing; callers keep this off the public state/socket path.
+function createTickTiming() {
+  const ticks=[];
+  return {
+    record(ms,at,late=false){ticks.push({ms,at,late});while(ticks.length&&ticks[0].at<at-10000)ticks.shift();},
+    stats(at=Date.now()){
+      while(ticks.length&&ticks[0].at<at-10000)ticks.shift();
+      const costs=ticks.map(t=>t.ms).sort((a,b)=>a-b),pct=p=>costs[Math.max(0,Math.ceil(costs.length*p)-1)]||0;
+      return {ticks:costs.length,p50:pct(.5),p99:pct(.99),max:costs.at(-1)||0,lateTicks:ticks.filter(t=>t.late).length};
+    },
+  };
+}
+
 const governor = createTickGovernor();
 
-module.exports = { createRealtimeChannel, createTickGovernor, governor, CAPABILITY: codec.CAPABILITY };
+module.exports = { createRealtimeChannel, createTickGovernor, createTickTiming, governor, CAPABILITY: codec.CAPABILITY };

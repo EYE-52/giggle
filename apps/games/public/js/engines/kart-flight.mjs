@@ -1,15 +1,17 @@
 /* Cosmetic flight only. Server sweeps/impacts remain authoritative. Render
  * at the calibrated server clock instead of easing after stale 10Hz points.
  * A short lead expires on missing packets, and stops at visible cover. */
+const PHYSICAL_LEAD=.15;
 export function projectilePose(shot, snapshot, serverNow) {
   const speed=Number(shot.speed)||({machinegun:140,trishot:95,missile:60,cannon:44,pulse:110,scatter:95,rocket:85,rail:160}[shot.kind]||110);
   const age=Number.isFinite(snapshot.simAt) ? Math.max(0,(serverNow-snapshot.simAt)/1000) : 0;
   const lead=Math.min(age,.2,Math.max(0,Number(shot.ttl)||0));
-  // Physical cover can include bridges/undersides absent from the planar
-  // map projection. Draw the accepted 3D position, never extrapolate it
-  // through an unseen surface; confirmed sweep cues cover short shots.
-  if(shot.physical===true)return {x:shot.x,y:shot.y,z:shot.z,angle:shot.angle,
-    direction:{x:shot.vx,y:shot.vy,z:shot.vz},visible:age<=.25&&age<(Number(shot.ttl)||0)};
+  // Bridges/undersides are absent from the planar cover projection.
+  if(shot.physical===true){
+    const t=Math.min(age,PHYSICAL_LEAD,Math.max(0,Number(shot.ttl)||0)),g=shot.kind==='cannon'?12:0;
+    return {x:shot.x+(shot.vx||0)*t,y:shot.y+(shot.vy||0)*t-.5*g*t*t,z:shot.z+(shot.vz||0)*t,angle:shot.angle,
+      direction:{x:shot.vx,y:(shot.vy||0)-g*t,z:shot.vz},visible:age<=PHYSICAL_LEAD&&age<(Number(shot.ttl)||0)};
+  }
   const dx=(Number.isFinite(shot.vx)?shot.vx:Math.sin(shot.angle)*speed)*lead, dz=(Number.isFinite(shot.vz)?shot.vz:Math.cos(shot.angle)*speed)*lead;
   let hit=1;
   const bound=snapshot.map?.bound||28;
@@ -55,33 +57,34 @@ export function grenadePose(g, snapshot, serverNow) {
   return {x:x+dx*hit,z:z+dz*hit,y,angle:Number(g.angle)||0,warning:g.warning===true,visible:age<=.25&&age<fuse};
 }
 
-// Interpolate only accepted physical samples. This removes the old 10 Hz
-// stop/start motion without guessing future hits, turns, or cover contacts.
-// The renderer owns `out`, so sampling makes no objects in a driving frame.
+// Physical shots share the remote playback clock and lead along velocity
+// during a stall. Only a newer authority packet can retire an absent shot.
 export function createProjectilePlayback(){
- const records=new Map();let stamp=null;
+ const records=new Map();let stamp=null,delay=100;
  function ingest(shots,simAt){
-  if(!Number.isFinite(simAt)||simAt===stamp)return;
-  const gap=stamp===null?0:simAt-stamp;
-  if(gap<0||gap>500)records.clear();
+  if(!Number.isFinite(simAt)||stamp!==null&&simAt<=stamp)return;
   stamp=simAt;
   for(const shot of shots||[]){
    let r=records.get(shot.id);
-   if(!r){r={previous:shot,current:shot,before:simAt,at:simAt};records.set(shot.id,r);}
-   else {r.previous=r.current;r.before=r.at;r.current=shot;r.at=simAt;}
+   if(!r){r={current:shot,list:[],at:simAt};records.set(shot.id,r);}
+   r.current=shot;r.at=simAt;r.list.push({at:simAt,shot});
+   while(r.list.length>1&&r.list[1].at<simAt-1500)r.list.shift();
   }
   for(const[id,r]of records)if(r.at!==simAt)records.delete(id);
  }
  function sample(shot,snapshot,now,out){
   if(shot.physical!==true)return projectilePose(shot,snapshot,now);
-  const r=records.get(shot.id),span=r?r.at-r.before:0;
-  const alpha=span>0?Math.max(0,Math.min(1,(now-Math.min(100,span)-r.before)/span)):1;
-  const a=r?.previous||shot,b=r?.current||shot;
-  out.x=a.x+(b.x-a.x)*alpha;out.y=a.y+(b.y-a.y)*alpha;out.z=a.z+(b.z-a.z)*alpha;
-  out.angle=shot.angle;const v=out.direction;
-  v.x=a.vx+(b.vx-a.vx)*alpha;v.y=a.vy+(b.vy-a.vy)*alpha;v.z=a.vz+(b.vz-a.vz)*alpha;
-  const age=Number.isFinite(snapshot.simAt)?Math.max(0,(now-snapshot.simAt)/1000):0;
-  out.visible=age<=.25&&age<shot.ttl;return out;
+  const r=records.get(shot.id),time=now-delay,at=r?.at??snapshot.simAt,age=Number.isFinite(at)?Math.max(0,(now-at)/1000):0;
+  let a=r?.current||shot,b=a,alpha=1;
+  if(r){
+   a=b=r.list[0].shot;
+   for(let i=r.list.length-1;i>0;i--)if(time>=r.list[i-1].at){const from=r.list[i-1],to=r.list[i];a=from.shot;b=to.shot;alpha=Math.max(0,Math.min(1,(time-from.at)/(to.at-from.at)));break;}
+  }
+  const ahead=Math.max(0,(time-at)/1000)||0,lead=Math.min(ahead,PHYSICAL_LEAD),g=b.kind==='cannon'?12:0;
+  out.x=a.x+(b.x-a.x)*alpha+(b.vx||0)*lead;out.y=a.y+(b.y-a.y)*alpha+(b.vy||0)*lead-.5*g*lead*lead;out.z=a.z+(b.z-a.z)*alpha+(b.vz||0)*lead;
+  out.angle=b.angle;const v=out.direction;
+  v.x=(a.vx||0)+((b.vx||0)-(a.vx||0))*alpha;v.y=(a.vy||0)+((b.vy||0)-(a.vy||0))*alpha-g*lead;v.z=(a.vz||0)+((b.vz||0)-(a.vz||0))*alpha;
+  out.visible=age<=1&&ahead<=PHYSICAL_LEAD&&ahead<(Number((r?.current||b).ttl)||0)&&(!r||time>=r.list[0].at)&&!(stamp>at&&!r);return out;
  }
- return {ingest,sample,reset(){stamp=null;records.clear();}};
+ return {ingest,sample,setDelay(ms){delay=Math.max(0,Number(ms)||0);},reset(){stamp=null;delay=100;records.clear();}};
 }

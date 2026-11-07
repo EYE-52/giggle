@@ -36,11 +36,11 @@ remoteClient.remote('remote',150);const midpoint=remoteClient.remote('remote',50
 assert.ok(Math.abs(midpoint.x-1)<1e-9,'remote xyz sampled midpoint');
 assert.ok(Math.abs(Math.abs(midpoint.angle)-Math.PI)<.001,'rotation follows short wrap arc at same midpoint');
 remoteClient.dispose();
-// Stale transport stops extrapolation and discards visual correction/history.
+// A short transport stall keeps local prediction running.
 k.connected=true;client.ingest(snap(),5000);
 const current=client.frame(snap(),{throttle:1,steer:0},.01,5010);
 const stale=client.frame(snap(),{throttle:1,steer:1},.05,5300);
-assert.deepEqual(stale.physicalPose.position,current.physicalPose.position,'>250ms dropout freezes physical prediction');
+assert.notDeepEqual(stale.physicalPose.position,current.physicalPose.position,'>250ms dropout keeps physical prediction running');
 // Life/epoch changes are exact hard corrections, never blended across respawn.
 k.spawnSeq=1;k.physicalPose={...k.physicalPose,epoch:1,position:{x:4,y:.65,z:4},linearVelocity:{x:0,y:0,z:0}};
 const fresh={...snap(),inputAck:{appliedInputSeq:0,controlEpoch:1}};
@@ -98,8 +98,8 @@ for(const profile of ['stationary','forward','turn','fresh','wall'])for(const ca
  prediction.ingest(epochOnly,t+40,epoch+t+40);
  const neutralEpoch=prediction.frame(epochOnly,{throttle:0,steer:0},0,t+40,epoch+t+40);
  assert.deepEqual(neutralEpoch.physicalPose.position,resetPose.physicalPose.position,'control epoch alone discards retired input timeline');
- const stopped=prediction.frame(renewed,{throttle:1,steer:1},.05,t+300,epoch+t+300);
- assert.deepEqual(stopped.physicalPose.position,resetPose.physicalPose.position,'250ms dropout freezes without held catch-up');
+ const stopped=prediction.frame(epochOnly,{throttle:1,steer:1},.05,t+1600,epoch+t+1600);
+ assert.deepEqual(stopped.physicalPose.position,resetPose.physicalPose.position,'1500ms starvation budget holds without clearing the timeline');
  prediction.dispose();physics.dispose();delayedMetrics.push({profile,cadence,maxError,maxStep,maxPhysicalError,checks});
 }
 console.log(JSON.stringify({delayedMetrics,scope:'actual Rapier deterministic FIFO timing fixtures; visual blend remains active; no native/network acceptance'}));
@@ -213,10 +213,10 @@ console.log(JSON.stringify({collisionMetrics,scope:'two actual Rapier worlds, fo
  const room={map:flatMap,mode:'battle',half:30,blocks:[{x:0,z:0,hw:2,hd:2}],pads:[],surfaces:[],karts:[make('a',0,16),make('b',4,0),make('c',4,3.5)],physicalEvents:[],physicalEventSeq:0};
  const physics=createClassicMotion(RAPIER,config,room),prediction=createClassicPrediction(RAPIER);
  const snapshot=()=>({instanceId:'cover',phase:'drive',you:'a',youDrive:true,mode:'battle',map:{id:flatMap,half:30,blocks:room.blocks,pads:[],surfaces:[]},karts:structuredClone(room.karts),inputAck:{controlEpoch:0}});
- const before=snapshot();prediction.ingest(before,0);room.karts[1].physicalPose.position={x:0,y:.65,z:4};room.karts[2].physicalPose.position={x:0,y:.65,z:7.5};const next=snapshot();prediction.ingest(next,100);prediction.frame(next,{throttle:0,steer:0},0,150);
- const remote=prediction.remote('b',150).physicalPose,hull=new RAPIER.Cuboid(config.chassis.half.x,config.chassis.half.y,config.chassis.half.z),cover=new RAPIER.Cuboid(2,.75,2);
+ const before=snapshot();prediction.ingest(before,0);room.karts[1].physicalPose.position={x:0,y:.65,z:4};room.karts[2].physicalPose.position={x:0,y:.65,z:7.5};const next=snapshot();prediction.ingest(next,100);prediction.frame(next,{throttle:0,steer:0},0,100);const middleAt=50+prediction.remoteDelay();prediction.frame(next,{throttle:0,steer:0},0,middleAt);
+ const remote=prediction.remote('b',middleAt).physicalPose,hull=new RAPIER.Cuboid(config.chassis.half.x,config.chassis.half.y,config.chassis.half.z),cover=new RAPIER.Cuboid(2,.75,2);
  assert.ok(hull.contactShape(remote.position,remote.rotation,cover,{x:0,y:.75,z:0},{x:0,y:0,z:0,w:1},10).distance>=0,'near-field curve cannot interpolate through cover');
- assert.deepEqual(prediction.remote('c',150).physicalPose.position,{x:0,y:Math.fround(.65),z:7.5},'static safety fallback moves the whole contact group to one predicted timeline');
+ assert.deepEqual(prediction.remote('c',middleAt).physicalPose.position,{x:0,y:Math.fround(.65),z:7.5},'static safety fallback moves the whole contact group to one predicted timeline');
  prediction.frame({...next,youDrive:false},{throttle:0,steer:0},0,50+prediction.remoteDelay());
  const initial=before.karts[1].physicalPose.position;
  assert.deepEqual(prediction.remote('b',50+prediction.remoteDelay()).physicalPose.position,{x:initial.x/2,y:initial.y+(.65-initial.y)*.5,z:initial.z+(4-initial.z)*.5},'non-driving role retains delayed interpolation');
@@ -238,4 +238,110 @@ console.log(JSON.stringify({collisionMetrics,scope:'two actual Rapier worlds, fo
  assert.ok(!snapshot.karts[0].flight,'no authoritative launch snapshot was injected');
  prediction.dispose();physics.dispose();
  console.log('KART_CANNON_PREDICTION_PASS: tube entry is visible before the next server snapshot');
+}
+
+// Bursty FIFO arrivals at real high-refresh frame rates. Keep all held
+// intervals, including the already ACKed intent, across a 600 ms stall.
+for(const hz of [120,144]){
+ const driver={pid:'self',x:0,z:0,angle:0,speed:0,input:{throttle:.3,steer:0},spawnSeq:0,connected:true,nitro:1};
+ const room={map:flatMap,mode:'battle',half:200,blocks:[],pads:[],surfaces:[],karts:[driver],physicalEvents:[],physicalEventSeq:0};
+ const physics=createClassicMotion(RAPIER,config,room),prediction=createClassicPrediction(RAPIER),seats=new Set(['self']),epoch=1700000000000;
+ const snapshot=t=>({instanceId:'burst-'+hz,phase:'drive',you:'self',youDrive:true,mode:'battle',map:{id:flatMap,half:200,blocks:[],pads:[],surfaces:[]},karts:[structuredClone(driver)],simAt:epoch+t,inputAck:{life:0,controlEpoch:0}});
+ const intent={throttle:.3,steer:0};let s=snapshot(0),previous,maxStep=0,at300,stale=[];
+ prediction.ingest(s,0,epoch);
+ for(let f=1;f<=hz*.6;f++){
+  const t=f*1000/hz;physics.advance(1/hz,seats);
+  if(!at300&&t>=300)at300=snapshot(t);
+  if(stale.length<10&&t>=stale.length*30+30)stale.push(snapshot(t));
+  const draw=prediction.frame(s,intent,1/hz,t,epoch+t);
+  if(previous)maxStep=Math.max(maxStep,Math.hypot(draw.x-previous.x,draw.y-previous.y,draw.z-previous.z));previous=draw;
+ }
+ assert.ok(previous.z>.2,'own kart advances through 600ms without a packet at '+hz+'Hz');
+ const arrival=600;at300.karts[0].physicalPose.position.x-=.8;
+ prediction.ingest(at300,arrival,epoch+arrival);
+ let draw=prediction.frame(s,intent,0,arrival,epoch+arrival);
+ assert.ok(Math.hypot(draw.x-previous.x,draw.y-previous.y,draw.z-previous.z)<.15,'late pose stays continuous');
+ for(let f=1;f<=hz*.2;f++){
+  const t=arrival+f*1000/hz;draw=prediction.frame(s,intent,1/hz,t,epoch+t);
+  maxStep=Math.max(maxStep,Math.hypot(draw.x-previous.x,draw.y-previous.y,draw.z-previous.z));previous=draw;
+ }
+ assert.ok(maxStep<.15,'no late-packet frame exceeds .15m: '+maxStep);
+ const before=prediction.stats().corrections;
+ for(const packet of stale)prediction.observe(packet,800,epoch+800);
+ const fresh=snapshot(800);fresh.karts[0].physicalPose.position.x+=.6;
+ prediction.observe(fresh,800,epoch+800);prediction.ingest(fresh,800,epoch+800);
+ const first=prediction.frame(fresh,intent,0,800,epoch+800),target=prediction.selfPose().position;
+ assert.equal(prediction.stats().corrections,before+1,'eleven observations do one authoritative replay');
+ assert.equal(prediction.stats().snaps,0,'stale burst and recovery never hard snap');
+ const error=Math.abs(first.x-target.x);let settled=first;
+ for(let f=1;f<=60;f++)settled=prediction.frame(fresh,intent,0,800+f*1000/60,epoch+800+f*1000/60);
+ assert.ok(Math.abs(settled.x-target.x)<error*.01,'remaining visual error decays');
+ assert.equal(prediction.stats().lastAgeMs,0);
+ prediction.frame(fresh,intent,0,2400,epoch+2400);assert.equal(prediction.stats().starvedMs,100);
+ const respawn={...fresh,karts:structuredClone(fresh.karts)};respawn.karts[0].spawnSeq++;respawn.karts[0].physicalPose.epoch++;respawn.karts[0].physicalPose.position={x:8,y:.75,z:8};
+ prediction.ingest(respawn,2400,epoch+2400);
+ assert.deepEqual(prediction.frame(respawn,intent,0,2400,epoch+2400).physicalPose.position,{x:8,y:.75,z:8},'real respawn still snaps');
+ assert.equal(prediction.stats().snaps,1);
+ prediction.dispose();physics.dispose();
+ console.log(JSON.stringify({burstHz:hz,maxStep,snapsBeforeRespawn:0}));
+}
+
+// Watcher playback recovers from held/extrapolated poses without a jump.
+{
+ const driver={pid:'remote',x:0,z:0,angle:0,speed:6,input:{throttle:0,steer:0},spawnSeq:0,connected:true};
+ const room={map:flatMap,half:200,blocks:[],pads:[],surfaces:[],karts:[driver],physicalEvents:[],physicalEventSeq:0};
+ const physics=createClassicMotion(RAPIER,config,room),prediction=createClassicPrediction(RAPIER);
+ const snapshot=t=>({instanceId:'remote-burst',phase:'drive',you:'watcher',youDrive:false,map:{id:flatMap,half:200,blocks:[],pads:[],surfaces:[]},simAt:t,karts:[{...structuredClone(driver),physicalPose:{...structuredClone(driver.physicalPose),position:{x:t*.006,y:.65,z:0},linearVelocity:{x:6,y:0,z:0}}}]});
+ prediction.ingest(snapshot(0),40,40);prediction.ingest(snapshot(33),73,73);
+ let previous,maxStep=0;
+ for(let f=5;f<100;f++){
+  const now=f*1000/60;
+  if(f===42)prediction.observe(snapshot(now-70),now,now);
+  if(f>42&&f%2===0)prediction.observe(snapshot(now-70),now,now);
+  const pose=prediction.remote('remote',now,now);
+  if(previous)maxStep=Math.max(maxStep,Math.abs(pose.x-previous.x));previous=pose;
+ }
+ assert.ok(maxStep<.3,'remote underrun recovery is capped at 60Hz: '+maxStep);
+ prediction.dispose();physics.dispose();console.log(JSON.stringify({remoteRecoveryMaxStep:maxStep}));
+}
+
+// Reaching the starvation budget holds the draw pose, but must retain the
+// simulated input tail so a late authority can still replay up to that pose.
+{
+ const driver={pid:'tail',x:0,z:0,angle:0,speed:0,input:{throttle:.3,steer:0},spawnSeq:0,connected:true,nitro:1};
+ const room={map:flatMap,half:200,blocks:[],pads:[],surfaces:[],karts:[driver],physicalEvents:[],physicalEventSeq:0};
+ const physics=createClassicMotion(RAPIER,config,room),prediction=createClassicPrediction(RAPIER),seats=new Set(['tail']);
+ const snapshot=t=>({instanceId:'starved-tail',phase:'drive',you:'tail',youDrive:true,map:{id:flatMap,half:200,blocks:[],pads:[],surfaces:[]},simAt:t,karts:[structuredClone(driver)],inputAck:{controlEpoch:0}});
+ const initial=snapshot(0);prediction.ingest(initial,0);let late,held,heldRaw,draw;
+ for(let f=1;f<=192;f++){
+  const t=f*1000/120;physics.advance(1/120,seats);if(f===120)late=snapshot(t);
+  draw=prediction.frame(initial,driver.input,1/120,t);if(f===180){held=draw;heldRaw=structuredClone(prediction.selfPose().position);}
+ }
+ assert.deepEqual(draw.physicalPose.position,held.physicalPose.position,'budget holds last rendered pose');
+ prediction.ingest(late,1600,1600);const resumed=prediction.frame(late,driver.input,0,1600);
+ assert.ok(Math.hypot(resumed.x-held.x,resumed.z-held.z)<.15,'return after starvation remains continuous');
+ assert.ok(Math.abs(prediction.selfPose().position.z-heldRaw.z)<.01,'retained input tail replays the held simulation timeline');
+ assert.equal(prediction.stats().snaps,0);prediction.dispose();physics.dispose();
+}
+
+// A slow render frame still covers its whole simulated interval. A late
+// packet must replay that interval as well as a fresh packet can restore it.
+for(const age of [0,100]){
+ const intent={throttle:.3,steer:0},driver={pid:'slow',x:0,z:0,angle:0,speed:0,input:{throttle:0,steer:0},spawnSeq:0,connected:true,nitro:1};
+ const room={map:flatMap,mode:'battle',half:200,blocks:[],pads:[],surfaces:[],karts:[driver],physicalEvents:[],physicalEventSeq:0};
+ const physics=createClassicMotion(RAPIER,config,room),prediction=createClassicPrediction(RAPIER),seats=new Set(['slow']),epoch=1700000000000;
+ for(let i=0;i<60;i++)physics.advance(1/60,seats);
+ physics.restore(driver,{...driver.physicalPose,linearVelocity:{x:0,y:0,z:8}});driver.input=intent;
+ const snapshot=t=>({instanceId:'slow-frame-'+age,phase:'drive',you:'slow',youDrive:true,mode:'battle',map:{id:flatMap,half:200,blocks:[],pads:[],surfaces:[]},simAt:epoch+t,karts:[structuredClone(driver)],inputAck:{controlEpoch:0}});
+ const initial=snapshot(0);prediction.ingest(initial,0,epoch);let late;
+ for(let i=1;i<=12;i++){physics.advance(1/60,seats);if(i===6)late=snapshot(100);}
+ const fresh=snapshot(200);prediction.frame(initial,intent,.2,200,epoch+200);
+ const error=()=>Math.hypot(...['x','y','z'].map(key=>prediction.selfPose().position[key]-driver.physicalPose.position[key]));
+ assert.ok(error()<.3,'200ms frame covers the same time as authority: '+error());
+ prediction.ingest(age?late:fresh,200,epoch+200);
+ assert.ok(error()<.3,'history replays all simulated time after the snapshot: '+error());
+ assert.ok(prediction.stats().maxErrorM<.3,'slow-frame correction stays below .3m: '+prediction.stats().maxErrorM);
+ assert.equal(prediction.stats().snaps,0,'agreeing slow-frame authority never snaps');
+ console.log(JSON.stringify({slowFrameMs:200,age,physicalErrorM:error(),maxCorrectionM:prediction.stats().maxErrorM,snaps:prediction.stats().snaps}));
+ prediction.dispose();physics.dispose();
 }
