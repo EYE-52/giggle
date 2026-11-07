@@ -178,7 +178,12 @@ export async function runPhysicsChecks() {
     const w = create();
     try {
       for (let i = 0; i < 8; i++) { w.addKart('p' + i, spawn((i - 3.5) * 6, 1, -30)); w.applyIntent('p' + i, { steer: 0, throttle: 1 }); }
-      throws('ninth driver is bounded', () => w.addKart('overflow', spawn()));
+      // The shared core holds up to 32 karts (classic crowds); elevated matches cap seats at 8 themselves.
+      const crowd = create();
+      try {
+        for (let i = 0; i < 32; i++) crowd.addKart('c' + i, spawn(((i % 8) - 3.5) * 6, 1, -30 + Math.floor(i / 8) * 6));
+        throws('thirty-third driver is bounded', () => crowd.addKart('overflow', spawn()));
+      } finally { crowd.dispose(); }
       const samples = [];
       for (let i = 0; i < 360; i++) { const start = performance.now(); w.step(); samples.push(performance.now() - start); }
       samples.sort((a, b) => a - b);

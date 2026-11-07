@@ -148,7 +148,8 @@ for(const id of maps.mapIds()){
         if(i%3===0){sequence++;driver._receivedSeq=sequence;prediction.sent(sequence);}
         motion.advance(1/60,online);
         if(i%3===0)prediction.ingest(snapshot(),i*1000/60);
-        const draw=prediction.frame(snapshot(),driver.input,1/60,i*1000/60).physicalPose;
+        // Simulated pose: drawn frames blend between fixed steps by design.
+        prediction.frame(snapshot(),driver.input,1/60,i*1000/60);const draw=prediction.selfPose();
         const p=driver.physicalPose,h=terrain.heightAt(driver.x,driver.z);
         maxPredictionError=Math.max(maxPredictionError,Math.hypot(draw.position.x-p.position.x,draw.position.y-p.position.y,draw.position.z-p.position.z));
         minCenterClearance=Math.min(minCenterClearance,p.position.y-h);maxRoadHeight=Math.max(maxRoadHeight,h);

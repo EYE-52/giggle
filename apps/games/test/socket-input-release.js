@@ -24,6 +24,7 @@ const ctx = {
   setTimeout(fn, ms) { const id = ++sequence; timers.set(id, { fn, ms }); return id; },
   clearTimeout(id) { timers.delete(id); }, setInterval: () => ++sequence, clearInterval() {},
   serverClock: { reset() { clocks++; } }, requestClock() {}, send() {},
+  decodeFrame: () => ({ apply: () => null, reset() {} }),
   clearRoomAction() { clears++; }, paintConn() {}, renderBootFailure() {},
   voiceClient: { setAuthed() {}, getStatus() {} }, paintVoice() {}, connect() {},
   clearKickRequest() {}, kickConfirmation:null,lastKickRequestId:null, embedTicket:'late-ticket',embedTicketNonce:'late-nonce',embedAuthPending:true,

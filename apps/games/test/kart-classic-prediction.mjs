@@ -31,7 +31,8 @@ k.connected=false;authority.sync(new Set());client.ingest(snap(),4100);const fro
 const remoteClient=createClassicPrediction(RAPIER);
 const remoteSnap=(angle,x,at)=>({...snap(),you:'watcher',youDrive:false,karts:[{...structuredClone(k),pid:'remote',spawnSeq:0,connected:true,physicalPose:{...structuredClone(k.physicalPose),position:{x,y:.65,z:0},rotation:{x:0,y:Math.sin(angle/2),z:0,w:Math.cos(angle/2)}}}],inputAck:null});
 remoteClient.ingest(remoteSnap(Math.PI-.05,0),0);remoteClient.ingest(remoteSnap(-Math.PI+.05,2),100);
-const midpoint=remoteClient.remote('remote',150);
+// Playback runs on server time minus the adaptive buffer delay.
+remoteClient.remote('remote',150);const midpoint=remoteClient.remote('remote',50+remoteClient.remoteDelay());
 assert.ok(Math.abs(midpoint.x-1)<1e-9,'remote xyz sampled midpoint');
 assert.ok(Math.abs(Math.abs(midpoint.angle)-Math.PI)<.001,'rotation follows short wrap arc at same midpoint');
 remoteClient.dispose();
@@ -75,7 +76,8 @@ for(const profile of ['stationary','forward','turn','fresh','wall'])for(const ca
    prediction.ingest(packets.shift().s,t,epoch+t);
    // A zero-dt observation after the render blend expires exposes simulation
    // pose without advancing physics. The receipt remains <250ms old.
-   const raw=prediction.frame(snapshot(),intentAt(t),0,t+121,epoch+t);
+   // Read the simulated pose itself: drawn frames blend between fixed steps.
+   prediction.frame(snapshot(),intentAt(t),0,t+121,epoch+t);const raw=prediction.selfPose().position;
    if(t>2000)maxPhysicalError=Math.max(maxPhysicalError,Math.hypot(raw.x-driver.x,raw.z-driver.z));
   }
   const draw=prediction.frame(snapshot(),intentAt(t),1/60,t,epoch+t);
@@ -135,7 +137,7 @@ for(const profile of ['head','rear','offcentre','cross'])for(const delay of [65,
  const peer=make('b',profile==='head'||profile==='cross'?8:profile==='offcentre'?1.8:0,0,profile==='head'||profile==='cross'?-Math.PI/2:0,{throttle:profile==='head'||profile==='cross'?1:0,steer:0});
  const room={map:flatMap,mode:'battle',half:60,blocks:[],pads:[],surfaces:[],karts:[self,peer],physicalEvents:[],physicalEventSeq:0};
  const physics=createClassicMotion(RAPIER,config,room),prediction=createClassicPrediction(RAPIER),online=new Set(['a','b']),hull=new RAPIER.Cuboid(config.chassis.half.x,config.chassis.half.y,config.chassis.half.z);
- let t=0,packets=[],latest,maxError=0,minRenderGap=Infinity,minAuthorityGap=Infinity,maxRemoteStep=0,previousPeer,contacts=0;const cpu=[];
+ let t=0,packets=[],latest,maxError=0,maxDrawLag=0,minRenderGap=Infinity,minAuthorityGap=Infinity,maxRemoteStep=0,previousPeer,contacts=0;const cpu=[];
  const snapshot=()=>({instanceId:profile+delay+cadence,phase:'drive',you:'a',youDrive:true,mode:'battle',map:{id:flatMap,half:60,blocks:[],pads:[],surfaces:[]},karts:room.karts.map(k=>({...structuredClone(k),motionIntent:structuredClone(k.input)})),simAt:100000+t,inputAck:{controlEpoch:0}});
  latest=snapshot();prediction.ingest(latest,0,100000);
  for(let frame=1;frame<=240;frame++){
@@ -143,13 +145,16 @@ for(const profile of ['head','rear','offcentre','cross'])for(const delay of [65,
   const [pa,pb]=room.karts.map(k=>k.physicalPose),authorityContact=hull.contactShape(pa.position,pa.rotation,hull,pb.position,pb.rotation,10);if(authorityContact)minAuthorityGap=Math.min(minAuthorityGap,authorityContact.distance);
   if(frame%(cadence/1000*60)===0)packets.push({at:t+delay,s:snapshot()});
   while(packets.length&&packets[0].at<=t){latest=packets.shift().s;const start=performance.now();prediction.ingest(latest,t,100000+t);cpu.push(performance.now()-start);}
-  const a=prediction.frame(latest,self.input,1/60,t,100000+t),b=prediction.remote('b',t);
-  maxError=Math.max(maxError,Math.hypot(a.x-self.x,a.z-self.z));
+  const a=prediction.frame(latest,self.input,1/60,t,100000+t),b=prediction.remote('b',t,100000+t);
+  // Simulation error; the drawn pose may trail it by under one fixed step.
+  const sim=prediction.selfPose().position;maxError=Math.max(maxError,Math.hypot(sim.x-self.x,sim.z-self.z));
+  maxDrawLag=Math.max(maxDrawLag,Math.hypot(a.x-sim.x,a.z-sim.z));
   const contact=hull.contactShape(a.physicalPose.position,a.physicalPose.rotation,hull,b.physicalPose.position,b.physicalPose.rotation,10);if(contact)minRenderGap=Math.min(minRenderGap,contact.distance);
   if(previousPeer)maxRemoteStep=Math.max(maxRemoteStep,Math.hypot(b.x-previousPeer.x,b.z-previousPeer.z));previousPeer=b;
  }
  assert.ok(contacts>0,profile+' actual authority collision occurred');
  assert.ok(maxError<.2,profile+' replay preserves physical collision response: '+maxError);
+ assert.ok(maxDrawLag<.45,profile+' step blend trails simulation by under one step: '+maxDrawLag);
  assert.ok(minRenderGap>(profile==='cross'?-.085:-.035),profile+' displayed local/peer hull penetration is bounded: '+minRenderGap);
  assert.ok(minRenderGap>=minAuthorityGap-.02,profile+' display does not add penetration beyond solver tolerance');
  assert.ok(maxRemoteStep<.5,profile+' near-field transition has no teleport: '+maxRemoteStep);
@@ -157,9 +162,9 @@ for(const profile of ['head','rear','offcentre','cross'])for(const delay of [65,
  // usual 100ms delay; dropped transport freezes the last accepted sample.
  peer.spawnSeq++;peer.physicalPose={...peer.physicalPose,epoch:peer.spawnSeq,position:{x:20,y:.65,z:20},linearVelocity:{x:0,y:0,z:0},angularVelocity:{x:0,y:0,z:0}};
  latest=snapshot();prediction.ingest(latest,t,100000+t);prediction.frame(latest,{throttle:0,steer:0},0,t,100000+t);
- assert.deepEqual(prediction.remote('b',t).physicalPose.position,{x:20,y:.65,z:20},'remote new life never blends with retired location');
- const stale=prediction.remote('b',t+300);prediction.frame(latest,{throttle:1,steer:1},.05,t+400,100000+t+400);
- assert.deepEqual(prediction.remote('b',t+400).physicalPose.position,stale.physicalPose.position,'stale remote remains frozen');
+ assert.deepEqual(prediction.remote('b',t,100000+t).physicalPose.position,{x:20,y:.65,z:20},'remote new life never blends with retired location');
+ const stale=prediction.remote('b',t+300,100000+t+300);prediction.frame(latest,{throttle:1,steer:1},.05,t+400,100000+t+400);
+ assert.deepEqual(prediction.remote('b',t+400,100000+t+400).physicalPose.position,stale.physicalPose.position,'stale remote remains frozen');
  cpu.sort((a,b)=>a-b);collisionMetrics.push({profile,delay,cadence,maxError,minRenderGap,minAuthorityGap,maxRemoteStep,contacts,correctionCpuP95Ms:cpu[Math.ceil(cpu.length*.95)-1]});prediction.dispose();physics.dispose();
 }
 console.log(JSON.stringify({collisionMetrics,scope:'two actual Rapier worlds, four two-driver impact routes, 65/130ms FIFO delay and50/100ms snapshots; CPU and hull geometry only'}));
@@ -177,7 +182,7 @@ console.log(JSON.stringify({collisionMetrics,scope:'two actual Rapier worlds, fo
   t=frame*1000/60;physics.advance(1/60,online);if(frame%6===0)packets.push({at:t+130,s:snapshot()});
   while(packets.length&&packets[0].at<=t){latest=packets.shift().s;prediction.ingest(latest,t,100000+t);}
   prediction.frame(latest,room.karts[0].input,1/60,t,100000+t);
-  const peers=['b','c'].map(pid=>prediction.remote(pid,t)),[b,c]=peers.map(k=>k.physicalPose),contact=hull.contactShape(b.position,b.rotation,hull,c.position,c.rotation,10);if(contact)minRemoteGap=Math.min(minRemoteGap,contact.distance);
+  const peers=['b','c'].map(pid=>prediction.remote(pid,t,100000+t)),[b,c]=peers.map(k=>k.physicalPose),contact=hull.contactShape(b.position,b.rotation,hull,c.position,c.rotation,10);if(contact)minRemoteGap=Math.min(minRemoteGap,contact.distance);
   for(let i=0;i<peers.length;i++){const pid=['b','c'][i],peer=peers[i],old=previous.get(pid);if(old)maxRemoteStep=Math.max(maxRemoteStep,Math.hypot(peer.x-old.x,peer.z-old.z));previous.set(pid,peer);}
  }
  assert.ok(minRemoteGap>-.035,'two rendered remotes cannot overlap at different near-field times: '+minRemoteGap);
@@ -192,7 +197,7 @@ console.log(JSON.stringify({collisionMetrics,scope:'two actual Rapier worlds, fo
  const room={map:flatMap,mode:'battle',half:30,blocks:[],pads:[],surfaces:[],karts:[make('a',0,0),make('b',3.5,0)],physicalEvents:[],physicalEventSeq:0};
  const physics=createClassicMotion(RAPIER,config,room);
  const snapshot=(motionIntent,extra={},peerExtra={})=>({instanceId:'validation',phase:'drive',you:'a',youDrive:true,mode:'battle',map:{id:flatMap,half:30,blocks:[],pads:[],surfaces:[]},karts:room.karts.map(k=>({...structuredClone(k),motionIntent,...(k.pid==='b'?peerExtra:{})})),simAt:100000,inputAck:{controlEpoch:0},...extra});
- const project=(intent,extra,peerExtra)=>{const p=createClassicPrediction(RAPIER),s=snapshot(intent,extra,peerExtra);p.ingest(s,0,100000);for(let i=1;i<=10;i++)p.frame(s,{throttle:0,steer:0},1/60,i*1000/60,100000+i*1000/60);const remote=p.remote('b',100);p.dispose();return remote.physicalPose;};
+ const project=(intent,extra,peerExtra)=>{const p=createClassicPrediction(RAPIER),s=snapshot(intent,extra,peerExtra);p.ingest(s,0,100000);for(let i=1;i<=10;i++)p.frame(s,{throttle:0,steer:0},1/60,i*1000/60,100000+i*1000/60);const remote=p.remote('b',100,100000+100);p.dispose();return remote.physicalPose;};
  const neutral={steer:0,throttle:0,drift:false,nitro:false},base=project(neutral);
  assert.deepEqual(project({steer:Infinity,throttle:'1',drift:1,nitro:'true',boost:true,brake:1,use:true}).position,base.position,'arbitrary control fields cannot alter peer dynamics');
  assert.deepEqual(project({steer:2,throttle:99,drift:true,nitro:true}).position,project({steer:1,throttle:1,drift:true,nitro:true}).position,'numeric controls are bounded');
@@ -212,8 +217,8 @@ console.log(JSON.stringify({collisionMetrics,scope:'two actual Rapier worlds, fo
  const remote=prediction.remote('b',150).physicalPose,hull=new RAPIER.Cuboid(config.chassis.half.x,config.chassis.half.y,config.chassis.half.z),cover=new RAPIER.Cuboid(2,.75,2);
  assert.ok(hull.contactShape(remote.position,remote.rotation,cover,{x:0,y:.75,z:0},{x:0,y:0,z:0,w:1},10).distance>=0,'near-field curve cannot interpolate through cover');
  assert.deepEqual(prediction.remote('c',150).physicalPose.position,{x:0,y:Math.fround(.65),z:7.5},'static safety fallback moves the whole contact group to one predicted timeline');
- prediction.frame({...next,youDrive:false},{throttle:0,steer:0},0,150);
+ prediction.frame({...next,youDrive:false},{throttle:0,steer:0},0,50+prediction.remoteDelay());
  const initial=before.karts[1].physicalPose.position;
- assert.deepEqual(prediction.remote('b',150).physicalPose.position,{x:initial.x/2,y:initial.y+(.65-initial.y)*.5,z:initial.z+(4-initial.z)*.5},'non-driving role retains delayed interpolation');
+ assert.deepEqual(prediction.remote('b',50+prediction.remoteDelay()).physicalPose.position,{x:initial.x/2,y:initial.y+(.65-initial.y)*.5,z:initial.z+(4-initial.z)*.5},'non-driving role retains delayed interpolation');
  prediction.dispose();physics.dispose();
 }

@@ -31,6 +31,7 @@ import { createKartLighting } from './kart-lighting.mjs';
 import { loadKartAssets, weaponThumbnailArt } from './kart-assets.mjs';
 import { createKartWorld } from './kart-world.mjs';
 import { createKartModel, animateKartModel, createStarModel } from './kart-model.mjs';
+import { createKartLod, crowdColor } from './kart-lod.mjs';
 import { createKartAudio } from './kart-audio.mjs';
 import { createGearbox, paintGear } from './kart-gearbox.mjs';
 import { CLASSIC_MAX_FORWARD } from './kart-classic-motion.mjs';
@@ -296,7 +297,7 @@ export function createKartView(viewConfig) {
   function colorFor(pid) {
     const ids = (S && S.karts ? S.karts : []).map((k) => k.pid);
     const i = ids.indexOf(pid);
-    return KART_COLORS[(i < 0 ? 0 : i) % KART_COLORS.length];
+    return crowdColor(i < 0 ? 0 : i, KART_COLORS);
   }
 
   function nameOf(pid) {
@@ -701,12 +702,17 @@ export function createKartView(viewConfig) {
     // runs on every 10 Hz snapshot plus the 500 ms timer, so an unchanged
     // innerHTML churn would cost layout on every tick while driving.
     // Equal scores share a rank; drivers who dropped out sit last.
-    const rows = [...(S.karts || [])].sort((a, b) => (a.out === true) - (b.out === true) || scoreOf(b) - scoreOf(a)).slice(0, 8);
-    const ranks = [];
-    rows.forEach((k, i) => { ranks[i] = i && !k.out && !rows[i - 1].out && scoreOf(k) === scoreOf(rows[i - 1]) ? ranks[i - 1] : i + 1; });
+    // Big matches list the top seven plus your own row with its real rank.
+    const sorted = [...(S.karts || [])].sort((a, b) => (a.out === true) - (b.out === true) || scoreOf(b) - scoreOf(a));
+    const allRanks = [];
+    sorted.forEach((k, i) => { allRanks[i] = i && !k.out && !sorted[i - 1].out && scoreOf(k) === scoreOf(sorted[i - 1]) ? allRanks[i - 1] : i + 1; });
+    const selfAt = S.you ? sorted.findIndex((k) => k.pid === S.you) : -1;
+    const shown = selfAt >= 8 ? [...sorted.keys()].slice(0, 7).concat(selfAt) : [...sorted.keys()].slice(0, 8);
+    const rows = shown.map((i) => sorted[i]), ranks = shown.map((i) => allRanks[i]);
+    const hiddenCount = sorted.length - rows.length;
     const myIndex = S.you ? rows.findIndex((k) => k.pid === S.you) : -1;
     const myRank = myIndex >= 0 ? ranks[myIndex] : 0;
-    const standKey = (battle ? 'b' : 'r') + '|' + (S.you || '') + '|' +
+    const standKey = (battle ? 'b' : 'r') + '|' + (S.you || '') + '|' + hiddenCount + '|' +
       rows.map((k) => k.pid + ':' + scoreOf(k) + (k.out ? ':out' : '')).join(',');
     if (standKey !== lastStandKey) {
       lastStandKey = standKey;
@@ -735,7 +741,7 @@ export function createKartView(viewConfig) {
         `<span class="pk-dot" style="background:#${colorFor(k.pid).toString(16).padStart(6, '0')}"></span>` +
         `<span class="pk-name">${esc(nameOf(k.pid))}${k.out ? ' <small>Left</small>' : ''}</span>` +
         `<span class="pk-score">${battle ? `${countLabel(scoreOf(k), 'KO')}` : `★ ${scoreOf(k)}`}</span></div>`
-      ).join('');
+      ).join('') + (hiddenCount > 0 ? `<div class="pk-row pk-more"><span class="pk-rank"></span><span class="pk-name"><small>+${hiddenCount} more</small></span></div>` : '');
     }
 
     if (S.phase === 'done' && S.result) {
@@ -1050,6 +1056,9 @@ export function createKartView(viewConfig) {
       const driftSparks = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.11),
         new THREE.MeshBasicMaterial({color:0x83ffe0}), 48);
       driftSparks.count = 0; driftSparks.frustumCulled = false; scene.add(driftSparks);
+      // Big matches draw distant karts as one instanced proxy batch.
+      const kartLod = createKartLod(THREE); scene.add(kartLod.object);
+      let lodProxied = new Set();
       const sparkMatrix = new THREE.Matrix4();
       const pops = new THREE.InstancedMesh(new THREE.BoxGeometry(.32,.16,.5),new THREE.MeshBasicMaterial({color:0xffcf80}),64);
       pops.count=0; pops.frustumCulled=false; scene.add(pops);
@@ -1125,7 +1134,7 @@ export function createKartView(viewConfig) {
         // Karts: shared visual poses (predicted self, eased remotes) — the
         // SAME helper the 2D fallback draws, so both renderers agree.
         const poses = framePoses(poseStore, S, intentForPrediction(), dt, nowMs(), { reducedMotion: rm, map: S.map, serverNow: serverNow() });
-        const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,nowMs(),serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs());if(pose)poses.set(k.pid,pose);}
+        const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,nowMs(),serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs(),serverNow());if(pose)poses.set(k.pid,pose);}
         updateAudio();
         const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
         if(feedbackEpoch!==impactEpoch){
@@ -1214,7 +1223,7 @@ export function createKartView(viewConfig) {
             if(mesh.userData.rig) {const rig=mesh.userData.rig;combat.placeWeapon(rig);(mesh.userData.kart?.inner||mesh).add(rig);}
           }
           if(mesh.userData.rig)combat.animate(mesh.userData.rig,dt,t,rm);
-          if (mesh.userData.giggleKart) animateKartModel(mesh, {physicalPose: k.respawn>0 ? null : pose.physicalPose || k.physicalPose,
+          if (mesh.userData.giggleKart && !lodProxied.has(mesh)) animateKartModel(mesh, {physicalPose: k.respawn>0 ? null : pose.physicalPose || k.physicalPose,
             speed:pose.speed ?? k.speed ?? 0, steer:k.pid === S.you ? intentFromState().steer : 0,
             boost:Math.max(k.boost || 0,k.turbo || 0,k.nitroActive===true?1:0),shield:k.shield>0||k.guard===true,invincible:false,dt,reducedMotion:rm});
           if (mesh.userData.flame) mesh.userData.flame.visible = k.boost > 0 || k.turbo > 0 || k.nitroActive === true;
@@ -1229,6 +1238,7 @@ export function createKartView(viewConfig) {
             }
           }
         }
+        lodProxied = kartLod.update(camera, [...karts].filter(([pid]) => live.has(pid)).map(([pid, mesh]) => ({ mesh, color: colorFor(pid), visible: mesh.visible })));
         let popCount=0;
         for (let i=popSites.length-1;i>=0;i--) if (t-popSites[i].t> .65) popSites.splice(i,1);
         for (const site of popSites) {
@@ -1470,7 +1480,7 @@ export function createKartView(viewConfig) {
     const dt = fbLastT ? (now - fbLastT) / 1000 : 0.016;
     fbLastT = now;
     const poses = framePoses(poseStore, S, intentForPrediction(), dt, now, { reducedMotion: reducedMotion(), map: S.map, serverNow: serverNow() });
-    const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,now,serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs());if(pose)poses.set(k.pid,pose);}
+    const physicalSelf=physicalPrediction?.frame(S,intentForPrediction(),dt,now,serverNow());physicalLocalPose=physicalSelf;if(physicalSelf)poses.set(S.you,physicalSelf);for(const k of S.karts){if(k.pid===S.you)continue;const pose=physicalPrediction?.remote(k.pid,nowMs(),serverNow());if(pose)poses.set(k.pid,pose);}
     updateAudio();
     const poseOf = (k) => poses.get(k.pid) || { x: k.x, z: k.z, angle: k.angle };
     const W = fbCanvas.width;

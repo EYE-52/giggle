@@ -124,11 +124,11 @@ async function main() {
   send(solo, { t: 'start', game: 'charades' });
   await sleep(150);
   assert(/3–12/.test(last(solo, 'error').msg), 'min/max error must name the range');
-  // Room cap: fill a room to 24, the 25th is refused.
+  // Room cap: fill a room to 32, the 33rd is refused.
   const cap = await mk();
   const hcap = await helloOf(cap, { t: 'create', name: 'Cap0' });
   const fillers = [];
-  for (let i = 1; i < 24; i++) {
+  for (let i = 1; i < 32; i++) {
     const w = await mk();
     fillers.push(w);
     const h = await helloOf(w, { t: 'join', name: 'P' + i, code: hcap.code });
@@ -137,8 +137,8 @@ async function main() {
   const extra = await mk();
   send(extra, { t: 'join', name: 'Extra', code: hcap.code });
   await sleep(200);
-  assert(/full/i.test(last(extra, 'error').msg), '25th seat must be refused');
-  assert.strictEqual(roomOf(cap).players.length, 24, 'room holds at most 24 seats');
+  assert(/full/i.test(last(extra, 'error').msg), '33rd seat must be refused');
+  assert.strictEqual(roomOf(cap).players.length, 32, 'room holds at most 32 seats');
   for (const w of fillers) w.close();
   extra.close();
   // Max enforcement: 13 connected cannot start charades (max 12).
@@ -154,7 +154,7 @@ async function main() {
   assert(/3–12/.test(last(mks[0], 'error').msg), 'over-max start must be rejected with the range');
   for (const w of mks) w.close();
   void hs;
-  ok('min/max enforced with range; room cap 24');
+  ok('min/max enforced with range; room cap 32');
 
   // --- 5. config validation boundaries, no partial mutation ---
   const h1 = await mk();
@@ -641,7 +641,7 @@ async function main() {
     const V = require('../games/_validate');
     assert(V.validateManifest({ id: 'xx', manifest: { seats: 2, players: { min: 2, max: 24 } } }).ok,
       'seats within range pass');
-    for (const seats of [0, -1, 2.5, '2', 25, NaN, Infinity]) {
+    for (const seats of [0, -1, 2.5, '2', 33, NaN, Infinity]) {
       assert(!V.validateManifest({ id: 'xx', manifest: { seats } }).ok, `seats ${String(seats)} rejected`);
     }
     assert(!V.validateManifest({ id: 'xx', manifest: { seats: 3, players: { min: 2, max: 2 } } }).ok,
@@ -666,7 +666,7 @@ async function main() {
     const chz = registry.meta('charades');
     assert(chz && chz.communication === 'video', 'charades tagged video');
     const pk = registry.meta('pocket-karts');
-    assert(pk && pk.seats === 8 && pk.renderer === '3d', 'karts registry entry carries seats/3d');
+    assert(pk && pk.seats === 32 && pk.renderer === '3d', 'karts registry entry carries seats/3d');
     const tr = registry.meta('trivia');
     assert(tr && tr.seats === null && tr.communication === 'any' && tr.art === 'img/games/trivia.webp',
       'legacy game defaults keep their semantics and use the compressed original cover');
