@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import {createKartArenaFeatures,drawArenaFeatures2d} from '../public/js/engines/kart-arena-features-art.mjs';
 import {ARENA_CUES,CUE_NAMES} from '../public/js/engines/kart-audio.mjs';
 import maps from '../games/engines/kart-maps.js';
+import {buildClassicArena,countDraws,drawSources,loadSceneryAssets} from './helpers/kart-headless-world.mjs';
 let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;};
 const scene=new THREE.Scene(),art=createKartArenaFeatures(THREE,scene,{groundAt:()=>0});
 const counts={};
@@ -51,3 +52,40 @@ drawArenaFeatures2d(ctx,{features:garden.features},x=>x,z=>z,2);ok(fills===1,'2D
 ok(['launch','land','warp','fell'].every(n=>ARENA_CUES[n]?.length>=2&&!CUE_NAMES.includes(n)),'arena cues are separate synthesized sweeps');
 art.dispose();ok(!scene.getObjectByName('arena-features'),'dispose removes the dressing');
 console.log(JSON.stringify({pass:true,checks,meshes:counts}));
+
+// Conservative full-scene ceilings: real shipping GLBs, no camera culling,
+// plus the procedural fallback. Two spare draws above the day-cycle peak
+// allow small accents (including Neon showing its fallback clouds).
+// Includes animated sky/features so moving a mesh out of a static batch
+// cannot bypass the budget. Shadow passes are separate renderer work.
+const ceilings={ring:97,blocks:98,garden:117,frost:108,neon:91};
+const assets=await loadSceneryAssets(),reports=[];
+for(const [style,templates] of [['GLB',assets],['fallback',{}]])for(const id of Object.keys(ceilings)){
+  const arena=buildClassicArena(id,templates),draws=countDraws(arena.scene);
+  let peakDraws=draws;
+  const sources=drawSources(arena);
+  ok(draws<=ceilings[id],`${style}/${id}: ${draws} draws exceeds ${ceilings[id]}`);
+  const nodes=[],buffers=[];
+  arena.scene.traverse(o=>{nodes.push(o);if(o.isMesh)buffers.push(o.geometry.attributes.position.array);});
+  for(let i=0;i<180;i++){
+    arena.world.syncMap(arena.map);arena.structures.sync(arena.map);arena.features.sync(arena.map);
+    arena.world.animate(1/60,i/60,i/180);arena.features.animate(1/60,i/60,{karts:[]},new Map());
+    peakDraws=Math.max(peakDraws,countDraws(arena.scene));
+    ok(peakDraws<=ceilings[id],`${style}/${id}: animation stays within draw ceiling`);
+  }
+  const after=[];arena.scene.traverse(o=>after.push(o));assert.deepEqual(after,nodes,'unchanged snapshots reuse every node');
+  const afterBuffers=[];arena.scene.traverse(o=>{if(o.isMesh)afterBuffers.push(o.geometry.attributes.position.array);});
+  for(let i=0;i<buffers.length;i++)assert.strictEqual(afterBuffers[i],buffers[i],'animation retains geometry buffers');
+  const portal=arena.features.root.getObjectByName('arena-portal-0-0');
+  ok(portal.children.slice(0,4).every(o=>o.visible),'animated portal rings, membranes and swirls keep their own meshes');
+  const owned=[];arena.features.root.traverse(o=>{if(o.name.endsWith(':merged'))owned.push(o.geometry);});
+  const disposed=new Map(owned.map(g=>[g,0]));for(const g of owned)g.addEventListener('dispose',()=>disposed.set(g,disposed.get(g)+1));
+  arena.features.sync({id:'empty',features:{}});
+  ok([...disposed.values()].every(n=>n===1),'map change disposes every merged feature geometry once');
+  ok(countDraws(arena.features.root)===0,'empty map clears all feature draws');
+  arena.features.dispose();arena.structures.dispose();arena.world.dispose();
+  if(style==='GLB')reports.push({id,draws,peakDraws,ceiling:ceilings[id],sources});
+}
+console.log(JSON.stringify({pass:true,classicDrawBudget:reports}));
+await import('./kart-arena-look.mjs');
+await import('./kart-obstacle-readability.mjs');

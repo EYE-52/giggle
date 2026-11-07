@@ -1,3 +1,4 @@
+import {CURATED_MUZZLE} from './kart-weapon-contract.mjs';
 // Shared numeric configuration for the elevated kart authority and renderer.
 // Muzzle coordinates are chassis-local. +Y up, nose +Z.
 export const KART_PHYSICS_CONFIG = Object.freeze({
@@ -42,6 +43,7 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
     coastBrake: 0.45,
   }),
   combat: Object.freeze({
+    machinegunMuzzle: CURATED_MUZZLE, trishotMuzzle: CURATED_MUZZLE, missileMuzzle: CURATED_MUZZLE, cannonMuzzle: CURATED_MUZZLE,
     pulseMuzzle: Object.freeze({ x: 0.95, y: 0.50, z: 1.90 }),
     rocketMuzzle: Object.freeze({ x: -0.95, y: 0.50, z: 1.90 }),
     seekerMuzzle: Object.freeze({ x: -0.95, y: 0.50, z: 1.90 }),
@@ -56,3 +58,9 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
 });
 
 export default KART_PHYSICS_CONFIG;
+
+// Shipped classic arenas opt into the arcade bumper response. The elevated
+// development profile keeps its established deck/landing contact envelopes.
+export const CLASSIC_CONTACT_TUNING=Object.freeze({
+  friction:.16,restitution:.20,wallFriction:.06,separationSpeed:.8,maxSpin:3,
+});

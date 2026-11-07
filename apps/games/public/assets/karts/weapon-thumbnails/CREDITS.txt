@@ -4,3 +4,5 @@ Shield uses the shipped Giggle kart model. No external images or AI-generated ar
 Proximity Bomb: Blender Cycles render of the original Giggle seven-stick dynamite BombShot from arsenal-mounted.glb (scripts/build-kart-arsenal-mounted.py); red sticks, charcoal straps, cream fuse and proximity sensor; no external imagery.
 Mine: Blender Cycles render of the independently grounded MineTrap pressure disc (no stowed rack or enlarged mounted gear) from the same arsenal-mounted source script; actual restrained red hardware lamp retained.
 Rail Laser, Thunder Strike, Boomerang, Oil Slick, Frost Bomb, Cluster Bomb, Bounce Ball and Turbo Ram: three.js renders (headless Chromium, transparent, 384px downsampled to 96px) of the original procedural props in public/js/engines/kart-arsenal-art.mjs, the same factory the arena draws; no external imagery and no AI-generated artwork.
+
+Machine Gun, Tri-Shot, Homing Missile, Cannon, Spinning Blades and Supernova: original Giggle SVG icons at 96px, authored directly as vector paths in this folder. No external images. The other current weapon icons retain their existing model renders and credits.

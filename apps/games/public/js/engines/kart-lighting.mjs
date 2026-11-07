@@ -89,6 +89,8 @@ export function createKartLighting(THREE, renderer, scene, mood, opts) {
   frameShadow(curHalf);
   sun.shadow.normalBias = .06; sun.shadow.bias = -.0002;
   scene.add(sun);
+  const fill=m0.fillIntensity>0?new THREE.DirectionalLight(m0.fillColor??0xffffff,m0.fillIntensity):null;
+  if(fill){fill.name='arena-soft-fill';fill.position.set(-.65,.75,-.55).multiplyScalar(sunDist);scene.add(fill);}
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
   renderer.toneMapping = THREE.NeutralToneMapping;
@@ -121,6 +123,14 @@ export function createKartLighting(THREE, renderer, scene, mood, opts) {
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide });
   capture.add(new THREE.Mesh(geo, mat));
+  const stripResources=[];
+  if(fill){
+    const stripGeo=new THREE.PlaneGeometry(14,2);stripResources.push(stripGeo);
+    for(const [x,color]of [[-7,0xb8e7ff],[7,0xe5b9df]]){
+      const stripMat=new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide});stripMat.color.multiplyScalar(1.5);stripResources.push(stripMat);
+      const strip=new THREE.Mesh(stripGeo,stripMat);strip.position.set(x,15,0);strip.lookAt(0,0,0);capture.add(strip);
+    }
+  }
   let target = null;
   try {
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -132,12 +142,12 @@ export function createKartLighting(THREE, renderer, scene, mood, opts) {
   } catch {
     target = null; // headless/Node: keep lights + fog, skip reflections
   } finally {
-    geo.dispose(); mat.dispose();
+    geo.dispose(); mat.dispose();for(const resource of stripResources)resource.dispose();
   }
   if (target && target.texture) {
     scene.environment = target.texture;
     // Enough sky reflection to give paint and plastic a glossy toy sheen.
-    scene.environmentIntensity = .7;
+    scene.environmentIntensity = numOr(m0.environmentIntensity)??.7;
   }
   let disposed = false;
   function cleanup() {
@@ -145,6 +155,7 @@ export function createKartLighting(THREE, renderer, scene, mood, opts) {
     disposed = true;
     try { scene.remove(hemi); } catch { /* noop */ }
     try { scene.remove(sun); } catch { /* noop */ }
+    if(fill)scene.remove(fill);
     try { scene.environment = null; } catch { /* noop */ }
     if (target) {
       try { target.dispose(); } catch { /* noop */ }
@@ -158,6 +169,8 @@ export function createKartLighting(THREE, renderer, scene, mood, opts) {
     if (Number.isFinite(Number(m.hemiIntensity))) hemi.intensity = Number(m.hemiIntensity);
     if (m.sun !== undefined) sun.color.set(m.sun);
     if (Number.isFinite(Number(m.sunIntensity))) sun.intensity = Number(m.sunIntensity);
+    if(fill){if(m.fillColor!==undefined)fill.color.set(m.fillColor);if(Number.isFinite(m.fillIntensity))fill.intensity=m.fillIntensity;}
+    if(Number.isFinite(m.environmentIntensity))scene.environmentIntensity=m.environmentIntensity;
     if (Array.isArray(m.sunDir)) {
       sun.position.set(m.sunDir[0] || 0, m.sunDir[1] || 0, m.sunDir[2] || 0).normalize().multiplyScalar(sunDist);
     }

@@ -201,6 +201,8 @@ async function main() {
       assert(fs.existsSync(boundaryPath), 'packed kit must ship public/js/package.json');
       const boundary = JSON.parse(fs.readFileSync(boundaryPath, 'utf8'));
       assert.strictEqual(boundary.type, 'module', 'packed public/js boundary is ESM');
+      assert.strictEqual(JSON.parse(fs.readFileSync(path.join(kit,'public/vendor/three/package.json'),'utf8')).type,'module',
+        'packed Three.js utilities retain their ESM boundary');
       assert.strictEqual(kitPkg.type, 'commonjs', 'kit root stays CommonJS');
       const b = await import(pathToFileURL(path.join(kit, 'sdk/browser.mjs')).href);
       assert.strictEqual(b.KIT_VERSION, kitPkg.version, 'browser KIT_VERSION');

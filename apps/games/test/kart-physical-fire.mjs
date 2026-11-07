@@ -1,3 +1,4 @@
+import {CURATED_MUZZLE} from '../public/js/engines/kart-weapon-contract.mjs';
 // Rule-level fixtures plus actual Rapier cover queries. Not native gameplay.
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
@@ -21,14 +22,14 @@ function tick(s,dt,physics,before=new Map(s.karts.map(k=>[k.pid,structuredClone(
   return battle.tick(s,new Set(s.karts.map(k=>k.pid)),dt,before,null,new Map(),
     {sweepStatic:(from,to,radius)=>physics.sweepStatic(from,to,radius)});
 }
-function arm(s,kind='pulse',ammo=1) {const k=s.karts[0];k.weapon=kind;k.ammo=ammo;k.pendingFire=true;}
+function arm(s,kind='machinegun',ammo=1) {const k=s.karts[0];k.weapon=kind;k.ammo=ammo;k.pendingFire=true;}
 for (const euler of [[0,0,0],[.3,Math.PI*2+.7,-.2],[-.4,-Math.PI*2-.7,.25]]) {
   const q=new THREE.Quaternion().setFromEuler(new THREE.Euler(...euler));
   const p={x:4,y:5,z:-3},s=state([kart('a',p,{x:q.x,y:q.y,z:q.z,w:q.w})]);
   const physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try {
     arm(s);tick(s,0,physics);
-    const expected=new THREE.Vector3(...Object.values(CONFIG.combat.pulseMuzzle)).applyQuaternion(q).add(new THREE.Vector3(p.x,p.y,p.z));
+    const expected=new THREE.Vector3(...Object.values(CURATED_MUZZLE)).applyQuaternion(q).add(new THREE.Vector3(p.x,p.y,p.z));
     const shot=s.zaps[0];check(!!shot,'Unobstructed authority spend creates shot');
     check(new THREE.Vector3(shot.x,shot.y,shot.z).distanceTo(expected)<1e-8,'Shared authored muzzle follows full chassis quaternion');
     const forward=new THREE.Vector3(0,0,1).applyQuaternion(q);
@@ -40,8 +41,8 @@ for (const euler of [[0,0,0],[.3,Math.PI*2+.7,-.2],[-.4,-Math.PI*2-.7,.25]]) {
 {
   const s=state([kart('a',{x:0,y:.7,z:0})]),physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try {
-    physics.addStatic({id:'barrel-cover',shape:'box',position:{x:.95,y:1.2,z:1},half:{x:.2,y:.3,z:.1}});
-    arm(s,'pulse',3);tick(s,0,physics);
+    physics.addStatic({id:'barrel-cover',shape:'box',position:{x:0,y:1.2,z:1},half:{x:.2,y:.3,z:.1}});
+    arm(s,'machinegun',3);tick(s,0,physics);
     check(s.zaps.length===0&&s.events.length===0,'Obstructed chassis-to-muzzle path never emits shot or fire');
     check(s.karts[0].ammo===3&&s.karts[0].fireCd===0,'Blocked barrel keeps ammo and cooldown');
   } finally {physics.dispose();}
@@ -50,11 +51,11 @@ for (const euler of [[0,0,0],[.3,Math.PI*2+.7,-.2],[-.4,-Math.PI*2-.7,.25]]) {
 {
   const s=state([kart('a',{x:0,y:.7,z:0})]),physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try {
-    physics.addStatic({id:'grazing-barrel-cover',shape:'box',position:{x:1.16,y:1.2,z:1},half:{x:.05,y:.3,z:.1}});
-    const from={x:.95,y:1.2,z:0},to={x:.95,y:1.2,z:1.9};
+    physics.addStatic({id:'grazing-barrel-cover',shape:'box',position:{x:.15,y:1.2,z:1},half:{x:.05,y:.3,z:.1}});
+    const from={x:0,y:1.2,z:0},to={x:0,y:1.2,z:1.9};
     check(physics.sweepStatic(from,to)===null,'Old barrel centreline accepts near-cover path');
-    check(!!physics.sweepStatic(from,to,battle.viewExtra(s).combat.staticSweepRadii.pulse),'Actual bullet sphere detects near-cover barrel path');
-    arm(s,'pulse',3);tick(s,0,physics);
+    check(!!physics.sweepStatic(from,to,battle.viewExtra(s).combat.staticSweepRadii.machinegun),'Actual bullet sphere detects near-cover barrel path');
+    arm(s,'machinegun',3);tick(s,0,physics);
     check(s.zaps.length===0&&s.events.length===0&&s.karts[0].ammo===3&&s.karts[0].fireCd===0,'Sphere-blocked mounted fire keeps ammo/cooldown and emits no shot');
   } finally {physics.dispose();}
 }
@@ -79,7 +80,7 @@ for (const moving of [false,true]) {
     arm(s);tick(s,0,physics);tick(s,.1,physics);
     check(s.karts[1].health===3&&s.zaps.length===0,'Real static cover consumes shot before hull');
     const impact=s.events.find(e=>e.type==='impact');
-    check(impact&&Math.abs(impact.position.z-(3.8-battle.viewExtra(s).combat.staticSweepRadii.pulse))<1e-5&&impact.position.y>1,'Impact xyz records accepted sphere centre before actual cover surface');
+    check(impact&&Math.abs(impact.position.z-(3.8-battle.viewExtra(s).combat.staticSweepRadii.machinegun))<1e-5&&impact.position.y>1,'Impact xyz records accepted sphere centre before actual cover surface');
     const projected=battle.viewExtra(s);
     check(projected.zaps.length===0,'Consumed shot cannot remain in public projection');
   } finally {physics.dispose();}
@@ -89,7 +90,7 @@ for (const covered of [false,true]) {
   const physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try {
     if(covered)physics.addStatic({id:'rocket-cover',shape:'box',position:{x:0,y:4,z:4},half:{x:5,y:2,z:.2}});
-    arm(s,'rocket');tick(s,0,physics);tick(s,.2,physics);
+    arm(s,'missile');tick(s,0,physics);tick(s,.2,physics);
     const impact=s.events.find(e=>e.type==='impact'),blasts=s.events.filter(e=>e.type==='blast');
     check(s.zaps.length===0&&!!impact,'Rocket retires at actual '+(covered?'cover':'hull')+' contact');
     check(blasts.length===1&&Math.abs(blasts[0].position.y-impact.position.y)<1e-8,'One explosion preserves actual airborne contact height');
@@ -98,12 +99,12 @@ for (const covered of [false,true]) {
   } finally {physics.dispose();}
 }
 for(const tire of [false,true]){
-  const s=state([kart('a',{x:0,y:.7,z:0}),kart('front',{x:-3.2,y:.7,z:3.4}),kart('behind',{x:-3.2,y:.7,z:4.4}),kart('above',{x:-3.2,y:5,z:3.4})]);
+  const s=state([kart('a',{x:0,y:.7,z:0}),kart('front',{x:-2.25,y:.7,z:3.4}),kart('behind',{x:-2.25,y:.7,z:4.4}),kart('above',{x:-2.25,y:5,z:3.4})]);
   const physics=physicsModule.createKartPhysics(RAPIER,CONFIG);
   try{
     physics.addStatic({id:'wall',shape:'box',position:{x:0,y:.75,z:4},half:{x:5,y:.75,z:.2}});
-    if(tire)physics.addStatic({id:'tire-style-prop',shape:'box',position:{x:-2.1,y:.75,z:3.6},half:{x:.4,y:.75,z:.3}});
-    arm(s,'rocket');tick(s,0,physics);tick(s,.2,physics);
+    if(tire)physics.addStatic({id:'tire-style-prop',shape:'box',position:{x:-1.1,y:.75,z:3.6},half:{x:.4,y:.75,z:.3}});
+    arm(s,'missile');tick(s,0,physics);tick(s,.2,physics);
     check(s.karts[1].health===(tire?3:1),'Physical splash '+(tire?'is blocked by real prop collider':'takes two hearts from a visible same-side target'));
     check(s.karts[2].health===3,'Impact-face nudge never leaks splash through wall');
     check(s.karts[3].health===3,'Planar-near target at another elevation is outside 3D splash radius');
@@ -125,7 +126,7 @@ for(const tire of [false,true]){
    dx=corpse.position.x-spawn.x,dz=corpse.position.z-spawn.z,len=Math.hypot(dx,dz),perp={x:-dz/len,z:dx/len},
    mid={x:(spawn.x+corpse.position.x)/2,y:(1.05+corpse.position.y+.35)/2,z:(spawn.z+corpse.position.z)/2};
   b.health=0;b.respawn=.05;b.weapon=null;b.ammo=0;b.shield=0;
-  s.zaps=[{id:'declared-inflight',owner:a.pid,kind:'pulse',physical:true,
+  s.zaps=[{id:'declared-inflight',owner:a.pid,kind:'machinegun',physical:true,
    x:mid.x-perp.x*5.5,y:mid.y,z:mid.z-perp.z*5.5,vx:perp.x*110,vy:0,vz:perp.z*110,ttl:1,angle:Math.atan2(perp.x,perp.z)}];
   s.crates=[];s.events=[];const before=POCKET.view(s,'ra'),beforeBytes=JSON.stringify(before);
   now+=100;POCKET.onTick(s,ctx);const after=POCKET.view(s,'ra'),fresh=after.karts.find(k=>k.pid==='rb');
@@ -153,7 +154,7 @@ function heldFixture() {
   settings:()=>({mode:'Zap Battle',map:'Rookie Ring',roundSeconds:60,winRule:'Time limit',garage:false}),
   players:()=>connected||players,allPlayers:()=>players,broadcast(){},award(){},later:()=>()=>{}};
  const s=POCKET.create(ctx);now+=3000;POCKET.onTick(s,ctx);
- const a=s.karts[0];s.crates=[];a.weapon='pulse';a.ammo=12;a.shield=0;a.fireCd=0;a.prevAction=false;
+ const a=s.karts[0];s.crates=[];a.weapon='machinegun';a.ammo=24;a.shield=0;a.fireCd=0;a.prevAction=false;
  return {s,ctx,a,tick(ms){now+=ms;POCKET.onTick(s,ctx);},
   press(boost){const ack=POCKET.view(s,a.pid).inputAck;POCKET.onAction(s,ctx,a.pid,{seq:++seq,life:ack.life,controlEpoch:ack.controlEpoch,input:{steer:0,throttle:0,boost}});},
   disconnect(){connected=[players[1]];POCKET.onConnection(s,ctx,a.pid,false);},
@@ -165,17 +166,17 @@ for(const pump of [50,100]) {
  try {
   f.press(true);f.press(false); // accepted receipt edge survives a short tap
   const fired=new Map();let lastAmmo=a.ammo;
-  for(let i=0;i<Math.ceil(2000/pump);i++) {
+  for(let i=0;i<Math.ceil(2200/pump);i++) {
    if(i===2||i>2&&i*pump%500===0)f.press(true); // extra presses/holds cannot add a payload
-   f.tick(pump);check(lastAmmo-a.ammo<=1,'committed Pulse never catches up a batch in one observed tick');lastAmmo=a.ammo;
+   f.tick(pump);check(lastAmmo-a.ammo<=Math.ceil(pump/1000*12),'stream emits only the rounds due in an observed tick');lastAmmo=a.ammo;
    for(const e of s.events)if(e.type==='fire'&&!fired.has(e.id))fired.set(e.id,{...e,at:f.ctx.now()});
   }
-  check(fired.size===12,'one short Pulse press fires the whole twelve-round clip at'+pump+'ms');
+  check(fired.size===24,'one short Pulse press fires the whole twelve-round clip at'+pump+'ms');
   check(a.ammo===0&&a.weapon===null&&!POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'empty clip finishes the payload');
   const times=[...fired.values()].map(e=>e.at),window=times.at(-1)-times[0];
-  check(Math.abs(window-11*120)<=pump,'quantized .12 cadence remains within one pump');
+  check(Math.abs(window-23*(1000/12))<=pump,'quantized .12 cadence remains within one pump');
   s.rngState=7;s.crates=[{id:'held-crate',x:a.x,z:a.z}];f.tick(pump);s.crates=[];
-  check(a.weapon==='pulse','actual seeded pickup supplies another Pulse');const ammo=a.ammo;
+  check(a.weapon==='machinegun','actual seeded pickup supplies another Pulse');const ammo=a.ammo;
   for(let i=0;i<8;i++)f.tick(pump);
   check(a.ammo===ammo,'held-through-pickup cannot auto-spend new slot');
   f.press(false);f.tick(pump);f.press(true);f.tick(pump);
@@ -184,25 +185,25 @@ for(const pump of [50,100]) {
 }
 {
  const f=heldFixture(),{s,a}=f;try{
-  f.press(true);for(let i=0;i<36;i++)f.tick(50);
+  f.press(true);for(let i=0;i<46;i++)f.tick(50);
   check(a.weapon===null&&a.input.boost===false,'completed held clip crosses movement TTL');
   s.rngState=7;s.crates=[{id:'ttl-held-crate',x:a.x,z:a.z}];f.tick(50);s.crates=[];
-  check(a.weapon==='pulse'&&a.ammo===12,'new actual pickup remains after held clip and TTL');
+  check(a.weapon==='machinegun'&&a.ammo===24,'new actual pickup remains after held clip and TTL');
   f.press(true);f.tick(50);
-  check(a.ammo===12&&!POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'resumed held keepalive after TTL cannot impersonate a new Fire press');
+  check(a.ammo===24&&!POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'resumed held keepalive after TTL cannot impersonate a new Fire press');
   f.press(false);f.press(true);f.tick(50);
-  check(a.ammo===11&&POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'explicit release then fresh press still activates after TTL');
+  check(a.ammo===23&&POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'explicit release then fresh press still activates after TTL');
  }finally{POCKET.dispose(s);}
 }
 for(const stop of ['release','ttl','disconnect','ko','life','epoch','done','dispose']) {
  const f=heldFixture(),{s,a}=f;
  try {
-  f.press(true);f.tick(50);check(a.ammo===11&&POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'fresh legal press commits physical payload');
+  f.press(true);f.tick(50);check(a.ammo===23&&POCKET.view(s,a.pid).karts.find(k=>k.pid===a.pid).firing,'fresh legal press commits physical payload');
   if(stop==='release')f.press(false);
   if(stop==='ttl')f.tick(1600);
   if(stop==='disconnect')f.disconnect();
   if(stop==='ko') {const p=a.physicalPose.position;a.health=1;
-   s.zaps=[{id:'stop-hit',owner:'hold-b',kind:'pulse',physical:true,x:p.x,y:p.y+.35,z:p.z-3,vx:0,vy:0,vz:110,angle:0,ttl:1}];f.tick(50);
+   s.zaps=[{id:'stop-hit',owner:'hold-b',kind:'machinegun',physical:true,x:p.x,y:p.y+.35,z:p.z-3,vx:0,vy:0,vz:110,angle:0,ttl:1}];f.tick(50);
    check(a.health===0,'actual physical projectile KOs held shooter');}
   if(stop==='done')f.done();
   if(stop==='life'){battle.respawnKart(s,a);f.tick(50);}

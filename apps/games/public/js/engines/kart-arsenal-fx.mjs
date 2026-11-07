@@ -1,4 +1,5 @@
-/* Presentation for the second eight weapons, shared by both kart views.
+import {WEAPON_FEEL} from './kart-weapon-contract.mjs';
+/* Pooled weapon effects and timed attachments, shared by both kart views.
  * Reads authoritative events and kart status only; never touches gameplay.
  *
  *   const fx = createArsenalFX(THREE, scene, { reducedMotion, groundAt });
@@ -9,7 +10,7 @@
  *   fx.objects()                 // pooled meshes, for shader warm-up
  *   fx.reset(); fx.dispose();
  *
- * Every effect is pooled and short (<= 0.6 s); a full pool recycles the
+ * Every burst is pooled and short (<= 0.85 s); a full pool recycles the
  * oldest. Status attachments live on the kart model and hide themselves
  * the moment the authority's timer reaches zero.
  */
@@ -22,6 +23,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   const keepG = g => { geos.push(g); return g; };
   const keepM = m => { mats.push(m); return m; };
   const additive = (color, opacity) => keepM(new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
+  const attachments=[];
   const rm = () => (typeof reducedMotion === 'function' ? reducedMotion() : reducedMotion) === true;
 
   // ---- thunder bolts: two crossed jagged ribbons + a flash ball ----
@@ -45,7 +47,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     const group = new THREE.Group(); group.name = 'ThunderBolt' + i; group.add(halo, core, flash); group.visible = false;
     for (const m of [core, halo, flash]) m.frustumCulled = false;
     root.add(group);
-    return { group, core, halo, flash, age: 0, life: .6 };
+    return { group, core, halo, flash, age: 0, life: .32 };
   });
   function shapeBolt(bolt, p, seed) {
     const top = 24, pts = [];
@@ -67,7 +69,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
 
   // ---- ground rings (frost, bounce, ram clang, burst, oil splat) ----
   const ringGeo = keepG(new THREE.RingGeometry(.78, 1, 36)); ringGeo.rotateX(-Math.PI / 2);
-  const RING = { frost: [0xbff4ff, 4.5, .5], bounce: [0xff7ad9, 1.3, .25], ram: [0xffd34a, 2.2, .3], burst: [0xff8a3c, 2, .3], oil: [0x9c7dff, 1.8, .4], thunder: [0xfff1a0, 3, .4] };
+  const RING = {nuke:[0xffc35a,14,.65],supernova:[0x73ffe0,9,.45],cannon:[0xffbc54,2.8,.35],missile:[0xff8c56,3,.35], frost: [0xbff4ff, 4.5, .5], bounce: [0xff7ad9, 1.3, .25], ram: [0xffd34a, 2.2, .3], burst: [0xff8a3c, 2, .3], oil: [0x9c7dff, 1.8, .4], thunder: [0xfff1a0, 3, .4] };
   const rings = Array.from({ length: 10 }, (_, i) => {
     // Normal blending keeps each ring's colour on bright daytime ground.
     const mesh = new THREE.Mesh(ringGeo, keepM(new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: .8, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }))); mesh.name = 'ArsenalRing' + i; mesh.visible = false; mesh.frustumCulled = false; root.add(mesh);
@@ -100,12 +102,39 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   }
   const dummy = new THREE.Object3D();
 
+  // Brass shells use one reserved instanced draw, rather than turning the
+  // whole muzzle burst into sparks. They tumble out and retire after .6 s.
+  const CASINGS=64;
+  const casingMesh=new THREE.InstancedMesh(keepG(new THREE.CylinderGeometry(.035,.035,.14,6)),keepM(new THREE.MeshStandardMaterial({color:0xffc24b,metalness:.55,roughness:.35})),CASINGS);
+  casingMesh.name='MachineGunCasings';casingMesh.frustumCulled=false;casingMesh.count=0;root.add(casingMesh);
+  const casings=Array.from({length:CASINGS},()=>({live:false,p:new THREE.Vector3(),v:new THREE.Vector3(),age:0}));let casingHead=0;
+  function eject(p,d,count){if(rm())return;for(let i=0;i<count;i++){
+    const c=casings[casingHead];casingHead=(casingHead+1)%CASINGS;c.live=true;c.age=0;c.p.set(p.x,p.y,p.z);c.v.set(d.z*(2+i*.2),2.4+i*.15,-d.x*(2+i*.2));
+  }}
+
+  const lockMesh=new THREE.Mesh(keepG(new THREE.RingGeometry(.92,1.02,32)),additive(0xffd34a,.95));
+  lockMesh.name='MissileLockReticle';lockMesh.visible=false;lockMesh.frustumCulled=false;root.add(lockMesh);
+  function target(snapshot,models,camera){
+    lockMesh.visible=false;if(!snapshot)return;
+    const own=snapshot.karts?.find(k=>(k.id||k.pid)===snapshot.you);if(!own||own.alive===false||own.respawn>0||own.connected===false)return;
+    let id=own.weapon==='missile'?own.lockTarget:null;
+    if(!own.weapon)for(const shot of snapshot.projectiles||snapshot.zaps||[])if(shot.owner===snapshot.you&&shot.targetId){id=shot.targetId;break;}
+    const kart=snapshot.karts?.find(k=>(k.id||k.pid)===id),model=id&&models.get(id);
+    if(!model||kart?.alive===false||kart?.respawn>0||kart?.connected===false)return;
+    lockMesh.position.copy(model.position);lockMesh.position.y+=2.1;lockMesh.quaternion.copy(camera.quaternion);lockMesh.scale.setScalar(1);lockMesh.visible=true;
+  }
+  function react(e,models){
+    const type=e.type||e.kind;
+    if(type==='fire'||type==='mine'){const model=models.get(e.pid);if(model){const s=attach(model);s.fireAge=0;s.firePower=WEAPON_FEEL[e.weapon]?.recoil||.1;}}
+    if(type==='hit'){const model=models.get(e.other);if(model){const s=attach(model);s.hitAge=0;s.hitPower=Math.min(1.3,.3+(WEAPON_FEEL[e.weapon]?.kick||1)/8);}}
+  }
   // ---- kart status attachments ----
   const domeGeo = keepG(new THREE.SphereGeometry(1, 20, 10, 0, TAU, 0, Math.PI / 2)); domeGeo.rotateX(Math.PI / 2);
   const shellGeo = keepG(new THREE.IcosahedronGeometry(1, 1));
   const starGeo = keepG(new THREE.OctahedronGeometry(.13, 0));
   const swirlGeo = keepG(new THREE.TorusGeometry(1.25, .05, 6, 40)); swirlGeo.rotateX(Math.PI / 2);
   const ramMat = additive(0xffb347, .5), frostMat = additive(0x9fe8ff, .32), starMat = keepM(new THREE.MeshBasicMaterial({ color: 0xffe066, toneMapped: false })), swirlMat = additive(0x9c7dff, .55);
+  const bladeGeo=keepG(new THREE.BoxGeometry(.9,.09,.25)),bladeMat=additive(0x6bffda,.95),novaMat=additive(0x73ffe0,.25);
   function attach(model) {
     let s = model.userData.arsenalStatus;
     if (s) return s;
@@ -115,20 +144,33 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     const dizzy = new THREE.Group(); dizzy.name = 'OilDizzy';
     for (let i = 0; i < 3; i++) { const star = new THREE.Mesh(starGeo, starMat); star.name = 'DizzyStar'; dizzy.add(star); }
     const swirl = new THREE.Mesh(swirlGeo, swirlMat); swirl.name = 'OilSwirl'; dizzy.add(swirl);
-    for (const o of [ram, frost, dizzy]) { o.visible = false; group.add(o); }
+    const blades=new THREE.Group();blades.name='SpinningBlades';for(let i=0;i<3;i++){const b=new THREE.Mesh(bladeGeo,bladeMat);b.name='OrbitBlade';blades.add(b);}
+    const nova=new THREE.Mesh(shellGeo,novaMat);nova.name='SupernovaBubble';nova.scale.set(2.3,1.7,2.6);
+    for (const o of [ram, frost, dizzy,blades,nova]) { o.visible = false; group.add(o); }
     group.traverse(o => { o.castShadow = false; o.receiveShadow = false; });
     model.add(group);
-    s = model.userData.arsenalStatus = { group, ram, frost, dizzy, swirl };
+    const authoredBody=model.userData.kart?.body;let body=null;
+    if(authoredBody?.parent){body=new THREE.Group();body.name='WeaponBodyReaction';authoredBody.parent.add(body);body.add(authoredBody);}
+    s = model.userData.arsenalStatus = {group,ram,frost,dizzy,swirl,blades,nova,body,baseZ:body?.position.z||0,fireAge:Infinity,hitAge:Infinity,firePower:0,hitPower:0};attachments.push(s);
     return s;
   }
   /* opts.groundRoot: the model root sits on the ground (planar karts), not
    * at the chassis centre. */
-  function status(model, kart, { time = 0, groundRoot = false } = {}) {
+  function status(model, kart, { time = 0, groundRoot = false, elapsed = 0 } = {}) {
     if (!model) return;
-    const ramOn = kart?.rammingT > 0, frostOn = kart?.frostT > 0, spinOn = kart?.spinT > 0;
-    if (!ramOn && !frostOn && !spinOn && !model.userData.arsenalStatus) return;
+    const connected=kart?.connected!==false,ramOn=connected&&kart?.rammingT>elapsed,frostOn=connected&&kart?.frostT>elapsed,spinOn=connected&&kart?.spinT>elapsed;
+    if (!ramOn && !frostOn && !spinOn && !(kart?.bladesT>0) && !(kart?.supernovaT>0) && !model.userData.arsenalStatus) return;
     const s = attach(model), lift = groundRoot ? .72 : 0, still = rm();
+    if(s.body){
+      const fire=!still&&s.fireAge<.18?Math.sin(s.fireAge/.18*Math.PI)*s.firePower:0;
+      const hit=!still&&s.hitAge<.3?Math.sin(s.hitAge/.3*Math.PI*3)*(1-s.hitAge/.3)*s.hitPower:0;
+      s.body.position.z=s.baseZ-fire;s.body.rotation.x=fire*.2;s.body.rotation.z=hit*.17;
+    }
     s.group.position.y = lift;
+    s.nova.visible=connected&&kart?.supernovaT>elapsed;s.blades.visible=connected&&kart?.bladesT>elapsed;
+    if(s.blades.visible){s.blades.position.set(0,.35,0);s.blades.quaternion.copy(model.quaternion).invert();for(let i=0;i<3;i++){const b=s.blades.children[i],a=((kart.bladesAge||0)+elapsed)*7+i*TAU/3;b.position.set(Math.cos(a)*2.2,0,Math.sin(a)*2.2);b.rotation.y=-a;}}
+    s.nova.position.y=.35;
+    if(s.nova.visible)s.nova.rotation.y=still?0:time*.6;
     s.ram.visible = !!ramOn; s.frost.visible = !!frostOn; s.dizzy.visible = !!spinOn;
     if (ramOn) { s.ram.position.set(0, -.05, 1.55); const p = still ? 1 : 1 + .07 * Math.sin(time * 18); s.ram.scale.set(1.35 * p, .75 * p, .9 * p); }
     if (frostOn) { s.frost.position.set(0, .05, 0); s.frost.rotation.y = still ? 0 : time * .4; }
@@ -156,10 +198,12 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   function event(e) {
     if (!e || !e.type) return false;
     const p = at(e); if (!p) return false;
+    if(e.type==='blast'&&['nuke','supernova','cannon','missile'].includes(e.weapon)){ring(e.weapon,floorOf(p));return true;}
+    if(e.type==='fire'&&(e.weapon==='machinegun'||e.weapon==='trishot')){eject(p,e.direction||{x:0,y:0,z:1},e.weapon==='trishot'?3:1);return true;}
     if (e.type === 'blast' && e.weapon === 'thunder') {
       const bolt = bolts.find(b => !b.group.visible) || bolts.reduce((a, b) => (a.age > b.age ? a : b));
       shapeBolt(bolt, p, ++strikes + (p.x * .13));
-      bolt.age = 0; bolt.group.visible = true; bolt.flash.scale.setScalar(.6);
+      bolt.age = 0; bolt.group.visible = true;bolt.flash.visible=true; bolt.flash.scale.setScalar(.6);
       ring('thunder', floorOf(p)); burst(p, 8, 0xfff1a0, 4, .4, 3, .8);
       return true;
     }
@@ -173,36 +217,40 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   }
 
   function update(dt) {
-    const step = Math.max(0, Math.min(.1, Number(dt) || 0));
+    const elapsed=Math.max(0,Number(dt)||0),step=Math.min(.1,elapsed);
+    for(const s of attachments){s.fireAge+=elapsed;s.hitAge+=elapsed;}
     for (const b of bolts) {
       if (!b.group.visible) continue;
-      b.age += step; const f = b.age / b.life;
+      b.age += elapsed; const f = b.age / b.life;
       if (f >= 1) { b.group.visible = false; continue; }
       // A double flicker, then a fade: lightning, not a beam.
       const flicker = f < .25 ? 1 : f < .35 ? .25 : 1 - (f - .35) / .65;
       b.core.material.opacity = flicker; b.halo.material.opacity = .45 * flicker;
-      b.flash.material.opacity = .8 * (1 - f); b.flash.scale.setScalar(.6 + f * 2.4);
+      b.flash.visible=b.age<.25;b.flash.material.opacity = .8 * (1 - f); b.flash.scale.setScalar(.6 + f * 2.4);
     }
     for (const r of rings) {
       if (!r.mesh.visible) continue;
-      r.age += step; const f = r.age / r.life;
+      r.age += elapsed; const f = r.age / r.life;
       if (f >= 1) { r.mesh.visible = false; continue; }
-      r.mesh.scale.setScalar((.2 + .8 * Math.sqrt(f)) * r.size); r.mesh.material.opacity = .85 * (1 - f);
+      r.mesh.scale.setScalar((rm()?1:(.2 + .8 * Math.sqrt(f))) * r.size); r.mesh.material.opacity = .85 * (1 - f);
     }
     let n = 0;
     for (const s of shards) {
       if (!s.live) continue;
-      s.age += step; if (s.age >= s.life) { s.live = false; continue; }
+      s.age += elapsed; if (s.age >= s.life) { s.live = false; continue; }
       s.v.y -= 12 * step; s.p.addScaledVector(s.v, step);
       const k = (1 - s.age / s.life) * s.size;
       dummy.position.copy(s.p); dummy.rotation.set(s.age * 9, s.age * 7, 0); dummy.scale.setScalar(k); dummy.updateMatrix();
       shardMesh.setMatrixAt(n, dummy.matrix); shardMesh.setColorAt(n, shardColor.setHex(s.color)); n++;
     }
     shardMesh.count = n;
+    let shells=0;
+    for(const c of casings){if(!c.live)continue;c.age+=elapsed;if(c.age>=.6){c.live=false;continue;}c.v.y-=9.8*step;c.p.addScaledVector(c.v,step);dummy.position.copy(c.p);dummy.rotation.set(c.age*17,c.age*11,c.age*8);dummy.scale.setScalar(Math.min(1,(.6-c.age)*12));dummy.updateMatrix();casingMesh.setMatrixAt(shells++,dummy.matrix);}
+    casingMesh.count=shells;if(shells)casingMesh.instanceMatrix.needsUpdate=true;
     if (n) { shardMesh.instanceMatrix.needsUpdate = true; shardMesh.instanceColor.needsUpdate = true; }
   }
   function active() {
-    return bolts.some(b => b.group.visible) || rings.some(r => r.mesh.visible) || shards.some(s => s.live);
+    return bolts.some(b => b.group.visible) || rings.some(r => r.mesh.visible) || shards.some(s => s.live)||casings.some(c=>c.live);
   }
   function reset() {
     // A shader warm-up may have borrowed pooled objects: take them back.
@@ -210,17 +258,18 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     for (const b of bolts) b.group.visible = false;
     for (const r of rings) r.mesh.visible = false;
     for (const s of shards) s.live = false;
-    shardMesh.count = 0;
+    lockMesh.visible=false;for(const s of attachments){s.fireAge=s.hitAge=Infinity;if(s.body){s.body.position.z=s.baseZ;s.body.rotation.set(0,0,0);}}
+    shardMesh.count = 0;for(const c of casings)c.live=false;casingMesh.count=0;
   }
   // Pooled objects, made visible for a shader warm-up by the caller.
-  function objects() { return [...bolts.map(b => b.group), ...rings.map(r => r.mesh), shardMesh]; }
+  function objects() { return [...bolts.map(b => b.group), ...rings.map(r => r.mesh), shardMesh,casingMesh,lockMesh]; }
   // A status-only dummy so every status material compiles before play.
-  function warmStatus(model) { const s = attach(model); s.ram.visible = s.frost.visible = s.dizzy.visible = true; return s.group; }
+  function warmStatus(model) {shardMesh.count=SHARDS;casingMesh.count=CASINGS; const s = attach(model); s.ram.visible = s.frost.visible = s.dizzy.visible = s.blades.visible = s.nova.visible = true; return s.group; }
   let disposed = false;
   function dispose() {
     if (disposed) return; disposed = true; reset(); root.removeFromParent();
     for (const g of geos) g.dispose();
     for (const m of mats) m.dispose();
   }
-  return Object.freeze({ event, status, update, active, reset, objects, warmStatus, dispose });
+  return Object.freeze({event,status,update,active,reset,objects,warmStatus,react,target,dispose});
 }

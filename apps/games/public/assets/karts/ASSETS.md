@@ -26,7 +26,7 @@ Both packs are Creative Commons Zero (CC0). Original license files are retained 
 
 Backdrops: `backdrops/mountains-day.webp` (garden/grove), `frost.webp`, `neon.webp` and `harbor.webp` are original GPT Image paintings made for this project. `kart-backdrop.mjs` wraps each panorama four times on an inward cylinder in classic and elevated arenas, then hides the procedural mountains. Bumper Blocks keeps its dry quarry horizon. Missing images and headless builds keep the procedural art. Image height/width ratios live in `BACKDROP_THEMES`; frost/neon/harbor use `324/2172` placeholders until the final images arrive.
 
-Foundry uses `backdrops/quarry.webp`, shared from the arena art work. The quarry theme tries `mountains-day.webp` if that image fails to load; if both fail, the procedural scenery stays visible.
+Foundry uses `backdrops/quarry.webp`, shared from the arena art work. The quarry theme loads this painting directly; if it fails to load, the procedural scenery stays visible.
 
 Clouds: `clouds/cloud-1.webp`, `cloud-2.webp` and `cloud-3.webp` are original GPT Image paintings made for this project, supplied as transparent WebP. Eight distant sprites share three materials and drift slowly. All three images must load before replacing the sphere clouds; missing images and headless builds keep the spheres.
 

@@ -75,8 +75,10 @@ for(const id of maps.mapIds()){
  try{
   // Start at boosted road speed in the real body, then keep full nitro.
   motion.restore(k,{...k.physicalPose,linearVelocity:{x:Math.sin(k.angle)*32,y:0,z:Math.cos(k.angle)*32}});
-  for(let i=0;i<210;i++){motion.advance(1/60,online);contact ||= state.physicalEvents.some(e=>e.surfaceId?.startsWith('barrier-'));maxCross=Math.max(maxCross,-sign*((alongX?k.x:k.z)-(alongX?b.x:b.z)));}
-  ok(contact&&maxCross<0,id+' wall stops full-speed nitro');
+  // A low-friction glance may eventually drive around a finite wall's end.
+  // Check crossing while the kart centre is still opposite its solid face.
+  for(let i=0;i<210;i++){motion.advance(1/60,online);contact ||= state.physicalEvents.some(e=>e.surfaceId?.startsWith('barrier-'));if(Math.abs((alongX?k.z:k.x)-(alongX?b.z:b.x))<=(alongX?b.hd:b.hw))maxCross=Math.max(maxCross,-sign*((alongX?k.x:k.z)-(alongX?b.x:b.z)));}
+  ok(contact&&maxCross<0,id+' wall stops full-speed nitro '+JSON.stringify({contact,maxCross,x:k.x,z:k.z,y:k.physicalPose.position.y}));
   const ray=(y,radius=.05)=>motion.sweepStatic({x:b.x+(alongX?-3:0),y,z:b.z+(!alongX?-3:0)},{x:b.x+(alongX?3:0),y,z:b.z+(!alongX?3:0)},radius);
   ok(ray(.5)?.surfaceId.startsWith('barrier-')&&!ray(1.25,.22),id+' full-radius pulse clears the low wall');
  }finally{motion.dispose();}
@@ -96,10 +98,11 @@ for(const id of maps.mapIds()){
  reports.push({id,roads:m.roads.length,barriers:m.barriers.length,ramps:m.ramps.length,reachableCells:nav.cells,jumpPeaks:jumps});
 }
 const flat={id:'surface-fixture',half:300,blocks:[],pads:[{x:30,z:30,hw:2,hd:3}],surfaces:[{x:40,z:40,hw:4,hd:4,grip:.3}],barriers:[],ramps:[],roads:[{points:[[-20,-200],[-20,200]],width:8}],offroad:{kind:'grass',top:.7,traction:.8}},index=createSurfaceIndex(flat);
-assert.deepEqual(surfaceTuning(index,-20,0),{top:1,traction:1});assert.deepEqual(surfaceTuning(index,20,0),{top:.7,traction:.8});
+// Profiles now include shared presentation metadata alongside motion values.
+assert.equal(surfaceTuning(index,-20,0).top,1);assert.equal(surfaceTuning(index,-20,0).traction,1);assert.equal(surfaceTuning(index,20,0).top,.7);assert.equal(surfaceTuning(index,20,0).traction,.8);assert.equal(surfaceTuning(index,40,40).kind,'ice');
 ok(onRoad(index,-15.7,0)&&!onRoad(index,-15.69,0),'road .3m margin');ok(onRoad(index,30,30)&&onRoad(index,40,40),'pad and ice overrides');assert.strictEqual(surfaceTuning(index,20,0),surfaceTuning(index,21,1));ok(onRoad(createSurfaceIndex({}),1e3,-1e3),'legacy handling');ok(onRoad(createSurfaceIndex({roads:[{points:[[0,0],[10,0],[10,10]],width:2,closed:true}]}),4,4),'closing road segment');
 const grounded={...kart(20,0),physicalPose:{grounded:true,angularVelocity:{y:0}}},control=classicControls(grounded,1/60,flat,true,index);
-ok(control.tuning.top===.7&&control.tuning.traction===.8&&control.tuning.rearTraction===.8,'top and both grip factors');grounded.spinT=1;ok(classicControls(grounded,1/60,flat,true,index).tuning.rearTraction===.1,'offroad oil spin respects the Rapier grip floor');grounded.spinT=0;grounded.physicalPose.grounded=false;ok(classicControls(grounded,1/60,flat,true,index).tuning.top===1,'airborne momentum');
+ok(control.tuning.top===.7&&control.tuning.traction===.8&&control.tuning.rearTraction===1,'surface traction applies once to both axles');grounded.spinT=1;ok(classicControls(grounded,1/60,flat,true,index).tuning.rearTraction===.12,'oil rear grip stays valid without squaring the surface traction');grounded.spinT=0;grounded.physicalPose.grounded=false;ok(classicControls(grounded,1/60,flat,true,index).tuning.top===1,'airborne momentum');
 // A spinning kart off road must not send grip below Rapier's valid range.
 {const k=kart(20,-150);k.spinT=1;const motion=createClassicMotion(RAPIER,config,stateFor(flat,k));try{for(let i=0;i<60;i++)motion.advance(1/60,online);ok(Number.isFinite(k.speed),'actual offroad spin remains valid');}finally{motion.dispose();}}
 const speeds=[];
@@ -140,7 +143,7 @@ for(const id of ['garden','neon'])for(const mode of ['Zap Battle','Star Rush']){
 }
 const scene=new THREE.Scene(),art=createKartArenaStructures(THREE,scene),resources=new Set();
 for(const id of maps.mapIds()){
- const m={id,...maps.mapDef(id)};art.sync(m);const st=art.stats();ok(st.drawCalls===4&&st.barriers===m.barriers.length&&st.ramps===m.ramps.length,id+' four structure draws');
+ const m={id,...maps.mapDef(id)};art.sync(m);const st=art.stats();ok(st.drawCalls===5&&st.barriers===m.barriers.length&&st.ramps===m.ramps.length,id+' five structure draws including contact shadows');
  const meshes=[];art.root.traverse(o=>{if(o.isMesh){ok(o.isInstancedMesh,id+' instanced structures');meshes.push(o);resources.add(o.geometry);resources.add(o.material);}});
  const buffers=meshes.map(o=>o.instanceMatrix.array);for(let i=0;i<180;i++){art.sync(m);art.animate();}meshes.forEach((o,i)=>assert.strictEqual(o.instanceMatrix.array,buffers[i]));
  const wedgeGeometry=art.root.getObjectByName('arena-ramp-wedges').geometry;

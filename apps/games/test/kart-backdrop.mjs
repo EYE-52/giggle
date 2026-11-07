@@ -7,7 +7,7 @@ import {createKartWorld,resolveMapTheme,WORLD_THEMES} from '../public/js/engines
 import {createKartElevatedWorld} from '../public/js/engines/kart-elevated-world.mjs';
 import {BACKDROP_THEMES,CLOUD_FILES,createKartBackdrop,createKartClouds} from '../public/js/engines/kart-backdrop.mjs';
 
-const themes=new Set([...WORLD_THEMES,...classic.mapIds().map(id=>resolveMapTheme(classic.mapDef(id))),
+const themes=new Set(['quarry',...WORLD_THEMES,...classic.mapIds().map(id=>resolveMapTheme(classic.mapDef(id))),
   ...elevatedMapIds.map(id=>elevatedMap(id).backdrop||id),...Object.values(adapter.MAP_LABELS).map(id=>elevatedMap(id).backdrop||id)]);
 assert.deepEqual(Object.keys(BACKDROP_THEMES).sort(),[...themes].sort(),'Every rendered classic and elevated theme has a panorama');
 for(const entry of Object.values(BACKDROP_THEMES))assert(entry.file.endsWith('.webp')&&entry.aspect>0&&entry.aspect<1);
@@ -63,22 +63,18 @@ try{
   createKartBackdrop(testThree,{parent,theme:'frost',radius:255,ridges:[ridge]});
   requests.shift().onError(new Error('missing panorama'));
   assert(ridge.visible&&!parent.getObjectByName('mountain-backdrop'),'A missing panorama keeps the ridges');
-  for(const fallbackLoads of [false,true]){
-    const quarryParent=new THREE.Group(),fallbackRidge=new THREE.Group(),owned=[];scene.add(quarryParent);quarryParent.add(fallbackRidge);
-    createKartBackdrop(testThree,{parent:quarryParent,theme:'quarry',radius:350,ridges:[fallbackRidge],texture:t=>(owned.push(t),t)});
-    const primary=requests.shift();assert(primary.url.endsWith('/quarry.webp'));primary.onError(new Error('quarry absent'));
-    const fallback=requests.shift();assert(fallback.url.endsWith('/mountains-day.webp'),'Quarry tries the existing day painting when missing');
-    if(fallbackLoads){succeed(fallback);assert(!fallbackRidge.visible&&quarryParent.getObjectByName('mountain-backdrop'),'Loaded day painting replaces procedural fallback');}
-    else{fallback.onError(new Error('day painting absent'));assert(fallbackRidge.visible&&!quarryParent.getObjectByName('mountain-backdrop'),'Both missing images keep procedural scenery');}
-    quarryParent.traverse(o=>{o.geometry?.dispose();o.material?.dispose();});owned.forEach(t=>t.dispose());quarryParent.removeFromParent();
-  }
   {
+    const quarryParent=new THREE.Group(),fallbackRidge=new THREE.Group();scene.add(quarryParent);quarryParent.add(fallbackRidge);
+    createKartBackdrop(testThree,{parent:quarryParent,theme:'quarry',radius:350,ridges:[fallbackRidge]});
+    const primary=requests.shift();assert(primary.url.endsWith('/quarry.webp'));primary.onError(new Error('quarry absent'));
+    assert(fallbackRidge.visible&&!quarryParent.getObjectByName('mountain-backdrop'),'Missing quarry keeps procedural scenery');
+    assert.equal(requests.length,0,'Quarry uses its own painting directly');quarryParent.removeFromParent();
     let alive=true,disposed=0;const retiredParent=new THREE.Group();scene.add(retiredParent);
     createKartBackdrop(testThree,{parent:retiredParent,theme:'quarry',radius:350,isAlive:()=>alive});
-    requests.shift().onError();const fallback=requests.shift();alive=false;const tex=freshTexture();tex.addEventListener('dispose',()=>disposed++);fallback.onLoad(tex);
-    assert(disposed===1&&!retiredParent.getObjectByName('mountain-backdrop'),'A late day fallback releases its texture after retirement');retiredParent.removeFromParent();
+    const pending=requests.shift();alive=false;const tex=freshTexture();tex.addEventListener('dispose',()=>disposed++);pending.onLoad(tex);
+    assert(disposed===1&&!retiredParent.getObjectByName('mountain-backdrop'),'A late quarry image releases its texture after retirement');retiredParent.removeFromParent();
     createKartBackdrop(testThree,{parent:retiredParent,theme:'quarry',radius:350,isAlive:()=>alive});requests.shift().onError();
-    assert.equal(requests.length,0,'A retired world never requests the fallback');
+    assert.equal(requests.length,0,'A retired world never requests another image');
   }
   createKartClouds(testThree,{parent,radius:255,peakHeight:90,color:new THREE.Color(),fallback:[sphere]});
   const partial=succeed(requests.shift());let released=0;partial.addEventListener('dispose',()=>released++);
@@ -113,11 +109,20 @@ try{
     world.animate(0,0,null);assert(panorama.material.color.equals(dayTint),'Returning to a fixed palette resets panorama tint');
     releaseClassic(world);
   }
-  // Quarry exception and the classic city's existing cloud visibility remain intact.
-  for(const id of ['blocks','neon']){
-    const world=createKartWorld(testThree,{scene:new THREE.Scene(),map:{id,...classic.mapDef(id)}}),pending=requests.splice(0);
-    assert.equal(pending.some(r=>r.url.includes('/backdrops/')),id!=='blocks');
+  // Every classic map selects its painting, including the dry quarry.
+  for(const id of classic.mapIds())for(const palette of ['Daybreak','Sunset','Starlight']){
+    const world=createKartWorld(testThree,{scene:new THREE.Scene(),map:{id,...classic.mapDef(id)},palette}),pending=requests.splice(0);
+    const theme=id==='blocks'?'quarry':resolveMapTheme(classic.mapDef(id));
+    const request=pending.find(r=>r.url.includes('/backdrops/'));
+    assert.equal(request.url,'/assets/karts/backdrops/'+BACKDROP_THEMES[theme].file,id+' painted horizon');
+    const ridges=world.group.children.filter(o=>/^ridge-(near|far|summit)$/.test(o.name));
+    assert(ridges.every(r=>r.visible),'Keep ridges while loading');
     for(const request of pending)succeed(request);
+    assert(world.group.getObjectByName('mountain-backdrop')&&ridges.every(r=>!r.visible),id+' painting replaces every procedural ridge');
+    if(id==='blocks'){
+      const g=world.group.getObjectByName('mountain-backdrop').geometry.parameters;
+      assert.equal(g.height,2*Math.PI*g.radiusTop/4*BACKDROP_THEMES.quarry.aspect*1.6);
+    }
     if(id==='neon')assert(!world.group.getObjectByName('painted-clouds').visible);
     releaseClassic(world);
   }

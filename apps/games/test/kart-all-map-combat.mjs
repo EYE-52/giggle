@@ -67,11 +67,11 @@ for(const id of maps.mapIds()){
         f.tick(0);check(f.b.health===2,id+': consumed mine cannot repeat');
       }finally{f.dispose();}
     }
-    for(const [weapon,damage] of [['pulse',1],['scatter',1],['seeker',1]]){
+    for(const [weapon,damage] of [['machinegun',1],['trishot',1],['missile',2],['cannon',2]]){
       const f=fixture(id);try{
         f.place(f.a,0,-4);f.place(f.b,0,0);f.fire(f.a,weapon);
         const volley=f.s.zaps.slice();
-        check(volley.length===(weapon==='scatter'?3:1)&&volley.every(p=>p.physical),id+': accepted '+weapon+' launches its physical mounted volley');
+        check(volley.length===(weapon==='trishot'?3:1)&&volley.every(p=>p.physical),id+': accepted '+weapon+' launches its physical mounted volley');
         const packets=POCKET.view(f.s,f.a.pid).zaps;
         check(volley.every(p=>p.radius===battle.viewExtra(f.s).combat.staticSweepRadii[weapon])&&packets.every(p=>p.radius===volley[0].radius),id+': real accepted '+weapon+' preserves exact static radius through public packets');
         for(let i=0;i<8&&f.s.zaps.length;i++)f.tick(50);
@@ -81,10 +81,10 @@ for(const id of maps.mapIds()){
     }
     {
       const f=fixture(id);try{
-        f.place(f.a,0,-6);f.place(f.b,0,4,Math.PI);f.fire(f.a,'shield');
-        check(f.a.guard===true&&f.a.shield===0&&f.a.ammo===0&&f.a.weapon===null,id+': Shield arms one guard without spawn protection');
-        f.fire(f.b,'rocket');for(let i=0;i<8;i++)f.tick(50);
-        check(f.a.health===3&&f.a.guard===false&&f.s.zaps.length===0&&f.s.events.filter(e=>e.type==='shield').length===1,id+': Shield absorbs a real mounted Rocket once');
+        f.place(f.a,0,-6);f.place(f.b,0,4,Math.PI);f.fire(f.a,'supernova');
+        check(f.a.supernovaT>2.9&&f.a.shield===0&&f.a.ammo===0&&f.a.weapon===null,id+': Shield arms one guard without spawn protection');
+        f.fire(f.b,'missile');for(let i=0;i<8;i++)f.tick(50);
+        check(f.a.health===3&&f.a.supernovaT>0&&f.s.zaps.length===0&&f.s.events.filter(e=>e.type==='fire'&&e.weapon==='supernova').length===1,id+': Shield absorbs a real mounted Rocket once');
         check(f.s.events.filter(e=>e.type==='block'&&e.other===f.a.pid&&e.pid===f.b.pid).length===1&&!f.s.events.some(e=>e.type==='hit'),id+': guard emits one block and no hit');
       }finally{f.dispose();}
     }
@@ -116,17 +116,17 @@ for(const id of maps.mapIds()){
     {
       const f=fixture(id);try{
         f.place(f.a,0,-8);f.place(f.b,0,8);
-        f.s.zaps=[{id:'declared-hill-strike',owner:f.a.pid,kind:'pulse',physical:true,x:hill.x,y:hill.height+.8,z:hill.z,vx:0,vy:-30,vz:0,angle:0,ttl:1}];
+        f.s.zaps=[{id:'declared-hill-strike',owner:f.a.pid,kind:'machinegun',physical:true,x:hill.x,y:hill.height+.8,z:hill.z,vx:0,vy:-30,vz:0,angle:0,ttl:1}];
         f.tick(50);const impact=f.s.events.find(e=>e.type==='impact');
-        check(f.s.zaps.length===0&&impact&&Math.abs(impact.position.y-hill.height-battle.viewExtra(f.s).combat.staticSweepRadii.pulse)<.015,id+': physical projectile sphere stops above actual hillside triangles');
+        check(f.s.zaps.length===0&&impact&&Math.abs(impact.position.y-hill.height-battle.viewExtra(f.s).combat.staticSweepRadii.machinegun)<.015,id+': physical projectile sphere stops above actual hillside triangles');
         check(f.b.health===3,id+': hillside collision does not invent a hull hit');
       }finally{f.dispose();}
     }
     {
       const f=fixture(id);try{
         f.place(f.a,0,-6);f.place(f.b,0,4);f.b.health=2;const old=POCKET.view(f.s,f.b.pid).inputAck;
-        f.fire(f.a,'rocket');
-        check(f.s.zaps[0]?.radius===battle.viewExtra(f.s).combat.staticSweepRadii.rocket&&POCKET.view(f.s,f.a.pid).zaps[0]?.radius===f.s.zaps[0]?.radius,id+': accepted mounted Rocket packet retains exact static radius');
+        f.fire(f.a,'missile');
+        check(f.s.zaps[0]?.radius===battle.viewExtra(f.s).combat.staticSweepRadii.missile&&POCKET.view(f.s,f.a.pid).zaps[0]?.radius===f.s.zaps[0]?.radius,id+': accepted mounted Rocket packet retains exact static radius');
         for(let i=0;i<8&&f.b.health;i++)f.tick(50);
         check(f.b.health===0&&f.b.respawn>0&&f.a.hits===1&&f.b.deaths===1,id+': direct mounted Rocket (2 hearts) kills a 2-heart rival once');
         check(f.s.events.filter(e=>e.type==='hit'&&e.other===f.b.pid).length===1,id+': direct plus splash does not double-damage');

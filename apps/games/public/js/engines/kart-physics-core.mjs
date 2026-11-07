@@ -60,7 +60,7 @@ function createKartPhysics(RAPIER, config) {
   // retain the bounded two CCD substeps rather than increasing work broadly.
   world.numSolverIterations = 8;
   world.maxCcdSubsteps = 2;
-  const karts = new Map(), statics = new Map(), surfaces = new Map(), kartColliders = new Map();
+  const karts = new Map(), statics = new Map(), surfaces = new Map(), kartColliders = new Map(),driveSurfaces=new Set();
   const contactQueue = new RAPIER.EventQueue(true), impacts = [];
   let disposed = false, tick = 0;
   function alive() { if (disposed) throw new Error('physics world disposed'); }
@@ -105,13 +105,15 @@ function createKartPhysics(RAPIER, config) {
     if (!d) throw new Error('invalid convex wedge');
     const driveSurface = mesh || desc.shape === 'wedge' || desc.shape === 'deck' || id === 'floor' || desc.grip !== undefined;
     d.setTranslation(position.x, position.y, position.z).setRotation(q)
-      .setFriction(driveSurface ? 0.7 : 0.25)
+      .setFriction(driveSurface ? 0.7 : C.arcadeContacts?.wallFriction??0.25)
+      .setFrictionCombineRule(C.arcadeContacts?RAPIER.CoefficientCombineRule.Min:RAPIER.CoefficientCombineRule.Average)
       .setRestitution(driveSurface ? 0 : C.chassis.restitution)
       .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Min);
     const collider = world.createCollider(d);
     const data = { id, shape: desc.shape, half, position, rotation: q, grip };
     statics.set(id, data);
     surfaces.set(collider.handle, data);
+    if(driveSurface)driveSurfaces.add(collider.handle);
     return structuredClone(data);
   }
   function addKart(id, spawn) {
@@ -127,10 +129,14 @@ function createKartPhysics(RAPIER, config) {
         { x: C.chassis.mass / 3 * (H.y ** 2 + H.z ** 2), y: C.chassis.mass / 3 * (H.x ** 2 + H.z ** 2) * (C.chassis.yawInertiaScale || 1), z: C.chassis.mass / 3 * (H.x ** 2 + H.y ** 2) },
         { x: 0, y: 0, z: 0, w: 1 }).setFriction(C.chassis.friction).setRestitution(C.chassis.restitution)
         .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Min)
+        .setFrictionCombineRule(C.arcadeContacts?RAPIER.CoefficientCombineRule.Min:RAPIER.CoefficientCombineRule.Average)
         .setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS).setContactForceEventThreshold(6000), body);
       kartColliders.set(collider.handle,id);
       karts.set(id, { body, controller: makeController(body), intent: { steer: 0, throttle: 0, brake: 0 }, epoch: 0,
-        enabled: true, frozen: false, tuning: { top: 1, engine: 1, steering: 1, traction: 1, rearTraction: 1, rearStiffness:1 } });
+        collider,enabled: true, frozen: false, slide: null, tuning: { top: 1, engine: 1, steering: 1, traction: 1, rearTraction: 1, rearStiffness:1 } });
+      const kart=karts.get(id);
+      kart.checkManifold=manifold=>{if(manifold.numSolverContacts()>0&&Math.abs(manifold.normal().y)<.5)kart.sideContact=true;};
+      kart.checkContact=other=>world.contactPair(collider,other,kart.checkManifold);
     } catch (error) { world.removeRigidBody(body); throw error; }
     return pose(id);
   }
@@ -142,6 +148,7 @@ function createKartPhysics(RAPIER, config) {
     kart.body.resetForces(true); kart.body.resetTorques(true);
     kart.controller = makeController(kart.body);
     kart.intent = { steer: 0, throttle: 0, brake: 0 }; kart.epoch++;
+    kart.slide=null;
     world.propagateModifiedBodyPositionsToColliders();
     return pose(id);
   }
@@ -182,9 +189,11 @@ function createKartPhysics(RAPIER, config) {
           v.setWheelBrake(i, Math.max(brake, opposing ? 0.65 : 0) * C.handling.brake + (throttle === 0 ? C.handling.coastBrake : 0));
         }
         // Only authored driveable statics support suspension, never another kart.
-        v.updateVehicle(C.fixedDt, undefined, undefined, (collider) => surfaces.has(collider.handle));
+        v.updateVehicle(C.fixedDt, undefined, undefined, (collider) => C.arcadeContacts?driveSurfaces.has(collider.handle):surfaces.has(collider.handle));
+        applyArcadeSlide(kart);
       }
       world.step(contactQueue); tick++;
+      for(const kart of karts.values())retainSlideMomentum(kart);
       contactQueue.drainContactForceEvents(event => {
         const a=event.collider1(),b=event.collider2(),ka=kartColliders.get(a),kb=kartColliders.get(b);
         if(!ka&&!kb)return;
@@ -207,6 +216,7 @@ function createKartPhysics(RAPIER, config) {
         };
         const closingSpeed=Math.abs(contactSpeed(ka)-contactSpeed(kb));
         if(closingSpeed<.75)return;
+        if(C.arcadeContacts)separateImpact(ka,kb,normal,point,closingSpeed);
         impacts.push({tick,ids:[ka,kb].filter(Boolean),surfaceId:surfaces.get(a)?.id||surfaces.get(b)?.id||null,
           position:vector(point,'contact point'),normal,impulse:Math.min(4000,force*C.fixedDt)});
         if(impacts.length>24)impacts.shift();
@@ -214,6 +224,62 @@ function createKartPhysics(RAPIER, config) {
       for (const id of karts.keys()) pose(id); // Fail immediately on non-finite physics.
     }
     return tick;
+  }
+  // Bounded arcade steering assist, before the solver: walls and other
+  // chassis still own contact resolution. Retain momentum with a bounded
+  // throttle assist, so the nose leads the path and the tail steps outward.
+  const slideVelocity={x:0,y:0,z:0},slideAngular={x:0,y:0,z:0},separation={x:0,y:0,z:0};
+  function arcadeSlide(id,slide) {kartFor(id).slide=slide;}
+  function applyArcadeSlide(kart) {
+    kart.slideSpeed=0;
+    const slide=kart.slide,v=kart.body.linvel();
+    if(!slide?.active||!kart.controller.wheelIsInContact(0)&&!kart.controller.wheelIsInContact(1))return;
+    const incoming=kart.contactVelocity.linear;
+    const speed=Math.min(C.handling.maxForward*kart.tuning.top,Math.max(Math.hypot(v.x,v.z),Math.hypot(incoming.x,incoming.z)*Math.exp(-.04*C.fixedDt)+Math.max(0,kart.intent.throttle)*3*C.fixedDt));if(speed<6)return;
+    kart.slideSpeed=speed;
+    const q=kart.body.rotation(),angle=Math.atan2(2*(q.x*q.z+q.w*q.y),1-2*(q.x*q.x+q.y*q.y));
+    const d=slide.direction,turn=d*clamp(.62+.38*kart.intent.steer*d,.24,1);
+    const a=kart.body.angvel(),targetYaw=-turn*(.95+.8*Math.min(1,speed/20));
+    slideAngular.x=a.x;slideAngular.y=a.y+(targetYaw-a.y)*(1-Math.exp(-16*C.fixedDt));slideAngular.z=a.z;
+    kart.body.setAngvel(slideAngular,true);
+    const desired=angle+d*(.22+.10*Math.abs(turn))*slide.ease;
+    const heading=Math.atan2(v.x,v.z),error=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading));
+    const next=heading+error*(1-Math.exp(-8*slide.traction*C.fixedDt));
+    slideVelocity.x=Math.sin(next)*speed;slideVelocity.y=v.y;slideVelocity.z=Math.cos(next)*speed;
+    kart.body.setLinvel(slideVelocity,true);
+  }
+  function retainSlideMomentum(kart) {
+    if(!kart.enabled||!kart.slideSpeed)return;
+    kart.sideContact=false;world.contactPairsWith(kart.collider,kart.checkContact);
+    if(kart.sideContact)return; // A drift never masks a bumper or wall impact.
+    const v=kart.body.linvel(),speed=Math.hypot(v.x,v.z),target=kart.slideSpeed*Math.exp(-.04*C.fixedDt);
+    if(speed<1||speed>=target)return;
+    slideVelocity.x=v.x*target/speed;slideVelocity.y=v.y;slideVelocity.z=v.z*target/speed;kart.body.setLinvel(slideVelocity,true);
+  }
+  // A short impulse only on a real incoming side impact. No cooldown or
+  // hidden pair history: rewind/prediction can reproduce it from the pose.
+  // Floor/landing contacts stay entirely in the suspension solver.
+  function separateImpact(ka,kb,normal,point,closing) {
+    if(Math.abs(normal.y)>.4)return;
+    const a=karts.get(ka||kb),b=ka&&kb?karts.get(kb):null;
+    if(!a?.enabled||a.frozen||b?.frozen)return;
+    limitContactSpin(a);if(b)limitContactSpin(b);
+    const pa=a.body.translation(),pb=b?b.body.translation():point;
+    let nx=normal.x,nz=normal.z;const len=Math.hypot(nx,nz);if(len<.5)return;
+    nx/=len;nz/=len;if((pa.x-pb.x)*nx+(pa.z-pb.z)*nz<0){nx=-nx;nz=-nz;}
+    const av=a.body.linvel(),bv=b?.body.linvel();
+    const outgoing=(av.x-(bv?.x||0))*nx+(av.z-(bv?.z||0))*nz;
+    const extra=Math.min(C.arcadeContacts.separationSpeed,Math.max(0,Math.min(2.4,closing*.2)-outgoing));
+    if(extra<=0)return;
+    const impulse=extra*C.chassis.mass/(b?2:1);
+    separation.x=nx*impulse;separation.y=0;separation.z=nz*impulse;a.body.applyImpulse(separation,true);
+    if(b){separation.x=-separation.x;separation.z=-separation.z;b.body.applyImpulse(separation,true);}
+  }
+  function limitContactSpin(kart) {
+    const a=kart.body.angvel();
+    if(Math.abs(a.y)<=C.arcadeContacts.maxSpin)return;
+    slideAngular.x=a.x;slideAngular.y=clamp(a.y,-C.arcadeContacts.maxSpin,C.arcadeContacts.maxSpin);slideAngular.z=a.z;
+    kart.body.setAngvel(slideAngular,true);
   }
   function pose(id) {
     const kart = kartFor(id), v = kart.controller;
@@ -267,6 +333,12 @@ function createKartPhysics(RAPIER, config) {
     const a = kart.body.angvel();
     kart.body.setAngvel({ x: a.x, y: clamp(yawRate, -12, 12), z: a.z }, true);
     return true;
+  }
+  // Bounded combat knockback, expressed as a velocity change (m/s).
+  function kickKart(id,delta){
+    const k=kartFor(id);if(!k.enabled||k.frozen)return false;
+    const d=vector(delta,'combat kick'),v=k.body.linvel();
+    k.body.setLinvel({x:clamp(v.x+d.x,-60,60),y:clamp(v.y+d.y,-20,20),z:clamp(v.z+d.z,-60,60)},true);return true;
   }
   function tuneKart(id, tuning) {
     const kart = kartFor(id);
@@ -326,10 +398,10 @@ function createKartPhysics(RAPIER, config) {
   function dispose() {
     if (disposed) return;
     for (const kart of karts.values()) world.removeVehicleController(kart.controller);
-    contactQueue.free(); world.free(); karts.clear(); statics.clear(); surfaces.clear(); kartColliders.clear(); impacts.length=0; disposed = true;
+    contactQueue.free(); world.free(); karts.clear(); statics.clear(); surfaces.clear(); kartColliders.clear();driveSurfaces.clear(); impacts.length=0; disposed = true;
   }
   return Object.freeze({ apiVersion: 2, addStatic, addKart, resetKart, restoreKart, kartContacts, applyIntent, step, pose, poses, supportAt,
-    sweepStatic, overlapsStatic, setKartEnabled, freezeKart, tuneKart, spinKart, drainImpacts, stats, dispose });
+    sweepStatic, overlapsStatic, setKartEnabled, freezeKart, tuneKart, arcadeSlide, kickKart, spinKart, drainImpacts, stats, dispose });
 }
 
 export { createKartPhysics, wedgeVertices };

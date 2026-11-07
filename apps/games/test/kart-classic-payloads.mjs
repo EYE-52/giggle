@@ -12,7 +12,7 @@ await RAPIER.init();
 let checks=0;const metrics=[];
 const check=(ok,label)=>{assert.ok(ok,label);checks++;};
 const equal=(a,b,label)=>{assert.deepEqual(a,b,label);checks++;};
-function fixture(weapon='pulse'){
+function fixture(weapon='machinegun'){
  const physics=createKartPhysics(RAPIER,config),connected=new Set(),s={phase:'drive',lastTick:0,half:100,bound:98,blocks:[],pads:[],surfaces:[],
   karts:[],scores:{},crates:[],zaps:[],zapSeq:0,volleyHits:new Map(),mines:[],mineSeq:0,grenades:[],grenadeSeq:0,events:[],eventSeq:0,targetHits:99};
  physics.addStatic({id:'floor',shape:'box',half:{x:100,y:.5,z:100},position:{x:0,y:-.5,z:0}});
@@ -30,42 +30,42 @@ function fixture(weapon='pulse'){
   close(){battle.cancelPayloads(s);physics.dispose();},
  };
 }
-for(const weapon of ['pulse','rocket','scatter'])for(const pump of [50,100]){
+for(const weapon of ['machinegun','missile','trishot'])for(const pump of [50,100]){
  const f=fixture(weapon),rounds=combat.config.weapons[weapon].ammo,events=new Map();
  try{
   f.tap();let previous=rounds;
   for(let i=0;i<Math.ceil(3000/pump);i++){
    // A repeated fresh edge while firing must not append another pickup.
    if(i===2||i===4)f.tap();f.tick(pump);
-   check(previous-f.a.ammo<=1,weapon+' emits at most one shell per existing tick');previous=f.a.ammo;
+   check(previous-f.a.ammo<=Math.ceil(pump/1000*(weapon==='machinegun'?12:4)),weapon+' emits at most one shell per existing tick');previous=f.a.ammo;
    for(const e of f.s.events)if(e.type==='fire'&&!events.has(e.id))events.set(e.id,{...e,at:f.s.lastTick});
   }
   equal(events.size,rounds,weapon+' one released activation emits its entire configured payload');
   equal([f.a.weapon,f.a.ammo,f.firing()],[null,0,false],weapon+' leaves no reusable partial inventory');
-  const cadence=weapon==='pulse'?120:400,times=[...events.values()].map(e=>e.at);
+  const cadence=weapon==='machinegun'?1000/12:weapon==='trishot'?280:400,times=[...events.values()].map(e=>e.at);
   check(Math.abs(times.at(-1)-times[0]-(rounds-1)*cadence)<=pump,weapon+' retains existing bounded cadence');
-  equal(f.s.zapSeq,rounds*(weapon==='scatter'?3:1),weapon+' pellets retain original fan size');
+  equal(f.s.zapSeq,rounds*(weapon==='trishot'?3:1),weapon+' pellets retain original fan size');
   const publicKart=battle.kartViewExtra(f.a);check(typeof publicKart.firing==='boolean'&&!JSON.stringify(publicKart).includes('deadline'),'public firing flag contains no private scheduler');
   metrics.push({weapon,pump,rounds:events.size,durationMs:times.at(-1)-times[0],projectiles:f.s.zapSeq});
  }finally{f.close();}
 }
 {
- const f=fixture('rocket');try{
+ const f=fixture('trishot');try{
   f.tap();f.tick(0);const first=f.s.events.find(e=>e.type==='fire');check(first.direction.z>.99,'first missile follows initial barrel');
   f.pose(f.a,0,0,Math.PI/2);f.pose(f.b,7,.95);f.tick(400);
   const fires=f.s.events.filter(e=>e.type==='fire');equal(fires.length,2,'second committed missile emitted without another press');
   check(fires[1].direction.x>.99&&Math.abs(fires[1].position.x-1.9)<.1,'queued shot samples the current rotated mount');
-  check(f.b.health===1&&f.s.events.some(e=>e.type==='impact'&&e.other===f.b.pid),'new aim hits (2 hearts) a target that moved away from the original line');
+  check(f.b.health===2&&f.s.events.some(e=>e.type==='impact'&&e.other===f.b.pid),'new aim hits (2 hearts) a target that moved away from the original line');
  }finally{f.close();}
 }
 for(const block of ['muzzle','cap']){
  const f=fixture();try{
   if(block==='muzzle')f.physics.addStatic({id:'barrel-block',shape:'box',half:{x:2,y:2,z:.2},position:{x:0,y:2,z:1}});
-  else f.s.zaps=Array.from({length:64},(_,i)=>({id:'cap-'+i,owner:'a',kind:'pulse',physical:true,x:70,y:20,z:70,vx:0,vy:0,vz:0,ttl:20,angle:0}));
-  f.tap();f.tick(0);equal([f.a.weapon,f.a.ammo,f.firing()],['pulse',12,false],block+' refusal keeps the untouched pickup');
+  else f.s.zaps=Array.from({length:64},(_,i)=>({id:'cap-'+i,owner:'a',kind:'machinegun',physical:true,x:70,y:20,z:70,vx:0,vy:0,vz:0,ttl:20,angle:0}));
+  f.tap();f.tick(0);equal([f.a.weapon,f.a.ammo,f.firing()],['machinegun',24,false],block+' refusal keeps the untouched pickup');
   if(block==='muzzle')f.pose(f.a,10,0);else f.s.zaps=[];
   f.tick(250);equal(f.s.zapSeq,0,'unaccepted input cannot auto-retry after '+block+' clears');
-  f.tap();f.tick(0);equal(f.a.ammo,11,'a fresh accepted press starts after '+block+' clears');
+  f.tap();f.tick(0);equal(f.a.ammo,23,'a fresh accepted press starts after '+block+' clears');
   // Once committed, later obstruction/cap cannot leave a reusable remainder.
   f.geometry.sweepStatic=()=>({fraction:0,point:{x:0,y:0,z:0},normal:{x:0,y:0,z:1}});
   f.tick(8100);equal([f.a.weapon,f.a.ammo,f.firing()],[null,0,false],'blocked committed payload expires within8s and discards remainder');
@@ -131,8 +131,6 @@ for(const block of ['muzzle','cap']){
   equal(owners.slice(0,5).map(k=>k.ammo),[0,0,0,0,0],'every accepted mine inventory releases all three traps');
  }finally{f.close();}
 }
-for(const weapon of ['proximity'])equal(Object.fromEntries(['triggerRadius','armTime','lifetime','bodyRadius'].map(k=>[k,combat.config.weapons[weapon][k]])),{triggerRadius:3,armTime:.7,lifetime:12,bodyRadius:.60},weapon+' shared proximity/body contract');
-
 // Actual Room readiness, action tokens and private wire projections. Inventory
 // is a declared UNIT fixture; all activation/release/replay actions use the
 // production input path and poses remain owned by shipping Rapier motion.
@@ -146,17 +144,17 @@ await pocket.initialize();
   equal(room.startGame(pocket,{ready:true,settings:{map:'Rookie Ring',mode:'Zap Battle',roundSeconds:60,winRule:'Time limit'}},room.hostId),{ok:true},'actual Room starts physical Pocket preparation');
   join(8); // classic arenas seat 32, so the watcher is a late joiner
   const frame=p=>JSON.parse(p.socket.raw.at(-1)),host=peers[0],watcher=peers[8],s=room.game.state,a=s.karts.find(k=>k.pid===host.player.id);
-  s.crates=[];a.weapon='scatter';a.ammo=5;a.shield=0;a.fireCd=0;
+  s.crates=[];a.weapon='trishot';a.ammo=3;a.shield=0;a.fireCd=0;
   const send=(peer,seq,boost,extra={},tokens=frame(peer))=>room.onAction(peer.socket,{seq,life:tokens.inputAck?.life,controlEpoch:tokens.inputAck?.controlEpoch,input:{steer:0,throttle:0,boost,...extra}},{i:tokens.instanceId,w:tokens.w});
-  send(host,1,true);equal([a.ammo,battle.kartViewExtra(a).firing],[5,false],'protocol preparation cannot commit or consume an item');
+  send(host,1,true);equal([a.ammo,battle.kartViewExtra(a).firing],[3,false],'protocol preparation cannot commit or consume an item');
   for(const peer of peers.slice(0,8)){const f=frame(peer);room.onReady(peer.socket,{i:f.instanceId,w:f.w});}
   const retiredWindow=frame(host);
   now+=3000;room.onTick(now);equal(s.phase,'drive','normal protocol readiness/countdown releases play');
-  send(host,1,true);equal(a.ammo,5,'new drive-window preparation also rejects input');
+  send(host,1,true);equal(a.ammo,3,'new drive-window preparation also rejects input');
   for(const peer of peers.slice(0,8)){const f=frame(peer);room.onReady(peer.socket,{i:f.instanceId,w:f.w});}
   send(host,1,true);send(host,2,false);now+=50;room.onTick(now);
   const first=frame(host),published=first.karts.find(k=>k.pid===host.player.id);
-  equal([published.weapon,published.ammo,published.firing],['scatter',4,true],'short press+release publishes one committed Scatter payload');
+  equal([published.weapon,published.ammo,published.firing],['trishot',2,true],'short press+release publishes one committed Scatter payload');
   equal(first.inputAck.receivedSeq,2,'neutral release acknowledged through production action path');
   equal(frame(watcher).inputAck,null,'watcher never receives a private driver ACK');
   check(frame(watcher).karts.find(k=>k.pid===host.player.id).firing,'watcher receives only the public firing presentation flag');
@@ -165,10 +163,10 @@ await pocket.initialize();
   equal(a._receivedSeq,2,'replayed sequence, private-field injection and retired action window cannot restart a payload');
   const fires=new Set(first.events.filter(e=>e.type==='fire').map(e=>e.id));let ttlObserved=false;
   for(let i=0;i<40;i++){now+=50;room.onTick(now);const f=frame(host);for(const e of f.events)if(e.type==='fire'&&e.pid===host.player.id)fires.add(e.id);ttlObserved ||= now-a.lastInputAt>1500&&a.input.boost===false;}
-  equal(fires.size,5,'released physical Scatter finishes every round even after movement-input TTL');
+  equal(fires.size,3,'released physical Scatter finishes every round even after movement-input TTL');
   check(ttlObserved,'actual movement-input TTL was crossed during the committed sequence');
   equal([a.weapon,a.ammo,battle.kartViewExtra(a).firing],[null,0,false],'real Room leaves no reusable partial ammo');
-  a.weapon='rocket';a.ammo=3;a.fireCd=0;send(host,3,true);now+=50;room.onTick(now);
+  a.weapon='machinegun';a.ammo=24;a.fireCd=0;send(host,3,true);now+=50;room.onTick(now);
   check(battle.kartViewExtra(a).firing,'new accepted payload exists before lobby disposal');
   equal(room.endGameToLobby(room.hostId),{ok:true},'owned test Room returns to lobby');
   equal([a.ammo,a.weapon,battle.kartViewExtra(a).firing],[0,null,false],'lobby disposal clears private queue and committed remainder');

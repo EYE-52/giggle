@@ -344,29 +344,29 @@ NEON_PADS.push(wall(30,18,2.5,2.5),wall(-30,-18,2.5,2.5));
 const MAPS = {
   ring: {
     label: 'Rookie Ring', theme: 'ring', half: 30,
-    blocks: [], pads: RING_PADS, roads: RING_ROADS, offroad: {kind:'grass',top:.72,traction:.85}, barriers: RING_BARRIERS, ramps: RING_RAMPS, surfaces: [], spots: RING_SPOTS, spawns: legacySpawns(),
+    blocks: [], pads: RING_PADS, roads: RING_ROADS, offroad: {kind:'grass',top:.72,traction:.78}, barriers: RING_BARRIERS, ramps: RING_RAMPS, surfaces: [], spots: RING_SPOTS, spawns: legacySpawns(),
     features: RING_FEATURES,
   },
   blocks: {
     label: 'Bumper Blocks', theme: 'blocks', half: 30,
-    blocks: BLOCKS, pads: BLOCKS_PADS, roads: BLOCKS_ROADS, offroad: {kind:'sand',top:.7,traction:.8}, barriers: BLOCKS_BARRIERS, ramps: BLOCKS_RAMPS, surfaces: [], spots: BLOCKS_SPOTS, spawns: legacySpawns(),
+    blocks: BLOCKS, pads: BLOCKS_PADS, roads: BLOCKS_ROADS, offroad: {kind:'sand',top:.7,traction:.58}, barriers: BLOCKS_BARRIERS, ramps: BLOCKS_RAMPS, surfaces: [], spots: BLOCKS_SPOTS, spawns: legacySpawns(),
     features: BLOCKS_FEATURES,
   },
   garden: {
     label: 'Garden Circuit', theme: 'garden', half: 60,
-    blocks: GARDEN_BLOCKS, pads: GARDEN_PADS, roads: GARDEN_ROADS, offroad: {kind:'grass',top:0.72,traction:0.85}, barriers: GARDEN_BARRIERS, ramps: GARDEN_RAMPS, surfaces: [],
+    blocks: GARDEN_BLOCKS, pads: GARDEN_PADS, roads: GARDEN_ROADS, offroad: {kind:'grass',top:0.72,traction:0.78}, barriers: GARDEN_BARRIERS, ramps: GARDEN_RAMPS, surfaces: [],
     spots: GARDEN_SPOTS, spawns: GARDEN_SPAWNS,
     features: GARDEN_FEATURES,
   },
   frost: {
     label: 'Frosty Pass', theme: 'frost', half: 60,
-    blocks: FROST_BLOCKS, pads: FROST_PADS, roads: FROST_ROADS, offroad: {kind:'snow',top:0.66,traction:0.78}, barriers: FROST_BARRIERS, ramps: FROST_RAMPS, surfaces: FROST_SURFACES,
+    blocks: FROST_BLOCKS, pads: FROST_PADS, roads: FROST_ROADS, offroad: {kind:'snow',top:0.66,traction:0.48}, barriers: FROST_BARRIERS, ramps: FROST_RAMPS, surfaces: FROST_SURFACES,
     spots: FROST_SPOTS, spawns: FROST_SPAWNS,
     features: FROST_FEATURES,
   },
   neon: {
     label: 'Neon Yard', theme: 'neon', half: 60,
-    blocks: NEON_BLOCKS, pads: NEON_PADS, roads: NEON_ROADS, offroad: {kind:'gravel',top:0.74,traction:0.82}, barriers: NEON_BARRIERS, ramps: NEON_RAMPS, surfaces: [],
+    blocks: NEON_BLOCKS, pads: NEON_PADS, roads: NEON_ROADS, offroad: {kind:'gravel',top:0.74,traction:0.67}, barriers: NEON_BARRIERS, ramps: NEON_RAMPS, surfaces: [],
     spots: NEON_SPOTS, spawns: NEON_SPAWNS,
     features: NEON_FEATURES,
   },

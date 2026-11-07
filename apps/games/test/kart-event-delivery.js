@@ -10,7 +10,7 @@ const { pathToFileURL } = require('node:url');
 const { Room } = require('../server/room');
 let checks = 0;
 const eq = (a, b, label) => { assert.deepEqual(a, b, label); checks++; };
-const event = id => ({ id, type: 'blast', weapon: 'rocket', position: { x: 1, y: 2, z: 3 } });
+const event = id => ({ id, type: 'blast', weapon: 'missile', position: { x: 1, y: 2, z: 3 } });
 const socket = delta => ({ readyState: 1, bufferedAmount: 0, kartEventDeltas: delta, frames: [], fail: false,
   send(raw) { if (this.fail) throw Error('send failure'); this.frames.push(JSON.parse(raw)); }, close() {} });
 const latest = s => s.frames.at(-1);

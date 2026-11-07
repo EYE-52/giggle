@@ -23,8 +23,6 @@
 .hand-card .hand-art { display: block; width: 100%; height: 100%; object-fit: cover; }
 .hand-card:hover { transform: translateY(-12px) rotate(calc(var(--i) * 4deg)) scale(1.06); animation-play-state: paused; z-index: 1; }
 @keyframes hand-bob { 50% { translate: 0 -6px; } }
-.home-picks .pick .play-pill { background: var(--accent) !important; color: #fff !important; font-weight: 800; }
-.home-picks .pick:hover .play-pill { filter: brightness(1.06); }
 .home-welcome .hero-sub { max-width: 43ch; margin-bottom: 18px; font-size: 17px; line-height: 1.6; font-weight: 500; }
 .home-welcome .shelf-link { font-size: 16px; }
 .home-welcome .hero-form {
@@ -51,58 +49,16 @@
 .home-welcome .hero-joinrow input { max-width: none; width: 100%; letter-spacing: .12em; }
 .home-welcome .hero-joinrow .btn { min-width: 0; min-height: 48px; border: 1px solid var(--line-strong); border-radius: 11px; background: var(--well); color: var(--ink); box-shadow: none; }
 .home-welcome .ticket-note { margin: 2px 0 0; color: var(--ink-dim); font-size: 12px; line-height: 1.5; text-align: center; }
-.home-picks { padding: 22px 12px 30px; }
-.home-picks .sec-head { align-items: baseline; margin-bottom: 16px; }
-.home-picks .sec-head h2 { font-size: 25px; }
-.home-picks .sec-head .muted { font-size: 14px; font-weight: 500; }
-.home-picks .pick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 0; }
-.home-picks .pick {
-  display: grid;
-  grid-template-columns: 94px minmax(0, 1fr) auto;
-  grid-template-rows: auto 1fr auto;
-  gap: 3px 16px;
-  align-items: start;
-  min-height: 132px;
-  padding: 16px;
-  border-radius: 16px;
-  box-shadow: none;
-}
-.home-picks .pick .gart,
-.home-picks .pick .art-fallback {
-  grid-column: 1;
-  grid-row: 1 / span 3;
-  width: 94px;
-  height: 94px;
-  aspect-ratio: 1;
-  margin: 0;
-  align-self: center;
-  object-fit: cover;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-}
-.home-picks .pick .t { grid-column: 2; grid-row: 1; margin: 0; padding: 0; font-size: 19px; line-height: 1.25; }
-.home-picks .pick .d { grid-column: 2; grid-row: 2; margin: 0; padding: 0; font-size: 14px; line-height: 1.4; font-weight: 500; }
-.home-picks .pick .p { grid-column: 2; grid-row: 3; margin: 0; padding: 4px 0 0; color: var(--ink-dim); font-size: 12px; line-height: 1.3; }
-.home-picks .pick .play-row { grid-column: 3; grid-row: 1 / span 3; align-self: center; margin: 0; padding: 0; }
-.home-picks .pick .play-pill { min-height: 40px; padding: 8px 14px; border: 0; background: var(--accent-soft); color: var(--accent-deep); box-shadow: none; }
-.home-picks .pick:focus-visible,
 .home-welcome :is(input, button, a):focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 @media (max-width: 900px) {
   .home-welcome { grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 28px; padding-inline: 0; }
   .home-welcome h1 { font-size: 40px; }
-  .home-picks { padding-inline: 0; }
-  .home-picks .pick { grid-template-columns: 76px minmax(0, 1fr); gap: 4px 14px; }
-  .home-picks .pick .gart, .home-picks .pick .art-fallback { width: 76px; height: 76px; }
-  .home-picks .pick .play-row { grid-column: 2; grid-row: 4; justify-self: start; margin-top: 6px; }
 }
 @media (max-width: 640px) {
   .home-welcome { grid-template-columns: 1fr; gap: 24px; padding-top: 28px; padding-bottom: 20px; }
   .home-welcome h1 { max-width: 17ch; font-size: clamp(34px, 8.8vw, 42px); margin-bottom: 14px; }
   .home-welcome .hero-sub { font-size: 16px; margin-bottom: 4px; }
   .home-welcome .hero-form { justify-self: stretch; max-width: none; padding: 20px; }
-  .home-picks .pick-grid { grid-template-columns: 1fr; }
-  .home-picks .pick { grid-template-columns: 76px minmax(0, 1fr) auto; }
-  .home-picks .pick .play-row { grid-column: 3; grid-row: 1 / span 3; align-self: center; margin-top: 0; }
 }
 @media (max-width: 380px) {
   .home-welcome h1 .pop { white-space: normal; }
@@ -111,9 +67,6 @@
   .home-welcome .hero-form { padding: 18px; }
   .home-welcome .hero-create-row { grid-template-columns: 1fr; }
   .home-welcome .ticket-title { font-size: 22px; }
-  .home-picks .pick { grid-template-columns: 64px minmax(0, 1fr); gap: 4px 12px; padding: 14px; }
-  .home-picks .pick .gart, .home-picks .pick .art-fallback { width: 64px; height: 64px; }
-  .home-picks .pick .play-row { grid-column: 2; grid-row: 4; justify-self: start; margin-top: 6px; }
 }
 @media (max-width: 640px) {
   .hero-hand { height: 92px; margin-top: 22px; }
@@ -122,8 +75,6 @@
 @media (prefers-reduced-motion: reduce) {
   .hand-card { animation: none; transition: none; }
   .hand-card:hover { transform: translateY(calc(var(--d) * 7px)) rotate(calc(var(--i) * 8deg)); }
-  .home-picks .pick { transition: none; }
-  .home-picks .pick:hover { transform: none; }
 }
 
 /* ---- Art-led home: big game art, a colour per category ---------------- */
@@ -137,81 +88,18 @@
 [data-cat="board"] { --cat: #6366f1; }
 [data-cat="3d"] { --cat: #ef4444; }
 
-/* Tonight's picks: four art cards, the picture first. */
-.home-picks .pick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-.home-picks .pick {
-  display: flex; flex-direction: column; align-items: stretch; gap: 4px;
-  min-height: 0; padding: 12px 12px 14px; text-align: left;
-  border: 2px solid color-mix(in srgb, var(--cat) 20%, var(--outline));
-  box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--cat) 20%, var(--outline));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--cat) 14%, var(--card)) 0%, var(--card) 62%);
-  transition: transform var(--dur-quick) var(--ease);
-}
-.home-picks .pick .gart, .home-picks .pick .art-fallback {
-  width: 100%; height: auto; aspect-ratio: 1; margin: 0 0 8px; border-radius: 14px; object-fit: cover;
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--cat) 22%, transparent);
-  transition: transform .25s ease;
-}
-.home-picks .pick .t { margin-top: 2px; font-size: 19px; }
-.home-picks .pick .d { min-height: 2.8em; }
-.home-picks .pick .p { margin-top: auto; color: color-mix(in srgb, var(--cat) 70%, var(--ink)); }
-.home-picks .pick .play-row { margin-top: 10px; align-self: stretch; }
-.home-picks .pick .play-pill { width: 100%; background: var(--cat) !important; border: 2px solid color-mix(in srgb, var(--cat) 72%, #000); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--cat) 72%, #000); }
-.home-picks .pick:hover { transform: translateY(-3px); }
-.home-picks .pick:hover .gart { transform: rotate(-2deg) scale(1.03); }
-
-/* The whole shelf: a tile grid of art instead of identical rows. */
-#games .catalog-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
-#games .catrow {
-  display: flex; flex-direction: column; align-items: stretch; gap: 4px; height: 100%;
-  padding: 10px 10px 12px; text-align: left; border-radius: 16px;
-  border: 2px solid color-mix(in srgb, var(--cat) 18%, var(--outline));
-  box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--cat) 18%, var(--outline));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--cat) 12%, var(--card)) 0%, var(--card) 58%);
-  transition: transform var(--dur-quick) var(--ease);
-}
-#games .catrow img, #games .catrow .art-fallback {
-  width: 100%; height: auto; aspect-ratio: 1; margin: 0 0 6px; border-radius: 12px; object-fit: cover;
-  transition: transform .25s ease;
-}
-#games .catrow .catrow-text { display: flex; flex-direction: column; gap: 2px; flex: 1; }
-#games .catrow .t { font-size: 16px; }
-#games .catrow .d { font-size: 13px; -webkit-line-clamp: 2; }
-#games .catrow .p { margin-top: auto; padding-top: 4px; color: color-mix(in srgb, var(--cat) 70%, var(--ink)); }
-#games .catrow .play-pill { align-self: stretch; margin-top: 8px; min-height: 38px; text-align: center; background: var(--cat); color: #fff; border: 0; }
-#games .catrow:hover { transform: translateY(-3px); }
-#games .catrow:hover img { transform: rotate(-2deg) scale(1.03); }
-
 /* The hand of cards is playable: hover fans it out, a tap opens the game. */
 .hand-card { padding: 0; cursor: pointer; font: inherit; }
 .hero-hand:hover .hand-card { transform: translateY(calc(var(--d) * 4px)) translateX(calc(var(--i) * 10px)) rotate(calc(var(--i) * 10deg)); }
 .hero-hand .hand-card:hover { transform: translateY(-16px) translateX(calc(var(--i) * 10px)) rotate(calc(var(--i) * 4deg)) scale(1.1); z-index: 2; }
 .hand-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-
-@media (max-width: 900px) {
-  .home-picks .pick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #games .catalog-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-}
 @media (min-width: 641px) {
   .home-welcome .hand-card { --size: 112px; margin-right: -24px; border-radius: 24px; }
   .home-welcome .hero-hand { height: 136px; }
 }
-@media (max-width: 640px) {
-  .home-picks .pick-grid { gap: 10px; }
-  .home-picks .pick { padding: 8px 8px 10px; }
-  .home-picks .pick .t { font-size: 16px; }
-  .home-picks .pick .d { font-size: 13px; }
-  #games .catalog-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-  #games .catrow { padding: 8px 8px 10px; }
-}
 @media (prefers-reduced-motion: reduce) {
-  .home-picks .pick, .home-picks .pick .gart, #games .catrow, #games .catrow img { transition: none; }
-  .home-picks .pick:hover, #games .catrow:hover { transform: none; }
-  .home-picks .pick:hover .gart, #games .catrow:hover img { transform: none; }
   .hero-hand:hover .hand-card, .hero-hand .hand-card:hover { transform: translateY(calc(var(--d) * 7px)) rotate(calc(var(--i) * 8deg)); }
 }
-
-/* ---- Wave 1: stickers, a livelier hand, a bento of picks, a lobby ------ */
 :root { --stk: var(--outline); --ease-pop: cubic-bezier(0.22, 1, 0.36, 1); }
 :root[data-theme="night"] { --stk: var(--outline); }
 [data-theme="night"] body { --stk: var(--outline); }
@@ -264,47 +152,6 @@
 .home-welcome .hero-create:hover::after { transform: translateX(4px); }
 .home-welcome .hero-create:active { transform: translateY(var(--lift)); box-shadow: none; }
 .home-welcome .hero-joinrow .btn { border: 2px solid var(--stk); }
-
-/* Category stickers on every piece of art. */
-.home-picks .pick, #games .catrow { position: relative; }
-.cat-tag {
-  position: absolute; top: 20px; left: 20px; z-index: 1;
-  padding: 2px 8px; border: 2px solid color-mix(in srgb, var(--cat) 70%, #000); border-radius: 999px;
-  background: var(--cat); color: #fff; font: 800 11px/1.4 var(--font-body); letter-spacing: .06em; text-transform: uppercase;
-  transform: rotate(-4deg); pointer-events: none;
-}
-#games .catrow .cat-tag { top: 16px; left: 16px; }
-
-/* Tonight's picks as a bento: one tall lead, three compact cards, practice. */
-.home-picks .pick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, auto); gap: 16px; }
-.home-picks .pick-grid > .pick:not(.pick--lead), .home-picks .pick-practice {
-  display: grid; grid-template-columns: minmax(0, 44%) minmax(0, 1fr); grid-template-rows: auto auto 1fr auto; gap: 4px 16px; padding: 12px;
-}
-.home-picks .pick-grid > .pick .t, .home-picks .pick-practice .t { grid-row: 1; }
-.home-picks .pick-grid > .pick .d, .home-picks .pick-practice .d { grid-row: 2; }
-.home-picks .pick-grid > .pick .p { grid-row: 3; }
-.home-picks .pick-grid > .pick:not(.pick--lead) .p { align-self: end; }
-.home-picks .pick-grid > .pick .play-row, .home-picks .pick-practice .play-row { grid-row: 4; }
-.home-picks .pick-grid > .pick:not(.pick--lead) .gart, .home-picks .pick-grid > .pick:not(.pick--lead) .art-fallback { grid-column: 1; grid-row: 1 / -1; width: 100%; margin: 0; align-self: center; }
-.home-picks .pick-grid > .pick:not(.pick--lead) > :not(.gart):not(.art-fallback):not(.cat-tag), .home-picks .pick-practice > :not(.pp-seats) { grid-column: 2; }
-.home-picks .pick-grid > .pick:not(.pick--lead) .play-row, .home-picks .pick-practice .play-row { align-self: end; margin-top: 8px; }
-.home-picks .pick-grid > .pick:not(.pick--lead) .d { min-height: 0; }
-.home-picks .pick-grid > .pick:not(.pick--lead) .cat-tag { top: 8px; left: 8px; }
-.home-picks .pick--lead { grid-row: span 2; padding: 16px; box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--cat) 20%, var(--outline)); }
-.home-picks .pick--lead .t { font: 800 28px/1.1 var(--font-display); }
-.home-picks .pick--lead .d { font-size: 16px; min-height: 0; }
-.home-picks .pick--lead .cat-tag { top: 24px; left: 24px; font-size: 13px; }
-.home-picks .pick--lead .play-pill { min-height: 48px; font-size: 17px; }
-.home-picks .pick:not(.pick--lead) .play-pill, .home-picks .pick-practice .play-pill { width: auto; min-height: 40px; padding-inline: 20px; }
-.home-picks .pick-practice {
-  color: var(--ink); text-decoration: none; border: 2px dashed var(--line-strong); border-radius: 16px;
-  background: var(--well); transition: transform var(--dur-quick) var(--ease);
-}
-.home-picks .pick-practice .t { font: 800 19px/1.25 var(--font-display); }
-.home-picks .pick-practice .d { color: var(--ink-dim); font-size: 14px; line-height: 1.4; }
-.home-picks .pick-practice .play-pill { display: inline-flex; align-items: center; border: 2px solid var(--outline); border-radius: 999px; background: var(--card); color: var(--ink); font-weight: 800; box-shadow: 0 var(--lift-sm) 0 var(--outline); }
-.home-picks .pick-practice:hover { transform: translateY(-3px); }
-.home-picks .pick-practice:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 /* One player trying out three seats. */
 .pp-seats { grid-column: 1; grid-row: 1 / -1; position: relative; align-self: center; width: 100%; aspect-ratio: 1; border-radius: 14px; background: var(--card); }
 .pp-seats i { --c: var(--sun); position: absolute; top: 34%; width: 30%; aspect-ratio: 1; border: 2px solid color-mix(in srgb, var(--c) 72%, #000); border-radius: 50%; background: var(--c); box-shadow: 0 4px 0 color-mix(in srgb, var(--c) 72%, #000); }
@@ -312,37 +159,11 @@
 .pp-seats i:nth-child(2) { --c: var(--accent); left: 35%; top: 22%; z-index: 1; }
 .pp-seats i:nth-child(3) { right: 6%; rotate: 10deg; }
 
-/* The shelf: quieter Play pills, so the art leads and the colours vary. */
-#games .catrow .play-pill { align-self: flex-start; min-height: 44px; padding-inline: 20px; display: inline-flex; align-items: center;
-  border: 2px solid color-mix(in srgb, var(--cat) 30%, var(--card)); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--cat) 30%, var(--card));
-  background: color-mix(in srgb, var(--cat) 16%, var(--card)); color: color-mix(in srgb, var(--cat) 70%, var(--ink)); }
-:root[data-theme="night"] #games .catrow .play-pill { color: color-mix(in srgb, var(--cat) 45%, var(--ink)); background: color-mix(in srgb, var(--cat) 24%, var(--card)); }
-@media (hover: hover) { #games .catrow:hover .play-pill { background: var(--cat); color: #fff; border-color: color-mix(in srgb, var(--cat) 72%, #000); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--cat) 72%, #000); } }
-#games .catrow:nth-child(even):hover img { transform: rotate(2deg) scale(1.03); }
-
 @media (max-width: 900px) {
-  .home-picks .pick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .home-picks .pick--lead { grid-column: span 2; grid-row: auto; display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); grid-template-rows: auto auto 1fr auto; gap: 4px 16px; }
-  .home-picks .pick--lead .gart, .home-picks .pick--lead .art-fallback { grid-column: 1; grid-row: 1 / -1; margin: 0; align-self: center; }
-  .home-picks .pick--lead > :not(.gart):not(.art-fallback):not(.cat-tag) { grid-column: 2; }
-  .home-picks .pick--lead .play-row { align-self: end; }
-  .home-picks .pick-grid > .pick:not(.pick--lead), .home-picks .pick-practice { display: flex; flex-direction: column; }
-  .home-picks .pick-grid > .pick:not(.pick--lead) :is(.p, .play-row), .home-picks .pick-practice .play-row { align-self: stretch; }
-  .home-picks .pick-grid > .pick:not(.pick--lead) .gart, .home-picks .pick-grid > .pick:not(.pick--lead) .art-fallback { width: 100%; margin-bottom: 8px; }
   .pp-seats { width: 100%; margin-bottom: 8px; }
 }
 @media (max-width: 640px) {
-  .home-picks .pick-grid { gap: 12px; }
-  .home-picks .pick--lead { grid-template-columns: minmax(0, 132px) minmax(0, 1fr); gap: 4px 12px; padding: 12px; }
-  .home-picks .pick--lead .t { font-size: 22px; }
-  .home-picks .pick--lead .d { font-size: 14px; }
-  .home-picks .pick--lead .cat-tag { top: 16px; left: 16px; font-size: 11px; }
-  .home-picks .pick-grid > .pick:not(.pick--lead) .cat-tag { top: 12px; left: 12px; }
-  .home-picks .pick-practice .t { font-size: 16px; }
-  .home-picks .pick-practice .d { font-size: 13px; }
   .hero-hand { --hand-w: 336px; }
-  .cat-tag { font-size: 10px; }
-  #games .catrow .cat-tag { top: 12px; left: 12px; }
 }
 @media (max-width: 380px) { .hero-hand { --hand-w: 262px; } }
 
@@ -404,8 +225,8 @@
   .hand-card, .hero-hand .hand-card:hover, .hero-hand .hand-card:focus-visible { animation: none; transition: none; }
   .hand-card:active { scale: none; }
   .hand-spark { animation: none; opacity: .8; }
-  .hand-tag, .home-welcome .hero-create, .home-welcome .hero-create::after, .home-picks .pick-practice { transition: none; }
-  .home-welcome .hero-create:hover, .home-welcome .hero-create:hover::after, .home-picks .pick-practice:hover { transform: none; }
+  .hand-tag, .home-welcome .hero-create, .home-welcome .hero-create::after { transition: none; }
+  .home-welcome .hero-create:hover, .home-welcome .hero-create:hover::after { transform: none; }
 }
 /* The lobby ticket already shows the code big; the header chip is for the game screen. */
 #app:has(.partystrip .ps-ticket) .topbar .roomchip { display: none; }
@@ -415,18 +236,9 @@
 .confetti.confetti--in { position: absolute; inset: 0; z-index: 0; border-radius: inherit; }
 .confetti--in i { animation-name: fall-in; }
 @keyframes fall-in { to { transform: translateY(260px) rotate(540deg); opacity: 0; } }
-
-/* Tonight's picks are dealt onto the table one after another, and every
- * card squashes like a toy when pressed (touch included). */
 @media (prefers-reduced-motion: no-preference) {
-  .home-picks .pick, .home-picks .pick-practice { animation: pick-deal .5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
-  .home-picks .pick-grid > :nth-child(2) { animation-delay: .07s; }
-  .home-picks .pick-grid > :nth-child(3) { animation-delay: .14s; }
-  .home-picks .pick-grid > :nth-child(4) { animation-delay: .21s; }
-  .home-picks .pick-grid > :nth-child(5) { animation-delay: .28s; }
   @keyframes pick-deal { from { opacity: 0; transform: translateY(18px) rotate(-3deg) scale(.94); } }
-  .home-picks .pick:active, #games .catrow:active, .hand-card:active { transform: scale(.96, .93); transition: transform .08s ease-out; }
-  .home-picks .pick:active .gart { transform: rotate(3deg) scale(1.06); }
+  .hand-card:active { transform: scale(.96, .93); transition: transform .08s ease-out; }
 }
 
 /* Room code tiles: the real input sits on top, transparent, over 4 tiles. */
@@ -438,3 +250,38 @@
 .hero-joinrow .code-tile.on { border-color: var(--fam); box-shadow: 0 0 0 3px color-mix(in srgb, var(--fam) 22%, transparent); }
 .hero-joinrow .code-tiles.full .code-tile { border-color: color-mix(in srgb, var(--fam) 60%, var(--outline)); }
 @media (prefers-reduced-motion: reduce) { .hero-joinrow .code-tile { transition: none; } }
+
+/* One card rhythm for Tonight's picks, the catalogue and solo practice.
+ * Art and its badge share a frame. Copy flows as one compact stack, so
+ * neither equal-height grid rows nor longer neighbours create middle gaps. */
+.home-picks { padding: var(--space-24) 0 var(--space-32); }
+.home-picks .sec-head { margin-bottom: var(--space-16); }
+.home-picks .sec-head h2 { font: var(--text-heading); }
+.home-picks .sec-head .muted { font: var(--text-caption); }
+.home-picks .pick-grid, #games .catalog-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-16); margin-top: var(--space-16); }
+.home-picks .home-game-card, #games .home-game-card {
+  display: grid; grid-template-columns: var(--home-card-art) minmax(0, 1fr);
+  grid-template-rows: auto; grid-column: auto; grid-row: auto;
+  align-items: center; align-content: start; gap: var(--space-16);
+  width: 100%; min-width: 0; min-height: 0; height: auto;
+  margin: 0; padding: var(--space-16); text-align: left; text-decoration: none;
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl);
+  background: var(--card); color: var(--ink); box-shadow: var(--shadow-sticker);
+  transition: transform var(--dur-quick) var(--ease);
+}
+.home-game-card .home-card-art { position: relative; display: block; min-width: 0; width: 100%; aspect-ratio: 1; align-self: center; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--fam-soft); box-shadow: var(--shadow-sticker-sm); }
+.home-game-card .home-card-art :is(img, .art-fallback, .pp-seats) { display: block; width: 100%; height: 100%; aspect-ratio: 1; margin: 0; padding: 0; object-fit: cover; border: 0; border-radius: inherit; box-shadow: none; transform: none; }
+.home-game-card .home-card-art .art-fallback { display: grid; place-items: center; }
+.home-game-card .home-card-art .cat-tag { position: absolute; inset: var(--space-4) auto auto var(--space-4); z-index: 1; max-width: calc(100% - var(--space-8)); margin: 0; padding: 0 var(--space-4); border: var(--outline-w) solid var(--fam-lip); border-radius: var(--radius-sm); background: var(--fam); color: var(--on-fam); font: var(--text-caption); letter-spacing: normal; text-transform: none; transform: none; overflow-wrap: anywhere; pointer-events: none; }
+.home-game-card .home-card-copy { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: var(--space-8); min-width: 0; }
+.home-game-card .home-card-copy :is(.t, .d, .p, .play-row) { display: block; min-width: 0; min-height: 0; margin: 0; padding: 0; overflow: visible; -webkit-line-clamp: unset; text-wrap: pretty; overflow-wrap: anywhere; }
+.home-game-card .home-card-copy .t { font: var(--text-title); text-wrap: balance; }
+.home-game-card .home-card-copy .d { color: var(--ink-dim); font: var(--text-button-sm); }
+.home-game-card .home-card-copy .p { color: var(--ink-dim); font: var(--text-caption); }
+.home-game-card .home-card-copy .play-pill { display: inline-flex; align-items: center; justify-content: center; width: auto; min-width: 0; min-height: var(--control-h-sm); margin: 0; padding: var(--space-8) var(--space-16); border: var(--outline-w) solid var(--fam-lip); border-radius: var(--radius-sm); background: var(--fam); color: var(--on-fam); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); font: var(--text-button-sm); white-space: normal; }
+.home-picks .pick-practice .play-pill { border-color: var(--outline); background: var(--well); color: var(--ink); box-shadow: var(--shadow-sticker-sm); }
+.home-game-card:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.home-game-card:active { transform: translateY(var(--lift)); box-shadow: none; }
+@media (hover: hover) { .home-game-card:hover { transform: translateY(calc(-1 * var(--lift-sm))); border-color: var(--fam); } }
+@media (width < 700px) { .home-picks .pick-grid, #games .catalog-list { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .home-game-card { transition: none; } .home-game-card:hover, .home-game-card:active { transform: none; } }

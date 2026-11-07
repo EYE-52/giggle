@@ -129,8 +129,7 @@ function main() {
       }
       return seen;
     };
-    const ARSENAL = ['pulse', 'scatter', 'mine', 'rocket', 'seeker', 'proximity', 'shield', 'nuke',
-      'laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram'];
+    const ARSENAL = require('../games/engines/kart-combat-config').config.weaponOrder;
     for (const [label, seen] of [['classic', sample(false, 600)], ['garage', sample(true, 600)]]) {
       for (const w of seen) assert(ARSENAL.includes(w), label + ' rolls only the sixteen, saw ' + w);
       for (const w of ARSENAL) assert(seen.has(w), label + ' reaches ' + w);
@@ -148,7 +147,7 @@ function main() {
     // Wounded victim isolates fan exact-once KO/economy.
     b.health=1;
     // Scatter fan: 3 pellets, one victim, one KO, +10 once.
-    a.weapon = 'scatter'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
+    a.weapon = 'trishot'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
     a.x = 0; a.z = -6; a.angle = 0; a.speed = 0;
     b.x = 0; b.z = 0; b.angle = 0; b.speed = 0; b.shield = 0;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
@@ -335,11 +334,11 @@ function main() {
     tick(cc, sc);
     assert(Math.abs(tunedTurn) > Math.abs(kc.angle), 'tuned turn sharper than classic');
     // Reload: garage Pulse cooldown0.12*0.82, classic flat0.12.
-    kg.weapon = 'pulse'; kg.ammo = 3; kg.fireCd = 0; kg.prevAction = false; kg.shield = 0;
+    kg.weapon = 'machinegun'; kg.ammo = 3; kg.fireCd = 0; kg.prevAction = false; kg.shield = 0;
     karts.onAction(sg, cg, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(cg, sg);
     assert(Math.abs(kg.fireCd - 0.12 * 0.82) < 0.11, `garage Pulse reload0.0984, saw ${kg.fireCd}`);
-    kc.weapon = 'pulse'; kc.ammo = 3; kc.fireCd = 0; kc.prevAction = false; kc.shield = 0;
+    kc.weapon = 'machinegun'; kc.ammo = 3; kc.fireCd = 0; kc.prevAction = false; kc.shield = 0;
     karts.onAction(sc, cc, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(cc, sc);
     assert(Math.abs(kc.fireCd - 0.12) < 0.11, `classic Pulse reload0.12, saw ${kc.fireCd}`);
@@ -403,14 +402,14 @@ function main() {
     const [a, b] = st.karts;
     for (const c of st.crates) { c.x = -24; c.z = 24; }
     const fireAs = (kind) => {
-      a.weapon = kind; a.ammo = kind === 'pulse' ? 3 : 1;
+      a.weapon = kind; a.ammo = kind === 'machinegun' ? 3 : 1;
       a.fireCd = 0; a.prevAction = false; a.shield = 0;
       karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     };
     // Pulse 110 across a 250 ms hitch still sweeps the hull (no teleport).
     a.x = 0; a.z = -12; a.angle = 0; a.speed = 0;
     b.x = 0; b.z = 2; b.angle = 0; b.speed = 0; b.shield = 0;
-    fireAs('pulse');
+    fireAs('machinegun');
     tick(ctx, st, 250);
     assert.strictEqual(a.hits, 1, 'hitch pulse sweeps the hull');
     assert.strictEqual(st.zaps.length, 0, 'impact consumes');
@@ -421,7 +420,7 @@ function main() {
     const [r0, r1, r2] = st3.karts;
     for (const c of st3.crates) { c.x = 24; c.z = 24; }
     r0.x = 0; r0.z = -14; r0.angle = 0; r0.speed = 0; r0.shield = 0;
-    r0.weapon = 'pulse'; r0.ammo = 1; r0.fireCd = 0; r0.prevAction = false;
+    r0.weapon = 'machinegun'; r0.ammo = 1; r0.fireCd = 0; r0.prevAction = false;
     r1.x = 0; r1.z = 0; r1.speed = 0; r1.shield = 0;
     r2.x = 0; r2.z = 6; r2.speed = 0; r2.shield = 0;
     karts.onAction(st3, ctx3, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
@@ -436,7 +435,7 @@ function main() {
     a.x = 16; a.z = 5; a.angle = 0; a.speed = 0;
     b.x = 16; b.z = 20; b.speed = 0; b.shield = 0; b.respawn = 0;
     a.respawn = 0;
-    fireAs('pulse');
+    fireAs('machinegun');
     tick(ctx, st, 250);
     assert.strictEqual(st.zaps.length, 0, 'block swallows pulse');
     assert.strictEqual(b.respawn, 0, 'cover protects the far hull');
@@ -451,7 +450,7 @@ function main() {
       const [st, ctx] = mk(8900000);
       const [a, b] = st.karts;
       for (const c of st.crates) { c.x = -24; c.z = 24; }
-      a.weapon = 'rocket'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
+      a.weapon = 'missile'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
       a.x = 0; a.z = -8; a.angle = 0; a.speed = 0;
       b.x = 0; b.z = 0; b.speed = 0; b.shield = 0;
       st.karts[2].x = 24; st.karts[2].z = 24;
@@ -466,7 +465,7 @@ function main() {
       const [a, b] = st.karts;
       for (const c of st.crates) { c.x = -24; c.z = 24; }
       st.karts[2].x = -24; st.karts[2].z = -24;
-      a.weapon = 'rocket'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
+      a.weapon = 'missile'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
       a.x = 16; a.z = 5; a.angle = 0; a.speed = 0; // fires into the (16,16) block
       b.x = 16; b.z = 11.5; b.speed = 0; b.shield = 0; // 2u short of the face
       karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
@@ -480,14 +479,14 @@ function main() {
       const [a, b] = st.karts;
       for (const c of st.crates) { c.x = -24; c.z = 24; }
       st.karts[2].x = -24; st.karts[2].z = -24;
-      a.weapon = 'rocket'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
+      a.weapon = 'missile'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
       a.x = 16; a.z = 5; a.angle = 0; a.speed = 0;
       b.x = 16; b.z = 20; b.speed = 0; b.shield = 0; // behind the block from the blast
       karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
       tick(ctx, st);
       assert.strictEqual(b.respawn, 0, 'cover blocks splash');
       assert.strictEqual(a.hits, 0, 'blocked blast scores nothing');
-      assert.strictEqual(st.zaps.length, 0, 'rocket consumed on the block');
+      tick(ctx,st);assert.strictEqual(st.zaps.length,0,'missile consumed at its slower block contact');
     }
     // Two hearts once per full-health victim, including the direct target.
     {
@@ -495,17 +494,17 @@ function main() {
       const [a, b, c] = st.karts;
       b.health=c.health=3;
       for (const k of st.crates) { k.x = -24; k.z = 24; }
-      a.weapon = 'rocket'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
+      a.weapon = 'missile'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
       a.x = 0; a.z = -8; a.angle = 0; a.speed = 0;
-      b.x = 0.5; b.z = 0; b.speed = 0; b.shield = 0;
-      c.x = -0.5; c.z = 0; c.speed = 0; c.shield = 0;
+      b.x = 0; b.z = 0; b.speed = 0; b.shield = 0;
+      c.x = 2.3; c.z = -3.5; c.speed = 0; c.shield = 0;
       karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
       tick(ctx, st);
       const down = [b, c].filter((k) => k.respawn > 0).length;
       assert.strictEqual(down, 0, 'one rocket never knocks out a full-health rival');
       assert.strictEqual(a.hits, 0, 'wounds score nothing');
       assert(b.health === 1 && c.health === 1, 'direct and splash rivals each lose two hearts');
-      const hits=st.events.filter(e=>e.type==='hit');assert(hits.length===2&&hits.every(e=>e.damage===2&&e.health===1&&e.maxHealth===3&&e.weapon==='rocket'),'two 2-heart rocket hits');
+      const hits=st.events.filter(e=>e.type==='hit');assert(hits.length===2&&hits.every(e=>e.damage===2&&e.health===1&&e.maxHealth===3&&e.weapon==='missile'),'two 2-heart rocket hits');
       assert.strictEqual(new Set(hits.map(e=>e.other)).size,hits.length,'direct and splash cannot double-count a victim');
     }
     // Owner immune to own blast; TTL fizzle blasts nothing.
@@ -514,14 +513,14 @@ function main() {
       const [a, b] = st.karts;
       for (const c of st.crates) { c.x = -24; c.z = 24; }
       st.karts[2].x = -24; st.karts[2].z = -24;
-      a.weapon = 'rocket'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
+      a.weapon = 'missile'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
       a.x = 0; a.z = 5; a.angle = 0; a.speed = 0;
       b.x = 0; b.z = 8; b.speed = 0; b.shield = 0; // ahead of the muzzle
       karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
       tick(ctx, st);
       assert.strictEqual(a.respawn, 0, 'owner immune to own blast');
       // Fizzle: a lone rocket expires short of a far victim: no blast.
-      st.zaps.push({ id: 'zfz', owner: 'p0', kind: 'rocket', x: 0, z: -20, angle: Math.PI, ttl: 0.05 });
+      st.zaps.push({ id: 'zfz', owner: 'p0', kind: 'missile', x: 0, z: -20, angle: Math.PI, ttl: 0.05 });
       b.x = 0; b.z = -27; b.respawn = 0; b.shield = 0;
       tick(ctx, st);
       assert.strictEqual(st.zaps.length, 0, 'expired rocket clears');
@@ -537,13 +536,13 @@ function main() {
     parkFar(st, ['p0']);
     a.x = 0; a.z = -20; a.angle = 0; a.speed = 0; a.shield = 0; a.fireCd = 0; a.prevAction = false;
     const fireKind = (kind) => {
-      a.weapon = kind; a.ammo = kind === 'pulse' ? 3 : 1; a.fireCd = 0; a.prevAction = false;
+      a.weapon = kind; a.ammo = kind === 'machinegun' ? 3 : 1; a.fireCd = 0; a.prevAction = false;
       const n = st.events.length;
       karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
       tick(ctx, st);
       return st.events.slice(n);
     };
-    for (const kind of ['pulse', 'scatter', 'rocket', 'seeker', 'nuke']) {
+    for (const kind of ['machinegun', 'trishot', 'missile', 'missile', 'nuke']) {
       const evs = fireKind(kind);
       assert.strictEqual(evs.filter((e) => e.type === 'fire').length, 1, `${kind} emits one fire`);
       assert.strictEqual(evs.find((e) => e.type === 'fire').weapon, kind, `${kind} fire carries weapon`);
@@ -552,26 +551,22 @@ function main() {
     const mineEvs = fireKind('mine');
     assert.strictEqual(mineEvs.filter((e) => e.type === 'mine').length, 1, 'mine emits one mine event');
     assert.strictEqual(mineEvs.find((e) => e.type === 'mine').weapon, 'mine', 'mine carries weapon');
-    const pxEvs = fireKind('proximity');
-    assert.strictEqual(pxEvs.filter((e) => e.type === 'fire').length, 1, 'proximity emits one fire');
-    assert.strictEqual(pxEvs.find((e) => e.type === 'fire').weapon, 'proximity', 'proximity fire carries weapon');
-    assert.strictEqual(st.mines.filter((m) => m.kind === 'proximity').length, 1, 'proximity drops as a trap');
-    const shEvs = fireKind('shield');
-    assert.strictEqual(shEvs.filter((e) => e.type === 'shield').length, 1, 'shield emits once');
-    assert.strictEqual(shEvs.find((e) => e.type === 'shield').weapon, 'shield', 'shield carries weapon');
+    const shEvs=fireKind('supernova');
+    assert.equal(shEvs.filter(e=>e.type==='fire'&&e.weapon==='supernova').length,1,'Supernova announces its accepted spend');
+    assert(a.supernovaT>0,'Supernova protection starts');
     // Capped fire is silent: no event, item kept.
     for (let i = st.zaps.length; i < 64; i++) {
-      st.zaps.push({ id: 'zcap' + i, owner: 'p1', kind: 'pulse', x: 20, z: 20, angle: 0, ttl: 1 });
+      st.zaps.push({ id: 'zcap' + i, owner: 'p1', kind: 'machinegun', x: 20, z: 20, angle: 0, ttl: 1 });
     }
     const n = st.events.length;
-    fireKind('pulse');
+    fireKind('machinegun');
     assert.strictEqual(st.events.length, n, 'capped fire emits nothing');
-    assert.strictEqual(a.weapon, 'pulse', 'capped fire keeps the item');
+    assert.strictEqual(a.weapon, 'machinegun', 'capped fire keeps the item');
     // Zap view carries velocity data for rendering.
     st.zaps.length = 0;
-    fireKind('seeker');
+    fireKind('missile');
     const zv = karts.view(st, 'p0').zaps[0];
-    assert.strictEqual(zv.kind, 'seeker', 'zap kind projected');
+    assert.strictEqual(zv.kind, 'missile', 'zap kind projected');
     assert.strictEqual(zv.speed, 60, 'zap speed projected');
     assert(Number.isFinite(zv.ttl) && zv.ttl > 0, 'zap ttl projected');
     assert(Number.isFinite(zv.vx) && Number.isFinite(zv.vz), 'zap velocity projected');
@@ -590,7 +585,7 @@ function main() {
     const [a, b] = st.karts;
     b.health=1; // Wounded KO isolates fallback economy persistence.
     a.x = 0; a.z = -8; a.angle = 0; a.speed = 0; a.shield = 0;
-    a.weapon = 'pulse'; a.ammo = 3; a.fireCd = 0; a.prevAction = false;
+    a.weapon = 'machinegun'; a.ammo = 3; a.fireCd = 0; a.prevAction = false;
     b.x = 0; b.z = 0; b.speed = 0; b.shield = 0;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx, st);
@@ -626,13 +621,13 @@ function main() {
     assert.strictEqual(battle.constants.MAX_EVENTS, 12, 'event cap 12');
     assert.strictEqual(engine.constants.GARAGE_NONCE_CAP, 200, 'nonce cap 200');
     for (let i = 0; i < 70; i++) {
-      st.zaps.push({ id: 'zx' + i, owner: 'p1', kind: 'pulse', x: 20, z: 20, angle: 0, ttl: 1 });
+      st.zaps.push({ id: 'zx' + i, owner: 'p1', kind: 'machinegun', x: 20, z: 20, angle: 0, ttl: 1 });
     }
     const a = st.karts[0];
-    a.weapon = 'rocket'; a.ammo = 1; a.fireCd = 0; a.prevAction = false; a.shield = 0;
+    a.weapon = 'missile'; a.ammo = 1; a.fireCd = 0; a.prevAction = false; a.shield = 0;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx, st);
-    assert.strictEqual(a.weapon, 'rocket', 'zap cap keeps the rocket loaded');
+    assert.strictEqual(a.weapon, 'missile', 'zap cap keeps the rocket loaded');
     console.log('GARAGE ok: caps (64 zaps, 16 mines, 12 grenades, 12 events, 200 nonces)');
   }
 

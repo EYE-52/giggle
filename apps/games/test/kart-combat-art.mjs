@@ -681,7 +681,7 @@ try {
     return max;
   };
   for (const kind of ['laser', 'boomerang', 'bouncer']) {
-    const shot = art.projectile(kind), c = shot.userData.combat, radius = COMBAT.staticSweepRadii[kind];
+    const shot = art.projectile(kind), c = shot.userData.combat, radius = COMBAT.staticSweepRadii[kind]??({laser:.12,bouncer:.36}[kind]);
     assert.equal(c.type, 'projectile', kind + ' is a projectile'); assert.equal(c.kind, kind, kind + ' keeps its kind');
     assert(meshesOf(shot).length <= COMBAT_ART_BUDGETS.projectile, kind + ' projectile budget');
     assert(Number.isFinite(c.tipZ) && Number.isFinite(c.tailZ) && c.tipZ > c.tailZ, kind + ' tip/tail metadata');

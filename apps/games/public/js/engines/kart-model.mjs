@@ -243,7 +243,7 @@ export function createKartModel(THREE, { assets, color, number = 1, driver } = {
  * rotation is never touched; lean applies to KartBody alone. */
 export function animateKartModel(group, {
   speed = 0, steer = 0, boost = false, shield = false, invincible = false,
-  dt = 0.016, reducedMotion = false, physicalPose = null,
+  dt = 0.016, reducedMotion = false, physicalPose = null, driftHop = 0, drivingJuice = false,
 } = {}) {
   const u = group && group.userData && group.userData.kart;
   if (!u) return;
@@ -278,12 +278,23 @@ export function animateKartModel(group, {
   }
 
   if (u.body) {
-    if (reducedMotion || physicalPose) {
+    if(u.bodyBaseY===undefined){u.bodyBaseY=u.body.position.y;u.bodyScaleX=u.body.scale.x;u.bodyScaleY=u.body.scale.y;u.bodyScaleZ=u.body.scale.z;}
+    const grounded=physicalPose?.grounded!==false;
+    if(grounded&&u.wasGrounded===false&&(u.lastVerticalSpeed||0)<-1.8){u.landing=.3;u.landingStrength=clamp(-u.lastVerticalSpeed/9,.2,1);}
+    if(u.hopWas>0&&driftHop<=0){u.landing=.18;u.landingStrength=.35;}
+    u.wasGrounded=grounded;u.lastVerticalSpeed=physicalPose?.linearVelocity?.y||0;u.hopWas=driftHop;
+    u.landing=Math.max(0,(u.landing||0)-step);
+    const squash=reducedMotion||!drivingJuice?0:Math.sin(u.landing/.3*Math.PI)*(u.landingStrength||0)*.13;
+    const hop=reducedMotion?0:Math.sin(clamp(driftHop/.24,0,1)*Math.PI)*.18;
+    u.body.position.y=u.bodyBaseY+hop;
+    u.body.scale.set(u.bodyScaleX*(1+squash*.4),u.bodyScaleY*(1-squash),u.bodyScaleZ*(1+squash*.4));
+    if (reducedMotion || physicalPose&&!drivingJuice) {
       u.body.rotation.x = 0;
       u.body.rotation.z = 0;
     } else {
       const grip = clamp(Math.abs(v) / 14, 0, 1);
-      u.body.rotation.z = u.steerSmooth * grip * 0.025;
+      const turn=physicalPose?clamp(-(physicalPose.angularVelocity?.y||0)/1.5,-1,1):u.steerSmooth;
+      u.body.rotation.z = turn * grip * (drivingJuice?.085:.025);
       u.body.rotation.x = clamp(v * 0.0006, -0.008, 0.015);
     }
   }

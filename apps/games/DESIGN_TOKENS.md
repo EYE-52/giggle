@@ -35,6 +35,14 @@ and margin.
 `--control-h-sm` 44px (floor for any tap target), `--control-h` 48px,
 `--control-h-lg` 56px (primary).
 
+Start-menu layout: `--howto-dialog-w` 920px and `--howto-dialog-h` 600px
+bound the desktop dialog; `--howto-seat-w` 304px reserves the setup column.
+`--howto-controls-w` 536px bounds the in-game Controls sheet. Viewport and
+safe-area limits take priority over these preferred sizes.
+
+`--home-card-art` 96px is the square art tile shared by home picks and
+catalogue cards. Each card pairs it with one compact text/action stack.
+
 ### Text styles
 Use as `font: var(--text-title)` or the class.
 
@@ -174,3 +182,7 @@ Loading the same panel before the server answers:
   <span class="tb-skeleton is-btn"></span>
 </section>
 ```
+
+### Pocket Karts garage
+
+`--kart-garage-w` (880px) caps the results parts bench; `--kart-garage-preview-w` (224px) reserves its desktop display column; `--kart-garage-preview-h` (208px) reserves the thumbnail area before the model is ready. Cards use the existing spacing, type, colour, radius, control and motion tokens.

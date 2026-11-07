@@ -20,14 +20,14 @@ for(const key of ['shoulder','curbs']){
   }
 }
 // Ground kind, rather than the theme's old paving, owns the fallback tint.
-// Gravel also stays dark and neutral through every lighting palette.
+// Neon's yard stays deep blue-teal through every lighting palette.
 for(const palette of ['Daybreak','Sunset','Starlight']){
   const world=createKartWorld(THREE,{scene:new THREE.Scene(),map:{id:'neon',...maps.mapDef('neon')},palette});
   const ground=world.group.getObjectByName('neon-driving-terrain').material,road=world.group.getObjectByName('neon-road-road').material;
   const luminance=c=>.2126*c.r+.7152*c.g+.0722*c.b;
-  assert(luminance(ground.color)<luminance(road.color)*.8,palette+' gravel is darker than asphalt');
-  assert(Math.max(...ground.color.toArray())-Math.min(...ground.color.toArray())<.01,palette+' gravel is desaturated');
-  assert.equal(ground.emissive.getHex(),0,palette+' gravel does not glow teal');
+  assert(luminance(ground.color)>.03&&luminance(ground.color)<luminance(road.color),palette+' deep yard remains readable below asphalt');
+  assert(ground.color.b>ground.color.r*2&&ground.color.g>ground.color.r*1.5,palette+' yard has a cool blue-teal base');
+  assert.equal(ground.emissive.getHex(),0x183749,palette+' restrained blue fill remains through sunset');
   assert(ground.roughness>road.roughness,palette+' asphalt is smoother');
   world.dispose?.();
 }

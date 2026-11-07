@@ -8,22 +8,25 @@ const SPACING = .32; // metres of travel between marks per wheel
 
 const VERTEX = `
 attribute float skidBirth;
+attribute vec4 skidTint;
+varying vec4 vSkidTint;
 uniform float skidTime;
 varying float vSkidAlpha;
 varying vec2 vSkidUv;
 void main(){
   float age = skidTime - skidBirth;
   vSkidAlpha = skidBirth < 0.0 ? 0.0 : clamp(1.0 - age / ${SKID_LIFE.toFixed(2)}, 0.0, 1.0);
-  vSkidUv = uv;
+  vSkidUv = uv;vSkidTint=skidTint;
   gl_Position = projectionMatrix * viewMatrix * modelMatrix * instanceMatrix * vec4(position, 1.0);
 }`;
 const FRAGMENT = `
+varying vec4 vSkidTint;
 varying float vSkidAlpha;
 varying vec2 vSkidUv;
 void main(){
   if (vSkidAlpha <= 0.0) discard;
   float edge = 1.0 - smoothstep(.55, 1.0, abs(vSkidUv.x * 2.0 - 1.0));
-  gl_FragColor = vec4(.045, .04, .05, vSkidAlpha * edge * .55);
+  gl_FragColor = vec4(vSkidTint.rgb, vSkidAlpha * edge * vSkidTint.a);
 }`;
 
 export function createKartSkids(THREE, scene, { groundAt = () => 0 } = {}) {
@@ -32,6 +35,8 @@ export function createKartSkids(THREE, scene, { groundAt = () => 0 } = {}) {
   const births = new Float32Array(SKID_LIMIT).fill(-1);
   const birthAttr = new THREE.InstancedBufferAttribute(births, 1).setUsage(THREE.DynamicDrawUsage);
   geometry.setAttribute('skidBirth', birthAttr);
+  const tints=new Float32Array(SKID_LIMIT*4),tintAttr=new THREE.InstancedBufferAttribute(tints,4).setUsage(THREE.DynamicDrawUsage);
+  geometry.setAttribute('skidTint',tintAttr);
   const material = new THREE.ShaderMaterial({
     vertexShader: VERTEX, fragmentShader: FRAGMENT, uniforms: { skidTime: { value: 0 } },
     transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
@@ -44,13 +49,15 @@ export function createKartSkids(THREE, scene, { groundAt = () => 0 } = {}) {
   const trails = new Map(); // pid -> last mark position per kart (x,z)
   // Visible for the loading warm-up render, then only while marks remain.
   let head = 0, time = 0, disposed = false, dirty = false, lastStamp = -Infinity;
-  function stamp(x, z, angle) {
+  function stamp(x, z, angle, surface) {
     p.set(x, groundAt(x, z) + .045, z); q.setFromAxisAngle(up, angle);
     matrix.compose(p, q, one); mesh.setMatrixAt(head, matrix);
+    const color=surface?.skid??0x14121a,j=head*4;
+    tints[j]=((color>>16)&255)/255;tints[j+1]=((color>>8)&255)/255;tints[j+2]=(color&255)/255;tints[j+3]=surface?.opacity??.55;
     births[head] = time; head = (head + 1) % SKID_LIMIT; dirty = true; lastStamp = time;
   }
   // Call each frame per kart with its pose and whether its tyres are sliding.
-  function track(pid, x, z, angle, sliding) {
+  function track(pid, x, z, angle, sliding, surface) {
     if (disposed) return;
     let last = trails.get(pid);
     if (!sliding || !Number.isFinite(x) || !Number.isFinite(z)) { if (last) last.on = false; return; }
@@ -62,8 +69,8 @@ export function createKartSkids(THREE, scene, { groundAt = () => 0 } = {}) {
     const fx = Math.sin(angle), fz = Math.cos(angle), rx = fz, rz = -fx;
     const mx = (x + last.x) / 2 - fx * 1.05, mz = (z + last.z) / 2 - fz * 1.05; // rear axle
     const heading = Math.atan2(dx, dz);
-    stamp(mx + rx * .62, mz + rz * .62, heading);
-    stamp(mx - rx * .62, mz - rz * .62, heading);
+    stamp(mx + rx * 1.02, mz + rz * 1.02, heading, surface);
+    stamp(mx - rx * 1.02, mz - rz * 1.02, heading, surface);
     last.x = x; last.z = z;
   }
   function update(dt) {
@@ -71,7 +78,7 @@ export function createKartSkids(THREE, scene, { groundAt = () => 0 } = {}) {
     if (Number.isFinite(dt) && dt > 0) time += Math.min(dt, .1);
     material.uniforms.skidTime.value = time;
     mesh.visible = time - lastStamp < SKID_LIFE;
-    if (dirty) { mesh.instanceMatrix.needsUpdate = true; birthAttr.needsUpdate = true; dirty = false; }
+    if (dirty) { mesh.instanceMatrix.needsUpdate = true; birthAttr.needsUpdate = true; tintAttr.needsUpdate = true; dirty = false; }
   }
   function forget(pid) { trails.delete(pid); }
   function reset() { births.fill(-1); birthAttr.needsUpdate = true; trails.clear(); head = 0; lastStamp = -Infinity; mesh.visible = false; }

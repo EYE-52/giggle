@@ -273,7 +273,7 @@ async function main() {
   for (; seed < 256; seed++) {
     const m = createElevatedCombat(base.RAPIER, base.config, diagnostic.garden, [{ id: 'a' }, { id: 'b' }],
       { instance: 'seed-search', seed, startAt: 0, countdownMs: 0, roundMs: 5000, crates: 1 });
-    m.advance(20); const weapon = m.snapshot().karts[0].weapon; m.dispose(); if (weapon === 'pulse') break;
+    m.advance(20); const weapon = m.snapshot().karts[0].weapon; m.dispose(); if (weapon === 'machinegun') break;
   }
   ok(seed < 256, 'bounded real pickup selects a Pulse seed');
   const legal = freshDef();
@@ -285,17 +285,17 @@ async function main() {
     battle.start(settings('Alpine Courtyard'));
     const initial = latest(battle.clients[0].ws), pump = n => { for (let i = 0; i < n; i++) { now += 50; b.onTick(); } };
     now = initial.liveAt + 50; b.onTick();
-    eq(latest(battle.clients[0].ws).karts[0].weapon, 'pulse');
+    eq(latest(battle.clients[0].ws).karts[0].weapon, 'machinegun');
     eq(latest(battle.clients[0].ws).coins, 1); eq(latest(battle.clients[1].ws).coins, 0, 'pickup wallet stays private');
     ok(Object.values(b.totals).every(v => v === 0), 'pickup coins do not become Room points');
     pump(55);
-    eq(COMBAT.weapons.pulse.damage,1);eq(COMBAT.weapons.pulse.ammo,12);eq(COMBAT.maxHealth,3);
+    eq(COMBAT.weapons.machinegun.damage,1);eq(COMBAT.weapons.machinegun.ammo,24);eq(COMBAT.maxHealth,3);
     eq(latest(battle.clients[0].ws).karts[1].health,1);eq(latest(battle.clients[0].ws).karts[1].maxHealth,3);
     const ready=latest(battle.clients[0].ws);send(b,battle.clients[0],input(ready,1,{use:true}));send(b,battle.clients[0],input(ready,2,{use:false}));
     const connectedHits=new Map();
     for(let tick=0;tick<60&&latest(battle.clients[0].ws).karts[1].alive;tick++){
       pump(1);const current=latest(battle.clients[0].ws);
-      for(const event of current.events)if(event.type==='hit'&&event.weapon==='pulse')connectedHits.set(event.id,event);
+      for(const event of current.events)if(event.type==='hit'&&event.weapon==='machinegun')connectedHits.set(event.id,event);
       eq(current.karts[1].health,1-connectedHits.size,'one activation projects its single one-heart wound');eq(current.karts[1].maxHealth,3);
       if(current.karts[1].alive)eq(current.karts[0].hits,0,'automatic rounds cannot award before the lethal heart');
     }
@@ -304,7 +304,7 @@ async function main() {
     const ko = latest(battle.clients[0].ws);
     eq(ko.karts[0].hits, 1); eq(ko.karts[1].deaths, 1); eq(ko.karts[1].alive, false);eq(ko.karts[1].health,0);
     const hit=ko.events.filter(e=>e.type==='hit').at(-1);eq(hit.damage,1);eq(hit.health,0);eq(hit.maxHealth,3);ok(hit.position&&Object.values(hit.position).every(Number.isFinite),'Room projects bounded health hit position');
-    const impact=ko.events.filter(e=>e.type==='impact'&&e.weapon==='pulse').at(-1);ok(impact.from&&Object.values(impact.from).every(Number.isFinite)&&impact.position.z>impact.from.z,'Room projects the authoritative final Pulse sweep for confirmed feedback');
+    const impact=ko.events.filter(e=>e.type==='impact'&&e.weapon==='machinegun').at(-1);ok(impact.from&&Object.values(impact.from).every(Number.isFinite)&&impact.position.z>impact.from.z,'Room projects the authoritative final Pulse sweep for confirmed feedback');
     eq(ko.coins, 11); ok(Object.values(b.totals).every(v => v === 0), 'KO coins remain distinct from deferred Room score');
     pump(45); ok(latest(battle.clients[0].ws).karts[1].alive, 'real safe respawn completes'); eq(latest(battle.clients[0].ws).karts[1].health, 3, 'respawn restores all three hearts');
     now = initial.deadline; b.onTick(); const done = latest(battle.clients[0].ws);
