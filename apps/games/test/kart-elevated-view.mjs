@@ -285,6 +285,21 @@ globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arr
   check('late equal-clock live packet cannot resurrect a completed instance',moving().length===0&&r.node('clock').textContent==='0:00');
   r.view.dispose();
 }
+// A freshly dropped mine leaves through the back of its kart and lands on
+// its authoritative spot; mines already down when the view starts never hop.
+{
+  const r=rig({graphics:true});r.render(base());const gl=await r.settle();r.frame();
+  const mine={id:'drop-1',owner:'a',position:{x:0,y:.425,z:-2.8},normal:{x:0,y:1,z:0},radius:.41,armed:false};
+  r.render({...base(),simTick:2,simAt:100,mines:[mine]});r.frame();
+  const trap=()=>gl.built.scene.children.find(o=>o.visible&&o.userData.combat?.type==='mine');
+  const landed=trap().userData.dropTo.clone();
+  check('fresh mine starts at the back of its kart, above its landing spot',trap().position.y>landed.y+.5&&trap().position.z>landed.z+1);
+  r.advance(150);r.frame(.15);
+  check('fresh mine is mid-arc between the kart and its spot',trap().position.distanceTo(landed)>.05&&trap().position.z>landed.z-.01);
+  r.advance(300);r.frame(.3);
+  check('fresh mine settles exactly on its authoritative spot',trap().position.distanceTo(landed)<1e-6&&trap().userData.drop===null);
+  r.view.dispose();
+}
 {
   const r=rig({graphics:true});r.render();const gl=await r.settle();r.frame();
   const blast=id=>({id,type:'blast',weapon:'rocket',pid:'a',position:{x:0,y:1,z:4}});

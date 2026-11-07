@@ -268,20 +268,24 @@ export function createElevatedKartView() {
         }
       }
       function sync(list,prefix,factory){
-        const ids=new Set();for(const value of list||[]){const id=prefix+value.id;ids.add(id);let object=objects.get(id);if(!object){const key=poolKey(prefix,value);object=pools.get(key)?.pop()||factory(value);object.userData.poolKey=pools.has(key)?key:null;scene.add(object);objects.set(id,object);}object.position.copy(value.position);object.visible=value.available!==false;if(prefix==='crate:')object.position.y-=.6;
+        const ids=new Set();for(const value of list||[]){const id=prefix+value.id;ids.add(id);let object=objects.get(id);if(!object){const key=poolKey(prefix,value);object=pools.get(key)?.pop()||factory(value);object.userData.poolKey=pools.has(key)?key:null;scene.add(object);objects.set(id,object);
+            // A new mine leaves through the back of its kart and arcs down to its spot.
+            if(prefix==='mine:'){const owner=minesSeen&&models.get(value.owner);object.userData.drop=owner?{from:owner.localToWorld(new THREE.Vector3(0,.75,-1.1)),at:null}:null;}}object.position.copy(value.position);object.visible=value.available!==false;if(prefix==='crate:')object.position.y-=.6;
           if(value.direction||value.velocity){direction.copy(value.direction||value.velocity);if(direction.lengthSq()>0){const aim=object;if(aim)aim.quaternion.setFromUnitVectors(forward,direction.normalize());}}
           // Mine packets carry the sphere centre along the support normal; art starts at its base.
           if(prefix==='mine:'){direction.copy(value.normal||up).normalize();object.position.addScaledVector(direction,-((value.radius||.41)+.015)+.02);object.quaternion.setFromUnitVectors(up,direction);}
           if(prefix==='mine:'&&object.userData.combat)object.userData.combat.armed=value.armed;
+          if(prefix==='mine:'&&object.userData.drop)(object.userData.dropTo||(object.userData.dropTo=new THREE.Vector3())).copy(object.position);
           if(prefix==='grenade:'&&value.weapon==='proximity'&&object.userData.combat){
             const c=object.userData.combat;c.armed=value.armed===true;c.landed=value.landed===true;
             c.rollRate=value.velocity?Math.hypot(value.velocity.x,value.velocity.z)/(value.radius||.6):0;
           }
           if(prefix==='grenade:')object.scale.setScalar(1);
         }
+        if(prefix==='mine:')minesSeen=true; // later mines are fresh drops; the first batch was already down
         for(const[id,object]of objects)if(id.startsWith(prefix)&&!ids.has(id)){object.visible=false;if(object.userData.poolKey)pools.get(object.userData.poolKey).push(object);else object.removeFromParent();objects.delete(id);}
       }
-      let objectTick='',started=false,cameraLife='',sideYaw=0,selectedSideYaw=0,recovery=0,sideSettling=false;
+      let minesSeen=false,objectTick='',started=false,cameraLife='',sideYaw=0,selectedSideYaw=0,recovery=0,sideSettling=false;
       const cameraAnchor=new THREE.Vector3(),sideEye=new THREE.Vector3(),recoveryEye=new THREE.Vector3(),modelBox=new THREE.Box3(),meshBox=new THREE.Box3(),corner=new THREE.Vector3(),probeCamera=new THREE.PerspectiveCamera(52,1,.1,650);
       const cameraModels=new WeakMap(),contactBoxes=new WeakMap(),contactPoint=new THREE.Vector3(),sideAngles=[25,-25,45,-45,60,-60,75,-75,90,-90];
       for(const [id,value]of world.colliderMeshes){const descriptor=value.descriptor||map.colliders?.find(d=>d.id===id),body=value.cameraBody||value.body;if(descriptor?.shape==='box'){body.updateWorldMatrix(true,false);body.geometry.computeBoundingBox();contactBoxes.set(body,{box:body.geometry.boundingBox,inverse:new THREE.Matrix4().copy(body.matrixWorld).invert()});}}
@@ -390,6 +394,7 @@ export function createElevatedKartView() {
         if(objectTick!==itemTick){objectTick=itemTick;sync(S.crates,'crate:',()=>createCrateModel(THREE,assets));sync(itemsFresh?(itemSnapshot.projectiles||[]).filter(v=>S.projectiles?.some(latest=>latest.id===v.id)):[],'shot:',v=>projectile(v.weapon));sync(itemsFresh?S.mines:[],'mine:',v=>art.mine(v.owner===S.you));sync(itemsFresh?(itemSnapshot.grenades||[]).filter(v=>S.grenades?.some(latest=>latest.id===v.id)):[],'grenade:',v=>art.projectile(v.weapon));}
         const itemAlpha=playback?.alpha??1;movingItems(itemSnapshot.projectiles,'shot:',playback?.previous.snapshot.projectiles,playback?.current.snapshot.projectiles,itemAlpha);movingItems(itemSnapshot.grenades,'grenade:',playback?.previous.snapshot.grenades,playback?.current.snapshot.grenades,itemAlpha);
         for(const object of objects.values())art.animate(object,dt,time,helper.reducedMotion());
+        for(const object of objects.values()){const d=object.userData.drop,to=object.userData.dropTo;if(!d||!to)continue;if(d.at===null)d.at=time;const t=helper.reducedMotion()?1:Math.min(1,(time-d.at)/.32);if(t>=1){object.position.copy(to);object.userData.drop=null;continue;}object.position.lerpVectors(d.from,to,t*(2-t));object.position.y+=Math.sin(t*Math.PI)*.45;}
         for(let i=effects.length-1;i>=0;i--){const f=effects[i];if(!f.mesh.visible)continue;f.age=Math.max(0,time-f.at);if(f.age>=f.duration){f.mesh.visible=false;continue;}for(let j=0;j<f.count;j++){const v=f.velocities[j],fade=Math.max(.02,1-f.age/f.duration);dummy.position.set(f.position.x+v.x*f.age,f.position.y+v.y*f.age-f.age*f.age*7,f.position.z+v.z*f.age);dummy.quaternion.setFromUnitVectors(nose.set(0,0,1),direction.copy(v).normalize());dummy.scale.set(fade,fade,fade*2.5);dummy.updateMatrix();f.mesh.setMatrixAt(j,dummy.matrix);}f.mesh.instanceMatrix.needsUpdate=true;}
         for(const rig of rigs.values())art.animate(rig.object,dt,time,helper.reducedMotion());
         const followed=self()||S.karts[0];

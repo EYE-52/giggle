@@ -207,6 +207,15 @@ export async function createThreeView(mountEl, hooks) {
     const current = targetRatio();
     let next = current;
     if (median > 24 && current > MIN_RATIO) next = Math.max(MIN_RATIO, current - RATIO_STEP);
+    // Still slow at the lowest resolution: drop the shadow pass for good
+    // (it redraws every caster each frame). Fast devices never get here.
+    else if (median > 24 && renderer.shadowMap.enabled) {
+      renderer.shadowMap.enabled = false;
+      scene.traverse(o => { for (const m of [].concat(o.material || [])) m.needsUpdate = true; });
+      lastStep = now; gaps.length = 0;
+      try { hooks.diagnostics?.event?.('quality-shadows', 'off'); } catch { /* measurement is optional */ }
+      return;
+    }
     // Climb back slowly, and stop trying after a few round trips so a
     // borderline device settles instead of oscillating.
     else if (median < 19 && current < deviceRatio() && climbs < 3 && now - lastStep > 10000) { next = Math.min(deviceRatio(), current + RATIO_STEP); climbs++; }
