@@ -57,8 +57,11 @@ export function classicControls(k,dt,map,battle){
   return {intent:{throttle,steer,brake:0},tuning:{top:engine*boost,engine:Math.min(2,engine*(boost>1?1.6:1)),steering:handling*(active?1.05:1),traction:1,rearTraction:active?.25+.75*recovery:(k.physicalPose?.grounded&&Math.abs(steer)>.55&&k.speed>12?.82:1),rearStiffness:active?.7+.3*recovery:1}};
 }
 
+// Classic arenas' unboosted top speed (m/s); the gear readout shares it.
+export const CLASSIC_MAX_FORWARD=20;
+
 export function createClassicMotion(RAPIER,baseConfig,state){
-  const config=structuredClone(baseConfig);config.softCcdPrediction=.7;config.handling.maxForward=20;config.handling.engineForce=840;
+  const config=structuredClone(baseConfig);config.softCcdPrediction=.7;config.handling.maxForward=CLASSIC_MAX_FORWARD;config.handling.engineForce=840;
   // Keep a released/respawned kart parked on real slopes using wheel brakes.
   config.handling.coastBrake=4;
   const physics=createKartPhysics(RAPIER,config),life=new Map(),enabled=new Map();let accumulator=0,disposed=false;

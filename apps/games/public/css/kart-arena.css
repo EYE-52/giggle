@@ -505,3 +505,12 @@ body.game-immersive:has(.pk) #gbody[data-layout="immersive"] > #rematch #hostWai
   .pk .kart-item-count { left:64px; }
   .pk .pk-health .kart-heart { width:30px; height:30px; }
 }
+
+/* Automatic gearbox badge (kart-gearbox.mjs): a small glass disc that pops
+ * on each shift. Fixed size and tabular digits keep the HUD from shifting. */
+.kart-gear { flex:none; display:inline-grid; place-items:center; width:30px; height:30px; border-radius:50%;
+  font:800 16px/1 var(--font-display); font-style:normal; font-variant-numeric:tabular-nums; color:#fff;
+  background:#14102099; border:2px solid #ffffffd9; box-shadow:0 2px 0 #00000066; text-shadow:0 1px 0 #00000080; }
+.kart-gear[data-gear="4"] { background:#e2456fcc; }
+.kart-gear[data-gear="3"] { background:#f08a24cc; }
+.kart-gear[data-gear="R"] { background:#3d6fd8cc; }

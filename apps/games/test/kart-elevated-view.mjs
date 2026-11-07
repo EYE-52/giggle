@@ -26,6 +26,7 @@ import {touchControlsFor} from '../public/js/toolkit/input-capabilities.mjs';
 import COMBAT from '../games/engines/kart-elevated-combat.js';
 import ELEVATED_ADAPTER from '../games/engines/kart-elevated-adapter.js';
 import {CUE_NAMES,ASSET_MAP} from '../public/js/engines/kart-audio.mjs';
+import {createGearbox,paintGear} from '../public/js/engines/kart-gearbox.mjs';
 const repo=fileURLToPath(new URL('..',import.meta.url));
 const results=[];const check=(name,value)=>{assert.ok(value,name);results.push(name);};
 class Node {
@@ -69,7 +70,7 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   const ThreeTest={...THREE,InstancedMesh:class extends THREE.InstancedMesh{constructor(...args){super(...args);instanceAllocations++;}}};
   for(const name of ['Group','Mesh','Vector3','Quaternion','Box3','BoxGeometry','ConeGeometry','MeshBasicMaterial'])ThreeTest[name]=class extends THREE[name]{constructor(...args){super(...args);graphicsAllocations++;}};
   class LocalLoader{setMeshoptDecoder(){return this;}async loadAsync(url){const b=fs.readFileSync(repo+'/public'+url.split('?')[0]);return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'').catch(error=>{console.error('GLB fixture failed',url,error.message);throw error;});}}
-  const context=vm.createContext({document,window,LocalLoader,MeshoptDecoder,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
+  const context=vm.createContext({document,window,LocalLoader,MeshoptDecoder,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
     createKartHealthBars,createKartImpactFX,paintKartWeapon,kartResultView,batchKartBody(){},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:()=>({revision:'combat-elevation-1'}),
     createKartElevatedWorld:()=>{const meshes=new Map();for(const d of colliders){const body=new THREE.Mesh(elevatedSolidGeometry(THREE,d),new THREE.MeshBasicMaterial());body.position.copy(d.position);if(d.rotation)body.quaternion.copy(d.rotation);body.updateMatrixWorld();meshes.set(d.id,{body,descriptor:d});}return {colliderMeshes:meshes,lighting:{fogColor:new THREE.Color(0xaaaaaa),fogNear:100,fogFar:500,exposure:1},animate(){},updateDetail(){},dispose(){for(const {body}of meshes.values()){body.geometry.dispose();body.material.dispose();}}};},
     createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;return projectile(...a);};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),

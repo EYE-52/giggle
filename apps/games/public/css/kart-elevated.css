@@ -119,3 +119,13 @@ body.game-immersive:has(.pke) #gbody>#rematch{bottom:18px;background:var(--card)
 .pke-touch-mode .kart-item-art{width:52px;height:52px}.pke-touch-mode .kart-item-art .kart-weapon-thumbnail,.pke-touch-mode .kart-item-art svg{width:40px;height:40px}.pke-touch-mode .kart-item{min-height:0}.pke-touch-mode .kart-item-count{left:36px}
 @media (prefers-reduced-motion:reduce){.pke-menu summary,.pke-panel button,.pke-loading button,.pke-result button,body.game-immersive:has(.pke) #gbody>#rematch button{transition:none;transform:none!important}.pke-actions [data-use]:disabled{opacity:1;background:var(--pke-pad);border:2px dashed #ffffff80;box-shadow:var(--pke-pad-lip)}.pke-actions [data-use]:disabled>*{opacity:.55}
 .pke-actions [data-held]{transform:none}}
+
+/* Automatic gearbox badge (kart-gearbox.mjs): a small glass disc that pops
+ * on each shift. Fixed size and tabular digits keep the HUD from shifting. */
+.kart-gear { flex:none; display:inline-grid; place-items:center; width:30px; height:30px; border-radius:50%;
+  font:800 16px/1 var(--font-display); font-style:normal; font-variant-numeric:tabular-nums; color:#fff;
+  background:#14102099; border:2px solid #ffffffd9; box-shadow:0 2px 0 #00000066; text-shadow:0 1px 0 #00000080; }
+.kart-gear[data-gear="4"] { background:#e2456fcc; }
+.kart-gear[data-gear="3"] { background:#f08a24cc; }
+.kart-gear[data-gear="R"] { background:#3d6fd8cc; }
+.pke-speed .kart-gear { align-self:center; width:26px; height:26px; font-size:14px; margin-left:4px; }
