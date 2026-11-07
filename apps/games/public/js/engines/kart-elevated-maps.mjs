@@ -1,3 +1,4 @@
+import {addRaisedFeatures} from './kart-raised-features.mjs';
 import {applyRaisedStarts} from './kart-raised-spawns.mjs';
 import {improveRaisedLayout} from './kart-raised-layouts.mjs';
 import {complexMaps} from './kart-complex-maps.mjs';
@@ -181,7 +182,7 @@ const MAPS = {
   },
 };
 
-for(const map of Object.values(MAPS)){improveRaisedLayout(map);applyRaisedStarts(map);}
+for(const map of Object.values(MAPS)){improveRaisedLayout(map);applyRaisedStarts(map);addRaisedFeatures(map);}
 
 export const elevatedMapIds = Object.freeze(Object.keys(MAPS));
 export function elevatedMap(id) {

@@ -35,6 +35,14 @@ class RecordedRecoveryWorld extends RAPIER.World {
   }
 }
 const recordedRapier={...RAPIER,World:RecordedRecoveryWorld};
+function recordedRecoveryMap(){
+  const map=structuredClone(recordedGarden);
+  // Surface profiles are physical parameters too. This pre-drift recording
+  // used road grip everywhere; keep today's concrete profile in other tests.
+  for(const d of map.colliders)d.material='asphalt';
+  return map;
+}
+
 const check=(label,value)=>{assert.ok(value,label);results.push(label);};
 const throws=(label,fn)=>{assert.throws(fn);results.push(label);};
 const floor={id:'floor',shape:'box',half:{x:60,y:1,z:60},position:{x:0,y:-1,z:0}};
@@ -479,7 +487,7 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
   // reset, grant, rotation, impulse or hit hook is used to create the stuck kart.
   // Preserve the recorded layout, starts and loot as well as its physics.
   // Today's extra cover and upper starts change this old collision trace.
-  const map=structuredClone(recordedGarden),seats=Array.from({length:8},(_,i)=>({id:'p'+i})),awards=[];
+  const map=recordedRecoveryMap(),seats=Array.from({length:8},(_,i)=>({id:'p'+i})),awards=[];
   const w=create(map,{seed:3,roundMs:90000,crates:6,onAward:(...v)=>awards.push(v)},seats,recordedPhysics,recordedRapier);
   let rng=3*2654435761>>>0,intents=[],event=null,before=null,after=null,previousSeconds=0,coinsBefore=0,coinsAfter=0,awardCount=0,queued=false;
   const random=()=>{rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;return(rng>>>0)/4294967296;};
@@ -536,7 +544,7 @@ for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2]) {
 {
   // Replay with historical physics: two legal floor spawns are initially four units apart. The rival drives
   // between them and brakes, physically blocking both recovery footprints.
-  const map=structuredClone(recordedGarden),original=map.spawns[7];
+  const map=recordedRecoveryMap(),original=map.spawns[7];
   map.spawns=[original,{...original,id:'blocker',x:-6,z:-52}];
   const w=create(map,{seed:3,roundMs:90000,crates:6},[{id:'p7'},{id:'b'}],recordedPhysics,recordedRapier);
   let rng=3*2654435761>>>0,intent=null,parked=false,retries=[],retryAt=0;

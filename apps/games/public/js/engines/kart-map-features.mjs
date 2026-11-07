@@ -63,7 +63,8 @@ export function fallAt(features, x, z, margin = 0) {
 
 export function portalExit(p) {
   const s = Math.sin(p.angle), c = Math.cos(p.angle);
-  return { x: p.x + s * PORTAL_EXIT, z: p.z + c * PORTAL_EXIT, angle: wrap(p.angle) };
+  return { x: p.x + s * PORTAL_EXIT, z: p.z + c * PORTAL_EXIT, angle: wrap(p.angle),
+    ...(Number.isFinite(p.y)?{y:p.y,surface:p.surface}:{}) };
 }
 
 export function cannonFlightTime(c) {
@@ -105,11 +106,12 @@ export function flightProgress(features, kart) {
 /* Runner owned by createClassicMotion. Runs once per fixed step after the
  * physics step, for authority and prediction alike. Feature events are
  * appended to state.featureEvents when that array exists (authority only). */
-export function createFeatureRunner({ physics, state, features, enabled, project, groundAt }) {
+export function createFeatureRunner({ physics, state, features, enabled, project, groundAt, canEnter=()=>true, canArrive=()=>true, onEvent }) {
   const cannons = features?.cannons || [], portals = features?.portals || [];
   const flying = new Set();
   const active = cannons.length > 0 || portals.length > 0;
   function emit(type, k, extra) {
+    if(onEvent){onEvent(type,k,extra);return;}
     if (!Array.isArray(state.featureEvents)) return;
     state.featureEventSeq = (state.featureEventSeq || 0) + 1;
     state.featureEvents.push({ id: 'f' + state.featureEventSeq, type, pid: k.pid, ...extra });
@@ -125,8 +127,8 @@ export function createFeatureRunner({ physics, state, features, enabled, project
     const c = cannons[index], start = physics.pose(k.pid);
     physics.setKartEnabled(k.pid, false); enabled.set(k.pid, false); flying.add(k.pid);
     k.flight = { c: index, t: 0, x: start.position.x, y: start.position.y, z: start.position.z, a: k.angle,
-      ly: (groundAt(c.land.x, c.land.z) || 0) + RIDE_HEIGHT, life: k.spawnSeq || 0 };
-    k.drifting = false; k.driftCharge = 0; k._driftHeld = false;
+      ly: (Number.isFinite(c.land.y)?c.land.y:groundAt(c.land.x,c.land.z)||0) + RIDE_HEIGHT, life: k.spawnSeq || 0 };
+    k.drifting=false;k.driftCharge=0;k.driftDirection=0;k.driftTier=0;k.driftHop=0;k._driftHeld=false;
     physics.restoreKart(k.pid, flightPose(c, k.flight, 0));
     emit('launch', k, { cannon: index, x: c.x, z: c.z, angle: c.angle, to: { x: c.land.x, z: c.land.z } });
   }
@@ -144,12 +146,13 @@ export function createFeatureRunner({ physics, state, features, enabled, project
     const from = portals[pair][side], to = portals[pair][1 - side], exit = portalExit(to);
     const before = physics.pose(k.pid), v = before.linearVelocity;
     const speed = Math.max(PORTAL_MIN_EXIT_SPEED, Math.hypot(v.x, v.z));
-    const position = { x: exit.x, y: (groundAt(exit.x, exit.z) || 0) + RIDE_HEIGHT, z: exit.z };
+    const position = { x: exit.x, y: (Number.isFinite(exit.y)?exit.y:groundAt(exit.x,exit.z)||0) + RIDE_HEIGHT, z: exit.z };
     const rotation = yawPitchRotation(exit.angle, 0);
     physics.resetKart(k.pid, { position, rotation }); // epoch++: a hard discontinuity
     physics.restoreKart(k.pid, { position, rotation, angularVelocity: { x: 0, y: 0, z: 0 },
       linearVelocity: { x: Math.sin(exit.angle) * speed, y: 0, z: Math.cos(exit.angle) * speed } });
     k.portalCd = PORTAL_GRACE;
+    k.drifting=false;k.driftCharge=0;k.driftDirection=0;k.driftTier=0;k.driftHop=0;k._driftHeld=false;
     emit('warp', k, { pair, side, from: { x: from.x, z: from.z }, to: { x: to.x, z: to.z } });
   }
   function step(dt, connected) {
@@ -168,10 +171,10 @@ export function createFeatureRunner({ physics, state, features, enabled, project
       }
       if (!enabled.get(k.pid) || !(Math.abs(k.speed) >= FEATURE_MIN_SPEED)) continue;
       let fired = false;
-      if (k.cannonCd <= 0) for (let i = 0; i < cannons.length; i++) if (inCannon(cannons[i], k.x, k.z)) { launch(k, i); fired = true; break; }
+      if (k.cannonCd <= 0) for (let i = 0; i < cannons.length; i++) if (inCannon(cannons[i], k.x, k.z)&&canEnter(k,cannons[i])&&canArrive(k,cannons[i].land)) { launch(k, i); fired = true; break; }
       if (!fired && k.portalCd <= 0) {
         outer: for (let i = 0; i < portals.length; i++) for (let side = 0; side < 2; side++) {
-          if (inPortal(portals[i][side], k.x, k.z)) { warp(k, i, side); fired = true; break outer; }
+          if (inPortal(portals[i][side], k.x, k.z)&&canEnter(k,portals[i][side])&&canArrive(k,portalExit(portals[i][1-side]))) { warp(k, i, side); fired = true; break outer; }
         }
       }
       if (fired) project(k);
@@ -189,5 +192,5 @@ export function createFeatureRunner({ physics, state, features, enabled, project
     }
     return true;
   }
-  return { step, reconcile, resumeLanded, flying: (pid) => flying.has(pid) };
+  return { step, reconcile, resumeLanded, cancel(k){k.flight=null;flying.delete(k.pid);},clear(){flying.clear();}, flying: (pid) => flying.has(pid) };
 }

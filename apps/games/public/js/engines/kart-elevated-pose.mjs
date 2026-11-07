@@ -3,7 +3,7 @@
 const XYZ=['x','y','z'],XYZW=['x','y','z','w'];
 export function blendElevatedPose(previous, current, alpha, output) {
   const p = current.pose;
-  if (!previous || previous.spawnSeq !== current.spawnSeq || previous.controlEpoch !== current.controlEpoch || !current.alive || !previous.alive || current.connected===false || previous.connected===false) return p;
+  if (!previous || previous.spawnSeq !== current.spawnSeq || previous.controlEpoch !== current.controlEpoch || previous.pose.epoch !== current.pose.epoch || !current.alive || !previous.alive || current.connected===false || previous.connected===false) return p;
   const a = previous.pose, t = Math.max(0, Math.min(1, alpha));
   const result=output||{position:{},rotation:{}},position=result.position,q=result.rotation;
   for(const k of XYZ)position[k]=a.position[k]+(p.position[k]-a.position[k])*t;

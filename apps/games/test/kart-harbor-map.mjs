@@ -22,7 +22,7 @@ function toward(p,target) {
   // At nose +Z, positive steering is driver-right (-X), so yaw decreases.
   return {throttle:Math.abs(error)>.5?.45:.7,steer:Math.max(-1,Math.min(1,-error*2.5)),brake:0};
 }
-for(const id of ['garden','frost','neon'])check(id+': revised layout keeps the original routes and adds design notes',elevatedMap(id).revision==='combat-elevation-2'&&elevatedMap(id).designNotes.length>=3);
+for(const id of ['garden','frost','neon'])check(id+': revised layout keeps the original routes and adds design notes',elevatedMap(id).revision==='combat-elevation-2-routes-1'&&elevatedMap(id).designNotes.length>=3);
 check('172 m port has eight spawn supports and 24 meaningful sockets',map.half===86&&map.spawns.length===8&&map.sockets.length===24);
 check('four ascending routes and five finite connected upper surfaces',map.routes.length===4&&map.colliders.filter(d=>d.shape==='deck').length===5);
 check('cover remains bounded rather than hundreds of scattered solids',map.colliders.length<=48&&map.colliders.every(d=>['box','deck','wedge'].includes(d.shape)));

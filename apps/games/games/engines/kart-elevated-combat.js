@@ -1,10 +1,11 @@
 'use strict';
-const {applyElevatedBelts,elevatedFallZone}=require('../../public/js/engines/kart-elevated-surfaces.mjs');
+const {elevatedFallZone}=require('../../public/js/engines/kart-elevated-surfaces.mjs');
 
 // Elevated combat authority used by the opt-in Room profile.
 // Caller initializes Rapier once, injects the shared numeric config and authored
 // elevated map, and supplies server receipt/advance times (never client clocks).
 const { createKartPhysics } = require('./kart-physics');
+const {createElevatedMotion,clearElevatedDrift,ELEVATED_MOTION_FIELDS}=require('../../public/js/engines/kart-elevated-motion.mjs');
 const B = require('./kart-rules-battle').constants;
 const H = require('./kart-engine').constants;
 const {config:COMBAT,damageAt} = require('./kart-combat-config');
@@ -105,7 +106,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     // One call per confirmed authority transition; failure never replays award.
     if(typeof options.onAward==='function') { try { options.onAward(k.id,amount,instance+'-'+key); } catch {} }
   }
-  function clean(k) { if(k.sequence){k.weapon=null;k.ammo=0;}k.bladesT=0;k.bladesAge=0;k.supernovaT=0;k.bladesVolley=null;k.supernovaVolley=null;k.frostT=0;k.spinT=0;k.rammingT=0;k.ramVolley=null;k.spinKick=0;k.input=neutral(); k.queue.length=0; k.pendingFire=false; k.pendingFireAt=null; k.useDown=false; k.lastInputAt=null; k.nitroActive=false; k.sequence=null; k.stuck=null; }
+  function clean(k) { motion?.reset(k);if(k.sequence){k.weapon=null;k.ammo=0;}k.bladesT=0;k.bladesAge=0;k.supernovaT=0;k.bladesVolley=null;k.supernovaVolley=null;k.frostT=0;k.spinT=0;k.rammingT=0;k.ramVolley=null;k.spinKick=0;k.input=neutral(); k.queue.length=0; k.pendingFire=false; k.pendingFireAt=null; k.useDown=false; k.lastInputAt=null; k.nitroActive=false; k.sequence=null; k.stuck=null; }
   function supported(point) {
     if(!point || !validId(point.id) || !validId(point.surface) || ![point.x,point.y,point.z,point.angle].every(finite) || Math.abs(point.x)>M.half-2 || Math.abs(point.z)>M.half-2 || Math.abs(point.angle)>2*Math.PI) return false;
     const s=physics.supportAt({x:point.x,y:point.y+0.4,z:point.z},0.8);
@@ -124,7 +125,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       return support && Math.abs(support.point.y-s.y)<0.15 && support.normal.y>0.65;
     });
   }
-  let spawns,sockets;
+  let spawns,sockets,motion;
   function pickSocket(exclude, level) {
     let pool=sockets.filter(s=>s.id!==exclude && (level===undefined || Math.abs(s.y-level)<.25) && !crates.some(c=>c.socketId===s.id));
     if(!pool.length) return null;
@@ -155,6 +156,8 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     if(!Number.isInteger(count) || count<1 || count>=sockets.length || count>12) throw new RangeError('invalid crate subset size');
     for(let i=0;i<count;i++) { const s=pickSocket(undefined,crateLevels?.[i%crateLevels.length]); if(s) crates.push(crateAt(s)); }
   } catch(error) { physics.dispose(); throw error; }
+
+  motion=createElevatedMotion({physics,map:M,karts:[...karts.values()],emit});
 
   function input(pid,p,receiptAt) {
     alive(); const k=karts.get(pid);
@@ -576,12 +579,10 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         const p=k.queue.shift();k.appliedSeq=p.seq;k.input=p.value;k.lastInputAt=p.at;
         if(p.fire && p.item===k.itemSeq && !k.sequence && at-p.at<=H.INPUT_TTL_MS && !k.pendingFire) {k.pendingFire=true;k.pendingFireAt=p.at;}
       }
-      if(k.lastInputAt===null || at-k.lastInputAt>H.INPUT_TTL_MS) { k.input=neutral();k.pendingFire=false;k.nitroActive=false; }
+      if(k.lastInputAt===null || at-k.lastInputAt>H.INPUT_TTL_MS) { clearElevatedDrift(k);k.input=neutral();k.pendingFire=false;k.nitroActive=false; }
       k.shield=Math.max(0,k.shield-dt);k.fireCd=Math.max(0,k.fireCd-dt);
       k.frostT=Math.max(0,k.frostT-dt);k.spinT=Math.max(0,k.spinT-dt);
-      if(k.nitroLocked) {k.nitroActive=false;k.nitro=Math.min(1,k.nitro+H.NITRO_RECHARGE*dt);if(k.nitro>=H.NITRO_REARM)k.nitroLocked=false;}
-      else if(k.input.nitro&&k.input.throttle>0&&k.nitro>0) {k.nitroActive=true;k.nitro=Math.max(0,k.nitro-H.NITRO_DRAIN*dt);if(k.nitro<=0)k.nitroLocked=true;}
-      else {k.nitroActive=false;k.nitro=Math.min(1,k.nitro+H.NITRO_RECHARGE*dt);}
+
     }
     // Tick every timer before spending, in seat order.
     for(const k of karts.values()) if(k.connected&&k.alive){
@@ -597,16 +598,13 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
       }
     }
     for(const k of karts.values()) if(k.connected&&k.alive) {
-      // Weapon status: a Turbo Ram boosts, Frost slows, an Oil Slick spins.
-      const ram=k.rammingT>0,frost=k.frostT>0?W.frost.slowFactor:1,spun=k.spinT>0;
-      physics.tuneKart(k.id,{top:clamp(Math.max(k.nitroActive?H.NITRO_SPEED:1,ram?W.ram.speedFactor:1)*frost,.1,2),
-        engine:clamp(Math.max(k.nitroActive?H.NITRO_PUNCH:1,ram?1.6:1)*(frost<1?.7:1),.1,2),steering:1,traction:1,rearTraction:spun?.12:1,rearStiffness:spun?.2:1});
       if(k.spinKick){physics.spinKart(k.id,k.spinKick);k.spinKick=0;}
-      physics.applyIntent(k.id,k.input);
-      if(M.belts?.length)applyElevatedBelts(physics,k.id,before.get(k.id),M,dt);
+      motion.controls(k,dt);
     }
-    physics.step();
+    physics.step();motion.afterStep(dt);
     const after=new Map([...karts.keys()].map(id=>[id,physics.pose(id)]));
+    // A portal is a discontinuity, never a swept target across the whole map.
+    for(const [id,p]of after)if(p.epoch!==before.get(id).epoch)before.set(id,p);
     for(const k of karts.values())if(k.sequence&&k.connected&&k.alive&&spend(k,after.get(k.id))&&!k.weapon)k.sequence=null;
     updateCuratedStatus(after);
     for(const contact of physics.drainImpacts()) {
@@ -657,7 +655,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   function snapshot(viewer=null) {
     alive();
     return structuredClone({instance,profile:'internal-elevated-combat-v2',combat:COMBAT,projectileRadii:COMBAT.staticSweepRadii,physicsVersion:physics.apiVersion,configVersion:C.version,mapId:M.id,mapRevision:M.revision,phase,simTick,simAt,serverAt:wallAt,liveAt,deadline,droppedMs,
-      karts:[...karts.values()].map(k=>({id:k.id,name:k.name,connected:k.connected,...(k.out?{out:true}:{}),alive:k.alive,health:k.health,maxHealth:k.maxHealth,hits:k.hits,deaths:k.deaths,spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,weapon:normalizeWeapon(k.weapon),...(k.weapon==='missile'?{lockTarget:missileLock(k.id,add(physics.pose(k.id).position,rotate(CURATED_MUZZLE,physics.pose(k.id).rotation)),weaponForward(physics.pose(k.id).rotation))?.id||null}:{}),ammo:k.ammo,firing:!!k.sequence,shield:k.shield,guard:k.guard,respawn:k.respawn,nitro:k.nitro,nitroActive:k.nitroActive,frostT:k.frostT,spinT:k.spinT,rammingT:k.rammingT,bladesT:k.bladesT||0,bladesAge:k.bladesAge||0,supernovaT:k.supernovaT||0,pose:physics.pose(k.id)})),
+      karts:[...karts.values()].map(k=>({id:k.id,name:k.name,connected:k.connected,...(k.out?{out:true}:{}),alive:k.alive,health:k.health,maxHealth:k.maxHealth,hits:k.hits,deaths:k.deaths,spawnSeq:k.spawnSeq,controlEpoch:k.controlEpoch,weapon:normalizeWeapon(k.weapon),...(k.weapon==='missile'?{lockTarget:missileLock(k.id,add(physics.pose(k.id).position,rotate(CURATED_MUZZLE,physics.pose(k.id).rotation)),weaponForward(physics.pose(k.id).rotation))?.id||null}:{}),ammo:k.ammo,firing:!!k.sequence,shield:k.shield,guard:k.guard,respawn:k.respawn,nitro:k.nitro,nitroActive:k.nitroActive,frostT:k.frostT,spinT:k.spinT,rammingT:k.rammingT,bladesT:k.bladesT||0,bladesAge:k.bladesAge||0,supernovaT:k.supernovaT||0,...Object.fromEntries(ELEVATED_MOTION_FIELDS.map(key=>[key,k[key]??(key==='surface'?'road':key==='flight'?null:0)])),pose:physics.pose(k.id)})),
       crates:crates.map(c=>({id:c.id,position:c.position,surfaceId:c.surfaceId,available:c.availableAt<=simAt})),
       projectiles:shots,mines:mines.map(m=>({...m,armed:m.arm<=0})),grenades:grenades.map(g=>({...g,...(proximityCharge(g.weapon)?{armed:g.landed&&g.arm<=1e-8,warning:g.landed&&g.arm<=1e-8}:{warning:g.weapon==="nuke"&&g.fuse<=(ARSENAL[g.weapon]?.warning??B.GRENADE_WARN)})})),events,
       you:privateStatus(viewer),result:resultData});
@@ -667,7 +665,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
     alive(); if(phase!=='done' || !next || next.instance===instance || !validId(next.instance)) throw new Error('finished instance and fresh rematch id required');
     return createElevatedCombat(RAPIER,C,M,seats,{...options,...next});
   }
-  function dispose() {if(disposed)return;physics.dispose();for(const k of karts.values())clean(k);shots.length=0;mines.length=0;grenades.length=0;crates.length=0;events.length=0;collisionAt.clear();volleyHits.clear();karts.clear();disposed=true;}
+  function dispose() {if(disposed)return;for(const k of karts.values())clean(k);motion?.dispose();physics.dispose();shots.length=0;mines.length=0;grenades.length=0;crates.length=0;events.length=0;collisionAt.clear();volleyHits.clear();karts.clear();disposed=true;}
   function stats() {return {instance,disposed,karts:karts.size,projectiles:shots.length,mines:mines.length,grenades:grenades.length,queuedInputs:[...karts.values()].reduce((n,k)=>n+k.queue.length,0),recovery:[...karts.values()].map(k=>({id:k.id,stuckSeconds:k.stuck?.seconds||0,retryAt:k.stuck?.retryAt||0,cooldownUntil:k.recoverAfter})),physics:physics.stats()};}
   return Object.freeze({input,setConnected,drop,advance,snapshot,privateStatus,result,rematch,dispose,stats});
 }

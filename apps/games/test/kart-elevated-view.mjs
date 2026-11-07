@@ -1,3 +1,7 @@
+import {createKartDrivingFX} from '../public/js/engines/kart-driving-fx.mjs';
+import {createKartArenaFeatures} from '../public/js/engines/kart-arena-features-art.mjs';
+import {surfaceProfile} from '../public/js/engines/kart-surface.mjs';
+import {driftTier,DRIFT_TIERS} from '../public/js/engines/kart-drift.mjs';
 import {cleanKartLook,kartPaintHex} from '../public/js/engines/kart-looks.mjs';
 import {WEAPON_IDS as combatWeaponIds} from '../public/js/engines/kart-weapon-contract.mjs';
 import {paintKartWeapon,createKartWeaponRoulette} from '../public/js/engines/kart-weapon-hud.mjs';
@@ -61,7 +65,7 @@ class Node {
   dispatch(type,extra={}){const e={type,target:this,preventDefault(){this.prevented=true},...extra};for(const fn of [...(this.events.get(type)||[])])fn(e);if(type==='click')this.onclick?.(e);return e;}
   focus(){this.doc.activeElement=this;}
 }
-const base=()=>({projectileRadii:COMBAT.staticSweepRadii,instanceId:'one',profile:'elevated-combat-v1',mapId:'garden',mapRevision:'combat-elevation-2',map:{label:'Alpine Courtyard'},simTick:1,simAt:50,endsAt:30000,phase:'live',you:'a',youDrive:true,inputAck:{life:1,controlEpoch:1,receivedSeq:0,appliedInputSeq:0},events:[],crates:[],projectiles:[],mines:[],grenades:[],karts:[{id:'a',alive:true,connected:true,spawnSeq:1,controlEpoch:1,hits:0,deaths:0,nitro:1,weapon:null,ammo:0,shield:0,pose:{position:{x:0,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}},{id:'b',alive:true,connected:true,hits:0,deaths:0,pose:{position:{x:10,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}}]});
+const base=()=>({projectileRadii:COMBAT.staticSweepRadii,instanceId:'one',profile:'elevated-combat-v1',mapId:'garden',mapRevision:elevatedMap('garden').revision,map:{label:'Alpine Courtyard'},simTick:1,simAt:50,endsAt:30000,phase:'live',you:'a',youDrive:true,inputAck:{life:1,controlEpoch:1,receivedSeq:0,appliedInputSeq:0},events:[],crates:[],projectiles:[],mines:[],grenades:[],karts:[{id:'a',alive:true,connected:true,spawnSeq:1,controlEpoch:1,hits:0,deaths:0,nitro:1,weapon:null,ammo:0,shield:0,pose:{position:{x:0,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}},{id:'b',alive:true,connected:true,hits:0,deaths:0,pose:{position:{x:10,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}}]});
 function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbnailsReady=true,batched=false,missingDrivers=[]}={}){
   const document=new Node('document');document.doc=document;document.createElement=tag=>new Node(tag,document);document.head=new Node('head',document);document.body=new Node('body',document);document.append(document.head,document.body);document.activeElement=document.body;document.getElementById=id=>document.querySelector('#'+id);
   const el=new Node('main',document);document.body.append(el);
@@ -75,12 +79,12 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   const ThreeTest={...THREE,InstancedMesh:class extends THREE.InstancedMesh{constructor(...args){super(...args);instanceAllocations++;}}};
   for(const name of ['Group','Mesh','Vector3','Quaternion','Box3','BoxGeometry','ConeGeometry','MeshBasicMaterial'])ThreeTest[name]=class extends THREE[name]{constructor(...args){super(...args);graphicsAllocations++;}};
   class LocalLoader{setMeshoptDecoder(){return this;}async loadAsync(url){assetRequests.push(url);if(missingDrivers.some(id=>url.endsWith('/drivers/'+id+'.glb')))throw Error('optional driver unavailable');const b=fs.readFileSync(repo+'/public'+url.split('?')[0]);return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'').catch(error=>{console.error('GLB fixture failed',url,error.message);throw error;});}}
-  const context=vm.createContext({WEAPON_IDS:combatWeaponIds,document,window,LocalLoader,MeshoptDecoder,cleanKartLook,kartPaintHex,loadKartDrivers,buildKartDriverVariants,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
-    mergeFixtureGeometries,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:()=>({revision:'combat-elevation-2'}),
+  const context=vm.createContext({createKartDrivingFX,createKartArenaFeatures,surfaceProfile,driftTier,DRIFT_TIERS,loadElevatedPhysics:async()=>null,createElevatedPrediction(){throw Error('Prediction separately tested with real Rapier');},WEAPON_IDS:combatWeaponIds,document,window,LocalLoader,MeshoptDecoder,cleanKartLook,kartPaintHex,loadKartDrivers,buildKartDriverVariants,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
+    mergeFixtureGeometries,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:id=>({id,revision:elevatedMap(id).revision,features:elevatedMap(id).features}),
     createKartElevatedWorld:()=>{const meshes=new Map();for(const d of colliders){const body=new THREE.Mesh(elevatedSolidGeometry(THREE,d),new THREE.MeshBasicMaterial());body.position.copy(d.position);if(d.rotation)body.quaternion.copy(d.rotation);body.updateMatrixWorld();meshes.set(d.id,{body,descriptor:d});}return {colliderMeshes:meshes,lighting:{fogColor:new THREE.Color(0xaaaaaa),fogNear:100,fogFar:500,exposure:1},animate(){},updateDetail(){},dispose(){for(const {body}of meshes.values()){body.geometry.dispose();body.material.dispose();}}};},
     createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;return projectile(...a);};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
     createMobileStick:(node,opts)=>{const stick={node,opts,resets:0,disposed:0,reset(){this.resets++},dispose(){this.disposed++}};sticks.push(stick);return stick;},
-    createKartAudio:()=>{const a={disposed:0,cues:[],frames:[],muted:false,active:true,unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
+    createKartAudio:()=>{const a={disposed:0,cues:[],arenaCues:[],frames:[],muted:false,active:true,unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},arenaCue(name,options){if(!this.muted&&this.active)this.arenaCues.push({name,options});},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
     createThreeView:(stage,options)=>new Promise(resolve=>loads.push({stage,options,resolve,settled:false})),
     matchMedia:()=>({matches:reduced}),
   });
@@ -293,6 +297,17 @@ for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch
 // Graphics fixtures decode the actual embedded PNG bytes without a browser.
 globalThis.self=globalThis;
 globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arrayBuffer());return {width:bytes.readUInt32BE(16),height:bytes.readUInt32BE(20),close(){}};};
+{
+ const r=rig({graphics:true}),s=base();s.karts[0].driftCharge=.6;s.karts[0].driftTier=2;s.karts[0].drifting=true;s.karts[0].pose.grounded=true;s.karts[0].pose.speed=14;s.karts[0].surface='metal';
+ r.api.context=()=>({isHost:true,sound:true});r.render(s);const gl=await r.settle();r.frame();
+ check('raised drift HUD names the shared orange release tier',r.node('drift').textContent.includes('Orange')&&!r.node('drift').hidden);
+ check('raised drift creates the shared bounded spark pool',gl.built.scene.getObjectByName('KartDrivingParticles')?.geometry.attributes.position.count===320);
+ check('raised tyre audio receives the real surface and drift hold',r.audios[0].frames.at(-1).surface==='metal'&&r.audios[0].frames.at(-1).drifting);
+ const events=['launch','land','warp'].map((type,i)=>({id:'route-'+i,type,pid:'a',position:{x:0,y:.64,z:0},cannon:0,from:{x:0,y:0,z:0},to:{x:1,y:7,z:1}}));
+ r.render({...s,simAt:100,simTick:2,events});r.render({...s,simAt:150,simTick:3,events});
+ check('confirmed launch/landing/portal events use existing arena audio once',r.audios[0].arenaCues.map(e=>e.name).join(',')==='launch,land,warp');
+ r.view.dispose();
+}
 // The production raised loader seats and batches all four real GLB animals.
 // Paint comes from the same room context as classic (and raw garage looks).
 {

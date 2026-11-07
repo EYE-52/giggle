@@ -3,6 +3,8 @@
 const profile=(kind,top,traction,driftEase,dust,skid,opacity,tyreHz,tyreGain,squeal)=>Object.freeze({kind,top,traction,driftEase,dust,skid,opacity,tyreHz,tyreGain,squeal});
 export const SURFACE_PROFILES=Object.freeze({
   road:profile('road',1,1,1,0xaaa9b0,0x14121a,.55,340,.16,1),
+  concrete:profile('concrete',.98,.92,1.04,0xb8cbd0,0x344958,.45,480,.13,1),
+  metal:profile('metal',.98,.82,1.12,0xa5c0cf,0x405868,.38,1100,.12,1.08),
   grass:profile('grass',.72,.78,1.12,0x86b95c,0x496137,.3,210,.24,.25),
   sand:profile('sand',.70,.58,1.22,0xd8b27a,0x977448,.4,740,.30,.18),
   snow:profile('snow',.66,.48,1.26,0xdaefff,0xa4c1d3,.25,420,.19,.25),

@@ -117,14 +117,14 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
   }
   function buildCannon(c, theme, index) {
     const group = new THREE.Group(); group.name = 'arena-cannon-' + index;
-    const y0 = groundAt(c.x, c.z);
+    const y0 = (c.y??groundAt(c.x,c.z));
     group.position.set(c.x, y0, c.z); group.rotation.y = c.angle;
     const add = (geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; m.castShadow = true; group.add(m); return m; };
     add(G.base, M.metal, 0,.16,2.8);
     for(const side of [-1,1])add(G.wheel,M.metal,side*2.4,.8,2.8);
     // Both ends are genuinely hollow. The nominal muzzle lies on the
     // existing ballistic arc; only the first 180ms are dressed inside it.
-    const nominal=flightPose(c,{x:c.x,y:y0+RIDE_HEIGHT,z:c.z,a:c.angle,ly:groundAt(c.land.x,c.land.z)+RIDE_HEIGHT},CANNON_REVEAL_TIME);
+    const nominal=flightPose(c,{x:c.x,y:y0+RIDE_HEIGHT,z:c.z,a:c.angle,ly:(c.land.y??groundAt(c.land.x,c.land.z))+RIDE_HEIGHT},CANNON_REVEAL_TIME);
     const dx=nominal.position.x-c.x,dz=nominal.position.z-c.z,s=Math.sin(c.angle),co=Math.cos(c.angle);
     const forward=dx*s+dz*co,rise=nominal.position.y-y0-CANNON_MOUTH_HEIGHT,length=Math.hypot(forward,rise),pitch=Math.atan2(rise,forward);
     const barrel=new THREE.Group();barrel.name='cannon-open-tube';barrel.position.set(0,CANNON_MOUTH_HEIGHT+rise/2,forward/2);barrel.rotation.x=-pitch;barrel.scale.z=length;group.add(barrel);
@@ -139,7 +139,7 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     root.add(group);
     // Landing target on the ground.
     const land = new THREE.Group(); land.name = 'arena-landing-' + index;
-    land.position.set(c.land.x, groundAt(c.land.x, c.land.z) + .05, c.land.z);
+    land.position.set(c.land.x, (c.land.y??groundAt(c.land.x,c.land.z)) + .05, c.land.z);
     land.add(new THREE.Mesh(G.target, M.target)); const dot = new THREE.Mesh(G.targetDot, M.target); dot.position.y = .01; land.add(dot);
     for (let i = 0; i < 2; i++) { const ch = new THREE.Mesh(G.chevron, M.chevron); ch.position.set(0, .02, 3.3 + i * 1.1); ch.scale.set(1, 1, .4); land.add(ch); }
     land.rotation.y = c.land.angle;
@@ -149,7 +149,7 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
   function buildPortal(p, pair, side) {
     const group = new THREE.Group(); group.name = 'arena-portal-' + pair + '-' + side;
     const mats = portalMat(PORTAL_COLORS[pair % PORTAL_COLORS.length][side]);
-    group.position.set(p.x, groundAt(p.x, p.z), p.z); group.rotation.y = p.angle;
+    group.position.set(p.x, (p.y??groundAt(p.x,p.z)), p.z); group.rotation.y = p.angle;
     const ring = new THREE.Mesh(G.ring, mats.ring); ring.position.y = 2.45; group.add(ring);
     const membrane = new THREE.Mesh(G.membrane, mats.membrane); membrane.position.y = 2.45; group.add(membrane);
     const swirls = [];
@@ -240,9 +240,9 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
         if(cannons[e.cannon])pendingLaunches.set(e.pid,{cannon:e.cannon,life:k?.spawnSeq,at:clock});
       } else if (e.type === 'land') {
         pendingLaunches.delete(e.pid);
-        const c = features?.cannons?.[e.cannon]; if (c) burst('land', c.land.x, groundAt(c.land.x, c.land.z), c.land.z);
+        const c = features?.cannons?.[e.cannon]; if (c) burst('land', c.land.x, (c.land.y??groundAt(c.land.x,c.land.z)), c.land.z);
       } else if (e.type === 'warp') {
-        for (const item of portals) if (Math.hypot(item.p.x - e.from?.x, item.p.z - e.from?.z) < .01 || Math.hypot(item.p.x - e.to?.x, item.p.z - e.to?.z) < .01) burst('warp', item.p.x, groundAt(item.p.x, item.p.z), item.p.z, { color: item.color });
+        for (const item of portals) if (Math.hypot(item.p.x - e.from?.x, item.p.z - e.from?.z) < .01 || Math.hypot(item.p.x - e.to?.x, item.p.z - e.to?.z) < .01) burst('warp', item.p.x, (item.p.y??groundAt(item.p.x,item.p.z)), item.p.z, { color: item.color });
       } else if (e.type === 'fell' && Number.isFinite(e.x)) {
         const g = groundAt(e.x, e.z);
         burst('fell', e.x, g, e.z, { kind: e.kind });
@@ -259,6 +259,7 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     clock = t;
     pendingLaunches.forEach(retireLaunch);
     const quiet = reduce();
+    if(!quiet)M.target.color.setRGB(1,.85+.1*Math.sin(t*3),.35+.2*Math.sin(t*3));
     for (const item of portals) {
       if (quiet) continue;
       for (let i = 0; i < item.swirls.length; i++) item.swirls[i].rotation.z = i * Math.PI + t * (2.2 + i * .9) * (item.side ? -1 : 1);
