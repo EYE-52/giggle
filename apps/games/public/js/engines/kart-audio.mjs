@@ -56,6 +56,14 @@
  * cue() routes those names there. */
 
 /* Cue names the frame may feed (authoritative, deduped, nearby only). */
+/* Arena feature cues: [fromHz, toHz, seconds, level, wave, delay] sweeps. */
+export const ARENA_CUES = Object.freeze({
+  launch: [[150, 38, .42, .3, 'sine', 0], [80, 42, .22, .12, 'square', 0], [1100, 180, .95, .07, 'triangle', .05]],
+  land: [[130, 44, .26, .26, 'sine', 0], [320, 90, .12, .09, 'triangle', 0]],
+  warp: [[260, 1400, .34, .13, 'sine', 0], [520, 2100, .28, .06, 'triangle', .05], [1500, 700, .24, .06, 'sine', .3]],
+  fell: [[1300, 160, .5, .11, 'triangle', 0], [520, 90, .45, .18, 'sine', .02], [90, 48, .22, .07, 'square', .05]],
+});
+
 export const CUE_NAMES = ['pulse', 'scatter', 'mine', 'shield', 'pickup', 'ko', 'respawn', 'boost', 'rocket', 'seeker', 'proximity', 'nuke', 'rocketBlast', 'bombBlast', 'nukeBlast', 'collision', 'landing', 'hurt', 'hitConfirm', 'block'];
 
 /* Shipped cue file per name (WAV PCM16 mono 44100, under ASSET_BASE). */
@@ -945,6 +953,21 @@ export function createKartAudio(opts) {
       if (disposed || muted || !unlocked || !ctx || !graph || !active || docHidden()) return false;
       const t0 = now();if (t0 < nextBeepAt) return false;nextBeepAt = t0 + .08;
       return synthBlip(880 + clamp01(level) * 700, 880 + clamp01(level) * 760, .075, .11, 'sine', t0);
+    },
+
+    /* Arena feature cues (cannon launch/landing, portal warp, fall splash),
+     * synthesized from short sweeps through the shared synthBlip voice: no
+     * samples, no extra oscillator sites. Unknown names return false. */
+    arenaCue(name, options = {}) {
+      if (disposed || muted || !unlocked || !ctx || !graph || !active || docHidden()) return false;
+      const sweeps = ARENA_CUES[name];
+      if (!sweeps) return false;
+      const gain = clamp01(num(options?.gain, 1)), pan = Math.max(-1, Math.min(1, num(options?.pan, 0)));
+      if (gain === 0) return false;
+      const t0 = now();
+      let any = false;
+      for (const [from, to, len, level, type, delay] of sweeps) any = synthBlip(from, to, len, level * gain, type, t0 + delay, pan) || any;
+      return any;
     },
 
     /* Schedule a named cue with optional strength, attenuation and stereo pan.

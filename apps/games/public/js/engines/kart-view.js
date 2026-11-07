@@ -38,6 +38,7 @@ import { createKartCombatArt, projectileContactInset } from './kart-combat-art.m
 import { createKartHealthBars } from './kart-health-bars.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
 import {createArsenalFX} from './kart-arsenal-fx.mjs';
+import {createKartArenaFeatures,drawArenaFeatures2d} from './kart-arena-features-art.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
 import {createKartThreats} from './kart-threats.mjs';
 import {createKartFeedback} from './kart-feedback.mjs';
@@ -240,6 +241,7 @@ export function createKartView(viewConfig) {
   let lastResultKey = '';
   let lastFireKey = '';
   let seenEvents = new Set();
+  let arenaSeen = new Set(); // arena feature events (cannon/portal/fall) already voiced
   let cueUntil = 0;
   let cueText = '';
   let keycapUntil=0;
@@ -789,7 +791,7 @@ export function createKartView(viewConfig) {
     const tipTxt = !S.youDrive
       ? `Watching — ${(S.karts || []).length} driving.`
       : S.phase === 'countdown' ? (S.preparing ? '' : arenaName ? `Get ready · ${arenaName}` : 'Get ready…')
-      : S.phase === 'drive' && meRespawning() ? 'Knocked out — rejoining…'
+      : S.phase === 'drive' && meRespawning() ? (myKart()?.fell ? 'Fell in — rejoining…' : 'Knocked out — rejoining…')
       : '';
     tip.textContent = tipTxt;
     tip.hidden = !tipTxt;
@@ -1025,7 +1027,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let world,impactFX,skids,threats,arsenalFX;
+    let world,impactFX,skids,threats,arsenalFX,arena;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1056,6 +1058,8 @@ export function createKartView(viewConfig) {
       healthBars=createKartHealthBars(THREE,scene);
       impactFX=createKartImpactFX(THREE,scene,{reducedMotion:()=>rm});
       arsenalFX=createArsenalFX(THREE,scene,{reducedMotion:()=>rm,groundAt:(x,z)=>world.groundAt?.(x,z)||0});
+      arena=createKartArenaFeatures(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0,reducedMotion:()=>reducedMotion()});
+      arena.sync(S?.map);
       skids=createKartSkids(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});
       threats=createKartThreats(THREE,scene,rootEl.querySelector('.pk'),{reducedMotion:()=>rm,beep:level=>audio?.beep?.(level)});
       const zoneGeo = new THREE.RingGeometry(2.22, 2.4, 36);
@@ -1154,13 +1158,15 @@ export function createKartView(viewConfig) {
         updateAudio();
         const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
         if(feedbackEpoch!==impactEpoch){
-          impactFX.reset();skids.reset();threats.clear();arsenalFX.reset();arsenalEvents.length=0;impactEpoch=feedbackEpoch;
+          impactFX.reset();skids.reset();threats.clear();arsenalFX.reset();arsenalEvents.length=0;arena.resetHistory();impactEpoch=feedbackEpoch;
           for(const cue of shotCues)cue.object.visible=false;
           for(const e of combatEffects.values())returnMarker(e.mesh);
           combatEffects.clear();popSites.length=0;effectSeen.clear();
         }
         while(arsenalEvents.length)arsenalFX.event(arsenalEvents.shift());
         impactFX.update(effectDt);skids.update(effectDt);arsenalFX.update(effectDt);
+        // Arena features: cannons, portals, fall zones (map.features + arenaEvents).
+        arena.sync(S.map);arena.ingest(S.arenaEvents,S.karts);arena.animate(effectDt,t,S,poses);
         if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
@@ -1230,6 +1236,7 @@ export function createKartView(viewConfig) {
             if(inner)inner.position.y=physicsConfig.chassis.modelOriginY;
             mesh.quaternion.set(physical.rotation.x,physical.rotation.y,physical.rotation.z,physical.rotation.w);
           }else{if(inner)inner.position.y=0;mesh.rotation.y=pose.angle;}
+          arena.dressKart(k,mesh);
           skids.track(k.pid,mesh.position.x,mesh.position.z,pose.angle,kartSliding(k,pose,k.pid===S.you&&intentForPrediction().throttle<0));
           healthBars.update(k.pid,k,mesh.position,(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
           const equipped=k.ammo>0?k.weapon:null;
@@ -1404,9 +1411,11 @@ export function createKartView(viewConfig) {
           const chassisY=pose.physicalPose?.position.y??me.physicalPose?.position.y??((world.groundAt?.(pose.x,pose.z)||0)+.75);
           const cameraX=pose.x-f.x*back,cameraZ=pose.z-f.z*back;
           tmpV.set(cameraX,Math.max(chassisY+up-.75,(world.groundAt?.(cameraX,cameraZ)||0)+1.2),cameraZ);
-          if (rm || cameraEpoch !== me.spawnSeq) camera.position.copy(tmpV);
+          // A portal jump is a pose-epoch change: cut, never sweep across the map.
+          const camLife=me.spawnSeq+':'+(pose.physicalPose?.epoch??'');
+          if (rm || cameraEpoch !== camLife) camera.position.copy(tmpV);
           else camera.position.lerp(tmpV, 1-Math.exp(-dt*12));
-          cameraEpoch = me.spawnSeq;
+          cameraEpoch = camLife;
           const lookX=pose.x+f.x*5,lookZ=pose.z+f.z*5;
           camera.lookAt(lookX,Math.max(chassisY+.85,(world.groundAt?.(lookX,lookZ)||0)+.8),lookZ);
         } else {
@@ -1425,7 +1434,7 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;skids.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();skids.dispose();threats.dispose();} };
     } catch (error) {
       world?.dispose();
       if (disposeLighting) disposeLighting();
@@ -1534,6 +1543,7 @@ export function createKartView(viewConfig) {
       ctx.strokeStyle = '#e8fcff'; ctx.lineWidth = 2;
       ctx.strokeRect(px(patch.x-patch.hw), pz(patch.z-patch.hd), patch.hw*2*scale, patch.hd*2*scale);
     }
+    drawArenaFeatures2d(ctx,S.map,px,pz,scale);
     for (const pad of (S.map?.pads || [])) {
       ctx.fillStyle = '#61e9bf';
       ctx.fillRect(px(pad.x-pad.hw), pz(pad.z-pad.hd), pad.hw*2*scale, pad.hd*2*scale);
@@ -1703,7 +1713,7 @@ export function createKartView(viewConfig) {
     lastStandKey = '';
     lastResultKey = '';
     lastFireKey = '';
-    seenEvents = new Set(); firstEvents = true; cueUntil = 0; cueText = ''; keycapUntil=0;
+    seenEvents = new Set(); arenaSeen = new Set(); firstEvents = true; cueUntil = 0; cueText = ''; keycapUntil=0;
     sceneState = null;
     resetPoseStore(poseStore);
   }
@@ -1992,6 +2002,28 @@ export function createKartView(viewConfig) {
     sceneReady = mount3d();
   }
 
+  /* Arena feature events (classic arenas): cannon boom/whoosh, landing
+   * thud, portal swirl and the fall splash, voiced near the local driver;
+   * a fall by the local driver also shows the "Fell!" notice. */
+  function noteArenaEvents(api, quiet) {
+    for (const e of S?.arenaEvents || []) {
+      if (arenaSeen.has(e.id)) continue;
+      arenaSeen.add(e.id);
+      if (quiet) continue;
+      const me = myKart(), mine = e.pid === S.you;
+      const at = e.type === 'warp' ? e.from : e;
+      const distance = me && at && Number.isFinite(at.x) ? Math.hypot(me.x - at.x, me.z - at.z) : 0;
+      const gain = mine || !S.youDrive ? 1 : Math.max(0, 1 - distance / 40);
+      if (gain > .08) audio?.arenaCue?.(e.type, { gain });
+      if (mine && e.type === 'fell') {
+        cueText = S.mode === 'battle' ? 'Fell! −1 KO · back in a moment' : 'Fell! −1 star';
+        cueUntil = nowMs() + 2600; hitFx?.hurt(nowMs()); hitFx?.notice?.(S.mode === 'battle' ? 'Fell! −1 KO' : 'Fell! −1 star');
+        api.announce('Fell! You lose one point.');
+      }
+    }
+    while (arenaSeen.size > 48) arenaSeen.delete(arenaSeen.values().next().value);
+  }
+
   function update(el, Snew, api) {
     if(S?.instanceId!=null&&S.instanceId===Snew?.instanceId&&S.phase==='done'&&Snew.phase!=='done')return;
     if(S?.instanceId===Snew?.instanceId&&(
@@ -2065,6 +2097,7 @@ export function createKartView(viewConfig) {
         : event.type === 'shield' ? 'Shield ready · blocks the next hit' : '';
       if (cueText) { cueUntil = nowMs()+2400; api.announce(cueText); }
     }
+    noteArenaEvents(api, firstEvents);
     firstEvents = false;
     while (seenEvents.size > 64) seenEvents.delete(seenEvents.values().next().value);
     const first = !lastPhase; // first snapshot since mount/dispose

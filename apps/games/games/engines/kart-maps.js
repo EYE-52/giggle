@@ -183,29 +183,84 @@ const NEON_SPOTS = [
   [-40, -20], [40, 20], [40, -4],
 ];
 
+/* ---- Arena features (cannons, portals, fall zones) ----
+ * Geometry and rules live in public/js/engines/kart-map-features.mjs.
+ * Every placement keeps clear of spawns, crate sockets, cover and strips
+ * (test/kart-arena-features.mjs checks it). Cannons fire across the big
+ * open spans; portal pairs wrap edge lanes; one water/pit hazard sits near
+ * a crate route on each map. Angles: forward = (sin a, cos a). */
+const aim = (x, z, tx, tz) => +Math.atan2(tx - x, tz - z).toFixed(4);
+const cannon = (x, z, land, flight = 1.4) => ({ x, z, angle: aim(x, z, land.x, land.z), land, flight, apex: 8 });
+const EAST = +(Math.PI / 2).toFixed(4), WEST = -EAST, NORTH = 0, SOUTH = +Math.PI.toFixed(4);
+const NE = +(Math.PI / 4).toFixed(4), SW = +(-3 * Math.PI / 4).toFixed(4), NW = -NE;
+
+const RING_FEATURES = {
+  cannons: [cannon(24, -24, { x: -6, z: 6, angle: NW }, 1.3)],
+  portals: [[{ x: -24, z: -24, angle: NE }, { x: 24, z: 24, angle: SW }]],
+  falls: [{ x: -26, z: 0, hw: 2, hd: 3.5, kind: 'pit' }],
+};
+
+const BLOCKS_FEATURES = {
+  cannons: [cannon(-24, -24, { x: 8, z: 4, angle: NE }, 1.3)],
+  portals: [[{ x: 16, z: -25, angle: WEST }, { x: -16, z: 25, angle: EAST }]],
+  falls: [{ x: 25, z: 14, hw: 2.5, hd: 2, kind: 'pit' }],
+};
+
+const GARDEN_FEATURES = {
+  cannons: [
+    cannon(-16, -52, { x: -6, z: -6, angle: NORTH }, 1.4),
+    cannon(16, 53, { x: 34, z: 4, angle: SOUTH }, 1.4),
+  ],
+  portals: [[{ x: -54, z: 0, angle: EAST }, { x: 55, z: 2, angle: WEST }]],
+  falls: [{ x: -14, z: -19, hw: 5, hd: 2.5, kind: 'water' }],
+};
+
+const FROST_FEATURES = {
+  cannons: [
+    cannon(32, -44, { x: 16, z: 8, angle: -0.5 }, 1.5),
+    cannon(-36, 48, { x: -20, z: -4, angle: EAST }, 1.5),
+  ],
+  portals: [[{ x: 24, z: -54, angle: WEST }, { x: -30, z: 52, angle: EAST }]],
+  falls: [{ x: -30, z: 23, hw: 3.5, hd: 2, kind: 'ice' }],
+};
+
+const NEON_FEATURES = {
+  cannons: [
+    cannon(-52, 0, { x: -10, z: 4, angle: EAST }, 1.3),
+    cannon(32, -52, { x: 44, z: -2, angle: NORTH }, 1.4),
+  ],
+  portals: [[{ x: -52, z: -55, angle: NE }, { x: 55, z: 52, angle: SW }]],
+  falls: [{ x: 12, z: -30, hw: 2, hd: 5, kind: 'goo' }],
+};
+
 const MAPS = {
   ring: {
     label: 'Rookie Ring', theme: 'ring', half: 30,
     blocks: [], pads: [], surfaces: [], spots: RING_SPOTS, spawns: legacySpawns(),
+    features: RING_FEATURES,
   },
   blocks: {
     label: 'Bumper Blocks', theme: 'blocks', half: 30,
     blocks: BLOCKS, pads: [], surfaces: [], spots: BLOCKS_SPOTS, spawns: legacySpawns(),
+    features: BLOCKS_FEATURES,
   },
   garden: {
     label: 'Garden Circuit', theme: 'garden', half: 60,
     blocks: GARDEN_BLOCKS, pads: GARDEN_PADS, surfaces: [],
     spots: GARDEN_SPOTS, spawns: GARDEN_SPAWNS,
+    features: GARDEN_FEATURES,
   },
   frost: {
     label: 'Frosty Pass', theme: 'frost', half: 60,
     blocks: FROST_BLOCKS, pads: FROST_PADS, surfaces: FROST_SURFACES,
     spots: FROST_SPOTS, spawns: FROST_SPAWNS,
+    features: FROST_FEATURES,
   },
   neon: {
     label: 'Neon Yard', theme: 'neon', half: 60,
     blocks: NEON_BLOCKS, pads: NEON_PADS, surfaces: [],
     spots: NEON_SPOTS, spawns: NEON_SPAWNS,
+    features: NEON_FEATURES,
   },
 };
 

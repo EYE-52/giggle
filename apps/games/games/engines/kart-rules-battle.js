@@ -1638,3 +1638,23 @@ module.exports = {
     };
   },
 };
+
+/* ---- Arena hazards: fall-off zones ----
+ * Falling in is a self-knockout through the normal KO/respawn flow, but
+ * nobody is credited: the faller loses one KO (never below zero) and the
+ * feed records a 'fell' event instead of a 'ko'. No coins change hands. */
+function fallOut(state, kart) {
+  if (!kart || (Number(kart.respawn) || 0) > 0) return false;
+  const before = state.eventSeq;
+  knockOut(state, kart, null, 'fall', null);
+  const e = state.events[state.events.length - 1];
+  if (e && state.eventSeq === before + 1 && e.type === 'ko' && e.other === kart.pid) {
+    e.type = 'fell';
+    e.pid = kart.pid;
+    delete e.other;
+  }
+  kart.hits = Math.max(0, (Number(kart.hits) || 0) - 1);
+  state.scores[kart.pid] = kart.hits;
+  return true;
+}
+module.exports.fallOut = fallOut;

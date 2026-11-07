@@ -39,7 +39,7 @@ export function createKartFeedback({radius=2.05}={}) {
   })||(S.karts||[]).some(b=>b.pid!==k.pid&&b.connected!==false&&!(b.respawn>0)&&Math.hypot(k.x-b.x,k.z-b.z)<=radius*2+.12);
   for(const k of S.karts||[]){const old=previous.get(k.pid),valid=k.connected!==false&&!(k.respawn>0);
    const delta=(S.simAt||S.serverNow||0)-(old?.at||0);
-   if(primed&&old?.valid&&k.connected!==false&&k.respawn>0&&old.spawnSeq===k.spawnSeq&&delta>0&&delta<=300&&!live.some(e=>e.kind==='ko'&&e.pid===k.pid&&e.until>now)){
+   if(primed&&old?.valid&&k.connected!==false&&k.respawn>0&&k.fell!==true&&old.spawnSeq===k.spawnSeq&&delta>0&&delta<=300&&!live.some(e=>e.kind==='ko'&&e.pid===k.pid&&e.until>now)){
     const nuke=live.some(e=>e.kind==='blast'&&e.weapon==='nuke'&&Math.hypot(k.x-e.x,k.z-e.z)<14);
     add({kind:'ko',pid:k.pid,x:k.x,z:k.z,position:k.physicalPose?.position,angle:k.angle,inferred:true,weapon:nuke?'nuke':undefined},now,850);
    }
