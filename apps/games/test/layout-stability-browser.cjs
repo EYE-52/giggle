@@ -7,6 +7,7 @@ function cases(){
  const party=require('./party-scenes-browser').FIXTURES,skill=require('./skill-scenes-hud-fixtures').fixtures;
  const ids=['compliment-battle','dare-roulette','roast-toast','story-builder','five-second','bluff','truth-dare','would-you-rather','rank-it'];
  const out=ids.map(id=>({id,frames:party.find(f=>f.id===id).frames.filter(f=>f.views[0].phase!=='done').map(f=>f.views[0])}));
+ out.find(f=>f.id==='truth-dare').frames.push(...require('./truth-dare-modes').browserFrames());
  for(const id of ['reaction-tap','memory-tray','twenty-questions'])out.push({id,frames:skill[id].map(f=>({...f.state,instanceId:'layout-'+id})).filter(s=>s.phase!=='done')});
  const ps=['a','b','c','d'].map((id,i)=>({id,name:['Alexandria','Morgan','Charlotte','Dev'][i]}));
  for(const id of ['four-in-a-row','reversi','ludo','fleet-duel']) {
@@ -55,6 +56,22 @@ async function run(){const {chromium}=require('playwright'),out=process.env.STAB
      await page.screenshot({path:path.join(out,`${width}-${theme}-${dataCase.id}-${S.phase}-${S.spectator?'watch':S.me}.png`),fullPage:true});
     }
     if(dataCase.id==='ludo'&&i<3)await page.screenshot({path:path.join(out,`${width}-${theme}-ludo-${i}-${S.phase}.png`),fullPage:true});
+    if(dataCase.id==='truth-dare'){
+     if(['compose','prompt-vote'].includes(S.phase))await page.screenshot({path:path.join(out,`${width}-${theme}-truth-dare-${i}-${S.phase}.png`),fullPage:true});
+     if(S.phase==='prompt-vote'&&S.myPromptVote===null&&S.me!==S.target&&!S.spectator){
+      const before=await page.locator('.td-prompt-option').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return[r.x,r.y,r.width,r.height];}));
+      assert(before.every(r=>r[3]>=44),'prompt cards keep finger-sized targets');
+      await page.evaluate(S=>window.applyFrame({...S,myPromptVote:0,promptVoted:[S.me]}),S);
+      const after=await page.locator('.td-prompt-option').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return[r.x,r.y,r.width,r.height];}));
+      assert.deepEqual(after,before,'locked prompt cards stay in place');
+     }
+     if(S.phase==='compose'&&!S.myEntry&&S.me!==S.target&&!S.spectator){
+      await page.locator('#tEntry').fill('Act like a sleepy cat.');await page.locator('#tEntry').focus();
+      await page.evaluate(S=>window.applyFrame({...S,submitted:['another-writer']}),S);
+      assert.equal(await page.locator('#tEntry').inputValue(),'Act like a sleepy cat.');
+      assert(await page.locator('#tEntry').evaluate(n=>n===document.activeElement),'writing focus stays put');
+     }
+    }
     if(i===0&&['four-in-a-row','reversi','ludo','fleet-duel'].includes(dataCase.id)){
      const delta=await page.evaluate(()=>{
       const nodes=['.bk-stage','.bk-players','.bk-actions','.bk-tools'].map(s=>document.querySelector(s));
