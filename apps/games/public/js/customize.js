@@ -209,13 +209,13 @@ function settingField(g, s, current, host) {
     // The native select stays (forms, presets and tests read it); people
     // pick from the segmented track or chips beside it.
     return `<div class="dlg-field gm-tile gm-enum"><div class="gm-tile-head">${icon}<label class="conflabel gm-label" id="${id}-l" for="${id}">${esc(s.label || s.key)}</label></div>
-      <select id="${id}" class="picker-native" data-hostonly ${dis} tabindex="-1" aria-hidden="true">${opts}</select>
+      <select hidden id="${id}" class="picker-native" data-hostonly ${dis} tabindex="-1" aria-hidden="true">${opts}</select>
       ${segPickerHtml(id, s.options || [], val, `${id}-l`, !host)}</div>`;
   }
   const auto = s.def === null || s.def === undefined;
   return `<div class="dlg-field gm-tile gm-num"><div class="gm-tile-head">${icon}<label class="conflabel gm-label" for="${id}">${esc(s.label || s.key)}</label>
       <span class="gm-range">${s.min}–${s.max}${auto ? ' · blank = ' + esc(s.autoLabel || 'auto') : ''}</span></div>
-    ${stepperHtml(id, `<input id="${id}" data-hostonly type="number" inputmode="numeric" min="${s.min}" max="${s.max}"
+    ${stepperHtml(id, `<input id="${id}" class="picker-value" data-hostonly type="number" inputmode="numeric" min="${s.min}" max="${s.max}"
       value="${val === null || val === undefined ? '' : val}"
       placeholder="${auto ? esc(s.autoLabel || 'Auto') : ''}" ${dis}>`, { min: Number(s.min), max: Number(s.max), label: s.label || s.key, disabled: !host })}</div>`;
 }
@@ -527,10 +527,11 @@ export function openCustomizer({ game, config, host, opener, initialField, onSav
   };
 
   // A map shortcut reveals the arena choice before focusing it.
-  const requested = kart ? root.querySelector('.ks-map[aria-checked="true"]')
+  let requested = kart ? root.querySelector('.ks-map[aria-checked="true"]')
     : initialField && document.getElementById(`df-${g.id}-${initialField}`);
+  if (requested?.tagName === 'SELECT') requested = root.querySelector(`[data-picker-for="${requested.id}"] button[aria-checked="true"]`);
   const first = (requested && !requested.disabled ? requested : null)
-    || root.querySelector('.dlg input:not([disabled]):not([type=file]), .dlg select:not([disabled]), .dlg textarea:not([disabled])')
+    || root.querySelector('.dlg .picker-seg button[aria-checked="true"]:not([disabled]), .dlg input:not([disabled]):not([hidden]):not([type=file]):not([type=hidden]), .dlg textarea:not([disabled])')
     || document.getElementById('dlgClose');
   if (first === requested && !kart) first.scrollIntoView({ block: 'nearest' });
   if (first && first.focus) {

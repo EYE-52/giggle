@@ -44,6 +44,7 @@ function manifest() {
     ['games/_sdk.js', 'games/_sdk.js'],
     ['games/_validate.js', 'games/_validate.js'],
     ['public/js/util.js', 'public/js/util.js'],
+    ['public/js/pickers.js', 'public/js/pickers.js'],
     ['public/js/game-client.js', 'public/js/game-client.js'],
     ['public/js/game-protocol.mjs', 'public/js/game-protocol.mjs'],
     ['public/css/camera-party.css', 'public/css/camera-party.css'],

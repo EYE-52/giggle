@@ -18,6 +18,18 @@ export function segPickerHtml(id, options, value, labelId, disabled) {
     `<button type="button" role="radio" aria-checked="${String(v) === String(value)}" data-value="${escAttr(v)}" data-hostonly ${disabled ? 'disabled' : ''}>${escAttr(l)}</button>`).join('')}</div>`;
 }
 
+/* Driving preferences are personal, so these cards are never host-only. */
+export function controlsPickerHtml(id, value = 'auto', nativeAttributes = '') {
+  const choices = [
+    ['auto', 'Auto', '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/>'],
+    ['keyboard', 'Keyboard', '<rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/>'],
+    ['touch', 'Touch', '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4m-2-10v6m-3-3h6"/>'],
+  ];
+  return `<div class="picker-controls"><span class="picker-controls-label" id="${id}-label">Controls</span>
+    <select hidden class="picker-native" tabindex="-1" aria-hidden="true" id="${id}" aria-label="Controls" ${nativeAttributes}>${choices.map(([v, label]) => `<option value="${v}" ${value === v ? 'selected' : ''}>${label}</option>`).join('')}</select>
+    <div class="picker-seg picker-control-cards" role="radiogroup" aria-labelledby="${id}-label" data-picker-for="${id}">${choices.map(([v, label, art]) => `<button type="button" role="radio" aria-checked="${value === v}" tabindex="${value === v ? '0' : '-1'}" data-value="${v}"><svg viewBox="0 0 24 24" aria-hidden="true">${art}</svg><span>${label}</span></button>`).join('')}</div></div>`;
+}
+
 /* − value + stepper around a number <input>, plus a slider for wide ranges. */
 export function stepperHtml(id, inputHtml, { min, max, label, disabled }) {
   const dis = disabled ? 'disabled' : '';
@@ -49,6 +61,16 @@ export function wirePickers(root) {
       set(field, String(clamp(cur + by, min, max)));
     }
   });
+  root.addEventListener('keydown', (e) => {
+    const button = e.target.closest?.('.picker-seg button[data-value]');
+    if (!button || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+    const buttons = [...button.closest('.picker-seg').querySelectorAll('button[data-value]')].filter(b => !b.disabled);
+    if (!buttons.length) return;
+    e.preventDefault();
+    const i = buttons.indexOf(button), direction = ['ArrowLeft', 'ArrowUp'].includes(e.key) ? -1 : 1;
+    const next = buttons[e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : (i + direction + buttons.length) % buttons.length];
+    next.click(); next.focus();
+  });
   root.addEventListener('input', (e) => {
     const range = e.target.closest?.('input[data-picker-range]');
     if (range) { const field = document.getElementById(range.dataset.pickerRange); if (field) set(field, range.value); return; }
@@ -65,7 +87,9 @@ export function syncPickers(root) {
     if (!field) continue;
     if (box.classList.contains('picker-seg')) {
       for (const b of box.querySelectorAll('button[data-value]')) {
-        b.setAttribute('aria-checked', String(b.dataset.value === field.value));
+        const checked = b.dataset.value === field.value;
+        b.setAttribute('aria-checked', String(checked));
+        b.tabIndex = checked ? 0 : -1;
         b.disabled = field.disabled;
       }
     } else {

@@ -99,6 +99,7 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
     createThreeView:(stage,options)=>new Promise(resolve=>loads.push({stage,options,resolve,settled:false})),
     matchMedia:()=>({matches:reduced}),
   });
+vm.runInContext(fs.readFileSync(repo+'/public/js/pickers.js','utf8').replace(/^export /gm,''),context);
   for(const file of ['kart-hearts','kart-skids','kart-threats'])vm.runInContext(fs.readFileSync(repo+'/public/js/engines/'+file+'.mjs','utf8').replace(/^export /gm,''),context);
   const file=repo+'/public/js/engines/kart-elevated-view.js';vm.runInContext(fs.readFileSync(file,'utf8').replace(/^import .*;\n/gm,'').replace("const {GLTFLoader}=await import('../../vendor/three/loaders/GLTFLoader.js');",'const GLTFLoader=LocalLoader;').replace("const {mergeGeometries}=await import('../../vendor/three/utils/BufferGeometryUtils.js');",batched?'const mergeGeometries=mergeFixtureGeometries;':'const mergeGeometries=()=>null;').replace('cramped=clearCamera(cameraPosition,cameraTarget)||cramped;', 'const preClearEye=cameraPosition.toArray();cramped=clearCamera(cameraPosition,cameraTarget)||cramped;').replace('camera.lookAt(target);','camera.userData.cameraTrace={preClearEye,sideSettling,sideMode,sideYaw};camera.lookAt(target);').replace('export function createElevatedKartView','function createElevatedKartView')+'\nglobalThis.view=createElevatedKartView();',context,{filename:file});
   const view=context.view;view.mount(el,api);
