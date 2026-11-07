@@ -105,7 +105,9 @@ ok(control.tuning.top===.7&&control.tuning.traction===.8&&control.tuning.rearTra
 const speeds=[];
 for(const x of [-20,20]){
  const k=kart(x,-150),state=stateFor(flat,k),authority=createClassicMotion(RAPIER,config,state),prediction=createClassicPrediction(RAPIER),snap=()=>({instanceId:'surface-'+x,phase:'drive',you:'a',youDrive:true,mode:'battle',map:flat,karts:[structuredClone(k)]});
- try{for(let i=0;i<480;i++)authority.advance(1/60,online);speeds.push(k.speed);prediction.ingest(snap(),8000);authority.advance(1/60,online);const p=prediction.frame(snap(),k.input,1/60,8016.6667);ok(Math.abs(p.speed-k.speed)<1e-5&&Math.hypot(p.x-k.x,p.z-k.z)<1e-5,'one-step prediction '+x);}finally{authority.dispose();prediction.dispose();}
+ try{for(let i=0;i<480;i++)authority.advance(1/60,online);speeds.push(k.speed);prediction.ingest(snap(),8000);authority.advance(1/60,online);const p=prediction.frame(snap(),k.input,1/60,8016.6667),sim=prediction.selfPose().position;
+  // Compare the simulated pose; drawn frames blend between fixed steps.
+  ok(Math.abs(p.speed-k.speed)<1e-5&&Math.hypot(sim.x-k.physicalPose.position.x,sim.z-k.physicalPose.position.z)<1e-5,'one-step prediction '+x);}finally{authority.dispose();prediction.dispose();}
 }
 ok(speeds[1]<=speeds[0]*.85,'real Rapier offroad >=15% slower '+speeds);
 await POCKET.initialize();const players=[{id:'a',name:'A'},{id:'b',name:'B'}],ctx={now:()=>10000,settings:()=>({map:'Garden Circuit',mode:'Zap Battle'}),players:()=>players,allPlayers:()=>players,broadcast(){},award(){},later:()=>()=>{}},state=POCKET.create(ctx);
