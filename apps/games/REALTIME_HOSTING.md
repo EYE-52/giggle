@@ -61,18 +61,5 @@ running for a week as a fallback, then retire it. Cost change: roughly
 
 ## Migration steps (after you approve)
 
-1. Create the Lightsail instance in `ap-south-1` (Ubuntu 24.04, 2 GB), attach
-   a static IP, open ports 80 and 443 only.
-2. Install Node 24 and Caddy. Caddy terminates TLS for a new hostname such
-   as `play-in.<domain>` and proxies HTTP and WebSocket to `localhost:8123`.
-3. Deploy `apps/games` exactly as Railway does: `npm ci`, then `npm start`
-   under a systemd unit with `Restart=on-failure`. Copy the environment
-   variables from Railway (`GAME_BRIDGE_SECRET`, allowed origins, report
-   storage path). Health check: `GET /config.json`.
-4. Point the frontend's WebSocket target (`config.json`, via
-   `netconfig.js`) at the new hostname on a preview deploy first; play a
-   match from Patna and confirm about 45 ms in the game's network readout.
-5. Switch production config, keep Railway warm for rollback, and update
-   `DEPLOYMENT_PLAN.md` and the release recipe with the new target.
-6. Rooms are in memory, so cut over between sessions; rooms open on the old
-   server finish there.
+The full runbook is in `MUMBAI_MOVE.md`: owner decisions, the code changes
+needed first, server setup, rehearsal, cutover and rollback.
