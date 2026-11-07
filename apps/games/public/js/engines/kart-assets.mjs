@@ -17,6 +17,24 @@ export const KART_ASSETS = {
   secondary: 'combat/arsenal-secondary.meshopt',
 };
 
+// Character driver (original Meshy model, see ASSETS.md). It replaces the
+// helmet racer and the kart's own steering wheel, which the fox holds, and
+// is seated before static batching so it merges and leans with KartBody.
+export const KART_DRIVER = Object.freeze({ file: 'drivers/fox', scale: 1.25, position: [0, 1.16, -.22],
+  replaces: ['DriverArm_L', 'DriverArm_R', 'DriverHelmet', 'DriverTorso', 'DriverVisor', 'SteeringWheel'] });
+export function seatKartDriver(kart, driver) {
+  const body = kart.getObjectByName('KartBody');
+  if (!body || !driver) return false;
+  for (const name of KART_DRIVER.replaces) body.getObjectByName(name)?.removeFromParent();
+  const seated = driver.clone(true);
+  seated.name = 'KartDriver';
+  seated.scale.setScalar(KART_DRIVER.scale);
+  seated.position.fromArray(KART_DRIVER.position);
+  seated.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  body.add(seated);
+  return true;
+}
+
 const WEAPON_THUMBNAILS=['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke'];
 const loadedThumbnails=new Set();
 let thumbnailLoad;
@@ -55,6 +73,8 @@ export async function loadKartAssets(THREE, scene) {
   await MeshoptDecoder.ready;
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const assets = {};
+  // The driver is optional: a failed load keeps the original helmet racer.
+  const driver = await loader.loadAsync(`/assets/karts/${KART_DRIVER.file}.glb`).then(g => g.scene, () => null);
   // Wait for every request before failing: assets that finish after a failed
   // build still belong to this scene and can be disposed with it.
   const results = await Promise.allSettled([...Object.entries(KART_ASSETS).map(async ([key, name]) => {
@@ -65,7 +85,7 @@ export async function loadKartAssets(THREE, scene) {
       if(key==='combat'){console.warn('Combat models unavailable; using local prop fallback.',error);return;}
       throw error;
     }
-    if (key === 'kart') batchKartBody(THREE,gltf.scene,mergeGeometries);
+    if (key === 'kart') { seatKartDriver(gltf.scene, driver); batchKartBody(THREE,gltf.scene,mergeGeometries); }
     assets[key] = gltf.scene;
     library.add(gltf.scene);
   }),loadKartWeaponThumbnails()]);
