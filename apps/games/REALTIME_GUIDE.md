@@ -147,7 +147,7 @@ from `client-sim.mjs` with 42 ms each way (the Patna to Singapore link) and
 | Server tick incl. broadcast (avg / p95) | 14.4 / 25 ms if it were JSON | 2.3 / 2.8 ms |
 | Remote karts behind live (p50) | n/a | 90 ms |
 | Own kart jerk p95 | n/a | 0.04 m |
-| Headless Chromium, 844x390 @2x, software GL | n/a | 150 draw calls a frame (128 at 8 drivers), no errors |
+| Headless Chromium, 844x390 @2x, software GL | n/a | about 300 draw calls a frame, the same as 8 drivers (far karts draw as one instanced batch); no errors |
 
 "Jerk" is the second difference of rendered position per 60 fps frame:
 how much a kart's motion changes from one frame to the next, which is what

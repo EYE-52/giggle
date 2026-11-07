@@ -4,12 +4,13 @@
  * pool is returned unchanged (small matches start exactly as before).
  * Beyond it, candidates come from side-by-side slots next to authored
  * spawns, then the map's pickup spots, then a coarse grid; each must sit
- * inside the fence, clear of every cover block, and at least SPACING from
+ * inside the fence, clear of every cover block and arena feature, and at least SPACING from
  * every pose already chosen, so no two chassis ever start overlapping. */
 
 const SPACING = 4.6;     // > chassis diagonal (2 x 1.97 m) plus margin
 const BLOCK_MARGIN = 2.8; // chassis half-diagonal plus margin
 const EDGE_MARGIN = 3;
+const FEATURE_CLEAR = 5.5; // cannon pad / landing / portal ring radius plus margin
 
 const faceCenter = (x, z) => (Math.abs(x) < 1e-9 && Math.abs(z) < 1e-9 ? 0 : Math.atan2(-x, -z));
 
@@ -18,6 +19,14 @@ function legal(map, bound, p) {
   for (const b of map.blocks || []) {
     if (Math.abs(p.x - b.x) < b.hw + BLOCK_MARGIN && Math.abs(p.z - b.z) < b.hd + BLOCK_MARGIN) return false;
   }
+  // Arena features: never start in a fall zone, on a cannon or portal, or
+  // where a cannon lands.
+  const f = map.features || {};
+  for (const z of f.falls || []) {
+    if (Math.abs(p.x - z.x) < z.hw + BLOCK_MARGIN && Math.abs(p.z - z.z) < z.hd + BLOCK_MARGIN) return false;
+  }
+  const spots = [...(f.cannons || []).flatMap(c => [c, c.land]), ...(f.portals || []).flat()].filter(Boolean);
+  if (spots.some(q => Math.hypot(p.x - q.x, p.z - q.z) < FEATURE_CLEAR)) return false;
   return true;
 }
 

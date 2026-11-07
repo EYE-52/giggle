@@ -64,11 +64,12 @@ async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while
     await page.goto(url + '/r/' + code);
     // The home form re-renders once the socket opens (clearing typed text and
     // dropping a click sent before it): retry on the settled page. The code
-    // comes prefilled from /r/CODE; typing it would hit the code box's
-    // letters-only filter (codes may contain digits; reported separately).
+    // is set directly: the code box's letters-only filter strips the digits
+    // that room codes can contain (reported separately).
     const allSeated = () => host.room?.players?.filter(p => p.connected !== false).length === DRIVERS;
     for (let attempt = 0; attempt < 6 && !allSeated(); attempt++) {
       await page.locator('#nm').fill('Chromium Driver');
+      await page.evaluate(c => { document.getElementById('jc').value = c; }, code);
       await page.locator('#bJoin').click();
       await until(allSeated, 'seated', 5000).catch(async () => console.error('attempt', attempt, await page.evaluate(() => [document.getElementById('nm')?.value, document.getElementById('jc')?.value, document.querySelector('.toast, #toast')?.textContent, location.pathname].join(' / '))));
     }
@@ -81,8 +82,10 @@ async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while
     const start = host.state.karts.find(k => k.pid === browserPid);
 
     // Drive: bots on their decoded views; the browser holds throttle and weaves.
+    let farthest = 0;
     const timer = setInterval(() => {
-      const now = Date.now();
+      const now = Date.now(), me = host.state.karts.find(k => k.pid === browserPid);
+      if (me) farthest = Math.max(farthest, Math.hypot(me.x - start.x, me.z - start.z));
       for (const b of bots) { const v = b.state; if (v?.inputAck && v.phase === 'drive') b.ws.send(JSON.stringify({ t: 'action', i: v.instanceId, w: v.w, a: { input: b.drive(v, now), seq: ++b.seq, life: v.inputAck.life, controlEpoch: v.inputAck.controlEpoch } })); }
     }, 50);
     await page.evaluate(() => { window.__draws = 0; window.__fps = { n: 0, start: performance.now(), worst: 0, last: performance.now() }; const tick = t => { const f = window.__fps; f.n++; f.worst = Math.max(f.worst, t - f.last); f.last = t; requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
@@ -94,8 +97,7 @@ async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while
     clearInterval(timer);
     const fps = await page.evaluate(() => { const f = window.__fps; return { fps: +(f.n / ((performance.now() - f.start) / 1000)).toFixed(1), worstFrameMs: +f.worst.toFixed(0), drawCallsPerFrame: Math.round(window.__draws / Math.max(1, f.n)) }; });
     await page.screenshot({ path: path.join(OUT, 'kart-32-browser.png') });
-    const end = host.state.karts.find(k => k.pid === browserPid);
-    const moved = Math.hypot(end.x - start.x, end.z - start.z) + (end.deaths || 0);
+    const moved = farthest;
     const hud = await page.evaluate(() => ({ rows: document.querySelectorAll('.pk-stand .pk-row, #pk-stand .pk-row').length, canvas: !!document.querySelector('canvas') }));
     const metrics = {
       drivers: host.state.karts.length, connected: host.state.karts.filter(k => k.connected !== false).length, seconds: +seconds.toFixed(1),
