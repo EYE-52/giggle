@@ -47,8 +47,11 @@ switching away from a private page covers it again.
 
 The shared turn banner follows the active seat on every update, including
 the target while choosing or performing and each private writer or voter.
-Game choice uses an art-card shelf, and enum settings use the host dialog's
-segmented pickers and tiles. Prompt style is picked in setup.
+Game choice uses a two-row art-card shelf with a Show all games button.
+The expanded shelf stays in page flow, with no inner scroll box. Each tile
+has separate art, name, and player-count rows; the selected game stays in
+the preview. Enum settings use the host dialog's segmented pickers and
+tiles. Prompt style is picked in setup.
 
 One-device votes are private and taken in seat order. Each voter or trivia
 answerer gets a fresh, equal timer; the game's own scoring uses their
@@ -68,8 +71,10 @@ tab draft and do not overwrite the online player's identity.
 `npm run test:same-room` runs runtime, DOM entry-flow, and real HTTP/WebSocket
 tests. These also run in `npm test`.
 
-`npm run test:same-room:browser` requires Playwright. It exercises the real
-flow, checks private DOM removal, mounts all 21 views, checks phone
+`npm run test:same-room:browser` requires Playwright. It exercises full
+three-player Random card and Ask your own rounds, checks the acting name
+and real game scene at each step, tile rows, page scrolling, private DOM
+removal, mounts all 21 views, checks phone
 overflow, and captures 390×844, 800×600, and 1280×800 in Day and Night. Set
 `CHROMIUM_EXECUTABLE` to a cached Chromium path if needed. Set
 `SAME_ROOM_ARTIFACT_DIR` to choose the screenshot folder (default:

@@ -33,7 +33,7 @@ assert.throws(() => create('truth-dare', 2, { rounds: 999 }), /rounds/i, 'same R
 const twenty = new SameRoom(content, { game: 'truth-dare', names: Array.from({ length: 20 }, (_, i) => `Friend ${i + 1}`) });
 assert.equal(twenty.snapshot().players.length, 20); twenty.destroy();
 
-for (const count of [2, 5]) for (const promptStyle of ['Random card', 'Room pool vote', 'Ask your own', 'Mixed']) for (const deck of ['classic', 'funny', 'wild']) {
+for (const count of [2, 3, 5]) for (const promptStyle of ['Random card', 'Room pool vote', 'Ask your own', 'Mixed']) for (const deck of ['classic', 'funny', 'wild']) {
   const r = create('truth-dare', count, { rounds: 1, promptStyle });
   try {
     const target = r.game.state.target;
@@ -204,4 +204,4 @@ const token = a.messages.find(m => m.t === 'same-created').token;
 hub.handle(b, { t: 'same-resume', token }); assert.equal(b.messages.at(-1).t, 'same-error', 'one live controller');
 hub.detach(a); hub.handle(b, { t: 'same-resume', token }); assert.equal(b.messages.at(-1).t, 'same-state');
 hub.handle(b, { t: 'same-stop' }); hub.handle(a, { t: 'same-resume', token }); assert.equal(a.messages.at(-1).t, 'same-error');
-console.log('SAME_ROOM_PASS: Truth or Dare 2/5 people and all styles; board win; five-seat vote; private projections; deadlines; resume; 21 manifest opt-ins');
+console.log('SAME_ROOM_PASS: Truth or Dare 2/3/5 people and all styles; board win; five-seat vote; private projections; deadlines; resume; 21 manifest opt-ins');

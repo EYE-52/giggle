@@ -27,7 +27,7 @@ async function run() {
   assert(logs.includes('PartyBox on'), logs);
   browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {}) });
   const base = `http://127.0.0.1:${port}`;
-  for (const width of [390, 800, 1280]) for (const theme of ['day', 'night']) {
+  for (const width of [390, 800, 1280]) for (const theme of ['day', 'night']) for (const promptStyle of ['Random card', 'Ask your own']) {
     const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : width === 800 ? 600 : 800 }, hasTouch: width === 390, reducedMotion: 'reduce' });
     await context.addInitScript(theme => {
       localStorage.setItem('pb_theme', theme);
@@ -39,8 +39,43 @@ async function run() {
     const page = await context.newPage(), errors = [];
     page.on('pageerror', e => errors.push(e.message));
     const shot = async name => {
-      await page.screenshot({ path: path.join(artifacts, `${width}-${theme}-${name}.png`), fullPage: ['setup', 'game-picker'].includes(name) });
+      const style = promptStyle === 'Random card' ? 'random' : 'own';
+      await page.screenshot({ path: path.join(artifacts, `${width}-${theme}-${style}-${name}.png`), fullPage: ['setup', 'game-picker', 'game-picker-all'].includes(name) });
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name}: no sideways overflow at ${width}`);
+    };
+    const actor = async (phase, privatePeer = false) => {
+      await page.waitForFunction(phase => window.__oneDevice?.gate === 'play' && window.__oneDevice.running && window.__oneDevice.state?.phase === phase, phase);
+      const seat = await page.evaluate(() => {
+        const m = window.__oneDevice;
+        return { id: m.state.me, active: m.player, target: m.state.target, name: m.players.find(p => p.id === m.state.me).name };
+      });
+      assert.equal(seat.active, seat.id, `${phase}: server and view use the same seat`);
+      if (privatePeer) assert.notEqual(seat.id, seat.target, `${phase}: target cannot write or vote`);
+      else assert.equal(seat.id, seat.target, `${phase}: target acts now`);
+      assert.equal(await page.locator('#srTurn').textContent(), `${seat.name}’s turn`, `${phase}: banner names the actor`);
+      assert(await page.locator('#gbody .party-scene--truth').isVisible(), `${phase}: actual game scene is mounted`);
+      return seat;
+    };
+    const shelf = async expanded => {
+      const cards = page.locator('.sr-game-card:visible');
+      assert.equal(await cards.count(), expanded ? 21 : width <= 600 ? 4 : 8, 'preview shows whole rows');
+      assert(await page.locator('#srGameGrid').evaluate(grid => {
+        const css = getComputedStyle(grid);
+        return css.maxHeight === 'none' && css.overflowY === 'visible' && grid.scrollTop === 0;
+      }), 'game shelf uses page scrolling');
+      for (const card of await cards.all()) {
+        assert(await card.evaluate(card => {
+          const tile = card.querySelector('.sr-game-tile');
+          const art = card.querySelector('.sr-game-art').getBoundingClientRect();
+          const name = card.querySelector('.sr-game-name').getBoundingClientRect();
+          const count = card.querySelector('.sr-game-count').getBoundingClientRect();
+          const bounds = card.getBoundingClientRect();
+          return getComputedStyle(tile).display === 'grid' && Math.abs(art.width - art.height) < 1 &&
+            name.top >= art.bottom && count.top >= name.bottom && count.bottom <= bounds.bottom &&
+            name.left >= bounds.left && name.right <= bounds.right;
+        }), 'art, name and count stay in separate rows inside every tile');
+      }
+      assert.equal(await page.locator('.sr-game-card[aria-pressed="true"] .sr-game-check').evaluate(el => getComputedStyle(el).visibility), 'visible');
     };
     await page.goto(base);
     await page.locator('[data-how="truth-dare"]').first().click();
@@ -50,20 +85,36 @@ async function run() {
     assert(await page.locator('#srStart').isDisabled());
     await page.locator('#srGamePicker > summary').click();
     assert.equal(await page.locator('[data-game-choice] img').count(), 21);
+    await shelf(false);
     await shot('game-picker');
+    await page.locator('#srShowGames').click();
+    await shelf(true);
+    await page.locator('#srGameGrid img').evaluateAll(images => Promise.all(images.map(img => { img.loading = 'eager'; return img.decode(); })));
+    await shot('game-picker-all');
+    await page.locator('.sr-game-card').first().scrollIntoViewIfNeeded();
+    const beforeScroll = await page.evaluate(() => scrollY);
+    const firstCard = await page.locator('.sr-game-card').first().boundingBox();
+    await page.mouse.move(firstCard.x + firstCard.width / 2, firstCard.y + firstCard.height / 2);
+    await page.mouse.wheel(0, 300);
+    await page.waitForFunction(before => scrollY > before, beforeScroll);
+    assert.equal(await page.locator('#srGameGrid').evaluate(el => el.scrollTop), 0, 'wheel over cards scrolls the page');
+    await page.locator('#srShowGames').click();
+    await shelf(false);
     await page.locator('[data-game-choice="truth-dare"]').click();
-    await page.locator('#srName').fill('Sam, Jess, Mo, Ali, Bea'); await page.locator('#srAdd').click();
-    assert.equal(await page.locator('.sr-person').count(), 5);
+    await page.locator('#srName').fill('Sam, Jess, Mo'); await page.locator('#srAdd').click();
+    assert.equal(await page.locator('.sr-person').count(), 3);
     assert.equal(await page.locator('#srAdd').evaluate(el => getComputedStyle(el).whiteSpace), 'nowrap');
     assert.equal(await page.locator('select:not(.picker-native)').count(), 0);
     await page.locator('#sr-setting-rounds').fill('1'); await page.locator('#sr-setting-rounds').dispatchEvent('change');
-    await page.locator('[data-picker-for="sr-setting-promptStyle"] [data-value="Ask your own"]').click();
+    await page.locator(`[data-picker-for="sr-setting-promptStyle"] [data-value="${promptStyle}"]`).click();
     await shot('setup');
     await page.locator('#srStart').click();
+    const spinner = await actor('spin');
+    assert.equal(await page.locator('#tSpin').textContent(), spinner.name, 'wheel lands on the same actor as the banner');
+    await shot('spin');
     await page.locator('[data-kind="truth"]').waitFor({ timeout: 15000 });
-    await page.waitForFunction(() => window.__oneDevice.running);
-    const actorName = await page.evaluate(() => { const m = window.__oneDevice; return m.players.find(p => p.id === m.state.target).name; });
-    assert.equal(await page.locator('#srTurn').textContent(), `${actorName}’s turn`);
+    const chooser = await actor('choose');
+    assert.equal(chooser.id, spinner.id);
     assert(await page.locator('#tSpinForMe').isVisible());
     assert.equal(await page.locator('#srDeck').count(), 0);
     for (const control of ['[data-kind="truth"]', '[data-kind="dare"]', '#tSpinForMe']) {
@@ -72,15 +123,15 @@ async function run() {
         return rect.top >= 0 && rect.bottom <= innerHeight && rect.left >= 0 && rect.right <= innerWidth;
       }), `${control}: visible without scrolling at ${width}`);
     }
-    await shot('turn');
+    await shot('choose');
     await page.locator('[data-kind="truth"]').click();
-    for (let writer = 0; writer < 4; writer++) {
+    for (let writer = 0; promptStyle === 'Ask your own' && writer < 2; writer++) {
       await page.locator('#srUnlock').waitFor();
       if (!writer) await shot('pass');
       assert.equal(await page.locator('textarea').count(), 0);
       await page.locator('#srUnlock').click();
       await page.locator('#tEntry').fill(`What is your favourite shared memory, writer ${writer}?`);
-      await page.waitForFunction(() => window.__oneDevice.running);
+      await actor('compose', true);
       if (!writer) await shot('private-writing');
       await page.locator('#tSendEntry').click();
       await page.getByRole('button', { name: 'Done, pass it back', exact: true }).waitFor();
@@ -88,25 +139,30 @@ async function run() {
       if (!writer) await shot('pass-back');
       await page.locator('#srUnlock').click();
     }
-    for (let voter = 0; voter < 4; voter++) {
+    for (let voter = 0; promptStyle === 'Ask your own' && voter < 2; voter++) {
       await page.locator('#srUnlock').click();
       await page.locator('[data-prompt-vote="0"]').waitFor();
-      await page.waitForFunction(() => window.__oneDevice.running);
-      assert(await page.evaluate(() => window.__oneDevice.player !== window.__oneDevice.state.target));
+      await actor('prompt-vote', true);
       if (!voter) await shot('prompt-pool');
       await page.locator('[data-prompt-vote="0"]').click();
       await page.getByRole('button', { name: 'Done, pass it back', exact: true }).click();
     }
     await page.locator('#tReady').waitFor();
+    const performer = await actor('perform');
+    assert.equal(performer.id, chooser.id);
     await shot('prompt');
     await page.locator('#tReady').click();
-    for (let voter = 0; voter < 4; voter++) {
+    const judges = new Set();
+    for (let voter = 0; voter < 2; voter++) {
       await page.locator('#srUnlock').click();
       await page.locator('[data-v="yes"]').waitFor();
-      await page.waitForFunction(() => window.__oneDevice.running);
+      const judge = await actor('vote', true);
+      judges.add(judge.id);
+      if (!voter) await shot('vote');
       await page.locator('[data-v="yes"]').click();
       await page.getByRole('button', { name: 'Done, pass it back', exact: true }).click();
     }
+    assert.equal(judges.size, 2, 'both other people judge, each under their own turn banner');
     await page.locator('#tNext').waitFor();
     await page.waitForFunction(() => window.__oneDevice.running);
     await page.locator('#tNext').click();
@@ -114,9 +170,8 @@ async function run() {
     await shot('results');
     await page.locator('#srChange').click();
     await page.getByRole('button', { name: 'Remove Mo', exact: true }).click();
-    await page.getByRole('button', { name: 'Remove Ali', exact: true }).click();
-    await page.getByRole('button', { name: 'Remove Bea', exact: true }).click();
     await page.locator('#srGamePicker > summary').click();
+    await page.locator('#srShowGames').click();
     await page.locator('[data-game-choice="four-in-a-row"]').click();
     await page.locator('#srStart').click();
     await page.locator('[data-column="0"]').waitFor();
@@ -142,6 +197,6 @@ async function run() {
     assert.deepEqual(errors, [], g.id);
     await context.close();
   }
-  console.log(`SAME_ROOM_BROWSER_PASS: entry, private DOM, live turns and 21 game mounts; 390/800/1280 day/night screenshots in ${artifacts}`);
+  console.log(`SAME_ROOM_BROWSER_PASS: tile rows and page scrolling; full three-person Random card/Ask your own rounds with actor banners and real scenes; 21 game mounts; 390/800/1280 day/night screenshots in ${artifacts}`);
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { await browser?.close(); server?.kill('SIGTERM'); });

@@ -13,6 +13,7 @@ let names = [], settings = {}, socket = null, current = null, mountKey = '', rea
 let token = read('giggle:one-device:token'), busy = false, retry = 0, disconnected = false;
 let anchor = { game: 0, local: 0, running: false };
 let pickingGame = !new URLSearchParams(location.search).has('game');
+let showingAllGames = false;
 try { const draft = JSON.parse(read('giggle:one-device:names')); if (Array.isArray(draft)) names = draft.filter(n => typeof n === 'string').slice(0, 20); } catch { /* fresh group */ }
 const game = () => games.find(g => g.id === gameId);
 const status = text => { $('srStatus').textContent = text; };
@@ -31,13 +32,20 @@ function setSkin() {
 }
 const cover = g => `/${g.art || `img/games/${g.id}.png`}`;
 function gameCards() {
+  // Keep the current pick in the short shelf, including when it is a board
+  // game near the end of the catalogue.
+  const shelf = [game(), ...games.filter(g => g.id !== gameId)];
   return `<details id="srGamePicker" class="sr-game-picker"${pickingGame ? ' open' : ''}>
     <summary class="tb-btn tb-secondary">Choose a game <span class="t-caption">${games.length} on one device</span></summary>
-    <div class="sr-game-grid" role="group" aria-label="Choose a one-device game">${games.map(g => {
+    <div id="srGameGrid" class="sr-game-grid${showingAllGames ? ' is-expanded' : ''}" role="group" aria-label="Choose a one-device game">${shelf.map(g => {
       const selected = g.id === gameId, support = sameRoomSupport(g);
       return `<button type="button" class="sr-game-card tb-card is-compact" data-game-choice="${g.id}" data-family="${family(g)}" aria-pressed="${selected}" aria-label="Choose ${esc(g.name)}">
-        <img src="${esc(cover(g))}" alt="" loading="lazy" width="96" height="96"><span class="t-title">${esc(g.name)}</span><span class="t-caption">${support.min === support.max ? support.min : `${support.min}–${support.max}`} people${selected ? ' · ✓ Picked' : ''}</span></button>`;
-    }).join('')}</div></details>`;
+        <span class="sr-game-tile">
+          <span class="sr-game-art"><img src="${esc(cover(g))}" alt="" loading="lazy" width="96" height="96"><span class="sr-game-check" aria-hidden="true">✓</span></span>
+          <span class="sr-game-name">${esc(g.name)}</span>
+          <span class="sr-game-count tb-badge">${support.min === support.max ? support.min : `${support.min}–${support.max}`} people</span>
+        </span></button>`;
+    }).join('')}</div><button type="button" id="srShowGames" class="tb-btn tb-chip sr-show-games" aria-controls="srGameGrid" aria-expanded="${showingAllGames}">${showingAllGames ? 'Show fewer games' : `Show all ${games.length} games`}</button></details>`;
 }
 function field(s) {
   const id = `sr-setting-${s.key}`, value = settings[s.key] ?? s.def;
@@ -63,10 +71,17 @@ function setup() {
     <section class="sr-panel tb-card"><h2>Make it yours</h2><div class="sr-fields">${g.schema.settings.map(field).join('') || '<p class="t-body">The board is ready. Add your names and play.</p>'}</div><p class="t-caption">Private turns each get their own timer. Passing time does not count.</p></section>
     <div class="sr-start"><button id="srStart" class="tb-btn tb-primary" type="submit">Start ${esc(g.name)}</button><p id="srReason" class="sr-reason" aria-live="polite"></p></div>
   </form>`;
-  $('srGamePicker').ontoggle = () => { pickingGame = $('srGamePicker').open; };
+  const picker = $('srGamePicker');
+  picker.ontoggle = () => { if (picker.isConnected) pickingGame = picker.open; };
+  $('srShowGames').onclick = () => {
+    showingAllGames = !showingAllGames;
+    $('srGameGrid').classList.toggle('is-expanded', showingAllGames);
+    $('srShowGames').setAttribute('aria-expanded', String(showingAllGames));
+    $('srShowGames').textContent = showingAllGames ? 'Show fewer games' : `Show all ${games.length} games`;
+  };
   app.querySelectorAll('[data-game-choice]').forEach(card => { card.onclick = () => {
     const nameDraft = $('srName').value;
-    gameId = card.dataset.gameChoice; settings = {}; pickingGame = false;
+    gameId = card.dataset.gameChoice; settings = {}; pickingGame = false; showingAllGames = false;
     history.replaceState(null, '', `?game=${encodeURIComponent(gameId)}`);
     setup(); $('srName').value = nameDraft;
     $('srGamePicker').querySelector('summary').focus({ preventScroll: true });

@@ -12,12 +12,25 @@
 .sr-game-picker { grid-column: 1 / -1; min-width: 0; }
 .sr-game-picker > summary { width: 100%; justify-content: space-between; list-style: none; }
 .sr-game-picker > summary::-webkit-details-marker { display: none; }
-.sr-game-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-12); max-height: calc(var(--control-h-lg) * 7); margin-top: var(--space-16); padding: var(--space-4) var(--space-4) var(--space-12); overflow-y: auto; overscroll-behavior: contain; }
-.sr-game-card { display: flex; flex-direction: column; align-items: center; justify-content: start; gap: var(--space-8); min-width: 0; margin: 0; color: var(--ink); cursor: pointer; text-align: center; }
-.sr-game-card img { width: var(--home-card-art); height: var(--home-card-art); object-fit: cover; border-radius: var(--radius-md); }
-.sr-game-card .t-title { font: var(--text-button); overflow-wrap: anywhere; }
+.sr-game-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-12); margin-top: var(--space-16); padding: var(--space-4) var(--space-4) var(--space-12); }
+/* The shelf grows with the page. Hide whole tiles in the preview, never
+ * crop a row or create a second scrolling surface. */
+.sr-game-grid:not(.is-expanded) > .sr-game-card:nth-child(n + 9) { display: none; }
+.sr-game-grid > .sr-game-card { min-width: 0; margin: 0; color: var(--ink); text-align: center; }
+/* The shared .tb-card button rule uses display:block. A separate inner grid
+ * owns the three rows, so button styles cannot turn them into inline text. */
+.sr-game-tile { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--home-card-art) var(--control-h) auto; justify-items: center; align-items: center; gap: var(--space-8); min-width: 0; }
+.sr-game-art { display: grid; grid-template-columns: minmax(0, 1fr); width: var(--home-card-art); max-width: 100%; aspect-ratio: 1; }
+.sr-game-art > * { grid-area: 1 / 1; }
+.sr-game-art img { display: block; width: 100%; height: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-md); }
+.sr-game-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: ellipsis; max-width: 100%; min-width: 0; font: var(--text-button); text-align: center; overflow-wrap: anywhere; }
+.sr-game-count.tb-badge { justify-self: center; font: var(--text-caption); color: var(--ink-dim); background: var(--well); }
+.sr-game-check { display: grid; place-items: center; align-self: start; justify-self: end; width: var(--space-24); height: var(--space-24); border: var(--outline-w) solid var(--fam-lip); border-radius: var(--radius-pill); background: var(--fam); color: var(--on-fam); font: var(--text-button-sm); visibility: hidden; }
+.sr-game-card[aria-pressed="true"] .sr-game-check { visibility: visible; }
 .sr-game-card[aria-pressed="true"] { border-color: var(--fam-lip); background: var(--fam-soft); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
-.sr-game-card:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.sr-game-grid > .sr-game-card:active { box-shadow: none; }
+.sr-game-grid > .sr-game-card:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.sr-show-games { margin-top: var(--space-8); }
 .sr-main select, .sr-main input, .sr-main textarea { width: 100%; min-height: var(--control-h); color: var(--ink); background: var(--card); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md); padding: var(--space-8) var(--space-12); font: var(--text-body); box-sizing: border-box; }
 .sr-main textarea { min-height: calc(var(--control-h) * 2); resize: vertical; }
 .sr-main select.picker-native { width: 1px; min-width: 0; min-height: 0; height: 1px; padding: 0; border: 0; }
@@ -78,7 +91,12 @@
 .sr-person button:active { transform: scale(.96); }
 @media (hover: hover) {
   .sr-person button:hover { color: var(--fam-deep); }
-  .sr-game-card:hover { transform: translateY(calc(-1 * var(--lift-sm))); }
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .sr-game-grid > .sr-game-card:hover { transform: translateY(calc(-1 * var(--lift-sm))); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sr-game-grid > .sr-game-card:active { transform: translateY(var(--lift-sm)); }
 }
 @media (max-width: 600px) {
   .sr-bar { padding: var(--space-8) var(--space-16); gap: var(--space-8); }
@@ -87,6 +105,7 @@
   .sr-feature { gap: var(--space-16); }
   .sr-cover { width: var(--space-64); height: var(--space-64); }
   .sr-game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sr-game-grid:not(.is-expanded) > .sr-game-card:nth-child(n + 5) { display: none; }
   .sr-turn { min-height: calc(var(--space-40) * 2); }
   .sr-panel.tb-card, .sr-secret.tb-card, .sr-hand.tb-card { padding: var(--space-16); }
   .sr-hand { min-height: calc(var(--control-h-lg) * 7); }

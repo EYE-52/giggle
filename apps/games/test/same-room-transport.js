@@ -69,10 +69,55 @@ const sockets = [];
   state = await request(b, state, 'back', {});
   assert.equal(state.state.phase, 'reveal'); assert.equal(state.state.last.targetPts, 100);
   b.send({ t: 'same-stop' }); await b.wait(m => m.t === 'same-stopped');
+
+  // The ordinary three-person path: one real target chooses and performs,
+  // then the other two seats judge under their own private projections.
+  const c = await client();
+  c.send({ t: 'same-start', game: 'truth-dare', names: ['Sam', 'Jess', 'Mo'], settings: { rounds: 1, promptStyle: 'Random card' } });
+  state = await c.wait(m => m.t === 'same-state');
+  assert.equal(state.state.phase, 'spin');
+  const target = state.state.target;
+  const targetName = state.players.find(p => p.id === target).name;
+  const checkTarget = phase => {
+    assert.equal(state.state.phase, phase);
+    assert.equal(state.player, target, `${phase}: the target acts now`);
+    assert.equal(state.state.me, target, `${phase}: real game view uses the same actor`);
+    assert.equal(state.players.find(p => p.id === state.state.me).name, targetName);
+  };
+  checkTarget('spin');
+  state = await request(c, state, 'ready', {}, m => m.state?.phase === 'choose');
+  checkTarget('choose');
+  state = await request(c, state, 'ready', {}, m => m.running);
+  state = await request(c, state, 'action', { a: { deck: 'funny', kind: 'truth' } });
+  checkTarget('perform');
+  assert(state.state.prompt);
+  state = await request(c, state, 'ready', {}, m => m.running);
+  state = await request(c, state, 'action', { a: { ready: true } });
+  const judges = new Set();
+  for (let i = 0; i < 2; i++) {
+    assert.equal(state.gate, 'pass'); assert.equal(state.state, undefined);
+    state = await request(c, state, 'unlock', {});
+    assert.equal(state.state.phase, 'vote');
+    assert.equal(state.player, state.state.me);
+    assert.notEqual(state.player, target);
+    judges.add(state.player);
+    state = await request(c, state, 'ready', {}, m => m.running);
+    state = await request(c, state, 'action', { a: { vote: 'yes' } });
+    assert.equal(state.gate, 'return'); assert.equal(state.state, undefined);
+    state = await request(c, state, 'back', {});
+  }
+  assert.equal(judges.size, 2);
+  assert.equal(state.state.phase, 'reveal');
+  assert.equal(state.state.last.targetPts, 100);
+  state = await request(c, state, 'ready', {}, m => m.running);
+  state = await request(c, state, 'action', { a: { next: true } });
+  assert.equal(state.state.phase, 'done');
+  c.send({ t: 'same-stop' }); await c.wait(m => m.t === 'same-stopped');
+
   b.send({ t: 'same-start', game: 'pose-party', names: ['Sam', 'Jess'] });
   assert.match((await b.wait(m => m.t === 'same-error' && /separate/.test(m.msg))).msg, /separate devices/);
   assert(!/handle error|one-device game failed/.test(log), log);
-  console.log('SAME_ROOM_TRANSPORT_PASS: real HTTP/WS entry; no public code; private write/vote; one controller; disconnect/resume; authoritative scoring; unsupported rejection');
+  console.log('SAME_ROOM_TRANSPORT_PASS: real HTTP/WS entry; full three-person target/perform/two-judge round; no public code; private write/vote; one controller; disconnect/resume; authoritative scoring; unsupported rejection');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => {
   for (const ws of sockets) ws.terminate();
   server?.kill('SIGTERM');
