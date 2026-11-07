@@ -136,7 +136,8 @@ export function createKartLighting(THREE, renderer, scene, mood, opts) {
   }
   if (target && target.texture) {
     scene.environment = target.texture;
-    scene.environmentIntensity = .4;
+    // Enough sky reflection to give paint and plastic a glossy toy sheen.
+    scene.environmentIntensity = .7;
   }
   let disposed = false;
   function cleanup() {

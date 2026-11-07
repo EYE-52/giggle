@@ -65,10 +65,12 @@ export const HILL_MIN = 75; // legacy: distant terrain starts beyond this
 const PALETTES = {
   Daybreak: {
     sky: 0x0877e7, skyMid: 0x2da6ef, horizon: 0xb7def2,
-    sun: 0xfff3da, sunIntensity: 2.1,
+    sun: 0xfff1d6, sunIntensity: 1.75,
     sunDir: [0.45, 0.62, 0.64], sunDisc: 0xfff6d8, sunSize: 9,
     haze: 0xd5eaff, hazeOpacity: 0.18,
-    hemiSky: 0xd9e6ff, hemiGround: 0x24344b, hemiIntensity: 0.65, fog: [110, 340],
+    // A bright sky fill and a grass-green bounce keep shadow sides readable
+    // and colorful, like a toy lit in a softbox, instead of inky navy.
+    hemiSky: 0xe4eeff, hemiGround: 0x62724f, hemiIntensity: 1.25, fog: [110, 340],
     ground: 0x2fab49, verge: 0x208944, track: 0x344356, trackDark: 0x28364a,
     line: '#f5f8ff', kerbA: '#ff394f', kerbB: '#f5f8ff', rail: 0xff394f,
     path: 0xd9c9a8, dirt: '#9c6b4a',
@@ -81,7 +83,7 @@ const PALETTES = {
     sun: 0xffd9a8, sunIntensity: 1.5,
     sunDir: [0.55, 0.30, 0.62], sunDisc: 0xffdca0, sunSize: 13,
     haze: 0xffc4a0, hazeOpacity: 0.4,
-    hemiSky: 0xf1d2e1, hemiGround: 0x28243d, hemiIntensity: 0.7, fog: [95, 300],
+    hemiSky: 0xf1d2e1, hemiGround: 0x5c4c55, hemiIntensity: 1.1, fog: [95, 300],
     ground: 0x369c4a, verge: 0x208944, track: 0x344056, trackDark: 0x263046,
     line: '#ffe3b3', kerbA: '#e14b5a', kerbB: '#fff2dc', rail: 0xd84b5a,
     path: 0xd9bfa0, dirt: '#8a5a3c',
@@ -170,14 +172,14 @@ export function resolveMapTheme(map) {
 const THEME_SURF = {
   garden: {
     Daybreak: {
-      ground: 0x35b84e, verge: 0x289347, track: 0x48535f, trackDark: 0x333e49,
+      ground: 0x3fc457, verge: 0x2c9c4b, track: 0x5c6572, trackDark: 0x46505c,
       line: '#f5f8ff', kerbA: '#ff394f', kerbB: '#f5f8ff', rail: 0xff394f,
-      path: 0xd9c9a8, dirt: '#7a5230',
+      path: 0xd9c9a8, dirt: '#a57a4c',
       ridgeNear: 0x4b9c78, ridgeFar: 0x689cbb,
       cloud: 0xffffff, glow: 0, glowTrack: 0x3a4a6e, glowGrass: 0x0e3a2a, glowGrassI: 0.5,
     },
     Sunset: {
-      ground: 0x32a74b, verge: 0x24883f, track: 0x48535f, trackDark: 0x333e49,
+      ground: 0x38b04f, verge: 0x289044, track: 0x5c6572, trackDark: 0x46505c,
       line: '#ffe9c4', kerbA: '#ff394f', kerbB: '#fff2dc', rail: 0xef324d,
       path: 0xd9bfa0, dirt: '#6a4526',
       ridgeNear: 0x4d8f5e, ridgeFar: 0xc4a8b8,
@@ -711,7 +713,7 @@ export function createKartWorld(THREE, options) {
     // so the 3 m tile repeats seamlessly along the ribbons.
     const R=mulberry32(6105);
     for(let i=0;i<14;i++){const x=R()*w,y=R()*h,rx=18+R()*46,ry=8+R()*22,a=R()*Math.PI;
-      for(const [ox,oy]of wrapOffsets(x,y,Math.max(rx,ry),w,h)){ctx.fillStyle=`rgba(10,12,16,${.05+R()*.06})`;ctx.beginPath();ctx.ellipse(x+ox,y+oy,rx,ry,a,0,Math.PI*2);ctx.fill();}}
+      for(const [ox,oy]of wrapOffsets(x,y,Math.max(rx,ry),w,h)){ctx.fillStyle=`rgba(10,12,16,${.03+R()*.04})`;ctx.beginPath();ctx.ellipse(x+ox,y+oy,rx,ry,a,0,Math.PI*2);ctx.fill();}}
     speckle(ctx,w,h,R,5200,[hexCss(S.trackDark),'#7a8989','#abb4ac'],.14,.6,1.6);
     speckle(ctx,w,h,R,260,['#d9dfd6'],.22,1,2);
   },{repeat:[1,1]}):canvasTexture(THREE, 1024, 1024, (ctx, w, h) => {
@@ -1019,7 +1021,7 @@ export function createKartWorld(THREE, options) {
     const layers=buildTerrainRoads(terrain,roadRoutes,{
       curbColors:[new THREE.Color(S.kerbA).toArray(),new THREE.Color(S.kerbB).toArray()],
       markingColor:new THREE.Color(S.line).toArray(),fieldBound:half*.8,
-      shoulderColor:new THREE.Color(theme==='frost'?0xaac7db:quarry?0xa69d87:theme==='neon'?0x526170:0x7f8864).toArray(),
+      shoulderColor:new THREE.Color(theme==='frost'?0xaac7db:quarry?0xa69d87:theme==='neon'?0x526170:0xcdb98c).toArray(),
     });
     for(const [key,data]of Object.entries(layers)){
       if(key!=='curbSides')indexPropRoad(data);
