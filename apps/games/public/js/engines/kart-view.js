@@ -35,6 +35,7 @@ import { createKartAudio } from './kart-audio.mjs';
 import { createKartCombatArt, projectileContactInset } from './kart-combat-art.mjs';
 import { createKartHealthBars } from './kart-health-bars.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
+import {createArsenalFX} from './kart-arsenal-fx.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
 import {createKartThreats} from './kart-threats.mjs';
 import {createKartFeedback} from './kart-feedback.mjs';
@@ -97,6 +98,14 @@ const WEAPON_ART = {
   seeker:'<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke-width="2"><path d="M16 3c-5 4-7 10-7 17h14c0-7-2-13-7-17Z" fill="#91d451"/><path d="m9 18-5 8 7-3m12-5 5 8-7-3" fill="#e5f0f5"/><circle cx="16" cy="11" r="3" fill="#1c3539"/></svg>',
   proximity:'<svg viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke-width="2"><ellipse cx="16" cy="21" rx="11" ry="6" fill="#829299"/><path d="M7 10c5-6 13-6 18 0m-15 4c3-3 8-3 11 0" stroke="#ff6154"/><circle cx="16" cy="21" r="3" fill="#ff6154"/></svg>',
   nuke:'<svg viewBox="0 0 32 32" aria-hidden="true"><path d="m16 2 6 8v15H10V10Z" fill="#e5d35b"/><circle cx="16" cy="17" r="5" fill="#393e41"/></svg>',
+  laser:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="9" width="10" height="6" rx="2.5" fill="#fff6e8"/><rect x="11" y="10.6" width="11" height="2.8" rx="1.4" fill="#8ff8ff"/><circle cx="6" cy="12" r="1.6" fill="#35d5ff"/></svg>',
+  thunder:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2 5 13.5h6L9.5 22 19 9.5h-6.2z" fill="#ffcb44" stroke="#25354b" stroke-width="1.2" stroke-linejoin="round"/></svg>',
+  boomerang:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5c5 0 10 4 15 13l-3 2C12 13 8 10 4 10z" fill="#ff8a3c"/><path d="M4 5c5 0 10 4 15 13" fill="none" stroke="#2fe8b0" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  oil:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16c0-3 4-4 9-4s9 1 9 4-4 5-9 5-9-2-9-5Z" fill="#1d1530"/><ellipse cx="14" cy="15.5" rx="4" ry="1.6" fill="#8e6cff" opacity=".8"/><path d="M12 2c2 3 3.5 5 3.5 6.8a3.5 3.5 0 0 1-7 0C8.5 7 10 5 12 2Z" fill="#1d1530"/></svg>',
+  frost:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="#a8ecff"/><path d="M12 2.5v19M3.8 7.2l16.4 9.6M3.8 16.8l16.4-9.6" stroke="#fff6e8" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  cluster:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="7" fill="#f2545b"/><circle cx="7" cy="9" r="2.4" fill="#ffcb44"/><circle cx="17" cy="9" r="2.4" fill="#ffcb44"/><circle cx="12" cy="18" r="2.4" fill="#ffcb44"/><rect x="10.5" y="2.5" width="3" height="4" rx="1.2" fill="#25354b"/></svg>',
+  bouncer:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="10" r="7" fill="#ff6ad5"/><path d="M5.2 9.2c3.6 2 10 2 13.6 0" fill="none" stroke="#ffcb44" stroke-width="2"/><path d="M7 21h10" stroke="#8e6cff" stroke-width="2" stroke-linecap="round"/></svg>',
+  ram:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h9l7 5-7 5H3z" fill="#c3cdd8"/><path d="M19 12 12 7v10z" fill="#ffb347"/><path d="M1.5 10h3M1 14h3" stroke="#ff8a3c" stroke-width="1.8" stroke-linecap="round"/></svg>',
   crate: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="2" fill="none" stroke="#9ad2d7" stroke-width="2"/><path d="M4 10.5h16M12 7v13" stroke="#9ad2d7" stroke-width="1.4" opacity=".7"/><circle cx="12" cy="13.5" r="2.4" fill="#9ad2d7"/></svg>',
 };
 function weaponArt(kind) {
@@ -124,6 +133,14 @@ const ITEMS = {
   seeker: {label:'Seeker', action:'Launch seeker', short:'SEEK'},
   proximity: {label:'Proximity Bomb', action:'Drop proximity bomb', short:'DROP'},
   nuke: {label:'Nuke', action:'Lob the nuke', short:'NUKE'},
+  laser: {label:'Rail Laser', action:'Fire the laser', short:'ZAP'},
+  thunder: {label:'Thunder Strike', action:'Call down thunder', short:'STRIKE'},
+  boomerang: {label:'Boomerang', action:'Throw the boomerang', short:'THROW'},
+  oil: {label:'Oil Slick', action:'Drop an oil slick', short:'DROP'},
+  frost: {label:'Frost Bomb', action:'Lob the frost bomb', short:'FREEZE'},
+  cluster: {label:'Cluster Bomb', action:'Lob the cluster bomb', short:'LOB'},
+  bouncer: {label:'Bounce Ball', action:'Throw a bounce ball', short:'BOUNCE'},
+  ram: {label:'Turbo Ram', action:'Turbo ram', short:'RAM'},
 };
 /* Classic arenas for the game-owned Results chooser. Use the same captured
  * map overviews as setup; profile keys keep these distinct from elevated maps.
@@ -172,6 +189,7 @@ export function createKartView(viewConfig) {
   let apiRef = null;
   let rootEl = null;
   let hitFx = null; // screen-edge flash, hit marker, toast and camera shake
+  const arsenalEvents = []; // accepted events for the second-eight weapon effects
   let mountGen = 0;
   let gl = null; // three-view handle (null in fallback)
   let sceneState = null;
@@ -1002,7 +1020,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let impactFX,skids,threats;
+    let impactFX,skids,threats,arsenalFX;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1032,6 +1050,7 @@ export function createKartView(viewConfig) {
       disposeCombat=combat.dispose;
       healthBars=createKartHealthBars(THREE,scene);
       impactFX=createKartImpactFX(THREE,scene,{reducedMotion:()=>rm});
+      arsenalFX=createArsenalFX(THREE,scene,{reducedMotion:()=>rm,groundAt:(x,z)=>world.groundAt?.(x,z)||0});
       skids=createKartSkids(THREE,scene,{groundAt:(x,z)=>world.groundAt?.(x,z)||0});
       threats=createKartThreats(THREE,scene,rootEl.querySelector('.pk'),{reducedMotion:()=>rm,beep:level=>audio?.beep?.(level)});
       const zoneGeo = new THREE.RingGeometry(2.22, 2.4, 36);
@@ -1074,7 +1093,11 @@ export function createKartView(viewConfig) {
       const warm=new THREE.Group();scene.add(warm);
       for(const pool of markerPools.values())for(const marker of pool)warm.add(marker);
       for(const k of S.karts||[]) {const bar=healthBars.add(k.pid);bar.visible=true;bar.position.y=-100;}
-      for(const kind of ['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke'])warm.add(combat.weapon(kind));
+      for(const kind of ['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke','laser','thunder','boomerang','oil','frost','cluster','bouncer','ram'])warm.add(combat.weapon(kind));
+      for(const kind of ['frost','cluster','bomblet'])warm.add(combat.projectile(kind));
+      {const slick=combat.mine(true,'oil');placeGroundProp(THREE,slick,0,0,0,groundAt,world.propGroundAt||groundAt);warm.add(slick);}
+      for(const object of arsenalFX.objects()){object.visible=true;warm.add(object);}
+      {const dummy=new THREE.Group();arsenalFX.warmStatus(dummy);warm.add(dummy);}
       const shotPools=new Map(),shotCues=[],shotContactInsets=new Map();
       function prepareShotContact(object,kind,radius){
         const c=object.userData.combat,key=kind+':'+radius;
@@ -1082,12 +1105,13 @@ export function createKartView(viewConfig) {
         c.contactRadius=radius;c.contactInset=radius>0?shotContactInsets.get(key):0;
       }
       const cueBounds=new THREE.Box3(),cueCenter=new THREE.Vector3();
-      for(const kind of ['pulse','scatter','rocket','seeker','nuke']) {
+      for(const kind of ['pulse','scatter','rocket','seeker','nuke','laser','boomerang','bouncer']) {
         const pool=[];
         for(let i=0;i<12;i++){const object=combat.projectile(kind);prepareShotContact(object,kind,S.combat?.staticSweepRadii?.[kind]||0);object.visible=false;scene.add(object);pool.push(object);}
         shotPools.set(kind,pool);pool[0].visible=true;warm.add(pool[0]);
         const tail=pool[0].userData.combat.tail;
-        if(tail)for(let i=0;i<12;i++){
+        // The boomerang's swirl is a spin disc, not a tracer to stretch.
+        if(tail&&kind!=='boomerang')for(let i=0;i<12;i++){
           const object=new THREE.Group(),mesh=tail.clone(false);object.add(mesh);
           cueBounds.setFromObject(object);cueBounds.getCenter(cueCenter);mesh.position.sub(cueCenter);
           object.name='CombatConfirmedShot';object.visible=false;scene.add(object);
@@ -1104,6 +1128,7 @@ export function createKartView(viewConfig) {
       warm.position.y=-100;warm.traverse(object=>{object.frustumCulled=false;});
       reserve.visible=true;reserve.position.y=-100;reserve.traverse(object=>{object.frustumCulled=false;});
       await renderer.compileAsync(scene,camera);renderer.render(scene,camera);
+      arsenalFX.reset();
       warm.removeFromParent();reserve.visible=false;reserve.position.y=0;
       for(const pool of markerPools.values())for(const marker of pool){marker.visible=false;reserve.add(marker);}
       for(const k of S.karts||[])healthBars.add(k.pid).visible=false;
@@ -1124,12 +1149,13 @@ export function createKartView(viewConfig) {
         updateAudio();
         const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
         if(feedbackEpoch!==impactEpoch){
-          impactFX.reset();skids.reset();threats.clear();impactEpoch=feedbackEpoch;
+          impactFX.reset();skids.reset();threats.clear();arsenalFX.reset();arsenalEvents.length=0;impactEpoch=feedbackEpoch;
           for(const cue of shotCues)cue.object.visible=false;
           for(const e of combatEffects.values())returnMarker(e.mesh);
           combatEffects.clear();popSites.length=0;effectSeen.clear();
         }
-        impactFX.update(effectDt);skids.update(effectDt);
+        while(arsenalEvents.length)arsenalFX.event(arsenalEvents.shift());
+        impactFX.update(effectDt);skids.update(effectDt);arsenalFX.update(effectDt);
         if(localRecoil){localRecoil=false;localRecoilAt=nowMs();combat.recoil(karts.get(S.you)?.userData.rig);}
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
@@ -1212,7 +1238,8 @@ export function createKartView(viewConfig) {
           if (mesh.userData.giggleKart) animateKartModel(mesh, {physicalPose: k.respawn>0 ? null : pose.physicalPose || k.physicalPose,
             speed:pose.speed ?? k.speed ?? 0, steer:k.pid === S.you ? intentFromState().steer : 0,
             boost:Math.max(k.boost || 0,k.turbo || 0,k.nitroActive===true?1:0),shield:k.shield>0||k.guard===true,invincible:false,dt,reducedMotion:rm});
-          if (mesh.userData.flame) mesh.userData.flame.visible = k.boost > 0 || k.turbo > 0 || k.nitroActive === true;
+          arsenalFX.status(mesh,k,{time:t,groundRoot:!(k.physicalPose&&!(k.respawn>0))});
+          if (mesh.userData.flame) mesh.userData.flame.visible = k.boost > 0 || k.turbo > 0 || k.nitroActive === true || k.rammingT > 0;
           if (mesh.userData.shield) mesh.userData.shield.visible = (k.shield || 0) > 0;
           if (mesh.visible && !rm && S.phase === 'drive' && k.drifting) {
             const f = forwardOf(pose.angle);
@@ -1334,19 +1361,20 @@ export function createKartView(viewConfig) {
         }
         const liveG=new Set();
         for(const g of (ordnanceFresh()?S.grenades:[])||[]){liveG.add(g.id);let group=grenades.get(g.id);
-          if(!group){group=new THREE.Group();const body=combat.projectile('nuke');group.add(body);group.userData.body=body;
-            const ring=takeMarker('nuke');group.userData.ring=ring;scene.add(group);grenades.set(g.id,group);}
+          if(!group){group=new THREE.Group();const kind=['frost','cluster','bomblet'].includes(g.kind)?g.kind:'nuke',body=combat.projectile(kind);group.add(body);group.userData.body=body;
+            // Only the Nuke marks its knockout radius on the ground.
+            const ring=kind==='nuke'?takeMarker('nuke'):null;group.userData.ring=ring;scene.add(group);grenades.set(g.id,group);}
           const flight=grenadePose(g,S,serverNow());group.position.set(flight.x,flight.y+(g.physical ? .45 : .38),flight.z);group.rotation.y=flight.angle;group.visible=flight.visible;
-          combat.animate(group.userData.body,dt,t,rm);placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;
+          combat.animate(group.userData.body,dt,t,rm);if(group.userData.ring){placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;}
         }
-        for(const[id,group]of grenades)if(!liveG.has(id)){returnMarker(group.userData.ring);scene.remove(group);grenades.delete(id);}
+        for(const[id,group]of grenades)if(!liveG.has(id)){if(group.userData.ring)returnMarker(group.userData.ring);scene.remove(group);grenades.delete(id);}
         const liveM = new Set();
         for (const m of (ordnanceFresh()?S.mines:[]) || []) {
           liveM.add(m.id);
           let mesh = mines.get(m.id);
           if (!mesh) {
             mesh = new THREE.Group();
-            const puck = m.kind==='proximity'?combat.projectile('proximity'):combat.mine(m.owner===S.you); mesh.userData.prop=puck;mesh.add(puck);
+            const puck = m.kind==='proximity'?combat.projectile('proximity'):combat.mine(m.owner===S.you,m.kind==='oil'?'oil':undefined); mesh.userData.prop=puck;mesh.add(puck);
             if(m.kind==='proximity')puck.userData.combat.landed=true;
             mesh.position.set(m.x,m.y??world.groundAt?.(m.x,m.z)??0,m.z); scene.add(mesh); mines.set(m.id,mesh);
           }
@@ -1392,7 +1420,7 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();skids.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;skids.dispose();threats.dispose();} };
     } catch (error) {
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
@@ -1545,7 +1573,7 @@ export function createKartView(viewConfig) {
     }
     for (const z of (ordnanceFresh()?S.zaps:[]) || []) {
       const p=projectilePose(z,S,serverNow());if(!p.visible)continue;
-      ctx.strokeStyle=z.kind==='scatter'?'#ffad69':z.kind==='rocket'?'#ffda58':z.kind==='seeker'?'#91d451':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
+      ctx.strokeStyle=z.kind==='scatter'?'#ffad69':z.kind==='rocket'?'#ffda58':z.kind==='seeker'?'#91d451':z.kind==='boomerang'?'#ff8a3c':z.kind==='bouncer'?'#ff6ad5':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
       ctx.beginPath();ctx.moveTo(px(p.x),pz(p.z));ctx.lineTo(px(p.x-Math.sin(p.angle)*2),pz(p.z-Math.cos(p.angle)*2));ctx.stroke();
     }
     for (const m of (ordnanceFresh()?S.mines:[]) || []) {
@@ -2003,6 +2031,7 @@ export function createKartView(viewConfig) {
       if (seenEvents.has(event.id)) continue;
       seenEvents.add(event.id);
       if(firstEvents)continue;
+      if(['blast','burst','bounce','splat','hit'].includes(event.type)){arsenalEvents.push(event);if(arsenalEvents.length>24)arsenalEvents.shift();}
       updateAudio();
       const me=myKart(),source=S.karts?.find(k=>k.pid===event.pid);
       const nearby=!S.youDrive||event.pid===S.you||event.other===S.you||
