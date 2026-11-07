@@ -1,4 +1,4 @@
-/* Elevated combat art adapter. No simulation, racing route or backdrop image.
+/* Elevated combat art adapter. No simulation or racing route.
  * The shared map descriptors are the only solids in the legal drive field.
  * Texture/shape details stay inside those envelopes; scenery is outside half+2.
  * createKartElevatedWorld(THREE,{scene,map,palette,lighting=true}) returns an
@@ -8,6 +8,7 @@
  */
 import { createStylizedAlpineLandscape } from './kart-stylized-landscape.mjs';
 import { elevatedMap } from './kart-elevated-maps.mjs';
+import { createKartBackdrop, createKartClouds } from './kart-backdrop.mjs';
 
 const TAU=Math.PI*2;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -346,6 +347,8 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
     }
   }
 
+  const farRidges=[];
+  let sphereClouds,paintedClouds;
   // Three original mountain layers have physically faceted faces and snow
   // above a varying snowline; they never wall off or collide with the arena.
   function ridge(radius,height,seed,name){
@@ -356,7 +359,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
       verts.push(Math.cos(a)*r,y,Math.sin(a)*r);color.copy(rock).multiplyScalar(.82+.13*Math.sin(a*31+j*2));if(!frost)color.lerp(green,clamp(1-y/14,0,.75));color.lerp(snow,clamp((y-height*(frost?.25:.43))/8,0,1));color.lerp(distanceBlue,clamp((radius-105)/240,0,.55));colors.push(color.r,color.g,color.b);
       if(i<N&&j<B){const k=i*(B+1)+j;idx.push(k,k+B+1,k+1,k+1,k+B+1,k+B+2);}
     }
-    const g=geo(new THREE.BufferGeometry());g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(idx);g.computeVertexNormals();part(scenery,g,standard(0xffffff,{vertexColors:true,roughness:1,flatShading:true,side:THREE.DoubleSide}),[0,0,0],[1,1,1],[0,0,0],name);
+    const g=geo(new THREE.BufferGeometry());g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.setIndex(idx);g.computeVertexNormals();farRidges.push(part(scenery,g,standard(0xffffff,{vertexColors:true,roughness:1,flatShading:true,side:THREE.DoubleSide}),[0,0,0],[1,1,1],[0,0,0],name));
   }
   function pineGeometry(){
     const p=[],n=[],colors=[],leafColor=new THREE.Color();for(let tier=0;tier<6;tier++){
@@ -409,10 +412,10 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
     for(const[x,z,w,d]of[[-137,0,150,400],[137,0,150,400],[0,-137,124,150],[0,137,124,150]]){
       const meadow=part(scenery,geo(new THREE.PlaneGeometry(w,d).rotateX(-Math.PI/2)),turf,[x,-.35,z],[1,1,1],[0,0,0],'stylized-outside-meadow');meadow.castShadow=false;
     }
-    createStylizedAlpineLandscape(THREE,{parent:scenery,half,geometry:geo,material:mat,part});
+    farRidges.push(...createStylizedAlpineLandscape(THREE,{parent:scenery,half,geometry:geo,material:mat,part}));
     const cloudParts=[],C=random(509);
     for(const[x,y,z]of [[-104,41,151],[12,48,199],[123,41,179],[-136,45,-113],[126,43,-147]])for(let i=0;i<7;i++)cloudParts.push([x+(i-3)*5.2,y+(i%3)*1.3,z+(C()-.5)*4,7+ C()*3,3.1+C()*1.8,5+C()*3]);
-    const clouds=batch(soft,'stylized-soft-clouds',geo(new THREE.SphereGeometry(1,12,8)),standard(0xf6fbff,{roughness:1,emissive:0xc7e1f7,emissiveIntensity:.10}),cloudParts);clouds.castShadow=false;
+    sphereClouds=batch(soft,'stylized-soft-clouds',geo(new THREE.SphereGeometry(1,12,8)),standard(0xf6fbff,{roughness:1,emissive:0xc7e1f7,emissiveIntensity:.10}),cloudParts);sphereClouds.castShadow=false;
 
     const R=random(2091),treeKinds=['PineA','PineB','TreeA'],trees=treeKinds.map(()=>[]),rocks=[];
     for(let i=0;i<75;i++){
@@ -534,6 +537,13 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
     }
   }
 
+  const skyResources={isAlive:()=>!disposed,geometry:geo,material:mat,texture:t=>(textures.add(t),t)};
+  const backdrop=createKartBackdrop(THREE,{parent:soft,theme:data.id,radius:half+195,ridges:farRidges,...skyResources});
+  // The elevated chase lens sees less sky: move clouds farther out so their
+  // lower edges stay in frame while remaining above the painted peaks.
+  if(sphereClouds)paintedClouds=createKartClouds(THREE,{parent:soft,radius:backdrop.radius*2,peakHeight:backdrop.height-6,
+    color:sphereClouds.material.color,fallback:[sphereClouds],...skyResources});
+
   const skyMat=mat(new THREE.ShaderMaterial({uniforms:{uTop:{value:new THREE.Color()},uMid:{value:new THREE.Color()},uHorizon:{value:new THREE.Color()}},vertexShader:'varying vec3 vPos;void main(){vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'varying vec3 vPos;uniform vec3 uTop;uniform vec3 uMid;uniform vec3 uHorizon;void main(){float h=normalize(vPos).y;vec3 c=mix(uHorizon,uMid,smoothstep(-.07,.23,h));c=mix(c,uTop,smoothstep(.18,.82,h));gl_FragColor=vec4(c,1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}',side:THREE.BackSide,depthWrite:false,fog:false}));
   const sky=part(soft,geo(new THREE.SphereGeometry(410,32,18)),skyMat,[0,0,0],[1,1,1],[0,0,0],'procedural-sky');sky.castShadow=sky.receiveShadow=false;sky.renderOrder=-10;
   const sunDisc=part(soft,geo(new THREE.SphereGeometry(5.5,20,12)),basic(0xffedce),[145,95,210],[1,1,1],[0,0,0],'sun-disc');sunDisc.castShadow=sunDisc.receiveShadow=false;
@@ -548,6 +558,8 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   function animate(dt,time,skyPhase){
     if(disposed)return;const p=Number.isFinite(skyPhase)?clamp(skyPhase,0,1):fixed,a=p<=.65?daylight:sunset,b=p<=.65?sunset:night,t=p<=.65?p/.65:(p-.65)/.35;
     for(const k of channels){C[k].copy(a[k]).lerp(b[k],t);skyMat.uniforms[uniformNames[k]].value.copy(C[k]);}
+    backdrop.tint(C.horizon,p<=.65?0:(p-.65)/.35);
+    paintedClouds?.animate(dt);
     lightingState.phase=p;lightingState.fogColor.copy(C.horizon);sun.color.set(p<.7?0xffe5c4:0xc2dcff);
     // The painted kit needs sky and ground fill on its vertical brick and
     // foliage faces. Strong direct sun with dark olive fill hid those colours.
@@ -591,7 +603,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   function stats(){
     const allTextures=new Set([...textures,...(terrain?.textures||[]),...borrowedTextures]);
     const out={drawCalls:0,triangles:0,instanced:0,meshes:0,textureBytes:0,textureCount:allTextures.size,colliders:colliderMeshes.size};
-    group.traverse(o=>{if(!o.isMesh||o.userData.cameraCollider)return;out.drawCalls+=Array.isArray(o.material)?o.geometry.groups.length:1;const n=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3;out.triangles+=n*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
+    group.traverse(o=>{if(o.isSprite){out.drawCalls++;out.triangles+=2;out.meshes++;return;}if(!o.isMesh||o.userData.cameraCollider)return;out.drawCalls+=Array.isArray(o.material)?o.geometry.groups.length:1;const n=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3;out.triangles+=n*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
     for(const t of allTextures)out.textureBytes+=Math.round(t.image.width*t.image.height*4*4/3);return out;
   }
   function dispose(){if(disposed)return;disposed=true;group.removeFromParent();for(const b of batches.values())b.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();terrain?.dispose();sun.dispose();hemi.dispose();group.clear();colliderMeshes.clear();batches.clear();}

@@ -1007,11 +1007,11 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let impactFX,skids,threats;
+    let world,impactFX,skids,threats;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
-      const world = createKartWorld(THREE, {scene, palette: S && S.palette, assets, map: S && S.map});
+      world = createKartWorld(THREE, {scene, palette: S && S.palette, assets, map: S && S.map});
       world.syncMap((S && S.map) || {id:'ring',blocks:[]});
       world.group.getObjectByName('obstacles')?.traverse(mesh => {if (mesh.isMesh) mesh.castShadow=true;});
       const mood = world.palette || {sky: pal.sky, horizon: pal.horizon};
@@ -1397,8 +1397,9 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();skids.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();skids.dispose();threats.dispose();} };
     } catch (error) {
+      world?.dispose();
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
       healthBars?.dispose();
