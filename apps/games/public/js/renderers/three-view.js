@@ -206,7 +206,10 @@ export async function createThreeView(mountEl, hooks) {
     const median = gaps.slice().sort((a, b) => a - b)[gaps.length >> 1];
     const current = targetRatio();
     let next = current;
-    if (median > 24 && current > MIN_RATIO) next = Math.max(MIN_RATIO, current - RATIO_STEP);
+    // A badly struggling device (under ~20 fps) goes straight to the floor
+    // instead of a notch every 1.5s; a merely slow one steps down gently.
+    if (median > 50 && current > MIN_RATIO) next = MIN_RATIO;
+    else if (median > 24 && current > MIN_RATIO) next = Math.max(MIN_RATIO, current - RATIO_STEP);
     // Still slow at the lowest resolution: drop the shadow pass for good
     // (it redraws every caster each frame). Fast devices never get here.
     else if (median > 24 && renderer.shadowMap.enabled) {
