@@ -1,6 +1,8 @@
 import {paintKartWeapon} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {kartResultView} from './kart-results.mjs';
+import {kartGarageHtml,createKartGarageUI,garagePreviewKey} from './kart-garage-ui.mjs';
+import {createGarageThumbnail} from './kart-garage-thumbnail.mjs';
 import physicsConfig from './kart-physics-config.mjs';
 /* Shared kart-arena view factory. createKartView(config) builds a complete
  * mount/update/dispose view: Three.js chase-cam arena, 2D top-down
@@ -259,6 +261,7 @@ export function createKartView(viewConfig) {
   let wasTurbo = false;
   const gearbox = createGearbox(CLASSIC_MAX_FORWARD);
   let garagePending = null;
+  const garageUI = createKartGarageUI();
   let controlsPreference = 'auto';
   function paintControls() {
     if (!rootEl) return;
@@ -769,11 +772,13 @@ export function createKartView(viewConfig) {
 
     if (S.phase === 'done' && S.result) {
       result.hidden = false;
+      const bought = !!(garagePending && S.garageResult?.nonce === garagePending && S.garageResult.ok);
+      if (S.garageResult?.nonce === garagePending) garagePending = null;
       const wins = S.result.winners || (S.result.winner ? [S.result.winner] : []);
       const reason = (S.result && S.result.endReason) || 'timeout';
       const resKey = (battle ? 'b' : 'r') + '|' + reason + '|' + wins.join(',') + '|' +
         (S.result.standings || []).map((r) => r.pid + ':' + r.score + ':' + r.points + ':' + (r.out ? 1 : 0)).join(',') + '|' + S.you + '|' +
-        JSON.stringify([S.coins,S.upgrades?.[S.you],S.garageResult,nextMapSetting(),hostContext().isHost,S.map?.id,typeof apiRef?.configure,arenaPending?.label,arenaNotice]);
+        JSON.stringify([S.coins,S.upgrades?.[S.you],S.garageResult,nextMapSetting(),hostContext().isHost,S.map?.id,typeof apiRef?.configure,arenaPending?.label,arenaNotice,garagePending,lookOf(S.you)]);
       if (resKey !== lastResultKey) {
         lastResultKey = resKey;
         const unit = (n) => (battle ? `${n} KO${n === 1 ? '' : 's'}` : `${n} star${n === 1 ? '' : 's'}`);
@@ -781,16 +786,24 @@ export function createKartView(viewConfig) {
         const final = kartResultView({ result: S.result, you: S.you, nameOf, unit, target,
           targetUnit: battle ? (target === 1 ? 'KO' : 'KOs') : (target === 1 ? 'star' : 'stars') });
         const scrollTop = result.scrollTop || 0;
-        const focusKey = result.contains?.(document.activeElement) ? document.activeElement?.getAttribute?.('data-arena') : null;
+        const focused = result.contains?.(document.activeElement) ? document.activeElement : null;
+        const focusArena = focused?.getAttribute?.('data-arena'), focusPart = focused?.getAttribute?.('data-upgrade') || focused?.getAttribute?.('data-part');
         result.innerHTML = final.html + mapChooserHtml() + garageHtml();
+        garageUI.paint(result,S,{bought,reducedMotion:reducedMotion(),key:garagePreviewKey(garagePreviewSpec())},apiRef);
         result.scrollTop = scrollTop;
-        if (focusKey) result.querySelector(`[data-arena="${focusKey}"]`)?.focus?.({ preventScroll: true });
+        if (focusArena) result.querySelector(`[data-arena="${focusArena}"]`)?.focus?.({ preventScroll: true });
+        if (focusPart) {
+          const button=result.querySelector(`[data-upgrade="${focusPart}"]`);
+          if(button && !button.disabled) button.focus?.({preventScroll:true});
+          else { const card=result.querySelector(`[data-part="${focusPart}"]`);card?.setAttribute('tabindex','-1');card?.focus?.({preventScroll:true}); }
+        }
       }
     } else {
       result.hidden = true;
       if (lastResultKey !== '') {
         lastResultKey = '';
         result.innerHTML = '';
+        garageUI.reset();
       }
     }
 
@@ -833,21 +846,12 @@ export function createKartView(viewConfig) {
     }
   }
 
+  function garagePreviewSpec() {
+    return {color:colorFor(S.you),driver:lookOf(S.you)?.driver ?? S.you,levels:S.upgrades?.[S.you] || {}};
+  }
+
   function garageHtml() {
-    if (!isBattle() || !S.youDrive || !S.garagePrices) return '';
-    const levels=S.upgrades?.[S.you]||{},table=S.garagePrices;
-    const defs=[['engine','Engine','Faster acceleration & top speed','+5% per level'],
-      ['handling','Handling','Sharper turns','+4% per level'],['reload','Quick reload','Fire again sooner','6% faster per level']];
-    const feedback=S.garageResult;
-    if (feedback?.nonce===garagePending) garagePending=null;
-    return `<section class="pk-garage" aria-label="Your kart garage"><header><h4>Your garage</h4><b class="pk-wallet">${Math.max(0,S.coins||0)} coins</b></header>`+
-      `<p>${S.garage?'Upgrades apply next rematch.':'Upgrades apply in Garage Battle.'} Your garage stays with you in this room.</p>`+
-      `<div class="pk-upgrades">${defs.map(([category,name,desc,perk])=>{
-        const level=Math.min(table.max||3,Math.max(0,levels[category]||0));
-        const max=level>=(table.max||3),price=table.prices?.[level]??20;
-        return `<div class="pk-upgrade"><div><strong>${name} <small>${level}/${table.max||3}</small></strong><span>${desc}</span><em>${perk}</em></div>`+
-          `<button type="button" data-upgrade="${category}" ${max||(S.coins||0)<price||garagePending?'disabled':''} aria-label="${max?`${name} maxed`:`Upgrade ${name} for ${price} coins`}">${max?'Maxed':`${price} coins`}</button></div>`;
-      }).join('')}</div><p class="pk-garage-feedback" role="status">${feedback?esc(feedback.ok?`${defs.find(d=>d[0]===feedback.category)?.[1]||'Kart'} upgraded to level ${feedback.level}!`:feedback.error||'Try again.'):'KOs +10 · pickups +1 · finish +5 · win +15'}</p></section>`;
+    return kartGarageHtml(S,garagePending,garagePreviewSpec());
   }
 
   function hostContext() {
@@ -891,10 +895,16 @@ export function createKartView(viewConfig) {
     const category=button.getAttribute('data-upgrade');
     if (!['engine','handling','reload'].includes(category)) return;
     garagePending=typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`buy-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const keepFocus=document.activeElement===button;
     button.disabled=true;
+    if(keepFocus) {
+      const card=button.closest?.('[data-part]');
+      card?.setAttribute('tabindex','-1');card?.focus?.({preventScroll:true});
+    }
     const feedback=rootEl.querySelector('.pk-garage-feedback');
     if(feedback)feedback.textContent='Adding your upgrade…';
     apiRef.send({garage:{category,nonce:garagePending}});
+    paintHud();
   }
 
   function chooseArena(event) {
@@ -1042,7 +1052,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let world,impactFX,skids,threats,arsenalFX,arena,structures;
+    let world,impactFX,skids,threats,arsenalFX,arena,structures,garageThumbnail;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1167,6 +1177,13 @@ export function createKartView(viewConfig) {
       let impactEpoch=-1,impactSince=nowMs(),lastEffectTime=null;
       const frame = (dt, t) => {
         if (!S) return;
+        if(S.phase==='done' && isBattle() && S.youDrive && S.garagePrices) {
+          const spec=garagePreviewSpec();
+          garageUI.preview(rootEl,garagePreviewKey(spec),()=>{
+            garageThumbnail ||= createGarageThumbnail(THREE,renderer,assets);
+            return garageThumbnail.draw(spec);
+          });
+        }
         syncBlocks();
         if (world.animate) world.animate(rm ? 0 : dt,rm ? 0 : t,skyPhase());
         if (disposeLighting?.update) disposeLighting.update(world.palette);
@@ -1455,8 +1472,9 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {garageThumbnail?.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();threats.dispose();} };
     } catch (error) {
+      garageThumbnail?.dispose();
       world?.dispose();
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
@@ -1708,6 +1726,7 @@ export function createKartView(viewConfig) {
     if (sendTimer) { clearInterval(sendTimer); sendTimer = 0; }
     stopFallback();
     audio?.dispose();audio=null;wasTurbo=false;
+    garageUI.dispose();
     garagePending=null;arenaPending=null;arenaNotice='';
     for (const [t, type, fn, opts] of bound) {
       try { t.removeEventListener(type, fn, opts); } catch { /* noop */ }

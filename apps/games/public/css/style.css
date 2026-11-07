@@ -79,6 +79,8 @@
   --howto-dialog-w: 920px; --howto-dialog-h: 600px;
   --howto-seat-w: 304px; --howto-controls-w: 536px;
   --home-card-art: 96px;
+  /* Garage results: wide parts bench and a fixed kart display. */
+  --kart-garage-w: 880px; --kart-garage-preview-w: 224px; --kart-garage-preview-h: 208px;
   /* Text styles: font shorthands, used as `font: var(--text-title)`. */
   --text-heading: 800 clamp(26px, 3.2vw, 34px)/1.15 var(--font-display);
   --text-title: 800 20px/1.25 var(--font-display);

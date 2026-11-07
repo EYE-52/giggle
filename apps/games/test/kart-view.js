@@ -23,6 +23,8 @@ const groundMarkers=await import('../public/js/engines/kart-ground-markers.mjs')
 const {weaponThumbnailArt}=await import('../public/js/engines/kart-assets.mjs');
 const {paintKartWeapon}=await import('../public/js/engines/kart-weapon-hud.mjs');
 const {kartResultView}=await import('../public/js/engines/kart-results.mjs');
+const {kartGarageHtml,createKartGarageUI,garagePreviewKey}=await import('../public/js/engines/kart-garage-ui.mjs');
+const {createGarageThumbnail}=await import('../public/js/engines/kart-garage-thumbnail.mjs');
 const {readInputCapabilities,touchControlsFor}=await import('../public/js/toolkit/input-capabilities.mjs');
 const {createGearbox,paintGear}=await import('../public/js/engines/kart-gearbox.mjs');
 const {createKartArenaFeatures,drawArenaFeatures2d}=await import('../public/js/engines/kart-arena-features-art.mjs');
@@ -95,7 +97,7 @@ const context = vm.createContext({document, window, console, Date,
   createKartAudio: () => {const audio={cues:[],active:true,muted:false,unlock(){},setMuted(value){this.muted=value},update(frame){this.active=frame.active},cue(name){if(this.active&&!this.muted)this.cues.push(name)},dispose(){}};audios.push(audio);return audio;},
   createPoseStore: () => ({}), resetPoseStore() {}, ingestSnapshot() {}, framePoses: () => new Map(),
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
-  intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d});
+  kartGarageHtml,createKartGarageUI,garagePreviewKey,createGarageThumbnail,intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d});
 // The hearts HUD runs against this fake DOM, so it loads into the same context.
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-skids.mjs'),'utf8').replace(/^export /gm,''),context);
@@ -108,8 +110,8 @@ src = src.replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];\s*/g,'')
 vm.runInContext(src+'\nthis.makeView = createKartView;',context);
 const view = context.makeView({});
 const main = new Node(), sent = [];
-const spoken=[];
-const api = {send: a => sent.push(a), announce:message=>spoken.push(message), now: () => 1000};
+const spoken=[],garageCues=[];
+const api = {cue:(name,opts)=>garageCues.push({name,...opts}),send: a => sent.push(a), announce:message=>spoken.push(message), now: () => 1000};
 const state = phase => ({phase, you:'one', youDrive:true, endsAt:phase==='done'?0:31000,
   mode:'battle', palette:'Daybreak', targetHits:3, targetStars:8, map:{id:'ring',blocks:[]},
   players:[{id:'one',name:'A'}], karts:[{pid:'one',hits:1,ammo:1,weapon:'pulse',respawn:0}],
@@ -622,12 +624,18 @@ const buy={disabled:false,getAttribute:()=> 'engine'};
 result.fire('click',{target:{closest:()=>buy}});
 assert.equal(sent.at(-1).garage.category,'engine');
 assert.equal(buy.disabled,true,'purchase disables immediately');
+assert.equal(garageCues.length,0,'sending a purchase does not play success');
+assert(result.innerHTML.includes('data-state="pending"'),'pending purchase explains the disabled controls');
 const request=sent.at(-1).garage,afterBuy=sent.length;
 result.fire('click',{target:{closest:()=>({...buy,disabled:false})}});
 assert.equal(sent.length,afterBuy,'pending purchase cannot double-send');
 garage.coins=15;garage.upgrades.one.engine=1;garage.garageResult={...request,ok:true,level:1};
 view.update(main,garage,api);
 assert(result.innerHTML.includes('Engine upgraded to level 1!'));
+assert.equal(garageCues.length,1,'one confirmed purchase gets one cue');
+view.update(main,garage,api);
+assert.equal(garageCues.length,1,'repeated acknowledgement never replays purchase feedback');
+assert(result.innerHTML.includes('Need 20 more coins'),'next price explains the missing coins');
 const watcher={...garage,you:'watcher',youDrive:false};view.update(main,watcher,api);
 assert(!result.innerHTML.includes('Your garage'),'watcher never gets purchase controls');
 const beforeWatch=sent.length;result.fire('click',{target:{closest:()=>({...buy,disabled:false})}});
