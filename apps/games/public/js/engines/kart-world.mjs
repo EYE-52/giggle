@@ -57,6 +57,8 @@ import {KART_R} from './kart-pose.mjs';
 
 export const WORLD_ID = 'giggle-grove-circuit';
 export const WORLD_BOUNDS = 30; // legacy playable half-extent; walls align here
+// Height/width of the shipped panorama tile (assets/karts/backdrops).
+const BACKDROP_ASPECT = 324 / 2172;
 export const WORLD_HALF_DEFAULT = 30; // ring/blocks legacy
 export const WORLD_HALF_LARGE = 60; // garden/frost/neon (120x120, 4x area)
 export const SCENERY_MIN = 32; // legacy: nothing but paint stands inside this radius
@@ -1582,13 +1584,41 @@ export function createKartWorld(THREE, options) {
       }
     }
     const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));geo.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geo.setIndex(indices);geo.computeVertexNormals();
-    const ridge=new THREE.Mesh(geo,std(0xffffff,{vertexColors:true,roughness:1,flatShading:true,side:THREE.DoubleSide}));ridge.name=name;root.add(ridge);
+    // Smooth shading: hard facets on big distant shapes read as cheap.
+    const ridge=new THREE.Mesh(geo,std(0xffffff,{vertexColors:true,roughness:1,side:THREE.DoubleSide}));ridge.name=name;root.add(ridge);
+    return ridge;
   }
+  const farRidges=[];
   if(theme!=='neon') {
-    alpineRidge(hillMin+46,quarry?25:27,1.31,'ridge-near',false);
-    alpineRidge(hillMin+104,quarry?39:49,4.72,'ridge-far',true);
-    alpineRidge(hillMin+164,quarry?49:68,7.91,'ridge-summit',true);
+    farRidges.push(alpineRidge(hillMin+46,quarry?25:27,1.31,'ridge-near',false));
+    farRidges.push(alpineRidge(hillMin+104,quarry?39:49,4.72,'ridge-far',true));
+    farRidges.push(alpineRidge(hillMin+164,quarry?49:68,7.91,'ridge-summit',true));
   }
+  // Painted panorama of distant peaks (assets/karts/backdrops). It wraps the
+  // arena on an inward cylinder (the painting tiles seamlessly), and
+  // replaces the procedural ridges once it has loaded. Headless builds
+  // and load failures keep the ridges.
+  const backdropMat=basic(0xffffff,{transparent:true,depthWrite:false,side:THREE.BackSide,fog:true});
+  const backdropFile=theme==='garden'||theme==='grove'?'mountains-day.webp':null;
+  if(backdropFile&&!quarry&&typeof THREE.TextureLoader==='function'&&typeof globalThis.document?.createElementNS==='function') {
+    const radius=hillMin+150,repeats=4,width=2*Math.PI*radius/repeats,height=width*BACKDROP_ASPECT*1.6;
+    new THREE.TextureLoader().load('/assets/karts/backdrops/'+backdropFile,tex=>{
+      if(!root.parent){tex.dispose();return;}
+      tex.colorSpace=THREE.SRGBColorSpace;tex.wrapS=THREE.RepeatWrapping;tex.repeat.set(repeats,1);tex.anisotropy=4;
+      backdropMat.map=tex;backdropMat.needsUpdate=true;
+      const geo=new THREE.CylinderGeometry(radius,radius,height,96,1,true);
+      const panorama=new THREE.Mesh(geo,backdropMat);panorama.name='mountain-backdrop';
+      // Foothills sit just below the far grass so the painting meets land.
+      panorama.position.y=height/2-6;panorama.renderOrder=-1;root.add(panorama);
+      for(const ridge of farRidges)ridge.visible=false;
+    },undefined,()=>{});
+  }
+  // Day cycle: warm toward the horizon colour and dim with the night.
+  const backdropWhite=new THREE.Color(0xffffff),backdropTint=new THREE.Color();
+  function tintBackdrop(horizonHex,night){
+    backdropTint.setHex(horizonHex);backdropMat.color.copy(backdropWhite).lerp(backdropTint,.25+.25*night).multiplyScalar(1-.62*night);
+  }
+  tintBackdrop(P.horizon,P.stars?1:0);
 
   /* ---- original motorsport landmarks and physical set dressing ---- */
   const landmark = new THREE.Group();landmark.name='arena-landmark-'+identity;root.add(landmark);
@@ -2436,6 +2466,7 @@ export function createKartWorld(THREE, options) {
     livePalette.stars = starOp > 0.4;
     livePalette.cloudsVisible = name !== 'Starlight';
     skyZen.setHex(livePalette.sky); skyMid.setHex(livePalette.skyMid); skyHor.setHex(livePalette.horizon);
+    tintBackdrop(livePalette.horizon,nightness);
     paintDome();
     sunMesh.position.copy(sunDirV).multiplyScalar(sunDist);
     sunMesh.material.color.setHex(livePalette.sunDisc);
