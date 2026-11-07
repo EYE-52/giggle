@@ -1145,7 +1145,7 @@ export const SYNTH_CUE_NAMES = Object.freeze(['hitDing','machinegun','trishot','
 export const SYNTH_CUE_SPEC = Object.freeze({
  hitDing:[.24,.19],machinegun:[.22,.08],trishot:[.26,.15],missile:[.25,.45],cannon:[.32,.5],blades:[.22,.8],supernova:[.22,.9],
  nuke:[.25,1.1],mine:[.2,.2],cannonBoom:[.35,.7],missileBlast:[.3,.6],novaBlast:[.3,.9],nukeBlast:[.4,1.8],
-  laser: [.26, .24], thunder: [.24, .3], thunderClap: [.38, 1.25], boomerang: [.22, .95], oil: [.3, .3], oilSkid: [.26, .6],
+  laser: [.26, .24], thunder: [.24, .3], thunderClap: [.38, 1.25], boomerang: [.34, .95], oil: [.3, .3], oilSkid: [.26, .6],
   frost: [.24, .22], frostShatter: [.28, .6], cluster: [.32, .22], clusterPop: [.26, .1], bouncer: [.24, .22], boing: [.24, .38],
   ram: [.26, 1.05], ramClang: [.32, .7],
 });

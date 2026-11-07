@@ -120,6 +120,16 @@ const state = phase => ({phase, you:'one', youDrive:true, endsAt:phase==='done'?
   players:[{id:'one',name:'A'}], karts:[{pid:'one',hits:1,ammo:1,weapon:'machinegun',respawn:0}],
   result:phase==='done'?{winner:'one',winners:['one'],standings:[{pid:'one',score:1}],endReason:'timeout'}:null});
 view.mount(main,api); view.update(main,state('drive'),api);
+{
+  const radar=main.querySelector('#pk-radar');let paints=0;
+  const ctx=new Proxy({}, {get:(o,k)=>o[k]||(()=>{if(k==='clearRect')paints++;})});
+  radar.getContext=()=>ctx;
+  for(let i=0;i<30;i++){clock+=1000/30;view.update(main,state('drive'),api);}
+  assert(paints>=8&&paints<=10,'30Hz snapshots redraw the small radar at most 10 times a second');
+  const before=paints,next=state('drive');next.map.id='frost';view.update(main,next,api);
+  assert.equal(paints,before+1,'a changed arena redraws the radar immediately');
+  delete radar.getContext;view.update(main,state('drive'),api);
+}
 assert(!main.querySelector('.pk').classList.contains('pk-done'));
 assert.equal(main.querySelector('#pk-touch').hidden,false);
 assert.equal(main.querySelector('#pk-mine').textContent,'You · 1 KO');

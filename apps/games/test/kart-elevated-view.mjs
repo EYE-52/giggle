@@ -72,14 +72,14 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   const api={send:a=>sent.push(structuredClone(a)),name:id=>id==='a'?'Anika':'Bastian',now:()=>clock,context:()=>({isHost:host,sound:false}),resultsReady:i=>ready.push(i),lobby(){}};
   const schedule=(fn,ms,repeat=false)=>{const id=++seq;timers.set(id,{fn,ms,at:clock+ms,repeat});return id;};
   let instanceAllocations=0,projectileAllocations=0,graphicsAllocations=0,prepared=false,reduced=false;
-  const renderStats={warmFrames:0,compiles:0};
+  const renderStats={warmFrames:0,compiles:0},projectiles=[];
   const ThreeTest={...THREE,InstancedMesh:class extends THREE.InstancedMesh{constructor(...args){super(...args);instanceAllocations++;}}};
   for(const name of ['Group','Mesh','Vector3','Quaternion','Box3','BoxGeometry','ConeGeometry','MeshBasicMaterial'])ThreeTest[name]=class extends THREE[name]{constructor(...args){super(...args);graphicsAllocations++;}};
   class LocalLoader{setMeshoptDecoder(){return this;}async loadAsync(url){assetRequests.push(url);if(missingDrivers.some(id=>url.endsWith('/drivers/'+id+'.glb')))throw Error('optional driver unavailable');const b=fs.readFileSync(repo+'/public'+url.split('?')[0]);return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'').catch(error=>{console.error('GLB fixture failed',url,error.message);throw error;});}}
   const context=vm.createContext({WEAPON_IDS:combatWeaponIds,document,window,LocalLoader,MeshoptDecoder,cleanKartLook,kartPaintHex,loadKartDrivers,buildKartDriverVariants,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
     mergeFixtureGeometries,createKartWarmupLibrary,warmKartRenderer,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:()=>({revision:'combat-elevation-2'}),
     createKartElevatedWorld:()=>{const meshes=new Map();for(const d of colliders){const body=new THREE.Mesh(elevatedSolidGeometry(THREE,d),new THREE.MeshBasicMaterial());body.position.copy(d.position);if(d.rotation)body.quaternion.copy(d.rotation);body.updateMatrixWorld();meshes.set(d.id,{body,descriptor:d});}return {colliderMeshes:meshes,lighting:{fogColor:new THREE.Color(0xaaaaaa),fogNear:100,fogFar:500,exposure:1},animate(){},updateDetail(){},dispose(){for(const {body}of meshes.values()){body.geometry.dispose();body.material.dispose();}}};},
-    createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;return projectile(...a);};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
+    createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;const object=projectile(...a);projectiles.push(object);return object;};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
     createMobileStick:(node,opts)=>{const stick={node,opts,resets:0,disposed:0,reset(){this.resets++},dispose(){this.disposed++}};sticks.push(stick);return stick;},
     createKartAudio:()=>{const a={disposed:0,cues:[],frames:[],muted:false,active:true,preps:0,prep(){this.preps++},ready(){return this.readyWait||Promise.resolve(true)},unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
     createThreeView:(stage,options)=>new Promise(resolve=>loads.push({stage,options,resolve,settled:false})),
@@ -94,7 +94,7 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   async function settle(index=loads.length-1,fallback=false){const l=loads[index];l.settled=true;const h={fallback,canvas:new Node('canvas',document),disposals:0,dispose(){this.disposals++;this.built?.dispose();this.canvas.remove();}};if(!fallback){l.stage.append(h.canvas);if(graphics){const renderer={shadowMap:{},async compileAsync(){renderStats.compiles++;},render(){renderStats.warmFrames++;}};h.built=await l.options.build(ThreeTest,{canvas:()=>h.canvas,renderer:()=>renderer,reducedMotion:()=>reduced,track(){},disposeObject(){}});h.built.camera.aspect=aspect;h.built.camera.updateProjectionMatrix();prepared=true;}}l.handle=h;l.resolve(h);await flush();return h;}
   function advance(ms){const until=clock+ms;while(true){let next=[...timers].filter(([,t])=>t.at<=until).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;const[id,t]=next;clock=t.at;if(t.repeat)t.at+=t.ms;else timers.delete(id);t.fn();}clock=until;}
   function key(code,type='keydown',target=loads.at(-1)?.handle?.canvas){return window.dispatch(type,{code,target});}
-  return{view,el,document,window,roomMenu,api,assetRequests,sent,ready,loads,audios,sticks,timers,node,render,settle,advance,key,flush,host:v=>host=v,renderStats,thumbnails:value=>{thumbnailsReady=value;},allocations:()=>({instances:instanceAllocations,projectiles:projectileAllocations,graphics:graphicsAllocations,prepared}),frame:(dt=1/60)=>loads.at(-1).handle.built.frame(dt,clock/1000),motion:v=>reduced=v};
+  return{view,el,document,window,roomMenu,api,assetRequests,sent,ready,loads,audios,sticks,timers,node,render,settle,advance,key,flush,host:v=>host=v,renderStats,projectiles,thumbnails:value=>{thumbnailsReady=value;},allocations:()=>({instances:instanceAllocations,projectiles:projectileAllocations,graphics:graphicsAllocations,prepared}),frame:(dt=1/60)=>loads.at(-1).handle.built.frame(dt,clock/1000),motion:v=>reduced=v};
 }
 {
   const r=rig();assert.doesNotThrow(()=>r.render({...base(),instanceId:undefined}),'first legacy snapshot without an instance id is accepted safely');r.view.dispose();
@@ -420,10 +420,11 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     }finally{view?.view.dispose();probe.dispose();if(adapter&&state)adapter.dispose(state);else match.dispose();}
   }
   const r=rig({graphics:true});r.render();await r.settle();r.frame();
-  check('all combat variants compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===1&&r.renderStats.warmFrames===1);
+  check('both shadow quality modes compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===2&&r.renderStats.warmFrames===2);
   const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.isInstancedMesh&&o.name!=='KartSkidMarks');
   check('all twelve prepared particle buffers remain attached after warming',effectPool.length===12&&effectPool.every(o=>o.parent===built.scene&&!o.visible));
-  const projectilePool=built.scene.children.filter(o=>o.userData.combat?.type==='projectile');
+  const projectilePool=r.projectiles.filter(o=>o.userData.combat?.contactRadius>0);
+  check('all reserved projectile bodies stay off the live scene graph',projectilePool.length>300&&projectilePool.every(o=>o.parent===null));
   for(const [kind,radius]of Object.entries(COMBAT.staticSweepRadii)){
     const prepared=projectilePool.filter(o=>o.userData.combat.kind===kind);
     check(kind+' all 64 warmed shots share cached authoritative contact calibration',prepared.length===64&&prepared.every(o=>o.userData.combat.contactRadius===radius&&o.userData.combat.contactInset>=.005&&o.userData.combat.contactInset===prepared[0].userData.combat.contactInset));
@@ -453,7 +454,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   check('repeated rocket/nuke shots recycle prepared projectile objects',r.allocations().projectiles===allocations.projectiles);
   check('live projectile frames never traverse meshes to recalibrate contact',projectileTraversals===0);
   check('blast saturation reuses the bounded particle buffer pool',r.allocations().instances===allocations.instances);
-  check('repeated rocket blasts leave visible particle buffers in the rendered scene',impactPool.length===3&&impactPool.every(o=>o.parent?.parent===built.scene)&&impactPool.some(o=>o.visible));
+  check('repeated rocket blasts leave visible particle buffers in the rendered scene',impactPool.length===4&&impactPool.every(o=>o.parent?.parent===built.scene)&&impactPool.some(o=>o.visible));
   check('prepared rocket visible nose agrees with its calibrated accepted sphere front',built.scene.children.some(o=>{if(o.userData.combat?.kind!=='missile'||!o.visible)return false;o.updateMatrixWorld(true);const tip=o.localToWorld(new THREE.Vector3(0,0,o.userData.combat.tipZ));return Math.abs(tip.z-(4+COMBAT.staticSweepRadii.missile-o.userData.combat.contactInset))<1e-6;}));
   r.render({...base(),simAt:1600,simTick:90,events:[event(90,'blast')]});r.frame();
   check('latest authoritative blast retires its buffered projectile immediately',!built.scene.children.some(o=>o.userData.combat?.type==='projectile'&&o.visible)&&impactPool.some(o=>o.visible));
@@ -487,7 +488,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   const scene=gl.built.scene,cues=scene.children.filter(o=>o.name==='CombatConfirmedShot'),allocation=r.allocations();
   check('confirmed shot pool is prepared and bounded to twelve tracers per straight weapon',cues.length===24&&cues.every(o=>!o.visible&&o.children.length===1&&o.children[0].isMesh));
   for(const kind of ['machinegun','trishot']){
-    const source=scene.children.find(o=>o.userData.combat?.type==='projectile'&&o.userData.combat.kind===kind).userData.combat.tail;
+    const source=r.projectiles.find(o=>o.userData.combat?.type==='projectile'&&o.userData.combat.kind===kind).userData.combat.tail;
     check(kind+' feedback borrows prepared projectile tracer geometry and material',cues.filter(o=>o.userData.confirmedShot===kind).every(o=>o.children[0].geometry===source.geometry&&o.children[0].material===source.material));
   }
   check('Pulse white and Scatter amber feedback retain the existing art colors',cues.find(o=>o.userData.confirmedShot==='machinegun').children[0].material.color.getHex()===0xffffff&&cues.find(o=>o.userData.confirmedShot==='trishot').children[0].material.color.getHex()===0xffb020);

@@ -13,7 +13,7 @@ const eq=(actual,expected,message)=>{assertions++;assert.deepEqual(actual,expect
 class Element {
   constructor(){this.style={};this.children=[];this.dataset={};this.attrs=new Map();this.textContent='';this.parent=null;this.pops=0;}
   get childElementCount(){return this.children.length;}
-  get offsetWidth(){return 0;}
+  get offsetWidth(){throw new Error('hit feedback must not force a synchronous layout');}
   // Only the classed elements kart-hearts writes become children; nested svg is art.
   set innerHTML(html){this.html=html;this.children=[...html.matchAll(/<(i|b) class="([^"]+)"/g)].map(([,tag,cls])=>Object.assign(new Element(),{tagName:tag,className:cls,parent:this}));}
   get innerHTML(){return this.html||'';}
@@ -106,6 +106,12 @@ globalThis.document={createElement:()=>new Element()};
   ok(marker.hasAttribute('data-on')&&toast.hasAttribute('data-on'),'landed shows marker and toast');
   eq(toast.textContent,'+2','toast carries the landed text');
   fx.landed();eq(toast.textContent,'+1','toast defaults to +1');
+  let plays=0;
+  const animation={currentTime:99,play(){plays++;}};
+  marker.getAnimations=()=>[animation];
+  fx.landed();
+  eq(animation.currentTime,0,'a repeated hit rewinds the existing animation');
+  eq(plays,1,'a repeated hit reuses the browser animation without a layout read');
   fx.dispose();
   eq(host.children.length,0,'dispose removes the overlay');
 

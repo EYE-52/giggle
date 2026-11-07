@@ -49,7 +49,8 @@ export function prepareGroundProp(THREE,mesh) {
     let feet=trapFootprints.get(source);
     if(!feet){
       mesh.updateWorldMatrix(true,true);
-      const bounds=new THREE.Box3().setFromObject(mesh);
+      const bounds=new THREE.Box3(),partBounds=new THREE.Box3();
+      mesh.traverse(child=>{if(child.isMesh&&!child.userData.groundDecoration){if(!child.geometry.boundingBox)child.geometry.computeBoundingBox();partBounds.copy(child.geometry.boundingBox).applyMatrix4(child.matrixWorld);bounds.union(partBounds);}});
       const min=bounds.min.clone(),max=bounds.max.clone();
       mesh.worldToLocal(min);mesh.worldToLocal(max);
       feet=[];
@@ -61,7 +62,7 @@ export function prepareGroundProp(THREE,mesh) {
       const a=new THREE.Vector3(),b=new THREE.Vector3(),c=new THREE.Vector3(),point=new THREE.Vector3();
       const weights=[[1/3,1/3,1/3],[.5,.5,0],[0,.5,.5],[.5,0,.5],[.25,.25,.5],[.25,.5,.25],[.5,.25,.25]];
       mesh.traverse(child=>{
-        if(!child.isMesh)return;
+        if(!child.isMesh||child.userData.groundDecoration)return;
         const p=child.geometry.attributes.position,index=child.geometry.index,count=index?.count??p.count;
         for(let i=0;i<p.count;i++){
           mesh.worldToLocal(point.fromBufferAttribute(p,i).applyMatrix4(child.matrixWorld));feet.push(point.x,point.y,point.z);

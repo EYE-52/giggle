@@ -197,6 +197,7 @@ export function createKartView(viewConfig) {
   let mountGen = 0;
   let gl = null; // three-view handle (null in fallback)
   let sceneState = null;
+  let radarCanvas=null,radarAt=-Infinity,radarMap=null;
   const feedback = createKartFeedback();
   let poseStore = createPoseStore();
   let physicalPrediction,physicalReady,physicalSeq=0,physicalLocalPose;
@@ -947,6 +948,12 @@ export function createKartView(viewConfig) {
   function drawRadar() {
     const canvas = rootEl.querySelector('#pk-radar');
     if (!canvas?.getContext) return;
+    // The room can deliver 30 snapshots/s and roulette also paints the HUD.
+    // Canvas work was a top CPU cost during weapon use. A 120px radar needs
+    // only 10 updates/s; the main scene still draws every animation frame.
+    const now=nowMs(),mapKey=S.instanceId+':'+S.map?.id;
+    if(canvas===radarCanvas&&mapKey===radarMap&&now-radarAt<100)return;
+    radarCanvas=canvas;radarMap=mapKey;radarAt=now;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     const size = 120, half = S.map?.half || 30, scale = 108 / (half * 2);
@@ -1131,7 +1138,8 @@ export function createKartView(viewConfig) {
       sceneState = {karts,stars,crates,zaps,mines,grenades};
       world.group.traverse((mesh) => { if (mesh.isMesh) mesh.receiveShadow = true; });
       const rm = reducedMotion();
-      const syncBlocks = () => world.syncMap((S && S.map) || {id:'ring',blocks:[]});
+      let syncedMap=null;
+      const syncBlocks = () => {if(S?.map&&S.map!==syncedMap){world.syncMap(S.map);syncedMap=S.map;}};
       const tmpV = new THREE.Vector3(), shakeOffset = new THREE.Vector3();
       let cameraEpoch = null,driftSwing=0;
       // Warm every combat variant before readiness. The hidden source library
@@ -1197,14 +1205,17 @@ export function createKartView(viewConfig) {
           scene.getObjectByName('KartSkidMarks'),scene.getObjectByName('KartThreatRing'),
           scene.getObjectByName('arena-feature-fx'),scene.getObjectByName('KartImpactFX')]});
       arsenalFX.reset();
-      for(const pool of minePools.values())for(const object of pool){object.removeFromParent();object.visible=false;scene.add(object);}
-      for(const pool of grenadePools.values())for(const object of pool){object.removeFromParent();object.visible=false;scene.add(object);}
+      // Keep reserved bodies off the live scene graph. Three updates world
+      // matrices even for invisible objects; hundreds of spare projectiles
+      // were paying that cost on every frame after warm-up.
+      for(const pool of minePools.values())for(const object of pool){object.removeFromParent();object.visible=false;}
+      for(const pool of grenadePools.values())for(const object of pool){object.removeFromParent();object.visible=false;}
 
       for(const model of karts.values()){model.removeFromParent();scene.add(model);model.position.set(0,0,0);arsenalFX.status(model,null);}
       warm.removeFromParent();reserve.visible=false;reserve.position.y=0;
       for(const pool of markerPools.values())for(const marker of pool){marker.visible=false;reserve.add(marker);}
       for(const k of S.karts||[])healthBars.add(k.pid).visible=false;
-      for(const pool of shotPools.values())for(const object of pool){object.removeFromParent();object.visible=false;object.position.set(0,0,0);scene.add(object);}
+      for(const pool of shotPools.values())for(const object of pool){object.removeFromParent();object.visible=false;object.position.set(0,0,0);}
       for(const cue of shotCues){cue.object.removeFromParent();cue.object.visible=false;cue.object.position.set(0,0,0);scene.add(cue.object);}
       if(gen!==mountGen)throw new Error('Retired kart scene');
       let impactEpoch=-1,impactSince=nowMs(),lastEffectTime=null;
@@ -1410,12 +1421,13 @@ export function createKartView(viewConfig) {
         const liveZ = new Set();
         const currentZ=(ordnanceFresh()?S.zaps:[])||[];
         for(const z of currentZ)liveZ.add(z.id);
-        for(const [id,mesh]of zaps)if(!liveZ.has(id)){mesh.visible=false;shotPools.get(mesh.userData.combat.kind)?.push(mesh);zaps.delete(id);}
+        for(const [id,mesh]of zaps)if(!liveZ.has(id)){mesh.visible=false;mesh.removeFromParent();shotPools.get(mesh.userData.combat.kind)?.push(mesh);zaps.delete(id);}
         for (const z of currentZ) {
           liveZ.add(z.id);
           let mesh = zaps.get(z.id);
           if (!mesh) {
             mesh = shotPools.get(z.kind)?.pop()||combat.projectile(z.kind);
+            mesh.userData.combat.trailClock=0;mesh.userData.combat.trailX=Infinity;
             mesh.position.set(z.x, 0.7, z.z);
             scene.add(mesh);
             zaps.set(z.id, mesh);
@@ -1434,25 +1446,25 @@ export function createKartView(viewConfig) {
         }
         for (const [zid, mesh] of zaps) {
           if (!liveZ.has(zid)) {
-            mesh.visible=false;
+            mesh.visible=false;mesh.removeFromParent();
             const pool=shotPools.get(mesh.userData.combat?.kind);if(pool)pool.push(mesh);else scene.remove(mesh);
             zaps.delete(zid);
           }
         }
         const liveG=new Set(),currentG=(ordnanceFresh()?S.grenades:[])||[];
         for(const g of currentG)liveG.add(g.id);
-        for(const[id,group]of grenades)if(!liveG.has(id)){if(group.userData.ring)returnMarker(group.userData.ring);group.userData.ring=null;group.visible=false;grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
+        for(const[id,group]of grenades)if(!liveG.has(id)){if(group.userData.ring)returnMarker(group.userData.ring);group.userData.ring=null;group.visible=false;group.removeFromParent();grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
         for(const g of currentG){liveG.add(g.id);let group=grenades.get(g.id);
           if(!group){const kind=g.kind==='frost'?'frost':'nuke';group=grenadePools.get(kind).pop();group.visible=true;
             // Only the Nuke marks its knockout radius on the ground.
             const ring=kind==='nuke'?takeMarker('nuke'):null;group.userData.ring=ring;scene.add(group);grenades.set(g.id,group);}
           const flight=grenadePose(g,S,serverNow());group.position.set(flight.x,flight.y+(g.physical ? .45 : .38),flight.z);group.rotation.y=flight.angle;group.visible=flight.visible;
-          combat.animate(group.userData.body,dt,t,rm);if(group.userData.ring){placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;}
+          combat.animate(group.userData.body,dt,t,rm);if(flight.visible)impactFX.trail(group.userData.body,dt,group.position);if(group.userData.ring){placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;}
         }
         for(const[id,group]of grenades)if(!liveG.has(id)){if(group.userData.ring)returnMarker(group.userData.ring);group.visible=false;grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
         const liveM = new Set(),currentM=(ordnanceFresh()?S.mines:[])||[];
         for(const m of currentM)liveM.add(m.id);
-        for(const[id,mesh]of mines)if(!liveM.has(id)){mesh.visible=false;minePools.get(mesh.userData.poolKey).push(mesh);mines.delete(id);}
+        for(const[id,mesh]of mines)if(!liveM.has(id)){mesh.visible=false;mesh.removeFromParent();minePools.get(mesh.userData.poolKey).push(mesh);mines.delete(id);}
         for (const m of currentM) {
           liveM.add(m.id);
           let mesh = mines.get(m.id);
@@ -1774,6 +1786,7 @@ export function createKartView(viewConfig) {
     disposeGl();
     hitFx?.dispose();hitFx=null;
     S = null;lastSnapshotArrival=null;
+    radarCanvas=null;radarAt=-Infinity;radarMap=null;
     feedback.reset();
     apiRef = null;
     rootEl = null;
