@@ -53,8 +53,11 @@ export function classicControls(k,dt,map,battle){
   // Grip recovers from measured slip and opposite steering, rather than
   // rotating the chassis or granting velocity during a slide.
   const recovery=steer*(k.physicalPose?.angularVelocity.y||0)>.2?1:clamp((Math.abs(k.slip||0)-1.4)/1.5,0,1);
-  const boost=Math.max(k.boost>0?1.6:1,k.turbo>0?1.35:1,k.nitroActive?1.6:1);
-  return {intent:{throttle,steer,brake:0},tuning:{top:engine*boost,engine:Math.min(2,engine*(boost>1?1.6:1)),steering:handling*(active?1.05:1),traction:1,rearTraction:active?.25+.75*recovery:(k.physicalPose?.grounded&&Math.abs(steer)>.55&&k.speed>12?.82:1),rearStiffness:active?.7+.3*recovery:1}};
+  const boost=Math.max(k.boost>0?1.6:1,k.turbo>0?1.35:1,k.nitroActive?1.6:1,k.rammingT>0?1.5:1);
+  // Weapon status: Frost caps top speed, an Oil Slick strips rear grip.
+  const frost=k.frostT>0?.55:1,spun=k.spinT>0;
+  const tune=n=>clamp(n,.1,2);
+  return {intent:{throttle,steer,brake:0},tuning:{top:tune(engine*boost*frost),engine:tune(Math.min(2,engine*(boost>1?1.6:1))*(frost<1?.7:1)),steering:handling*(active?1.05:1),traction:1,rearTraction:spun?.12:active?.25+.75*recovery:(k.physicalPose?.grounded&&Math.abs(steer)>.55&&k.speed>12?.82:1),rearStiffness:spun?.2:active?.7+.3*recovery:1}};
 }
 
 export function createClassicMotion(RAPIER,baseConfig,state){
@@ -79,7 +82,7 @@ export function createClassicMotion(RAPIER,baseConfig,state){
   return {
     advance(dt,connected){if(disposed)throw Error('classic world disposed');sync(connected);accumulator=Math.min(.25,accumulator+dt);const contacts=new Map();
       while(accumulator>=config.fixedDt-1e-9){
-        for(const k of state.karts)if(enabled.get(k.pid)){const control=classicControls(k,config.fixedDt,map,state.mode==='battle');physics.tuneKart(k.pid,control.tuning);physics.applyIntent(k.pid,control.intent);k._appliedSeq=k._receivedSeq||0;}
+        for(const k of state.karts)if(enabled.get(k.pid)){if(k.spinKick){physics.spinKart?.(k.pid,k.spinKick);k.spinKick=0;}const control=classicControls(k,config.fixedDt,map,state.mode==='battle');physics.tuneKart(k.pid,control.tuning);physics.applyIntent(k.pid,control.intent);k._appliedSeq=k._receivedSeq||0;}
         physics.step();for(const k of state.karts)project(k);accumulator-=config.fixedDt;
         for(const ids of physics.kartContacts())contacts.set(ids.join('|'),ids.map(id=>state.karts.find(k=>k.pid===id)));
         for(const impact of physics.drainImpacts()){

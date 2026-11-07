@@ -260,6 +260,14 @@ function createKartPhysics(RAPIER, config) {
     }
     return pairs;
   }
+  // One-shot yaw kick (an Oil Slick spin-out). Keeps the current travel.
+  function spinKart(id, yawRate) {
+    const kart = kartFor(id);
+    if (!kart.enabled || kart.frozen || !finite(yawRate)) return false;
+    const a = kart.body.angvel();
+    kart.body.setAngvel({ x: a.x, y: clamp(yawRate, -12, 12), z: a.z }, true);
+    return true;
+  }
   function tuneKart(id, tuning) {
     const kart = kartFor(id);
     if (!tuning || Object.keys(tuning).some(k => !Object.hasOwn(kart.tuning, k))) throw new TypeError('invalid tuning');
@@ -321,7 +329,7 @@ function createKartPhysics(RAPIER, config) {
     contactQueue.free(); world.free(); karts.clear(); statics.clear(); surfaces.clear(); kartColliders.clear(); impacts.length=0; disposed = true;
   }
   return Object.freeze({ apiVersion: 2, addStatic, addKart, resetKart, restoreKart, kartContacts, applyIntent, step, pose, poses, supportAt,
-    sweepStatic, overlapsStatic, setKartEnabled, freezeKart, tuneKart, drainImpacts, stats, dispose });
+    sweepStatic, overlapsStatic, setKartEnabled, freezeKart, tuneKart, spinKart, drainImpacts, stats, dispose });
 }
 
 export { createKartPhysics, wedgeVertices };
