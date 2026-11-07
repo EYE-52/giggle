@@ -222,3 +222,20 @@ console.log(JSON.stringify({collisionMetrics,scope:'two actual Rapier worlds, fo
  assert.deepEqual(prediction.remote('b',50+prediction.remoteDelay()).physicalPose.position,{x:initial.x/2,y:initial.y+(.65-initial.y)*.5,z:initial.z+(4-initial.z)*.5},'non-driving role retains delayed interpolation');
  prediction.dispose();physics.dispose();
 }
+
+// A locally predicted entry must dress the tube before the next server
+// snapshot knows about the launch. The physics pose and landing stay shared.
+{
+ const features={cannons:[{x:0,z:0,angle:0,land:{x:0,z:20,angle:0},flight:1.4,apex:8}],portals:[],falls:[]};
+ const driver={pid:'entry',x:0,z:-1.35,angle:0,speed:0,input:{throttle:1,steer:0},spawnSeq:0,connected:true,nitro:1};
+ const state={map:'mouth-prediction',mode:'battle',half:30,blocks:[],pads:[],surfaces:[],features,karts:[driver],physicalEvents:[],physicalEventSeq:0};
+ const physics=createClassicMotion(RAPIER,config,state),prediction=createClassicPrediction(RAPIER);
+ physics.restore(driver,{...driver.physicalPose,linearVelocity:{x:0,y:0,z:4}});
+ const snapshot={instanceId:'mouth-prediction',phase:'drive',you:driver.pid,youDrive:true,mode:'battle',map:{id:'mouth-prediction',half:30,blocks:[],pads:[],surfaces:[],features},karts:[structuredClone(driver)],inputAck:{appliedInputSeq:0}};
+ prediction.ingest(snapshot,0);let draw;
+ for(let i=0;i<12&&!draw?.flight;i++)draw=prediction.frame(snapshot,{throttle:1,steer:0},1/60,(i+1)*1000/60);
+ assert.ok(draw.flight&&draw.flight.c===0,'draw pose carries the predicted launch through the real mouth trigger');
+ assert.ok(!snapshot.karts[0].flight,'no authoritative launch snapshot was injected');
+ prediction.dispose();physics.dispose();
+ console.log('KART_CANNON_PREDICTION_PASS: tube entry is visible before the next server snapshot');
+}

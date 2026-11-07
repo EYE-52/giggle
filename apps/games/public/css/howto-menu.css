@@ -1,44 +1,61 @@
-/* All how-to menu overrides live here; app-owned footer handlers stay intact. */
+/* Shared start menu and in-game Controls sheet. Shell IDs/handlers stay
+ * intact. Only the guide column can scroll on desktop; phones have one
+ * content scroller above a permanently reserved action bar. */
 dialog.howto-dlg {
-  width: min(536px, calc(100vw - var(--space-32)));
-  max-height: calc(100dvh - var(--space-32) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  display: flex; flex-direction: column; gap: var(--space-16);
-  padding: var(--space-24); overflow: hidden;
+  box-sizing: border-box;
+  min-width: 0;
+  width: min(var(--howto-controls-w), calc(100vw - var(--space-48)));
+  max-height: calc(100dvh - var(--space-48) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: var(--space-12);
+  padding: var(--space-24); overflow: hidden; overscroll-behavior: contain;
   border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl);
   background: var(--card); color: var(--ink); box-shadow: var(--shadow-card);
-  font: var(--text-body); animation: howto-menu-enter var(--dur-base) var(--ease);
+  font: var(--text-body);
   color-scheme: light;
 }
 [data-theme="night"] dialog.howto-dlg { color-scheme: dark; }
 dialog.howto-dlg::backdrop { background: color-mix(in srgb, var(--ink) 40%, transparent); animation: none; }
 [data-theme="night"] dialog.howto-dlg::backdrop { background: color-mix(in srgb, var(--bg) 80%, transparent); }
 dialog.howto-dlg:not([open]) { display: none; }
+dialog.howto-start {
+  width: min(var(--howto-dialog-w), calc(100vw - var(--space-48)));
+  height: var(--howto-dialog-h);
+}
+/* At 1280×720 the 600px card leaves 60px above and below, and 548px
+ * inside. Pocket Karts' guide uses about 440px (64 header + 32 pills +
+ * 56 tabs + 60 goal + 164 tiles + gaps). The seat uses under 500px,
+ * including the garage, tools, note and reserved action. */
+.howto-layout { display: grid; grid-template-columns: minmax(0, 1fr) var(--howto-seat-w); gap: var(--space-24); flex: 1; min-width: 0; min-height: 0; max-width: 100%; }
+.howto-main { display: flex; flex-direction: column; gap: var(--space-12); min-width: 0; min-height: 0; }
 .howto-dlg .howto-head { flex: none; align-items: center; gap: var(--space-12); margin: 0; }
 .howto-dlg .howto-art { width: var(--space-64); height: var(--space-64); padding: var(--space-4); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--well); box-shadow: var(--shadow-sticker); transform: rotate(-2deg); }
-.howto-dlg .howto-titles h2 { margin: 0; font: var(--text-heading); text-wrap: balance; }
+.howto-dlg .howto-titles h2 { margin: 0; font: var(--text-heading); text-wrap: balance; overflow-wrap: anywhere; }
 .howto-dlg .howto-tag { margin: var(--space-4) 0 0; color: var(--ink-dim); font: var(--text-caption); text-wrap: pretty; }
 .howto-dlg #howtoClose { flex: none; width: var(--control-h-sm); height: var(--control-h-sm); min-height: var(--control-h-sm); margin: 0; padding: 0; border: var(--outline-w) solid transparent; border-radius: var(--radius-pill); color: var(--ink-dim); background: var(--well); box-shadow: none; transition: transform var(--dur-quick) var(--ease); }
 .howto-dlg .howto-meta { flex: none; gap: var(--space-8); margin: 0; }
-.howto-dlg .howto-pill { display: inline-flex; align-items: center; gap: var(--space-4); min-height: var(--space-32); padding: var(--space-4) var(--space-12); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--well); color: var(--ink); box-shadow: var(--shadow-sticker-sm); font: var(--text-caption); }
+.howto-dlg .howto-meta:empty { display: none; }
+.howto-dlg .howto-pill { display: inline-flex; align-items: center; gap: var(--space-4); min-height: var(--space-32); max-width: 100%; padding: var(--space-4) var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--well); color: var(--ink); box-shadow: var(--shadow-sticker-sm); font: var(--text-caption); overflow-wrap: anywhere; }
 .howto-dlg .howto-pill:nth-child(2) { color: var(--accent-deep); background: var(--accent-soft); }
 .howto-dlg .howto-tabs { display: flex; flex: none; gap: var(--space-4); padding: var(--space-4); margin: 0; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--well); }
 .howto-dlg .howto-tabs button { flex: 1; min-width: var(--control-h-sm); min-height: var(--control-h-sm); padding: var(--space-8) var(--space-12); border: var(--outline-w) solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--ink-dim); font: var(--text-button-sm); white-space: normal; transition: transform var(--dur-quick) var(--ease); }
 .howto-dlg .howto-tabs [aria-selected="true"] { border-color: var(--fam-lip); color: var(--on-fam); background: var(--fam); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
 .howto-dlg .howto-tabs [aria-selected="true"]::after { content: none; }
-.howto-dlg :is(#howtoPlayPanel, .howto-body) { min-height: 0; margin: 0; overflow-y: auto; overscroll-behavior: contain; }
-.howto-dlg .howto-body { padding: var(--space-4) var(--space-4) var(--space-16); }
+.howto-panels { min-height: 0; padding: var(--space-4); overflow-y: auto; overscroll-behavior: contain; }
+.howto-dlg :is(#howtoPlayPanel, .howto-body) { min-height: auto; margin: 0; overflow: visible; }
+.howto-dlg .howto-body { padding: 0 0 var(--space-16); }
 .howto-dlg .howto-body p { margin: 0 0 var(--space-12); font: var(--text-body); text-wrap: pretty; }
 .howto-dlg .howto-body p:last-child { margin-bottom: 0; }
 .howto-dlg #howtoPlayPanel.howto-intro:has(.howto-glance) { margin: 0; }
 .howto-dlg .howto-intro { color: var(--ink-dim); font: var(--text-body); text-wrap: pretty; }
-.howto-dlg .howto-glance { gap: var(--space-16); }
-.howto-dlg .howto-goal { align-items: flex-start; gap: var(--space-8); margin: 0; font: var(--text-title); }
-.howto-dlg .howto-label { padding: var(--space-4) var(--space-8); border-radius: var(--radius-sm); background: var(--fam-soft); color: var(--fam-deep); font: var(--text-caption); letter-spacing: normal; text-transform: none; transform: none; }
-.howto-dlg .howto-controls { grid-template-columns: repeat(auto-fit, minmax(min(100%, 184px), 1fr)); gap: var(--space-8); }
-.howto-dlg .howto-controls li { gap: var(--space-8); min-height: var(--control-h); padding: var(--space-8) var(--space-12); border-radius: var(--radius-md); background: var(--well); }
-.howto-dlg .howto-keys { gap: var(--space-4); }
-.howto-dlg .howto-keys kbd, .howto-dlg .howto-touch { min-width: var(--space-32); height: var(--space-32); padding: 0 var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); color: var(--ink); background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-caption); }
-.howto-dlg .howto-does { font: var(--text-button-sm); }
+.howto-dlg .howto-glance { gap: var(--space-12); }
+.howto-dlg .howto-goal { align-items: flex-start; gap: var(--space-8); margin: 0; padding: var(--space-12); border-radius: var(--radius-md); background: var(--fam-soft); color: var(--fam-deep); font: var(--text-button-sm); text-wrap: pretty; }
+.howto-dlg .howto-label { padding: 0; border-radius: 0; background: transparent; color: inherit; font: var(--text-caption); letter-spacing: normal; text-transform: none; transform: none; }
+.howto-dlg .howto-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
+.howto-dlg .howto-controls li { display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; grid-column: auto; gap: var(--space-8); min-width: 0; min-height: var(--space-64); padding: var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md); background: var(--well); }
+.howto-dlg .howto-keys { gap: var(--space-4); max-width: 100%; }
+.howto-dlg .howto-keys kbd, .howto-dlg .howto-touch { min-width: var(--space-32); min-height: var(--space-32); height: auto; max-width: 100%; padding: var(--space-4) var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); color: var(--ink); background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-caption); white-space: normal; overflow-wrap: anywhere; }
+.howto-dlg .is-touch-only .howto-touch { display: inline-grid; }
+.howto-dlg .howto-does { min-width: 0; color: var(--ink); font: var(--text-caption); text-wrap: pretty; overflow-wrap: anywhere; }
 .howto-dlg .howto-tips { gap: var(--space-12); margin: 0 0 var(--space-16); }
 .howto-dlg .howto-tips li { padding-left: var(--space-24); font: var(--text-body); }
 .howto-dlg .howto-tips li::before { left: var(--space-4); width: var(--space-8); height: var(--space-8); border-radius: var(--radius-sm); background: var(--fam); }
@@ -46,34 +63,54 @@ dialog.howto-dlg:not([open]) { display: none; }
 .howto-dlg .howto-all summary { gap: var(--space-8); min-height: var(--control-h-sm); padding: var(--space-8); border-radius: var(--radius-sm); color: var(--fam-deep); font: var(--text-button-sm); }
 .howto-dlg .howto-all summary::after { width: var(--space-8); height: var(--space-8); transition: transform var(--dur-quick) var(--ease); }
 .howto-dlg .howto-all p { margin: 0 0 var(--space-12); font: var(--text-body) !important; }
-/* The reason follows Play visually, before the quieter row of tools. */
-.howto-dlg .howto-foot { display: flex; flex: none; flex-wrap: wrap; align-items: center; gap: var(--space-8); margin: 0; padding: var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--well); }
-.howto-dlg .howto-name { order: -1; flex: 1 1 100%; gap: var(--space-8); margin: 0 0 var(--space-8); color: var(--fam-deep); font: var(--text-caption); }
-.howto-dlg #howtoName { width: 100%; min-height: var(--control-h-lg); margin: 0; padding: var(--space-12) var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--card); color: var(--ink); box-shadow: var(--shadow-sticker-sm); font: var(--text-title); }
+/* A seat card on its own lip. The action bar never shrinks or scrolls. */
+.howto-dlg .howto-foot { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 0; min-width: 0; min-height: 0; margin: 0 0 var(--lift); padding: 0; border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl); background: var(--fam-soft); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
+.howto-seat-scroll { flex: 1; min-width: 0; min-height: 0; padding: var(--space-16); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.howto-seat-title { margin: 0 0 var(--space-16); color: var(--fam-deep); font: var(--text-title); }
+.howto-seat-fields { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12) var(--space-8); min-width: 0; }
+.howto-dlg .howto-name { order: -2; flex: 1 1 100%; gap: var(--space-8); margin: 0; color: var(--fam-deep); font: var(--text-caption); }
+.howto-dlg #howtoName { width: 100%; min-width: 0; min-height: var(--control-h); margin: 0; padding: var(--space-8) var(--space-12); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--card); color: var(--ink); box-shadow: var(--shadow-sticker-sm); font: var(--text-title); }
 .howto-dlg #howtoName::placeholder { color: var(--ink-dim); opacity: 1; }
-.howto-dlg .howto-foot :is(.btn, .howto-btn) { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8); order: 2; flex: 0 1 auto; min-height: var(--control-h-sm); max-width: 100%; margin: 0; padding: var(--space-8) var(--space-12); border: var(--outline-w) solid transparent; border-radius: var(--radius-pill); background: var(--card); color: var(--ink-dim); box-shadow: none; font: var(--text-button-sm); text-align: center; text-decoration: none; white-space: normal; cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
-.howto-dlg .howto-foot #howtoGo { order: 0; flex: 1 1 100%; min-height: var(--control-h-lg); padding: var(--space-12) var(--space-24); border-color: var(--fam-lip); border-radius: var(--radius-sm); background: var(--fam); color: var(--on-fam); box-shadow: 0 var(--lift) 0 var(--fam-lip); font: var(--text-button); }
-.howto-dlg .howto-foot #howtoGo:disabled { border-color: var(--line); background: var(--line); color: var(--ink-dim); box-shadow: none; opacity: 1; cursor: not-allowed; transform: none; }
-.howto-dlg .howto-foot .howto-note { order: 1; flex: 1 1 100%; margin: var(--space-4) 0; color: var(--ink-dim); font: var(--text-caption); text-wrap: pretty; }
-.howto-dlg :is(button, input, a, summary):focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-.howto-dlg .howto-foot :is(.btn, .howto-btn):active:not(:disabled), .howto-dlg .howto-tabs button:active, .howto-dlg #howtoClose:active { transform: scale(.97); box-shadow: none; }
-.howto-dlg .howto-foot #howtoGo:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
+.howto-dlg .howto-seat-fields .garage-card { order: -1; margin: 0; padding: var(--space-12); border-radius: var(--radius-sm); }
+.howto-dlg .howto-seat-fields .garage-card-face { width: var(--space-48); height: var(--space-48); }
+.howto-dlg :is(.howto-seat-fields, .howto-actions) :is(.btn, .howto-btn) { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8); flex: 1 1 auto; min-height: var(--control-h-sm); max-width: 100%; margin: 0; padding: var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); background: var(--card); color: var(--ink-dim); box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm); text-align: center; text-decoration: none; white-space: normal; cursor: pointer; transition: transform var(--dur-quick) var(--ease); }
+.howto-dlg .howto-actions { position: sticky; bottom: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-8); flex: none; min-width: 0; padding: var(--space-16); border-radius: 0 0 var(--radius-xl) var(--radius-xl); background: var(--fam-soft); }
+.howto-dlg .howto-actions[hidden] { display: none; }
+.howto-dlg .howto-actions #howtoGo { width: 100%; min-height: var(--control-h-lg); padding: var(--space-12) var(--space-16); border-color: var(--fam-lip); border-radius: var(--radius-sm); background: var(--fam); color: var(--on-fam); box-shadow: 0 var(--lift) 0 var(--fam-lip); font: var(--text-title); }
+.howto-dlg .howto-actions #howtoGo:disabled { border-color: var(--line); background: var(--line); color: var(--ink-dim); box-shadow: none; opacity: 1; cursor: not-allowed; transform: none; }
+.howto-dlg .howto-note { flex: 1 1 100%; margin: 0; color: var(--ink-dim); font: var(--text-caption); text-wrap: pretty; }
+.howto-dlg :is(button, input, a, summary, [role="tabpanel"]):focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.howto-dlg :is(.howto-seat-fields, .howto-actions) :is(.btn, .howto-btn):active:not(:disabled), .howto-dlg .howto-tabs button:active, .howto-dlg #howtoClose:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+.howto-dlg .howto-actions #howtoGo:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
+.howto-dlg.controls-dlg { overflow-y: auto; }
+.howto-dlg.controls-dlg .howto-glance { flex: none; }
 @media (hover: hover) {
-  .howto-dlg .howto-foot :is(.btn, .howto-btn):hover:not(:disabled), .howto-dlg #howtoClose:hover { border-color: var(--fam); color: var(--fam-deep); transform: translateY(calc(-1 * var(--lift-sm))); box-shadow: none; }
-  .howto-dlg .howto-foot #howtoGo:hover:not(:disabled) { border-color: var(--fam-lip); color: var(--on-fam); box-shadow: 0 var(--lift-lg) 0 var(--fam-lip); }
+  .howto-dlg :is(.howto-seat-fields, .howto-actions) :is(.btn, .howto-btn):hover:not(:disabled), .howto-dlg #howtoClose:hover { border-color: var(--fam); color: var(--fam-deep); transform: translateY(calc(-1 * var(--lift-sm))); }
+  .howto-dlg .howto-actions #howtoGo:hover:not(:disabled) { border-color: var(--fam-lip); color: var(--on-fam); box-shadow: 0 var(--lift-lg) 0 var(--fam-lip); }
   .howto-dlg .howto-tabs button:hover:not([aria-selected="true"]) { color: var(--ink); border-color: var(--line-strong); }
   .howto-dlg .howto-all summary:hover { background: var(--well); }
   .howto-dlg #howtoName:hover { border-color: var(--fam); }
 }
-@media (max-width: 600px) {
-  dialog.howto-dlg { width: calc(100vw - var(--space-16)); max-height: calc(100dvh - var(--space-16) - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding: var(--space-16); gap: var(--space-12); }
+@media (width < 860px) {
+  /* Anchor to the dynamic viewport, not an overflowing page's containing
+   * block. Native dialog insets/margins must not add to the sheet's size. */
+  dialog.howto-start { position: fixed; inset: calc(var(--space-24) + env(safe-area-inset-top)) env(safe-area-inset-right) auto env(safe-area-inset-left); box-sizing: border-box; width: calc(100dvw - env(safe-area-inset-left) - env(safe-area-inset-right)); max-width: calc(100dvw - env(safe-area-inset-left) - env(safe-area-inset-right)); height: calc(100dvh - var(--space-24) - env(safe-area-inset-top)); max-height: calc(100dvh - env(safe-area-inset-top)); min-width: 0; margin: 0; padding: 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+  .howto-start :is(.howto-layout, .howto-main, .howto-seat-scroll, .howto-seat-content, .howto-seat-fields, .howto-name, .howto-actions) { box-sizing: border-box; min-width: 0; max-width: 100%; }
+  .howto-start .howto-name { grid-template-columns: minmax(0, 1fr); }
+  .howto-start .howto-layout { display: flex; gap: 0; }
+  .howto-start .howto-foot { flex: 1; margin: 0; border: 0; border-radius: inherit; background: var(--card); box-shadow: none; }
+  .howto-start .howto-seat-scroll { padding: var(--space-16); }
+  .howto-start .howto-main { gap: var(--space-12); margin-bottom: var(--space-24); }
+  .howto-start .howto-panels { flex: none; overflow: visible; padding: var(--space-4) 0; }
+  .howto-start .howto-seat-content { padding: var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--fam-soft); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
+  .howto-start .howto-seat-title { margin-bottom: var(--space-12); }
+  .howto-start .howto-actions { z-index: 1; padding: var(--space-12) var(--space-16) calc(var(--space-16) + env(safe-area-inset-bottom)); border-radius: 0; background: var(--card); }
+  /* The fade belongs to the floating bar, never to readable rules. */
+  .howto-start .howto-actions::before { content: ''; position: absolute; right: 0; bottom: 100%; left: 0; height: var(--space-16); background: linear-gradient(to top, var(--card), transparent); pointer-events: none; }
   .howto-dlg .howto-titles h2 { font: var(--text-title); }
-  .howto-dlg .howto-foot { padding: var(--space-12); }
-  .howto-dlg .howto-foot :is(.btn, .howto-btn):not(#howtoGo) { flex: 1 1 auto; padding-inline: var(--space-8); }
-}
-@media (max-height: 500px) {
-  dialog.howto-dlg { overflow-y: auto; }
-  .howto-dlg :is(#howtoPlayPanel, .howto-body) { flex: none; overflow: visible; }
+  .howto-dlg .howto-art { width: var(--space-48); height: var(--space-48); border-radius: var(--radius-md); }
+  .howto-dlg.controls-dlg { width: calc(100vw - var(--space-16)); max-height: calc(100dvh - var(--space-16) - env(safe-area-inset-top) - env(safe-area-inset-bottom)); padding: var(--space-16); }
 }
 @keyframes howto-menu-enter { from { opacity: 0; transform: translateY(var(--space-8)) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) { dialog.howto-dlg[open] { animation: howto-menu-enter var(--dur-base) var(--ease); } }
 @media (prefers-reduced-motion: reduce) { dialog.howto-dlg { animation: none; } .howto-dlg *, .howto-dlg *::after { transition: none; } .howto-dlg button:hover, .howto-dlg button:active, .howto-dlg a:hover, .howto-dlg a:active { transform: none; } }

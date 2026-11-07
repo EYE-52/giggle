@@ -162,7 +162,7 @@ async function main() {
     const [st, ctx] = racing({ mode: 'Zap Battle', map: 'Garden Circuit' });
     const a = st.karts[0];
     parkFar(st, ['p0']);
-    a.weapon = 'pulse'; a.ammo = 2; a.shield = 0;
+    a.weapon = 'machinegun'; a.ammo = 2; a.shield = 0;
     const crate = st.crates[0];
     crate.x = a.x; crate.z = a.z;
     const cid = crate.id;
@@ -170,7 +170,7 @@ async function main() {
       if (i % 5 === 0) karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0 } });
       tick(ctx, st);
     }
-    assert.strictEqual(a.weapon, 'pulse', 'parked kart keeps its item');
+    assert.strictEqual(a.weapon, 'machinegun', 'parked kart keeps its item');
     assert.strictEqual(a.ammo, 2, 'parked kart farms nothing');
     assert.strictEqual(crate.id, cid, 'crate never consumed by a loaded kart');
     assert.strictEqual(crate.x, a.x, 'crate stays put under a loaded kart');
@@ -200,16 +200,16 @@ async function main() {
     const [st, ctx] = racing({ mode: 'Zap Battle', map: 'Rookie Ring' });
     const a = st.karts[0];
     parkFar(st, ['p0']);
-    a.weapon = 'scatter'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
+    a.weapon = 'trishot'; a.ammo = 1; a.shield = 0; a.fireCd = 0; a.prevAction = false;
     a.x = 0; a.z = -20; a.angle = 0.5; a.speed = 0;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx, st);
     assert.strictEqual(st.zaps.length, 3, 'one press launches the fan');
     const angles = st.zaps.map((z) => z.angle).sort((x, y) => x - y);
-    for (const [i, off] of [-0.22, 0, 0.22].entries()) {
+    for (const [i, off] of [-8*Math.PI/180,0,8*Math.PI/180].entries()) {
       assert(Math.abs(angles[i] - (0.5 + off)) < 1e-9, `pellet ${i} spreads ${off}`);
     }
-    assert(st.zaps.every((z) => z.kind === 'scatter'), 'pellets carry scatter kind');
+    assert(st.zaps.every((z) => z.kind === 'trishot'), 'pellets carry scatter kind');
     assert.strictEqual(a.weapon, null, 'fan spends the item');
     console.log('BATTLE ok: scatter fan (3 pellets, spread, one use)');
   }
@@ -285,11 +285,11 @@ async function main() {
     a.weapon = 'shield'; a.ammo = 1; a.shield = 1.0; a.fireCd = 0; a.prevAction = false;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx, st);
-    assert.strictEqual(a.guard, true, 'activation arms the guard');
+    assert(a.supernovaT>2.8,'activation starts three-second protection');
     assert(Math.abs(a.shield - 0.9) < 1e-9, 'spawn protection keeps ticking, neither extended nor cancelled');
     assert.strictEqual(a.weapon, null, 'activation spends the item');
     const ev = st.events[st.events.length - 1];
-    assert.strictEqual(ev.type, 'shield', 'shield event recorded');
+    assert.strictEqual(ev.type,'fire','supernova fire recorded');
     assert.strictEqual(ev.pid, 'p0', 'shield event credits the driver');
     console.log('BATTLE ok: shield (guard armed, event)');
   }
@@ -299,10 +299,10 @@ async function main() {
     const [st, ctx] = racing({ mode: 'Zap Battle', map: 'Rookie Ring' });
     st.karts.forEach(k=>k.health=1); // Wounded KO/settlement fixture; full-health acceptance is separate.
     const [a, b] = st.karts;
-    a.weapon = 'pulse'; a.ammo = 3; a.shield = 0; a.fireCd = 0; a.prevAction = false;
+    a.weapon = 'machinegun'; a.ammo = 3; a.shield = 0; a.fireCd = 0; a.prevAction = false;
     a.x = 0; a.z = -8; a.angle = 0; a.speed = 0;
     b.x = 0; b.z = 0; b.angle = 0; b.speed = 0; b.shield = 0;
-    b.weapon = 'pulse'; b.ammo = 2;
+    b.weapon = 'machinegun'; b.ammo = 2;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     for (let i = 0; i < 5 && b.respawn <= 0; i++) tick(ctx, st);
     assert(b.respawn > 0 && b.respawn <= 2, 'KO sits the victim out');
@@ -330,7 +330,7 @@ async function main() {
     assert(st.zaps.every((z) => z.owner !== 'p1'), 'corpse fires nothing');
     // A second zap into the corpse: consumed, no duplicate KO.
     const hitsBefore = a.hits;
-    st.zaps.push({ id: 'zfix', owner: 'p0', kind: 'pulse', x: b.x, z: b.z - 2, angle: 0, ttl: 3 });
+    st.zaps.push({ id: 'zfix', owner: 'p0', kind: 'machinegun', x: b.x, z: b.z - 2, angle: 0, ttl: 3 });
     tick(ctx, st);
     assert.strictEqual(a.hits, hitsBefore, 'no duplicate KO on a corpse');
     assert.strictEqual(b.deaths, 1, 'death counted once');
@@ -344,7 +344,7 @@ async function main() {
     const [a, b] = st.karts;
     for (const c of st.crates) { c.x = 55; c.z = 55; } // clean respawn: no lucky pickup
     a.x = 0; a.z = 0; a.angle = Math.PI; a.speed = 0; a.shield = 0;
-    a.weapon = 'pulse'; a.ammo = 3; a.fireCd = 0; a.prevAction = false;
+    a.weapon = 'machinegun'; a.ammo = 3; a.fireCd = 0; a.prevAction = false;
     b.x = 0; b.z = -8; b.angle = 0; b.speed = 0; b.shield = 0;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     for (let i = 0; i < 5 && b.respawn <= 0; i++) tick(ctx, st);
@@ -364,7 +364,7 @@ async function main() {
     assert(st.events.some((e) => e.type === 'respawn' && e.pid === 'p1'), 'respawn event recorded');
     assert(st.zaps.every((z) => z.owner !== 'p1'), 'held-through-death button fires nothing');
     // A genuinely new press after release works again.
-    b.weapon = 'pulse'; b.ammo = 3; b.fireCd = 0;
+    b.weapon = 'machinegun'; b.ammo = 3; b.fireCd = 0;
     karts.onAction(st, ctx, 'p1', { input: { steer: 0, throttle: 0 } });
     tick(ctx, st);
     karts.onAction(st, ctx, 'p1', { input: { steer: 0, throttle: 0, boost: true } });
@@ -378,7 +378,7 @@ async function main() {
     const [st, ctx] = racing({ mode: 'Zap Battle', map: 'Rookie Ring' });
     const [a, b] = st.karts;
     parkFar(st, ['p0']);
-    a.weapon = 'pulse'; a.ammo = 3; a.shield = 2.5; a.fireCd = 0; a.prevAction = false;
+    a.weapon = 'machinegun'; a.ammo = 3; a.shield = 2.5; a.fireCd = 0; a.prevAction = false;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx, st);
     assert.strictEqual(st.zaps.length, 1, 'attack launches');
@@ -407,15 +407,15 @@ async function main() {
     const [st, ctx] = racing({ mode: 'Zap Battle', map: 'Rookie Ring' }, 3);
     st.karts.forEach(k=>k.health=1); // Wounded KO/settlement fixture; full-health acceptance is separate.
     const [p0, p1, p2] = st.karts;
-    p0.x = 0; p0.z = -15; p0.angle = 0; p0.speed = 0; p0.shield = 0;
-    p0.weapon = 'pulse'; p0.ammo = 3; p0.fireCd = 0; p0.prevAction = false;
-    p2.x = 0; p2.z = 15; p2.angle = Math.PI; p2.speed = 0; p2.shield = 0;
-    p2.weapon = 'pulse'; p2.ammo = 3; p2.fireCd = 0; p2.prevAction = false;
+    p0.x = 0; p0.z = -20; p0.angle = 0; p0.speed = 0; p0.shield = 0;
+    p0.weapon = 'machinegun'; p0.ammo = 3; p0.fireCd = 0; p0.prevAction = false;
+    p2.x = 0; p2.z = 20; p2.angle = Math.PI; p2.speed = 0; p2.shield = 0;
+    p2.weapon = 'machinegun'; p2.ammo = 3; p2.fireCd = 0; p2.prevAction = false;
     p1.x = 0; p1.z = 0; p1.angle = 0; p1.speed = 0; p1.shield = 0;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     karts.onAction(st, ctx, 'p2', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx, st);
-    assert.strictEqual(st.zaps.length, 2, 'both shooters launch');
+    assert.strictEqual(st.events.filter(e=>e.type==='fire').length,2,'both shooters launch before swept collision resolution');
     tick(ctx, st);
     assert.strictEqual(p1.deaths, 1, 'victim KO’d exactly once');
     assert.strictEqual(p0.hits + p2.hits, 1, 'exactly one shooter scores');
@@ -425,7 +425,7 @@ async function main() {
     se.karts.forEach(k=>k.health=1); // Wounded KO/settlement fixture; full-health acceptance is separate.
     const [e0, e1] = se.karts;
     e1.x = 0; e1.z = 5; e1.speed = 0; e1.shield = 0;
-    se.zaps.push({ id: 'zexp', owner: 'p0', kind: 'pulse', x: 0, z: 2, angle: 0, ttl: 3 });
+    se.zaps.push({ id: 'zexp', owner: 'p0', kind: 'machinegun', x: 0, z: 2, angle: 0, ttl: 3 });
     ce._now = se.endsAt;
     karts.onTick(se, ce);
     assert.strictEqual(se.phase, 'done', 'deadline finishes the round');
@@ -519,7 +519,7 @@ async function main() {
     const [sg, cg] = racing({ mode: 'Zap Battle', map: 'Rookie Ring', winRule: 'Score target', targetHits: 1 });
     sg.karts[1].health=1; // Wounded KO isolates score-target result settlement.
     sg.karts[1].shield = 0; sg.karts[1].x = 0; sg.karts[1].z = 4;
-    sg.karts[0].weapon = 'pulse'; sg.karts[0].ammo = 3; sg.karts[0].shield = 0;
+    sg.karts[0].weapon = 'machinegun'; sg.karts[0].ammo = 3; sg.karts[0].shield = 0;
     sg.karts[0].fireCd = 0; sg.karts[0].prevAction = false;
     sg.karts[0].x = 0; sg.karts[0].z = 0; sg.karts[0].angle = 0;
     karts.onAction(sg, cg, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
@@ -553,7 +553,7 @@ async function main() {
     const players = mkPlayers(2);
     const ctx = stubCtx({ players, settings: { mode: 'Zap Battle', map: 'Rookie Ring' }, now: 5000000 });
     let dirty = karts.create(ctx);
-    dirty.zaps.push({ id: 'z9', owner: 'p0', kind: 'pulse', x: 0, z: 0, angle: 0, ttl: 3 });
+    dirty.zaps.push({ id: 'z9', owner: 'p0', kind: 'machinegun', x: 0, z: 0, angle: 0, ttl: 3 });
     dirty.mines.push({ id: 'm9', owner: 'p0', x: 1, z: 1, armT: 0, armed: true, ttl: 9 });
     dirty.grenades.push({
       id: 'g9', owner: 'p0', x: 2, z: 2, y: 1, angle: 0,
@@ -594,7 +594,7 @@ async function main() {
       const [st, ctx] = racing({ mode: 'Zap Battle', map: 'Rookie Ring' });
       const a = st.karts[0];
       parkFar(st, ['p0']);
-      a.weapon = 'pulse'; a.ammo = 3; a.shield = 0; a.fireCd = 0;
+      a.weapon = 'machinegun'; a.ammo = 3; a.shield = 0; a.fireCd = 0;
       a.x = 0; a.z = -20; a.angle = 0; a.speed = 0;
       return [st, ctx, a];
     };
@@ -639,7 +639,7 @@ async function main() {
     }
     // Other guns remain tap-only, even past cooldown and held keepalive.
     {
-      const [st, ctx, a] = armedOnRing();a.weapon='rocket';
+      const [st, ctx, a] = armedOnRing();a.weapon='missile';
       press(st, ctx, 'p0'); tick(ctx, st);
       assert.strictEqual(st.zaps.length, 1, 'first press fires');
       for (let i = 0; i < 6; i++) tick(ctx, st); // cooldown clears, button held
@@ -723,7 +723,7 @@ async function main() {
       karts.onTick(st, ctx);
       assert.strictEqual(st.phase, 'drive', 'countdown reaches drive');
       assert.strictEqual(st.karts[0].pendingFire, false, 'countdown latches nothing');
-      st.karts[0].weapon = 'pulse'; st.karts[0].ammo = 3; st.karts[0].shield = 0;
+      st.karts[0].weapon = 'machinegun'; st.karts[0].ammo = 3; st.karts[0].shield = 0;
       st.karts[0].x = 0; st.karts[0].z = -20; st.karts[0].angle = 0; st.karts[0].speed = 0;
       parkFar(st, ['p0']);
       tick(ctx, st); // input still fresh: only the re-arm blocks the fire
@@ -805,11 +805,11 @@ async function main() {
     const [a, b, c] = st.karts;
     for (const crate of st.crates) { crate.x = 24; crate.z = 24; }
     st.spawns = [{ x: 0, z: -20, angle: 0 }]; // deterministic re-entry
-    a.weapon = 'pulse'; a.ammo = 3; a.shield = 0; a.fireCd = 0;
+    a.weapon = 'machinegun'; a.ammo = 3; a.shield = 0; a.fireCd = 0;
     a.x = -8; a.z = -10; a.angle = Math.PI / 2; a.speed = 0;
     b.respawn = 0.15; b.weapon = null; b.ammo = 0; b.shield = 0;
     b.x = 0; b.z = 0; b.angle = 0; b.speed = 0;
-    c.x = 20; c.z = -10; c.angle = 0; c.speed = 0; c.shield = 0;
+    c.x = 24; c.z = -10; c.angle = 0; c.speed = 0; c.shield = 0;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     tick(ctx, st); // zap away; victim still out
     assert.strictEqual(st.zaps.length, 1, 'shot in flight');

@@ -90,6 +90,7 @@ async function main() {
       ok(!('droppedMs' in c.state) && !('seed' in c.state) && !('world' in c.state), 'internal diagnostics remain private');
       if (c.state.spectator) { eq(c.state.inputAck, null); eq(c.state.coins, 0); }
     }
+    ok(first.state.karts.every(k=>!('bladesT'in k)&&!('bladesAge'in k)&&!('supernovaT'in k)), 'inactive new status fields stay off the full-snapshot wire; clients read missing as inactive');
     metrics.initialActivePacketBytes = Buffer.byteLength(JSON.stringify(first.state));
     metrics.initialWatcherPacketBytes = Buffer.byteLength(JSON.stringify(watcher.state));
     eq(first.state.combat, COMBAT, 'actual wire health rules agree with shared authority');

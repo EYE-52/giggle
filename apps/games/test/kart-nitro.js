@@ -115,7 +115,7 @@ async function main() {
     const [st, ctx] = racing({ mode: 'Zap Battle', map: 'Rookie Ring' });
     const k = st.karts[0]; parkFar(st, ['p0']);
     k.x = 0; k.z = -20; k.angle = 0; k.speed = 12;
-    k.weapon = 'pulse'; k.ammo = 3; k.shield = 0; k.fireCd = 0; k.prevAction = false;
+    k.weapon = 'machinegun'; k.ammo = 3; k.shield = 0; k.fireCd = 0; k.prevAction = false;
     karts.onAction(st, ctx, 'p0', { input: { steer: 0.5, throttle: 1, boost: true, nitro: true } });
     tick(ctx, st);
     assert.strictEqual(st.zaps.length, 1, 'fire edge launches with nitro held');
@@ -175,7 +175,7 @@ async function main() {
     const [a, b] = sb.karts;
     b.health=1; // Wounded KO isolates tank cleanup and fresh-life refill.
     a.x = 0; a.z = -8; a.angle = 0; a.speed = 0; a.shield = 0;
-    a.weapon = 'pulse'; a.ammo = 3; a.fireCd = 0; a.prevAction = false;
+    a.weapon = 'machinegun'; a.ammo = 3; a.fireCd = 0; a.prevAction = false;
     b.x = 0; b.z = 0; b.speed = 0; b.shield = 0; b.nitro = 0.2; b.nitroLocked = true;
     karts.onAction(sb, cxb, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
     for (let i = 0; i < 5 && b.respawn <= 0; i++) tick(cxb, sb);

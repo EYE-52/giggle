@@ -1,6 +1,9 @@
-import {paintKartWeapon} from './kart-weapon-hud.mjs';
+import {WEAPON_IDS} from './kart-weapon-contract.mjs';
+import {paintKartWeapon,createKartWeaponRoulette} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
 import {kartResultView} from './kart-results.mjs';
+import {kartGarageHtml,createKartGarageUI,garagePreviewKey} from './kart-garage-ui.mjs';
+import {createGarageThumbnail} from './kart-garage-thumbnail.mjs';
 import physicsConfig from './kart-physics-config.mjs';
 /* Shared kart-arena view factory. createKartView(config) builds a complete
  * mount/update/dispose view: Three.js chase-cam arena, 2D top-down
@@ -42,9 +45,12 @@ import {createArsenalFX} from './kart-arsenal-fx.mjs';
 import {createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d} from './kart-arena-structure-art.mjs';
 import {createKartArenaFeatures,drawArenaFeatures2d} from './kart-arena-features-art.mjs';
 import {createKartSkids,kartSliding} from './kart-skids.mjs';
+import {createKartDrivingFX} from './kart-driving-fx.mjs';
+import {createSurfaceIndex,surfaceTuning} from './kart-surface.mjs';
+import {driftTier,DRIFT_TIERS} from './kart-drift.mjs';
 import {createKartThreats} from './kart-threats.mjs';
 import {createKartFeedback} from './kart-feedback.mjs';
-import { projectilePose, grenadePose } from './kart-flight.mjs';
+import { createProjectilePlayback, projectilePose, grenadePose } from './kart-flight.mjs';
 import {createGroundMarker,placeGroundMarker,placeGroundProp} from './kart-ground-markers.mjs';
 import {
   createPoseStore, resetPoseStore, ingestSnapshot, framePoses,
@@ -113,6 +119,7 @@ const WEAPON_ART = {
   ram:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h9l7 5-7 5H3z" fill="#c3cdd8"/><path d="M19 12 12 7v10z" fill="#ffb347"/><path d="M1.5 10h3M1 14h3" stroke="#ff8a3c" stroke-width="1.8" stroke-linecap="round"/></svg>',
   crate: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="7" width="16" height="13" rx="2" fill="none" stroke="#9ad2d7" stroke-width="2"/><path d="M4 10.5h16M12 7v13" stroke="#9ad2d7" stroke-width="1.4" opacity=".7"/><circle cx="12" cy="13.5" r="2.4" fill="#9ad2d7"/></svg>',
 };
+Object.assign(WEAPON_ART,{machinegun:WEAPON_ART.pulse,trishot:WEAPON_ART.scatter,missile:WEAPON_ART.seeker,cannon:WEAPON_ART.rocket,blades:WEAPON_ART.boomerang,supernova:WEAPON_ART.shield});
 function weaponArt(kind) {
   return WEAPON_ART[kind] || WEAPON_ART.crate;
 }
@@ -128,24 +135,14 @@ const BOOST_ART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 2-7 
 const NITRO_RING = '<svg class="pk-nitro-ring" viewBox="0 0 24 24" aria-hidden="true"><circle class="pk-arc-track" cx="12" cy="12" r="10" fill="none" stroke="#f5f8ff" stroke-opacity=".25" stroke-width="2"/><circle class="pk-nitro-arc" cx="12" cy="12" r="10" fill="none" stroke="#22d7ef" stroke-width="2" stroke-linecap="round" stroke-dasharray="62.8" stroke-dashoffset="0" transform="rotate(-90 12 12)"/></svg>';
 const NITRO_ARC_LEN = 62.8;
 // Ground blast ring size per weapon (the ring geometry is a 4u radius).
-const BLAST_SCALE = { proximity: 1.4, nuke: 3.5 };
+const BLAST_SCALE = { missile:.75,cannon:.7,supernova:2.25,nuke:3.5 };
 const ITEMS = {
-  pulse: {label:'Pulse', action:'Fire pulse', short:'FIRE'},
-  scatter: {label:'Scatter', action:'Fire scatter', short:'FAN'},
-  mine: {label:'Mine', action:'Drop mine', short:'DROP'},
-  shield: {label:'Shield', action:'Raise shield', short:'SHIELD'},
-  rocket: {label:'Rocket', action:'Launch rocket', short:'LAUNCH'},
-  seeker: {label:'Seeker', action:'Launch seeker', short:'SEEK'},
-  proximity: {label:'Proximity Bomb', action:'Drop proximity bomb', short:'DROP'},
-  nuke: {label:'Nuke', action:'Lob the nuke', short:'NUKE'},
-  laser: {label:'Rail Laser', action:'Fire the laser', short:'ZAP'},
-  thunder: {label:'Thunder Strike', action:'Call down thunder', short:'STRIKE'},
-  boomerang: {label:'Boomerang', action:'Throw the boomerang', short:'THROW'},
-  oil: {label:'Oil Slick', action:'Drop an oil slick', short:'DROP'},
-  frost: {label:'Frost Bomb', action:'Lob the frost bomb', short:'FREEZE'},
-  cluster: {label:'Cluster Bomb', action:'Lob the cluster bomb', short:'LOB'},
-  bouncer: {label:'Bounce Ball', action:'Throw a bounce ball', short:'BOUNCE'},
-  ram: {label:'Turbo Ram', action:'Turbo ram', short:'RAM'},
+ machinegun:{label:'Machine Gun',action:'Fire machine gun',short:'FIRE'},trishot:{label:'Tri-Shot',action:'Fire tri-shot',short:'FIRE'},
+ missile:{label:'Homing Missile',action:'Launch missile',short:'FIRE'},cannon:{label:'Cannon',action:'Fire cannon',short:'FIRE'},
+ blades:{label:'Spinning Blades',action:'Spin blades',short:'SPIN'},supernova:{label:'Supernova',action:'Raise bubble',short:'COVER'},
+ mine:{label:'Mine',action:'Drop mine',short:'DROP'},oil:{label:'Oil Slick',action:'Drop oil',short:'DROP'},
+ frost:{label:'Frost Bomb',action:'Lob frost bomb',short:'FIRE'},thunder:{label:'Thunder Strike',action:'Call thunder',short:'FIRE'},
+ boomerang:{label:'Boomerang',action:'Throw boomerang',short:'FIRE'},ram:{label:'Turbo Ram',action:'Activate ram',short:'RAM'},nuke:{label:'Nuke',action:'Launch nuke',short:'NUKE'},
 };
 /* Classic arenas for the game-owned Results chooser. Use the same captured
  * map overviews as setup; profile keys keep these distinct from elevated maps.
@@ -194,6 +191,7 @@ export function createKartView(viewConfig) {
   let apiRef = null;
   let rootEl = null;
   let hitFx = null; // screen-edge flash, hit marker, toast and camera shake
+  const roulette=createKartWeaponRoulette({now:()=>nowMs(),reducedMotion:()=>reducedMotion()});
   const arsenalEvents = []; // accepted events for the second-eight weapon effects
   let mountGen = 0;
   let gl = null; // three-view handle (null in fallback)
@@ -259,6 +257,7 @@ export function createKartView(viewConfig) {
   let wasTurbo = false;
   const gearbox = createGearbox(CLASSIC_MAX_FORWARD);
   let garagePending = null;
+  const garageUI = createKartGarageUI();
   let controlsPreference = 'auto';
   function paintControls() {
     if (!rootEl) return;
@@ -270,6 +269,14 @@ export function createKartView(viewConfig) {
   let arenaPending = null;
   let arenaNotice = '';
 
+  let drivingInstance=null,drivingMapId=null,drivingSurfaceIndex=null;
+  function drivingSurfaceAt(x,z){
+    if(S?.instanceId!==drivingInstance||S?.map?.id!==drivingMapId||!drivingSurfaceIndex){
+      drivingInstance=S?.instanceId;drivingMapId=S?.map?.id;drivingSurfaceIndex=createSurfaceIndex(S?.map||{});
+    }
+    return surfaceTuning(drivingSurfaceIndex,x||0,z||0);
+  }
+
   function updateAudio() {
     if (!audio) return;
     const me=myKart(), predicted=S?.motionProfile?physicalLocalPose:poseStore.self;
@@ -277,10 +284,11 @@ export function createKartView(viewConfig) {
     const speed=predicted?.speed ?? me?.speed ?? 0,gear=me?gearbox.update(speed):gearbox.update(0);
     paintGear(rootEl?.querySelector('#pk-gear'),gear);
     audio.update({speed,throttle:intentFromState().throttle,gear:gear.gear,rpm:gear.rpm,shift:gear.shift,
-      drifting:predicted?.drifting ?? me?.drifting,boost:me?.boost>0||me?.turbo>0||me?.nitroActive===true,
+      surface:drivingSurfaceAt(predicted?.x??me?.x,predicted?.z??me?.z).kind,grounded:predicted?.physicalPose?.grounded??me?.physicalPose?.grounded??true,
+      drifting:predicted?.drifting ?? me?.drifting,boost:me?.boost>0||(predicted?.turbo??me?.turbo)>0||me?.nitroActive===true,
       active:S?.phase==='drive' && !S?.preparing && !document.hidden && apiRef?.context?.().connected!==false && !apiRef?.context?.().roomActionPending,
       engineActive:!!S?.youDrive && !!me && !(me.respawn>0)});
-    const turbo=me?.boost>0||me?.turbo>0||me?.nitroActive===true;
+    const turbo=me?.boost>0||(predicted?.turbo??me?.turbo)>0||me?.nitroActive===true;
     if(turbo&&!wasTurbo)audio.cue('boost');
     wasTurbo=turbo;
   }
@@ -374,7 +382,7 @@ export function createKartView(viewConfig) {
    * coordinates or timestamps (server stamps receipt time, 1500 ms TTL). */
   function pulseLife() {
     const me=myKart();
-    return isBattle()&&S?.phase==='drive'&&me?.weapon==='pulse'&&me.ammo>0&&!me.respawn
+    return isBattle()&&S?.phase==='drive'&&me?.weapon==='machinegun'&&me.ammo>0&&!me.respawn
       ? `${S.instanceId}:${me.spawnSeq}:${me.controlEpoch??0}` : null;
   }
   function latchPulseHold() {
@@ -498,6 +506,7 @@ export function createKartView(viewConfig) {
     if (!S || !apiRef || !S.youDrive) return;
     if (S.phase !== 'drive' && S.phase !== 'countdown') return;
     const intent = myKart()?.respawn > 0 ? {steer:0,throttle:0,boost:false,drift:false,nitro:false} : intentFromState();
+    if(intent.boost&&roulette.skip())paintHud();
     const key = intent.steer + ',' + intent.throttle + ',' + (intent.boost ? '1' : '0') + ',' + (intent.drift ? '1' : '0') + ',' + (intent.nitro ? '1' : '0');
     boostEdge = false;
     if (!force && key === lastSent) return;
@@ -574,7 +583,7 @@ export function createKartView(viewConfig) {
       <div class="pk-driftmeter" role="progressbar" aria-label="Drift charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="pk-driftfill"></i></div>
       <div class="pk-nitrometer" role="progressbar" aria-label="Nitro charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="pk-nitrofill"></i><span id="pk-nitrolabel">Nitro</span></div></div>
       <details class="pk-help" id="pk-help"><summary aria-label="Driving controls help">?</summary>
-      <div class="pk-helpbody"><button type="button" id="pk-resume" class="pk-resume">Resume</button><label class="pk-controls-label">Controls<select id="pk-controls" aria-label="Controls"><option value="auto">Auto</option><option value="keyboard">Keyboard</option><option value="touch">Touch</option></select></label><button type="button" id="pk-auto" class="pk-auto" aria-pressed="false" hidden>Auto gas · off</button><p class="pk-helpkeys"><b>Drive</b> WASD / arrows or left stick: up for gas, down to brake / reverse · <b>Drift</b> hold Shift / tyre button in a turn, release a full meter for turbo · <b>Nitro</b> hold N / bottle button with gas for a rechargeable boost · <b>Item</b> Space / action button · Ice is slippery, mint strips boost.</p><a href="/assets/karts/audio/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a></div></details></div></div>
+      <div class="pk-helpbody"><button type="button" id="pk-resume" class="pk-resume">Resume</button><label class="pk-controls-label">Controls<select id="pk-controls" aria-label="Controls"><option value="auto">Auto</option><option value="keyboard">Keyboard</option><option value="touch">Touch</option></select></label><button type="button" id="pk-auto" class="pk-auto" aria-pressed="false" hidden>Auto gas · off</button><p class="pk-helpkeys"><b>Drive</b> WASD / arrows or left stick: up for gas, down to brake / reverse · <b>Drift</b> hold Shift / tyre button in a turn, release blue, orange or purple sparks for a growing turbo · <b>Nitro</b> hold N / bottle button with gas for a rechargeable boost · <b>Item</b> Space / action button · Ice is slippery, mint strips boost.</p><a href="/assets/karts/audio/CREDITS.txt" target="_blank" rel="noopener">Sound credits</a></div></details></div></div>
     <canvas id="pk-radar" class="pk-radar" width="120" height="120" role="img" aria-label="Arena map: players, cover and glowing pickups"></canvas>
     <div class="pk-respawn" id="pk-respawn" hidden></div>
     <div class="pk-result" id="pk-result" hidden></div>
@@ -653,7 +662,8 @@ export function createKartView(viewConfig) {
     const nitroFill = rootEl.querySelector('#pk-nitrofill');
     const nitroMeter = rootEl.querySelector('.pk-nitrometer');
     const nitroLabel = rootEl.querySelector('#pk-nitrolabel');
-    const charge = Math.min(1, Math.max(0, Number(me && me.driftCharge) || 0));
+    const charge = Math.min(1, Math.max(0, Number(physicalLocalPose?.driftCharge??me?.driftCharge) || 0));
+    const tier=driftTier(charge);
     const nitro = me && me.nitro !== undefined ? Math.min(1, Math.max(0, Number(me.nitro) || 0)) : 1;
     const nitroLocked = me?.nitroLocked === true;
     const nitroActive = me?.nitroActive === true;
@@ -662,9 +672,9 @@ export function createKartView(viewConfig) {
     if (speedDigits) speedDigits.textContent = me ? String(kmh) : '–';
     if (handling) {
       const feel = !me ? 'Watching the arena'
-        : me.drifting ? (charge >= 1 ? 'Release for turbo!' : 'Charging drift')
+        : me.drifting ? (tier ? DRIFT_TIERS[tier-1].label+' · release for turbo!' : 'Charging drift')
         : (me.boost > 0 || me.turbo > 0 || nitroActive) ? (nitroActive && !(me.boost > 0 || me.turbo > 0) ? 'Nitro!' : 'Turbo!')
-        : me.grip < 0.8 ? 'Ice · ease into turns'
+        : me.surface==='ice' ? 'Ice · ease into turns'
         : me.respawn > 0 ? 'Rejoining…'
         : (me.shield > 0 && battle) ? `Protected ${Math.ceil(me.shield)}s`
         : (me.guard && battle) ? 'Shield ready'
@@ -674,10 +684,11 @@ export function createKartView(viewConfig) {
       handling.textContent = feel;
       handling.hidden = !feel;
     }
-    if (driftFill) driftFill.style.transform = `scaleX(${charge})`;
+    if (driftFill) {driftFill.style.transform = `scaleX(${charge})`;driftFill.style.background=tier?DRIFT_TIERS[tier-1].css:'#6d829c';}
     if (driftMeter) {
       driftMeter.hidden = !me;
       driftMeter.setAttribute('aria-valuenow', String(Math.round(charge * 100)));
+      driftMeter.setAttribute('aria-valuetext',tier?DRIFT_TIERS[tier-1].label+' turbo ready':'Charging drift');
     }
     if (nitroFill) nitroFill.style.transform = `scaleX(${nitro})`;
     if (nitroMeter) {
@@ -715,7 +726,7 @@ export function createKartView(viewConfig) {
       mine.textContent = me ? `You · ${me.hits || 0} KO${me.hits === 1 ? '' : 's'}` : 'Watching';
       boost.hidden = !me;
       const hint=loaded&&S.phase==='drive'&&nowMs()<keycapUntil&&!touchControlsFor(controlsPreference,readInputCapabilities());
-      paintKartWeapon(boost,me,weaponArt(me?.weapon||'crate'),{hint});
+      paintKartWeapon(boost,me,weaponArt(me?.weapon||'crate'),{hint,roulette});
     } else {
       mine.textContent = me ? `You ★ ${me.stars}` : (S.youDrive ? 'You ★ 0' : 'Watching');
       boost.hidden=true;
@@ -769,11 +780,13 @@ export function createKartView(viewConfig) {
 
     if (S.phase === 'done' && S.result) {
       result.hidden = false;
+      const bought = !!(garagePending && S.garageResult?.nonce === garagePending && S.garageResult.ok);
+      if (S.garageResult?.nonce === garagePending) garagePending = null;
       const wins = S.result.winners || (S.result.winner ? [S.result.winner] : []);
       const reason = (S.result && S.result.endReason) || 'timeout';
       const resKey = (battle ? 'b' : 'r') + '|' + reason + '|' + wins.join(',') + '|' +
         (S.result.standings || []).map((r) => r.pid + ':' + r.score + ':' + r.points + ':' + (r.out ? 1 : 0)).join(',') + '|' + S.you + '|' +
-        JSON.stringify([S.coins,S.upgrades?.[S.you],S.garageResult,nextMapSetting(),hostContext().isHost,S.map?.id,typeof apiRef?.configure,arenaPending?.label,arenaNotice]);
+        JSON.stringify([S.coins,S.upgrades?.[S.you],S.garageResult,nextMapSetting(),hostContext().isHost,S.map?.id,typeof apiRef?.configure,arenaPending?.label,arenaNotice,garagePending,lookOf(S.you)]);
       if (resKey !== lastResultKey) {
         lastResultKey = resKey;
         const unit = (n) => (battle ? `${n} KO${n === 1 ? '' : 's'}` : `${n} star${n === 1 ? '' : 's'}`);
@@ -781,16 +794,24 @@ export function createKartView(viewConfig) {
         const final = kartResultView({ result: S.result, you: S.you, nameOf, unit, target,
           targetUnit: battle ? (target === 1 ? 'KO' : 'KOs') : (target === 1 ? 'star' : 'stars') });
         const scrollTop = result.scrollTop || 0;
-        const focusKey = result.contains?.(document.activeElement) ? document.activeElement?.getAttribute?.('data-arena') : null;
+        const focused = result.contains?.(document.activeElement) ? document.activeElement : null;
+        const focusArena = focused?.getAttribute?.('data-arena'), focusPart = focused?.getAttribute?.('data-upgrade') || focused?.getAttribute?.('data-part');
         result.innerHTML = final.html + mapChooserHtml() + garageHtml();
+        garageUI.paint(result,S,{bought,reducedMotion:reducedMotion(),key:garagePreviewKey(garagePreviewSpec())},apiRef);
         result.scrollTop = scrollTop;
-        if (focusKey) result.querySelector(`[data-arena="${focusKey}"]`)?.focus?.({ preventScroll: true });
+        if (focusArena) result.querySelector(`[data-arena="${focusArena}"]`)?.focus?.({ preventScroll: true });
+        if (focusPart) {
+          const button=result.querySelector(`[data-upgrade="${focusPart}"]`);
+          if(button && !button.disabled) button.focus?.({preventScroll:true});
+          else { const card=result.querySelector(`[data-part="${focusPart}"]`);card?.setAttribute('tabindex','-1');card?.focus?.({preventScroll:true}); }
+        }
       }
     } else {
       result.hidden = true;
       if (lastResultKey !== '') {
         lastResultKey = '';
         result.innerHTML = '';
+        garageUI.reset();
       }
     }
 
@@ -833,21 +854,12 @@ export function createKartView(viewConfig) {
     }
   }
 
+  function garagePreviewSpec() {
+    return {color:colorFor(S.you),driver:lookOf(S.you)?.driver ?? S.you,levels:S.upgrades?.[S.you] || {}};
+  }
+
   function garageHtml() {
-    if (!isBattle() || !S.youDrive || !S.garagePrices) return '';
-    const levels=S.upgrades?.[S.you]||{},table=S.garagePrices;
-    const defs=[['engine','Engine','Faster acceleration & top speed','+5% per level'],
-      ['handling','Handling','Sharper turns','+4% per level'],['reload','Quick reload','Fire again sooner','6% faster per level']];
-    const feedback=S.garageResult;
-    if (feedback?.nonce===garagePending) garagePending=null;
-    return `<section class="pk-garage" aria-label="Your kart garage"><header><h4>Your garage</h4><b class="pk-wallet">${Math.max(0,S.coins||0)} coins</b></header>`+
-      `<p>${S.garage?'Upgrades apply next rematch.':'Upgrades apply in Garage Battle.'} Your garage stays with you in this room.</p>`+
-      `<div class="pk-upgrades">${defs.map(([category,name,desc,perk])=>{
-        const level=Math.min(table.max||3,Math.max(0,levels[category]||0));
-        const max=level>=(table.max||3),price=table.prices?.[level]??20;
-        return `<div class="pk-upgrade"><div><strong>${name} <small>${level}/${table.max||3}</small></strong><span>${desc}</span><em>${perk}</em></div>`+
-          `<button type="button" data-upgrade="${category}" ${max||(S.coins||0)<price||garagePending?'disabled':''} aria-label="${max?`${name} maxed`:`Upgrade ${name} for ${price} coins`}">${max?'Maxed':`${price} coins`}</button></div>`;
-      }).join('')}</div><p class="pk-garage-feedback" role="status">${feedback?esc(feedback.ok?`${defs.find(d=>d[0]===feedback.category)?.[1]||'Kart'} upgraded to level ${feedback.level}!`:feedback.error||'Try again.'):'KOs +10 · pickups +1 · finish +5 · win +15'}</p></section>`;
+    return kartGarageHtml(S,garagePending,garagePreviewSpec());
   }
 
   function hostContext() {
@@ -891,10 +903,16 @@ export function createKartView(viewConfig) {
     const category=button.getAttribute('data-upgrade');
     if (!['engine','handling','reload'].includes(category)) return;
     garagePending=typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():`buy-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const keepFocus=document.activeElement===button;
     button.disabled=true;
+    if(keepFocus) {
+      const card=button.closest?.('[data-part]');
+      card?.setAttribute('tabindex','-1');card?.focus?.({preventScroll:true});
+    }
     const feedback=rootEl.querySelector('.pk-garage-feedback');
     if(feedback)feedback.textContent='Adding your upgrade…';
     apiRef.send({garage:{category,nonce:garagePending}});
+    paintHud();
   }
 
   function chooseArena(event) {
@@ -1042,7 +1060,7 @@ export function createKartView(viewConfig) {
     let disposeLighting;
     let disposeCombat;
     let healthBars;
-    let world,impactFX,skids,threats,arsenalFX,arena,structures;
+    let world,impactFX,skids,drivingFX,threats,arsenalFX,arena,structures,garageThumbnail;
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
@@ -1061,6 +1079,8 @@ export function createKartView(viewConfig) {
       const karts = new Map(); // pid -> mesh
       const stars = new Map(); // id -> group (gem + pickup-zone ring)
       const crates = new Map(); // id -> group (box + pickup-zone ring)
+      const statusOptions={time:0,elapsed:0,groundRoot:false};
+      const shotPlayback=createProjectilePlayback();
       const shotDirection=new THREE.Vector3(),shotForward=new THREE.Vector3(0,0,1);
       const zaps = new Map(); // id -> mesh (eased toward snapshots)
       const mines = new Map();
@@ -1086,9 +1106,7 @@ export function createKartView(viewConfig) {
       const nukeRingMat=new THREE.MeshBasicMaterial({color:0xe65832,transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide});
       const blastGeo=new THREE.RingGeometry(3.3,4,32);
       const blastMat=new THREE.MeshBasicMaterial({color:0xff973d,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide});
-      const driftSparks = new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.11),
-        new THREE.MeshBasicMaterial({color:0x83ffe0}), 48);
-      driftSparks.count = 0; driftSparks.frustumCulled = false; scene.add(driftSparks);
+      drivingFX=createKartDrivingFX(THREE,scene,camera,{groundAt:(x,z)=>world.groundAt?.(x,z)||0,reducedMotion:reducedMotion()});
       // Big matches draw distant karts as one instanced proxy batch.
       const kartLod = createKartLod(THREE); scene.add(kartLod.object);
       let lodProxied = new Set();
@@ -1114,18 +1132,31 @@ export function createKartView(viewConfig) {
       const rm = reducedMotion();
       const syncBlocks = () => world.syncMap((S && S.map) || {id:'ring',blocks:[]});
       const tmpV = new THREE.Vector3(), shakeOffset = new THREE.Vector3();
-      let cameraEpoch = null;
+      let cameraEpoch = null,driftSwing=0;
       // Warm every combat variant before readiness. The hidden source library
       // alone is never rendered: first fire used to upload these buffers and
       // compile tracer/instanced-effect programs in a live driving frame.
+      const rigPools=new Map(WEAPON_IDS.map(kind=>[kind,Array.from({length:Math.max(8,S.karts.length)},()=>combat.weapon(kind))]));
       const warm=new THREE.Group();scene.add(warm);
+      for(const k of S.karts||[]){const model=buildKartMesh(THREE,colorFor(k.pid),k.pid,assets);karts.set(k.pid,model);scene.add(model);arsenalFX.warmStatus(model);model.position.y=-100;warm.add(model);}
+
       for(const pool of markerPools.values())for(const marker of pool)warm.add(marker);
       for(const k of S.karts||[]) {const bar=healthBars.add(k.pid);bar.visible=true;bar.position.y=-100;}
-      for(const kind of ['pulse','scatter','mine','rocket','seeker','proximity','shield','nuke','laser','thunder','boomerang','oil','frost','cluster','bouncer','ram'])warm.add(combat.weapon(kind));
+      for(const pool of rigPools.values())warm.add(pool[0]);
       for(const kind of ['frost','cluster','bomblet'])warm.add(combat.projectile(kind));
       {const slick=combat.mine(true,'oil');placeGroundProp(THREE,slick,0,0,0,groundAt,world.propGroundAt||groundAt);warm.add(slick);}
       for(const object of arsenalFX.objects()){object.visible=true;warm.add(object);}
       {const dummy=new THREE.Group();arsenalFX.warmStatus(dummy);warm.add(dummy);}
+      // Every deployed body is reserved before Ready, including both mine tints.
+      const minePools=new Map(),grenadePools=new Map();
+      for(const kind of ['mine','oil'])for(const own of [true,false]){
+        const key=kind+':'+own,pool=[];
+        for(let i=0;i<16;i++){const group=new THREE.Group(),prop=combat.mine(own,kind==='oil'?'oil':undefined);group.add(prop);group.userData.prop=prop;group.userData.poolKey=key;placeGroundProp(THREE,group,0,0,0,groundAt,world.propGroundAt||groundAt);group.visible=false;scene.add(group);pool.push(group);}
+        minePools.set(key,pool);warm.add(pool[0]);pool[0].visible=true;
+      }
+      for(const kind of ['nuke','frost']){
+        const pool=[];for(let i=0;i<12;i++){const group=new THREE.Group(),body=combat.projectile(kind);group.add(body);group.userData.body=body;group.userData.poolKey=kind;group.visible=false;scene.add(group);pool.push(group);}grenadePools.set(kind,pool);warm.add(pool[0]);pool[0].visible=true;
+      }
       const shotPools=new Map(),shotCues=[],shotContactInsets=new Map();
       function prepareShotContact(object,kind,radius){
         const c=object.userData.combat,key=kind+':'+radius;
@@ -1133,9 +1164,9 @@ export function createKartView(viewConfig) {
         c.contactRadius=radius;c.contactInset=radius>0?shotContactInsets.get(key):0;
       }
       const cueBounds=new THREE.Box3(),cueCenter=new THREE.Vector3();
-      for(const kind of ['pulse','scatter','rocket','seeker','nuke','laser','boomerang','bouncer']) {
+      for(const kind of ['machinegun','trishot','missile','cannon','nuke','boomerang']) {
         const pool=[];
-        for(let i=0;i<12;i++){const object=combat.projectile(kind);prepareShotContact(object,kind,S.combat?.staticSweepRadii?.[kind]||0);object.visible=false;scene.add(object);pool.push(object);}
+        for(let i=0;i<64;i++){const object=combat.projectile(kind);object.userData.flight={x:0,y:0,z:0,angle:0,visible:false,direction:{x:0,y:0,z:0}};prepareShotContact(object,kind,S.combat?.staticSweepRadii?.[kind]||0);object.visible=false;scene.add(object);pool.push(object);}
         shotPools.set(kind,pool);pool[0].visible=true;warm.add(pool[0]);
         const tail=pool[0].userData.combat.tail;
         // The boomerang's swirl is a spin disc, not a tracer to stretch.
@@ -1157,6 +1188,10 @@ export function createKartView(viewConfig) {
       reserve.visible=true;reserve.position.y=-100;reserve.traverse(object=>{object.frustumCulled=false;});
       await renderer.compileAsync(scene,camera);renderer.render(scene,camera);
       arsenalFX.reset();
+      for(const pool of minePools.values())for(const object of pool){object.removeFromParent();object.visible=false;scene.add(object);}
+      for(const pool of grenadePools.values())for(const object of pool){object.removeFromParent();object.visible=false;scene.add(object);}
+
+      for(const model of karts.values()){model.removeFromParent();scene.add(model);model.position.set(0,0,0);arsenalFX.status(model,null);}
       warm.removeFromParent();reserve.visible=false;reserve.position.y=0;
       for(const pool of markerPools.values())for(const marker of pool){marker.visible=false;reserve.add(marker);}
       for(const k of S.karts||[])healthBars.add(k.pid).visible=false;
@@ -1167,6 +1202,14 @@ export function createKartView(viewConfig) {
       let impactEpoch=-1,impactSince=nowMs(),lastEffectTime=null;
       const frame = (dt, t) => {
         if (!S) return;
+        if(S.phase==='done' && isBattle() && S.youDrive && S.garagePrices) {
+          const spec=garagePreviewSpec();
+          garageUI.preview(rootEl,garagePreviewKey(spec),()=>{
+            garageThumbnail ||= createGarageThumbnail(THREE,renderer,assets);
+            return garageThumbnail.draw(spec);
+          });
+        }
+        if(roulette.tick())paintHud();
         syncBlocks();
         if (world.animate) world.animate(rm ? 0 : dt,rm ? 0 : t,skyPhase());
         if (disposeLighting?.update) disposeLighting.update(world.palette);
@@ -1177,13 +1220,13 @@ export function createKartView(viewConfig) {
         updateAudio();
         const effectDt=lastEffectTime===null?dt:Math.max(0,t-lastEffectTime);lastEffectTime=t;
         if(feedbackEpoch!==impactEpoch){
-          impactFX.reset();skids.reset();threats.clear();arsenalFX.reset();arsenalEvents.length=0;arena.resetHistory();impactEpoch=feedbackEpoch;
+          impactFX.reset();skids.reset();drivingFX.reset();threats.clear();arsenalFX.reset();arsenalEvents.length=0;arena.resetHistory();impactEpoch=feedbackEpoch;
           for(const cue of shotCues)cue.object.visible=false;
           for(const e of combatEffects.values())returnMarker(e.mesh);
           combatEffects.clear();popSites.length=0;effectSeen.clear();
         }
-        while(arsenalEvents.length)arsenalFX.event(arsenalEvents.shift());
-        impactFX.update(effectDt);skids.update(effectDt);arsenalFX.update(effectDt);
+        impactFX.update(effectDt);skids.update(effectDt);drivingFX.update(effectDt,S.phase==='drive'&&S.youDrive?(physicalLocalPose?.speed??myKart()?.speed??0):0,S.phase==='drive'&&S.youDrive&&((physicalLocalPose?.turbo??myKart()?.turbo)>0||myKart()?.boost>0||myKart()?.nitroActive===true));arsenalFX.update(effectDt);
+        while(arsenalEvents.length){const e=arsenalEvents.shift();arsenalFX.event(e);arsenalFX.react(e,karts);}
         // Arena features: cannons, portals, fall zones (map.features + arenaEvents).
         structures.sync(S.map);structures.animate();
         arena.sync(S.map);arena.ingest(S.arenaEvents,S.karts);arena.animate(effectDt,t,S,poses);
@@ -1191,7 +1234,7 @@ export function createKartView(viewConfig) {
         const acceptedEffects=feedback.current(nowMs());
         for(const cue of shotCues)if(cue.until<=nowMs())cue.object.visible=false;
         for(const e of acceptedEffects){if(effectSeen.has(e.id))continue;effectSeen.add(e.id);
-          if(e.at>=impactSince&&e.position)impactFX.emit(e);
+          if(e.at>=impactSince&&e.position){impactFX.emit(e);if(e.kind==='blast'&&e.weapon==='nuke'){const own=S.karts.find(k=>k.pid===S.you),p=own?.physicalPose?.position;if(own&&Math.hypot((p?.x??own.x)-e.position.x,(p?.y??0)-e.position.y,(p?.z??own.z)-e.position.z)<14)hitFx?.rumble?.();}}
           if(e.kind==='fire'&&!(e.pid===S.you&&nowMs()-localRecoilAt<800))combat.recoil(karts.get(e.pid)?.userData.rig);
           if((e.kind==='fire'||e.kind==='impact')&&e.position){
             let cue=null;
@@ -1223,7 +1266,6 @@ export function createKartView(viewConfig) {
         while(effectSeen.size>48)effectSeen.delete(effectSeen.values().next().value);
         for(const [id,e]of combatEffects){if(nowMs()>=e.until){returnMarker(e.mesh);combatEffects.delete(id);}else if(!rm){const progress=(nowMs()-e.at)/(e.until-e.at);e.mesh.scale.setScalar((.2+progress*.8)*e.size);placeGroundMarker(e.mesh,e.mesh.position.x,e.mesh.position.z,groundAt);}}
         const live = new Set();
-        let sparkCount = 0;
         for (const k of S.karts || []) {
           live.add(k.pid);
           const pose = poses.get(k.pid) || { x: k.x, z: k.z, angle: k.angle };
@@ -1256,32 +1298,27 @@ export function createKartView(viewConfig) {
             if(inner)inner.position.y=physicsConfig.chassis.modelOriginY;
             mesh.quaternion.set(physical.rotation.x,physical.rotation.y,physical.rotation.z,physical.rotation.w);
           }else{if(inner)inner.position.y=0;mesh.rotation.y=pose.angle;}
-          arena.dressKart(k,mesh);
-          skids.track(k.pid,mesh.position.x,mesh.position.z,pose.angle,kartSliding(k,pose,k.pid===S.you&&intentForPrediction().throttle<0));
+          arena.dressKart(k,mesh,pose.flight);
+          const surface=drivingSurfaceAt(mesh.position.x,mesh.position.z),sliding=kartSliding(k,pose,k.pid===S.you&&intentForPrediction().throttle<0);
+          skids.track(k.pid,mesh.position.x,mesh.position.z,pose.angle,sliding,surface);
+          if(mesh.visible&&S.phase==='drive')drivingFX.track(k.pid,mesh.position.x,mesh.position.y,mesh.position.z,pose.angle,pose.speed??k.speed,sliding,pose.driftCharge??k.driftCharge,surface,(pose.physicalPose||k.physicalPose)?.grounded!==false);
           healthBars.update(k.pid,k,mesh.position,(S.players||S.participants||[]).find(p=>p.id===k.pid)?.connected!==false);
+          if(!mesh.visible)healthBars.add(k.pid).visible=false;
           const equipped=k.ammo>0?k.weapon:null;
           if(mesh.userData.equipped!==equipped) {
-            if(mesh.userData.rig)mesh.userData.rig.removeFromParent();
-            mesh.userData.rig=equipped?combat.weapon(equipped):null;
+            if(mesh.userData.rig){const old=mesh.userData.rig;old.removeFromParent();rigPools.get(old.userData.combat.kind)?.push(old);}
+            mesh.userData.rig=equipped?rigPools.get(equipped)?.pop():null;
             mesh.userData.equipped=equipped;
             if(mesh.userData.rig) {const rig=mesh.userData.rig;combat.placeWeapon(rig);(mesh.userData.kart?.inner||mesh).add(rig);}
           }
           if(mesh.userData.rig)combat.animate(mesh.userData.rig,dt,t,rm);
           if (mesh.userData.giggleKart && !lodProxied.has(mesh)) animateKartModel(mesh, {physicalPose: k.respawn>0 ? null : pose.physicalPose || k.physicalPose,
-            speed:pose.speed ?? k.speed ?? 0, steer:k.pid === S.you ? intentFromState().steer : 0,
-            boost:Math.max(k.boost || 0,k.turbo || 0,k.nitroActive===true?1:0),shield:k.shield>0||k.guard===true,invincible:false,dt,reducedMotion:rm});
-          arsenalFX.status(mesh,k,{time:t,groundRoot:!(k.physicalPose&&!(k.respawn>0))});
-          if (mesh.userData.flame) mesh.userData.flame.visible = k.boost > 0 || k.turbo > 0 || k.nitroActive === true || k.rammingT > 0;
+            speed:pose.speed ?? k.speed ?? 0, steer:k.pid === S.you ? intentFromState().steer : 0,driftHop:pose.driftHop??k.driftHop??0,drivingJuice:true,
+            boost:Math.max(k.boost || 0,(pose.turbo??k.turbo) || 0,k.nitroActive===true?1:0),shield:k.shield>0||k.guard===true,invincible:false,dt,reducedMotion:rm});
+          statusOptions.time=t;statusOptions.elapsed=Math.max(0,(nowMs()-(lastSnapshotArrival??nowMs()))/1000);statusOptions.groundRoot=!(k.physicalPose&&!(k.respawn>0));arsenalFX.status(mesh,k,statusOptions);
+          if (mesh.userData.flame) mesh.userData.flame.visible = k.boost > 0 || (pose.turbo??k.turbo) > 0 || k.nitroActive === true || k.rammingT > 0;
           if (mesh.userData.shield) mesh.userData.shield.visible = (k.shield || 0) > 0;
-          if (mesh.visible && !rm && S.phase === 'drive' && k.drifting) {
-            const f = forwardOf(pose.angle);
-            for (let i=0; i<6 && sparkCount<48; i++) {
-              const age=(t*3+i/6)%1, side=i%2 ? 0.92 : -0.92;
-              const x=pose.x-f.x*(1.2+age*2)+f.z*side,z=pose.z-f.z*(1.2+age*2)-f.x*side;
-              sparkMatrix.makeTranslation(x,(world.groundAt?.(x,z)||0)+.12+Math.sin(age*Math.PI)*.4,z);
-              driftSparks.setMatrixAt(sparkCount++,sparkMatrix);
-            }
-          }
+
         }
         lodProxied = kartLod.update(camera, [...karts].filter(([pid]) => live.has(pid)).map(([pid, mesh]) => ({ mesh, color: colorFor(pid), visible: mesh.visible })));
         let popCount=0;
@@ -1297,13 +1334,11 @@ export function createKartView(viewConfig) {
           }
         }
         pops.count=popCount; if(popCount) pops.instanceMatrix.needsUpdate=true;
-        driftSparks.count = sparkCount;
-        if (sparkCount) driftSparks.instanceMatrix.needsUpdate = true;
         for (const [pid, mesh] of karts) {
           if (!live.has(pid)) {
             scene.remove(mesh);
             karts.delete(pid);
-            healthBars.remove(pid);skids.forget(pid);
+            healthBars.remove(pid);skids.forget(pid);drivingFX.forget(pid);
           }
         }
         // Stars: sync set, spin unless reduced motion.
@@ -1363,8 +1398,12 @@ export function createKartView(viewConfig) {
         }
         // Authoritative velocity at the calibrated clock. No chasing packet
         // positions: easing fast shots made them visibly slow and jerky.
+        shotPlayback.ingest(S.zaps,S.simAt);
         const liveZ = new Set();
-        for (const z of (ordnanceFresh()?S.zaps:[]) || []) {
+        const currentZ=(ordnanceFresh()?S.zaps:[])||[];
+        for(const z of currentZ)liveZ.add(z.id);
+        for(const [id,mesh]of zaps)if(!liveZ.has(id)){mesh.visible=false;shotPools.get(mesh.userData.combat.kind)?.push(mesh);zaps.delete(id);}
+        for (const z of currentZ) {
           liveZ.add(z.id);
           let mesh = zaps.get(z.id);
           if (!mesh) {
@@ -1373,7 +1412,7 @@ export function createKartView(viewConfig) {
             scene.add(mesh);
             zaps.set(z.id, mesh);
           }
-          const flight=projectilePose(z,S,serverNow());
+          const flight=shotPlayback.sample(z,S,serverNow(),mesh.userData.flight);
           mesh.position.set(flight.x,flight.y,flight.z);
           if(flight.direction){shotDirection.set(flight.direction.x,flight.direction.y,flight.direction.z).normalize();mesh.quaternion.setFromUnitVectors(shotForward,shotDirection);}
           else mesh.rotation.y=flight.angle;
@@ -1383,7 +1422,7 @@ export function createKartView(viewConfig) {
             const c=mesh.userData.combat;
             mesh.position.addScaledVector(tmpV.copy(shotForward).applyQuaternion(mesh.quaternion),radius-(c.tipZ||0)-c.contactInset);
           }
-          mesh.visible=flight.visible;combat.animate(mesh,dt,t,rm);
+          mesh.visible=flight.visible;combat.animate(mesh,dt,t,rm);impactFX.trail(mesh,dt);
         }
         for (const [zid, mesh] of zaps) {
           if (!liveZ.has(zid)) {
@@ -1392,36 +1431,36 @@ export function createKartView(viewConfig) {
             zaps.delete(zid);
           }
         }
-        const liveG=new Set();
-        for(const g of (ordnanceFresh()?S.grenades:[])||[]){liveG.add(g.id);let group=grenades.get(g.id);
-          if(!group){group=new THREE.Group();const kind=['frost','cluster','bomblet'].includes(g.kind)?g.kind:'nuke',body=combat.projectile(kind);group.add(body);group.userData.body=body;
+        const liveG=new Set(),currentG=(ordnanceFresh()?S.grenades:[])||[];
+        for(const g of currentG)liveG.add(g.id);
+        for(const[id,group]of grenades)if(!liveG.has(id)){if(group.userData.ring)returnMarker(group.userData.ring);group.userData.ring=null;group.visible=false;grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
+        for(const g of currentG){liveG.add(g.id);let group=grenades.get(g.id);
+          if(!group){const kind=g.kind==='frost'?'frost':'nuke';group=grenadePools.get(kind).pop();group.visible=true;
             // Only the Nuke marks its knockout radius on the ground.
             const ring=kind==='nuke'?takeMarker('nuke'):null;group.userData.ring=ring;scene.add(group);grenades.set(g.id,group);}
           const flight=grenadePose(g,S,serverNow());group.position.set(flight.x,flight.y+(g.physical ? .45 : .38),flight.z);group.rotation.y=flight.angle;group.visible=flight.visible;
           combat.animate(group.userData.body,dt,t,rm);if(group.userData.ring){placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;}
         }
-        for(const[id,group]of grenades)if(!liveG.has(id)){if(group.userData.ring)returnMarker(group.userData.ring);scene.remove(group);grenades.delete(id);}
-        const liveM = new Set();
-        for (const m of (ordnanceFresh()?S.mines:[]) || []) {
+        for(const[id,group]of grenades)if(!liveG.has(id)){if(group.userData.ring)returnMarker(group.userData.ring);group.visible=false;grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
+        const liveM = new Set(),currentM=(ordnanceFresh()?S.mines:[])||[];
+        for(const m of currentM)liveM.add(m.id);
+        for(const[id,mesh]of mines)if(!liveM.has(id)){mesh.visible=false;minePools.get(mesh.userData.poolKey).push(mesh);mines.delete(id);}
+        for (const m of currentM) {
           liveM.add(m.id);
           let mesh = mines.get(m.id);
-          if (!mesh) {
-            mesh = new THREE.Group();
-            const puck = m.kind==='proximity'?combat.projectile('proximity'):combat.mine(m.owner===S.you,m.kind==='oil'?'oil':undefined); mesh.userData.prop=puck;mesh.add(puck);
-            if(m.kind==='proximity')puck.userData.combat.landed=true;
-            mesh.position.set(m.x,m.y??world.groundAt?.(m.x,m.z)??0,m.z); scene.add(mesh); mines.set(m.id,mesh);
-          }
+          if(!mesh){const key=(m.kind==='oil'?'oil':'mine')+':'+(m.owner===S.you);mesh=minePools.get(key).pop();mesh.visible=true;scene.add(mesh);mines.set(m.id,mesh);}
           mesh.userData.prop.userData.combat.armed=m.armed;
           placeGroundProp(THREE,mesh,m.x,m.y??groundAt(m.x,m.z),m.z,groundAt,world.propGroundAt||groundAt);
           combat.animate(mesh.userData.prop,dt,t,rm);
         }
-        for (const [id,mesh] of mines) if (!liveM.has(id)) { scene.remove(mesh); mines.delete(id); }
+        for (const [id,mesh] of mines) if (!liveM.has(id)) {mesh.visible=false;minePools.get(mesh.userData.poolKey).push(mesh);mines.delete(id);}
         // Camera: a steeper follow view keeps several pickups plus useful
         // arena in frame; spectators get a tighter overview (no half-empty
         // horizon). Built from the shared forwardOf — the camera sits
         // directly behind the motion direction, never fighting the input.
         const me = myKart();
         const selfPose = me ? poses.get(me.pid) : null;
+        arsenalFX.target(ordnanceFresh()?S:null,karts,camera);
         camera.position.sub(shakeOffset);shakeOffset.set(0,0,0);
         if (me && S.youDrive && selfPose) {
           const pose = selfPose;
@@ -1430,7 +1469,10 @@ export function createKartView(viewConfig) {
           const back = portrait ? 10 : 8.8;
           const up = portrait ? 4.2 : 3.2;
           const chassisY=pose.physicalPose?.position.y??me.physicalPose?.position.y??((world.groundAt?.(pose.x,pose.z)||0)+.75);
-          const cameraX=pose.x-f.x*back,cameraZ=pose.z-f.z*back;
+          const slide=pose.slip??me.slip??0;
+          const swing=rm?0:Math.max(-1.15,Math.min(1.15,-slide*.13));
+          driftSwing+=(swing-driftSwing)*(1-Math.exp(-dt*5));
+          const cameraX=pose.x-f.x*back+f.z*driftSwing,cameraZ=pose.z-f.z*back-f.x*driftSwing;
           tmpV.set(cameraX,Math.max(chassisY+up-.75,(world.groundAt?.(cameraX,cameraZ)||0)+1.2),cameraZ);
           // A portal jump is a pose-epoch change: cut, never sweep across the map.
           const camLife=me.spawnSeq+':'+(pose.physicalPose?.epoch??'');
@@ -1446,6 +1488,10 @@ export function createKartView(viewConfig) {
           else camera.position.lerp(tmpV, Math.min(1, dt * 2));
           camera.lookAt(0, 0, 0);
         }
+        const boosting=(selfPose?.turbo??me?.turbo)>0||me?.boost>0||me?.nitroActive===true;
+        const targetFov=rm||!S.youDrive||S.phase!=='drive'?60:60+Math.min(5,Math.max(0,(Math.abs(selfPose?.speed??me?.speed??0)-14)*.4))+(boosting?4:0);
+        const nextFov=rm?60:camera.fov+(targetFov-camera.fov)*(1-Math.exp(-dt*5));
+        if(Math.abs(nextFov-camera.fov)>.005){camera.fov=nextFov;camera.updateProjectionMatrix();}
         const shake=hitFx?.shake(nowMs());
         if(shake&&(shake.x||shake.y)){shakeOffset.set(shake.x,shake.y,0).applyQuaternion(camera.quaternion);camera.position.add(shakeOffset);}
         const ownKart=me&&S.youDrive&&!(me.respawn>0)?karts.get(me.pid):null;
@@ -1455,13 +1501,14 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {garageThumbnail?.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();drivingFX.dispose();threats.dispose();} };
     } catch (error) {
+      garageThumbnail?.dispose();
       world?.dispose();
       if (disposeLighting) disposeLighting();
       if (disposeCombat) disposeCombat();
       healthBars?.dispose();
-      impactFX?.dispose();structures?.dispose();skids?.dispose();threats?.dispose();
+      impactFX?.dispose();structures?.dispose();skids?.dispose();drivingFX?.dispose();threats?.dispose();
       helper.disposeObject(scene);
       throw error;
     }
@@ -1611,8 +1658,9 @@ export function createKartView(viewConfig) {
     }
     for (const z of (ordnanceFresh()?S.zaps:[]) || []) {
       const p=projectilePose(z,S,serverNow());if(!p.visible)continue;
-      ctx.strokeStyle=z.kind==='scatter'?'#ffad69':z.kind==='rocket'?'#ffda58':z.kind==='seeker'?'#91d451':z.kind==='boomerang'?'#ff8a3c':z.kind==='bouncer'?'#ff6ad5':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
-      ctx.beginPath();ctx.moveTo(px(p.x),pz(p.z));ctx.lineTo(px(p.x-Math.sin(p.angle)*2),pz(p.z-Math.cos(p.angle)*2));ctx.stroke();
+      ctx.strokeStyle=z.kind==='trishot'?'#ffad69':z.kind==='cannon'?'#ffda58':z.kind==='missile'?'#91d451':z.kind==='boomerang'?'#ff8a3c':'#6af0ff';ctx.lineWidth=Math.max(2,.35*scale);
+      const angle=Number.isFinite(z.vx)&&Number.isFinite(z.vz)?Math.atan2(z.vx,z.vz):p.angle;
+      ctx.beginPath();ctx.moveTo(px(p.x),pz(p.z));ctx.lineTo(px(p.x-Math.sin(angle)*2),pz(p.z-Math.cos(angle)*2));ctx.stroke();
     }
     for (const m of (ordnanceFresh()?S.mines:[]) || []) {
       ctx.fillStyle = m.armed ? '#ff83b8' : '#91627a'; ctx.beginPath();
@@ -1708,6 +1756,7 @@ export function createKartView(viewConfig) {
     if (sendTimer) { clearInterval(sendTimer); sendTimer = 0; }
     stopFallback();
     audio?.dispose();audio=null;wasTurbo=false;
+    garageUI.dispose();
     garagePending=null;arenaPending=null;arenaNotice='';
     for (const [t, type, fn, opts] of bound) {
       try { t.removeEventListener(type, fn, opts); } catch { /* noop */ }
@@ -2068,6 +2117,7 @@ export function createKartView(viewConfig) {
       S = Snew;
       apiRef = api;
     }
+    roulette.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);if(S.audioBaseline||S.phase==='done')roulette.skip();
     if(advanced||Snew.audioBaseline)lastSnapshotArrival=nowMs();
     if(S.motionProfile&&!physicalReady){const gen=mountGen;physicalReady=loadClassicPhysics().then(R=>{if(gen!==mountGen)return;physicalPrediction=createClassicPrediction(R);physicalPrediction.ingest(S,nowMs(),serverNow());});}
     if(S.motionProfile&&physicalPrediction&&S.inputAck?.life!==physicalPrediction.life){atomicStop();physicalPrediction.life=S.inputAck?.life;}
@@ -2091,19 +2141,22 @@ export function createKartView(viewConfig) {
       if (seenEvents.has(event.id)) continue;
       seenEvents.add(event.id);
       if(firstEvents)continue;
-      if(['blast','burst','bounce','splat','hit'].includes(event.type)){arsenalEvents.push(event);if(arsenalEvents.length>24)arsenalEvents.shift();}
+      if(['fire','mine','blast','burst','bounce','splat','hit'].includes(event.type)){arsenalEvents.push(event);if(arsenalEvents.length>24)arsenalEvents.shift();}
       updateAudio();
       const me=myKart(),source=S.karts?.find(k=>k.pid===event.pid);
       const nearby=!S.youDrive||event.pid===S.you||event.other===S.you||
         (me&&source&&Math.hypot(me.x-source.x,me.z-source.z)<24);
       const echoed=event.type==='fire'&&event.pid===S.you&&claimLocalFire(event);
+      if(event.type==='hit'&&event.pid===S.you&&event.weapon==='ram')audio?.cue('hitDing');
       if(nearby&&!echoed&&!(event.type==='ko'&&event.weapon==='nuke')){const cue=kartEventCue(event,S.you);if(cue)audio?.cue(cue);}
       if (event.pid !== S.you && event.other !== S.you) continue;
       const mineEvent = event.pid === S.you;
       if(event.other===S.you&&event.type==='hit')hitFx?.hurt(nowMs());
+      if(event.other===S.you&&event.type==='ko')hitFx?.notice('KO!');
       if(mineEvent&&event.other&&event.other!==S.you&&['hit','ko','block'].includes(event.type))hitFx?.landed(landedText(event));
       if(mineEvent&&event.type==='ko'&&event.other&&event.other!==S.you)hitFx?.knockout(nameOf(event.other));
       if (event.type === 'pickup' && mineEvent) {
+        roulette.begin(event.weapon);
         const label = ITEMS[event.weapon]?.label || 'Item';
         if (!tutorialSeen()) {
           cueText = `${label} ready`;

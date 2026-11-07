@@ -135,7 +135,7 @@ function generate(id, opts) {
       }
     }
     if (template === 'kart') {
-      for (const f of ['kart-view.js', 'kart-pose.mjs', 'kart-physics-config.mjs']) {
+      for (const f of ['kart-view.js', 'kart-pose.mjs', 'kart-physics-config.mjs', 'kart-weapon-contract.mjs']) {
         copyIfMissing(
           path.join(kitRoot, 'public', 'js', 'engines', f),
           path.join(root, 'public', 'js', 'engines', f));

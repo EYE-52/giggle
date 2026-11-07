@@ -10,18 +10,21 @@ function run({manual=false,ice=false,garage=false}={}){
  const step=(n,input)=>{let maxSlip=0,minSpeed=Infinity,minLinearSpeed=Infinity,path=0,heading=0;k.input=input;for(let i=0;i<n;i++){const before={x:k.x,z:k.z,angle:k.angle};w.advance(1/60,online);path+=Math.hypot(k.x-before.x,k.z-before.z);heading+=Math.atan2(Math.sin(k.angle-before.angle),Math.cos(k.angle-before.angle));peakSlip=Math.max(peakSlip,Math.abs(k.slip));maxSlip=Math.max(maxSlip,Math.abs(k.slip));minSpeed=Math.min(minSpeed,k.speed);minLinearSpeed=Math.min(minLinearSpeed,Math.hypot(k.physicalPose.linearVelocity.x,k.physicalPose.linearVelocity.z));peakSpeed=Math.max(peakSpeed,Math.abs(k.speed));peakAngular=Math.max(peakAngular,Math.hypot(...Object.values(k.physicalPose.angularVelocity)));s.physicalEvents.length=0;}return {maxSlip,minSpeed,minLinearSpeed,path,heading,radius:path/Math.max(.0001,Math.abs(heading))};};
  step(180,{throttle:1,steer:0});const straight=k.speed;
  const turnStats=step(90,{throttle:1,steer:1,drift:manual});const turn={speed:k.speed,slip:k.slip,angle:k.angle,velocity:{...k.physicalPose.linearVelocity}};
- step(90,{throttle:1,steer:-1,drift:manual});const counter={speed:k.speed,slip:k.slip,angle:k.angle};
+ const counterStats=step(90,{throttle:1,steer:-1,drift:manual});const counter={speed:k.speed,slip:k.slip,angle:k.angle};
  step(120,{throttle:-1,steer:0});const brake=k.speed;
  step(480,{throttle:1,steer:0,nitro:true});const nitro={amount:k.nitro,locked:k.nitroLocked,active:k.nitroActive,speed:k.speed};
- assert.ok(Number.isFinite(peakSlip)&&Number.isFinite(peakAngular));assert.ok(peakSpeed<40,'bounded forward/boost speed');assert.ok(peakAngular<8,'no infinite spin');assert.ok(nitro.amount>=0&&nitro.amount<=1,'finite fuel');
- w.dispose();return {manual,ice,garage,straight,turnStats,turn,counter,brake,nitro,peakSlip,peakSpeed,peakAngular};
+ assert.ok(Number.isFinite(peakSlip)&&Number.isFinite(peakAngular));assert.ok(peakSpeed<40,'bounded forward/boost speed');assert.ok(peakAngular<8,'no infinite spin '+JSON.stringify({manual,ice,garage,peakAngular}));assert.ok(nitro.amount>=0&&nitro.amount<=1,'finite fuel');
+ w.dispose();return {manual,ice,garage,straight,turnStats,turn,counter,counterStats,brake,nitro,peakSlip,peakSpeed,peakAngular};
 }
 const cases=[run(),run({manual:true}),run({ice:true}),run({garage:true})];
 const [normal,manual,ice,garage]=cases;
 assert.ok(manual.turnStats.maxSlip>1.4,'manual drift produces measured lateral slip');
 assert.ok(manual.turnStats.minLinearSpeed>manual.straight*.45,'held sharp drift retains bounded world momentum');
-assert.ok(Math.abs(manual.counter.angle)<Math.abs(manual.turn.angle),'counter steering recovers heading');
+// A held slide now locks its direction; counter steering opens the radius.
+assert.ok(manual.counterStats.radius>manual.turnStats.radius*1.3,'counter steering opens the held slide radius');
 assert.ok(normal.turnStats.maxSlip<manual.turnStats.maxSlip,'automatic slip is milder');
+assert.ok(manual.turnStats.minLinearSpeed>normal.turnStats.minLinearSpeed,'drift carries more momentum through the corner');
+assert.ok(manual.turnStats.radius<normal.turnStats.radius,'drift takes a tighter line at higher speed');
 assert.ok(ice.turnStats.radius>normal.turnStats.radius,'actual ice grip changes physical turn radius');
 assert.ok(cases.every(c=>c.brake<0),'opposite throttle brakes and then reverses');
 assert.ok(garage.straight>normal.straight,'actual Garage engine tuning increases speed');

@@ -61,5 +61,7 @@ assert.ok(registry.list().filter(g => g.guide).length >= 40, 'catalog games carr
   assert.equal(row.className, 'has-touch');
   assert.deepEqual(row.children[0].children.map(k => k.textContent), ['W', 'S']);
   assert.equal(row.children[1].textContent, 'Stick');
+  const touchOnly = guideGlance({ guide: { goal: 'Pick one.', controls: [{ touch: 'Tap', does: 'Choose an answer' }] } });
+  assert.equal(touchOnly.children[1].children[0].className, 'has-touch is-touch-only', 'touch-only labels stay visible on every device');
   console.log('HOWTO_GUIDE_PASS: validation limits, catalog exposure, folded rules, glance markup');
 })().catch(e => { console.error(e); process.exit(1); });

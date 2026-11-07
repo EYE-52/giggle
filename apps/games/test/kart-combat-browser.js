@@ -9,7 +9,7 @@ const ROOT = path.resolve(__dirname, '..');
 const defs = Object.fromEntries(['chain-reaction', 'pocket-karts', 'castle-clash'].map(id => [id, require('../games/' + id + '/server')]));
 const directory = process.env.CUSTOM_MOBILE_REPORT_DIR || '/tmp/giggle-kart-combat-20261007';
 const players = ['Alexandria', 'Bo', 'Cam', 'Dee'].map((name, i) => ({ id: 'p' + i, name, connected: true }));
-let live, serial = 0, nextMap = 'Garden Circuit', weapon = 'pulse', playing = false, proof = [];
+let live, serial = 0, nextMap = 'Garden Circuit', weapon = 'machinegun', playing = false, proof = [];
 function context(id, board) {
   const ctx = { time: 7000000, timers: [], awards: {}, wallet: {},
     now: () => ctx.time, players: () => players.slice(0, id === 'castle-clash' ? 4 : 2),
@@ -30,21 +30,21 @@ function reset(id = 'pocket-karts', phase = 'live', board = 'Compact', rematch =
     if (phase === 'done' || phase === 'watch-done') {
       const [a, b] = state.karts;
       for (const crate of state.crates) { crate.x = 24; crate.z = -24; }
-      Object.assign(a, { weapon: 'scatter', ammo: 1, shield: 0, fireCd: 0, prevAction: false, x: 0, z: -6, angle: 0, speed: 0 });
+      Object.assign(a, { weapon: 'trishot', ammo: 1, shield: 0, fireCd: 0, prevAction: false, x: 0, z: -6, angle: 0, speed: 0 });
       Object.assign(b, { x: 0, z: 0, angle: 0, speed: 0, shield: 0 });
       def.onAction(state, ctx, 'p0', { input: { steer: 0, throttle: 0, boost: true } });
       ctx.time += 100; def.onTick(state, ctx); assert.equal(ctx.wallet.coins.p0, 10);
       Object.assign(a, { x: 20, z: 20, speed: 0 }); Object.assign(b, { x: -20, z: -20, speed: 0 });
       ctx.time = state.endsAt + 1; def.onTick(state, ctx); assert.equal(ctx.wallet.coins.p0, 30);
     } else if (phase === 'drive') {
-      Object.assign(state.karts[0], { weapon, ammo: weapon === 'pulse' ? 3 : 1, fireCd: 0, x: 0, z: -12, angle: 0, shield: 0 });
+      Object.assign(state.karts[0], { weapon, ammo: weapon === 'machinegun' ? 3 : 1, fireCd: 0, x: 0, z: -12, angle: 0, shield: 0 });
       Object.assign(state.karts[1], {x: 0, z: 12, speed: 0, shield: 0});
     } else if (phase === 'wall') {
       Object.assign(state.karts[0],{x:-22,z:-6,angle:0,speed:14,shield:0,weapon:null,ammo:0});
       Object.assign(state.karts[1],{x:40,z:40,speed:0,shield:0});
     } else if (phase === 'ko') {
       Object.assign(state.karts[0],{x:0,z:0,angle:0,speed:0,shield:0,weapon:null,ammo:0});
-      Object.assign(state.karts[1],{x:0,z:-8,angle:0,speed:0,shield:0,weapon:'pulse',ammo:3,fireCd:0,prevAction:false});
+      Object.assign(state.karts[1],{x:0,z:-8,angle:0,speed:0,shield:0,weapon:'machinegun',ammo:3,fireCd:0,prevAction:false});
     } else if (phase === 'emp') {
       Object.assign(state.karts[0],{weapon:'emp',ammo:1,fireCd:0,x:0,z:-8,angle:0,shield:0});
       Object.assign(state.karts[1],{x:0,z:1,speed:0,shield:0});

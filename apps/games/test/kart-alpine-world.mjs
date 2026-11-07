@@ -133,7 +133,7 @@ for(const id of ['ring','blocks','garden','frost']) {
 // while low-frequency map color and repeating grain keep bounded textures.
 const oldDocument=globalThis.document;
 globalThis.document={createElement:()=>{
-  const ctx=new Proxy({}, {get:(_,key)=>key==='createPattern'?()=>({}):key==='createRadialGradient'?()=>({addColorStop(){}}):()=>{}});
+  const ctx=new Proxy({}, {get:(_,key)=>key==='createPattern'?()=>({}):['createRadialGradient','createLinearGradient'].includes(key)?()=>({addColorStop(){}}):()=>{}});
   return {width:0,height:0,getContext:()=>ctx};
 }};
 try {

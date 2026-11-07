@@ -275,6 +275,19 @@ await withGlobals({document:makeEmitter()},async()=>{
   audio.dispose();
 });
 
+// The same running tyre nodes change texture between surfaces; no new voices.
+await withGlobals({document:makeEmitter()},async()=>{
+  const {ctx,nodes}=makeFakeAudio(),audio=createKartAudio({createContext:()=>ctx,loader:makeLoader()});
+  audio.unlock();await audio.ready();const initial=nodes.length;
+  const sample=surface=>{audio.update({speed:18,throttle:1,drifting:true,surface,grounded:true,active:true});return nodes.filter(n=>n.kind==='filter').map(n=>n.frequency.value);};
+  const road=sample('road'),sand=sample('sand'),ice=sample('ice');
+  ok(sand.some((hz,i)=>Math.abs(hz-road[i])>300),'sand changes the continuous tyre texture');
+  ok(ice.some((hz,i)=>hz>road[i]+1000),'ice has a distinct glassy high squeal');
+  ok(nodes.length===initial,'surface changes reuse continuous nodes');
+  audio.update({speed:18,drifting:true,surface:'ice',grounded:false,active:true});
+  audio.dispose();ok(nodes.every(n=>n.disconnects===1),'surface texture nodes dispose once');
+});
+
 /* ---------- 0. static contract ---------- */
 
 /* Arsenal aliases share decoded buffers and keep launch levels/lifecycle. */
@@ -282,7 +295,7 @@ await withGlobals({document:makeEmitter()},async()=>{
   const {ctx,nodes}=makeFakeAudio(),loader=makeLoader();
   const audio=createKartAudio({createContext:()=>ctx,loader});
   audio.unlock();await audio.ready();audio.update({active:true});
-  for(const [alias,original] of [['seeker','rocket'],['nuke','proximity'],['block','shield']]){
+  for(const [alias,original] of [['seeker','rocket'],['block','shield']]){
     ok(audio.cue(original),`alias: ${original} plays`);
     const canonical=cueVoicesOf(nodes).at(-1),peak=gainsOf(nodes).at(-1).gain.max;
     ok(audio.cue(alias),`alias: ${alias} does not drop as an unknown cue`);
@@ -340,7 +353,7 @@ for(const opts of [{noPan:true},{panThrows:true}])await withGlobals({document:ma
 {
   const src = fs.readFileSync(
     fileURLToPath(new URL('../public/js/engines/kart-audio.mjs', import.meta.url)), 'utf8');
-  ok(!/^\s*import\s/m.test(src), 'contract: no imports (no new dependencies)');
+  assert.deepEqual([...src.matchAll(/^import.*from ['"]([^'"]+)['"]/gm)].map(m=>m[1]),['./kart-surface.mjs'],'audio imports only the pure shared surface profiles; no new package dependency');
   ok(!/getUserMedia|getDisplayMedia|MediaStream/.test(src), 'contract: audio-only, never microphone capture');
   ok(!/setInterval|setTimeout|requestAnimationFrame/.test(src), 'contract: no timers (frame-driven only)');
   const synthAt = src.indexOf('export function createSynthCues'), sampled = synthAt < 0 ? src : src.slice(0, synthAt);
@@ -614,7 +627,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok(audio.cue('nope') === false, 'cue: unknown name rejected');
   ok(audio.cue(null) === false && audio.cue(7) === false && audio.cue(undefined) === false,
     'cue: invalid names rejected');
-  for (const name of CUE_NAMES) {
+  for (const name of CUE_NAMES.filter(n=>!SYNTH_CUE_NAMES.includes(n))) {
     const from = nodes.length;
     ok(audio.cue(name) === true, `cue: ${name} schedules`);
     const fresh = nodes.slice(from);
@@ -631,7 +644,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
     ok(voices[0].starts.length === 1 && voices[0].stops.length === 1,
       `cue: ${name} voice bounded start/stop`);
   }
-  ok(stats.osc === 3 + CUE_NAMES.filter((n) => WEAPON_POP[n]).length, 'cue: engine voice plus one pop per weapon cue');
+  ok(stats.osc === 3 + CUE_NAMES.filter((n) => WEAPON_POP[n]&&!SYNTH_CUE_NAMES.includes(n)).length, 'cue: engine voice plus one pop per weapon cue');
   audio.dispose();
 });
 
@@ -646,11 +659,11 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok((await audio.ready()) === true, 'synth: pack ready');
   audio.update({ speed: 6, active: true });
   const fetched = loader.calls.length;
-  ok(SYNTH_CUE_NAMES.length === 14 && new Set(SYNTH_CUE_NAMES).size === 14, 'synth: fourteen named cues');
+  ok(SYNTH_CUE_NAMES.length === 27 && new Set(SYNTH_CUE_NAMES).size === 27, 'synth: distinct weapon, blast and hit-ding cues');
   for (const weapon of ['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram'])
     ok(SYNTH_CUE_NAMES.includes(weapon), `synth: ${weapon} has its own fire cue`);
   ok(['thunderClap', 'oilSkid', 'frostShatter', 'clusterPop', 'boing', 'ramClang'].every((n) => SYNTH_CUE_NAMES.includes(n)), 'synth: clap, skid, shatter, pop, boing and clang cues');
-  ok(SYNTH_CUE_NAMES.every((n) => !CUE_NAMES.includes(n) && !(n in ASSET_MAP)), 'synth: no sample file backs a synthesized cue');
+  ok(SYNTH_CUE_NAMES.filter(n=>!['mine','nuke','nukeBlast'].includes(n)).every((n) => !CUE_NAMES.includes(n) && !(n in ASSET_MAP)), 'synth: no sample file backs a synthesized cue');
   ok(JSON.stringify(audio.synthCues()) === JSON.stringify(SYNTH_CUE_NAMES) && audio.cues().length === CUE_NAMES.length, 'synth: separate cue list, sampled list unchanged');
   const signatures = new Map();
   for (const name of SYNTH_CUE_NAMES) {
@@ -660,7 +673,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
     ok(fresh.some((n) => n.kind === 'osc'), `synth: ${name} is built from oscillators`);
     ok(sources.every((n) => n.starts.length === 1 && n.stops.length === 1), `synth: ${name} every layer has one bounded start/stop`);
     ok(new Set(sources.map((n) => n.stops[0])).size === 1, `synth: ${name} layers end together (no clipped tails)`);
-    ok(sources[0].stops[0] - sources[0].starts[0] <= SYNTH_CUE_SPEC[name][1] + .05 && sources[0].stops[0] - sources[0].starts[0] <= 1.4, `synth: ${name} is short`);
+    ok(sources[0].stops[0] - sources[0].starts[0] <= SYNTH_CUE_SPEC[name][1] + .05 && sources[0].stops[0] - sources[0].starts[0] <= (name==='nukeBlast'?1.9:1.4), `synth: ${name} is short`);
     ok(sources.filter((n) => n.kind === 'buf').every((n) => n.loop === true && n.buffer && !n.buffer.bytes), `synth: ${name} noise is generated, not a decoded file`);
     const amp = fresh.find((n) => n.kind === 'gain');
     ok(amp && amp.gain.max > .1 && amp.gain.max <= .4 + 1e-9, `synth: ${name} modest peak (${amp?.gain.max.toFixed(2)})`);
@@ -689,7 +702,7 @@ await withGlobals({ document: makeEmitter() }, async () => {
   audio.unlock();
   ok((await audio.ready()) === true, 'weapons: pack ready');
   audio.update({ speed: 6, active: true });
-  const addedCues = ['proximity','nuke','nukeBlast','collision','hurt','hitConfirm','block'];
+  const addedCues = ['proximity','collision','hurt','hitConfirm','block'];
   for (const cue of addedCues) ok(audio.cue(cue) === true, `weapons: ${cue} schedules`);
   const voices = cueVoicesOf(nodes);
   ok(voices.length === addedCues.length, 'weapons: one voice per new cue');

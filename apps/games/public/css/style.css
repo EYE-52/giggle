@@ -75,6 +75,12 @@
   --lift-sm: 2px; --lift: 4px; --lift-lg: 6px;
   /* Control heights: 44px is the floor for anything tappable. */
   --control-h-sm: 44px; --control-h: 48px; --control-h-lg: 56px;
+  /* Start menu: room for a guide beside a seat, with laptop margins. */
+  --howto-dialog-w: 920px; --howto-dialog-h: 600px;
+  --howto-seat-w: 304px; --howto-controls-w: 536px;
+  --home-card-art: 96px;
+  /* Garage results: wide parts bench and a fixed kart display. */
+  --kart-garage-w: 880px; --kart-garage-preview-w: 224px; --kart-garage-preview-h: 208px;
   /* Text styles: font shorthands, used as `font: var(--text-title)`. */
   --text-heading: 800 clamp(26px, 3.2vw, 34px)/1.15 var(--font-display);
   --text-title: 800 20px/1.25 var(--font-display);
@@ -1129,16 +1135,8 @@ dialog.howto-dlg:not([open]) { display: none; }
   border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px;
 }
 .howto-pill:nth-child(2) { background: var(--accent-soft); color: var(--accent-deep); }
-/* The rules list scrolls inside the sheet, above the footer divider. Only
- * while more of it sits below (.has-more, set by howto.js) does the bottom
- * edge fade, and never to nothing: the next line peeks through as the cue
- * to scroll. At the end of the list every line is at full strength, and
- * the bottom padding keeps the last line clear of the divider. */
+/* The dialog scrolls as one sheet, so rules never fade or clip mid-line. */
 .howto-body { overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding-bottom: var(--space-16); }
-.howto-body.has-more {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), #0004);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), #0004);
-}
 .howto-body p { margin: 0 0 10px; font-size: 17px; font-weight: 600; line-height: 1.55; }
 .howto-body p:last-child { margin-bottom: 0; }
 .howto-foot {
@@ -1236,8 +1234,7 @@ dialog.howto-dlg:not([open]) { display: none; }
   .kart-setup .dlg-foot .btn { padding-inline: 12px; font-size: 15px; }
 }
 @media (max-width: 560px) {
-  /* Bounded bottom sheet on phones: full width, capped height, the
-   * instruction text scrolls inside while the CTA stays visible. */
+  /* Bounded bottom sheet on phones; the whole sheet can scroll. */
   dialog.howto-dlg {
     margin: auto 0 0; width: 100%; max-width: 100%;
     border-radius: 20px 20px 0 0; border-bottom: none;
@@ -2366,8 +2363,10 @@ body.game-fullscreen.game-immersive #gbody > .bk-game {
 @media (prefers-reduced-motion: reduce) { .room-switch, .room-switch::after { transition: none; } }
 
 /* Lobby filters as chip rows (size, sort) and toggle chips that show on. */
-.catbar .catpick { flex: 0 1 auto; min-width: 0; max-width: 100%; }
-.catbar select.picker-native { height: 1px; padding: 0; }
+.catbar .catpick { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; }
+/* The phone select rule must not widen this visually hidden native field:
+ * an absolute 100%-wide select at the page inset expands the mobile viewport. */
+.catbar select.picker-native { width: 1px; max-width: 1px; min-width: 0; height: 1px; min-height: 0; padding: 0; }
 .catbar .catpick .picker-seg.tb-seg { width: auto; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
 .catbar .catpick .picker-seg.tb-seg > button { flex: none; white-space: nowrap; }
 .catbar .chip[aria-pressed="true"] { color: var(--on-fam, #fff); background: var(--fam, var(--accent)); border-color: var(--fam-lip, transparent); }

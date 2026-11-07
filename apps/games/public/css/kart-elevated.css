@@ -129,3 +129,8 @@ body.game-immersive:has(.pke) #gbody>#rematch{bottom:18px;background:var(--card)
 .kart-gear[data-gear="3"] { background:#f08a24cc; }
 .kart-gear[data-gear="R"] { background:#3d6fd8cc; }
 .pke-speed .kart-gear { align-self:center; width:26px; height:26px; font-size:14px; margin-left:4px; }
+
+:is(.pk,.pke) [data-state="roulette"] .kart-item-art{outline:3px solid #ffd34a;outline-offset:2px;filter:drop-shadow(0 0 7px #ffe066);}
+.kart-hearts[data-shake]{animation:kart-hearts-shake .28s ease-out;}
+@keyframes kart-hearts-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px) rotate(-4deg)}65%{transform:translateX(4px) rotate(3deg)}}
+@media(prefers-reduced-motion:reduce){.kart-hearts[data-shake]{animation:none}}

@@ -1,3 +1,4 @@
+import {surfaceProfile} from './kart-surface.mjs';
 /* Pocket Karts audio: synthesized kart engine over a recorded bed, plus
  * sampled arcade cues with synthesized weapon pops (WebAudio).
  *
@@ -728,8 +729,9 @@ export function createKartAudio(opts) {
       if (tx) {
         ramp(tx.raspF.frequency, Math.min(5200, hz * 4.5 + pedal * 600), t, .05);
         ramp(tx.raspG.gain, (.05 + pedal * .16 + rev * .06) * cut, t, cut < 1 ? .01 : .05);
-        ramp(tx.roadF.frequency, 160 + n * 620, t, .12);
-        ramp(tx.roadG.gain, n > .02 ? .03 + n * .16 : FLOOR, t, .12);
+        const tyre=surfaceProfile(frame.surface);
+        ramp(tx.roadF.frequency, tyre.tyreHz*(.7+n*1.4), t, .12);
+        ramp(tx.roadG.gain, frame.grounded&&n > .02 ? .02 + n * tyre.tyreGain : FLOOR, t, .12);
         ramp(tx.windG.gain, n > .25 ? n * n * .085 : FLOOR, t, .2);
         // Exhaust crackle: a pop on the shift and a smaller echo after it.
         if (geared && frame.shift && (pedal > .05 || frame.shift > 0)) {
@@ -747,9 +749,10 @@ export function createKartAudio(opts) {
       }
     }
     // Drift/skid needs real slide speed; parked wiggle stays silent.
-    const skid = drifting && n > 0.15 ? Math.min(1, 0.4 + 0.6 * n) : 0;
-    ramp(graph.driftG.gain, skid > 0 ? 0.07 + skid * 0.2 : FLOOR, t, 0.06);
-    ramp(graph.driftF.frequency, 650 + n * 550, t, 0.12);
+    const tyre=surfaceProfile(frame.surface);
+    const skid = frame.grounded && drifting && n > 0.15 ? Math.min(1, 0.4 + 0.6 * n) : 0;
+    ramp(graph.driftG.gain, skid > 0 ? (0.07 + skid * 0.2)*tyre.squeal : FLOOR, t, 0.06);
+    ramp(graph.driftF.frequency, (tyre.kind==='ice'?2300:650) + n * 550, t, 0.12);
     if (loops.drift && loops.drift.playbackRate) {
       ramp(loops.drift.playbackRate, 0.97 + n * 0.08, t, 0.12);
     }
@@ -923,6 +926,8 @@ export function createKartAudio(opts) {
         speed: num(f.speed, 0),
         throttle: num(f.throttle, 0),
         drifting: f.drifting === true,
+        surface: surfaceProfile(f.surface).kind,
+        grounded: f.grounded !== false,
         boost: f.boost === true || num(f.boost, 0) > 0,
         // Optional gearbox state from kart-gearbox.mjs (views compute it).
         gear: Number.isInteger(f.gear) ? f.gear : null,
@@ -1127,12 +1132,14 @@ export function createKartAudio(opts) {
  *   ramClang     heavy metallic clang on impact
  */
 
-export const SYNTH_CUE_NAMES = Object.freeze(['laser', 'thunder', 'thunderClap', 'boomerang', 'oil', 'oilSkid', 'frost', 'frostShatter',
+export const SYNTH_CUE_NAMES = Object.freeze(['hitDing','machinegun','trishot','missile','cannon','blades','supernova','nuke','mine','cannonBoom','missileBlast','novaBlast','nukeBlast','laser', 'thunder', 'thunderClap', 'boomerang', 'oil', 'oilSkid', 'frost', 'frostShatter',
   'cluster', 'clusterPop', 'bouncer', 'boing', 'ram', 'ramClang']);
 
 // Peak level and length (seconds) per cue; the cue bus and master
 // compressor keep headroom exactly as for the sampled cues.
 export const SYNTH_CUE_SPEC = Object.freeze({
+ hitDing:[.24,.19],machinegun:[.22,.08],trishot:[.26,.15],missile:[.25,.45],cannon:[.32,.5],blades:[.22,.8],supernova:[.22,.9],
+ nuke:[.25,1.1],mine:[.2,.2],cannonBoom:[.35,.7],missileBlast:[.3,.6],novaBlast:[.3,.9],nukeBlast:[.4,1.8],
   laser: [.26, .24], thunder: [.24, .3], thunderClap: [.38, 1.25], boomerang: [.22, .95], oil: [.3, .3], oilSkid: [.26, .6],
   frost: [.24, .22], frostShatter: [.28, .6], cluster: [.32, .22], clusterPop: [.26, .1], bouncer: [.24, .22], boing: [.24, .38],
   ram: [.26, 1.05], ramClang: [.32, .7],
@@ -1186,6 +1193,19 @@ export function createSynthCues({ ctx, bus, track, stealIfFull }) {
   }
 
   const DESIGN = {
+    machinegun(v){v.hiss('highpass',4200,1200,.8,v.t0,.055,.8);v.tone('square',240,85,v.t0,.065,.6);},
+    trishot(v){for(let i=0;i<3;i++){v.tone('triangle',420+i*70,100,v.t0+i*.018,.09,.55);}v.hiss('bandpass',2300,800,1,v.t0,.11,.65);},
+    missile(v){v.tone('sawtooth',160,520,v.t0,.35,.2);v.hiss('lowpass',800,4200,.8,v.t0,.42,.85);},
+    cannon(v){v.tone('sine',150,35,v.t0,.45,1);v.hiss('lowpass',3200,150,.6,v.t0,.32,.9);},
+    blades(v){v.hiss('bandpass',900,2000,3,v.t0,.7,.6);for(let i=0;i<3;i++)v.tone('triangle',700+i*200,320,v.t0+i*.13,.22,.35);},
+    supernova(v){v.tone('sine',260,1100,v.t0,.85,.65);v.tone('triangle',390,1650,v.t0,.85,.3);},
+    nuke(v){for(let i=0;i<3;i++)v.tone('square',580,680,v.t0+i*.3,.18,.45);v.tone('sine',75,42,v.t0,.95,.7);},
+    mine(v){v.tone('square',600,180,v.t0,.055,.4);v.tone('sine',180,60,v.t0+.04,.12,.7);},
+    cannonBoom(v){v.tone('sine',110,30,v.t0,.65,1);v.hiss('lowpass',5000,160,.6,v.t0,.5,.9);},
+    hitDing(v){v.tone('sine',1100,1100,v.t0,.17,.75);v.tone('sine',1650,1650,v.t0+.025,.14,.4);},
+    missileBlast(v){v.hiss('lowpass',6400,280,.7,v.t0,.5,1);v.tone('triangle',170,40,v.t0,.45,.6);},
+    novaBlast(v){v.tone('sine',1700,55,v.t0,.8,.75);v.hiss('bandpass',3200,220,.8,v.t0,.65,.7);},
+    nukeBlast(v){v.hiss('lowpass',8500,80,.7,v.t0,1.65,1);v.tone('sine',120,25,v.t0,1.65,1);v.tone('triangle',240,38,v.t0+.08,1.4,.45);},
     laser(v) { // rising charge whine, then the zap
       const { t0 } = v;
       const whine = v.tone('sine', 520, 2600, t0, .13, .55); v.set(whine.frequency, 520, t0);

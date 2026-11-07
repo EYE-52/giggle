@@ -1,0 +1,126 @@
+{
+  "ring": {
+    "palette": {
+      "name": "Daybreak",
+      "sky": 554983,
+      "skyMid": 2991855,
+      "horizon": 12050162,
+      "sun": 16773590,
+      "sunIntensity": 1.75,
+      "sunDir": [
+        0.45078957323532,
+        0.6210878564575519,
+        0.641122948601344
+      ],
+      "sunDisc": 16774872,
+      "sunSize": 9,
+      "haze": 14019327,
+      "hazeOpacity": 0.18,
+      "hemiSky": 15003391,
+      "hemiGround": 6451791,
+      "hemiIntensity": 1.25,
+      "fog": [
+        110,
+        340
+      ],
+      "exposure": 1,
+      "ground": 3124041,
+      "track": 3425110,
+      "stars": false,
+      "cloudsVisible": true
+    }
+  },
+  "blocks": {
+    "palette": {
+      "name": "Daybreak",
+      "sky": 554983,
+      "skyMid": 2991855,
+      "horizon": 12050162,
+      "sun": 16773590,
+      "sunIntensity": 1.75,
+      "sunDir": [
+        0.45078957323532,
+        0.6210878564575519,
+        0.641122948601344
+      ],
+      "sunDisc": 16774872,
+      "sunSize": 9,
+      "haze": 14019327,
+      "hazeOpacity": 0.18,
+      "hemiSky": 15003391,
+      "hemiGround": 6451791,
+      "hemiIntensity": 1.25,
+      "fog": [
+        110,
+        340
+      ],
+      "exposure": 1,
+      "ground": 10459520,
+      "track": 3752787,
+      "stars": false,
+      "cloudsVisible": true
+    }
+  },
+  "garden": {
+    "palette": {
+      "name": "Daybreak",
+      "sky": 554983,
+      "skyMid": 2991855,
+      "horizon": 12050162,
+      "sun": 16773590,
+      "sunIntensity": 1.75,
+      "sunDir": [
+        0.45078957323532,
+        0.6210878564575519,
+        0.641122948601344
+      ],
+      "sunDisc": 16774872,
+      "sunSize": 9,
+      "haze": 14019327,
+      "hazeOpacity": 0.18,
+      "hemiSky": 15003391,
+      "hemiGround": 6451791,
+      "hemiIntensity": 1.25,
+      "fog": [
+        140,
+        400
+      ],
+      "exposure": 1,
+      "ground": 4179031,
+      "track": 6055282,
+      "stars": false,
+      "cloudsVisible": true
+    }
+  },
+  "frost": {
+    "palette": {
+      "name": "Daybreak",
+      "sky": 554983,
+      "skyMid": 2991855,
+      "horizon": 12050162,
+      "sun": 16773590,
+      "sunIntensity": 1.75,
+      "sunDir": [
+        0.45078957323532,
+        0.6210878564575519,
+        0.641122948601344
+      ],
+      "sunDisc": 16774872,
+      "sunSize": 9,
+      "haze": 14019327,
+      "hazeOpacity": 0.18,
+      "hemiSky": 15003391,
+      "hemiGround": 6451791,
+      "hemiIntensity": 1.25,
+      "fog": [
+        140,
+        400
+      ],
+      "exposure": 1,
+      "ground": 14478069,
+      "track": 5860221,
+      "stars": false,
+      "cloudsVisible": true
+    }
+  }
+}
