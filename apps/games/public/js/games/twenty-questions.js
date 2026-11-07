@@ -132,7 +132,7 @@ function buildPlay(el, S, api, isAns) {
         <button class="gk-btn tq-ans" id="tqSome" type="button" aria-label="Answer sometimes">${answerIcon('sometimes')} Sometimes</button>
       </div>`
     : '<p class="gk-wait tq-wait" id="tqSpotWait" role="status"></p>';
-  const ask = isAns ? '' : `
+  const ask = isAns ? '' : `<div class="tq-askslot">
       <div class="tq-askrow">
         <input id="tQ" class="gk-input" type="text" placeholder="Ask a yes/no question…" maxlength="140"
           autocomplete="off" autocapitalize="sentences" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text" aria-label="Ask a yes or no question">
@@ -143,7 +143,7 @@ function buildPlay(el, S, api, isAns) {
           autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" inputmode="text" aria-label="Guess the secret word">
         <button class="gk-btn" id="tGSend" type="button">Guess</button>
       </div>
-      <p class="tq-askstate" id="tqAskState" role="status"></p>`;
+      <p class="tq-askstate" id="tqAskState" role="status"></p></div>`;
   el.innerHTML = `
     <div class="tq" data-role="${isAns ? 'answerer' : 'guesser'}">
       ${tqHud(S, 'play', isAns ? 'Answer' : 'Ask', 'tqBadge')}
@@ -292,7 +292,6 @@ function updatePlay(el, S, api, isAns) {
   }
 
   const rest = pend.slice(1);
-  if (R.qwrap) R.qwrap.hidden = rest.length === 0;
   if (R.queue) {
     R.queue.innerHTML = rest.map(({ q, i }) => {
       const left = `<div class="tq-row-meta"><span class="tq-num">Q${i + 1}</span>` +
@@ -304,7 +303,7 @@ function updatePlay(el, S, api, isAns) {
         `<button class="gk-btn" id="tq-a-${i}-no" type="button" data-qi="${i}" data-a="no" aria-label="Answer question ${i + 1} no">${answerIcon('no')} No</button>` +
         `<button class="gk-btn" id="tq-a-${i}-some" type="button" data-qi="${i}" data-a="sometimes" aria-label="Answer question ${i + 1} sometimes">${answerIcon('sometimes')} Sometimes</button>` +
         '</span></div>';
-    }).join('');
+    }).join('') || '<p class="tq-empty">No other questions queued.</p>';
   }
 
   paintHistory();

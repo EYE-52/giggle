@@ -33,31 +33,59 @@ assert.throws(() => create('truth-dare', 2, { rounds: 999 }), /rounds/i, 'same R
 const twenty = new SameRoom(content, { game: 'truth-dare', names: Array.from({ length: 20 }, (_, i) => `Friend ${i + 1}`) });
 assert.equal(twenty.snapshot().players.length, 20); twenty.destroy();
 
-for (const count of [2, 5]) for (const deck of ['classic', 'funny', 'wild', 'own']) {
-  const r = create('truth-dare', count, { rounds: 1 });
+for (const count of [2, 5]) for (const promptStyle of ['Random card', 'Room pool vote', 'Ask your own', 'Mixed']) for (const deck of ['classic', 'funny', 'wild']) {
+  const r = create('truth-dare', count, { rounds: 1, promptStyle });
   try {
-    advance(r, 4000); assert.equal(r.game.state.phase, 'choose');
     const target = r.game.state.target;
-    action(r, { deck, kind: deck === 'wild' ? 'dare' : 'truth' });
-    if (deck === 'own') {
-      assert.equal(r.game.state.phase, 'write');
-      assert.notEqual(r.snapshot().player, target, 'another person writes the prompt');
+    assert.equal(r.snapshot().player, target, 'spinner banner names the real target');
+    advance(r, 4000); assert.equal(r.game.state.phase, 'choose');
+    assert.equal(r.snapshot().player, target, 'choice controls belong to the target');
+    assert.equal(r.snapshot().state.me, target, 'game view and shell use the same actor');
+    action(r, { deck, kind: deck === 'wild' ? 'random' : 'truth' });
+    let writers = 0, pickers = 0;
+    while (r.game.state.phase === 'compose') {
+      assert.notEqual(r.snapshot().player, target, 'target cannot write a prompt');
       const at = r.logicalNow; advance(r, 100000);
       assert.equal(r.logicalNow, at, 'passing time does not use the private timer');
-      privateTurn(r, { prompt: 'What is your favourite shared memory?' });
-      assert.equal(r.game.state.prompt, 'What is your favourite shared memory?');
+      privateTurn(r, { entry: `Tell a favourite memory, writer ${++writers}.` });
     }
+    if (r.game.state.roundStyle === 'Ask your own') assert.equal(writers, count - 1);
+    while (r.game.state.phase === 'prompt-vote') {
+      assert.notEqual(r.snapshot().player, target, 'target cannot pick their own prompt');
+      privateTurn(r, { promptVote: 0 }); pickers++;
+    }
+    const poolExpected = r.game.state.roundStyle === 'Room pool vote' ||
+      r.game.state.roundStyle === 'Ask your own' && count > 2;
+    assert.equal(pickers, poolExpected ? count - 1 : 0, 'every eligible peer picks; one written prompt is used directly');
     assert.equal(r.game.state.phase, 'perform');
+    assert.equal(r.snapshot().player, target, 'performance banner returns to the target');
+    assert.equal(r.snapshot().state.me, target);
+    assert.deepEqual(r.game.state.scores, {}, 'writing and pool votes do not score');
     action(r, { ready: true });
-    for (let i = 1; i < count; i++) privateTurn(r, { vote: 'yes' });
+    for (let i = 1; i < count; i++) {
+      assert.notEqual(r.snapshot().player, target, 'target cannot judge themself');
+      privateTurn(r, { vote: 'yes' });
+    }
     assert.equal(r.game.state.phase, 'reveal');
     assert.equal(r.game.state.last.targetPts, 100);
     assert.equal(r.totals[target], 100);
     assert.equal(Object.values(r.totals).reduce((a, b) => a + b, 0), 100 + 25 * (count - 1), 'identical module score rules');
     action(r, { next: true }); assert.equal(r.game.state.phase, 'done');
     op(r, 'rematch'); assert.equal(r.game.state.phase, 'spin');
+    assert.equal(r.game.state.promptStyle, promptStyle);
   } finally { r.destroy(); }
 }
+
+// Seeded target beyond the host catches a shell accidentally using seat one.
+const oldRandom = Math.random; Math.random = () => 0;
+const nonhost = create('truth-dare', 5);
+Math.random = oldRandom;
+try {
+  assert.notEqual(nonhost.game.state.target, nonhost.hostId);
+  advance(nonhost, 4000);
+  assert.equal(nonhost.snapshot().player, nonhost.game.state.target);
+  assert.equal(nonhost.snapshot().state.me, nonhost.game.state.target);
+} finally { nonhost.destroy(); }
 
 const board = create('four-in-a-row');
 try {

@@ -265,8 +265,8 @@
 
 /* ---- HUD: phase chip, progress, timer bar ---- */
 #gbody .pl-fill > :is(.gk-hud, .party-hud) {
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12);
-  min-height: var(--control-h-sm); margin: 0;
+  position:relative; display:grid; grid-template-columns:14ch 12ch minmax(0,1fr) calc(var(--space-64) + var(--space-24)); align-items:center; gap:var(--space-8) var(--space-12);
+  min-height:var(--control-h-sm); margin:0;
 }
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-round, .party-round) { font: var(--text-button-sm); color: var(--ink); }
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-phase, .party-phase):not(:empty) {
@@ -275,7 +275,7 @@
   background: var(--fam-soft); color: var(--fam-deep); font: var(--text-caption); font-weight: 800;
 }
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-progress, .party-progress) {
-  margin-left: auto; font: var(--text-caption); font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums;
+  margin-left:0; font:var(--text-caption); font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;
 }
 /* The timer pill; its draining ring lives in game-ui.css. Empty keeps its width. */
 #gbody .pl-fill .gk-hud-timer {
@@ -688,7 +688,7 @@
   #gbody .pl-live :is(.party-more, .wg-more) > summary { padding: 0 var(--space-8); font-size: 13px; }
 }
 /* Progress text sits flush right when there is no clock. */
-#gbody .pl-fill .gk-hud-timer:empty { display: none; }
+#gbody .pl-fill .gk-hud-timer:empty { visibility:hidden; }
 
 /* Phones: seats share the row (wrapping for big rooms), never scroll sideways. */
 @media (max-width: 560px) {
@@ -782,3 +782,17 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
   background: color-mix(in srgb, var(--fam) 8%, var(--card));
   border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
 }
+
+/* Phase and progress occupy the same tracks even when their copy changes. */
+#gbody .pl-fill :is(.gk-hud,.party-hud) :is(.gk-hud-phase,.party-phase) { justify-self:start; width:max-content; max-width:100%; min-width:0; height:var(--space-32); min-height:var(--space-32); display:block; line-height:var(--space-32); border-radius:var(--radius-pill); text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#gbody .pl-fill :is(.gk-hud,.party-hud) .party-spectator { position:absolute; right:0; top:100%; }
+@media (max-width:560px) {
+ #gbody .pl-fill > :is(.gk-hud,.party-hud) { grid-template-columns:minmax(0,1fr) minmax(0,1fr) var(--space-64); }
+ #gbody .pl-fill .gk-hud-timer { grid-column:3; min-width:0; width:100%; }
+ #gbody .pl-fill :is(.gk-hud,.party-hud) .party-spectator { top:auto; bottom:0; }
+}
+
+/* Names, role text and changing score glyphs share three steady seat rows. */
+.pl-live .pl-seat { grid-template-rows:repeat(3,var(--space-24)); }
+
+.pl-live .pl-head { min-height:var(--control-h-sm); }

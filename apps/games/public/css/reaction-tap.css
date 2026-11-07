@@ -124,3 +124,12 @@
 #gbody .rt.pl-fill .gk-hud .gk-hud-phase.is-foul:not(:empty) { background: var(--danger-soft); color: var(--danger); }
 /* The x badge sits off the avatar's corner so it never covers "P1". */
 #gbody .rt.pl-fill .pl-badge { width: 16px; height: 16px; right: -8px; bottom: -8px; font-size: 10px; }
+
+/* The lights, physical target and label own separate, fixed cabinet rows. */
+#gbody .rt.pl-fill .rt-pad { position:relative; grid-template-areas:"lights" "target" "label"; grid-template-rows:52px clamp(120px,22vh,200px) 2.3em; }
+#gbody .rt.pl-fill .rt-pad::before { position:absolute; grid-area:target; inset:0; margin:auto; height:clamp(120px,22vh,200px); }
+#gbody .rt.pl-fill .rt-pad::after { grid-area:lights; }
+#gbody .rt.pl-fill .rt-pad-label { grid-area:label; display:grid; place-items:center; width:100%; height:2.3em; overflow:auto; font-variant-numeric:tabular-nums; }
+#gbody .rt.pl-fill :is(#rInstruction,#rStatus) { height:var(--space-64); min-height:var(--space-64); overflow:auto; }
+#gbody .rt.pl-fill #rTip { height:var(--space-48); min-height:var(--space-48); overflow:auto; }
+@media (max-width:560px) { #gbody .rt.pl-fill .rt-pad { grid-template-rows:var(--space-40) clamp(120px,22vh,200px) 2.3em; } }

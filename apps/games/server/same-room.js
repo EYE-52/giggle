@@ -88,9 +88,12 @@ class SameRoom extends Room {
       return make(pid);
     }
     if (id === 'truth-dare') {
-      if (s.phase === 'write') return make(s.writer, true, 'write');
-      if (s.phase !== 'vote') return make(s.target || this.hostId);
-      return make(pending(s.votes, [s.target]), true, 'vote', true);
+      // The original game decides who may write, pick and judge. One device
+      // visits those peers in order; the target never gets a private ballot.
+      if (s.phase === 'compose') return make(pending(s.entries, [s.target]), true, 'write', true);
+      if (s.phase === 'prompt-vote') return make(pending(s.promptVotes, [s.target]), true, 'prompt-vote', true);
+      if (s.phase === 'vote') return make(pending(s.votes, [s.target]), true, 'vote', true);
+      return make(s.target || this.hostId);
     }
     if (id === 'two-truths' && s.phase === 'write') return make(s.subject, true, 'write');
     if (id === 'hot-takes' && s.phase === 'submit') {

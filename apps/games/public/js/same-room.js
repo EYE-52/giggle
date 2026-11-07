@@ -12,6 +12,7 @@ let games = [], gameId = new URLSearchParams(location.search).get('game') || 'tr
 let names = [], settings = {}, socket = null, current = null, mountKey = '', readyStep = null;
 let token = read('giggle:one-device:token'), busy = false, retry = 0, disconnected = false;
 let anchor = { game: 0, local: 0, running: false };
+let pickingGame = !new URLSearchParams(location.search).has('game');
 try { const draft = JSON.parse(read('giggle:one-device:names')); if (Array.isArray(draft)) names = draft.filter(n => typeof n === 'string').slice(0, 20); } catch { /* fresh group */ }
 const game = () => games.find(g => g.id === gameId);
 const status = text => { $('srStatus').textContent = text; };
@@ -24,15 +25,27 @@ function send(message) {
 function input(op, fields = {}) { return current && send({ t: 'same-input', step: current.step, op, ...fields }); }
 function now() { return anchor.game + (anchor.running ? performance.now() - anchor.local : 0); }
 function family(g) { return g?.cat === 'board' ? 'board' : ['doodle-guess', 'charades'].includes(g?.id) ? 'create' : 'party'; }
-function setSkin() { document.body.dataset.game = gameId; document.body.dataset.family = family(game()); }
+function setSkin() {
+  document.body.dataset.game = gameId; document.body.dataset.family = family(game());
+  document.body.classList.toggle('game-playing', !!current);
+}
+const cover = g => `/${g.art || `img/games/${g.id}.png`}`;
+function gameCards() {
+  return `<details id="srGamePicker" class="sr-game-picker"${pickingGame ? ' open' : ''}>
+    <summary class="tb-btn tb-secondary">Choose a game <span class="t-caption">${games.length} on one device</span></summary>
+    <div class="sr-game-grid" role="group" aria-label="Choose a one-device game">${games.map(g => {
+      const selected = g.id === gameId, support = sameRoomSupport(g);
+      return `<button type="button" class="sr-game-card tb-card is-compact" data-game-choice="${g.id}" data-family="${family(g)}" aria-pressed="${selected}" aria-label="Choose ${esc(g.name)}">
+        <img src="${esc(cover(g))}" alt="" loading="lazy" width="96" height="96"><span class="t-title">${esc(g.name)}</span><span class="t-caption">${support.min === support.max ? support.min : `${support.min}–${support.max}`} people${selected ? ' · ✓ Picked' : ''}</span></button>`;
+    }).join('')}</div></details>`;
+}
 function field(s) {
   const id = `sr-setting-${s.key}`, value = settings[s.key] ?? s.def;
-  if ((s.type === 'enum' && s.options.length <= 4) || s.type === 'bool') {
+  if (s.type === 'enum' || s.type === 'bool') {
     const choices = s.type === 'bool' ? [['true', 'On'], ['false', 'Off']] : s.options;
     const options = choices.map(o => Array.isArray(o) ? o : [o, o]);
-    return `<div class="sr-field"><span id="${id}-label">${esc(s.label)}</span><select id="${id}" data-setting="${s.key}" class="picker-native" tabindex="-1" aria-hidden="true">${options.map(([v, text]) => `<option value="${esc(v)}"${String(v) === String(value) ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select>${segPickerHtml(id, choices, value, `${id}-label`, false)}</div>`;
+    return `<div class="sr-field gm-tile gm-enum${options.length >= 4 ? ' sr-field-tiles' : ''}"><span id="${id}-label">${esc(s.label)}</span><select id="${id}" data-setting="${s.key}" class="picker-native" tabindex="-1" aria-hidden="true">${options.map(([v, text]) => `<option value="${esc(v)}"${String(v) === String(value) ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select>${segPickerHtml(id, choices, value, `${id}-label`, false)}</div>`;
   }
-  if (s.type === 'enum') return `<label class="sr-field" for="${id}">${esc(s.label)}<select id="${id}" data-setting="${s.key}">${s.options.map(v => `<option${v === value ? ' selected' : ''}>${esc(v)}</option>`).join('')}</select></label>`;
   return `<label class="sr-field" for="${id}">${esc(s.label)}<span class="sr-stepper"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="-1" aria-label="Fewer ${esc(s.label.toLowerCase())}">−</button><input id="${id}" type="number" inputmode="numeric" data-setting="${s.key}" min="${s.min}" max="${s.max}" value="${value ?? ''}" placeholder="${esc(s.autoLabel || 'Auto')}"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="1" aria-label="More ${esc(s.label.toLowerCase())}">+</button></span></label>`;
 }
 function setup() {
@@ -41,7 +54,8 @@ function setup() {
   const g = game();
   app.setAttribute('aria-busy', 'false');
   app.innerHTML = `<form id="srSetup" class="sr-setup">
-    <div class="sr-feature"><img class="sr-cover" src="/${esc(g.art || `img/games/${g.id}.png`)}" alt=""><div class="sr-feature-copy"><h1 class="t-heading">One device. Everyone plays.</h1><label class="sr-field" for="srGame">Pick a game<select id="srGame">${games.map(g => `<option value="${g.id}"${g.id === gameId ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}</select></label></div></div>
+    <div class="sr-feature"><img class="sr-cover" src="${esc(cover(g))}" alt=""><div class="sr-feature-copy"><p class="t-caption">Same room · one device</p><h1 class="t-heading">${esc(g.name)}</h1><p class="t-body">Add your people. The phone runs the game.</p></div></div>
+    <input id="srGame" type="hidden" value="${g.id}">${gameCards()}
     <section class="sr-panel tb-card"><h2>Who’s here?</h2><p class="t-caption">Add names, then pass the phone when asked.</p>
       <div class="sr-add"><input id="srName" maxlength="200" autocomplete="off" enterkeyhint="done" aria-label="Player names" placeholder="Sam, Jess, Mo…"><button type="button" id="srAdd" class="tb-btn tb-secondary">Add</button></div>
       <div id="srNames" class="sr-names" aria-label="Players"></div><p id="srNameError" class="sr-error" role="alert"></p>
@@ -49,7 +63,14 @@ function setup() {
     <section class="sr-panel tb-card"><h2>Make it yours</h2><div class="sr-fields">${g.schema.settings.map(field).join('') || '<p class="t-body">The board is ready. Add your names and play.</p>'}</div><p class="t-caption">Private turns each get their own timer. Passing time does not count.</p></section>
     <div class="sr-start"><button id="srStart" class="tb-btn tb-primary" type="submit">Start ${esc(g.name)}</button><p id="srReason" class="sr-reason" aria-live="polite"></p></div>
   </form>`;
-  $('srGame').onchange = () => { gameId = $('srGame').value; settings = {}; history.replaceState(null, '', `?game=${encodeURIComponent(gameId)}`); setup(); };
+  $('srGamePicker').ontoggle = () => { pickingGame = $('srGamePicker').open; };
+  app.querySelectorAll('[data-game-choice]').forEach(card => { card.onclick = () => {
+    const nameDraft = $('srName').value;
+    gameId = card.dataset.gameChoice; settings = {}; pickingGame = false;
+    history.replaceState(null, '', `?game=${encodeURIComponent(gameId)}`);
+    setup(); $('srName').value = nameDraft;
+    $('srGamePicker').querySelector('summary').focus({ preventScroll: true });
+  }; });
   $('srAdd').onclick = addNames;
   $('srName').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); addNames(); } };
   app.querySelectorAll('[data-setting]').forEach(el => {
@@ -107,19 +128,25 @@ function clearPrivate() {
   reset(); app.replaceChildren(); mountKey = ''; readyStep = null;
 }
 function play(message) {
-  gameId = message.game; setSkin();
+  gameId = message.game;
   anchor = { game: message.gameNow, local: performance.now(), running: message.running };
-  const previous = current; current = message;
+  current = message; setSkin();
   app.setAttribute('aria-busy', 'false');
   if (message.gate !== 'play') { handoff(message); return; }
   const S = message.state, p = message.players.find(p => p.id === message.player);
-  const key = `${S.instanceId}:${message.player}:${message.kind}:${S.phase}`;
+  const key = `${S.instanceId}:${message.player}:${message.kind}:${S.phase}:${S.round}`;
   if (mountKey !== key) {
     reset(); mountKey = key; readyStep = null;
+    window.scrollTo?.(0, 0);
     app.innerHTML = `<div class="sr-play-head">${avatar(p)}<div><p class="t-caption">${esc(game()?.name || gameId)}${S.round ? ` · round ${S.round}${S.rounds ? ` of ${S.rounds}` : ''}` : ''}</p><h1 id="srTurn" class="sr-turn">${S.phase === 'done' ? 'Final scores' : ['reveal', 'standings'].includes(S.phase) ? 'Round results' : `${esc(p?.name || 'Everyone')}’s turn`}</h1></div>${message.private ? btn('srCover', 'Hide', 'tb-chip') : ''}</div><div id="srView" class="sr-view-shell" aria-busy="true"><div class="sr-loading tb-card" role="status"><div class="tb-skeleton"></div><p class="t-body">Setting the table…</p></div><div id="gbody" class="sr-playfield" data-layout="standard"></div></div><div id="srExtras"></div><nav class="sr-game-tools" aria-label="Game controls">${btn('srEnd', 'End game', 'tb-chip')}</nav>`;
     if ($('srCover')) $('srCover').onclick = () => { clearPrivate(); input('cover'); };
     $('srEnd').onclick = () => confirmEnd();
   }
+  // Progress snapshots must update the banner too, even when the mounted
+  // game/phase is unchanged. Its actor is the server-selected seat (S.me).
+  const actor = message.players.find(player => player.id === S.me) || p;
+  $('srTurn').textContent = S.phase === 'done' ? 'Final scores' : ['reveal', 'standings'].includes(S.phase)
+    ? 'Round results' : `${actor?.name || 'Everyone'}’s turn`;
   const api = {
     send: a => input('action', { a }), now,
     context: () => ({ isHost: true, sameRoom: true, roomActionPending: false }),
@@ -135,17 +162,17 @@ function play(message) {
     },
   };
   const body = $('gbody');
+  body.dataset.phase = S.phase;
   const acknowledge = () => {
     if (current !== message || readyStep === message.step) return;
     $('srView')?.setAttribute('aria-busy', 'false');
     readyStep = message.step; input('ready');
   };
-  // Private peek and custom prompt entry never mount a hidden game view.
+  // A private cover has no game view. After unlocking, mount the same real
+  // game UI used by online seats, including composing and prompt ballots.
   if (message.kind === 'peek') {
     body.innerHTML = `<section class="tb-card sr-secret"><p>Keep this word to yourself</p><h2>${esc(S.word)}</h2><p>Act it out for the group. No talking.</p>${btn('srHideWord', 'Hide word & start acting')}</section>`;
     $('srHideWord').onclick = () => input('hide'); acknowledge();
-  } else if (gameId === 'truth-dare' && ['choose', 'write'].includes(S.phase)) {
-    paintTruth(body, S, api, previous); acknowledge();
   } else if (gameId === 'five-second' && S.phase === 'answer') {
     body.innerHTML = `<section class="tb-card sr-secret"><p>Say three things out loud</p><h2>${esc(S.category)}</h2><p class="t-heading" data-sr-countdown aria-label="Seconds left">${Math.max(0, Math.ceil((S.endsAt - now()) / 1000))}</p><p>The group will judge when the timer ends.</p>${btn('srSpoken', 'Done naming three')}</section>`;
     $('srSpoken').onclick = () => api.send({ spoken: true }); acknowledge();
@@ -171,19 +198,6 @@ function play(message) {
   } else extras.replaceChildren();
   if (message.private) status('Private turn · the clock waits while you pass the phone.');
   else status('');
-}
-function paintTruth(body, S, api, previous) {
-  if (S.phase === 'write') {
-    if (previous?.step === current.step && body.querySelector('#srPrompt')) return;
-    body.innerHTML = `<form id="srOwnPrompt" class="tb-card sr-secret"><h2>Write a ${S.kind} for ${esc(api.name(S.target))}</h2><label class="sr-field" for="srPrompt">Keep it kind and comfortable.<textarea id="srPrompt" maxlength="240" required placeholder="Your question or dare…"></textarea></label><button class="tb-btn tb-primary">Save prompt & hide</button></form>`;
-    $('srOwnPrompt').onsubmit = e => { e.preventDefault(); api.send({ prompt: $('srPrompt').value }); };
-    return;
-  }
-  if (previous?.step === current.step && body.querySelector('[data-own-kind]')) return;
-  const style = S.promptStyle || 'Choose each turn';
-  body.innerHTML = `<section class="tb-card sr-secret"><h2>Truth or dare?</h2><label class="sr-field" for="srDeck">Prompt style<select id="srDeck">${[['classic', 'Classic'], ['funny', 'Funny'], ['wild', 'Wild'], ['own', 'Ask your own']].map(([v, text]) => `<option value="${v}"${text === style ? ' selected' : ''}>${text}</option>`).join('')}</select></label><p>Pick a truth to tell or a dare to do.</p><div class="sr-actions"><button class="tb-btn tb-primary" data-own-kind="truth">Tell a truth</button><button class="tb-btn tb-secondary" data-own-kind="dare">Do a dare</button></div></section>`;
-  if (style !== 'Choose each turn') { $('srDeck').disabled = true; $('srDeck').insertAdjacentHTML('afterend', '<span class="t-caption">Picked in your game settings.</span>'); }
-  body.querySelectorAll('[data-own-kind]').forEach(b => { b.onclick = () => api.send({ deck: $('srDeck').value, kind: b.dataset.ownKind }); });
 }
 function confirmEnd() {
   const tools = app.querySelector('.sr-game-tools');

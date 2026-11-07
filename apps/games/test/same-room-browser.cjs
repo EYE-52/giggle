@@ -27,8 +27,8 @@ async function run() {
   assert(logs.includes('PartyBox on'), logs);
   browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {}) });
   const base = `http://127.0.0.1:${port}`;
-  for (const width of [390, 1280]) for (const theme of ['day', 'night']) {
-    const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 800 }, hasTouch: width === 390, reducedMotion: 'reduce' });
+  for (const width of [390, 800, 1280]) for (const theme of ['day', 'night']) {
+    const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : width === 800 ? 600 : 800 }, hasTouch: width === 390, reducedMotion: 'reduce' });
     await context.addInitScript(theme => {
       localStorage.setItem('pb_theme', theme);
       const Native = WebSocket;
@@ -39,51 +39,85 @@ async function run() {
     const page = await context.newPage(), errors = [];
     page.on('pageerror', e => errors.push(e.message));
     const shot = async name => {
-      await page.screenshot({ path: path.join(artifacts, `${width}-${theme}-${name}.png`), fullPage: true });
+      await page.screenshot({ path: path.join(artifacts, `${width}-${theme}-${name}.png`), fullPage: ['setup', 'game-picker'].includes(name) });
       assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name}: no sideways overflow at ${width}`);
     };
     await page.goto(base);
     await page.locator('[data-how="truth-dare"]').first().click();
     await page.locator('.same-room-link').click();
-    await page.locator('#srGame').waitFor();
+    await page.locator('#srSetup').waitFor();
     assert.equal(await page.locator('#srGame').inputValue(), 'truth-dare');
     assert(await page.locator('#srStart').isDisabled());
-    await page.locator('#srName').fill('Sam, Jess, Mo'); await page.locator('#srAdd').click();
-    assert.equal(await page.locator('.sr-person').count(), 3);
-    await page.getByRole('button', { name: 'Remove Mo', exact: true }).click();
+    await page.locator('#srGamePicker > summary').click();
+    assert.equal(await page.locator('[data-game-choice] img').count(), 21);
+    await shot('game-picker');
+    await page.locator('[data-game-choice="truth-dare"]').click();
+    await page.locator('#srName').fill('Sam, Jess, Mo, Ali, Bea'); await page.locator('#srAdd').click();
+    assert.equal(await page.locator('.sr-person').count(), 5);
+    assert.equal(await page.locator('#srAdd').evaluate(el => getComputedStyle(el).whiteSpace), 'nowrap');
+    assert.equal(await page.locator('select:not(.picker-native)').count(), 0);
     await page.locator('#sr-setting-rounds').fill('1'); await page.locator('#sr-setting-rounds').dispatchEvent('change');
-    await page.locator('#sr-setting-promptStyle').selectOption('Ask your own');
+    await page.locator('[data-picker-for="sr-setting-promptStyle"] [data-value="Ask your own"]').click();
     await shot('setup');
     await page.locator('#srStart').click();
-    await page.locator('[data-own-kind="truth"]').waitFor({ timeout: 15000 });
+    await page.locator('[data-kind="truth"]').waitFor({ timeout: 15000 });
+    await page.waitForFunction(() => window.__oneDevice.running);
+    const actorName = await page.evaluate(() => { const m = window.__oneDevice; return m.players.find(p => p.id === m.state.target).name; });
+    assert.equal(await page.locator('#srTurn').textContent(), `${actorName}’s turn`);
+    assert(await page.locator('#tSpinForMe').isVisible());
+    assert.equal(await page.locator('#srDeck').count(), 0);
+    for (const control of ['[data-kind="truth"]', '[data-kind="dare"]', '#tSpinForMe']) {
+      assert(await page.locator(control).evaluate(el => {
+        const rect = el.getBoundingClientRect();
+        return rect.top >= 0 && rect.bottom <= innerHeight && rect.left >= 0 && rect.right <= innerWidth;
+      }), `${control}: visible without scrolling at ${width}`);
+    }
     await shot('turn');
-    await page.locator('[data-own-kind="truth"]').click();
-    await page.locator('#srUnlock').waitFor();
-    await shot('pass');
-    assert.equal(await page.locator('textarea').count(), 0);
-    await page.locator('#srUnlock').click();
-    await page.locator('#srPrompt').fill('What is your favourite shared memory?');
-    await shot('private-writing');
-    await page.locator('#srOwnPrompt button').click();
-    await page.getByRole('button', { name: 'Done, pass it back', exact: true }).waitFor();
-    assert(!(await page.content()).includes('What is your favourite shared memory?'));
-    await shot('pass-back');
-    await page.locator('#srUnlock').click();
+    await page.locator('[data-kind="truth"]').click();
+    for (let writer = 0; writer < 4; writer++) {
+      await page.locator('#srUnlock').waitFor();
+      if (!writer) await shot('pass');
+      assert.equal(await page.locator('textarea').count(), 0);
+      await page.locator('#srUnlock').click();
+      await page.locator('#tEntry').fill(`What is your favourite shared memory, writer ${writer}?`);
+      await page.waitForFunction(() => window.__oneDevice.running);
+      if (!writer) await shot('private-writing');
+      await page.locator('#tSendEntry').click();
+      await page.getByRole('button', { name: 'Done, pass it back', exact: true }).waitFor();
+      assert(!(await page.content()).includes(`What is your favourite shared memory, writer ${writer}?`));
+      if (!writer) await shot('pass-back');
+      await page.locator('#srUnlock').click();
+    }
+    for (let voter = 0; voter < 4; voter++) {
+      await page.locator('#srUnlock').click();
+      await page.locator('[data-prompt-vote="0"]').waitFor();
+      await page.waitForFunction(() => window.__oneDevice.running);
+      assert(await page.evaluate(() => window.__oneDevice.player !== window.__oneDevice.state.target));
+      if (!voter) await shot('prompt-pool');
+      await page.locator('[data-prompt-vote="0"]').click();
+      await page.getByRole('button', { name: 'Done, pass it back', exact: true }).click();
+    }
     await page.locator('#tReady').waitFor();
     await shot('prompt');
     await page.locator('#tReady').click();
-    await page.locator('#srUnlock').click();
-    await page.locator('[data-v="yes"]').waitFor();
-    await page.waitForFunction(() => window.__oneDevice.running);
-    await page.locator('[data-v="yes"]').click();
-    await page.getByRole('button', { name: 'Done, pass it back', exact: true }).click();
+    for (let voter = 0; voter < 4; voter++) {
+      await page.locator('#srUnlock').click();
+      await page.locator('[data-v="yes"]').waitFor();
+      await page.waitForFunction(() => window.__oneDevice.running);
+      await page.locator('[data-v="yes"]').click();
+      await page.getByRole('button', { name: 'Done, pass it back', exact: true }).click();
+    }
     await page.locator('#tNext').waitFor();
     await page.waitForFunction(() => window.__oneDevice.running);
     await page.locator('#tNext').click();
     await page.locator('#srAgain').waitFor();
     await shot('results');
     await page.locator('#srChange').click();
-    await page.locator('#srGame').selectOption('four-in-a-row');
+    await page.getByRole('button', { name: 'Remove Mo', exact: true }).click();
+    await page.getByRole('button', { name: 'Remove Ali', exact: true }).click();
+    await page.getByRole('button', { name: 'Remove Bea', exact: true }).click();
+    await page.locator('#srGamePicker > summary').click();
+    await page.locator('[data-game-choice="four-in-a-row"]').click();
     await page.locator('#srStart').click();
     await page.locator('[data-column="0"]').waitFor();
     await page.waitForFunction(() => window.__oneDevice.running);
@@ -108,6 +142,6 @@ async function run() {
     assert.deepEqual(errors, [], g.id);
     await context.close();
   }
-  console.log(`SAME_ROOM_BROWSER_PASS: entry, private DOM, live turns and 21 game mounts; 390/1280 day/night screenshots in ${artifacts}`);
+  console.log(`SAME_ROOM_BROWSER_PASS: entry, private DOM, live turns and 21 game mounts; 390/800/1280 day/night screenshots in ${artifacts}`);
 }
 run().catch(error => { console.error(error); process.exitCode = 1; }).finally(async () => { await browser?.close(); server?.kill('SIGTERM'); });

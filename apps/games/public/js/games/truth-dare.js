@@ -17,8 +17,9 @@ function hud(S) {
   const n = (S.players || []).length;
   const watch = S.spectator || !(S.players || []).some((p) => p.id === S.me);
   const round = Math.max(1, Math.min(S.round || 1, S.rounds || 1));
-  const phase = { done: 'Final scores', reveal: 'Results', spin: 'Spin', choose: 'Choose', perform: 'Perform', vote: 'Vote' }[S.phase] || '';
-  const progress = S.phase === 'vote' ? `${(S.voted || []).length} of ${Math.max(0, n - 1)} locked in` : '';
+  const phase = { done: 'Final scores', reveal: 'Results', spin: 'Spin', choose: 'Choose', compose: 'Write', 'prompt-vote': 'Pick a card', perform: 'Perform', vote: 'Vote' }[S.phase] || '';
+  const acted = S.phase === 'compose' ? S.submitted : S.phase === 'prompt-vote' ? S.promptVoted : S.voted;
+  const progress = ['compose', 'prompt-vote', 'vote'].includes(S.phase) ? `${(acted || []).length} of ${Math.max(0, n - 1)} locked in` : '';
   return `<header class="gk-hud party-hud" data-phase="${esc(S.phase)}" aria-label="Round and play status">`
     + `<span class="gk-hud-round party-round">Round ${round} of ${S.rounds || 1}</span>`
     + `<span class="gk-hud-phase party-phase">${esc(phase)}</span>`
@@ -47,7 +48,7 @@ function isWatching(S) {
 function labels(S) {
   const L = S.labels || {};
   return {
-    decks: { classic: 'Classic', funny: 'Funny', wild: 'Wild', ...L.decks, own: 'Ask your own' },
+    decks: L.decks || { classic: 'Classic', funny: 'Funny', wild: 'Wild' },
     truth: L.truth || 'Truth',
     dare: L.dare || 'Dare',
     juicy: L.juicy || 'Juicy',
@@ -92,19 +93,22 @@ function meter(S, label, voters, total, win) {
 
 function paint(el, S, api) {
     ensureCss();
-    if (S.phase === 'done') { visualKey = ''; stopSpin(); lastKey = 'done'; paintFinal(el, { scene: 'truth-dare', scores: S.scores || {}, players: S.players || [], you: isWatching(S) ? null : S.me, watching: isWatching(S), note: lastRound(S) }); return; }
+    if (S.phase === 'done') { visualKey = ''; liveState = null; stopSpin(); lastKey = 'done'; paintFinal(el, { scene: 'truth-dare', scores: S.scores || {}, players: S.players || [], you: isWatching(S) ? null : S.me, watching: isWatching(S), note: lastRound(S) }); return; }
     liveApi = api;
     liveEl = el;
     liveState = S;
-    const actionKey = JSON.stringify([S.instanceId, S.me, S.phase, S.round, S.index, S.endsAt, S.target, S.subject, S.victim, S.turn, S.hostId, !!S.spectator, !!S.current?.mine, S.myEntry, S.myOption, S.myLines, S.myVote, S.myPick]);
+    const actionKey = JSON.stringify([S.instanceId, S.me, S.phase, S.round, S.index, S.endsAt, S.target, S.subject, S.victim, S.turn, S.hostId, !!S.spectator, !!S.current?.mine, S.myEntry, S.myOption, S.myLines, S.myVote, S.myPick, S.myPromptVote]);
     liveActionKey = actionKey;
     const canAct = () => liveEl === el && liveActionKey === actionKey && liveState && !liveState.preparing && !liveState.spectator && (liveState.players || []).some(p => p.id === liveState.me);
     const sendAction = action => canAct() ? liveApi?.send(action) : false;
     const liveHud = el.querySelector ? el.querySelector('.party-hud') : null;
     if (liveHud) liveHud.outerHTML = hud(S);
-    if (['vote', 'pick', 'verdict', 'reveal', 'done'].includes(S.phase)) {
-      const key = JSON.stringify({ ...S, audioBaseline: undefined, voted: undefined, answered: undefined, submitted: undefined,
-        picked: Array.isArray(S.picked) ? undefined : S.picked });
+    if (['vote', 'prompt-vote', 'pick', 'verdict', 'reveal', 'done'].includes(S.phase)) {
+      const key = S.phase === 'prompt-vote'
+        ? JSON.stringify([keyOf(S), S.endsAt, S.kind, S.deck, S.roundStyle, S.options, S.myPromptVote,
+          (S.players || []).map(p => [p.id, p.name])])
+        : JSON.stringify({ ...S, audioBaseline: undefined, voted: undefined, answered: undefined, submitted: undefined,
+          promptVoted: undefined, picked: Array.isArray(S.picked) ? undefined : S.picked });
       if (visualKey === key && el.querySelector?.('.party-scene')) return;
       visualKey = key;
     } else visualKey = '';
@@ -112,18 +116,81 @@ function paint(el, S, api) {
     const L = labels(S);
     const watch = isWatching(S);
 
-    if (S.phase === 'write') {
+    if (S.phase === 'compose') {
       stopSpin();
-      if (S.me !== S.writer || watch) {
-        el.innerHTML = `<section class="party-scene gk-col gk-stack">${hud(S)}`
-          + waitCardHtml({ title: `${nameOf(S, S.writer)} is writing`, text: 'A question or dare for this turn.', waiting: `Waiting for ${nameOf(S, S.writer)}` }) + '</section>';
-      } else if (!el.querySelector('#tOwnPrompt')) {
-        el.innerHTML = `<section class="party-scene gk-col gk-stack">${hud(S)}<h2 class="gk-prompt">Write a ${esc(S.kind)} for ${esc(nameOf(S, S.target))}</h2><form id="tOwnForm"><label for="tOwnPrompt">Keep it kind and comfortable.</label><textarea id="tOwnPrompt" class="gk-input" maxlength="240" required></textarea><button type="submit" class="gk-btn gk-primary">Save prompt</button></form></section>`;
-        el.querySelector('#tOwnForm').onsubmit = e => { e.preventDefault(); sendAction({ prompt: el.querySelector('#tOwnPrompt').value }); };
+      const k = `${keyOf(S)}:${!!S.myEntry}`;
+      // Keep the native field, focus and draft while other people write.
+      if (k === lastKey && el.querySelector('#tCompose')) {
+        const error = el.querySelector('#tEntryError');
+        if (error) error.textContent = S.myError || '';
+        return;
+      }
+      lastKey = k;
+      const writer = !watch && S.me !== S.target;
+      el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--truth" data-family="party" aria-label="Write a prompt">`
+        + hud(S)
+        + `<p class="gk-meta td-kicker">${esc(S.roundStyle || 'Ask your own')} · ${esc(S.kind === 'truth' ? L.truth : L.dare)}</p>`
+        + `<h2 class="gk-prompt party-prompt">${writer ? `Write a ${S.kind} for ${esc(nameOf(S, S.target))}` : watch ? `The room is writing for ${esc(nameOf(S, S.target))}` : 'The room is writing for you'}</h2>`
+        + (writer && !S.myEntry
+          ? `<div class="td-compose" id="tCompose"><label class="t-body" for="tEntry">${S.kind === 'truth' ? 'What should they answer?' : 'What should they do?'}</label>`
+            + `<textarea class="gk-input" id="tEntry" rows="3" maxlength="${S.promptLimit || 180}" aria-describedby="tEntryCount tEntryError tEntryHint" placeholder="Keep it kind. Make it fun."></textarea>`
+            + `<div class="td-compose-meta"><span class="tb-reason" id="tEntryHint">Write at least 2 characters.</span><span class="t-caption" id="tEntryCount">0 / ${S.promptLimit || 180}</span></div>`
+            + `<p class="td-entry-error t-caption" id="tEntryError" role="status">${esc(S.myError || '')}</p>`
+            + `<button type="button" class="tb-btn tb-primary" id="tSendEntry" disabled>Send ${S.kind === 'truth' ? 'question' : 'dare'}</button></div>`
+          : `<div class="td-prompt-wait" id="tCompose">${waitCardHtml({ title: S.myEntry ? 'Your prompt is locked in' : watch ? `The room is writing for ${nameOf(S, S.target)}` : 'Your prompt is on its way',
+            text: S.myEntry ? 'The room will pick from the prompts when writing ends.' : 'The other players write, then pick a prompt. If nobody writes, a random card is dealt.', waiting: 'Waiting for the writers' })}</div>`)
+        + '</section>';
+      const input = el.querySelector('#tEntry');
+      if (input) {
+        const button = el.querySelector('#tSendEntry'), hint = el.querySelector('#tEntryHint');
+        let sent = false;
+        input.oninput = () => {
+          const valid = input.value.replace(/\s+/gu, ' ').trim().length >= 2 && input.value.length <= (S.promptLimit || 180);
+          button.disabled = sent || !valid;
+          hint.textContent = sent ? 'Waiting for your prompt to lock in.' : valid ? 'Tap Send when your prompt is ready.' : 'Write at least 2 characters.';
+          el.querySelector('#tEntryCount').textContent = `${input.value.length} / ${S.promptLimit || 180}`;
+          el.querySelector('#tEntryError').textContent = '';
+        };
+        button.onclick = () => {
+          if (sent || button.disabled) return;
+          if (sendAction({ entry: input.value }) === false) return;
+          sent = true;
+          button.disabled = true;
+          hint.textContent = 'Waiting for your prompt to lock in.';
+        };
       }
       return;
     }
 
+    if (S.phase === 'prompt-vote') {
+      stopSpin();
+      lastKey = keyOf(S);
+      const voter = !watch && S.me !== S.target;
+      const picked = Number.isInteger(S.myPromptVote);
+      const status = !voter ? `${watch ? nameOf(S, S.target) + ' waits' : 'You wait'} while the other players pick.`
+        : picked ? 'Your pick is locked in. Waiting for the other picks.'
+          : (S.players || []).length === 2 ? 'Tap the card they must do. Your pick decides.' : 'Tap the card they must do. Most votes wins; ties are random.';
+      el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--truth" data-family="party" aria-label="Pick the prompt">`
+        + hud(S)
+        + `<p class="gk-meta td-kicker">${esc(S.roundStyle || 'Room pool vote')} · ${esc(S.kind === 'truth' ? L.truth : L.dare)}</p>`
+        + `<h2 class="gk-prompt party-prompt">${voter ? `Pick a ${S.kind} for ${esc(nameOf(S, S.target))}` : `The room picks for ${esc(nameOf(S, S.target))}`}</h2>`
+        + `<p class="td-prompt-status t-caption" role="status">${esc(status)}</p>`
+        + `<div class="td-prompt-options${picked ? ' is-locked' : ''}" role="group" aria-label="Prompt cards">`
+        + (S.options || []).map((text, i) => {
+          const selected = S.myPromptVote === i;
+          const tag = voter ? 'button' : 'div';
+          return `<${tag} ${voter ? `type="button" data-prompt-vote="${i}" aria-pressed="${selected}"${picked ? ' disabled' : ''}` : ''} class="tb-card is-compact td-prompt-option${selected ? ' is-selected' : ''}">`
+            + `<span class="td-option-number" aria-hidden="true">${selected ? '✓' : i + 1}</span><span>${esc(text)}</span></${tag}>`;
+        }).join('') + '</div></section>';
+      let sent = false;
+      el.querySelectorAll('[data-prompt-vote]').forEach((button) => {
+        button.onclick = () => {
+          if (sent || picked) return;
+          if (sendAction({ promptVote: Number(button.dataset.promptVote) }) !== false) sent = true;
+        };
+      });
+      return;
+    }
 
     if (S.phase === 'reveal' && S.last) {
       stopSpin();
@@ -210,27 +277,27 @@ function paint(el, S, api) {
       // Keyed so the target's deck pick and focus survive snapshots.
       const k = keyOf(S);
       if (k === lastKey && (el.querySelector('[data-kind]') || el.querySelector('[data-waitpick]'))) return;
-      const fixedStyle = S.promptStyle && S.promptStyle !== 'Choose each turn';
-      pendingDeck = fixedStyle ? S.promptStyle === 'Ask your own' ? 'own' : S.promptStyle.toLowerCase() : 'classic';
+      pendingDeck = 'classic';
       lastKey = k;
       if (S.me !== S.target || watch) {
         el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--truth" aria-label="Player picking">`
           + `${hud(S)}`
-          + waitCardHtml({ kicker: watch ? 'You are watching' : '', title: `${nameOf(S, S.target)} is picking`, text: 'A deck, then truth or dare. Then the room judges.', waiting: `Waiting for ${nameOf(S, S.target)}`, attrs: 'data-waitpick' })
+          + waitCardHtml({ kicker: watch ? 'You are watching' : S.roundStyle || 'Random card', title: `${nameOf(S, S.target)} is picking`, text: 'A deck, then Truth or Dare. The prompt style decides what happens next.', waiting: `Waiting for ${nameOf(S, S.target)}`, attrs: 'data-waitpick' })
           + `</section>`;
         return;
       }
       el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--truth" aria-label="Pick your deck">`
         + `${hud(S)}`
         + `<h2 class="gk-prompt party-prompt">Your pick, ${esc(nameOf(S, S.me))}!</h2>`
-        + `<p class="gk-wait" role="status">${fixedStyle ? `${esc(S.promptStyle)} prompts. Pick truth or dare.` : 'Pick a deck, then truth or dare.'}</p>`
-        + `<div class="gk-choices td-choices td-decks" role="group" aria-label="Deck" style="--gk-cols:3;--gk-cols-phone:3"${fixedStyle ? ' hidden' : ''}>`
+        + `<p class="gk-wait" role="status">${esc(S.roundStyle || 'Random card')} · Pick a deck, then Truth or Dare.</p>`
+        + `<div class="gk-choices td-choices td-decks" role="group" aria-label="Deck" style="--gk-cols:3;--gk-cols-phone:3">`
         + ['classic', 'funny', 'wild'].map((d, i) =>
           `<button type="button" class="gk-choice${pendingDeck === d ? ' is-selected is-picked' : ''}" data-deck="${d}" aria-pressed="${pendingDeck === d}"><span class="gk-mark" aria-hidden="true">${i + 1}</span><span class="gk-choice-text">${esc(L.decks[d] || d)}</span></button>`).join('')
         + `</div>`
         + `<div class="gk-choices td-choices" role="group" aria-label="Truth or dare" style="--gk-cols:2;--gk-cols-phone:2">`
         + `<button type="button" class="gk-choice" data-kind="truth" aria-pressed="false"><span class="gk-mark" aria-hidden="true">T</span><span class="gk-choice-text">${esc(L.truth)}</span></button>`
-        + `<button type="button" class="gk-choice" data-kind="dare" aria-pressed="false"><span class="gk-mark" aria-hidden="true">D</span><span class="gk-choice-text">${esc(L.dare)}</span></button></div></section>`;
+        + `<button type="button" class="gk-choice" data-kind="dare" aria-pressed="false"><span class="gk-mark" aria-hidden="true">D</span><span class="gk-choice-text">${esc(L.dare)}</span></button></div>`
+        + `<div class="gk-actions is-center"><button type="button" class="tb-btn tb-chip" id="tSpinForMe">Spin for me</button></div></section>`;
       el.querySelectorAll('[data-deck]').forEach((b) => {
         b.onclick = () => {
           pendingDeck = b.dataset.deck;
@@ -245,6 +312,7 @@ function paint(el, S, api) {
       el.querySelectorAll('[data-kind]').forEach((b) => {
         b.onclick = () => sendAction({ deck: pendingDeck, kind: b.dataset.kind });
       });
+      el.querySelector('#tSpinForMe').onclick = () => sendAction({ deck: pendingDeck, kind: 'random' });
       return;
     }
 
@@ -324,13 +392,16 @@ export default {
   ownsTimer: true,
   render(el, S, api) {
     paint(el, S, api);
+    el.querySelector?.('.party-scene')?.setAttribute('data-family', 'party');
     if (S.phase !== 'done') {
       const target = S.phase === 'reveal' ? S.last?.target : S.target;
       const roles = target && S.phase !== 'spin' ? { [target]: 'Spotlight' } : {};
       const gains = S.phase === 'reveal' && S.last ? { ...(S.last.voterPts || {}), ...(target && S.last.targetPts ? { [target]: S.last.targetPts } : {}) } : {};
       paintLiveStrip(el.querySelector?.('.party-scene'), S, {
         roles, actors: (S.players || []).filter((p) => !p.left && p.id !== target).map((p) => p.id),
-        acted: S.phase === 'vote' ? S.voted || [] : [], verb: 'Judged', waiting: S.phase === 'vote' ? 'Judging' : false, gains,
+        acted: S.phase === 'compose' ? S.submitted || [] : S.phase === 'prompt-vote' ? S.promptVoted || [] : S.phase === 'vote' ? S.voted || [] : [],
+        verb: S.phase === 'compose' ? 'Wrote' : S.phase === 'prompt-vote' ? 'Picked' : 'Judged',
+        waiting: S.phase === 'compose' ? 'Writing' : S.phase === 'prompt-vote' ? 'Picking' : S.phase === 'vote' ? 'Judging' : false, gains,
       });
     }
     liveTimerEl = el;

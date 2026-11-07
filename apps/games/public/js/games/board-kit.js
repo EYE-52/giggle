@@ -43,7 +43,7 @@ export function bkPanelHTML({ title, help = [], extra = '', flip = false, draw =
   return `<aside class="bk-panel" aria-label="${bkEsc(title)} players and actions">
     <header class="bk-head"><h1 class="bk-title">${bkEsc(title)}</h1><p class="bk-meta"></p></header>
     <ol class="bk-players" aria-label="Players"></ol>
-    <div class="bk-status" role="status" aria-live="polite"><span class="bk-status-text"></span><small class="bk-hint"></small></div>
+    <div class="bk-status" role="status" aria-live="polite"><span class="bk-status-dot" aria-hidden="true"></span><div class="bk-status-copy"><span class="bk-status-text"></span><small class="bk-hint"></small></div></div>
     <div class="bk-timer" hidden><span class="bk-timer-label">Move timer</span><b class="bk-timer-value">0:00</b><span class="bk-timer-track" aria-hidden="true"><i class="bk-timer-fill"></i></span></div>
     ${extra ? `<div class="bk-extra">${extra}</div>` : ''}
     <div class="bk-actions"${resign || draw ? '' : ' hidden'}>
@@ -101,12 +101,21 @@ export function bkDispose(root) {
   if (panel) bkTick(panel, false);
 }
 
+/* Piece colours are presentation data from the view, never server state.
+ * Keep arbitrary text out of inline CSS (names still use textContent). */
+function bkColor(color) {
+  return /^#[a-f\d]{6}$/i.test(color || '') ? color : 'var(--bk-fam)';
+}
+function bkPlayerLabel(p) {
+  return `${p.name}${p.side ? ', ' + p.side : ''}${p.you ? ', you' : ''}${p.turn ? ', to move' : ''}${p.out ? ', out' : ''}${p.clock != null ? ', clock ' + p.clock : p.stat != null && p.stat !== '' ? ', ' + p.stat + ' ' + (p.statLabel || '') : ''}`;
+}
+
 /* Players row markup once per seat count; values are painted after. */
 function bkPlayers(panel, players) {
   const list = panel.querySelector('.bk-players');
   if (list.getAttribute('data-count') !== String(players.length)) {
     list.setAttribute('data-count', String(players.length));
-    list.innerHTML = players.map((_, i) => `<li class="bk-player" data-seat="${i}"><span class="bk-chip" aria-hidden="true"></span><span class="bk-who"><b class="bk-name"></b><small class="bk-side"><span class="bk-side-text"></span><span class="bk-turn-text"> · To move</span></small></span><span class="bk-stat"><b class="bk-stat-value"></b><small class="bk-stat-label"></small></span></li>`).join('');
+    list.innerHTML = players.map((_, i) => `<li class="bk-player" data-seat="${i}"><span class="bk-chip" aria-hidden="true"></span><span class="bk-who"><b class="bk-name"></b><small class="bk-side"><span class="bk-you">You</span><span class="bk-side-text"></span><span class="bk-turn-text"></span></small></span><span class="bk-stat"><b class="bk-stat-value"></b><small class="bk-stat-label"></small></span></li>`).join('');
   }
   players.forEach((p, i) => {
     const row = list.querySelector(`[data-seat="${i}"]`);
@@ -114,15 +123,19 @@ function bkPlayers(panel, players) {
     row.classList.toggle('is-you', !!p.you);
     row.classList.toggle('is-out', !!p.out);
     row.classList.toggle('has-clock', p.clock != null);
+    row.classList.toggle('has-stat', p.clock != null || p.stat != null && p.stat !== '');
     row.classList.toggle('is-low', !!p.low);
+    row.setAttribute('style', `--bk-player-color:${bkColor(p.color)}`);
     const chip = row.querySelector('.bk-chip');
     if (chip.getAttribute('data-chip') !== (p.chip || '')) { chip.setAttribute('data-chip', p.chip || ''); chip.innerHTML = p.chip || ''; }
     row.querySelector('.bk-name').textContent = p.name;
-    row.querySelector('.bk-side-text').textContent = [p.side, p.you ? 'You' : '', p.out ? p.outLabel || 'Out' : ''].filter(Boolean).join(' · ');
+    row.querySelector('.bk-you').hidden = !p.you;
+    row.querySelector('.bk-side-text').textContent = p.out ? p.outLabel || 'Out' : p.side || '';
+    row.querySelector('.bk-turn-text').textContent = p.you ? 'Your turn' : 'Turn';
     row.querySelector('.bk-turn-text').hidden = !p.turn;
     row.querySelector('.bk-stat-value').textContent = p.clock != null ? p.clock : p.stat ?? '';
     row.querySelector('.bk-stat-label').textContent = p.clock != null ? 'Clock' : p.statLabel || '';
-    row.setAttribute('aria-label', `${p.name}${p.side ? ', ' + p.side : ''}${p.you ? ', you' : ''}${p.turn ? ', to move' : ''}${p.out ? ', out' : ''}${p.clock != null ? ', clock ' + p.clock : p.stat != null && p.stat !== '' ? ', ' + p.stat + ' ' + (p.statLabel || '') : ''}`);
+    row.setAttribute('aria-label', bkPlayerLabel(p));
   });
 }
 
@@ -143,6 +156,7 @@ export function bkPaint(root, m) {
   panel.querySelector('.bk-meta').textContent = m.meta || '';
   panel.querySelector('.bk-meta').hidden = !m.meta;
   bkPlayers(panel, m.players || []);
+  panel.querySelector('.bk-status').setAttribute('style', `--bk-status-color:${bkColor(m.statusColor || m.players?.find(p => p.turn)?.color)}`);
   panel.querySelector('.bk-status-text').textContent = m.status || '';
   panel.querySelector('.bk-hint').textContent = m.hint || '';
   panel.querySelector('.bk-hint').hidden = !m.hint;
@@ -150,6 +164,7 @@ export function bkPaint(root, m) {
   const done = !!m.done;
   // Move timer: present for the whole game when on (no layout jumps).
   const timer = panel.querySelector('.bk-timer');
+  if (m.timer) timer.classList.add('has-timer');
   timer.hidden = !m.timer || done;
   panel._bkTimer = m.timer && !done ? { ...m.timer } : null;
   if (panel._bkTimer) bkPaintTimer(panel);
@@ -274,10 +289,10 @@ export function bkHost(api) {
 export function bkPanelStatic(cfg, m) {
   const done = !!m.done, player = !!m.player && !done, final = m.final;
   const players = (m.players || []).map((p, i) => {
-    const side = [p.side, p.you ? 'You' : '', p.out ? p.outLabel || 'Out' : ''].filter(Boolean).join(' · ');
-    const cls = ['bk-player', p.turn ? 'is-turn' : '', p.you ? 'is-you' : '', p.out ? 'is-out' : '', p.low ? 'is-low' : ''].filter(Boolean).join(' ');
+    const side = p.out ? p.outLabel || 'Out' : p.side || '';
+    const cls = ['bk-player', p.turn ? 'is-turn' : '', p.you ? 'is-you' : '', p.out ? 'is-out' : '', p.clock != null ? 'has-clock' : '', p.clock != null || p.stat != null && p.stat !== '' ? 'has-stat' : '', p.low ? 'is-low' : ''].filter(Boolean).join(' ');
     const value = p.clock != null ? p.clock : p.stat ?? '';
-    return `<li class="${cls}" data-seat="${i}"><span class="bk-chip" aria-hidden="true">${p.chip || ''}</span><span class="bk-who"><b class="bk-name">${bkEsc(p.name)}</b><small class="bk-side"><span class="bk-side-text">${bkEsc(side)}</span>${p.turn ? '<span class="bk-turn-text"> · To move</span>' : ''}</small></span><span class="bk-stat"><b class="bk-stat-value"${p.statId ? ` id="${p.statId}"` : ''}>${bkEsc(value)}</b><small class="bk-stat-label">${bkEsc(p.clock != null ? 'Clock' : p.statLabel || '')}</small></span></li>`;
+    return `<li class="${cls}" data-seat="${i}" style="--bk-player-color:${bkColor(p.color)}" aria-label="${bkEsc(bkPlayerLabel(p))}"><span class="bk-chip" aria-hidden="true">${p.chip || ''}</span><span class="bk-who"><b class="bk-name">${bkEsc(p.name)}</b><small class="bk-side"><span class="bk-you"${p.you ? '' : ' hidden'}>You</span><span class="bk-side-text">${bkEsc(side)}</span><span class="bk-turn-text"${p.turn ? '' : ' hidden'}>${p.you ? 'Your turn' : 'Turn'}</span></small></span><span class="bk-stat"><b class="bk-stat-value"${p.statId ? ` id="${p.statId}"` : ''}>${bkEsc(value)}</b><small class="bk-stat-label">${bkEsc(p.clock != null ? 'Clock' : p.statLabel || '')}</small></span></li>`;
   }).join('');
   const t = m.timer && !done ? m.timer : null;
   const left = t ? (t.running ? bkRemaining(t) : t.total) : 0;
@@ -297,7 +312,7 @@ export function bkPanelStatic(cfg, m) {
   return `<aside class="bk-panel${final ? ' is-final' : ''}" aria-label="${bkEsc(cfg.title)} players and actions">
     <header class="bk-head"><h1 class="bk-title">${bkEsc(cfg.title)}</h1>${m.meta ? `<p class="bk-meta">${bkEsc(m.meta)}</p>` : ''}</header>
     <ol class="bk-players" aria-label="Players">${players}</ol>
-    <div class="bk-status ${cfg.statusClass || ''}" role="status"><span class="bk-status-text">${bkEsc(m.status || '')}</span>${m.hint ? `<small class="bk-hint">${bkEsc(m.hint)}</small>` : ''}</div>
+    <div class="bk-status ${cfg.statusClass || ''}" role="status" style="--bk-status-color:${bkColor(m.statusColor || m.players?.find(p => p.turn)?.color)}"><span class="bk-status-dot" aria-hidden="true"></span><div class="bk-status-copy"><span class="bk-status-text">${bkEsc(m.status || '')}</span><small class="bk-hint"${m.hint ? '' : ' hidden'}>${bkEsc(m.hint || '')}</small></div></div>
     ${timer}
     ${cfg.extra ? `<div class="bk-extra">${cfg.extra}</div>` : ''}
     ${row ? `<div class="bk-actions">${row}</div>` : ''}

@@ -32,7 +32,7 @@ const legacy = createKartGame({
       'Skyport and Foundry: three floors, 32 drivers. Other raised maps take 8.',
     ],
   },
-  art: 'img/games/pocket-karts.svg',
+  art: 'img/games/pocket-karts.png',
   seats: 32,
   players: { min: 2, max: 32 },
   layout: 'immersive',

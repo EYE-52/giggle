@@ -5,12 +5,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const { parseHTML } = require('linkedom');
+const { loadUi } = require('./truth-dare-modes-view');
 const registry = require('../games/registry');
 
 (async () => {
   const { sameRoomSupport, LOCAL_AVATARS } = await import('../public/js/same-room-support.mjs');
+  const ui = await loadUi(), originalDocument = global.document;
   const html = fs.readFileSync(require.resolve('../public/same-room/index.html'), 'utf8');
   const { document, window } = parseHTML(html);
+  global.document = document;
   // linkedom intentionally has no browser selection/focus engine.
   Object.defineProperty(window.HTMLSelectElement.prototype, 'value', {
     get() { return this.querySelector('option[selected]')?.getAttribute('value') || this.querySelector('option[selected]')?.textContent || this.querySelector('option')?.getAttribute('value') || this.querySelector('option')?.textContent || ''; },
@@ -30,7 +33,7 @@ const registry = require('../games/registry');
     history: { replaceState() {} }, sessionStorage: storage, localStorage: storage, URLSearchParams,
     performance, WebSocket: FakeSocket, fetch: async () => ({ ok: true, json: async () => ({}) }),
     setTimeout, clearTimeout, setInterval: () => 0, console, sameRoomSupport, LOCAL_AVATARS,
-    wsTargetFromConfig: () => '', reset() {}, show: async () => ({}),
+    wsTargetFromConfig: () => '', reset: () => ui.dispose(), show: async (el, game, state, api) => { if (game === 'truth-dare') ui.render(el, state, api); return ui; },
     esc: value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
   };
   vm.createContext(ctx);
@@ -43,8 +46,10 @@ const registry = require('../games/registry');
   const emit = message => ws.onmessage({ data: JSON.stringify(message) });
   emit({ t: 'games', games: registry.list() });
   const $ = id => document.getElementById(id);
-  assert.equal($('srGame').querySelectorAll('option').length, 21);
-  assert.equal($('srGame').querySelector('[value="pose-party"]'), null);
+  assert.equal(document.querySelectorAll('[data-game-choice]').length, 21);
+  assert.equal(document.querySelector('[data-game-choice="pose-party"]'), null);
+  assert.equal(document.querySelectorAll('.sr-game-card img').length, 21, 'every game has a cover');
+  assert.equal(document.querySelectorAll('select:not(.picker-native)').length, 0, 'settings expose tiles, not native selects');
   assert($('srStart').disabled);
   assert.match($('srReason').textContent, /Add 2 more names/);
   const add = text => { $('srName').value = text; $('srAdd').onclick(); };
@@ -58,7 +63,7 @@ const registry = require('../games/registry');
   assert.equal($('srNames').querySelectorAll('.sr-person').length, 2);
   $('srName').value = '';
   document.querySelector('[data-picker-for="sr-setting-pace"] [data-value="Quick"]').click();
-  $('sr-setting-promptStyle').value = 'Ask your own'; $('sr-setting-promptStyle').onchange();
+  document.querySelector('[data-picker-for="sr-setting-promptStyle"] [data-value="Ask your own"]').click();
   $('srSetup').onsubmit({ preventDefault() {} });
   const start = sent.find(m => m.t === 'same-start');
   assert.deepEqual(start.names, ['Sam', 'Jess']); assert.equal(start.settings.promptStyle, 'Ask your own');
@@ -66,27 +71,51 @@ const registry = require('../games/registry');
   assert.equal(start.game, 'truth-dare'); assert(!('code' in start));
   const before = sent.length; $('srSetup').onsubmit({ preventDefault() {} }); assert.equal(sent.length, before, 'double start is blocked');
   emit({ t: 'same-created', token: 'tab-only-secret' });
-  const players = [{ id: 'a', name: 'Sam', avatar: '🦊', colour: 0 }, { id: 'b', name: 'Jess', avatar: '🐸', colour: 1 }];
-  emit({ t: 'same-state', game: 'truth-dare', step: 1, gate: 'pass', private: true, kind: 'write', player: 'b', players, gameNow: 100, running: false });
-  assert.match(appText(), /Pass the phone to Jess/); assert.equal($('srPrompt'), null);
+  const players = [{ id: 'a', name: 'Sam', avatar: '🦊', colour: 0 }, { id: 'b', name: 'Jess', avatar: '🐸', colour: 1 }, { id: 'c', name: 'Mo', avatar: '🐼', colour: 2 }];
+  const chosen = { instanceId: 'one', phase: 'choose', target: 'c', me: 'c', kind: null,
+    players, w: 'choose', round: 1, rounds: 1, roundStyle: 'Ask your own', endsAt: 20100 };
+  emit({ t: 'same-state', game: 'truth-dare', step: 1, gate: 'play', private: false, kind: 'play', player: 'c', players, state: chosen, gameNow: 100, running: false });
+  assert.equal($('srTurn').textContent, 'Mo’s turn');
+  assert(document.querySelector('[data-deck="wild"]'), 'actual game deck chips are mounted');
+  assert(document.querySelector('[data-kind="truth"]') && document.querySelector('[data-kind="dare"]'));
+  assert($('tSpinForMe'), 'actual Spin for me control is mounted');
+  assert.equal($('srDeck'), null, 'no stand-in prompt style selector during play');
+  document.querySelector('[data-deck="wild"]').click(); $('tSpinForMe').click();
+  assert.deepEqual(sent.at(-1).a, { deck: 'wild', kind: 'random' });
+  // A same-phase snapshot can update the acting seat without rebuilding the
+  // outer shell. This catches the previously stale header independently.
+  $('srTurn').textContent = 'Sam’s turn';
+  emit({ t: 'same-state', game: 'truth-dare', step: 1, gate: 'play', private: false, kind: 'play', player: 'c', players, state: chosen, gameNow: 100, running: true });
+  assert.equal($('srTurn').textContent, 'Mo’s turn');
+  emit({ t: 'same-state', game: 'truth-dare', step: 2, gate: 'pass', private: true, kind: 'write', player: 'b', players, gameNow: 100, running: false });
+  assert.match(appText(), /Pass the phone to Jess/); assert.equal($('tEntry'), null);
   $('srUnlock').onclick(); assert.equal(sent.at(-1).op, 'unlock');
-  const state = { instanceId: 'one', phase: 'write', target: 'a', writer: 'b', kind: 'truth', me: 'b', players, w: 'write' };
-  emit({ t: 'same-state', game: 'truth-dare', step: 2, gate: 'play', private: true, kind: 'write', player: 'b', players, state, gameNow: 100, running: false });
-  $('srPrompt').value = 'A private question';
-  // A readiness update must preserve the in-progress draft.
-  emit({ t: 'same-state', game: 'truth-dare', step: 2, gate: 'play', private: true, kind: 'write', player: 'b', players, state, gameNow: 100, running: true });
-  assert.equal($('srPrompt').value, 'A private question');
-  $('srOwnPrompt').onsubmit({ preventDefault() {} }); assert.equal(sent.at(-1).a.prompt, 'A private question');
-  emit({ t: 'same-state', game: 'truth-dare', step: 3, gate: 'return', private: false, kind: 'play', player: 'a', players, gameNow: 100, running: false });
-  assert.equal($('srPrompt'), null); assert(!document.toString().includes('A private question'));
+  const state = { instanceId: 'one', phase: 'compose', target: 'c', kind: 'truth', me: 'b', players, w: 'compose',
+    round: 1, rounds: 1, roundStyle: 'Ask your own', endsAt: 40100, promptLimit: 180, submitted: [], myEntry: null };
+  emit({ t: 'same-state', game: 'truth-dare', step: 3, gate: 'play', private: true, kind: 'write', player: 'b', players, state, gameNow: 100, running: false });
+  assert.equal($('srTurn').textContent, 'Jess’s turn');
+  $('tEntry').value = 'A private question'; $('tEntry').oninput();
+  const draft = $('tEntry');
+  emit({ t: 'same-state', game: 'truth-dare', step: 3, gate: 'play', private: true, kind: 'write', player: 'b', players, state, gameNow: 100, running: true });
+  assert.equal($('tEntry'), draft, 'readiness keeps the actual game composer mounted');
+  assert.equal($('tEntry').value, 'A private question');
+  $('tSendEntry').click(); assert.equal(sent.at(-1).a.entry, 'A private question');
+  emit({ t: 'same-state', game: 'truth-dare', step: 4, gate: 'return', private: true, kind: 'prompt-vote', player: 'a', players, gameNow: 100, running: false });
+  assert.equal($('tEntry'), null); assert(!document.toString().includes('A private question'));
   assert.match(appText(), /Done, pass it back/);
   $('srUnlock').onclick(); assert.equal(sent.at(-1).op, 'back');
+  const ballot = { ...state, phase: 'prompt-vote', me: 'a', w: 'prompt-vote', myPromptVote: null,
+    options: ['A shared story', 'A funny dare', 'A tiny dance'], promptVoted: [] };
+  emit({ t: 'same-state', game: 'truth-dare', step: 5, gate: 'play', private: true, kind: 'prompt-vote', player: 'a', players, state: ballot, gameNow: 100, running: false });
+  assert.equal($('srTurn').textContent, 'Sam’s turn');
+  assert.equal(document.querySelectorAll('[data-prompt-vote]').length, 3);
+  document.querySelector('[data-prompt-vote="1"]').click(); assert.equal(sent.at(-1).a.promptVote, 1);
   emit({ t: 'same-stopped' });
-  $('srGame').value = 'chess'; $('srGame').onchange();
+  document.querySelector('[data-game-choice="chess"]').click();
   add('Mo'); assert.match($('srNameError').textContent, /up to 2/);
   assert.equal($('srNames').querySelectorAll('.sr-person').length, 2);
   assert.equal(data.get('giggle:one-device:token'), undefined);
-  $('srGame').value = 'truth-dare'; $('srGame').onchange();
+  document.querySelector('[data-game-choice="truth-dare"]').click();
   add(Array.from({ length: 18 }, (_, i) => `Friend ${i + 3}`).join(', '));
   assert.equal($('srNames').querySelectorAll('.sr-person').length, 20);
   assert(!$('srStart').disabled);
@@ -100,5 +129,6 @@ const registry = require('../games/registry');
     assert.equal(guide.includes('Play on one device'), !!g.sameRoom, g.id + ' guide respects opt-in');
   }
   function appText() { return $('srApp').textContent; }
+  ui.dispose(); global.document = originalDocument;
   console.log('SAME_ROOM_UI_PASS: real entry controller, catalog opt-ins, name chips, quick add, limits, settings, double-start, draft stability and private DOM removal');
 })().catch(error => { console.error(error); process.exitCode = 1; });

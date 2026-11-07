@@ -9,9 +9,11 @@ This mode still needs a connection to the game server.
 
 21 games opt in through `manifest.sameRoom`:
 
-- Truth or Dare: Classic, Funny, Wild, and Ask your own. Another player
-  writes an own prompt in private. Two people work; online minimums stay
-  unchanged.
+- Truth or Dare: 2–20 people, with Classic, Funny, and Wild decks. Choose
+  Random card, Room pool vote, Ask your own, or Mixed in setup. The target
+  uses the normal Truth, Dare, and Spin for me cards. Other players write,
+  pick the prompt, and judge through private hand-offs; the target never
+  writes or votes. With two people, the other player decides.
 - Would You Rather, Never Have I Ever, Most Likely To, Hot Takes, Pick One,
   Rank It, Two Truths, Trivia, Story Builder, and Rapid Polls.
 - Charades: the actor privately reads the word, hides it, and gives the
@@ -43,6 +45,11 @@ old view and removes its DOM. After **I'm name**, only that seat's normal
 projection is mounted. Private drafts survive readiness updates, and
 switching away from a private page covers it again.
 
+The shared turn banner follows the active seat on every update, including
+the target while choosing or performing and each private writer or voter.
+Game choice uses an art-card shelf, and enum settings use the host dialog's
+segmented pickers and tiles. Prompt style is picked in setup.
+
 One-device votes are private and taken in seat order. Each voter or trivia
 answerer gets a fresh, equal timer; the game's own scoring uses their
 actual answer time. Passing, loading, returning, disconnection, and reading
@@ -63,7 +70,7 @@ tests. These also run in `npm test`.
 
 `npm run test:same-room:browser` requires Playwright. It exercises the real
 flow, checks private DOM removal, mounts all 21 views, checks phone
-overflow, and captures 390×844 and 1280×800 in Day and Night. Set
+overflow, and captures 390×844, 800×600, and 1280×800 in Day and Night. Set
 `CHROMIUM_EXECUTABLE` to a cached Chromium path if needed. Set
 `SAME_ROOM_ARTIFACT_DIR` to choose the screenshot folder (default:
 the system temp folder's `giggle-same-room-shots`).

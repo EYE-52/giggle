@@ -15,23 +15,32 @@
 .bk-title{margin:0;font:800 26px/1.2 var(--font-display);color:var(--ink);overflow-wrap:anywhere}
 .bk-meta{margin:0;font-size:13px;line-height:1.4;color:var(--ink-dim)}
 .bk-players{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
-.bk-player{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;min-height:60px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
-.bk-player.is-turn{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.bk-player{--bk-player-color:var(--bk-fam);--bk-player-rim:color-mix(in srgb,var(--bk-player-color) 75%,var(--ink) 25%);display:grid;grid-template-columns:var(--space-32) minmax(0,1fr) var(--space-64);align-items:center;gap:var(--space-8);min-height:var(--space-64);height:var(--space-64);padding:var(--space-8) var(--space-12);border:var(--outline-w-lg) solid var(--line-strong);border-radius:var(--radius-lg);background:var(--card);box-shadow:0 var(--lift-sm) 0 var(--line-strong)}
+.bk-player.is-turn { border-color:var(--bk-player-rim); background:color-mix(in srgb,var(--bk-player-color) 8%,var(--card)); box-shadow:0 var(--lift-sm) 0 var(--bk-player-rim); }
 .bk-player.is-out{opacity:.6}
-.bk-chip{display:grid;place-items:center;width:30px;height:30px;flex:none;line-height:0}
-.bk-chip svg{width:30px;height:30px;display:block}
-.bk-chip .bk-dot{display:block;width:26px;height:26px;border-radius:50%;background:var(--chip,#888);border:1px solid #0003}
-.bk-who{display:flex;flex-direction:column;min-width:0}
-.bk-name{font-size:16px;font-weight:800;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bk-side{font-size:13px;line-height:1.35;color:var(--ink-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bk-player.is-turn .bk-side{color:var(--accent)}
-.bk-stat{display:flex;flex-direction:column;align-items:flex-end;min-width:2.5ch;text-align:right}
-.bk-stat-value{font:800 22px/1.1 var(--font-display);font-variant-numeric:tabular-nums}
-.bk-stat-label{font-size:12px;line-height:1.3;color:var(--ink-dim)}
-.bk-player.is-low .bk-stat-value{color:var(--melon)}
-.bk-status{margin:0;min-height:4.4em;padding:10px 12px;border-radius:12px;background:var(--well);line-height:1.4;overflow-wrap:anywhere;display:flex;flex-direction:column;justify-content:center;gap:2px}
-.bk-status-text{font-size:16px;font-weight:800}
-.bk-hint{font-size:14px;color:var(--ink-dim)}
+.bk-chip{display:grid;place-items:center;width:var(--space-32);height:var(--space-32);flex:none;line-height:0}
+.bk-chip svg{width:100%;height:100%;display:block}
+.bk-chip .bk-dot{display:block;width:var(--space-24);height:var(--space-24);border-radius:var(--radius-pill);background:var(--chip,#888);border:1px solid var(--line-strong)}
+.bk-who{display:flex;flex-direction:column;justify-content:center;min-width:0}
+.bk-name{font:var(--text-button);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-side{position:relative;display:flex;align-items:center;gap:var(--space-4);height:1.4em;min-width:0;font:var(--text-caption);color:var(--ink-dim);white-space:nowrap;overflow:hidden}
+.bk-side-text{overflow:hidden;text-overflow:ellipsis}
+.bk-you{font:inherit;color:var(--ink-dim)}
+.bk-turn-text{display:inline-flex;align-items:center;gap:var(--space-4);color:var(--ink);font:var(--text-caption)}
+.bk-turn-text::before{content:"";width:var(--space-4);height:var(--space-4);flex:none;border-radius:var(--radius-pill);background:var(--bk-player-rim)}
+.bk-turn-text[hidden] { display:inline-flex!important; visibility:hidden; position:absolute; }
+.bk-player.is-you .bk-side-text,.bk-player.is-turn :is(.bk-you,.bk-side-text){display:none}
+.bk-player.is-out .bk-side-text{display:inline}
+.bk-player.is-out .bk-you{display:none}
+.bk-player .bk-stat { display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:var(--space-40);min-width:0;padding:0 var(--space-4);border:1px solid var(--line-strong);border-radius:var(--radius-md);background:var(--well);color:var(--ink);text-align:center;font-variant-numeric:tabular-nums; }
+.bk-stat-value{font:var(--text-button);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bk-stat-label{font:var(--text-caption);line-height:1.2;color:var(--ink-dim);white-space:nowrap}
+.bk-player.is-low .bk-stat-value{color:var(--danger)}
+.bk-status{--bk-status-color:var(--bk-fam);--bk-status-rim:color-mix(in srgb,var(--bk-status-color) 75%,var(--ink) 25%);display:grid;grid-template-columns:var(--space-12) minmax(0,1fr);align-items:center;align-content:center;gap:var(--space-12);margin:0;padding:var(--space-8) var(--space-16);border:var(--outline-w) solid var(--line-strong);border-radius:var(--radius-lg);background:var(--card);box-shadow:0 var(--lift-sm) 0 var(--line-strong);color:var(--ink);overflow-wrap:anywhere}
+.bk-status-dot { width:var(--space-12);height:var(--space-12);border-radius:var(--radius-pill);background:var(--bk-status-rim);box-shadow:0 0 0 var(--space-4) color-mix(in srgb,var(--bk-status-color) 12%,var(--card)); }
+.bk-status-copy{display:flex;flex-direction:column;gap:var(--space-4);min-width:0}
+.bk-status-text{font:var(--text-body);line-height:1.3}
+.bk-hint{font:var(--text-caption);color:var(--ink-dim)}
 .bk-timer{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 10px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:13px;color:var(--ink-dim)}
 .bk-timer-value{font:800 18px/1.1 var(--font-display);color:var(--ink);font-variant-numeric:tabular-nums}
 .bk-timer-track{grid-column:1/-1;height:6px;border-radius:3px;background:var(--well);overflow:hidden}
@@ -81,8 +90,8 @@
 .bk-final-actions:not(:has(.bk-btn:not([hidden]))){display:none}
 .bk-final-actions .bk-btn{min-height:48px}
 .bk-hostwait{margin:0;font-size:13px;color:var(--ink-dim)}
-.bk-panel.is-final .bk-status,.bk-panel.is-final .bk-extra,.bk-panel.is-final .bk-help{display:none}
-.bk-panel.is-final .bk-final{order:2}.bk-panel.is-final .bk-tools{order:3}
+.bk-panel.is-final .bk-status,.bk-panel.is-final .bk-extra,.bk-panel.is-final .bk-help{visibility:hidden;pointer-events:none}
+.bk-panel.is-final .bk-final{order:2}
 
 /* Shared board hints: legal targets, last move, selection (game art may
  * add to these). */
@@ -97,12 +106,9 @@
  .bk-title{font-size:22px}
  .bk-meta{font-size:13px}
  .bk-players{order:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
- .bk-player{min-height:52px;padding:6px 8px;gap:8px}
  .bk-name{font-size:15px}
- .bk-turn-text{display:none}
  .bk-chip,.bk-chip svg{width:24px;height:24px}
  .bk-chip .bk-dot{width:22px;height:22px}
- .bk-stat-value{font-size:19px}
  .bk-stage{order:2;width:100%;max-width:560px;align-self:center;margin-top:0}
  .bk-status{order:3;min-height:4.4em}
  .bk-timer{order:4}
@@ -135,20 +141,12 @@
 @media (prefers-reduced-motion:reduce){.bk-game *{animation:none!important;transition:none!important}}
 #gbody[data-layout=immersive]:has(>.bk-game){min-height:var(--game-viewport-height,100svh);background:var(--bg)}
 
-/* Toy-box side panel: sticker cards in the board family's teal. The player
- * to move gets a tinted card with a thick rim, the status is a banner, and
+/* Toy-box side panel: soft player-colour rims and a quiet turn callout.
+ * The player to move gets a subtle tint and the same fixed card height, and
  * every control is a chip that sinks when pressed. The tools sit above the
  * actions so the space kept for a draw offer stays at the bottom. */
 .bk-game{--bk-fam:var(--fam,var(--accent));--bk-fam-deep:var(--fam-deep,var(--accent-deep));--bk-fam-soft:color-mix(in srgb,var(--bk-fam) 16%,var(--card))}
 .bk-title{font:var(--text-heading,800 30px/1.15 var(--font-display));text-wrap:balance}
-.bk-player{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm);background:var(--card)}
-.bk-player.is-turn{border:var(--outline-w-lg) solid var(--bk-fam);background:var(--bk-fam-soft);box-shadow:var(--shadow-sticker)}
-.bk-player.is-turn .bk-side{color:var(--bk-fam-deep);font-weight:800}
-.bk-name{font:var(--text-title,800 18px/1.25 var(--font-display));font-size:18px}
-.bk-stat-value{font-size:24px}
-.bk-status{border:var(--outline-w) solid var(--bk-fam);border-radius:var(--radius-lg);background:var(--bk-fam-soft);color:var(--bk-fam-deep);min-height:64px;padding:12px 16px}
-.bk-status-text{font:800 19px/1.25 var(--font-display)}
-.bk-hint{color:var(--ink)}
 .bk-timer,.bk-final{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm)}
 .bk-btn,.bk-help{border:var(--outline-w) solid var(--outline);border-radius:var(--radius-lg);box-shadow:var(--shadow-sticker-sm);font:var(--text-button-sm,800 15px/1.2 var(--font-body))}
 .bk-help summary{font:inherit}
@@ -193,12 +191,8 @@
 .bk-row-confirm .bk-btn,.bk-row-offer .bk-btn{flex:1 1 0;min-height:var(--control-h)}
 .bk-row-confirm .bk-danger{background:var(--danger);border-color:var(--outline);color:var(--on-danger,#fff);box-shadow:var(--shadow-sticker-sm)}
 .bk-ask{font:var(--text-caption);color:var(--ink)}
-/* The turn card's thicker rim is drawn inside, so a turn change never
- * resizes the cards (and never nudges the board under them on phones). */
-.bk-player.is-turn{border-width:var(--outline-w);box-shadow:inset 0 0 0 1px var(--bk-fam),var(--shadow-sticker)}
-/* Only a game with draw offers can have its row swapped without a tap, so
- * only those keep space reserved for the two-button answer row. */
-.bk-actions:not(:has([data-offer-draw])){min-height:0}
+/* Resign confirmations and draw replies share one permanent action well. */
+.bk-actions{min-height:calc(var(--control-h) + var(--space-32))}
 /* Disclosures: How to play (and Chess's Moves) read as rows, not buttons. */
 .bk-help,.bk-game.ch-tabletop .chhist-wrap{flex:1 1 auto;border:0;border-radius:var(--radius-md);background:none;box-shadow:none}
 .bk-help[open]{flex-basis:100%}
@@ -229,9 +223,32 @@
 /* QC: the status banner is a compact row, not a tall box. Games whose
  * status never carries a hint line keep only one line of space; Kalah and
  * Checkers (status + hint) keep room for exactly two lines. */
-.bk-game:is(.kl,.ck) .bk-hint{font-size:14px;line-height:1.45}
 @media (max-width:759px){
  .bk-status{min-height:0;padding:var(--space-8) var(--space-16)}
- .bk-status-text{font-size:17px}
  .bk-game:is(.kl,.ck) .bk-status{min-height:calc(2 * var(--space-8) + 2 * var(--outline-w,2px) + 1.25 * 17px + 1.45 * 14px)}
+}
+
+/* Stable board chrome. The turn rim, empty score, confirmations and final
+ * scores never change the space before the stage. */
+.bk-player,.bk-player.is-turn { border-width:var(--outline-w-lg); min-height:var(--space-64); height:var(--space-64); grid-template-columns:var(--space-32) minmax(0,1fr) var(--space-64); }
+.bk-stat { width:100%; font-variant-numeric:tabular-nums; }
+.bk-stat-value { min-height:1.1em; }
+.bk-stat-label { min-height:1.3em; white-space:nowrap; }
+.bk-status { height:calc(var(--space-64) + var(--space-32)); min-height:calc(var(--space-64) + var(--space-32)); overflow:auto; }
+.bk-actions[hidden] { display:block!important; visibility:hidden; pointer-events:none; }
+.bk-timer.has-timer[hidden] { display:grid!important; visibility:hidden; }
+.bk-final { position:fixed; z-index:80; top:50%; left:50%; transform:translate(-50%,-50%); width:min(calc(100% - var(--space-32)),calc(var(--bk-panel) + var(--space-64))); max-height:calc(var(--game-viewport-height,100dvh) - var(--space-48)); overflow:auto; overscroll-behavior:contain; box-shadow:var(--shadow-card); }
+@media (max-width:759px) {
+ .bk-game > *, .bk-panel > * { flex-shrink:0; }
+ .bk-stage { flex:none; }
+ .bk-status,.bk-game:is(.ld-game,.kl,.ck) .bk-status { height:var(--space-64); min-height:var(--space-64); }
+ .bk-player,.bk-player.is-turn { grid-template-columns:var(--space-24) minmax(0,1fr) var(--space-40); gap:var(--space-4); padding:var(--space-8); }
+ .bk-player.has-clock,.bk-player.has-clock.is-turn { grid-template-columns:var(--space-24) minmax(0,1fr) var(--control-h-lg); }
+ .bk-player.has-clock .bk-stat-value { font:var(--text-button-sm); font-variant-numeric:tabular-nums; }
+ .bk-name { font:var(--text-button-sm); }
+ .bk-player .bk-stat { height:var(--space-32); }
+ /* Fleet placement has no score yet. Keep its slot, without an empty pill. */
+ .bk-player:not(.has-stat) .bk-stat { visibility:hidden; }
+ .bk-player .bk-stat-label { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+ .bk-game.ch-tabletop .ch-chip { width:var(--space-24); height:var(--space-24); }
 }
