@@ -11,6 +11,7 @@ const assert = require('assert');
 const path = require('path');
 const { spawn } = require('child_process');
 const WebSocket = require('ws');
+const net = require('node:net');
 
 const ROOT = path.join(__dirname, '..');
 const fs = require('fs');
@@ -332,7 +333,12 @@ const realSetTimeout = setTimeout;
 const sleep = (ms) => new Promise((res) => realSetTimeout(res, ms));
 
 async function part2() {
-  const WS_PORT = 18241;
+  // Concurrent worktrees also run this long socket fixture. Ask the OS
+  // for a free port instead of competing for the old fixed port 18241.
+  const probe = net.createServer();
+  await new Promise((resolve,reject)=>{probe.once('error',reject);probe.listen(0,'127.0.0.1',resolve);});
+  const WS_PORT = probe.address().port;
+  await new Promise(resolve=>probe.close(resolve));
   const srv = spawn(process.execPath, ['server/server.js','--noenv'], {
     cwd: ROOT,
     env: { ...process.env, PORT: String(WS_PORT), HOST: '127.0.0.1' },

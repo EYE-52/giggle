@@ -152,12 +152,16 @@ for(const id of maps.mapIds()){
     {x:r.x+r.hw+.01,z:r.z},{x:r.x,z:r.z+r.hd+.01});
   assert(floorCases.length<=100,id+' independent casts stay bounded');
   world.group.updateWorldMatrix(true,true);
-  const ray=new THREE.Raycaster(),rayOrigin=new THREE.Vector3(),down=new THREE.Vector3(0,-1,0),normal=new THREE.Vector3(),hits=[];
+  const ray=new THREE.Raycaster(),rayOrigin=new THREE.Vector3(),down=new THREE.Vector3(0,-1,0),normal=new THREE.Vector3(),instanceMatrix=new THREE.Matrix4(),hits=[];
   let maximumFloorError=0;
   for(const site of floorCases){
     rayOrigin.set(site.x,64,site.z);ray.set(rayOrigin,down);ray.far=128;hits.length=0;
     ray.intersectObjects(floorMeshes,false,hits);assert(hits.length,id+' floor cast finds actual support');
-    normal.copy(hits[0].face.normal).transformDirection(hits[0].object.matrixWorld);
+    normal.copy(hits[0].face.normal);
+    // Turbo decals now share instance batches. Raycaster returns a local
+    // face normal, so include the hit instance before the world transform.
+    if(hits[0].instanceId!==undefined){hits[0].object.getMatrixAt(hits[0].instanceId,instanceMatrix);normal.transformDirection(instanceMatrix);}
+    normal.transformDirection(hits[0].object.matrixWorld);
     assert(normal.y>.85,id+' downward front-face cast hits an actual upward floor');
     const error=Math.abs(hits[0].point.y-visibleGround(site.x,site.z));maximumFloorError=Math.max(maximumFloorError,error);
     assert(error<6e-6,id+' helper agrees with highest actual drawn floor at '+JSON.stringify(site)+', error '+error);

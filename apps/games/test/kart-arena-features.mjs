@@ -45,7 +45,8 @@ for(const id of MAP_IDS){
 }
 
 const kart=(pid,x,z,angle,input={steer:0,throttle:1})=>({pid,x,z,angle,speed:0,boost:0,boostCd:0,turbo:0,padCd:0,nitro:1,input,spawnSeq:0,connected:true,flight:null,cannonCd:0,portalCd:0});
-const room=(id,karts)=>{const m=maps.mapDef(id);return {map:id,mode:'battle',half:m.half,blocks:m.blocks,pads:m.pads,surfaces:m.surfaces,features:m.features,karts,physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};};
+// Include the arena network and structures in authority and prediction.
+const room=(id,karts)=>{const m=maps.mapDef(id);return {map:id,mode:'battle',half:m.half,blocks:m.blocks,pads:m.pads,surfaces:m.surfaces,roads:m.roads,offroad:m.offroad,barriers:m.barriers,ramps:m.ramps,features:m.features,karts,physicalEvents:[],physicalEventSeq:0,featureEvents:[],featureEventSeq:0};};
 /* An approach pose `distance` metres from (x,z) facing it, from the first
  * open side: behind, left, right, then front. */
 function approach(id,x,z,angle,distance){

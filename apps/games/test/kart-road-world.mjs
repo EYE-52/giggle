@@ -2,9 +2,35 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createKartWorld} from '../public/js/engines/kart-world.mjs';
 import {createRoadTerrain} from '../public/js/engines/kart-road-terrain.mjs';
+import {buildTerrainRoads} from '../public/js/engines/kart-road-mesh.mjs';
 import {grenadePose} from '../public/js/engines/kart-flight.mjs';
 import {createKartFeedback} from '../public/js/engines/kart-feedback.mjs';
 import maps from '../games/engines/kart-maps.js';
+
+// Two sampled crossing roads must retain border ribbons on the approaches
+// while neither the shoulders nor raised kerbs paint across the junction.
+const crossingTerrain={half:30,segments:1,vertices:new Float32Array([-30,0,-30,30,0,-30,-30,0,30,30,0,30]),heightAt:()=>0};
+const crossingRoutes=[false,true].map(vertical=>({width:8,curb:true,points:Array.from({length:21},(_,i)=>new THREE.Vector2(vertical?0:i*2-20,vertical?i*2-20:0))}));
+const crossingLayers=buildTerrainRoads(crossingTerrain,crossingRoutes);
+for(const key of ['shoulder','curbs']){
+  const data=crossingLayers[key];assert(data.length>0,key+' survives away from junctions');
+  for(let i=0;i<data.length;i+=18){
+    const x=(data[i]+data[i+6]+data[i+12])/3,z=(data[i+2]+data[i+8]+data[i+14])/3;
+    assert(!((Math.abs(x)<4&&Math.abs(z)<5)||(Math.abs(z)<4&&Math.abs(x)<5)),key+' leaves crossing asphalt open');
+  }
+}
+// Ground kind, rather than the theme's old paving, owns the fallback tint.
+// Gravel also stays dark and neutral through every lighting palette.
+for(const palette of ['Daybreak','Sunset','Starlight']){
+  const world=createKartWorld(THREE,{scene:new THREE.Scene(),map:{id:'neon',...maps.mapDef('neon')},palette});
+  const ground=world.group.getObjectByName('neon-driving-terrain').material,road=world.group.getObjectByName('neon-road-road').material;
+  const luminance=c=>.2126*c.r+.7152*c.g+.0722*c.b;
+  assert(luminance(ground.color)<luminance(road.color)*.8,palette+' gravel is darker than asphalt');
+  assert(Math.max(...ground.color.toArray())-Math.min(...ground.color.toArray())<.01,palette+' gravel is desaturated');
+  assert.equal(ground.emissive.getHex(),0,palette+' gravel does not glow teal');
+  assert(ground.roughness>road.roughness,palette+' asphalt is smoother');
+  world.dispose?.();
+}
 
 // Count graphics constructors exposed to the production renderer. Animation
 // must reuse its existing vectors/colors/materials/buffers across sky phases.
