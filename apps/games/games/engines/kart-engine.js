@@ -26,6 +26,7 @@
  * ties share the win, views never leak inputs. */
 
 const { mapDef, normalizeMapId } = require('./kart-maps');
+const { crowdSpawns } = require('./kart-spawns');
 const starrush = require('./kart-rules-starrush');
 const battle = require('./kart-rules-battle');
 const { rankStandings } = require('./kart-standings');
@@ -104,7 +105,7 @@ const GARAGE_CATS = ['engine', 'handling', 'reload'];
 const GARAGE_MAX = 3;
 const GARAGE_PRICES = [20, 35, 55]; // cost to reach level 1/2/3
 const GARAGE_NONCE_CAP = 200; // bounded exact-once purchase nonces per game
-const GARAGE_WALLET_CAP = 24; // room seats max; departing ghosts pruned past this
+const GARAGE_WALLET_CAP = 32; // room seats max; departing ghosts pruned past this
 const COIN_PARTICIPATION = 5;
 const COIN_WIN = 15;
 
@@ -858,7 +859,8 @@ function createKartGame(config) {
     // (cosmetics), but physics applies them only when garage is on —
     // classic rematches stay bit-identical while the wallet persists.
     const preStore = garageStore(ctx, { _garageLocal: undefined });
-    const spawnPool = Array.isArray(mapD.spawns) && mapD.spawns.length ? mapD.spawns : null;
+    // Crowded matches extend the authored pool with legal side-by-side slots.
+    const spawnPool = Array.isArray(mapD.spawns) && mapD.spawns.length ? crowdSpawns(mapD, drivers.length) : null;
     const karts = drivers.map((p, i) => {
       const pose = spawnPool ? spawnPool[i % spawnPool.length] : startPose(i, drivers.length);
       return {
@@ -1268,7 +1270,7 @@ function createKartGame(config) {
     }
     return {
       phase: state.phase,
-      ...(motions.has(state)?{motionProfile:'rapier-classic-v1',physicalEvents:state.physicalEvents,inputAck:state.karts.some(k=>k.pid===pid)?{receivedSeq:state.karts.find(k=>k.pid===pid)._receivedSeq||0,appliedInputSeq:state.karts.find(k=>k.pid===pid)._appliedSeq||0,life:state.karts.find(k=>k.pid===pid).spawnSeq||0,controlEpoch:state.karts.find(k=>k.pid===pid).controlEpoch||0}:null}:{}),
+      ...(motions.has(state)?{motionProfile:'rapier-classic-v1',physicalEvents:state.physicalEvents,inputAck:inputAck(state,pid)}:{}),
       mode: rules.key,
       modeLabel: isGarage ? 'Garage Battle' : rules.label,
       garage: isGarage,
@@ -1338,12 +1340,36 @@ function createKartGame(config) {
     };
   }
 
+  function inputAck(state, pid) {
+    const k = state.karts.find(kart => kart.pid === pid);
+    return k ? { receivedSeq: k._receivedSeq || 0, appliedInputSeq: k._appliedSeq || 0, life: k.spawnSeq || 0, controlEpoch: k.controlEpoch || 0 } : null;
+  }
+
+  /* Real-time split of view(): every field that depends on the recipient,
+   * so the public remainder can be built once per tick for all of them. */
+  const PRIVATE_KEYS = ['youDrive', 'inputAck', 'coins', 'garageResult'];
+  function privateView(state, pid) {
+    const coinsMap = state.coins && typeof state.coins === 'object' ? state.coins : {};
+    const resMap = state.garageResults && typeof state.garageResults === 'object' ? state.garageResults : {};
+    return {
+      youDrive: state.karts.some((k) => k.pid === pid),
+      ...(motions.has(state) ? { inputAck: inputAck(state, pid) } : {}),
+      coins: Math.max(0, Math.floor(Number(coinsMap[pid]) || 0)),
+      garageResult: resMap[pid] ? { ...resMap[pid] } : null,
+    };
+  }
+  function publicView(state) {
+    const out = view(state, null);
+    for (const key of PRIVATE_KEYS) delete out[key];
+    return out;
+  }
+
   return {
     id: cfg.id,
     minPlayers: (cfg.players && cfg.players.min) || 2,
     maxPlayers: (cfg.players && cfg.players.max) || 24,
     manifest,
-    create, onAction, onTick, onConnection, onPlayerGone, view,
+    create, onAction, onTick, onConnection, onPlayerGone, view, publicView, privateView,
     dispose(state){battle.cancelPayloads(state);motions.get(state)?.dispose();motions.delete(state);},
   };
 }

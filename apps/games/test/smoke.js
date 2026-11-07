@@ -75,7 +75,7 @@ async function main() {
   const chessMeta = games.games.find((g) => g.id === 'chess');
   if (chessMeta.seats !== 2 || chessMeta.cat !== 'board') return fail('chess metadata wrong');
   const kartsMeta = games.games.find((g) => g.id === 'pocket-karts');
-  if (kartsMeta.seats !== 8 || kartsMeta.renderer !== '3d') return fail('karts metadata wrong');
+  if (kartsMeta.seats !== 32 || kartsMeta.renderer !== '3d') return fail('karts metadata wrong');
 
   for (const g of games.games) {
     const previousInstance = last(a, 'state')?.instanceId;

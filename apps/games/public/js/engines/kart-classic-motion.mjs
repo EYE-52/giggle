@@ -89,6 +89,7 @@ export function createClassicMotion(RAPIER,baseConfig,state){
     advance(dt,connected){if(disposed)throw Error('classic world disposed');sync(connected);accumulator=Math.min(.25,accumulator+dt);const contacts=new Map();
       while(accumulator>=config.fixedDt-1e-9){
         for(const k of state.karts)if(enabled.get(k.pid)){if(k.spinKick){physics.spinKart?.(k.pid,k.spinKick);k.spinKick=0;}const control=classicControls(k,config.fixedDt,map,state.mode==='battle');physics.tuneKart(k.pid,control.tuning);physics.applyIntent(k.pid,control.intent);k._appliedSeq=k._receivedSeq||0;}
+        for(const k of state.karts)k._prevPose=k.physicalPose;
         physics.step();for(const k of state.karts)project(k);accumulator-=config.fixedDt;
         features.step(config.fixedDt,connected);
         for(const ids of physics.kartContacts())contacts.set(ids.join('|'),ids.map(id=>state.karts.find(k=>k.pid===id)));
@@ -100,7 +101,10 @@ export function createClassicMotion(RAPIER,baseConfig,state){
     },
     sync,disconnect(pid){physics.setKartEnabled(pid,false);enabled.set(pid,false);const k=state.karts.find(k=>k.pid===pid);if(k)project(k);},
     beginCorrection(){accumulator=0;},
-    restore(k,p){features.resumeLanded(k);if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
+    // Unsimulated fraction of the next fixed step: renderers blend
+    // _prevPose -> physicalPose by it so motion is even at any frame rate.
+    alpha:()=>Math.max(0,Math.min(1,accumulator/config.fixedDt)),
+    restore(k,p){k._prevPose=null;features.resumeLanded(k);if(physics.pose(k.pid).epoch!==p.epoch)physics.resetKart(k.pid,{position:p.position,rotation:p.rotation});physics.restoreKart(k.pid,p);life.set(k.pid,k.spawnSeq||0);project(k);},
     sweepStatic:(from,to,radius)=>physics.sweepStatic(from,to,radius),
     supportAt:(origin,maxDistance)=>physics.supportAt(origin,maxDistance),
     groundAt:(x,z)=>terrain?.heightAt(x,z)||0,

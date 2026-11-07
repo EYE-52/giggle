@@ -27,6 +27,7 @@ const {readInputCapabilities,touchControlsFor}=await import('../public/js/toolki
 const {createGearbox,paintGear}=await import('../public/js/engines/kart-gearbox.mjs');
 const {createKartArenaFeatures,drawArenaFeatures2d}=await import('../public/js/engines/kart-arena-features-art.mjs');
 const {CLASSIC_MAX_FORWARD}=await import('../public/js/engines/kart-classic-motion.mjs');
+const {createKartLod,crowdColor}=await import('../public/js/engines/kart-lod.mjs');
 let clock = 1000;
 class Node {
   constructor() {
@@ -93,7 +94,7 @@ const context = vm.createContext({document, window, console, Date,
   createKartAudio: () => {const audio={cues:[],active:true,muted:false,unlock(){},setMuted(value){this.muted=value},update(frame){this.active=frame.active},cue(name){if(this.active&&!this.muted)this.cues.push(name)},dispose(){}};audios.push(audio);return audio;},
   createPoseStore: () => ({}), resetPoseStore() {}, ingestSnapshot() {}, framePoses: () => new Map(),
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
-  intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d});
+  intentFromKeys, createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor});
 // The hearts HUD runs against this fake DOM, so it loads into the same context.
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-skids.mjs'),'utf8').replace(/^export /gm,''),context);

@@ -13,6 +13,7 @@ const {
 const { actionWindow } = require('../games/_sdk');
 const { teamMetadata } = require('./bridge');
 const { cleanKartLook } = require('../public/js/engines/kart-looks.mjs');
+const realtime = require('./realtime');
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
@@ -173,6 +174,8 @@ class Room {
    * cap keep the whole roster active — exact legacy behavior. */
   activeRosterIds() {
     if (!this.game) return [];
+    // Per-instance cap (def.seatsFor): e.g. 32 karts on classic arenas, 8 elevated.
+    if (Number.isInteger(this.game.seats)) return this.game.roster.slice(0, this.game.seats);
     return activeIds(this.game.roster, this.game.def);
   }
 
@@ -213,7 +216,7 @@ class Room {
         connected: p.connected && !this.hasLeft(p.id), ...(this.hasLeft(p.id) ? { left: true } : {}) }));
       if (this.game.ended) snap.ended = true;
       snap.spectators = this.spectatorPlayers().map((p) => ({ id: p.id, name: p.name }));
-      const seats = manifestSeats(this.game.def);
+      const seats = Number.isInteger(this.game.seats) ? this.game.seats : manifestSeats(this.game.def);
       if (seats !== null) snap.seats = seats;
     }
     return snap;
@@ -451,6 +454,27 @@ class Room {
     const serverNow = Date.now();
     const phaseStartedAt = this._phaseStart.at;
     const ctx = this.ctx();
+    // Real-time games (def.realtime) serve 'rt1' sockets binary frames: one
+    // shared public view and entity encoding per tick, a delta per socket.
+    const spec = this._realtimeSpec();
+    let channel = null;
+    const prepare = () => {
+      if (channel) return channel;
+      const game = this.game;
+      if (game.rtSpec !== spec) { game.rtSpec = spec; game.rt = realtime.createRealtimeChannel(spec); }
+      channel = game.rt;
+      channel.prepare(game.state, ctx, {
+        game: game.def.id, instanceId: game.instanceId, w, players, participants: players, spectators,
+        totals: { ...this.totals }, serverNow, phaseStartedAt,
+        ...(game.ended ? { matchEnded: true, matchPoints: { ...(game.awarded || {}) } } : {}),
+        ...(game.waitForReady ? {
+          preparing: game.preparing, gameNow: this._gameNow(), clockOffset: game.clockOffset,
+          readyDeadline: game.preparing ? game.readyDeadline : null,
+          waitingFor: game.preparing ? [...game.requiredReady].filter(id => !game.ready.has(id)) : [],
+        } : {}),
+      });
+      return channel;
+    };
     for (const p of this.players) {
       if (!p.connected || !p.socket || !this._sendable(p.socket)) continue;
       // Discardable ticks only: a backlogged socket skips this snapshot
@@ -458,6 +482,17 @@ class Room {
       // Sockets without bufferedAmount (tests, old impls) always receive.
       if (discardable && typeof p.socket.bufferedAmount === 'number' &&
           p.socket.bufferedAmount > SLOW_SOCKET_BYTES) continue;
+      if (spec && p.socket.realtime === realtime.CAPABILITY) {
+        try {
+          const ch = prepare();
+          p.socket.send(ch.frameFor(p.socket, inRoster.has(p.id) && !this.hasLeft(p.id) ? p.id : null, {
+            you: p.id, spectator: !inRoster.has(p.id) || this.hasLeft(p.id),
+            ...spec.privateView(this.game.state, p.id, ctx),
+            ...(this.hasLeft(p.id) ? { youLeft: true } : {}),
+          }));
+        } catch (e) { console.error('realtime frame error', e); }
+        continue;
+      }
       // One bad view/send must not starve the rest of the room or crash the
       // process: this runs on action, timer, tick, AND socket-close paths.
       let view;
@@ -587,7 +622,7 @@ class Room {
     if (game.pausedAt !== null) game.clockOffset += Date.now() - game.pausedAt;
     game.pausedAt = null;
     game.preparing = false;
-    game.nextTickAt = Date.now() + (game.def.tickInterval ? game.def.tickInterval(game.state) : 100);
+    game.nextTickAt = Date.now() + this._tickInterval(game);
     for (const timer of this.timers) this._scheduleTimer(timer);
   }
 
@@ -774,6 +809,7 @@ class Room {
       state: null,
       generation: (this.game ? this.game.generation : 0) + 1,
       roster: this.connectedPlayers().map((p) => p.id),
+      seats: this._seatsFor(def),
       instanceId: `${Date.now().toString(36)}-${this._instanceSeq}`,
       waitForReady: opts?.ready === true,
       preparing: opts?.ready === true,
@@ -799,7 +835,7 @@ class Room {
       this.broadcastLobby();
       return { error: 'Could not start that game. Try again.' };
     }
-    this.game.nextTickAt = Date.now() + (def.tickInterval ? def.tickInterval(this.game.state) : 100);
+    this.game.nextTickAt = Date.now() + this._tickInterval();
     this._phaseStart = { key: null, at: 0 }; // fresh instance, fresh phase clock
     this.broadcastLobby();
     this.broadcastState();
@@ -1000,6 +1036,41 @@ class Room {
     }
   }
 
+  /* Optional def.seatsFor(settings) narrows manifest.seats for one instance. */
+  _seatsFor(def) {
+    const cap = manifestSeats(def);
+    if (cap === null || typeof def.seatsFor !== 'function') return undefined;
+    try {
+      const n = def.seatsFor(this.config[def.id]?.settings || {});
+      return Number.isInteger(n) && n >= 1 ? Math.min(n, cap) : undefined;
+    } catch (e) { console.error('seatsFor error', e); return undefined; }
+  }
+
+  _realtimeSpec() {
+    const def = this.game?.def;
+    if (typeof def?.realtime !== 'function') return null;
+    try { return def.realtime(this.game.state) || null; }
+    catch (e) { console.error('realtime spec error', e); return null; }
+  }
+
+  /* A client could not apply a delta: its next frame is a keyframe. */
+  realtimeResync(ws) {
+    this.game?.rt?.resync(ws);
+  }
+
+  /* def.tickRate: {target, max} or (state) => that or null; the governor
+   * then owns the interval. Otherwise the legacy def.tickInterval(state). */
+  _tickRate(game = this.game) {
+    const rate = typeof game.def.tickRate === 'function' ? game.def.tickRate(game.state) : game.def.tickRate;
+    return rate && typeof rate === 'object' ? rate : null;
+  }
+
+  _tickInterval(game = this.game) {
+    const rate = this._tickRate(game);
+    if (rate) return realtime.governor.interval(game, rate);
+    return game.def.tickInterval ? game.def.tickInterval(game.state) : 100;
+  }
+
   onAction(ws, a, meta) {
     const p = this.bySocket(ws);
     if (!p || !this.game || this.game.preparing) return;
@@ -1028,18 +1099,22 @@ class Room {
     // onTick() calls retain the existing test/SDK stepping contract.
     if (Number.isFinite(pumpNow)) {
       if (pumpNow < this.game.nextTickAt) return;
-      const interval = this.game.def.tickInterval ? this.game.def.tickInterval(this.game.state) : 100;
+      const interval = this._tickInterval();
       // Keep the instance's cadence after a late pump; skip missed slots
       // without drifting deadlines or issuing catch-up simulation calls.
       this.game.nextTickAt = pumpNow + interval - (pumpNow - this.game.nextTickAt) % interval;
     }
     // A throwing realtime callback would otherwise crash
     // the process, so contain it and let the next tick retry.
+    const game = this.game, started = performance.now();
     try {
-      this.game.def.onTick(this.game.state, this.ctx());
+      game.def.onTick(game.state, this.ctx());
     } catch (e) {
       console.error('game tick error', e);
     }
+    // Adaptive rate: the cost includes the broadcast the tick triggered.
+    const rate = this.game === game ? this._tickRate(game) : null;
+    if (rate) realtime.governor.record(game, performance.now() - started, rate);
   }
 
   /* Only the seat still attached to THIS socket is marked away, so a

@@ -607,14 +607,14 @@ function main() {
       karts.onAction(st, ctx, 'p0', { garage: { category: 'reload', nonce: 'spam' + i } });
     }
     assert(store.seenOrder.length <= 200, `nonces bounded, saw ${store.seenOrder.length}`);
-    // Wallet never exceeds 24 seats: ghosts yield to drivers.
+    // Wallet never exceeds 32 seats: ghosts yield to drivers.
     const roomy = { coins: {}, upgrades: {}, seen: {}, seenOrder: [] };
-    for (let i = 0; i < 24; i++) roomy.coins['ghost' + i] = i + 1;
+    for (let i = 0; i < 32; i++) roomy.coins['ghost' + i] = i + 1;
     const [sw, cw] = racing({ mode: 'Zap Battle', map: 'Rookie Ring', garage: true }, 2, 9110000, roomy);
     finishTimeout(sw, cw);
-    assert(Object.keys(roomy.coins).length <= 24, 'wallet capped at 24');
+    assert(Object.keys(roomy.coins).length <= 32, 'wallet capped at 32');
     assert(roomy.coins.p0 >= 5 && roomy.coins.p1 >= 5, 'drivers bank through the cap');
-    console.log('GARAGE ok: fixture fallback, bounded nonces, 24-seat wallet cap');
+    console.log('GARAGE ok: fixture fallback, bounded nonces, 32-seat wallet cap');
   }
 
   // --- 13. caps kept: 64 projectiles, 16 mines, 12 events ---

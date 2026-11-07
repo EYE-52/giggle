@@ -62,7 +62,7 @@ function manifest() {
     const file = `public/assets/karts/previews/legacy-${arena}.webp`;
     files.push([file, file]);
   }
-  for (const dir of ['scripts/templates', 'games/engines', 'public/js/toolkit', 'public/js/engines', 'public/js/renderers']) {
+  for (const dir of ['scripts/templates', 'games/engines', 'public/js/toolkit', 'public/js/toolkit/realtime', 'public/js/engines', 'public/js/renderers']) {
     for (const f of fs.readdirSync(path.join(ROOT, dir)).sort()) {
       if (dir === 'games/engines' && !/\.(js|txt|json)$/.test(f)) continue;
       if (dir !== 'games/engines' && !/\.(js|mjs|tpl|css)$/.test(f)) continue;

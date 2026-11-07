@@ -4,7 +4,7 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
   version: 1,
   fixedDt: 1 / 60,
   gravity: Object.freeze({ x: 0, y: -18, z: 0 }),
-  maxKarts: 8,
+  maxKarts: 32,
   maxStatics: 128,
   chassis: Object.freeze({
     half: Object.freeze({ x: 1.22, y: 0.26, z: 1.55 }),

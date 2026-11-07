@@ -28,6 +28,7 @@ import { createRunLog } from './toolkit/run-log.mjs';
 import { kartSetupSummary } from './kart-setup.js';
 import { loadKartLook, openKartGarage, kartGarageCardHtml, kartLookBadgeHtml } from './kart-garage.js';
 import { cleanKartLook, kartPaintHex } from './engines/kart-looks.mjs';
+import { decodeFrame, CAPABILITY as REALTIME } from './toolkit/realtime/client.mjs';
 import {
   parseGameEntry, validateGameEntry, shouldHandleGameEntry,
   stripGameEntryParams, decideGameEntryCreate, decideGameEntryShow,
@@ -485,6 +486,11 @@ function openSocket() {
     ws = new WebSocket(proto + '//' + location.host);
   }
   const openingSocket = ws;
+  // Real-time games send binary frames (toolkit/realtime); they decode to
+  // the same 'state' messages, so everything below stays transport-blind.
+  ws.binaryType = 'arraybuffer';
+  const frames = decodeFrame({ eventDeltas: true });
+  let resyncAt = 0;
   openingSocket.hasGameState = false;
   clearTimeout(socketStartTimer);
   socketStartTimer = setTimeout(() => {
@@ -531,6 +537,14 @@ function openSocket() {
   ws.onmessage = (ev) => {
     if (ws !== openingSocket) return;
     let msg;
+    if (ev.data instanceof ArrayBuffer) {
+      msg = frames.apply(ev.data);
+      // A delta without its base (should not happen over one socket): ask
+      // for a keyframe, at most twice a second.
+      if (!msg) { if (Date.now() - resyncAt > 500) { resyncAt = Date.now(); send({ t: 'rt-key' }); } return; }
+      onMsg(msg);
+      return;
+    }
     try { msg = JSON.parse(ev.data); } catch { return; }
     onMsg(msg);
   };
@@ -605,7 +619,7 @@ function paintConn() {
 function send(o) {
   // Only clients whose host preserves events across coalesced renders opt
   // in. Cached older clients keep receiving complete combat history.
-  if (['create', 'join', 'giggleJoin', 'giggleRenew'].includes(o.t)) o = { ...o, kartEvents: 'delta-v1' };
+  if (['create', 'join', 'giggleJoin', 'giggleRenew'].includes(o.t)) o = { ...o, kartEvents: 'delta-v1', realtime: REALTIME };
   if (ws && ws.readyState === 1) ws.send(JSON.stringify(o));
 }
 

@@ -102,7 +102,8 @@ try{
     if(i%3===0){seq++;driver._receivedSeq=seq;prediction.sent(seq);}
     authority.advance(1/60,online);
     if(i%3===0)prediction.ingest(snapshot(),i*1000/60);
-    const draw=prediction.frame(snapshot(),driver.input,1/60,i*1000/60),p=draw.physicalPose.position;
+    // Simulated pose: drawn frames blend between fixed steps by design.
+    prediction.frame(snapshot(),driver.input,1/60,i*1000/60);const p=prediction.selfPose().position;
     maxPredictionError=Math.max(maxPredictionError,Math.hypot(p.x-driver.x,p.y-driver.physicalPose.position.y,p.z-driver.z));
     maxPredictedHeight=Math.max(maxPredictedHeight,p.y);
     assert.ok(p.y>terrain.heightAt(p.x,p.z)+.4,'prediction cannot sink through raised terrain');
