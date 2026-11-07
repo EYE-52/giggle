@@ -4,9 +4,9 @@
  * and draw as one shared InstancedMesh: a coloured body with a dark roof,
  * one draw call for every distant kart together. The nearest `keepNear`
  * karts always stay detailed however the camera is placed. */
-export function createKartLod(THREE, { fullDetail = 8, far = 42, keepNear = 10, capacity = 32 } = {}) {
+export function createKartLod(THREE, { fullDetail = 8, far = 42, keepNear = 10, capacity = 32, originY = .55 } = {}) {
   const body = new THREE.BoxGeometry(2.3, 0.7, 3);
-  body.translate(0, 0.55, 0);
+  body.translate(0, originY, 0);
   const material = new THREE.MeshLambertMaterial({ color: 0xffffff });
   const proxies = new THREE.InstancedMesh(body, material, capacity);
   proxies.name = 'kart-lod-proxies';
@@ -15,19 +15,24 @@ export function createKartLod(THREE, { fullDetail = 8, far = 42, keepNear = 10, 
   proxies.castShadow = false;
   proxies.receiveShadow = false;
   const matrix = new THREE.Matrix4(), color = new THREE.Color();
+  // Prepare the colour attribute before shader warm-up, including when the
+  // match starts with no distant karts and drops detail later.
+  proxies.setColorAt(0, color.setHex(0xffffff));
   return {
     object: proxies,
     /* entries: [{mesh, color, visible}] for every kart this frame. Returns
      * the set of meshes drawn as proxies (callers skip their animation). */
-    update(camera, entries) {
+    update(camera, entries, nearCount = keepNear) {
       const far2 = far * far, proxied = new Set();
       let n = 0;
-      if (entries.length > fullDetail && camera) {
+      if (entries.length > Math.min(fullDetail, nearCount) && camera) {
         const ranked = entries.filter(e => e.visible)
           .map(e => ({ e, d: e.mesh.position.distanceToSquared(camera.position) }))
           .sort((a, b) => a.d - b.d);
         ranked.forEach(({ e, d }, rank) => {
-          const distant = rank >= keepNear && d > far2 && n < capacity;
+          // A zero radius is a hard detail cap, including overlapping spawn or
+          // reconnect poses. Classic arenas retain their normal distance LOD.
+          const distant = rank >= nearCount && (far === 0 || d > far2) && n < capacity;
           e.mesh.visible = !distant;
           if (!distant) return;
           proxied.add(e.mesh);

@@ -4,7 +4,7 @@ The revised lights use **0.32–0.34 m bulb cores**, **0.7 m spacing** (or close
 
 The main change is placement: cover tops, actual safety kerbs, both sides of ramps, and lane gantries **8 m ahead of the raised-map starts**. Nearby starts on the same lane share a gantry. Similar gantries mark the central and corner lanes of classic maps. Cannon/portal rims still carry dense bulbs. Frosty Pass also has Christmas lights on both ski-station roof fronts.
 
-Counts include bulbs, not the matching halo instances. High / medium / low use 100% / 50% / 25% of the cores and halos. Tubes stay visible at every tier. A fresh 1x desktop gets high detail; the tier falls only when that renderer lowers its initial resolution or disables shadows.
+Counts include bulbs, not the matching halo instances. High / low use 100% / 25% of the cores and halos. Medium uses 37.5% on the two big complexes and 50% elsewhere. Tubes stay visible at every tier. A fresh 1x desktop gets high detail; the tier falls only when that renderer lowers its initial resolution or disables shadows.
 
 | Arena | High | Medium | Low | Added triangles (high) |
 | --- | ---: | ---: | ---: | ---: |
@@ -17,8 +17,8 @@ Counts include bulbs, not the matching halo instances. High / medium / low use 1
 | Frost Quarry (raised) | 758 | 379 | 190 | 3860 |
 | Neon Harbor (raised) | 774 | 387 | 194 | 3924 |
 | Harbor Heights (raised) | 1266 | 633 | 317 | 5760 |
-| Skyport (raised) | 1470 | 735 | 368 | 7212 |
-| Foundry (raised) | 2010 | 1005 | 503 | 9552 |
+| Skyport (raised) | 1470 | 552 | 368 | 7212 |
+| Foundry (raised) | 2010 | 754 | 503 | 9552 |
 
 ## Near every spawn
 

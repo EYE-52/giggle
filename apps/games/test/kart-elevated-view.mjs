@@ -1,3 +1,9 @@
+import {createKartLod} from '../public/js/engines/kart-lod.mjs';
+import {createRaisedPoseSupport} from '../public/js/engines/kart-raised-support.mjs';
+import {createRaisedPickups} from '../public/js/engines/kart-raised-pickups.mjs';
+import {createRaisedCameraQuery} from '../public/js/engines/kart-raised-camera.mjs';
+import {createRaisedShadows,disableRaisedStaticShadows} from '../public/js/engines/kart-raised-shadows.mjs';
+import {kartLightTier} from '../public/js/engines/kart-festive-lights.mjs';
 import {createKartDrivingFX} from '../public/js/engines/kart-driving-fx.mjs';
 import {createKartArenaFeatures} from '../public/js/engines/kart-arena-features-art.mjs';
 import {surfaceProfile} from '../public/js/engines/kart-surface.mjs';
@@ -81,6 +87,7 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   class LocalLoader{setMeshoptDecoder(){return this;}async loadAsync(url){assetRequests.push(url);if(missingDrivers.some(id=>url.endsWith('/drivers/'+id+'.glb')))throw Error('optional driver unavailable');const b=fs.readFileSync(repo+'/public'+url.split('?')[0]);return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'').catch(error=>{console.error('GLB fixture failed',url,error.message);throw error;});}}
   const context=vm.createContext({createKartDrivingFX,createKartArenaFeatures,surfaceProfile,driftTier,DRIFT_TIERS,loadElevatedPhysics:async()=>null,createElevatedPrediction(){throw Error('Prediction separately tested with real Rapier');},WEAPON_IDS:combatWeaponIds,document,window,LocalLoader,MeshoptDecoder,cleanKartLook,kartPaintHex,loadKartDrivers,buildKartDriverVariants,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
     mergeFixtureGeometries,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:id=>({id,revision:elevatedMap(id).revision,features:elevatedMap(id).features}),
+    createKartLod,createRaisedPoseSupport,createRaisedPickups,createRaisedCameraQuery,createRaisedShadows,disableRaisedStaticShadows,kartLightTier,
     createKartElevatedWorld:()=>{const meshes=new Map();for(const d of colliders){const body=new THREE.Mesh(elevatedSolidGeometry(THREE,d),new THREE.MeshBasicMaterial());body.position.copy(d.position);if(d.rotation)body.quaternion.copy(d.rotation);body.updateMatrixWorld();meshes.set(d.id,{body,descriptor:d});}return {colliderMeshes:meshes,lighting:{fogColor:new THREE.Color(0xaaaaaa),fogNear:100,fogFar:500,exposure:1},animate(){},updateDetail(){},dispose(){for(const {body}of meshes.values()){body.geometry.dispose();body.material.dispose();}}};},
     createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;return projectile(...a);};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
     createMobileStick:(node,opts)=>{const stick={node,opts,resets:0,disposed:0,reset(){this.resets++},dispose(){this.disposed++}};sticks.push(stick);return stick;},
@@ -386,7 +393,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   const fresh=structuredClone(same);fresh.simAt=2150;fresh.simTick=43;fresh.karts[1].alive=false;
   fresh.events=[{id:'fresh-after-hitch',type:'ko',pid:'a',other:'b',position:{x:10,y:1,z:0}}];
   r.render(fresh);r.frame(.1);
-  const sparks=()=>gl.built.scene.children.filter(o=>o.isInstancedMesh&&o.visible&&o.name!=='KartSkidMarks');
+  const sparks=()=>gl.built.scene.children.filter(o=>o.name==='RaisedCombatParticles'&&o.visible);
   const victim=gl.built.scene.children.filter(o=>o.name==='GiggleKart')[1];
   check('fresh KO after a700ms frame hitch receives its first wreck and spark draw',victim.visible&&sparks().length>0);
   r.advance(800);r.frame(.1);
@@ -450,7 +457,12 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   }
   const r=rig({graphics:true});r.render();await r.settle();r.frame();
   check('all combat variants compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===2&&r.renderStats.warmFrames===2);
-  const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.isInstancedMesh&&o.name!=='KartSkidMarks');
+  const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.name==='RaisedCombatParticles');
+  const raisedKarts=built.scene.children.filter(o=>o.name==='GiggleKart'),itemBatch=built.scene.getObjectByName('raised-item-boxes'),crowd=built.scene.getObjectByName('kart-lod-proxies');
+  check('raised pickups and crowd keep one prepared geometry each, even with no crates',itemBatch?.isInstancedMesh&&crowd?.isInstancedMesh&&crowd.instanceColor&&itemBatch.count===0);
+  crowd.geometry.computeBoundingBox();
+  check('raised crowd bodies use the chassis model origin rather than floating above it',Math.abs(crowd.geometry.boundingBox.min.y-(.2+CONFIG.chassis.modelOriginY))<1e-5);
+  check('loading restores kart culling and uses just one shadow caster per detailed model',raisedKarts.every(k=>{let casters=0;k.traverse(o=>{if(o.isMesh&&o.castShadow)casters++;});return k.frustumCulled&&casters===1&&k.getObjectByName('KartShadowProxy').layers.mask===2;}));
   check('all twelve prepared particle buffers remain attached after warming',effectPool.length===12&&effectPool.every(o=>o.parent===built.scene&&!o.visible));
   const projectilePool=built.scene.children.filter(o=>o.userData.combat?.type==='projectile');
   for(const [kind,radius]of Object.entries(COMBAT.staticSweepRadii)){

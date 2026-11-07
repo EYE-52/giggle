@@ -219,7 +219,7 @@ void main(){
   #include <colorspace_fragment>
 }`;
 
-export function createKartFestiveLights(THREE,{parent,map,groundAt,quality='high',reducedMotion=false}={}){
+export function createKartFestiveLights(THREE,{parent,map,groundAt,quality='high',reducedMotion=false,mediumDensity=.5}={}){
   const layout=festiveLightLayout(map,{groundAt}),group=new THREE.Group();group.name='festive-'+layout.theme;group.userData.dynamic=true;parent.add(group);
   const uniforms=THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{uTime:{value:0},uMotion:{value:1},uChase:{value:layout.theme==='neon'||layout.theme==='arcade'?1:0},uHaloScale:{value:4}}]);
   const material=kind=>new THREE.ShaderMaterial({name:'festive-'+kind,uniforms,vertexShader:vertex,fragmentShader:fragment,defines:kind==='core'?{FESTIVE_BULB:1}:kind==='halo'?{FESTIVE_HALO:1}:{},fog:true,toneMapped:false,...(kind==='halo'?{transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}:{})});
@@ -248,11 +248,11 @@ export function createKartFestiveLights(THREE,{parent,map,groundAt,quality='high
   function animate(time=0){
     if(disposed)return;
     const next=typeof quality==='function'?quality():quality;
-    if(next!==tier){tier=next;halos.count=bulbs.count=Math.ceil(ordered.length*(tier==='low'?.25:tier==='medium'?.5:1));uniforms.uHaloScale.value=tier==='low'?4.5:tier==='medium'?4.2:4;}
+    if(next!==tier){tier=next;halos.count=bulbs.count=Math.ceil(ordered.length*(tier==='low'?.25:tier==='medium'?mediumDensity:1));uniforms.uHaloScale.value=tier==='low'?4.5:tier==='medium'?4.2:4;}
     uniforms.uTime.value=Number.isFinite(time)?time:0;
     uniforms.uMotion.value=(typeof reducedMotion==='function'?reducedMotion():reducedMotion)?0:1;
   }
   animate();
-  return{group,layout,bulbs,bars,halos,uniforms,animate,stats:()=>({theme:layout.theme,drawCalls:3,bulbs:bulbs.count,bars:bars.count,triangles:bulbs.count*4+bars.count*12,tier}),
+  return{group,layout,bulbs,bars,halos,uniforms,animate,stats:()=>({theme:layout.theme,drawCalls:3,bulbs:bulbs.count,mediumBulbs:Math.ceil(ordered.length*mediumDensity),bars:bars.count,triangles:bulbs.count*4+bars.count*12,tier}),
     dispose(){if(disposed)return;disposed=true;group.removeFromParent();bulbs.dispose();bars.dispose();halos.dispose();for(const r of[bulbGeo,barGeo,bulbMat,barMat,haloMat])r.dispose();group.clear();}};
 }

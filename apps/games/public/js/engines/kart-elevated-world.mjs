@@ -1,3 +1,5 @@
+import {raisedWedgeVertices} from './kart-raised-support.mjs';
+import {mergeStaticMeshes} from './kart-instancing.mjs';
 import {createKartFestiveLights} from './kart-festive-lights.mjs';
 import {createRaisedReadability,applyRaisedLighting} from './kart-raised-readability.mjs';
 import {createKartComplexWorld} from './kart-complex-world.mjs';
@@ -21,7 +23,7 @@ function random(seed){return()=>{seed|=0;seed=seed+0x6d2b79f5|0;let n=Math.imul(
 // -Z is the low entry; +Z is the full rise. Never subdivided into steps.
 export function elevatedSolidGeometry(THREE,d){
   if(d.shape!=='wedge')return beveledBox(THREE,d.half,Math.min(.16,d.half.y*.25));
-  const {x,y,z}=d.half,p=[[-x,-y,-z],[x,-y,-z],[-x,-y,z],[x,-y,z],[-x,y,z],[x,y,z]];
+  const raw=raisedWedgeVertices(d.half),p=Array.from({length:6},(_,i)=>Array.from(raw.subarray(i*3,i*3+3)));
   const indices=[0,2,4,1,5,3,0,1,3,0,3,2,2,3,5,2,5,4,0,4,5,0,5,1];
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(indices.flatMap(i=>p[i]),3));g.computeVertexNormals();physicalUV(THREE,g);return g;
 }
@@ -65,7 +67,8 @@ export function createKartElevatedWorld(THREE,{scene,map,palette,lighting=true,t
   const grassBatches=[],natureBatches=[],grassTime={value:0},fountainTime={value:0};let meadowEdge;
   let disposed=false;const geo=g=>(geometries.add(g),g),mat=m=>(materials.add(m),m);
   const basic=(color,extra={})=>mat(new THREE.MeshBasicMaterial({color,...extra}));
-  const standard=(color,extra={})=>mat(new THREE.MeshStandardMaterial({color,roughness:.78,...extra}));
+  const sharedStandard=new Map();
+  const standard=(color,extra={})=>{const key=JSON.stringify([color,...Object.entries(extra).map(([k,v])=>[k,v?.uuid??v])]);if(!sharedStandard.has(key))sharedStandard.set(key,mat(new THREE.MeshStandardMaterial({color,roughness:.78,...extra})));return sharedStandard.get(key);};
   function pattern(kind,size=512){
     const color=new Uint8Array(size*size*4),height=new Uint8Array(size*size*4),R=random(kind.length*1909+kind.charCodeAt(0)*21);
     const base=kind==='stone'?[171,181,184]:kind==='slate'?[156,178,198]:kind==='metal'||kind==='plate'?[205,213,217]:kind==='wood'?[111,73,43]:kind==='ice'?[174,221,239]:kind==='grass'?[35,154,83]:kind==='asphalt'?[101,120,132]:[66,75,86];
@@ -268,7 +271,7 @@ transformed.x+=max(0.0,position.y)*.08*sin(alpineGrassTime*1.7+grassWorld.x*.65+
       geometry.setIndex([...top,...sides]);geometry.addGroup(0,top.length,1);geometry.addGroup(top.length,sides.length,0);
       bodyMaterial=[material,M.floor];
     }
-    const body=part(root,geometry,bodyMaterial,[0,0,0]);body.name=d.id+'-body';body.userData.colliderId=d.id;body.castShadow=d.id!=='floor';
+    const body=part(root,geometry,bodyMaterial,[0,0,0]);body.name=d.id+'-body';body.userData.colliderId=d.id;body.castShadow=false;
     // Visible skins may be inset (cargo ribs) or rounded at corners. Camera
     // clearance still uses the whole shared authority solid, never that skin.
     const cameraGeometry=d.shape==='wedge'?geometry:geo(new THREE.BoxGeometry(d.half.x*2,d.half.y*2,d.half.z*2));
@@ -542,6 +545,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
     }
   }
 
+  if(harbor)for(const parent of [solids,scenery])for(const {mesh}of mergeStaticMeshes(THREE,parent))geo(mesh.geometry);
   const readability=createRaisedReadability(THREE,{parent:soft,map:data,geometry:geo,material:mat,texture:t=>(textures.add(t),t)});
   const festive=createKartFestiveLights(THREE,{parent:soft,map:data,quality,reducedMotion});
   const skyResources={isAlive:()=>!disposed,geometry:geo,material:mat,texture:t=>(textures.add(t),t)};
@@ -599,7 +603,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   function stats(){
     const allTextures=new Set([...textures,...(terrain?.textures||[]),...borrowedTextures]);
     const out={drawCalls:0,triangles:0,instanced:0,meshes:0,textureBytes:0,textureCount:allTextures.size,colliders:colliderMeshes.size};
-    group.traverse(o=>{if(o.isSprite){out.drawCalls++;out.triangles+=2;out.meshes++;return;}if(!o.isMesh||o.userData.cameraCollider)return;out.drawCalls+=Array.isArray(o.material)?o.geometry.groups.length:1;const n=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3;out.triangles+=n*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
+    group.traverseVisible(o=>{if(o.isSprite){out.drawCalls++;out.triangles+=2;out.meshes++;return;}if(!o.isMesh||o.userData.cameraCollider)return;out.drawCalls+=Array.isArray(o.material)?o.geometry.groups.length:1;const n=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3;out.triangles+=n*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
     for(const t of allTextures)out.textureBytes+=Math.round(t.image.width*t.image.height*4*4/3);return out;
   }
   function dispose(){if(disposed)return;disposed=true;group.removeFromParent();festive.dispose();readability.dispose();for(const b of batches.values())b.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();terrain?.dispose();sun.dispose();hemi.dispose();group.clear();colliderMeshes.clear();batches.clear();}

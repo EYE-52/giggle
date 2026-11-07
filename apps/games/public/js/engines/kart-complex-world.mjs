@@ -1,3 +1,4 @@
+import {mergeRaisedDetails} from './kart-raised-batches.mjs';
 import {createKartFestiveLights} from './kart-festive-lights.mjs';
 import {createRaisedReadability,applyRaisedLighting} from './kart-raised-readability.mjs';
 import {createKartBackdrop,createKartSky} from './kart-backdrop.mjs';
@@ -120,7 +121,7 @@ export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,qu
   }
   function flush(){
     for(const {parent,key,g,m,items,tags}of buckets.values()){
-      const mesh=new THREE.InstancedMesh(g,m,items.length);mesh.name='complex-'+key;mesh.castShadow=parent===solids;mesh.receiveShadow=true;
+      const mesh=new THREE.InstancedMesh(g,m,items.length);mesh.name='complex-'+key;mesh.castShadow=false;mesh.receiveShadow=true;
       const ids=[];
       items.forEach((v,i)=>{dummy.position.copy(v.p);dummy.scale.copy(v.s);dummy.quaternion.copy(v.q);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(v.colliderId)ids.push(v.colliderId);});
       if(ids.length)mesh.userData.colliderIds=ids;
@@ -129,8 +130,9 @@ export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,qu
     }buckets.clear();
   }
   flush();
+  const detailChunks=mergeRaisedDetails(THREE,soft,geo);
   const resources={isAlive:()=>!disposed,geometry:geo,material:mat,texture:t=>(textures.add(t),t)};
-  const festive=createKartFestiveLights(THREE,{parent:soft,map:data,quality,reducedMotion});
+  const festive=createKartFestiveLights(THREE,{parent:soft,map:data,quality,reducedMotion,mediumDensity:.375});
   const readability=createRaisedReadability(THREE,{parent:soft,map:data,...resources});
   const backdrop=createKartBackdrop(THREE,{parent:scenery,theme:data.backdrop,radius:350,...resources});
   const sky=createKartSky(THREE,{parent:soft,radius:460,widthSegments:24,heightSegments:12,geometry:geo,material:mat});
@@ -144,6 +146,8 @@ export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,qu
   function animate(dt,time,phase){
     if(disposed)return;const p=Number.isFinite(phase)?Math.max(0,Math.min(1,phase)):fixed;
     festive.animate(time);
+    const tier=typeof quality==='function'?quality():quality;
+    for(const mesh of detailChunks)mesh.visible=tier!=='low'||mesh.userData.lowEssential;
     lightingState.phase=p;sky.setPhase(p);lightingState.fogColor.copy(sky.horizon);
     applyRaisedLighting(sun,hemi,p);
     if(!skyport){
@@ -155,7 +159,7 @@ export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,qu
   }
   function stats(){
     const out={drawCalls:0,triangles:0,instanced:0,meshes:0,textureBytes:0,textureCount:textures.size,colliders:colliderMeshes.size};
-    group.traverse(o=>{if(!o.isMesh||!o.visible)return;out.drawCalls++;out.triangles+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
+    group.traverseVisible(o=>{if(!o.isMesh)return;out.drawCalls++;out.triangles+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
     for(const t of textures)out.textureBytes+=Math.round((t.image?.width||0)*(t.image?.height||0)*4*4/3);return out;
   }
   function dispose(){if(disposed)return;disposed=true;group.removeFromParent();festive.dispose();readability.dispose();for(const i of instances)i.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();sun.dispose();hemi.dispose();interiorFill?.dispose();group.clear();colliderMeshes.clear();}
