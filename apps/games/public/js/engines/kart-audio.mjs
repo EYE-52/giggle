@@ -282,6 +282,7 @@ export function createKartAudio(opts) {
   let lastResumeAttemptMs = -Infinity;
   let lastFrame = { speed: 0, throttle: 0, drifting: false, boost: false };
   let boostWas = false, blipAt = -Infinity, nextBeepAt = 0;
+  let shiftAt = -Infinity, shiftDir = 0; // last automatic gear change
   const live = new Set(); // transient cue voices (bounded, see MAX_LIVE_VOICES)
   const lastCollision={at:-Infinity};
   const tracked = []; // event listeners, removed on dispose
@@ -397,9 +398,32 @@ export function createKartAudio(opts) {
       }
     } catch { synth = null; }
 
+    // Procedural texture from one generated noise loop (no files): exhaust
+    // rasp gated at the firing rate by the engine saw, tyre roar and wind
+    // that grow with road speed, and a crackle burst for gear shifts.
+    let texture = null;
+    try {
+      if (synth && typeof c.createBuffer === 'function' && typeof c.createBufferSource === 'function') {
+        const rate = c.sampleRate || 44100, buf = c.createBuffer(1, Math.round(rate * 1.5), rate), data = buf.getChannelData(0);
+        let seed = 0x2f6b1d;
+        for (let i = 0; i < data.length; i++) { seed = (seed * 1664525 + 1013904223) >>> 0; data[i] = seed / 2147483648 - 1; }
+        const noise = c.createBufferSource();noise.buffer = buf;noise.loop = true;
+        const band = (type, hz, q) => { const f = c.createBiquadFilter();f.type = type;f.frequency.value = hz;if (f.Q) f.Q.value = q;connect(noise, f);return f; };
+        const level = (from, to, v = FLOOR) => { const g = c.createGain();g.gain.value = v;connect(from, g);connect(g, to);return g; };
+        const raspF = band('bandpass', 400, 1.4), raspAM = level(raspF, null, .5), raspG = level(raspAM, engineBus);
+        // The saw swings -1..1, so the rasp opens once per combustion cycle.
+        const raspMod = c.createGain();raspMod.gain.value = .5;connect(synth.voices[0].osc, raspMod);connect(raspMod, raspAM.gain);
+        const roadF = band('lowpass', 220, .7), roadG = level(roadF, engineBus);
+        const windF = band('highpass', 2400, .5), windG = level(windF, engineBus);
+        const crackF = band('bandpass', 1500, .9), crackG = level(crackF, engineBus);
+        startSrc(noise);
+        texture = { noise, raspF, raspAM, raspMod, raspG, roadF, roadG, windF, windG, crackF, crackG };
+      }
+    } catch { texture = null; }
+
     return {
       master, comp: head === master ? null : head, engineBus, cueBus,
-      engFilter, engG, driftF, driftG, revG, loadFilter, loadG, synth,
+      engFilter, engG, driftF, driftG, revG, loadFilter, loadG, synth, texture,
     };
   };
 
@@ -627,6 +651,7 @@ export function createKartAudio(opts) {
     ramp(graph.driftG.gain, FLOOR, t, 0.015);
     ramp(graph.revG.gain, FLOOR, t, 0.015);
     if (graph.synth) ramp(graph.synth.synthG.gain, FLOOR, t, 0.015);
+    if (graph.texture) for (const g of ['raspG', 'roadG', 'windG', 'crackG']) ramp(graph.texture[g].gain, FLOOR, t, 0.015);
   };
 
   const applyDrive = (frame, t) => {
@@ -636,6 +661,16 @@ export function createKartAudio(opts) {
     const boost = frame.boost === true || num(frame.boost, 0) > 0;
     const n = clamp01(Math.abs(speed) / MAX_SPEED);
     const reversing = speed < -0.5;
+    // With the four-speed gearbox, revs climb and fall back each shift;
+    // road speed still adds weight. Without it, revs follow speed.
+    const geared = frame.rpm !== null && frame.gear !== null;
+    const rev = geared ? clamp01(frame.rpm * .78 + n * .22) : n;
+    if (geared && frame.shift) { shiftAt = t; shiftDir = frame.shift; }
+    const sinceShift = t - shiftAt;
+    // An upshift briefly cuts drive, like a clutch; the voice then lands
+    // lower in the next gear. A downshift under load blips the revs.
+    const cut = geared && shiftDir > 0 && sinceShift >= 0 && sinceShift < .085 ? .42 : 1;
+    const slur = geared && sinceShift >= 0 && sinceShift < .16;
     // Authority uses an opposing pedal as a brake until travel reverses
     // (kart-physics.js), with no engine force during that transition.
     const pedal = throttle * speed < -0.2 ? 0 : clamp01(Math.abs(throttle));
@@ -643,13 +678,13 @@ export function createKartAudio(opts) {
     // Road speed carries the revs; accelerator demand adds load. Lifting
     // at the same speed must release the loaded recording immediately,
     // rather than letting max(speed,throttle) hold every parameter steady.
-    const rpm = clamp01(n * .75 + pedal * .20 + lift * .05);
+    const rpm = clamp01(rev * .75 + pedal * .20 + lift * .05);
     // Full pedal uses one combustion voice. Residual idle at cruise beats
     // against the loaded recording, even when both rate targets are stable.
     const load = loops.engineLoad ? pedal : 0;
-    const revTime = pedal > .05 ? .10 : .24;
+    const revTime = slur ? .03 : pedal > .05 ? .10 : .24;
     const loadTime = pedal > .05 ? .025 : .04;
-    const rate = Math.min(ENG_RATE_TOP, ENG_RATE_IDLE + n * .40 + pedal * .14 + lift * .06 - (reversing ? .03 : 0));
+    const rate = Math.min(ENG_RATE_TOP, ENG_RATE_IDLE + rev * .40 + pedal * .14 + lift * .06 - (reversing ? .03 : 0));
     if (loops.engine?.playbackRate) ramp(loops.engine.playbackRate, Math.max(.87, rate), t, revTime);
     // Equal-power handoff preserves recorded combustion at both ends.
     // Fast load response makes a press audible before the chassis gains
@@ -658,22 +693,46 @@ export function createKartAudio(opts) {
     ramp(graph.loadG.gain, .60 * Math.sin(load * Math.PI / 2), t, loadTime);
     // Slowing the higher-RPM recording preserves exhaust weight at takeoff;
     // full speed stays near its original pitch, avoiding a thin buzz.
-    if (loops.engineLoad?.playbackRate) ramp(loops.engineLoad.playbackRate, Math.min(1.14, .62 + n * .40 + pedal * .04 + lift * .08 - (reversing ? .02 : 0)), t, revTime);
+    if (loops.engineLoad?.playbackRate) ramp(loops.engineLoad.playbackRate, Math.min(1.14, .62 + rev * .40 + pedal * .04 + lift * .08 - (reversing ? .02 : 0)), t, revTime);
     ramp(graph.loadFilter.frequency, 1600 + n * 1800 + pedal * 700 + lift * 200, t, .06);
     ramp(graph.engFilter.frequency, 1200 + n * 1000 + pedal * 300 + lift * 100, t, .08);
-    ramp(graph.engineBus.gain, .24 + rpm * .12 + pedal * .14 + lift * .035, t, pedal > .05 ? .04 : .08);
+    ramp(graph.engineBus.gain, (.24 + rpm * .12 + pedal * .14 + lift * .035) * (cut < 1 ? .7 : 1), t, cut < 1 ? .012 : pedal > .05 ? .04 : .08);
     // The recorded bed sits underneath; the synth voice carries the pitch.
     ramp(graph.engG.gain, .2 * Math.cos(load * Math.PI / 2), t, loadTime);
     ramp(graph.loadG.gain, .24 * Math.sin(load * Math.PI / 2), t, loadTime);
     if (graph.synth) {
       if (boost && !boostWas) blipAt = t; // rev blip on each new boost
+      if (geared && frame.shift < 0 && pedal > .05) blipAt = t;
       boostWas = boost;
       const blip = 1 + .38 * Math.exp(-Math.max(0, t - blipAt) / .13);
       // A little extra pitch under load, as a kart engine climbs the band.
-      const hz = (ENGINE_IDLE_HZ + (ENGINE_TOP_HZ - ENGINE_IDLE_HZ) * Math.pow(n, .8) + pedal * 22 + lift * 18) * blip;
-      for (const v of graph.synth.voices) ramp(v.osc.frequency, hz * v.ratio, t, pedal > .05 ? .05 : .12);
-      ramp(graph.synth.synthF.frequency, 700 + n * 2400 + pedal * 1300 + (blip - 1) * 2000, t, .06);
-      ramp(graph.synth.synthG.gain, .2 + pedal * .16 + n * .08, t, pedal > .05 ? .03 : .09);
+      // Higher gears pull with a deeper, heavier note at the same revs.
+      const gearDrop = geared && frame.gear > 1 ? 1 - (frame.gear - 1) * .045 : 1;
+      const hz = (ENGINE_IDLE_HZ + (ENGINE_TOP_HZ - ENGINE_IDLE_HZ) * Math.pow(rev, .8) * gearDrop + pedal * 22 + lift * 18) * blip;
+      for (const v of graph.synth.voices) ramp(v.osc.frequency, hz * v.ratio, t, slur ? .025 : pedal > .05 ? .05 : .12);
+      ramp(graph.synth.synthF.frequency, (700 + rev * 2400 + pedal * 1300 + (blip - 1) * 2000) * (cut < 1 ? .55 : 1), t, cut < 1 ? .015 : .06);
+      ramp(graph.synth.synthG.gain, (.2 + pedal * .16 + rev * .08) * cut, t, cut < 1 ? .01 : pedal > .05 ? .03 : .09);
+      const tx = graph.texture;
+      if (tx) {
+        ramp(tx.raspF.frequency, Math.min(5200, hz * 4.5 + pedal * 600), t, .05);
+        ramp(tx.raspG.gain, (.05 + pedal * .16 + rev * .06) * cut, t, cut < 1 ? .01 : .05);
+        ramp(tx.roadF.frequency, 160 + n * 620, t, .12);
+        ramp(tx.roadG.gain, n > .02 ? .03 + n * .16 : FLOOR, t, .12);
+        ramp(tx.windG.gain, n > .25 ? n * n * .085 : FLOOR, t, .2);
+        // Exhaust crackle: a pop on the shift and a smaller echo after it.
+        if (geared && frame.shift && (pedal > .05 || frame.shift > 0)) {
+          const g = tx.crackG.gain, peak = frame.shift > 0 ? .34 : .2;
+          try {
+            g.cancelScheduledValues?.(t);
+            at(g, FLOOR, t);
+            g.linearRampToValueAtTime?.(peak, t + .006);
+            g.exponentialRampToValueAtTime?.(peak * .12, t + .05);
+            g.linearRampToValueAtTime?.(peak * .55, t + .075);
+            g.exponentialRampToValueAtTime?.(FLOOR, t + .16);
+          } catch { /* keep driving audible */ }
+          ramp(tx.crackF.frequency, frame.shift > 0 ? 1300 + rev * 900 : 900, t, .01);
+        }
+      }
     }
     // Drift/skid needs real slide speed; parked wiggle stays silent.
     const skid = drifting && n > 0.15 ? Math.min(1, 0.4 + 0.6 * n) : 0;
@@ -841,6 +900,10 @@ export function createKartAudio(opts) {
         throttle: num(f.throttle, 0),
         drifting: f.drifting === true,
         boost: f.boost === true || num(f.boost, 0) > 0,
+        // Optional gearbox state from kart-gearbox.mjs (views compute it).
+        gear: Number.isInteger(f.gear) ? f.gear : null,
+        rpm: Number.isFinite(f.rpm) ? clamp01(f.rpm) : null,
+        shift: f.shift > 0 ? 1 : f.shift < 0 ? -1 : 0,
       };
       // Locked updates still retain watcher/KO gates and the latest pose.
       // Decoding after a gesture must not resurrect an idle driving engine.
@@ -972,6 +1035,7 @@ export function createKartAudio(opts) {
       }
       if (graph?.synth) for (const v of graph.synth.voices) { try { v.osc.stop(); } catch { /* noop */ } disconnect(v.osc); disconnect(v.g); }
       if (graph?.synth) { disconnect(graph.synth.synthF); disconnect(graph.synth.synthG); }
+      if (graph?.texture) { stopSrc(graph.texture.noise); for (const n of Object.values(graph.texture)) disconnect(n); }
       if (graph) {
         const nodes = [graph.engFilter, graph.engG,graph.loadFilter,graph.loadG,
           graph.driftF, graph.driftG, graph.revG,

@@ -32,6 +32,8 @@ import { loadKartAssets, weaponThumbnailArt } from './kart-assets.mjs';
 import { createKartWorld } from './kart-world.mjs';
 import { createKartModel, animateKartModel, createStarModel } from './kart-model.mjs';
 import { createKartAudio } from './kart-audio.mjs';
+import { createGearbox, paintGear } from './kart-gearbox.mjs';
+import { CLASSIC_MAX_FORWARD } from './kart-classic-motion.mjs';
 import { createKartCombatArt, projectileContactInset } from './kart-combat-art.mjs';
 import { createKartHealthBars } from './kart-health-bars.mjs';
 import {createKartImpactFX} from './kart-impact-fx.mjs';
@@ -233,6 +235,7 @@ export function createKartView(viewConfig) {
   let fbRaf = 0;
   let audio = null;
   let wasTurbo = false;
+  const gearbox = createGearbox(CLASSIC_MAX_FORWARD);
   let garagePending = null;
   let controlsPreference = 'auto';
   function paintControls() {
@@ -249,7 +252,9 @@ export function createKartView(viewConfig) {
     if (!audio) return;
     const me=myKart(), predicted=S?.motionProfile?physicalLocalPose:poseStore.self;
     audio.setMuted(apiRef?.context?.().sound === false);
-    audio.update({speed:predicted?.speed ?? me?.speed ?? 0,throttle:intentFromState().throttle,
+    const speed=predicted?.speed ?? me?.speed ?? 0,gear=me?gearbox.update(speed):gearbox.update(0);
+    paintGear(rootEl?.querySelector('#pk-gear'),gear);
+    audio.update({speed,throttle:intentFromState().throttle,gear:gear.gear,rpm:gear.rpm,shift:gear.shift,
       drifting:predicted?.drifting ?? me?.drifting,boost:me?.boost>0||me?.turbo>0||me?.nitroActive===true,
       active:S?.phase==='drive' && !S?.preparing && !document.hidden && apiRef?.context?.().connected!==false && !apiRef?.context?.().roomActionPending,
       engineActive:!!S?.youDrive && !!me && !(me.respawn>0)});
@@ -540,7 +545,7 @@ export function createKartView(viewConfig) {
     <div class="pk-readout" role="group" aria-label="Weapon, speed and nitro">
       <div class="pk-equip kart-item" id="pk-boost" role="group" aria-label="Weapon" hidden></div>
       <div class="pk-instruments">
-      <div class="pk-speed" aria-label="Speed"><b id="pk-speed">0</b><small>km/h</small></div>
+      <div class="pk-speed" aria-label="Speed"><b id="pk-speed">0</b><small>km/h</small></div><i id="pk-gear" class="kart-gear" role="img" aria-label="Gear 1">1</i>
       <div class="pk-tech"><span id="pk-map"></span><span id="pk-handling"></span>
       <div class="pk-driftmeter" role="progressbar" aria-label="Drift charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="pk-driftfill"></i></div>
       <div class="pk-nitrometer" role="progressbar" aria-label="Nitro charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><i id="pk-nitrofill"></i><span id="pk-nitrolabel">Nitro</span></div></div>

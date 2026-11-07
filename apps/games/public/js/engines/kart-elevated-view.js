@@ -18,6 +18,7 @@ import {MeshoptDecoder,closeKartAssetBitmaps,loadKartWeaponThumbnails,weaponThum
 import {elevatedMap} from './kart-elevated-maps.mjs';
 import CONFIG from './kart-physics-config.mjs';
 import {createKartAudio} from './kart-audio.mjs';
+import {createGearbox,paintGear} from './kart-gearbox.mjs';
 import {blendElevatedPose,nextElevatedInput,createElevatedTimeline} from './kart-elevated-pose.mjs';
 
 const ICONS={
@@ -39,6 +40,7 @@ const colors=[0xf59539,0x21a9af,0xca49b0,0x5c8ceb,0xec5765,0x7eb643,0xaf7cde,0xf
 export function createElevatedKartView() {
   let root,api,S,sequence=0,epoch='',generation=0,gl,audio,stick,preference='auto',pending=false,gfxReady=false,graphicsFailed=false;
   let hitFx=null,analog={x:0,y:0},lastSend=0,lastKey='',timer=0,inputTimer=0,resultsTimer=0,firstEvents=true,itemKey='',standingsKey='',audioDrifting=false,feedbackEpoch=0;
+  const gearbox=createGearbox(CONFIG.handling.maxForward);
   let sceneReady,lastSnapshotArrival=null;
   const timeline=createElevatedTimeline();
   const listeners=[],keys=new Set(),pointers=new Map(),seen=new Set(),newEvents=[],nodes=new Map();
@@ -71,7 +73,8 @@ export function createElevatedKartView() {
   function updateAudio(drifting=audioDrifting){
     const context=api?.context?.(),k=self();audio?.setMuted(context?.sound===false);
     audioDrifting=drifting&&!!k?.pose.grounded&&Math.abs(k.pose.speed)>4;
-    audio?.update({speed:k?.pose.speed||0,throttle:intent().throttle,drifting:audioDrifting,boost:k?.nitroActive,
+    const gear=gearbox.update(k?.alive?k.pose.speed||0:0);paintGear(root?.querySelector('[data-gear]'),gear);
+    audio?.update({speed:k?.pose.speed||0,throttle:intent().throttle,gear:gear.gear,rpm:gear.rpm,shift:gear.shift,drifting:audioDrifting,boost:k?.nitroActive,
       active:gfxReady&&!S?.preparing&&S?.phase==='live'&&!document.hidden&&context?.connected!==false&&!context?.roomActionPending,
       engineActive:!!S?.youDrive&&!!k?.alive&&!!k?.connected&&!blocked()});
   }
@@ -493,7 +496,7 @@ export function createElevatedKartView() {
     root.innerHTML=`<div data-stage class="pke-stage"></div><div data-loading class="pke-loading" role="status">Loading arena…</div>
       <div class="pke-top"><details data-menu class="pke-menu"><summary aria-label="Game menu">☰</summary><div class="pke-panel"><h2 data-arena></h2><p data-goal>Most knockouts wins.</p><label>Controls <select data-controls aria-label="Controls"><option value="auto">Auto</option><option value="keyboard">Keyboard</option><option value="touch">Touch</option></select></label><p>WASD / arrows · drive<br>Space · weapon &nbsp; N · Nitro<br>Shift · brake</p><button data-resume>Resume</button></div></details><span class="pke-score" data-score>0 KOs</span><time data-clock>Loading</time><span data-protection class="pke-protection" title="Spawn protection">${svg(ICONS.shield)}</span></div>
       <div data-health class="pke-health kart-hearts" role="img" aria-label="3 of 3 hearts"></div>
-      <p data-notice class="pke-notice" role="status" hidden></p><div class="pke-bottom"><div data-weapon class="kart-item" role="group" aria-label="Weapon"></div><div class="pke-instruments"><span class="pke-speed"><b data-speed>0</b><small>km/h</small></span><span data-charge class="pke-charge" role="img" aria-label="Nitro charge">${NITRO}</span></div></div>
+      <p data-notice class="pke-notice" role="status" hidden></p><div class="pke-bottom"><div data-weapon class="kart-item" role="group" aria-label="Weapon"></div><div class="pke-instruments"><span class="pke-speed"><b data-speed>0</b><small>km/h</small><i data-gear class="kart-gear" role="img" aria-label="Gear 1">1</i></span><span data-charge class="pke-charge" role="img" aria-label="Nitro charge">${NITRO}</span></div></div>
       <div data-touch class="pke-touch" hidden><div data-stick class="pke-stick" role="group" aria-label="Drive stick"><span></span></div><div class="pke-actions"><button data-gas aria-label="Hold to accelerate">${svg('<path d="m10 21 6-11 6 11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-reverse aria-label="Hold to reverse">${svg('<path d="m10 11 6 11 6-11" stroke="#f3f9ff" stroke-width="3"/>')}</button><button data-brake aria-label="Hold to brake">${svg('<path d="M8 7h5v18H8zm11 0h5v18h-5z" fill="#e5f5ff"/>')}</button><button data-nitro aria-label="Hold for Nitro">${NITRO}</button><button data-use aria-label="Use weapon"><span data-use-icon>${TARGET}</span><b data-use-ammo hidden></b></button></div></div>
       <aside data-result class="pke-result pk-final" role="status" hidden></aside>`;
     for(const node of root.querySelectorAll('*'))for(const attr of node.attributes)if(attr.name.startsWith('data-'))nodes.set(attr.name.slice(5),node);
