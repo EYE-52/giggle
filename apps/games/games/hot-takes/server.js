@@ -13,6 +13,7 @@ const { randomUUID } = require('node:crypto');
 const id = 'hot-takes';
 
 const manifest = {
+  sameRoom: 'handoff',
   guide: {
     goal: 'Write the take that splits the room closest to 50/50.',
     tips: [

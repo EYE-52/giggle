@@ -285,3 +285,6 @@
 @media (hover: hover) { .home-game-card:hover { transform: translateY(calc(-1 * var(--lift-sm))); border-color: var(--fam); } }
 @media (width < 700px) { .home-picks .pick-grid, #games .catalog-list { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: reduce) { .home-game-card { transition: none; } .home-game-card:hover, .home-game-card:active { transform: none; } }
+
+/* One-device play sits beside room creation in the same entry ticket. */
+.home-welcome .hero-local { display: flex; width: 100%; min-height: var(--control-h); margin-top: var(--space-12); font: var(--text-button); }

@@ -5,6 +5,7 @@ const duel = require('../engines/board-duel');
 const id = 'reversi';
 const DIRECTIONS = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
 const manifest = {
+  sameRoom: true,
   name: 'Reversi', tagline: 'Turn the table, one disc at a time',
   howto: 'Charcoal moves first. Place a disc on a legal dot to trap ivory discs between yours, in any straight line. All trapped discs flip. If you have no move, your turn passes automatically. When neither player can move, the most discs wins. You can resign or offer a draw. With a move timer, running out of time loses the game. Two play; everyone else watches.',
   guide: {

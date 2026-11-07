@@ -47,7 +47,7 @@ function isWatching(S) {
 function labels(S) {
   const L = S.labels || {};
   return {
-    decks: L.decks || { classic: 'Classic', funny: 'Funny', wild: 'Wild' },
+    decks: { classic: 'Classic', funny: 'Funny', wild: 'Wild', ...L.decks, own: 'Ask your own' },
     truth: L.truth || 'Truth',
     dare: L.dare || 'Dare',
     juicy: L.juicy || 'Juicy',
@@ -111,6 +111,18 @@ function paint(el, S, api) {
 
     const L = labels(S);
     const watch = isWatching(S);
+
+    if (S.phase === 'write') {
+      stopSpin();
+      if (S.me !== S.writer || watch) {
+        el.innerHTML = `<section class="party-scene gk-col gk-stack">${hud(S)}`
+          + waitCardHtml({ title: `${nameOf(S, S.writer)} is writing`, text: 'A question or dare for this turn.', waiting: `Waiting for ${nameOf(S, S.writer)}` }) + '</section>';
+      } else if (!el.querySelector('#tOwnPrompt')) {
+        el.innerHTML = `<section class="party-scene gk-col gk-stack">${hud(S)}<h2 class="gk-prompt">Write a ${esc(S.kind)} for ${esc(nameOf(S, S.target))}</h2><form id="tOwnForm"><label for="tOwnPrompt">Keep it kind and comfortable.</label><textarea id="tOwnPrompt" class="gk-input" maxlength="240" required></textarea><button type="submit" class="gk-btn gk-primary">Save prompt</button></form></section>`;
+        el.querySelector('#tOwnForm').onsubmit = e => { e.preventDefault(); sendAction({ prompt: el.querySelector('#tOwnPrompt').value }); };
+      }
+      return;
+    }
 
 
     if (S.phase === 'reveal' && S.last) {
@@ -198,7 +210,8 @@ function paint(el, S, api) {
       // Keyed so the target's deck pick and focus survive snapshots.
       const k = keyOf(S);
       if (k === lastKey && (el.querySelector('[data-kind]') || el.querySelector('[data-waitpick]'))) return;
-      pendingDeck = 'classic';
+      const fixedStyle = S.promptStyle && S.promptStyle !== 'Choose each turn';
+      pendingDeck = fixedStyle ? S.promptStyle === 'Ask your own' ? 'own' : S.promptStyle.toLowerCase() : 'classic';
       lastKey = k;
       if (S.me !== S.target || watch) {
         el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--truth" aria-label="Player picking">`
@@ -210,8 +223,8 @@ function paint(el, S, api) {
       el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--truth" aria-label="Pick your deck">`
         + `${hud(S)}`
         + `<h2 class="gk-prompt party-prompt">Your pick, ${esc(nameOf(S, S.me))}!</h2>`
-        + `<p class="gk-wait" role="status">Pick a deck, then truth or dare.</p>`
-        + `<div class="gk-choices td-choices td-decks" role="group" aria-label="Deck" style="--gk-cols:3;--gk-cols-phone:3">`
+        + `<p class="gk-wait" role="status">${fixedStyle ? `${esc(S.promptStyle)} prompts. Pick truth or dare.` : 'Pick a deck, then truth or dare.'}</p>`
+        + `<div class="gk-choices td-choices td-decks" role="group" aria-label="Deck" style="--gk-cols:3;--gk-cols-phone:3"${fixedStyle ? ' hidden' : ''}>`
         + ['classic', 'funny', 'wild'].map((d, i) =>
           `<button type="button" class="gk-choice${pendingDeck === d ? ' is-selected is-picked' : ''}" data-deck="${d}" aria-pressed="${pendingDeck === d}"><span class="gk-mark" aria-hidden="true">${i + 1}</span><span class="gk-choice-text">${esc(L.decks[d] || d)}</span></button>`).join('')
         + `</div>`

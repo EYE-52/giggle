@@ -8,6 +8,7 @@ const { dealer, allIn, roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'memory-tray';
 
 const manifest = {
+  sameRoom: false,
   players: { min: 2, max: 20 },
   howto: 'Memorize the items, then type all you remember. Points grow with every item you recall: the whole tray earns 200, half of it 75.',
   guide: {

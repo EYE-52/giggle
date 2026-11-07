@@ -11,6 +11,7 @@ const { dealer, shuffle, allIn, roundsSetting, paceSetting, paced } = require('.
 const id = 'dare-roulette';
 
 const manifest = {
+  sameRoom: 'handoff',
   players: { min: 3, max: 20 },
   guide: {
     goal: 'Complete dares the room believes and score the most points.',

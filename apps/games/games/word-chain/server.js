@@ -9,6 +9,7 @@ const { pick, paceSetting, paced } = require('../_sdk');
 const { createWordValidator, normalizeWord } = require('../engines/english-dictionary');
 const id = 'word-chain';
 const manifest = {
+  sameRoom: false,
   players: { min: 3, max: 20 },
   settings: [
     paceSetting(),

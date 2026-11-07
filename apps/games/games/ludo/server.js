@@ -4,6 +4,7 @@ const duel = require('../engines/board-duel');
 const id = 'ludo';
 const SAFE = [0, 8, 13, 21, 26, 34, 39, 47];
 const manifest = {
+  sameRoom: true,
   name: 'Ludo', tagline: 'Race your four pawns home',
   howto: 'Four pawns each. Roll six to enter and roll again after six. Follow your lane and land exactly at home. Landing on an opponent on an unmarked trail square sends every opponent pawn there back to its yard. Starting squares and stars are safe. No blockades or three-sixes penalty. First with all four home wins; the others place by how far their pawns have come. A player who leaves, resigns or runs out of time on the move timer drops out and the others play on. Two to four play; everyone else watches.',
   guide: {

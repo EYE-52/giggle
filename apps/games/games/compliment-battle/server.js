@@ -8,6 +8,7 @@ const { dealer, tally, allIn, shuffle, roundsSetting, paceSetting, pacedMs } = r
 const id = 'compliment-battle';
 
 const manifest = {
+  sameRoom: false,
   players: { min: 3, max: 20 },
   guide: {
     goal: 'Write the compliment the room votes sweetest.',

@@ -76,6 +76,7 @@ function buildEntry(def) {
     maxPlayers: max,
     players: `${min}–${max}`, // derived from the definition, never a stale string
     seats: Number.isInteger(m.seats) ? m.seats : null, // active-player cap; null = whole roster plays
+    sameRoom: m.sameRoom === true || m.sameRoom === 'handoff' ? m.sameRoom : false,
     communication: m.communication || 'any', // any|voice|video catalog hint
     art, // safe manifest art, or a local compressed variant of that same cover
     customizable: schema.settings.length > 0 || schema.packs.length > 0,
@@ -156,7 +157,7 @@ module.exports = {
     minPlayers: g.minPlayers, maxPlayers: g.maxPlayers,
     realtime: g.realtime, cat: g.cat, howto: g.howto, guide: g.guide,
     renderer: g.renderer, layout: g.layout, homepage: g.homepage, runtime: g.runtime, customizable: g.customizable, schema: g.schema,
-    seats: g.seats, communication: g.communication, art: g.art,
+    seats: g.seats, sameRoom: g.sameRoom, communication: g.communication, art: g.art,
   })),
   count: () => registry.length,
   discover, // exposed for tests / tooling against other roots

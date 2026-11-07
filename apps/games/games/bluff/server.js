@@ -9,6 +9,7 @@ const { dealer, shuffle, allIn, roundsSetting, paceSetting, pacedMs } = require(
 const id = 'bluff';
 
 const manifest = {
+  sameRoom: false,
   howto: 'Write a fake answer, then pick the truth from the mix. Finding the truth is worth 100; each player your bluff fools is worth 50 (up to 100).',
   guide: {
     goal: 'Find the real answer, and fool others with your fake.',

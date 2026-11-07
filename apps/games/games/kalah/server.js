@@ -4,6 +4,7 @@
 const duel = require('../engines/board-duel');
 const id = 'kalah';
 const manifest = {
+  sameRoom: true,
   name: 'Kalah', tagline: 'Sow a little. Steal a lot.', cat: 'board', renderer: 'svg',
   layout: 'immersive', runtime: { type: 'module', waitForResult: true }, realtime: false,
   players: { min: 2, max: 24 }, seats: 2, art: 'img/games/kalah.svg',

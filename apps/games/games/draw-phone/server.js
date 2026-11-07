@@ -35,6 +35,7 @@ function storySurvived(phrase, caption) {
 const id = 'draw-phone';
 
 const manifest = {
+  sameRoom: false,
   players: { min: 3, max: 12 },
   guide: {
     goal: 'Pass a phrase through a drawing and a caption, and keep the story alive.',

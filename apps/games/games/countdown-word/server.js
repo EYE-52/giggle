@@ -5,6 +5,7 @@ const { dealer, allIn, shuffle, roundsSetting, paceSetting, paced } = require('.
 const { createWordValidator, normalizeWord } = require('../engines/english-dictionary');
 const id = 'countdown-word';
 const manifest = {
+  sameRoom: false,
   players: { min: 2, max: 20 },
   settings: [
     roundsSetting({ def: 4 }),

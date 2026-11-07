@@ -14,6 +14,7 @@ const VOTE_MAX = 100;
 const WIN_POINTS = 100;
 
 const manifest = {
+  sameRoom: false,
   name: 'Punchline',
   tagline: 'Funniest answer takes the round',
   howto: 'Answer the prompt secretly, then vote for the funniest answer (not your own). Each vote is worth 50 (up to 100) and the funniest answer earns 100 more.',

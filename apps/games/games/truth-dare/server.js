@@ -13,6 +13,7 @@ const { dealer, shuffle, roundsSetting, paceSetting, paced } = require('../_sdk'
 const id = 'truth-dare';
 
 const manifest = {
+  sameRoom: 'handoff',
   guide: {
     goal: "Win the room's yes vote on your truths and dares.",
     tips: [
@@ -27,6 +28,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),
     paceSetting(),
+    { key: 'promptStyle', label: 'Prompt style', type: 'enum', options: ['Choose each turn', 'Classic', 'Funny', 'Wild', 'Ask your own'], def: 'Choose each turn' },
   ],
 };
 const DECKS = ['classic', 'funny', 'wild'];
@@ -75,6 +77,7 @@ function create(ctx) {
     target: null,
     deck: 'classic',
     kind: null,
+    writer: null,
     prompt: null,
     votes: {},
     scores: {},
@@ -83,6 +86,7 @@ function create(ctx) {
     endsAt: 0,
     hostId: ctx.hostId(),
     labels: pack.labels || {},
+    promptStyle: s.promptStyle || 'Choose each turn',
   };
   state.deals = deals;
   state.rotation = shuffle(ps.map((p) => p.id));
@@ -120,6 +124,7 @@ function nextRound(state, ctx) {
   state.turns.push(state.target);
   state.deck = 'classic';
   state.kind = null;
+  state.writer = null;
   state.prompt = null;
   state.votes = {};
   state.last = null;
@@ -139,14 +144,28 @@ function nextRound(state, ctx) {
 
 function autoChoose(state, ctx, r) {
   if (state.phase !== 'choose' || state.round !== r) return;
-  state.deck = DECKS[Math.floor(Math.random() * DECKS.length)];
+  state.deck = state.promptStyle === 'Ask your own' ? 'own' : ['Classic', 'Funny', 'Wild'].includes(state.promptStyle) ? state.promptStyle.toLowerCase() : DECKS[Math.floor(Math.random() * DECKS.length)];
   state.kind = Math.random() < 0.5 ? 'truth' : 'dare';
-  setPrompt(state, ctx);
+  if (state.deck === 'own') beginWriting(state, ctx);
+  else setPrompt(state, ctx);
   ctx.broadcast();
 }
 
+function beginWriting(state, ctx) {
+  const ps = ctx.allPlayers();
+  state.writer = ps[(ps.findIndex(p => p.id === state.target) + 1) % ps.length]?.id;
+  state.phase = 'write';
+  const r = state.round;
+  const ms = paced(ctx, 90) * 1000;
+  state.endsAt = ctx.now() + ms;
+  ctx.later(ms, () => {
+    if (state.phase !== 'write' || state.round !== r) return;
+    state.deck = 'classic'; setPrompt(state, ctx); ctx.broadcast();
+  });
+}
+
 function setPrompt(state, ctx) {
-  state.prompt = state.deals[state.kind][state.deck]();
+  state.prompt = state.deck === 'own' ? state.prompt : state.deals[state.kind][state.deck]();
   state.phase = 'perform';
   const performMs = paced(ctx, PERFORM_SECONDS) * 1000;
   state.endsAt = ctx.now() + performMs;
@@ -250,11 +269,21 @@ function onAction(state, ctx, pid, a) {
     return;
   }
   if (state.phase === 'choose' && pid === state.target && a.deck && a.kind) {
-    if (DECKS.includes(a.deck) && (a.kind === 'truth' || a.kind === 'dare')) {
-      state.deck = a.deck;
+    const style = state.promptStyle;
+    const deck = style === 'Ask your own' ? 'own' : ['Classic', 'Funny', 'Wild'].includes(style) ? style.toLowerCase() : a.deck;
+    if ([...DECKS, 'own'].includes(deck) && (a.kind === 'truth' || a.kind === 'dare')) {
+      state.deck = deck;
       state.kind = a.kind;
-      setPrompt(state, ctx);
+      if (deck === 'own') {
+        beginWriting(state, ctx);
+      } else setPrompt(state, ctx);
     }
+    return;
+  }
+  if (state.phase === 'write' && pid === state.writer && typeof a.prompt === 'string' &&
+      ctx.now() < state.endsAt && a.prompt.trim().length > 0 && a.prompt.trim().length <= 240) {
+    state.prompt = a.prompt.trim();
+    setPrompt(state, ctx);
     return;
   }
   if (state.phase === 'perform' && pid === state.target && a.ready === true) {

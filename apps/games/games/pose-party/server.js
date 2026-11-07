@@ -11,6 +11,7 @@ const { createCameraParty, cameraSettings } = require('../engines/camera-party')
 const id = 'pose-party';
 
 const manifest = {
+  sameRoom: false,
   name: 'Pose Party',
   tagline: 'Strike a pose live on camera',
   howto: 'One player performs the prompt in Giggle Meet and taps Ready before time runs out. Everyone else watches and votes Yes or No. An approved pose is worth 100 points plus up to 50 for being ready early; judges who agree with the room get 25. Turn on your Meet camera so everyone can see your pose. Nothing is recorded.',

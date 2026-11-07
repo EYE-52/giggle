@@ -10,6 +10,7 @@ const { roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'number-hunt';
 
 const manifest = {
+  sameRoom: false,
   players: { min: 2, max: 20 },
   guide: {
     goal: 'Find the hidden number from 1 to 100 in the fewest tries.',

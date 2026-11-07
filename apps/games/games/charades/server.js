@@ -22,6 +22,7 @@ function guessPoints(msLeft, roundMs, order) {
 }
 
 const manifest = {
+  sameRoom: 'handoff',
   name: 'Charades',
   tagline: 'Act it out, guess fast',
   howto: 'Act out your word in Giggle Meet with your camera on — no talking. Guessers race to name it: a correct guess earns 100 points, more for speed and for being first. The actor earns 50 for each player who gets it.',
