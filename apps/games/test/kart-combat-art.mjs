@@ -661,4 +661,66 @@ try {
   });
   for(const resource of resources)resource.dispose();
 }
+// ---- second eight weapons: procedural props, same contract and budgets ----
+{
+  const { projectileContactInset } = await import('../public/js/engines/kart-combat-art.mjs');
+  const { config: COMBAT } = (await import('../games/engines/kart-combat-config.js')).default;
+  const art = createKartCombatArt(THREE);
+  const vertexRadius = (object, axes) => {
+    object.updateWorldMatrix(true, true);
+    const inverse = new THREE.Matrix4().copy(object.matrixWorld).invert(), v = new THREE.Vector3();
+    let max = 0;
+    object.traverse((mesh) => {
+      if (!mesh.isMesh) return;
+      const pos = mesh.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverse);
+        max = Math.max(max, Math.hypot(...axes.map((a) => v[a])));
+      }
+    });
+    return max;
+  };
+  for (const kind of ['laser', 'boomerang', 'bouncer']) {
+    const shot = art.projectile(kind), c = shot.userData.combat, radius = COMBAT.staticSweepRadii[kind];
+    assert.equal(c.type, 'projectile', kind + ' is a projectile'); assert.equal(c.kind, kind, kind + ' keeps its kind');
+    assert(meshesOf(shot).length <= COMBAT_ART_BUDGETS.projectile, kind + ' projectile budget');
+    assert(Number.isFinite(c.tipZ) && Number.isFinite(c.tailZ) && c.tipZ > c.tailZ, kind + ' tip/tail metadata');
+    // Art never exceeds the authoritative sweep radius, through every spin pose.
+    let widest = 0;
+    for (let i = 0; i < 90; i++) { art.animate(shot, 1 / 60, i / 60, false); widest = Math.max(widest, vertexRadius(shot, ['x', 'y'])); }
+    assert(widest <= radius, `${kind} art ${widest.toFixed(3)} fits its ${radius} sweep radius`);
+    assert(Number.isFinite(projectileContactInset(THREE, shot, radius)), kind + ' calibrates its contact skin');
+    assert(shot.getObjectByName('ShotGlow'), kind + ' reads from across the arena');
+  }
+  for (const kind of ['frost', 'cluster', 'bomblet']) {
+    const body = art.projectile(kind);
+    assert(meshesOf(body).length <= COMBAT_ART_BUDGETS.projectile, kind + ' body budget');
+    for (let i = 0; i < 60; i++) art.animate(body, 1 / 60, i / 60, false);
+    assert(vertexRadius(body, ['x', 'y', 'z']) <= .56, kind + ' stays inside its canister');
+  }
+  assert(vertexRadius(art.projectile('bomblet'), ['x', 'y', 'z']) < vertexRadius(art.projectile('cluster'), ['x', 'y', 'z']), 'bomblets are smaller than their canister');
+  const oil = art.mine(true, 'oil'), oc = oil.userData.combat;
+  assert.equal(oc.kind, 'oil', 'oil slick keeps its kind');
+  assert(meshesOf(oil).length <= COMBAT_ART_BUDGETS.mine, 'oil slick trap budget');
+  approx(boundsOf(oil).min.y, 0, .02, 'oil slick lies on its support');
+  assert(boundsOf(oil).max.y < .2 && boundsOf(oil).max.x > 1, 'oil slick is a wide flat puddle');
+  oc.armed = false; art.animate(oil, 1 / 60, 0, false); assert.equal(oc.glow.visible, false, 'unarmed slick has no sheen');
+  oc.armed = true; art.animate(oil, 1 / 60, 0, false); assert.equal(oc.glow.visible, true, 'armed slick shimmers');
+  for (const kind of ['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram']) {
+    const rig = art.weapon(kind), c = rig.userData.combat;
+    assert.equal(c.kind, kind, kind + ' rig keeps its kind');
+    assert(meshesOf(rig).length <= COMBAT_ART_BUDGETS.weapon, kind + ' rig budget');
+    assert(c.mount.every(Number.isFinite) && c.muzzle.every(Number.isFinite) && c.trim, kind + ' rig mount, muzzle and trim');
+    const before = poolOf([rig]);
+    for (const reduced of [false, true]) for (let i = 0; i < 60; i++) art.animate(rig, 1 / 60, i / 60, reduced);
+    assert.deepEqual(poolOf([rig]), before, kind + ' rig animation allocates nothing');
+    art.recoil(rig); art.placeWeapon(rig);
+  }
+  // Every new prop is distinct: no two rigs share a silhouette name.
+  assert.equal(new Set(['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram'].map((k) => art.weapon(k).name)).size, 8, 'eight distinct rigs');
+  art.dispose(); art.dispose();
+  const again = art.projectile('laser'); assert(meshesOf(again).length > 0, 'factory rebuilds after dispose');
+  art.dispose();
+  console.log('kart-combat-art: second eight weapons fit their sweeps, budgets and trap baseline');
+}
 console.log('kart-combat-art: all contract + GLB checks passed');

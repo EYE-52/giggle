@@ -51,6 +51,10 @@
  * a missing backend just makes unlock()/cue()/update() return false.
  */
 
+/* Second-eight weapon cues are synthesized with Web Audio (no sample
+ * files); see SYNTH_CUE_NAMES and createSynthCues at the end of this file.
+ * cue() routes those names there. */
+
 /* Cue names the frame may feed (authoritative, deduped, nearby only). */
 export const CUE_NAMES = ['pulse', 'scatter', 'mine', 'shield', 'pickup', 'ko', 'respawn', 'boost', 'rocket', 'seeker', 'proximity', 'nuke', 'rocketBlast', 'bombBlast', 'nukeBlast', 'collision', 'landing', 'hurt', 'hitConfirm', 'block'];
 
@@ -802,6 +806,18 @@ export function createKartAudio(opts) {
     }
   }
 
+  /* ---------------- synthesized weapon cues (second eight) ----------------
+   * One bounded voice per cue on the cue bus, tracked like a sampled cue so
+   * mute, hide, steal and dispose silence it the same way. */
+  let synthCues = null;
+  const playSynthCue = (name, options = {}) => {
+    tryResume(false);
+    if (!synthCues || synthCues.ctx !== ctx) synthCues = createSynthCues({ ctx, bus: graph.cueBus, track, stealIfFull });
+    const gain = clamp01(num(options?.gain, 1)), pan = Math.max(-1, Math.min(1, num(options?.pan, 0)));
+    if (gain === 0) return false;
+    return synthCues.play(name, { gain, pan });
+  };
+
   /* ---------------- public frame interface ---------------- */
 
   const api = {
@@ -939,6 +955,7 @@ export function createKartAudio(opts) {
       if (disposed || muted || !unlocked || !ctx || !graph) return false;
       if (!active || docHidden()) return false;
       if (typeof name !== 'string') return false;
+      if (SYNTH_CUE_NAMES.includes(name)) return playSynthCue(name, options);
       if (!CUE_NAMES.includes(name)) return false;
       const strength=clamp01(num(options?.strength,1));
       const gain=clamp01(num(options?.gain,1)),pan=Math.max(-1,Math.min(1,num(options?.pan,0)));
@@ -987,6 +1004,10 @@ export function createKartAudio(opts) {
 
     cues() {
       return [...CUE_NAMES];
+    },
+    /* Synthesized weapon cue names (no files; always available once unlocked). */
+    synthCues() {
+      return [...SYNTH_CUE_NAMES];
     },
     isMuted() {
       return muted;
@@ -1057,4 +1078,196 @@ export function createKartAudio(opts) {
   };
 
   return api;
+}
+
+/* ---------------- synthesized weapon cues (second eight) ----------------
+ * Synthesized cues for the second eight Pocket Karts weapons (Web Audio
+ * oscillators, one shared noise buffer, filters and envelopes; no files).
+ * kart-audio.mjs owns the context, the cue bus, voice tracking and the
+ * mute/visibility gates; this module only schedules one bounded voice per
+ * cue. Every layer of a voice stops at the same instant, so the voice's
+ * single onended cleanup never cuts a tail short.
+ *
+ *   laser        charged whine rising into a sharp zap
+ *   thunder      electric crackle (the strike's charge-up)
+ *   thunderClap  the clap: noise sweeping down with a low boom
+ *   boomerang    whooshing flutter that swells and fades as it passes
+ *   oil          gloopy splat as the slick is dropped
+ *   oilSkid      squelch then a tyre skid when a kart hits the slick
+ *   frost        glassy tink-thunk as the bomb is lobbed
+ *   frostShatter crystalline shatter of ice pings and fizz
+ *   cluster      hollow mortar thunk
+ *   clusterPop   one short pop (bomblets pop one after another)
+ *   bouncer      rubbery launch
+ *   boing        springy boing per bounce
+ *   ram          jet roar rising
+ *   ramClang     heavy metallic clang on impact
+ */
+
+export const SYNTH_CUE_NAMES = Object.freeze(['laser', 'thunder', 'thunderClap', 'boomerang', 'oil', 'oilSkid', 'frost', 'frostShatter',
+  'cluster', 'clusterPop', 'bouncer', 'boing', 'ram', 'ramClang']);
+
+// Peak level and length (seconds) per cue; the cue bus and master
+// compressor keep headroom exactly as for the sampled cues.
+export const SYNTH_CUE_SPEC = Object.freeze({
+  laser: [.26, .24], thunder: [.24, .3], thunderClap: [.38, 1.25], boomerang: [.22, .95], oil: [.3, .3], oilSkid: [.26, .6],
+  frost: [.24, .22], frostShatter: [.28, .6], cluster: [.32, .22], clusterPop: [.26, .1], bouncer: [.24, .22], boing: [.24, .38],
+  ram: [.26, 1.05], ramClang: [.32, .7],
+});
+
+// Shares FLOOR (the silent gain floor) with the sampled cues above.
+export function createSynthCues({ ctx, bus, track, stealIfFull }) {
+  let noise = null;
+  function noiseBuffer() {
+    if (noise) return noise;
+    if (typeof ctx.createBuffer !== 'function') return null;
+    try {
+      const rate = ctx.sampleRate || 44100, buf = ctx.createBuffer(1, Math.floor(rate), rate), data = buf.getChannelData?.(0);
+      // Deterministic white noise (xorshift) so every session sounds alike.
+      let x = 0x9e3779b9;
+      if (data) for (let i = 0; i < data.length; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; data[i] = ((x >>> 0) / 4294967296) * 2 - 1; }
+      noise = buf;
+    } catch { noise = null; }
+    return noise;
+  }
+  const set = (param, v, t) => { try { if (param?.setValueAtTime) param.setValueAtTime(v, t); else if (param) param.value = v; } catch { /* noop */ } };
+  const lin = (param, v, t) => { try { param?.linearRampToValueAtTime?.(v, t); } catch { /* noop */ } };
+  const exp = (param, v, t) => { try { param?.exponentialRampToValueAtTime?.(Math.max(FLOOR, v), t); } catch { /* noop */ } };
+  const link = (a, b) => { try { a?.connect?.(b); } catch { /* noop */ } };
+
+  /* One voice: layers write into `amp`, the voice's master envelope. */
+  function voice(name, t0, level, pan) {
+    const [peak, len] = SYNTH_CUE_SPEC[name];
+    const amp = ctx.createGain();
+    set(amp.gain, Math.min(.4, Math.max(FLOOR, peak * level)), t0);
+    let out = amp, panner = null;
+    if (pan && typeof ctx.createStereoPanner === 'function') { try { panner = ctx.createStereoPanner(); set(panner.pan, pan, t0); link(amp, panner); out = panner; } catch { panner = null; } }
+    link(out, bus);
+    const sources = [], nodes = [amp, ...(panner ? [panner] : [])], end = t0 + len;
+    const layer = (gainNode) => { nodes.push(gainNode); link(gainNode, amp); return gainNode; };
+    const env = (g, at, attack, hold, release, top = 1) => { set(g.gain, FLOOR, at); lin(g.gain, top, at + attack); set(g.gain, top, at + attack + hold); exp(g.gain, FLOOR, at + attack + hold + release); };
+    const tone = (type, from, to, at, dur, top = 1, curve = 'exp') => {
+      const o = ctx.createOscillator(); o.type = type; set(o.frequency, from, at);
+      if (curve === 'exp') exp(o.frequency, Math.max(20, to), at + dur); else lin(o.frequency, to, at + dur);
+      const g = layer(ctx.createGain()); env(g, at, .004, 0, dur, top); link(o, g); sources.push(o); nodes.push(o); return o;
+    };
+    const hiss = (filterType, f0, f1, q, at, dur, top = 1) => {
+      const buf = noiseBuffer(); if (!buf) return null;
+      const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+      const filter = ctx.createBiquadFilter?.(); const g = layer(ctx.createGain());
+      if (filter) { filter.type = filterType; set(filter.frequency, f0, at); exp(filter.frequency, f1, at + dur); set(filter.Q, q, at); link(src, filter); link(filter, g); nodes.push(filter); }
+      else link(src, g);
+      env(g, at, .003, 0, dur, top); sources.push(src); nodes.push(src); return { src, filter, g };
+    };
+    return { t0, end, amp, sources, nodes, tone, hiss, layer, env, set, lin, exp, link };
+  }
+
+  const DESIGN = {
+    laser(v) { // rising charge whine, then the zap
+      const { t0 } = v;
+      const whine = v.tone('sine', 520, 2600, t0, .13, .55); v.set(whine.frequency, 520, t0);
+      v.tone('square', 3400, 160, t0 + .12, .09, .5);
+      v.hiss('highpass', 5000, 2500, .7, t0 + .12, .06, .6);
+      v.tone('triangle', 1800, 900, t0 + .12, .1, .35);
+    },
+    thunder(v) { // electric crackle: a burst of sharp, irregular snaps
+      const n = v.hiss('bandpass', 3200, 2200, 1.4, v.t0, .28, .1);
+      if (n) for (let i = 0; i < 11; i++) { const at = v.t0 + (i * i * .0023 + (i % 3) * .009); v.set(n.g.gain, i % 2 ? .25 : 1, at); v.set(n.g.gain, .06, at + .012); }
+      v.tone('sawtooth', 220, 180, v.t0, .25, .12, 'lin');
+    },
+    thunderClap(v) { // sharp crack, then a rolling low boom
+      const t = v.t0 + .04;
+      v.hiss('lowpass', 7000, 260, .8, t, 1.15, 1);
+      v.hiss('highpass', 3000, 1800, .6, t, .09, .8);
+      v.tone('sine', 85, 34, t + .02, 1.05, .9);
+      v.tone('triangle', 140, 50, t, .5, .35);
+    },
+    boomerang(v) { // spinning blade: flutter AM on a whoosh that rises then falls
+      const n = v.hiss('bandpass', 650, 650, 3, v.t0, .92, .8);
+      if (n?.filter) { v.set(n.filter.frequency, 600, v.t0); v.exp(n.filter.frequency, 1500, v.t0 + .4); v.exp(n.filter.frequency, 520, v.t0 + .9); }
+      if (n && typeof ctx.createOscillator === 'function') {
+        const lfo = ctx.createOscillator(), depth = ctx.createGain();
+        lfo.type = 'square'; v.set(lfo.frequency, 16, v.t0); v.exp(lfo.frequency, 9, v.t0 + .9);
+        v.set(depth.gain, .45, v.t0); v.link(lfo, depth); v.link(depth, n.g.gain);
+        v.sources.push(lfo); v.nodes.push(lfo, depth);
+        // Swell: quiet start, loud pass, quiet return.
+        v.set(n.g.gain, .15, v.t0); v.lin(n.g.gain, .55, v.t0 + .38); v.exp(n.g.gain, .02, v.t0 + .92);
+      }
+      v.tone('triangle', 260, 340, v.t0, .9, .12, 'lin');
+    },
+    oil(v) { // two gloopy bloops over a wet splash
+      v.tone('sine', 190, 55, v.t0, .2, .9);
+      v.tone('sine', 280, 90, v.t0 + .08, .16, .6);
+      v.hiss('lowpass', 900, 250, 1.2, v.t0, .14, .5);
+    },
+    oilSkid(v) { // squelch sweep, then a wavering tyre squeal
+      v.hiss('bandpass', 380, 1700, 7, v.t0, .13, .9);
+      const s = v.tone('sawtooth', 980, 720, v.t0 + .1, .48, .22, 'lin');
+      if (s) for (let i = 0; i < 8; i++) v.set(s.frequency, 900 - (i % 2) * 120 - i * 18, v.t0 + .1 + i * .055);
+      v.hiss('bandpass', 2200, 1800, 3, v.t0 + .1, .48, .35);
+    },
+    frost(v) { // muffled launch thunk with a glassy tink on top
+      v.tone('sine', 160, 70, v.t0, .14, .7);
+      v.tone('sine', 2640, 2600, v.t0 + .01, .2, .35);
+      v.tone('sine', 3960, 3900, v.t0 + .01, .12, .18);
+    },
+    frostShatter(v) { // ice: a spray of bright, detuned pings over a crisp fizz
+      v.hiss('highpass', 6000, 3500, .7, v.t0, .4, .55);
+      const pings = [3520, 4870, 2960, 6120, 4180, 5230, 3310, 7040];
+      pings.forEach((f, i) => v.tone(i % 2 ? 'triangle' : 'sine', f, f * .97, v.t0 + i * .028 + (i % 3) * .011, .22, .32));
+      v.tone('sine', 220, 120, v.t0, .1, .3);
+    },
+    cluster(v) { // hollow mortar thunk
+      v.tone('sine', 150, 52, v.t0, .2, 1);
+      v.hiss('lowpass', 520, 200, 1, v.t0, .07, .55);
+      v.tone('square', 95, 60, v.t0, .06, .15);
+    },
+    clusterPop(v) { // one quick bright pop
+      v.tone('square', 900, 120, v.t0, .07, .55);
+      v.hiss('bandpass', 1500, 700, 1.5, v.t0, .06, .7);
+    },
+    bouncer(v) { // rubbery launch: a stretched upward 'pwong'
+      const o = v.tone('sine', 240, 520, v.t0, .2, .8);
+      if (o) for (let i = 0; i < 6; i++) v.set(o.detune, i % 2 ? 60 : -60, v.t0 + i * .03);
+      v.tone('triangle', 120, 160, v.t0, .1, .3);
+    },
+    boing(v) { // spring: rising pitch with a fast decaying wobble
+      const o = v.tone('sine', 170, 340, v.t0, .36, .9);
+      if (o && typeof ctx.createOscillator === 'function') {
+        const lfo = ctx.createOscillator(), depth = ctx.createGain();
+        lfo.type = 'sine'; v.set(lfo.frequency, 19, v.t0);
+        v.set(depth.gain, 70, v.t0); v.exp(depth.gain, 4, v.t0 + .36);
+        v.link(lfo, depth); v.link(depth, o.frequency); v.sources.push(lfo); v.nodes.push(lfo, depth);
+      }
+      v.tone('triangle', 340, 680, v.t0, .2, .25);
+    },
+    ram(v) { // turbine spooling up into a roar
+      const roar = v.hiss('lowpass', 280, 3200, 1.1, v.t0, 1, .1);
+      if (roar) { v.set(roar.g.gain, .1, v.t0); v.lin(roar.g.gain, 1, v.t0 + .7); v.exp(roar.g.gain, .05, v.t0 + 1.02); }
+      const saw = v.tone('sawtooth', 75, 230, v.t0, 1, .1);
+      if (saw) { const g = v.nodes.at(-2); v.set(g.gain, .05, v.t0); v.lin(g.gain, .35, v.t0 + .7); v.exp(g.gain, .02, v.t0 + 1); }
+      v.tone('sine', 900, 2400, v.t0 + .1, .85, .12);
+    },
+    ramClang(v) { // heavy bell-like strike: inharmonic metal partials
+      [[310, 1], [753, .6], [1187, .45], [1849, .3], [2633, .2]].forEach(([f, top], i) => v.tone(i ? 'sine' : 'triangle', f, f * .985, v.t0, .65 - i * .07, top));
+      v.hiss('bandpass', 2500, 900, 1.2, v.t0, .05, 1);
+      v.tone('sine', 90, 45, v.t0, .2, .8);
+    },
+  };
+
+  /* Schedule one bounded cue voice. Returns false when the backend lacks
+   * what the design needs; never throws. */
+  function play(name, { gain = 1, pan = 0 } = {}) {
+    if (!DESIGN[name] || typeof ctx.createOscillator !== 'function' || typeof ctx.createGain !== 'function') return false;
+    try {
+      stealIfFull(1);
+      const t0 = Number(ctx.currentTime) || 0, v = voice(name, t0, gain, pan);
+      DESIGN[name](v);
+      if (!v.sources.length) { for (const n of v.nodes) { try { n.disconnect?.(); } catch { /* noop */ } } return false; }
+      for (const s of v.sources) { try { s.start(t0); } catch { try { s.start(); } catch { /* noop */ } } try { s.stop(v.end + .03); } catch { /* noop */ } }
+      track(v.sources, v.nodes, v.amp.gain);
+      return true;
+    } catch { return false; }
+  }
+  return { ctx, play, names: () => [...SYNTH_CUE_NAMES] };
 }

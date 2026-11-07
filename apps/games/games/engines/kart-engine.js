@@ -420,7 +420,14 @@ function stepKartOnce(kart, dt, opts) {
   // Boost, pad/mini turbo, and nitro never stack multiplicatively: the
   // strongest cap wins, so the top speed stays bounded at 1.6x either
   // way (times the garage top multiplier when it applies).
-  const top = MAX_SPEED * tune.top * Math.max(boosting ? BOOST_SPEED : 1, turboing ? TURBO_SPEED : 1, nitroing ? NITRO_SPEED : 1);
+  // Weapon status: a Turbo Ram boosts, Frost caps the top speed.
+  const top = MAX_SPEED * tune.top * Math.max(boosting ? BOOST_SPEED : 1, turboing ? TURBO_SPEED : 1, nitroing ? NITRO_SPEED : 1, kart.rammingT > 0 ? 1.5 : 1)
+    * (kart.frostT > 0 ? .55 : 1);
+  // An Oil Slick spins the kart out: the nose swings and speed bleeds off.
+  if (kart.spinT > 0) {
+    kart.angle = wrapAngle(kart.angle + Math.sign(kart.spinKick || 1) * 6 * dt * Math.min(1, kart.spinT));
+    kart.speed *= Math.max(0, 1 - 1.2 * dt);
+  }
   const punch = boosting ? 2 : nitroing ? NITRO_PUNCH : turboing ? 1.5 : 1;
   const accel = ACCEL * tune.accel;
   if (throttle > 0) kart.speed = Math.min(top, kart.speed + accel * punch * throttle * dt);
