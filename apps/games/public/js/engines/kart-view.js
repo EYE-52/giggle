@@ -294,6 +294,8 @@ export function createKartView(viewConfig) {
   }
 
   function colorFor(pid) {
+    const chosen = lookOf(pid)?.color;
+    if (Number.isInteger(chosen)) return chosen;
     const ids = (S && S.karts ? S.karts : []).map((k) => k.pid);
     const i = ids.indexOf(pid);
     return KART_COLORS[(i < 0 ? 0 : i) % KART_COLORS.length];
@@ -825,6 +827,12 @@ export function createKartView(viewConfig) {
     try { return apiRef?.context?.() || {}; } catch { return {}; }
   }
 
+  // A player's garage pick ({ driver, color }) from the host, if any.
+  function lookOf(pid) {
+    const looks = hostContext().looks;
+    return looks && Object.hasOwn(looks, pid) ? looks[pid] : null;
+  }
+
   function nextMapSetting() {
     const s = hostContext().settings || {};
     return typeof s.map === 'string' ? s.map : null;
@@ -954,7 +962,7 @@ export function createKartView(viewConfig) {
         }
       } catch { /* fall through to the stock kart */ }
     }
-    const model = createKartModel(THREE, { assets, color, driver: pid });
+    const model = createKartModel(THREE, { assets, color, driver: lookOf(pid)?.driver ?? pid });
     model.userData.giggleKart = true;
     return model;
   }

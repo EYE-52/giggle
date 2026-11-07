@@ -29,7 +29,7 @@ const ctx = {
   clearKickRequest() {}, kickConfirmation:null,lastKickRequestId:null, embedTicket:'late-ticket',embedTicketNonce:'late-nonce',embedAuthPending:true,
   closeCustomizer() {},closeHowto() {},resetView() {},resultPresentation:{reset(){}},focusGame:'kart',instanceId:'current',you:'p12345678',
   localStorage:{removed:[],removeItem(key){this.removed.push(key)}},history:{replaceState(){}},reportEmbedState(){},
-  render() { renders++; }, announce() {}, onMsg(value) { received.push(value); },
+  render() { renders++; }, announce() {}, onMsg(value) { received.push(value); }, kartLooks: () => ({}),
   document: { dispatchEvent(event) { events.push({ type: event.type, connLost: ctx.connLost }); } },
   Event: class { constructor(type) { this.type = type; } },
 };

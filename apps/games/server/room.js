@@ -12,6 +12,7 @@ const {
 } = require('../games/_validate');
 const { actionWindow } = require('../games/_sdk');
 const { teamMetadata } = require('./bridge');
+const { cleanKartLook } = require('../public/js/engines/kart-looks.mjs');
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
@@ -198,6 +199,7 @@ class Room {
     const snap = {
       code: this.code,
       players: this.seatedPlayers().map((p) => ({ id: p.id, name: p.name, connected: p.connected,
+        ...(p.kart ? { kart: { ...p.kart } } : {}),
         ...(this.giggle && p.giggleSub ? { callUserId: p.giggleSub,
           ...(p.team ? { team: p.team, teamName: p.teamName } : {}) } : {}) })),
       totals: { ...this.totals },
@@ -380,6 +382,18 @@ class Room {
 
   bySocket(ws) {
     return this.players.find((p) => p.socket === ws);
+  }
+
+  /* A seat's own kart look (paint + driver), shown on every screen. Only
+   * known ids are kept; null clears it back to the arena's defaults. */
+  setKartLook(ws, look) {
+    const p = this.bySocket(ws);
+    if (!p) return { error: 'Join the room first.' };
+    const clean = look === null ? null : cleanKartLook(look);
+    if (look !== null && !clean) return { error: 'Pick a paint and a driver.' };
+    const same = JSON.stringify(p.kart || null) === JSON.stringify(clean);
+    if (clean) p.kart = clean; else delete p.kart;
+    return { ok: true, changed: !same };
   }
 
   _sendable(ws) {

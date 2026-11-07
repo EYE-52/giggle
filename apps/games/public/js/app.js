@@ -26,6 +26,8 @@ import { createGameCuePlayer } from './toolkit/game-cues.mjs';
 import { openIssueReport, isReportOpen } from './report-issue.js';
 import { createRunLog } from './toolkit/run-log.mjs';
 import { kartSetupSummary } from './kart-setup.js';
+import { loadKartLook, openKartGarage, kartGarageCardHtml, kartLookBadgeHtml } from './kart-garage.js';
+import { cleanKartLook, kartPaintHex } from './engines/kart-looks.mjs';
 import {
   parseGameEntry, validateGameEntry, shouldHandleGameEntry,
   stripGameEntryParams, decideGameEntryCreate, decideGameEntryShow,
@@ -643,7 +645,7 @@ const api = {
     return true;
   },
   loadError: paintGameLoadError,
-  context: () => ({ isHost: isHost(), connected: ws?.readyState === 1 && ws.hasGameState === true, preparing: !!lastState?.preparing, roomActionPending: !!pendingRoomAction, theme: theme(), sound: sound.enabled, voice: voiceClient.getStatus(), settings: { ...(room?.config?.[gameId]?.settings || {}) } }),
+  context: () => ({ isHost: isHost(), connected: ws?.readyState === 1 && ws.hasGameState === true, preparing: !!lastState?.preparing, roomActionPending: !!pendingRoomAction, theme: theme(), sound: sound.enabled, voice: voiceClient.getStatus(), settings: { ...(room?.config?.[gameId]?.settings || {}) }, looks: kartLooks() }),
   // Game-owned results menus configure the next match through the same
   // validated room route as Customize. A partial choice preserves the
   // host's other settings; true means queued, not a server acknowledgement.
@@ -724,6 +726,8 @@ function onMsg(msg) {
       myName = msg.name;
       persist('pb_name', myName);
       if (msg.seatToken && msg.code) persist(tokenKey(msg.code), msg.seatToken);
+      // The kart look this device remembers rides along to every room.
+      if (loadKartLook()) send({ t: 'kart', look: loadKartLook() });
       if (msg.giggle) {
         embedAuthed = true;
         if (embedTrusted) voiceClient.setAuthed(true);
@@ -994,7 +998,7 @@ function lobbySeats(list, totals, spot) {
     const pts = totals && totals[p.id] ? totals[p.id] : 0;
     const host = room && p.id === room.hostId;
     return `<div class="player seat${p.connected === false ? ' off' : ''}${host ? ' is-host' : ''}${spot && spot.has(p.id) ? ' just-joined' : ''}">
-      <span class="seat-av">${avatar(p.id, p.name)}${host ? '<span class="seat-crown" aria-hidden="true"></span>' : ''}${pts ? `<span class="seat-pts">${pts} pts</span>` : ''}</span>
+      <span class="seat-av">${avatar(p.id, p.name)}${host ? '<span class="seat-crown" aria-hidden="true"></span>' : ''}${pts ? `<span class="seat-pts">${pts} pts</span>` : ''}${kartLookBadgeHtml(p.kart)}</span>
       <span class="seat-name">${esc(p.name)}</span>${host ? '<span class="hosttag">host</span>' : ''}
     </div>`;
   }).join('') + `</div>`;
@@ -2088,6 +2092,10 @@ function openCustomizerFor(gameId, opener) {
     initialField: g.schema?.settings?.some((s) => s.key === 'map') ? 'map' : undefined,
     opener,
     toast,
+    extra: g.id === 'pocket-karts' ? {
+      html: kartGarageCardHtml(myKartLook(), 'bKartGarageSetup'),
+      wire: (root) => { const b = root.querySelector('#bKartGarageSetup'); if (b) b.onclick = () => openGarage(b); },
+    } : undefined,
     onSave: (gid, settings, pack, requestId) => {
       if (!ws || ws.readyState !== 1) return false;
       send({ t: 'configure', game: gid, settings, pack, requestId });
@@ -2238,8 +2246,48 @@ function openHowtoDialog(gameId, opener) {
     game: g,
     opener,
     meta: { seats: seatsLine(g), vibe: vibeFor(g), custom: configNoteText(g), intro: howtoIntro(g) },
-    buildFooter: (game) => howtoFooter(game),
+    buildFooter: (game) => withKartGarage(game, howtoFooter(game)),
   });
+}
+
+/* Pocket Karts players pick their own kart (driver + paint) from its
+ * start menu, host or not. The roster carries every seat's look. */
+function kartLooks() {
+  const looks = {};
+  for (const p of room?.players || []) {
+    const look = cleanKartLook(p.kart);
+    if (look) looks[p.id] = { ...(look.driver ? { driver: look.driver } : {}), ...(look.paint ? { color: kartPaintHex(look.paint) } : {}) };
+  }
+  return looks;
+}
+
+function myKartLook() {
+  return room?.players?.find((p) => p.id === you)?.kart || loadKartLook();
+}
+
+function openGarage(opener) {
+  openKartGarage({
+    look: myKartLook(),
+    name: myName,
+    opener,
+    onReady: (look) => {
+      if (!room || !ws || ws.readyState !== 1) return false;
+      send({ t: 'kart', look });
+      return true;
+    },
+  });
+}
+
+function withKartGarage(game, footer) {
+  if (game.id !== 'pocket-karts') return footer;
+  return {
+    html: kartGarageCardHtml(myKartLook()) + footer.html,
+    wire(foot) {
+      footer.wire?.(foot);
+      const b = foot.querySelector('#bKartGarage');
+      if (b) b.onclick = () => openGarage(b);
+    },
+  };
 }
 
 /* Mid-game room snapshots (joins, host migration): patch the Change-game

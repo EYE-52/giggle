@@ -66,6 +66,24 @@ export function closeKartAssetBitmaps(library) {
   return images.size;
 }
 
+/* One batched kart per loaded driver, tagged with the driver's id so a
+ * player's chosen look finds its own animal even if another failed. */
+export function buildKartDriverVariants(THREE, kart, drivers, mergeGeometries, library) {
+  const variants = [];
+  drivers.forEach((driver, i) => {
+    if (!driver) return;
+    const variant = kart.clone(true);
+    seatKartDriver(variant, driver); batchKartBody(THREE, variant, mergeGeometries);
+    variant.userData.driver = KART_DRIVERS[i];
+    variants.push(variant); library?.add(variant);
+  });
+  return variants;
+}
+
+export function loadKartDrivers(loader) {
+  return Promise.all(KART_DRIVERS.map(name => loader.loadAsync(`/assets/karts/drivers/${name}.glb`).then(g => g.scene, () => null)));
+}
+
 export async function loadKartAssets(THREE, scene) {
   const { GLTFLoader } = await import('../../vendor/three/loaders/GLTFLoader.js');
   const {mergeGeometries} = await import('../../vendor/three/utils/BufferGeometryUtils.js');
@@ -78,7 +96,7 @@ export async function loadKartAssets(THREE, scene) {
   const assets = {};
   // Drivers are optional: one that fails to load is skipped, and with none
   // the original helmet racer stays.
-  const drivers = Promise.all(KART_DRIVERS.map(name => loader.loadAsync(`/assets/karts/drivers/${name}.glb`).then(g => g.scene, () => null)));
+  const drivers = loadKartDrivers(loader);
   // Wait for every request before failing: assets that finish after a failed
   // build still belong to this scene and can be disposed with it.
   const results = await Promise.allSettled([...Object.entries(KART_ASSETS).map(async ([key, name]) => {
@@ -90,12 +108,7 @@ export async function loadKartAssets(THREE, scene) {
       throw error;
     }
     if (key === 'kart') {
-      const variants = [];
-      for (const driver of (await drivers).filter(Boolean)) {
-        const variant = gltf.scene.clone(true);
-        seatKartDriver(variant, driver); batchKartBody(THREE, variant, mergeGeometries);
-        variants.push(variant); library.add(variant);
-      }
+      const variants = buildKartDriverVariants(THREE, gltf.scene, await drivers, mergeGeometries, library);
       if (variants.length) assets.kartVariants = variants;
       batchKartBody(THREE,gltf.scene,mergeGeometries);
     }

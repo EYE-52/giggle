@@ -713,6 +713,16 @@ function handle(ws, msg) {
       }
       break;
     }
+    case 'kart': {
+      // Any seated player sets their own kart look; it rides the roster.
+      if (!leaseAllows(ws)) return;
+      const room = wsRoom.get(ws);
+      if (!room) return;
+      const r = room.setKartLook(ws, msg.look);
+      if (r.error) ws.send(JSON.stringify({ t: 'error', msg: r.error }));
+      else if (r.changed) room.broadcastLobby();
+      break;
+    }
     case 'games': {
       ws.send(JSON.stringify({ t: 'games', games: registry.list() }));
       break;
