@@ -25,12 +25,42 @@ export const KART_ASSETS = {
 export const KART_DRIVERS = Object.freeze(['fox', 'bunny', 'panda', 'raccoon']);
 export const KART_SEAT = Object.freeze({ scale: 1.55, position: [0, .6, -.37],
   replaces: ['DriverArm_L', 'DriverArm_R', 'DriverHelmet', 'DriverTorso', 'DriverVisor', 'SteeringWheel'] });
+const seatedGeometry=new WeakMap();
+// Meshy bakes tails into the same textured mesh as the face and ears. Fold
+// only the low rear vertices into the seat cushion before static batching.
+// Heads/ears, UVs and materials stay authored; runtime clones share the fit.
+function tuckSeatedDriver(seated){
+  seated.updateMatrixWorld(true);
+  const point=seated.position.clone();
+  seated.traverse(mesh=>{
+    if(!mesh.isMesh)return;
+    const source=mesh.geometry;
+    if(seatedGeometry.has(source)){mesh.geometry=seatedGeometry.get(source);return;}
+    const geometry=source.clone(),p=geometry.attributes.position,changed=new Uint8Array(p.count);let count=0;
+    for(let i=0;i<p.count;i++){
+      mesh.localToWorld(point.fromBufferAttribute(p,i));seated.worldToLocal(point);
+      const weight=Math.max(0,Math.min(1,(-.12-point.z)/.08))*Math.max(0,Math.min(1,(.55-point.y)/.1));
+      if(!weight)continue;
+      point.z+=(-.12-point.z)*weight;point.x*=1-.6*weight;point.y+=(Math.min(point.y,.12)-point.y)*weight;
+      seated.localToWorld(point);mesh.worldToLocal(point);p.setXYZ(i,point.x,point.y,point.z);changed[i]=1;count++;
+    }
+    if(count){
+      const normal=geometry.attributes.normal,normals=normal&&new Float32Array(normal.count*3);
+      if(normals)for(let i=0;i<normal.count;i++){normals[i*3]=normal.getX(i);normals[i*3+1]=normal.getY(i);normals[i*3+2]=normal.getZ(i);}
+      geometry.computeVertexNormals();
+      if(normals)for(let i=0;i<p.count;i++)if(!changed[i])geometry.attributes.normal.setXYZ(i,normals[i*3],normals[i*3+1],normals[i*3+2]);
+      geometry.computeBoundingBox();geometry.computeBoundingSphere();mesh.geometry=geometry;
+    }else geometry.dispose();
+    seatedGeometry.set(source,mesh.geometry);
+  });
+}
 export function seatKartDriver(kart, driver) {
   const body = kart.getObjectByName('KartBody');
   if (!body || !driver) return false;
   for (const name of KART_SEAT.replaces) body.getObjectByName(name)?.removeFromParent();
   const seated = driver.clone(true);
   seated.name = 'KartDriver';
+  tuckSeatedDriver(seated);
   seated.scale.setScalar(KART_SEAT.scale);
   seated.position.fromArray(KART_SEAT.position);
   seated.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });

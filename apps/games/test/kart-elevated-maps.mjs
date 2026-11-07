@@ -8,6 +8,7 @@ import ADAPTER from '../games/engines/kart-physics.js';
 import COMBAT from '../games/engines/kart-elevated-combat.js';
 import CONFIG from '../public/js/engines/kart-physics-config.mjs';
 import { elevatedMap, elevatedMapIds } from '../public/js/engines/kart-elevated-maps.mjs';
+import {elevatedStatics} from '../public/js/engines/kart-feature-solids.mjs';
 
 await RAPIER.init();
 let checks = 0;
@@ -18,7 +19,7 @@ const measurements = [];
 for(const id of elevatedMapIds) {
   const map = elevatedMap(id), world = ADAPTER.createKartPhysics(RAPIER,CONFIG);
   try {
-    map.colliders.forEach(d=>world.addStatic(d));
+    elevatedStatics(map).forEach(d=>world.addStatic(d));
     check(`${id}: authored legal driver support points`,map.spawns.length===(map.maxPlayers||8));
     check(`${id}: randomized crate pool has more than 20 candidate sockets`,map.sockets.length>=24);
     check(`${id}: unique collider, spawn and crate IDs`,[map.colliders,map.spawns,map.sockets].every(a=>new Set(a.map(p=>p.id)).size===a.length));
@@ -56,7 +57,7 @@ for(const id of elevatedMapIds) {
       const probe=ADAPTER.createKartPhysics(RAPIER,CONFIG);
       let legal=false,startSurface;
       try{
-        map.colliders.forEach(d=>probe.addStatic(d));
+        elevatedStatics(map).forEach(d=>probe.addStatic(d));
         const q={x:0,y:Math.sin(angle/2),z:0,w:Math.cos(angle/2)};
         const support=probe.supportAt({...start,y:start.y+.4},.8);
         if(support){start.y=support.point.y;startSurface=support.surfaceId;}
@@ -87,7 +88,7 @@ for(const id of elevatedMapIds) {
   for(const route of map.routes) {
     const physics=ADAPTER.createKartPhysics(RAPIER,CONFIG);
     try {
-      map.colliders.forEach(d=>physics.addStatic(d));
+      elevatedStatics(map).forEach(d=>physics.addStatic(d));
       const r=map.colliders.find(d=>d.id===route.via);
       const angle=2*Math.atan2(r.rotation.y,r.rotation.w);
       const fx=Math.sin(angle),fz=Math.cos(angle);

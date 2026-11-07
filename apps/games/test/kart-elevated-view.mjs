@@ -14,6 +14,10 @@ import {paintKartWeapon,createKartWeaponRoulette} from '../public/js/engines/kar
 import {kartResultView} from '../public/js/engines/kart-results.mjs';
 import {createKartImpactFX} from '../public/js/engines/kart-impact-fx.mjs';
 import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
+import {createKartWarmupLibrary,warmKartRenderer} from '../public/js/engines/kart-render-warmup.mjs';
+import {createKartCameraCollision} from '../public/js/engines/kart-camera-collision.mjs';
+import {arenaFeatureSolids,elevatedStatics} from '../public/js/engines/kart-feature-solids.mjs';
+import {flightPose} from '../public/js/engines/kart-map-features.mjs';
 import {MeshoptDecoder} from '../public/vendor/three/libs/meshopt_decoder.mjs';
 await MeshoptDecoder.ready;
 // Execute actual production view/dispatcher source with a finite DOM/timer and
@@ -81,17 +85,17 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   const api={send:a=>sent.push(structuredClone(a)),name:id=>id==='a'?'Anika':'Bastian',now:()=>clock,context:()=>({isHost:host,sound:false}),resultsReady:i=>ready.push(i),lobby(){}};
   const schedule=(fn,ms,repeat=false)=>{const id=++seq;timers.set(id,{fn,ms,at:clock+ms,repeat});return id;};
   let instanceAllocations=0,projectileAllocations=0,graphicsAllocations=0,prepared=false,reduced=false;
-  const renderStats={warmFrames:0,compiles:0};
+  const renderStats={warmFrames:0,compiles:0,warmObjects:new Set()};
   const ThreeTest={...THREE,InstancedMesh:class extends THREE.InstancedMesh{constructor(...args){super(...args);instanceAllocations++;}}};
   for(const name of ['Group','Mesh','Vector3','Quaternion','Box3','BoxGeometry','ConeGeometry','MeshBasicMaterial'])ThreeTest[name]=class extends THREE[name]{constructor(...args){super(...args);graphicsAllocations++;}};
   class LocalLoader{setMeshoptDecoder(){return this;}async loadAsync(url){assetRequests.push(url);if(missingDrivers.some(id=>url.endsWith('/drivers/'+id+'.glb')))throw Error('optional driver unavailable');const b=fs.readFileSync(repo+'/public'+url.split('?')[0]);return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'').catch(error=>{console.error('GLB fixture failed',url,error.message);throw error;});}}
   const context=vm.createContext({createKartDrivingFX,createKartArenaFeatures,surfaceProfile,driftTier,DRIFT_TIERS,loadElevatedPhysics:async()=>null,createElevatedPrediction(){throw Error('Prediction separately tested with real Rapier');},WEAPON_IDS:combatWeaponIds,document,window,LocalLoader,MeshoptDecoder,cleanKartLook,kartPaintHex,loadKartDrivers,buildKartDriverVariants,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
-    mergeFixtureGeometries,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:id=>({id,revision:elevatedMap(id).revision,features:elevatedMap(id).features}),
+    mergeFixtureGeometries,arenaFeatureSolids,createKartCameraCollision,createKartWarmupLibrary,warmKartRenderer,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:id=>({id,revision:elevatedMap(id).revision,features:elevatedMap(id).features}),
     createKartLod,createRaisedPoseSupport,createRaisedPickups,createRaisedCameraQuery,createRaisedShadows,disableRaisedStaticShadows,kartLightTier,
     createKartElevatedWorld:()=>{const meshes=new Map();for(const d of colliders){const body=new THREE.Mesh(elevatedSolidGeometry(THREE,d),new THREE.MeshBasicMaterial());body.position.copy(d.position);if(d.rotation)body.quaternion.copy(d.rotation);body.updateMatrixWorld();meshes.set(d.id,{body,descriptor:d});}return {colliderMeshes:meshes,lighting:{fogColor:new THREE.Color(0xaaaaaa),fogNear:100,fogFar:500,exposure:1},animate(){},updateDetail(){},dispose(){for(const {body}of meshes.values()){body.geometry.dispose();body.material.dispose();}}};},
     createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;return projectile(...a);};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
     createMobileStick:(node,opts)=>{const stick={node,opts,resets:0,disposed:0,reset(){this.resets++},dispose(){this.disposed++}};sticks.push(stick);return stick;},
-    createKartAudio:()=>{const a={disposed:0,cues:[],arenaCues:[],frames:[],muted:false,active:true,unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},arenaCue(name,options){if(!this.muted&&this.active)this.arenaCues.push({name,options});},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
+    createKartAudio:()=>{const a={disposed:0,cues:[],arenaCues:[],frames:[],muted:false,active:true,preps:0,prep(){this.preps++},ready(){return this.readyWait||Promise.resolve(true)},unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},arenaCue(name,options){if(!this.muted&&this.active)this.arenaCues.push({name,options});},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
     createThreeView:(stage,options)=>new Promise(resolve=>loads.push({stage,options,resolve,settled:false})),
     matchMedia:()=>({matches:reduced}),
   });
@@ -101,7 +105,7 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   const node=name=>el.querySelector('[data-'+name+']')||roomMenu?.querySelector('[data-'+name+']');
   const render=(snapshot=base())=>view.update(el,snapshot,api);
   const flush=async()=>{await Promise.resolve();await Promise.resolve();};
-  async function settle(index=loads.length-1,fallback=false){const l=loads[index];l.settled=true;const h={fallback,canvas:new Node('canvas',document),disposals:0,dispose(){this.disposals++;this.built?.dispose();this.canvas.remove();}};if(!fallback){l.stage.append(h.canvas);if(graphics){const renderer={shadowMap:{},async compileAsync(){renderStats.compiles++;},render(){renderStats.warmFrames++;}};h.built=await l.options.build(ThreeTest,{canvas:()=>h.canvas,renderer:()=>renderer,reducedMotion:()=>reduced,track(){},disposeObject(){}});h.built.camera.aspect=aspect;h.built.camera.updateProjectionMatrix();prepared=true;}}l.handle=h;l.resolve(h);await flush();return h;}
+  async function settle(index=loads.length-1,fallback=false){const l=loads[index];l.settled=true;const h={fallback,canvas:new Node('canvas',document),disposals:0,dispose(){this.disposals++;this.built?.dispose();this.canvas.remove();}};if(!fallback){l.stage.append(h.canvas);if(graphics){const renderer={shadowMap:{},async compileAsync(){renderStats.compiles++;},render(scene){renderStats.warmFrames++;scene.traverseVisible(o=>renderStats.warmObjects.add(o.name));}};h.built=await l.options.build(ThreeTest,{canvas:()=>h.canvas,renderer:()=>renderer,reducedMotion:()=>reduced,track(){},disposeObject(){}});h.built.camera.aspect=aspect;h.built.camera.updateProjectionMatrix();prepared=true;}}l.handle=h;l.resolve(h);await flush();return h;}
   function advance(ms){const until=clock+ms;while(true){let next=[...timers].filter(([,t])=>t.at<=until).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;const[id,t]=next;clock=t.at;if(t.repeat)t.at+=t.ms;else timers.delete(id);t.fn();}clock=until;}
   function key(code,type='keydown',target=loads.at(-1)?.handle?.canvas){return window.dispatch(type,{code,target});}
   return{view,el,document,window,roomMenu,api,assetRequests,sent,ready,loads,audios,sticks,timers,node,render,settle,advance,key,flush,host:v=>host=v,renderStats,thumbnails:value=>{thumbnailsReady=value;},allocations:()=>({instances:instanceAllocations,projectiles:projectileAllocations,graphics:graphicsAllocations,prepared}),frame:(dt=1/60)=>loads.at(-1).handle.built.frame(dt,clock/1000),motion:v=>reduced=v};
@@ -143,6 +147,10 @@ for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch
   r.render();check('duplicate snapshots share one pending graphics load',r.loads.length===1);
   const gl=await r.settle();check('successful load hides loader and focuses driver canvas',r.node('loading').hidden&&r.document.activeElement===gl.canvas);
   check('real canvas declares the driving focus target before preparation releases',gl.canvas.getAttribute('data-game-focus')==='');
+  check('elevated audio graph prepares during loading',r.audios[0].preps===1);
+  let resolveAudio,audioReady=false;r.audios[0].readyWait=new Promise(resolve=>{resolveAudio=resolve;});
+  const pendingReady=r.view.ready().then(()=>{audioReady=true;});await r.flush();
+  check('elevated loading waits for audio preparation',!audioReady);resolveAudio(true);await pendingReady;
   const shortcut=r.window.dispatch('keydown',{code:'KeyW',metaKey:true,target:gl.canvas});check('Command browser shortcut stays usable without sending kart input',!shortcut.prevented&&r.sent.length===0);
   r.key('KeyW');check('W sends full forward intent scoped to private life/epoch',r.sent.at(-1).throttle===1&&r.sent.at(-1).life===1&&r.sent.at(-1).controlEpoch===1);
   r.key('KeyD');check('D is positive driver-right steer',r.sent.at(-1).steer===1);
@@ -456,7 +464,8 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     }finally{view?.view.dispose();probe.dispose();if(adapter&&state)adapter.dispose(state);else match.dispose();}
   }
   const r=rig({graphics:true});r.render();await r.settle();r.frame();
-  check('all combat variants compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===2&&r.renderStats.warmFrames===2);
+  check('all combat variants compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===1&&r.renderStats.warmFrames===1);
+  check('raised drift, nitro and cannon/portal particles render during loading', ['KartDrivingParticles','KartSpeedLines','arena-feature-fx'].every(name=>r.renderStats.warmObjects.has(name)));
   const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.name==='RaisedCombatParticles');
   const raisedKarts=built.scene.children.filter(o=>o.name==='GiggleKart'),itemBatch=built.scene.getObjectByName('raised-item-boxes'),crowd=built.scene.getObjectByName('kart-lod-proxies');
   check('raised pickups and crowd keep one prepared geometry each, even with no crates',itemBatch?.isInstancedMesh&&crowd?.isInstancedMesh&&crowd.instanceColor&&itemBatch.count===0);
@@ -727,7 +736,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     const meshes=solids(map),r=rig({graphics:true,colliders:map.colliders}),convert=v=>({...base(),instanceId:v.instance,mapId,simAt:v.simAt,simTick:v.simTick,karts:v.karts,events:[],inputAck:{life:v.karts[0].spawnSeq,controlEpoch:v.karts[0].controlEpoch,receivedSeq:0}});
     r.render(convert(snapshots[0]));const gl=await r.settle(),camera=gl.built.camera,model=gl.built.scene.children.find(o=>o.name==='GiggleKart');
     const expectedPosition=new THREE.Vector3(),expectedFocus=new THREE.Vector3(),nose=new THREE.Vector3(),desired=new THREE.Vector3(),focus=new THREE.Vector3(),look=new THREE.Vector3();
-    let index=0,clear=true,unchanged=true,finite=true,framed=true,first=true,firstHidden=null;
+    let index=0,clear=true,unchanged=true,finite=true,framed=true,first=true,firstHidden=null,firstUnframed=null;
     const kartBounds=new THREE.Box3(),kartCenter=new THREE.Vector3();
     for(let frame=0;frame<=seconds*60;frame++){
       while(snapshots[index]?.simAt<=frame*1000/60+1e-6)r.render(convert(snapshots[index++]));r.frame();
@@ -738,6 +747,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
       if(!visible&&!firstHidden){const anchor=model.position.clone();anchor.y+=1.4;const delta=camera.position.clone().sub(anchor),ray=new THREE.Raycaster(anchor,delta.clone().normalize(),0,delta.length()-.01);firstHidden={frame,at:snapshots[Math.max(0,index-1)]?.simAt,position:model.position.toArray(),eye:camera.position.toArray(),hits:ray.intersectObjects(meshes,false).map(h=>({id:h.object.name,distance:h.distance})),trace:camera.userData.cameraTrace};}
       clear&&=visible;finite&&=camera.position.toArray().every(Number.isFinite);r.advance(1000/60);
       model.updateMatrixWorld(true);baseKartBounds(model,kartBounds);kartBounds.getCenter(kartCenter).project(camera);
+      if(!firstUnframed&&(Math.abs(kartCenter.x)>=1||Math.abs(kartCenter.y)>=1||kartCenter.z<=-1||kartCenter.z>=1))firstUnframed={frame,position:model.position.toArray(),eye:camera.position.toArray(),centre:kartCenter.toArray(),trace:camera.userData.cameraTrace};
       framed&&=Math.abs(kartCenter.x)<1&&Math.abs(kartCenter.y)<1&&kartCenter.z> -1&&kartCenter.z<1;
     }
     check(label+' authority supplies actual supported elevation',maxHeight>minHeight&&(y>0||airborne>1));
@@ -746,6 +756,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     // clearance; those are checked against independent visibility/framing.
     if(openChase)check(label+' unobstructed follow position and look-ahead retain the original easing',unchanged);
     if(firstHidden)console.log('AUTHORED_ROUTE_CAMERA_HIDDEN '+JSON.stringify({label,firstHidden}));
+    if(firstUnframed)console.log('AUTHORED_ROUTE_CAMERA_UNFRAMED '+JSON.stringify({label,firstUnframed}));
     check(label+' finite camera-to-kart sight never crosses an authored collider',clear&&finite);
     check(label+' real loaded kart centre remains in the viewport',framed);
     r.view.dispose();release(meshes);
@@ -860,6 +871,24 @@ for(const aspect of [1,390/844,844/390,568/320,1024/768])for(const frameMs of [1
   const r=rig({graphics:true}),snapshot=base();r.render(snapshot);const gl=await r.settle(),camera=gl.built.camera;
   for(const [width,height] of [[390,844],[844,390],[568,320],[1024,768],[200,1000],[390,844],[844,390]]){camera.aspect=width/height;camera.updateProjectionMatrix();r.frame();const expected=Math.min(80,Math.max(52,2*Math.atan(Math.tan(Math.PI/10)/camera.aspect)*180/Math.PI));check(width+'x'+height+' orientation resize updates the bounded portrait lens',Math.abs(camera.fov-expected)<1e-10);check(width+'x'+height+' lens change preserves a finite projection',camera.projectionMatrix.elements.every(Number.isFinite));}
   r.view.dispose();
+}
+// Raised launch tubes now share classic solid shells. A reveal at the muzzle
+// must keep the eye outside the shell and outside the kart on both viewports.
+for(const mapId of ['skyport','foundry'])for(const aspect of [1.6,390/844]){
+  const map=elevatedMap(mapId),c=map.features.cannons[0],r=rig({graphics:true,colliders:map.colliders,aspect}),s={...base(),mapId,mapRevision:map.revision,simAt:0};
+  const physics=PHYSICS.createKartPhysics(RAPIER,CONFIG);elevatedStatics(map).forEach(d=>physics.addStatic(d));
+  const flight={c:0,t:0,x:c.x,y:c.y+.75,z:c.z,a:c.angle,ly:c.land.y+.75,life:1};
+  s.karts[0].flight={...flight};s.karts[0].pose={...flightPose(c,flight),epoch:1,speed:20,grounded:false,wheels:[]};
+  r.render(s);const gl=await r.settle(),camera=gl.built.camera,model=gl.built.scene.children.find(o=>o.name==='GiggleKart'),box=new THREE.Box3(),centre=new THREE.Vector3();let firstFailure=null,minDistance=Infinity;
+  for(let i=0;i<=36;i++){
+    flight.t=i/60;s.simAt=i*1000/60;s.simTick=i;s.karts[0].flight={...flight};s.karts[0].pose={...flightPose(c,flight),epoch:1,speed:20,grounded:false,wheels:[]};r.render(s);r.frame();r.advance(1000/60);
+    if(!model.visible)continue;
+    camera.updateMatrixWorld();model.updateMatrixWorld(true);baseKartBounds(model,box);box.getCenter(centre).project(camera);
+    const distance=camera.position.distanceTo(model.position);minDistance=Math.min(minDistance,distance);
+    if(!firstFailure&&(distance<6||Math.abs(centre.x)>=1||Math.abs(centre.y)>=1||physics.overlapsStatic(camera.position,{x:0,y:0,z:0,w:1},{x:.12,y:.12,z:.12})))firstFailure={i,distance,centre:centre.toArray(),eye:camera.position.toArray(),model:model.position.toArray()};
+  }
+  if(firstFailure)console.log('RAISED_MUZZLE_CAMERA '+JSON.stringify({mapId,aspect,firstFailure,minDistance}));
+  check(mapId+' '+aspect+' cannon muzzle keeps the kart framed and eye clear',!firstFailure);r.view.dispose();physics.dispose();
 }
 // No bounded side ray can frame a car inside this low, enclosed passage.
 // Reject every candidate while preserving closest-clear camera/ceiling safety.

@@ -23,13 +23,26 @@ export const CANNON_COOLDOWN = 2.5;    // seconds after landing before re-arm
 export const CANNON_LAND_SPEED = 14;   // m/s along the landing heading
 export const CANNON_HALF_WIDTH = .55; // centred in the open rear mouth
 export const CANNON_HALF_LENGTH = 1.2;
-export const PORTAL_HALF_WIDTH = 2.3;  // trigger box across the ring plane
-export const PORTAL_HALF_DEPTH = 1.1;  // and through it
+// Trigger when the front bumper reaches the ring, before the chassis hits
+// its now-solid frame. Only the open centre admits a kart, not the uprights.
+export const PORTAL_HALF_WIDTH = .55;
+export const PORTAL_HALF_DEPTH = 2.7;
 export const PORTAL_EXIT = 3.6;        // exit point ahead of the partner ring
 export const PORTAL_GRACE = 1.2;       // seconds no ring can trigger again
 export const PORTAL_MIN_EXIT_SPEED = 7;
 export const FEATURE_MIN_SPEED = 1;    // parked karts never trigger
 export const RIDE_HEIGHT = 0.75;       // body centre above ground at spawn
+export const CANNON_ENTRY_TIME = .11;
+export const CANNON_REVEAL_TIME = .18;
+export const CANNON_MOUTH_HEIGHT = 1.5;
+
+// One tube transform for art and collision. The open muzzle follows the
+// existing scripted launch arc; neither its path nor its landing changes.
+export function cannonTube(c,groundAt=()=>0){
+  const y0=c.y??groundAt(c.x,c.z),muzzle=flightPose(c,{x:c.x,y:y0+RIDE_HEIGHT,z:c.z,a:c.angle,ly:(c.land.y??groundAt(c.land.x,c.land.z))+RIDE_HEIGHT},CANNON_REVEAL_TIME).position;
+  const forward=(muzzle.x-c.x)*Math.sin(c.angle)+(muzzle.z-c.z)*Math.cos(c.angle),rise=muzzle.y-y0-CANNON_MOUTH_HEIGHT;
+  return{y0,muzzle,forward,rise,length:Math.hypot(forward,rise),pitch:Math.atan2(rise,forward)};
+}
 
 const TAU = Math.PI * 2;
 const wrap = (a) => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };

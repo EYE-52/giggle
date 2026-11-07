@@ -36,7 +36,7 @@ assert.equal(createRoadTerrain({...map,id:'unknown'}),null);
 assert.equal(createRoadTerrain({...map,id:'__proto__'}),null);
 assert.equal(classicStatics({...map,id:'unknown'})[0].shape,'box','unsupported map retains safe flat floor');
 const floor=classicStatics(map)[0];assert.equal(floor.shape,'trimesh');
-assert.equal(classicStatics(map).filter(d=>d.shape==='trimesh').length,1,'one terrain collider');
+assert.equal(classicStatics(map).filter(d=>d.shape==='trimesh'&&d.id==='floor').length,1,'one terrain collider, separate from hollow feature shells');
 const world=createKartPhysics(RAPIER,config);world.addStatic(floor);
 let maxSupportError=0;
 try{

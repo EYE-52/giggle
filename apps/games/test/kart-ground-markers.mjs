@@ -6,7 +6,7 @@ import {MeshoptDecoder} from '../public/vendor/three/libs/meshopt_decoder.mjs';
 import {createRoadTerrain} from '../public/js/engines/kart-road-terrain.mjs';
 import {createKartWorld} from '../public/js/engines/kart-world.mjs';
 import POCKET from '../games/pocket-karts/server.js';
-import {createGroundMarker,placeGroundMarker,disposeGroundMarker,placeGroundProp} from '../public/js/engines/kart-ground-markers.mjs';
+import {createGroundMarker,placeGroundMarker,disposeGroundMarker,prepareGroundProp,placeGroundProp} from '../public/js/engines/kart-ground-markers.mjs';
 import {createKartCombatArt} from '../public/js/engines/kart-combat-art.mjs';
 import maps from '../games/engines/kart-maps.js';
 
@@ -113,7 +113,10 @@ for(const id of maps.mapIds()){
   const countedTHREE={...THREE};
   for(const name of ['Box3','Vector3','BufferGeometry','Float32BufferAttribute'])countedTHREE[name]=new Proxy(THREE[name],{
     construct(target,args){constructorCounts[name]=(constructorCounts[name]||0)+1;return Reflect.construct(target,args);}});
-  placeGroundProp(countedTHREE,prop,0,0,0,ground);
+  const initialPosition=prop.position.toArray(),initialRotation=prop.quaternion.toArray();
+  prepareGroundProp(countedTHREE,prop);
+  assert.deepEqual(prop.position.toArray(),initialPosition,'preparing a spare trap does not fit it to an unused ground position');
+  assert.deepEqual(prop.quaternion.toArray(),initialRotation,'preparing a spare trap preserves its authored rotation');
   const warmedCounts={...constructorCounts};
   for(const site of sites){
     placeGroundProp(countedTHREE,prop,site.x,ground(site.x,site.z),site.z,ground);

@@ -6,6 +6,7 @@ const {elevatedFallZone}=require('../../public/js/engines/kart-elevated-surfaces
 // elevated map, and supplies server receipt/advance times (never client clocks).
 const { createKartPhysics } = require('./kart-physics');
 const {createElevatedMotion,clearElevatedDrift,ELEVATED_MOTION_FIELDS}=require('../../public/js/engines/kart-elevated-motion.mjs');
+const {elevatedStatics}=require('../../public/js/engines/kart-feature-solids.mjs');
 const B = require('./kart-rules-battle').constants;
 const H = require('./kart-engine').constants;
 const {config:COMBAT,damageAt} = require('./kart-combat-config');
@@ -137,7 +138,7 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
   function crateAt(socket) { return {id:entity('c'),socketId:socket.id,surfaceId:socket.surface,position:{x:socket.x,y:socket.y+0.6,z:socket.z},availableAt:simAt}; }
   function rollWeapon() { let edge=0; const r=rand()*100; for(const [id,weight] of Object.entries(ARSENAL.weights)) { edge+=weight; if(r<edge) return id; } return 'nuke'; }
   try {
-    for(const d of M.colliders) physics.addStatic(d);
+    for(const d of elevatedStatics(M)) physics.addStatic(d);
     spawns=M.spawns.filter(legalSpawn);
     sockets=M.sockets.filter(s=>supported(s) && !physics.sweepStatic({x:s.x,y:s.y+0.65,z:s.z},{x:s.x,y:s.y+0.65,z:s.z},0.45));
     if(spawns.length < seats.length || sockets.length < 2) throw new Error('map lacks supported clear spawns/sockets');

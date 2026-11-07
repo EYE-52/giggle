@@ -11,11 +11,27 @@ import {createKartElevatedWorld} from '../public/js/engines/kart-elevated-world.
 import COMBAT from '../games/engines/kart-elevated-combat.js';
 import ADAPTER from '../games/engines/kart-elevated-adapter.js';
 import {createElevatedPrediction} from '../public/js/engines/kart-elevated-prediction.mjs';
+import {arenaFeatureSolids,elevatedStatics} from '../public/js/engines/kart-feature-solids.mjs';
 await R.init();
 const yaw=a=>({x:0,y:Math.sin(a/2),z:0,w:Math.cos(a/2)}),near=(a,b)=>Math.abs(a-b)<.06;
 const reports=[];
 for(const id of elevatedMapIds){
  const map=elevatedMap(id),p=createKartPhysics(R,C);map.colliders.forEach(d=>p.addStatic(d));
+ const statics=elevatedStatics(map),featureSolids=arenaFeatureSolids(map.features),solidProbe=createKartPhysics(R,C);
+ assert.equal(statics.length,map.colliders.length+map.features.cannons.length+map.features.portals.flat().length,id+' one solid shell per feature');
+ assert.equal(new Set(statics.map(d=>d.id)).size,statics.length,id+' no duplicate static ids');
+ for(const d of featureSolids)solidProbe.addStatic(d);
+ for(const [i,c]of map.features.cannons.entries()){
+  const s=Math.sin(c.angle),co=Math.cos(c.angle),point=(v)=>({x:c.x+s*.8+co*v,y:c.y+1.5,z:c.z+co*.8-s*v});
+  assert.equal(solidProbe.sweepStatic(point(-4.2),point(4.2),.22)?.surfaceId,'cannon-solid-'+i,id+' raised cannon sides are solid');
+ }
+ for(const [pair,rings]of map.features.portals.entries())for(const [side,f]of rings.entries()){
+  const s=Math.sin(f.angle),co=Math.cos(f.angle),point=(u)=>({x:f.x+s*u+co*2.15,y:f.y+2.45,z:f.z+co*u-s*2.15});
+  assert.equal(solidProbe.sweepStatic(point(-2),point(2),.22)?.surfaceId,`portal-solid-${pair}-${side}`,id+' portal upright is solid on its authored storey');
+ }
+ for(const d of map.colliders)solidProbe.addStatic(d);
+ for(const s of map.spawns)assert(!solidProbe.overlapsStatic({x:s.x,y:s.y+1,z:s.z},yaw(s.angle)),id+'/'+s.id+' starts clear of every solid feature');
+ solidProbe.dispose();
  const checkPoint=(f,label,lane=0)=>{
   const rot=yaw(f.angle);
   for(let t=0;t<=lane;t+=.5){
@@ -59,10 +75,12 @@ for(const id of elevatedMapIds){
  const authored=structuredClone(map),entry={...c,x:c.x-Math.sin(c.angle)*4,z:c.z-Math.cos(c.angle)*4};
  authored.spawns[0]={...entry,id:'approach',surface:c.surface};
  const game=COMBAT.createElevatedCombat(R,C,authored,[{id:'a'},{id:'b'}],{instance:'routes-'+id,seed:7,countdownMs:0,roundMs:15000,crates:1});
+ assert.equal(game.stats().physics.statics,statics.length,id+' authority installs every solid exactly once');
  const prediction=createElevatedPrediction(R);let maxPredictionError=0;
  const convert=raw=>({...raw,instanceId:raw.instance,you:'a',youDrive:true,inputAck:raw.you});
  try{let landed=false,last=convert(game.snapshot('a'));
   game.advance(1000/60);last=convert(game.snapshot('a'));prediction.ingest(last,1000,last.serverAt);
+  assert.equal(prediction.stats().physics.statics,statics.length,id+' prediction installs the same solids exactly once');
   for(let n=0;n<420;n++){const s=game.snapshot('a');if(n%6===0)assert(game.input('a',{instance:s.instance,life:s.you.life,controlEpoch:s.you.controlEpoch,seq:s.you.receivedSeq+1,steer:0,throttle:.8,brake:0,nitro:false,use:false},s.serverAt).ok);const at=s.serverAt+1000/60,arrival=1000+(n+1)*1000/60;
    const predicted=prediction.frame(last,{steer:0,throttle:.8,brake:0,nitro:false,use:false},C.fixedDt,arrival,at);
    game.advance(at);const next=convert(game.snapshot('a'));

@@ -16,6 +16,9 @@ import {surfaceProfile} from './kart-surface.mjs';
 import {driftTier,DRIFT_TIERS} from './kart-drift.mjs';
 import {createKartArenaFeatures} from './kart-arena-features-art.mjs';
 import {loadElevatedPhysics,createElevatedPrediction} from './kart-elevated-prediction.mjs';
+import {createKartWarmupLibrary,warmKartRenderer} from './kart-render-warmup.mjs';
+import {createKartCameraCollision} from './kart-camera-collision.mjs';
+import {arenaFeatureSolids} from './kart-feature-solids.mjs';
 /* Elevated combat presentation for real Room snapshots. No gameplay or
  * client coordinates are sent: only sequenced, life-scoped intent. */
 import {createThreeView} from '../renderers/three-view.js';
@@ -165,7 +168,7 @@ export function createElevatedKartView() {
   }
   async function scene(THREE,helper,gen){
     const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(52,1,.1,650),renderer=helper.renderer();
-    let world,art,library,healthBars,impactFX,skids,threats,arsenalFX,arena,drivingFX,scenePrediction,pickups,shadows,kartLod;const slidePose={angle:0,physicalPose:{linearVelocity:null,grounded:true}};const lodEntries=[],models=new Map(),rigs=new Map(),objects=new Map(),effects=[];
+    let world,art,library,healthBars,impactFX,skids,threats,arsenalFX,cameraCollision,arena,drivingFX,scenePrediction,pickups,shadows,kartLod;const slidePose={angle:0,physicalPose:{linearVelocity:null,grounded:true}};const lodEntries=[],models=new Map(),rigs=new Map(),objects=new Map(),effects=[];
     try{
       const physicsReady=S.youDrive?loadElevatedPhysics().catch(()=>null):Promise.resolve(null);
       const map=elevatedMap(S.mapId);if(map.revision!==S.mapRevision)throw Error('Arena revision mismatch');
@@ -208,6 +211,7 @@ export function createElevatedKartView() {
       const target=new THREE.Vector3(),desired=new THREE.Vector3(),nose=new THREE.Vector3(),direction=new THREE.Vector3(),ray=new THREE.Raycaster();
       const collisionMeshes=[...world.colliderMeshes.values()].map(value=>value.cameraBody||value.body);
       const cameraQuery=createRaisedCameraQuery(THREE,collisionMeshes);
+      cameraCollision=createKartCameraCollision(THREE,[...collisionMeshes,...arenaFeatureSolids(map.features)]);
       function clearCamera(position,focus){
         direction.subVectors(position,focus);const distance=direction.length();if(distance<.001)return;
         ray.set(focus,direction.normalize());ray.far=distance;hits.length=0;cameraQuery.intersect(ray,hits);
@@ -271,12 +275,15 @@ export function createElevatedKartView() {
       warm.push(...flashes.map(f=>f.mesh));
       warm.push(...effects.map(f=>f.mesh));camera.position.set(0,5,-9);camera.lookAt(0,0,0);
       for(const object of warm){object.visible=true;object.position.set(0,-100,0);object.traverse(o=>{if(!warmFrustum.has(o))warmFrustum.set(o,o.frustumCulled);o.frustumCulled=false;});}
-      shadows.update();await renderer.compileAsync(scene,camera);renderer.render(scene,camera);
+      shadows.update();
+      const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,art);
+      await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===generation,
+        roots:[...warm,warmLibrary,arena.root,drivingFX.particles,drivingFX.speedLines,scene.getObjectByName('KartSkidMarks'),
+          scene.getObjectByName('KartThreatRing'),scene.getObjectByName('KartImpactFX')]});
       for(const object of warm){object.visible=false;object.position.set(0,0,0);const combat=object.userData.combat;if(combat&&combat.type!=='projectile')object.removeFromParent();}
       kartLod.object.count=0;
       for(const [o,flag]of warmFrustum)o.frustumCulled=flag;warmFrustum.clear();
       statusDummy.removeFromParent();arsenalFX.reset();
-      await impactFX.warmup(renderer,camera);
       if(gen!==generation)throw Error('Retired arena');
       function effect(e){
         if(!e.position)return;
@@ -354,9 +361,10 @@ export function createElevatedKartView() {
         if(prefix==='mine:')minesSeen=true; // later mines are fresh drops; the first batch was already down
         for(const[id,object]of objects)if(id.startsWith(prefix)&&!ids.has(id)){object.visible=false;if(object.userData.poolKey)pools.get(object.userData.poolKey).push(object);else object.removeFromParent();objects.delete(id);}
       }
-      let minesSeen=false,objectTick='',started=false,cameraLife='',sideYaw=0,selectedSideYaw=0,recovery=0,sideSettling=false;
-      const cameraAnchor=new THREE.Vector3(),sideEye=new THREE.Vector3(),recoveryEye=new THREE.Vector3(),modelBox=new THREE.Box3(),meshBox=new THREE.Box3(),corner=new THREE.Vector3(),probeCamera=new THREE.PerspectiveCamera(52,1,.1,650);
+      let minesSeen=false,objectTick='',started=false,cameraLife='',sideYaw=0,selectedSideYaw=0,sideHeight=3,recovery=0,sideSettling=false;
+      const cameraAnchor=new THREE.Vector3(),cameraSolidAnchor=new THREE.Vector3(),sideEye=new THREE.Vector3(),recoveryEye=new THREE.Vector3(),modelBox=new THREE.Box3(),meshBox=new THREE.Box3(),corner=new THREE.Vector3(),probeCamera=new THREE.PerspectiveCamera(52,1,.1,650);
       const cameraModels=new WeakMap(),contactBoxes=new WeakMap(),contactPoint=new THREE.Vector3(),sideAngles=[25,-25,45,-45,60,-60,75,-75,90,-90];
+      const launchHeights=[0,3,7,11],launchAngles=[0,25,-25,45,-45,90,-90,135,-135,180];
       for(const [id,value]of world.colliderMeshes){const descriptor=value.descriptor||map.colliders?.find(d=>d.id===id),body=value.cameraBody||value.body;if(descriptor?.shape==='box'){body.updateWorldMatrix(true,false);body.geometry.computeBoundingBox();contactBoxes.set(body,{box:body.geometry.boundingBox,inverse:new THREE.Matrix4().copy(body.matrixWorld).invert()});}}
       function cameraModel(model){
         let data=cameraModels.get(model);if(data)return data;
@@ -409,8 +417,8 @@ export function createElevatedKartView() {
         return true;
       }
       function trySideCamera(yaw,data){
-        sideEye.copy(nose).negate().applyAxisAngle(up,yaw*Math.PI/180).multiplyScalar(8.5).add(cameraAnchor);sideEye.y+=3;
-        clearCamera(sideEye,cameraAnchor);return sideCameraFits(data);
+        sideEye.copy(nose).negate().applyAxisAngle(up,yaw*Math.PI/180).multiplyScalar(8.5).add(cameraAnchor);sideEye.y+=sideHeight;
+        clearCamera(sideEye,cameraAnchor);cameraCollision.constrain(sideEye,cameraSolidAnchor);return sideCameraFits(data);
       }const dummy=new THREE.Object3D();
       function movingItems(list,prefix,previousList,currentList,alpha){
         for(const value of list||[]){
@@ -485,14 +493,18 @@ export function createElevatedKartView() {
         const followed=self()||S.karts[0];
         // Keep the followed animal/paint in full detail; batch the crowd.
         lodEntries.length=0;for(const [id,model]of models)if(id!==followed?.id)lodEntries.push({mesh:model,color:model.userData.lodColor||0xffcf6f,visible:model.visible});kartLod.update(camera,lodEntries,kartLightTier(renderer)==='low'?0:1);kartLod.object.visible=kartLod.object.count>0;
-        const life=`${S.instanceId}:${followed?.id}:${followed?.spawnSeq}:${followed?.controlEpoch}:${models.get(followed?.id)?.userData.poseEpoch}`;if(life!==cameraLife){cameraLife=life;started=false;sideYaw=0;selectedSideYaw=0;recovery=0;sideSettling=false;}
-        const model=models.get(followed?.id);
+        const life=`${S.instanceId}:${followed?.id}:${followed?.spawnSeq}:${followed?.controlEpoch}:${models.get(followed?.id)?.userData.poseEpoch}`;if(life!==cameraLife){cameraLife=life;started=false;sideYaw=0;selectedSideYaw=0;sideHeight=3;recovery=0;sideSettling=false;}
+        const model=models.get(followed?.id),launch=followed?.id===S.you&&predicted?predicted.flight:followed?.flight;
         if(model){
+          cameraSolidAnchor.copy(model.position);
           nose.set(0,0,1).applyQuaternion(model.quaternion);nose.y=0;if(nose.lengthSq()<.05)nose.set(0,0,1);nose.normalize();
           target.copy(model.position).addScaledVector(nose,4);target.y+=1.4;
           // A look-ahead beyond a wall would cast clearance from its far side.
           desired.copy(model.position);desired.y+=1.4;clearCamera(target,desired);
           desired.copy(model.position).addScaledVector(nose,-8.5);desired.y+=4.4;let cramped=clearCamera(desired,target);
+          // A head-height look target can sit in a portal frame even when
+          // the chassis is clear. Sweep feature shells from the chassis.
+          cramped=cameraCollision.constrain(desired,cameraSolidAnchor)||cramped;
           const rear=-direction.subVectors(desired,model.position).dot(nose);
           // Keep recovery aim attached to the moving chassis while orbiting.
           let returning=direction.subVectors(model.position,cameraAnchor).dot(nose)<-.001;
@@ -515,6 +527,7 @@ export function createElevatedKartView() {
             if(!valid&&(sideMode||cramped)){
               recovery=0;
               const preferred=Math.sign(sideYaw);sideYaw=0;
+              sideHeight=3;
               // Smallest clear departure; keep the selected side while valid.
               for(let pass=0;pass<(preferred?2:1)&&!valid;pass++)for(let index=0;index<sideAngles.length;index++){
                 // A reversing approach needs the clear side before eye clearance
@@ -522,6 +535,14 @@ export function createElevatedKartView() {
                 const yaw=sideAngles[returning?sideAngles.length-1-index:index];
                 if(preferred&&(pass===0?Math.sign(yaw)!==preferred:Math.sign(yaw)===preferred))continue;
                 if(trySideCamera(yaw,data)){sideYaw=selectedSideYaw=yaw;valid=true;break;}
+              }
+              // A steep launch tube can close every ordinary side orbit.
+              // Look through its open rear at entry, or ahead of the muzzle,
+              // rather than allowing clearance to put the eye inside the kart.
+              if(!valid&&launch)for(const height of launchHeights){
+                sideHeight=height;
+                for(const yaw of launchAngles)if(trySideCamera(yaw,data)){sideYaw=selectedSideYaw=yaw;valid=true;break;}
+                if(valid)break;
               }
             }
             if(valid){desired.copy(sideEye);target.copy(cameraAnchor);sideMode=true;sideSettling=true;}else sideMode=false;
@@ -543,6 +564,8 @@ export function createElevatedKartView() {
           // ceilings where none of the bounded camera candidates is valid.
           cramped=clearCamera(cameraPosition,cameraTarget)||cramped;
           cramped=clearCamera(cameraPosition,cameraAnchor)||cramped;
+          cramped=cameraCollision.constrain(cameraPosition,model.position)||cramped;
+          if(launch&&sideMode&&cameraPosition.distanceToSquared(model.position)<36&&desired.distanceToSquared(model.position)>36){cameraPosition.copy(desired);cameraTarget.copy(target);}
           camera.position.copy(cameraPosition);
           const shake=hitFx?.shake();if(shake&&(shake.x||shake.y)){camera.position.x+=shake.x;camera.position.y+=shake.y;cramped=clearCamera(camera.position,cameraTarget)||cramped;}
           if(cameraKick>0&&!helper.reducedMotion()){
@@ -550,9 +573,13 @@ export function createElevatedKartView() {
             cameraKick=Math.max(0,cameraKick-dt*.55);cramped=clearCamera(camera.position,cameraTarget)||cramped;
             cramped=clearCamera(camera.position,cameraAnchor)||cramped;
           }
+          // A ray protects only the eye's centre. Sweep the near-plane volume
+          // too, after all easing, recovery or shake, from the clear chassis.
+          cramped=cameraCollision.constrain(camera.position,model.position)||cramped;
           const finalRear=-direction.subVectors(camera.position,model.position).dot(nose);
           const lookAhead=cramped&&!sideMode?Math.max(0,Math.min(1,(finalRear-CONFIG.chassis.half.z)/(8.5-CONFIG.chassis.half.z))):1;
           target.copy(cameraTarget).lerp(cameraAnchor,1-lookAhead);clearCamera(camera.position,target);clearCamera(camera.position,cameraAnchor);
+          cameraCollision.constrain(camera.position,model.position);
           camera.lookAt(target);healthBars.face(camera);
         }
         {const own=self(),ownModel=own?.alive&&S.youDrive?models.get(own.id):null;threats.update(itemsFresh&&S.phase==='live'?S:null,S.you,ownModel?.position,camera);}
@@ -561,8 +588,8 @@ export function createElevatedKartView() {
         const k=self();
         const lateral=model&&k?.pose.linearVelocity?Math.abs(direction.copy(k.pose.linearVelocity).dot(nose.set(1,0,0).applyQuaternion(model.quaternion))):0;
         updateAudio(!!k?.pose.grounded&&Math.abs(k.pose.speed)>4&&lateral>1.4);clock();
-      },dispose(){kartLod.dispose();pickups.dispose();shadows.dispose();scenePrediction?.dispose();if(prediction===scenePrediction){prediction=null;predicted=null;}arena.dispose();drivingFX.dispose();world.dispose();art.dispose();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();skids.dispose();threats.dispose();for(const f of effects)f.mesh.dispose();for(const cue of confirmedShots){cue.object.visible=false;cue.object.removeFromParent();}confirmedShots.length=0;confirmedPools.clear();closeKartAssetBitmaps(library);models.clear();objects.clear();rigs.clear();}};
-    }catch(error){kartLod?.dispose();pickups?.dispose();shadows?.dispose();scenePrediction?.dispose();if(prediction===scenePrediction){prediction=null;predicted=null;}arena?.dispose();drivingFX?.dispose();world?.dispose();art?.dispose();healthBars?.dispose();impactFX?.dispose();arsenalFX?.dispose();skids?.dispose();threats?.dispose();helper.disposeObject(scene);closeKartAssetBitmaps(library);throw error;}
+      },dispose(){cameraCollision.dispose();kartLod.dispose();pickups.dispose();shadows.dispose();scenePrediction?.dispose();if(prediction===scenePrediction){prediction=null;predicted=null;}arena.dispose();drivingFX.dispose();world.dispose();art.dispose();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();skids.dispose();threats.dispose();for(const f of effects)f.mesh.dispose();for(const cue of confirmedShots){cue.object.visible=false;cue.object.removeFromParent();}confirmedShots.length=0;confirmedPools.clear();closeKartAssetBitmaps(library);models.clear();objects.clear();rigs.clear();}};
+    }catch(error){cameraCollision?.dispose();kartLod?.dispose();pickups?.dispose();shadows?.dispose();scenePrediction?.dispose();if(prediction===scenePrediction){prediction=null;predicted=null;}arena?.dispose();drivingFX?.dispose();world?.dispose();art?.dispose();healthBars?.dispose();impactFX?.dispose();arsenalFX?.dispose();skids?.dispose();threats?.dispose();helper.disposeObject(scene);closeKartAssetBitmaps(library);throw error;}
   }
   function graphicsFailure(){
     graphicsFailed=true;gfxReady=false;stop();clock();newEvents.length=0;$('loading').hidden=false;$('loading').replaceChildren();const text=document.createElement('p');text.textContent='The 3D arena could not load. Retry or return to the room.';const retry=document.createElement('button');retry.textContent='Retry 3D';retry.setAttribute('data-watchok','');retry.onclick=()=>{if(pending)return;retry.disabled=true;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;graphicsFailed=false;loadScene();};$('loading').append(text,retry);
@@ -594,6 +621,7 @@ export function createElevatedKartView() {
     if(roomPanel){const panel=$('menu').querySelector('.pke-panel');panel.classList.add('pke-room-settings');roomPanel.append(panel);listeners.push([panel,'owned-panel',null]);$('menu').hidden=true;$('resume').hidden=true;root.classList.add('pke-has-room');on(roomMenu,'toggle',()=>{stop();paint();if(!roomMenu.open&&active()&&roomMenu.contains(document.activeElement))gl?.canvas.focus({preventScroll:true});});}
     try{preference=localStorage.getItem('pk-controls-v1')||'auto';}catch{preference='auto';}if(!['auto','keyboard','touch'].includes(preference))preference='auto';
     audio=createKartAudio({muted:api.context?.().sound===false});
+    audio.prep?.();
     on(root,'pointerdown',()=>audio?.unlock());on(window,'keydown',()=>{if(root.contains(document.activeElement))audio?.unlock();});
     on($('resume'),'click',()=>{$('menu').open=false;if(roomMenu)roomMenu.open=false;gl?.canvas.focus({preventScroll:true});});on($('menu'),'toggle',()=>{stop();paint();});
     on($('controls'),'change',event=>{stop();preference=event.target.value;try{localStorage.setItem('pk-controls-v1',preference);}catch{}touch();});
@@ -655,5 +683,5 @@ export function createElevatedKartView() {
     hitFx?.dispose();hitFx=null;root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;lastSnapshotArrival=null;
   }
   return {ownsTimer:true,ownsInputs:true,styles:['/css/kart-elevated.css'],mount,update,dispose,
-    async ready(){await sceneReady;if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};
+    async ready(){await sceneReady;await audio?.ready?.();if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};
 }

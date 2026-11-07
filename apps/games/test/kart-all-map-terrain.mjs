@@ -59,7 +59,9 @@ for(const id of maps.mapIds()){
   try{
     for(const angle of [0,Math.PI/2,Math.PI,-Math.PI/2])for(const radius of [0,.45]){
       const s=Math.sin(angle),c=Math.cos(angle);
-      const hit=supportWorld.sweepStatic({x:s*(map.half-5),y:1,z:c*(map.half-5)},
+      // Start beyond the portal/cannon frames near the boundary. Their own
+      // solid contacts have separate tests; this ray isolates the fence.
+      const hit=supportWorld.sweepStatic({x:s*(map.half-1.5),y:1,z:c*(map.half-1.5)},
         {x:s*(map.half+5),y:1,z:c*(map.half+5)},radius);
       assert.ok(hit?.surfaceId.startsWith('wall-')&&hit.fraction>0&&hit.fraction<1,id+' exact fast boundary sweep');
       assert.ok(hit.normal.x*s+hit.normal.z*c<-.99,id+' inward-facing physical boundary contact');

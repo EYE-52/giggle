@@ -78,7 +78,7 @@ async function main() {
     await start(clients, params('Alpine Courtyard'));
     const first = clients[0], other = clients[1], watcher = clients[23], initial = first.state;
     eq(first.state.profile, 'elevated-combat-v1'); eq(first.state.map.label, 'Alpine Courtyard');
-    eq(first.state.configVersion, 1); eq(first.state.physicsVersion, 2); eq(first.state.mapRevision, 'combat-elevation-2-routes-1');
+    eq(first.state.configVersion, 1); eq(first.state.physicsVersion, 2); eq(first.state.mapRevision, 'combat-elevation-2-routes-2');
     eq(first.state.waitForResult, true); eq(first.state.phase, 'countdown');
     eq(first.state.players.length, 8); eq(first.state.spectators.length, 16); eq(first.state.karts.length, 8);
     for (const c of clients) {

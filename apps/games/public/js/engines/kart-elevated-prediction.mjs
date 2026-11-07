@@ -3,6 +3,7 @@
  * intervals, and freeze after packet loss. Remotes stay confirmed colliders. */
 import CONFIG from './kart-physics-config.mjs';
 import {createKartPhysics} from './kart-physics-core.mjs';
+import {elevatedStatics} from './kart-feature-solids.mjs';
 import {createElevatedMotion,clearElevatedMotion} from './kart-elevated-motion.mjs';
 import {elevatedMap} from './kart-elevated-maps.mjs';
 import {blendElevatedPose} from './kart-elevated-pose.mjs';
@@ -29,7 +30,7 @@ export function createElevatedPrediction(R){
     const key=[snapshot.instanceId,snapshot.mapId,snapshot.mapRevision,snapshot.you].join(':');
     if(key!==identity){
       clear();identity=key;physics=createKartPhysics(R,CONFIG);
-      const map=elevatedMap(snapshot.mapId);map.colliders.forEach(d=>physics.addStatic(d));
+      const map=elevatedMap(snapshot.mapId);elevatedStatics(map).forEach(d=>physics.addStatic(d));
       for(const k of snapshot.karts){physics.addKart(k.id,k.pose);peers.add(k.id);if(k.id!==source.id)physics.freezeKart(k.id,true);}
       kart={...structuredClone(source),input:neutral()};motion=createElevatedMotion({physics,map,karts:[kart]});
     }

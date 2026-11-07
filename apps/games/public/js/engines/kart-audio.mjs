@@ -24,8 +24,8 @@ import {surfaceProfile} from './kart-surface.mjs';
  *   - call audio.dispose() when the view disposes.
  *
  * Lifecycle guarantees:
- * - Lazy: zero AudioContext/nodes/requests before unlock(). Loading starts
- *   on unlock() (gesture) or an explicit prep(); decode readiness is async.
+ * - Lazy until unlock() or explicit loading-screen prep(). Preparation
+ *   builds the silent graph and decodes samples; only a gesture unlocks it.
  * - A rejected resume() never latches; update()/cue() retry throttled.
  * - setMuted(true), update({active:false}), or a hidden tab immediately
  *   silences the continuous beds AND in-flight cue voices;
@@ -329,14 +329,16 @@ export function createKartAudio(opts) {
     }
   };
 
-  const audible = () => !disposed && !!ctx && !!graph && !muted && active && engineActive && !docHidden();
+  const audible = () => !disposed && unlocked && !!ctx && !!graph && !muted && active && engineActive && !docHidden();
 
-  /* ---------------- persistent graph (built once on unlock) ---------------- */
+  /* ---------------- persistent graph (built once on prep/unlock) ---------------- */
   /* Gain order: master, engineBus, cueBus, idleG, driftG, revG, loadG. */
 
   const buildGraph = (c) => {
     const master = c.createGain();
-    master.gain.value = 0.8;
+    // prep() may run before a gesture, even on an already-running context.
+    // Keep every source silent until unlock(), including procedural noise.
+    master.gain.value = 0;
     let head = master;
     try {
       if (typeof c.createDynamicsCompressor === 'function') {
@@ -575,9 +577,10 @@ export function createKartAudio(opts) {
 
   const onBufferReady = (file) => {
     /* Cue buffers just wait for the next real event (never self-fire).
-     * Loop beds start now only when audible; otherwise the next audible
-     * frame starts them with the latest latched drive frame. */
+     * During prep the beds start behind the silent master. Once unlocked,
+     * mute/visibility still gate them and the latest drive frame wins. */
     if (!Object.values(LOOP_MAP).includes(file)) return;
+    if (!unlocked) { startPendingLoops(true); return; }
     if (!audible()) return;
     startPendingLoops();
     try {
@@ -585,8 +588,8 @@ export function createKartAudio(opts) {
     } catch { /* frames will drive levels */ }
   };
 
-  const startPendingLoops = () => {
-    if (!audible()) return;
+  const startPendingLoops = (preparing = false) => {
+    if (disposed || !ctx || !graph || (!preparing && !audible())) return;
     if (typeof ctx.createBufferSource !== 'function') return;
     const want = [
       ['engine', LOOP_MAP.engine, graph.engFilter],
@@ -821,6 +824,17 @@ export function createKartAudio(opts) {
    * One bounded voice per cue on the cue bus, tracked like a sampled cue so
    * mute, hide, steal and dispose silence it the same way. */
   let synthCues = null;
+  const prepareGraph = () => {
+    if (disposed) return false;
+    if (!ctx) {
+      try { ctx = factory(); } catch { ctx = null; }
+      if (!ctx) return false;
+    }
+    if (!graph) {
+      try { graph = buildGraph(ctx); } catch { graph = null; return false; }
+    }
+    return true;
+  };
   const playSynthCue = (name, options = {}) => {
     tryResume(false);
     if (!synthCues || synthCues.ctx !== ctx) synthCues = createSynthCues({ ctx, bus: graph.cueBus, track, stealIfFull });
@@ -838,22 +852,8 @@ export function createKartAudio(opts) {
     unlock() {
       if (disposed) return false;
       unlocked = true;
-      if (!ctx) {
-        try {
-          ctx = factory();
-        } catch {
-          ctx = null;
-        }
-        if (!ctx) return false;
-      }
-      if (!graph) {
-        try {
-          graph = buildGraph(ctx);
-        } catch {
-          graph = null;
-          return false;
-        }
-      }
+      if (!prepareGraph()) return false;
+      at(graph.master.gain, .8, now());
       tryResume(true);
       ensureLoad('gesture');
       // Warm the idle beds now so the first frame is already placed; loop
@@ -867,9 +867,13 @@ export function createKartAudio(opts) {
       return true;
     },
 
-    /* Explicit preload outside a gesture (optional; unlock() also loads). */
+    /* Loading only. AudioContext creation can block for 100ms on a cold
+     * device. Do it while the loading screen is up, not on first throttle.
+     * Does not resume the context, unlock playback or queue any cue. */
     prep() {
-      if (disposed || !unlocked || !ctx) return false;
+      if (!prepareGraph()) return false;
+      if (!synthCues) synthCues = createSynthCues({ ctx, bus: graph.cueBus, track, stealIfFull });
+      synthCues.prep();
       ensureLoad('gesture');
       return true;
     },
@@ -1093,6 +1097,7 @@ export function createKartAudio(opts) {
         graph = null;
       }
       live.clear();
+      synthCues = null;
       if (ctx) {
         try {
           if (typeof ctx.close === 'function') {
@@ -1312,5 +1317,5 @@ export function createSynthCues({ ctx, bus, track, stealIfFull }) {
       return true;
     } catch { return false; }
   }
-  return { ctx, play, names: () => [...SYNTH_CUE_NAMES] };
+  return { ctx, play, prep: noiseBuffer, names: () => [...SYNTH_CUE_NAMES] };
 }

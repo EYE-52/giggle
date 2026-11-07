@@ -8,7 +8,8 @@
  * createKartArenaFeatures(THREE, scene, { groundAt, reducedMotion }) -> {
  *   sync(map), ingest(events, karts), animate(dt, t, S, poses),
  *   dressKart(k, mesh, predictedFlight = k.flight) -> bool, dispose() } */
-import {flightPose, portalExit, cannonFlightTime, RIDE_HEIGHT} from './kart-map-features.mjs';
+import {portalExit,cannonFlightTime,cannonTube,CANNON_ENTRY_TIME,CANNON_REVEAL_TIME,CANNON_MOUTH_HEIGHT} from './kart-map-features.mjs';
+export {CANNON_ENTRY_TIME,CANNON_REVEAL_TIME,CANNON_MOUTH_HEIGHT} from './kart-map-features.mjs';
 import {mergeStaticMeshes} from './kart-instancing.mjs';
 
 const PORTAL_COLORS = [[0xff8a2a, 0x39b8ff], [0xb46cff, 0x6dffb0]];
@@ -20,9 +21,6 @@ const FALL_STYLE = {
 };
 const CANNON_BODY = { ring: 0xe2453b, blocks: 0x3b7be2, garden: 0xe2453b, frost: 0x3d6fd6, neon: 0xff4fd0 };
 const MAX_PARTICLES = 160;
-export const CANNON_ENTRY_TIME = .11;
-export const CANNON_REVEAL_TIME = .18;
-export const CANNON_MOUTH_HEIGHT = 1.5;
 
 export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, reducedMotion = () => false } = {}) {
   const root = new THREE.Group(); root.name = 'arena-features'; scene.add(root);
@@ -124,9 +122,7 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     for(const side of [-1,1])add(G.wheel,M.metal,side*2.4,.8,2.8);
     // Both ends are genuinely hollow. The nominal muzzle lies on the
     // existing ballistic arc; only the first 180ms are dressed inside it.
-    const nominal=flightPose(c,{x:c.x,y:y0+RIDE_HEIGHT,z:c.z,a:c.angle,ly:(c.land.y??groundAt(c.land.x,c.land.z))+RIDE_HEIGHT},CANNON_REVEAL_TIME);
-    const dx=nominal.position.x-c.x,dz=nominal.position.z-c.z,s=Math.sin(c.angle),co=Math.cos(c.angle);
-    const forward=dx*s+dz*co,rise=nominal.position.y-y0-CANNON_MOUTH_HEIGHT,length=Math.hypot(forward,rise),pitch=Math.atan2(rise,forward);
+    const {forward,rise,length,pitch,muzzle}=cannonTube(c,groundAt);
     const barrel=new THREE.Group();barrel.name='cannon-open-tube';barrel.position.set(0,CANNON_MOUTH_HEIGHT+rise/2,forward/2);barrel.rotation.x=-pitch;barrel.scale.z=length;group.add(barrel);
     const body=new THREE.Mesh(G.barrel,bodyMat(theme));body.name='cannon-outer-shell';body.castShadow=true;barrel.add(body);
     const inner=new THREE.Mesh(G.inner,M.inner);inner.name='cannon-inner-lining';barrel.add(inner);
@@ -144,7 +140,7 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     for (let i = 0; i < 2; i++) { const ch = new THREE.Mesh(G.chevron, M.chevron); ch.position.set(0, .02, 3.3 + i * 1.1); ch.scale.set(1, 1, .4); land.add(ch); }
     land.rotation.y = c.land.angle;
     group.userData.land = land; root.add(land);
-    return {group,barrel,land,c,index,y0,pitch,slope:rise/forward,muzzle:nominal.position};
+    return {group,barrel,land,c,index,y0,pitch,slope:rise/forward,muzzle};
   }
   function buildPortal(p, pair, side) {
     const group = new THREE.Group(); group.name = 'arena-portal-' + pair + '-' + side;

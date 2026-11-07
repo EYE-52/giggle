@@ -28,7 +28,7 @@ export function createElevatedMotion({physics,map,karts,emit}){
     return !!s&&Math.abs(s.point.y-p.y)<.12&&!physics.overlapsStatic(position,rotation);
   }
   const runner=createFeatureRunner({physics,state,features:map.features,enabled,project,groundAt:()=>0,
-    canEnter(k,f){const p=k.physicalPose;return !!p.grounded&&Math.abs(p.position.y-f.y-RIDE_HEIGHT)<.65&&p.wheels.some(w=>w.contact&&w.surfaceId===f.surface);},
+    canEnter(k,f){const p=k.physicalPose,cannon=map.features?.cannons?.indexOf(f)??-1;return !!p.grounded&&Math.abs(p.position.y-f.y-RIDE_HEIGHT)<.65&&p.wheels.some(w=>w.contact&&(w.surfaceId===f.surface||cannon>=0&&w.surfaceId==='cannon-solid-'+cannon));},
     canArrive:arrival,onEvent(type,k,e){
       const position={...physics.pose(k.id).position};
       const extra={...e,position};
