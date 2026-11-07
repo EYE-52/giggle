@@ -1322,9 +1322,11 @@ driver('pocket-karts', () => {
   // --- Zap Battle: chase, rising-edge fire, hits score.
   const ctx2 = new FakeCtx(roster(2), settingsFor(def, {
     // Curated weapons include traps and self buffs, and lower bumper friction
-    // changes the pursuit route: two minutes give the chasing bots time to
-    // roll, land mounted shots and finish a knockout.
-    mode: battleMode, map: enumOpt(def,'map','bumper'), palette: 'Daybreak', roundSeconds: 120, targetHits: 1,
+    // changes the pursuit route: two minutes on the open Rookie Ring give the
+    // straight-line chasing bots time to roll, land shots and finish a
+    // knockout. Walled maps like Bumper Blocks are covered by the arena
+    // layout reachability tests instead; this bot cannot route around walls.
+    mode: battleMode, map: ring, palette: 'Daybreak', roundSeconds: 120, targetHits: 1,
   }));
   const st2 = def.create(ctx2);
   ownedStates.push(st2);
