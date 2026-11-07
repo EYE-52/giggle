@@ -14,6 +14,7 @@ let token = read('giggle:one-device:token'), busy = false, retry = 0, disconnect
 let anchor = { game: 0, local: 0, running: false };
 let pickingGame = !new URLSearchParams(location.search).has('game');
 let showingAllGames = false;
+let bannerActor = '', lastPrivatePlayer = null;
 try { const draft = JSON.parse(read('giggle:one-device:names')); if (Array.isArray(draft)) names = draft.filter(n => typeof n === 'string').slice(0, 20); } catch { /* fresh group */ }
 const game = () => games.find(g => g.id === gameId);
 const status = text => { $('srStatus').textContent = text; };
@@ -29,6 +30,36 @@ function family(g) { return g?.cat === 'board' ? 'board' : ['doodle-guess', 'cha
 function setSkin() {
   document.body.dataset.game = gameId; document.body.dataset.family = family(game());
   document.body.classList.toggle('game-playing', !!current);
+}
+const colour = p => Number.isInteger(p?.colour) ? p.colour % 6 : 0;
+function promptArt(kind) {
+  const card = '<rect class="sr-art-paper" x="19" y="8" width="32" height="42" rx="5"/><path class="sr-art-line" d="M27 21h16m-16 7h12"/>';
+  const drawings = {
+    'Random card': `<rect class="sr-art-tint" x="12" y="13" width="32" height="42" rx="5" transform="rotate(-10 28 34)"/>${card}<path class="sr-art-accent" d="m35 32 3 5 6 1-4 4 1 6-6-3-5 3 1-6-4-4 6-1z"/>`,
+    'Room pool vote': '<rect class="sr-art-tint" x="3" y="17" width="24" height="35" rx="4"/><rect class="sr-art-tint" x="39" y="17" width="24" height="35" rx="4"/><rect class="sr-art-paper" x="20" y="8" width="27" height="40" rx="4"/><circle class="sr-art-accent" cx="34" cy="29" r="9"/><path class="sr-art-check" d="m29 29 3 3 6-7"/>',
+    'Ask your own': `${card}<path class="sr-art-accent" d="m36 43 17-25 7 5-18 25-9 4z"/><path class="sr-art-line" d="m51 21 6 4M29 36h8"/>`,
+    Mixed: '<rect class="sr-art-tint" x="7" y="12" width="28" height="40" rx="5" transform="rotate(-10 21 32)"/><rect class="sr-art-paper" x="26" y="20" width="32" height="32" rx="7"/><path class="sr-art-line" d="M15 24h11m-11 7h7"/><circle class="sr-art-accent" cx="35" cy="29" r="2"/><circle class="sr-art-accent" cx="49" cy="29" r="2"/><circle class="sr-art-accent" cx="42" cy="36" r="2"/><circle class="sr-art-accent" cx="35" cy="43" r="2"/><circle class="sr-art-accent" cx="49" cy="43" r="2"/>',
+  };
+  return `<svg class="sr-prompt-art" viewBox="0 0 68 64" aria-hidden="true">${drawings[kind] || card}</svg>`;
+}
+function phoneArt(back) {
+  return `<svg class="sr-phone-art${back ? ' is-returning' : ''}" viewBox="0 0 240 160" aria-hidden="true">
+    <circle class="sr-art-tint" cx="120" cy="78" r="68"/>
+    <path class="sr-hand-left sr-art-hand" d="M0 115 42 94q10-5 18 1l24 18 16-20q6-7 12-1t1 15l-23 32q-6 8-17 7l-29-2L0 160z"/>
+    <g class="sr-phone-device"><rect class="sr-art-accent" x="85" y="15" width="70" height="118" rx="14"/><rect class="sr-art-paper" x="92" y="24" width="56" height="91" rx="8"/><path class="sr-art-line" d="M111 123h18M113 31h14"/><path class="sr-art-accent" d="m120 48 6 12 13 2-10 10 2 14-11-7-12 7 2-14-10-10 14-2z"/></g>
+    <path class="sr-hand-right sr-art-hand" d="m240 43-40 19q-11 5-19-1l-14-11q-6-5-10 1t2 13l17 16-16 24q-5 8 2 12t13-3l24-27 41-12z"/>
+    <path class="sr-art-line sr-pass-arrow" d="M166 23q24 0 34 17m-2-13 3 14-14-2M73 133q-21 1-32-15m1 13-3-14 14 1"/>
+  </svg>`;
+}
+function settingChoices(s, choices, value, id) {
+  const promptDescriptions = { 'Random card': 'Deal a surprise', 'Room pool vote': 'Pick as a group', 'Ask your own': 'Write the prompts', Mixed: 'Switch it up' };
+  const paceIcons = { Relaxed: '🐢', Normal: '🐇', Quick: '🚀' };
+  return `<div class="picker-seg is-chips sr-choices${s.key === 'pace' ? ' sr-pace' : ' sr-prompt-styles'}" role="radiogroup" aria-labelledby="${id}-label" data-picker-for="${id}">${choices.map(choice => {
+    const [v, label] = Array.isArray(choice) ? choice : [choice, choice];
+    const art = s.key === 'pace' ? `<span class="sr-pace-art" aria-hidden="true">${paceIcons[v] || '⏱'}</span>` : promptArt(v);
+    return `<button type="button" class="sr-setting-choice" role="radio" aria-checked="${String(v) === String(value)}" data-value="${esc(v)}" aria-label="${esc(label)}">
+      <span class="sr-choice-art">${art}<span class="sr-choice-check" aria-hidden="true">✓</span></span><span class="sr-choice-label">${esc(label)}</span>${s.key === 'promptStyle' ? `<span class="sr-choice-desc">${esc(promptDescriptions[v] || '')}</span>` : ''}</button>`;
+  }).join('')}</div>`;
 }
 const cover = g => `/${g.art || `img/games/${g.id}.png`}`;
 function gameCards() {
@@ -52,24 +83,26 @@ function field(s) {
   if (s.type === 'enum' || s.type === 'bool') {
     const choices = s.type === 'bool' ? [['true', 'On'], ['false', 'Off']] : s.options;
     const options = choices.map(o => Array.isArray(o) ? o : [o, o]);
-    return `<div class="sr-field gm-tile gm-enum${options.length >= 4 ? ' sr-field-tiles' : ''}"><span id="${id}-label">${esc(s.label)}</span><select id="${id}" data-setting="${s.key}" class="picker-native" tabindex="-1" aria-hidden="true">${options.map(([v, text]) => `<option value="${esc(v)}"${String(v) === String(value) ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select>${segPickerHtml(id, choices, value, `${id}-label`, false)}</div>`;
+    const illustrated = ['pace', 'promptStyle'].includes(s.key);
+    return `<div class="sr-field gm-tile gm-enum${options.length >= 4 ? ' sr-field-tiles' : ''}${illustrated ? ' sr-illustrated-setting' : ''}"><span id="${id}-label" class="sr-field-title"><span aria-hidden="true">${s.key === 'pace' ? '⏱' : s.key === 'promptStyle' ? '🃏' : '🎛'}</span>${esc(s.label)}</span><select id="${id}" data-setting="${s.key}" class="picker-native" tabindex="-1" aria-hidden="true">${options.map(([v, text]) => `<option value="${esc(v)}"${String(v) === String(value) ? ' selected' : ''}>${esc(text)}</option>`).join('')}</select>${illustrated ? settingChoices(s, choices, value, id) : segPickerHtml(id, choices, value, `${id}-label`, false)}</div>`;
   }
-  return `<label class="sr-field" for="${id}">${esc(s.label)}<span class="sr-stepper"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="-1" aria-label="Fewer ${esc(s.label.toLowerCase())}">−</button><input id="${id}" type="number" inputmode="numeric" data-setting="${s.key}" min="${s.min}" max="${s.max}" value="${value ?? ''}" placeholder="${esc(s.autoLabel || 'Auto')}"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="1" aria-label="More ${esc(s.label.toLowerCase())}">+</button></span></label>`;
+  return `<label class="sr-field sr-number-setting gm-tile" for="${id}"><span class="sr-field-title"><span aria-hidden="true">${s.key === 'rounds' ? '🔁' : '⏱'}</span>${esc(s.label)}</span><span class="sr-stepper"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="-1" aria-label="Fewer ${esc(s.label.toLowerCase())}">−</button><input id="${id}" type="number" inputmode="numeric" data-setting="${s.key}" min="${s.min}" max="${s.max}" value="${value ?? ''}" placeholder="${esc(s.autoLabel || 'Auto')}"><button type="button" class="tb-btn tb-secondary" data-step="${s.key}" data-delta="1" aria-label="More ${esc(s.label.toLowerCase())}">+</button></span></label>`;
 }
 function setup() {
-  reset(); current = null; mountKey = ''; readyStep = null; busy = false;
+  reset(); current = null; mountKey = ''; readyStep = null; busy = false; bannerActor = ''; lastPrivatePlayer = null;
+  document.body.dataset.stage = 'setup';
   setSkin();
   const g = game();
   app.setAttribute('aria-busy', 'false');
   app.innerHTML = `<form id="srSetup" class="sr-setup">
-    <div class="sr-feature"><img class="sr-cover" src="${esc(cover(g))}" alt=""><div class="sr-feature-copy"><p class="t-caption">Same room · one device</p><h1 class="t-heading">${esc(g.name)}</h1><p class="t-body">Add your people. The phone runs the game.</p></div></div>
+    <header class="sr-feature tb-card"><div class="sr-hero-art"><img class="sr-cover" src="${esc(cover(g))}" alt="" width="160" height="160"><span class="sr-hero-sticker" aria-hidden="true">✦</span></div><div class="sr-feature-copy"><p class="sr-kicker">Same room · one device</p><h1 class="t-heading">${esc(g.name)}</h1><p class="t-body">One phone. A whole table of friends.</p><ol class="sr-steps" aria-label="How to play"><li><span>1</span>Add friends</li><li><span>2</span>Pick your style</li><li><span>3</span>Pass & play</li></ol></div></header>
     <input id="srGame" type="hidden" value="${g.id}">${gameCards()}
-    <section class="sr-panel tb-card"><h2>Who’s here?</h2><p class="t-caption">Add names, then pass the phone when asked.</p>
+    <section class="sr-panel sr-people-panel tb-card"><div class="sr-section-head"><span class="sr-section-icon" aria-hidden="true">👋</span><h2>Who’s here?</h2><span id="srSeatCount" class="tb-badge"></span></div><p class="t-body">Pull up a chair. Everyone gets an animal.</p>
       <div class="sr-add"><input id="srName" maxlength="200" autocomplete="off" enterkeyhint="done" aria-label="Player names" placeholder="Sam, Jess, Mo…"><button type="button" id="srAdd" class="tb-btn tb-secondary">Add</button></div>
       <div id="srNames" class="sr-names" aria-label="Players"></div><p id="srNameError" class="sr-error" role="alert"></p>
     </section>
-    <section class="sr-panel tb-card"><h2>Make it yours</h2><div class="sr-fields">${g.schema.settings.map(field).join('') || '<p class="t-body">The board is ready. Add your names and play.</p>'}</div><p class="t-caption">Private turns each get their own timer. Passing time does not count.</p></section>
-    <div class="sr-start"><button id="srStart" class="tb-btn tb-primary" type="submit">Start ${esc(g.name)}</button><p id="srReason" class="sr-reason" aria-live="polite"></p></div>
+    <section class="sr-panel sr-settings-panel"><div class="sr-section-head"><span class="sr-section-icon" aria-hidden="true">✨</span><h2>Make it yours</h2></div><div class="sr-fields">${g.schema.settings.map(field).join('') || '<p class="t-body">The board is ready. Add your names and play.</p>'}</div><p class="sr-timer-note t-caption"><span aria-hidden="true">⏸</span>Private turns get their own timer. Passing time is on us.</p></section>
+    <div class="sr-start"><button id="srStart" class="tb-btn tb-primary" type="submit"><span class="sr-start-icon" aria-hidden="true">▶</span><span>Start ${esc(g.name)}</span></button><p id="srReason" class="sr-reason" aria-live="polite"></p></div>
   </form>`;
   const picker = $('srGamePicker');
   picker.ontoggle = () => { if (picker.isConnected) pickingGame = picker.open; };
@@ -122,7 +155,9 @@ function addNames() {
 }
 function paintNames() {
   const max = sameRoomSupport(game()).max;
-  $('srNames').innerHTML = names.length ? names.map((name, i) => `<span class="sr-person">${avatar({ avatar: LOCAL_AVATARS[i], colour: i % 6 })}<span>${esc(name)}</span><button type="button" data-remove="${i}" aria-label="Remove ${esc(name)}">×</button></span>`).join('') : '<p class="t-caption">Everyone gets an animal. Add two names to begin.</p>';
+  const previous = new Set([...$('srNames').querySelectorAll('[data-name]')].map(el => el.dataset.name));
+  $('srSeatCount').textContent = `${names.length} / ${max}`;
+  $('srNames').innerHTML = names.length ? names.map((name, i) => `<span class="sr-person${previous.has(name) ? '' : ' is-new'}" data-name="${esc(name)}" data-colour="${i % 6}">${avatar({ avatar: LOCAL_AVATARS[i], colour: i % 6 })}<span>${esc(name)}</span><button type="button" data-remove="${i}" aria-label="Remove ${esc(name)}">×</button></span>`).join('') : '<div class="sr-empty"><span class="sr-empty-friends" aria-hidden="true">🦊 🐸 🐼</span><strong class="t-title">Your table is waiting</strong><p class="t-caption">Add two names to take the first seats.</p></div>';
   $('srNames').querySelectorAll('[data-remove]').forEach(b => { b.onclick = () => {
     names.splice(Number(b.dataset.remove), 1); save('giggle:one-device:names', JSON.stringify(names)); paintNames(); $('srName').focus();
   }; });
@@ -132,9 +167,10 @@ function paintNames() {
 }
 function handoff(message) {
   reset(); mountKey = ''; readyStep = null;
-  const p = message.players.find(p => p.id === message.player);
   const passingBack = message.gate === 'return';
-  app.innerHTML = `<section class="tb-card sr-hand" aria-labelledby="srHandTitle"><span class="sr-phone" aria-hidden="true">📱</span>${passingBack ? '' : avatar(p)}<h1 id="srHandTitle">${passingBack ? 'Pass the phone back' : `Pass the phone to ${esc(p?.name || 'the next player')}`}</h1><p>${passingBack ? 'Your private screen is hidden. Give the phone back to the group.' : 'Only they should look at the next screen.'}</p>${btn('srUnlock', passingBack ? 'Done, pass it back' : `I’m ${esc(p?.name || 'ready')}`)}</section>`;
+  const p = passingBack ? lastPrivatePlayer : message.players.find(p => p.id === message.player);
+  document.body.dataset.stage = passingBack ? 'return' : 'pass';
+  app.innerHTML = `<section class="tb-card sr-hand" data-colour="${colour(p)}" aria-labelledby="srHandTitle"><p class="sr-kicker">${passingBack ? 'All tucked away' : 'For your eyes only'}</p><div class="sr-hand-avatar">${avatar(p || { avatar: '👋' })}</div>${phoneArt(passingBack)}<h1 id="srHandTitle">${passingBack ? 'Pass the phone back' : `Pass the phone to ${esc(p?.name || 'the next player')}`}</h1><p class="sr-hand-note">${passingBack ? 'Your private screen is hidden. Give the phone back to the group.' : `Only ${esc(p?.name || 'they')} should look at the next screen.`}</p>${btn('srUnlock', passingBack ? 'Done, pass it back' : `I’m ${esc(p?.name || 'ready')}`)}<p class="sr-privacy-note"><span aria-hidden="true">🔒</span>Hidden until you’re ready. The clock waits too.</p></section>`;
   $('srUnlock').onclick = () => input(passingBack ? 'back' : 'unlock');
   window.scrollTo?.(0, 0);
   $('srUnlock').focus({ preventScroll: true });
@@ -149,19 +185,25 @@ function play(message) {
   app.setAttribute('aria-busy', 'false');
   if (message.gate !== 'play') { handoff(message); return; }
   const S = message.state, p = message.players.find(p => p.id === message.player);
+  const actor = message.players.find(player => player.id === S.me) || p;
+  if (message.private) lastPrivatePlayer = actor;
+  const result = S.phase === 'done', reveal = ['reveal', 'standings'].includes(S.phase);
+  document.body.dataset.stage = result ? 'results' : reveal ? 'reveal' : message.private ? 'private' : 'play';
+  const turnKey = `${S.instanceId}:${S.round ?? ''}:${result ? 'results' : actor?.id}`;
+  const newTurn = bannerActor !== turnKey;
+  bannerActor = turnKey;
   const key = `${S.instanceId}:${message.player}:${message.kind}:${S.phase}:${S.round}`;
   if (mountKey !== key) {
     reset(); mountKey = key; readyStep = null;
     window.scrollTo?.(0, 0);
-    app.innerHTML = `<div class="sr-play-head">${avatar(p)}<div><p class="t-caption">${esc(game()?.name || gameId)}${S.round ? ` · round ${S.round}${S.rounds ? ` of ${S.rounds}` : ''}` : ''}</p><h1 id="srTurn" class="sr-turn">${S.phase === 'done' ? 'Final scores' : ['reveal', 'standings'].includes(S.phase) ? 'Round results' : `${esc(p?.name || 'Everyone')}’s turn`}</h1></div>${message.private ? btn('srCover', 'Hide', 'tb-chip') : ''}</div><div id="srView" class="sr-view-shell" aria-busy="true"><div class="sr-loading tb-card" role="status"><div class="tb-skeleton"></div><p class="t-body">Setting the table…</p></div><div id="gbody" class="sr-playfield" data-layout="standard"></div></div><div id="srExtras"></div><nav class="sr-game-tools" aria-label="Game controls">${btn('srEnd', 'End game', 'tb-chip')}</nav>`;
+    app.innerHTML = `<header class="sr-play-head tb-card${newTurn ? ' is-new-turn' : ''}" data-colour="${colour(actor)}"><div class="sr-head-avatar">${avatar(result ? { avatar: '🏆' } : actor)}</div><div class="sr-turn-copy"><p class="t-caption">${esc(game()?.name || gameId)}${S.round ? ` · round ${S.round}${S.rounds ? ` of ${S.rounds}` : ''}` : ''}</p><h1 id="srTurn" class="sr-turn"></h1></div><div class="sr-turn-tools"><span class="sr-private-badge${message.private ? '' : ' is-public'}" aria-label="${message.private ? 'Private turn' : 'Shared screen'}">${message.private ? '🔒 Private' : 'All together'}</span>${message.private ? btn('srCover', 'Hide', 'tb-chip') : '<span class="sr-turn-star" aria-hidden="true">✦</span>'}</div></header><div id="srView" class="sr-view-shell" aria-busy="true"><div class="sr-loading tb-card" role="status"><div class="tb-skeleton"></div><p class="t-body">Setting the table…</p></div><div id="gbody" class="sr-playfield" data-layout="standard"></div></div><div id="srExtras"></div><nav class="sr-game-tools" aria-label="Game controls">${btn('srEnd', 'End game', 'tb-chip')}</nav>`;
     if ($('srCover')) $('srCover').onclick = () => { clearPrivate(); input('cover'); };
     $('srEnd').onclick = () => confirmEnd();
   }
   // Progress snapshots must update the banner too, even when the mounted
   // game/phase is unchanged. Its actor is the server-selected seat (S.me).
-  const actor = message.players.find(player => player.id === S.me) || p;
   $('srTurn').textContent = S.phase === 'done' ? 'Final scores' : ['reveal', 'standings'].includes(S.phase)
-    ? 'Round results' : `${actor?.name || 'Everyone'}’s turn`;
+    ? 'Round results' : `${actor?.name || 'Everyone'}’s turn!`;
   const api = {
     send: a => input('action', { a }), now,
     context: () => ({ isHost: true, sameRoom: true, roomActionPending: false }),
@@ -200,16 +242,25 @@ function play(message) {
     const actor = S.actor || S.drawer;
     const eligible = message.players.filter(p => p.id !== actor && !S.guessed?.[p.id]);
     if (!extras.querySelector('#srGuesser')) {
-      extras.innerHTML = `<form id="srGuessForm" class="sr-guesses"><label class="sr-field" for="srGuesser">Who is guessing?<select id="srGuesser"></select></label>${gameId === 'doodle-guess' ? '<label class="sr-field" for="srGuess">Say it out loud, then record the guess<input id="srGuess" maxlength="60" autocomplete="off"></label><button class="tb-btn tb-secondary">Check guess</button>' : ''}</form>`;
+      extras.innerHTML = `<form id="srGuessForm" class="sr-guesses"><div class="sr-field"><span id="srGuesserLabel">Who is guessing?</span><input type="hidden" id="srGuesser"><div id="srGuesserChips" class="sr-guesser-chips" role="group" aria-labelledby="srGuesserLabel"></div></div>${gameId === 'doodle-guess' ? '<label class="sr-field" for="srGuess">Say it out loud, then record the guess<input id="srGuess" maxlength="60" autocomplete="off"></label><button class="tb-btn tb-secondary">Check guess</button>' : ''}</form>`;
       $('srGuessForm').onsubmit = e => { e.preventDefault(); if (gameId === 'doodle-guess' && input('guess', { pid: $('srGuesser').value, text: $('srGuess').value })) $('srGuess').value = ''; };
       $('srGuesser').onchange = () => { if (gameId === 'charades') input('seat', { pid: $('srGuesser').value }); };
     }
     const selected = $('srGuesser').value;
-    $('srGuesser').innerHTML = eligible.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
-    if (gameId === 'charades') $('srGuesser').value = message.player;
-    else if (eligible.some(p => p.id === selected)) $('srGuesser').value = selected;
+    $('srGuesser').value = gameId === 'charades' ? message.player : eligible.some(p => p.id === selected) ? selected : eligible[0]?.id || '';
+    const chips = $('srGuesserChips'), roster = JSON.stringify(eligible.map(p => [p.id, p.name, p.avatar, p.colour]));
+    if (chips.dataset.roster !== roster) {
+      chips.dataset.roster = roster;
+      chips.innerHTML = eligible.map(p => `<button type="button" class="tb-btn tb-chip sr-guesser" data-guesser="${p.id}">${avatar(p)}<span>${esc(p.name)}</span></button>`).join('');
+      chips.querySelectorAll('[data-guesser]').forEach(b => { b.onclick = () => {
+        $('srGuesser').value = b.dataset.guesser;
+        chips.querySelectorAll('[data-guesser]').forEach(chip => chip.setAttribute('aria-pressed', String(chip === b)));
+        $('srGuesser').onchange?.();
+      }; });
+    }
+    chips.querySelectorAll('[data-guesser]').forEach(chip => chip.setAttribute('aria-pressed', String(chip.dataset.guesser === $('srGuesser').value)));
   } else if (S.phase === 'done' && game()?.cat !== 'board') {
-    if (!extras.querySelector('#srAgain')) { extras.innerHTML = `<div class="sr-actions">${btn('srAgain', 'Play again')}${btn('srChange', 'Choose another game', 'tb-secondary')}</div>`; $('srAgain').onclick = () => input('rematch'); $('srChange').onclick = () => stop(); }
+    if (!extras.querySelector('#srAgain')) { extras.innerHTML = `<div class="sr-result-actions"><p class="t-title">Same friends. Another round?</p><div class="sr-actions">${btn('srAgain', 'Play again')}${btn('srChange', 'Choose another game', 'tb-secondary')}</div></div>`; $('srAgain').onclick = () => input('rematch'); $('srChange').onclick = () => stop(); }
   } else extras.replaceChildren();
   if (message.private) status('Private turn · the clock waits while you pass the phone.');
   else status('');
@@ -225,11 +276,19 @@ function stop() { if (send({ t: 'same-stop' })) { clearPrivate(); status('Closin
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && current?.private && current.gate === 'play') { clearPrivate(); input('cover'); }
 });
+function syncThemeControl() {
+  const night = document.documentElement.dataset.theme === 'night';
+  $('srTheme').textContent = night ? '☀' : '☾';
+  $('srTheme').setAttribute('aria-label', night ? 'Switch to day theme' : 'Switch to night theme');
+  $('srTheme').setAttribute('aria-pressed', String(night));
+}
 $('srTheme').onclick = () => {
   const theme = document.documentElement.dataset.theme === 'night' ? 'day' : 'night';
   document.documentElement.dataset.theme = theme;
   try { localStorage.setItem('pb_theme', theme); } catch { /* device theme */ }
+  syncThemeControl();
 };
+syncThemeControl();
 async function connect() {
   clearTimeout(retry); disconnected = true;
   try {

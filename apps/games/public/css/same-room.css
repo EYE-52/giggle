@@ -1,136 +1,253 @@
-/* One shared table. All controls use the toy-box tokens. */
-.same-room-page { margin: 0; min-height: 100dvh; color: var(--ink); background: var(--bg); }
-.sr-bar { display: flex; align-items: center; gap: var(--space-12); padding: var(--space-16) var(--space-24); border-bottom: var(--outline-w) solid var(--outline); }
-.sr-bar > span { flex: 1; }
+/* A party table, built from Giggle's soft-arcade tokens. */
+body.same-room-page {
+  --sr-paper: color-mix(in srgb, var(--card) 94%, var(--fam));
+  --sr-tint: color-mix(in srgb, var(--card) 80%, var(--fam));
+  margin: 0; min-height: 100dvh; color: var(--ink); background-color: var(--bg);
+}
+body.same-room-page[data-game] {
+  background-image: radial-gradient(ellipse at 8% 12%, color-mix(in srgb, var(--fam) 16%, transparent), transparent 45%), radial-gradient(ellipse at 100% 60%, color-mix(in srgb, var(--sky) 10%, transparent), transparent 48%);
+  background-attachment: fixed;
+}
+[data-theme="night"] body.same-room-page[data-game] {
+  --card: color-mix(in srgb, var(--bg) 78%, var(--sky));
+  --well: color-mix(in srgb, var(--card) 82%, var(--fam));
+  background-color: color-mix(in srgb, var(--bg) 88%, var(--sky));
+}
+.sr-bar { display: flex; align-items: center; gap: var(--space-12); padding: var(--space-8) var(--space-24); background: var(--sr-paper); border-bottom: var(--outline-w) solid var(--outline); }
+.sr-bar > span { flex: 1; font: var(--text-caption); color: var(--ink-dim); }
 .sr-main { max-width: var(--howto-dialog-w); margin: 0 auto; padding: var(--space-32) var(--space-24); }
 .sr-main h1, .sr-main h2, .sr-main p { margin: 0; }
 .sr-main h1, .sr-main h2 { text-wrap: balance; }
-.sr-setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-24); }
-.sr-feature { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--space-24); }
-.sr-cover { width: var(--home-card-art); height: var(--home-card-art); object-fit: cover; border-radius: var(--radius-lg); }
-.sr-feature-copy { display: grid; gap: var(--space-8); flex: 1; min-width: 0; }
+.sr-main :focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
+.same-room-page .tb-btn { text-decoration: none; }
+.sr-setup { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: var(--space-24); }
+/* Game art on a solid, game-coloured party placemat. */
+.sr-feature.tb-card { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--space-32); padding: var(--space-32); border-color: color-mix(in srgb, var(--fam) 48%, var(--outline)); background: var(--sr-tint); box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--fam) 48%, var(--outline)); }
+.sr-hero-art { display: grid; place-items: center; isolation: isolate; }
+.sr-hero-art > * { grid-area: 1 / 1; }
+.sr-cover { display: block; width: calc(var(--home-card-art) + var(--space-64)); height: calc(var(--home-card-art) + var(--space-64)); object-fit: cover; padding: var(--space-8); background: var(--card); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker-lg); transform: rotate(-2deg); }
+.sr-hero-sticker { align-self: end; justify-self: end; display: grid; place-items: center; width: var(--space-40); height: var(--space-40); margin: 0 calc(-1 * var(--space-12)) calc(-1 * var(--space-8)) 0; background: var(--sun); color: var(--sun-ink); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md); box-shadow: var(--shadow-sticker-sm); font: var(--text-heading); transform: rotate(2deg); }
+.sr-feature-copy { display: grid; justify-items: start; gap: var(--space-12); min-width: 0; }
+.sr-feature-copy h1, .sr-turn { font: var(--text-heading); font-family: var(--font-ui, var(--font-display)); }
+.sr-feature-copy .t-body { color: var(--ink); }
+.sr-kicker { display: inline-flex; justify-content: center; width: fit-content; padding: var(--space-4) var(--space-12); border-radius: var(--radius-pill); background: var(--fam); color: var(--on-fam); font: var(--text-caption); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+.sr-steps { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-16); margin: var(--space-4) 0 0; padding: 0; list-style: none; font: var(--text-caption); color: var(--ink); }
+.sr-steps li { display: flex; align-items: center; gap: var(--space-8); }
+.sr-steps li > span { display: grid; place-items: center; width: var(--space-24); height: var(--space-24); border-radius: var(--radius-pill); background: var(--card); font: var(--text-button-sm); }
+/* Whole rows, page scrolling, separate art/name/count tracks. */
 .sr-game-picker { grid-column: 1 / -1; min-width: 0; }
-.sr-game-picker > summary { width: 100%; justify-content: space-between; list-style: none; }
+.sr-game-picker > summary { width: 100%; justify-content: space-between; list-style: none; background: var(--sr-paper); }
 .sr-game-picker > summary::-webkit-details-marker { display: none; }
 .sr-game-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-12); margin-top: var(--space-16); padding: var(--space-4) var(--space-4) var(--space-12); }
-/* The shelf grows with the page. Hide whole tiles in the preview, never
- * crop a row or create a second scrolling surface. */
 .sr-game-grid:not(.is-expanded) > .sr-game-card:nth-child(n + 9) { display: none; }
-.sr-game-grid > .sr-game-card { min-width: 0; margin: 0; color: var(--ink); text-align: center; }
-/* The shared .tb-card button rule uses display:block. A separate inner grid
- * owns the three rows, so button styles cannot turn them into inline text. */
+.sr-game-grid > .sr-game-card { min-width: 0; margin: 0; color: var(--ink); text-align: center; background: var(--sr-paper); }
 .sr-game-tile { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--home-card-art) var(--control-h) auto; justify-items: center; align-items: center; gap: var(--space-8); min-width: 0; }
 .sr-game-art { display: grid; grid-template-columns: minmax(0, 1fr); width: var(--home-card-art); max-width: 100%; aspect-ratio: 1; }
 .sr-game-art > * { grid-area: 1 / 1; }
-.sr-game-art img { display: block; width: 100%; height: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-md); }
+.sr-game-art img { display: block; width: 100%; height: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-sm); }
 .sr-game-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; text-overflow: ellipsis; max-width: 100%; min-width: 0; font: var(--text-button); text-align: center; overflow-wrap: anywhere; }
-.sr-game-count.tb-badge { justify-self: center; font: var(--text-caption); color: var(--ink-dim); background: var(--well); }
-.sr-game-check { display: grid; place-items: center; align-self: start; justify-self: end; width: var(--space-24); height: var(--space-24); border: var(--outline-w) solid var(--fam-lip); border-radius: var(--radius-pill); background: var(--fam); color: var(--on-fam); font: var(--text-button-sm); visibility: hidden; }
-.sr-game-card[aria-pressed="true"] .sr-game-check { visibility: visible; }
-.sr-game-card[aria-pressed="true"] { border-color: var(--fam-lip); background: var(--fam-soft); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
+.sr-game-count.tb-badge { justify-self: center; padding-inline: var(--space-8); font: var(--text-caption); color: var(--ink-dim); background: var(--well); }
+.sr-game-check, .sr-choice-check { display: grid; place-items: center; width: var(--space-24); height: var(--space-24); border: var(--outline-w) solid var(--fam-lip); border-radius: var(--radius-pill); background: var(--fam); color: var(--on-fam); font: var(--text-button-sm); visibility: hidden; }
+.sr-game-check { align-self: start; justify-self: end; }
+.sr-game-card[aria-pressed="true"] .sr-game-check, .sr-setting-choice[aria-checked="true"] .sr-choice-check { visibility: visible; }
+.sr-game-grid > .sr-game-card[aria-pressed="true"] { border-color: var(--fam-lip); background: var(--sr-tint); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
 .sr-game-grid > .sr-game-card:active { box-shadow: none; }
-.sr-game-grid > .sr-game-card:focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
 .sr-show-games { margin-top: var(--space-8); }
-.sr-main select, .sr-main input, .sr-main textarea { width: 100%; min-height: var(--control-h); color: var(--ink); background: var(--card); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md); padding: var(--space-8) var(--space-12); font: var(--text-body); box-sizing: border-box; }
-.sr-main textarea { min-height: calc(var(--control-h) * 2); resize: vertical; }
-.sr-main select.picker-native { width: 1px; min-width: 0; min-height: 0; height: 1px; padding: 0; border: 0; }
+/* The people panel is a set of colourful seats, not a contact form. */
 .sr-panel { display: flex; flex-direction: column; gap: var(--space-16); min-width: 0; }
-.sr-panel h2 { font: var(--text-title); }
+.sr-people-panel.tb-card { background: var(--sr-paper); }
+.sr-section-head { display: flex; align-items: center; gap: var(--space-12); min-height: var(--control-h); }
+.sr-section-head h2 { flex: 1; min-width: 0; font: var(--text-title); font-family: var(--font-ui, var(--font-display)); }
+.sr-section-icon { display: grid; place-items: center; flex: none; width: var(--control-h); height: var(--control-h); border-radius: var(--radius-lg); background: var(--fam-soft); font: var(--text-heading); }
+#srSeatCount { min-width: var(--space-64); justify-content: center; font-variant-numeric: tabular-nums; }
 .sr-add { display: flex; gap: var(--space-8); }
 .sr-add input { min-width: 0; }
 .sr-add #srAdd { flex: 0 0 auto; min-width: calc(var(--control-h) + var(--space-16)); white-space: nowrap; overflow-wrap: normal; }
-.sr-names { display: flex; flex-wrap: wrap; align-content: start; gap: var(--space-8); min-height: calc(var(--control-h) * 2 + var(--space-8)); }
-.sr-person { display: inline-flex; align-items: center; gap: var(--space-8); max-width: 100%; padding: var(--space-4) var(--space-12); border: var(--outline-w) solid var(--outline); background: var(--well); border-radius: var(--radius-pill); font: var(--text-button-sm); overflow-wrap: anywhere; }
-.sr-person button { width: var(--control-h-sm); height: var(--control-h-sm); border: 0; color: var(--ink-dim); background: transparent; cursor: pointer; font: var(--text-title); }
-.sr-avatar { display: grid; place-items: center; min-width: var(--control-h); height: var(--control-h); font: var(--text-heading); background: var(--fam-soft); border-radius: var(--radius-md); }
-.sr-avatar[data-colour="1"] { background: var(--sun-soft); }
-.sr-avatar[data-colour="2"] { background: color-mix(in srgb, var(--sky) 16%, var(--card)); }
-.sr-avatar[data-colour="3"] { background: var(--success-soft); }
-.sr-avatar[data-colour="4"] { background: var(--melon-soft); }
-.sr-avatar[data-colour="5"] { background: var(--well); }
+.sr-main select, .sr-main input, .sr-main textarea { width: 100%; min-height: var(--control-h); color: var(--ink); background: var(--sr-paper); border: var(--outline-w) solid var(--line-strong); border-radius: var(--radius-md); padding: var(--space-8) var(--space-12); font: var(--text-body); box-sizing: border-box; }
+.sr-main textarea { min-height: calc(var(--control-h) * 2); resize: vertical; }
+.sr-main select.picker-native { width: 1px; min-width: 0; min-height: 0; height: 1px; padding: 0; border: 0; }
+.sr-main input[type="hidden"] { display: none; }
+.sr-names { display: flex; flex-wrap: wrap; align-content: start; gap: var(--space-12); min-height: calc(var(--control-h-lg) * 2 + var(--space-16)); }
+.same-room-page [data-colour] { --sr-player: var(--fam-party); }
+.same-room-page [data-colour="1"] { --sr-player: var(--fam-arcade); }
+.same-room-page [data-colour="2"] { --sr-player: var(--fam-create); }
+.same-room-page [data-colour="3"] { --sr-player: var(--fam-board); }
+.same-room-page [data-colour="4"] { --sr-player: var(--sun); }
+.same-room-page [data-colour="5"] { --sr-player: var(--melon); }
+.sr-person { display: inline-flex; align-items: center; gap: var(--space-8); max-width: 100%; min-height: calc(var(--control-h-lg) + var(--space-8)); padding: var(--space-8); border: var(--outline-w) solid color-mix(in srgb, var(--sr-player) 50%, var(--outline)); background: color-mix(in srgb, var(--sr-player) 14%, var(--card)); border-radius: var(--radius-xl); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--sr-player) 50%, var(--outline)); font: var(--text-button-sm); overflow-wrap: anywhere; }
+.sr-person > span:not(.sr-avatar) { min-width: 0; }
+.sr-person button { flex: none; width: var(--control-h-sm); height: var(--control-h-sm); border: 0; color: var(--ink-dim); background: transparent; border-radius: var(--radius-md); cursor: pointer; font: var(--text-title); }
+.sr-avatar { display: grid; place-items: center; flex: none; min-width: var(--control-h); width: var(--control-h); height: var(--control-h); font: var(--text-heading); background: color-mix(in srgb, var(--sr-player, var(--fam)) 32%, var(--card)); border: var(--outline-w) solid color-mix(in srgb, var(--sr-player, var(--fam)) 60%, var(--outline)); border-radius: var(--radius-lg); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb, var(--sr-player, var(--fam)) 60%, var(--outline)); }
+.sr-empty { display: grid; justify-items: center; align-content: center; gap: var(--space-12); width: 100%; padding: var(--space-24) var(--space-8); text-align: center; border: var(--outline-w) dashed var(--line-strong); border-radius: var(--radius-lg); background: var(--fam-soft); }
+.sr-empty-friends { font: var(--text-heading); font-size: var(--space-40); letter-spacing: var(--space-4); }
+.sr-error { min-height: var(--space-24); color: var(--danger); font: var(--text-caption); }
+/* Illustrated radio cards still use the shared picker event/value contract. */
 .sr-fields { display: grid; gap: var(--space-16); }
-.sr-field { display: grid; gap: var(--space-8); font: var(--text-button-sm); }
-.sr-fields .gm-tile { padding: var(--space-12); border-radius: var(--radius-sm); box-shadow: none; }
+.sr-field { display: grid; gap: var(--space-12); min-width: 0; font: var(--text-button-sm); }
+.sr-fields .gm-tile { display: grid; padding: var(--space-16); border-radius: var(--radius-xl); border-color: var(--outline); background: var(--sr-paper); box-shadow: var(--shadow-sticker-sm); }
+.sr-field-title { display: flex; align-items: center; gap: var(--space-8); font: var(--text-button); }
+.sr-field-title > span { display: grid; place-items: center; width: var(--space-32); height: var(--space-32); border-radius: var(--radius-sm); background: var(--fam-soft); font: var(--text-title); }
 .sr-field-tiles .picker-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .sr-field .picker-seg > button { white-space: normal; overflow: visible; text-overflow: clip; padding: var(--space-8); min-height: var(--control-h); }
-.sr-stepper { display: flex; gap: var(--space-8); }
-.sr-stepper input { min-width: 0; text-align: center; }
-.sr-stepper button { flex: 0 0 var(--control-h); }
-.sr-start { grid-column: 1 / -1; display: grid; gap: var(--space-8); }
-.sr-start button { width: 100%; }
+.sr-field .sr-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); }
+.sr-field .sr-pace { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sr-field .sr-choices > .sr-setting-choice { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--space-64) var(--space-40) auto; justify-items: center; align-items: center; gap: var(--space-4); padding: var(--space-12) var(--space-8); min-width: 0; border-radius: var(--radius-sm); color: var(--ink); background: var(--card); border: var(--outline-w) solid var(--outline); box-shadow: 0 var(--lift-sm) 0 var(--outline); cursor: pointer; }
+.sr-field .sr-choices > .sr-setting-choice[aria-checked="true"] { color: var(--ink); background: var(--fam-soft); border-color: var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
+.sr-field .sr-pace > .sr-setting-choice { grid-template-rows: var(--space-40) var(--space-24); }
+.sr-choice-art { display: grid; width: 100%; max-width: var(--home-card-art); place-items: center; }
+.sr-choice-art > * { grid-area: 1 / 1; }
+.sr-choice-check { align-self: start; justify-self: end; }
+.sr-choice-label { font: var(--text-button-sm); text-align: center; overflow-wrap: anywhere; }
+.sr-choice-desc { max-width: 100%; font: var(--text-caption); color: var(--ink-dim); text-align: center; white-space: nowrap; }
+.sr-pace-art { font: var(--text-heading); font-size: var(--space-32); }
+.sr-prompt-art { display: block; width: var(--space-64); height: var(--space-64); overflow: visible; }
+.sr-art-paper { fill: var(--card); stroke: var(--fam-lip); stroke-width: 2; }
+.sr-art-tint { fill: var(--fam-soft); stroke: var(--fam-lip); stroke-width: 2; }
+.sr-art-accent { fill: var(--fam); stroke: var(--fam-lip); stroke-width: 2; }
+.sr-art-line { fill: none; stroke: var(--fam-deep); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.sr-art-check { fill: none; stroke: var(--on-fam); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.sr-stepper { display: flex; align-items: center; gap: var(--space-12); }
+.sr-stepper input { min-width: 0; min-height: var(--control-h-lg); text-align: center; font: var(--text-title); font-variant-numeric: tabular-nums; background: var(--fam-soft); }
+.sr-stepper input::placeholder { color: var(--ink-dim); font: var(--text-caption); opacity: 1; }
+.sr-stepper button { flex: 0 0 var(--control-h); border-radius: var(--radius-pill); }
+.sr-timer-note { display: flex; align-items: center; gap: var(--space-8); color: var(--ink-dim); }
+.sr-start { grid-column: 1 / -1; display: grid; gap: var(--space-12); text-align: center; }
+.sr-start #srStart { --tb-lift: var(--lift-lg); width: 100%; min-height: calc(var(--control-h-lg) + var(--space-16)); border-radius: var(--radius-xl); box-shadow: 0 var(--tb-lift) 0 var(--fam-lip); }
+.sr-start #srStart:disabled { box-shadow: none; }
+.sr-start #srStart:active:not(:disabled) { box-shadow: none; }
+.sr-start-icon { display: grid; place-items: center; flex: none; width: var(--space-32); height: var(--space-32); border: var(--outline-w) solid currentColor; border-radius: var(--radius-pill); font: var(--text-button); }
 .sr-reason { color: var(--ink-dim); font: var(--text-caption); min-height: var(--space-24); }
-.sr-error { color: var(--danger); font: var(--text-body); }
-.sr-play-head { display: flex; gap: var(--space-12); align-items: center; margin-bottom: var(--space-16); }
-.sr-play-head > div { flex: 1; min-width: 0; }
-.sr-turn { min-height: var(--space-40); overflow-wrap: anywhere; font: var(--text-heading); }
-.sr-play-head .t-caption { color: var(--ink-dim); }
-.sr-playfield { min-height: calc(var(--control-h-lg) * 6); }
+/* A fixed set of banner tracks keeps long names and private badges steady. */
+.sr-play-head.tb-card { display: grid; grid-template-columns: auto minmax(0, 1fr) var(--space-64); align-items: center; gap: var(--space-16); min-height: calc(var(--space-64) + var(--space-40)); margin-bottom: var(--space-16); padding: var(--space-12) var(--space-16); border-color: color-mix(in srgb, var(--sr-player) 60%, var(--outline)); background: color-mix(in srgb, var(--sr-player) 22%, var(--card)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--sr-player) 60%, var(--outline)); }
+.sr-head-avatar .sr-avatar { width: var(--space-64); height: var(--space-64); font-size: var(--space-48); }
+.sr-turn-copy { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: var(--space-24) var(--space-48); gap: var(--space-4); min-width: 0; }
+.sr-turn-copy .t-caption { max-width: 100%; color: var(--ink); line-height: var(--space-24); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-turn { display: grid; align-content: center; min-width: 0; overflow-wrap: anywhere; }
+.sr-turn-tools { display: grid; justify-items: center; align-items: center; gap: var(--space-4); grid-template-rows: var(--space-24) var(--control-h-sm); }
+.sr-private-badge { font: var(--text-caption); white-space: nowrap; color: var(--ink); }
+.sr-private-badge.is-public { visibility: hidden; }
+.sr-turn-star { font: var(--text-heading); color: var(--fam-deep); }
 .sr-view-shell { position: relative; min-height: calc(var(--control-h-lg) * 6); }
+.sr-playfield { min-height: calc(var(--control-h-lg) * 6); }
+.same-room-page #gbody { width: 100%; margin: 0; }
 .sr-view-shell[aria-busy="true"] .sr-playfield { visibility: hidden; }
 .sr-view-shell .sr-loading { position: absolute; inset: 0; align-content: center; }
 .sr-view-shell[aria-busy="false"] > .sr-loading { display: none; }
+.sr-loading { display: grid; gap: var(--space-24); background: var(--sr-paper); }
 .sr-loading .tb-skeleton { height: var(--control-h-lg); }
 .sr-playfield .gk-hud { margin-top: 0; }
-.sr-hand { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-24); min-height: calc(var(--control-h-lg) * 7); background: var(--fam-soft); }
-.sr-hand .sr-avatar { width: var(--home-card-art); height: var(--home-card-art); background: var(--card); font-size: var(--space-48); }
-.sr-hand h1 { font: var(--text-heading); max-width: 100%; overflow-wrap: anywhere; }
-.sr-hand p { font: var(--text-body); color: var(--ink-dim); }
-.sr-hand .tb-primary { width: 100%; max-width: var(--howto-seat-w); }
-.sr-phone { font-size: var(--space-48); animation: sr-pass var(--dur-slow) var(--ease) both; }
-@keyframes sr-pass { from { transform: translateX(calc(-1 * var(--space-32))) rotate(-12deg); opacity: 0; } to { transform: translateX(0) rotate(0); opacity: 1; } }
-.sr-secret { display: grid; gap: var(--space-24); text-align: center; background: var(--fam-soft); }
+/* Full-height private covers: only public avatar/name data is mounted. */
+body.same-room-page:is([data-stage="pass"], [data-stage="return"]) .sr-main { padding-block: var(--space-16); }
+.sr-hand.tb-card { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--space-16); min-height: calc(100dvh - var(--control-h) - var(--space-64) - var(--space-24)); padding: var(--space-32); border-color: color-mix(in srgb, var(--sr-player, var(--fam)) 55%, var(--outline)); background: color-mix(in srgb, var(--sr-player, var(--fam)) 12%, var(--card)); box-shadow: 0 var(--lift-lg) 0 color-mix(in srgb, var(--sr-player, var(--fam)) 55%, var(--outline)); }
+.sr-hand-avatar .sr-avatar { width: var(--home-card-art); height: var(--home-card-art); border-radius: var(--radius-xl); font-size: var(--space-64); }
+.sr-hand h1 { max-width: 100%; font: var(--text-heading); font-family: var(--font-ui, var(--font-display)); overflow-wrap: anywhere; }
+.sr-hand-note { max-width: var(--howto-controls-w); font: var(--text-body); color: var(--ink); text-wrap: pretty; }
+.sr-hand .tb-primary { width: 100%; max-width: var(--howto-seat-w); margin-block: var(--space-8); }
+.sr-hand .sr-privacy-note { display: flex; align-items: center; justify-content: center; gap: var(--space-8); max-width: var(--howto-controls-w); font: var(--text-caption); color: var(--ink-dim); }
+.sr-phone-art { display: block; flex: none; width: calc(var(--home-card-art) * 2); max-width: 100%; height: calc(var(--space-64) * 2); overflow: visible; }
+.sr-art-hand { fill: color-mix(in srgb, var(--sr-player, var(--fam)) 30%, var(--card)); stroke: var(--fam-lip); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.sr-secret { display: grid; gap: var(--space-24); text-align: center; background: var(--sr-tint); }
 .sr-secret h2 { font: var(--text-heading); overflow-wrap: anywhere; }
 .sr-secret p { font: var(--text-body); }
+/* The real game views stay in charge; the frame gives their cards a lip. */
+body.same-room-page #gbody[data-phase="choose"] .party-scene--truth.pl-fill { gap: var(--space-16); }
+body.same-room-page #gbody[data-phase="choose"] .party-scene--truth > .gk-prompt { padding: var(--space-16); }
+body.same-room-page #gbody .party-scene--truth .td-prompt-option { background: var(--sr-paper); border-color: color-mix(in srgb, var(--fam) 32%, var(--outline)); box-shadow: 0 var(--lift) 0 color-mix(in srgb, var(--fam) 32%, var(--outline)); font: var(--text-body); }
+body.same-room-page #gbody .party-scene--truth .td-option-number { background: var(--fam); color: var(--on-fam); border-radius: var(--radius-pill); }
+body.same-room-page #gbody .party-scene--truth .td-prompt-option.is-selected { background: var(--fam-soft); border-color: var(--fam-lip); box-shadow: 0 var(--lift) 0 var(--fam-lip); }
+body.same-room-page #gbody .party-scene--truth .td-compose { padding: var(--space-16); background: var(--sr-paper); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); }
+/* Results are a scorecard on the same table, never a new skin. */
+body.same-room-page #gbody .gk-final { padding: var(--space-24); background: var(--sr-paper); border: var(--outline-w-lg) solid var(--fam-lip); border-radius: var(--radius-xl); box-shadow: 0 var(--lift-lg) 0 var(--fam-lip); }
+body.same-room-page #gbody .gk-ranks { gap: var(--space-12); }
+body.same-room-page #gbody .gk-rank-row { padding: var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--card); }
+body.same-room-page #gbody .gk-rank-row.is-top { background: var(--fam-soft); border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+body.same-room-page #gbody .gk-pts { font: var(--text-title); font-variant-numeric: tabular-nums; }
+body.same-room-page #gbody .gk-rank { color: var(--fam-deep); font: var(--text-title); }
+body.same-room-page #gbody .bk-final { background: var(--sr-paper); border-color: var(--fam-lip); }
+.sr-result-actions { display: grid; gap: var(--space-16); padding: var(--space-24) 0 var(--space-8); text-align: center; }
 .sr-actions { display: flex; flex-wrap: wrap; gap: var(--space-12); }
-.sr-actions > * { flex: 1; }
+.sr-actions > * { flex: 1 1 var(--howto-seat-w); }
 .sr-game-tools { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-top: var(--space-16); }
-.sr-status { max-width: var(--howto-dialog-w); margin: 0 auto; padding: var(--space-8) var(--space-24) var(--space-24); min-height: var(--space-24); color: var(--ink-dim); }
-.sr-guesses { display: grid; gap: var(--space-8); margin-top: var(--space-16); }
-.sr-loading { display: grid; gap: var(--space-24); }
-.sr-main :focus-visible { outline: var(--focus-ring); outline-offset: var(--focus-offset); }
-.sr-person button:active { transform: scale(.96); }
+.sr-status { max-width: var(--howto-dialog-w); margin: 0 auto; padding: var(--space-8) var(--space-24) var(--space-24); min-height: var(--control-h); color: var(--ink-dim); font: var(--text-caption); }
+.sr-guesses { display: grid; gap: var(--space-12); margin-top: var(--space-16); }
+.sr-guesser-chips { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.sr-guesser .sr-avatar { width: var(--space-32); min-width: var(--space-32); height: var(--space-32); font: var(--text-title); }
+/* Entry feedback is only on new names and a genuinely new actor. */
+@keyframes sr-seat-pop { from { opacity: 0; transform: translateY(var(--space-8)) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes sr-turn-pop { 0% { transform: scale(.98); } 65% { transform: scale(1.01); } 100% { transform: none; } }
+@keyframes sr-phone-pass { from { opacity: 0; transform: translateX(calc(-1 * var(--space-16))) rotate(-2deg); } to { opacity: 1; transform: none; } }
+@keyframes sr-phone-return { from { opacity: 0; transform: translateX(var(--space-16)) rotate(2deg); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  .sr-person.is-new { animation: sr-seat-pop var(--dur-base) var(--ease) both; }
+  .sr-play-head.is-new-turn { animation: sr-turn-pop var(--dur-slow) var(--ease) both; }
+  .sr-phone-device { transform-box: fill-box; transform-origin: center; animation: sr-phone-pass var(--dur-slow) var(--ease) both; }
+  .sr-phone-art.is-returning .sr-phone-device { animation-name: sr-phone-return; }
+  .sr-game-grid > .sr-game-card:active, .sr-field .sr-setting-choice:active { transform: translateY(var(--lift-sm)); box-shadow: none; }
+  .sr-person button:active { transform: scale(.96); }
+}
 @media (hover: hover) {
-  .sr-person button:hover { color: var(--fam-deep); }
+  .sr-person button:hover { color: var(--fam-deep); background: var(--card); }
+  .sr-field .sr-setting-choice:hover { border-color: var(--fam-lip); }
 }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .sr-game-grid > .sr-game-card:hover { transform: translateY(calc(-1 * var(--lift-sm))); }
-}
-@media (prefers-reduced-motion: no-preference) {
-  .sr-game-grid > .sr-game-card:active { transform: translateY(var(--lift-sm)); }
+  .sr-game-grid > .sr-game-card:hover:not(:active), .sr-field .sr-setting-choice:hover:not(:active) { transform: translateY(calc(-1 * var(--lift-sm))); }
 }
 @media (max-width: 600px) {
   .sr-bar { padding: var(--space-8) var(--space-16); gap: var(--space-8); }
   .sr-main { padding: var(--space-16); }
-  .sr-setup { grid-template-columns: minmax(0, 1fr); gap: var(--space-16); }
-  .sr-feature { gap: var(--space-16); }
-  .sr-cover { width: var(--space-64); height: var(--space-64); }
+  .sr-setup { grid-template-columns: minmax(0, 1fr); gap: var(--space-24); }
+  .sr-feature.tb-card { padding: var(--space-16); gap: var(--space-16); }
+  .sr-cover { width: var(--home-card-art); height: var(--home-card-art); padding: var(--space-4); border-radius: var(--radius-lg); }
+  .sr-feature-copy { gap: var(--space-8); }
+  .sr-feature-copy .t-body { font: var(--text-caption); }
+  .sr-feature .sr-kicker { font: var(--text-caption); padding-inline: var(--space-8); }
+  .sr-steps { grid-column: 1 / -1; gap: var(--space-8); }
+  .sr-steps li { gap: var(--space-4); }
   .sr-game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sr-game-grid:not(.is-expanded) > .sr-game-card:nth-child(n + 5) { display: none; }
-  .sr-turn { min-height: calc(var(--space-40) * 2); }
-  .sr-panel.tb-card, .sr-secret.tb-card, .sr-hand.tb-card { padding: var(--space-16); }
-  .sr-hand { min-height: calc(var(--control-h-lg) * 7); }
-  .sr-main .sr-start { position: sticky; bottom: 0; padding: var(--space-8) 0 calc(var(--space-8) + env(safe-area-inset-bottom)); background: var(--bg); }
+  .sr-panel.tb-card, .sr-secret.tb-card { padding: var(--space-16); }
+  .sr-names { gap: var(--space-8); }
+  .sr-person { padding: var(--space-4); border-radius: var(--radius-lg); }
+  .sr-fields .gm-tile { padding: var(--space-12); }
+  .sr-field .sr-choices { gap: var(--space-8); }
+  .sr-choice-desc { font: var(--text-caption); }
+  .sr-play-head.tb-card { gap: var(--space-12); padding: var(--space-12); }
+  .sr-head-avatar .sr-avatar { width: var(--control-h-lg); min-width: var(--control-h-lg); height: var(--control-h-lg); font-size: var(--space-40); }
+  .sr-turn-copy { grid-template-rows: var(--space-24) var(--space-64); }
+  .sr-turn { font: var(--text-heading); font-family: var(--font-ui, var(--font-display)); }
+  .sr-hand.tb-card { padding: var(--space-24) var(--space-16); min-height: calc(100dvh - var(--control-h) - var(--space-64) - var(--space-24)); }
+  .sr-hand-avatar .sr-avatar { width: var(--home-card-art); height: var(--home-card-art); }
+  .sr-main .sr-start { position: sticky; bottom: 0; z-index: 2; padding: var(--space-12) 0 calc(var(--space-8) + env(safe-area-inset-bottom)); background: var(--bg); }
+  .sr-start .sr-reason { min-height: var(--space-40); }
   .sr-status { padding: var(--space-8) var(--space-16); }
+  body.same-room-page #gbody .party-scene.pl-fill { gap: var(--space-12); }
+  body.same-room-page #gbody .gk-final { padding: var(--space-16); }
 }
-/* Board chrome stays outside the squares; board-kit owns the board size. */
-.same-room-page #gbody { width: 100%; margin: 0; }
-.same-room-page[data-family="board"] .sr-main { max-width: var(--howto-dialog-w); padding-top: var(--space-8); }
-.same-room-page[data-family="board"] .sr-play-head { margin-bottom: var(--space-8); }
-.same-room-page .tb-btn { text-decoration: none; }
+@media (max-width: 360px) {
+  .sr-feature.tb-card { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .sr-feature-copy { justify-items: center; text-align: center; }
+  .sr-play-head.tb-card { grid-template-columns: auto minmax(0, 1fr); }
+  .sr-turn-tools { grid-column: 1 / -1; display: flex; justify-content: end; min-height: var(--control-h-sm); }
+}
+/* Keep chrome outside boards; reduce it on short screens. */
 .same-room-page.game-playing .sr-main { padding-block: var(--space-8); }
-.same-room-page.game-playing .sr-bar { padding-block: var(--space-8); }
-/* Keep the game's cards and skin, while leaving room for the shared turn
- * banner on a short laptop screen. Scope this to the one-device shell. */
+.same-room-page[data-family="board"] .sr-main { padding-top: var(--space-8); }
+.same-room-page[data-family="board"] .sr-play-head.tb-card { padding: var(--space-8) var(--space-12); min-height: 0; }
+.same-room-page[data-family="board"] .sr-turn-copy { grid-template-rows: var(--space-24) var(--space-40); }
+.same-room-page[data-family="board"] .sr-head-avatar .sr-avatar { width: var(--control-h); height: var(--control-h); font-size: var(--space-32); }
 @media (max-height: 700px) {
-  .same-room-page.game-playing .sr-play-head { margin-bottom: var(--space-8); }
+  .sr-play-head.tb-card { margin-bottom: var(--space-8); padding-block: var(--space-8); min-height: 0; }
+  .sr-turn-copy { grid-template-rows: var(--space-24) var(--space-40); }
+  .sr-head-avatar .sr-avatar { width: var(--control-h); min-width: var(--control-h); height: var(--control-h); font-size: var(--space-32); }
+  .sr-hand.tb-card { gap: var(--space-8); padding-block: var(--space-16); }
+  .sr-hand-avatar .sr-avatar { width: var(--space-64); height: var(--space-64); font-size: var(--space-40); }
+  .sr-phone-art { width: calc(var(--space-64) * 2); height: var(--home-card-art); }
   body.same-room-page #gbody .party-scene--truth.pl-fill { gap: var(--space-8); padding-block: var(--space-8); }
-  body.same-room-page #gbody[data-phase="choose"] .party-scene--truth > .gk-prompt { font: var(--text-title); }
+  body.same-room-page #gbody[data-phase="choose"] .party-scene--truth > .gk-prompt { font: var(--text-title); padding: var(--space-12); }
   body.same-room-page #gbody .party-scene--truth .td-decks .gk-choice { min-height: var(--control-h); padding: var(--space-8); gap: var(--space-8); }
   body.same-room-page #gbody .party-scene--truth .td-decks .gk-mark { width: var(--space-32); height: var(--space-32); }
-  body.same-room-page #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind] { min-height: calc(var(--control-h-lg) * 2); gap: var(--space-8); }
+  body.same-room-page #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind] { min-height: calc(var(--control-h) * 2); gap: var(--space-8); }
   body.same-room-page #gbody .party-scene--truth .td-choices[aria-label="Truth or dare"] > [data-kind] .gk-mark { width: var(--control-h); height: var(--control-h); }
 }
-/* The shared canvas fits below our turn banner instead of asking for a
- * second full viewport; the ordinary artist tools still own the ink. */
 .same-room-page .sk-doodle.dg, .same-room-page .sk-doodle.dg.dg-live { min-height: 0; padding: var(--space-8); }
-.same-room-page .dg .sk-canvaswrap { height: clamp(calc(var(--space-32) * 5), calc(100dvh - var(--control-h-lg) * 7 - var(--control-h)), calc(var(--control-h-lg) * 6 + var(--space-64))); }
+.same-room-page .dg .sk-canvaswrap { height: clamp(calc(var(--space-32) * 5), calc(100dvh - var(--control-h-lg) * 8 - var(--control-h)), calc(var(--control-h-lg) * 6 + var(--space-64))); }

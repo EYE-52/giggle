@@ -5,6 +5,15 @@ on home, a game's setup dialog, or its game guide. Add names (commas and
 Enter work), choose settings, and start. There is no account or room code.
 This mode still needs a connection to the game server.
 
+The shared table uses the picked game's colours: a game-art hero,
+illustrated prompt-style cards, animal pace cards, colourful player seats,
+and a candy Start button. Turn banners keep their tracks steady and bounce
+only for a new actor. Private covers use a phone-and-hands illustration;
+returning covers keep the previous player's colour without keeping their
+private content. Results use the game's real scorecard and rematch actions.
+New groups open in Day; a saved Day or Night choice is respected. Guessers
+are picked with avatar chips. No visible dropdowns are used.
+
 ## Games
 
 21 games opt in through `manifest.sameRoom`:

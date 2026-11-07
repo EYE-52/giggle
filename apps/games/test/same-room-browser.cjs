@@ -27,6 +27,11 @@ async function run() {
   assert(logs.includes('PartyBox on'), logs);
   browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_EXECUTABLE ? { executablePath: process.env.CHROMIUM_EXECUTABLE } : {}) });
   const base = `http://127.0.0.1:${port}`;
+  const fresh = await browser.newContext({ colorScheme: 'dark' });
+  const freshPage = await fresh.newPage();
+  await freshPage.goto(`${base}/same-room/?game=truth-dare`);
+  assert.equal(await freshPage.locator('html').getAttribute('data-theme'), 'day', 'new groups start in Day even on a dark device');
+  await fresh.close();
   for (const width of [390, 800, 1280]) for (const theme of ['day', 'night']) for (const promptStyle of ['Random card', 'Ask your own']) {
     const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : width === 800 ? 600 : 800 }, hasTouch: width === 390, reducedMotion: 'reduce' });
     await context.addInitScript(theme => {
@@ -52,7 +57,7 @@ async function run() {
       assert.equal(seat.active, seat.id, `${phase}: server and view use the same seat`);
       if (privatePeer) assert.notEqual(seat.id, seat.target, `${phase}: target cannot write or vote`);
       else assert.equal(seat.id, seat.target, `${phase}: target acts now`);
-      assert.equal(await page.locator('#srTurn').textContent(), `${seat.name}’s turn`, `${phase}: banner names the actor`);
+      assert.equal(await page.locator('#srTurn').textContent(), `${seat.name}’s turn!`, `${phase}: banner names the actor`);
       assert(await page.locator('#gbody .party-scene--truth').isVisible(), `${phase}: actual game scene is mounted`);
       return seat;
     };
@@ -81,6 +86,10 @@ async function run() {
     await page.locator('[data-how="truth-dare"]').first().click();
     await page.locator('.same-room-link').click();
     await page.locator('#srSetup').waitFor();
+    assert.equal(await page.locator('html').getAttribute('data-theme'), theme, 'saved theme is respected');
+    assert.equal(await page.locator('.sr-prompt-art').count(), 4);
+    assert.equal(await page.locator('.sr-pace-art').count(), 3);
+    assert.equal(await page.locator('.sr-empty-friends').count(), 1);
     assert.equal(await page.locator('#srGame').inputValue(), 'truth-dare');
     assert(await page.locator('#srStart').isDisabled());
     await page.locator('#srGamePicker > summary').click();
@@ -103,6 +112,7 @@ async function run() {
     await page.locator('[data-game-choice="truth-dare"]').click();
     await page.locator('#srName').fill('Sam, Jess, Mo'); await page.locator('#srAdd').click();
     assert.equal(await page.locator('.sr-person').count(), 3);
+    assert.equal(await page.locator('#srSeatCount').textContent(), '3 / 20');
     assert.equal(await page.locator('#srAdd').evaluate(el => getComputedStyle(el).whiteSpace), 'nowrap');
     assert.equal(await page.locator('select:not(.picker-native)').count(), 0);
     await page.locator('#sr-setting-rounds').fill('1'); await page.locator('#sr-setting-rounds').dispatchEvent('change');
@@ -128,6 +138,8 @@ async function run() {
     for (let writer = 0; promptStyle === 'Ask your own' && writer < 2; writer++) {
       await page.locator('#srUnlock').waitFor();
       if (!writer) await shot('pass');
+      assert.equal(await page.locator('body').getAttribute('data-stage'), 'pass');
+      assert.equal(await page.locator('.sr-phone-art').count(), 1);
       assert.equal(await page.locator('textarea').count(), 0);
       await page.locator('#srUnlock').click();
       await page.locator('#tEntry').fill(`What is your favourite shared memory, writer ${writer}?`);
