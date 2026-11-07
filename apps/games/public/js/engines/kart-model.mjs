@@ -146,10 +146,20 @@ function prepareKartClone(inner, color) {
 /* Per-driver kart instance. assets.kart is root's loaded glTF scene
  * template (never mutated). Returns a Group the scene yaws/moves; the
  * clone lives one level down so animate() can lean children freely. */
-export function createKartModel(THREE, { assets, color, number = 1 } = {}) {
+// Stable driver choice for a player key (pid), so a player keeps the same
+// character for the whole match on every screen.
+export function kartDriverIndex(key, count) {
+  if (!(count > 1) || key == null) return 0;
+  let h = 2166136261;
+  for (const ch of String(key)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  return (h >>> 0) % count;
+}
+
+export function createKartModel(THREE, { assets, color, number = 1, driver } = {}) {
   const rootGroup = new THREE.Group();
   rootGroup.name = 'GiggleKart';
-  const template = assets && assets.kart;
+  const variants = assets && assets.kartVariants;
+  const template = variants?.length ? variants[kartDriverIndex(driver, variants.length)] : assets && assets.kart;
   if (!template) {
     rootGroup.userData.missing = 'kart';
     return rootGroup;

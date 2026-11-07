@@ -949,7 +949,7 @@ export function createKartView(viewConfig) {
         }
       } catch { /* fall through to the stock kart */ }
     }
-    const model = createKartModel(THREE, { assets, color });
+    const model = createKartModel(THREE, { assets, color, driver: pid });
     model.userData.giggleKart = true;
     return model;
   }
