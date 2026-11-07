@@ -24,7 +24,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 5 }),
     paceSetting(),
-    { key: 'huntSeconds', label: 'Seconds to hunt', type: 'int', min: 20, max: 180, def: 60 },
+    { key: 'huntSeconds', label: 'Seconds to hunt', type: 'int', min: 20, max: 600, def: 60 },
   ],
 };
 const ROUNDS = 5;

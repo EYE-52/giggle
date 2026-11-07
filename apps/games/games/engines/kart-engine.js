@@ -39,7 +39,7 @@ const COUNTDOWN_MS = 3000;
 // Round length: 1 to 5 minutes, 3 by default (GAME_RULES_STANDARD.md).
 // Stored in seconds so existing settings and presets keep their key.
 const ROUND_MIN_S = 60;
-const ROUND_MAX_S = 300;
+const ROUND_MAX_S = 900;
 const ROUND_DEFAULT_S = 180;
 // A driver who leaves, or stays gone this long, drops out (room-owned).
 const GONE_AFTER_MS = 60000;

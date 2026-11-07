@@ -24,7 +24,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 3 }),
     paceSetting(),
-    { key: 'roundSeconds', label: 'Seconds per round', type: 'int', min: 30, max: 300, def: 90 },
+    { key: 'roundSeconds', label: 'Seconds per round', type: 'int', min: 30, max: 600, def: 90 },
     { key: 'hints', label: 'Optional hints (50-point cost)', type: 'bool', def: false },
   ],
   packs: { targets: { label: 'Custom targets (supported everyday words)', type: 'string[]', minItems: 2, maxItems: 200, maxLen: 24 } },

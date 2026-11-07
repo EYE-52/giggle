@@ -36,7 +36,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 6 }),
     paceSetting(),
-    { key: 'answerSeconds', label: 'Seconds to answer', type: 'int', min: 10, max: 180, def: 45 },
+    { key: 'answerSeconds', label: 'Seconds to answer', type: 'int', min: 10, max: 600, def: 45 },
   ],
   packs: {
     prompts: { label: 'Custom prompts', type: 'string[]', minItems: 5, maxItems: 200, maxLen: 140 },

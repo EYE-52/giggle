@@ -22,8 +22,8 @@ const manifest = {
   settings: [
     roundsSetting({ def: 3 }),
     paceSetting(),
-    { key: 'memSeconds', label: 'Seconds to memorize', type: 'int', min: 5, max: 60, def: 12 },
-    { key: 'recallSeconds', label: 'Seconds to recall', type: 'int', min: 10, max: 120, def: 30 },
+    { key: 'memSeconds', label: 'Seconds to memorize', type: 'int', min: 5, max: 180, def: 12 },
+    { key: 'recallSeconds', label: 'Seconds to recall', type: 'int', min: 10, max: 300, def: 30 },
   ],
   packs: {
     items: { label: 'Custom items', type: 'string[]', minItems: 12, maxLen: 40 },

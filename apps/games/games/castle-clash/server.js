@@ -25,9 +25,9 @@ module.exports = {
     cat: '3d', renderer: '3d', layout: 'immersive', homepage: true, realtime: false, communication: 'voice',
     players: { min: 2, max: 24 }, seats: 4, runtime: { type: 'module', waitForResult: true },
     settings: [
-      { key: 'buildSeconds', label: 'Build time (seconds)', type: 'int', min: 15, max: 120, def: 60 },
-      { key: 'siegeSeconds', label: 'Siege time (seconds)', type: 'int', min: 15, max: 120, def: 90 },
-      { key: 'rounds', label: 'Rounds', type: 'int', min: 1, max: 5, def: 3 },
+      { key: 'buildSeconds', label: 'Build time (seconds)', type: 'int', min: 15, max: 300, def: 60 },
+      { key: 'siegeSeconds', label: 'Siege time (seconds)', type: 'int', min: 15, max: 300, def: 90 },
+      { key: 'rounds', label: 'Rounds', type: 'int', min: 1, max: 10, def: 3 },
     ],
     art: 'img/games/castle-clash.svg',
   },

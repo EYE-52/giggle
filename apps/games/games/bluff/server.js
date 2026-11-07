@@ -27,7 +27,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 6 }),
     paceSetting(),
-    { key: 'writeSeconds', label: 'Seconds to write', type: 'int', min: 15, max: 180, def: 45 },
+    { key: 'writeSeconds', label: 'Seconds to write', type: 'int', min: 15, max: 600, def: 45 },
   ],
 };
 const PICK_S = 25;

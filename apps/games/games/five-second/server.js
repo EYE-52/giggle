@@ -24,7 +24,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),
     paceSetting(),
-    { key: 'voteSeconds', label: 'Seconds to vote', type: 'int', min: 5, max: 60, def: 15 },
+    { key: 'voteSeconds', label: 'Seconds to vote', type: 'int', min: 5, max: 180, def: 15 },
   ],
   packs: {
     categories: { label: 'Custom categories', type: 'string[]', minItems: 5, maxLen: 60 },

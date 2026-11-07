@@ -26,7 +26,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 3 }),
     paceSetting(),
-    { key: 'writeSeconds', label: 'Seconds to write', type: 'int', min: 30, max: 180, def: 60 },
+    { key: 'writeSeconds', label: 'Seconds to write', type: 'int', min: 30, max: 600, def: 60 },
   ],
   packs: {
     categories: { label: 'Custom categories', type: 'string[]', minItems: 5, maxLen: 40 },

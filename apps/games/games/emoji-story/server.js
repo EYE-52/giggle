@@ -26,7 +26,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: null, autoLabel: 'Auto (one per player)' }),
     paceSetting(),
-    { key: 'guessSeconds', label: 'Seconds to guess', type: 'int', min: 15, max: 180, def: 60 },
+    { key: 'guessSeconds', label: 'Seconds to guess', type: 'int', min: 15, max: 600, def: 60 },
   ],
 };
 const EMOJI_S = 45;

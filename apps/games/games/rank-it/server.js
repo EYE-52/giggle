@@ -24,7 +24,7 @@ const manifest = {
   settings: [
     roundsSetting({ def: 5 }),
     paceSetting(),
-    { key: 'rankSeconds', label: 'Seconds to rank', type: 'int', min: 15, max: 120, def: 45 },
+    { key: 'rankSeconds', label: 'Seconds to rank', type: 'int', min: 15, max: 300, def: 45 },
   ],
 };
 const RANK_SECONDS = 45;
