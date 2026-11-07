@@ -105,19 +105,19 @@
 
 /* ---- HUD row ---- */
 .gk-hud {
-  display: flex; align-items: center; gap: 4px 14px; min-height: 32px; min-width: 0;
+  display: grid; grid-template-columns: 14ch 12ch minmax(0, 1fr) 5ch; align-items: center; gap: var(--space-8) var(--space-12); min-height: var(--space-32); min-width: 0;
   font: 700 14px/1.4 var(--font-body); color: var(--ink-dim);
 }
-.gk-hud > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gk-hud-round { color: var(--ink); font-weight: 800; flex: none; }
-.gk-hud-phase { flex: 0 1 auto; }
-.gk-hud-progress { margin-left: auto; font-variant-numeric: tabular-nums; flex: 0 1 auto; }
+.gk-hud > * { box-sizing:border-box; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gk-hud-round { grid-column: 1; grid-row: 1; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 800; flex: none; }
+.gk-hud-phase { grid-column: 2; grid-row: 1; justify-self:start; max-width:100%; text-align:center; }
+.gk-hud-progress { grid-column: 3; grid-row: 1; width: 100%; min-height:1.4em; text-align: right; margin-left: 0; font-variant-numeric: tabular-nums; }
 .gk-hud-timer {
-  flex: none; min-width: 3.4em; text-align: right;
+  grid-column: 4; grid-row: 1; min-width: 0; width: 100%; text-align: right;
   color: var(--ink); font-weight: 800; font-variant-numeric: tabular-nums;
 }
 .gk-hud-progress + .gk-hud-timer { margin-left: 0; }
-.gk-hud-phase + .gk-hud-timer { margin-left: auto; }
+.gk-hud-phase + .gk-hud-timer { margin-left: 0; }
 .gk-hud-timer.is-urgent { color: var(--melon-deep); }
 
 /* ---- prompt / meta ---- */
@@ -394,4 +394,11 @@
 @keyframes gk-timer-breathe { 50% { transform: scale(1.06); } }
 @media (prefers-reduced-motion: reduce) {
   :is(#gbody .pl-fill, .ck[data-family]) .gk-hud-timer { transition: none; animation: none; }
+}
+
+/* HUD tracks belong to slots, never to the current label's text width. */
+@media (max-width: 560px) {
+  .gk-hud { grid-template-columns: minmax(0,1fr) minmax(0,1fr) var(--space-64); }
+  .gk-hud-progress { grid-column:1 / 3; grid-row:2; text-align:left; min-height:1.4em; }
+  .gk-hud-timer { grid-column:3; }
 }

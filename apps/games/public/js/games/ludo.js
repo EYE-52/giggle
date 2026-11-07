@@ -77,6 +77,9 @@ export default {
     css();let c=el._ludo;if(c?.instance===S.instanceId&&S.rev<c.rev)return;
     if(!c||c.instance!==S.instanceId){this.dispose(el);css();c=el._ludo={instance:S.instanceId,S,baseline:S,api,rev:-1,phase:null,timer:0,pendingTimer:0,pending:false,retry:false,settling:false,settleKind:null,rolling:false,dieShown:S.die||S.lastMove?.die||1,armed:false,cursor:0,choiceSide:null,ready:false};
       el.innerHTML=`<section class="bk-game ld-game" data-family="board"><div class="ld-stage bk-stage"></div>${bkPanelHTML({title:'Ludo',draw:false,extra:`<div class="ld-dock"><button type="button" class="ld-dice" data-roll aria-label="Roll the die"></button><div class="ld-choices" aria-label="Choose a pawn"></div><p class="ld-reason tb-reason" aria-live="polite"></p></div>`,help:['A six brings a pawn out and gives another roll. Move exactly into home. Stars and starting squares are safe; landing on other squares sends every opponent pawn there back to its yard. No blockades or three-sixes penalty.','Choose one of your four pawns, then it moves. First with all four home wins; the others place by how far they came.']})}</section>`;
+      // The turn banner already owns a fixed text well. Keep the pawn hint
+      // there too, so the die tray fits below the board without page scrolling.
+      el.querySelector('.bk-status').append(el.querySelector('.ld-reason'));
       c.click=e=>{const t=c.S;let action=null;
         const finalAction=name=>{if(t.phase==='done'&&!c.settling&&c.api.context?.()?.isHost===true&&!c.api.context?.()?.roomActionPending)c.api[name]?.();};
         if(bkClick(e,{arm:()=>{c.armed=!c.armed;paint(el,c);},keep:()=>{c.armed=false;paint(el,c);},resign:()=>{if(c.armed)action={resign:true};},rematch:()=>finalAction('rematch'),lobby:()=>finalAction('lobby')})&&!action)return;

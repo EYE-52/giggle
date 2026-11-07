@@ -30,9 +30,9 @@ export function hudHtml({ round = '', phase = '', progress = '', timer = null, u
   const t = timer === null || timer === undefined || timer === '' ? '' : (typeof timer === 'number' ? `${Math.max(0, Math.ceil(timer))}s` : String(timer));
   const isUrgent = urgent || (typeof timer === 'number' && timer <= 5 && timer > 0);
   return `<div class="gk-hud">`
-    + (round ? `<span class="gk-hud-round">${esc(round)}</span>` : '')
-    + (phase ? `<span class="gk-hud-phase">${esc(phase)}</span>` : '')
-    + (progress ? `<span class="gk-hud-progress">${esc(progress)}</span>` : '')
+    + `<span class="gk-hud-round">${esc(round)}</span>`
+    + `<span class="gk-hud-phase">${esc(phase)}</span>`
+    + `<span class="gk-hud-progress">${esc(progress)}</span>`
     + `<span class="gk-hud-timer${isUrgent ? ' is-urgent' : ''}" aria-live="off">${esc(t)}</span>`
     + `</div>`;
 }

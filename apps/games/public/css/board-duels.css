@@ -81,8 +81,8 @@
 .bk-final-actions:not(:has(.bk-btn:not([hidden]))){display:none}
 .bk-final-actions .bk-btn{min-height:48px}
 .bk-hostwait{margin:0;font-size:13px;color:var(--ink-dim)}
-.bk-panel.is-final .bk-status,.bk-panel.is-final .bk-extra,.bk-panel.is-final .bk-help{display:none}
-.bk-panel.is-final .bk-final{order:2}.bk-panel.is-final .bk-tools{order:3}
+.bk-panel.is-final .bk-status,.bk-panel.is-final .bk-extra,.bk-panel.is-final .bk-help{visibility:hidden;pointer-events:none}
+.bk-panel.is-final .bk-final{order:2}
 
 /* Shared board hints: legal targets, last move, selection (game art may
  * add to these). */
@@ -196,9 +196,8 @@
 /* The turn card's thicker rim is drawn inside, so a turn change never
  * resizes the cards (and never nudges the board under them on phones). */
 .bk-player.is-turn{border-width:var(--outline-w);box-shadow:inset 0 0 0 1px var(--bk-fam),var(--shadow-sticker)}
-/* Only a game with draw offers can have its row swapped without a tap, so
- * only those keep space reserved for the two-button answer row. */
-.bk-actions:not(:has([data-offer-draw])){min-height:0}
+/* Resign confirmations and draw replies share one permanent action well. */
+.bk-actions{min-height:calc(var(--control-h) + var(--space-32))}
 /* Disclosures: How to play (and Chess's Moves) read as rows, not buttons. */
 .bk-help,.bk-game.ch-tabletop .chhist-wrap{flex:1 1 auto;border:0;border-radius:var(--radius-md);background:none;box-shadow:none}
 .bk-help[open]{flex-basis:100%}
@@ -234,4 +233,21 @@
  .bk-status{min-height:0;padding:var(--space-8) var(--space-16)}
  .bk-status-text{font-size:17px}
  .bk-game:is(.kl,.ck) .bk-status{min-height:calc(2 * var(--space-8) + 2 * var(--outline-w,2px) + 1.25 * 17px + 1.45 * 14px)}
+}
+
+/* Stable board chrome. The turn rim, empty score, confirmations and final
+ * scores never change the space before the stage. */
+.bk-player,.bk-player.is-turn { border-width:var(--outline-w-lg); min-height:var(--space-64); height:var(--space-64); grid-template-columns:var(--space-32) minmax(0,1fr) var(--space-48); }
+.bk-stat { width:100%; font-variant-numeric:tabular-nums; }
+.bk-stat-value { min-height:1.1em; }
+.bk-stat-label { min-height:1.3em; white-space:nowrap; }
+.bk-status { height:calc(var(--space-64) + var(--space-32)); min-height:calc(var(--space-64) + var(--space-32)); overflow:auto; justify-content:flex-start; }
+.bk-actions[hidden] { display:block!important; visibility:hidden; pointer-events:none; }
+.bk-timer.has-timer[hidden] { display:grid!important; visibility:hidden; }
+.bk-final { position:fixed; z-index:80; top:50%; left:50%; transform:translate(-50%,-50%); width:min(calc(100% - var(--space-32)),calc(var(--bk-panel) + var(--space-64))); max-height:calc(var(--game-viewport-height,100dvh) - var(--space-48)); overflow:auto; overscroll-behavior:contain; box-shadow:var(--shadow-card); }
+@media (max-width:759px) {
+ .bk-game > *, .bk-panel > * { flex-shrink:0; }
+ .bk-stage { flex:none; }
+ .bk-status,.bk-game:is(.ld-game,.kl,.ck) .bk-status { height:var(--space-64); min-height:var(--space-64); }
+ .bk-player { grid-template-columns:var(--space-24) minmax(0,1fr) var(--space-48); }
 }

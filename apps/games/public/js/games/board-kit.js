@@ -150,6 +150,7 @@ export function bkPaint(root, m) {
   const done = !!m.done;
   // Move timer: present for the whole game when on (no layout jumps).
   const timer = panel.querySelector('.bk-timer');
+  if (m.timer) timer.classList.add('has-timer');
   timer.hidden = !m.timer || done;
   panel._bkTimer = m.timer && !done ? { ...m.timer } : null;
   if (panel._bkTimer) bkPaintTimer(panel);
