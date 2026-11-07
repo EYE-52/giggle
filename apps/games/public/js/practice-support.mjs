@@ -10,6 +10,8 @@ const groups = {
   driving: ['pocket-karts'],
 };
 
+groups.turns.push('dots-boxes', 'mega-tic-tac-toe', 'five-row', 'pig-dice', 'snakes-ladders');
+
 const notes = {
   turns: 'Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent.',
   hidden: 'Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition.',

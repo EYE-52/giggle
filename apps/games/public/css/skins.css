@@ -282,3 +282,33 @@ body[data-game="warm-words"] { --bg: #f9f0ee; --font-display: "Lilita One", "Bal
 [data-theme="night"] body[data-game="warm-words"], [data-theme="night"] body[data-game="warm-words"] [data-family] { --fam: #ed8247; --fam-deep: #f6bd9e; --on-fam: #121016; --accent: #ed8247; --accent-deep: #f6bd9e; --accent-ink: #121016; }
 [data-theme="night"] body[data-game="warm-words"] { --bg: #231514; --card: #281c20; --well: #342428; }
 
+
+/* dots-boxes: batch 5 tabletop skin. */
+body[data-game="dots-boxes"], body[data-game="dots-boxes"] [data-family] { --fam: #087d9b; --fam-deep: #075268; --on-fam: #fff; --fam-lip: #075268; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="dots-boxes"] { --bg: #ecf6fa; }
+[data-theme="night"] body[data-game="dots-boxes"], [data-theme="night"] body[data-game="dots-boxes"] [data-family] { --fam: #66c9df; --fam-deep: #b7e8f2; --fam-lip: color-mix(in srgb, var(--fam) 55%, #000); --on-fam: #182019; }
+[data-theme="night"] body[data-game="dots-boxes"] { --bg: #14252d; --card: color-mix(in srgb, var(--bg) 85%, #fff); --well: color-mix(in srgb, var(--bg) 75%, #fff); }
+
+/* mega-tic-tac-toe: batch 5 tabletop skin. */
+body[data-game="mega-tic-tac-toe"], body[data-game="mega-tic-tac-toe"] [data-family] { --fam: #7658b3; --fam-deep: #503782; --on-fam: #fff; --fam-lip: #503782; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="mega-tic-tac-toe"] { --bg: #f3effa; }
+[data-theme="night"] body[data-game="mega-tic-tac-toe"], [data-theme="night"] body[data-game="mega-tic-tac-toe"] [data-family] { --fam: #b7a0ed; --fam-deep: #dbcef7; --fam-lip: color-mix(in srgb, var(--fam) 55%, #000); --on-fam: #182019; }
+[data-theme="night"] body[data-game="mega-tic-tac-toe"] { --bg: #241c33; --card: color-mix(in srgb, var(--bg) 85%, #fff); --well: color-mix(in srgb, var(--bg) 75%, #fff); }
+
+/* five-row: batch 5 tabletop skin. */
+body[data-game="five-row"], body[data-game="five-row"] [data-family] { --fam: #806044; --fam-deep: #5a402d; --on-fam: #fff; --fam-lip: #5a402d; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="five-row"] { --bg: #f6f0e5; }
+[data-theme="night"] body[data-game="five-row"], [data-theme="night"] body[data-game="five-row"] [data-family] { --fam: #c2a37f; --fam-deep: #e5cfb4; --fam-lip: color-mix(in srgb, var(--fam) 55%, #000); --on-fam: #182019; }
+[data-theme="night"] body[data-game="five-row"] { --bg: #292019; --card: color-mix(in srgb, var(--bg) 85%, #fff); --well: color-mix(in srgb, var(--bg) 75%, #fff); }
+
+/* pig-dice: batch 5 tabletop skin. */
+body[data-game="pig-dice"], body[data-game="pig-dice"] [data-family] { --fam: #b84a70; --fam-deep: #81344e; --on-fam: #fff; --fam-lip: #81344e; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="pig-dice"] { --bg: #fff0f4; }
+[data-theme="night"] body[data-game="pig-dice"], [data-theme="night"] body[data-game="pig-dice"] [data-family] { --fam: #ef9ab7; --fam-deep: #f9cee0; --fam-lip: color-mix(in srgb, var(--fam) 55%, #000); --on-fam: #182019; }
+[data-theme="night"] body[data-game="pig-dice"] { --bg: #2d1a25; --card: color-mix(in srgb, var(--bg) 85%, #fff); --well: color-mix(in srgb, var(--bg) 75%, #fff); }
+
+/* snakes-ladders: batch 5 tabletop skin. */
+body[data-game="snakes-ladders"], body[data-game="snakes-ladders"] [data-family] { --fam: #527d38; --fam-deep: #345023; --on-fam: #fff; --fam-lip: #345023; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="snakes-ladders"] { --bg: #f1f6e9; }
+[data-theme="night"] body[data-game="snakes-ladders"], [data-theme="night"] body[data-game="snakes-ladders"] [data-family] { --fam: #9ac37d; --fam-deep: #d0e5bf; --fam-lip: color-mix(in srgb, var(--fam) 55%, #000); --on-fam: #182019; }
+[data-theme="night"] body[data-game="snakes-ladders"] { --bg: #1d291c; --card: color-mix(in srgb, var(--bg) 85%, #fff); --well: color-mix(in srgb, var(--bg) 75%, #fff); }

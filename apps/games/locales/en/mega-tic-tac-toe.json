@@ -1,0 +1,24 @@
+{
+  "strings": {
+    "agreement": "Draw agreed.",
+    "draw": "No moves remain. Each player earns 150 points.",
+    "ended": "The host ended this match. Points already earned stay.",
+    "forfeit": "A seat left the table.",
+    "resign": "A seat resigned.",
+    "timeout": "The move timer ran out.",
+    "yourTurn": "Your turn. Pick a bright board.",
+    "waiting": "{name} to move.",
+    "unit": "boards",
+    "meta": "Nine boards · One big plan",
+    "free": "Any open board",
+    "forced": "Play in board {board}",
+    "hint": "Your cell sends the next player.",
+    "three-boards": "Three small boards in a row.",
+    "help": [
+      "The bright rim marks each board you may play on.",
+      "Your chosen cell sends the next player to the matching small board.",
+      "A won or full destination frees the next player to choose any open board.",
+      "Claim three cells in a row to win a small board. Claim three boards in a row to win the match."
+    ]
+  }
+}

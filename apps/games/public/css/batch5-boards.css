@@ -1,0 +1,167 @@
+/* Only the five new boards. Panel components come from board-kit; the compact
+ * roster and fixed status slots keep the playfield still through every turn. */
+.b5-game {
+  --b5-p0: #bb4363; --b5-p1: #277eab; --b5-p2: #7c59aa; --b5-p3: #b36c24;
+  --b5-p4: #268872; --b5-p5: #a54995; --b5-p6: #4c69b7; --b5-p7: #8e7332;
+  --b5-p8: #a84f38; --b5-p9: #457f37; --b5-p10: #78576b; --b5-p11: #386e73;
+  --bk-top: 72px;
+  --bk-panel: 320px;
+  gap: var(--space-16);
+  padding: var(--space-24) var(--space-16) var(--space-16);
+  grid-template-rows: var(--control-h-sm) minmax(0, 1fr);
+  min-height: var(--game-viewport-height, 100dvh);
+  font: var(--text-body);
+}
+.b5-game .bk-panel { grid-row: 1 / 3; margin-top: 0; gap: var(--space-8); }
+.b5-game .bk-head { min-height: var(--control-h-sm); }
+.b5-game .bk-title { font: var(--text-heading); }
+.b5-game .bk-meta { font: var(--text-caption); min-height: 1.4em; }
+.b5-game .bk-stage { grid-row: 2; margin: 0; width: min(100%, calc(var(--game-viewport-height, 100dvh) - 120px)); }
+.b5-game .b5-hud {
+  grid-column: 1; grid-row: 1; width: 100%; margin: 0;
+  display: flex; align-items: center; gap: var(--space-8);
+  padding: 0 var(--space-8); font: var(--text-caption);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.b5-game .b5-hud-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 800; color: var(--fam-deep); }
+.b5-game .b5-hud-turn { width: 10ch; text-align: right; }
+.b5-game .gk-hud-timer { min-width: 4ch; width: 4ch; margin-left: 0; text-align: right; }
+.b5-game .bk-player { height: var(--control-h-lg); min-height: var(--control-h-lg); padding: var(--space-8); gap: var(--space-8); }
+.b5-game .bk-name { font: var(--text-button-sm); }
+.b5-game .bk-stat { min-width: 5ch; width: 5ch; }
+.b5-game .bk-stat-value { font: var(--text-title); font-variant-numeric: tabular-nums; }
+.b5-game .bk-stat-label, .b5-game .bk-side { font: var(--text-caption); }
+.b5-game .bk-status { min-height: 88px; height: 88px; padding: var(--space-8) var(--space-12); }
+.b5-game .bk-status-text { font: var(--text-title); }
+.b5-game .bk-hint { font: var(--text-caption); }
+.b5-game .bk-actions { min-height: var(--control-h-sm); }
+.b5-game .bk-row { flex-wrap: nowrap; }
+.b5-game .bk-ask { display: none; }
+.b5-game .bk-row-confirm .bk-btn, .b5-game .bk-row-offer .bk-btn { min-height: var(--control-h-sm); }
+.b5-game .bk-help-body { position: absolute; z-index: 40; left: var(--space-16); right: var(--space-16); max-width: 500px; padding: var(--space-16); background: var(--card); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+.b5-game .b5-action-reason { min-height: 1.4em; margin: 0; font: var(--text-caption); }
+.b5-game .bk-extra:has(> .b5-action-reason:only-child) { min-height: 0; }
+.b5-game .bk-extra:has(> .b5-action-reason:empty:only-child) { visibility: hidden; }
+.b5-game .bk-timer { display: none; }
+.b5-game .bk-chip { width: 28px; height: 28px; }
+.b5-game .b5-token { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--piece); color: #fff; box-shadow: inset 0 -3px 0 #0002; font: var(--text-button-sm); line-height: 1; }
+.b5-game .b5-seat-0 { --piece: var(--b5-p0); }
+.b5-game .b5-seat-1 { --piece: var(--b5-p1); }
+.b5-game .b5-seat-2 { --piece: var(--b5-p2); }
+.b5-game .b5-seat-3 { --piece: var(--b5-p3); }
+.b5-game .b5-seat-4 { --piece: var(--b5-p4); }
+.b5-game .b5-seat-5 { --piece: var(--b5-p5); }
+.b5-game .b5-seat-6 { --piece: var(--b5-p6); }
+.b5-game .b5-seat-7 { --piece: var(--b5-p7); }
+.b5-game .b5-seat-8 { --piece: var(--b5-p8); }
+.b5-game .b5-seat-9 { --piece: var(--b5-p9); }
+.b5-game .b5-seat-10 { --piece: var(--b5-p10); }
+.b5-game .b5-seat-11 { --piece: var(--b5-p11); }
+.b5-game [role="button"] { cursor: pointer; }
+.b5-game [role="button"][aria-disabled="true"] { cursor: default; }
+.b5-game [role="button"]:focus-visible { outline: none; }
+.b5-game [role="button"]:focus-visible > :first-child { stroke: var(--fam); stroke-width: 4; }
+.b5-game .b5-die { width: 64px; height: 64px; flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; border: 2px solid #e1c9a5; border-radius: 16px; background: #fff7e5; box-shadow: 0 5px 0 #b7996a; }
+.b5-game .b5-die i { border-radius: 50%; }
+.b5-game .b5-die .is-pip { background: #493735; box-shadow: inset 0 1px 1px #0003; }
+.b5-game .b5-die.is-rolling { animation: b5-roll var(--dur-slow) var(--ease); }
+@keyframes b5-roll { 0% { transform: rotate(-18deg) scale(.85); } 50% { transform: rotate(15deg) translateY(-12px); } 100% { transform: rotate(0) scale(1); } }
+@media (hover: hover) { .b5-game [role="button"][aria-disabled="false"]:hover > :first-child { stroke: var(--fam); stroke-width: 3; } }
+.b5-game [role="button"][aria-disabled="false"]:active { opacity: .7; }
+@media (min-width: 760px) {
+  .b5-game { grid-template-columns: minmax(0, min(720px, calc(var(--game-viewport-height, 100dvh) - 96px))) var(--bk-panel); justify-content: center; }
+  .b5-game:is(.pd-game, .sl-game)[data-seats="12"] .bk-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 759px) {
+  .b5-game { display: flex; gap: var(--space-8); padding: var(--space-8); min-height: var(--game-viewport-height, 100dvh); }
+  .b5-game .bk-head { order: 0; padding-left: 104px; min-height: 48px; }
+  .b5-game .bk-title { font: var(--text-title); }
+  .b5-game .bk-panel { display: contents; }
+  .b5-game .bk-players { order: 1; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8); }
+  .b5-game .bk-player { height: var(--control-h); min-height: var(--control-h); padding: var(--space-4) var(--space-8); }
+  .b5-game .bk-side { display: none; }
+  .b5-game .bk-stat-label { display: none; }
+  .b5-game .bk-stat { width: 3ch; min-width: 3ch; }
+  .b5-game .b5-hud { order: 2; height: var(--space-24); min-height: var(--space-24); padding: 0; }
+  .b5-game .bk-stage { order: 3; width: min(100%, calc(var(--game-viewport-height, 100dvh) - 324px)); max-width: 560px; }
+  .b5-game .bk-status { order: 4; min-height: 64px; height: 64px; }
+  .b5-game .bk-status-text { font: var(--text-button); }
+  .b5-game .bk-extra { order: 5; }
+  .b5-game .bk-actions { order: 6; }
+  .b5-game .bk-tools { order: 7; }
+  .b5-game .bk-help summary { min-height: var(--control-h-sm); }
+  .b5-game .bk-final { order: 4; }
+  .b5-game .bk-player .bk-name { font: var(--text-caption); white-space: nowrap; }
+  .b5-game:is(.pd-game, .sl-game) .bk-players { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .b5-game:is(.pd-game, .sl-game) .bk-player { grid-template-columns: 20px minmax(0, 1fr); gap: var(--space-4); }
+  .b5-game:is(.pd-game, .sl-game) .bk-chip, .b5-game:is(.pd-game, .sl-game) .b5-token { width: 20px; height: 20px; }
+  .b5-game:is(.pd-game, .sl-game) .bk-stat { grid-column: 2; grid-row: 2; align-items: flex-start; }
+  .b5-game:is(.pd-game, .sl-game) .bk-stat-value { font: var(--text-caption); line-height: 1; }
+  .b5-game:is(.pd-game, .sl-game) .bk-player { grid-template-rows: 20px 16px; }
+}
+@media (prefers-reduced-motion: reduce) { .b5-game * { animation: none !important; transition: none !important; } }
+
+/* One phone grid: tools share a row with the match chips. Board size is
+ * calculated from the actual roster and action slots, never from a guess
+ * about how many rows the sidebar might take. Results keep the first four
+ * rows intact and may continue below them after play has ended. */
+@media (max-width: 759px) {
+  .b5-game {
+    --bk-top: 0px;
+    --b5-extra-height: 0px;
+    --b5-roster-height: 44px;
+    --b5-board-size: min(100vw - 32px, var(--game-viewport-height, 100dvh) - var(--b5-roster-height) - var(--b5-extra-height) - 244px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "head head" "players players" "hud hud" "board board" "status status" "extra extra" "actions tools";
+    grid-template-rows: 48px var(--b5-roster-height) 24px var(--b5-board-size) 64px var(--b5-extra-height) 44px;
+    align-content: start;
+    align-items: start;
+  }
+  .b5-game .bk-head {
+    grid-area: head;
+    height: 48px;
+    padding-inline-start: calc(3 * (var(--control-h-sm) + var(--space-8)) + var(--space-8));
+  }
+  .b5-game .bk-title { font-size: 20px; white-space: nowrap; }
+  .b5-game .bk-meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .b5-game .bk-players { grid-area: players; width: 100%; height: var(--b5-roster-height); }
+  .b5-game .b5-hud { grid-area: hud; }
+  .b5-game .bk-stage { grid-area: board; width: var(--b5-board-size); height: var(--b5-board-size); justify-self: center; }
+  .b5-game .bk-status { grid-area: status; width: 100%; height: 64px; min-height: 64px; }
+  .b5-game .bk-extra { grid-area: extra; height: var(--b5-extra-height); }
+  .b5-game .b5-action-reason { display: none; }
+  .b5-game .bk-actions { grid-area: actions; }
+  .b5-game .bk-tools { grid-area: tools; align-self: start; }
+  .b5-game .bk-row-play .bk-btn { padding-inline: var(--space-12); }
+  .b5-game .bk-help summary { padding-inline: var(--space-4); }
+  .b5-game .bk-final { grid-column: 1 / -1; grid-row: 5 / 8; }
+  .b5-game:has(.bk-final:not([hidden])) .bk-tools { visibility: hidden; }
+  .b5-game .bk-players { min-height: 0; }
+  .b5-game .bk-player { min-width: 0; height: 44px; min-height: 44px; }
+  .b5-game:is(.pd-game, .sl-game) .bk-player {
+    grid-template-rows: 20px 14px;
+    padding-block: var(--outline-w);
+  }
+  .b5-game .bk-help[open] { flex-basis: auto; }
+}
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 560px) {
+  .b5-game {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 264px;
+    grid-template-areas: "hud panel" "board panel";
+    grid-template-rows: 24px minmax(0, 1fr);
+    height: var(--game-viewport-height, 100dvh);
+    min-height: 0;
+    padding: var(--space-8);
+    gap: var(--space-8);
+  }
+  .b5-game .bk-panel { display: flex; grid-area: panel; margin-top: 52px; max-height: calc(var(--game-viewport-height, 100dvh) - 68px); overflow: auto; }
+  .b5-game .bk-stage { width: min(100%, calc(var(--game-viewport-height, 100dvh) - 48px)); height: auto; }
+  .b5-game .bk-head { height: auto; padding-left: 0; flex: none; }
+  .b5-game .bk-players { height: auto; flex: none; }
+  .b5-game .bk-extra { height: auto; }
+  .b5-game .bk-help-body { left: auto; right: var(--space-8); width: 248px; }
+  .b5-game .bk-player { flex: none; }
+  .b5-game .bk-final { flex: none; }
+}

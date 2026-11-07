@@ -1,0 +1,24 @@
+{
+  "strings": {
+    "agreement": "Draw agreed.",
+    "draw": "No moves remain. Each player earns 150 points.",
+    "ended": "The host ended this match. Points already earned stay.",
+    "forfeit": "A seat left the table.",
+    "resign": "A seat resigned.",
+    "timeout": "The move timer ran out.",
+    "yourTurn": "Your turn. Join two dots.",
+    "waiting": "{name} to move.",
+    "unit": "boxes",
+    "hud": "{n} / {total} boxes",
+    "hint": "Close a box to move again.",
+    "extraTurn": "Box closed. Take another move.",
+    "boardLabel": "A little line goes a long way",
+    "boxes": "Every box is claimed.",
+    "help": [
+      "Tap the gap between two dots to draw a line.",
+      "The fourth side claims a box and gives you another move. One line can claim two boxes.",
+      "Most boxes wins. Equal box counts share a place. With two players, a tie earns 150 each.",
+      "The first four seats play; the rest watch. Leaving or running out of move time forfeits your seat."
+    ]
+  }
+}

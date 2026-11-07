@@ -1633,6 +1633,16 @@ driver('fleet-duel', () => {
   return `${shots} alternating legal shots, confirmed placement, masked opponents/watchers and complete sinking win`;
 });
 
+/* Batch 5: public-action tabletop playthroughs, shared with focused rules. */
+for (const id of ['dots-boxes', 'mega-tic-tac-toe', 'five-row', 'pig-dice', 'snakes-ladders']) {
+  driver(id, () => {
+    const def = registry.get(id);
+    const ctx = new FakeCtx(roster(4), {});
+    garbageOk(def, def.create(ctx), ctx, 'p1');
+    return require('./new-games-b5-driver').playBatch5(def, ctx);
+  });
+}
+
 /* ---------------- runner ---------------- */
 async function main() {
   await registry.get('pocket-karts').initialize();
