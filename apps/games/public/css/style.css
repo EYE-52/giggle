@@ -1129,16 +1129,8 @@ dialog.howto-dlg:not([open]) { display: none; }
   border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px;
 }
 .howto-pill:nth-child(2) { background: var(--accent-soft); color: var(--accent-deep); }
-/* The rules list scrolls inside the sheet, above the footer divider. Only
- * while more of it sits below (.has-more, set by howto.js) does the bottom
- * edge fade, and never to nothing: the next line peeks through as the cue
- * to scroll. At the end of the list every line is at full strength, and
- * the bottom padding keeps the last line clear of the divider. */
+/* The dialog scrolls as one sheet, so rules never fade or clip mid-line. */
 .howto-body { overflow-y: auto; overscroll-behavior: contain; min-height: 0; padding-bottom: var(--space-16); }
-.howto-body.has-more {
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), #0004);
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), #0004);
-}
 .howto-body p { margin: 0 0 10px; font-size: 17px; font-weight: 600; line-height: 1.55; }
 .howto-body p:last-child { margin-bottom: 0; }
 .howto-foot {
@@ -1236,8 +1228,7 @@ dialog.howto-dlg:not([open]) { display: none; }
   .kart-setup .dlg-foot .btn { padding-inline: 12px; font-size: 15px; }
 }
 @media (max-width: 560px) {
-  /* Bounded bottom sheet on phones: full width, capped height, the
-   * instruction text scrolls inside while the CTA stays visible. */
+  /* Bounded bottom sheet on phones; the whole sheet can scroll. */
   dialog.howto-dlg {
     margin: auto 0 0; width: 100%; max-width: 100%;
     border-radius: 20px 20px 0 0; border-bottom: none;

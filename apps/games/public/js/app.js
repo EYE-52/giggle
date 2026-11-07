@@ -10,7 +10,7 @@ import {
   refreshCustomizer, customizerError, customizerResult,
 } from './customize.js';
 import { segPickerHtml, wirePickers, syncPickers } from './pickers.js';
-import { openHowto, closeHowto, refreshHowto, isHowtoOpen } from './howto.js';
+import { openHowto, openControls, closeHowto, refreshHowto, isHowtoOpen } from './howto.js';
 import { decideCustomizeIntent, setPendingCustomize, takePendingCustomize } from './pending-customize.js';
 import {
   parseEmbedParams, createChildBridge, validThemeId, isTrustedParentOrigin, isValidNonce,
@@ -2424,6 +2424,7 @@ function gameRoomMenu(g, context, floating = false) {
       ${lastState.spectator ? `<p class="room-watch" role="status">${esc(spectatorBanner(seatCap(g)))}</p>` : ''}
       <button type="button" class="room-resume" id="bRoomResume">${lastState.spectator ? 'Back to watching' : 'Back to game'}<span aria-hidden="true">▶</span></button>
       <div class="room-menu-actions">
+        <button type="button" class="room-setting" id="bControls">Controls</button>
         <button type="button" class="room-setting is-switch" id="bSound" role="switch" aria-checked="${sound.enabled}">${roomSwitchHtml(soundIcon(sound.enabled), 'Sound')}</button>
         <button type="button" class="room-setting is-switch" id="bTheme" role="switch" aria-checked="${theme() === 'night'}">${roomSwitchHtml(themeIcon(theme()), 'Night')}</button>
         <button type="button" class="room-setting" id="bGameScreen">Full screen</button>
@@ -2500,9 +2501,16 @@ function wireGameRoom() {
     if (b) b.onclick = () => { menu.open = false; menu.querySelector('summary')?.focus({ preventScroll: true }); };
   }
   if (menu) menu.addEventListener('toggle', () => {
-    if (menu.open) menu.querySelector('#bRoomResume')?.focus({ preventScroll: true });
+    if (menu.open && !isHowtoOpen()) menu.querySelector('#bRoomResume')?.focus({ preventScroll: true });
     else if (menuConfirm) { menuConfirm = null; paintMenuConfirm(); }
   });
+  const controls = document.getElementById('bControls');
+  // Close the drawer first so the sheet sits alone over the game; closing
+  // the sheet returns focus to the menu button, back in play.
+  if (controls) controls.onclick = () => {
+    if (menu) menu.open = false;
+    openControls({ game: gameById(gameId), opener: menu?.querySelector('summary') || controls });
+  };
   for (const id of ['bGameScreen', 'bGameScreenToggle', 'bGameScreenPrompt']) {
     const screenButton = document.getElementById(id);
     if (screenButton) screenButton.onclick = () => {
@@ -3003,10 +3011,17 @@ document.addEventListener('click', (e) => {
 // intercepting game actions. Boot-time handlers never accumulate per match.
 document.addEventListener('pointerdown', (e) => {
   const menu = document.getElementById('roomMenu');
-  if (menu?.open && !menu.contains(e.target)) menu.open = false;
+  if (menu?.open && !isHowtoOpen() && !menu.contains(e.target)) menu.open = false;
 });
 document.addEventListener('keydown', (e) => {
   const menu = document.getElementById('roomMenu');
+  const editing = e.target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+  if (e.key === '?' && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && !e.isComposing && !editing && menu && gameId && lastState && !isCustomizerOpen() && !isHowtoOpen() && !isReportOpen() && !document.querySelector('dialog[open]')) {
+    e.preventDefault();
+    menu.open = true;
+    document.getElementById('bControls')?.click();
+    return;
+  }
   if (e.key === 'Tab' && menu?.open && !isCustomizerOpen() && !isHowtoOpen() && !isReportOpen()) {
     const focusable = [...menu.querySelectorAll('.room-menu-panel button, .room-menu-panel a[href]')]
       .filter((node) => !node.disabled && node.getClientRects().length > 0);

@@ -2,8 +2,8 @@
 dialog.howto-dlg {
   width: min(536px, calc(100vw - var(--space-32)));
   max-height: calc(100dvh - var(--space-32) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
-  display: flex; flex-direction: column; gap: var(--space-16);
-  padding: var(--space-24); overflow: hidden;
+  display: flex; flex-direction: column; gap: var(--space-12);
+  padding: var(--space-24); overflow-y: auto; overscroll-behavior: contain;
   border: var(--outline-w) solid var(--outline); border-radius: var(--radius-xl);
   background: var(--card); color: var(--ink); box-shadow: var(--shadow-card);
   font: var(--text-body); animation: howto-menu-enter var(--dur-base) var(--ease);
@@ -25,20 +25,20 @@ dialog.howto-dlg:not([open]) { display: none; }
 .howto-dlg .howto-tabs button { flex: 1; min-width: var(--control-h-sm); min-height: var(--control-h-sm); padding: var(--space-8) var(--space-12); border: var(--outline-w) solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--ink-dim); font: var(--text-button-sm); white-space: normal; transition: transform var(--dur-quick) var(--ease); }
 .howto-dlg .howto-tabs [aria-selected="true"] { border-color: var(--fam-lip); color: var(--on-fam); background: var(--fam); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
 .howto-dlg .howto-tabs [aria-selected="true"]::after { content: none; }
-.howto-dlg :is(#howtoPlayPanel, .howto-body) { min-height: 0; margin: 0; overflow-y: auto; overscroll-behavior: contain; }
+.howto-dlg :is(#howtoPlayPanel, .howto-body) { flex: none; min-height: auto; margin: 0; overflow: visible; }
 .howto-dlg .howto-body { padding: var(--space-4) var(--space-4) var(--space-16); }
 .howto-dlg .howto-body p { margin: 0 0 var(--space-12); font: var(--text-body); text-wrap: pretty; }
 .howto-dlg .howto-body p:last-child { margin-bottom: 0; }
 .howto-dlg #howtoPlayPanel.howto-intro:has(.howto-glance) { margin: 0; }
 .howto-dlg .howto-intro { color: var(--ink-dim); font: var(--text-body); text-wrap: pretty; }
-.howto-dlg .howto-glance { gap: var(--space-16); }
+.howto-dlg .howto-glance { gap: var(--space-8); }
 .howto-dlg .howto-goal { align-items: flex-start; gap: var(--space-8); margin: 0; font: var(--text-title); }
 .howto-dlg .howto-label { padding: var(--space-4) var(--space-8); border-radius: var(--radius-sm); background: var(--fam-soft); color: var(--fam-deep); font: var(--text-caption); letter-spacing: normal; text-transform: none; transform: none; }
-.howto-dlg .howto-controls { grid-template-columns: repeat(auto-fit, minmax(min(100%, 184px), 1fr)); gap: var(--space-8); }
-.howto-dlg .howto-controls li { gap: var(--space-8); min-height: var(--control-h); padding: var(--space-8) var(--space-12); border-radius: var(--radius-md); background: var(--well); }
-.howto-dlg .howto-keys { gap: var(--space-4); }
-.howto-dlg .howto-keys kbd, .howto-dlg .howto-touch { min-width: var(--space-32); height: var(--space-32); padding: 0 var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); color: var(--ink); background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-caption); }
-.howto-dlg .howto-does { font: var(--text-button-sm); }
+.howto-dlg .howto-controls { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+.howto-dlg .howto-controls li { gap: var(--space-8); min-width: 0; min-height: var(--space-40); padding: var(--space-4) var(--space-8); border-radius: var(--radius-md); background: var(--well); }
+.howto-dlg .howto-keys { gap: var(--space-4); max-width: 100%; }
+.howto-dlg .howto-keys kbd, .howto-dlg .howto-touch { min-width: var(--space-32); min-height: var(--space-32); height: auto; padding: var(--space-4) var(--space-8); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-sm); color: var(--ink); background: var(--card); box-shadow: var(--shadow-sticker-sm); font: var(--text-caption); }
+.howto-dlg .howto-does { min-width: 0; overflow-wrap: anywhere; font: var(--text-button-sm); }
 .howto-dlg .howto-tips { gap: var(--space-12); margin: 0 0 var(--space-16); }
 .howto-dlg .howto-tips li { padding-left: var(--space-24); font: var(--text-body); }
 .howto-dlg .howto-tips li::before { left: var(--space-4); width: var(--space-8); height: var(--space-8); border-radius: var(--radius-sm); background: var(--fam); }

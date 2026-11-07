@@ -85,14 +85,6 @@ export function renderRules(body, game) {
   }
 }
 
-/* The rules list fades at its bottom edge only while more of it sits
- * below: a long list reads as continuing, a short or fully scrolled one
- * shows every line at full strength. */
-function syncRulesFade(body) {
-  const more = body.scrollHeight - body.scrollTop - body.clientHeight > 4;
-  body.classList.toggle('has-more', more);
-}
-
 function paintFooter() {
   if (!state || !state.el) return;
   const foot = state.el.querySelector('[data-howto-foot]');
@@ -101,7 +93,7 @@ function paintFooter() {
   // focus on the same control when it survives the repaint.
   const active = document.activeElement;
   const activeId = active && foot.contains(active) && active.id ? active.id : null;
-  const built = state.buildFooter(state.game) || {};
+  const built = state.buildFooter?.(state.game) || {};
   foot.innerHTML = built.html || '';
   if (typeof built.wire === 'function') built.wire(foot);
   if (activeId) {
@@ -211,13 +203,7 @@ export function openHowto({ game, opener, meta, buildFooter }) {
       const panel = el.querySelector('#' + tab.getAttribute('aria-controls'));
       panel.hidden = !active || (panel === intro && !intro.textContent);
     }
-    syncRulesFade(rules);
   };
-  const rules = el.querySelector('.howto-body');
-  const fade = () => syncRulesFade(rules);
-  rules.addEventListener('scroll', fade, { passive: true });
-  rules.addEventListener('toggle', fade, true); // "All rules" opening or folding
-  if (typeof ResizeObserver === 'function') new ResizeObserver(fade).observe(rules);
   for (const tab of tabs) {
     tab.onclick = () => selectTab(tab);
     tab.onkeydown = (event) => {
@@ -247,4 +233,34 @@ export function openHowto({ game, opener, meta, buildFooter }) {
   // dialog control explicitly during the user-triggered open instead.
   const close = el.querySelector('#howtoClose');
   try { close.focus({ preventScroll: true }); } catch { close.focus(); }
+}
+
+/* The running game's compact guide shares the same manifest renderer. */
+export function openControls({ game, opener }) {
+  if (!game) return;
+  closeCustomizer({ returnFocus: false });
+  closeHowto({ returnFocus: false });
+  const el = document.createElement('dialog');
+  el.className = 'howto-dlg controls-dlg';
+  el.setAttribute('aria-labelledby', 'controlsTitle');
+  el.innerHTML = `<div class="howto-head"><div class="howto-titles"><h2 id="controlsTitle">Controls</h2><p class="howto-tag"></p></div><button type="button" class="btn ghost dlg-x" id="howtoClose" aria-label="Close controls">×</button></div>`;
+  el.querySelector('.howto-tag').textContent = game.name;
+  const glance = guideGlance(game);
+  if (glance) el.append(glance);
+  else el.append(node('p', 'howto-intro', game.howto || 'Follow the instructions on screen.'));
+  state = { game, opener: opener || null, el, buildFooter: null };
+  const fullscreen = document.fullscreenElement;
+  // The app normally fullscreens <html>; keeping the sheet in <body>
+  // preserves the active game skin and touch-preferred control labels.
+  const parent = fullscreen && !fullscreen.contains(document.body) ? fullscreen : document.body;
+  parent.appendChild(el);
+  el.querySelector('#howtoClose').onclick = () => closeHowto();
+  el.addEventListener('click', e => { if (e.target === el) closeHowto(); });
+  el.addEventListener('cancel', e => { e.preventDefault(); closeHowto(); });
+  el.addEventListener('close', () => { if (state?.el === el) closeHowto({ returnFocus: false }); });
+  el.addEventListener('keydown', e => e.stopPropagation());
+  document.addEventListener('keydown', escGuard, true);
+  document.dispatchEvent(new Event('game-screenchange'));
+  el.showModal();
+  el.querySelector('#howtoClose').focus({ preventScroll: true });
 }
