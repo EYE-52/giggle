@@ -538,7 +538,9 @@ checkFullMatch(fbb, 'fallback');
   const libMats = [...mats].filter((m) => libPool.mats.has(m));
   assert.ok(factoryOwned.length > 0, 'overrides identified as factory-owned');
   assert.ok(libMats.length > 0, 'GLB materials identified as root-owned');
-  assert.ok([...geos].every((g) => libPool.geos.has(g)), 'GLB clones use root-owned geometries');
+  const warningGeometry=props[3].getObjectByName('MineWarningRing').geometry;
+  assert.equal(props[4].getObjectByName('MineWarningRing').geometry,warningGeometry,'all Mine warnings share one factory-owned ring');
+  assert.ok([...geos].every((g) => libPool.geos.has(g)||g===warningGeometry), 'GLB clones borrow library geometry; only the new warning ring is factory-owned');
   const counts = new Map();
   for (const r of [...geos, ...mats]) {
     const orig = r.dispose.bind(r);
@@ -547,13 +549,14 @@ checkFullMatch(fbb, 'fallback');
   }
   art.dispose();
   for (const m of factoryOwned) assert.equal(counts.get(m), 1, `${m.name} override disposed once`);
-  for (const g of geos) assert.equal(counts.get(g), 0, 'root-owned geometry never disposed');
+  for (const g of geos) assert.equal(counts.get(g), g===warningGeometry?1:0, 'factory ring retires once; root-owned geometry stays alive');
   for (const m of libMats) assert.equal(counts.get(m), 0, 'root-owned material never disposed');
   art.dispose();
   for (const m of factoryOwned) assert.equal(counts.get(m), 1, 'second dispose is a no-op');
   const fresh = art.projectile('rocket');
   assert.ok(Number.isFinite(sizeOf(fresh).z), 'GLB props work after dispose');
   assert.ok(art.pickup().getObjectByName('PickupBadge'), 'GLB path survives dispose');
+  assert.notEqual(art.mine(true).getObjectByName('MineWarningRing').geometry,warningGeometry,'a recreated factory rebuilds its retired warning resource');
   art.dispose();
 }
 {

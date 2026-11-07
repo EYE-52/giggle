@@ -73,6 +73,17 @@ export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],isA
       renderer.shadowMap.needsUpdate=true;
       for(const shadow of shadowUpdates.keys())shadow.needsUpdate=true;
     }
+    // Adaptive quality can disable shadows during a fight. Prepare that
+    // exact program variant too: otherwise the next Cannon/Thunder/status
+    // material links and reflects its no-shadow shader in a live frame.
+    if(renderer.shadowMap?.enabled){
+      renderer.shadowMap.enabled=false;
+      try{
+        for(const m of materials.keys())m.needsUpdate=true;
+        if(renderer.compileAsync)await renderer.compileAsync(scene,camera);else renderer.compile(scene,camera);
+        await waitKartPrograms(renderer,isAlive);alive();renderer.render(scene,camera);
+      }finally{renderer.shadowMap.enabled=true;for(const m of materials.keys())m.needsUpdate=true;}
+    }
     if(renderer.compileAsync)await renderer.compileAsync(scene,camera);else renderer.compile(scene,camera);
     await waitKartPrograms(renderer,isAlive);
     alive();renderer.render(scene,camera);

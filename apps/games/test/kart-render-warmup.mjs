@@ -89,7 +89,7 @@ for(const fallback of [false,true]){
     },
     async compileAsync(){},
     renderBufferDirect(c,s,g,m,o){ok(prepared.has(signature(o,m)),'shadow draw uses an already prepared variant');ok(programs.every(p=>p.reflected),'all shared-material variants and uniform tables finish before drawing');draws++;},
-    render(){for(const o of [mesh,instances])this.renderBufferDirect(camera,null,o.geometry,depth,o);},
+    render(){if(this.shadowMap.enabled)for(const o of [mesh,instances])this.renderBufferDirect(camera,null,o.geometry,depth,o);},
   };
   const direct=renderer.renderBufferDirect;
   await warmKartRenderer(THREE,renderer,scene,camera);
@@ -138,3 +138,15 @@ for(const fail of ['compile','retired','fence']){
   ok(rendered===(fail==='fence'?1:0),'failed/retired compile never renders');
 }
 console.log(JSON.stringify({pass:true,checks,scope:'Shipping GLBs and fallback, all 13 weapons, first-use material/texture/geometry coverage, every driver, unchanged draws/triangles and loading lifecycle; real WebGL checked separately.'}));
+
+// Quality switches must select cached, reflected shaders, including materials
+// that are not visible until the first weapon/status use.
+{
+ const scene=new THREE.Scene(),camera=new THREE.Camera(),material=new THREE.MeshStandardMaterial(),mesh=new THREE.Mesh(new THREE.BoxGeometry(),material);scene.add(mesh);
+ const modes=[],ready=new Set();let current;const programs=[];
+ const renderer={shadowMap:{enabled:true},info:{programs},async compileAsync(){current=this.shadowMap.enabled;const key=String(current);modes.push(current);programs.push({isReady:()=>true,getUniforms(){ready.add(key);},getAttributes(){}});},render(){ok(ready.has(String(this.shadowMap.enabled)),'both quality variants reflect during loading before drawing');}};
+ await warmKartRenderer(THREE,renderer,scene,camera);
+ assert.deepEqual(modes,[false,true],'no-shadow then normal shader variants prepare before Ready');
+ ok(renderer.shadowMap.enabled&&ready.has('false')&&ready.has('true'),'original quality restores and adaptive shader is already cached');
+ material.dispose();mesh.geometry.dispose();
+}
