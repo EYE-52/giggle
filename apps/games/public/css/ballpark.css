@@ -1,0 +1,277 @@
+.ballpark-play {
+  display: grid;
+  gap: var(--space-16);
+  justify-items: center;
+}
+.ballpark-ticket {
+  position: relative;
+  width: min(100%, 560px);
+  padding: var(--space-24);
+  background: var(--sun-soft);
+  color: var(--ink);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sticker);
+  text-align: center;
+}
+.ballpark-stamp {
+  display: block;
+  font: var(--text-caption);
+  letter-spacing: 0.1em;
+}
+.ballpark-entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin: var(--space-24) 0;
+}
+#gbody .ballpark-world .ballpark-entry input {
+  font-size: clamp(40px, 6vw, 64px);
+  text-align: center;
+  padding: var(--space-8);
+  min-height: 96px;
+}
+.ballpark-unit {
+  flex: 0 1 auto;
+  max-width: 36%;
+  padding: var(--space-12);
+  background: var(--fam);
+  color: var(--on-fam);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-md);
+  box-shadow: 0 var(--lift) 0 var(--fam-lip);
+  font: var(--text-title);
+  overflow-wrap: anywhere;
+}
+.ballpark-ticket-ticks {
+  height: 28px;
+  border-bottom: var(--outline-w-lg) solid var(--outline);
+  background: repeating-linear-gradient(
+    to right,
+    var(--outline) 0 2px,
+    transparent 2px 16px
+  );
+}
+.ballpark-ticket p {
+  margin-top: var(--space-12);
+  font: var(--text-caption);
+}
+.ballpark-truth {
+  display: grid;
+  justify-items: center;
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-12) var(--space-32);
+  background: var(--sun);
+  color: var(--sun-ink);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker);
+}
+.ballpark-truth span,
+.ballpark-truth small {
+  font: var(--text-caption);
+}
+.ballpark-truth strong {
+  font: 800 clamp(38px, 7vw, 64px) / 1.1 var(--font-display);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+.ballpark-ruler {
+  position: relative;
+  width: 100%;
+  height: calc(132px + var(--pin-count) * 22px);
+  margin-top: var(--space-8);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-lg);
+  background: var(--sun-soft);
+  color: var(--ink);
+  box-shadow: var(--shadow-sticker);
+}
+.ballpark-ticks {
+  position: absolute;
+  inset: 40px 0 auto;
+  height: 32px;
+  border-bottom: var(--outline-w-lg) solid var(--ink);
+}
+.ballpark-ticks > span {
+  position: absolute;
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+}
+.ballpark-ticks i {
+  width: 2px;
+  height: 28px;
+  background: var(--ink);
+}
+.ballpark-ticks small {
+  font: 700 10px/1 var(--font-body);
+  max-width: 6ch;
+  overflow-wrap: anywhere;
+}
+.ballpark-star {
+  position: absolute;
+  top: -18px;
+  transform: translateX(-50%);
+  font-size: 42px;
+  color: var(--sun-ink);
+}
+.ballpark-star::after {
+  content: "";
+  position: absolute;
+  height: 48px;
+  width: 3px;
+  background: var(--ink);
+  top: 32px;
+  left: 50%;
+}
+.ballpark-pin {
+  position: absolute;
+  top: calc(108px + var(--lane) * 22px);
+  transform: translateX(-50%);
+}
+.ballpark-pin::before {
+  content: "";
+  position: absolute;
+  width: 2px;
+  height: calc(28px + var(--lane) * 22px);
+  bottom: 100%;
+  left: 50%;
+  background: var(--ink);
+}
+.ballpark-pin .pl-face {
+  width: 32px;
+  height: 32px;
+  border: var(--outline-w) solid var(--outline);
+  box-shadow: var(--shadow-sticker-sm);
+}
+.ballpark-pin.is-closest .pl-face {
+  animation: round-pop 550ms var(--ease) both;
+  outline: 3px solid var(--sun);
+  outline-offset: 2px;
+}
+.ballpark-estimates {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-8);
+}
+.ballpark-estimate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-12);
+  background: var(--card);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-md);
+}
+.ballpark-estimate b {
+  margin-left: auto;
+  font: var(--text-title);
+  font-variant-numeric: tabular-nums;
+}
+.ballpark-estimate small {
+  color: var(--success);
+  font: var(--text-caption);
+}
+.ballpark-fact {
+  width: min(100%, 600px);
+  padding: var(--space-12) var(--space-16);
+  background: var(--fam-soft);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker-sm);
+}
+.ballpark-fact b {
+  font: var(--text-title);
+}
+.ballpark-fact p {
+  font: var(--text-body);
+}
+@media (max-width: 560px) {
+  .ballpark-ticket {
+    padding: var(--space-16);
+  }
+  .ballpark-unit {
+    padding: var(--space-8);
+    font-size: 17px;
+  }
+  .ballpark-ticks > span:nth-child(even) small {
+    visibility: hidden;
+  }
+}
+[data-theme="night"] .ballpark-world .ballpark-star {
+  color: var(--sun);
+}
+/* Keep the answer and ruler above Next; supporting facts follow the action. */
+#gbody .ballpark-world.pl-fill {
+  gap: var(--space-12);
+}
+.ballpark-world[data-phase="reveal"] .ballpark-play {
+  display: contents;
+}
+.ballpark-truth {
+  margin-inline: auto;
+}
+.ballpark-world[data-phase="reveal"] :is(.ballpark-estimates, .ballpark-fact) {
+  order: 1;
+}
+.ballpark-world[data-phase="reveal"] .pl-live {
+  order: 2;
+}
+#gbody .ballpark-world .round-status {
+  min-height: calc(48px / var(--round-zoom, 1));
+  font: 700 13px/1.35 var(--font-body);
+}
+@media (max-width: 560px) {
+  #gbody .ballpark-world .party-prompt.party-prompt {
+    font-size: 24px;
+    padding: var(--space-12);
+  }
+}
+@media (min-width: 561px) {
+  #gbody .ballpark-world .party-prompt.party-prompt {
+    font-size: 30px;
+    padding: var(--space-16);
+  }
+  .ballpark-entry {
+    margin-block: var(--space-12);
+  }
+  .ballpark-ticket {
+    padding: var(--space-16);
+  }
+  .ballpark-truth strong {
+    font-size: 56px;
+  }
+}
+@media (min-width: 561px) {
+  #gbody .ballpark-world.pl-fill[data-phase="reveal"] {
+    display: grid;
+    grid-template-columns: 260px minmax(0, 1fr);
+    align-items: center;
+  }
+  .ballpark-world[data-phase="reveal"]
+    :is(
+      .party-hud,
+      .party-prompt,
+      .round-actions,
+      .ballpark-estimates,
+      .ballpark-fact,
+      .pl-live
+    ) {
+    grid-column: 1 / -1;
+  }
+  .ballpark-world[data-phase="reveal"] .ballpark-truth {
+    width: 100%;
+    padding-inline: var(--space-16);
+  }
+  .ballpark-world[data-phase="reveal"] .ballpark-ruler {
+    margin-top: 0;
+  }
+  .ballpark-truth strong {
+    font-size: 48px;
+  }
+}

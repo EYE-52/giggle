@@ -1,0 +1,273 @@
+.dial-play {
+  display: grid;
+  gap: var(--space-16);
+  justify-items: center;
+}
+.dial-machine {
+  width: min(100%, 500px);
+  padding: var(--space-12) var(--space-16) var(--space-16);
+  background: var(--fam-soft);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 var(--lift-lg) 0 var(--fam-lip);
+}
+.dial-brand {
+  display: block;
+  text-align: center;
+  font: var(--text-caption);
+  letter-spacing: 0.12em;
+  margin-bottom: var(--space-8);
+}
+.dial-instrument {
+  position: relative;
+}
+.dial-face {
+  display: block;
+  width: 100%;
+  overflow: visible;
+  touch-action: none;
+  cursor: grab;
+}
+.dial-rim {
+  fill: none;
+  stroke: var(--outline);
+  stroke-width: 48;
+  stroke-linecap: round;
+}
+.dial-band {
+  fill: none;
+  stroke-width: 38;
+}
+.dial-wedge {
+  fill: var(--fam);
+  stroke: white;
+  stroke-width: 3;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 4px var(--fam));
+}
+.dial-target-marker circle {
+  fill: var(--fam);
+  stroke: white;
+  stroke-width: 3;
+}
+.dial-target-marker .dial-bullseye {
+  fill: white;
+  stroke: none;
+}
+.dial-wedge-enter {
+  animation: dial-target 550ms var(--ease) both;
+  transform-origin: 180px 158px;
+}
+.dial-needle {
+  stroke: var(--pl-c, var(--outline));
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+.dial-own {
+  stroke: var(--outline);
+  stroke-width: 9;
+}
+.dial-hub {
+  fill: var(--fam);
+  stroke: var(--outline);
+  stroke-width: 4;
+}
+.dial-knob {
+  fill: var(--card);
+}
+.dial-tip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.dial-tip .pl-face {
+  width: 32px;
+  height: 32px;
+  border: var(--outline-w) solid var(--outline);
+  box-shadow: var(--shadow-sticker-sm);
+}
+.dial-ends {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-12);
+}
+.dial-ends > span {
+  padding: var(--space-8) var(--space-12);
+  background: var(--card);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sticker-sm);
+  text-align: center;
+  font: var(--text-title);
+}
+.dial-value {
+  min-width: 2ch;
+  text-align: center;
+  font: 800 32px/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+.dial-speech {
+  position: relative;
+  width: min(100%, 500px);
+  padding: var(--space-16);
+  background: var(--card);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-xl)
+    var(--space-4);
+  box-shadow: var(--shadow-sticker);
+}
+.dial-clue {
+  text-align: center;
+  font: 800 24px/1.3 var(--font-display);
+}
+.dial-composer {
+  display: grid;
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+  font: var(--text-caption);
+}
+.dial-slider-label {
+  display: grid;
+  width: min(100%, 500px);
+  gap: var(--space-4);
+  text-align: center;
+  font: var(--text-caption);
+}
+.dial-slider {
+  width: 100%;
+  min-height: calc(44px / var(--round-zoom, 1));
+  accent-color: var(--fam);
+}
+.dial-results {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  justify-content: center;
+}
+.dial-results:empty {
+  display: none;
+}
+.dial-result {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-8);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  font: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+}
+.dial-result small {
+  padding: var(--space-4);
+  background: var(--success-soft);
+  color: var(--success);
+  border-radius: var(--radius-sm);
+}
+@keyframes dial-target {
+  from {
+    opacity: 0;
+    transform: rotate(-25deg);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0);
+  }
+}
+@media (max-width: 560px) {
+  .dial-machine {
+    padding: var(--space-12);
+  }
+  .dial-ends {
+    gap: var(--space-8);
+  }
+  .dial-ends > span {
+    font-size: 18px;
+    padding: var(--space-8);
+  }
+}
+.dial-rim {
+  stroke: var(--fam-deep);
+}
+.dial-hub {
+  stroke: var(--fam-deep);
+}
+.dial-tip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: max-content;
+  max-width: 112px;
+}
+.dial-tip > span + span {
+  margin-left: -8px;
+}
+
+/* Keep the clue composer and the primary action on the first screen. */
+.dial-machine,
+.dial-speech,
+.dial-slider-label {
+  margin-inline: auto;
+}
+#gbody .dial-world.pl-fill {
+  gap: var(--space-12);
+}
+.dial-play {
+  gap: var(--space-8);
+}
+#gbody .dial-world .round-status {
+  min-height: calc(48px / var(--round-zoom, 1));
+  font: 700 13px/1.35 var(--font-body);
+}
+.dial-world[data-phase="reveal"] .dial-play {
+  display: contents;
+}
+.dial-world[data-phase="reveal"] .dial-results {
+  order: 1;
+}
+.dial-world[data-phase="reveal"] .pl-live {
+  order: 2;
+}
+@media (max-width: 560px) {
+  #gbody .dial-world .party-prompt.party-prompt {
+    font-size: 24px;
+    padding: var(--space-12);
+  }
+  .dial-instrument {
+    width: min(100%, 300px);
+    margin-inline: auto;
+  }
+  .dial-brand {
+    margin-bottom: var(--space-4);
+  }
+  .dial-speech {
+    padding: var(--space-12);
+  }
+  .dial-clue {
+    font-size: 20px;
+  }
+  .dial-composer {
+    margin-top: var(--space-8);
+  }
+}
+.dial-message {
+  display: grid;
+  gap: var(--space-8);
+  width: min(100%, 500px);
+  margin-inline: auto;
+}
+@media (min-width: 561px) {
+  .dial-play,
+  .dial-world[data-phase="reveal"] .dial-play {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+  }
+  .dial-instrument {
+    width: min(100%, 320px);
+    margin-inline: auto;
+  }
+  .dial-results {
+    grid-column: 1 / -1;
+  }
+}

@@ -1633,6 +1633,28 @@ driver('fleet-duel', () => {
   return `${shots} alternating legal shots, confirmed placement, masked opponents/watchers and complete sinking win`;
 });
 
+/* Batch 1: use this file's context so the real-Room adapter also drives it. */
+for (const id of ['dial-in', 'ballpark', 'think-alike', 'who-wrote', 'know-me']) driver(id, () => {
+  const def = registry.get(id), { legal } = require('./new-games-b1-harness');
+  for (const count of [def.minPlayers, 4]) {
+    const ctx = new FakeCtx(roster(count), settingsFor(def, { rounds: 2 }));
+    ctx.content = gameId => require('../locales/en/' + gameId + '.json');
+    const state = def.create(ctx);
+    let cycles = 0;
+    while (state.phase !== 'done' && cycles++ < 100) {
+      const phase = state.phase, round = state.round;
+      for (const p of ctx.players()) {
+        if (state.phase !== phase || state.round !== round) break;
+        const action = phase === 'reveal' ? p.id === ctx.hostId() ? { next: true } : null : legal(id, state, p.id);
+        if (action) act(def, state, ctx, p.id, action);
+      }
+    }
+    must(state.phase === 'done', id + ' reaches final through legal inputs');
+    must(ctx.totalAwarded() === Object.values(state.scores).reduce((n, p) => n + p, 0), id + ' awards match scores');
+  }
+  return 'complete minimum-player and 4-player games, private views and authoritative awards';
+});
+
 /* ---------------- runner ---------------- */
 async function main() {
   await registry.get('pocket-karts').initialize();
