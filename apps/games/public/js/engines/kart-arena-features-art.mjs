@@ -9,7 +9,7 @@
  *   sync(map), ingest(events, karts), animate(dt, t, now, S, poses),
  *   dressKart(k, mesh, now) -> bool, dispose() } */
 import {flightPose, portalExit} from './kart-map-features.mjs';
-import {instanceRepeats} from './kart-instancing.mjs';
+import {mergeStaticMeshes} from './kart-instancing.mjs';
 
 const PORTAL_COLORS = [[0xff8a2a, 0x39b8ff], [0xb46cff, 0x6dffb0]];
 const FALL_STYLE = {
@@ -98,14 +98,14 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
   const trail = new THREE.InstancedMesh(G.dot, M.dot, MAX_TRAIL_DOTS * 2);
   trail.name = 'arena-cannon-arcs'; trail.frustumCulled = false; trail.count = 0; root.add(trail);
 
-  let key = '', cannons = [], portals = [], falls = [], features = null, instanced = [];
+  let key = '', cannons = [], portals = [], falls = [], features = null, batches = [];
   const seen = new Set(), falling = new Map(), lastPuff = new Map();
   let clock = 0;
 
   function clear() {
     for (const list of [cannons, portals, falls]) for (const item of list) { root.remove(item.group); item.land && root.remove(item.land); }
-    for (const made of instanced) { root.remove(made.mesh); made.mesh.dispose(); }
-    cannons = []; portals = []; falls = []; instanced = []; trail.count = 0;
+    for (const {mesh} of batches) { root.remove(mesh); mesh.geometry.dispose(); }
+    cannons = []; portals = []; falls = []; batches = []; trail.count = 0;
   }
   function buildCannon(c, theme, index) {
     const group = new THREE.Group(); group.name = 'arena-cannon-' + index;
@@ -187,10 +187,11 @@ export function createKartArenaFeatures(THREE, scene, { groundAt = () => 0, redu
     (features.portals || []).forEach((pair, i) => pair.forEach((p, side) => portals.push(buildPortal(p, i, side))));
     (features.falls || []).forEach((f, i) => falls.push(buildFall(f, i)));
     // Static parts (bases, wheels, ramps, chevrons, targets, rims, feet)
-    // collapse to one instanced draw per geometry/material pair; animated
-    // barrels and rings, and transparent water/membranes, keep their own.
-    const skip = new Set([particles, trail, ...portals.map(p => p.ring)]);
-    instanced = instanceRepeats(THREE, root, { skip, minCount: 2 });
+    // share one draw per material/shadow setting, including different target
+    // geometries. Animated parts and transparent surfaces keep their own.
+    const skip = new Set([particles, trail, ...portals.flatMap(p => [p.ring, p.membrane, ...p.swirls]),
+      ...falls.flatMap(f => [f.surface, ...f.ripples])]);
+    batches = mergeStaticMeshes(THREE, root, {skip});
     // Static arc preview dots (cheap readability: where the cannon sends you).
     let n = 0;
     for (const item of cannons.slice(0, 2)) {

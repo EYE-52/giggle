@@ -1,4 +1,4 @@
-import { instanceRepeats } from './kart-instancing.mjs';
+import { instanceRepeats, mergeStaticMeshes } from './kart-instancing.mjs';
 import {createRoadTerrain} from './kart-road-terrain.mjs';
 import {buildTerrainRoads} from './kart-road-mesh.mjs';
 /* Giggle Grove Circuit — kart arena art module (Three.js, no simulation).
@@ -1138,6 +1138,7 @@ export function createKartWorld(THREE, options) {
     [kerbGeoX, 0, -wallOffset], [kerbGeoX, 0, wallOffset], [kerbGeoZ, -wallOffset, 0], [kerbGeoZ, wallOffset, 0],
   ]) {
     const k = new THREE.Mesh(geo, kerbMat);
+    k.name = 'boundary-kerb';
     k.position.set(x, 0.25, z);
     root.add(k);
   }
@@ -1177,6 +1178,7 @@ export function createKartWorld(THREE, options) {
     [railGeoX, 0, -wallOffset], [railGeoX, 0, wallOffset], [railGeoZ, -wallOffset, 0], [railGeoZ, wallOffset, 0],
   ]) {
     const r = new THREE.Mesh(geo, railMat);
+    r.name = 'boundary-rail';
     r.position.set(x, 1.42, z);
     root.add(r);
   }
@@ -1641,8 +1643,12 @@ export function createKartWorld(THREE, options) {
   /* ---- original motorsport landmarks and physical set dressing ---- */
   const landmark = new THREE.Group();landmark.name='arena-landmark-'+identity;root.add(landmark);
   const propBox = new THREE.BoxGeometry(1,1,1);
+  const plainParts=[];
   function parts(name,color,items,extra) {
     if(!items.length)return;
+    // These boxes differ only in diffuse colour. One white material with
+    // per-instance linear colours keeps the same lighting in a single draw.
+    if(!extra){for(const item of items)plainParts.push({item,color});return;}
     const batch=new THREE.InstancedMesh(propBox,std(color,extra),items.length),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),sc=new THREE.Vector3();
     batch.name=name;
     items.forEach(([x,y,z,w,h,d,ry=0],i)=>{v.set(x,y,z);sc.set(w,h,d);q.setFromAxisAngle(THREE.Object3D.DEFAULT_UP,ry);matrix.compose(v,q,sc);batch.setMatrixAt(i,matrix);});
@@ -1735,6 +1741,15 @@ export function createKartWorld(THREE, options) {
     parts('yard-crane-cabin-glass',0xa9dfec,[[craneX,20.5,craneZ-1.55,2.1,1.9,.08]],{roughness:.25,metalness:.1});
     parts('yard-crane-cables',0x414f5c,[[craneX,14.5,craneZ+13,.12,16,.12]]);
     parts('yard-loaded-crate',quarry?0xb78451:0xc25488,[[craneX,5.9,craneZ+13,4.5,3.2,4.5]]);
+  }
+  if(plainParts.length){
+    const batch=new THREE.InstancedMesh(propBox,std(0xffffff),plainParts.length),dummy=new THREE.Object3D(),color=new THREE.Color();
+    batch.name='landmark-coloured-boxes';
+    plainParts.forEach(({item:[x,y,z,w,h,d,ry=0],color:tint},i)=>{
+      dummy.position.set(x,y,z);dummy.scale.set(w,h,d);dummy.rotation.y=ry;dummy.updateMatrix();
+      batch.setMatrixAt(i,dummy.matrix);batch.setColorAt(i,color.setHex(tint));
+    });
+    batch.instanceMatrix.needsUpdate=true;batch.instanceColor.needsUpdate=true;batch.computeBoundingSphere();landmark.add(batch);
   }
   layout.landmark={identity,kind:quarry?'quarry-crane':theme==='frost'?'ski-lift':theme==='neon'?'port-crane':'summit-watchtower'};
 
@@ -2351,7 +2366,7 @@ export function createKartWorld(THREE, options) {
     if (key === mapKey) return;
     mapKey = key;
     // Instance buffers belong to the previous map; shared geometry stays.
-    for (const group of [obstacleGroup,padGroup])for (const child of group.children) if (child.isInstancedMesh) child.dispose();
+    for (const group of [obstacleGroup,padGroup,surfGroup])for (const child of group.children) if (child.isInstancedMesh) child.dispose();
     obstacleGroup.clear();
     padGroup.clear();
     surfGroup.clear();
@@ -2375,9 +2390,10 @@ export function createKartWorld(THREE, options) {
     blocks.forEach((b, i) => dressBlock(b, i, centralIdx));
     surfs.forEach(dressSurface);
     pads.forEach(dressPad);
-    instanceRepeats(THREE, obstacleGroup);
+    instanceRepeats(THREE, obstacleGroup, {minCount:2});
     // Four racing-line strips share two batches, including their chevrons.
-    instanceRepeats(THREE, padGroup);
+    instanceRepeats(THREE, padGroup, {minCount:2});
+    instanceRepeats(THREE, surfGroup, {minCount:2});
     // Pads have no named child lookups; retain only the actual draw batches.
     for(let i=padGroup.children.length-1;i>=0;i--)if(!padGroup.children[i].visible)padGroup.remove(padGroup.children[i]);
   }
@@ -2594,7 +2610,9 @@ export function createKartWorld(THREE, options) {
 
   // Repeated static scenery draws once per shared geometry/material. Moving
   // (clouds, balloon, stars) and map-rebuilt groups keep their own meshes.
-  instanceRepeats(THREE, root, { skip: new Set([obstacleGroup, padGroup, surfGroup, balloon, stars, ...clouds.map(c => c.mesh)]) });
+  const staticSkip=new Set([obstacleGroup, padGroup, surfGroup, balloon, stars, ...clouds.map(c => c.mesh)]);
+  instanceRepeats(THREE, root, {skip:staticSkip});
+  mergeStaticMeshes(THREE, root, {skip:staticSkip});
 
   layout.theme = theme;
   layout.half = half;
