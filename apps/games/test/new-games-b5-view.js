@@ -96,4 +96,24 @@ for (const id of ids) {
   eq(r.sends.length, sent + 1, 'same-game restart sends once');
   r.view.dispose(r.el);
 }
+
+// Won boards keep their big mark while the remaining legal destinations
+// change from a forced board to any open board.
+{
+  const r = rig('mega-tic-tac-toe');
+  r.state.small[0] = 1;
+  r.state.small[1] = 2;
+  r.state.forced = 4;
+  r.render();
+  eq(r.el.querySelectorAll('.is-open').map(el => el.getAttribute('data-board')), ['4'], 'Mega highlights only the forced board');
+  eq(r.el.querySelectorAll('.is-blocked').length, 6, 'Mega dims every other unfinished board');
+  ok(r.el.querySelector('[data-board="0"]').querySelector('.mt-trophy').classList.contains('mt-x'), 'won X board has a large X');
+  ok(r.el.querySelector('[data-board="1"]').querySelector('.mt-trophy').classList.contains('mt-o'), 'won O board has a large O');
+  r.state.forced = -1;
+  r.state.rev++;
+  r.render();
+  eq(r.el.querySelectorAll('.is-open').length, 7, 'Mega lights all unfinished boards for a free choice');
+  eq(r.el.querySelectorAll('.is-blocked').length, 0, 'free choice leaves no unfinished board dimmed');
+  r.view.dispose(r.el);
+}
 console.log(`NEW_GAMES_B5_VIEW_PASS: ${checks} real module action and lifecycle checks (DOM double, no layout claim)`);

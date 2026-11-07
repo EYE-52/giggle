@@ -13,7 +13,13 @@ function board(S) {
       const cx = x + 10 + cell % 3 * 56, cy = y + 10 + Math.floor(cell / 3) * 56, index = b * 9 + cell;
       return `<g id="mt-cell-${index}" data-cell="${index}" role="button" aria-label="Board ${b + 1}, cell ${cell + 1}${side ? side === 1 ? ', X' : ', O' : ', empty'}"><rect class="mt-cell${S.lastMove?.cell === index ? ' is-last' : ''}" x="${cx}" y="${cy}" width="52" height="52" rx="8"/>${side ? mark(side, cx + 26, cy + 26, 15) : ''}</g>`;
     }).join('');
-    return `<g class="mt-small${open ? ' is-open' : ''}${winner ? ' is-closed' : ''}"><rect class="mt-rim" x="${x}" y="${y}" width="184" height="184" rx="20"/>${cells}${winner && winner < 3 ? `<g class="mt-won" pointer-events="none">${mark(winner, x + 92, y + 92, 56, 'mt-trophy')}</g>` : ''}${winner === 3 ? `<path class="mt-drawn" d="M${x + 52},${y + 92}h80" pointer-events="none"/>` : ''}</g>`;
+    const state = winner ? 'is-closed' : open ? 'is-open' : 'is-blocked';
+    return `<g class="mt-small ${state}" data-board="${b}">
+      <rect class="mt-rim" x="${x}" y="${y}" width="184" height="184" rx="20"/>
+      ${cells}
+      ${winner && winner < 3 ? `<g class="mt-won" pointer-events="none">${mark(winner, x + 92, y + 92, 64, 'mt-trophy')}</g>` : ''}
+      ${winner === 3 ? `<path class="mt-drawn" d="M${x + 52},${y + 92}h80" pointer-events="none"/>` : ''}
+    </g>`;
   }).join('')}</svg>`;
 }
 

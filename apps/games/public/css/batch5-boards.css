@@ -70,7 +70,20 @@
 .b5-game [role="button"][aria-disabled="false"]:active { opacity: .7; }
 @media (min-width: 760px) {
   .b5-game { grid-template-columns: minmax(0, min(720px, calc(var(--game-viewport-height, 100dvh) - 96px))) var(--bk-panel); justify-content: center; }
+  /* Menu, report and fullscreen occupy three slots at the viewport's left.
+   * Keep HUD text beyond them even when the board column reaches that edge. */
+  .b5-game .b5-hud {
+    padding-inline-start: calc(max(var(--space-12), env(safe-area-inset-left)) + 3 * (var(--control-h-sm) + var(--space-8)));
+  }
   .b5-game:is(.pd-game, .sl-game)[data-seats="12"] .bk-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 760px) and (max-height: 640px) {
+  /* A short desktop still has a sidebar, but not room for four tall seats. */
+  .b5-game .bk-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .b5-game .bk-stat { width: 3ch; min-width: 3ch; }
+  .b5-game .bk-name { font: var(--text-caption); }
+  .b5-game .bk-status { height: 64px; min-height: 64px; }
+  .b5-game .bk-status-text { font: var(--text-button); }
 }
 @media (max-width: 759px) {
   .b5-game { display: flex; gap: var(--space-8); padding: var(--space-8); min-height: var(--game-viewport-height, 100dvh); }
@@ -157,6 +170,8 @@
     gap: var(--space-8);
   }
   .b5-game .bk-panel { display: flex; grid-area: panel; margin-top: 52px; max-height: calc(var(--game-viewport-height, 100dvh) - 68px); overflow: auto; }
+  /* Short landscape moves the utility row above the sidebar instead. */
+  .b5-game .b5-hud { padding-inline-start: var(--space-8); }
   .b5-game .bk-stage { width: min(100%, calc(var(--game-viewport-height, 100dvh) - 48px)); height: auto; }
   .b5-game .bk-head { height: auto; padding-left: 0; flex: none; }
   .b5-game .bk-players { height: auto; flex: none; }

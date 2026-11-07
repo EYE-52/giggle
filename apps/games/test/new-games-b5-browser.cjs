@@ -42,13 +42,39 @@ async function geometry(frame) {
         rects[selector] = { x: r.x, y: r.y, width: r.width, height: r.height };
       }
     }
-    const title = document.querySelector('.bk-title')?.getBoundingClientRect();
-    const subtitle = document.querySelector('.bk-meta')?.getBoundingClientRect();
     const intersects = (a, b) => a && b && Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1;
-    const headerOverlaps = [...document.querySelectorAll('#roomMenu > summary, .game-report-icon, .game-screen-toggle')]
-      .filter(el => el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden')
-      .filter(el => intersects(el.getBoundingClientRect(), title) || intersects(el.getBoundingClientRect(), subtitle))
-      .map(el => el.id || el.className);
+    const utilities = [...document.querySelectorAll('#roomMenu > summary, .game-report-icon, .game-screen-toggle')]
+      .filter(el => el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }));
+    const headerOverlaps = [];
+    const walker = document.createTreeWalker(document.querySelector('.bk-game'), NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      const parent = node.parentElement;
+      if (!node.textContent.trim() || !parent.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue;
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      for (const rect of range.getClientRects()) {
+        const visible = { left: Math.max(0, rect.left), top: Math.max(0, rect.top), right: Math.min(innerWidth, rect.right), bottom: Math.min(innerHeight, rect.bottom) };
+        // Text hidden by an ellipsis or a scrolling panel is not visible.
+        for (let ancestor = parent; ancestor; ancestor = ancestor.parentElement) {
+          const style = getComputedStyle(ancestor), clip = ancestor.getBoundingClientRect();
+          if (/(hidden|clip|auto|scroll)/.test(style.overflowX)) {
+            visible.left = Math.max(visible.left, clip.left);
+            visible.right = Math.min(visible.right, clip.right);
+          }
+          if (/(hidden|clip|auto|scroll)/.test(style.overflowY)) {
+            visible.top = Math.max(visible.top, clip.top);
+            visible.bottom = Math.min(visible.bottom, clip.bottom);
+          }
+        }
+        if (visible.right <= visible.left || visible.bottom <= visible.top) continue;
+        for (const utility of utilities) {
+          if (intersects(utility.getBoundingClientRect(), visible)) {
+            headerOverlaps.push({ utility: utility.id || utility.className, text: node.textContent.trim() });
+          }
+        }
+      }
+    }
     return { rects, headerOverlaps, width: innerWidth, height: innerHeight, scrollWidth: document.documentElement.scrollWidth,
       scrollHeight: document.documentElement.scrollHeight, scrollY,
       controls: [...document.querySelectorAll('.b5-game button, .b5-game summary')].filter(e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden').map(el => {
@@ -59,7 +85,7 @@ async function geometry(frame) {
 
 function steady(before, after, label, keys = Object.keys(before.rects)) {
   assert(after.scrollWidth <= after.width + 1, label + ': horizontal overflow');
-  assert.deepEqual(after.headerOverlaps, [], label + ': header utilities cover the title');
+  assert.deepEqual(after.headerOverlaps, [], label + ': floating utilities cover visible text');
   assert(after.scrollHeight <= after.height + 1, label + ': play screen needs vertical scrolling ' + JSON.stringify(after));
   for (const key of keys) {
     assert(after.rects[key], label + ': missing ' + key);
@@ -69,6 +95,62 @@ function steady(before, after, label, keys = Object.keys(before.rects)) {
     }
   }
   for (const c of after.controls) assert(c.h >= 43.9, label + ': short control ' + c.text);
+}
+
+async function checkMegaBoards(frame) {
+  const boards = await frame.evaluate(() => {
+    const S = window.__b5state;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const rgb = color => {
+      ctx.clearRect(0, 0, 1, 1);
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, 1, 1);
+      return [...ctx.getImageData(0, 0, 1, 1).data].slice(0, 3);
+    };
+    const luminance = color => rgb(color).map(v => {
+      const s = v / 255;
+      return s <= .04045 ? s / 12.92 : ((s + .055) / 1.055) ** 2.4;
+    }).reduce((sum, v, i) => sum + v * [.2126, .7152, .0722][i], 0);
+    const family = rgb(getComputedStyle(document.querySelector('.mt-game')).getPropertyValue('--fam'));
+    return [...document.querySelectorAll('.mt-small')].map((el, index) => {
+      const cell = getComputedStyle(el.querySelector('.mt-cell'));
+      const rim = getComputedStyle(el.querySelector('.mt-rim'));
+      const trophy = el.querySelector('.mt-trophy');
+      const winner = S.small[index];
+      return {
+        index, winner, open: el.classList.contains('is-open'), blocked: el.classList.contains('is-blocked'),
+        expectedOpen: !winner && S.phase === 'play' && (S.forced < 0 || S.forced === index),
+        opacity: Number(getComputedStyle(el).opacity), fill: luminance(cell.fill),
+        familyRim: JSON.stringify(rgb(rim.stroke)) === JSON.stringify(family), rimWidth: Number.parseFloat(rim.strokeWidth),
+        glow: rim.filter !== 'none',
+        trophySide: trophy?.classList.contains('mt-x') ? 1 : trophy?.classList.contains('mt-o') ? 2 : null,
+        trophyWidth: trophy?.getBBox().width || 0,
+        trophyStroke: trophy ? Number.parseFloat(getComputedStyle(trophy).strokeWidth) : 0,
+        boardWidth: el.querySelector('.mt-rim').getBBox().width,
+      };
+    });
+  });
+  assert.equal(boards.length, 9, 'Mega: all nine small boards are present');
+  for (const board of boards) {
+    assert.equal(board.open, board.expectedOpen, `Mega board ${board.index}: playable highlight follows the rules`);
+    if (board.open) {
+      assert(board.familyRim && board.rimWidth >= 8, 'Mega: playable board has a thick family-colour rim');
+      assert.equal(board.opacity, 1, 'Mega: playable board stays bright');
+    } else if (!board.winner) {
+      assert(board.blocked && board.opacity <= .5, 'Mega: unplayable board is dimmed');
+    }
+    if (board.winner === 1 || board.winner === 2) {
+      assert.equal(board.trophySide, board.winner, 'Mega: won board shows its winning X or O');
+      assert(board.trophyWidth >= board.boardWidth * .65 && board.trophyStroke >= 20,
+        'Mega: winning mark spans most of the small board');
+      assert.equal(board.opacity, 1, 'Mega: the winning mark is not dimmed');
+    }
+  }
+  const open = boards.find(b => b.open), blocked = boards.find(b => b.blocked);
+  if (open && blocked) assert(open.fill - blocked.fill >= .15, 'Mega: playable cell fill is clearly lighter than blocked cells');
+  return { open: boards.filter(b => b.open).length, winners: boards.filter(b => b.winner === 1 || b.winner === 2).map(b => b.winner) };
 }
 
 async function compareHeaders(base) {
@@ -103,6 +185,8 @@ async function play(base, id, viewport, theme) {
   await context.addInitScript(theme => localStorage.setItem('pb_theme', theme), theme);
   const page = await context.newPage();
   const errors = [];
+  const mega = { freeBoards: false, forcedBoard: false, wonX: false, wonO: false };
+  const sidebarWidths = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   let actions = 0;
@@ -131,6 +215,24 @@ async function play(base, id, viewport, theme) {
     await wait(80);
     const opening = await geometry(host);
     steady(opening, opening, id + ' opening');
+    if (viewport.width === 800) {
+      // Exercise both the sidebar breakpoint and wider board columns. These
+      // widths used to hide HUD labels beneath the floating utility row.
+      for (const width of [760, 960, 1024]) {
+        await page.setViewportSize({ width, height: viewport.height });
+        await wait(80);
+        const layout = await geometry(host);
+        steady(layout, layout, `${id} sidebar at ${width}px`);
+        sidebarWidths.push(width);
+      }
+      await page.setViewportSize(viewport);
+      await wait(80);
+      steady(opening, await geometry(host), id + ' restored 800px layout');
+    }
+    if (id === 'mega-tic-tac-toe') {
+      assert.equal((await checkMegaBoards(host)).open, 9, 'Mega: opening offers all nine boards');
+      mega.freeBoards = true;
+    }
     if (id === 'five-row' && viewport.width === 390) {
       const target = await host.locator('.fv-hit').first().boundingBox();
       assert(target.width >= 22, `15×15 cell ${target.width} is below 22 px`);
@@ -169,6 +271,13 @@ async function play(base, id, viewport, theme) {
       for (const f of frames) await f.waitForFunction(rev => window.__b5state?.rev > rev && !window.__b5state.preparing, S.rev);
       actions++;
       const after = await actor.evaluate(() => window.__b5state);
+      if (id === 'mega-tic-tac-toe') {
+        const state = await checkMegaBoards(actor);
+        if (state.open === 1 && !mega.forcedBoard) { await shot('forced-board'); mega.forcedBoard = true; }
+        for (const [side, key] of [[1, 'wonX'], [2, 'wonO']]) {
+          if (state.winners.includes(side) && !mega[key]) { await shot(`won-${side === 1 ? 'x' : 'o'}`); mega[key] = true; }
+        }
+      }
       const bounds = await geometry(actor);
       if (after.phase === 'play') steady(baselines[S.turn], bounds, `${id} move ${actions}`);
       else {
@@ -182,6 +291,7 @@ async function play(base, id, viewport, theme) {
     }
     const final = await host.evaluate(() => window.__b5state);
     assert.equal(final.phase, 'done', id + ': natural finish');
+    if (id === 'mega-tic-tac-toe') assert.deepEqual(mega, { freeBoards: true, forcedBoard: true, wonX: true, wonO: true }, 'Mega: browser match covers free, forced and won X/O boards');
     assert(Object.values(final.scores).some(n => n > 0));
     await page.locator('#practiceTab1').click();
     await shot('final');
@@ -204,7 +314,7 @@ async function play(base, id, viewport, theme) {
     await page.locator('#practiceStop').click();
     await page.waitForFunction(() => document.getElementById('practiceStatus').textContent === 'Practice ended');
     assert.deepEqual(errors, [], id + ': console errors');
-    const row = { id, viewport, theme, passed: true, seats, actions, opening, initialPhase, scores: final.scores, naturalFinish: true, rematch: true, endGame: true, errors };
+    const row = { id, viewport, theme, passed: true, seats, actions, opening, initialPhase, sidebarWidths, ...(id === 'mega-tic-tac-toe' ? { mega } : {}), scores: final.scores, naturalFinish: true, rematch: true, endGame: true, errors };
     rows.push(row); console.log(JSON.stringify({ id, viewport, theme, passed: true, seats, actions }));
   } catch (error) {
     await page.screenshot({ path: path.join(out, `${id}-${viewport.width}-${theme}-FAILED.png`), fullPage: true }).catch(() => {});
@@ -225,7 +335,13 @@ async function play(base, id, viewport, theme) {
   assert(logs.includes('PartyBox on'), logs);
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}) });
   if (process.env.B5_REFERENCE_ONLY === '1') { await compareHeaders(`http://127.0.0.1:${port}`); return; }
-  const viewports = process.env.B5_PHONE_ONLY ? [{ width: 390, height: 844 }] : [{ width: 390, height: 844 }, { width: 1280, height: 800 }];
+  const viewports = process.env.B5_VIEWPORTS ? process.env.B5_VIEWPORTS.split(',').map(size => {
+    const [width, height] = size.split('x').map(Number);
+    assert(width > 0 && height > 0, 'Invalid B5_VIEWPORTS size');
+    return { width, height };
+  }) : process.env.B5_PHONE_ONLY ? [{ width: 390, height: 844 }] : [
+    { width: 390, height: 844 }, { width: 800, height: 600 }, { width: 1280, height: 800 },
+  ];
   const themes = process.env.B5_DAY_ONLY ? ['day'] : ['day', 'night'];
   for (const viewport of viewports) for (const theme of themes) for (const id of selected) await play(`http://127.0.0.1:${port}`, id, viewport, theme);
   console.log(`NEW_GAMES_B5_BROWSER_PASS: ${rows.length} real practice matches; stable board, HUD, scores and controls`);
