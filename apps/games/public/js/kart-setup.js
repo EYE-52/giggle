@@ -22,10 +22,11 @@ const elevated = map => KART_ARENAS.some(a => a.label === map && a.elevated);
 // Round length is offered in whole minutes (1 to 5, default 3) and stored
 // in seconds under the existing roundSeconds key.
 export const ROUND_MINUTES = [1, 2, 3, 5, 10, 15];
-// Snap any length (legacy or custom) to the nearest offered option.
+// Snap any length (legacy or custom) to the nearest offered option;
+// ties round up, as Math.round did for whole minutes.
 export function roundMinutes(seconds) {
   const n = Number(seconds), m = Number.isFinite(n) ? n / 60 : 3;
-  return ROUND_MINUTES.reduce((best, v) => Math.abs(v - m) < Math.abs(best - m) ? v : best, ROUND_MINUTES[0]);
+  return ROUND_MINUTES.reduce((best, v) => Math.abs(v - m) <= Math.abs(best - m) ? v : best, ROUND_MINUTES[0]);
 }
 
 export function kartSetupSummary(g, current) {

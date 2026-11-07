@@ -59,7 +59,7 @@ check(JSON.stringify(ROUND_MINUTES) === '[1,2,3,5,10,15]', 'setup offers short t
 check(roundMinutes(30) === 1 && roundMinutes(90) === 2 && roundMinutes(180) === 3 && roundMinutes(300) === 5 && roundMinutes(600) === 10 && roundMinutes(2400) === 15 && roundMinutes('x') === 3, 'lengths snap to the nearest offered option');
 check(resolveKartSetup({ ...defaults, roundSeconds: '90' }).roundSeconds === '120', 'a legacy draft snaps to whole minutes before saving');
 const roundHtml = kartSetupHtml(g, defaults, true);
-check((roundHtml.match(/data-kart-key="roundSeconds"/g) || []).length === 5, 'five round-length choices');
+check((roundHtml.match(/data-kart-key="roundSeconds"/g) || []).length === ROUND_MINUTES.length, 'one round-length choice per offered length');
 check(/aria-checked="true"[^>]*data-kart-key="roundSeconds" data-kart-value="180"/.test(roundHtml), 'three minutes is selected by default');
 check(roundHtml.includes('>3 min</button>') && !roundHtml.includes('Seconds per round'), 'lengths read as minutes');
 check(kartSetupSummary(g, { ...config, map: 'Alpine Courtyard', winRule: 'Score target' }) === 'Battle · Alpine Courtyard · First to 17 KOs · 3 min max · Live sunset', 'elevated arenas summarise a score target');
