@@ -2,10 +2,10 @@
  * Desktop: the board owns the stage, the side panel sits on the right.
  * Phone: one steady column (title, players, board, status, actions).
  * UI chrome uses tokens only; board art lives in each game's own file. */
-.bk-game{--bk-gap:20px;grid-template-rows:minmax(calc(100svh - var(--bk-top) - 20px),auto);--bk-top:64px;--bk-panel:296px;--bk-aspect:1;position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--bk-panel);gap:var(--bk-gap);align-items:start;width:100%;min-height:100svh;margin:0;padding:var(--bk-top) 20px 20px;box-sizing:border-box;background:var(--bg);color:var(--ink);font:16px/1.45 var(--font-body);min-width:0}
+.bk-game{--bk-gap:20px;grid-template-rows:minmax(calc(var(--game-viewport-height,100svh) - var(--bk-top) - 20px),auto);--bk-top:64px;--bk-panel:296px;--bk-aspect:1;position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--bk-panel);gap:var(--bk-gap);align-items:start;width:100%;min-height:var(--game-viewport-height,100svh);margin:0;padding:var(--bk-top) 20px 20px;box-sizing:border-box;background:var(--bg);color:var(--ink);font:16px/1.45 var(--font-body);min-width:0}
 .bk-game *,.bk-game *::before,.bk-game *::after{box-sizing:border-box}
 .bk-game [hidden]{display:none!important}
-.bk-stage{grid-column:1;grid-row:1;justify-self:center;align-self:start;margin-top:max(0px,calc((100svh - var(--bk-top) - 20px - 100% / var(--bk-aspect)) / 2));position:relative;width:min(100%,calc((100svh - var(--bk-top) - 20px) * var(--bk-aspect)));min-width:0;line-height:0}
+.bk-stage{grid-column:1;grid-row:1;justify-self:center;align-self:start;margin-top:max(0px,calc((var(--game-viewport-height,100svh) - var(--bk-top) - 20px - 100% / var(--bk-aspect)) / 2));position:relative;width:min(100%,calc((var(--game-viewport-height,100svh) - var(--bk-top) - 20px) * var(--bk-aspect)));min-width:0;line-height:0}
 .bk-stage svg{display:block;width:100%;height:auto;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 .bk-stage :focus{outline:none}
 
@@ -119,9 +119,9 @@
  * Room/Report occupy a separate row above its clipped scrollport, so a
  * scrolled result, focused action or help heading cannot pass beneath them. */
 @media (orientation:landscape) and (max-height:500px) and (min-width:560px){
- .bk-game{display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,32vw,280px);grid-template-rows:minmax(0,1fr);height:100svh;padding:12px;--bk-top:12px;gap:12px}
- .bk-stage{grid-column:1;grid-row:1;width:min(100%,calc((100svh - 24px) * var(--bk-aspect)));align-self:center;margin-top:0}
- .bk-panel{display:flex;grid-column:2;grid-row:1;margin-top:52px;max-height:calc(100svh - 76px);overflow:auto;overscroll-behavior:contain;scroll-padding-block:8px;gap:8px}
+ .bk-game{display:grid;grid-template-columns:minmax(0,1fr) clamp(220px,32vw,280px);grid-template-rows:minmax(0,1fr);height:var(--game-viewport-height,100svh);padding:12px;--bk-top:12px;gap:12px}
+ .bk-stage{grid-column:1;grid-row:1;width:min(100%,calc((var(--game-viewport-height,100svh) - max(var(--space-12),env(safe-area-inset-top)) - max(var(--space-12),env(safe-area-inset-bottom))) * var(--bk-aspect)));align-self:center;margin-top:0}
+ .bk-panel{display:flex;grid-column:2;grid-row:1;margin-top:52px;max-height:calc(var(--game-viewport-height,100svh) - max(var(--space-12),env(safe-area-inset-top)) - max(var(--space-12),env(safe-area-inset-bottom)) - 52px);overflow:auto;overscroll-behavior:contain;scroll-padding-block:8px;gap:8px}
  .bk-panel>*{flex-shrink:0}
  .bk-head{padding:0 2px;min-height:0}
  .bk-players{display:flex;flex-direction:column}
@@ -130,10 +130,10 @@
  body.game-playing.game-immersive:has(.bk-game) .room-menu{left:calc(100vw - clamp(220px,32vw,280px) - 12px);right:auto}
  body.game-playing.game-immersive:has(.bk-game) .room-menu>summary{width:44px;min-width:44px;justify-content:center;padding:0}
  body.game-playing.game-immersive:has(.bk-game) .room-menu>summary>span{display:none}
- body.game-playing.game-immersive:has(.bk-game) .game-report-icon{left:calc(100vw - clamp(220px,32vw,280px) + 40px);right:auto}
+ body.game-playing.game-immersive:has(.bk-game) :is(.game-report-icon,.game-screen-toggle){left:calc(100vw - clamp(220px,32vw,280px) + 40px);right:auto}
 }
 @media (prefers-reduced-motion:reduce){.bk-game *{animation:none!important;transition:none!important}}
-#gbody[data-layout=immersive]:has(>.bk-game){min-height:100svh;background:var(--bg)}
+#gbody[data-layout=immersive]:has(>.bk-game){min-height:var(--game-viewport-height,100svh);background:var(--bg)}
 
 /* Toy-box side panel: sticker cards in the board family's teal. The player
  * to move gets a tinted card with a thick rim, the status is a banner, and
@@ -177,7 +177,7 @@
  * - Hints, rings and ranks read the board family colour, never the party
  *   accent. */
 @media (min-width:760px) and (min-height:501px){
- .bk-game{grid-template-columns:minmax(0,calc((100svh - var(--bk-top) - 20px) * var(--bk-aspect))) var(--bk-panel);justify-content:center;column-gap:var(--space-32)}
+ .bk-game{grid-template-columns:minmax(0,calc((var(--game-viewport-height,100svh) - var(--bk-top) - 20px) * var(--bk-aspect))) var(--bk-panel);justify-content:center;column-gap:var(--space-32)}
 }
 .bk-game{--bk-hint:color-mix(in srgb,var(--bk-fam) 60%,transparent)}
 .bk-timer-fill{background:var(--bk-fam)}
