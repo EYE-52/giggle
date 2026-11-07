@@ -782,16 +782,3 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
   background: color-mix(in srgb, var(--fam) 8%, var(--card));
   border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
 }
-/* Between rounds on phones, the "Getting everyone ready" pill sits at the
- * bottom of the screen, never over the round row under the title bar. */
-@media (max-width: 600px) {
-  body.game-playing:not(.game-immersive):is([data-game="would-you-rather"], [data-game="truth-dare"], [data-game="never-ever"],
-    [data-game="most-likely"], [data-game="hot-takes"], [data-game="rank-it"], [data-game="rapid-polls"], [data-game="dare-roulette"],
-    [data-game="pick-one"], [data-game="compliment-battle"], [data-game="roast-toast"], [data-game="trivia"], [data-game="two-truths"],
-    [data-game="funny-answer"], [data-game="bluff"], [data-game="story-builder"], [data-game="emoji-story"],
-    [data-game="twenty-questions"], [data-game="five-second"], [data-game="memory-tray"]) .game-preparation:not(.is-first) {
-    top: auto; bottom: max(16px, env(safe-area-inset-bottom));
-  }
-  /* Room under the pill so the last card (Players) can scroll clear of it. */
-  body.game-playing:not(.game-immersive):has(.game-preparation:not(.is-first):not([hidden])) #gbody { padding-bottom: 84px; }
-}

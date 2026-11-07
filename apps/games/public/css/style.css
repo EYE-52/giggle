@@ -1839,6 +1839,15 @@ body:not(.game-immersive) .game-preparation:not(.is-first) {
   padding: var(--space-8) var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
   box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm);
 }
+/* Between rounds on phones, the "Getting everyone ready" pill sits over the
+ * title bar (game name and menu only, still tappable through it), so it never
+ * covers the round row, the results, the players or the primary action. */
+@media (max-width: 600px) {
+  body.game-playing:not(.game-immersive) .game-preparation:not(.is-first) {
+    top: max(8px, env(safe-area-inset-top)); bottom: auto;
+    pointer-events: none;
+  }
+}
 .preparation-dots { flex: none; display: inline-flex; gap: 4px; }
 .preparation-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 .preparation-dots i:nth-child(2) { background: var(--gold, #f5b82e); }
