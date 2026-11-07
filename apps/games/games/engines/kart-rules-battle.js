@@ -1342,7 +1342,7 @@ module.exports = {
         if ((Number(kart.respawn) || 0) > 0) continue; // KO'd: no duplicate KO
         const before = previousKarts?.get(kart.pid) || kart;
         const time = physical?physicalHullImpact(from,to,before,kart):hullImpact(from, to, before, kart);
-        if (pierce) { if (time !== null && time < stop) pierced.push(kart); continue; }
+        if (pierce) { if (time !== null && time < stop) pierced.push({kart, time}); continue; }
         if (time !== null && time < stop) {
           stop = time;
           victim = kart;
@@ -1350,7 +1350,11 @@ module.exports = {
         }
       }
       const isRocket = zap.kind === 'rocket' || zap.kind === 'seeker';
-      for (const kart of pierced) if ((Number(kart.shield) || 0) <= 0) damage(state,kart,zap.owner,'boomerang',connected,econ,zap.volley);
+      // A fresh cut (not a rival this pickup already hurt) sparks once.
+      for (const {kart, time} of pierced) {
+        if ((Number(kart.shield) || 0) > 0 || !damage(state,kart,zap.owner,'boomerang',connected,econ,zap.volley) || !physical) continue;
+        pushEvent(state,'impact',zap.owner,kart.pid,'boomerang',{position:{x:from.x+(to.x-from.x)*time,y:from.y+(to.y-from.y)*time,z:from.z+(to.z-from.z)*time},from});
+      }
       // A Bounce Ball ricochets off walls and cover up to its bounce budget.
       const bounce = zap.kind === 'bouncer' && !victim && stop <= 1 && (impact === 'wall' || impact === 'block') && (Number(zap.bounces) || 0) < BOUNCER_BOUNCES;
       if(physical&&stop<=1&&impact!=='ttl'&&impact!=='void'&&!bounce){

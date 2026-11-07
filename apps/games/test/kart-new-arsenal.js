@@ -299,4 +299,34 @@ function clean(st, label) {
   assert.strictEqual(fired.size, 8);
   console.log('NEW_ARSENAL ok: every new weapon announces its spend');
 }
-console.log('KART_NEW_ARSENAL_PASS');
+
+// --- every new weapon has its own sound, HUD name and thumbnail ---
+(async () => {
+  const { kartEventCue } = await import('../public/js/engines/kart-hearts.mjs');
+  const { SYNTH_CUE_NAMES } = await import('../public/js/engines/kart-audio.mjs');
+  const { KART_WEAPON_INFO } = await import('../public/js/engines/kart-weapon-hud.mjs');
+  const fs = require('fs');
+  const cues = new Set();
+  for (const weapon of ['laser', 'thunder', 'boomerang', 'oil', 'frost', 'cluster', 'bouncer', 'ram']) {
+    const cue = kartEventCue({ type: 'fire', weapon }, 'p0');
+    assert(SYNTH_CUE_NAMES.includes(cue), weapon + ' fire plays a synthesized cue');
+    cues.add(cue);
+    assert(KART_WEAPON_INFO[weapon]?.name && KART_WEAPON_INFO[weapon].hearts === 1, weapon + ' has a HUD name and heart cost');
+    assert(fs.existsSync(require.resolve('../public/assets/karts/weapon-thumbnails/' + weapon + '.png')), weapon + ' has a thumbnail');
+  }
+  assert.strictEqual(cues.size, 8, 'eight distinct fire sounds');
+  const impacts = [['blast', 'thunder', 'thunderClap'], ['blast', 'frost', 'frostShatter'], ['blast', 'cluster', 'clusterPop'],
+    ['burst', 'cluster', 'clusterPop'], ['bounce', 'bouncer', 'boing'], ['splat', 'oil', 'oilSkid'], ['hit', 'ram', 'ramClang']];
+  for (const [type, weapon, cue] of impacts) assert.strictEqual(kartEventCue({ type, weapon, pid: 'p1', other: 'p2' }, 'p0'), cue, `${type}/${weapon} plays ${cue}`);
+  assert.strictEqual(kartEventCue({ type: 'blast', weapon: 'rocket' }, 'p0'), 'rocketBlast', 'kept blasts keep their samples');
+  assert.strictEqual(kartEventCue({ type: 'hit', weapon: 'pulse', other: 'p0', pid: 'p1' }, 'p0'), 'hurt', 'kept hits keep hurt');
+  // The how-to names every weapon, and the manifest still validates.
+  const registry = require('../games/registry');
+  assert(registry.list().some((g) => g.id === 'pocket-karts'), 'pocket-karts stays in the catalogue (manifest limits hold)');
+  const text = require('../games/pocket-karts/server.js').manifest.howto;
+  for (const name of ['Rail Laser', 'Thunder Strike', 'Boomerang', 'Oil Slick', 'Frost Bomb', 'Cluster Bomb', 'Bounce Ball', 'Turbo Ram'])
+    assert(text.includes(name), 'how-to explains ' + name);
+  assert(/16 weapons/.test(text), 'how-to counts the arsenal');
+  console.log('NEW_ARSENAL ok: sounds, HUD names, thumbnails and how-to cover the new weapons');
+  console.log('KART_NEW_ARSENAL_PASS');
+})().catch((error) => { console.error(error); process.exit(1); });

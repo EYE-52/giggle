@@ -347,10 +347,11 @@ function createElevatedCombat(RAPIER,config,map,seats,options={}) {
         const start=a.epoch===b.epoch?hull(a):hull(b), finish=lerp(start,hull(b),h/dt);
         const fraction=hullImpact(s.position,end,start,finish,Math.sqrt(B.ZAP_HIT_R2));
         // A Boomerang blade cuts through every rival on its path.
-        if(s.weapon==='boomerang'){if(fraction!==null&&fraction<t-1e-7&&los(lerp(s.position,end,fraction),lerp(start,finish,fraction)))pierced.push(k);continue;}
+        if(s.weapon==="boomerang"){if(fraction!==null&&fraction<t-1e-7&&los(lerp(s.position,end,fraction),lerp(start,finish,fraction)))pierced.push({k,point:lerp(s.position,end,fraction)});continue;}
         if(fraction!==null && fraction<t-1e-7 && los(lerp(s.position,end,fraction),lerp(start,finish,fraction))) { t=fraction; hit=k; }
       }
-      for(const k of pierced)damage(k,s.owner,s.weapon,s.volley);
+      // A fresh cut (not a rival this pickup already hurt) sparks once.
+      for(const {k,point} of pierced)if(damage(k,s.owner,s.weapon,s.volley))emit("impact",s.owner,{weapon:s.weapon,position:point,other:k.id});
       if(s.weapon==='bouncer'&&!hit&&solid&&t<=1&&s.bounces<ARSENAL.bouncer.bounces){
         const point=lerp(s.position,end,t),n=solid.normal,vn=dot(s.velocity,n),speed=length(s.velocity);
         if(n.y>.55)s.velocity=sub(s.velocity,mul(n,vn)); // rolling up a slope is not a bounce
