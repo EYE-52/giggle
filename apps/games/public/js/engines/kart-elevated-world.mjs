@@ -1,3 +1,4 @@
+import {createKartFestiveLights} from './kart-festive-lights.mjs';
 import {createRaisedReadability,applyRaisedLighting} from './kart-raised-readability.mjs';
 import {createKartComplexWorld} from './kart-complex-world.mjs';
 /* Elevated combat art adapter. No simulation or racing route.
@@ -52,10 +53,10 @@ function beveledBox(THREE,h,b){
   const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.computeVertexNormals();physicalUV(THREE,g);return g;
 }
 
-export function createKartElevatedWorld(THREE,{scene,map,palette,lighting=true,terrain,assets={}}={}){
+export function createKartElevatedWorld(THREE,{scene,map,palette,lighting=true,terrain,assets={},quality='high',reducedMotion=false}={}){
   const data=typeof map==='string'?elevatedMap(map):structuredClone(map||elevatedMap('garden'));
   if(!Array.isArray(data.colliders)||!Number.isFinite(data.half))throw new TypeError('An authored elevated map is required');
-  if(data.complex)return createKartComplexWorld(THREE,{scene,map:data,palette,lighting,solidGeometry:elevatedSolidGeometry});
+  if(data.complex)return createKartComplexWorld(THREE,{scene,map:data,palette,lighting,quality,reducedMotion,solidGeometry:elevatedSolidGeometry});
   const harbor=data.environment==='harbor',frost=data.environment==='frost',half=data.half;
   const group=new THREE.Group();group.name='elevated-combat-'+data.id;scene?.add(group);
   const solids=new THREE.Group(),scenery=new THREE.Group(),soft=new THREE.Group();
@@ -542,6 +543,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   }
 
   const readability=createRaisedReadability(THREE,{parent:soft,map:data,geometry:geo,material:mat,texture:t=>(textures.add(t),t)});
+  const festive=createKartFestiveLights(THREE,{parent:soft,map:data,quality,reducedMotion});
   const skyResources={isAlive:()=>!disposed,geometry:geo,material:mat,texture:t=>(textures.add(t),t)};
   const backdrop=createKartBackdrop(THREE,{parent:soft,theme:data.backdrop||data.id,radius:half+195,ridges:farRidges,...skyResources});
   // The elevated chase lens sees less sky: move clouds farther out so their
@@ -556,6 +558,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
   const lightingState={phase:fixed,sun,hemisphere:hemi,fogColor:new THREE.Color(),fogNear:185,fogFar:430,exposure:1.05};
   function animate(dt,time,skyPhase){
     if(disposed)return;const p=Number.isFinite(skyPhase)?clamp(skyPhase,0,1):fixed;
+    festive.animate(time);
     sky.setPhase(p);
     backdrop.tint(sky.horizon,p<=.65?0:(p-.65)/.35);
     paintedClouds?.animate(dt);
@@ -599,7 +602,7 @@ diffuseColor.rgb+=vec3(.65,.90,.94)*glint;`);
     group.traverse(o=>{if(o.isSprite){out.drawCalls++;out.triangles+=2;out.meshes++;return;}if(!o.isMesh||o.userData.cameraCollider)return;out.drawCalls+=Array.isArray(o.material)?o.geometry.groups.length:1;const n=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3;out.triangles+=n*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
     for(const t of allTextures)out.textureBytes+=Math.round(t.image.width*t.image.height*4*4/3);return out;
   }
-  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();readability.dispose();for(const b of batches.values())b.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();terrain?.dispose();sun.dispose();hemi.dispose();group.clear();colliderMeshes.clear();batches.clear();}
+  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();festive.dispose();readability.dispose();for(const b of batches.values())b.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();terrain?.dispose();sun.dispose();hemi.dispose();group.clear();colliderMeshes.clear();batches.clear();}
   animate(0,0,null);
-  return{group,solids,scenery,colliderMeshes,layout:data,lighting:lightingState,animate,updateDetail,stats,dispose,get disposed(){return disposed;}};
+  return{group,solids,scenery,colliderMeshes,festive,layout:data,lighting:lightingState,animate,updateDetail,stats,dispose,get disposed(){return disposed;}};
 }

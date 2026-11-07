@@ -1,3 +1,4 @@
+import {createKartFestiveLights} from './kart-festive-lights.mjs';
 import { instanceRepeats, mergeStaticMeshes } from './kart-instancing.mjs';
 import {createRoadTerrain} from './kart-road-terrain.mjs';
 import {buildTerrainRoads} from './kart-road-mesh.mjs';
@@ -2497,11 +2498,14 @@ export function createKartWorld(THREE, options) {
     railMat.emissiveIntensity = numLerp(railBaseI, railNightI, nightness);
   }
 
+  const festive=createKartFestiveLights(THREE,{parent:root,map:{...map,id:map.id||map.theme||'ring',half},groundAt,quality:opts.quality,reducedMotion:opts.reducedMotion});
+
   /* ---- bounded animation: balloon, clouds, pad pulse, sky — zero alloc --- */
   const cloudWrapX = half * 2 + 75;
   function animate(dt, t, skyPhase) {
     const step = dt < 0 ? 0 : dt > 0.1 ? 0.1 : dt;
     const time = Number.isFinite(t) ? t : 0;
+    festive.animate(time);
     const phase = clampPhase(skyPhase);
     if (phase !== lastPhase) {
       applySkyPhase(phase);
@@ -2575,7 +2579,8 @@ export function createKartWorld(THREE, options) {
   layout.bound = bound;
   return {
     // The view disposes scene resources; retire pending image callbacks first.
-    dispose(){skyAlive=false;},
+    dispose(){skyAlive=false;festive.dispose();},
+    festive,
     syncMap,
     animate,
     stats,

@@ -1,3 +1,4 @@
+import {kartLightTier} from './kart-festive-lights.mjs';
 import {WEAPON_IDS} from './kart-weapon-contract.mjs';
 import {paintKartWeapon,createKartWeaponRoulette} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
@@ -175,7 +176,7 @@ export function createElevatedKartView() {
       if(loaded.some((r,i)=>r.status==='rejected'&&files[i]?.[0]!=='fountain'))throw Error('Combat assets did not load');
       if(gen!==generation)throw Error('Retired arena');
       if(assets.stylized)for(const name of ['PineA','PineB','TreeA','GrassA','FlowersA','RockA','RockB','CottageA'])if(!assets.stylized.getObjectByName(name))throw new Error('The stylized Alpine library is incomplete');
-      world=createKartElevatedWorld(THREE,{scene,map,palette:S.palette,assets});
+      world=createKartElevatedWorld(THREE,{scene,map,palette:S.palette,assets,quality:()=>kartLightTier(renderer),reducedMotion:()=>helper.reducedMotion()});
       arena=createKartArenaFeatures(THREE,scene,{reducedMotion:()=>helper.reducedMotion()});arena.sync(map);
       const R=await physicsReady;if(gen!==generation)throw Error('Retired arena');
       if(R&&S.youDrive){scenePrediction=createElevatedPrediction(R);prediction=scenePrediction;prediction.ingest(S,performance.now(),now());}

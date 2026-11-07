@@ -1,3 +1,4 @@
+import {createKartFestiveLights} from './kart-festive-lights.mjs';
 import {createRaisedReadability,applyRaisedLighting} from './kart-raised-readability.mjs';
 import {createKartBackdrop,createKartSky} from './kart-backdrop.mjs';
 import {complexSurfaceTexture,tileComplexMaterial} from './kart-complex-surfaces.mjs';
@@ -6,7 +7,7 @@ import {addComplexDetails} from './kart-complex-details.mjs';
 /* A small shared geometry kit. Collider skins are instanced by material;
  * markings stay on the surface, and every raised prop has a real solid.
  * No GLBs, per-prop textures, shadowed interior lights or animated allocations. */
-export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,solidGeometry}){
+export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,quality='high',reducedMotion=false,solidGeometry}){
   const data=structuredClone(map),skyport=data.id==='skyport',group=new THREE.Group();group.name='elevated-combat-'+data.id;scene?.add(group);
   const solids=new THREE.Group(),scenery=new THREE.Group(),soft=new THREE.Group();solids.name='authored-solid-envelopes';scenery.name='outside-arena-scenery';soft.name='complex-markings';group.add(solids,scenery,soft);
   const geometries=new Set(),materials=new Set(),textures=new Set(),instances=[],colliderMeshes=new Map(),buckets=new Map();let disposed=false;
@@ -129,6 +130,7 @@ export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,so
   }
   flush();
   const resources={isAlive:()=>!disposed,geometry:geo,material:mat,texture:t=>(textures.add(t),t)};
+  const festive=createKartFestiveLights(THREE,{parent:soft,map:data,quality,reducedMotion});
   const readability=createRaisedReadability(THREE,{parent:soft,map:data,...resources});
   const backdrop=createKartBackdrop(THREE,{parent:scenery,theme:data.backdrop,radius:350,...resources});
   const sky=createKartSky(THREE,{parent:soft,radius:460,widthSegments:24,heightSegments:12,geometry:geo,material:mat});
@@ -141,6 +143,7 @@ export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,so
   const lightingState={phase:fixed,sun,hemisphere:hemi,interiorFill,fogColor:new THREE.Color(),fogNear:210,fogFar:450,exposure:1.05};
   function animate(dt,time,phase){
     if(disposed)return;const p=Number.isFinite(phase)?Math.max(0,Math.min(1,phase)):fixed;
+    festive.animate(time);
     lightingState.phase=p;sky.setPhase(p);lightingState.fogColor.copy(sky.horizon);
     applyRaisedLighting(sun,hemi,p);
     if(!skyport){
@@ -155,6 +158,6 @@ export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,so
     group.traverse(o=>{if(!o.isMesh||!o.visible)return;out.drawCalls++;out.triangles+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
     for(const t of textures)out.textureBytes+=Math.round((t.image?.width||0)*(t.image?.height||0)*4*4/3);return out;
   }
-  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();readability.dispose();for(const i of instances)i.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();sun.dispose();hemi.dispose();interiorFill?.dispose();group.clear();colliderMeshes.clear();}
-  animate(0,0);return {group,solids,scenery,colliderMeshes,layout:data,lighting:lightingState,animate,updateDetail(){},stats,dispose,get disposed(){return disposed;}};
+  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();festive.dispose();readability.dispose();for(const i of instances)i.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();sun.dispose();hemi.dispose();interiorFill?.dispose();group.clear();colliderMeshes.clear();}
+  animate(0,0);return {group,solids,scenery,colliderMeshes,festive,layout:data,lighting:lightingState,animate,updateDetail(){},stats,dispose,get disposed(){return disposed;}};
 }

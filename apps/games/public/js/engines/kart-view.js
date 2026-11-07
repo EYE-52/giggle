@@ -1,3 +1,4 @@
+import {kartLightTier} from './kart-festive-lights.mjs';
 import {WEAPON_IDS} from './kart-weapon-contract.mjs';
 import {paintKartWeapon,createKartWeaponRoulette} from './kart-weapon-hud.mjs';
 import {paintKartHearts,createKartHitFeedback,landedText,kartEventCue} from './kart-hearts.mjs';
@@ -1064,7 +1065,7 @@ export function createKartView(viewConfig) {
     try {
       const assets = await loadKartAssets(THREE, scene);
       if (gen !== mountGen) throw new Error('Retired kart scene');
-      world = createKartWorld(THREE, {scene, palette: S && S.palette, assets, map: S && S.map});
+      world = createKartWorld(THREE, {scene, palette: S && S.palette, assets, map: S && S.map,quality:()=>kartLightTier(helper.renderer()),reducedMotion:()=>helper.reducedMotion()});
       world.syncMap((S && S.map) || {id:'ring',blocks:[]});
       world.group.getObjectByName('obstacles')?.traverse(mesh => {if (mesh.isMesh) mesh.castShadow=true;});
       const mood = world.palette || {sky: pal.sky, horizon: pal.horizon};

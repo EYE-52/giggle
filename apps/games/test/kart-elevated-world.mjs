@@ -124,7 +124,7 @@ for(const id of elevatedMapIds){
   eachTriangle(world.scenery,(points,o)=>{triangles++;if(intersectsField(points,input.half+2)){illegal++;first||=o.name;}});
   check(triangles>0&&illegal===0,id+' scenery outside drive bounds '+illegal+' '+first);
   const stats=world.stats();
-  check(stats.drawCalls<=80,id+' <=80 world draw calls');
+  check(stats.drawCalls<=83,id+' <=80 world draws plus three festive batches');
   check(stats.triangles<=80000,id+' <=80k world triangles');
   check(stats.textureBytes<=12*1024*1024,id+' <=12MiB original textures with mipmaps');
   const owned=resources(world),disposals=new Map();

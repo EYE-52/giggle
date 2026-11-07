@@ -41,7 +41,7 @@ for(const id of ['skyport','foundry']){
     const d=map.colliders.find(d=>d.material==='cover'),ray=new THREE.Raycaster(new THREE.Vector3(d.position.x+d.half.x*.45,d.position.y+d.half.y+.4,d.position.z),new THREE.Vector3(0,-1,0),0,2);
     const hit=ray.intersectObjects(meshes,false)[0];assert(hit?.object.userData.detailKinds?.includes('tank-top-ports'),'Storage tank top ports remain visible through the protective cage');
   }
-  const counts=world.stats();assert.equal(counts.drawCalls,id==='skyport'?32:35,id+' keeps its existing headless world draw count');assert(counts.drawCalls<=limit.drawCalls&&counts.triangles<=limit.triangles&&counts.textureBytes<3*1024*1024,id+' detail remains below Harbor geometry and 3MiB generated textures');
+  const counts=world.stats();assert.equal(counts.drawCalls-world.festive.stats().drawCalls,id==='skyport'?32:35,id+' keeps its existing world draws plus three festive batches');assert(counts.drawCalls<=limit.drawCalls&&counts.triangles<=limit.triangles&&counts.textureBytes<3*1024*1024,id+' detail remains below Harbor geometry and 3MiB generated textures');
   for(const phase of [0,.65,1]){
     world.animate(1/60,5,phase);
     assert(world.lighting.sun.intensity>=.9&&world.lighting.hemisphere.intensity>=1,id+' day and night retain readable road light');
