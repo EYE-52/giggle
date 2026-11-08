@@ -1,3 +1,4 @@
+import {waitKartPreparation} from './kart-warmup-scheduler.mjs';
 import {createKartLod} from './kart-lod.mjs';
 import {createRaisedPoseSupport} from './kart-raised-support.mjs';
 import {createRaisedPickups} from './kart-raised-pickups.mjs';
@@ -69,7 +70,7 @@ export function createElevatedKartView() {
   let root,api,S,sequence=0,epoch='',generation=0,gl,audio,stick,preference='auto',pending=false,gfxReady=false,graphicsFailed=false;
   let hitFx=null,analog={x:0,y:0},lastSend=0,lastKey='',timer=0,inputTimer=0,resultsTimer=0,firstEvents=true,itemKey='',standingsKey='',audioDrifting=false,feedbackEpoch=0;
   const gearbox=createGearbox(CONFIG.handling.maxForward);
-  let sceneReady,lastSnapshotArrival=null,prediction=null,predicted=null;
+  let sceneReady,shellAudioReady,rendererWarmup,lastSnapshotArrival=null,prediction=null,predicted=null;
   const timeline=createElevatedTimeline();
   const roulette=createKartWeaponRoulette({now:()=>performance.now(),reducedMotion:()=>globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches===true});
   const listeners=[],keys=new Set(),pointers=new Map(),seen=new Set(),newEvents=[],nodes=new Map();
@@ -169,7 +170,7 @@ export function createElevatedKartView() {
   }
   async function scene(THREE,helper,gen){
     const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(52,1,.1,650),renderer=helper.renderer();
-    let world,art,library,healthBars,impactFX,skids,threats,arsenalFX,cameraCollision,arena,drivingFX,scenePrediction,pickups,shadows,kartLod,lastPredictionTime=null;const slidePose={angle:0,physicalPose:{linearVelocity:null,grounded:true}};const lodEntries=[],models=new Map(),rigs=new Map(),objects=new Map(),effects=[];
+    let warmup,world,art,library,healthBars,impactFX,skids,threats,arsenalFX,cameraCollision,arena,drivingFX,scenePrediction,pickups,shadows,kartLod,lastPredictionTime=null;const slidePose={angle:0,physicalPose:{linearVelocity:null,grounded:true}};const lodEntries=[],models=new Map(),rigs=new Map(),objects=new Map(),effects=[];
     try{
       const physicsReady=S.youDrive?loadElevatedPhysics().catch(()=>null):Promise.resolve(null);
       const map=elevatedMap(S.mapId);if(map.revision!==S.mapRevision)throw Error('Arena revision mismatch');
@@ -278,9 +279,13 @@ export function createElevatedKartView() {
       for(const object of warm){object.visible=true;object.position.set(0,-100,0);object.traverse(o=>{if(!warmFrustum.has(o))warmFrustum.set(o,o.frustumCulled);o.frustumCulled=false;});}
       shadows.update();
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,art);
-      await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===generation,
+      warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===generation,
+        budgetMs:6000,signal:api?.preparationSignal,priorityRoots:[world.group,...models.values(),pickups.mesh,drivingFX.particles,drivingFX.speedLines],
+        onProgress:({completed,total,background})=>{if(gen===generation&&!background){const loading=$('loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[...warm,warmLibrary,arena.root,drivingFX.particles,drivingFX.speedLines,scene.getObjectByName('KartSkidMarks'),
-          scene.getObjectByName('KartThreatRing'),scene.getObjectByName('KartImpactFX')]});
+          scene.getObjectByName('KartThreatRing'),scene.getObjectByName('KartImpactFX')]}).catch(()=>null);
+      if(gen!==generation){warmup?.cancel();throw Error('Retired arena');}
+      rendererWarmup=warmup;
       for(const object of warm){object.visible=false;object.position.set(0,0,0);const combat=object.userData.combat;if(combat&&combat.type!=='projectile')object.removeFromParent();}
       kartLod.object.count=0;
       for(const [o,flag]of warmFrustum)o.frustumCulled=flag;warmFrustum.clear();
@@ -595,10 +600,11 @@ export function createElevatedKartView() {
         const k=self();
         const lateral=model&&k?.pose.linearVelocity?Math.abs(direction.copy(k.pose.linearVelocity).dot(nose.set(1,0,0).applyQuaternion(model.quaternion))):0;
         updateAudio(!!k?.pose.grounded&&Math.abs(k.pose.speed)>4&&lateral>1.4);clock();
-      },dispose(){cameraCollision.dispose();kartLod.dispose();pickups.dispose();shadows.dispose();scenePrediction?.dispose();if(prediction===scenePrediction){prediction=null;predicted=null;}arena.dispose();drivingFX.dispose();world.dispose();art.dispose();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();skids.dispose();threats.dispose();for(const f of effects)f.mesh.dispose();for(const cue of confirmedShots){cue.object.visible=false;cue.object.removeFromParent();}confirmedShots.length=0;confirmedPools.clear();closeKartAssetBitmaps(library);models.clear();objects.clear();rigs.clear();}};
-    }catch(error){cameraCollision?.dispose();kartLod?.dispose();pickups?.dispose();shadows?.dispose();scenePrediction?.dispose();if(prediction===scenePrediction){prediction=null;predicted=null;}arena?.dispose();drivingFX?.dispose();world?.dispose();art?.dispose();healthBars?.dispose();impactFX?.dispose();arsenalFX?.dispose();skids?.dispose();threats?.dispose();helper.disposeObject(scene);closeKartAssetBitmaps(library);throw error;}
+      },dispose(){warmup?.cancel();if(rendererWarmup===warmup)rendererWarmup=null;cameraCollision.dispose();kartLod.dispose();pickups.dispose();shadows.dispose();scenePrediction?.dispose();if(prediction===scenePrediction){prediction=null;predicted=null;}arena.dispose();drivingFX.dispose();world.dispose();art.dispose();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();skids.dispose();threats.dispose();for(const f of effects)f.mesh.dispose();for(const cue of confirmedShots){cue.object.visible=false;cue.object.removeFromParent();}confirmedShots.length=0;confirmedPools.clear();closeKartAssetBitmaps(library);models.clear();objects.clear();rigs.clear();}};
+    }catch(error){warmup?.cancel();if(rendererWarmup===warmup)rendererWarmup=null;cameraCollision?.dispose();kartLod?.dispose();pickups?.dispose();shadows?.dispose();scenePrediction?.dispose();if(prediction===scenePrediction){prediction=null;predicted=null;}arena?.dispose();drivingFX?.dispose();world?.dispose();art?.dispose();healthBars?.dispose();impactFX?.dispose();arsenalFX?.dispose();skids?.dispose();threats?.dispose();helper.disposeObject(scene);closeKartAssetBitmaps(library);throw error;}
   }
   function graphicsFailure(){
+    rendererWarmup?.cancel();
     graphicsFailed=true;gfxReady=false;stop();clock();newEvents.length=0;$('loading').hidden=false;$('loading').replaceChildren();const text=document.createElement('p');text.textContent='The 3D arena could not load. Retry or return to the room.';const retry=document.createElement('button');retry.textContent='Retry 3D';retry.setAttribute('data-watchok','');retry.onclick=()=>{if(pending)return;retry.disabled=true;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;graphicsFailed=false;loadScene();};$('loading').append(text,retry);
     if(api.context?.().isHost){const back=document.createElement('button');back.textContent='Back to room';back.onclick=()=>api.lobby();$('loading').append(back);}
   }
@@ -630,6 +636,7 @@ export function createElevatedKartView() {
     try{preference=localStorage.getItem('pk-controls-v1')||'auto';}catch{preference='auto';}if(!['auto','keyboard','touch'].includes(preference))preference='auto';
     audio=createKartAudio({muted:api.context?.().sound===false});
     audio.prep?.();
+    shellAudioReady=api.audioPrepare?.();
     on(root,'pointerdown',()=>audio?.unlock());on(window,'keydown',()=>{if(root.contains(document.activeElement))audio?.unlock();});
     on($('resume'),'click',()=>{$('menu').open=false;if(roomMenu)roomMenu.open=false;gl?.canvas.focus({preventScroll:true});});on($('menu'),'toggle',()=>{stop();paint();});
     on($('controls'),'change',event=>{stop();preference=event.target.value;try{localStorage.setItem('pk-controls-v1',preference);}catch{}touch();});
@@ -686,10 +693,10 @@ export function createElevatedKartView() {
     if(S.phase==='done'&&was?.phase!=='done'&&was?.instanceId===S.instanceId){clearTimeout(resultsTimer);resultsTimer=setTimeout(()=>{if(S?.instanceId===snapshot.instanceId&&S.phase==='done')api.resultsReady?.(S.instanceId);},900);}
   }
   function dispose(){
-    stop(false);generation++;clearInterval(timer);clearTimeout(resultsTimer);timer=resultsTimer=0;stick?.dispose();stick=null;audio?.dispose();audio=null;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;
+    stop(false);generation++;rendererWarmup?.cancel();rendererWarmup=null;clearInterval(timer);clearTimeout(resultsTimer);timer=resultsTimer=0;stick?.dispose();stick=null;audio?.dispose();audio=null;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;
     for(const[target,type,fn,opts]of listeners.splice(0)){if(type==='owned-style'||type==='owned-panel')target.remove();else target.removeEventListener(type,fn,opts);}
     hitFx?.dispose();hitFx=null;root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;lastSnapshotArrival=null;
   }
   return {ownsTimer:true,ownsInputs:true,styles:['/css/kart-elevated.css'],mount,update,dispose,
-    async ready(){await sceneReady;await audio?.ready?.();if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};
+    async ready(){await sceneReady;await waitKartPreparation(Promise.all([audio?.ready?.(),shellAudioReady]),api?.preparationSignal);if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;rendererWarmup?.continue();}};
 }

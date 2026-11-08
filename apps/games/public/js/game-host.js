@@ -96,6 +96,7 @@ export function reset(opts = {}) {
   cur = null; // Detach before user cleanup: dispose may itself reset the host.
   if (previous) {
     previous.controller.abort();
+    previous.preparation?.abort();
     for (const resolve of previous.waiters) resolve(null);
     previous.waiters.length = 0;
     previous.untrack?.();
@@ -190,6 +191,7 @@ function usableInput(active, request) {
 function scopedApi(active, request = null) {
   return new Proxy(active.latest.api, { get(target, key) {
     if (key === 'isUsable') return () => usableInput(active, request);
+    if (key === 'preparationSignal') return active.preparation?.signal;
     if (key === 'signal') return active.paintController?.signal || active.controller.signal;
     const value = (request?.api || active.latest.api)[key];
     if (typeof value !== 'function') return value;
@@ -253,6 +255,21 @@ function inactiveSameOriginFrame() {
   } catch { return false; } // Cross-origin parents keep the normal observer.
 }
 
+// Kart warm-up is optional work, not the lifetime of the mounted game.
+// Observe late rejection too, but release readiness at the soft deadline.
+function preparationWait(active,promise,signal) {
+  if(active.id!=='pocket-karts')return waitFor(promise,signal);
+  const preparation=active.preparation.signal;
+  return waitFor(new Promise((resolve,reject)=>{
+    const release=()=>{preparation.removeEventListener('abort',release);resolve();};
+    preparation.addEventListener('abort',release,{once:true});
+    Promise.resolve(promise).then(value=>{preparation.removeEventListener('abort',release);resolve(value);},error=>{
+      preparation.removeEventListener('abort',release);reject(error);
+    });
+    if(preparation.aborted)release();
+  }),signal);
+}
+
 async function usableFrame(active, request, api) {
   const signal = active.paintController.signal;
   declaredStyles(active);
@@ -260,14 +277,14 @@ async function usableFrame(active, request, api) {
   await Promise.all(links.map(link => resource(link, signal, () => !!link.sheet || styleStates.get(link) === 'load')));
   // Layout initiates any fonts used by the freshly rendered prompt.
   active.el.getBoundingClientRect?.();
-  if (document.fonts?.ready) await waitFor(document.fonts.ready, signal);
+  if (document.fonts?.ready) await preparationWait(active, document.fonts.ready, signal);
   for (const img of active.el.querySelectorAll?.('img[data-game-critical]') || []) {
     await resource(img, signal, () => img.complete);
     if (!img.naturalWidth) throw new Error('Required game image failed to load');
     if (img.decode) await waitFor(img.decode(), signal);
   }
   if (typeof active.view.ready === 'function') {
-    const ready = await waitFor(active.view.ready(active.el, request.S, api), signal);
+    const ready = await preparationWait(active, active.view.ready(active.el, request.S, api), signal);
     if (ready === false) throw new Error('Game view is not ready');
   }
   // Visible content gets two pre-paint callbacks, providing one paint
@@ -279,9 +296,14 @@ async function usableFrame(active, request, api) {
 
 async function drive(active) {
   const signal = active.controller.signal;
-  // 3D arenas get longer on slow devices, just inside the server's window.
-  const limitMs = active.latest?.meta?.renderer === '3d' ? 28000 : 10000;
-  const timeout = setTimeout(() => active.controller.abort(new Error('Game preparation timed out')), limitMs);
+  // The kart server allows 30s. Leave six seconds for a busy tab to ACK.
+  // This deadline skips optional warm-up; it must never retire a kart game.
+  const kart = active.id === 'pocket-karts';
+  const limitMs = kart ? 24000 : active.latest?.meta?.renderer === '3d' ? 28000 : 10000;
+  const timeout = setTimeout(() => {
+    if (kart) active.preparation.abort();
+    else active.controller.abort(new Error('Game preparation timed out'));
+  }, limitMs);
   try {
     if (!active.view) {
       const meta = active.latest.meta;
@@ -360,7 +382,7 @@ export function show(el, gameId, S, api, meta) {
   if (!el) return Promise.resolve(null);
   if (!cur || cur.id !== gameId || cur.el !== el || cur.instanceId !== S.instanceId) {
     if (cur) reset({ rematch: cur.id === gameId && cur.el === el && cur.instanceId !== S.instanceId });
-    const active = cur = { id: gameId, instanceId: S.instanceId, el, view: null, controller: new AbortController(),
+    const active = cur = { id: gameId, instanceId: S.instanceId, el, view: null, controller: new AbortController(), preparation: new AbortController(),
       version: 0, painted: 0, usable: false, running: false, waiters: [], ownedStyles: new Set(), requiredStyles: new Set(), initialStyles: new Set(styles()) };
     if (carriedStyles?.id === gameId) for (const link of carriedStyles.links) active.ownedStyles.add(link);
     else for (const link of carriedStyles?.links || []) link.remove();
