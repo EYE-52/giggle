@@ -1693,6 +1693,15 @@ for (const id of require('./new-games-b4-harness').IDS) driver(id, () => {
   return 'complete four-seat match, legal actions, server deadlines and final scores';
 });
 
+/* Batch 3 word/camera games: complete matches through legal inputs. */
+for (const id of require('./new-games-b3-harness').IDS) {
+  driver(id, () => {
+    const def = registry.get(id), ctx = new FakeCtx(roster(4), { rounds: 2 });
+    require('./new-games-b3-harness').play(id, 4, { def, ctx });
+    return 'two rounds, role views, legal inputs and earned points';
+  });
+}
+
 /* ---------------- runner ---------------- */
 async function main() {
   await registry.get('pocket-karts').initialize();

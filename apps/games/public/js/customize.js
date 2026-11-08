@@ -302,7 +302,7 @@ function fillDialog(g, settings, pack) {
 /* Family colour per game (giggle-design skill, section 2). */
 const FAMILIES = {
   board: ['chess', 'checkers', 'reversi', 'four-in-a-row', 'kalah', 'ludo', 'fleet-duel', 'memory-tray', 'castle-clash'],
-  create: ['doodle-guess', 'draw-phone', 'charades', 'pose-party', 'show-and-go', 'word-chain', 'warm-words', 'countdown-word', 'scattergories', 'lyric-fill', 'think-alike'],
+  create: ['doodle-guess', 'draw-phone', 'charades', 'pose-party', 'show-and-go', 'word-chain', 'warm-words', 'countdown-word', 'scattergories', 'lyric-fill', 'think-alike', 'clue-grid', 'letter-lock', 'word-grid', 'banned-words', 'read-my-lips'],
   arcade: ['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction', 'math-dash', 'emoji-spotter', 'echo-pads', 'color-clash', 'hot-potato'],
 };
 FAMILIES.board.push('dots-boxes', 'mega-tic-tac-toe', 'five-row', 'pig-dice', 'snakes-ladders');

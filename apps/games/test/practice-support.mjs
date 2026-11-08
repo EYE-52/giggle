@@ -7,7 +7,7 @@ import { PRACTICE_MODES, practiceSupport } from '../public/js/practice-support.m
 const require = createRequire(import.meta.url);
 const registry = require('../games/registry');
 const catalog = registry.list();
-assert.equal(catalog.length, 62);
+assert.equal(catalog.length, 67);
 for (const id of ['math-dash', 'emoji-spotter', 'echo-pads', 'color-clash', 'hot-potato']) assert.equal(PRACTICE_MODES[id], 'timed');
 assert.equal(PRACTICE_MODES['warm-words'], 'timed', 'Warm Words uses timed guesses, not pretend performance');
 assert.equal(PRACTICE_MODES['story-builder'], 'turns');

@@ -22,7 +22,7 @@ export function controlFamily(game) {
   // games need an explicit control family from the design guide.
   if (['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction', 'math-dash', 'emoji-spotter', 'echo-pads', 'color-clash', 'hot-potato'].includes(game.id)) return 'arcade';
   if (game.cat === 'board' || ['memory-tray', 'castle-clash'].includes(game.id)) return 'board';
-  if (['draw', 'camera'].includes(game.cat) || ['charades', 'pose-party', 'show-and-go', 'word-chain', 'warm-words', 'countdown-word', 'scattergories', 'lyric-fill', 'think-alike', 'emoji-story'].includes(game.id)) return 'create';
+  if (['draw', 'camera'].includes(game.cat) || ['charades', 'pose-party', 'show-and-go', 'word-chain', 'warm-words', 'countdown-word', 'scattergories', 'lyric-fill', 'think-alike', 'emoji-story', 'clue-grid', 'letter-lock', 'word-grid', 'banned-words', 'read-my-lips'].includes(game.id)) return 'create';
   return 'party';
 }
 
