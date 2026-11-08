@@ -283,8 +283,8 @@ export function paintLiveStrip(scene, S, opts = {}) {
   // the stage divides by it so it still fills the screen.
   const zoom = parseFloat(scene.closest?.('#gbody')?.style?.zoom) || 1;
   scene.style?.setProperty?.('--pl-zoom', String(zoom));
-  // Anchor the live roster to the available play height. Use document
-  // coordinates, so scrolling the page cannot grow this space on repaint.
+  // Reserve the available stage height, with the roster in normal flow.
+  // Document coordinates keep scrolling from growing it on repaint.
   const body = scene.closest?.('#gbody');
   const top = body?.getBoundingClientRect?.().top;
   const viewport = document.defaultView?.innerHeight;

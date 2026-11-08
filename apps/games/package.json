@@ -100,7 +100,8 @@
     "test:pickers:browser": "node test/visual-pickers-browser.cjs",
     "test:same-room": "node test/same-room.js && node test/same-room-ui.js && node test/same-room-transport.js",
     "test:same-room:browser": "node test/same-room-browser.cjs",
-    "test:production-qa:browser": "node test/production-qa-browser.cjs"
+    "test:production-qa:browser": "node test/production-qa-browser.cjs",
+    "test:fill-scenes:browser": "node test/fill-scenes-browser.cjs"
   },
   "engines": {
     "node": "24.x"

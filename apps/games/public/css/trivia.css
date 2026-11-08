@@ -34,7 +34,7 @@ body.game-playing[data-game="trivia"] {
 
 #gbody .wg[data-game="trivia"] {
   --qa-a: #d63c72; --qa-b: #2f74d8; --qa-c: #f2a516; --qa-d: #0f8a8a;
-  --qa-on: #ffffff; --qa-on-c: #2b1a00;
+  --qa-on: var(--on-fam); --qa-on-c: var(--sun-ink);
   --qa-lip-mix: 72%;
   position: relative; isolation: isolate;
 }
@@ -87,10 +87,11 @@ body.game-playing[data-game="trivia"] {
 }
 #gbody .wg.pl-fill[data-game="trivia"] .gk-choice .gk-mark {
   width: 40px; height: 40px; border: 0; border-radius: var(--radius-md);
-  background: #ffffff; color: var(--qa-lip); font: 800 20px/1 var(--font-display);
+  background: var(--card); color: var(--ink); font: 800 20px/1 var(--font-display);
 }
-/* Amber is the button fill, not readable small text on the white chip. */
-#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:nth-child(3) .gk-mark { color:var(--qa-on-c); }
+/* Keep the three white-on-colour answers above 4.5:1 in Day. In Night,
+ * their on-family ink is dark and the same mix lifts the button's fill. */
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:not(:nth-child(3)) { background:color-mix(in srgb,var(--qa) 88%,var(--ink)); }
 @media (hover: hover) {
   #gbody .wg.pl-fill[data-game="trivia"] button.gk-choice:not(:disabled):hover { transform: translateY(-2px); border-color: var(--qa-lip); }
 }

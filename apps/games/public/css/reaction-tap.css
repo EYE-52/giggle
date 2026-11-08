@@ -133,3 +133,4 @@
 #gbody .rt.pl-fill :is(#rInstruction,#rStatus) { height:var(--space-64); min-height:var(--space-64); overflow:auto; }
 #gbody .rt.pl-fill #rTip { height:var(--space-48); min-height:var(--space-48); overflow:auto; }
 @media (max-width:560px) { #gbody .rt.pl-fill .rt-pad { grid-template-rows:var(--space-40) clamp(120px,22vh,200px) 2.3em; } }
+#gbody .rt.pl-fill .gk-hud .gk-hud-phase.is-foul:not(:empty) { color:var(--ink); }

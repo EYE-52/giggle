@@ -123,3 +123,6 @@ body.game-playing[data-game="would-you-rather"] {
 @media (max-width:560px) {
  #gbody .wyr-world .wyr-choices > .wyr-choice { border-radius:var(--radius-lg); }
 }
+
+/* Decorative scene silhouette; colours follow the Day/Night game skin. */
+body.game-playing[data-game="would-you-rather"] { --pl-scene-art:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%20600%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%228%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%20510V230a95%2095%200%200%201%20190%200v280zm24-20V230a71%2071%200%200%201%20142%200v260M790%20510V230a95%2095%200%200%201%20190%200v280zm24-20V230a71%2071%200%200%201%20142%200v260M0%20525h1000M0%20600l340-75m660%2075-340-75M300%20600l130-75m270%2075-130-75M0%20567h1000%22%2F%3E%3Ccircle%20cx%3D%22164%22%20cy%3D%22355%22%20r%3D%229%22%2F%3E%3Ccircle%20cx%3D%22837%22%20cy%3D%22355%22%20r%3D%229%22%2F%3E%3Cpath%20d%3D%22m450%20420%2050-38%2050%2038m-50-38v98%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"); }

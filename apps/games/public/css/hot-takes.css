@@ -85,3 +85,6 @@ body.game-playing[data-game="hot-takes"] {
 }
 /* Send and Update share a slot, so the field never changes width on save. */
 #gbody .party-scene--hot #hSend { min-width:calc(3 * var(--control-h)); }
+
+/* Decorative scene silhouette; colours follow the Day/Night game skin. */
+body.game-playing[data-game="hot-takes"] { --pl-scene-art:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201000%20600%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22white%22%20stroke-width%3D%228%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M40%20600C-30%20500%20100%20480%2050%20355c125%2080%2090%20135%20125%20162%2048-35%2045-85%2035-120%20140%20135%2030%20170%2070%20203M730%20600c-35-65%2010-90%2055-165%205%2055%2022%2073%2045%2094%2070-85-5-130%2075-240-15%20150%20125%20205%2065%20311M300%20566h400M350%20590h300M370%20535v-35h260v35M500%20500V345m-45%200h90M470%20345V275a30%2030%200%200%201%2060%200v70%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E"); }

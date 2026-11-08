@@ -257,8 +257,9 @@
   padding-block: var(--space-8) var(--space-24);
 }
 #gbody .pl-fill > * { margin-block: 0; flex: 0 0 auto; }
-/* The players strip is its own section: a little more air above it. */
-#gbody .pl-fill > .pl-live { margin-top:auto; }
+/* The reserved stage height stays below the group, never between the
+ * round and its roster. The strip shares the stack's normal token gap. */
+#gbody .pl-fill > .pl-live { margin-top:0; }
 @media (max-width: 560px) {
   #gbody .pl-fill { gap: var(--space-16); }
 }
@@ -819,6 +820,23 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
 
 #gbody .pl-fill .gk-btn.gk-primary { font:var(--text-primary); }
 #gbody .pl-fill :is(.gk-hud-phase,.party-phase) { color:var(--ink); }
+
+/* Short laptop rounds form one balanced group. The HUD and roster keep
+ * their fixed seats, including when a tally or phase label changes. */
+@media(min-width:1100px){
+ #gbody .pl-fill:is(.party-scene--hot,.pick-world,.rt-scene) { justify-content:safe center; padding-top:calc(var(--space-8) + var(--control-h-sm) + var(--space-24)); }
+ #gbody .pl-fill:is(.party-scene--hot,.pick-world,.rt-scene) > :is(.gk-hud,.party-hud) { position:absolute; top:var(--space-8); left:0; }
+}
+
+/* Still scenery sits behind the real cards, never in the layout or over
+ * controls. Each game's sheet supplies its own silhouette. */
+body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],[data-game="hot-takes"],[data-game="pick-one"],[data-game="rapid-polls"]) { isolation:isolate; }
+body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],[data-game="hot-takes"],[data-game="pick-one"],[data-game="rapid-polls"])::before {
+ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+ background:color-mix(in srgb,var(--fam) 16%,transparent);
+ mask:var(--pl-scene-art) center bottom / 100% auto no-repeat;
+}
+[data-theme="night"] body.game-playing:is([data-game="story-builder"],[data-game="would-you-rather"],[data-game="hot-takes"],[data-game="pick-one"],[data-game="rapid-polls"])::before { background:color-mix(in srgb,var(--fam) 12%,transparent); }
 .pl-live .pl-seat { grid-template-rows:var(--space-24) var(--space-24) var(--space-40); }
 @media(max-width:560px){ .pl-live .pl-seat { grid-template-rows:var(--space-24) var(--space-40) var(--space-24); } }
 
@@ -836,4 +854,7 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
 }
 @media(min-width:1100px){
  #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live .pl-head { height:calc(var(--space-48) + var(--space-24)); min-height:calc(var(--space-48) + var(--space-24)); align-content:center; }
+ /* An absolute HUD measures from the full stage, including its roster
+  * gutter; it must not add that gutter to its width a second time. */
+ #gbody .pl-fill[data-family="party"]:is(.party-scene--hot,.pick-world,.rt-scene) > :is(.gk-hud,.party-hud) { width:100%; }
 }

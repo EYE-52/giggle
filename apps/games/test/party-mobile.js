@@ -690,7 +690,9 @@ if (require.main === module) (async () => {
     // GAME_UI_STANDARD: prompts 26–32px on desktop, 22–26px on phones.
     assert(/party-prompt\.party-prompt \{[^}]*clamp\(2[6-9]px, [^,]+, (2[6-9]|3[0-2])px\)/.test(css), 'prompts stay large on desktop');
     assert(/party-prompt\.party-prompt \{ font-size: clamp\(2[2-6]px, [^,]+, 2[2-6]px\)/.test(css), 'prompts never drop below 22px on phones');
-    assert(!/position\s*:\s*(fixed|sticky)/.test(css), 'no fixed chrome covers prompts or fields');
+    const foregroundCss=css.replace(/([^{}]+)\{([^{}]*)\}/g,(rule,selector,body)=>
+      /::(?:before|after)/.test(selector)&&/z-index\s*:\s*-\d/.test(body)&&/pointer-events\s*:\s*none/.test(body)?'':rule);
+    assert(!/position\s*:\s*(fixed|sticky)/.test(foregroundCss), 'no fixed chrome covers prompts or fields; scenery stays behind them');
     assert(css.includes('overflow-wrap: anywhere'), 'long content wraps instead of overflowing');
     assert(css.includes('@media (max-height: 500px)'), 'short landscape keeps prompts readable');
     assert(css.includes('@media (max-width: 640px)'), 'narrow phones reflow choice grids');

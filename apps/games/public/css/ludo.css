@@ -109,3 +109,4 @@ body[data-game="ludo"]{background:#f0dcd9}
  .ld-game .bk-tools { grid-column:2; grid-row:7; position:relative; }
  .ld-game .bk-help-body { position:absolute; bottom:calc(100% + var(--space-8)); right:0; z-index:40; width:calc(200% + var(--space-8)); max-height:50dvh; overflow:auto; padding:var(--space-16); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-lg); background:var(--card); box-shadow:var(--shadow-card); }
 }
+.ld-game .ld-dice.is-ready { background:color-mix(in srgb,var(--fam) 80%,var(--ink)); }

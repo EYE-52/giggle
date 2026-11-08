@@ -65,18 +65,19 @@ body.game-playing[data-game="roast-toast"] {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Cpath d='M20 10l2.5 7.5L30 20l-7.5 2.5L20 30l-2.5-7.5L10 20l7.5-2.5z' fill='%23ffc94d' fill-opacity='.16'/%3E%3Cpath d='M70 58l1.6 4.4L76 64l-4.4 1.6L70 70l-1.6-4.4L64 64l4.4-1.6z' fill='%23f2a08a' fill-opacity='.14'/%3E%3Ccircle cx='76' cy='18' r='2' fill='%23ffc94d' fill-opacity='.14'/%3E%3Ccircle cx='28' cy='76' r='1.5' fill='%23f2a08a' fill-opacity='.12'/%3E%3C/svg%3E");
 }
 body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt {
-  --crust: color-mix(in srgb, var(--fam) 60%, #7a3b16);
+  --crust: color-mix(in srgb, var(--fam) 32%, var(--outline));
   background: color-mix(in srgb, var(--sun) 16%, var(--card));
-  border-color: var(--crust); border-width: var(--outline-w-lg);
+  border-color: var(--crust); border-width: var(--outline-w);
   border-radius: 46% 46% var(--radius-xl) var(--radius-xl) / 56px 56px var(--radius-xl) var(--radius-xl);
-  box-shadow: inset 0 0 0 6px color-mix(in srgb, var(--crust) 55%, var(--card)), 0 var(--lift) 0 var(--crust);
+  box-shadow: 0 var(--lift) 0 var(--crust);
   padding-top: var(--space-40);
 }
 [data-theme="night"] body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt {
-  --crust: color-mix(in srgb, var(--fam) 70%, #3a1a0a);
+  --crust: color-mix(in srgb, var(--fam) 26%, var(--card));
   background: color-mix(in srgb, var(--sun) 9%, var(--card));
 }
-#gbody .rt-scene .rt-target { border-color: var(--fam-lip); box-shadow: 0 var(--lift-sm) 0 var(--fam-lip); }
+#gbody .rt-scene .rt-target { border-color: color-mix(in srgb,var(--fam) 32%,var(--card)); box-shadow: 0 var(--lift-sm) 0 color-mix(in srgb,var(--fam) 32%,var(--card)); }
+#gbody .rt-scene :is(.rt-chip,.gk-input,.rt-target .pl-face) { border-color:color-mix(in srgb,var(--fam) 24%,var(--card)); }
 #gbody .rt-scene .rt-list .gk-choice:not(.is-correct):not(.is-wrong):hover { border-color: var(--outline); }
 @media (max-width: 560px) {
   body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt { border-radius: 40% 40% var(--radius-lg) var(--radius-lg) / 48px 48px var(--radius-lg) var(--radius-lg); padding-top: var(--space-32); }

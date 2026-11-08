@@ -289,11 +289,11 @@
   .camera-party.ck .cp-prompt-text > .cp-kicker:empty + * { margin-right: 64px; }
 }
 
-/* The prompt is the stage: give it the remaining desktop height, with the
- * call hint anchored below it, rather than a blank lower third. */
+/* The call is the stage. Keep this prompt card sized to its copy instead
+ * of turning spare viewport height into an empty camera placeholder. */
 @media(min-width:1024px){
- .camera-party:not(.gk-final) { min-height:calc(100dvh - var(--space-64) - var(--space-64)); grid-template-rows:auto minmax(var(--space-64),1fr) auto auto auto auto; }
- .camera-party:not(.gk-final) > .cp-prompt-card { align-self:stretch; align-content:center; }
+ .camera-party:not(.gk-final) { min-height:0; grid-template-rows:repeat(6,auto); }
+ .camera-party:not(.gk-final) > .cp-prompt-card { align-self:start; align-content:start; }
  .camera-party:not(.gk-final) > .cp-call { align-self:end; }
 }
 @media(min-width:1024px){ .camera-party:not(.gk-final) > .cp-call { grid-column:1; } }

@@ -287,3 +287,12 @@ body {
 .lab-main[data-phase="done"] #play .cr-head{display:none}
 .lab-main[data-phase="done"] #play .cr-help,
 .lab-main[data-phase="done"] #play .cr-note{display:none}
+
+/* Keep the controls beside the middle of the reactor, not marooned at
+ * the top of a tall empty sidebar. The board retains its full grid area. */
+@media(min-width:760px) and (min-height:501px){
+ #play .chain-reaction { grid-template-rows:1fr auto auto 1fr; }
+ #play .cr-board { grid-row:1 / span 4; }
+ #play .cr-head { grid-row:2; }
+ #play .cr-side { grid-row:3; }
+}

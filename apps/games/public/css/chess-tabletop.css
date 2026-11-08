@@ -126,3 +126,4 @@
  .ch-tabletop .ch-capture-rail { margin:var(--space-8); }
  .ch-tabletop .chhist-wrap>summary { min-height:var(--control-h-sm); }
 }
+.ch-tabletop .bk-primary { background:color-mix(in srgb,var(--fam) 80%,var(--ink)); }
