@@ -1,0 +1,491 @@
+{
+  "labels": {
+    "tooFew": "Too few players remain. This round was skipped.",
+    "noClue": "No clue arrived in time. Nobody scores this round.",
+    "leadLeft": "The lead player left. This round was skipped.",
+    "noPick": "The hot seat did not pick in time. Nobody scores this round.",
+    "tooFewNotes": "Fewer than two notes arrived. This round was skipped."
+  },
+  "questions": [
+    {
+      "q": "How many keys does a standard full-size piano have?",
+      "answer": 88,
+      "unit": "keys",
+      "fact": "A full keyboard stretches across more than seven octaves.",
+      "decimals": false,
+      "source": "https://www.yamaha.com/en/musical_instrument_guide/piano/"
+    },
+    {
+      "q": "About what whole-number percentage of Earth's surface is ocean?",
+      "answer": 71,
+      "unit": "percent",
+      "fact": "The separate ocean basins form one connected ocean.",
+      "decimals": false,
+      "source": "https://oceanservice.noaa.gov/facts/howmanyoceans.html"
+    },
+    {
+      "q": "About what percentage of Earth's water is in the ocean?",
+      "answer": 97,
+      "unit": "percent",
+      "fact": "Only a small share lies outside the ocean.",
+      "decimals": false,
+      "source": "https://oceanservice.noaa.gov/facts/oceanwater.html"
+    },
+    {
+      "q": "How long is an official marathon in kilometres?",
+      "answer": 42.195,
+      "unit": "km",
+      "fact": "The distance is also 26 miles and 385 yards.",
+      "decimals": true,
+      "source": "https://worldathletics.org/disciplines/relays/marathon"
+    },
+    {
+      "q": "How many hearts does an octopus have?",
+      "answer": 3,
+      "unit": "hearts",
+      "fact": "Two serve the gills and one serves the rest of the body.",
+      "decimals": false,
+      "source": "https://oceanservice.noaa.gov/news/feb26/undersea-creatures-valentines-day.html"
+    },
+    {
+      "q": "How tall is the Eiffel Tower with its 2022 antenna, in metres?",
+      "answer": 330,
+      "unit": "metres",
+      "fact": "The new antenna lifted the tower from 324 to 330 metres.",
+      "source": "https://www.toureiffel.paris/en/the-monument/key-figures",
+      "decimals": false
+    },
+    {
+      "q": "How many rivets hold the Eiffel Tower together?",
+      "answer": 2500000,
+      "unit": "rivets",
+      "fact": "Those rivets join over eighteen thousand iron parts.",
+      "source": "https://www.toureiffel.paris/en/the-monument/key-figures",
+      "decimals": false
+    },
+    {
+      "q": "How many iron parts make up the Eiffel Tower?",
+      "answer": 18038,
+      "unit": "parts",
+      "fact": "Each part was prepared before assembly on site.",
+      "source": "https://www.toureiffel.paris/en/the-monument/key-figures",
+      "decimals": false
+    },
+    {
+      "q": "How many metric tonnes does the Eiffel Tower’s metal frame weigh?",
+      "answer": 7300,
+      "unit": "tonnes",
+      "fact": "The complete tower weighs more than its frame alone.",
+      "source": "https://www.toureiffel.paris/en/the-monument/key-figures",
+      "decimals": false
+    },
+    {
+      "q": "How many steps run from the Eiffel Tower’s esplanade to its top?",
+      "answer": 1665,
+      "unit": "steps",
+      "fact": "The upper stairway is not open to visitors.",
+      "source": "https://www.toureiffel.paris/en/faq/spot/how-can-you-walk-eiffel-tower-foot",
+      "decimals": false
+    },
+    {
+      "q": "How many steps can visitors climb to the Eiffel Tower’s second floor?",
+      "answer": 674,
+      "unit": "steps",
+      "fact": "Going higher requires a lift.",
+      "source": "https://www.toureiffel.paris/en/faq/spot/how-can-you-walk-eiffel-tower-foot",
+      "decimals": false
+    },
+    {
+      "q": "How long is the Golden Gate Bridge’s main span, in metres?",
+      "answer": 1280,
+      "unit": "metres",
+      "fact": "This is the gap between its two main towers.",
+      "source": "https://www.goldengate.org/bridge/history-research/statistics-data/design-construction-stats/",
+      "decimals": false
+    },
+    {
+      "q": "How long is the Golden Gate Bridge including its approaches, in metres?",
+      "answer": 2737,
+      "unit": "metres",
+      "fact": "The main suspension span is only part of the full crossing.",
+      "source": "https://www.goldengate.org/bridge/history-research/statistics-data/design-construction-stats/",
+      "decimals": false
+    },
+    {
+      "q": "How high above the water are the Golden Gate Bridge’s towers, in metres?",
+      "answer": 227,
+      "unit": "metres",
+      "fact": "The towers support two huge main cables.",
+      "source": "https://www.goldengate.org/bridge/history-research/statistics-data/design-construction-stats/",
+      "decimals": false
+    },
+    {
+      "q": "How many individual steel wires are bundled into ONE Golden Gate Bridge main cable?",
+      "answer": 27572,
+      "unit": "wires",
+      "fact": "Each main cable contains 61 bundles of wires.",
+      "source": "https://www.goldengate.org/bridge/history-research/statistics-data/design-construction-stats/",
+      "decimals": false
+    },
+    {
+      "q": "About how many kilometres of wire are in BOTH Golden Gate Bridge main cables?",
+      "answer": 129000,
+      "unit": "km",
+      "fact": "All that wire is packed into just two main cables.",
+      "source": "https://www.goldengate.org/bridge/history-research/statistics-data/design-construction-stats/",
+      "decimals": false
+    },
+    {
+      "q": "How many windows are in the Statue of Liberty’s crown?",
+      "answer": 25,
+      "unit": "windows",
+      "fact": "The windows sit below seven rays.",
+      "source": "https://www.nps.gov/stli/learn/historyculture/statue-statistics.htm",
+      "decimals": false
+    },
+    {
+      "q": "About how tall is the Statue of Liberty from ground to torch tip, in metres?",
+      "answer": 93,
+      "unit": "metres",
+      "fact": "The figure includes her pedestal.",
+      "source": "https://www.nps.gov/stli/learn/historyculture/statue-statistics.htm",
+      "decimals": false
+    },
+    {
+      "q": "How long is the Statue of Liberty’s nose, in centimetres?",
+      "answer": 137,
+      "unit": "cm",
+      "fact": "The official measurement is 1.37 metres.",
+      "source": "https://www.nps.gov/stli/learn/historyculture/statue-statistics.htm",
+      "decimals": false
+    },
+    {
+      "q": "How long is the Statue of Liberty’s index finger, in centimetres?",
+      "answer": 244,
+      "unit": "cm",
+      "fact": "One finger is taller than most people.",
+      "source": "https://www.nps.gov/stli/learn/historyculture/statue-statistics.htm",
+      "decimals": false
+    },
+    {
+      "q": "How many Earth days does Mercury take to orbit the Sun?",
+      "answer": 88,
+      "unit": "days",
+      "fact": "Mercury has the shortest year of any planet.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "To the nearest whole day, how many Earth days make a Venus year?",
+      "answer": 225,
+      "unit": "days",
+      "fact": "Venus takes about 224.7 Earth days to orbit the Sun.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "How many Earth days make a Mars year?",
+      "answer": 687,
+      "unit": "days",
+      "fact": "Mars takes nearly two Earth years to circle the Sun.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "About how many Earth years make one Jupiter year?",
+      "answer": 12,
+      "unit": "years",
+      "fact": "Its orbit takes about 4,331 Earth days.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "About how many Earth years make one Neptune year?",
+      "answer": 164,
+      "unit": "years",
+      "fact": "Neptune takes about 59,800 days to orbit the Sun.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "What is the Moon’s diameter to the nearest kilometre in NASA’s fact sheet?",
+      "answer": 3475,
+      "unit": "km",
+      "fact": "The Moon is much narrower than Earth.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "What is Mars’s equatorial diameter to the nearest kilometre?",
+      "answer": 6792,
+      "unit": "km",
+      "fact": "Mars is just over half as wide as Earth.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "What is Jupiter’s equatorial diameter to the nearest kilometre?",
+      "answer": 142984,
+      "unit": "km",
+      "fact": "The solar system’s largest planet is more than ten Earths across.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "About how many kilometres separate Earth and the Moon on average?",
+      "answer": 384000,
+      "unit": "km",
+      "fact": "NASA’s table rounds the mean distance to 0.384 million kilometres.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "About how many million kilometres is Earth from the Sun on average?",
+      "answer": 149.6,
+      "unit": "million km",
+      "fact": "That mean distance is called one astronomical unit.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": true
+    },
+    {
+      "q": "How many hours does a Jupiter day last, to one decimal place?",
+      "answer": 9.9,
+      "unit": "hours",
+      "fact": "The largest planet spins surprisingly quickly.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": true
+    },
+    {
+      "q": "About how cold is the mean temperature on Mars, in degrees Celsius?",
+      "answer": -65,
+      "unit": "°C",
+      "fact": "This is a mean value; local temperatures vary enormously.",
+      "source": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
+      "decimals": false
+    },
+    {
+      "q": "How many steps lead to Big Ben’s belfry in Elizabeth Tower?",
+      "answer": 334,
+      "unit": "steps",
+      "fact": "The clock faces are lower, at step 281.",
+      "source": "https://www.parliament.uk/about/living-heritage/building/palace/big-ben/facts-figures/",
+      "decimals": false
+    },
+    {
+      "q": "About how tall is London’s Elizabeth Tower, in metres?",
+      "answer": 96,
+      "unit": "metres",
+      "fact": "Big Ben is the bell inside the tower.",
+      "source": "https://www.parliament.uk/about/living-heritage/building/palace/big-ben/facts-figures/",
+      "decimals": false
+    },
+    {
+      "q": "How tall is Dubai’s Burj Khalifa to its architectural top, in metres?",
+      "answer": 828,
+      "unit": "metres",
+      "fact": "The tower opened in 2010.",
+      "source": "https://www.burjkhalifa.ae/en/assets/FACT-SHEET.pdf",
+      "decimals": false
+    },
+    {
+      "q": "How high are all three sections of Yosemite Falls together, in metres?",
+      "answer": 740,
+      "unit": "metres",
+      "fact": "The upper fall, cascades and lower fall combine into one huge drop.",
+      "source": "https://www.nps.gov/yose/planyourvisit/waterfalls.htm",
+      "decimals": false
+    },
+    {
+      "q": "How tall is the General Sherman tree, to one decimal place in metres?",
+      "answer": 83.8,
+      "unit": "metres",
+      "fact": "Its claim to fame is trunk volume, rather than record height.",
+      "source": "https://www.nps.gov/seki/learn/nature/sherman.htm",
+      "decimals": true
+    },
+    {
+      "q": "What is the General Sherman tree’s maximum trunk diameter at its base, in metres?",
+      "answer": 11.1,
+      "unit": "metres",
+      "fact": "The base is broader than a typical room.",
+      "source": "https://www.nps.gov/seki/learn/nature/sherman.htm",
+      "decimals": true
+    },
+    {
+      "q": "What time did Usain Bolt run for 100 metres in Berlin in 2009?",
+      "answer": 9.58,
+      "unit": "seconds",
+      "fact": "He ran it on 16 August 2009.",
+      "source": "https://worldathletics.org/athletes/jamaica/usain-bolt-14201847",
+      "decimals": true
+    },
+    {
+      "q": "What time did Usain Bolt run for 200 metres in Berlin in 2009?",
+      "answer": 19.19,
+      "unit": "seconds",
+      "fact": "The 200-metre final came four days after his 100-metre final.",
+      "source": "https://worldathletics.org/athletes/jamaica/usain-bolt-14201847",
+      "decimals": true
+    },
+    {
+      "q": "How far did Mike Powell jump at the 1991 World Championships?",
+      "answer": 8.95,
+      "unit": "metres",
+      "fact": "The jump won a famous contest against Carl Lewis.",
+      "source": "https://worldathletics.org/athletes/united-states/mike-powell-14248761",
+      "decimals": true
+    },
+    {
+      "q": "How tall was Robert Wadlow at his final 1940 measurement, in centimetres?",
+      "answer": 272,
+      "unit": "cm",
+      "fact": "Wadlow was taller than a standard indoor doorway.",
+      "source": "https://www.guinnessworldrecords.com/world-records/tallest-man-living",
+      "decimals": false
+    },
+    {
+      "q": "How many years did Charles Osborne’s famous hiccup attack last?",
+      "answer": 68,
+      "unit": "years",
+      "fact": "The attack began in 1922.",
+      "source": "https://www.guinnessworldrecords.com/news/2023/7/extreme-measures-person-with-68-year-attack-of-hiccups-took-to-try-and-stop-them-754877",
+      "decimals": false
+    },
+    {
+      "q": "How long was the single noodle measured in Nanyang, China, in 2017?",
+      "answer": 3084,
+      "unit": "metres",
+      "fact": "One noodle stretched for more than three kilometres.",
+      "source": "https://www.guinnessworldrecords.com/world-records/longest-noodle",
+      "decimals": false
+    },
+    {
+      "q": "How big was Airrack’s January 2023 record pizza, to the nearest square metre?",
+      "answer": 1297,
+      "unit": "m²",
+      "fact": "Its measured area was 1,296.72 square metres.",
+      "source": "https://www.guinnessworldrecords.com/world-records/largest-pizza",
+      "decimals": false
+    },
+    {
+      "q": "How long was Stewie the cat at his 2010 record measurement, in centimetres?",
+      "answer": 123,
+      "unit": "cm",
+      "fact": "His full name was Mymains Stewart Gilligan.",
+      "source": "https://www.guinnessworldrecords.com/records/showcase/animals/cats",
+      "decimals": false
+    },
+    {
+      "q": "How high was Zeus the Michigan Great Dane at the shoulder, in centimetres?",
+      "answer": 111.8,
+      "unit": "cm",
+      "fact": "Standing on his hind legs, he reached 223 centimetres.",
+      "source": "https://www.guinnessworldrecords.com/news/icons/zeus-the-tallest-dog",
+      "decimals": true
+    },
+    {
+      "q": "What was the combined length of Diana Armstrong’s fingernails in March 2022, rounded to centimetres?",
+      "answer": 1307,
+      "unit": "cm",
+      "fact": "The measured total across both hands was 1,306.58 centimetres.",
+      "source": "https://www.guinnessworldrecords.com/news/2022/8/woman-with-42-foot-fingernails-breaks-record-for-longest-ever-711160",
+      "decimals": false
+    },
+    {
+      "q": "About how tall can a male giraffe grow, in metres?",
+      "answer": 5.5,
+      "unit": "metres",
+      "fact": "Females can reach about 4.3 metres.",
+      "source": "https://animals.sandiegozoo.org/animals/giraffe",
+      "decimals": true
+    },
+    {
+      "q": "About how wide is a giraffe’s foot, in centimetres?",
+      "answer": 30.5,
+      "unit": "cm",
+      "fact": "That is roughly the width of a dinner plate.",
+      "source": "https://animals.sandiegozoo.org/animals/giraffe",
+      "decimals": true
+    },
+    {
+      "q": "At the long end of its usual range, how many months is an elephant pregnant?",
+      "answer": 22,
+      "unit": "months",
+      "fact": "San Diego Zoo gives a gestation range of 20 to 22 months.",
+      "source": "https://animals.sandiegozoo.org/animals/elephant",
+      "decimals": false
+    },
+    {
+      "q": "How long can one cheetah stride be, at the upper end in metres?",
+      "answer": 6.7,
+      "unit": "metres",
+      "fact": "San Diego Zoo describes a stride of 6 to 6.7 metres.",
+      "source": "https://animals.sandiegozoo.org/animals/cheetah",
+      "decimals": true
+    },
+    {
+      "q": "About how many milligrams does a newborn giant Pacific octopus weigh?",
+      "answer": 22,
+      "unit": "mg",
+      "fact": "A hatchling begins life just over a quarter-inch long.",
+      "source": "https://www.montereybayaquarium.org/animals-the-ocean/animals-a-to-z/giant-pacific-octopus",
+      "decimals": false
+    },
+    {
+      "q": "How tall is the Statue of Unity itself, without its base, in metres?",
+      "answer": 182,
+      "unit": "metres",
+      "fact": "It honours Sardar Vallabhbhai Patel.",
+      "source": "https://narmada.nic.in/tourist-place/statue-of-unity-kevadia/",
+      "decimals": false
+    },
+    {
+      "q": "How tall is the London Eye, in metres?",
+      "answer": 135,
+      "unit": "metres",
+      "fact": "The wheel opened to the public in 2000.",
+      "source": "https://www.londoneye.com/media/1ksm3ac2/coca-cola-london-eye-press-pack.pdf",
+      "decimals": false
+    },
+    {
+      "q": "How many passenger capsules were built for the London Eye?",
+      "answer": 32,
+      "unit": "capsules",
+      "fact": "The capsules represent London’s boroughs.",
+      "source": "https://www.londoneye.com/media/1ksm3ac2/coca-cola-london-eye-press-pack.pdf",
+      "decimals": false
+    },
+    {
+      "q": "According to NOAA, about how deep is Challenger Deep in metres?",
+      "answer": 10935,
+      "unit": "metres",
+      "fact": "It lies in the Mariana Trench in the western Pacific.",
+      "source": "https://oceanservice.noaa.gov/facts/oceandepth.html",
+      "decimals": false
+    },
+    {
+      "q": "According to the NPS visitor page, how deep is Crater Lake at its deepest, in metres?",
+      "answer": 592,
+      "unit": "metres",
+      "fact": "The deepest lake in the United States fills a volcanic basin.",
+      "source": "https://www.nps.gov/places/crater-lake.htm",
+      "decimals": false
+    },
+    {
+      "q": "How many kilograms did Schreiber Foods’ record mac-and-cheese portion weigh?",
+      "answer": 2151,
+      "unit": "kg",
+      "fact": "The recipe used over nine hundred kilograms of dry pasta.",
+      "source": "https://kids.guinnessworldrecords.com/news/2024/3/these-largest-food-records-are-guaranteed-to-make-your-belly-rumble-764947",
+      "decimals": false
+    },
+    {
+      "q": "How long was the giant ice-cream serving scoop measured in Italy in 2015, in centimetres?",
+      "answer": 195,
+      "unit": "cm",
+      "fact": "This record measured the serving tool, not a scoop of ice cream.",
+      "source": "https://www.guinnessworldrecords.com/world-records/386254-largest-ice-cream-scoop",
+      "decimals": false
+    }
+  ]
+}

@@ -1,0 +1,290 @@
+.knowme-play {
+  display: grid;
+  gap: var(--space-24);
+  justify-items: center;
+}
+.knowme-seat {
+  display: grid;
+  position: relative;
+  justify-items: center;
+  width: min(100%, 280px);
+  padding: var(--space-12) var(--space-24);
+  background: radial-gradient(
+    ellipse at center,
+    var(--sun-soft) 0 55%,
+    transparent 56%
+  );
+}
+.knowme-kicker {
+  font: var(--text-caption);
+  letter-spacing: 0.1em;
+}
+.knowme-spotlight {
+  position: relative;
+  z-index: 2;
+  margin-top: var(--space-8);
+}
+#gbody .knowme-world .knowme-spotlight .pl-face {
+  width: 72px;
+  height: 72px;
+  border: var(--outline-w-lg) solid var(--outline);
+  box-shadow: var(--shadow-sticker);
+  font: 800 28px/1 var(--font-display);
+}
+.knowme-sofa {
+  position: relative;
+  width: 160px;
+  height: 48px;
+  margin-top: -20px;
+  background: var(--fam);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl) var(--radius-xl) var(--radius-md)
+    var(--radius-md);
+  box-shadow: 0 var(--lift) 0 var(--fam-lip);
+}
+.knowme-sofa::before,
+.knowme-sofa::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  width: 28px;
+  height: 36px;
+  background: var(--fam-soft);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-sm);
+}
+.knowme-sofa::before {
+  left: -12px;
+}
+.knowme-sofa::after {
+  right: -12px;
+}
+.knowme-seat strong {
+  margin-top: var(--space-12);
+  font: var(--text-title);
+}
+.knowme-options {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-16);
+}
+#gbody .knowme-world .knowme-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-12);
+  row-gap: var(--space-4);
+  width: 100%;
+  min-height: 120px;
+  margin: 0;
+  padding: var(--space-16);
+  color: var(--ink);
+  background: var(--choice-bg);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker);
+  text-align: left;
+  transition: transform var(--dur-quick) var(--ease);
+  opacity: 1;
+}
+.knowme-option-0 {
+  --choice-bg: var(--sun-soft);
+  --choice-color: var(--sun-ink);
+}
+.knowme-option-1 {
+  --choice-bg: var(--melon-soft);
+  --choice-color: var(--melon-deep);
+}
+.knowme-option-2 {
+  --choice-bg: color-mix(in srgb, var(--sky) 20%, var(--card));
+  --choice-color: var(--ink);
+}
+.knowme-option-3 {
+  --choice-bg: color-mix(in srgb, var(--teal) 20%, var(--card));
+  --choice-color: var(--ink);
+}
+.knowme-letter {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--choice-color);
+  font: 800 24px/1 var(--font-display);
+}
+.knowme-option-text {
+  font: 800 24px/1.2 var(--font-display);
+  overflow-wrap: anywhere;
+}
+.knowme-pick {
+  grid-column: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 24px;
+  font: var(--text-caption);
+}
+.knowme-verdict {
+  grid-column: 1 / -1;
+  min-height: 20px;
+  font: var(--text-caption);
+  color: var(--success);
+  text-align: center;
+}
+#gbody .knowme-world .knowme-option.is-selected {
+  outline: 3px solid var(--fam);
+  outline-offset: 2px;
+}
+#gbody .knowme-world .knowme-option.is-correct {
+  background: var(--success-soft);
+  outline: 3px solid var(--success);
+  outline-offset: 2px;
+}
+.knowme-predictors {
+  display: grid;
+  gap: var(--space-8);
+  justify-items: center;
+  font: var(--text-title);
+}
+.knowme-predictors:empty {
+  display: none;
+}
+.knowme-predictors > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-8);
+  font: var(--text-caption);
+}
+@media (max-width: 560px) {
+  .knowme-options {
+    gap: var(--space-12);
+  }
+  #gbody .knowme-world .knowme-option {
+    padding: var(--space-12);
+    min-height: 132px;
+    column-gap: var(--space-8);
+  }
+  .knowme-option-text {
+    font-size: 20px;
+  }
+  .knowme-letter {
+    width: 32px;
+    height: 32px;
+    font-size: 20px;
+  }
+  .knowme-pick {
+    grid-column: 1 / -1;
+  }
+}
+.knowme-tab {
+  position: absolute;
+  top: -12px;
+  right: var(--space-12);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-8);
+  min-height: 28px;
+  border: var(--outline-w) solid var(--fam);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-sticker-sm);
+}
+[data-theme="night"] .knowme-world .knowme-option-0 {
+  --choice-color: var(--sun);
+}
+#gbody .knowme-world.pl-fill {
+  gap: var(--space-12);
+}
+.knowme-play {
+  gap: var(--space-12);
+}
+#gbody .knowme-world .round-status {
+  min-height: calc(48px / var(--round-zoom, 1));
+  font: 700 13px/1.35 var(--font-body);
+}
+@media (max-width: 560px) {
+  #gbody .knowme-world .party-prompt.party-prompt {
+    font-size: 24px;
+    padding: var(--space-12);
+  }
+  .knowme-seat {
+    padding: var(--space-4) var(--space-16);
+  }
+  .knowme-kicker {
+    font-size: 11px;
+  }
+  #gbody .knowme-world .knowme-spotlight .pl-face {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+  .knowme-spotlight {
+    margin-top: var(--space-4);
+  }
+  .knowme-sofa {
+    width: 128px;
+    height: 32px;
+    margin-top: -16px;
+  }
+  .knowme-sofa::before,
+  .knowme-sofa::after {
+    width: 24px;
+    height: 28px;
+    top: var(--space-4);
+  }
+  .knowme-seat strong {
+    margin-top: var(--space-8);
+    font-size: 17px;
+  }
+  #gbody .knowme-world .knowme-option {
+    min-height: 88px;
+    padding: var(--space-8);
+    row-gap: 0;
+  }
+  .knowme-option-text {
+    font-size: 18px;
+  }
+  .knowme-pick {
+    min-height: 0;
+  }
+  .knowme-verdict {
+    min-height: 16px;
+    font-size: 11px;
+  }
+  .knowme-predictors {
+    gap: var(--space-4);
+    font-size: 17px;
+  }
+  .knowme-predictors > div {
+    gap: var(--space-4);
+  }
+}
+@media (min-width: 561px) {
+  .knowme-play {
+    grid-template-columns: 180px minmax(0, 1fr);
+    align-items: center;
+  }
+  .knowme-predictors {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 561px) {
+  #gbody .knowme-world .party-prompt.party-prompt {
+    font-size: 32px;
+    padding: var(--space-16);
+  }
+  #gbody .knowme-world .knowme-option {
+    min-height: 112px;
+    padding: var(--space-12);
+  }
+  .knowme-pick {
+    min-height: 0;
+  }
+}

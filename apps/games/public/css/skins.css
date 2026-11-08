@@ -282,3 +282,25 @@ body[data-game="warm-words"] { --bg: #f9f0ee; --font-display: "Lilita One", "Bal
 [data-theme="night"] body[data-game="warm-words"], [data-theme="night"] body[data-game="warm-words"] [data-family] { --fam: #ed8247; --fam-deep: #f6bd9e; --on-fam: #121016; --accent: #ed8247; --accent-deep: #f6bd9e; --accent-ink: #121016; }
 [data-theme="night"] body[data-game="warm-words"] { --bg: #231514; --card: #281c20; --well: #342428; }
 
+
+/* Batch 1: spectrum, estimate ticket, thought piles, secret notes, hot seat. */
+body[data-game="dial-in"], body[data-game="dial-in"] [data-family] { --fam: #bd3b74; --fam-deep: #772249; --fam-soft: color-mix(in srgb, #bd3b74 12%, var(--card)); --fam-lip: #772249; --on-fam: #fff; --accent: #bd3b74; --accent-deep: #772249; --accent-ink: #fff; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+body[data-game="dial-in"] { --bg: #f8eff6; }
+[data-theme="night"] body[data-game="dial-in"], [data-theme="night"] body[data-game="dial-in"] [data-family] { --fam: #ed8abb; --fam-deep: #ed8abb; --fam-soft: color-mix(in srgb, #ed8abb 14%, var(--card)); --fam-lip: color-mix(in srgb, #ed8abb 45%, var(--bg)); --on-fam: #17121b; --accent: #ed8abb; --accent-deep: #ed8abb; --accent-ink: #17121b; }
+[data-theme="night"] body[data-game="dial-in"] { --bg: #271922; }
+body[data-game="ballpark"], body[data-game="ballpark"] [data-family] { --fam: #267b88; --fam-deep: #185360; --fam-soft: color-mix(in srgb, #267b88 12%, var(--card)); --fam-lip: #185360; --on-fam: #fff; --accent: #267b88; --accent-deep: #185360; --accent-ink: #fff; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+body[data-game="ballpark"] { --bg: #edf7f7; }
+[data-theme="night"] body[data-game="ballpark"], [data-theme="night"] body[data-game="ballpark"] [data-family] { --fam: #72c9d3; --fam-deep: #72c9d3; --fam-soft: color-mix(in srgb, #72c9d3 14%, var(--card)); --fam-lip: color-mix(in srgb, #72c9d3 45%, var(--bg)); --on-fam: #17121b; --accent: #72c9d3; --accent-deep: #72c9d3; --accent-ink: #17121b; }
+[data-theme="night"] body[data-game="ballpark"] { --bg: #14282b; }
+body[data-game="think-alike"], body[data-game="think-alike"] [data-family] { --fam: #6552c5; --fam-deep: #403180; --fam-soft: color-mix(in srgb, #6552c5 12%, var(--card)); --fam-lip: #403180; --on-fam: #fff; --accent: #6552c5; --accent-deep: #403180; --accent-ink: #fff; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+body[data-game="think-alike"] { --bg: #f3f0fc; }
+[data-theme="night"] body[data-game="think-alike"], [data-theme="night"] body[data-game="think-alike"] [data-family] { --fam: #b3a1f4; --fam-deep: #b3a1f4; --fam-soft: color-mix(in srgb, #b3a1f4 14%, var(--card)); --fam-lip: color-mix(in srgb, #b3a1f4 45%, var(--bg)); --on-fam: #17121b; --accent: #b3a1f4; --accent-deep: #b3a1f4; --accent-ink: #17121b; }
+[data-theme="night"] body[data-game="think-alike"] { --bg: #201c30; }
+body[data-game="who-wrote"], body[data-game="who-wrote"] [data-family] { --fam: #a85b29; --fam-deep: #703b19; --fam-soft: color-mix(in srgb, #a85b29 12%, var(--card)); --fam-lip: #703b19; --on-fam: #fff; --accent: #a85b29; --accent-deep: #703b19; --accent-ink: #fff; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+body[data-game="who-wrote"] { --bg: #fbf3ec; }
+[data-theme="night"] body[data-game="who-wrote"], [data-theme="night"] body[data-game="who-wrote"] [data-family] { --fam: #e9b080; --fam-deep: #e9b080; --fam-soft: color-mix(in srgb, #e9b080 14%, var(--card)); --fam-lip: color-mix(in srgb, #e9b080 45%, var(--bg)); --on-fam: #17121b; --accent: #e9b080; --accent-deep: #e9b080; --accent-ink: #17121b; }
+[data-theme="night"] body[data-game="who-wrote"] { --bg: #2b211b; }
+body[data-game="know-me"], body[data-game="know-me"] [data-family] { --fam: #b93e56; --fam-deep: #7b2335; --fam-soft: color-mix(in srgb, #b93e56 12%, var(--card)); --fam-lip: #7b2335; --on-fam: #fff; --accent: #b93e56; --accent-deep: #7b2335; --accent-ink: #fff; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+body[data-game="know-me"] { --bg: #fcf0f2; }
+[data-theme="night"] body[data-game="know-me"], [data-theme="night"] body[data-game="know-me"] [data-family] { --fam: #ef9eaf; --fam-deep: #ef9eaf; --fam-soft: color-mix(in srgb, #ef9eaf 14%, var(--card)); --fam-lip: color-mix(in srgb, #ef9eaf 45%, var(--bg)); --on-fam: #17121b; --accent: #ef9eaf; --accent-deep: #ef9eaf; --accent-ink: #17121b; }
+[data-theme="night"] body[data-game="know-me"] { --bg: #2e1b24; }
