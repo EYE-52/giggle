@@ -1,0 +1,24 @@
+.back-world .back-rack {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-16);
+  border-bottom: 8px solid var(--fam-deep);
+  border-radius: var(--radius-lg);
+  background: var(--fam-soft);
+  width: min(100%, 480px);
+}
+.back-world .back-rack > span {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 64px;
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: var(--shadow-sticker-sm);
+  font: var(--text-heading);
+}
+.back-world .b2-result {
+  min-height: 0;
+}

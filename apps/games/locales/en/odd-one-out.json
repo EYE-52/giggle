@@ -1,0 +1,444 @@
+{
+  "places": [
+    {
+      "name": "Bakery",
+      "roles": [
+        "Baker",
+        "Customer",
+        "Cake decorator",
+        "Delivery rider",
+        "Cashier",
+        "Flour supplier"
+      ]
+    },
+    {
+      "name": "Aquarium",
+      "roles": [
+        "Diver",
+        "Visitor",
+        "Ticket seller",
+        "Marine biologist",
+        "Tank cleaner",
+        "Guide"
+      ]
+    },
+    {
+      "name": "Library",
+      "roles": [
+        "Librarian",
+        "Reader",
+        "Book restorer",
+        "Student",
+        "Storyteller",
+        "Volunteer"
+      ]
+    },
+    {
+      "name": "Airport",
+      "roles": [
+        "Pilot",
+        "Passenger",
+        "Gate agent",
+        "Baggage handler",
+        "Security officer",
+        "Flight attendant"
+      ]
+    },
+    {
+      "name": "Campground",
+      "roles": [
+        "Camper",
+        "Park ranger",
+        "Hiker",
+        "Cook",
+        "First aider",
+        "Kayaker"
+      ]
+    },
+    {
+      "name": "Cinema",
+      "roles": [
+        "Projectionist",
+        "Moviegoer",
+        "Ticket checker",
+        "Popcorn seller",
+        "Cleaner",
+        "Manager"
+      ]
+    },
+    {
+      "name": "Circus school",
+      "roles": [
+        "Juggler",
+        "Acrobat",
+        "Coach",
+        "Clown",
+        "New student",
+        "Costume maker"
+      ]
+    },
+    {
+      "name": "Train station",
+      "roles": [
+        "Conductor",
+        "Traveller",
+        "Porter",
+        "Ticket clerk",
+        "Platform guard",
+        "Snack seller"
+      ]
+    },
+    {
+      "name": "Hospital",
+      "roles": [
+        "Nurse",
+        "Patient",
+        "Doctor",
+        "Receptionist",
+        "Paramedic",
+        "Visitor"
+      ]
+    },
+    {
+      "name": "Museum",
+      "roles": [
+        "Curator",
+        "Visitor",
+        "Guide",
+        "Art restorer",
+        "Security guard",
+        "School teacher"
+      ]
+    },
+    {
+      "name": "Space station",
+      "roles": [
+        "Commander",
+        "Astronaut",
+        "Engineer",
+        "Botanist",
+        "Medic",
+        "Scientist"
+      ]
+    },
+    {
+      "name": "Flower shop",
+      "roles": [
+        "Florist",
+        "Customer",
+        "Delivery driver",
+        "Wedding planner",
+        "Gardener",
+        "Apprentice"
+      ]
+    },
+    {
+      "name": "Swimming pool",
+      "roles": [
+        "Lifeguard",
+        "Swimmer",
+        "Coach",
+        "Pool cleaner",
+        "Beginner",
+        "Diving instructor"
+      ]
+    },
+    {
+      "name": "Farm",
+      "roles": [
+        "Farmer",
+        "Vet",
+        "Tractor driver",
+        "Apple picker",
+        "Beekeeper",
+        "Visitor"
+      ]
+    },
+    {
+      "name": "Beach",
+      "roles": [
+        "Surfer",
+        "Lifeguard",
+        "Sunbather",
+        "Shell collector",
+        "Ice cream seller",
+        "Kite flyer"
+      ]
+    },
+    {
+      "name": "Mountain lodge",
+      "roles": [
+        "Skier",
+        "Receptionist",
+        "Cook",
+        "Guide",
+        "Snowboarder",
+        "Firewood carrier"
+      ]
+    },
+    {
+      "name": "Music studio",
+      "roles": [
+        "Singer",
+        "Drummer",
+        "Sound engineer",
+        "Producer",
+        "Guitarist",
+        "Songwriter"
+      ]
+    },
+    {
+      "name": "Television kitchen",
+      "roles": [
+        "Chef",
+        "Host",
+        "Camera operator",
+        "Food stylist",
+        "Guest",
+        "Floor manager"
+      ]
+    },
+    {
+      "name": "Bookshop",
+      "roles": [
+        "Bookseller",
+        "Author",
+        "Customer",
+        "Illustrator",
+        "Delivery worker",
+        "Event host"
+      ]
+    },
+    {
+      "name": "Observatory",
+      "roles": [
+        "Astronomer",
+        "Visitor",
+        "Telescope engineer",
+        "Guide",
+        "Photographer",
+        "Student"
+      ]
+    },
+    {
+      "name": "Toy workshop",
+      "roles": [
+        "Toy maker",
+        "Painter",
+        "Tester",
+        "Packer",
+        "Designer",
+        "Carpenter"
+      ]
+    },
+    {
+      "name": "Garden centre",
+      "roles": [
+        "Gardener",
+        "Customer",
+        "Seed expert",
+        "Cashier",
+        "Plant doctor",
+        "Delivery driver"
+      ]
+    },
+    {
+      "name": "Bowling alley",
+      "roles": [
+        "Bowler",
+        "Coach",
+        "Snack seller",
+        "Mechanic",
+        "Receptionist",
+        "Shoe attendant"
+      ]
+    },
+    {
+      "name": "Hotel",
+      "roles": [
+        "Guest",
+        "Receptionist",
+        "Porter",
+        "Housekeeper",
+        "Chef",
+        "Manager"
+      ]
+    },
+    {
+      "name": "Castle",
+      "roles": [
+        "Royal cook",
+        "Guard",
+        "Visiting knight",
+        "Gardener",
+        "Monarch",
+        "Court musician"
+      ]
+    },
+    {
+      "name": "Harbour",
+      "roles": [
+        "Captain",
+        "Fisher",
+        "Boat mechanic",
+        "Dock worker",
+        "Passenger",
+        "Harbour master"
+      ]
+    },
+    {
+      "name": "Pet shelter",
+      "roles": [
+        "Volunteer",
+        "Vet",
+        "Adopter",
+        "Trainer",
+        "Cleaner",
+        "Receptionist"
+      ]
+    },
+    {
+      "name": "School fair",
+      "roles": [
+        "Teacher",
+        "Student",
+        "Parent",
+        "Face painter",
+        "Cake seller",
+        "Announcer"
+      ]
+    },
+    {
+      "name": "Ice rink",
+      "roles": [
+        "Skater",
+        "Coach",
+        "Ice resurfacer",
+        "Ticket clerk",
+        "First aider",
+        "Spectator"
+      ]
+    },
+    {
+      "name": "Pottery studio",
+      "roles": [
+        "Potter",
+        "Student",
+        "Kiln operator",
+        "Glazer",
+        "Shop assistant",
+        "Clay supplier"
+      ]
+    },
+    {
+      "name": "Community theatre",
+      "roles": [
+        "Actor",
+        "Director",
+        "Stagehand",
+        "Costume maker",
+        "Lighting operator",
+        "Audience member"
+      ]
+    },
+    {
+      "name": "Bike repair shop",
+      "roles": [
+        "Mechanic",
+        "Cyclist",
+        "Apprentice",
+        "Cashier",
+        "Delivery rider",
+        "Parts supplier"
+      ]
+    },
+    {
+      "name": "Planetarium",
+      "roles": [
+        "Presenter",
+        "Visitor",
+        "Projection operator",
+        "Astronomy student",
+        "Ticket seller",
+        "Teacher"
+      ]
+    },
+    {
+      "name": "Chocolate factory",
+      "roles": [
+        "Chocolate maker",
+        "Taster",
+        "Wrapper",
+        "Engineer",
+        "Visitor",
+        "Delivery driver"
+      ]
+    },
+    {
+      "name": "Hot air balloon",
+      "roles": [
+        "Pilot",
+        "Passenger",
+        "Navigator",
+        "Photographer",
+        "Weather watcher",
+        "Trainee"
+      ]
+    },
+    {
+      "name": "Dance class",
+      "roles": [
+        "Teacher",
+        "Beginner",
+        "Pianist",
+        "Experienced dancer",
+        "Choreographer",
+        "Helper"
+      ]
+    },
+    {
+      "name": "Rainforest research camp",
+      "roles": [
+        "Botanist",
+        "Guide",
+        "Cook",
+        "Wildlife researcher",
+        "Medic",
+        "Sound recorder"
+      ]
+    },
+    {
+      "name": "Puppet theatre",
+      "roles": [
+        "Puppeteer",
+        "Narrator",
+        "Stagehand",
+        "Ticket seller",
+        "Costume maker",
+        "Audience member"
+      ]
+    },
+    {
+      "name": "Tea garden",
+      "roles": [
+        "Tea picker",
+        "Guide",
+        "Planter",
+        "Taster",
+        "Visitor",
+        "Leaf sorter"
+      ]
+    },
+    {
+      "name": "Recycling centre",
+      "roles": [
+        "Sorter",
+        "Driver",
+        "Repair expert",
+        "Volunteer",
+        "Weighbridge operator",
+        "Visitor"
+      ]
+    }
+  ]
+}

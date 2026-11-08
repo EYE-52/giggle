@@ -282,3 +282,33 @@ body[data-game="warm-words"] { --bg: #f9f0ee; --font-display: "Lilita One", "Bal
 [data-theme="night"] body[data-game="warm-words"], [data-theme="night"] body[data-game="warm-words"] [data-family] { --fam: #ed8247; --fam-deep: #f6bd9e; --on-fam: #121016; --accent: #ed8247; --accent-deep: #f6bd9e; --accent-ink: #121016; }
 [data-theme="night"] body[data-game="warm-words"] { --bg: #231514; --card: #281c20; --well: #342428; }
 
+
+/* Batch 2: odd-one-out. */
+body[data-game="odd-one-out"], body[data-game="odd-one-out"] [data-family] { --fam: #e7aa38; --fam-deep: #715019; --fam-lip: #715019; --fam-soft: color-mix(in srgb, var(--fam) 16%, var(--card)); --on-fam: #211825; --accent: var(--fam); --accent-soft: var(--fam-soft); --accent-deep: var(--fam-deep); --accent-ink: var(--on-fam); }
+body[data-game="odd-one-out"] { --bg: #fbf4e8; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="odd-one-out"], [data-theme="night"] body[data-game="odd-one-out"] [data-family] { --fam: #f4c66e; --fam-deep: #f4c66e; --fam-lip: #715019; --on-fam: #211825; }
+[data-theme="night"] body[data-game="odd-one-out"] { --bg: #241f19; --card: #30271e; --well: #3b3022; }
+
+/* Batch 2: moonlit-village. */
+body[data-game="moonlit-village"], body[data-game="moonlit-village"] [data-family] { --fam: #7067c9; --fam-deep: #403975; --fam-lip: #403975; --fam-soft: color-mix(in srgb, var(--fam) 16%, var(--card)); --on-fam: #ffffff; --accent: var(--fam); --accent-soft: var(--fam-soft); --accent-deep: var(--fam-deep); --accent-ink: var(--on-fam); }
+body[data-game="moonlit-village"] { --bg: #f1f0fb; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="moonlit-village"], [data-theme="night"] body[data-game="moonlit-village"] [data-family] { --fam: #b1a8ee; --fam-deep: #b1a8ee; --fam-lip: #403975; --on-fam: #211825; }
+[data-theme="night"] body[data-game="moonlit-village"] { --bg: #1b1a2c; --card: #26243a; --well: #302e46; }
+
+/* Batch 2: undercover. */
+body[data-game="undercover"], body[data-game="undercover"] [data-family] { --fam: #329b83; --fam-deep: #205e50; --fam-lip: #205e50; --fam-soft: color-mix(in srgb, var(--fam) 16%, var(--card)); --on-fam: #211825; --accent: var(--fam); --accent-soft: var(--fam-soft); --accent-deep: var(--fam-deep); --accent-ink: var(--on-fam); }
+body[data-game="undercover"] { --bg: #edf7f1; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="undercover"], [data-theme="night"] body[data-game="undercover"] [data-family] { --fam: #74c9ae; --fam-deep: #74c9ae; --fam-lip: #205e50; --on-fam: #211825; }
+[data-theme="night"] body[data-game="undercover"] { --bg: #172723; --card: #20332d; --well: #294238; }
+
+/* Batch 2: backronyms. */
+body[data-game="backronyms"], body[data-game="backronyms"] [data-family] { --fam: #bd69b1; --fam-deep: #743e6b; --fam-lip: #743e6b; --fam-soft: color-mix(in srgb, var(--fam) 16%, var(--card)); --on-fam: #211825; --accent: var(--fam); --accent-soft: var(--fam-soft); --accent-deep: var(--fam-deep); --accent-ink: var(--on-fam); }
+body[data-game="backronyms"] { --bg: #faf0f8; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="backronyms"], [data-theme="night"] body[data-game="backronyms"] [data-family] { --fam: #e1a0d4; --fam-deep: #e1a0d4; --fam-lip: #743e6b; --on-fam: #211825; }
+[data-theme="night"] body[data-game="backronyms"] { --bg: #291c28; --card: #352634; --well: #422e40; }
+
+/* Batch 2: whisper. */
+body[data-game="whisper"], body[data-game="whisper"] [data-family] { --fam: #cf7754; --fam-deep: #7d432e; --fam-lip: #7d432e; --fam-soft: color-mix(in srgb, var(--fam) 16%, var(--card)); --on-fam: #211825; --accent: var(--fam); --accent-soft: var(--fam-soft); --accent-deep: var(--fam-deep); --accent-ink: var(--on-fam); }
+body[data-game="whisper"] { --bg: #fcf1e9; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="whisper"], [data-theme="night"] body[data-game="whisper"] [data-family] { --fam: #edab8e; --fam-deep: #edab8e; --fam-lip: #7d432e; --on-fam: #211825; }
+[data-theme="night"] body[data-game="whisper"] { --bg: #291f1b; --card: #352925; --well: #42322b; }

@@ -1633,6 +1633,24 @@ driver('fleet-duel', () => {
   return `${shots} alternating legal shots, confirmed placement, masked opponents/watchers and complete sinking win`;
 });
 
+/* Batch 2: game-owned legal practice drivers, using private seat views. */
+for (const id of require('./new-games-b2-harness').IDS) {
+  driver(id, () => {
+    const def = registry.get(id), n = id === 'moonlit-village' ? 5 : 4;
+    const ctx = new FakeCtx(roster(n), settingsFor(def, { rounds: 1 }));
+    ctx.content = gameId => require('../locales/en/' + gameId + '.json');
+    ctx.roster = roster(n);
+    ctx.fire = () => ctx.fireNext();
+    const state = def.create(ctx);
+    require('./new-games-b2-harness').play(id, n, 1, {
+      game: def, ctx, s: state,
+      act: (pid, action) => act(def, state, ctx, pid, action),
+      v: pid => V(def, state, pid),
+    });
+    return 'full match, private seat views, validated actions and earned scores';
+  });
+}
+
 /* ---------------- runner ---------------- */
 async function main() {
   await registry.get('pocket-karts').initialize();
