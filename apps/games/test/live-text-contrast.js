@@ -3,7 +3,7 @@
 // Runs in the browser, against live text and its painted ancestor backgrounds.
 // Transparent game stages must inherit the real body background, not a white
 // fallback. Gradient cards are checked against every computed color stop.
-function auditTextContrast(root) {
+function auditTextContrast(root, minimumRatio = 0) {
   const doc = root.ownerDocument, win = doc.defaultView;
   const styles = new Map(), backgrounds = new Map(), errors = [];
   let checked = 0, minimum = Infinity;
@@ -31,14 +31,21 @@ function auditTextContrast(root) {
     if (!/[\p{L}\p{N}\p{P}]/u.test(text) || node.closest('svg,canvas,[aria-hidden="true"]')) return;
     const box = node.getBoundingClientRect();
     if (!box.width || !box.height || style.visibility !== 'visible' || style.display === 'none') return;
+    for (let p = node; p; p = p.parentElement) {
+      const c = css(p);
+      if (c.clipPath === 'inset(50%)' && p.clientWidth <= 1 && p.clientHeight <= 1) return;
+    }
     let opacity = extraOpacity;
     for (let p = node; p; p = p.parentElement) opacity *= Number(css(p).opacity);
     // Dimmed disabled actions have no contrast requirement; disabled reveal
     // cards at full opacity still convey information and are checked.
     if (!opacity || (node.closest(':disabled') && opacity < .9)) return;
     const foreground = rgba(style.color); foreground[3] *= opacity;
+    // Lyric's missing-word slot has transparent underscore text for its
+    // accessible label; the visible decoration is its coloured track.
+    if (!foreground[3]) return;
     const size = parseFloat(style.fontSize), weight = parseInt(style.fontWeight, 10);
-    const required = size >= 24 || (size >= 18.66 && weight >= 700) ? 3 : 4.5;
+    const required = Math.max(minimumRatio, size >= 24 || (size >= 18.66 && weight >= 700) ? 3 : 4.5);
     let ratio = Infinity, worst = null;
     for (const background of painted(node)) {
       const a = luminance(over(foreground, background)), b = luminance(background);

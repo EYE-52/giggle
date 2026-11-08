@@ -10,6 +10,8 @@ const read=file=>fs.readFileSync(path.join(__dirname,'../public',file),'utf8');
  assert.match(hud,/\.gk-hud\s*\{\s*display: grid; grid-template-columns:/);
  assert.match(hud,/\.gk-hud-phase\s*\{ grid-column: 2; grid-row: 1;/);
  assert.match(party,/justify-self:start; width:max-content; max-width:100%/);
+ assert.match(party,/#gbody \.pl-fill > \.pl-live \{ margin-top:0; \}/,'the roster follows the round instead of opening a viewport-sized gap');
+ assert.match(party,/min-height:var\(--pl-stage-height,0px\)/,'the stage still reserves its viewport height');
  assert.match(hud,/\.gk-hud-progress\s*\{ grid-column: 3; grid-row: 1;/);
  assert.match(hud,/font-variant-numeric: tabular-nums/);
  assert.doesNotMatch(party,/.gk-hud-timer:empty\s*\{\s*display:\s*none/);

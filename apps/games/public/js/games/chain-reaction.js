@@ -191,6 +191,11 @@ const CSS = `
 .cr-name{font:var(--text-title)}
 .cr-score{font:var(--text-title)}
 .cr-rules summary{width:auto;align-self:flex-start}
+/* Centre the two side groups as one stack, without moving the board. */
+.chain-reaction{grid-template-rows:1fr auto auto 1fr}
+.cr-board{grid-row:1/span 4}
+.cr-head{grid-row:2}
+.cr-side{grid-row:3}
 }
 /* Skin (2026-11): a reactor tray. The board is a warm lit tray on a soft
  * orange lip with a faint cooling grid; at night it is a dark reactor core

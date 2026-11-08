@@ -547,3 +547,5 @@ body.game-playing[data-game="draw-phone"] .game-zoom { display:none; }
 }
 .dp.ck .dp-zoom button { min-height:var(--control-h-sm); height:var(--control-h-sm); }
 .sk-phone.dp.ck .sk-steps .is-now { color:var(--ink); }
+/* Saved is readable copy; the kept card/check still carries its colour. */
+#gbody .dp.ck :is(.dp-saved,.dp-kept) { color:var(--ink); }

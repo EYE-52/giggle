@@ -13,6 +13,7 @@
   font-family: var(--font-body); container-type: inline-size;
 }
 .dg *, .dg *::before, .dg *::after { box-sizing: border-box; }
+.dg { --dg-score-ink:color-mix(in srgb,var(--success) 68%,var(--ink)); }
 .dg [hidden] { display: none !important; }
 .dg :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .dg button { font-family: var(--font-body); cursor: pointer; touch-action: manipulation; }
@@ -375,7 +376,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 
 /* ---- polish: pick screen is one centred group with big word cards ---- */
 .sk-doodle.dg.ck.dg-pick {
-  min-height: 70vh; display: grid; align-content: center; justify-items: center; gap: var(--space-24);
+  min-height: 100dvh; padding-block:var(--space-64); display: grid; align-content: center; justify-items: center; gap: var(--space-24);
 }
 .dg.ck.dg-pick > *, .dg.ck.dg-pick > .dg-header.sk-deskcue { width: 100%; max-width: 760px; margin-inline: auto; margin-bottom: 0; }
 .dg.ck.dg-pick .dg-header.sk-deskcue { min-height: 0; gap: var(--space-16); }
@@ -394,7 +395,7 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 .dg.ck.dg-pick .sk-pick .gk-choice:active:not(:disabled) { transform: translateY(var(--lift)); box-shadow: none; }
 .dg.ck.dg-pick .dg-pick-note { font: var(--text-caption); }
 @media (max-width: 700px) {
-  .sk-doodle.dg.ck.dg-pick { min-height: 0; align-content: start; }
+  .sk-doodle.dg.ck.dg-pick { min-height: 0; padding-block:max(var(--space-16),env(safe-area-inset-top)) max(var(--space-24),env(safe-area-inset-bottom)); align-content: start; }
   .dg.ck.dg-pick .sk-pick .gk-choice { min-height: 72px; flex-direction: row; justify-content: flex-start; }
 }
 
@@ -535,3 +536,6 @@ html body.game-playing:has(.sk-doodle.dg) .game-report-icon { color: var(--ink);
 [data-theme="night"] .dg.ck .dg-tiles .ck-tile.is-mark { background: color-mix(in srgb, var(--fam) 26%, var(--card)); color: var(--ink); }
 
 .dg #dFeedback.is-error { color:var(--danger); font:var(--text-button-sm); }
+/* Score copy stays readable on the sketchbook's tinted surfaces. */
+.dg .dg-found b,.dg .dg-feed li.dg-correct :is(span,strong),.dg .dg-result-pts { color:var(--dg-score-ink); }
+.dg .dg-chat :is(.dg-label,.dg-roster small,.dg-found,.dg-feed-empty) { color:var(--ink); }

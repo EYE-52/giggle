@@ -135,3 +135,5 @@ body.game-playing[data-game="word-chain"] {
     background-position: -20px 0, -6px 0;
   }
 }
+/* The newest link keeps its family fill with a little more text contrast. */
+.wc.ck .wc-ribbon .wg-chip.is-on { background:color-mix(in srgb,var(--fam) 80%,var(--ink)); }
