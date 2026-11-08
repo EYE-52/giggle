@@ -16,6 +16,7 @@ const assert = new Proxy(nativeAssert, {
 const fs = require('node:fs');
 const vm = require('node:vm');
 (async () => {
+const {waitKartPreparation}=await import('../public/js/engines/kart-warmup-scheduler.mjs');
 const { intentFromKeys } = await import('../public/js/engines/kart-pose.mjs');
 const { createMobileStick } = await import('../public/js/toolkit/mobile-stick.mjs');
 const {createKartFeedback}=await import('../public/js/engines/kart-feedback.mjs');
@@ -101,7 +102,7 @@ const context = vm.createContext({...require('../public/js/engines/kart-weapon-c
   createKartAudio: () => {const audio={cues:[],active:true,muted:false,preps:0,prep(){this.preps++},ready(){return this.readyWait||Promise.resolve(true)},unlock(){},setMuted(value){this.muted=value},update(frame){this.active=frame.active},cue(name){if(this.active&&!this.muted)this.cues.push(name)},dispose(){}};audios.push(audio);return audio;},
   createPoseStore: () => ({}), resetPoseStore() {}, ingestSnapshot() {}, framePoses: () => new Map(),
   forwardOf: () => ({x:0,z:1}), canvasNoseRotation: () => 0,
-  kartGarageHtml,createKartGarageUI,garagePreviewKey,createGarageThumbnail,intentFromKeys,createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d,createKartWeaponRoulette});
+  waitKartPreparation,kartGarageHtml,createKartGarageUI,garagePreviewKey,createGarageThumbnail,intentFromKeys,createMobileStick,readInputCapabilities,touchControlsFor,createKartFeedback,weaponThumbnailArt,paintKartWeapon,kartResultView,createGearbox,paintGear,CLASSIC_MAX_FORWARD,createKartArenaFeatures,drawArenaFeatures2d,createKartLod,crowdColor,createKartArenaStructures,drawArenaRoads2d,drawArenaStructures2d,createKartWeaponRoulette});
 // The hearts HUD runs against this fake DOM, so it loads into the same context.
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/pickers.js'),'utf8').replace(/^export /gm,''),context);
 vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-hearts.mjs'),'utf8').replace(/^export /gm,''),context);
@@ -960,15 +961,16 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0;
   const encounter=root=>{if(!root.visible)return;if(root.isMesh||root.isLine){if(root.geometry)geometries.add(root.geometry);for(const m of Array.isArray(root.material)?root.material:[root.material])if(m)materials.add(m);}for(const child of root.children)encounter(child);};
   const renderer={async compileAsync(scene){compiles++;encounter(scene);},render(scene){warmFrames++;encounter(scene);}};
-  Object.assign(context,models,flight,groundMarkers,{createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer,createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
+  Object.assign(context,models,flight,groundMarkers,{createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:(T,r,s,c,o)=>warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
     createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){},dispose(){worldRetired++;}}),createKartLighting:()=>()=>{},
     createThreeView:(el,hooks)=>{build=hooks.build;return new Promise(()=>{});}});
   const live=context.makeView({}),el=new Node(),s={...state('drive'),simAt:clock,events:[],zaps:[],grenades:[],mines:[],crates:[],stars:[]};
   Object.assign(s.karts[0],{x:0,z:0,angle:0,speed:0,weapon:null,ammo:0});
   live.mount(el,api);live.update(el,s,api);
   const built=await build(THREE,{renderer:()=>renderer,disposeObject(){}});
-  assert.equal(compiles,1,'compatibility combat shaders compile while the arena is preparing');
-  assert.equal(warmFrames,1,'compatibility combat geometry/effect buffers render before readiness');
+  assert.ok(compiles>1,'compatibility combat shaders compile in separate small batches');
+  assert.equal(warmFrames,compiles,'compatibility combat geometry/effect buffers render before readiness');
+  assert.match(el.querySelector('.pk-loading').textContent,/Preparing graphics.*100%/,'classic loading shows warm-up progress');
   built.frame(1/60,clock/1000);encounter(built.scene);
   const geometryCount=geometries.size,materialCount=materials.size;
   for(const weapon of ['machinegun','trishot','mine','supernova','missile','cannon','blades','nuke']){
@@ -1019,9 +1021,12 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   let resolveGraphics;
   context.createThreeView=()=>new Promise(resolve=>{resolveGraphics=resolve;});
   const delayed=context.makeView({}),el=new Node(),announcements=[];
-  const delayedApi={...api,announce:message=>announcements.push(message)};
+  let resolveShellAudio,shellPreps=0;
+  const shellAudio=new Promise(resolve=>{resolveShellAudio=resolve;});
+  const delayedApi={...api,announce:message=>announcements.push(message),audioPrepare:()=>{shellPreps++;return shellAudio;}};
   delayed.mount(el,delayedApi);
   const preparedAudio=audios.at(-1);assert.equal(preparedAudio.preps,1,'audio prepares before classic graphics/readiness');
+  assert.equal(shellPreps,1,'classic loading also prepares the shell audio bank');
   delayed.update(el,state('countdown'),delayedApi);
   assert.equal(el.querySelector('#pk-count').hidden,true,'graphics pending suppresses countdown');
   assert.equal(el.querySelector('#pk-count').textContent,'','graphics pending has no stale GO');
@@ -1039,7 +1044,13 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   const pendingReady=delayed.ready().then(()=>{audioReady=true;});
   await Promise.resolve();await Promise.resolve();
   assert.equal(audioReady,false,'classic loading waits for audio preparation');
-  resolveAudio(true);await pendingReady;
+  resolveAudio(true);await Promise.resolve();await Promise.resolve();
+  assert.equal(audioReady,false,'classic loading also waits for the shell audio decode');
+  resolveShellAudio(true);await pendingReady;
+  const deadline=new AbortController();delayedApi.preparationSignal=deadline.signal;
+  preparedAudio.readyWait=new Promise(()=>{});
+  const slowAudio=delayed.ready();deadline.abort();await slowAudio;
+  assert.equal(preparedAudio.preps,1,'classic optional audio timeout keeps the prepared game and context');
   assert(el.querySelector('#pk-boost').querySelector('.kart-item-art').innerHTML.includes('/weapon-thumbnails/machinegun.svg'),'graphics-ready repaints already-equipped item without weapon/ammo change');
   assert(el.querySelector('#pk-tb').innerHTML.includes('/weapon-thumbnails/machinegun.svg'),'graphics-ready also repaints the touch action icon');
   delayed.update(el,{...state('countdown'),preparing:true},delayedApi);

@@ -3,9 +3,10 @@
 import { store } from './util.js';
 
 let ctx = null;
+let unlocked = false;
 let enabled = store.get('pb_sound') !== 'off';
 const buffers = new Map();
-const loading = new Set();
+const loading = new Map();
 const voices = new Set();
 const lastPlayed = new Map();
 const CUES = {
@@ -16,29 +17,36 @@ const CUES = {
   win: { gain: 0.16, gap: 800 },
 };
 
-function unlock() {
-  if (!enabled) return;
+// Loading-screen preparation stays silent, including on autoplay-enabled
+// browsers. A later gesture only resumes this context and permits playback.
+function prepare() {
+  if (!enabled) return Promise.resolve(false);
   if (!ctx) {
     try {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch { return; }
+    } catch { return Promise.resolve(false); }
   }
-  if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume().catch(() => {});
-  // Warm after a real gesture. Cold cues are dropped, never queued to
-  // sound later after a phase change or an asynchronous resume/decode.
   for (const name of Object.keys(CUES)) {
     if (buffers.has(name) || loading.has(name)) continue;
-    loading.add(name);
-    (async () => {
+    const pending = (async () => {
       try {
         const response = await fetch(`/assets/game-audio/${name}.wav`);
         if (!response.ok) return;
         const buffer = await ctx.decodeAudioData(await response.arrayBuffer());
         buffers.set(name, buffer);
       } catch { /* Missing/blocked audio must leave gameplay usable. */ }
-      finally { loading.delete(name); }
-    })();
+    })().finally(() => loading.delete(name));
+    loading.set(name, pending);
   }
+  return Promise.allSettled([...loading.values()]).then(() => Object.keys(CUES).every(name => buffers.has(name)));
+}
+
+function unlock() {
+  if (!enabled) return;
+  void prepare();
+  if (!ctx) return;
+  unlocked = true;
+  if (ctx.state === 'suspended' || ctx.state === 'interrupted') ctx.resume().catch(() => {});
 }
 
 function release(voice) {
@@ -52,8 +60,8 @@ function play(name, options = {}) {
   // Keyboard activation can be the first gesture; the app's pointerdown
   // unlock remains the usual path. Background phase updates cannot unlock.
   const buffer = buffers.get(name);
-  if ((!ctx || ctx.state !== 'running' || !buffer) && window.navigator?.userActivation?.isActive) unlock();
-  if (!ctx || ctx.state !== 'running' || !buffer || voices.size >= 4) return false;
+  if ((!unlocked || !ctx || ctx.state !== 'running' || !buffer) && window.navigator?.userActivation?.isActive) unlock();
+  if (!unlocked || !ctx || ctx.state !== 'running' || !buffer || voices.size >= 4) return false;
   const now = performance.now();
   if (now - (lastPlayed.get(name) ?? -Infinity) < CUES[name].gap) return false;
   let voice;
@@ -93,6 +101,7 @@ export const sound = {
     return enabled;
   },
   unlock,
+  prepare,
   stop,
   cue: play,
   // Older embedded consumers retain a quiet navigation API.
