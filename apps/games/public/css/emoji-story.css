@@ -133,3 +133,13 @@ body.game-playing[data-game="emoji-story"] {
 [data-theme="night"] body.game-playing[data-game="emoji-story"] {
   background-image: radial-gradient(ellipse 80% 50% at 50% 0%, color-mix(in srgb, var(--fam) 12%, transparent), transparent 75%);
 }
+
+/* Validation and send feedback keep the preview and table in place. */
+.es-scene.ck :is(.es-error, #eGuessStatus) {
+  display:block; height:2lh; min-height:2lh; overflow-y:auto; margin:0;
+  font:var(--text-caption);
+}
+.es-scene.ck :is(.es-error:empty, #eGuessStatus[hidden]) { display:block!important; visibility:hidden; }
+/* The tray keeps its size for empty slots, one emoji and a long story. */
+.es-scene.ck .es-preview-text { height:calc(2 * var(--space-64)); min-height:0; overflow-y:auto; }
+.es-scene.ck .es-preview-text:not(:has(.es-slot)) { display:block; }

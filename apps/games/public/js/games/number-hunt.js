@@ -194,8 +194,10 @@ const view = {
     const win = el.querySelector('#nWin');
     if (win) {
       win.style.transition = S.audioBaseline ? 'none' : '';
-      win.style.left = `${(lo - 1)}%`;
-      win.style.width = `${Math.max(1, hi - lo + 1)}%`;
+      // Keep the ruler overlay's layout box fixed; only its painted range changes.
+      win.style.clipPath = `inset(0 ${100 - hi}% 0 ${lo - 1}% round var(--radius-pill))`;
+      win.style.setProperty?.('--nh-start', String(lo - 1));
+      win.style.setProperty?.('--nh-end', String(hi));
     }
     // Pins on the number line: every public guess, one per number, with
     // the way it pointed. Yours are in the arcade colour.
