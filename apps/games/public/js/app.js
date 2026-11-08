@@ -2879,6 +2879,8 @@ function paintGameBody() {
 }
 
 function focusPreparedGame(el) {
+  // A hidden practice seat must not take the keyboard from the visible seat.
+  try { if (window.frameElement?.closest('[hidden], [inert]')) return; } catch { /* cross-origin embed */ }
   // An imported view may settle while the Room still holds its preparation
   // barrier. Wait for release before consuming the initial keyboard focus.
   if (focusGame === gameId || lastState?.preparing) return;

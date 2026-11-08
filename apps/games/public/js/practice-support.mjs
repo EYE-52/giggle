@@ -11,6 +11,10 @@ const groups = {
 };
 
 groups.turns.push('dots-boxes', 'mega-tic-tac-toe', 'five-row', 'pig-dice', 'snakes-ladders');
+// Explicit reviews for batch six; preserve every existing entry above.
+groups.hidden.push('dice-fibs', 'penalty-kicks');
+groups.timed.push('block-stack');
+groups.drawing.push('sketchy-impostor', 'draw-off');
 
 const notes = {
   turns: 'Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent.',

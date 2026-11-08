@@ -1,0 +1,52 @@
+.si-world .si-sketchbook {
+  padding: var(--space-8);
+  padding-left: var(--space-24);
+  background: var(--fam);
+  border: var(--outline-w-lg) solid var(--outline);
+  box-shadow: var(--shadow-sticker-lg);
+}
+.si-world .si-sketchbook::before {
+  content: "";
+  position: absolute;
+  left: var(--space-8);
+  top: var(--space-16);
+  bottom: var(--space-16);
+  width: var(--space-8);
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--fam-deep) 0 8px,
+    transparent 8px 24px
+  );
+  border-radius: var(--radius-pill);
+}
+.si-world .si-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  background: white;
+  border-radius: var(--radius-md);
+  touch-action: none;
+}
+.si-world .si-page-label {
+  position: absolute;
+  right: var(--space-16);
+  top: var(--space-16);
+  max-width: calc(100% - 48px);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-8);
+  font: var(--text-caption);
+  pointer-events: none;
+}
+.si-world .si-tools {
+  justify-content: start;
+}
+.si-world .si-tools p {
+  width: 100%;
+  text-align: center;
+}
+.si-world .si-guess {
+  min-height: var(--control-h-lg);
+}

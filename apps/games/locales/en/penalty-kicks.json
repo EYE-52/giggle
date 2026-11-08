@@ -1,0 +1,16 @@
+{
+  "labels": {
+    "title": "Penalty Kicks",
+    "goal": "Goal",
+    "save": "Saved",
+    "miss": "Over the bar",
+    "zones": [
+      "Top left",
+      "Top centre",
+      "Top right",
+      "Bottom left",
+      "Bottom centre",
+      "Bottom right"
+    ]
+  }
+}

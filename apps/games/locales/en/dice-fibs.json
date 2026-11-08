@@ -1,0 +1,8 @@
+{
+  "labels": {
+    "title": "Dice Fibs",
+    "held": "The bid holds",
+    "fib": "That was a fib",
+    "empty": "No dice left"
+  }
+}

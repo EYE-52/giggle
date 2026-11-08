@@ -306,6 +306,10 @@ const FAMILIES = {
   arcade: ['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction', 'math-dash', 'emoji-spotter', 'echo-pads', 'color-clash', 'hot-potato'],
 };
 FAMILIES.board.push('dots-boxes', 'mega-tic-tac-toe', 'five-row', 'pig-dice', 'snakes-ladders');
+// Batch six additions keep the existing family lists intact.
+FAMILIES.board.push('dice-fibs');
+FAMILIES.create.push('sketchy-impostor', 'draw-off');
+FAMILIES.arcade.push('block-stack', 'penalty-kicks');
 export function familyOf(id) {
   return Object.keys(FAMILIES).find((f) => FAMILIES[f].includes(id)) || 'party';
 }

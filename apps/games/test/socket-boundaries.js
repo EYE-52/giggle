@@ -90,6 +90,7 @@ async function main() {
       configurations.push({ game: meta.id, bytes, packs: Object.keys(pack).length });
     }
     equal(configurations.length, registry.list().length, 'all shipping definitions included');
+    equal(configurations.length, registry.count(), 'all shipping definitions included');
     const schemaCeiling = LIMITS.MAX_PACK_KEYS * LIMITS.MAX_PACK_ITEMS * (LIMITS.MAX_ITEM_LEN * 6 + 3)
       + LIMITS.MAX_PACK_KEYS * 40 + LIMITS.MAX_SETTINGS_KEYS * 96 + 1024;
     check(schemaCeiling < MAX, 'four-pack schema ceiling plus envelope fits cap');

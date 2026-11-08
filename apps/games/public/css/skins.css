@@ -417,3 +417,25 @@ body[data-game="read-my-lips"], body[data-game="read-my-lips"] [data-family] { -
 body[data-game="read-my-lips"] { --bg: #fff0f7; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
 [data-theme="night"] body[data-game="read-my-lips"], [data-theme="night"] body[data-game="read-my-lips"] [data-family] { --fam: #e99fc2; --fam-deep: #e99fc2; --on-fam: #171323; --accent: #e99fc2; --accent-ink: #171323; --fam-lip: color-mix(in srgb, var(--fam) 55%, #171323); }
 [data-theme="night"] body[data-game="read-my-lips"] { --bg: #2e1b2a; }
+
+/* Batch six: cup table, two sketchbooks, skyline and floodlit pitch. */
+body[data-game="dice-fibs"], body[data-game="dice-fibs"] [data-family] { --fam: #18826f; --fam-deep: #105548; --on-fam: #ffffff; --fam-lip: #105548; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="dice-fibs"] { --bg: #eef8f2; }
+[data-theme="night"] body[data-game="dice-fibs"], [data-theme="night"] body[data-game="dice-fibs"] [data-family] { --fam: #70d7b7; --fam-deep: #70d7b7; --on-fam: #17212a; --fam-lip: #105548; }
+[data-theme="night"] body[data-game="dice-fibs"] { --bg: #122622; }
+body[data-game="sketchy-impostor"], body[data-game="sketchy-impostor"] [data-family] { --fam: #6756cc; --fam-deep: #49388e; --on-fam: #ffffff; --fam-lip: #49388e; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="sketchy-impostor"] { --bg: #f4f0fc; }
+[data-theme="night"] body[data-game="sketchy-impostor"], [data-theme="night"] body[data-game="sketchy-impostor"] [data-family] { --fam: #b6a5ff; --fam-deep: #b6a5ff; --on-fam: #17212a; --fam-lip: #49388e; }
+[data-theme="night"] body[data-game="sketchy-impostor"] { --bg: #211b30; }
+body[data-game="draw-off"], body[data-game="draw-off"] [data-family] { --fam: #197dc1; --fam-deep: #145780; --on-fam: #ffffff; --fam-lip: #145780; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="draw-off"] { --bg: #eff7fc; }
+[data-theme="night"] body[data-game="draw-off"], [data-theme="night"] body[data-game="draw-off"] [data-family] { --fam: #80cfff; --fam-deep: #80cfff; --on-fam: #17212a; --fam-lip: #145780; }
+[data-theme="night"] body[data-game="draw-off"] { --bg: #172731; }
+body[data-game="block-stack"], body[data-game="block-stack"] [data-family] { --fam: #d26720; --fam-deep: #914316; --on-fam: #ffffff; --fam-lip: #914316; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="block-stack"] { --bg: #fff4e8; }
+[data-theme="night"] body[data-game="block-stack"], [data-theme="night"] body[data-game="block-stack"] [data-family] { --fam: #ffb87a; --fam-deep: #ffb87a; --on-fam: #17212a; --fam-lip: #914316; }
+[data-theme="night"] body[data-game="block-stack"] { --bg: #2c211a; }
+body[data-game="penalty-kicks"], body[data-game="penalty-kicks"] [data-family] { --fam: #167f79; --fam-deep: #12534e; --on-fam: #ffffff; --fam-lip: #12534e; --fam-soft: color-mix(in srgb, var(--fam) 14%, var(--card)); --accent: var(--fam); --accent-deep: var(--fam-deep); --accent-soft: var(--fam-soft); --accent-ink: var(--on-fam); }
+body[data-game="penalty-kicks"] { --bg: #edf8f3; }
+[data-theme="night"] body[data-game="penalty-kicks"], [data-theme="night"] body[data-game="penalty-kicks"] [data-family] { --fam: #79d9c6; --fam-deep: #79d9c6; --on-fam: #17212a; --fam-lip: #12534e; }
+[data-theme="night"] body[data-game="penalty-kicks"] { --bg: #152b26; }
