@@ -1633,6 +1633,16 @@ driver('fleet-duel', () => {
   return `${shots} alternating legal shots, confirmed placement, masked opponents/watchers and complete sinking win`;
 });
 
+/* Batch 4: five authoritative speed games. */
+for (const id of require('./new-games-b4-harness').IDS) driver(id, () => {
+  const def = registry.get(id);
+  const ctx = new FakeCtx(roster(4), settingsFor(def, { rounds: 1 }));
+  const state = require('./new-games-b4-harness').play(id, { def, ctx, act, view: V });
+  must(state.phase === 'done', id + ' reaches final scores');
+  must(ctx.totalAwarded() > 0, id + ' awards earned points');
+  return 'complete four-seat match, legal actions, server deadlines and final scores';
+});
+
 /* ---------------- runner ---------------- */
 async function main() {
   await registry.get('pocket-karts').initialize();

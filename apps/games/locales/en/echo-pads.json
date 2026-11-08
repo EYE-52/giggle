@@ -1,0 +1,18 @@
+{
+  "strings": {
+    "show": "Watch the pads",
+    "repeat": "Tap it back",
+    "reveal": "Echo complete",
+    "waiting": "Watch the shapes and listen to the sounds.",
+    "out": "You are out this round. Watch who keeps the beat.",
+    "passed": "Sequence cleared. Wait for the next level.",
+    "padNames": {
+      "0": "Circle",
+      "1": "Triangle",
+      "2": "Square",
+      "3": "Diamond"
+    },
+    "playBadge": "Clear level 15 to finish",
+    "clearedLabel": "Levels cleared"
+  }
+}

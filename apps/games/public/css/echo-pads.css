@@ -1,0 +1,76 @@
+.ep-world .ep-console {
+  display: grid;
+  gap: var(--space-12);
+  max-width: 480px;
+  margin: auto;
+  padding: var(--space-16);
+  background: var(--well);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sticker-lg);
+}
+.ep-world .ep-counter {
+  font: var(--text-title);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.ep-world .ep-pads {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+#gbody .ep-world .ep-pad {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  min-height: 128px;
+  gap: var(--space-8);
+  padding: var(--space-12);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-xl);
+  background: color-mix(in srgb, var(--pad) 22%, var(--card));
+  color: var(--ink);
+  box-shadow: var(--shadow-sticker);
+  font: var(--text-button);
+  opacity: 1;
+}
+.ep-world .ep-pad-0 {
+  --pad: var(--sky);
+}
+.ep-world .ep-pad-1 {
+  --pad: var(--sun);
+}
+.ep-world .ep-pad-2 {
+  --pad: var(--teal);
+}
+.ep-world .ep-pad-3 {
+  --pad: var(--melon);
+}
+.ep-world .ep-shape {
+  font: var(--text-heading);
+}
+#gbody .ep-world .ep-pad.is-lit {
+  background: var(--pad);
+  color: var(--edge);
+  outline: var(--outline-w-lg) solid var(--ink);
+  transform: scale(0.96);
+}
+#gbody .ep-world .ep-pad:disabled {
+  opacity: 1;
+  cursor: default;
+}
+@media (hover: hover) {
+  .ep-world .ep-pad:not(:disabled):hover {
+    transform: translateY(-2px);
+  }
+}
+.ep-world .ep-pad:not(:disabled):active {
+  transform: scale(0.96);
+}
+
+.ep-world .ep-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-8);
+}

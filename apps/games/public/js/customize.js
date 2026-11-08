@@ -303,7 +303,7 @@ function fillDialog(g, settings, pack) {
 const FAMILIES = {
   board: ['chess', 'checkers', 'reversi', 'four-in-a-row', 'kalah', 'ludo', 'fleet-duel', 'memory-tray', 'castle-clash'],
   create: ['doodle-guess', 'draw-phone', 'charades', 'pose-party', 'show-and-go', 'word-chain', 'warm-words', 'countdown-word', 'scattergories', 'lyric-fill'],
-  arcade: ['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction'],
+  arcade: ['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction', 'math-dash', 'emoji-spotter', 'echo-pads', 'color-clash', 'hot-potato'],
 };
 export function familyOf(id) {
   return Object.keys(FAMILIES).find((f) => FAMILIES[f].includes(id)) || 'party';

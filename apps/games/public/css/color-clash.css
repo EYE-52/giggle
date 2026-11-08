@@ -1,0 +1,68 @@
+.cc-world .cc-deck {
+  width: min(100%, 480px);
+  margin: auto;
+  display: grid;
+  gap: var(--space-24);
+}
+.cc-world .cc-card {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  background: var(--card);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 var(--space-8) 0 var(--fam-soft),
+    0 var(--space-12) 0 var(--outline);
+}
+.cc-world .cc-word {
+  font: var(--text-heading);
+  font-size: clamp(34px, 7vw, 48px);
+}
+.cc-world .cc-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+#gbody .cc-world .cc-option {
+  min-height: var(--control-h-lg);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font: var(--text-title);
+  background: color-mix(in srgb, var(--cc-ink) 14%, var(--card));
+  color: var(--ink);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker);
+}
+.cc-world :is(.cc-ink-0, .cc-color-0) {
+  --cc-ink: var(--cc-blue);
+}
+.cc-world :is(.cc-ink-1, .cc-color-1) {
+  --cc-ink: var(--cc-orange);
+}
+.cc-world :is(.cc-ink-2, .cc-color-2) {
+  --cc-ink: var(--cc-purple);
+}
+.cc-world :is(.cc-ink-3, .cc-color-3) {
+  --cc-ink: var(--cc-teal);
+}
+.cc-world .cc-word {
+  color: var(--cc-ink);
+}
+#gbody .cc-world .cc-option.is-selected {
+  outline: var(--outline-w-lg) solid var(--ink);
+}
+#gbody .cc-world .cc-option:disabled {
+  opacity: 1;
+}
+
+.cc-world .cc-card {
+  align-content: center;
+  gap: var(--space-8);
+}
+.cc-world .cc-cue {
+  font: var(--text-caption);
+  color: var(--ink-dim);
+}
