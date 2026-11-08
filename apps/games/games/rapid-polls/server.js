@@ -9,6 +9,7 @@ const { dealer, allIn, roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'rapid-polls';
 
 const manifest = {
+  sameRoom: 'handoff',
   players: { min: 2, max: 20 },
   guide: {
     goal: 'Ask the room quick questions and see what everyone thinks.',

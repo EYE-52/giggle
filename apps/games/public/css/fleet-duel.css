@@ -98,3 +98,23 @@ body[data-game="fleet-duel"]{background:#cfe4f2}
  .fl-game .fl-ships>button{grid-column:span 2}
  .fl-game .fl-ships>button:nth-child(4):nth-last-child(2),.fl-game .fl-ships>button:nth-child(5):last-child{grid-column:span 3}
 }
+
+/* Placement and Fire share a permanent dock; switching phases cannot pull
+ * the chart, status or tools up into the old ship tray. */
+.fl-game .bk-extra { display:grid; }
+.fl-game .bk-extra > :is(.fl-placement,.fl-fire) { grid-area:1 / 1; }
+.fl-game .fl-fire { align-self:end; }
+.fl-game .fl-placement[hidden] { display:flex!important; visibility:hidden; pointer-events:none; }
+.fl-game .fl-fire[hidden] { display:flex!important; visibility:hidden; }
+.fl-game .fl-place-actions { display:grid; }
+.fl-game .fl-place-actions > button { grid-area:1 / 1; }
+.fl-game .fl-place-actions > button[hidden] { display:flex!important; visibility:hidden; }
+.fl-game .fl-reason { min-height:2.8em; }
+
+/* On phones the selected ship's named Confirm action comes first in the
+ * dock, directly below the chart/status. Battle's Fire uses the same slot.
+ * The full tray remains mounted, so readiness never moves the chart. */
+@media(max-width:759px){
+ .fl-game .fl-placement .fl-place-actions { order:-1; }
+ .fl-game .fl-fire { align-self:start; }
+}

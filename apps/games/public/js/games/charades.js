@@ -18,12 +18,12 @@ function ringHtml() {
     + `<circle class="ck-ring-track" cx="24" cy="24" r="20"/><circle class="ck-ring-bar" cx="24" cy="24" r="20" stroke-dasharray="${RING_LEN}" stroke-dashoffset="0"/></svg>`
     + `<span class="ck-ring-num"></span></div>`;
 }
-function paintRing(ring, left, key) {
+function paintRing(ring, left, key, totalSeconds) {
   if (!ring) return;
   if (ring._ckKey !== key) { ring._ckKey = key; ring._ckTotal = 0; }
   const on = left !== null && Number.isFinite(left);
   ring.classList?.toggle('is-off', !on);
-  ring._ckTotal = on ? Math.max(ring._ckTotal || 0, left, 1) : ring._ckTotal;
+  ring._ckTotal = on ? Math.max(Number(totalSeconds) || 0, ring._ckTotal || 0, left, 1) : ring._ckTotal;
   const num = ring.querySelector?.('.ck-ring-num');
   const text = on ? String(left) : '';
   if (num && num.textContent !== text) num.textContent = text;
@@ -60,7 +60,7 @@ function paintClock(el, S, api) {
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
   slot.classList?.toggle('is-urgent', left !== null && left <= 10 && S.phase === 'act');
-  paintRing(el.querySelector?.('.ch-ring'), S.phase === 'act' ? left : null, `${S.instanceId}:${S.round}`);
+  paintRing(el.querySelector?.('.ch-ring'), S.phase === 'act' ? left : null, `${S.instanceId}:${S.round}`, S.roundMs / 1000);
 }
 function runClock(el, S, api) {
   if (clock !== null) clearInterval(clock);

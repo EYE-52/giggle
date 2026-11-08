@@ -64,7 +64,8 @@ function paint(el,c){
   const me=owner?S.seats[S.youAre]:null,done=S.phase==='done';
   bkPaint(el,{
     meta:bkMeta(S,'10 × 10 · 5 ships'),
-    players:S.seats.map((pid,i)=>({name:nameOf(S,pid),side:i?'Blue':'Red',chip:chip(i),stat:S.phase==='place'?(S.ready[i]?'✓':''):S.remaining[i],statLabel:S.phase==='place'?(S.ready[i]?'ready':'placing'):'afloat',turn:S.phase==='play'&&S.turn===i,you:i===S.youAre&&!S.spectator})),
+    players:S.seats.map((pid,i)=>({name:nameOf(S,pid),side:i?'Blue':'Red',chip:chip(i),color:CAPTAIN[i][0],stat:S.phase==='place'?(S.ready[i]?'✓':''):S.remaining[i],statLabel:S.phase==='place'?(S.ready[i]?'ready':'placing'):'afloat',turn:S.phase==='play'&&S.turn===i,you:i===S.youAre&&!S.spectator})),
+    statusColor:S.phase==='play'?CAPTAIN[S.turn][0]:null,
     status:S.preparing?'Getting the harbor ready…':c.pending?'Sending…':c.retry?'Action not confirmed. Try again.':c.settling?(S.lastMove.sunk!==null?'Ship sunk.':S.lastMove.hit?'Confirmed hit.':'A splash. Miss.'):status(S,c),
     timer:bkTimer(S,c.api),done,player:owner,busy:c.pending||c.settling||!!S.preparing,armed:c.armed,draw:false,
     final:done&&!c.settling?{headline:bkHeadline([nameOf(S,S.result.winnerPid)]),detail:S.result.reason==='fleet'?'Every ship sunk.':bkReason(S.result.reason,nameOf(S,S.seats[1-S.result.winner])),rows:bkRank(S.seats.map((pid,i)=>({name:nameOf(S,pid),points:S.scores?.[pid]??0,you:pid===me,order:i,note:`${S.remaining[i]} afloat`}))),...bkHost(c.api)}:null,

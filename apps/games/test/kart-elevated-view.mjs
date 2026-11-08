@@ -1,9 +1,23 @@
+import {createKartLod} from '../public/js/engines/kart-lod.mjs';
+import {createRaisedPoseSupport} from '../public/js/engines/kart-raised-support.mjs';
+import {createRaisedPickups} from '../public/js/engines/kart-raised-pickups.mjs';
+import {createRaisedCameraQuery} from '../public/js/engines/kart-raised-camera.mjs';
+import {createRaisedShadows,disableRaisedStaticShadows} from '../public/js/engines/kart-raised-shadows.mjs';
+import {kartLightTier} from '../public/js/engines/kart-festive-lights.mjs';
+import {createKartDrivingFX} from '../public/js/engines/kart-driving-fx.mjs';
+import {createKartArenaFeatures} from '../public/js/engines/kart-arena-features-art.mjs';
+import {surfaceProfile} from '../public/js/engines/kart-surface.mjs';
+import {driftTier,DRIFT_TIERS} from '../public/js/engines/kart-drift.mjs';
 import {cleanKartLook,kartPaintHex} from '../public/js/engines/kart-looks.mjs';
 import {WEAPON_IDS as combatWeaponIds} from '../public/js/engines/kart-weapon-contract.mjs';
 import {paintKartWeapon,createKartWeaponRoulette} from '../public/js/engines/kart-weapon-hud.mjs';
 import {kartResultView} from '../public/js/engines/kart-results.mjs';
 import {createKartImpactFX} from '../public/js/engines/kart-impact-fx.mjs';
 import {createArsenalFX} from '../public/js/engines/kart-arsenal-fx.mjs';
+import {createKartWarmupLibrary,warmKartRenderer} from '../public/js/engines/kart-render-warmup.mjs';
+import {createKartCameraCollision} from '../public/js/engines/kart-camera-collision.mjs';
+import {arenaFeatureSolids,elevatedStatics} from '../public/js/engines/kart-feature-solids.mjs';
+import {flightPose} from '../public/js/engines/kart-map-features.mjs';
 import {MeshoptDecoder} from '../public/vendor/three/libs/meshopt_decoder.mjs';
 await MeshoptDecoder.ready;
 // Execute actual production view/dispatcher source with a finite DOM/timer and
@@ -22,7 +36,7 @@ import {createKartHealthBars} from '../public/js/engines/kart-health-bars.mjs';
 import {loadKartWeaponThumbnails,weaponThumbnailArt,loadKartDrivers,buildKartDriverVariants} from '../public/js/engines/kart-assets.mjs';
 globalThis.Image=class{async decode(){const data=fs.readFileSync(new URL('../public'+this.src,import.meta.url));if(this.src.endsWith('.svg'))assert.match(data.toString(),/<svg/);else assert.equal(data.subarray(0,8).toString('hex'),'89504e470d0a1a0a');}};
 import {elevatedSolidGeometry} from '../public/js/engines/kart-elevated-world.mjs';
-import {elevatedMap} from '../public/js/engines/kart-elevated-maps.mjs';
+import {elevatedMap,elevatedMapIds} from '../public/js/engines/kart-elevated-maps.mjs';
 import {initializePhysics,RAPIER,ADAPTER as PHYSICS} from './kart-elevation-physics.mjs';
 import CONFIG from '../public/js/engines/kart-physics-config.mjs';
 import {fileURLToPath} from 'node:url';
@@ -61,7 +75,7 @@ class Node {
   dispatch(type,extra={}){const e={type,target:this,preventDefault(){this.prevented=true},...extra};for(const fn of [...(this.events.get(type)||[])])fn(e);if(type==='click')this.onclick?.(e);return e;}
   focus(){this.doc.activeElement=this;}
 }
-const base=()=>({projectileRadii:COMBAT.staticSweepRadii,instanceId:'one',profile:'elevated-combat-v1',mapId:'garden',mapRevision:'combat-elevation-2',map:{label:'Alpine Courtyard'},simTick:1,simAt:50,endsAt:30000,phase:'live',you:'a',youDrive:true,inputAck:{life:1,controlEpoch:1,receivedSeq:0,appliedInputSeq:0},events:[],crates:[],projectiles:[],mines:[],grenades:[],karts:[{id:'a',alive:true,connected:true,spawnSeq:1,controlEpoch:1,hits:0,deaths:0,nitro:1,weapon:null,ammo:0,shield:0,pose:{position:{x:0,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}},{id:'b',alive:true,connected:true,hits:0,deaths:0,pose:{position:{x:10,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}}]});
+const base=()=>({projectileRadii:COMBAT.staticSweepRadii,instanceId:'one',profile:'elevated-combat-v1',mapId:'garden',mapRevision:elevatedMap('garden').revision,map:{label:'Alpine Courtyard'},simTick:1,simAt:50,endsAt:30000,phase:'live',you:'a',youDrive:true,inputAck:{life:1,controlEpoch:1,receivedSeq:0,appliedInputSeq:0},events:[],crates:[],projectiles:[],mines:[],grenades:[],karts:[{id:'a',alive:true,connected:true,spawnSeq:1,controlEpoch:1,hits:0,deaths:0,nitro:1,weapon:null,ammo:0,shield:0,pose:{position:{x:0,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}},{id:'b',alive:true,connected:true,hits:0,deaths:0,pose:{position:{x:10,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}}]});
 function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbnailsReady=true,batched=false,missingDrivers=[]}={}){
   const document=new Node('document');document.doc=document;document.createElement=tag=>new Node(tag,document);document.head=new Node('head',document);document.body=new Node('body',document);document.append(document.head,document.body);document.activeElement=document.body;document.getElementById=id=>document.querySelector('#'+id);
   const el=new Node('main',document);document.body.append(el);
@@ -71,29 +85,50 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   const api={send:a=>sent.push(structuredClone(a)),name:id=>id==='a'?'Anika':'Bastian',now:()=>clock,context:()=>({isHost:host,sound:false}),resultsReady:i=>ready.push(i),lobby(){}};
   const schedule=(fn,ms,repeat=false)=>{const id=++seq;timers.set(id,{fn,ms,at:clock+ms,repeat});return id;};
   let instanceAllocations=0,projectileAllocations=0,graphicsAllocations=0,prepared=false,reduced=false;
-  const renderStats={warmFrames:0,compiles:0};
+  const renderStats={warmFrames:0,compiles:0,warmObjects:new Set()},projectiles=[];
   const ThreeTest={...THREE,InstancedMesh:class extends THREE.InstancedMesh{constructor(...args){super(...args);instanceAllocations++;}}};
   for(const name of ['Group','Mesh','Vector3','Quaternion','Box3','BoxGeometry','ConeGeometry','MeshBasicMaterial'])ThreeTest[name]=class extends THREE[name]{constructor(...args){super(...args);graphicsAllocations++;}};
   class LocalLoader{setMeshoptDecoder(){return this;}async loadAsync(url){assetRequests.push(url);if(missingDrivers.some(id=>url.endsWith('/drivers/'+id+'.glb')))throw Error('optional driver unavailable');const b=fs.readFileSync(repo+'/public'+url.split('?')[0]);return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'').catch(error=>{console.error('GLB fixture failed',url,error.message);throw error;});}}
-  const context=vm.createContext({WEAPON_IDS:combatWeaponIds,document,window,LocalLoader,MeshoptDecoder,cleanKartLook,kartPaintHex,loadKartDrivers,buildKartDriverVariants,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
-    mergeFixtureGeometries,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:()=>({revision:'combat-elevation-2'}),
+  const context=vm.createContext({createKartDrivingFX,createKartArenaFeatures,surfaceProfile,driftTier,DRIFT_TIERS,loadElevatedPhysics:async()=>null,createElevatedPrediction(){throw Error('Prediction separately tested with real Rapier');},WEAPON_IDS:combatWeaponIds,document,window,LocalLoader,MeshoptDecoder,cleanKartLook,kartPaintHex,loadKartDrivers,buildKartDriverVariants,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
+    mergeFixtureGeometries,arenaFeatureSolids,createKartCameraCollision,createKartWarmupLibrary,warmKartRenderer,createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:id=>({id,revision:elevatedMap(id).revision,features:elevatedMap(id).features}),
+    createKartLod,createRaisedPoseSupport,createRaisedPickups,createRaisedCameraQuery,createRaisedShadows,disableRaisedStaticShadows,kartLightTier,
     createKartElevatedWorld:()=>{const meshes=new Map();for(const d of colliders){const body=new THREE.Mesh(elevatedSolidGeometry(THREE,d),new THREE.MeshBasicMaterial());body.position.copy(d.position);if(d.rotation)body.quaternion.copy(d.rotation);body.updateMatrixWorld();meshes.set(d.id,{body,descriptor:d});}return {colliderMeshes:meshes,lighting:{fogColor:new THREE.Color(0xaaaaaa),fogNear:100,fogFar:500,exposure:1},animate(){},updateDetail(){},dispose(){for(const {body}of meshes.values()){body.geometry.dispose();body.material.dispose();}}};},
-    createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;return projectile(...a);};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
+    createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;const object=projectile(...a);projectiles.push(object);return object;};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
     createMobileStick:(node,opts)=>{const stick={node,opts,resets:0,disposed:0,reset(){this.resets++},dispose(){this.disposed++}};sticks.push(stick);return stick;},
-    createKartAudio:()=>{const a={disposed:0,cues:[],frames:[],muted:false,active:true,unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
+    createKartAudio:()=>{const a={disposed:0,cues:[],arenaCues:[],frames:[],muted:false,active:true,preps:0,prep(){this.preps++},ready(){return this.readyWait||Promise.resolve(true)},unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},arenaCue(name,options){if(!this.muted&&this.active)this.arenaCues.push({name,options});},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
     createThreeView:(stage,options)=>new Promise(resolve=>loads.push({stage,options,resolve,settled:false})),
     matchMedia:()=>({matches:reduced}),
   });
+vm.runInContext(fs.readFileSync(repo+'/public/js/pickers.js','utf8').replace(/^export /gm,''),context);
   for(const file of ['kart-hearts','kart-skids','kart-threats'])vm.runInContext(fs.readFileSync(repo+'/public/js/engines/'+file+'.mjs','utf8').replace(/^export /gm,''),context);
   const file=repo+'/public/js/engines/kart-elevated-view.js';vm.runInContext(fs.readFileSync(file,'utf8').replace(/^import .*;\n/gm,'').replace("const {GLTFLoader}=await import('../../vendor/three/loaders/GLTFLoader.js');",'const GLTFLoader=LocalLoader;').replace("const {mergeGeometries}=await import('../../vendor/three/utils/BufferGeometryUtils.js');",batched?'const mergeGeometries=mergeFixtureGeometries;':'const mergeGeometries=()=>null;').replace('cramped=clearCamera(cameraPosition,cameraTarget)||cramped;', 'const preClearEye=cameraPosition.toArray();cramped=clearCamera(cameraPosition,cameraTarget)||cramped;').replace('camera.lookAt(target);','camera.userData.cameraTrace={preClearEye,sideSettling,sideMode,sideYaw};camera.lookAt(target);').replace('export function createElevatedKartView','function createElevatedKartView')+'\nglobalThis.view=createElevatedKartView();',context,{filename:file});
   const view=context.view;view.mount(el,api);
   const node=name=>el.querySelector('[data-'+name+']')||roomMenu?.querySelector('[data-'+name+']');
   const render=(snapshot=base())=>view.update(el,snapshot,api);
   const flush=async()=>{await Promise.resolve();await Promise.resolve();};
-  async function settle(index=loads.length-1,fallback=false){const l=loads[index];l.settled=true;const h={fallback,canvas:new Node('canvas',document),disposals:0,dispose(){this.disposals++;this.built?.dispose();this.canvas.remove();}};if(!fallback){l.stage.append(h.canvas);if(graphics){const renderer={shadowMap:{},async compileAsync(){renderStats.compiles++;},render(){renderStats.warmFrames++;}};h.built=await l.options.build(ThreeTest,{canvas:()=>h.canvas,renderer:()=>renderer,reducedMotion:()=>reduced,track(){},disposeObject(){}});h.built.camera.aspect=aspect;h.built.camera.updateProjectionMatrix();prepared=true;}}l.handle=h;l.resolve(h);await flush();return h;}
+  async function settle(index=loads.length-1,fallback=false){const l=loads[index];l.settled=true;const h={fallback,canvas:new Node('canvas',document),disposals:0,dispose(){this.disposals++;this.built?.dispose();this.canvas.remove();}};if(!fallback){l.stage.append(h.canvas);if(graphics){const renderer={shadowMap:{},async compileAsync(){renderStats.compiles++;},render(scene){renderStats.warmFrames++;scene.traverseVisible(o=>renderStats.warmObjects.add(o.name));}};h.built=await l.options.build(ThreeTest,{canvas:()=>h.canvas,renderer:()=>renderer,reducedMotion:()=>reduced,track(){},disposeObject(){}});h.built.camera.aspect=aspect;h.built.camera.updateProjectionMatrix();prepared=true;}}l.handle=h;l.resolve(h);await flush();return h;}
   function advance(ms){const until=clock+ms;while(true){let next=[...timers].filter(([,t])=>t.at<=until).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;const[id,t]=next;clock=t.at;if(t.repeat)t.at+=t.ms;else timers.delete(id);t.fn();}clock=until;}
   function key(code,type='keydown',target=loads.at(-1)?.handle?.canvas){return window.dispatch(type,{code,target});}
-  return{view,el,document,window,roomMenu,api,assetRequests,sent,ready,loads,audios,sticks,timers,node,render,settle,advance,key,flush,host:v=>host=v,renderStats,thumbnails:value=>{thumbnailsReady=value;},allocations:()=>({instances:instanceAllocations,projectiles:projectileAllocations,graphics:graphicsAllocations,prepared}),frame:(dt=1/60)=>loads.at(-1).handle.built.frame(dt,clock/1000),motion:v=>reduced=v};
+  return{view,el,document,window,roomMenu,api,assetRequests,sent,ready,loads,audios,sticks,timers,node,render,settle,advance,key,flush,host:v=>host=v,renderStats,projectiles,thumbnails:value=>{thumbnailsReady=value;},allocations:()=>({instances:instanceAllocations,projectiles:projectileAllocations,graphics:graphicsAllocations,prepared}),frame:(dt=1/60)=>loads.at(-1).handle.built.frame(dt,clock/1000),motion:v=>reduced=v};
+}
+// All maps use the same HUD; check room/practice and touch/keyboard paths.
+// This exercises DOM/state, not CSS pixels (a native browser is separate).
+for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch of [true,false]){
+  const r=rig({room,touch}),s=base();s.mapId=mapId;s.map={label:elevatedMap(mapId).label};
+  s.karts[0].pose.speed=12;s.karts[0].nitro=.6;
+  const shown=node=>{for(let p=node;p;p=p.parentNode)if(p.hidden)return false;return true;};
+  for(const phase of ['countdown','live']){
+    r.render({...s,phase});
+    check(mapId+' '+phase+' speed/nitro stay present for '+(room?'room':'practice')+'/'+(touch?'touch':'keys'),shown(r.node('speed'))&&shown(r.node('charge'))&&!r.el.firstElementChild.classList.contains('pke-done'));
+    check(mapId+' speed and nitro use authoritative values',r.node('speed').textContent==='43'&&r.node('charge').style['--charge']==='0.6');
+  }
+  r.render({...s,karts:s.karts.map(k=>({...k,alive:false}))});
+  check(mapId+' respawn keeps driving instruments visible',shown(r.node('speed'))&&shown(r.node('charge'))&&!r.el.firstElementChild.classList.contains('pke-done'));
+  r.render({...s,phase:'done',result:{winners:['a']}});
+  check(mapId+' only results intentionally hide the driving HUD',r.el.firstElementChild.classList.contains('pke-done'));
+  r.render({...s,instanceId:'rematch'});
+  check(mapId+' rematch restores the driving HUD',!r.el.firstElementChild.classList.contains('pke-done')&&shown(r.node('speed'))&&shown(r.node('charge')));
+  r.view.dispose();
 }
 {
   const r=rig();assert.doesNotThrow(()=>r.render({...base(),instanceId:undefined}),'first legacy snapshot without an instance id is accepted safely');r.view.dispose();
@@ -113,6 +148,10 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
   r.render();check('duplicate snapshots share one pending graphics load',r.loads.length===1);
   const gl=await r.settle();check('successful load hides loader and focuses driver canvas',r.node('loading').hidden&&r.document.activeElement===gl.canvas);
   check('real canvas declares the driving focus target before preparation releases',gl.canvas.getAttribute('data-game-focus')==='');
+  check('elevated audio graph prepares during loading',r.audios[0].preps===1);
+  let resolveAudio,audioReady=false;r.audios[0].readyWait=new Promise(resolve=>{resolveAudio=resolve;});
+  const pendingReady=r.view.ready().then(()=>{audioReady=true;});await r.flush();
+  check('elevated loading waits for audio preparation',!audioReady);resolveAudio(true);await pendingReady;
   const shortcut=r.window.dispatch('keydown',{code:'KeyW',metaKey:true,target:gl.canvas});check('Command browser shortcut stays usable without sending kart input',!shortcut.prevented&&r.sent.length===0);
   r.key('KeyW');check('W sends full forward intent scoped to private life/epoch',r.sent.at(-1).throttle===1&&r.sent.at(-1).life===1&&r.sent.at(-1).controlEpoch===1);
   r.key('KeyD');check('D is positive driver-right steer',r.sent.at(-1).steer===1);
@@ -274,6 +313,17 @@ function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbna
 // Graphics fixtures decode the actual embedded PNG bytes without a browser.
 globalThis.self=globalThis;
 globalThis.createImageBitmap=async blob=>{const bytes=Buffer.from(await blob.arrayBuffer());return {width:bytes.readUInt32BE(16),height:bytes.readUInt32BE(20),close(){}};};
+{
+ const r=rig({graphics:true}),s=base();s.karts[0].driftCharge=.6;s.karts[0].driftTier=2;s.karts[0].drifting=true;s.karts[0].pose.grounded=true;s.karts[0].pose.speed=14;s.karts[0].surface='metal';
+ r.api.context=()=>({isHost:true,sound:true});r.render(s);const gl=await r.settle();r.frame();
+ check('raised drift HUD names the shared orange release tier',r.node('drift').textContent.includes('Orange')&&!r.node('drift').hidden);
+ check('raised drift creates the shared bounded spark pool',gl.built.scene.getObjectByName('KartDrivingParticles')?.geometry.attributes.position.count===320);
+ check('raised tyre audio receives the real surface and drift hold',r.audios[0].frames.at(-1).surface==='metal'&&r.audios[0].frames.at(-1).drifting);
+ const events=['launch','land','warp'].map((type,i)=>({id:'route-'+i,type,pid:'a',position:{x:0,y:.64,z:0},cannon:0,from:{x:0,y:0,z:0},to:{x:1,y:7,z:1}}));
+ r.render({...s,simAt:100,simTick:2,events});r.render({...s,simAt:150,simTick:3,events});
+ check('confirmed launch/landing/portal events use existing arena audio once',r.audios[0].arenaCues.map(e=>e.name).join(',')==='launch,land,warp');
+ r.view.dispose();
+}
 // The production raised loader seats and batches all four real GLB animals.
 // Paint comes from the same room context as classic (and raw garage looks).
 {
@@ -352,7 +402,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   const fresh=structuredClone(same);fresh.simAt=2150;fresh.simTick=43;fresh.karts[1].alive=false;
   fresh.events=[{id:'fresh-after-hitch',type:'ko',pid:'a',other:'b',position:{x:10,y:1,z:0}}];
   r.render(fresh);r.frame(.1);
-  const sparks=()=>gl.built.scene.children.filter(o=>o.isInstancedMesh&&o.visible&&o.name!=='KartSkidMarks');
+  const sparks=()=>gl.built.scene.children.filter(o=>o.name==='RaisedCombatParticles'&&o.visible);
   const victim=gl.built.scene.children.filter(o=>o.name==='GiggleKart')[1];
   check('fresh KO after a700ms frame hitch receives its first wreck and spark draw',victim.visible&&sparks().length>0);
   r.advance(800);r.frame(.1);
@@ -415,10 +465,17 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     }finally{view?.view.dispose();probe.dispose();if(adapter&&state)adapter.dispose(state);else match.dispose();}
   }
   const r=rig({graphics:true});r.render();await r.settle();r.frame();
-  check('all combat variants compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===2&&r.renderStats.warmFrames===2);
-  const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.isInstancedMesh&&o.name!=='KartSkidMarks');
+  check('both shadow quality modes compile and upload behind loading screen',r.allocations().prepared&&r.renderStats.compiles===2&&r.renderStats.warmFrames===2);
+  check('raised drift, nitro and cannon/portal particles render during loading', ['KartDrivingParticles','KartSpeedLines','arena-feature-fx'].every(name=>r.renderStats.warmObjects.has(name)));
+  const built=r.loads.at(-1).handle.built,impactPool=built.scene.getObjectByName('KartImpactFX').children,effectPool=built.scene.children.filter(o=>o.name==='RaisedCombatParticles');
+  const raisedKarts=built.scene.children.filter(o=>o.name==='GiggleKart'),itemBatch=built.scene.getObjectByName('raised-item-boxes'),crowd=built.scene.getObjectByName('kart-lod-proxies');
+  check('raised pickups and crowd keep one prepared geometry each, even with no crates',itemBatch?.isInstancedMesh&&crowd?.isInstancedMesh&&crowd.instanceColor&&itemBatch.count===0);
+  crowd.geometry.computeBoundingBox();
+  check('raised crowd bodies use the chassis model origin rather than floating above it',Math.abs(crowd.geometry.boundingBox.min.y-(.2+CONFIG.chassis.modelOriginY))<1e-5);
+  check('loading restores kart culling and uses just one shadow caster per detailed model',raisedKarts.every(k=>{let casters=0;k.traverse(o=>{if(o.isMesh&&o.castShadow)casters++;});return k.frustumCulled&&casters===1&&k.getObjectByName('KartShadowProxy').layers.mask===2;}));
   check('all twelve prepared particle buffers remain attached after warming',effectPool.length===12&&effectPool.every(o=>o.parent===built.scene&&!o.visible));
-  const projectilePool=built.scene.children.filter(o=>o.userData.combat?.type==='projectile');
+  const projectilePool=r.projectiles.filter(o=>o.userData.combat?.contactRadius>0);
+  check('all reserved projectile bodies stay off the live scene graph',projectilePool.length>300&&projectilePool.every(o=>o.parent===null));
   for(const [kind,radius]of Object.entries(COMBAT.staticSweepRadii)){
     const prepared=projectilePool.filter(o=>o.userData.combat.kind===kind);
     check(kind+' all 64 warmed shots share cached authoritative contact calibration',prepared.length===64&&prepared.every(o=>o.userData.combat.contactRadius===radius&&o.userData.combat.contactInset>=.005&&o.userData.combat.contactInset===prepared[0].userData.combat.contactInset));
@@ -448,7 +505,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   check('repeated rocket/nuke shots recycle prepared projectile objects',r.allocations().projectiles===allocations.projectiles);
   check('live projectile frames never traverse meshes to recalibrate contact',projectileTraversals===0);
   check('blast saturation reuses the bounded particle buffer pool',r.allocations().instances===allocations.instances);
-  check('repeated rocket blasts leave visible particle buffers in the rendered scene',impactPool.length===3&&impactPool.every(o=>o.parent?.parent===built.scene)&&impactPool.some(o=>o.visible));
+  check('repeated rocket blasts leave visible particle buffers in the rendered scene',impactPool.length===4&&impactPool.every(o=>o.parent?.parent===built.scene)&&impactPool.some(o=>o.visible));
   check('prepared rocket visible nose agrees with its calibrated accepted sphere front',built.scene.children.some(o=>{if(o.userData.combat?.kind!=='missile'||!o.visible)return false;o.updateMatrixWorld(true);const tip=o.localToWorld(new THREE.Vector3(0,0,o.userData.combat.tipZ));return Math.abs(tip.z-(4+COMBAT.staticSweepRadii.missile-o.userData.combat.contactInset))<1e-6;}));
   r.render({...base(),simAt:1600,simTick:90,events:[event(90,'blast')]});r.frame();
   check('latest authoritative blast retires its buffered projectile immediately',!built.scene.children.some(o=>o.userData.combat?.type==='projectile'&&o.visible)&&impactPool.some(o=>o.visible));
@@ -482,7 +539,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   const scene=gl.built.scene,cues=scene.children.filter(o=>o.name==='CombatConfirmedShot'),allocation=r.allocations();
   check('confirmed shot pool is prepared and bounded to twelve tracers per straight weapon',cues.length===24&&cues.every(o=>!o.visible&&o.children.length===1&&o.children[0].isMesh));
   for(const kind of ['machinegun','trishot']){
-    const source=scene.children.find(o=>o.userData.combat?.type==='projectile'&&o.userData.combat.kind===kind).userData.combat.tail;
+    const source=r.projectiles.find(o=>o.userData.combat?.type==='projectile'&&o.userData.combat.kind===kind).userData.combat.tail;
     check(kind+' feedback borrows prepared projectile tracer geometry and material',cues.filter(o=>o.userData.confirmedShot===kind).every(o=>o.children[0].geometry===source.geometry&&o.children[0].material===source.material));
   }
   check('Pulse white and Scatter amber feedback retain the existing art colors',cues.find(o=>o.userData.confirmedShot==='machinegun').children[0].material.color.getHex()===0xffffff&&cues.find(o=>o.userData.confirmedShot==='trishot').children[0].material.color.getHex()===0xffb020);
@@ -681,7 +738,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     const meshes=solids(map),r=rig({graphics:true,colliders:map.colliders}),convert=v=>({...base(),instanceId:v.instance,mapId,simAt:v.simAt,simTick:v.simTick,karts:v.karts,events:[],inputAck:{life:v.karts[0].spawnSeq,controlEpoch:v.karts[0].controlEpoch,receivedSeq:0}});
     r.render(convert(snapshots[0]));const gl=await r.settle(),camera=gl.built.camera,model=gl.built.scene.children.find(o=>o.name==='GiggleKart');
     const expectedPosition=new THREE.Vector3(),expectedFocus=new THREE.Vector3(),nose=new THREE.Vector3(),desired=new THREE.Vector3(),focus=new THREE.Vector3(),look=new THREE.Vector3();
-    let index=0,clear=true,unchanged=true,finite=true,framed=true,first=true,firstHidden=null;
+    let index=0,clear=true,unchanged=true,finite=true,framed=true,first=true,firstHidden=null,firstUnframed=null;
     const kartBounds=new THREE.Box3(),kartCenter=new THREE.Vector3();
     for(let frame=0;frame<=seconds*60;frame++){
       while(snapshots[index]?.simAt<=frame*1000/60+1e-6)r.render(convert(snapshots[index++]));r.frame();
@@ -692,6 +749,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
       if(!visible&&!firstHidden){const anchor=model.position.clone();anchor.y+=1.4;const delta=camera.position.clone().sub(anchor),ray=new THREE.Raycaster(anchor,delta.clone().normalize(),0,delta.length()-.01);firstHidden={frame,at:snapshots[Math.max(0,index-1)]?.simAt,position:model.position.toArray(),eye:camera.position.toArray(),hits:ray.intersectObjects(meshes,false).map(h=>({id:h.object.name,distance:h.distance})),trace:camera.userData.cameraTrace};}
       clear&&=visible;finite&&=camera.position.toArray().every(Number.isFinite);r.advance(1000/60);
       model.updateMatrixWorld(true);baseKartBounds(model,kartBounds);kartBounds.getCenter(kartCenter).project(camera);
+      if(!firstUnframed&&(Math.abs(kartCenter.x)>=1||Math.abs(kartCenter.y)>=1||kartCenter.z<=-1||kartCenter.z>=1))firstUnframed={frame,position:model.position.toArray(),eye:camera.position.toArray(),centre:kartCenter.toArray(),trace:camera.userData.cameraTrace};
       framed&&=Math.abs(kartCenter.x)<1&&Math.abs(kartCenter.y)<1&&kartCenter.z> -1&&kartCenter.z<1;
     }
     check(label+' authority supplies actual supported elevation',maxHeight>minHeight&&(y>0||airborne>1));
@@ -700,6 +758,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     // clearance; those are checked against independent visibility/framing.
     if(openChase)check(label+' unobstructed follow position and look-ahead retain the original easing',unchanged);
     if(firstHidden)console.log('AUTHORED_ROUTE_CAMERA_HIDDEN '+JSON.stringify({label,firstHidden}));
+    if(firstUnframed)console.log('AUTHORED_ROUTE_CAMERA_UNFRAMED '+JSON.stringify({label,firstUnframed}));
     check(label+' finite camera-to-kart sight never crosses an authored collider',clear&&finite);
     check(label+' real loaded kart centre remains in the viewport',framed);
     r.view.dispose();release(meshes);
@@ -814,6 +873,24 @@ for(const aspect of [1,390/844,844/390,568/320,1024/768])for(const frameMs of [1
   const r=rig({graphics:true}),snapshot=base();r.render(snapshot);const gl=await r.settle(),camera=gl.built.camera;
   for(const [width,height] of [[390,844],[844,390],[568,320],[1024,768],[200,1000],[390,844],[844,390]]){camera.aspect=width/height;camera.updateProjectionMatrix();r.frame();const expected=Math.min(80,Math.max(52,2*Math.atan(Math.tan(Math.PI/10)/camera.aspect)*180/Math.PI));check(width+'x'+height+' orientation resize updates the bounded portrait lens',Math.abs(camera.fov-expected)<1e-10);check(width+'x'+height+' lens change preserves a finite projection',camera.projectionMatrix.elements.every(Number.isFinite));}
   r.view.dispose();
+}
+// Raised launch tubes now share classic solid shells. A reveal at the muzzle
+// must keep the eye outside the shell and outside the kart on both viewports.
+for(const mapId of ['skyport','foundry'])for(const aspect of [1.6,390/844]){
+  const map=elevatedMap(mapId),c=map.features.cannons[0],r=rig({graphics:true,colliders:map.colliders,aspect}),s={...base(),mapId,mapRevision:map.revision,simAt:0};
+  const physics=PHYSICS.createKartPhysics(RAPIER,CONFIG);elevatedStatics(map).forEach(d=>physics.addStatic(d));
+  const flight={c:0,t:0,x:c.x,y:c.y+.75,z:c.z,a:c.angle,ly:c.land.y+.75,life:1};
+  s.karts[0].flight={...flight};s.karts[0].pose={...flightPose(c,flight),epoch:1,speed:20,grounded:false,wheels:[]};
+  r.render(s);const gl=await r.settle(),camera=gl.built.camera,model=gl.built.scene.children.find(o=>o.name==='GiggleKart'),box=new THREE.Box3(),centre=new THREE.Vector3();let firstFailure=null,minDistance=Infinity;
+  for(let i=0;i<=36;i++){
+    flight.t=i/60;s.simAt=i*1000/60;s.simTick=i;s.karts[0].flight={...flight};s.karts[0].pose={...flightPose(c,flight),epoch:1,speed:20,grounded:false,wheels:[]};r.render(s);r.frame();r.advance(1000/60);
+    if(!model.visible)continue;
+    camera.updateMatrixWorld();model.updateMatrixWorld(true);baseKartBounds(model,box);box.getCenter(centre).project(camera);
+    const distance=camera.position.distanceTo(model.position);minDistance=Math.min(minDistance,distance);
+    if(!firstFailure&&(distance<6||Math.abs(centre.x)>=1||Math.abs(centre.y)>=1||physics.overlapsStatic(camera.position,{x:0,y:0,z:0,w:1},{x:.12,y:.12,z:.12})))firstFailure={i,distance,centre:centre.toArray(),eye:camera.position.toArray(),model:model.position.toArray()};
+  }
+  if(firstFailure)console.log('RAISED_MUZZLE_CAMERA '+JSON.stringify({mapId,aspect,firstFailure,minDistance}));
+  check(mapId+' '+aspect+' cannon muzzle keeps the kart framed and eye clear',!firstFailure);r.view.dispose();physics.dispose();
 }
 // No bounded side ray can frame a car inside this low, enclosed passage.
 // Reject every candidate while preserving closest-clear camera/ceiling safety.

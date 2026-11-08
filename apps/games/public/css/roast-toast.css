@@ -81,3 +81,5 @@ body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt {
 @media (max-width: 560px) {
   body #gbody .rt-scene.pl-fill > .gk-prompt.gk-prompt { border-radius: 40% 40% var(--radius-lg) var(--radius-lg) / 48px 48px var(--radius-lg) var(--radius-lg); padding-top: var(--space-32); }
 }
+
+#gbody .rt-scene .rt-target { background:var(--fam-soft); color:var(--ink); }

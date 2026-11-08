@@ -2,6 +2,7 @@ import {createKartPhysics} from './kart-physics-core.mjs';
 import {createRoadTerrain} from './kart-road-terrain.mjs';
 import {createSurfaceIndex,surfaceTuning} from './kart-surface.mjs';
 import {createFeatureRunner} from './kart-map-features.mjs';
+import {arenaFeatureSolids} from './kart-feature-solids.mjs';
 import {stepDrift} from './kart-drift.mjs';
 import {CLASSIC_CONTACT_TUNING} from './kart-physics-config.mjs';
 
@@ -39,6 +40,7 @@ export function classicStatics(map,terrain=createRoadTerrain(map)){
     out.push({id:'wall-x-'+(sign+1),shape:'box',half:{x:wallHalf,y:wallHeightHalf,z:half+wallOffset+wallHalf},position:{x:sign*(half+wallOffset),y:wallHeightHalf,z:0}});
     out.push({id:'wall-z-'+(sign+1),shape:'box',half:{x:half+wallOffset+wallHalf,y:wallHeightHalf,z:wallHalf},position:{x:0,y:wallHeightHalf,z:sign*(half+wallOffset)}});
   }
+  out.push(...arenaFeatureSolids(map.features,(x,z)=>terrain?.heightAt(x,z)||0));
   return out;
 }
 
@@ -75,7 +77,7 @@ export function createClassicMotion(RAPIER,baseConfig,state){
   // Keep a released/respawned kart parked on real slopes using wheel brakes.
   config.handling.coastBrake=4;
   const physics=createKartPhysics(RAPIER,config),life=new Map(),enabled=new Map();let accumulator=0,disposed=false;
-  const map={id:state.map,half:state.half,blocks:state.blocks,pads:state.pads,surfaces:state.surfaces,roads:state.roads,offroad:state.offroad,barriers:state.barriers,ramps:state.ramps};
+  const map={id:state.map,half:state.half,blocks:state.blocks,pads:state.pads,surfaces:state.surfaces,roads:state.roads,offroad:state.offroad,barriers:state.barriers,ramps:state.ramps,features:state.features};
   const surfaceIndex=createSurfaceIndex(map);
   const terrain=createRoadTerrain(map);
   // Arena features (cannons, portals) step after physics; see kart-map-features.mjs.

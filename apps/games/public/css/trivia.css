@@ -171,3 +171,7 @@ body.game-playing[data-game="trivia"] {
 #gbody .wg.pl-fill[data-game="trivia"] .gk-choices.is-locked > .gk-choice:not(.is-selected):not(.is-picked):not([aria-pressed="true"]):not(.is-correct):not(.is-wrong) .gk-mark {
   background: var(--qa); color: var(--qa-ink);
 }
+
+/* The spotlight stays within the stage instead of widening a phone page. */
+#gbody .wg.pl-fill[data-game="trivia"]::before { width:100%; }
+[data-theme="night"] #gbody .wg[data-game="trivia"] { --qa-on:var(--sun-ink); }

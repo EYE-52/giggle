@@ -134,3 +134,5 @@ body.game-immersive:has(.pke) #gbody>#rematch{bottom:18px;background:var(--card)
 .kart-hearts[data-shake]{animation:kart-hearts-shake .28s ease-out;}
 @keyframes kart-hearts-shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px) rotate(-4deg)}65%{transform:translateX(4px) rotate(3deg)}}
 @media(prefers-reduced-motion:reduce){.kart-hearts[data-shake]{animation:none}}
+
+.pke-drift{font:800 13px/1.2 var(--font-display);text-shadow:0 2px 0 #172b41,0 0 6px #172b41;letter-spacing:.03em}

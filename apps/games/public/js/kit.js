@@ -30,9 +30,9 @@ export function hudHtml({ round = '', phase = '', progress = '', timer = null, u
   const t = timer === null || timer === undefined || timer === '' ? '' : (typeof timer === 'number' ? `${Math.max(0, Math.ceil(timer))}s` : String(timer));
   const isUrgent = urgent || (typeof timer === 'number' && timer <= 5 && timer > 0);
   return `<div class="gk-hud">`
-    + (round ? `<span class="gk-hud-round">${esc(round)}</span>` : '')
-    + (phase ? `<span class="gk-hud-phase">${esc(phase)}</span>` : '')
-    + (progress ? `<span class="gk-hud-progress">${esc(progress)}</span>` : '')
+    + `<span class="gk-hud-round">${esc(round)}</span>`
+    + `<span class="gk-hud-phase">${esc(phase)}</span>`
+    + `<span class="gk-hud-progress">${esc(progress)}</span>`
     + `<span class="gk-hud-timer${isUrgent ? ' is-urgent' : ''}" aria-live="off">${esc(t)}</span>`
     + `</div>`;
 }
@@ -283,6 +283,15 @@ export function paintLiveStrip(scene, S, opts = {}) {
   // the stage divides by it so it still fills the screen.
   const zoom = parseFloat(scene.closest?.('#gbody')?.style?.zoom) || 1;
   scene.style?.setProperty?.('--pl-zoom', String(zoom));
+  // Anchor the live roster to the available play height. Use document
+  // coordinates, so scrolling the page cannot grow this space on repaint.
+  const body = scene.closest?.('#gbody');
+  const top = body?.getBoundingClientRect?.().top;
+  const viewport = document.defaultView?.innerHeight;
+  if (Number.isFinite(top) && viewport > 0) {
+    const used = top + (document.defaultView?.scrollY || 0);
+    scene.style?.setProperty?.('--pl-stage-height', `${Math.max(0, (viewport - used - 32) / zoom)}px`);
+  }
   let strip = scene.querySelector?.('.pl-live');
   if (!strip) {
     strip = document.createElement?.('aside');

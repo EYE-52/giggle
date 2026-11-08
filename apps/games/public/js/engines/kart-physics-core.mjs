@@ -1,3 +1,4 @@
+import {raisedWedgeVertices} from './kart-raised-support.mjs';
 
 // Rapier adapter for the elevated kart profile.
 // Rapier and the one shared numeric config are injected after WASM init.
@@ -33,7 +34,7 @@ function wedgeVertices(half) {
   const { x, y, z } = vector(half, 'half');
   if (Math.min(x, y, z) <= 0) throw new RangeError('half extents must be positive');
   // Closed triangle prism: low end -Z, high end +Z, solid underside.
-  return new Float32Array([-x, -y, -z, x, -y, -z, -x, -y, z, x, -y, z, -x, y, z, x, y, z]);
+  return raisedWedgeVertices({x,y,z});
 }
 function validateTrimesh(vertices, indices) {
   if (!(vertices instanceof Float32Array) || vertices.length < 9 || vertices.length % 3 || vertices.length > 30000 ||
@@ -105,8 +106,8 @@ function createKartPhysics(RAPIER, config) {
     if (!d) throw new Error('invalid convex wedge');
     const driveSurface = mesh || desc.shape === 'wedge' || desc.shape === 'deck' || id === 'floor' || desc.grip !== undefined;
     d.setTranslation(position.x, position.y, position.z).setRotation(q)
-      .setFriction(driveSurface ? 0.7 : C.arcadeContacts?.wallFriction??0.25)
-      .setFrictionCombineRule(C.arcadeContacts?RAPIER.CoefficientCombineRule.Min:RAPIER.CoefficientCombineRule.Average)
+      .setFriction(C.arcadeContacts?(driveSurface?0.7:C.arcadeContacts.wallFriction):C.chassis.wallFriction??0.25)
+      .setFrictionCombineRule(C.arcadeContacts||C.chassis.wallFriction!==undefined?RAPIER.CoefficientCombineRule.Min:RAPIER.CoefficientCombineRule.Average)
       .setRestitution(driveSurface ? 0 : C.chassis.restitution)
       .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Min);
     const collider = world.createCollider(d);
@@ -129,7 +130,7 @@ function createKartPhysics(RAPIER, config) {
         { x: C.chassis.mass / 3 * (H.y ** 2 + H.z ** 2), y: C.chassis.mass / 3 * (H.x ** 2 + H.z ** 2) * (C.chassis.yawInertiaScale || 1), z: C.chassis.mass / 3 * (H.x ** 2 + H.y ** 2) },
         { x: 0, y: 0, z: 0, w: 1 }).setFriction(C.chassis.friction).setRestitution(C.chassis.restitution)
         .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Min)
-        .setFrictionCombineRule(C.arcadeContacts?RAPIER.CoefficientCombineRule.Min:RAPIER.CoefficientCombineRule.Average)
+        .setFrictionCombineRule(C.arcadeContacts||C.chassis.wallFriction!==undefined?RAPIER.CoefficientCombineRule.Min:RAPIER.CoefficientCombineRule.Average)
         .setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS).setContactForceEventThreshold(6000), body);
       kartColliders.set(collider.handle,id);
       karts.set(id, { body, controller: makeController(body), intent: { steer: 0, throttle: 0, brake: 0 }, epoch: 0,
@@ -137,6 +138,17 @@ function createKartPhysics(RAPIER, config) {
       const kart=karts.get(id);
       kart.checkManifold=manifold=>{if(manifold.numSolverContacts()>0&&Math.abs(manifold.normal().y)<.5)kart.sideContact=true;};
       kart.checkContact=other=>world.contactPair(collider,other,kart.checkManifold);
+      kart.slideWall=manifold=>{
+        if(!manifold.numSolverContacts())return;const n=manifold.normal();if(Math.abs(n.y)>.4)return;
+        const norm=Math.hypot(n.x,n.z);if(norm<.5)return;const nx=n.x/norm,nz=n.z/norm,incoming=kart.contactVelocity.linear;
+        const normalSpeed=incoming.x*nx+incoming.z*nz,tx=incoming.x-normalSpeed*nx,tz=incoming.z-normalSpeed*nz,speed=Math.hypot(tx,tz);
+        if(speed<1.2)return;const v=body.linvel(),along=(v.x*tx+v.z*tz)/speed,target=Math.min(6,speed*.985);
+        if(along<target){const extra=target-along;body.setLinvel({x:v.x+tx/speed*extra,y:v.y,z:v.z+tz/speed*extra},true);}
+        // A glancing bumper should not yaw itself squarely into the wall.
+        // Steering still has full control; never invent motion from rest.
+        if(Math.abs(kart.intent.steer)<.1){const a=body.angvel();body.setAngvel({x:a.x,y:a.y*.25,z:a.z},true);}
+      };
+      kart.wallContact=other=>{if(surfaces.has(other.handle))world.contactPair(collider,other,kart.slideWall);};
     } catch (error) { world.removeRigidBody(body); throw error; }
     return pose(id);
   }
@@ -194,6 +206,7 @@ function createKartPhysics(RAPIER, config) {
       }
       world.step(contactQueue); tick++;
       for(const kart of karts.values())retainSlideMomentum(kart);
+      if(!C.arcadeContacts&&C.chassis.wallFriction!==undefined)for(const kart of karts.values())if(kart.enabled&&!kart.frozen&&kart.intent.throttle>0)world.contactPairsWith(kart.collider,kart.wallContact);
       contactQueue.drainContactForceEvents(event => {
         const a=event.collider1(),b=event.collider2(),ka=kartColliders.get(a),kb=kartColliders.get(b);
         if(!ka&&!kb)return;

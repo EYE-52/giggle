@@ -29,7 +29,7 @@
   border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker);
   font: 800 clamp(28px, 3.6vw, 40px)/1.15 var(--font-display);
 }
-#gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 120px; height: 48px; font-size: 28px; }
+#gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 0; height: 48px; font-size: 28px; }
 #gbody .pl-fill .fs-answers { padding: var(--space-8) var(--space-16); border: var(--outline-w-lg) solid var(--outline); border-radius: var(--radius-xl); box-shadow: var(--shadow-sticker); }
 #gbody .pl-fill .fs-answers li { font: 800 22px/1.3 var(--font-display); }
 #gbody .pl-fill .fs-answers .gk-mark { background: var(--fam); color: var(--on-fam); border: var(--outline-w) solid var(--outline); }
@@ -38,7 +38,7 @@
 #gbody .fs-scene.pl-fill .gk-choices > .fs-verdict:last-child { --side: var(--danger); --on-side: var(--on-danger); }
 @media (max-width: 560px) {
   #gbody .fs-scene.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 26px; border-radius: var(--radius-lg); }
-  #gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 96px; height: 44px; font-size: 24px; }
+  #gbody .fs-scene.pl-fill .gk-hud-timer { min-width: 0; height: 44px; font-size: 24px; }
 }
 
 /* Verdict: points line as a family chip, judges as pass/fail chips, and

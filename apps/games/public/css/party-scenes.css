@@ -253,20 +253,20 @@
  * in a vertically centred box with empty bands above and below it.
  * ========================================================================== */
 #gbody .pl-fill {
-  display: flex; flex-direction: column; gap: var(--space-24);
+  display: flex; flex-direction: column; gap: var(--space-24); min-height:var(--pl-stage-height,0px);
   padding-block: var(--space-8) var(--space-24);
 }
 #gbody .pl-fill > * { margin-block: 0; flex: 0 0 auto; }
 /* The players strip is its own section: a little more air above it. */
-#gbody .pl-fill > .pl-live { margin-top: var(--space-8); }
+#gbody .pl-fill > .pl-live { margin-top:auto; }
 @media (max-width: 560px) {
   #gbody .pl-fill { gap: var(--space-16); }
 }
 
 /* ---- HUD: phase chip, progress, timer bar ---- */
 #gbody .pl-fill > :is(.gk-hud, .party-hud) {
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8) var(--space-12);
-  min-height: var(--control-h-sm); margin: 0;
+  position:relative; display:grid; grid-template-columns:14ch 12ch minmax(0,1fr) calc(var(--space-64) + var(--space-24)); align-items:center; gap:var(--space-8) var(--space-12);
+  min-height:var(--control-h-sm); margin:0;
 }
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-round, .party-round) { font: var(--text-button-sm); color: var(--ink); }
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-phase, .party-phase):not(:empty) {
@@ -275,7 +275,7 @@
   background: var(--fam-soft); color: var(--fam-deep); font: var(--text-caption); font-weight: 800;
 }
 #gbody .pl-fill :is(.gk-hud, .party-hud) :is(.gk-hud-progress, .party-progress) {
-  margin-left: auto; font: var(--text-caption); font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums;
+  margin-left:0; font:var(--text-caption); font-weight:800; color:var(--ink); font-variant-numeric:tabular-nums;
 }
 /* The timer pill; its draining ring lives in game-ui.css. Empty keeps its width. */
 #gbody .pl-fill .gk-hud-timer {
@@ -688,7 +688,7 @@
   #gbody .pl-live :is(.party-more, .wg-more) > summary { padding: 0 var(--space-8); font-size: 13px; }
 }
 /* Progress text sits flush right when there is no clock. */
-#gbody .pl-fill .gk-hud-timer:empty { display: none; }
+#gbody .pl-fill .gk-hud-timer:empty { visibility:hidden; }
 
 /* Phones: seats share the row (wrapping for big rooms), never scroll sideways. */
 @media (max-width: 560px) {
@@ -781,4 +781,59 @@ body #gbody .pl-fill :is(button.gk-choice, button.party-choice):not(:disabled):a
 [data-theme="night"] #gbody .pl-fill :is(input.gk-input, input[type="text"], textarea) {
   background: color-mix(in srgb, var(--fam) 8%, var(--card));
   border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
+}
+
+/* Phase and progress occupy the same tracks even when their copy changes. */
+#gbody .pl-fill :is(.gk-hud,.party-hud) :is(.gk-hud-phase,.party-phase) { justify-self:start; width:max-content; max-width:100%; min-width:0; height:var(--space-32); min-height:var(--space-32); display:block; line-height:var(--space-32); border-radius:var(--radius-pill); text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#gbody .pl-fill :is(.gk-hud,.party-hud) .party-spectator { position:absolute; right:0; top:100%; }
+@media (max-width:560px) {
+ #gbody .pl-fill > :is(.gk-hud,.party-hud) { grid-template-columns:minmax(0,1fr) minmax(0,1fr) var(--space-64); }
+ #gbody .pl-fill .gk-hud-timer { grid-column:3; min-width:0; width:100%; }
+ #gbody .pl-fill :is(.gk-hud,.party-hud) .party-spectator { top:auto; bottom:0; }
+}
+
+/* Names, role text and changing score glyphs share three steady seat rows. */
+.pl-live .pl-seat { grid-template-rows:repeat(3,var(--space-24)); }
+
+.pl-live .pl-head { min-height:var(--control-h-sm); }
+
+/* A player who left remains readable. Only their avatar loses colour. */
+.pl-seat.is-left { opacity:1; }
+.pl-seat.is-left .pl-avatar { filter:grayscale(1); }
+
+/* Role badges stay above the avatar, clear of the score row. */
+.pl-live .pl-badge { top:calc(-1 * var(--space-4)); bottom:auto; right:calc(-1 * var(--space-4)); }
+
+/* Points and earned points have separate rows even before the award. */
+.pl-points { display:grid; grid-template-columns:auto auto; justify-content:start; column-gap:var(--space-4); overflow:visible; }
+.pl-gain { grid-column:1 / -1; justify-self:start; min-width:5ch; height:1.4em; text-align:center; }
+@media(max-width:560px){ .pl-seat .pl-gain.is-empty { display:block; } }
+
+/* Laptop payoff screens keep their roster and Next action in view. Lists
+ * use the available width before they ask for another vertical row. */
+@media(min-width:860px) and (max-height:900px){
+ #gbody .pl-fill { gap:var(--space-16); }
+ #gbody :is(.fa-scene,.bl-scene,.cb-scene,.rt-scene,.tt-scene).pl-fill .gk-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); max-width:none; }
+ #gbody .pl-fill > :is(.gk-prompt,.party-prompt) { padding-block:var(--space-16); }
+}
+
+#gbody .pl-fill .gk-btn.gk-primary { font:var(--text-primary); }
+#gbody .pl-fill :is(.gk-hud-phase,.party-phase) { color:var(--ink); }
+.pl-live .pl-seat { grid-template-rows:var(--space-24) var(--space-24) var(--space-40); }
+@media(max-width:560px){ .pl-live .pl-seat { grid-template-rows:var(--space-24) var(--space-40) var(--space-24); } }
+
+/* Desktop party rounds reserve a roster column beside the game. Scores
+ * cannot push the payoff or Next below the laptop fold. The HUD spans both
+ * columns and the roster's top edge stays fixed across phase updates. */
+@media(min-width:1100px){
+ #gbody .pl-fill[data-family="party"]:not(.tq) { position:relative; padding-right:calc(4 * var(--space-64) + var(--space-16)); }
+ #gbody .pl-fill[data-family="party"]:not(.tq) > :is(.gk-hud,.party-hud) { width:calc(100% + 4 * var(--space-64) + var(--space-16)); }
+ #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live { position:absolute; right:0; top:calc(var(--space-8) + var(--control-h-sm) + var(--space-16)); width:calc(4 * var(--space-64)); max-height:calc(var(--pl-stage-height,100dvh) - var(--space-64) - var(--space-16)); overflow:auto; margin:0; }
+ #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live .pl-seats { grid-template-columns:minmax(0,1fr); }
+ #gbody .likely-world .likely-results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+ #gbody .likely-world .likely-row { padding:var(--space-8); }
+ #gbody .likely-world .likely-row-body { gap:var(--space-4); }
+}
+@media(min-width:1100px){
+ #gbody .pl-fill[data-family="party"]:not(.tq) > .pl-live .pl-head { height:calc(var(--space-48) + var(--space-24)); min-height:calc(var(--space-48) + var(--space-24)); align-content:center; }
 }

@@ -550,7 +550,7 @@ function base(over) {
     assert.strictEqual(api.sent.length, beforeTap + 2, 'native keyboard and assistive activation still taps');
     collect(el);
     view.render(el, base({ phase: 'go', round: 1, rounds: 5, taps: { a: 210 }, fouled: [], strings: {} }), api);
-    assert(el.querySelector('#rPad').textContent.includes('210 ms'), 'locked taps show the time');
+    assert(el.querySelector('#rPad').querySelector('.rt-pad-label').textContent.includes('210 ms'), 'locked taps show the time');
     assert.strictEqual(el.querySelector('#rStatus').innerHTML, '1 tapped in', 'tap-only status has no trailing separator');
     view.render(el, base({ phase: 'go', round: 1, rounds: 5, taps: {}, fouled: ['c'], strings: {} }), api);
     assert.strictEqual(el.querySelector('#rStatus').innerHTML, 'Fouled: Cy &lt;script&gt;', 'foul-only status escapes names without a leading separator');

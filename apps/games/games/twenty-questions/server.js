@@ -13,6 +13,7 @@ const { maskWord, hiddenLetters, revealLetter } = require('../engines/word-hints
 const id = 'twenty-questions';
 
 const manifest = {
+  sameRoom: false,
   howto: 'Ask yes/no questions or guess the secret word. The host chooses 10–50 questions per round (20 by default). Optional shared letter hints cost 50 points each, up to two per round.',
   guide: {
     goal: 'Guess the secret word in as few questions as you can.',

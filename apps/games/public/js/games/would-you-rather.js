@@ -75,7 +75,7 @@ function paint(el, S, api) {
   const waitingFor = Math.max(0, total - voted);
   status.textContent = !S.prompt ? 'Shuffling choices…'
     : reveal && !votes ? 'Nobody voted in this round.'
-    : reveal ? (watch ? 'Here is how the room voted.' : picked ? `You picked ${picked.toUpperCase()}: ${S.prompt?.[picked] || ''}` : 'You sat this one out.')
+    : reveal ? (watch ? 'Here is how the room voted.' : picked ? `You picked ${picked.toUpperCase()}.` : 'You sat this one out.')
     : watch ? `Watching · waiting for ${waitingFor} player${waitingFor === 1 ? '' : 's'}`
     : picked ? (S.myVote ? `Locked in · waiting for ${waitingFor} player${waitingFor === 1 ? '' : 's'}` : 'Locking in your choice…')
     : 'Pick the one you would rather do.';
@@ -104,7 +104,7 @@ function paint(el, S, api) {
     const countEl = button.querySelector('.wyr-count');
     if (countEl.innerHTML !== count) countEl.innerHTML = count;
     button.querySelector('.wyr-voters').textContent = reveal ? voters.map(pid => nameOf(S, pid)).join(', ') : '';
-    const faces = reveal ? voters.map(pid => faceHtml(S, pid, { name: true })).join('') : '';
+    const faces = reveal ? voters.map(pid => `<span class="pl-voter" title="${esc(nameOf(S, pid))}">${faceHtml(S, pid)}<span class="sr-only">${esc(nameOf(S, pid))}</span></span>`).join('') : '';
     const facesEl = button.querySelector('.wyr-faces');
     if (facesEl.innerHTML !== faces) facesEl.innerHTML = faces;
     const pick = button.querySelector('.wyr-pick');

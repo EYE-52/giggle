@@ -11,8 +11,8 @@ export function driftTier(charge=0) {
 }
 // No timers or random input. Loss of ground/speed cancels without a reward.
 // The initial steering sign locks the slide; counter steering opens its radius.
-export function stepDrift(k,dt,grounded=true,ease=1) {
-  const input=k.input||{},was=k._driftHeld===true;
+export function stepDrift(k,dt,grounded=true,ease=1,input=k.input||{}) {
+  const was=k._driftHeld===true;
   const active=input.drift===true&&grounded&&k.speed>6&&(input.throttle||0)>=0&&(was||Math.abs(input.steer||0)>.15);
   k.driftHop=Math.max(0,(k.driftHop||0)-dt);
   if(active) {

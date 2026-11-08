@@ -104,6 +104,7 @@ function validateManifest(def) {
   const m = def.manifest;
   if (m === undefined) return { ok: true };
   if (!m || typeof m !== 'object' || Array.isArray(m)) return { ok: false, error: 'manifest must be an object.' };
+  if (m.sameRoom !== undefined && ![true, false, 'handoff'].includes(m.sameRoom)) return { ok: false, error: 'manifest.sameRoom must be true, false or handoff.' };
   if (m.name !== undefined && typeof m.name !== 'string') return { ok: false, error: 'manifest.name must be a string.' };
   if (m.tagline !== undefined && typeof m.tagline !== 'string') return { ok: false, error: 'manifest.tagline must be a string.' };
   if (m.howto !== undefined && typeof m.howto !== 'string') return { ok: false, error: 'manifest.howto must be a string.' };

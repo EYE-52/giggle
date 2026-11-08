@@ -9,6 +9,7 @@ const { dealer, shuffle, roundsSetting, paceSetting, pacedMs } = require('../_sd
 const id = 'two-truths';
 
 const manifest = {
+  sameRoom: 'handoff',
   guide: {
     goal: 'Spot the lie, or write a lie nobody spots.',
     controls: [

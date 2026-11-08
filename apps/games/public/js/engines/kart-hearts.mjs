@@ -9,8 +9,14 @@ export const SHAKE_MS = 260;
 export const BANNER_MS = 1600;
 
 function restart(element, name) {
+  // Rewind the existing CSS animation without synchronously laying out the
+  // whole game between every heart, hit marker and toast in a damage burst.
+  if(element.getAnimations){
+    element.setAttribute(name,'');
+    for(const animation of element.getAnimations()){animation.currentTime=0;animation.play();}
+    return;
+  }
   element.removeAttribute(name);
-  void element.offsetWidth; // a fresh animation for back-to-back hits
   element.setAttribute(name, '');
 }
 

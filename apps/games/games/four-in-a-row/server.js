@@ -4,6 +4,7 @@
 const duel = require('../engines/board-duel');
 const id = 'four-in-a-row';
 const manifest = {
+  sameRoom: true,
   name: 'Four in a Row', tagline: 'Drop a counter. Set a trap.',
   howto: 'Red goes first. Drop a counter into any open column. The first four in a straight line — across, up, or diagonally — wins. A full board without four is a draw. You can resign or offer a draw. With a move timer, running out of time loses the game. Two play; everyone else watches.',
   guide: {

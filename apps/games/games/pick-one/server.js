@@ -7,6 +7,7 @@ const { dealer, tally, allIn, roundsSetting, paceSetting, paced } = require('../
 const id = 'pick-one';
 
 const manifest = {
+  sameRoom: 'handoff',
   guide: {
     goal: 'Match the majority pick, round after round.',
     tips: [

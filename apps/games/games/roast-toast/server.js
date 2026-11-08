@@ -9,6 +9,7 @@ const { dealer, tally, allIn, shuffle, roundsSetting, paceSetting, pacedMs } = r
 const id = 'roast-toast';
 
 const manifest = {
+  sameRoom: false,
   howto: 'Write a friendly roast for the target. Vote on anonymous entries except your own. The room favorite earns 100 points; the target’s favorite earns 100 more.',
   guide: {
     goal: 'Write the friendly roast that gets the most love.',

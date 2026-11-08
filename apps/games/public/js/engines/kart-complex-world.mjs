@@ -1,18 +1,20 @@
+import {mergeRaisedDetails} from './kart-raised-batches.mjs';
+import {createKartFestiveLights} from './kart-festive-lights.mjs';
 import {createRaisedReadability,applyRaisedLighting} from './kart-raised-readability.mjs';
-import {createKartBackdrop} from './kart-backdrop.mjs';
+import {createKartBackdrop,createKartSky} from './kart-backdrop.mjs';
 import {complexSurfaceTexture,tileComplexMaterial} from './kart-complex-surfaces.mjs';
 import {addComplexDetails} from './kart-complex-details.mjs';
 
 /* A small shared geometry kit. Collider skins are instanced by material;
  * markings stay on the surface, and every raised prop has a real solid.
- * No GLBs, per-prop textures, dynamic lights or animated allocations. */
-export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,solidGeometry}){
+ * No GLBs, per-prop textures, shadowed interior lights or animated allocations. */
+export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,quality='high',reducedMotion=false,solidGeometry}){
   const data=structuredClone(map),skyport=data.id==='skyport',group=new THREE.Group();group.name='elevated-combat-'+data.id;scene?.add(group);
   const solids=new THREE.Group(),scenery=new THREE.Group(),soft=new THREE.Group();solids.name='authored-solid-envelopes';scenery.name='outside-arena-scenery';soft.name='complex-markings';group.add(solids,scenery,soft);
   const geometries=new Set(),materials=new Set(),textures=new Set(),instances=[],colliderMeshes=new Map(),buckets=new Map();let disposed=false;
   const geo=g=>(geometries.add(g),g),mat=m=>(materials.add(m),m);
   const standard=(color,extra={})=>mat(new THREE.MeshStandardMaterial({color,roughness:.82,...extra}));
-  const tones={asphalt:skyport?0x9cabb8:0xb5aa96,concrete:0xc2c5bd,'level-1':skyport?0x91c2bc:0xd9a078,'level-2':skyport?0xead6a1:0x9fc0a3,ramp:0xb5bdb8,pillar:skyport?0x7191a5:0x8e8171,cover:skyport?0x3da6b7:0x78908b,utility:0x99a4aa,kerb:0x497785,barrier:0xa5a99f,furnace:0x8f5540,slag:0xfa7130};
+  const tones={asphalt:skyport?0x9cabb8:0xc5dce4,concrete:0xc2c5bd,'level-1':skyport?0x91c2bc:0xffc394,'level-2':skyport?0xead6a1:0x94d8bf,ramp:skyport?0xb5bdb8:0xc6dfe5,pillar:skyport?0x7191a5:0x72bac5,cover:skyport?0x3da6b7:0x78908b,utility:0x99a4aa,kerb:0x497785,barrier:0xa5a99f,furnace:0xff9854,slag:0xfa7130};
   const M=Object.fromEntries(Object.entries(tones).map(([k,c])=>[k,standard(c,k==='slag'?{emissive:0xff5c18,emissiveIntensity:1.8}:k==='furnace'?{emissive:0x681c04,emissiveIntensity:.35}:{} )]));
   const atlas=Object.fromEntries(['asphalt',skyport?'pavers':'steel','panels'].map(kind=>{const t=complexSurfaceTexture(THREE,kind);textures.add(t);return[kind,t];}));
   for(const [key,m]of Object.entries(M))if(key!=='slag')tileComplexMaterial(m,atlas[key==='asphalt'?'asphalt':key==='level-1'||key==='level-2'||key==='ramp'?(skyport?'pavers':'steel'):'panels'],key==='asphalt'?8:4);
@@ -119,7 +121,7 @@ export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,so
   }
   function flush(){
     for(const {parent,key,g,m,items,tags}of buckets.values()){
-      const mesh=new THREE.InstancedMesh(g,m,items.length);mesh.name='complex-'+key;mesh.castShadow=parent===solids;mesh.receiveShadow=true;
+      const mesh=new THREE.InstancedMesh(g,m,items.length);mesh.name='complex-'+key;mesh.castShadow=false;mesh.receiveShadow=true;
       const ids=[];
       items.forEach((v,i)=>{dummy.position.copy(v.p);dummy.scale.copy(v.s);dummy.quaternion.copy(v.q);dummy.updateMatrix();mesh.setMatrixAt(i,dummy.matrix);if(v.colliderId)ids.push(v.colliderId);});
       if(ids.length)mesh.userData.colliderIds=ids;
@@ -128,21 +130,38 @@ export function createKartComplexWorld(THREE,{scene,map,palette,lighting=true,so
     }buckets.clear();
   }
   flush();
+  const detailChunks=mergeRaisedDetails(THREE,soft,geo);
   const resources={isAlive:()=>!disposed,geometry:geo,material:mat,texture:t=>(textures.add(t),t)};
+  const festive=createKartFestiveLights(THREE,{parent:soft,map:data,quality,reducedMotion,mediumDensity:.375});
   const readability=createRaisedReadability(THREE,{parent:soft,map:data,...resources});
   const backdrop=createKartBackdrop(THREE,{parent:scenery,theme:data.backdrop,radius:350,...resources});
-  const skyMat=mat(new THREE.MeshBasicMaterial({color:0xa3c9dd,side:THREE.BackSide,depthWrite:false,fog:false}));
-  const sky=new THREE.Mesh(geo(new THREE.SphereGeometry(460,24,12)),skyMat);sky.name='complex-sky';sky.renderOrder=-10;soft.add(sky);
+  const sky=createKartSky(THREE,{parent:soft,radius:460,widthSegments:24,heightSegments:12,geometry:geo,material:mat});
   const sun=new THREE.DirectionalLight(0xffe8c4,2.2),hemi=new THREE.HemisphereLight(0xcce8ff,0x7794a3,1.5);sun.name='elevated-sun';hemi.name='elevated-ambient';sun.position.set(-85,130,-65);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-132,right:132,top:132,bottom:-132,near:10,far:350});sun.shadow.normalBias=.12;sun.shadow.bias=-.0005;sun.target.position.set(0,0,0);if(lighting)group.add(sun,hemi,sun.target);
   const fixed=palette==='Starlight'?1:palette==='Sunset'?.65:0;
-  const lightingState={phase:fixed,sun,hemisphere:hemi,fogColor:new THREE.Color(),fogNear:210,fogFar:450,exposure:1.05};
-  const day=new THREE.Color(skyport?0xa3c9dd:0xd5bea0),night=new THREE.Color(skyport?0x243959:0x615264),warm=new THREE.Color(skyport?0xe2b5a0:0xdfa474);
-  function animate(dt,time,phase){if(disposed)return;const p=Number.isFinite(phase)?Math.max(0,Math.min(1,phase)):fixed;lightingState.phase=p;lightingState.fogColor.copy(day).lerp(warm,Math.min(1,p/.65));if(p>.65)lightingState.fogColor.lerp(night,(p-.65)/.35);skyMat.color.copy(lightingState.fogColor);applyRaisedLighting(sun,hemi,p);if(!skyport){sun.color.set(p>.65?0xffc18a:0xffdfb3);hemi.color.set(0xffe9d0);hemi.groundColor.set(0x977a5d);hemi.intensity=1.35;}sun.position.set(-85,130-p*65,-65);backdrop.tint(lightingState.fogColor,p);}
+  // Unshadowed fill reaches downward-facing decks and deep tunnels too.
+  // Lights add no draw calls; keep the warm key and bright, cool bounce.
+  const interiorFill=skyport?null:new THREE.AmbientLight(0xe7f4ff,.5);
+  if(interiorFill){interiorFill.name='foundry-interior-fill';if(lighting)group.add(interiorFill);}
+  const lightingState={phase:fixed,sun,hemisphere:hemi,interiorFill,fogColor:new THREE.Color(),fogNear:210,fogFar:450,exposure:1.05};
+  function animate(dt,time,phase){
+    if(disposed)return;const p=Number.isFinite(phase)?Math.max(0,Math.min(1,phase)):fixed;
+    festive.animate(time);
+    const tier=typeof quality==='function'?quality():quality;
+    for(const mesh of detailChunks)mesh.visible=tier!=='low'||mesh.userData.lowEssential;
+    lightingState.phase=p;sky.setPhase(p);lightingState.fogColor.copy(sky.horizon);
+    applyRaisedLighting(sun,hemi,p);
+    if(!skyport){
+      sun.color.set(p>.65?0xffc18a:0xffdfb3);
+      hemi.color.set(0xffedd8);hemi.groundColor.set(0xb2d9ed);hemi.intensity=1.65;
+      interiorFill.intensity=.5+.15*p;
+    }
+    sun.position.set(-85,130-p*65,-65);backdrop.tint(sky.horizon,p<=.65?0:(p-.65)/.35);
+  }
   function stats(){
     const out={drawCalls:0,triangles:0,instanced:0,meshes:0,textureBytes:0,textureCount:textures.size,colliders:colliderMeshes.size};
-    group.traverse(o=>{if(!o.isMesh||!o.visible)return;out.drawCalls++;out.triangles+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
+    group.traverseVisible(o=>{if(!o.isMesh)return;out.drawCalls++;out.triangles+=(o.geometry.index?o.geometry.index.count:o.geometry.attributes.position.count)/3*(o.isInstancedMesh?o.count:1);o.isInstancedMesh?out.instanced++:out.meshes++;});
     for(const t of textures)out.textureBytes+=Math.round((t.image?.width||0)*(t.image?.height||0)*4*4/3);return out;
   }
-  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();readability.dispose();for(const i of instances)i.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();sun.dispose();hemi.dispose();group.clear();colliderMeshes.clear();}
-  animate(0,0);return {group,solids,scenery,colliderMeshes,layout:data,lighting:lightingState,animate,updateDetail(){},stats,dispose,get disposed(){return disposed;}};
+  function dispose(){if(disposed)return;disposed=true;group.removeFromParent();festive.dispose();readability.dispose();for(const i of instances)i.dispose();for(const r of [...geometries,...materials,...textures])r.dispose();sun.dispose();hemi.dispose();interiorFill?.dispose();group.clear();colliderMeshes.clear();}
+  animate(0,0);return {group,solids,scenery,colliderMeshes,festive,layout:data,lighting:lightingState,animate,updateDetail(){},stats,dispose,get disposed(){return disposed;}};
 }

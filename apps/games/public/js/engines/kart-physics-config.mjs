@@ -20,6 +20,9 @@ export const KART_PHYSICS_CONFIG = Object.freeze({
     // without inventing a velocity kick in the renderer. Fence friction is
     // lower than road friction; tyre grip stays in the wheel controller.
     friction: 0.45,
+    // Raised boxes have driveable tops AND vertical sides. Wheel grip is
+    // independent; low rigid-hull friction lets bumpers slide along walls.
+    wallFriction: 0.04,
     restitution: 0.15,
     modelOriginY: -0.70,
   }),

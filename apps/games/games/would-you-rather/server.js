@@ -7,6 +7,7 @@ const { dealer, tally, allIn, roundsSetting, paceSetting, paced } = require('../
 const id = 'would-you-rather';
 
 const manifest = {
+  sameRoom: 'handoff',
   guide: {
     goal: 'Pick the option most of the room picks.',
     tips: [

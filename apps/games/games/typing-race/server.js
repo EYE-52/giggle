@@ -9,6 +9,7 @@ const { dealer, roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'typing-race';
 
 const manifest = {
+  sameRoom: false,
   players: { min: 2, max: 20 },
   howto: 'Type the sentence perfectly. Finishing earns 100 points and the fastest finishers earn up to 100 more; an unfinished sentence earns up to 50.',
   guide: {

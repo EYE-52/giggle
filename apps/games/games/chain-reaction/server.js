@@ -28,6 +28,7 @@ const CHAIN_CONFIG = {
 module.exports = {
   id: 'chain-reaction', minPlayers: 2, maxPlayers: 24,
   manifest: {
+    sameRoom: false,
     name: 'Chain Reaction', tagline: 'One tiny orb. A very big BOOM.',
     howto: 'Two to six players take turns adding an orb to an empty cell or a cell they own. Corners burst at 2, edges at 3, and inner cells at 4. Each burst sends an orb to every neighboring cell and captures it, setting off chain reactions. Everyone gets one turn before players with no orbs are eliminated. Be the last owner standing! With a move timer, a missed turn is skipped. A player who leaves drops out; extra friends watch.',
     guide: {

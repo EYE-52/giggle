@@ -11,6 +11,29 @@ export const BACKDROP_THEMES = Object.freeze({
 export const CLOUD_FILES = Object.freeze(['cloud-1.webp','cloud-2.webp','cloud-3.webp']);
 
 const keep = resource => resource;
+
+// Use the classic arenas' sky colours above every painted horizon. The sky
+// stays unlit and outside tone mapping: fog/indoor lighting must not turn
+// the open sky into a flat, grey ceiling. All colours are reused per frame.
+export function createKartSky(THREE,{parent,radius=410,widthSegments=32,heightSegments=18,
+  geometry=keep,material=keep}={}){
+  const colors=(top,mid,horizon)=>[top,mid,horizon].map(c=>new THREE.Color(c));
+  const day=colors(0x0877e7,0x2da6ef,0xb7def2),sunset=colors(0x3d4a8c,0xd88ab8,0xffb37a),night=colors(0x030612,0x0e2340,0x2a5a7a);
+  const channels=['uTop','uMid','uHorizon'];
+  const uniforms=Object.fromEntries(channels.map((k,i)=>[k,{value:day[i].clone()}]));
+  const mat=material(new THREE.ShaderMaterial({uniforms,
+    vertexShader:'varying vec3 vPos;void main(){vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+    fragmentShader:'varying vec3 vPos;uniform vec3 uTop;uniform vec3 uMid;uniform vec3 uHorizon;void main(){float h=normalize(vPos).y;vec3 c=mix(uHorizon,uMid,smoothstep(-.07,.23,h));c=mix(c,uTop,smoothstep(.18,.82,h));gl_FragColor=vec4(c,1.0);\n#include <colorspace_fragment>\n}',
+    side:THREE.BackSide,depthWrite:false,fog:false,toneMapped:false}));
+  const mesh=new THREE.Mesh(geometry(new THREE.SphereGeometry(radius,widthSegments,heightSegments)),mat);
+  mesh.name='procedural-sky';mesh.renderOrder=-10;parent.add(mesh);
+  function setPhase(phase){
+    const p=Math.max(0,Math.min(1,phase)),a=p<=.65?day:sunset,b=p<=.65?sunset:night,t=p<=.65?p/.65:(p-.65)/.35;
+    for(let i=0;i<channels.length;i++)uniforms[channels[i]].value.copy(a[i]).lerp(b[i],t);
+  }
+  return{mesh,horizon:uniforms.uHorizon.value,setPhase};
+}
+
 function canLoad(THREE){
   return typeof THREE.TextureLoader==='function'&&typeof globalThis.document?.createElementNS==='function';
 }

@@ -9,6 +9,7 @@ const { dealer, allIn, roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'lyric-fill';
 
 const manifest = {
+  sameRoom: false,
   players: { min: 2, max: 20 },
   howto: 'Fill the missing words before time runs out. Exact answers earn 100 points; close answers earn 50.',
   guide: {

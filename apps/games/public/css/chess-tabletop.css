@@ -107,3 +107,18 @@
  .ch-tabletop .sq small{font-size:9px;opacity:.85}
  .ch-tabletop .ch-file{right:2px;bottom:1px}.ch-tabletop .ch-rank{left:2px;top:2px}
 }
+
+/* Coordinate labels have their own light backing over either square. */
+.ch-tabletop .chboard .sq :is(.ch-rank,.ch-file) { padding:0 var(--space-4); border-radius:var(--radius-sm); background:var(--card); color:var(--ink); font:var(--text-caption); }
+
+/* Phone tools stay below a board sized to the actual play viewport.
+ * Moves/captures open in their own popover instead of pushing the board. */
+@media(max-width:759px){
+ .ch-tabletop { --ch-phone-chrome:calc(4 * var(--space-64) + 2 * var(--control-h-sm) + var(--space-48) + var(--space-32)); }
+ .ch-tabletop .chboard-col { width:min(100%,calc(var(--game-viewport-height,100dvh) - var(--ch-phone-chrome))); }
+ .ch-tabletop .bk-extra { position:relative; height:var(--control-h-sm); }
+ .ch-tabletop .chhist-wrap { position:absolute; bottom:0; left:0; width:100%; z-index:35; }
+ .ch-tabletop .chhist-wrap[open] { max-height:calc(100dvh - var(--space-64)); overflow:auto; background:var(--card); box-shadow:var(--shadow-card); }
+ .ch-tabletop .ch-capture-rail { margin:var(--space-8); }
+ .ch-tabletop .chhist-wrap>summary { min-height:var(--control-h-sm); }
+}

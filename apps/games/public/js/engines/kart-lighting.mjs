@@ -2,7 +2,9 @@
  * A tiny authored hemisphere is captured once, never each animation frame.
  *
  * Contract: createKartLighting(THREE, renderer, scene, mood, opts?) ->
- *   cleanup() with .update(mood) + .setBounds(half).
+ *   cleanup() with .ready + .update(mood) + .setBounds(half).
+ * - Await cleanup.ready before compiling/rendering the playable scene: the
+ *   environment's internal shader passes are prepared asynchronously.
  * - mood: world.palette (sky/horizon/sun/sunDir/hemi/fog/exposure). The
  *   initial call frames shadows + captures the environment once; later
  *   .update(mood) calls (root invokes disposeLighting.update(world.palette)
@@ -19,6 +21,7 @@
  * half=30), sun distance half*2. Map size stays 1024 so large arenas do
  * not force fps cliffs — just a softer shadow texel.
  */
+import {prepareKartPass} from './kart-shader-warmup.mjs';
 
 function numOr(v) {
   const n = Number(v);
@@ -131,25 +134,42 @@ export function createKartLighting(THREE, renderer, scene, mood, opts) {
       const strip=new THREE.Mesh(stripGeo,stripMat);strip.position.set(x,15,0);strip.lookAt(0,0,0);capture.add(strip);
     }
   }
-  let target = null;
-  try {
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    try {
-      target = pmrem.fromScene(capture, .03, .1, 100, { size: 64 });
-    } finally {
-      pmrem.dispose();
+  let target = null,disposed = false;
+  const releaseCapture=()=>{geo.dispose();mat.dispose();for(const resource of stripResources)resource.dispose();};
+  const applyEnvironment=()=>{
+    if(target?.texture&&!disposed){
+      scene.environment=target.texture;
+      scene.environmentIntensity=numOr(m0.environmentIntensity)??.7;
     }
-  } catch {
-    target = null; // headless/Node: keep lights + fog, skip reflections
-  } finally {
-    geo.dispose(); mat.dispose();for(const resource of stripResources)resource.dispose();
+  };
+  // PMREM.fromScene renders its own capture, blur and convolution materials.
+  // Scene compileAsync cannot prepare them. First submit the same passes with
+  // draws replaced by compilation, yield until all programs finish, then run
+  // the real capture. Keep the authored lighting and reflection pixels intact.
+  const asyncCapture=renderer.compile&&renderer.renderBufferDirect;
+  let ready;
+  if(asyncCapture){
+    ready=(async()=>{
+      let pmrem;
+      try{
+        pmrem=new THREE.PMREMGenerator(renderer);
+        const staging=await prepareKartPass(THREE,renderer,
+          ()=>pmrem.fromScene(capture,.03,.1,100,{size:64}),{isAlive:()=>!disposed});
+        staging.dispose();
+        if(!disposed){target=pmrem.fromScene(capture,.03,.1,100,{size:64});applyEnvironment();}
+      }catch{/* Headless/context loss: retain lights and fog without reflections. */}
+      finally{pmrem?.dispose();releaseCapture();}
+    })();
+  }else{
+    try{
+      const pmrem=new THREE.PMREMGenerator(renderer);
+      try{target=pmrem.fromScene(capture,.03,.1,100,{size:64});}
+      finally{pmrem.dispose();}
+      applyEnvironment();
+    }catch{/* Node renderer doubles have no GL context. */}
+    finally{releaseCapture();}
+    ready=Promise.resolve();
   }
-  if (target && target.texture) {
-    scene.environment = target.texture;
-    // Enough sky reflection to give paint and plastic a glossy toy sheen.
-    scene.environmentIntensity = numOr(m0.environmentIntensity)??.7;
-  }
-  let disposed = false;
   function cleanup() {
     if (disposed) return;
     disposed = true;
@@ -187,5 +207,6 @@ export function createKartLighting(THREE, renderer, scene, mood, opts) {
     return curHalf;
   };
   cleanup.half = () => curHalf;
+  cleanup.ready = ready;
   return cleanup;
 }

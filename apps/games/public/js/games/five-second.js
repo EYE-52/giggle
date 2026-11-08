@@ -50,6 +50,7 @@ function waitLine(S) {
 }
 
 function answersHtml(S) {
+  if (S.spokenMode) return '<p class="gk-card">Judge the three answers you heard out loud.</p>';
   if (S.answers && S.answers.length) {
     return `<ol class="fs-answers" aria-label="Answers">` + S.answers.map((a, i) =>
       `<li><span class="gk-mark" aria-hidden="true">${i + 1}</span><span>${esc(a)}</span></li>`).join('') + `</ol>`;
