@@ -1,0 +1,351 @@
+/* Batch 2's party stage. Stable rows keep every tap target and score in place. */
+#gbody .b2-scene.pl-fill {
+  width: min(100%, 880px);
+  margin-inline: auto;
+  display: grid;
+  grid-template-rows: auto auto auto auto auto;
+  gap: var(--space-12);
+  padding: var(--space-8) 0 var(--space-24);
+  min-height: 0;
+  align-content: start;
+}
+.b2-scene,
+.b2-scene * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+.b2-scene [hidden] {
+  display: none !important;
+}
+#gbody .b2-scene .party-hud {
+  flex-wrap: nowrap;
+  min-height: 44px;
+  gap: var(--space-8);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+#gbody .b2-scene .gk-hud-round,
+#gbody .b2-scene .gk-hud-progress {
+  white-space: nowrap;
+}
+#gbody .b2-scene .gk-hud-phase {
+  text-transform: capitalize;
+}
+#gbody .b2-scene .gk-hud-timer {
+  flex: 0 0 64px;
+  min-width: 64px;
+}
+#gbody .b2-scene .b2-prompt.party-prompt {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  min-height: 96px;
+  padding: var(--space-16);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sticker);
+  background: var(--fam-soft);
+  color: var(--ink);
+  font: var(--text-heading);
+  text-align: center;
+  text-wrap: balance;
+  overflow-wrap: anywhere;
+}
+#gbody .b2-scene.whisp-world .b2-prompt.party-prompt {
+  min-height: 128px;
+}
+.b2-play {
+  display: grid;
+  grid-template-rows: 120px 200px;
+  gap: var(--space-8);
+}
+.b2-piece {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  position: relative;
+}
+.b2-stamp {
+  width: min(100%, 480px);
+  padding: var(--space-12) var(--space-16);
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-sticker-sm);
+  text-align: center;
+}
+.b2-stamp strong {
+  font: var(--text-title);
+  overflow-wrap: anywhere;
+}
+.b2-piece-note {
+  font: var(--text-caption);
+  margin: var(--space-8) 0 0;
+}
+/* A scrollable choice tray keeps all 20 seats reachable without moving the action. */
+.b2-work {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+}
+#gbody .b2-scene .b2-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: var(--space-8);
+  margin: 0;
+  width: 100%;
+}
+#gbody .b2-scene .b2-choice {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  gap: var(--space-8);
+  min-height: calc(56px / var(--b2-zoom, 1));
+  padding: var(--space-8) var(--space-12);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sticker-sm);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--pl-c, var(--fam)) 18%, var(--card));
+  font: var(--text-button-sm);
+  text-align: left;
+  overflow-wrap: anywhere;
+  transition: transform var(--dur-quick) var(--ease);
+}
+.b2-choice .pl-voter {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+.b2-choice .pl-face {
+  flex: none;
+}
+#gbody .b2-scene .b2-choice.is-selected {
+  border-color: var(--fam-deep);
+  background: var(--fam-soft);
+  padding-right: var(--space-32);
+}
+.b2-tick {
+  position: absolute;
+  right: var(--space-8);
+  font: var(--text-title);
+}
+#gbody .b2-scene .b2-choice:disabled {
+  opacity: 1;
+  color: var(--ink-dim);
+  background: var(--well);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.b2-composer {
+  display: grid;
+  gap: var(--space-8);
+  width: 100%;
+}
+.b2-input-label {
+  font: var(--text-caption);
+}
+.b2-scene [data-input] {
+  width: 100%;
+  min-height: calc(56px / var(--b2-zoom, 1));
+  padding: var(--space-12) var(--space-16);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  color: var(--ink);
+  font: var(--text-title);
+}
+.b2-input-help {
+  margin: 0;
+  font: var(--text-caption);
+}
+.b2-message {
+  display: grid;
+  gap: var(--space-8);
+  font: var(--text-body);
+}
+.b2-work > * {
+  flex-shrink: 0;
+}
+.b2-scene:not(.b2-has-options) .b2-message:not([hidden]) {
+  flex: 1;
+  align-content: center;
+}
+.b2-scene:not(.b2-has-options):not(.b2-has-input) .b2-message {
+  padding: var(--space-16);
+  border: var(--outline-w) solid var(--outline);
+  background: var(--fam-soft);
+  border-radius: var(--radius-lg);
+}
+#gbody .b2-scene.b2-has-options .b2-options {
+  flex: 1;
+  grid-auto-rows: minmax(calc(56px / var(--b2-zoom, 1)), 1fr);
+  align-content: stretch;
+}
+.b2-message p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.b2-result {
+  display: grid;
+  gap: var(--space-8);
+  padding: var(--space-12);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  background: var(--fam-soft);
+  animation: b2-pop var(--dur-slow) var(--ease) both;
+  min-height: 112px;
+  align-content: center;
+}
+#gbody .b2-scene .b2-message:has(.b2-result) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.b2-actions {
+  display: grid;
+  grid-template-rows: 48px 56px 48px;
+  gap: var(--space-8);
+  justify-items: center;
+}
+.b2-scene:not(.odd-world) .b2-tools {
+  display: none;
+}
+.b2-scene.odd-world .b2-actions {
+  grid-template-rows: 48px 56px 48px 48px;
+}
+.b2-feedback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+}
+#gbody .b2-scene .b2-feedback .toast {
+  position: static;
+  transform: none;
+  margin: 0;
+  max-width: 100%;
+  min-height: var(--control-h-sm);
+  padding: var(--space-8) var(--space-16);
+  font: var(--text-caption);
+  animation: b2-pop var(--dur-base) var(--ease);
+}
+.b2-status {
+  margin: 0;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  font: var(--text-caption);
+  text-align: center;
+}
+#gbody .b2-scene .b2-primary {
+  width: min(100%, 480px);
+  min-height: calc(56px / var(--b2-zoom, 1));
+  font: var(--text-button);
+}
+.b2-tools {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-8);
+  width: 100%;
+  align-items: center;
+}
+#gbody .b2-scene .b2-tools button {
+  min-height: calc(44px / var(--b2-zoom, 1));
+  padding-inline: var(--space-12);
+  font: var(--text-button-sm);
+}
+.b2-scene :is(button, input):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.b2-scene :is(button, input) {
+  touch-action: manipulation;
+}
+#gbody .b2-scene .pl-live {
+  margin-top: 0;
+  align-self: start;
+}
+#gbody .b2-scene .pl-seat {
+  grid-template-areas: "av name" "av state" "pts pts";
+}
+#gbody .b2-scene .pl-points {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  width: 100%;
+  min-height: 24px;
+  gap: var(--space-4);
+}
+#gbody .b2-scene .pl-points b {
+  margin-right: auto;
+  min-width: 5ch;
+  font-variant-numeric: tabular-nums;
+}
+#gbody .b2-scene .pl-gain,
+#gbody .b2-scene .pl-gain.is-empty {
+  display: inline-block;
+  min-width: 5ch;
+  font-variant-numeric: tabular-nums;
+}
+#gbody .b2-scene .pl-state {
+  min-height: 20px;
+}
+@media (hover: hover) {
+  #gbody .b2-scene button:not(:disabled):hover {
+    transform: translateY(-2px);
+  }
+}
+#gbody .b2-scene button:not(:disabled):active {
+  transform: translateY(2px);
+}
+@keyframes b2-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (max-width: 560px) {
+  #gbody .b2-scene .party-hud > * {
+    font-size: 12px;
+  }
+  #gbody .b2-scene .gk-hud-timer {
+    flex-basis: 48px;
+    min-width: 48px;
+  }
+  #gbody .b2-scene .gk-hud-phase {
+    padding-inline: var(--space-8);
+  }
+  #gbody .b2-scene .b2-prompt.party-prompt {
+    min-height: 112px;
+    font-size: 26px;
+  }
+  #gbody .b2-scene.whisp-world .b2-prompt.party-prompt {
+    min-height: 160px;
+  }
+  #gbody .b2-scene .pl-seats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #gbody .b2-scene .b2-choice {
+    padding-inline: var(--space-8);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b2-scene * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

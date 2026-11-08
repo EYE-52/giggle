@@ -1,0 +1,376 @@
+/* Batch 3's shared party stage. Physical-size tracks survive the shell zoom. */
+/* Keep utilities with their header while long boards and score strips scroll. */
+body.game-playing:has(#gbody > .word-party) .play-toolbar {
+  position: relative;
+}
+body.game-playing:has(#gbody > .word-party) .play-toolbar #roomMenu {
+  position: absolute;
+  top: var(--space-8);
+  right: calc(var(--control-h-sm) + var(--space-8));
+}
+body.game-playing:has(#gbody > .word-party)
+  .play-toolbar
+  :is(.game-report-icon, .game-screen-toggle) {
+  position: absolute;
+  top: var(--space-8);
+  left: auto;
+  right: 0;
+}
+body.game-playing:has(#gbody > .word-party)
+  .play-toolbar:has(#bGameScreenToggle:not([hidden])) {
+  padding-right: calc(
+    3 * var(--control-h-sm) + 2 * var(--space-8) + var(--space-12)
+  );
+}
+body.game-playing:has(#gbody > .word-party)
+  .play-toolbar:has(#bGameScreenToggle:not([hidden]))
+  #roomMenu {
+  right: calc(2 * (var(--control-h-sm) + var(--space-8)));
+}
+/* The kit replaces the round root on final scores. Keep all three slots there. */
+body.game-playing:is(
+    [data-game="clue-grid"],
+    [data-game="letter-lock"],
+    [data-game="word-grid"],
+    [data-game="banned-words"],
+    [data-game="read-my-lips"]
+  ):has(#gbody > #rematch:not([hidden]))
+  .play-toolbar:has(#bGameScreenToggle:not([hidden])) {
+  padding-right: calc(
+    3 * var(--control-h-sm) + 2 * var(--space-8) + var(--space-12)
+  );
+}
+body.game-playing:is(
+    [data-game="clue-grid"],
+    [data-game="letter-lock"],
+    [data-game="word-grid"],
+    [data-game="banned-words"],
+    [data-game="read-my-lips"]
+  ):has(#gbody > #rematch:not([hidden]))
+  .play-toolbar:has(#bGameScreenToggle:not([hidden]))
+  #roomMenu {
+  right: calc(2 * (var(--control-h-sm) + var(--space-8)));
+}
+.word-party,
+.word-party * {
+  box-sizing: border-box;
+}
+.word-party [hidden] {
+  display: none !important;
+}
+#gbody .word-party.pl-fill {
+  width: min(100%, 880px);
+  margin-inline: auto;
+  display: grid;
+  align-content: start;
+  grid-template-rows:
+    calc(44px / var(--round-zoom, 1)) calc(72px / var(--round-zoom, 1))
+    calc(360px / var(--round-zoom, 1)) calc(112px / var(--round-zoom, 1))
+    auto;
+  gap: var(--space-12);
+}
+#gbody .word-party > .party-prompt.party-prompt {
+  height: calc(72px / var(--round-zoom, 1));
+  margin: 0;
+  padding: var(--space-12);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  overflow-wrap: anywhere;
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  background: var(--fam-soft);
+  box-shadow: var(--shadow-sticker);
+  font: var(--text-heading);
+}
+#gbody .word-party .party-hud {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: var(--space-8);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+#gbody .word-party .gk-hud-round {
+  white-space: nowrap;
+}
+#gbody .word-party .gk-hud-phase {
+  max-width: 12ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#gbody .word-party .gk-hud-progress {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+  font: var(--text-caption);
+}
+#gbody .word-party .gk-hud-timer,
+#gbody .word-party .gk-hud-timer:empty {
+  display: inline-flex;
+  width: 64px;
+  min-width: 64px;
+}
+#gbody .word-party .gk-hud-timer:empty {
+  visibility: hidden;
+}
+#gbody .word-party .wp-play {
+  width: 100%;
+  min-width: 0;
+  height: calc(360px / var(--round-zoom, 1));
+}
+#gbody .word-party .wp-actions {
+  height: calc(112px / var(--round-zoom, 1));
+  display: grid;
+  justify-items: center;
+  grid-template-rows: calc(48px / var(--round-zoom, 1)) calc(
+      56px / var(--round-zoom, 1)
+    );
+  gap: var(--space-8);
+}
+#gbody .word-party .wp-status {
+  width: 100%;
+  min-height: calc(48px / var(--round-zoom, 1));
+  margin: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  font: var(--text-caption);
+}
+#gbody .word-party .wp-primary {
+  width: min(100%, 480px);
+  height: calc(56px / var(--round-zoom, 1));
+  min-height: calc(56px / var(--round-zoom, 1));
+  margin: 0;
+  font: var(--text-title);
+}
+.word-party [data-input] {
+  width: 100%;
+  min-width: 0;
+  height: calc(56px / var(--round-zoom, 1));
+  min-height: calc(56px / var(--round-zoom, 1));
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-12) var(--space-16);
+  background: var(--card);
+  color: var(--ink);
+  font: var(--text-title);
+}
+.word-party [data-input]:disabled {
+  background: var(--well);
+  color: var(--ink-dim);
+}
+.word-party :is(button, input, textarea):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.word-party :is(button, input, textarea) {
+  touch-action: manipulation;
+}
+.word-party button {
+  min-height: calc(44px / var(--round-zoom, 1));
+}
+.word-party p,
+.word-party h4 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.word-party .wp-composer {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  height: calc(56px / var(--round-zoom, 1));
+}
+.word-party .wp-cue {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--space-8) var(--space-12);
+  border: var(--outline-w) dashed var(--outline);
+  border-radius: var(--radius-lg);
+  background: var(--fam-soft);
+  color: var(--ink);
+  font: var(--text-button-sm);
+  text-align: center;
+}
+.word-party [data-input]::placeholder {
+  color: var(--ink-dim);
+  opacity: 1;
+}
+.word-party .wp-card {
+  height: 280px;
+  padding: var(--space-24);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sticker-lg);
+  background: var(--fam-soft);
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-16);
+  text-align: center;
+}
+.word-party .wp-card h4 {
+  font: var(--text-heading);
+}
+.word-party .wp-card p {
+  font: var(--text-body);
+}
+.word-party .wp-face {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  min-width: 0;
+  font: var(--text-title);
+}
+.word-party .wp-face .pl-voter {
+  font: var(--text-title);
+}
+.word-party .pl-voter {
+  display: inline-flex;
+  gap: var(--space-4);
+  align-items: center;
+  font: var(--text-caption);
+}
+.word-party .pl-face {
+  flex: none;
+}
+#gbody .word-party .pl-live {
+  align-self: start;
+  margin-top: 0;
+}
+#gbody .word-party .pl-seats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+#gbody .word-party .pl-seat {
+  height: 100px;
+  min-width: 0;
+  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-areas: "av name" "av state" "pts pts";
+}
+#gbody .word-party .pl-state {
+  min-height: 18px;
+}
+#gbody .word-party .pl-points {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: 24px;
+  overflow: visible;
+}
+#gbody .word-party .pl-points b {
+  min-width: 4ch;
+  margin-right: auto;
+  font-variant-numeric: tabular-nums;
+}
+#gbody .word-party .pl-gain,
+#gbody .word-party .pl-gain.is-empty {
+  display: inline-block;
+  min-width: 4ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.word-party .wp-detail {
+  grid-column: 1 / -1;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-12);
+  border: var(--outline-w) solid var(--outline);
+}
+.word-party .wp-detail summary {
+  min-height: calc(44px / var(--round-zoom, 1));
+  display: flex;
+  align-items: center;
+  font: var(--text-button);
+  cursor: pointer;
+}
+.word-party .wp-detail p {
+  font: var(--text-body);
+}
+.word-party .wp-invisible {
+  visibility: hidden;
+}
+.word-party .wp-gains .pl-gain:not(.is-empty) {
+  animation: wp-gain var(--dur-slow) var(--ease) both;
+}
+@keyframes wp-gain {
+  from {
+    opacity: 0;
+    transform: translateY(-28px) scale(1.25);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@media (max-width: 560px) {
+  #gbody .word-party.pl-fill {
+    gap: var(--space-8);
+  }
+  #gbody .word-party > .party-prompt.party-prompt {
+    padding: var(--space-8);
+    font-size: 24px;
+  }
+  #gbody .word-party .party-hud {
+    gap: var(--space-4);
+    grid-template-columns: auto minmax(0, 1fr) auto 56px;
+  }
+  #gbody .word-party .gk-hud-round {
+    font: var(--text-caption);
+  }
+  #gbody .word-party .gk-hud-phase {
+    font: var(--text-caption);
+    padding-inline: var(--space-4);
+  }
+  #gbody .word-party .gk-hud-timer,
+  #gbody .word-party .gk-hud-timer:empty {
+    width: 56px;
+    min-width: 56px;
+  }
+  #gbody .word-party .pl-seats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .word-party .wp-card {
+    padding: var(--space-16);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .word-party * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* Names keep the seat's face and shorten safely inside cards. */
+.word-party .wp-face {
+  max-width: 100%;
+}
+.word-party .wp-face .pl-voter {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.word-party .wp-face .pl-voter .pl-face {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-right: var(--space-4);
+}
+.word-party .wp-composer [data-input] {
+  flex: 1;
+}
+#gbody .word-party .wp-card h4 {
+  font: var(--text-heading);
+}
+.word-party .wp-card {
+  height: calc(280px / var(--round-zoom, 1));
+}

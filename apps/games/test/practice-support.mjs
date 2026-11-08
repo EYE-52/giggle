@@ -7,7 +7,10 @@ import { PRACTICE_MODES, practiceSupport } from '../public/js/practice-support.m
 const require = createRequire(import.meta.url);
 const registry = require('../games/registry');
 const catalog = registry.list();
-assert.equal(catalog.length, 42);
+assert.equal(catalog.length, 72);
+for (const id of ['math-dash', 'emoji-spotter', 'echo-pads', 'color-clash', 'hot-potato']) assert.equal(PRACTICE_MODES[id], 'timed');
+assert(catalog.length >= 42, 'keep every existing game');
+for (const id of ['dice-fibs', 'sketchy-impostor', 'draw-off', 'block-stack', 'penalty-kicks']) assert(catalog.some(g => g.id === id));
 assert.equal(PRACTICE_MODES['warm-words'], 'timed', 'Warm Words uses timed guesses, not pretend performance');
 assert.equal(PRACTICE_MODES['story-builder'], 'turns');
 assert.equal(PRACTICE_MODES['draw-phone'], 'drawing');
@@ -73,4 +76,4 @@ assert.equal(themeDocument.documentElement.dataset.theme, undefined, 'first pain
 practice.session.setItem(prefix + 'pb_theme', 'night');
 vm.runInNewContext(themeSource, { location: { search: `?practice=${uuid}&seat=2` }, URLSearchParams, localStorage: practice.local, sessionStorage: practice.session, document: themeDocument });
 assert.equal(themeDocument.documentElement.dataset.theme, 'night', 'practice reload restores only its own theme');
-console.log('PRACTICE_SUPPORT_PASS: 42 explicit game reviews; real minimums, unknown-game rejection, isolated storage and embed separation');
+console.log(`PRACTICE_SUPPORT_PASS: ${catalog.length} explicit game reviews; real minimums, unknown-game rejection, isolated storage and embed separation`);

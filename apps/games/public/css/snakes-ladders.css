@@ -1,0 +1,41 @@
+.sl-game .sl-scene { line-height: 1.4; }
+.sl-game .sl-frame { fill: var(--fam); }
+.sl-game .sl-square { stroke: #fff5; stroke-width: 1; }
+.sl-game .sl-shade-0 { fill: #efedc9; }
+.sl-game .sl-shade-1 { fill: #d2e3ba; }
+.sl-game .sl-shade-2 { fill: #e6e8c6; }
+.sl-game .sl-number { fill: #53604c; font: 800 18px var(--font-body); }
+.sl-game .sl-ladder { fill: none; stroke: #b17d38; stroke-width: 5; stroke-linecap: round; filter: drop-shadow(0 2px 0 #fff8); }
+.sl-game .sl-snake { --snake: #9e589f; }
+.sl-game .sl-snake-1 { --snake: #418e9e; }
+.sl-game .sl-snake-2 { --snake: #d57461; }
+.sl-game .sl-snake-body { fill: none; stroke: var(--snake); stroke-width: 11; stroke-linecap: round; stroke-dasharray: 2 3; }
+.sl-game .sl-head { fill: var(--snake); stroke: #fff8; stroke-width: 1; }
+.sl-game .sl-eyes { fill: #fff; }
+.sl-game .sl-pawn-shadow { fill: #0004; }
+.sl-game .sl-pawn-piece { fill: var(--piece); stroke: #fff; stroke-width: 2; }
+.sl-game .sl-pawn text { fill: #fff; text-anchor: middle; font: 800 11px var(--font-body); }
+.sl-game .sl-last { fill: none; stroke: var(--fam); stroke-width: 3; stroke-dasharray: 4 4; }
+.sl-game .sl-trail-note { min-height: 1.4em; text-align: center; margin: var(--space-8) 0 0; font: var(--text-caption); color: var(--ink-dim); }
+.sl-game .sl-roll { display: flex; align-items: center; gap: var(--space-16); }
+.sl-game .sl-roll .tb-primary { flex: 1; }
+.sl-game .sl-roll-reason { min-height: 1.4em; margin: var(--space-8) 0 0; }
+[data-theme="night"] .sl-game .sl-shade-0 { fill: #bac2a2; }
+[data-theme="night"] .sl-game .sl-shade-1 { fill: #9db590; }
+[data-theme="night"] .sl-game .sl-shade-2 { fill: #abb99a; }
+@media (min-width: 760px) {
+  .sl-game .bk-players { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* The printed caption belongs to the stage too. Reserve it before sizing
+   * the square, so the bottom rim never pushes past the viewport. */
+  .sl-game .bk-stage {
+    width: min(100%, calc(var(--game-viewport-height, 100dvh) - 120px - var(--space-32)));
+  }
+}
+@media (max-width: 759px) {
+  .sl-game { --b5-extra-height: 88px; }
+  .sl-game .sl-number { font-size: 24px; }
+  .sl-game .sl-trail-note { display: none; }
+  .sl-game .sl-roll { justify-content: center; }
+  .sl-game .sl-roll .tb-primary { max-width: 260px; }
+  .sl-game .sl-roll-reason { margin-top: var(--space-4); }
+}

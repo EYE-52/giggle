@@ -1,0 +1,73 @@
+.do-world .do-easel {
+  padding: var(--space-12);
+  background: var(--fam-deep);
+  border: var(--outline-w-lg) solid var(--outline);
+  box-shadow: var(--shadow-sticker-lg);
+}
+.do-world .do-easel::before,
+.do-world .do-easel::after {
+  content: "";
+  position: absolute;
+  width: 48px;
+  height: 16px;
+  top: 0;
+  background: var(--sun);
+  border-radius: var(--radius-sm);
+  transform: rotate(-3deg);
+  z-index: 1;
+}
+.do-world .do-easel::before {
+  left: var(--space-32);
+}
+.do-world .do-easel::after {
+  right: var(--space-32);
+  transform: rotate(3deg);
+}
+.do-world canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: white;
+  border-radius: var(--radius-sm);
+  touch-action: none;
+}
+.do-world .do-gallery-label {
+  position: absolute;
+  right: var(--space-24);
+  top: var(--space-24);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-8);
+  font: var(--text-caption);
+  pointer-events: none;
+}
+.do-world .do-swatch {
+  display: block;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  border: var(--outline-w) solid var(--outline);
+}
+.do-world .do-gallery-nav {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  width: 100%;
+  gap: var(--space-8);
+}
+.do-world .do-gallery-note {
+  text-align: center;
+  font: var(--text-caption);
+}
+/* The complete pen/erase/undo/clear set fits beside the drawing on phones. */
+.do-world .do-tools .tb-chip {
+  padding-inline: var(--space-8);
+}
+.do-world .do-tools [data-color] {
+  display: grid;
+  place-items: center;
+  width: calc(var(--control-h-sm) / var(--b6-zoom, 1));
+  min-width: calc(var(--control-h-sm) / var(--b6-zoom, 1));
+  padding: 0;
+}

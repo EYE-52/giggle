@@ -493,7 +493,7 @@ h3 { font-size: 19px; font-weight: 800; }
 @keyframes tb-pulse { from { opacity: 1; } to { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) {
   .tb-btn, .tb-seg > button, :is(button, a).tb-card { transition: opacity var(--dur-quick) var(--ease); }
-  .tb-btn:hover, .tb-btn:active, .tb-seg > button:active, :is(button, a).tb-card:hover, :is(button, a).tb-card:active { transform: none; }
+  .tb-btn:hover, .tb-btn:active, .tb-seg > button:active, :is(button, a).tb-card:hover, :is(button, a).tb-card:active { transform: none !important; }
 }
 
 /* ---- forms ---- */

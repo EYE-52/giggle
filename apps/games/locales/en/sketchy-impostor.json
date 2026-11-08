@@ -1,0 +1,524 @@
+{
+  "categories": [
+    {
+      "name": "Fruit",
+      "words": [
+        "apple",
+        "banana",
+        "pineapple",
+        "watermelon",
+        "strawberry",
+        "cherry",
+        "pear",
+        "lemon"
+      ]
+    },
+    {
+      "name": "Vegetables",
+      "words": [
+        "carrot",
+        "broccoli",
+        "pumpkin",
+        "onion",
+        "pea pod",
+        "corn cob",
+        "mushroom",
+        "aubergine"
+      ]
+    },
+    {
+      "name": "Bakery",
+      "words": [
+        "croissant",
+        "cupcake",
+        "baguette",
+        "pretzel",
+        "doughnut",
+        "cinnamon roll",
+        "gingerbread person",
+        "slice of cake"
+      ]
+    },
+    {
+      "name": "Breakfast",
+      "words": [
+        "fried egg",
+        "pancake stack",
+        "waffle",
+        "cereal bowl",
+        "toast",
+        "teapot",
+        "jam jar",
+        "porridge"
+      ]
+    },
+    {
+      "name": "Street food",
+      "words": [
+        "taco",
+        "hot dog",
+        "dumpling",
+        "samosa",
+        "burger",
+        "pizza slice",
+        "noodle bowl",
+        "popcorn tub"
+      ]
+    },
+    {
+      "name": "Kitchen tools",
+      "words": [
+        "whisk",
+        "rolling pin",
+        "colander",
+        "ladle",
+        "spatula",
+        "cheese grater",
+        "frying pan",
+        "oven glove"
+      ]
+    },
+    {
+      "name": "Pets",
+      "words": [
+        "cat",
+        "dog",
+        "hamster",
+        "goldfish",
+        "parrot",
+        "rabbit",
+        "tortoise",
+        "guinea pig"
+      ]
+    },
+    {
+      "name": "Farm animals",
+      "words": [
+        "cow",
+        "pig",
+        "chicken",
+        "sheep",
+        "goat",
+        "horse",
+        "donkey",
+        "duck"
+      ]
+    },
+    {
+      "name": "Wild cats",
+      "words": [
+        "lion",
+        "tiger",
+        "leopard",
+        "cheetah",
+        "lynx",
+        "panther",
+        "snow leopard",
+        "sabre-toothed cat"
+      ]
+    },
+    {
+      "name": "Forest animals",
+      "words": [
+        "fox",
+        "deer",
+        "bear",
+        "squirrel",
+        "hedgehog",
+        "raccoon",
+        "badger",
+        "moose"
+      ]
+    },
+    {
+      "name": "Sea creatures",
+      "words": [
+        "octopus",
+        "shark",
+        "jellyfish",
+        "seahorse",
+        "crab",
+        "lobster",
+        "starfish",
+        "stingray"
+      ]
+    },
+    {
+      "name": "Birds",
+      "words": [
+        "penguin",
+        "flamingo",
+        "peacock",
+        "owl",
+        "toucan",
+        "swan",
+        "pelican",
+        "woodpecker"
+      ]
+    },
+    {
+      "name": "Bugs",
+      "words": [
+        "butterfly",
+        "ladybird",
+        "bee",
+        "ant",
+        "dragonfly",
+        "beetle",
+        "grasshopper",
+        "caterpillar"
+      ]
+    },
+    {
+      "name": "Dinosaurs",
+      "words": [
+        "T rex",
+        "triceratops",
+        "stegosaurus",
+        "diplodocus",
+        "ankylosaurus",
+        "velociraptor",
+        "parasaurolophus",
+        "spinosaurus"
+      ]
+    },
+    {
+      "name": "Flowers",
+      "words": [
+        "sunflower",
+        "rose",
+        "tulip",
+        "daisy",
+        "daffodil",
+        "lotus",
+        "poppy",
+        "bluebell"
+      ]
+    },
+    {
+      "name": "Garden",
+      "words": [
+        "watering can",
+        "plant pot",
+        "wheelbarrow",
+        "rake",
+        "garden gnome",
+        "birdbath",
+        "lawn mower",
+        "greenhouse"
+      ]
+    },
+    {
+      "name": "Weather",
+      "words": [
+        "rainbow",
+        "tornado",
+        "snowflake",
+        "thundercloud",
+        "sun",
+        "raindrop",
+        "icicle",
+        "foggy hill"
+      ]
+    },
+    {
+      "name": "Landscapes",
+      "words": [
+        "volcano",
+        "waterfall",
+        "island",
+        "desert dune",
+        "mountain",
+        "river bend",
+        "cave",
+        "canyon"
+      ]
+    },
+    {
+      "name": "Space",
+      "words": [
+        "rocket",
+        "Saturn",
+        "moon",
+        "astronaut",
+        "comet",
+        "space station",
+        "flying saucer",
+        "telescope"
+      ]
+    },
+    {
+      "name": "Road vehicles",
+      "words": [
+        "bus",
+        "taxi",
+        "fire engine",
+        "ambulance",
+        "motorbike",
+        "tractor",
+        "cement mixer",
+        "tow truck"
+      ]
+    },
+    {
+      "name": "On the water",
+      "words": [
+        "sailboat",
+        "submarine",
+        "canoe",
+        "ferry",
+        "rubber dinghy",
+        "pirate ship",
+        "speedboat",
+        "lifeboat"
+      ]
+    },
+    {
+      "name": "In the air",
+      "words": [
+        "aeroplane",
+        "helicopter",
+        "hot air balloon",
+        "glider",
+        "kite",
+        "parachute",
+        "blimp",
+        "seaplane"
+      ]
+    },
+    {
+      "name": "Clothes",
+      "words": [
+        "shirt",
+        "dress",
+        "trousers",
+        "skirt",
+        "raincoat",
+        "dungarees",
+        "hoodie",
+        "scarf"
+      ]
+    },
+    {
+      "name": "Headwear",
+      "words": [
+        "crown",
+        "top hat",
+        "baseball cap",
+        "beret",
+        "chef hat",
+        "helmet",
+        "party hat",
+        "turban"
+      ]
+    },
+    {
+      "name": "Footwear",
+      "words": [
+        "roller skate",
+        "wellington boot",
+        "slipper",
+        "high heel",
+        "sandal",
+        "trainer",
+        "ballet shoe",
+        "ice skate"
+      ]
+    },
+    {
+      "name": "Music",
+      "words": [
+        "guitar",
+        "piano",
+        "trumpet",
+        "drum kit",
+        "violin",
+        "saxophone",
+        "harp",
+        "accordion"
+      ]
+    },
+    {
+      "name": "Sports gear",
+      "words": [
+        "football",
+        "tennis racket",
+        "cricket bat",
+        "golf club",
+        "boxing glove",
+        "basketball hoop",
+        "bowling pin",
+        "hockey stick"
+      ]
+    },
+    {
+      "name": "Playground",
+      "words": [
+        "slide",
+        "swing",
+        "seesaw",
+        "climbing frame",
+        "roundabout",
+        "sandpit",
+        "hopscotch",
+        "skipping rope"
+      ]
+    },
+    {
+      "name": "Toys",
+      "words": [
+        "teddy bear",
+        "spinning top",
+        "yo yo",
+        "toy robot",
+        "jack in the box",
+        "rocking horse",
+        "building blocks",
+        "marionette"
+      ]
+    },
+    {
+      "name": "At the beach",
+      "words": [
+        "sandcastle",
+        "beach umbrella",
+        "surfboard",
+        "bucket and spade",
+        "deckchair",
+        "lifebuoy",
+        "beach ball",
+        "flippers"
+      ]
+    },
+    {
+      "name": "Camping",
+      "words": [
+        "tent",
+        "campfire",
+        "sleeping bag",
+        "compass",
+        "lantern",
+        "backpack",
+        "hiking boot",
+        "marshmallow stick"
+      ]
+    },
+    {
+      "name": "Home furniture",
+      "words": [
+        "sofa",
+        "armchair",
+        "bunk bed",
+        "wardrobe",
+        "rocking chair",
+        "dining table",
+        "bookshelf",
+        "stool"
+      ]
+    },
+    {
+      "name": "Bathroom",
+      "words": [
+        "toothbrush",
+        "bathtub",
+        "rubber duck",
+        "soap bar",
+        "shower head",
+        "toilet roll",
+        "hair dryer",
+        "comb"
+      ]
+    },
+    {
+      "name": "School bag",
+      "words": [
+        "pencil",
+        "scissors",
+        "ruler",
+        "glue stick",
+        "notebook",
+        "paintbrush",
+        "lunchbox",
+        "calculator"
+      ]
+    },
+    {
+      "name": "Buildings",
+      "words": [
+        "castle",
+        "lighthouse",
+        "windmill",
+        "igloo",
+        "treehouse",
+        "tent shop",
+        "skyscraper",
+        "pagoda"
+      ]
+    },
+    {
+      "name": "Fairy tales",
+      "words": [
+        "dragon",
+        "unicorn",
+        "mermaid",
+        "wizard",
+        "fairy",
+        "giant",
+        "witch broom",
+        "magic lamp"
+      ]
+    },
+    {
+      "name": "Pirates",
+      "words": [
+        "treasure chest",
+        "anchor",
+        "treasure map",
+        "eye patch",
+        "hook hand",
+        "ship wheel",
+        "message bottle",
+        "cannon"
+      ]
+    },
+    {
+      "name": "Celebrations",
+      "words": [
+        "birthday cake",
+        "wrapped present",
+        "balloon arch",
+        "confetti cannon",
+        "firework",
+        "disco ball",
+        "bunting",
+        "party popper"
+      ]
+    },
+    {
+      "name": "Jobs",
+      "words": [
+        "chef",
+        "firefighter",
+        "dentist",
+        "painter",
+        "astronaut waving",
+        "juggler",
+        "photographer",
+        "gardener"
+      ]
+    },
+    {
+      "name": "Clockwork",
+      "words": [
+        "alarm clock",
+        "hourglass",
+        "wristwatch",
+        "sundial",
+        "cuckoo clock",
+        "stopwatch",
+        "pendulum",
+        "calendar"
+      ]
+    }
+  ]
+}

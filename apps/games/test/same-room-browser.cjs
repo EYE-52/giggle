@@ -136,7 +136,7 @@ async function run() {
     await shot('choose');
     await page.locator('[data-kind="truth"]').click();
     for (let writer = 0; promptStyle === 'Ask your own' && writer < 2; writer++) {
-      await page.locator('#srUnlock').waitFor();
+      await page.locator('body[data-stage="pass"] #srUnlock').waitFor();
       if (!writer) await shot('pass');
       assert.equal(await page.locator('body').getAttribute('data-stage'), 'pass');
       assert.equal(await page.locator('.sr-phone-art').count(), 1);
@@ -149,10 +149,10 @@ async function run() {
       await page.getByRole('button', { name: 'Done, pass it back', exact: true }).waitFor();
       assert(!(await page.content()).includes(`What is your favourite shared memory, writer ${writer}?`));
       if (!writer) await shot('pass-back');
-      await page.locator('#srUnlock').click();
+      await page.locator('body[data-stage="return"] #srUnlock').click();
     }
     for (let voter = 0; promptStyle === 'Ask your own' && voter < 2; voter++) {
-      await page.locator('#srUnlock').click();
+      await page.locator('body[data-stage="pass"] #srUnlock').click();
       await page.locator('[data-prompt-vote="0"]').waitFor();
       await actor('prompt-vote', true);
       if (!voter) await shot('prompt-pool');
@@ -166,7 +166,7 @@ async function run() {
     await page.locator('#tReady').click();
     const judges = new Set();
     for (let voter = 0; voter < 2; voter++) {
-      await page.locator('#srUnlock').click();
+      await page.locator('body[data-stage="pass"] #srUnlock').click();
       await page.locator('[data-v="yes"]').waitFor();
       const judge = await actor('vote', true);
       judges.add(judge.id);

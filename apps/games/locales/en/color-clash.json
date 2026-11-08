@@ -1,0 +1,17 @@
+{
+  "colors": {
+    "names": ["Blue", "Orange", "Purple", "Teal"],
+    "marks": ["●", "▲", "■", "◆"]
+  },
+  "strings": {
+    "ink": "Tap the ink",
+    "word": "Tap the word",
+    "reveal": "Cards cleared",
+    "waiting": "One answer per card. Follow the big prompt.",
+    "correct": "Correct. Next card coming.",
+    "wrong": "That was the other colour. Watch for the next card.",
+    "inkMark": "Ink shape",
+    "playBadge": "5 points + speed bonus",
+    "cardPointsLabel": "Card points earned"
+  }
+}

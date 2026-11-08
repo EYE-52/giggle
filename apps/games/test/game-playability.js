@@ -1633,6 +1633,157 @@ driver('fleet-duel', () => {
   return `${shots} alternating legal shots, confirmed placement, masked opponents/watchers and complete sinking win`;
 });
 
+/* Batch 1: use this file's context so the real-Room adapter also drives it. */
+for (const id of ['dial-in', 'ballpark', 'think-alike', 'who-wrote', 'know-me']) driver(id, () => {
+  const def = registry.get(id), { legal } = require('./new-games-b1-harness');
+  for (const count of [def.minPlayers, 4]) {
+    const ctx = new FakeCtx(roster(count), settingsFor(def, { rounds: 2 }));
+    ctx.content = gameId => require('../locales/en/' + gameId + '.json');
+    const state = def.create(ctx);
+    let cycles = 0;
+    while (state.phase !== 'done' && cycles++ < 100) {
+      const phase = state.phase, round = state.round;
+      for (const p of ctx.players()) {
+        if (state.phase !== phase || state.round !== round) break;
+        const action = phase === 'reveal' ? p.id === ctx.hostId() ? { next: true } : null : legal(id, state, p.id);
+        if (action) act(def, state, ctx, p.id, action);
+      }
+    }
+    must(state.phase === 'done', id + ' reaches final through legal inputs');
+    must(ctx.totalAwarded() === Object.values(state.scores).reduce((n, p) => n + p, 0), id + ' awards match scores');
+  }
+  return 'complete minimum-player and 4-player games, private views and authoritative awards';
+});
+
+/* Batch 5: public-action tabletop playthroughs, shared with focused rules. */
+for (const id of ['dots-boxes', 'mega-tic-tac-toe', 'five-row', 'pig-dice', 'snakes-ladders']) {
+  driver(id, () => {
+    const def = registry.get(id);
+    const ctx = new FakeCtx(roster(4), {});
+    garbageOk(def, def.create(ctx), ctx, 'p1');
+    return require('./new-games-b5-driver').playBatch5(def, ctx);
+  });
+}
+
+/* Batch 2: game-owned legal practice drivers, using private seat views. */
+for (const id of require('./new-games-b2-harness').IDS) {
+  driver(id, () => {
+    const def = registry.get(id), n = id === 'moonlit-village' ? 5 : 4;
+    const ctx = new FakeCtx(roster(n), settingsFor(def, { rounds: 1 }));
+    ctx.content = gameId => require('../locales/en/' + gameId + '.json');
+    ctx.roster = roster(n);
+    ctx.fire = () => ctx.fireNext();
+    const state = def.create(ctx);
+    require('./new-games-b2-harness').play(id, n, 1, {
+      game: def, ctx, s: state,
+      act: (pid, action) => act(def, state, ctx, pid, action),
+      v: pid => V(def, state, pid),
+    });
+    return 'full match, private seat views, validated actions and earned scores';
+  });
+}
+
+/* Batch 4: five authoritative speed games. */
+for (const id of require('./new-games-b4-harness').IDS) driver(id, () => {
+  const def = registry.get(id);
+  const ctx = new FakeCtx(roster(4), settingsFor(def, { rounds: 1 }));
+  const state = require('./new-games-b4-harness').play(id, { def, ctx, act, view: V });
+  must(state.phase === 'done', id + ' reaches final scores');
+  must(ctx.totalAwarded() > 0, id + ' awards earned points');
+  return 'complete four-seat match, legal actions, server deadlines and final scores';
+});
+
+/* Batch 3 word/camera games: complete matches through legal inputs. */
+for (const id of require('./new-games-b3-harness').IDS) {
+  driver(id, () => {
+    const def = registry.get(id), ctx = new FakeCtx(roster(4), { rounds: 2 });
+    require('./new-games-b3-harness').play(id, 4, { def, ctx });
+    return 'two rounds, role views, legal inputs and earned points';
+  });
+}
+
+/* Batch six: real legal inputs, with the same public views as the clients. */
+driver('dice-fibs', () => {
+  const def = registry.get('dice-fibs'), ctx = new FakeCtx(roster(4), {}), s = def.create(ctx);
+  let actions = 0;
+  while (s.phase !== 'done' && actions++ < 500) {
+    if (s.phase === 'reveal') act(def, s, ctx, ctx.hostId(), { next: true });
+    else {
+      const v = V(def, s, s.turnPid);
+      act(def, s, ctx, s.turnPid, v.bid ? { liar: true, turnNo: v.turnNo } : { bid: { quantity: 1, face: 1 }, turnNo: v.turnNo });
+    }
+  }
+  must(s.phase === 'done' && ctx.totalAwarded() === 600, 'dice elimination pays 300/200/100');
+  return 'four cups, legal raises/challenges and a full elimination match';
+});
+
+driver('sketchy-impostor', () => {
+  const def = registry.get('sketchy-impostor'), ctx = new FakeCtx(roster(4), { rounds: 2 }), s = def.create(ctx);
+  while (s.phase !== 'done') {
+    if (s.phase === 'draw') {
+      const v = V(def, s, s.turnPid);
+      act(def, s, ctx, s.turnPid, { stroke: { pts: [[.2,.3],[.7,.6]], color: '#2563eb', size: 7 },
+        inkNonce: v.inkNonce, inkRevision: v.inkRevision, gestureId: 1, chunk: 0, finished: true, turnNo: v.turnNo });
+    } else if (s.phase === 'vote') {
+      const imp = ids(ctx.players()).find(p => V(def, s, p).role === 'impostor');
+      for (const p of ids(ctx.players())) act(def, s, ctx, p, { vote: p === imp ? ids(ctx.players()).find(q => q !== imp) : imp });
+    } else if (s.phase === 'guess') {
+      act(def, s, ctx, s.impostor, { guess: 'a deliberately wrong word' });
+    } else act(def, s, ctx, ctx.hostId(), { next: true });
+  }
+  must(ctx.totalAwarded() === 600, 'two caught impostors pay three voters 100 each');
+  return 'two complete two-lap canvases, secret roles, vote and last-chance guess';
+});
+
+driver('draw-off', () => {
+  const def = registry.get('draw-off'), ctx = new FakeCtx(roster(4), { rounds: 2 }), s = def.create(ctx);
+  while (s.phase !== 'done') {
+    if (s.phase === 'draw') for (const p of ids(ctx.players())) {
+      const v = V(def, s, p);
+      act(def, s, ctx, p, { stroke: { pts: [[.1,.2],[.8,.7]], color: '#2563eb', size: 7 },
+        inkNonce: v.inkNonce, inkRevision: v.inkRevision, gestureId: 1, chunk: 0, finished: true });
+      act(def, s, ctx, p, { ready: true });
+    } else if (s.phase === 'vote') for (const p of ids(ctx.players())) {
+      const g = V(def, s, p).gallery.find(g => !g.mine);
+      act(def, s, ctx, p, { vote: g.aid });
+    } else act(def, s, ctx, ctx.hostId(), { next: true });
+  }
+  must(ctx.totalAwarded() > 0, 'gallery awards round points');
+  return 'two private canvases per artist, anonymous gallery and favourite votes';
+});
+
+driver('block-stack', () => {
+  const def = registry.get('block-stack'), ctx = new FakeCtx(roster(4), { rounds: 2 }), s = def.create(ctx);
+  for (let r = 0; r < 2; r++) {
+    ctx.fireUntil(() => s.phase === 'stack');
+    // Choose a drop time from the public path, never a forged position.
+    for (const p of ids(ctx.players())) {
+      const t = V(def, s, p).towers[p];
+      ctx.setNow(t.startedAt);
+      act(def, s, ctx, p, { drop: true, level: 0, round: s.round });
+    }
+    ctx.fireUntil(() => s.phase === 'reveal');
+    must(s.last.best === 1 && Object.values(s.last.pts).every(n => n === 100), 'equal perfect towers tie');
+    act(def, s, ctx, ctx.hostId(), { next: true });
+  }
+  must(s.phase === 'done' && ctx.totalAwarded() === 800, 'two stack rounds complete');
+  return 'four parallel towers, receipt-time perfect drops, tied scores and timed rounds';
+});
+
+driver('penalty-kicks', () => {
+  const def = registry.get('penalty-kicks'), ctx = new FakeCtx(roster(2), {}), s = def.create(ctx);
+  for (let guard = 0; s.phase !== 'done' && guard < 30; guard++) {
+    if (s.phase === 'reveal') act(def, s, ctx, ctx.hostId(), { next: true });
+    else {
+      const v = V(def, s, s.shooter);
+      act(def, s, ctx, s.shooter, { zone: 3, power: 'hard', kick: v.kick });
+      act(def, s, ctx, s.keeper, { zone: s.shooter === ids(ctx.players())[0] ? 2 : 3, kick: v.kick });
+    }
+  }
+  must(s.phase === 'done' && s.kick === 10 && ctx.totalAwarded() === 300, 'ten real penalties settle duel');
+  return 'ten secret shot/dive pairs, animated reveals and whole-match points';
+});
+
 /* ---------------- runner ---------------- */
 async function main() {
   await registry.get('pocket-karts').initialize();

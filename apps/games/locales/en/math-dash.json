@@ -1,0 +1,13 @@
+{
+  "strings": {
+    "sprint": "Solve the next one",
+    "reveal": "Sprint finished",
+    "answer": "Your answer",
+    "check": "Check answer",
+    "wait": "The next sprint starts soon.",
+    "lock": "Wrong answer. Your pad opens in 2 seconds.",
+    "watch": "Watching the sprint. Each player has their own problem.",
+    "solvedLabel": "Problems solved",
+    "topCount": "Top count"
+  }
+}

@@ -1,0 +1,1190 @@
+{
+  "cards": [
+    {
+      "target": "umbrella",
+      "banned": [
+        "rain",
+        "wet",
+        "handle",
+        "open"
+      ]
+    },
+    {
+      "target": "popcorn",
+      "banned": [
+        "cinema",
+        "corn",
+        "butter",
+        "snack"
+      ]
+    },
+    {
+      "target": "bicycle",
+      "banned": [
+        "pedal",
+        "wheel",
+        "ride",
+        "chain"
+      ]
+    },
+    {
+      "target": "penguin",
+      "banned": [
+        "ice",
+        "bird",
+        "waddle",
+        "black"
+      ]
+    },
+    {
+      "target": "pancake",
+      "banned": [
+        "breakfast",
+        "flip",
+        "syrup",
+        "pan"
+      ]
+    },
+    {
+      "target": "telescope",
+      "banned": [
+        "stars",
+        "sky",
+        "look",
+        "space"
+      ]
+    },
+    {
+      "target": "backpack",
+      "banned": [
+        "bag",
+        "school",
+        "carry",
+        "shoulder"
+      ]
+    },
+    {
+      "target": "waterfall",
+      "banned": [
+        "river",
+        "drop",
+        "water",
+        "cliff"
+      ]
+    },
+    {
+      "target": "pillow",
+      "banned": [
+        "sleep",
+        "bed",
+        "soft",
+        "head"
+      ]
+    },
+    {
+      "target": "cactus",
+      "banned": [
+        "desert",
+        "spike",
+        "plant",
+        "dry"
+      ]
+    },
+    {
+      "target": "sandwich",
+      "banned": [
+        "bread",
+        "filling",
+        "lunch",
+        "slice"
+      ]
+    },
+    {
+      "target": "rainbow",
+      "banned": [
+        "colour",
+        "rain",
+        "sky",
+        "arc"
+      ]
+    },
+    {
+      "target": "volcano",
+      "banned": [
+        "lava",
+        "mountain",
+        "hot",
+        "erupt"
+      ]
+    },
+    {
+      "target": "snowman",
+      "banned": [
+        "snow",
+        "carrot",
+        "winter",
+        "build"
+      ]
+    },
+    {
+      "target": "compass",
+      "banned": [
+        "north",
+        "direction",
+        "needle",
+        "map"
+      ]
+    },
+    {
+      "target": "giraffe",
+      "banned": [
+        "neck",
+        "tall",
+        "animal",
+        "spots"
+      ]
+    },
+    {
+      "target": "hammock",
+      "banned": [
+        "swing",
+        "sleep",
+        "tree",
+        "rope"
+      ]
+    },
+    {
+      "target": "keyboard",
+      "banned": [
+        "type",
+        "computer",
+        "keys",
+        "letters"
+      ]
+    },
+    {
+      "target": "lantern",
+      "banned": [
+        "light",
+        "dark",
+        "carry",
+        "lamp"
+      ]
+    },
+    {
+      "target": "butterfly",
+      "banned": [
+        "wings",
+        "caterpillar",
+        "insect",
+        "fly"
+      ]
+    },
+    {
+      "target": "magnet",
+      "banned": [
+        "metal",
+        "stick",
+        "pull",
+        "iron"
+      ]
+    },
+    {
+      "target": "teapot",
+      "banned": [
+        "tea",
+        "pour",
+        "spout",
+        "cup"
+      ]
+    },
+    {
+      "target": "crown",
+      "banned": [
+        "king",
+        "queen",
+        "head",
+        "royal"
+      ]
+    },
+    {
+      "target": "suitcase",
+      "banned": [
+        "travel",
+        "pack",
+        "clothes",
+        "handle"
+      ]
+    },
+    {
+      "target": "toothbrush",
+      "banned": [
+        "teeth",
+        "paste",
+        "clean",
+        "brush"
+      ]
+    },
+    {
+      "target": "jellyfish",
+      "banned": [
+        "sea",
+        "sting",
+        "tentacles",
+        "float"
+      ]
+    },
+    {
+      "target": "bookshop",
+      "banned": [
+        "read",
+        "buy",
+        "novel",
+        "shelf"
+      ]
+    },
+    {
+      "target": "snowflake",
+      "banned": [
+        "winter",
+        "cold",
+        "snow",
+        "crystal"
+      ]
+    },
+    {
+      "target": "windmill",
+      "banned": [
+        "wind",
+        "blades",
+        "turn",
+        "grain"
+      ]
+    },
+    {
+      "target": "lighthouse",
+      "banned": [
+        "ships",
+        "light",
+        "coast",
+        "tower"
+      ]
+    },
+    {
+      "target": "sunscreen",
+      "banned": [
+        "sun",
+        "skin",
+        "burn",
+        "cream"
+      ]
+    },
+    {
+      "target": "strawberry",
+      "banned": [
+        "red",
+        "fruit",
+        "seeds",
+        "berry"
+      ]
+    },
+    {
+      "target": "headphones",
+      "banned": [
+        "ears",
+        "music",
+        "listen",
+        "sound"
+      ]
+    },
+    {
+      "target": "trampoline",
+      "banned": [
+        "jump",
+        "bounce",
+        "spring",
+        "net"
+      ]
+    },
+    {
+      "target": "squirrel",
+      "banned": [
+        "nuts",
+        "tail",
+        "tree",
+        "animal"
+      ]
+    },
+    {
+      "target": "fireworks",
+      "banned": [
+        "bang",
+        "sky",
+        "spark",
+        "celebrate"
+      ]
+    },
+    {
+      "target": "calendar",
+      "banned": [
+        "date",
+        "month",
+        "year",
+        "days"
+      ]
+    },
+    {
+      "target": "binoculars",
+      "banned": [
+        "look",
+        "far",
+        "eyes",
+        "lenses"
+      ]
+    },
+    {
+      "target": "thermometer",
+      "banned": [
+        "temperature",
+        "hot",
+        "cold",
+        "measure"
+      ]
+    },
+    {
+      "target": "whistle",
+      "banned": [
+        "blow",
+        "sound",
+        "referee",
+        "loud"
+      ]
+    },
+    {
+      "target": "mailbox",
+      "banned": [
+        "letter",
+        "post",
+        "deliver",
+        "box"
+      ]
+    },
+    {
+      "target": "microscope",
+      "banned": [
+        "tiny",
+        "lens",
+        "science",
+        "look"
+      ]
+    },
+    {
+      "target": "ladder",
+      "banned": [
+        "climb",
+        "steps",
+        "height",
+        "rungs"
+      ]
+    },
+    {
+      "target": "mermaid",
+      "banned": [
+        "fish",
+        "tail",
+        "sea",
+        "swim"
+      ]
+    },
+    {
+      "target": "pizza",
+      "banned": [
+        "cheese",
+        "slice",
+        "dough",
+        "oven"
+      ]
+    },
+    {
+      "target": "robot",
+      "banned": [
+        "machine",
+        "metal",
+        "program",
+        "automatic"
+      ]
+    },
+    {
+      "target": "pirate",
+      "banned": [
+        "ship",
+        "treasure",
+        "sea",
+        "patch"
+      ]
+    },
+    {
+      "target": "astronaut",
+      "banned": [
+        "space",
+        "rocket",
+        "moon",
+        "suit"
+      ]
+    },
+    {
+      "target": "juggler",
+      "banned": [
+        "balls",
+        "throw",
+        "catch",
+        "circus"
+      ]
+    },
+    {
+      "target": "scarecrow",
+      "banned": [
+        "birds",
+        "field",
+        "straw",
+        "farmer"
+      ]
+    },
+    {
+      "target": "campfire",
+      "banned": [
+        "wood",
+        "flame",
+        "tent",
+        "warm"
+      ]
+    },
+    {
+      "target": "helicopter",
+      "banned": [
+        "fly",
+        "rotor",
+        "air",
+        "blades"
+      ]
+    },
+    {
+      "target": "avocado",
+      "banned": [
+        "green",
+        "fruit",
+        "stone",
+        "toast"
+      ]
+    },
+    {
+      "target": "chameleon",
+      "banned": [
+        "colour",
+        "lizard",
+        "change",
+        "tongue"
+      ]
+    },
+    {
+      "target": "crocodile",
+      "banned": [
+        "teeth",
+        "reptile",
+        "river",
+        "jaws"
+      ]
+    },
+    {
+      "target": "dinosaur",
+      "banned": [
+        "extinct",
+        "fossil",
+        "reptile",
+        "ancient"
+      ]
+    },
+    {
+      "target": "dragonfly",
+      "banned": [
+        "insect",
+        "wings",
+        "pond",
+        "fly"
+      ]
+    },
+    {
+      "target": "elephant",
+      "banned": [
+        "trunk",
+        "ears",
+        "large",
+        "animal"
+      ]
+    },
+    {
+      "target": "flamingo",
+      "banned": [
+        "pink",
+        "bird",
+        "leg",
+        "water"
+      ]
+    },
+    {
+      "target": "hedgehog",
+      "banned": [
+        "spikes",
+        "small",
+        "animal",
+        "curl"
+      ]
+    },
+    {
+      "target": "kangaroo",
+      "banned": [
+        "hop",
+        "pouch",
+        "Australia",
+        "jump"
+      ]
+    },
+    {
+      "target": "octopus",
+      "banned": [
+        "eight",
+        "arms",
+        "sea",
+        "tentacles"
+      ]
+    },
+    {
+      "target": "peacock",
+      "banned": [
+        "feathers",
+        "tail",
+        "bird",
+        "fan"
+      ]
+    },
+    {
+      "target": "raccoon",
+      "banned": [
+        "mask",
+        "tail",
+        "animal",
+        "striped"
+      ]
+    },
+    {
+      "target": "seahorse",
+      "banned": [
+        "ocean",
+        "fish",
+        "tail",
+        "horse"
+      ]
+    },
+    {
+      "target": "tortoise",
+      "banned": [
+        "shell",
+        "slow",
+        "reptile",
+        "turtle"
+      ]
+    },
+    {
+      "target": "woodpecker",
+      "banned": [
+        "bird",
+        "tree",
+        "beak",
+        "tap"
+      ]
+    },
+    {
+      "target": "walrus",
+      "banned": [
+        "tusks",
+        "sea",
+        "whiskers",
+        "flippers"
+      ]
+    },
+    {
+      "target": "accordion",
+      "banned": [
+        "music",
+        "squeeze",
+        "keys",
+        "instrument"
+      ]
+    },
+    {
+      "target": "clarinet",
+      "banned": [
+        "music",
+        "woodwind",
+        "reed",
+        "instrument"
+      ]
+    },
+    {
+      "target": "drummer",
+      "banned": [
+        "beat",
+        "sticks",
+        "music",
+        "rhythm"
+      ]
+    },
+    {
+      "target": "guitar",
+      "banned": [
+        "strings",
+        "strum",
+        "music",
+        "instrument"
+      ]
+    },
+    {
+      "target": "piano",
+      "banned": [
+        "keys",
+        "music",
+        "black",
+        "white"
+      ]
+    },
+    {
+      "target": "trumpet",
+      "banned": [
+        "brass",
+        "blow",
+        "music",
+        "valves"
+      ]
+    },
+    {
+      "target": "violin",
+      "banned": [
+        "bow",
+        "strings",
+        "music",
+        "chin"
+      ]
+    },
+    {
+      "target": "bagel",
+      "banned": [
+        "bread",
+        "hole",
+        "round",
+        "breakfast"
+      ]
+    },
+    {
+      "target": "biscuit",
+      "banned": [
+        "bake",
+        "crunch",
+        "tea",
+        "cookie"
+      ]
+    },
+    {
+      "target": "broccoli",
+      "banned": [
+        "green",
+        "vegetable",
+        "florets",
+        "stalk"
+      ]
+    },
+    {
+      "target": "burrito",
+      "banned": [
+        "wrap",
+        "beans",
+        "rice",
+        "filling"
+      ]
+    },
+    {
+      "target": "chocolate",
+      "banned": [
+        "cocoa",
+        "sweet",
+        "bar",
+        "brown"
+      ]
+    },
+    {
+      "target": "cinnamon",
+      "banned": [
+        "spice",
+        "roll",
+        "brown",
+        "bark"
+      ]
+    },
+    {
+      "target": "cucumber",
+      "banned": [
+        "green",
+        "salad",
+        "vegetable",
+        "slice"
+      ]
+    },
+    {
+      "target": "dumpling",
+      "banned": [
+        "dough",
+        "filling",
+        "steam",
+        "pocket"
+      ]
+    },
+    {
+      "target": "garlic",
+      "banned": [
+        "clove",
+        "smell",
+        "bulb",
+        "cook"
+      ]
+    },
+    {
+      "target": "lemonade",
+      "banned": [
+        "drink",
+        "lemon",
+        "sour",
+        "sweet"
+      ]
+    },
+    {
+      "target": "mushroom",
+      "banned": [
+        "fungus",
+        "cap",
+        "stem",
+        "forest"
+      ]
+    },
+    {
+      "target": "noodles",
+      "banned": [
+        "long",
+        "pasta",
+        "soup",
+        "strands"
+      ]
+    },
+    {
+      "target": "pineapple",
+      "banned": [
+        "fruit",
+        "spiky",
+        "yellow",
+        "tropical"
+      ]
+    },
+    {
+      "target": "pumpkin",
+      "banned": [
+        "orange",
+        "seeds",
+        "squash",
+        "carve"
+      ]
+    },
+    {
+      "target": "radish",
+      "banned": [
+        "red",
+        "root",
+        "salad",
+        "peppery"
+      ]
+    },
+    {
+      "target": "spaghetti",
+      "banned": [
+        "pasta",
+        "long",
+        "sauce",
+        "fork"
+      ]
+    },
+    {
+      "target": "waffle",
+      "banned": [
+        "breakfast",
+        "squares",
+        "syrup",
+        "iron"
+      ]
+    },
+    {
+      "target": "apron",
+      "banned": [
+        "cook",
+        "clothes",
+        "tie",
+        "kitchen"
+      ]
+    },
+    {
+      "target": "blender",
+      "banned": [
+        "mix",
+        "smoothie",
+        "blades",
+        "kitchen"
+      ]
+    },
+    {
+      "target": "colander",
+      "banned": [
+        "drain",
+        "holes",
+        "pasta",
+        "bowl"
+      ]
+    },
+    {
+      "target": "corkscrew",
+      "banned": [
+        "bottle",
+        "cork",
+        "twist",
+        "open"
+      ]
+    },
+    {
+      "target": "freezer",
+      "banned": [
+        "cold",
+        "ice",
+        "food",
+        "frozen"
+      ]
+    },
+    {
+      "target": "kettle",
+      "banned": [
+        "boil",
+        "water",
+        "tea",
+        "steam"
+      ]
+    },
+    {
+      "target": "ladle",
+      "banned": [
+        "soup",
+        "spoon",
+        "serve",
+        "handle"
+      ]
+    },
+    {
+      "target": "rolling pin",
+      "banned": [
+        "dough",
+        "roll",
+        "bake",
+        "cylinder"
+      ]
+    },
+    {
+      "target": "spatula",
+      "banned": [
+        "flip",
+        "pan",
+        "cook",
+        "flat"
+      ]
+    },
+    {
+      "target": "stopwatch",
+      "banned": [
+        "time",
+        "race",
+        "seconds",
+        "start"
+      ]
+    },
+    {
+      "target": "flashlight",
+      "banned": [
+        "torch",
+        "light",
+        "dark",
+        "battery"
+      ]
+    },
+    {
+      "target": "paintbrush",
+      "banned": [
+        "paint",
+        "bristles",
+        "art",
+        "handle"
+      ]
+    },
+    {
+      "target": "paperclip",
+      "banned": [
+        "paper",
+        "hold",
+        "metal",
+        "wire"
+      ]
+    },
+    {
+      "target": "stapler",
+      "banned": [
+        "paper",
+        "metal",
+        "join",
+        "office"
+      ]
+    },
+    {
+      "target": "zipper",
+      "banned": [
+        "clothes",
+        "teeth",
+        "close",
+        "jacket"
+      ]
+    },
+    {
+      "target": "shoelace",
+      "banned": [
+        "shoe",
+        "tie",
+        "knot",
+        "string"
+      ]
+    },
+    {
+      "target": "raincoat",
+      "banned": [
+        "wet",
+        "rain",
+        "wear",
+        "hood"
+      ]
+    },
+    {
+      "target": "slipper",
+      "banned": [
+        "feet",
+        "soft",
+        "house",
+        "shoe"
+      ]
+    },
+    {
+      "target": "sweater",
+      "banned": [
+        "wool",
+        "warm",
+        "knit",
+        "clothes"
+      ]
+    },
+    {
+      "target": "wheelbarrow",
+      "banned": [
+        "garden",
+        "wheel",
+        "carry",
+        "handles"
+      ]
+    },
+    {
+      "target": "watering can",
+      "banned": [
+        "plants",
+        "water",
+        "pour",
+        "garden"
+      ]
+    },
+    {
+      "target": "shovel",
+      "banned": [
+        "dig",
+        "soil",
+        "handle",
+        "spade"
+      ]
+    },
+    {
+      "target": "rake",
+      "banned": [
+        "leaves",
+        "garden",
+        "teeth",
+        "gather"
+      ]
+    },
+    {
+      "target": "swing",
+      "banned": [
+        "seat",
+        "rope",
+        "playground",
+        "back"
+      ]
+    },
+    {
+      "target": "seesaw",
+      "banned": [
+        "playground",
+        "balance",
+        "up",
+        "down"
+      ]
+    },
+    {
+      "target": "slide",
+      "banned": [
+        "playground",
+        "down",
+        "climb",
+        "slippery"
+      ]
+    },
+    {
+      "target": "skateboard",
+      "banned": [
+        "wheels",
+        "ride",
+        "deck",
+        "skate"
+      ]
+    },
+    {
+      "target": "parachute",
+      "banned": [
+        "jump",
+        "air",
+        "fall",
+        "canopy"
+      ]
+    },
+    {
+      "target": "submarine",
+      "banned": [
+        "underwater",
+        "boat",
+        "deep",
+        "periscope"
+      ]
+    },
+    {
+      "target": "hot air balloon",
+      "banned": [
+        "basket",
+        "fly",
+        "heat",
+        "sky"
+      ]
+    },
+    {
+      "target": "ferry",
+      "banned": [
+        "boat",
+        "water",
+        "passengers",
+        "cross"
+      ]
+    },
+    {
+      "target": "tractor",
+      "banned": [
+        "farm",
+        "wheels",
+        "field",
+        "pull"
+      ]
+    },
+    {
+      "target": "train",
+      "banned": [
+        "rails",
+        "station",
+        "carriage",
+        "track"
+      ]
+    },
+    {
+      "target": "canoe",
+      "banned": [
+        "paddle",
+        "boat",
+        "river",
+        "narrow"
+      ]
+    },
+    {
+      "target": "sled",
+      "banned": [
+        "snow",
+        "hill",
+        "slide",
+        "winter"
+      ]
+    },
+    {
+      "target": "rocket",
+      "banned": [
+        "space",
+        "launch",
+        "fuel",
+        "moon"
+      ]
+    },
+    {
+      "target": "castle",
+      "banned": [
+        "tower",
+        "moat",
+        "king",
+        "stone"
+      ]
+    },
+    {
+      "target": "igloo",
+      "banned": [
+        "snow",
+        "house",
+        "ice",
+        "dome"
+      ]
+    },
+    {
+      "target": "wind chime",
+      "banned": [
+        "breeze",
+        "sound",
+        "hang",
+        "tinkle"
+      ]
+    }
+  ],
+  "labels": {
+    "correct": "Correct card. Keep talking.",
+    "wrong": "Keep guessing.",
+    "skipped": "Card skipped.",
+    "buzzed": "Buzz! That card is out.",
+    "empty": "There are too few players to continue."
+  }
+}

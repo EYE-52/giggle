@@ -1,0 +1,179 @@
+.df-world .df-felt {
+  display: grid;
+  align-content: space-evenly;
+  gap: var(--space-8);
+  padding: var(--space-12);
+  background: radial-gradient(ellipse at top, var(--fam-soft), var(--well));
+  border: var(--space-8) solid var(--fam-deep);
+  box-shadow: var(--shadow-sticker-lg);
+}
+.df-world .df-bid-sticker {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+}
+.df-world .df-bid-sticker small,
+.df-world .df-bid-sticker > span {
+  font: var(--text-caption);
+}
+.df-world .df-bid-sticker strong {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  font: var(--text-heading);
+}
+.df-world .df-cups {
+  display: flex;
+  align-items: start;
+  gap: var(--space-16);
+  overflow-x: auto;
+  width: 100%;
+  padding: var(--space-4);
+}
+.df-world .df-cup-seat {
+  display: grid;
+  justify-items: center;
+  flex: 1 0 88px;
+  min-width: 0;
+  gap: var(--space-4);
+  font: var(--text-caption);
+}
+.df-world .df-cup {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 40% 40% 20% 20%;
+  background: var(--fam);
+  color: var(--on-fam);
+  border: var(--outline-w) solid var(--fam-lip);
+  box-shadow: var(--shadow-sticker);
+  font: var(--text-title);
+  transform: perspective(120px) rotateX(-12deg);
+}
+.df-world .is-turn .df-cup {
+  outline: var(--outline-w-lg) dashed var(--fam-deep);
+  outline-offset: var(--space-4);
+}
+.df-world .df-mini-dice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  white-space: nowrap;
+}
+.df-world .df-mini-dice .df-die {
+  font-size: 20px;
+  width: 18px;
+}
+.df-world .df-hand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  min-height: var(--space-32);
+  font: var(--text-caption);
+}
+.df-world .df-die {
+  font: 40px/1 var(--font-body);
+  color: var(--ink);
+}
+.df-world .df-peek {
+  margin-right: var(--space-8);
+}
+.df-world .df-tools {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+}
+.df-world .df-quantity,
+.df-world .df-faces {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+}
+.df-world .df-quantity b {
+  min-width: 3ch;
+  text-align: center;
+  font: var(--text-title);
+}
+.df-world .df-faces button {
+  font-size: 32px;
+  min-width: 44px;
+  padding: 0;
+}
+@media (max-width: 700px) {
+  .df-world .df-tools {
+    grid-template-columns: 1fr auto;
+    min-height: 104px;
+  }
+  .df-world .df-faces {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .df-world .df-bid-sticker strong {
+    font: var(--text-title);
+  }
+  .df-world .df-cup {
+    width: 40px;
+    height: 32px;
+  }
+  .df-world .df-felt {
+    padding: var(--space-8);
+  }
+}
+.df-world .df-felt {
+  grid-template-columns: minmax(0, 1fr);
+}
+.df-world .df-cups {
+  min-width: 0;
+}
+/* Cups keep their names and revealed dice; only the horizontal rail scrolls. */
+.df-world .df-cups {
+  min-height: calc(var(--space-64) + var(--space-32));
+}
+@media (min-width: 701px) {
+  .df-world .df-felt {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    align-content: center;
+  }
+  .df-world .df-hand {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 700px) {
+  .df-world .df-felt {
+    height: calc(4 * var(--space-64));
+    align-content: center;
+  }
+}
+/* Four cups fit on a phone. Larger tables can still slide the cup rail. */
+.df-world .df-cup-seat .pl-voter {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+@media (max-width: 700px) {
+  .df-world .df-cups {
+    gap: var(--space-8);
+  }
+  .df-world .df-cup-seat {
+    flex-basis: calc((100% - 3 * var(--space-8)) / 4);
+  }
+  .df-world .df-mini-dice .df-die {
+    font-size: 16px;
+    width: 14px;
+  }
+}
+
+/* Revealed bids keep the same stage height as bidding, with room for names. */
+.df-world .df-hand .df-die {
+  font-size: 32px;
+}
+@media (max-width: 700px) {
+  .df-world .df-bid-sticker .df-die {
+    font-size: 24px;
+  }
+}

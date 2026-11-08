@@ -1,0 +1,26 @@
+{
+  "strings": {
+    "agreement": "Draw agreed.",
+    "draw": "No moves remain. Each player earns 150 points.",
+    "ended": "The host ended this match. Points already earned stay.",
+    "forfeit": "A seat left the table.",
+    "resign": "A seat resigned.",
+    "timeout": "The move timer ran out.",
+    "yourTurn": "Your turn. Place a stone.",
+    "waiting": "{name} to move.",
+    "unit": "stones",
+    "meta": "15 × 15 · Exactly five",
+    "black": "Black",
+    "white": "White",
+    "hud": "{n} stones placed",
+    "hint": "Exactly five wins. Six does not.",
+    "swapHint": "White may swap colours or place a stone.",
+    "five": "Exactly five stones in a row.",
+    "help": [
+      "Black places the first stone. White goes next.",
+      "Exactly five stones in a row wins horizontally, vertically or diagonally. A longer line does not win.",
+      "With the swap rule on, White may swap colours after Black’s opening stone. The new White plays next.",
+      "The cross marks the last stone. Use the arrow keys and Enter to play with a keyboard."
+    ]
+  }
+}

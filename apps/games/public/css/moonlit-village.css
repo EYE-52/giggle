@@ -1,0 +1,46 @@
+.moon-world .moon-village {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  gap: var(--space-16);
+}
+.moon-world .moon-lantern {
+  width: 96px;
+  height: 96px;
+  flex: none;
+  fill: var(--fam-soft);
+  stroke: var(--fam-deep);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.moon-world .moon-glow {
+  fill: var(--sun);
+}
+.moon-world .moon-village .b2-stamp {
+  max-width: 320px;
+}
+.moon-world .moon-story {
+  display: grid;
+  gap: var(--space-8);
+  justify-items: center;
+}
+.moon-world .moon-story svg {
+  width: min(100%, 320px);
+  height: 80px;
+  fill: none;
+  stroke: var(--fam-deep);
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.moon-world .moon-story .moon-house {
+  fill: var(--card);
+}
+.moon-world .moon-story .moon-window {
+  fill: var(--sun);
+}
+.moon-world .moon-story p + p {
+  margin-top: var(--space-8);
+}

@@ -1,0 +1,30 @@
+{
+  "strings": {
+    "agreement": "Draw agreed.",
+    "draw": "No moves remain. Each player earns 150 points.",
+    "ended": "The host ended this match. Points already earned stay.",
+    "forfeit": "A seat left the table.",
+    "resign": "A seat resigned.",
+    "timeout": "The move timer ran out.",
+    "yourTurn": "Your turn. Roll the die.",
+    "waiting": "{name} to move.",
+    "unit": "square",
+    "reach": "Reach 100 · Extra steps finish",
+    "exact": "Exact finish · Extra steps bounce back",
+    "hud": "{n} explorers home",
+    "hint": "Climb ladders. Dodge snake heads.",
+    "climb": "Climb! Square {from} → {to}",
+    "slide": "Sssslide. Square {from} → {to}",
+    "step": "Square {from} → {to}",
+    "trailNote": "Eight cheeky snakes. Eight handy ladders.",
+    "timerHint": "The timer auto-rolls for you.",
+    "waitReason": "Wait for your turn to roll.",
+    "finish": "Places follow finishing order.",
+    "help": [
+      "Roll a die and count along the winding trail from 1 to 100.",
+      "Landing on a ladder foot climbs to its top. Landing on a snake head slides to its tail.",
+      "With Exact finish off, any roll reaching 100 finishes. With it on, extra steps bounce backwards from 100.",
+      "The timer auto-rolls after 15 seconds at Normal pace. First home gets 300, then 200, 100 and 0."
+    ]
+  }
+}

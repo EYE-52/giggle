@@ -140,4 +140,4 @@ async function transport() {
     await new Promise(r=>child.once('exit',r));
   }
 }
-(async()=>{await unit();await transport();console.log('ROOM_KICK_PASS: '+checks+' all42 production-game lifecycle and actual WS host/target/instance, watcher, token/sub revocation and close assertions');})().catch(e=>{console.error(e);process.exitCode=1});
+(async()=>{await unit();await transport();console.log('ROOM_KICK_PASS: '+checks+' all shipping production-game lifecycle and actual WS host/target/instance, watcher, token/sub revocation and close assertions');})().catch(e=>{console.error(e);process.exitCode=1});

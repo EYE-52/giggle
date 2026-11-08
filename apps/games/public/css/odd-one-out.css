@@ -1,0 +1,25 @@
+.odd-world .odd-passport {
+  position: relative;
+  border-style: dashed;
+  background: var(--fam-soft);
+}
+.odd-world .odd-passport::before,
+.odd-world .odd-passport::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  top: calc(50% - 8px);
+}
+.odd-world .odd-passport::before {
+  left: -8px;
+}
+.odd-world .odd-passport::after {
+  right: -8px;
+}
+.odd-world .odd-piece {
+  padding-inline: var(--space-12);
+}

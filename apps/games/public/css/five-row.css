@@ -1,0 +1,17 @@
+.fv-game .fv-wood { fill: #ddb77c; stroke: #ac824d; stroke-width: 3; }
+.fv-game .fv-grid { stroke: #997445; stroke-width: .9; fill: #6d4c2c; }
+.fv-game .fv-hit { fill: transparent; stroke: transparent; }
+.fv-game .fv-stone { stroke-width: 1; pointer-events: none; }
+.fv-game .fv-colour-1 { fill: #2e2d35; stroke: #101019; }
+.fv-game .fv-colour-2 { fill: #fff8e9; stroke: #bfa87f; }
+.fv-game .fv-shine { fill: #fff; opacity: .2; pointer-events: none; }
+.fv-game .fv-last { stroke: #d44653; stroke-width: 2; pointer-events: none; }
+.fv-game .fv-win { fill: none; stroke: var(--fam); stroke-width: 3; pointer-events: none; }
+.fv-game .fv-board { border-radius: var(--radius-lg); box-shadow: 0 var(--lift) 0 #ac824d; }
+.fv-game .fv-swap-reason { min-height: 1.4em; margin: var(--space-4) 0 0; }
+[data-theme="night"] .fv-game .fv-wood { fill: #b98e5a; }
+[data-theme="night"] .fv-game .fv-grid { stroke: #76532e; }
+@media (max-width: 759px) {
+  .fv-game { --b5-extra-height: 44px; }
+  .fv-game .fv-swap-reason { display: none; }
+}

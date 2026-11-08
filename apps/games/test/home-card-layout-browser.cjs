@@ -30,7 +30,7 @@ async function checkCase(url, viewport, theme) {
     await page.goto(url);
     await page.locator('.home-picks .pick').first().waitFor();
     await page.locator('#bBrowse').click();
-    await page.waitForFunction(() => document.querySelectorAll('#shelfGames [data-how]').length === 42);
+    await page.waitForFunction(n => document.querySelectorAll('#shelfGames [data-how]').length === n, require('../games/registry').list().length);
     await settle(page);
     const pageBounds = await page.evaluate(width => ({ width:document.documentElement.scrollWidth, innerWidth, innerHeight, overflow:[...document.querySelectorAll('body *')].filter(el => el.getClientRects().length && el.getBoundingClientRect().right > width + 1).slice(0, 12).map(el => ({tag:el.tagName, className:el.className, right:el.getBoundingClientRect().right, width:el.getBoundingClientRect().width})) }), viewport.width);
     if (pageBounds.width > viewport.width + 1) console.log('HOME_PAGE_BOUNDS', label, JSON.stringify(pageBounds));

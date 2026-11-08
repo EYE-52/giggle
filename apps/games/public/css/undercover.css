@@ -1,0 +1,31 @@
+.under-world .under-folder {
+  position: relative;
+  border-top-width: var(--outline-w-lg);
+  background: var(--fam-soft);
+}
+.under-world .under-folder::before {
+  content: "";
+  position: absolute;
+  left: var(--space-16);
+  top: -12px;
+  width: 64px;
+  height: 12px;
+  border: var(--outline-w) solid var(--outline);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--fam);
+}
+.under-world .under-clues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.under-world .under-clues > span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  border-radius: var(--radius-md);
+  background: var(--well);
+  padding: var(--space-8);
+  font: var(--text-caption);
+}

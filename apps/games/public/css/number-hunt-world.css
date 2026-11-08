@@ -239,3 +239,10 @@ body[data-game="number-hunt"].game-playing {
   left:0; right:auto;
   transform:translateX(calc(var(--nh-end,100) * 1cqw - var(--space-12) - var(--outline-w))) translateY(-50%);
 }
+
+/* Keep the phase and guess markers distinct from the dark blueprint. */
+[data-theme="night"] #gbody .nh.pl-fill .gk-hud-phase:not(:empty) {
+  color: var(--fam-deep);
+  box-shadow: inset 0 0 0 var(--outline-w) var(--fam);
+}
+[data-theme="night"] #gbody .nh.pl-fill .nh-pin { border-color: var(--ink-dim); }

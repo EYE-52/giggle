@@ -1,0 +1,181 @@
+.cg-world .cg-clue {
+  height: 56px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+.cg-world .cg-number {
+  min-height: 56px;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-8);
+  font: var(--text-title);
+  color: var(--ink);
+  background: var(--card);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+.cg-world .cg-picker {
+  display: grid;
+  grid-template-columns: repeat(3, calc(var(--control-h-sm) / var(--round-zoom, 1)));
+}
+.cg-world .cg-picker .picker-btn {
+  width: 100%;
+  min-height: calc(var(--control-h-sm) / var(--round-zoom, 1));
+}
+.cg-world .cg-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(5, 44px);
+  gap: var(--space-8);
+  height: 252px;
+  padding: 0;
+}
+#gbody .cg-world .cg-word {
+  position: relative;
+  min-height: 44px;
+  height: 44px;
+  min-width: 0;
+  padding: var(--space-4);
+  justify-content: center;
+  background: var(--card);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sticker-sm);
+  opacity: 1;
+  color: var(--ink);
+  font: var(--text-button-sm);
+  text-align: center;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+.cg-world .cg-word span {
+  padding-right: 0;
+}
+.cg-world .cg-word i {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  font: var(--text-caption);
+}
+#gbody .cg-world .cg-word.is-red {
+  background: color-mix(in srgb, var(--melon) 80%, var(--card));
+  color: var(--sun-ink);
+}
+#gbody .cg-world .cg-word.is-blue {
+  background: color-mix(in srgb, var(--sky) 80%, var(--card));
+  color: var(--sun-ink);
+}
+#gbody .cg-world .cg-word.is-neutral {
+  background: var(--well);
+  color: var(--ink-dim);
+}
+#gbody .cg-world .cg-word.is-trap {
+  background: var(--ink);
+  color: var(--card);
+}
+#gbody .cg-world .cg-word.is-open {
+  box-shadow: none;
+  border-style: dashed;
+  opacity: 1;
+}
+.cg-world .cg-grid.is-setup {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: 1fr;
+  gap: var(--space-12);
+}
+.cg-world .cg-team {
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  background: var(--fam-soft);
+  padding: var(--space-12);
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+}
+.cg-world .cg-team h4 {
+  font: var(--text-title);
+  margin-bottom: var(--space-8);
+}
+.cg-world .cg-team .wp-face {
+  flex: none;
+  min-height: calc(44px / var(--round-zoom, 1));
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+.cg-world .cg-team .pl-voter {
+  min-width: 0;
+  max-width: 100%;
+  font: var(--text-button-sm);
+}
+.cg-world .cg-role {
+  font: var(--text-caption);
+}
+.cg-world .cg-tools {
+  display: grid;
+  place-items: center;
+  height: 44px;
+}
+.cg-world .cg-key {
+  font: var(--text-caption);
+}
+.cg-world .cg-clue {
+  height: calc(56px / var(--round-zoom, 1));
+}
+.cg-world .cg-number {
+  height: calc(56px / var(--round-zoom, 1));
+  min-height: calc(56px / var(--round-zoom, 1));
+}
+.cg-world .cg-grid {
+  height: calc(220px / var(--round-zoom, 1) + 32px);
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+.cg-world .cg-grid.is-setup {
+  grid-template-rows: 1fr;
+}
+#gbody .cg-world .cg-word {
+  height: 100%;
+  min-height: calc(44px / var(--round-zoom, 1));
+  padding: 0;
+}
+.cg-world .cg-tools {
+  height: calc(44px / var(--round-zoom, 1));
+}
+.cg-world .cg-clue {
+  position: relative;
+}
+.cg-world .cg-meta {
+  position: absolute;
+  inset: 0;
+  justify-content: center;
+  gap: var(--space-12);
+  font: var(--text-caption);
+}
+.cg-world .cg-meta .pl-voter {
+  font: var(--text-title);
+}
+.cg-world .cg-grid {
+  position: relative;
+  isolation: isolate;
+}
+.cg-world .cg-grid:not(.is-setup)::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--space-8));
+  z-index: -1;
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-lg);
+  background: var(--fam-soft);
+  box-shadow: var(--shadow-sticker);
+}
+
+.cg-world .cg-meta > span:last-child:not(.pl-voter) {
+  flex: none;
+}

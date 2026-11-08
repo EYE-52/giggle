@@ -1,0 +1,200 @@
+.think-play {
+  display: grid;
+  justify-items: center;
+  padding-bottom: var(--space-16);
+}
+.think-cloud {
+  position: relative;
+  width: min(100%, 580px);
+  padding: var(--space-32);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: 48px;
+  background: var(--fam-soft);
+  box-shadow: var(--shadow-sticker);
+  text-align: center;
+}
+.think-cloud::before,
+.think-cloud::after,
+.think-dot {
+  content: "";
+  position: absolute;
+  background: var(--fam-soft);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-pill);
+}
+.think-cloud::before {
+  width: 36px;
+  height: 28px;
+  bottom: -17px;
+  left: 22%;
+}
+.think-cloud::after {
+  width: 20px;
+  height: 16px;
+  bottom: -34px;
+  left: 17%;
+}
+.think-dot {
+  width: 12px;
+  height: 12px;
+  bottom: -45px;
+  left: 13%;
+}
+.think-kicker {
+  display: block;
+  font: var(--text-caption);
+  letter-spacing: 0.12em;
+  margin-bottom: var(--space-16);
+}
+.think-cloud p {
+  margin-top: var(--space-12);
+  font: var(--text-caption);
+}
+#gbody .think-world .think-cloud input {
+  text-align: center;
+  min-height: 80px;
+  font-size: 30px;
+}
+.think-piles {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-24);
+}
+.think-pile {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: var(--space-12);
+  justify-items: center;
+  align-content: start;
+  padding: var(--space-24);
+  background: var(--card);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sticker);
+}
+.think-pile::before {
+  content: "";
+  position: absolute;
+  inset: var(--space-4);
+  background: var(--fam-soft);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-xl);
+  transform: rotate(-3deg);
+  z-index: -1;
+}
+.think-pile.is-biggest {
+  background: var(--sun-soft);
+}
+.think-crown {
+  font: var(--text-caption);
+  text-align: center;
+}
+.think-pile.is-biggest .think-crown {
+  color: var(--sun-ink);
+  background: var(--sun);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-sm);
+}
+.think-faces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding-left: var(--space-12);
+}
+.think-faces > span {
+  margin-left: -12px;
+}
+#gbody .think-world .think-faces .pl-face {
+  width: 56px;
+  height: 56px;
+  border: var(--outline-w-lg) solid var(--outline);
+  font: var(--text-title);
+  box-shadow: var(--shadow-sticker-sm);
+}
+.think-tag {
+  max-width: 100%;
+  padding: var(--space-8) var(--space-16);
+  background: var(--card);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sticker-sm);
+  font: 800 28px/1.2 var(--font-display);
+  text-align: center;
+}
+.think-pile p {
+  font: var(--text-caption);
+}
+.think-members {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  justify-content: center;
+}
+@media (max-width: 560px) {
+  .think-cloud {
+    padding: var(--space-24) var(--space-16);
+    border-radius: 32px;
+  }
+  .think-play {
+    padding-bottom: var(--space-32);
+  }
+  .think-piles {
+    gap: var(--space-16);
+  }
+}
+/* Four separate answers still leave the primary action in view. */
+#gbody .think-world.pl-fill {
+  gap: var(--space-12);
+}
+.think-piles {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+.think-pile {
+  padding: var(--space-12);
+  gap: var(--space-8);
+}
+.think-crown {
+  font-size: 11px;
+}
+#gbody .think-world .think-faces .pl-face {
+  width: 40px;
+  height: 40px;
+}
+.think-tag {
+  font-size: 22px;
+  padding: var(--space-4) var(--space-8);
+}
+.think-members {
+  gap: var(--space-4);
+}
+#gbody .think-world .round-status {
+  min-height: calc(48px / var(--round-zoom, 1));
+  font: 700 13px/1.35 var(--font-body);
+}
+@media (max-width: 560px) {
+  #gbody .think-world .party-prompt.party-prompt {
+    font-size: 24px;
+    padding: var(--space-12);
+  }
+  .think-piles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-12);
+  }
+  .think-pile {
+    padding: var(--space-8);
+    gap: var(--space-4);
+  }
+  .think-pile p,
+  .think-members .pl-voter {
+    font-size: 11px;
+  }
+  .think-crown {
+    font-size: 10px;
+  }
+  .think-play {
+    padding-bottom: var(--space-16);
+  }
+}

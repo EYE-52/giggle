@@ -1,0 +1,33 @@
+.bw-world .bw-stack {
+  position: relative;
+  margin-bottom: var(--space-8);
+  background: var(--card);
+  box-shadow:
+    0 var(--space-8) 0 var(--fam-soft),
+    0 var(--space-12) 0 var(--outline);
+}
+.bw-world .bw-stack h4 {
+  color: var(--fam-deep);
+}
+.bw-world .bw-banned {
+  width: min(100%, 400px);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+.bw-world .bw-banned span {
+  min-height: var(--control-h-sm);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-md);
+  padding: var(--space-8);
+  background: var(--well);
+  font: var(--text-button);
+  overflow-wrap: anywhere;
+}
+.bw-world .bw-stamp {
+  font: var(--text-heading);
+  color: var(--success);
+}
+.bw-world .bw-skip {
+  flex: none;
+}

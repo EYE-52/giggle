@@ -127,7 +127,7 @@ for (const query of ['(pointer: coarse)', '(pointer: fine)', '(hover: hover)']) 
 }
 const resultPresentation = createResultPresentation((snapshot) => {
   const resultScores = snapshot?.scores;
-  const noPositiveWinner = ['pose-party', 'show-and-go', 'doodle-guess', 'never-ever', 'most-likely', 'charades', 'memory-tray', 'typing-race'].includes(snapshot?.game) &&
+  const noPositiveWinner = ['pose-party', 'show-and-go', 'doodle-guess', 'never-ever', 'most-likely', 'charades', 'memory-tray', 'typing-race', 'dial-in', 'ballpark', 'think-alike', 'who-wrote', 'know-me', 'math-dash', 'emoji-spotter', 'echo-pads', 'color-clash', 'hot-potato', 'clue-grid', 'letter-lock', 'word-grid', 'banned-words', 'read-my-lips'].includes(snapshot?.game) &&
     !Object.values(resultScores && typeof resultScores === 'object' ? resultScores : {}).some(score => Number(score) > 0);
   if (!noPositiveWinner) {
     sound.win();
@@ -2879,6 +2879,8 @@ function paintGameBody() {
 }
 
 function focusPreparedGame(el) {
+  // A hidden practice seat must not take the keyboard from the visible seat.
+  try { if (window.frameElement?.closest('[hidden], [inert]')) return; } catch { /* cross-origin embed */ }
   // An imported view may settle while the Room still holds its preparation
   // barrier. Wait for release before consuming the initial keyboard focus.
   if (focusGame === gameId || lastState?.preparing) return;

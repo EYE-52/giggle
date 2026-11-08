@@ -1,0 +1,452 @@
+{
+  "labels": {
+    "tooFew": "Too few players remain. This round was skipped.",
+    "noClue": "No clue arrived in time. Nobody scores this round.",
+    "leadLeft": "The lead player left. This round was skipped.",
+    "noPick": "The hot seat did not pick in time. Nobody scores this round.",
+    "tooFewNotes": "Fewer than two notes arrived. This round was skipped."
+  },
+  "questions": [
+    {
+      "q": "Your perfect lazy Sunday?",
+      "options": [
+        "Brunch with friends",
+        "Movie marathon",
+        "A long walk",
+        "Sleep till noon"
+      ]
+    },
+    {
+      "q": "You get a surprise free hour. What happens?",
+      "options": [
+        "A nap",
+        "A snack mission",
+        "Call a friend",
+        "Start a side quest"
+      ]
+    },
+    {
+      "q": "Your friends are late. You are…",
+      "options": [
+        "Already waiting",
+        "Also running late",
+        "Ordering for everyone",
+        "Sending dramatic texts"
+      ]
+    },
+    {
+      "q": "Your phone is on 1%. First move?",
+      "options": [
+        "Find a charger",
+        "Send one last message",
+        "Screenshot directions",
+        "Enjoy the peace"
+      ]
+    },
+    {
+      "q": "You win a free trip. Where do you go?",
+      "options": [
+        "Snowy mountains",
+        "A quiet beach",
+        "A busy city",
+        "A theme park"
+      ]
+    },
+    {
+      "q": "Your usual group chat role?",
+      "options": [
+        "The meme dealer",
+        "The planner",
+        "The silent reader",
+        "The voice note person"
+      ]
+    },
+    {
+      "q": "Someone says “one more episode”. You…",
+      "options": [
+        "Always say yes",
+        "Set a firm bedtime",
+        "Fall asleep anyway",
+        "Finish the season"
+      ]
+    },
+    {
+      "q": "At a party, your first stop?",
+      "options": [
+        "The snacks",
+        "The dance floor",
+        "A familiar face",
+        "The nearest pet"
+      ]
+    },
+    {
+      "q": "Your most likely impulse buy?",
+      "options": ["A snack", "A book", "A tiny gadget", "Something for a hobby"]
+    },
+    {
+      "q": "Which superpower would you actually use daily?",
+      "options": [
+        "Teleporting",
+        "Reading minds",
+        "Talking to animals",
+        "Pausing time"
+      ]
+    },
+    {
+      "q": "A friend cancels plans. Your secret reaction?",
+      "options": [
+        "Lovely, a night in",
+        "Find another plan",
+        "Go alone anyway",
+        "I was already dressed!"
+      ]
+    },
+    {
+      "q": "Your ideal birthday?",
+      "options": [
+        "A huge party",
+        "A small dinner",
+        "An adventure",
+        "No fuss, just cake"
+      ]
+    },
+    {
+      "q": "What steals your sleep most often?",
+      "options": [
+        "One more video",
+        "Overthinking",
+        "A good book",
+        "Late-night snacks"
+      ]
+    },
+    {
+      "q": "Your natural role on a road trip?",
+      "options": ["Driver", "DJ", "Snack manager", "Sleeping passenger"]
+    },
+    {
+      "q": "Someone takes a bad photo of you. You…",
+      "options": [
+        "Demand a retake",
+        "Laugh and post it",
+        "Quietly delete it",
+        "Make it a sticker"
+      ]
+    },
+    {
+      "q": "What would you grab for a pretend fire drill?",
+      "options": ["My phone", "My pet", "My snack stash", "Nothing, just run"]
+    },
+    {
+      "q": "Your dream tiny luxury?",
+      "options": [
+        "Fresh sheets daily",
+        "A personal chef",
+        "Unlimited massages",
+        "Never doing laundry"
+      ]
+    },
+    {
+      "q": "How do you choose from a huge menu?",
+      "options": [
+        "Same reliable order",
+        "Ask for a favourite",
+        "Try something strange",
+        "Copy a friend"
+      ]
+    },
+    {
+      "q": "Your approach to packing?",
+      "options": [
+        "Done days early",
+        "A careful checklist",
+        "Last-minute chaos",
+        "Buy it when I get there"
+      ]
+    },
+    {
+      "q": "What would your friends tease you about?",
+      "options": [
+        "Always being late",
+        "Taking too many photos",
+        "Overpacking",
+        "Saying “just five minutes”"
+      ]
+    },
+    {
+      "q": "At karaoke, you are…",
+      "options": [
+        "First on the mic",
+        "A duet only",
+        "The backing dancer",
+        "Absolutely not singing"
+      ]
+    },
+    {
+      "q": "You find a mystery button. You…",
+      "options": [
+        "Press it immediately",
+        "Read every warning",
+        "Get a friend to press it",
+        "Leave it alone"
+      ]
+    },
+    {
+      "q": "Which chore do you avoid longest?",
+      "options": [
+        "Dishes",
+        "Laundry",
+        "Cleaning the bathroom",
+        "Sorting old stuff"
+      ]
+    },
+    {
+      "q": "Your dream fictional home?",
+      "options": ["A treehouse", "A cosy castle", "A spaceship", "A houseboat"]
+    },
+    {
+      "q": "You get a pet dragon. First use?",
+      "options": [
+        "Fly to work",
+        "Cook dinner",
+        "Scare off bugs",
+        "Endless cuddles"
+      ]
+    },
+    {
+      "q": "What gets photographed first on holiday?",
+      "options": ["The view", "The food", "My friends", "Me in the view"]
+    },
+    {
+      "q": "Your friends plan a surprise outing. You hope for…",
+      "options": ["An escape room", "A picnic", "A concert", "A spa day"]
+    },
+    {
+      "q": "Your cooking style?",
+      "options": [
+        "Follow the recipe",
+        "Invent as I go",
+        "Order takeaway",
+        "Make one great dish"
+      ]
+    },
+    {
+      "q": "Your alarm goes off. You…",
+      "options": [
+        "Get up first time",
+        "Snooze twice",
+        "Need five alarms",
+        "Were awake already"
+      ]
+    },
+    {
+      "q": "A gift that would make you happiest?",
+      "options": [
+        "A useful thing",
+        "A shared experience",
+        "Something handmade",
+        "My favourite food"
+      ]
+    },
+    {
+      "q": "Your best defence in a pillow fight?",
+      "options": [
+        "Speed",
+        "A clever hiding place",
+        "Two pillows",
+        "Calling a truce"
+      ]
+    },
+    {
+      "q": "What makes you instantly grumpy?",
+      "options": [
+        "Being hungry",
+        "Bad Wi-Fi",
+        "Loud chewing",
+        "Someone waking me up"
+      ]
+    },
+    {
+      "q": "You enter a game show. Your strength?",
+      "options": [
+        "General knowledge",
+        "Pure luck",
+        "Reading people",
+        "Pushing buttons fast"
+      ]
+    },
+    {
+      "q": "Which collection could take over your room?",
+      "options": ["Books", "Plants", "Shoes", "Odd little souvenirs"]
+    },
+    {
+      "q": "Your café order is usually…",
+      "options": [
+        "Exactly the same",
+        "Whatever looks pretty",
+        "The strongest coffee",
+        "Something sweet"
+      ]
+    },
+    {
+      "q": "What would you do with a free year?",
+      "options": [
+        "Travel everywhere",
+        "Learn a hard skill",
+        "Build a dream project",
+        "Rest, finally"
+      ]
+    },
+    {
+      "q": "Which message from you is most believable?",
+      "options": [
+        "“On my way”",
+        "“Look at this meme”",
+        "“What are we eating?”",
+        "“I have an idea”"
+      ]
+    },
+    {
+      "q": "Your ideal rainy afternoon?",
+      "options": [
+        "A book and blanket",
+        "A nap",
+        "Cooking something cosy",
+        "Walking in the rain"
+      ]
+    },
+    {
+      "q": "You borrow a time machine. First stop?",
+      "options": [
+        "My childhood",
+        "The dinosaurs",
+        "A future city",
+        "A favourite concert"
+      ]
+    },
+    {
+      "q": "What ruins a film night for you?",
+      "options": ["People talking", "Spoilers", "No snacks", "A sad ending"]
+    },
+    {
+      "q": "How competitive are you in a silly game?",
+      "options": [
+        "Winning is everything",
+        "Only against friends",
+        "Mostly here for laughs",
+        "Secretly keeping score"
+      ]
+    },
+    {
+      "q": "Your friends give you a cafe. You name it after…",
+      "options": [
+        "My pet",
+        "A terrible pun",
+        "A favourite place",
+        "Myself, obviously"
+      ]
+    },
+    {
+      "q": "The internet goes down all evening. You…",
+      "options": [
+        "Play a board game",
+        "Read",
+        "Go outside",
+        "Keep checking the router"
+      ]
+    },
+    {
+      "q": "Which skill would you download instantly?",
+      "options": [
+        "Dancing",
+        "Playing an instrument",
+        "Cooking",
+        "Speaking every language"
+      ]
+    },
+    {
+      "q": "Your perfect seat on a train?",
+      "options": [
+        "Window, scenery please",
+        "Aisle, freedom please",
+        "Beside my friends",
+        "Anywhere I can sleep"
+      ]
+    },
+    {
+      "q": "You have to perform in ten minutes. You choose…",
+      "options": [
+        "A song",
+        "A terrible magic trick",
+        "A funny story",
+        "Interpretive dance"
+      ]
+    },
+    {
+      "q": "Your first move in a new city?",
+      "options": [
+        "Find food",
+        "Walk without a plan",
+        "Visit the famous sight",
+        "Ask a local"
+      ]
+    },
+    {
+      "q": "Which silly trophy would you probably win?",
+      "options": [
+        "Best snack finder",
+        "Most tabs open",
+        "Longest goodbye",
+        "Fastest nap"
+      ]
+    },
+    {
+      "q": "Your dream job for just one day?",
+      "options": ["Zookeeper", "Film star", "Astronaut", "Food critic"]
+    },
+    {
+      "q": "You get a tiny robot helper. Its only job is…",
+      "options": [
+        "Find my keys",
+        "Bring snacks",
+        "Fold clothes",
+        "Say encouraging things"
+      ]
+    },
+    {
+      "q": "Your friends lose you at a fair. Where are you?",
+      "options": [
+        "Food stalls",
+        "The biggest ride",
+        "Winning a soft toy",
+        "Watching a street show"
+      ]
+    },
+    {
+      "q": "Which ending fits your autobiography?",
+      "options": [
+        "“Then I took a nap.”",
+        "“Worth it.”",
+        "“What could go wrong?”",
+        "“There was cake.”"
+      ]
+    },
+    {
+      "q": "Your most likely midnight craving?",
+      "options": [
+        "Something crunchy",
+        "Something sweet",
+        "A full meal",
+        "Just a cup of tea"
+      ]
+    },
+    {
+      "q": "Someone hands you a blank notebook. It becomes…",
+      "options": [
+        "A careful journal",
+        "Messy lists",
+        "Doodles",
+        "Too precious to use"
+      ]
+    }
+  ]
+}
