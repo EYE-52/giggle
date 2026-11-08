@@ -1,0 +1,122 @@
+.pk6-world .pk6-pitch {
+  background: var(--fam-soft);
+  border: var(--outline-w-lg) solid var(--outline);
+  box-shadow: var(--shadow-sticker-lg);
+  overflow: hidden;
+}
+.pk6-world .b6-world-view,
+.pk6-world .b6-gl,
+.pk6-world .b6-flat {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-xl);
+}
+.pk6-world .b6-gl canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-xl);
+}
+#gbody .pk6-world .b6-prompt.party-prompt {
+  min-height: var(--control-h);
+  padding: var(--space-8) var(--space-12);
+  font: var(--text-title);
+}
+.pk6-world .pk6-zones {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+.pk6-world .pk6-zones button {
+  padding: var(--space-4);
+  font: var(--text-caption);
+  background: var(--fam-soft);
+  color: var(--fam-deep);
+}
+.pk6-world .pk6-zones button[aria-pressed="true"] {
+  background: var(--fam);
+  color: var(--on-fam);
+}
+.pk6-world .pk6-controls,
+.pk6-world .pk6-match-tools {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.pk6-world .pk6-controls {
+  min-height: var(--control-h-lg);
+  justify-content: space-between;
+}
+.pk6-world .pk6-power {
+  flex: none;
+}
+.pk6-world .pk6-controls button {
+  padding-inline: var(--space-8);
+  font: var(--text-caption);
+  white-space: nowrap;
+}
+#gbody .pk6-world .b6-recovery {
+  position: absolute;
+  left: var(--space-8);
+  right: var(--space-8);
+  bottom: var(--space-8);
+  min-height: var(--control-h-sm);
+  gap: var(--space-8);
+}
+.pk6-world .pk6-pitch[data-renderer="2d"] .b6-world-view {
+  height: calc(100% - var(--control-h-lg));
+}
+#gbody .pk6-world .gk-hud-progress {
+  font: var(--text-title);
+}
+#gbody .pk6-world .pl-live {
+  padding: var(--space-8) var(--space-12);
+  gap: var(--space-4);
+}
+#gbody .pk6-world .pl-seat {
+  padding: var(--space-4) var(--space-8);
+}
+#gbody .pk6-world .pl-avatar {
+  width: var(--space-32);
+  height: var(--space-32);
+  font: var(--text-caption);
+}
+#gbody .pk6-world .pl-name {
+  font: var(--text-caption);
+}
+#gbody .pk6-world .pl-points {
+  min-height: 20px;
+}
+@media (max-width: 700px) {
+  #gbody .pk6-world .b6-stage {
+    height: calc(3 * var(--space-64) + var(--space-32));
+  }
+  .pk6-world .b6-field {
+    gap: var(--space-4);
+  }
+  #gbody .pk6-world .pl-head {
+    display: none;
+  }
+  #gbody .pk6-world .pl-live {
+    padding-block: var(--space-4);
+  }
+}
+@media (min-width: 701px) {
+  .pk6-world .b6-field {
+    grid-template-columns: minmax(0, 1.8fr) minmax(320px, 1fr);
+    align-items: center;
+    gap: var(--space-8) var(--space-16);
+  }
+  #gbody .pk6-world .pk6-pitch {
+    grid-column: 1;
+    grid-row: 1 / 4;
+    height: calc(5 * var(--space-64));
+  }
+  .pk6-world :is(.pk6-zones, .pk6-controls, .b6-actions) {
+    grid-column: 2;
+  }
+}

@@ -10,6 +10,11 @@ const groups = {
   driving: ['pocket-karts'],
 };
 
+// Explicit reviews for batch six; preserve every existing entry above.
+groups.hidden.push('dice-fibs', 'penalty-kicks');
+groups.timed.push('block-stack');
+groups.drawing.push('sketchy-impostor', 'draw-off');
+
 const notes = {
   turns: 'Take each turn yourself by switching seats. This is a rules walkthrough, not a computer opponent.',
   hidden: 'Use each seat’s controls. You can see everything each player normally keeps private, so this is a walkthrough rather than a fair competition.',

@@ -305,6 +305,10 @@ const FAMILIES = {
   create: ['doodle-guess', 'draw-phone', 'charades', 'pose-party', 'show-and-go', 'word-chain', 'warm-words', 'countdown-word', 'scattergories', 'lyric-fill'],
   arcade: ['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction'],
 };
+// Batch six additions keep the existing family lists intact.
+FAMILIES.board.push('dice-fibs');
+FAMILIES.create.push('sketchy-impostor', 'draw-off');
+FAMILIES.arcade.push('block-stack', 'penalty-kicks');
 export function familyOf(id) {
   return Object.keys(FAMILIES).find((f) => FAMILIES[f].includes(id)) || 'party';
 }

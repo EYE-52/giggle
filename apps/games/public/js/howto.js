@@ -18,6 +18,8 @@ import { closeCustomizer } from './customize.js';
 let state = null; // {game, opener, meta, buildFooter, el}
 
 export function controlFamily(game) {
+  if (['block-stack', 'penalty-kicks'].includes(game.id)) return 'arcade';
+  if (game.id === 'dice-fibs') return 'board';
   // Catalogue categories also cover discovery (e.g. "speed"), so a few
   // games need an explicit control family from the design guide.
   if (['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction'].includes(game.id)) return 'arcade';

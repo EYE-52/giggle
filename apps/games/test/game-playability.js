@@ -1633,6 +1633,88 @@ driver('fleet-duel', () => {
   return `${shots} alternating legal shots, confirmed placement, masked opponents/watchers and complete sinking win`;
 });
 
+/* Batch six: real legal inputs, with the same public views as the clients. */
+driver('dice-fibs', () => {
+  const def = registry.get('dice-fibs'), ctx = new FakeCtx(roster(4), {}), s = def.create(ctx);
+  let actions = 0;
+  while (s.phase !== 'done' && actions++ < 500) {
+    if (s.phase === 'reveal') act(def, s, ctx, ctx.hostId(), { next: true });
+    else {
+      const v = V(def, s, s.turnPid);
+      act(def, s, ctx, s.turnPid, v.bid ? { liar: true, turnNo: v.turnNo } : { bid: { quantity: 1, face: 1 }, turnNo: v.turnNo });
+    }
+  }
+  must(s.phase === 'done' && ctx.totalAwarded() === 600, 'dice elimination pays 300/200/100');
+  return 'four cups, legal raises/challenges and a full elimination match';
+});
+
+driver('sketchy-impostor', () => {
+  const def = registry.get('sketchy-impostor'), ctx = new FakeCtx(roster(4), { rounds: 2 }), s = def.create(ctx);
+  while (s.phase !== 'done') {
+    if (s.phase === 'draw') {
+      const v = V(def, s, s.turnPid);
+      act(def, s, ctx, s.turnPid, { stroke: { pts: [[.2,.3],[.7,.6]], color: '#2563eb', size: 7 },
+        inkNonce: v.inkNonce, inkRevision: v.inkRevision, gestureId: 1, chunk: 0, finished: true, turnNo: v.turnNo });
+    } else if (s.phase === 'vote') {
+      const imp = ids(ctx.players()).find(p => V(def, s, p).role === 'impostor');
+      for (const p of ids(ctx.players())) act(def, s, ctx, p, { vote: p === imp ? ids(ctx.players()).find(q => q !== imp) : imp });
+    } else if (s.phase === 'guess') {
+      act(def, s, ctx, s.impostor, { guess: 'a deliberately wrong word' });
+    } else act(def, s, ctx, ctx.hostId(), { next: true });
+  }
+  must(ctx.totalAwarded() === 600, 'two caught impostors pay three voters 100 each');
+  return 'two complete two-lap canvases, secret roles, vote and last-chance guess';
+});
+
+driver('draw-off', () => {
+  const def = registry.get('draw-off'), ctx = new FakeCtx(roster(4), { rounds: 2 }), s = def.create(ctx);
+  while (s.phase !== 'done') {
+    if (s.phase === 'draw') for (const p of ids(ctx.players())) {
+      const v = V(def, s, p);
+      act(def, s, ctx, p, { stroke: { pts: [[.1,.2],[.8,.7]], color: '#2563eb', size: 7 },
+        inkNonce: v.inkNonce, inkRevision: v.inkRevision, gestureId: 1, chunk: 0, finished: true });
+      act(def, s, ctx, p, { ready: true });
+    } else if (s.phase === 'vote') for (const p of ids(ctx.players())) {
+      const g = V(def, s, p).gallery.find(g => !g.mine);
+      act(def, s, ctx, p, { vote: g.aid });
+    } else act(def, s, ctx, ctx.hostId(), { next: true });
+  }
+  must(ctx.totalAwarded() > 0, 'gallery awards round points');
+  return 'two private canvases per artist, anonymous gallery and favourite votes';
+});
+
+driver('block-stack', () => {
+  const def = registry.get('block-stack'), ctx = new FakeCtx(roster(4), { rounds: 2 }), s = def.create(ctx);
+  for (let r = 0; r < 2; r++) {
+    ctx.fireUntil(() => s.phase === 'stack');
+    // Choose a drop time from the public path, never a forged position.
+    for (const p of ids(ctx.players())) {
+      const t = V(def, s, p).towers[p];
+      ctx.setNow(t.startedAt);
+      act(def, s, ctx, p, { drop: true, level: 0, round: s.round });
+    }
+    ctx.fireUntil(() => s.phase === 'reveal');
+    must(s.last.best === 1 && Object.values(s.last.pts).every(n => n === 100), 'equal perfect towers tie');
+    act(def, s, ctx, ctx.hostId(), { next: true });
+  }
+  must(s.phase === 'done' && ctx.totalAwarded() === 800, 'two stack rounds complete');
+  return 'four parallel towers, receipt-time perfect drops, tied scores and timed rounds';
+});
+
+driver('penalty-kicks', () => {
+  const def = registry.get('penalty-kicks'), ctx = new FakeCtx(roster(2), {}), s = def.create(ctx);
+  for (let guard = 0; s.phase !== 'done' && guard < 30; guard++) {
+    if (s.phase === 'reveal') act(def, s, ctx, ctx.hostId(), { next: true });
+    else {
+      const v = V(def, s, s.shooter);
+      act(def, s, ctx, s.shooter, { zone: 3, power: 'hard', kick: v.kick });
+      act(def, s, ctx, s.keeper, { zone: s.shooter === ids(ctx.players())[0] ? 2 : 3, kick: v.kick });
+    }
+  }
+  must(s.phase === 'done' && s.kick === 10 && ctx.totalAwarded() === 300, 'ten real penalties settle duel');
+  return 'ten secret shot/dive pairs, animated reveals and whole-match points';
+});
+
 /* ---------------- runner ---------------- */
 async function main() {
   await registry.get('pocket-karts').initialize();

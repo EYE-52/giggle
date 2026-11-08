@@ -1,0 +1,281 @@
+/* Shared reserved slots, used only by the five batch-six skins. */
+#gbody .b6-world.pl-fill {
+  width: min(100%, 960px);
+  margin-inline: auto;
+  min-height: 0;
+  display: grid;
+  gap: var(--space-12);
+  padding: var(--space-8) 0 var(--space-16);
+  font-variant-numeric: tabular-nums;
+}
+.b6-world,
+.b6-world * {
+  box-sizing: border-box;
+}
+.b6-world [hidden] {
+  display: none !important;
+}
+#gbody .b6-world .party-hud {
+  flex-wrap: nowrap;
+  min-width: 0;
+  gap: var(--space-8);
+}
+#gbody .b6-world .gk-hud-round {
+  white-space: nowrap;
+  font: var(--text-caption);
+}
+#gbody .b6-world .gk-hud-progress {
+  min-width: 4ch;
+  white-space: nowrap;
+}
+#gbody .b6-world .gk-hud-timer {
+  display: inline-grid;
+  width: 64px;
+  min-width: 64px;
+}
+#gbody .b6-world .b6-prompt.party-prompt {
+  display: grid;
+  align-content: center;
+  min-height: 96px;
+  margin: 0;
+  padding: var(--space-12) var(--space-16);
+  background: var(--fam-soft);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sticker);
+  text-align: center;
+  font: var(--text-heading);
+  overflow-wrap: anywhere;
+}
+.b6-world .b6-field {
+  display: grid;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.b6-world .b6-stage {
+  position: relative;
+  height: 288px;
+  min-width: 0;
+  border-radius: var(--radius-xl);
+}
+.b6-world .b6-tools {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.b6-world .b6-tools p {
+  margin: 0;
+  font: var(--text-caption);
+}
+.b6-world .b6-actions {
+  display: grid;
+  gap: var(--space-8);
+  justify-items: center;
+}
+.b6-world .b6-status {
+  min-height: 40px;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  text-align: center;
+  font: var(--text-caption);
+}
+#gbody .b6-world .b6-primary {
+  width: min(100%, 480px);
+  min-height: calc(var(--control-h-lg) / var(--b6-zoom, 1));
+  font: var(--text-title);
+}
+.b6-world button {
+  min-height: calc(var(--control-h-sm) / var(--b6-zoom, 1));
+  touch-action: manipulation;
+}
+.b6-world :is(button, input):focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+.b6-world input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-h-lg);
+  font: var(--text-body);
+  color: var(--ink);
+  background: var(--card);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-12);
+}
+#gbody .b6-world > .pl-live {
+  margin-top: 0;
+}
+#gbody .b6-world .pl-seat {
+  grid-template-areas: "av name" "av state" "pts pts";
+}
+#gbody .b6-world .pl-points {
+  width: 100%;
+  min-height: 24px;
+  justify-self: stretch;
+}
+#gbody .b6-world .pl-points b {
+  min-width: 4ch;
+}
+#gbody .b6-world .pl-gain {
+  display: inline-block;
+  min-width: 4ch;
+  margin-left: auto;
+  text-align: right;
+}
+.b6-world .b6-pop {
+  animation: b6-pop var(--dur-slow) var(--ease) both;
+}
+@keyframes b6-pop {
+  from {
+    opacity: 0.3;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.b6-world .b6-scroll {
+  display: flex;
+  gap: var(--space-8);
+  overflow-x: auto;
+  padding: var(--space-4);
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+}
+.b6-world .b6-scroll button {
+  flex: 0 0 auto;
+}
+.b6-world .b6-view-note {
+  font: var(--text-caption);
+}
+@media (max-width: 560px) {
+  #gbody .b6-world.pl-fill {
+    gap: var(--space-8);
+  }
+  #gbody .b6-world .b6-prompt.party-prompt {
+    min-height: 88px;
+    font: var(--text-title);
+    padding: var(--space-8) var(--space-12);
+  }
+  .b6-world .b6-stage {
+    height: 216px;
+  }
+  #gbody .b6-world .gk-hud-phase {
+    padding-inline: var(--space-4);
+  }
+  #gbody .b6-world .gk-hud-timer {
+    width: 52px;
+    min-width: 52px;
+  }
+  #gbody .b6-world .pl-seats {
+    display: flex;
+  }
+  #gbody .b6-world .pl-seat {
+    min-width: 112px;
+    flex: 1 0 112px;
+    grid-template-areas: "av name" "av state" "pts pts";
+    grid-template-columns: 32px minmax(0, 1fr);
+    justify-items: start;
+    text-align: left;
+  }
+  #gbody .b6-world .pl-avatar {
+    width: 32px;
+    height: 32px;
+    margin: 0;
+    font: var(--text-caption);
+  }
+  #gbody .b6-world .pl-name {
+    font: var(--text-caption);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .b6-world * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+/* Grid tracks must shrink before the horizontal cup/gallery rails scroll. */
+#gbody .b6-world.pl-fill,
+.b6-world .b6-field {
+  grid-template-columns: minmax(0, 1fr);
+}
+.b6-world .b6-stage {
+  width: 100%;
+}
+#gbody .b6-world .pl-live {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+#gbody .b6-world :is(.pl-head, .pl-seats) {
+  min-width: 0;
+  width: 100%;
+}
+@media (max-width: 560px) {
+  #gbody .b6-world .pl-seats {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: var(--space-4);
+  }
+}
+#gbody .b6-world .b6-status {
+  min-height: calc(var(--control-h) / var(--b6-zoom, 1));
+  font: var(--text-caption);
+}
+#gbody .b6-world .b6-tools p {
+  font: var(--text-caption);
+}
+@media (min-width: 561px) {
+  .b6-world .b6-stage {
+    height: 224px;
+  }
+}
+/* Reserve enough ink width for +100, including the badge padding. */
+#gbody .b6-world .pl-gain {
+  min-width: calc(5ch + var(--space-8));
+  text-align: center;
+}
+@media (max-width: 560px) {
+  #gbody .b6-world .pl-seat {
+    min-width: 144px;
+    flex-basis: 144px;
+  }
+}
+
+/* Keep the complete player row on the first screen in the practice frame.
+ * These changes only affect batch six; controls keep their physical size. */
+#gbody .b6-world.pl-fill {
+  gap: var(--space-8);
+}
+#gbody .b6-world .b6-prompt.party-prompt {
+  min-height: var(--space-64);
+}
+#gbody .b6-world .b6-tools {
+  min-height: var(--control-h-lg);
+}
+#gbody .b6-world .b6-status {
+  min-height: calc(var(--space-40) / var(--b6-zoom, 1));
+}
+#gbody .b6-world .pl-live {
+  padding: var(--space-12);
+  gap: var(--space-8);
+}
+@media (min-width: 561px) {
+  .b6-world .b6-stage {
+    height: calc(3 * var(--space-64));
+  }
+}
+@media (max-width: 560px) {
+  #gbody .b6-world .b6-prompt.party-prompt {
+    min-height: calc(var(--space-64) + var(--space-16));
+  }
+  #gbody .b6-world .pl-live {
+    padding: var(--space-8) var(--space-12);
+  }
+}

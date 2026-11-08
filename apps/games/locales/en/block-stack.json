@@ -1,0 +1,8 @@
+{
+  "labels": {
+    "title": "Block Stack",
+    "perfect": "Perfect drop",
+    "miss": "Full miss",
+    "drop": "Drop block"
+  }
+}
