@@ -3,10 +3,10 @@
  * than inventing solo behavior from a category or renderer. */
 const groups = {
   turns: ['chain-reaction', 'checkers', 'chess', 'four-in-a-row', 'kalah', 'ludo', 'reversi', 'story-builder'],
-  hidden: ['bluff', 'compliment-battle', 'emoji-story', 'fleet-duel', 'funny-answer', 'hot-takes', 'most-likely', 'rank-it', 'roast-toast', 'two-truths', 'would-you-rather', 'pick-one', 'rapid-polls', 'never-ever', 'twenty-questions'],
-  timed: ['countdown-word', 'lyric-fill', 'memory-tray', 'number-hunt', 'reaction-tap', 'scattergories', 'trivia', 'typing-race', 'word-chain', 'warm-words'],
+  hidden: ['bluff', 'compliment-battle', 'emoji-story', 'fleet-duel', 'funny-answer', 'hot-takes', 'most-likely', 'rank-it', 'roast-toast', 'two-truths', 'would-you-rather', 'pick-one', 'rapid-polls', 'never-ever', 'twenty-questions', 'clue-grid', 'banned-words'],
+  timed: ['countdown-word', 'lyric-fill', 'memory-tray', 'number-hunt', 'reaction-tap', 'scattergories', 'trivia', 'typing-race', 'word-chain', 'warm-words', 'letter-lock', 'word-grid'],
   drawing: ['doodle-guess', 'draw-phone'],
-  performance: ['charades', 'dare-roulette', 'five-second', 'pose-party', 'show-and-go', 'truth-dare'],
+  performance: ['charades', 'dare-roulette', 'five-second', 'pose-party', 'show-and-go', 'truth-dare', 'read-my-lips'],
   driving: ['pocket-karts'],
 };
 

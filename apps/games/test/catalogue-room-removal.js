@@ -237,7 +237,7 @@ async function main() {
   };
   global.clearTimeout = id => timers.delete(id);
   const report = { scope: 'Production Room/definitions with socket doubles, controlled Date/timeouts/microtask queue, seeded registered legal drivers and seeded Ludo crypto dice. No native/browser/physical/WS/RTC/audio claim.', node: process.version, games: [], failures: [] };
-  assert.equal(registry.count(), 42, 'shipping catalogue remains 42');
+  assert.equal(registry.count(), 47, 'shipping catalogue includes the five batch 3 games');
   for (const entry of registry.list()) {
     currentRow = { id: entry.id, checks: 0, scenarios: {} }; report.games.push(currentRow);
     for (const scenario of ['minimum', 'live', 'done']) {

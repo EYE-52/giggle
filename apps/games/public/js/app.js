@@ -127,7 +127,7 @@ for (const query of ['(pointer: coarse)', '(pointer: fine)', '(hover: hover)']) 
 }
 const resultPresentation = createResultPresentation((snapshot) => {
   const resultScores = snapshot?.scores;
-  const noPositiveWinner = ['pose-party', 'show-and-go', 'doodle-guess', 'never-ever', 'most-likely', 'charades', 'memory-tray', 'typing-race'].includes(snapshot?.game) &&
+  const noPositiveWinner = ['pose-party', 'show-and-go', 'doodle-guess', 'never-ever', 'most-likely', 'charades', 'memory-tray', 'typing-race', 'clue-grid', 'letter-lock', 'word-grid', 'banned-words', 'read-my-lips'].includes(snapshot?.game) &&
     !Object.values(resultScores && typeof resultScores === 'object' ? resultScores : {}).some(score => Number(score) > 0);
   if (!noPositiveWinner) {
     sound.win();

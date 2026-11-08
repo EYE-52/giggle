@@ -282,3 +282,33 @@ body[data-game="warm-words"] { --bg: #f9f0ee; --font-display: "Lilita One", "Bal
 [data-theme="night"] body[data-game="warm-words"], [data-theme="night"] body[data-game="warm-words"] [data-family] { --fam: #ed8247; --fam-deep: #f6bd9e; --on-fam: #121016; --accent: #ed8247; --accent-deep: #f6bd9e; --accent-ink: #121016; }
 [data-theme="night"] body[data-game="warm-words"] { --bg: #231514; --card: #281c20; --well: #342428; }
 
+
+/* Batch 3: clue-grid. */
+body[data-game="clue-grid"], body[data-game="clue-grid"] [data-family] { --fam: #247d99; --fam-deep: #155064; --on-fam: #ffffff; --accent: #247d99; --accent-ink: #ffffff; --fam-lip: #155064; --fam-soft: color-mix(in srgb, var(--fam) 12%, var(--card)); --accent-soft: var(--fam-soft); }
+body[data-game="clue-grid"] { --bg: #edf6f8; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="clue-grid"], [data-theme="night"] body[data-game="clue-grid"] [data-family] { --fam: #70c7e0; --fam-deep: #70c7e0; --on-fam: #171323; --accent: #70c7e0; --accent-ink: #171323; --fam-lip: color-mix(in srgb, var(--fam) 55%, #171323); }
+[data-theme="night"] body[data-game="clue-grid"] { --bg: #13232c; }
+
+/* Batch 3: letter-lock. */
+body[data-game="letter-lock"], body[data-game="letter-lock"] [data-family] { --fam: #7663c6; --fam-deep: #453780; --on-fam: #ffffff; --accent: #7663c6; --accent-ink: #ffffff; --fam-lip: #453780; --fam-soft: color-mix(in srgb, var(--fam) 12%, var(--card)); --accent-soft: var(--fam-soft); }
+body[data-game="letter-lock"] { --bg: #f2f0fb; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="letter-lock"], [data-theme="night"] body[data-game="letter-lock"] [data-family] { --fam: #b1a1ee; --fam-deep: #b1a1ee; --on-fam: #171323; --accent: #b1a1ee; --accent-ink: #171323; --fam-lip: color-mix(in srgb, var(--fam) 55%, #171323); }
+[data-theme="night"] body[data-game="letter-lock"] { --bg: #211b31; }
+
+/* Batch 3: word-grid. */
+body[data-game="word-grid"], body[data-game="word-grid"] [data-family] { --fam: #25836a; --fam-deep: #145542; --on-fam: #ffffff; --accent: #25836a; --accent-ink: #ffffff; --fam-lip: #145542; --fam-soft: color-mix(in srgb, var(--fam) 12%, var(--card)); --accent-soft: var(--fam-soft); }
+body[data-game="word-grid"] { --bg: #edf8f2; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="word-grid"], [data-theme="night"] body[data-game="word-grid"] [data-family] { --fam: #74cdb4; --fam-deep: #74cdb4; --on-fam: #171323; --accent: #74cdb4; --accent-ink: #171323; --fam-lip: color-mix(in srgb, var(--fam) 55%, #171323); }
+[data-theme="night"] body[data-game="word-grid"] { --bg: #152922; }
+
+/* Batch 3: banned-words. */
+body[data-game="banned-words"], body[data-game="banned-words"] [data-family] { --fam: #bc5e30; --fam-deep: #7e381b; --on-fam: #ffffff; --accent: #bc5e30; --accent-ink: #ffffff; --fam-lip: #7e381b; --fam-soft: color-mix(in srgb, var(--fam) 12%, var(--card)); --accent-soft: var(--fam-soft); }
+body[data-game="banned-words"] { --bg: #fff4e9; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="banned-words"], [data-theme="night"] body[data-game="banned-words"] [data-family] { --fam: #efa479; --fam-deep: #efa479; --on-fam: #171323; --accent: #efa479; --accent-ink: #171323; --fam-lip: color-mix(in srgb, var(--fam) 55%, #171323); }
+[data-theme="night"] body[data-game="banned-words"] { --bg: #2c201b; }
+
+/* Batch 3: read-my-lips. */
+body[data-game="read-my-lips"], body[data-game="read-my-lips"] [data-family] { --fam: #bc5387; --fam-deep: #792f58; --on-fam: #ffffff; --accent: #bc5387; --accent-ink: #ffffff; --fam-lip: #792f58; --fam-soft: color-mix(in srgb, var(--fam) 12%, var(--card)); --accent-soft: var(--fam-soft); }
+body[data-game="read-my-lips"] { --bg: #fff0f7; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
+[data-theme="night"] body[data-game="read-my-lips"], [data-theme="night"] body[data-game="read-my-lips"] [data-family] { --fam: #e99fc2; --fam-deep: #e99fc2; --on-fam: #171323; --accent: #e99fc2; --accent-ink: #171323; --fam-lip: color-mix(in srgb, var(--fam) 55%, #171323); }
+[data-theme="night"] body[data-game="read-my-lips"] { --bg: #2e1b2a; }

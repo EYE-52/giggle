@@ -1,0 +1,90 @@
+.wg3-world .wg3-grid {
+  width: min(100%, 280px);
+  height: 240px;
+  margin: 0 auto var(--space-8);
+  padding: var(--space-8);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sticker-lg);
+  background: var(--fam-soft);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: var(--space-8);
+  touch-action: none;
+}
+#gbody .wg3-world .wg3-tile {
+  min-height: 44px;
+  min-width: 0;
+  padding: var(--space-4);
+  display: grid;
+  place-items: center;
+  background: var(--card);
+  color: var(--ink);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sticker-sm);
+  font: var(--text-heading);
+  opacity: 1;
+}
+#gbody .wg3-world .wg3-tile.is-selected {
+  background: var(--fam);
+  color: var(--on-fam);
+  box-shadow: none;
+}
+.wg3-world .wg3-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-8);
+  height: 44px;
+  margin-top: var(--space-4);
+}
+.wg3-world .wg3-count {
+  font: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+}
+.wg3-world .wg3-words s {
+  color: var(--ink-dim);
+}
+.wg3-world .wg3-grid {
+  height: calc(240px / var(--round-zoom, 1));
+}
+#gbody .wg3-world .wg3-tile {
+  min-height: calc(44px / var(--round-zoom, 1));
+}
+.wg3-world .wg3-bottom {
+  height: calc(44px / var(--round-zoom, 1));
+}
+.wg3-world .wg3-clear {
+  flex: none;
+  min-width: calc(72px / var(--round-zoom, 1));
+  white-space: nowrap;
+}
+.wg3-world .wg3-play {
+  position: relative;
+}
+.wg3-world .wg3-longest {
+  position: absolute;
+  top: calc(240px / var(--round-zoom, 1) + 8px);
+  left: 0;
+  right: 0;
+  min-height: calc(100px / var(--round-zoom, 1));
+  padding: var(--space-12);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+  background: var(--fam-soft);
+  font: var(--text-caption);
+}
+.wg3-world .wg3-longest ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-12);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.wg3-world .wg3-longest li {
+  font: var(--text-button-sm);
+  overflow-wrap: anywhere;
+}

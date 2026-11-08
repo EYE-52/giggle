@@ -1,0 +1,24 @@
+.lips-world .lips-silent {
+  position: relative;
+  margin-bottom: var(--space-8);
+  background: radial-gradient(
+    ellipse at center,
+    var(--card) 0 54%,
+    var(--fam-soft) 55%
+  );
+}
+.lips-world .lips-icon {
+  display: grid;
+  place-items: center;
+  width: var(--control-h-lg);
+  height: var(--control-h-lg);
+  border: var(--outline-w-lg) solid var(--fam);
+  border-radius: var(--radius-pill);
+  color: var(--fam-deep);
+  background: var(--card);
+  font: var(--text-heading);
+  box-shadow: var(--shadow-sticker);
+}
+.lips-world .lips-silent h4 {
+  max-width: 22ch;
+}
