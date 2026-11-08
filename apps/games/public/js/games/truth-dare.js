@@ -345,8 +345,7 @@ function paint(el, S, api) {
       + `</section>`;
     const node = document.getElementById('tSpin');
     const wheel = el.querySelector?.('.td-wheel');
-    const names = players.map((p) => p.name);
-    if (!names.length || !node) return;
+    if (!players.length || !node) return;
     if (reducedMotion()) {
       wheel?.classList.add('is-landed');
       node.textContent = nameOf(S, S.target);
@@ -355,6 +354,16 @@ function paint(el, S, api) {
     // Two frames so the wheel paints at 0 first and the turn runs once.
     if (wheel && typeof requestAnimationFrame === 'function') requestAnimationFrame(() => requestAnimationFrame(() => wheel.classList.add('is-landed')));
     else wheel?.classList.add('is-landed');
+    node.textContent = 'Spinning…';
+    const settle = () => {
+      if (lastKey !== k || document.getElementById('tSpin') !== node) return;
+      stopSpin();
+      node.textContent = nameOf(S, S.target);
+      node.classList?.add('is-landed');
+    };
+    wheel?.addEventListener?.('transitionend', event => {
+      if (event.target === wheel && event.propertyName === 'transform') settle();
+    }, { once: true });
     let ticks = 0;
     spinTimer = setInterval(() => {
       ticks += 1;
@@ -363,12 +372,9 @@ function paint(el, S, api) {
         stopSpin();
         return;
       }
-      if (ticks > 26) {
-        stopSpin();
-        n.textContent = nameOf(S, S.target);
-        return;
-      }
-      n.textContent = names[Math.floor(Math.random() * names.length)];
+      // Fallback for hosts without transition events. The 2.8s wheel has
+      // finished before this 2.97s deadline; never cycle misleading names.
+      if (ticks > 26) settle();
     }, 110);
 }
 

@@ -40,6 +40,8 @@
 #gbody .pl-fill .dr-meter--chicken .party-meter > span { background: var(--danger); }
 #gbody .pl-fill .dr-meter .party-label { font: var(--text-title); color: var(--ink); margin: 0; }
 #gbody .party-scene--spotlight .dr-recap { margin: 0; text-align: center; }
+/* Results can run longer than the viewport; Next keeps a visible seat. */
+.party-scene--spotlight:has(.dr-meter) .dr-actions { position:sticky; bottom:var(--space-16); z-index:30; }
 @media (max-width: 560px) {
   #gbody .party-scene--spotlight.pl-fill > .gk-prompt { padding: var(--space-16); font-size: 24px; border-radius: var(--radius-lg); }
 }

@@ -82,7 +82,7 @@ export default {
   ownsTimer: true,
   dispose(el) {
     if (clock !== null) clearInterval(clock);
-    clock = null; current = null; if (el) delete el._key; removeCss();
+    clock = null; current = null; if (el) { delete el._key; delete el._cwDismissedFeedback; delete el._cwSubmittedWord; } removeCss();
   },
   render(el, S, api) {
     const previous = current;
@@ -154,8 +154,11 @@ export default {
       }
       const feedback = el.querySelector('#cwFeedback');
       if (feedback) {
-        feedback.textContent = S.myFeedback?.message || '';
-        feedback.classList?.toggle('is-error', S.myFeedback?.ok === false);
+        const typed = el.querySelector('#cwWord')?.value || '';
+        const edited = el._cwSubmittedWord !== undefined && typed.trim().toUpperCase() !== el._cwSubmittedWord;
+        const dismissed = edited || el._cwDismissedFeedback === JSON.stringify(S.myFeedback || null);
+        feedback.textContent = dismissed ? '' : S.myFeedback?.message || '';
+        feedback.classList?.toggle('is-error', !dismissed && S.myFeedback?.ok === false);
       }
       for (const id of ['cwWord', 'cwSave', 'cwLock', 'cwBack', 'cwClear', 'cwPass']) {
         const control = el.querySelector(`#${id}`);
@@ -171,6 +174,7 @@ export default {
     const prior = el._key && String(el._key).startsWith(`make:${S.instanceId || ''}:${S.me || ''}:${S.round}:`)
       ? (el.querySelector('#cwWord')?.value || '')
       : '';
+    if (!el._key || !String(el._key).startsWith(`make:${S.instanceId || ''}:${S.me || ''}:${S.round}:`)) { delete el._cwDismissedFeedback; delete el._cwSubmittedWord; }
     el._key = key;
     const off = !!(S.myLocked || S.spectator);
     const dis = off ? 'disabled' : '';
@@ -209,6 +213,14 @@ export default {
         t.setAttribute?.('aria-pressed', String(t.classList.contains('is-used')));
       });
     };
+    const ownsWord = () => current?.el === el && el._key === key && el.querySelector('#cwWord') === inp;
+    const editWord = () => {
+      if (!ownsWord()) return;
+      el._cwDismissedFeedback = JSON.stringify(current?.S.myFeedback || null);
+      const feedback = el.querySelector('#cwFeedback');
+      if (feedback) { feedback.textContent = ''; feedback.classList?.toggle('is-error', false); }
+      syncTiles();
+    };
     tileBtns.forEach((t) => {
       t.onclick = () => {
         if (!inp || inp.disabled || current?.el !== el || current?.S.round !== S.round || current?.S.instanceId !== S.instanceId) return;
@@ -216,23 +228,29 @@ export default {
         const have = inp.value.toUpperCase().split('').filter((c) => c === t.dataset.letter).length;
         if (inp.value.length >= 9 || have >= avail) return;
         inp.value += t.dataset.letter;
-        syncTiles();
+        editWord();
       };
     });
-    if (inp) inp.oninput = syncTiles;
+    if (inp) inp.oninput = editWord;
     const val = () => (inp ? inp.value : '');
-    const lockIn = () => sendAction(el, S, 'make', { word: val(), lock: true });
+    const submitWord = lock => {
+      if (!ownsWord()) return false;
+      delete el._cwDismissedFeedback;
+      el._cwSubmittedWord = val().trim().toUpperCase();
+      return sendAction(el, S, 'make', { word: val(), ...(lock ? { lock: true } : {}) });
+    };
+    const lockIn = () => submitWord(true);
     const form = el.querySelector('#cwForm');
     if (form) form.onsubmit = (e) => { e?.preventDefault?.(); lockIn(); };
     const sv = el.querySelector('#cwSave');
-    if (sv) sv.onclick = () => sendAction(el, S, 'make', { word: val() });
+    if (sv) sv.onclick = () => submitWord(false);
     const lk = el.querySelector('#cwLock');
     if (lk) lk.onclick = (e) => { e?.preventDefault?.(); lockIn(); };
     if (inp) inp.onkeydown = (e) => { if (e.key === 'Enter' && !e.repeat && !e.isComposing && e.keyCode !== 229 && !inp.disabled) { e.preventDefault?.(); lockIn(); } };
     const back = el.querySelector('#cwBack');
-    if (back) back.onclick = () => { if (!inp || inp.disabled) return; inp.value = inp.value.slice(0, -1); syncTiles(); };
+    if (back) back.onclick = () => { if (!inp || inp.disabled) return; inp.value = inp.value.slice(0, -1); editWord(); };
     const clear = el.querySelector('#cwClear');
-    if (clear) clear.onclick = () => { if (!inp || inp.disabled) return; inp.value = ''; syncTiles(); };
+    if (clear) clear.onclick = () => { if (!inp || inp.disabled) return; inp.value = ''; editWord(); };
     const pass = el.querySelector('#cwPass');
     if (pass) pass.onclick = () => sendAction(el, S, 'make', { pass: true });
     const fn = el.querySelector('#cwFin');

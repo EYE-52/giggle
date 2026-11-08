@@ -45,6 +45,17 @@ const read=file=>fs.readFileSync(path.join(__dirname,'../public',file),'utf8');
  assert.match(hot,/#hSend\s*\{ min-width:calc/);
  assert.match(emoji,/es-error:empty, #eGuessStatus\[hidden\]\)\s*\{ display:block!important; visibility:hidden/);
  assert.match(emoji,/\.es-preview-text\s*\{ height:calc\(2 \* var\(--space-64\)\)/);
+ const doodle=read('css/doodle-guess.css');
+ assert.match(doodle,/\.dg-stage\s*\{[^}]*width: 100%/,'the sketch and guesses fill a stable stage');
+ assert.match(doodle,/\.dg-live \.dg-drawing\s*\{ grid-template-columns: minmax\(0, 1fr\) calc\(4 \* var\(--space-64\)\)/,'artist names cannot resize the actions slot');
+ assert.match(doodle,/\.dg-live:not\(\.is-canvas-focused\) \.dg-easel\s*\{ grid-template-rows: minmax\(0, 1fr\) auto calc/,'the tray keeps the paper size across drawing and reveal');
+ const doodles=require('./layout-stability-browser.cjs').cases().filter(c=>c.id==='doodle-guess');
+ assert.equal(doodles.length,2,'player and watcher follow the same three rounds');
+ for(const c of doodles){
+  assert.equal(new Set(c.frames.map(S=>S.me)).size,1,'each scenario follows one seat');
+  assert.equal(new Set(c.frames.map(S=>S.drawer)).size,3,'the artist changes each round');
+  assert.deepEqual([...new Set(c.frames.map(S=>S.phase))],['pick','draw','reveal']);
+ }
  // A save acknowledgement changes the existing status, not the composer tree.
  const {makeDocument,surface}=require('./party-mobile'),prior=global.document;
  const utilUrl=url(read('js/util.js'));

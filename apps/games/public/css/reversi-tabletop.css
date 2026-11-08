@@ -7,6 +7,7 @@
 [data-theme="night"] .rv-duel{--rv-felt:#236e49;--rv-line:#185437;--rv-wood-a:#4d2f1a;--rv-wood-b:#3b2312;--rv-lip:#110a05;
  --rv-lamp-a:#ffffff14;--rv-lamp-b:#0000004d;--rv-room:#17221c;--rv-room-2:#0e1511}
 .bk-game.rv-duel{background:radial-gradient(110% 75% at 50% 25%,var(--rv-room),var(--rv-room-2))}
+.rv-duel .bk-player { --bk-player-rim:color-mix(in srgb,var(--bk-player-color) 24%,var(--line-strong)); }
 .rv-duel .rv-stage{border-radius:4.2%;background:var(--rv-wood-b);box-shadow:0 var(--lift-lg) 0 var(--rv-lip),0 18px 28px -14px #0a1f1466}
 .rv-duel .rv-frame{fill:url(#rv-wood);stroke:none}
 .rv-duel .rv-wood-a{stop-color:var(--rv-wood-a)}

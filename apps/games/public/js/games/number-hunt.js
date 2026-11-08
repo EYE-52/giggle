@@ -199,13 +199,22 @@ const view = {
       win.style.setProperty?.('--nh-start', String(lo - 1));
       win.style.setProperty?.('--nh-end', String(hi));
     }
-    // Pins on the number line: every public guess, one per number, with
-    // the way it pointed. Yours are in the arcade colour.
+    // Pins are a readable sample of public guesses at their exact numbers.
+    // The full history remains in the log; yours use the arcade colour.
     const pins = el.querySelector('#nPins');
     if (pins) {
       const last = new Map();
-      for (const h of S.history || []) last.set(h.guess, h);
-      const marks = [...last.values()].slice(-30);
+      for (const h of S.history || []) { last.delete(h.guess); last.set(h.guess, h); }
+      // Keep exact ruler positions, but prefer recent pins when neighbours
+      // would overlap. The public log still contains every guess.
+      const width = pins.clientWidth || 300;
+      const gap = typeof getComputedStyle === 'function' ? parseFloat(getComputedStyle(pins).getPropertyValue('--space-32')) || 32 : 32;
+      const marks = [];
+      const candidates = [...last.values()].slice(-30).reverse();
+      candidates.sort((a, b) => Number(b.result === 'correct') - Number(a.result === 'correct'));
+      for (const h of candidates) {
+        if (marks.every(p => Math.abs(h.guess - p.guess) * width / 100 >= gap)) marks.push(h);
+      }
       const pinKey = JSON.stringify(marks.map((h) => [h.guess, h.pid === S.me, h.result, h.dir]));
       if (pins._key !== pinKey) {
         pins._key = pinKey;
