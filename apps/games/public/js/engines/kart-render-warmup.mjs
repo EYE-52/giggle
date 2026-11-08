@@ -15,13 +15,13 @@ export function createKartWarmupLibrary(THREE,scene,assets,combat){
   scene.add(library);return library;
 }
 
-// Work on one renderable at a time, using a detached light-only scene.
+// Loading only: work on one renderable at a time in a light-only scene.
 // Borrow the shipping object only during a synchronous submission: its exact
 // instance binding state stays cached, with all live state restored before
 // every await. Hidden pools never become visible in the live scene.
 export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],priorityRoots=[],
-  isAlive=()=>true,budgetMs=Infinity,signal,onProgress,yieldTask,idleTask}={}){
-  const scheduler=createKartWarmupScheduler({budgetMs,signal,isAlive,onProgress,yieldTask,idleTask});
+  isAlive=()=>true,budgetMs=Infinity,signal,onProgress,yieldTask}={}){
+  const scheduler=createKartWarmupScheduler({budgetMs,signal,isAlive,onProgress,yieldTask});
   const sources=new Set(),optional=new Set(),priority=new Set(),lights=[],textures=new Set();
   const renderable=o=>o.isMesh||o.isSprite||o.isLine||o.isPoints;
   const visit=(o,set,hidden=false)=>{

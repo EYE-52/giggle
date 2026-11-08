@@ -6,8 +6,8 @@ import {warmKartRenderer} from '../public/js/engines/kart-render-warmup.mjs';
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};};
 const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
 
-// Even when each compiler/upload/reflection costs 17ms on a busy device,
-// scheduler steps cannot accumulate into a 50ms task. No real sleeps needed.
+// Loading submissions yield between jobs. A real driver call can exceed
+// this fake cost, which is why none of these jobs may run during play.
 {
   let clock=0,taskStart=0,yields=0;const tasks=[],progress=[];
   const scheduler=createKartWarmupScheduler({budgetMs:Infinity,now:()=>clock,
@@ -24,24 +24,27 @@ const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
   assert.ok(tasks.every(ms=>ms<=50),'no scheduler task exceeds 50ms with the fake clock');
   assert.deepEqual(progress,Array.from({length:120},(_,i)=>i+1));
 }
-// Budget expiry releases loading, then parks work until Ready explicitly
-// enables it. Remaining jobs get idle turns, with the same small task bound.
+// Expiry stops optional work permanently. In particular, a queued 100ms
+// driver call must never be resumed by Ready, an idle turn, or first input.
 {
-  let clock=0,jobs=0,idles=0,taskStart=0;const tasks=[];
-  const boundary=async()=>{tasks.push(clock-taskStart);taskStart=clock;};
-  const scheduler=createKartWarmupScheduler({budgetMs:40,now:()=>clock,yieldTask:boundary,
-    idleTask:async()=>{idles++;await boundary();}});
-  const result=await scheduler.run(async()=>{for(let i=0;i<20;i++)await scheduler.step(()=>{jobs++;clock+=12;});});
-  assert.ok(result.deferred);assert.equal(jobs,4);assert.equal(idles,0);
-  await flush();assert.equal(jobs,4,'extra work stays parked before Ready');
-  result.continue();await result.done;tasks.push(clock-taskStart);
-  assert.equal(jobs,20);assert.equal(idles,16);assert.ok(tasks.every(ms=>ms<=50));
+  let clock=0,jobs=0,yields=0;
+  const scheduler=createKartWarmupScheduler({budgetMs:40,now:()=>clock,yieldTask:async()=>{yields++;}});
+  const result=await scheduler.run(async()=>{
+    for(let i=0;i<20;i++)await scheduler.step(()=>{jobs++;clock+=i<4?12:100;});
+  });
+  assert.ok(result.skipped);assert.equal(jobs,4);
+  await assert.rejects(result.done,/Retired/);
+  const stoppedYields=yields;
+  for(let frame=0;frame<120;frame++){clock+=16;await flush();}
+  assert.equal(jobs,4,'no optional driver work during two seconds of play');
+  assert.equal(yields,stoppedYields,'no competing render/idle loop remains');
+  assert.equal('continue' in result,false,'Ready cannot restart a stopped queue');
 }
 // A never-settling compile also releases loading. No hidden geometry or
 // viewport/shadow mutations may leak while the promise waits, including
-// while actual play updates the same object before idle preparation resumes.
+// after Ready and first input, even when the compile completes late.
 {
-  const gate=deferred(),controller=new AbortController(),scene=new THREE.Scene(),camera=new THREE.Camera();
+  const gate=deferred(),compiling=deferred(),controller=new AbortController(),scene=new THREE.Scene(),camera=new THREE.Camera();
   const mesh=new THREE.InstancedMesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial(),8);
   mesh.visible=false;mesh.count=0;mesh.geometry.setDrawRange(0,0);scene.add(mesh);
   const originalChildren=mesh.children;
@@ -52,29 +55,39 @@ const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
     assert.equal(viewport.z,800);assert.equal(scissor.z,800);assert.equal(test,false);
   };
   const renderer={shadowMap:{enabled:true},
-    compileAsync:()=>gate.promise,
+    compileAsync(){compiling.resolve();return gate.promise;},
     render(s){draws++;assert.equal(s.children.filter(o=>o.isMesh).length,1);assert.equal(mesh.count,1);assert.equal(scissor.z,0);},
     getViewport:v=>v.copy(viewport),getScissor:v=>v.copy(scissor),getScissorTest:()=>test,
     setViewport:(...v)=>v.length===1?viewport.copy(v[0]):viewport.set(...v),
     setScissor:(...v)=>v.length===1?scissor.copy(v[0]):scissor.set(...v),setScissorTest:v=>{test=v;},
   };
   const loading=warmKartRenderer(THREE,renderer,scene,camera,{roots:[mesh],signal:controller.signal,
-    yieldTask:async()=>{},idleTask:async()=>{checkState();}});
-  await flush();checkState();controller.abort();
-  const result=await loading;assert.ok(result.deferred);assert.equal(draws,0);checkState();
-  gate.resolve();await flush();assert.equal(draws,0,'late compilation cannot draw before Ready');
-  result.continue();await result.done;assert.equal(draws,2);checkState();
+    yieldTask:async()=>{}});
+  await compiling.promise;checkState();controller.abort();
+  const result=await loading;assert.ok(result.skipped);assert.equal(draws,0);checkState();
+  gate.resolve();await assert.rejects(result.done,/Retired/);
+  await flush();assert.equal(draws,0,'late compilation never renders after Ready');checkState();
   mesh.geometry.dispose();mesh.material.dispose();
 }
-// Retirement must also stop a program-status poll, not only queued jobs.
+// An already-running status poll must stop too, without waiting for a GPU
+// that is still busy. There must be no late uniform reflection or upload.
 {
-  const scene=new THREE.Scene(),mesh=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial());scene.add(mesh);
-  let draws=0;
-  const renderer={info:{programs:[{isReady:()=>false}]},compileAsync:async()=>{},render(){draws++;}};
-  const result=await warmKartRenderer(THREE,renderer,scene,new THREE.Camera(),{budgetMs:0,idleTask:async()=>{}});
-  result.continue();await flush();result.cancel();
-  await assert.rejects(result.done,/Retired/);assert.equal(draws,0);
+  const controller=new AbortController(),scene=new THREE.Scene(),mesh=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial());scene.add(mesh);
+  let draws=0,polls=0,reflections=0;const polling=deferred();
+  const renderer={info:{programs:[{isReady(){polls++;polling.resolve();return false;},getUniforms(){reflections++;}}]},compileAsync:async()=>{},render(){draws++;}};
+  const loading=warmKartRenderer(THREE,renderer,scene,new THREE.Camera(),{signal:controller.signal,yieldTask:async()=>{}});
+  await polling.promise;assert.ok(polls>0);controller.abort();
+  const result=await loading;
+  await assert.rejects(result.done,/Retired/);assert.equal(draws,0);assert.equal(reflections,0);
   mesh.geometry.dispose();mesh.material.dispose();
+}
+// A deadline arriving during a yield must cancel the imminent GPU call too.
+{
+  const controller=new AbortController(),yielded=deferred();let calls=0;
+  const scheduler=createKartWarmupScheduler({signal:controller.signal,yieldTask:()=>yielded.promise});
+  const loading=scheduler.run(()=>scheduler.step(()=>{calls++;}));
+  controller.abort();const result=await loading;yielded.resolve();
+  await assert.rejects(result.done,/Retired/);assert.equal(calls,0);
 }
 // Only the optional deadline is cancelled. Game/audio loaders keep running;
 // late failure must be observed, never an unhandled rejection after Ready.
@@ -98,4 +111,4 @@ const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
   assert.deepEqual(order,[['kart',true],['road',true],['rare',true],['kart',false],['road',false],['rare',false]]);
   geometry.dispose();material.dispose();
 }
-console.log('KART_PREPARATION_PASS: bounded tasks, loading budget, idle continuation, stalled compile, state isolation, cancellation, audio deadline and priority');
+console.log('KART_PREPARATION_PASS: loading-only tasks, no post-Ready GPU work, stalled compile, state isolation, cancellation, audio deadline and priority');

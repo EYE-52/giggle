@@ -958,16 +958,17 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   for(const [key,file]of [['kart','giggle-kart.meshopt'],['star','giggle-star'],['crate','giggle-crate.meshopt'],['combat','combat/combat.meshopt']]){
     const b=fs.readFileSync(require.resolve('../public/assets/karts/'+file+'.glb'));assets[key]=(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'')).scene;
   }
-  let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0;
+  let build;const geometries=new Set(),materials=new Set();let compiles=0,warmFrames=0,worldRetired=0,warmupCancels=0;
   const encounter=root=>{if(!root.visible)return;if(root.isMesh||root.isLine){if(root.geometry)geometries.add(root.geometry);for(const m of Array.isArray(root.material)?root.material:[root.material])if(m)materials.add(m);}for(const child of root.children)encounter(child);};
   const renderer={async compileAsync(scene){compiles++;encounter(scene);},render(scene){warmFrames++;encounter(scene);}};
-  Object.assign(context,models,flight,groundMarkers,{createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:(T,r,s,c,o)=>warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
+  Object.assign(context,models,flight,groundMarkers,{createKartCameraCollision,classicStatics,createKartWarmupLibrary,warmKartRenderer:async(T,r,s,c,o)=>{const handle=await warmKartRenderer(T,r,s,c,{...o,budgetMs:Infinity,yieldTask:async()=>{}}),cancel=handle.cancel;handle.cancel=()=>{warmupCancels++;cancel();};return handle;},createKartCombatArt,createKartHealthBars,createKartImpactFX,createKartDrivingFX,loadKartAssets:async(T,scene)=>{const library=new T.Group();library.visible=false;scene.add(library);for(const asset of Object.values(assets))library.add(asset);return assets;},
     createKartWorld:T=>({group:new T.Group(),palette:{horizon:0xd8f3ff},syncMap(){},dispose(){worldRetired++;}}),createKartLighting:()=>()=>{},
     createThreeView:(el,hooks)=>{build=hooks.build;return new Promise(()=>{});}});
   const live=context.makeView({}),el=new Node(),s={...state('drive'),simAt:clock,events:[],zaps:[],grenades:[],mines:[],crates:[],stars:[]};
   Object.assign(s.karts[0],{x:0,z:0,angle:0,speed:0,weapon:null,ammo:0});
   live.mount(el,api);live.update(el,s,api);
   const built=await build(THREE,{renderer:()=>renderer,disposeObject(){}});
+  assert.equal(warmupCancels,1,'classic warm-up closes before handing the scene to the render loop');
   assert.ok(compiles>1,'compatibility combat shaders compile in separate small batches');
   assert.equal(warmFrames,compiles,'compatibility combat geometry/effect buffers render before readiness');
   assert.match(el.querySelector('.pk-loading').textContent,/Preparing graphics.*100%/,'classic loading shows warm-up progress');
