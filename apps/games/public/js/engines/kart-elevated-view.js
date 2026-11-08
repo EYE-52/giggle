@@ -281,10 +281,12 @@ export function createElevatedKartView() {
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,art);
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===generation,
         budgetMs:6000,signal:api?.preparationSignal,priorityRoots:[world.group,...models.values(),pickups.mesh,drivingFX.particles,drivingFX.speedLines],
-        onProgress:({completed,total,background})=>{if(gen===generation&&!background){const loading=$('loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
+        onProgress:({completed,total})=>{if(gen===generation){const loading=$('loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[...warm,warmLibrary,arena.root,drivingFX.particles,drivingFX.speedLines,scene.getObjectByName('KartSkidMarks'),
           scene.getObjectByName('KartThreatRing'),scene.getObjectByName('KartImpactFX')]}).catch(()=>null);
       if(gen!==generation){warmup?.cancel();throw Error('Retired arena');}
+      // Loading is the only time reserved geometry may be drawn for warm-up.
+      warmup?.cancel();
       rendererWarmup=warmup;
       for(const object of warm){object.visible=false;object.position.set(0,0,0);const combat=object.userData.combat;if(combat&&combat.type!=='projectile')object.removeFromParent();}
       kartLod.object.count=0;
@@ -698,5 +700,5 @@ export function createElevatedKartView() {
     hitFx?.dispose();hitFx=null;root?.remove();root=null;S=null;api=null;epoch='';pending=gfxReady=graphicsFailed=false;timeline.reset();newEvents.length=0;seen.clear();nodes.clear();firstEvents=true;sequence=0;itemKey=standingsKey='';audioDrifting=false;lastSnapshotArrival=null;
   }
   return {ownsTimer:true,ownsInputs:true,styles:['/css/kart-elevated.css'],mount,update,dispose,
-    async ready(){await sceneReady;await waitKartPreparation(Promise.all([audio?.ready?.(),shellAudioReady]),api?.preparationSignal);if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;rendererWarmup?.continue();}};
+    async ready(){await sceneReady;await waitKartPreparation(Promise.all([audio?.ready?.(),shellAudioReady]),api?.preparationSignal);if(!gfxReady)throw new Error('The 3D arena could not load');gl.renderOnce?.();await gl.firstFrame;}};
 }

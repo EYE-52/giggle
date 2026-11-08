@@ -113,7 +113,7 @@ for(const fail of ['compile','retired']){
 }
 // Reflections are awaited during loading. Capture/blur shaders must be ready
 // before the real PMREM pass, and disposal while waiting must prevent that pass.
-for(const cancel of [false,true]){
+for(const cancel of [false,true,'deadline','expired']){
   let passes=0,draws=0,targetsRetired=0,generatorRetired=0;
   const scene=new THREE.Scene(),renderer={shadowMap:{},info:{programs:[{isReady:()=>true}]},
     compile(){},renderBufferDirect(){draws++;},
@@ -122,11 +122,14 @@ for(const cancel of [false,true]){
     fromScene(capture){passes++;const object=capture.children[0];renderer.renderBufferDirect(new THREE.Camera(),capture,object.geometry,object.material,object);return{texture:new THREE.Texture(),dispose(){targetsRetired++;}};}
     dispose(){generatorRetired++;}
   }};
-  const lighting=createKartLighting(measured,renderer,scene,{});
+  const preparation=new AbortController();
+  if(cancel==='expired')preparation.abort();
+  const lighting=createKartLighting(measured,renderer,scene,{}, {preparationSignal:preparation.signal});
   ok(!scene.environment&&draws===0,'reflection program submission does not draw or expose an unfinished target');
-  if(cancel)lighting();await lighting.ready;
-  ok(passes===(cancel?1:2)&&draws===(cancel?0:1),'real reflection capture waits and skips retired scenes');
-  lighting();ok(targetsRetired===(cancel?1:2)&&generatorRetired===1,'reflection targets and generator retire once');
+  if(cancel==='deadline')preparation.abort();else if(cancel)lighting();await lighting.ready;
+  const expectedPasses=cancel==='expired'?0:cancel?1:2;
+  ok(passes===expectedPasses&&draws===(cancel?0:1),'reflection capture skips retired scenes and expired preparation');
+  lighting();ok(targetsRetired===expectedPasses&&generatorRetired===(cancel==='expired'?0:1),'reflection targets and generator retire once');
 }
 // Failure and retirement must restore all state and never render a stale scene.
 for(const fail of ['compile','retired']){

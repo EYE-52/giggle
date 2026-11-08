@@ -1100,7 +1100,7 @@ export function createKartView(viewConfig) {
       camera.position.set(0, 7.5, -23);
       camera.lookAt(0, 1, -5);
       const renderer = helper.renderer();
-      disposeLighting = createKartLighting(THREE, renderer, scene, mood, {half: world.bounds?.arena || S.map?.half || 30});
+      disposeLighting = createKartLighting(THREE, renderer, scene, mood, {half: world.bounds?.arena || S.map?.half || 30,preparationSignal:apiRef?.preparationSignal});
 
       const karts = new Map(); // pid -> mesh
       const stars = new Map(); // id -> group (gem + pickup-zone ring)
@@ -1221,11 +1221,14 @@ export function createKartView(viewConfig) {
       await waitKartPreparation(disposeLighting.ready,apiRef?.preparationSignal);
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===mountGen,
         budgetMs:6000,signal:apiRef?.preparationSignal,priorityRoots:[world.group,...karts.values(),warmLibrary.children[0],drivingFX.particles,drivingFX.speedLines],
-        onProgress:({completed,total,background})=>{if(gen===mountGen&&!background){const loading=rootEl?.querySelector('.pk-loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
+        onProgress:({completed,total})=>{if(gen===mountGen){const loading=rootEl?.querySelector('.pk-loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[warm,reserve,warmLibrary,pops,kartLod.object,drivingFX.particles,drivingFX.speedLines,
           scene.getObjectByName('KartSkidMarks'),scene.getObjectByName('KartThreatRing'),
           scene.getObjectByName('arena-feature-fx'),scene.getObjectByName('KartImpactFX')]}).catch(()=>null);
       if(gen!==mountGen){warmup?.cancel();throw new Error('Retired kart scene');}
+      // No shader reflection, hidden uploads or shadow-mode switches after
+      // handing the scene to the real render loop. Pools stay ready to use.
+      warmup?.cancel();
       rendererWarmup=warmup;
       arsenalFX.reset();
       // Keep reserved bodies off the live scene graph. Three updates world
@@ -1805,7 +1808,6 @@ export function createKartView(viewConfig) {
       // prepared scene once, then require the same real GL success promise.
       if (gl) { gl.renderOnce?.(); await gl.firstFrame; }
       else if (!fbCanvas?.getContext('2d')) throw new Error('No usable kart renderer');
-      rendererWarmup?.continue();
     } };
 
   /* ---------------- lifecycle ---------------- */

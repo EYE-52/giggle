@@ -2,7 +2,7 @@ const reflectedPrograms=new WeakSet();
 // Loading only. Three's compileAsync waits for the current program of each
 // material. A shared material can also have instanced, coloured and shadow
 // variants, so wait for every submitted program before its first draw.
-export async function waitKartPrograms(renderer,isAlive=()=>true,step=work=>work()){
+export async function waitKartPrograms(renderer,isAlive=()=>true,step=work=>{if(!isAlive())throw Error('Retired kart shader warmup');return work();}){
   while(true){
     if(!isAlive())throw Error('Retired kart shader warmup');
     const pending=renderer.info?.programs?.some(program=>!program.isReady());

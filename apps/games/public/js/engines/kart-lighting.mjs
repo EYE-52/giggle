@@ -14,6 +14,8 @@
  *   ({half|arena|bound}), or {half: <number|bounds>} (root passes
  *   {half: world.bounds}). Defaults to the 30 legacy arena. .setBounds(half)
  *   reframes the shadow camera for large arenas using the same shapes.
+ *   preparationSignal stops unfinished reflection capture at the loading
+ *   deadline, leaving the lights usable without a late hidden render.
  * - The return stays CALLABLE for view/backcompat (disposeLighting()).
  *   Cleanup removes the retained lights, clears the environment, and
  *   disposes once; update-after-dispose is a safe no-op.
@@ -147,16 +149,18 @@ export function createKartLighting(THREE, renderer, scene, mood, opts) {
   // draws replaced by compilation, yield until all programs finish, then run
   // the real capture. Keep the authored lighting and reflection pixels intact.
   const asyncCapture=renderer.compile&&renderer.renderBufferDirect;
+  const preparing=()=>!disposed&&!opts?.preparationSignal?.aborted;
   let ready;
-  if(asyncCapture){
+  if(!preparing()){releaseCapture();ready=Promise.resolve();}
+  else if(asyncCapture){
     ready=(async()=>{
       let pmrem;
       try{
         pmrem=new THREE.PMREMGenerator(renderer);
         const staging=await prepareKartPass(THREE,renderer,
-          ()=>pmrem.fromScene(capture,.03,.1,100,{size:64}),{isAlive:()=>!disposed});
+          ()=>pmrem.fromScene(capture,.03,.1,100,{size:64}),{isAlive:preparing});
         staging.dispose();
-        if(!disposed){target=pmrem.fromScene(capture,.03,.1,100,{size:64});applyEnvironment();}
+        if(preparing()){target=pmrem.fromScene(capture,.03,.1,100,{size:64});applyEnvironment();}
       }catch{/* Headless/context loss: retain lights and fog without reflections. */}
       finally{pmrem?.dispose();releaseCapture();}
     })();
