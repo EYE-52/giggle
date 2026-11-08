@@ -1097,9 +1097,12 @@ class Room {
     if (!this.game || !this.game.state || this.game.preparing || !this.game.def.onTick || this._frozen()) return;
     // Explicit server pump time gates each instance independently. Direct
     // onTick() calls retain the existing test/SDK stepping contract.
+    const timed=process.env.KART_TICK_STATS==='1',tickAt=timed?Date.now():pumpNow;
+    let tickLate=false;
     if (Number.isFinite(pumpNow)) {
       if (pumpNow < this.game.nextTickAt) return;
       const interval = this._tickInterval();
+      tickLate=tickAt-this.game.nextTickAt>interval*1.5;
       // Keep the instance's cadence after a late pump; skip missed slots
       // without drifting deadlines or issuing catch-up simulation calls.
       this.game.nextTickAt = pumpNow + interval - (pumpNow - this.game.nextTickAt) % interval;
@@ -1114,7 +1117,15 @@ class Room {
     }
     // Adaptive rate: the cost includes the broadcast the tick triggered.
     const rate = this.game === game ? this._tickRate(game) : null;
-    if (rate) realtime.governor.record(game, performance.now() - started, rate);
+    const duration=performance.now()-started;
+    if (rate) realtime.governor.record(game, duration, rate);
+    if(timed){
+      game.tickTiming ||= realtime.createTickTiming();
+      const at=tickAt;
+      game.tickTiming.record(duration,at,tickLate);
+      game.tickStatsLoggedAt ??= at;
+      if(at-game.tickStatsLoggedAt>=10000){game.tickStatsLoggedAt=at;console.log('KART_TICK_STATS',JSON.stringify({room:this.code,instanceId:game.instanceId,...game.tickTiming.stats(at)}));}
+    }
   }
 
   /* Only the seat still attached to THIS socket is marked away, so a

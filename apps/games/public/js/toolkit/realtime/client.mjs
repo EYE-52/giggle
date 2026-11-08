@@ -64,43 +64,42 @@ function writeTop(state, path, value) {
   o[parts.at(-1)] = value;
 }
 
-/* Adaptive interpolation buffer keyed by SERVER time.
- * Render time = serverNow - delay. The delay covers one send interval plus
- * the measured spread of sample age on arrival (network + scheduling
- * jitter), so it shrinks on good links and grows on bad ones instead of a
- * fixed guess. Per entity, a slower interest period adds its own spacing.
- * Delay changes are slewed (at most 6% of elapsed time) so playback never
- * jumps backwards or races. */
-export function createInterpolationBuffer({ minDelay = 35, maxDelay = 250, capacity = 12, extrapolate = 120 } = {}) {
-  const tracks = new Map();
-  let interval = 50, ageMean = 60, ageDev = 15, target = 110, delay = 110, lastNow = null, lastSim = null;
+/* Adaptive server-time playback. Keep a short age window and cover p90;
+ * rare stalls use damped dead reckoning instead of stretching the delay. */
+export function createInterpolationBuffer({ minDelay = 35, maxDelay = 400, capacity = 32, extrapolate = 300 } = {}) {
+  const tracks = new Map(), ages = [];
+  let interval = 50, ageMean = 60, ageDev = 15, p90Age = 60, minAge = 60, target = 110, delay = 110, lastNow = null, lastSim = null, underruns = 0, extrapolatedMs = 0;
   function observe(simAt, serverNow) {
     if (lastSim !== null && simAt > lastSim) interval += (Math.min(250, simAt - lastSim) - interval) * 0.1;
     lastSim = Math.max(lastSim ?? simAt, simAt);
     const age = Math.max(0, serverNow - simAt);
     ageMean += (age - ageMean) * 0.08; ageDev += (Math.abs(age - ageMean) - ageDev) * 0.08;
-    target = Math.max(minDelay, Math.min(maxDelay, interval + ageMean + 2.5 * ageDev));
+    ages.push({ at: serverNow, age });
+    while (ages.length && (ages.length > 128 || ages[0].at < serverNow - 3000)) ages.shift();
+    const sorted = ages.map(x => x.age).sort((a, b) => a - b);
+    minAge = sorted[0]; p90Age = sorted[Math.ceil(sorted.length * .9) - 1];
+    target = Math.max(minDelay, Math.min(maxDelay, interval + p90Age));
   }
   function push(id, simAt, sample, { life = 0 } = {}) {
     let t = tracks.get(id);
-    if (!t || t.life !== life) { t = { life, list: [], spacing: interval }; tracks.set(id, t); }
+    if (!t || t.life !== life) { t = { life, list: [], spacing: interval, extra: 0 }; tracks.set(id, t); }
     const last = t.list.at(-1);
     if (last && simAt <= last.at) { if (simAt === last.at) last.sample = sample; return; }
     if (last) t.spacing += (Math.min(500, simAt - last.at) - t.spacing) * 0.2;
     t.list.push({ at: simAt, sample });
     while (t.list.length > capacity) t.list.shift();
   }
-  /* Slewed shared delay; call once per rendered frame. */
   function advance(serverNow) {
     if (lastNow === null) delay = target;
-    else { const step = Math.max(1, (serverNow - lastNow) * 0.06); delay += Math.max(-step, Math.min(step, target - delay)); }
+    else { const dt = Math.max(0, serverNow - lastNow); delay += Math.max(-dt * .03, Math.min(dt * .25, target - delay)); }
+    const dt = lastNow === null ? 0 : Math.max(0, serverNow - lastNow);
+    for (const t of tracks.values()) { const extra = Math.max(0, t.spacing - interval * 1.25); t.extra += Math.max(-dt * .03, Math.min(dt * .25, extra - t.extra)); }
     lastNow = serverNow;
     return delay;
   }
-  /* Two bracketing samples and the blend factor; mix() is the caller's. */
   function sample(id, serverNow, mix) {
     const t = tracks.get(id); if (!t?.list.length) return null;
-    const extra = Math.max(0, t.spacing - interval * 1.25);
+    const extra = t.extra;
     const time = serverNow - delay - extra, list = t.list;
     if (time <= list[0].at) return list[0].sample;
     for (let i = list.length - 1; i > 0; i--) {
@@ -110,16 +109,19 @@ export function createInterpolationBuffer({ minDelay = 35, maxDelay = 250, capac
         return mix(a.sample, b.sample, (time - a.at) / (b.at - a.at), 0);
       }
     }
-    const a = list.length > 1 ? list.at(-2) : null, b = list.at(-1);
-    // Past the newest sample: extrapolate briefly along the last segment.
-    const ahead = Math.min(extrapolate, time - b.at) / 1000;
-    return a ? mix(a.sample, b.sample, 1, ahead) : b.sample;
+    const b = list.at(-1), a = list.at(-2) || b;
+    const ahead = Math.min(extrapolate, Math.max(0, time - b.at)) / 1000;
+    if (ahead > 0 && t.sampledAt !== serverNow) {
+      underruns++; extrapolatedMs += Math.min(extrapolate, Math.max(0, serverNow - (t.sampledAt ?? serverNow)));
+    }
+    t.sampledAt = serverNow;
+    return mix(a.sample, b.sample, 1, ahead * Math.max(0, 1 - ahead / .6));
   }
   return {
     observe, push, advance, sample,
     remove: id => tracks.delete(id),
-    clear() { tracks.clear(); lastNow = null; lastSim = null; },
-    stats: () => ({ delay, target, interval, ageMean, ageDev }),
+    clear() { tracks.clear(); ages.length = 0; lastNow = null; lastSim = null; interval = 50; ageMean = p90Age = minAge = 60; ageDev = 15; target = delay = 110; underruns = extrapolatedMs = 0; },
+    stats: () => ({ delay, target, interval, ageMean, ageDev, p90Age, minAge, underruns, extrapolatedMs }),
   };
 }
 

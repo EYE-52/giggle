@@ -38,8 +38,8 @@ for (let i = 0; i < drivers; i++) {
 const start = room.startGame(pocket, { settings: { map, mode: 'Zap Battle', winRule: 'Time limit', roundSeconds: 180 } }, seats[0].player.id);
 if (start.error) throw Error(start.error);
 
-const tickCosts = [], sendCosts = [];
-const originalTick = pocket.onTick;
+const tickCosts = [], sendCosts = [], fireIds=new Set();let driveStart=null,forcedShots=0;
+const tickSpikes=[];
 let inBroadcast = 0;
 const roomBroadcast = room.broadcastState.bind(room);
 room.broadcastState = opts => { const t = performance.now(); roomBroadcast(opts); sendCosts.push(performance.now() - t); inBroadcast++; };
@@ -49,14 +49,21 @@ for (const s of sockets) { s.frames = 0; s.bytes = 0; }
 await new Promise(resolve => {
   const pump = setInterval(() => {
     const now = Date.now();
+    if(room.game.state.phase==='drive'){
+      driveStart ??= now;
+      if(process.env.PROFILE_WEAPONS==='1')for(const [i,k]of room.game.state.karts.entries())if(!k.weapon||!k.ammo){k.weapon=['machinegun','trishot','missile','cannon'][i%4];k.ammo=24;forcedShots++;}
+    }
     for (const seat of seats) {
       seat.socket.drain();
-      const v = seat.socket.last; if (!v?.inputAck || v.phase !== 'drive') continue;
+      const v = seat.socket.last;for(const e of v?.events||[])if(e.type==='fire')fireIds.add(e.id); if (!v?.inputAck || v.phase !== 'drive') continue;
       room.onAction(seat.socket, { input: seat.bot(v, now), seq: ++seat.seq, life: v.inputAck.life, controlEpoch: v.inputAck.controlEpoch }, { i: v.instanceId, w: v.w });
     }
-    const before = room.game.nextTickAt, t = performance.now();
+    const before = room.game.nextTickAt, sends=sendCosts.length, cpu=process.cpuUsage(), t = performance.now();
     room.onTick(now);
-    if (room.game.nextTickAt !== before && room.game.state.phase === "drive") { tickCosts.push(performance.now() - t); ticks++; }
+    if (room.game.nextTickAt !== before && room.game.state.phase === "drive") {
+      const ms=performance.now()-t;tickCosts.push(ms);ticks++;
+      if(ms>33){const used=process.cpuUsage(cpu);tickSpikes.push({ms,cpuMs:(used.user+used.system)/1000,sendMs:sendCosts.slice(sends).reduce((a,b)=>a+b,0),zaps:room.game.state.zaps?.length});}
+    }
     if (now - t0 > seconds * 1000 + 3000) { clearInterval(pump); resolve(); }
   }, 5);
 });
@@ -69,7 +76,8 @@ const kartBytes = sample ? Buffer.byteLength(JSON.stringify(sample.karts)) : 0;
 const mapBytes = sample ? Buffer.byteLength(JSON.stringify(sample.map)) : 0;
 const out = {
   drivers, map, seconds: +elapsed.toFixed(1), tickHz: +(ticks / elapsed).toFixed(1),
-  tickMs: { avg: +avg(tickCosts).toFixed(2), p95: +pct(tickCosts, .95).toFixed(2), max: +Math.max(...tickCosts).toFixed(2) },
+  tickSpikes,tickStats: room.game.tickTiming?.stats(),fireEvents:fireIds.size,weaponRefills:forcedShots,driveTickHz:driveStart?+(ticks/((Date.now()-driveStart)/1000)).toFixed(1):0,
+  tickMs: { p50:+pct(tickCosts,.5).toFixed(2),p99:+pct(tickCosts,.99).toFixed(2),avg: +avg(tickCosts).toFixed(2), p95: +pct(tickCosts, .95).toFixed(2), max: +Math.max(...tickCosts).toFixed(2) },
   tickMsPerKart: +(avg(tickCosts) / drivers).toFixed(3),
   sendMsPerTick: +avg(sendCosts).toFixed(2),
   framesPerSecPerClient: +avg(frames).toFixed(1),

@@ -169,7 +169,7 @@ export function createElevatedKartView() {
   }
   async function scene(THREE,helper,gen){
     const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(52,1,.1,650),renderer=helper.renderer();
-    let world,art,library,healthBars,impactFX,skids,threats,arsenalFX,cameraCollision,arena,drivingFX,scenePrediction,pickups,shadows,kartLod;const slidePose={angle:0,physicalPose:{linearVelocity:null,grounded:true}};const lodEntries=[],models=new Map(),rigs=new Map(),objects=new Map(),effects=[];
+    let world,art,library,healthBars,impactFX,skids,threats,arsenalFX,cameraCollision,arena,drivingFX,scenePrediction,pickups,shadows,kartLod,lastPredictionTime=null;const slidePose={angle:0,physicalPose:{linearVelocity:null,grounded:true}};const lodEntries=[],models=new Map(),rigs=new Map(),objects=new Map(),effects=[];
     try{
       const physicsReady=S.youDrive?loadElevatedPhysics().catch(()=>null):Promise.resolve(null);
       const map=elevatedMap(S.mapId);if(map.revision!==S.mapRevision)throw Error('Arena revision mismatch');
@@ -452,7 +452,10 @@ export function createElevatedKartView() {
         const fov=Math.min(80,Math.max(52,2*Math.atan(Math.tan(Math.PI/10)/camera.aspect)*180/Math.PI));
         if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}
         const cycle=S.skyCycle,sky=cycle?Math.max(0,Math.min(1,(now()-cycle.startedAt)/cycle.durationMs)):undefined;
-        predicted=prediction?.frame(S,intent(),dt,performance.now(),now())||null;
+        // Use the full elapsed frame for prediction; the renderer clips dt for
+        // camera/FX. Prediction applies its own 250ms budget and fixed substeps.
+        const predictionTime=performance.now(),predictionDt=lastPredictionTime===null?dt:Math.max(0,(predictionTime-lastPredictionTime)/1000);lastPredictionTime=predictionTime;
+        predicted=prediction?.frame(S,intent(),predictionDt,predictionTime,now())||null;
         const playback=timeline.frame(performance.now());
         shadows.update();pickups.update(S.crates,time);
         world.animate(dt,time,sky);scene.fog.color.copy(world.lighting.fogColor);

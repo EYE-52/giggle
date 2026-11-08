@@ -89,7 +89,7 @@ window.screen = {orientation: new Node()};
 const audios=[];
 const {createSurfaceIndex,surfaceTuning}=require('../public/js/engines/kart-surface.mjs');
 const {driftTier,DRIFT_TIERS}=require('../public/js/engines/kart-drift.mjs');
-const context = vm.createContext({WEAPON_IDS:require('../public/js/engines/kart-weapon-contract.mjs').WEAPON_IDS,document, window, console, Date,createSurfaceIndex,surfaceTuning,driftTier,DRIFT_TIERS,
+const context = vm.createContext({...require('../public/js/engines/kart-weapon-contract.mjs'),...require('../public/js/engines/kart-flight.mjs'),document, window, console, Date,createSurfaceIndex,surfaceTuning,driftTier,DRIFT_TIERS,
   performance: {now: () => clock},
   setTimeout: fn => { const id=++seq; analogTimeouts.set(id,fn); return id; },
   clearTimeout: id => analogTimeouts.delete(id),
@@ -112,7 +112,7 @@ vm.runInContext(fs.readFileSync(require.resolve('../public/js/engines/kart-arsen
 let src = fs.readFileSync(require.resolve('../public/js/engines/kart-view.js'),'utf8');
 src = src.replace(/import\s+[\s\S]*?\s+from\s+['"][^'"]+['"];\s*/g,'')
   .replace('export function createKartView','function createKartView')
-  .replace('return { ownsTimer: true,', 'return { drawCanvasFixture(canvas){fbCanvas=canvas;drawFallback();fbCanvas=null;}, prediction: intentForPrediction, ownsTimer: true,');
+  .replace('return { ownsTimer: true,', 'return { drawCanvasFixture(canvas){fbCanvas=canvas;drawFallback();fbCanvas=null;}, flushPhysics:flushPhysical,localFlashFixture:()=>localFlash,prediction: intentForPrediction, ownsTimer: true,');
 vm.runInContext(src+'\nthis.makeView = createKartView;',context);
 const view = context.makeView({});
 const main = new Node(), sent = [];
@@ -1067,6 +1067,28 @@ for (const [t,fns] of window.screen.orientation.events) assert.equal(fns.length,
   assert.equal(retiredDisposals,1,'late graphics completion disposes its retired handle');
   assert.equal(retiredEl.querySelector('#pk-count').hidden,true,'retired renderer completion does not reveal countdown');
   context.createThreeView=originalThreeView;
+}
+// The message path collects every remote sample; the driving frame only
+// restores/replays the newest authority once after a TCP packet burst.
+{
+  const graphics=context.createThreeView;context.createThreeView=()=>new Promise(()=>{});
+  let ingests=[],observations=[],disposed=0;
+  context.loadClassicPhysics=async()=>({});
+  context.createClassicPrediction=()=>({ingest:s=>ingests.push(s.simAt),observe:s=>observations.push(s.simAt),sent(){},dispose(){disposed++;}});
+  const live=context.makeView({}),el=new Node(),base={...state('drive'),instanceId:'coalesce',motionProfile:1,simAt:1000,inputAck:{life:0,controlEpoch:1}};
+  base.karts[0].physicalPose={position:{x:4,y:1,z:8},rotation:{x:0,y:0,z:0,w:1}};
+  live.mount(el,api);live.update(el,base,api);await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(ingests,[1000],'initial Rapier load still ingests immediately');
+  for(let i=1;i<=11;i++)live.update(el,{...base,simAt:1000+i*33},api);
+  assert.equal(observations.length,11,'all burst packets observe remote samples');
+  assert.equal(ingests.length,1,'messages never perform heavy replay');
+  live.flushPhysics();assert.deepEqual(ingests,[1000,1363],'one frame ingests only the newest packet');
+  live.flushPhysics();assert.equal(ingests.length,2,'no second replay without new data');
+  window.fire('keydown',keyEvent('Space'));
+  const flash=live.localFlashFixture();assert(flash&&flash.kind==='machinegun','press queues a local muzzle flash without a server shot');
+  assert.equal(flash.position.z,9.9,'flash starts at own physical muzzle');assert.equal(flash.direction.z,1);
+  window.fire('keyup',keyEvent('Space'));live.dispose();assert.equal(disposed,1);
+  context.createThreeView=graphics;
 }
 console.log(`KART_VIEW_PASS: ${assertions} assertions; analog merge/coalescing, exact-once Fire, atomic multi-contact stops, KO/rematch, HUD/garage and cleanup`);
 })().catch(e=>{console.error(e);process.exitCode=1;});

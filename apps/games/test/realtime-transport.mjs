@@ -8,7 +8,7 @@ import { interestPeriods, due } from '../public/js/toolkit/realtime/interest.mjs
 import { decodeFrame, createInterpolationBuffer, createInputHistory, reconcile } from '../public/js/toolkit/realtime/client.mjs';
 import { createKartBot } from '../tools/realtime/kart-bot.mjs';
 const require = createRequire(import.meta.url);
-const { createRealtimeChannel, createTickGovernor } = require('../server/realtime.js');
+const { createRealtimeChannel, createTickGovernor, createTickTiming } = require('../server/realtime.js');
 const { Room } = require('../server/room.js');
 const pocket = require('../games/pocket-karts/server.js');
 const { KART_STREAM } = require('../games/engines/kart-realtime.js');
@@ -90,6 +90,44 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); checks++; };
   ok(Math.abs(st.x - .2) < 1e-9, 'reconcile replays only unacknowledged inputs');
 }
 
+// --- p90 window, bounded delay changes and damped dead reckoning.
+{
+  const b=createInterpolationBuffer(),ages=[];let arrival=0,previous;
+  for(let i=0;i<240;i++){
+    const simAt=i*33,age=[40,40,45,50,60,70,80,430,600,40][i%10];
+    arrival=Math.max(arrival+.01,simAt+age);b.observe(simAt,arrival);
+    ages.push({at:arrival,age:arrival-simAt});while(ages[0].at<arrival-3000)ages.shift();
+    const sorted=ages.map(a=>a.age).sort((a,b)=>a-b),stats=b.stats();
+    eq(stats.p90Age,sorted[Math.ceil(sorted.length*.9)-1],'window p90');eq(stats.minAge,sorted[0],'window minimum');
+    ok(Math.abs(stats.target-Math.min(400,Math.max(35,stats.interval+stats.p90Age)))<1e-8,'target is interval plus p90, bounded at 400');
+    const delay=b.advance(arrival);
+    if(previous){const dt=arrival-previous.at;ok(delay-previous.delay<=dt*.25+1e-8,'grow <=25%');ok(previous.delay-delay<=dt*.03+1e-8,'shrink <=3%');}
+    previous={at:arrival,delay};
+  }
+  ok(b.stats().p90Age>250,'fixture exercises real burst ages');
+  for(let i=1;i<=500;i++){
+    const now=arrival+i*16;b.observe(now-40,now);const delay=b.advance(now),dt=now-previous.at;
+    ok(delay-previous.delay<=dt*.25+1e-8&&previous.delay-delay<=dt*.03+1e-8,'window expiry still slews');previous={at:now,delay};
+  }
+  eq(b.stats().p90Age,40,'old bursts expire after three seconds');
+  const d=createInterpolationBuffer({minDelay:35,maxDelay:35});d.observe(0,0);d.advance(0);d.push('a',0,{x:0});
+  const mix=(a,b,t,ahead)=>({x:b.x+10*ahead});
+  const at150=d.sample('a',185,mix),at300=d.sample('a',335,mix),held=d.sample('a',635,mix);
+  ok(at150.x>0&&at300.x>at150.x&&at300.x<3,'extrapolation slows along last velocity');eq(held.x,at300.x,'hold after 300ms');
+  ok(d.stats().underruns>0&&d.stats().extrapolatedMs>0,'underrun diagnostics');
+}
+
+// --- dense arrivals retain at most 128 age measurements, even inside 3s.
+{
+  const b=createInterpolationBuffer();
+  for(let i=0;i<128;i++)b.observe(1400,2000);
+  for(let i=0;i<115;i++)b.observe(1960,2000);
+  eq(b.stats().p90Age,600,'thirteen old high ages still occupy p90 in a 128-entry window');
+  b.observe(1960,2000);
+  eq(b.stats().p90Age,40,'the next arrival evicts the oldest age before sorting');
+  eq(b.stats().minAge,40,'minimum uses the bounded window too');
+}
+
 // --- governor: slows expensive rooms, recovers when calm.
 {
   let t = 0; const g = createTickGovernor({ now: () => t }), room = {}, rate = { target: 33, max: 66 };
@@ -98,6 +136,14 @@ const eq = (a, b, m) => { assert.deepEqual(a, b, m); checks++; };
   ok(g.interval(room, rate) > 33, 'expensive tick steps down: ' + g.interval(room, rate));
   for (let i = 0; i < 400; i++) { t += 50; g.record(room, 1, rate); }
   eq(g.interval(room, rate), 33, 'calm room returns to 30 Hz');
+}
+
+// --- private room timing retains just the last ten seconds.
+{
+  const timing=createTickTiming();timing.record(1,0);timing.record(2,100);timing.record(8,200,true);
+  eq(timing.stats(200),{ticks:3,p50:2,p99:8,max:8,lateTicks:1},'timing includes cost and late starts');
+  eq(timing.stats(10101),{ticks:1,p50:8,p99:8,max:8,lateTicks:1},'old timings expire');
+  eq(timing.stats(10201),{ticks:0,p50:0,p99:0,max:0,lateTicks:0},'idle room releases history');
 }
 
 // --- channel: missed frames resync from history or keyframe.

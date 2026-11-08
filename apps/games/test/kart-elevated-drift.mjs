@@ -36,7 +36,7 @@ try{
  }
  assert.deepEqual([...tiers],[1,2,3],'Real elevated physics reaches blue, orange and purple with held brake/steer');assert(sawBoost,'Real elevated release activates turbo');
  assert(maxError<.12,'Prediction stays within 12cm through a held/released drift: '+maxError);assert(maxChargeError<.011,'Prediction restores and replays normalized charge: '+maxChargeError);
- const s=own();prediction.ingest(s,7000,s.serverAt);assert.equal(prediction.frame(s,{...neutral(),throttle:1},.016,7300,s.serverAt+300),null,'Packet loss freezes prediction');
+ const s=own();prediction.ingest(s,7000,s.serverAt);assert(prediction.frame(s,{...neutral(),throttle:1},.016,7300,s.serverAt+300),'A 300ms packet gap keeps prediction active');
  game.setConnected('a',false);game.setConnected('a',true);const fresh=own();prediction.ingest(fresh,7400,fresh.serverAt);assert(!fresh.karts[0].driftCharge&&!fresh.karts[0].turbo,'Reconnect cancels stored drift/boost');assert(prediction.stats().history===0,'Reconnect clears queued prediction intervals');
 }finally{game.dispose();prediction.dispose();prediction.dispose();}
 // Real wheel traction differs by support surface, without squaring map grip.

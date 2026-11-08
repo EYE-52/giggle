@@ -28,7 +28,7 @@ const get=name=>libs.pulse.getObjectByName(name)||libs.arsenal.getObjectByName(n
 const source=fs.readFileSync(new URL('../public/js/engines/kart-view.js',import.meta.url),'utf8');
 const preparation=source.slice(source.indexOf('function prepareShotContact('),source.indexOf('const cueBounds='));
 const placement=source.slice(source.indexOf('const liveZ = new Set();'),source.indexOf('for (const [zid, mesh] of zaps)'));
-const freshness=source.slice(source.indexOf('function ordnanceFresh()'),source.indexOf('/* Calibrated server time'));
+const freshness=source.slice(source.indexOf('function ordnanceFresh('),source.indexOf('/* Calibrated server time'));
 assert(freshness.includes('lastSnapshotArrival')&&freshness.includes('connected'));
 assert(preparation.includes('projectileContactInset')&&placement.includes('radius-(c.tipZ||0)-c.contactInset'));
 const radii=combatConfig.config.staticSweepRadii,kinds=['machinegun','trishot','missile','cannon','boomerang'],point=new THREE.Vector3(),results=[],measurements=[];
