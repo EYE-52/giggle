@@ -1,0 +1,23 @@
+.mt-game {
+  --mt-open-fill: color-mix(in srgb, var(--fam) 8%, #fff);
+  --mt-blocked-fill: color-mix(in srgb, var(--fam) 24%, var(--bg));
+}
+.mt-game .mt-frame { fill: var(--fam-soft); stroke: var(--fam); stroke-width: 6; }
+.mt-game .mt-rim { fill: var(--well); stroke: var(--line-strong); stroke-width: 3; }
+.mt-game .mt-small.is-open .mt-rim { fill: var(--mt-open-fill); stroke: var(--fam); stroke-width: 8; }
+.mt-game .mt-cell { fill: var(--mt-blocked-fill); stroke: var(--line); stroke-width: 2; }
+.mt-game .mt-small.is-open .mt-cell { fill: var(--mt-open-fill); }
+.mt-game .mt-small.is-blocked { opacity: .45; }
+.mt-game .mt-cell.is-last { fill: var(--fam-soft); stroke: var(--fam); stroke-width: 3; }
+.mt-game .mt-x { fill: none; stroke: var(--b5-p0); stroke-width: 8; stroke-linecap: round; pointer-events: none; }
+.mt-game .mt-o { fill: none; stroke: var(--b5-p1); stroke-width: 8; pointer-events: none; }
+.mt-game .mt-small.is-closed > [data-cell] { opacity: .2; }
+.mt-game .mt-won { filter: drop-shadow(0 3px 0 var(--card)); }
+.mt-game .mt-trophy { stroke-width: 20; }
+.mt-game .mt-drawn { stroke: var(--ink-dim); stroke-width: 20; stroke-linecap: round; }
+[data-theme="night"] .mt-game {
+  --mt-open-fill: color-mix(in srgb, var(--fam) 65%, var(--card));
+}
+[data-theme="night"] .mt-game .mt-small.is-open .mt-rim {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--fam) 45%, transparent));
+}

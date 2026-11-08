@@ -1,0 +1,29 @@
+{
+  "strings": {
+    "agreement": "Draw agreed.",
+    "draw": "No moves remain. Each player earns 150 points.",
+    "ended": "The host ended this match. Points already earned stay.",
+    "forfeit": "A seat left the table.",
+    "resign": "A seat resigned.",
+    "timeout": "The move timer ran out.",
+    "yourTurn": "Your turn. Roll or Hold?",
+    "waiting": "{name} to move.",
+    "unit": "banked",
+    "meta": "Bank {target} to start the final round",
+    "hud": "Round {n}",
+    "hint": "A 1 loses this turn’s total.",
+    "pot": "This turn",
+    "bust": "Oink. That turn total is gone.",
+    "risk": "How far will you push it?",
+    "finalRound": "Final round · Equal turns for everyone",
+    "timerHint": "The turn timer auto-holds.",
+    "waitReason": "Wait for your turn to roll or hold.",
+    "target": "The final round is complete.",
+    "help": [
+      "Roll a die to add to your turn total. Roll a 1 and lose only this turn’s total.",
+      "Hold to bank the total. Your timer auto-holds after 30 seconds at Normal pace. Rolling does not reset it.",
+      "Reaching the target starts the final round. Every active seat gets the same number of turns.",
+      "The highest banked total wins. Tied totals share a place. Match points are 300, 200, 100, then 0."
+    ]
+  }
+}

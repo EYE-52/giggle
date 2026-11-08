@@ -1,0 +1,12 @@
+.db-game .db-paper { fill: var(--card); stroke: var(--line-strong); stroke-width: 4; }
+.db-game .db-margin { stroke: color-mix(in srgb, var(--melon) 40%, transparent); stroke-width: 3; }
+.db-game .db-dots { fill: var(--ink); }
+.db-game .db-edge path { stroke: var(--line-strong); stroke-width: 6; stroke-linecap: round; pointer-events: none; }
+.db-game .db-hit { fill: transparent; stroke: transparent; }
+.db-game .db-edge.is-drawn path { stroke: var(--piece); stroke-width: 11; }
+.db-game .db-edge.is-last path { stroke-dasharray: 12 8; }
+.db-game .db-claimed rect { fill: color-mix(in srgb, var(--piece) 24%, var(--card)); }
+.db-game .db-claimed text { fill: var(--piece); font: 800 36px var(--font-display); text-anchor: middle; }
+.db-game .db-label { fill: var(--ink-dim); font: 700 17px var(--font-body); text-anchor: middle; }
+.db-game .db-board { filter: drop-shadow(0 5px 0 var(--line-strong)); }
+@media (hover: hover) { .db-game .db-edge[aria-disabled="false"]:hover path { stroke: var(--fam); stroke-width: 12; } }

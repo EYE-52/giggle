@@ -69,7 +69,7 @@ function ok(value, label) { assert(value, label); checks++; }
   ok((await page.locator('.partystrip').boundingBox()).height <= 160, 'three-player lobby uses one compact invitation band');
   ok(monitoredPages.length === 3, 'all three clients monitored before navigation');
   const gameIds = await page.locator('#ggames [data-how]').evaluateAll(nodes => [...new Set(nodes.map(n => n.dataset.how))]);
-  ok(gameIds.length === 42, 'all live catalogue games available for focus checks');
+  ok(gameIds.length === require('../games/registry').list().length, 'all live catalogue games available for focus checks');
   let restoredSheets = 0;
   for (const [width, height] of [[1280, 720], [390, 844]]) {
     await page.setViewportSize({ width, height });

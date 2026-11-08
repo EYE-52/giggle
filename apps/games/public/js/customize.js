@@ -305,6 +305,7 @@ const FAMILIES = {
   create: ['doodle-guess', 'draw-phone', 'charades', 'pose-party', 'show-and-go', 'word-chain', 'warm-words', 'countdown-word', 'scattergories', 'lyric-fill', 'think-alike'],
   arcade: ['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction'],
 };
+FAMILIES.board.push('dots-boxes', 'mega-tic-tac-toe', 'five-row', 'pig-dice', 'snakes-ladders');
 export function familyOf(id) {
   return Object.keys(FAMILIES).find((f) => FAMILIES[f].includes(id)) || 'party';
 }

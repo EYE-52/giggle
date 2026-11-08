@@ -17,7 +17,7 @@ async function visit(viewport,night,before=false){
  await page.addInitScript(night=>localStorage.setItem('pb_theme',night?'night':'day'),night);
  if(before)await page.route('**/js/app.js',route=>route.fulfill({status:200,contentType:'text/javascript',body:originalApp}));
  await page.goto(`http://127.0.0.1:${port}/`);
- await page.waitForFunction(()=>document.getElementById('shelfCount')?.textContent.includes('47'));
+ await page.waitForFunction(n=>document.getElementById('shelfCount')?.textContent.includes(String(n)),require('../games/registry').list().length);
  const label=`${before?'before':'after'}-${viewport.width}x${viewport.height}-${night?'night':'day'}`;
  try{
   assert.equal(await page.locator('.pick-grid .pick').count(),4);
