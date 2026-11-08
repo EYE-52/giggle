@@ -30,3 +30,5 @@ art-review/
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+
+artifacts/

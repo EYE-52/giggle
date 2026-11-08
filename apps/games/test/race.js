@@ -105,7 +105,7 @@ async function sweepGame(id) {
   const stub = stubTimers();
   const rec = { id, done: false, stalled: null, reveals: [], ends: [] };
   try {
-    const socks = [fakeSock(), fakeSock(), fakeSock(), fakeSock()];
+    const socks = Array.from({ length: Math.max(4, def.manifest?.players?.min || def.minPlayers || 2) }, fakeSock);
     const ps = socks.map((s, i) => room.addPlayer('P' + i, s).player);
     const r = room.startGame(def, {}, ps[0].id);
     assert(r.ok, `${id}: startGame failed: ${r.error}`);
@@ -788,9 +788,12 @@ async function t12BattleSkip() {
 /* ------------------------------------------------------------------ */
 /* Part 2: end-to-end over real WebSockets against the real server.   */
 /* ------------------------------------------------------------------ */
-const WS_PORT = 18235;
-
 async function wsPart() {
+  // Parallel game batches must not share a fixed socket-test port.
+  const probe = require('node:net').createServer();
+  await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
+  const WS_PORT = probe.address().port;
+  await new Promise(resolve => probe.close(resolve));
   const srv = spawn('node', ['server/server.js'], {
     cwd: ROOT,
     env: { ...process.env, PORT: String(WS_PORT), HOST: '127.0.0.1' },
