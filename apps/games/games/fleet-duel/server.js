@@ -4,6 +4,7 @@ const duel = require('../engines/board-duel');
 const id = 'fleet-duel';
 const LENGTHS = [5,4,3,3,2];
 const manifest = {
+  sameRoom: false,
   name: 'Fleet Duel', tagline: 'Find their fleet before they find yours',
   howto: 'Place five ships of lengths 5, 4, 3, 3 and 2 horizontally or vertically on your 10×10 harbor. Ships may touch, but cannot overlap. Confirm each ship, then Ready. Take one shot per turn, even after a hit. Aim at a square, then Fire. Sink every enemy ship to win. You can resign at any time. With a move timer, running out of time on a shot loses the game. Two play; everyone else watches masked charts.',
   guide: {

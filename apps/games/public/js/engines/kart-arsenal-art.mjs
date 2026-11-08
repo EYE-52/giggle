@@ -25,8 +25,8 @@ export const ARSENAL_TRAP_KINDS = Object.freeze(['oil']);
 
 // Camera-facing halo per shot (sprites; never part of hull or contact skin).
 export const ARSENAL_SHOT_GLOW = Object.freeze({
-  laser: { color: 0x8ff8ff, size: 1.7 }, boomerang: { color: 0xffc04a, size: 1.9 },
-  bouncer: { color: 0xff7ad9, size: 1.5 }, frost: { color: 0xa8f0ff, size: 2.8 },
+  laser: { color: 0x8ff8ff, size: 1.7 }, boomerang: { color: 0xffc04a, size: 2.8, opacity: .35 },
+  bouncer: { color: 0xff7ad9, size: 1.5 }, frost: { color: 0xa8f0ff, size: 4 },
   cluster: { color: 0xff8a3c, size: 2.3 }, bomblet: { color: 0xffd34a, size: 1.2 },
 });
 
@@ -89,11 +89,12 @@ export function createArsenalArt(THREE) {
       sun: toon('ArsenalSun', C.sun), coral: toon('ArsenalCoral', C.coral), orange: toon('ArsenalOrange', C.orange),
       mint: toon('ArsenalMint', C.mint), pink: toon('ArsenalPink', C.pink, { roughness: .4 }),
       purple: toon('ArsenalPurple', C.purple), ice: toon('ArsenalIce', C.ice, { emissive: C.iceDeep, emissiveIntensity: .35, roughness: .2 }),
-      oil: toon('ArsenalOil', C.oil, { roughness: .12, metalness: .25, flatShading: false }), red: toon('ArsenalRed', C.red),
+      oil: toon('ArsenalOil', 0x292347, { roughness: .07, metalness: .45, flatShading: false }), red: toon('ArsenalRed', C.red),
       laserCore: lamp('ArsenalLaserCore', 0xffffff), laserBeam: glow('ArsenalLaserBeam', C.cyanGlow, .55),
       cyanLamp: lamp('ArsenalCyanLamp', C.cyanGlow), sunLamp: lamp('ArsenalSunLamp', C.sunGlow),
-      swirl: glow('ArsenalBoomerangSwirl', C.sun, .32), iceGlow: glow('ArsenalIceGlow', C.ice, .7),
-      sheen: glow('ArsenalOilSheen', C.sheen, .28), exhaust: glow('ArsenalRamExhaust', C.orange, .85),
+      swirl: glow('ArsenalBoomerangSwirl', C.sunGlow, .3), iceGlow: glow('ArsenalIceGlow', C.ice, .7),
+      sheen: glow('ArsenalOilSheen', 0xb29bff, .5), exhaust: glow('ArsenalRamExhaust', C.orange, .85),
+      bladeEdge: lamp('ArsenalBladeEdge', 0x76ffda),
     };
     const G = {};
     // Rail Laser bolt: white-hot core inside a cyan beam. Nose +Z.
@@ -103,13 +104,13 @@ export function createArsenalArt(THREE) {
     // Boomerang: a flat two-armed blade around its spin axis (Y).
     const blade = (len, wide, tall) => [
       { g: box(len, tall, wide), x: len / 2 },
-      { g: box(len, tall, wide), x: Math.cos(1.9) * len / 2, z: -Math.sin(1.9) * len / 2, ry: 1.9 },
+      { g: box(len, tall, wide), x: Math.cos(2.55) * len / 2, z: -Math.sin(2.55) * len / 2, ry: 2.55 },
       { g: cyl(wide * .62, wide * .62, tall, 10) },
     ];
-    G.boomerang = keep(merge(THREE, blade(.5, .15, .07)), 'ArsenalBoomerangBlade');
+    G.boomerang = keep(merge(THREE, blade(.59, .14, .07)), 'ArsenalBoomerangBlade');
     G.boomerangEdge = keep(merge(THREE, [
-      { g: box(.42, .02, .05), x: .25, y: .045, z: .03 },
-      { g: box(.42, .02, .05), x: Math.cos(1.9) * .25 + .02, y: .045, z: -Math.sin(1.9) * .25 + .02, ry: 1.9 },
+      { g: box(.52, .025, .05), x: .29, y: .045, z: .025 },
+      { g: box(.52, .025, .05), x: Math.cos(2.55) * .29, y: .045, z: -Math.sin(2.55) * .29, ry: 2.55 },
     ]), 'ArsenalBoomerangEdge');
     G.boomerangSwirl = keep(new THREE.RingGeometry(.3, .5, 24), 'ArsenalBoomerangSwirl');
     G.boomerangSwirl.rotateX(-HALF_PI);
@@ -196,7 +197,7 @@ export function createArsenalArt(THREE) {
     const { outer, inner, c } = base('projectile', kind, names[kind] || 'RailLaserBolt');
     c.tail = null;
     if (kind === 'boomerang') {
-      inner.add(solid(G.boomerang, M.orange, 'BoomerangBody'), solid(G.boomerangEdge, M.mint, 'BoomerangEdge'));
+      inner.add(lit(G.boomerang, M.sunLamp, 'BoomerangBody'), lit(G.boomerangEdge, M.bladeEdge, 'BoomerangEdge'));
       c.tail = lit(G.boomerangSwirl, M.swirl, 'BoomerangSwirlTracer'); inner.add(c.tail);
       c.tipZ = .5; c.tailZ = -.5;
     } else if (kind === 'bouncer') {
@@ -307,7 +308,7 @@ export function createArsenalArt(THREE) {
       return;
     }
     c.spin += step * ({ boomerang: 18, bouncer: 11, frost: 2.5, cluster: 3, bomblet: 7, laser: 0 }[c.kind] || 0);
-    if (c.kind === 'boomerang') inner.rotation.y = c.spin;
+    if (c.kind === 'boomerang') {inner.rotation.x=.35;inner.rotation.y = c.spin;}
     else if (c.kind === 'bouncer') inner.rotation.x = c.spin;
     else if (c.kind === 'frost' || c.kind === 'cluster' || c.kind === 'bomblet') { inner.rotation.x = c.spin; inner.rotation.y = c.spin * .6; }
     if (c.tail) {

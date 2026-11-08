@@ -86,6 +86,7 @@
   --text-title: 800 20px/1.25 var(--font-display);
   --text-body: 600 17px/1.5 var(--font-body);
   --text-button: 800 17px/1.2 var(--font-display);
+  --text-primary: 800 19px/1.2 var(--font-display);
   --text-button-sm: 800 15px/1.2 var(--font-body);
   --text-caption: 700 13px/1.4 var(--font-body);
   /* Motion: one curve. Only transform and opacity animate. */
@@ -206,7 +207,7 @@ body {
 }
 ::selection { background: var(--accent-soft); }
 
-.app { max-width: 1120px; margin: 0 auto; padding: 0 20px 64px; }
+.app { position:relative; z-index:1; max-width: 1120px; margin: 0 auto; padding: 0 20px 64px; }
 
 /* Game-owned presentation: no platform card, margins or text-game skin.
  * The native room drawer keeps inviting, sound, host controls and totals
@@ -1261,7 +1262,7 @@ dialog.howto-dlg:not([open]) { display: none; }
   max-width: calc(100vw - 40px); text-align: center;
   pointer-events: none;
 }
-.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 .confetti i {
   position: absolute; top: -16px; width: 9px; height: 13px;
   animation-name: fall; animation-timing-function: ease-in; animation-fill-mode: forwards;
@@ -1828,22 +1829,12 @@ body.game-playing.game-immersive .room-menu-panel { background: var(--card); col
 /* Full-screen games are inert while preparing: centre the card over the
  * arena instead of covering its bottom HUD. */
 body.game-immersive .game-preparation { top: 50%; bottom: auto; transform: translate(-50%, -50%); }
-/* Between rounds the last results stay on screen (inert while preparing),
- * with their primary action and the players near the bottom: the short line
- * is a slim pill just under the title bar (app.js sets --prep-top). */
+/* Between rounds, the toast stays below the play view's header. It is
+ * outside document flow, so arriving/leaving never moves a tap target. */
 body:not(.game-immersive) .game-preparation:not(.is-first) {
-  top: max(12px, calc(var(--prep-top, 0px) + 8px), env(safe-area-inset-top)); bottom: auto;
-  padding: var(--space-8) var(--space-16); border: var(--outline-w) solid var(--outline); border-radius: var(--radius-pill);
-  box-shadow: var(--shadow-sticker-sm); font: var(--text-button-sm);
-}
-/* Between rounds on phones, the "Getting everyone ready" pill sits over the
- * title bar (game name and menu only, still tappable through it), so it never
- * covers the round row, the results, the players or the primary action. */
-@media (max-width: 600px) {
-  body.game-playing:not(.game-immersive) .game-preparation:not(.is-first) {
-    top: max(8px, env(safe-area-inset-top)); bottom: auto;
-    pointer-events: none;
-  }
+  top:auto; bottom:max(var(--space-16),env(safe-area-inset-bottom));
+  padding:var(--space-8) var(--space-16); border:var(--outline-w) solid var(--outline); border-radius:var(--radius-pill);
+  box-shadow:var(--shadow-card); font:var(--text-button-sm); pointer-events:none;
 }
 .preparation-dots { flex: none; display: inline-flex; gap: 4px; }
 .preparation-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
@@ -2380,3 +2371,18 @@ body.game-fullscreen.game-immersive #gbody > .bk-game {
 .ks-arena .ks-map > span { min-height: 32px; padding-bottom: 2px; }
 .ks-arena .ks-map > small { display: block; padding: 0 5px 9px; font: 600 11px/1.35 var(--font-body); }
 @media (max-width: 560px) { .ks-arena .ks-map-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Captions stay readable on the games' tinted surfaces, in both themes. */
+body.game-playing[data-game] { --ink-dim:color-mix(in srgb,var(--ink) 82%,var(--card)); }
+
+/* Personal driving options: picture cards on a soft rim. */
+.picker-controls{display:grid;gap:var(--space-8);min-width:0;margin-top:var(--space-12);text-align:left}
+.picker-controls-label{font:var(--text-caption);color:var(--ink-dim)}
+.picker-control-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-8);min-width:0}
+.picker-controls .picker-control-cards button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--space-8);min-width:0;min-height:calc(var(--control-h) + var(--space-24));margin:0;padding:var(--space-8) var(--space-4);border:var(--outline-w) solid var(--outline);border-radius:var(--radius-md);background:var(--card);color:var(--ink);font:var(--text-caption);box-shadow:var(--shadow-sticker-sm);cursor:pointer;transition:transform var(--dur-quick) var(--ease)}
+.picker-controls .picker-control-cards button[aria-checked="true"]{border-color:var(--fam-lip);background:var(--fam-soft);color:var(--fam-deep);box-shadow:0 var(--lift-sm) 0 var(--fam-lip);text-decoration:underline;text-underline-offset:var(--space-4)}
+.picker-controls .picker-control-cards button:active:not(:disabled){transform:translateY(var(--lift-sm));box-shadow:none}
+.picker-controls .picker-control-cards svg{display:block;flex:none;width:var(--space-24);height:var(--space-24);fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.picker-controls .picker-control-cards button:focus-visible{outline:var(--focus-ring);outline-offset:var(--focus-offset)}
+@media(hover:hover){.picker-controls .picker-control-cards button:hover:not(:disabled){transform:translateY(calc(-1 * var(--lift-sm)))}}
+@media(prefers-reduced-motion:reduce){.picker-controls .picker-control-cards button{transition:none;transform:none}}

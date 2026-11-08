@@ -7,6 +7,7 @@ const { dealer, roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'reaction-tap';
 
 const manifest = {
+  sameRoom: false,
   players: { min: 2, max: 20 },
   howto: 'Wait for green, then tap! Early taps foul. The fastest tap each round earns 100 points, then 75, 50 and 25.',
   guide: {

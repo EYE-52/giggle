@@ -11,6 +11,7 @@ const { createCameraParty, cameraSettings } = require('../engines/camera-party')
 const id = 'show-and-go';
 
 const manifest = {
+  sameRoom: false,
   name: 'Show & Go',
   tagline: 'Grab it, show it, win the votes',
   howto: 'Everyone hunts the same everyday object and shows it in Giggle Meet, then taps Ready. Peers vote Yes on convincing finds; you never vote for yourself. An approved find is worth 100 points plus up to 50 for being ready early; judges who agree with the room get 25. Turn on your Meet camera so everyone can see your find. Nothing is recorded.',

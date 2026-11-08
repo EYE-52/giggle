@@ -77,6 +77,11 @@ function project(raw, map, settings) {
       hits: k.hits, deaths: k.deaths, spawnSeq: k.spawnSeq, controlEpoch: k.controlEpoch,
       weapon: k.weapon,...(k.weapon==='missile'?{lockTarget:k.lockTarget||null}:{}), ammo: k.ammo, firing:k.firing===true, shield: number(k.shield), guard: k.guard === true, respawn: number(k.respawn),
       nitro: number(k.nitro), nitroActive: k.nitroActive,
+      ...(k.nitroLocked?{nitroLocked:true}:{}),
+      ...(k.drifting||k.driftCharge>0?{drifting:!!k.drifting,driftCharge:number(k.driftCharge,5),driftDirection:k.driftDirection||0,driftTier:k.driftTier||0,driftHop:number(k.driftHop||0)}:{}),
+      ...(k.turbo>0?{turbo:number(k.turbo,5)}:{}),...(k.surface&&k.surface!=='road'?{surface:k.surface}:{}),
+      ...(k.flight?{flight:structuredClone(k.flight)}:{}),
+      ...(k.cannonCd>0?{cannonCd:number(k.cannonCd,5)}:{}),...(k.portalCd>0?{portalCd:number(k.portalCd,5)}:{}),
       ...(k.bladesT>0?{bladesT:number(k.bladesT),bladesAge:number(k.bladesAge||0)}:{}),
       ...(k.supernovaT>0?{supernovaT:number(k.supernovaT)}:{}),
       frostT: number(k.frostT || 0, 2), spinT: number(k.spinT || 0, 2), rammingT: number(k.rammingT || 0, 2),
@@ -94,10 +99,10 @@ function project(raw, map, settings) {
       ttl:number(g.ttl||0),landed:g.landed===true,armed:g.armed===true,warning: g.warning })),
     events: raw.events.map(e => {
       const event = { id: e.id, tick: e.tick, type: e.type, pid: e.pid };
-      for (const key of ['other', 'weapon', 'damage', 'health', 'maxHealth', 'crateId', 'spawnSeq', 'controlEpoch', 'reason', 'surfaceId', 'impulse']) {
+      for (const key of ['other', 'weapon', 'damage', 'health', 'maxHealth', 'crateId', 'spawnSeq', 'controlEpoch', 'reason', 'surfaceId', 'impulse', 'cannon', 'pair', 'side']) {
         if (e[key] !== undefined) event[key] = e[key];
       }
-      for (const key of ['position', 'direction', 'normal', 'from']) {
+      for (const key of ['position', 'direction', 'normal', 'from', 'to']) {
         if (e[key]) event[key] = vector(e[key]);
       }
       if (e.type === 'result') event.winners = result ? result.winners.slice() : [];

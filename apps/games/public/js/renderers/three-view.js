@@ -218,7 +218,8 @@ export async function createThreeView(mountEl, hooks) {
     // (it redraws every caster each frame). Fast devices never get here.
     else if (median > 24 && renderer.shadowMap.enabled) {
       renderer.shadowMap.enabled = false;
-      scene.traverse(o => { for (const m of [].concat(o.material || [])) m.needsUpdate = true; });
+      // Shared materials need one version bump, not one per pooled mesh.
+      const changed=new Set();scene.traverse(o=>{if(o.material)for(const m of Array.isArray(o.material)?o.material:[o.material])if(!changed.has(m)){changed.add(m);m.needsUpdate=true;}});
       lastStep = now; gaps.length = 0;
       try { hooks.diagnostics?.event?.('quality-shadows', 'off'); } catch { /* measurement is optional */ }
       return;

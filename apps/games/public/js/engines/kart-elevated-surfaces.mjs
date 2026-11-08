@@ -1,4 +1,4 @@
-// Authority-only surface effects. No client pose or map data is accepted.
+// Shared authored surface effects for authority and local prediction.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function applyElevatedBelts(physics,id,pose,map,dt){
   if(!pose.grounded)return false;

@@ -116,3 +116,8 @@ body.game-playing[data-game="lyric-fill"] .play-toolbar {
     background-attachment: fixed, fixed;
   }
 }
+
+/* A quiet music-paper scene, continuous across the page. */
+body.game-playing[data-game="lyric-fill"] { background-image:radial-gradient(ellipse at 50% 0,color-mix(in srgb,var(--fam) 10%,transparent),transparent 70%); }
+.lf.ck .lf-card { position:relative; }
+.lf.ck .lf-card::before { content:"♪"; align-self:flex-end; font:var(--text-heading); color:var(--fam-deep); }

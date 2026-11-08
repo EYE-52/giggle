@@ -49,7 +49,7 @@ const ICONS = {
   candle: '<rect x="17" y="18" width="10" height="18" rx="2" fill="#f2b134"/><ellipse cx="22" cy="10" rx="5" ry="7" fill="#f27b1d"/><ellipse cx="22" cy="12" rx="2" ry="3" fill="#ffe9a8"/>',
   cup: '<path d="M10 12h20v12a8 8 0 01-8 8h-4a8 8 0 01-8-8V12z" fill="#0f766e"/><path d="M30 14h4a5 5 0 010 10h-4" fill="none" stroke="#0f766e" stroke-width="3"/>',
   star: '<path d="M22 6l4.5 9.5L37 17l-7.5 7 2 10.5-9.5-5-9.5 5 2-10.5L7 17l10.5-1.5z" fill="#f2b134" stroke="#8a5a00" stroke-width="2" stroke-linejoin="round"/>',
-  moon: '<path d="M28 6a16 16 0 000 32 12 12 0 010-32z" fill="#f4e9c8" stroke="#8a7a3a" stroke-width="2"/>',
+  moon: '<path d="M29 5a17 17 0 1 0 0 34A19 19 0 0 1 29 5Z" fill="#e8ca68" stroke="#776127" stroke-width="2"/>',
   sun: '<circle cx="22" cy="22" r="9" fill="#f2b134"/><g stroke="#e4572e" stroke-width="3" stroke-linecap="round"><path d="M22 4v5M22 35v5M4 22h5M35 22h5M9 9l4 4M31 31l4 4M35 9l-4 4M13 31l-4 4"/></g>',
   heart: '<path d="M22 37S7 27 7 17a8 8 0 0115-3 8 8 0 0115 3c0 10-15 20-15 20z" fill="#d9486f"/>',
   tree: '<path d="M22 4l11 16h-6l8 12H9l8-12H11z" fill="#1d7a3a"/><rect x="19" y="30" width="6" height="8" fill="#8a5a2b"/>',
@@ -114,7 +114,7 @@ const ICONS = {
   mitten: '<path d="M13 35V22l-5-5q-3-6 2-7l7 6V10q0-8 10-8t10 8v18l-7 7z" fill="#d9486f"/><path d="M13 34h17v7H13z" fill="#f5b9cc"/>',
   telescope: '<path d="M7 15l24-9 5 11-24 9z" fill="#f2b134" stroke="#8a5a00" stroke-width="2"/><path d="M30 5l6 13" stroke="#23202b" stroke-width="4"/><path d="M22 23v5M22 28l-10 13M22 28l11 13" stroke="currentColor" stroke-width="3"/>',
   quilt: '<rect x="6" y="5" width="32" height="34" rx="2" fill="#d9486f"/><path d="M6 5h11v11H6M27 5h11v11H27M17 16h10v11H17M6 27h11v12H6M27 27h11v12H27" fill="#f2b134"/><path d="M6 16h32M6 27h32M17 5v34M27 5v34" stroke="#fff" stroke-width="1" stroke-dasharray="2 2"/>',
-  napkin: '<path d="M6 7h30v31H6z" fill="#fff" stroke="#9aa7b0" stroke-width="2"/><path d="M6 7l30 31H6z" fill="#cfe8ef"/><path d="M10 32h12" stroke="#fff" stroke-width="2"/>',
+  napkin: '<path d="M6 7h30v31H6z" fill="#fff" stroke="#9aa7b0" stroke-width="2"/><path d="M6 7l30 31H6z" fill="#9ecad5" stroke="#567f8a" stroke-width="2"/><path d="M10 32h12" stroke="#fff" stroke-width="2"/>',
   easel: '<path d="M22 3L9 40M22 3l13 37M12 31h20" stroke="#8a5a2b" stroke-width="3"/><rect x="9" y="8" width="26" height="21" fill="#fff" stroke="#c98f5b" stroke-width="2"/><circle cx="28" cy="14" r="3" fill="#f2b134"/><path d="M11 27l8-12 10 12z" fill="#1d7a3a"/>',
 };
 

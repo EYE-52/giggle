@@ -29,6 +29,15 @@ const data = source => 'data:text/javascript;base64,' + Buffer.from(source).toSt
       const paint = (s, a) => (view.update || view.render).call(view, el, s, a);
       view.mount?.(el, api('offline')); paint(S, api('offline'));
       const input = el.querySelector(selector), button = el.querySelector(buttonSelector), retired = button.onclick;
+      if (id === 'number-hunt') {
+        const up = el.querySelector('#nUp'), down = el.querySelector('#nDown');
+        input.value = ''; up.click(); assert.equal(input.value, '51', 'Number stepper starts at the public range midpoint');
+        up.click(); assert.equal(input.value, '52', 'Number stepper nudges a draft');
+        input.value = '100'; input.oninput(); assert(up.disabled, 'Upper bound disables the plus button');
+        down.click(); assert.equal(input.value, '99', 'Minus stays available at the upper bound');
+        input.value = '1'; input.oninput(); assert(down.disabled, 'Lower bound disables the minus button');
+        assert.equal(sent.length, 0, 'Number stepper never submits a guess'); checks += 6;
+      }
       input.value = draft; button.click();
       assert.equal(input.value, draft, id + ' rejected send keeps the draft'); checks++;
       if (id === 'memory-tray') {

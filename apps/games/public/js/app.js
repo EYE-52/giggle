@@ -1336,7 +1336,7 @@ function sortChips(inRoom) {
  * keeps the value and the change handler; pickers.js keeps them in step). */
 function chipSelectHtml(id, label, optionsHtml, chips, value) {
   return `<div class="catpick"><span class="sr-only" id="${id}-l">${label}</span>`
-    + `<select id="${id}" class="picker-native" tabindex="-1" aria-hidden="true">${optionsHtml}</select>`
+    + `<select hidden id="${id}" class="picker-native" tabindex="-1" aria-hidden="true">${optionsHtml}</select>`
     + segPickerHtml(id, chips, value, `${id}-l`) + '</div>';
 }
 
@@ -1360,7 +1360,7 @@ function renderHome() {
       <div class="hero-copy">
         <h1>Bring your people. <span class="pop">Pick a game</span>.</h1>
         <p class="hero-sub">Make a room, share the code, and play ${catalogLoaded ? `${games.length} party games` : 'party games'}
-          with friends on any device. Someone hosts, everyone plays.</p>
+          with friends. Use your own devices, or pass one phone around the room.</p>
         <a class="shelf-link" href="#games">Find your next game</a>
         ${catalogLoaded ? heroHandHtml() : '<div class="hero-hand" aria-hidden="true"></div>'}
       </div>
@@ -1371,6 +1371,7 @@ function renderHome() {
             <input id="nm" type="text" maxlength="16" placeholder="e.g. Pippa" value="${esc(myName)}" autocomplete="off">
             <div class="hero-cta"><button class="btn big hero-create" id="bCreate">Create room</button></div>
           </div>
+          <a class="btn ghost hero-local" href="/same-room/">Play on one device</a>
           <label class="ticket-or" for="jc"><span>Have a room code?</span></label>
           <div class="hero-joinrow">
             <div class="code-tiles"><input id="jc" type="text" maxlength="4" placeholder="ABCD" value="${esc(roomCode)}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" aria-label="Room code, 4 letters">${'<span class="code-tile" aria-hidden="true"></span>'.repeat(4)}</div>
@@ -2157,7 +2158,7 @@ function howtoFooter(game) {
     return {
       html: `<label class="howto-name" for="howtoName">Your party name
         <input type="text" id="howtoName" maxlength="16" autocomplete="nickname" enterkeyhint="go" placeholder="e.g. Pippa" required value="${esc(name)}"></label>
-        <button class="btn big" id="howtoGo">Create room</button>${custom}${details}${practice}
+        <button class="btn big" id="howtoGo">Create room</button>${game.sameRoom ? `<a class="howto-btn same-room-link" id="howtoOneDevice" href="/same-room/?game=${encodeURIComponent(game.id)}">Play on one device</a>` : ''}${custom}${details}${practice}
         <p class="howto-note">Share the room link with friends, then press Play.</p>`,
       wire(foot) {
         const create = (wantSetup) => {
@@ -2754,13 +2755,6 @@ function paintGamePreparation() {
     const at = Math.floor(Math.random() * tips.length);
     const order = tips.map((_, i) => tips[(at + i) % tips.length]);
     status.classList.toggle('is-first', first);
-    if (!first) {
-      // Sit just under the title bar so the pill never covers the game's
-      // name, its zoom and menu buttons, or the results' primary action.
-      const bar = document.querySelector('.play-toolbar');
-      const below = bar ? Math.max(0, bar.getBoundingClientRect().bottom) : 0;
-      status.style.setProperty('--prep-top', `${Math.round(below)}px`);
-    }
     // Every tip shares one grid cell, so the card is as tall as the longest
     // and never resizes as they change. Only the first is read out.
     // First load: the art hops on a little stage of confetti and the

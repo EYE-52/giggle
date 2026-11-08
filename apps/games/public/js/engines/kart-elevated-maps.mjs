@@ -1,3 +1,4 @@
+import {addRaisedFeatures} from './kart-raised-features.mjs';
 import {applyRaisedStarts} from './kart-raised-spawns.mjs';
 import {improveRaisedLayout} from './kart-raised-layouts.mjs';
 import {complexMaps} from './kart-complex-maps.mjs';
@@ -51,7 +52,8 @@ const MAPS = {
       ['floor',-44,0,-28], ['floor',-28,0,-42], ['floor',4,0,-34], ['floor',46,0,-8],
       ['floor',48,0,32], ['floor',-44,0,26], ['floor',-16,0,18], ['floor',-28,0,38],
       ['floor',-2,0,0], ['floor',24,0,8], ['courtyard',18,7,4], ['courtyard',32,7,12],
-      ['floor',-44,0,-8], ['floor',-46,0,46], ['floor',-22,0,0], ['floor',-20,0,-20],
+      // Keep loot off the launch tube's solid entrance apron.
+      ['floor',-44,0,-12], ['floor',-46,0,46], ['floor',-22,0,0], ['floor',-20,0,-20],
       ['floor',10,0,-48], ['floor',34,0,-46], ['floor',4,0,44], ['floor',-18,0,46],
       ['floor',46,0,48], ['floor',0,0,24], ['courtyard',14,7,16], ['courtyard',34,7,0],
     ]),
@@ -181,7 +183,7 @@ const MAPS = {
   },
 };
 
-for(const map of Object.values(MAPS)){improveRaisedLayout(map);applyRaisedStarts(map);}
+for(const map of Object.values(MAPS)){improveRaisedLayout(map);applyRaisedStarts(map);addRaisedFeatures(map);}
 
 export const elevatedMapIds = Object.freeze(Object.keys(MAPS));
 export function elevatedMap(id) {

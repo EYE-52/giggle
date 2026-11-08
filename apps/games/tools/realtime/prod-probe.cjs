@@ -75,6 +75,17 @@ const PATCHES = {
     ['lastFrame=Math.max(lastFrame??time,time);', "globalThis.__pkD?.('eframe',{time,played,latest,wanted});lastFrame=Math.max(lastFrame??time,time);"],
     ['offset=offset===null?arrival-at:Math.min(offset,arrival-at);', "offset=offset===null?arrival-at:Math.min(offset,arrival-at);globalThis.__pkD?.('eingest',{at,arrival});"],
   ],
+  'kart-elevated-prediction.mjs': [
+    [['if(reset){history=[]', "globalThis.__pkD?.('ingest',{reset,gap:arrival-lastArrival,simAt:snapshot.simAt,serverAt,now:arrival,hist:history.length});if(reset){history=[]"],
+     ['if(changed||!fresh||snapshot.audioBaseline||arrival-lastArrival>250)history=[];', "globalThis.__pkD?.('ingest',{reset:changed||!fresh||snapshot.audioBaseline||arrival-lastArrival>250,gap:arrival-lastArrival,simAt:snapshot.simAt,serverAt,now:arrival,hist:history.length});if(changed||!fresh||snapshot.audioBaseline||arrival-lastArrival>250)history=[];"]],
+    [['counters.corrections++;', "globalThis.__pkD?.('corr',{d:error,now:arrival,snap:error>8||angle>Math.PI/3});counters.corrections++;"],
+     // Older raised prediction restored/replayed directly, without a blend.
+     ['const changed=!lastSnapshot', "const probeBefore=physics.pose(kart.id);const changed=!lastSnapshot"]],
+    [['return {...current,renderPose:p};', "globalThis.__pkD?.('frame',{x:p.position.x,y:p.position.y,z:p.position.z,speed:pose.speed,stale:arrival-lastArrival>250,now:arrival,delay:0});return {...current,renderPose:p};"],
+     ['return {...current,renderPose:blendElevatedPose(priorPose?{...kart,pose:priorPose}:null,current,Math.max(0,Math.min(1,accumulator/dt)),renderOutput)};', "const p=blendElevatedPose(priorPose?{...kart,pose:priorPose}:null,current,Math.max(0,Math.min(1,accumulator/dt)),renderOutput);globalThis.__pkD?.('frame',{x:p.position.x,y:p.position.y,z:p.position.z,speed:pose.speed,stale:arrival-lastArrival>250,now:arrival,delay:0});return {...current,renderPose:p};"]],
+    [['lastSnapshot=snapshot;lastArrival=arrival;lastAt=snapshot.simAt;', "if(!changed){const p=physics.pose(kart.id),d=Math.hypot(probeBefore.position.x-p.position.x,probeBefore.position.y-p.position.y,probeBefore.position.z-p.position.z);globalThis.__pkD?.('corr',{d,now:arrival,snap:true});}lastSnapshot=snapshot;lastArrival=arrival;lastAt=snapshot.simAt;"],
+     ['lastSnapshot=snapshot;lastArrival=arrival;', 'lastSnapshot=snapshot;lastArrival=arrival;']],
+  ],
 };
 
 function initScript({ relayPort, upstreamHost }) {
@@ -103,7 +114,7 @@ function analyse(D, elevated) {
     snapshots: { count: D.msgs.length, interArrivalMs: summary(gaps), over100: gaps.filter(g => g > 100).length, over250: gaps.filter(g => g > 250).length, meanBytes: Math.round(D.msgs.reduce((a, m) => a + m.size, 0) / Math.max(1, D.msgs.length)) },
     raf: { frames: D.raf.length, gapMs: summary(D.raf), over33: D.raf.filter(g => g > 33.4).length, over50: D.raf.filter(g => g > 50).length, over100: D.raf.filter(g => g > 100).length },
   };
-  if (!elevated) {
+  if (!elevated || D.frame.length) {
     const sim = D.ingest.slice(1).map((x, i) => x.simAt - D.ingest[i].simAt).filter(x => x > 0), age = D.ingest.map(x => x.serverAt - x.simAt);
     out.server = { simAtStepMs: summary(sim), over50: sim.filter(s => s > 50).length };
     out.age = summary(age);
@@ -114,17 +125,22 @@ function analyse(D, elevated) {
     for (let i = 1; i < f.length; i++) { const s = Math.hypot(f[i].x - f[i - 1].x, f[i].z - f[i - 1].z); step.push(s); if (s < 1e-4 && Math.abs(f[i].speed) > 3) freezes++; if (i > 1) jerk.push(Math.hypot(f[i].x - 2 * f[i - 1].x + f[i - 2].x, f[i].z - 2 * f[i - 1].z + f[i - 2].z)); }
     const med = pct(step, .5) || 0;
     out.ownKart = { frames: f.length, stepM: summary(step), jerkM: summary(jerk), freezeFrames: freezes, skipFrames: step.filter(s => med > .02 && s > 3 * med).length };
-    const r = D.remote, rj = [];
-    for (let i = 2; i < r.length; i++) rj.push(Math.hypot(r[i].x - 2 * r[i - 1].x + r[i - 2].x, r[i].z - 2 * r[i - 1].z + r[i - 2].z));
-    const delays = f.map(x => x.delay).filter(Number.isFinite);
-    out.remote = { delayMs: summary(delays), jerkM: summary(rj), jumpsOver05m: rj.filter(j => j > .5 && j < 15).length, underrunSamples: D.under.length, underrunMs: summary(D.under.map(u => u.by)), frozenOver120: D.under.filter(u => u.by > 120).length };
-  } else {
+    if (!elevated) {
+      const r = D.remote, rj = [];
+      for (let i = 2; i < r.length; i++) rj.push(Math.hypot(r[i].x - 2 * r[i - 1].x + r[i - 2].x, r[i].z - 2 * r[i - 1].z + r[i - 2].z));
+      const delays = f.map(x => x.delay).filter(Number.isFinite);
+      out.remote = { delayMs: summary(delays), jerkM: summary(rj), jumpsOver05m: rj.filter(j => j > .5 && j < 15).length, underrunSamples: D.under.length, underrunMs: summary(D.under.map(u => u.by)), frozenOver120: D.under.filter(u => u.by > 120).length };
+    }
+  }
+  if (elevated) {
     const e = D.eframe, adv = [];
     let starved = 0, stalls = 0, skips = 0;
     for (let i = 1; i < e.length; i++) { const dt = e[i].time - e[i - 1].time, d = e[i].played - e[i - 1].played; adv.push(d - dt); if (e[i].played >= e[i].latest) starved++; if (dt > 5 && d < 0.5) stalls++; if (d > dt + 30) skips++; }
     out.timeline = { frames: e.length, starvedFrames: starved, stalledFrames: stalls, skipFrames: skips, playbackMinusWallMs: summary(adv.map(Math.abs)), behindLatestMs: summary(e.map(x => x.latest - x.played)) };
-    const sim = D.eingest.slice(1).map((x, i) => x.at - D.eingest[i].at).filter(x => x > 0);
-    out.server = { simAtStepMs: summary(sim), over75: sim.filter(s => s > 75).length };
+    if (!D.ingest.length) {
+      const sim = D.eingest.slice(1).map((x, i) => x.at - D.eingest[i].at).filter(x => x > 0);
+      out.server = { simAtStepMs: summary(sim), over75: sim.filter(s => s > 75).length };
+    }
   }
   return out;
 }
@@ -159,7 +175,7 @@ function analyse(D, elevated) {
     browser = await chromium.launch({ headless: !HEADED, args: GL === 'metal' ? ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-features=LocalNetworkAccessChecks,BlockInsecurePrivateNetworkRequests,PrivateNetworkAccessSendPreflights'] : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
     const context = await browser.newContext({ viewport: { width: +arg('w', 1280), height: +arg('h', 720) } });
     await context.addInitScript(initScript, { relayPort: rel.port, upstreamHost });
-    await context.route(/\/js\/(engines\/kart-classic-prediction|toolkit\/realtime\/client|engines\/kart-elevated-pose)\.mjs(\?.*)?$/, async route => {
+    await context.route(/\/js\/(engines\/kart-classic-prediction|toolkit\/realtime\/client|engines\/kart-elevated-(?:pose|prediction))\.mjs(\?.*)?$/, async route => {
       const res = await route.fetch(), file = new URL(route.request().url()).pathname.split('/').pop();
       await route.fulfill({ response: res, body: patch(await res.text(), PATCHES[file], file), headers: { ...res.headers(), 'cache-control': 'no-store' } });
     });
@@ -209,4 +225,3 @@ function analyse(D, elevated) {
     rel.close();
   }
 })().catch(e => { console.error(e); process.exitCode = 1; });
-

@@ -139,7 +139,9 @@ The relay seed is repeatable; gameplay and realized timing are not identical. Fo
 
 ## Limits and checks
 
-- Raised arenas' own-kart prediction lives on **`claude/maps-polish`**. Skyport rows are a baseline only; this classic change does not fix raised-arena playback.
+- After the `origin/main` merge, raised own-kart prediction in `kart-elevated-prediction.mjs` follows the same 1500 ms prediction/history budget, merged intent replay after `simAt`, full slow-frame time (up to 250 ms), and decaying visual correction. Life/control/pose epochs still snap. The view passes elapsed time before the renderer's camera/FX clipping. Shared elevated motion and remote playback are unchanged.
+- Raised unit fixtures at 60/120/144 Hz cover a 600 ms gap and late recovery: maximum rendered steps are 0.119/0.090/0.074 m, with no recovery snaps. They also cover 200 ms slow frames, distinct input retention, correction decay and real resets. These are local Rapier fixtures, not new browser measurements; the Skyport rows above remain old baseline data.
+- `prod-probe.cjs` also instruments raised prediction (`frame`, `ingest`, `corr`) and reports `ownKart`/`prediction` alongside the raised timeline when those frames exist. Raised own prediction has no playback delay (`delay:0`). Old timeline-only captures remain supported. Run `node test/kart-elevated-prediction.mjs`, `node test/kart-elevated-drift.mjs` and `node test/kart-prod-probe.mjs` for the focused checks.
 - Local cosmetic flying projectiles and authoritative handoff are not implemented. Only immediate muzzle flash/sound on press for machine gun/tri-shot (plus existing recoil) are covered.
-- Remote-kart numbers are raw buffer samples, taken before the recovery smoothing (see the verdict above). Own-kart numbers are the final rendered pose.
+- Remote-kart numbers are raw buffer samples, taken before the recovery smoothing (see the verdict above). Classic own-kart numbers are the final predicted render pose; raised own-kart hooks sample the corrected prediction before the view's support conformance.
 - Tests: all 203 commands in `npm test` pass. A few were retried after another worktree's test server held ports 18234/18235.

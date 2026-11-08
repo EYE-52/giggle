@@ -203,7 +203,10 @@ for(const id of maps.mapIds()){
         // Blocks' new pocket walls contain the old hill transect. Use
         // its actual cannon approach for this high-air pickup canary;
         // kart-arena-layout checks every new ramp with actual driving.
-        if(id==='blocks')f.place(f.a,-24,-17,Math.PI);
+        if(id==='blocks'){
+          const c=map.features.cannons[0];
+          f.place(f.a,c.x-Math.sin(c.angle)*3,c.z-Math.cos(c.angle)*3,c.angle);
+        }
         else f.place(f.a,hill.x-Math.sin(yaw)*offset,hill.z-Math.cos(yaw)*offset,yaw);
         f.place(f.b,0,0);
         let flight;

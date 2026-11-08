@@ -120,6 +120,8 @@ function paintFooter() {
     // action even when the phone's setup fields have scrolled out of view.
     for (const note of fields.querySelectorAll('.howto-note')) actions.append(note);
     actions.append(primary);
+    const oneDevice = fields.querySelector('.same-room-link');
+    if (oneDevice) actions.append(oneDevice);
   }
   actions.hidden = !primary;
   const nextName = fields.querySelector('#howtoName');

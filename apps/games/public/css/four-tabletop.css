@@ -16,7 +16,7 @@ html[data-theme=night] .fr-duel{--fr-plastic:#2d5ccc;--fr-rim:#1e43a0;--fr-lip:#
 @keyframes fr-drop{0%{transform:translateY(var(--drop))}72%{transform:translateY(0)}84%{transform:translateY(-10px)}94%{transform:translateY(0)}100%{transform:translateY(0)}}
 .fr-duel .fr-preview{opacity:0;pointer-events:none;transition:opacity var(--dur-quick) var(--ease)}
 .fr-duel .fr-preview.is-visible{opacity:1}
-.fr-duel .fr-preview-beam{fill:#ffffff;opacity:.14}
+.fr-duel .fr-preview-beam{fill:none;stroke:var(--fr-rim);stroke-width:3;stroke-dasharray:6 8;opacity:.85}
 .fr-duel .fr-win{opacity:0;pointer-events:none}
 .fr-duel .fr-settled .fr-win{opacity:1;transition:opacity var(--dur-quick) var(--ease)}
 .fr-duel .fr-cursor{stroke:var(--sun,#f6d365);stroke-width:4;opacity:0;pointer-events:none}

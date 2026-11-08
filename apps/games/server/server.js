@@ -172,6 +172,7 @@ function loadContent() {
 }
 
 const content = loadContent();
+const sameRoomHub = require('./same-room').createSameRoomHub(content);
 
 /* Lease tracking: socket -> { squadId, sub, expiresAt }. Anonymous sockets
  * have no entry and are unaffected. */
@@ -425,6 +426,7 @@ wss.on('connection', (ws) => {
     }
   });
   ws.on('close', () => {
+    sameRoomHub.detach(ws);
     detach(ws);
   });
 });
@@ -526,6 +528,8 @@ function leaseAllows(ws) {
 
 function handle(ws, msg) {
   if (ws.readyState !== 1) return;
+  if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return;
+  if (sameRoomHub.handle(ws, msg)) return;
   switch (msg.t) {
     case 'giggleJoin':
     case 'giggleRenew': {

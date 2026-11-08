@@ -8,6 +8,7 @@ const { dealer, allIn, roundsSetting, paceSetting, paced } = require('../_sdk');
 const id = 'rank-it';
 
 const manifest = {
+  sameRoom: 'handoff',
   guide: {
     goal: 'Rank five items the way the whole room does.',
     controls: [

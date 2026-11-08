@@ -9,6 +9,7 @@ const { dealer, shuffle, roundsSetting, paceSetting, pacedMs } = require('../_sd
 const id = 'emoji-story';
 
 const manifest = {
+  sameRoom: false,
   howto: 'Describe your secret phrase in emoji only. Others race to guess it: 100 for a correct guess plus up to 100 for speed. The storyteller earns 50 per solver.',
   guide: {
     goal: 'Guess phrases told in emoji, and tell yours so others solve it.',

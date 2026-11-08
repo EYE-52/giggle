@@ -25,6 +25,13 @@ export function projectileContactInset(THREE,object,radius){
     const positions=mesh.geometry.attributes.position;
     for(let i=0;i<positions.count;i++){
       point.fromBufferAttribute(positions,i).applyMatrix4(mesh.matrixWorld).applyMatrix4(inverse);
+      // The disc banks and spins through every heading. Calibrate its full
+      // sphere, not only the cylindrical envelope of a straight tracer.
+      if(combat.kind==='boomerang'){
+        const spinRadius=point.length();
+        if(spinRadius>radius)throw Error('Projectile art exceeds authoritative sweep radius');
+        inset=Math.max(inset,spinRadius-combat.tipZ);
+      }
       const radial=point.x*point.x+point.y*point.y;
       if(radial>radius*radius)throw Error('Projectile art exceeds authoritative sweep radius');
       inset=Math.max(inset,point.z+radius-combat.tipZ-Math.sqrt(radius*radius-radial));
@@ -456,6 +463,7 @@ export function createKartCombatArt(THREE, opts) {
   const reg = { geometries: new Set(), materials: new Set() };
   let glowTex = null; const glowMats = new Map();
   let pool = null;
+  let mineWarningGeometry=null,mineWarningMaterial=null;
   let ovr = null;
   let cal = null;
   let seq = 0;
@@ -713,7 +721,7 @@ export function createKartCombatArt(THREE, opts) {
       if (!glowTex) glowTex = glowTexture(THREE);
       let material = glowMats.get(kind);
       if (!material) {
-        material = new THREE.SpriteMaterial({ map: glowTex, color: spec.color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+        material = new THREE.SpriteMaterial({ map: glowTex, color: spec.color, opacity: spec.opacity??1, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
         material.name = 'CombatShotGlow:' + kind; glowMats.set(kind, material); reg.materials.add(material);
       }
       const halo = new THREE.Sprite(material);
@@ -783,8 +791,10 @@ export function createKartCombatArt(THREE, opts) {
     if (kind === 'oil') return arsenal.trap('oil', own);
     const isOwn = own !== false;
     const branch = libBranch('MineTrap', null)||libBranch('Mine', null);
-    if (branch) return mineFromLib(isOwn, branch);
-    return mineFallback(isOwn);
+    const object=branch?mineFromLib(isOwn,branch):mineFallback(isOwn),c=object.userData.combat;
+    if(!mineWarningGeometry){mineWarningGeometry=poolGeo(reg,new THREE.RingGeometry(.78,.94,32),'MineWarningRing');mineWarningGeometry.rotateX(-Math.PI/2);mineWarningMaterial=trackMat(reg,new THREE.MeshBasicMaterial({color:0xffcb55,transparent:true,opacity:.7,depthWrite:false,side:THREE.DoubleSide,toneMapped:false}));}
+    const warning=new THREE.Mesh(mineWarningGeometry,mineWarningMaterial);warning.name='MineWarningRing';warning.position.y=.09;warning.userData.groundDecoration=true;object.add(warning);c.warning=warning;
+    return object;
   }
 
   /* ---------------- weapons ---------------- */
@@ -943,6 +953,7 @@ export function createKartCombatArt(THREE, opts) {
         if (c.tail) c.tail.scale.set(1, 1, 1);
       } else if (c.type === 'mine') {
         inner.rotation.y = 0;
+        if (c.warning) c.warning.scale.setScalar(c.armed === false ? .8 : 1);
         if (c.cap) c.cap.scale.setScalar(c.armed === false ? 0.85 : 1);
         if (c.glow) {
           c.glow.visible = c.armed !== false;
@@ -974,6 +985,7 @@ export function createKartCombatArt(THREE, opts) {
       }
       if (c.halo) c.halo.scale.setScalar(c.haloSize * (reducedMotion ? 1 : 1 + .14 * Math.sin(t * 22 + seed)));
     } else if (c.type === 'mine') {
+      if(c.warning)c.warning.scale.setScalar(c.armed===false?.8:1+.08*Math.sin(t*5+seed));
       // A deployed mine is planted hardware; only its status lamp blinks.
       inner.rotation.y = 0;
       if (c.armed === false) {
@@ -984,7 +996,7 @@ export function createKartCombatArt(THREE, opts) {
         if (c.glow) {
           c.glow.visible = true;
           // A subtle, slow red status light; no hard strobe.
-          const bl = 1 + .04 * Math.sin(t * 3 + seed);
+          const bl = .95 + .3 * Math.sin(t * 5 + seed);
           c.glow.scale.set(bl, 1, bl);
         }
       }
@@ -1021,6 +1033,7 @@ export function createKartCombatArt(THREE, opts) {
     reg.materials.clear();
     glowTex?.dispose(); glowTex = null; glowMats.clear();
     arsenal.dispose();curated.dispose();
+    mineWarningGeometry=mineWarningMaterial=null;
     pool = null;
     ovr = null;
     readableHousing = new WeakMap();

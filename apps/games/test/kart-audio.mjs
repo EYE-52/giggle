@@ -83,7 +83,7 @@ function makeFakeAudio(opts = {}) {
   const nodes = [];
   const stats = {
     osc: 0, gain: 0, filter: 0, bufSrc: 0, comp: 0,
-    starts: 0, stops: 0, resumes: 0, closes: 0, disconnects: 0, connects: 0, decodes: 0,
+    starts: 0, stops: 0, resumes: 0, closes: 0, disconnects: 0, connects: 0, decodes: 0, buffers: 0,
   };
   let resumeMode = opts.resume || 'ok';
   const decodeMode = opts.decode || 'promise';
@@ -120,6 +120,7 @@ function makeFakeAudio(opts = {}) {
       }));
     },
     createBuffer(channels, length, rate) {
+      stats.buffers += 1;
       const data = new Float32Array(length);
       return { duration: length / rate, sampleRate: rate, numberOfChannels: channels, getChannelData: () => data };
     },
@@ -399,6 +400,38 @@ await withGlobals({ document: makeEmitter() }, async () => {
   ok(audio.status().pending.length === FILE_COUNT, `lazy: all ${FILE_COUNT} samples pending`);
   ok(audio.cues().length === CUE_NAMES.length, 'lazy: cue list available pre-unlock');
   audio.dispose();
+});
+
+/* Explicit loading-screen preparation leaves the gesture gate closed. */
+await withGlobals({ document: makeEmitter() }, async () => {
+  let made = 0;
+  const { ctx, nodes, stats } = makeFakeAudio(), loader = makeLoader();
+  const audio = createKartAudio({ createContext: () => { made++; return ctx; }, loader });
+  ok(audio.prep() === true && made === 1, 'prep: creates context during loading');
+  ok(!audio.isUnlocked() && stats.resumes === 0, 'prep: never unlocks or resumes outside a gesture');
+  ok(nodes[0].gain.value === 0 && !audio.cue('machinegun'), 'prep: master is silent and cues remain locked');
+  ok(stats.buffers === 2, 'prep: engine and weapon noise are generated before first drive/fire');
+  ok(await audio.ready(), 'prep: all sample decodes finish before readiness');
+  ok(loopSourcesOf(nodes).length === 4, 'prep: silent loop sources are already built');
+  const nodeCount = nodes.length, bufferCount = stats.buffers, requests = loader.calls.length;
+  audio.prep(); await audio.ready();
+  ok(made === 1 && nodes.length === nodeCount && stats.buffers === bufferCount && loader.calls.length === requests, 'prep: repeated loading checks reuse graph, noise and decoded samples');
+  audio.unlock();
+  ok(made === 1 && nodes.length === nodeCount && stats.resumes === 1 && nodes[0].gain.value === .8, 'prep: first gesture only resumes and enables existing graph');
+  audio.update({ active: true, speed: 8, throttle: 1 });
+  audio.cue('machinegun'); audio.cue('cannonBoom');
+  ok(stats.buffers === bufferCount && stats.decodes === FILE_COUNT && loader.calls.length === requests, 'prep: first drive and weapon/explosion reuse prepared noise and samples');
+  audio.dispose();
+  ok(stats.closes === 1 && nodes.every(n => n.disconnects >= 1), 'prep: silent and played graph resources retire together');
+  ok(!audio.prep() && !await audio.ready(), 'prep: disposed loading handle stays inert');
+});
+
+await withGlobals({ document: makeEmitter() }, async () => {
+  const { ctx, stats } = makeFakeAudio(), loader = makeManualLoader();
+  const audio = createKartAudio({ createContext: () => ctx, loader });
+  audio.prep(); const pending = audio.ready(); audio.dispose();
+  ok(!await pending && stats.closes === 1, 'prep: leaving loading settles readiness and closes the locked context');
+  loader.releaseAll();
 });
 
 /* ---------- 2. unlock loads once from exact local paths; no per-frame fetch ---------- */

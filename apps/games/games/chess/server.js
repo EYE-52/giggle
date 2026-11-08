@@ -11,6 +11,7 @@ const duel = require('../engines/board-duel');
 const id = 'chess';
 
 const manifest = {
+  sameRoom: true,
   name: 'Chess',
   tagline: 'Two seats, full rules, watchers welcome',
   howto: 'The first two players take white and black; everyone else watches. Tap a piece to see its legal moves, then tap a destination. Pawns promote with a chooser. You can resign or offer a draw. With a time control or a move timer, running out of time loses the game.',

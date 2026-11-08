@@ -133,9 +133,15 @@ export async function runPhysicsChecks() {
     const w = create([PROTOTYPE_SOLIDS[0], PROTOTYPE_SOLIDS[4], roof]);
     try {
       w.addKart('driver', spawn(18, 1, -20)); step(w, 120); w.applyIntent('driver', { steer: 0, throttle: 1 });
-      let maxY = 0, maxZ = -20;
-      for (let i = 0; i < 280; i++) { w.step(); const p = w.pose('driver'); maxY = Math.max(maxY, p.position.y); maxZ = Math.max(maxZ, p.position.z); }
-      check('solid deck underside blocks upward ramp motion', measurements.jumpMaxChassisY > 3.7 && maxY < 3.2 && maxZ > 3 && maxZ < 5);
+      let maxChassisTop = 0, maxZ = -20;
+      for (let i = 0; i < 280; i++) {
+        w.step(); const p = w.pose('driver'),q=p.rotation,h=CONFIG.chassis.half;
+        // Check the rotated hull against the actual roof underside. A centre-Y
+        // guess depends on contact friction and can reject a legal tilted pose.
+        const top=p.position.y+Math.abs(2*(q.x*q.y+q.w*q.z))*h.x+Math.abs(1-2*(q.x*q.x+q.z*q.z))*h.y+Math.abs(2*(q.y*q.z-q.w*q.x))*h.z;
+        maxChassisTop=Math.max(maxChassisTop,top);maxZ=Math.max(maxZ,p.position.z);
+      }
+      check('solid deck underside blocks upward ramp motion', measurements.jumpMaxChassisY > 3.7 && maxChassisTop < roof.position.y-roof.half.y+.025 && maxZ > 3 && maxZ < 5);
     } finally { w.dispose(); }
   }
 

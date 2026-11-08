@@ -74,7 +74,10 @@ function main() {
       html.includes(`<link rel="canonical" href="https://play.gigglemeet.com/games/${g.id}/">`),
       `${g.id}: canonical`);
     assert.ok(html.includes('<meta name="description" content="'), `${g.id}: meta description`);
-    assert.ok(!html.includes('?&') && !html.includes('?game='), `${g.id}: no named-query dupes`);
+    const oneDeviceHref = `href="/same-room/?game=${g.id}"`;
+    assert.equal(html.includes(oneDeviceHref), !!g.sameRoom, `${g.id}: one-device CTA follows manifest`);
+    const withoutOneDevice = html.replace(oneDeviceHref, '');
+    assert.ok(!withoutOneDevice.includes('?&') && !withoutOneDevice.includes('?game='), `${g.id}: no named-query dupes`);
     // CTA form: GET to /, hidden game, named ticket field, no auto-submit.
     assert.ok(html.includes('<form class="gp-cta" method="GET" action="/">'), `${g.id}: CTA form`);
     assert.ok(html.includes(`<input type="hidden" name="game" value="${g.id}">`), `${g.id}: hidden game`);

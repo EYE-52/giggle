@@ -108,7 +108,7 @@ async function main() {
       ok(r.game.state && typeof r.game.state.then !== 'function', 'create returns state, not a Promise');
       eq(s.map.label, label); eq(s.map.half, label==='Harbor Heights'?86:60, 'injected map remains immutable');
       eq(s.profile, 'elevated-combat-v1'); eq(s.waitForResult, true);
-      eq(s.configVersion, 1); eq(s.physicsVersion, 2); eq(s.mapRevision, 'combat-elevation-2');
+      eq(s.configVersion, 1); eq(s.physicsVersion, 2); eq(s.mapRevision, 'combat-elevation-2-routes-2');
       eq(s.karts.length, 8); eq(s.players.length, 8); eq(s.spectators.length, 16);
       eq(typeof s.you, 'string', 'outer you remains player ID');
       ok(s.inputAck && !('coins' in s.inputAck) && !('you' in def.view(r.game.state, s.you)), 'ACK cannot overwrite envelope');

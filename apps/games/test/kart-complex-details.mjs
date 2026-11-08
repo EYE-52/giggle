@@ -8,7 +8,7 @@ for(const id of ['skyport','foundry']){
   const map=elevatedMap(id),world=createKartElevatedWorld(THREE,{map}),meshes=[],textures=new Set(),details=new Map();
   world.group.traverse(o=>{
     if(!o.isMesh||!o.visible)return;meshes.push(o);
-    for(const tag of o.userData.detailKinds||[])details.set(tag,(details.get(tag)||0)+o.count);
+    for(const tag of o.userData.detailKinds||[])details.set(tag,(details.get(tag)||0)+(o.userData.staticInstances??o.count??1));
     for(const m of Array.isArray(o.material)?o.material:[o.material])if(m?.map)textures.add(m.map);
   });
   const surfaces=[...textures].filter(t=>t.name.startsWith('complex-surface-'));
@@ -29,18 +29,29 @@ for(const id of ['skyport','foundry']){
   const coverCount=map.colliders.filter(d=>d.material==='cover').length;
   for(const tag of id==='skyport'?['parked-van-windows','parked-van-wheels','parked-van-lamps','roof-service-louvres','roof-vent-panels','parking-strip-lights']:['storage-tanks','tank-cage-bars','tank-bands','service-pipework','conveyor-rollers','furnace-glowing-mouths','furnace-mouth-grates'])assert(details.get(tag)>=2,id+' renders '+tag);
   const wheelBatch=meshes.find(o=>o.userData.detailKinds?.includes(id==='skyport'?'parked-van-wheels':'storage-tanks'));
-  assert(wheelBatch?.isInstancedMesh&&wheelBatch.count>=coverCount*(id==='skyport'?4:2),id+' large repeated props are instanced');
+  assert(wheelBatch?.isMesh&&(wheelBatch.userData.staticInstances??wheelBatch.count)>=coverCount*(id==='skyport'?4:2),id+' large repeated props are instanced');
   if(id==='foundry'){
+    const brightness=c=>.2126*c.r+.7152*c.g+.0722*c.b;
+    for(const {descriptor,body}of world.colliderMeshes.values()){
+      if(['asphalt','level-1','level-2'].includes(descriptor.material))assert(brightness(body.material.color)>.55,'Foundry driving floors use light cream/peach/mint tones');
+      if(descriptor.material==='pillar')assert(brightness(body.material.color)>.4,'Foundry walls and pillars use bright blue paint');
+    }
     // The generic obstacle cap must not hide the new round tank silhouettes.
     world.group.updateMatrixWorld(true);
     const d=map.colliders.find(d=>d.material==='cover'),ray=new THREE.Raycaster(new THREE.Vector3(d.position.x+d.half.x*.45,d.position.y+d.half.y+.4,d.position.z),new THREE.Vector3(0,-1,0),0,2);
     const hit=ray.intersectObjects(meshes,false)[0];assert(hit?.object.userData.detailKinds?.includes('tank-top-ports'),'Storage tank top ports remain visible through the protective cage');
   }
-  const counts=world.stats();assert(counts.drawCalls<=limit.drawCalls&&counts.triangles<=limit.triangles&&counts.textureBytes<3*1024*1024,id+' detail remains below Harbor geometry and 3MiB generated textures');
+  const counts=world.stats();assert(counts.drawCalls<=38,id+' static detail chunks stay within the original world draw ceiling');assert(counts.drawCalls<=limit.drawCalls&&counts.triangles<=limit.triangles&&counts.textureBytes<3*1024*1024,id+' detail remains below Harbor geometry and 3MiB generated textures');
   for(const phase of [0,.65,1]){
     world.animate(1/60,5,phase);
     assert(world.lighting.sun.intensity>=.9&&world.lighting.hemisphere.intensity>=1,id+' day and night retain readable road light');
     if(id==='foundry')assert(world.lighting.sun.color.r>world.lighting.sun.color.b&&world.lighting.hemisphere.color.r>world.lighting.hemisphere.color.b,'Foundry uses warm industrial light throughout the cycle');
+    if(id==='foundry'){
+      const {interiorFill,hemisphere}=world.lighting;
+      assert(interiorFill?.isAmbientLight&&interiorFill.parent===world.group&&interiorFill.intensity>=.5&&!interiorFill.castShadow,'Unshadowed Foundry fill reaches roofed tunnels without another geometry pass');
+      assert(hemisphere.groundColor.r>.4&&hemisphere.groundColor.g>.65&&hemisphere.intensity>=1.6,'Bright bounce lights downward-facing decks rather than brown undersides');
+    }
+
   }
   assert.deepEqual(world.stats(),counts,id+' art and lighting do not allocate while animating');evidence.push({id,...counts});world.dispose();
 }

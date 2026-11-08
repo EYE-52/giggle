@@ -11,7 +11,7 @@ export function createCuratedArt(THREE){
   const barrel=g(new THREE.CylinderGeometry(.13,.17,1,12));barrel.rotateX(Math.PI/2);
   const ball=g(new THREE.IcosahedronGeometry(1,2)),box=g(new THREE.BoxGeometry(1,1,1)),ring=g(new THREE.TorusGeometry(.32,.075,6,16));
   const nose=g(new THREE.ConeGeometry(.22,.4,10));nose.rotateX(Math.PI/2);
-  const tracer=g(new THREE.BoxGeometry(.055,.055,.9));
+  const tracer=g(new THREE.BoxGeometry(.24,.24,3.6));
   const finShape=new THREE.Shape();
   [[-.335,-.03],[-.03,-.03],[-.03,-.335],[.03,-.335],[.03,-.03],[.335,-.03],[.335,.03],[.03,.03],[.03,.335],[-.03,.335],[-.03,.03],[-.335,.03]].forEach(([x,y],i)=>i?finShape.lineTo(x,y):finShape.moveTo(x,y));finShape.closePath();
   const fins=g(new THREE.ExtrudeGeometry(finShape,{depth:.32,bevelEnabled:false}));fins.translate(0,0,-.16);
@@ -20,14 +20,14 @@ export function createCuratedArt(THREE){
  function mesh(parent,geo,mat,x=0,y=0,z=0,sx=1,sy=sx,sz=sx){const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);o.scale.set(sx,sy,sz);o.castShadow=true;parent.add(o);return o;}
  function base(type,kind){const outer=new THREE.Group(),inner=new THREE.Group();outer.add(inner);outer.name='Curated'+kind;outer.userData.combat={type,kind,inner,curated:true,spin:0,seed:++seq,tail:null};return {outer,inner,c:outer.userData.combat};}
  function projectile(kind){const K=build(),{outer,inner,c}=base('projectile',kind);
-  if(kind==='cannon'){mesh(inner,K.ball,K.ink,0,0,0,.42);mesh(inner,K.ring,K.orange,0,0,0,1.05);c.tipZ=.42;c.tailZ=-.42;}
+  if(kind==='cannon'){mesh(inner,K.ball,K.blue,0,0,0,.42);mesh(inner,K.ring,K.orange,0,0,0,1.05);c.tipZ=.42;c.tailZ=-.42;}
   else if(kind==='missile'){
    mesh(inner,K.barrel,K.steel,0,0,-.15,1.3,1.3,.95);mesh(inner,K.nose,K.red,0,0,.52);
    mesh(inner,K.fins,K.red,0,0,-.48);
    c.tail=mesh(inner,K.nose,K.orange,0,0,-.84,.65,.65,-1.1);c.tipZ=.72;c.tailZ=-1.1;
   }else{
-   const tri=kind==='trishot';mesh(inner,K.ball,tri?K.gold:K.white,0,0,0,.075,.075,.22);
-   c.tail=mesh(inner,K.tracer,tri?K.tracerGold:K.tracerWhite,0,0,-.45);c.tipZ=.22;c.tailZ=-.9;
+   const tri=kind==='trishot';mesh(inner,K.ball,tri?K.gold:K.white,0,0,0,.095,.095,.22);
+   c.tail=mesh(inner,K.tracer,tri?K.tracerGold:K.tracerWhite,0,0,-1.8);c.tail.castShadow=false;c.tipZ=.22;c.tailZ=-3.6;
   }return outer;
  }
  function weapon(kind){const K=build(),{outer,inner,c}=base('weapon',kind);

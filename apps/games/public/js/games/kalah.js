@@ -92,7 +92,8 @@ function paint() {
   const extraHint = state.lastMove?.extra === true || state.lastMove?.captures?.length;
   bkPaint(root, {
     meta: bkMeta(state, text('variant')),
-    players: [0, 1].map(side => ({ name: nameOf(state, state.seats[side]), side: text(side ? 'amber' : 'jade'), chip: chip(side), stat: pits[storeOf(side)], statLabel: text('store').toLowerCase(), turn: !done && !moving && !state.preparing && state.phase === 'play' && state.turn === side, you: state.youAre === side && !state.spectator })),
+    players: [0, 1].map(side => ({ name: nameOf(state, state.seats[side]), side: text(side ? 'amber' : 'jade'), chip: chip(side), color: SEED[side][0], stat: pits[storeOf(side)], statLabel: text('store').toLowerCase(), turn: !done && !moving && !state.preparing && state.phase === 'play' && state.turn === side, you: state.youAre === side && !state.spectator })),
+    statusColor: done ? null : SEED[state.turn][0],
     status: moving ? text('sowing') : done ? resultLabel() : state.preparing ? '' : state.youAre === null ? text('watching') + ' · ' + nameOf(state, state.seats[state.turn]) : myTurn() ? text('yourTurn') : text('waiting'),
     hint: done ? reasonText(state.result) : moving || state.preparing || !extraHint ? '' : state.youAre === null ? text('spectatorHelp') : state.lastMove?.extra && myTurn() ? text('extra') : state.lastMove?.captures?.length && state.lastMove.side === state.youAre ? text('capture') : myTurn() ? text('choose') : text('waitingHint'),
     timer: bkTimer(state, api), done: state.phase === 'done', player: !!me, busy: !!moving || pending !== null || state.preparing === true,

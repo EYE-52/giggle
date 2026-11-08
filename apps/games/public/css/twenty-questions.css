@@ -126,9 +126,9 @@
 @media (max-width: 560px) {
   #gbody .tq.pl-fill .tq-spot, #gbody .tq.pl-fill .tq-arch { padding: var(--space-12) var(--space-16); border-radius: var(--radius-lg); }
 }
-/* Nothing to answer: the answer buttons wait off screen, the idle card is
- * one line, and a long history scrolls inside its card. */
-#gbody .tq.pl-fill .tq-spot.is-idle .tq-answers { display: none; }
+/* Nothing to answer: keep the button row's space. Long history scrolls
+ * inside its card. */
+#gbody .tq.pl-fill .tq-spot.is-idle .tq-answers { visibility:hidden; }
 #gbody .tq.pl-fill .tq-spot.is-idle .tq-qtext { min-height: 0; }
 #gbody .tq.pl-fill .tq-hist { max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
 #gbody .tq.pl-fill .tq-ans:not(:disabled) { background: var(--card); color: var(--ink); }
@@ -156,8 +156,8 @@
   border: 0; border-radius: var(--radius-md); background: transparent; color: var(--ink); font: var(--text-button-sm);
 }
 #gbody .tq.pl-fill .tq-filter .tq-icon { display: none; }
-#gbody .tq.pl-fill .tq-filter[aria-pressed="true"] { background: var(--fam); color: var(--on-fam); }
-#gbody .tq.pl-fill .tq-filter-count { font: var(--text-caption); font-weight: 800; color: inherit; opacity: 0.8; }
+#gbody .tq.pl-fill .tq-filter[aria-pressed="true"] { background: var(--fam-soft); color: var(--ink); }
+#gbody .tq.pl-fill .tq-filter-count { font: var(--text-caption); font-weight: 800; color: inherit; opacity: 1; }
 @media (hover: hover) {
   #gbody .tq.pl-fill .tq-filter:not([aria-pressed="true"]):hover { background: var(--card); }
 }
@@ -244,3 +244,20 @@ body.game-playing[data-game="twenty-questions"] {
   background: color-mix(in srgb, var(--fam) 8%, var(--card));
   border-color: color-mix(in srgb, var(--fam) 30%, var(--card));
 }
+
+/* A question arriving, a queued ask and new history rows fill existing wells. */
+#gbody .tq.pl-fill .tq-qtext { height:calc(2 * var(--space-64)); min-height:calc(2 * var(--space-64)); overflow:auto; }
+#gbody .tq.pl-fill .tq-spot .tq-wait { width:100%; height:var(--space-64); min-height:var(--space-64); overflow:auto; }
+#gbody .tq.pl-fill .tq-askstate { display:block; height:var(--control-h); min-height:var(--control-h); overflow:auto; margin:0; }
+#gbody .tq.pl-fill .tq-askstate:empty { visibility:hidden; }
+#gbody .tq.pl-fill #tqQWrap { height:calc(2 * var(--space-64) + var(--space-32)); overflow:auto; }
+#gbody .tq.pl-fill .tq-hist { height:calc(4 * var(--space-64)); min-height:calc(4 * var(--space-64)); max-height:calc(4 * var(--space-64)); }
+#gbody .tq.pl-fill .tq-wrong { display:block; height:var(--control-h); min-height:var(--control-h); overflow:auto; }
+#gbody .tq.pl-fill .tq-wrong:empty { visibility:hidden; }
+
+#gbody .tq.pl-fill .tq-askslot { display:grid; gap:var(--space-12); }
+#gbody .tq.pl-fill .tq-hints { min-height:var(--control-h); }
+#gbody .tq.pl-fill .tq-roleline { min-height:calc(var(--control-h-lg) + var(--space-8)); }
+#gbody .tq.pl-fill .tq-wordline { height:calc(var(--space-32) + var(--space-16)); overflow:auto; }
+
+#gbody .tq.pl-fill .tq-answers { height:var(--space-64); min-height:var(--space-64); }

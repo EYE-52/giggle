@@ -72,3 +72,7 @@ body.game-playing[data-game="hot-takes"] {
   #gbody .pl-fill.party-scene--hot .hot-choices .gk-choice .pl-pick { right: var(--space-8); min-height: 24px; padding: 0 var(--space-8); font-size: 12px; }
   #gbody .pl-fill.party-scene--hot .hot-choices .pl-pick .pl-face { display: none; }
 }
+
+/* Vote counts use ink on soft fills, including the amber Agree side. */
+#gbody .party-scene--hot .hot-split-track > span:first-child { background:var(--fam-soft); color:var(--ink); }
+#gbody .party-scene--hot .hot-split-track > span + span { background:color-mix(in srgb,var(--duel-b) 20%,var(--card)); color:var(--ink); }

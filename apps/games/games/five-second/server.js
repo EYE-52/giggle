@@ -8,6 +8,7 @@ const { dealer, shuffle, tally, roundsSetting, paceSetting, pacedMs } = require(
 const id = 'five-second';
 
 const manifest = {
+  sameRoom: 'handoff',
   howto: 'Name 3 things in the category within 5 seconds. The room judges pass or fail: a pass is worth 100, and a streak of passes adds up to 100 more.',
   guide: {
     goal: 'Name three things in a category within 5 seconds.',
@@ -58,6 +59,7 @@ function create(ctx) {
     performer: null,
     category: null,
     answers: null,
+    spokenMode: ctx.sameRoom === true,
     votes: {},
     streaks: {},
     scores: {},
@@ -138,7 +140,7 @@ function reveal(state, ctx) {
   if (state.phase !== 'vote') return;
   state.phase = 'reveal';
   const { winners } = tally(state.votes);
-  const hasAnswers = state.answers && state.answers.length > 0;
+  const hasAnswers = state.spokenMode || (state.answers && state.answers.length > 0);
   // A tied vote (as many passes as fails) counts as a pass.
   const passed = hasAnswers && winners.includes('pass');
   const points = {};
@@ -186,6 +188,10 @@ function onAction(state, ctx, pid, a) {
     const items = parseList(a.answers);
     if (!items.length) return;
     state.answers = items;
+    closeAnswer(state, ctx);
+  } else if (state.phase === 'answer' && pid === state.performer && state.spokenMode && a.spoken === true) {
+    // In person the group hears the answers. The same jurors decide pass /
+    // fail, and the same scoring path awards points; no fake transcript.
     closeAnswer(state, ctx);
   } else if (state.phase === 'vote' && pid !== state.performer &&
       (a.vote === 'pass' || a.vote === 'fail') && state.votes[pid] === undefined) {

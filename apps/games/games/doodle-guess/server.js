@@ -30,6 +30,7 @@ function artistPoints(correct, guessers) {
 }
 
 const manifest = {
+  sameRoom: 'handoff',
   name: 'Doodle Guess',
   tagline: 'Draw it, friends guess it',
   howto: 'One player draws, everyone else guesses. A correct guess is worth 100 points plus up to 100 for speed; the artist scores when the room gets it.',

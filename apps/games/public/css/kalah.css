@@ -51,3 +51,13 @@
  .kl .bk-status{order:1}
  .kl.kl-portrait .bk-stage{width:min(100%,560px,calc((100svh - 300px) * var(--bk-aspect)))}
 }
+
+/* Use the actual play viewport after the phone's full-screen tip, not svh. */
+@media(max-width:759px) and (orientation:portrait){
+ .kl { --kl-phone-chrome:calc(4 * var(--space-64) + var(--space-48) + var(--space-40)); }
+ .kl:has(.bk-timer.has-timer) { --kl-phone-chrome:calc(4 * var(--space-64) + var(--space-48) + var(--space-40) + var(--control-h-sm) + var(--space-8)); }
+ .kl.kl-portrait .bk-stage { width:min(100%,calc((var(--game-viewport-height,100dvh) - var(--kl-phone-chrome)) * var(--bk-aspect))); }
+}
+
+/* Counts sit on a solid dark medallion rather than changing wood grain. */
+.kl .kl-num { paint-order:stroke fill; stroke:var(--kl-pit); stroke-width:var(--space-8); stroke-linejoin:round; fill:var(--kl-num); }

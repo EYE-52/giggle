@@ -128,14 +128,31 @@ const view = {
         + `<ol class="nh-scale" aria-hidden="true">${[1, 25, 50, 75, 100].map((n) => `<li style="left:${n - 0.5}%">${n}</li>`).join('')}</ol></div>`
         + `<p class="nh-reading"><span id="nLastLabel">No guess yet</span> <b id="nCurrent"></b> <strong id="nDirection" data-dir="none">Try a number</strong> <small id="nHeat"></small></p>`
         + `</div>`
-        + `<form class="gk-input-row" id="nForm" autocomplete="off"><input class="gk-input" id="nGuess" aria-label="Your number guess, from 1 to 100" type="number" min="1" max="100" inputmode="numeric" enterkeyhint="go" autocomplete="off"`
-        + ` placeholder="${esc(t.guess_placeholder || 'Your guess (1–100)')}" ${found || S.spectator ? 'disabled' : ''}>`
-        + `<button class="gk-btn gk-primary" id="nSend" type="submit" ${found || S.spectator ? 'disabled' : ''}>${esc(t.guess_button || 'Guess')}</button></form>`
+        + `<form class="gk-input-row" id="nForm" autocomplete="off"><div class="picker-step nh-guess-picker"><button type="button" class="picker-btn" id="nDown" aria-label="Decrease your guess">−</button><input class="gk-input picker-value" id="nGuess" aria-label="Your number guess, from 1 to 100" type="number" min="1" max="100" inputmode="numeric" enterkeyhint="go" autocomplete="off"`
+        + ` placeholder="1–100" ${found || S.spectator ? 'disabled' : ''}>`
+        + `<button type="button" class="picker-btn" id="nUp" aria-label="Increase your guess">+</button></div><button class="gk-btn gk-primary" id="nSend" type="submit" ${found || S.spectator ? 'disabled' : ''}>${esc(t.guess_button || 'Guess')}</button></form>`
         + `<p class="wg-status" id="nMine" role="status"></p>`
         + `<h3 class="nh-feed-title">${esc(t.feed_title || 'Public hints')}</h3>`
         + `<div class="wg-feed" id="nFeed" role="log" aria-label="Public guess hints" tabindex="0"></div>`
         + `</section>`;
       const inp = el.querySelector('#nGuess');
+      const syncSteps = () => {
+        const down = el.querySelector('#nDown'), up = el.querySelector('#nUp');
+        if (down) down.disabled = !inp || inp.disabled || (inp.value !== '' && Number(inp.value) <= 1);
+        if (up) up.disabled = !inp || inp.disabled || (inp.value !== '' && Number(inp.value) >= 100);
+      };
+      for (const [id, by] of [['nDown', -1], ['nUp', 1]]) {
+        const step = el.querySelector('#' + id);
+        if (step) step.onclick = () => {
+          const live = current;
+          if (!live || live.el !== el || el.querySelector('#nGuess') !== inp || !inp || inp.disabled) return;
+          const { lo, hi } = bounds(live.S.history);
+          inp.value = String(Math.max(1, Math.min(100, inp.value === '' ? Math.round((lo + hi) / 2) : Number(inp.value) + by)));
+          syncSteps();
+        };
+      }
+      if (inp) inp.oninput = syncSteps;
+      el._syncGuessSteps = syncSteps;
       const send = () => {
         const live = current;
         if (!live || live.el !== el || el.querySelector('#nGuess') !== inp || !inp || inp.disabled
@@ -145,6 +162,7 @@ const view = {
         if (Number.isInteger(v) && v >= 1 && v <= 100) {
           if (live.api.send({ guess: v }) === false) return;
           inp.value = '';
+          syncSteps();
           inp.focus();
         }
       };
@@ -209,6 +227,7 @@ const view = {
     }
     const lock = el.querySelector('#nGuess');
     if (lock) { lock.disabled = !!(found || S.spectator || S.preparing); if (found) lock.value = ''; }
+    el._syncGuessSteps?.();
     const sendBtn = el.querySelector('#nSend');
     if (sendBtn) sendBtn.disabled = !!(found || S.spectator || S.preparing);
     const mineEl = el.querySelector('#nMine');

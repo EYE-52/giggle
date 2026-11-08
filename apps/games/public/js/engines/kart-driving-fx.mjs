@@ -27,7 +27,7 @@ export function createKartDrivingFX(THREE,scene,camera,{groundAt=()=>0,reducedMo
     if(disposed||reducedMotion||!grounded||Math.abs(speed)<5)return;
     if((clocks.get(pid)??-1)>time)return;
     clocks.set(pid,time+.055);
-    const fx=Math.sin(angle),fz=Math.cos(angle),s=surface||surfaceProfile('road'),tier=driftTier(charge),loose=s.kind!=='road'&&s.kind!=='boost'&&s.kind!=='ice';
+    const fx=Math.sin(angle),fz=Math.cos(angle),s=surface||surfaceProfile('road'),tier=driftTier(charge),loose=['grass','sand','snow','gravel'].includes(s.kind);
     for(let side=-1;side<=1;side+=2) {
       const px=x-fx*.92+fz*side*1.02,pz=z-fz*.92-fx*side*1.02,py=Math.max(groundAt(px,pz)+.14,y-.47);
       if(sliding&&tier){const color=DRIFT_TIERS[tier-1].color;emit(px,py,pz,-fx*3+fz*side,-fz*3-fx*side,color,.13,.32);emit(px,py,pz,-fx*4+fz*side*2,-fz*4-fx*side*2,color,.08,.24);}

@@ -15,6 +15,7 @@ const STREAK_STEP = 25;
 const STREAK_MAX = 50;
 
 const manifest = {
+  sameRoom: 'handoff',
   players: { min: 2, max: 20 },
   howto: 'Pick the right answer before time runs out. A correct answer earns 100 points, faster answers up to 50 more, and a streak of correct answers up to 50 more.',
   guide: {

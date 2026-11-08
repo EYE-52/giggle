@@ -183,7 +183,7 @@
 .ck[data-family] .ck-player.is-ready .ck-pstate::before { content: "✓ "; color: var(--success); }
 .ck[data-family] .ck-player.is-on { background: var(--fam-soft); }
 .ck[data-family] .ck-player.is-on .ck-pstate { color: var(--fam-deep); font-weight: 800; }
-.ck[data-family] .ck-player.is-out { background: var(--well); box-shadow: none; opacity: .6; }
+.ck[data-family] .ck-player.is-out { background: var(--well); box-shadow: none; opacity: 1; }
 .ck[data-family] .ck-player.is-out .ck-pname { color: var(--ink-dim); }
 @media (max-width: 560px) {
   .ck[data-family] .ck-roster { grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); }
@@ -256,3 +256,7 @@
 /* Night: text fields are a lifted step of the game's own surface, not the
  * shared plum-black that reads as a hole in a tinted card. */
 [data-theme="night"] .ck[data-family] { --input-bg: color-mix(in srgb, var(--fam) 5%, var(--well)); }
+
+/* Primary actions use the named primary size; caption text stays ink. */
+.ck[data-family] .gk-btn.gk-primary { font:var(--text-primary); }
+.ck[data-family] :is(input,textarea)::placeholder { color:var(--ink-dim); opacity:1; }
