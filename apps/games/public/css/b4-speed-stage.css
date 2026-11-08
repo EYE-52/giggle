@@ -125,6 +125,7 @@
   grid-template-areas: "av name" "av state" "pts pts";
 }
 #gbody .b4-stage .pl-points {
+  display: flex;
   grid-column: 1 / -1;
   justify-self: stretch;
   min-height: var(--space-24);

@@ -242,7 +242,7 @@ body.same-room-page #gbody .bk-final { background: var(--sr-paper); border-color
   .sr-hand.tb-card { gap: var(--space-8); padding-block: var(--space-16); }
   .sr-hand-avatar .sr-avatar { width: var(--space-64); height: var(--space-64); font-size: var(--space-40); }
   .sr-phone-art { width: calc(var(--space-64) * 2); height: var(--home-card-art); }
-  body.same-room-page #gbody .party-scene--truth.pl-fill { gap: var(--space-8); padding-block: var(--space-8); }
+  body.same-room-page #gbody[data-phase] .party-scene--truth.pl-fill { gap: var(--space-8); padding-block: var(--space-8); }
   body.same-room-page #gbody[data-phase="choose"] .party-scene--truth > .gk-prompt { font: var(--text-title); padding: var(--space-12); }
   body.same-room-page #gbody .party-scene--truth .td-decks .gk-choice { min-height: var(--control-h); padding: var(--space-8); gap: var(--space-8); }
   body.same-room-page #gbody .party-scene--truth .td-decks .gk-mark { width: var(--space-32); height: var(--space-32); }

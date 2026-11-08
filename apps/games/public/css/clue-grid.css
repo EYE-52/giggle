@@ -1,19 +1,31 @@
 .cg-world .cg-clue {
   height: 56px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 72px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--space-8);
   margin-bottom: var(--space-8);
 }
 .cg-world .cg-number {
   min-height: 56px;
-  width: 72px;
+  width: 100%;
+  min-width: 0;
   padding: var(--space-8);
   font: var(--text-title);
   color: var(--ink);
   background: var(--card);
   border: var(--outline-w) solid var(--outline);
   border-radius: var(--radius-lg);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield;
+}
+.cg-world .cg-picker {
+  display: grid;
+  grid-template-columns: repeat(3, calc(var(--control-h-sm) / var(--round-zoom, 1)));
+}
+.cg-world .cg-picker .picker-btn {
+  width: 100%;
+  min-height: calc(var(--control-h-sm) / var(--round-zoom, 1));
 }
 .cg-world .cg-grid {
   display: grid;

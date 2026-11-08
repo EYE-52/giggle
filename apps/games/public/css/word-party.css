@@ -257,6 +257,7 @@ body.game-playing:is(
   min-height: 18px;
 }
 #gbody .word-party .pl-points {
+  display: flex;
   grid-column: 1 / -1;
   justify-self: stretch;
   justify-content: flex-end;

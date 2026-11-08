@@ -267,6 +267,8 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .gk-btn, .gk-choice { transition: none; }
+  /* Keep controls still under the pointer when motion is reduced. */
+  #gbody :is(.gk-btn, .gk-choice):is(:hover, :active):not(:disabled) { transform: none !important; }
 }
 
 /* ==========================================================================

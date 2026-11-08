@@ -313,12 +313,9 @@ async function playCase(id, viewport, theme) {
       host = frames[0];
     assert.equal(frames.length, 4);
     await host.locator("#howtoCustom").click();
-    await host.locator("#df-" + id + "-rounds").evaluate((n) => {
-      n.value = "1";
-      n.dispatchEvent(new Event("input", { bubbles: true }));
-      n.dispatchEvent(new Event("change", { bubbles: true }));
-    });
-    await host.locator("#df-" + id + "-pace").selectOption({ label: "Quick" });
+    await host.locator("#df-" + id + "-rounds").fill("1");
+    await host.locator('[data-picker-for="df-' + id + '-pace"]')
+      .getByRole("radio", { name: "Quick", exact: true }).click();
     await host.locator("#dlgSave").click();
     await host.locator("#dlgSave").waitFor({ state: "detached" });
     if (!(await host.locator("#howtoGo").isVisible()))
@@ -432,7 +429,18 @@ async function playCase(id, viewport, theme) {
         prefix + " grid labels must fit without broken words",
       );
       await spy.getByLabel("One-word clue", { exact: true }).fill("discovery");
-      await spy.getByLabel("Number of targets", { exact: true }).fill("9");
+      const targets = spy.getByLabel("Number of targets", { exact: true }),
+        down = spy.getByRole("button", { name: "Decrease target count", exact: true }),
+        up = spy.getByRole("button", { name: "Increase target count", exact: true });
+      await down.click();
+      assert.equal(await targets.inputValue(), "0");
+      assert(await down.isDisabled(), "target count stops at zero");
+      await targets.fill("8");
+      await up.click();
+      assert.equal(await targets.inputValue(), "9");
+      assert(await up.isDisabled(), "target count stops at nine");
+      assert.equal(await spy.getByLabel("One-word clue", { exact: true }).inputValue(), "discovery");
+      await inspect(spy, "target-count");
       await spy.locator(".wp-primary").click();
       await host.waitForFunction(() => window.__b3State.phase === "guess");
       const key = await state(spy),

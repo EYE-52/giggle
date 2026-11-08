@@ -178,6 +178,7 @@
   grid-template-areas: "av name" "av state" "pts pts";
 }
 #gbody .party-round .pl-points {
+  display: flex;
   justify-content: flex-end;
   gap: var(--space-4);
 }

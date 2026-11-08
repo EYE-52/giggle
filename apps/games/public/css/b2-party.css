@@ -279,6 +279,7 @@
   grid-template-areas: "av name" "av state" "pts pts";
 }
 #gbody .b2-scene .pl-points {
+  display: flex;
   grid-column: 1 / -1;
   justify-self: stretch;
   width: 100%;

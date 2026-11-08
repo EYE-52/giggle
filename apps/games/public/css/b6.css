@@ -115,6 +115,7 @@
   grid-template-areas: "av name" "av state" "pts pts";
 }
 #gbody .b6-world .pl-points {
+  display: flex;
   width: 100%;
   min-height: 24px;
   justify-self: stretch;
