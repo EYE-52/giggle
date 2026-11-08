@@ -164,20 +164,7 @@ function paint(el, S, api) {
       if (submitKey === key && live && liveBtn) {
         const status = el.querySelector('.hot-sub');
         if (status) status.textContent = S.myTake ? 'Your take is in. You can edit it until voting starts.' : 'Spicy but friendly. Authors stay hidden until the reveal.';
-        let lock = el.querySelector('.party-lock');
-        if (S.myTake) {
-          if (!lock) {
-            lock = document.createElement('p');
-            lock.className = 'party-lock';
-            const compose = el.querySelector('.party-compose');
-            if (compose) compose.parentNode.insertBefore(lock, compose);
-            else el.querySelector('section').appendChild(lock);
-          }
-          const want = `“${S.myTake}”`;
-          if (lock.textContent !== want) lock.textContent = want;
-        } else if (lock) {
-          lock.remove();
-        }
+        status?.classList?.toggle('party-lock', !!S.myTake);
         liveBtn.textContent = S.myTake ? 'Update' : 'Send';
         if (live.getAttribute('enterkeyhint') !== 'send') live.setAttribute('enterkeyhint', 'send');
         const sendTake = () => {
@@ -196,8 +183,7 @@ function paint(el, S, api) {
       el.innerHTML = `<section class="party-scene gk-col gk-stack party-scene--hot" aria-label="Hot takes submission">`
         + `${hud(S)}`
         + `<h3 class="gk-prompt party-prompt">Drop your hot take</h3>`
-        + `<p class="gk-sub hot-sub">${S.myTake ? 'Your take is in. You can edit it until voting starts.' : 'Spicy but friendly. Authors stay hidden until the reveal.'}</p>`
-        + (S.myTake ? `<p class="party-lock">“${esc(S.myTake)}”</p>` : '')
+        + `<p class="gk-sub hot-sub${S.myTake ? ' party-lock' : ''}" role="status">${S.myTake ? 'Your take is in. You can edit it until voting starts.' : 'Spicy but friendly. Authors stay hidden until the reveal.'}</p>`
         + `<div class="party-compose"><div class="party-field">`
         + `<label for="hTake">Your take</label>`
         + `<div class="gk-input-row"><input id="hTake" class="gk-input" type="text" placeholder="Your hot take…" maxlength="140" autocomplete="off" enterkeyhint="send" value="${esc(shown)}">`

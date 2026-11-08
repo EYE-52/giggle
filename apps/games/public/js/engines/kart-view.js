@@ -1,3 +1,4 @@
+import {waitKartPreparation} from './kart-warmup-scheduler.mjs';
 import {kartLightTier} from './kart-festive-lights.mjs';
 import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
 import {WEAPON_IDS,CURATED_MUZZLE,weaponForward,normalizeWeapon} from './kart-weapon-contract.mjs';
@@ -267,7 +268,7 @@ export function createKartView(viewConfig) {
   let bound = [];
   let fbBound = [];
   let fbCanvas = null;
-  let sceneReady;
+  let sceneReady, shellAudioReady, rendererWarmup;
   let fbObserver = null;
   let fbRaf = 0;
   let audio = null;
@@ -1041,7 +1042,7 @@ export function createKartView(viewConfig) {
     const gen = mountGen;
     const stage = rootEl && rootEl.querySelector('.pk-stage');
     if (!stage) return;
-    stage.innerHTML = '<div class="pk-loading muted">Loading the arena…</div>';
+    stage.innerHTML = '<div class="pk-loading muted" role="status">Loading the arena…</div>';
     const handle = await createThreeView(stage, {
       signal: apiRef?.signal,
       diagnostics: apiRef?.diagnostics,
@@ -1082,7 +1083,7 @@ export function createKartView(viewConfig) {
   async function buildScene(THREE, helper, gen) {
     const pal = paletteFor(S && S.palette);
     const scene = new THREE.Scene();
-    let disposeLighting;
+    let disposeLighting,warmup;
     let disposeCombat;
     let healthBars;
     let world,impactFX,skids,drivingFX,threats,arsenalFX,arena,structures,garageThumbnail,cameraCollision;
@@ -1217,11 +1218,15 @@ export function createKartView(viewConfig) {
       warm.position.y=-100;warm.traverse(object=>{object.frustumCulled=false;});
       reserve.visible=true;reserve.position.y=-100;reserve.traverse(object=>{object.frustumCulled=false;});
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,combat);
-      await disposeLighting.ready;
-      await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===mountGen,
+      await waitKartPreparation(disposeLighting.ready,apiRef?.preparationSignal);
+      warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===mountGen,
+        budgetMs:6000,signal:apiRef?.preparationSignal,priorityRoots:[world.group,...karts.values(),warmLibrary.children[0],drivingFX.particles,drivingFX.speedLines],
+        onProgress:({completed,total,background})=>{if(gen===mountGen&&!background){const loading=rootEl?.querySelector('.pk-loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[warm,reserve,warmLibrary,pops,kartLod.object,drivingFX.particles,drivingFX.speedLines,
           scene.getObjectByName('KartSkidMarks'),scene.getObjectByName('KartThreatRing'),
-          scene.getObjectByName('arena-feature-fx'),scene.getObjectByName('KartImpactFX')]});
+          scene.getObjectByName('arena-feature-fx'),scene.getObjectByName('KartImpactFX')]}).catch(()=>null);
+      if(gen!==mountGen){warmup?.cancel();throw new Error('Retired kart scene');}
+      rendererWarmup=warmup;
       arsenalFX.reset();
       // Keep reserved bodies off the live scene graph. Three updates world
       // matrices even for invisible objects; hundreds of spare projectiles
@@ -1576,8 +1581,9 @@ export function createKartView(viewConfig) {
           try { hooks.sceneExtra(THREE, { scene, camera, poses, S, dt }); } catch { /* game-owned extra must not break frames */ }
         }
       };
-      return { scene, camera, frame, dispose: () => {cameraCollision.dispose();garageThumbnail?.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();drivingFX.dispose();threats.dispose();} };
+      return { scene, camera, frame, dispose: () => {warmup?.cancel();if(rendererWarmup===warmup)rendererWarmup=null;cameraCollision.dispose();garageThumbnail?.dispose();world.dispose();disposeLighting?.();disposeCombat?.();healthBars.dispose();impactFX.dispose();arsenalFX.dispose();arsenalEvents.length=0;arena.dispose();structures.dispose();skids.dispose();drivingFX.dispose();threats.dispose();} };
     } catch (error) {
+      warmup?.cancel();if(rendererWarmup===warmup)rendererWarmup=null;
       cameraCollision?.dispose();
       garageThumbnail?.dispose();
       world?.dispose();
@@ -1794,16 +1800,18 @@ export function createKartView(viewConfig) {
     async ready() {
       await sceneReady;
       await physicalReady;
-      await audio?.ready?.();
+      await waitKartPreparation(Promise.all([audio?.ready?.(),shellAudioReady]),apiRef?.preparationSignal);
       // Hidden same-origin seats may have throttled RAF. Render the current
       // prepared scene once, then require the same real GL success promise.
       if (gl) { gl.renderOnce?.(); await gl.firstFrame; }
       else if (!fbCanvas?.getContext('2d')) throw new Error('No usable kart renderer');
+      rendererWarmup?.continue();
     } };
 
   /* ---------------- lifecycle ---------------- */
 
   function disposeGl() {
+    rendererWarmup?.cancel();rendererWarmup=null;
     if (gl) {
       try { gl.dispose(); } catch { /* noop */ }
       gl = null;
@@ -1880,6 +1888,7 @@ export function createKartView(viewConfig) {
     rootEl = el;
     audio=createKartAudio({muted:api.context?.().sound===false});
     audio.prep?.();
+    shellAudioReady=api.audioPrepare?.();
     on(window,'pointerdown',()=>audio?.unlock(),{capture:true});
     on(window,'keydown',()=>audio?.unlock(),{capture:true});
     el.innerHTML = `

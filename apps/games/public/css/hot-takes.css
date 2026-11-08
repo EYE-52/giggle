@@ -76,3 +76,12 @@ body.game-playing[data-game="hot-takes"] {
 /* Vote counts use ink on soft fills, including the amber Agree side. */
 #gbody .party-scene--hot .hot-split-track > span:first-child { background:var(--fam-soft); color:var(--ink); }
 #gbody .party-scene--hot .hot-split-track > span + span { background:color-mix(in srgb,var(--duel-b) 20%,var(--card)); color:var(--ink); }
+
+/* Save feedback stays in its existing slot; the saved text is in the field. */
+#gbody .party-scene--hot .hot-sub {
+  height:2lh; min-height:2lh; overflow-y:auto;
+  margin:0; padding:0; border:0; border-radius:0; background:none;
+  font:var(--text-body);
+}
+/* Send and Update share a slot, so the field never changes width on save. */
+#gbody .party-scene--hot #hSend { min-width:calc(3 * var(--control-h)); }

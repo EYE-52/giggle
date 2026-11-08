@@ -45,13 +45,6 @@
   #gbody .nh.pl-fill .nh-range { padding: var(--space-16); border-radius: var(--radius-lg); }
   #gbody .nh.pl-fill .nh-bounds > span:not(.nh-between) { font-size: 22px; }
 }
-/* No hints yet: the feed and its title wait off screen instead of
- * printing an empty box. */
-#gbody .nh.pl-fill .nh-feed-title:has(+ .wg-feed > .wg-feed-empty:only-child),
-#gbody .nh.pl-fill .wg-feed:has(> .wg-feed-empty:only-child) { display: none; }
-#gbody .nh.pl-fill .nh-reading { min-height: 0; }
-#gbody .nh.pl-fill .nh-between { min-height: 0; }
-
 /* ==========================================================================
  * Number line: the live range sits on a ruler. Eliminated numbers are
  * hatched, each public guess is a pin with the way it pointed (yours in the
@@ -192,4 +185,57 @@ body[data-game="number-hunt"].game-playing {
 @media(min-width:860px){
   .nh #nForm{justify-content:center}
   .nh .nh-guess-picker{flex:0 1 calc(var(--control-h) * 6)}
+}
+
+/* Live clues change inside fixed rows; guesses and wins never move the form. */
+#gbody .nh.pl-fill .nh-between { height:2lh; min-height:2lh; overflow-y:auto; }
+#gbody .nh.pl-fill .nh-reading {
+  display:grid; grid-template-columns:calc(var(--space-64) + var(--space-48)) var(--space-40) minmax(0,1fr);
+  grid-template-areas:"label number direction" "heat heat heat";
+  grid-template-rows:var(--space-32) var(--space-24); gap:var(--space-4) var(--space-8);
+  align-items:center;
+}
+#gbody .nh.pl-fill .nh-reading > span { grid-area:label; font:var(--text-caption); }
+#gbody .nh.pl-fill #nCurrent { grid-area:number; font:var(--text-title); font-variant-numeric:tabular-nums; }
+#gbody .nh.pl-fill #nDirection { grid-area:direction; min-width:0; }
+#gbody .nh.pl-fill #nHeat { grid-area:heat; }
+#gbody .nh.pl-fill #nMine { height:2lh; min-height:2lh; overflow-y:auto; }
+/* The public log has a useful empty state and keeps the same compact height. */
+#gbody .nh.pl-fill #nFeed { height:calc(var(--space-64) + var(--space-16)); max-height:none; }
+#gbody .nh.pl-fill #nFeed > * { flex:none; }
+@media(max-width:360px){
+  #gbody .nh.pl-fill .nh-reading {
+    grid-template-columns:minmax(0,1fr) var(--space-40);
+    grid-template-areas:"label number" "direction direction" "heat heat";
+    grid-template-rows:var(--space-32) var(--space-32) var(--space-24);
+  }
+}
+/* Keep the roster in view on wide screens while live clues keep their slots. */
+@media(min-width:1000px){
+  #gbody .nh.pl-fill { position:relative; padding-right:calc(4 * var(--space-64) + var(--space-16)); }
+  #gbody .nh.pl-fill > .gk-hud { width:calc(100% + 4 * var(--space-64) + var(--space-16)); }
+  #gbody .nh.pl-fill > .pl-live {
+    position:absolute; right:0; top:calc(var(--space-8) + var(--control-h-sm) + var(--space-16));
+    width:calc(4 * var(--space-64)); max-height:calc(var(--pl-stage-height,100dvh) - var(--space-64) - var(--space-16));
+    overflow:auto; margin:0;
+  }
+  #gbody .nh.pl-fill > .pl-live .pl-seats { grid-template-columns:minmax(0,1fr); }
+}
+/* Fit two normal hint rows on desktop, one taller row on a phone. */
+#gbody .nh.pl-fill #nFeed { scroll-snap-type:y proximity; }
+#gbody .nh.pl-fill #nFeed > .nh-hint { scroll-snap-align:start; }
+@media(min-width:561px){
+  #gbody .nh.pl-fill #nFeed { height:calc(var(--space-64) + var(--space-32)); }
+}
+
+/* The bounds and clue labels keep their slots as their digits/text change. */
+#gbody .nh.pl-fill :is(#nLo, #nHi) { width:3ch; font-variant-numeric:tabular-nums; }
+/* A fixed overlay is clipped to the live range. End marks move by transform,
+ * so the ruler can still narrow without generating layout-shift entries. */
+#gbody .nh.pl-fill .nh-track { container-type:inline-size; }
+#gbody .nh.pl-fill #nWin { left:0; width:100%; }
+#gbody .nh.pl-fill #nWin::before { transform:translateX(calc(var(--nh-start,0) * 1cqw)) translateY(-50%); }
+#gbody .nh.pl-fill #nWin::after {
+  left:0; right:auto;
+  transform:translateX(calc(var(--nh-end,100) * 1cqw - var(--space-12) - var(--outline-w))) translateY(-50%);
 }

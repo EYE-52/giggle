@@ -42,13 +42,13 @@ for(const fallback of [false,true]){
   const compiled=new Set(),uploaded=new Set(),buffers=new Set(),textures=new Set();let renders=0,compiles=0,waits=0,deleted=0,viewport=new THREE.Vector4(0,0,800,600),scissor=viewport.clone(),scissorTest=false;
   const renderer={
     initTexture:t=>textures.add(t),getViewport:v=>v.copy(viewport),getScissor:v=>v.copy(scissor),getScissorTest:()=>scissorTest,setViewport:(...a)=>{a.length===1?viewport.copy(a[0]):viewport.set(...a);},setScissor:(...a)=>{a.length===1?scissor.copy(a[0]):scissor.set(...a);},setScissorTest:v=>{scissorTest=v;},
-    async compileAsync(s,c){assert.equal(s,scene);assert.equal(c,camera);s.traverse(o=>{for(const m of Array.isArray(o.material)?o.material:[o.material])if(m)compiled.add(signature(o,m));});compiles++;},
-    render(s){renders++;ok(viewport.z===16&&viewport.w===16&&scissorTest,'uploads use a tiny viewport with the actual output target/program variants');s.traverseVisible(o=>{if(!o.geometry||o.isInstancedMesh&&o.count===0||o.geometry.drawRange.count===0)return;uploaded.add(o.geometry);if(o.instanceMatrix)buffers.add(o.instanceMatrix);});},
+    async compileAsync(s,c,target){assert.ok(s.isMesh||s.isLine||s.isSprite||s.isPoints);assert.ok(target.isScene);assert.equal(c,camera);s.traverse(o=>{for(const m of Array.isArray(o.material)?o.material:[o.material])if(m)compiled.add(signature(o,m));});compiles++;},
+    render(s){renders++;ok(viewport.z===16&&viewport.w===16&&scissorTest&&scissor.z===0&&scissor.w===0,'uploads use the actual output target without painting over the live frame');s.traverseVisible(o=>{if(!o.geometry||o.isInstancedMesh&&o.count===0||o.geometry.drawRange.count===0)return;uploaded.add(o.geometry);if(o.instanceMatrix)buffers.add(o.instanceMatrix);});},
     getContext:()=>({SYNC_GPU_COMMANDS_COMPLETE:1,WAIT_FAILED:2,TIMEOUT_EXPIRED:3,fenceSync:()=>({}),flush(){},clientWaitSync(){return ++waits===1?3:4;},deleteSync(){deleted++;}}),
   };
   const before=stats(scene),nodes=[];scene.traverse(o=>nodes.push([o,o.visible,o.frustumCulled]));
-  await warmKartRenderer(tracked,renderer,scene,camera,{roots:[reserve,library,...fx.objects(),scene.getObjectByName('KartImpactFX'),zero,lod.object]});
-  ok(compiles===1&&renders===1&&waits===2&&deleted===1,'one compile/upload and completed GPU fence before readiness');
+  await warmKartRenderer(tracked,renderer,scene,camera,{yieldTask:async()=>{},roots:[reserve,library,...fx.objects(),scene.getObjectByName('KartImpactFX'),zero,lod.object]});
+  ok(compiles>1&&renders===compiles&&deleted===renders&&waits>renders,'separate compile/upload batches and nonblocking GPU fences');
   ok(viewport.z===800&&viewport.w===600&&scissor.z===800&&!scissorTest,'viewport and scissor restored');
   assert.deepEqual(stats(scene),before,'warmup adds no gameplay draws or triangles');checks++;
   for(const [o,visible,culled]of nodes){assert.equal(o.visible,visible);assert.equal(o.frustumCulled,culled);}
@@ -89,10 +89,10 @@ for(const fallback of [false,true]){
     },
     async compileAsync(){},
     renderBufferDirect(c,s,g,m,o){ok(prepared.has(signature(o,m)),'shadow draw uses an already prepared variant');ok(programs.every(p=>p.reflected),'all shared-material variants and uniform tables finish before drawing');draws++;},
-    render(){if(this.shadowMap.enabled)for(const o of [mesh,instances])this.renderBufferDirect(camera,null,o.geometry,depth,o);},
+    render(s){if(this.shadowMap.enabled)s.traverseVisible(o=>{if(o===mesh||o===instances)this.renderBufferDirect(camera,null,o.geometry,depth,o);});},
   };
   const direct=renderer.renderBufferDirect;
-  await warmKartRenderer(THREE,renderer,scene,camera);
+  await warmKartRenderer(THREE,renderer,scene,camera,{yieldTask:async()=>{}});
   ok(draws===2&&prepared.size===2,'warm render uploads ordinary and instanced/coloured depth variants');
   ok(mesh.material===material&&mesh.children===children&&renderer.renderBufferDirect===direct,'temporary render method, material and children restore');
   ok(!renderer.shadowMap.needsUpdate&&!sun.shadow.needsUpdate,'shadow update policy restores');
@@ -129,24 +129,24 @@ for(const cancel of [false,true]){
   lighting();ok(targetsRetired===(cancel?1:2)&&generatorRetired===1,'reflection targets and generator retire once');
 }
 // Failure and retirement must restore all state and never render a stale scene.
-for(const fail of ['compile','retired','fence']){
+for(const fail of ['compile','retired']){
   const scene=new THREE.Scene(),mesh=new THREE.InstancedMesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial(),4);scene.add(mesh);mesh.visible=false;mesh.count=0;
   let alive=true,rendered=0;
   const renderer={async compileAsync(){if(fail==='compile')throw Error('compile failed');if(fail==='retired')alive=false;},render(){rendered++;},getContext:()=>({fenceSync:()=>null})};
-  await assert.rejects(warmKartRenderer(THREE,renderer,scene,new THREE.Camera(),{roots:[mesh],isAlive:()=>alive}),/failed|Retired/);
+  await assert.rejects(warmKartRenderer(THREE,renderer,scene,new THREE.Camera(),{roots:[mesh],isAlive:()=>alive,yieldTask:async()=>{}}),/failed|Retired/);
   ok(!mesh.visible&&mesh.count===0,'failure restores visibility and capacity: '+fail);
-  ok(rendered===(fail==='fence'?1:0),'failed/retired compile never renders');
+  ok(rendered===0,'failed/retired compile never renders');
 }
 console.log(JSON.stringify({pass:true,checks,scope:'Shipping GLBs and fallback, all 13 weapons, first-use material/texture/geometry coverage, every driver, unchanged draws/triangles and loading lifecycle; real WebGL checked separately.'}));
 
-// Quality switches must select cached, reflected shaders, including materials
-// that are not visible until the first weapon/status use.
+// Once all jobs finish, quality switches select cached, reflected shaders,
+// including materials hidden until the first weapon/status use.
 {
  const scene=new THREE.Scene(),camera=new THREE.Camera(),material=new THREE.MeshStandardMaterial(),mesh=new THREE.Mesh(new THREE.BoxGeometry(),material);scene.add(mesh);
  const modes=[],ready=new Set();let current;const programs=[];
- const renderer={shadowMap:{enabled:true},info:{programs},async compileAsync(){current=this.shadowMap.enabled;const key=String(current);modes.push(current);programs.push({isReady:()=>true,getUniforms(){ready.add(key);},getAttributes(){}});},render(){ok(ready.has(String(this.shadowMap.enabled)),'both quality variants reflect during loading before drawing');}};
- await warmKartRenderer(THREE,renderer,scene,camera);
- assert.deepEqual(modes,[false,true],'no-shadow then normal shader variants prepare before Ready');
+ const renderer={shadowMap:{enabled:true},info:{programs},async compileAsync(){current=this.shadowMap.enabled;const key=String(current);modes.push(current);programs.push({isReady:()=>true,getUniforms(){ready.add(key);},getAttributes(){}});},render(){ok(ready.has(String(this.shadowMap.enabled)),'each quality variant reflects before its warm draw');}};
+ await warmKartRenderer(THREE,renderer,scene,camera,{yieldTask:async()=>{}});
+ assert.deepEqual(modes,[true,false],'current shadow mode prepares before the lower priority quality variant');
  ok(renderer.shadowMap.enabled&&ready.has('false')&&ready.has('true'),'original quality restores and adaptive shader is already cached');
  material.dispose();mesh.geometry.dispose();
 }

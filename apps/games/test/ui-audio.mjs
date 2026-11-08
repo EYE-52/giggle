@@ -48,7 +48,7 @@ function harness({ off = false, active = false, unavailable = false } = {}) {
       if (unavailable) throw new Error('Audio unavailable');
       this.state = 'suspended'; this.destination = {}; this.resumeGate = deferred(); this.decodes = new Map(); contexts.push(this);
     }
-    resume() { return this.resumeGate.promise; }
+    resume() { this.resumes = (this.resumes || 0) + 1; return this.resumeGate.promise; }
     releaseResume() { this.state = 'running'; this.resumeGate.resolve(); }
     decodeAudioData(buffer) { const gate = deferred(); this.decodes.set(buffer.file, gate); return gate.promise; }
     createBufferSource() {
@@ -78,6 +78,22 @@ function harness({ off = false, active = false, unavailable = false } = {}) {
 
 const originals = Object.fromEntries(['window', 'document', 'performance', 'fetch', 'localStorage'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
 try {
+  const warm = harness(), prepared = await warm.sound;
+  const warmReady = prepared.prepare();
+  assert.equal(warm.contexts.length, 1, 'loading creates the shell audio context');
+  assert.equal(warm.contexts[0].resumes || 0, 0, 'loading never resumes audio');
+  assert.equal(warm.requests.length, 9, 'loading fetches the complete shell bank');
+  await warm.load(); await warm.decode();
+  assert.equal(await warmReady, true, 'loading waits for every decode');
+  warm.contexts[0].state = 'running';
+  assert.equal(prepared.cue('dice'), false, 'autoplay-enabled preparation cannot play without a gesture');
+  assert.equal(warm.starts.length, 0, 'preparation creates no source or queued cue');
+  prepared.unlock();
+  assert.equal(warm.contexts.length, 1, 'first gesture reuses the prepared context');
+  assert.equal(warm.requests.length, 9, 'first gesture does not fetch or decode again');
+  assert.equal(prepared.cue('dice'), true, 'a fresh cue plays after the gesture');
+  prepared.stop();
+
   const h = harness(), sound = await h.sound;
   for (const name of ['click', 'lock', 'tick', 'turn', 'pop']) sound[name]();
   assert.equal(h.contexts.length, 0, 'legacy navigation APIs stay silent without loading audio');
@@ -130,6 +146,7 @@ try {
   keys.cue('piece'); assert.equal(keyboard.starts.length, 1); keys.toggle();
 
   const failed = harness({ off: true }), muted = await failed.sound;
+  assert.equal(await muted.prepare(), false, 'muted loading remains inert');
   muted.cue('dice'); muted.unlock();
   assert.equal(failed.contexts.length, 0, 'saved mute refuses even sample loading');
   muted.toggle(); muted.unlock(); failed.contexts[0].releaseResume();

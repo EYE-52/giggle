@@ -20,6 +20,14 @@ function cases(){
   if(id==='fleet-duel'){for(const pid of ['a','b']){act(pid,{auto:true});act(pid,{ready:true});}for(let n=0;n<6;n++)act(state.seats[state.turn],{fire:n});act('a',{resign:true});}
   out.push({id,frames});
  }
+ // Keep each viewer/round fixed: these are live updates, not screen changes.
+ const hunt=skill['number-hunt'].filter(f=>!f.state.spectator&&['hunt','overtime'].includes(f.state.phase)).map(f=>f.state);
+ const hot=party.find(f=>f.id==='hot-takes').frames.filter(f=>f.views[0].phase==='submit'&&f.views[0].round===1).map(f=>f.views[0]);
+ out.push({id:'number-hunt',frames:hunt},{id:'hot-takes',frames:[...hot,{...hot.at(-1),myTake:'A long take can still be edited without moving the composer. '.repeat(2).slice(0,140)}]});
+ const emoji=party.find(f=>f.id==='emoji-story').frames.find(f=>f.views[0].phase==='emoji').views.find(S=>S.me===S.director);
+ out.push({id:'emoji-story',frames:[emoji,{...emoji,heartbeat:true}]});
+ const guess=party.find(f=>f.id==='emoji-story').frames.find(f=>f.views[0].phase==='guess').views.find(S=>!S.spectator&&S.me!==S.director&&!S.mySolved);
+ out.push({id:'emoji-story',kind:'guess-feedback',frames:[guess,{...guess,heartbeat:true}]});
  return out;
 }
 const PAGE=`<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/skins.css"><link rel="stylesheet" href="/css/game-ui.css"><style>body{margin:0}#gbody{width:100%;max-width:960px;margin:auto;padding:12px}body.game-immersive #gbody{max-width:none;padding:0}</style><body class="game-playing"><main id="gbody"></main><script type="module">
@@ -31,13 +39,13 @@ async function run(){const {chromium}=require('playwright'),out=process.env.STAB
  try{let url=process.env.STABILITY_TEST_URL;if(!url){server=createFixture();await new Promise(r=>server.listen(0,'127.0.0.1',r));url='http://127.0.0.1:'+server.address().port;}const data=await(await fetch(url+'/cases')).json();browser=await chromium.launch({headless:true,channel:'chromium'});
  for(const width of [1280,390])for(const theme of ['day','night']) {
   const context=await browser.newContext({viewport:{width,height:width===390?844:800},isMobile:width===390,hasTouch:width===390}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(url);await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
-  for(const dataCase of data){if(process.env.STABILITY_GAME&&process.env.STABILITY_GAME!==dataCase.id)continue;await page.evaluate(data=>window.loadCase(data),dataCase);const seen=new Map(),moves=[];
+  for(const dataCase of data){if(process.env.STABILITY_GAME&&!process.env.STABILITY_GAME.split(',').includes(dataCase.id))continue;await page.evaluate(data=>window.loadCase(data),dataCase);await page.evaluate(()=>new Promise(requestAnimationFrame));const seen=new Map(),moves=[];
    await page.evaluate(id=>{
-    window.motionCheck={boardMoves:[],padShifts:[]};const seen=new Map();let stopped=false;
-    const observer=new PerformanceObserver(list=>{for(const e of list.getEntries()){const sources=e.sources.filter(s=>{const n=s.node;return n?.isConnected!==false&&(n?.id==='rPad'||n?.parentElement?.closest?.('#rPad')||n?.closest?.('#rPad'));});if(sources.length)window.motionCheck.padShifts.push({value:e.value,sources:sources.map(s=>({node:s.node?.nodeName,before:s.previousRect.toJSON(),after:s.currentRect.toJSON()}))});}});observer.observe({type:'layout-shift'});
+    window.motionCheck={boardMoves:[],padShifts:[],gameShifts:[]};const seen=new Map();let stopped=false;
+    const observer=new PerformanceObserver(list=>{for(const e of list.getEntries()){if(['number-hunt','hot-takes','emoji-story'].includes(id)&&!e.hadRecentInput&&e.value>0.00001)window.motionCheck.gameShifts.push({value:e.value,sources:e.sources.filter(s=>s.node?.isConnected!==false).map(s=>s.node?.id||s.node?.nodeName)});const sources=e.sources.filter(s=>{const n=s.node;return n?.isConnected!==false&&(n?.id==='rPad'||n?.parentElement?.closest?.('#rPad')||n?.closest?.('#rPad'));});if(sources.length)window.motionCheck.padShifts.push({value:e.value,sources:sources.map(s=>({node:s.node?.nodeName,before:s.previousRect.toJSON(),after:s.currentRect.toJSON()}))});}});observer.observe({type:'layout-shift'});
     const tick=()=>{if(stopped)return;if(id==='ludo')for(const sel of ['.ld-stage','.ld-board']){const n=document.querySelector(sel);if(!n)continue;const r=n.getBoundingClientRect(),rect=[r.x,r.y,r.width,r.height],old=seen.get(sel);if(old&&Math.max(...rect.map((v,i)=>Math.abs(v-old[i])))>1)window.motionCheck.boardMoves.push({sel,before:old,after:rect});seen.set(sel,rect);}requestAnimationFrame(tick);};tick();window.stopMotionCheck=()=>{stopped=true;observer.disconnect();return window.motionCheck;};
    },dataCase.id);
-   const selectors=dataCase.id==='would-you-rather'?['.gk-hud-phase','.gk-hud-progress','.wyr-choice','.wyr-body','#wyrStatus','.wyr-actions','.pl-live']:['four-in-a-row','reversi','ludo','fleet-duel'].includes(dataCase.id)?['.bk-stage','.bk-players','.bk-player','.bk-actions','.bk-tools','.bk-status']:dataCase.id==='rank-it'?['.js-feedback','.party-rank-list','.gk-actions','.pl-live']:dataCase.id==='twenty-questions'?['.tq-askrow','.tq-arch','.pl-live']:dataCase.id==='reaction-tap'?['.gk-hud-phase','.gk-hud-progress','#rPad','.rt-pad-label']:['.gk-hud-phase','.gk-hud-progress'];
+   const selectors=dataCase.id==='number-hunt'?['.nh-range','#nForm','#nMine','.nh-reading','#nFeed','.pl-live']:dataCase.id==='hot-takes'?['.hot-sub','.party-compose','#hTake','#hSend','.pl-live']:dataCase.id==='emoji-story'?['.es-preview','.es-table','[data-gk-input]']:dataCase.id==='would-you-rather'?['.gk-hud-phase','.gk-hud-progress','.wyr-choice','.wyr-body','#wyrStatus','.wyr-actions','.pl-live']:['four-in-a-row','reversi','ludo','fleet-duel'].includes(dataCase.id)?['.bk-stage','.bk-players','.bk-player','.bk-actions','.bk-tools','.bk-status']:dataCase.id==='rank-it'?['.js-feedback','.party-rank-list','.gk-actions','.pl-live']:dataCase.id==='twenty-questions'?['.tq-askrow','.tq-arch','.pl-live']:dataCase.id==='reaction-tap'?['.gk-hud-phase','.gk-hud-progress','#rPad','.rt-pad-label']:['.gk-hud-phase','.gk-hud-progress'];
    for(let i=0;i<dataCase.frames.length;i++){const S=dataCase.frames[i];if(dataCase.id==='twenty-questions'&&S.phase!=='play')continue;
     await page.evaluate(S=>window.applyFrame(S),S);await page.waitForTimeout(['four-in-a-row','reversi','ludo','fleet-duel'].includes(dataCase.id)?750:60);
     const rects=await page.evaluate(selectors=>selectors.flatMap(sel=>[...document.querySelectorAll('#gbody '+sel)].map((el,n)=>{const r=el.getBoundingClientRect();return{key:sel+':'+n,rect:[r.x,r.y,r.width,r.height],visible:getComputedStyle(el).display!=='none'};})),selectors);
@@ -45,6 +53,29 @@ async function run(){const {chromium}=require('playwright'),out=process.env.STAB
     // compare updates within each seat, rather than pretending a guesser
     // becomes the answerer midway through the same round.
     for(const {key,rect,visible}of rects){if(!visible)continue;const seatKey=(dataCase.id==='twenty-questions'?S.me+':':dataCase.id==='would-you-rather'?S.round+':':'')+key;const baseline=seen.get(seatKey);if(baseline){const d=Math.max(...rect.map((v,j)=>key.startsWith('.gk-hud-phase')&&j===2?0:Math.abs(v-baseline[j])));if(d>1)moves.push({phase:S.phase,key,delta:d,before:baseline,after:rect});}else seen.set(seatKey,rect);}
+    if(['number-hunt','hot-takes','emoji-story'].includes(dataCase.id))await page.screenshot({path:path.join(out,`${width}-${theme}-${dataCase.id}${dataCase.kind?'-'+dataCase.kind:''}-${i}.png`),fullPage:true});
+    if(dataCase.id==='number-hunt'&&width>=1000)assert(await page.locator('.pl-live').evaluate(n=>n.getBoundingClientRect().bottom<=innerHeight),'Number Hunt roster stays above the desktop fold');
+    if(dataCase.id==='hot-takes'&&i===0)await page.locator('#hTake').fill(dataCase.frames[1].myTake);
+    if(dataCase.id==='emoji-story'&&i===0&&await page.locator('#eEmoji').count()){
+     const boxes=()=>page.locator('.es-preview,.es-table,[data-gk-input]').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return[r.x,r.y,r.width,r.height]}));
+     const before=await boxes();
+     for(const text of ['letters are not emoji','🌊🐟🎉','🌊🐟🎉'.repeat(16),'']){
+      await page.locator('#eEmoji').fill(text);await page.waitForTimeout(60);
+      const after=await boxes(),delta=Math.max(0,...after.flatMap((r,i)=>r.map((v,j)=>Math.abs(v-before[i][j]))));
+      if(delta>1)moves.push({input:text,delta,before,after});
+     }
+     await page.locator('#eSend2').click();
+     const after=await boxes(),delta=Math.max(0,...after.flatMap((r,i)=>r.map((v,j)=>Math.abs(v-before[i][j]))));
+     if(delta>1)moves.push({input:'empty submit',delta,before,after});
+     await page.screenshot({path:path.join(out,`${width}-${theme}-emoji-story-feedback.png`),fullPage:true});
+    }
+    if(dataCase.kind==='guess-feedback'&&i===0){
+     const boxes=()=>page.locator('.es-table,[data-gk-input]').evaluateAll(nodes=>nodes.map(n=>{const r=n.getBoundingClientRect();return[r.x,r.y,r.width,r.height]}));
+     const before=await boxes();await page.locator('#eGuess').fill('A careful guess');await page.locator('#eSend').click();
+     const after=await boxes(),delta=Math.max(0,...after.flatMap((r,i)=>r.map((v,j)=>Math.abs(v-before[i][j]))));
+     if(delta>1)moves.push({input:'guess send feedback',delta,before,after});
+     await page.screenshot({path:path.join(out,`${width}-${theme}-emoji-story-guess-feedback.png`),fullPage:true});
+    }
     if(dataCase.id==='would-you-rather'){
      assert(await page.locator('.wyr-choice').evaluateAll(nodes=>nodes.every(n=>n.getBoundingClientRect().height<=200)),'ordinary WYR choices stay compact');
      assert(await page.locator('.wyr-fill').evaluateAll(nodes=>nodes.every(n=>n.clientHeight>0)),'reveal bars have a visible fill inside their rims');
@@ -83,8 +114,8 @@ async function run(){const {chromium}=require('playwright'),out=process.env.STAB
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),dataCase.id+' has no horizontal page overflow');
     if(dataCase.id==='memory-tray'&&S.phase==='memorize'){const delta=await page.locator('.mt-ico').evaluateAll(async nodes=>{const rects=nodes.map(n=>n.getBoundingClientRect());await new Promise(r=>setTimeout(r,150));return Math.max(0,...nodes.map((n,i)=>{const b=n.getBoundingClientRect(),a=rects[i];return Math.max(Math.abs(b.x-a.x),Math.abs(b.y-a.y));}));});assert(delta<1,'individual tray icons stay still');}
    }
-   const motion=await page.evaluate(()=>window.stopMotionCheck());if(motion.boardMoves.length)moves.push({perFrame:motion.boardMoves});if(dataCase.id==='reaction-tap'&&motion.padShifts.length)moves.push({padShifts:motion.padShifts});
-   await page.screenshot({path:path.join(out,`${width}-${theme}-${dataCase.id}.png`),fullPage:true});report.cases.push({width,theme,id:dataCase.id,moves});console.log('STABILITY_CASE',width,theme,dataCase.id,JSON.stringify(moves));
+   const motion=await page.evaluate(()=>window.stopMotionCheck());if(motion.gameShifts.length)moves.push({layoutShifts:motion.gameShifts});if(motion.boardMoves.length)moves.push({perFrame:motion.boardMoves});if(dataCase.id==='reaction-tap'&&motion.padShifts.length)moves.push({padShifts:motion.padShifts});
+   await page.screenshot({path:path.join(out,`${width}-${theme}-${dataCase.id}${dataCase.kind?'-'+dataCase.kind:''}.png`),fullPage:true});report.cases.push({width,theme,id:dataCase.id,scenario:dataCase.kind||'live',moves});console.log('STABILITY_CASE',width,theme,dataCase.id,JSON.stringify(moves));
   }assert.deepEqual(errors,[]);await context.close();
  }report.pass=report.cases.every(c=>!c.moves.length);fs.writeFileSync(path.join(out,'summary.json'),JSON.stringify(report,null,2));assert(report.pass,'layout moved; see summary.json');console.log('STABILITY_BROWSER_PASS',report.cases.length);
  }finally{await browser?.close();if(server)await new Promise(r=>server.close(r));}}

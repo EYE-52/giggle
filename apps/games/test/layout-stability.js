@@ -32,5 +32,36 @@ const read=file=>fs.readFileSync(path.join(__dirname,'../public',file),'utf8');
  assert.match(read('css/reaction-tap.css'),/\.rt-pad::before\s*\{ position:absolute; grid-area:target/);
  assert.match(read('css/twenty-questions.css'),/#tqQWrap\s*\{ height:/);
  assert.match(read('js/games/twenty-questions.js'),/No other questions queued/);
- console.log('LAYOUT_STABILITY_PASS: mounted HUD slots, fixed tracks, constant turn rims, reserved controls/results and question/cabinet slots');
+ const nh=read('css/number-hunt-world.css'),hot=read('css/hot-takes.css'),emoji=read('css/emoji-story.css');
+ assert.match(read('js/games/number-hunt.js'),/win\.style\.clipPath/);
+ assert.doesNotMatch(read('js/games/number-hunt.js'),/win\.style\.(left|width)\s*=/);
+ assert.match(nh,/:is\(#nLo, #nHi\)\s*\{ width:3ch/);
+ assert.match(nh,/#nMine\s*\{ height:2lh; min-height:2lh; overflow-y:auto/);
+ assert.match(nh,/#nFeed\s*\{ height:calc\(var\(--space-64\) \+ var\(--space-16\)\)/);
+ assert.doesNotMatch(nh,/nh-feed-title:has/,'the public log keeps its empty-state space');
+ assert.match(nh,/\.nh\.pl-fill > \.pl-live\s*\{\s*position:absolute/,'wide-screen roster has its own column');
+ assert.match(nh,/grid-template-rows:var\(--space-32\) var\(--space-24\)/);
+ assert.match(hot,/\.hot-sub\s*\{\s*height:2lh; min-height:2lh/);
+ assert.match(hot,/#hSend\s*\{ min-width:calc/);
+ assert.match(emoji,/es-error:empty, #eGuessStatus\[hidden\]\)\s*\{ display:block!important; visibility:hidden/);
+ assert.match(emoji,/\.es-preview-text\s*\{ height:calc\(2 \* var\(--space-64\)\)/);
+ // A save acknowledgement changes the existing status, not the composer tree.
+ const {makeDocument,surface}=require('./party-mobile'),prior=global.document;
+ const utilUrl=url(read('js/util.js'));
+ const load=async id=>(await import(url(read('js/games/'+id+'.js').replace("'../util.js'",JSON.stringify(utilUrl)).replace("'../kit.js'",JSON.stringify(require('./_kit-url')(utilUrl)))))).default;
+ try{
+  const doc=global.document=makeDocument(),el=surface(doc),view=await load('hot-takes');
+  const frames=require('./layout-stability-browser.cjs').cases().find(c=>c.id==='hot-takes').frames;
+  const api={now:()=>frames[0].serverNow,send:()=>false};
+  view.render(el,frames[0],api);
+  const compose=el.querySelector('.party-compose'),field=el.querySelector('#hTake'),status=el.querySelector('.hot-sub');
+  field.value='An unsaved edit';field.focus();field.setSelectionRange(3,6);
+  view.render(el,frames.at(-1),api);
+  assert.equal(el.querySelector('.party-compose'),compose,'save keeps the composer mounted');
+  assert.equal(el.querySelector('#hTake'),field);assert.equal(field.value,'An unsaved edit');
+  assert.equal(doc.activeElement,field);assert.equal(field.selectionStart,3);
+  assert.equal(el.querySelector('.party-lock'),status,'acknowledgement uses the existing status slot');
+  view.dispose();
+ }finally{global.document=prior;}
+ console.log('LAYOUT_STABILITY_PASS: mounted HUD slots, fixed tracks, constant turn rims, reserved controls/results, clue logs, composer feedback and emoji trays');
 })().catch(error=>{console.error(error);process.exitCode=1;});

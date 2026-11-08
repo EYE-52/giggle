@@ -676,6 +676,7 @@ const api = {
   resultsReady: (id) => !pendingRoomAction && lastState?.phase === 'done' && lastState.instanceId === id && resultPresentation.ready(id),
   toast,
   cue: playGameCue,
+  audioPrepare: () => sound.prepare(),
   audioUnlock: () => { if (window.navigator?.userActivation?.isActive) sound.unlock(); },
   toolkit: { createCanvasView, createInput, createMobileStick, createSoundBank, createThreeView, createSessionToolkit },
   voice: {

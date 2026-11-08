@@ -1,5 +1,6 @@
 import {createKartModel,createStarModel,createCrateModel} from './kart-model.mjs';
 import {prepareKartPass,waitKartPrograms} from './kart-shader-warmup.mjs';
+import {createKartWarmupScheduler} from './kart-warmup-scheduler.mjs';
 
 // Keep real runtime clones, with their rim/shadow flags, in a hidden library.
 // Merely compiling the unmodified GLB templates misses these program variants.
@@ -14,102 +15,102 @@ export function createKartWarmupLibrary(THREE,scene,assets,combat){
   scene.add(library);return library;
 }
 
-// Loading only: compile is not an upload. Render every reserved buffer once,
-// including hidden children and zero-count instance pools. A tiny viewport
-// behind the loading screen limits fragment work. Keep the actual output
-// target: a regular render target would compile linear/no-tone-map programs
-// instead of the canvas's sRGB/tone-mapped programs in Three r187.
-export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],isAlive=()=>true}={}){
-  const nodes=new Map(),counts=new Map(),ranges=new Map(),materials=new Map(),textures=new Set();
-  const shadowUpdates=new Map();
-  const shadowUpdate=renderer.shadowMap?.needsUpdate;
-  let viewport,scissor,scissorTest;
-  const alive=()=>{if(!isAlive())throw Error('Retired kart renderer warmup');};
-  function show(object){
-    if(!object||nodes.has(object)||object.name==='OriginalKartBody')return;
-    nodes.set(object,{visible:object.visible,frustumCulled:object.frustumCulled});
-    object.visible=true;object.frustumCulled=false;
-    if(object.isInstancedMesh){counts.set(object,object.count);object.count=object.instanceMatrix.count;}
-    const g=object.geometry;
-    if(g&&!ranges.has(g)){
-      ranges.set(g,{start:g.drawRange.start,count:g.drawRange.count,instances:g.instanceCount});
-      g.setDrawRange(0,g.index?.count??g.attributes.position?.count??0);
-      if(g.isInstancedBufferGeometry&&g.instanceCount===0){
-        const capacities=Object.values(g.attributes).filter(a=>a.isInstancedBufferAttribute).map(a=>a.count*a.meshPerAttribute);
-        g.instanceCount=capacities.length?Math.min(...capacities):1;
+// Work on one renderable at a time, using a detached light-only scene.
+// Borrow the shipping object only during a synchronous submission: its exact
+// instance binding state stays cached, with all live state restored before
+// every await. Hidden pools never become visible in the live scene.
+export async function warmKartRenderer(THREE,renderer,scene,camera,{roots=[],priorityRoots=[],
+  isAlive=()=>true,budgetMs=Infinity,signal,onProgress,yieldTask,idleTask}={}){
+  const scheduler=createKartWarmupScheduler({budgetMs,signal,isAlive,onProgress,yieldTask,idleTask});
+  const sources=new Set(),optional=new Set(),priority=new Set(),lights=[],textures=new Set();
+  const renderable=o=>o.isMesh||o.isSprite||o.isLine||o.isPoints;
+  const visit=(o,set,hidden=false)=>{
+    if(!o||o.name==='OriginalKartBody'||(!hidden&&!o.visible))return;
+    if(renderable(o))set.add(o);
+    for(const child of o.children)visit(child,set,hidden);
+  };
+  for(const root of roots)visit(root,optional,true);
+  for(const root of priorityRoots)visit(root,priority,true);
+  visit(scene,sources);
+  for(const source of optional)sources.add(source);
+  // Visible scenery, seated drivers and pickups precede rare weapons and
+  // alternate drivers; shadow-off variants come last.
+  const ordered=[...sources].sort((a,b)=>(priority.has(b)?2:optional.has(b)?0:1)-(priority.has(a)?2:optional.has(a)?0:1));
+  scene.traverseVisible(o=>{if(o.isLight)lights.push(o);});
+  const staging=new THREE.Scene();staging.name='KartWarmupPass';
+  const syncScene=()=>{for(const key of ['fog','environment','environmentIntensity','environmentRotation'])staging[key]=scene[key];};
+  const modes=renderer.shadowMap?.enabled?[true,false]:[false];
+  const total=ordered.length*modes.length;let completed=0;
+  scheduler.progress(0,total);
+  function state(shadows,draw){
+    const shadow=renderer.shadowMap,enabled=shadow?.enabled,update=shadow?.needsUpdate;
+    const updates=lights.filter(l=>l.shadow).map(l=>[l.shadow,l.shadow.needsUpdate]);
+    let viewport,scissor,test;
+    try{
+      if(shadow){shadow.enabled=shadows;shadow.needsUpdate=true;}
+      for(const light of lights)light.updateWorldMatrix(true,false);
+      for(const [s]of updates)s.needsUpdate=true;
+      if(renderer.getViewport&&renderer.getScissor&&renderer.getScissorTest){
+        viewport=renderer.getViewport(new THREE.Vector4());scissor=renderer.getScissor(new THREE.Vector4());test=renderer.getScissorTest();
+        renderer.setViewport(0,0,16,16);renderer.setScissor(0,0,0,0);renderer.setScissorTest(true);
       }
+      return draw();
+    }finally{
+      if(shadow){shadow.enabled=enabled;shadow.needsUpdate=update;}
+      for(const [s,value]of updates)s.needsUpdate=value;
+      if(viewport){renderer.setViewport(viewport);renderer.setScissor(scissor);renderer.setScissorTest(test);}
     }
-    for(const child of object.children)show(child);
   }
-  function texture(value){if(value?.isTexture&&!value.isRenderTargetTexture)textures.add(value);}
-  try{
-    alive();
-    for(const root of roots){show(root);for(let p=root?.parent;p&&p!==scene;p=p.parent){
-      if(!nodes.has(p))nodes.set(p,{visible:p.visible,frustumCulled:p.frustumCulled});p.visible=true;
-    }}
-    scene.traverseVisible(object=>{
-      for(const m of Array.isArray(object.material)?object.material:[object.material])if(m){
-        if(!materials.has(m))materials.set(m,m.visible);m.visible=true;
-        for(const value of Object.values(m))texture(value);
-        for(const uniform of Object.values(m.uniforms||{})){
-          if(Array.isArray(uniform.value))uniform.value.forEach(texture);else texture(uniform.value);
+  function sample(object,shadows,draw){
+    object.updateWorldMatrix(true,false);
+    const children=object.children,visible=object.visible,culled=object.frustumCulled,instances=object.count;
+    const g=object.geometry,start=g?.drawRange.start,count=g?.drawRange.count,geometryInstances=g?.instanceCount;
+    const mats=Array.isArray(object.material)?object.material:[object.material];
+    const flags=mats.map(m=>m.visible),qualityChanged=renderer.shadowMap?.enabled!==shadows;
+    syncScene();staging.children=[...lights,object];
+    try{
+      object.children=[];object.visible=true;object.frustumCulled=false;
+      if(object.isInstancedMesh)object.count=Math.min(1,object.instanceMatrix.count);
+      for(const m of mats){m.visible=true;if(qualityChanged)m.needsUpdate=true;}
+      if(g){g.setDrawRange(0,g.index?.count??g.attributes.position?.count??0);if(g.isInstancedBufferGeometry&&g.instanceCount===0)g.instanceCount=1;}
+      return state(shadows,draw);
+    }finally{
+      object.children=children;object.visible=visible;object.frustumCulled=culled;
+      if(object.isInstancedMesh)object.count=instances;
+      mats.forEach((m,i)=>{m.visible=flags[i];if(qualityChanged)m.needsUpdate=true;});
+      if(g){g.setDrawRange(start,count);if(g.isInstancedBufferGeometry)g.instanceCount=geometryInstances;}
+      staging.children=[];
+    }
+  }
+  const step=work=>scheduler.step(work),living=()=>scheduler.isAlive();
+  return scheduler.run(async()=>{
+    const warmTexture=async value=>{
+      if(value?.isTexture&&!value.isRenderTargetTexture&&!textures.has(value)){
+        textures.add(value);await step(()=>renderer.initTexture?.(value));
+      }
+    };
+    await warmTexture(scene.background);await warmTexture(scene.environment);
+    for(const shadows of modes)for(const source of ordered){
+      const object=source;
+      {
+        for(const m of Array.isArray(object.material)?object.material:[object.material])if(m){
+          for(const value of Object.values(m))await warmTexture(value);
+          for(const uniform of Object.values(m.uniforms||{}))for(const value of Array.isArray(uniform.value)?uniform.value:[uniform.value])await warmTexture(value);
+        }
+        if(shadows&&object.castShadow&&renderer.renderBufferDirect&&renderer.compile){
+          await step(()=>sample(object,shadows,()=>prepareKartPass(THREE,renderer,()=>renderer.render(staging,camera),{shadowsOnly:true,isAlive:living})));
+        }
+        await step(()=>sample(object,shadows,()=>renderer.compileAsync?renderer.compileAsync(object,camera,staging):renderer.compile(object,camera,staging)));
+        await waitKartPrograms(renderer,living,step);
+        await step(()=>sample(object,shadows,()=>renderer.render(staging,camera)));
+        // A fence is polled, never gl.finish(): a busy GPU must not freeze UI.
+        const gl=renderer.getContext?.();
+        if(gl?.fenceSync){
+          const fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);
+          if(fence){try{gl.flush();while(await step(()=>gl.clientWaitSync(fence,0,0))===gl.TIMEOUT_EXPIRED){/* yield on each poll */}}finally{gl.deleteSync(fence);}}
         }
       }
-    });
-    texture(scene.background);texture(scene.environment);
-    for(const tex of textures)renderer.initTexture?.(tex);
-    if(renderer.getViewport&&renderer.getScissor&&renderer.getScissorTest){
-      viewport=renderer.getViewport(new THREE.Vector4());scissor=renderer.getScissor(new THREE.Vector4());scissorTest=renderer.getScissorTest();
-      renderer.setViewport(0,0,16,16);renderer.setScissor(0,0,16,16);renderer.setScissorTest(true);
+      scheduler.progress(++completed,total);
     }
-    // compileAsync(scene) misses the depth materials created inside Three's
-    // shadow pass. Submit those exact variants first, without blocking draws.
-    if(renderer.shadowMap?.enabled&&renderer.renderBufferDirect&&renderer.compile){
-      scene.traverse(object=>{if(object.isLight&&object.castShadow&&object.shadow){
-        shadowUpdates.set(object.shadow,object.shadow.needsUpdate);object.shadow.needsUpdate=true;
-      }});
-      renderer.shadowMap.needsUpdate=true;
-      await prepareKartPass(THREE,renderer,()=>renderer.render(scene,camera),{shadowsOnly:true,isAlive});
-      renderer.shadowMap.needsUpdate=true;
-      for(const shadow of shadowUpdates.keys())shadow.needsUpdate=true;
-    }
-    // Adaptive quality can disable shadows during a fight. Prepare that
-    // exact program variant too: otherwise the next Cannon/Thunder/status
-    // material links and reflects its no-shadow shader in a live frame.
-    if(renderer.shadowMap?.enabled){
-      renderer.shadowMap.enabled=false;
-      try{
-        for(const m of materials.keys())m.needsUpdate=true;
-        if(renderer.compileAsync)await renderer.compileAsync(scene,camera);else renderer.compile(scene,camera);
-        await waitKartPrograms(renderer,isAlive);alive();renderer.render(scene,camera);
-      }finally{renderer.shadowMap.enabled=true;for(const m of materials.keys())m.needsUpdate=true;}
-    }
-    if(renderer.compileAsync)await renderer.compileAsync(scene,camera);else renderer.compile(scene,camera);
-    await waitKartPrograms(renderer,isAlive);
-    alive();renderer.render(scene,camera);
-    // Finish uploads before Ready without blocking the UI on WebGL2 GPUs.
-    const gl=renderer.getContext?.();
-    if(gl?.fenceSync){
-      const fence=gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE,0);
-      if(!fence)throw Error('Kart renderer upload fence failed');
-      try{
-        gl.flush();
-        while(true){
-          alive();const result=gl.clientWaitSync(fence,0,0);
-          if(result===gl.WAIT_FAILED)throw Error('Kart renderer uploads failed');
-          if(result!==gl.TIMEOUT_EXPIRED)break;
-          await new Promise(resolve=>setTimeout(resolve,0));
-        }
-      }finally{gl.deleteSync(fence);}
-    }else gl?.finish?.();
-    alive();
-  }finally{
-    for(const [object,state]of nodes){object.visible=state.visible;object.frustumCulled=state.frustumCulled;}
-    for(const [object,count]of counts)object.count=count;
-    for(const [g,state]of ranges){g.setDrawRange(state.start,state.count);if(g.isInstancedBufferGeometry)g.instanceCount=state.instances;}
-    for(const [m,visible]of materials)m.visible=visible;
-    if(renderer.shadowMap)renderer.shadowMap.needsUpdate=shadowUpdate;
-    for(const [shadow,update]of shadowUpdates)shadow.needsUpdate=update;
-    if(viewport){renderer.setViewport(viewport);renderer.setScissor(scissor);renderer.setScissorTest(scissorTest);}
-  }
+  });
 }
