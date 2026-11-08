@@ -1,0 +1,58 @@
+.md-world .md-machine {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
+  width: min(100%, 480px);
+  margin: auto;
+  padding: var(--space-16);
+  background: var(--well);
+  border: var(--outline-w-lg) solid var(--outline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sticker-lg);
+}
+.md-world .md-ticket {
+  display: grid;
+  place-items: center;
+  gap: var(--space-4);
+  padding: var(--space-12);
+  background: var(--card);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-md);
+}
+.md-world .md-problem {
+  min-height: var(--space-48);
+  font: var(--text-heading);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.md-world .md-count {
+  font: var(--text-caption);
+}
+.md-world .md-keys {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-8);
+}
+#gbody .md-world .md-key {
+  min-height: var(--control-h-sm);
+  padding: var(--space-4);
+  font: var(--text-title);
+  background: var(--fam-soft);
+}
+.md-world .md-machine.is-locked {
+  background: var(--danger-soft);
+}
+.md-world .md-machine.is-locked .md-ticket {
+  border-color: var(--danger);
+}
+
+#gbody .md-world .md-key {
+  min-height: calc(var(--control-h-sm) / var(--b4-zoom, 1));
+}
+
+.md-world .md-machine {
+  padding: var(--space-12);
+}
+.md-world .md-ticket {
+  padding: var(--space-8);
+}

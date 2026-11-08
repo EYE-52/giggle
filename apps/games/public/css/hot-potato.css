@@ -1,0 +1,147 @@
+.hp-world .hp-table {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-8);
+  width: min(100%, 480px);
+  margin: auto;
+}
+.hp-world .hp-potato {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  width: 128px;
+  height: 96px;
+  border: var(--outline-w-lg) solid var(--fam-lip);
+  border-radius: 44% 56% 40% 60%;
+  background: var(--fam-soft);
+  color: var(--fam-deep);
+  box-shadow: var(--shadow-sticker-lg);
+  font: var(--text-heading);
+}
+.hp-world .hp-potato i {
+  font-style: normal;
+  line-height: 0.5;
+}
+.hp-world .hp-potato.is-pop {
+  background: var(--warning-soft);
+}
+.hp-world .hp-holder {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  min-height: var(--control-h);
+  font: var(--text-title);
+}
+.hp-world .hp-challenge {
+  width: 100%;
+  min-height: var(--space-64);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-8);
+  background: var(--well);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-lg);
+}
+.hp-world .hp-last {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: center;
+  font: var(--text-body);
+  min-width: 0;
+}
+.hp-world .hp-last strong {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.hp-world .hp-last small {
+  grid-column: 1 / -1;
+  font: var(--text-caption);
+}
+.hp-world .hp-older {
+  width: 100%;
+  min-height: var(--control-h);
+  display: flex;
+  gap: var(--space-8);
+  overflow-x: auto;
+}
+.hp-world .hp-older button {
+  flex: 0 0 auto;
+  display: grid;
+  place-content: center;
+  gap: var(--space-4);
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: var(--space-4) var(--space-8);
+  font: var(--text-button-sm);
+}
+.hp-world .hp-older button .tb-reason {
+  margin: 0;
+}
+.hp-world .hp-holder .pl-voter {
+  max-width: 65%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.hp-world .hp-older {
+  min-height: calc(var(--space-64) / var(--b4-zoom, 1));
+}
+
+.hp-world .hp-nope {
+  width: 80px;
+}
+.hp-world .hp-challenge-hint {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  font: var(--text-caption);
+  color: var(--ink-dim);
+  text-align: center;
+}
+
+/* Keep a full 30-character answer readable beside the challenge action. */
+.hp-world .hp-challenge {
+  position: relative;
+  display: block;
+  min-height: calc(var(--space-64) * 2);
+}
+.hp-world .hp-last {
+  grid-template-columns: var(--space-24) minmax(0, 1fr);
+}
+.hp-world .hp-last strong {
+  grid-column: 2;
+  white-space: normal;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+.hp-world .hp-last small {
+  min-height: calc(var(--control-h-sm) / var(--b4-zoom, 1));
+  display: flex;
+  align-items: center;
+  padding-right: calc(80px + var(--space-12));
+}
+.hp-world .hp-nope {
+  position: absolute;
+  right: var(--space-8);
+  bottom: var(--space-8);
+}
+
+.hp-world .b4-result-mark {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 64px;
+  background: var(--fam);
+  color: var(--on-fam);
+  border-radius: 44% 56% 40% 60%;
+  box-shadow: var(--shadow-sticker);
+}

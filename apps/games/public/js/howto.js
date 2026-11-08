@@ -20,7 +20,7 @@ let state = null; // {game, opener, meta, buildFooter, el}
 export function controlFamily(game) {
   // Catalogue categories also cover discovery (e.g. "speed"), so a few
   // games need an explicit control family from the design guide.
-  if (['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction'].includes(game.id)) return 'arcade';
+  if (['pocket-karts', 'reaction-tap', 'typing-race', 'number-hunt', 'chain-reaction', 'math-dash', 'emoji-spotter', 'echo-pads', 'color-clash', 'hot-potato'].includes(game.id)) return 'arcade';
   if (game.cat === 'board' || ['memory-tray', 'castle-clash'].includes(game.id)) return 'board';
   if (['draw', 'camera'].includes(game.cat) || ['charades', 'pose-party', 'show-and-go', 'word-chain', 'warm-words', 'countdown-word', 'scattergories', 'lyric-fill', 'think-alike', 'emoji-story'].includes(game.id)) return 'create';
   return 'party';

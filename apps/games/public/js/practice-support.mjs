@@ -4,7 +4,7 @@
 const groups = {
   turns: ['chain-reaction', 'checkers', 'chess', 'four-in-a-row', 'kalah', 'ludo', 'reversi', 'story-builder'],
   hidden: ['dial-in', 'ballpark', 'think-alike', 'who-wrote', 'know-me', 'bluff', 'compliment-battle', 'emoji-story', 'fleet-duel', 'funny-answer', 'hot-takes', 'most-likely', 'rank-it', 'roast-toast', 'two-truths', 'would-you-rather', 'pick-one', 'rapid-polls', 'never-ever', 'twenty-questions', 'odd-one-out', 'moonlit-village', 'undercover', 'backronyms', 'whisper'],
-  timed: ['countdown-word', 'lyric-fill', 'memory-tray', 'number-hunt', 'reaction-tap', 'scattergories', 'trivia', 'typing-race', 'word-chain', 'warm-words'],
+  timed: ['countdown-word', 'lyric-fill', 'memory-tray', 'number-hunt', 'reaction-tap', 'scattergories', 'trivia', 'typing-race', 'word-chain', 'warm-words', 'math-dash', 'emoji-spotter', 'echo-pads', 'color-clash', 'hot-potato'],
   drawing: ['doodle-guess', 'draw-phone'],
   performance: ['charades', 'dare-roulette', 'five-second', 'pose-party', 'show-and-go', 'truth-dare'],
   driving: ['pocket-karts'],

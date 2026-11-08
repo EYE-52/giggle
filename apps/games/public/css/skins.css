@@ -364,3 +364,27 @@ body[data-game="whisper"], body[data-game="whisper"] [data-family] { --fam: #cf7
 body[data-game="whisper"] { --bg: #fcf1e9; --font-display: "Baloo 2", "Nunito", system-ui, sans-serif; }
 [data-theme="night"] body[data-game="whisper"], [data-theme="night"] body[data-game="whisper"] [data-family] { --fam: #edab8e; --fam-deep: #edab8e; --fam-lip: #7d432e; --on-fam: #211825; }
 [data-theme="night"] body[data-game="whisper"] { --bg: #291f1b; --card: #352925; --well: #42322b; }
+
+/* Batch 4: calculator, emoji tray, sound console, ink cards and potato. */
+body[data-game="math-dash"], body[data-game="math-dash"] [data-family] { --fam: #2866c7; --fam-deep: #164581; --fam-lip: #164581; --fam-soft: color-mix(in srgb, #2866c7 12%, var(--card)); --on-fam: #fff; --accent: #2866c7; --accent-deep: #164581; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", sans-serif; }
+body[data-game="math-dash"] { --bg: #edf3ff; }
+[data-theme="night"] body[data-game="math-dash"], [data-theme="night"] body[data-game="math-dash"] [data-family] { --fam: #82b4ff; --fam-deep: #82b4ff; --fam-lip: #164581; --fam-soft: color-mix(in srgb, #82b4ff 16%, var(--card)); --on-fam: #17131e; --accent: #82b4ff; --accent-deep: #82b4ff; }
+[data-theme="night"] body[data-game="math-dash"] { --bg: #15233b; --card: color-mix(in srgb, #15233b 90%, #fff); --well: color-mix(in srgb, #15233b 80%, #fff); }
+body[data-game="emoji-spotter"], body[data-game="emoji-spotter"] [data-family] { --fam: #8750b3; --fam-deep: #60317c; --fam-lip: #60317c; --fam-soft: color-mix(in srgb, #8750b3 12%, var(--card)); --on-fam: #fff; --accent: #8750b3; --accent-deep: #60317c; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", sans-serif; }
+body[data-game="emoji-spotter"] { --bg: #f5effa; }
+[data-theme="night"] body[data-game="emoji-spotter"], [data-theme="night"] body[data-game="emoji-spotter"] [data-family] { --fam: #cca2f2; --fam-deep: #cca2f2; --fam-lip: #60317c; --fam-soft: color-mix(in srgb, #cca2f2 16%, var(--card)); --on-fam: #17131e; --accent: #cca2f2; --accent-deep: #cca2f2; }
+[data-theme="night"] body[data-game="emoji-spotter"] { --bg: #291c38; --card: color-mix(in srgb, #291c38 90%, #fff); --well: color-mix(in srgb, #291c38 80%, #fff); }
+body[data-game="echo-pads"], body[data-game="echo-pads"] [data-family] { --fam: #187e82; --fam-deep: #0f5558; --fam-lip: #0f5558; --fam-soft: color-mix(in srgb, #187e82 12%, var(--card)); --on-fam: #fff; --accent: #187e82; --accent-deep: #0f5558; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", sans-serif; }
+body[data-game="echo-pads"] { --bg: #eaf8f6; }
+[data-theme="night"] body[data-game="echo-pads"], [data-theme="night"] body[data-game="echo-pads"] [data-family] { --fam: #71d4d0; --fam-deep: #71d4d0; --fam-lip: #0f5558; --fam-soft: color-mix(in srgb, #71d4d0 16%, var(--card)); --on-fam: #17131e; --accent: #71d4d0; --accent-deep: #71d4d0; }
+[data-theme="night"] body[data-game="echo-pads"] { --bg: #142d31; --card: color-mix(in srgb, #142d31 90%, #fff); --well: color-mix(in srgb, #142d31 80%, #fff); }
+body[data-game="color-clash"], body[data-game="color-clash"] [data-family] { --fam: #7053bb; --fam-deep: #49317c; --fam-lip: #49317c; --fam-soft: color-mix(in srgb, #7053bb 12%, var(--card)); --on-fam: #fff; --accent: #7053bb; --accent-deep: #49317c; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", sans-serif; }
+body[data-game="color-clash"] { --bg: #f4f0fc; }
+[data-theme="night"] body[data-game="color-clash"], [data-theme="night"] body[data-game="color-clash"] [data-family] { --fam: #b9a2ef; --fam-deep: #b9a2ef; --fam-lip: #49317c; --fam-soft: color-mix(in srgb, #b9a2ef 16%, var(--card)); --on-fam: #17131e; --accent: #b9a2ef; --accent-deep: #b9a2ef; }
+[data-theme="night"] body[data-game="color-clash"] { --bg: #211b35; --card: color-mix(in srgb, #211b35 90%, #fff); --well: color-mix(in srgb, #211b35 80%, #fff); }
+body[data-game="hot-potato"], body[data-game="hot-potato"] [data-family] { --fam: #ad5c21; --fam-deep: #733d16; --fam-lip: #733d16; --fam-soft: color-mix(in srgb, #ad5c21 12%, var(--card)); --on-fam: #fff; --accent: #ad5c21; --accent-deep: #733d16; --accent-soft: var(--fam-soft); --font-display: "Baloo 2", "Nunito", sans-serif; }
+body[data-game="hot-potato"] { --bg: #fff4e8; }
+[data-theme="night"] body[data-game="hot-potato"], [data-theme="night"] body[data-game="hot-potato"] [data-family] { --fam: #f1b76f; --fam-deep: #f1b76f; --fam-lip: #733d16; --fam-soft: color-mix(in srgb, #f1b76f 16%, var(--card)); --on-fam: #17131e; --accent: #f1b76f; --accent-deep: #f1b76f; }
+[data-theme="night"] body[data-game="hot-potato"] { --bg: #302319; --card: color-mix(in srgb, #302319 90%, #fff); --well: color-mix(in srgb, #302319 80%, #fff); }
+body[data-game="color-clash"] { --cc-blue: #1955b8; --cc-orange: #9e4208; --cc-purple: #7c35aa; --cc-teal: #086a68; }
+[data-theme="night"] body[data-game="color-clash"] { --cc-blue: #8bbaff; --cc-orange: #ffc184; --cc-purple: #d6a2ff; --cc-teal: #79dfd3; }
