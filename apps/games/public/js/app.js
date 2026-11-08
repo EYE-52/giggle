@@ -416,9 +416,20 @@ function artImg(g, cls) {
 }
 
 export function toast(msg) {
+  clearTimeout(toast._t);
+  if (toast._inline) toast._inline.textContent = '';
+  const notice = document.body.dataset.game === 'number-hunt' && document.getElementById('playNotice');
+  toast._inline = notice || null;
+  if (notice) {
+    toastEl.hidden = true;
+    notice.textContent = msg;
+    notice.title = msg;
+    notice.setAttribute('role', 'status');
+    toast._t = setTimeout(() => { notice.textContent = ''; }, 2600);
+    return;
+  }
   toastEl.textContent = msg;
   toastEl.hidden = false;
-  clearTimeout(toast._t);
   toast._t = setTimeout(() => { toastEl.hidden = true; }, 2600);
 }
 
@@ -2662,7 +2673,7 @@ function renderGame() {
   const specAfter = EMBED.enabled ? spec : '';
   app.innerHTML = connbarHtml() + `
     <header class="play-toolbar">
-      <div class="play-title">${g ? artImg(g, 'gthumb') : ''}<div><h1>${esc(gameName(gameId))}</h1><span class="play-status" id="playRole" ${lastState.spectator ? '' : 'hidden'}>Watching</span></div></div>
+      <div class="play-title">${g ? artImg(g, 'gthumb') : ''}<div><h1>${esc(gameName(gameId))}</h1><span class="play-status" id="playRole" ${lastState.spectator ? '' : 'hidden'}>Watching</span>${['dare-roulette', 'number-hunt'].includes(gameId) ? '<span class="play-status play-notice" id="playNotice"></span>' : ''}</div></div>
       ${zoomable(g) ? zoomControlHtml(gameZoom()) : ''}
       ${gameRoomMenu(g, context)}
     </header>
@@ -2751,6 +2762,12 @@ function paintGamePreparation() {
     // pass the time with its own tips, one after another. Between rounds a
     // short line covers less of it.
     const first = !el.childElementCount;
+    // Keep the between-round notice outside the inert game, in the reserved
+    // header line, so it cannot cover Dare Roulette's Next button.
+    const notice = !first && gameId === 'dare-roulette' && document.getElementById('playNotice');
+    status.classList.toggle('is-toolbar', !!notice);
+    if (notice) notice.appendChild(status);
+    else if (status.parentElement?.id === 'playNotice') app.appendChild(status);
     const g = gameById(gameId);
     const tips = first ? g?.guide?.tips || [] : [];
     const at = Math.floor(Math.random() * tips.length);

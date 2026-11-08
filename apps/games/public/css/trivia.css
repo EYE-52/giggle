@@ -89,6 +89,8 @@ body.game-playing[data-game="trivia"] {
   width: 40px; height: 40px; border: 0; border-radius: var(--radius-md);
   background: #ffffff; color: var(--qa-lip); font: 800 20px/1 var(--font-display);
 }
+/* Amber is the button fill, not readable small text on the white chip. */
+#gbody .wg.pl-fill[data-game="trivia"] .gk-choice:nth-child(3) .gk-mark { color:var(--qa-on-c); }
 @media (hover: hover) {
   #gbody .wg.pl-fill[data-game="trivia"] button.gk-choice:not(:disabled):hover { transform: translateY(-2px); border-color: var(--qa-lip); }
 }

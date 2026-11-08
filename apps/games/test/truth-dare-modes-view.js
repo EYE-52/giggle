@@ -89,6 +89,20 @@ async function run() {
     el.querySelector('[data-deck="wild"]').click(); el.querySelector('#tSpinForMe').click();
     assert.deepEqual(sent.pop(), { deck: 'wild', kind: 'random' });
     assert.equal(sent.length, 0, 'each user action sends only once');
+    // Cycling names looked like an early, conflicting result. Keep one
+    // neutral label until the wheel's transition (or its fallback) settles.
+    const savedInterval=global.setInterval,savedClear=global.clearInterval;
+    let spinTick;
+    try {
+      global.setInterval=(fn,ms)=>{if(ms===110)spinTick=fn;return ms;};global.clearInterval=()=>{};
+      ui.dispose();
+      const spin={...x.view(x.state.target),phase:'spin',instanceId:'spin-label'};
+      ui.render(el,spin,api);const label=el.querySelector('#tSpin');
+      assert.equal(label.textContent,'Spinning…');
+      for(let n=0;n<26;n++){spinTick();assert.equal(label.textContent,'Spinning…','no name is announced mid-spin');}
+      spinTick();assert.equal(label.textContent,spin.players.find(p=>p.id===spin.target).name);
+      ui.dispose();
+    } finally {global.setInterval=savedInterval;global.clearInterval=savedClear;}
     console.log('TRUTH_DARE_MODES_VIEW_PASS: 2/3/6 player writing, counter, draft/focus, private roles, escaped cards, locked picks and Spin for me');
   } finally { ui.dispose(); if (prior === undefined) delete global.document; else global.document = prior; }
 }

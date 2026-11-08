@@ -101,4 +101,14 @@ for (const boundary of ['window', 'instance', 'removed', 'disabled', 'menu', 'us
   pad.disabled = false;
   ctx.document.querySelector = () => null;
 }
-console.log('GAME_READINESS_SHELL_PASS: clocks, loading/action gating, offline/final states, exact-window keyboard focus and focus-theft guards');
+// Dare's ready notice uses the reserved header line, outside the inert
+// game. Other games keep the normal notice without extra DOM moves.
+let noticeMoves=0,appMoves=0;
+const notice={id:'playNotice',appendChild(node){noticeMoves++;node.parentElement=this;}};
+ctx.app={id:'app',appendChild(node){appMoves++;node.parentElement=this;}};
+ctx.document.getElementById=id=>id==='gbody'?body:id==='gamePreparation'?preparation:id==='playNotice'?notice:null;
+ctx.gameId='dare-roulette';ctx.lastState={preparing:true};body.childElementCount=1;preparation.hidden=true;
+paintGamePreparation();assert.equal(preparation.parentElement,notice);assert.equal(noticeMoves,1);
+ctx.gameId='number-hunt';preparation.hidden=true;paintGamePreparation();assert.equal(preparation.parentElement,ctx.app);assert.equal(appMoves,1);
+preparation.hidden=true;paintGamePreparation();assert.equal(appMoves,1,'already placed notices are not moved on every preparation');
+console.log('GAME_READINESS_SHELL_PASS: clocks, loading/action gating, offline/final states, exact-window keyboard focus, focus-theft guards and reserved notices');

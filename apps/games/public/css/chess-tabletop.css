@@ -108,8 +108,12 @@
  .ch-tabletop .ch-file{right:2px;bottom:1px}.ch-tabletop .ch-rank{left:2px;top:2px}
 }
 
-/* Coordinate labels have their own light backing over either square. */
-.ch-tabletop .chboard .sq :is(.ch-rank,.ch-file) { padding:0 var(--space-4); border-radius:var(--radius-sm); background:var(--card); color:var(--ink); font:var(--text-caption); }
+/* Print coordinates on the wooden rim, outside every piece's square. */
+.ch-tabletop .chboard { overflow:visible; }
+.ch-tabletop .chboard .sq :is(.ch-rank,.ch-file) { padding:0; border-radius:var(--radius-sm); background:var(--card); color:var(--ink); font:var(--text-caption); line-height:var(--space-16); z-index:0; display:grid; place-items:center; opacity:1; }
+.ch-tabletop .chboard .sq .ch-file { left:50%; right:auto; transform:translateX(-50%); bottom:calc(-1 * var(--space-16)); width:var(--space-16); height:var(--space-16); }
+.ch-tabletop .chboard .sq .ch-rank { left:calc(-1 * var(--space-16)); top:50%; transform:translateY(-50%); width:var(--space-16); height:var(--space-16); }
+.bk-game.ch-tabletop .ch-frame { padding:var(--space-16); }
 
 /* Phone tools stay below a board sized to the actual play viewport.
  * Moves/captures open in their own popover instead of pushing the board. */
