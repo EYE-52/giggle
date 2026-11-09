@@ -44,7 +44,8 @@ async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while
     const code = host.hello.code;
     for (let i = 2; i < DRIVERS; i++) await bot('Bot ' + i, { t: 'join', name: 'Bot ' + i, code, kartEvents: 'delta-v1', realtime: 'rt1' });
 
-    browser = await chromium.launch({ executablePath:process.env.KART32_BROWSER||undefined, headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+    const angle=process.env.KART32_ANGLE||'swiftshader';
+    browser = await chromium.launch({ executablePath:process.env.KART32_BROWSER||undefined, headless: true, args: ['--use-gl=angle', '--use-angle='+angle, ...(angle==='swiftshader'?['--enable-unsafe-swiftshader']:[])] });
     const page = await (await browser.newContext({ viewport: { width: 844, height: 390 }, deviceScaleFactor: 2 })).newPage();
     // Count WebGL draw calls per rendered frame (renderer cost, GPU-independent).
     await page.addInitScript(() => {
@@ -82,16 +83,20 @@ async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while
     const start = host.state.karts.find(k => k.pid === browserPid);
 
     // Drive: bots on their decoded views; the browser holds throttle and weaves.
-    let farthest = 0;
+    let farthest = 0, fastestForward = 0;
     const timer = setInterval(() => {
       const now = Date.now(), me = host.state.karts.find(k => k.pid === browserPid);
-      if (me) farthest = Math.max(farthest, Math.hypot(me.x - start.x, me.z - start.z));
+      if (me) {farthest = Math.max(farthest, Math.hypot(me.x - start.x, me.z - start.z));fastestForward=Math.max(fastestForward,me.speed||0);}
       for (const b of bots) { const v = b.state; if (v?.inputAck && v.phase === 'drive') b.ws.send(JSON.stringify({ t: 'action', i: v.instanceId, w: v.w, a: { input: b.drive(v, now), seq: ++b.seq, life: v.inputAck.life, controlEpoch: v.inputAck.controlEpoch } })); }
     }, 50);
     await page.evaluate(() => { window.__draws = 0; window.__fps = { n: 0, start: performance.now(), worst: 0, last: performance.now() }; const tick = t => { const f = window.__fps; f.n++; f.worst = Math.max(f.worst, t - f.last); f.last = t; requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
     pageFrames = 0; pageBytes = 0; const t0 = Date.now();
     await page.keyboard.down('ArrowUp');
-    for (let t = 0; t < DRIVE_MS; t += 1500) { const key = (t / 1500) % 2 ? 'ArrowLeft' : 'ArrowRight'; await page.keyboard.down(key); await sleep(500); await page.keyboard.up(key); await sleep(1000); }
+    for (let t = 0; t < DRIVE_MS; t += 1500) {
+      // Garden's last seat can face a nearby barrier. Back away with real
+      // keys before continuing, rather than holding throttle into that wall.
+      if(t===6000&&farthest<3){await page.keyboard.up('ArrowUp');await page.keyboard.down('ArrowDown');await sleep(2000);await page.keyboard.up('ArrowDown');await page.keyboard.down('ArrowUp');}
+      const key = (t / 1500) % 2 ? 'ArrowLeft' : 'ArrowRight'; await page.keyboard.down(key); await sleep(500); await page.keyboard.up(key); await sleep(1000); }
     await page.keyboard.up('ArrowUp');
     const seconds = (Date.now() - t0) / 1000;
     clearInterval(timer);
@@ -103,12 +108,13 @@ async function until(fn, label, ms = 15000) { const end = Date.now() + ms; while
       drivers: host.state.karts.length, connected: host.state.karts.filter(k => k.connected !== false).length, seconds: +seconds.toFixed(1),
       browser: { binaryFramesPerSec: +(pageFrames / seconds).toFixed(1), kbPerSec: +(pageBytes / seconds / 1024).toFixed(1), textFrames: pageText, ...fps, hud },
       bots: { framesPerSec: +(bots.reduce((a, b) => a + b.frames, 0) / bots.length / (seconds + 5)).toFixed(1) },
-      browserKartMovedM: +moved.toFixed(1), errors,
+      browserKartMovedM: +moved.toFixed(1), fastestForward: +fastestForward.toFixed(1), errors,
     };
     fs.writeFileSync(path.join(OUT, 'kart-32-browser.json'), JSON.stringify(metrics, null, 2));
     console.log(JSON.stringify(metrics));
     assert.equal(metrics.connected, DRIVERS, 'all drivers stayed connected');
     assert.ok(metrics.browser.binaryFramesPerSec > 20, 'browser receives real-time frames: ' + metrics.browser.binaryFramesPerSec);
+    assert.ok(fastestForward > 1, 'browser throttle moved the kart forward: '+fastestForward);
     assert.ok(moved > 5, 'browser kart drove: ' + moved);
     assert.ok(hud.canvas, '3D canvas rendered');
     assert.deepEqual(errors, [], 'no page or console errors');

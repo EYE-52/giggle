@@ -4,6 +4,9 @@ import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {batchKartBody} from '../public/js/engines/kart-batching.mjs';
+import weaponImages from '../public/js/engines/kart-weapon-images.mjs';
+import {loadKartGLB} from '../public/js/engines/kart-prefetch.mjs';
+import {kartDriverIndex} from '../public/js/engines/kart-model.mjs';
 import {MeshoptDecoder} from '../public/vendor/three/libs/meshopt_decoder.mjs';
 await MeshoptDecoder.ready;globalThis.self=globalThis;globalThis.createImageBitmap=async()=>({width:512,height:512,close(){}});
 const source=(await fs.readFile(new URL('../public/js/engines/kart-assets.mjs',import.meta.url),'utf8'))
@@ -14,7 +17,7 @@ const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve
 const ticks=async()=>{for(let i=0;i<20;i++)await Promise.resolve();};
 function create(ready){const pending=new Map();class Loader extends GLTFLoader{loadAsync(url){const gate=deferred();pending.set(url,gate);return gate.promise;}}
  const Image=class{async decode(){}};
- const api=new Function('MeshoptDecoder','Loader','merge','batchKartBody','Image',source+'\nreturn {loadKartAssets};')({...MeshoptDecoder,ready},Loader,mergeGeometries,batchKartBody,Image);
+ const api=new Function('MeshoptDecoder','Loader','merge','batchKartBody','Image','loadKartGLB','kartDriverIndex','weaponImages',source+'\nreturn {loadKartAssets};')({...MeshoptDecoder,ready},Loader,mergeGeometries,batchKartBody,Image,loadKartGLB,kartDriverIndex,weaponImages);
  return{...api,pending};}
 async function finish(gate,url){const b=await fs.readFile(new URL('../public'+url.split('?')[0],import.meta.url));const real=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);gate.resolve(await real.parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),''));}
 const decoder=deferred(),asset=create(decoder.promise);let settled=false;

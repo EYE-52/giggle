@@ -25,7 +25,7 @@ function draw(kind,shot,profile){
  const o=art.projectile(kind),c=o.userData.combat,radius=combat.config.staticSweepRadii[kind];c.contactRadius=radius;c.contactInset=projectileContactInset(THREE,o,radius);
  const direction=new THREE.Vector3(),nose=new THREE.Vector3(),before=JSON.stringify(shot);
  if(profile==='classic'){
-  const context=vm.createContext({S:{zaps:[shot],simAt:1000},ordnanceFresh:()=>true,zaps:new Map([[shot.id,o]]),shotPools:new Map(),combat:art,scene:new THREE.Scene(),shotPlayback:{sample:projectilePose},projectilePose,serverNow:()=>1000,shotDirection:direction,shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:1/60,t:0,rm:false,impactFX:{trail(){}},prepareShotContact(){throw Error('must be prepared before fire');}});
+  const context=vm.createContext({S:{zaps:[shot],simAt:1000},ordnanceFresh:()=>true,ordnanceNow:()=>1000,zaps:new Map([[shot.id,o]]),shotPools:new Map(),combat:art,scene:new THREE.Scene(),shotPlayback:{sample:projectilePose},projectilePose,serverNow:()=>1000,shotDirection:direction,shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:1/60,t:0,rm:false,impactFX:{trail(){}},prepareShotContact(){throw Error('must be prepared before fire');}});
   vm.runInContext('globalThis.draw=()=>{'+classicPlacement+'};',context);context.draw();
   let from,to;
   const canvas=vm.createContext({z:shot,p:shot,px:x=>x,pz:z=>z,ctx:{beginPath(){},moveTo(x,z){from={x,z};},lineTo(x,z){to={x,z};},stroke(){}}});

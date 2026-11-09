@@ -1,11 +1,8 @@
 import config from './kart-physics-config.mjs';
 import {createClassicMotion} from './kart-classic-motion.mjs';
 import {createInterpolationBuffer} from '../toolkit/realtime/client.mjs';
-let loading;
-export function loadClassicPhysics(){
-  if(!loading)loading=import('/vendor/rapier/rapier.mjs').then(async module=>{const R=module.default;await R.init();if(R.version()!=='0.21.0')throw Error('Unexpected kart physics runtime');return R;});
-  return loading;
-}
+import {loadKartPhysics} from './kart-physics-loader.mjs';
+export const loadClassicPhysics=loadKartPhysics;
 const mix=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t});
 const multiply=(a,b)=>({x:a.w*b.x+a.x*b.w+a.y*b.z-a.z*b.y,y:a.w*b.y-a.x*b.z+a.y*b.w+a.z*b.x,z:a.w*b.z+a.x*b.y-a.y*b.x+a.z*b.w,w:a.w*b.w-a.x*b.x-a.y*b.y-a.z*b.z});
 function slerp(a,b,t){

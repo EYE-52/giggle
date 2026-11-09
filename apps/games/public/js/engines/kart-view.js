@@ -34,7 +34,7 @@ import { createThreeView } from '../renderers/three-view.js';
 import { readInputCapabilities, touchControlsFor } from '../toolkit/input-capabilities.mjs';
 import { createMobileStick } from '../toolkit/mobile-stick.mjs';
 import { createKartLighting } from './kart-lighting.mjs';
-import { loadKartAssets, weaponThumbnailArt } from './kart-assets.mjs';
+import { loadKartAssets, matchKartDrivers, weaponThumbnailArt } from './kart-assets.mjs';
 import { createKartWorld } from './kart-world.mjs';
 import { createKartModel, animateKartModel, createStarModel } from './kart-model.mjs';
 import { createKartLod, crowdColor } from './kart-lod.mjs';
@@ -268,7 +268,7 @@ export function createKartView(viewConfig) {
   let bound = [];
   let fbBound = [];
   let fbCanvas = null;
-  let sceneReady, shellAudioReady, rendererWarmup;
+  let sceneReady, shellAudioReady, rendererWarmup, startAudio;
   let fbObserver = null;
   let fbRaf = 0;
   let audio = null;
@@ -1094,7 +1094,7 @@ export function createKartView(viewConfig) {
     let healthBars;
     let world,impactFX,skids,drivingFX,threats,arsenalFX,arena,structures,garageThumbnail,cameraCollision;
     try {
-      const assets = await loadKartAssets(THREE, scene);
+      const assets = await loadKartAssets(THREE, scene, {map:S.map,drivers:matchKartDrivers(S.karts,hostContext().looks)});
       if (gen !== mountGen) throw new Error('Retired kart scene');
       world = createKartWorld(THREE, {scene, palette: S && S.palette, assets, map: S && S.map,quality:()=>kartLightTier(helper.renderer()),reducedMotion:()=>helper.reducedMotion()});
       world.syncMap((S && S.map) || {id:'ring',blocks:[]});
@@ -1167,7 +1167,7 @@ export function createKartView(viewConfig) {
       const tmpV=new THREE.Vector3(),shakeOffset=new THREE.Vector3(),cameraFocus=new THREE.Vector3(),cameraLook=new THREE.Vector3(),beforeShake=new THREE.Vector3(),cameraCandidate=new THREE.Vector3();
       const cameraAngles=[Math.PI/4,-Math.PI/4,Math.PI*.42,-Math.PI*.42,Math.PI/2,-Math.PI/2,Math.PI*.75,-Math.PI*.75,Math.PI];let cameraSide=0;
       let cameraEpoch = null,driftSwing=0;
-      // Warm every combat variant before readiness. The hidden source library
+      // Prepare shared combat variants during loading. The hidden source library
       // alone is never rendered: first fire used to upload these buffers and
       // compile tracer/instanced-effect programs in a live driving frame.
       const rigPools=new Map(WEAPON_IDS.map(kind=>[kind,Array.from({length:Math.max(8,S.karts.length)},()=>combat.weapon(kind))]));
@@ -1226,7 +1226,7 @@ export function createKartView(viewConfig) {
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,combat);
       await waitKartPreparation(disposeLighting.ready,apiRef?.preparationSignal);
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===mountGen,
-        budgetMs:6000,signal:apiRef?.preparationSignal,priorityRoots:[world.group,...karts.values(),warmLibrary.children[0],drivingFX.particles,drivingFX.speedLines],
+        budgetMs:2000,signal:apiRef?.preparationSignal,priorityRoots:[world.group,...karts.values(),warmLibrary.children[0],drivingFX.particles,drivingFX.speedLines],
         onProgress:({completed,total})=>{if(gen===mountGen){const loading=rootEl?.querySelector('.pk-loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[warm,reserve,warmLibrary,pops,kartLod.object,drivingFX.particles,drivingFX.speedLines,
           scene.getObjectByName('KartSkidMarks'),scene.getObjectByName('KartThreatRing'),
@@ -1809,7 +1809,6 @@ export function createKartView(viewConfig) {
     async ready() {
       await sceneReady;
       await physicalReady;
-      await waitKartPreparation(Promise.all([audio?.ready?.(),shellAudioReady]),apiRef?.preparationSignal);
       // Hidden same-origin seats may have throttled RAF. Render the current
       // prepared scene once, then require the same real GL success promise.
       if (gl) { gl.renderOnce?.(); await gl.firstFrame; }
@@ -1853,7 +1852,7 @@ export function createKartView(viewConfig) {
     }
     if (sendTimer) { clearInterval(sendTimer); sendTimer = 0; }
     stopFallback();
-    audio?.dispose();audio=null;wasTurbo=false;
+    audio?.dispose();audio=null;startAudio=null;wasTurbo=false;
     garageUI.dispose();
     garagePending=null;arenaPending=null;arenaNotice='';
     for (const [t, type, fn, opts] of bound) {
@@ -1895,8 +1894,9 @@ export function createKartView(viewConfig) {
     apiRef = api;
     rootEl = el;
     audio=createKartAudio({muted:api.context?.().sound===false});
-    audio.prep?.();
-    shellAudioReady=api.audioPrepare?.();
+    // Optional recordings start after every seat has its required scene and
+    // physics. They keep their existing gesture, mute and decode lifecycle.
+    startAudio=()=>{audio?.prep?.();shellAudioReady=api.audioPrepare?.();Promise.allSettled([audio?.ready?.(),shellAudioReady]);startAudio=null;};
     on(window,'pointerdown',()=>audio?.unlock(),{capture:true});
     on(window,'keydown',()=>audio?.unlock(),{capture:true});
     el.innerHTML = `
@@ -2221,6 +2221,9 @@ export function createKartView(viewConfig) {
       S = Snew;
       apiRef = api;
     }
+    // A ready seat must not take bandwidth from peers still loading. Start
+    // optional recordings only after the server releases the whole match.
+    if(!S.preparing)startAudio?.();
     roulette.sync(S.instanceId,S.inputAck?.life??myKart()?.spawnSeq);if(S.audioBaseline||S.phase==='done')roulette.skip();
     if(advanced||Snew.audioBaseline){
       const arrival=nowMs();

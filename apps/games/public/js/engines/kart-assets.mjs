@@ -1,9 +1,12 @@
 /* Local, licensed GLB assets. One library per renderer lifetime: clones share
  * GPU resources, and the scene's disposal releases templates as well. */
 
+import weaponImages from './kart-weapon-images.mjs';
+import {loadKartGLB} from './kart-prefetch.mjs';
 import {MeshoptDecoder} from '../../vendor/three/libs/meshopt_decoder.mjs';
 export {MeshoptDecoder};
 
+import {kartDriverIndex} from './kart-model.mjs';
 import {batchKartBody} from './kart-batching.mjs';
 
 export const KART_ASSETS = {
@@ -22,6 +25,12 @@ export const KART_ASSETS = {
 // own steering wheel, which the animals hold, and is seated before static
 // batching so it merges and leans with KartBody. Every driver gets its own
 // batched kart variant; the view picks one per player.
+// Shared raised-arena library; environment files remain selected by map.
+export const KART_ELEVATED_FILES = Object.freeze([
+  ['kart','giggle-kart.meshopt','kart-20261007'],['crate','giggle-crate.meshopt','question-20261007'],
+  ['combat','combat/combat.meshopt','combat-20261007'],['pulse','combat/pulse-mounted.meshopt','bfaaaf39'],
+  ['arsenal','combat/arsenal-mounted.meshopt','8bd555ac'],['secondary','combat/arsenal-secondary.meshopt','31eec689'],
+]);
 export const KART_DRIVERS = Object.freeze(['fox', 'bunny', 'panda', 'raccoon']);
 export const KART_SEAT = Object.freeze({ scale: 1.55, position: [0, .6, -.37],
   replaces: ['DriverArm_L', 'DriverArm_R', 'DriverHelmet', 'DriverTorso', 'DriverVisor', 'SteeringWheel'] });
@@ -69,18 +78,17 @@ export function seatKartDriver(kart, driver) {
 }
 
 export const WEAPON_THUMBNAILS=['machinegun','trishot','missile','cannon','blades','supernova','mine','oil','frost','thunder','boomerang','ram','nuke'];
-const thumbnailExtension=kind=>['machinegun','trishot','missile','cannon','blades','supernova'].includes(kind)?'svg':'png';
 const loadedThumbnails=new Set();
 let thumbnailLoad;
 export function loadKartWeaponThumbnails(){
   if(!thumbnailLoad)thumbnailLoad=Promise.all(WEAPON_THUMBNAILS.map(async kind=>{
-    const image=new Image();image.src=`/assets/karts/weapon-thumbnails/${kind}.${thumbnailExtension(kind)}`;
+    const image=new Image();image.src=weaponImages[kind];
     await image.decode();loadedThumbnails.add(kind);
   })).catch(error=>{thumbnailLoad=null;throw error;});
   return thumbnailLoad;
 }
 export function weaponThumbnailArt(kind,fallback=''){
-  return loadedThumbnails.has(kind)?`<img class="kart-weapon-thumbnail" src="/assets/karts/weapon-thumbnails/${kind}.${thumbnailExtension(kind)}" width="96" height="96" alt="" aria-hidden="true">`:fallback;
+  return loadedThumbnails.has(kind)?`<img class="kart-weapon-thumbnail" src="${weaponImages[kind]}" width="96" height="96" alt="" aria-hidden="true">`:fallback;
 }
 
 // GLTFLoader owns decoded ImageBitmaps as well as GPU textures. Call only
@@ -111,11 +119,30 @@ export function buildKartDriverVariants(THREE, kart, drivers, mergeGeometries, l
   return variants;
 }
 
-export function loadKartDrivers(loader) {
-  return Promise.all(KART_DRIVERS.map(name => loader.loadAsync(`/assets/karts/drivers/${name}.glb`).then(g => g.scene, () => null)));
+export function matchKartDrivers(karts=[],looks={}) {
+  return [...new Set(karts.map(k=>{
+    const pid=k.pid??k.id,driver=looks[pid]?.driver;
+    return KART_DRIVERS.includes(driver)?driver:KART_DRIVERS[kartDriverIndex(pid,KART_DRIVERS.length)];
+  }))];
+}
+export function loadKartDrivers(loader,needed=KART_DRIVERS) {
+  // Keep the full index space: variant tags and pid hashes must stay stable
+  // when the match uses only one or two of the four characters.
+  return Promise.all(KART_DRIVERS.map(name => needed.includes(name)
+    ? loadKartGLB(loader,`/assets/karts/drivers/${name}.glb`).then(g => g.scene, () => null)
+    : null));
 }
 
-export async function loadKartAssets(THREE, scene) {
+export function matchKartAssetEntries(map) {
+  if(!map)return Object.entries(KART_ASSETS); // tooling/full library callers
+  const theme=map.theme||map.id,grove=!['garden','frost','neon'].includes(theme);
+  const tree=grove&&map.id!=='blocks'?'tree_detailed':'tree_pineTallA';
+  return Object.entries(KART_ASSETS).filter(([key])=>
+    !['tree_detailed','tree_pineTallA','plant_bush','flower_purpleA'].includes(key) ?
+      !(key==='rock_largeA'&&map.id==='blocks') : key===tree);
+}
+
+export async function loadKartAssets(THREE, scene, {map,drivers:neededDrivers}={}) {
   const { GLTFLoader } = await import('../../vendor/three/loaders/GLTFLoader.js');
   const {mergeGeometries} = await import('../../vendor/three/utils/BufferGeometryUtils.js');
   const library = new THREE.Group();
@@ -127,12 +154,12 @@ export async function loadKartAssets(THREE, scene) {
   const assets = {};
   // Drivers are optional: one that fails to load is skipped, and with none
   // the original helmet racer stays.
-  const drivers = loadKartDrivers(loader);
+  const drivers = loadKartDrivers(loader,neededDrivers);
   // Wait for every request before failing: assets that finish after a failed
   // build still belong to this scene and can be disposed with it.
-  const results = await Promise.allSettled([...Object.entries(KART_ASSETS).map(async ([key, name]) => {
+  const results = await Promise.allSettled([...matchKartAssetEntries(map).map(async ([key, name]) => {
     let gltf;
-    try { gltf = await loader.loadAsync(`/assets/karts/${name}.glb${key==='crate'?'?v=question-20261007':''}`); }
+    try { gltf = await loadKartGLB(loader,`/assets/karts/${name}.glb${key==='crate'?'?v=question-20261007':''}`); }
     catch(error) {
       // A failed optional prop asset should not discard the whole arena.
       if(key==='combat'){console.warn('Combat models unavailable; using local prop fallback.',error);return;}
