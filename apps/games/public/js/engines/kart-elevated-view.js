@@ -1,4 +1,6 @@
 import {createKartPickupPrediction} from './kart-pickup-prediction.mjs';
+import {setKartText,setKartAttribute,setKartFlag} from './kart-hud-write.mjs';
+import {waitKartPreparation} from './kart-warmup-scheduler.mjs';
 import {createKartLod} from './kart-lod.mjs';
 import {createRaisedPoseSupport} from './kart-raised-support.mjs';
 import {createRaisedPickups} from './kart-raised-pickups.mjs';
@@ -116,7 +118,7 @@ export function createElevatedKartView() {
       active:gfxReady&&!S?.preparing&&S?.phase==='live'&&!document.hidden&&context?.connected!==false&&!context?.roomActionPending,
       engineActive:!!S?.youDrive&&!!k?.alive&&!!k?.connected&&!blocked()});
   }
-  function touch(){$('controls').value=preference;syncPickers($('controls').parentNode);const show=touchControlsFor(preference,readInputCapabilities())&&S?.youDrive&&S.phase!=='done';$('touch').hidden=!show;root.classList.toggle('pke-touch-mode',show);}
+  function touch(){$('controls').value=preference;syncPickers($('controls').parentNode);const show=touchControlsFor(preference,readInputCapabilities())&&S?.youDrive&&S.phase!=='done';setKartFlag($('touch'),'hidden',!show);root.classList.toggle('pke-touch-mode',show);}
   function paint(){
     if(!S||!root)return;
     const me=self(),watch=!S.youDrive;
@@ -125,25 +127,25 @@ export function createElevatedKartView() {
     const ranks=[];ranked.forEach((k,i)=>{ranks[i]=i&&!k.out&&!ranked[i-1].out&&k.hits===ranked[i-1].hits?ranks[i-1]:i+1;});
     const mine=ranked.findIndex(k=>k.id===S.you),rank=mine>=0?ranks[mine]:0,name=api.name?.(S.you)||S.you;
     const kos=me?.hits||0;
-    $('score').textContent=watch?'Watching':`P${rank} · ${kos} KO${kos===1?'':'s'}`;
-    $('score').setAttribute('aria-label',watch?'Watching the battle':`Rank ${rank}, ${name}, ${me?.hits||0} knockouts`);
+    setKartText($('score'),watch?'Watching':`P${rank} · ${kos} KO${kos===1?'':'s'}`);
+    setKartAttribute($('score'),'aria-label',watch?'Watching the battle':`Rank ${rank}, ${name}, ${me?.hits||0} knockouts`);
     const nextItem=me?.weapon||(me?.supernovaT>0?'supernova':'');
     if(nextItem!==itemKey){const icon=weaponThumbnailArt(nextItem,ICONS[nextItem]?svg(ICONS[nextItem]):TARGET);$('use-icon').innerHTML=icon;itemKey=nextItem;}
     const equipped=paintKartWeapon($('weapon'),me,ICONS[nextItem]?svg(ICONS[nextItem]):TARGET,{roulette});
-    $('weapon').hidden=!me;
-    $('use-ammo').textContent=me?.weapon?String(me.ammo):'';
-    $('use-ammo').hidden=!me?.weapon;
-    $('use').setAttribute('aria-label',me?.firing?'Weapon firing':me?.weapon?`Activate ${equipped.label}, full payload`:'Use weapon');
-    $('protection').hidden=!(me?.shield>0);$('protection').title='Spawn protection';
-    $('health').hidden=!me;if(me)paintKartHearts($('health'),me);
-    $('use').disabled=!me?.weapon||me?.firing||!active()||S.phase!=='live';
-    $('nitro').disabled=!active()||me?.nitro<.15;
+    setKartFlag($('weapon'),'hidden',!me);
+    setKartText($('use-ammo'),me?.weapon?String(me.ammo):'');
+    setKartFlag($('use-ammo'),'hidden',!me?.weapon);
+    setKartAttribute($('use'),'aria-label',me?.firing?'Weapon firing':me?.weapon?`Activate ${equipped.label}, full payload`:'Use weapon');
+    setKartFlag($('protection'),'hidden',!(me?.shield>0));$('protection').title='Spawn protection';
+    setKartFlag($('health'),'hidden',!me);if(me)paintKartHearts($('health'),me);
+    setKartFlag($('use'),'disabled',!me?.weapon||me?.firing||!active()||S.phase!=='live');
+    setKartFlag($('nitro'),'disabled',!active()||me?.nitro<.15);
     $('controls').value=preference;syncPickers($('controls').parentNode);
-    $('notice').textContent=me&&!me.connected?'Reconnecting…':me&&!me.alive?'Respawning…':watch?'Watching the battle':'';
-    $('notice').hidden=!$('notice').textContent;
-    $('arena').textContent=S.map?.label||'Pocket Karts';
-    $('goal').textContent=S.winRule==='Score target'&&S.targetHits?`First to ${S.targetHits} KO${S.targetHits===1?'':'s'} wins.`:'Most knockouts wins.';
-    $('result').hidden=S.phase!=='done';
+    setKartText($('notice'),me&&!me.connected?'Reconnecting…':me&&!me.alive?'Respawning…':watch?'Watching the battle':'');
+    setKartFlag($('notice'),'hidden',!$('notice').textContent);
+    setKartText($('arena'),S.map?.label||'Pocket Karts');
+    setKartText($('goal'),S.winRule==='Score target'&&S.targetHits?`First to ${S.targetHits} KO${S.targetHits===1?'':'s'} wins.`:'Most knockouts wins.');
+    setKartFlag($('result'),'hidden',S.phase!=='done');
     const nextStandings=S.phase==='done'?JSON.stringify([S.result,S.you,ranked.map(k=>api.name?.(k.id)||k.id),S.winRule,S.targetHits]):'';
     if(nextStandings!==standingsKey){
       standingsKey=nextStandings;
@@ -163,17 +165,17 @@ export function createElevatedKartView() {
     if(!S||!root)return;
     const ms=S.phase==='done'?0:Math.max(0,S.endsAt-now()),seconds=Math.ceil(ms/1000);
     const status=!gfxReady?(graphicsFailed?'Retry':'Loading'):S.preparing?'Ready':null;
-    $('clock').textContent=status??(S.phase==='done'?'0:00':S.phase==='countdown'?String(seconds):`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`);
-    $('clock').setAttribute('aria-label',!gfxReady?(graphicsFailed?'Arena unavailable; retry 3D':'Loading arena'):S.preparing?'Arena ready; waiting for players':S.phase==='done'?'Round complete':`${seconds} seconds remaining`);
-    $('clock').dataset.kos=S.youDrive?`${self()?.hits||0} KOs`:'Watching';
-    const k=self();$('speed').textContent=String(Math.round(Math.abs(k?.pose.speed||0)*3.6));
-    const charge=String(Math.max(0,Math.min(1,k?.nitro||0)));
-    $('charge').style.setProperty('--charge',charge);$('nitro').style.setProperty('--charge',charge);
-    $('nitro').setAttribute('aria-label',`Hold for Nitro, ${Math.round(Number(charge)*100)} percent charged`);
+    setKartText($('clock'),status??(S.phase==='done'?'0:00':S.phase==='countdown'?String(seconds):`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`));
+    setKartAttribute($('clock'),'aria-label',!gfxReady?(graphicsFailed?'Arena unavailable; retry 3D':'Loading arena'):S.preparing?'Arena ready; waiting for players':S.phase==='done'?'Round complete':`${seconds} seconds remaining`);
+    setKartAttribute($('clock'),'data-kos',S.youDrive?`${self()?.hits||0} KOs`:'Watching');
+    const k=self();setKartText($('speed'),String(Math.round(Math.abs(k?.pose.speed||0)*3.6)));
+    const charge=String(Math.round(Math.max(0,Math.min(1,k?.nitro||0))*100)/100);
+    if($('charge').style.getPropertyValue('--charge')!==charge)$('charge').style.setProperty('--charge',charge);if($('nitro').style.getPropertyValue('--charge')!==charge)$('nitro').style.setProperty('--charge',charge);
+    setKartAttribute($('nitro'),'aria-label',`Hold for Nitro, ${Math.round(Number(charge)*100)} percent charged`);
     const slide=predicted||k,tier=driftTier(slide?.driftCharge||0),meter=$('drift');
-    meter.hidden=!tier&&!(slide?.turbo>0);const label=tier?DRIFT_TIERS[tier-1].label+' · release for turbo':slide?.turbo>0?'Turbo!':'';
+    const meterHidden=!tier&&!(slide?.turbo>0);if(meter.hidden!==meterHidden)meter.hidden=meterHidden;const label=tier?DRIFT_TIERS[tier-1].label+' · release for turbo':slide?.turbo>0?'Turbo!':'';
     if(meter.textContent!==label)meter.textContent=label;
-    meter.style.color=tier?DRIFT_TIERS[tier-1].css:'#83ebff';
+    const meterColor=tier?DRIFT_TIERS[tier-1].css:'#83ebff';if(meter.dataset.tier!==String(tier)){meter.style.color=meterColor;meter.dataset.tier=String(tier);}
   }
   async function scene(THREE,helper,gen){
     const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(52,1,.1,650),renderer=helper.renderer();
@@ -285,9 +287,12 @@ export function createElevatedKartView() {
       for(const object of warm){object.visible=true;object.position.set(0,-100,0);object.traverse(o=>{if(!warmFrustum.has(o))warmFrustum.set(o,o.frustumCulled);o.frustumCulled=false;});}
       shadows.update();
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,art);
+      // State/countdown paint signals can expire while this arena still lives.
+      // Scope required GPU preparation to its generation. Then allow six
+      // seconds for other bindings; no queue resumes after scene handoff.
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===generation,
         requiredRoots:[...warm,warmLibrary,scene.getObjectByName('KartImpactFX')],
-        budgetMs:2000,signal:api?.preparationSignal,priorityRoots:[world.group,...models.values(),pickups.mesh,drivingFX.particles,drivingFX.speedLines],
+        budgetMs:6000,priorityRoots:[world.group,...models.values(),pickups.mesh,drivingFX.particles,drivingFX.speedLines],
         onProgress:({completed,total})=>{if(gen===generation){const loading=$('loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[...warm,warmLibrary,arena.root,drivingFX.particles,drivingFX.speedLines,scene.getObjectByName('KartSkidMarks'),
           scene.getObjectByName('KartThreatRing'),scene.getObjectByName('KartImpactFX')]}).catch(()=>null);
@@ -368,8 +373,9 @@ export function createElevatedKartView() {
           const equipped=k.alive?(k.ammo>0?k.weapon:k.bladesT>0?'blades':k.supernovaT>0?'supernova':k.rammingT>0?'ram':performance.now()<(model.userData.fireUntil||0)?model.userData.fireKind:null):null;const rig=rigs.get(k.id);if(rig?.kind!==equipped){if(rig){rig.object.removeFromParent();rigPools.get(rig.kind)?.push(rig.object);}rigs.delete(k.id);if(equipped){const object=rigPools.get(equipped)?.pop();if(!object)continue;object.position.set(...object.userData.combat.mount);model.userData.kart.inner.add(object);rigs.set(k.id,{kind:equipped,object});}}
         }
       }
+      const syncIds=new Set();
       function sync(list,prefix,factory){
-        const ids=new Set();for(const value of list||[])ids.add(prefix+value.id);
+        const ids=syncIds;ids.clear();for(const value of list||[])ids.add(prefix+value.id);
         for(const[id,object]of objects)if(id.startsWith(prefix)&&!ids.has(id)){impactFX.retire(object);object.visible=false;object.removeFromParent();if(object.userData.poolKey)pools.get(object.userData.poolKey).push(object);objects.delete(id);}
         for(const value of list||[]){const id=prefix+value.id;ids.add(id);let object=objects.get(id);if(!object){const key=poolKey(prefix,value);object=pools.get(key)?.pop()||factory(value);object.userData.poolKey=pools.has(key)?key:null;scene.add(object);objects.set(id,object);object.quaternion.identity();object.scale.setScalar(1);
             if(object.userData.combat){const c=object.userData.combat;c.trailClock=0;c.trailX=c.trailY=c.trailZ=Infinity;}
@@ -524,7 +530,11 @@ export function createElevatedKartView() {
         warningMaterial.opacity=helper.reducedMotion()?.65:.58+.1*Math.sin(time*5);
         const followed=self()||S.karts[0];
         // Keep the followed animal/paint in full detail; batch the crowd.
-        lodEntries.length=0;for(const [id,model]of models)if(id!==followed?.id)lodEntries.push({mesh:model,color:model.userData.lodColor||0xffcf6f,visible:model.visible});kartLod.update(camera,lodEntries,kartLightTier(renderer)==='low'?3:6);kartLod.object.visible=kartLod.object.count>0;
+        lodEntries.length=0;
+        for(const [id,model]of models)if(id!==followed?.id){
+          const entry=model.userData.lodEntry||(model.userData.lodEntry={mesh:model,color:model.userData.lodColor||0xffcf6f});
+          entry.visible=model.visible;lodEntries.push(entry);
+        }kartLod.update(camera,lodEntries,kartLightTier(renderer)==='low'?3:6);kartLod.object.visible=kartLod.object.count>0;
         const life=`${S.instanceId}:${followed?.id}:${followed?.spawnSeq}:${followed?.controlEpoch}:${models.get(followed?.id)?.userData.poseEpoch}`;if(life!==cameraLife){cameraLife=life;started=false;sideYaw=0;selectedSideYaw=0;sideHeight=3;recovery=0;sideSettling=false;}
         const model=models.get(followed?.id),launch=followed?.id===S.you&&predicted?predicted.flight:followed?.flight;
         if(model){
@@ -625,14 +635,14 @@ export function createElevatedKartView() {
   }
   function graphicsFailure(){
     rendererWarmup?.cancel();
-    graphicsFailed=true;gfxReady=false;stop();clock();newEvents.length=0;$('loading').hidden=false;$('loading').replaceChildren();const text=document.createElement('p');text.textContent='The 3D arena could not load. Retry or return to the room.';const retry=document.createElement('button');retry.textContent='Retry 3D';retry.setAttribute('data-watchok','');retry.onclick=()=>{if(pending)return;retry.disabled=true;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;graphicsFailed=false;loadScene();};$('loading').append(text,retry);
+    graphicsFailed=true;gfxReady=false;stop();clock();newEvents.length=0;setKartFlag($('loading'),'hidden',false);$('loading').replaceChildren();const text=document.createElement('p');text.textContent='The 3D arena could not load. Retry or return to the room.';const retry=document.createElement('button');retry.textContent='Retry 3D';retry.setAttribute('data-watchok','');retry.onclick=()=>{if(pending)return;retry.disabled=true;gl?.dispose();gl=null;prediction?.dispose();prediction=null;predicted=null;graphicsFailed=false;loadScene();};$('loading').append(text,retry);
     if(api.context?.().isHost){const back=document.createElement('button');back.textContent='Back to room';back.onclick=()=>api.lobby();$('loading').append(back);}
   }
   async function loadScene(){
     if(pending||gl||!S||graphicsFailed)return;pending=true;const gen=generation;
     const handle=await createThreeView($('stage'),{signal:api?.signal,diagnostics:api?.diagnostics,build:(THREE,helper)=>scene(THREE,helper,gen),onContextLost:graphicsFailure});
     if(gen!==generation){if(!handle.fallback)handle.dispose();return;}
-    pending=false;if(handle.fallback){graphicsFailure();return;}gl=handle;handle.canvas.setAttribute('data-game-focus','');gfxReady=true;itemKey='';$('loading').hidden=true;paint();clock();if(S.youDrive&&!blocked())handle.canvas.focus({preventScroll:true});
+    pending=false;if(handle.fallback){graphicsFailure();return;}gl=handle;handle.canvas.setAttribute('data-game-focus','');gfxReady=true;itemKey='';setKartFlag($('loading'),'hidden',true);paint();clock();if(S.youDrive&&!blocked())handle.canvas.focus({preventScroll:true});
   }
   // Same scene-owned, batched animals and garage paint as the classic view.
   // The host sends resolved colours; raw saved looks are also accepted.
@@ -651,7 +661,7 @@ export function createElevatedKartView() {
     // The platform already owns the Room launcher. Put game controls in
     // that drawer instead of drawing a second menu on top of it.
     const roomMenu=document.getElementById('roomMenu'),roomPanel=roomMenu?.querySelector('.room-menu-panel');
-    if(roomPanel){const panel=$('menu').querySelector('.pke-panel');panel.classList.add('pke-room-settings');roomPanel.append(panel);listeners.push([panel,'owned-panel',null]);$('menu').hidden=true;$('resume').hidden=true;root.classList.add('pke-has-room');on(roomMenu,'toggle',()=>{stop();paint();if(!roomMenu.open&&active()&&roomMenu.contains(document.activeElement))gl?.canvas.focus({preventScroll:true});});}
+    if(roomPanel){const panel=$('menu').querySelector('.pke-panel');panel.classList.add('pke-room-settings');roomPanel.append(panel);listeners.push([panel,'owned-panel',null]);setKartFlag($('menu'),'hidden',true);setKartFlag($('resume'),'hidden',true);root.classList.add('pke-has-room');on(roomMenu,'toggle',()=>{stop();paint();if(!roomMenu.open&&active()&&roomMenu.contains(document.activeElement))gl?.canvas.focus({preventScroll:true});});}
     wirePickers($('controls').parentNode);
     try{preference=localStorage.getItem('pk-controls-v1')||'auto';}catch{preference='auto';}if(!['auto','keyboard','touch'].includes(preference))preference='auto';
     audio=createKartAudio({muted:api.context?.().sound===false});

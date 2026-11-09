@@ -1,4 +1,6 @@
 import {createKartPickupPrediction} from './kart-pickup-prediction.mjs';
+import {setKartText,setKartFlag,setKartAttribute} from './kart-hud-write.mjs';
+import {createKartPickupPool} from './kart-pickup-pool.mjs';
 import {waitKartPreparation} from './kart-warmup-scheduler.mjs';
 import {kartLightTier} from './kart-festive-lights.mjs';
 import {controlsPickerHtml,wirePickers,syncPickers} from '../pickers.js';
@@ -645,42 +647,42 @@ export function createKartView(viewConfig) {
     const battle = isBattle();
 
     if (S.preparing || (!gl && !fbCanvas)) {
-      timer.textContent = '–:––'; // no running time yet; the shell says why
-      count.hidden = true;
-      count.textContent = '';
+      setKartText(timer, '–:––'); // no running time yet; the shell says why
+      setKartFlag(count,'hidden',true);
+      setKartText(count, '');
       lastCount = -1;
     } else if (S.phase === 'countdown' && S.endsAt) {
       const left = Math.max(0, S.endsAt - serverNow());
       const n = Math.ceil(left / 1000);
-      timer.textContent = 'Starting…';
-      count.hidden = false;
+      setKartText(timer, 'Starting…');
+      setKartFlag(count,'hidden',false);
       if (String(n) !== count.textContent) {
-        count.textContent = n > 0 ? String(n) : 'GO';
+        setKartText(count, n > 0 ? String(n) : 'GO');
         if (lastCount !== n && apiRef) {
           lastCount = n;
           if (n <= 0) apiRef.announce(battle ? 'Go! Tag your rivals.' : 'Go! Collect the stars.');
         }
       }
     } else if (S.phase === 'drive' && S.endsAt) {
-      timer.textContent = fmtTime(S.endsAt - serverNow());
-      count.hidden = true;
+      setKartText(timer, fmtTime(S.endsAt - serverNow()));
+      setKartFlag(count,'hidden',true);
     } else if (S.phase === 'done') {
-      timer.textContent = 'Finished';
-      count.hidden = true;
+      setKartText(timer, 'Finished');
+      setKartFlag(count,'hidden',true);
     }
-    goal.textContent = S.winRule === 'Time limit' ? (battle ? 'Most KOs wins' : 'Most stars wins') : battle ? `${S.targetHits || 0} KOs to win` : `★ ${S.targetStars || 0} to win`;
+    setKartText(goal, S.winRule === 'Time limit' ? (battle ? 'Most KOs wins' : 'Most stars wins') : battle ? `${S.targetHits || 0} KOs to win` : `★ ${S.targetStars || 0} to win`);
     drawRadar();
     const respawn = rootEl.querySelector('#pk-respawn');
     if (respawn) {
-      respawn.hidden = !meRespawning();
-      respawn.textContent = meRespawning() ? `Back in ${Math.max(1, Math.ceil(myKart().respawn))}…` : '';
+      setKartFlag(respawn,'hidden',!meRespawning());
+      setKartText(respawn, meRespawning() ? `Back in ${Math.max(1, Math.ceil(myKart().respawn))}…` : '');
     }
     const cue = rootEl.querySelector('#pk-cue');
-    if (cue) { cue.hidden = !cueText || nowMs() > cueUntil || S.phase !== 'drive'; cue.textContent = cueText; }
+    if (cue) { setKartFlag(cue,'hidden',!cueText || nowMs() > cueUntil || S.phase !== 'drive'); setKartText(cue,cueText); }
 
     const me = myKart();
     const health=rootEl.querySelector('#pk-health');
-    if(health){health.hidden=!battle||!me;if(me)paintKartHearts(health,me);}
+    if(health){setKartFlag(health,'hidden',!battle||!me);if(me)paintKartHearts(health,me);}
     const mapLabel = rootEl.querySelector('#pk-map');
     const handling = rootEl.querySelector('#pk-handling');
     const speedDigits = rootEl.querySelector('#pk-speed');
@@ -695,8 +697,8 @@ export function createKartView(viewConfig) {
     const nitroLocked = me?.nitroLocked === true;
     const nitroActive = me?.nitroActive === true;
     const kmh = Math.round(Math.abs((me && me.speed) || 0) * 3.6);
-    if (mapLabel) mapLabel.textContent = (S.map && (S.map.label || S.map.id)) || 'Arena';
-    if (speedDigits) speedDigits.textContent = me ? String(kmh) : '–';
+    if (mapLabel) setKartText(mapLabel, (S.map && (S.map.label || S.map.id)) || 'Arena');
+    if (speedDigits) setKartText(speedDigits, me ? String(kmh) : '–');
     if (handling) {
       const feel = !me ? 'Watching the arena'
         : me.drifting ? (tier ? DRIFT_TIERS[tier-1].label+' · release for turbo!' : 'Charging drift')
@@ -708,35 +710,35 @@ export function createKartView(viewConfig) {
         : nitroLocked ? 'Nitro charging…'
         : me.speed < -1 ? 'Reversing'
         : '';
-      handling.textContent = feel;
-      handling.hidden = !feel;
+      setKartText(handling, feel);
+      setKartFlag(handling,'hidden',!feel);
     }
     if (driftFill) {driftFill.style.transform = `scaleX(${charge})`;driftFill.style.background=tier?DRIFT_TIERS[tier-1].css:'#6d829c';}
     if (driftMeter) {
-      driftMeter.hidden = !me;
-      driftMeter.setAttribute('aria-valuenow', String(Math.round(charge * 100)));
-      driftMeter.setAttribute('aria-valuetext',tier?DRIFT_TIERS[tier-1].label+' turbo ready':'Charging drift');
+      setKartFlag(driftMeter,'hidden',!me);
+      setKartAttribute(driftMeter,'aria-valuenow', String(Math.round(charge * 100)));
+      setKartAttribute(driftMeter,'aria-valuetext',tier?DRIFT_TIERS[tier-1].label+' turbo ready':'Charging drift');
     }
     if (nitroFill) nitroFill.style.transform = `scaleX(${nitro})`;
     if (nitroMeter) {
-      nitroMeter.hidden = !me;
-      nitroMeter.setAttribute('aria-valuenow', String(Math.round(nitro * 100)));
+      setKartFlag(nitroMeter,'hidden',!me);
+      setKartAttribute(nitroMeter,'aria-valuenow', String(Math.round(nitro * 100)));
       nitroMeter.classList.toggle('pk-empty', nitroLocked);
       nitroMeter.classList.toggle('pk-boosting', nitroActive);
     }
-    if (nitroLabel) nitroLabel.textContent = !me ? 'Nitro' : nitroActive ? 'Nitro!' : nitroLocked ? `Charging ${Math.round(nitro * 100)}%` : `Nitro ${Math.round(nitro * 100)}%`;
+    if (nitroLabel) setKartText(nitroLabel, !me ? 'Nitro' : nitroActive ? 'Nitro!' : nitroLocked ? `Charging ${Math.round(nitro * 100)}%` : `Nitro ${Math.round(nitro * 100)}%`);
     const driftButton = rootEl.querySelector('#pk-th');
     if (driftButton) driftButton.classList.toggle('pk-held', !!(me && me.drifting));
     const nitroButton = rootEl.querySelector('#pk-tn');
     if (nitroButton) {
-      nitroButton.disabled = S.phase !== 'drive' && S.phase !== 'countdown' || !me || me.respawn > 0;
+      setKartFlag(nitroButton,'disabled',S.phase !== 'drive' && S.phase !== 'countdown' || !me || me.respawn > 0);
       // Charge moves ONLY the ring arc offset; the glyph markup is static
       // from mount and is never rebuilt by HUD text updates.
       try {
         const arc = nitroButton.querySelector('.pk-nitro-arc');
-        if (arc) arc.setAttribute('stroke-dashoffset', (NITRO_ARC_LEN * (1 - nitro)).toFixed(1));
+        if (arc) setKartAttribute(arc,'stroke-dashoffset', (NITRO_ARC_LEN * (1 - nitro)).toFixed(1));
       } catch { /* unstyled still plays */ }
-      nitroButton.setAttribute('aria-label', !me ? 'Nitro' : nitroActive ? `Nitro boosting, ${Math.round(nitro * 100)} percent left` : nitroLocked ? `Nitro charging, ${Math.round(nitro * 100)} percent` : `Hold for nitro boost, ${Math.round(nitro * 100)} percent`);
+      setKartAttribute(nitroButton,'aria-label', !me ? 'Nitro' : nitroActive ? `Nitro boosting, ${Math.round(nitro * 100)} percent left` : nitroLocked ? `Nitro charging, ${Math.round(nitro * 100)} percent` : `Hold for nitro boost, ${Math.round(nitro * 100)} percent`);
       nitroButton.classList.toggle('pk-boosting', nitroActive);
       nitroButton.classList.toggle('pk-empty', nitroLocked);
     }
@@ -750,13 +752,13 @@ export function createKartView(viewConfig) {
     if (battle) {
       const item = ITEMS[me?.weapon];
       const loaded = !!(item && me && me.ammo > 0);
-      mine.textContent = me ? `You · ${me.hits || 0} KO${me.hits === 1 ? '' : 's'}` : 'Watching';
-      boost.hidden = !me;
+      setKartText(mine, me ? `You · ${me.hits || 0} KO${me.hits === 1 ? '' : 's'}` : 'Watching');
+      setKartFlag(boost,'hidden',!me);
       const hint=loaded&&S.phase==='drive'&&nowMs()<keycapUntil&&!touchControlsFor(controlsPreference,readInputCapabilities());
       paintKartWeapon(boost,me,weaponArt(me?.weapon||'crate'),{hint,roulette});
     } else {
-      mine.textContent = me ? `You ★ ${me.stars}` : (S.youDrive ? 'You ★ 0' : 'Watching');
-      boost.hidden=true;
+      setKartText(mine, me ? `You ★ ${me.stars}` : (S.youDrive ? 'You ★ 0' : 'Watching'));
+      setKartFlag(boost,'hidden',true);
     }
 
     // Standings rewrite only when the order/scores actually change: this
@@ -787,12 +789,12 @@ export function createKartView(viewConfig) {
         if (leader) {
           const fullName = nameOf(leader.pid);
           const rank = self ? myRank : 1;
-          lead.setAttribute('aria-label', `${fullName}, rank ${rank}, ${scoreTxt(leader)}. Expand standings.`);
+          setKartAttribute(lead,'aria-label', `${fullName}, rank ${rank}, ${scoreTxt(leader)}. Expand standings.`);
           lead.innerHTML = `<span class="pk-leadrank">P${rank}</span>` +
             `<span class="pk-leadscore">${scoreOf(leader)}${battle ? '<small> KO</small>' : ' ★'}</span>` +
             `<span class="pk-chev" aria-hidden="true">▾</span>`;
         } else {
-          lead.setAttribute('aria-label', 'Expand standings');
+          setKartAttribute(lead,'aria-label', 'Expand standings');
           lead.innerHTML = '<span class="pk-leadtxt">–</span><span class="pk-chev" aria-hidden="true">▾</span>';
         }
       }
@@ -806,7 +808,7 @@ export function createKartView(viewConfig) {
     }
 
     if (S.phase === 'done' && S.result) {
-      result.hidden = false;
+      setKartFlag(result,'hidden',false);
       const bought = !!(garagePending && S.garageResult?.nonce === garagePending && S.garageResult.ok);
       if (S.garageResult?.nonce === garagePending) garagePending = null;
       const wins = S.result.winners || (S.result.winner ? [S.result.winner] : []);
@@ -834,7 +836,7 @@ export function createKartView(viewConfig) {
         }
       }
     } else {
-      result.hidden = true;
+      setKartFlag(result,'hidden',true);
       if (lastResultKey !== '') {
         lastResultKey = '';
         result.innerHTML = '';
@@ -850,8 +852,8 @@ export function createKartView(viewConfig) {
       : S.phase === 'countdown' ? (S.preparing ? '' : arenaName ? `Get ready · ${arenaName}` : 'Get ready…')
       : S.phase === 'drive' && meRespawning() ? (myKart()?.fell ? 'Fell in — rejoining…' : 'Knocked out — rejoining…')
       : '';
-    tip.textContent = tipTxt;
-    tip.hidden = !tipTxt;
+    setKartText(tip, tipTxt);
+    setKartFlag(tip,'hidden',!tipTxt);
 
     // Fire button shows the equipped weapon SVG + remaining ammo (empty
     // crosshair when unarmed). Markup rebuilds only on a changed key; no
@@ -872,8 +874,8 @@ export function createKartView(viewConfig) {
       const label = !battle ? 'Boost'
         : loaded ? me.firing ? 'Weapon firing' : `Activate ${item.label}, full payload`
         : !me || me.respawn > 0 ? 'Rejoining' : 'No item';
-      if (tb.getAttribute('aria-label') !== label) tb.setAttribute('aria-label', label);
-      tb.disabled = S.phase !== 'drive' || !me || me.respawn > 0 || (battle && (!loaded || me.firing));
+      if (tb.getAttribute('aria-label') !== label) setKartAttribute(tb,'aria-label', label);
+      setKartFlag(tb,'disabled',S.phase !== 'drive' || !me || me.respawn > 0 || (battle && (!loaded || me.firing)));
     }
 
     if (typeof hooks.hudExtra === 'function') {
@@ -1199,6 +1201,17 @@ export function createKartView(viewConfig) {
       for(const kind of ['nuke','frost']){
         const pool=[];for(let i=0;i<12;i++){const group=new THREE.Group(),body=combat.projectile(kind);group.add(body);group.userData.body=body;group.userData.poolKey=kind;group.visible=false;scene.add(group);pool.push(group);}grenadePools.set(kind,pool);warm.add(pool[0]);pool[0].visible=true;
       }
+      // Reserve every pickup body before warm-up. Server ids change when
+      // boxes respawn; a fresh id must never clone a model during driving.
+      const starPool=createKartPickupPool(()=>{
+        const group=new THREE.Group(),gem=createStarModel(THREE,assets);
+        gem.position.y=1.5;group.add(gem);group.userData.gem=gem;return group;
+      },Math.max(32,S.stars?.length||0));
+      const cratePool=createKartPickupPool(()=>{
+        const group=new THREE.Group(),box=combat.pickup();
+        group.add(box);group.userData.capsule=box;return group;
+      },Math.max(32,S.crates?.length||0));
+      for(const pool of [starPool,cratePool]){const object=pool.objects[0];object.visible=true;warm.add(object);}
       const shotPools=new Map(),shotCues=[],shotContactInsets=new Map();
       function prepareShotContact(object,kind,radius){
         const c=object.userData.combat,key=kind+':'+radius;
@@ -1229,9 +1242,12 @@ export function createKartView(viewConfig) {
       reserve.visible=true;reserve.position.y=-100;reserve.traverse(object=>{object.frustumCulled=false;});
       const warmLibrary=createKartWarmupLibrary(THREE,scene,assets,combat);
       await waitKartPreparation(disposeLighting.ready,apiRef?.preparationSignal);
+      // State/countdown paint signals can expire while this arena still lives.
+      // Scope required GPU preparation to its generation. Then allow six
+      // seconds for other bindings; no queue resumes after scene handoff.
       warmup=await warmKartRenderer(THREE,renderer,scene,camera,{isAlive:()=>gen===mountGen,
         requiredRoots:[warm,reserve,warmLibrary,pops,scene.getObjectByName('KartImpactFX')],
-        budgetMs:2000,signal:apiRef?.preparationSignal,priorityRoots:[world.group,...karts.values(),warmLibrary.children[0],drivingFX.particles,drivingFX.speedLines],
+        budgetMs:6000,priorityRoots:[world.group,...karts.values(),starPool.objects[0],cratePool.objects[0],warmLibrary.children[0],drivingFX.particles,drivingFX.speedLines],
         onProgress:({completed,total})=>{if(gen===mountGen){const loading=rootEl?.querySelector('.pk-loading'),text=`Preparing graphics… ${Math.round(completed/total*100)}%`;if(loading&&loading.textContent!==text)loading.textContent=text;}},
         roots:[warm,reserve,warmLibrary,pops,kartLod.object,drivingFX.particles,drivingFX.speedLines,
           scene.getObjectByName('KartSkidMarks'),scene.getObjectByName('KartThreatRing'),
@@ -1252,9 +1268,11 @@ export function createKartView(viewConfig) {
       warm.removeFromParent();reserve.visible=false;reserve.position.y=0;
       for(const pool of markerPools.values())for(const marker of pool){marker.visible=false;reserve.add(marker);}
       for(const k of S.karts||[])healthBars.add(k.pid).visible=false;
+      for(const pool of [starPool,cratePool])for(const object of pool.objects){object.removeFromParent();object.visible=false;}
       for(const pool of shotPools.values())for(const object of pool){object.removeFromParent();object.visible=false;object.position.set(0,0,0);}
       for(const cue of shotCues){cue.object.removeFromParent();cue.object.visible=false;cue.object.position.set(0,0,0);scene.add(cue.object);}
       if(gen!==mountGen)throw new Error('Retired kart scene');
+      const live=new Set(),liveS=new Set(),liveC=new Set(),liveZ=new Set(),liveG=new Set(),liveM=new Set(),lodEntries=[];
       let impactEpoch=-1,impactSince=nowMs(),lastEffectTime=null;
       const frame = (dt, t) => {
         if (!S) return;
@@ -1333,7 +1351,7 @@ export function createKartView(viewConfig) {
         }
         while(effectSeen.size>48)effectSeen.delete(effectSeen.values().next().value);
         for(const [id,e]of combatEffects){if(nowMs()>=e.until){returnMarker(e.mesh);combatEffects.delete(id);}else if(!rm){const progress=(nowMs()-e.at)/(e.until-e.at);e.mesh.scale.setScalar((.2+progress*.8)*e.size);placeGroundMarker(e.mesh,e.mesh.position.x,e.mesh.position.z,groundAt);}}
-        const live = new Set();
+        live.clear();
         for (const k of S.karts || []) {
           live.add(k.pid);
           const pose = poses.get(k.pid) || { x: k.x, z: k.z, angle: k.angle };
@@ -1388,7 +1406,13 @@ export function createKartView(viewConfig) {
           if (mesh.userData.shield) mesh.userData.shield.visible = (k.shield || 0) > 0;
 
         }
-        lodProxied = kartLod.update(camera, [...karts].filter(([pid]) => live.has(pid)).map(([pid, mesh]) => ({ mesh, color: colorFor(pid), visible: mesh.visible })));
+        let lodCount=0;
+        for(const [pid,mesh]of karts)if(live.has(pid)){
+          const entry=lodEntries[lodCount]||(lodEntries[lodCount]={});
+          entry.mesh=mesh;entry.color=colorFor(pid);entry.visible=mesh.visible;lodCount++;
+        }
+        lodEntries.length=lodCount;
+        lodProxied=kartLod.update(camera,lodEntries);
         let popCount=0;
         for (let i=popSites.length-1;i>=0;i--) if (t-popSites[i].t>= .14) popSites.splice(i,1);
         for (const site of popSites) {
@@ -1410,20 +1434,19 @@ export function createKartView(viewConfig) {
           }
         }
         // Stars: sync set, spin unless reduced motion.
-        const liveS = new Set();
+        liveS.clear();
+        for(const s of S.stars||[])liveS.add(s.id);
+        for(const [id,mesh]of stars)if(!liveS.has(id)){returnMarker(mesh.userData.zone);starPool.release(mesh);stars.delete(id);}
         for (const s of S.stars || []) {
           liveS.add(s.id);
           let group = stars.get(s.id);
           if (!group) {
-            group = new THREE.Group();
-            const gem = createStarModel(THREE, assets);
-            gem.position.y = 1.5;
-            group.add(gem);
+            group = starPool.take();
+            if(!group)continue;
             const zone = takeMarker('star');
             placeGroundMarker(zone,s.x,s.z,groundAt);
             scene.add(zone);group.userData.zone=zone;
             group.position.set(s.x, s.groundY??world.groundAt?.(s.x,s.z)??0, s.z);
-            group.userData.gem = gem;
             scene.add(group);
             stars.set(s.id, group);
           }
@@ -1432,22 +1455,15 @@ export function createKartView(viewConfig) {
             group.userData.gem.position.y = 1.5 + Math.sin(t*2.2 + s.id.length)*0.14;
           }
         }
-        for (const [sid, mesh] of stars) {
-          if (!liveS.has(sid)) {
-            returnMarker(mesh.userData.zone);
-            scene.remove(mesh);
-            stars.delete(sid);
-          }
-        }
         // Crates: sync set, static boxes with the honest pickup ring.
-        const liveC = new Set();
+        liveC.clear();
+        for(const c of S.crates||[])liveC.add(c.id);
+        for(const [id,mesh]of crates)if(!liveC.has(id)){returnMarker(mesh.userData.zone);cratePool.release(mesh);crates.delete(id);}
         for (const c of S.crates || []) {
           liveC.add(c.id);
           if (!crates.get(c.id)) {
-            const group = new THREE.Group();
-            const box = combat.pickup();
-            group.userData.capsule = box;
-            group.add(box);
+            const group = cratePool.take();
+            if(!group)continue;
             const zone = takeMarker('crate');
             placeGroundMarker(zone,c.x,c.z,groundAt);
             scene.add(zone);group.userData.zone=zone;
@@ -1457,17 +1473,10 @@ export function createKartView(viewConfig) {
           }
           const box=crates.get(c.id);box.visible=!pickupPrediction.hidden(c.id);box.userData.zone.visible=box.visible;combat.animate(box.userData.capsule,dt,t,rm);
         }
-        for (const [cid, mesh] of crates) {
-          if (!liveC.has(cid)) {
-            returnMarker(mesh.userData.zone);
-            scene.remove(mesh);
-            crates.delete(cid);
-          }
-        }
         // Authoritative velocity at the calibrated clock. No chasing packet
         // positions: easing fast shots made them visibly slow and jerky.
         shotPlayback.setDelay(physicalPrediction?.remoteDelay()??100);
-        const liveZ = new Set();
+        liveZ.clear();
         const currentZ=(ordnanceFresh()?S.zaps:[])||[];
         for(const z of currentZ)liveZ.add(z.id);
         for(const [id,mesh]of zaps)if(!liveZ.has(id)){impactFX.retire(mesh);mesh.visible=false;mesh.removeFromParent();shotPools.get(mesh.userData.combat.kind)?.push(mesh);zaps.delete(id);}
@@ -1500,7 +1509,7 @@ export function createKartView(viewConfig) {
             zaps.delete(zid);
           }
         }
-        const liveG=new Set(),currentG=(ordnanceFresh()?S.grenades:[])||[];
+        liveG.clear();const currentG=(ordnanceFresh()?S.grenades:[])||[];
         for(const g of currentG)liveG.add(g.id);
         for(const[id,group]of grenades)if(!liveG.has(id)){impactFX.retire(group.userData.body);if(group.userData.ring)returnMarker(group.userData.ring);group.userData.ring=null;group.visible=false;group.removeFromParent();grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
         for(const g of currentG){liveG.add(g.id);let group=grenades.get(g.id);
@@ -1511,7 +1520,7 @@ export function createKartView(viewConfig) {
           combat.animate(group.userData.body,dt,t,rm);if(!flight.visible)impactFX.retire(group.userData.body);if(flight.visible)impactFX.trail(group.userData.body,dt,group.position);if(group.userData.ring){placeGroundMarker(group.userData.ring,flight.x,flight.z,groundAt);group.userData.ring.visible=flight.visible&&g.warning===true;}
         }
         for(const[id,group]of grenades)if(!liveG.has(id)){impactFX.retire(group.userData.body);if(group.userData.ring)returnMarker(group.userData.ring);group.visible=false;grenadePools.get(group.userData.poolKey).push(group);grenades.delete(id);}
-        const liveM = new Set(),currentM=(ordnanceFresh()?S.mines:[])||[];
+        liveM.clear();const currentM=(ordnanceFresh()?S.mines:[])||[];
         for(const m of currentM)liveM.add(m.id);
         for(const[id,mesh]of mines)if(!liveM.has(id)){mesh.visible=false;mesh.removeFromParent();minePools.get(mesh.userData.poolKey).push(mesh);mines.delete(id);}
         for (const m of currentM) {

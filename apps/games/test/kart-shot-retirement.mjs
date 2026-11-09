@@ -18,13 +18,14 @@ import {rig,base} from './helpers/kart-view-fixture.mjs';
 const source=fs.readFileSync(new URL('../public/js/engines/kart-view.js',import.meta.url),'utf8');
 const freshness=source.slice(source.indexOf('function ordnanceFresh('),source.indexOf('/* Calibrated server time'));
 const preparation=source.slice(source.indexOf('function prepareShotContact('),source.indexOf('const cueBounds='));
-const placement=source.slice(source.indexOf('const liveZ = new Set();'),source.indexOf('for (const [zid, mesh] of zaps)'));
+const placement=source.slice(source.indexOf('liveZ.clear();'),source.indexOf('for (const [zid, mesh] of zaps)'));
+assert(placement.length>100,'production projectile placement was found');
 const kinds=['machinegun','trishot','missile','cannon'];
 for(const kind of kinds){
  const scene=new THREE.Scene(),art=createKartCombatArt(THREE),fx=createKartImpactFX(THREE,scene),shotPlayback=createProjectilePlayback();shotPlayback.setDelay(350);
  const shot={id:'shot',kind,physical:true,x:0,y:1,z:0,vx:0,vy:0,vz:50,angle:0,ttl:2};for(let at=1000;at<=1600;at+=100)shotPlayback.ingest([{...shot,z:(at-1000)*.05}],at);
  const pooled=art.projectile(kind);pooled.userData.flight={direction:{}};
- const c=vm.createContext({THREE,S:{phase:'drive',simAt:1600,zaps:[shot]},lastSnapshotArrival:1600,clock:1600,nowMs:()=>c.clock,serverNow:()=>c.clock,apiRef:{context:()=>({connected:true})},shotContactInsets:new Map(),projectileContactInset,zaps:new Map(),shotPools:new Map([[kind,[pooled]]]),combat:art,scene,shotPlayback,impactFX:fx,shotDirection:new THREE.Vector3(),shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:.01,t:1,rm:false});
+ const c=vm.createContext({liveZ:new Set(),liveG:new Set(),THREE,S:{phase:'drive',simAt:1600,zaps:[shot]},lastSnapshotArrival:1600,clock:1600,nowMs:()=>c.clock,serverNow:()=>c.clock,apiRef:{context:()=>({connected:true})},shotContactInsets:new Map(),projectileContactInset,zaps:new Map(),shotPools:new Map([[kind,[pooled]]]),combat:art,scene,shotPlayback,impactFX:fx,shotDirection:new THREE.Vector3(),shotForward:new THREE.Vector3(0,0,1),tmpV:new THREE.Vector3(),dt:.01,t:1,rm:false});
  vm.runInContext(freshness+preparation+';globalThis.render=()=>{'+placement+'};',c);
  bound('classic dropped '+kind,lastVisible(ms=>{c.clock=1600+ms;c.render();fx.update(.01);},()=>[...c.zaps.values()].some(o=>o.visible)));
  c.clock=3000;c.lastSnapshotArrival=3000;c.S={phase:'drive',simAt:3000,zaps:[]};shotPlayback.ingest([],3000);c.render();bound('classic explicit removal '+kind,[...c.zaps.values()].some(o=>o.visible)?Infinity:0);
@@ -32,12 +33,12 @@ for(const kind of kinds){
 }
 // Classic thrown bodies and their separately pooled warning rings use the
 // same production freshness/return path as the live renderer.
-const thrown=source.slice(source.indexOf('const liveG=new Set()'),source.indexOf('const liveM = new Set()'));
+const thrown=source.slice(source.indexOf('liveG.clear();'),source.indexOf('liveM.clear();'));
 for(const kind of ['nuke','frost']){
  const scene=new THREE.Scene(),art=createKartCombatArt(THREE),fx=createKartImpactFX(THREE,scene),group=new THREE.Group();
  group.userData.body=art.projectile(kind);group.userData.poolKey=kind;group.add(group.userData.body);
  const grenade={id:'g',kind,physical:true,x:0,y:1,z:3,vx:0,vy:0,vz:0,fuse:2,warning:true};
- const c=vm.createContext({S:{phase:'drive',simAt:1000,grenades:[grenade]},lastSnapshotArrival:1000,clock:1000,nowMs:()=>c.clock,serverNow:()=>c.clock,apiRef:{context:()=>({connected:true})},grenades:new Map(),grenadePools:new Map([[kind,[group]]]),combat:art,scene,impactFX:fx,grenadePose,dt:.01,t:1,rm:false,groundAt:()=>0,takeMarker:()=>{const ring=new THREE.Group();scene.add(ring);return ring;},returnMarker:o=>{o.visible=false;o.removeFromParent();},placeGroundMarker:(o,x,z)=>o.position.set(x,0,z)});
+ const c=vm.createContext({liveZ:new Set(),liveG:new Set(),S:{phase:'drive',simAt:1000,grenades:[grenade]},lastSnapshotArrival:1000,clock:1000,nowMs:()=>c.clock,serverNow:()=>c.clock,apiRef:{context:()=>({connected:true})},grenades:new Map(),grenadePools:new Map([[kind,[group]]]),combat:art,scene,impactFX:fx,grenadePose,dt:.01,t:1,rm:false,groundAt:()=>0,takeMarker:()=>{const ring=new THREE.Group();scene.add(ring);return ring;},returnMarker:o=>{o.visible=false;o.removeFromParent();},placeGroundMarker:(o,x,z)=>o.position.set(x,0,z)});
  vm.runInContext(freshness+';globalThis.render=()=>{'+thrown+'};',c);c.render();assert(group.visible,kind+' starts live');
  bound('classic dropped grenade '+kind,lastVisible(ms=>{c.clock=1000+ms;c.render();fx.update(.01);},()=>group.visible||!!group.userData.ring?.visible));
  c.S.grenades=[];c.lastSnapshotArrival=c.clock;c.render();assert(!group.visible&&!group.userData.ring,'body and warning return together');art.dispose();fx.dispose();
@@ -97,7 +98,7 @@ for(const weapon of WEAPON_IDS){
 s=structuredClone(s);s.phase='countdown';s.simTick++;s.simAt=r.api.now();s.events=[];r.render(s);r.frame();r.advance(5000);
 s=structuredClone(s);s.phase='live';s.simTick++;s.simAt+=50;s.projectiles=[{id:'after-preparation',weapon:'missile',position:{x:0,y:1,z:3},velocity:{x:0,y:0,z:50},ttl:2}];r.render(s);r.frame();r.advance(100);r.frame();assert(liveBodies().length,'phase change resets the paused simulation clock');
 {
- const c=vm.createContext({S:{phase:'drive',simAt:50},clock:10000,lastSnapshotArrival:10000,nowMs:()=>c.clock,serverNow:()=>10000,apiRef:{context:()=>({connected:true})}});vm.runInContext(freshness+';globalThis.clockForShots=ordnanceNow;',c);assert.equal(c.clockForShots(),50,'classic shot clock resumes from accepted simAt');c.clock+=100;assert.equal(c.clockForShots(),150,'classic shot clock advances with receipt age');
+ const c=vm.createContext({liveZ:new Set(),liveG:new Set(),S:{phase:'drive',simAt:50},clock:10000,lastSnapshotArrival:10000,nowMs:()=>c.clock,serverNow:()=>10000,apiRef:{context:()=>({connected:true})}});vm.runInContext(freshness+';globalThis.clockForShots=ordnanceNow;',c);assert.equal(c.clockForShots(),50,'classic shot clock resumes from accepted simAt');c.clock+=100;assert.equal(c.clockForShots(),150,'classic shot clock advances with receipt age');
 }
 r.view.dispose();
 console.log(JSON.stringify({pass:!measuring,results,scope:'real Three classic placement, full raised frame, every weapon FX; 10ms resolution'}));

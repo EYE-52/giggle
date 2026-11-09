@@ -1,0 +1,322 @@
+{
+  "integratedBranch": "claude/game-fixes-nov9",
+  "integratedCommit": "8266c8d",
+  "performanceCommit": "4ee9559",
+  "weaponsCommit": "dbc80d6",
+  "scope": "Real authority, seven WebSocket bots and one Chrome keyboard driver, native Apple M5 Metal, 4x CPU slowdown. Declared authority inventory exercises all ten weapons, pickup, blast, KO and respawn paths. Phone viewport is not physical-phone evidence. Short samples on a shared machine.",
+  "rawEvidence": "artifacts/kart-weapons/perf-integration/results.json",
+  "rows": [
+    {
+      "map": "Rookie Ring",
+      "viewport": [
+        1280,
+        720
+      ],
+      "drivers": 8,
+      "cpuThrottle": 4,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+      "preparation": {
+        "completed": 584,
+        "total": 584
+      },
+      "preparationSkipped": false,
+      "natural": {
+        "fps": 60.00393468415364,
+        "p95FrameMs": 16.700000000000728,
+        "worstFrameMs": 16.80000000000291,
+        "uploads": {
+          "programs": 0,
+          "buffers": 0,
+          "textures": 1
+        },
+        "longTasks": 0
+      },
+      "combat": {
+        "fps": 59.96123832769464,
+        "p95FrameMs": 16.700000000004366,
+        "worstFrameMs": 16.80000000000291,
+        "uploads": {
+          "programs": 0,
+          "buffers": 0,
+          "textures": 0
+        },
+        "longTasks": 0,
+        "weapons": [
+          "machinegun",
+          "trishot",
+          "missile",
+          "cannon",
+          "blades",
+          "supernova",
+          "mine",
+          "frost",
+          "ram",
+          "nuke"
+        ]
+      },
+      "sweep": {
+        "angles": 24,
+        "expected": 83,
+        "drawn": 83,
+        "badBounds": [],
+        "missing": []
+      },
+      "errors": []
+    },
+    {
+      "map": "Rookie Ring",
+      "viewport": [
+        390,
+        844
+      ],
+      "drivers": 8,
+      "cpuThrottle": 4,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+      "preparation": {
+        "completed": 584,
+        "total": 584
+      },
+      "preparationSkipped": false,
+      "natural": {
+        "fps": 60.01278961116462,
+        "p95FrameMs": 16.799999999999272,
+        "worstFrameMs": 16.80000000000291,
+        "uploads": {
+          "programs": 0,
+          "buffers": 0,
+          "textures": 0
+        },
+        "longTasks": 0
+      },
+      "combat": {
+        "fps": 59.96472663139329,
+        "p95FrameMs": 16.700000000004366,
+        "worstFrameMs": 16.80000000000291,
+        "uploads": {
+          "programs": 0,
+          "buffers": 0,
+          "textures": 0
+        },
+        "longTasks": 0,
+        "weapons": [
+          "machinegun",
+          "trishot",
+          "missile",
+          "cannon",
+          "blades",
+          "supernova",
+          "mine",
+          "frost",
+          "ram",
+          "nuke"
+        ]
+      },
+      "sweep": {
+        "angles": 24,
+        "expected": 84,
+        "drawn": 84,
+        "badBounds": [],
+        "missing": []
+      },
+      "errors": []
+    },
+    {
+      "map": "Skyport",
+      "viewport": [
+        1280,
+        720
+      ],
+      "drivers": 8,
+      "cpuThrottle": 4,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+      "preparation": {
+        "completed": 450,
+        "total": 450
+      },
+      "preparationSkipped": false,
+      "natural": {
+        "fps": 60.036802745867035,
+        "p95FrameMs": 16.799999999999272,
+        "worstFrameMs": 16.80000000000291,
+        "uploads": {
+          "programs": 0,
+          "buffers": 0,
+          "textures": 0
+        },
+        "longTasks": 0
+      },
+      "combat": {
+        "fps": 59.976169164886564,
+        "p95FrameMs": 16.700000000004366,
+        "worstFrameMs": 16.80000000000291,
+        "uploads": {
+          "programs": 0,
+          "buffers": 0,
+          "textures": 0
+        },
+        "longTasks": 0,
+        "weapons": [
+          "machinegun",
+          "trishot",
+          "missile",
+          "cannon",
+          "blades",
+          "supernova",
+          "mine",
+          "frost",
+          "ram",
+          "nuke"
+        ]
+      },
+      "sweep": {
+        "angles": 24,
+        "expected": 151,
+        "drawn": 151,
+        "badBounds": [],
+        "missing": []
+      },
+      "errors": []
+    },
+    {
+      "map": "Skyport",
+      "viewport": [
+        390,
+        844
+      ],
+      "drivers": 8,
+      "cpuThrottle": 4,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M5, Unspecified Version)",
+      "preparation": {
+        "completed": 428,
+        "total": 428
+      },
+      "preparationSkipped": false,
+      "natural": {
+        "fps": 59.953376484707306,
+        "p95FrameMs": 16.700000000000728,
+        "worstFrameMs": 16.80000000000291,
+        "uploads": {
+          "programs": 0,
+          "buffers": 0,
+          "textures": 0
+        },
+        "longTasks": 0
+      },
+      "combat": {
+        "fps": 59.971040600329474,
+        "p95FrameMs": 16.799999999995634,
+        "worstFrameMs": 16.80000000000291,
+        "uploads": {
+          "programs": 0,
+          "buffers": 0,
+          "textures": 0
+        },
+        "longTasks": 0,
+        "weapons": [
+          "machinegun",
+          "trishot",
+          "missile",
+          "cannon",
+          "blades",
+          "supernova",
+          "mine",
+          "frost",
+          "ram",
+          "nuke"
+        ]
+      },
+      "sweep": {
+        "angles": 24,
+        "expected": 151,
+        "drawn": 151,
+        "badBounds": [],
+        "missing": []
+      },
+      "errors": []
+    }
+  ],
+  "limits": [
+    "Rookie Ring desktop recorded one texture initialization during natural driving; every combat stress sample recorded zero GPU resource initializations.",
+    "The inherited performance report remains a historical 13-weapon before/after capture; this report records the integrated ten-weapon build."
+  ],
+  "validation": {
+    "fullNpmTest": {
+      "passed": true,
+      "log": "artifacts/kart-weapons/merge2-full-npm-test.log"
+    },
+    "performanceStability": {
+      "passed": true,
+      "pickupRespawns": 9600,
+      "auditedRaisedInstanceBounds": 336437
+    },
+    "software32Driver": {
+      "passed": true,
+      "drivers": 32,
+      "connected": 32,
+      "fps": 3.9,
+      "worstFrameMs": 1750,
+      "scope": "Existing forced SwiftShader CPU renderer on a busy shared Mac; not hardware-GPU evidence."
+    },
+    "kartFiles": {
+      "passed": 115,
+      "total": 115,
+      "productionWorkload": "72 legal WebSocket drivers across nine timed matches"
+    },
+    "browserChecks": [
+      {
+        "file": "kart-garage-browser.cjs",
+        "passed": true
+      },
+      {
+        "file": "kart-32-browser.cjs",
+        "passed": true
+      },
+      {
+        "file": "kart-camera-browser.cjs",
+        "passed": true
+      },
+      {
+        "file": "kart-render-warmup-browser.cjs",
+        "passed": true
+      },
+      {
+        "file": "kart-shot-retirement-browser.cjs",
+        "passed": true
+      },
+      {
+        "file": "kart-practice-perf-browser.cjs",
+        "passed": true
+      }
+    ],
+    "productionChecks": [
+      {
+        "file": "kart-acceptance-transport.js",
+        "passed": true
+      },
+      {
+        "file": "kart-weapon-system-browser.cjs",
+        "passed": true
+      },
+      {
+        "file": "kart-weapon-raised-browser.cjs",
+        "passed": true
+      },
+      {
+        "file": "kart-loading-browser.cjs",
+        "passed": true
+      }
+    ],
+    "weaponPictures": 240,
+    "coldLoad": {
+      "timedOut": false,
+      "hostReadyMs": 4716,
+      "bothReadyMs": 6801,
+      "usableMs": 7045,
+      "streamedWasmBySeat": [
+        1,
+        1
+      ],
+      "errors": []
+    }
+  }
+}

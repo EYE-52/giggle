@@ -16,6 +16,8 @@ const assert = new Proxy(nativeAssert, {
 const fs = require('node:fs');
 const vm = require('node:vm');
 (async () => {
+const hudWrites=await import('../public/js/engines/kart-hud-write.mjs');
+const {createKartPickupPool}=await import('../public/js/engines/kart-pickup-pool.mjs');
 const {waitKartPreparation}=await import('../public/js/engines/kart-warmup-scheduler.mjs');
 const { intentFromKeys } = await import('../public/js/engines/kart-pose.mjs');
 const { createMobileStick } = await import('../public/js/toolkit/mobile-stick.mjs');
@@ -91,7 +93,7 @@ window.screen = {orientation: new Node()};
 const audios=[];
 const {createSurfaceIndex,surfaceTuning}=require('../public/js/engines/kart-surface.mjs');
 const {driftTier,DRIFT_TIERS}=require('../public/js/engines/kart-drift.mjs');
-const context = vm.createContext({...require('../public/js/engines/kart-weapon-contract.mjs'),...require('../public/js/engines/kart-flight.mjs'),document, window, console, Date,createSurfaceIndex,surfaceTuning,driftTier,DRIFT_TIERS,
+const context = vm.createContext({...hudWrites,createKartPickupPool,...require('../public/js/engines/kart-weapon-contract.mjs'),...require('../public/js/engines/kart-flight.mjs'),document, window, console, Date,createSurfaceIndex,surfaceTuning,driftTier,DRIFT_TIERS,
   performance: {now: () => clock},
   setTimeout: fn => { const id=++seq; analogTimeouts.set(id,fn); return id; },
   clearTimeout: id => analogTimeouts.delete(id),
