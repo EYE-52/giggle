@@ -2,7 +2,7 @@
  * line with everyone's answers, and final scores. Built on the game kit.
  * Contracts: {text}, {next: true} (host, reveal). */
 import { esc, countdown, ensureStylesheet } from '../util.js';
-import { hudHtml, roundLabel, progressText, waitingHtml, resultsHtml } from '../kit.js';
+import { timerSlotState, hudHtml, roundLabel, progressText, waitingHtml, resultsHtml } from '../kit.js';
 
 const CSS = [['word-games-css', '/css/compact-answer-games.css'], ['lyric-fill-world-css', '/css/lyric-fill-world.css'], ['create-kit-css', '/css/create-kit.css']];
 let lastKey = '', currentEl = null, current = null, clock = null;
@@ -30,6 +30,7 @@ function paintClock(el, S, api) {
   const left = S.endsAt > 0 && !S.preparing && S.phase === 'fill' ? countdown(S.endsAt, api?.now) : null;
   const text = left === null ? '' : `${left}s`;
   if (slot.textContent !== text) slot.textContent = text;
+  timerSlotState(slot, left === null ? 0 : S.endsAt, typeof api?.now === 'function' ? api.now() : Date.now());
   slot.classList?.toggle('is-urgent', left !== null && left <= 5);
 }
 function runClock(el, S, api) {

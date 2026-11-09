@@ -274,6 +274,15 @@ for (const id of IDS) {
 console.log(
   `NEW_GAMES_B4_PASS: ${checks} groups; 2/4-seat full matches, ties, deadlines, privacy, leaving, End game, garbage, content and pace`,
 );
+// A timeout without any correct level must not award a perfect score.
+{
+  const { ctx, s } = make("echo-pads");
+  ctx.fireUntil(() => s.phase === "reveal");
+  assert(Object.values(s.reached).every(n => n === 0));
+  assert(Object.values(s.scores).every(n => n === 0), "zero cleared levels earn zero points");
+  checks += 2;
+}
+
 // Pace covers every round deadline; explicit short card/step timers preserve
 // their sub-three-second rhythm. The maths penalty stays exactly 2 seconds.
 for (const id of IDS) {

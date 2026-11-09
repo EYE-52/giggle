@@ -310,3 +310,21 @@ body:has(.b4-stage) #toast {
   visibility: hidden;
   pointer-events: none;
 }
+
+@media (max-width: 560px) {
+  #gbody .b4-stage .b4-status { min-height: var(--space-32); }
+}
+@media (min-width: 900px) {
+  #gbody .b4-stage .b4-actions { align-self: start; padding-top: var(--space-24); }
+}
+
+@media (min-width: 1100px) {
+  #gbody .b4-stage .b4-field { grid-row: 3 / 5; }
+  #gbody .b4-stage > .pl-live { grid-column: 2; grid-row: 4; align-self: start; }
+  #gbody .b4-stage > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  #gbody .b4-stage .b4-title.party-prompt { min-height: var(--space-64); }
+  #gbody .b4-stage .b4-actions { gap: var(--space-4); }
+  #gbody .b4-stage .b4-status { min-height: var(--space-24); }
+}

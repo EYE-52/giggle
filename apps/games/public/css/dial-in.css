@@ -271,3 +271,14 @@
     grid-column: 1 / -1;
   }
 }
+
+/* Spectrum ends are labels, so wrap only between words. */
+.dial-ends { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; }
+.dial-ends > span { overflow-wrap: normal; word-break: normal; padding-inline: var(--space-8); font: var(--text-button-sm); display: grid; place-items: center; }
+@media (max-width: 560px) {
+  .dial-machine { max-width: calc(3 * var(--space-64) + var(--space-32)); padding-block: var(--space-8); }
+  .dial-speech { padding: var(--space-8); }
+  .dial-ends > span { font: var(--text-caption); padding-inline: var(--space-4); }
+  #gbody .dial-world.pl-fill { gap: var(--space-8); }
+  #gbody .dial-world .round-status { min-height: var(--space-32); }
+}

@@ -233,6 +233,21 @@ const phases = { bluff:'pick', trivia:'answer', 'dare-roulette':'verdict' };
       assert.equal(cues.length, 1, id + ' watcher correctness stays silent');
       ui.dispose?.(); cueChecks++;
     }
+    // The performer only earns the Answered label if an answer exists.
+    {
+      const ui = await load('five-second'), el = surface(doc);
+      const S = { instanceId:'missing-answer', phase:'vote', round:1, rounds:3,
+        players:[{id:'a',name:'Ann'},{id:'b',name:'Bo'}], me:'b', hostId:'b',
+        performer:'a', answers:[], category:'Fruit', voted:[], endsAt:0 };
+      ui.render(el, S, {send(){}});
+      const state = () => el.querySelectorAll('.pl-state').map(n => n.textContent);
+      assert(state().includes('No answer'), 'timed-out performer is not labelled Answered');
+      ui.render(el, {...S, answers:['apple','pear','plum']}, {send(){}});
+      assert(state().includes('Answered'), 'a real answer earns the Answered label');
+      ui.render(el, {...S, phase:'reveal', answers:['apple','pear','plum'], last:{passed:true,votes:{b:'pass'},points:{a:100}}}, {send(){}});
+      assert(state().includes('Answered'), 'the reveal keeps the real answer status when last only carries votes/points');
+      ui.dispose();
+    }
     const css = fs.readFileSync(path.join(root, 'public/css/twenty-questions.css'), 'utf8');
     assert(!css.includes('overflow-y:auto'), 'question notebook has no nested vertical scroll');
     console.log(`PARTY_QUALITY_VIEW_PASS: ${retained} stable ballot/focus/current-API/retired-control paths with preparation, spectator, membership and role guards; private rank ladder and 40-line Story composer/focus/role checks; newest-first filtered history and private draft preserved; ${cueChecks} correct-cue initial/repeat/reconnect checks`);

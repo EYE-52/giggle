@@ -31,3 +31,7 @@
 .bw-world .bw-skip {
   flex: none;
 }
+
+@media (max-width: 560px) {
+  .bw-world .bw-stack.wp-card { height: calc((4 * var(--space-64) - var(--space-16)) / var(--round-zoom, 1)); }
+}

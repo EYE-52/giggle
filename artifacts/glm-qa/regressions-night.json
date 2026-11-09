@@ -1,0 +1,32 @@
+[
+  {
+    "game": "chess",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "hot-potato",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "dial-in",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "draw-off",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "word-grid",
+    "theme": "night",
+    "overflow": false
+  },
+  {
+    "game": "backronyms",
+    "theme": "night",
+    "overflow": false
+  }
+]

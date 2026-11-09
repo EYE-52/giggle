@@ -261,3 +261,12 @@ body.game-playing[data-game="twenty-questions"] {
 #gbody .tq.pl-fill .tq-wordline { height:calc(var(--space-32) + var(--space-16)); overflow:auto; }
 
 #gbody .tq.pl-fill .tq-answers { height:var(--space-64); min-height:var(--space-64); }
+
+/* Stable, shorter notebook wells leave room for the actual ask/guess rows. */
+#gbody .tq.pl-fill .tq-qtext { height: var(--space-64); min-height: var(--space-64); }
+#gbody .tq.pl-fill #tqQWrap { height: calc(var(--space-64) + var(--space-32)); }
+#gbody .tq.pl-fill .tq-hist { height: calc(2 * var(--space-64)); min-height: calc(2 * var(--space-64)); max-height: calc(2 * var(--space-64)); }
+#gbody .tq.pl-fill .tq-roleline { min-height: var(--space-32); }
+@media (max-width: 560px) {
+  #gbody .tq.pl-fill .tq-spot::after { right: var(--space-24); }
+}

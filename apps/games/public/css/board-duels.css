@@ -271,3 +271,21 @@
  .bk-game:not(.ld-game) :is(.bk-row-confirm,.bk-row-offer) .bk-btn { min-height:var(--control-h-sm); height:var(--control-h-sm); }
  .bk-game:not(.ld-game) :is(.bk-row-confirm,.bk-row-offer) .bk-ask { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
 }
+
+/* Utilities occupy their own phone row, above the title and every square. */
+@media (max-width: 759px) {
+  #gbody .bk-game { padding-top: calc(var(--control-h-sm) + var(--space-24)); padding-bottom: max(var(--space-16), env(safe-area-inset-bottom)); }
+  #gbody .bk-game .bk-head { padding-left: 0; min-height: var(--space-48); }
+  #gbody .bk-game .bk-actions { min-height: var(--control-h-sm); }
+}
+@media (min-width: 760px) and (min-height: 501px) {
+  /* The compact panel is centred beside the board, not a tall empty rail. */
+  #gbody .bk-game { padding-bottom: var(--space-32); }
+  #gbody .bk-game .bk-stage { align-self: center; margin-top: 0; }
+  #gbody .bk-game .bk-panel { align-self: center; margin-top: 0; }
+  #gbody .bk-game .bk-actions { min-height: var(--control-h-sm); }
+}
+
+@media (max-width: 759px) {
+  body:has(#gameScreenPrompt:not([hidden])) #gbody .bk-game { padding-top: var(--space-12); }
+}

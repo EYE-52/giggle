@@ -374,3 +374,33 @@ body.game-playing:is(
 .word-party .wp-card {
   height: calc(280px / var(--round-zoom, 1));
 }
+
+/* Keep the roster on screen: the play track accounts for the real iframe
+ * height and zoom. Controls retain their physical 44/56px tap targets. */
+#gbody .word-party.pl-fill {
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  min-height: 0;
+}
+@media (max-width: 560px) {
+  #gbody .word-party.pl-fill { grid-template-rows: auto auto auto auto auto; }
+  #gbody .word-party .wp-play { min-height: 0; height: auto; }
+  #gbody .word-party .wp-actions { min-height: 0; }
+}
+
+@media (max-width: 560px) {
+  #gbody .word-party .wp-actions { gap: var(--space-4); }
+  #gbody .word-party .wp-status { min-height: var(--space-32); }
+}
+
+@media (max-width: 560px) {
+  #gbody .word-party .wp-actions { height: auto; grid-template-rows: var(--space-32) calc(var(--control-h-lg) / var(--round-zoom, 1)); }
+}
+
+@media (min-width: 1100px) {
+  #gbody .word-party.pl-fill { position: relative; padding-right: calc(4 * var(--space-64) + var(--space-16)); align-content: center; min-height: var(--pl-stage-height); }
+  #gbody .word-party > .party-hud { width: calc(100% + 4 * var(--space-64) + var(--space-16)); }
+  #gbody .word-party .wp-play { height: auto; }
+  #gbody .word-party .wp-actions { height: auto; grid-template-rows: var(--space-32) var(--control-h-lg); }
+  #gbody .word-party > .pl-live { position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: calc(4 * var(--space-64)); max-height: calc(var(--pl-stage-height) - var(--space-64)); overflow: auto; scrollbar-width: thin; }
+  #gbody .word-party > .pl-live .pl-seats { grid-template-columns: minmax(0, 1fr); }
+}
