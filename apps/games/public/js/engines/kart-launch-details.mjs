@@ -31,4 +31,25 @@ export function addLaunchDetails(THREE,{map,soft,scenery,geo,add,M,glow,unit}){
   // Tiny runway lamps border real streets; no extra point lights.
   for(const d of map.colliders.filter(d=>d.id.startsWith('floor'))){const {x,z}=d.position,h=d.half;for(let t=-h.z+2;t<h.z;t+=8)for(const side of[-1,1])add(soft,unit,glow,[x+side*(h.x-.45),.025,z+t],[.35,.05,.7]);}
  }
+ if(map.artId==='garden'){
+  const water=new THREE.MeshLambertMaterial({color:0x69cfdd,emissive:0x154959,emissiveIntensity:.4});M.own(water);
+  const fountain=map.colliders.find(d=>d.material==='fountain');if(fountain){const {x,y,z}=fountain.position,h=fountain.half;
+   add(soft,unit,water,[x,y+h.y+.015,z],[h.x*1.7,.025,h.z*1.7]);
+   const bowl=geo(new THREE.TorusGeometry(2,.24,6,20).rotateX(Math.PI/2));add(soft,bowl,M.white,[x,y+h.y+.05,z]);
+   const stream=geo(new THREE.CylinderGeometry(.12,.3,1.8,6));add(soft,stream,water,[x,y+h.y+.9,z]);
+   for(const side of[-1,1])for(const t of[-3.7,-1.85,0,1.85,3.7])add(soft,unit,M.blue,[x+t,y+.1,z+side*(h.z+.008)],[.65,1.6,.02]);
+  }
+  const core=map.colliders.find(d=>d.role==='fountain-core');if(core){
+   add(soft,geo(new THREE.CylinderGeometry(.3,.55,1.5,8)),M.white,[0,3.15,0]);
+   add(soft,geo(new THREE.CylinderGeometry(.75,.35,.4,8)),M.yellow,[0,3.95,0]);
+   for(const sx of[-1,1])for(const sz of[-1,1])add(soft,unit,M.yellow,[sx*.55,4.3,sz*.55],[.28,.55,.28]);
+   add(soft,geo(new THREE.CylinderGeometry(.6,.6,.03,12)),water,[0,4.16,0]);
+  }
+  const bush=geo(new THREE.IcosahedronGeometry(.7,0));for(const d of map.colliders.filter(d=>d.material==='hedge'))for(let x=-d.half.x+.7;x<d.half.x;x+=1.1)for(const side of[-1,1])add(soft,bush,M.green,[d.position.x+x,d.position.y+.35,d.position.z+side*(d.half.z-.6)],[1,.75,.85]);
+  const bloom=geo(new THREE.IcosahedronGeometry(.3,0)),stem=geo(new THREE.CylinderGeometry(.05,.05,.6,5));
+  for(const sx of[-1,1])for(const sz of[-1,1]){const x=sx*41,z=sz*40;add(scenery,unit,M.edge,[x,-.9,z],[7,.8,7]);add(scenery,unit,M.dark,[x,-.48,z],[6.5,.05,6.5]);
+   for(let dx=-2;dx<=2;dx+=2)for(let dz=-2;dz<=2;dz+=2){add(scenery,stem,M.green,[x+dx,-.1,z+dz]);add(scenery,bloom,sx===sz?M.cover:M.yellow,[x+dx,.25,z+dz],[1.3,.6,1.3]);}
+  }
+ }
+
 }

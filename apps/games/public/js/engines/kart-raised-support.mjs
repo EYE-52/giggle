@@ -1,6 +1,8 @@
+import {arenaPointInPolygon} from './kart-arena-polygons.mjs';
 // One wedge vertex contract for the rendered skin and Rapier convex hull.
 export function raisedWedgeVertices(h){return new Float32Array([-h.x,-h.y,-h.z,h.x,-h.y,-h.z,-h.x,-h.y,h.z,h.x,-h.y,h.z,-h.x,h.y,h.z,h.x,h.y,h.z]);}
 export function raisedSurfaceHeight(d,x,z){
+  if(d.polygon)return arenaPointInPolygon(d.polygon,x,z)?d.surfaceY:-Infinity;
   const a=2*Math.atan2(d.rotation?.y||0,d.rotation?.w??1),s=Math.sin(a),c=Math.cos(a),dx=x-d.position.x,dz=z-d.position.z,lx=c*dx-s*dz,lz=s*dx+c*dz;
   if(Math.abs(lx)>d.half.x+.001||Math.abs(lz)>d.half.z+.001)return -Infinity;
   return d.position.y+(d.shape==='wedge'?lz*d.half.y/d.half.z:d.half.y);
@@ -16,7 +18,7 @@ export function createRaisedPoseSupport(THREE,map){
   const normal=new THREE.Vector3(),forward=new THREE.Vector3(),right=new THREE.Vector3(),point=new THREE.Vector3(),q=new THREE.Quaternion(),basis=new THREE.Matrix4();
   const corners=[[-1.38,-.42,-2.2],[1.38,-.42,-2.2],[-1.38,-.42,2.2],[1.38,-.42,2.2]];
   let contacts=0,onRamp=false;
-  function heightAt(d,x,z){const dx=x-d.position.x,dz=z-d.position.z,lx=d.c*dx-d.s*dz,lz=d.s*dx+d.c*dz;return Math.abs(lx)>d.half.x+.001||Math.abs(lz)>d.half.z+.001?-Infinity:d.position.y+(d.shape==='wedge'?lz*d.slope:d.half.y);}
+  function heightAt(d,x,z){if(d.polygon)return arenaPointInPolygon(d.polygon,x,z)?d.surfaceY:-Infinity;const dx=x-d.position.x,dz=z-d.position.z,lx=d.c*dx-d.s*dz,lz=d.s*dx+d.c*dz;return Math.abs(lx)>d.half.x+.001||Math.abs(lz)>d.half.z+.001?-Infinity:d.position.y+(d.shape==='wedge'?lz*d.slope:d.half.y);}
   function support(d){contacts++;normal.add(point.set(d.nx,d.ny,d.nz));onRamp||=d.shape==='wedge';}
   return function conform(p,output){
     if(!p.grounded)return p;

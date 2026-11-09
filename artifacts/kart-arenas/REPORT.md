@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | Rookie Ribbons | Playable duel/full slice; 2 floors | Screenshots and measurements below. Combat supply, balance and full acceptance remain. |
 | Skyport Split | Three-floor build with four variants and finished shared art | Core geometry, driving, camera, starts, supply, transport and render checks pass. Wider combat/device/human gates remain. |
-| Garden Crown | Not built | Clover geometry, crown/fountain, both climbs, variants, starts/homes, art and all gates remain. |
+| Garden Crown | Two-floor small/full build with themed art | Core geometry, routes, starts, supply, cameras and art budgets pass. Combat and device gates remain. |
 | Frostbite Crescent | Not built | Crescent shoreline, ice/shelf, jump/bypass, variants, starts/homes, art and all gates remain. |
 | Neon Switchyard | Not built | Hexagon, sign bridges, market cover, variants, starts/homes, art and all gates remain. |
 | Harbor Fork | Not built | Trident, cargo loop/lookout, water edges, climbs, variants, starts/homes, art and all gates remain. |
@@ -142,3 +142,17 @@ An additional active box-seeking/firing probe is diagnostic, **not a passed gate
 Final isolated Room transport rerun for this build: 8 / 16 / 32 Skyport drivers used **22.4 / 42.7 / 81.7KiB/s** binary versus **353 / 524 / 869KiB/s** JSON. Full Room update p95 was **2.1 / 6.4 / 15.3ms**. An earlier concurrent browser/test run measured 33.3ms at 32, so these are machine-load-sensitive measurements, not a hardware-independent promise. [Exact final transport run](launch-transport.json).
 
 Reviewed sheets: [Skyport full](skyport-split-full-review.jpg), [Skyport compact](skyport-split-compact-review.jpg). Each includes all three top slices and chase views in Day/Night at 1280/390. Raw files use `skyport-split-{full,compact}-{1280,390}-{day,night}-{top,chase,L0-top,L0-chase,L1-top,L1-chase,L2-top,L2-chase}.png`. Picker previews now use the finished Rookie and Skyport worlds.
+
+## Garden Crown
+
+Small/full: **5,253 / 8,269m²**, **28 / 40 homes**, **17 / 18 / 28 boxes** at 4 / 8 / 16 drivers, **16 / 32 candidates**, **21 / 25 statics** (cap 60). Both ordinary climbs and the whole crown circuit drive in both directions. Every start/home is connected with either climb interior blocked. All selected starts drive 20m together, and 20 supply seeds per reference count pass. [Core audit](garden-crown-gates.json).
+
+The clover uses stepped joined slabs, broad ramp aprons, the +7m crown loop, real underpasses, piers and a marked lower drop. Stone paving, warm crown panels, cream/ivy piers, hedges, flower beds, a tiled blue basin and crown fountain are finished in the shared renderer. The full apron was widened after the graph found that the original ramp approach was sealed off by its narrow side lane. Small/full areas exceed the original sketch targets; the formula uses measured areas. No portal is needed for ordinary travel.
+
+The core art census is below **30 draws / 18,000 triangles** before the loaded backdrop, under the 55 / 38,000 map budget. Eight-driver top/chase review runs at 1280 and 390, Day/Night, measured **59.9 FPS** at 4× CPU throttle. Each floor has its own captures. [Full review](garden-crown-full-review.jpg) · [Small review](garden-crown-small-review.jpg) · [Render measurements](garden-browser-metrics.json).
+
+The real 16-driver browser measured **59.6 FPS**, **137 draws / 68,285 submitted triangles per frame**, **20.1 binary updates/s**, **37KiB/s**, 42.7m keyboard movement and no browser errors. [Metrics](garden-16/kart-32-browser.json) · [Production screenshot](garden-16/kart-32-browser.png).
+
+The additional three-minute, eight-bot firing probe approached all 18 selected homes, visited both floors, made 194 pickups and had no server recovery. Median supply was 83% available. Median unarmed time was 4.05s, p95 15s, with 26 stalled approaches logged by the test driver. This **does not pass** the active-combat acceptance target. [Diagnostic run](garden-crown-8-battle.json). Full combat seeds, all stress states, longer profiles, physical-device and human sessions remain.
+
+Shared addition: a bounded convex flat-slab path now supports exact polygon outlines for the coming hexagon/octagon arenas. It has matching top/bottom/sides in physics, art and camera queries, analytic support tests, proper normals/UVs and a 90m real seam-driving regression. It is not arbitrary terrain, and saved legacy maps do not use it.

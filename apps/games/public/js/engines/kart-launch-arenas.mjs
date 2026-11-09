@@ -1,3 +1,4 @@
+import {gardenCrown} from './kart-garden-crown.mjs';
 import {rookieTravel} from './kart-rookie-travel.mjs';
 import {skyportSplit} from './kart-skyport-split.mjs';
 import {arenaBox as box,arenaDeck as deck,arenaRamp as ramp,arenaPoint as point,arenaFloor,arenaBoundary,arenaSupport,arenaRampGuards} from './kart-arena-authoring.mjs';
@@ -54,5 +55,5 @@ function rookie(){
   {id:'full',minPlayers:3,maxPlayers:8,usableArea:3160.5,districts:[...districts,'retreat'],startIds:fullStarts,starts:{4:['start-0','start-1','start-12','start-13']},floorWeights:[14,4]}];
  map.spawns=fullStarts.map(id=>map.spawnCandidates.find(s=>s.id===id));return map;
 }
-export const launchArenas=Object.freeze({'rookie-ribbons':rookie(),'skyport-split':skyportSplit()});
+export const launchArenas=Object.freeze({'rookie-ribbons':rookie(),'skyport-split':skyportSplit(),'garden-crown':gardenCrown()});
 export const launchArenaIds=Object.freeze(Object.keys(launchArenas));

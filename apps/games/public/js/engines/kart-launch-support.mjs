@@ -25,3 +25,4 @@ export function arenaArc(cx,y,cz,r,a,b,n=8){return Array.from({length:n},(_,i)=>
 export function arenaRectangleLoop(hx,hz,y,r=6){
  return [arenaP(-hx,y,0),arenaP(-hx,y,-hz+r),...arenaArc(-hx+r,y,-hz+r,r,Math.PI,Math.PI*1.5),arenaP(hx-r,y,-hz),...arenaArc(hx-r,y,-hz+r,r,Math.PI*1.5,Math.PI*2),arenaP(hx,y,hz-r),...arenaArc(hx-r,y,hz-r,r,0,Math.PI/2),arenaP(-hx+r,y,hz),...arenaArc(-hx+r,y,hz-r,r,Math.PI/2,Math.PI),arenaP(-hx,y,0)];
 }
+export function arenaOpenRails(map,openings){map.colliders=map.colliders.flatMap(d=>d.material==='barrier'?openGuards([d],openings):[d]);}
