@@ -203,3 +203,7 @@
   }
   .b5-game:is(.pd-game, .sl-game) .bk-stat-value { min-height: 0; }
 }
+/* Up to four seats on a roomy desktop: one seat per row so full names fit. */
+@media (min-width: 760px) and (min-height: 760px) {
+  .b5-game:is([data-seats="2"], [data-seats="3"], [data-seats="4"]) .bk-players { grid-template-columns: minmax(0, 1fr) !important; }
+}
