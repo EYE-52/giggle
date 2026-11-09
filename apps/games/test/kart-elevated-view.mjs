@@ -49,69 +49,7 @@ import {CUE_NAMES,ASSET_MAP,SYNTH_CUE_NAMES} from '../public/js/engines/kart-aud
 import {createGearbox,paintGear} from '../public/js/engines/kart-gearbox.mjs';
 const repo=fileURLToPath(new URL('..',import.meta.url));
 const results=[];const check=(name,value)=>{assert.ok(value,name);results.push(name);};
-class Node {
-  constructor(tag,doc,attrs={}){this.tagName=tag.toUpperCase();this.doc=doc;this.attrs={...attrs};this.children=[];this.parentNode=null;this.events=new Map();this.dataset={};this.style={setProperty:(k,v)=>{this.style[k]=String(v);}};this.classList={contains:x=>(this.className||'').split(/\s+/).includes(x),add:(...xs)=>{this.className=[...new Set([...(this.className||'').split(/\s+/).filter(Boolean),...xs])].join(' ')},toggle:(x,v)=>{const on=v??!this.classList.contains(x);this.className=(this.className||'').split(/\s+/).filter(c=>c&&c!==x).concat(on?[x]:[]).join(' ');return on;}};}
-  get firstElementChild(){return this.children[0]||null;}
-  get childElementCount(){return this.children.length;}
-  get attributes(){return Object.entries(this.attrs).map(([name,value])=>({name,value}));}
-  get className(){return this.attrs.class||'';}set className(v){this.attrs.class=v;}
-  get hidden(){return 'hidden'in this.attrs;}set hidden(v){if(v)this.attrs.hidden='';else delete this.attrs.hidden;}
-  get disabled(){return 'disabled'in this.attrs;}set disabled(v){if(v)this.attrs.disabled='';else delete this.attrs.disabled;}
-  get textContent(){return(this.text||'')+this.children.map(n=>n.textContent).join('');}set textContent(v){this.text=String(v);this.replaceChildren();}
-  append(...nodes){for(const n of nodes){n.remove();n.parentNode=this;this.children.push(n);}}
-  remove(){if(this.parentNode){this.parentNode.children=this.parentNode.children.filter(n=>n!==this);this.parentNode=null;}}
-  replaceChildren(...nodes){for(const c of this.children)c.parentNode=null;this.children=[];this.append(...nodes);}
-  contains(n){for(let p=n;p;p=p.parentNode)if(p===this)return true;return false;}
-  matches(sel){if(sel==='*')return true;const tag=sel.match(/^[\w-]+/);if(tag&&this.tagName!==tag[0].toUpperCase())return false;for(const m of sel.matchAll(/\.([\w-]+)/g))if(!this.classList.contains(m[1]))return false;const id=sel.match(/#([\w-]+)/);if(id&&this.attrs.id!==id[1])return false;for(const m of sel.matchAll(/\[([\w-]+)(?:="([^\"]*)")?\]/g))if(!(m[1]in this.attrs)||m[2]!==undefined&&this.attrs[m[1]]!==m[2])return false;return true;}
-  querySelectorAll(sel){const out=[];const walk=n=>{for(const c of n.children){if(c.matches(sel))out.push(c);walk(c);}};walk(this);return out;}
-  querySelector(sel){return this.querySelectorAll(sel)[0]||null;}
-  get innerHTML(){return this.html||'';}set innerHTML(html){this.replaceChildren();this.html=html;this.text='';const stack=[this],re=/<(\/?)([\w-]+)([^>]*)>|([^<]+)/g;let m;while((m=re.exec(html))){if(m[4]){stack.at(-1).text=(stack.at(-1).text||'')+m[4];continue;}const[,closing,tag,raw]=m;if(closing){while(stack.length>1)if(stack.pop().tagName===tag.toUpperCase())break;continue;}const attrs={};for(const a of raw.matchAll(/([:\w-]+)(?:="([^\"]*)"|'([^']*)'|([^\s/]+))?/g))attrs[a[1]]=a[2]??a[3]??a[4]??'';const n=new Node(tag,this.doc,attrs);stack.at(-1).append(n);if(!raw.endsWith('/')&&!['link','input','br','img'].includes(tag))stack.push(n);}}
-  animate(frames,options){(this.animations ||= []).push({frames,options});return{cancel(){}};}
-  setAttribute(k,v){this.attrs[k]=String(v);}getAttribute(k){return this.attrs[k]??null;}removeAttribute(k){delete this.attrs[k];}
-  setPointerCapture(id){this.capture=id;}
-  hasPointerCapture(id){return this.capture===id;}
-  releasePointerCapture(id){if(this.capture===id)this.capture=null;}
-  addEventListener(type,fn){if(!this.events.has(type))this.events.set(type,new Set());this.events.get(type).add(fn);}
-  removeEventListener(type,fn){this.events.get(type)?.delete(fn);}
-  dispatch(type,extra={}){const e={type,target:this,preventDefault(){this.prevented=true},...extra};for(const fn of [...(this.events.get(type)||[])])fn(e);if(type==='click')this.onclick?.(e);return e;}
-  focus(){this.doc.activeElement=this;}
-}
-const base=()=>({projectileRadii:COMBAT.staticSweepRadii,instanceId:'one',profile:'elevated-combat-v1',mapId:'garden',mapRevision:elevatedMap('garden').revision,map:{label:'Alpine Courtyard'},simTick:1,simAt:50,endsAt:30000,phase:'live',you:'a',youDrive:true,inputAck:{life:1,controlEpoch:1,receivedSeq:0,appliedInputSeq:0},events:[],crates:[],projectiles:[],mines:[],grenades:[],karts:[{id:'a',alive:true,connected:true,spawnSeq:1,controlEpoch:1,hits:0,deaths:0,nitro:1,weapon:null,ammo:0,shield:0,pose:{position:{x:0,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}},{id:'b',alive:true,connected:true,hits:0,deaths:0,pose:{position:{x:10,y:.64,z:0},rotation:{x:0,y:0,z:0,w:1},speed:0}}]});
-function rig({room=true,touch=false,graphics=false,colliders=[],aspect=1,thumbnailsReady=true,batched=false,missingDrivers=[],audioPrepare,warmupBudget=Infinity}={}){
-  const document=new Node('document');document.doc=document;document.createElement=tag=>new Node(tag,document);document.head=new Node('head',document);document.body=new Node('body',document);document.append(document.head,document.body);document.activeElement=document.body;document.getElementById=id=>document.querySelector('#'+id);
-  const el=new Node('main',document);document.body.append(el);
-  let roomMenu;if(room){roomMenu=new Node('details',document,{id:'roomMenu'});roomMenu.append(new Node('div',document,{class:'room-menu-panel'}));document.body.append(roomMenu);}
-  const window=new Node('window',document);window.screen={orientation:new Node('orientation',document)};
-  const assetRequests=[],sent=[],ready=[],loads=[],audios=[],sticks=[],timers=new Map(),storage=new Map();let clock=1000,seq=0,host=true;
-  const api={audioPrepare,send:a=>sent.push(structuredClone(a)),name:id=>id==='a'?'Anika':'Bastian',now:()=>clock,context:()=>({isHost:host,sound:false}),resultsReady:i=>ready.push(i),lobby(){}};
-  const schedule=(fn,ms,repeat=false)=>{const id=++seq;timers.set(id,{fn,ms,at:clock+ms,repeat});return id;};
-  let instanceAllocations=0,projectileAllocations=0,graphicsAllocations=0,prepared=false,reduced=false;
-  const renderStats={warmFrames:0,compiles:0,warmObjects:new Set()},projectiles=[];
-  const ThreeTest={...THREE,InstancedMesh:class extends THREE.InstancedMesh{constructor(...args){super(...args);instanceAllocations++;}}};
-  for(const name of ['Group','Mesh','Vector3','Quaternion','Box3','BoxGeometry','ConeGeometry','MeshBasicMaterial'])ThreeTest[name]=class extends THREE[name]{constructor(...args){super(...args);graphicsAllocations++;}};
-  class LocalLoader{setMeshoptDecoder(){return this;}async loadAsync(url){assetRequests.push(url);if(missingDrivers.some(id=>url.endsWith('/drivers/'+id+'.glb')))throw Error('optional driver unavailable');const b=fs.readFileSync(repo+'/public'+url.split('?')[0]);return new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'').catch(error=>{console.error('GLB fixture failed',url,error.message);throw error;});}}
-  const context=vm.createContext({createKartDrivingFX,createKartArenaFeatures,surfaceProfile,driftTier,DRIFT_TIERS,loadElevatedPhysics:async()=>null,createElevatedPrediction(){throw Error('Prediction separately tested with real Rapier');},WEAPON_IDS:combatWeaponIds,document,window,LocalLoader,MeshoptDecoder,cleanKartLook,kartPaintHex,loadKartDrivers,buildKartDriverVariants,createGearbox,paintGear,projectileContactInset,createKartModel,animateKartModel,createCrateModel,CONFIG,
-    mergeFixtureGeometries,arenaFeatureSolids,createKartCameraCollision,createKartWarmupLibrary,waitKartPreparation,warmKartRenderer:(T,r,s,c,o)=>warmKartRenderer(T,r,s,c,{...o,budgetMs:warmupBudget,yieldTask:async()=>{}}),createKartHealthBars,createKartImpactFX,createArsenalFX,paintKartWeapon,createKartWeaponRoulette,kartResultView,batchKartBody:batched?batchFixtureKart:()=>{},closeKartAssetBitmaps(){},loadKartWeaponThumbnails,weaponThumbnailArt:(kind,fallback)=>thumbnailsReady?weaponThumbnailArt(kind,fallback):fallback,elevatedMap:id=>({id,revision:elevatedMap(id).revision,features:elevatedMap(id).features}),
-    createKartLod,createRaisedPoseSupport,createRaisedPickups,createRaisedCameraQuery,createRaisedShadows,disableRaisedStaticShadows,kartLightTier,
-    createKartElevatedWorld:()=>{const meshes=new Map();for(const d of colliders){const body=new THREE.Mesh(elevatedSolidGeometry(THREE,d),new THREE.MeshBasicMaterial());body.position.copy(d.position);if(d.rotation)body.quaternion.copy(d.rotation);body.updateMatrixWorld();meshes.set(d.id,{body,descriptor:d});}return {colliderMeshes:meshes,lighting:{fogColor:new THREE.Color(0xaaaaaa),fogNear:100,fogFar:500,exposure:1},animate(){},updateDetail(){},dispose(){for(const {body}of meshes.values()){body.geometry.dispose();body.material.dispose();}}};},
-    createKartCombatArt:(...args)=>{const art=createKartCombatArt(...args),projectile=art.projectile;art.projectile=(...a)=>{projectileAllocations++;const object=projectile(...a);projectiles.push(object);return object;};return art;},performance:{now:()=>clock},localStorage:{getItem:k=>storage.get(k),setItem:(k,v)=>storage.set(k,v)},setInterval:(f,m)=>schedule(f,m,true),clearInterval:id=>timers.delete(id),setTimeout:(f,m)=>schedule(f,m),clearTimeout:id=>timers.delete(id),blendElevatedPose,nextElevatedInput,createElevatedTimeline,touchControlsFor,readInputCapabilities:()=>({preferred:{touch}}),
-    createMobileStick:(node,opts)=>{const stick={node,opts,resets:0,disposed:0,reset(){this.resets++},dispose(){this.disposed++}};sticks.push(stick);return stick;},
-    createKartAudio:()=>{const a={disposed:0,cues:[],arenaCues:[],frames:[],muted:false,active:true,preps:0,prep(){this.preps++},ready(){return this.readyWait||Promise.resolve(true)},unlock(){},setMuted(value){this.muted=value},update(frame){this.frames.push(frame);this.active=frame.active},arenaCue(name,options){if(!this.muted&&this.active)this.arenaCues.push({name,options});},cue(name,options){if(!this.muted&&this.active)this.cues.push({name,options})},dispose(){this.disposed++}};audios.push(a);return a;},
-    createThreeView:(stage,options)=>new Promise(resolve=>loads.push({stage,options,resolve,settled:false})),
-    matchMedia:()=>({matches:reduced}),
-  });
-vm.runInContext(fs.readFileSync(repo+'/public/js/pickers.js','utf8').replace(/^export /gm,''),context);
-  for(const file of ['kart-hearts','kart-skids','kart-threats'])vm.runInContext(fs.readFileSync(repo+'/public/js/engines/'+file+'.mjs','utf8').replace(/^export /gm,''),context);
-  const file=repo+'/public/js/engines/kart-elevated-view.js';vm.runInContext(fs.readFileSync(file,'utf8').replace(/^import .*;\n/gm,'').replace("const {GLTFLoader}=await import('../../vendor/three/loaders/GLTFLoader.js');",'const GLTFLoader=LocalLoader;').replace("const {mergeGeometries}=await import('../../vendor/three/utils/BufferGeometryUtils.js');",batched?'const mergeGeometries=mergeFixtureGeometries;':'const mergeGeometries=()=>null;').replace('cramped=clearCamera(cameraPosition,cameraTarget)||cramped;', 'const preClearEye=cameraPosition.toArray();cramped=clearCamera(cameraPosition,cameraTarget)||cramped;').replace('camera.lookAt(target);','camera.userData.cameraTrace={preClearEye,sideSettling,sideMode,sideYaw};camera.lookAt(target);').replace('export function createElevatedKartView','function createElevatedKartView')+'\nglobalThis.view=createElevatedKartView();',context,{filename:file});
-  const view=context.view;view.mount(el,api);
-  const node=name=>el.querySelector('[data-'+name+']')||roomMenu?.querySelector('[data-'+name+']');
-  const render=(snapshot=base())=>view.update(el,snapshot,api);
-  const flush=async()=>{await Promise.resolve();await Promise.resolve();};
-  async function settle(index=loads.length-1,fallback=false){const l=loads[index];l.settled=true;const h={fallback,canvas:new Node('canvas',document),disposals:0,dispose(){this.disposals++;this.built?.dispose();this.canvas.remove();}};if(!fallback){l.stage.append(h.canvas);if(graphics){const renderer={shadowMap:{},async compileAsync(){renderStats.compiles++;},render(scene){renderStats.warmFrames++;scene.traverseVisible(o=>renderStats.warmObjects.add(o.name));}};h.built=await l.options.build(ThreeTest,{canvas:()=>h.canvas,renderer:()=>renderer,reducedMotion:()=>reduced,track(){},disposeObject(){}});h.built.camera.aspect=aspect;h.built.camera.updateProjectionMatrix();prepared=true;}}l.handle=h;l.resolve(h);await flush();return h;}
-  function advance(ms){const until=clock+ms;while(true){let next=[...timers].filter(([,t])=>t.at<=until).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;const[id,t]=next;clock=t.at;if(t.repeat)t.at+=t.ms;else timers.delete(id);t.fn();}clock=until;}
-  function key(code,type='keydown',target=loads.at(-1)?.handle?.canvas){return window.dispatch(type,{code,target});}
-  return{view,el,document,window,roomMenu,api,assetRequests,sent,ready,loads,audios,sticks,timers,node,render,settle,advance,key,flush,host:v=>host=v,renderStats,projectiles,thumbnails:value=>{thumbnailsReady=value;},allocations:()=>({instances:instanceAllocations,projectiles:projectileAllocations,graphics:graphicsAllocations,prepared}),frame:(dt=1/60)=>loads.at(-1).handle.built.frame(dt,clock/1000),motion:v=>reduced=v};
-}
+import {Node,base,rig} from './helpers/kart-view-fixture.mjs';
 // All maps use the same HUD; check room/practice and touch/keyboard paths.
 // This exercises DOM/state, not CSS pixels (a native browser is separate).
 for(const mapId of elevatedMapIds)for(const room of [true,false])for(const touch of [true,false]){
@@ -395,9 +333,10 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   const trap=()=>gl.built.scene.children.find(o=>o.visible&&o.userData.combat?.type==='mine');
   const landed=trap().userData.dropTo.clone();
   check('fresh mine starts at the back of its kart, above its landing spot',trap().position.y>landed.y+.5&&trap().position.z>landed.z+1);
-  r.advance(150);r.frame(.15);
+  r.advance(100);r.render({...base(),simTick:3,simAt:200,mines:[mine]});r.frame(.1);
+  r.advance(50);r.frame(.05);
   check('fresh mine is mid-arc between the kart and its spot',trap().position.distanceTo(landed)>.05&&trap().position.z>landed.z-.01);
-  r.advance(300);r.frame(.3);
+  for(let tick=4;tick<=6;tick++){r.advance(100);r.render({...base(),simTick:tick,simAt:100+(tick-2)*100,mines:[mine]});r.frame(.1);}
   check('fresh mine settles exactly on its authoritative spot',trap().position.distanceTo(landed)<1e-6&&trap().userData.drop===null);
   r.view.dispose();
 }
@@ -417,7 +356,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   // A new accepted event after a stalled frame must not inherit the stall's
   // elapsed time. Previous effects expire first; fresh effects get one draw.
   r.advance(700);
-  const fresh=structuredClone(same);fresh.simAt=2150;fresh.simTick=43;fresh.karts[1].alive=false;
+  const fresh=structuredClone(same);fresh.simAt=r.api.now()-900;fresh.simTick=43;fresh.karts[1].alive=false;
   fresh.events=[{id:'fresh-after-hitch',type:'ko',pid:'a',other:'b',position:{x:10,y:1,z:0}}];
   r.render(fresh);r.frame(.1);
   const sparks=()=>gl.built.scene.children.filter(o=>o.name==='RaisedCombatParticles'&&o.visible);
@@ -505,10 +444,10 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   const saturationScene=saturation.loads.at(-1).handle.built.scene,beforeGrenades=saturation.allocations();
   for(const [index,weapon]of ['nuke','frost'].entries()){
     const grenades=Array.from({length:12},(_,i)=>({id:weapon+i,weapon,position:{x:i-6,y:8,z:6},velocity:{x:0,y:0,z:0},fuse:1,warning:weapon==='nuke'}));
-    saturation.render({...base(),simAt:80+index*50,simTick:10+index,grenades});saturation.advance(150);saturation.frame();
+    saturation.render({...base(),simAt:80+index*100,simTick:10+index,grenades});saturation.advance(100);saturation.frame();
     check(weapon+' maximum twelve bodies use prepared grenade meshes',saturationScene.children.filter(o=>o.visible&&o.userData.poolKey==='grenade:'+weapon).length===12&&saturation.allocations().projectiles===beforeGrenades.projectiles);
   }
-  saturation.render({...base(),simAt:190,simTick:12});saturation.advance(50);saturation.frame();
+  saturation.render({...base(),simAt:290,simTick:12});saturation.advance(50);saturation.frame();
   check('grenade saturation and warning rings retire with the authority',!saturationScene.children.some(o=>o.visible&&(o.userData.poolKey?.startsWith('grenade:')||o.name==='NukeWarningRing')));
   saturation.view.dispose();
   let projectileTraversals=0;
@@ -536,7 +475,7 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   check('collision no longer starts the generic radial knockout animation',effectPool.every(o=>!o.visible));
   for(const [type,x,count,id]of [['ko',11,24,102]]){
     r.render({...base(),simAt:1600+(id-101)*50,simTick:id,events:[{...event(id,type),position:{x,y:1,z:3}}]});r.advance(50);r.frame();
-    check(type+' creates a visible effect at its admission point using an attached prepared buffer',effectPool.some(o=>o.parent===built.scene&&o.visible&&o.count===count&&Math.abs(particlePosition(o).x-x)<1e-9));
+    check(type+' creates a visible effect at its admission point using an attached prepared buffer',effectPool.some(o=>o.parent===built.scene&&o.visible&&o.count===count&&particlePosition(o).x>x&&particlePosition(o).x<x+1));
     r.advance(50);r.frame(.05);
     check(type+' positioned particles advance after admission without inheriting the previous frame',effectPool.some(o=>o.parent===built.scene&&o.visible&&o.count===count&&particlePosition(o).x>x&&particlePosition(o).x<x+1));
   }
@@ -565,8 +504,8 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   const from={x:.95,y:1.14,z:2.1},position={x:1.6,y:1.5,z:3.1},start=new THREE.Vector3().copy(from),axis=new THREE.Vector3().subVectors(position,from),length=axis.length();axis.normalize();
   const endpoints=cue=>{cue.updateMatrixWorld(true);const mesh=cue.children[0],v=new THREE.Vector3(),vertices=mesh.geometry.attributes.position;let min=Infinity,max=-Infinity;for(let i=0;i<vertices.count;i++){v.fromBufferAttribute(vertices,i).applyMatrix4(mesh.matrixWorld).sub(start);const d=v.dot(axis);min=Math.min(min,d);max=Math.max(max,d);}return Math.abs(min)<1e-6&&Math.abs(max-length)<1e-6;};
   let id=0;
-  for(const reduced of [false,true])for(const dt of [.09,.1])for(const weapon of ['machinegun','trishot']){
-    r.motion(reduced);const event={id:'confirmed-'+(++id),type:'impact',weapon,pid:'b',other:'a',from,position},snapshot={...base(),simTick:id+1,simAt:50+id*50,events:[event]};
+  for(const reduced of [false,true])for(const dt of [.03,.04])for(const weapon of ['machinegun','trishot']){
+    r.motion(reduced);const event={id:'confirmed-'+(++id),type:'impact',weapon,pid:'b',other:'a',from,position},snapshot={...base(),simTick:id+1,simAt:r.api.now(),events:[event]};
     r.render(snapshot);r.advance(dt*1000);r.frame(dt);const visible=cues.filter(o=>o.visible);
     check(`${weapon} absent from snapshots shows exact confirmed endpoints after ${dt*1000}ms with reduced motion ${reduced}`,visible.length===1&&visible[0].userData.confirmedShot===weapon&&endpoints(visible[0])&&!scene.children.some(o=>o.visible&&o.userData.combat?.type==='projectile'));
     const matrix=visible[0].matrixWorld.clone();r.render(snapshot);r.advance(40);r.frame(.04);
@@ -575,19 +514,19 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   }
   const pellets=Array.from({length:3},(_,i)=>({id:'pellet-'+i,type:'impact',weapon:'trishot',pid:'a',surfaceId:'wall',from,position:{...position,x:position.x+(i-1)*.4}}));
   // Stay under the 1s authority gap that would reseed event history.
-  const pelletSnapshot={...base(),simTick:40,simAt:1000,events:pellets};r.render(pelletSnapshot);r.frame(.1);
+  const pelletSnapshot={...base(),simTick:40,simAt:r.api.now(),events:pellets};r.render(pelletSnapshot);r.frame(.1);
   check('three same-owner Scatter pellets produce independent confirmed surface strokes',cues.filter(o=>o.visible&&o.userData.confirmedShot==='trishot').length===3&&new Set(cues.filter(o=>o.visible).map(o=>o.position.x)).size===3);
   r.render(pelletSnapshot);r.advance(100);r.frame(.1);check('repeated pellet receipt cannot renew expired strokes',cues.every(o=>!o.visible));
-  r.render({...base(),simTick:40,simAt:1610,events:[{id:'blocked-barrel',type:'impact',weapon:'machinegun',pid:'a',surfaceId:'barrel-cover',from:{x:.95,y:1.14,z:0},position:{x:.95,y:1.14,z:1.6}}]});r.frame(.1);
+  r.render({...base(),simTick:40,simAt:r.api.now(),events:[{id:'blocked-barrel',type:'impact',weapon:'machinegun',pid:'a',surfaceId:'barrel-cover',from:{x:.95,y:1.14,z:0},position:{x:.95,y:1.14,z:1.6}}]});r.frame(.1);
   const blockedCue=cues.find(o=>o.visible),blockedBounds=blockedCue&&new THREE.Box3().setFromObject(blockedCue);
   check('blocked barrel feedback starts at the supplied corridor origin and stops at cover before the muzzle',blockedBounds&&Math.abs(blockedBounds.min.z)<1e-6&&Math.abs(blockedBounds.max.z-1.6)<1e-6);
   r.advance(100);r.frame(.1);
   // A buffered projectile may be present before a hitch delivers its impact.
-  r.render({...base(),simTick:41,simAt:2050,projectiles:[{id:'short',weapon:'machinegun',position:from,velocity:{x:0,y:0,z:140}}]});r.frame();
-  r.render({...base(),simTick:42,simAt:2100,events:[{id:'retire-short',type:'impact',weapon:'machinegun',pid:'a',from,position}]});r.frame(.1);
+  r.render({...base(),simTick:41,simAt:r.api.now(),projectiles:[{id:'short',weapon:'machinegun',position:from,velocity:{x:0,y:0,z:140}}]});r.frame();
+  r.render({...base(),simTick:42,simAt:r.api.now(),events:[{id:'retire-short',type:'impact',weapon:'machinegun',pid:'a',from,position}]});r.frame(.1);
   check('latest impact retires the live projectile immediately while its exact confirmed segment survives',!scene.children.some(o=>o.visible&&o.userData.combat?.type==='projectile')&&cues.some(o=>o.visible&&endpoints(o)));
-  r.render({...base(),simTick:43,simAt:2150,audioBaseline:true});r.frame();check('reconnect baseline clears active confirmed feedback',cues.every(o=>!o.visible));
-  r.render({...base(),simTick:44,simAt:2200,events:Array.from({length:32},(_,i)=>({id:'saturation-'+i,type:'impact',weapon:'machinegun',pid:'a',from,position}))});r.frame(.1);
+  r.render({...base(),simTick:43,simAt:r.api.now(),audioBaseline:true});r.frame();check('reconnect baseline clears active confirmed feedback',cues.every(o=>!o.visible));
+  r.render({...base(),simTick:44,simAt:r.api.now(),events:Array.from({length:32},(_,i)=>({id:'saturation-'+i,type:'impact',weapon:'machinegun',pid:'a',from,position}))});r.frame(.1);
   check('confirmed feedback saturation stays inside its prepared pool without hot graphics allocations',cues.filter(o=>o.visible).length===12&&JSON.stringify(r.allocations())===JSON.stringify(allocation));
   r.render({...base(),instanceId:'fresh',simTick:1,events:[]});r.frame();check('new instance resets old confirmed strokes',cues.every(o=>!o.visible));
   r.render({...base(),instanceId:'fresh',simTick:2,events:[{id:'disposed-cue',type:'impact',weapon:'machinegun',pid:'a',from,position}]});r.frame();assert.ok(cues.some(o=>o.visible));
@@ -626,9 +565,10 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
   // three-view caps the elapsed interval before this frame at 100ms. A fire
   // accepted during that interval must reach the subsequent render once;
   // charging that past interval to its new 90ms flash erased it before draw.
+  let hitchTick=3;
   for(const reduced of [false,true])for(const dt of [.09,.1])for(const weapon of ['machinegun','trishot','missile','cannon','nuke']){
     r.motion(reduced);
-    const accepted=structuredClone(fire);accepted.events=[{id:`hitch-${reduced}-${dt}-${weapon}`,type:'fire',weapon,pid:'a',position:{x:4,y:1,z:5},direction:{x:1,y:0,z:0}}];
+    const accepted=structuredClone(fire);accepted.simTick=++hitchTick;accepted.simAt=r.api.now();accepted.events=[{id:`hitch-${reduced}-${dt}-${weapon}`,type:'fire',weapon,pid:'a',position:{x:4,y:1,z:5},direction:{x:1,y:0,z:0}}];
     r.render(accepted);r.frame(dt);
     const visible=flashes.filter(o=>o.visible);
     check(`${weapon} accepted flash reaches the draw after ${dt*1000}ms with reduced motion ${reduced}`,visible.length===1&&visible[0].position.distanceTo(new THREE.Vector3(4,1,5))<1e-9&&new THREE.Vector3(0,0,1).applyQuaternion(visible[0].quaternion).distanceTo(new THREE.Vector3(1,0,0))<1e-9);
@@ -636,18 +576,18 @@ for(const missingDrivers of [['bunny'],['fox','bunny','panda','raccoon']]){
     check(`${weapon} hitch flash expires without duplicate event replay or graphics allocation`,flashes.every(o=>!o.visible)&&r.allocations().projectiles===allocation.projectiles&&r.allocations().instances===allocation.instances);
   }
   r.motion(false);
-  const ko=structuredClone(fire);ko.simTick=4;ko.simAt=200;ko.karts[0].health=0;ko.karts[0].alive=false;ko.events=[{id:3,type:'ko',pid:'b',other:'a',position:{x:2,y:1,z:3}}];
+  const ko=structuredClone(fire);ko.simTick=hitchTick+1;ko.simAt=r.api.now();ko.karts[0].health=0;ko.karts[0].alive=false;ko.events=[{id:3,type:'ko',pid:'b',other:'a',position:{x:2,y:1,z:3}}];
   r.render(ko);r.frame();
   check('KO hides the scene health bar while the wreck animation remains visible',!bar.visible);
   check('KO keeps the victim visible on its first impact frame',model.visible&&model.position.x===2&&model.position.z===3&&model.scale.x<=1);
   r.advance(700);r.frame(.1);check('wreck retires after its bounded collapse animation',!model.visible);
-  const respawn=structuredClone(start);respawn.simTick=5;respawn.simAt=1000;respawn.karts[0].spawnSeq=2;respawn.karts[0].pose.position={x:20,y:.64,z:20};
+  const respawn=structuredClone(start);respawn.simTick=ko.simTick+1;respawn.simAt=r.api.now();respawn.karts[0].spawnSeq=2;respawn.karts[0].pose.position={x:20,y:.64,z:20};
   r.render(respawn);r.frame();
   check('new life restores three full hearts and actual spawn without stale wreck transform',model.visible&&model.scale.x===1&&model.position.x===20&&model.position.z===20&&hearts().every(h=>h.dataset.full==='true')&&r.node('health').dataset.life==='2');
   check('elevated full-health respawn hides its overhead bar',!bar.visible);
-  const watch=structuredClone(respawn);watch.simTick=6;watch.simAt=1050;watch.you='watcher';watch.youDrive=false;watch.karts[1].health=1;watch.karts[1].pose.position.y=7;r.render(watch);r.frame();check('watcher has no invented personal health bar',r.node('health').hidden);
+  const watch=structuredClone(respawn);watch.simTick=respawn.simTick+1;watch.simAt=r.api.now();watch.you='watcher';watch.youDrive=false;watch.karts[1].health=1;watch.karts[1].pose.position.y=7;r.render(watch);r.frame();check('watcher has no invented personal health bar',r.node('health').hidden);
   check('watcher sees remote wounded player at its elevated world height',otherBar.visible&&Math.abs(otherBar.position.y-scene.children.filter(o=>o.name==='GiggleKart')[1].position.y-3)<1e-9&&otherBar.children.filter(h=>h.material===fullHeart.material).length===1);
-  const offline=structuredClone(watch);offline.simTick=7;offline.simAt=1100;offline.karts[1].connected=false;r.render(offline);r.frame();check('disconnected elevated player hides its overhead bar',!otherBar.visible);
+  const offline=structuredClone(watch);offline.simTick=watch.simTick+1;offline.simAt=r.api.now();offline.karts[1].connected=false;r.render(offline);r.frame();check('disconnected elevated player hides its overhead bar',!otherBar.visible);
   r.view.dispose();check('elevated disposal detaches every scene health bar',bar.parent===null&&otherBar.parent===null);
 }
 // Real Three collider triangles and the shipped chase-camera code. At 20Hz

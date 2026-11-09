@@ -10,7 +10,7 @@ import {WEAPON_FEEL} from './kart-weapon-contract.mjs';
  *   fx.objects()                 // pooled meshes, for shader warm-up
  *   fx.reset(); fx.dispose();
  *
- * Every burst is pooled and short (<= 0.85 s); a full pool recycles the
+ * Every burst is pooled and short (<= 0.14 s); a full pool recycles the
  * oldest. Status attachments live on the kart model and hide themselves
  * the moment the authority's timer reaches zero.
  */
@@ -23,7 +23,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   const keepG = g => { geos.push(g); return g; };
   const keepM = m => { mats.push(m); return m; };
   const additive = (color, opacity) => keepM(new THREE.MeshBasicMaterial({ color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, side: THREE.DoubleSide }));
-  const attachments=[];
+  const attachments=[];let eventAge=0;
   const rm = () => (typeof reducedMotion === 'function' ? reducedMotion() : reducedMotion) === true;
   const skyFlash=new THREE.Mesh(keepG(new THREE.PlaneGeometry(2,2)),keepM(new THREE.ShaderMaterial({
     vertexShader:'void main(){gl_Position=vec4(position.xy,0.,1.);}',
@@ -54,7 +54,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     const group = new THREE.Group(); group.name = 'ThunderBolt' + i; group.add(halo, core, flash); group.visible = false;
     for (const m of [core, halo, flash]) m.frustumCulled = false;
     root.add(group);
-    return { group, core, halo, flash, points: new Float32Array((SEGMENTS+1)*3), age: 0, life: .55 };
+    return { group, core, halo, flash, points: new Float32Array((SEGMENTS+1)*3), age: 0, life: .14 };
   });
   function shapeBolt(bolt, p, seed) {
     const top = 24, pts = bolt.points;
@@ -87,7 +87,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   function ring(kind, p) {
     const spec = RING[kind]; if (!spec) return;
     const r = rings.find(v => !v.mesh.visible) || rings[ringHead++ % rings.length];
-    r.mesh.material.color.setHex(spec[0]); r.size = spec[1]; r.life = spec[2]; r.age = 0;
+    r.mesh.material.color.setHex(spec[0]); r.size = spec[1]; r.life = Math.min(.14,spec[2]); r.age = eventAge;
     r.mesh.position.set(p.x, p.y + .06, p.z); r.mesh.visible = true; r.mesh.scale.setScalar(.2 * r.size);
   }
 
@@ -104,7 +104,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     for (let i = 0; i < count; i++) {
       const s = shards[shardHead]; shardHead = (shardHead + 1) % SHARDS;
       const a = i * 2.39996 + p.x * .37;
-      s.live = true; s.age = 0; s.life = life; s.size = size; s.color = color;
+      s.live = true; s.age = eventAge; s.life = Math.min(.14,life); s.size = size; s.color = color;
       s.p.set(p.x, p.y + .3, p.z); s.v.set(Math.cos(a) * speed * (.7 + (i % 3) * .2), up + (i % 4) * .6, Math.sin(a) * speed * (.7 + (i % 3) * .2));
     }
   }
@@ -117,7 +117,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   casingMesh.name='MachineGunCasings';casingMesh.frustumCulled=false;casingMesh.count=0;root.add(casingMesh);
   const casings=Array.from({length:CASINGS},()=>({live:false,p:new THREE.Vector3(),v:new THREE.Vector3(),age:0}));let casingHead=0;
   function eject(p,d,count){if(rm())return;for(let i=0;i<count;i++){
-    const c=casings[casingHead];casingHead=(casingHead+1)%CASINGS;c.live=true;c.age=0;c.p.set(p.x,p.y,p.z);c.v.set(d.z*(2+i*.2),2.4+i*.15,-d.x*(2+i*.2));
+    const c=casings[casingHead];casingHead=(casingHead+1)%CASINGS;c.live=true;c.age=eventAge;c.p.set(p.x,p.y,p.z);c.v.set(d.z*(2+i*.2),2.4+i*.15,-d.x*(2+i*.2));
   }}
 
   const lockMesh=new THREE.Mesh(keepG(new THREE.RingGeometry(.92,1.02,32)),additive(0xffd34a,.95));
@@ -131,9 +131,9 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     if(!model||kart?.alive===false||kart?.respawn>0||kart?.connected===false)return;
     lockMesh.position.copy(model.position);lockMesh.position.y+=2.1;lockMesh.quaternion.copy(camera.quaternion);lockMesh.scale.setScalar(1);lockMesh.visible=true;
   }
-  function react(e,models){
+  function react(e,models,age=0){
     const type=e.type||e.kind;
-    if(type==='fire'||type==='mine'){const model=models.get(e.pid);if(model){const s=attach(model);s.fireAge=0;s.firePower=WEAPON_FEEL[e.weapon]?.recoil||.1;s.muzzlePower=e.weapon==='cannon'||e.weapon==='missile'?1.6:1;s.muzzleOn=['machinegun','trishot','missile','cannon'].includes(e.weapon);}}
+    if(type==='fire'||type==='mine'){const model=models.get(e.pid);if(model){const s=attach(model);s.fireAge=age;s.firePower=WEAPON_FEEL[e.weapon]?.recoil||.1;s.muzzlePower=e.weapon==='cannon'||e.weapon==='missile'?1.6:1;s.muzzleOn=['machinegun','trishot','missile','cannon'].includes(e.weapon);}}
     if(type==='hit'){const model=models.get(e.other);if(model){const s=attach(model);s.hitAge=0;s.hitPower=Math.min(1.3,.3+(WEAPON_FEEL[e.weapon]?.kick||1)/8);}}
   }
   // ---- kart status attachments ----
@@ -172,7 +172,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
    * at the chassis centre. */
   function status(model, kart, { time = 0, groundRoot = false, elapsed = 0 } = {}) {
     if (!model) return;
-    const connected=kart?.connected!==false,ramOn=connected&&kart?.rammingT>elapsed,frostOn=connected&&kart?.frostT>elapsed,spinOn=connected&&kart?.spinT>elapsed;
+    const connected=kart?.connected!==false&&elapsed<=.12,ramOn=connected&&kart?.rammingT>elapsed,frostOn=connected&&kart?.frostT>elapsed,spinOn=connected&&kart?.spinT>elapsed;
     if (!ramOn && !frostOn && !spinOn && !(kart?.bladesT>0) && !(kart?.supernovaT>0) && !model.userData.arsenalStatus) return;
     const s = attach(model), lift = groundRoot ? .72 : 0, still = rm();
     if(s.body){
@@ -211,16 +211,16 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
   // under the event point (elevated decks have no height field).
   const floorOf = p => { const g = groundAt(p.x, p.z); return { x: p.x, y: Number.isFinite(g) ? Math.min(p.y, g + .05) : p.y - .6, z: p.z }; };
   let strikes = 0;
-  function event(e) {
-    if (!e || !e.type) return false;
+  function event(e,age=0) {
+    if (!e || !e.type || age>=.14) return false;eventAge=Math.max(0,age);
     const p = at(e); if (!p) return false;
     if(e.type==='blast'&&['nuke','supernova','cannon','missile'].includes(e.weapon)){ring(e.weapon,floorOf(p));return true;}
     if(e.type==='fire'&&(e.weapon==='machinegun'||e.weapon==='trishot')){eject(p,e.direction||{x:0,y:0,z:1},e.weapon==='trishot'?3:1);return true;}
     if (e.type === 'blast' && e.weapon === 'thunder') {
       const bolt = bolts.find(b => !b.group.visible) || bolts.reduce((a, b) => (a.age > b.age ? a : b));
       shapeBolt(bolt, p, ++strikes + (p.x * .13));
-      if(!rm()){flashAge=0;skyFlash.visible=true;skyFlash.material.uniforms.alpha.value=.28;}
-      bolt.age = 0; bolt.group.visible = true;bolt.flash.visible=true; bolt.flash.scale.setScalar(.6);
+      if(!rm()){flashAge=eventAge;skyFlash.visible=true;skyFlash.material.uniforms.alpha.value=.28;}
+      bolt.age = eventAge; bolt.group.visible = true;bolt.flash.visible=true; bolt.flash.scale.setScalar(.6);
       ring('thunder', floorOf(p)); burst(p, 8, 0xfff1a0, 4, .4, 3, .8);
       return true;
     }
@@ -235,7 +235,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
 
   function update(dt) {
     const elapsed=Math.max(0,Number(dt)||0),step=Math.min(.1,elapsed);
-    flashAge+=elapsed;skyFlash.visible=flashAge<.18&&!rm();skyFlash.material.uniforms.alpha.value=.28*Math.max(0,1-flashAge/.18);
+    flashAge+=elapsed;skyFlash.visible=flashAge<.14&&!rm();skyFlash.material.uniforms.alpha.value=.28*Math.max(0,1-flashAge/.14);
     for(const s of attachments){s.fireAge+=elapsed;s.hitAge+=elapsed;}
     for (const b of bolts) {
       if (!b.group.visible) continue;
@@ -263,7 +263,7 @@ export function createArsenalFX(THREE, scene, { reducedMotion = () => false, gro
     }
     shardMesh.count = n;
     let shells=0;
-    for(const c of casings){if(!c.live)continue;c.age+=elapsed;if(c.age>=.6){c.live=false;continue;}c.v.y-=9.8*step;c.p.addScaledVector(c.v,step);dummy.position.copy(c.p);dummy.rotation.set(c.age*17,c.age*11,c.age*8);dummy.scale.setScalar(Math.min(1,(.6-c.age)*12));dummy.updateMatrix();casingMesh.setMatrixAt(shells++,dummy.matrix);}
+    for(const c of casings){if(!c.live)continue;c.age+=elapsed;if(c.age>=.14){c.live=false;continue;}c.v.y-=9.8*step;c.p.addScaledVector(c.v,step);dummy.position.copy(c.p);dummy.rotation.set(c.age*17,c.age*11,c.age*8);dummy.scale.setScalar(Math.min(1,(.14-c.age)*12));dummy.updateMatrix();casingMesh.setMatrixAt(shells++,dummy.matrix);}
     casingMesh.count=shells;if(shells)casingMesh.instanceMatrix.needsUpdate=true;
     if (n) { shardMesh.instanceMatrix.needsUpdate = true; shardMesh.instanceColor.needsUpdate = true; }
   }

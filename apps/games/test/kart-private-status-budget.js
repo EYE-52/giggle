@@ -25,7 +25,7 @@ async function run(base,legacy,workload){
     assert(!room.game.preparing);
     const samples=[],fields={};let frames=0;
     const initialFull=fullReads,initialCompact=compactReads,initialViewClones=viewClones,cpuStart=process.cpuUsage();
-    for(let n=0;n<700&&room.game.state.phase!=='done';n++){
+    for(let n=0;n<1400&&room.game.state.phase!=='done';n++){
       if(n%2===0)for(let i=0;i<8;i++){
         const c=clients[i],own=match.privateStatus(c.p.id);
         room.onAction(c.socket,{type:'input',seq:own.receivedSeq+1,life:own.life,controlEpoch:own.controlEpoch,steer:workload==='neutral'?0:(i%2?.3:-.3),throttle:workload==='neutral'?0:1,brake:0,nitro:workload==='nitro',use:workload==='nitro'&&n%20===0},{i:room.game.instanceId,w:room._actionToken()});
@@ -52,6 +52,6 @@ async function run(base,legacy,workload){
 (async()=>{const base=await loadElevatedDependencies(),results=[];
 for(const workload of ['neutral','drive','nitro']){for(const legacy of (process.env.KART_STATUS_BUDGET_REVERSE? [false,true]:[true,false]))results.push(await run(base,legacy,workload));}
 for(let n=0;n<results.length;n+=2){assert.equal(results[n].totalSinkJsonBytes,results[n+1].totalSinkJsonBytes,'compact ACK path preserves whole24-seat JSON byte budget');assert.deepEqual(results[n].meanFieldBytes,results[n+1].meanFieldBytes,'every mean wire field byte budget is preserved');}
-const report={pass:true,node:process.version,rapier:base.RAPIER.version(),eventDeltas:process.env.KART_EVENT_DELTAS==='1',scope:'Actual24-seat Room/facade, real authored Harbor Heights Rapier world; eight legal drivers/sixteen watcher socket sinks, deterministic seed42, controlled50ms clock,30second matches. Tick timing includes simulation/projection/selected transport views/JSON serialization. Loop CPU additionally includes intent preparation and field/privacy accounting. No live socket compression/network/browser latency verdict.',results};
+const report={pass:true,node:process.version,rapier:base.RAPIER.version(),eventDeltas:process.env.KART_EVENT_DELTAS==='1',scope:'Actual24-seat Room/facade, real authored Harbor Heights Rapier world; eight legal drivers/sixteen watcher socket sinks, deterministic seed42, controlled50ms clock,60second matches. Tick timing includes simulation/projection/selected transport views/JSON serialization. Loop CPU additionally includes intent preparation and field/privacy accounting. No live socket compression/network/browser latency verdict.',results};
 if(process.env.KART_STATUS_BUDGET_REPORT)fs.writeFileSync(process.env.KART_STATUS_BUDGET_REPORT,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 })().catch(e=>{console.error(e);process.exitCode=1});

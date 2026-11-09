@@ -35,10 +35,10 @@ export function createKartDrivingFX(THREE,scene,camera,{groundAt=()=>0,reducedMo
     }
   }
   function update(dt,speed=0,boost=false) {
-    if(disposed)return;const step=Math.min(.1,Math.max(0,dt));time+=step;
+    if(disposed)return;const elapsed=Math.max(0,dt),step=Math.min(.1,elapsed);time+=elapsed;
     let live=0;
     for(let i=0;i<N;i++) {
-      if(life[i]<=0){alpha[i]=0;continue;}life[i]-=step;const j=i*3;
+      if(life[i]<=0){alpha[i]=0;continue;}life[i]-=elapsed;if(life[i]<=0){alpha[i]=0;continue;}const j=i*3;
       positions[j]+=velocity[j]*step;positions[j+1]+=velocity[j+1]*step;positions[j+2]+=velocity[j+2]*step;
       alpha[i]=Math.max(0,life[i]/duration[i])*.8;live++;
     }

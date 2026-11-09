@@ -6,8 +6,8 @@ import {WEAPONS} from './kart-weapon-contract.mjs';
  * impact+blast pairs may arrive in either order. Existing history guards
  * remain the renderer's responsibility. */
 export const IMPACT_FX_LIMITS=Object.freeze({fire:156,smoke:84,embers:144,trails:128,history:96,pairs:24});
-export const BLAST_FX_BUDGETS=Object.freeze({fire:.34,smoke:.55,embers:.45,total:.6});
-export const TRAIL_FX_BUDGET=.32;
+export const BLAST_FX_BUDGETS=Object.freeze({fire:.14,smoke:.14,embers:.14,total:.14});
+export const TRAIL_FX_BUDGET=.12;
 export function blastSize(weapon){const w=WEAPONS[weapon];if(!w?.splashRadius)return weapon==='mine'?1.3:.65;return Math.max(.65,w.splashRadius*.8*((w.splashDamage??w.damage)===1?.7:1));}
 const VERTEX=`
 attribute vec3 fxOrigin;
@@ -78,7 +78,7 @@ void main(){
 
 export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
  const root=new THREE.Group();root.name='KartImpactFX';scene.add(root);
- let time=0,disposed=false,idHead=0,pairHead=0;
+ let time=0,emissionAge=0,disposed=false,idHead=0,pairHead=0;
  const ids=Array(IMPACT_FX_LIMITS.history).fill(null);
  const pairs=Array.from({length:IMPACT_FX_LIMITS.pairs},()=>({at:-Infinity,type:'',pid:null,weapon:null,tick:null,x:0,y:0,z:0,paired:false}));
  function pool(name,capacity,layer){
@@ -90,21 +90,22 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
   geometry.instanceCount=capacity;
   const material=new THREE.ShaderMaterial({vertexShader:VERTEX,fragmentShader:FRAGMENT,uniforms:{fxTime:{value:0},fxLayer:{value:layer}},transparent:true,depthWrite:false,depthTest:true,blending:layer===1?THREE.NormalBlending:THREE.AdditiveBlending,toneMapped:false});
   const mesh=new THREE.Mesh(geometry,material);mesh.name=name;mesh.frustumCulled=false;mesh.visible=false;mesh.renderOrder=20+(layer===1?0:layer===0?1:2);root.add(mesh);
-  return {mesh,geometry,material,origin,velocity,life,size,capacity,head:0};
+  return {mesh,geometry,material,origin,velocity,life,size,capacity,owners:Array(capacity).fill(null),head:0};
  }
  const bufferNames=['fxOrigin','fxVelocity','fxLife','fxSize'];
  const fire=pool('KartImpactFireFlash',IMPACT_FX_LIMITS.fire,0),smoke=pool('KartImpactSmoke',IMPACT_FX_LIMITS.smoke,1),embers=pool('KartImpactEmbers',IMPACT_FX_LIMITS.embers,2),trails=pool('KartWeaponTrails',IMPACT_FX_LIMITS.trails,3),pools=[fire,smoke,embers,trails];
- function particle(p,x,y,z,vx,vy,vz,duration,startSize,endSize,seed,flash=0){
+ function particle(p,x,y,z,vx,vy,vz,duration,startSize,endSize,seed,flash=0,owner=null){
+  duration=Math.min(duration,.14);
   const n=p.head;p.head=(n+1)%p.capacity;const a=n*3,b=n*4,c=n*2;
   p.origin[a]=x;p.origin[a+1]=y;p.origin[a+2]=z;p.velocity[a]=vx;p.velocity[a+1]=vy;p.velocity[a+2]=vz;
-  p.life[b]=time;p.life[b+1]=duration;p.life[b+2]=seed;p.life[b+3]=flash;p.size[c]=startSize;p.size[c+1]=endSize;
-  p.mesh.visible=true;p.until=Math.max(p.until||0,time+duration);
+  const age=owner?0:emissionAge;p.owners[n]=owner;p.life[b]=time-age;p.life[b+1]=duration;p.life[b+2]=seed;p.life[b+3]=flash;p.size[c]=startSize;p.size[c+1]=endSize;
+  p.until=Math.max(p.until||0,time-age+duration);p.mesh.visible=time<p.until;
   if(!p.dirty){for(const name of bufferNames)p.geometry.attributes[name].needsUpdate=true;p.dirty=true;}
  }
  // Touch only the pool receiving particles, once per frame. Trails do not
  // invalidate the fire/ember buffers, and idle pools need no particle scan.
- function emit(e){
-  if(disposed||!e)return false;
+ function emit(e,age=0){
+  if(disposed||!e||age>=.14)return false;emissionAge=Math.max(0,age);
   const type=e.type||e.kind,p=e.position;
   if(!['fire','mine','hit','impact','blast','collision','ko'].includes(type)||!p||!Number.isFinite(p.x)||!Number.isFinite(p.y)||!Number.isFinite(p.z))return false;
   if(e.id!=null){if(ids.includes(e.id))return false;ids[idHead]=e.id;idHead=(idHead+1)%ids.length;}
@@ -194,10 +195,23 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
   c.trailClock=0;c.trailX=p.x;c.trailY=p.y;c.trailZ=p.z;
   // A solid tracer is end-on from the chase camera. This short, screen-facing
   // streak uses the same accepted axis and existing GPU pool, with no new draw.
-  if(bullet){const q=object.quaternion,x=2*(q.x*q.z+q.w*q.y),y=2*(q.y*q.z-q.w*q.x),z=1-2*(q.x*q.x+q.y*q.y);particle(trails,p.x-x,p.y-y,p.z-z,x,y,z,.08,.55,.25,c.kind==='machinegun'?4:2,4);return;}
-  if(missile){particle(smoke,p.x,p.y,p.z,0,.7,0,.45,.7,1.8,1);particle(fire,p.x,p.y,p.z,0,0,0,.16,1.25,.25,0);}
-  if(icy)particle(smoke,p.x,p.y,p.z,0,.5,0,.35,.9,1.8,1,3);
-  particle(trails,p.x,p.y,p.z,0,0,0,TRAIL_FX_BUDGET,boom?1.7:icy?1.8:1.1,.15,boom?((c.trailColor=(c.trailColor||0)+1)%3):icy?3:2);
+  if(bullet){const q=object.quaternion,x=2*(q.x*q.z+q.w*q.y),y=2*(q.y*q.z-q.w*q.x),z=1-2*(q.x*q.x+q.y*q.y);particle(trails,p.x-x,p.y-y,p.z-z,x,y,z,.08,.55,.25,c.kind==='machinegun'?4:2,4,object);return;}
+  if(missile){particle(smoke,p.x,p.y,p.z,0,.7,0,.12,.7,1.8,1,0,object);particle(fire,p.x,p.y,p.z,0,0,0,.12,1.25,.25,0,0,object);}
+  if(icy)particle(smoke,p.x,p.y,p.z,0,.5,0,.12,.9,1.8,1,3,object);
+  particle(trails,p.x,p.y,p.z,0,0,0,TRAIL_FX_BUDGET,boom?1.7:icy?1.8:1.1,.15,boom?((c.trailColor=(c.trailColor||0)+1)%3):icy?3:2,0,object);
+ }
+ // Retire a shot's world-space trail before its mesh returns to a pool.
+ // Other live shots and accepted impact sparks keep their own slots.
+ function retire(object){
+  if(disposed)return;
+  for(const p of pools){
+   let changed=false,until=0;
+   for(let i=0;i<p.capacity;i++){
+    if(p.owners[i]===object){p.owners[i]=null;p.life[i*4+1]=0;changed=true;}
+    if(p.life[i*4+1]>0)until=Math.max(until,p.life[i*4]+p.life[i*4+1]);
+   }
+   if(changed){p.until=until;p.mesh.visible=time<until;p.geometry.attributes.fxLife.needsUpdate=true;}
+  }
  }
  function update(dt){
   if(disposed)return;if(Number.isFinite(dt)&&dt>=0)time+=dt;
@@ -205,7 +219,7 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
  }
  function reset(){
   if(disposed)return;time=0;ids.fill(null);idHead=0;pairHead=0;for(const p of pairs)p.at=-Infinity;
-  for(const p of pools){p.life.fill(0);p.head=0;p.until=0;p.dirty=false;p.material.uniforms.fxTime.value=0;p.mesh.visible=false;p.geometry.attributes.fxLife.needsUpdate=true;}
+  for(const p of pools){p.life.fill(0);p.owners.fill(null);p.head=0;p.until=0;p.dirty=false;p.material.uniforms.fxTime.value=0;p.mesh.visible=false;p.geometry.attributes.fxLife.needsUpdate=true;}
  }
  async function warmup(renderer,camera){
   if(disposed)throw Error('Retired kart impact FX');
@@ -213,5 +227,5 @@ export function createKartImpactFX(THREE,scene,{reducedMotion=false}={}){
   try{await renderer.compileAsync(scene,camera);if(disposed)throw Error('Retired kart impact FX');renderer.render(scene,camera);}finally{update(0);}
  }
  function dispose(){if(disposed)return;reset();disposed=true;root.removeFromParent();for(const p of pools){p.geometry.dispose();p.material.dispose();}}
- return Object.freeze({emit,trail,update,warmup,reset,dispose});
+ return Object.freeze({emit,trail,retire,update,warmup,reset,dispose});
 }

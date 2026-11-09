@@ -28,7 +28,7 @@ export function projectilePose(shot, snapshot, serverNow) {
     if(lo<=hi&&lo<=1&&hi>=0)hit=Math.min(hit,Math.max(0,lo));
   }
   hit=Math.max(0,Math.min(1,hit));
-  return {x:shot.x+dx*hit,y:shot.y??.8,z:shot.z+dz*hit,angle:shot.angle,visible:age<=.25&&age<(Number(shot.ttl)||0)};
+  return {x:shot.x+dx*hit,y:shot.y??.8,z:shot.z+dz*hit,angle:shot.angle,visible:age<=PHYSICAL_LEAD&&age<(Number(shot.ttl)||0)};
 }
 /* Ballistic visual lead shares the authoritative velocity/gravity but never
  * predicts through full-height cover. Bounces and the fuse stay server-owned. */
@@ -36,7 +36,7 @@ export const GRENADE_GRAVITY = 30;
 export function grenadePose(g, snapshot, serverNow) {
   const age=Number.isFinite(snapshot.simAt) ? Math.max(0,(serverNow-snapshot.simAt)/1000) : 0;
   const fuse=Math.max(0,Number(g.fuse ?? g.ttl)||0),lead=Math.min(age,.2,fuse);
-  if(g.physical===true)return {x:g.x,y:g.y,z:g.z,angle:Number(g.angle)||0,warning:g.warning===true,visible:age<=.25&&age<fuse};
+  if(g.physical===true)return {x:g.x,y:g.y,z:g.z,angle:Number(g.angle)||0,warning:g.warning===true,visible:age<=PHYSICAL_LEAD&&age<fuse};
   const bound=(Number(snapshot.map?.bound)||0)>0 ? Number(snapshot.map.bound) : 28;
   const x=Number(g.x)||0,z=Number(g.z)||0,dx=(Number(g.vx)||0)*lead,dz=(Number(g.vz)||0)*lead;
   let hit=1;
@@ -54,11 +54,11 @@ export function grenadePose(g, snapshot, serverNow) {
   }
   hit=Math.max(0,Math.min(1,hit));const t=lead*hit;
   const y=Math.max(0,(Number(g.y)||0)+(Number(g.vy)||0)*t-.5*GRENADE_GRAVITY*t*t);
-  return {x:x+dx*hit,z:z+dz*hit,y,angle:Number(g.angle)||0,warning:g.warning===true,visible:age<=.25&&age<fuse};
+  return {x:x+dx*hit,z:z+dz*hit,y,angle:Number(g.angle)||0,warning:g.warning===true,visible:age<=PHYSICAL_LEAD&&age<fuse};
 }
 
 // Physical shots share the remote playback clock and lead along velocity
-// during a stall. Only a newer authority packet can retire an absent shot.
+// during a stall. Receipt age also expires shots; interpolation delay cannot extend their lease.
 export function createProjectilePlayback(){
  const records=new Map();let stamp=null,delay=100;
  function ingest(shots,simAt){
@@ -84,7 +84,7 @@ export function createProjectilePlayback(){
   out.x=a.x+(b.x-a.x)*alpha+(b.vx||0)*lead;out.y=a.y+(b.y-a.y)*alpha+(b.vy||0)*lead-.5*g*lead*lead;out.z=a.z+(b.z-a.z)*alpha+(b.vz||0)*lead;
   out.angle=b.angle;const v=out.direction;
   v.x=(a.vx||0)+((b.vx||0)-(a.vx||0))*alpha;v.y=(a.vy||0)+((b.vy||0)-(a.vy||0))*alpha-g*lead;v.z=(a.vz||0)+((b.vz||0)-(a.vz||0))*alpha;
-  out.visible=age<=1&&ahead<=PHYSICAL_LEAD&&ahead<(Number((r?.current||b).ttl)||0)&&(!r||time>=r.list[0].at)&&!(stamp>at&&!r);return out;
+  out.visible=age<=PHYSICAL_LEAD&&ahead<=PHYSICAL_LEAD&&age<(Number((r?.current||b).ttl)||0)&&(!r||time>=r.list[0].at)&&!(stamp>at&&!r);return out;
  }
  return {ingest,sample,setDelay(ms){delay=Math.max(0,Number(ms)||0);},reset(){stamp=null;delay=100;records.clear();}};
 }

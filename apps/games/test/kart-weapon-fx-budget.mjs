@@ -50,7 +50,7 @@ assert.equal(trail.geometry.attributes.fxOrigin.array[0],3,'streak starts behind
 impact.update(.081);assert(!trail.visible,'bullet streak retires within 80 ms');
 for(const weapon of WEAPON_IDS){
  impact.reset();arsenal.reset();event.weapon=weapon;event.type='blast';impact.emit(event);arsenal.event(event);
- for(const layer of root.children){const a=layer.geometry.attributes.fxLife.array;for(let i=0;i<a.length;i+=4)assert(a[i+1]<=BLAST_FX_BUDGETS.total,'particle lifetime bounded for '+weapon);}
+ for(const layer of root.children){const a=layer.geometry.attributes.fxLife.array;for(let i=0;i<a.length;i+=4)assert(a[i+1]<=BLAST_FX_BUDGETS.total+1e-7,'particle lifetime bounded for '+weapon);}
  impact.update(BLAST_FX_BUDGETS.total+.001);arsenal.update(BLAST_FX_BUDGETS.total+.001);
  assert(root.children.every(o=>!o.visible)&&!arsenal.active(),weapon+' last particle and shockwave retire within budget');
 }
@@ -62,7 +62,7 @@ arsenal.update(.15);arsenal.status(model,{});assert(!muzzle.visible,'attached mu
 event.weapon='thunder';event.type='blast';arsenal.event(event);
 const sky=scene.getObjectByName('ThunderSkyFlash');
 arsenal.update(.1);assert(sky.visible,'thunder flashes the whole viewport at 100 ms');
-arsenal.update(.2);assert(!sky.visible&&scene.getObjectByName('ThunderBolt0').visible,'the tall bolt stays visible at 300 ms, after the screen flash fades');
+arsenal.update(.2);assert(!sky.visible&&!scene.getObjectByName('ThunderBolt0').visible,'the tall bolt and screen flash both retire before 150ms');
 arsenal.update(.3);assert(!arsenal.active(),'thunder bolt and ground ring retire by .6 seconds');
 const quietScene=new THREE.Scene(),quiet=createKartImpactFX(tracked,quietScene,{reducedMotion:true});
 quiet.trail(blade,.05);quiet.update(0);
